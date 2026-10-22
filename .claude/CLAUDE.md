@@ -145,6 +145,20 @@ the clock SDL asks for, and SDL's wall-clock fallback steps -- NETPLAY.md §8). 
 open `wss://`, which the gate speaks with `--tls-cert`/`--tls-key` (TLS on the same port;
 NETPLAY_SETUP.md §10, `TLS=1 scripts/wasm_netplay_test.sh`).
 
+**SHOOTING PRACTICE** (both targets; docs/SHOOTING_PRACTICE.md). The PLAY MATCH screen's PRACTICE
+button (entry 69, under VIEW OPPO) strips the computer side's ten outfield players for an offline
+friendly, so the human eleven can practise finishing against a keeper. It reuses the `sentAway` flag
+a red card already sets (`SendPlayerAway`), so nothing about a short-handed side is new to the match;
+no card, stat or banner is raised, because nothing happened. The mode is LATCHED at kick-off
+(`ShootingPractice_BeginMatch`) rather than read from the menu toggle, which the menu clears when its
+button leaves the screen -- reading it live let the restart after a goal hand the kickoff back to a
+side with nobody to take it. Every kickoff goes through one hook in `PrepareForInitialKick`.
+**Adding a menu entry like this one touches FOUR files, and the generated `src/menu_symbols.c`
+registry is the one everyone forgets** -- a name missing from it binds the entry's text and handler
+to NULL, so the button draws and highlights but the press is a silent no-op (docs/MENUS.md §11).
+`scripts/swos_drive.ps1` + docs/UI_DRIVER.md drive the game from a script to check such a change;
+`scripts/run_amiga_fsuae.ps1` runs the m68k build under FS-UAE.
+
 **UNIFORM and MY CUSTOM TEAM** (SDL only; docs/UNIFORM.md, docs/CUSTOM_TEAMS.md). The PLAY MATCH
 screen's UNIFORM button (entry 68, hidden on the Amiga) opens SWOS 2020's uniform selector
 (`src/uniform_menu.c`): a kit per side for ONE match, kept beside the team and applied at kick-off
