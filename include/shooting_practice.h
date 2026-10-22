@@ -8,10 +8,13 @@
  * A friendly, human vs computer, where the computer side is stripped down to
  * its goalkeeper (TeamGeneralInfo.spritesTable[0]) so the human's 11 can
  * practise finishing into an open defence. Toggled from the PLAY MATCH
- * screen's SHOOTING PRACTICE button (entry 69, SDL only — src/play_match_menu.c,
- * src/menu_data.c). The logic here has no SDL dependency and compiles on both
- * targets; on the Amiga the toggle is simply never set (the button is forced
- * invisible there), so every function below is a no-op.
+ * screen's SHOOTING PRACTICE button (entry 69 — src/play_match_menu.c,
+ * src/menu_data.c).
+ *
+ * BOTH targets. Nothing here depends on SDL: the strip and the kickoff hook are
+ * shared match code, and this object links into the m68k binary too, so the
+ * Amiga gets the same drill. (Contrast UNIFORM, which is SDL-only because it
+ * opens a SWOS 2020 JSON menu the Amiga does not run.)
  */
 #pragma once
 #include "game_types.h"

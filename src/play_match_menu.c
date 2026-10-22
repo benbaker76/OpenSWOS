@@ -582,7 +582,7 @@ void UniformSelected(void) {
 }
 
 /* ================================================================
- * SHOOTING PRACTICE (entry 69) -- OpenSWOS, SDL only: strips the computer
+ * SHOOTING PRACTICE (entry 69) -- OpenSWOS, BOTH targets: strips the computer
  * side down to its goalkeeper for a friendly, so the human's 11 can
  * practise finishing into an open defence (src/shooting_practice.c).
  *
@@ -610,7 +610,10 @@ static void UpdateShootingPracticeButton(void) {
     MenuEntry *exitBtn = &_menuEntries[8];
     MenuEntry *viewOpp = &_menuEntries[7];
     MenuEntry *btn = &_menuEntries[kShootingPracticeEntry];
-#ifdef SWOS_SDL_BUILD
+    /* Both targets: unlike UNIFORM (which opens a SWOS 2020 JSON menu the Amiga
+     * does not run), nothing here is SDL-only -- the strip and the kickoff hook
+     * are shared match code and shooting_practice.o links into the m68k binary
+     * too, so the Amiga gets the same drill. */
     TeamFileEx *t1 = _playMatchTeam1Ptr;
     TeamFileEx *t2 = _playMatchTeam2Ptr;
     int16_t humanVsComputer =
@@ -618,9 +621,6 @@ static void UpdateShootingPracticeButton(void) {
         (t1->team.teamControls == TEAM_COMPUTER && t2->team.teamControls != TEAM_COMPUTER);
     int16_t shown = _squadChangesAllowed && !_viewingOpponentTeam && !_trainingGame &&
                     _gameType == GAME_TYPE_FRIENDLY && humanVsComputer;
-#else
-    int16_t shown = 0;          /* the Amiga has no computer opponent to strip -- never shown */
-#endif
     btn->isInvisible = !shown;
 
     /* Restore VIEW OPPO to its full-height default first -- same thing
@@ -657,11 +657,9 @@ static void UpdateShootingPracticeButton(void) {
 /* ShootingPracticeToggleSelected -- the SHOOTING PRACTICE button. */
 __attribute__((used, externally_visible))
 void ShootingPracticeToggleSelected(void) {
-#ifdef SWOS_SDL_BUILD
     g_playMatchShootingPractice = !g_playMatchShootingPractice;
     UpdateShootingPracticeButton();
     DrawMenu();
-#endif
 }
 
 /* ================================================================ */
