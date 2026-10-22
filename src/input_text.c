@@ -225,7 +225,15 @@ uint16_t InputText(uint16_t maxLenPlus1, uint8_t *entryRaw)
 {
     uint16_t r;
     _gTextInputActive = 1;
+#ifdef __ANDROID__
+    InputSDL_AndroidTextBegin();
+    /* Opening a field with a held gamepad button must not immediately accept. */
+    { extern uint16_t _fireResetFlag; _fireResetFlag = 1; }
+#endif
     r = inputTextBody(maxLenPlus1, entryRaw);
+#ifdef __ANDROID__
+    InputSDL_AndroidTextEnd();
+#endif
     _gTextInputActive = 0;
     return r;
 }
@@ -257,7 +265,16 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
     _deadInputTextVar = 0;
 
     for (;;) {
+#ifdef __ANDROID__
+        /* Text editing is a blocking loop too: pump the IME and present on
+         * the SDL main thread, including after the keyboard resizes a surface. */
+        { extern void WaitForVSync(void); WaitForVSync(); }
+#endif
         MenuCheckControls();
+
+#ifdef __ANDROID__
+        _currentKey = InputSDL_AndroidTextRead();
+#endif
 
         if (_shortFire != 0)
             goto commit;

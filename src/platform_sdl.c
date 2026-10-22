@@ -112,6 +112,22 @@ extern uint16_t _quitToDos;
 /* ---- SDL state ----------------------------------------------------- */
 static SDL_Window   *s_window;
 static SDL_Renderer *s_renderer;
+
+#ifdef __ANDROID__
+void Platform_AndroidTextWindow(int active)
+{
+    static Uint32 fullscreen;
+    if (!s_window) return;
+    if (active) {
+        fullscreen = SDL_GetWindowFlags(s_window) & SDL_WINDOW_FULLSCREEN_DESKTOP;
+        /* Android ignores adjustResize for fullscreen windows. Allow the
+         * surface to shrink while typing so the edited field stays visible. */
+        SDL_SetWindowFullscreen(s_window, 0);
+    } else {
+        SDL_SetWindowFullscreen(s_window, fullscreen);
+    }
+}
+#endif
 /* A small RING of streaming textures. We upload into a DIFFERENT one each frame so
  * we never lock/refill the texture the GPU is still sampling from a recent frame.
  * That per-frame resource contention is what stalls SDL's D3D11 texture-upload
@@ -405,6 +421,20 @@ static int           s_harness_turbo;
  * to game memory comes from the game loop, once per frame (docs/ROLLBACK.md). */
 static volatile int  s_timer_quiesced;
 
+#ifdef __ANDROID__
+/* Lifecycle events can arrive on SDL's Java thread while rendering is blocked. */
+static SDL_atomic_t s_android_background;
+static int SDLCALL android_lifecycle(void *unused, SDL_Event *event)
+{
+    (void)unused;
+    if (event->type == SDL_APP_WILLENTERBACKGROUND)
+        SDL_AtomicSet(&s_android_background, 1);
+    else if (event->type == SDL_APP_DIDENTERFOREGROUND)
+        SDL_AtomicSet(&s_android_background, 0);
+    return 1;
+}
+#endif
+
 /* ---- VBlank tick driver ------------------------------------------- *
  * The Amiga VBlank ISR (Int3TimerHandler) was responsible for bumping
  * `currentGameTick` once per frame. The game polls that counter in
@@ -456,6 +486,9 @@ static int Platform_ActivePacingFps(void)
  * can monopolise CPU). */
 void RunInt3HandlerThrottled(void)
 {
+#ifdef __ANDROID__
+    if (SDL_AtomicGet(&s_android_background)) return;
+#endif
     /* Turbo collapses the 18 ms throttle to 0 so currentGameTick advances on
      * every call — tick-counting waits (fades, holds, the loader-intro
      * timeout) drain at CPU speed and stop depending on the starved timer
@@ -542,7 +575,11 @@ static Uint32 SDLCALL tick_timer_cb(Uint32 interval, void *param)
      * for hardware mode the loader-intro path is the cost — the screen
      * may briefly look frozen during big asset decompresses, but that
      * is purely cosmetic. */
-    if (!s_renderer_is_hw &&
+    if (
+#ifdef __ANDROID__
+        0 && /* Android's surface is owned by the SDL main thread. */
+#endif
+        !s_renderer_is_hw &&
         (s_last_main_render_ms == 0 || since > 60)) {
         /* Worker-thread render: pump_full=0 — do NOT call SDL_PollEvent/SDL_PumpEvents here.
          * Those pull from the OS window message queue and are main-thread-only on Windows;
@@ -1089,6 +1126,9 @@ int Platform_Init(const PlatformInitOptions *opts)
     /* Single-threaded on WASM: Platform_VBlank already pumps the ISR + render +
      * audio every frame, so this fallback timer is redundant (and pthreads on
      * wasm need SharedArrayBuffer/COOP+COEP — avoided entirely). */
+#ifdef __ANDROID__
+    SDL_AddEventWatch(android_lifecycle, NULL);
+#endif
     SDL_InitSubSystem(SDL_INIT_TIMER);
     s_tick_timer = SDL_AddTimer((Uint32)(1000 / Platform_ActivePacingFps()), tick_timer_cb, NULL);
 #endif
@@ -1098,6 +1138,9 @@ int Platform_Init(const PlatformInitOptions *opts)
 
 void Platform_Shutdown(void)
 {
+#ifdef __ANDROID__
+    SDL_DelEventWatch(android_lifecycle, NULL);
+#endif
     if (s_tick_timer) { SDL_RemoveTimer(s_tick_timer); s_tick_timer = 0; }
     if (s_render_mtx) { SDL_DestroyMutex(s_render_mtx); s_render_mtx = NULL; }
     if (s_isr_mtx)    { SDL_DestroyMutex(s_isr_mtx);    s_isr_mtx    = NULL; }
@@ -1532,6 +1575,13 @@ static void pump_events_any_thread(void)
 {
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
+#ifdef __ANDROID__
+        if ((ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP) &&
+            ev.key.keysym.sym == SDLK_AC_BACK) {
+            ev.key.keysym.sym = SDLK_ESCAPE;
+            ev.key.keysym.scancode = SDL_SCANCODE_ESCAPE;
+        }
+#endif
         switch (ev.type) {
         case SDL_QUIT:
             Platform_RequestQuit();
@@ -1570,6 +1620,16 @@ static void pump_events_any_thread(void)
             }
             break;
         case SDL_KEYDOWN:
+#ifdef __ANDROID__
+            {
+                extern volatile uint16_t _gTextInputActive;
+                if (_gTextInputActive) {
+                    /* Text fields own punctuation too: +/- must not scale the window. */
+                    InputSDL_HandleEvent(&ev);
+                    continue;
+                }
+            }
+#endif
             /* ESC at the top-level main menu quits the game; everywhere
              * else it stays passed through to the menu/game-loop layer
              * (in-game pause/end-match menu, sub-menus' EXIT, etc.). */
@@ -1635,6 +1695,7 @@ static void pump_events_any_thread(void)
             }
             /* fallthrough */
         case SDL_KEYUP:
+        case SDL_TEXTINPUT:
         case SDL_CONTROLLERBUTTONDOWN:
         case SDL_CONTROLLERBUTTONUP:
         case SDL_CONTROLLERAXISMOTION:
@@ -2275,6 +2336,12 @@ static void present_interval_stats(void)
 
 int Platform_Present(void)
 {
+#ifdef __ANDROID__
+    while (SDL_AtomicGet(&s_android_background) && !_quitToDos) {
+        pump_events_any_thread();
+        SDL_Delay(20);
+    }
+#endif
     /* Stamp first so the async timer callback sees a recent main-thread
      * render as soon as we enter RenderFrame — prevents the timer from
      * firing a concurrent render while we're holding the mutex. */

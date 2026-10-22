@@ -381,7 +381,19 @@ int main(int argc, char **argv)
      * /data, /grafs, … and cwd is already "/", so skip the chdir.
      * Switch: the content is a read-only mount at rom:/ and there is no chdir
      * to make; swos_data_path() (swos_io.h) anchors the data reads instead. */
-#if !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
+#if defined(__ANDROID__)
+    /* The Activity unpacks the test runtime before starting SDL_main. */
+    {
+        const char *root = SDL_AndroidGetInternalStoragePath();
+        char runtime[1024];
+        if (!root) return 1;
+        snprintf(runtime, sizeof runtime, "%s/runtime", root);
+        if (chdir(runtime) != 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Cannot open runtime: %s", runtime);
+            return 1;
+        }
+    }
+#elif !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
     chdir_to_binary(argv ? argv[0] : NULL);
 #endif
 
@@ -1179,6 +1191,11 @@ int main(int argc, char **argv)
      * Set via the raw hint name so it compiles on any SDL2 (the macro is 2.24+)
      * and is ignored on Linux/WASM/older SDL. */
     SDL_SetHint("SDL_WINDOWS_DPI_AWARENESS", "permonitorv2");
+#ifdef __ANDROID__
+    /* A sensor must never claim P1 ahead of the handheld's real controls. */
+    SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
+    SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+#endif
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS |
                   SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {

@@ -46,7 +46,9 @@
 #include <string.h>
 #include <SDL.h>
 
-#ifdef __linux__
+/* Desktop-only fork/ELF harness: Android builds as a shared library and has
+ * neither the executable's __data_start symbol nor this test process model. */
+#if defined(__linux__) && !defined(__ANDROID__)
 #include <elf.h>
 #include <poll.h>
 #include <signal.h>
@@ -346,7 +348,7 @@ static Rig *R;
 #define BIT_GET(b, i)  ((b)[(i) >> 3] & (1u << ((i) & 7)))
 #define BIT_SET(b, i)  ((b)[(i) >> 3] |= (uint8_t)(1u << ((i) & 7)))
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__ANDROID__)
 static int sym_order(const void *a, const void *b)
 {
     const RbSym *x = (const RbSym *)a, *y = (const RbSym *)b;
@@ -765,7 +767,7 @@ typedef struct {
 
 #define WHOLE_DATA 0xFFFFFFFFu
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__ANDROID__)
 enum { TEST_OK, TEST_CHILD, TEST_DIED, TEST_HUNG };
 
 /* Each leave-one-out pass runs in a forked copy of the process. Leaving a variable
@@ -1061,7 +1063,7 @@ static void window_boundary(Rig *r, uint32_t frame)
             continue;               /* a new window may start at this very frame */
 
         case PH_TEST: {
-#ifdef __linux__
+#if defined(__linux__) && !defined(__ANDROID__)
             /* In a forked test (fork_test): play the window, report, and vanish. */
             TestResult res;
             memset(&res, 0, sizeof res);
@@ -1152,7 +1154,7 @@ void Rollback_MatchStart(void)
     _currentGameTick = 0;
     pin_rng();
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__ANDROID__)
     R->haveSegment = load_segment(&R->seg);
 #endif
     if (!R->haveSegment && s_mode != ROLLBACK_CHECK && s_mode != ROLLBACK_TRACE) {

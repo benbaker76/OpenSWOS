@@ -36,6 +36,12 @@ void PrintFormatted(const uint8_t *fmt, uint8_t *out,
  */
 uint16_t InputText(uint16_t maxLenPlus1, uint8_t *entry);
 
+#ifdef __ANDROID__
+void InputSDL_AndroidTextBegin(void);
+void InputSDL_AndroidTextEnd(void);
+uint16_t InputSDL_AndroidTextRead(void);
+#endif
+
 /* ---- InsertCharacter ----
  * Inserts a character at pos in inMenuKeyboardBuffer, shifting right.
  * pos: pointer within inMenuKeyboardBuffer

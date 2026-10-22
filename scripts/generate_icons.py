@@ -13,6 +13,8 @@ only someone changing the artwork runs it:
     SWOS.icns                         macOS: `make macos-app` copies it into the bundle
     packaging/macos/SWOS.iconset/     the same images unpacked -- what iconutil takes
     packaging/linux/hicolor/          the freedesktop icon theme's sizes
+    android/app/src/main/res/drawable-nodpi/openswos_mark.png
+                                     Android adaptive launcher's foreground artwork
     packaging/switch/swos_icon.bmp    Switch: the 1024x1024 24-bit BMP AuthoringTool wants
     include/swos_window_icon.h        the window icon on Linux desktops, as RGBA pixels
     wasm/shell.html                   the web build's favicon, inlined as a data: URI
@@ -305,6 +307,10 @@ def main() -> int:
     hicolor = ROOT / "packaging" / "linux" / "hicolor"
     for size in HICOLOR_SIZES:
         write_png(images[size], hicolor / f"{size}x{size}" / "apps" / f"{LINUX_ICON_NAME}.png")
+
+    # Android's adaptive-icon XML supplies its background and safe-area sizing.
+    write_png(images[512], ROOT / "android" / "app" / "src" / "main" / "res" /
+              "drawable-nodpi" / "openswos_mark.png")
 
     switch = ROOT / "packaging" / "switch" / "swos_icon.bmp"
     write_switch_bmp(switch)

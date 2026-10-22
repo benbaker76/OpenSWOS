@@ -25,6 +25,7 @@
 
 #include "platform_sdl.h"
 #include <SDL.h>
+#include "input_text.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -256,6 +257,50 @@ enum { BIND_UP, BIND_DOWN, BIND_LEFT, BIND_RIGHT, BIND_FIRE, BIND_COUNT };
 static SDL_Scancode s_bind[BIND_COUNT];        /* SDL_SCANCODE_UNKNOWN: not bound */
 static const char *const k_bindName[BIND_COUNT] = { "key_up", "key_down", "key_left", "key_right", "key_fire" };
 extern volatile uint16_t _gTextInputActive;    /* input_text.c */
+
+#ifdef __ANDROID__
+/* IMEs can commit an entire word at once. Keep that input separate from the
+ * Amiga's nine-key FIFO, and use text events rather than duplicate key events
+ * synthesized by SDL's Android InputConnection. Drained on the game thread. */
+static uint8_t s_android_text[256];
+static uint16_t s_android_text_read, s_android_text_write;
+
+static void android_text_push(uint8_t key)
+{
+    uint16_t next = (s_android_text_write + 1) % sizeof s_android_text;
+    if (next == s_android_text_read) return;
+    s_android_text[s_android_text_write] = key;
+    s_android_text_write = next;
+}
+
+void InputSDL_AndroidTextBegin(void)
+{
+    extern void InputSDL_ClearKeyState(void);
+    extern void Platform_AndroidTextWindow(int active);
+    InputSDL_ClearKeyState();
+    _keyCount = 0;                 /* do not type the field's activation key */
+    s_android_text_read = s_android_text_write = 0;
+    Platform_AndroidTextWindow(1);
+    SDL_StartTextInput();
+}
+
+void InputSDL_AndroidTextEnd(void)
+{
+    extern void Platform_AndroidTextWindow(int active);
+    SDL_StopTextInput();
+    Platform_AndroidTextWindow(0);
+    s_android_text_read = s_android_text_write = 0;
+}
+
+uint16_t InputSDL_AndroidTextRead(void)
+{
+    uint16_t key;
+    if (s_android_text_read == s_android_text_write) return 0;
+    key = s_android_text[s_android_text_read];
+    s_android_text_read = (s_android_text_read + 1) % sizeof s_android_text;
+    return key;
+}
+#endif
 
 /* `which`: 0 up, 1 down, 2 left, 3 right, 4 fire. `name`: an SDL scancode name ("W",
  * "Left Shift", "Space"), or "" for none. Returns 0, or 1 for a name SDL does not know. */
@@ -604,6 +649,33 @@ void InputSDL_Shutdown(void)
 
 void InputSDL_HandleEvent(const SDL_Event *e)
 {
+#ifdef __ANDROID__
+    if (_gTextInputActive) {
+        if (e->type == SDL_TEXTINPUT) {
+            const unsigned char *p = (const unsigned char *)e->text.text;
+            while (*p) {
+                uint8_t c = *p++;
+                if (c >= 'a' && c <= 'z') c -= 'a' - 'A';
+                /* The original editor's charset/filter remains authoritative. */
+                if (c >= 32 && c < 127) android_text_push(c);
+            }
+            return;
+        }
+        if (e->type == SDL_KEYDOWN) {
+            switch (e->key.keysym.sym) {
+            case SDLK_BACKSPACE: android_text_push(127); break;
+            case SDLK_DELETE:    android_text_push(126); break;
+            case SDLK_LEFT:      android_text_push(19); break;
+            case SDLK_RIGHT:     android_text_push(18); break;
+            case SDLK_ESCAPE:    android_text_push(27); break;
+            case SDLK_RETURN: case SDLK_KP_ENTER:
+            case SDLK_LCTRL: case SDLK_RCTRL: android_text_push(13); break;
+            default: break;
+            }
+            return;
+        }
+    }
+#endif
     switch (e->type) {
     case SDL_KEYDOWN: {
         /* The CONTROLS menu is waiting for a key: this is it. */
