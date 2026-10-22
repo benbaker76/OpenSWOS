@@ -196,6 +196,24 @@ EXT=/mnt/c/Users/<your-user>/.vscode/extensions/bartmanabyss.amiga-debug-1.8.2/b
 PATH="$EXT/opt/bin:$EXT:$PATH" make -f Makefile.amiga -j$(nproc)
 ```
 
+**Building the Amiga target from native Windows** (no WSL): use the `gnumake.exe`
+bundled with the toolchain and pass `WINDOWS=1`, from PowerShell/cmd — *not* from a
+POSIX shell:
+
+```powershell
+$EXT = "<toolchain>\bin\win32"      # e.g. a checkout of the fork, or the extension dir
+$env:PATH = "$EXT\opt\bin;$EXT;" + $env:PATH
+& "$EXT\gnumake.exe" -f Makefile.amiga WINDOWS=1 -j4
+```
+
+`WINDOWS=1` selects the makefile's cmd-shell branches (`where`, `if not exist obj mkdir`).
+Building from MSYS2 or Cygwin instead fails in a confusing way: the recipes pass
+`$(CURDIR)/$<`, which becomes `/c/...` or `/cygdrive/c/...`, and the native Windows
+compiler mis-parses that as a switch — the error looks like
+`'amera.o' is not recognized as an internal or external command` (the leading `/c`
+has been eaten). Only the toolchain binaries are needed for a build; installing the
+fork as a VS Code extension is required only for the in-editor tasks and FS-UAE.
+
 From VS Code, use the **Build (Amiga)** task, then one of the *FS-UAE* /
 *WinUAE* launch configurations.
 

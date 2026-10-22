@@ -885,3 +885,79 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
 - **Literal text is not translated** — `tr()` is keyed by symbol name.
 - **Blinking text** (`kBlinkText`) in a `dos_redraw` menu would add a vsync per blink
   frame (`UpdateBlinkingMenuText` redraws on its own). None of the imported menus blink.
+
+## 11. Adding an entry to a CLASSIC (packed) menu — the checklist
+
+The classic menus (`_playMatchMenu`, `_chooseTeamsFriendlyMenu`, …) live in **four**
+places that must all agree. Miss one and the failure is silent and misleading — the
+button draws and the cursor lands on it, but **nothing happens when you press fire**.
+That exact bug cost a full session on the SHOOTING PRACTICE button (entry 69), so the
+order below is the order to do it in.
+
+1. **`bin/data_json/menus/<menu>.json`** — the source of truth. Append an `entry` item
+   with its `coords`, `nav`, `colors`, `text` (`str`) and `onselect_fire` (`func`).
+   `str`/`func` are **symbol NAMES**, resolved by name at load time (§2c).
+
+2. **`include/menu_data.h`** — add a field to that menu's struct, in stream order,
+   immediately before `markEndMenu`. The initializer in `menu_data.c` is **positional**,
+   so field order *is* the byte layout. Reuse an existing shape
+   (`MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect` is the usual button).
+
+3. **`src/menu_data.c`** — add the matching initializer block, plus the `extern`
+   declarations for your two symbols. This file is **generated** from the JSON by
+   `scripts/emit_menus.py`, so normally you edit the JSON and let the build regenerate it.
+   See the warning below before you rely on that.
+
+4. **⚠️ `src/menu_symbols.c` — THE ONE EVERYONE FORGETS.** Register the new names in
+   `bin/data_json/menus/_symbols.json` (`functions` / `strings` arrays, kept sorted) and
+   regenerate:
+
+   ```sh
+   python3 scripts/gen_menu_symbols.py
+   ```
+
+   **Why it matters:** the menu is bound **by symbol name** through the table in
+   `menu_symbols.c`. A name that is not in that table resolves to **NULL**, and the
+   loader writes that NULL straight into the entry's `fg` / `onSelect` slots. `MenuProc`
+   then does `if (onSelectPtr == 0) goto no_event_or_done;` — a silent no-op. Everything
+   else about the entry looks perfect, which is what makes this so hard to spot.
+
+   **Signature of this bug** (verified with a byte dump of the live menu data):
+
+   ```
+   UNIFORM   (registered):  08 00 00 00 | 58 0D 64 97 F7 7F 00 00   <- text ptr OK
+                            0D 00       | 40 3F 5B 97 F7 7F 00 00   <- onSelect OK
+   PRACTICE  (missing):     08 00 00 00 | 00 00 00 00 00 00 00 00   <- NULL
+                            0D 00       | 00 00 00 00 00 00 00 00   <- NULL
+   ```
+
+   The **opcodes are intact and only the relocated pointer slots are zero** — that is how
+   you tell this apart from memory corruption (which would wipe the opcodes too) and from
+   a link problem (the linked `.exe` on disk has the correct preferred-base addresses;
+   they are zeroed later, at load, by the name binding).
+
+### 11a. Ordinals, templates and positioning
+
+- **Runtime ordinal ≠ index of the `entry` item in the JSON.** Template entries
+  (`MENU_MARK_START_TEMPLATE`) are written to the template and do **not** consume an
+  ordinal (`UnpackMenu` only does `curEntry->ordinal = entryCount++` at `MENU_CMD_END`
+  for non-template entries). On `chooseTeamsFriendlyMenu` the JSON items are one ahead of
+  the runtime ordinals. Trust the `[menu-nav]` log, not your own count.
+- **Nav links are ordinals** (`int8_t`), and the engine jumps straight to
+  `left/right/up/down` — it does not search geometrically. A link of `-1` is a dead end
+  ("no link: stays" in the nav log).
+- **Static coords are only a starting point** if C code repositions the entry every frame
+  (`UpdateUniformButton`, `UpdateShootingPracticeButton` do exactly that). Note that a
+  slot that is *text*-empty on screen is not necessarily *pixel*-empty: USE MATCH TEAM's
+  slot (entry 5) is free during a friendly but sits on top of the tactics grid, which is
+  why SHOOTING PRACTICE shares VIEW OPPO's column instead.
+
+### 11b. Build gotchas on a machine without a working `python3`
+
+`src/menu_data.c`, `src/competition_data.c` and `src/tactics_data.c` are regenerated
+whenever their JSON is newer. If `python3` resolves to the **Windows Store stub**, that
+rule fails (`Error 49`) and aborts the whole build. Either pass the real interpreter
+(`make PYTHON=/c/Users/<you>/AppData/Local/Programs/Python/Python312/python.exe`) or,
+if the committed `.c` is already correct, `touch src/menu_data.c` so make skips the regen.
+`scripts/emit_menus.py` also currently mangles the UTF-8 em-dashes in that file's
+comments, so check `git diff` before committing a regenerated `menu_data.c`.

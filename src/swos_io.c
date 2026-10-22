@@ -316,6 +316,10 @@ void swos_save_dir_init(void)
     snprintf(user, sizeof user, "%s/Documents/SWOS", profile);
     for (char *p = user; *p; p++)
         if (*p == '\\') *p = '/';
+# elif defined(__ANDROID__)
+    const char *internal = SDL_AndroidGetInternalStoragePath();
+    if (!internal || !*internal) return;
+    snprintf(user, sizeof user, "%s", internal);
 # elif defined(__APPLE__)
     /* ~/Library/Application Support/SWOS, but NOT via $HOME alone.
      *
@@ -466,6 +470,9 @@ int swos_io_save(const uint8_t *name, const uint8_t *buf, uint32_t size)
 #if !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
 #include <dirent.h>
 #include <strings.h>
+#include <sys/stat.h>   /* stat()/struct stat below — already pulled in above for the
+                         * Cygwin/Linux/macOS SWOS_MKDIR branch, but not for raw MinGW
+                         * (_WIN32 && !__CYGWIN__), which mingw-w64 supports fine too */
 
 /* Find `rel` under `root` matching every component without regard to case,
  * writing the real path to out. 0 when it is there. An exact stat first: that

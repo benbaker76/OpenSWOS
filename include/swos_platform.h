@@ -143,7 +143,14 @@ typedef __UINTPTR_TYPE__ uintptr_t;
  * units that include this header before display.h. */
 struct Custom;
 extern volatile struct Custom *_custom;
-#define CUSTOM_BASE ((unsigned long)(_custom))
+/* uintptr_t, NOT unsigned long: Windows x64 is LLP64, where `unsigned long` is
+ * 32 bits, so casting the stub pointer through it TRUNCATED the address and the
+ * offset-relative pokes below (`*(uint16_t *)(CUSTOM_BASE + AUD0VOL_OFF)`)
+ * dereferenced a 32-bit remnant -- `mov %r8w,0xa8(%eax)` -- and segfaulted on the
+ * first one, in StopAllAudioChannels at the first match kick-off. LP64 hosts
+ * (Linux, Cygwin, macOS) and the 32-bit Amiga were unaffected, which is why only
+ * the MinGW build crashed. */
+#define CUSTOM_BASE ((uintptr_t)(_custom))
 
 /* ------------------------------------------------------------------
  * HLOG — harness diagnostic log. Writes "[harness] ..." to stderr

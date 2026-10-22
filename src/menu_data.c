@@ -367,6 +367,7 @@ extern void TransfersMenu(void);
 extern void UndoTactics(void);
 extern void UseMatchTeamSelect(void);
 extern void UniformSelected(void);
+extern void ShootingPracticeToggleSelected(void);
 extern void User_A_Tactics(void);
 extern void User_B_Tactics(void);
 extern void User_C_Tactics(void);
@@ -564,6 +565,7 @@ extern char _aTransfers[];
 extern char _aType[];
 extern char _aUndo[];
 extern char _aUniform[];
+extern char g_shootingPracticeLabel[];
 extern char _aUseMatchTeam[];
 extern char _aV[];
 extern char _aViewCompetitio[];
@@ -9053,6 +9055,14 @@ Menu_PlayMatch _playMatchMenu = {
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aUniform },
         { MENU_CMD_ONSELECT_FIRE, UniformSelected },
+        MENU_CMD_END
+    },
+    {
+        { 0, -99, 105, 10 },
+        { MENU_CMD_NAV, -1, -1, -1, 8 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_TEXT_PTR, 0x0, g_shootingPracticeLabel },
+        { MENU_CMD_ONSELECT_FIRE, ShootingPracticeToggleSelected },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

@@ -9,6 +9,7 @@
 #include "game_types.h"
 #include "play_match_menu.h"
 #include "string_utils.h"
+#include "shooting_practice.h"   /* shared: compiled for both targets */
 #ifdef SWOS_SDL_BUILD
 #include "uniform.h"        /* a kit chosen for this match (UNIFORM screen) */
 #endif
@@ -1089,6 +1090,11 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
         _team1Computer = 0x00FF;
     if (team2->teamControls == TEAM_COMPUTER)
         _team2Computer = 0x00FF;
+
+    /* SHOOTING PRACTICE: latch the mode for this match now that both sides'
+     * controls are known, so nothing during the match depends on the menu
+     * toggle still being set (src/shooting_practice.c). */
+    ShootingPractice_BeginMatch();
 
     /* Set secondary colors for both teams */
 #ifdef SWOS_SDL_BUILD

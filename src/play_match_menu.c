@@ -24,6 +24,7 @@
 #include "uniform.h"            /* the UNIFORM button (entry 68) */
 #include "custom_team.h"        /* (CUSTOM) where the country would be named */
 #endif
+#include "shooting_practice.h"  /* the SHOOTING PRACTICE button (entry 69) */
 
 /* Prevent GCC from converting byte loops to memcpy/memset (no libc) */
 #pragma GCC optimize("no-tree-loop-distribute-patterns")
@@ -580,6 +581,89 @@ void UniformSelected(void) {
 #endif
 }
 
+/* ================================================================
+ * SHOOTING PRACTICE (entry 69) -- OpenSWOS, SDL only: strips the computer
+ * side down to its goalkeeper for a friendly, so the human's 11 can
+ * practise finishing into an open defence (src/shooting_practice.c).
+ *
+ * Shares VIEW OPPO's column the same way UNIFORM shares EDIT TACTICS' (see
+ * UpdateUniformButton below): VIEW OPPO narrows to the top half, this takes
+ * the bottom half, using exitBtn as the same "full height" reference
+ * UpdateUniformButton restores EDIT TACTICS to when UNIFORM isn't shown.
+ * The old spot (reusing USE MATCH TEAM's slot, entry 5) looked free on
+ * paper but sits on top of the tactics/formation grid, which IS drawn
+ * there on a plain friendly screen -- entry 5 is only text-empty during
+ * one, not pixel-empty.
+ * ================================================================ */
+enum { kShootingPracticeEntry = 69 };
+
+/* Single short word, like UNIFORM -- the column is ~68px, no room for an
+ * ON/OFF suffix. State shows as background colour instead (bgColor below). */
+char g_shootingPracticeLabel[16] = "PRACTICE";
+
+/* GAME_TYPE_CAREER (=4) is the only named constant shared via
+ * play_match_menu.h; 0 is "a friendly" everywhere else in the codebase
+ * (e.g. arcade.c, online_menus.c, netplay_lobby.c) but has no shared name. */
+#define GAME_TYPE_FRIENDLY 0
+
+static void UpdateShootingPracticeButton(void) {
+    MenuEntry *exitBtn = &_menuEntries[8];
+    MenuEntry *viewOpp = &_menuEntries[7];
+    MenuEntry *btn = &_menuEntries[kShootingPracticeEntry];
+#ifdef SWOS_SDL_BUILD
+    TeamFileEx *t1 = _playMatchTeam1Ptr;
+    TeamFileEx *t2 = _playMatchTeam2Ptr;
+    int16_t humanVsComputer =
+        (t1->team.teamControls != TEAM_COMPUTER && t2->team.teamControls == TEAM_COMPUTER) ||
+        (t1->team.teamControls == TEAM_COMPUTER && t2->team.teamControls != TEAM_COMPUTER);
+    int16_t shown = _squadChangesAllowed && !_viewingOpponentTeam && !_trainingGame &&
+                    _gameType == GAME_TYPE_FRIENDLY && humanVsComputer;
+#else
+    int16_t shown = 0;          /* the Amiga has no computer opponent to strip -- never shown */
+#endif
+    btn->isInvisible = !shown;
+
+    /* Restore VIEW OPPO to its full-height default first -- same thing
+     * UpdateUniformButton does to EDIT TACTICS before deciding whether to
+     * share its column. */
+    viewOpp->y = exitBtn->y;
+    viewOpp->dwHeight = exitBtn->dwHeight;
+    viewOpp->downEntry = -1;
+
+    if (!shown) {
+        g_playMatchShootingPractice = 0;   /* never leak a stale ON into a match it can't apply to */
+        return;
+    }
+
+    btn->x = viewOpp->x;
+    btn->dwWidth = viewOpp->dwWidth;
+    btn->leftEntry = -1;
+    btn->rightEntry = 8;
+    btn->upEntry = 7;
+    btn->downEntry = -1;
+
+    viewOpp->y = exitBtn->y - 2;
+    viewOpp->dwHeight = 10;
+    viewOpp->downEntry = kShootingPracticeEntry;
+
+    btn->y = exitBtn->y + 9;
+    btn->dwHeight = 10;
+
+    btn->fg = (uintptr_t)g_shootingPracticeLabel;
+    btn->bgColor = (btn->bgColor & 0xFFF0) |
+        (g_playMatchShootingPractice ? YELLOW_GREEN_BLACK_14 : BRIGHT_BLUE_TO_BLUE_13);
+}
+
+/* ShootingPracticeToggleSelected -- the SHOOTING PRACTICE button. */
+__attribute__((used, externally_visible))
+void ShootingPracticeToggleSelected(void) {
+#ifdef SWOS_SDL_BUILD
+    g_playMatchShootingPractice = !g_playMatchShootingPractice;
+    UpdateShootingPracticeButton();
+    DrawMenu();
+#endif
+}
+
 /* ================================================================ */
 __attribute__((used, externally_visible))
 void SetVariableButtons(void) {
@@ -750,6 +834,7 @@ void SetVariableButtons(void) {
     }
 
     UpdateUniformButton();
+    UpdateShootingPracticeButton();
 }
 
 /* ================================================================ */

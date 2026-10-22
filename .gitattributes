@@ -1,0 +1,16 @@
+# AmigaDOS boot/script files must keep LF endings.
+#
+# On a Windows checkout with core.autocrlf=true, git rewrote bin/s/startup-sequence
+# to CRLF. AmigaDOS then reads the first line as `SYS:SWOS2\r`, which is not a
+# command, and the boot dies with:
+#
+#     : Unknown command
+#       failed returncode 10
+#
+# The release drawer is staged on Linux/WSL so the zips were never affected --
+# only a Windows developer checkout running the game under FS-UAE/WinUAE.
+# `-text` means "never translate line endings for this path", in either direction.
+bin/s/startup-sequence   -text
+bin/c/*                  -text
+packaging/amiga/**       -text
+*.uaem                   -text

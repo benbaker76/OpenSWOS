@@ -13,6 +13,7 @@
                              * OCS 16-colour path on AGA). See docs/AGA.md §9a. */
 #include "dos_mode.h"      /* _gDosGameplay: GameOver drops the training-camera test */
 #include "deterministic.h"
+#include "shooting_practice.h"
 
 /* ---- External globals (in SWOS2.s code/BSS sections) ---- */
 extern Sprite             _ballSprite;
@@ -422,6 +423,12 @@ void InitPlayersBeforeEnteringPitch(void)
             spritesTableA = _team2SpritesTable;
         }
     }
+
+    /* SHOOTING PRACTICE: both teams just had sentAway reset to 0 above (the
+     * ST_STARTING_GAME branch), so this is the one place that needs to
+     * re-apply the strip -- and it runs again every time teams walk back
+     * out (second half), which is exactly when it needs to. */
+    ShootingPractice_StripCpuOutfieldPlayers();
 }
 
 /* ================================================================
@@ -719,6 +726,18 @@ void EndFirstExtraTime(void)
 __attribute__((used, externally_visible))
 void PrepareForInitialKick(void)
 {
+    /* SHOOTING PRACTICE: the computer side is down to its goalkeeper, who cannot
+     * take a kickoff -- he walks to the centre circle and the match sits there.
+     * Every kickoff comes through here (match start, half time, extra time, and
+     * the restart after a goal -- which is the one that actually bites, since the
+     * side that concedes restarts), so forcing the human side here covers them
+     * all, and the direction/turn flags below derive from the same value. */
+    {
+        int16_t forced = ShootingPractice_ForcedKickoffTeamNum();
+        if (forced)
+            _teamStarting = (uint16_t)forced;
+    }
+
     SetBallPosition(336, 449);
 
     TeamGeneralInfo *kickoffTeam = &_topTeamData;
