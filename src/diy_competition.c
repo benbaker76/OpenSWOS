@@ -25,6 +25,7 @@
 #include "career_status.h"
 #include "career_season.h"
 #include "game_init.h"
+#include "shooting_practice.h"  /* SHOOTING PRACTICE gates the team selection below */
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
 
 /* ---- Constants ---- */
@@ -8448,6 +8449,7 @@ extern uint8_t _aSelect0MoreTea[];          /* "SELECT %0 MORE TEAMS" */
 extern uint8_t _aSelect1LessTea[];          /* "SELECT 1 LESS TEAM" */
 extern uint8_t _aSelect0LessTea[];          /* "SELECT %0 LESS TEAMS" */
 extern uint8_t _aError[];                   /* "ERROR" */
+extern uint8_t _aSelect1CpuTeam[];          /* "SELECT 1 COMPUTER TEAM" */
 extern int16_t _bureaucracyMenuItems[];     /* {58, 57, 55, 0, -1} */
 
 extern MenuEntry _menuEntries[];
@@ -8492,7 +8494,15 @@ void ChooseTeamsSetHeader(void)
 }
 
 /* CheckNumTeamsAllowed: update menu entry visibility and status text
- * based on numSelectedTeams vs numNeededTeams. */
+ * based on numSelectedTeams vs numNeededTeams.
+ *
+ * NOT a DIY function despite the file -- it landed here with its RE chunk, and
+ * nothing in DIY competitions calls it. Its only callers are the FRIENDLY team
+ * selection screen's: Bureaucracy below, from ChooseTeamsFriendlyCommon2
+ * (teams.c), and ChooseTeamsFriendlyInitFinish. It is one of three functions in
+ * three files that drive the same PLAY button and "SELECT N MORE TEAMS" line on
+ * the three screens of that flow -- the others are SetChooseChangeTeamsEntries
+ * (teams.c) and CheckNumberOfTeams (menus.c). */
 __attribute__((used, externally_visible))
 void CheckNumTeamsAllowed(void)
 {
@@ -8504,7 +8514,14 @@ void CheckNumTeamsAllowed(void)
         return;
     }
 
-    if (_numSelectedTeams == _numNeededTeams) {
+    /* SHOOTING PRACTICE: both teams picked is not enough -- one of them has to
+     * be the computer and the other not, or the drill has nothing to strip, or
+     * nobody to shoot (shooting_practice.h). Treated as a wrong selection
+     * rather than fixed up at kick-off, so the mode never quietly plays as an
+     * ordinary friendly. */
+    int16_t practiceBlocked = g_shootingPracticeMode && !ShootingPractice_SelectionOk();
+
+    if (_numSelectedTeams == _numNeededTeams && !practiceBlocked) {
         /* Exact match: show play button, hide status text */
         _menuEntries[57].isInvisible = 0;
         _menuEntries[58].isInvisible = 1;
@@ -8526,8 +8543,9 @@ void CheckNumTeamsAllowed(void)
     int16_t diff = (int16_t)_numSelectedTeams - (int16_t)_numNeededTeams;
 
     if (diff == 0) {
-        /* Equal — write "ERROR" (entry is hidden anyway) */
-        StringCopy(_aError, statusDst);
+        /* Equal — "ERROR" (the entry is hidden anyway), unless the drill is
+         * waiting for a computer side, where this IS the visible message. */
+        StringCopy(practiceBlocked ? _aSelect1CpuTeam : _aError, statusDst);
     } else if (diff < 0) {
         /* Need more teams */
         uint16_t needed = (uint16_t)(-diff);

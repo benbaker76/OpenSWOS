@@ -24,6 +24,7 @@
 #include "menu_system.h"
 #include "online_menus.h"   /* MULTIPLAYER opens SWOS 2020's online flow */
 #include "credits_menu.h"   /* CREDITS (SDL) */
+#include "shooting_practice.h"  /* SHOOTING PRACTICE runs the friendly flow below */
 #include "deterministic.h"
 #include "string_utils.h"
 #include "text_render.h"
@@ -5578,6 +5579,8 @@ extern void SetCurrentEntry(uint16_t entry);
 
 extern uint8_t _aFriendly_1[];       /* "FRIENDLY" */
 extern uint8_t _aPlayFriendly[];     /* "PLAY FRIENDLY" */
+extern uint8_t _aShootingPractice[]; /* "SHOOTING PRACTICE" */
+extern uint8_t _aPlayPractice[];     /* "PLAY PRACTICE" */
 extern uint16_t _friendlyOk;
 extern uint16_t _minSubstitutes;
 extern uint16_t _maxSubstitutes;
@@ -5633,6 +5636,11 @@ void DisableEntries(void)
 __attribute__((used, externally_visible))
 void FriendlyMenuInit(void)
 {
+    /* Entry 0 is the header box. SHOOTING PRACTICE runs this screen as its own
+     * (src/shooting_practice.c), and it is the one place the words FRIENDLY
+     * would otherwise still be on screen during a drill. */
+    _menuEntries[0].fg = (uintptr_t)(g_shootingPracticeMode ? _aShootingPractice
+                                                            : _aFriendly_1);
     if (_friendlyOk != 0)
         SetSelectTwoTeamsText();
     FriendlyMenuReinit();
@@ -5677,7 +5685,13 @@ void FriendlyMenuReinit(void)
 __attribute__((used, externally_visible))
 void ChooseTeamsMenu(void)
 {
-    GoGetTeamsForPlay(_aFriendly_1, _aPlayFriendly, 2, 1, 1, 1);
+    /* SHOOTING PRACTICE borrows this whole flow, so the only thing that marks
+     * the selection screens as the drill's is the two words they are given:
+     * gameTypeStr heads them, playWhatStr is the button that starts the match. */
+    if (g_shootingPracticeMode)
+        GoGetTeamsForPlay(_aShootingPractice, _aPlayPractice, 2, 1, 1, 1);
+    else
+        GoGetTeamsForPlay(_aFriendly_1, _aPlayFriendly, 2, 1, 1, 1);
     if (_chooseTeamsResult == 0) {
         SetExitMenuFlag();
         return;
@@ -5894,6 +5908,7 @@ extern uint8_t _aSelect0MoreTea[];  /* "SELECT %0 MORE TEAMS" */
 extern uint8_t _aSelect1LessTea[];  /* "SELECT 1 LESS TEAM" */
 extern uint8_t _aSelect0LessTea[];  /* "SELECT %0 LESS TEAMS" */
 extern uint8_t _aError[];           /* "ERROR" */
+extern uint8_t _aSelect1CpuTeam[];  /* "SELECT 1 COMPUTER TEAM" */
 
 __attribute__((used, externally_visible))
 void CheckNumberOfTeams(void)
@@ -5911,6 +5926,17 @@ void CheckNumberOfTeams(void)
     }
 
     int16_t diff = (int16_t)(_numSelectedTeams - _numNeededTeams);
+    if (diff == 0 && g_shootingPracticeMode && !ShootingPractice_SelectionOk()) {
+        /* Both teams picked, but not as one human side and one computer side --
+         * the drill has nothing to strip, or nobody to shoot. Say so where the
+         * count message goes instead of starting a match the mode can't apply
+         * to (shooting_practice.h). */
+        _menuEntries[89].isInvisible = 1;
+        _menuEntries[90].isInvisible = 0;
+        _menuEntries[87].isInvisible = (_numSelectedTeams == 0) ? 1 : 0;
+        StringCopy(_aSelect1CpuTeam, (uint8_t *)_menuEntries[90].fg);
+        return;
+    }
     if (diff == 0) {
         /* Exact count: show "play" button, hide "select more/less" */
         _menuEntries[89].isInvisible = 0;

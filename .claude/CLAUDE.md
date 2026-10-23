@@ -145,14 +145,27 @@ the clock SDL asks for, and SDL's wall-clock fallback steps -- NETPLAY.md §8). 
 open `wss://`, which the gate speaks with `--tls-cert`/`--tls-key` (TLS on the same port;
 NETPLAY_SETUP.md §10, `TLS=1 scripts/wasm_netplay_test.sh`).
 
-**SHOOTING PRACTICE** (both targets; docs/SHOOTING_PRACTICE.md). The PLAY MATCH screen's PRACTICE
-button (entry 69, under VIEW OPPO) strips the computer side's ten outfield players for an offline
+**SHOOTING PRACTICE** (both targets; docs/SHOOTING_PRACTICE.md). The main menu's SHOOTING PRACTICE
+button (entry 16, beside CREDITS) strips the computer side's ten outfield players for an offline
 friendly, so the human eleven can practise finishing against a keeper. It reuses the `sentAway` flag
 a red card already sets (`SendPlayerAway`), so nothing about a short-handed side is new to the match;
-no card, stat or banner is raised, because nothing happened. The mode is LATCHED at kick-off
-(`ShootingPractice_BeginMatch`) rather than read from the menu toggle, which the menu clears when its
-button leaves the screen -- reading it live let the restart after a goal hand the kickoff back to a
-side with nobody to take it. Every kickoff goes through one hook in `PrepareForInitialKick`.
+no card, stat or banner is raised, because nothing happened. The mode is the FRIENDLY flow with
+`g_shootingPracticeMode` set -- `ShootingPracticeMenu` (`src/shooting_practice.c`) is five lines
+around `FriendlyMenu`, so the settings screen, team selection, EDIT TACTICS, VIEW OPPO and
+substitutes all work untouched and only the kick-off differs. It reuses that flow rather than
+jumping straight to team selection because `ShowFriendlyMenu` also saves/restores `_gameType` and
+clears `_teamsLoaded`, the latter a deliberate fix over an original SWOS bug (a friendly after a
+career showing career-mutated league tables). It will not START unless exactly one side is
+`TEAM_COMPUTER`: three functions in three files gate that, since the selection flow shows the PLAY
+button on three screens -- `CheckNumTeamsAllowed` (in `diy_competition.c`, but a FRIENDLY function:
+it landed there with its RE chunk and nothing in DIY calls it), `SetChooseChangeTeamsEntries`
+(`teams.c`) and `CheckNumberOfTeams` (`menus.c`). The mode is LATCHED at kick-off
+(`ShootingPractice_BeginMatch`) rather than read live, so nothing the menus do afterwards can change
+a match under way. Every kickoff goes through one hook in `PrepareForInitialKick`.
+Until 2026-10-22 it was instead a PRACTICE toggle on the PLAY MATCH screen (entry 69, under VIEW
+OPPO) with a `g_playMatchShootingPractice` flag; both are gone. That button had to clear itself
+whenever it was off screen or a stale ON leaked into an unrelated match, and that clearing is what
+made a standalone mode impossible to build on top of it.
 **Adding a menu entry like this one touches FOUR files, and the generated `src/menu_symbols.c`
 registry is the one everyone forgets** -- a name missing from it binds the entry's text and handler
 to NULL, so the button draws and highlights but the press is a silent no-op (docs/MENUS.md §11).

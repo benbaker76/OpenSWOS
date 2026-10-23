@@ -1353,7 +1353,8 @@ typedef struct Menu_SWOSMainMenu
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry12;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry13;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry14;
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry15;   /* CREDITS (SDL only) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry15;   /* CREDITS */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry16;   /* SHOOTING PRACTICE */
   MenuMark_StartMenu menu3Start;
   MenuMark markEndMenu;
 } Menu_SWOSMainMenu;
@@ -3270,7 +3271,6 @@ typedef struct Menu_PlayMatch
   MenuEntry_Byte_SpriteFgOnly entry56;
   MenuEntry_Byte_TextNoPtrOnly entries57_67[11];
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry68;   /* UNIFORM (SDL only) */
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry69;   /* SHOOTING PRACTICE (SDL only) */
   MenuMark markEndMenu;
 } Menu_PlayMatch;
 #pragma pack(pop)

@@ -367,7 +367,7 @@ extern void TransfersMenu(void);
 extern void UndoTactics(void);
 extern void UseMatchTeamSelect(void);
 extern void UniformSelected(void);
-extern void ShootingPracticeToggleSelected(void);
+extern void ShootingPracticeMenu(void);
 extern void User_A_Tactics(void);
 extern void User_B_Tactics(void);
 extern void User_C_Tactics(void);
@@ -542,6 +542,7 @@ extern char _aSaveHighlights[];
 extern char _aSeason_1[];
 extern char _aSecondKit[];
 extern char _aSeeded[];
+extern char _aShootingPractice[];
 extern char _aSkills[];
 extern char _aSquad[];
 extern char _aStar[];
@@ -565,7 +566,6 @@ extern char _aTransfers[];
 extern char _aType[];
 extern char _aUndo[];
 extern char _aUniform[];
-extern char g_shootingPracticeLabel[];
 extern char _aUseMatchTeam[];
 extern char _aV[];
 extern char _aViewCompetitio[];
@@ -6961,7 +6961,7 @@ Menu_SWOSMainMenu _swosMainMenu = {
     },
     {
         { 27, -50, -6, 14 },
-        { MENU_CMD_NAV, -1, -1, 12, 15 },
+        { MENU_CMD_NAV, -1, -1, 12, 16 },
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aLoadOldCompeti },
         { MENU_CMD_ONSELECT_FIRE, LoadOldCompetitionMenu },
@@ -6977,10 +6977,18 @@ Menu_SWOSMainMenu _swosMainMenu = {
     },
     {
         { -12, -36, 60, 14 },
-        { MENU_CMD_NAV, -1, -1, 13, -1 },
+        { MENU_CMD_NAV, 16, -1, 13, -1 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aCredits },
         { MENU_CMD_ONSELECT_FIRE, CreditsMenuSelected },
+        MENU_CMD_END
+    },
+    {
+        { 27, -36, -46, 14 },
+        { MENU_CMD_NAV, -1, 15, 13, -1 },
+        { MENU_CMD_COLORS, 0x5 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aShootingPractice },
+        { MENU_CMD_ONSELECT_FIRE, ShootingPracticeMenu },
         MENU_CMD_END
     },
     { MENU_MARK_START_MENU, 0, 0 },
@@ -9055,14 +9063,6 @@ Menu_PlayMatch _playMatchMenu = {
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aUniform },
         { MENU_CMD_ONSELECT_FIRE, UniformSelected },
-        MENU_CMD_END
-    },
-    {
-        { 0, -99, 105, 10 },
-        { MENU_CMD_NAV, -1, -1, -1, 8 },
-        { MENU_CMD_COLORS, 0xD },
-        { MENU_CMD_TEXT_PTR, 0x0, g_shootingPracticeLabel },
-        { MENU_CMD_ONSELECT_FIRE, ShootingPracticeToggleSelected },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

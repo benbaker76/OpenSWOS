@@ -1540,38 +1540,6 @@
           "func": "UniformSelected"
         }
       ]
-    },
-    {
-      "kind": "entry",
-      "coords": {
-        "x": 0,
-        "y": -99,
-        "w": 105,
-        "h": 10
-      },
-      "commands": [
-        {
-          "op": "nav",
-          "left": -1,
-          "right": -1,
-          "up": -1,
-          "down": 8
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
-        {
-          "op": "text",
-          "flags": "0x0",
-          "str": "g_shootingPracticeLabel"
-        },
-        {
-          "op": "onselect_fire",
-          "func": "ShootingPracticeToggleSelected"
-        }
-      ]
     }
   ]
 }

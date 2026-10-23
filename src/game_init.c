@@ -715,6 +715,7 @@ extern uint16_t _playing2ndGame;
 extern uint16_t _isGameFriendly;
 extern uint8_t  _aTraining[];
 extern uint8_t  _aFriendly_1[];
+extern uint8_t  _aShootingPractice[];   /* OpenSWOS: the drill's match name */
 
 /* ShowPlayMatchMenu declared in play_match_menu.h */
 /* InitializeInGameTeamsAndStartGame declared in game_init.h */
@@ -952,7 +953,11 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
             StringCopy(_aArcadeMatchName, _gameName);
         else
 #endif
-        StringCopy(_aFriendly_1, _gameName);
+        /* SHOOTING PRACTICE is a friendly in every other respect, but the name
+         * is what the scoreboard and a saved highlight carry, so it should say
+         * which it was (src/shooting_practice.c). */
+        StringCopy(g_shootingPracticeMode ? _aShootingPractice : _aFriendly_1,
+                   _gameName);
     }
     _gameRound = 0;
 

@@ -431,7 +431,7 @@
           "left": -1,
           "right": -1,
           "up": 12,
-          "down": 15
+          "down": 16
         },
         {
           "op": "colors",
@@ -492,7 +492,7 @@
       "commands": [
         {
           "op": "nav",
-          "left": -1,
+          "left": 16,
           "right": -1,
           "up": 13,
           "down": -1
@@ -510,6 +510,38 @@
         {
           "op": "onselect_fire",
           "func": "CreditsMenuSelected"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 27,
+        "y": -36,
+        "w": -46,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 15,
+          "up": 13,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 5
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aShootingPractice"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ShootingPracticeMenu"
         }
       ]
     },

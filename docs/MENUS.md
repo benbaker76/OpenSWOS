@@ -891,8 +891,20 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
 The classic menus (`_playMatchMenu`, `_chooseTeamsFriendlyMenu`, …) live in **four**
 places that must all agree. Miss one and the failure is silent and misleading — the
 button draws and the cursor lands on it, but **nothing happens when you press fire**.
-That exact bug cost a full session on the SHOOTING PRACTICE button (entry 69), so the
-order below is the order to do it in.
+That exact bug cost a full session on the SHOOTING PRACTICE button, so the order below
+is the order to do it in.
+
+> The worked example below is that button as it was: **PRACTICE, entry 69 of
+> `_playMatchMenu`**. It was removed on 2026-10-22, when SHOOTING PRACTICE became a mode
+> of its own -- entry 16 of `_swosMainMenu`, beside CREDITS (docs/SHOOTING_PRACTICE.md).
+> The byte dump and the four-file checklist are unchanged by that; the second time round,
+> adding the main-menu entry and deleting the play-match one, every step here applied
+> again exactly as written. Two things the second pass added:
+> `scripts/emit_menus.py` **splices into the braces already in `src/menu_data.c`**, so a
+> structural change (adding or removing an entry) must be made in that file BY HAND first
+> or the script aborts with "template has N leaves but JSON has M values"; and it writes
+> **cp1252, not UTF-8**, so check `git diff` for mangled accents and em-dashes afterwards
+> (`Karakaš` in the file header is the canary).
 
 1. **`bin/data_json/menus/<menu>.json`** — the source of truth. Append an `entry` item
    with its `coords`, `nav`, `colors`, `text` (`str`) and `onselect_fire` (`func`).

@@ -4,33 +4,69 @@ A training drill: in a friendly against the computer, the computer's ten outfiel
 players are taken off and only its goalkeeper remains, so the human eleven can
 practise finishing against a keeper instead of a defence.
 
-Both targets. SDL and Amiga both get the button and the drill.
+Both targets. SDL and Amiga both get the mode and the drill.
 
 ## Using it
 
-PLAY MATCH screen → **PRACTICE**, under VIEW OPPO (the way UNIFORM sits under
-EDIT TACTICS). Blue = off, green = on; the column is ~68 px, so the state is the
-colour rather than an ON/OFF suffix.
+Main menu → **SHOOTING PRACTICE**, the wide button on the bottom row beside
+CREDITS (entry 16).
 
-Shown only when all of these hold, and forced off otherwise:
+From there it is **the friendly flow, unchanged**: the settings screen (pitch
+type / season, min and max substitutes), then team selection — clubs, national
+teams, custom teams — then the PLAY MATCH screen, where EDIT TACTICS, VIEW OPPO,
+squad swaps, formations, UNIFORM and substitutes all work exactly as they always
+do. The *only* difference is the match itself, which kicks off with the computer
+side fielding only its keeper. The screens say so as you go: the settings header
+and the selection header read SHOOTING PRACTICE, the selection's confirm button
+reads PLAY PRACTICE, the start button reads START PRACTICE, and the match is
+named SHOOTING PRACTICE on the scoreboard and in a saved highlight.
 
-- `_squadChangesAllowed` — a match that can still be arranged, not a result screen
-- not viewing the opponent's team
-- not a training game (career's A-v-B squad match, a different feature entirely)
-- `_gameType == 0` (a friendly — not career, season, cup or DIY)
-- exactly one side is `TEAM_COMPUTER`
+**It will not start on a selection the drill cannot apply to.** Two teams picked
+is not enough — exactly one of them must be `TEAM_COMPUTER` and the other not.
+Until that holds, the confirm button is hidden and the line where "SELECT N MORE
+TEAMS" goes reads **SELECT 1 COMPUTER TEAM**. Fire still cycles a team through
+COMPUTER → PLAYER-COACH → COACH as on any selection screen; nothing is
+auto-assigned and nothing is silently overridden at kick-off.
+
+> **It used to be a toggle**, PRACTICE on the PLAY MATCH screen (entry 69, under
+> VIEW OPPO where UNIFORM sits under EDIT TACTICS). That button is **gone** as of
+> 2026-10-22, and so is `g_playMatchShootingPractice`. Removing it is what made a
+> mode possible rather than merely tidier: the toggle had to clear itself whenever
+> its button was off screen or a stale ON leaked into an unrelated match (bug 3
+> below), and that same clearing would have cancelled a standalone run on its way
+> to kick-off. The mode now owns `g_shootingPracticeMode` and nothing else writes
+> it.
 
 ## How it works
 
 | piece | where |
 |---|---|
-| mode latch + the strip + forced kickoff | `src/shooting_practice.c` |
-| button: visibility, layout, toggle handler | `src/play_match_menu.c` (entry 69) |
-| menu entry data | `bin/data_json/menus/playMatchMenu.json`, `src/menu_data.c`, `include/menu_data.h` |
-| symbol registry (SDL only) | `src/menu_symbols.c` ← **regenerate it**, see MENUS.md §11 |
+| the mode flag, the menu handler, the selection rule, the latch, the strip, the forced kickoff | `src/shooting_practice.c` |
+| main menu entry data | `bin/data_json/menus/swosMainMenu.json`, `src/menu_data.c`, `include/menu_data.h` |
+| symbol registry | `src/menu_symbols.c` ← **regenerate it**, see MENUS.md §11 |
+| the flow it borrows | `FriendlyMenu` → `Friendly` → `ShowFriendlyMenu` → `ChooseTeamsMenu` (`src/menus.c`) |
+| the words PRACTICE replaces FRIENDLY with | `FriendlyMenuInit`, `ChooseTeamsMenu` (`src/menus.c`), `SetGameStartButtonText` (`src/play_match_menu.c`), `InitAndPlayGame` (`src/game_init.c`) |
+| "one computer side" gate | `CheckNumTeamsAllowed` (`src/diy_competition.c`), `SetChooseChangeTeamsEntries` (`src/teams.c`), `CheckNumberOfTeams` (`src/menus.c`) |
 | strip hook | `InitPlayersBeforeEnteringPitch` (`src/match_setup.c`) |
 | kickoff hook | `PrepareForInitialKick` (`src/match_setup.c`) |
 | latch set | `InitializeInGameTeamsAndStartGame` (`src/game_init.c`) |
+
+**The mode reuses the friendly flow whole rather than copying it.**
+`ShootingPracticeMenu()` is five lines: set the flag, call `FriendlyMenu()`,
+clear the flag. That is deliberate — `ShowFriendlyMenu` seeds the RNG, saves and
+restores `_gameType` around the flow, and sets `_teamsLoaded = 0` so the country
+lists reload pristine, and that last one is a deliberate fix over an original
+SWOS bug (a friendly played after a career otherwise shows the career's mutated
+league tables — `src/menus.c`). A hand-rolled path straight to team selection
+would have had to repeat all three, and is exactly where a bug would hide.
+
+**Three functions in three files gate the start**, because the selection flow has
+three screens that each show the PLAY button and the "SELECT N MORE TEAMS" line:
+the team pick list, the review list where fire cycles control types, and the
+reinit. `CheckNumTeamsAllowed` is one of them despite living in
+`diy_competition.c` — it landed there with its RE chunk and nothing in DIY calls
+it; its only callers are `ChooseTeamsFriendlyCommon2` and
+`ChooseTeamsFriendlyInitFinish` in `teams.c`.
 
 **The strip reuses `sentAway`** — the same `Sprite` flag a red card sets
 (`SendPlayerAway`, `src/tackle_foul.c`). That flag is already honoured everywhere
@@ -47,8 +83,10 @@ goalkeeper (`goalkeeper.c`: "first sprite = goalkeeper").
 
 **The mode is latched for the match.** `ShootingPractice_BeginMatch()` records
 *whether* the drill is on and *which* side is the computer, once, as the in-game
-teams are set up. Everything afterwards reads that latch and never the menu
-toggle — see the bug log below for why that matters.
+teams are set up. Everything afterwards reads that latch and never a menu global
+— see the bug log below for why that matters. The latch is kept now that the
+toggle that made it necessary is gone, because it is the right shape regardless:
+what a match plays by is decided once, at kick-off.
 
 **Every kickoff is taken by the human side.** The computer has nobody who can
 take one. All kickoffs funnel through `PrepareForInitialKick`, so one hook there
@@ -67,6 +105,14 @@ covers match start, half time, extra time and the restart after a goal.
 # The bug log — what went wrong, and how each was found
 
 Kept because every one of these cost real time, and most would cost it again.
+
+**These are from the toggle era** (the PRACTICE button on the PLAY MATCH screen,
+entry 69, removed 2026-10-22 — see "Using it" above). The code they describe has
+moved and `g_playMatchShootingPractice` no longer exists, but the *traps* are
+unchanged and several of them are waiting for the next menu entry anyone adds:
+bug 1 and bug 2 are the symbol registry and its Amiga twin, bug 4 is "a slot that
+looks free isn't", bug 3 is why the mode is still latched at kick-off. Read them
+as what to watch for, not as a description of the current code.
 
 ## 1. The button drew, highlighted, and did nothing (SDL)
 
