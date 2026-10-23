@@ -238,6 +238,16 @@ Session evidence is retained under `build/amiga_debug`, particularly
 
 ## Bundled challenge
 
+### SDL Escape follow-up
+
+The first SDL sample test revealed that pressing ESC during a challenge closed
+the application. `Platform_PollEvents` identified the top-level menu solely from
+`_currentMenuPtr`; a match called directly from `ChallengesMenu` retains that
+main-menu pointer. The event was consumed as application quit instead of reaching
+`MainKeysCheck`. The shortcut now also requires no active game, highlight playback
+or armed challenge. This covers challenge setup/exit transitions as well as play.
+The SDL build passed; interactive confirmation of this follow-up is pending.
+
 There is one built-in challenge per target, shown as `SAMPLE.CHL`. Opening
 CHALLENGES installs it into the normal save folder if that name is absent;
 existing saves are not overwritten. Deleting the sample lets it be installed

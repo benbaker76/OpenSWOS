@@ -1636,7 +1636,13 @@ static void pump_events_any_thread(void)
             if (ev.key.repeat == 0 && ev.key.keysym.sym == SDLK_ESCAPE) {
                 extern volatile uintptr_t _currentMenuPtr;
                 extern uint8_t _swosMainMenu[];
-                if (_currentMenuPtr == (uintptr_t)_swosMainMenu) {
+                extern volatile uint16_t _playGame, _playHighlightFlag;
+                extern int32_t Challenge_Armed(void);
+                /* A challenge runs directly from the main-menu callback, so
+                 * this pointer can still name that menu throughout the match.
+                 * Let ESC reach gameplay (including load/exit transitions). */
+                if (_currentMenuPtr == (uintptr_t)_swosMainMenu &&
+                    !_playGame && !_playHighlightFlag && !Challenge_Armed()) {
                     Platform_RequestQuit();
                     if (s_window) SDL_HideWindow(s_window);
                     AudioSDL_PauseAndClear();
