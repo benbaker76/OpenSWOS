@@ -29,6 +29,7 @@ docs drift: search by function name.
 | updating the server (the admin panel) | [NETPLAY_ADMIN.md](NETPLAY_ADMIN.md) |
 | replays / the playback page | [REPLAY_FORMAT_V2.md](REPLAY_FORMAT_V2.md), [PLAYBACK.md](PLAYBACK.md) |
 | saves | [SAVE.md](SAVE.md) (where), [SAVE_DATA.md](SAVE_DATA.md) (what, and the read-support policy) |
+| saved positions / challenges | [CHALLENGE.md](CHALLENGE.md) (usage, samples, format and limitations), [AMIGA_DEBUGGING.md](AMIGA_DEBUGGING.md) (fixes and debugger workflow) |
 | editing game data (teams, competitions, menus, tactics) | [DATA_PIPELINE.md](DATA_PIPELINE.md) |
 | the Amiga target under FS-UAE / gdb | [GDB_DEBUGGING.md](GDB_DEBUGGING.md), [GDB_HARNESS.md](GDB_HARNESS.md) |
 

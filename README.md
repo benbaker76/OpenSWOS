@@ -43,6 +43,8 @@ copy, once, and downloads nothing. [INSTALL.md](INSTALL.md) shows you how.
 - **The whole game:** friendlies, leagues, cups, the career mode with transfers and
   management.
 - **Online multiplayer:** play a friend over the internet (MULTIPLAYER on the main menu).
+- **[Saved challenges](docs/CHALLENGE.md):** press C in a match against the computer,
+  then resume it from CHALLENGES. Includes one sample per build.
 - **Widescreen** at any resolution, fullscreen, CRT effects, gamepads, two players on one
   computer.
 - **The PC and Amiga versions' looks and sounds**, and optionally the Atari Jaguar's
@@ -56,6 +58,7 @@ copy, once, and downloads nothing. [INSTALL.md](INSTALL.md) shows you how.
 |---|---|
 | [INSTALL.md](INSTALL.md) | Installing and setting up, step by step |
 | [docs/PLAYING.md](docs/PLAYING.md) | Keys, gamepads, two players, arcade mode |
+| [docs/CHALLENGE.md](docs/CHALLENGE.md) | Saved positions, bundled challenges, compatibility and implementation |
 | [docs/SETTINGS.md](docs/SETTINGS.md) | `SWOS.ini`, the command line, display and CRT options, where saves go |
 | [docs/BUILDING.md](docs/BUILDING.md) | Building from source, for every platform |
 | [docs/DEVELOPERS.md](docs/DEVELOPERS.md) | How the code is laid out, and where it came from |
