@@ -110,7 +110,7 @@ docs drift: search by function name.
 | [DATA_INTERNAL_JSON.md](DATA_INTERNAL_JSON.md) | Design record for moving the competition graph to JSON (schema, cross-references, `*Copy` tables). | historical | changing the competition JSON schema |
 | [DATA_CUSTOMIZE.md](DATA_CUSTOMIZE.md) | Making edited data safe: caps, counts, dangling references, a validator, a data digest for netplay. | plan (backlog open) | data validation, raising a cap |
 | [DATA_BSON.md](DATA_BSON.md) | Binary formats and codecs for the Amiga; decided — author JSON, bake C, no parsing on m68k. | historical | someone proposes parsing data at run time on the Amiga |
-| [MENUS.md](MENUS.md) | The packed menu byte-stream, the JSON menu schema, the symbol registry, the migration (§0–9, historical) and the SWOS 2020 menu import (§10, current). | current | menus, `UnpackMenu`, the SWOS 2020 import, `src/online_menus.c`, `--menu-selftest` |
+| [MENUS.md](MENUS.md) | The packed menu byte-stream, the JSON menu schema, the symbol registry, the migration (§0–9, historical), the SWOS 2020 menu import (§10), adding an entry to a classic menu (§11) and adding a whole new one (§12, `_editMenu`). | current | menus, `UnpackMenu`, the SWOS 2020 import, `src/online_menus.c`, `--menu-selftest`, adding a menu or an entry |
 | [TRANSLATIONS.md](TRANSLATIONS.md) | UI string localisation: what was built (`tr()`, en/de/fr/it/es/nl, `[general] language`) over the original plan. | current | adding a language or translatable strings |
 | [FONTS.md](FONTS.md) | Adding a charset glyph (`swos_font.py`, SwosGfx, `gen_font_ext.py`) and the currency symbol. | current | a new glyph or currency |
 
@@ -136,6 +136,7 @@ docs drift: search by function name.
 | [ARCADE.md](ARCADE.md) | The coin-op arcade mode: attract reels, service menu, golden goal, high scores, `[arcade]` keys. | current | arcade/attract mode (`src/arcade.c`) |
 | [WASM.md](WASM.md) | The Emscripten/ASYNCIFY web target's design, and the asm-storage-to-C log. Now live, online, plus the player build. | historical | the web build's pacing, threading, IDBFS saves, preload list |
 | [MACOS_BUILD.md](MACOS_BUILD.md) | Building on a Mac: universal binary, `make macos-app`, Gatekeeper; releases go through `scripts/build_macos.sh`. | current | building on the Mac itself |
+| [BUILD_MACHINE_THE5AR.md](BUILD_MACHINE_THE5AR.md) | The copy-paste build commands for the5ar's Windows box: the m68k toolchain under `~/tools` (not `.vscode/extensions`), `gnumake` rather than `make`, the Cygwin shell for the SDL target, and the real python3. CLAUDE.md's and `build.cmd`'s paths are the original author's and fail here. | current | building either target on this machine |
 | [SWITCH.md](SWITCH.md) | Building, packaging and debugging the Switch flavour; the filesystem/logging differences. No SDK content (NDA). | current — but it says "builds, links and packages" where CLAUDE.md says "not yet linked or run": the owner knows which | `Makefile.switch`, `scripts/build_switch.*` |
 
 ## The Amiga target (AGA resumed 2026-10-10: a whole match plays)

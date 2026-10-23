@@ -2605,6 +2605,7 @@ extern uint8_t _seed;              /* primary PRNG seed/counter */
 extern uint8_t _randXorIndex;      /* primary XOR key index */
 extern uint16_t _diySelected;
 extern uint8_t _diyCompetitionMenu[];
+extern uint8_t _editMenu[];        /* OpenSWOS: the EDIT submenu (menu_data.c) */
 extern uint8_t _highlightsMenu[];
 extern uint8_t _optionsMenu[];
 extern uint8_t _diskMenu[];
@@ -2637,20 +2638,37 @@ void FriendlyMenu(void)
 /* DIYCompetitionMenu — seed RNG, prompt, show DIY menu, dispatch design (SWOS2.s line 68803)
  * Note: CheckContinueAbortPrompt returns result via Z flag — need asm bridge */
 
-/* EditCustomTeamMenu — edit custom teams, then update main menu (SWOS2.s line 69279) */
+/* EditMenuSelected — OpenSWOS's EDIT button: the submenu holding the two editors
+ * that used to have a main-menu row each (menu_data.c _editMenu, which is where
+ * the words are; docs/MENUS.md section 12). Grouping them freed the row SHOOTING
+ * PRACTICE now has.
+ *
+ * CommonMenuExit belongs HERE and not in the two handlers below: it is the main
+ * menu's fixup (its CONTINUE/SAVE rows, _menuEntries[11..15]), and the main menu
+ * is what we come back to when the submenu closes. */
+__attribute__((used, externally_visible))
+void EditMenuSelected(void)
+{
+    ShowMenu(_editMenu);
+    CommonMenuExit();
+}
+
+/* EditCustomTeamMenu — edit custom teams (SWOS2.s line 69279). Reached from the EDIT
+ * submenu, so NO CommonMenuExit: the current menu is _editMenu, whose four entries
+ * do not reach _menuEntries[11..15]. Calling it here formatted a competition name
+ * through entry 11's STALE fg pointer -- see EditMenuSelected. */
 __attribute__((used, externally_visible))
 void EditCustomTeamMenu(void)
 {
     EditCustomTeam();
-    CommonMenuExit();
 }
 
-/* EditTacticsMenu — edit tactics, then update main menu (SWOS2.s line 69285) */
+/* EditTacticsMenu — edit tactics (SWOS2.s line 69285). From the EDIT submenu too;
+ * see EditCustomTeamMenu for why CommonMenuExit is not called here. */
 __attribute__((used, externally_visible))
 void EditTacticsMenu(void)
 {
     EditTactics();
-    CommonMenuExit();
 }
 
 /* HighlightsMenu — show highlights menu, then update main menu (SWOS2.s line 69291) */

@@ -241,6 +241,9 @@ char _aClubBusiness[] = "CLUB BUSINESS";
 char _aNoJobOffers[] = "NO JOB OFFERS";
 char _aJobOffersBeing[] = "JOB OFFERS BEING CONSIDERED";
 char _aFinishSeason[] = "FINISH SEASON";
+/* OpenSWOS: the main menu's EDIT button, which opens the submenu holding EDIT
+ * TACTICS and EDIT CUSTOM TEAMS (menu_data.c _editMenu, docs/MENUS.md section 12). */
+char _aEdit[] = "EDIT";
 char _aEditTactics[] = "EDIT TACTICS";
 char _aEditTacticsSel[] = "EDIT TACTICS - SELECT TEAM";
 char _aImportTactics[] = "IMPORT TACTICS";

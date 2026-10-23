@@ -172,6 +172,7 @@ extern void DesignDIYTournamentReinit(void);
 extern void DesignDIYTournament_AdjustStageQualifiers(void);
 extern void DrawPlayerEntries(void);
 extern void EditCustomTeamMenu(void);
+extern void EditMenuSelected(void);
 extern void EditTacicsMovePlayersOrBall(void);
 extern void EditTactics28AfterDraw(void);
 extern void EditTactics2AfterDraw(void);
@@ -454,6 +455,7 @@ extern char _aDesignDiyCup[];
 extern char _aDesignDiyLeagu[];
 extern char _aDesignDiyTourn[];
 extern char _aDiyCompetition_0[];
+extern char _aEdit[];
 extern char _aEditCustomTeam[];
 extern char _aEditTactics[];
 extern char _aEditedCustomTe_0[];
@@ -6868,16 +6870,16 @@ Menu_SWOSMainMenu _swosMainMenu = {
         { 0, 62, -106, 16 },
         { MENU_CMD_NAV, -1, 6, -1, 2 },
         { MENU_CMD_COLORS, 0x3 },
-        { MENU_CMD_TEXT_PTR, 0x10, _aEditTactics },
-        { MENU_CMD_ONSELECT_FIRE, EditTacticsMenu },
+        { MENU_CMD_TEXT_PTR, 0x10, _aEdit },
+        { MENU_CMD_ONSELECT_FIRE, EditMenuSelected },
         MENU_CMD_END
     },
     {
         { 0, 80, -106, 16 },
         { MENU_CMD_NAV, -1, 7, 1, 3 },
-        { MENU_CMD_COLORS, 0x8 },
-        { MENU_CMD_TEXT_PTR, 0x10, _aEditCustomTeam },
-        { MENU_CMD_ONSELECT_FIRE, EditCustomTeamMenu },
+        { MENU_CMD_COLORS, 0x5 },
+        { MENU_CMD_TEXT_PTR, 0x10, _aShootingPractice },
+        { MENU_CMD_ONSELECT_FIRE, ShootingPracticeMenu },
         MENU_CMD_END
     },
     {
@@ -6961,7 +6963,7 @@ Menu_SWOSMainMenu _swosMainMenu = {
     },
     {
         { 27, -50, -6, 14 },
-        { MENU_CMD_NAV, -1, -1, 12, 16 },
+        { MENU_CMD_NAV, -1, -1, 12, 15 },
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aLoadOldCompeti },
         { MENU_CMD_ONSELECT_FIRE, LoadOldCompetitionMenu },
@@ -6977,21 +6979,55 @@ Menu_SWOSMainMenu _swosMainMenu = {
     },
     {
         { -12, -36, 60, 14 },
-        { MENU_CMD_NAV, 16, -1, 13, -1 },
+        { MENU_CMD_NAV, -1, -1, 13, -1 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aCredits },
         { MENU_CMD_ONSELECT_FIRE, CreditsMenuSelected },
         MENU_CMD_END
     },
+    { MENU_MARK_START_MENU, 0, 0 },
+    MENU_MARK_END_MENU
+};
+
+/* ---- editMenu (EDIT) — OpenSWOS, no SWOS2.s counterpart -------------
+ * The main menu's EDIT button (menus.c EditMenuSelected). EDIT TACTICS and EDIT
+ * CUSTOM TEAMS had a main-menu row each until 2026-10-23; grouping them here is
+ * what freed the row SHOOTING PRACTICE took. Hand-written like diskMenu below:
+ * scripts/emit_menus.py splices VALUES into the braces that are already here, so
+ * the shape of a new menu has to exist in C first (docs/MENUS.md section 12). */
+Menu_EditMenu _editMenu = {
+    { 0, 0, 0, 1 },
+    MENU_MARK_BYTE_COORDS,
     {
-        { 27, -36, -46, 14 },
-        { MENU_CMD_NAV, -1, 15, 13, -1 },
-        { MENU_CMD_COLORS, 0x5 },
-        { MENU_CMD_TEXT_PTR, 0x0, _aShootingPractice },
-        { MENU_CMD_ONSELECT_FIRE, ShootingPracticeMenu },
+        { 92, 0, 120, 15 },
+        { MENU_CMD_COLORS, 0x17 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aEdit },
         MENU_CMD_END
     },
-    { MENU_MARK_START_MENU, 0, 0 },
+    {
+        { 82, 60, -116, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, 2 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aEditTactics },
+        { MENU_CMD_ONSELECT_FIRE, EditTacticsMenu },
+        MENU_CMD_END
+    },
+    {
+        { 82, 90, -116, 15 },
+        { MENU_CMD_NAV, -1, -1, 1, 3 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aEditCustomTeam },
+        { MENU_CMD_ONSELECT_FIRE, EditCustomTeamMenu },
+        MENU_CMD_END
+    },
+    {
+        { 102, -71, 100, 15 },
+        { MENU_CMD_NAV, -1, -1, 2, -1 },
+        { MENU_CMD_COLORS, 0xC },
+        { MENU_CMD_TEXT_PTR, 0x0, _aExit },
+        { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
     MENU_MARK_END_MENU
 };
 Menu_Offers _offersMenu = {

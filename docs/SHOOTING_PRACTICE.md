@@ -8,8 +8,14 @@ Both targets. SDL and Amiga both get the mode and the drill.
 
 ## Using it
 
-Main menu → **SHOOTING PRACTICE**, the wide button on the bottom row beside
-CREDITS (entry 16).
+Main menu → **SHOOTING PRACTICE**, the second button of the left column
+(entry 2), under EDIT.
+
+> It was the wide button on the bottom row beside CREDITS (entry 16) until
+> 2026-10-23, when EDIT TACTICS and EDIT CUSTOM TEAMS were grouped under the
+> left column's new **EDIT** submenu (docs/MENUS.md §12) and the drill moved up
+> into the row that freed. Entry 16 is gone; entries 11-15 kept their ordinals,
+> which is what `CommonMenuExit` indexes.
 
 From there it is **the friendly flow, unchanged**: the settings screen (pitch
 type / season, min and max substitutes), then team selection — clubs, national

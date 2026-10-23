@@ -146,7 +146,7 @@ open `wss://`, which the gate speaks with `--tls-cert`/`--tls-key` (TLS on the s
 NETPLAY_SETUP.md §10, `TLS=1 scripts/wasm_netplay_test.sh`).
 
 **SHOOTING PRACTICE** (both targets; docs/SHOOTING_PRACTICE.md). The main menu's SHOOTING PRACTICE
-button (entry 16, beside CREDITS) strips the computer side's ten outfield players for an offline
+button (entry 2, the left column's second row, under EDIT) strips the computer side's ten outfield players for an offline
 friendly, so the human eleven can practise finishing against a keeper. It reuses the `sentAway` flag
 a red card already sets (`SendPlayerAway`), so nothing about a short-handed side is new to the match;
 no card, stat or banner is raised, because nothing happened. The mode is the FRIENDLY flow with
@@ -169,6 +169,13 @@ made a standalone mode impossible to build on top of it.
 **Adding a menu entry like this one touches FOUR files, and the generated `src/menu_symbols.c`
 registry is the one everyone forgets** -- a name missing from it binds the entry's text and handler
 to NULL, so the button draws and highlights but the press is a silent no-op (docs/MENUS.md §11).
+A whole NEW classic menu is FIVE places, `s_staticMenus` in `src/menu_load_json.c` being the fifth
+(docs/MENUS.md §12): `_editMenu`, the main menu's **EDIT** submenu, is the worked example -- it
+groups EDIT TACTICS and EDIT CUSTOM TEAMS, which used to have a main-menu row each, and freed the
+row SHOOTING PRACTICE took (2026-10-23). Its two handlers must NOT call `CommonMenuExit`: that is
+the main menu's fixup (`_menuEntries[11..15]`), and run under a 4-entry submenu it formats a
+competition name through entry 11's stale `fg` pointer -- `EditMenuSelected` does it once, after
+the submenu closes.
 `scripts/swos_drive.ps1` + docs/UI_DRIVER.md drive the game from a script to check such a change;
 `scripts/run_amiga_fsuae.ps1` runs the m68k build under FS-UAE.
 

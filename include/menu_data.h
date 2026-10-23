@@ -1354,10 +1354,25 @@ typedef struct Menu_SWOSMainMenu
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry13;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry14;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry15;   /* CREDITS */
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry16;   /* SHOOTING PRACTICE */
   MenuMark_StartMenu menu3Start;
   MenuMark markEndMenu;
 } Menu_SWOSMainMenu;
+#pragma pack(pop)
+
+/* OpenSWOS addition — the EDIT submenu off the main menu's EDIT button: the two
+ * editors that used to have a main-menu row each (bin/data_json/menus/editMenu.json,
+ * docs/MENUS.md section 12). Same shape as Menu_Highlights with one button fewer. */
+#pragma pack(push, 1)
+typedef struct Menu_EditMenu
+{
+  MenuHeader hdr;
+  MenuMark markByteCoords;
+  MenuEntry_Byte_Colors_TextPtr entry0;                 /* the EDIT header */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry1;    /* EDIT TACTICS */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry2;    /* EDIT CUSTOM TEAMS */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;    /* EXIT */
+  MenuMark markEndMenu;
+} Menu_EditMenu;
 #pragma pack(pop)
 
 /* 206 - Menu 21: chooseTeamsMenu (0xBE = 190 bytes) */
@@ -3487,6 +3502,7 @@ extern Menu_ContinueAbort _continueAbortMenu;
 extern Menu_CreditsAga _creditsAgaMenu;
 #endif
 extern Menu_SWOSMainMenu _swosMainMenu;
+extern Menu_EditMenu _editMenu;
 extern Menu_Offers _offersMenu;
 extern Menu_PlayerTransfer _playerTransferMenu;
 extern Menu_ThirdPartyOffer _thirdPartyOfferMenu;

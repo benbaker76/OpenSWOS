@@ -23,7 +23,7 @@ extern void FriendlyMenu(void);
 #define TEAM_NOT_SELECTED 0
 #define TEAM_COMPUTER     1
 
-/* ShootingPracticeMenu -- the main menu's SHOOTING PRACTICE button (entry 16).
+/* ShootingPracticeMenu -- the main menu's SHOOTING PRACTICE button (entry 2).
  *
  * The whole mode is "a friendly, with the flag set". FriendlyMenu seeds the
  * RNG, saves and restores gameType around the flow and invalidates the team

@@ -896,7 +896,8 @@ is the order to do it in.
 
 > The worked example below is that button as it was: **PRACTICE, entry 69 of
 > `_playMatchMenu`**. It was removed on 2026-10-22, when SHOOTING PRACTICE became a mode
-> of its own -- entry 16 of `_swosMainMenu`, beside CREDITS (docs/SHOOTING_PRACTICE.md).
+> of its own -- then entry 16 of `_swosMainMenu`, beside CREDITS, and since 2026-10-23
+> entry 2, in the left column under EDIT (§12, docs/SHOOTING_PRACTICE.md).
 > The byte dump and the four-file checklist are unchanged by that; the second time round,
 > adding the main-menu entry and deleting the play-match one, every step here applied
 > again exactly as written. Two things the second pass added:
@@ -973,3 +974,73 @@ rule fails (`Error 49`) and aborts the whole build. Either pass the real interpr
 if the committed `.c` is already correct, `touch src/menu_data.c` so make skips the regen.
 `scripts/emit_menus.py` also currently mangles the UTF-8 em-dashes in that file's
 comments, so check `git diff` before committing a regenerated `menu_data.c`.
+
+---
+
+## 12. Adding a whole NEW classic menu — `_editMenu`, the worked example
+
+§11 adds an **entry** to a menu that exists. A new **menu** is the same job plus one
+place: the loader's table. Five, and the failure of each is different.
+
+The worked example is the main menu's **EDIT** submenu, added 2026-10-23. EDIT TACTICS and
+EDIT CUSTOM TEAMS had a main-menu row each; grouping them under one EDIT button freed the
+row SHOOTING PRACTICE took (it had been entry 16, the bottom row beside CREDITS).
+
+### The five places
+
+1. **`bin/data_json/menus/<name>.json`** — the source of truth. `"name"` is the **C symbol**
+   (`_editMenu`); the **file** is that without the leading underscore (`editMenu.json`).
+   Both spellings matter: the loader builds the path from the file name and
+   `scripts/emit_menus.py` finds the C initializer by `"name"`.
+2. **`include/menu_data.h`** — a `Menu_<Type>` struct, in stream order, and its `extern`
+   beside the others. Reuse an existing menu's shape: `_editMenu` is `Menu_Highlights` with
+   one button fewer (`MenuEntry_Byte_Colors_TextPtr` header, then
+   `MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect` per button).
+3. **`src/menu_data.c`** — the initializer, **by hand**. `emit_menus.py` only splices VALUES
+   into braces that already exist, so for a new menu there is nothing to splice into and the
+   script prints `WARN: menu <name> not found in menu_data.c` and leaves it out. This file is
+   the Amiga's copy of the menu — the m68k build has no JSON loader at all.
+4. **`src/menu_symbols.c`** — register any new names in `bin/data_json/menus/_symbols.json`
+   and regenerate (§11 step 4). The EDIT menu needed exactly two, `_aEdit` and
+   `EditMenuSelected`: its buttons reuse `EditTacticsMenu`, `EditCustomTeamMenu`,
+   `SetExitMenuFlag` and `_aExit`, all long since registered. A new string also wants a line
+   in `src/swos_amiga_strings.c` and a `python3 scripts/gen_string_symbols.py`.
+5. **⚠️ `s_staticMenus` in `src/menu_load_json.c`** — the fifth place, hand-maintained, and
+   the one §11 does not mention. `MenuJson_InstallAll` walks that table: a menu missing from
+   it is simply never installed from JSON, so the SDL build silently runs the **compiled**
+   bytes while the JSON looks authoritative. Every later edit to the JSON appears to do
+   nothing. Add the `extern uint8_t _<name>[];` with its neighbours and the
+   `{ "<name>", _<name> }` row, and keep the "the N compiled static menus" count honest.
+
+### Opening it
+
+A handler of the `OptionsMenuSelected` shape, in `src/menus.c`, with the menu declared the
+way that file declares the others (`extern uint8_t _editMenu[];` — **not** by including
+`menu_data.h`, whose declaration is the typed struct):
+
+```c
+void EditMenuSelected(void) { ShowMenu(_editMenu); CommonMenuExit(); }
+```
+
+**`CommonMenuExit` belongs in that handler and nowhere deeper.** It is the *main menu's*
+fixup — it rewrites `_menuEntries[11..15]` (the CONTINUE/SAVE/LOAD rows) and formats a
+competition name through **entry 11's `fg` pointer**. `EditTacticsMenu` and
+`EditCustomTeamMenu` used to call it, correctly, because they *were* main-menu buttons; from
+inside a 4-entry submenu the same call writes through a stale pointer left over from an
+earlier menu. So the two handlers lost it and the submenu's opener does it once, on the way
+back. Any new submenu that borrows a main-menu handler has this to check.
+
+### Proving it
+
+- `python3 scripts/emit_menus.py --out <tmp>` then diff `<tmp>` against `src/menu_data.c`:
+  **identical** means the hand-written C and the JSON are the same bytes, leaf for leaf.
+  (Plain `emit_menus.py` with no `--out` crashes in its round-trip verify — it looks for
+  `_<name>.json` while the corpus files have no leading underscore. Pre-existing, unrelated
+  to any new menu.)
+- Run with `SWOS_MENU_JSON=1 SWOS_MENU_JSON_VERIFY=1` and read the log: the count in
+  `[menu-json] verify: N/N byte-identical` must have gone **up by one** (47→48 here), and
+  `install: N/N ... (0 edited vs compiled)` says every menu including the new one was
+  installed from JSON. The log is `~/Documents/SWOS/SWOS.log`, not `bin/SWOS.log`.
+- `--menu=<name>` opens it directly through the dynamic loader, which is the fastest look at
+  a new screen; `scripts/swos_drive.ps1` drives the real path. The loader intro waits on the
+  configured SHOOT/fire button -- send it, or a run never reaches a menu at all.

@@ -527,7 +527,7 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
  * returns the same link-time addresses the static initializers baked in.
  * ====================================================================== */
 
-/* --- the 47 compiled static menus, by name (still authoritative until the
+/* --- the 48 compiled static menus, by name (still authoritative until the
  *     round-trip is proven green and menu_data.c is retired) --- */
 extern uint8_t _buyOtherPlayersMenu[];       extern uint8_t _buyPlayerMenu[];             extern uint8_t _careerMenu[];
 extern uint8_t _careerOverMenu[];            extern uint8_t _chairmanMemosMenu[];         extern uint8_t _chooseTacticsMenu[];
@@ -535,7 +535,8 @@ extern uint8_t _chooseTeamsFriendlyMenu[];   extern uint8_t _chooseTeamsFriendly
 extern uint8_t _clubBusinessMenu[];          extern uint8_t _competitionStatsMenu[];      extern uint8_t _competitionTopGoalScorersMenu[];
 extern uint8_t _contestMenu[];               extern uint8_t _continueAbortMenu[];         extern uint8_t _continueMenu[];
 extern uint8_t _designDiyCupMenu[];          extern uint8_t _designDiyLeagueMenu[];       extern uint8_t _designDiyTournamentMenu[];
-extern uint8_t _diyCupMenu[];                extern uint8_t _diyLeagueTournamentMenu[];   extern uint8_t _editTacticsMenu[];
+extern uint8_t _diyCupMenu[];                extern uint8_t _diyLeagueTournamentMenu[];   extern uint8_t _editMenu[];
+extern uint8_t _editTacticsMenu[];
 extern uint8_t _editTeamsMenu[];             extern uint8_t _friendlyGameMenu[];          extern uint8_t _gotJobOfferMenu[];
 extern uint8_t _highlightsMenu[];            extern uint8_t _importTacticsMenu[];         extern uint8_t _jobOffersMenu[];
 extern uint8_t _managementRecordMenu[];      extern uint8_t _nationalTeamAddPlayerMenu[]; extern uint8_t _offersMenu[];
@@ -567,6 +568,7 @@ static const struct { const char *name; uint8_t *menu; } s_staticMenus[] = {
     { "designDiyTournamentMenu", _designDiyTournamentMenu },
     { "diyCupMenu", _diyCupMenu },
     { "diyLeagueTournamentMenu", _diyLeagueTournamentMenu },
+    { "editMenu", _editMenu },           /* OpenSWOS: the main menu's EDIT submenu */
     { "editTacticsMenu", _editTacticsMenu },
     { "editTeamsMenu", _editTeamsMenu },
     { "friendlyGameMenu", _friendlyGameMenu },

@@ -9,7 +9,7 @@
  * its goalkeeper (TeamGeneralInfo.spritesTable[0]) so the human's 11 can
  * practise finishing into an open defence.
  *
- * It is the main menu's SHOOTING PRACTICE button (entry 16, beside CREDITS) and
+ * It is the main menu's SHOOTING PRACTICE button (entry 2, under EDIT) and
  * nothing else: press it and you are in the friendly's own flow -- its settings
  * screen, its team selection, its PLAY MATCH screen, with EDIT TACTICS, VIEW
  * OPPO, squad swaps and substitutes all working as they always do. The ONE
