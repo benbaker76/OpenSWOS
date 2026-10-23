@@ -146,6 +146,7 @@ docs drift: search by function name.
 |---|---|---|---|
 | [GDB_DEBUGGING.md](GDB_DEBUGGING.md) | The gdb workflow for both targets: FS-UAE + attach, `gdb_proxy.py`, watchpoints, the one-shot port rule, SDL native mode. | current | attaching gdb to either target |
 | [GDB_HARNESS.md](GDB_HARNESS.md) | Driving the game headlessly through gdb: menus by input injection, careers, seasons, capture, TURBO. | current | automating careers/seasons/menus |
+| [TESTING_FLOWS_DESIGN.md](TESTING_FLOWS_DESIGN.md) | The flow-testing framework (`scripts/testing_support/`, `scripts/swos_test.py`): typed JSON goals → offline catalog resolution → planned, verified menu flows on SDL and FS-UAE (careers, friendlies to the match boundary), with snapshots, fingerprints and JSON reports. | current | scripting a game scenario from data (a career, a friendly) or extending the flow framework |
 | [DEBUG_TOOLKIT.md](DEBUG_TOOLKIT.md) | Terminal tools for a running Amiga: DMA profiler, CPU flame graph, copper disassembler, frame capture. | current | an Amiga-only display/DMA/timing artifact |
 | [AGA.md](AGA.md) | AGA 8-bitplane rendering: mixed-depth banks, `grafs_aga`, 256-colour palettes, the FMODE pitch-scroll saga. | parked | the Amiga display, copper, FMODE, `grafs_aga` |
 | [AGA_TEST.md](AGA_TEST.md) | Entry point for the AGA scroll/sprite test bed (`PITCH_SCROLL_TEST`). | parked | resuming AGA work |

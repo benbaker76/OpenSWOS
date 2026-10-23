@@ -266,7 +266,9 @@ class SwosHarness:
             return []
         script = (
             "set $i = 0\n"
-            f"while $i <= {n}\n"
+            # numEntries is a COUNT (DrawMenu iterates i < count,
+            # src/menu_system.c); `<=` read one MenuEntry past the end.
+            f"while $i < {n}\n"
             "  set $e = (MenuEntry*)CalcMenuEntryAddress($i)\n"
             "  if ($e->isInvisible == 0 && (unsigned long)$e->fg > 0x10000)\n"
             '    printf "SCAN|%d|%s|\\n", $i, (char*)$e->fg\n'
