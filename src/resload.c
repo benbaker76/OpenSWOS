@@ -462,6 +462,7 @@ static const uint32_t ext_table[] = {
     0x2E48494Cu, /* ".HIL" */
     0x2E454454u, /* ".EDT" */
     0x2E52504Cu, /* ".RPL" (PC whole-match replay) */
+    0x2E43484Cu, /* ".CHL" (a saved position, src/challenge.c) */
     0            /* terminator */
 };
 

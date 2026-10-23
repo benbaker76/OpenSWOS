@@ -15,6 +15,7 @@
 #include "endian_helpers.h"
 #include "display.h"    /* WIDE_MARGIN — centre the replay overlay in widescreen (0 on Amiga) */
 #include "dos_mode.h"   /* _gDosView — the overlay's DOS positions */
+#include "challenge.h" /* a saved position pins the pitch it was saved on */
 
 /* ---- Sprite constants ---- */
 #define SPR_REPLAY_FRAME_00  1095
@@ -476,6 +477,22 @@ void SetPitchTypeAndNumber(void)
         d0 = 0x500;
 
     _pitchNumberAndType = (uint16_t)_pitchType + d0;
+
+    /* A saved position is played on the pitch it was saved on (src/challenge.c). The
+     * override lands HERE, after both Rand() calls above, so the generators are left
+     * exactly where a normal kick-off leaves them -- the position's own seeds overwrite
+     * them a moment later anyway, but a pin that changed how much randomness the init
+     * consumed would be a trap for everything else. The pitch is not in the state
+     * registry (it is which art is loaded, not what the match reads), yet the fan rows in
+     * the state belong to it -- and a soft pitch plays differently from a dry one. */
+    {
+        uint16_t pinned;
+        extern void Challenge_NotePitch(uint16_t rolled, uint16_t pinned, int32_t armed);
+        int32_t armed = Challenge_PitchOverride(&pinned);
+        Challenge_NotePitch(_pitchNumberAndType, armed ? pinned : 0, armed);
+        if (armed)
+            _pitchNumberAndType = pinned;
+    }
 
 #ifdef DETERMINISTIC_MODE
     /* Force fixed pitch to ensure ASM and C versions match */

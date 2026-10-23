@@ -9,9 +9,27 @@
 #ifndef MATCH_STEP_H
 #define MATCH_STEP_H
 
+#include "swos_types.h"
+
+/* What turning inputs into game events remembers from one frame to the next. It is match
+ * state -- registered in src/sim_state.c -- so a rollback puts it back with everything
+ * else and a resync sends it.
+ *
+ * The latch and its storage are OUTSIDE the SDL guard below, and defined in
+ * src/swos_globals.c rather than here, because the registry is shared: the m68k build has
+ * no frame-stepping at all and never writes a byte of this, but it must hold the same
+ * region as the SDL build or the two would compute different SimState_LayoutHash values --
+ * and then no save state written on one target would load on the other (docs/CHALLENGE.md). */
+typedef struct {
+    uint8_t benchHeld[2];       /* per team, top then bottom: its bench button last frame */
+    uint8_t benchPending[2];    /* per team: a bench call deferred to the next frame */
+    uint8_t keyHeld[2];         /* per player: the key held last frame */
+} MatchInputLatch;
+
+extern MatchInputLatch g_matchInputLatch;
+
 #ifdef SWOS_SDL_BUILD
 
-#include "swos_types.h"
 #include "game_types.h"
 
 #define MATCH_PLAYERS     2
@@ -31,17 +49,6 @@ typedef struct {
     uint8_t controls;   /* MATCH_* */
     uint8_t key;        /* the key held this frame, as its _keycodeLut value; 0 for none */
 } MatchPlayerInput;
-
-/* What turning inputs into game events remembers from one frame to the next. It is match
- * state -- registered in src/sim_state.c -- so a rollback puts it back with everything
- * else and a resync sends it. */
-typedef struct {
-    uint8_t benchHeld[2];       /* per team, top then bottom: its bench button last frame */
-    uint8_t benchPending[2];    /* per team: a bench call deferred to the next frame */
-    uint8_t keyHeld[2];         /* per player: the key held last frame */
-} MatchInputLatch;
-
-extern MatchInputLatch g_matchInputLatch;
 
 void    MatchStep_PackInput(const MatchPlayerInput *in, uint8_t *out);
 void    MatchStep_UnpackInput(MatchPlayerInput *in, const uint8_t *src);

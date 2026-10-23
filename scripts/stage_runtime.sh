@@ -18,6 +18,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 [ $# -ge 2 ] || { echo "usage: $0 DEST DIR..." >&2; exit 2; }
 DEST="$1"; shift
+RUNTIME_TARGET="${SWOS_RUNTIME_TARGET:-sdl}"
+case "$RUNTIME_TARGET" in sdl|amiga|all) ;; *) echo "invalid SWOS_RUNTIME_TARGET: $RUNTIME_TARGET" >&2; exit 2 ;; esac
 case "$DEST" in /*) ;; *) DEST="$PWD/$DEST" ;; esac
 mkdir -p "$DEST"
 
@@ -26,6 +28,11 @@ STAGED=""
 for d in "$@"; do
     n=0
     while IFS= read -r -d '' f; do
+        # One bundled challenge per target. A combined multi-binary drop can
+        # request 'all'; each executable still installs only its own sample.
+        case "$RUNTIME_TARGET:$f" in
+            sdl:data/CHALAMI.DAT|amiga:data/CHALSDL.DAT) continue ;;
+        esac
         mkdir -p "$DEST/$(dirname "$f")"
         cp "$f" "$DEST/$f"
         n=$((n + 1))

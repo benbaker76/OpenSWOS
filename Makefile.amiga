@@ -91,7 +91,6 @@ SDL_ONLY_SRCS := \
     rjp1.c                \
     rollback_rig.c        \
     sfx_debug.c           \
-    sim_state.c           \
     srp_resim.c           \
     srp_writer.c          \
     state_wire.c          \

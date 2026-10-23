@@ -20,8 +20,18 @@
 #include "display.h"
 #include "game_types.h"
 #include "menu_system.h"     /* MENU_HEADER_SIZE — used by menuEntries alias */
+#include "match_step.h"      /* MatchInputLatch — g_matchInputLatch, defined below */
 
 #include "swos_types.h"
+
+/* ---- Match input latch --------------------------------------------- *
+ * What turning a frame's input into game events remembers (include/match_step.h). Only
+ * the SDL build's frame-stepping writes it -- the replay rig and netplay -- but it is a
+ * region of the shared match-state registry (src/sim_state.c), so BOTH targets must
+ * define it: a registry that differs by one region gives the two builds different
+ * SimState_LayoutHash values, and a save state written on one would be refused by the
+ * other (docs/CHALLENGE.md). On the Amiga it stays zero for the life of the process. */
+MatchInputLatch g_matchInputLatch;
 
 /* ---- Input state shared with input_sdl.c --------------------------- */
 uint8_t  _keyState[128];

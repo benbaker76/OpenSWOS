@@ -151,6 +151,17 @@ uint64_t SimState_LayoutHash(void);
  * the kind and the identity word, or 0 if nothing it knows contains it. */
 int      SimState_PointerIdentity(const void *p, uint32_t *kind, uint32_t *identity);
 
+/* How many objects a pointer of `kind` (SIM_PTR_*) can point into in this build, right
+ * now. Diagnostic: a kind whose list is EMPTY gives every pointer of that kind no
+ * identity, which is how a target that cannot save its state says so. */
+uint32_t SimState_IdentityListCount(uint32_t kind);
+
+/* The SIM_PTR_* kind, and the value, of the last pointer that found no identity. */
+uint32_t SimState_LastUnidentifiedKind(void);
+uint32_t SimState_LastUnidentifiedPtr(void);
+uint32_t SimState_UnidentifiedOfKind(uint32_t kind);
+void     SimState_ClearUnidentified(void);
+
 /* Which field a differing byte of the PORTABLE encoding belongs to: writes something like
  * "[3 of 40] +42 word16" -- the element, and the NATIVE offset, which is what the struct in
  * game_types.h names. Returns 0 (and "byte N") when the region has no usable layout. */

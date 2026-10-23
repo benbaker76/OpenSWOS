@@ -33,6 +33,7 @@ extern void CareerOverInit(void);
 extern void ChairmanMemosContinue(void);
 extern void ChairmanMemosInit(void);
 extern void ChairmanMemosOnReturn(void);
+extern void ChallengesMenu(void);
 extern void ChangeAllPlTeamsEqual(void);
 extern void ChangeAutoReplays(void);
 extern void ChangeAutoSaveHighlights(void);
@@ -419,6 +420,7 @@ extern char _aBuyOtherForeig[];
 extern char _aBuyPlayer[];
 extern char _aCareerTotal[];
 extern char _aCareer_1[];
+extern char _aChallenges[];
 extern char _aChooseTeam[];
 extern char _aChooseTeams[];
 extern char _aClubBusiness[];
@@ -705,6 +707,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ChairmanMemosContinue", (void*)ChairmanMemosContinue, SYM_FUNC },
     { "ChairmanMemosInit", (void*)ChairmanMemosInit, SYM_FUNC },
     { "ChairmanMemosOnReturn", (void*)ChairmanMemosOnReturn, SYM_FUNC },
+    { "ChallengesMenu", (void*)ChallengesMenu, SYM_FUNC },
     { "ChangeAllPlTeamsEqual", (void*)ChangeAllPlTeamsEqual, SYM_FUNC },
     { "ChangeAutoReplays", (void*)ChangeAutoReplays, SYM_FUNC },
     { "ChangeAutoSaveHighlights", (void*)ChangeAutoSaveHighlights, SYM_FUNC },
@@ -1088,6 +1091,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aBuyPlayer", (void*)_aBuyPlayer, SYM_STRING },
     { "_aCareerTotal", (void*)_aCareerTotal, SYM_STRING },
     { "_aCareer_1", (void*)_aCareer_1, SYM_STRING },
+    { "_aChallenges", (void*)_aChallenges, SYM_STRING },
     { "_aChooseTeam", (void*)_aChooseTeam, SYM_STRING },
     { "_aChooseTeams", (void*)_aChooseTeams, SYM_STRING },
     { "_aClubBusiness", (void*)_aClubBusiness, SYM_STRING },

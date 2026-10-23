@@ -53,8 +53,8 @@
 #include "sim_state_ids.h"
 #include "match_step.h"
 #include "endian_helpers.h"
+#include "swos_io.h"        /* swos_io_alloc/free -- the m68k build has no malloc */
 
-#include <stdlib.h>
 #include <string.h>
 
 /* ---- random generators ---- */
@@ -635,10 +635,15 @@ void SimState_Load(const uint8_t *src, uint32_t tiers)
         memcpy(g_simStateRegions[i].addr, src, g_simStateRegions[i].size);
         src += g_simStateRegions[i].size;
     }
+#ifdef SWOS_SDL_BUILD
+    /* The SDL renderer keeps its own full-width pointer for every pitch tile, so the fan
+     * slots just restored have to be mirrored into it. The m68k renderer draws from
+     * _pitchDatBuffer itself and has no second copy to bring back in line. */
     if (tiers & SIM_TIER_SIM) {
         AnimatedPatterns_SyncTileMirror(FAN_ROWS_TOP_SLOT, FAN_ROWS_SLOTS);
         AnimatedPatterns_SyncTileMirror(FAN_ROWS_BOTTOM_SLOT, FAN_ROWS_SLOTS);
     }
+#endif
 }
 
 /* Put back the LOCAL fields (this display's, not the match's) from a native state `src`
@@ -770,6 +775,36 @@ static uint32_t objects_of(uint32_t kind, SimObject *buf, const SimObject **list
     }
 }
 
+/* Diagnostic: the kind and value of the last pointer that found no identity. The m68k
+ * build has no log, so this is how a target that cannot save its state names the pointer
+ * class responsible (src/challenge.c). */
+static uint32_t s_lastUnidentifiedKind, s_lastUnidentifiedPtr, s_unidentifiedSeen;
+static uint32_t s_unidentifiedByKind[SIM_PTR_KINDS];
+
+uint32_t SimState_LastUnidentifiedKind(void) { return s_lastUnidentifiedKind; }
+uint32_t SimState_LastUnidentifiedPtr(void)  { return s_lastUnidentifiedPtr; }
+uint32_t SimState_UnidentifiedOfKind(uint32_t kind)
+{
+    return kind < SIM_PTR_KINDS ? s_unidentifiedByKind[kind] : 0;
+}
+
+void SimState_ClearUnidentified(void)
+{
+    uint32_t i;
+    s_unidentifiedSeen = 0;
+    s_lastUnidentifiedKind = 0;
+    s_lastUnidentifiedPtr = 0;
+    for (i = 0; i < SIM_PTR_KINDS; i++)
+        s_unidentifiedByKind[i] = 0;
+}
+
+uint32_t SimState_IdentityListCount(uint32_t kind)
+{
+    SimObject buf[TEAM_SPRITES_MAX];
+    const SimObject *list;
+    return objects_of(kind, buf, &list);
+}
+
 static int identify(uint32_t kind, uintptr_t p, uint32_t *word)
 {
     SimObject buf[TEAM_SPRITES_MAX];
@@ -798,6 +833,16 @@ static int identify(uint32_t kind, uintptr_t p, uint32_t *word)
             return 1;
         }
     }
+    /* No identity. Keep the FIRST one of a pass (the counters are cleared by the caller),
+     * and tally by kind: the m68k build has no log, so this is how it names what it could
+     * not write (src/challenge.c). */
+    if (!s_unidentifiedSeen) {
+        s_unidentifiedSeen = 1;
+        s_lastUnidentifiedKind = kind;
+        s_lastUnidentifiedPtr  = (uint32_t)p;
+    }
+    if (kind < SIM_PTR_KINDS)
+        s_unidentifiedByKind[kind]++;
     return 0;
 }
 
@@ -826,16 +871,22 @@ static int resolve(uint32_t kind, uint32_t word, uintptr_t *p)
 
 /* A fan tile slot holds pitchChunkyBuffer + tile * 256 (the low 32 bits of it on a
  * 64-bit build); 0 is a slot no tile was mapped to. */
+/* A pitch tile slot travels as its tile's INDEX, because the two targets hold their tiles
+ * in different buffers at different depths -- the base and the per-tile shift come from
+ * animated_patterns.c, which owns that for each (include/animated_patterns.h). Hardcoding
+ * the SDL buffer and a 256-byte stride here gave every fan slot on the m68k build no
+ * identity: 252 of them, which is what stopped the Amiga saving a position at all. */
 static uint32_t tile_identity(uint32_t slot, uint32_t *unidentified)
 {
-    const uint32_t off = slot - (uint32_t)(uintptr_t)_pitchChunkyBuffer;
+    const uint32_t shift = AnimatedPatterns_TileShift();
+    const uint32_t off = slot - AnimatedPatterns_TileBase();
     if (slot == 0)
         return IDENTITY_NULL;
-    if ((off & 0xFF) != 0 || (off >> 8) >= PITCH_TILES) {
+    if ((off & ((1u << shift) - 1u)) != 0 || (off >> shift) >= PITCH_TILES) {
         (*unidentified)++;
         return IDENTITY_UNKNOWN;
     }
-    return (off >> 8) + 1;
+    return (off >> shift) + 1;
 }
 
 static int tile_slot(uint32_t word, uint32_t *slot)
@@ -846,7 +897,7 @@ static int tile_slot(uint32_t word, uint32_t *slot)
     }
     if (word == IDENTITY_UNKNOWN || word == IDENTITY_SENTINEL || word - 1 >= PITCH_TILES)
         return 0;
-    *slot = (uint32_t)(uintptr_t)_pitchChunkyBuffer + ((word - 1) << 8);
+    *slot = AnimatedPatterns_TileBase() + ((word - 1) << AnimatedPatterns_TileShift());
     return 1;
 }
 
@@ -1156,7 +1207,7 @@ int SimState_LoadPortable(const uint8_t *src, uint32_t tiers)
 {
     /* Decode into a scratch copy first: a buffer that does not resolve must not leave
      * the match half loaded. */
-    uint8_t *raw = (uint8_t *)malloc(SimState_Size(tiers) + 1);
+    uint8_t *raw = (uint8_t *)swos_io_alloc(SimState_Size(tiers) + 1);
     uint8_t *out = raw;
     if (!raw)
         return -1;
@@ -1172,7 +1223,7 @@ int SimState_LoadPortable(const uint8_t *src, uint32_t tiers)
         }
         for (uint32_t off = 0; off < r->size; off += r->layout->stride) {
             if (!decode_element(r->layout, src, out)) {
-                free(raw);
+                swos_io_free(raw);
                 return -1;
             }
             src += stride;
@@ -1180,7 +1231,7 @@ int SimState_LoadPortable(const uint8_t *src, uint32_t tiers)
         }
     }
     SimState_Load(raw, tiers);
-    free(raw);
+    swos_io_free(raw);
     return 0;
 }
 
@@ -1251,13 +1302,30 @@ static const char *const k_frameArrayNames[] = { SIM_FRAME_ARRAYS(X) };
 static const uint32_t k_frameArrayCounts[] = { SIM_FRAME_ARRAYS(X) };
 #undef X
 
+/* The m68k build has no <string.h> beyond what the toolchain inlines, and these two walk
+ * region NAMES -- short literals. Same values as strlen/strcmp would give, which matters
+ * for the first one: the layout hash must come out identical on both targets or a save
+ * state written on one would be refused by the other. */
+static uint32_t name_len(const char *s)
+{
+    uint32_t n = 0;
+    while (s[n]) n++;
+    return n;
+}
+
+static int name_eq(const char *a, const char *b)
+{
+    while (*a && *a == *b) { a++; b++; }
+    return *a == *b;
+}
+
 uint64_t SimState_LayoutHash(void)
 {
     uint64_t h = 0xcbf29ce484222325ull;
     for (int32_t i = 0; i < g_simStateRegionCount; i++) {
         const SimStateRegion *r = &g_simStateRegions[i];
         const SimLayout *l = r->layout;
-        h = mix_bytes(h, r->name, (uint32_t)strlen(r->name) + 1);
+        h = mix_bytes(h, r->name, name_len(r->name) + 1);
         h = mix_u32(h, SimState_RegionPortableSize(i));
         h = mix_u32(h, r->flags);
         h = mix_u32(h, s_disabled[i]);
@@ -1268,9 +1336,9 @@ uint64_t SimState_LayoutHash(void)
         }
     }
     for (uint32_t i = 0; i < SIM_ANIM_TABLE_COUNT; i++)
-        h = mix_bytes(h, k_animTableNames[i], (uint32_t)strlen(k_animTableNames[i]) + 1);
+        h = mix_bytes(h, k_animTableNames[i], name_len(k_animTableNames[i]) + 1);
     for (uint32_t i = 0; i < SIM_FRAME_ARRAY_COUNT; i++) {
-        h = mix_bytes(h, k_frameArrayNames[i], (uint32_t)strlen(k_frameArrayNames[i]) + 1);
+        h = mix_bytes(h, k_frameArrayNames[i], name_len(k_frameArrayNames[i]) + 1);
         h = mix_u32(h, k_frameArrayCounts[i]);
     }
     h = mix_u32(h, team_sprites_count());
@@ -1284,7 +1352,7 @@ int SimState_Disable(const char *name)
 {
     int found = 0;
     for (int32_t i = 0; i < g_simStateRegionCount; i++)
-        if (!strcmp(g_simStateRegions[i].name, name)) {
+        if (name_eq(g_simStateRegions[i].name, name)) {
             s_disabled[i] = 1;
             found = 1;
         }

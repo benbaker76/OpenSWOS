@@ -276,6 +276,7 @@ char _aCannotFormatGa[] = "CANNOT FORMAT GAME DISK";
 char _aNotATacticsFil[] = "NOT A TACTICS FILE";
 char _aEditedCustomTe[] = "EDITED CUSTOM TEAMS FILE NOT FOUND";
 char _aSaveDiskFiling[] = "SAVE DISK FILING";
+char _aChallenges[] = "CHALLENGES";
 char _aFormatSaveDisk[] = "FORMAT SAVE DISK";
 char _aPlayersOnDomes[] = "PLAYERS ON DOMESTIC MARKET";
 char _aPlayersOnForei[] = "PLAYERS ON FOREIGN MARKET";

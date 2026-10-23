@@ -84,6 +84,12 @@ extern uint8_t  _pitchChunkyBuffer[];
  * from the Amiga C port's Data.c:2221 — with a zero stub, every pick
  * was index 0 so the same tile "animated" forever and the rest never
  * moved. */
+/* The tile base and stride of THIS target, for src/sim_state.c (include/animated_patterns.h
+ * says why a saved position needs them). Functions rather than the macros above because
+ * ANIM_TILE_BASE reads a buffer address, which is not a constant. */
+uint32_t AnimatedPatterns_TileBase(void)  { return (uint32_t)ANIM_TILE_BASE; }
+uint32_t AnimatedPatterns_TileShift(void) { return (uint32_t)ANIM_TILE_SIZE_SHIFT; }
+
 uint8_t _animPatternsRandomTable[64] = {
      0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
     16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,

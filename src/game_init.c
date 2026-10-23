@@ -10,6 +10,7 @@
 #include "play_match_menu.h"
 #include "string_utils.h"
 #include "shooting_practice.h"   /* shared: compiled for both targets */
+#include "challenge.h"           /* a saved position skips the pre-match prompts */
 #ifdef SWOS_SDL_BUILD
 #include "uniform.h"        /* a kit chosen for this match (UNIFORM screen) */
 #endif
@@ -741,6 +742,22 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
     uint16_t d0 = 0;
 
     _careerTeamCoachOnly = 0;
+
+    /* A SAVED POSITION (src/challenge.c). Same shape as the three branches below -- the
+     * replay rig's, a live netplay match's and the arcade's -- and for the same reason:
+     * this function's tail opens ShowPlayMatchMenu, which waits for input, and these
+     * paths have nobody to ask. A position is better off than the others, though: who
+     * controlled which side, with which tactics, was decided when the position was
+     * saved and travels in the file, so the answers are RESTORED rather than
+     * re-derived. Outside the SDL guard below because a saved position loads on the
+     * Amiga too, where this menu blocks exactly the same way. */
+    if (Challenge_Armed()) {
+        _isCareer = 0;
+        _exitGameFlag = 0;
+        Challenge_ApplySetup();     /* the control scalars this function would have set */
+        (void)maxSubs; (void)excludeFlags; (void)allowSquadChanges; (void)mode; (void)d0;
+        return;
+    }
 
 #ifdef SWOS_SDL_BUILD
     /* A kit chosen on the UNIFORM screen is for one match: whatever was chosen before

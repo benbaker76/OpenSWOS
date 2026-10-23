@@ -161,6 +161,8 @@ tests/netplay-width/
 # sound and the commentary README.
 bin/data/*
 !bin/data/credits_icons.bmp
+!bin/data/CHALAMI.DAT
+!bin/data/CHALSDL.DAT
 bin/grafs/*
 !bin/grafs/LOADER76.RAW
 bin/grafs_aga/*

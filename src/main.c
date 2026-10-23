@@ -53,6 +53,7 @@
 #include "jag_graphics.h"       /* --jag-graphics */
 #include "kit_art.h"            /* --kit-art */
 #include "custom_team.h"        /* --custom-team-selftest */
+#include "challenge.h"          /* --challenge, --challenge-selftest */
 #include "dos_sound.h"          /* --sound-style, --dos-sound-selftest */
 #include "dos_music.h"          /* --music, --dos-music-selftest */
 #include "pitch_map.h"          /* --pitch-maps */
@@ -280,6 +281,10 @@ static void print_usage(const char *argv0)
         "                            and report what it found. Exits.\n"
         "  --dos-sound-selftest      Check that every PC sound file is in sound_dos/\n"
         "                            and every table names one. Exits.\n"
+        "  --challenge=<file>        Play on from a saved position: a .CHL in the save\n"
+        "                            folder, written in a match by the 'C' key.\n"
+        "  --challenge-selftest      Round-trip a saved position's setup and state in\n"
+        "                            this process. Exits.\n"
         "  --custom-team-selftest    Check every database team against the custom team\n"
         "                            rule (names, faces, kits and line-up only) and\n"
         "                            through the team file's text. Exits.\n"
@@ -655,6 +660,17 @@ int main(int argc, char **argv)
                 return 1;
             }
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+        } else if ((v = match_kv(a, "challenge")) != NULL) {
+            /* Play on from a saved position: the name of a .CHL in the save folder
+             * (src/challenge.c). Only remembered here -- the save folder is not known
+             * until later, so a read now would look in the wrong place. */
+            Challenge_Request(v);
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+        } else if (strcmp(a, "--challenge-selftest") == 0) {
+            /* Round-trips the setup block and the match state in this process, and says
+             * which field failed if one does. Needs no game data, so it runs here and
+             * exits -- it scribbles over the globals it covers on purpose. */
+            return Challenge_SelfTest() ? 1 : 0;
         } else if (strcmp(a, "--replay-window") == 0) {
             replay_window = 1;
         } else if (strcmp(a, "--replay-paced") == 0) {

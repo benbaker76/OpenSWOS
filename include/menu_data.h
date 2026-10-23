@@ -1370,7 +1370,8 @@ typedef struct Menu_EditMenu
   MenuEntry_Byte_Colors_TextPtr entry0;                 /* the EDIT header */
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry1;    /* EDIT TACTICS */
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry2;    /* EDIT CUSTOM TEAMS */
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;    /* EXIT */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;    /* SAVE DISK FILING */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;    /* EXIT */
   MenuMark markEndMenu;
 } Menu_EditMenu;
 #pragma pack(pop)

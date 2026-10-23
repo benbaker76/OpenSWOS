@@ -36,6 +36,8 @@ void DeleteFileMenu(void);
 void ExitDisk(void);
 int16_t SelectFileToSaveDialog(uint32_t filterExt, uint8_t *defaultFilename, uint8_t *menuTitleStr);
 int16_t GetFilenameAndExtension(uint32_t preferredExt, uint8_t *defaultFilename, uint8_t *menuTitleStr);
+/* The same picker filtered to ONE extension (CHALLENGES; src/file_io.c). */
+int16_t SelectFileOfExtension(uint32_t ext, uint8_t *menuTitleStr);
 
 /* ---- File Selection Helpers (Chunk 140) ---- */
 void SelectFilenameToSaveAndExit(void);

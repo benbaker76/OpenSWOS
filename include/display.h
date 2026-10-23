@@ -810,6 +810,8 @@ void UpdatePlanePtrsAndBlitParams(void);
 void SwapBuffersAndCameraViewState(void);
 void SetCameraCoordinates(int16_t targetX, int16_t targetY);
 void DoubleBufferSwapSequence(void);
+/* Discard the match's two scroll origins before a complete menu redraw. */
+void ResetMenuViewState(void);
 void BlitterCopyPanelToScreen2(void);
 void ProcessSpriteBlitQueue(void);
 void ProcessSpriteBlitQueueAsync(void);

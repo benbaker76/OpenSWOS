@@ -647,7 +647,7 @@ fi
 if [ "$DO_FULL" = 1 ] && [ -n "$ZIPPED" ] && command -v zip >/dev/null 2>&1; then
     banner "package -> $FULL_ZIP_PATH  (portable: every PC binary + the data setup, no game data)"
     FULL_TMP="$(mktemp -d)"
-    FULL_DIRS="$(scripts/stage_runtime.sh "$FULL_TMP" $FULL_DATA_DIRS)"
+    FULL_DIRS="$(SWOS_RUNTIME_TARGET=all scripts/stage_runtime.sh "$FULL_TMP" $FULL_DATA_DIRS)"
     if [ -z "$FULL_DIRS" ]; then
         echo "-- SKIP: no data directories under bin/"
     else
@@ -729,7 +729,7 @@ if [ "$DO_FULL" = 1 ] && [ -f bin/SWOS2 ] && command -v zip >/dev/null 2>&1; the
     AMIGA_TMP="$(mktemp -d)"
     if cp -R "$AMIGA_PKG_DIR/." "$AMIGA_TMP/" &&
        cp bin/SWOS2 "$AMIGA_TMP/SWOS/" &&
-       AMIGA_DIRS="$(scripts/stage_runtime.sh "$AMIGA_TMP/SWOS" $AMIGA_DATA_DIRS $AMIGA_BOOT_DIRS)" &&
+       AMIGA_DIRS="$(SWOS_RUNTIME_TARGET=amiga scripts/stage_runtime.sh "$AMIGA_TMP/SWOS" $AMIGA_DATA_DIRS $AMIGA_BOOT_DIRS)" &&
        mkdir -p "$AMIGA_TMP/SWOS/save" &&
        ( cd "$AMIGA_TMP" && zip -r -q "$ROOT/$AMIGA_ZIP_PATH" . -x '*/.DS_Store' ); then
         echo "-- drawer:  SWOS/ + SWOS.info; inside it SWOS2, the Workbench script and icon, $AMIGA_DIRS, empty save/"

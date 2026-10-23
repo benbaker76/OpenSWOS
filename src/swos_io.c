@@ -426,11 +426,8 @@ static void resolve_save_path(const uint8_t *name, char *out, uint32_t out_sz)
     snprintf(out, out_sz, "%s/%s", swos_save_dir(), src);
 }
 
-int swos_io_load_alloc(const uint8_t *name, uint8_t **out_buf, uint32_t *out_size)
+static int load_alloc_path(const char *path, uint8_t **out_buf, uint32_t *out_size)
 {
-    char path[1280];   /* s_save_dir (up to 1023) + "/" + filename */
-    resolve_save_path(name, path, sizeof(path));
-
     FILE *f = fopen(path, "rb");
     if (!f) return 1;
 
@@ -449,6 +446,19 @@ int swos_io_load_alloc(const uint8_t *name, uint8_t **out_buf, uint32_t *out_siz
     *out_buf = buf;
     *out_size = (uint32_t)n;
     return 0;
+}
+
+int swos_io_load_alloc(const uint8_t *name, uint8_t **out_buf, uint32_t *out_size)
+{
+    char path[1280];
+    resolve_save_path(name, path, sizeof(path));
+    return load_alloc_path(path, out_buf, out_size);
+}
+
+int swos_io_load_data_alloc(const char *name, uint8_t **out_buf, uint32_t *out_size)
+{
+    char path[1280];
+    return load_alloc_path(swos_data_path(name, path, sizeof(path)), out_buf, out_size);
 }
 
 int swos_io_save(const uint8_t *name, const uint8_t *buf, uint32_t size)
@@ -627,6 +637,12 @@ int swos_io_load_alloc(const uint8_t *name, uint8_t **out_buf, uint32_t *out_siz
 /* Amiga: the game runs from its own directory and resload owns the save
  * device, so both of these are nothing. Defined anyway so the shared call
  * sites need no #ifdef. */
+int swos_io_load_data_alloc(const char *name, uint8_t **out_buf, uint32_t *out_size)
+{
+    /* Bundled .DAT files are not redirected to save/ by resload. */
+    return swos_io_load_alloc((const uint8_t *)name, out_buf, out_size);
+}
+
 const char *swos_data_path(const char *rel, char *buf, uint32_t buf_sz)
 {
     (void)buf; (void)buf_sz;

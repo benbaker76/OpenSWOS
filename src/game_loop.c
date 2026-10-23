@@ -14,6 +14,8 @@
 #include "game_types.h"
 #include "display.h"
 #include "deterministic.h"
+#include "challenge.h"       /* the 'C' key, and a saved position loaded before frame 1 */
+#include "fade.h"            /* ApplyFadeStep, FADE_MAX — see Challenge_LoadState's caller */
 
 /* ---- Extern globals (data section, exported from asm/Data.c) ---- */
 extern uint16_t _gameCanceled;
@@ -308,6 +310,17 @@ MainKeysCheck(uint16_t key)
         if (_replayState != 0)
             return;
         _userRequestedReplay = 1;
+        return;
+    }
+
+    /* 'C' — save the position to a file, to be played on from later
+     * (src/challenge.c). Challenge_SaveNow decides whether this is a position worth
+     * keeping: a match under way, one human side against the computer, and not in the
+     * middle of the substitutes menu or a replay. It writes the file from here, on the
+     * frame the key was read, which is a coherent start-of-frame state -- GetKey has run
+     * and nothing of the frame's logic has. */
+    if (key == 0x43) {
+        Challenge_SaveNow();
         return;
     }
 
@@ -658,6 +671,14 @@ GameFrameResult GameLoop_Frame(void)
     _frameCount += 1;
     if (_spaceReplayTimer != 0)
         _spaceReplayTimer -= 1;
+    /* The save-position key's own hold-off, beside the one SPACE uses: a key is read on
+     * every frame it is held, so one press of 'C' wrote a file per frame (four of them,
+     * first time it was tried). */
+    Challenge_TickNotice();
+    Challenge_DumpPitch();      /* TEMPORARY diagnostic */
+#ifdef CHAL_AUTOPROBE
+    Challenge_AutoProbe();      /* TEMPORARY: see include/challenge.h */
+#endif
 
     /* Panel update block */
     RASTER(RASTER_UNDRAW);
@@ -901,6 +922,7 @@ void __attribute__((used, externally_visible))
 GameLoop(void)
 {
     int16_t d1, d2;
+    int32_t loadedPosition = 0;
 
     _gameCanceled = 0;
     _instantReplayFlag = 0;
@@ -941,8 +963,59 @@ GameLoop(void)
         GetKey();
     } while (_currentKey != 0);
 
-    /* The first pass starts at the vblank wait, as the original's does. */
-    GameLoop_EndFrame(1);
+    /* A SAVED POSITION, if one is armed (src/challenge.c): loaded HERE, over everything
+     * the init just built, and before a single frame runs.
+     *
+     * After the init, not before it -- the opposite of what the netplay lobby does with a
+     * kick-off state. The lobby makes both peers' PRE-init state identical so the
+     * deterministic init derives the same kick-off on each; a saved position is the state
+     * the init's output has to be REPLACED by. The camera is then put where the position
+     * had it, because the renderer has already been pointed at the kick-off view above. */
+    int16_t renderCameraX = _cameraX.s.i;
+    int16_t renderCameraY = _cameraY.s.i;
+    if (Challenge_LoadState()) {
+        int16_t loadedCameraX = _cameraX.s.i;
+        int16_t loadedCameraY = _cameraY.s.i;
+        /* The camera has teleported from the kick-off to wherever the position was saved.
+         * That is the jump the end of an instant replay makes, so it is undone the same
+         * way (RestoreCameraPosition, highlight.c): the animated pitch tiles go back to
+         * static, then both buffers are refilled at the new camera.
+         *
+         * Then the FADE is handed back to the loop. A position is saved mid-match, where
+         * the kick-off fade has long finished, so it restores _fadeState = 1 and the
+         * screen would stay black -- nothing else writes the palette. Setting it back to
+         * "no fade yet" makes GameLoop_Frame start its own fade-in a few lines below,
+         * through the game's own machinery.
+         *
+         * Writing the palette directly (ApplyFadeStep) and panning the camera by hand to
+         * force a column refresh is what the first attempt did: on the Amiga it corrupted
+         * the pitch, the crowd rows and the menus after the match -- the m68k display is
+         * hardware-scrolled bitplanes with a copper palette, and it does not take kindly
+         * to either. The SDL build redraws the whole pitch every frame, which is why it
+         * never showed any of this. */
+        extern void ResetAnimatedPatternsForBothTeams(void);
+        ResetAnimatedPatternsForBothTeams();
+        /* The portable state restores the world camera, but deliberately leaves
+         * the circular-buffer scroll offsets alone. Start the repaint from the
+         * camera those offsets still describe, so SetCameraCoordinates advances
+         * them by the loaded position's delta on the first buffer too. Otherwise
+         * only the second buffer gets that delta, and their scroll phases differ.
+         * Keep the loaded fractional words: only the integer camera is rewound. */
+        _cameraX.s.i = renderCameraX;
+        _cameraY.s.i = renderCameraY;
+        ReplayUpdateCameraAndSwapBuffers(loadedCameraX, loadedCameraY);
+        UpdatePlanePtrsAndBlitParams();
+        _fadeState    = 0;
+        _fadeInitFlag = FADE_SENTINEL;
+        loadedPosition = 1;
+    }
+
+    /* The first pass starts at the vblank wait, as the original's does -- but a loaded
+     * position does not SHOW that pass. The picture in the buffer was drawn for the
+     * kick-off, before the position replaced it, so presenting it flashes a frame of the
+     * wrong match: the clock read the 88th minute for an instant before the real 20th.
+     * The wait still happens, only the showing is skipped. */
+    GameLoop_EndFrame(loadedPosition ? 0 : 1);
     for (;;) {
         GameFrameResult r = runFrame();
         if (r == GAME_FRAME_MATCH_OVER)

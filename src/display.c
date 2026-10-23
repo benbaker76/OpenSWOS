@@ -1067,6 +1067,24 @@ void DoubleBufferSwapSequence(void)
     UpdatePlanePtrsAndBlitParams();
 }
 
+void ResetMenuViewState(void)
+{
+    /* Menus are painted at physical (0,0), not into the match's circular view.
+     * Reset both slots together; a swap must never reintroduce a match origin.
+     * The caller must redraw the complete menu before presenting it. */
+    _cameraX.raw = _cameraY.raw = 0;
+    _oldCameraX = _oldCameraY = 0;
+    _cameraXMod320 = _cameraYMod320 = 0;
+    _cameraXSaved0 = _cameraYSaved0 = 0;
+    _cameraXSaved1 = _cameraYSaved1 = 0;
+    _oldCameraXSaved0 = _oldCameraYSaved0 = 0;
+    _oldCameraXSaved1 = _oldCameraYSaved1 = 0;
+    _dstXByteOffsetSaved0 = _dstYStartLinesSaved0 = 0;
+    _dstXByteOffsetSaved1 = _dstYStartLinesSaved1 = 0;
+    _paletteIndex = 0;
+    _usePlaneOffsetFlag = _useAltBaseFlag = 0;
+}
+
 /* ================================================================
  * BlitterCopyPanelToScreen2  (SWOS2.s line 43526)
  *

@@ -181,11 +181,11 @@
         {
           "op": "text",
           "flags": "0x10",
-          "str": "_aSaveDiskFiling"
+          "str": "_aChallenges"
         },
         {
           "op": "onselect_fire",
-          "func": "SaveDiskFilingMenu"
+          "func": "ChallengesMenu"
         }
       ]
     },

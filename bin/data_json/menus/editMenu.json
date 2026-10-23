@@ -1,6 +1,6 @@
 {
   "name": "_editMenu",
-  "comment": "OpenSWOS's EDIT submenu, from the main menu's EDIT button (menus.c EditMenuSelected). The two editors the main menu used to list separately -- EDIT TACTICS and EDIT CUSTOM TEAMS -- which freed the row SHOOTING PRACTICE now has. Both targets: a classic packed menu, shaped like highlightsMenu (header, buttons, EXIT), so the m68k build gets it from the baked src/menu_data.c (docs/MENUS.md section 12).",
+  "comment": "OpenSWOS's EDIT submenu, from the main menu's EDIT button (menus.c EditMenuSelected). EDIT TACTICS and EDIT CUSTOM TEAMS had a main-menu row each; SAVE DISK FILING joined them (2026-10-23) to free the row CHALLENGES took. None of the three may call CommonMenuExit -- that is the main menu's fixup and EditMenuSelected does it once, after this menu closes (docs/MENUS.md section 12). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
   "onInit": null,
   "onReturn": null,
   "onDraw": null,
@@ -98,6 +98,38 @@
     {
       "kind": "entry",
       "coords": {
+        "x": 82,
+        "y": 120,
+        "w": -116,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": 4
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aSaveDiskFiling"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SaveDiskFilingMenu"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
         "x": 102,
         "y": -71,
         "w": 100,
@@ -108,7 +140,7 @@
           "op": "nav",
           "left": -1,
           "right": -1,
-          "up": 2,
+          "up": 3,
           "down": -1
         },
         {

@@ -711,15 +711,19 @@ Sprite _cornerFlagSprite
     = { 3, 0, 0, (AnimTable *)-1, -1, 255, 0, 0, 0, 0, -1, 5, 1, 0, { 0 }, { 0 },
           { 0 }, 0, 0, { 0 }, { 0 }, { 0 }, 0, 0, { 0, 0, 0, 0, 0, 1 }, 1, -1,
           0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0 };
-#ifdef SWOS_SDL_BUILD
 /* Widescreen-only second corner-flag sprite. The full pitch width shows both side corners
  * at once, but cornerFlagSprite can only track one; UpdateCornerFlagSprite drives this one
- * at the opposite corner. Hidden (imageIndex = -1) outside widescreen. */
+ * at the opposite corner. Hidden (imageIndex = -1) outside widescreen.
+ *
+ * Defined on the m68k target as well, though nothing there ever draws it: it is a region of
+ * the shared match-state registry (src/sim_state.c), and a registry that differs by one
+ * region gives the two builds different SimState_LayoutHash values -- which would mean a
+ * save state written on one target is refused by the other (docs/CHALLENGE.md). The same
+ * goes for the three grid extras below. */
 Sprite _cornerFlagSprite2
     = { 3, 0, 0, (AnimTable *)-1, -1, 255, 0, 0, 0, 0, -1, 5, 1, 0, { 0 }, { 0 },
           { 0 }, 0, 0, { 0 }, { 0 }, { 0 }, 0, 0, { 0, 0, 0, 0, 0, 1 }, 1, -1,
           0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0 };
-#endif
 Sprite _advertInGameSprites[8] = {
     { 0, 0, 0, (AnimTable *)-1, -1, 255, 0, 0, 0, 0, -1, 5, 1, 0, { 0 }, { 0 },
         { 0 }, 0, 0, { 0 }, { 0 }, { 0 }, 0, 0, { 0, 0, 0, 0, 0, 1 }, 1, -1, 0,
@@ -786,12 +790,11 @@ Sprite _gridBottomRowRightSprite
     = { 0, 0, 0, (AnimTable *)-1, -1, 255, 0, 0, 0, 0, -1, 5, 1, 0, { 0 }, { 0 },
           { 0 }, 0, 0, { 0 }, { 0 }, { 0 }, 0, 0, { 0, 0, 0, 0, 0, 1 }, 1, 138,
           0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0 };
-#ifdef SWOS_SDL_BUILD
 /* Widescreen: the score panel is a 168-wide dither tile (sprite 138) repeated
  * across the row. Two tiles cover the old 336 box; a 16:9 HUD box is 480 wide,
  * so a THIRD tile per row is needed to reach the right edge (3 x 168 = 504,
- * clipped to HUD_WIDTH). SDL-only — Amiga is always 336 and never shows these,
- * so the m68k sprite set is unchanged. Same pattern as _cornerFlagSprite2. */
+ * clipped to HUD_WIDTH). Only widescreen shows these -- the Amiga is always 336 -- but
+ * they are DEFINED on both targets, for the registry reason given at _cornerFlagSprite2. */
 Sprite _gridUpperRowExtraSprite
     = { 0, 0, 0, (AnimTable *)-1, -1, 255, 0, 0, 0, 0, -1, 5, 1, 0, { 0 }, { 0 },
           { 0 }, 0, 0, { 0 }, { 0 }, { 0 }, 0, 0, { 0, 0, 0, 0, 0, 1 }, 1, 138,
@@ -804,7 +807,6 @@ Sprite _gridBottomRowExtraSprite
     = { 0, 0, 0, (AnimTable *)-1, -1, 255, 0, 0, 0, 0, -1, 5, 1, 0, { 0 }, { 0 },
           { 0 }, 0, 0, { 0 }, { 0 }, { 0 }, 0, 0, { 0, 0, 0, 0, 0, 1 }, 1, 138,
           0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0 };
-#endif
 Sprite _team1NameSprite
     = { 0, 0, 0, (AnimTable *)-1, -1, 255, 0, 0, 0, 0, -1, 5, 1, 0, { 0 }, { 0 },
           { 0 }, 0, 0, { 0 }, { 0 }, { 0 }, 0, 0, { 0, 0, 0, 0, 0, 1 }, 1, -1,

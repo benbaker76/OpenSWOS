@@ -300,6 +300,7 @@ extern void SaveAndExitEditTactics(void);
 extern void SaveCareer(void);
 extern void SaveContest(void);
 extern void SaveDiskFilingMenu(void);
+extern void ChallengesMenu(void);
 extern void SaveHighlightsMenu(void);
 extern void SeasonMenu(void);
 extern void SelFilesDrawItemDescription(void);
@@ -539,6 +540,7 @@ extern char _aSacked[];
 extern char _aSave[];
 extern char _aSaveCareer[];
 extern char _aSaveDiskFiling[];
+extern char _aChallenges[];
 extern char _aSaveExit[];
 extern char _aSaveHighlights[];
 extern char _aSeason_1[];
@@ -6902,8 +6904,8 @@ Menu_SWOSMainMenu _swosMainMenu = {
         { 0, -122, -106, 16 },
         { MENU_CMD_NAV, -1, 10, 4, 14 },
         { MENU_CMD_COLORS, 0x3 },
-        { MENU_CMD_TEXT_PTR, 0x10, _aSaveDiskFiling },
-        { MENU_CMD_ONSELECT_FIRE, SaveDiskFilingMenu },
+        { MENU_CMD_TEXT_PTR, 0x10, _aChallenges },
+        { MENU_CMD_ONSELECT_FIRE, ChallengesMenu },
         MENU_CMD_END
     },
     {
@@ -7021,8 +7023,16 @@ Menu_EditMenu _editMenu = {
         MENU_CMD_END
     },
     {
+        { 82, 120, -116, 15 },
+        { MENU_CMD_NAV, -1, -1, 2, 4 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aSaveDiskFiling },
+        { MENU_CMD_ONSELECT_FIRE, SaveDiskFilingMenu },
+        MENU_CMD_END
+    },
+    {
         { 102, -71, 100, 15 },
-        { MENU_CMD_NAV, -1, -1, 2, -1 },
+        { MENU_CMD_NAV, -1, -1, 3, -1 },
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },

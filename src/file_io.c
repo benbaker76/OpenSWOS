@@ -1016,6 +1016,65 @@ int16_t SelectFileToSaveDialog(uint32_t filterExt, uint8_t *defaultFilename,
 }
 
 /* ================================================================
+ * SelectFileOfExtension -- the LOAD picker, showing ONE extension
+ *
+ * The same screen the saved competitions use (_selectFilesMenu), scanned the same way,
+ * but the list is filtered to `ext` alone rather than the whole save-file whitelist: a
+ * CHALLENGES screen that also listed careers and tactics would be a file browser, not a
+ * list of positions. Returns 0 with _selectedFilename set, or 1 if nothing was chosen.
+ * ================================================================ */
+__attribute__((used, externally_visible))
+int16_t SelectFileOfExtension(uint32_t ext, uint8_t *menuTitleStr)
+{
+    int16_t result;
+    uint16_t count, i;
+    uint8_t *fileEntry, *scan;
+    void **ptrTableCursor;
+    uint32_t *extTableCursor, thisExt;
+
+    _extension = ext;
+    _menuTitle = (uintptr_t)menuTitleStr;
+    _inputSaveFilename[0] = 0;
+    _selectedFilename[0] = 0;
+
+    result = FindFilesExtensionPresent((uint8_t *)0);
+    if (result != 0) {
+        ShowFsErrorByCode((uint16_t)result);
+        return 1;
+    }
+
+    _totalNumberOfFiles = 0;
+    _numMatchedFiles = 0;
+    count = _numberOfFiles;
+    if (count != 0) {
+        count--;
+        fileEntry = _foundFilenamesBuffer;
+        ptrTableCursor = _foundFilesPtrTable;
+        extTableCursor = _extensionsBuffer;
+        for (i = count; ; i--) {
+            scan = fileEntry;
+            while (*scan != 0x2E)        /* '.' */
+                scan++;
+            thisExt = ((uint32_t)scan[0] << 24) | ((uint32_t)scan[1] << 16) |
+                      ((uint32_t)scan[2] << 8) | (uint32_t)scan[3];
+            if (thisExt == ext && _numMatchedFiles < 45) {   /* the menu's 45 slots */
+                _totalNumberOfFiles++;
+                _numMatchedFiles++;
+                *ptrTableCursor++ = fileEntry;
+                *extTableCursor++ = thisExt;
+            }
+            fileEntry += FILENAME_ENTRY_SIZE;
+            if (i == 0) break;
+        }
+    }
+
+    _savingFile = 0;
+    ShowMenu(_selectFilesMenu);
+
+    return (_selectedFilename[0] != 0) ? 0 : 1;
+}
+
+/* ================================================================
  * GetFilenameAndExtension  (SWOS2.s line 89211)
  *
  * Shows file selection dialog for loading/opening. Similar to
@@ -1251,6 +1310,8 @@ void SelFilesDrawItemDescription(MenuEntry *entry) {
         descStr = (const uint8_t *)"TACT";
     else if (ext == 0x2E52504C || ext == 0x2E535250)  /* '.RPL', '.SRP' — whole-match replays */
         descStr = (const uint8_t *)"REPLAY";
+    else if (ext == 0x2E43484C)  /* '.CHL' — a saved position (src/challenge.c) */
+        descStr = (const uint8_t *)"MATCH";
     else
         descStr = (const uint8_t *)"HIGH";
 

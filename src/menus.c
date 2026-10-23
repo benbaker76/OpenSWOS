@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "menus.h"
+#include "challenge.h"
 #ifdef SWOS_SDL_BUILD
 /* PlatformInitOptions + Settings_Save, for the OPTIONS -> GAMEPLAY row. Guarded
  * because this header reaches platform_sdl.h and therefore SDL.h, which the
@@ -2692,6 +2693,44 @@ __attribute__((used, externally_visible))
 void SaveDiskFilingMenu(void)
 {
     ShowMenu(_diskMenu);
+    /* No CommonMenuExit: this is a button of the EDIT submenu now, not of the main
+     * menu, and that fixup writes through the MAIN menu's entries 11..15 -- from a
+     * submenu it formats a competition name through a stale `fg` pointer.
+     * EditMenuSelected makes the call once, after the submenu closes. */
+}
+
+/* CHALLENGES -- the main menu row SAVE DISK FILING used to have.
+ *
+ * Picks a saved position from the game's own LOAD screen, filtered to .CHL, and plays it:
+ * the match carries on from where it was saved (src/challenge.c). CommonMenuExit stays
+ * here, because this one IS a main-menu button. */
+__attribute__((used, externally_visible))
+void ChallengesMenu(void)
+{
+    extern int16_t SelectFileOfExtension(uint32_t ext, uint8_t *menuTitleStr);
+    extern uint8_t _selectedFilename[];
+    extern char    _aChallenges[];
+
+    Challenge_EnsureSample();
+    if (SelectFileOfExtension(0x2E43484Cu /* ".CHL" */, (uint8_t *)_aChallenges) == 0) {
+        if (Challenge_Arm(_selectedFilename) == 0) {
+            extern void PrepareMenuForFadeIn(void);
+            extern volatile uint16_t _fadeState;
+            extern uint16_t _fadeInitFlag;
+            Challenge_Play();
+            /* The picker has already restored the main-menu metadata. Rebuild its
+             * image resources after the match, then use DrawMenu's normal present
+             * and copy to synchronize both buffers. PrepareMenuForFadeIn already
+             * swaps inside DrawMenu: extra hand-written swaps/fills can leave one
+             * buffer holding a different menu when the picker is reopened. */
+            CommonMenuExit();
+            _fadeState = 0;
+            _fadeInitFlag = 0x03E7u;    /* FADE_SENTINEL */
+            ResetMenuViewState();
+            PrepareMenuForFadeIn();
+            return;
+        }
+    }
     CommonMenuExit();
 }
 

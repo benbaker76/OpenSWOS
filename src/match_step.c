@@ -22,7 +22,8 @@ extern volatile uint16_t _keyCount;
 extern volatile uint8_t  _keyBuffer[];
 extern uint8_t           _keycodeLut[128];
 
-MatchInputLatch g_matchInputLatch;
+/* g_matchInputLatch lives in src/swos_globals.c: it is a registry region, so both targets
+ * must define it (include/match_step.h). */
 
 static int32_t s_warnedKey;
 
