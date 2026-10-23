@@ -31,6 +31,13 @@ see `SDL_ONLY_SRCS` in `Makefile.amiga`.
 **Docs map:** `docs/INDEX.md` lists every doc in `docs/` (what it is, whether it is current,
 when to read it) and every path the project uses — repos, tools, servers, save folders.
 
+> ⚠️ **On THIS machine, read `docs/LOCAL_WORKFLOW.md` before building or running anything.**
+> The toolchain, Cygwin, Kickstart and save/log paths given throughout this file are the
+> ORIGINAL AUTHOR's (`C:\Users\headk\...`, `C:\Projects\AI\SWOS\...`) and do not exist here;
+> a build driven from them fails as `Error 127`. LOCAL_WORKFLOW.md has the real commands for
+> both targets, how to run and screenshot each, and how to prove a menu/data change — so
+> none of it has to be rediscovered per session.
+
 ## Building
 
 Both targets build from a plain bash shell (WSL included) — the old
