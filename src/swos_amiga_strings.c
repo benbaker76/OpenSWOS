@@ -37,6 +37,12 @@ char _aUniform[]      = "UNIFORM";
 char _aShootingPractice[] = "SHOOTING PRACTICE";
 char _aPlayPractice[]  = "PLAY PRACTICE";
 char _aStartPractice[] = "START PRACTICE";
+/* The setup screen's DEFENDERS and MIDFIELD rows (_practiceDefendersStrTable /
+ * _practiceMidfieldStrTable, indexed by their flags -- swos_amiga_ptr_imports.c). */
+char _aDefendersOff[] = "DEFENDERS OFF";
+char _aDefendersOn[]  = "DEFENDERS ON";
+char _aMidfieldOff[]  = "MIDFIELD OFF";
+char _aMidfieldOn[]   = "MIDFIELD ON";
 /* Shown where "SELECT N MORE TEAMS" would be: the two teams are picked, but the
  * drill needs one of them to be the computer and the other not. */
 char _aSelect1CpuTeam[] = "SELECT 1 COMPUTER TEAM";

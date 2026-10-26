@@ -1392,6 +1392,25 @@ typedef struct Menu_PracticeMenu
 } Menu_PracticeMenu;
 #pragma pack(pop)
 
+/* OpenSWOS addition — the SHOOTING PRACTICE setup screen, from the PRACTICE
+ * submenu's SHOOTING PRACTICE button: the DEFENDERS and MIDFIELD OFF/ON
+ * toggles, CONTINUE, EXIT (bin/data_json/menus/shootingPracticeSetupMenu.json,
+ * src/shooting_practice.c). Same shape as Menu_PracticeMenu with the first two
+ * buttons string-table rows. */
+#pragma pack(push, 1)
+typedef struct Menu_ShootingPracticeSetup
+{
+  MenuHeader hdr;
+  MenuMark markByteCoords;
+  MenuEntry_Byte_Colors_TextPtr entry0;                     /* SHOOTING PRACTICE header */
+  MenuEntry_Byte_Nav_Colors_StringTable_OnSelect entry1;    /* DEFENDERS OFF/ON */
+  MenuEntry_Byte_Nav_Colors_StringTable_OnSelect entry2;    /* MIDFIELD OFF/ON */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;        /* CONTINUE */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;        /* EXIT */
+  MenuMark markEndMenu;
+} Menu_ShootingPracticeSetup;
+#pragma pack(pop)
+
 /* 206 - Menu 21: chooseTeamsMenu (0xBE = 190 bytes) */
 #pragma pack(push, 1)
 typedef struct Menu_ChooseTeams
@@ -3521,6 +3540,7 @@ extern Menu_CreditsAga _creditsAgaMenu;
 extern Menu_SWOSMainMenu _swosMainMenu;
 extern Menu_EditMenu _editMenu;
 extern Menu_PracticeMenu _practiceMenu;
+extern Menu_ShootingPracticeSetup _shootingPracticeSetupMenu;
 extern Menu_Offers _offersMenu;
 extern Menu_PlayerTransfer _playerTransferMenu;
 extern Menu_ThirdPartyOffer _thirdPartyOfferMenu;

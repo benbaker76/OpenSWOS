@@ -43,6 +43,8 @@ extern void ChangeMenuMusic(void);
 extern void ChangeNationality(void);
 extern void ChangePitchStyle(void);
 extern void ChangePitchType(void);
+extern void ChangePracticeDefenders(void);
+extern void ChangePracticeMidfield(void);
 extern void ChangeSex(void);
 extern void ChangeTeams(void);
 extern void ChooseTacticsInit(void);
@@ -321,7 +323,9 @@ extern void SelectTraining(void);
 extern void SetExitMenuFlag(void);
 extern void SetName(void);
 extern void SetSurname(void);
+extern void ShootingPracticeContinue(void);
 extern void ShootingPracticeMenu(void);
+extern void ShootingPracticeSetupInit(void);
 extern void ShowControlsMenu(void);
 extern void ShowPlayerMarket(void);
 extern void ShowPlayerMarketInit(void);
@@ -674,6 +678,8 @@ extern char* _pitchStyleStrTable[];
 extern char* _pitchTypeOrSeasonTable[];
 extern char* _pitchTypeStrTable[];
 extern char* _positionFilterStringTable[];
+extern char* _practiceDefendersStrTable[];
+extern char* _practiceMidfieldStrTable[];
 extern char _saveFileTitle[];
 extern char* _skillFilterStringTable[];
 extern EditTeamsSpriteCopy _stadiumMenuLittlePlayerSpriteCopy;
@@ -721,6 +727,8 @@ const MenuSymbol _menuSymbols[] = {
     { "ChangeNationality", (void*)ChangeNationality, SYM_FUNC },
     { "ChangePitchStyle", (void*)ChangePitchStyle, SYM_FUNC },
     { "ChangePitchType", (void*)ChangePitchType, SYM_FUNC },
+    { "ChangePracticeDefenders", (void*)ChangePracticeDefenders, SYM_FUNC },
+    { "ChangePracticeMidfield", (void*)ChangePracticeMidfield, SYM_FUNC },
     { "ChangeSex", (void*)ChangeSex, SYM_FUNC },
     { "ChangeTeams", (void*)ChangeTeams, SYM_FUNC },
     { "ChooseTacticsInit", (void*)ChooseTacticsInit, SYM_FUNC },
@@ -999,7 +1007,9 @@ const MenuSymbol _menuSymbols[] = {
     { "SetExitMenuFlag", (void*)SetExitMenuFlag, SYM_FUNC },
     { "SetName", (void*)SetName, SYM_FUNC },
     { "SetSurname", (void*)SetSurname, SYM_FUNC },
+    { "ShootingPracticeContinue", (void*)ShootingPracticeContinue, SYM_FUNC },
     { "ShootingPracticeMenu", (void*)ShootingPracticeMenu, SYM_FUNC },
+    { "ShootingPracticeSetupInit", (void*)ShootingPracticeSetupInit, SYM_FUNC },
     { "ShowControlsMenu", (void*)ShowControlsMenu, SYM_FUNC },
     { "ShowPlayerMarket", (void*)ShowPlayerMarket, SYM_FUNC },
     { "ShowPlayerMarketInit", (void*)ShowPlayerMarketInit, SYM_FUNC },
@@ -1349,6 +1359,8 @@ const MenuSymbol _menuSymbols[] = {
     { "_pitchTypeOrSeasonTable", (void*)_pitchTypeOrSeasonTable, SYM_TABLE },
     { "_pitchTypeStrTable", (void*)_pitchTypeStrTable, SYM_TABLE },
     { "_positionFilterStringTable", (void*)_positionFilterStringTable, SYM_TABLE },
+    { "_practiceDefendersStrTable", (void*)_practiceDefendersStrTable, SYM_TABLE },
+    { "_practiceMidfieldStrTable", (void*)_practiceMidfieldStrTable, SYM_TABLE },
     { "_saveFileTitle", (void*)_saveFileTitle, SYM_BUFFER },
     { "_skillFilterStringTable", (void*)_skillFilterStringTable, SYM_TABLE },
     { "_stadiumMenuLittlePlayerSpriteCopy", (void*)&_stadiumMenuLittlePlayerSpriteCopy, SYM_BUFFER },

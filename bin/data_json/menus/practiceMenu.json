@@ -1,6 +1,6 @@
 {
   "name": "_practiceMenu",
-  "comment": "OpenSWOS's PRACTICE submenu, from the main menu's PRACTICE button (menus.c PracticeMenuSelected). SHOOTING PRACTICE had that main-menu row to itself until 2026-10-26, when PENALTY SHOOTOUT (src/penalty_shootout.c) joined it here. Neither mode handler may call CommonMenuExit -- that is the main menu's fixup and PracticeMenuSelected does it once, after this menu closes (docs/MENUS.md section 12); both run the friendly flow through FriendlyFlow, which omits it. Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "comment": "OpenSWOS's PRACTICE submenu, from the main menu's PRACTICE button (menus.c PracticeMenuSelected). SHOOTING PRACTICE had that main-menu row to itself until 2026-10-26, when PENALTY SHOOTOUT (src/penalty_shootout.c) joined it here. SHOOTING PRACTICE opens its setup screen (shootingPracticeSetupMenu.json: the DEFENDERS toggle, CONTINUE, EXIT) whose CONTINUE runs the drill. No handler under here may call CommonMenuExit -- that is the main menu's fixup and PracticeMenuSelected does it once, after this menu closes (docs/MENUS.md section 12); the modes run the friendly flow through FriendlyFlow, which omits it. Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
   "onInit": null,
   "onReturn": null,
   "onDraw": null,

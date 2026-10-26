@@ -1,0 +1,163 @@
+{
+  "name": "_shootingPracticeSetupMenu",
+  "comment": "OpenSWOS's SHOOTING PRACTICE setup screen, from the PRACTICE submenu's SHOOTING PRACTICE button (shooting_practice.c ShootingPracticeMenu). The choices before the drill: DEFENDERS OFF/ON (ON keeps the computer's RB, LB and D players on the pitch) and MIDFIELD OFF/ON (ON keeps its M, LW and RW too); attackers are always stripped. Each row draws through its string table (_practiceDefendersStrTable / _practiceMidfieldStrTable, indexed by its flag) and is recoloured green/yellow by ShootingPracticeSetupInit (onInit AND onReturn, since every ShowMenu re-unpacks the baked colour) and ChangePracticeDefenders / ChangePracticeMidfield. CONTINUE (ShootingPracticeContinue) runs the friendly flow with the mode flag set; it must not call CommonMenuExit (docs/MENUS.md section 12). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "onInit": "ShootingPracticeSetupInit",
+  "onReturn": "ShootingPracticeSetupInit",
+  "onDraw": null,
+  "defaultEntry": 3,
+  "items": [
+    {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 92,
+        "y": 0,
+        "w": 120,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aShootingPractice"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 82,
+        "y": 50,
+        "w": -116,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 2
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "string_table",
+          "flags": "0x0",
+          "table": "_practiceDefendersStrTable"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChangePracticeDefenders"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 82,
+        "y": 68,
+        "w": -116,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 1,
+          "down": 3
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "string_table",
+          "flags": "0x0",
+          "table": "_practiceMidfieldStrTable"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChangePracticeMidfield"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 82,
+        "y": 96,
+        "w": -116,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": 4
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aContinue"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ShootingPracticeContinue"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 102,
+        "y": -71,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 3,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SetExitMenuFlag"
+        }
+      ]
+    }
+  ]
+}

@@ -2,14 +2,23 @@
 
 A training drill: in a friendly against the computer, the computer's ten outfield
 players are taken off and only its goalkeeper remains, so the human eleven can
-practise finishing against a keeper instead of a defence.
+practise finishing against a keeper instead of a defence. A setup screen's
+toggles (both OFF by default) keep whole lines of the computer's team on the
+pitch instead: **DEFENDERS** its back line (every player whose position is RB,
+LB or D), **MIDFIELD** its middle (M, LW, RW). Attackers are always taken off.
 
 Both targets. SDL and Amiga both get the mode and the drill.
 
 ## Using it
 
 Main menu → **PRACTICE** (the left column's second row, entry 2, under EDIT)
-→ **SHOOTING PRACTICE**.
+→ **SHOOTING PRACTICE** → the **setup screen** (since 2026-10-26): the
+**DEFENDERS OFF/ON** and **MIDFIELD OFF/ON** rows — click to toggle, drawn green
+when OFF (the ordinary button colour) and yellow when ON — then **CONTINUE** to
+enter the drill's flow, or EXIT back to the submenu. The toggles are mode
+settings, not match ones: they are latched at kick-off with the mode itself
+(`ShootingPractice_BeginMatch`), so flipping one after CONTINUE changes nothing
+about a match already under way, only the next one.
 
 > That row was SHOOTING PRACTICE's own from 2026-10-23 (before that, the wide
 > button on the bottom row beside CREDITS, entry 16, until EDIT TACTICS and
@@ -54,7 +63,9 @@ auto-assigned and nothing is silently overridden at kick-off.
 
 | piece | where |
 |---|---|
-| the mode flag, the menu handler, the selection rule, the latch, the strip, the forced kickoff | `src/shooting_practice.c` |
+| the mode flag, the menu handlers (setup screen included), the selection rule, the latch, the strip, the forced kickoff | `src/shooting_practice.c` |
+| the setup screen (DEFENDERS / MIDFIELD / CONTINUE / EXIT) | `bin/data_json/menus/shootingPracticeSetupMenu.json`, `src/menu_data.c`, `include/menu_data.h`, `s_staticMenus` in `src/menu_load_json.c` — all five places of MENUS.md §12 |
+| the toggle rows' OFF/ON string tables | `_practiceDefendersStrTable`, `_practiceMidfieldStrTable` (`src/swos_amiga_ptr_imports.c`), strings in `src/swos_amiga_strings.c` |
 | main menu entry data | `bin/data_json/menus/swosMainMenu.json`, `src/menu_data.c`, `include/menu_data.h` |
 | symbol registry | `src/menu_symbols.c` ← **regenerate it**, see MENUS.md §11 |
 | the flow it borrows | `FriendlyFlow` → `Friendly` → `ShowFriendlyMenu` → `ChooseTeamsMenu` (`src/menus.c`; not `FriendlyMenu` — see "Using it") |
@@ -92,7 +103,12 @@ SENT OFF banner. Nothing happened in the match; those players are simply not in
 this drill.
 
 Indices 1..10 of `TeamGeneralInfo.spritesTable` are stripped; index 0 is the
-goalkeeper (`goalkeeper.c`: "first sprite = goalkeeper").
+goalkeeper (`goalkeeper.c`: "first sprite = goalkeeper"). With DEFENDERS on, a
+sprite whose player's `PlayerInfo.position` (via `GetPlayerPointerFromShirtNumber`)
+is `POS_RIGHT_BACK`, `POS_LEFT_BACK` or `POS_DEFENDER` is skipped by the strip;
+with MIDFIELD on, so is `POS_MIDFIELDER`, `POS_LEFT_WING` or `POS_RIGHT_WING` —
+so what stays on the pitch follows the CPU team's actual line-up (a 5-3-2 keeps
+five at the back, a 4-2-4 four). `POS_ATTACKER` players always go.
 
 **The mode is latched for the match.** `ShootingPractice_BeginMatch()` records
 *whether* the drill is on and *which* side is the computer, once, as the in-game

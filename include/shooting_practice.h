@@ -37,8 +37,21 @@
  * exactly one side is the computer. */
 extern int32_t g_shootingPracticeMode;
 
-/* The main menu's SHOOTING PRACTICE button: set the mode, run the friendly
- * flow, clear it again. */
+/* The setup screen's toggles: DEFENDERS (1 = the computer keeps its RB, LB and
+ * D players) and MIDFIELD (1 = it keeps its M, LW and RW players too); 0 = OFF,
+ * that line is stripped as always. uint16_t because each menu row draws through
+ * a MENU_CMD_STRING_TABLE whose index read is 2 bytes
+ * (_practiceDefendersStrTable / _practiceMidfieldStrTable). Menu state: the
+ * match latches them at kick-off (ShootingPractice_BeginMatch), like the mode
+ * itself. */
+extern uint16_t g_shootingPracticeDefenders;
+extern uint16_t g_shootingPracticeMidfield;
+
+/* The PRACTICE submenu's SHOOTING PRACTICE button: open the setup screen
+ * (DEFENDERS toggle / CONTINUE / EXIT). CONTINUE is ShootingPracticeContinue:
+ * set the mode, run the friendly flow, clear it again. Both are bound by name
+ * through the menu data (menu_data.c _shootingPracticeSetupMenu), along with
+ * ShootingPracticeSetupInit and ChangePracticeDefenders. */
 void ShootingPracticeMenu(void);
 
 /* 1 when the teams picked so far could start a drill -- exactly one computer

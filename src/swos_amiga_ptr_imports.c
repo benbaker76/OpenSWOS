@@ -850,6 +850,26 @@ ON_OFF_TABLE(_allPlTeamsEqualStrTable, _allPlayerTeamsEqual);
 ON_OFF_TABLE(_autoSaveHlStrTable,      _autoSaveHighlights);
 ON_OFF_TABLE(_menuMusicStrTable,       _menuMusic);
 
+/* SHOOTING PRACTICE setup screen's DEFENDERS and MIDFIELD rows: OFF / ON,
+ * indexed by their flags (shooting_practice.c). Same shape as the ON/OFF
+ * tables above; spelled out because the entries name their line too. */
+extern char _aDefendersOff[], _aDefendersOn[];
+extern char _aMidfieldOff[], _aMidfieldOn[];
+extern uint16_t g_shootingPracticeDefenders;
+extern uint16_t g_shootingPracticeMidfield;
+struct __attribute__((packed)) {
+    void    *indexPtr; uint16_t base; void    *entries[2];
+} _practiceDefendersStrTable = {
+    (&g_shootingPracticeDefenders), 0,
+    { (void *)_aDefendersOff, (void *)_aDefendersOn }
+};
+struct __attribute__((packed)) {
+    void    *indexPtr; uint16_t base; void    *entries[2];
+} _practiceMidfieldStrTable = {
+    (&g_shootingPracticeMidfield), 0,
+    { (void *)_aMidfieldOff, (void *)_aMidfieldOn }
+};
+
 /* OPTIONS -> GAMEPLAY: AMIGA / DOS, indexed by _gameplayStyleOption
  * (dos_gameplay.c). Same shape as the ON/OFF tables above; spelled out because
  * the entries are not _aOff/_aOn. */
