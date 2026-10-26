@@ -8,14 +8,21 @@ Both targets. SDL and Amiga both get the mode and the drill.
 
 ## Using it
 
-Main menu → **SHOOTING PRACTICE**, the second button of the left column
-(entry 2), under EDIT.
+Main menu → **PRACTICE** (the left column's second row, entry 2, under EDIT)
+→ **SHOOTING PRACTICE**.
 
-> It was the wide button on the bottom row beside CREDITS (entry 16) until
-> 2026-10-23, when EDIT TACTICS and EDIT CUSTOM TEAMS were grouped under the
-> left column's new **EDIT** submenu (docs/MENUS.md §12) and the drill moved up
-> into the row that freed. Entry 16 is gone; entries 11-15 kept their ordinals,
-> which is what `CommonMenuExit` indexes.
+> That row was SHOOTING PRACTICE's own from 2026-10-23 (before that, the wide
+> button on the bottom row beside CREDITS, entry 16, until EDIT TACTICS and
+> EDIT CUSTOM TEAMS were grouped under the left column's new **EDIT** submenu
+> — docs/MENUS.md §12 — and the drill moved up into the row that freed; entry
+> 16 is gone, entries 11-15 kept their ordinals, which is what `CommonMenuExit`
+> indexes). Since 2026-10-26 the row is the **PRACTICE** submenu, where
+> PENALTY SHOOTOUT (docs/PENALTY_SHOOTOUT.md) sits beside this drill. That
+> move changed one thing here: `ShootingPracticeMenu` now runs the flow
+> through **`FriendlyFlow`**, FriendlyMenu minus its closing `CommonMenuExit`,
+> which under a 4-entry submenu would write through main-menu entries that are
+> not there; `PracticeMenuSelected` makes that call once, after the submenu
+> closes.
 
 From there it is **the friendly flow, unchanged**: the settings screen (pitch
 type / season, min and max substitutes), then team selection — clubs, national
@@ -50,7 +57,7 @@ auto-assigned and nothing is silently overridden at kick-off.
 | the mode flag, the menu handler, the selection rule, the latch, the strip, the forced kickoff | `src/shooting_practice.c` |
 | main menu entry data | `bin/data_json/menus/swosMainMenu.json`, `src/menu_data.c`, `include/menu_data.h` |
 | symbol registry | `src/menu_symbols.c` ← **regenerate it**, see MENUS.md §11 |
-| the flow it borrows | `FriendlyMenu` → `Friendly` → `ShowFriendlyMenu` → `ChooseTeamsMenu` (`src/menus.c`) |
+| the flow it borrows | `FriendlyFlow` → `Friendly` → `ShowFriendlyMenu` → `ChooseTeamsMenu` (`src/menus.c`; not `FriendlyMenu` — see "Using it") |
 | the words PRACTICE replaces FRIENDLY with | `FriendlyMenuInit`, `ChooseTeamsMenu` (`src/menus.c`), `SetGameStartButtonText` (`src/play_match_menu.c`), `InitAndPlayGame` (`src/game_init.c`) |
 | "one computer side" gate | `CheckNumTeamsAllowed` (`src/diy_competition.c`), `SetChooseChangeTeamsEntries` (`src/teams.c`), `CheckNumberOfTeams` (`src/menus.c`) |
 | strip hook | `InitPlayersBeforeEnteringPitch` (`src/match_setup.c`) |
@@ -58,7 +65,7 @@ auto-assigned and nothing is silently overridden at kick-off.
 | latch set | `InitializeInGameTeamsAndStartGame` (`src/game_init.c`) |
 
 **The mode reuses the friendly flow whole rather than copying it.**
-`ShootingPracticeMenu()` is five lines: set the flag, call `FriendlyMenu()`,
+`ShootingPracticeMenu()` is five lines: set the flag, call `FriendlyFlow()`,
 clear the flag. That is deliberate — `ShowFriendlyMenu` seeds the RNG, saves and
 restores `_gameType` around the flow, and sets `_teamsLoaded = 0` so the country
 lists reload pristine, and that last one is a deliberate fix over an original

@@ -152,14 +152,18 @@ the clock SDL asks for, and SDL's wall-clock fallback steps -- NETPLAY.md §8). 
 open `wss://`, which the gate speaks with `--tls-cert`/`--tls-key` (TLS on the same port;
 NETPLAY_SETUP.md §10, `TLS=1 scripts/wasm_netplay_test.sh`).
 
-**SHOOTING PRACTICE** (both targets; docs/SHOOTING_PRACTICE.md). The main menu's SHOOTING PRACTICE
-button (entry 2, the left column's second row, under EDIT) strips the computer side's ten outfield players for an offline
-friendly, so the human eleven can practise finishing against a keeper. It reuses the `sentAway` flag
+**SHOOTING PRACTICE and PENALTY SHOOTOUT** (both targets; docs/SHOOTING_PRACTICE.md,
+docs/PENALTY_SHOOTOUT.md). The main menu's **PRACTICE** submenu (entry 2, the left column's second
+row, under EDIT; `_practiceMenu`, since 2026-10-26) holds the two training modes. SHOOTING PRACTICE
+strips the computer side's ten outfield players for an offline friendly, so the human eleven can
+practise finishing against a keeper. It reuses the `sentAway` flag
 a red card already sets (`SendPlayerAway`), so nothing about a short-handed side is new to the match;
 no card, stat or banner is raised, because nothing happened. The mode is the FRIENDLY flow with
 `g_shootingPracticeMode` set -- `ShootingPracticeMenu` (`src/shooting_practice.c`) is five lines
-around `FriendlyMenu`, so the settings screen, team selection, EDIT TACTICS, VIEW OPPO and
-substitutes all work untouched and only the kick-off differs. It reuses that flow rather than
+around `FriendlyFlow` (`FriendlyMenu` MINUS its closing `CommonMenuExit`, which must not run under
+the submenu -- the EDIT-submenu trap below), so the settings screen, team selection, EDIT TACTICS,
+VIEW OPPO and substitutes all work untouched and only the kick-off differs. It reuses that flow
+rather than
 jumping straight to team selection because `ShowFriendlyMenu` also saves/restores `_gameType` and
 clears `_teamsLoaded`, the latter a deliberate fix over an original SWOS bug (a friendly after a
 career showing career-mutated league tables). It will not START unless exactly one side is
@@ -173,16 +177,27 @@ Until 2026-10-22 it was instead a PRACTICE toggle on the PLAY MATCH screen (entr
 OPPO) with a `g_playMatchShootingPractice` flag; both are gone. That button had to clear itself
 whenever it was off screen or a stale ON leaked into an unrelated match, and that clearing is what
 made a standalone mode impossible to build on top of it.
+**PENALTY SHOOTOUT** (`src/penalty_shootout.c`) is the same shape -- a friendly with
+`g_penaltyShootoutMode` set, latched at kick-off, any selection a friendly allows -- whose match is
+the engine's own cup shootout from its FIRST frame: a shared game-loop tick calls `StartPenalties`
+at minute 0, no walk-on, no kickoff. The defending side's keeper is its player's: held direction =
+dive that way (+DOWN = low), nothing = stand, asked at the goalie update's `shot_at_goal` gate
+BEFORE any AI dice (`PenaltyShootout_KeeperDiveInput`; CPU sides and the shooting side's own keeper
+stay AI). TWO traps live here: the post-friendly REPLAY path restarts the match WITHOUT
+re-entering `InitializeInGameTeamsAndStartGame`, so anything latched there that must reset per
+match needs its own re-arm (`PenaltyShootout_MatchRestarted`); and both mode handlers run under
+the submenu, hence `FriendlyFlow`.
 **Adding a menu entry like this one touches FOUR files, and the generated `src/menu_symbols.c`
 registry is the one everyone forgets** -- a name missing from it binds the entry's text and handler
 to NULL, so the button draws and highlights but the press is a silent no-op (docs/MENUS.md §11).
 A whole NEW classic menu is FIVE places, `s_staticMenus` in `src/menu_load_json.c` being the fifth
 (docs/MENUS.md §12): `_editMenu`, the main menu's **EDIT** submenu, is the worked example -- it
 groups EDIT TACTICS and EDIT CUSTOM TEAMS, which used to have a main-menu row each, and freed the
-row SHOOTING PRACTICE took (2026-10-23). Its two handlers must NOT call `CommonMenuExit`: that is
+row the PRACTICE submenu now has (2026-10-23; `_practiceMenu` is a second instance of the same
+pattern). A submenu's button handlers must NOT call `CommonMenuExit`: that is
 the main menu's fixup (`_menuEntries[11..15]`), and run under a 4-entry submenu it formats a
-competition name through entry 11's stale `fg` pointer -- `EditMenuSelected` does it once, after
-the submenu closes.
+competition name through entry 11's stale `fg` pointer -- `EditMenuSelected` /
+`PracticeMenuSelected` do it once, after the submenu closes.
 `scripts/swos_drive.ps1` + docs/UI_DRIVER.md drive the game from a script to check such a change;
 `scripts/run_amiga_fsuae.ps1` runs the m68k build under FS-UAE.
 
