@@ -41,13 +41,26 @@ void PenaltyShootoutMenu(void);
  * is decided at kick-off, never read live from a menu global. */
 void PenaltyShootout_BeginMatch(void);
 
-/* Per-frame: once the kickoff has been taken (first ST_GAME_IN_PROGRESS
- * frame), start the shootout — the same mid-match StartPenalties jump the
- * arcade's timer makes (Arcade_MatchTick), so the engine is on a proven path.
- * A no-op unless the latch is set, and fires once per match. */
+/* Per-frame: on the first frame of the match, hand it to the shootout — the
+ * same StartPenalties jump a drawn cup tie makes at minute 90, made at minute
+ * 0: no walk-on, no kickoff. A no-op unless the latch is set, and fires once
+ * per match. */
 void PenaltyShootout_MatchTick(void);
 
 /* The friendly REPLAY path (game_loop.c end_of_match_flow) restarts the match
  * without re-entering InitializeInGameTeamsAndStartGame: call this there so
  * the one-shot is re-armed and a replayed shootout is a shootout again. */
 void PenaltyShootout_MatchRestarted(void);
+
+/* MANUAL KEEPER. In a shootout the DEFENDING side's keeper belongs to its
+ * player: hold LEFT to jump left, LEFT+DOWN to dive left low (RIGHT mirrored),
+ * nothing to stand — a standing keeper still catches a shot hit at him. The
+ * reward for guessing is that the dive is immediate and at full dive speed,
+ * where the AI keeper rolls dice on side, speed and timing; the risk is the
+ * height is yours too, and no guess means no dive.
+ *
+ * Asked by the goalie update at its save-attempt gate (update_players.c
+ * shot_at_goal). Returns -1 when the AI should decide as ever (not a shootout
+ * match, a CPU side, or this keeper's own side is the one shooting); 0 for
+ * "no input, stand"; else the held dive direction (2=E, 3=SE, 5=SW, 6=W). */
+int16_t PenaltyShootout_KeeperDiveInput(TeamGeneralInfo *team);

@@ -616,3 +616,31 @@ GoalkeeperJumping(int16_t diveDir, int16_t speedVariant, int16_t destDir,
     keeper->destX = keeper->x.s.i + _kDefaultDestinations[destIdx];
     keeper->destY = keeper->y.s.i + _kDefaultDestinations[destIdx + 1];
 }
+
+
+/* ==================================================================
+ * GoalkeeperForceDiveAnim — OpenSWOS, for PENALTY SHOOTOUT's manual keeper
+ *
+ * GoalkeeperJumping above picks the high or low dive from the ball's
+ * height, which is the right call for the AI: it knows where the ball
+ * is. The manual keeper guesses the height along with the side (DOWN
+ * held = low), so after GoalkeeperJumping has set everything else up,
+ * this re-picks the state + animation pair from the player's choice —
+ * the same selection, keyed on the input instead of _ballNotHighZ.
+ * ================================================================== */
+void GoalkeeperForceDiveAnim(Sprite *keeper, TeamGeneralInfo *team, int16_t low)
+{
+    if (low) {
+        keeper->playerState = (uint8_t)PL_GOALIE_DIVING_LOW;
+        if (team == &_bottomTeamData)
+            SetPlayerAnimationTable(&_rightGoalieJumpingLowAnimTable, keeper);
+        else
+            SetPlayerAnimationTable(&_leftGoalieJumpingLowAnimTable, keeper);
+    } else {
+        keeper->playerState = (uint8_t)PL_GOALIE_DIVING_HIGH;
+        if (team == &_bottomTeamData)
+            SetPlayerAnimationTable(&_rightGoalieJumpingHighAnimTable, keeper);
+        else
+            SetPlayerAnimationTable(&_leftGoalieJumpingHighAnimTable, keeper);
+    }
+}

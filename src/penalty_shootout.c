@@ -9,7 +9,8 @@
 
 int32_t g_penaltyShootoutMode;
 
-extern uint16_t _gameStatePl;
+extern uint16_t _playingPenalties;
+extern Sprite  *_penaltyShooterSprite;
 
 /* The friendly flow this mode borrows whole, WITHOUT the main-menu fixup on
  * the way out (menus.c): this handler runs under the 4-entry PRACTICE submenu,
@@ -63,15 +64,51 @@ void PenaltyShootout_MatchRestarted(void)
     s_shootoutStarted = 0;
 }
 
+/* The defending keeper is the player's to throw (penalty_shootout.h). Reads the
+ * defending side's HELD direction, which processInputForPlayer writes every
+ * frame a human pad is polled (team_control.c), so a direction held before the
+ * kick commits the dive on the first frame the engine sees a shot.
+ *
+ * Directions are the engine's 0..7 compass (0=N clockwise to 7=NW; the dive
+ * directions 2=E and 6=W are the ones GoalkeeperJumping and the kick-off
+ * turnFlags already use): W=jump left, SW=dive left low, E/SE mirrored. N, S
+ * and the two up-diagonals are not dives, so a thumb resting UP or DOWN alone
+ * leaves the keeper standing. */
+int16_t PenaltyShootout_KeeperDiveInput(TeamGeneralInfo *team)
+{
+    if (!s_shootoutMatch || !_playingPenalties)
+        return -1;
+    if (team->playerNumber == 0)
+        return -1;                      /* a CPU-run side keeps the AI keeper */
+    /* Only the DEFENDING side's keeper: the shooting side's keeper, idle at
+     * the far end, runs the same goalie update and must stay the AI's. */
+    if (_penaltyShooterSprite != (Sprite *)0 &&
+        _penaltyShooterSprite->teamNumber == team->teamNumber)
+        return -1;
+
+    switch (team->direction) {
+    case 2:   /* E  — jump right       */
+    case 3:   /* SE — dive right, low  */
+    case 5:   /* SW — dive left, low   */
+    case 6:   /* W  — jump left        */
+        return team->direction;
+    default:
+        return 0;                       /* no guess: stand */
+    }
+}
+
 void PenaltyShootout_MatchTick(void)
 {
     if (!s_shootoutMatch || s_shootoutStarted)
         return;
-    /* Wait for the kickoff to be taken rather than jumping during the walk-on:
-     * StartPenalties is only ever entered from a running match (minute 90/120
-     * in game_state.c, the arcade's timer), so enter it the same way. */
-    if (_gameStatePl != ST_GAME_IN_PROGRESS)
-        return;
+    /* First frame of the loop: straight to the shootout. By now StartingMatch
+     * has run (InitGameRestoreTeams calls it before GameLoop), so both teams'
+     * sprites and data exist, and StartPenalties -> NextPenalty rebuilds the
+     * scene wholesale anyway (InitTeamsData, StopAllPlayers, its own game
+     * state and camera) -- the walk-on and the kickoff it replaces were pure
+     * ceremony. Until 2026-10-26 this waited for the kickoff to be taken
+     * (ST_GAME_IN_PROGRESS, the arcade's entry point), which made every
+     * shootout open with a pointless kick-off whistle. */
     s_shootoutStarted = 1;
     StartPenalties();
 }

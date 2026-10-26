@@ -787,9 +787,9 @@ GameFrameResult GameLoop_Frame(void)
      * penalties. No-op unless _gArcadeMode (checked inside). */
     { extern void Arcade_MatchTick(void); Arcade_MatchTick(); }
 #endif
-    /* PENALTY SHOOTOUT (the PRACTICE submenu): once the kickoff has been taken,
-     * hand the match to the engine's own shootout. No-op unless latched at
-     * kick-off (checked inside). Both targets, so outside the block above. */
+    /* PENALTY SHOOTOUT (the PRACTICE submenu): on the match's first frame, hand
+     * it to the engine's own shootout. No-op unless latched at kick-off
+     * (checked inside). Both targets, so outside the block above. */
     { extern void PenaltyShootout_MatchTick(void); PenaltyShootout_MatchTick(); }
     /* nullsub_8 — no-op */
     RASTER(RASTER_SIM);
