@@ -25,6 +25,7 @@
 #include "custom_team.h"        /* (CUSTOM) where the country would be named */
 #endif
 #include "shooting_practice.h"  /* g_shootingPracticeMode -- the START PRACTICE label */
+#include "penalty_shootout.h"   /* g_penaltyShootoutMode -- the START SHOOTOUT label */
 
 /* Prevent GCC from converting byte loops to memcpy/memset (no libc) */
 #pragma GCC optimize("no-tree-loop-distribute-patterns")
@@ -94,6 +95,7 @@ extern uint8_t _aCoachMatch[];
 extern uint8_t _aViewMatch[];
 extern uint8_t _aViewOppo[];
 extern uint8_t _aStartPractice[];   /* OpenSWOS: SHOOTING PRACTICE's start button */
+extern uint8_t _aStartShootout[];   /* OpenSWOS: PENALTY SHOOTOUT's start button */
 extern uint8_t _aViewTeam[];
 extern uint8_t _aViewOtherTeam[];
 extern uint8_t _aViewATeam[];
@@ -244,13 +246,14 @@ void SetGameStartButtonText(void) {
         if (t1->team.teamControls != TEAM_PLAYER_COACH)
             e->fg = (uintptr_t)_aCoachMatch;
     }
-    /* SHOOTING PRACTICE: the drill is what this button starts, so say so. Left
-     * after the lines above rather than folded into them because it replaces
-     * every one of PLAY/COACH MATCH, COACH MATCH and VIEW MATCH -- the mode
-     * cannot be a computer-v-computer match, but if it somehow were, the words
-     * should still name the mode. */
+    /* SHOOTING PRACTICE / PENALTY SHOOTOUT: the mode is what this button
+     * starts, so say so. Left after the lines above rather than folded into
+     * them because it replaces every one of PLAY/COACH MATCH, COACH MATCH and
+     * VIEW MATCH -- whatever the selection, the words should name the mode. */
     if (g_shootingPracticeMode)
         e->fg = (uintptr_t)_aStartPractice;
+    if (g_penaltyShootoutMode)
+        e->fg = (uintptr_t)_aStartShootout;
 #ifdef SWOS_SDL_BUILD
     if (g_playMatchStartLabel)
         e->fg = (uintptr_t)g_playMatchStartLabel;

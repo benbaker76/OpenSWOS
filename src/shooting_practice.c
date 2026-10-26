@@ -16,16 +16,21 @@ extern TeamFileEx _selectedTeams[];
 extern TeamGeneralInfo _topTeamData;
 extern TeamGeneralInfo _bottomTeamData;
 
-/* The friendly flow this mode borrows whole (src/menus.c). */
-extern void FriendlyMenu(void);
+/* The friendly flow this mode borrows whole (src/menus.c) — FriendlyFlow, not
+ * FriendlyMenu: this handler runs under the 4-entry PRACTICE submenu since
+ * 2026-10-26, where FriendlyMenu's closing CommonMenuExit would write through
+ * main-menu entries that are not there (docs/MENUS.md §12). The submenu's
+ * opener, PracticeMenuSelected, makes that call once, after it closes. */
+extern void FriendlyFlow(void);
 
 /* teams.c's names for TeamFile.teamControls, which has no shared header. */
 #define TEAM_NOT_SELECTED 0
 #define TEAM_COMPUTER     1
 
-/* ShootingPracticeMenu -- the main menu's SHOOTING PRACTICE button (entry 2).
+/* ShootingPracticeMenu -- the PRACTICE submenu's SHOOTING PRACTICE button
+ * (until 2026-10-26 the main menu's own entry 2, which now opens that submenu).
  *
- * The whole mode is "a friendly, with the flag set". FriendlyMenu seeds the
+ * The whole mode is "a friendly, with the flag set". FriendlyFlow seeds the
  * RNG, saves and restores gameType around the flow and invalidates the team
  * cache so the country lists reload pristine (ShowFriendlyMenu, menus.c, where
  * that last one is a deliberate fix over an original SWOS bug) -- all of which
@@ -34,12 +39,12 @@ extern void FriendlyMenu(void);
  * PRACTICE where they would say FRIENDLY.
  *
  * Clearing on the way out is what makes the flag safe: every path back to the
- * main menu, including an abort, returns through here. */
+ * submenu, including an abort, returns through here. */
 __attribute__((used, externally_visible))
 void ShootingPracticeMenu(void)
 {
     g_shootingPracticeMode = 1;
-    FriendlyMenu();
+    FriendlyFlow();
     g_shootingPracticeMode = 0;
 }
 

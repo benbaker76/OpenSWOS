@@ -85,11 +85,11 @@
         {
           "op": "text",
           "flags": "0x10",
-          "str": "_aShootingPractice"
+          "str": "_aPractice"
         },
         {
           "op": "onselect_fire",
-          "func": "ShootingPracticeMenu"
+          "func": "PracticeMenuSelected"
         }
       ]
     },

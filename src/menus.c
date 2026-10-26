@@ -26,6 +26,7 @@
 #include "online_menus.h"   /* MULTIPLAYER opens SWOS 2020's online flow */
 #include "credits_menu.h"   /* CREDITS (SDL) */
 #include "shooting_practice.h"  /* SHOOTING PRACTICE runs the friendly flow below */
+#include "penalty_shootout.h"   /* PENALTY SHOOTOUT does too (the PRACTICE submenu) */
 #include "deterministic.h"
 #include "string_utils.h"
 #include "text_render.h"
@@ -2607,6 +2608,7 @@ extern uint8_t _randXorIndex;      /* primary XOR key index */
 extern uint16_t _diySelected;
 extern uint8_t _diyCompetitionMenu[];
 extern uint8_t _editMenu[];        /* OpenSWOS: the EDIT submenu (menu_data.c) */
+extern uint8_t _practiceMenu[];    /* OpenSWOS: the PRACTICE submenu (menu_data.c) */
 extern uint8_t _highlightsMenu[];
 extern uint8_t _optionsMenu[];
 extern uint8_t _diskMenu[];
@@ -2623,9 +2625,14 @@ extern uint8_t _selectNationalTeamMenu[];
 extern void Friendly(void);
 extern void EditTactics(void);
 
-/* FriendlyMenu — seed RNG, run Friendly, then update main menu (SWOS2.s line 68796) */
+/* FriendlyFlow — FriendlyMenu without the main-menu fixup, for the handlers
+ * that run the friendly flow from INSIDE the PRACTICE submenu
+ * (ShootingPracticeMenu, PenaltyShootoutMenu). Under a 4-entry submenu,
+ * CommonMenuExit writes through main-menu entries 11..15 that are not there
+ * — the same stale-pointer trap EditMenuSelected documents. The submenu's
+ * opener, PracticeMenuSelected, makes that call once, after it closes. */
 __attribute__((used, externally_visible))
-void FriendlyMenu(void)
+void FriendlyFlow(void)
 {
 #ifndef DETERMINISTIC_MODE
     /* move.w (currentTick),(seed) — seeds both seed (high byte) + randXorIndex (low byte) */
@@ -2633,6 +2640,13 @@ void FriendlyMenu(void)
     _randXorIndex = (uint8_t)(_currentTick & 0xFF);
 #endif
     Friendly();
+}
+
+/* FriendlyMenu — seed RNG, run Friendly, then update main menu (SWOS2.s line 68796) */
+__attribute__((used, externally_visible))
+void FriendlyMenu(void)
+{
+    FriendlyFlow();
     CommonMenuExit();
 }
 
@@ -2641,8 +2655,8 @@ void FriendlyMenu(void)
 
 /* EditMenuSelected — OpenSWOS's EDIT button: the submenu holding the two editors
  * that used to have a main-menu row each (menu_data.c _editMenu, which is where
- * the words are; docs/MENUS.md section 12). Grouping them freed the row SHOOTING
- * PRACTICE now has.
+ * the words are; docs/MENUS.md section 12). Grouping them freed the row the
+ * PRACTICE submenu now has.
  *
  * CommonMenuExit belongs HERE and not in the two handlers below: it is the main
  * menu's fixup (its CONTINUE/SAVE rows, _menuEntries[11..15]), and the main menu
@@ -2651,6 +2665,19 @@ __attribute__((used, externally_visible))
 void EditMenuSelected(void)
 {
     ShowMenu(_editMenu);
+    CommonMenuExit();
+}
+
+/* PracticeMenuSelected — OpenSWOS's PRACTICE button: the submenu holding the two
+ * training modes (menu_data.c _practiceMenu): SHOOTING PRACTICE, which had this
+ * main-menu row to itself until 2026-10-26, and PENALTY SHOOTOUT
+ * (src/penalty_shootout.c). As with EditMenuSelected, CommonMenuExit is made
+ * HERE, once, after the submenu closes — the mode handlers run the friendly
+ * flow through FriendlyFlow, which deliberately omits it. */
+__attribute__((used, externally_visible))
+void PracticeMenuSelected(void)
+{
+    ShowMenu(_practiceMenu);
     CommonMenuExit();
 }
 
@@ -5638,6 +5665,8 @@ extern uint8_t _aFriendly_1[];       /* "FRIENDLY" */
 extern uint8_t _aPlayFriendly[];     /* "PLAY FRIENDLY" */
 extern uint8_t _aShootingPractice[]; /* "SHOOTING PRACTICE" */
 extern uint8_t _aPlayPractice[];     /* "PLAY PRACTICE" */
+extern uint8_t _aPenaltyShootout[];  /* "PENALTY SHOOTOUT" */
+extern uint8_t _aPlayShootout[];     /* "PLAY SHOOTOUT" */
 extern uint16_t _friendlyOk;
 extern uint16_t _minSubstitutes;
 extern uint16_t _maxSubstitutes;
@@ -5693,10 +5722,12 @@ void DisableEntries(void)
 __attribute__((used, externally_visible))
 void FriendlyMenuInit(void)
 {
-    /* Entry 0 is the header box. SHOOTING PRACTICE runs this screen as its own
-     * (src/shooting_practice.c), and it is the one place the words FRIENDLY
-     * would otherwise still be on screen during a drill. */
+    /* Entry 0 is the header box. SHOOTING PRACTICE and PENALTY SHOOTOUT run
+     * this screen as their own (src/shooting_practice.c, src/penalty_shootout.c),
+     * and it is the one place the word FRIENDLY would otherwise still be on
+     * screen during either mode. */
     _menuEntries[0].fg = (uintptr_t)(g_shootingPracticeMode ? _aShootingPractice
+                                   : g_penaltyShootoutMode  ? _aPenaltyShootout
                                                             : _aFriendly_1);
     if (_friendlyOk != 0)
         SetSelectTwoTeamsText();
@@ -5742,11 +5773,14 @@ void FriendlyMenuReinit(void)
 __attribute__((used, externally_visible))
 void ChooseTeamsMenu(void)
 {
-    /* SHOOTING PRACTICE borrows this whole flow, so the only thing that marks
-     * the selection screens as the drill's is the two words they are given:
-     * gameTypeStr heads them, playWhatStr is the button that starts the match. */
+    /* SHOOTING PRACTICE and PENALTY SHOOTOUT borrow this whole flow, so the
+     * only thing that marks the selection screens as a mode's is the two words
+     * they are given: gameTypeStr heads them, playWhatStr is the button that
+     * starts the match. */
     if (g_shootingPracticeMode)
         GoGetTeamsForPlay(_aShootingPractice, _aPlayPractice, 2, 1, 1, 1);
+    else if (g_penaltyShootoutMode)
+        GoGetTeamsForPlay(_aPenaltyShootout, _aPlayShootout, 2, 1, 1, 1);
     else
         GoGetTeamsForPlay(_aFriendly_1, _aPlayFriendly, 2, 1, 1, 1);
     if (_chooseTeamsResult == 0) {

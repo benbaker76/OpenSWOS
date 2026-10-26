@@ -258,6 +258,7 @@ extern void OpenDiyPreset3(void);
 extern void OptionsMenuBeforeDraw(void);
 extern void OptionsMenuSelected(void);
 extern void OriginalCustomTeams(void);
+extern void PenaltyShootoutMenu(void);
 extern void PitchTypeOrSeasonProc(void);
 extern void PlayMatch30AfterDraw(void);
 extern void PlayMatchChangeTactics(void);
@@ -280,6 +281,7 @@ extern void PlayerOffersOnSelect11(void);
 extern void PlayerOffersOnSelect12(void);
 extern void PlayerOffersOnSelect13(void);
 extern void PlayerOffersOnSelect8(void);
+extern void PracticeMenuSelected(void);
 extern void PresetCompetitionMenu(void);
 extern void PutPlayerOnMarketMenu(void);
 extern void RejectJobOffer(void);
@@ -508,6 +510,7 @@ extern char _aOldBalance[];
 extern char _aOptions[];
 extern char _aOriginalCustom[];
 extern char _aOwnGoals[];
+extern char _aPenaltyShootout[];
 extern char _aPitches[];
 extern char _aPl[];
 extern char _aPlayEachTeam[];
@@ -519,6 +522,7 @@ extern char _aPlayerWagesBil[];
 extern char _aPlayersCurrent[];
 extern char _aPlus[];
 extern char _aPointsForAWin[];
+extern char _aPractice[];
 extern char _aPresetCompetit_0[];
 extern char _aPts[];
 extern char _aPutPlayerOnTra_0[];
@@ -932,6 +936,7 @@ const MenuSymbol _menuSymbols[] = {
     { "OptionsMenuBeforeDraw", (void*)OptionsMenuBeforeDraw, SYM_FUNC },
     { "OptionsMenuSelected", (void*)OptionsMenuSelected, SYM_FUNC },
     { "OriginalCustomTeams", (void*)OriginalCustomTeams, SYM_FUNC },
+    { "PenaltyShootoutMenu", (void*)PenaltyShootoutMenu, SYM_FUNC },
     { "PitchTypeOrSeasonProc", (void*)PitchTypeOrSeasonProc, SYM_FUNC },
     { "PlayMatch30AfterDraw", (void*)PlayMatch30AfterDraw, SYM_FUNC },
     { "PlayMatchChangeTactics", (void*)PlayMatchChangeTactics, SYM_FUNC },
@@ -954,6 +959,7 @@ const MenuSymbol _menuSymbols[] = {
     { "PlayerOffersOnSelect12", (void*)PlayerOffersOnSelect12, SYM_FUNC },
     { "PlayerOffersOnSelect13", (void*)PlayerOffersOnSelect13, SYM_FUNC },
     { "PlayerOffersOnSelect8", (void*)PlayerOffersOnSelect8, SYM_FUNC },
+    { "PracticeMenuSelected", (void*)PracticeMenuSelected, SYM_FUNC },
     { "PresetCompetitionMenu", (void*)PresetCompetitionMenu, SYM_FUNC },
     { "PutPlayerOnMarketMenu", (void*)PutPlayerOnMarketMenu, SYM_FUNC },
     { "RejectJobOffer", (void*)RejectJobOffer, SYM_FUNC },
@@ -1179,6 +1185,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aOptions", (void*)_aOptions, SYM_STRING },
     { "_aOriginalCustom", (void*)_aOriginalCustom, SYM_STRING },
     { "_aOwnGoals", (void*)_aOwnGoals, SYM_STRING },
+    { "_aPenaltyShootout", (void*)_aPenaltyShootout, SYM_STRING },
     { "_aPitches", (void*)_aPitches, SYM_STRING },
     { "_aPl", (void*)_aPl, SYM_STRING },
     { "_aPlayEachTeam", (void*)_aPlayEachTeam, SYM_STRING },
@@ -1190,6 +1197,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aPlayersCurrent", (void*)_aPlayersCurrent, SYM_STRING },
     { "_aPlus", (void*)_aPlus, SYM_STRING },
     { "_aPointsForAWin", (void*)_aPointsForAWin, SYM_STRING },
+    { "_aPractice", (void*)_aPractice, SYM_STRING },
     { "_aPresetCompetit_0", (void*)_aPresetCompetit_0, SYM_STRING },
     { "_aPts", (void*)_aPts, SYM_STRING },
     { "_aPutPlayerOnTra_0", (void*)_aPutPlayerOnTra_0, SYM_STRING },

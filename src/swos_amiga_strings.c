@@ -40,6 +40,15 @@ char _aStartPractice[] = "START PRACTICE";
 /* Shown where "SELECT N MORE TEAMS" would be: the two teams are picked, but the
  * drill needs one of them to be the computer and the other not. */
 char _aSelect1CpuTeam[] = "SELECT 1 COMPUTER TEAM";
+/* OpenSWOS: the main menu's PRACTICE button (PracticeMenuSelected) and its
+ * submenu's header -- the submenu groups SHOOTING PRACTICE and PENALTY
+ * SHOOTOUT (src/penalty_shootout.c, docs/PENALTY_SHOOTOUT.md). */
+char _aPractice[] = "PRACTICE";
+/* OpenSWOS: the PRACTICE submenu's PENALTY SHOOTOUT button (PenaltyShootoutMenu),
+ * and the words that mode's flow puts in place of the friendly's. */
+char _aPenaltyShootout[] = "PENALTY SHOOTOUT";
+char _aPlayShootout[]  = "PLAY SHOOTOUT";
+char _aStartShootout[] = "START SHOOTOUT";
 char _aDataEurocupTmd[] = "data/eurocup.tmd";
 char _aDataEurocwcTmd[] = "data/eurocwc.tmd";
 char _aDataTeamNnn[] = "data/team.nnn";

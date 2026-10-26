@@ -1,0 +1,131 @@
+{
+  "name": "_practiceMenu",
+  "comment": "OpenSWOS's PRACTICE submenu, from the main menu's PRACTICE button (menus.c PracticeMenuSelected). SHOOTING PRACTICE had that main-menu row to itself until 2026-10-26, when PENALTY SHOOTOUT (src/penalty_shootout.c) joined it here. Neither mode handler may call CommonMenuExit -- that is the main menu's fixup and PracticeMenuSelected does it once, after this menu closes (docs/MENUS.md section 12); both run the friendly flow through FriendlyFlow, which omits it. Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "onInit": null,
+  "onReturn": null,
+  "onDraw": null,
+  "defaultEntry": 1,
+  "items": [
+    {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 92,
+        "y": 0,
+        "w": 120,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aPractice"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 82,
+        "y": 60,
+        "w": -116,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 2
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aShootingPractice"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ShootingPracticeMenu"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 82,
+        "y": 90,
+        "w": -116,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 1,
+          "down": 3
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aPenaltyShootout"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "PenaltyShootoutMenu"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 102,
+        "y": -71,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SetExitMenuFlag"
+        }
+      ]
+    }
+  ]
+}

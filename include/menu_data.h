@@ -1376,6 +1376,22 @@ typedef struct Menu_EditMenu
 } Menu_EditMenu;
 #pragma pack(pop)
 
+/* OpenSWOS addition — the PRACTICE submenu off the main menu's PRACTICE button:
+ * the two training modes (bin/data_json/menus/practiceMenu.json,
+ * docs/MENUS.md section 12). Same shape as Menu_EditMenu with one button fewer. */
+#pragma pack(push, 1)
+typedef struct Menu_PracticeMenu
+{
+  MenuHeader hdr;
+  MenuMark markByteCoords;
+  MenuEntry_Byte_Colors_TextPtr entry0;                 /* the PRACTICE header */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry1;    /* SHOOTING PRACTICE */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry2;    /* PENALTY SHOOTOUT */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;    /* EXIT */
+  MenuMark markEndMenu;
+} Menu_PracticeMenu;
+#pragma pack(pop)
+
 /* 206 - Menu 21: chooseTeamsMenu (0xBE = 190 bytes) */
 #pragma pack(push, 1)
 typedef struct Menu_ChooseTeams
@@ -3504,6 +3520,7 @@ extern Menu_CreditsAga _creditsAgaMenu;
 #endif
 extern Menu_SWOSMainMenu _swosMainMenu;
 extern Menu_EditMenu _editMenu;
+extern Menu_PracticeMenu _practiceMenu;
 extern Menu_Offers _offersMenu;
 extern Menu_PlayerTransfer _playerTransferMenu;
 extern Menu_ThirdPartyOffer _thirdPartyOfferMenu;

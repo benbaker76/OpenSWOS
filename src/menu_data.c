@@ -370,6 +370,8 @@ extern void UndoTactics(void);
 extern void UseMatchTeamSelect(void);
 extern void UniformSelected(void);
 extern void ShootingPracticeMenu(void);
+extern void PenaltyShootoutMenu(void);
+extern void PracticeMenuSelected(void);
 extern void User_A_Tactics(void);
 extern void User_B_Tactics(void);
 extern void User_C_Tactics(void);
@@ -547,6 +549,8 @@ extern char _aSeason_1[];
 extern char _aSecondKit[];
 extern char _aSeeded[];
 extern char _aShootingPractice[];
+extern char _aPenaltyShootout[];
+extern char _aPractice[];
 extern char _aSkills[];
 extern char _aSquad[];
 extern char _aStar[];
@@ -6880,8 +6884,8 @@ Menu_SWOSMainMenu _swosMainMenu = {
         { 0, 80, -106, 16 },
         { MENU_CMD_NAV, -1, 7, 1, 3 },
         { MENU_CMD_COLORS, 0x5 },
-        { MENU_CMD_TEXT_PTR, 0x10, _aShootingPractice },
-        { MENU_CMD_ONSELECT_FIRE, ShootingPracticeMenu },
+        { MENU_CMD_TEXT_PTR, 0x10, _aPractice },
+        { MENU_CMD_ONSELECT_FIRE, PracticeMenuSelected },
         MENU_CMD_END
     },
     {
@@ -7033,6 +7037,49 @@ Menu_EditMenu _editMenu = {
     {
         { 102, -71, 100, 15 },
         { MENU_CMD_NAV, -1, -1, 3, -1 },
+        { MENU_CMD_COLORS, 0xC },
+        { MENU_CMD_TEXT_PTR, 0x0, _aExit },
+        { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
+    MENU_MARK_END_MENU
+};
+
+/* ---- practiceMenu (PRACTICE) — OpenSWOS, no SWOS2.s counterpart -------------
+ * The main menu's PRACTICE button (menus.c PracticeMenuSelected). SHOOTING
+ * PRACTICE had that row to itself until 2026-10-26, when PENALTY SHOOTOUT
+ * (src/penalty_shootout.c) joined it under this submenu. Hand-written like
+ * _editMenu above: scripts/emit_menus.py splices VALUES into the braces that
+ * are already here, so the shape of a new menu has to exist in C first
+ * (docs/MENUS.md section 12). */
+Menu_PracticeMenu _practiceMenu = {
+    { 0, 0, 0, 1 },
+    MENU_MARK_BYTE_COORDS,
+    {
+        { 92, 0, 120, 15 },
+        { MENU_CMD_COLORS, 0x17 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aPractice },
+        MENU_CMD_END
+    },
+    {
+        { 82, 60, -116, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, 2 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aShootingPractice },
+        { MENU_CMD_ONSELECT_FIRE, ShootingPracticeMenu },
+        MENU_CMD_END
+    },
+    {
+        { 82, 90, -116, 15 },
+        { MENU_CMD_NAV, -1, -1, 1, 3 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aPenaltyShootout },
+        { MENU_CMD_ONSELECT_FIRE, PenaltyShootoutMenu },
+        MENU_CMD_END
+    },
+    {
+        { 102, -71, 100, 15 },
+        { MENU_CMD_NAV, -1, -1, 2, -1 },
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },

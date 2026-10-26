@@ -787,6 +787,10 @@ GameFrameResult GameLoop_Frame(void)
      * penalties. No-op unless _gArcadeMode (checked inside). */
     { extern void Arcade_MatchTick(void); Arcade_MatchTick(); }
 #endif
+    /* PENALTY SHOOTOUT (the PRACTICE submenu): once the kickoff has been taken,
+     * hand the match to the engine's own shootout. No-op unless latched at
+     * kick-off (checked inside). Both targets, so outside the block above. */
+    { extern void PenaltyShootout_MatchTick(void); PenaltyShootout_MatchTick(); }
     /* nullsub_8 — no-op */
     RASTER(RASTER_SIM);
     UpdateAndApplyTeamControls();
@@ -1054,6 +1058,10 @@ end_of_match_flow:
             _team1NumAllowedInjuries = 4;
             _team2NumAllowedInjuries = 4;
             _playGame = 1;
+            /* This path never re-enters InitializeInGameTeamsAndStartGame, so
+             * PENALTY SHOOTOUT's one-shot must be re-armed here or the replay
+             * of a shootout plays as a plain friendly (penalty_shootout.c). */
+            { extern void PenaltyShootout_MatchRestarted(void); PenaltyShootout_MatchRestarted(); }
             EnsureSfxLoadedAndStart();
             SetPitchTypeAndNumber();
             InitGameRestoreTeams();

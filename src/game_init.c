@@ -10,6 +10,7 @@
 #include "play_match_menu.h"
 #include "string_utils.h"
 #include "shooting_practice.h"   /* shared: compiled for both targets */
+#include "penalty_shootout.h"    /* shared: compiled for both targets */
 #include "challenge.h"           /* a saved position skips the pre-match prompts */
 #ifdef SWOS_SDL_BUILD
 #include "uniform.h"        /* a kit chosen for this match (UNIFORM screen) */
@@ -717,6 +718,7 @@ extern uint16_t _isGameFriendly;
 extern uint8_t  _aTraining[];
 extern uint8_t  _aFriendly_1[];
 extern uint8_t  _aShootingPractice[];   /* OpenSWOS: the drill's match name */
+extern uint8_t  _aPenaltyShootout[];    /* OpenSWOS: the shootout's match name */
 
 /* ShowPlayMatchMenu declared in play_match_menu.h */
 /* InitializeInGameTeamsAndStartGame declared in game_init.h */
@@ -970,10 +972,13 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
             StringCopy(_aArcadeMatchName, _gameName);
         else
 #endif
-        /* SHOOTING PRACTICE is a friendly in every other respect, but the name
-         * is what the scoreboard and a saved highlight carry, so it should say
-         * which it was (src/shooting_practice.c). */
-        StringCopy(g_shootingPracticeMode ? _aShootingPractice : _aFriendly_1,
+        /* SHOOTING PRACTICE and PENALTY SHOOTOUT are friendlies in every other
+         * respect, but the name is what the scoreboard and a saved highlight
+         * carry, so it should say which it was (src/shooting_practice.c,
+         * src/penalty_shootout.c). */
+        StringCopy(g_shootingPracticeMode ? _aShootingPractice
+                 : g_penaltyShootoutMode  ? _aPenaltyShootout
+                                          : _aFriendly_1,
                    _gameName);
     }
     _gameRound = 0;
@@ -1113,10 +1118,12 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
     if (team2->teamControls == TEAM_COMPUTER)
         _team2Computer = 0x00FF;
 
-    /* SHOOTING PRACTICE: latch the mode for this match now that both sides'
-     * controls are known, so nothing during the match depends on the menu
-     * toggle still being set (src/shooting_practice.c). */
+    /* SHOOTING PRACTICE / PENALTY SHOOTOUT: latch the modes for this match now
+     * that both sides' controls are known, so nothing during the match depends
+     * on a menu global still being set (src/shooting_practice.c,
+     * src/penalty_shootout.c). */
     ShootingPractice_BeginMatch();
+    PenaltyShootout_BeginMatch();
 
     /* Set secondary colors for both teams */
 #ifdef SWOS_SDL_BUILD
