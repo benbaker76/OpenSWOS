@@ -192,3 +192,11 @@ data/SWOS2.REL
 
 # openswos.net background: drawn from the game art, copied to the server, never committed
 /packaging/web/site/background.png
+
+# Challenge-rig diagnostic dumps the game writes into bin/ (src/challenge.c,
+# docs/CHALLENGE_WIP.md); amiga_drive.ps1 deletes them before each run.
+bin/CHALDBG.BIN
+bin/CHALCAM.BIN
+bin/PITCH.BIN
+bin/RTRIP.BIN
+bin/LAYOUT.BIN
