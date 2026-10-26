@@ -182,8 +182,13 @@ made a standalone mode impossible to build on top of it.
 the engine's own cup shootout from its FIRST frame: a shared game-loop tick calls `StartPenalties`
 at minute 0, no walk-on, no kickoff. The defending side's keeper is its player's: held direction =
 dive that way (+DOWN = low), nothing = stand, asked at the goalie update's `shot_at_goal` gate
-BEFORE any AI dice (`PenaltyShootout_KeeperDiveInput`; CPU sides and the shooting side's own keeper
-stay AI). TWO traps live here: the post-friendly REPLAY path restarts the match WITHOUT
+BEFORE any AI dice (`ManualKeeper_DiveInput`; CPU sides and the shooting side's own keeper
+stay AI). Since 2026-10-26 that manual keeper is NOT the mode's alone: it holds at EVERY penalty a
+human defends — in-match kicks (`_penalty`) and cup shootouts (`_playingPenalties`), the engine's
+own penalty-save window — in any match, offline or online (held direction is ordinary synced
+input). Outside the drill a NEUTRAL stick falls back to the AI keeper (nothing = stand is the
+drill's semantics only), so in a real match the mechanic is strictly opt-in. Open play stays AI.
+TWO traps live here: the post-friendly REPLAY path restarts the match WITHOUT
 re-entering `InitializeInGameTeamsAndStartGame`, so anything latched there that must reset per
 match needs its own re-arm (`PenaltyShootout_MatchRestarted`); and both mode handlers run under
 the submenu, hence `FriendlyFlow`.

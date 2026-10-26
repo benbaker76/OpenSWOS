@@ -10,7 +10,9 @@
 int32_t g_penaltyShootoutMode;
 
 extern uint16_t _playingPenalties;
+extern uint16_t _penalty;
 extern Sprite  *_penaltyShooterSprite;
+extern TeamGeneralInfo *_lastTeamPlayed;
 
 /* The friendly flow this mode borrows whole, WITHOUT the main-menu fixup on
  * the way out (menus.c): this handler runs under the 4-entry PRACTICE submenu,
@@ -64,27 +66,45 @@ void PenaltyShootout_MatchRestarted(void)
     s_shootoutStarted = 0;
 }
 
-/* The defending keeper is the player's to throw (penalty_shootout.h). Reads the
- * defending side's HELD direction, which processInputForPlayer writes every
- * frame a human pad is polled (team_control.c), so a direction held before the
- * kick commits the dive on the first frame the engine sees a shot.
+/* The defending keeper at ANY penalty is its player's to throw
+ * (penalty_shootout.h): the training shootout, a drawn cup tie's shootout, and
+ * an in-match penalty kick. (Until 2026-10-26 it was the training mode's
+ * alone — the s_shootoutMatch latch gated it.) Reads the defending side's
+ * HELD direction, which processInputForPlayer writes every frame a human pad
+ * is polled (team_control.c), so a direction held before the kick commits the
+ * dive on the first frame the engine sees a shot.
+ *
+ * The window is the engine's own penalty-save window — _playingPenalties for
+ * a shootout, _penalty from an in-match kick's strike until the next touch —
+ * the same pair ShouldGoalkeeperDive's penalty branch tests (goalkeeper.c).
+ * Outside the training drill a neutral stick falls back to the AI keeper
+ * (see the switch below), so normal matches only ever gain control, never
+ * lose the save the AI would have made.
  *
  * Directions are the engine's 0..7 compass (0=N clockwise to 7=NW; the dive
  * directions 2=E and 6=W are the ones GoalkeeperJumping and the kick-off
  * turnFlags already use): W=jump left, SW=dive left low, E/SE mirrored. N, S
  * and the two up-diagonals are not dives, so a thumb resting UP or DOWN alone
  * leaves the keeper standing. */
-int16_t PenaltyShootout_KeeperDiveInput(TeamGeneralInfo *team)
+int16_t ManualKeeper_DiveInput(TeamGeneralInfo *team)
 {
-    if (!s_shootoutMatch || !_playingPenalties)
-        return -1;
     if (team->playerNumber == 0)
         return -1;                      /* a CPU-run side keeps the AI keeper */
-    /* Only the DEFENDING side's keeper: the shooting side's keeper, idle at
-     * the far end, runs the same goalie update and must stay the AI's. */
-    if (_penaltyShooterSprite != (Sprite *)0 &&
-        _penaltyShooterSprite->teamNumber == team->teamNumber)
-        return -1;
+    if (_playingPenalties) {
+        /* Only the DEFENDING side's keeper: the shooting side's keeper, idle
+         * at the far end, runs the same goalie update and must stay the AI's. */
+        if (_penaltyShooterSprite != (Sprite *)0 &&
+            _penaltyShooterSprite->teamNumber == team->teamNumber)
+            return -1;
+    } else if (_penalty) {
+        /* In-match kick: _lastTeamPlayed is the kicker's side — set beside
+         * _penalty at the strike (update_players.c execute_shot/pass), and
+         * every later touch clears _penalty, so the pair stays consistent. */
+        if (_lastTeamPlayed == team)
+            return -1;
+    } else {
+        return -1;                      /* open play: the AI decides as ever */
+    }
 
     switch (team->direction) {
     case 2:   /* E  — jump right       */
@@ -93,7 +113,12 @@ int16_t PenaltyShootout_KeeperDiveInput(TeamGeneralInfo *team)
     case 6:   /* W  — jump left        */
         return team->direction;
     default:
-        return 0;                       /* no guess: stand */
+        /* Neutral stick. In the training drill the keeper STANDS — no guess,
+         * no dive, the mode's whole point. In a real match the AI decides as
+         * ever, so a player who never touches the stick keeps the keeper the
+         * game always had, and only a held dive direction overrides the dice
+         * (asked for after the first live build, 2026-10-26). */
+        return s_shootoutMatch ? 0 : -1;
     }
 }
 

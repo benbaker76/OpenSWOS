@@ -10,7 +10,7 @@
 #include "ball_possession.h"
 #include "contest_log.h"    /* --contest-log: reads only, changes nothing */
 #include "goalkeeper.h"
-#include "penalty_shootout.h"   /* the shootout's manual keeper (shot_at_goal) */
+#include "penalty_shootout.h"   /* the manual keeper at penalties (shot_at_goal) */
 #include "tackle_foul.h"
 #include "headers.h"
 extern int16_t _gsBallDefensiveZ;   /* GS_27_22 goalie-catch z-threshold — dos_gameplay.c */
@@ -704,15 +704,16 @@ not_in_penalty:
         if (ball->z.s.i > 16)
             goto save_not_attempted_set_run_speed;
 
-        /* PENALTY SHOOTOUT: the defending side's keeper is its player's to
-         * throw (penalty_shootout.h). Placed above the finisher-skill roll and
+        /* MANUAL KEEPER: at any penalty — shootout or in-match kick — the
+         * defending side's keeper is its player's to throw
+         * (penalty_shootout.h). Placed above the finisher-skill roll and
          * the ShouldGoalkeeperDive gate so that in manual mode neither the
          * auto-react dive nor the AI's dice ever move him: the held direction
          * dives him immediately, at full speed, with the height the player
          * chose (DOWN = low), and no input leaves him standing — the catch
          * checks below still apply, so he holds what comes straight at him. */
         {
-            int16_t manual = PenaltyShootout_KeeperDiveInput(team);
+            int16_t manual = ManualKeeper_DiveInput(team);
             if (manual == 0) {
                 player->destX = player->x.s.i;
                 player->destY = player->y.s.i;

@@ -57,8 +57,23 @@ reaches nothing — and no guess means no dive.
 
 A CPU-run side keeps the AI keeper, so shooting against the computer is
 unchanged. In human v human the defending player gets the keeper each round.
-Nothing outside the mode is touched: normal matches, in-match penalty kicks
-and cup shootouts play exactly as before.
+
+**Since 2026-10-26 the manual keeper is not the mode's alone: every penalty a
+human DEFENDS works this way**, in any match on either target — an in-match
+penalty kick (from the strike until the next touch, the engine's own
+`_penalty` window) and a drawn cup tie's shootout, offline or online (the
+held direction is ordinary synced input, so netplay and the replay/rollback
+rigs see nothing new). The mode remains where the mechanic is practised, with
+**one deliberate difference outside the drill: a neutral stick hands the
+keeper back to the AI.** In the drill, nothing held means the keeper stands —
+no guess, no dive is the exercise — but in a real match that would punish
+every player who never learned the mechanic, so there the manual dive is
+strictly opt-in: touch nothing and the keeper plays the game he always has,
+hold a dive direction and it overrides the dice. (The first live build had
+the drill's stand-on-neutral everywhere; changed same day, on the first
+play-test.) Open play is untouched: shots in the run of play are saved by the
+AI keeper as ever, since the defender's pad is busy steering an outfield
+player.
 
 ## How it works
 
@@ -89,14 +104,18 @@ once, never read live from a menu global.
 
 **The manual keeper is asked for before any AI path.** The goalie update's
 save gate (`shot_at_goal`, `src/update_players.c`) asks
-`PenaltyShootout_KeeperDiveInput` above both the finisher-skill auto-react
+`ManualKeeper_DiveInput` above both the finisher-skill auto-react
 roll and `ShouldGoalkeeperDive`, so in manual mode no dice ever move him. The
 input is the engine's own 0..7 compass read from the defending side's
 `TeamGeneralInfo.direction` — W/SW/E/SE are literally the pad's left,
 left+down, right, right+down (`src/input.c`). The shooting side's keeper runs
 the same goalie update, idle at the far end, and is explicitly excluded
-(`_penaltyShooterSprite->teamNumber`), as is any CPU-run side
-(`playerNumber == 0`).
+(`_penaltyShooterSprite->teamNumber` during a shootout; at an in-match kick
+the kicker's side is `_lastTeamPlayed`, set beside `_penalty` at the strike),
+as is any CPU-run side (`playerNumber == 0`). The gate is the engine's own
+penalty-save window, `_playingPenalties || _penalty` — the same pair
+`ShouldGoalkeeperDive`'s penalty branch tests — which is what makes the
+mechanic hold in normal matches, not just this mode.
 
 ## The bug log
 

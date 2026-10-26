@@ -52,15 +52,21 @@ void PenaltyShootout_MatchTick(void);
  * the one-shot is re-armed and a replayed shootout is a shootout again. */
 void PenaltyShootout_MatchRestarted(void);
 
-/* MANUAL KEEPER. In a shootout the DEFENDING side's keeper belongs to its
- * player: hold LEFT to jump left, LEFT+DOWN to dive left low (RIGHT mirrored),
- * nothing to stand — a standing keeper still catches a shot hit at him. The
- * reward for guessing is that the dive is immediate and at full dive speed,
- * where the AI keeper rolls dice on side, speed and timing; the risk is the
- * height is yours too, and no guess means no dive.
+/* MANUAL KEEPER. At ANY penalty — the training shootout, a drawn cup tie's
+ * shootout, an in-match penalty kick — the DEFENDING side's keeper belongs to
+ * its player: hold LEFT to jump left, LEFT+DOWN to dive left low (RIGHT
+ * mirrored). The reward for guessing is that the dive is immediate and at
+ * full dive speed, where the AI keeper rolls dice on side, speed and timing;
+ * the risk is the height is yours too. A NEUTRAL stick differs by context:
+ * in the training drill the keeper stands (no guess, no dive — the drill's
+ * point; he still catches a shot hit straight at him), while in a real match
+ * it hands him back to the AI, so holding a direction is strictly opt-in.
+ * (Born as this mode's drill, opened to normal matches 2026-10-26 — hence
+ * the home here.)
  *
  * Asked by the goalie update at its save-attempt gate (update_players.c
- * shot_at_goal). Returns -1 when the AI should decide as ever (not a shootout
- * match, a CPU side, or this keeper's own side is the one shooting); 0 for
- * "no input, stand"; else the held dive direction (2=E, 3=SE, 5=SW, 6=W). */
-int16_t PenaltyShootout_KeeperDiveInput(TeamGeneralInfo *team);
+ * shot_at_goal). Returns -1 when the AI should decide as ever (no penalty in
+ * play, a CPU side, this keeper's own side shooting, or a neutral stick in a
+ * real match); 0 for "stand" (the drill's neutral); else the held dive
+ * direction (2=E, 3=SE, 5=SW, 6=W). */
+int16_t ManualKeeper_DiveInput(TeamGeneralInfo *team);
