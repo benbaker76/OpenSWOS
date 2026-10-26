@@ -1963,6 +1963,69 @@ static void parse_u32_array_slice(const char *slice, int slen,
     }
 }
 
+/* ---------- walk-once key capture ----------
+ *
+ * Every mjson_find()/mjson_get_*() call re-parses its whole input through
+ * the mjson core. On x86 that is noise; on the Amiga's 68020 each full-file
+ * query on a ~220 KB .PRE costs on the order of a second, and the
+ * competition load made a dozen of them plus ~60 per comp slot — the
+ * "save/load looks crashed" report (docs/CHAMPIONS36.md). These helpers
+ * make ONE linear pass over a JSON object with fast_object_next and hand
+ * out the member value slices by name, so every former query becomes a
+ * table lookup. */
+typedef struct {
+    const char *key;   /* bare member name to capture */
+    const char *v;     /* -> value slice, NULL if absent */
+    int         vlen;
+    int         vt;    /* MJSON_TOK_* */
+} KeySlice;
+
+static void capture_object_keys(const char *obj, int olen,
+                                KeySlice *want, int nwant)
+{
+    int pos = 0, koff, klen, voff, vlen, vt;
+    while ((pos = fast_object_next(obj, olen, pos,
+                                   &koff, &klen, &voff, &vlen, &vt)) != 0) {
+        if (klen < 2) continue;
+        const char *k  = obj + koff + 1;
+        int         kl = klen - 2;
+        for (int i = 0; i < nwant; i++) {
+            if (want[i].v == NULL &&
+                (int)strlen(want[i].key) == kl &&
+                memcmp(want[i].key, k, (size_t)kl) == 0) {
+                want[i].v    = obj + voff;
+                want[i].vlen = vlen;
+                want[i].vt   = vt;
+                break;
+            }
+        }
+    }
+}
+
+static const KeySlice *key_slice(const KeySlice *want, int nwant,
+                                 const char *name)
+{
+    for (int i = 0; i < nwant; i++)
+        if (strcmp(want[i].key, name) == 0)
+            return want[i].v ? &want[i] : NULL;
+    return NULL;
+}
+
+/* Captured-key equivalents of mjson_get_long / mjson_find(...)==ARRAY. */
+static int kv_long(const KeySlice *kv, int n, const char *name, long *out)
+{
+    const KeySlice *k = key_slice(kv, n, name);
+    if (!k || k->vt != MJSON_TOK_NUMBER) return 0;
+    *out = parse_long_slice(k->v, k->vlen);
+    return 1;
+}
+
+static const KeySlice *kv_array(const KeySlice *kv, int n, const char *name)
+{
+    const KeySlice *k = key_slice(kv, n, name);
+    return (k && k->vt == MJSON_TOK_ARRAY) ? k : NULL;
+}
+
 static void load_scalar_table(const char *buf, int buflen,
                               const char *section_key,
                               const FieldDesc *table)
@@ -2187,29 +2250,75 @@ static void emit_str_at(mjson_print_fn_t fn, void *fnd,
     mjson_printf(fn, fnd, "%Q:%.*Q", key, (int)n, (const char *)p);
 }
 
+/* Fast `"key":<integer>` emitter — output byte-identical to
+ * mjson_printf("%Q:%d"/"%Q:%u"), minus the per-call format parsing and
+ * mjson's per-character escape emission. The emit helpers below are called
+ * once per field; a competition save makes ~25K such calls (36 teams x ~350
+ * fields + the scalar tables), and on the Amiga's 68020 the mjson_printf
+ * machinery per call was a visible slice of the "SAVE hangs" report
+ * (docs/CHAMPIONS36.md). Keys are C identifiers, so %Q never has anything
+ * to escape — a plain quoted copy is the same bytes. */
+static void emit_key_ulong(mjson_print_fn_t fn, void *fnd,
+                           const char *key, unsigned long v)
+{
+    char buf[64];
+    int n = 0;
+    buf[n++] = '"';
+    for (const char *k = key; *k && n < 48; k++) buf[n++] = *k;
+    buf[n++] = '"';
+    buf[n++] = ':';
+    char tmp[12];
+    int tn = 0;
+    do { tmp[tn++] = (char)('0' + (v % 10ul)); v /= 10ul; } while (v);
+    while (tn) buf[n++] = tmp[--tn];
+    fn(buf, n, fnd);
+}
+
+static void emit_key_long(mjson_print_fn_t fn, void *fnd,
+                          const char *key, long v)
+{
+    if (v < 0) {
+        char buf[64];
+        int n = 0;
+        buf[n++] = '"';
+        for (const char *k = key; *k && n < 48; k++) buf[n++] = *k;
+        buf[n++] = '"';
+        buf[n++] = ':';
+        buf[n++] = '-';
+        unsigned long u = (unsigned long)(-(v + 1)) + 1ul;
+        char tmp[12];
+        int tn = 0;
+        do { tmp[tn++] = (char)('0' + (u % 10ul)); u /= 10ul; } while (u);
+        while (tn) buf[n++] = tmp[--tn];
+        fn(buf, n, fnd);
+        return;
+    }
+    emit_key_ulong(fn, fnd, key, (unsigned long)v);
+}
+
 static void emit_u8_at(mjson_print_fn_t fn, void *fnd,
                        const char *key, const uint8_t *base, size_t off)
 {
-    mjson_printf(fn, fnd, "%Q:%u", key, (unsigned)base[off]);
+    emit_key_ulong(fn, fnd, key, (unsigned long)base[off]);
 }
 
 static void emit_s8_at(mjson_print_fn_t fn, void *fnd,
                        const char *key, const uint8_t *base, size_t off)
 {
-    mjson_printf(fn, fnd, "%Q:%d", key, (int)(int8_t)base[off]);
+    emit_key_long(fn, fnd, key, (long)(int8_t)base[off]);
 }
 
 /* Emit one nibble of a packed byte as an editable JSON number (0-15). */
 static void emit_nibble_hi_at(mjson_print_fn_t fn, void *fnd,
                               const char *key, const uint8_t *base, size_t off)
 {
-    mjson_printf(fn, fnd, "%Q:%u", key, (unsigned)((base[off] >> 4) & 0x0F));
+    emit_key_ulong(fn, fnd, key, (unsigned long)((base[off] >> 4) & 0x0F));
 }
 
 static void emit_nibble_lo_at(mjson_print_fn_t fn, void *fnd,
                               const char *key, const uint8_t *base, size_t off)
 {
-    mjson_printf(fn, fnd, "%Q:%u", key, (unsigned)(base[off] & 0x0F));
+    emit_key_ulong(fn, fnd, key, (unsigned long)(base[off] & 0x0F));
 }
 
 /* Right-justify shift for a contiguous bit mask (trailing-zero count). */
@@ -2225,40 +2334,62 @@ static int mask_shift(unsigned mask)
 static void emit_bits_at(mjson_print_fn_t fn, void *fnd, const char *key,
                          const uint8_t *base, size_t off, unsigned mask)
 {
-    mjson_printf(fn, fnd, "%Q:%u", key,
-                 (unsigned)((base[off] & mask) >> mask_shift(mask)));
+    emit_key_ulong(fn, fnd, key,
+                   (unsigned long)((base[off] & mask) >> mask_shift(mask)));
 }
 
 static void emit_s16_at(mjson_print_fn_t fn, void *fnd,
                         const char *key, const uint8_t *base, size_t off)
 {
-    mjson_printf(fn, fnd, "%Q:%d", key, (int)*(int16_t *)(base + off));
+    emit_key_long(fn, fnd, key, (long)*(int16_t *)(base + off));
 }
 
 static void emit_u16_at(mjson_print_fn_t fn, void *fnd,
                         const char *key, const uint8_t *base, size_t off)
 {
     uint16_t v; memcpy(&v, base + off, sizeof(v));   /* memcpy: packed-array elements may be unaligned */
-    mjson_printf(fn, fnd, "%Q:%u", key, (unsigned)v);
+    emit_key_ulong(fn, fnd, key, (unsigned long)v);
 }
 
 static void emit_u32_at(mjson_print_fn_t fn, void *fnd,
                         const char *key, const uint8_t *base, size_t off)
 {
     uint32_t v; memcpy(&v, base + off, sizeof(v));
-    mjson_printf(fn, fnd, "%Q:%lu", key, (unsigned long)v);
+    emit_key_ulong(fn, fnd, key, (unsigned long)v);
 }
 
 static void emit_bytes_at(mjson_print_fn_t fn, void *fnd,
                           const char *key, const uint8_t *base,
                           size_t off, size_t len)
 {
-    mjson_printf(fn, fnd, "%Q:[", key);
+    /* Render the decimals into a local buffer flushed in chunks. The
+     * per-element mjson_printf version cost one full format-parse + sink
+     * call PER BYTE — the primary competition blob alone is 3760 elements,
+     * a visible slice of the Amiga .PRE save time. Output byte-identical. */
+    char buf[256];
+    int n = 0;
+    buf[n++] = '"';
+    for (const char *k = key; *k && n < 48; k++) buf[n++] = *k;
+    buf[n++] = '"';
+    buf[n++] = ':';
+    buf[n++] = '[';
     for (size_t i = 0; i < len; i++) {
-        if (i > 0) mjson_printf(fn, fnd, "%s", ",");
-        mjson_printf(fn, fnd, "%u", (unsigned)base[off + i]);
+        if (i > 0) buf[n++] = ',';
+        unsigned v = base[off + i];
+        if (v >= 100) {
+            buf[n++] = (char)('0' + v / 100);
+            buf[n++] = (char)('0' + (v / 10) % 10);
+            buf[n++] = (char)('0' + v % 10);
+        } else if (v >= 10) {
+            buf[n++] = (char)('0' + v / 10);
+            buf[n++] = (char)('0' + v % 10);
+        } else {
+            buf[n++] = (char)('0' + v);
+        }
+        if (n >= (int)sizeof(buf) - 8) { fn(buf, n, fnd); n = 0; }
     }
-    mjson_printf(fn, fnd, "%s", "]");
+    buf[n++] = ']';
+    fn(buf, n, fnd);
 }
 
 static void load_str_at(const char *buf, int buflen, const char *path,
@@ -5078,23 +5209,55 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
 /* Load a comp slot emitted by emit_comp_slot over the struct at `s`
  * (typically already populated by the raw blob load). `parent`/`plen` is
  * the enclosing JSON object; `key` selects the slot sub-object. */
-static void load_comp_slot(const char *parent, int plen,
-                           const char *key, DIYCompetitionEx *s)
+/* Every member the slot object can carry — captured in ONE fast_object_next
+ * pass (capture_object_keys) instead of one mjson core re-parse of the whole
+ * slot slice per field. ~60 queries per slot × 2-3 slots per load was a real
+ * cost on the Amiga 68020 (the mjson core walks the full slice per query).
+ * Lookups after the capture are name-table hits; semantics (ordering, type
+ * gating, absent-key behaviour) are unchanged. */
+static const char *const k_slot_keys[] = {
+    "type", "is_active", "comp_slot", "slot_id", "field_2e", "comp_slot_word",
+    "view_phase", "avg_skill", "str_tier", "num_teams", "pitch_type_or_season",
+    "pitch_type", "start_month", "end_month", "result_code", "subs_count",
+    "slot_state_a", "slot_state_b", "slot_state_c", "match_started",
+    "career_team_involved", "has_groups", "menu_state", "round_iterator",
+    "num_teams_in_stage", "match_pairs_per_round", "total_matches_in_round",
+    "round_complete", "competition_finished", "current_round_index",
+    "num_rounds", "sub_round_counter", "play_each_team", "min_subs",
+    "points_for_win", "name", "team_ids", "matchdata_raw",
+    "team_entry_offsets", "matches_played_count", "league_current_slot",
+    "league_match_progress", "league_total_matches",
+    "section_half_group_count", "section_matches_per_half",
+    "section_half_groups_counter", "section_matches_progress",
+    "phase_start_months", "league_min_substitutes", "league_max_substitutes",
+    "league_has_groups_diy", "league_matches_per_section",
+    "league_matches_per_section_live", "team_offset_table",
+    "team_grid_pairings", "cup_score_tab", "cup_score_agg", "cup_score_pen",
+    "cup_current_match_index", "cup_competition_format", "cup_round_format",
+    "cup_second_leg_counter", "cup_group_section_flag", "cup_match_count",
+    "cup_total_matches", "cup_cur_month_idx", "cup_round_legs",
+    "cup_round_extra_time", "cup_round_penalties", "tournament_slots",
+};
+#define N_SLOT_KEYS ((int)(sizeof(k_slot_keys) / sizeof(k_slot_keys[0])))
+
+static void load_comp_slot_obj(const char *o, int olen, DIYCompetitionEx *s)
 {
-    char path[64];
-    swos_io_snprintf(path, sizeof(path), "$.%s", key);
-    const char *o = NULL; int olen = 0;
-    if (mjson_find(parent, plen, path, &o, &olen) != MJSON_TOK_OBJECT)
-        return;                          /* slot absent (older save) */
+    KeySlice kv[N_SLOT_KEYS];
+    for (int i = 0; i < N_SLOT_KEYS; i++) {
+        kv[i].key = k_slot_keys[i];
+        kv[i].v = NULL; kv[i].vlen = 0; kv[i].vt = 0;
+    }
+    capture_object_keys(o, olen, kv, N_SLOT_KEYS);
 
     DIYCompetition *b = &s->base;
     long v;
+    const KeySlice *q;
 #define LD16(jk, fld) \
-    if (mjson_get_long(o, olen, "$." jk, &v) > 0) (fld) = (int16_t)v
+    if (kv_long(kv, N_SLOT_KEYS, jk, &v)) (fld) = (int16_t)v
 #define LD8(jk, fld) \
-    if (mjson_get_long(o, olen, "$." jk, &v) > 0) (fld) = (uint8_t)v
+    if (kv_long(kv, N_SLOT_KEYS, jk, &v)) (fld) = (uint8_t)v
 #define LDU16(jk, fld) \
-    if (mjson_get_long(o, olen, "$." jk, &v) > 0) (fld) = (uint16_t)v
+    if (kv_long(kv, N_SLOT_KEYS, jk, &v)) (fld) = (uint16_t)v
 
     LD16("type", b->competitionType);
     LDU16("is_active", b->isActive);
@@ -5106,7 +5269,7 @@ static void load_comp_slot(const char *parent, int plen,
      * with the logical word so it round-trips on BE. New-save key; absent in
      * old saves (then the bytes stand, same-target-correct). MUST run after the
      * two LD8s since it overwrites both bytes. */
-    if (mjson_get_long(o, olen, "$.comp_slot_word", &v) > 0)
+    if (kv_long(kv, N_SLOT_KEYS, "comp_slot_word", &v))
         *(uint16_t *)&b->compSlot = (uint16_t)v;
     LD8("view_phase", b->viewRandomPhase);
     LD8("avg_skill", b->avgSkill);
@@ -5114,8 +5277,8 @@ static void load_comp_slot(const char *parent, int plen,
     LD16("num_teams", b->numTeams);
     LD16("pitch_type_or_season", b->pitchTypeOrSeason);
     LD16("pitch_type", b->pitchType);
-    if (mjson_get_long(o, olen, "$.start_month", &v) > 0) b->startMonth = (int8_t)v;
-    if (mjson_get_long(o, olen, "$.end_month", &v) > 0)   b->endMonth   = (int8_t)v;
+    if (kv_long(kv, N_SLOT_KEYS, "start_month", &v)) b->startMonth = (int8_t)v;
+    if (kv_long(kv, N_SLOT_KEYS, "end_month", &v))   b->endMonth   = (int8_t)v;
     LD16("result_code", b->resultCode);
     LD16("subs_count", b->substitutesCount);
     LD16("slot_state_a", b->slotStateA);
@@ -5141,9 +5304,18 @@ static void load_comp_slot(const char *parent, int plen,
 #undef LD8
 #undef LDU16
 
-    load_string_field(o, olen, "$.name",
-                      (uint8_t *)b->competitionName,
-                      sizeof(b->competitionName));
+    memset(b->competitionName, 0, sizeof(b->competitionName));
+    if ((q = key_slice(kv, N_SLOT_KEYS, "name")) != NULL &&
+        q->vt == MJSON_TOK_STRING) {
+        char tmp[128];
+        int got = mjson_get_string(q->v, q->vlen, "$", tmp, (int)sizeof(tmp));
+        if (got > 0) {
+            uint32_t n = (uint32_t)got;
+            if (n > sizeof(b->competitionName) - 1)
+                n = sizeof(b->competitionName) - 1;
+            memcpy(b->competitionName, tmp, n);
+        }
+    }
 
     /* Team-id byte array → the per-type slot field. COUNT = numTeams*2
      * (NOT sizeof the declared field — the game writes numTeams entries
@@ -5160,11 +5332,8 @@ static void load_comp_slot(const char *parent, int plen,
         int16_t nt = b->numTeams;
         if (nt < 0) nt = 0; else if (nt > 64) nt = 64;
         uint32_t tlen = (uint32_t)nt * 2u;
-        if (tids && tlen) {
-            const char *arr = NULL; int alen = 0;
-            if (mjson_find(o, olen, "$.team_ids", &arr, &alen) == MJSON_TOK_ARRAY)
-                parse_byte_array_slice(arr, alen, tids, tlen);
-        }
+        if (tids && tlen && (q = kv_array(kv, N_SLOT_KEYS, "team_ids")) != NULL)
+            parse_byte_array_slice(q->v, q->vlen, tids, tlen);
     }
 
     /* matchData union — struct-anchored byte blob (fixes the +8 cross-target
@@ -5173,9 +5342,8 @@ static void load_comp_slot(const char *parent, int plen,
      * layer their host-native values on top. Skipped for tournaments
      * (type 2) — see the emit-side TYPE-2 EXCEPTION note. */
     if (b->competitionType != 2) {
-        const char *mr = NULL; int mrl = 0;
-        if (mjson_find(o, olen, "$.matchdata_raw", &mr, &mrl) == MJSON_TOK_ARRAY)
-            parse_byte_array_slice(mr, mrl, (uint8_t *)&s->matchData,
+        if ((q = kv_array(kv, N_SLOT_KEYS, "matchdata_raw")) != NULL)
+            parse_byte_array_slice(q->v, q->vlen, (uint8_t *)&s->matchData,
                                    (uint32_t)sizeof(s->matchData));
     }
 
@@ -5186,38 +5354,33 @@ static void load_comp_slot(const char *parent, int plen,
         int16_t nt = b->numTeams;
         if (nt < 0) nt = 0; else if (nt > 64) nt = 64;
         uint32_t elen = (uint32_t)nt * 2u;
-        if (elen) {
-            const char *arr = NULL; int alen = 0;
-            if (mjson_find(o, olen, "$.team_entry_offsets", &arr, &alen)
-                    == MJSON_TOK_ARRAY)
-                parse_u16_array_slice(arr, alen,
-                    (uint8_t *)s->matchData.league.teamEntryOffsets, elen);
-        }
+        if (elen && (q = kv_array(kv, N_SLOT_KEYS, "team_entry_offsets")) != NULL)
+            parse_u16_array_slice(q->v, q->vlen,
+                (uint8_t *)s->matchData.league.teamEntryOffsets, elen);
     }
 
     /* LEAGUE progress run (0x1BE..0x24D) — endian-neutral re-lay over the raw
      * blob's cross-target-shifted bytes; see emit. Old saves lacking these
      * keys leave the prior (blob/recomputed) values, defaulting to 0. */
     if (b->competitionType == 0) {
-        if (mjson_get_long(o, olen, "$.matches_played_count", &v) > 0)        s->matchesPlayedCount = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.league_current_slot", &v) > 0)         s->leagueCurrentSlot = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.league_match_progress", &v) > 0)       s->leagueMatchProgress = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.league_total_matches", &v) > 0)        s->leagueTotalMatches = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.section_half_group_count", &v) > 0)    s->leagueSectionState.halfGroupCount = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.section_matches_per_half", &v) > 0)    s->leagueSectionState.matchesPerHalf = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.section_half_groups_counter", &v) > 0) s->leagueSectionState.halfGroupsCounter = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.section_matches_progress", &v) > 0)    s->leagueSectionState.sectionMatchesProgress = (uint16_t)v;
-        const char *arr = NULL; int alen = 0;
-        if (mjson_find(o, olen, "$.phase_start_months", &arr, &alen) == MJSON_TOK_ARRAY)
-            parse_byte_array_slice(arr, alen, s->leagueSectionState.phaseStartMonths, 128);
+        if (kv_long(kv, N_SLOT_KEYS, "matches_played_count", &v))        s->matchesPlayedCount = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "league_current_slot", &v))         s->leagueCurrentSlot = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "league_match_progress", &v))       s->leagueMatchProgress = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "league_total_matches", &v))        s->leagueTotalMatches = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "section_half_group_count", &v))    s->leagueSectionState.halfGroupCount = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "section_matches_per_half", &v))    s->leagueSectionState.matchesPerHalf = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "section_half_groups_counter", &v)) s->leagueSectionState.halfGroupsCounter = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "section_matches_progress", &v))    s->leagueSectionState.sectionMatchesProgress = (uint16_t)v;
+        if ((q = kv_array(kv, N_SLOT_KEYS, "phase_start_months")) != NULL)
+            parse_byte_array_slice(q->v, q->vlen, s->leagueSectionState.phaseStartMonths, 128);
         /* matchData.league host-native uint16 scalars — re-lay over the blob
          * (see emit). Old saves lacking these keys keep the (cross-target-broken)
          * blob values. */
-        if (mjson_get_long(o, olen, "$.league_min_substitutes", &v) > 0)          s->matchData.league.leagueMinSubstitutes = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.league_max_substitutes", &v) > 0)          s->matchData.league.leagueMaxSubstitutes = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.league_has_groups_diy", &v) > 0)           s->matchData.league.hasGroupsDiy = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.league_matches_per_section", &v) > 0)      s->matchData.league.totalMatchesPerSection = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.league_matches_per_section_live", &v) > 0) s->matchData.league.totalMatchesPerSectionLive = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "league_min_substitutes", &v))          s->matchData.league.leagueMinSubstitutes = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "league_max_substitutes", &v))          s->matchData.league.leagueMaxSubstitutes = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "league_has_groups_diy", &v))           s->matchData.league.hasGroupsDiy = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "league_matches_per_section", &v))      s->matchData.league.totalMatchesPerSection = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "league_matches_per_section_live", &v)) s->matchData.league.totalMatchesPerSectionLive = (uint16_t)v;
         /* NOT competition_format/round_format: they alias leagueTeamIds[14]/[15]
          * for N>14-team leagues (BE pairs handled by team_ids) — loading them as
          * host-native uint16 byte-swapped the team id -> VerifyTeamLoaded panic.
@@ -5230,9 +5393,8 @@ static void load_comp_slot(const char *parent, int plen,
      * decimal is a team index (or -1 careerTeam sentinel) converted back
      * via diy_identity_to_teamseloffset. */
     if (b->competitionType == 1) {
-        const char *arr = NULL; int alen = 0;
-        if (mjson_find(o, olen, "$.team_offset_table", &arr, &alen)
-                == MJSON_TOK_ARRAY) {
+        if ((q = kv_array(kv, N_SLOT_KEYS, "team_offset_table")) != NULL) {
+            const char *arr = q->v; int alen = q->vlen;
             int pos = 0, voff, vlen, vt, i = 0;
             while (i < 64 &&
                    (pos = fast_array_next(arr, alen, pos,
@@ -5248,23 +5410,20 @@ static void load_comp_slot(const char *parent, int plen,
 
         /* CUP teamGridPairings[64] — uint8, struct-anchored (corrects the
          * +8 cross-target offset shift; see emit). Walk up to 64 bytes. */
-        const char *garr = NULL; int galen = 0;
-        if (mjson_find(o, olen, "$.team_grid_pairings", &garr, &galen)
-                == MJSON_TOK_ARRAY)
-            parse_byte_array_slice(garr, galen, s->teamGridPairings, 64);
+        if ((q = kv_array(kv, N_SLOT_KEYS, "team_grid_pairings")) != NULL)
+            parse_byte_array_slice(q->v, q->vlen, s->teamGridPairings, 64);
 
         /* CUP knockout score arrays — endian-neutral int16, struct-anchored
          * (see emit). parse_u16_array_slice writes host-native; 18 words =
          * 36 bytes each. */
         struct { const char *key; uint8_t *dst; } sc[3] = {
-            { "$.cup_score_tab", (uint8_t *)&s->matchData.cup.cupRoundResults[0x40] },
-            { "$.cup_score_agg", (uint8_t *)s->cupAggregateScores },
-            { "$.cup_score_pen", (uint8_t *)&s->leagueSectionState.phaseStartMonths[0] },
+            { "cup_score_tab", (uint8_t *)&s->matchData.cup.cupRoundResults[0x40] },
+            { "cup_score_agg", (uint8_t *)s->cupAggregateScores },
+            { "cup_score_pen", (uint8_t *)&s->leagueSectionState.phaseStartMonths[0] },
         };
         for (int k = 0; k < 3; k++) {
-            const char *sa = NULL; int sl = 0;
-            if (mjson_find(o, olen, sc[k].key, &sa, &sl) == MJSON_TOK_ARRAY)
-                parse_u16_array_slice(sa, sl, sc[k].dst, 36);
+            if ((q = kv_array(kv, N_SLOT_KEYS, sc[k].key)) != NULL)
+                parse_u16_array_slice(q->v, q->vlen, sc[k].dst, 36);
         }
 
         /* CUP round-config + bracket-state uint16s + per-round config arrays —
@@ -5273,23 +5432,20 @@ static void load_comp_slot(const char *parent, int plen,
          * JSON migration; the 3 arrays are the genuine persisted design data. Old
          * saves lacking these keys keep the blob values. parse_u16_array_slice
          * writes host-native; cap 12 bytes = 6 words. */
-        if (mjson_get_long(o, olen, "$.cup_current_match_index", &v) > 0) s->matchData.cup.currentMatchIndex = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.cup_competition_format", &v) > 0)  s->matchData.cup.competitionFormat  = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.cup_round_format", &v) > 0)        s->matchData.cup.roundFormat        = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.cup_second_leg_counter", &v) > 0)  s->bracketScratch.secondLegCounter  = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.cup_group_section_flag", &v) > 0)  s->bracketScratch.groupSectionFlag  = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.cup_match_count", &v) > 0)         s->bracketScratch.matchCount        = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.cup_total_matches", &v) > 0)       s->bracketScratch.totalMatches      = (uint16_t)v;
-        if (mjson_get_long(o, olen, "$.cup_cur_month_idx", &v) > 0)       s->bracketScratch.curMonthIdx       = (uint16_t)v;
-        {
-            const char *ra = NULL; int ral = 0;
-            if (mjson_find(o, olen, "$.cup_round_legs", &ra, &ral) == MJSON_TOK_ARRAY)
-                parse_u16_array_slice(ra, ral, (uint8_t *)s->matchData.cup.roundLegs, 12);
-            if (mjson_find(o, olen, "$.cup_round_extra_time", &ra, &ral) == MJSON_TOK_ARRAY)
-                parse_u16_array_slice(ra, ral, (uint8_t *)s->matchData.cup.roundExtraTime, 12);
-            if (mjson_find(o, olen, "$.cup_round_penalties", &ra, &ral) == MJSON_TOK_ARRAY)
-                parse_u16_array_slice(ra, ral, (uint8_t *)s->matchData.cup.roundPenalties, 12);
-        }
+        if (kv_long(kv, N_SLOT_KEYS, "cup_current_match_index", &v)) s->matchData.cup.currentMatchIndex = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "cup_competition_format", &v))  s->matchData.cup.competitionFormat  = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "cup_round_format", &v))        s->matchData.cup.roundFormat        = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "cup_second_leg_counter", &v))  s->bracketScratch.secondLegCounter  = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "cup_group_section_flag", &v))  s->bracketScratch.groupSectionFlag  = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "cup_match_count", &v))         s->bracketScratch.matchCount        = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "cup_total_matches", &v))       s->bracketScratch.totalMatches      = (uint16_t)v;
+        if (kv_long(kv, N_SLOT_KEYS, "cup_cur_month_idx", &v))       s->bracketScratch.curMonthIdx       = (uint16_t)v;
+        if ((q = kv_array(kv, N_SLOT_KEYS, "cup_round_legs")) != NULL)
+            parse_u16_array_slice(q->v, q->vlen, (uint8_t *)s->matchData.cup.roundLegs, 12);
+        if ((q = kv_array(kv, N_SLOT_KEYS, "cup_round_extra_time")) != NULL)
+            parse_u16_array_slice(q->v, q->vlen, (uint8_t *)s->matchData.cup.roundExtraTime, 12);
+        if ((q = kv_array(kv, N_SLOT_KEYS, "cup_round_penalties")) != NULL)
+            parse_u16_array_slice(q->v, q->vlen, (uint8_t *)s->matchData.cup.roundPenalties, 12);
     }
 
     /* TOURNAMENT (type 2) slot records — inverse of the emit above. Walk
@@ -5298,12 +5454,12 @@ static void load_comp_slot(const char *parent, int plen,
      * +0x15A. The 2-byte pad / progressionTable / team-ids / shuffle were
      * already restored by the raw context blob (byte-safe), so this only
      * re-lays the endian-sensitive uint16 fields on top. */
-    if (b->competitionType == 2) {
+    if (b->competitionType == 2 &&
+        (q = kv_array(kv, N_SLOT_KEYS, "tournament_slots")) != NULL) {
         DIYTournamentSlot *slots =
             (DIYTournamentSlot *)((uint8_t *)s + 0x15A);
-        const char *arr = NULL; int alen = 0;
-        if (mjson_find(o, olen, "$.tournament_slots", &arr, &alen)
-                == MJSON_TOK_ARRAY) {
+        const char *arr = q->v; int alen = q->vlen;
+        {
             int pos = 0, voff, vlen, vt, si = 0;
             while (si < 6 &&
                    (pos = fast_array_next(arr, alen, pos,
@@ -5332,6 +5488,20 @@ static void load_comp_slot(const char *parent, int plen,
             }
         }
     }
+}
+
+/* Find-wrapper around load_comp_slot_obj — kept for the career path, which
+ * passes a parent slice + key. The competition load path captures the slot
+ * objects in its single root pass and calls load_comp_slot_obj directly. */
+static void load_comp_slot(const char *parent, int plen,
+                           const char *key, DIYCompetitionEx *s)
+{
+    char path[64];
+    swos_io_snprintf(path, sizeof(path), "$.%s", key);
+    const char *o = NULL; int olen = 0;
+    if (mjson_find(parent, plen, path, &o, &olen) != MJSON_TOK_OBJECT)
+        return;                          /* slot absent (older save) */
+    load_comp_slot_obj(o, olen, s);
 }
 
 /* Emit the league standings override object. Reads competitionFileBuffer
@@ -5372,13 +5542,8 @@ static void emit_competition_overrides(mjson_print_fn_t fn, void *fnd)
 /* Apply the league standings override over whatever the raw blobs left in
  * competitionFileBuffer. Called AFTER load_scalar_table (which loads the
  * blobs) so it corrects the struct-correct positions. */
-static void load_competition_overrides(const char *buf, int buflen)
+static void load_competition_overrides_obj(const char *obj, int obj_len)
 {
-    const char *obj = NULL; int obj_len = 0;
-    if (mjson_find(buf, buflen, "$.competition_overrides",
-                   &obj, &obj_len) != MJSON_TOK_OBJECT)
-        return;                          /* older save without overrides */
-
     long type = 0;
     if (mjson_get_long(obj, obj_len, "$.type", &type) <= 0)
         return;
@@ -5417,6 +5582,17 @@ static void load_competition_overrides(const char *buf, int buflen)
         r->points       = (uint16_t)pts;
         i++;
     }
+}
+
+/* Find-wrapper — kept for the career path; the competition load passes the
+ * captured root slice to load_competition_overrides_obj directly. */
+static void load_competition_overrides(const char *buf, int buflen)
+{
+    const char *obj = NULL; int obj_len = 0;
+    if (mjson_find(buf, buflen, "$.competition_overrides",
+                   &obj, &obj_len) != MJSON_TOK_OBJECT)
+        return;                          /* older save without overrides */
+    load_competition_overrides_obj(obj, obj_len);
 }
 
 /* Context (non-primary) type-0 league standings — the missing twin of
@@ -6603,19 +6779,9 @@ static void emit_scalar_table_comp(mjson_print_fn_t fn, void *fnd,
     mjson_printf(fn, fnd, "%s", "}");
 }
 
-static void load_scalar_table_comp(const char *buf, int buflen,
-                                   const char *section_key,
-                                   const FieldDesc *table)
+static void load_scalar_table_comp_slice(const char *section, int section_len,
+                                         const FieldDesc *table)
 {
-    /* Slice the section once — same speedup pattern as
-     * load_scalar_table. */
-    char section_path[80];
-    swos_io_snprintf(section_path, sizeof(section_path), "$.%s", section_key);
-    const char *section = NULL; int section_len = 0;
-    if (mjson_find(buf, buflen, section_path,
-                   &section, &section_len) != MJSON_TOK_OBJECT)
-        return;
-
 #if MJSON_ENABLE_NEXT && !defined(SWOS_SAVE_LEGACY_DISPATCH)
     /* Walk-once hashed dispatch — same speedup load_scalar_table got, but
      * with the comp-tag filter applied at lookup. The legacy variant
@@ -6639,8 +6805,12 @@ static void load_scalar_table_comp(const char *buf, int buflen,
 
     char tmp[64];
     int pos = 0, koff, klen, voff, vlen, vt;
-    while ((pos = mjson_next(section, section_len, pos,
-                             &koff, &klen, &voff, &vlen, &vt)) != 0) {
+    /* fast_object_next, not mjson_next: mjson_next re-parses the whole
+     * section through the mjson core on every call (O(members × section)),
+     * which on the Amiga 68020 was seconds per .PRE load for the ~20 KB
+     * comp_scalars section alone. */
+    while ((pos = fast_object_next(section, section_len, pos,
+                                   &koff, &klen, &voff, &vlen, &vt)) != 0) {
         if (klen < 2) continue;
         const char *key  = section + koff + 1;
         int         keyl = klen - 2;
@@ -6992,19 +7162,46 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
     if (read_save_file_heap(filename, &src, &src_size) != 0)
         return 1;
 
-    long version = 0;
-    if (mjson_get_long((const char *)src, (int)src_size,
-                         "$.schema_version", &version) <= 0 ||
-        (int)version != SAVE_JSON_SCHEMA_VERSION) {
+    /* ONE linear pass over the root object captures every top-level slice
+     * this loader needs. Each of the former root-level mjson_find/get calls
+     * re-parsed the whole file through the mjson core (~a second each on the
+     * Amiga 68020 for a ~220 KB .PRE); a dozen of them plus the per-element
+     * mjson_next team walk below was the "load looks crashed" report. */
+    enum { RK_SCHEMA, RK_KIND, RK_SCALARS, RK_SLOT, RK_STAGE, RK_CUPFULL,
+           RK_STANDINGS, RK_SC_TAB, RK_SC_AGG, RK_SC_PEN, RK_TEAMS, RK_OVR,
+           RK_COUNT };
+    KeySlice rk[RK_COUNT] = {
+        [RK_SCHEMA]    = { "schema_version", NULL, 0, 0 },
+        [RK_KIND]      = { "file_kind", NULL, 0, 0 },
+        [RK_SCALARS]   = { "comp_scalars", NULL, 0, 0 },
+        [RK_SLOT]      = { "comp_slot", NULL, 0, 0 },
+        [RK_STAGE]     = { "comp_slot_stage", NULL, 0, 0 },
+        [RK_CUPFULL]   = { "comp_slot_stage_cupfull", NULL, 0, 0 },
+        [RK_STANDINGS] = { "stage_standings", NULL, 0, 0 },
+        [RK_SC_TAB]    = { "stage_score_tab", NULL, 0, 0 },
+        [RK_SC_AGG]    = { "stage_score_agg", NULL, 0, 0 },
+        [RK_SC_PEN]    = { "stage_score_pen", NULL, 0, 0 },
+        [RK_TEAMS]     = { "diy_teams", NULL, 0, 0 },
+        [RK_OVR]       = { "competition_overrides", NULL, 0, 0 },
+    };
+    capture_object_keys((const char *)src, (int)src_size, rk, RK_COUNT);
+
+    if (rk[RK_SCHEMA].v == NULL || rk[RK_SCHEMA].vt != MJSON_TOK_NUMBER ||
+        (int)parse_long_slice(rk[RK_SCHEMA].v, rk[RK_SCHEMA].vlen)
+            != SAVE_JSON_SCHEMA_VERSION) {
         swos_io_free(src);
         return 1;
     }
-    char file_kind[16] = {0};
-    if (mjson_get_string((const char *)src, (int)src_size,
-                         "$.file_kind", file_kind, sizeof(file_kind)) <= 0 ||
-        strcmp(file_kind, kind) != 0) {
-        swos_io_free(src);
-        return 1;
+    /* file_kind is a plain identifier string ("preset"/"diy"/...), so the
+     * quoted slice compares directly — no unescape needed. */
+    {
+        int kl = (int)strlen(kind);
+        if (rk[RK_KIND].v == NULL || rk[RK_KIND].vt != MJSON_TOK_STRING ||
+            rk[RK_KIND].vlen != kl + 2 ||
+            memcmp(rk[RK_KIND].v + 1, kind, (size_t)kl) != 0) {
+            swos_io_free(src);
+            return 1;
+        }
     }
 
     /* Zero the destination FIELD-BY-FIELD (each comp-tagged s_career_scalars
@@ -7046,16 +7243,18 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
      * pointer that would have crashed if dereferenced after a
      * cross-build load anyway. */
 
-    load_scalar_table_comp((const char *)src, (int)src_size,
-                           "comp_scalars", s_career_scalars);
+    if (rk[RK_SCALARS].v && rk[RK_SCALARS].vt == MJSON_TOK_OBJECT)
+        load_scalar_table_comp_slice(rk[RK_SCALARS].v, rk[RK_SCALARS].vlen,
+                                     s_career_scalars);
 
     /* Typed primary competition slot — applied AFTER the scalar/blob load
      * so it re-lays the cross-target-sensitive header + team-id + cup +
      * TOURNAMENT-slot fields struct-anchored / endian-neutral (see emit).
-     * Absent in pre-serializer .PRE/.DIY saves → load_comp_slot is a
-     * no-op (mjson_find returns non-object), so older saves still load. */
-    load_comp_slot((const char *)src, (int)src_size, "comp_slot",
-                   (DIYCompetitionEx *)&_primaryCompetitionBuf);
+     * Absent in pre-serializer .PRE/.DIY saves → no captured slice, so
+     * older saves still load. */
+    if (rk[RK_SLOT].v && rk[RK_SLOT].vt == MJSON_TOK_OBJECT)
+        load_comp_slot_obj(rk[RK_SLOT].v, rk[RK_SLOT].vlen,
+                           (DIYCompetitionEx *)&_primaryCompetitionBuf);
 
     /* Cross-target league-standings override — apply AFTER load_comp_slot/blob
      * so it corrects the struct-correct positions (same as the career path's
@@ -7063,7 +7262,8 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
      * team identity, fixing the LE<->BE int32 byte-swap that otherwise garbles
      * a .DIY/.PRE LEAGUE table cross-target. type != 0 (cup/tournament) → no-op;
      * pre-fix saves lack the key → no-op (blob bytes stand, same-target-fine). */
-    load_competition_overrides((const char *)src, (int)src_size);
+    if (rk[RK_OVR].v && rk[RK_OVR].vt == MJSON_TOK_OBJECT)
+        load_competition_overrides_obj(rk[RK_OVR].v, rk[RK_OVR].vlen);
 
     /* TYPE-2 tournament current-STAGE slot (see write_competition_buf). The
      * master load above sets competitionFileBuffer's type; if it's a
@@ -7076,10 +7276,15 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
             ->base.competitionType == 2) {
         DIYCompetitionEx *stage = (DIYCompetitionEx *)
             ((uint8_t *)&_primaryCompetitionBuf + offsetof(CompetitionSlotBuffer, stageSnapshot));
-        load_comp_slot((const char *)src, (int)src_size, "comp_slot_stage",
-                       stage);
-        load_stage_cupfull((const char *)src, (int)src_size, "comp_slot_stage", stage,
-                           ((const DIYCompetitionEx *)&_primaryCompetitionBuf)->base.numTeams);
+        if (rk[RK_STAGE].v && rk[RK_STAGE].vt == MJSON_TOK_OBJECT)
+            load_comp_slot_obj(rk[RK_STAGE].v, rk[RK_STAGE].vlen, stage);
+        if (rk[RK_CUPFULL].v && rk[RK_CUPFULL].vt == MJSON_TOK_ARRAY) {
+            int mn = ((const DIYCompetitionEx *)&_primaryCompetitionBuf)->base.numTeams;
+            if (mn < 0) mn = 0; else if (mn > 51) mn = 51;
+            parse_byte_array_slice(rk[RK_CUPFULL].v, rk[RK_CUPFULL].vlen,
+                                   (uint8_t *)stage->cupTeamIds,
+                                   (uint32_t)mn * 2u);
+        }
 
         /* Rebuild the GROUP-phase standings (see write_competition_buf):
          * RECONSTRUCT each row's derived teamSelOffset = i (the team identity;
@@ -7089,10 +7294,9 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
          * bracketScratch and is rebuilt separately after the diy_teams load
          * below (see the cup teamOffsetTable reconstruct). */
         if (diy_stage_is_league(stage)) {
-            const char *rows = NULL; int rows_len = 0;
-            if (mjson_find((const char *)src, (int)src_size,
-                           "$.stage_standings", &rows, &rows_len)
-                    == MJSON_TOK_ARRAY) {
+            if (rk[RK_STANDINGS].v && rk[RK_STANDINGS].vt == MJSON_TOK_ARRAY) {
+                const char *rows = rk[RK_STANDINGS].v;
+                int rows_len = rk[RK_STANDINGS].vlen;
                 int pos = 0, voff, vlen, vt; uint16_t i = 0;
                 while (i < _primaryCompetitionBuf.tourn.header.numTeams && i < 64 &&
                        (pos = fast_array_next(rows, rows_len, pos,
@@ -7128,12 +7332,11 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
                 stage->cupAggregateScores,
                 (uint16_t *)&stage->leagueSectionState.phaseStartMonths[0],
             };
-            const char *keys[3] = { "$.stage_score_tab", "$.stage_score_agg",
-                                    "$.stage_score_pen" };
+            const int keys[3] = { RK_SC_TAB, RK_SC_AGG, RK_SC_PEN };
             for (int a = 0; a < 3; a++) {
-                const char *arr = NULL; int alen = 0;
-                if (mjson_find((const char *)src, (int)src_size, keys[a],
-                               &arr, &alen) != MJSON_TOK_ARRAY) continue;
+                if (rk[keys[a]].v == NULL ||
+                    rk[keys[a]].vt != MJSON_TOK_ARRAY) continue;
+                const char *arr = rk[keys[a]].v; int alen = rk[keys[a]].vlen;
                 int pos = 0, voff, vlen, vt, i = 0;
                 while (i < 18 &&
                        (pos = fast_array_next(arr, alen, pos,
@@ -7146,17 +7349,19 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
         }
     }
 
-    /* DIY teams — walk array via mjson_next so each iteration is
-     * O(1) in array position. */
-    const char *teams_arr = NULL;
-    int teams_arr_len = 0;
-    if (mjson_find((const char *)src, (int)src_size, "$.diy_teams",
-                   &teams_arr, &teams_arr_len) == MJSON_TOK_ARRAY) {
-        int pos = 0, koff, klen, voff, vlen, vt;
+    /* DIY teams — fast_array_next, NOT mjson_next: mjson_next re-parses the
+     * whole array through the mjson core on every call, and diy_teams is most
+     * of the file (36 teams × ~5 KB for the 36-team presets). On the Amiga
+     * that single walk was ~30 s of the "load looks crashed" report; the
+     * linear walker makes it one pass. */
+    if (rk[RK_TEAMS].v && rk[RK_TEAMS].vt == MJSON_TOK_ARRAY) {
+        const char *teams_arr = rk[RK_TEAMS].v;
+        int teams_arr_len = rk[RK_TEAMS].vlen;
+        int pos = 0, voff, vlen, vt;
         uint16_t i = 0;
         while (i < _primaryCompetitionBuf.tourn.header.numTeams &&
-               (pos = mjson_next(teams_arr, teams_arr_len, pos,
-                                 &koff, &klen, &voff, &vlen, &vt)) != 0) {
+               (pos = fast_array_next(teams_arr, teams_arr_len, pos,
+                                      &voff, &vlen, &vt)) != 0) {
             if (vt != MJSON_TOK_OBJECT) { i++; continue; }
             load_team_file_ex_slice(teams_arr + voff, vlen,
                                     (uint8_t *)(_selectedTeams + i));
