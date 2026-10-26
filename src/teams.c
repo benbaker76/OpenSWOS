@@ -20,6 +20,7 @@
 #include "play_match_menu.h"
 #include "career_init.h"
 #include "shooting_practice.h"  /* SHOOTING PRACTICE gates the team selection below */
+#include "champions36.h"        /* the 36-team european preset substitution */
 #ifdef SWOS_SDL_BUILD
 #include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in */
 #endif
@@ -2920,6 +2921,8 @@ void SelectTeamsFinalMenu(uint16_t mode)
     void   **countryNamesPtr;
     uint16_t cnCount;
     uint8_t *contest;
+    uint8_t *playRec;       /* the record actually played: a preset euro cup is
+                             * substituted by its 36-team tournament record */
     uint16_t lnum;
     uint16_t countryForName;
     uint16_t countryIdx;
@@ -3361,9 +3364,19 @@ loc_E50A:
 
     _selectedContest = (uintptr_t)contest;
 
-    if (contest[1] == 0)
+    /* The 36-team european presets (Champions/Europa/Conference League) play a
+     * substituted TOURNAMENT record over the legacy euro-cup records, so the
+     * type dispatch and the selection init must see the substitute (type 2).
+     * _selectedContest keeps the ORIGINAL record: the continental-cup check,
+     * the club/national split and the later PresetCompetitionMenu dispatch
+     * (which re-substitutes from it) all key off the original. */
+    playRec = contest;
+    if (_choosingPreset != 0)
+        playRec = Champions36_PresetRecord(contest);
+
+    if (playRec[1] == 0)
         goto loc_E65A;
-    else if (contest[1] == 1)
+    else if (playRec[1] == 1)
         goto loc_E5EA;
     else
         goto loc_E57A;
@@ -3374,7 +3387,7 @@ loc_E57A:
         _chooseTeamsResult = 1;
         goto exit_return;
     }
-    InitCompetitionTeamSelectionFromAltTableHeader((uint8_t *)_selectedContest);
+    InitCompetitionTeamSelectionFromAltTableHeader(playRec);
     _playWhatStr = (uintptr_t)_aPlayTournament;
     SetTeamsTypeForSelectedContest();
     IsContestContinentalCup();

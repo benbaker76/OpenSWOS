@@ -14,6 +14,7 @@
 #include "translations.h"
 #include "endian_helpers.h"
 #include "game_types.h"
+#include "champions36.h"
 #include "auto_skip_debug.h"
 #include "panic.h"
 #include "teams.h"
@@ -22,7 +23,8 @@
 #include "file_io.h"
 
 /* ---- Constants ---- */
-#define SAVE_SIZE                   0x5582  /* bytes to save: numSelectedTeams + team data */
+#define SELECTED_TEAMS_CAPACITY     64
+#define SAVE_SIZE                   (2 + SELECTED_TEAMS_CAPACITY * sizeof(TeamFileEx))
 
 /* ---- ASM externs ---- */
 extern uint16_t _currentTeamNumber;
@@ -236,16 +238,18 @@ void CopySelectedTeamNumbers(uint16_t count, uint8_t *dest)
  * SaveSelectedTeams / RestoreSelectedTeams
  * Asm: SaveSelectedTeams / RestoreSelectedTeams
  *
- * Save: copies 0x5582 bytes from numSelectedTeams to backup buffer,
+ * Save: copies SAVE_SIZE bytes from numSelectedTeams to backup buffer,
  *        then clears numSelectedTeams.
- * Restore: validates numSelectedTeams <= 32, then copies back.
+ * Restore: validates numSelectedTeams <= SELECTED_TEAMS_CAPACITY, then copies
+ *          back. (Capacity was 32 = the Amiga's 0x5582-byte block; raised to 64
+ *          for the 36-team Champions Cup preset — _selectedTeams[100] has room.)
  *
  * The backup buffer replaces the original hard-coded address $C9BBC.
  * ================================================================ */
 static uint8_t savedTeamsBackupBuffer[SAVE_SIZE];
 
-/* numSelectedTeams (2 B) and the selectedTeams[32] array (SAVE_SIZE-2 =
- * 32*684 = 21888 B at &selTeamsPtr) are backed up / restored as TWO independent
+/* numSelectedTeams (2 B) and the selected-teams array (SAVE_SIZE-2 =
+ * SELECTED_TEAMS_CAPACITY*684 B at &selTeamsPtr) are backed up / restored as TWO independent
  * runs, so neither relies on the array sitting immediately after numSelectedTeams
  * in BSS. The array is being lifted out of the careerFileBuffer overlay into a
  * typed carrier (see docs/SELECTED_TEAMS_UNTANGLE.md); decoupling here is
@@ -268,7 +272,7 @@ void SaveSelectedTeams(void)
 __attribute__((used, externally_visible, optimize("no-tree-loop-distribute-patterns")))
 void RestoreSelectedTeams(void)
 {
-    if (_numSelectedTeams > 32) {
+    if (_numSelectedTeams > SELECTED_TEAMS_CAPACITY) {
         PanicHaltLoop();
     }
     volatile uint16_t *src = (volatile uint16_t *)savedTeamsBackupBuffer;
@@ -2343,7 +2347,9 @@ void DIY_AdvanceToNextCompetitionSlot(void)
     DIYTournamentSlot *slotRec = (DIYTournamentSlot *)(slot + 0x15A);
     uint8_t *comp = (uint8_t *)&_diyCompetitionStart;
 
-    if (slotRec->isLeagueFormat != 0) {
+    if (Champions36_Is(bufComp)) {
+        Champions36_Advance(&_diyFileBufferCopy, &_diyCompetitionStart);
+    } else if (slotRec->isLeagueFormat != 0) {
         /* League type: build seeded bracket */
         DIY_BuildSeededBracketAndUpdateScores(buf, slot, comp, comp);
     } else {

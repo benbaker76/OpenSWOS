@@ -14,6 +14,7 @@
 #include "auto_skip_debug.h"
 #include "endian_helpers.h"
 #include "game_types.h"
+#include "champions36.h"
 #include "string_utils.h"
 #include "random.h"
 #include "deterministic.h"
@@ -887,6 +888,8 @@ void DIYTournament_RecalculateMatchesPerTeam(void)
             total = total / halfTeams;
             total *= slot->playEachTeam;
             slot->matchesPerSlot = (uint16_t)total;
+            if (Champions36_Is(&_diyFileBufferCopy.header) && s == 0)
+                slot->matchesPerSlot = 8;
         } else {
             /* League: default 2 matches */
             slot->matchesPerSlot = 2;
@@ -1801,6 +1804,9 @@ void DIY_RecomputeCompetitionDerivedFields(void)
     comp->matchesPlayedCount = 0;
     a2s->isActive = 1;
 
+    if (Champions36_IsLeague(a2s))
+        Champions36_ConfigureLeague(comp);
+
     a2s->viewRandomPhase = (uint8_t)a2s->startMonth;
     _viewRandomPhase = a2s->viewRandomPhase;
 
@@ -1825,6 +1831,14 @@ static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
 {
     DIYCompetitionEx *compEx = &_diyCompetitionStart;
     DIYCompetition *a0s = &compEx->base;
+    if (Champions36_IsLeague(a0s)) {
+        uint8_t home, away;
+        Champions36_Fixture(compEx->leagueSectionState.sectionMatchesProgress, &home, &away);
+        uint8_t *positions = compEx->matchData.league.shuffleAndPad;
+        *team1Out = (uint8_t *)compEx + positions[home] * sizeof(DIYTeamStats);
+        *team2Out = (uint8_t *)compEx + positions[away] * sizeof(DIYTeamStats);
+        return;
+    }
     uint8_t *a0 = (uint8_t *)a0s;
     uint16_t d5 = (uint16_t)a0s->subRoundCounter;
     d5 = (uint16_t)(d5 * (uint16_t)a0s->totalMatchesInRound);
@@ -4232,6 +4246,10 @@ void DIY_ShuffleTeamsAndBuildCompTeamList(uint8_t *diy, uint8_t *slot,
     DIYCompetition *diyS = (DIYCompetition *)diy;
     DIYTournamentSlot *s = (DIYTournamentSlot *)(slot + offsetof(DIYTournamentState, slots));
 
+    /* Preserve the modern preset's seeded bracket and first-leg hosts. */
+    if (Champions36_Is(diyS))
+        goto build_comp_list;
+
     uint8_t compNum = diyS->field_2E;
 
     /* Check for world cup — use comp-specific list */
@@ -4420,6 +4438,7 @@ void DIY_LoadCurrentCompetitionSlot(void)
         a5s->startMonth = (int8_t)s->progressionTable[0];
 
         /* Recompute derived fields */
+        a5s->field_2E = a2s->field_2E;
         DIY_RecomputeCompetitionDerivedFields();
 
         /* Copy additional config fields */
@@ -7360,8 +7379,9 @@ void DIYLeagueTournamentOnRestore(void)
     _diyLeagueTournament_fixtureRowHeight = 6;
     _diyLeagueTournament_fixtureRowYStep = 7;
 
-    uint16_t numTeamsPerGroup = (uint16_t)compS->totalMatchesInRound;
+    uint16_t numTeamsPerGroup = Champions36_IsLeague(compS) ? 18 : (uint16_t)compS->totalMatchesInRound;
 
+    /* The modern single league is displayed as two pages of 18 rows. */
     /* If numTeamsPerGroup > 22, adjust menu entry dimensions */
     if (numTeamsPerGroup > 22) {
         _menuEntries[0].dwHeight = 9;
@@ -7445,7 +7465,7 @@ void DIYLeagueTournamentOnRestore(void)
         }
 
         /* If halfTeams == numDiyResults, hide scroll buttons */
-        if ((uint16_t)compS->matchPairsPerRound == _numDiyResults) {
+        if (!Champions36_IsLeague(compS) && (uint16_t)compS->matchPairsPerRound == _numDiyResults) {
             _menuEntries[40].isInvisible = 1;
             _menuEntries[41].isInvisible = 1;
         }
@@ -7496,7 +7516,7 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
     DIYCompetition *compS = &_diyCompetitionStart.base;
     uint8_t *comp = (uint8_t *)&_diyCompetitionStart;  /* raw pointer for extended buffer access */
     int16_t d7 = entry->ordinal - 16 + _currentDiyLine;
-    uint16_t numTeamsPerGroup = (uint16_t)compS->totalMatchesInRound;
+    uint16_t numTeamsPerGroup = Champions36_IsLeague(compS) ? 18 : (uint16_t)compS->totalMatchesInRound;
 
     /* Set group string if halfTeams != 1 */
     if (compS->matchPairsPerRound != 1) {
@@ -7530,7 +7550,8 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
     teamIdx <<= 1; /* byte offset into fixture table */
 
     MenuEntry *a5 = &_menuEntries[31];
-    uint16_t d5 = 1; /* team number, 1-based */
+    uint16_t d5 = Champions36_IsLeague(compS) ? (uint16_t)(d7 * 18 + 1) : 1;
+    uint16_t lastRank = d5 + numTeamsPerGroup - 1;
 
     do {
         /* Standings row for the team at rank (teamIdx>>1). teamEntryOffsets
@@ -7594,7 +7615,10 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
         /* Determine row color (d3) based on view options and promotion/relegation zones */
         uint16_t d3;
         int16_t zoneHandled = 0;
-        if (_diyLeagueTournament_viewOptionsAvailable != 0) {
+        if (Champions36_IsLeague(compS)) {
+            d3 = d5 <= 8 ? 9 : d5 <= 24 ? 12 : 7;
+            zoneHandled = 1;
+        } else if (_diyLeagueTournament_viewOptionsAvailable != 0) {
             uint16_t totalZones = (uint16_t)compS->roundComplete + (uint16_t)compS->competitionFinished +
                                   (uint16_t)compS->currentRoundIndex + (uint16_t)compS->numRounds;
             if (totalZones != 0) {
@@ -7703,7 +7727,7 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
         d2 += _diyLeagueTournament_fixtureRowYStep;
         teamIdx += 2;
         d5++;
-    } while (d5 <= numTeamsPerGroup);
+    } while (d5 <= lastRank);
 }
 
 /* DIYSetMonthsOrPitchTypeEntries — toggle pitch type / month entry visibility (SWOS2.s line 41515) */
@@ -8760,6 +8784,10 @@ void DIYSetTeamNamesAndResults(void)
 __attribute__((used, externally_visible))
 uint16_t DIYLeagueTournament_EnsureCurrentFixtureVisible(void)
 {
+    if (Champions36_IsLeague(&_diyCompetitionStart.base)) {
+        if (_currentDiyLine > 1) { _currentDiyLine = 0; return 1; }
+        return 0;
+    }
     uint16_t targetLine = 0;
 
     if (_diyFixtureViewMode != 0) {
@@ -8826,7 +8854,9 @@ void DIYLeagueTournamentScrollDown(void)
 {
     uint16_t bottom = _currentDiyLine + _numDiyResults;
     /* field_3A + $16 = offset 0x50 = halfTeams (total fixture lines) */
-    if (bottom >= (uint16_t)(&_diyCompetitionStart.base)->matchPairsPerRound)
+    uint16_t pages = Champions36_IsLeague(&_diyCompetitionStart.base) ? 2 :
+        (uint16_t)_diyCompetitionStart.base.matchPairsPerRound;
+    if (bottom >= pages)
         return;
     _currentDiyLine++;
     /* nullsub_15 omitted (no-op) */

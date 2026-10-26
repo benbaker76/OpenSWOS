@@ -19,6 +19,7 @@
 #endif
 #include "game_utils.h"
 #include "game_types.h"
+#include "champions36.h"
 #include "frontend.h"
 #include "test_rules.h"
 #include "display.h"            /* AGA: which Amiga display this build is */
@@ -3906,7 +3907,10 @@ void PresetCompetitionMenu(void)
     }
 
     InitCareerVariables(2);
-    uint8_t *contest = (uint8_t *)_selectedContest;
+    /* A preset euro cup plays its 36-team tournament substitute (type 2), so
+     * the substitution must come BEFORE the type dispatch: Europa/Conference
+     * League replace type-1 cup records. */
+    uint8_t *contest = Champions36_PresetRecord((uint8_t *)_selectedContest);
     uint8_t compType = contest[1];
 
     if (compType == 0) {
@@ -3928,7 +3932,7 @@ void PresetCompetitionMenu(void)
     } else {
         /* Tournament */
         CopySelectedTeamNumbers(_numSelectedTeams, (uint8_t *)_diyFileBufferCopy.teamIds);
-        InitDIYLeagueFromRecord((uint8_t *)_selectedContest);
+        InitDIYLeagueFromRecord(contest);
         InitTeams();
         DIY_EditCompetitionSlot(0, 0, 0);
         DIY_CopyDiyFileBufferCopyToCompetitionFileBuffer();

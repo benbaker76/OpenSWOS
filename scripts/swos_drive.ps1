@@ -9,6 +9,7 @@
 #   scripts/swos_drive.ps1 -Shutdown
 #
 # Keys: UP DOWN LEFT RIGHT | FIRE/Z (fire) | X ENTER ESC SPACE | SHOT (F12 screenshot)
+#       any bare letter/digit types that character (filename entry; Z is still fire)
 #       WAIT<ms> pauses. -KeyDelayMs sets the gap between keys (default 350).
 #
 # Two things make it work, and both are easy to break:
@@ -147,8 +148,12 @@ foreach ($k in ($Keys -split ",")) {
     if ($k -eq "") { continue }
     if ($proc.HasExited) { Write-Host "!! game exited (code $($proc.ExitCode)) before key '$k'"; break }
     if ($k -match "^WAIT(\d+)$") { Start-Sleep -Milliseconds ([int]$Matches[1]); continue }
-    if (-not $KeyMap.ContainsKey($k)) { Write-Host "unknown key $k"; continue }
-    $vk,$ext = $KeyMap[$k]
+    if ($KeyMap.ContainsKey($k)) {
+        $vk,$ext = $KeyMap[$k]
+    } elseif ($k -match "^[A-Z0-9]$") {
+        # Bare letter/digit (filename entry): the VK code IS the character.
+        $vk = [int][char]$k; $ext = $false
+    } else { Write-Host "unknown key $k"; continue }
     [SwosDrv]::Tap([ushort]$vk, [bool]$ext, 80)
     Start-Sleep -Milliseconds $KeyDelayMs
 }

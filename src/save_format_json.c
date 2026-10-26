@@ -190,6 +190,25 @@ static int16_t verify_reload_highlights(uint8_t *f)
 {
     return SaveJson_LoadHighlights(f, NULL, 0);
 }
+
+/* Preset/DIY competition-buffer verify: the stage snapshot's
+ * bracketScratch.teamOffsetTable is a DERIVED cache, not authored state —
+ * load_comp_slot rebuilds it id-based over ALL master teams, while a live
+ * cup stage populated only its participants (e.g. the 36-team Champions Cup
+ * preset's play-off stage leaves the 8 byes + 12 eliminated identities zero;
+ * the WC/euro cup-stage presets differ the same way). Those bytes
+ * legitimately differ across a round-trip, so ignore exactly that range and
+ * keep every other byte load-bearing: 0 mismatches is now the expected
+ * result for EVERY preset stage, and any count at all is a regression.
+ * Offsets are offsetof-derived (32/64-bit safe), not symbol-address spans. */
+static int verify_ignore_stage_team_offsets(uint32_t off)
+{
+    const uint32_t base =
+        (uint32_t)offsetof(CompetitionSlotBuffer, stageSnapshot) +
+        (uint32_t)offsetof(DIYCompetitionEx, bracketScratch.teamOffsetTable);
+    return off >= base &&
+           off < base + (uint32_t)sizeof(((DIYCompetitionEx *)0)->bracketScratch.teamOffsetTable);
+}
 #endif
 
 /* JSON saves can grow to several hundred KB (>3x the legacy binary
@@ -6937,15 +6956,14 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
          * verbatim; comp_slot is a cross-target override re-writing identical
          * values on top.
          *
-         * For a LEAGUE preset/DIY this diffs to 0. For a CUP-stage preset it
-         * shows a SMALL EXPECTED nonzero count (~12 on the WC/euro presets):
-         * load_comp_slot RECONSTRUCTS the stage snapshot's derived
-         * bracketScratch.teamOffsetTable from cupTeamIds (id-based — bracket
-         * order != selTeamsPtr order) and does NOT re-apply the stage's
-         * competition-name copy, so those snapshot bytes legitimately differ
-         * from the saved raw blob. The teamOffsetTable is a DERIVED cache, not
-         * authored state (see project_tournament_type2_save). These are benign;
-         * any count BEYOND that small derived-snapshot set is a real regression.
+         * The stage snapshot's derived bracketScratch.teamOffsetTable is
+         * RECONSTRUCTED id-based by load_comp_slot (a DERIVED cache, not
+         * authored state — see project_tournament_type2_save), so a cup stage
+         * legitimately differs there across the round-trip; the ignore
+         * predicate excludes exactly that range. With it, EVERY preset/DIY
+         * stage must diff to 0 — any mismatch at all is a real regression
+         * (a cup stage's competition-name copy is not re-applied either, but
+         * no shipping preset differs there; left load-bearing on purpose).
          *
          * Do NOT revive the legacy [&primaryCompetitionBuf, &numSelectedTeams +
          * primaryCompetitionBuf.tourn.header.numTeams*684) span: the competition-slots untangle (2026-06-04)
@@ -6959,7 +6977,8 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
          * not part of this region. See project_diy_preset_load_memset_gap. */
         verify_roundtrip_region(kind, (uint8_t *)&_primaryCompetitionBuf,
                                 (uint32_t)sizeof(CompetitionSlotBuffer),
-                                fn, filename, NULL);
+                                fn, filename,
+                                verify_ignore_stage_team_offsets);
     }
 #endif
 

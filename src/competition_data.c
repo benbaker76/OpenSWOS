@@ -1710,7 +1710,11 @@ QualifyingGroup _worldTable = {
 };
 
 QualifyingGroup _europeTable = {
-    { (Competition *)252, (Competition *)&_europeanChampionships, (Competition *)&_euroCup, (Competition *)&_cupWinnersCup, (Competition *)&_uefaCup, (Competition *)-1 },
+    /* uefaCup before cupWinnersCup since the modern renames (2026-10-26): the
+     * preset chooser lists this order, and the tiers read CHAMPIONS LEAGUE >
+     * EUROPA LEAGUE > CONFERENCE LEAGUE. Must match qualifying.json's europe
+     * comp_cup list (the loader verifies region tables byte-identical). */
+    { (Competition *)252, (Competition *)&_europeanChampionships, (Competition *)&_euroCup, (Competition *)&_uefaCup, (Competition *)&_cupWinnersCup, (Competition *)-1 },
     { 0, 1, 76, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 25, 16, 17, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 18, 30, 31, 32, 33, 78, 34, 35, 36, 37, 38, 39, 40, 41, 255 }
 };
 

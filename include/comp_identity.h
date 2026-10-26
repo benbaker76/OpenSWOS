@@ -91,6 +91,15 @@ enum CompId {
      * back as 128 (see comp_id() below and docs/COMPETITION_DYNAMIC_REFACTOR.md
      * §8d). Widen Competition.compId to uint8_t before the Amiga bake. */
     COMPID_copaLibertadores                  = 128,
+    /* The 36-team european PRESET substitutes (src/champions36.c): tournament
+     * records played over the legacy euroCup/uefaCup/cupWinnersCup presets.
+     * The ids mark the DIY buffers (field_2E) so the modern-format hooks fire
+     * only for these — never for the career euro cups, which keep compIds
+     * 0/1/2 and the legacy formats. Keep the three CONTIGUOUS:
+     * Champions36_Is() tests the range. */
+    COMPID_championsLeague                   = 129,
+    COMPID_europaLeague                      = 130,
+    COMPID_conferenceLeague                  = 131,
 };
 
 /* Read a competition's id (compId = byte 0 of the record). Endian-neutral

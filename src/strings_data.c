@@ -278,14 +278,19 @@ const char _aEc[] = "EC";
 const char _aEcq[] = "ECQ";
 const char _aEmpCup[] = "EMP. CUP";
 const char _aEmperorSCup[] = "EMPEROR'S CUP";
-const char _aEufaCup[] = "EUFA CUP";
-const char _aEufaCup_0[] = "EUFA CUP";
-const char _aEuroCwCup[] = "EURO CW CUP";
+/* Renamed 2026-10-26 (modern competition names, with the 36-team presets):
+ * EUFA CUP -> EUROPA LEAGUE, EUROPEAN CUP-WINNERS CUP -> CONFERENCE LEAGUE,
+ * EUROPEAN CHAMPIONS CUP -> CHAMPIONS LEAGUE. Display only — the career
+ * formats behind these records are unchanged, and nothing keys off the text
+ * (the 36-team presets are detected by compId, see src/champions36.c). */
+const char _aEufaCup[] = "EUROPA LEAGUE";
+const char _aEufaCup_0[] = "EUROPA L";
+const char _aEuroCwCup[] = "CONFERENCE L";
 const char _aEuropeanChampi_0[] = "EUROPEAN CHAMPIONSHIPS";
-const char _aEuropeanChampi_1[] = "EUROPEAN CHAMPIONS CUP";
+const char _aEuropeanChampi_1[] = "CHAMPIONS LEAGUE";
 const char _aEuropeanChampionship[] = "\377EUROPEAN CHAMPIONSHIP";
-const char _aEuropeanCup[] = "EUROPEAN CUP";
-const char _aEuropeanCupWin[] = "EUROPEAN CUP-WINNERS CUP";
+const char _aEuropeanCup[] = "CHAMPIONS L";
+const char _aEuropeanCupWin[] = "CONFERENCE LEAGUE";
 const char _aFinal[] = "FINAL";
 const char _aFinalGroups[] = "FINAL GROUPS";
 const char _aFinalGroups_0[] = "FINAL GROUPS";

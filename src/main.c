@@ -289,6 +289,8 @@ static void print_usage(const char *argv0)
         "                            folder, written in a match by the 'C' key.\n"
         "  --challenge-selftest      Round-trip a saved position's setup and state in\n"
         "                            this process. Exits.\n"
+        "  --champions36-selftest    Check the 36-team Champions/Europa/Conference\n"
+        "                            League presets through to the final. Exits.\n"
         "  --custom-team-selftest    Check every database team against the custom team\n"
         "                            rule (names, faces, kits and line-up only) and\n"
         "                            through the team file's text. Exits.\n"
@@ -758,6 +760,9 @@ int main(int argc, char **argv)
             return DosMusic_SelfTest() ? 1 : 0;
         } else if (strcmp(a, "--dos-sound-selftest") == 0) {
             return DosSound_SelfTest() ? 1 : 0;
+        } else if (strcmp(a, "--champions36-selftest") == 0) {
+            extern int Champions36_SelfTest(void);
+            return Champions36_SelfTest();
         } else if (strcmp(a, "--custom-team-selftest") == 0) {
             return CustomTeam_SelfTest() ? 0 : 1;
         } else if (strncmp(a, "--matchmaker-selftest", 21) == 0) {

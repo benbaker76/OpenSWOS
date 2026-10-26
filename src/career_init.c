@@ -346,6 +346,11 @@ __attribute__((used, externally_visible))
 uint16_t InitCompetitionTeamSelectionFromAltTableHeader(uint8_t *base)
 {
     _careerFileBuffer = 0;
+    /* A 36-team preset substitute never matches a euro-cup record here, so no
+     * TMD pool is loaded for it — all 36 curated clubs resolve from their
+     * TEAM.<country> files (the AppendTeams fallback), which is also where
+     * their league rosters live. The caller (SelectTeamsFinalMenu) passes the
+     * substitute record while choosing a preset. */
     LoadSomeEuroCup(base);
     _numSelectedTeams = 0;
     Career_InitCompetitionTeamSelectionFromAltTableHeaderSpec(base);
