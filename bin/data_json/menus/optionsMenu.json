@@ -441,7 +441,7 @@
      "left": -1,
      "right": -1,
      "up": 14,
-     "down": 19
+     "down": 22
     },
     {
      "op": "colors",
@@ -494,7 +494,7 @@
      "left": -1,
      "right": -1,
      "up": 14,
-     "down": 19
+     "down": 22
     },
     {
      "op": "colors",
@@ -530,7 +530,7 @@
      "op": "nav",
      "left": -1,
      "right": -1,
-     "up": 16,
+     "up": 22,
      "down": -1
     },
     {
@@ -566,6 +566,59 @@
      "op": "text",
      "flags": "0x0",
      "str": "_aSwosVersion152"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 10,
+    "y": 160,
+    "w": -116,
+    "h": 11
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "str": "_aCpuCards"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -102,
+    "y": 160,
+    "w": -116,
+    "h": 11
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 16,
+     "down": 19
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "string_table",
+     "flags": "0x0",
+     "table": "_cpuCardsStrTable"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "ChangeCpuCards"
     }
    ]
   }

@@ -1136,6 +1136,11 @@ typedef struct Menu_Options
   MenuCmd_Invisible versionText_invisible;
   MenuCmd_TextPtr versionText_text;
   MenuCommand versionText_end;
+  /* CPU CARDS: ON / OFF -- [gameplay] cpu_cards, the computer side booked and
+   * sent off like a human one (tackle_foul.c). Appended after the version text
+   * so every existing ordinal (the easter egg's 14, EXIT's 19) stays put. */
+  MenuEntry_Byte_Colors_TextPtr labelCpuCards;
+  MenuEntry_Byte_Nav_Colors_StringTable_OnSelect cpuCards;
   MenuMark markEndMenu;
 } Menu_Options;
 #pragma pack(pop)

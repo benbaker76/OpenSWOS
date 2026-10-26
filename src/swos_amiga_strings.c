@@ -499,6 +499,9 @@ char _aRedefineKeys[] = "REDEFINE KEYS";
 /* OPTIONS -> PITCHES: DOS / 2020, which pitches the AGA Amiga draws (pitch.c). */
 char _aPitches[] = "PITCHES";
 char _a2020Style[] = "2020";
+/* OPTIONS -> CPU CARDS: the computer side booked and sent off like a human one.
+ * Mirrors [gameplay] cpu_cards in SWOS.ini (tackle_foul.c); values reuse _aOff/_aOn. */
+char _aCpuCards[] = "CPU CARDS";
 char _aGoals[] = "GOALS";
 char _aForm[] = "FORM";
 char _aLge[] = "LGE";

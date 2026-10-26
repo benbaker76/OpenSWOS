@@ -208,6 +208,10 @@ static void print_usage(const char *argv0)
         "                            you have to release and press again. Default off\n"
         "                            (fixed). Your OWN tackle still spends the press\n"
         "                            in both modes: that part is by design.\n"
+        "  --cpu-cards=<on|off>      A computer side can be booked and sent off by the\n"
+        "                            same rolls as a human one. Default on; the\n"
+        "                            ORIGINAL (off) never cards a team with no human\n"
+        "                            controller. Offline matches only by nature.\n"
         "  --dos-dir=<folder>        Folder (under bin/) to load DOS assets from.\n"
         "                            Default: grafs_dos.\n"
         "  --replay-test=<file.swr>  Replay a recorded match and assert every frame\n"
@@ -459,6 +463,7 @@ int main(int argc, char **argv)
     memset(opts.key_bind, 0, sizeof opts.key_bind);   /* no keys of the player's own */
     opts.fire_hold_lockout = 0;   /* default: the original's fire-hold bug is FIXED */
     opts.contest_own_ratings = 0; /* default: the original's roll, team-mate's rating and all */
+    opts.cpu_cards = 1;           /* default: the original's CPU card immunity is FIXED */
     opts.replay_auto_save = 0;    /* default: LATEST.SRP only, no dated copy per match */
     opts.netplay_name[0] = '\0';
     opts.netplay_remember = 1;    /* REMEMBER LOGIN INFO: on, as the login screen shows it */
@@ -598,6 +603,13 @@ int main(int argc, char **argv)
             else if (strcmp(v, "off") == 0 || strcmp(v, "0") == 0) opts.fire_hold_lockout = 0;
             else {
                 fprintf(stderr, "Invalid --fire-hold-lockout value '%s' (expected on|off)\n", v);
+                return 1;
+            }
+        } else if ((v = match_kv(a, "cpu-cards")) != NULL) {
+            if (strcmp(v, "on") == 0 || strcmp(v, "1") == 0)       opts.cpu_cards = 1;
+            else if (strcmp(v, "off") == 0 || strcmp(v, "0") == 0) opts.cpu_cards = 0;
+            else {
+                fprintf(stderr, "Invalid --cpu-cards value '%s' (expected on|off)\n", v);
                 return 1;
             }
         } else if ((v = match_kv(a, "jag-graphics")) != NULL) {
@@ -950,6 +962,11 @@ int main(int argc, char **argv)
          * (docs/BALL_CONTEST.md -- playa-10090613 parts at frame 7,009 without it). */
         if (!Rollback_Enabled())
         opts.contest_own_ratings = 0;
+        /* And the original's CPU card immunity: the computer side of a corpus
+         * match was never carded when the recordings were made, and a card
+         * changes everything after it (the referee walks over, play restarts). */
+        if (!Rollback_Enabled())
+        opts.cpu_cards = 0;
         /* Replay at the port's OWN native view, not the tester's monitor. The
          * original reason given here — "SWOS's camera constants are all derived
          * from the view size" — no longer holds: b4775f3 pinned _sim_view_width
@@ -1113,6 +1130,10 @@ int main(int argc, char **argv)
       _gOriginalFireHoldLockout = opts.fire_hold_lockout; }
     { extern int _gContestOwnRatings;
       _gContestOwnRatings = opts.contest_own_ratings; }
+    { extern int _gCpuTeamsGetCards;
+      extern uint16_t _cpuCardsOption;   /* the OPTIONS row's display mirror */
+      _gCpuTeamsGetCards = opts.cpu_cards;
+      _cpuCardsOption = (uint16_t)(opts.cpu_cards != 0); }
     /* The OPTIONS menu draws its GAMEPLAY row from a uint16_t mirror (the
      * string-table header reads its index as one). Seed it here so the row
      * shows what SWOS.ini / --dos-gameplay actually selected; the toggle
@@ -1133,6 +1154,9 @@ int main(int argc, char **argv)
     fprintf(stderr, "[gameplay] fire-hold lockout: %s\n", opts.fire_hold_lockout
             ? "ON — original Amiga behaviour (an opponent's tackle kills your shot charge)"
             : "off — fixed (an opponent's tackle no longer kills your shot charge)");
+    fprintf(stderr, "[gameplay] CPU cards: %s\n", opts.cpu_cards
+            ? "on — a computer side can be booked and sent off (the original never carded it)"
+            : "off — the original's rule (a team with no human controller is never carded)");
     /* _screen_width (the live render width) + _menu_draw_x_offset (UI centering)
      * are derived from the monitor's aspect ratio just after SDL_Init — see below. */
     if (opts.dos_dir[0])

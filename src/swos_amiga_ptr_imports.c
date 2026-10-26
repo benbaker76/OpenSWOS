@@ -892,6 +892,11 @@ struct __attribute__((packed)) {
     { (void *)_aDosStyle, (void *)_a2020Style }
 };
 
+/* OPTIONS -> CPU CARDS: OFF / ON, indexed by _cpuCardsOption (tackle_foul.c),
+ * the uint16_t mirror of _gCpuTeamsGetCards -- [gameplay] cpu_cards. */
+extern uint16_t _cpuCardsOption;
+ON_OFF_TABLE(_cpuCardsStrTable, (&_cpuCardsOption));
+
 #undef ON_OFF_TABLE
 #undef MONTHS
 /* ---- DIY Tournament string tables (SWOS2.s lines 75323..75554) ----

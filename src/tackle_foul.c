@@ -284,6 +284,32 @@ set_tackled:
     SetPlayerAnimationTable((AnimTable *)&_playerTackledAnimTable, player);
 }
 
+/* ----------------------------------------------------------------------------
+ * [gameplay] cpu_cards (SWOS.ini) / --cpu-cards=<on|off>.
+ *
+ * The ORIGINAL never books or sends off a team with no human controller:
+ * TryBookingThePlayer and TrySendingOffThePlayer both test playerNumber /
+ * playerCoachNumber and bail out (SWOS2.s:26026, both releases) -- the
+ * computer fouls you all match and collects nothing for it. Default 1: a CPU
+ * side is carded by the same rolls as a human one. 0 restores the original
+ * rule.
+ *
+ * Offline only in effect: an online match has a human on both sides, so the
+ * gate this flag bypasses never fires there -- nothing travels in the host's
+ * rules. The .RGD replay corpus pins it to 0 (main.c, beside the fire-hold
+ * lockout pin): its recordings were made against the original. The Amiga
+ * target reads no SWOS.ini and always plays the default. Constant through a
+ * match, so it is not match state.
+ * ---------------------------------------------------------------------------- */
+int _gCpuTeamsGetCards = 1;
+
+/* The OPTIONS menu's "CPU CARDS" row draws from this uint16_t mirror (the
+ * string-table header reads its index as one -- see _gameplayStyleOption in
+ * dos_gameplay.c for why it cannot point at the `int`). ChangeCpuCards
+ * (menus.c) and OptionsMenuBeforeDraw keep the two in step; main.c seeds
+ * both from SWOS.ini on the SDL build. */
+uint16_t _cpuCardsOption = 1;
+
 /* ========================================================================
  * TryBookingThePlayer
  * Returns 0 if card was given, 1 if not eligible.
@@ -300,18 +326,16 @@ TryBookingThePlayer(Sprite *player, TeamGeneralInfo *team)
     if (TestRules_NoInjuriesCards())
         return 1;  /* the testers' rule (test_rules.h): never book — eligibility=no */
 
-    if (_plgD3Param != 0) {
-        /* Highlight mode */
-        if (team->playerNumber == 0 &&
-            team->playerCoachNumber == 0) {
-            /* Not a human-controlled team -- check cards */
+    if (_gCpuTeamsGetCards == 0 &&
+        team->playerNumber == 0 &&
+        team->playerCoachNumber == 0) {
+        /* The original's rule ([gameplay] cpu_cards = false; the block over
+         * _gCpuTeamsGetCards): a computer side is never booked... */
+        if (_plgD3Param != 0) {
+            /* ...except in highlight mode, where its first card shows */
             if ((uint16_t)player->cards != 0)
                 return 1; /* not eligible */
-        }
-    } else {
-        /* Normal mode -- need at least one human controller */
-        if (team->playerNumber == 0 &&
-            team->playerCoachNumber == 0) {
+        } else {
             return 1; /* not eligible */
         }
     }
@@ -393,8 +417,10 @@ TrySendingOffThePlayer(Sprite *player, TeamGeneralInfo *team)
     if (TestRules_NoInjuriesCards())
         return 1;  /* the testers' rule (test_rules.h): never send off — eligibility=no */
 
-    /* Need at least one human controller */
-    if (team->playerNumber == 0 &&
+    /* The original's rule ([gameplay] cpu_cards = false; the block over
+     * _gCpuTeamsGetCards): a computer side is never sent off */
+    if (_gCpuTeamsGetCards == 0 &&
+        team->playerNumber == 0 &&
         team->playerCoachNumber == 0)
         return 1;
 

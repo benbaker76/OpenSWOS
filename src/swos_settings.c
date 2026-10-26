@@ -156,6 +156,8 @@ static int handler(void *user, const char *section,
             opts->fire_hold_lockout = b;
         else if (eqi(name, "contest_own_ratings") && parse_bool(value, &b))
             opts->contest_own_ratings = b;
+        else if (eqi(name, "cpu_cards") && parse_bool(value, &b))
+            opts->cpu_cards = b;
         else if (eqi(name, "style")) {
             if      (eqi(value, "amiga")) opts->dos_gameplay = 0;
             else if (eqi(value, "dos"))   opts->dos_gameplay = 1;
@@ -467,6 +469,13 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; Default false: the original. OFFLINE matches only -- an online match always\n"
         "; plays the original's. See docs/BALL_CONTEST.md.",
         opts->contest_own_ratings ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "gameplay", "cpu_cards",
+        "; cpu_cards: true | false. The ORIGINAL never books or sends off a team with no\n"
+        "; human controller -- the computer fouls you all match and collects nothing for\n"
+        "; it. Default true: a CPU side is carded by the same rolls as a human one.\n"
+        "; false restores the original rule. Offline matches only by nature: online both\n"
+        "; sides are human, so this changes nothing there. See tackle_foul.c.",
+        opts->cpu_cards ? "true" : "false" };
 
 
     SETTING(n) = (IniEntry){ "gameplay", "style",

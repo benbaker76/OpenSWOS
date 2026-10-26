@@ -124,6 +124,9 @@ typedef struct {
     int                    fire_hold_lockout;/* 1 = keep the ORIGINAL Amiga bug where an OPPONENT's tackle
                                               * kills your held fire button's shot charge for good. 0 (default)
                                               * = fixed. See _gOriginalFireHoldLockout in team_control.c */
+    int                    cpu_cards;        /* 1 (default) = a computer side can be booked and sent off;
+                                              * 0 = the ORIGINAL's rule where a team with no human controller
+                                              * never gets a card. See _gCpuTeamsGetCards in tackle_foul.c */
     int                    replay_auto_save; /* 1 = keep a dated .SRP of every match, not only LATEST.SRP */
     char                   matchmaker[80];   /* [netplay] matchmaker: the server MULTIPLAYER logs in to,
                                               * "host" or "host:port". Typed on the login menu and saved

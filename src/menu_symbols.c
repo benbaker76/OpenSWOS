@@ -37,6 +37,7 @@ extern void ChallengesMenu(void);
 extern void ChangeAllPlTeamsEqual(void);
 extern void ChangeAutoReplays(void);
 extern void ChangeAutoSaveHighlights(void);
+extern void ChangeCpuCards(void);
 extern void ChangeGameLength(void);
 extern void ChangeGameplayStyle(void);
 extern void ChangeMenuMusic(void);
@@ -443,6 +444,7 @@ extern char _aContinue[];
 extern char _aContinueCareer[];
 extern char _aControls[];
 extern char _aCopy[];
+extern char _aCpuCards[];
 extern char _aCredits[];
 extern char _aCriteria[];
 extern char _aCup1[];
@@ -595,6 +597,7 @@ extern char _asc_131FF2[];
 extern char _asc_135D96[];
 extern char* _autoReplaysStrTable[];
 extern char* _autoSaveHlStrTable[];
+extern char* _cpuCardsStrTable[];
 extern char* _diyAwayGoalsStrTab[];
 extern DIYCompetitionEx _diyCompetitionStart;
 extern char* _diyCupAwayGoalsStringTable[];
@@ -721,6 +724,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ChangeAllPlTeamsEqual", (void*)ChangeAllPlTeamsEqual, SYM_FUNC },
     { "ChangeAutoReplays", (void*)ChangeAutoReplays, SYM_FUNC },
     { "ChangeAutoSaveHighlights", (void*)ChangeAutoSaveHighlights, SYM_FUNC },
+    { "ChangeCpuCards", (void*)ChangeCpuCards, SYM_FUNC },
     { "ChangeGameLength", (void*)ChangeGameLength, SYM_FUNC },
     { "ChangeGameplayStyle", (void*)ChangeGameplayStyle, SYM_FUNC },
     { "ChangeMenuMusic", (void*)ChangeMenuMusic, SYM_FUNC },
@@ -1124,6 +1128,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aContinueCareer", (void*)_aContinueCareer, SYM_STRING },
     { "_aControls", (void*)_aControls, SYM_STRING },
     { "_aCopy", (void*)_aCopy, SYM_STRING },
+    { "_aCpuCards", (void*)_aCpuCards, SYM_STRING },
     { "_aCredits", (void*)_aCredits, SYM_STRING },
     { "_aCriteria", (void*)_aCriteria, SYM_STRING },
     { "_aCup1", (void*)_aCup1, SYM_STRING },
@@ -1276,6 +1281,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_asc_135D96", (void*)_asc_135D96, SYM_STRING },
     { "_autoReplaysStrTable", (void*)_autoReplaysStrTable, SYM_TABLE },
     { "_autoSaveHlStrTable", (void*)_autoSaveHlStrTable, SYM_TABLE },
+    { "_cpuCardsStrTable", (void*)_cpuCardsStrTable, SYM_TABLE },
     { "_diyAwayGoalsStrTab", (void*)_diyAwayGoalsStrTab, SYM_TABLE },
     { "_diyCompetitionStart.base.competitionName", (void*)_diyCompetitionStart.base.competitionName, SYM_BUFFER },
     { "_diyCupAwayGoalsStringTable", (void*)_diyCupAwayGoalsStringTable, SYM_TABLE },

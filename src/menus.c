@@ -2016,11 +2016,18 @@ extern uint16_t _showPrereleaseCounter;
 __attribute__((used, externally_visible))
 void OptionsMenuBeforeDraw(void)
 {
+    extern int _gCpuTeamsGetCards;
+    extern uint16_t _cpuCardsOption;
+
     _showPrereleaseCounter = 0;
+    /* The CPU CARDS row (21/22, every target) draws from the uint16_t mirror:
+     * re-sync it here so the row always tells the truth about the game flag. */
+    _cpuCardsOption = (uint16_t)(_gCpuTeamsGetCards != 0);
     /* One row, two meanings: CONTROLS (entries 15/16) opens a JSON menu about the
      * keyboard's keys, which only SDL runs; PITCHES (17/18) picks the AGA Amiga's
-     * pitch set. Each target shows its own and steps GAMEPLAY (14) and EXIT (19) to
-     * it; the OCS Amiga has neither, and steps over the row. */
+     * pitch set. Each target shows its own and steps GAMEPLAY (14) and CPU CARDS
+     * (22) to it; the OCS Amiga has neither, and steps over the row. EXIT (19)
+     * links up to 22 in the JSON, which is right on every target. */
 #ifdef SWOS_SDL_BUILD
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
@@ -2029,12 +2036,12 @@ void OptionsMenuBeforeDraw(void)
     _menuEntries[16].isInvisible = 1;
 #ifdef AGA
     _menuEntries[14].downEntry = 18;
-    _menuEntries[19].upEntry = 18;
+    _menuEntries[22].upEntry = 18;
 #else
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
-    _menuEntries[14].downEntry = 19;
-    _menuEntries[19].upEntry = 14;
+    _menuEntries[14].downEntry = 22;
+    _menuEntries[22].upEntry = 14;
 #endif
 #endif
 }
@@ -2220,6 +2227,42 @@ void ChangeGameplayStyle(MenuEntry *entry)
     _gDosGameplay = (int)_gameplayStyleOption;
 
     ApplyGameStyle();
+#endif
+
+    CallDrawMenuItem(entry);
+}
+
+/* ================================================================
+ * ChangeCpuCards — the OPTIONS menu's "CPU CARDS" row
+ *
+ * ON (default): a computer side is booked and sent off by the same rolls as
+ * a human one. OFF: the ORIGINAL's rule, a team with no human controller is
+ * never carded. The same switch as [gameplay] cpu_cards in SWOS.ini and
+ * --cpu-cards; _gCpuTeamsGetCards (tackle_foul.c) is what the match reads,
+ * _cpuCardsOption the uint16_t mirror the row draws from. Offline only by
+ * nature -- online both sides are human, so the gate never fires there.
+ * On SDL the choice persists to SWOS.ini like the GAMEPLAY row's; the Amiga
+ * has no SWOS.ini, so there it lasts the session.
+ * ================================================================ */
+__attribute__((used, externally_visible))
+void ChangeCpuCards(MenuEntry *entry)
+{
+    extern int _gCpuTeamsGetCards;
+    extern uint16_t _cpuCardsOption;
+
+    _cpuCardsOption ^= 1;
+    _gCpuTeamsGetCards = (int)_cpuCardsOption;
+
+#ifdef SWOS_SDL_BUILD
+    {
+        extern PlatformInitOptions *g_arcadeOpts;
+        extern const char *g_arcadeIniPath;
+        if (g_arcadeOpts) {
+            g_arcadeOpts->cpu_cards = _gCpuTeamsGetCards;
+            if (g_arcadeIniPath)
+                Settings_Save(g_arcadeOpts, g_arcadeIniPath);
+        }
+    }
 #endif
 
     CallDrawMenuItem(entry);
