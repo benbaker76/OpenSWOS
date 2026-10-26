@@ -1522,6 +1522,18 @@ int16_t ShowPlayMatchMenu(int16_t controlFlags, int16_t _maxSubstitutes,
             (TeamFileEx *)_playMatchTeam1Ptr);
     }
 
+    /* PENALTY SHOOTOUT: the match is only penalties, so tactics, squad swaps
+     * and substitutes — this screen's whole business — mean nothing to it.
+     * Each human side gets the SHOOTING ORDER screen instead (the queue of
+     * ten takers, src/penalty_shootout.c), which keeps this function's
+     * contract: START returns the pad that pressed it, EXIT raises
+     * _exitGameFlag. */
+    if (g_penaltyShootoutMode) {
+        extern uint8_t _shootoutOrderMenu[];
+        ShowMenu(_shootoutOrderMenu);
+        return (int16_t)_playerNumThatStarted;
+    }
+
     ShowMenu(_playMatchMenu);
     return (int16_t)_playerNumThatStarted;
 }

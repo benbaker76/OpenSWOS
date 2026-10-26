@@ -16,15 +16,47 @@ Main menu → **PRACTICE** (the left column's second row, under EDIT) →
 button became on 2026-10-26, when this mode joined it; both modes sit in it,
 built like the EDIT submenu (docs/MENUS.md §12).
 
-From there it is **the friendly flow, unchanged**: the settings screen, team
-selection, the PLAY MATCH screen, with EDIT TACTICS, VIEW OPPO, squad swaps
-and substitutes all working as they always do. Any selection a friendly can
-start, a shootout can — both sides shoot, so human v human and human v
-computer both make sense and nothing extra is gated (contrast SHOOTING
-PRACTICE, which needs exactly one computer side). The screens say so as you
-go: the headers read PENALTY SHOOTOUT, the selection's confirm button PLAY
-SHOOTOUT, the start button START SHOOTOUT, and the match is named PENALTY
-SHOOTOUT on the scoreboard and in a saved highlight.
+From there it is the friendly flow — the settings screen and team selection —
+**with one screen swapped out: where a friendly would show the PLAY MATCH
+screen, the drill shows the SHOOTING ORDER screen** (below, since 2026-10-26).
+Tactics, squad swaps, VIEW OPPO and substitutes mean nothing to a match that
+is only penalties, so none of that is offered; the one choice is who shoots
+when. Any selection a friendly can start, a shootout can — both sides shoot,
+so human v human and human v computer both make sense and nothing extra is
+gated (contrast SHOOTING PRACTICE, which needs exactly one computer side).
+The screens say so as you go: the headers read PENALTY SHOOTOUT, the
+selection's confirm button PLAY SHOOTOUT, the start button START SHOOTOUT,
+and the match is named PENALTY SHOOTOUT on the scoreboard and in a saved
+highlight.
+
+## The shooting order
+
+The SHOOTING ORDER screen (`_shootoutOrderMenu`) lists the side's **ten
+outfield players as the shooting queue**: positions 1–5, the best-of-five
+takers, sit a gap above 6–10, who only shoot if it goes to sudden death (the
+queue cycles past ten). **Click a player and then another and they trade
+places**; clicking the same player twice puts him back down. The rows are the
+squad list's own (number, fitness, name, position, skills, value — the
+ViewSquad renderer), the picked-up row shown in its highlight style. START
+SHOOTOUT starts the match, EXIT abandons it, and in human v human each player
+orders their own queue in turn, exactly as each would have had a PLAY MATCH
+screen.
+
+The default queue is the engine's own order — `NextPenalty` walks
+`spritesTable[10..1]`, the most attacking outfield slot first — so an
+untouched screen changes nothing, and a CPU side (which never sees the
+screen) shoots as it always has. **The goalkeeper never shoots**: the
+engine's shooter pick has always excluded slot 0, and the drill keeps that
+rather than teach the goalie update to take a kick.
+
+The order is menu state (`g_shootoutOrder`), reset to the default each time
+the mode is entered and **latched at kick-off beside the mode flag**
+(`PenaltyShootout_BeginMatch`, validated as a permutation on the way in). In
+the match, `NextPenalty` asks `PenaltyShootout_NextShooterSlot` before its
+own countdown and writes the answer through the same sim variable
+(`_teamXPenaltyShooterIndex`), so the sprite pick and everything downstream
+are untouched; every match that is not the drill gets -1 and picks the stock
+way, so cup shootouts, netplay and the rigs see nothing new.
 
 **START SHOOTOUT goes straight to the first penalty.** No walk-on, no
 kick-off: the mode's per-frame hook calls `StartPenalties` on the match's
@@ -79,8 +111,11 @@ player.
 
 | piece | where |
 |---|---|
-| the mode flag, the latch, the first-frame jump, the keeper input | `src/penalty_shootout.c` |
+| the mode flag, the latch, the first-frame jump, the keeper input, the shooting order + its screen's handlers | `src/penalty_shootout.c` |
 | the PRACTICE submenu (data) | `bin/data_json/menus/practiceMenu.json`, `_practiceMenu` in `src/menu_data.c` |
+| the SHOOTING ORDER screen (data) | `bin/data_json/menus/shootoutOrderMenu.json`, `_shootoutOrderMenu` in `src/menu_data.c` (the ViewSquad shape, docs/MENUS.md §12) |
+| where it replaces the PLAY MATCH screen | `ShowPlayMatchMenu` (`src/play_match_menu.c`) |
+| where the match reads the order | the shooter pick in `NextPenalty` (`src/goalkeeper.c`) |
 | the submenu's opener | `PracticeMenuSelected` (`src/menus.c`) |
 | the flow it borrows | `FriendlyFlow` → `Friendly` → `ShowFriendlyMenu` (`src/menus.c`) |
 | the words SHOOTOUT replaces FRIENDLY with | `FriendlyMenuInit`, `ChooseTeamsMenu` (`src/menus.c`), `SetGameStartButtonText` (`src/play_match_menu.c`), `InitAndPlayGame` (`src/game_init.c`) |

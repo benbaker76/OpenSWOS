@@ -7,6 +7,7 @@
 #include "dos_mode.h"       /* _gDosGameplay: the dive-index expression differs */
 #include "game_types.h"
 #include "player_anim.h"
+#include "penalty_shootout.h"   /* the drill's chosen shooting order (NextPenalty) */
 
 /* ==================================================================
  * Chunk 48 — Goalkeeper Physics + Penalty System
@@ -401,9 +402,23 @@ setup_next:
     if (_bottomTeamData.teamNumber != 1)
         shooterIdx = &_team2PenaltyShooterIndex;
 
-    (*shooterIdx)--;
-    if (*shooterIdx == 0)
-        *shooterIdx = 10;
+    /* PENALTY SHOOTOUT (the training drill) shoots in the order chosen on its
+     * SHOOTING ORDER screen instead of the countdown. Written through the same
+     * sim variable so the sprite pick below, and a save of the match, see
+     * nothing new; -1 is every match that is not the drill. */
+    {
+        int16_t orderedSlot = PenaltyShootout_NextShooterSlot(
+            _bottomTeamData.teamNumber,
+            (_bottomTeamData.teamNumber == 1) ? _team1PenaltyAttempts
+                                              : _team2PenaltyAttempts);
+        if (orderedSlot > 0) {
+            *shooterIdx = orderedSlot;
+        } else {
+            (*shooterIdx)--;
+            if (*shooterIdx == 0)
+                *shooterIdx = 10;
+        }
+    }
 
     /* Load penalty shooter sprite pointer */
     {

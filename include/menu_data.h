@@ -1416,6 +1416,54 @@ typedef struct Menu_ShootingPracticeSetup
 } Menu_ShootingPracticeSetup;
 #pragma pack(pop)
 
+/* OpenSWOS addition — PENALTY SHOOTOUT's SHOOTING ORDER screen, shown by
+ * ShowPlayMatchMenu in place of the PLAY MATCH screen while the mode is on
+ * (bin/data_json/menus/shootoutOrderMenu.json, src/penalty_shootout.c): the
+ * ten outfield players as the shooting queue (the first five are the
+ * best-of-five takers), reordered by clicking two players to trade places.
+ * The ViewSquad shape, cut down: a row template whose afterDraw renders
+ * through the same 12-entry BuildTransferPlayerMenuEntry bank. */
+#pragma pack(push, 1)
+typedef struct Menu_ShootoutOrder
+{
+  MenuHeader hdr;
+  MenuMark markByteCoords;
+  MenuEntry_Byte_Colors_TextPtr entry0;                  /* PENALTY SHOOTOUT header */
+  MenuEntry_Byte_Colors_TextPtr entry1;                  /* team name (bound at init) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry2;     /* START SHOOTOUT */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;     /* EXIT */
+  MenuMark_StartMenu menu1Start;
+  MenuMark template1_markStart;
+  MenuCoords8 template1_rc;
+  MenuCmd_Colors template1_colors;
+  MenuCmd_BeforeDraw template1_afterDraw;
+  MenuCmd_OnSelect template1_onSelect;
+  MenuCommand template1_end;
+  MenuMark markWideCoords;
+  MenuEntry_Wide_NavOnly entries4_13[10];                /* the queue, 5 + 5 */
+  MenuMark markInitEntry;
+  MenuMark_StartMenu menu2Start;
+  MenuMark markWideCoords2;
+  MenuCoords16 entry14_rc;                               /* the bank: ViewSquad's 12 */
+  MenuCmd_Colors entry14_colors;
+  MenuCommand entry14_end;
+  MenuMark markByteCoords2;
+  MenuEntry_Byte_NumberOnly entry15;
+  MenuEntry_Byte_SpriteFgOnly entry16;
+  MenuEntry_Byte_TextPtrOnly entry17;
+  MenuEntry_Byte_TextNoPtrOnly entry18;
+  MenuEntry_Byte_TextPtrOnly entry19;
+  MenuEntry_Byte_TextNoPtrOnly entry20;
+  MenuEntry_Byte_SpriteFgOnly entries21_23[3];
+  MenuEntry_Byte_TextNoPtrOnly entry24;
+  MenuMark markWideCoords3;
+  MenuCoords16 entry25_rc;
+  MenuCmd_TextPtr entry25_text;
+  MenuCommand entry25_end;
+  MenuMark markEndMenu;
+} Menu_ShootoutOrder;
+#pragma pack(pop)
+
 /* 206 - Menu 21: chooseTeamsMenu (0xBE = 190 bytes) */
 #pragma pack(push, 1)
 typedef struct Menu_ChooseTeams
@@ -3546,6 +3594,7 @@ extern Menu_SWOSMainMenu _swosMainMenu;
 extern Menu_EditMenu _editMenu;
 extern Menu_PracticeMenu _practiceMenu;
 extern Menu_ShootingPracticeSetup _shootingPracticeSetupMenu;
+extern Menu_ShootoutOrder _shootoutOrderMenu;
 extern Menu_Offers _offersMenu;
 extern Menu_PlayerTransfer _playerTransferMenu;
 extern Menu_ThirdPartyOffer _thirdPartyOfferMenu;

@@ -6,6 +6,8 @@
 /* penalty_shootout.c — PENALTY SHOOTOUT training mode. See penalty_shootout.h. */
 
 #include "penalty_shootout.h"
+#include "menu_system.h"     /* MenuEntry, DrawMenu -- the SHOOTING ORDER screen */
+#include "endian_helpers.h"  /* PACK_BE_U16 -- a team's number from its header */
 
 int32_t g_penaltyShootoutMode;
 
@@ -25,6 +27,21 @@ extern void FriendlyFlow(void);
  * EndOfGame once a side cannot be caught. */
 extern void StartPenalties(void);
 
+/* The shooting order each side takes into the match: lineup slots 1..10 in
+ * shooting order (penalty_shootout.h). The default IS the engine's own pick —
+ * NextPenalty walks spritesTable 10,9,...,1 — so an untouched screen changes
+ * nothing, and a CPU side (which never sees the screen) shoots as it always
+ * has. */
+uint8_t g_shootoutOrder[2][10];
+
+static void shootoutOrderReset(void)
+{
+    int16_t side, pos;
+    for (side = 0; side < 2; side++)
+        for (pos = 0; pos < 10; pos++)
+            g_shootoutOrder[side][pos] = (uint8_t)(10 - pos);
+}
+
 /* PenaltyShootoutMenu -- the PRACTICE submenu's PENALTY SHOOTOUT button.
  *
  * The whole mode is "a friendly, with the flag set", exactly as SHOOTING
@@ -38,6 +55,7 @@ extern void StartPenalties(void);
 __attribute__((used, externally_visible))
 void PenaltyShootoutMenu(void)
 {
+    shootoutOrderReset();     /* a fresh entry starts from the stock order */
     g_penaltyShootoutMode = 1;
     FriendlyFlow();
     g_penaltyShootoutMode = 0;
@@ -49,10 +67,50 @@ void PenaltyShootoutMenu(void)
 static int16_t s_shootoutMatch;
 static int16_t s_shootoutStarted;
 
+/* The queue the MATCH shoots by, latched beside the mode flag. Validated on
+ * the way in: anything that is not a permutation of slots 1..10 (nothing the
+ * screen can produce, but the match must not trust a menu global) falls back
+ * to the stock order. */
+static uint8_t s_shootoutOrder[2][10];
+
+static void latchShootoutOrder(void)
+{
+    int16_t side, pos;
+    for (side = 0; side < 2; side++) {
+        uint16_t seen = 0;
+        for (pos = 0; pos < 10; pos++) {
+            uint8_t slot = g_shootoutOrder[side][pos];
+            if (slot < 1 || slot > 10)
+                break;
+            if (seen & (1u << slot))
+                break;
+            seen |= (1u << slot);
+            s_shootoutOrder[side][pos] = slot;
+        }
+        if (pos < 10)                       /* not a permutation: stock order */
+            for (pos = 0; pos < 10; pos++)
+                s_shootoutOrder[side][pos] = (uint8_t)(10 - pos);
+    }
+}
+
 void PenaltyShootout_BeginMatch(void)
 {
     s_shootoutMatch = (int16_t)(g_penaltyShootoutMode != 0);
     s_shootoutStarted = 0;
+    latchShootoutOrder();
+}
+
+/* NextPenalty's pick, when the match is the drill: the side about to shoot
+ * has taken `attempts` kicks, so its next shooter is the queue's
+ * (attempts mod 10)th player. -1 hands the pick back to the engine's own
+ * countdown (any match that is not the drill). */
+int16_t PenaltyShootout_NextShooterSlot(int16_t teamNumber, int16_t attempts)
+{
+    if (!s_shootoutMatch)
+        return -1;
+    if (teamNumber != 1 && teamNumber != 2)
+        return -1;
+    return (int16_t)s_shootoutOrder[teamNumber - 1][(uint16_t)attempts % 10u];
 }
 
 /* The REPLAY button after a friendly restarts the match straight through
@@ -120,6 +178,146 @@ int16_t ManualKeeper_DiveInput(TeamGeneralInfo *team)
          * (asked for after the first live build, 2026-10-26). */
         return s_shootoutMatch ? 0 : -1;
     }
+}
+
+/* ===================================================================
+ * The SHOOTING ORDER screen (_shootoutOrderMenu, menu_data.c).
+ *
+ * Shown by ShowPlayMatchMenu IN PLACE of the PLAY MATCH screen while the mode
+ * is on (play_match_menu.c): a match that is only penalties has no use for
+ * tactics, squad swaps or substitutes, so the screen asks the one question
+ * that matters — who shoots when. The ten outfield players are listed as the
+ * queue, positions 1..5 (the best-of-five takers) a gap above 6..10; click a
+ * player and then another and they trade places. The rows are drawn with the
+ * squad list's own renderer (BuildTransferPlayerMenuEntry into the menu's
+ * 12-entry bank, the ViewSquad pattern), so a row reads number, fitness,
+ * name, position, skills and value like every other squad screen.
+ *
+ * The screen keeps ShowPlayMatchMenu's contract: START SHOOTOUT is
+ * PlayMatchSelected (which pad pressed it becomes _playerNumThatStarted),
+ * EXIT is ExitPlayMatch's abort, and the fire-ownership flags are taken from
+ * _playMatchControlFlags exactly as PlayMatchMenuInit takes them, so the
+ * two-human flow (each side ordering its own queue in turn) works unchanged.
+ * =================================================================== */
+
+/* Runtime ordinals (docs/MENUS.md §11a): 0 title, 1 team name, 2 START,
+ * 3 EXIT, 4..13 the queue, 14..25 the row-renderer bank. */
+#define SHOOTOUT_TEAMNAME_ORDINAL 1
+#define SHOOTOUT_ROW0_ORDINAL     4
+#define SHOOTOUT_BANK_ORDINAL     14
+
+extern MenuEntry _menuEntries[];
+extern uint16_t _player1ClearFlag;
+extern uint16_t _player2ClearFlag;
+extern uint16_t _playMatchControlFlags;
+extern uint16_t _isFirstPlayerChoosingTeam;
+extern uint16_t _playerNumThatStarted;
+extern uint16_t _exitGameFlag;
+extern uint8_t  _pl1Fire;
+extern uint8_t  _pl2Fire;
+extern TeamFileEx *_playMatchTeam1Ptr;
+
+extern uint8_t *GetPlayerAtIndex(uint16_t teamNumber, uint16_t ordinal);
+extern void BuildTransferPlayerMenuEntry(void *item, uint8_t *player,
+                                           uint16_t y, int16_t idx,
+                                           uint16_t style, uint8_t *extra);
+extern void DrawMultipleItems(uint16_t maxItems, MenuEntry *firstEntry);
+extern void DrawMenu(void);
+extern void SetExitMenuFlag(void);
+
+/* Which side this showing of the screen orders (0 = in-game team 1), and the
+ * queue position picked by the first of the two clicks (-1 = none yet). */
+static int16_t s_orderSide;
+static int16_t s_orderPick;
+
+/* onInit AND onReturn: every ShowMenu re-unpacks the packed bytes, so
+ * everything runtime about the screen is re-established here. The
+ * fire-ownership lines are PlayMatchMenuInit's own, kept so the pad that
+ * already took a side cannot also press this screen's START for the other. */
+__attribute__((used, externally_visible))
+void ShootoutOrderMenuInit(void)
+{
+    _player1ClearFlag = 0;
+    _player2ClearFlag = 0;
+    if (!(_playMatchControlFlags & 0x01)) _player1ClearFlag = 0xFF;
+    if (!(_playMatchControlFlags & 0x02)) _player2ClearFlag = 0xFF;
+
+    s_orderSide = _isFirstPlayerChoosingTeam ? 0 : 1;
+    s_orderPick = -1;
+    if (_playMatchTeam1Ptr)
+        _menuEntries[SHOOTOUT_TEAMNAME_ORDINAL].fg =
+            (uintptr_t)_playMatchTeam1Ptr->team.teamName;
+}
+
+/* A queue row's afterDraw: render the player at this queue position through
+ * the squad-row bank, numbered by his place in the queue. The picked row is
+ * drawn in the squad screens' highlight style (0xD) until the second click. */
+__attribute__((used, externally_visible))
+void ShootoutOrderRowDraw(void *entryPtr)
+{
+    MenuEntry *a5 = (MenuEntry *)entryPtr;
+    int16_t pos = (int16_t)(a5->ordinal - SHOOTOUT_ROW0_ORDINAL);
+    uint8_t *player = (uint8_t *)0;
+
+    if (_playMatchTeam1Ptr && pos >= 0 && pos <= 9) {
+        uint16_t tNum = PACK_BE_U16(_playMatchTeam1Ptr->team.countryNumber,
+                                    _playMatchTeam1Ptr->team.teamOrdinal);
+        player = GetPlayerAtIndex(tNum, g_shootoutOrder[s_orderSide][pos]);
+    }
+    BuildTransferPlayerMenuEntry(&_menuEntries[SHOOTOUT_BANK_ORDINAL], player,
+                                 a5->y, (int16_t)(pos + 1),
+                                 (pos == s_orderPick) ? 0xD : 0, (uint8_t *)0);
+    DrawMultipleItems(12, &_menuEntries[SHOOTOUT_BANK_ORDINAL]);
+}
+
+/* A row's fire: first click picks a player up, the second puts him down —
+ * on himself to cancel, on another to trade their places in the queue. */
+__attribute__((used, externally_visible))
+void ShootoutOrderRowSelected(void *entryPtr)
+{
+    MenuEntry *a5 = (MenuEntry *)entryPtr;
+    int16_t pos = (int16_t)(a5->ordinal - SHOOTOUT_ROW0_ORDINAL);
+    if (pos < 0 || pos > 9)
+        return;
+
+    if (s_orderPick < 0) {
+        s_orderPick = pos;
+    } else if (s_orderPick == pos) {
+        s_orderPick = -1;
+    } else {
+        uint8_t t = g_shootoutOrder[s_orderSide][s_orderPick];
+        g_shootoutOrder[s_orderSide][s_orderPick] = g_shootoutOrder[s_orderSide][pos];
+        g_shootoutOrder[s_orderSide][pos] = t;
+        s_orderPick = -1;
+    }
+    DrawMenu();
+}
+
+/* START SHOOTOUT — PlayMatchSelected's job: whoever pressed it is the player
+ * number ShowPlayMatchMenu returns (SetupPlayers assigns the pads from it). */
+__attribute__((used, externally_visible))
+void ShootoutOrderStart(void)
+{
+    if (_pl1Fire)
+        _playerNumThatStarted = 1;
+    else if (_pl2Fire)
+        _playerNumThatStarted = 2;
+    else
+        return;
+    _player1ClearFlag = 0;
+    _player2ClearFlag = 0;
+    SetExitMenuFlag();
+}
+
+/* EXIT — ExitPlayMatch's abort, minus its career bookkeeping (this screen is
+ * only ever reached from the drill's friendly flow, never a career). */
+__attribute__((used, externally_visible))
+void ShootoutOrderExit(void)
+{
+    _exitGameFlag = 1;
+    _player1ClearFlag = 0;
+    _player2ClearFlag = 0;
+    SetExitMenuFlag();
 }
 
 void PenaltyShootout_MatchTick(void)

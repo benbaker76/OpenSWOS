@@ -14,7 +14,8 @@
  * It is the PRACTICE submenu's PENALTY SHOOTOUT button (the main menu's
  * PRACTICE row, beside SHOOTING PRACTICE) and nothing else: press it and you
  * are in the friendly's own flow -- its settings screen, its team selection,
- * its PLAY MATCH screen -- with the ONE difference being the match itself.
+ * then the SHOOTING ORDER screen in place of the PLAY MATCH screen (below) --
+ * with the match itself being the shootout.
  * Any selection a friendly can start, a shootout can: both sides shoot, so
  * human v human and human v computer both make sense and nothing extra is
  * gated (contrast SHOOTING PRACTICE, which needs exactly one computer side).
@@ -70,3 +71,26 @@ void PenaltyShootout_MatchRestarted(void);
  * real match); 0 for "stand" (the drill's neutral); else the held dive
  * direction (2=E, 3=SE, 5=SW, 6=W). */
 int16_t ManualKeeper_DiveInput(TeamGeneralInfo *team);
+
+/* THE SHOOTING ORDER. In this mode the PLAY MATCH screen is replaced by the
+ * SHOOTING ORDER screen (_shootoutOrderMenu; ShowPlayMatchMenu makes the
+ * swap): tactics, squad swaps and substitutes mean nothing to a match that is
+ * only penalties, so the one choice the screen offers is who shoots when —
+ * the ten outfield players as a queue, the first five being the best-of-five
+ * takers, reordered by clicking one player and then another to trade their
+ * places. The keeper never shoots: the engine's own shooter pick walks
+ * spritesTable[10..1] and index 0 is the goalkeeper (NextPenalty).
+ *
+ * g_shootoutOrder[side] is that queue at menu time: lineup slots 1..10 in
+ * shooting order, side 0 = the first selected team (in-game teamNumber 1).
+ * Reset to the engine's own order (slot 10 first, 1 last) each time the mode
+ * is entered, latched per match by PenaltyShootout_BeginMatch like the mode
+ * flag itself. */
+extern uint8_t g_shootoutOrder[2][10];
+
+/* The latched queue, asked by NextPenalty (goalkeeper.c) in place of its
+ * decrement-and-wrap pick: the spritesTable slot (1..10) of the side's
+ * shooter for its (attempts+1)th kick, cycling back to the queue's head past
+ * ten. -1 when this match is not the drill — the caller then picks the stock
+ * way, so cup shootouts and netplay see nothing new. */
+int16_t PenaltyShootout_NextShooterSlot(int16_t teamNumber, int16_t attempts);

@@ -377,6 +377,11 @@ extern void ChangePracticeMidfield(void);
 extern void ShootingPracticeContinue(void);
 extern void PenaltyShootoutMenu(void);
 extern void PracticeMenuSelected(void);
+extern void ShootoutOrderMenuInit(void);
+extern void ShootoutOrderRowDraw(void);
+extern void ShootoutOrderRowSelected(void);
+extern void ShootoutOrderStart(void);
+extern void ShootoutOrderExit(void);
 extern void User_A_Tactics(void);
 extern void User_B_Tactics(void);
 extern void User_C_Tactics(void);
@@ -556,6 +561,7 @@ extern char _aSecondKit[];
 extern char _aSeeded[];
 extern char _aShootingPractice[];
 extern char _aPenaltyShootout[];
+extern char _aStartShootout[];
 extern char _aPractice[];
 extern char _aSkills[];
 extern char _aSquad[];
@@ -7163,6 +7169,176 @@ Menu_ShootingPracticeSetup _shootingPracticeSetupMenu = {
         { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
         MENU_CMD_END
     },
+    MENU_MARK_END_MENU
+};
+
+/* ---- shootoutOrderMenu (PENALTY SHOOTOUT's SHOOTING ORDER) — OpenSWOS, no
+ * SWOS2.s counterpart ---------------------------------------------------------
+ * Shown by ShowPlayMatchMenu IN PLACE of the PLAY MATCH screen while
+ * g_penaltyShootoutMode is on (src/penalty_shootout.c): the ten outfield
+ * players as the shooting queue, positions 1..5 (the best-of-five takers) a
+ * gap above 6..10, reordered by clicking one player and then another to trade
+ * places. The ViewSquad shape cut down: a row template whose afterDraw
+ * (ShootoutOrderRowDraw) renders each row through the same 12-entry
+ * BuildTransferPlayerMenuEntry bank at the end, START SHOOTOUT standing in
+ * for PLAY MATCH (ShootoutOrderStart keeps PlayMatchSelected's contract).
+ * Hand-written like _practiceMenu above: scripts/emit_menus.py splices VALUES
+ * into the braces that are already here, so the shape of a new menu has to
+ * exist in C first (docs/MENUS.md section 12). */
+Menu_ShootoutOrder _shootoutOrderMenu = {
+    { ShootoutOrderMenuInit, ShootoutOrderMenuInit, 0, 2 },
+    MENU_MARK_BYTE_COORDS,
+    {
+        { 57, 0, -66, 15 },
+        { MENU_CMD_COLORS, 0x17 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aPenaltyShootout },
+        MENU_CMD_END
+    },
+    {
+        { 82, 16, -116, 10 },
+        { MENU_CMD_COLORS, 0xA },
+        { MENU_CMD_TEXT_PTR, 0x10, 0 },
+        MENU_CMD_END
+    },
+    {
+        { 42, -71, 110, 15 },
+        { MENU_CMD_NAV, -1, 3, 13, -1 },
+        { MENU_CMD_COLORS, 0xA },
+        { MENU_CMD_TEXT_PTR, 0x0, _aStartShootout },
+        { MENU_CMD_ONSELECT_FIRE, ShootoutOrderStart },
+        MENU_CMD_END
+    },
+    {
+        { 172, -71, 110, 15 },
+        { MENU_CMD_NAV, 2, -1, 13, -1 },
+        { MENU_CMD_COLORS, 0xC },
+        { MENU_CMD_TEXT_PTR, 0x0, _aExit },
+        { MENU_CMD_ONSELECT_FIRE, ShootoutOrderExit },
+        MENU_CMD_END
+    },
+    { MENU_MARK_START_MENU, 0, 30 },
+    MENU_MARK_START_TEMPLATE,
+    { 0, 0, 0, 0 },
+    { MENU_CMD_COLORS, 0x0 },
+    { MENU_CMD_AFTER_DRAW, ShootoutOrderRowDraw },
+    { MENU_CMD_ONSELECT_FIRE, ShootoutOrderRowSelected },
+    MENU_CMD_END,
+    MENU_MARK_WIDE_COORDS,
+    {
+        {
+            { 0, 0, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, -1, 5 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 9, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 4, 6 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 18, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 5, 7 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 27, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 6, 8 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 36, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 7, 9 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 50, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 8, 10 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 59, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 9, 11 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 68, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 10, 12 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 77, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 11, 13 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 86, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 12, 2 },
+            MENU_CMD_END
+        }
+    },
+    MENU_MARK_INIT_ENTRY,
+    { MENU_MARK_START_MENU, 0, 0 },
+    MENU_MARK_WIDE_COORDS,
+    { 0, 0, 304, 8 },
+    { MENU_CMD_COLORS, 0x0 },
+    MENU_CMD_END,
+    MENU_MARK_BYTE_COORDS,
+    {
+        { 2, 0, 10, 8 },
+        { MENU_CMD_NUMBER, 0x0, 0 },
+        MENU_CMD_END
+    },
+    {
+        { 13, 0, 10, 8 },
+        { MENU_CMD_SPRITE_FG, 0 },
+        MENU_CMD_END
+    },
+    {
+        { 24, 0, 0, 8 },
+        { MENU_CMD_TEXT_PTR, 0x8000, 0 },
+        MENU_CMD_END
+    },
+    {
+        { -47, 0, 0, 8 },
+        { MENU_CMD_TEXT_NO_PTR, 0x4000 },
+        MENU_CMD_END
+    },
+    {
+        { -45, 0, 14, 8 },
+        { MENU_CMD_TEXT_PTR, 0x0, 0 },
+        MENU_CMD_END
+    },
+    {
+        { -21, 0, 0, 8 },
+        { MENU_CMD_TEXT_NO_PTR, 0xF },
+        MENU_CMD_END
+    },
+    {
+        {
+            { -24, 0, 7, 7 },
+            { MENU_CMD_SPRITE_FG, 181 },
+            MENU_CMD_END
+        },
+        {
+            { -17, 0, 7, 7 },
+            { MENU_CMD_SPRITE_FG, 182 },
+            MENU_CMD_END
+        },
+        {
+            { -45, 0, 9, 8 },
+            { MENU_CMD_SPRITE_FG, 189 },
+            MENU_CMD_END
+        }
+    },
+    {
+        { -13, 0, 30, 8 },
+        { MENU_CMD_TEXT_NO_PTR, 0x0 },
+        MENU_CMD_END
+    },
+    MENU_MARK_WIDE_COORDS,
+    { 272, 0, 32, 8 },
+    { MENU_CMD_TEXT_PTR, 0x8000, 0 },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_Offers _offersMenu = {
