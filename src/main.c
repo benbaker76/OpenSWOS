@@ -680,6 +680,25 @@ int main(int argc, char **argv)
              * until later, so a read now would look in the wrong place. */
             Challenge_Request(v);
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+        } else if ((v = match_kv(a, "challenge-gen")) != NULL) {
+            /* Construct a .CHL from a spec instead of capturing it live
+             * (src/challenge_gen.c, docs/CHALLENGE.md "Generating challenges"). The spec
+             * is read now: it is the user's path, and the process chdirs later. */
+            extern int32_t ChallengeGen_Request(const char *path);
+            if (ChallengeGen_Request(v) != 0)
+                return 1;
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+            /* Headless and turbo, as --team-audit is: a batch run that writes one file
+             * has no business opening a window or pacing itself to a wall clock. */
+#ifdef _WIN32
+            _putenv("SWOS_HARNESS_TURBO=1");
+            if (!getenv("SDL_VIDEODRIVER")) _putenv("SDL_VIDEODRIVER=dummy");
+            if (!getenv("SDL_AUDIODRIVER")) _putenv("SDL_AUDIODRIVER=dummy");
+#else
+            setenv("SWOS_HARNESS_TURBO", "1", 1);
+            if (!getenv("SDL_VIDEODRIVER")) setenv("SDL_VIDEODRIVER", "dummy", 1);
+            if (!getenv("SDL_AUDIODRIVER")) setenv("SDL_AUDIODRIVER", "dummy", 1);
+#endif
         } else if (strcmp(a, "--challenge-selftest") == 0) {
             /* Round-trips the setup block and the match state in this process, and says
              * which field failed if one does. Needs no game data, so it runs here and

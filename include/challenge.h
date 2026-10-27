@@ -70,6 +70,11 @@ int32_t Challenge_CanSave(void);
  * to call unconditionally -- it asks Challenge_CanSave first. */
 int32_t Challenge_SaveNow(void);
 
+/* The same save under a caller-chosen name in the save folder (NULL or "" picks the
+ * next free CHALnn.CHL), without the key path's hold-off and on-pitch notice. The
+ * challenge generator's writer (src/challenge_gen.c). */
+int32_t Challenge_SaveAs(const uint8_t *name);
+
 /* Make the bundled target-specific sample available as SAMPLE.CHL in save/.
  * Existing saves are never overwritten. Called before opening CHALLENGES. */
 void Challenge_EnsureSample(void);

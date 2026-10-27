@@ -779,6 +779,20 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
         }
     }
     {
+        /* CHALLENGE GENERATOR (src/challenge_gen.c): the spec already decided who
+         * controls which side, and a headless generator run has nobody to answer the
+         * prompts. Same shape as the branches around it. */
+        extern int32_t ChallengeGen_Armed(void);
+        extern void    ChallengeGen_SetupPlayers(TeamFileEx *t1, TeamFileEx *t2);
+        if (ChallengeGen_Armed()) {
+            _isCareer = 0;
+            _exitGameFlag = 0;
+            ChallengeGen_SetupPlayers(team1, team2);
+            (void)maxSubs; (void)excludeFlags; (void)allowSquadChanges; (void)mode; (void)d0;
+            return;
+        }
+    }
+    {
         /* A LIVE netplay match: both teams are human, one of them on the other
          * machine, so there is nobody here to answer a prompt -- and a menu
          * that waits for input would never return, leaving GGPO's socket

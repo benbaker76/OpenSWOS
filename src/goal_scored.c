@@ -432,3 +432,114 @@ team_ptrs_done:
         }
     }
 }
+
+/* ================================================================
+ * RebuildScorerSprites
+ *
+ * Redraws every scorer-banner sprite from the scorer TABLES alone. A loaded
+ * save state (src/challenge.c) restores the tables, the sprite structs, the
+ * widths and numSpritesTaken -- the state registry carries them -- but the
+ * PIXELS live in sprite-graphics slots, which are display state and
+ * deliberately not in the registry. Without this a loaded position's banner
+ * draws whatever those slots last held (the "score-panel graphics" issue in
+ * docs/CHALLENGE.md).
+ *
+ * The LAYOUT was decided by GoalScored live -- rows per scorer, stolen rows
+ * -- and is already in numSpritesTaken and the sprites' imageIndexes, so
+ * nothing here allocates: it renders the same text through the same
+ * templates, which fills the same rows to the same widths.
+ * ================================================================ */
+void __attribute__((used, externally_visible))
+RebuildScorerSprites(void)
+{
+    int16_t t;
+
+    for (t = 0; t < 2; t++) {
+        ScorerInfo *scorers   = t == 0 ? _team1Scorers : _team2Scorers;
+        Sprite     *sprites   = t == 0 ? _team1ScorerSprite : _team2ScorerSprite;
+        uint16_t   *sprWidths = t == 0 ? _team1ScorerSpritesWidths : _team2ScorerSpritesWidths;
+        /* GoalScored's own pairing: team 1's scorers are named from _topTeamPtr --
+         * except an own goal, whose scorer is in the OTHER team (key >= 100). */
+        TeamGame   *own       = t == 0 ? _topTeamPtr : _bottomTeamPtr;
+        TeamGame   *other     = t == 0 ? _bottomTeamPtr : _topTeamPtr;
+        int16_t     row = 0, slot;
+
+        if (!own || !other)
+            return;
+
+        for (slot = 0; slot < 8 && row < 8; slot++) {
+            ScorerInfo *sc = &scorers[slot];
+            int16_t  rows = sc->numSpritesTaken > 0 ? sc->numSpritesTaken : 1;
+            int16_t  lastRow = (int16_t)(row + rows - 1);
+            TeamGame *nameTeam = own;
+            uint8_t  *playerName = (uint8_t *)0;
+            int16_t   key = sc->shirtNum, shirt, i, goalIdx;
+            uint16_t  d4, xOff, totalWidth, overflow;
+
+            if (key == 0)
+                break;
+            if (lastRow >= 8)
+                lastRow = 7;
+            shirt = key;
+            if (key >= 100) {           /* own goal: +100, named from the opponents */
+                nameTeam = other;
+                shirt = (int16_t)(key - 100);
+            }
+            /* GoalScored went by the scorer's playerOrdinal, which the table does not
+             * keep; the shirt number it does keep is unique within a side's sixteen. */
+            for (i = 0; i < 16; i++)
+                if (nameTeam->players[i].shirtNumber == (int8_t)shirt) {
+                    playerName = (uint8_t *)nameTeam->players[i].shortName;
+                    break;
+                }
+            if (!playerName) {
+                row = (int16_t)(lastRow + 1);
+                continue;
+            }
+            if (playerName[0] != 0 && playerName[1] == '.' && playerName[2] == ' ')
+                playerName += 3;
+
+            d4 = (uint16_t)sprites[row].imageIndex;
+            HWSprite_LoadFromSpriteGraphics(d4);
+            overflow = Text2Sprite(0, 0, d4, playerName, _smallCharsTable, 2, &totalWidth);
+            (void)overflow;
+            xOff = (uint16_t)(totalWidth + 5);
+
+            for (goalIdx = 0; goalIdx < sc->numGoals; ) {
+                GoalInfo *g = &sc->goals[goalIdx];
+                char *tmpl = ((goalIdx < sc->numGoals - 1) ? alreadyScoredTable
+                                                           : firstGoalScoredTable)[g->goalType];
+                uint8_t *renderStart;
+
+                tmpl[0] = (char)g->time[0];
+                tmpl[1] = (char)g->time[1];
+                tmpl[2] = (char)g->time[2];
+                tmpl[3] = (char)g->time[3];
+                renderStart = (uint8_t *)tmpl + 1;
+                if (*renderStart == '0') {
+                    renderStart++;
+                    if (*renderStart == '0')
+                        renderStart++;
+                }
+                overflow = Text2Sprite(xOff, 0, d4, renderStart, _smallCharsTable, 2,
+                                       &totalWidth);
+                xOff = totalWidth;
+                if (overflow == 0) {
+                    goalIdx++;
+                    continue;
+                }
+                /* Same text as live play: the overflow falls on the same boundary the
+                 * live match's did, so the scorer's own next row is the right one. */
+                sprWidths[row] = xOff;
+                if (row >= lastRow)
+                    break;              /* the live layout never gets here; stop clean */
+                row++;
+                d4 = (uint16_t)sprites[row].imageIndex;
+                HWSprite_LoadFromSpriteGraphics(d4);
+                xOff = 0;
+            }
+            sprWidths[row] = xOff;
+            row = (int16_t)(lastRow + 1);
+        }
+    }
+}

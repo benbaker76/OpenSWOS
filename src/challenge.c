@@ -341,27 +341,30 @@ static void chal_dbg(uint8_t stage, uint32_t a, uint32_t b)
     swos_io_save((const uint8_t *)"CHALDBG.BIN", d, sizeof d);
 }
 
-int32_t Challenge_SaveNow(void)
+/* The first CHALnn slot with no file in it, so a session can keep several positions. */
+static int32_t next_free_slot(void)
 {
-    uint8_t   name[12];
+    uint8_t name[12];
+    int32_t slot;
+    for (slot = 1; slot < 100; slot++) {
+        uint8_t  *probe = NULL;
+        uint32_t  probeLen = 0;
+        name_for_slot(slot, name);
+        if (swos_io_load_alloc(name, &probe, &probeLen) != 0)
+            break;
+        swos_io_free(probe);
+    }
+    return slot < 100 ? slot : 99;              /* all taken: overwrite the last */
+}
+
+/* The encode and the write, for a caller that has already passed the gate and picked
+ * the name. Both saving paths -- the in-match key and the generator -- end here. */
+static int32_t save_position_as(const uint8_t *name)
+{
     uint8_t  *buf;
     uint8_t  *p;
     uint32_t  stateLen, total;
-    int32_t   slot, unresolved;
-
-    chal_dbg(CHAL_DBG_KEY, 0, 0);
-
-    if (!Challenge_CanSave()) {
-        chal_dbg(CHAL_DBG_GATE, (uint32_t)human_sides(), _gameState);
-        return 1;
-    }
-    /* One file per press, not one per frame the key is held (Challenge_TickNotice runs it
-     * down from the match loop). The same shape as _spaceReplayTimer, which holds the
-     * SPACE highlight grab off for 0x64 frames. */
-    if (s_noticeFrames > 0) {
-        chal_dbg(CHAL_DBG_HOLD, (unsigned)s_noticeFrames, 0);
-        return 1;
-    }
+    int32_t   unresolved;
 
     stateLen = SimState_PortableSize(SIM_TIER_SIM);
     total = CHAL_HEADER_BYTES + (uint32_t)SETUP_BYTES + stateLen;
@@ -415,33 +418,44 @@ int32_t Challenge_SaveNow(void)
         memcpy(p + 80, stamp ? stamp : "", n);
     }
 
-    /* The first free slot, so a session can keep several positions. */
-    for (slot = 1; slot < 100; slot++) {
-        uint8_t  *probe = NULL;
-        uint32_t  probeLen = 0;
-        name_for_slot(slot, name);
-        if (swos_io_load_alloc(name, &probe, &probeLen) != 0)
-            break;
-        swos_io_free(probe);
-    }
-    if (slot >= 100)
-        slot = 99;                                  /* all taken: overwrite the last */
-    name_for_slot(slot, name);
-
     if (swos_io_save(name, buf, total) != 0) {
         CHAL_LOG("could not write %s\n", (const char *)name);
-        chal_dbg(CHAL_DBG_WRITE, (uint32_t)slot, total);
+        chal_dbg(CHAL_DBG_WRITE, 0, total);
         swos_io_free(buf);
         return 1;
     }
     swos_io_free(buf);
-    chal_dbg(CHAL_DBG_OK, (uint32_t)slot, total);
+    chal_dbg(CHAL_DBG_OK, 0, total);
 
     CHAL_LOG("saved %s: frame %u, minute %u, %.16s %u-%u %.16s, %u bytes\n",
              (const char *)name, (unsigned)_frameCount, (unsigned)clock_minute(),
              (const char *)_topTeamInGame.teamName, (unsigned)_team1TotalGoals,
              (unsigned)_team2TotalGoals, (const char *)_bottomTeamInGame.teamName,
              (unsigned)total);
+    return 0;
+}
+
+int32_t Challenge_SaveNow(void)
+{
+    uint8_t name[12];
+
+    chal_dbg(CHAL_DBG_KEY, 0, 0);
+
+    if (!Challenge_CanSave()) {
+        chal_dbg(CHAL_DBG_GATE, (uint32_t)human_sides(), _gameState);
+        return 1;
+    }
+    /* One file per press, not one per frame the key is held (Challenge_TickNotice runs it
+     * down from the match loop). The same shape as _spaceReplayTimer, which holds the
+     * SPACE highlight grab off for 0x64 frames. */
+    if (s_noticeFrames > 0) {
+        chal_dbg(CHAL_DBG_HOLD, (unsigned)s_noticeFrames, 0);
+        return 1;
+    }
+
+    name_for_slot(next_free_slot(), name);
+    if (save_position_as(name) != 0)
+        return 1;
 
     /* Tell the player, on the pitch, for a second and a half. */
     {
@@ -454,6 +468,21 @@ int32_t Challenge_SaveNow(void)
         s_noticeFrames = 75;
     }
     return 0;
+}
+
+int32_t Challenge_SaveAs(const uint8_t *name)
+{
+    uint8_t slotName[12];
+
+    if (!Challenge_CanSave()) {
+        CHAL_LOG("not saved: there is no position to take here\n");
+        return 1;
+    }
+    if (!name || !name[0]) {
+        name_for_slot(next_free_slot(), slotName);
+        name = slotName;
+    }
+    return save_position_as(name);
 }
 
 #ifdef CHAL_AUTOPROBE
@@ -896,6 +925,22 @@ int32_t Challenge_LoadState(void)
                      (unsigned)s_info.frame, (unsigned)s_info.minute,
                      (unsigned)s_info.goals1, (unsigned)s_info.goals2,
                      (unsigned)(got >> 32), (unsigned)got);
+    }
+
+    /* The scorer BANNER: its tables, widths and sprite structs were just restored, but
+     * the pixels live in sprite-graphics slots the registry deliberately leaves alone,
+     * so the banner of a loaded position drew whatever the slots last held. Redraw them
+     * from the tables (src/goal_scored.c). */
+    {
+        extern void RebuildScorerSprites(void);
+        RebuildScorerSprites();
+    }
+    /* The CLOCK is the same shape: _gameTime was just restored, but the digits' pixels
+     * are only redrawn when _copyTimeSprite says so -- without this the first frames
+     * showed whatever minute the sprite slot last held, until the next minute tick. */
+    {
+        extern uint16_t _copyTimeSprite;
+        _copyTimeSprite = 1;
     }
     return 1;
 }

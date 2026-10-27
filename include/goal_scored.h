@@ -15,4 +15,11 @@
  */
 void GoalScored(int16_t scoringTeam, Sprite *scorerSprite);
 
+/* ---- RebuildScorerSprites ----
+ * Redraws the scorer-banner sprites from the scorer tables, for a loaded save state:
+ * the tables travel in the state registry, the pixels do not. Layout is taken as
+ * restored (numSpritesTaken, imageIndexes), never re-allocated.
+ */
+void RebuildScorerSprites(void);
+
 #endif

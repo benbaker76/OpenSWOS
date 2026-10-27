@@ -675,6 +675,11 @@ GameFrameResult GameLoop_Frame(void)
      * every frame it is held, so one press of 'C' wrote a file per frame (four of them,
      * first time it was tried). */
     Challenge_TickNotice();
+#ifdef SWOS_SDL_BUILD
+    /* CHALLENGE GENERATOR (--challenge-gen, src/challenge_gen.c): drives the match
+     * toward the spec'd position and saves it; a no-op in every ordinary match. */
+    { extern void ChallengeGen_Frame(void); ChallengeGen_Frame(); }
+#endif
     Challenge_DumpPitch();      /* TEMPORARY diagnostic */
 #ifdef CHAL_AUTOPROBE
     Challenge_AutoProbe();      /* TEMPORARY: see include/challenge.h */

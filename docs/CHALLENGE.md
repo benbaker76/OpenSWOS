@@ -80,6 +80,66 @@ camera delta. Loaded camera fractions are preserved. On exit, both menu scroll
 origins are reset before the normal menu redraw. SDL's top-level Esc shortcut now
 also checks that no game, highlight playback or challenge is active.
 
+## Generating challenges (SDL only)
+
+`SWOS --challenge-gen=spec.json` constructs a challenge nobody had to play into
+(`src/challenge_gen.c`, `scripts/chl_dump.py` decodes the result). The run is headless
+and takes seconds: a real friendly between the spec's teams kicks off under the dummy
+video driver, the module writes the spec into the live match state, and the position is
+saved through `Challenge_SaveAs` — so a generated file is the same thing a C-key capture
+is, and the engine is the authority for every byte the spec does not mention.
+
+```json
+{
+  "team1": "AC MILAN", "team2": "JUVENTUS",
+  "human": 1,
+  "score": [2, 0],
+  "scorers": [ {"side": 1, "shirt": 9,  "minute": 12},
+               {"side": 1, "shirt": 10, "minute": 55} ],
+  "minute": 88,
+  "out": "MILANJUV.CHL"
+}
+```
+
+Teams are named as the database spells them (or by uuid, which also settles a duplicated
+name). The scorers ARE the score — `score` is only a cross-check — and each one is a
+shirt number from that side's starting eleven plus the goal's minute, which is what the
+in-match scorer list shows. No goal is simulated: the score is ordinary match state,
+written the way the engine itself writes it (`GoalScored`).
+
+The POSITION is never fabricated, because an arbitrary open-play arrangement cannot be
+kept consistent by hand across the state registry. It is a dead-ball line-up the engine
+builds on its own:
+
+- **the default** is the kickoff straight after the spec's last goal — that goal is
+  scored for real (the ball put over the line with the spec's scorer as the last player
+  to touch it) and the engine runs its own bookkeeping, celebration and restart.
+  **`"ball": 1|2`** picks who kicks off: a restart belongs to the side that conceded, so
+  the position restarts after the OTHER side's latest goal (which must exist), every
+  later goal being history by then;
+- **`"situation": "corner"`** (with `"corner": {"for": 1, "wing": "left"}`) puts the
+  ball just past the end line instead, last touched by the defenders, and the engine's
+  own out-of-play code awards and places the corner. A goalless position must be a
+  corner for now.
+
+Every restart funnels into `ST_WAITING_ON_PLAYER` — line-up complete, game waiting on
+the taker — and that is where the position is saved, after the clock is set to the
+spec's `minute` (1–89). A minute past 45 is reached by letting the engine play its own
+half time in turbo, so the end swap and every half-time side effect are its own; the run
+fails rather than mis-scores if the AI managed a goal in the ~1 second of open play that
+costs.
+
+The match is a friendly, but **a level score at 90 plays extra time and then penalties
+by default** — the friendly's own tie options, carried in the file's setup block —
+because a challenge wants deciding; `"extra_time": false` / `"penalties": false` opt
+out.
+
+Caveats: generate with the same rules the players will use (`--dos-gameplay`, `--view`,
+the no-cards setting) — `Challenge_Arm` refuses a rules mismatch, and a file is per
+target like every `.CHL`. `pitch` (optional) picks the pitch number, otherwise the
+friendly's random roll decides. `out` must end in `.CHL`; without it the next free
+`CHALnn.CHL` is used.
+
 ## Verification and known limitations
 
 Both targets compile. SDL `--challenge-selftest` passes setup and simulation

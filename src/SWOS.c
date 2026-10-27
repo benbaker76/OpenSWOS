@@ -386,6 +386,17 @@ skip_title_screens: ;
             }
         }
         {
+            /* --challenge-gen=<spec>: construct a position and save it as a .CHL
+             * (src/challenge_gen.c). Here for the same reason as the rigs: the match
+             * needs its data loaded, and a generator run wants no menus. */
+            extern int32_t ChallengeGen_Armed(void);
+            extern void    ChallengeGen_Run(void);
+            if (ChallengeGen_Armed()) {
+                ChallengeGen_Run();   /* writes the file, then exits from inside the match */
+                return;
+            }
+        }
+        {
             extern int32_t ReplayV2_ViewTestArmed(void);
             extern void    ReplayV2_ViewTestRun(void);
             if (ReplayV2_ViewTestArmed())
