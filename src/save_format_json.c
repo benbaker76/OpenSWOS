@@ -532,6 +532,14 @@ static void emit_season_informations(mjson_print_fn_t fn, void *fnd)
     mjson_printf(fn, fnd, "%s", "]");
 }
 
+/* Root-slice fast path for the career load — defined with the walk-once
+ * helpers below (see "walk-once ROOT capture"); forward-declared here for
+ * the loaders that appear earlier in the file. */
+static int career_root_find(const char *buf, int buflen, const char *path,
+                            const char **v, int *vlen);
+static int fast_array_next(const char *slice, int slen, int pos,
+                           int *voff, int *vlen, int *vt);
+
 /* Parse `season_informations` array from JSON, overwriting the 20
  * records in memory at `seasonInformationsArray`. Called AFTER the
  * opaque_data base64 has been decoded so we override the affected
@@ -545,20 +553,20 @@ static void load_season_informations(const char *buf, int buflen)
      * 20 array lookups + per-entry scans of ~500 bytes. */
     const char *arr = NULL;
     int arr_len = 0;
-    if (mjson_find(buf, buflen, "$.season_informations",
-                   &arr, &arr_len) != MJSON_TOK_ARRAY)
+    if (career_root_find(buf, buflen, "$.season_informations",
+                         &arr, &arr_len) != MJSON_TOK_ARRAY)
         return;
 
-    /* Walk the array via mjson_next so each iteration is O(1) in
-     * array position. Indexed "$[i]" finds re-walk from the start
-     * each time → O(n²) over the whole array. */
+    /* Walk the array with fast_array_next — a true O(1)-per-step cursor.
+     * (mjson_next re-runs the parser from the array's start per element;
+     * indexed "$[i]" finds would be O(n²) the same way.) */
     SeasonInformations *si_arr = (SeasonInformations *)_seasonInformationsArray;
     long num = 0.0;
-    int pos = 0, koff, klen, voff, vlen, vt;
+    int pos = 0, voff, vlen, vt;
     uint32_t i = 0;
     while (i < SAVE_SI_ENTRY_COUNT &&
-           (pos = mjson_next(arr, arr_len, pos,
-                             &koff, &klen, &voff, &vlen, &vt)) != 0) {
+           (pos = fast_array_next(arr, arr_len, pos,
+                                  &voff, &vlen, &vt)) != 0) {
         if (vt != MJSON_TOK_OBJECT) { i++; continue; }
         const char *e_slice = arr + voff;
         int e_slen = vlen;
@@ -1414,12 +1422,16 @@ static const FieldDesc s_career_scalars[] = {
      * stable). The ONLY host-native multi-byte field anywhere in the cache
      * is the +2 stride (verified by auditing every *(uint16_t*) cache
      * access). So the byte blob round-trips cross-target EXCEPT the strides
-     * byte-swap → the walker's `stride<10||stride>256` bounds check rejects
+     * byte-swap → the walker's [KEYCACHE_STRIDE_MIN,MAX] bounds check rejects
      * the swapped value → it bails after one entry (observed: only one
      * fixture on the Amiga from a 64-bit cup save). The blob still carries
      * everything correctly; cache_strides (below) re-lays the strides
      * host-native on load. See fixup_cache_strides_on_load. */
-    FA("team_selection_key_cache",    _teamSelectionKeyCache,      1870, FLD_BYTES),
+    /* FULL buffer (== KEY_CACHE_BUF_SIZE / TSKC_SIZE). Was 1870 — sized for
+     * career-mode 22-byte entries — which TRUNCATED a season's cache on load
+     * (an Italian season measured 60 entries / ~7.8 KB; only the first ~12
+     * survived a save/load, silently dropping every fixture beyond them). */
+    FA("team_selection_key_cache",    _teamSelectionKeyCache,     16384, FLD_BYTES),
 
     /* Six user-saved tactic slots (teamTacticsUSERA..F). Same 370-byte
      * TeamTactics shape as a .TAC file (see write_tactics_buf). Saved
@@ -2026,17 +2038,109 @@ static const KeySlice *kv_array(const KeySlice *kv, int n, const char *name)
     return (k && k->vt == MJSON_TOK_ARRAY) ? k : NULL;
 }
 
+/* ---------- walk-once ROOT capture for the career/season load ----------
+ *
+ * SaveJson_LoadCareer's sub-loaders each located their section with a
+ * root-level mjson_find over the WHOLE file — ~25 full-file scans, seconds
+ * apiece on the Amiga's 68020 against a 610 KB season save (part of the
+ * measured ~3-minute .SEA load, 2026-10-27). Capture every root member the
+ * career load consumes in ONE fast_object_next pass; career_root_find()
+ * answers from the table whenever it is asked about the captured buffer and
+ * falls back to mjson_find for any other input (the preset/DIY loaders and
+ * nested-object lookups share some of these helpers), so behaviour off the
+ * career path is unchanged. A key missing from this table falls back too —
+ * correctness never depends on the table being complete. */
+static KeySlice s_career_root[] = {
+    {"schema_version",0,0,0},       {"file_kind",0,0,0},
+    {"season_informations",0,0,0},  {"primary_country_code",0,0,0},
+    {"comp_copy_dynamic",0,0,0},    {"comp_copy_teamlists",0,0,0},
+    {"career_scalars",0,0,0},       {"cache_strides",0,0,0},
+    {"cache_scores",0,0,0},         {"competition_overrides",0,0,0},
+    {"comp_slots",0,0,0},           {"comp_slot_stage",0,0,0},
+    {"stage_standings",0,0,0},      {"stage_score_tab",0,0,0},
+    {"stage_score_agg",0,0,0},      {"stage_score_pen",0,0,0},
+    {"secondary_league_rows",0,0,0},{"tertiary_league_rows",0,0,0},
+    {"diy_league_rows",0,0,0},      {"euro_league_rows",0,0,0},
+    {"career_team",0,0,0},          {"current_team",0,0,0},
+    {"selected_teams",0,0,0},       {"tmd_teams",0,0,0},
+    {"career_foreign_market_players",0,0,0},
+    {"transfer_offer_table",0,0,0}, {"new_job_offers",0,0,0},
+    {"job_offers",0,0,0},           {"career_team_reserves",0,0,0},
+    {"current_team_reserves",0,0,0},
+    /* The per-slot type-2 stage restores (load_ctx_stage / load_comp_slot /
+     * load_stage_cupfull) build these names from their slot key. */
+    {"comp_slot_stage_cupfull",0,0,0},
+    {"secondary_comp_slot_stage",0,0,0},
+    {"secondary_comp_slot_stage_cupfull",0,0,0},
+    {"secondary_comp_slot_stage_standings",0,0,0},
+    {"tertiary_comp_slot_stage",0,0,0},
+    {"tertiary_comp_slot_stage_cupfull",0,0,0},
+    {"tertiary_comp_slot_stage_standings",0,0,0},
+    {"diy_comp_slot_stage",0,0,0},
+    {"diy_comp_slot_stage_cupfull",0,0,0},
+    {"diy_comp_slot_stage_standings",0,0,0},
+    {"euro_comp_slot_stage",0,0,0},
+    {"euro_comp_slot_stage_cupfull",0,0,0},
+    {"euro_comp_slot_stage_standings",0,0,0},
+};
+#define N_CAREER_ROOT ((int)(sizeof s_career_root / sizeof s_career_root[0]))
+static const char *s_career_root_src = NULL;
+static int         s_career_root_len = 0;
+
+static void career_root_capture(const char *src, int n)
+{
+    for (int i = 0; i < N_CAREER_ROOT; i++) {
+        s_career_root[i].v = NULL;
+        s_career_root[i].vlen = 0;
+        s_career_root[i].vt = 0;
+    }
+    s_career_root_src = src;
+    s_career_root_len = n;
+    capture_object_keys(src, n, s_career_root, N_CAREER_ROOT);
+}
+
+/* The capture holds slices into the load buffer; it MUST be dropped before
+ * that buffer is freed, or a later allocation could alias the identity check. */
+static void career_root_release(void)
+{
+    s_career_root_src = NULL;
+    s_career_root_len = 0;
+}
+
+/* Drop-in for `mjson_find(buf, buflen, "$.<key>", v, vlen)` at ROOT level.
+ * Returns the member's MJSON_TOK_* (MJSON_TOK_INVALID when absent), exactly
+ * like mjson_find. */
+static int career_root_find(const char *buf, int buflen, const char *path,
+                            const char **v, int *vlen)
+{
+    if (buf == s_career_root_src && buflen == s_career_root_len &&
+        path[0] == '$' && path[1] == '.') {
+        for (int i = 0; i < N_CAREER_ROOT; i++) {
+            if (strcmp(s_career_root[i].key, path + 2) == 0) {
+                if (!s_career_root[i].v)
+                    return MJSON_TOK_INVALID;   /* genuinely absent in file */
+                *v    = s_career_root[i].v;
+                *vlen = s_career_root[i].vlen;
+                return s_career_root[i].vt;
+            }
+        }
+        /* Key not in the capture table — fall through to a real find. */
+    }
+    return mjson_find(buf, buflen, path, v, vlen);
+}
+
 static void load_scalar_table(const char *buf, int buflen,
                               const char *section_key,
                               const FieldDesc *table)
 {
-    /* Resolve the section's object slice ONCE. */
+    /* Resolve the section's object slice ONCE (root-capture fast path on
+     * the career load; plain find for the preset/DIY buffers). */
     char section_path[80];
     swos_io_snprintf(section_path, sizeof(section_path), "$.%s", section_key);
     const char *section = NULL;
     int section_len = 0;
-    if (mjson_find(buf, buflen, section_path,
-                   &section, &section_len) != MJSON_TOK_OBJECT)
+    if (career_root_find(buf, buflen, section_path,
+                         &section, &section_len) != MJSON_TOK_OBJECT)
         return;
 
     /* Hashed-index cache — currently we have one FieldDesc table
@@ -2059,11 +2163,19 @@ static void load_scalar_table(const char *buf, int buflen,
      * lookup into the FieldDesc index. Unknown keys are silently
      * skipped; absent FieldDesc entries leave their target unchanged
      * (which matches the legacy loop's `if (mjson_get_*) ...` early-out
-     * semantics). */
+     * semantics).
+     *
+     * fast_object_next, NOT mjson_next: mjson_next re-runs the mjson core
+     * from byte 0 of the section per member, so this walk was
+     * O(members × section). For a career/season save the career_scalars
+     * section carries the five CompetitionSlotBuffer blobs — most of the
+     * file — and 242 members × ~500 KB was ~2 minutes of the Amiga's
+     * 3-minute .SEA load (measured under FS-UAE gdb, 2026-10-27). Same
+     * cure as the .PRE/.DIY loader (32ffcee). */
     char tmp[64];
     int pos = 0, koff, klen, voff, vlen, vt;
-    while ((pos = mjson_next(section, section_len, pos,
-                             &koff, &klen, &voff, &vlen, &vt)) != 0) {
+    while ((pos = fast_object_next(section, section_len, pos,
+                                   &koff, &klen, &voff, &vlen, &vt)) != 0) {
         /* koff..koff+klen wraps the key in double quotes — strip them
          * for the hash. */
         if (klen < 2) continue;
@@ -2219,7 +2331,7 @@ extern CompetitionSlotBuffer _competitionContextBuf;         /* slot-1 untangle 
 extern CompetitionSlotBuffer _tertiaryCompetitionContextBuf;  /* slot-2 untangle (S3): typed buffer (was +66240, 1092 B) */
 extern CompetitionSlotBuffer _diyCompetitionContextBuf;  /* slot-4 untangle (S2): typed buffer (was +67332, 1092 B) */
 extern CompetitionSlotBuffer _euroCupsCompetitionContextBuf; /* slot-3 untangle (S5): typed buffer (was +68424, 2900 B) */
-extern uint8_t _teamSelectionKeyCache[];             /* +73292, ~1870 B */
+extern uint8_t _teamSelectionKeyCache[];             /* KEY_CACHE_BUF_SIZE = 16384 B */
 extern uint8_t _careerForeignMarketPlayers[];        /* +75162, 18144 B */
 /* diyTeamIdListType2/0/1 reached via primaryCompetitionBuf casts now (S6). */
 extern uint8_t _teamTacticsUSERA[];                  /* +96220, 370 B */
@@ -2870,8 +2982,8 @@ static void emit_team_file_ex(mjson_print_fn_t fn, void *fnd,
 #define WITH_OBJECT_SLICE(buf, buflen, path_str, slice_var, slicelen_var, body) \
     do { \
         const char *slice_var = NULL; int slicelen_var = 0; \
-        if (mjson_find((buf), (buflen), (path_str), \
-                       &slice_var, &slicelen_var) == MJSON_TOK_OBJECT) { \
+        if (career_root_find((buf), (buflen), (path_str), \
+                             &slice_var, &slicelen_var) == MJSON_TOK_OBJECT) { \
             body \
         } \
     } while (0)
@@ -4543,7 +4655,7 @@ static void load_comp_copy_region(const char *buf, int buflen)
     reconstruct_comp_copy_region_from_templates();
 
     const char *o = NULL; int olen = 0;
-    if (mjson_find(buf, buflen, "$.comp_copy_dynamic", &o, &olen)
+    if (career_root_find(buf, buflen, "$.comp_copy_dynamic", &o, &olen)
             == MJSON_TOK_OBJECT) {
         long v;
         if (mjson_get_long(o, olen, "$.wc_group8_teams", &v) > 0)
@@ -4562,7 +4674,7 @@ static void load_comp_copy_region(const char *buf, int buflen)
     {
         extern CompetitionCareer _careerContests[];
         const char *arr = NULL; int alen = 0;
-        if (mjson_find(buf, buflen, "$.comp_copy_teamlists", &arr, &alen)
+        if (career_root_find(buf, buflen, "$.comp_copy_teamlists", &arr, &alen)
                 == MJSON_TOK_ARRAY) {
             int pos = 0, voff, vlen, vt;
             CompetitionCareer *e = _careerContests;
@@ -4593,7 +4705,7 @@ static void load_comp_copy_region(const char *buf, int buflen)
  * VALUES as endian-neutral decimals (walking the entry list) and re-laying
  * them host-native on load:
  *   1. Each entry's +2 uint16 stride. Swapping breaks the entry walk —
- *      the runtime walker's stride<10||>256 bounds check rejects the
+ *      the runtime walker's [KEYCACHE_STRIDE_MIN,MAX] bounds check rejects the
  *      swapped value and bails after one entry (one-fixture-on-Amiga bug).
  *   2. Each game-record's score fields: packedGoals(+6) / aggregate(+8) /
  *      penaltyScore(+10), host-native u16s. Swapping flips home/away
@@ -4605,9 +4717,12 @@ static void load_comp_copy_region(const char *buf, int buflen)
  * cache_strides[] holds one stride per entry; cache_scores[] holds 3
  * decimals (packed,agg,pen) per game record, flattened in walk order.
  * Both walks use the LIVE/just-restored strides + numGames; bounds-guarded
- * (stride [10,256], stay within TSKC_SIZE) so corrupt data can't overrun. */
+ * (stride [KEYCACHE_STRIDE_MIN,MAX], stay within TSKC_SIZE) so corrupt data can't overrun. */
 extern uint16_t _teamSelectionKeyCacheCount;
-#define TSKC_SIZE 1870u
+/* == KEY_CACHE_BUF_SIZE (career_key_cache.c asserts 16384). Was 1870 — the
+ * career-sized bound truncated SEASON caches (big per-round entries); the
+ * stride/score walks and the FA blob above all cover the whole buffer now. */
+#define TSKC_SIZE 16384u
 #define TSKC_GAMEREC_OFF 0x0A      /* game records start here within an entry */
 
 static void emit_cache_strides(mjson_print_fn_t fn, void *fnd)
@@ -4623,7 +4738,7 @@ static void emit_cache_strides(mjson_print_fn_t fn, void *fnd)
         uint16_t stride = *(uint16_t *)(base + off + 2);
         if (i > 0) mjson_printf(fn, fnd, "%s", ",");
         mjson_printf(fn, fnd, "%u", (unsigned)stride);
-        if (stride < 10 || stride > 256) break;
+        if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
         off += stride;
     }
     mjson_printf(fn, fnd, "%s", "]");
@@ -4635,7 +4750,7 @@ static void emit_cache_strides(mjson_print_fn_t fn, void *fnd)
     for (int i = 0; i < count; i++) {
         if (off + 6 > TSKC_SIZE) break;
         uint16_t stride = *(uint16_t *)(base + off + 2);
-        if (stride < 10 || stride > 256) break;
+        if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
         int numGames = base[off + 5];
         for (int g = 0; g < numGames; g++) {
             uint32_t rec = off + TSKC_GAMEREC_OFF + (uint32_t)g * 12u;
@@ -4660,7 +4775,7 @@ static void fixup_cache_strides_on_load(const char *buf, int buflen)
     /* Pass 1: re-lay strides host-native (must come first — the score
      * walk needs correct strides + numGames). */
     const char *arr = NULL; int alen = 0;
-    if (mjson_find(buf, buflen, "$.cache_strides", &arr, &alen) != MJSON_TOK_ARRAY)
+    if (career_root_find(buf, buflen, "$.cache_strides", &arr, &alen) != MJSON_TOK_ARRAY)
         return;                          /* pre-v2 save: leave blob as-is */
     {
         int pos = 0, voff, vlen, vt;
@@ -4670,7 +4785,7 @@ static void fixup_cache_strides_on_load(const char *buf, int buflen)
             if (off + 4 > TSKC_SIZE) break;
             uint16_t stride = (uint16_t)parse_long_slice(arr + voff, vlen);
             *(uint16_t *)(base + off + 2) = stride;
-            if (stride < 10 || stride > 256) break;
+            if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
             off += stride;
         }
     }
@@ -4678,7 +4793,7 @@ static void fixup_cache_strides_on_load(const char *buf, int buflen)
     /* Pass 2: re-lay game-record score fields host-native, same walk order
      * as emit. cache_scores is flat (3 decimals per record). */
     const char *sarr = NULL; int salen = 0;
-    if (mjson_find(buf, buflen, "$.cache_scores", &sarr, &salen) != MJSON_TOK_ARRAY)
+    if (career_root_find(buf, buflen, "$.cache_scores", &sarr, &salen) != MJSON_TOK_ARRAY)
         return;                          /* pre-v3 save: scores stay as blob */
     {
         int count = (int)(int16_t)_teamSelectionKeyCacheCount;
@@ -4687,7 +4802,7 @@ static void fixup_cache_strides_on_load(const char *buf, int buflen)
         for (int i = 0; i < count; i++) {
             if (off + 6 > TSKC_SIZE) break;
             uint16_t stride = *(uint16_t *)(base + off + 2);
-            if (stride < 10 || stride > 256) break;
+            if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
             int numGames = base[off + 5];
             for (int g = 0; g < numGames; g++) {
                 uint32_t rec = off + TSKC_GAMEREC_OFF + (uint32_t)g * 12u;
@@ -5499,7 +5614,7 @@ static void load_comp_slot(const char *parent, int plen,
     char path[64];
     swos_io_snprintf(path, sizeof(path), "$.%s", key);
     const char *o = NULL; int olen = 0;
-    if (mjson_find(parent, plen, path, &o, &olen) != MJSON_TOK_OBJECT)
+    if (career_root_find(parent, plen, path, &o, &olen) != MJSON_TOK_OBJECT)
         return;                          /* slot absent (older save) */
     load_comp_slot_obj(o, olen, s);
 }
@@ -5589,7 +5704,7 @@ static void load_competition_overrides_obj(const char *obj, int obj_len)
 static void load_competition_overrides(const char *buf, int buflen)
 {
     const char *obj = NULL; int obj_len = 0;
-    if (mjson_find(buf, buflen, "$.competition_overrides",
+    if (career_root_find(buf, buflen, "$.competition_overrides",
                    &obj, &obj_len) != MJSON_TOK_OBJECT)
         return;                          /* older save without overrides */
     load_competition_overrides_obj(obj, obj_len);
@@ -5642,7 +5757,7 @@ static void load_ctx_league_standings(const char *src, int src_size,
     char sk[64];
     swos_io_snprintf(sk, sizeof(sk), "$.%s_league_rows", key);
     const char *rows = NULL; int rows_len = 0;
-    if (mjson_find(src, src_size, sk, &rows, &rows_len) != MJSON_TOK_ARRAY)
+    if (career_root_find(src, src_size, sk, &rows, &rows_len) != MJSON_TOK_ARRAY)
         return;                          /* pre-fix save -> raw image stands */
     int pos = 0, voff, vlen, vt, i = 0;
     while (i < DIY_OVR_LEAGUE_ROWS &&
@@ -5741,7 +5856,7 @@ static void load_stage_cupfull(const char *src, int src_size, const char *stageK
     char fk[56];
     swos_io_snprintf(fk, sizeof(fk), "$.%s_cupfull", stageKey);
     const char *arr = NULL; int alen = 0;
-    if (mjson_find(src, src_size, fk, &arr, &alen) == MJSON_TOK_ARRAY)
+    if (career_root_find(src, src_size, fk, &arr, &alen) == MJSON_TOK_ARRAY)
         parse_byte_array_slice(arr, alen, (uint8_t *)stage->cupTeamIds,
                                (uint32_t)masterN * 2u);
 }
@@ -5806,7 +5921,7 @@ static void load_ctx_stage(const char *src, int src_size, const char *key,
         char sk[64];
         swos_io_snprintf(sk, sizeof(sk), "$.%s_standings", key);
         const char *rows = NULL; int rows_len = 0;
-        if (mjson_find(src, src_size, sk, &rows, &rows_len) == MJSON_TOK_ARRAY) {
+        if (career_root_find(src, src_size, sk, &rows, &rows_len) == MJSON_TOK_ARRAY) {
             uint16_t nrows = slot->base.numTeams; if (nrows > 64) nrows = 64;
             int pos = 0, voff, vlen, vt; uint16_t i = 0;
             while (i < nrows &&
@@ -6187,11 +6302,11 @@ static void apply_semantic_load(const char *src, int src_size)
      * (legacy save). Stored to a module-local; career_init.c reads it
      * via SaveJson_GetLoadedPrimaryCountryCode(). */
     {
-        long v = 0xFF;
-        if (mjson_get_long(src, src_size, "$.primary_country_code", &v) > 0) {
-            s_loaded_primary_country_code = (uint8_t)v;
-        } else {
-            s_loaded_primary_country_code = 0xFF;
+        const char *pv = NULL; int pvl = 0;
+        s_loaded_primary_country_code = 0xFF;
+        if (career_root_find(src, src_size, "$.primary_country_code",
+                             &pv, &pvl) == MJSON_TOK_NUMBER) {
+            s_loaded_primary_country_code = (uint8_t)parse_long_slice(pv, pvl);
         }
     }
     /* *Copy competition records: reconstruct each from its static template
@@ -6229,7 +6344,7 @@ static void apply_semantic_load(const char *src, int src_size)
      * absent in pre-serializer saves → each load_comp_slot is a no-op. */
     {
         const char *cs = NULL; int cslen = 0;
-        if (mjson_find(src, src_size, "$.comp_slots", &cs, &cslen)
+        if (career_root_find(src, src_size, "$.comp_slots", &cs, &cslen)
                 == MJSON_TOK_OBJECT) {
             load_comp_slot(cs, cslen, "primary",
                            (DIYCompetitionEx *)&_primaryCompetitionBuf);
@@ -6261,7 +6376,7 @@ static void apply_semantic_load(const char *src, int src_size)
                            ((const DIYCompetitionEx *)&_primaryCompetitionBuf)->base.numTeams);
         if (diy_stage_is_league(stage)) {
             const char *rows = NULL; int rows_len = 0;
-            if (mjson_find(src, src_size, "$.stage_standings", &rows, &rows_len)
+            if (career_root_find(src, src_size, "$.stage_standings", &rows, &rows_len)
                     == MJSON_TOK_ARRAY) {
                 int pos = 0, voff, vlen, vt; uint16_t i = 0;
                 while (i < _primaryCompetitionBuf.tourn.header.numTeams && i < 64 &&
@@ -6299,7 +6414,7 @@ static void apply_semantic_load(const char *src, int src_size)
                                     "$.stage_score_pen" };
             for (int a = 0; a < 3; a++) {
                 const char *arr = NULL; int alen = 0;
-                if (mjson_find(src, src_size, keys[a], &arr, &alen) != MJSON_TOK_ARRAY)
+                if (career_root_find(src, src_size, keys[a], &arr, &alen) != MJSON_TOK_ARRAY)
                     continue;
                 int pos = 0, voff, vlen, vt, i = 0;
                 while (i < 18 &&
@@ -6354,7 +6469,7 @@ static void apply_semantic_load(const char *src, int src_size)
     PROF_START(selected_teams);
     const char *teams_arr = NULL;
     int teams_arr_len = 0;
-    if (mjson_find(src, src_size, "$.selected_teams",
+    if (career_root_find(src, src_size, "$.selected_teams",
                    &teams_arr, &teams_arr_len) == MJSON_TOK_ARRAY) {
         int pos = 0, voff, vlen, vt;
         uint16_t i = 0;
@@ -6401,7 +6516,7 @@ static void apply_semantic_load(const char *src, int src_size)
     {
         const char *tmd_arr = NULL;
         int tmd_arr_len = 0;
-        if (mjson_find(src, src_size, "$.tmd_teams",
+        if (career_root_find(src, src_size, "$.tmd_teams",
                        &tmd_arr, &tmd_arr_len) == MJSON_TOK_ARRAY) {
             uint16_t tmd_count = *(uint16_t *)&_careerFileBuffer;
             int pos = 0, voff, vlen, vt;
@@ -6423,7 +6538,7 @@ static void apply_semantic_load(const char *src, int src_size)
     {
         const char *mp_arr = NULL;
         int mp_arr_len = 0;
-        if (mjson_find(src, src_size, "$.career_foreign_market_players",
+        if (career_root_find(src, src_size, "$.career_foreign_market_players",
                        &mp_arr, &mp_arr_len) == MJSON_TOK_ARRAY) {
             int pos = 0, voff, vlen, vt;
             uint32_t i = 0;
@@ -6450,7 +6565,7 @@ static void apply_semantic_load(const char *src, int src_size)
         };
         for (int t = 0; t < 3; t++) {
             const char *arr = NULL; int arr_len = 0;
-            if (mjson_find(src, src_size, offerTabs[t].path, &arr, &arr_len) != MJSON_TOK_ARRAY)
+            if (career_root_find(src, src_size, offerTabs[t].path, &arr, &arr_len) != MJSON_TOK_ARRAY)
                 continue;
             int pos = 0, voff, vlen, vt;
             uint32_t i = 0;
@@ -6472,7 +6587,7 @@ static void apply_semantic_load(const char *src, int src_size)
                               (uint8_t *)&_currentTeam + 684 };
         for (int t = 0; t < 2; t++) {
             const char *arr = NULL; int arr_len = 0;
-            if (mjson_find(src, src_size, paths[t], &arr, &arr_len) != MJSON_TOK_ARRAY)
+            if (career_root_find(src, src_size, paths[t], &arr, &arr_len) != MJSON_TOK_ARRAY)
                 continue;
             int pos = 0, voff, vlen, vt;
             int i = 0;
@@ -6512,28 +6627,37 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
     SWOS_DBG_FLUSH();
 #endif
 
+    /* Capture every root member in ONE pass — every root-level lookup in the
+     * load below answers from this table instead of re-scanning the whole
+     * file (see career_root_find; ~40 full-file scans on a 610 KB season
+     * save were a measurable part of the Amiga's 3-minute load). Released
+     * before src is freed on every exit path. */
+    career_root_capture((const char *)src, (int)src_size);
+
     /* Verify schema_version. */
-    long version = 0;
-    if (mjson_get_long((const char *)src, (int)src_size,
-                         "$.schema_version", &version) <= 0) {
-        swos_io_free(src);
-        return 1;
-    }
-    if ((int)version != SAVE_JSON_SCHEMA_VERSION) {
-        swos_io_free(src);
-        return 1;
+    {
+        const char *vv = NULL; int vvl = 0;
+        if (career_root_find((const char *)src, (int)src_size,
+                             "$.schema_version", &vv, &vvl) != MJSON_TOK_NUMBER ||
+            (int)parse_long_slice(vv, vvl) != SAVE_JSON_SCHEMA_VERSION) {
+            career_root_release();
+            swos_io_free(src);
+            return 1;
+        }
     }
 
     /* Verify file_kind. */
-    char kind[32] = {0};
-    if (mjson_get_string((const char *)src, (int)src_size,
-                         "$.file_kind", kind, sizeof(kind)) <= 0) {
-        swos_io_free(src);
-        return 1;
-    }
-    if (strcmp(kind, KIND_CAREER) != 0) {
-        swos_io_free(src);
-        return 1;
+    {
+        char kind[32] = {0};
+        const char *kv = NULL; int kvl = 0;
+        if (career_root_find((const char *)src, (int)src_size,
+                             "$.file_kind", &kv, &kvl) != MJSON_TOK_STRING ||
+            mjson_get_string(kv, kvl, "$", kind, sizeof(kind)) <= 0 ||
+            strcmp(kind, KIND_CAREER) != 0) {
+            career_root_release();
+            swos_io_free(src);
+            return 1;
+        }
     }
 
     /* Clear the two surviving careerFileBuffer scalars before the typed load
@@ -6567,6 +6691,7 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
     RebuildPointersAfterLoad();
     PROF_END(rebuild_ptrs, "career-load");
 
+    career_root_release();   /* the capture points into src — drop it first */
     swos_io_free(src);
     PROF_END(total, "career-load");
     return 0;

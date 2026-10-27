@@ -23,7 +23,12 @@
 #include "file_io.h"
 
 /* ---- Constants ---- */
-#define SELECTED_TEAMS_CAPACITY     64
+/* 32 was the Amiga's 0x5582-byte block; 64 covered the 36-team euro PRESETS;
+ * 100 (= the whole _selectedTeams[100] run, selected_teams.c) covers a SEASON
+ * whose in-session selection accumulates league + domestic cups + the 36-club
+ * euro field across the slot inits (dedup keeps the overlap, but England's
+ * league+cups union alone runs ~45 before the euro append). */
+#define SELECTED_TEAMS_CAPACITY     100
 #define SAVE_SIZE                   (2 + SELECTED_TEAMS_CAPACITY * sizeof(TeamFileEx))
 
 /* ---- ASM externs ---- */
@@ -33,7 +38,8 @@ extern uint16_t _careerAutoAdvanceInProgress;
 extern TeamFileEx _careerTeam;
 extern uint16_t _selTeamNumber;
 extern uint16_t _numSelectedTeams;
-extern uint8_t _teamSelectionKeyCache[8192];   /* sized: end-bound = base + sizeof */
+extern uint8_t _teamSelectionKeyCache[16384];  /* sized: end-bound = base + sizeof
+                                                * (KEY_CACHE_BUF_SIZE, career_key_cache.c) */
 extern uint16_t _teamSelectionKeyCacheCount;
 extern uint16_t _teamSelectionKeyCacheEnd;     /* season flag (value); bound derived below */
 extern uint16_t _panicReasonCode;
@@ -241,8 +247,8 @@ void CopySelectedTeamNumbers(uint16_t count, uint8_t *dest)
  * Save: copies SAVE_SIZE bytes from numSelectedTeams to backup buffer,
  *        then clears numSelectedTeams.
  * Restore: validates numSelectedTeams <= SELECTED_TEAMS_CAPACITY, then copies
- *          back. (Capacity was 32 = the Amiga's 0x5582-byte block; raised to 64
- *          for the 36-team Champions Cup preset — _selectedTeams[100] has room.)
+ *          back. (Capacity history at the SELECTED_TEAMS_CAPACITY define:
+ *          32 Amiga block → 64 euro presets → 100 season euro enrolment.)
  *
  * The backup buffer replaces the original hard-coded address $C9BBC.
  * ================================================================ */
@@ -1459,7 +1465,7 @@ uint8_t *TeamSelectionKeyCache_GetListPtr(uint16_t listIndex)
          * same approach as the builder walker fix. See
          * docs/OVERLAPPED_DATA.md entry #8. */
         uint16_t stride = ((TeamSelectionKeyCacheEntry *)ptr)->entryStride;
-        if (stride < 10 || stride > 256)
+        if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX)
             return ptr;
         ptr += stride;
     }
@@ -1646,7 +1652,7 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
          * range, treat the season as finished early rather than walking
          * into the careerForeignMarketPlayers overlay. */
         uint16_t stride = ((TeamSelectionKeyCacheEntry *)ptr)->entryStride;
-        if (stride < 10 || stride > 256) {
+        if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) {
             _seasonFinished = 1;
             _careerFinished = 1;
             Career_FillCurrentSeasonInfo();

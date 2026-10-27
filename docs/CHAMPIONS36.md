@@ -1,7 +1,7 @@
 # CHAMPIONS36.md — the 36-team european presets (modern UEFA formats)
 
-Status 2026-10-26: implemented and verified on both targets. SDL-first PoC of
-the modern formats; career mode keeps the legacy competition formats.
+Status 2026-10-27: implemented and verified on both targets, as PRESETS and in
+SEASON mode (below). Career mode still keeps the legacy competition formats.
 
 ## What it is
 
@@ -94,6 +94,65 @@ and no `strstr`, so nothing here uses libc beyond memcpy).
 | the six stages | `rounds[6]` = 36/16/16/8/4/2 with `roundStringBase = 6` (the loader's stage count) and `header.reserved = 1` — byte 33 is the SIXTH stage's trailing qualifier count when all six rounds are used (the World Cup does the same) |
 | standings UI | two pages of 18 (ranks 1–18 / 19–36) on the existing scroll buttons; rank zones coloured 1–8 / 9–24 / 25–36 (diy_competition.c) |
 | roster backup | `SELECTED_TEAMS_CAPACITY` 32→64 in career_teams.c (`_selectedTeams[100]` has room; the restore guard scales with it) |
+
+## Season mode (2026-10-27)
+
+A SEASON plays its european cup in the modern format. SEASON and CAREER are one
+engine (`_gameType` 3 vs 4) and slot 3 (quaternary) is the continental-cup
+slot; season mode simply never claimed it before — the one-season game had NO
+euro cups at all. Now `InitNewSeason` (season only — `_gameType == 3`) runs
+`Season_SelectChampions36SlotIfSquadParticipates` (career_init.c): if a HUMAN
+squad's club is in one of the three curated 36-club tiers
+(`Champions36_TierForTeam`), slot 3 is claimed with that tier's substitute
+record — the same record the presets play, so the whole format (league phase,
+byes, play-offs, two-leg knockouts) comes from the compId-129–131 hooks already
+in the engine. The record's SEP..MAY months spread its 17 match keys through
+the season via the generic progression-table interpolation, so the CL/EL/Confl
+fixtures interleave with the league and domestic cups in the fixture list,
+exactly like career's legacy euro cups.
+
+Season specifics, each a trap someone will otherwise re-hit:
+
+- **Participation is tested against the human SQUADS list**
+  (`_seasonSquadTeamNumbers`) — `_selTeamNumber` stays 0xFFFF for a whole
+  season (see `KeyCacheFixtureIsPlayerControlled`). First tier hit wins when
+  several human squads are in different tiers (slot 3 holds ONE competition).
+- **`_euroCupSlotIndex` gets `CHAMPIONS36_EUROSLOT_BASE + tier` (4/5/6)**
+  (0–2 = legacy euro cups, 3 = Copa). Saved; the load-time slot-3
+  re-derivation (`RebuildPointersAfterLoad`) maps 4–6 back to
+  `Champions36_TierRecord` and additionally requires `Champions36_Is` on the
+  loaded buffer to agree with the index, plus season-aware participation
+  (`Season_SquadInLoadedEuroSlot`).
+- **Do NOT save/restore slotStateA/B/C around the season's slot-3 claim** (the
+  career cascade does): those are the euro screen's cursor-entry ordinals
+  (3/2/8 = the MATCH/RESULT rows), seeded by `InitCompetitionFromRecord`
+  during the claim. Career preserves values InitCareer seeded earlier; a
+  season's slot-3 context starts zeroed, and restoring the zeros pins the CL
+  screen's cursor to entry #0 (the standings header) with no way to reach
+  -MATCH- (the first live bug report).
+- **`SELECTED_TEAMS_CAPACITY` is 100** (was 64): a season's in-session
+  selection accumulates league + domestic cups + the 36-club euro field
+  across the slot inits (England's union runs ~45 before the euro append; the
+  Amiga-era cap was 32).
+- The career auto-advance's corruption guard exempts compIds 129–131 from its
+  `numTeams > 32` bail (career_status.c) — the league stage loads numTeams=36.
+
+`.SEA` saves carry it all through the career save format (a .SEA IS a career
+save with game type 3): the slot-3 blob + typed comp-slot object, the byes in
+`teamIndexOrder[56..63]`, `euro_cup_slot_index`, the squads list. Verified
+live: save + load mid-league on both targets, the loaded CL playable.
+
+**Amiga load time.** The first .SEA load took ~3 minutes under FS-UAE and read
+as a hang (a 610 KB season JSON). Measured under the gdb harness: ~2 min of it
+was `load_scalar_table` walking the `career_scalars` section — which carries
+the five CompetitionSlotBuffer blobs, most of the file — with `mjson_next`,
+which re-runs the mjson core from byte 0 per member; the rest was ~40
+root-level `mjson_find`s, each a full-file scan. Both got the same cure the
+.PRE/.DIY loader got in 32ffcee: the section walk uses `fast_object_next`, and
+one `career_root_capture` pass hands every root-level lookup its slice
+(`career_root_find`, with a plain-find fallback for non-career buffers and
+uncaptured keys, so the preset/DIY paths are unaffected). Loads in well under
+10 s now; saving was always one linear emit pass and stays fast.
 
 ## Saves
 

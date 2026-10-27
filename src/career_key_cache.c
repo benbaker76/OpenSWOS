@@ -27,7 +27,7 @@
  * European cup, KEYCACHE_CLUSTER_REWORK.md §8.1) tops out ~2.5 KB. 8192 is ~7x
  * the measured HWM / ~3x the analytical worst case — ample headroom — while
  * making the 0x8889 bound fire loudly on any real overflow rather than eating
- * 18 KB of player-data-free slack first. The 1870-byte save blob (TSKC_SIZE)
+ * 18 KB of player-data-free slack first. The full-buffer save blob (TSKC_SIZE)
  * and the stride-clamped walkers are unaffected (both << 8192). This is the
  * Tier 2 §8.3 finish; the deferred per-record writer fix is still a follow-up.
  *
@@ -56,8 +56,17 @@
 
 /* Tightened from the SWOS2.s 20014-byte teamSelectionKeyCache->End span to an
  * honest bound now that foreign-market no longer shares the slack — see the
- * file header. ~7x the measured ~1188 B HWM. */
-#define KEY_CACHE_BUF_SIZE 8192
+ * file header. The original 8192 was sized from CAREER usage (22-byte
+ * entries, ~1188 B measured HWM) — but SEASON-mode entries carry every match
+ * of their round (numTeams/2 × 12 + 10, capped 298 B), so a 20-team English
+ * season (38 matchdays ≈ 4.9 KB) + two domestic cups (~2.5 KB) + the 36-team
+ * european cup's 17 entries (~2.4 KB, docs/CHAMPIONS36.md "Season mode")
+ * tripped the 0x8889 overflow panic at PLAY SEASON (live report, 2026-10-27;
+ * an Italian season measured 60 entries / ~7.8 KB — just under). 16384 is
+ * ~1.6x that analytical season worst case; the save blob (TSKC_SIZE,
+ * save_format_json.c) must stay == this size so a season's cache survives a
+ * save/load whole. */
+#define KEY_CACHE_BUF_SIZE 16384
 /* Standalone zero-init BSS storage — pure C (was an __asm__ .skip block;
  * converted for the WASM/Emscripten target, which rejects asm-defined data
  * symbols — see docs/WASM.md §4b).
@@ -66,7 +75,7 @@
  * globals. In SWOS2.s `End` sat immediately past the cache, so its single
  * storage slot did double duty: its VALUE is a season flag, and its ADDRESS was
  * the InsertSpaceSorted overflow bound (== cache + KEY_CACHE_BUF_SIZE). The save
- * already models the two roles as SEPARATE fields (a 1870-B cache blob +
+ * already models the two roles as SEPARATE fields (a full-buffer cache blob +
  * a uint16 `team_selection_key_cache_end`), so decoupling the storage is
  * format-neutral; End's address-bound role is re-expressed at the two
  * career_teams.c call sites as `_teamSelectionKeyCache + sizeof(...)`, so the
@@ -81,6 +90,7 @@ uint16_t _teamSelectionKeyCacheEnd;     /* season-flag VALUE; the old &End == ca
                                            overflow bound is now derived in career_teams.c */
 uint8_t  _careerJobOfferPhaseBias;      /* promoted standalone scalar (was cache byte 1) */
 
-_Static_assert(sizeof(_teamSelectionKeyCache) == 8192,
-               "teamSelectionKeyCache buffer must stay 8192 bytes "
-               "(tightened InsertSpaceSorted bound; KEYCACHE_CLUSTER_REWORK.md §8.3)");
+_Static_assert(sizeof(_teamSelectionKeyCache) == 16384,
+               "teamSelectionKeyCache buffer must stay 16384 bytes "
+               "(InsertSpaceSorted bound AND the save blob size — "
+               "KEYCACHE_CLUSTER_REWORK.md §8.3, TSKC_SIZE in save_format_json.c)");

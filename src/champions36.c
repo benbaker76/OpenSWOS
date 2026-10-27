@@ -232,6 +232,24 @@ uint8_t *Champions36_PresetRecord(uint8_t *record)
     return record;
 }
 
+/* SEASON enrolment: which tier's curated field holds this club. teamId is the
+ * BE-packed (country, ordinal) word used everywhere (TEAMID_PACK form). */
+int Champions36_TierForTeam(uint16_t teamId)
+{
+    for (unsigned t = 0; t < 3; ++t)
+        for (unsigned i = 0; i < 36; ++i)
+            if (TEAMID_PACK(k_tiers[t].seeds[i]) == teamId)
+                return (int)t;
+    return -1;
+}
+
+uint8_t *Champions36_TierRecord(unsigned tier)
+{
+    if (tier >= 3)
+        return 0;
+    return Champions36_PresetRecord((uint8_t *)k_tiers[tier].original);
+}
+
 int Champions36_Is(const DIYCompetition *competition)
 {
     /* field_2E is the DIY buffer's compId: 129..131 are the preset

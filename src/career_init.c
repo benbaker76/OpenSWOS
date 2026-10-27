@@ -10,6 +10,7 @@
 
 #include "game_types.h"
 #include "comp_identity.h"
+#include "champions36.h"   /* SEASON mode's 36-team euro cup (slot 3) */
 #include <string.h>   /* memcpy in Rebuild_CupRecordNameSourcePointers */
 #include "endian_helpers.h"
 #include "menu_system.h"
@@ -569,6 +570,7 @@ extern uint8_t  _nationalTeamNationality;
 extern uint8_t  _nationalTeamFileId;
 extern uint16_t _worldCupQualifyingTeam;
 extern uint16_t _euroChampionshipQualTeam;
+extern uint16_t _gameType;   /* 3 = SEASON — the champions36 enrolment gate */
 extern uint16_t _seasonCycleNationalFlagsA[];
 extern uint16_t _seasonCycleNationalFlagsB[];
 extern uint8_t *_primaryCompStringOffset;
@@ -823,10 +825,9 @@ static int Career_TeamInEuroCup(uint8_t *cupCopy)
  * 1da09fa's protection — a true non-participant is in neither buffer nor
  * template). Mirrors `FindTeamInDIY`'s per-type search but returns found/
  * not-found instead of panicking. */
-static int Career_TeamInLoadedEuroSlot(DIYCompetition *comp)
+static int Career_TeamIdInLoadedEuroSlot(DIYCompetition *comp, uint16_t target)
 {
     uint16_t numTeams = (uint16_t)comp->numTeams;
-    uint16_t target   = _selTeamNumber;
 
     if (comp->competitionType == 2) {
         /* DIY_TOURNAMENT (e.g. European Champions Cup) — teamIds[teamIndexOrder[i]]. */
@@ -849,6 +850,24 @@ static int Career_TeamInLoadedEuroSlot(DIYCompetition *comp)
         }
     }
     return 0;           /* not in this loaded euro slot */
+}
+
+static int Career_TeamInLoadedEuroSlot(DIYCompetition *comp)
+{
+    return Career_TeamIdInLoadedEuroSlot(comp, _selTeamNumber);
+}
+
+/* Season analog: a SEASON's controlling clubs are the human squads
+ * (selTeamNumber stays 0xFFFF — see KeyCacheFixtureIsPlayerControlled), so the
+ * load-time slot-3 participation gate must search the loaded buffer for any of
+ * them. seasonNumberOfSquads / seasonSquadTeamNumbers are saved fields,
+ * restored before RebuildPointersAfterLoad runs. */
+static int Season_SquadInLoadedEuroSlot(DIYCompetition *comp)
+{
+    for (uint16_t i = 0; i < _seasonNumberOfSquads; i++)
+        if (Career_TeamIdInLoadedEuroSlot(comp, _seasonSquadTeamNumbers[i]))
+            return 1;
+    return 0;
 }
 
 /* ================================================================
@@ -958,6 +977,55 @@ uint16_t Career_SelectCopaLibertadoresSlotIfTeamParticipates(void)
     _euroCupSlotIndex = 3;
 
     return 0;  /* participating */
+}
+
+/* ================================================================
+ * Season_SelectChampions36SlotIfSquadParticipates
+ *
+ * SEASON mode's slot-3 enrolment (docs/CHAMPIONS36.md "Season mode"). A season
+ * has no qualification history, so the field of each european cup is the
+ * curated 36-club tier the presets play (champions36.c): if a human squad's
+ * club is in one of the three tiers, claim the quaternary slot with that
+ * tier's SUBSTITUTE record — the same record the preset path plays, so the
+ * whole modern format (36-team league phase, play-offs, byes, two-leg
+ * knockouts) comes from the hooks already keyed on compIds 129–131. The
+ * record's months (SEP..MAY) spread its 17 match keys through the season via
+ * the generic progression-table interpolation, exactly like the legacy career
+ * euro cups.
+ *
+ * Mirrors Career_SelectEuroCupSlotIfTeamParticipates, with two season
+ * differences: participation is tested against the human SQUADS list
+ * (selTeamNumber stays 0xFFFF for a whole season — see
+ * KeyCacheFixtureIsPlayerControlled), and euroCupSlotIndex gets a
+ * CHAMPIONS36_EUROSLOT_BASE+tier sentinel (4/5/6; 0..2 are the legacy euro
+ * cups, 3 is Copa) — saved, and consumed by the load-time slot-3
+ * re-derivation. First tier hit wins when several human squads are in
+ * different tiers (slot 3 holds ONE competition).
+ * ================================================================ */
+static void Season_SelectChampions36SlotIfSquadParticipates(void)
+{
+    for (uint16_t i = 0; i < _seasonNumberOfSquads; i++) {
+        int tier = Champions36_TierForTeam(_seasonSquadTeamNumbers[i]);
+        if (tier < 0)
+            continue;
+
+        uint8_t *rec = Champions36_TierRecord((unsigned)tier);
+
+        /* Unlike the career cascade, do NOT save/restore slotStateA/B/C around
+         * the claim: those are the slot's menu-cursor entry ordinals (3/2/8 =
+         * MATCH/RESULT rows), which InitCompetitionFromRecord seeds correctly
+         * here. The career cascade preserves them because InitCareer seeded its
+         * context earlier; a season's slot-3 context starts zeroed, and
+         * restoring the zeros pins the euro screen's cursor to entry #0 (the
+         * standings header) with no way to reach -MATCH-. */
+        Career_SetCurrentCompetitionSlot(rec, 3, 0, 0);
+
+        ((SeasonInformations *)GetCurrentSeasonPointer())->strPtr3 =
+            ((DIYCompetition *)_careerCompetitionSlotPtrTable[3])->namePtr;
+
+        _euroCupSlotIndex = (uint16_t)(CHAMPIONS36_EUROSLOT_BASE + tier);
+        return;
+    }
 }
 
 /* ================================================================
@@ -1488,6 +1556,15 @@ void InitNewSeason(uint8_t *src, uint16_t divisionIndex)
     if (_seasonNumberOfSquads == 0)
         _careerFinished = 1;
 
+    /* SEASON only (this init also serves nothing else — SeasonMenu is the one
+     * caller): a human club in one of the curated 36-club tiers plays its
+     * european cup alongside the league, in slot 3. After the squad count, so
+     * the squads list is filled and the 36 appended euro teams never affect
+     * it (they load computer-controlled; human clubs dedup onto their
+     * already-selected records). */
+    if (_gameType == 3 /* GAME_TYPE_SEASON */)
+        Season_SelectChampions36SlotIfSquadParticipates();
+
     _viewRandomPhase = _careerJobOfferPhaseBias;
     InitTeams();
 }
@@ -1686,6 +1763,16 @@ static void Rebuild_CompetitionSlotPointers(void)
         if (_euroCupSlotIndex == 0)      euroCup3 = _euroCupCopy;        /* type 2 */
         else if (_euroCupSlotIndex == 1) euroCup3 = _cupWinnersCupCopy;  /* type 1 */
         else if (_euroCupSlotIndex == 2) euroCup3 = _uefaCupCopy;        /* type 1 */
+        else if (_euroCupSlotIndex >= CHAMPIONS36_EUROSLOT_BASE &&
+                 _euroCupSlotIndex <= CHAMPIONS36_EUROSLOT_BASE + 2) {
+            /* SEASON mode's 36-team european cup (type 2): re-derive the tier's
+             * substitute record — a static-backed RAM struct rebuilt
+             * deterministically, so it serves as the pointer target the same
+             * way a *Copy does. Validated below like the others, plus the
+             * compId consistency check (Champions36_Is) on the loaded buffer. */
+            euroCup3 = Champions36_TierRecord(
+                (unsigned)(_euroCupSlotIndex - CHAMPIONS36_EUROSLOT_BASE));
+        }
         else if (_euroCupSlotIndex == 3) {                              /* type 2 (Copa) */
             /* Copa Libertadores shares the quaternary slot (a CONMEBOL club is in
              * none of the euro cups). Re-derive its *Copy so a saved South-American
@@ -1721,9 +1808,20 @@ static void Rebuild_CompetitionSlotPointers(void)
          * with the same search FindTeamInDIY uses (gate-pass => no 0x6006). euroCup3
          * (the static record) is still the pointer TARGET — it carries the name
          * table the game list reads. */
+        /* A champions36 buffer (compId 129–131, serialized) must pair with a
+         * 4..6 index and vice versa — a stale index 0 (legacy euroCup, also
+         * type 2) must not re-point slot 3 at the wrong record. */
+        int idx36 = _euroCupSlotIndex >= CHAMPIONS36_EUROSLOT_BASE &&
+                    _euroCupSlotIndex <= CHAMPIONS36_EUROSLOT_BASE + 2;
+        /* Participation: the career team in career mode; any human squad in
+         * season mode (selTeamNumber stays 0xFFFF there). */
+        int inIt = Career_TeamInLoadedEuroSlot(q3) ||
+                   (_gameType == 3 /* GAME_TYPE_SEASON */ &&
+                    Season_SquadInLoadedEuroSlot(q3));
         if (euroCup3 != 0 && q3->isActive != 0 &&
             q3->competitionType == ((Competition *)euroCup3)->type &&
-            Career_TeamInLoadedEuroSlot(q3)) {
+            (Champions36_Is(q3) != 0) == idx36 &&
+            inIt) {
             _quaternaryCompetitionPtr = euroCup3;
         } else {
             _quaternaryCompetitionPtr = 0;  /* slot 3 inactive / club not in it this season */

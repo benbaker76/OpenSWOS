@@ -31,6 +31,7 @@
 #include "career_status.h"
 #include "test_rules.h"
 #include "comp_identity.h"
+#include "champions36.h"   /* the 36-team euro formats' numTeams exemption */
 #include "diy_competition.h"
 #include "endian_helpers.h"
 #include "career_teams.h"
@@ -3268,7 +3269,12 @@ void Career_AutoAdvanceCompetitionAndPersistSlotState(uint8_t *compPtr)
         const char *bailReason = 0;
         uint32_t bailTeamSelPtr = 0;
 
-        if (numTeams <= 0 || numTeams > 32) {
+        /* The 36-team european formats (compIds 129–131) legitimately exceed
+         * the legacy 32 cap: the league stage loads numTeams=36. Their master
+         * tournament state is in diyFileBufferCopy after the type-2 load. */
+        int16_t maxTeams =
+            (compType == 2 && Champions36_Is(&_diyFileBufferCopy.header)) ? 36 : 32;
+        if (numTeams <= 0 || numTeams > maxTeams) {
             bail = 1;
             bailReason = "numTeams out of range";
         } else if (totalInRound <= 0 || totalInRound > 32) {

@@ -1400,6 +1400,19 @@ typedef struct __attribute__((packed)) TeamSelectionKeyCacheEntry {
 
 typedef char _tskc_entry_size_check[(sizeof(TeamSelectionKeyCacheEntry) == 10) ? 1 : -1];
 
+/* Legitimate entryStride range for the cache walkers' corruption guard.
+ * The builder (TeamSelectionKeyCache_BuildFromCompetitionBlock) sizes a
+ * season/DIY entry as `min(numTeams>>1, 0x18) * 0xC + 0xA`, so the MAX is
+ * 0x18*0xC+0xA = 298 (a large early-round cup: the English League Cup's
+ * round 2 has 48+ teams → halved caps at 24). Career-mode entries are a
+ * fixed 0x16=22. The old guards used a round 256, BELOW the true 298 max,
+ * so a 257..298 entry (English season's League Cup) froze the list walker
+ * and hid every fixture past it — the "season shows only 6 games" bug
+ * (2026-10-27). A genuine overflow (career writer stomping the stride with
+ * team-id bytes, ~2574) is still far outside [10, 298]. */
+#define KEYCACHE_STRIDE_MIN 10u
+#define KEYCACHE_STRIDE_MAX 298u
+
 /* ==================================================================
  * EditTeamsSpriteCopy — MENU_CMD_SPRITE_COPY descriptor for the
  * edit-teams kit-colour preview. Was a uint8_t[36] built by the
