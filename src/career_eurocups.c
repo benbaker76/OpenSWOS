@@ -14,10 +14,12 @@
 #include "endian_helpers.h"
 #include "career_status.h"
 #include "career_teams.h"
+#include "champions36.h"   /* CAREER 36-format quaternary slot routing */
 #include "panic.h"
 
 /* ---- ASM externs (globals defined in assembly) ---- */
 extern DIYCompetitionEx _diyCompetitionStart;
+extern DIYTournamentState _diyFileBufferCopy;
 extern uint8_t _primaryQualifiedTeamGrids[];
 extern uint8_t _tertiaryQualifiedTeamGrid[];
 extern uint8_t _euroCupTitleHolderGrid[];
@@ -458,12 +460,58 @@ static void reloadEuroCupTeamSelectionFromRestoredField(void)
         (uint16_t)_diyCompetitionStart.base.numTeams);
 }
 
+/* ---- CAREER 36-format euro cup (docs/CHAMPIONS36.md "Career mode") ----
+ *
+ * When the player's cup was claimed with the tier's 36-team substitute record
+ * (Career_SelectEuroCupSlotIfTeamParticipates set euroCupSlotIndex to
+ * CHAMPIONS36_EUROSLOT_BASE+tier), the quaternary pointer is that record, NOT
+ * the legacy *Copy — so each Update function's identity check below would
+ * take the AUTO-ADVANCE branch and background-simulate the legacy cup with
+ * the player's club still in its qualified field (a second, phantom result
+ * for the same competition). Route the player's tier through the INTERACTIVE
+ * branch instead; the legacy copy is then neither simulated nor advanced,
+ * exactly as when it was the slot itself. The substitute is a type-2
+ * tournament whatever the tier, so all three tiers take the tournament-shape
+ * branch (DIY_EditCompetitionSlot), not the cup menu.
+ *
+ * The selection reload mirrors reloadEuroCupTeamSelectionFromRestoredField
+ * (same loaded-career gap: on a loaded career selTeamsPtr holds the league,
+ * and the slot menu + the title-holder copy VerifyTeamLoaded every cup team),
+ * reading the tournament MASTER's 36-club teamIds instead of a cup field. */
+extern uint16_t _euroCupSlotIndex;
+
+static int updateChampions36QuaternarySlot(unsigned tier, void (*copyTitleHolder)(void))
+{
+    if (_quaternaryCompetitionPtr == 0 ||
+        _euroCupSlotIndex != (uint16_t)(CHAMPIONS36_EUROSLOT_BASE + tier) ||
+        _quaternaryCompetitionPtr != Champions36_TierRecordIdentity(tier))
+        return 0;
+
+    RestoreSelectedTeams();
+    Career_CopyEuroCupsCompetitionContextToOrFromActive();
+    _numSelectedTeams = 0;
+    AppendTeamsToSelectionFromTmdOrTeamFile(
+        (uint16_t *)_diyFileBufferCopy.teamIds,
+        (uint16_t *)_diyFileBufferCopy.teamIds,
+        36);
+    DIY_EditCompetitionSlot(1, 1, 0);
+    copyTitleHolder();
+    /* The reload left the cup field in selTeamsPtr; put the league selection
+     * back before re-saving the backup — see the Cup Winners' Cup update
+     * below for the full rationale. */
+    RestoreSelectedTeams();
+    SaveSelectedTeams();
+    return 1;
+}
+
 /* Career_UpdateEuroCupCompetitionSlot (SWOS2.s line 31764)
  * If euroCupCopy is the active quaternary competition, edit it interactively;
  * otherwise auto-advance it as a league competition and copy the grid. */
 __attribute__((used, externally_visible))
 void Career_UpdateEuroCupCompetitionSlot(void)
 {
+    if (updateChampions36QuaternarySlot(0, Career_CopyEuroCupTeamGridAndTitleHolder))
+        return;   /* the player's CHAMPIONS LEAGUE lives in the slot, not the copy */
     uint8_t *a4 = _euroCupCopy;
     /* Branch purely on whether this euro cup is the player's quaternary
      * competition — matches SWOS2.s Career_UpdateEuroCupCompetitionSlot @57397
@@ -490,6 +538,8 @@ void Career_UpdateEuroCupCompetitionSlot(void)
 __attribute__((used, externally_visible))
 void Career_UpdateCupWinnersCupCompetitionSlot(void)
 {
+    if (updateChampions36QuaternarySlot(2, Career_CopyCupWinnersCupTeamGridAndTitleHolder))
+        return;   /* the player's CONFERENCE LEAGUE lives in the slot, not the copy */
     uint8_t *a4 = _cupWinnersCupCopy;
     if (a4 == _quaternaryCompetitionPtr) {
         RestoreSelectedTeams();
@@ -520,6 +570,8 @@ void Career_UpdateCupWinnersCupCompetitionSlot(void)
 __attribute__((used, externally_visible))
 void Career_UpdateUefaCupCompetitionSlot(void)
 {
+    if (updateChampions36QuaternarySlot(1, Career_CopyUefaCupTeamGridAndTitleHolder))
+        return;   /* the player's EUROPA LEAGUE lives in the slot, not the copy */
     uint8_t *a4 = _uefaCupCopy;
     if (a4 == _quaternaryCompetitionPtr) {
         RestoreSelectedTeams();

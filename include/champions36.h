@@ -20,4 +20,23 @@ int Champions36_SelfTest(void);
 int Champions36_TierForTeam(uint16_t teamId);      /* 0=CL 1=EL 2=Conf, -1 none */
 uint8_t *Champions36_TierRecord(unsigned tier);    /* the tier's substitute record */
 
+/* CAREER enrolment (docs/CHAMPIONS36.md "Career mode"): the tier's substitute
+ * record seeded from THIS season's qualified field (the legacy cup copy's
+ * 16/32-club list, the player's club already injected by qualification),
+ * topped up to 36 from the curated tiers — skipping clubs contesting either
+ * of the OTHER two euro cups this season, so no club plays two competitions.
+ * All three lists are BE-packed {country, ordinal} byte pairs, as the *Copy
+ * records store them. Returns NULL if 36 seeds can't be assembled (the
+ * caller then claims the slot with the legacy record, unchanged). */
+uint8_t *Champions36_CareerRecord(unsigned tier,
+                                  const uint8_t *qualified, uint16_t qualifiedCount,
+                                  const uint8_t *otherA, uint16_t otherACount,
+                                  const uint8_t *otherB, uint16_t otherBCount);
+
+/* Identity-only accessor: the tier's record ADDRESS without (re)building it.
+ * For pointer comparisons (is _quaternaryCompetitionPtr this tier's record?);
+ * Champions36_TierRecord would re-seed the record with the curated tier as a
+ * side effect, clobbering a career's qualified field. */
+uint8_t *Champions36_TierRecordIdentity(unsigned tier);
+
 #endif

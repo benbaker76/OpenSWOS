@@ -364,8 +364,17 @@ static int json_out_emit(const char *chunk, int chunk_len, void *ud)
     JsonOutBuf *o = (JsonOutBuf *)ud;
     if (o->oom) return 0;
     if (o->len + (size_t)chunk_len + 1 > o->cap) {
+        /* Double up to 1 MB, then grow in 512 KB steps. The Amiga's
+         * swos_io_realloc is alloc-copy-free, so a growth step transiently
+         * holds OLD + NEW blocks at once: doubling a megabyte-class buffer
+         * peaks at 3x the file size, which is what silently killed the first
+         * .CAR save under the 8 MB A1200 config (a ~1.2 MB career JSON needed
+         * ~3 MB free; the ~0.8 MB .SEA squeaked through at ~1.5 MB). Writers
+         * with a known large output avoid growth entirely via
+         * json_out_reserve below. */
         size_t want = (o->cap ? o->cap : 4096);
-        while (want < o->len + (size_t)chunk_len + 1) want *= 2;
+        while (want < o->len + (size_t)chunk_len + 1)
+            want = (want < 0x100000) ? want * 2 : want + 0x80000;
         char *grew = (char *)swos_io_realloc(o->ptr, want);
         if (!grew) { o->oom = 1; return 0; }
         o->ptr = grew;
@@ -375,6 +384,32 @@ static int json_out_emit(const char *chunk, int chunk_len, void *ud)
     o->len += (size_t)chunk_len;
     o->ptr[o->len] = '\0';
     return chunk_len;
+}
+
+/* One up-front allocation for a writer whose output is known to be large —
+ * a single block has NO old+new transient, so it succeeds where the growth
+ * path cannot. Failure is not fatal: the growth path still gets its chance
+ * (the file may come out smaller than the estimate). */
+static void json_out_reserve(JsonOutBuf *o, size_t want)
+{
+    if (o->ptr || o->oom) return;
+    char *p = (char *)swos_io_realloc(NULL, (uint32_t)want);
+    if (!p) return;
+    o->ptr = p;
+    o->cap = want;
+    o->len = 0;
+    o->ptr[0] = '\0';
+}
+
+/* A failed save must say so — the oom path used to return 1 silently, which
+ * reads as "saved fine" until the load screen shows no file (the Amiga .CAR
+ * report, 2026-10-27). */
+extern void ShowErrorMenu(uint8_t *errorTextStr);
+static int16_t json_out_fail_oom(JsonOutBuf *o)
+{
+    if (o->ptr) swos_io_free(o->ptr);
+    ShowErrorMenu((uint8_t *)"NOT ENOUGH MEMORY TO SAVE");
+    return 1;
 }
 
 /* ---------- seasonInformationsArray semantic encoder/decoder ----------
@@ -5957,6 +5992,11 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
 {
     JsonOutBuf out = { NULL, 0, 0, 0 };
 
+    /* A career/season JSON is megabyte-class (observed: .SEA ~0.8 MB on the
+     * Amiga, .CAR ~1.2 MB on SDL). Reserve once so the Amiga never pays the
+     * grow-path's old+new transient — see json_out_emit / json_out_reserve. */
+    json_out_reserve(&out, 0x1C0000);
+
     /* Reset string pool — emit_str_pool_field consumers (the four
      * seasonInformations comp-name slots) read pointer-typed fields
      * whose post-load value lives in this pool. Resetting up front
@@ -6223,10 +6263,8 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
 
     mjson_printf(json_out_emit, &out, "%s", "\n}\n");
 
-    if (out.oom || !out.ptr) {
-        if (out.ptr) swos_io_free(out.ptr);
-        return 1;
-    }
+    if (out.oom || !out.ptr)
+        return json_out_fail_oom(&out);
 
     int16_t result = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
     swos_io_free(out.ptr);
@@ -7229,10 +7267,8 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
     }
     mjson_printf(json_out_emit, &out, "%s", "]\n}\n");
 
-    if (out.oom || !out.ptr) {
-        if (out.ptr) swos_io_free(out.ptr);
-        return 1;
-    }
+    if (out.oom || !out.ptr)
+        return json_out_fail_oom(&out);
     int16_t r = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
     swos_io_free(out.ptr);
     if (r != 0) {
@@ -8114,10 +8150,8 @@ int16_t SaveJson_WriteHighlights(uint8_t *filename)
     mjson_printf(json_out_emit, &out, "%s", "]\n}\n");
     PROF_END(scenes, "highlights-write");
 
-    if (out.oom || !out.ptr) {
-        if (out.ptr) swos_io_free(out.ptr);
-        return 1;
-    }
+    if (out.oom || !out.ptr)
+        return json_out_fail_oom(&out);
 
     PROF_START(write_file);
     int16_t r = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
@@ -8339,10 +8373,8 @@ static int16_t write_tactics_buf(uint8_t *filename, const uint8_t *src)
                  "ball_out_of_play_tactics",
                  (unsigned)src[offsetof(TeamTactics, ballOutOfPlayTactics)]);
 
-    if (out.oom || !out.ptr) {
-        if (out.ptr) swos_io_free(out.ptr);
-        return 1;
-    }
+    if (out.oom || !out.ptr)
+        return json_out_fail_oom(&out);
     int16_t r = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
     swos_io_free(out.ptr);
     if (r != 0) {

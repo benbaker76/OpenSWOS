@@ -1,7 +1,7 @@
 # CHAMPIONS36.md — the 36-team european presets (modern UEFA formats)
 
-Status 2026-10-27: implemented and verified on both targets, as PRESETS and in
-SEASON mode (below). Career mode still keeps the legacy competition formats.
+Status 2026-10-27: implemented and verified on both targets, as PRESETS, in
+SEASON mode and in CAREER mode (both below).
 
 ## What it is
 
@@ -38,10 +38,10 @@ opposite halves. Standings use the game's own tie-breaks.
 The legacy records' DISPLAY names changed globally (`src/strings_data.c`):
 `_aEuropeanChampi_1` → CHAMPIONS LEAGUE (`_aEuropeanCup` short → CHAMPIONS L),
 `_aEufaCup` → EUROPA LEAGUE (`_aEufaCup_0` → EUROPA L), `_aEuropeanCupWin` →
-CONFERENCE LEAGUE (`_aEuroCwCup` → CONFERENCE L). Career seasons therefore
-SHOW the new names but still PLAY the legacy formats (16-team group cup /
-32-team knockouts) — nothing keys off the text, because the presets are
-detected by compId (below). Translations were regenerated
+CONFERENCE LEAGUE (`_aEuroCwCup` → CONFERENCE L). The names stay on the legacy
+records because the career's BACKGROUND euro cups (the two the player is not
+in) still play the legacy formats — nothing keys off the text, because the
+substitutes are detected by compId (below). Translations were regenerated
 (`scripts/export_translations.py` + `gen_translations.py`; the new names are
 English-fallback proper nouns). The chooser's tier order is the europe region
 table — `_europeTable` in `src/competition_data.c` AND the europe `comp_cup`
@@ -53,11 +53,13 @@ identical (the loader verifies region tables byte-for-byte).
 - **The legacy records, their career copies, cups.json/tournaments.json and
   the TMD files are untouched.** `Champions36_PresetRecord` substitutes a
   separate packed 36-seed tournament record, identity-checked against the
-  three legacy record addresses, and only on the preset path.
+  three legacy record addresses, only at a claim/selection site (preset
+  dispatch, season enrolment, the career slot-3 claim) — the career's
+  qualification pipeline still builds and reads the legacy copies.
 - **Detection is by compId, never by name:** the substitutes carry their own
   ids 129–131 in the DIY buffers' `field_2E` (serialized with every save),
-  which career never produces — so the career euro cups safely share the new
-  display names, and `Champions36_Is()` is one range test
+  which nothing else produces — the background career euro cups safely share
+  the new display names, and `Champions36_Is()` is one range test
   (`include/comp_identity.h`).
 - `CompetitionTournament.teamSeedList[32]` is NOT resized — the substitute is
   its own packed struct with 36 seed entries at the same header/name/seed
@@ -153,6 +155,68 @@ one `career_root_capture` pass hands every root-level lookup its slice
 (`career_root_find`, with a plain-find fallback for non-career buffers and
 uncaptured keys, so the preset/DIY paths are unaffected). Loads in well under
 10 s now; saving was always one linear emit pass and stays fast.
+
+## Career mode (2026-10-27)
+
+A CAREER plays its european cup in the modern format too — and unlike season
+mode, **qualification still decides everything**. The qualification pipeline is
+untouched (`Career_PrepareEuropeanCupQualificationState` still builds the
+16/32/32-club fields into the legacy *Copy records each season, the 0x50
+TMD-pool gate and the panic checks stand). What changed is the slot-3 CLAIM:
+when `Career_SelectEuroCupSlotIfTeamParticipates` finds the player's club in a
+legacy cup's qualified list, it claims the slot with the tier's substitute
+record instead, seeded by `Champions36_CareerRecord` — **this season's
+qualified clubs head the 36 seeds** (deduped: the legacy UEFA fill can inject
+the club into two berths), topped up from the curated tiers, skipping any club
+contesting another euro cup that season (CL pads 16→36, EL/Conference 32→36;
+the three qualified fields hold ≤80 clubs against a 108-club curated pool, so
+the top-up cannot run dry — if it ever fails the claim falls back to the
+legacy record unchanged). Tier mapping: euroCup→CHAMPIONS LEAGUE,
+uefaCup→EUROPA LEAGUE, cupWinnersCup→CONFERENCE LEAGUE;
+`_euroCupSlotIndex` gets the same 4/5/6 sentinels season mode uses.
+
+The career-only traps, each handled and each a thing someone will otherwise
+re-hit:
+
+- **The legacy copy is no longer the quaternary pointer**, so every identity
+  check against it must also recognize the substitute. The three season-advance
+  updates (`Career_Update{EuroCup,CupWinnersCup,UefaCup}CompetitionSlot`,
+  career_eurocups.c) route the player's tier through a shared INTERACTIVE
+  branch (`updateChampions36QuaternarySlot` — tournament-shape,
+  `DIY_EditCompetitionSlot`, whatever the tier, plus the per-cup title-holder
+  copy, so next season's draw seeds the real winner); without it they would
+  background-simulate the legacy cup WITH the player's club still in its
+  field — a second, phantom result for the same competition. The same mapping
+  guards `Career_ViewOrEditCompetitionSlot` (step 2b): viewing CHAMPIONS
+  LEAGUE from a competition chooser passes the legacy template, which must
+  open the live slot, not auto-advance the unused copy.
+- **`FindTeamInDIY` searches the master for ELIMINATED clubs too** (the
+  post-match `Career_FillCurrentSeasonInfo`, the season-end chairman opinion,
+  the load-time participation gate) and hard-panics 0x6006 on a club it cannot
+  find. `Champions36_Advance` therefore keeps `teamIndexOrder[0..35]` a FULL
+  PERMUTATION at every stage: the league→play-off advance parks ranks 25–36
+  and the byes behind the play-off front, the play-off advance parks the
+  losers at 28..35, and the knockout advances copy the stage grid WHOLE
+  (winners [0..pairs), losers behind — `DIY_ApplyHomeAwaySwapFlagsToTeamGridPairs`'
+  compaction), never just the winner half. The selftest asserts the
+  permutation after every advance.
+- **Trophies and bonuses** branch on `_euroCupSlotIndex` 0/1/2/3
+  (career_status.c); `euroSlotLegacyIndex()` maps 4/5/6 back so the CHAMPIONS
+  LEAGUE pays as the European Cup (major trophy), EUROPA as the UEFA Cup,
+  CONFERENCE as the Cup-Winners Cup.
+- The load-time slot-3 re-derivation already accepted 4/5/6 (season work);
+  for a career it gates on `Career_TeamInLoadedEuroSlot` — the loaded slot
+  BUFFER holds the season's real field, while the re-derived record carries
+  curated seeds (harmless: nothing reads a record's seed list after the
+  claim).
+
+Verified live (SDL): a Manchester Utd career claims the CHAMPIONS LEAGUE with
+the 36-club field (qualified champions + curated top-ups such as OLYMPIAKOS),
+fixtures interleave through the season, league and cup matches simulate
+through `Career_PostMatchUpdate` with the slot active, the 36-club two-page
+standings open from VIEW COMPETITIONS, and the career saves/loads with the
+JSON verifier at 0 mismatches. `--champions36-selftest` covers the career
+record builder and the permutation invariant.
 
 ## Saves
 

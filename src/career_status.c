@@ -213,6 +213,19 @@ extern DIYTournamentState _diyFileBufferCopy;
 /* quaternaryCompWinnerTeam migrated to euroCupsCompetitionContextBuf.tourn.header.winnerTeam (slot-3 untangle, S5) */
 extern uint16_t   _euroCupSlotIndex;
 
+/* The 36-format sentinels (CHAMPIONS36_EUROSLOT_BASE+tier; career and season)
+ * mapped onto the legacy euro-cup indexes for the trophy/bonus branches:
+ * CHAMPIONS LEAGUE pays as the European Cup (0), EUROPA LEAGUE as the UEFA
+ * Cup (2), CONFERENCE LEAGUE as the Cup-Winners Cup (1). Copa (3) and the
+ * legacy indexes pass through. */
+static uint16_t euroSlotLegacyIndex(void)
+{
+    if (_euroCupSlotIndex == CHAMPIONS36_EUROSLOT_BASE)     return 0;
+    if (_euroCupSlotIndex == CHAMPIONS36_EUROSLOT_BASE + 1) return 2;
+    if (_euroCupSlotIndex == CHAMPIONS36_EUROSLOT_BASE + 2) return 1;
+    return _euroCupSlotIndex;
+}
+
 /* Qualifying flags */
 extern uint16_t   _qualifyingStage1PendingFlag0;
 extern uint16_t   _qualifyingStage1PendingFlag1;
@@ -1993,11 +2006,12 @@ check_tertiary_winner:
     if (_selTeamNumber != _euroCupsCompetitionContextBuf.tourn.header.winnerTeam)
         return;
 
-    if (_euroCupSlotIndex == 0 || _euroCupSlotIndex == 3) {
-        /* European Cup (0) or Copa Libertadores (3): the premier continental club
-         * cup -> major trophy bonus. */
+    uint16_t euroIdx = euroSlotLegacyIndex();
+    if (euroIdx == 0 || euroIdx == 3) {
+        /* European Cup / CHAMPIONS LEAGUE (0) or Copa Libertadores (3): the
+         * premier continental club cup -> major trophy bonus. */
         _majorTrophyBonusActive = 1;
-    } else if (_euroCupSlotIndex == 2) {
+    } else if (euroIdx == 2) {
         _cupBonus2Active = 1;
     } else {
         _cupBonus1Active = 1;
@@ -3043,14 +3057,16 @@ skipSponsorship:
     if (_stayingInOldClub && _quaternaryCompetitionPtr != 0) {
         int16_t bonus = (int8_t)_euroCupsCompetitionContextBuf.tourn.header.trophyBonusValue;
         uint32_t d0;
+        uint16_t euroIdx = euroSlotLegacyIndex();
 
-        if (_euroCupSlotIndex == 1) {
+        if (euroIdx == 1) {
             d0 = (uint32_t)((uint16_t)bonus) * 62644;
-        } else if (_euroCupSlotIndex == 2) {
+        } else if (euroIdx == 2) {
             d0 = (uint32_t)((uint16_t)bonus) * 41668;
             d0 <<= 1;
         } else {
-            /* European Cup (0) or Copa Libertadores (3): euroCup-tier bonus. */
+            /* European Cup / CHAMPIONS LEAGUE (0) or Copa Libertadores (3):
+             * euroCup-tier bonus. */
             d0 = (uint32_t)((uint16_t)(bonus << 1)) * 50011;
         }
 

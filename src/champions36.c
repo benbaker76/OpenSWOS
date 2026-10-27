@@ -19,14 +19,18 @@
  * (docs/CHAMPIONS36.md).
  *
  * The legacy records, their career copies and the JSON competition data are
- * never touched: career seasons still play the legacy euro-cup formats (the
- * records' DISPLAY names are renamed in strings_data.c, nothing else). The
- * substitutes carry their own compIds (129..131), which is how the modern-
- * format hooks recognize their DIY buffers — by id, never by name, so the
- * career cups can share the new names safely. */
+ * never touched. SEASON mode claims its slot-3 euro cup with these records
+ * (curated field), and CAREER mode claims with Champions36_CareerRecord —
+ * the same record re-seeded from that season's QUALIFIED field, topped up
+ * from the curated tiers (docs/CHAMPIONS36.md "Career mode"); the career's
+ * qualification pipeline and its background cups stay on the legacy records.
+ * The substitutes carry their own compIds (129..131), which is how the
+ * modern-format hooks recognize their DIY buffers — by id, never by name, so
+ * the legacy cups can share the renamed display strings safely. */
 #include "champions36.h"
 #include "diy_competition.h"
 #include "comp_identity.h"
+#include "endian_helpers.h"
 #include <string.h>
 #ifdef SWOS_SDL_BUILD
 #include "save_format_json.h"
@@ -250,12 +254,75 @@ uint8_t *Champions36_TierRecord(unsigned tier)
     return Champions36_PresetRecord((uint8_t *)k_tiers[tier].original);
 }
 
+uint8_t *Champions36_TierRecordIdentity(unsigned tier)
+{
+    return tier < 3 ? (uint8_t *)&s_presets[tier] : 0;
+}
+
+/* CAREER enrolment: the tier's record with this season's QUALIFIED field.
+ * The lists are BE-packed {country, ordinal} byte pairs straight out of the
+ * legacy *Copy records (career_init.c's euroCupCopyTeamList). */
+static int idInBEList(uint16_t id, const uint8_t *list, uint16_t count)
+{
+    for (uint16_t i = 0; i < count; i++)
+        if (BE_READ_U16(list + 2u * i) == id)
+            return 1;
+    return 0;
+}
+
+uint8_t *Champions36_CareerRecord(unsigned tier,
+                                  const uint8_t *qualified, uint16_t qualifiedCount,
+                                  const uint8_t *otherA, uint16_t otherACount,
+                                  const uint8_t *otherB, uint16_t otherBCount)
+{
+    if (tier >= 3)
+        return 0;
+    Preset36 *p = (Preset36 *)Champions36_PresetRecord((uint8_t *)k_tiers[tier].original);
+    unsigned n = 0;
+
+    /* This season's qualifiers first, deduped: the legacy UEFA fill can
+     * inject the player's club into more than one country berth. */
+    for (uint16_t i = 0; i < qualifiedCount && n < 36; i++) {
+        uint16_t id = BE_READ_U16(qualified + 2u * i);
+        unsigned dup = 0;
+        for (unsigned j = 0; j < n && !dup; j++)
+            if (TEAMID_PACK(p->teamSeedList[j]) == id)
+                dup = 1;
+        if (dup)
+            continue;
+        p->teamSeedList[n].countryNumber = qualified[2u * i];
+        p->teamSeedList[n].teamOrdinal   = qualified[2u * i + 1];
+        n++;
+    }
+
+    /* Top up to 36 from the curated tiers, own tier first, skipping clubs
+     * already seeded or contesting another euro cup this season. The three
+     * qualified fields hold at most 80 clubs and the curated pool 108
+     * distinct ones, so the top-up cannot run dry (CL pads 20, EL/Conf 4). */
+    for (unsigned t = 0; t < 3 && n < 36; t++) {
+        const TeamId *curated = k_tiers[(tier + t) % 3].seeds;
+        for (unsigned i = 0; i < 36 && n < 36; i++) {
+            uint16_t id = TEAMID_PACK(curated[i]);
+            unsigned taken = idInBEList(id, qualified, qualifiedCount) ||
+                             idInBEList(id, otherA, otherACount) ||
+                             idInBEList(id, otherB, otherBCount);
+            for (unsigned j = 0; j < n && !taken; j++)
+                if (TEAMID_PACK(p->teamSeedList[j]) == id)
+                    taken = 1;
+            if (!taken)
+                p->teamSeedList[n++] = curated[i];
+        }
+    }
+
+    return n == 36 ? (uint8_t *)p : 0;
+}
+
 int Champions36_Is(const DIYCompetition *competition)
 {
-    /* field_2E is the DIY buffer's compId: 129..131 are the preset
-     * substitutes' own ids, which career never produces, and they serialize
-     * with the buffer — a stable format marker on both targets, immune to the
-     * display names (the career euro cups share those since the rename). */
+    /* field_2E is the DIY buffer's compId: 129..131 are the substitutes' own
+     * ids, which nothing else produces, and they serialize with the buffer —
+     * a stable format marker on both targets, immune to the display names
+     * (the legacy euro cups share those since the rename). */
     return competition->field_2E >= COMPID_championsLeague &&
            competition->field_2E <= COMPID_conferenceLeague;
 }
@@ -313,6 +380,13 @@ void Champions36_ConfigureLeague(DIYCompetitionEx *competition)
     competition->pointsForAWin = 3;
 }
 
+/* Beyond each stage's working front, teamIndexOrder[0..35] is kept a FULL
+ * PERMUTATION of the 36 clubs: eliminated clubs are parked behind the stage
+ * front instead of being overwritten. Career mode searches the master after
+ * elimination (FindTeamInDIY on the slot buffer, from the post-match
+ * Career_FillCurrentSeasonInfo and the season-end chairman opinion, and the
+ * load-time participation gate) and 0x6006-panics on a club it cannot find —
+ * the stage loads only read order[0..stageTeams), so the tail is free. */
 void Champions36_Advance(DIYTournamentState *tournament, DIYCompetitionEx *stage)
 {
     uint8_t *order = tournament->teamIndexOrder;
@@ -327,7 +401,12 @@ void Champions36_Advance(DIYTournamentState *tournament, DIYCompetitionEx *stage
             order[2*i] = (uint8_t)(ranks[23-i] / 18); /* unseeded hosts leg 1 */
             order[2*i+1] = (uint8_t)(ranks[8+i] / 18);
         }
+        /* Park ranks 25-36 (out) and the byes behind the play-off front. */
+        for (unsigned i = 0; i < 12; ++i) order[16+i] = (uint8_t)(ranks[24+i] / 18);
+        for (unsigned i = 0; i < 8; ++i)  order[28+i] = (uint8_t)(ranks[i] / 18);
     } else {
+        /* The swap pass leaves the finished stage's grid compacted winners
+         * [0..pairs), losers [pairs..2*pairs) — both halves master indexes. */
         DIY_ApplyHomeAwaySwapFlagsToTeamGridPairs();
         if (round == 1) {
             /* Fixed rank-based bracket: top two face the 15/16 v 17/18
@@ -339,13 +418,31 @@ void Champions36_Advance(DIYTournamentState *tournament, DIYCompetitionEx *stage
                 order[2*i] = stage->teamGridPairings[7-rank];
                 order[2*i+1] = order[56+rank];
             }
+            /* Play-off losers replace the byes' copies at 28..35 (the byes
+             * themselves just moved into the R16 front above). */
+            for (unsigned i = 0; i < 8; ++i)
+                order[28+i] = stage->teamGridPairings[8+i];
         } else {
-            memcpy(order, stage->teamGridPairings, stage->base.numTeams / 2);
+            /* Winners AND losers: the losers stay parked right behind the
+             * next stage's front, keeping the permutation. */
+            memcpy(order, stage->teamGridPairings, stage->base.numTeams);
         }
     }
 }
 
 #ifdef SWOS_SDL_BUILD
+/* Career mode searches the master for ELIMINATED clubs too (FindTeamInDIY on
+ * the slot buffer) — every stage advance must leave order[0..35] a permutation
+ * of the 36 clubs. */
+static int orderIsPermutation(const uint8_t *order)
+{
+    uint8_t seen[36] = {0};
+    for (unsigned i = 0; i < 36; ++i)
+        if (order[i] >= 36 || seen[order[i]]++)
+            return 0;
+    return 1;
+}
+
 static int roundTripSelfTest(void)
 {
     extern DIYCompetitionEx _diyCompetitionStart;
@@ -413,6 +510,46 @@ int Champions36_SelfTest(void)
                 TEAMID_PACK(tiers[j/36]->teamSeedList[j%36])) return 1;
     puts("Champions/Europa/Conference League: 144 fixtures, eight distinct opponents, 4 home/4 away, 3 x 36 unique seeds: PASS");
 
+    /* The CAREER record: this season's qualified field heads the seeds
+     * (deduped — the legacy UEFA fill can inject the player's club twice),
+     * and the top-up never picks a club contesting another euro cup. */
+    {
+        uint8_t qual[32], othA[64], othB[32];
+        for (unsigned i = 0; i < 15; ++i) {
+            qual[2*i]   = (uint8_t)kEuropaSeeds[i].countryNumber;
+            qual[2*i+1] = (uint8_t)kEuropaSeeds[i].teamOrdinal;
+        }
+        qual[30] = qual[0]; qual[31] = qual[1];   /* duplicate injection */
+        for (unsigned i = 0; i < 32; ++i) {
+            othA[2*i]   = (uint8_t)kConferenceSeeds[i].countryNumber;
+            othA[2*i+1] = (uint8_t)kConferenceSeeds[i].teamOrdinal;
+        }
+        for (unsigned i = 0; i < 16; ++i) {
+            othB[2*i]   = (uint8_t)kChampionsSeeds[i].countryNumber;
+            othB[2*i+1] = (uint8_t)kChampionsSeeds[i].teamOrdinal;
+        }
+        const Preset36 *cr = (const Preset36 *)
+            Champions36_CareerRecord(0, qual, 16, othA, 32, othB, 16);
+        if (!cr || cr->header.comp.compId != COMPID_championsLeague) return 1;
+        if ((uint8_t *)cr != Champions36_TierRecordIdentity(0)) return 1;
+        for (unsigned i = 0; i < 15; ++i)
+            if (TEAMID_PACK(cr->teamSeedList[i]) != TEAMID_PACK(kEuropaSeeds[i])) return 1;
+        for (unsigned i = 0; i < 36; ++i)
+            for (unsigned j = 0; j < i; ++j)
+                if (TEAMID_PACK(cr->teamSeedList[i]) == TEAMID_PACK(cr->teamSeedList[j])) return 1;
+        for (unsigned i = 15; i < 36; ++i) {
+            uint16_t id = TEAMID_PACK(cr->teamSeedList[i]);
+            for (unsigned j = 0; j < 32; ++j)
+                if (id == BE_READ_U16(othA + 2*j)) return 1;
+            for (unsigned j = 0; j < 16; ++j)
+                if (id == BE_READ_U16(othB + 2*j)) return 1;
+        }
+        /* The career test rebuilt tier 0's record storage — restore the
+         * curated preset seeds for the engine run below. */
+        tiers[0] = (const Preset36 *)Champions36_PresetRecord((uint8_t *)&_euroCup);
+        puts("Champions League: career record (qualified field + curated top-up, no double entry): PASS");
+    }
+
     /* Exercise the real tournament loader, fixture pointers, league progress,
      * two-leg result processing and stage transitions without a renderer. */
     const Preset36 *preset = tiers[0];
@@ -461,11 +598,14 @@ int Champions36_SelfTest(void)
     }
     DIY_AdvanceToNextCompetitionSlot();
     CHECK(tournament->header.roundComplete == 1);
+    CHECK(orderIsPermutation(tournament->teamIndexOrder));
     for (unsigned i = 0; i < 8; ++i) {
         CHECK(tournament->teamIndexOrder[56+i] == i);
         CHECK(stage->teamGridPairings[2*i] == 23-i);
         CHECK(stage->teamGridPairings[2*i+1] == 8+i);
     }
+    for (unsigned i = 0; i < 12; ++i)
+        CHECK(tournament->teamIndexOrder[16+i] == 24+i);
     unsigned knockoutMatches = 0;
     for (unsigned round = 1; round < 6; ++round) {
         unsigned teams = round <= 2 ? 16 : (32u >> (round-1));
@@ -490,6 +630,7 @@ int Champions36_SelfTest(void)
         CHECK(played == (round == 5 ? 1 : teams));
         knockoutMatches += played;
         DIY_AdvanceToNextCompetitionSlot();
+        CHECK(orderIsPermutation(tournament->teamIndexOrder));
         if (round == 1) {
             unsigned seen[36] = {0};
             for (unsigned i = 0; i < 16; ++i) {

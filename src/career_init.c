@@ -778,7 +778,7 @@ void ContinueCareerNextSeason(void)
  * re-derivation (RebuildPointersAfterLoad) so both agree on participation —
  * see the load-fixup site for why a divergence panics 0x6006.
  * ================================================================ */
-static int Career_TeamInEuroCup(uint8_t *cupCopy)
+static const uint8_t *euroCupCopyTeamList(const uint8_t *cupCopy, int16_t *numTeamsOut)
 {
     /* team list = cupCopy + 7 + cupCopy[7], with the 64-bit text[2] widening
      * compensation (the static competition's unk1[] is packed BE (country,
@@ -787,15 +787,20 @@ static int Career_TeamInEuroCup(uint8_t *cupCopy)
     uint8_t numEntries = cupCopy[7];
     uint16_t numEntriesAdj = (uint16_t)numEntries +
                              2u * (sizeof(char *) - sizeof(uint32_t));
-    const uint8_t *teamList = (const uint8_t *)(cupCopy + 7 + numEntriesAdj);
 
     /* number of teams depends on competition type (byte at offset 1) */
     uint8_t compType = cupCopy[1];
-    int16_t numTeams;
-    if (compType == 1)      numTeams = (int8_t)cupCopy[0xA];
-    else if (compType == 2) numTeams = (int8_t)cupCopy[0xF];
-    else                    numTeams = (int8_t)cupCopy[0xD];
+    if (compType == 1)      *numTeamsOut = (int8_t)cupCopy[0xA];
+    else if (compType == 2) *numTeamsOut = (int8_t)cupCopy[0xF];
+    else                    *numTeamsOut = (int8_t)cupCopy[0xD];
 
+    return cupCopy + 7 + numEntriesAdj;
+}
+
+static int Career_TeamInEuroCup(uint8_t *cupCopy)
+{
+    int16_t numTeams;
+    const uint8_t *teamList = euroCupCopyTeamList(cupCopy, &numTeams);
     uint16_t target = _selTeamNumber;
     for (int16_t i = (int16_t)(numTeams - 1); i >= 0; i--) {
         uint16_t entry = BE_READ_U16(teamList);
@@ -888,10 +893,39 @@ uint16_t Career_SelectEuroCupSlotIfTeamParticipates(uint8_t *cupCopy, uint16_t e
     if (!Career_TeamInEuroCup(cupCopy))
         return 1;  /* not participating */
     {
+        /* CAREER plays the modern 36-team format too (docs/CHAMPIONS36.md
+         * "Career mode"): claim the slot with the tier's SUBSTITUTE record,
+         * seeded from this season's qualified field (which already holds the
+         * player's club) topped up to 36 from the curated tiers. Qualification
+         * itself is untouched — participation was just tested against the
+         * legacy copy's list, and that list heads the substitute's seeds.
+         * Legacy euroCupIndex -> tier: 0 euroCup->CHAMPIONS LEAGUE,
+         * 2 uefaCup->EUROPA LEAGUE, 1 cupWinnersCup->CONFERENCE LEAGUE. */
+        uint8_t *record = cupCopy;
+        uint16_t slotIndex = euroCupIndex;
+        {
+            unsigned tier = euroCupIndex == 0 ? 0u : (euroCupIndex == 2 ? 1u : 2u);
+            uint8_t *others[2];
+            others[0] = cupCopy == _euroCupCopy ? _cupWinnersCupCopy : _euroCupCopy;
+            others[1] = cupCopy == _uefaCupCopy ? _cupWinnersCupCopy : _uefaCupCopy;
+            int16_t nQ, nA, nB;
+            const uint8_t *q = euroCupCopyTeamList(cupCopy, &nQ);
+            const uint8_t *a = euroCupCopyTeamList(others[0], &nA);
+            const uint8_t *b = euroCupCopyTeamList(others[1], &nB);
+            uint8_t *rec36 = Champions36_CareerRecord(tier,
+                                                      q, (uint16_t)nQ,
+                                                      a, (uint16_t)nA,
+                                                      b, (uint16_t)nB);
+            if (rec36) {
+                record = rec36;
+                slotIndex = (uint16_t)(CHAMPIONS36_EUROSLOT_BASE + tier);
+            }
+        }
 #ifdef SWOS_DEBUG_AUTOSKIP
         SWOS_AUTOSKIP_LOG("[eurocup] team 0x%04X qualifies euroCupIndex=%u (cupCopy=%p) "
-                          "-> activating slot 3",
-                          (unsigned)_selTeamNumber, (unsigned)euroCupIndex, (void *)cupCopy);
+                          "-> activating slot 3 (record=%p slotIndex=%u)",
+                          (unsigned)_selTeamNumber, (unsigned)euroCupIndex, (void *)cupCopy,
+                          (void *)record, (unsigned)slotIndex);
 #endif
         /* Save quaternary slot state */
         uint16_t savedA = _euroCupsCompetitionContextBuf.tourn.header.slotStateA;
@@ -899,7 +933,7 @@ uint16_t Career_SelectEuroCupSlotIfTeamParticipates(uint8_t *cupCopy, uint16_t e
         uint16_t savedC = _euroCupsCompetitionContextBuf.tourn.header.slotStateC;
 
         /* Set slot 3 for this euro cup (d0=3, d1=euroCupIndex, d2=0) */
-        Career_SetCurrentCompetitionSlot(cupCopy, 3, 0, 0);
+        Career_SetCurrentCompetitionSlot(record, 3, 0, 0);
 
         /* quaternaryCompStringOffset == euroCupsCompetitionContext+0x28
          * namePtr on Amiga (slot 3). */
@@ -911,7 +945,7 @@ uint16_t Career_SelectEuroCupSlotIfTeamParticipates(uint8_t *cupCopy, uint16_t e
         _euroCupsCompetitionContextBuf.tourn.header.slotStateB = savedB;
         _euroCupsCompetitionContextBuf.tourn.header.slotStateA = savedA;
 
-        _euroCupSlotIndex = euroCupIndex;
+        _euroCupSlotIndex = slotIndex;
         return 0;  /* participating */
     }
 }
@@ -1765,11 +1799,15 @@ static void Rebuild_CompetitionSlotPointers(void)
         else if (_euroCupSlotIndex == 2) euroCup3 = _uefaCupCopy;        /* type 1 */
         else if (_euroCupSlotIndex >= CHAMPIONS36_EUROSLOT_BASE &&
                  _euroCupSlotIndex <= CHAMPIONS36_EUROSLOT_BASE + 2) {
-            /* SEASON mode's 36-team european cup (type 2): re-derive the tier's
-             * substitute record — a static-backed RAM struct rebuilt
+            /* The 36-team european cup, SEASON or CAREER (type 2): re-derive
+             * the tier's substitute record — a static-backed RAM struct rebuilt
              * deterministically, so it serves as the pointer target the same
-             * way a *Copy does. Validated below like the others, plus the
-             * compId consistency check (Champions36_Is) on the loaded buffer. */
+             * way a *Copy does. (The rebuild seeds it with the CURATED tier,
+             * not a loaded career's qualified field — harmless: the loaded
+             * slot-3 BUFFER is the season's authoritative field, and nothing
+             * reads the record's seed list after the slot is claimed.)
+             * Validated below like the others, plus the compId consistency
+             * check (Champions36_Is) on the loaded buffer. */
             euroCup3 = Champions36_TierRecord(
                 (unsigned)(_euroCupSlotIndex - CHAMPIONS36_EUROSLOT_BASE));
         }
@@ -1993,6 +2031,25 @@ void Career_ViewOrEditCompetitionSlot(uint8_t *comp, uint16_t sel)
         comp = _europeanChampionships2Copy;
     if (cid == COMPID_worldCup)
         comp = _worldCup2Copy;
+
+    /* Step 2b: CAREER 36-format euro cup. When the player's cup was claimed
+     * with the tier's substitute record (euroCupSlotIndex = BASE+tier), the
+     * legacy *Copy is NOT the quaternary pointer — the substitute is. Map the
+     * copy onto it so viewing CHAMPIONS/EUROPA/CONFERENCE LEAGUE from the
+     * competitions menu opens the live slot, instead of falling through to
+     * the auto-advance below and background-simulating the UNUSED legacy copy
+     * (whose qualified field still lists the player's club). */
+    if (_quaternaryCompetitionPtr != 0 &&
+        _euroCupSlotIndex >= CHAMPIONS36_EUROSLOT_BASE &&
+        _euroCupSlotIndex <= CHAMPIONS36_EUROSLOT_BASE + 2) {
+        unsigned tier = (unsigned)(_euroCupSlotIndex - CHAMPIONS36_EUROSLOT_BASE);
+        uint8_t *legacyCopy = tier == 0 ? _euroCupCopy
+                            : tier == 1 ? _uefaCupCopy
+                                        : _cupWinnersCupCopy;
+        if (comp == legacyCopy &&
+            _quaternaryCompetitionPtr == Champions36_TierRecordIdentity(tier))
+            comp = _quaternaryCompetitionPtr;
+    }
 
     /* Step 3: Find which slot owns this competition */
     uint8_t *slotCtx = (uint8_t *)&_primaryCompetitionBuf;
