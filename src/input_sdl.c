@@ -104,12 +104,19 @@ extern volatile uint16_t _keyCount;
  * scancode for P, which is 0x19.)
  *
  * Deliberately NOT mapped: A and B (play), the D-pad and sticks (direction), the
- * shoulder buttons (below), and GUIDE — which is HOME on a Switch and belongs to the system. */
-static const struct { int button; uint8_t akey; const char *what; } k_padKeys[] = {
-    { SDL_CONTROLLER_BUTTON_START,         0x19, "P   pause"                    },
-    { SDL_CONTROLLER_BUTTON_BACK,          0x21, "S   statistics"               },
-    { SDL_CONTROLLER_BUTTON_Y,             0x13, "R   instant replay"           },
-    { SDL_CONTROLLER_BUTTON_X,             0x25, "H   replay after the match"   },
+ * shoulder buttons (below), and GUIDE — which is HOME on a Switch and belongs to the system.
+ *
+ * `hold` is the key a button sends once it has been held PAD_HOLD_MS. ESC is a hold
+ * because it ends the match: a handheld (Retroid) has no keyboard and no reachable
+ * ESC, so leaving training needs a pad button, and a hold is one nobody presses by
+ * accident. A button with a hold sends its `tap` key on RELEASE, and only when the
+ * hold did not fire -- so Start pauses as it did, one tap's length later. */
+#define PAD_HOLD_MS 700
+static const struct { int button; uint8_t tap, hold; const char *what; } k_padKeys[] = {
+    { SDL_CONTROLLER_BUTTON_START,      0x19, 0x45, "P   pause; hold: ESC quit the match" },
+    { SDL_CONTROLLER_BUTTON_BACK,       0x21, 0,    "S   statistics"                   },
+    { SDL_CONTROLLER_BUTTON_Y,          0x13, 0,    "R   instant replay"               },
+    { SDL_CONTROLLER_BUTTON_X,          0x25, 0,    "H   replay after the match"       },
     /* The shoulder buttons do NOTHING until there is a CONTROLS menu to assign them
      * in (ReportBot 0030, the owner's decision). They used to send UP and DOWN -- the
      * keys that call the two substitutes' benches -- but those are the cursor keys
@@ -117,8 +124,9 @@ static const struct { int button; uint8_t akey; const char *what; } k_padKeys[] 
      * mid-match. The bench is still the game's own way: three taps left or right
      * with the ball out of play, or the second fire button in the PC style. */
     /* Quit is on a stick CLICK on purpose: it ends the match, and a click is
-     * not something you hit by accident mid-game the way a face button is. */
-    { SDL_CONTROLLER_BUTTON_RIGHTSTICK,    0x45, "ESC quit the match"           },
+     * not something you hit by accident mid-game the way a face button is --
+     * except a handheld's grip can, so it is a hold too, with no tap. */
+    { SDL_CONTROLLER_BUTTON_RIGHTSTICK, 0,    0x45, "hold: ESC quit the match"         },
 };
 
 static int sdl_to_amiga(SDL_Keycode k)
@@ -475,6 +483,36 @@ static void push_amiga_key(uint8_t akey)
     if (_keyCount < (sizeof(_keyBuffer) - 3)) {
         _keyBuffer[_keyCount] = akey;
         _keyCount++;
+    }
+}
+
+/* The one k_padKeys button being held for its `hold` key (-1: none): the entry,
+ * the pad, when it went down, and whether the hold has already been sent. */
+static struct { int entry; SDL_JoystickID which; uint32_t since; int sent; } s_pad_hold = { -1, 0, 0, 0 };
+
+static void pad_hold_poll(uint32_t now)
+{
+    if (s_pad_hold.entry >= 0 && !s_pad_hold.sent && now - s_pad_hold.since >= PAD_HOLD_MS) {
+        push_amiga_key(k_padKeys[s_pad_hold.entry].hold);
+        s_pad_hold.sent = 1;
+    }
+}
+
+static void pad_key_button(int entry, SDL_JoystickID which, int down, uint32_t now)
+{
+    if (!k_padKeys[entry].hold) {
+        if (down)
+            push_amiga_key(k_padKeys[entry].tap);
+    } else if (down) {
+        s_pad_hold.entry = entry;
+        s_pad_hold.which = which;
+        s_pad_hold.since = now;
+        s_pad_hold.sent = 0;
+    } else if (s_pad_hold.entry == entry && s_pad_hold.which == which) {
+        pad_hold_poll(now);
+        if (!s_pad_hold.sent && k_padKeys[entry].tap)
+            push_amiga_key(k_padKeys[entry].tap);
+        s_pad_hold.entry = -1;
     }
 }
 
@@ -868,7 +906,17 @@ void InputSDL_HandleEvent(const SDL_Event *e)
         size_t i;
         for (i = 0; i < sizeof k_padKeys / sizeof k_padKeys[0]; i++) {
             if (e->cbutton.button == k_padKeys[i].button) {
-                push_amiga_key(k_padKeys[i].akey);
+                pad_key_button((int)i, e->cbutton.which, 1, SDL_GetTicks());
+                break;
+            }
+        }
+        break;
+    }
+    case SDL_CONTROLLERBUTTONUP: {
+        size_t i;
+        for (i = 0; i < sizeof k_padKeys / sizeof k_padKeys[0]; i++) {
+            if (e->cbutton.button == k_padKeys[i].button) {
+                pad_key_button((int)i, e->cbutton.which, 0, SDL_GetTicks());
                 break;
             }
         }
@@ -1133,6 +1181,7 @@ void InputSDL_ClearKeyState(void)
     s_fire_event = s_fire_event_pad = 0;    /* a press from before is not one in what comes next */
     s_kbd_skip = 0;
     _pauseSkipRequested = 0;
+    s_pad_hold.entry = -1;                  /* its release must not pause what comes next */
     /* joy0Dat / joy1Dat / ciaa_pra are recomputed each frame by
      * InputSDL_PostFrame from the cleared s_kbd_* + read_pad_state, so
      * they don't need explicit clearing here. */
@@ -1311,6 +1360,37 @@ int InputSDL_SelfTest(void)
     selftest_key(SDL_SCANCODE_W, SDLK_w, 0);
     _gTextInputActive = 0;
 
+    /* Pad keys, on a made-up clock: Start taps pause on release, a hold sends ESC
+     * once and no pause, R3 sends nothing but its hold. */
+#define PAD(btn, down, now) do { size_t k_; for (k_ = 0; k_ < sizeof k_padKeys / sizeof k_padKeys[0]; k_++) \
+        if (k_padKeys[k_].button == (btn)) pad_key_button((int)k_, 0, (down), (now)); } while (0)
+    InputSDL_ClearKeyState();
+    PAD(SDL_CONTROLLER_BUTTON_START, 1, 1000);
+    EXPECT(_keyCount == 0, "Start: nothing while it is down");
+    PAD(SDL_CONTROLLER_BUTTON_START, 0, 1150);
+    EXPECT(_keyCount == 1 && _keyBuffer[0] == 0x19, "Start tapped: P on release");
+    InputSDL_ClearKeyState();
+    PAD(SDL_CONTROLLER_BUTTON_START, 1, 2000);
+    pad_hold_poll(2000 + PAD_HOLD_MS - 1);
+    EXPECT(_keyCount == 0, "Start: no ESC before the hold time");
+    pad_hold_poll(2000 + PAD_HOLD_MS);
+    pad_hold_poll(2000 + PAD_HOLD_MS + 500);
+    EXPECT(_keyCount == 1 && _keyBuffer[0] == 0x45, "Start held: ESC, once");
+    PAD(SDL_CONTROLLER_BUTTON_START, 0, 4000);
+    EXPECT(_keyCount == 1, "Start held: no P on release");
+    InputSDL_ClearKeyState();
+    PAD(SDL_CONTROLLER_BUTTON_RIGHTSTICK, 1, 5000);
+    PAD(SDL_CONTROLLER_BUTTON_RIGHTSTICK, 0, 5100);
+    EXPECT(_keyCount == 0, "R3 tapped: nothing");
+    PAD(SDL_CONTROLLER_BUTTON_RIGHTSTICK, 1, 6000);
+    PAD(SDL_CONTROLLER_BUTTON_RIGHTSTICK, 0, 6000 + PAD_HOLD_MS);
+    EXPECT(_keyCount == 1 && _keyBuffer[0] == 0x45, "R3 held: ESC, even when the release is the first look");
+    InputSDL_ClearKeyState();
+    PAD(SDL_CONTROLLER_BUTTON_Y, 1, 7000);
+    EXPECT(_keyCount == 1 && _keyBuffer[0] == 0x13, "Y: R on the press, as before");
+    InputSDL_ClearKeyState();
+#undef PAD
+
     for (i = 0; i < BIND_COUNT; i++)
         InputSDL_SetKeyBinding(i, "");
     InputSDL_ClearKeyState();
@@ -1325,6 +1405,10 @@ void InputSDL_PostFrame(void)
      * loop iteration. Recomputing them from the real keyboard/pads here
      * would overwrite the recorded stick with whatever is physically held. */
     { extern int ReplayTest_Running(void); if (ReplayTest_Running()) return; }
+
+    /* A held Start/R3 sends its key here, on the same terms as a press always has:
+     * k_padKeys pushes from HandleEvent, which a netplay match does not stop. */
+    pad_hold_poll(SDL_GetTicks());
 
     /* A netplay match owns them for the same reason, and more sharply: they
      * carry the SYNCED inputs of both players, so recomputing them from this

@@ -3,6 +3,9 @@ package net.openswos;
 import android.os.Bundle;
 import android.os.Build;
 import android.util.Log;
+import android.view.InputDevice;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 import java.io.*;
@@ -12,6 +15,7 @@ import org.libsdl.app.SDLActivity;
 /** Local handheld test build: unpack prepared data before native startup. */
 public class OpenSWOSActivity extends SDLActivity {
     private IOException dataError;
+    private GameKeys gameKeys;
     @Override protected void onCreate(Bundle state) {
         try {
             unpackRuntime();
@@ -24,6 +28,7 @@ public class OpenSWOSActivity extends SDLActivity {
             // SDL returns focus to the SurfaceView when the IME closes.
             // Android's default focus foreground would tint the entire game.
             mSurface.setDefaultFocusHighlightEnabled(false);
+            gameKeys = new GameKeys(this, mLayout);
         }
         if (!mBrokenLibraries && Build.VERSION.SDK_INT >= 30) {
             // Android 15's edge-to-edge mode overlays the IME even with
@@ -37,6 +42,33 @@ public class OpenSWOSActivity extends SDLActivity {
             });
             mLayout.requestApplyInsets();
         }
+    }
+
+    // Activity dispatch sees input before SDL's views; the event still reaches SDL.
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (gameKeys != null && fromPad(event.getSource())) gameKeys.padUsed();
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        if (gameKeys != null && fromPad(event.getSource())) gameKeys.padUsed();
+        return super.dispatchGenericMotionEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent event) {
+        if (gameKeys != null && event.getActionMasked() == MotionEvent.ACTION_DOWN) gameKeys.touched();
+        return super.dispatchTouchEvent(event);
+    }
+
+    // Gamepad buttons and sticks only: a handheld's Back key is a keyboard source.
+    private static boolean fromPad(int source) {
+        return (source & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
+            || (source & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK;
+    }
+
+    @Override protected void onPause() {
+        if (gameKeys != null) gameKeys.hide();
+        super.onPause();
     }
 
     @Override public void loadLibraries() {

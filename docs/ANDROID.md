@@ -1,6 +1,6 @@
 # OpenSWOS Android port: process, build and testing
 
-**Status: working handheld test port, `0.4-test` (version code 4).**
+**Status: current test build `0.7-test` (version code 7); handheld confirmation through `0.4-test`.**
 This document records the port developed on 2026-10-22, its build and testing
 process, and the fixes made during handheld testing. The user confirmed that
 the game, icon, keyboard entry and final keyboard display fix work on their
@@ -8,7 +8,7 @@ handheld.
 
 The initial Android target is ARM64, Android 8.0 or later, landscape, with a
 physical controller (for example a Retroid Pocket 5). It uses the existing SDL2
-controller mappings and has no touch overlay. This first build is offline;
+controller mappings; the touch KEYS panel only supplies keys the pad lacks. This build is offline;
 GGPO/netplay is not compiled in.
 
 ## Porting approach and implementation
@@ -164,12 +164,41 @@ stored separately from that runtime and persist across APK updates. Clearing app
 storage or uninstalling removes them. The test application ID is
 `net.openswos.test`.
 
-The built-in pad should navigate menus and steer players; A/B fire, Start pauses,
-and the existing controller mappings provide the other match actions. Android
+The built-in pad should navigate menus and steer players (controls below). Android
 Back key events are mapped to Escape. Check an offline friendly, sound, save/load, sleep/wake,
 Home/resume, and controller mapping on the actual handheld. The game clock is
 gated during background lifecycle events; SDL manages its Android surface/audio
 lifecycle. Timer-worker rendering is disabled on Android.
+
+### Controls (from `0.7-test`)
+
+The target is a handheld with built-in controls (Retroid), so the physical pad is
+the control scheme and the touchscreen is only a fallback for keys the pad lacks.
+
+| Button | Menus | Match / training |
+|---|---|---|
+| A / B | Select | Fire (B also skips) |
+| Start, tap | — | Pause / resume |
+| **Start, hold 0.7 s** | — | **Escape: leave the match or training** (REPLAY / EXIT screen) |
+| R3 (right-stick click), hold 0.7 s | — | Escape, as above; a tap does nothing |
+| Select | — | Statistics |
+| Y / X | — | Instant replay / replay after the match |
+| L1 / R1 | unused until a CONTROLS menu exists | unused |
+| Android Back | Escape | Escape |
+
+The SWOS menus do not act on Escape: leave a menu with its EXIT button.
+
+The hold is in the shared `k_padKeys` table (`src/input_sdl.c`), so desktop and
+Switch pads behave the same. A button with a hold sends its tap key on release,
+and only if the hold did not fire, so pause arrives one tap's length later than
+before. R3 became a hold because a handheld's grip can click the stick, and
+Escape ends the match. `--input-selftest` checks tap, hold and release timing.
+
+**KEYS** (top right, `GameKeys.java`) opens a touch panel with Esc, F1-F10,
+digits, letters, Tab, Space and cursor keys, sent through SDL as keyboard events.
+It hides itself, and closes the panel, as soon as a gamepad button or stick is
+used, and comes back when the screen is touched. Android's own keyboard still
+opens automatically for name fields (below).
 
 To retrieve diagnostics from this debuggable APK:
 
@@ -356,7 +385,8 @@ and will not be present in a fresh checkout.
 | `android/app/build.gradle`, root Gradle files and wrapper | App version, SDK/NDK/ABI and build tooling |
 | `android/app/jni/Android.mk`, `Application.mk` | Native sources, SDL, defines, response files and page-size support |
 | `android/app/src/main/AndroidManifest.xml` | Activity, orientation, resize mode and icon |
-| `android/app/src/main/java/net/openswos/OpenSWOSActivity.java` | Extraction, startup errors, IME insets and focus-highlight fix |
+| `android/app/src/main/java/net/openswos/OpenSWOSActivity.java` | Extraction, startup errors, IME insets, focus-highlight fix, pad/touch detection for KEYS |
+| `android/app/src/main/java/net/openswos/GameKeys.java` | Touch KEYS panel |
 | `android/app/src/main/res/` | Adaptive icon resources |
 | `scripts/build_android.ps1` | Windows build and APK staging |
 | `scripts/stage_android.py` | Build stamp and private runtime ZIP |
@@ -376,9 +406,14 @@ and will not be present in a fresh checkout.
 | `0.2-test` | SWOS ball launcher icon | Emulator launcher and handheld confirmed |
 | `0.3-test` | Automatic Android keyboard, text queue and keyboard layout handling | Emulator typing and handheld confirmed |
 | `0.4-test` | Disable SurfaceView focus highlight left after IME dismissal | Emulator pixel comparison and handheld confirmed |
+| `0.5-test` | Refresh from current source and prepared runtime data (2026-10-28, base commit `d41c64c`) | Build, signature, 16 KB APK alignment and ZIP integrity passed; emulator update preserved the saved replay; startup, virtual gamepad menu navigation and Home/resume passed with no crash-log entries. Handheld testing pending. |
+| `0.6-test` | Touch KEYS panel (`GameKeys.java`): Esc, F-keys, letters, digits, cursor keys | Emulator: Esc from the panel left shooting practice via REPLAY/EXIT. Handheld testing pending. |
+| `0.7-test` | Hold Start (or R3) 0.7 s = Escape; Start tap pauses on release; R3 tap does nothing; KEYS hides while the pad is used and returns on touch | `--input-selftest`; emulator with a virtual Xbox pad: Start tap paused (identical frames), Start hold and R3 hold each left shooting practice, R3 tap left it running, a touch brought KEYS back. Handheld testing pending. |
 
 Keep `versionCode` increasing for subsequent updates. The APK currently remains
 a private debug/test build containing the supplied user's prepared game data.
 Public distribution still needs a data-import workflow, release signing and
 packaging, a decision about Android multiplayer, and broader Android/device
-testing. No touch gameplay controls were requested or implemented.
+testing. On-screen gameplay controls (virtual stick and fire, for phones without a
+pad) are out of scope while the target is the Retroid; if added, they should be a
+virtual SDL controller so the game's pad path handles them unchanged.
