@@ -52,6 +52,7 @@
 #include "team_pool.h"
 #include "world_playoff.h"
 #include "world_cups.h"
+#include "world_cupd.h"
 #include "game_types.h"
 #include "diy_competition.h"
 
@@ -601,8 +602,10 @@ void LeaguePlayoffs_Decide(uint16_t country, const int8_t *table, int8_t *scratc
             return;                     /* (a division not played out this season) */
     /* every club's final place, before the moves: the next season's cups (world_cups.c) */
     for (int32_t d = 0; d < lp->divisions; d++)
-        for (int32_t k = 0; k < s_in.n[d]; k++)
+        for (int32_t k = 0; k < s_in.n[d]; k++) {
             WorldCups_KeepPlace((uint8_t)country, (uint16_t)d, s_in.t[d][k].team, (uint8_t)(k + 1));
+            CupD_KeepPlace((uint8_t)country, (uint16_t)d, s_in.t[d][k].team, k, s_in.n[d]);
+        }
 
     s_nmv = 0;
     if (lp->italy) {
@@ -690,6 +693,7 @@ void LeaguePlayoffs_Decide(uint16_t country, const int8_t *table, int8_t *scratc
             const int32_t in = TeamPool_Swap((u8)country, (u8)o);
             if (in >= 0) {
                 LeagueGroups_Enter((u16)(base + o));
+                CupD_NoteArrival((uint8_t)country, (uint8_t)o);     /* (the Coppa D's entry order) */
                 SWOS_DBG("[pool] slot %d (global %u) -> identity %d\n", (int)o, (unsigned)(base + o), (int)in);
             }
         }

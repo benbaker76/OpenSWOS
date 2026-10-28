@@ -332,16 +332,20 @@ void CareerAutopilot_Tick(void)
     {
         /* Test (SWOS_GOLDEN_SHOT_COMP=<competition id>): a screenshot of each new screen
          * while that competition is the one under way -- to look at it (a world's
-         * play-off: world_playoff.c). */
+         * play-off: world_playoff.c); SWOS_GOLDEN_SHOT_FROM=<n>: from the n-th season-end
+         * hub on (a later season's screens). */
         static const char *shot = (const char *)1;
         static MenuVoidFn shotLast;
-        static int32_t shots;
+        static int32_t shots, shotFrom;
         extern DIYCompetitionEx _diyCompetitionStart;
         extern void Platform_RequestScreenshot(void);
-        if (shot == (const char *)1)
+        if (shot == (const char *)1) {
+            const char *from = getenv("SWOS_GOLDEN_SHOT_FROM");
             shot = getenv("SWOS_GOLDEN_SHOT_COMP");
+            shotFrom = from ? atoi(from) : 0;
+        }
         if (shot && (uint8_t)_diyCompetitionStart.base.field_2E == (uint8_t)atoi(shot) &&
-            menu->onInit != shotLast && shots < 40) {
+            s_hubs > shotFrom && menu->onInit != shotLast && shots < 40) {
             shotLast = menu->onInit;
             shots++;
             Platform_RequestScreenshot();

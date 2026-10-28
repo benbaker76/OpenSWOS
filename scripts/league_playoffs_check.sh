@@ -13,7 +13,8 @@
 # Then the B-team rules (its sec_post): built cases, and random ones against the Mod's.
 # Then the cups' clubs from the second season (its 4.0.1 cf_build, CF_SEED 1 as released):
 # random moves, last season's places and career clubs, both cups' lists compared.
-# Then the Coppa Italia Serie D table against its cupd.py compile_table.
+# Then the Coppa Italia Serie D table against its cupd.py compile_table, and its later
+# seasons' entry order (cd_rank, cd_season, cd_make) over random season ends.
 # Needs the world's data (bin/data_json/worlds/2627/mod/, not in git): skipped without it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -81,6 +82,19 @@ if cmp -s "$OUT/cups_mod.txt" "$OUT/cups_ours.txt"; then
 else
     echo "FAIL: cups, the first season that differs (Mod, then ours):"
     diff "$OUT/cups_mod.txt" "$OUT/cups_ours.txt" | head -4
+    exit 1
+fi
+
+# The Coppa Italia Serie D's later seasons (the Mod's cd_rank, cd_season, cd_make; ours).
+$CC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cupd_mod" $T/cupd_mod.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cupd_ours" $T/cupd_ours.c
+"$OUT/cupd_mod" "$N" > "$OUT/cupd_mod.txt"
+"$OUT/cupd_ours" "$N" > "$OUT/cupd_ours.txt" 2>/dev/null
+if cmp -s "$OUT/cupd_mod.txt" "$OUT/cupd_ours.txt"; then
+    echo "PASS: the Coppa Italia Serie D, $N later seasons, every first two rounds the Mod's"
+else
+    echo "FAIL: the Coppa Italia Serie D, the first season that differs (Mod, then ours):"
+    diff "$OUT/cupd_mod.txt" "$OUT/cupd_ours.txt" | head -4 | cut -c1-200
     exit 1
 fi
 

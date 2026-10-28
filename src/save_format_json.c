@@ -6071,6 +6071,12 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit, &out, "],%Q:[", "hosts");
         for (int i = 0; i < WORLD_CUPD_TIES; i++)
             mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)d->home[i]);
+        mjson_printf(json_out_emit, &out, "],%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:[",
+                     "built", (int)d->built, "tie", (int)d->bt, "week1", (int)d->d1, "week2", (int)d->d2,
+                     "legs", (int)d->legs, "team_a", (int)d->teamA, "team_b", (int)d->teamB,
+                     "generated", (int)d->gen, "preliminary_ties", (int)d->np, "sides");
+        for (int i = 0; i < 2 * (WORLD_CUPD_PRE + WORLD_CUPD_R1); i++)
+            mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)d->side[i]);
         mjson_printf(json_out_emit, &out, "%s", "]}");
     }
 
@@ -6577,6 +6583,20 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(cd, cdlen, "$.season", &v) > 0) d->season = (uint8_t)v;
             if (mjson_get_long(cd, cdlen, "$.round", &v) > 0) d->round = (uint8_t)v;
             if (mjson_get_long(cd, cdlen, "$.drawn", &v) > 0) d->drawn = (uint8_t)v;
+            if (mjson_get_long(cd, cdlen, "$.built", &v) > 0) d->built = (uint8_t)v;
+            if (mjson_get_long(cd, cdlen, "$.tie", &v) > 0) d->bt = (uint8_t)v;
+            if (mjson_get_long(cd, cdlen, "$.week1", &v) > 0) d->d1 = (uint8_t)v;
+            if (mjson_get_long(cd, cdlen, "$.week2", &v) > 0) d->d2 = (uint8_t)v;
+            if (mjson_get_long(cd, cdlen, "$.legs", &v) > 0) d->legs = (uint8_t)v;
+            if (mjson_get_long(cd, cdlen, "$.team_a", &v) > 0) d->teamA = (uint16_t)v;
+            if (mjson_get_long(cd, cdlen, "$.team_b", &v) > 0) d->teamB = (uint16_t)v;
+            if (mjson_get_long(cd, cdlen, "$.generated", &v) > 0) d->gen = (uint8_t)v;
+            if (mjson_get_long(cd, cdlen, "$.preliminary_ties", &v) > 0) d->np = (uint8_t)v;
+            if (mjson_find(cd, cdlen, "$.sides", &arr, &al) == MJSON_TOK_ARRAY)
+                for (pos = 0, i = 0; i < 2 * (WORLD_CUPD_PRE + WORLD_CUPD_R1) &&
+                     (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0; )
+                    if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
+                        d->side[i++] = (uint16_t)v;
             static const char *const keys[3] = { "$.drawn_ties", "$.results", "$.hosts" };
             uint8_t *const dst[3] = { d->sd, d->res, d->home };
             const int cap[3] = { 4, WORLD_CUPD_TIES, WORLD_CUPD_TIES };

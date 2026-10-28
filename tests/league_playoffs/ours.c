@@ -16,6 +16,8 @@ WorldPlayoffState g_worldPlayoff;
 static uint16_t s_cupw;
 uint16_t WorldCups_LeagueCupWinner(uint8_t c) { (void)c; return s_cupw; }
 void WorldCups_KeepPlace(uint8_t c, uint16_t d, uint16_t t, uint8_t p) { (void)c; (void)d; (void)t; (void)p; }
+void CupD_KeepPlace(uint8_t c, uint16_t d, uint16_t t, int32_t p, int32_t n) { (void)c; (void)d; (void)t; (void)p; (void)n; }
+void CupD_NoteArrival(uint8_t c, uint8_t o) { (void)c; (void)o; }
 
 static const uint8_t PROM[14] = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 static const uint8_t REL[14] = { 3, 3, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2 };

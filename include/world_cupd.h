@@ -16,6 +16,14 @@
  * no extra time; the semi-finals and the final are two legs. A decided tie's record stays in
  * slot 4 (the calendar still lists its matches) until the next tie, or a world's play-off at
  * the league's end, takes the slot; 96/97's slot-4 rebuild is not for it.
+ *
+ * From the second season the Mod's entry rule (cd_rank, cd_season, cd_make): the season's
+ * Serie D clubs in an entry order -- the new arrivals (relegated from Serie C, a slot that
+ * took a pool club), then each group's clubs from the bottom of last season's table up --
+ * the first 2 x (N - 128) playing a preliminary round, the others entering at the first;
+ * both rounds paired within a group where possible, else at random; from the third round a
+ * fixed bracket (tie k: the winners of ties 2k, 2k + 1), the table's weeks, hosts and
+ * drawn semi-finals.
  */
 #ifndef WORLD_CUPD_H
 #define WORLD_CUPD_H
@@ -43,6 +51,8 @@ typedef struct {
 const WorldCupD *World_CupD(void);  /* (world_data.c; 0: the world has none) */
 
 #define WORLD_CUPD_TIES 168         /* (gplay.c CDT) */
+#define WORLD_CUPD_PRE 41           /* a generated preliminary round's ties at most (CDP) */
+#define WORLD_CUPD_R1 64            /* a generated first round's ties (CD1) */
 
 /* The cup's state this season (saved with the career; gplay.c struct cd_state). */
 typedef struct {
@@ -56,6 +66,9 @@ typedef struct {
     uint8_t bt;                     /* which, */
     uint8_t d1, d2, legs;           /* its weeks, its legs, */
     uint16_t teamA, teamB;          /* its clubs, home first ({country, ordinal}) */
+    uint8_t gen;                    /* this season's rounds 0-1 generated (not the table's): */
+    uint8_t np;                     /* its preliminary ties, */
+    uint16_t side[2 * (WORLD_CUPD_PRE + WORLD_CUPD_R1)];   /* tie t's sides 2t, 2t + 1 */
 } WorldCupDState;
 
 extern WorldCupDState g_worldCupD;
@@ -81,6 +94,13 @@ void CupD_RestoreSlot(void);
 
 /* A round's name in the cup round tables for the tie under way, -1 if not ours. */
 int32_t CupD_RoundStringIndex(uint8_t compId);
+
+/* The season end has the final tables (league_playoffs.c, before the moves): each club's
+ * division, a Serie D club's place from the bottom (gplay.c cd_rank). */
+void CupD_KeepPlace(uint8_t country, uint16_t division, uint16_t team, int32_t place, int32_t clubs);
+
+/* The season end gave a slot a pool club's identity: a new arrival next season. */
+void CupD_NoteArrival(uint8_t country, uint8_t ordinal);
 
 /* The career club is a Coppa Italia Serie D club this season (a Serie D club: it plays no
  * Coppa Italia and no Serie C cup, gplay.c cd_member_c). */
