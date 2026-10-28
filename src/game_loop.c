@@ -930,7 +930,10 @@ void __attribute__((used, externally_visible))
 GameLoop(void)
 {
     int16_t d1, d2;
-    int32_t loadedPosition = 0;
+    int32_t loadedPosition;
+
+restart_challenge:
+    loadedPosition = 0;
 
     _gameCanceled = 0;
     _instantReplayFlag = 0;
@@ -1059,6 +1062,7 @@ end_of_match_flow:
     if (_isGameFriendly != 0 && _trainingGame == 0 && !arcadeNoReplayMenu) {
         ReplayExitMenuAfterFriendly();
         if (_replaySelected != 0) {
+            int restartingChallenge = Challenge_Restart();
             _team1NumAllowedInjuries = 4;
             _team2NumAllowedInjuries = 4;
             _playGame = 1;
@@ -1069,6 +1073,9 @@ end_of_match_flow:
             EnsureSfxLoadedAndStart();
             SetPitchTypeAndNumber();
             InitGameRestoreTeams();
+            /* Reload the original saved clock, score, players and ball. Keep
+             * challenge retries in this frame instead of recursing per attempt. */
+            if (restartingChallenge) goto restart_challenge;
             GameLoop();
             return;
         }

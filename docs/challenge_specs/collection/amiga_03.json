@@ -1,0 +1,20 @@
+{
+  "team1": "TEAM.008:18",
+  "team2": "TEAM.008:12",
+  "human": 1,
+  "score": [
+    0,
+    0
+  ],
+  "scorers": [],
+  "minute": 75,
+  "ball": 1,
+  "extra_time": false,
+  "penalties": false,
+  "pitch": 4,
+  "out": "CCA03.CHL",
+  "situation": "corner",
+  "corner": {
+    "wing": "left"
+  }
+}

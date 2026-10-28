@@ -1,0 +1,26 @@
+{
+  "team1": "8250fcaa-bcdf-5f40-836a-87614846de84",
+  "team2": "fc739eb8-1c90-55da-b66a-f92cf53132eb",
+  "human": 1,
+  "score": [
+    1,
+    0
+  ],
+  "scorers": [
+    {
+      "side": 1,
+      "shirt": 9,
+      "minute": 35
+    }
+  ],
+  "minute": 80,
+  "ball": 2,
+  "extra_time": false,
+  "penalties": false,
+  "pitch": 4,
+  "out": "CCS02.CHL",
+  "situation": "corner",
+  "corner": {
+    "wing": "left"
+  }
+}

@@ -26,6 +26,8 @@
     "ChairmanMemosContinue",
     "ChairmanMemosInit",
     "ChairmanMemosOnReturn",
+    "ChallengeCollection_MenuInit",
+    "ChallengeCollection_MenuSelect",
     "ChallengesMenu",
     "ChangeAllPlTeamsEqual",
     "ChangeAutoReplays",

@@ -555,6 +555,10 @@ void FirstHalfJustEnded(void)
 __attribute__((used, externally_visible))
 void EndOfGame(void)
 {
+    /* Only a loaded collection attempt can award progress. Escape/abandon paths
+     * do not pass through this final-whistle event. */
+    extern void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2);
+    ChallengeProgress_FinalWhistle(_team1TotalGoals, _team2TotalGoals);
     setBreakState(ST_GAME_ENDED, ST_STOPPED, 150);
     ResetBothTeamsPlayerPassingKicking();
     clearCameraVelocity();

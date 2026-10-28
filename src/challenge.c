@@ -47,6 +47,7 @@
  * machine had and the round trip still passes.
  */
 #include "challenge.h"
+#include "challenge_collection.h"
 
 #include "sim_state.h"
 #include "game_types.h"
@@ -673,7 +674,7 @@ void Challenge_EnsureSample(void)
     swos_io_free(buf);
 }
 
-int32_t Challenge_Arm(const uint8_t *name)
+static int32_t arm_file(const uint8_t *name, int bundled)
 {
     layout_check();
     uint8_t  *buf = NULL;
@@ -684,7 +685,8 @@ int32_t Challenge_Arm(const uint8_t *name)
 
     forget();
 
-    if (swos_io_load_alloc(name, &buf, &len) != 0) {
+    if ((bundled ? swos_io_load_data_alloc((const char *)name, &buf, &len)
+                 : swos_io_load_alloc(name, &buf, &len)) != 0) {
         CHAL_LOG("%s: cannot be read\n", (const char *)name);
         return 1;
     }
@@ -776,6 +778,8 @@ int32_t Challenge_Arm(const uint8_t *name)
     return 0;
 }
 
+int32_t Challenge_Arm(const uint8_t *name) { return arm_file(name, 0); }
+int32_t Challenge_ArmBundled(const char *path) { return arm_file((const uint8_t *)path, 1); }
 int32_t Challenge_Armed(void) { return s_armed; }
 
 const ChallengeInfo *Challenge_ArmedInfo(void) { return s_armed ? &s_info : NULL; }
@@ -942,12 +946,24 @@ int32_t Challenge_LoadState(void)
         extern uint16_t _copyTimeSprite;
         _copyTimeSprite = 1;
     }
+    ChallengeProgress_PositionLoaded();
     return 1;
 }
 
 void Challenge_Done(void)
 {
     forget();
+}
+
+int32_t Challenge_Restart(void)
+{
+    if (!s_armed) return 0;
+    s_stateLoaded = 0;
+    Challenge_ApplySetup();
+    ChallengeProgress_Restart();
+    CHAL_LOG("restarting saved position at minute %u, %u-%u\n",
+        (unsigned)s_info.minute, (unsigned)s_info.goals1, (unsigned)s_info.goals2);
+    return 1;
 }
 
 void Challenge_Play(void)

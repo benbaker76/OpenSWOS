@@ -18,6 +18,7 @@
 #       ENTER (the Amiga keyboard's own menu fire) | ESC SPACE | SHOT[:label] | WAIT<ms>
 #       plus raw names for probing: RCTRL LCTRL RALT LALT NUM0 NUM5 NUMENTER RSHIFT...
 param(
+    [int]$EmulatorId = 0,       # target one existing session (e.g. while generators run)
     [string]$Keys = "",
     [ValidateSet("", "friendly", "challenge")]
     [string]$Route = "",
@@ -45,6 +46,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if ($EmulatorId -and ($Launch -or ($Route -and -not $NoLaunch))) {
+    throw '-EmulatorId targets an existing session; use -NoLaunch with routes and omit -Launch.'
+}
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Bin      = Join-Path $RepoRoot "bin"
 if (-not $ShotDir) { $ShotDir = Join-Path $RepoRoot "build\amiga_shots" }
@@ -242,7 +246,7 @@ $KeyMap = @{
 # The instance THIS run launched. Without it, a second emulator on the machine (someone
 # else's, or one left over) makes the script drive one window and watch another -- which
 # shows up as "fs-uae exited" in the middle of a route that is going fine.
-$script:EmuPid = 0
+$script:EmuPid = $EmulatorId
 function Get-Emu {
     if ($script:EmuPid) {
         $p = Get-Process -Id $script:EmuPid -ErrorAction SilentlyContinue
@@ -253,6 +257,10 @@ function Get-Emu {
 }
 
 function Stop-Emu {
+    if ($EmulatorId) {
+        Stop-Process -Id $EmulatorId -Force -ErrorAction SilentlyContinue
+        return
+    }
     Get-Process fs-uae -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Milliseconds 600
 }

@@ -1,0 +1,20 @@
+{
+  "team1": "0eaf2533-c243-5311-b452-fc8f8d53946e",
+  "team2": "9a8ed68c-f546-5bd0-ab8f-a2de91e4d15b",
+  "human": 1,
+  "score": [
+    0,
+    0
+  ],
+  "scorers": [],
+  "minute": 75,
+  "ball": 1,
+  "extra_time": false,
+  "penalties": false,
+  "pitch": 4,
+  "out": "CCS03.CHL",
+  "situation": "corner",
+  "corner": {
+    "wing": "left"
+  }
+}

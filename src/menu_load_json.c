@@ -527,7 +527,7 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
  * returns the same link-time addresses the static initializers baked in.
  * ====================================================================== */
 
-/* --- the 51 compiled static menus, by name (still authoritative until the
+/* --- the 52 compiled static menus, by name (still authoritative until the
  *     round-trip is proven green and menu_data.c is retired) --- */
 extern uint8_t _buyOtherPlayersMenu[];       extern uint8_t _buyPlayerMenu[];             extern uint8_t _careerMenu[];
 extern uint8_t _careerOverMenu[];            extern uint8_t _chairmanMemosMenu[];         extern uint8_t _chooseTacticsMenu[];
@@ -549,7 +549,9 @@ extern uint8_t _squadMenu[];                 extern uint8_t _stadiumMenu[];     
 extern uint8_t _thirdPartyOfferMenu[];       extern uint8_t _topGoalScorersMenu[];        extern uint8_t _transferMarketMenu[];
 extern uint8_t _viewCompetitionsMenu[];      extern uint8_t _viewSquadMenu[];
 
+extern uint8_t _challengeMenu[];
 static const struct { const char *name; uint8_t *menu; } s_staticMenus[] = {
+    { "challengeMenu", _challengeMenu },
     { "buyOtherPlayersMenu", _buyOtherPlayersMenu },
     { "buyPlayerMenu", _buyPlayerMenu },
     { "careerMenu", _careerMenu },

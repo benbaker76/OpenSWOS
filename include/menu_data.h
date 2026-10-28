@@ -3617,3 +3617,14 @@ extern Menu_EditTactics _editTacticsMenu;
 extern Menu_ImportTactics _importTacticsMenu;
 extern Menu_Stadium _stadiumMenu;
 extern Menu_Highlights _highlightsMenu;
+
+/* Challenge collection: runtime labels and navigation, both targets. */
+#pragma pack(push, 1)
+typedef struct Menu_ChallengeCollection {
+    MenuHeader hdr;
+    uint16_t coordsMode;
+    MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entries[13];
+    uint16_t markEndMenu;
+} Menu_ChallengeCollection;
+#pragma pack(pop)
+extern Menu_ChallengeCollection _challengeMenu;

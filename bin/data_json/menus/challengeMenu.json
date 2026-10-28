@@ -1,0 +1,430 @@
+{
+  "name": "_challengeMenu",
+  "comment": "Collection hub, grouped list, details and result screens. Portable layout populated by challenge_collection.c.",
+  "onInit": "ChallengeCollection_MenuInit",
+  "onReturn": null,
+  "onDraw": null,
+  "defaultEntry": 2,
+  "items": [
+    {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 0,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 15,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 30,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 45,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 60,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 75,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 90,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 105,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": 120,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": -121,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": -106,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": -91,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 12,
+        "y": -76,
+        "w": 24,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aChallenges"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChallengeCollection_MenuSelect"
+        }
+      ]
+    }
+  ]
+}

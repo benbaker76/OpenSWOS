@@ -103,6 +103,8 @@ const char *Challenge_Requested(void);
 /* Read and check a file, and keep it for the match about to start. 0 on success; on
  * anything else nothing is armed and the reason has been logged. */
 int32_t Challenge_Arm(const uint8_t *name);
+/* Load a packaged position from data/, leaving user saves untouched. */
+int32_t Challenge_ArmBundled(const char *path);
 int32_t Challenge_Armed(void);
 const ChallengeInfo *Challenge_ArmedInfo(void);
 
@@ -119,6 +121,10 @@ void    Challenge_Play(void);
 /* The one-shot inside the match loop: load the state over everything the init just built,
  * before the first frame runs. Returns 1 if a position was loaded. */
 int32_t Challenge_LoadState(void);
+
+/* Replay the armed position: restore its setup and re-arm its one-shot state
+ * load. Returns 1 for a challenge, 0 for an ordinary match. */
+int32_t Challenge_Restart(void);
 
 /* The pitch the position is played on, which must not be rolled again (the fan rows in
  * the state belong to it). 1 and *out set while a position is armed. */

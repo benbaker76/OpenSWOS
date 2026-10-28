@@ -1,0 +1,36 @@
+{
+  "team1": "f63eb672-c02e-5c9d-a105-fb0d51e41078",
+  "team2": "41c46ddf-f9cf-593e-abd9-0a63a5b461bb",
+  "human": 1,
+  "score": [
+    0,
+    3
+  ],
+  "scorers": [
+    {
+      "side": 2,
+      "shirt": 9,
+      "minute": 15
+    },
+    {
+      "side": 2,
+      "shirt": 9,
+      "minute": 34
+    },
+    {
+      "side": 2,
+      "shirt": 9,
+      "minute": 56
+    }
+  ],
+  "minute": 67,
+  "ball": 1,
+  "extra_time": false,
+  "penalties": false,
+  "pitch": 4,
+  "out": "CCS06.CHL",
+  "situation": "corner",
+  "corner": {
+    "wing": "left"
+  }
+}

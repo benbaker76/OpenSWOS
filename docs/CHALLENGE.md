@@ -4,11 +4,72 @@ Implemented for Amiga and SDL. A challenge is a saved position from a match
 against the computer. Load it to play on with the same teams, score, clock,
 players, ball, bookings and substitutions remaining.
 
+## Challenge collection and progress
+
+For the full feature guide, save format and maintenance notes, see
+[CHALLENGE_COLLECTION.md](CHALLENGE_COLLECTION.md).
+
+CHALLENGES now opens **CHALLENGE COLLECTION** and **SAVED POSITIONS**.
+The collection is available on SDL and Amiga, with two challenges in each group:
+
+| Difficulty | Challenge | Human team first | Start |
+| --- | --- | --- | --- |
+| Easy | Finish the Job | AC Milan vs Juventus | 2-0 at 75, Juventus kickoff |
+| Easy | Hold Your Nerve | Italy vs Malta | 1-0 at 80, Malta corner |
+| Medium | Find the Winner | Liverpool vs Everton | 0-0 at 75, Liverpool corner |
+| Medium | Turn It Around | Barcelona vs Real Madrid | 0-1 at 65, Barcelona kickoff |
+| Hard | Against the Clock | Juventus vs AC Milan | 0-2 at 80, Juventus kickoff |
+| Hard | Derby Miracle | Partizan vs Red Star | 0-3 at 67, Partizan corner |
+
+All six are available immediately. Select a row for its details, then PLAY.
+**Win at full time** to complete it; a draw or abandoning the match fails.
+There is no extra time or penalty shootout. The existing REPLAY / EXIT screen
+still appears after the match: choose EXIT to see the challenge result, then
+RETRY, NEXT CHALLENGE (after success), or CHALLENGE LIST. A failed replay never
+removes an existing completion. Finishing all six shows ALL CHALLENGES COMPLETED.
+REPLAY on the existing match-end screen reloads the original challenge position,
+including its minute, score and players, and starts a fresh completion attempt.
+This also applies to personal saved positions; ordinary friendly replays still
+start a new match.
+
+Progress saves automatically at the final whistle and loads when entering the
+collection after a restart. `CHPROG1.PRG` and `CHPROG2.PRG` live in the normal
+save folder. These are alternating, versioned, checksummed records of stable
+challenge IDs; the previous valid write survives an interrupted save. The UI
+reports a failed save and offers RETRY SAVE. On FS-UAE, use the same persistent
+mounted game drawer (`bin/` here); emulator snapshots are unnecessary. Keep the
+save folder writable and preserve both progress files when moving installations.
+
+The starting positions remain bundled assets, separate from progress and personal
+saves: `data/CCS01.DAT` through `CCS06.DAT` for SDL, `data/CCA01.DAT` through
+`CCA06.DAT` for Amiga. They are native `.CHL` payloads with an asset extension,
+loaded directly without copying over user files. Collection play uses standard
+Amiga gameplay/view and cards rules, restoring SDL preferences afterwards.
+
+Regeneration specs are retained in `docs/challenge_specs/collection/`.
+On this Windows machine, build the appropriate executable, then run
+`scripts/challenge_collection_sdl.ps1` or `scripts/challenge_collection_amiga.ps1`.
+These run the existing target-specific generator in isolated sessions. Each
+session prepares and saves the position, then closes. To play, launch the normal
+game and select the finished challenge; preparation is not replayed.
+
+`python3 scripts/verify_challenge_collection.py` uses `chl_dump.py` to check both
+collections' teams, scores, minutes, human sides, rules and setup sizes against
+the specs. This is file verification, not play testing. The portable progress
+regression test is `python3 scripts/test_challenge_progress.py` (hosted GCC).
+
+Verification on 2026-10-28: both targets build, all twelve bundled files pass the
+spec checks, and the SDL menu JSON matches all 52 compiled menus. The user played
+and completed the first SDL challenge. In native FS-UAE testing, the first Amiga
+challenge reached a winning final whistle, wrote `save/CHPROG1.PRG`, and still
+showed DONE / 1 OF 6 COMPLETED after closing and cold-starting the emulator.
+The remaining scenarios' difficulty has not been playtested.
+
 ## Saving and loading
 
 1. Start a match with one human side against the computer.
 2. Press **C** during play. A successful save briefly displays **STATE SAVED**.
-3. Return to the main menu, choose **CHALLENGES**, select a `.CHL` file and press
+3. Return to the main menu, choose **CHALLENGES > SAVED POSITIONS**, select a `.CHL` file and press
    fire/Enter. The saved position replaces kick-off before gameplay resumes.
 
 Files are named `CHAL01.CHL` through `CHAL99.CHL`, using the next free slot. If
@@ -25,7 +86,7 @@ end and returns from the game when the challenge session ends.
 
 ## One bundled sample per build
 
-Opening CHALLENGES installs **SAMPLE.CHL** if that filename is absent. It never
+Opening SAVED POSITIONS installs **SAMPLE.CHL** if that filename is absent. It never
 overwrites an existing copy. Deleting that copy lets it be installed again.
 User-created CHAL files remain separate and are not packaged.
 
@@ -70,6 +131,8 @@ Framebuffer pixels and circular scroll offsets are deliberately excluded.
 | `Challenge_Arm` / `Challenge_LoadState` | Validate and load after match initialization |
 | `Challenge_EnsureSample` | Install the matching sample without replacing existing saves |
 | `ChallengesMenu`, `src/menus.c` | File picker, playing the position and restoring the main menu |
+| `src/challenge_collection.c` / `src/challenge_catalog.c` | Shared collection UI and six stable definitions |
+| `src/challenge_progress.c` / `EndOfGame` | Final-whistle completion, portable progress and save recovery |
 | `src/game_loop.c` | C-key dispatch, one-shot load and repaint |
 | `src/sim_state.c` | Shared registry and target-aware pointer/tile encoding |
 

@@ -6,6 +6,9 @@ PNG, and collects the small `.BIN` dumps the game writes into `bin/`. It is the 
 counterpart of `scripts/swos_drive.ps1` (docs/UI_DRIVER.md), and it exists for the same
 reason — "does this menu change work on the Amiga?" should be answerable from a terminal.
 
+Use `-EmulatorId <pid>` to drive an existing specific session while other emulators
+(for example, isolated challenge generators) run. Do not combine it with `-Launch`.
+
 The difference from the SDL harness is what you get to look at. **The Amiga build writes
 no `SWOS.log` and has no `[menu-nav]` lines**, so there is no ordinal to navigate by:
 every step of a route below was derived from a *screenshot*, and the screenshots a run

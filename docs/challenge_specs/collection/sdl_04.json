@@ -1,0 +1,22 @@
+{
+  "team1": "9a7ad1b1-ab77-57c1-824c-8596a8b9eadf",
+  "team2": "09778597-b10b-5814-a802-8d8dc6da8173",
+  "human": 1,
+  "score": [
+    0,
+    1
+  ],
+  "scorers": [
+    {
+      "side": 2,
+      "shirt": 9,
+      "minute": 60
+    }
+  ],
+  "minute": 65,
+  "ball": 1,
+  "extra_time": false,
+  "penalties": false,
+  "pitch": 4,
+  "out": "CCS04.CHL"
+}

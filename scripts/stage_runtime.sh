@@ -31,7 +31,7 @@ for d in "$@"; do
         # One bundled challenge per target. A combined multi-binary drop can
         # request 'all'; each executable still installs only its own sample.
         case "$RUNTIME_TARGET:$f" in
-            sdl:data/CHALAMI.DAT|amiga:data/CHALSDL.DAT) continue ;;
+            sdl:data/CHALAMI.DAT|sdl:data/CCA0?.DAT|amiga:data/CHALSDL.DAT|amiga:data/CCS0?.DAT) continue ;;
         esac
         mkdir -p "$DEST/$(dirname "$f")"
         cp "$f" "$DEST/$f"
