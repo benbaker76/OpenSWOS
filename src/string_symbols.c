@@ -206,6 +206,7 @@ extern char _aOptions[];                      extern char _aFriendly_1[];       
 extern char _aCareer_1[];                     extern char _aMultiplayer[];                  extern char _aCredits[];
 extern char _aUniform[];                      extern char _aShootingPractice[];             extern char _aPlayPractice[];
 extern char _aStartPractice[];                extern char _aDefendersOff[];                 extern char _aDefendersOn[];
+extern char _aPracticeAttackUp[], _aPracticeAttackDown[];
 extern char _aMidfieldOff[];                  extern char _aMidfieldOn[];                   extern char _aSelect1CpuTeam[];
 extern char _aPractice[];                     extern char _aPenaltyShootout[];              extern char _aPlayShootout[];
 extern char _aStartShootout[];                extern char _aDataEurocupTmd[];               extern char _aDataEurocwcTmd[];
@@ -981,6 +982,8 @@ const StringSymbol _stringSymbols[] = {
     { "_aStartPractice", (void *)_aStartPractice },
     { "_aDefendersOff", (void *)_aDefendersOff },
     { "_aDefendersOn", (void *)_aDefendersOn },
+    { "_aPracticeAttackUp", (void *)_aPracticeAttackUp },
+    { "_aPracticeAttackDown", (void *)_aPracticeAttackDown },
     { "_aMidfieldOff", (void *)_aMidfieldOff },
     { "_aMidfieldOn", (void *)_aMidfieldOn },
     { "_aSelect1CpuTeam", (void *)_aSelect1CpuTeam },

@@ -1,10 +1,10 @@
 {
   "name": "_shootingPracticeSetupMenu",
-  "comment": "OpenSWOS's SHOOTING PRACTICE setup screen, from the PRACTICE submenu's SHOOTING PRACTICE button (shooting_practice.c ShootingPracticeMenu). The choices before the drill: DEFENDERS OFF/ON (ON keeps the computer's RB, LB and D players on the pitch) and MIDFIELD OFF/ON (ON keeps its M, LW and RW too); attackers are always stripped. Each row draws through its string table (_practiceDefendersStrTable / _practiceMidfieldStrTable, indexed by its flag) and is recoloured green/yellow by ShootingPracticeSetupInit (onInit AND onReturn, since every ShowMenu re-unpacks the baked colour) and ChangePracticeDefenders / ChangePracticeMidfield. CONTINUE (ShootingPracticeContinue) runs the friendly flow with the mode flag set; it must not call CommonMenuExit (docs/MENUS.md section 12). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "comment": "OpenSWOS's SHOOTING PRACTICE setup screen, from the PRACTICE submenu's SHOOTING PRACTICE button (shooting_practice.c ShootingPracticeMenu). The choices before the drill: DEFENDERS OFF/ON (ON keeps the computer's RB, LB and D players on the pitch) and MIDFIELD OFF/ON (ON keeps its M, LW and RW too); attackers are always stripped. Each row draws through its string table (_practiceDefendersStrTable / _practiceMidfieldStrTable, indexed by its flag) and is recoloured green/yellow by ShootingPracticeSetupInit (onInit AND onReturn, since every ShowMenu re-unpacks the baked colour) and ChangePracticeDefenders / ChangePracticeMidfield. CONTINUE (ShootingPracticeContinue) runs the friendly flow with the mode flag set; it must not call CommonMenuExit (docs/MENUS.md section 12). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c. ATTACK UP/DOWN selects the human attacking direction for the whole untimed session; Escape ends practice.",
   "onInit": "ShootingPracticeSetupInit",
   "onReturn": "ShootingPracticeSetupInit",
   "onDraw": null,
-  "defaultEntry": 3,
+  "defaultEntry": 4,
   "items": [
     {
       "kind": "coords_mode",
@@ -99,7 +99,7 @@
       "kind": "entry",
       "coords": {
         "x": 82,
-        "y": 96,
+        "y": 86,
         "w": -116,
         "h": 15
       },
@@ -110,6 +110,38 @@
           "right": -1,
           "up": 2,
           "down": 4
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "string_table",
+          "flags": "0x0",
+          "table": "_practiceDirectionStrTable"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChangePracticeDirection"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 82,
+        "y": 114,
+        "w": -116,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 3,
+          "down": 5
         },
         {
           "op": "colors",
@@ -140,7 +172,7 @@
           "op": "nav",
           "left": -1,
           "right": -1,
-          "up": 3,
+          "up": 4,
           "down": -1
         },
         {

@@ -126,6 +126,12 @@ void InitTeamsData(void)
      * the next match; with DOS gameplay off it writes the Amiga defaults (no-op). */
     ApplyGameStyle();
 
+    {
+        int16_t topTeam = ShootingPractice_ForcedTopTeamNum();
+        if (topTeam)
+            _teamPlayingUp = (uint16_t)topTeam;
+    }
+
     /* Clear per-match game state */
     _currentScorer = 0;
     _lastPlayerBeforeGoalkeeper = (Sprite *)0;

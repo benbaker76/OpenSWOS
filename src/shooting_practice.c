@@ -20,6 +20,8 @@ int32_t g_shootingPracticeMode;
  * MIDFIELD on keeps its middle (M, LW, RW). Attackers are always stripped. */
 uint16_t g_shootingPracticeDefenders;
 uint16_t g_shootingPracticeMidfield;
+/* 0 = attack up (default), 1 = attack down. */
+uint16_t g_shootingPracticeAttackDown;
 
 extern uint16_t _team1Computer;
 extern uint16_t _team2Computer;
@@ -100,6 +102,13 @@ void ChangePracticeMidfield(MenuEntry *entry)
     CallDrawMenuItem(entry);
 }
 
+__attribute__((used, externally_visible))
+void ChangePracticeDirection(MenuEntry *entry)
+{
+    g_shootingPracticeAttackDown ^= 1;
+    CallDrawMenuItem(entry);
+}
+
 /* CONTINUE -- what the SHOOTING PRACTICE button itself used to be.
  *
  * The whole mode is "a friendly, with the flag set". FriendlyFlow seeds the
@@ -118,6 +127,7 @@ void ShootingPracticeContinue(void)
     g_shootingPracticeMode = 1;
     FriendlyFlow();
     g_shootingPracticeMode = 0;
+    ShootingPractice_BeginMatch(); /* Clear the latch before menus/attract replays. */
 }
 
 int16_t ShootingPractice_SelectionOk(void)
@@ -151,6 +161,7 @@ static int16_t s_cpuTeamNum;
  * its midfield (the setup screen's toggles at the moment of kick-off). */
 static int16_t s_keepDefenders;
 static int16_t s_keepMidfield;
+static int16_t s_attackDown;
 
 static int16_t cpuTeamNum(void)
 {
@@ -162,6 +173,7 @@ void ShootingPractice_BeginMatch(void)
     s_cpuTeamNum = 0;
     s_keepDefenders = 0;
     s_keepMidfield = 0;
+    s_attackDown = 0;
     if (!g_shootingPracticeMode)
         return;
     /* Exactly one side must be the computer. The team selection will not start a
@@ -173,6 +185,19 @@ void ShootingPractice_BeginMatch(void)
         s_cpuTeamNum = 2;
     s_keepDefenders = (g_shootingPracticeDefenders != 0);
     s_keepMidfield  = (g_shootingPracticeMidfield != 0);
+    s_attackDown = (g_shootingPracticeAttackDown != 0);
+}
+
+int16_t ShootingPractice_IsActive(void)
+{
+    return s_cpuTeamNum != 0;
+}
+
+int16_t ShootingPractice_ForcedTopTeamNum(void)
+{
+    /* Despite its name, _teamPlayingUp identifies the team occupying the
+     * TOP half and attacking DOWN (InitTeamsData / PrepareForInitialKick). */
+    return s_cpuTeamNum ? (s_attackDown ? 3 - s_cpuTeamNum : s_cpuTeamNum) : 0;
 }
 
 int16_t ShootingPractice_ForcedKickoffTeamNum(void)

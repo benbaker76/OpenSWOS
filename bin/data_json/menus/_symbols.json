@@ -38,6 +38,7 @@
     "ChangePitchStyle",
     "ChangePitchType",
     "ChangePracticeDefenders",
+    "ChangePracticeDirection",
     "ChangePracticeMidfield",
     "ChangeSex",
     "ChangeTeams",
@@ -671,6 +672,7 @@
     "_pitchTypeStrTable",
     "_positionFilterStringTable",
     "_practiceDefendersStrTable",
+    "_practiceDirectionStrTable",
     "_practiceMidfieldStrTable",
     "_skillFilterStringTable"
   ],

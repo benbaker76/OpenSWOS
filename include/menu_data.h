@@ -1399,9 +1399,9 @@ typedef struct Menu_PracticeMenu
 
 /* OpenSWOS addition — the SHOOTING PRACTICE setup screen, from the PRACTICE
  * submenu's SHOOTING PRACTICE button: the DEFENDERS and MIDFIELD OFF/ON
- * toggles, CONTINUE, EXIT (bin/data_json/menus/shootingPracticeSetupMenu.json,
- * src/shooting_practice.c). Same shape as Menu_PracticeMenu with the first two
- * buttons string-table rows. */
+ * toggles, ATTACK UP/DOWN, CONTINUE, EXIT
+ * (bin/data_json/menus/shootingPracticeSetupMenu.json, src/shooting_practice.c).
+ * The first three buttons are string-table rows. */
 #pragma pack(push, 1)
 typedef struct Menu_ShootingPracticeSetup
 {
@@ -1410,8 +1410,9 @@ typedef struct Menu_ShootingPracticeSetup
   MenuEntry_Byte_Colors_TextPtr entry0;                     /* SHOOTING PRACTICE header */
   MenuEntry_Byte_Nav_Colors_StringTable_OnSelect entry1;    /* DEFENDERS OFF/ON */
   MenuEntry_Byte_Nav_Colors_StringTable_OnSelect entry2;    /* MIDFIELD OFF/ON */
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;        /* CONTINUE */
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;        /* EXIT */
+  MenuEntry_Byte_Nav_Colors_StringTable_OnSelect entry3;    /* ATTACK UP/DOWN */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;        /* CONTINUE */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;        /* EXIT */
   MenuMark markEndMenu;
 } Menu_ShootingPracticeSetup;
 #pragma pack(pop)

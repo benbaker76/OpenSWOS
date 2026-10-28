@@ -9,6 +9,7 @@
  */
 
 #include "game_timers.h"
+#include "shooting_practice.h"
 #include "dos_sound.h"
 #include "game_types.h"
 #include "netplay_match.h"    /* NetplayMatch_IsLive: no goal replay online (SDL) */
@@ -569,11 +570,19 @@ static void __attribute__((noinline)) handleGoalScored(TeamGeneralInfo *teamData
     _teamScoredGamePtr = teamData->inGameTeamPtr;
 
     {
-        TeamGeneralInfo *opTeam = teamData->opponentsTeam;
+        TeamGeneralInfo *restartTeam = teamData->opponentsTeam;
+        int16_t forced = ShootingPractice_ForcedKickoffTeamNum();
         int16_t camDir;
         uint8_t turnFlags;
 
-        if (opTeam == &_topTeamData) {
+        /* Goals prepare their restart here, without PrepareForInitialKick.
+         * In shooting practice the human takes every kickoff, including after
+         * scoring. Choose the team before deriving direction and turn flags. */
+        if (forced)
+            restartTeam = (_topTeamData.teamNumber == forced)
+                ? &_topTeamData : &_bottomTeamData;
+
+        if (restartTeam == &_topTeamData) {
             camDir = 4;
             turnFlags = 124;
         } else {
@@ -622,7 +631,7 @@ static void __attribute__((noinline)) handleGoalScored(TeamGeneralInfo *teamData
 
         _gameState = ST_PLAYERS_TO_INITIAL_POSITIONS;
         _breakCameraMode = 0xFFFF;
-        writeRestartGlobalsAndStopPlayers(opTeam, 336, 449, camDir, turnFlags);
+        writeRestartGlobalsAndStopPlayers(restartTeam, 336, 449, camDir, turnFlags);
     }
 }
 

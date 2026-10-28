@@ -728,10 +728,9 @@ void PrepareForInitialKick(void)
 {
     /* SHOOTING PRACTICE: the computer side is down to its goalkeeper, who cannot
      * take a kickoff -- he walks to the centre circle and the match sits there.
-     * Every kickoff comes through here (match start, half time, extra time, and
-     * the restart after a goal -- which is the one that actually bites, since the
-     * side that concedes restarts), so forcing the human side here covers them
-     * all, and the direction/turn flags below derive from the same value. */
+     * This handles match start and period changes. Goals have their own restart
+     * path in game_timers.c handleGoalScored, which applies the same rule.
+     * The direction/turn flags below derive from the chosen team. */
     {
         int16_t forced = ShootingPractice_ForcedKickoffTeamNum();
         if (forced)

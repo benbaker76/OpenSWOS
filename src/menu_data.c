@@ -374,6 +374,7 @@ extern void ShootingPracticeMenu(void);
 extern void ShootingPracticeSetupInit(void);
 extern void ChangePracticeDefenders(void);
 extern void ChangePracticeMidfield(void);
+extern void ChangePracticeDirection(void);
 extern void ShootingPracticeContinue(void);
 extern void PenaltyShootoutMenu(void);
 extern void PracticeMenuSelected(void);
@@ -613,6 +614,7 @@ extern char _asc_135D96[];
 extern char* _allPlTeamsEqualStrTable[];
 extern char* _practiceDefendersStrTable[];
 extern char* _practiceMidfieldStrTable[];
+extern char* _practiceDirectionStrTable[];
 extern char* _autoReplaysStrTable[];
 extern char* _autoSaveHlStrTable[];
 extern char* _diyAwayGoalsStrTab[];
@@ -7124,12 +7126,13 @@ Menu_PracticeMenu _practiceMenu = {
  * OFF/ON (string-table rows over g_shootingPracticeDefenders /
  * g_shootingPracticeMidfield, recoloured green/yellow by
  * ShootingPracticeSetupInit / ChangePracticeDefenders / ChangePracticeMidfield),
+ * ATTACK UP/DOWN chooses the human attacking direction for the untimed session.
  * CONTINUE (ShootingPracticeContinue runs the friendly flow with the mode flag
  * set), EXIT. Hand-written like _practiceMenu above: scripts/emit_menus.py
  * splices VALUES into the braces that are already here, so the shape of a new
  * menu has to exist in C first (docs/MENUS.md section 12). */
 Menu_ShootingPracticeSetup _shootingPracticeSetupMenu = {
-    { ShootingPracticeSetupInit, ShootingPracticeSetupInit, 0, 3 },
+    { ShootingPracticeSetupInit, ShootingPracticeSetupInit, 0, 4 },
     MENU_MARK_BYTE_COORDS,
     {
         { 92, 0, 120, 15 },
@@ -7154,8 +7157,16 @@ Menu_ShootingPracticeSetup _shootingPracticeSetupMenu = {
         MENU_CMD_END
     },
     {
-        { 82, 96, -116, 15 },
+        { 82, 86, -116, 15 },
         { MENU_CMD_NAV, -1, -1, 2, 4 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_STRING_TABLE, 0x0, _practiceDirectionStrTable },
+        { MENU_CMD_ONSELECT_FIRE, ChangePracticeDirection },
+        MENU_CMD_END
+    },
+    {
+        { 82, 114, -116, 15 },
+        { MENU_CMD_NAV, -1, -1, 3, 5 },
         { MENU_CMD_COLORS, 0xE },
         { MENU_CMD_TEXT_PTR, 0x0, _aContinue },
         { MENU_CMD_ONSELECT_FIRE, ShootingPracticeContinue },
@@ -7163,7 +7174,7 @@ Menu_ShootingPracticeSetup _shootingPracticeSetupMenu = {
     },
     {
         { 102, -71, 100, 15 },
-        { MENU_CMD_NAV, -1, -1, 3, -1 },
+        { MENU_CMD_NAV, -1, -1, 4, -1 },
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },

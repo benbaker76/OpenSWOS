@@ -13,8 +13,8 @@
  * nothing else: press it and you are in the friendly's own flow -- its settings
  * screen, its team selection, its PLAY MATCH screen, with EDIT TACTICS, VIEW
  * OPPO, squad swaps and substitutes all working as they always do. The ONE
- * difference is the match itself, which kicks off with the computer side
- * fielding only its keeper.
+ * differences are the untimed match, chosen attacking direction and computer
+ * side fielding only its keeper (plus any enabled lines).
  *
  * Until 2026-10-22 it was instead a PRACTICE toggle on the PLAY MATCH screen
  * (entry 69). That button is gone: it had to clear itself whenever it was off
@@ -30,8 +30,8 @@
 #pragma once
 #include "game_types.h"
 
-/* Non-zero from the moment SHOOTING PRACTICE is pressed on the main menu until
- * its flow returns there. Owned by ShootingPracticeMenu alone -- no menu redraw
+/* Non-zero while CONTINUE runs the practice flow from its setup screen.
+ * Owned by ShootingPracticeContinue alone -- no menu redraw
  * clears it, which is the whole point of the rewrite. While it is set the
  * friendly's screens say PRACTICE instead of FRIENDLY and refuse to start until
  * exactly one side is the computer. */
@@ -46,9 +46,12 @@ extern int32_t g_shootingPracticeMode;
  * itself. */
 extern uint16_t g_shootingPracticeDefenders;
 extern uint16_t g_shootingPracticeMidfield;
+/* Direction of the human side: 0 = UP, 1 = DOWN. Latched at match start. */
+extern uint16_t g_shootingPracticeAttackDown;
 
 /* The PRACTICE submenu's SHOOTING PRACTICE button: open the setup screen
- * (DEFENDERS toggle / CONTINUE / EXIT). CONTINUE is ShootingPracticeContinue:
+ * (DEFENDERS / MIDFIELD / ATTACK UP-DOWN / CONTINUE / EXIT).
+ * CONTINUE is ShootingPracticeContinue:
  * set the mode, run the friendly flow, clear it again. Both are bound by name
  * through the menu data (menu_data.c _shootingPracticeSetupMenu), along with
  * ShootingPracticeSetupInit and ChangePracticeDefenders. */
@@ -67,6 +70,13 @@ int16_t ShootingPractice_SelectionOk(void);
  * rather than the mode flag, so that a match already under way cannot be
  * changed by anything the menus do afterwards. */
 void ShootingPractice_BeginMatch(void);
+
+/* Latched mode: no match clock or timed half/full-time in shooting practice. */
+int16_t ShootingPractice_IsActive(void);
+
+/* 0 = ordinary match; otherwise the team occupying the top half (attacking
+ * down). Apply before InitTeamsData binds teams to pitch ends. */
+int16_t ShootingPractice_ForcedTopTeamNum(void);
 
 /* 0 = no change; else the team number (1 or 2) that must kick off instead of
  * whatever the coin toss picked, because the other side only has a goalkeeper

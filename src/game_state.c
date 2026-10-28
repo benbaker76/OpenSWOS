@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "game_state.h"
+#include "shooting_practice.h"
 #include "game_types.h"
 #include "endian_helpers.h"
 #include "display.h"    /* _screen_width, WIDE_MARGIN — center the in-match HUD in widescreen */
@@ -779,6 +780,16 @@ __attribute__((used, externally_visible))
 void UpdateTime(void)
 {
     uint16_t d0u;
+
+    /* Training lasts until Escape. Bypass the entire match clock, including
+     * stoppage-time expiry, and remove the minutes from the display list. */
+    if (ShootingPractice_IsActive()) {
+        if (_currentTimeSprite.visible) {
+            _currentTimeSprite.visible = 0;
+            InitDisplaySprites();
+        }
+        return;
+    }
 
     /* --- Timer/visibility section --- */
     /* Original asm always sets timeVar=31000, then immediately converts to 150.

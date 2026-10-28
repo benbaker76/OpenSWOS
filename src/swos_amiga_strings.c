@@ -43,6 +43,8 @@ char _aDefendersOff[] = "DEFENDERS OFF";
 char _aDefendersOn[]  = "DEFENDERS ON";
 char _aMidfieldOff[]  = "MIDFIELD OFF";
 char _aMidfieldOn[]   = "MIDFIELD ON";
+char _aPracticeAttackUp[] = "ATTACK UP";
+char _aPracticeAttackDown[] = "ATTACK DOWN";
 /* Shown where "SELECT N MORE TEAMS" would be: the two teams are picked, but the
  * drill needs one of them to be the computer and the other not. */
 char _aSelect1CpuTeam[] = "SELECT 1 COMPUTER TEAM";

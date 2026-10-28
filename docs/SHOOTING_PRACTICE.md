@@ -9,12 +9,18 @@ LB or D), **MIDFIELD** its middle (M, LW, RW). Attackers are always taken off.
 
 Both targets. SDL and Amiga both get the mode and the drill.
 
+Practice has **no match clock, minutes display, half-time or full-time**. Play
+continues until **Escape** is pressed. The setup screen's **ATTACK UP / DOWN**
+row chooses the human team's attacking direction (UP by default), regardless
+of which team is human-controlled. That direction stays fixed for the session.
+
 ## Using it
 
 Main menu → **PRACTICE** (the left column's second row, entry 2, under EDIT)
 → **SHOOTING PRACTICE** → the **setup screen** (since 2026-10-26): the
 **DEFENDERS OFF/ON** and **MIDFIELD OFF/ON** rows — click to toggle, drawn green
-when OFF (the ordinary button colour) and yellow when ON — then **CONTINUE** to
+when OFF (the ordinary button colour) and yellow when ON — plus **ATTACK UP / DOWN**
+to choose the attacking end, then **CONTINUE** to
 enter the drill's flow, or EXIT back to the submenu. The toggles are mode
 settings, not match ones: they are latched at kick-off with the mode itself
 (`ShootingPractice_BeginMatch`), so flipping one after CONTINUE changes nothing
@@ -37,8 +43,9 @@ From there it is **the friendly flow, unchanged**: the settings screen (pitch
 type / season, min and max substitutes), then team selection — clubs, national
 teams, custom teams — then the PLAY MATCH screen, where EDIT TACTICS, VIEW OPPO,
 squad swaps, formations, UNIFORM and substitutes all work exactly as they always
-do. The *only* difference is the match itself, which kicks off with the computer
-side fielding only its keeper. The screens say so as you go: the settings header
+do. The drill is untimed, uses the chosen attacking direction, and kicks off with
+the computer side fielding only its keeper (plus any enabled lines).
+The screens say so as you go: the settings header
 and the selection header read SHOOTING PRACTICE, the selection's confirm button
 reads PLAY PRACTICE, the start button reads START PRACTICE, and the match is
 named SHOOTING PRACTICE on the scoreboard and in a saved highlight.
@@ -64,7 +71,7 @@ auto-assigned and nothing is silently overridden at kick-off.
 | piece | where |
 |---|---|
 | the mode flag, the menu handlers (setup screen included), the selection rule, the latch, the strip, the forced kickoff | `src/shooting_practice.c` |
-| the setup screen (DEFENDERS / MIDFIELD / CONTINUE / EXIT) | `bin/data_json/menus/shootingPracticeSetupMenu.json`, `src/menu_data.c`, `include/menu_data.h`, `s_staticMenus` in `src/menu_load_json.c` — all five places of MENUS.md §12 |
+| the setup screen (DEFENDERS / MIDFIELD / ATTACK UP-DOWN / CONTINUE / EXIT) | `bin/data_json/menus/shootingPracticeSetupMenu.json`, `src/menu_data.c`, `include/menu_data.h`, `s_staticMenus` in `src/menu_load_json.c` — all five places of MENUS.md §12 |
 | the toggle rows' OFF/ON string tables | `_practiceDefendersStrTable`, `_practiceMidfieldStrTable` (`src/swos_amiga_ptr_imports.c`), strings in `src/swos_amiga_strings.c` |
 | main menu entry data | `bin/data_json/menus/swosMainMenu.json`, `src/menu_data.c`, `include/menu_data.h` |
 | symbol registry | `src/menu_symbols.c` ← **regenerate it**, see MENUS.md §11 |
@@ -72,12 +79,12 @@ auto-assigned and nothing is silently overridden at kick-off.
 | the words PRACTICE replaces FRIENDLY with | `FriendlyMenuInit`, `ChooseTeamsMenu` (`src/menus.c`), `SetGameStartButtonText` (`src/play_match_menu.c`), `InitAndPlayGame` (`src/game_init.c`) |
 | "one computer side" gate | `CheckNumTeamsAllowed` (`src/diy_competition.c`), `SetChooseChangeTeamsEntries` (`src/teams.c`), `CheckNumberOfTeams` (`src/menus.c`) |
 | strip hook | `InitPlayersBeforeEnteringPitch` (`src/match_setup.c`) |
-| kickoff hook | `PrepareForInitialKick` (`src/match_setup.c`) |
+| kickoff hooks | `PrepareForInitialKick` (`src/match_setup.c`), `handleGoalScored` (`src/game_timers.c`) |
 | latch set | `InitializeInGameTeamsAndStartGame` (`src/game_init.c`) |
 
 **The mode reuses the friendly flow whole rather than copying it.**
-`ShootingPracticeMenu()` is five lines: set the flag, call `FriendlyFlow()`,
-clear the flag. That is deliberate — `ShowFriendlyMenu` seeds the RNG, saves and
+`ShootingPracticeContinue()` sets the flag, calls `FriendlyFlow()`, then clears
+the flag and match latch. That is deliberate — `ShowFriendlyMenu` seeds the RNG, saves and
 restores `_gameType` around the flow, and sets `_teamsLoaded = 0` so the country
 lists reload pristine, and that last one is a deliberate fix over an original
 SWOS bug (a friendly played after a career otherwise shows the career's mutated
@@ -117,9 +124,40 @@ teams are set up. Everything afterwards reads that latch and never a menu global
 toggle that made it necessary is gone, because it is the right shape regardless:
 what a match plays by is decided once, at kick-off.
 
-**Every kickoff is taken by the human side.** The computer has nobody who can
-take one. All kickoffs funnel through `PrepareForInitialKick`, so one hook there
-covers match start, half time, extra time and the restart after a goal.
+**Every kickoff is taken by the human side.** With no outfield lines enabled,
+the computer has nobody who can take one. `PrepareForInitialKick` handles match
+start; goals use a separate path in `game_timers.c`'s `handleGoalScored`. Both
+apply the latched practice kickoff rule before choosing camera direction and
+allowed turns. After either side scores, the ball returns to the centre spot
+for the human's kickoff, preserving the goal/replay sequence. Ordinary matches
+still restart with the conceding team.
+
+**The match clock is bypassed.** `UpdateTime` returns before advancing time or
+checking half/full-time whenever the latched mode is active. It also hides the
+clock sprite and rebuilds the display list if necessary. Ordinary Escape exit
+still works, with no forfeit goals because the practice clock remains at zero.
+
+**Direction is latched too.** `InitTeamsData` applies
+`ShootingPractice_ForcedTopTeamNum` before assigning either team to a pitch end.
+Despite its name, `_teamPlayingUp` identifies the team occupying the top half,
+which attacks **down**; UP therefore puts the computer there, DOWN the human.
+Returning from the practice flow clears the latch before menus/attract playback.
+
+Validation for the untimed/direction change: SDL and Amiga builds passed; all
+51 packed menus matched their JSON at runtime; the SDL setup screen was checked
+with UP, DOWN and UP again. Direct engine checks covered both human sides and
+directions, fixed settings after kickoff, kickoff ownership/direction, 100,000
+clock updates, Escape exit without score changes, invalid selections and normal
+match behavior after resetting the mode. These are engine/menu checks, not a
+full interactive play test on Amiga.
+
+The goal restart fix was checked through `CheckIfBallOutOfPlay` and the restart
+timer phases: 16 cases covered practice/ordinary matches, both human sides,
+both attacking directions and both goals. The ball returned to the centre with
+the human taking practice kickoffs and the conceding team taking ordinary ones.
+Scorer rendering was stubbed for these headless checks; restart logic was real.
+The user subsequently confirmed the updated practice mode and goal restarts
+working in FS-UAE with the Amiga build.
 
 ## Known rough edges
 
@@ -195,8 +233,9 @@ kickoff. `game_timers.c` then re-sends him on a timer
 (`ST_WAITING_ON_PLAYER` + `playerNumber == 0`), which is the repeated walking.
 
 **Fix:** latch the mode at match start instead of reading a menu global that
-outlives the menu, and move the kickoff forcing into `PrepareForInitialKick`
-(one hook, every kickoff) instead of two narrower ones.
+outlives the menu. Kickoff forcing belongs in both `PrepareForInitialKick` and
+the goal restart in `handleGoalScored`; the latter does not call the former.
+The missing goal-path hook was found during play testing on 2026-10-28.
 
 **Lesson:** a menu global is menu state. Anything the match needs must be
 captured into match state at kick-off.
