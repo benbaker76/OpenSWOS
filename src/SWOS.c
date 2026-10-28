@@ -15,6 +15,7 @@
 #include "audio.h"
 #include "menus.h"
 #include "deterministic.h"
+#include "challenge_gen.h"
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
@@ -230,6 +231,9 @@ void mainC(void)
     InitDisplayAndCopper();
     AssetSys_InitDiskImageSources();
     InitSkinAndDefaultPointers();
+#ifndef SWOS_SDL_BUILD
+    if (ChallengeGen_Boot() < 0) return;
+#endif
 
     /* ---- Phase 2: Build palettes ---- */
     
@@ -354,6 +358,10 @@ skip_title_screens: ;
     _hilNumGoals = 0;
 
     /* ---- Phase 9: Enter front-end loop (or arcade attract loop) ---- */
+    if (ChallengeGen_Armed()) {
+        ChallengeGen_Run();
+        return;
+    }
 #ifdef SWOS_SDL_BUILD
     {
         extern int  NetplayLiveTest_Armed(void);
@@ -382,17 +390,6 @@ skip_title_screens: ;
                 if (Challenge_Arm((const uint8_t *)want) != 0)
                     return;
                 Challenge_Play();
-                return;
-            }
-        }
-        {
-            /* --challenge-gen=<spec>: construct a position and save it as a .CHL
-             * (src/challenge_gen.c). Here for the same reason as the rigs: the match
-             * needs its data loaded, and a generator run wants no menus. */
-            extern int32_t ChallengeGen_Armed(void);
-            extern void    ChallengeGen_Run(void);
-            if (ChallengeGen_Armed()) {
-                ChallengeGen_Run();   /* writes the file, then exits from inside the match */
                 return;
             }
         }

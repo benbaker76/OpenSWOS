@@ -1,0 +1,12 @@
+{
+  "team1": "AC MILAN",
+  "team2": "JUVENTUS",
+  "human": 2,
+  "scorers": [
+    { "side": 1, "shirt": 9, "minute": 12 },
+    { "side": 1, "shirt": 9, "minute": 75 }
+  ],
+  "minute": 88,
+  "ball": 2,
+  "out": "AMI88.CHL"
+}

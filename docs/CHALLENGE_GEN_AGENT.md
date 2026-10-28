@@ -1,5 +1,13 @@
 # Brief for the next agent — challenge generator, 2026-10-27
 
+For requests and supported options, start with [CHALLENGE_REQUESTS.md](CHALLENGE_REQUESTS.md).
+
+**Amiga follow-up:** native generation is implemented; read the new opening section
+of `CHALLENGE_GEN.md` and the Amiga helper instructions in `CHALLENGE.md`. The module
+is shared, not SDL-only. The user verified loading generated `AMI88.CHL` (kickoff)
+and `PART67.CHL` (corner). Use
+`scripts/challenge_gen_amiga.ps1` for isolated emulator jobs and native `.CHL` output.
+
 You are picking up the CHALLENGE GENERATOR: `SWOS --challenge-gen=spec.json` builds a
 `.CHL` save state from a declarative spec (teams, human side, scorers, minute, kickoff-
 after-goal or corner, who has the ball, tie rules). v1 is DONE, user-verified and

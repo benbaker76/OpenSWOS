@@ -1,8 +1,7 @@
 /*
  * challenge_gen.h -- the CHALLENGE GENERATOR: construct a .CHL save state from a spec
- * instead of playing into the position and pressing the save key. SDL only -- a .CHL is
- * target-specific (the layout hashes differ), so the m68k build neither writes nor needs
- * this. See docs/CHALLENGE.md "Generating challenges" and src/challenge_gen.c.
+ * instead of playing into the position and pressing the save key. Both targets use
+ * their own engine to write their own layout. See docs/CHALLENGE.md and src/challenge_gen.c.
  *
  * `SWOS --challenge-gen=spec.json` boots headless, kicks off a real friendly between the
  * spec's teams and drives the ENGINE into the wanted position: the score is written as
@@ -19,7 +18,12 @@
 
 #include "game_types.h"
 
-#ifdef SWOS_SDL_BUILD
+#ifndef SWOS_SDL_BUILD
+/* Optional emulator job at data/CHALGEN.DAT (JSON). 0 absent, 1 armed, -1 invalid. */
+int32_t ChallengeGen_Boot(void);
+/* Synthetic fire level, decoded by input.c before edge tracking. */
+int32_t ChallengeGen_Fire(void);
+#endif
 
 /* Read, parse and check the spec file now, at argument-parse time: the path is the
  * user's, not a save-folder name, and the process chdirs later. 0 on success; on
@@ -42,5 +46,4 @@ void    ChallengeGen_SetupPlayers(TeamFileEx *team1, TeamFileEx *team2);
  * waits for the restart line-up, saves, exits. */
 void    ChallengeGen_Frame(void);
 
-#endif /* SWOS_SDL_BUILD */
 #endif /* CHALLENGE_GEN_H */

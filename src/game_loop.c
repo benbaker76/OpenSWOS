@@ -10,6 +10,7 @@
 
 #include "raster_bars.h"     /* -DRASTER_BARS: the frame's phases as colour bands */
 #include "game_loop.h"
+#include "challenge_gen.h"
 #include "dos_sound.h"
 #include "game_types.h"
 #include "display.h"
@@ -675,11 +676,9 @@ GameFrameResult GameLoop_Frame(void)
      * every frame it is held, so one press of 'C' wrote a file per frame (four of them,
      * first time it was tried). */
     Challenge_TickNotice();
-#ifdef SWOS_SDL_BUILD
     /* CHALLENGE GENERATOR (--challenge-gen, src/challenge_gen.c): drives the match
      * toward the spec'd position and saves it; a no-op in every ordinary match. */
-    { extern void ChallengeGen_Frame(void); ChallengeGen_Frame(); }
-#endif
+    ChallengeGen_Frame();
     Challenge_DumpPitch();      /* TEMPORARY diagnostic */
 #ifdef CHAL_AUTOPROBE
     Challenge_AutoProbe();      /* TEMPORARY: see include/challenge.h */
@@ -720,7 +719,7 @@ GameFrameResult GameLoop_Frame(void)
 #endif
     /* Check end of match */
     if (_playGame == 0)
-        return GAME_FRAME_MATCH_OVER;
+        return (ChallengeGen_Armed() && _quitToDos) ? GAME_FRAME_QUIT : GAME_FRAME_MATCH_OVER;
 
     /* Fade state management */
     if (_fadeState == 0 && _fadeInitFlag == 0x3E7)

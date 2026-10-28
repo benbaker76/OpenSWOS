@@ -1,5 +1,28 @@
 # The challenge generator — handover, 2026-10-27
 
+## Amiga follow-up
+
+Generation now runs on both targets. `scripts/challenge_gen_amiga.ps1` stages an
+isolated FS-UAE drawer and the same JSON spec as `data/CHALGEN.DAT`, then copies
+the native result into `bin/save/`. `ChallengeGen_Boot` checks this optional job
+before the intro. The native parser uses `mjson_get_long`; team lookup probes
+existing TEAM files and delegates RNC decompression/global numbering to
+`LoadTeamFile`. Names or `TEAM.nnn:ordinal` select teams; UUID lookup remains SDL-only.
+
+The phase machine, score bookkeeping and restart capture are shared. Amiga input
+injects fire before `Player1StatusProc`'s edge tracking, rather than writing a
+physical CIA register. Success/failure writes `data/CHALGEN.LOG`; completion unwinds
+the game loop and restores hardware normally. An ordinary boot without the job
+file is unchanged. The helper never changes the regular drawer's startup sequence.
+
+Both targets build; SDL `--challenge-selftest` and a generated SDL corner pass.
+The user confirmed both native examples load and play correctly: Milan 2–0 Juventus
+at an 88-minute kickoff, and Partizan 0–3 Red Star at a 67-minute Partizan corner.
+The files are tracked as `bin/save/AMI88.CHL` and `bin/save/PART67.CHL`; their specs
+live in `docs/challenge_specs/`. Other personal saves remain ignored. The original v1 notes
+below describe the SDL implementation before this follow-up; Amiga generation is
+no longer an outstanding roadmap item.
+
 What was built, how it works, what to do next. The user-facing guide is the
 "Generating challenges" section of [CHALLENGE.md](CHALLENGE.md); this page is for
 whoever works on it next.

@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "input.h"
+#include "challenge_gen.h"
 
 /* ---- Hardware register definitions ----
  * On the Amiga these point at the live Paula joystick + CIAA fire-button
@@ -84,6 +85,13 @@ void Player1StatusProc(void)
 
     /* Fire button: CIAA_PRA bit 7, active low (seq = set if equal/zero) */
     _pl1Fire = (HW_CIAA_PRA & (1 << 7)) ? 0x00 : 0xFF;
+
+#ifndef SWOS_SDL_BUILD
+    if (ChallengeGen_Armed()) {
+        _pl1Fire = ChallengeGen_Fire() ? 0xFF : 0;
+        _pl1Right = _pl1Left = _pl1Down = _pl1Up = 0;
+    }
+#endif
 
     /* ---- Compute diagonal combinations ---- */
     _pl1UpRight  = _pl1Up   & _pl1Right;

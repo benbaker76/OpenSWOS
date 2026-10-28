@@ -48,7 +48,6 @@ VPATH     = $(SRC_DIRS) support asm
 SDL_ONLY_SRCS := \
     arcade.c              \
     assets_check.c        \
-    challenge_gen.c       \
     contest_log.c         \
     audio_sdl.c           \
     crt_effects.c         \

@@ -80,7 +80,43 @@ camera delta. Loaded camera fractions are preserved. On exit, both menu scroll
 origins are reset before the normal menu redraw. SDL's top-level Esc shortcut now
 also checks that no game, highlight playback or challenge is active.
 
-## Generating challenges (SDL only)
+## Generating challenges
+
+For the plain-language request template, supported choices, examples and JSON
+field reference, read [How to describe a challenge](CHALLENGE_REQUESTS.md).
+The request order is **teams → minute → situation → ball → score → human team → platform**.
+
+For an **Amiga `.CHL`**, run the Windows helper against the built `bin/SWOS2`:
+
+```powershell
+scripts\challenge_gen_amiga.ps1 -Spec docs\challenge_specs\amiga_partizan_67.json
+```
+
+It boots FS-UAE in an isolated game drawer, drives a native match, and copies the
+finished file to `bin/save/` (`PART67.CHL` for this example). Load it from
+**CHALLENGES**, or copy it into another Amiga installation's `save/` folder.
+Loading starts at the saved minute. The first-half/halftime sequence visible
+during generation is only how the generator constructs the position.
+
+**First comes the machine's automatic recording stage:** it runs the match,
+prepares the requested position and saves the `.CHL`; no player input is needed.
+Its emulator closes after the save. **Then comes your playing stage:** launch the
+normal game and load that file from CHALLENGES. The planned generator closure is
+not a crash, and the file is a playable saved position, not a video or replay.
+
+The helper needs staged Amiga assets, FS-UAE and an A1200 Kickstart ROM; see
+[LOCAL_WORKFLOW.md](LOCAL_WORKFLOW.md). `-FsUae` and `-Kickstart` override discovery,
+`-Output` chooses the destination, and `-Force` permits replacing an existing file.
+Without `out` it uses `AMIGAGEN.CHL`. Each run keeps diagnostics under
+`build/challenge-amiga/<job>/data/CHALGEN.LOG`. Existing emulator sessions and
+save files are left alone.
+
+Amiga specs use native team names or `TEAM.nnn:ordinal` (zero-based ordinal),
+instead of JSON database UUIDs. The Partizan example explicitly selects Yugoslav
+league teams `TEAM.041:3` and `TEAM.041:7`. Both targets share the generation logic
+and the fields below; each target writes its own compatible layout and rules.
+The Amiga job trigger is JSON in `data/CHALGEN.DAT`; the helper places it only in
+the isolated drawer and removes it afterwards.
 
 `SWOS --challenge-gen=spec.json` constructs a challenge nobody had to play into
 (`src/challenge_gen.c`, `scripts/chl_dump.py` decodes the result). The run is headless
@@ -124,10 +160,9 @@ builds on its own:
 
 Every restart funnels into `ST_WAITING_ON_PLAYER` — line-up complete, game waiting on
 the taker — and that is where the position is saved, after the clock is set to the
-spec's `minute` (1–89). A minute past 45 is reached by letting the engine play its own
-half time in turbo, so the end swap and every half-time side effect are its own; the run
-fails rather than mis-scores if the AI managed a goal in the ~1 second of open play that
-costs.
+spec's `minute` (1–89). For a minute past 45, the generator triggers the engine's
+half-time routine directly and lets it complete the break and end swap (in turbo on
+SDL). An unexpected goal during this transition fails the run.
 
 The match is a friendly, but **a level score at 90 plays extra time and then penalties
 by default** — the friendly's own tie options, carried in the file's setup block —
@@ -136,7 +171,7 @@ out.
 
 Caveats: generate with the same rules the players will use (`--dos-gameplay`, `--view`,
 the no-cards setting) — `Challenge_Arm` refuses a rules mismatch, and a file is per
-target like every `.CHL`. `pitch` (optional) picks the pitch number, otherwise the
+target like every `.CHL`. `pitch` (optional) picks the pitch condition (0–6), otherwise the
 friendly's random roll decides. `out` must end in `.CHL`; without it the next free
 `CHALnn.CHL` is used.
 
@@ -146,6 +181,10 @@ Both targets compile. SDL `--challenge-selftest` passes setup and simulation
 round trips. Fresh Amiga runs of both original CHAL01 and bundled CHAL02 were
 confirmed working, including exiting mid-match and reopening CHALLENGES. The
 SDL Esc fix was also confirmed by the user.
+
+Generated Amiga kickoff (`AMI88.CHL`) and corner (`PART67.CHL`) positions were both
+confirmed working by the user. The latter is Partizan 0–3 Red Star at 67 minutes,
+with the human controlling Partizan and taking the corner.
 
 An **SDL score-panel graphics issue on challenge startup** remains reported:
 the team-name/results area can show incorrect graphics resembling red cards.

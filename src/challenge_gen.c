@@ -1,5 +1,5 @@
 /*
- * challenge_gen.c -- the CHALLENGE GENERATOR (SDL only; include/challenge_gen.h,
+ * challenge_gen.c -- the CHALLENGE GENERATOR (include/challenge_gen.h,
  * docs/CHALLENGE.md "Generating challenges").
  *
  * `SWOS --challenge-gen=spec.json` writes a .CHL nobody had to play into. The spec names
@@ -33,33 +33,38 @@
  * encoder (Challenge_SaveAs), so a generated file is the same thing a C-key capture is.
  *
  * A position past minute 45 is reached by letting the engine play its own half-time:
- * the clock is set to 45 with the last-minute countdown already expired
- * (_gameSeconds negative, _endGameCounter spent -- see UpdateTime's minute-45 branch in
- * src/game_state.c), the whistle goes on the next frame, and the whole break -- end
- * swap, _halfNumber, the halfPlayed bumps -- is the engine's own. The ~one second of
- * open play this costs is checked afterwards: a goal the AI scored in it fails the run
- * rather than corrupting the spec's score.
+ * EndFirstHalf and the end-half bookkeeping are called directly; the engine runs
+ * the end swap, result screen and second-half lineup. Unexpected goals fail the run.
  *
  * Every wait has a frame budget: a headless batch run must never hang, whatever state
  * the match wedges in. Kickoffs that wait on a human (the generating run has none) are
- * taken with the engine's own PrepareForInitialKick, the function the computer's
- * kickoff timer calls.
+ * taken with pulsed fire input, before the engine decodes button edges.
  */
 #include "challenge_gen.h"
 
-#ifdef SWOS_SDL_BUILD
-
 #include "challenge.h"
-#include "team_db.h"
+#include "swos_io.h"
 #include "goal_scored.h"
 #include "play_match_menu.h"    /* TEAM_COMPUTER / TEAM_PLAYER_COACH */
 #include "mjson.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
+#ifdef SWOS_SDL_BUILD
+#include "team_db.h"
+#include <stdio.h>
+#include <stdlib.h>
 #define GEN_LOG(...)    do { printf("[chalgen] " __VA_ARGS__); fflush(stdout); } while (0)
+#define GEN_ERROR(...) fprintf(stderr, __VA_ARGS__)
+#else
+extern size_t strlen(const char *s);
+extern int strcmp(const char *a, const char *b);
+extern int memcmp(const void *a, const void *b, size_t n);
+#define snprintf swos_io_snprintf
+/* Rich SDL probes stay on SDL; Amiga writes a compact phase/status report below. */
+#define GEN_LOG(...) do { } while (0)
+#define GEN_ERROR(...) do { } while (0)
+#endif
 
 /* ---- the globals a friendly is set up from (same set src/challenge.c snapshots) ---- */
 
@@ -137,6 +142,39 @@ typedef struct {
 
 static GenSpec s_spec;
 static int32_t s_armed;
+static int32_t s_finished;
+static const char *s_error;
+
+#ifndef SWOS_SDL_BUILD
+static int32_t s_fire;
+int32_t ChallengeGen_Fire(void) { return s_fire; }
+
+static void amiga_status(const char *status, const char *reason, int32_t phase)
+{
+    char buf[512];
+    int n = swos_io_snprintf(buf, sizeof buf,
+        "%s: %s\nphase %d, state %u, player state %u, half %u, score %u:%u\n",
+        status, reason, (int)phase, (unsigned)_gameState, (unsigned)_gameStatePl,
+        (unsigned)_halfNumber, (unsigned)_team1TotalGoals, (unsigned)_team2TotalGoals);
+    swos_io_save((const uint8_t *)"data/CHALGEN.LOG", (const uint8_t *)buf,
+                 (uint32_t)(n < (int)sizeof buf ? n : (int)sizeof buf - 1));
+}
+#endif
+
+static void gen_finish(int32_t code)
+{
+    s_finished = 1;
+#ifdef SWOS_SDL_BUILD
+    fflush(stdout);
+    exit(code);
+#else
+    extern uint16_t _quitToDos;
+    (void)code;
+    s_fire = 0;
+    _playGame = 0;
+    _quitToDos = 1;   /* unwind normally: startShim restores the Amiga hardware */
+#endif
+}
 
 int32_t ChallengeGen_Armed(void) { return s_armed; }
 
@@ -144,7 +182,8 @@ int32_t ChallengeGen_Armed(void) { return s_armed; }
 
 static int32_t spec_fail(const char *why)
 {
-    fprintf(stderr, "--challenge-gen: %s\n", why);
+    s_error = why;
+    GEN_ERROR("--challenge-gen: %s\n", why);
     return 1;
 }
 
@@ -157,7 +196,7 @@ static const char *k_specKeys[] = {
 
 static int32_t parse_spec(const char *buf, int32_t len)
 {
-    double d;
+    long d;
     char tmp[40];
     int koff, klen, voff, vlen, vtype, off;
     int32_t i;
@@ -168,7 +207,7 @@ static int32_t parse_spec(const char *buf, int32_t len)
             if ((int)strlen(*k) == klen - 2 && memcmp(buf + koff + 1, *k, (size_t)(klen - 2)) == 0)
                 break;
         if (!*k) {
-            fprintf(stderr, "--challenge-gen: unknown key %.*s in the spec\n", klen, buf + koff);
+            GEN_ERROR("--challenge-gen: unknown key %.*s in the spec\n", klen, buf + koff);
             return 1;
         }
     }
@@ -179,13 +218,13 @@ static int32_t parse_spec(const char *buf, int32_t len)
         return spec_fail("the spec needs \"team2\" (a team name or a uuid)");
 
     s_spec.human = 1;
-    if (mjson_get_number(buf, len, "$.human", &d)) {
+    if (mjson_get_long(buf, len, "$.human", &d)) {
         s_spec.human = (int32_t)d;
         if (s_spec.human != 1 && s_spec.human != 2)
             return spec_fail("\"human\" must be 1 or 2");
     }
 
-    if (!mjson_get_number(buf, len, "$.minute", &d))
+    if (!mjson_get_long(buf, len, "$.minute", &d))
         return spec_fail("the spec needs \"minute\" (1..89)");
     s_spec.minute = (int32_t)d;
     if (s_spec.minute < 1 || s_spec.minute > 89)
@@ -196,15 +235,15 @@ static int32_t parse_spec(const char *buf, int32_t len)
         char path[48];
         GenGoal *g = &s_spec.goals[i];
         snprintf(path, sizeof path, "$.scorers[%d].side", (int)i);
-        if (!mjson_get_number(buf, len, path, &d))
+        if (!mjson_get_long(buf, len, path, &d))
             break;
         g->side = (int32_t)d;
         snprintf(path, sizeof path, "$.scorers[%d].shirt", (int)i);
-        if (!mjson_get_number(buf, len, path, &d))
+        if (!mjson_get_long(buf, len, path, &d))
             return spec_fail("every scorer needs \"shirt\"");
         g->shirt = (int32_t)d;
         snprintf(path, sizeof path, "$.scorers[%d].minute", (int)i);
-        if (!mjson_get_number(buf, len, path, &d))
+        if (!mjson_get_long(buf, len, path, &d))
             return spec_fail("every scorer needs \"minute\"");
         g->minute = (int32_t)d;
         if (g->side != 1 && g->side != 2)
@@ -218,20 +257,20 @@ static int32_t parse_spec(const char *buf, int32_t len)
     {
         char path[48];
         snprintf(path, sizeof path, "$.scorers[%d].side", (int)GEN_MAX_GOALS);
-        if (mjson_get_number(buf, len, path, &d))
+        if (mjson_get_long(buf, len, path, &d))
             return spec_fail("too many scorers (16 is the most a side's table holds)");
     }
 
     /* "score" is a cross-check, never a second source: the goals ARE the score. */
-    if (mjson_get_number(buf, len, "$.score[0]", &d)) {
+    if (mjson_get_long(buf, len, "$.score[0]", &d)) {
         int32_t want1 = (int32_t)d, want2 = 0, have1 = 0, have2 = 0;
-        if (mjson_get_number(buf, len, "$.score[1]", &d))
+        if (mjson_get_long(buf, len, "$.score[1]", &d))
             want2 = (int32_t)d;
         for (i = 0; i < s_spec.numGoals; i++) {
             if (s_spec.goals[i].side == 1) have1++; else have2++;
         }
         if (want1 != have1 || want2 != have2) {
-            fprintf(stderr, "--challenge-gen: \"score\" says %d:%d but the scorers add up "
+            GEN_ERROR("--challenge-gen: \"score\" says %d:%d but the scorers add up "
                             "to %d:%d -- the scorers are the score, fix one of them\n",
                     (int)want1, (int)want2, (int)have1, (int)have2);
             return 1;
@@ -250,7 +289,7 @@ static int32_t parse_spec(const char *buf, int32_t len)
     }
 
     s_spec.ballSide = 0;
-    if (mjson_get_number(buf, len, "$.ball", &d)) {
+    if (mjson_get_long(buf, len, "$.ball", &d)) {
         s_spec.ballSide = (int32_t)d;
         if (s_spec.ballSide != 1 && s_spec.ballSide != 2)
             return spec_fail("\"ball\" must be 1 or 2 (the side with the ball)");
@@ -282,7 +321,7 @@ static int32_t parse_spec(const char *buf, int32_t len)
     s_spec.cornerFor = s_spec.ballSide ? s_spec.ballSide : s_spec.human;
     s_spec.cornerLeftWing = 1;
     if (s_spec.situation == SIT_CORNER) {
-        if (mjson_get_number(buf, len, "$.corner.for", &d)) {
+        if (mjson_get_long(buf, len, "$.corner.for", &d)) {
             if (s_spec.ballSide && (int32_t)d != s_spec.ballSide)
                 return spec_fail("\"ball\" and \"corner\".\"for\" disagree -- they are "
                                  "the same choice, give one");
@@ -308,7 +347,7 @@ static int32_t parse_spec(const char *buf, int32_t len)
     }
 
     s_spec.pitch = -1;
-    if (mjson_get_number(buf, len, "$.pitch", &d))
+    if (mjson_get_long(buf, len, "$.pitch", &d))
         s_spec.pitch = (int32_t)d;
 
     /* The goals are applied in minute order whatever order the spec wrote them in. */
@@ -326,37 +365,64 @@ static int32_t parse_spec(const char *buf, int32_t len)
 
 int32_t ChallengeGen_Request(const char *specPath)
 {
-    FILE *f = fopen(specPath, "rb");
     char *buf;
-    long  n;
-
-    if (!f) {
-        fprintf(stderr, "--challenge-gen: cannot read %s\n", specPath);
-        return 1;
-    }
+    uint32_t n;
+#ifdef SWOS_SDL_BUILD
+    FILE *f = fopen(specPath, "rb");
+    long size;
+    if (!f) return spec_fail("cannot read the spec file");
     fseek(f, 0, SEEK_END);
-    n = ftell(f);
+    size = ftell(f);
     fseek(f, 0, SEEK_SET);
-    if (n <= 0 || n > 65536) {
+    if (size <= 0 || size > 65536) {
         fclose(f);
         return spec_fail("the spec file is empty or implausibly large");
     }
-    buf = (char *)malloc((size_t)n);
-    if (!buf || fread(buf, 1, (size_t)n, f) != (size_t)n) {
+    n = (uint32_t)size;
+    buf = swos_io_alloc(n);
+    if (!buf || fread(buf, 1, n, f) != n) {
         fclose(f);
-        free(buf);
+        swos_io_free(buf);
         return spec_fail("the spec file would not read");
     }
     fclose(f);
-
-    if (parse_spec(buf, (int32_t)n) != 0) {
-        free(buf);
+#else
+    if (swos_io_load_data_alloc(specPath, (uint8_t **)&buf, &n) != 0)
+        return spec_fail("cannot read the spec file");
+    if (!n || n > 65536) {
+        swos_io_free(buf);
+        return spec_fail("the spec file is empty or implausibly large");
+    }
+#endif
+    memset(&s_spec, 0, sizeof s_spec);
+    s_error = "invalid spec (unknown key or score mismatch)";
+    if (mjson(buf, (int)n, NULL, NULL) < 0 || parse_spec(buf, (int32_t)n) != 0) {
+        swos_io_free(buf);
         return 1;
     }
-    free(buf);
+    swos_io_free(buf);
     s_armed = 1;
     return 0;
 }
+
+#ifndef SWOS_SDL_BUILD
+int32_t ChallengeGen_Boot(void)
+{
+    uint8_t *buf;
+    uint32_t size;
+    /* Size/load probes return on absence, unlike LoadFileEx's retry-disk loop. */
+    if (swos_io_load_data_alloc("data/CHALGEN.DAT", &buf, &size) != 0)
+        return 0;
+    swos_io_free(buf);
+    if (ChallengeGen_Request("data/CHALGEN.DAT") != 0) {
+        amiga_status("FAILED", s_error, -1);
+        return -1;
+    }
+    { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+    amiga_status("RUNNING", "spec loaded", -1);
+    return 1;
+}
+#endif
 
 /* ---- resolving the teams ---- */
 
@@ -383,13 +449,14 @@ static int32_t name_eq(const int8_t *teamName, const char *want)
  * (global numbers set; the pattern of custom_team.c's game_team). */
 static int32_t resolve_team(const char *what, TeamFileEx *out)
 {
+#ifdef SWOS_SDL_BUILD
     const TeamDbEntry *found = NULL;
     int32_t country, index;
 
     if (looks_like_uuid(what)) {
         found = TeamDb_ByUuid(what);
         if (!found) {
-            fprintf(stderr, "[chalgen] no team in the database has the id %s\n", what);
+            GEN_ERROR("[chalgen] no team in the database has the id %s\n", what);
             return 1;
         }
     } else {
@@ -401,7 +468,7 @@ static int32_t resolve_team(const char *what, TeamFileEx *out)
                 if (!name_eq(e->team.team.teamName, what))
                     continue;
                 if (found) {
-                    fprintf(stderr, "[chalgen] more than one team is named %s -- say which "
+                    GEN_ERROR("[chalgen] more than one team is named %s -- say which "
                                     "with its uuid:\n  %s (team file %u, team %u)\n  %s "
                                     "(team file %u, team %u)\n", what,
                             found->ids.uuid, (unsigned)found->team.team.countryNumber,
@@ -416,7 +483,7 @@ static int32_t resolve_team(const char *what, TeamFileEx *out)
         /* Country numbers above the club files; TeamDb_Entry covered them in the loop
          * above because it is indexed by the same numbers. */
         if (!found) {
-            fprintf(stderr, "[chalgen] no team in the database is named %s\n", what);
+            GEN_ERROR("[chalgen] no team in the database is named %s\n", what);
             return 1;
         }
     }
@@ -425,7 +492,7 @@ static int32_t resolve_team(const char *what, TeamFileEx *out)
         const TeamFileEx *rec = (const TeamFileEx *)(_teamFileBuffer + 2);
         uint16_t count, i;
         if (LoadTeamFile((uint16_t)found->team.team.countryNumber) != 0) {
-            fprintf(stderr, "[chalgen] TEAM.%03u would not load\n",
+            GEN_ERROR("[chalgen] TEAM.%03u would not load\n",
                     (unsigned)found->team.team.countryNumber);
             return 1;
         }
@@ -437,8 +504,45 @@ static int32_t resolve_team(const char *what, TeamFileEx *out)
                 return 0;
             }
     }
-    fprintf(stderr, "[chalgen] %s is in the database but not in its team file\n", what);
+    GEN_ERROR("[chalgen] %s is in the database but not in its team file\n", what);
     return 1;
+#else
+    int32_t country, found = 0;
+    if (looks_like_uuid(what))
+        return spec_fail("Amiga teams use names or TEAM.nnn:ordinal, not database UUIDs");
+    for (country = 0; country < 256; country++) {
+        char path[] = "data/TEAM.000";
+        uint8_t *buf;
+        uint32_t size;
+        uint16_t count, i;
+        path[10] = (char)('0' + country / 100);
+        path[11] = (char)('0' + country / 10 % 10);
+        path[12] = (char)('0' + country % 10);
+        if (swos_io_load_data_alloc(path, &buf, &size) != 0)
+            continue;
+        swos_io_free(buf);
+        /* TEAM files may be RNC packed: the raw probe only establishes existence.
+         * The ordinary team loader decompresses and assigns global team numbers. */
+        if (country == 100) continue;  /* custom teams use CUSTOMS.EDT, not TEAM.100 */
+        if (LoadTeamFile((uint16_t)country) != 0)
+            return spec_fail("native team could not load");
+        count = *(uint16_t *)_teamFileBuffer;
+        for (i = 0; i < count; i++) {
+            const TeamFileEx *rec = (const TeamFileEx *)(_teamFileBuffer + 2);
+            char id[40];
+            swos_io_snprintf(id, sizeof id, "TEAM.%s:%u", path + 10,
+                             (unsigned)rec[i].team.teamOrdinal);
+            if (!name_eq(rec[i].team.teamName, what) && strcmp(id, what) != 0)
+                continue;
+            if (found) {
+                return spec_fail("ambiguous team name; use TEAM.nnn:ordinal");
+            }
+            *out = rec[i];
+            found = 1;
+        }
+    }
+    return found ? 0 : spec_fail("team not found in the Amiga TEAM files");
+#endif
 }
 
 /* ---- the control assignment (the SetupPlayers bypass) ---- */
@@ -466,8 +570,17 @@ void ChallengeGen_Run(void)
 {
     if (resolve_team(s_spec.team1, &_selectedTeams[0]) != 0 ||
         resolve_team(s_spec.team2, &_selectedTeams[1]) != 0)
-        exit(1);
+    {
+#ifndef SWOS_SDL_BUILD
+        amiga_status("FAILED", s_error, -1);
+#endif
+        gen_finish(1);
+        return;
+    }
 
+#ifndef SWOS_SDL_BUILD
+    amiga_status("RUNNING", "teams resolved", -2);
+#endif
     _selectedTeams[0].team.teamControls =
         (s_spec.human == 1) ? TEAM_PLAYER_COACH : TEAM_COMPUTER;
     _selectedTeams[1].team.teamControls =
@@ -505,11 +618,19 @@ void ChallengeGen_Run(void)
             s_spec.situation == SIT_GOAL ? "saved at the kickoff after the last goal"
                                          : "saved at a corner");
 
+#ifndef SWOS_SDL_BUILD
+    amiga_status("RUNNING", "starting friendly", 0);
+#endif
     InitAndPlayGame(&_selectedTeams[0], &_selectedTeams[1]);
+
+    if (s_finished) return;
 
     /* Only if the match never reached its loop. */
     GEN_LOG("the match never started\n");
-    exit(2);
+#ifndef SWOS_SDL_BUILD
+    amiga_status("FAILED", "match ended before capture", -1);
+#endif
+    gen_finish(2);
 }
 
 /* ---- the per-frame hook ---- */
@@ -533,13 +654,19 @@ static void gen_fail(const char *why)
             why, (int)s_phase, (unsigned)_gameState, (unsigned)_gameStatePl,
             (unsigned)_halfNumber, (unsigned)_team1TotalGoals, (unsigned)_team2TotalGoals,
             (unsigned long)s_phaseFrames);
-    exit(1);
+#ifndef SWOS_SDL_BUILD
+    amiga_status("FAILED", why, s_phase);
+#endif
+    gen_finish(1);
 }
 
 static void set_phase(int32_t phase)
 {
     s_phase = phase;
     s_phaseFrames = 0;
+#ifndef SWOS_SDL_BUILD
+    amiga_status("RUNNING", "driving match", phase);
+#endif
 }
 
 /* A restart waiting on the human is taken for them: nobody is at the controls of a
@@ -549,13 +676,19 @@ static void set_phase(int32_t phase)
  * Never called in the capture phase, whose whole point is a position WAITING on it. */
 static void press_fire_for_waiting_human(void)
 {
+#ifdef SWOS_SDL_BUILD
     extern uint8_t _ciaa_pra;
+#endif
     /* A restart waiting on the taker, and the half-time result screen, which also
      * stays up for the human's button. */
     if (_gameStatePl != ST_WAITING_ON_PLAYER && _gameState != ST_RESULT_ON_HALFTIME)
         return;
+#ifndef SWOS_SDL_BUILD
+    s_fire = ((s_phaseFrames >> 3) & 1) == 0;
+#else
     if (((s_phaseFrames >> 3) & 1) == 0)
         _ciaa_pra &= (uint8_t)~(1u << 7);       /* player 1's button, both sides' human */
+#endif
 }
 
 static void set_clock(int32_t minute)
@@ -691,13 +824,17 @@ static void apply_spec(void)
     for (i = 0; i < s_spec.numGoals; i++) {
         if (s_spec.situation == SIT_GOAL && i == restartAfter)
             continue;
-        if (apply_past_goal(&s_spec.goals[i]))
+        if (apply_past_goal(&s_spec.goals[i])) {
             gen_fail("a scorer's shirt number is not in that side's eleven");
+            return;
+        }
     }
 
     if (s_spec.situation == SIT_GOAL) {
-        if (score_final_goal(&s_spec.goals[restartAfter]))
+        if (score_final_goal(&s_spec.goals[restartAfter])) {
             gen_fail("the restart goal's shirt number is not in that side's eleven");
+            return;
+        }
     } else {
         arrange_corner();
     }
@@ -706,10 +843,19 @@ static void apply_spec(void)
 
 void ChallengeGen_Frame(void)
 {
-    if (!s_armed || s_phase == PH_DONE)
+#ifndef SWOS_SDL_BUILD
+    s_fire = 0;
+#endif
+    if (!s_armed || s_finished || s_phase == PH_DONE)
         return;
-    if (++s_phaseFrames > 30000)
+    if (++s_phaseFrames > 30000) {
         gen_fail("the match never reached this phase's state");
+        return;
+    }
+#ifndef SWOS_SDL_BUILD
+    if ((s_phaseFrames % 500) == 0)
+        amiga_status("RUNNING", "waiting for restart/half-time", s_phase);
+#endif
     if ((s_phaseFrames % 5000) == 0) {
         extern uint16_t _breakCameraMode, _stoppageEventTimer, _lastFrameTicks;
         extern uint16_t _cameraCoordinatesValid, _whichCard, _inSubstitutesMenu;
@@ -764,8 +910,10 @@ void ChallengeGen_Frame(void)
         if (_halfNumber != 2 || _gameStatePl != ST_GAME_IN_PROGRESS ||
             _gameState != ST_GAME_IN_PROGRESS)
             return;
-        if (_team1TotalGoals || _team2TotalGoals)
+        if (_team1TotalGoals || _team2TotalGoals) {
             gen_fail("the computer scored during the half-time fast-forward -- run it again");
+            return;
+        }
         apply_spec();
         return;
 
@@ -786,8 +934,10 @@ void ChallengeGen_Frame(void)
         {
             int32_t rc = Challenge_SaveAs(s_spec.out[0] ? (const uint8_t *)s_spec.out
                                                         : (const uint8_t *)0);
-            if (rc != 0)
+            if (rc != 0) {
                 gen_fail("the position would not save (the [challenge] line above says why)");
+                return;
+            }
             GEN_LOG("done: %s, %u:%u at minute %d, %s\n",
                     s_spec.out[0] ? s_spec.out : "the next free CHALnn.CHL",
                     (unsigned)_team1TotalGoals, (unsigned)_team2TotalGoals,
@@ -800,13 +950,14 @@ void ChallengeGen_Frame(void)
                     (_lastTeamPlayedBeforeBreak && _lastTeamPlayedBeforeBreak->playerNumber)
                         ? "yes" : "no");
             s_phase = PH_DONE;
-            fflush(stdout);
-            exit(0);
+#ifndef SWOS_SDL_BUILD
+            amiga_status("DONE", s_spec.out[0] ? s_spec.out : "CHALnn.CHL", s_phase);
+#endif
+            gen_finish(0);
+            return;
         }
 
     default:
         return;
     }
 }
-
-#endif /* SWOS_SDL_BUILD */

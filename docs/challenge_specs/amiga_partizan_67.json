@@ -1,0 +1,15 @@
+{
+  "team1": "TEAM.041:3",
+  "team2": "TEAM.041:7",
+  "human": 1,
+  "scorers": [
+    { "side": 2, "shirt": 9, "minute": 15 },
+    { "side": 2, "shirt": 9, "minute": 34 },
+    { "side": 2, "shirt": 9, "minute": 56 }
+  ],
+  "minute": 67,
+  "situation": "corner",
+  "ball": 1,
+  "corner": { "wing": "left" },
+  "out": "PART67.CHL"
+}
