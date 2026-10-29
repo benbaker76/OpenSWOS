@@ -133,8 +133,8 @@ static uint16_t cd_side(const WorldCupD *c, int32_t t, int32_t sd)
     int32_t i = v >> 8;
     if (v == CD_DRAWN) {                /* (a drawn round: its k-th tie = the previous round's sd[2k], sd[2k + 1]) */
         /* (from ITS round's first tie: gplay.c takes the round under way's, so once the next
-         * round is, a drawn round's winners are read below sd -- the hosts of the first ties --
-         * and its final is played by two of the preliminary round's clubs) */
+         * round is, a drawn round's winners are read below sd -- the end of the hosts array,
+         * zeros: the preliminary round's first tie -- and the final is played by its clubs) */
         int32_t r = 0;
         while (r + 1 < c->rounds && t >= cd_first(c, r + 1))
             r++;

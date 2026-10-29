@@ -27,10 +27,11 @@
  * The two decisions are ported as they are -- their random numbers, seeds, tie model and
  * order, and their types (int is 32 bits on both our targets), so they read against the
  * Mod's line by line -- and the same final tables give the same ties as the Mod's own code
- * (scripts/league_playoffs_check.sh builds both and compares them). Left out: the career
- * club's own play-off played as a contest (the Mod's dp_lend / gp_lend: ours is simulated),
- * the Coppa Italia Serie C winner (the Mod's stand-in, the best 11th of the groups, is
- * used), B teams' ineligibility, and of the generic kinds all but promotion and play-out.
+ * (scripts/league_playoffs_check.sh builds both and compares them). The career club's own
+ * play-off is played as a contest (the Mod's dp_lend / gp_lend: src/world_playoff.c), its
+ * result standing here (po_win, out_win, cpo_win, the groups' ties played); the Coppa Italia
+ * Serie C winner is the league cup's (src/world_cups.c); B teams are the Mod's sec_post; of
+ * the generic kinds, promotion and play-out move clubs, placement is played and walked past.
  *
  * The rules (dplay.c, 2025-26: FIGC C.U. 39/A for Serie B, NOIF art. 49 + C.U. 114/A for
  * Serie C):
