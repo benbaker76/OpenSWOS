@@ -527,7 +527,7 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
  * returns the same link-time addresses the static initializers baked in.
  * ====================================================================== */
 
-/* --- the 55 compiled static menus, by name (still authoritative until the
+/* --- the 56 compiled static menus, by name (still authoritative until the
  *     round-trip is proven green and menu_data.c is retired) --- */
 extern uint8_t _buyOtherPlayersMenu[];       extern uint8_t _buyPlayerMenu[];             extern uint8_t _careerMenu[];
 extern uint8_t _careerOverMenu[];            extern uint8_t _chairmanMemosMenu[];         extern uint8_t _chooseTacticsMenu[];
@@ -551,6 +551,7 @@ extern uint8_t _viewCompetitionsMenu[];      extern uint8_t _viewSquadMenu[];
 
 extern uint8_t _challengeMenu[];
 extern uint8_t _classicCompsMenu[];         extern uint8_t _classicListMenu[];           extern uint8_t _classicTeamsMenu[];
+extern uint8_t _classicNationalMenu[];
 static const struct { const char *name; uint8_t *menu; } s_staticMenus[] = {
     { "challengeMenu", _challengeMenu },
     { "buyOtherPlayersMenu", _buyOtherPlayersMenu },
@@ -564,6 +565,7 @@ static const struct { const char *name; uint8_t *menu; } s_staticMenus[] = {
     { "chooseTeamsMenu", _chooseTeamsMenu },
     { "classicCompsMenu", _classicCompsMenu },   /* OpenSWOS: CLASSICS, in PRESET COMPETITION */
     { "classicListMenu", _classicListMenu },
+    { "classicNationalMenu", _classicNationalMenu },
     { "classicTeamsMenu", _classicTeamsMenu },
     { "clubBusinessMenu", _clubBusinessMenu },
     { "competitionStatsMenu", _competitionStatsMenu },

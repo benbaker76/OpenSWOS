@@ -6897,8 +6897,11 @@ Menu_CreditsAga _creditsAgaMenu = {
 #endif
 
 /* ---- CLASSICS (OpenSWOS, no SWOS2.s counterpart) ------------------------
- * PRESET COMPETITION's CLASSICS row (teams.c): src/classic_comps.c fills the names and
+ * PRESET COMPETITION's CLASSICS row (teams.c): NATIONAL or CLUB, then (NATIONAL) UEFA or
+ * WORLD CUP, a group's list and its teams screen. src/classic_comps.c fills the names and
  * colours in its init handlers. Coordinates are bytes, read 0..255 (164 = -92). */
+extern void ClassicComps_PickNational(void);
+extern void ClassicComps_PickClub(void);
 extern void ClassicComps_PickUefa(void);
 extern void ClassicComps_PickWorldCup(void);
 extern void ClassicComps_PickCompetition(void);
@@ -6907,6 +6910,8 @@ extern void ClassicComps_Play(void);
 extern void ClassicComps_ListInit(void);
 extern void ClassicComps_TeamsInit(void);
 extern char _aClassics[];
+extern char _aClassicsNational[];
+extern char _aClassicsClub[];
 extern char _aClassicsUefa[];
 extern char _aClassicsWorldCup[];
 extern char _aClassicsBlank[];
@@ -6919,6 +6924,42 @@ Menu_ClassicComps _classicCompsMenu = {
         { 60, 0, -56, 15 },
         { MENU_CMD_COLORS, 0x17 },
         { MENU_CMD_TEXT_PTR, 0x0, _aClassics },
+        MENU_CMD_END
+    },
+    {
+        { 76, 60, -88, 16 },
+        { MENU_CMD_NAV, -1, -1, -1, 2 },
+        { MENU_CMD_COLORS, 0xB },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassicsNational },
+        { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickNational },
+        MENU_CMD_END
+    },
+    {
+        { 76, 84, -88, 16 },
+        { MENU_CMD_NAV, -1, -1, 1, 3 },
+        { MENU_CMD_COLORS, 0xB },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassicsClub },
+        { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickClub },
+        MENU_CMD_END
+    },
+    {
+        { 76, -71, -88, 15 },
+        { MENU_CMD_NAV, -1, -1, 2, -1 },
+        { MENU_CMD_COLORS, 0xC },
+        { MENU_CMD_TEXT_PTR, 0x0, _aExit },
+        { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
+    MENU_MARK_END_MENU
+};
+
+Menu_ClassicComps _classicNationalMenu = {
+    { 0, 0, 0, 1 },
+    MENU_MARK_BYTE_COORDS,
+    {
+        { 60, 0, -56, 15 },
+        { MENU_CMD_COLORS, 0x17 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassicsNational },
         MENU_CMD_END
     },
     {

@@ -3564,15 +3564,16 @@ typedef struct Menu_Stadium
 #pragma pack(pop)
 
 /* OpenSWOS: CLASSICS, above WORLD CUP in PRESET COMPETITION's world list (src/classic_comps.c,
- * docs/CLASSIC_COMPETITIONS.md): the groups, a group's competitions, who controls each team. */
+ * docs/CLASSIC_COMPETITIONS.md): NATIONAL or CLUB, NATIONAL's groups, a group's competitions,
+ * who controls each team. Menu_ClassicComps is the shape of the first two: two choices. */
 #pragma pack(push, 1)
 typedef struct Menu_ClassicComps
 {
   MenuHeader hdr;
   MenuMark markByteCoords;
   MenuEntry_Byte_Colors_TextPtr header;
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect uefa;
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect worldCup;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect first;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect second;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect exit;
   MenuMark markEndMenu;
 } Menu_ClassicComps;
@@ -3606,6 +3607,7 @@ typedef struct Menu_ClassicTeams
 
 
 extern Menu_ClassicComps _classicCompsMenu;
+extern Menu_ClassicComps _classicNationalMenu;
 extern Menu_ClassicList _classicListMenu;
 extern Menu_ClassicTeams _classicTeamsMenu;
 extern Menu_ChooseTeamsFriendly _chooseTeamsFriendlyMenu;

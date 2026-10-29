@@ -1,6 +1,6 @@
 {
   "name": "_classicCompsMenu",
-  "comment": "OpenSWOS's CLASSICS, from the row above WORLD CUP in PRESET COMPETITION's world list (teams.c SelectTeamsFinalMenu): the two groups, UEFA and WORLD CUP (src/classic_comps.c, docs/CLASSIC_COMPETITIONS.md). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "comment": "OpenSWOS's CLASSICS, from the row above WORLD CUP in PRESET COMPETITION's world list (teams.c SelectTeamsFinalMenu): NATIONAL (classicNationalMenu: UEFA, WORLD CUP) or CLUB (straight to its list) (src/classic_comps.c, docs/CLASSIC_COMPETITIONS.md). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
   "onInit": null,
   "onReturn": null,
   "onDraw": null,
@@ -55,11 +55,11 @@
         {
           "op": "text",
           "flags": "0x0",
-          "str": "_aClassicsUefa"
+          "str": "_aClassicsNational"
         },
         {
           "op": "onselect_fire",
-          "func": "ClassicComps_PickUefa"
+          "func": "ClassicComps_PickNational"
         }
       ]
     },
@@ -87,11 +87,11 @@
         {
           "op": "text",
           "flags": "0x0",
-          "str": "_aClassicsWorldCup"
+          "str": "_aClassicsClub"
         },
         {
           "op": "onselect_fire",
-          "func": "ClassicComps_PickWorldCup"
+          "func": "ClassicComps_PickClub"
         }
       ]
     },

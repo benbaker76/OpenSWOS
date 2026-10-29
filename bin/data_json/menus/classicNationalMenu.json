@@ -1,0 +1,131 @@
+{
+  "name": "_classicNationalMenu",
+  "comment": "OpenSWOS's CLASSICS, NATIONAL's groups: UEFA and WORLD CUP (src/classic_comps.c, docs/CLASSIC_COMPETITIONS.md). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "onInit": null,
+  "onReturn": null,
+  "onDraw": null,
+  "defaultEntry": 1,
+  "items": [
+    {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 60,
+        "y": 0,
+        "w": -56,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsNational"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 76,
+        "y": 60,
+        "w": -88,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 2
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 11
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsUefa"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ClassicComps_PickUefa"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 76,
+        "y": 84,
+        "w": -88,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 1,
+          "down": 3
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 11
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsWorldCup"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ClassicComps_PickWorldCup"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 76,
+        "y": -71,
+        "w": -88,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SetExitMenuFlag"
+        }
+      ]
+    }
+  ]
+}

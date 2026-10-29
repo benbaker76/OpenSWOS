@@ -207,10 +207,12 @@ competition name through entry 11's stale `fg` pointer -- `EditMenuSelected` /
 `scripts/run_amiga_fsuae.ps1` runs the m68k build under FS-UAE.
 
 **CLASSICS** (both targets; docs/CLASSIC_COMPETITIONS.md). PRESET COMPETITION's world list has a
-row above WORLD CUP that plays SWOS 2020's DLC cups -- every Euro 1960-2024 and World Cup 1930-2026 (48
-teams, six groups of eight, on both targets), shipped in `bin/classic/{uefa,worldcup}/` as this
+row above WORLD CUP that plays SWOS 2020's DLC cups -- under NATIONAL every Euro 1960-2024 and World
+Cup 1930-2026 (48 teams, six groups of eight, on both targets), under CLUB the European Cup 1991-92
+and Champions League 1992-93..1995-96 -- shipped in `bin/classic/{uefa,worldcup,club}/` as this
 game's JSON `.DIY` (and, on SDL, the player's own SWOS 2020 files from `assets/classic/`,
-`scripts/copy_classics.ps1`). Three classic packed menus (`_classicCompsMenu`, `_classicListMenu`, `_classicTeamsMenu`,
+`scripts/copy_classics.ps1`). Four classic packed menus (`_classicCompsMenu` NATIONAL/CLUB,
+`_classicNationalMenu` EURO/WORLD CUP, `_classicListMenu`, `_classicTeamsMenu`,
 `src/classic_comps.c`): a group, its competitions by year, then every team as COMPUTER until a click
 cycles it to PLAYER-COACH or COACH; PLAY starts it as LOAD OLD COMPETITION would, keeping the player's
 options and USER tactics. The PC game's / SWOS 2020's `.DIY` is the raw DOS dump of

@@ -63,7 +63,9 @@ extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
 extern void ChooseTeamsPlayMatchSelected(void);
 extern void ClassicComps_ListInit(void);
+extern void ClassicComps_PickClub(void);
 extern void ClassicComps_PickCompetition(void);
+extern void ClassicComps_PickNational(void);
 extern void ClassicComps_PickUefa(void);
 extern void ClassicComps_PickWorldCup(void);
 extern void ClassicComps_Play(void);
@@ -447,7 +449,9 @@ extern char _aChooseTeam[];
 extern char _aChooseTeams[];
 extern char _aClassics[];
 extern char _aClassicsBlank[];
+extern char _aClassicsClub[];
 extern char _aClassicsHint[];
+extern char _aClassicsNational[];
 extern char _aClassicsPlay[];
 extern char _aClassicsUefa[];
 extern char _aClassicsWorldCup[];
@@ -773,7 +777,9 @@ const MenuSymbol _menuSymbols[] = {
     { "ChooseTeamsPlayGame", (void*)ChooseTeamsPlayGame, SYM_FUNC },
     { "ChooseTeamsPlayMatchSelected", (void*)ChooseTeamsPlayMatchSelected, SYM_FUNC },
     { "ClassicComps_ListInit", (void*)ClassicComps_ListInit, SYM_FUNC },
+    { "ClassicComps_PickClub", (void*)ClassicComps_PickClub, SYM_FUNC },
     { "ClassicComps_PickCompetition", (void*)ClassicComps_PickCompetition, SYM_FUNC },
+    { "ClassicComps_PickNational", (void*)ClassicComps_PickNational, SYM_FUNC },
     { "ClassicComps_PickUefa", (void*)ClassicComps_PickUefa, SYM_FUNC },
     { "ClassicComps_PickWorldCup", (void*)ClassicComps_PickWorldCup, SYM_FUNC },
     { "ClassicComps_Play", (void*)ClassicComps_Play, SYM_FUNC },
@@ -1154,7 +1160,9 @@ const MenuSymbol _menuSymbols[] = {
     { "_aChooseTeams", (void*)_aChooseTeams, SYM_STRING },
     { "_aClassics", (void*)_aClassics, SYM_STRING },
     { "_aClassicsBlank", (void*)_aClassicsBlank, SYM_STRING },
+    { "_aClassicsClub", (void*)_aClassicsClub, SYM_STRING },
     { "_aClassicsHint", (void*)_aClassicsHint, SYM_STRING },
+    { "_aClassicsNational", (void*)_aClassicsNational, SYM_STRING },
     { "_aClassicsPlay", (void*)_aClassicsPlay, SYM_STRING },
     { "_aClassicsUefa", (void*)_aClassicsUefa, SYM_STRING },
     { "_aClassicsWorldCup", (void*)_aClassicsWorldCup, SYM_STRING },
