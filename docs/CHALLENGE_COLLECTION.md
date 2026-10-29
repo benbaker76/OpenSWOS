@@ -1,8 +1,12 @@
 # Challenge collection
 
 The challenge collection provides six predefined matches on **SDL and Amiga**,
-grouped into Easy, Medium and Hard. The goal is to complete all six. Completed
-challenges show **DONE**, and the collection displays the total completed.
+ordered by difficulty, 1 to 5 stars. The goal is to complete all six. Completed
+challenges show a tick, and the collection displays the total completed. The stars
+and the tick are the squad screen's own sprites (value stars 113-122, small tick 208).
+Under the list, the highlighted challenge shows two story lines (`story` in
+`src/challenge_catalog.c`, placeholders for now) and a yellow summary built from its
+score, minute and restart.
 
 ## Playing
 
@@ -24,14 +28,14 @@ Existing completion is permanent: losing a later attempt never removes it.
 All six challenges are unlocked from the start. There are no medals or attempt
 counters. Completing the collection displays **ALL CHALLENGES COMPLETED**.
 
-| Group | Challenge | You control | Opponent | Starting position |
+| Stars | Challenge | You control | Opponent | Starting position |
 | --- | --- | --- | --- | --- |
-| Easy | Finish the Job | AC Milan | Juventus | Lead 2-0 at 75; Juventus kickoff |
-| Easy | Hold Your Nerve | Italy | Malta | Lead 1-0 at 80; Malta corner |
-| Medium | Find the Winner | Liverpool | Everton | 0-0 at 75; Liverpool corner |
-| Medium | Turn It Around | Barcelona | Real Madrid | Trail 0-1 at 65; Barcelona kickoff |
-| Hard | Against the Clock | Juventus | AC Milan | Trail 0-2 at 80; Juventus kickoff |
-| Hard | Derby Miracle | Partizan | Red Star | Trail 0-3 at 67; Partizan corner |
+| 1 | Finish the Job | AC Milan | Juventus | Lead 2-0 at 75; Juventus kickoff |
+| 2 | Hold Your Nerve | Italy | Malta | Lead 1-0 at 80; Malta corner |
+| 3 | Find the Winner | Liverpool | Everton | 0-0 at 75; Liverpool corner |
+| 3 | Turn It Around | Barcelona | Real Madrid | Trail 0-1 at 65; Barcelona kickoff |
+| 4 | Against the Clock | Juventus | AC Milan | Trail 0-2 at 80; Juventus kickoff |
+| 5 | Derby Miracle | Partizan | Red Star | Trail 0-3 at 67; Partizan corner |
 
 **CHALLENGES > SAVED POSITIONS** retains the personal `.CHL` file picker and the
 bundled sample. Pressing **C** during an eligible match saves a position there.
@@ -93,7 +97,7 @@ See [LOCAL_WORKFLOW.md](LOCAL_WORKFLOW.md) for build requirements and
 | File | Responsibility |
 | --- | --- |
 | `src/challenge_catalog.c` | Stable IDs, display descriptions, target-specific assets |
-| `src/challenge_collection.c` | Hub, grouped list, details, results and retry actions |
+| `src/challenge_collection.c` | Hub, list (tick + stars), details, results and retry actions |
 | `bin/data_json/menus/challengeMenu.json` | Packed menu definition, also baked into C for Amiga |
 | `src/challenge_progress.c` | Attempt lifecycle, completion and durable progress |
 | `src/challenge.c` | Bundled loading and re-arming the original state for Replay |

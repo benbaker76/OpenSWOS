@@ -15,6 +15,8 @@ typedef struct {
     const char *start;
     const char *restart;
     const char *asset;
+    int stars;              /* difficulty 1..5, drawn as the squad list's value stars */
+    const char *story[2];   /* two lines under the list while the row is highlighted */
 } CollectionChallenge;
 extern const CollectionChallenge g_challengeCollection[COLLECTION_COUNT];
 

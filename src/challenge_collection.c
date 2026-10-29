@@ -8,14 +8,16 @@
 #include "dos_mode.h"
 #include "dos_gameplay.h"
 #include "test_rules.h"
+#include "sprites.h"
 
-extern uint8_t _challengeMenu[];
+extern uint8_t _challengeMenu[], _currentMenu[];
 extern uint16_t _quitToDos, _fadeInitFlag;
 extern volatile uint16_t _fadeState;
 extern void ResetMenuViewState(void);
 extern void PrepareMenuForFadeIn(void);
 extern int16_t SelectFileOfExtension(uint32_t ext, uint8_t *title);
 extern uint8_t _selectedFilename[];
+extern uint8_t *_spriteGraphicsPtr;
 
 enum { HUB, LIST, DETAILS, RESULT };
 enum { BACK = 1, COLLECTION, SAVED, PLAY, RETRY, NEXT, RETRY_SAVE, PICK = 100 };
@@ -37,6 +39,66 @@ static void row(int n, int y, const char *label, int command, int color)
     actions[n] = command;
 }
 
+/* The list rows wear the squad screen's own art: its small green tick (the tactics
+ * "better" mark) when done, and the value stars a national team's players show
+ * (InitPlayerValueDisplayStruct: ten frames from 113, half a star apart). */
+enum { SPR_STARS_HALF = 113, SPR_TICK_SMALL = 208 };
+static const int listOrd[COLLECTION_COUNT] = {3, 4, 6, 7, 9, 10};
+
+/* Under the list: two story lines and the starting position for the highlighted
+ * row, in the spare entries the old EASY/MEDIUM/HARD headings used. */
+enum { DESC_LINE1 = 2, DESC_LINE2 = 5, DESC_SUMMARY = 8, DESC_YELLOW = 15 };
+static int shownDesc = -1;
+
+static void set_description(int i, int redraw)
+{
+    static const int lines[3] = {DESC_LINE1, DESC_LINE2, DESC_SUMMARY};
+    const CollectionChallenge *c = &g_challengeCollection[i];
+    const char *score = c->start, *p;
+    int minute = 0, n;
+    for (p = c->start; *p >= '0' && *p <= '9'; ++p) minute = minute * 10 + (*p - '0');
+    for (p = c->start; *p; ++p) if (*p == ' ') score = p + 1;
+    shownDesc = i;
+    swos_io_snprintf(text[DESC_LINE1], sizeof text[0], "%s", c->story[0]);
+    swos_io_snprintf(text[DESC_LINE2], sizeof text[0], "%s", c->story[1]);
+    swos_io_snprintf(text[DESC_SUMMARY], sizeof text[0], "* %s, %d MIN, %s *", score, minute, c->restart);
+    if (redraw)
+        for (n = 0; n < 3; ++n) CallDrawMenuItem(CalcMenuEntryAddress((uint16_t)lines[n]));
+}
+
+static void desc_row(int n, int y, int color)
+{
+    MenuEntry *e = CalcMenuEntryAddress((uint16_t)n);
+    row(n, y, "", 0, 0);
+    e->fg = (uintptr_t)text[n];
+    e->dwHeight = 9;
+    e->stringFlags = (uint16_t)((e->stringFlags & ~0xF) | color);
+}
+
+static void draw_row_marks(MenuEntry *e)
+{
+    SpriteGraphics **gfx = (SpriteGraphics **)_spriteGraphicsPtr;
+    SpriteGraphics *spr;
+    int i, frame;
+    for (i = 0; i < COLLECTION_COUNT && listOrd[i] != e->ordinal; ++i)
+        ;
+    if (i == COLLECTION_COUNT) return;
+    if (ChallengeProgress_Done(i)) {
+        spr = gfx[SPR_TICK_SMALL];
+        DrawSprite16Pixels(SPR_TICK_SMALL, e->x + 4, e->y + (e->dwHeight - spr->nlines) / 2);
+    }
+    frame = SPR_STARS_HALF + 2 * g_challengeCollection[i].stars - 1;
+    spr = gfx[frame];
+    DrawSprite16Pixels((uint16_t)frame, e->x + e->dwWidth - 4 - spr->pixWidth,
+                       e->y + (e->dwHeight - spr->nlines) / 2);
+    /* Moving the cursor redraws the row it left, after the selection has changed,
+     * so this is where the description follows it (MenuCheckControls). */
+    for (i = 0; i < COLLECTION_COUNT; ++i)
+        if (CalcMenuEntryAddress((uint16_t)listOrd[i]) == ((Menu *)_currentMenu)->selectedEntry
+            && i != shownDesc)
+            set_description(i, 1);
+}
+
 static const char *save_status(void)
 {
     if (ChallengeProgress_Dirty()) return "PROGRESS NOT SAVED";
@@ -53,6 +115,7 @@ void ChallengeCollection_MenuInit(void)
         MenuEntry *e = CalcMenuEntryAddress((uint16_t)i);
         e->isInvisible = e->isDisabled = 1;
         e->leftEntry = e->rightEntry = e->upEntry = e->downEntry = -1;
+        e->afterDrawCb = 0;
         actions[i] = 0;
     }
     if (screen == HUB) {
@@ -61,19 +124,21 @@ void ChallengeCollection_MenuInit(void)
         row(3, 90, "SAVED POSITIONS", SAVED, 14);
         row(11, 185, "BACK", BACK, 12);
     } else if (screen == LIST) {
-        static const int ord[] = {3, 4, 6, 7, 9, 10};
-        static const int ys[] = {50, 65, 96, 111, 142, 157};
+        static const int ys[] = {38, 54, 70, 86, 102, 118};
         row(0, 0, "CHALLENGE COLLECTION", 0, 0x17);
         swos_io_snprintf(buf, sizeof buf, "%d OF 6 COMPLETED", ChallengeProgress_Count());
         row(1, 20, ChallengeProgress_Count() == 6 ? "ALL CHALLENGES COMPLETED" : buf, 0, 0);
-        row(2, 36, "EASY", 0, 0);
-        row(5, 82, "MEDIUM", 0, 0);
-        row(8, 128, "HARD", 0, 0);
         for (i = 0; i < COLLECTION_COUNT; ++i) {
-            swos_io_snprintf(buf, sizeof buf, "%s   %s", g_challengeCollection[i].title,
-                ChallengeProgress_Done(i) ? "DONE" : "NOT DONE");
-            row(ord[i], ys[i], buf, PICK + i, ChallengeProgress_Done(i) ? 14 : 13);
+            row(listOrd[i], ys[i], g_challengeCollection[i].title, PICK + i,
+                ChallengeProgress_Done(i) ? 14 : 13);
+            CalcMenuEntryAddress((uint16_t)listOrd[i])->afterDrawCb = draw_row_marks;
         }
+        desc_row(DESC_LINE1, 140, 0);
+        desc_row(DESC_LINE2, 150, 0);
+        desc_row(DESC_SUMMARY, 163, DESC_YELLOW);
+        for (i = 0; i < COLLECTION_COUNT && listOrd[i] != listFocus; ++i)
+            ;
+        set_description(i < COLLECTION_COUNT ? i : 0, 0);
         row(11, 185, "BACK", BACK, 12);
         if (ChallengeProgress_Dirty()) row(12, 207, "PROGRESS NOT SAVED - RETRY SAVE", RETRY_SAVE, 12);
         else if (save_status()[0]) row(12, 207, save_status(), 0, 0);
