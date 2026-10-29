@@ -14,6 +14,7 @@
 #include "audio.h"
 #include "menu_system.h"
 #include "string_utils.h"
+#include "text_render.h"   /* GetTextWidth: long names cut to their button */
 #include "asset_loader.h"
 #include "input_text.h"
 #include "endian_helpers.h"
@@ -89,6 +90,7 @@ extern uint16_t _totalNumberOfFiles;
 extern uint16_t _numMatchedFiles;
 extern uint8_t _foundFilenamesBuffer[];
 extern void *_foundFilesPtrTable[];
+extern void *_charTables[];
 extern uint32_t _extensionsBuffer[];
 extern uint16_t _savingFile;
 extern uint8_t _selectFilesMenu[];
@@ -1463,6 +1465,7 @@ void SelectFilesOnReturn(void)
             uint8_t *dst = (uint8_t *)entry->fg;
 
             /* Copy filename until '.' */
+            uint8_t *name = dst;
             while (*filename != 0) {
                 *dst++ = *filename++;
                 if (*(filename - 1) == '.') {
@@ -1471,6 +1474,15 @@ void SelectFilesOnReturn(void)
                 }
             }
             *dst = 0;
+            /* SWOS's names are 8.3 and fit the button; a longer one (SWOS 2020's
+             * challenge files, 2012CARABAOCUPROUND4) ran into the type drawn after it
+             * and the next column. Shown cut to the button's width -- the file is
+             * still opened by its full name, from foundFilesPtrTable. */
+            {
+                uint8_t *font = (uint8_t *)_charTables[((entry->stringFlags & STR_FLAGS_MASK) >> 2) / 4];
+                while (dst - name > 1 && GetTextWidth(name, font) > entry->dwWidth - 2)
+                    *--dst = 0;
+            }
             break;
         }
 
