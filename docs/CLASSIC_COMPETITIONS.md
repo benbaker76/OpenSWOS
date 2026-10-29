@@ -114,8 +114,6 @@ as `diy_team_to_identity` defines them.
   player's own SWOS 2020 files.
 - **ESC on the teams screen** was seen to start the competition, as PLAY does, instead of
   going back like EXIT (SDL, 2026-10-29, not looked into yet).
-- **LOAD OLD COMPETITION's list** was made for 8-character DOS names: longer ones (SWOS 2020's
-  challenge files) run into the type column. Rename, or shorten them in the list.
 - **Unexplained:** a SWOS 2020 cup loaded through LOAD OLD COMPETITION (every team COACH), one
   team switched to PLAYER-COACH on the PLAY MATCH screen: the next PLAY MATCH screen took no
   input (2026-10-29; the main thread was in the normal `MenuProc` loop, no `[menu-nav]` line).
