@@ -14,7 +14,10 @@ score, minute and restart.
 2. Select a challenge to see the teams, starting score and minute, controlled
    team, restart situation and objective.
 3. Choose **PLAY**. After the lineup screen, play resumes at the saved position.
-4. **Win at full time**. Draws fail; there is no extra time or penalty shootout.
+4. **Win the match.** A level score at 90 goes to extra time, then penalties, and a
+   shootout win counts. The rule travels in each position (`_extraTimeState`,
+   `_penaltiesState`): a spec can keep a challenge to normal time with
+   `"extra_time": false, "penalties": false` and regenerating it.
    Leaving early does not count, even when leading.
 5. On the existing **REPLAY / EXIT** screen, choose **EXIT** to see the challenge
    result. It offers **RETRY**, **CHALLENGE LIST**, and **NEXT CHALLENGE** after

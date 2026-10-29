@@ -150,7 +150,7 @@ void ChallengeCollection_MenuInit(void)
         row(3, 62, buf, 0, 0);
         row(4, 81, c->restart, 0, 0);
         row(5, 105, "WIN THE MATCH", 0, 14);
-        row(6, 124, "A DRAW AT FULL TIME FAILS", 0, 0);
+        row(6, 124, "DRAW: EXTRA TIME, THEN PENALTIES", 0, 0);
         row(7, 143, ChallengeProgress_Done(selected) ? "DONE" : "NOT DONE", 0, 0);
         row(8, 163, "PLAY", PLAY, 14);
         row(11, 185, "BACK", BACK, 12);
@@ -160,8 +160,10 @@ void ChallengeCollection_MenuInit(void)
         row(0, 0, won ? "CHALLENGE COMPLETED" : "CHALLENGE NOT COMPLETED", 0, 0x17);
         row(1, 25, c->title, 0, 0);
         row(2, 46, c->teams, 0, 0);
-        swos_io_snprintf(buf, sizeof buf, "FINAL SCORE %u-%u",
-            ChallengeProgress_Goals(1), ChallengeProgress_Goals(2));
+        swos_io_snprintf(buf, sizeof buf, "FINAL SCORE %u-%u%s",
+            ChallengeProgress_Goals(1), ChallengeProgress_Goals(2),
+            ChallengeProgress_Goals(1) != ChallengeProgress_Goals(2) ? ""
+                : won ? ", WON ON PENALTIES" : ", LOST ON PENALTIES");
         row(3, 65, ChallengeProgress_Result() == COLLECTION_ABORTED ? "MATCH LEFT EARLY" : buf, 0, 0);
         row(4, 84, "OBJECTIVE: WIN THE MATCH", 0, 0);
         row(5, 103, ChallengeProgress_Count() == 6 ? "ALL CHALLENGES COMPLETED" : save_status(), 0, 0);

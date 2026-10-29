@@ -24,8 +24,9 @@ for target in (("sdl", "amiga") if args.target == "both" else (args.target,)):
         assert data["minute"] == spec["minute"], data["path"]
         assert data["human_side"] == spec["human"] == 1, data["path"]
         assert data["rules"] == 0, data["path"]
-        assert data["scalars"]["_extraTimeState"] == 0, data["path"]
-        assert data["scalars"]["_penaltiesState"] == 0, data["path"]
+        # A level score goes to extra time and penalties unless the spec opts out.
+        assert data["scalars"]["_extraTimeState"] == int(spec.get("extra_time", True)), data["path"]
+        assert data["scalars"]["_penaltiesState"] == int(spec.get("penalties", True)), data["path"]
         assert data["size"] == 96 + data["setup_len"] + data["state_len"], data["path"]
         assert [t["controls"] for t in data["setup_teams"]] == [2, 1], data["path"]
         layouts.add(data["layout_hash"])

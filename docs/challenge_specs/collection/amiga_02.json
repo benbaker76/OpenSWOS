@@ -15,8 +15,6 @@
   ],
   "minute": 80,
   "ball": 2,
-  "extra_time": false,
-  "penalties": false,
   "pitch": 4,
   "out": "CCA02.CHL",
   "situation": "corner",

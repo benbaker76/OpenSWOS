@@ -33,7 +33,8 @@ int ChallengeProgress_Recovered(void);
 void ChallengeProgress_Begin(int index, int humanSide);
 void ChallengeProgress_Restart(void);
 void ChallengeProgress_PositionLoaded(void);
-void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2);
+/* winner: 1 or 2 (team 1/2, after extra time or penalties), 0 for a draw */
+void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2, int winner);
 void ChallengeProgress_End(void);
 int ChallengeProgress_Result(void);
 unsigned ChallengeProgress_Goals(int side);

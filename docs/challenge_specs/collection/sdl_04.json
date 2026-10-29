@@ -15,8 +15,6 @@
   ],
   "minute": 65,
   "ball": 1,
-  "extra_time": false,
-  "penalties": false,
   "pitch": 4,
   "out": "CCS04.CHL"
 }

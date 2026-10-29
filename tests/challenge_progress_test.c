@@ -43,25 +43,38 @@ int main(int argc, char **argv)
     if (!strcmp(argv[1], "replay")) {
         ChallengeProgress_Begin(index, 1);
         ChallengeProgress_PositionLoaded();
-        ChallengeProgress_FinalWhistle(0, 1);
+        ChallengeProgress_FinalWhistle(0, 1, 2);
         assert(ChallengeProgress_Result() == COLLECTION_LOST);
         ChallengeProgress_Restart();
         assert(ChallengeProgress_Result() == COLLECTION_ABORTED);
-        ChallengeProgress_FinalWhistle(2, 0); /* not loaded yet: no award */
+        ChallengeProgress_FinalWhistle(2, 0, 1); /* not loaded yet: no award */
         assert(ChallengeProgress_Result() == COLLECTION_ABORTED);
         ChallengeProgress_PositionLoaded();
-        ChallengeProgress_FinalWhistle(2, 0);
+        ChallengeProgress_FinalWhistle(2, 0, 1);
         assert(ChallengeProgress_Result() == COLLECTION_WON);
         assert(ChallengeProgress_Count() == expected);
         ChallengeProgress_Restart();
         ChallengeProgress_PositionLoaded();
-        ChallengeProgress_FinalWhistle(1, 1);
+        ChallengeProgress_FinalWhistle(1, 1, 0);
         assert(ChallengeProgress_Result() == COLLECTION_LOST);
         assert(ChallengeProgress_Count() == expected);
+        ChallengeProgress_Restart();
+        ChallengeProgress_PositionLoaded();
+        ChallengeProgress_FinalWhistle(1, 1, 2); /* lost the shootout */
+        assert(ChallengeProgress_Result() == COLLECTION_LOST);
+        ChallengeProgress_Restart();
+        ChallengeProgress_PositionLoaded();
+        ChallengeProgress_FinalWhistle(1, 1, 1); /* won it: a win, already counted */
+        assert(ChallengeProgress_Result() == COLLECTION_WON);
+        assert(ChallengeProgress_Count() == expected);
+        ChallengeProgress_Restart();
+        ChallengeProgress_PositionLoaded();
+        ChallengeProgress_FinalWhistle(1, 1, 0);
+        assert(ChallengeProgress_Result() == COLLECTION_LOST);
         ChallengeProgress_End();
         ChallengeProgress_Restart(); /* cannot reactivate a finished session */
         ChallengeProgress_PositionLoaded();
-        ChallengeProgress_FinalWhistle(2, 0);
+        ChallengeProgress_FinalWhistle(2, 0, 1);
         assert(ChallengeProgress_Result() == COLLECTION_LOST);
         return 0;
     }
@@ -74,10 +87,10 @@ int main(int argc, char **argv)
     if (strcmp(argv[1], "unloaded")) ChallengeProgress_PositionLoaded();
     if (!strcmp(argv[1], "abort")) ChallengeProgress_End();
     if (!strcmp(argv[1], "retry")) fail_write = 1;
-    if (!strcmp(argv[1], "draw")) ChallengeProgress_FinalWhistle(2, 2);
+    if (!strcmp(argv[1], "draw")) ChallengeProgress_FinalWhistle(2, 2, 0);
     else if (!strcmp(argv[1], "loss") || !strcmp(argv[1], "away"))
-        ChallengeProgress_FinalWhistle(0, 1);
-    else ChallengeProgress_FinalWhistle(2, 0);
+        ChallengeProgress_FinalWhistle(0, 1, 2);
+    else ChallengeProgress_FinalWhistle(2, 0, 1);
     assert(ChallengeProgress_Count() == expected);
     if (!strcmp(argv[1], "abort") || !strcmp(argv[1], "unloaded"))
         assert(ChallengeProgress_Result() == COLLECTION_ABORTED);
@@ -91,7 +104,7 @@ int main(int argc, char **argv)
     }
     assert(!ChallengeProgress_Dirty());
     /* Another final-whistle callback cannot reverse or duplicate the result. */
-    ChallengeProgress_FinalWhistle(0, 9);
+    ChallengeProgress_FinalWhistle(0, 9, 2);
     assert(ChallengeProgress_Count() == expected);
     ChallengeProgress_End();
     return 0;

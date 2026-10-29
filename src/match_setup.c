@@ -557,8 +557,10 @@ void EndOfGame(void)
 {
     /* Only a loaded collection attempt can award progress. Escape/abandon paths
      * do not pass through this final-whistle event. */
-    extern void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2);
-    ChallengeProgress_FinalWhistle(_team1TotalGoals, _team2TotalGoals);
+    extern void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2, int winner);
+    extern TeamGame *_winningTeamPtr;   /* set by every caller, after penalties too */
+    ChallengeProgress_FinalWhistle(_team1TotalGoals, _team2TotalGoals,
+        _winningTeamPtr == &_topTeamInGame ? 1 : _winningTeamPtr == &_bottomTeamInGame ? 2 : 0);
     setBreakState(ST_GAME_ENDED, ST_STOPPED, 150);
     ResetBothTeamsPlayerPassingKicking();
     clearCameraVelocity();

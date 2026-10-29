@@ -118,15 +118,15 @@ void ChallengeProgress_Restart(void)
 }
 void ChallengeProgress_End(void) { attempt = active = -1; positionLoaded = 0; }
 
-void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2)
+void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2, int winner)
 {
     int i, index = active;
     if (index < 0 || !positionLoaded || (human != 1 && human != 2)) return;
     active = -1; /* A repeated end event cannot award another completion. */
     finalGoals[0] = goals1;
     finalGoals[1] = goals2;
-    result = (human == 1 ? goals1 > goals2 : goals2 > goals1)
-        ? COLLECTION_WON : COLLECTION_LOST;
+    /* The match's own winner, so a shootout decides a level score. */
+    result = winner == human ? COLLECTION_WON : COLLECTION_LOST;
     if (result != COLLECTION_WON) return;
     if (!ChallengeProgress_Done(index)) {
         for (i = 0; i < COLLECTION_COUNT; ++i) {
