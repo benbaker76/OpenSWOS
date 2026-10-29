@@ -21,9 +21,9 @@ tools/mkseason.py (splits), which carry this notice:
   OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 The bytes are the Mod's (its SP_TAB entry, scripts/league_playoffs_check.sh compares them for every
-split league): src/league_split.c walks them as its split.py's routines walk theirs. Only the group
-stages are compiled yet (one stage, groups by places: no fixture lists, no 'keep', 'reset' or
-explicit places).
+split league): src/league_split.c walks them as its split.py's routines walk theirs. The
+after-stage routines ('then') and the stage tables ('table', 'annual') -- the Apertura and
+Clausura titles' -- are not compiled yet.
 """
 import os
 import re
@@ -152,8 +152,24 @@ def matrix(table, n, games, cycles, home):
     return bytes(out)
 
 
+MONTH_DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+
+
+def week_of(date):
+    """'dd/mm' (or 'dd/mm+1': the next calendar year) -> the career calendar's week byte: 8 a
+    month from January of the season's first year (a year = 96)."""
+    d, m = date.split("+")[0].split("/")
+    y = int(date.split("+")[1]) if "+" in date else 0
+    d, m = int(d), int(m)
+    return 96 * y + 8 * (m - 1) + (d - 1) * 8 // MONTH_DAYS[m - 1]
+
+
 def entry(world, file, div, n, spec, table):
-    """One split table (the Mod's SP_TAB entry; group stages only): its bytes, its days before and after."""
+    """One split table (the Mod's SP_TAB entry): its bytes, its days before and after. spec:
+    games, stages [{after, groups, rounds, points, home, reset, keep, perm}] or a fixture stage
+    {after, fixtures: [[(home row, away row), ...] per day], members, reset, wins}; weeks: a
+    week byte per day (optional, all the days). The after-stage routines ('then') and the stage
+    tables ('table', 'annual') are not played yet: their bytes are 0."""
     games = spec["games"]
     stages = spec.get("stages") or []
     assert n <= NMAX and len(stages) <= 8, (n, len(stages))
@@ -161,16 +177,33 @@ def entry(world, file, div, n, spec, table):
     cycles = games + (1 if stages else 0)
     days, recs = [], []
     for st in stages:
+        extra = (st.get("members"), 0, 0, 0)
+        if "fixtures" in st:                        # a fixture list by rows
+            mem = st.get("members")
+            assert st["after"] - d1 == len(days)
+            assert mem is None or len(mem) == n, (len(mem), n)
+            groups = [mem.count(g) for g in range(max(mem) + 1)] if mem else [n]
+            assert len(groups) <= 4 and all(groups), groups
+            for d in st["fixtures"]:
+                assert len({x for pr in d for x in pr}) == 2 * len(d) and all(0 <= x < n for pr in d for x in pr), d
+            flags = (1 if st.get("reset") else 0) | 4 | (8 if mem else 0) | (16 if st.get("wins") else 0)
+            recs.append((len(days), groups, ["full"] * len(groups), flags, (b"", None)) + extra)
+            days += [[(a, b, 0) for a, b in d] for d in st["fixtures"]]
+            continue
         groups, rounds = st["groups"], st["rounds"]
         points = st.get("points") or ["full"] * len(groups)
         assert len(groups) <= 4 and sum(groups) == n, (n, groups)
         assert st["after"] - d1 == len(days)
         assert n <= H2H_NMAX or all(POINTS[x] != 4 for x in points), "head-to-head points: at most 8 clubs"
+        assert not st.get("keep") or 3 * n <= 64, "'keep': at most 21 clubs"
         single = {g for g, r in enumerate(rounds) if r == 1}
         home = st.get("home", "seeded")
         mat = matrix(table, n, games, cycles, home) if home != "seeded" and single else b""
         sd = schedule(groups, rounds)
-        recs.append((len(days), groups, points, 0, (mat, None), None, 0, 0, 0))
+        perm = st.get("perm")                       # explicit places (a permutation of the frozen order)
+        assert perm is None or sorted(perm) == list(range(n)), perm
+        recs.append((len(days), groups, points, (1 if st.get("reset") else 0) | (2 if st.get("keep") else 0)
+                     | (0x20 if perm else 0), (mat, perm)) + extra)
         days += [[(a, b, 1 if mat and g in single else 0) for a, b, g in d] for d in sd]
     d2 = len(days)
     counts = bytes(len(d) for d in days)
@@ -185,7 +218,9 @@ def entry(world, file, div, n, spec, table):
     o_pairs = o_firsts + len(firsts)
     o = o_pairs + len(pairs)
     srec, mats = b"", b""
-    for j0, groups, points, flags, (mat, perm), mem, cb, tb, ann in recs:
+    weeks = bytes(spec["weeks"]) if spec.get("weeks") else b""
+    assert not weeks or len(weeks) == d1 + d2, (len(weeks), d1 + d2)
+    for k, (j0, groups, points, flags, (mat, perm), mem, cb, tb, ann) in enumerate(recs):
         g, start = b"", 0
         for i in range(4):
             if i < len(groups):
@@ -195,8 +230,14 @@ def entry(world, file, div, n, spec, table):
                 g += b"\0\0\0"
         mato = o + len(mats) if mat else 0
         mats += mat
-        srec += bytes((j0, len(groups), flags, 0)) + g + struct.pack("<HH", mato, 0)
-        srec += struct.pack("<HBBBBH", 0, cb, tb, ann, 0, 0)
+        po = o + len(mats) if perm else 0
+        mats += bytes(perm) if perm else b""
+        srec += bytes((j0, len(groups), flags, 0)) + g + struct.pack("<HH", mato, po)
+        mo = o + len(mats) if mem else 0
+        mats += bytes(mem) if mem else b""
+        wo = o + len(mats) if weeks and k == 0 else 0
+        mats += weeks if weeks and k == 0 else b""
+        srec += struct.pack("<HBBBBH", mo, cb, tb, ann, 0, wo)
     length = o + len(mats)
     length += -length & 3
     head = bytes((world, file, div, n, cycles, d1, d2, len(recs)))
@@ -205,9 +246,10 @@ def entry(world, file, div, n, spec, table):
     return body + b"\0" * (length - len(body)), d1, d2
 
 
-def division_spec(n, sp, games=None):
-    """A division's split as the Mod's mkseason.splits makes its spec (group stages): None if the
-    division has neither a split nor meetings of its own. Raises for what is not compiled yet."""
+def division_spec(n, sp, games=None, rows=None):
+    """A division's split as the Mod's mkseason.splits makes its spec: None if the division has
+    neither a split nor meetings of its own. rows: the division's club keys in table-row (team
+    file) order, for a fixture stage."""
     if not sp and games is None:
         return None
     spec = {"stages": []}
@@ -215,21 +257,42 @@ def division_spec(n, sp, games=None):
     per = days_before(n, 1)
     day = None
     for i, st in enumerate(stages):
-        if "fixtures" in st or st.get("reset") or st.get("keep") or st.get("places") or st.get("places_snake") \
-                or st.get("then") or st.get("table") is not None:
-            raise NotImplementedError("a split stage of fixtures / reset / keep / places")
+        if "fixtures" in st:                        # a fixture list by club
+            if i == 0:
+                assert st.get("after") == 0
+                games, day = 0, 0
+            assert st.get("after") == day
+            fxd = [[(rows.index(a), rows.index(b)) for a, b in dd] for dd in st["fixtures"]]
+            mem = None
+            if st.get("zones"):
+                mem = [next(g for g, z in enumerate(st["zones"]) if c in z) for c in rows]
+            spec["stages"].append({"after": day, "fixtures": fxd, "members": mem, "reset": bool(st.get("reset")),
+                                   "wins": st.get("tiebreak") == "wins",
+                                   "groups": [len(z) for z in st.get("zones") or [rows]]})
+            day += len(fxd)
+            continue
         if i == 0:
             assert st["after"] % per == 0 and 1 <= st["after"] // per <= 4, (st["after"], per)
             games = st["after"] // per
             day = st["after"]
         assert st["after"] == day
-        groups = [g["places"][1] - g["places"][0] + 1 for g in st["groups"]]
-        rounds = [ROUNDS[g.get("rounds", "single")] for g in st["groups"]]
-        spec["stages"].append({"after": st["after"], "groups": groups, "rounds": rounds,
-                               "points": [g.get("points", "full") for g in st["groups"]],
-                               "home": st.get("home", "seeded")})
-        day += len(schedule(groups, rounds))
+        gs = st.get("groups") or []
+        expl = st.get("places")
+        if st.get("places_snake"):                  # (groups of equal size, places dealt 1 2 .. g g .. 1)
+            order = [k for b in range(n // len(gs)) for k in (range(len(gs)) if b % 2 == 0
+                                                            else reversed(range(len(gs))))]
+            expl = [[p + 1 for p, k in enumerate(order) if k == x] for x in range(len(gs))]
+        one = {"after": st["after"], "groups": [g["places"][1] - g["places"][0] + 1 for g in gs],
+               "rounds": [ROUNDS[g.get("rounds", "single")] for g in gs],
+               "points": [g.get("points", "full") for g in gs], "home": st.get("home", "seeded"),
+               "reset": bool(st.get("reset")), "keep": st.get("keep")}
+        if expl is not None:
+            one["perm"] = [p - 1 for e in expl for p in e]
+        spec["stages"].append(one)
+        day += len(schedule(one["groups"], one["rounds"]))
     spec["games"] = games
+    if sp and sp.get("weeks"):
+        spec["weeks"] = [week_of(x) for x in sp["weeks"]]
     return spec
 
 

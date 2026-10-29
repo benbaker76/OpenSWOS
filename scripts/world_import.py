@@ -641,6 +641,8 @@ NEW_COMP_IDS = {
     # (the split countries')
     ("ECU", "cup"): 229, ("FIN", "league_cup"): 230, ("ISL", "league_cup"): 231,
     ("NIR", "league_cup"): 232, ("WAL", "league_cup"): 233,
+    # (the fixture stages' countries')
+    ("COL", "cup"): 234, ("PAR", "cup"): 235, ("PER", "cup"): 236, ("SLV", "cup"): 237, ("URU", "cup"): 238,
 }
 # A new country's league: an id of its own (fixed: saves hold it), its record's shape a 96/97
 # country's of the same continent (its season's months), its continent's byte (the first of
@@ -1349,7 +1351,11 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                            "cupd": "\n\n".join(cd_tables), "cupd_cases": cd_cases}
 
 
+WRITTEN = set()             # (this run's files: the world's others are an earlier run's, removed)
+
+
 def write(path, data):
+    WRITTEN.add(os.path.abspath(path))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
@@ -1365,7 +1371,17 @@ PLAIN = ("ALG BEL BLR BOL CHI CRO ENG EST FRA FRO GHA HUN IND IRL JPN LTU LUX LV
          # (B teams, an off-file pool below the lowest division: src/team_pool.c)
          "ESP GER NED POR NZL "
          # (a mid-season split: src/league_split.c)
-         "ALB AUT BUL CYP CZE DEN ECU FIN GRE ISL ISR NIR ROU SRB SUI SVK WAL").split()
+         "ALB AUT BUL CYP CZE DEN ECU FIN GRE ISL ISR NIR ROU SRB SUI SVK WAL "
+         # (fixture stages, Apertura / Clausura, as one league yet: their titles not played)
+         "COL MEX PAR PER URU MLT SMR").split()
+
+
+def division_rows(wc, picked, d):
+    """A division's clubs as the Mod's keys (clubs.csv), in its table rows' order: the team
+    file's (the Mod's fixture lists name them by key)."""
+    path = os.path.join(MOD, "packs", wc["code"].lower(), "clubs.csv")
+    key_of = {r["name"]: r["key"] for r in csv.DictReader(open(path, encoding="utf-8"))}
+    return [key_of.get(e["team"]["team_name"]) for e, div in picked if div == d]
 
 
 def country_splits(wc, pk, picked):
@@ -1380,17 +1396,17 @@ def country_splits(wc, pk, picked):
         sp = dv.get("split") or (lg.get("split") if d == 0 else None)
         games = dv.get("games") if "divisions" in lg else None
         n = dv["teams"]
-        try:
-            spec = world_split.division_spec(n, sp, games)
-        except NotImplementedError:
-            counts["splits of fixture stages (one league yet)"] += 1
+        if n > 20:              # (past 20 clubs a split's state has no room; past 24 a table no screen)
+            if sp or games is not None:
+                counts["splits of more than 20 clubs (one league yet)"] += 1
             continue
+        spec = world_split.division_spec(n, sp, games, division_rows(wc, picked, d))
         if spec is None:
             continue
         table, d1, d2 = world_split.entry(0, wc["number"], d, n, spec, world_split.pair_table(n))
-        if spec["stages"] and (n > 16 or d1 + d2 > 48):
+        if spec["stages"] and (n > 20 or d1 + d2 > 48):
             sys.exit("%s division %d: a split of %d clubs and %d days (include/game_types.h "
-                     "LEAGUE_SPLIT_MAX_CLUBS 16, _DAYS 48)" % (wc["code"], d, n, d1 + d2))
+                     "LEAGUE_SPLIT_MAX_CLUBS 20, _DAYS 48)" % (wc["code"], d, n, d1 + d2))
         counts["splits" if spec["stages"] else "divisions with meetings of their own"] += 1
         out.append((d, table))
     return out
@@ -1402,6 +1418,7 @@ def write_team_file(teams, json_name):
     path = os.path.join(WORLD, "data", name.upper())
     os.makedirs(os.path.dirname(path), exist_ok=True)
     open(path, "wb").write(packed)
+    WRITTEN.add(os.path.abspath(path))
 
 
 def main():
@@ -1419,6 +1436,7 @@ def main():
             write(os.path.join(WORLD, "teams", info["json"]), pool)
             pname, packed = team_file_binary(pool)
             open(os.path.join(WORLD, "data", pname.upper()), "wb").write(packed)
+            WRITTEN.add(os.path.abspath(os.path.join(WORLD, "data", pname.upper())))
             pools.append(info)
         return info
     pool_info = add_pool("ITA", "Italy", country, "ITALY")
@@ -1456,6 +1474,14 @@ def main():
                              [italian_groups(picked, country, leagues)],
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits))
     print("wrote src/world_data.c")
+    # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
+    for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):
+        folder = os.path.join(WORLD, sub)
+        for f in sorted(os.listdir(folder)):
+            path = os.path.abspath(os.path.join(folder, f))
+            if re.fullmatch(pattern, f) and path not in WRITTEN:
+                os.remove(path)
+                print("removed", os.path.relpath(path, REPO), "(an earlier run's)")
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))
 

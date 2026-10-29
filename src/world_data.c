@@ -25,6 +25,7 @@ extern CompetitionLeague _belgianLeague;
 extern CompetitionLeague _bolivianLeague;
 extern CompetitionLeague _bulgarianLeague;
 extern CompetitionLeague _chileanLeague;
+extern CompetitionLeague _colombianLeague;
 extern CompetitionLeague _croatianLeague;
 extern CompetitionLeague _cypriotLeague;
 extern CompetitionLeague _czechLeague;
@@ -49,13 +50,18 @@ extern CompetitionLeague _japaneseLeague;
 extern CompetitionLeague _latvianLeague;
 extern CompetitionLeague _lithuanianLeague;
 extern CompetitionLeague _luxembourgLeague;
+extern CompetitionLeague _malteseLeague;
+extern CompetitionLeague _mexicanLeague;
 extern CompetitionLeague _newZealandLeague;
 extern CompetitionLeague _northernIrishLeague;
 extern CompetitionLeague _norwegianLeague;
+extern CompetitionLeague _paraguayanLeague;
+extern CompetitionLeague _peruvianLeague;
 extern CompetitionLeague _polishLeague;
 extern CompetitionLeague _portugeseLeague;
 extern CompetitionLeague _romanianLeague;
 extern CompetitionLeague _russianLeague;
+extern CompetitionLeague _sanMarinoLeague;
 extern CompetitionLeague _scottishLeague;
 extern CompetitionLeague _slovakianLeague;
 extern CompetitionLeague _slovenianLeague;
@@ -67,6 +73,7 @@ extern CompetitionLeague _swissLeague;
 extern CompetitionLeague _taiwaneseLeague;
 extern CompetitionLeague _turkishLeague;
 extern CompetitionLeague _ukrainianLeague;
+extern CompetitionLeague _uruguayanLeague;
 extern CompetitionLeague _venezuelanLeague;
 extern CompetitionLeague _welshLeague;
 extern CompetitionLeague _yugoslavianLeague;
@@ -149,447 +156,479 @@ static char kWorld2627_name34[] = "CHINESE SUPER LEAGUE";
 
 static char kWorld2627_name35[] = "CSL";
 
-static char kWorld2627_name36[] = "PRIMERA DIVISION";
+static char kWorld2627_name36[] = "CATEGORIA PRIMERA A";
 
-static char kWorld2627_name37[] = "HRVATSKA NOGOMETNA LIGA";
+static char kWorld2627_name37[] = "PRIMERA A";
 
-static char kWorld2627_name38[] = "HNL";
+static char kWorld2627_name38[] = "PRIMERA DIVISION";
 
-static char kWorld2627_name39[] = "CYPRIOT FIRST DIVISION";
+static char kWorld2627_name39[] = "HRVATSKA NOGOMETNA LIGA";
 
-static char kWorld2627_name40[] = "FIRST DIVISION";
+static char kWorld2627_name40[] = "HNL";
 
-static char kWorld2627_name41[] = "1. CESKA FOTBALOVA LIGA";
+static char kWorld2627_name41[] = "CYPRIOT FIRST DIVISION";
 
-static char kWorld2627_name42[] = "1. LIGA";
+static char kWorld2627_name42[] = "FIRST DIVISION";
 
-static char kWorld2627_name43[] = "SUPERLIGAEN";
+static char kWorld2627_name43[] = "1. CESKA FOTBALOVA LIGA";
 
-static char kWorld2627_name44[] = "LIGAPRO SERIE A";
+static char kWorld2627_name44[] = "1. LIGA";
 
-static char kWorld2627_name45[] = "LIGAPRO";
+static char kWorld2627_name45[] = "SUPERLIGAEN";
 
-static char kWorld2627_name46[] = "EGYPTIAN PREMIER LEAGUE";
+static char kWorld2627_name46[] = "LIGAPRO SERIE A";
 
-static char kWorld2627_name47[] = "EGYPTIAN PL";
+static char kWorld2627_name47[] = "LIGAPRO";
 
-static char kWorld2627_name48[] = "EFL CHAMPIONSHIP";
+static char kWorld2627_name48[] = "EGYPTIAN PREMIER LEAGUE";
 
-static char kWorld2627_name49[] = "CHAMPIONSHIP";
+static char kWorld2627_name49[] = "EGYPTIAN PL";
 
-static char kWorld2627_name50[] = "EFL LEAGUE ONE";
+static char kWorld2627_name50[] = "EFL CHAMPIONSHIP";
 
-static char kWorld2627_name51[] = "LEAGUE ONE";
+static char kWorld2627_name51[] = "CHAMPIONSHIP";
 
-static char kWorld2627_name52[] = "EFL LEAGUE TWO";
+static char kWorld2627_name52[] = "EFL LEAGUE ONE";
 
-static char kWorld2627_name53[] = "LEAGUE TWO";
+static char kWorld2627_name53[] = "LEAGUE ONE";
 
-static char kWorld2627_name54[] = "LALIGA";
+static char kWorld2627_name54[] = "EFL LEAGUE TWO";
 
-static char kWorld2627_name55[] = "SEGUNDA DIVISION";
+static char kWorld2627_name55[] = "LEAGUE TWO";
 
-static char kWorld2627_name56[] = "MEISTRILIIGA";
+static char kWorld2627_name56[] = "LALIGA";
 
-static char kWorld2627_name57[] = "VEIKKAUSLIIGA";
+static char kWorld2627_name57[] = "SEGUNDA DIVISION";
 
-static char kWorld2627_name58[] = "LIGUE 2";
+static char kWorld2627_name58[] = "MEISTRILIIGA";
 
-static char kWorld2627_name59[] = "MEISTARADEILDIN";
+static char kWorld2627_name59[] = "VEIKKAUSLIIGA";
 
-static char kWorld2627_name60[] = "EROVNULI LIGA";
+static char kWorld2627_name60[] = "LIGUE 2";
 
-static char kWorld2627_name61[] = "2. BUNDESLIGA";
+static char kWorld2627_name61[] = "MEISTARADEILDIN";
 
-static char kWorld2627_name62[] = "3. LIGA";
+static char kWorld2627_name62[] = "EROVNULI LIGA";
 
-static char kWorld2627_name63[] = "GHANA PREMIER LEAGUE";
+static char kWorld2627_name63[] = "2. BUNDESLIGA";
 
-static char kWorld2627_name64[] = "GHANA PREM. LGE";
+static char kWorld2627_name64[] = "3. LIGA";
 
-static char kWorld2627_name65[] = "GIBRALTAR NATIONAL LEAGUE";
+static char kWorld2627_name65[] = "GHANA PREMIER LEAGUE";
 
-static char kWorld2627_name66[] = "NATIONAL LEAGUE";
+static char kWorld2627_name66[] = "GHANA PREM. LGE";
 
-static char kWorld2627_name67[] = "SUPER LEAGUE GREECE";
+static char kWorld2627_name67[] = "GIBRALTAR NATIONAL LEAGUE";
 
-static char kWorld2627_name68[] = "SUPER LEAGUE";
+static char kWorld2627_name68[] = "NATIONAL LEAGUE";
 
-static char kWorld2627_name69[] = "LIGA NACIONAL";
+static char kWorld2627_name69[] = "SUPER LEAGUE GREECE";
 
-static char kWorld2627_name70[] = "NEMZETI BAJNOKSAG I";
+static char kWorld2627_name70[] = "SUPER LEAGUE";
 
-static char kWorld2627_name71[] = "NB I";
+static char kWorld2627_name71[] = "LIGA NACIONAL";
 
-static char kWorld2627_name72[] = "INDIAN SUPER LEAGUE";
+static char kWorld2627_name72[] = "NEMZETI BAJNOKSAG I";
 
-static char kWorld2627_name73[] = "ISL";
+static char kWorld2627_name73[] = "NB I";
 
-static char kWorld2627_name74[] = "INDIAN FOOTBALL LEAGUE";
+static char kWorld2627_name74[] = "INDIAN SUPER LEAGUE";
 
-static char kWorld2627_name75[] = "IFL";
+static char kWorld2627_name75[] = "ISL";
 
-static char kWorld2627_name76[] = "LOI PREMIER DIVISION";
+static char kWorld2627_name76[] = "INDIAN FOOTBALL LEAGUE";
 
-static char kWorld2627_name77[] = "PREMIER DIVISION";
+static char kWorld2627_name77[] = "IFL";
 
-static char kWorld2627_name78[] = "PERSIAN GULF PRO LEAGUE";
+static char kWorld2627_name78[] = "LOI PREMIER DIVISION";
 
-static char kWorld2627_name79[] = "PGPL";
+static char kWorld2627_name79[] = "PREMIER DIVISION";
 
-static char kWorld2627_name80[] = "BESTA DEILD KARLA";
+static char kWorld2627_name80[] = "PERSIAN GULF PRO LEAGUE";
 
-static char kWorld2627_name81[] = "BESTA DEILD";
+static char kWorld2627_name81[] = "PGPL";
 
-static char kWorld2627_name82[] = "ISRAELI PREMIER LEAGUE";
+static char kWorld2627_name82[] = "BESTA DEILD KARLA";
 
-static char kWorld2627_name83[] = "LIGAT HA'AL";
+static char kWorld2627_name83[] = "BESTA DEILD";
 
-static char kWorld2627_name84[] = "J1 LEAGUE";
+static char kWorld2627_name84[] = "ISRAELI PREMIER LEAGUE";
 
-static char kWorld2627_name85[] = "J2 LEAGUE";
+static char kWorld2627_name85[] = "LIGAT HA'AL";
 
-static char kWorld2627_name86[] = "KAZAKHSTAN PREMIER LEAGUE";
+static char kWorld2627_name86[] = "J1 LEAGUE";
 
-static char kWorld2627_name87[] = "PREMIER LIGA";
+static char kWorld2627_name87[] = "J2 LEAGUE";
 
-static char kWorld2627_name88[] = "K LEAGUE 1";
+static char kWorld2627_name88[] = "KAZAKHSTAN PREMIER LEAGUE";
 
-static char kWorld2627_name89[] = "SUPERLIGA E KOSOVES";
+static char kWorld2627_name89[] = "PREMIER LIGA";
 
-static char kWorld2627_name90[] = "SUPERLIGA";
+static char kWorld2627_name90[] = "K LEAGUE 1";
 
-static char kWorld2627_name91[] = "SAUDI PRO LEAGUE";
+static char kWorld2627_name91[] = "SUPERLIGA E KOSOVES";
 
-static char kWorld2627_name92[] = "LIECHTENSTEIN LEAGUE";
+static char kWorld2627_name92[] = "SUPERLIGA";
 
-static char kWorld2627_name93[] = "LIE LEAGUE";
+static char kWorld2627_name93[] = "SAUDI PRO LEAGUE";
 
-static char kWorld2627_name94[] = "TOPLYGA";
+static char kWorld2627_name94[] = "LIECHTENSTEIN LEAGUE";
 
-static char kWorld2627_name95[] = "DIVISION NATIONALE";
+static char kWorld2627_name95[] = "LIE LEAGUE";
 
-static char kWorld2627_name96[] = "DIV. NATIONALE";
+static char kWorld2627_name96[] = "TOPLYGA";
 
-static char kWorld2627_name97[] = "VIRSLIGA";
+static char kWorld2627_name97[] = "DIVISION NATIONALE";
 
-static char kWorld2627_name98[] = "BOTOLA PRO";
+static char kWorld2627_name98[] = "DIV. NATIONALE";
 
-static char kWorld2627_name99[] = "SUPER LIGA";
+static char kWorld2627_name99[] = "VIRSLIGA";
 
-static char kWorld2627_name100[] = "PRVA MAKEDONSKA FUDBALSKA LIGA";
+static char kWorld2627_name100[] = "BOTOLA PRO";
 
-static char kWorld2627_name101[] = "PRVA LIGA";
+static char kWorld2627_name101[] = "SUPER LIGA";
 
-static char kWorld2627_name102[] = "PRVA CRNOGORSKA LIGA";
+static char kWorld2627_name102[] = "LIGA MX";
 
-static char kWorld2627_name103[] = "EREDIVISIE";
+static char kWorld2627_name103[] = "LIGA DE EXPANSION MX";
 
-static char kWorld2627_name104[] = "EERSTE DIVISIE";
+static char kWorld2627_name104[] = "LIGA EXPANSION";
 
-static char kWorld2627_name105[] = "NIFL PREMIERSHIP";
+static char kWorld2627_name105[] = "PRVA MAKEDONSKA FUDBALSKA LIGA";
 
-static char kWorld2627_name106[] = "PREMIERSHIP";
+static char kWorld2627_name106[] = "PRVA LIGA";
 
-static char kWorld2627_name107[] = "ELITESERIEN";
+static char kWorld2627_name107[] = "MALTESE PREMIER LEAGUE";
 
-static char kWorld2627_name108[] = "NORTHERN LEAGUE";
+static char kWorld2627_name108[] = "PRVA CRNOGORSKA LIGA";
 
-static char kWorld2627_name109[] = "CENTRAL LEAGUE";
+static char kWorld2627_name109[] = "EREDIVISIE";
 
-static char kWorld2627_name110[] = "SOUTHERN LEAGUE";
+static char kWorld2627_name110[] = "EERSTE DIVISIE";
 
-static char kWorld2627_name111[] = "LIGA PANAMENA DE FUTBOL";
+static char kWorld2627_name111[] = "NIFL PREMIERSHIP";
 
-static char kWorld2627_name112[] = "LPF";
+static char kWorld2627_name112[] = "PREMIERSHIP";
 
-static char kWorld2627_name113[] = "EKSTRAKLASA";
+static char kWorld2627_name113[] = "ELITESERIEN";
 
-static char kWorld2627_name114[] = "LIGA PORTUGAL";
+static char kWorld2627_name114[] = "NORTHERN LEAGUE";
 
-static char kWorld2627_name115[] = "LIGA PORTUGAL 2";
+static char kWorld2627_name115[] = "CENTRAL LEAGUE";
 
-static char kWorld2627_name116[] = "QATAR STARS LEAGUE";
+static char kWorld2627_name116[] = "SOUTHERN LEAGUE";
 
-static char kWorld2627_name117[] = "QSL";
+static char kWorld2627_name117[] = "LIGA PANAMENA DE FUTBOL";
 
-static char kWorld2627_name118[] = "PSL PREMIERSHIP";
+static char kWorld2627_name118[] = "LPF";
 
-static char kWorld2627_name119[] = "RUSSIAN PREMIER LEAGUE";
+static char kWorld2627_name119[] = "LIGA 1";
 
-static char kWorld2627_name120[] = "SCOTTISH PREMIERSHIP";
+static char kWorld2627_name120[] = "EKSTRAKLASA";
 
-static char kWorld2627_name121[] = "SCOTTISH CHAMPIONSHIP";
+static char kWorld2627_name121[] = "LIGA PORTUGAL";
 
-static char kWorld2627_name122[] = "SCOTTISH LEAGUE ONE";
+static char kWorld2627_name122[] = "LIGA PORTUGAL 2";
 
-static char kWorld2627_name123[] = "SCOTTISH LEAGUE TWO";
+static char kWorld2627_name123[] = "QATAR STARS LEAGUE";
 
-static char kWorld2627_name124[] = "SUPERLIGA SRBIJE";
+static char kWorld2627_name124[] = "QSL";
 
-static char kWorld2627_name125[] = "SWISS SUPER LEAGUE";
+static char kWorld2627_name125[] = "PSL PREMIERSHIP";
 
-static char kWorld2627_name126[] = "SURINAME MAJOR LEAGUE";
+static char kWorld2627_name126[] = "RUSSIAN PREMIER LEAGUE";
 
-static char kWorld2627_name127[] = "MAJOR LEAGUE";
+static char kWorld2627_name127[] = "SCOTTISH PREMIERSHIP";
 
-static char kWorld2627_name128[] = "SLOVAK FIRST FOOTBALL LEAGUE";
+static char kWorld2627_name128[] = "SCOTTISH CHAMPIONSHIP";
 
-static char kWorld2627_name129[] = "PRVA SLOVENSKA NOGOMETNA LIGA";
+static char kWorld2627_name129[] = "SCOTTISH LEAGUE ONE";
 
-static char kWorld2627_name130[] = "ALLSVENSKAN";
+static char kWorld2627_name130[] = "SCOTTISH LEAGUE TWO";
 
-static char kWorld2627_name131[] = "TAIWAN FOOTBALL PREMIER LEAGUE";
+static char kWorld2627_name131[] = "CAMPIONATO SAMMARINESE";
 
-static char kWorld2627_name132[] = "TFPL";
+static char kWorld2627_name132[] = "CAMPIONATO SMR";
 
-static char kWorld2627_name133[] = "TAIWAN FOOTBALL LEAGUE DIV. 2";
+static char kWorld2627_name133[] = "SUPERLIGA SRBIJE";
 
-static char kWorld2627_name134[] = "TFL DIV. 2";
+static char kWorld2627_name134[] = "SWISS SUPER LEAGUE";
 
-static char kWorld2627_name135[] = "SUPER LIG";
+static char kWorld2627_name135[] = "SURINAME MAJOR LEAGUE";
 
-static char kWorld2627_name136[] = "TFF 1. LIG";
+static char kWorld2627_name136[] = "MAJOR LEAGUE";
 
-static char kWorld2627_name137[] = "1. LIG";
+static char kWorld2627_name137[] = "SLOVAK FIRST FOOTBALL LEAGUE";
 
-static char kWorld2627_name138[] = "UAE PRO LEAGUE";
+static char kWorld2627_name138[] = "PRVA SLOVENSKA NOGOMETNA LIGA";
 
-static char kWorld2627_name139[] = "UKRAINIAN PREMIER LEAGUE";
+static char kWorld2627_name139[] = "ALLSVENSKAN";
 
-static char kWorld2627_name140[] = "LIGA FUTVE";
+static char kWorld2627_name140[] = "TAIWAN FOOTBALL PREMIER LEAGUE";
 
-static char kWorld2627_name141[] = "CYMRU PREMIER";
+static char kWorld2627_name141[] = "TFPL";
 
-static char kWorld2627_name142[] = "SERIE C";
+static char kWorld2627_name142[] = "TAIWAN FOOTBALL LEAGUE DIV. 2";
 
-static char kWorld2627_name143[] = "SERIE D";
+static char kWorld2627_name143[] = "TFL DIV. 2";
 
-static char kWorld2627_name144[] = "COPPA ITALIA SERIE C";
+static char kWorld2627_name144[] = "SUPER LIG";
 
-static char kWorld2627_name145[] = "COPPA SERIE C";
+static char kWorld2627_name145[] = "TFF 1. LIG";
 
-static char kWorld2627_name146[] = "KUPA E SHQIPERISE";
+static char kWorld2627_name146[] = "1. LIG";
 
-static char kWorld2627_name147[] = "KUPA SHQIPERISE";
+static char kWorld2627_name147[] = "UAE PRO LEAGUE";
 
-static char kWorld2627_name148[] = "COUPE D'ALGERIE";
+static char kWorld2627_name148[] = "UKRAINIAN PREMIER LEAGUE";
 
-static char kWorld2627_name149[] = "COPA CONSTITUCIO";
+static char kWorld2627_name149[] = "CAMPEONATO URUGUAYO";
 
-static char kWorld2627_name150[] = "ARMENIAN INDEPENDENCE CUP";
+static char kWorld2627_name150[] = "LIGA FUTVE";
 
-static char kWorld2627_name151[] = "ARMENIAN CUP";
+static char kWorld2627_name151[] = "CYMRU PREMIER";
 
-static char kWorld2627_name152[] = "OFB-CUP";
+static char kWorld2627_name152[] = "SERIE C";
 
-static char kWorld2627_name153[] = "AZERBAIJAN CUP";
+static char kWorld2627_name153[] = "SERIE D";
 
-static char kWorld2627_name154[] = "BEKER VAN BELGIE";
+static char kWorld2627_name154[] = "COPPA ITALIA SERIE C";
 
-static char kWorld2627_name155[] = "KUP BIH";
+static char kWorld2627_name155[] = "COPPA SERIE C";
 
-static char kWorld2627_name156[] = "BELARUSIAN CUP";
+static char kWorld2627_name156[] = "KUPA E SHQIPERISE";
 
-static char kWorld2627_name157[] = "COPA BOLIVIA";
+static char kWorld2627_name157[] = "KUPA SHQIPERISE";
 
-static char kWorld2627_name158[] = "BULGARIAN CUP";
+static char kWorld2627_name158[] = "COUPE D'ALGERIE";
 
-static char kWorld2627_name159[] = "CANADIAN CHAMPIONSHIP";
+static char kWorld2627_name159[] = "COPA CONSTITUCIO";
 
-static char kWorld2627_name160[] = "CANADIAN CHAMP.";
+static char kWorld2627_name160[] = "ARMENIAN INDEPENDENCE CUP";
 
-static char kWorld2627_name161[] = "COPA CHILE";
+static char kWorld2627_name161[] = "ARMENIAN CUP";
 
-static char kWorld2627_name162[] = "COPA DE LA LIGA";
+static char kWorld2627_name162[] = "OFB-CUP";
 
-static char kWorld2627_name163[] = "COPA LIGA";
+static char kWorld2627_name163[] = "AZERBAIJAN CUP";
 
-static char kWorld2627_name164[] = "CHINESE FA CUP";
+static char kWorld2627_name164[] = "BEKER VAN BELGIE";
 
-static char kWorld2627_name165[] = "CFA CUP";
+static char kWorld2627_name165[] = "KUP BIH";
 
-static char kWorld2627_name166[] = "COPA DE COSTA RICA";
+static char kWorld2627_name166[] = "BELARUSIAN CUP";
 
-static char kWorld2627_name167[] = "COPA COSTA RICA";
+static char kWorld2627_name167[] = "COPA BOLIVIA";
 
-static char kWorld2627_name168[] = "HRVATSKI NOGOMETNI KUP";
+static char kWorld2627_name168[] = "BULGARIAN CUP";
 
-static char kWorld2627_name169[] = "HRVATSKI KUP";
+static char kWorld2627_name169[] = "CANADIAN CHAMPIONSHIP";
 
-static char kWorld2627_name170[] = "CYPRIOT CUP";
+static char kWorld2627_name170[] = "CANADIAN CHAMP.";
 
-static char kWorld2627_name171[] = "POHAR FACR";
+static char kWorld2627_name171[] = "COPA CHILE";
 
-static char kWorld2627_name172[] = "DBU POKALEN";
+static char kWorld2627_name172[] = "COPA DE LA LIGA";
 
-static char kWorld2627_name173[] = "COPA ECUADOR";
+static char kWorld2627_name173[] = "COPA LIGA";
 
-static char kWorld2627_name174[] = "EGYPT CUP";
+static char kWorld2627_name174[] = "CHINESE FA CUP";
 
-static char kWorld2627_name175[] = "EGYPTIAN LEAGUE CUP";
+static char kWorld2627_name175[] = "CFA CUP";
 
-static char kWorld2627_name176[] = "LEAGUE CUP";
+static char kWorld2627_name176[] = "COPA COLOMBIA";
 
-static char kWorld2627_name177[] = "FA CUP";
+static char kWorld2627_name177[] = "COPA DE COSTA RICA";
 
-static char kWorld2627_name178[] = "EFL CUP";
+static char kWorld2627_name178[] = "COPA COSTA RICA";
 
-static char kWorld2627_name179[] = "COPA DEL REY";
+static char kWorld2627_name179[] = "HRVATSKI NOGOMETNI KUP";
 
-static char kWorld2627_name180[] = "EESTI KARIKAS";
+static char kWorld2627_name180[] = "HRVATSKI KUP";
 
-static char kWorld2627_name181[] = "SUOMEN CUP";
+static char kWorld2627_name181[] = "CYPRIOT CUP";
 
-static char kWorld2627_name182[] = "LIIGACUP";
+static char kWorld2627_name182[] = "POHAR FACR";
 
-static char kWorld2627_name183[] = "COUPE DE FRANCE";
+static char kWorld2627_name183[] = "DBU POKALEN";
 
-static char kWorld2627_name184[] = "LOGMANSSTEYPID";
+static char kWorld2627_name184[] = "COPA ECUADOR";
 
-static char kWorld2627_name185[] = "DAVID KIPIANI CUP";
+static char kWorld2627_name185[] = "EGYPT CUP";
 
-static char kWorld2627_name186[] = "KIPIANI CUP";
+static char kWorld2627_name186[] = "EGYPTIAN LEAGUE CUP";
 
-static char kWorld2627_name187[] = "DFB-POKAL";
+static char kWorld2627_name187[] = "LEAGUE CUP";
 
-static char kWorld2627_name188[] = "GHANA FA CUP";
+static char kWorld2627_name188[] = "FA CUP";
 
-static char kWorld2627_name189[] = "ROCK CUP";
+static char kWorld2627_name189[] = "EFL CUP";
 
-static char kWorld2627_name190[] = "GREEK CUP";
+static char kWorld2627_name190[] = "COPA DEL REY";
 
-static char kWorld2627_name191[] = "MAGYAR KUPA";
+static char kWorld2627_name191[] = "EESTI KARIKAS";
 
-static char kWorld2627_name192[] = "SUPER CUP";
+static char kWorld2627_name192[] = "SUOMEN CUP";
 
-static char kWorld2627_name193[] = "FAI CUP";
+static char kWorld2627_name193[] = "LIIGACUP";
 
-static char kWorld2627_name194[] = "HAZFI CUP";
+static char kWorld2627_name194[] = "COUPE DE FRANCE";
 
-static char kWorld2627_name195[] = "BIKARKEPPNI KSI";
+static char kWorld2627_name195[] = "LOGMANSSTEYPID";
 
-static char kWorld2627_name196[] = "DEILDABIKARINN";
+static char kWorld2627_name196[] = "DAVID KIPIANI CUP";
 
-static char kWorld2627_name197[] = "DEILDABIKAR";
+static char kWorld2627_name197[] = "KIPIANI CUP";
 
-static char kWorld2627_name198[] = "ISRAEL STATE CUP";
+static char kWorld2627_name198[] = "DFB-POKAL";
 
-static char kWorld2627_name199[] = "STATE CUP";
+static char kWorld2627_name199[] = "GHANA FA CUP";
 
-static char kWorld2627_name200[] = "EMPEROR'S CUP";
+static char kWorld2627_name200[] = "ROCK CUP";
 
-static char kWorld2627_name201[] = "J.LEAGUE CUP";
+static char kWorld2627_name201[] = "GREEK CUP";
 
-static char kWorld2627_name202[] = "KAZAKHSTAN CUP";
+static char kWorld2627_name202[] = "MAGYAR KUPA";
 
-static char kWorld2627_name203[] = "KOREA CUP";
+static char kWorld2627_name203[] = "SUPER CUP";
 
-static char kWorld2627_name204[] = "KUPA E KOSOVES";
+static char kWorld2627_name204[] = "FAI CUP";
 
-static char kWorld2627_name205[] = "KING'S CUP";
+static char kWorld2627_name205[] = "HAZFI CUP";
 
-static char kWorld2627_name206[] = "LIECHTENSTEINER CUP";
+static char kWorld2627_name206[] = "BIKARKEPPNI KSI";
 
-static char kWorld2627_name207[] = "LIE CUP";
+static char kWorld2627_name207[] = "DEILDABIKARINN";
 
-static char kWorld2627_name208[] = "LFF TAURE";
+static char kWorld2627_name208[] = "DEILDABIKAR";
 
-static char kWorld2627_name209[] = "COUPE DE LUXEMBOURG";
+static char kWorld2627_name209[] = "ISRAEL STATE CUP";
 
-static char kWorld2627_name210[] = "COUPE LUXEMBOURG";
+static char kWorld2627_name210[] = "STATE CUP";
 
-static char kWorld2627_name211[] = "LATVIJAS KAUSS";
+static char kWorld2627_name211[] = "EMPEROR'S CUP";
 
-static char kWorld2627_name212[] = "COUPE DU TRONE";
+static char kWorld2627_name212[] = "J.LEAGUE CUP";
 
-static char kWorld2627_name213[] = "CUPA MOLDOVEI";
+static char kWorld2627_name213[] = "KAZAKHSTAN CUP";
 
-static char kWorld2627_name214[] = "MACEDONIAN CUP";
+static char kWorld2627_name214[] = "KOREA CUP";
 
-static char kWorld2627_name215[] = "KUP CRNE GORE";
+static char kWorld2627_name215[] = "KUPA E KOSOVES";
 
-static char kWorld2627_name216[] = "KNVB BEKER";
+static char kWorld2627_name216[] = "KING'S CUP";
 
-static char kWorld2627_name217[] = "IRISH CUP";
+static char kWorld2627_name217[] = "LIECHTENSTEINER CUP";
 
-static char kWorld2627_name218[] = "IRISH LEAGUE CUP";
+static char kWorld2627_name218[] = "LIE CUP";
 
-static char kWorld2627_name219[] = "IRISH LGE CUP";
+static char kWorld2627_name219[] = "LFF TAURE";
 
-static char kWorld2627_name220[] = "NORGESMESTERSKAPET";
+static char kWorld2627_name220[] = "COUPE DE LUXEMBOURG";
 
-static char kWorld2627_name221[] = "NM-CUPEN";
+static char kWorld2627_name221[] = "COUPE LUXEMBOURG";
 
-static char kWorld2627_name222[] = "CHATHAM CUP";
+static char kWorld2627_name222[] = "LATVIJAS KAUSS";
 
-static char kWorld2627_name223[] = "PUCHAR POLSKI";
+static char kWorld2627_name223[] = "COUPE DU TRONE";
 
-static char kWorld2627_name224[] = "TACA DE PORTUGAL";
+static char kWorld2627_name224[] = "CUPA MOLDOVEI";
 
-static char kWorld2627_name225[] = "TACA DA LIGA";
+static char kWorld2627_name225[] = "MACEDONIAN CUP";
 
-static char kWorld2627_name226[] = "AMIR CUP";
+static char kWorld2627_name226[] = "MALTESE FA TROPHY";
 
-static char kWorld2627_name227[] = "QSL CUP";
+static char kWorld2627_name227[] = "FA TROPHY";
 
-static char kWorld2627_name228[] = "CUPA ROMANIEI";
+static char kWorld2627_name228[] = "KUP CRNE GORE";
 
-static char kWorld2627_name229[] = "NEDBANK CUP";
+static char kWorld2627_name229[] = "KNVB BEKER";
 
-static char kWorld2627_name230[] = "CARLING KNOCKOUT";
+static char kWorld2627_name230[] = "IRISH CUP";
 
-static char kWorld2627_name231[] = "CARLING KO";
+static char kWorld2627_name231[] = "IRISH LEAGUE CUP";
 
-static char kWorld2627_name232[] = "RUSSIAN CUP";
+static char kWorld2627_name232[] = "IRISH LGE CUP";
 
-static char kWorld2627_name233[] = "SCOTTISH CUP";
+static char kWorld2627_name233[] = "NORGESMESTERSKAPET";
 
-static char kWorld2627_name234[] = "SCOTTISH LEAGUE CUP";
+static char kWorld2627_name234[] = "NM-CUPEN";
 
-static char kWorld2627_name235[] = "SCOT. LGE CUP";
+static char kWorld2627_name235[] = "CHATHAM CUP";
 
-static char kWorld2627_name236[] = "KUP SRBIJE";
+static char kWorld2627_name236[] = "COPA PARAGUAY";
 
-static char kWorld2627_name237[] = "SCHWEIZER CUP";
+static char kWorld2627_name237[] = "PUCHAR POLSKI";
 
-static char kWorld2627_name238[] = "SVB CUP";
+static char kWorld2627_name238[] = "TACA DE PORTUGAL";
 
-static char kWorld2627_name239[] = "SLOVENSKY POHAR";
+static char kWorld2627_name239[] = "TACA DA LIGA";
 
-static char kWorld2627_name240[] = "POKAL NZS";
+static char kWorld2627_name240[] = "AMIR CUP";
 
-static char kWorld2627_name241[] = "SVENSKA CUPEN";
+static char kWorld2627_name241[] = "QSL CUP";
 
-static char kWorld2627_name242[] = "TAIWAN PRESIDENT FA CUP";
+static char kWorld2627_name242[] = "CUPA ROMANIEI";
 
-static char kWorld2627_name243[] = "PRESIDENT FA CUP";
+static char kWorld2627_name243[] = "NEDBANK CUP";
 
-static char kWorld2627_name244[] = "COUPE DE TUNISIE";
+static char kWorld2627_name244[] = "CARLING KNOCKOUT";
 
-static char kWorld2627_name245[] = "TURKIYE KUPASI";
+static char kWorld2627_name245[] = "CARLING KO";
 
-static char kWorld2627_name246[] = "UAE PRESIDENT'S CUP";
+static char kWorld2627_name246[] = "RUSSIAN CUP";
 
-static char kWorld2627_name247[] = "PRESIDENT'S CUP";
+static char kWorld2627_name247[] = "SCOTTISH CUP";
 
-static char kWorld2627_name248[] = "UAE LEAGUE CUP";
+static char kWorld2627_name248[] = "SCOTTISH LEAGUE CUP";
 
-static char kWorld2627_name249[] = "UAE LGE CUP";
+static char kWorld2627_name249[] = "SCOT. LGE CUP";
 
-static char kWorld2627_name250[] = "UKRAINIAN CUP";
+static char kWorld2627_name250[] = "COPPA TITANO";
 
-static char kWorld2627_name251[] = "COPA VENEZUELA";
+static char kWorld2627_name251[] = "KUP SRBIJE";
 
-static char kWorld2627_name252[] = "WELSH CUP";
+static char kWorld2627_name252[] = "SCHWEIZER CUP";
 
-static char kWorld2627_name253[] = "WELSH LEAGUE CUP";
+static char kWorld2627_name253[] = "SVB CUP";
 
-static char kWorld2627_name254[] = "WELSH L. CUP";
+static char kWorld2627_name254[] = "SLOVENSKY POHAR";
 
-static char kWorld2627_name255[] = "COPPA ITALIA SERIE D";
+static char kWorld2627_name255[] = "POKAL NZS";
 
-static char kWorld2627_name256[] = "COPPA SERIE D";
+static char kWorld2627_name256[] = "SVENSKA CUPEN";
+
+static char kWorld2627_name257[] = "TAIWAN PRESIDENT FA CUP";
+
+static char kWorld2627_name258[] = "PRESIDENT FA CUP";
+
+static char kWorld2627_name259[] = "COUPE DE TUNISIE";
+
+static char kWorld2627_name260[] = "TURKIYE KUPASI";
+
+static char kWorld2627_name261[] = "UAE PRESIDENT'S CUP";
+
+static char kWorld2627_name262[] = "PRESIDENT'S CUP";
+
+static char kWorld2627_name263[] = "UAE LEAGUE CUP";
+
+static char kWorld2627_name264[] = "UAE LGE CUP";
+
+static char kWorld2627_name265[] = "UKRAINIAN CUP";
+
+static char kWorld2627_name266[] = "COPA AUF URUGUAY";
+
+static char kWorld2627_name267[] = "COPA VENEZUELA";
+
+static char kWorld2627_name268[] = "WELSH CUP";
+
+static char kWorld2627_name269[] = "WELSH LEAGUE CUP";
+
+static char kWorld2627_name270[] = "WELSH L. CUP";
+
+static char kWorld2627_name271[] = "COPPA ITALIA SERIE D";
+
+static char kWorld2627_name272[] = "COPPA SERIE D";
 
 static CompetitionLeague kWorld2627_italianLeague = {
     { { 61, 0, 20, 64, 32, 33, 0, 0, 0 }, 14, 2, 3, 53 },
@@ -696,410 +735,452 @@ static CompetitionLeague kWorld2627_worldChnLeague = {
     { kWorld2627_name34, kWorld2627_name35 }
 };
 
+static CompetitionLeague kWorld2627_colombianLeague = {
+    { { 92, 0, 49, 24, 88, 33, 0, 0, 0 }, 1, 2, 3, 53 },
+    { { 20, 0, 0, 0, 0, 0 } },
+    0,
+    { kWorld2627_name36, kWorld2627_name37 }
+};
+
 static CompetitionLeague kWorld2627_worldCrcLeague = {
     { { 180, 0, 58, 56, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name36, kWorld2627_name36 }
+    { kWorld2627_name38, kWorld2627_name38 }
 };
 
 static CompetitionLeague kWorld2627_croatianLeague = {
     { { 42, 0, 4, 56, 40, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name37, kWorld2627_name38 }
+    { kWorld2627_name39, kWorld2627_name40 }
 };
 
 static CompetitionLeague kWorld2627_cypriotLeague = {
     { { 43, 0, 5, 64, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 14, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name39, kWorld2627_name40 }
+    { kWorld2627_name41, kWorld2627_name42 }
 };
 
 static CompetitionLeague kWorld2627_czechLeague = {
     { { 44, 0, 6, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name41, kWorld2627_name42 }
+    { kWorld2627_name43, kWorld2627_name44 }
 };
 
 static CompetitionLeague kWorld2627_danishLeague = {
     { { 45, 0, 7, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name43, kWorld2627_name43 }
+    { kWorld2627_name45, kWorld2627_name45 }
 };
 
 static CompetitionLeague kWorld2627_ecuadorLeague = {
     { { 93, 0, 50, 24, 88, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name44, kWorld2627_name45 }
+    { kWorld2627_name46, kWorld2627_name47 }
 };
 
 static CompetitionLeague kWorld2627_worldEgyLeague = {
     { { 181, 0, 59, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 20, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name46, kWorld2627_name47 }
+    { kWorld2627_name48, kWorld2627_name49 }
 };
 
 static CompetitionLeague kWorld2627_englishLeague = {
     { { 46, 0, 8, 56, 32, 33, 0, 0, 0 }, 4, 2, 3, 51 },
     { { 20, 0, 0, 3, 0, 0 }, { 24, 3, 0, 3, 0, 0 }, { 24, 3, 0, 4, 0, 0 }, { 24, 4, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name18, kWorld2627_name18, kWorld2627_name48, kWorld2627_name49, kWorld2627_name50, kWorld2627_name51, kWorld2627_name52, kWorld2627_name53 }
+    { kWorld2627_name18, kWorld2627_name18, kWorld2627_name50, kWorld2627_name51, kWorld2627_name52, kWorld2627_name53, kWorld2627_name54, kWorld2627_name55 }
 };
 
 static CompetitionLeague kWorld2627_spanishLeague = {
     { { 78, 0, 35, 64, 40, 33, 0, 0, 0 }, 2, 2, 3, 53 },
     { { 20, 0, 0, 3, 0, 0 }, { 22, 3, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name54, kWorld2627_name54, kWorld2627_name55, kWorld2627_name55 }
+    { kWorld2627_name56, kWorld2627_name56, kWorld2627_name57, kWorld2627_name57 }
 };
 
 static CompetitionLeague kWorld2627_estonianLeague = {
     { { 50, 0, 10, 56, 40, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name56, kWorld2627_name56 }
+    { kWorld2627_name58, kWorld2627_name58 }
 };
 
 static CompetitionLeague kWorld2627_finnishLeague = {
     { { 52, 0, 12, 24, 72, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name57, kWorld2627_name57 }
+    { kWorld2627_name59, kWorld2627_name59 }
 };
 
 static CompetitionLeague kWorld2627_frenchLeague = {
     { { 53, 0, 13, 56, 40, 33, 0, 0, 0 }, 2, 2, 3, 53 },
     { { 18, 0, 0, 2, 0, 0 }, { 18, 2, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name15, kWorld2627_name15, kWorld2627_name58, kWorld2627_name58 }
+    { kWorld2627_name15, kWorld2627_name15, kWorld2627_name60, kWorld2627_name60 }
 };
 
 static CompetitionLeague kWorld2627_faroeIslesLeague = {
     { { 51, 0, 11, 24, 64, 33, 0, 0, 0 }, 1, 3, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name59, kWorld2627_name59 }
+    { kWorld2627_name61, kWorld2627_name61 }
 };
 
 static CompetitionLeague kWorld2627_worldGeoLeague = {
     { { 182, 0, 61, 64, 32, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name60, kWorld2627_name60 }
+    { kWorld2627_name62, kWorld2627_name62 }
 };
 
 static CompetitionLeague kWorld2627_germanLeague = {
     { { 54, 0, 14, 56, 40, 33, 0, 0, 0 }, 3, 2, 3, 53 },
     { { 18, 0, 0, 2, 0, 0 }, { 18, 2, 0, 2, 0, 0 }, { 20, 2, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name19, kWorld2627_name19, kWorld2627_name61, kWorld2627_name61, kWorld2627_name62, kWorld2627_name62 }
+    { kWorld2627_name19, kWorld2627_name19, kWorld2627_name63, kWorld2627_name63, kWorld2627_name64, kWorld2627_name64 }
 };
 
 static CompetitionLeague kWorld2627_ghanaLeague = {
     { { 108, 0, 79, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 18, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name63, kWorld2627_name64 }
+    { kWorld2627_name65, kWorld2627_name66 }
 };
 
 static CompetitionLeague kWorld2627_worldGibLeague = {
     { { 183, 0, 63, 64, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 11, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name65, kWorld2627_name66 }
+    { kWorld2627_name67, kWorld2627_name68 }
 };
 
 static CompetitionLeague kWorld2627_greekLeague = {
     { { 55, 0, 15, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 14, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name67, kWorld2627_name68 }
+    { kWorld2627_name69, kWorld2627_name70 }
 };
 
 static CompetitionLeague kWorld2627_worldGuaLeague = {
     { { 184, 0, 68, 56, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name69, kWorld2627_name69 }
+    { kWorld2627_name71, kWorld2627_name71 }
 };
 
 static CompetitionLeague kWorld2627_worldHonLeague = {
     { { 185, 0, 70, 56, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name69, kWorld2627_name69 }
+    { kWorld2627_name71, kWorld2627_name71 }
 };
 
 static CompetitionLeague kWorld2627_hungarianLeague = {
     { { 58, 0, 16, 56, 40, 33, 0, 0, 0 }, 1, 3, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name70, kWorld2627_name71 }
+    { kWorld2627_name72, kWorld2627_name73 }
 };
 
 static CompetitionLeague kWorld2627_indianLeague = {
     { { 95, 0, 75, 0, 24, 33, 0, 0, 0 }, 2, 2, 3, 53 },
     { { 13, 0, 0, 1, 0, 0 }, { 11, 1, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name72, kWorld2627_name73, kWorld2627_name74, kWorld2627_name75 }
+    { kWorld2627_name74, kWorld2627_name75, kWorld2627_name76, kWorld2627_name77 }
 };
 
 static CompetitionLeague kWorld2627_irishLeague = {
     { { 70, 0, 18, 56, 24, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name76, kWorld2627_name77 }
+    { kWorld2627_name78, kWorld2627_name79 }
 };
 
 static CompetitionLeague kWorld2627_worldIrnLeague = {
     { { 186, 0, 74, 16, 80, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 18, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name78, kWorld2627_name79 }
+    { kWorld2627_name80, kWorld2627_name81 }
 };
 
 static CompetitionLeague kWorld2627_icelandicLeague = {
     { { 59, 0, 17, 32, 64, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name80, kWorld2627_name81 }
+    { kWorld2627_name82, kWorld2627_name83 }
 };
 
 static CompetitionLeague kWorld2627_israeliLeague = {
     { { 60, 0, 19, 64, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 14, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name82, kWorld2627_name83 }
+    { kWorld2627_name84, kWorld2627_name85 }
 };
 
 static CompetitionLeague kWorld2627_japaneseLeague = {
     { { 96, 0, 55, 16, 80, 33, 0, 0, 0 }, 2, 2, 3, 53 },
     { { 20, 0, 0, 3, 0, 0 }, { 20, 3, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name84, kWorld2627_name84, kWorld2627_name85, kWorld2627_name85 }
+    { kWorld2627_name86, kWorld2627_name86, kWorld2627_name87, kWorld2627_name87 }
 };
 
 static CompetitionLeague kWorld2627_worldKazLeague = {
     { { 187, 0, 86, 64, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name86, kWorld2627_name87 }
+    { kWorld2627_name88, kWorld2627_name89 }
 };
 
 static CompetitionLeague kWorld2627_worldKorLeague = {
     { { 188, 0, 87, 16, 80, 33, 0, 0, 0 }, 1, 3, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name88, kWorld2627_name88 }
+    { kWorld2627_name90, kWorld2627_name90 }
 };
 
 static CompetitionLeague kWorld2627_worldKosLeague = {
     { { 189, 0, 88, 64, 32, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name89, kWorld2627_name90 }
+    { kWorld2627_name91, kWorld2627_name92 }
 };
 
 static CompetitionLeague kWorld2627_worldKsaLeague = {
     { { 190, 0, 89, 16, 80, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 18, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name91, kWorld2627_name91 }
+    { kWorld2627_name93, kWorld2627_name93 }
 };
 
 static CompetitionLeague kWorld2627_worldLieLeague = {
     { { 191, 0, 90, 64, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 6, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name92, kWorld2627_name93 }
+    { kWorld2627_name94, kWorld2627_name95 }
 };
 
 static CompetitionLeague kWorld2627_lithuanianLeague = {
     { { 63, 0, 22, 56, 40, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name94, kWorld2627_name94 }
+    { kWorld2627_name96, kWorld2627_name96 }
 };
 
 static CompetitionLeague kWorld2627_luxembourgLeague = {
     { { 64, 0, 23, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name95, kWorld2627_name96 }
+    { kWorld2627_name97, kWorld2627_name98 }
 };
 
 static CompetitionLeague kWorld2627_latvianLeague = {
     { { 62, 0, 21, 32, 64, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name97, kWorld2627_name97 }
+    { kWorld2627_name99, kWorld2627_name99 }
 };
 
 static CompetitionLeague kWorld2627_worldMarLeague = {
     { { 192, 0, 91, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name98, kWorld2627_name98 }
+    { kWorld2627_name100, kWorld2627_name100 }
 };
 
 static CompetitionLeague kWorld2627_worldMdaLeague = {
     { { 193, 0, 92, 64, 32, 33, 0, 0, 0 }, 1, 3, 3, 53 },
     { { 8, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name99, kWorld2627_name99 }
+    { kWorld2627_name101, kWorld2627_name101 }
+};
+
+static CompetitionLeague kWorld2627_mexicanLeague = {
+    { { 97, 0, 60, 56, 32, 33, 0, 0, 0 }, 2, 2, 3, 53 },
+    { { 18, 0, 0, 0, 0, 0 }, { 16, 0, 0, 0, 0, 0 } },
+    0,
+    { kWorld2627_name102, kWorld2627_name102, kWorld2627_name103, kWorld2627_name104 }
 };
 
 static CompetitionLeague kWorld2627_worldMkdLeague = {
     { { 194, 0, 93, 64, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name100, kWorld2627_name101 }
+    { kWorld2627_name105, kWorld2627_name106 }
+};
+
+static CompetitionLeague kWorld2627_malteseLeague = {
+    { { 65, 0, 24, 64, 24, 33, 0, 0, 0 }, 1, 2, 3, 53 },
+    { { 12, 0, 0, 0, 0, 0 } },
+    0,
+    { kWorld2627_name107, kWorld2627_name18 }
 };
 
 static CompetitionLeague kWorld2627_worldMneLeague = {
     { { 195, 0, 94, 64, 32, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name102, kWorld2627_name101 }
+    { kWorld2627_name108, kWorld2627_name106 }
 };
 
 static CompetitionLeague kWorld2627_dutchLeague = {
     { { 56, 0, 25, 56, 32, 33, 0, 0, 0 }, 2, 2, 3, 53 },
     { { 18, 0, 0, 2, 0, 0 }, { 20, 2, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name103, kWorld2627_name103, kWorld2627_name104, kWorld2627_name104 }
+    { kWorld2627_name109, kWorld2627_name109, kWorld2627_name110, kWorld2627_name110 }
 };
 
 static CompetitionLeague kWorld2627_northernIrishLeague = {
     { { 66, 0, 26, 64, 24, 33, 0, 0, 0 }, 1, 3, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name105, kWorld2627_name106 }
+    { kWorld2627_name111, kWorld2627_name112 }
 };
 
 static CompetitionLeague kWorld2627_norwegianLeague = {
     { { 67, 0, 27, 24, 72, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name107, kWorld2627_name107 }
+    { kWorld2627_name113, kWorld2627_name113 }
 };
 
 static CompetitionLeague kWorld2627_newZealandLeague = {
     { { 98, 0, 62, 16, 72, 33, 0, 0, 0 }, 3, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 }, { 10, 0, 0, 0, 0, 0 }, { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name108, kWorld2627_name108, kWorld2627_name109, kWorld2627_name109, kWorld2627_name110, kWorld2627_name110 }
+    { kWorld2627_name114, kWorld2627_name114, kWorld2627_name115, kWorld2627_name115, kWorld2627_name116, kWorld2627_name116 }
 };
 
 static CompetitionLeague kWorld2627_worldPanLeague = {
     { { 196, 0, 95, 56, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name111, kWorld2627_name112 }
+    { kWorld2627_name117, kWorld2627_name118 }
+};
+
+static CompetitionLeague kWorld2627_paraguayanLeague = {
+    { { 99, 0, 64, 64, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
+    { { 12, 0, 0, 0, 0, 0 } },
+    0,
+    { kWorld2627_name27, kWorld2627_name28 }
+};
+
+static CompetitionLeague kWorld2627_peruvianLeague = {
+    { { 100, 0, 65, 24, 88, 33, 0, 0, 0 }, 1, 2, 3, 53 },
+    { { 18, 0, 0, 0, 0, 0 } },
+    0,
+    { kWorld2627_name119, kWorld2627_name119 }
 };
 
 static CompetitionLeague kWorld2627_polishLeague = {
     { { 68, 0, 28, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 18, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name113, kWorld2627_name113 }
+    { kWorld2627_name120, kWorld2627_name120 }
 };
 
 static CompetitionLeague kWorld2627_portugeseLeague = {
     { { 69, 0, 29, 56, 40, 33, 0, 0, 0 }, 2, 2, 3, 53 },
     { { 18, 0, 0, 2, 0, 0 }, { 18, 2, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name114, kWorld2627_name114, kWorld2627_name115, kWorld2627_name115 }
+    { kWorld2627_name121, kWorld2627_name121, kWorld2627_name122, kWorld2627_name122 }
 };
 
 static CompetitionLeague kWorld2627_worldQatLeague = {
     { { 197, 0, 96, 16, 80, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name116, kWorld2627_name117 }
+    { kWorld2627_name123, kWorld2627_name124 }
 };
 
 static CompetitionLeague kWorld2627_romanianLeague = {
     { { 71, 0, 30, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name90, kWorld2627_name90 }
+    { kWorld2627_name92, kWorld2627_name92 }
 };
 
 static CompetitionLeague kWorld2627_southAfricanLeague = {
     { { 101, 0, 69, 0, 80, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name118, kWorld2627_name106 }
+    { kWorld2627_name125, kWorld2627_name112 }
 };
 
 static CompetitionLeague kWorld2627_russianLeague = {
     { { 72, 0, 31, 16, 80, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name119, kWorld2627_name87 }
+    { kWorld2627_name126, kWorld2627_name89 }
 };
 
 static CompetitionLeague kWorld2627_scottishLeague = {
     { { 74, 0, 33, 56, 32, 33, 0, 0, 0 }, 4, 2, 3, 51 },
     { { 12, 0, 0, 1, 0, 0 }, { 10, 1, 0, 1, 0, 0 }, { 10, 1, 0, 1, 0, 0 }, { 10, 1, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name120, kWorld2627_name106, kWorld2627_name121, kWorld2627_name49, kWorld2627_name122, kWorld2627_name51, kWorld2627_name123, kWorld2627_name53 }
+    { kWorld2627_name127, kWorld2627_name112, kWorld2627_name128, kWorld2627_name51, kWorld2627_name129, kWorld2627_name53, kWorld2627_name130, kWorld2627_name55 }
+};
+
+static CompetitionLeague kWorld2627_sanMarinoLeague = {
+    { { 73, 0, 32, 72, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
+    { { 16, 0, 0, 0, 0, 0 } },
+    0,
+    { kWorld2627_name131, kWorld2627_name132 }
 };
 
 static CompetitionLeague kWorld2627_yugoslavianLeague = {
     { { 85, 0, 41, 64, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 14, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name124, kWorld2627_name90 }
+    { kWorld2627_name133, kWorld2627_name92 }
 };
 
 static CompetitionLeague kWorld2627_swissLeague = {
     { { 81, 0, 37, 48, 40, 33, 0, 0, 0 }, 1, 3, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name125, kWorld2627_name68 }
+    { kWorld2627_name134, kWorld2627_name70 }
 };
 
 static CompetitionLeague kWorld2627_surinamLeague = {
     { { 102, 0, 66, 24, 72, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name126, kWorld2627_name127 }
+    { kWorld2627_name135, kWorld2627_name136 }
 };
 
 static CompetitionLeague kWorld2627_slovakianLeague = {
     { { 76, 0, 78, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 12, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name128, kWorld2627_name42 }
+    { kWorld2627_name137, kWorld2627_name44 }
 };
 
 static CompetitionLeague kWorld2627_slovenianLeague = {
     { { 77, 0, 34, 56, 40, 33, 0, 0, 0 }, 1, 4, 3, 53 },
     { { 10, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name129, kWorld2627_name101 }
+    { kWorld2627_name138, kWorld2627_name106 }
 };
 
 static CompetitionLeague kWorld2627_swedishLeague = {
     { { 80, 0, 36, 24, 72, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name130, kWorld2627_name130 }
+    { kWorld2627_name139, kWorld2627_name139 }
 };
 
 static CompetitionLeague kWorld2627_taiwaneseLeague = {
     { { 103, 0, 67, 64, 32, 33, 0, 0, 0 }, 2, 2, 3, 53 },
     { { 8, 0, 0, 1, 0, 0 }, { 7, 1, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name131, kWorld2627_name132, kWorld2627_name133, kWorld2627_name134 }
+    { kWorld2627_name140, kWorld2627_name141, kWorld2627_name142, kWorld2627_name143 }
 };
 
 static CompetitionLeague kWorld2627_worldTunLeague = {
@@ -1113,35 +1194,42 @@ static CompetitionLeague kWorld2627_turkishLeague = {
     { { 82, 0, 38, 56, 32, 33, 0, 0, 0 }, 2, 2, 3, 53 },
     { { 18, 0, 0, 3, 0, 0 }, { 20, 3, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name135, kWorld2627_name135, kWorld2627_name136, kWorld2627_name137 }
+    { kWorld2627_name144, kWorld2627_name144, kWorld2627_name145, kWorld2627_name146 }
 };
 
 static CompetitionLeague kWorld2627_worldUaeLeague = {
     { { 199, 0, 98, 16, 80, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 14, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name138, kWorld2627_name138 }
+    { kWorld2627_name147, kWorld2627_name147 }
 };
 
 static CompetitionLeague kWorld2627_ukrainianLeague = {
     { { 83, 0, 39, 56, 40, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name139, kWorld2627_name87 }
+    { kWorld2627_name148, kWorld2627_name89 }
+};
+
+static CompetitionLeague kWorld2627_uruguayanLeague = {
+    { { 104, 0, 71, 24, 88, 33, 0, 0, 0 }, 2, 2, 3, 53 },
+    { { 16, 0, 0, 3, 0, 0 }, { 14, 3, 0, 0, 0, 0 } },
+    0,
+    { kWorld2627_name149, kWorld2627_name38, kWorld2627_name57, kWorld2627_name57 }
 };
 
 static CompetitionLeague kWorld2627_venezuelanLeague = {
     { { 107, 0, 77, 24, 88, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 14, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name140, kWorld2627_name140 }
+    { kWorld2627_name150, kWorld2627_name150 }
 };
 
 static CompetitionLeague kWorld2627_welshLeague = {
     { { 84, 0, 40, 56, 32, 33, 0, 0, 0 }, 1, 2, 3, 53 },
     { { 16, 0, 0, 0, 0, 0 } },
     0,
-    { kWorld2627_name141, kWorld2627_name141 }
+    { kWorld2627_name151, kWorld2627_name151 }
 };
 
 /* The countries new to the game (96/97 has no clubs there): each one's name (its first
@@ -1341,6 +1429,7 @@ void World_InstallBaked(void)
         resize_country(56, 8);
         resize_country(48, 16);
         resize_country(57, 16);
+        resize_country(49, 20);
         resize_country(58, 10);
         resize_country(4, 10);
         resize_country(5, 14);
@@ -1378,13 +1467,17 @@ void World_InstallBaked(void)
         resize_country(21, 10);
         resize_country(91, 16);
         resize_country(92, 8);
+        resize_country(60, 34);
         resize_country(93, 10);
+        resize_country(24, 12);
         resize_country(94, 10);
         resize_country(25, 38);
         resize_country(26, 12);
         resize_country(27, 16);
         resize_country(62, 32);
         resize_country(95, 12);
+        resize_country(64, 12);
+        resize_country(65, 18);
         resize_country(28, 18);
         resize_country(29, 36);
         resize_country(96, 12);
@@ -1392,6 +1485,7 @@ void World_InstallBaked(void)
         resize_country(69, 16);
         resize_country(31, 16);
         resize_country(33, 42);
+        resize_country(32, 16);
         resize_country(41, 14);
         resize_country(37, 12);
         resize_country(66, 10);
@@ -1403,6 +1497,7 @@ void World_InstallBaked(void)
         resize_country(38, 38);
         resize_country(98, 14);
         resize_country(39, 16);
+        resize_country(71, 30);
         resize_country(77, 14);
         resize_country(40, 16);
         install_league(&_italianLeague, &kWorld2627_italianLeague);
@@ -1432,6 +1527,7 @@ void World_InstallBaked(void)
         _countriesTable[57] = (void *)kWorld2627_country57;   /* CHINA */
         _competitionsTable[57] = kWorld2627_worldChnLeagueTable;
         Comp_Register((Competition *)&kWorld2627_worldChnLeague);
+        install_league(&_colombianLeague, &kWorld2627_colombianLeague);
         _countriesTable[58] = (void *)kWorld2627_country58;   /* COSTA RICA */
         _competitionsTable[58] = kWorld2627_worldCrcLeagueTable;
         Comp_Register((Competition *)&kWorld2627_worldCrcLeague);
@@ -1497,9 +1593,11 @@ void World_InstallBaked(void)
         _countriesTable[92] = (void *)kWorld2627_country92;   /* MOLDOVA */
         _competitionsTable[92] = kWorld2627_worldMdaLeagueTable;
         Comp_Register((Competition *)&kWorld2627_worldMdaLeague);
+        install_league(&_mexicanLeague, &kWorld2627_mexicanLeague);
         _countriesTable[93] = (void *)kWorld2627_country93;   /* N. MACEDONIA */
         _competitionsTable[93] = kWorld2627_worldMkdLeagueTable;
         Comp_Register((Competition *)&kWorld2627_worldMkdLeague);
+        install_league(&_malteseLeague, &kWorld2627_malteseLeague);
         _countriesTable[94] = (void *)kWorld2627_country94;   /* MONTENEGRO */
         _competitionsTable[94] = kWorld2627_worldMneLeagueTable;
         Comp_Register((Competition *)&kWorld2627_worldMneLeague);
@@ -1510,6 +1608,8 @@ void World_InstallBaked(void)
         _countriesTable[95] = (void *)kWorld2627_country95;   /* PANAMA */
         _competitionsTable[95] = kWorld2627_worldPanLeagueTable;
         Comp_Register((Competition *)&kWorld2627_worldPanLeague);
+        install_league(&_paraguayanLeague, &kWorld2627_paraguayanLeague);
+        install_league(&_peruvianLeague, &kWorld2627_peruvianLeague);
         install_league(&_polishLeague, &kWorld2627_polishLeague);
         install_league(&_portugeseLeague, &kWorld2627_portugeseLeague);
         _countriesTable[96] = (void *)kWorld2627_country96;   /* QATAR */
@@ -1519,6 +1619,7 @@ void World_InstallBaked(void)
         install_league(&_southAfricanLeague, &kWorld2627_southAfricanLeague);
         install_league(&_russianLeague, &kWorld2627_russianLeague);
         install_league(&_scottishLeague, &kWorld2627_scottishLeague);
+        install_league(&_sanMarinoLeague, &kWorld2627_sanMarinoLeague);
         install_league(&_yugoslavianLeague, &kWorld2627_yugoslavianLeague);
         install_league(&_swissLeague, &kWorld2627_swissLeague);
         install_league(&_surinamLeague, &kWorld2627_surinamLeague);
@@ -1534,6 +1635,7 @@ void World_InstallBaked(void)
         _competitionsTable[98] = kWorld2627_worldUaeLeagueTable;
         Comp_Register((Competition *)&kWorld2627_worldUaeLeague);
         install_league(&_ukrainianLeague, &kWorld2627_ukrainianLeague);
+        install_league(&_uruguayanLeague, &kWorld2627_uruguayanLeague);
         install_league(&_venezuelanLeague, &kWorld2627_venezuelanLeague);
         install_league(&_welshLeague, &kWorld2627_welshLeague);
         FixtureRounds_Install();
@@ -1548,8 +1650,8 @@ void World_InstallBaked(void)
 static const LeagueLevel kWorld2627_italyLevels[] = {
     { 0, 1, { 20 }, 0 },
     { 1, 1, { 20 }, 0 },
-    { 2, 3, { 20, 20, 20 }, kWorld2627_name142 },
-    { 5, 9, { 17, 17, 17, 18, 17, 18, 17, 17, 18 }, kWorld2627_name143 },
+    { 2, 3, { 20, 20, 20 }, kWorld2627_name152 },
+    { 5, 9, { 17, 17, 17, 18, 17, 18, 17, 17, 18 }, kWorld2627_name153 },
 };
 
 static const LeagueGroupClub kWorld2627_italyClubs[] = {
@@ -1937,6 +2039,27 @@ static const uint8_t kWorld2627_canadaSeconds[][2] = {
     { 0, 0 },
 };
 
+static const uint8_t kWorld2627_colombiaPromoted[] = { 0 };
+
+static const uint8_t kWorld2627_colombiaRelegated[] = { 0 };
+
+static const uint8_t kWorld2627_colombiaSpec[145] = {
+    0x08, 0x08, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x04, 0x03, 0x00, 0x02, 0x04, 0x03, 0x00,
+    0x03, 0x04, 0x03, 0x00, 0x04, 0x04, 0x03, 0x00, 0x05, 0x04, 0x03, 0x00, 0x06, 0x04, 0x03, 0x00,
+    0x07, 0x04, 0x03, 0x00, 0x08, 0x04, 0x04, 0x02, 0x01, 0x03, 0x00, 0x00, 0x07, 0x00, 0x04, 0x03,
+    0x06, 0x01, 0x05, 0x02, 0x02, 0x02, 0x01, 0x03, 0x00, 0x00, 0x80, 0x81, 0x82, 0x83, 0x01, 0x02,
+    0x01, 0x03, 0x00, 0x00, 0x84, 0x85, 0x08, 0x08, 0x03, 0x01, 0x00, 0x08, 0x03, 0x00, 0x01, 0x05,
+    0x03, 0x00, 0x02, 0x05, 0x03, 0x00, 0x03, 0x05, 0x03, 0x00, 0x04, 0x05, 0x03, 0x00, 0x05, 0x05,
+    0x03, 0x00, 0x06, 0x05, 0x03, 0x00, 0x07, 0x05, 0x03, 0x00, 0x08, 0x05, 0x04, 0x82, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x04, 0x82, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x05, 0x06, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x01, 0x03, 0x00, 0x00, 0x40, 0x44,
+    0x00,
+};
+
+static const uint8_t kWorld2627_colombiaSeconds[][2] = {
+    { 0, 0 },
+};
+
 static const uint8_t kWorld2627_costaricaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_costaricaRelegated[] = { 0 };
@@ -2097,6 +2220,52 @@ static const uint8_t kWorld2627_japanSeconds[][2] = {
     { 0, 0 },
 };
 
+static const uint8_t kWorld2627_mexicoPromoted[] = { 0, 0 };
+
+static const uint8_t kWorld2627_mexicoRelegated[] = { 0, 0 };
+
+static const uint8_t kWorld2627_mexicoSpec[325] = {
+    0x08, 0x08, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x04, 0x03, 0x00, 0x02, 0x04, 0x03, 0x00,
+    0x03, 0x04, 0x03, 0x00, 0x04, 0x04, 0x03, 0x00, 0x05, 0x04, 0x03, 0x00, 0x06, 0x04, 0x03, 0x00,
+    0x07, 0x04, 0x03, 0x00, 0x08, 0x04, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x07, 0x01, 0x06,
+    0x02, 0x05, 0x03, 0x04, 0x02, 0x02, 0x01, 0x00, 0x04, 0x00, 0x80, 0x81, 0x82, 0x83, 0x01, 0x02,
+    0x01, 0x01, 0x00, 0x00, 0x84, 0x85, 0x08, 0x08, 0x03, 0x01, 0x00, 0x00, 0x03, 0x00, 0x01, 0x05,
+    0x03, 0x00, 0x02, 0x05, 0x03, 0x00, 0x03, 0x05, 0x03, 0x00, 0x04, 0x05, 0x03, 0x00, 0x05, 0x05,
+    0x03, 0x00, 0x06, 0x05, 0x03, 0x00, 0x07, 0x05, 0x03, 0x00, 0x08, 0x05, 0x04, 0x02, 0x01, 0x00,
+    0x00, 0x00, 0x00, 0x07, 0x01, 0x06, 0x02, 0x05, 0x03, 0x04, 0x02, 0x02, 0x01, 0x00, 0x04, 0x00,
+    0x80, 0x81, 0x82, 0x83, 0x01, 0x02, 0x01, 0x01, 0x00, 0x00, 0x84, 0x85, 0x08, 0x02, 0x01, 0x02,
+    0x00, 0x00, 0x05, 0x00, 0x01, 0x00, 0x05, 0x00, 0x04, 0x00, 0x01, 0x01, 0x83, 0x03, 0x00, 0x00,
+    0x00, 0x01, 0x08, 0x08, 0x03, 0x04, 0x00, 0x00, 0x03, 0x01, 0x01, 0x06, 0x03, 0x01, 0x02, 0x06,
+    0x03, 0x01, 0x03, 0x06, 0x03, 0x01, 0x04, 0x06, 0x03, 0x01, 0x05, 0x06, 0x03, 0x01, 0x06, 0x06,
+    0x03, 0x01, 0x07, 0x06, 0x03, 0x01, 0x08, 0x06, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x07,
+    0x01, 0x06, 0x02, 0x05, 0x03, 0x04, 0x02, 0x02, 0x01, 0x00, 0x04, 0x00, 0x80, 0x81, 0x82, 0x83,
+    0x01, 0x02, 0x01, 0x01, 0x00, 0x00, 0x84, 0x85, 0x08, 0x08, 0x03, 0x05, 0x00, 0x00, 0x03, 0x01,
+    0x01, 0x07, 0x03, 0x01, 0x02, 0x07, 0x03, 0x01, 0x03, 0x07, 0x03, 0x01, 0x04, 0x07, 0x03, 0x01,
+    0x05, 0x07, 0x03, 0x01, 0x06, 0x07, 0x03, 0x01, 0x07, 0x07, 0x03, 0x01, 0x08, 0x07, 0x04, 0x02,
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x07, 0x01, 0x06, 0x02, 0x05, 0x03, 0x04, 0x02, 0x02, 0x01, 0x00,
+    0x04, 0x00, 0x80, 0x81, 0x82, 0x83, 0x01, 0x02, 0x01, 0x01, 0x00, 0x00, 0x84, 0x85, 0x08, 0x02,
+    0x01, 0x06, 0x00, 0x00, 0x05, 0x01, 0x01, 0x00, 0x05, 0x01, 0x04, 0x00, 0x01, 0x02, 0x81, 0x01,
+    0x00, 0x00, 0x00, 0x01, 0x00,
+};
+
+static const uint8_t kWorld2627_mexicoSeconds[][2] = {
+    { 0, 0 },
+};
+
+static const uint8_t kWorld2627_maltaPromoted[] = { 0 };
+
+static const uint8_t kWorld2627_maltaRelegated[] = { 0 };
+
+static const uint8_t kWorld2627_maltaSpec[41] = {
+    0x05, 0x04, 0x02, 0x00, 0x00, 0x00, 0x06, 0x00, 0x01, 0x00, 0x06, 0x00, 0x02, 0x00, 0x06, 0x00,
+    0x03, 0x00, 0x06, 0x00, 0x04, 0x00, 0x02, 0x01, 0x83, 0x01, 0x00, 0x00, 0x00, 0x03, 0x01, 0x02,
+    0x01, 0x01, 0x83, 0x01, 0x00, 0x00, 0x80, 0x81, 0x00,
+};
+
+static const uint8_t kWorld2627_maltaSeconds[][2] = {
+    { 0, 0 },
+};
+
 static const uint8_t kWorld2627_hollandPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_hollandRelegated[] = { 2, 0 };
@@ -2152,6 +2321,37 @@ static const uint8_t kWorld2627_panamaSeconds[][2] = {
     { 0, 0 },
 };
 
+static const uint8_t kWorld2627_paraguayPromoted[] = { 0 };
+
+static const uint8_t kWorld2627_paraguayRelegated[] = { 0 };
+
+static const uint8_t kWorld2627_paraguaySpec[45] = {
+    0x08, 0x02, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x04, 0x03, 0x00, 0x01, 0x04, 0x01, 0x01,
+    0x83, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x01, 0x01, 0x00, 0x00, 0x03, 0x00, 0x01, 0x05,
+    0x03, 0x00, 0x01, 0x05, 0x01, 0x01, 0x83, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
+};
+
+static const uint8_t kWorld2627_paraguaySeconds[][2] = {
+    { 0, 0 },
+};
+
+static const uint8_t kWorld2627_peruPromoted[] = { 0 };
+
+static const uint8_t kWorld2627_peruRelegated[] = { 0 };
+
+static const uint8_t kWorld2627_peruSpec[85] = {
+    0x08, 0x02, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x04, 0x03, 0x00, 0x01, 0x04, 0x01, 0x01,
+    0x83, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x01, 0x01, 0x00, 0x00, 0x03, 0x00, 0x01, 0x05,
+    0x03, 0x00, 0x01, 0x05, 0x01, 0x01, 0x83, 0x01, 0x00, 0x00, 0x00, 0x01, 0x05, 0x04, 0x02, 0x00,
+    0x00, 0x00, 0x07, 0x00, 0x01, 0x02, 0x07, 0x00, 0x02, 0x02, 0x07, 0x00, 0x03, 0x02, 0x07, 0x00,
+    0x04, 0x02, 0x02, 0x02, 0x80, 0x03, 0x00, 0x00, 0x03, 0x00, 0x02, 0x01, 0x01, 0x02, 0x81, 0x03,
+    0x00, 0x00, 0x80, 0x81, 0x00,
+};
+
+static const uint8_t kWorld2627_peruSeconds[][2] = {
+    { 0, 0 },
+};
+
 static const uint8_t kWorld2627_portugalPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_portugalRelegated[] = { 2, 0 };
@@ -2200,6 +2400,23 @@ static const uint8_t kWorld2627_scotlandSeconds[][2] = {
     { 0, 0 },
 };
 
+static const uint8_t kWorld2627_sanmarinoPromoted[] = { 0 };
+
+static const uint8_t kWorld2627_sanmarinoRelegated[] = { 0 };
+
+static const uint8_t kWorld2627_sanmarinoSpec[89] = {
+    0x02, 0x0A, 0x04, 0x00, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+    0x04, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00,
+    0x08, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x0B, 0x00, 0x02, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x06, 0x09, 0x07, 0x08, 0x04, 0x02, 0x01, 0x00, 0x04, 0x00, 0x00, 0x01,
+    0x80, 0x81, 0x02, 0x05, 0x03, 0x04, 0x02, 0x02, 0x01, 0x00, 0x00, 0x00, 0x82, 0x85, 0x83, 0x84,
+    0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x86, 0x87, 0x00,
+};
+
+static const uint8_t kWorld2627_sanmarinoSeconds[][2] = {
+    { 0, 0 },
+};
+
 static const uint8_t kWorld2627_turkeyPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_turkeyRelegated[] = { 3, 0 };
@@ -2212,6 +2429,24 @@ static const uint8_t kWorld2627_turkeySpec[53] = {
 };
 
 static const uint8_t kWorld2627_turkeySeconds[][2] = {
+    { 0, 0 },
+};
+
+static const uint8_t kWorld2627_uruguayPromoted[] = { 0, 3 };
+
+static const uint8_t kWorld2627_uruguayRelegated[] = { 3, 0 };
+
+static const uint8_t kWorld2627_uruguaySpec[101] = {
+    0x08, 0x02, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x04, 0x03, 0x00, 0x01, 0x04, 0x01, 0x01,
+    0x83, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x01, 0x02, 0x00, 0x00, 0x03, 0x00, 0x01, 0x05,
+    0x03, 0x00, 0x09, 0x05, 0x01, 0x01, 0x03, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x01, 0x01,
+    0x00, 0x00, 0x03, 0x00, 0x01, 0x07, 0x03, 0x00, 0x01, 0x07, 0x01, 0x01, 0x83, 0x01, 0x00, 0x00,
+    0x00, 0x01, 0x05, 0x03, 0x02, 0x00, 0x00, 0x00, 0x07, 0x00, 0x01, 0x01, 0x07, 0x00, 0x02, 0x01,
+    0x07, 0x00, 0x03, 0x01, 0x01, 0x01, 0x83, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x02, 0x80, 0x03,
+    0x00, 0x00, 0x80, 0x02, 0x00,
+};
+
+static const uint8_t kWorld2627_uruguaySeconds[][2] = {
     { 0, 0 },
 };
 
@@ -2235,6 +2470,7 @@ static const LeaguePlayoffs kWorld2627Playoffs[] = {
     { 1, 1, kWorld2627_austriaPromoted, kWorld2627_austriaRelegated, 0, 0, 0, 0, kWorld2627_austriaSpec, 0, kWorld2627_austriaSeconds, 255, 0 },   /* Austria */
     { 3, 1, kWorld2627_bulgariaPromoted, kWorld2627_bulgariaRelegated, 0, 0, 0, 0, kWorld2627_bulgariaSpec, 0, kWorld2627_bulgariaSeconds, 255, 0 },   /* Bulgaria */
     { 56, 1, kWorld2627_canadaPromoted, kWorld2627_canadaRelegated, 0, 0, 0, 0, kWorld2627_canadaSpec, 0, kWorld2627_canadaSeconds, 255, 0 },   /* Canada */
+    { 49, 1, kWorld2627_colombiaPromoted, kWorld2627_colombiaRelegated, 0, 0, 0, 0, kWorld2627_colombiaSpec, 0, kWorld2627_colombiaSeconds, 255, 0 },   /* Colombia */
     { 58, 1, kWorld2627_costaricaPromoted, kWorld2627_costaricaRelegated, 0, 0, 0, 0, kWorld2627_costaricaSpec, 0, kWorld2627_costaricaSeconds, 255, 0 },   /* CostaRica */
     { 6, 1, kWorld2627_czechrepublicPromoted, kWorld2627_czechrepublicRelegated, 0, 0, 0, 0, kWorld2627_czechrepublicSpec, 0, kWorld2627_czechrepublicSeconds, 255, 0 },   /* CzechRepublic */
     { 7, 1, kWorld2627_denmarkPromoted, kWorld2627_denmarkRelegated, 0, 0, 0, 0, kWorld2627_denmarkSpec, 0, kWorld2627_denmarkSeconds, 255, 0 },   /* Denmark */
@@ -2245,13 +2481,19 @@ static const LeaguePlayoffs kWorld2627Playoffs[] = {
     { 68, 1, kWorld2627_guatemalaPromoted, kWorld2627_guatemalaRelegated, 0, 0, 0, 0, kWorld2627_guatemalaSpec, 0, kWorld2627_guatemalaSeconds, 255, 0 },   /* Guatemala */
     { 70, 1, kWorld2627_hondurasPromoted, kWorld2627_hondurasRelegated, 0, 0, 0, 0, kWorld2627_hondurasSpec, 0, kWorld2627_hondurasSeconds, 255, 0 },   /* Honduras */
     { 55, 2, kWorld2627_japanPromoted, kWorld2627_japanRelegated, 0, 0, 0, 0, kWorld2627_japanSpec, 0, kWorld2627_japanSeconds, 255, 0 },   /* Japan */
+    { 60, 2, kWorld2627_mexicoPromoted, kWorld2627_mexicoRelegated, 0, 0, 0, 0, kWorld2627_mexicoSpec, 0, kWorld2627_mexicoSeconds, 255, 0 },   /* Mexico */
+    { 24, 1, kWorld2627_maltaPromoted, kWorld2627_maltaRelegated, 0, 0, 0, 0, kWorld2627_maltaSpec, 0, kWorld2627_maltaSeconds, 255, 0 },   /* Malta */
     { 25, 2, kWorld2627_hollandPromoted, kWorld2627_hollandRelegated, 0, 0, 0, 0, kWorld2627_hollandSpec, 4, kWorld2627_hollandSeconds, 1, 2 },   /* Holland */
     { 26, 1, kWorld2627_northernirelandPromoted, kWorld2627_northernirelandRelegated, 0, 0, 0, 0, kWorld2627_northernirelandSpec, 0, kWorld2627_northernirelandSeconds, 255, 0 },   /* NorthernIreland */
     { 95, 1, kWorld2627_panamaPromoted, kWorld2627_panamaRelegated, 0, 0, 0, 0, kWorld2627_panamaSpec, 0, kWorld2627_panamaSeconds, 255, 0 },   /* Panama */
+    { 64, 1, kWorld2627_paraguayPromoted, kWorld2627_paraguayRelegated, 0, 0, 0, 0, kWorld2627_paraguaySpec, 0, kWorld2627_paraguaySeconds, 255, 0 },   /* Paraguay */
+    { 65, 1, kWorld2627_peruPromoted, kWorld2627_peruRelegated, 0, 0, 0, 0, kWorld2627_peruSpec, 0, kWorld2627_peruSeconds, 255, 0 },   /* Peru */
     { 29, 2, kWorld2627_portugalPromoted, kWorld2627_portugalRelegated, 0, 0, 0, 0, kWorld2627_portugalSpec, 3, kWorld2627_portugalSeconds, 255, 2 },   /* Portugal */
     { 30, 1, kWorld2627_romaniaPromoted, kWorld2627_romaniaRelegated, 0, 0, 0, 0, kWorld2627_romaniaSpec, 0, kWorld2627_romaniaSeconds, 255, 0 },   /* Romania */
     { 33, 4, kWorld2627_scotlandPromoted, kWorld2627_scotlandRelegated, 0, 0, 0, 0, kWorld2627_scotlandSpec, 0, kWorld2627_scotlandSeconds, 255, 0 },   /* Scotland */
+    { 32, 1, kWorld2627_sanmarinoPromoted, kWorld2627_sanmarinoRelegated, 0, 0, 0, 0, kWorld2627_sanmarinoSpec, 0, kWorld2627_sanmarinoSeconds, 255, 0 },   /* SanMarino */
     { 38, 2, kWorld2627_turkeyPromoted, kWorld2627_turkeyRelegated, 0, 0, 0, 0, kWorld2627_turkeySpec, 0, kWorld2627_turkeySeconds, 255, 0 },   /* Turkey */
+    { 71, 2, kWorld2627_uruguayPromoted, kWorld2627_uruguayRelegated, 0, 0, 0, 0, kWorld2627_uruguaySpec, 0, kWorld2627_uruguaySeconds, 255, 0 },   /* Uruguay */
     { 40, 1, kWorld2627_walesPromoted, kWorld2627_walesRelegated, 0, 0, 0, 0, kWorld2627_walesSpec, 0, kWorld2627_walesSeconds, 255, 0 },   /* Wales */
 };
 
@@ -2259,7 +2501,7 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count)
 {
     switch (World_Current()) {
     case WORLD_2627:
-        *count = 22;
+        *count = 29;
         return kWorld2627Playoffs;
     default:
         *count = 0;
@@ -2401,7 +2643,7 @@ static const uint8_t kWorld2627_italianCupQuota[][3] = { { 0, 13, 0 }, { 1, 3, 0
 static CompetitionCup kWorld2627_italianLeagueCup = {
     { { -93, 1, 20, 56, 16, 15, 0, 21, 1 }, 0, 32, 0, 53, 2 },
     { 84, 84, 84, -108, -108, 0 },
-    { kWorld2627_name144, kWorld2627_name145 },
+    { kWorld2627_name154, kWorld2627_name155 },
     {
         { 20, 88 },
         { 20, 96 },
@@ -2432,7 +2674,7 @@ static const uint8_t kWorld2627_italianLeagueCupQuota[][3] = { { 2, 5, 5 }, { 3,
 static CompetitionCup kWorld2627_albanianCup = {
     { { 109, 1, 0, 88, 32, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name146, kWorld2627_name147 },
+    { kWorld2627_name156, kWorld2627_name157 },
     {
         { 0, 8 },
         { 0, 6 },
@@ -2456,7 +2698,7 @@ static const uint8_t kWorld2627_albanianCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_algerianCup = {
     { { -100, 1, 42, 96, -128, 0, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name148, kWorld2627_name148 },
+    { kWorld2627_name158, kWorld2627_name158 },
     {
         { 42, 1 },
         { 42, 3 },
@@ -2486,7 +2728,7 @@ static const uint8_t kWorld2627_algerianCupQuota[][3] = { { 0, 16, 0 } };
 static CompetitionCup kWorld2627_worldAndCup = {
     { { -53, 1, 47, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name149, kWorld2627_name149 },
+    { kWorld2627_name159, kWorld2627_name159 },
     {
         { 47, 8 },
         { 47, 5 },
@@ -2510,7 +2752,7 @@ static const uint8_t kWorld2627_worldAndCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_worldArmCup = {
     { { -52, 1, 52, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name150, kWorld2627_name151 },
+    { kWorld2627_name160, kWorld2627_name161 },
     {
         { 52, 7 },
         { 52, 11 },
@@ -2535,7 +2777,7 @@ static const uint8_t kWorld2627_worldArmCupQuota[][3] = { { 0, 11, 5 } };
 static CompetitionCup kWorld2627_austrianCup = {
     { { 110, 1, 1, -128, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name152, kWorld2627_name152 },
+    { kWorld2627_name162, kWorld2627_name162 },
     {
         { 1, 11 },
         { 1, 2 },
@@ -2561,7 +2803,7 @@ static const uint8_t kWorld2627_austrianCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_worldAzeCup = {
     { { -51, 1, 53, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name153, kWorld2627_name153 },
+    { kWorld2627_name163, kWorld2627_name163 },
     {
         { 53, 9 },
         { 53, 5 },
@@ -2587,7 +2829,7 @@ static const uint8_t kWorld2627_worldAzeCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_belgianCup = {
     { { 112, 1, 2, 80, 32, 0, 0, 21, 1 }, 0, 32, 0, 53, 1 },
     { 84, 84, 84, -108, 84, 0 },
-    { kWorld2627_name154, kWorld2627_name154 },
+    { kWorld2627_name164, kWorld2627_name164 },
     {
         { 2, 2 },
         { 2, 17 },
@@ -2618,7 +2860,7 @@ static const uint8_t kWorld2627_belgianCupQuota[][3] = { { 0, 17, 15 } };
 static CompetitionCup kWorld2627_worldBihCup = {
     { { -50, 1, 54, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name155, kWorld2627_name155 },
+    { kWorld2627_name165, kWorld2627_name165 },
     {
         { 54, 6 },
         { 54, 8 },
@@ -2642,7 +2884,7 @@ static const uint8_t kWorld2627_worldBihCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_belarusianCup = {
     { { 111, 1, 76, 72, 40, 0, 0, 21, 1 }, 0, 8, 0, 53, 1 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name156, kWorld2627_name156 },
+    { kWorld2627_name166, kWorld2627_name166 },
     {
         { 76, 10 },
         { 76, 2 },
@@ -2664,7 +2906,7 @@ static const uint8_t kWorld2627_belarusianCupQuota[][3] = { { 0, 8, 0 } };
 static CompetitionCup kWorld2627_worldBolCup = {
     { { -92, 1, 45, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name157, kWorld2627_name157 },
+    { kWorld2627_name167, kWorld2627_name167 },
     {
         { 45, 15 },
         { 45, 6 },
@@ -2688,7 +2930,7 @@ static const uint8_t kWorld2627_worldBolCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_bulgarianCup = {
     { { 113, 1, 3, 80, 32, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name158, kWorld2627_name158 },
+    { kWorld2627_name168, kWorld2627_name168 },
     {
         { 3, 7 },
         { 3, 2 },
@@ -2716,7 +2958,7 @@ static const uint8_t kWorld2627_bulgarianCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_worldCanCup = {
     { { -49, 1, 56, 56, 32, 15, 0, 21, 1 }, 0, 8, 0, 53, 2 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name159, kWorld2627_name160 },
+    { kWorld2627_name169, kWorld2627_name170 },
     {
         { 56, 0 },
         { 56, 3 },
@@ -2738,7 +2980,7 @@ static const uint8_t kWorld2627_worldCanCupQuota[][3] = { { 0, 8, 0 } };
 static CompetitionCup kWorld2627_worldChiCup = {
     { { -91, 1, 48, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name161, kWorld2627_name161 },
+    { kWorld2627_name171, kWorld2627_name171 },
     {
         { 48, 1 },
         { 48, 11 },
@@ -2762,7 +3004,7 @@ static const uint8_t kWorld2627_worldChiCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_worldChiLeagueCup = {
     { { -90, 1, 48, 56, 16, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, -124, 84, 0, 0 },
-    { kWorld2627_name162, kWorld2627_name163 },
+    { kWorld2627_name172, kWorld2627_name173 },
     {
         { 48, 13 },
         { 48, 0 },
@@ -2792,7 +3034,7 @@ static const uint8_t kWorld2627_worldChiLeagueCupQuota[][3] = { { 0, 16, 0 } };
 static CompetitionCup kWorld2627_worldChnCup = {
     { { -48, 1, 57, 56, 32, 15, 0, 21, 1 }, 0, 4, 0, 53, 2 },
     { 84, 84, 0, 0, 0, 0 },
-    { kWorld2627_name164, kWorld2627_name165 },
+    { kWorld2627_name174, kWorld2627_name175 },
     {
         { 57, 3 },
         { 57, 0 },
@@ -2807,10 +3049,37 @@ static const uint8_t kWorld2627_worldChnCupOrder1[] = { 0, 1 };
 
 static const uint8_t kWorld2627_worldChnCupQuota[][3] = { { 0, 4, 0 } };
 
+static CompetitionCup kWorld2627_worldColCup = {
+    { { -22, 1, 49, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
+    { 84, 84, 84, 84, 0, 0 },
+    { kWorld2627_name176, kWorld2627_name176 },
+    {
+        { 49, 14 },
+        { 49, 0 },
+        { 49, 7 },
+        { 49, 15 },
+        { 49, 2 },
+        { 49, 13 },
+        { 49, 6 },
+        { 49, 5 },
+        { 49, 10 },
+        { 49, 8 },
+        { 49, 17 },
+        { 49, 12 },
+        { 49, 11 },
+    }
+};
+
+static const uint16_t kWorld2627_worldColCupFlips[] = { 0, 0, 0 };
+
+static const uint8_t kWorld2627_worldColCupOrder1[] = { 0, 2, 3, 5, 6, 1, 4, 7 };
+
+static const uint8_t kWorld2627_worldColCupQuota[][3] = { { 0, 13, 3 } };
+
 static CompetitionCup kWorld2627_worldCrcCup = {
     { { -47, 1, 58, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name166, kWorld2627_name167 },
+    { kWorld2627_name177, kWorld2627_name178 },
     {
         { 58, 4 },
         { 58, 8 },
@@ -2834,7 +3103,7 @@ static const uint8_t kWorld2627_worldCrcCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_croatianCup = {
     { { 114, 1, 4, 80, 40, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name168, kWorld2627_name169 },
+    { kWorld2627_name179, kWorld2627_name180 },
     {
         { 4, 2 },
         { 4, 4 },
@@ -2857,7 +3126,7 @@ static const uint8_t kWorld2627_croatianCupQuota[][3] = { { 0, 9, 7 } };
 static CompetitionCup kWorld2627_cypriotCup = {
     { { 115, 1, 5, 104, -128, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, -108, 84, 0, 0 },
-    { kWorld2627_name170, kWorld2627_name170 },
+    { kWorld2627_name181, kWorld2627_name181 },
     {
         { 5, 6 },
         { 5, 4 },
@@ -2885,7 +3154,7 @@ static const uint8_t kWorld2627_cypriotCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_czechCup = {
     { { 116, 1, 6, 72, 40, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name171, kWorld2627_name171 },
+    { kWorld2627_name182, kWorld2627_name182 },
     {
         { 6, 1 },
         { 6, 13 },
@@ -2914,7 +3183,7 @@ static const uint8_t kWorld2627_czechCupQuota[][3] = { { 0, 15, 1 } };
 static CompetitionCup kWorld2627_danishCup = {
     { { 117, 1, 7, 112, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, -108, 84, 0, 0 },
-    { kWorld2627_name172, kWorld2627_name172 },
+    { kWorld2627_name183, kWorld2627_name183 },
     {
         { 7, 10 },
         { 7, 8 },
@@ -2937,7 +3206,7 @@ static const uint8_t kWorld2627_danishCupQuota[][3] = { { 0, 9, 7 } };
 static CompetitionCup kWorld2627_worldEcuCup = {
     { { -27, 1, 50, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name173, kWorld2627_name173 },
+    { kWorld2627_name184, kWorld2627_name184 },
     {
         { 50, 0 },
         { 50, 13 },
@@ -2960,7 +3229,7 @@ static const uint8_t kWorld2627_worldEcuCupQuota[][3] = { { 0, 9, 7 } };
 static CompetitionCup kWorld2627_worldEgyCup = {
     { { -46, 1, 59, 56, 32, 15, 0, 21, 1 }, 0, 32, 0, 53, 2 },
     { 84, 84, 84, 84, 84, 0 },
-    { kWorld2627_name174, kWorld2627_name174 },
+    { kWorld2627_name185, kWorld2627_name185 },
     {
         { 59, 13 },
         { 59, 17 },
@@ -2994,7 +3263,7 @@ static const uint8_t kWorld2627_worldEgyCupQuota[][3] = { { 0, 20, 12 } };
 static CompetitionCup kWorld2627_worldEgyLeagueCup = {
     { { -45, 1, 59, 56, 16, 15, 0, 21, 1 }, 0, 32, 0, 53, 2 },
     { 84, 84, 84, 84, 84, 0 },
-    { kWorld2627_name175, kWorld2627_name176 },
+    { kWorld2627_name186, kWorld2627_name187 },
     {
         { 59, 15 },
         { 59, 9 },
@@ -3029,7 +3298,7 @@ static struct __attribute__((packed)) { CompetitionCup rec; TeamId more[32]; } k
     {
         { { 118, 1, 8, 96, -128, 15, 0, 21, 1 }, 0, 64, 0, 51, 3 },
         { 84, 84, 84, 84, 84, 84 },
-        { kWorld2627_name177, kWorld2627_name177 },
+        { kWorld2627_name188, kWorld2627_name188 },
         {
             { 8, 51 },
             { 8, 44 },
@@ -3112,7 +3381,7 @@ static const uint8_t kWorld2627_englishCupQuota[][3] = { { 0, 20, 0 }, { 1, 24, 
 static CompetitionCup kWorld2627_englishLeagueCup = {
     { { 119, 1, 8, 64, 16, 15, 0, 21, 1 }, 0, 16, 0, 51, 2 },
     { 20, 20, -124, 84, 0, 0 },
-    { kWorld2627_name178, kWorld2627_name178 },
+    { kWorld2627_name189, kWorld2627_name189 },
     {
         { 8, 78 },
         { 8, 0 },
@@ -3143,7 +3412,7 @@ static struct __attribute__((packed)) { CompetitionCup rec; TeamId more[32]; } k
     {
         { { -107, 1, 35, 88, 40, 15, 0, 21, 1 }, 0, 64, 0, 53, 5 },
         { 84, 84, 84, 84, -108, 84 },
-        { kWorld2627_name179, kWorld2627_name179 },
+        { kWorld2627_name190, kWorld2627_name190 },
         {
             { 35, 24 },
             { 35, 25 },
@@ -3203,7 +3472,7 @@ static const uint8_t kWorld2627_spanishCupQuota[][3] = { { 0, 20, 20 }, { 1, 21,
 static CompetitionCup kWorld2627_estonianCup = {
     { { 122, 1, 10, -128, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name180, kWorld2627_name180 },
+    { kWorld2627_name191, kWorld2627_name191 },
     {
         { 10, 8 },
         { 10, 6 },
@@ -3227,7 +3496,7 @@ static const uint8_t kWorld2627_estonianCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_finnishCup = {
     { { 124, 1, 12, 32, 40, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name181, kWorld2627_name181 },
+    { kWorld2627_name192, kWorld2627_name192 },
     {
         { 12, 8 },
         { 12, 10 },
@@ -3250,7 +3519,7 @@ static const uint8_t kWorld2627_finnishCupQuota[][3] = { { 0, 9, 7 } };
 static CompetitionCup kWorld2627_worldFinLeagueCup = {
     { { -26, 1, 12, 56, 16, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name182, kWorld2627_name182 },
+    { kWorld2627_name193, kWorld2627_name193 },
     {
         { 12, 10 },
         { 12, 11 },
@@ -3277,7 +3546,7 @@ static struct __attribute__((packed)) { CompetitionCup rec; TeamId more[32]; } k
     {
         { { 125, 1, 13, 104, -120, 15, 0, 21, 1 }, 0, 64, 0, 53, 1 },
         { 20, 20, 20, 20, 20, 84 },
-        { kWorld2627_name183, kWorld2627_name183 },
+        { kWorld2627_name194, kWorld2627_name194 },
         {
             { 13, 31 },
             { 13, 27 },
@@ -3332,7 +3601,7 @@ static const uint8_t kWorld2627_frenchCupQuota[][3] = { { 0, 18, 18 }, { 1, 18, 
 static CompetitionCup kWorld2627_faroeIslesCup = {
     { { 123, 1, 11, 56, 64, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name184, kWorld2627_name184 },
+    { kWorld2627_name195, kWorld2627_name195 },
     {
         { 11, 6 },
         { 11, 2 },
@@ -3356,7 +3625,7 @@ static const uint8_t kWorld2627_faroeIslesCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_worldGeoCup = {
     { { -44, 1, 61, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name185, kWorld2627_name186 },
+    { kWorld2627_name196, kWorld2627_name197 },
     {
         { 61, 6 },
         { 61, 8 },
@@ -3379,7 +3648,7 @@ static const uint8_t kWorld2627_worldGeoCupQuota[][3] = { { 0, 9, 7 } };
 static CompetitionCup kWorld2627_germanCup = {
     { { 126, 1, 14, 64, 40, 15, 0, 21, 1 }, 0, 32, 0, 53, 3 },
     { 84, 84, 84, 84, 84, 0 },
-    { kWorld2627_name187, kWorld2627_name187 },
+    { kWorld2627_name198, kWorld2627_name198 },
     {
         { 14, 18 },
         { 14, 20 },
@@ -3424,7 +3693,7 @@ static const uint8_t kWorld2627_germanCupQuota[][3] = { { 0, 18, 0 }, { 1, 11, 1
 static CompetitionCup kWorld2627_worldGhaCup = {
     { { -89, 1, 79, 56, 32, 15, 0, 21, 1 }, 0, 32, 0, 53, 2 },
     { 84, 84, 84, 84, 84, 0 },
-    { kWorld2627_name188, kWorld2627_name188 },
+    { kWorld2627_name199, kWorld2627_name199 },
     {
         { 79, 17 },
         { 79, 15 },
@@ -3456,7 +3725,7 @@ static const uint8_t kWorld2627_worldGhaCupQuota[][3] = { { 0, 18, 14 } };
 static CompetitionCup kWorld2627_worldGibCup = {
     { { -43, 1, 63, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name189, kWorld2627_name189 },
+    { kWorld2627_name200, kWorld2627_name200 },
     {
         { 63, 10 },
         { 63, 7 },
@@ -3481,7 +3750,7 @@ static const uint8_t kWorld2627_worldGibCupQuota[][3] = { { 0, 11, 5 } };
 static CompetitionCup kWorld2627_greekCup = {
     { { 127, 1, 15, 64, 40, 0, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, -108, 84, 0, 0 },
-    { kWorld2627_name190, kWorld2627_name190 },
+    { kWorld2627_name201, kWorld2627_name201 },
     {
         { 15, 13 },
         { 15, 7 },
@@ -3506,7 +3775,7 @@ static const uint8_t kWorld2627_greekCupQuota[][3] = { { 0, 11, 5 } };
 static CompetitionCup kWorld2627_hungarianCup = {
     { { -128, 1, 16, 104, 40, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name191, kWorld2627_name191 },
+    { kWorld2627_name202, kWorld2627_name202 },
     {
         { 16, 11 },
         { 16, 3 },
@@ -3532,7 +3801,7 @@ static const uint8_t kWorld2627_hungarianCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_worldIndCup = {
     { { -88, 1, 75, 56, 32, 15, 0, 21, 1 }, 0, 32, 0, 53, 2 },
     { 84, 84, 84, 84, 84, 0 },
-    { kWorld2627_name192, kWorld2627_name192 },
+    { kWorld2627_name203, kWorld2627_name203 },
     {
         { 75, 8 },
         { 75, 2 },
@@ -3570,7 +3839,7 @@ static const uint8_t kWorld2627_worldIndCupQuota[][3] = { { 0, 13, 8 }, { 1, 11,
 static CompetitionCup kWorld2627_irishCup = {
     { { -126, 1, 18, 112, -128, 0, 0, 21, 1 }, 0, 8, 0, 53, 1 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name193, kWorld2627_name193 },
+    { kWorld2627_name204, kWorld2627_name204 },
     {
         { 18, 5 },
         { 18, 7 },
@@ -3592,7 +3861,7 @@ static const uint8_t kWorld2627_irishCupQuota[][3] = { { 0, 8, 0 } };
 static CompetitionCup kWorld2627_worldIrnCup = {
     { { -42, 1, 74, 56, 32, 15, 0, 21, 1 }, 0, 32, 0, 53, 2 },
     { 84, 84, 84, 84, 84, 0 },
-    { kWorld2627_name194, kWorld2627_name194 },
+    { kWorld2627_name205, kWorld2627_name205 },
     {
         { 74, 17 },
         { 74, 13 },
@@ -3624,7 +3893,7 @@ static const uint8_t kWorld2627_worldIrnCupQuota[][3] = { { 0, 18, 14 } };
 static CompetitionCup kWorld2627_icelandicCup = {
     { { -127, 1, 17, 56, 64, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name195, kWorld2627_name195 },
+    { kWorld2627_name206, kWorld2627_name206 },
     {
         { 17, 10 },
         { 17, 5 },
@@ -3650,7 +3919,7 @@ static const uint8_t kWorld2627_icelandicCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_worldIslLeagueCup = {
     { { -25, 1, 17, 56, 16, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name196, kWorld2627_name197 },
+    { kWorld2627_name207, kWorld2627_name208 },
     {
         { 17, 10 },
         { 17, 6 },
@@ -3676,7 +3945,7 @@ static const uint8_t kWorld2627_worldIslLeagueCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_israeliCup = {
     { { -125, 1, 19, 120, -128, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name198, kWorld2627_name199 },
+    { kWorld2627_name209, kWorld2627_name210 },
     {
         { 19, 13 },
         { 19, 5 },
@@ -3704,7 +3973,7 @@ static const uint8_t kWorld2627_israeliCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_japaneseCup = {
     { { -98, 1, 55, 48, 56, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name200, kWorld2627_name200 },
+    { kWorld2627_name211, kWorld2627_name211 },
     {
         { 55, 1 },
         { 55, 5 },
@@ -3734,7 +4003,7 @@ static const uint8_t kWorld2627_japaneseCupQuota[][3] = { { 0, 15, 0 }, { 1, 1, 
 static CompetitionCup kWorld2627_japaneseEmperorsCup = {
     { { -97, 1, 55, 88, 0, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, -108, -108, 84, 0, 0 },
-    { kWorld2627_name201, kWorld2627_name201 },
+    { kWorld2627_name212, kWorld2627_name212 },
     {
         { 55, 6 },
         { 55, 1 },
@@ -3760,7 +4029,7 @@ static const uint8_t kWorld2627_japaneseEmperorsCupQuota[][3] = { { 0, 11, 4 }, 
 static CompetitionCup kWorld2627_worldKazCup = {
     { { -41, 1, 86, 56, 32, 15, 0, 21, 1 }, 0, 8, 0, 53, 2 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name202, kWorld2627_name202 },
+    { kWorld2627_name213, kWorld2627_name213 },
     {
         { 86, 6 },
         { 86, 11 },
@@ -3782,7 +4051,7 @@ static const uint8_t kWorld2627_worldKazCupQuota[][3] = { { 0, 8, 0 } };
 static CompetitionCup kWorld2627_worldKorCup = {
     { { -40, 1, 87, 56, 32, 15, 0, 21, 1 }, 0, 8, 0, 53, 2 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name203, kWorld2627_name203 },
+    { kWorld2627_name214, kWorld2627_name214 },
     {
         { 87, 6 },
         { 87, 3 },
@@ -3802,7 +4071,7 @@ static const uint8_t kWorld2627_worldKorCupQuota[][3] = { { 0, 6, 2 } };
 static CompetitionCup kWorld2627_worldKosCup = {
     { { -39, 1, 88, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name204, kWorld2627_name204 },
+    { kWorld2627_name215, kWorld2627_name215 },
     {
         { 88, 8 },
         { 88, 5 },
@@ -3826,7 +4095,7 @@ static const uint8_t kWorld2627_worldKosCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_worldKsaCup = {
     { { -38, 1, 89, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name205, kWorld2627_name205 },
+    { kWorld2627_name216, kWorld2627_name216 },
     {
         { 89, 5 },
         { 89, 13 },
@@ -3851,7 +4120,7 @@ static const uint8_t kWorld2627_worldKsaCupQuota[][3] = { { 0, 11, 5 } };
 static CompetitionCup kWorld2627_worldLieCup = {
     { { -37, 1, 90, 56, 32, 15, 0, 21, 1 }, 0, 4, 0, 53, 2 },
     { 84, 84, 0, 0, 0, 0 },
-    { kWorld2627_name206, kWorld2627_name207 },
+    { kWorld2627_name217, kWorld2627_name218 },
     {
         { 90, 1 },
         { 90, 3 },
@@ -3869,7 +4138,7 @@ static const uint8_t kWorld2627_worldLieCupQuota[][3] = { { 0, 4, 0 } };
 static CompetitionCup kWorld2627_lithuanianCup = {
     { { -122, 1, 22, -128, -120, 0, 0, 21, 1 }, 0, 8, 0, 53, 1 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name208, kWorld2627_name208 },
+    { kWorld2627_name219, kWorld2627_name219 },
     {
         { 22, 6 },
         { 22, 7 },
@@ -3891,7 +4160,7 @@ static const uint8_t kWorld2627_lithuanianCupQuota[][3] = { { 0, 8, 0 } };
 static CompetitionCup kWorld2627_luxembourgCup = {
     { { -121, 1, 23, 120, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name209, kWorld2627_name210 },
+    { kWorld2627_name220, kWorld2627_name221 },
     {
         { 23, 8 },
         { 23, 6 },
@@ -3919,7 +4188,7 @@ static const uint8_t kWorld2627_luxembourgCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_latvianCup = {
     { { -123, 1, 21, 56, 64, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name211, kWorld2627_name211 },
+    { kWorld2627_name222, kWorld2627_name222 },
     {
         { 21, 6 },
         { 21, 7 },
@@ -3943,7 +4212,7 @@ static const uint8_t kWorld2627_latvianCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_worldMarCup = {
     { { -36, 1, 91, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name212, kWorld2627_name212 },
+    { kWorld2627_name223, kWorld2627_name223 },
     {
         { 91, 6 },
         { 91, 4 },
@@ -3973,7 +4242,7 @@ static const uint8_t kWorld2627_worldMarCupQuota[][3] = { { 0, 16, 0 } };
 static CompetitionCup kWorld2627_worldMdaCup = {
     { { -35, 1, 92, 56, 32, 15, 0, 21, 1 }, 0, 8, 0, 53, 2 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name213, kWorld2627_name213 },
+    { kWorld2627_name224, kWorld2627_name224 },
     {
         { 92, 2 },
         { 92, 3 },
@@ -3995,7 +4264,7 @@ static const uint8_t kWorld2627_worldMdaCupQuota[][3] = { { 0, 8, 0 } };
 static CompetitionCup kWorld2627_worldMkdCup = {
     { { -34, 1, 93, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name214, kWorld2627_name214 },
+    { kWorld2627_name225, kWorld2627_name225 },
     {
         { 93, 9 },
         { 93, 5 },
@@ -4016,10 +4285,36 @@ static const uint8_t kWorld2627_worldMkdCupOrder1[] = { 0, 3, 1, 2, 4, 5, 6, 7 }
 
 static const uint8_t kWorld2627_worldMkdCupQuota[][3] = { { 0, 10, 6 } };
 
+static CompetitionCup kWorld2627_malteseCup = {
+    { { -120, 1, 24, -128, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
+    { 84, 84, 84, 84, 0, 0 },
+    { kWorld2627_name226, kWorld2627_name227 },
+    {
+        { 24, 7 },
+        { 24, 10 },
+        { 24, 4 },
+        { 24, 6 },
+        { 24, 8 },
+        { 24, 9 },
+        { 24, 11 },
+        { 24, 5 },
+        { 24, 2 },
+        { 24, 3 },
+        { 24, 0 },
+        { 24, 1 },
+    }
+};
+
+static const uint16_t kWorld2627_malteseCupFlips[] = { 0, 0, 0 };
+
+static const uint8_t kWorld2627_malteseCupOrder1[] = { 2, 4, 6, 7, 0, 1, 3, 5 };
+
+static const uint8_t kWorld2627_malteseCupQuota[][3] = { { 0, 12, 4 } };
+
 static CompetitionCup kWorld2627_worldMneCup = {
     { { -33, 1, 94, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name215, kWorld2627_name215 },
+    { kWorld2627_name228, kWorld2627_name228 },
     {
         { 94, 0 },
         { 94, 3 },
@@ -4044,7 +4339,7 @@ static struct __attribute__((packed)) { CompetitionCup rec; TeamId more[32]; } k
     {
         { { -119, 1, 25, 88, 32, 0, 0, 21, 1 }, 0, 64, 0, 53, 3 },
         { 84, 84, 84, 84, 84, 84 },
-        { kWorld2627_name216, kWorld2627_name216 },
+        { kWorld2627_name229, kWorld2627_name229 },
         {
             { 25, 25 },
             { 25, 35 },
@@ -4097,7 +4392,7 @@ static const uint8_t kWorld2627_dutchCupQuota[][3] = { { 0, 18, 17 }, { 1, 16, 1
 static CompetitionCup kWorld2627_northernIrishCup = {
     { { -118, 1, 26, 104, -128, 0, 0, 21, 1 }, 0, 16, 0, 53, 6 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name217, kWorld2627_name217 },
+    { kWorld2627_name230, kWorld2627_name230 },
     {
         { 26, 6 },
         { 26, 8 },
@@ -4123,7 +4418,7 @@ static const uint8_t kWorld2627_northernIrishCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_worldNirLeagueCup = {
     { { -24, 1, 26, 56, 16, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name218, kWorld2627_name219 },
+    { kWorld2627_name231, kWorld2627_name232 },
     {
         { 26, 8 },
         { 26, 4 },
@@ -4149,7 +4444,7 @@ static const uint8_t kWorld2627_worldNirLeagueCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_norwegianCup = {
     { { -117, 1, 27, 64, 80, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name220, kWorld2627_name221 },
+    { kWorld2627_name233, kWorld2627_name234 },
     {
         { 27, 9 },
         { 27, 1 },
@@ -4175,7 +4470,7 @@ static const uint8_t kWorld2627_norwegianCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_worldNzlCup = {
     { { -84, 1, 62, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name222, kWorld2627_name222 },
+    { kWorld2627_name235, kWorld2627_name235 },
     {
         { 62, 28 },
         { 62, 24 },
@@ -4198,10 +4493,58 @@ static const uint8_t kWorld2627_worldNzlCupOrder1[] = { 1, 2, 3, 4, 0, 5, 6, 7 }
 
 static const uint8_t kWorld2627_worldNzlCupQuota[][3] = { { 0, 4, 4 }, { 1, 4, 0 }, { 2, 4, 0 } };
 
+static CompetitionCup kWorld2627_worldParCup = {
+    { { -21, 1, 64, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
+    { 84, 84, 84, 84, 0, 0 },
+    { kWorld2627_name236, kWorld2627_name236 },
+    {
+        { 64, 3 },
+        { 64, 11 },
+        { 64, 6 },
+        { 64, 9 },
+        { 64, 8 },
+        { 64, 10 },
+        { 64, 7 },
+        { 64, 5 },
+        { 64, 1 },
+        { 64, 0 },
+        { 64, 4 },
+        { 64, 2 },
+    }
+};
+
+static const uint16_t kWorld2627_worldParCupFlips[] = { 0, 0, 0 };
+
+static const uint8_t kWorld2627_worldParCupOrder1[] = { 0, 2, 3, 7, 1, 4, 5, 6 };
+
+static const uint8_t kWorld2627_worldParCupQuota[][3] = { { 0, 12, 4 } };
+
+static CompetitionCup kWorld2627_worldPerCup = {
+    { { -20, 1, 65, 56, 32, 15, 0, 21, 1 }, 0, 8, 0, 53, 2 },
+    { 84, 84, 84, 0, 0, 0 },
+    { kWorld2627_name172, kWorld2627_name172 },
+    {
+        { 65, 3 },
+        { 65, 14 },
+        { 65, 8 },
+        { 65, 17 },
+        { 65, 4 },
+        { 65, 6 },
+        { 65, 11 },
+        { 65, 12 },
+    }
+};
+
+static const uint16_t kWorld2627_worldPerCupFlips[] = { 0, 0 };
+
+static const uint8_t kWorld2627_worldPerCupOrder1[] = { 0, 1, 2, 3 };
+
+static const uint8_t kWorld2627_worldPerCupQuota[][3] = { { 0, 8, 0 } };
+
 static CompetitionCup kWorld2627_polishCup = {
     { { -116, 1, 28, 80, 40, 0, 0, 21, 1 }, 0, 16, 0, 53, 5 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name223, kWorld2627_name223 },
+    { kWorld2627_name237, kWorld2627_name237 },
     {
         { 28, 9 },
         { 28, 16 },
@@ -4226,7 +4569,7 @@ static const uint8_t kWorld2627_polishCupQuota[][3] = { { 0, 11, 5 } };
 static CompetitionCup kWorld2627_portugeseCup = {
     { { -115, 1, 29, 96, -120, 0, 0, 21, 1 }, 0, 32, 0, 53, 6 },
     { 84, 84, 84, -108, 84, 0 },
-    { kWorld2627_name224, kWorld2627_name224 },
+    { kWorld2627_name238, kWorld2627_name238 },
     {
         { 29, 16 },
         { 29, 24 },
@@ -4272,7 +4615,7 @@ static const uint8_t kWorld2627_portugeseCupQuota[][3] = { { 0, 18, 0 }, { 1, 14
 static CompetitionCup kWorld2627_worldPorLeagueCup = {
     { { -83, 1, 29, 56, 16, 15, 0, 21, 1 }, 0, 8, 0, 53, 2 },
     { 20, 20, 20, 0, 0, 0 },
-    { kWorld2627_name225, kWorld2627_name225 },
+    { kWorld2627_name239, kWorld2627_name239 },
     {
         { 29, 0 },
         { 29, 17 },
@@ -4294,7 +4637,7 @@ static const uint8_t kWorld2627_worldPorLeagueCupQuota[][3] = { { 0, 8, 0 } };
 static CompetitionCup kWorld2627_worldQatCup = {
     { { -32, 1, 96, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name226, kWorld2627_name226 },
+    { kWorld2627_name240, kWorld2627_name240 },
     {
         { 96, 9 },
         { 96, 5 },
@@ -4320,7 +4663,7 @@ static const uint8_t kWorld2627_worldQatCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_worldQatLeagueCup = {
     { { -31, 1, 96, 56, 16, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name227, kWorld2627_name227 },
+    { kWorld2627_name241, kWorld2627_name241 },
     {
         { 96, 1 },
         { 96, 5 },
@@ -4346,7 +4689,7 @@ static const uint8_t kWorld2627_worldQatLeagueCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_romanianCup = {
     { { -114, 1, 30, 112, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name228, kWorld2627_name228 },
+    { kWorld2627_name242, kWorld2627_name242 },
     {
         { 30, 11 },
         { 30, 13 },
@@ -4374,7 +4717,7 @@ static const uint8_t kWorld2627_romanianCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_southAfricanCup = {
     { { -96, 1, 69, 56, 80, 0, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name229, kWorld2627_name229 },
+    { kWorld2627_name243, kWorld2627_name243 },
     {
         { 69, 0 },
         { 69, 11 },
@@ -4404,7 +4747,7 @@ static const uint8_t kWorld2627_southAfricanCupQuota[][3] = { { 0, 16, 0 } };
 static CompetitionCup kWorld2627_worldRsaLeagueCup = {
     { { -87, 1, 69, 56, 16, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name230, kWorld2627_name231 },
+    { kWorld2627_name244, kWorld2627_name245 },
     {
         { 69, 10 },
         { 69, 2 },
@@ -4434,7 +4777,7 @@ static const uint8_t kWorld2627_worldRsaLeagueCupQuota[][3] = { { 0, 16, 0 } };
 static CompetitionCup kWorld2627_russianCup = {
     { { -113, 1, 31, 16, 40, 0, 0, 21, 1 }, 0, 16, 0, 53, 3 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name232, kWorld2627_name232 },
+    { kWorld2627_name246, kWorld2627_name246 },
     {
         { 31, 9 },
         { 31, 12 },
@@ -4464,7 +4807,7 @@ static const uint8_t kWorld2627_russianCupQuota[][3] = { { 0, 16, 0 } };
 static CompetitionCup kWorld2627_scottishCup = {
     { { -111, 1, 33, 96, -128, 15, 0, 21, 1 }, 0, 32, 0, 51, 3 },
     { 84, 84, 84, 84, 84, 0 },
-    { kWorld2627_name233, kWorld2627_name233 },
+    { kWorld2627_name247, kWorld2627_name247 },
     {
         { 33, 10 },
         { 33, 13 },
@@ -4510,7 +4853,7 @@ static const uint8_t kWorld2627_scottishCupQuota[][3] = { { 0, 12, 0 }, { 1, 10,
 static CompetitionCup kWorld2627_scottishLeagueCup = {
     { { -110, 1, 33, 56, 72, 15, 0, 21, 1 }, 0, 8, 0, 51, 2 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name234, kWorld2627_name235 },
+    { kWorld2627_name248, kWorld2627_name249 },
     {
         { 33, 30 },
         { 33, 4 },
@@ -4529,10 +4872,40 @@ static const uint8_t kWorld2627_scottishLeagueCupOrder1[] = { 0, 1, 2, 3 };
 
 static const uint8_t kWorld2627_scottishLeagueCupQuota[][3] = { { 0, 6, 0 }, { 1, 1, 0 }, { 2, 1, 0 } };
 
+static CompetitionCup kWorld2627_sanMarinoCup = {
+    { { -112, 1, 32, 120, -128, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
+    { 84, 84, 84, 84, 0, 0 },
+    { kWorld2627_name250, kWorld2627_name250 },
+    {
+        { 32, 11 },
+        { 32, 7 },
+        { 32, 3 },
+        { 32, 13 },
+        { 32, 6 },
+        { 32, 0 },
+        { 32, 9 },
+        { 32, 4 },
+        { 32, 10 },
+        { 32, 14 },
+        { 32, 2 },
+        { 32, 8 },
+        { 32, 5 },
+        { 32, 12 },
+        { 32, 15 },
+        { 32, 1 },
+    }
+};
+
+static const uint16_t kWorld2627_sanMarinoCupFlips[] = { 0, 0, 0 };
+
+static const uint8_t kWorld2627_sanMarinoCupOrder1[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+static const uint8_t kWorld2627_sanMarinoCupQuota[][3] = { { 0, 16, 0 } };
+
 static CompetitionCup kWorld2627_yugoslavianCup = {
     { { -101, 1, 41, 80, 32, 0, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name236, kWorld2627_name236 },
+    { kWorld2627_name251, kWorld2627_name251 },
     {
         { 41, 12 },
         { 41, 9 },
@@ -4560,7 +4933,7 @@ static const uint8_t kWorld2627_yugoslavianCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_swissCup = {
     { { -105, 1, 37, 120, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name237, kWorld2627_name237 },
+    { kWorld2627_name252, kWorld2627_name252 },
     {
         { 37, 3 },
         { 37, 6 },
@@ -4586,7 +4959,7 @@ static const uint8_t kWorld2627_swissCupQuota[][3] = { { 0, 12, 4 } };
 static CompetitionCup kWorld2627_worldSurCup = {
     { { -86, 1, 66, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name238, kWorld2627_name238 },
+    { kWorld2627_name253, kWorld2627_name253 },
     {
         { 66, 9 },
         { 66, 6 },
@@ -4610,7 +4983,7 @@ static const uint8_t kWorld2627_worldSurCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_slovakianCup = {
     { { -109, 1, 78, -128, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name239, kWorld2627_name239 },
+    { kWorld2627_name254, kWorld2627_name254 },
     {
         { 78, 4 },
         { 78, 6 },
@@ -4635,7 +5008,7 @@ static const uint8_t kWorld2627_slovakianCupQuota[][3] = { { 0, 11, 5 } };
 static CompetitionCup kWorld2627_slovenianCup = {
     { { -108, 1, 34, 120, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name240, kWorld2627_name240 },
+    { kWorld2627_name255, kWorld2627_name255 },
     {
         { 34, 5 },
         { 34, 8 },
@@ -4659,7 +5032,7 @@ static const uint8_t kWorld2627_slovenianCupQuota[][3] = { { 0, 10, 6 } };
 static CompetitionCup kWorld2627_swedishCup = {
     { { -106, 1, 36, 32, 40, 0, 0, 21, 1 }, 0, 8, 0, 53, 5 },
     { 84, 84, 84, 0, 0, 0 },
-    { kWorld2627_name241, kWorld2627_name241 },
+    { kWorld2627_name256, kWorld2627_name256 },
     {
         { 36, 2 },
         { 36, 6 },
@@ -4681,7 +5054,7 @@ static const uint8_t kWorld2627_swedishCupQuota[][3] = { { 0, 8, 0 } };
 static CompetitionCup kWorld2627_taiwaneseCup = {
     { { -95, 1, 67, 96, 120, 0, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name242, kWorld2627_name243 },
+    { kWorld2627_name257, kWorld2627_name258 },
     {
         { 67, 1 },
         { 67, 12 },
@@ -4710,7 +5083,7 @@ static const uint8_t kWorld2627_taiwaneseCupQuota[][3] = { { 0, 8, 1 }, { 1, 7, 
 static CompetitionCup kWorld2627_worldTunCup = {
     { { -30, 1, 97, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name244, kWorld2627_name244 },
+    { kWorld2627_name259, kWorld2627_name259 },
     {
         { 97, 15 },
         { 97, 8 },
@@ -4741,7 +5114,7 @@ static struct __attribute__((packed)) { CompetitionCup rec; TeamId more[32]; } k
     {
         { { -104, 1, 38, 88, 24, 0, 0, 21, 1 }, 0, 64, 0, 53, 1 },
         { 84, 84, 84, 84, 84, 84 },
-        { kWorld2627_name245, kWorld2627_name245 },
+        { kWorld2627_name260, kWorld2627_name260 },
         {
             { 38, 31 },
             { 38, 11 },
@@ -4798,7 +5171,7 @@ static const uint8_t kWorld2627_turkishCupQuota[][3] = { { 0, 18, 15 }, { 1, 20,
 static CompetitionCup kWorld2627_worldUaeCup = {
     { { -29, 1, 98, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name246, kWorld2627_name247 },
+    { kWorld2627_name261, kWorld2627_name262 },
     {
         { 98, 9 },
         { 98, 7 },
@@ -4826,7 +5199,7 @@ static const uint8_t kWorld2627_worldUaeCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_worldUaeLeagueCup = {
     { { -28, 1, 98, 56, 16, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { -108, -108, -108, 84, 0, 0 },
-    { kWorld2627_name248, kWorld2627_name249 },
+    { kWorld2627_name263, kWorld2627_name264 },
     {
         { 98, 10 },
         { 98, 7 },
@@ -4854,7 +5227,7 @@ static const uint8_t kWorld2627_worldUaeLeagueCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_ukrainianCup = {
     { { -103, 1, 39, 120, -120, 0, 0, 21, 1 }, 0, 16, 0, 53, 1 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name250, kWorld2627_name250 },
+    { kWorld2627_name265, kWorld2627_name265 },
     {
         { 39, 15 },
         { 39, 10 },
@@ -4876,10 +5249,42 @@ static const uint8_t kWorld2627_ukrainianCupOrder1[] = { 4, 5, 6, 0, 1, 2, 3, 7 
 
 static const uint8_t kWorld2627_ukrainianCupQuota[][3] = { { 0, 11, 5 } };
 
+static CompetitionCup kWorld2627_worldUruCup = {
+    { { -18, 1, 71, 56, 32, 15, 0, 21, 1 }, 0, 32, 0, 53, 2 },
+    { 84, 84, 84, 84, 84, 0 },
+    { kWorld2627_name266, kWorld2627_name266 },
+    {
+        { 71, 1 },
+        { 71, 20 },
+        { 71, 15 },
+        { 71, 13 },
+        { 71, 18 },
+        { 71, 6 },
+        { 71, 11 },
+        { 71, 2 },
+        { 71, 0 },
+        { 71, 7 },
+        { 71, 26 },
+        { 71, 24 },
+        { 71, 28 },
+        { 71, 12 },
+        { 71, 29 },
+        { 71, 22 },
+        { 71, 3 },
+        { 71, 8 },
+    }
+};
+
+static const uint16_t kWorld2627_worldUruCupFlips[] = { 0, 0, 0, 0 };
+
+static const uint8_t kWorld2627_worldUruCupOrder1[] = { 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15 };
+
+static const uint8_t kWorld2627_worldUruCupQuota[][3] = { { 0, 11, 8 }, { 1, 7, 6 } };
+
 static CompetitionCup kWorld2627_worldVenCup = {
     { { -85, 1, 77, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name251, kWorld2627_name251 },
+    { kWorld2627_name267, kWorld2627_name267 },
     {
         { 77, 10 },
         { 77, 4 },
@@ -4907,7 +5312,7 @@ static const uint8_t kWorld2627_worldVenCupQuota[][3] = { { 0, 14, 2 } };
 static CompetitionCup kWorld2627_welshCup = {
     { { -102, 1, 40, 88, 32, 0, 0, 21, 1 }, 0, 16, 0, 53, 4 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name252, kWorld2627_name252 },
+    { kWorld2627_name268, kWorld2627_name268 },
     {
         { 40, 14 },
         { 40, 6 },
@@ -4937,7 +5342,7 @@ static const uint8_t kWorld2627_welshCupQuota[][3] = { { 0, 16, 0 } };
 static CompetitionCup kWorld2627_worldWalLeagueCup = {
     { { -23, 1, 40, 56, 16, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, 84, 84, 0, 0 },
-    { kWorld2627_name253, kWorld2627_name254 },
+    { kWorld2627_name269, kWorld2627_name270 },
     {
         { 40, 0 },
         { 40, 5 },
@@ -4982,6 +5387,7 @@ static const WorldCup kWorld2627Cups[] = {
     { 48, 1, &kWorld2627_worldChiCup, 10, 2, 0, 4, kWorld2627_worldChiCupFlips, 1, kWorld2627_worldChiCupQuota, kWorld2627_worldChiCupOrder1, 0, 1 },   /* _worldChiCup */
     { 48, 2, &kWorld2627_worldChiLeagueCup, 16, 8, 0, 4, kWorld2627_worldChiLeagueCupFlips, 1, kWorld2627_worldChiLeagueCupQuota, kWorld2627_worldChiLeagueCupOrder1, 0, 1 },   /* _worldChiLeagueCup */
     { 57, 1, &kWorld2627_worldChnCup, 4, 2, 0, 2, kWorld2627_worldChnCupFlips, 1, kWorld2627_worldChnCupQuota, kWorld2627_worldChnCupOrder1, 0, 1 },   /* _worldChnCup */
+    { 49, 1, &kWorld2627_worldColCup, 13, 5, 0, 4, kWorld2627_worldColCupFlips, 1, kWorld2627_worldColCupQuota, kWorld2627_worldColCupOrder1, 0, 1 },   /* _worldColCup */
     { 58, 1, &kWorld2627_worldCrcCup, 10, 2, 0, 4, kWorld2627_worldCrcCupFlips, 1, kWorld2627_worldCrcCupQuota, kWorld2627_worldCrcCupOrder1, 0, 1 },   /* _worldCrcCup */
     { 4, 1, &kWorld2627_croatianCup, 9, 1, 0, 4, kWorld2627_croatianCupFlips, 1, kWorld2627_croatianCupQuota, kWorld2627_croatianCupOrder1, 0, 1 },   /* _croatianCup */
     { 5, 1, &kWorld2627_cypriotCup, 14, 6, 0, 4, kWorld2627_cypriotCupFlips, 1, kWorld2627_cypriotCupQuota, kWorld2627_cypriotCupOrder1, 0, 1 },   /* _cypriotCup */
@@ -5023,12 +5429,15 @@ static const WorldCup kWorld2627Cups[] = {
     { 91, 1, &kWorld2627_worldMarCup, 16, 8, 0, 4, kWorld2627_worldMarCupFlips, 1, kWorld2627_worldMarCupQuota, kWorld2627_worldMarCupOrder1, 0, 1 },   /* _worldMarCup */
     { 92, 1, &kWorld2627_worldMdaCup, 8, 4, 0, 3, kWorld2627_worldMdaCupFlips, 1, kWorld2627_worldMdaCupQuota, kWorld2627_worldMdaCupOrder1, 0, 1 },   /* _worldMdaCup */
     { 93, 1, &kWorld2627_worldMkdCup, 10, 2, 0, 4, kWorld2627_worldMkdCupFlips, 1, kWorld2627_worldMkdCupQuota, kWorld2627_worldMkdCupOrder1, 0, 1 },   /* _worldMkdCup */
+    { 24, 1, &kWorld2627_malteseCup, 12, 4, 0, 4, kWorld2627_malteseCupFlips, 1, kWorld2627_malteseCupQuota, kWorld2627_malteseCupOrder1, 1, 1 },   /* _malteseCup */
     { 94, 1, &kWorld2627_worldMneCup, 10, 2, 0, 4, kWorld2627_worldMneCupFlips, 1, kWorld2627_worldMneCupQuota, kWorld2627_worldMneCupOrder1, 1, 1 },   /* _worldMneCup */
     { 25, 1, &kWorld2627_dutchCup, 34, 2, 0, 6, kWorld2627_dutchCupFlips, 2, kWorld2627_dutchCupQuota, kWorld2627_dutchCupOrder1, 0, 1 },   /* _dutchCup */
     { 26, 1, &kWorld2627_northernIrishCup, 12, 4, 0, 4, kWorld2627_northernIrishCupFlips, 1, kWorld2627_northernIrishCupQuota, kWorld2627_northernIrishCupOrder1, 1, 1 },   /* _northernIrishCup */
     { 26, 2, &kWorld2627_worldNirLeagueCup, 12, 4, 0, 4, kWorld2627_worldNirLeagueCupFlips, 1, kWorld2627_worldNirLeagueCupQuota, kWorld2627_worldNirLeagueCupOrder1, 0, 1 },   /* _worldNirLeagueCup */
     { 27, 1, &kWorld2627_norwegianCup, 12, 4, 0, 4, kWorld2627_norwegianCupFlips, 1, kWorld2627_norwegianCupQuota, kWorld2627_norwegianCupOrder1, 0, 1 },   /* _norwegianCup */
     { 62, 1, &kWorld2627_worldNzlCup, 12, 4, 0, 4, kWorld2627_worldNzlCupFlips, 3, kWorld2627_worldNzlCupQuota, kWorld2627_worldNzlCupOrder1, 1, 1 },   /* _worldNzlCup */
+    { 64, 1, &kWorld2627_worldParCup, 12, 4, 0, 4, kWorld2627_worldParCupFlips, 1, kWorld2627_worldParCupQuota, kWorld2627_worldParCupOrder1, 0, 1 },   /* _worldParCup */
+    { 65, 1, &kWorld2627_worldPerCup, 8, 4, 0, 3, kWorld2627_worldPerCupFlips, 1, kWorld2627_worldPerCupQuota, kWorld2627_worldPerCupOrder1, 0, 1 },   /* _worldPerCup */
     { 28, 1, &kWorld2627_polishCup, 11, 3, 0, 4, kWorld2627_polishCupFlips, 1, kWorld2627_polishCupQuota, kWorld2627_polishCupOrder1, 0, 1 },   /* _polishCup */
     { 29, 1, &kWorld2627_portugeseCup, 32, 16, 0, 5, kWorld2627_portugeseCupFlips, 2, kWorld2627_portugeseCupQuota, kWorld2627_portugeseCupOrder1, 0, 1 },   /* _portugeseCup */
     { 29, 2, &kWorld2627_worldPorLeagueCup, 8, 4, 0, 3, kWorld2627_worldPorLeagueCupFlips, 1, kWorld2627_worldPorLeagueCupQuota, kWorld2627_worldPorLeagueCupOrder1, 0, 1 },   /* _worldPorLeagueCup */
@@ -5040,6 +5449,7 @@ static const WorldCup kWorld2627Cups[] = {
     { 31, 1, &kWorld2627_russianCup, 16, 8, 0, 4, kWorld2627_russianCupFlips, 1, kWorld2627_russianCupQuota, kWorld2627_russianCupOrder1, 0, 1 },   /* _russianCup */
     { 33, 1, &kWorld2627_scottishCup, 32, 16, 0, 5, kWorld2627_scottishCupFlips, 3, kWorld2627_scottishCupQuota, kWorld2627_scottishCupOrder1, 1, 1 },   /* _scottishCup */
     { 33, 2, &kWorld2627_scottishLeagueCup, 8, 4, 0, 3, kWorld2627_scottishLeagueCupFlips, 3, kWorld2627_scottishLeagueCupQuota, kWorld2627_scottishLeagueCupOrder1, 1, 1 },   /* _scottishLeagueCup */
+    { 32, 1, &kWorld2627_sanMarinoCup, 16, 8, 0, 4, kWorld2627_sanMarinoCupFlips, 1, kWorld2627_sanMarinoCupQuota, kWorld2627_sanMarinoCupOrder1, 0, 1 },   /* _sanMarinoCup */
     { 41, 1, &kWorld2627_yugoslavianCup, 14, 6, 0, 4, kWorld2627_yugoslavianCupFlips, 1, kWorld2627_yugoslavianCupQuota, kWorld2627_yugoslavianCupOrder1, 0, 1 },   /* _yugoslavianCup */
     { 37, 1, &kWorld2627_swissCup, 12, 4, 0, 4, kWorld2627_swissCupFlips, 1, kWorld2627_swissCupQuota, kWorld2627_swissCupOrder1, 0, 1 },   /* _swissCup */
     { 66, 1, &kWorld2627_worldSurCup, 10, 2, 0, 4, kWorld2627_worldSurCupFlips, 1, kWorld2627_worldSurCupQuota, kWorld2627_worldSurCupOrder1, 0, 1 },   /* _worldSurCup */
@@ -5052,6 +5462,7 @@ static const WorldCup kWorld2627Cups[] = {
     { 98, 1, &kWorld2627_worldUaeCup, 14, 6, 0, 4, kWorld2627_worldUaeCupFlips, 1, kWorld2627_worldUaeCupQuota, kWorld2627_worldUaeCupOrder1, 0, 1 },   /* _worldUaeCup */
     { 98, 2, &kWorld2627_worldUaeLeagueCup, 14, 6, 0, 4, kWorld2627_worldUaeLeagueCupFlips, 1, kWorld2627_worldUaeLeagueCupQuota, kWorld2627_worldUaeLeagueCupOrder1, 0, 1 },   /* _worldUaeLeagueCup */
     { 39, 1, &kWorld2627_ukrainianCup, 11, 3, 0, 4, kWorld2627_ukrainianCupFlips, 1, kWorld2627_ukrainianCupQuota, kWorld2627_ukrainianCupOrder1, 0, 1 },   /* _ukrainianCup */
+    { 71, 1, &kWorld2627_worldUruCup, 18, 2, 0, 5, kWorld2627_worldUruCupFlips, 2, kWorld2627_worldUruCupQuota, kWorld2627_worldUruCupOrder1, 1, 1 },   /* _worldUruCup */
     { 77, 1, &kWorld2627_worldVenCup, 14, 6, 0, 4, kWorld2627_worldVenCupFlips, 1, kWorld2627_worldVenCupQuota, kWorld2627_worldVenCupOrder1, 0, 1 },   /* _worldVenCup */
     { 40, 1, &kWorld2627_welshCup, 16, 8, 0, 4, kWorld2627_welshCupFlips, 1, kWorld2627_welshCupQuota, kWorld2627_welshCupOrder1, 1, 1 },   /* _welshCup */
     { 40, 2, &kWorld2627_worldWalLeagueCup, 16, 8, 0, 4, kWorld2627_worldWalLeagueCupFlips, 1, kWorld2627_worldWalLeagueCupQuota, kWorld2627_worldWalLeagueCupOrder1, 0, 1 },   /* _worldWalLeagueCup */
@@ -5061,7 +5472,7 @@ const WorldCup *World_Cups(int32_t *count)
 {
     switch (World_Current()) {
     case WORLD_2627:
-        *count = 90;
+        *count = 96;
         return kWorld2627Cups;
     default:
         *count = 0;
@@ -5101,6 +5512,101 @@ static const uint8_t kWorld2627_split3_0[200] = {
     10, 0, 2, 0, 0, 1, 3, 0, 4, 5, 0, 8, 7, 0, 9, 10, 0, 13, 12, 0, 0, 1, 0, 3,
     2, 0, 8, 5, 0, 7, 6, 0, 8, 4, 0, 6, 5, 0, 4, 7, 0, 6, 8, 0, 4, 6, 0, 5,
     7, 0, 5, 4, 0, 7, 8, 0,
+};
+
+static const uint8_t kWorld2627_split49_0[1364] = {
+    0, 49, 0, 20, 1, 0, 38, 2, 72, 0, 110, 0, 186, 0, 84, 5, 0, 1, 4, 0, 0, 20, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 46, 5, 19, 1, 5, 0,
+    0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+    10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 10, 0, 20, 0, 30, 0, 40, 0,
+    50, 0, 60, 0, 70, 0, 80, 0, 90, 0, 100, 0, 110, 0, 120, 0, 130, 0, 140, 0, 150, 0, 160, 0,
+    170, 0, 180, 0, 190, 0, 200, 0, 210, 0, 220, 0, 230, 0, 240, 0, 250, 0, 4, 1, 14, 1, 24, 1,
+    34, 1, 44, 1, 54, 1, 64, 1, 74, 1, 84, 1, 94, 1, 104, 1, 114, 1, 15, 12, 0, 5, 8, 0,
+    7, 17, 0, 2, 16, 0, 3, 11, 0, 14, 0, 0, 19, 13, 0, 4, 1, 0, 6, 9, 0, 18, 10, 0,
+    17, 18, 0, 1, 8, 0, 15, 5, 0, 12, 3, 0, 13, 0, 0, 16, 7, 0, 9, 14, 0, 11, 4, 0,
+    10, 6, 0, 2, 19, 0, 18, 3, 0, 5, 12, 0, 0, 1, 0, 8, 16, 0, 6, 15, 0, 14, 11, 0,
+    9, 13, 0, 19, 17, 0, 7, 10, 0, 4, 2, 0, 18, 5, 0, 16, 6, 0, 3, 8, 0, 13, 14, 0,
+    10, 19, 0, 12, 9, 0, 11, 0, 0, 17, 1, 0, 15, 4, 0, 2, 7, 0, 14, 3, 0, 0, 17, 0,
+    9, 18, 0, 1, 12, 0, 4, 16, 0, 8, 10, 0, 13, 11, 0, 19, 15, 0, 6, 2, 0, 5, 7, 0,
+    18, 0, 0, 12, 14, 0, 3, 1, 0, 11, 9, 0, 17, 13, 0, 16, 19, 0, 10, 4, 0, 2, 5, 0,
+    7, 6, 0, 15, 8, 0, 11, 12, 0, 0, 15, 0, 14, 17, 0, 1, 10, 0, 13, 2, 0, 5, 16, 0,
+    8, 18, 0, 19, 6, 0, 4, 7, 0, 9, 3, 0, 12, 0, 0, 15, 14, 0, 10, 5, 0, 3, 13, 0,
+    2, 8, 0, 17, 11, 0, 6, 4, 0, 16, 9, 0, 7, 19, 0, 18, 1, 0, 5, 6, 0, 11, 15, 0,
+    10, 16, 0, 8, 7, 0, 19, 4, 0, 0, 3, 0, 14, 18, 0, 9, 17, 0, 1, 2, 0, 13, 12, 0,
+    5, 19, 0, 12, 17, 0, 4, 8, 0, 13, 10, 0, 9, 2, 0, 11, 18, 0, 14, 7, 0, 3, 15, 0,
+    1, 6, 0, 0, 16, 0, 10, 14, 0, 2, 12, 0, 17, 3, 0, 18, 13, 0, 16, 11, 0, 6, 8, 0,
+    15, 9, 0, 7, 1, 0, 19, 0, 0, 4, 5, 0, 12, 18, 0, 11, 2, 0, 14, 16, 0, 17, 15, 0,
+    3, 10, 0, 13, 6, 0, 8, 19, 0, 1, 5, 0, 0, 4, 0, 9, 7, 0, 10, 11, 0, 2, 17, 0,
+    8, 13, 0, 16, 1, 0, 6, 0, 0, 19, 9, 0, 15, 18, 0, 4, 3, 0, 5, 14, 0, 7, 12, 0,
+    9, 8, 0, 3, 6, 0, 18, 16, 0, 1, 19, 0, 13, 15, 0, 17, 4, 0, 14, 2, 0, 12, 10, 0,
+    0, 7, 0, 11, 5, 0, 1, 9, 0, 8, 14, 0, 6, 12, 0, 2, 18, 0, 16, 15, 0, 7, 3, 0,
+    19, 11, 0, 10, 0, 0, 5, 17, 0, 4, 13, 0, 13, 5, 0, 12, 19, 0, 18, 7, 0, 15, 10, 0,
+    14, 1, 0, 9, 4, 0, 0, 2, 0, 11, 6, 0, 3, 16, 0, 17, 8, 0, 19, 14, 0, 16, 13, 0,
+    1, 15, 0, 5, 9, 0, 6, 18, 0, 8, 0, 0, 4, 12, 0, 7, 11, 0, 10, 17, 0, 2, 3, 0,
+    14, 6, 0, 11, 1, 0, 18, 4, 0, 3, 19, 0, 15, 2, 0, 13, 7, 0, 0, 5, 0, 9, 10, 0,
+    12, 8, 0, 17, 16, 0, 10, 2, 0, 16, 12, 0, 19, 18, 0, 0, 9, 0, 1, 13, 0, 6, 17, 0,
+    8, 11, 0, 5, 3, 0, 7, 15, 0, 4, 14, 0, 12, 15, 0, 13, 19, 0, 0, 14, 0, 11, 3, 0,
+    1, 4, 0, 17, 7, 0, 9, 6, 0, 8, 5, 0, 10, 18, 0, 16, 2, 0, 3, 12, 0, 5, 15, 0,
+    14, 9, 0, 8, 1, 0, 0, 13, 0, 4, 11, 0, 19, 2, 0, 7, 16, 0, 6, 10, 0, 18, 17, 0,
+    3, 18, 0, 12, 5, 0, 1, 0, 0, 11, 14, 0, 17, 19, 0, 10, 7, 0, 16, 8, 0, 13, 9, 0,
+    15, 6, 0, 2, 4, 0, 6, 16, 0, 5, 18, 0, 1, 17, 0, 14, 13, 0, 8, 3, 0, 19, 10, 0,
+    7, 2, 0, 9, 12, 0, 0, 11, 0, 4, 15, 0, 12, 1, 0, 11, 13, 0, 18, 9, 0, 16, 4, 0,
+    10, 8, 0, 17, 0, 0, 7, 5, 0, 2, 6, 0, 15, 19, 0, 3, 14, 0, 19, 16, 0, 8, 15, 0,
+    9, 11, 0, 1, 3, 0, 6, 7, 0, 0, 18, 0, 5, 2, 0, 14, 12, 0, 13, 17, 0, 4, 10, 0,
+    6, 19, 0, 10, 1, 0, 18, 8, 0, 16, 5, 0, 7, 4, 0, 2, 13, 0, 12, 11, 0, 17, 14, 0,
+    15, 0, 0, 3, 9, 0, 19, 7, 0, 4, 6, 0, 8, 2, 0, 9, 16, 0, 0, 12, 0, 11, 17, 0,
+    13, 3, 0, 14, 15, 0, 1, 18, 0, 5, 10, 0, 7, 8, 0, 16, 10, 0, 18, 14, 0, 6, 5, 0,
+    4, 19, 0, 17, 9, 0, 15, 11, 0, 3, 0, 0, 2, 1, 0, 12, 13, 0, 19, 5, 0, 6, 1, 0,
+    17, 12, 0, 16, 0, 0, 8, 4, 0, 15, 3, 0, 2, 9, 0, 10, 13, 0, 18, 11, 0, 7, 14, 0,
+    9, 15, 0, 11, 16, 0, 8, 6, 0, 13, 18, 0, 14, 10, 0, 5, 4, 0, 3, 17, 0, 1, 7, 0,
+    12, 2, 0, 0, 19, 0, 6, 13, 0, 7, 9, 0, 2, 11, 0, 16, 14, 0, 10, 3, 0, 15, 17, 0,
+    18, 12, 0, 4, 0, 0, 19, 8, 0, 5, 1, 0, 17, 2, 0, 13, 8, 0, 9, 19, 0, 1, 16, 0,
+    14, 5, 0, 18, 15, 0, 3, 4, 0, 12, 7, 0, 0, 6, 0, 11, 10, 0, 5, 11, 0, 8, 9, 0,
+    10, 12, 0, 15, 13, 0, 4, 17, 0, 19, 1, 0, 16, 18, 0, 7, 0, 0, 2, 14, 0, 6, 3, 0,
+    11, 19, 0, 0, 10, 0, 9, 1, 0, 3, 7, 0, 12, 6, 0, 13, 4, 0, 14, 8, 0, 15, 16, 0,
+    17, 5, 0, 18, 2, 0, 6, 11, 0, 16, 3, 0, 4, 9, 0, 7, 18, 0, 10, 15, 0, 5, 13, 0,
+    8, 17, 0, 2, 0, 0, 1, 14, 0, 19, 12, 0, 17, 10, 0, 12, 4, 0, 0, 8, 0, 13, 16, 0,
+    9, 5, 0, 18, 6, 0, 3, 2, 0, 15, 1, 0, 11, 7, 0, 14, 19, 0, 6, 14, 0, 1, 11, 0,
+    4, 18, 0, 19, 3, 0, 2, 15, 0, 7, 13, 0, 5, 0, 0, 10, 9, 0, 8, 12, 0, 16, 17, 0,
+    2, 10, 0, 12, 16, 0, 18, 19, 0, 9, 0, 0, 13, 1, 0, 17, 6, 0, 11, 8, 0, 3, 5, 0,
+    15, 7, 0, 14, 4, 0, 4, 6, 7, 8, 10, 11, 12, 14, 16, 18, 19, 20, 21, 23, 24, 26, 28, 30,
+    32, 54, 56, 57, 58, 61, 61, 62, 63, 65, 67, 69, 70, 72, 74, 76, 78, 80, 82, 84,
+};
+
+static const uint8_t kWorld2627_split58_0[756] = {
+    0, 58, 0, 10, 1, 0, 36, 2, 72, 0, 108, 0, 180, 0, 244, 2, 0, 1, 4, 0, 0, 10, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 208, 2, 18, 1, 5, 0,
+    0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 5, 0, 10, 0, 15, 0, 20, 0, 25, 0,
+    30, 0, 35, 0, 40, 0, 45, 0, 50, 0, 55, 0, 60, 0, 65, 0, 70, 0, 75, 0, 80, 0, 85, 0,
+    90, 0, 95, 0, 100, 0, 105, 0, 110, 0, 115, 0, 120, 0, 125, 0, 130, 0, 135, 0, 140, 0, 145, 0,
+    150, 0, 155, 0, 160, 0, 165, 0, 170, 0, 175, 0, 3, 5, 0, 1, 4, 0, 2, 8, 0, 6, 0, 0,
+    7, 9, 0, 5, 6, 0, 0, 9, 0, 1, 7, 0, 8, 3, 0, 4, 2, 0, 2, 6, 0, 9, 4, 0,
+    5, 1, 0, 8, 7, 0, 3, 0, 0, 7, 3, 0, 0, 5, 0, 1, 2, 0, 4, 8, 0, 6, 9, 0,
+    5, 4, 0, 9, 2, 0, 3, 6, 0, 8, 1, 0, 0, 7, 0, 6, 8, 0, 4, 0, 0, 2, 3, 0,
+    7, 5, 0, 1, 9, 0, 9, 8, 0, 3, 4, 0, 0, 1, 0, 5, 2, 0, 7, 6, 0, 4, 7, 0,
+    8, 5, 0, 9, 3, 0, 6, 1, 0, 2, 0, 0, 4, 6, 0, 5, 9, 0, 1, 3, 0, 0, 8, 0,
+    7, 2, 0, 6, 2, 0, 8, 4, 0, 5, 0, 0, 3, 7, 0, 9, 1, 0, 2, 5, 0, 7, 8, 0,
+    4, 9, 0, 0, 3, 0, 1, 6, 0, 8, 0, 0, 2, 1, 0, 4, 3, 0, 6, 7, 0, 9, 5, 0,
+    9, 6, 0, 5, 8, 0, 3, 2, 0, 7, 1, 0, 0, 4, 0, 8, 9, 0, 4, 5, 0, 6, 3, 0,
+    1, 0, 0, 2, 7, 0, 8, 6, 0, 0, 4, 0, 3, 2, 0, 5, 7, 0, 9, 1, 0, 8, 9, 0,
+    4, 3, 0, 1, 0, 0, 2, 5, 0, 6, 7, 0, 7, 4, 0, 5, 8, 0, 3, 9, 0, 1, 6, 0,
+    0, 2, 0, 6, 4, 0, 9, 5, 0, 3, 1, 0, 8, 0, 0, 2, 7, 0, 5, 3, 0, 4, 1, 0,
+    8, 2, 0, 0, 6, 0, 9, 7, 0, 6, 5, 0, 9, 0, 0, 7, 1, 0, 3, 8, 0, 2, 4, 0,
+    6, 2, 0, 4, 9, 0, 1, 5, 0, 7, 8, 0, 0, 3, 0, 3, 7, 0, 5, 0, 0, 2, 1, 0,
+    8, 4, 0, 9, 6, 0, 4, 5, 0, 2, 9, 0, 6, 3, 0, 1, 8, 0, 7, 0, 0, 8, 6, 0,
+    0, 4, 0, 3, 2, 0, 5, 7, 0, 9, 1, 0, 8, 9, 0, 4, 3, 0, 1, 0, 0, 2, 5, 0,
+    6, 7, 0, 7, 4, 0, 5, 8, 0, 3, 9, 0, 1, 6, 0, 0, 2, 0, 6, 4, 0, 9, 5, 0,
+    3, 1, 0, 8, 0, 0, 2, 7, 0, 2, 6, 0, 4, 8, 0, 0, 5, 0, 7, 3, 0, 1, 9, 0,
+    5, 2, 0, 8, 7, 0, 9, 4, 0, 3, 0, 0, 6, 1, 0, 0, 8, 0, 1, 2, 0, 3, 4, 0,
+    7, 6, 0, 5, 9, 0, 6, 9, 0, 8, 5, 0, 2, 3, 0, 1, 7, 0, 4, 0, 0, 9, 8, 0,
+    5, 4, 0, 3, 6, 0, 0, 1, 0, 7, 2, 0, 6, 8, 0, 4, 0, 0, 2, 3, 0, 7, 5, 0,
+    1, 9, 0, 9, 8, 0, 3, 4, 0, 0, 1, 0, 5, 2, 0, 7, 6, 0, 4, 7, 0, 8, 5, 0,
+    9, 3, 0, 6, 1, 0, 2, 0, 0, 4, 6, 0, 5, 9, 0, 1, 3, 0, 0, 8, 0, 7, 2, 0,
+    54, 56, 58, 59, 61, 63, 65, 67, 69, 74, 75, 76, 78, 80, 81, 83, 85, 87, 98, 99, 101, 103, 105, 107,
+    109, 111, 113, 115, 116, 120, 122, 124, 126, 128, 129, 131,
 };
 
 static const uint8_t kWorld2627_split5_0[248] = {
@@ -5189,6 +5695,89 @@ static const uint8_t kWorld2627_split15_0[236] = {
     13, 0, 8, 10, 0, 11, 9, 0, 13, 12, 0, 9, 8, 0, 13, 10, 0, 12, 11, 0,
 };
 
+static const uint8_t kWorld2627_split68_0[1040] = {
+    0, 68, 0, 12, 1, 0, 44, 2, 72, 0, 116, 0, 204, 0, 16, 4, 0, 1, 4, 0, 0, 12, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 228, 3, 22, 1, 5, 0,
+    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0,
+    12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0, 48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0,
+    84, 0, 90, 0, 96, 0, 102, 0, 108, 0, 114, 0, 120, 0, 126, 0, 132, 0, 138, 0, 144, 0, 150, 0,
+    156, 0, 162, 0, 168, 0, 174, 0, 180, 0, 186, 0, 192, 0, 198, 0, 204, 0, 210, 0, 216, 0, 222, 0,
+    228, 0, 234, 0, 240, 0, 246, 0, 252, 0, 2, 1, 2, 7, 0, 0, 1, 0, 10, 5, 0, 3, 8, 0,
+    4, 6, 0, 11, 9, 0, 1, 11, 0, 9, 10, 0, 8, 4, 0, 7, 0, 0, 5, 3, 0, 6, 2, 0,
+    4, 5, 0, 1, 7, 0, 3, 9, 0, 2, 8, 0, 10, 11, 0, 0, 6, 0, 6, 1, 0, 8, 0, 0,
+    9, 4, 0, 10, 3, 0, 11, 7, 0, 5, 2, 0, 3, 11, 0, 2, 9, 0, 0, 5, 0, 1, 8, 0,
+    7, 6, 0, 4, 10, 0, 11, 6, 0, 8, 7, 0, 9, 0, 0, 10, 2, 0, 3, 4, 0, 5, 1, 0,
+    2, 3, 0, 1, 9, 0, 4, 11, 0, 7, 5, 0, 6, 8, 0, 0, 10, 0, 10, 1, 0, 9, 7, 0,
+    11, 8, 0, 3, 0, 0, 4, 2, 0, 5, 6, 0, 7, 10, 0, 1, 3, 0, 6, 9, 0, 8, 5, 0,
+    0, 4, 0, 2, 11, 0, 9, 8, 0, 3, 7, 0, 10, 6, 0, 11, 5, 0, 4, 1, 0, 2, 0, 0,
+    0, 11, 0, 8, 10, 0, 7, 4, 0, 5, 9, 0, 6, 3, 0, 1, 2, 0, 7, 2, 0, 6, 4, 0,
+    5, 10, 0, 8, 3, 0, 9, 11, 0, 1, 0, 0, 3, 5, 0, 11, 1, 0, 4, 8, 0, 10, 9, 0,
+    0, 7, 0, 2, 6, 0, 9, 3, 0, 8, 2, 0, 7, 1, 0, 5, 4, 0, 6, 0, 0, 11, 10, 0,
+    3, 10, 0, 1, 6, 0, 7, 11, 0, 2, 5, 0, 0, 8, 0, 4, 9, 0, 8, 1, 0, 9, 2, 0,
+    5, 0, 0, 6, 7, 0, 10, 4, 0, 11, 3, 0, 6, 11, 0, 4, 3, 0, 0, 9, 0, 1, 5, 0,
+    2, 10, 0, 7, 8, 0, 3, 2, 0, 8, 6, 0, 9, 1, 0, 10, 0, 0, 11, 4, 0, 5, 7, 0,
+    8, 11, 0, 1, 10, 0, 0, 3, 0, 7, 9, 0, 6, 5, 0, 2, 4, 0, 3, 1, 0, 9, 6, 0,
+    4, 0, 0, 10, 7, 0, 11, 2, 0, 5, 8, 0, 1, 4, 0, 8, 9, 0, 5, 11, 0, 6, 10, 0,
+    0, 2, 0, 7, 3, 0, 9, 5, 0, 10, 8, 0, 2, 1, 0, 11, 0, 0, 3, 6, 0, 4, 7, 0,
+    7, 2, 0, 1, 0, 0, 5, 10, 0, 8, 3, 0, 6, 4, 0, 9, 11, 0, 11, 1, 0, 10, 9, 0,
+    4, 8, 0, 0, 7, 0, 3, 5, 0, 2, 6, 0, 5, 4, 0, 7, 1, 0, 9, 3, 0, 8, 2, 0,
+    11, 10, 0, 6, 0, 0, 1, 6, 0, 0, 8, 0, 4, 9, 0, 3, 10, 0, 7, 11, 0, 2, 5, 0,
+    11, 3, 0, 9, 2, 0, 5, 0, 0, 8, 1, 0, 6, 7, 0, 10, 4, 0, 6, 11, 0, 7, 8, 0,
+    0, 9, 0, 2, 10, 0, 4, 3, 0, 1, 5, 0, 3, 2, 0, 9, 1, 0, 11, 4, 0, 5, 7, 0,
+    8, 6, 0, 10, 0, 0, 1, 10, 0, 7, 9, 0, 8, 11, 0, 0, 3, 0, 2, 4, 0, 6, 5, 0,
+    10, 7, 0, 3, 1, 0, 9, 6, 0, 5, 8, 0, 4, 0, 0, 11, 2, 0, 8, 9, 0, 7, 3, 0,
+    6, 10, 0, 5, 11, 0, 1, 4, 0, 0, 2, 0, 11, 0, 0, 10, 8, 0, 4, 7, 0, 9, 5, 0,
+    3, 6, 0, 2, 1, 0, 2, 7, 0, 4, 6, 0, 10, 5, 0, 3, 8, 0, 11, 9, 0, 0, 1, 0,
+    5, 3, 0, 1, 11, 0, 8, 4, 0, 9, 10, 0, 7, 0, 0, 6, 2, 0, 3, 9, 0, 2, 8, 0,
+    1, 7, 0, 4, 5, 0, 0, 6, 0, 10, 11, 0, 10, 3, 0, 6, 1, 0, 11, 7, 0, 5, 2, 0,
+    8, 0, 0, 9, 4, 0, 1, 8, 0, 2, 9, 0, 0, 5, 0, 7, 6, 0, 4, 10, 0, 3, 11, 0,
+    11, 6, 0, 3, 4, 0, 9, 0, 0, 5, 1, 0, 10, 2, 0, 8, 7, 0, 2, 3, 0, 6, 8, 0,
+    1, 9, 0, 0, 10, 0, 4, 11, 0, 7, 5, 0, 11, 8, 0, 10, 1, 0, 3, 0, 0, 9, 7, 0,
+    5, 6, 0, 4, 2, 0, 1, 3, 0, 6, 9, 0, 0, 4, 0, 7, 10, 0, 2, 11, 0, 8, 5, 0,
+    4, 1, 0, 9, 8, 0, 11, 5, 0, 10, 6, 0, 2, 0, 0, 3, 7, 0, 5, 9, 0, 8, 10, 0,
+    1, 2, 0, 0, 11, 0, 6, 3, 0, 7, 4, 0, 54, 56, 58, 59, 61, 63, 65, 66, 67, 69, 70, 73,
+    74, 75, 76, 78, 79, 80, 81, 83, 85, 87, 98, 100, 101, 103, 105, 107, 109, 110, 112, 113, 115, 120, 122, 123,
+    124, 125, 126, 128, 129, 131, 133, 134,
+};
+
+static const uint8_t kWorld2627_split70_0[776] = {
+    0, 70, 0, 12, 1, 0, 32, 2, 72, 0, 104, 0, 168, 0, 8, 3, 0, 1, 4, 0, 0, 12, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 232, 2, 16, 1, 5, 0,
+    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0, 12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0,
+    48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0, 84, 0, 90, 0, 96, 0, 102, 0, 108, 0, 114, 0,
+    120, 0, 126, 0, 132, 0, 138, 0, 144, 0, 150, 0, 156, 0, 162, 0, 168, 0, 174, 0, 180, 0, 186, 0,
+    4, 3, 0, 8, 9, 0, 7, 6, 0, 2, 0, 0, 11, 5, 0, 1, 10, 0, 3, 1, 0, 6, 11, 0,
+    4, 8, 0, 7, 0, 0, 2, 5, 0, 9, 10, 0, 3, 8, 0, 6, 5, 0, 4, 10, 0, 1, 9, 0,
+    7, 2, 0, 11, 0, 0, 2, 6, 0, 8, 10, 0, 0, 5, 0, 3, 9, 0, 4, 1, 0, 7, 11, 0,
+    6, 0, 0, 1, 8, 0, 3, 10, 0, 2, 11, 0, 7, 5, 0, 4, 9, 0, 7, 3, 0, 11, 9, 0,
+    2, 10, 0, 1, 5, 0, 4, 6, 0, 8, 0, 0, 3, 5, 0, 4, 11, 0, 2, 8, 0, 6, 9, 0,
+    7, 1, 0, 0, 10, 0, 3, 6, 0, 9, 5, 0, 11, 8, 0, 4, 2, 0, 7, 10, 0, 1, 0, 0,
+    3, 0, 0, 7, 8, 0, 2, 9, 0, 6, 1, 0, 4, 5, 0, 11, 10, 0, 1, 11, 0, 7, 4, 0,
+    2, 3, 0, 0, 9, 0, 6, 10, 0, 8, 5, 0, 11, 5, 0, 8, 9, 0, 4, 3, 0, 1, 10, 0,
+    2, 0, 0, 7, 6, 0, 10, 5, 0, 6, 8, 0, 4, 0, 0, 7, 9, 0, 3, 11, 0, 2, 1, 0,
+    6, 11, 0, 2, 5, 0, 7, 0, 0, 4, 8, 0, 9, 10, 0, 3, 1, 0, 0, 5, 0, 2, 6, 0,
+    7, 11, 0, 3, 8, 0, 4, 10, 0, 1, 9, 0, 3, 9, 0, 6, 5, 0, 4, 1, 0, 8, 10, 0,
+    11, 0, 0, 7, 2, 0, 1, 8, 0, 3, 10, 0, 6, 0, 0, 2, 11, 0, 4, 9, 0, 7, 5, 0,
+    3, 4, 0, 9, 8, 0, 6, 7, 0, 0, 2, 0, 5, 11, 0, 10, 1, 0, 1, 3, 0, 11, 6, 0,
+    8, 4, 0, 0, 7, 0, 5, 2, 0, 10, 9, 0, 8, 3, 0, 5, 6, 0, 10, 4, 0, 9, 1, 0,
+    2, 7, 0, 0, 11, 0, 6, 2, 0, 10, 8, 0, 5, 0, 0, 9, 3, 0, 1, 4, 0, 11, 7, 0,
+    0, 6, 0, 8, 1, 0, 10, 3, 0, 11, 2, 0, 5, 7, 0, 9, 4, 0, 3, 7, 0, 9, 11, 0,
+    10, 2, 0, 5, 1, 0, 6, 4, 0, 0, 8, 0, 5, 3, 0, 11, 4, 0, 8, 2, 0, 9, 6, 0,
+    1, 7, 0, 10, 0, 0, 6, 3, 0, 5, 9, 0, 8, 11, 0, 2, 4, 0, 10, 7, 0, 0, 1, 0,
+    0, 3, 0, 8, 7, 0, 9, 2, 0, 1, 6, 0, 5, 4, 0, 10, 11, 0, 11, 1, 0, 4, 7, 0,
+    3, 2, 0, 9, 0, 0, 10, 6, 0, 5, 8, 0, 5, 11, 0, 9, 8, 0, 3, 4, 0, 10, 1, 0,
+    0, 2, 0, 6, 7, 0, 5, 10, 0, 8, 6, 0, 0, 4, 0, 9, 7, 0, 11, 3, 0, 1, 2, 0,
+    11, 6, 0, 5, 2, 0, 0, 7, 0, 8, 4, 0, 10, 9, 0, 1, 3, 0, 5, 0, 0, 6, 2, 0,
+    11, 7, 0, 8, 3, 0, 10, 4, 0, 9, 1, 0, 9, 3, 0, 5, 6, 0, 1, 4, 0, 10, 8, 0,
+    0, 11, 0, 2, 7, 0, 8, 1, 0, 10, 3, 0, 0, 6, 0, 11, 2, 0, 9, 4, 0, 5, 7, 0,
+    56, 58, 59, 61, 63, 65, 67, 68, 74, 76, 77, 79, 81, 81, 84, 85, 98, 99, 101, 103, 105, 107, 109, 111,
+    113, 115, 116, 120, 122, 124, 126, 128,
+};
+
 static const uint8_t kWorld2627_split17_0[152] = {
     0, 17, 0, 12, 3, 22, 5, 1, 44, 0, 50, 0, 60, 0, 152, 0, 0, 2, 0, 0, 0, 6, 0, 6,
     6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 6, 6, 6,
@@ -5239,6 +5828,129 @@ static const uint8_t kWorld2627_split92_0[164] = {
     5, 0, 0, 2, 0, 3, 1, 0, 5, 4, 0, 1, 0, 0, 5, 2, 0, 4, 3, 0,
 };
 
+static const uint8_t kWorld2627_split60_0[1128] = {
+    0, 60, 0, 18, 1, 0, 34, 2, 72, 0, 106, 0, 174, 0, 104, 4, 0, 1, 4, 0, 0, 18, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 68, 4, 17, 1, 5, 0,
+    0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+    9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, 0, 9, 0, 18, 0, 27, 0, 36, 0, 45, 0, 54, 0,
+    63, 0, 72, 0, 81, 0, 90, 0, 99, 0, 108, 0, 117, 0, 126, 0, 135, 0, 144, 0, 153, 0, 162, 0,
+    171, 0, 180, 0, 189, 0, 198, 0, 207, 0, 216, 0, 225, 0, 234, 0, 243, 0, 252, 0, 5, 1, 14, 1,
+    23, 1, 32, 1, 41, 1, 14, 17, 0, 8, 6, 0, 13, 2, 0, 9, 5, 0, 11, 15, 0, 0, 3, 0,
+    12, 16, 0, 1, 4, 0, 10, 7, 0, 2, 15, 0, 4, 0, 0, 17, 7, 0, 8, 9, 0, 1, 11, 0,
+    6, 13, 0, 16, 5, 0, 14, 12, 0, 3, 10, 0, 15, 1, 0, 13, 8, 0, 11, 0, 0, 10, 6, 0,
+    5, 12, 0, 9, 3, 0, 2, 17, 0, 7, 16, 0, 4, 14, 0, 17, 4, 0, 12, 11, 0, 5, 6, 0,
+    0, 10, 0, 7, 13, 0, 16, 1, 0, 8, 2, 0, 14, 9, 0, 3, 15, 0, 9, 12, 0, 6, 17, 0,
+    11, 7, 0, 10, 4, 0, 1, 8, 0, 15, 16, 0, 2, 5, 0, 13, 3, 0, 0, 14, 0, 14, 2, 0,
+    17, 9, 0, 8, 0, 0, 5, 10, 0, 3, 1, 0, 7, 15, 0, 16, 6, 0, 4, 11, 0, 12, 13, 0,
+    11, 3, 0, 13, 1, 0, 6, 14, 0, 5, 17, 0, 2, 16, 0, 0, 9, 0, 15, 4, 0, 7, 8, 0,
+    10, 12, 0, 14, 15, 0, 17, 3, 0, 8, 10, 0, 4, 5, 0, 12, 6, 0, 2, 7, 0, 16, 11, 0,
+    1, 0, 0, 9, 13, 0, 15, 17, 0, 11, 6, 0, 5, 0, 0, 13, 14, 0, 12, 2, 0, 7, 1, 0,
+    3, 8, 0, 4, 16, 0, 10, 9, 0, 17, 12, 0, 8, 5, 0, 2, 4, 0, 1, 10, 0, 16, 3, 0,
+    6, 15, 0, 0, 13, 0, 9, 11, 0, 14, 7, 0, 15, 9, 0, 6, 4, 0, 10, 17, 0, 11, 8, 0,
+    5, 1, 0, 7, 12, 0, 13, 16, 0, 3, 14, 0, 0, 2, 0, 14, 5, 0, 17, 0, 0, 8, 15, 0,
+    16, 10, 0, 1, 6, 0, 9, 7, 0, 4, 13, 0, 2, 11, 0, 12, 3, 0, 1, 14, 0, 13, 10, 0,
+    11, 17, 0, 6, 9, 0, 15, 12, 0, 5, 7, 0, 4, 8, 0, 3, 2, 0, 16, 0, 0, 14, 11, 0,
+    17, 13, 0, 9, 4, 0, 12, 1, 0, 0, 6, 0, 5, 15, 0, 7, 3, 0, 10, 2, 0, 8, 16, 0,
+    13, 5, 0, 11, 10, 0, 15, 0, 0, 3, 6, 0, 12, 8, 0, 1, 17, 0, 7, 4, 0, 16, 14, 0,
+    2, 9, 0, 13, 11, 0, 14, 8, 0, 17, 16, 0, 5, 3, 0, 6, 2, 0, 4, 12, 0, 0, 7, 0,
+    10, 15, 0, 9, 1, 0, 15, 13, 0, 11, 5, 0, 8, 17, 0, 16, 9, 0, 3, 4, 0, 0, 12, 0,
+    6, 7, 0, 1, 2, 0, 10, 14, 0, 17, 14, 0, 6, 8, 0, 2, 13, 0, 5, 9, 0, 15, 11, 0,
+    3, 0, 0, 16, 12, 0, 4, 1, 0, 7, 10, 0, 15, 2, 0, 0, 4, 0, 7, 17, 0, 9, 8, 0,
+    11, 1, 0, 13, 6, 0, 5, 16, 0, 12, 14, 0, 10, 3, 0, 1, 15, 0, 8, 13, 0, 0, 11, 0,
+    6, 10, 0, 12, 5, 0, 3, 9, 0, 17, 2, 0, 16, 7, 0, 14, 4, 0, 4, 17, 0, 11, 12, 0,
+    6, 5, 0, 10, 0, 0, 13, 7, 0, 1, 16, 0, 2, 8, 0, 9, 14, 0, 15, 3, 0, 12, 9, 0,
+    17, 6, 0, 7, 11, 0, 4, 10, 0, 8, 1, 0, 16, 15, 0, 5, 2, 0, 3, 13, 0, 14, 0, 0,
+    2, 14, 0, 9, 17, 0, 0, 8, 0, 10, 5, 0, 1, 3, 0, 15, 7, 0, 6, 16, 0, 11, 4, 0,
+    13, 12, 0, 3, 11, 0, 1, 13, 0, 14, 6, 0, 17, 5, 0, 16, 2, 0, 9, 0, 0, 4, 15, 0,
+    8, 7, 0, 12, 10, 0, 15, 14, 0, 3, 17, 0, 10, 8, 0, 5, 4, 0, 6, 12, 0, 7, 2, 0,
+    11, 16, 0, 0, 1, 0, 13, 9, 0, 17, 15, 0, 6, 11, 0, 0, 5, 0, 14, 13, 0, 2, 12, 0,
+    1, 7, 0, 8, 3, 0, 16, 4, 0, 9, 10, 0, 12, 17, 0, 5, 8, 0, 4, 2, 0, 10, 1, 0,
+    3, 16, 0, 15, 6, 0, 13, 0, 0, 11, 9, 0, 7, 14, 0, 9, 15, 0, 4, 6, 0, 17, 10, 0,
+    8, 11, 0, 1, 5, 0, 12, 7, 0, 16, 13, 0, 14, 3, 0, 2, 0, 0, 5, 14, 0, 0, 17, 0,
+    15, 8, 0, 10, 16, 0, 6, 1, 0, 7, 9, 0, 13, 4, 0, 11, 2, 0, 3, 12, 0, 14, 1, 0,
+    10, 13, 0, 17, 11, 0, 9, 6, 0, 12, 15, 0, 7, 5, 0, 8, 4, 0, 2, 3, 0, 0, 16, 0,
+    11, 14, 0, 13, 17, 0, 4, 9, 0, 1, 12, 0, 6, 0, 0, 15, 5, 0, 3, 7, 0, 2, 10, 0,
+    16, 8, 0, 5, 13, 0, 10, 11, 0, 0, 15, 0, 6, 3, 0, 8, 12, 0, 17, 1, 0, 4, 7, 0,
+    14, 16, 0, 9, 2, 0, 11, 13, 0, 8, 14, 0, 16, 17, 0, 3, 5, 0, 2, 6, 0, 12, 4, 0,
+    7, 0, 0, 15, 10, 0, 1, 9, 0, 13, 15, 0, 5, 11, 0, 17, 8, 0, 9, 16, 0, 4, 3, 0,
+    12, 0, 0, 7, 6, 0, 2, 1, 0, 14, 10, 0, 52, 54, 56, 60, 61, 63, 65, 67, 69, 70, 74, 76,
+    77, 78, 80, 81, 85, 98, 99, 101, 103, 105, 107, 109, 111, 113, 115, 116, 120, 122, 124, 126, 128, 129, 0, 0,
+};
+
+static const uint8_t kWorld2627_split60_1[912] = {
+    0, 60, 1, 16, 1, 0, 30, 2, 72, 0, 102, 0, 162, 0, 144, 3, 0, 1, 4, 0, 0, 16, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 114, 3, 15, 1, 5, 0,
+    0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 0, 0, 8, 0, 16, 0, 24, 0, 32, 0, 40, 0, 48, 0, 56, 0, 64, 0,
+    72, 0, 80, 0, 88, 0, 96, 0, 104, 0, 112, 0, 120, 0, 128, 0, 136, 0, 144, 0, 152, 0, 160, 0,
+    168, 0, 176, 0, 184, 0, 192, 0, 200, 0, 208, 0, 216, 0, 224, 0, 232, 0, 0, 15, 0, 5, 11, 0,
+    7, 12, 0, 8, 9, 0, 2, 3, 0, 4, 13, 0, 6, 14, 0, 10, 1, 0, 9, 10, 0, 5, 7, 0,
+    11, 0, 0, 3, 15, 0, 14, 8, 0, 6, 4, 0, 13, 2, 0, 1, 12, 0, 7, 9, 0, 12, 11, 0,
+    10, 5, 0, 0, 3, 0, 15, 13, 0, 8, 6, 0, 2, 1, 0, 4, 14, 0, 9, 0, 0, 11, 6, 0,
+    5, 8, 0, 3, 13, 0, 14, 2, 0, 10, 7, 0, 1, 15, 0, 12, 4, 0, 8, 10, 0, 0, 7, 0,
+    2, 11, 0, 3, 14, 0, 13, 1, 0, 4, 9, 0, 15, 12, 0, 6, 5, 0, 1, 3, 0, 9, 6, 0,
+    11, 15, 0, 10, 2, 0, 14, 0, 0, 7, 8, 0, 5, 4, 0, 12, 13, 0, 0, 10, 0, 15, 7, 0,
+    3, 5, 0, 13, 11, 0, 2, 9, 0, 4, 8, 0, 1, 14, 0, 6, 12, 0, 9, 15, 0, 14, 13, 0,
+    11, 1, 0, 7, 4, 0, 8, 0, 0, 10, 6, 0, 5, 2, 0, 12, 3, 0, 15, 14, 0, 0, 5, 0,
+    13, 8, 0, 3, 11, 0, 1, 9, 0, 2, 12, 0, 4, 10, 0, 6, 7, 0, 5, 13, 0, 9, 3, 0,
+    11, 4, 0, 14, 12, 0, 7, 1, 0, 8, 2, 0, 10, 15, 0, 6, 0, 0, 0, 4, 0, 11, 14, 0,
+    3, 8, 0, 13, 9, 0, 1, 6, 0, 2, 7, 0, 15, 5, 0, 12, 10, 0, 9, 11, 0, 6, 3, 0,
+    0, 2, 0, 7, 13, 0, 8, 12, 0, 10, 14, 0, 4, 15, 0, 5, 1, 0, 11, 10, 0, 3, 7, 0,
+    14, 5, 0, 13, 0, 0, 2, 4, 0, 1, 8, 0, 15, 6, 0, 12, 9, 0, 9, 14, 0, 0, 1, 0,
+    8, 15, 0, 10, 13, 0, 4, 3, 0, 5, 12, 0, 7, 11, 0, 6, 2, 0, 9, 5, 0, 11, 8, 0,
+    3, 10, 0, 14, 7, 0, 13, 6, 0, 15, 2, 0, 1, 4, 0, 12, 0, 0, 15, 0, 0, 11, 5, 0,
+    12, 7, 0, 9, 8, 0, 3, 2, 0, 13, 4, 0, 14, 6, 0, 1, 10, 0, 10, 9, 0, 7, 5, 0,
+    0, 11, 0, 15, 3, 0, 8, 14, 0, 4, 6, 0, 2, 13, 0, 12, 1, 0, 9, 7, 0, 11, 12, 0,
+    5, 10, 0, 3, 0, 0, 13, 15, 0, 6, 8, 0, 1, 2, 0, 14, 4, 0, 0, 9, 0, 6, 11, 0,
+    8, 5, 0, 13, 3, 0, 2, 14, 0, 7, 10, 0, 15, 1, 0, 4, 12, 0, 10, 8, 0, 7, 0, 0,
+    11, 2, 0, 14, 3, 0, 1, 13, 0, 9, 4, 0, 12, 15, 0, 5, 6, 0, 3, 1, 0, 6, 9, 0,
+    15, 11, 0, 2, 10, 0, 0, 14, 0, 8, 7, 0, 4, 5, 0, 13, 12, 0, 10, 0, 0, 7, 15, 0,
+    5, 3, 0, 11, 13, 0, 9, 2, 0, 8, 4, 0, 14, 1, 0, 12, 6, 0, 15, 9, 0, 13, 14, 0,
+    1, 11, 0, 4, 7, 0, 0, 8, 0, 6, 10, 0, 2, 5, 0, 3, 12, 0, 14, 15, 0, 5, 0, 0,
+    8, 13, 0, 11, 3, 0, 9, 1, 0, 12, 2, 0, 10, 4, 0, 7, 6, 0, 13, 5, 0, 3, 9, 0,
+    4, 11, 0, 12, 14, 0, 1, 7, 0, 2, 8, 0, 15, 10, 0, 0, 6, 0, 4, 0, 0, 14, 11, 0,
+    8, 3, 0, 9, 13, 0, 6, 1, 0, 7, 2, 0, 5, 15, 0, 10, 12, 0, 11, 9, 0, 3, 6, 0,
+    2, 0, 0, 13, 7, 0, 12, 8, 0, 14, 10, 0, 15, 4, 0, 1, 5, 0, 10, 11, 0, 7, 3, 0,
+    5, 14, 0, 0, 13, 0, 4, 2, 0, 8, 1, 0, 6, 15, 0, 9, 12, 0, 14, 9, 0, 1, 0, 0,
+    15, 8, 0, 13, 10, 0, 3, 4, 0, 12, 5, 0, 11, 7, 0, 2, 6, 0, 5, 9, 0, 8, 11, 0,
+    10, 3, 0, 7, 14, 0, 6, 13, 0, 2, 15, 0, 4, 1, 0, 0, 12, 0, 54, 56, 57, 59, 61, 63,
+    65, 67, 69, 70, 72, 74, 76, 78, 80, 98, 99, 101, 103, 105, 107, 109, 111, 113, 115, 116, 120, 122, 124, 126,
+};
+
+static const uint8_t kWorld2627_split24_0[688] = {
+    0, 24, 0, 12, 2, 11, 21, 3, 100, 0, 122, 0, 164, 0, 176, 2, 0, 2, 0, 0, 0, 6, 0, 6,
+    6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 1, 3, 0,
+    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    16, 2, 0, 0, 0, 6, 0, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 0, 0, 0, 6, 0, 12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0, 48, 0, 54, 0, 60, 0,
+    66, 0, 72, 0, 78, 0, 84, 0, 90, 0, 96, 0, 102, 0, 108, 0, 114, 0, 120, 0, 0, 5, 0, 1,
+    4, 0, 2, 3, 0, 6, 11, 0, 7, 10, 0, 8, 9, 0, 0, 4, 0, 5, 3, 0, 1, 2, 0, 6,
+    10, 0, 11, 9, 0, 7, 8, 0, 3, 0, 0, 4, 2, 0, 5, 1, 0, 9, 6, 0, 10, 8, 0, 11,
+    7, 0, 2, 0, 0, 1, 3, 0, 4, 5, 0, 8, 6, 0, 7, 9, 0, 10, 11, 0, 0, 1, 0, 2,
+    5, 0, 3, 4, 0, 6, 7, 0, 8, 11, 0, 9, 10, 0, 0, 11, 1, 1, 10, 1, 2, 9, 1, 3,
+    8, 1, 4, 7, 1, 5, 6, 1, 10, 0, 1, 11, 9, 1, 8, 1, 1, 7, 2, 1, 6, 3, 1, 4,
+    5, 1, 9, 0, 1, 10, 8, 1, 11, 7, 1, 1, 6, 1, 2, 5, 1, 3, 4, 1, 0, 8, 1, 7,
+    9, 1, 6, 10, 1, 5, 11, 1, 4, 1, 1, 2, 3, 1, 0, 7, 1, 8, 6, 1, 9, 5, 1, 10,
+    4, 1, 11, 3, 1, 1, 2, 1, 6, 0, 1, 7, 5, 1, 4, 8, 1, 3, 9, 1, 2, 10, 1, 11,
+    1, 1, 5, 0, 1, 6, 4, 1, 3, 7, 1, 8, 2, 1, 1, 9, 1, 10, 11, 1, 0, 4, 1, 5,
+    3, 1, 2, 6, 1, 7, 1, 1, 8, 11, 1, 9, 10, 1, 3, 0, 1, 4, 2, 1, 1, 5, 1, 11,
+    6, 1, 10, 7, 1, 9, 8, 1, 0, 2, 1, 1, 3, 1, 4, 11, 1, 5, 10, 1, 6, 9, 1, 8,
+    7, 1, 0, 1, 1, 2, 11, 1, 3, 10, 1, 9, 4, 1, 5, 8, 1, 7, 6, 1, 0, 5, 0, 1,
+    4, 0, 2, 3, 0, 6, 11, 0, 7, 10, 0, 8, 9, 0, 0, 4, 0, 5, 3, 0, 1, 2, 0, 6,
+    10, 0, 11, 9, 0, 7, 8, 0, 3, 0, 0, 4, 2, 0, 5, 1, 0, 9, 6, 0, 10, 8, 0, 11,
+    7, 0, 2, 0, 0, 1, 3, 0, 4, 5, 0, 8, 6, 0, 7, 9, 0, 10, 11, 0, 0, 1, 0, 2,
+    5, 0, 3, 4, 0, 6, 7, 0, 8, 11, 0, 9, 10, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0,
+    1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0,
+    1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0,
+    1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1,
+    0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0,
+    0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1,
+    0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0,
+};
+
 static const uint8_t kWorld2627_split26_0[296] = {
     0, 26, 0, 12, 4, 33, 5, 1, 44, 0, 50, 0, 60, 0, 40, 1, 0, 2, 0, 0, 0, 6, 0, 6,
     6, 0, 0, 0, 0, 0, 0, 0, 150, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 6, 6, 6,
@@ -5253,6 +5965,140 @@ static const uint8_t kWorld2627_split26_0[296] = {
     1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0,
     0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0,
     0, 1, 0, 1, 1, 0, 0, 0,
+};
+
+static const uint8_t kWorld2627_split95_0[800] = {
+    0, 95, 0, 12, 1, 0, 32, 2, 72, 0, 104, 0, 168, 0, 32, 3, 0, 2, 12, 0, 0, 6, 0, 6,
+    6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 232, 2, 0, 0, 0, 0, 244, 2, 16, 2, 13, 0,
+    0, 6, 0, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 3, 0, 0, 0, 0, 0, 0,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0, 12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0,
+    48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0, 84, 0, 90, 0, 96, 0, 102, 0, 108, 0, 114, 0,
+    120, 0, 126, 0, 132, 0, 138, 0, 144, 0, 150, 0, 156, 0, 162, 0, 168, 0, 174, 0, 180, 0, 186, 0,
+    2, 0, 0, 8, 4, 0, 7, 1, 0, 9, 11, 0, 3, 5, 0, 6, 10, 0, 2, 8, 0, 10, 0, 0,
+    6, 4, 0, 11, 1, 0, 3, 7, 0, 5, 9, 0, 1, 9, 0, 0, 6, 0, 4, 2, 0, 11, 3, 0,
+    10, 8, 0, 5, 7, 0, 1, 5, 0, 7, 11, 0, 4, 10, 0, 9, 3, 0, 8, 0, 0, 6, 2, 0,
+    2, 10, 0, 5, 11, 0, 3, 1, 0, 9, 7, 0, 0, 4, 0, 8, 6, 0, 6, 5, 0, 7, 2, 0,
+    1, 0, 0, 11, 8, 0, 10, 9, 0, 4, 3, 0, 2, 3, 0, 7, 10, 0, 0, 9, 0, 11, 6, 0,
+    8, 1, 0, 4, 5, 0, 2, 11, 0, 5, 0, 0, 6, 7, 0, 9, 4, 0, 3, 8, 0, 10, 1, 0,
+    1, 2, 0, 8, 7, 0, 0, 3, 0, 9, 6, 0, 5, 10, 0, 4, 11, 0, 2, 9, 0, 7, 4, 0,
+    6, 1, 0, 11, 0, 0, 3, 10, 0, 8, 5, 0, 1, 4, 0, 3, 6, 0, 0, 7, 0, 9, 8, 0,
+    5, 2, 0, 10, 11, 0, 1, 7, 0, 5, 3, 0, 0, 2, 0, 11, 9, 0, 4, 8, 0, 10, 6, 0,
+    2, 4, 0, 7, 5, 0, 6, 0, 0, 9, 1, 0, 8, 10, 0, 3, 11, 0, 2, 6, 0, 0, 8, 0,
+    5, 1, 0, 11, 7, 0, 3, 9, 0, 10, 4, 0, 0, 10, 0, 4, 6, 0, 1, 11, 0, 7, 3, 0,
+    9, 5, 0, 8, 2, 0, 6, 8, 0, 10, 2, 0, 4, 0, 0, 1, 3, 0, 7, 9, 0, 11, 5, 0,
+    0, 2, 0, 4, 8, 0, 1, 7, 0, 11, 9, 0, 5, 3, 0, 10, 6, 0, 8, 2, 0, 0, 10, 0,
+    4, 6, 0, 1, 11, 0, 7, 3, 0, 9, 5, 0, 9, 1, 0, 6, 0, 0, 2, 4, 0, 3, 11, 0,
+    8, 10, 0, 7, 5, 0, 5, 1, 0, 11, 7, 0, 10, 4, 0, 3, 9, 0, 0, 8, 0, 2, 6, 0,
+    10, 2, 0, 11, 5, 0, 1, 3, 0, 7, 9, 0, 4, 0, 0, 6, 8, 0, 5, 6, 0, 2, 7, 0,
+    0, 1, 0, 8, 11, 0, 9, 10, 0, 3, 4, 0, 3, 2, 0, 10, 7, 0, 9, 0, 0, 6, 11, 0,
+    1, 8, 0, 5, 4, 0, 11, 2, 0, 0, 5, 0, 7, 6, 0, 4, 9, 0, 8, 3, 0, 1, 10, 0,
+    2, 1, 0, 7, 8, 0, 3, 0, 0, 6, 9, 0, 10, 5, 0, 11, 4, 0, 9, 2, 0, 4, 7, 0,
+    1, 6, 0, 0, 11, 0, 10, 3, 0, 5, 8, 0, 4, 1, 0, 6, 3, 0, 7, 0, 0, 8, 9, 0,
+    2, 5, 0, 11, 10, 0, 7, 1, 0, 3, 5, 0, 2, 0, 0, 9, 11, 0, 8, 4, 0, 6, 10, 0,
+    4, 2, 0, 5, 7, 0, 0, 6, 0, 1, 9, 0, 10, 8, 0, 11, 3, 0, 6, 2, 0, 8, 0, 0,
+    1, 5, 0, 7, 11, 0, 9, 3, 0, 4, 10, 0, 10, 0, 0, 6, 4, 0, 11, 1, 0, 3, 7, 0,
+    5, 9, 0, 2, 8, 0, 8, 6, 0, 2, 10, 0, 0, 4, 0, 3, 1, 0, 9, 7, 0, 5, 11, 0,
+    0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 54, 56, 58, 59, 61, 63, 65, 67, 69, 70, 72, 76,
+    78, 80, 81, 83, 98, 99, 101, 103, 105, 107, 109, 111, 113, 115, 116, 120, 122, 124, 126, 128, 0, 1, 0, 1,
+    0, 1, 0, 1, 0, 1, 0, 1,
+};
+
+static const uint8_t kWorld2627_split64_0[1040] = {
+    0, 64, 0, 12, 1, 0, 44, 2, 72, 0, 116, 0, 204, 0, 16, 4, 0, 1, 4, 0, 0, 12, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 228, 3, 22, 1, 5, 0,
+    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0,
+    12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0, 48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0,
+    84, 0, 90, 0, 96, 0, 102, 0, 108, 0, 114, 0, 120, 0, 126, 0, 132, 0, 138, 0, 144, 0, 150, 0,
+    156, 0, 162, 0, 168, 0, 174, 0, 180, 0, 186, 0, 192, 0, 198, 0, 204, 0, 210, 0, 216, 0, 222, 0,
+    228, 0, 234, 0, 240, 0, 246, 0, 252, 0, 2, 1, 6, 3, 0, 9, 8, 0, 7, 11, 0, 1, 0, 0,
+    4, 2, 0, 5, 10, 0, 8, 7, 0, 11, 1, 0, 0, 5, 0, 9, 4, 0, 3, 2, 0, 10, 6, 0,
+    7, 9, 0, 5, 11, 0, 4, 3, 0, 2, 10, 0, 6, 0, 0, 1, 8, 0, 11, 6, 0, 8, 5, 0,
+    10, 3, 0, 9, 1, 0, 0, 2, 0, 7, 4, 0, 2, 11, 0, 6, 8, 0, 4, 10, 0, 5, 9, 0,
+    3, 0, 0, 1, 7, 0, 11, 3, 0, 7, 5, 0, 0, 10, 0, 9, 6, 0, 1, 4, 0, 8, 2, 0,
+    5, 1, 0, 4, 0, 0, 3, 8, 0, 10, 11, 0, 6, 7, 0, 2, 9, 0, 5, 4, 0, 9, 3, 0,
+    7, 2, 0, 1, 6, 0, 8, 10, 0, 11, 0, 0, 2, 1, 0, 0, 8, 0, 4, 11, 0, 10, 9, 0,
+    3, 7, 0, 6, 5, 0, 8, 11, 0, 9, 0, 0, 6, 4, 0, 1, 3, 0, 7, 10, 0, 5, 2, 0,
+    11, 9, 0, 4, 8, 0, 10, 1, 0, 0, 7, 0, 2, 6, 0, 3, 5, 0, 2, 4, 0, 0, 1, 0,
+    11, 7, 0, 8, 9, 0, 3, 6, 0, 10, 5, 0, 6, 10, 0, 7, 8, 0, 5, 0, 0, 4, 9, 0,
+    1, 11, 0, 2, 3, 0, 0, 6, 0, 9, 7, 0, 11, 5, 0, 8, 1, 0, 10, 2, 0, 3, 4, 0,
+    4, 7, 0, 1, 9, 0, 6, 11, 0, 5, 8, 0, 2, 0, 0, 3, 10, 0, 9, 5, 0, 11, 2, 0,
+    8, 6, 0, 7, 1, 0, 10, 4, 0, 0, 3, 0, 3, 11, 0, 2, 8, 0, 6, 9, 0, 4, 1, 0,
+    5, 7, 0, 10, 0, 0, 7, 6, 0, 1, 5, 0, 8, 3, 0, 0, 4, 0, 9, 2, 0, 11, 10, 0,
+    3, 9, 0, 0, 11, 0, 10, 8, 0, 4, 5, 0, 6, 1, 0, 2, 7, 0, 9, 10, 0, 7, 3, 0,
+    11, 4, 0, 8, 0, 0, 5, 6, 0, 1, 2, 0, 0, 9, 0, 4, 6, 0, 3, 1, 0, 10, 7, 0,
+    2, 5, 0, 11, 8, 0, 9, 11, 0, 8, 4, 0, 6, 2, 0, 7, 0, 0, 1, 10, 0, 5, 3, 0,
+    9, 10, 0, 1, 3, 0, 6, 11, 0, 5, 7, 0, 4, 0, 0, 2, 8, 0, 10, 5, 0, 9, 1, 0,
+    8, 3, 0, 7, 4, 0, 11, 2, 0, 0, 6, 0, 5, 9, 0, 1, 8, 0, 4, 10, 0, 2, 0, 0,
+    3, 11, 0, 6, 7, 0, 10, 6, 0, 5, 1, 0, 9, 4, 0, 11, 8, 0, 7, 2, 0, 0, 3, 0,
+    6, 9, 0, 2, 10, 0, 3, 7, 0, 1, 11, 0, 8, 0, 0, 4, 5, 0, 10, 3, 0, 5, 6, 0,
+    4, 1, 0, 7, 8, 0, 0, 11, 0, 9, 2, 0, 8, 10, 0, 11, 7, 0, 3, 9, 0, 6, 4, 0,
+    1, 0, 0, 2, 5, 0, 10, 11, 0, 9, 8, 0, 5, 3, 0, 7, 0, 0, 4, 2, 0, 6, 1, 0,
+    11, 9, 0, 3, 4, 0, 0, 10, 0, 8, 5, 0, 2, 6, 0, 1, 7, 0, 5, 11, 0, 9, 0, 0,
+    2, 1, 0, 6, 3, 0, 4, 8, 0, 10, 7, 0, 3, 2, 0, 7, 9, 0, 0, 5, 0, 1, 10, 0,
+    11, 4, 0, 8, 6, 0, 8, 2, 0, 7, 5, 0, 10, 9, 0, 3, 1, 0, 11, 6, 0, 0, 4, 0,
+    2, 11, 0, 6, 0, 0, 3, 8, 0, 1, 9, 0, 5, 10, 0, 4, 7, 0, 11, 3, 0, 8, 1, 0,
+    10, 4, 0, 0, 2, 0, 9, 5, 0, 7, 6, 0, 6, 10, 0, 2, 7, 0, 4, 9, 0, 1, 5, 0,
+    3, 0, 0, 8, 11, 0, 10, 2, 0, 0, 8, 0, 7, 3, 0, 9, 6, 0, 5, 4, 0, 11, 1, 0,
+    2, 9, 0, 3, 10, 0, 6, 5, 0, 8, 7, 0, 11, 0, 0, 1, 4, 0, 0, 1, 0, 7, 11, 0,
+    10, 8, 0, 9, 3, 0, 5, 2, 0, 4, 6, 0, 1, 6, 0, 2, 4, 0, 3, 5, 0, 8, 9, 0,
+    11, 10, 0, 0, 7, 0, 7, 1, 0, 10, 0, 0, 9, 11, 0, 5, 8, 0, 4, 3, 0, 6, 2, 0,
+    1, 2, 0, 3, 6, 0, 8, 4, 0, 11, 5, 0, 0, 9, 0, 7, 10, 0, 10, 1, 0, 9, 7, 0,
+    5, 0, 0, 4, 11, 0, 6, 8, 0, 2, 3, 0, 6, 7, 8, 10, 12, 13, 15, 16, 18, 19, 20, 21,
+    22, 24, 25, 26, 28, 30, 32, 34, 35, 37, 54, 55, 56, 58, 59, 61, 63, 64, 65, 66, 68, 70, 73, 74,
+    76, 78, 79, 81, 83, 84, 86, 87,
+};
+
+static const uint8_t kWorld2627_split65_0[1128] = {
+    0, 65, 0, 18, 1, 0, 34, 2, 72, 0, 106, 0, 174, 0, 104, 4, 0, 1, 4, 0, 0, 18, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 68, 4, 17, 1, 5, 0,
+    0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+    9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, 0, 9, 0, 18, 0, 27, 0, 36, 0, 45, 0, 54, 0,
+    63, 0, 72, 0, 81, 0, 90, 0, 99, 0, 108, 0, 117, 0, 126, 0, 135, 0, 144, 0, 153, 0, 162, 0,
+    171, 0, 180, 0, 189, 0, 198, 0, 207, 0, 216, 0, 225, 0, 234, 0, 243, 0, 252, 0, 5, 1, 14, 1,
+    23, 1, 32, 1, 41, 1, 6, 1, 0, 14, 11, 0, 12, 10, 0, 13, 16, 0, 5, 9, 0, 7, 4, 0,
+    3, 2, 0, 0, 8, 0, 15, 17, 0, 17, 14, 0, 8, 12, 0, 11, 6, 0, 2, 0, 0, 4, 5, 0,
+    10, 3, 0, 9, 13, 0, 1, 15, 0, 16, 7, 0, 14, 2, 0, 0, 9, 0, 7, 8, 0, 13, 4, 0,
+    12, 11, 0, 3, 1, 0, 6, 16, 0, 15, 10, 0, 5, 17, 0, 1, 12, 0, 16, 5, 0, 4, 0, 0,
+    9, 3, 0, 8, 14, 0, 10, 6, 0, 11, 13, 0, 2, 15, 0, 17, 7, 0, 3, 8, 0, 5, 10, 0,
+    7, 9, 0, 6, 4, 0, 14, 1, 0, 12, 17, 0, 15, 11, 0, 13, 2, 0, 0, 16, 0, 11, 16, 0,
+    17, 6, 0, 15, 14, 0, 4, 3, 0, 2, 7, 0, 8, 13, 0, 10, 0, 0, 9, 12, 0, 1, 5, 0,
+    16, 15, 0, 6, 8, 0, 13, 10, 0, 7, 1, 0, 0, 14, 0, 4, 12, 0, 5, 11, 0, 3, 17, 0,
+    2, 9, 0, 8, 5, 0, 9, 16, 0, 17, 2, 0, 15, 0, 0, 10, 4, 0, 1, 13, 0, 14, 3, 0,
+    11, 7, 0, 12, 6, 0, 4, 17, 0, 3, 11, 0, 9, 8, 0, 7, 12, 0, 5, 2, 0, 0, 1, 0,
+    6, 15, 0, 13, 14, 0, 16, 10, 0, 17, 13, 0, 8, 1, 0, 12, 5, 0, 14, 6, 0, 15, 3, 0,
+    11, 4, 0, 2, 16, 0, 0, 7, 0, 10, 9, 0, 10, 11, 0, 16, 8, 0, 13, 15, 0, 6, 7, 0,
+    1, 2, 0, 4, 14, 0, 3, 12, 0, 5, 0, 0, 9, 17, 0, 17, 16, 0, 15, 4, 0, 12, 13, 0,
+    14, 9, 0, 2, 6, 0, 11, 1, 0, 0, 3, 0, 8, 10, 0, 7, 5, 0, 16, 12, 0, 8, 11, 0,
+    9, 15, 0, 1, 17, 0, 4, 2, 0, 13, 0, 0, 3, 6, 0, 5, 14, 0, 10, 7, 0, 14, 16, 0,
+    17, 8, 0, 11, 9, 0, 1, 4, 0, 6, 13, 0, 15, 5, 0, 2, 10, 0, 7, 3, 0, 12, 0, 0,
+    16, 4, 0, 0, 11, 0, 5, 6, 0, 13, 3, 0, 9, 1, 0, 12, 2, 0, 8, 15, 0, 7, 14, 0,
+    10, 17, 0, 13, 5, 0, 17, 0, 0, 14, 12, 0, 2, 11, 0, 1, 10, 0, 4, 8, 0, 6, 9, 0,
+    3, 16, 0, 15, 7, 0, 11, 17, 0, 8, 2, 0, 7, 13, 0, 12, 15, 0, 0, 6, 0, 5, 3, 0,
+    16, 1, 0, 10, 14, 0, 9, 4, 0, 16, 13, 0, 4, 7, 0, 9, 5, 0, 17, 15, 0, 8, 0, 0,
+    11, 14, 0, 2, 3, 0, 10, 12, 0, 1, 6, 0, 3, 10, 0, 0, 2, 0, 12, 8, 0, 6, 11, 0,
+    13, 9, 0, 5, 4, 0, 14, 17, 0, 15, 1, 0, 7, 16, 0, 10, 15, 0, 16, 6, 0, 11, 12, 0,
+    2, 14, 0, 1, 3, 0, 4, 13, 0, 8, 7, 0, 17, 5, 0, 9, 0, 0, 3, 9, 0, 6, 10, 0,
+    15, 2, 0, 0, 4, 0, 14, 8, 0, 13, 11, 0, 12, 1, 0, 7, 17, 0, 5, 16, 0, 11, 15, 0,
+    2, 13, 0, 8, 3, 0, 10, 5, 0, 1, 14, 0, 4, 6, 0, 17, 12, 0, 16, 0, 0, 9, 7, 0,
+    16, 11, 0, 3, 4, 0, 6, 17, 0, 14, 15, 0, 13, 8, 0, 7, 2, 0, 12, 9, 0, 5, 1, 0,
+    0, 10, 0, 15, 16, 0, 10, 13, 0, 14, 0, 0, 1, 7, 0, 17, 3, 0, 8, 6, 0, 12, 4, 0,
+    9, 2, 0, 11, 5, 0, 16, 9, 0, 3, 14, 0, 6, 12, 0, 2, 17, 0, 0, 15, 0, 4, 10, 0,
+    7, 11, 0, 13, 1, 0, 5, 8, 0, 14, 13, 0, 2, 5, 0, 10, 16, 0, 15, 6, 0, 1, 0, 0,
+    17, 4, 0, 12, 7, 0, 11, 3, 0, 8, 9, 0, 3, 15, 0, 1, 8, 0, 16, 2, 0, 4, 11, 0,
+    7, 0, 0, 5, 12, 0, 6, 14, 0, 13, 17, 0, 9, 10, 0, 17, 9, 0, 11, 10, 0, 7, 6, 0,
+    8, 16, 0, 15, 13, 0, 0, 5, 0, 14, 4, 0, 12, 3, 0, 2, 1, 0, 6, 2, 0, 10, 8, 0,
+    13, 12, 0, 5, 7, 0, 1, 11, 0, 4, 15, 0, 16, 17, 0, 3, 0, 0, 9, 14, 0, 14, 5, 0,
+    11, 8, 0, 6, 3, 0, 2, 4, 0, 0, 13, 0, 15, 9, 0, 17, 1, 0, 12, 16, 0, 7, 10, 0,
+    16, 14, 0, 8, 17, 0, 9, 11, 0, 4, 1, 0, 13, 6, 0, 5, 15, 0, 10, 2, 0, 3, 7, 0,
+    0, 12, 0, 4, 16, 0, 11, 0, 0, 6, 5, 0, 3, 13, 0, 1, 9, 0, 2, 12, 0, 15, 8, 0,
+    14, 7, 0, 17, 10, 0, 5, 13, 0, 0, 17, 0, 12, 14, 0, 11, 2, 0, 10, 1, 0, 8, 4, 0,
+    9, 6, 0, 16, 3, 0, 7, 15, 0, 17, 11, 0, 2, 8, 0, 13, 7, 0, 15, 12, 0, 6, 0, 0,
+    3, 5, 0, 1, 16, 0, 14, 10, 0, 4, 9, 0, 8, 10, 11, 14, 15, 17, 19, 21, 24, 28, 28, 30,
+    32, 34, 36, 37, 39, 52, 54, 56, 57, 59, 61, 63, 65, 67, 69, 74, 76, 78, 80, 81, 83, 85, 0, 0,
 };
 
 static const uint8_t kWorld2627_split30_0[300] = {
@@ -5340,6 +6186,58 @@ static const uint8_t kWorld2627_split78_0[256] = {
     2, 0, 4, 3, 0, 7, 6, 0, 11, 8, 0, 10, 9, 0, 0, 0,
 };
 
+static const uint8_t kWorld2627_split71_0[1156] = {
+    0, 71, 0, 16, 1, 0, 37, 3, 100, 0, 138, 0, 212, 0, 132, 4, 0, 1, 4, 0, 0, 16, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 4, 15, 2, 33, 0,
+    0, 8, 0, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 113, 4, 0, 0, 0, 0, 0, 0, 0, 0,
+    22, 1, 5, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0, 0, 0, 8, 0, 16, 0,
+    24, 0, 32, 0, 40, 0, 48, 0, 56, 0, 64, 0, 72, 0, 80, 0, 88, 0, 96, 0, 104, 0, 112, 0,
+    120, 0, 128, 0, 136, 0, 144, 0, 152, 0, 160, 0, 168, 0, 176, 0, 184, 0, 192, 0, 200, 0, 208, 0,
+    216, 0, 224, 0, 232, 0, 240, 0, 248, 0, 0, 1, 8, 1, 16, 1, 24, 1, 32, 1, 13, 0, 0, 12,
+    4, 0, 9, 14, 0, 3, 8, 0, 2, 7, 0, 5, 15, 0, 6, 1, 0, 10, 11, 0, 7, 12, 0, 0,
+    4, 0, 15, 9, 0, 1, 5, 0, 11, 6, 0, 14, 3, 0, 13, 10, 0, 8, 2, 0, 10, 0, 0, 4,
+    7, 0, 5, 11, 0, 6, 13, 0, 9, 1, 0, 12, 8, 0, 2, 14, 0, 3, 15, 0, 8, 4, 0, 10,
+    6, 0, 13, 5, 0, 11, 9, 0, 14, 12, 0, 0, 7, 0, 1, 3, 0, 15, 2, 0, 12, 15, 0, 9,
+    13, 0, 3, 11, 0, 5, 10, 0, 2, 1, 0, 4, 14, 0, 7, 8, 0, 6, 0, 0, 1, 12, 0, 10,
+    9, 0, 6, 5, 0, 13, 3, 0, 14, 7, 0, 15, 4, 0, 11, 2, 0, 0, 8, 0, 7, 15, 0, 4,
+    1, 0, 5, 0, 0, 8, 14, 0, 12, 11, 0, 3, 10, 0, 2, 13, 0, 9, 6, 0, 15, 8, 0, 0,
+    14, 0, 1, 7, 0, 13, 12, 0, 10, 2, 0, 6, 3, 0, 5, 9, 0, 11, 4, 0, 12, 10, 0, 8,
+    1, 0, 3, 5, 0, 2, 6, 0, 7, 11, 0, 14, 15, 0, 9, 0, 0, 4, 13, 0, 6, 12, 0, 1,
+    14, 0, 5, 2, 0, 11, 8, 0, 9, 3, 0, 13, 7, 0, 10, 4, 0, 0, 15, 0, 7, 10, 0, 8,
+    13, 0, 4, 6, 0, 15, 1, 0, 14, 11, 0, 2, 9, 0, 12, 5, 0, 3, 0, 0, 13, 14, 0, 9,
+    12, 0, 5, 4, 0, 10, 8, 0, 11, 15, 0, 0, 1, 0, 6, 7, 0, 3, 2, 0, 8, 6, 0, 2,
+    0, 0, 15, 13, 0, 1, 11, 0, 14, 10, 0, 7, 5, 0, 12, 3, 0, 4, 9, 0, 2, 12, 0, 10,
+    15, 0, 0, 11, 0, 9, 7, 0, 6, 14, 0, 5, 8, 0, 13, 1, 0, 3, 4, 0, 12, 0, 0, 11,
+    13, 0, 14, 5, 0, 4, 2, 0, 8, 9, 0, 1, 10, 0, 15, 6, 0, 7, 3, 0, 0, 7, 0, 1,
+    6, 0, 2, 5, 0, 3, 4, 0, 8, 15, 0, 9, 14, 0, 10, 13, 0, 11, 12, 0, 0, 6, 0, 7,
+    5, 0, 4, 1, 0, 2, 3, 0, 8, 14, 0, 15, 13, 0, 12, 9, 0, 10, 11, 0, 5, 0, 0, 6,
+    4, 0, 7, 3, 0, 1, 2, 0, 13, 8, 0, 14, 12, 0, 15, 11, 0, 9, 10, 0, 4, 0, 0, 3,
+    5, 0, 6, 2, 0, 1, 7, 0, 12, 8, 0, 11, 13, 0, 14, 10, 0, 9, 15, 0, 0, 3, 0, 2,
+    4, 0, 5, 1, 0, 7, 6, 0, 8, 11, 0, 10, 12, 0, 13, 9, 0, 15, 14, 0, 0, 2, 0, 3,
+    1, 0, 4, 7, 0, 6, 5, 0, 8, 10, 0, 11, 9, 0, 12, 15, 0, 14, 13, 0, 1, 0, 0, 2,
+    7, 0, 3, 6, 0, 5, 4, 0, 9, 8, 0, 10, 15, 0, 11, 14, 0, 13, 12, 0, 7, 2, 0, 14,
+    9, 0, 0, 13, 0, 11, 10, 0, 4, 12, 0, 1, 6, 0, 15, 5, 0, 8, 3, 0, 6, 11, 0, 10,
+    13, 0, 2, 8, 0, 5, 1, 0, 12, 7, 0, 9, 15, 0, 4, 0, 0, 3, 14, 0, 13, 6, 0, 0,
+    10, 0, 14, 2, 0, 7, 4, 0, 15, 3, 0, 11, 5, 0, 8, 12, 0, 1, 9, 0, 12, 14, 0, 9,
+    11, 0, 2, 15, 0, 6, 10, 0, 4, 8, 0, 3, 1, 0, 7, 0, 0, 5, 13, 0, 8, 7, 0, 11,
+    3, 0, 15, 12, 0, 10, 5, 0, 14, 4, 0, 1, 2, 0, 0, 6, 0, 13, 9, 0, 5, 6, 0, 12,
+    1, 0, 7, 14, 0, 9, 10, 0, 2, 11, 0, 4, 15, 0, 3, 13, 0, 8, 0, 0, 6, 9, 0, 10,
+    3, 0, 15, 7, 0, 13, 2, 0, 11, 12, 0, 1, 4, 0, 0, 5, 0, 14, 8, 0, 9, 5, 0, 7,
+    1, 0, 3, 6, 0, 8, 15, 0, 14, 0, 0, 2, 10, 0, 4, 11, 0, 12, 13, 0, 0, 9, 0, 13,
+    4, 0, 15, 14, 0, 11, 7, 0, 6, 2, 0, 10, 12, 0, 5, 3, 0, 1, 8, 0, 8, 11, 0, 15,
+    0, 0, 4, 10, 0, 12, 6, 0, 3, 9, 0, 2, 5, 0, 7, 13, 0, 14, 1, 0, 10, 7, 0, 9,
+    2, 0, 5, 12, 0, 6, 4, 0, 13, 8, 0, 11, 14, 0, 0, 3, 0, 1, 15, 0, 2, 3, 0, 14,
+    13, 0, 4, 5, 0, 15, 11, 0, 12, 9, 0, 8, 10, 0, 7, 6, 0, 1, 0, 0, 6, 8, 0, 0,
+    2, 0, 13, 15, 0, 11, 1, 0, 10, 14, 0, 5, 7, 0, 3, 12, 0, 9, 4, 0, 12, 2, 0, 15,
+    10, 0, 11, 0, 0, 7, 9, 0, 14, 6, 0, 8, 5, 0, 1, 13, 0, 4, 3, 0, 0, 12, 0, 13,
+    11, 0, 5, 14, 0, 2, 4, 0, 9, 8, 0, 10, 1, 0, 6, 15, 0, 3, 7, 0, 10, 12, 14, 16,
+    17, 19, 21, 22, 23, 25, 26, 28, 30, 32, 34, 37, 40, 42, 45, 48, 51, 54, 58, 59, 61, 63, 65, 67,
+    69, 70, 72, 74, 76, 78, 80, 81, 83, 0, 3, 4, 7, 8, 11, 12, 15, 1, 2, 5, 6, 9, 10, 13,
+    14, 0, 0, 0,
+};
+
 static const uint8_t kWorld2627_split40_0[168] = {
     0, 40, 0, 16, 3, 30, 5, 1, 44, 0, 50, 0, 60, 0, 168, 0, 0, 3, 0, 0, 0, 6, 0, 6,
     4, 0, 10, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 6,
@@ -5354,6 +6252,8 @@ static const LeagueSplit kWorld2627Splits[] = {
     { 0, 0, kWorld2627_split0_0 },
     { 1, 0, kWorld2627_split1_0 },
     { 3, 0, kWorld2627_split3_0 },
+    { 49, 0, kWorld2627_split49_0 },
+    { 58, 0, kWorld2627_split58_0 },
     { 5, 0, kWorld2627_split5_0 },
     { 6, 0, kWorld2627_split6_0 },
     { 7, 0, kWorld2627_split7_0 },
@@ -5361,11 +6261,19 @@ static const LeagueSplit kWorld2627Splits[] = {
     { 12, 0, kWorld2627_split12_0 },
     { 63, 0, kWorld2627_split63_0 },
     { 15, 0, kWorld2627_split15_0 },
+    { 68, 0, kWorld2627_split68_0 },
+    { 70, 0, kWorld2627_split70_0 },
     { 17, 0, kWorld2627_split17_0 },
     { 19, 0, kWorld2627_split19_0 },
     { 87, 0, kWorld2627_split87_0 },
     { 92, 0, kWorld2627_split92_0 },
+    { 60, 0, kWorld2627_split60_0 },
+    { 60, 1, kWorld2627_split60_1 },
+    { 24, 0, kWorld2627_split24_0 },
     { 26, 0, kWorld2627_split26_0 },
+    { 95, 0, kWorld2627_split95_0 },
+    { 64, 0, kWorld2627_split64_0 },
+    { 65, 0, kWorld2627_split65_0 },
     { 30, 0, kWorld2627_split30_0 },
     { 33, 0, kWorld2627_split33_0 },
     { 33, 1, kWorld2627_split33_1 },
@@ -5374,6 +6282,7 @@ static const LeagueSplit kWorld2627Splits[] = {
     { 41, 0, kWorld2627_split41_0 },
     { 37, 0, kWorld2627_split37_0 },
     { 78, 0, kWorld2627_split78_0 },
+    { 71, 0, kWorld2627_split71_0 },
     { 40, 0, kWorld2627_split40_0 },
 };
 
@@ -5381,7 +6290,7 @@ const LeagueSplit *World_LeagueSplits(int32_t *count)
 {
     switch (World_Current()) {
     case WORLD_2627:
-        *count = 24;
+        *count = 35;
         return kWorld2627Splits;
     default:
         *count = 0;
@@ -5604,7 +6513,7 @@ static const uint16_t kWorld2627CupDPoolStrength[] = {
 
 static const WorldCupD kWorld2627CupD = {
     20, 8, kWorld2627CupDRounds, 161, kWorld2627CupDTies, 5, 9, kWorld2627CupDBase, kWorld2627CupDStrength,
-    42, kWorld2627CupDPoolStrength, { kWorld2627_name255, kWorld2627_name256 }
+    42, kWorld2627CupDPoolStrength, { kWorld2627_name271, kWorld2627_name272 }
 };
 
 const WorldCupD *World_CupD(void)

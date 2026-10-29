@@ -1,16 +1,22 @@
 /*
  * league_split.c -- a world league division's mid-season split (include/league_split.h).
  *
- * The SWOS 96/97 Mod's design (tools/split.py: sp_init, sp_pair, sp_count, sp_freeze,
- * sp_calendar, sp_post, sp_res, sp_sort, sp_cpu; MIT, Davide Lorigliola), written for our
- * engine. Its table, compiled by scripts/world_split.py, is the Mod's SP_TAB entry, byte for
- * byte (words little-endian):
+ * The SWOS 96/97 Mod's design (tools/split.py: sp_init, sp_stage, sp_rows, sp_pair, sp_count,
+ * sp_freeze, sp_calendar, sp_post, sp_early, sp_res, sp_sort, sp_cpu; MIT, Davide
+ * Lorigliola), written for our engine. Its table, compiled by scripts/world_split.py, is the
+ * Mod's SP_TAB entry, byte for byte (words little-endian):
  *
  *   +0 world, +1 file (here: the country), +2 division, +3 clubs, +4 cycles, +5 days before,
  *   +6 days after, +7 stages, +8 word the days' match counts, +10 word each day's first pair,
- *   +12 word the pairs (home place, away place, flags: 1 the host from the matrix), +14 word
- *   the length; +16 the stages, 28 bytes each: first day after the split, groups, flags, -,
- *   (first place, size, points rule) x 4, word the slots' host matrix, ...
+ *   +12 word the pairs (home, away, flags: 1 the host from the matrix), +14 word the length;
+ *   +16 the stages, 28 bytes each: +0 its first day after the split, +1 groups, +2 flags (1
+ *   reset, 2 keep, 4 the pairs are rows: a fixture list, 8 groups by membership, 16 the wins
+ *   tie-break, 20h explicit places), +4 (first place, size, points rule) x 4, +16 word the
+ *   slots' host matrix, +18 word the places' permutation, +20 word the rows' groups, +22 the
+ *   after-stage routine, +23 the stage table, +24 annual, +26 word the days' weeks (stage 0).
+ *
+ * The after-stage routines and the stage tables (the Apertura and Clausura titles') are not
+ * played yet; 'keep' (Malta's kept opening table, for its title play-off's seeds) neither.
  *
  * The engine's names for the Mod's: leagueMatchProgress the day ([1C1h]), leagueCurrentSlot
  * "the day is done" ([1BFh]), halfGroupsCounter the day's matches played ([1C9h]),
@@ -31,11 +37,17 @@ extern void DIY_SortLeagueTableByStandings(void);
 
 #define SR 28                   /* a stage's record */
 #define ROW 18                  /* a table row's stride (the rows' offsets are row * 18) */
+#define F_RESET   1
+#define F_ROWS    4
+#define F_MEMBERS 8
+#define F_WINS    16
+#define F_PERM    0x20
 
 uint8_t g_leagueSplitH2H[LEAGUE_SPLIT_H2H];
 static uint8_t s_simH2H[LEAGUE_SPLIT_H2H];      /* (a simulated league's: the season end's) */
 static uint8_t s_walking;                       /* the career calendar's walk */
-static uint8_t s_pend;                          /* the split due once this match's result is in */
+static uint8_t s_pend;                          /* the day (+ 1) whose stage starts once this
+                                                   match's result is in */
 
 static uint16_t w16(const uint8_t *p)
 {
@@ -54,9 +66,19 @@ static const uint8_t *active(void)
     const LeagueSplitState *st = &c->leagueSectionState.split;
     int32_t n = 0;
     const LeagueSplit *sp = World_LeagueSplits(&n);
-    if (c->base.competitionType != 0 || st->magic != LEAGUE_SPLIT_MAGIC || !st->entry || st->entry > n)
+    if (c->base.competitionType != 0 || st->magic != LEAGUE_SPLIT_MAGIC || !st->entry || st->entry > n ||
+        st->compId != c->base.field_2E || st->n != c->base.numTeams)
         return 0;
     return sp[st->entry - 1].table;
+}
+
+/* Day `day` after the split: its stage (the last whose first day it has reached). */
+static int32_t stage_of(const uint8_t *t, int32_t day)
+{
+    for (int32_t k = t[7] - 1; k > 0; k--)
+        if (day >= t[16 + SR * k])
+            return k;
+    return 0;
 }
 
 /* The career club's league (its row in it): its calendar, its saved head-to-head points. */
@@ -94,16 +116,22 @@ void LeagueSplit_Init(uint8_t country, uint16_t division, int32_t after)
     if (k < 0 || !sp[k].table[7])
         return;
     const uint8_t *t = sp[k].table;
-    c->leagueTotalMatches = (uint16_t)(t[5] + t[6]);
+    const int32_t days = t[5] + t[6];
+    c->leagueTotalMatches = (uint16_t)days;
     DIY_RecomputeCompetitionDerivedProgressionTable();
+    if (w16(t + 16 + 26))                       /* the days' own weeks (their real dates) */
+        for (int32_t d = 0; d < days; d++)
+            c->leagueSectionState.phaseStartMonths[d] = t[w16(t + 16 + 26) + d];
+    c->base.viewRandomPhase = c->leagueSectionState.phaseStartMonths[0];
     uint8_t *p = (uint8_t *)st;
     for (uint32_t i = 0; i < sizeof *st; i++)
         p[i] = 0;
     st->magic = LEAGUE_SPLIT_MAGIC;
     st->entry = (uint8_t)(k + 1);
     st->n = t[3];
-    SWOS_DBG("[split] country %d division %d: %d days before the split, %d after\n", (int)country,
-             (int)division, (int)t[5], (int)t[6]);
+    st->compId = c->base.field_2E;
+    SWOS_DBG("[split] country %d division %d: %d days before the split, %d after, %d stage(s)\n",
+             (int)country, (int)division, (int)t[5], (int)t[6], (int)t[7]);
 }
 
 /* ---- the days after the split ---- */
@@ -117,14 +145,17 @@ static int32_t slot_of(int32_t row, int32_t n)
     return 0;
 }
 
-/* Day `day` after the split, its match m: the home row and the away row. */
+/* Day `day` after the split, its match m: the home row and the away row. The places are the
+ * table's frozen for the day's stage (a fixture list's pairs are rows already; in the
+ * calendar's walk, before the stage is played: places = rows). */
 static void rows(const uint8_t *t, int32_t day, int32_t m, int32_t *home, int32_t *away)
 {
     const LeagueSplitState *st = &_diyCompetitionStart.leagueSectionState.split;
-    const uint8_t *rec = t + 16;                /* (one stage: its record) */
+    const int32_t k = stage_of(t, day);
+    const uint8_t *rec = t + 16 + SR * k;
     const uint8_t *pr = t + w16(t + 12) + 3 * (w16(t + w16(t + 10) + 2 * day) + m);
     int32_t a = pr[0], b = pr[1];
-    if (st->frozen == 1) {                      /* (else the calendar's walk: places = rows) */
+    if (st->frozen == k + 1 && !(rec[2] & F_ROWS)) {
         a = st->placeRow[a];
         b = st->placeRow[b];
     }
@@ -194,49 +225,79 @@ static void dump(const char *what, const uint8_t *t)
     SWOS_DBG("\n");
 }
 
-/* The split: the groups from the table now, each one's points rule (the points before it
- * kept: the first tie-break), the table in its groups, the career club's calendar. */
-static void freeze(const uint8_t *t)
+/* Stage k starts: the groups from the table now (by place, or by membership), each one's
+ * points rule (the points before it kept: the first tie-break), every figure from 0 for a
+ * stage that resets, the table in its groups, the career club's calendar. */
+static void freeze(const uint8_t *t, int32_t k)
 {
     DIYCompetitionEx *c = &_diyCompetitionStart;
     LeagueSplitState *st = &c->leagueSectionState.split;
-    const uint8_t *rec = t + 16;
+    const uint8_t *rec = t + 16 + SR * k;
     const int32_t n = t[3], career = is_career_league();
     const uint8_t *h2h = career ? g_leagueSplitH2H : s_simH2H;
-    DIY_SortLeagueTableByStandings();
+    DIY_SortLeagueTableByStandings();           /* (the last results in the table's order) */
+    if (rec[2] & F_RESET)
+        for (int32_t r = 0; r < n; r++) {
+            DIYTeamStats *s = row_stats(r);
+            s->gamesPlayed = s->wins = s->draws = s->losses = 0;
+            s->goalsFor = s->goalsAgainst = s->points = 0;
+        }
     for (int32_t p = 0; p < n; p++)
         st->placeRow[p] = (uint8_t)(c->matchData.league.teamEntryOffsets[p] / ROW);
+    if (rec[2] & F_PERM) {                      /* new place p = the old place perm[p] */
+        uint8_t old[LEAGUE_SPLIT_MAX_CLUBS];
+        for (int32_t p = 0; p < n; p++)
+            old[p] = st->placeRow[p];
+        for (int32_t p = 0; p < n; p++)
+            st->placeRow[p] = old[t[w16(rec + 18) + p]];
+    }
     for (int32_t r = 0; r < LEAGUE_SPLIT_MAX_CLUBS; r++)
         st->group[r] = 0xFF;
-    for (int32_t g = 0; g < rec[1]; g++) {
-        const int32_t first = rec[4 + 3 * g], end = first + rec[5 + 3 * g], rule = rec[6 + 3 * g];
-        for (int32_t p = first; p < end; p++) {
-            const int32_t row = st->placeRow[p];
-            DIYTeamStats *s = row_stats(row);
-            uint32_t pts = s->points;
-            st->group[row] = (uint8_t)g;
-            st->pre[row] = (uint8_t)(pts < 255 ? pts : 255);
-            if (rule == 1)                      /* half, rounded up */
-                pts = (pts + 1) >> 1;
-            else if (rule == 2)                 /* half, rounded down */
-                pts >>= 1;
-            else if (rule == 3)                 /* from 0 */
-                pts = st->pre[row] = 0;
-            else if (rule == 4) {               /* half those won against the group's clubs */
-                pts = 0;
-                for (int32_t q = first; q < end; q++)
-                    pts += h2h[row * n + st->placeRow[q]];
+    if (rec[2] & F_MEMBERS) {                   /* groups by membership (Panama's zones) */
+        for (int32_t r = 0; r < n; r++) {
+            const uint32_t pts = row_stats(r)->points;
+            st->group[r] = t[w16(rec + 20) + r];
+            st->pre[r] = (uint8_t)(pts < 255 ? pts : 255);
+        }
+    } else {
+        for (int32_t g = 0; g < rec[1]; g++) {
+            const int32_t first = rec[4 + 3 * g], end = first + rec[5 + 3 * g], rule = rec[6 + 3 * g];
+            for (int32_t p = first; p < end; p++) {
+                const int32_t row = st->placeRow[p];
+                DIYTeamStats *s = row_stats(row);
+                uint32_t pts = s->points;
+                st->group[row] = (uint8_t)g;
                 st->pre[row] = (uint8_t)(pts < 255 ? pts : 255);
-                pts >>= 1;
+                if (rule == 1)                  /* half, rounded up */
+                    pts = (pts + 1) >> 1;
+                else if (rule == 2)             /* half, rounded down */
+                    pts >>= 1;
+                else if (rule == 3)             /* from 0 */
+                    pts = st->pre[row] = 0;
+                else if (rule == 4) {           /* half those won against the group's clubs */
+                    pts = 0;
+                    for (int32_t q = first; q < end; q++)
+                        pts += h2h[row * n + st->placeRow[q]];
+                    st->pre[row] = (uint8_t)(pts < 255 ? pts : 255);
+                    pts >>= 1;
+                }
+                s->points = (uint16_t)pts;
             }
-            s->points = (uint16_t)pts;
         }
     }
-    st->frozen = 1;
+    st->frozen = (uint8_t)(k + 1);
     DIY_SortLeagueTableByStandings();
-    dump("split", t);
+    dump("stage", t);
     if (career)
         calendar(t, rec[0]);
+}
+
+/* The day's stage frozen (not in the calendar's walk). */
+static void stage_due(const uint8_t *t, int32_t day)
+{
+    const int32_t k = stage_of(t, day);
+    if (_diyCompetitionStart.leagueSectionState.split.frozen != k + 1 && !s_walking)
+        freeze(t, k);
 }
 
 int32_t LeagueSplit_Pair(uint8_t **team1, uint8_t **team2)
@@ -252,8 +313,7 @@ int32_t LeagueSplit_Pair(uint8_t **team1, uint8_t **team2)
     }
     if (day >= t[6])
         return 0;
-    if (c->leagueSectionState.split.frozen != 1 && !s_walking)
-        freeze(t);
+    stage_due(t, day);
     const int32_t m = c->leagueCurrentSlot ? 0 : c->leagueSectionState.halfGroupsCounter;
     int32_t a, b;
     rows(t, day, m, &a, &b);
@@ -295,6 +355,8 @@ int32_t LeagueSplit_Count(void)
     c->leagueMatchProgress++;
     c->base.viewRandomPhase = ls->phaseStartMonths[c->leagueMatchProgress];
     _viewRandomPhase = c->base.viewRandomPhase;
+    if (!s_walking)                             /* (a stage starting tomorrow: once this */
+        s_pend = (uint8_t)(day + 2);            /*  match's result is in) */
     if (day + 1 >= t[6]) {
         c->minSubstitutes = 0;                  /* the last day: the league is over */
         if (!s_walking)
@@ -309,7 +371,7 @@ void LeagueSplit_AfterResult(uint8_t *team1, uint8_t *team2, uint16_t goals1, ui
     if (!t)
         return;
     DIYCompetitionEx *c = &_diyCompetitionStart;
-    const uint8_t *rec = t + 16;
+    const uint8_t *rec = t + 16;                /* (the first stage's groups) */
     const int32_t n = t[3];
     int32_t h2h = 0;
     for (int32_t g = 0; g < rec[1]; g++)
@@ -333,10 +395,11 @@ void LeagueSplit_AfterResult(uint8_t *team1, uint8_t *team2, uint16_t goals1, ui
             }
         }
     }
-    if (s_pend) {
+    if (s_pend) {                               /* a stage starting on day s_pend - 1 */
+        const int32_t day = s_pend - 1;
         s_pend = 0;
-        if (c->leagueSectionState.split.frozen != 1)
-            freeze(t);
+        if (day < t[6] && t[16 + SR * stage_of(t, day)] == day)
+            stage_due(t, day);
     }
 }
 
@@ -345,9 +408,10 @@ void LeagueSplit_Sort(void)
     const uint8_t *t = active();
     DIYCompetitionEx *c = &_diyCompetitionStart;
     const LeagueSplitState *st = &c->leagueSectionState.split;
-    if (!t || st->frozen != 1)
+    if (!t || !st->frozen)
         return;
-    const int32_t n = t[3], groups = t[16 + 1];
+    const uint8_t *rec = t + 16 + SR * (st->frozen - 1);
+    const int32_t n = t[3], groups = rec[1], wins = rec[2] & F_WINS;
     uint16_t *order = c->matchData.league.teamEntryOffsets;
     uint16_t tmp[LEAGUE_SPLIT_MAX_CLUBS];
     int32_t k = 0;
@@ -357,12 +421,14 @@ void LeagueSplit_Sort(void)
                 tmp[k++] = order[p];
     for (int32_t p = 0; p < k; p++)
         order[p] = tmp[p];
-    /* Equal points in one group: more points before rounding first (stable passes). */
+    /* Equal points in one group: more points before rounding first -- or more wins (MLS) --
+     * (stable passes: the engine's order kept otherwise). */
     for (int32_t pass = 0; pass < n; pass++)
         for (int32_t p = 0; p + 1 < n; p++) {
             const int32_t a = order[p] / ROW, b = order[p + 1] / ROW;
-            if (row_stats(a)->points == row_stats(b)->points && st->group[a] == st->group[b] &&
-                st->pre[a] < st->pre[b]) {
+            if (row_stats(a)->points != row_stats(b)->points || st->group[a] != st->group[b])
+                continue;
+            if (wins ? row_stats(a)->wins < row_stats(b)->wins : st->pre[a] < st->pre[b]) {
                 const uint16_t x = order[p];
                 order[p] = order[p + 1];
                 order[p + 1] = x;
@@ -379,8 +445,7 @@ int32_t LeagueSplit_RestOfDayWithoutCareerClub(void)
     const int32_t day = (int32_t)c->leagueMatchProgress - t[5];
     if (day < 0 || day >= t[6])
         return 0;
-    if (c->leagueSectionState.split.frozen != 1 && !s_walking)
-        freeze(t);
+    stage_due(t, day);
     const int32_t today = t[w16(t + 8) + day];
     for (int32_t m = c->leagueCurrentSlot ? 0 : c->leagueSectionState.halfGroupsCounter; m < today; m++) {
         int32_t a, b;

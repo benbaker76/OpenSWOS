@@ -1043,14 +1043,16 @@ typedef char _diymatchdata_size_check[(sizeof(DIYCompetitionEx_MatchData) == 0xE
  * it is copied, saved and restored with the league, as the SWOS 96/97 Mod keeps its own
  * (split.py's state at the end of its weeks table). Every league init clears its mark. */
 #define LEAGUE_SPLIT_MAX_DAYS  48
-#define LEAGUE_SPLIT_MAX_CLUBS 16
+#define LEAGUE_SPLIT_MAX_CLUBS 20
 #define LEAGUE_SPLIT_MAGIC     0x50FE   /* (FEh: never a week) */
 typedef struct __attribute__((packed)) LeagueSplitState {
     uint16_t magic;                     /* LEAGUE_SPLIT_MAGIC: a split league */
     uint8_t  entry;                     /* its table: World_LeagueSplits()'s index + 1 */
     uint8_t  frozen;                    /* the stage (+ 1) whose groups are set; 0: before the split */
     uint8_t  n;                         /* its clubs */
-    uint8_t  pad;
+    uint8_t  compId;                    /* its league's (the struct holds another competition
+                                         * after it -- a European group stage -- whose init
+                                         * leaves these bytes: the mark alone is not enough) */
     uint8_t  placeRow[LEAGUE_SPLIT_MAX_CLUBS];  /* the table at the split: place -> row */
     uint8_t  group[LEAGUE_SPLIT_MAX_CLUBS];     /* row -> its group */
     uint8_t  pre[LEAGUE_SPLIT_MAX_CLUBS];       /* row -> its points before rounding (a tie-break) */
