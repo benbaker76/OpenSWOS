@@ -1038,13 +1038,40 @@ typedef char _diymatchdata_size_check[(sizeof(DIYCompetitionEx_MatchData) == 0xE
  * phase-start-month table used by the league progression path in
  * DIY_RecomputeCompetitionDerivedFields and friends.
  * ================================================================== */
+/* A world league division's mid-season split (src/league_split.c), while it runs: in the
+ * tail of the match days' weeks (a split league has at most LEAGUE_SPLIT_MAX_DAYS days), so
+ * it is copied, saved and restored with the league, as the SWOS 96/97 Mod keeps its own
+ * (split.py's state at the end of its weeks table). Every league init clears its mark. */
+#define LEAGUE_SPLIT_MAX_DAYS  48
+#define LEAGUE_SPLIT_MAX_CLUBS 16
+#define LEAGUE_SPLIT_MAGIC     0x50FE   /* (FEh: never a week) */
+typedef struct __attribute__((packed)) LeagueSplitState {
+    uint16_t magic;                     /* LEAGUE_SPLIT_MAGIC: a split league */
+    uint8_t  entry;                     /* its table: World_LeagueSplits()'s index + 1 */
+    uint8_t  frozen;                    /* the stage (+ 1) whose groups are set; 0: before the split */
+    uint8_t  n;                         /* its clubs */
+    uint8_t  pad;
+    uint8_t  placeRow[LEAGUE_SPLIT_MAX_CLUBS];  /* the table at the split: place -> row */
+    uint8_t  group[LEAGUE_SPLIT_MAX_CLUBS];     /* row -> its group */
+    uint8_t  pre[LEAGUE_SPLIT_MAX_CLUBS];       /* row -> its points before rounding (a tie-break) */
+} LeagueSplitState;
+
 typedef struct __attribute__((packed, aligned(2))) DIYCompetitionEx_LeagueSectionState {
     uint16_t halfGroupCount;            /* 0x00 (parent 0x1C6) */
     uint16_t matchesPerHalf;            /* 0x02 (parent 0x1C8) */
     uint16_t halfGroupsCounter;         /* 0x04 (parent 0x1CA): == matchesPerHalf triggers boundary */
     uint16_t sectionMatchesProgress;    /* 0x06 (parent 0x1CC) */
-    uint8_t  phaseStartMonths[128];     /* 0x08 (parent 0x1CE..0x24D): viewRandomPhase[phaseIdx] source */
+    union __attribute__((packed)) {
+        uint8_t  phaseStartMonths[128]; /* 0x08 (parent 0x1CE..0x24D): viewRandomPhase[phaseIdx] source */
+        struct __attribute__((packed)) {
+            uint8_t          splitWeeks[LEAGUE_SPLIT_MAX_DAYS];
+            LeagueSplitState split;     /* (a split league's: its days end before it) */
+        };
+    };
 } DIYCompetitionEx_LeagueSectionState;
+
+typedef char _leaguesplit_fits_check[
+    (LEAGUE_SPLIT_MAX_DAYS + sizeof(LeagueSplitState) <= 128) ? 1 : -1];
 
 typedef char _diysecstate_size_check[
     (sizeof(DIYCompetitionEx_LeagueSectionState) == 0x88) ? 1 : -1];

@@ -50,7 +50,8 @@ import uuid
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "scripts"))
-import emit_competitions                     # noqa: E402  (emit_league)
+import emit_competitions
+import world_split                     # noqa: E402  (emit_league)
 import swos_team_file as tf                  # noqa: E402  (the binary TEAM.nnn)
 WORLD = os.path.join(REPO, "bin", "data_json", "worlds", "2627")
 MOD = os.path.join(WORLD, "mod")
@@ -637,6 +638,9 @@ NEW_COMP_IDS = {
     ("KOS", "cup"): 217, ("KSA", "cup"): 218, ("LIE", "cup"): 219, ("MAR", "cup"): 220, ("MDA", "cup"): 221,
     ("MKD", "cup"): 222, ("MNE", "cup"): 223, ("QAT", "cup"): 224, ("QAT", "league_cup"): 225,
     ("TUN", "cup"): 226, ("UAE", "cup"): 227, ("UAE", "league_cup"): 228,
+    # (the split countries')
+    ("ECU", "cup"): 229, ("FIN", "league_cup"): 230, ("ISL", "league_cup"): 231,
+    ("NIR", "league_cup"): 232, ("WAL", "league_cup"): 233,
 }
 # A new country's league: an id of its own (fixed: saves hold it), its record's shape a 96/97
 # country's of the same continent (its season's months), its continent's byte (the first of
@@ -992,6 +996,7 @@ WORLD_DATA_C = """/*
 #include "fixture_rounds.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "league_split.h"
 
 %(externs)s
 
@@ -1124,6 +1129,20 @@ const WorldCup *World_Cups(int32_t *count)
     }
 }
 
+/* The divisions' mid-season splits and own meetings (src/league_split.c): the SWOS 96/97
+ * Mod's tables, compiled as its split.py compiles them (scripts/world_split.py). */
+%(splits)s
+
+const LeagueSplit *World_LeagueSplits(int32_t *count)
+{
+    switch (World_Current()) {
+%(split_cases)s
+    default:
+        *count = 0;
+        return 0;
+    }
+}
+
 /* The Coppa Italia Serie D (src/world_cupd.c): its rounds and ties as the Mod's cupd.py
  * compiles them, the Serie D level, each ordinal's base division, the strengths. */
 %(cupd)s
@@ -1143,7 +1162,7 @@ def c_string(text):
     return '"%s"' % text.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=()):
+def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=()):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1306,9 +1325,20 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             sym, cupd["country"], len(cupd["rounds"]), sym, len(cupd["ties"]), sym, cupd["first"], cupd["groups"],
             sym, sym, len(cupd["pool_strength"]), sym, names[0], names[1]))
         cd_cases = "    case WORLD_%s:\n        return &%s;" % (tag, sym)
+    split_tables, split_entries = [], []
+    for country, d, tb in splits:
+        sym = "kWorld%s_split%d_%d" % (tag, country, d)
+        split_tables.append("static const uint8_t %s[%d] = {\n%s\n};" % (sym, len(tb), "\n".join(
+            "    " + " ".join("%d," % b for b in tb[i:i + 24]) for i in range(0, len(tb), 24))))
+        split_entries.append("    { %d, %d, %s }," % (country, d, sym))
+    split_tables.append("static const LeagueSplit kWorld%sSplits[] = {\n%s\n};" % (
+        tag, "\n".join(split_entries) or "    { 0, 0, 0 },"))
+    split_cases = "    case WORLD_%s:\n        *count = %d;\n        return kWorld%sSplits;" % (
+        tag, len(splits), tag)
     if news:
         externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
-    return WORLD_DATA_C % {"countries": "\n".join(new_countries + lists), "region_cases": region_cases,
+    return WORLD_DATA_C % {"splits": "\n\n".join(split_tables), "split_cases": split_cases,
+                           "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
                            "season_cases": season_cases, "file_cases": file_cases,
                            "externs": "\n".join(sorted(externs)),
                            "records": "\n\n".join(strings + records), "cases": cases,
@@ -1333,7 +1363,37 @@ def write(path, data):
 PLAIN = ("ALG BEL BLR BOL CHI CRO ENG EST FRA FRO GHA HUN IND IRL JPN LTU LUX LVA NOR POL RSA "
          "RUS SCO SUR SVN SWE TPE TUR UKR VEN "
          # (B teams, an off-file pool below the lowest division: src/team_pool.c)
-         "ESP GER NED POR NZL").split()
+         "ESP GER NED POR NZL "
+         # (a mid-season split: src/league_split.c)
+         "ALB AUT BUL CYP CZE DEN ECU FIN GRE ISL ISR NIR ROU SRB SUI SVK WAL").split()
+
+
+def country_splits(wc, pk, picked):
+    """A country's divisions with a mid-season split or meetings of their own (the Mod's
+    mkseason.splits, scripts/world_split.py): [(division, table bytes)]. A split of fixture
+    stages (Apertura / Clausura, Malta's) is not compiled yet: that division plays as one
+    league."""
+    lg = pack_league(pk)
+    divs = lg.get("divisions") or [{"teams": len(picked)}]
+    out = []
+    for d, dv in enumerate(divs):
+        sp = dv.get("split") or (lg.get("split") if d == 0 else None)
+        games = dv.get("games") if "divisions" in lg else None
+        n = dv["teams"]
+        try:
+            spec = world_split.division_spec(n, sp, games)
+        except NotImplementedError:
+            counts["splits of fixture stages (one league yet)"] += 1
+            continue
+        if spec is None:
+            continue
+        table, d1, d2 = world_split.entry(0, wc["number"], d, n, spec, world_split.pair_table(n))
+        if spec["stages"] and (n > 16 or d1 + d2 > 48):
+            sys.exit("%s division %d: a split of %d clubs and %d days (include/game_types.h "
+                     "LEAGUE_SPLIT_MAX_CLUBS 16, _DAYS 48)" % (wc["code"], d, n, d1 + d2))
+        counts["splits" if spec["stages"] else "divisions with meetings of their own"] += 1
+        out.append((d, table))
+    return out
 
 
 def write_team_file(teams, json_name):
@@ -1350,7 +1410,7 @@ def main():
     (teams, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
     country = teams["teams"][0]["team"]["country_number"]
-    pools, news = [], []
+    pools, news, splits = [], [], []
 
     def add_pool(code, name, number, base):     # (home: as country_teams, 96/97's file's)
         home = home_nation(json.load(open(os.path.join(BASE, "teams", base + ".json"), encoding="utf-8")))
@@ -1380,6 +1440,7 @@ def main():
         if po:
             playoffs.append(po)
         cups += country_cups(wc, pk, pk_picked)
+        splits += [(wc["number"], d, tb) for d, tb in country_splits(wc, pk, pk_picked)]
         if not wc["new"]:
             add_pool(wc["code"], wc["name"].title().replace(" ", ""), wc["number"], wc["base"])
         resized.append((wc["number"], t["count"]))
@@ -1393,7 +1454,7 @@ def main():
     with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
         f.write(world_data_c("2627", leagues, resized,
                              [italian_groups(picked, country, leagues)],
-                             playoffs, pools, cups, italian_cupd(picked, country, None), news))
+                             playoffs, pools, cups, italian_cupd(picked, country, None), news, splits))
     print("wrote src/world_data.c")
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))

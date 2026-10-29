@@ -29,6 +29,7 @@
 #include "career_status.h"
 #include "career_season.h"
 #include "game_init.h"
+#include "league_split.h"
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
 
 /* ---- Constants ---- */
@@ -664,6 +665,7 @@ void DIY_SortLeagueTableByStandings(void)
         }
         entryBase += teamsPerGroup;
     }
+    LeagueSplit_Sort();         /* (a world league's split: its groups, include/league_split.h) */
 }
 
 /* ================================================================
@@ -1860,6 +1862,8 @@ void DIY_RecomputeCompetitionDerivedFields(void)
  * ================================================================ */
 static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
 {
+    if (LeagueSplit_Pair(team1Out, team2Out))   /* (after a world league's split: its days) */
+        return;
     DIYCompetitionEx *compEx = &_diyCompetitionStart;
     DIYCompetition *a0s = &compEx->base;
     uint8_t *a0 = (uint8_t *)a0s;
@@ -2013,6 +2017,8 @@ void DIY_AdvanceLeagueProgressAfterMatch(uint8_t *team1, uint8_t *team2)
     /* Increment matches played for both teams */
     row1->gamesPlayed += 1;
     row2->gamesPlayed += 1;
+    if (LeagueSplit_Count())    /* (after a world league's split: its days) */
+        return;
 
     /* Reset match counter if phase-change flag set */
     if (comp->leagueCurrentSlot) {
@@ -3270,8 +3276,17 @@ void DIY_UpdateCompetitionProgressOrAdvanceSlot(uint8_t *blk)
  * Processes recorded league fixture results via team selection key cache.
  * Advances league progress after each match.
  * ================================================================ */
+static void recordLeagueFixtures(void);
+
 __attribute__((used, externally_visible))
 void DIY_RecordLeagueFixtureResultAndAdvanceProgress(void)
+{
+    LeagueSplit_Walking(1);     /* (a split is not played in the calendar's walk) */
+    recordLeagueFixtures();
+    LeagueSplit_Walking(0);
+}
+
+static void recordLeagueFixtures(void)
 {
     DIYCompetitionEx *a6Ex = &_diyCompetitionStart;
     DIYCompetition *a6s = &a6Ex->base;
@@ -9221,7 +9236,10 @@ void InitDIYCompetitionFromTableEntry(uint16_t idx, uint8_t *table)
     ((DIYCompetitionEx *)a6)->matchData.league.leagueMinSubstitutes = (c & 0xF0) >> 4;
     ((DIYCompetitionEx *)a6)->matchData.league.leagueMaxSubstitutes = c & 0x0F;
 
+    /* A world division's own meetings and mid-season split (include/league_split.h). */
+    LeagueSplit_Init((uint8_t)compHdr->teamNumber, d7, 0);
     DIY_RecomputeCompetitionDerivedFields();
+    LeagueSplit_Init((uint8_t)compHdr->teamNumber, d7, 1);
     DIY_ShuffleLeagueTeamOrder();
 }
 
@@ -11605,6 +11623,7 @@ uint16_t DIY_PlayOrSimulateLeagueFixture(int16_t allowSquadChanges, int16_t sele
     r1->goalsAgainst += d2;
     r2->goalsFor     += d2;
     r2->goalsAgainst += d1;
+    LeagueSplit_AfterResult(compPtr1, compPtr2, d1, d2);   /* (a world league's split) */
 
     /* Sort standings and process promotions/relegations if diyCompetitionStart.minSubstitutes == 0 */
     if (_diyCompetitionStart.minSubstitutes == 0) {

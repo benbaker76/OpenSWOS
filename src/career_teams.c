@@ -11,6 +11,7 @@
  */
 
 #include "career_teams.h"
+#include "league_split.h"
 #include "world_playoff.h"
 #include "world_cups.h"
 #include "world_cupd.h"
@@ -2077,6 +2078,10 @@ __attribute__((used, externally_visible))
 void Career_AutoSimulateLeagueFixturesUntilHumanTeam(void)
 {
     for (;;) {
+        /* After a world league's split the career club may play no more today: the rest of
+         * the day only (else the next day's matches up to its own, include/league_split.h). */
+        if (LeagueSplit_RestOfDayWithoutCareerClub())
+            return;
         DIY_GetCurrentFixtureTeamPtrs();
         uint8_t *comp1 = _fixtureTeam1CompPtr;
         uint8_t *comp2 = _fixtureTeam2CompPtr;

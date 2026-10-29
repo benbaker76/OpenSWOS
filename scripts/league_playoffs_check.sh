@@ -12,6 +12,7 @@
 # the part world_import.py compiles (promotion, play-out) -- the rest must not change them.
 # Then the B-team rules (its sec_post): built cases, and random ones against the Mod's
 # (Italy's league, and each other country with B teams).
+# Then the mid-season splits' tables (scripts/world_split.py) against the Mod's split.entry.
 # Then the cups' clubs from the second season (its 4.0.1 cf_build, CF_SEED 1 as released):
 # random moves, last season's places and career clubs, both cups' lists compared.
 # Then the Coppa Italia Serie D table against its cupd.py compile_table, and its later
@@ -165,3 +166,15 @@ if mine != tab:
     sys.exit('FAIL: the Coppa Italia Serie D table differs from the Mod\'s compile_table')
 print('PASS: the Coppa Italia Serie D table, %d rounds and %d ties, byte for byte the Mod\'s' % (nr, nt))
 PY
+
+# The mid-season splits (scripts/world_split.py): every split league's table, its spec as the Mod's
+# mkseason.splits makes it from the same pack and its bytes as its split.entry makes them; the odd
+# pair tables as its oddtables'.
+if python3 -I $T/split_check.py "$MOD/tools" bin/data_json/worlds/2627/mod/packs > "$OUT/split.txt"; then
+    echo "PASS: the splits, $(grep -c '^PASS' "$OUT/split.txt") divisions' tables byte for byte the Mod's" \
+         "($(grep -c '^SKIP' "$OUT/split.txt") with fixture stages, not compiled yet)"
+else
+    echo "FAIL: the splits:"
+    grep '^FAIL' "$OUT/split.txt" | head -5
+    exit 1
+fi
