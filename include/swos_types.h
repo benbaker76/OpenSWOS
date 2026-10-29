@@ -113,6 +113,14 @@ typedef unsigned long long uint64_t;
 #define GLOBAL_TEAM_NUMBERS 2000
 #endif
 
+/* The season end's TMD pool of the European cups' (and the Copa's) club records
+ * (_tmdFileBuffer): 96/97 stages 80 + 20; a world's league phases 108 + 20. */
+#if SWOS_WORLDS
+#define TMD_POOL_RECORDS 160
+#else
+#define TMD_POOL_RECORDS 128
+#endif
+
 /* Cross-toolchain debug print. Amiga m68k toolchain has no <stdio.h>,
  * so fprintf(stderr, ...) doesn't compile. SWOS_DBG / SWOS_DBG_FLUSH
  * expand to a real fprintf on hosted SDL builds and to a no-op on

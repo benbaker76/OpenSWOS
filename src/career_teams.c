@@ -459,8 +459,12 @@ void Career_AppendTeamToTmdTeamPool(TeamFileEx *team)
         PanicHaltLoop();
     }
 
-    /* Append at end of pool */
+    /* Append at end of pool (full: panic, never past the buffer) */
     uint16_t count = _careerFileBuffer;
+    if (count >= TMD_POOL_RECORDS) {
+        _panicReasonCode = 0x3444;
+        PanicHaltLoop();
+    }
     TeamFileEx *dest = (TeamFileEx *)&_tmdFileBuffer + count;
     volatile uint16_t *src = (volatile uint16_t *)team;
     volatile uint16_t *dst = (volatile uint16_t *)dest;

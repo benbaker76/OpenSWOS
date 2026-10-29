@@ -626,6 +626,8 @@ void LeaguePhase_GroupsEnd(uint8_t *diy, int32_t after)
         list[k] = s_final[kPlayoffTies[k]];
     for (int32_t k = 0; k < 8; k++)             /* the round of 16's seeded club of tie k */
         list[16 + k] = s_final[kR16Seeds[k]];
+    for (int32_t p = 24; p < N; p++)            /* places 25-36 (out): the list stays the 36, once each */
+        list[p] = s_final[p];
     for (int32_t b = 0; b < 4; b++) {           /* the draws: which seeded club meets which, which */
         uint8_t x;                              /* half each seeded pair goes in */
         if (Rand2() & 1) {
@@ -648,14 +650,33 @@ int32_t LeaguePhase_KnockoutDraw(uint8_t *diy, uint16_t numTeams)
         t->header.roundComplete == 0)
         return 0;
     if (numTeams == 16 && t->header.roundComplete == 2) {   /* the round of 16 */
-        uint8_t w[8];
-        for (int32_t k = 0; k < 8; k++)
+        /* Tie k: play-off winner k v seeded club k. The play-off's losers ([8..15]) take the
+         * seeds' places [16..23]: the tournament's list stays the 36 once each (a club's place
+         * in it is how far it got: FindTeamInDIY). */
+        uint8_t w[8], l[8], seed[8];
+        for (int32_t k = 0; k < 8; k++) {
             w[k] = t->teamIndexOrder[k];        /* (the play-off winners, tie order) */
+            l[k] = t->teamIndexOrder[8 + k];
+            seed[k] = t->teamIndexOrder[16 + k];
+        }
         for (int32_t k = 0; k < 8; k++) {
             t->teamIndexOrder[2 * k] = w[k];
-            t->teamIndexOrder[2 * k + 1] = t->teamIndexOrder[16 + k];
+            t->teamIndexOrder[2 * k + 1] = seed[k];
+            t->teamIndexOrder[16 + k] = l[k];
         }
     }
     return 1;
 }
 
+
+/* ---- a world's European cups ---- */
+
+extern CompetitionCareer _careerContests[];
+
+void LeaguePhase_InstallCups(CompetitionLeaguePhase *cups)
+{
+    for (int32_t k = 0; k < 3; k++) {           /* (the contest table's first three: the euro cups) */
+        _careerContests[k].competition = (Competition *)&cups[k];
+        _careerContests[k].templateSize = (uint16_t)sizeof(CompetitionLeaguePhase);
+    }
+}

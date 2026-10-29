@@ -18,6 +18,7 @@
 #include "world_cups.h"
 #include "world_cupd.h"
 #include "league_split.h"
+#include "league_phase.h"
 
 #if SWOS_WORLDS
 extern CompetitionLeague _albanianLeague;
@@ -671,6 +672,18 @@ static char kWorld2627_name288[] = "COPPA ITALIA SERIE D";
 
 static char kWorld2627_name289[] = "COPPA SERIE D";
 
+static char kWorld2627_name290[] = "UEFA CHAMPIONS LEAGUE";
+
+static char kWorld2627_name291[] = "CHAMPIONS LEAGUE";
+
+static char kWorld2627_name292[] = "UEFA EUROPA LEAGUE";
+
+static char kWorld2627_name293[] = "EUROPA LEAGUE";
+
+static char kWorld2627_name294[] = "UEFA CONFERENCE LEAGUE";
+
+static char kWorld2627_name295[] = "CONF. LEAGUE";
+
 static CompetitionLeague kWorld2627_italianLeague = {
     { { 61, 0, 20, 64, 32, 33, 0, 0, 0 }, 14, 2, 3, 53 },
     { { 20, 0, 0, 3, 0, 0 }, { 20, 3, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 } },
@@ -1286,6 +1299,8 @@ static CompetitionLeague kWorld2627_welshLeague = {
     0,
     { kWorld2627_name164, kWorld2627_name164 }
 };
+
+static CompetitionLeaguePhase kWorld2627LeaguePhases[3];   /* (below) */
 #endif
 
 /* The countries new to the game (96/97 has no clubs there): each one's name (its first
@@ -1707,6 +1722,7 @@ void World_InstallBaked(void)
         install_league(&_uruguayanLeague, &kWorld2627_uruguayanLeague);
         install_league(&_venezuelanLeague, &kWorld2627_venezuelanLeague);
         install_league(&_welshLeague, &kWorld2627_welshLeague);
+        LeaguePhase_InstallCups(kWorld2627LeaguePhases);
         FixtureRounds_Install();
         break;
 #endif
@@ -5786,6 +5802,218 @@ const WorldCup *World_Cups(int32_t *count)
         return kWorld2627Cups;
 #endif
     default:
+        *count = 0;
+        return 0;
+    }
+}
+
+/* The European cups as 36-club league phases (src/league_phase.c): their records, the first
+ * season's clubs (2026-27's real league phases), every country's places from the second on. */
+#if SWOS_WORLDS
+static CompetitionLeaguePhase kWorld2627LeaguePhases[3] = {
+    {
+        { { 0, 2, -1, 64, 32, 35, 0, 41, 1 }, 0, 0, 1, 3, 53, 6,
+          { { 36, 2, 18 }, { 16, 0, 16 }, { 16, 0, 16 }, { 8, 0, 8 }, { 4, 0, 4 }, { 2, 0, 2 } }, 1 },
+        { 0, -108, -108, -108, -108, 20 },
+        { kWorld2627_name290, kWorld2627_name291 },
+        {
+        { 1, 0 }   /* LASK */,
+        { 53, 0 }   /* SABAH */,
+        { 2, 1 }   /* BRUGGE */,
+        { 6, 0 }   /* SLAVIA PRAGUE */,
+        { 8, 1 }   /* MANCHESTER CITY */,
+        { 8, 4 }   /* LIVERPOOL */,
+        { 8, 2 }   /* MAN UTD */,
+        { 8, 3 }   /* ASTON VILLA */,
+        { 8, 0 }   /* ARSENAL */,
+        { 35, 4 }   /* BETIS */,
+        { 35, 1 }   /* REAL MADRID */,
+        { 35, 3 }   /* ATLETICO MADRID */,
+        { 35, 0 }   /* BARCELONA */,
+        { 35, 2 }   /* VILLARREAL */,
+        { 13, 2 }   /* LILLE */,
+        { 13, 1 }   /* LENS */,
+        { 13, 0 }   /* PARIS-SG */,
+        { 14, 1 }   /* DORTMUND */,
+        { 14, 3 }   /* STUTTGART */,
+        { 14, 0 }   /* BAYERN */,
+        { 14, 2 }   /* LEIPZIG */,
+        { 15, 0 }   /* AEK ATHENS */,
+        { 20, 3 }   /* COMO */,
+        { 20, 0 }   /* INTER */,
+        { 20, 2 }   /* ROMA */,
+        { 20, 1 }   /* NAPOLI */,
+        { 25, 0 }   /* PSV EINDHOVEN */,
+        { 25, 1 }   /* FEYENOORD */,
+        { 27, 1 }   /* BODO/GLIMT */,
+        { 27, 0 }   /* VIKING */,
+        { 29, 1 }   /* SPORTING */,
+        { 29, 0 }   /* PORTO */,
+        { 78, 0 }   /* SLO. BRATISLAVA */,
+        { 38, 0 }   /* GALATASARAY */,
+        { 38, 1 }   /* FENERBAHCE */,
+        { 39, 0 }   /* SHAKHTAR DONETSK */
+        }
+    },
+    {
+        { { 1, 2, -1, 64, 32, 35, 0, 41, 1 }, 0, 0, 1, 3, 53, 6,
+          { { 36, 2, 18 }, { 16, 0, 16 }, { 16, 0, 16 }, { 8, 0, 8 }, { 4, 0, 4 }, { 2, 0, 2 } }, 1 },
+        { 0, -108, -108, -108, -108, 20 },
+        { kWorld2627_name292, kWorld2627_name293 },
+        {
+        { 52, 0 }   /* ARARAT-ARMENIA */,
+        { 1, 4 }   /* SALZBURG */,
+        { 1, 2 }   /* STURM GRAZ */,
+        { 2, 5 }   /* ANDERLECHT */,
+        { 2, 0 }   /* UNION SG */,
+        { 3, 0 }   /* LEVSKI SOFIA */,
+        { 4, 0 }   /* DINAMO ZAGREB */,
+        { 5, 0 }   /* OMONIA NICOSIA */,
+        { 6, 2 }   /* VIKTORIA PLZEN */,
+        { 6, 1 }   /* SPARTA PRAHA */,
+        { 8, 6 }   /* SUNDERLAND */,
+        { 8, 5 }   /* BOURNEMOUTH */,
+        { 8, 14 }   /* CRYSTAL PALACE */,
+        { 35, 9 }   /* REAL SOCIEDAD */,
+        { 35, 5 }   /* CELTA */,
+        { 13, 3 }   /* LYON */,
+        { 13, 4 }   /* MARSEILLE */,
+        { 13, 5 }   /* RENNES */,
+        { 14, 4 }   /* HOFFENHEIM */,
+        { 14, 5 }   /* LEVERKUSEN */,
+        { 15, 5 }   /* OFI CRETE */,
+        { 15, 1 }   /* OLYMPIACOS */,
+        { 16, 1 }   /* FERENCVAROSI TC */,
+        { 19, 0 }   /* H. BEER SHEVA */,
+        { 20, 5 }   /* JUVENTUS */,
+        { 20, 4 }   /* MILAN */,
+        { 25, 6 }   /* AZ ALKMAAR */,
+        { 25, 2 }   /* NEC NIJMEGEN */,
+        { 27, 13 }   /* LILLESTROM */,
+        { 28, 2 }   /* JAGIELLONIA */,
+        { 28, 0 }   /* LECH POZNAN */,
+        { 29, 2 }   /* BENFICA */,
+        { 29, 18 }   /* UNIAO TORREENSE */,
+        { 33, 2 }   /* CELTIC */,
+        { 34, 0 }   /* CELJE */,
+        { 38, 3 }   /* BESIKTAS */
+        }
+    },
+    {
+        { { 2, 2, -1, 64, 32, 35, 0, 41, 1 }, 0, 0, 1, 3, 53, 6,
+          { { 36, 2, 18 }, { 16, 0, 16 }, { 16, 0, 16 }, { 8, 0, 8 }, { 4, 0, 4 }, { 2, 0, 2 } }, 1 },
+        { 0, -108, -108, -108, -108, 20 },
+        { kWorld2627_name294, kWorld2627_name295 },
+        {
+        { 0, 2 }   /* EGNATIA */,
+        { 47, 0 }   /* INTER D'ESCALDES */,
+        { 2, 3 }   /* GENT */,
+        { 2, 2 }   /* SINT-TRUIDENSE */,
+        { 54, 0 }   /* BORAC BANJA LUKA */,
+        { 3, 9 }   /* CSKA SOFIA */,
+        { 4, 1 }   /* HAJDUK SPLIT */,
+        { 5, 3 }   /* PAFOS */,
+        { 6, 3 }   /* JABLONEC */,
+        { 7, 1 }   /* MIDTJYLLAND */,
+        { 7, 5 }   /* NORDSJAELLAND */,
+        { 7, 6 }   /* COPENHAGEN */,
+        { 7, 0 }   /* AARHUS GF */,
+        { 8, 7 }   /* BRIGHTON */,
+        { 35, 6 }   /* GETAFE */,
+        { 12, 3 }   /* KUPS KUOPIO */,
+        { 13, 6 }   /* MONACO */,
+        { 61, 0 }   /* IBERIA TBILISI */,
+        { 14, 6 }   /* FREIBURG */,
+        { 63, 0 }   /* LINCOLN RED IMPS */,
+        { 15, 3 }   /* PANATHINAIKOS */,
+        { 20, 6 }   /* ATALANTA */,
+        { 86, 0 }   /* KAIRAT ALMATY */,
+        { 22, 0 }   /* KAUNO ZALGIRIS */,
+        { 21, 0 }   /* RIGA */,
+        { 25, 3 }   /* TWENTE ENSCHEDE */,
+        { 25, 4 }   /* AJAX AMSTERDAM */,
+        { 27, 3 }   /* BRANN */,
+        { 29, 3 }   /* BRAGA */,
+        { 30, 0 }   /* UNIV. CRAIOVA */,
+        { 33, 0 }   /* HEARTS */,
+        { 41, 0 }   /* RED STAR */,
+        { 37, 2 }   /* LUGANO */,
+        { 37, 0 }   /* THUN */,
+        { 36, 0 }   /* MJALLBY AIF */,
+        { 38, 2 }   /* TRABZONSPOR */
+        }
+    }
+};
+
+static const uint8_t kWorld2627EuropePlaces[][4] = {
+    { 0, 0, 0, 0 },   /* ALB */
+    { 47, 0, 0, 0 },   /* AND */
+    { 52, 0, 0, 1 },   /* ARM */
+    { 1, 0, 1, 1 },   /* AUT */
+    { 53, 0, 0, 1 },   /* AZE */
+    { 2, 2, 2, 1 },   /* BEL */
+    { 54, 0, 0, 0 },   /* BIH */
+    { 76, 0, 0, 0 },   /* BLR */
+    { 3, 0, 0, 1 },   /* BUL */
+    { 4, 0, 1, 1 },   /* CRO */
+    { 5, 1, 1, 1 },   /* CYP */
+    { 6, 1, 2, 1 },   /* CZE */
+    { 7, 1, 1, 1 },   /* DEN */
+    { 8, 5, 2, 1 },   /* ENG */
+    { 35, 4, 2, 1 },   /* ESP */
+    { 10, 0, 0, 0 },   /* EST */
+    { 12, 0, 0, 1 },   /* FIN */
+    { 13, 3, 2, 1 },   /* FRA */
+    { 11, 0, 0, 0 },   /* FRO */
+    { 61, 0, 0, 0 },   /* GEO */
+    { 14, 4, 2, 1 },   /* GER */
+    { 63, 0, 0, 0 },   /* GIB */
+    { 15, 1, 2, 1 },   /* GRE */
+    { 16, 0, 1, 1 },   /* HUN */
+    { 18, 0, 0, 1 },   /* IRL */
+    { 17, 0, 0, 1 },   /* ISL */
+    { 19, 0, 1, 1 },   /* ISR */
+    { 20, 5, 2, 1 },   /* ITA */
+    { 86, 0, 0, 1 },   /* KAZ */
+    { 88, 0, 0, 1 },   /* KOS */
+    { 90, 0, 0, 0 },   /* LIE */
+    { 22, 0, 0, 0 },   /* LTU */
+    { 23, 0, 0, 0 },   /* LUX */
+    { 21, 0, 0, 0 },   /* LVA */
+    { 92, 0, 0, 1 },   /* MDA */
+    { 93, 0, 0, 0 },   /* MKD */
+    { 24, 0, 0, 0 },   /* MLT */
+    { 94, 0, 0, 0 },   /* MNE */
+    { 25, 2, 2, 1 },   /* NED */
+    { 26, 0, 0, 0 },   /* NIR */
+    { 27, 1, 1, 1 },   /* NOR */
+    { 28, 1, 2, 1 },   /* POL */
+    { 29, 2, 2, 1 },   /* POR */
+    { 30, 0, 0, 1 },   /* ROU */
+    { 33, 0, 1, 1 },   /* SCO */
+    { 32, 0, 0, 0 },   /* SMR */
+    { 41, 0, 0, 1 },   /* SRB */
+    { 37, 0, 1, 1 },   /* SUI */
+    { 78, 0, 0, 1 },   /* SVK */
+    { 34, 0, 0, 1 },   /* SVN */
+    { 36, 0, 1, 1 },   /* SWE */
+    { 38, 1, 2, 1 },   /* TUR */
+    { 39, 0, 1, 1 },   /* UKR */
+    { 40, 0, 0, 0 },   /* WAL */
+};
+#endif
+
+CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32_t *count)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+    case WORLD_2627:
+        *places = kWorld2627EuropePlaces;
+        *count = 54;
+        return kWorld2627LeaguePhases;
+#endif
+    default:
+        *places = 0;
         *count = 0;
         return 0;
     }

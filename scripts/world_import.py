@@ -1033,6 +1033,7 @@ WORLD_DATA_C = """/*
 #include "world_cups.h"
 #include "world_cupd.h"
 #include "league_split.h"
+#include "league_phase.h"
 
 #if SWOS_WORLDS
 %(externs)s
@@ -1195,6 +1196,25 @@ const WorldCup *World_Cups(int32_t *count)
     }
 }
 
+/* The European cups as 36-club league phases (src/league_phase.c): their records, the first
+ * season's clubs (2026-27's real league phases), every country's places from the second on. */
+#if SWOS_WORLDS
+%(europe)s
+#endif
+
+CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32_t *count)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(europe_cases)s
+#endif
+    default:
+        *places = 0;
+        *count = 0;
+        return 0;
+    }
+}
+
 /* The divisions' mid-season splits and own meetings (src/league_split.c): the SWOS 96/97
  * Mod's tables, compiled as its split.py compiles them (scripts/world_split.py). */
 #if SWOS_WORLDS
@@ -1236,7 +1256,7 @@ def c_string(text):
     return '"%s"' % text.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=()):
+def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1399,6 +1419,27 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             sym, cupd["country"], len(cupd["rounds"]), sym, len(cupd["ties"]), sym, cupd["first"], cupd["groups"],
             sym, sym, len(cupd["pool_strength"]), sym, names[0], names[1]))
         cd_cases = "    case WORLD_%s:\n        return &%s;" % (tag, sym)
+    euro_tables, euro_cases = [], ""
+    if euro:
+        recs = []
+        for i, k in enumerate(("cc", "cwc", "uefa")):
+            long_, short = UEFA_NAMES[k]
+            for n in (long_, short):
+                if n not in symbols:
+                    strings.append("static char %s[] = %s;" % (symbol(n), c_string(n)))
+            clubs = ",\n".join("        { %d, %d }   /* %s */" % (c, o, nm.replace("*/", "")) for c, o, nm in euro["lists"][k])
+            recs.append("    {\n        { { %d, 2, -1, 64, 32, 35, 0, 41, 1 }, 0, 0, 1, 3, 53, 6,\n"
+                        "          { { 36, 2, 18 }, { 16, 0, 16 }, { 16, 0, 16 }, { 8, 0, 8 }, { 4, 0, 4 }, { 2, 0, 2 } }, 1 },\n"
+                        "        { 0, -108, -108, -108, -108, 20 },\n        { %s, %s },\n        {\n%s\n        }\n    }"
+                        % (i, symbol(long_), symbol(short), clubs))
+        euro_tables.append("static CompetitionLeaguePhase kWorld%sLeaguePhases[3] = {\n%s\n};" % (tag, ",\n".join(recs)))
+        euro_tables.append("static const uint8_t kWorld%sEuropePlaces[][4] = {\n%s\n};" % (tag, "\n".join(
+            "    { %d, %d, %d, %d },   /* %s */" % p for p in euro["places"])))
+        euro_cases = ("    case WORLD_%s:\n        *places = kWorld%sEuropePlaces;\n        *count = %d;\n"
+                      "        return kWorld%sLeaguePhases;" % (tag, tag, len(euro["places"]), tag))
+        records.append("static CompetitionLeaguePhase kWorld%sLeaguePhases[3];   /* (below) */" % tag)
+        cases = cases.replace("        FixtureRounds_Install();", "        LeaguePhase_InstallCups(kWorld%sLeaguePhases);\n"
+                              "        FixtureRounds_Install();" % tag)
     split_tables, split_entries = [], []
     for country, d, tb in splits:
         sym = "kWorld%s_split%d_%d" % (tag, country, d)
@@ -1411,7 +1452,8 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         tag, len(splits), tag)
     if news:
         externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
-    return WORLD_DATA_C % {"splits": "\n\n".join(split_tables), "split_cases": split_cases,
+    return WORLD_DATA_C % {"europe": "\n\n".join(euro_tables), "europe_cases": euro_cases,
+                           "splits": "\n\n".join(split_tables), "split_cases": split_cases,
                            "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
                            "season_cases": season_cases, "file_cases": file_cases,
                            "externs": "\n".join(sorted(externs)),
@@ -1458,6 +1500,38 @@ def division_rows(wc, picked, d):
     return [key_of.get(e["team"]["team_name"]) for e, div in picked if div == d]
 
 
+UEFA_NAMES = {"cc": ("UEFA CHAMPIONS LEAGUE", "CHAMPIONS LEAGUE"), "cwc": ("UEFA EUROPA LEAGUE", "EUROPA LEAGUE"),
+              "uefa": ("UEFA CONFERENCE LEAGUE", "CONF. LEAGUE")}     # (the Mod's mkseason.UEFA_NAMES)
+
+
+def europe(picks):
+    """The three European cups as 36-club league phases (the Mod's careerworld.lp_struct): their
+    first season's clubs (each pack's first_europe: 2026-27's real league phases, 36 a cup), and
+    every country's places from the second season on (europe_places: 34 / 35 / 36, the title
+    holders making them 36 -- the Champions League takes its own and the Europa League's, the
+    Europa League the Conference League's). picks: {code: (wc, picked)}."""
+    lists = {k: [] for k in ("cc", "cwc", "uefa")}
+    places = []
+    for code in sorted(picks):
+        wc, picked = picks[code]
+        pk = mod_pack(code)
+        path = os.path.join(MOD, "packs", code.lower(), "clubs.csv")
+        names = {r["key"]: r["name"] for r in csv.DictReader(open(path, encoding="utf-8"))}
+        ordinal = {e["team"]["team_name"]: o for o, (e, _) in enumerate(picked)}
+        for k, keys in (pk.get("first_europe") or {}).items():
+            for key in keys:
+                if names.get(key) not in ordinal:
+                    sys.exit("%s first_europe %s: %s is not in the team file" % (code, k, key))
+                lists[k].append((wc["number"], ordinal[names[key]], names[key]))
+        ep = pk.get("europe_places")
+        if ep:
+            places.append((wc["number"], ep.get("cc", 0), ep.get("cwc", 0), ep.get("uefa", 0), code))
+    for k, v in lists.items():
+        if len(v) != 36:
+            sys.exit("the first season's %s: %d clubs, its league phase takes 36" % (k, len(v)))
+    return {"lists": lists, "places": places}
+
+
 def country_splits(wc, pk, picked):
     """A country's divisions with a mid-season split or meetings of their own (the Mod's
     mkseason.splits, scripts/world_split.py): [(division, table bytes)]. A split of fixture
@@ -1501,8 +1575,9 @@ def main():
     (teams, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
     country = teams["teams"][0]["team"]["country_number"]
-    pools, news, splits = [], [], []
+    pools, news, splits, picks = [], [], [], {}
     groups = [italian_groups(picked, country, leagues)]
+    picks["ITA"] = ({"number": country}, picked)
 
     def add_pool(code, name, number, base):     # (home: as country_teams, 96/97's file's)
         home = home_nation(json.load(open(os.path.join(BASE, "teams", base + ".json"), encoding="utf-8")))
@@ -1523,6 +1598,7 @@ def main():
             continue
         pk = mod_pack(wc["code"])
         t, pk_picked = country_teams(wc)
+        picks[wc["code"]] = (wc, pk_picked)
         if wc["new"]:           # (its team file's name, after country_teams: 96/97 has none)
             wc["base"] = file_name(wc["name"])
             wc["region"] = CONTINENTS[pk["continent"]][1]
@@ -1550,7 +1626,8 @@ def main():
     with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
         f.write(world_data_c("2627", leagues, resized,
                              groups,
-                             playoffs, pools, cups, italian_cupd(picked, country, None), news, splits))
+                             playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
+                             europe(picks)))
     print("wrote src/world_data.c")
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):

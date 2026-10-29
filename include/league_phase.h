@@ -13,6 +13,7 @@
 #define LEAGUE_PHASE_H
 
 #include "swos_types.h"
+#include "game_types.h"
 
 #define LEAGUE_PHASE_CLUBS   36
 #define LEAGUE_PHASE_MATCHES 144        /* (4 pots: 8 matchdays of 18; 6 pots: 108, 6 of 18) */
@@ -54,6 +55,17 @@ void LeaguePhase_Rank(const LeaguePhaseRow *row, const uint8_t (*cal)[2], int32_
 
 /* How far the last draw relaxed the country rules (0: not at all). */
 int32_t LeaguePhase_Relaxed(void);
+
+/* ---- a world's European cups as league phases (World 2026-27) ---- */
+
+/* The world's three cups' records (the Champions League, the Europa League, the Conference
+ * League: the engine's Champions Cup, Cup Winners' Cup and UEFA Cup slots), 0 without; *places
+ * each country's places from the second season (country, CL, EL, UECL), *count of them. */
+CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32_t *count);
+
+/* World_InstallBaked: the career's three European contests become the world's records (the
+ * career contest table's templates; the copies hold them). */
+void LeaguePhase_InstallCups(CompetitionLeaguePhase *cups);
 
 /* ---- the league phase in the engine (a world's European cups: type-2 contests whose first
  * stage is 2 groups of 18, the Mod's careerworld LP_STAGES) ---- */

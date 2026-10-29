@@ -1939,6 +1939,19 @@ typedef struct __attribute__((packed)) {
     TeamId   teamSeedList[32];     /* embedded competition draw: {country,ordinal} pairs */
 } CompetitionTournament;
 
+/* A world's European cup with a 36-club league phase (src/league_phase.c; the SWOS 96/97 Mod's
+ * careerworld.lp_struct): CompetitionTournament's layout, its list 36 long -- type 2, six stages
+ * (36 in 2 groups of 18, the play-offs 16, the round of 16, 8, 4, 2). */
+typedef struct __attribute__((packed)) {
+    CompTournamentHeader header;
+    int8_t   roundRuleFlags[6];
+    char    *name[2];
+    TeamId   teamSeedList[36];
+} CompetitionLeaguePhase;
+
+_Static_assert(offsetof(CompetitionLeaguePhase, teamSeedList) == offsetof(CompetitionTournament, teamSeedList),
+               "a league-phase cup is a tournament record with a longer list");
+
 /* Self-offset bytes for the merged layout (Competition byte 5 / byte 7). Both are
  * layout-derived constants; the *_TEAMLIST one subtracts the 64-bit name[2]
  * pointer-growth delta so the STORED byte is identical on 32/64-bit (consumers

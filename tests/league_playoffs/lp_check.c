@@ -4,10 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../src/league_phase.c"
+#include "competition_data.h"
 /* (the engine's half is not run here: its symbols, stubbed) */
 DIYCompetitionEx _diyCompetitionStart;
 DIYTournamentState _diyFileBufferCopy;
 uint8_t _seasonPlaying;
+CompetitionCareer _careerContests[CAREER_CONTESTS_CAP];
 WorldId (World_Current)(void) { return WORLD_9697; }
 uint16_t Rand2(void) { return 0; }
 uint8_t *diy_resolve_team(int32_t sel) { (void)sel; return 0; }

@@ -29,6 +29,7 @@
  */
 
 #include "career_status.h"
+#include "league_phase.h"
 #include "test_rules.h"
 #include "comp_identity.h"
 #include "diy_competition.h"
@@ -3274,7 +3275,7 @@ void Career_AutoAdvanceCompetitionAndPersistSlotState(uint8_t *compPtr)
         const char *bailReason = 0;
         uint32_t bailTeamSelPtr = 0;
 
-        if (numTeams <= 0 || numTeams > 32) {
+        if (numTeams <= 0 || numTeams > LEAGUE_PHASE_CLUBS) {   /* (a world's league phase: 36) */
             bail = 1;
             bailReason = "numTeams out of range";
         } else if (totalInRound <= 0 || totalInRound > 32) {

@@ -22,6 +22,7 @@
                                Amiga Makefile doesn't, so include it explicitly */
 #include "job_offers.h"
 #include "panic.h"
+#include "league_phase.h"
 #include "random.h"
 #include "statistics.h"
 #include "transfer_market.h"
@@ -274,6 +275,24 @@ void Career_PrepareEuropeanCupQualificationState(void)
         }
         Career_FillRandomTeamListExcludingSelected(excludeCount,
             _euroCupQualGroupSeedBuckets_15_18_22, _uefaCupEligibleCompetitionIds);
+    }
+
+    /* A world's league phases: each country's own places (include/league_phase.h), not 96/97's
+     * drawn ones -- the eligible lists one country a place, in the world's order. */
+    {
+        const uint8_t (*places)[4];
+        int32_t n;
+        if (World_LeaguePhaseCups(&places, &n)) {
+            uint8_t *lists[3] = { _euroCupEligibleCompetitionIds, _cupWinnersCupEligibleCompetitionIds,
+                                  _uefaCupEligibleCompetitionIds };
+            for (int32_t c = 0; c < 3; c++) {
+                int32_t k = 0;
+                for (int32_t i = 0; i < n; i++)
+                    for (int32_t j = 0; j < places[i][1 + c] && k < 39; j++)
+                        lists[c][k++] = places[i][0];
+                lists[c][k] = 0xFF;
+            }
+        }
     }
 
     /* Restore state — asm: move.w (sp)+,(isNationalSelector); move.w (sp)+,(selTeamNumber) */
@@ -1732,16 +1751,21 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
      * so the expected total is 0x50 + the Copa count (0 on a build without the
      * Copa data). Without this the gate would miss (e.g. 100 != 0x50) and fall
      * through to panic 0x8999. */
-    if (_careerFileBuffer == 0x50 + Career_CopaLibertadoresQualifiedTeamCount()) {
+    /* (a world's league phases: 34 + 35 + 36 before the holders, 36 each after them) */
+    const uint8_t (*lpPlaces)[4];
+    int32_t lpN;
+    const int32_t lp = World_LeaguePhaseCups(&lpPlaces, &lpN) != 0;
+    const uint16_t euroBefore = lp ? 105 : 0x50, euroAfter = lp ? 108 : 0x50;
+    if (_careerFileBuffer == euroBefore + Career_CopaLibertadoresQualifiedTeamCount()) {
         Career_DrawEuropeanCupTeamsAndCopyGrids();
         _seasonUpdateInProgress = 0;
         RestoreSelectedTeams();
 
-        if (_euroCupQualifiedTeamCount == 16 &&
-            _cupWinnersCupQualifiedTeamCount == 32 &&
-            _uefaCupQualifiedTeamCount == 32 &&
+        if (_euroCupQualifiedTeamCount == (lp ? 36 : 16) &&
+            _cupWinnersCupQualifiedTeamCount == (lp ? 36 : 32) &&
+            _uefaCupQualifiedTeamCount == (lp ? 36 : 32) &&
             Career_CopaLibertadoresQualifiedTeamCount() == Career_CopaLibertadoresExpectedTeamCount() &&
-            _careerFileBuffer == 0x50 + Career_CopaLibertadoresQualifiedTeamCount()) {
+            _careerFileBuffer == euroAfter + Career_CopaLibertadoresQualifiedTeamCount()) {
             Career_StorePromotionRelegationInSeasonInfo();
             WorldCups_SeasonEnded();    /* (the next season plays its cups' own draw) */
             return;

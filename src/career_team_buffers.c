@@ -62,4 +62,6 @@ _Static_assert(CAREER_TEAM_BUF_SIZE == 1292,
  * Amiga tree. */
 uint8_t _careerTeam[CAREER_TEAM_BUF_SIZE]  __attribute__((aligned(4)));
 uint8_t _currentTeam[CAREER_TEAM_BUF_SIZE] __attribute__((aligned(4)));
-uint8_t _tmdFileBuffer[87552]              __attribute__((aligned(4)));  /* 128 * 684 */
+/* A world's league phases stage 36 + 36 + 36 European clubs (+ the Copa's 20): 160 records with
+ * the worlds compiled in (include/swos_types.h). Count-driven save: unchanged on disk. */
+uint8_t _tmdFileBuffer[TMD_POOL_RECORDS * 684] __attribute__((aligned(4)));
