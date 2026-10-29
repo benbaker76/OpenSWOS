@@ -1,7 +1,7 @@
 # CLASSIC_COMPETITIONS.md — CLASSICS, SWOS 2020's DLC cups, and the PC `.DIY` format
 
 > Status (2026-10-29): **current**, both targets. The Amiga plays the same competitions from
-> OpenSWOS's JSON `.DIY` (converted on a PC, section 6); 2026 (48 teams) is SDL only.
+> OpenSWOS's JSON `.DIY` (converted on a PC, section 6), 2026's 48 teams included.
 
 ## 1. What it is
 
@@ -29,8 +29,8 @@ that is not JSON), with the file's control types, options and tactics.
 
 ## 2. Where the files live
 
-**Shipped:** `bin/classic/uefa/` and `bin/classic/worldcup/` — the 38 competitions of up to
-32 teams, as OpenSWOS's JSON `.DIY` (every team COMPUTER), converted from SWOS 2020's DLC
+**Shipped:** `bin/classic/uefa/` and `bin/classic/worldcup/` — all 39 competitions (2026's 48
+teams included), as OpenSWOS's JSON `.DIY` (every team COMPUTER), converted from SWOS 2020's DLC
 with `--convert-diy` (section 6). SWOS 2020's DLC is a community project; these files were
 updated there by petarku, and they ship with that community's agreement (2026-10-29). Every
 drop carries `classic/` (`FULL_DATA_DIRS` and `AMIGA_DATA_DIRS` in `build_dist.sh`,
@@ -41,7 +41,7 @@ drop carries `classic/` (`FULL_DATA_DIRS` and `AMIGA_DATA_DIRS` in `build_dist.s
 (`<assets>` is `swos_assets_dir()`, by default `Documents\SWOS\assets`), SWOS 2020's files as
 they are — `scripts/copy_classics.ps1` copies them from an install (`-From`, default
 `C:\Games\SWOS 2020\dlc\cup`; a folder named WORLD CUP goes to `worldcup`, EURO or UEFA to
-`uefa`). This is how 2026 (48 teams, never converted) gets in.
+`uefa`).
 
 SDL looks in the assets folder first, then in the game's own `classic/`; a file name already
 listed from the first is not listed again. A file is listed by the name inside it, sorted by
@@ -107,11 +107,9 @@ as `diy_team_to_identity` defines them.
 
 ## 5. Known limits
 
-- **2026 is six groups of eight**, and SDL only. The group layout is SWOS 2020's file, not the
+- **2026 is six groups of eight.** The group layout is SWOS 2020's file, not the
   import: 6 groups x 8 (7 matches each), 32 through to a round of 32 — the real format (12
-  groups of four, best thirds) needs more groups than SWOS's DIY tournament offers. It is not
-  converted (48 teams, more than the Amiga is to play for now), so it comes only from the
-  player's own SWOS 2020 files.
+  groups of four, best thirds) needs more groups than SWOS's DIY tournament offers.
 - **ESC on the teams screen** was seen to start the competition, as PLAY does, instead of
   going back like EXIT (SDL, 2026-10-29, not looked into yet).
 - **Unexplained:** a SWOS 2020 cup loaded through LOAD OLD COMPETITION (every team COACH), one
@@ -130,8 +128,38 @@ same competitions from **OpenSWOS's JSON `.DIY`**, which is built to load on it
     SWOS.exe --convert-diy=<in.DIY>,<out.DIY>
 
 imports the file, makes every team COMPUTER, writes the JSON (and, in a tester build, reloads
-and diffs it: `[json-verify-diy] 0 mismatches` for all 38), and refuses one of more than 32
-teams (exit 2). The shipped `bin/classic/` is its output.
+and diffs it: `[json-verify-diy] 0 mismatches` for all 39), and refuses one of more than 64
+teams, a DIY competition's own limit (exit 2). Until 2026-10-29 it refused more than 32, a
+caution nothing on the Amiga needed: every structure the competition uses is sized for 64.
+The shipped `bin/classic/` is its output.
+
+### Converting a competition
+
+    cd bin
+    SDL_VIDEODRIVER=dummy ./SWOS.exe --convert-diy=<in.DIY>,classic/<uefa|worldcup>/<NAME>.DIY
+
+- **Input:** a PC game's or SWOS 2020's `.DIY` (the raw dump of section 3; up to 64 teams).
+  An OpenSWOS JSON `.DIY`, or anything else, is refused as "not a PC/SWOS 2020 .DIY".
+- **It needs the game's data.** It runs once the game has loaded its data, as a match would,
+  because the save writer wants that data. `SDL_VIDEODRIVER=dummy` keeps the window shut.
+  Relative paths are taken from the working directory.
+- **It goes through the save folder:** it writes `_CONVERT.DIY` there and then moves it to
+  `<out>`, replacing a file already at that path.
+- **Exit codes:** 0 converted, 1 failed (could not read, not a PC file, would not load or
+  write; the `[diy-convert]` line says which), 2 refused (more than 64 teams).
+- **Checking it:** a build with `SWOS_SAVE_FORMAT_JSON_VERIFY=1` (a plain `make`'s default;
+  `build_dist.sh` turns it off) prints `[json-verify-diy] N mismatches`, which must be 0. Then open it on the Amiga under CLASSICS.
+  The list shows it by the name inside the file, so the file name only has to keep its `.DIY`
+  (SAVE reads the extension back from it).
+
+A whole SWOS 2020 folder, from PowerShell in `bin` (on Windows, run the Cygwin `SWOS.exe` from
+PowerShell, not from a nested Cygwin bash, which can exit 127 without a word):
+
+    $env:SDL_VIDEODRIVER = 'dummy'
+    Get-ChildItem "$HOME\Documents\SWOS\assets\classic\worldcup\*.DIY" | ForEach-Object {
+        .\SWOS.exe "--convert-diy=$($_.FullName),$PWD\classic\worldcup\$($_.Name)" 2>&1 |
+            Select-String 'diy-convert|json-verify'
+    }
 
 Chosen over a field-table reader in the game (every DOS field read by kind on any host)
 because the JSON was already proven on the Amiga, and that reader's hard part — byte arrays
@@ -145,5 +173,9 @@ the others 1) and still so after PLAY; EURO 1964 played to the final through LOA
 COMPETITION (Hungary 3–2 Denmark a.e.t., about 1 s to load); a classic competition saved and
 loaded again.
 
+Proved under FS-UAE (2026-10-29), 2026: its 48 teams on the teams screen (5.6 s to load);
+played through VIEW RESULT, all 168 group matches and every knockout round (extra time and
+penalties) to the final (Spain 1-0 Japan a.e.t.); saved during it and loaded again.
+
 Not done: OpenSWOS Setup does not copy or convert a player's own SWOS 2020 files for the
-Amiga; the shipped ones cover every competition of up to 32 teams.
+Amiga; the shipped ones are every competition of the DLC.
