@@ -73,7 +73,7 @@ enum {
     kTactics         = 0xB5E,         /* USER_A..USER_F, 370 bytes each */
     kOptions         = 0x140A,        /* gameLength .. pitchType */
     kMaxTeams        = 64,
-    kAmigaMaxTeams   = 32,            /* what the Amiga is to play, for now */
+    kAmigaMaxTeams   = 64,            /* a DIY's own limit (teams.c); 48 proved on the Amiga */
 };
 
 extern uint16_t _gameType;
@@ -260,7 +260,7 @@ int32_t DiyConvert_Request(const char *arg)
 
 int32_t DiyConvert_Armed(void) { return s_convertIn[0] != 0; }
 
-/* Exits: 0 converted, 1 failed, 2 refused (more teams than the Amiga is to play). */
+/* Exits: 0 converted, 1 failed, 2 refused (more teams than a DIY competition holds). */
 void DiyConvert_Run(void)
 {
     static uint8_t scratch[] = "_CONVERT.DIY";     /* in the save folder, then moved */
@@ -288,7 +288,7 @@ void DiyConvert_Run(void)
         exit(1);
     }
     if (le16(data + kRegion) > kAmigaMaxTeams) {
-        fprintf(stderr, "[diy-convert] %s: %u teams, more than the Amiga plays (%d): not converted\n",
+        fprintf(stderr, "[diy-convert] %s: %u teams, more than a DIY holds (%d): not converted\n",
                 s_convertIn, (unsigned)le16(data + kRegion), (int)kAmigaMaxTeams);
         exit(2);
     }
