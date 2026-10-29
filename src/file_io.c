@@ -6,6 +6,9 @@
 #include "swos_types.h"
 #include "game_types.h"   /* CompetitionSlotBuffer (Phase B raw-save size) */
 #include "file_io.h"
+#ifdef SWOS_SDL_BUILD
+#include "diy_import_dos.h"
+#endif
 #include "display.h"
 #include "menus.h"
 #include "audio.h"
@@ -510,8 +513,16 @@ int16_t LoadDIYFile(uint8_t *filename)
      * deliberately does NOT run the career RebuildPointersAfterLoad (a routed
      * .DIY goes to the DIY menu, not the career contestMenu). See
      * docs/SAVE_DATA.md "Format migration / read-support policy". */
+    /* A .DIY from the PC game or SWOS 2020 (their raw DOS dump) is imported
+     * into the same state (diy_import_dos.c, SDL only: the Amiga refuses it). */
+#ifdef SWOS_SDL_BUILD
+    if (SaveJson_FileIsJson(filename) == 1
+            ? SaveJson_LoadDIY(filename, NULL, 0) != 0
+            : DiyImportDos_Load(filename) != 0) {
+#else
     if (SaveJson_FileIsJson(filename) != 1 ||
         SaveJson_LoadDIY(filename, NULL, 0) != 0) {
+#endif
         ShowErrorMenu(_aFileSavedByDif);
         RestoreOptions();
         InitUserTactics();

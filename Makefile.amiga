@@ -53,7 +53,9 @@ SDL_ONLY_SRCS := \
     crt_effects.c         \
     ini.c                 \
     input_sdl.c           \
+    classic_comps.c       \
     custom_team.c         \
+    diy_import_dos.c      \
     dos_sound.c           \
     dos_music.c           \
     dos_music_impl.c      \

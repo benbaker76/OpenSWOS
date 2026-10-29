@@ -1,0 +1,1127 @@
+{
+  "name": "classicListMenu",
+  "source": {
+    "project": "openswos"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "classicListMenu_OnInit",
+  "onReturn": null,
+  "onDraw": "classicListMenu_OnDraw",
+  "defaultEntry": 1,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 60,
+        "y": 0,
+        "w": 200,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CLASSIC COMPETITIONS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp0",
+      "coords": {
+        "x": 8,
+        "y": 20,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 17,
+          "up": -1,
+          "down": 2
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp1",
+      "coords": {
+        "x": 8,
+        "y": 30,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 18,
+          "up": 1,
+          "down": 3
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp2",
+      "coords": {
+        "x": 8,
+        "y": 40,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 19,
+          "up": 2,
+          "down": 4
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp3",
+      "coords": {
+        "x": 8,
+        "y": 50,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 20,
+          "up": 3,
+          "down": 5
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp4",
+      "coords": {
+        "x": 8,
+        "y": 60,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 21,
+          "up": 4,
+          "down": 6
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp5",
+      "coords": {
+        "x": 8,
+        "y": 70,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 22,
+          "up": 5,
+          "down": 7
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp6",
+      "coords": {
+        "x": 8,
+        "y": 80,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 23,
+          "up": 6,
+          "down": 8
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp7",
+      "coords": {
+        "x": 8,
+        "y": 90,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 24,
+          "up": 7,
+          "down": 9
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp8",
+      "coords": {
+        "x": 8,
+        "y": 100,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 25,
+          "up": 8,
+          "down": 10
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp9",
+      "coords": {
+        "x": 8,
+        "y": 110,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 26,
+          "up": 9,
+          "down": 11
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp10",
+      "coords": {
+        "x": 8,
+        "y": 120,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 27,
+          "up": 10,
+          "down": 12
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp11",
+      "coords": {
+        "x": 8,
+        "y": 130,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 28,
+          "up": 11,
+          "down": 13
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp12",
+      "coords": {
+        "x": 8,
+        "y": 140,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 29,
+          "up": 12,
+          "down": 14
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp13",
+      "coords": {
+        "x": 8,
+        "y": 150,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 30,
+          "up": 13,
+          "down": 15
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp14",
+      "coords": {
+        "x": 8,
+        "y": 160,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 31,
+          "up": 14,
+          "down": 16
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp15",
+      "coords": {
+        "x": 8,
+        "y": 170,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 32,
+          "up": 15,
+          "down": 33
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp16",
+      "coords": {
+        "x": 164,
+        "y": 20,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 1,
+          "right": -1,
+          "up": -1,
+          "down": 18
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp17",
+      "coords": {
+        "x": 164,
+        "y": 30,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 2,
+          "right": -1,
+          "up": 17,
+          "down": 19
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp18",
+      "coords": {
+        "x": 164,
+        "y": 40,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 3,
+          "right": -1,
+          "up": 18,
+          "down": 20
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp19",
+      "coords": {
+        "x": 164,
+        "y": 50,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 4,
+          "right": -1,
+          "up": 19,
+          "down": 21
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp20",
+      "coords": {
+        "x": 164,
+        "y": 60,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 5,
+          "right": -1,
+          "up": 20,
+          "down": 22
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp21",
+      "coords": {
+        "x": 164,
+        "y": 70,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 6,
+          "right": -1,
+          "up": 21,
+          "down": 23
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp22",
+      "coords": {
+        "x": 164,
+        "y": 80,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 7,
+          "right": -1,
+          "up": 22,
+          "down": 24
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp23",
+      "coords": {
+        "x": 164,
+        "y": 90,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 8,
+          "right": -1,
+          "up": 23,
+          "down": 25
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp24",
+      "coords": {
+        "x": 164,
+        "y": 100,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 9,
+          "right": -1,
+          "up": 24,
+          "down": 26
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp25",
+      "coords": {
+        "x": 164,
+        "y": 110,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 10,
+          "right": -1,
+          "up": 25,
+          "down": 27
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp26",
+      "coords": {
+        "x": 164,
+        "y": 120,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 11,
+          "right": -1,
+          "up": 26,
+          "down": 28
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp27",
+      "coords": {
+        "x": 164,
+        "y": 130,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 12,
+          "right": -1,
+          "up": 27,
+          "down": 29
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp28",
+      "coords": {
+        "x": 164,
+        "y": 140,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 13,
+          "right": -1,
+          "up": 28,
+          "down": 30
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp29",
+      "coords": {
+        "x": 164,
+        "y": 150,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 14,
+          "right": -1,
+          "up": 29,
+          "down": 31
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp30",
+      "coords": {
+        "x": 164,
+        "y": 160,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 15,
+          "right": -1,
+          "up": 30,
+          "down": 32
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "comp31",
+      "coords": {
+        "x": 164,
+        "y": 170,
+        "w": 148,
+        "h": 9
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 16,
+          "right": -1,
+          "up": 31,
+          "down": 33
+        },
+        {
+          "op": "onselect_fire",
+          "func": "classicListPick"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 92,
+        "y": 185,
+        "w": 136,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "EXIT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 16,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SetExitMenuFlag"
+        }
+      ]
+    }
+  ]
+}
