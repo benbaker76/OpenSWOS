@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Measure the real menu path into the first bundled challenge."""
+"""Measure the real menu path into a bundled challenge (default FINISH THE JOB;
+another by name: amiga_challenge_benchmark.py "DERBY MIRACLE")."""
 import json
 import time
 import amiga_benchmark as setup
+import amiga_session
 from testing_support.adapter import SwosStateAdapter
 
 
-def run():
+def run(challenge="FINISH THE JOB"):
     a = SwosStateAdapter(proxy=str(setup.Path(__file__).with_name("amiga_proxy.py")))
     a._domain = {}
     a.sw._is_sdl = False
@@ -17,11 +19,10 @@ def run():
     snap = a.observe(prime=False)
     if snap.screen != "SWOSMainMenuInit":
         raise RuntimeError(f"Expected main menu, got {snap.screen}")
-    for label in ("CHALLENGES", "CHALLENGE COLLECTION", None):
-        if label is None:
-            rows = [r for r in snap.entries if r.enabled and r.ordinal == snap.selected_ordinal]
-        else:
-            rows = [r for r in snap.entries if r.enabled and (r.label or "").strip() == label]
+    # By name: a list reopened after BACK keeps BACK selected, so "the selected
+    # entry" only meant the first challenge on a fresh boot.
+    for label in ("CHALLENGES", "CHALLENGE COLLECTION", challenge):
+        rows = [r for r in snap.entries if r.enabled and (r.label or "").strip() == label]
         if len(rows) != 1:
             raise RuntimeError(f"Cannot resolve {label}: {snap.to_dict()}")
         row = rows[0]
@@ -54,12 +55,13 @@ def run():
     report["total_seconds"] = round(report["boot_seconds"]+report["post_boot_seconds"], 3)
     report["teams"] = a.read_match_teams()
     report["status"] = "challenge_loaded_at_first_match_frame"
-    # Let the game actually render and play; no persistent per-frame breakpoint.
-    h.cmd("disable breakpoints")
-    h.cmd("continue", timeout=.1)
+    # Let the game actually render and play: breakpoints off, background resume
+    # (`amiga_session.py pause` can take it back).
+    amiga_session.release()
     (setup.OUT / "challenge-benchmark.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2), flush=True)
 
 
 if __name__ == "__main__":
-    run()
+    import sys
+    run(*sys.argv[1:2])

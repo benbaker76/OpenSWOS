@@ -13,9 +13,22 @@ not Windows Python (the transport requires Cygwin Unix sockets).
 First inspect the owned session without changing the game:
 
 ```powershell
-Get-Content build/amiga-ui/owner.json -ErrorAction SilentlyContinue
-& C:/cygwin64/bin/bash.exe -lc 'cd /cygdrive/c/Users/A7126/orca/OpenSWOS && python3 scripts/testing_support/amiga_proxy.py health'
+& C:/cygwin64/bin/bash.exe -lc 'cd /cygdrive/c/Users/A7126/orca/OpenSWOS && python3 scripts/testing_support/amiga_session.py status'
 ```
+
+Use `status`, not `amiga_proxy.py health`. The health check only asks the debugger
+daemon, and the daemon outlives its emulator. One session left behind with FS-UAE
+closed still reported `DEGRADED target running` from health. `status` also checks
+the recorded emulator, daemon and gdb processes and the build hashes. It prints one
+line whose first word is the verdict:
+
+| Verdict | Meaning | Next |
+| --- | --- | --- |
+| `NONE` | no owned session | `up` |
+| `DEAD gdb exited` (or emulator, daemon) | nothing left to drive | `up` cleans up and boots |
+| `STOPPED at <symbol>` | paused; `MenuInputInjectPoint` = at a menu | drive it |
+| `RUNNING` | handed over (perhaps being played) | `pause`, if taking it is fine |
+| `STALE ...` | `bin/SWOS2` rebuilt since boot | `down`, then `up` |
 
 If there is no session, or the owned test session is paused at the main menu:
 
@@ -29,17 +42,70 @@ not reset the game to that menu. It performs these actual menu activations:
 
 1. CHALLENGES.
 2. CHALLENGE COLLECTION.
-3. The currently selected collection entry (on fresh boot: FINISH THE JOB).
+3. The challenge by name: FINISH THE JOB, or the first argument
+   (`amiga_challenge_benchmark.py "DERBY MIRACLE"`). It used to press "the
+   selected entry", which is FINISH THE JOB only on a fresh boot. A list
+   reopened after BACK keeps BACK selected, so the run backed out.
 4. PLAY.
 
 It verifies each menu transition, stops at `ChallengeProgress_PositionLoaded`
-and then `GameLoop_Frame`, reads the match teams and human ownership, disables
-breakpoints and resumes play. The verified example is AC Milan against Juventus,
+and then `GameLoop_Frame`, reads the match teams and human ownership, then
+**releases** the game (below). The verified example is AC Milan against Juventus,
 with Milan human-controlled. No user click is needed for these injected actions.
 
-The game is deliberately **left running for the user**. Do not immediately
-stop it or rerun a main-menu script against it. A running target's proxy health
-currently says `DEGRADED target running (busy ...)`: that is not a crash.
+The game is deliberately **left running for the user**. Do not take it back or
+rerun a main-menu script against it without a reason; `status` says `RUNNING`.
+
+## Navigating by label: `amiga_goto.py`
+
+```powershell
+& C:/cygwin64/bin/bash.exe -lc 'cd /cygdrive/c/Users/A7126/orca/OpenSWOS/scripts/testing_support && python3 amiga_goto.py challenges'
+& C:/cygwin64/bin/bash.exe -lc 'cd /cygdrive/c/Users/A7126/orca/OpenSWOS/scripts/testing_support && python3 amiga_goto.py BACK BACK FRIENDLY --release'
+```
+
+Each argument is a button label. The label is matched against the screen open at
+that step: exactly one visible, enabled row, with surrounding spaces ignored. The
+button is activated and the screen must change. Each step prints its time, the
+screen and the buttons now shown. On failure it names the buttons that were
+there. Presets: `challenges` (CHALLENGES, CHALLENGE COLLECTION) and
+`saved-positions`. A preset checks that it starts on the main menu; plain labels
+start wherever the stopped session is. Without `--release` the game stays stopped
+at the menu anchor, ready for the next command. Measured: about 0.3 s per screen,
+0.5 s for the collection list.
+
+## Handing over and taking back: `release` / `pause`
+
+```powershell
+& C:/cygwin64/bin/bash.exe -lc 'cd /cygdrive/c/Users/A7126/orca/OpenSWOS && python3 scripts/testing_support/amiga_session.py release'
+& C:/cygwin64/bin/bash.exe -lc 'cd /cygdrive/c/Users/A7126/orca/OpenSWOS && python3 scripts/testing_support/amiga_session.py pause'
+```
+
+- `release` disables the breakpoints and resumes with gdb's **background**
+  `continue &`. The game runs, and gdb keeps its prompt.
+- `pause` sends gdb's `interrupt` (the remote break; the stub stops with SIGTRAP
+  in about 0.07 s). It re-enables the breakpoints and gives the game 3 s to reach
+  the menu anchor. If a menu is up it stops at `MenuInputInjectPoint`, ready for
+  `amiga_goto.py`; measured at 0.33 s, three cycles in a row. In a match it stays
+  paused where it stopped (`paused at GameLoop + 308 (no menu reached: in a
+  match?)`), and `release` resumes the match. Checked: `_frameCount` kept advancing.
+
+Before these existed, the scripts handed over with a plain `continue`. That left
+gdb blocked in the foreground with no way back, so taking a session back cost a
+30 s reboot. `pause` takes a game from the user, so ask first if they might be
+playing it. `up` never pauses a `RUNNING` session; it refuses.
+
+**Never signal gdb to interrupt it.** Cygwin's `kill -INT` to the native win32 gdb
+does not interrupt: it kills gdb. The debugger port is one-shot, so the session is
+then undrivable until a reboot (tried 2026-10-29). Use `pause`.
+
+`amiga_proxy.py` tracks the background state for the daemon. The stock AmigaScope
+daemon treats every gdb prompt as "stopped". The wrapper marks the target running
+after `continue &` or `interrupt`, until a stop shows up. A breakpoint on the very
+next frame can arrive inside the command's own reply. The wrapper checks for that,
+under the buffer lock. An earlier version missed it: the daemon then waited for a
+stop that had already happened, and the next `interrupt`, sent to a stopped target,
+garbled the remote link (`Invalid hex digit 83`). That handling could move upstream
+into AmigaScope's `gdb_proxy.py`.
 
 ## Rebuilds, reuse and ownership
 
@@ -54,9 +120,15 @@ currently says `DEGRADED target running (busy ...)`: that is not a crash.
   `bin/`, including saves, and removes any copied `data/CHALGEN.DAT` generation
   job. In-game writes go to this test drawer, not the regular save directory.
   The drawer persists between boots; this is not a pristine-save fixture.
-- `owner.json` records Cygwin PID, Windows PID, start ticks and command line.
+- `owner.json` records Cygwin PID, Windows PID, start ticks and command line
+  for the emulator, the daemon and (since 2026-10-29) the daemon's gdb.
   `down` checks those identities before stopping only the owned process trees.
   Do not replace it with `taskkill /IM`, `Stop-Process -Name`, or broad `pkill`.
+- If any recorded process has exited (an emulator closed by hand, or a gdb that
+  died), `up` logs `owned session is dead (...)`. It stops what is left through
+  `down`, which is identity-checked, then boots fresh. Checked by killing the owned
+  gdb: `status` said `DEAD gdb exited`, and `up` recovered in 29.6 s. It used to
+  refuse and leave the cleanup to you.
 - Run one driver at a time. The session, socket and observation files are shared
   by this workflow; concurrent driving is not supported.
 
@@ -113,7 +185,8 @@ here. Leave both unset for ordinary checks; do not promise accelerated startup.
 
 ## Extending the driver correctly
 
-Use `amiga_challenge_benchmark.py` as the working example. The client setup in
+Use `amiga_goto.py` (label routes) and `amiga_challenge_benchmark.py` (into a
+match) as the working examples. The client setup in
 `amiga_benchmark.py` selects these values **before importing the adapter**:
 
 | Setting | Value |
@@ -179,5 +252,7 @@ the new default. Those lifecycle/routes predate this isolated workflow and the
 collection hub. See [AMIGA_DRIVER.md](AMIGA_DRIVER.md) for the legacy controls.
 
 A stopped debugger makes the window look frozen. Explain whether the target is
-paused or running. Before handing control to the user, disable test breakpoints
-and continue, as the challenge benchmark does. Do not leave per-frame stops armed.
+paused or running. Hand control to the user with `amiga_session.py release` (or
+`amiga_goto.py ... --release`), as the challenge benchmark does. A plain
+`continue` also runs the game, but it leaves gdb unable to `pause` it. Do not
+leave per-frame stops armed.

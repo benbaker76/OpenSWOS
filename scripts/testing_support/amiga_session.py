@@ -14,7 +14,17 @@ procedure automated:
   5. skip the loader intro (break ShowLoaderIntroSequence; return; continue)
   6. land stopped at MenuInputInjectPoint — the flow framework's anchor.
 
-Run from Cygwin:  python3 scripts/testing_support/amiga_session.py up
+Run from Cygwin:  python3 scripts/testing_support/amiga_session.py <action>
+
+  up       boot (or reuse a stopped session); cleans up after an owned
+           emulator/gdb that has exited, never touches a running one
+  status   the truth about the owned session: none / dead / stale build /
+           stopped at <symbol> / running (handed over)
+  pause    take a running session back: interrupt, then run on to the menu
+           anchor if a menu is up, else stay paused where it stopped
+  release  hand the game over: breakpoints off, resume in the background
+           (gdb stays usable, so `pause` can take it back)
+  down     stop the owned processes only
 """
 import os
 import re
@@ -94,13 +104,39 @@ def process_identity(pid):
         return None
 
 
+def child_identity(parent_pid, name):
+    """The Cygwin child of `parent_pid` whose command line contains `name`."""
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            if (int((entry / "ppid").read_text()) == int(parent_pid)
+                    and name in (entry / "cmdline").read_text()):
+                return process_identity(int(entry.name))
+        except (FileNotFoundError, ProcessLookupError, ValueError):
+            continue
+    return None
+
+
+ROLES = ("emulator", "daemon", "gdb")
+
+
+def dead_roles(owner):
+    """Recorded processes that are gone. gdb matters as much as the emulator:
+    the debugger port is one-shot, so a session whose gdb died is undrivable."""
+    return [role for role in ROLES
+            if role in owner and process_identity(owner[role]["pid"]) != owner[role]]
+
+
 def down():
     if not OWNER.exists():
         return True
     owner = json.loads(OWNER.read_text())
     if not all(role in owner for role in ("emulator", "daemon")):
         raise RuntimeError("Legacy owner record lacks process identities; refusing unsafe teardown.")
-    for role in ("daemon", "emulator"):
+    for role in ("gdb", "daemon", "emulator"):
+        if role not in owner:
+            continue
         recorded = owner[role]
         if process_identity(recorded["pid"]) == recorded:
             result = sh("taskkill", "/PID", str(recorded["winpid"]), "/T", "/F")
@@ -127,16 +163,24 @@ def up():
     T0 = time.time()
     if OWNER.exists():
         owner = json.loads(OWNER.read_text())
-        if owner.get("build") != build_identity():
-            raise RuntimeError("Build changed or unverified. Run down then up to boot the new executable.")
-        if any(process_identity(owner[role]["pid"]) != owner[role]
-               for role in ("emulator", "daemon")):
-            raise RuntimeError("Owned process exited; run down then up. Other sessions are untouched.")
-        h = proxy("health").strip()
-        if h.startswith("OK stopped"):
-            log("REUSED existing test session: " + h)
-            return 0
-        raise RuntimeError("Recorded session is not stopped/healthy; refusing to restart any emulator.")
+        gone = dead_roles(owner)
+        if gone:
+            # Nothing of this session can be driven or seen any more (an emulator
+            # closed by hand, or a gdb that died); stopping what is left of it is
+            # identity-checked, so other sessions stay untouched.
+            log(f"owned session is dead ({', '.join(gone)} exited); cleaning it up")
+            down()
+        else:
+            if owner.get("build") != build_identity():
+                raise RuntimeError("Build changed or unverified. Run down then up to boot the new executable.")
+            h = proxy("health").strip()
+            if h.startswith("OK stopped"):
+                log("REUSED existing test session: " + h)
+                return 0
+            if "running" in h:
+                raise RuntimeError("The owned session is running (handed over, maybe being played). "
+                                   "`pause` takes it back if that is fine; `up` will not.")
+            raise RuntimeError(f"Recorded session is not stopped/healthy ({h}); refusing to restart any emulator.")
     if "fs-uae.exe" in sh("tasklist", "/FI", "IMAGENAME eq fs-uae.exe").stdout:
         raise RuntimeError("An existing FS-UAE session is running; leaving it untouched.")
     if Path("/tmp/swos-amiga-ui.sock").exists():
@@ -190,6 +234,13 @@ def up():
         print(open("/tmp/amiga_daemon.log").read()[-2000:])
         return 1
     log("attached (Amiga booted to the trigger): " + proxy("health").strip())
+    # gdb is the daemon's child; with it recorded, `status` sees it die too.
+    gdb = child_identity(daemon.pid, "m68k-amiga-elf-gdb")
+    if gdb:
+        owner["gdb"] = gdb
+        OWNER.write_text(json.dumps(owner))
+    else:
+        log("warning: gdb process not found under the daemon; status cannot see it die")
 
     # ---- relocated symbols (docs/AMIGA_DEBUGGING.md) ----
     r = cmd("maintenance packet qOffsets", timeout=20)
@@ -249,10 +300,76 @@ def up():
     return 0
 
 
+def status():
+    """One line, first word machine-readable: NONE DEAD STALE STOPPED RUNNING
+    UNHEALTHY. Never changes the session."""
+    if not OWNER.exists():
+        return "NONE no owned session"
+    owner = json.loads(OWNER.read_text())
+    gone = dead_roles(owner)
+    if gone:
+        return f"DEAD {', '.join(gone)} exited (`up` cleans up and boots)"
+    stale = owner.get("build") != build_identity()
+    h = proxy("health").strip()
+    if h.startswith("OK stopped"):
+        where = cmd("info symbol $pc", timeout=10).split(" in section")[0].strip()
+        verdict = f"STOPPED at {where}"
+    elif "running" in h:
+        verdict = "RUNNING (handed over; `pause` takes it back)"
+    else:
+        verdict = f"UNHEALTHY {h}"
+    if stale:
+        verdict = "STALE " + verdict + " -- bin/SWOS2 changed since boot"
+    return verdict
+
+
+def pause(menu_wait=3.0):
+    """Take a running session back. Stops wherever the game is, then gives it
+    `menu_wait` seconds to reach the menu anchor (a menu runs it every frame;
+    a match never does). Returns where it ended up, stopped either way."""
+    h = proxy("health").strip()
+    if h.startswith("OK stopped"):
+        return "already stopped"
+    if "running" not in h:
+        raise RuntimeError(f"Session is neither stopped nor running: {h}")
+    r = cmd("interrupt", timeout=5)
+    r += proxy("waitstop", "10", timeout=25)
+    if "WAITSTOP timeout" in r:
+        raise RuntimeError("interrupt did not stop the target: " + r[-400:])
+    cmd("enable breakpoints")          # the anchor (release disabled them)
+    cmd("continue &", timeout=5)
+    r = proxy("waitstop", str(menu_wait), timeout=menu_wait + 15)
+    if "WAITSTOP timeout" in r:
+        cmd("interrupt", timeout=5)
+        proxy("waitstop", "10", timeout=25)
+    where = cmd("info symbol $pc", timeout=10).split(" in section")[0].strip()
+    return f"paused at {where}" + ("" if "MenuInputInjectPoint" in where
+                                   else " (no menu reached: in a match?)")
+
+
+def release():
+    """Hand the game over running, debugger kept: no breakpoint stops it, and
+    a background resume leaves gdb able to `interrupt` later."""
+    h = proxy("health").strip()
+    if "running" in h:
+        return "already running"
+    cmd("disable breakpoints")
+    r = cmd("continue &", timeout=5)
+    if "Continuing." not in r:
+        raise RuntimeError("background resume failed: " + r[-400:])
+    return "released (running; `pause` takes it back)"
+
+
 if __name__ == "__main__":
     action = sys.argv[1] if len(sys.argv) > 1 else "up"
     if action == "down":
         down()
         print("[amiga] down")
+        sys.exit(0)
+    if action == "status":
+        print(status())
+        sys.exit(0)
+    if action in ("pause", "release"):
+        print(f"[amiga] {pause() if action == 'pause' else release()}")
         sys.exit(0)
     sys.exit(up())

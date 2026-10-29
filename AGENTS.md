@@ -7,6 +7,11 @@ tested debugger workflow in `scripts/testing_support/amiga_session.py` and
 `amiga_challenge_benchmark.py` for fast menu flows. It observes game memory and
 does not require Windows focus or Amiga `SWOS.log` output.
 
+Start with `amiga_session.py status` (the proxy's `health` cannot tell a dead
+emulator from a running one). Navigate with `amiga_goto.py <labels|preset>`, hand
+the game over with `release` and take it back with `pause`. Never signal gdb:
+SIGINT kills it, and the debugger port is one-shot.
+
 Reuse a healthy, paused test session for the same build. A changed executable
 requires a fresh boot; never claim that a running emulator picked up a rebuild.
 Budget about 30 seconds for boot, then measure menu actions and match loading
