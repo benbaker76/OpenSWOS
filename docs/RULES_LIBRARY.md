@@ -182,7 +182,26 @@ int32_t sr_pool_swap(sr_pool *pool, uint8_t ordinal);
 5. Version 1 frozen: `SWOSRULES_VERSION`, the structs' layouts; a change after that is a
    version 2 both sides agree to.
 
-## 7. Questions for Davide
+## 7. Davide's answers (2026-10-29)
+
+1. **Scope**: season end, the cups' entry rule (4.0.1) and the Coppa Italia Serie D's pure
+   part, all three: they are rules, ported and checked, and both games stay identical.
+2. **Parallel groups**: the library takes OpenSWOS's C (`src/league_groups.c`) once it has been
+   compared with the Mod's `pgroups` on random seasons; the Mod then replaces its nasm with the
+   library's C, as for the other modules.
+3. **The career club's results**: passed as today (`po_win`, ...) in v1, as the Mod works; the
+   whole played bracket can come in a later version.
+4. **Repository**: under Davide's account -- `aminta/swos-competition-engine` (MIT, already
+   holding the schema and `swcc`), so the shared parts live in one place; OpenSWOS gets write
+   access.
+5. **The interface**: approved; its limits fit the whole world (at most 30 clubs a division:
+   `SR_CLUBS` 32). Step 2 of §6 (moving the checked ports in, one at a time, each with its
+   comparison against the Mod's C) is agreed.
+
+Also confirmed: the Coppa Italia Serie D's drawn-round bug (§5) is in the Mod's `gplay.c` and
+is fixed in its 4.0.3.
+
+## 8. The questions as they were sent
 
 1. Is the scope right: should the cups' entry rule and the Coppa D be in, or season end only?
 2. `pgroups` is nasm: would you take OpenSWOS's C version into the library, once we have
