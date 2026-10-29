@@ -36,6 +36,7 @@ void ChallengeProgress_PositionLoaded(void);
 /* winner: 1 or 2 (team 1/2, after extra time or penalties), 0 for a draw */
 void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2, int winner);
 void ChallengeProgress_End(void);
+int ChallengeProgress_InAttempt(void);   /* a collection challenge is being played */
 int ChallengeProgress_Result(void);
 unsigned ChallengeProgress_Goals(int side);
 

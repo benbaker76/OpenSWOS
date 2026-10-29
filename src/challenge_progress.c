@@ -117,6 +117,7 @@ void ChallengeProgress_Restart(void)
     if (attempt >= 0) ChallengeProgress_Begin(attempt, human);
 }
 void ChallengeProgress_End(void) { attempt = active = -1; positionLoaded = 0; }
+int ChallengeProgress_InAttempt(void) { return attempt >= 0; }
 
 void ChallengeProgress_FinalWhistle(unsigned goals1, unsigned goals2, int winner)
 {

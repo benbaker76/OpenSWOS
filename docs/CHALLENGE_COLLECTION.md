@@ -19,13 +19,14 @@ score, minute and restart.
    `_penaltiesState`): a spec can keep a challenge to normal time with
    `"extra_time": false, "penalties": false` and regenerating it.
    Leaving early does not count, even when leading.
-5. On the existing **REPLAY / EXIT** screen, choose **EXIT** to see the challenge
-   result. It offers **RETRY**, **CHALLENGE LIST**, and **NEXT CHALLENGE** after
-   success when another challenge follows.
+5. The match goes straight to the challenge result screen (no friendly REPLAY /
+   EXIT). At the bottom: **CHALLENGE COMPLETED** (green) or **CHALLENGE FAILED**
+   (red) on its own, **NEXT CHALLENGE** after a win when another follows, then
+   **RETRY** beside **CHALLENGE LIST**, then **EXIT** back to the main menu.
 
-**REPLAY reloads the original challenge**, including its score, minute, players
+**RETRY reloads the original challenge**, including its score, minute, players
 and ball. It starts a fresh completion attempt rather than a normal match from
-minute zero. RETRY on the challenge result screen also restarts the challenge.
+minute zero. A personal saved position still ends on the friendly's REPLAY / EXIT.
 Existing completion is permanent: losing a later attempt never removes it.
 
 All six challenges are unlocked from the start. There are no medals or attempt

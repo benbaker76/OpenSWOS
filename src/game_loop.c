@@ -1059,6 +1059,14 @@ end_of_match_flow:
             arcadeNoReplayMenu = 1;
     }
 #endif
+    /* A collection challenge goes straight to its own result screen, whose RETRY
+     * is the replay (challenge_collection.c). A personal saved position keeps
+     * REPLAY / EXIT: it has no result screen. */
+    {
+        extern int ChallengeProgress_InAttempt(void);
+        if (ChallengeProgress_InAttempt())
+            arcadeNoReplayMenu = 1;
+    }
     if (_isGameFriendly != 0 && _trainingGame == 0 && !arcadeNoReplayMenu) {
         ReplayExitMenuAfterFriendly();
         if (_replaySelected != 0) {

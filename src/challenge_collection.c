@@ -20,7 +20,7 @@ extern uint8_t _selectedFilename[];
 extern uint8_t *_spriteGraphicsPtr;
 
 enum { HUB, LIST, DETAILS, RESULT };
-enum { BACK = 1, COLLECTION, SAVED, PLAY, RETRY, NEXT, RETRY_SAVE, PICK = 100 };
+enum { BACK = 1, COLLECTION, SAVED, PLAY, RETRY, NEXT, RETRY_SAVE, LEAVE, PICK = 100 };
 static int screen, selected, action, actions[13];
 static int listFocus = 3;
 static char text[13][80];
@@ -157,19 +157,27 @@ void ChallengeCollection_MenuInit(void)
         row(12, 207, notice, 0, 0);
     } else {
         int won = ChallengeProgress_Result() == COLLECTION_WON;
-        row(0, 0, won ? "CHALLENGE COMPLETED" : "CHALLENGE NOT COMPLETED", 0, 0x17);
-        row(1, 25, c->title, 0, 0);
-        row(2, 46, c->teams, 0, 0);
+        MenuEntry *e;
+        row(0, 0, c->title, 0, 0x17);
+        row(1, 25, c->teams, 0, 0);
         swos_io_snprintf(buf, sizeof buf, "FINAL SCORE %u-%u%s",
             ChallengeProgress_Goals(1), ChallengeProgress_Goals(2),
             ChallengeProgress_Goals(1) != ChallengeProgress_Goals(2) ? ""
                 : won ? ", WON ON PENALTIES" : ", LOST ON PENALTIES");
-        row(3, 65, ChallengeProgress_Result() == COLLECTION_ABORTED ? "MATCH LEFT EARLY" : buf, 0, 0);
-        row(4, 84, "OBJECTIVE: WIN THE MATCH", 0, 0);
-        row(5, 103, ChallengeProgress_Count() == 6 ? "ALL CHALLENGES COMPLETED" : save_status(), 0, 0);
-        row(6, 127, "RETRY", RETRY, 14);
-        if (won && selected + 1 < COLLECTION_COUNT) row(7, 147, "NEXT CHALLENGE", NEXT, 14);
-        row(11, 185, "CHALLENGE LIST", BACK, 12);
+        row(2, 46, ChallengeProgress_Result() == COLLECTION_ABORTED ? "MATCH LEFT EARLY" : buf, 0, 0);
+        row(3, 65, "OBJECTIVE: WIN THE MATCH", 0, 0);
+        row(4, 84, ChallengeProgress_Count() == 6 ? "ALL CHALLENGES COMPLETED" : save_status(), 0, 0);
+        /* At the bottom: the verdict on its own (red failed, green completed), then
+         * RETRY beside CHALLENGE LIST, then EXIT back to the main menu. */
+        i = won && selected + 1 < COLLECTION_COUNT;     /* NEXT CHALLENGE under it */
+        row(5, i ? 118 : 138, won ? "CHALLENGE COMPLETED" : "CHALLENGE FAILED", 0, won ? 14 : 10);
+        CalcMenuEntryAddress(5)->dwHeight = 20;
+        if (i) row(7, 145, "NEXT CHALLENGE", NEXT, 14);
+        row(6, 165, "RETRY", RETRY, 14);
+        CalcMenuEntryAddress(6)->dwWidth = 138;
+        row(10, 165, "CHALLENGE LIST", BACK, 13);   /* the list rows' blue */
+        e = CalcMenuEntryAddress(10); e->x = 154; e->dwWidth = 138;
+        row(11, 185, "EXIT", LEAVE, 12);
         if (ChallengeProgress_Dirty()) row(12, 207, "PROGRESS NOT SAVED - RETRY SAVE", RETRY_SAVE, 12);
     }
     for (i = 0; i < 13; ++i) if (actions[i]) {
@@ -179,6 +187,18 @@ void ChallengeCollection_MenuInit(void)
             CalcMenuEntryAddress((uint16_t)i)->upEntry = (int8_t)prev;
         }
         prev = i;
+    }
+    if (screen == RESULT) {
+        /* RETRY and CHALLENGE LIST share a row; the chain above links top to bottom. */
+        MenuEntry *retry = CalcMenuEntryAddress(6), *list = CalcMenuEntryAddress(10),
+                  *leave = CalcMenuEntryAddress(11);
+        int above = actions[7] ? 7 : -1;
+        retry->rightEntry = 10; list->leftEntry = 6;
+        retry->upEntry = list->upEntry = (int8_t)above;
+        retry->downEntry = list->downEntry = 11;
+        leave->upEntry = 6;
+        if (above >= 0) CalcMenuEntryAddress(7)->upEntry = -1;
+        if (above >= 0) CalcMenuEntryAddress(7)->downEntry = 6;
     }
     SetCurrentEntry((uint16_t)(screen == LIST && actions[listFocus] ? listFocus : first));
 }
@@ -234,6 +254,7 @@ void ChallengeCollection_Show(void)
         action = 0;
         ShowMenu(_challengeMenu);
         if (_quitToDos) break;
+        if (action == LEAVE) break;
         if (!action || action == BACK) {
             if (screen == HUB) break;
             screen = screen == LIST ? HUB : LIST;
@@ -263,5 +284,8 @@ void ChallengeCollection_Show(void)
             notice = ChallengeProgress_Save() ? "PROGRESS NOT SAVED" : "PROGRESS SAVED";
         }
     }
-    restore_menu();
+    /* Every match above already repainted the menus after it (restore_menu). Leaving
+     * is an ordinary submenu exit, as EDIT and PRACTICE make: the full restore's
+     * buffer swap showed a frame of stale back buffer on the Amiga. */
+    CommonMenuExit();
 }
