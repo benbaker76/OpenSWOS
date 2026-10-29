@@ -1,102 +1,169 @@
-/* classic_comps.c -- CLASSIC COMPETITIONS (SDL builds): famous tournaments, played
- * like a preset competition.
+/* classic_comps.c -- CLASSICS: famous tournaments, played like a preset competition.
  *
- * Each one is a .DIY from the PC game or SWOS 2020 (its DLC cups: EURO 1964, the
- * World Cups), kept in the assets folder by group:
+ * Each one is a .DIY kept by group in a classic/ folder:
  *
- *   assets/classic/uefa/<name>.DIY       assets/classic/worldcup/<name>.DIY
+ *   SDL:    <assets>/classic/uefa/, <assets>/classic/worldcup/
+ *           the PC game's or SWOS 2020's own files (its DLC cups), read by
+ *           diy_import_dos.c, or this game's JSON .DIY
+ *   Amiga:  classic/uefa/, classic/worldcup/ in the game's drawer
+ *           this game's JSON .DIY only, converted on a PC (--convert-diy): the
+ *           Amiga cannot read the DOS dump (docs/CLASSIC_COMPETITIONS.md section 6)
  *
- * They are not in this repository, like the rest of the original game's data. A
- * file is listed by the name inside it, and loaded by diy_import_dos.c with the
- * player's own options and USER tactics kept: the competition is STARTED, not
- * resumed. Every team then starts as COMPUTER, whatever the file says (SWOS 2020's
- * cups set them all to COACH), and the TEAMS screen lets the player cycle each one
- * through COMPUTER / PLAYER-COACH / COACH, as the friendly team list does.
+ * They are not in this repository, like the rest of the original game's data. A file
+ * is listed by the name inside it, by year, and loaded with the player's own options
+ * and USER tactics kept: the competition is STARTED, not resumed. Every team then
+ * starts as COMPUTER, whatever the file says (SWOS 2020's cups set them all to COACH),
+ * and the teams screen lets the player cycle each one through COMPUTER / PLAYER-COACH /
+ * COACH, as the friendly team list does.
  *
- * The three screens are JSON only (bin/data_json/menus/openswos/classic*.json,
- * docs/MENUS.md section 10). They open from CLASSICS, the row above WORLD CUP in
- * PRESET COMPETITION's world list (teams.c SelectTeamsFinalMenu); PRESET COMPETITION
- * has asked about the competition under way and seeded the RNG by then. Once one is
- * loaded the chooser closes as if backed out of, and PresetCompetitionMenu starts it
- * (ClassicComps_TakeReady, then StartContest, as after LOAD OLD COMPETITION).
+ * The three screens are classic packed menus (menu_data.c _classicCompsMenu,
+ * _classicListMenu, _classicTeamsMenu; JSON in bin/data_json/menus/ on SDL). They open
+ * from CLASSICS, the row above WORLD CUP in PRESET COMPETITION's world list (teams.c
+ * SelectTeamsFinalMenu); PRESET COMPETITION has asked about the competition under way
+ * and seeded the RNG by then. Once one is loaded the chooser closes as if backed out
+ * of, and PresetCompetitionMenu starts it (ClassicComps_TakeReady, then StartContest,
+ * as after LOAD OLD COMPETITION).
  */
 
-#ifdef SWOS_SDL_BUILD
-
-#include <dirent.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 
 #include "classic_comps.h"
-#include "diy_import_dos.h"
 #include "game_types.h"
-#include "menu_load_json.h"
-#include "menu_symbols.h"
 #include "menu_system.h"
+#include "mjson.h"
 #include "play_match_menu.h"    /* TEAM_COMPUTER .. TEAM_COACH */
+#include "save_format_json.h"
 #include "swos_io.h"
 
-extern TeamFileEx _selectedTeams[100];
-extern uint16_t   _numSelectedTeams;
-extern uint16_t   _gameType;
-extern uint8_t    _competitionFilename[14];
+#ifdef SWOS_SDL_BUILD
+#include <dirent.h>
+#include <stdio.h>
+#include "diy_import_dos.h"
+#endif
+
+extern TeamFileEx  _selectedTeams[100];
+extern uint16_t    _numSelectedTeams;
+extern uint16_t    _gameType;
+extern uint8_t     _competitionFilename[14];
 extern CompetitionSlotBuffer _primaryCompetitionBuf;
+extern TeamTactics _teamTacticsUSERA, _teamTacticsUSERB, _teamTacticsUSERC;
+extern TeamTactics _teamTacticsUSERD, _teamTacticsUSERE, _teamTacticsUSERF;
+extern uint8_t     _classicCompsMenu[], _classicListMenu[], _classicTeamsMenu[];
 extern void SetExitMenuFlag(void);
 extern void SaveOptions(void);
 extern void RestoreOptions(void);
 extern void InitCareerVariables(uint16_t gameTypeParam);
 extern void ShowErrorMenu(uint8_t *text);
 extern void CallDrawMenuItem(MenuEntry *entry);
+#ifndef SWOS_SDL_BUILD
+extern uint32_t Resload_ListDir(const uint8_t *dirname, uint8_t *buffer, uint32_t buffersize);
+#endif
 
-/* The menus' entries, in the order their JSON lists them. */
-enum { ClassicComps_header, ClassicComps_uefa, ClassicComps_worldCup, ClassicComps_exit };
+/* The menus' entries, in the order menu_data.c lists them. */
 enum { ClassicList_header, ClassicList_first, kListRows = 32,     /* 2 columns of 16 */
        ClassicList_exit = ClassicList_first + kListRows };
 enum { ClassicTeams_header, ClassicTeams_hint, ClassicTeams_first, kTeamSlots = 64,
        ClassicTeams_play = ClassicTeams_first + kTeamSlots, ClassicTeams_exit,
        kTeamColumns = 4, kTeamRows = kTeamSlots / kTeamColumns };
 
-/* The JSON lists the team buttons a column at a time; the teams fill them a row at a
- * time, four across, so a competition takes only the rows it needs. */
-static int32_t team_of_entry(uint16_t ordinal)
-{
-    int32_t slot = (int32_t)ordinal - ClassicTeams_first;
-    return slot % kTeamRows * kTeamColumns + slot / kTeamRows;
-}
-
 enum {
     kComputerColour    = 10,    /* the friendly team list's: red */
     kPlayerCoachColour = 11,    /* purple */
     kCoachColour       = 13,    /* blue */
     kGameTypeDiy       = 1,
+    kNameLen           = 36,
+    kFileLen           = 64,
 };
 
-static const struct { const char *dir; const char *title; } k_groups[] = {
-    { "uefa",     "UEFA" },
-    { "worldcup", "WORLD CUP" },
-};
-enum { kGroups = sizeof k_groups / sizeof k_groups[0] };
+static const char *const k_groupDirs[] = { "uefa", "worldcup" };
+static const char *const k_groupTitles[] = { "UEFA", "WORLD CUP" };
 
 static struct {
     int32_t group;                  /* the group picked, -1 = EXIT */
-    int32_t ready;                  /* one is loaded, for PresetCompetitionMenu to start */
     int32_t pick;                   /* the competition picked, -1 = EXIT */
     int32_t play;                   /* PLAY pressed on the teams screen */
+    int32_t ready;                  /* one is loaded, for PresetCompetitionMenu to start */
     int32_t count;
-    char    file[kListRows][64];    /* under assets/classic/<group>/ */
-    char    name[kListRows][40];    /* the competition's own name */
-    char    title[40];
+    char    file[kListRows][kFileLen];   /* under classic/<group>/ */
+    int8_t  root[kListRows];             /* which classic/ folder it is in (classic_root) */
+    char    name[kListRows][kNameLen];   /* the competition's own name */
+    char    title[kNameLen];
     char    teams[kTeamSlots][18];
 } s;
 
-/* ---- the list: every DOS .DIY in the group's folder, by its name ---- */
+/* strlen/strcmp: the Amiga's minimal C library has neither. */
+static uint32_t str_len(const char *p) { uint32_t n = 0; while (p[n]) n++; return n; }
+static int32_t  str_cmp(const char *a, const char *b)
+{
+    while (*a && *a == *b) { a++; b++; }
+    return (uint8_t)*a - (uint8_t)*b;
+}
+
+/* ---- files ---- */
+
+/* Where classic/ folders are, first first: on SDL the player's assets folder (their own
+ * SWOS 2020 files, scripts/copy_classics.ps1), then the game's own (bin/classic, what a
+ * drop ships); on the Amiga the drawer's. "" = the game's folder. */
+static const char *classic_root(int32_t root)
+{
+#ifdef SWOS_SDL_BUILD
+    if (root == 0)
+        return swos_assets_dir();
+#endif
+    (void)root;
+    return "";
+}
+
+#ifdef SWOS_SDL_BUILD
+enum { kRoots = 2 };
+#else
+enum { kRoots = 1 };
+#endif
+
+/* <root>/classic/<group>[/<file>] */
+static void classic_path(char *out, uint32_t cap, int32_t root, int32_t group, const char *file)
+{
+    const char *r = classic_root(root);
+    if (file)
+        swos_io_snprintf(out, cap, "%s%sclassic/%s/%s", r, r[0] ? "/" : "", k_groupDirs[group], file);
+    else
+        swos_io_snprintf(out, cap, "%s%sclassic/%s", r, r[0] ? "/" : "", k_groupDirs[group]);
+}
+
+static int32_t is_json(const uint8_t *data, uint32_t size)
+{
+    while (size && (*data == ' ' || *data == '\t' || *data == '\r' || *data == '\n')) {
+        data++;
+        size--;
+    }
+    return size && *data == '{';
+}
+
+/* A competition this target can load: its name, or 0. */
+static int32_t competition_name(const uint8_t *data, uint32_t size, char *name)
+{
+    if (is_json(data, size)) {
+        int n = mjson_get_string((const char *)data, (int)size,
+                                 "$.comp_scalars.diy_preset_name_of_competition", name, kNameLen);
+        return n > 0;
+    }
+#ifdef SWOS_SDL_BUILD
+    if (DiyImportDos_IsDosFile(data, size)) {
+        memcpy(name, data + 4, 35);         /* the name of a DOS .DIY: 35 bytes at 4 */
+        name[35] = 0;
+        return 1;
+    }
+#endif
+    return 0;
+}
+
+/* ---- the list: every competition in the group's folder, by year ---- */
 
 static int32_t has_diy_extension(const char *f)
 {
-    size_t n = strlen(f);
-    return n > 4 && strcasecmp(f + n - 4, ".diy") == 0;
+    uint32_t n = str_len(f);
+    return n > 4 && f[n - 4] == '.' && (f[n - 3] | 0x20) == 'd' && (f[n - 2] | 0x20) == 'i' &&
+           (f[n - 1] | 0x20) == 'y';
 }
 
 /* The first four-digit number in a name: "1966 FIFA WORLD CUP", "UEFA EURO 1964". */
@@ -105,80 +172,104 @@ static int32_t name_year(const char *name)
     for (; *name; name++)
         if (name[0] >= '0' && name[0] <= '9' && name[1] >= '0' && name[1] <= '9' &&
             name[2] >= '0' && name[2] <= '9' && name[3] >= '0' && name[3] <= '9')
-            return atoi(name);
+            return (name[0] - '0') * 1000 + (name[1] - '0') * 100 + (name[2] - '0') * 10 +
+                   (name[3] - '0');
     return 0;
 }
 
 /* By year, then by name: a group lists in date order. */
-static int compare_names(const void *a, const void *b)
+static int32_t comes_before(int32_t a, int32_t b)
 {
-    const char *x = s.name[*(const int32_t *)a], *y = s.name[*(const int32_t *)b];
-    int32_t dy = name_year(x) - name_year(y);
-    return dy ? dy : strcmp(x, y);
+    int32_t dy = name_year(s.name[a]) - name_year(s.name[b]);
+    return dy ? dy < 0 : str_cmp(s.name[a], s.name[b]) < 0;
+}
+
+static int32_t same_name_nocase(const char *a, const char *b)
+{
+    while (*a && (*a | 0x20) == (*b | 0x20)) { a++; b++; }
+    return *a == 0 && *b == 0;
+}
+
+static void add_file(int32_t root, int32_t group, const char *file)
+{
+    char path[1280];
+    uint8_t *data = NULL;
+    uint32_t size = 0;
+    int32_t i;
+
+    if (!has_diy_extension(file) || str_len(file) >= kFileLen || s.count == kListRows)
+        return;
+    for (i = 0; i < s.count; i++)           /* the same file in an earlier root wins */
+        if (same_name_nocase(s.file[i], file))
+            return;
+    classic_path(path, sizeof path, root, group, file);
+    if (swos_io_load_data_alloc(path, &data, &size) != 0)
+        return;
+    if (competition_name(data, size, s.name[s.count])) {
+        memcpy(s.file[s.count], file, str_len(file) + 1);
+        s.root[s.count] = (int8_t)root;
+        s.count++;
+    }
+#ifdef SWOS_SDL_BUILD
+    else
+        fprintf(stderr, "[classic] %s is not a competition this game reads: not listed\n", path);
+#endif
+    swos_io_free(data);
 }
 
 static void scan_group(int32_t group)
 {
-    char dir[1280], rel[160];
-    char file[kListRows][64], name[kListRows][40];
-    int32_t order[kListRows], i;
-    struct dirent *d;
-    DIR *dp;
+    char dir[1280], file[kFileLen], name[kNameLen];
+    int32_t i, j, root;
+    int8_t r;
 
     s.count = 0;
-    snprintf(dir, sizeof dir, "%s%sclassic/%s", swos_assets_dir(),
-             swos_assets_dir()[0] ? "/" : "", k_groups[group].dir);
-    dp = opendir(dir);
-    if (!dp) {
-        fprintf(stderr, "[classic] no folder %s\n", dir);
-        return;
-    }
-    while ((d = readdir(dp)) != NULL) {
-        uint8_t *data = NULL;
-        uint32_t size = 0;
-
-        if (!has_diy_extension(d->d_name) || strlen(d->d_name) >= sizeof s.file[0])
+    for (root = 0; root < kRoots; root++) {
+#ifdef SWOS_SDL_BUILD
+        DIR *dp;
+        struct dirent *d;
+        if (root == 0 && !classic_root(0)[0])
+            continue;                       /* no assets folder */
+        classic_path(dir, sizeof dir, root, group, 0);
+        dp = opendir(dir);
+        if (!dp)
             continue;
-        if (s.count == kListRows) {
-            fprintf(stderr, "[classic] %s: more than %d competitions, %s not listed\n",
-                    dir, (int)kListRows, d->d_name);
-            continue;
+        while ((d = readdir(dp)) != NULL)
+            add_file(root, group, d->d_name);
+        closedir(dp);
+#else
+        static uint8_t names[2048];
+        uint32_t n;
+        const char *p = (const char *)names;
+        classic_path(dir, sizeof dir, root, group, 0);
+        n = Resload_ListDir((const uint8_t *)dir, names, sizeof names);
+        while (n--) {
+            add_file(root, group, p);
+            p += str_len(p) + 1;
         }
-        snprintf(rel, sizeof rel, "%s/%s", dir, d->d_name);
-        if (swos_io_load_data_alloc(rel, &data, &size) != 0)
-            continue;
-        if (DiyImportDos_IsDosFile(data, size)) {
-            snprintf(s.file[s.count], sizeof s.file[0], "%s", d->d_name);
-            snprintf(s.name[s.count], sizeof s.name[0], "%.35s", (const char *)data + 4);
-            s.count++;
-        } else {
-            fprintf(stderr, "[classic] %s is not a PC/SWOS 2020 .DIY: not listed\n", rel);
-        }
-        swos_io_free(data);
+#endif
     }
-    closedir(dp);
 
-    for (i = 0; i < s.count; i++)
-        order[i] = i;
-    qsort(order, (size_t)s.count, sizeof order[0], compare_names);
-    memcpy(file, s.file, sizeof file);
-    memcpy(name, s.name, sizeof name);
-    for (i = 0; i < s.count; i++) {
-        memcpy(s.file[i], file[order[i]], sizeof s.file[0]);
-        memcpy(s.name[i], name[order[i]], sizeof s.name[0]);
-    }
+    for (i = 1; i < s.count; i++)           /* at most 32: insertion sort */
+        for (j = i; j > 0 && comes_before(j, j - 1); j--) {
+            memcpy(file, s.file[j], kFileLen);
+            memcpy(s.file[j], s.file[j - 1], kFileLen);
+            memcpy(s.file[j - 1], file, kFileLen);
+            memcpy(name, s.name[j], kNameLen);
+            memcpy(s.name[j], s.name[j - 1], kNameLen);
+            memcpy(s.name[j - 1], name, kNameLen);
+            r = s.root[j];
+            s.root[j] = s.root[j - 1];
+            s.root[j - 1] = r;
+        }
 }
 
-/* ---- the menus ---- */
+/* ---- the menus' handlers (named in menu_data.c) ---- */
 
-static void classicCompsMenu_OnInit(void) {}
-static void classicCompsMenu_OnDraw(void) {}
-static void classicCompsUefa(void)     { s.group = 0; SetExitMenuFlag(); }
-static void classicCompsWorldCup(void) { s.group = 1; SetExitMenuFlag(); }
+void ClassicComps_PickUefa(void)     { s.group = 0; SetExitMenuFlag(); }
+void ClassicComps_PickWorldCup(void) { s.group = 1; SetExitMenuFlag(); }
 
-static void classicListMenu_OnInit(void) {}
-
-static void classicListMenu_OnDraw(void)
+void ClassicComps_ListInit(void)
 {
     static char none[] = "NO COMPETITIONS IN THIS FOLDER";
     int32_t i;
@@ -192,7 +283,7 @@ static void classicListMenu_OnDraw(void)
     }
 }
 
-static void classicListPick(MenuEntry *entry)
+void ClassicComps_PickCompetition(MenuEntry *entry)
 {
     int32_t i = (int32_t)entry->ordinal - ClassicList_first;
     if (i >= 0 && i < s.count) {
@@ -201,9 +292,15 @@ static void classicListPick(MenuEntry *entry)
     }
 }
 
-static void classicTeamsMenu_OnInit(void) {}
+/* The teams menu lists its buttons a column at a time; the teams fill them a row at a
+ * time, four across, so a competition takes only the rows it needs. */
+static int32_t team_of_entry(uint16_t ordinal)
+{
+    int32_t slot = (int32_t)ordinal - ClassicTeams_first;
+    return slot % kTeamRows * kTeamColumns + slot / kTeamRows;
+}
 
-static void classicTeamsMenu_OnDraw(void)
+static void name_team_entries(void)
 {
     int32_t i;
 
@@ -221,7 +318,9 @@ static void classicTeamsMenu_OnDraw(void)
     }
 }
 
-static void classicTeamsToggle(MenuEntry *entry)
+void ClassicComps_TeamsInit(void) { name_team_entries(); }
+
+void ClassicComps_ToggleTeam(MenuEntry *entry)
 {
     int32_t i;
     uint8_t *controls;
@@ -234,55 +333,54 @@ static void classicTeamsToggle(MenuEntry *entry)
     controls = &_selectedTeams[i].team.teamControls;
     *controls = *controls == TEAM_COMPUTER     ? TEAM_PLAYER_COACH
               : *controls == TEAM_PLAYER_COACH ? TEAM_COACH : TEAM_COMPUTER;
-    classicTeamsMenu_OnDraw();
+    name_team_entries();
     CallDrawMenuItem(entry);
 }
 
-static void classicTeamsPlay(void) { s.play = 1; SetExitMenuFlag(); }
-
-#define HANDLER(fn) { #fn, (void *)fn, SYM_FUNC }
-static const MenuSymbol k_handlers[] = {
-    HANDLER(classicCompsMenu_OnInit),
-    HANDLER(classicCompsMenu_OnDraw),
-    HANDLER(classicCompsUefa),
-    HANDLER(classicCompsWorldCup),
-    HANDLER(classicListMenu_OnInit),
-    HANDLER(classicListMenu_OnDraw),
-    HANDLER(classicListPick),
-    HANDLER(classicTeamsMenu_OnInit),
-    HANDLER(classicTeamsMenu_OnDraw),
-    HANDLER(classicTeamsToggle),
-    HANDLER(classicTeamsPlay),
-};
-#undef HANDLER
-
-static uint8_t *load_menu(const char *name)
-{
-    static int32_t registered;
-
-    if (!registered) {
-        registered = 1;
-        MenuJson_RegisterSymbols(k_handlers, (int)(sizeof k_handlers / sizeof k_handlers[0]));
-    }
-    return MenuJson_Load(name);
-}
+void ClassicComps_Play(void) { s.play = 1; SetExitMenuFlag(); }
 
 /* ---- loading one ---- */
+
+/* A JSON .DIY also carries options and USER tactics: a classic competition keeps the
+ * player's (SaveOptions/RestoreOptions for the first, a copy for the second). */
+static int16_t load_json(const uint8_t *data, uint32_t size)
+{
+    TeamTactics *const tactics[6] = {
+        &_teamTacticsUSERA, &_teamTacticsUSERB, &_teamTacticsUSERC,
+        &_teamTacticsUSERD, &_teamTacticsUSERE, &_teamTacticsUSERF,
+    };
+    static TeamTactics kept[6];
+    int16_t r;
+    int32_t i;
+
+    for (i = 0; i < 6; i++)
+        kept[i] = *tactics[i];
+    r = SaveJson_LoadDIYData(data, size);
+    for (i = 0; i < 6; i++)
+        *tactics[i] = kept[i];
+    RestoreOptions();
+    return r;
+}
 
 /* 1 = loaded, every team COMPUTER; 0 = it would not load (the error was shown). */
 static int32_t load_competition(int32_t group, int32_t pick)
 {
-    char rel[1280];
+    char path[1280];
     uint8_t *data = NULL;
     uint32_t size = 0;
     int16_t r = 1;
+    int32_t i;
 
-    snprintf(rel, sizeof rel, "%s%sclassic/%s/%s", swos_assets_dir(),
-             swos_assets_dir()[0] ? "/" : "", k_groups[group].dir, s.file[pick]);
+    classic_path(path, sizeof path, s.root[pick], group, s.file[pick]);
     SaveOptions();
     _gameType = kGameTypeDiy;
-    if (swos_io_load_data_alloc(rel, &data, &size) == 0) {
-        r = DiyImportDos_LoadData(rel, data, size, 1);
+    if (swos_io_load_data_alloc(path, &data, &size) == 0) {
+        if (is_json(data, size))
+            r = load_json(data, size);
+#ifdef SWOS_SDL_BUILD
+        else
+            r = DiyImportDos_LoadData(path, data, size, 1);
+#endif
         swos_io_free(data);
     }
     if (r != 0) {
@@ -291,43 +389,43 @@ static int32_t load_competition(int32_t group, int32_t pick)
         InitCareerVariables(0);
         return 0;
     }
-    for (int32_t i = 0; i < _numSelectedTeams; i++) {
+    for (i = 0; i < _numSelectedTeams; i++) {
         _selectedTeams[i].team.teamControls = TEAM_COMPUTER;
-        snprintf(s.teams[i], sizeof s.teams[i], "%.17s",
-                 (const char *)_selectedTeams[i].team.teamName);
+        memcpy(s.teams[i], _selectedTeams[i].team.teamName, 17);
+        s.teams[i][17] = 0;
     }
     return 1;
 }
 
 int32_t ClassicComps_Choose(void)
 {
-    uint8_t *groups = load_menu("openswos/classicCompsMenu");
-    uint8_t *list = load_menu("openswos/classicListMenu");
-    uint8_t *teams = load_menu("openswos/classicTeamsMenu");
-
     s.ready = 0;
-    if (!groups || !list || !teams)
-        return 0;
     for (;;) {
         s.group = -1;
-        ShowMenu(groups);
+        ShowMenu(_classicCompsMenu);
         if (s.group < 0)
             return 0;
-        snprintf(s.title, sizeof s.title, "%s", k_groups[s.group].title);
+        memcpy(s.title, k_groupTitles[s.group], str_len(k_groupTitles[s.group]) + 1);
         scan_group(s.group);
         for (;;) {
             s.pick = -1;
-            ShowMenu(list);
+            ShowMenu(_classicListMenu);
             if (s.pick < 0)
                 break;
             if (!load_competition(s.group, s.pick))
                 continue;
             s.play = 0;
-            ShowMenu(teams);
+            ShowMenu(_classicTeamsMenu);
             if (s.play) {
-                /* SAVE offers the file's own name, as after LOAD OLD COMPETITION. */
-                snprintf((char *)_competitionFilename, sizeof _competitionFilename, "%.*s",
-                         (int)(strlen(s.file[s.pick]) - 4), s.file[s.pick]);
+                /* SAVE offers the file's own name, as after LOAD OLD COMPETITION: WITH its
+                 * extension, which SAVE's dialog reads back from after the '.' when the
+                 * name is accepted (file_io.c CopyFilenameExtensionAndSetExitMenuFlag) --
+                 * without one it saved "WC1990" outside save/. 8.3, as SWOS's names are. */
+                uint32_t n = str_len(s.file[s.pick]) - 4;
+                if (n > 8)
+                    n = 8;
+                memcpy(_competitionFilename, s.file[s.pick], n);
+                memcpy(_competitionFilename + n, ".DIY", 5);
                 s.ready = 1;
                 return 1;
             }
@@ -343,5 +441,3 @@ int32_t ClassicComps_TakeReady(void)
     s.ready = 0;
     return ready;
 }
-
-#endif /* SWOS_SDL_BUILD */

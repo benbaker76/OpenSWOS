@@ -18,4 +18,12 @@ int16_t DiyImportDos_Load(uint8_t *filename);
 int16_t DiyImportDos_LoadData(const char *label, const uint8_t *data, uint32_t size,
                               int32_t keepSettings);
 
+/* --convert-diy=<in>,<out>: a PC/SWOS 2020 .DIY rewritten as this game's JSON .DIY, which
+ * the Amiga loads (docs/CLASSIC_COMPETITIONS.md section 6). Remembered when the command
+ * line is read (both paths made absolute then: the game chdirs later), run once the game's
+ * data is loaded, then the game exits. Request: 0 = taken, 1 = malformed. */
+int32_t DiyConvert_Request(const char *arg);
+int32_t DiyConvert_Armed(void);
+void    DiyConvert_Run(void);
+
 #endif

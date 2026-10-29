@@ -7987,25 +7987,21 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
     return 0;
 }
 
-static int16_t load_competition_buf(uint8_t *filename, const char *kind)
+/* The JSON text of a .PRE/.DIY, already read (src NUL-terminated): the competition
+ * slot, the stage, the standings and the teams, as described below. */
+static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const char *kind)
 {
-    uint8_t *src = NULL;
-    uint32_t src_size = 0;
-    if (read_save_file_heap(filename, &src, &src_size) != 0)
-        return 1;
 
     long version = 0;
     if (mjson_get_long((const char *)src, (int)src_size,
                          "$.schema_version", &version) <= 0 ||
         (int)version != SAVE_JSON_SCHEMA_VERSION) {
-        swos_io_free(src);
         return 1;
     }
     char file_kind[16] = {0};
     if (mjson_get_string((const char *)src, (int)src_size,
                          "$.file_kind", file_kind, sizeof(file_kind)) <= 0 ||
         strcmp(file_kind, kind) != 0 || !save_world_ok(src, src_size)) {
-        swos_io_free(src);
         return 1;
     }
 
@@ -8215,8 +8211,20 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
      * own DIY path. The earlier crash was a SYMPTOM of mis-routing to the career
      * contestMenu because gameType wasn't restored; the real fix is setting
      * gameType in LoadDIYFile/LoadPresetFile. See project_diy_preset_load_gametype. */
-    swos_io_free(src);
     return 0;
+}
+
+static int16_t load_competition_buf(uint8_t *filename, const char *kind)
+{
+    uint8_t *src = NULL;
+    uint32_t src_size = 0;
+    int16_t r;
+
+    if (read_save_file_heap(filename, &src, &src_size) != 0)
+        return 1;
+    r = load_competition_mem(src, src_size, kind);
+    swos_io_free(src);
+    return r;
 }
 
 int16_t SaveJson_WritePreset(uint8_t *filename)
@@ -8241,6 +8249,13 @@ int16_t SaveJson_LoadDIY(uint8_t *filename, const uint8_t *src_unused,
 {
     (void)src_unused; (void)src_size_unused;
     return load_competition_buf(filename, KIND_DIY);
+}
+
+/* A .DIY already in memory -- a classic competition, read from classic/ rather than
+ * the save folder (src/classic_comps.c). */
+int16_t SaveJson_LoadDIYData(const uint8_t *src, uint32_t src_size)
+{
+    return load_competition_mem(src, src_size, KIND_DIY);
 }
 
 /* ---------- .HIL (highlights / match replay) ----------

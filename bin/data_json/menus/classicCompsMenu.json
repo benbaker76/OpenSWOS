@@ -1,59 +1,45 @@
 {
-  "name": "classicCompsMenu",
-  "source": {
-    "project": "openswos"
-  },
-  "menu_flags": {
-    "dos_redraw": true
-  },
-  "onInit": "classicCompsMenu_OnInit",
+  "name": "_classicCompsMenu",
+  "comment": "OpenSWOS's CLASSICS, from the row above WORLD CUP in PRESET COMPETITION's world list (teams.c SelectTeamsFinalMenu): the two groups, UEFA and WORLD CUP (src/classic_comps.c, docs/CLASSIC_COMPETITIONS.md). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "onInit": null,
   "onReturn": null,
-  "onDraw": "classicCompsMenu_OnDraw",
+  "onDraw": null,
   "defaultEntry": 1,
-  "exports": {},
   "items": [
     {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
       "kind": "entry",
-      "name": "header",
       "coords": {
         "x": 60,
         "y": 0,
-        "w": 200,
+        "w": -56,
         "h": 15
       },
       "commands": [
         {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "CLASSICS"
-        },
-        {
           "op": "colors",
           "frame_color": 1,
           "background_color": 7
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassics"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "uefa",
       "coords": {
         "x": 76,
         "y": 60,
-        "w": 168,
+        "w": -88,
         "h": 16
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "UEFA"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 11
-        },
         {
           "op": "nav",
           "left": -1,
@@ -62,31 +48,30 @@
           "down": 2
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 11
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsUefa"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicCompsUefa"
+          "func": "ClassicComps_PickUefa"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "worldCup",
       "coords": {
         "x": 76,
         "y": 84,
-        "w": 168,
+        "w": -88,
         "h": 16
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "WORLD CUP"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 11
-        },
         {
           "op": "nav",
           "left": -1,
@@ -95,25 +80,36 @@
           "down": 3
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 11
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsWorldCup"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicCompsWorldCup"
+          "func": "ClassicComps_PickWorldCup"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "exit",
       "coords": {
         "x": 76,
-        "y": 185,
-        "w": 168,
+        "y": -71,
+        "w": -88,
         "h": 15
       },
       "commands": [
         {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "EXIT"
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": -1
         },
         {
           "op": "colors",
@@ -121,11 +117,9 @@
           "background_color": 12
         },
         {
-          "op": "nav",
-          "left": -1,
-          "right": -1,
-          "up": 2,
-          "down": -1
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
         },
         {
           "op": "onselect_fire",

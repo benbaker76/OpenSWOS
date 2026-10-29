@@ -67,7 +67,7 @@ VERSION=""
 STAGE_ONLY=0
 
 # Mirrors FULL_DATA_DIRS in scripts/build_dist.sh. See "WHAT SHIPS" above.
-DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup"
+DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup classic"
 # The data setup's window (tools/swosdata/build.bat static): the installer runs
 # it when it finishes, because the game cannot start without the player's data.
 SETUP_EXE="${SETUP_EXE:-tools/swosdata/build_win_static/bin/Release/openswos-setup.exe}"

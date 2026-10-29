@@ -36,8 +36,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "diy_import_dos.h"
 #include "game_types.h"
+#include "save_format_json.h"
 #include "swos_io.h"
 
 extern CompetitionSlotBuffer _primaryCompetitionBuf;
@@ -69,7 +73,10 @@ enum {
     kTactics         = 0xB5E,         /* USER_A..USER_F, 370 bytes each */
     kOptions         = 0x140A,        /* gameLength .. pitchType */
     kMaxTeams        = 64,
+    kAmigaMaxTeams   = 32,            /* what the Amiga is to play, for now */
 };
+
+extern uint16_t _gameType;
 
 /* The header fields after namePtr are one contiguous run on every target. */
 typedef char _diy_dos_header_tail_check[
@@ -222,3 +229,90 @@ int16_t DiyImportDos_LoadData(const char *label, const uint8_t *data, uint32_t s
 }
 
 #endif
+
+/* ---- --convert-diy: a PC/SWOS 2020 .DIY as this game's JSON .DIY ---- */
+
+static char s_convertIn[1024], s_convertOut[1024];
+
+static int32_t absolute(const char *path, char *out, size_t cap)
+{
+    char cwd[1024];
+
+    if (path[0] == '/' || path[0] == '\\' || (path[0] && path[1] == ':'))
+        return snprintf(out, cap, "%s", path) < (int)cap ? 0 : 1;
+    if (!getcwd(cwd, sizeof cwd))
+        return 1;
+    return snprintf(out, cap, "%s/%s", cwd, path) < (int)cap ? 0 : 1;
+}
+
+int32_t DiyConvert_Request(const char *arg)
+{
+    const char *comma = strchr(arg, ',');
+    char in[1024];
+
+    if (!comma || comma == arg || !comma[1] || (size_t)(comma - arg) >= sizeof in)
+        return 1;
+    memcpy(in, arg, (size_t)(comma - arg));
+    in[comma - arg] = 0;
+    return absolute(in, s_convertIn, sizeof s_convertIn) ||
+           absolute(comma + 1, s_convertOut, sizeof s_convertOut);
+}
+
+int32_t DiyConvert_Armed(void) { return s_convertIn[0] != 0; }
+
+/* Exits: 0 converted, 1 failed, 2 refused (more teams than the Amiga is to play). */
+void DiyConvert_Run(void)
+{
+    static uint8_t scratch[] = "_CONVERT.DIY";     /* in the save folder, then moved */
+    char written[1280];
+    uint8_t *data;
+    long n;
+    FILE *f = fopen(s_convertIn, "rb");
+
+    if (!f) {
+        fprintf(stderr, "[diy-convert] cannot read %s\n", s_convertIn);
+        exit(1);
+    }
+    fseek(f, 0, SEEK_END);
+    n = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    data = (uint8_t *)malloc(n > 0 ? (size_t)n : 1);
+    if (!data || n <= 0 || fread(data, 1, (size_t)n, f) != (size_t)n) {
+        fprintf(stderr, "[diy-convert] cannot read %s\n", s_convertIn);
+        exit(1);
+    }
+    fclose(f);
+
+    if (!DiyImportDos_IsDosFile(data, (uint32_t)n)) {
+        fprintf(stderr, "[diy-convert] %s is not a PC/SWOS 2020 .DIY\n", s_convertIn);
+        exit(1);
+    }
+    if (le16(data + kRegion) > kAmigaMaxTeams) {
+        fprintf(stderr, "[diy-convert] %s: %u teams, more than the Amiga plays (%d): not converted\n",
+                s_convertIn, (unsigned)le16(data + kRegion), (int)kAmigaMaxTeams);
+        exit(2);
+    }
+    _gameType = 1;          /* a DIY competition, as LoadDIYFile sets it */
+    if (DiyImportDos_LoadData(s_convertIn, data, (uint32_t)n, 0) != 0) {
+        fprintf(stderr, "[diy-convert] %s: not converted\n", s_convertIn);
+        exit(1);
+    }
+    /* A classic competition starts with every team COMPUTER, as CLASSICS starts it
+     * (classic_comps.c): SWOS 2020's cups make them all COACH. */
+    for (int32_t i = 0; i < _numSelectedTeams; i++)
+        _selectedTeams[i].team.teamControls = 1;   /* TEAM_COMPUTER */
+    if (SaveJson_WriteDIY(scratch) != 0) {
+        fprintf(stderr, "[diy-convert] %s: not converted\n", s_convertIn);
+        exit(1);
+    }
+    free(data);
+
+    snprintf(written, sizeof written, "%s/%s", swos_save_dir(), (const char *)scratch);
+    remove(s_convertOut);
+    if (rename(written, s_convertOut) != 0) {
+        fprintf(stderr, "[diy-convert] wrote %s but cannot move it to %s\n", written, s_convertOut);
+        exit(1);
+    }
+    fprintf(stderr, "[diy-convert] %s -> %s\n", s_convertIn, s_convertOut);
+    exit(0);
+}

@@ -57,7 +57,6 @@ SDL_ONLY_SRCS := \
     crt_effects.c         \
     ini.c                 \
     input_sdl.c           \
-    classic_comps.c       \
     custom_team.c         \
     career_autopilot.c    \
     diy_import_dos.c      \
