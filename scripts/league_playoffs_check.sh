@@ -14,6 +14,7 @@
 # (Italy's league, and each other country with B teams).
 # Then the mid-season splits' tables, fixture stages too (scripts/world_split.py), against the
 # Mod's split.entry.
+# Then the UEFA qualifying rounds (src/uefa_access.c) against the Mod's uefaq.c.
 # Then the cups' clubs from the second season (its 4.0.1 cf_build, CF_SEED 1 as released):
 # random moves, last season's places and career clubs, both cups' lists compared.
 # Then the Coppa Italia Serie D table against its cupd.py compile_table, and its later
@@ -177,5 +178,39 @@ if python3 -I $T/split_check.py "$MOD/tools" bin/data_json/worlds/2627/mod/packs
 else
     echo "FAIL: the splits:"
     grep '^FAIL' "$OUT/split.txt" | head -5
+    exit 1
+fi
+
+# The UEFA qualifying rounds (src/uefa_access.c, the Mod's uefaq.c): random seasons -- the
+# associations, their clubs, holders, a career club, league cup winners, the packs' own European
+# play-offs -- the three league phases, the bracket, the career club's ties, the coefficient
+# points, against the Mod's own C.
+python3 -I - "$OUT/uefa_specs.h" <<'PY'
+import glob, json, os, sys
+sys.path.insert(0, "scripts")
+import world_import as w
+specs = []
+for f in sorted(glob.glob(os.path.join(w.MOD, "packs", "*", "pack.json"))):
+    lg = next((c for c in json.load(open(f, encoding="utf-8"))["competitions"] if c["key"] == "league"), None)
+    kos = (lg or {}).get("ko_playoffs") or []
+    if any(p.get("kind") == "europe" for p in kos):
+        specs.append(w.compile_spec(kos, len(lg.get("divisions") or [0])))
+with open(sys.argv[1], "w") as o:
+    for i, b in enumerate(specs):
+        o.write("static const unsigned char SPEC%d[] = { %s };\n" % (i, ", ".join(map(str, b))))
+    o.write("static const unsigned char *const SPECS[] = { %s };\n" % ", ".join("SPEC%d" % i for i in range(len(specs))))
+    o.write("#define NSPECS %d\n" % len(specs))
+PY
+UN=$((N / 10))
+$CC -no-pie -DUQ_RO= -DUEFAQ_C="\"$MOD/tools/uefaq.c\"" -I"$OUT" -o "$OUT/uefa_mod" $T/uefa_mod.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -I"$OUT" -o "$OUT/uefa_ours" $T/uefa_ours.c
+"$OUT/uefa_mod" "$UN" > "$OUT/uefa_mod.txt"
+"$OUT/uefa_ours" "$UN" > "$OUT/uefa_ours.txt"
+if cmp -s "$OUT/uefa_mod.txt" "$OUT/uefa_ours.txt"; then
+    echo "PASS: the UEFA qualifying rounds, $UN seasons ($(grep -c '|tie' "$OUT/uefa_ours.txt") with the career" \
+         "club's ties), every list, bracket and point the Mod's"
+else
+    echo "FAIL: the UEFA qualifying rounds, the first season that differs (Mod, then ours):"
+    diff "$OUT/uefa_mod.txt" "$OUT/uefa_ours.txt" | head -4 | cut -c1-300
     exit 1
 fi
