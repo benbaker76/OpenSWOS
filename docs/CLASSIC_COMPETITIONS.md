@@ -1,7 +1,7 @@
 # CLASSIC_COMPETITIONS.md — CLASSICS, SWOS 2020's DLC cups, and the PC `.DIY` format
 
-> Status (2026-10-29): **current** for the SDL builds (`37400e2`); **plan** for the Amiga
-> (section 6, not started — agreed: convert on the PC (B), at most 32 teams for now).
+> Status (2026-10-29): **current**, both targets. The Amiga plays the same competitions from
+> OpenSWOS's JSON `.DIY` (converted on a PC, section 6); 2026 (48 teams) is SDL only.
 
 ## 1. What it is
 
@@ -11,10 +11,11 @@ PRESET COMPETITION's world list has a row above WORLD CUP: **CLASSICS**. It open
              -> the teams screen -> PLAY
 
 The competitions are SWOS 2020's DLC cups: every Euro (1960–2024) and World Cup
-(1930–2026, no 2022 in the DLC) as SWOS 2020 ships them, each a `.DIY` file. The teams screen
-lists every team four across, row by row; every one starts as COMPUTER and a click cycles it
-COMPUTER -> PLAYER-COACH -> COACH, in the friendly team list's colours (red / purple / blue).
-PLAY starts the competition the way LOAD OLD COMPETITION starts a loaded one (`StartContest`).
+(1930–2026, no 2022 in the DLC). The teams screen lists every team four across, row by row;
+every one starts as COMPUTER and a click cycles it COMPUTER -> PLAYER-COACH -> COACH, in the
+friendly team list's colours (red / purple / blue). PLAY starts the competition the way LOAD
+OLD COMPETITION starts a loaded one (`StartContest`), and SAVE then offers the file's own name
+(`WC1990.DIY`).
 
 Two things differ from loading the same file with LOAD OLD COMPETITION:
 
@@ -23,24 +24,29 @@ Two things differ from loading the same file with LOAD OLD COMPETITION:
 - **The player's settings stay.** The six option words (game length, pitch type, ...) and the
   six USER tactics are kept; LOAD OLD COMPETITION takes the file's, as the original does.
 
-LOAD OLD COMPETITION also reads these files now (any `.DIY` that is not JSON), with the file's
-control types, options and tactics.
+On SDL, LOAD OLD COMPETITION also reads the PC game's and SWOS 2020's `.DIY` files (any `.DIY`
+that is not JSON), with the file's control types, options and tactics.
 
 ## 2. Where the files live
 
-Not in this repository, like the rest of the original game's data. In the assets folder:
+**Shipped:** `bin/classic/uefa/` and `bin/classic/worldcup/` — the 38 competitions of up to
+32 teams, as OpenSWOS's JSON `.DIY` (every team COMPUTER), converted from SWOS 2020's DLC
+with `--convert-diy` (section 6). SWOS 2020's DLC is a community project; these files were
+updated there by petarku, and they ship with that community's agreement (2026-10-29). Every
+drop carries `classic/` (`FULL_DATA_DIRS` and `AMIGA_DATA_DIRS` in `build_dist.sh`,
+`build_installer.sh`, `make macos-app`, `WASM_DATA_DIRS`); in the Amiga drawer it is
+`SWOS/classic/`.
 
-    <assets>/classic/uefa/*.DIY        <assets>/classic/worldcup/*.DIY
+**The player's own (SDL):** `<assets>/classic/uefa/` and `<assets>/classic/worldcup/`
+(`<assets>` is `swos_assets_dir()`, by default `Documents\SWOS\assets`), SWOS 2020's files as
+they are — `scripts/copy_classics.ps1` copies them from an install (`-From`, default
+`C:\Games\SWOS 2020\dlc\cup`; a folder named WORLD CUP goes to `worldcup`, EURO or UEFA to
+`uefa`). This is how 2026 (48 teams, never converted) gets in.
 
-(`<assets>` is `swos_assets_dir()`, by default `Documents\SWOS\assets`.) A file is listed by the
-name inside it, sorted by the first four-digit number in that name, then by name; a file that
-is not a PC/SWOS 2020 `.DIY` is skipped with a `[classic]` log line. A list holds 32 (two
-columns of 16); more are logged as not listed.
-
-`scripts/copy_classics.ps1` copies them from a SWOS 2020 install (`-From`, default
-`C:\Games\SWOS 2020\dlc\cup`): a folder whose name says WORLD CUP goes to `worldcup`, EURO or
-UEFA to `uefa`, anything else is reported and skipped. Safe to run again. OpenSWOS Setup does
-not do this yet; it is the natural home for it (it already takes SWOS 2020's pitches).
+SDL looks in the assets folder first, then in the game's own `classic/`; a file name already
+listed from the first is not listed again. A file is listed by the name inside it, sorted by
+the first four-digit number in that name, then by name; one the target cannot read is skipped
+(SDL logs a `[classic]` line). A list holds 32 (two columns of 16).
 
 ## 3. The file format
 
@@ -90,88 +96,56 @@ as `diy_team_to_identity` defines them.
 
 | file | what |
 |---|---|
-| `src/diy_import_dos.c` | `DiyImportDos_IsDosFile` (size/type/team-count check), `DiyImportDos_LoadData` (section 3; `keepSettings` for CLASSICS), `DiyImportDos_Load` (a save-folder file). SDL only: the copy is by blocks, right only where DOS words are host-native. |
-| `src/file_io.c` | `LoadDIYFile`: JSON as before, anything else through the importer. |
-| `src/classic_comps.c` | the three screens (JSON menus `bin/data_json/menus/openswos/classic{Comps,List,Teams}Menu.json`, handlers registered at run time), the folder scan, the load, `ClassicComps_TakeReady`. |
+| `src/diy_import_dos.c` | SDL only. `DiyImportDos_IsDosFile` (size/type/team-count check), `DiyImportDos_LoadData` (section 3; `keepSettings` for CLASSICS), `DiyImportDos_Load` (a save-folder file), and `--convert-diy` (section 6). The copy is by blocks, right only where DOS words are host-native. |
+| `src/classic_comps.c` | Both targets. The folder scan (`dirent` on SDL, `Resload_ListDir` on the Amiga), the load (JSON through `SaveJson_LoadDIYData` with the player's options and tactics put back; a DOS file through the importer, SDL), the three screens' handlers, `ClassicComps_TakeReady`. |
+| `src/menu_data.c` | `_classicCompsMenu`, `_classicListMenu`, `_classicTeamsMenu`: classic packed menus like every other, with their JSON in `bin/data_json/menus/classic*.json` (exported from the C; `[menu-json] verify` 55/55), `s_staticMenus`, the symbol registry. The teams menu lists its 64 buttons a column at a time and `team_of_entry` fills them a row at a time. |
 | `src/teams.c` | `SelectTeamsFinalMenu`: the CLASSICS row (a marker in `leaguesPtrTable`, caught before anything reads the slot as a `Competition`), world view of the preset chooser only. |
 | `src/menus.c` | `PresetCompetitionMenu`: after the chooser, a loaded classic competition is started. |
-
-The menus were generated once by a throwaway script; edit the JSON directly now. The teams
-menu lists its 64 buttons a column at a time and `team_of_entry` fills them a row at a time.
+| `src/file_io.c` | `LoadDIYFile` (SDL): JSON as before, anything else through the importer. |
+| `src/save_format_json.c` | `SaveJson_LoadDIYData`: a `.DIY`'s JSON from memory (`load_competition_mem`), since `classic/` is not the save folder. |
+| `src/resload.c` | `Resload_ListDir`; and `fix_filename` leaves a name that has a folder in it alone, so `classic/uefa/EC1964.DIY` is not sent to `save/` for its `.DIY`. |
 
 ## 5. Known limits
 
-- **2026 is six groups of eight.** That is SWOS 2020's file, not the import: its first stage
-  is 6 groups x 8 (7 matches each), 32 through to a round of 32. The real format (12 groups of
-  four, best thirds) needs more groups than SWOS's DIY tournament offers.
+- **2026 is six groups of eight**, and SDL only. The group layout is SWOS 2020's file, not the
+  import: 6 groups x 8 (7 matches each), 32 through to a round of 32 — the real format (12
+  groups of four, best thirds) needs more groups than SWOS's DIY tournament offers. It is not
+  converted (48 teams, more than the Amiga is to play for now), so it comes only from the
+  player's own SWOS 2020 files.
+- **ESC on the teams screen** was seen to start the competition, as PLAY does, instead of
+  going back like EXIT (SDL, 2026-10-29, not looked into yet).
 - **LOAD OLD COMPETITION's list** was made for 8-character DOS names: longer ones (SWOS 2020's
   challenge files) run into the type column. Rename, or shorten them in the list.
 - **Unexplained:** a SWOS 2020 cup loaded through LOAD OLD COMPETITION (every team COACH), one
   team switched to PLAYER-COACH on the PLAY MATCH screen: the next PLAY MATCH screen took no
   input (2026-10-29; the main thread was in the normal `MenuProc` loop, no `[menu-nav]` line).
   CLASSICS avoids it by starting every team as COMPUTER; the cause is not found.
-- An early report of VIEW RESULT freezing (EC1964, LOAD OLD COMPETITION) was never reproduced.
+- An early report of VIEW RESULT freezing (EC1964, LOAD OLD COMPETITION) was never reproduced;
+  EC1964 played to the final through VIEW RESULT on the Amiga.
 
-## 6. The Amiga — plan, not started
+## 6. The Amiga
 
-Two things stand in the way: reading the files, and the screens.
+The Amiga cannot read the DOS dump (its words are little-endian, section 3), so it plays the
+same competitions from **OpenSWOS's JSON `.DIY`**, which is built to load on it
+(`save_format_json.c`'s cross-target slot and stage serializers). They are made on a PC:
 
-### 6a. Reading the files: two ways
+    SWOS.exe --convert-diy=<in.DIY>,<out.DIY>
 
-**A. A real converter in the game, both targets.** Replace the block copies in
-`diy_import_dos.c` with a table of the DOS layout — each field's offset, size and kind (byte,
-word, int32, team id, raw bytes) — and one loop that reads it on any host. What it covers:
+imports the file, makes every team COMPUTER, writes the JSON (and, in a tester build, reloads
+and diffs it: `[json-verify-diy] 0 mismatches` for all 38), and refuses one of more than 32
+teams (exit 2). The shipped `bin/classic/` is its output.
 
-- the header (`DIYCompetition`): about 30 word/byte fields and the 35-byte name;
-- the `DIYCompetitionEx` body: the round settings, team-id lists, `cupAggregateScores`, the
-  counters, `leagueSectionState`, `bracketScratch` (its offset table is int32), the standings
-  (an int32 and 7 words per row);
-- the tournament: the six slots (13 words, then 90 bytes), `groupMap`, `teamIds`,
-  `teamIndexOrder` (bytes);
-- the teams: only `globalTeamNumber` (a word) in each 684-byte record; the rest is bytes.
+Chosen over a field-table reader in the game (every DOS field read by kind on any host)
+because the JSON was already proven on the Amiga, and that reader's hard part — byte arrays
+that hold words, the cup score tables inside `cupRoundResults` and `phaseStartMonths` — would
+have to be traced field by field. It stays the way to go if the Amiga ever has to read a PC
+file itself.
 
-**The work is in the byte arrays that hold words.** The cup score tables live inside
-`cupRoundResults` (from +0x40) and `phaseStartMonths`, and parts of `teamShuffleOrder` /
-`scratchTail` may too; each has to be traced in `diy_competition.c` to byte or word. A wrong
-guess swaps scores — the JSON format met exactly that ("GERMANY 2-0 shown 0-2",
-`save_format_json.c`). Proof: on SDL the table must produce the same bytes as the block copies
-for all 39 files, then a cup, a group tournament and 2026 played in FS-UAE.
+Proved under FS-UAE (2026-10-29): CLASSICS above WORLD CUP; the UEFA list (17, by year) in
+0.6 s; EURO 1964's teams screen, HUNGARY switched to PLAYER-COACH (read back from memory: 2,
+the others 1) and still so after PLAY; EURO 1964 played to the final through LOAD OLD
+COMPETITION (Hungary 3–2 Denmark a.e.t., about 1 s to load); a classic competition saved and
+loaded again.
 
-**B. Convert on the PC, play JSON on the Amiga.** OpenSWOS's own JSON `.DIY` is built to load
-on the Amiga (`save_format_json.c`'s cross-target slot and stage serializers). So:
-
-- the SDL build gets a headless `--convert-diy <in> <out>`: import, then `SaveJson_WriteDIY`;
-- the setup tool (or `scripts/copy_classics.ps1`) puts the converted files in the Amiga
-  drawer; the Amiga never reads a DOS file.
-
-What to prove: an SDL-written JSON tournament — 2026 above all, the largest — plays right on
-the Amiga, and its load time on a 68020 (the files would be ~200–250 KB; the `.PRE` loads
-were once slow enough to look crashed, CHAMPIONS36.md).
-
-B is the smaller step and leans on a format the Amiga already reads; A is the clean end
-state and would replace the SDL block copies too.
-
-**Agreed (2026-10-29): B**, and on the Amiga only competitions of **at most 32 teams** for
-now — every Euro, and every World Cup but 2026 (48). The converter skips a larger one (or the
-Amiga's list leaves it out), so a 48-team stage never has to be proved on the 68020. A stays
-the option if B's JSON does not hold up on the Amiga. The order of work:
-
-1. `--convert-diy <in> <out>` in the SDL build; convert all 38 files of 32 teams or fewer.
-2. Prove the converted files on the Amiga through what exists already — LOAD OLD COMPETITION
-   in FS-UAE: a 4-team cup (EC1964), a group tournament (WC1966, 16), the largest (WC2018, 32);
-   draw, groups, results, the knockout, and the load time.
-3. Only then the screens (6b) and the setup step that fills the drawer.
-
-### 6b. The screens (either way)
-
-- The three screens are JSON menus; the Amiga has no JSON menu loader. Each becomes a
-  compiled menu in `menu_data.c` — the five places of MENUS.md section 12 — the teams screen
-  64 buttons plus PLAY and EXIT.
-- `classic_comps.c` lists the folder with `dirent`: the Amiga needs AmigaDOS
-  `Lock`/`Examine`/`ExNext`, or an index file the setup writes.
-- `classic/uefa` and `classic/worldcup` inside the SWOS drawer, filled by the setup's "Add
-  the game data".
-- `classic_comps.c` (and, for A, `diy_import_dos.c`) leave `SDL_ONLY_SRCS` in
-  `Makefile.amiga`; the `SWOS_SDL_BUILD` guards around CLASSICS in `teams.c` and `menus.c` go.
-- Check `bin/SWOS2.map` after the build (memory is not the issue with 8 MB of fast RAM), and
-  test a cup, a tournament with groups and the largest (32 teams) under FS-UAE.
+Not done: OpenSWOS Setup does not copy or convert a player's own SWOS 2020 files for the
+Amiga; the shipped ones cover every competition of up to 32 teams.

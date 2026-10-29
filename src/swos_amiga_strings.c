@@ -29,6 +29,15 @@ char _aCareer_1[]     = "CAREER";
 char _aMultiplayer[]  = "MULTIPLAYER";
 /* OpenSWOS: the main menu's CREDITS button (CreditsMenuSelected). */
 char _aCredits[]      = "CREDITS";
+/* OpenSWOS: CLASSICS, above WORLD CUP in PRESET COMPETITION's world list, and its three
+ * screens (src/classic_comps.c, docs/CLASSIC_COMPETITIONS.md). _aClassicsBlank is the text
+ * the list and team buttons start with, before the init handlers name them. */
+char _aClassics[]          = "CLASSICS";
+char _aClassicsUefa[]      = "UEFA";
+char _aClassicsWorldCup[]  = "WORLD CUP";
+char _aClassicsBlank[]     = "-";
+char _aClassicsHint[]      = "CLICK A TEAM TO CHANGE WHO CONTROLS IT";
+char _aClassicsPlay[]      = "PLAY";
 /* OpenSWOS: the PLAY MATCH screen's UNIFORM button (UniformSelected). */
 char _aUniform[]      = "UNIFORM";
 /* OpenSWOS: the main menu's SHOOTING PRACTICE button (ShootingPracticeMenu),

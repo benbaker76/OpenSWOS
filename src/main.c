@@ -53,6 +53,7 @@
 #include "jag_graphics.h"       /* --jag-graphics */
 #include "kit_art.h"            /* --kit-art */
 #include "custom_team.h"        /* --custom-team-selftest */
+#include "diy_import_dos.h"     /* --convert-diy */
 #include "challenge.h"          /* --challenge, --challenge-selftest */
 #include "dos_sound.h"          /* --sound-style, --dos-sound-selftest */
 #include "dos_music.h"          /* --music, --dos-music-selftest */
@@ -292,6 +293,8 @@ static void print_usage(const char *argv0)
         "                            this process. Exits.\n"
         "  --champions36-selftest    Check the 36-team Champions/Europa/Conference\n"
         "                            League presets through to the final. Exits.\n"
+        "  --convert-diy=<in>,<out>  Rewrite a PC/SWOS 2020 .DIY as this game's JSON\n"
+        "                            .DIY, which the Amiga loads. Exits.\n"
         "  --custom-team-selftest    Check every database team against the custom team\n"
         "                            rule (names, faces, kits and line-up only) and\n"
         "                            through the team file's text. Exits.\n"
@@ -836,6 +839,26 @@ int main(int argc, char **argv)
             /* Headless and silent, for the same reason the replay rig is: this is a batch
              * run that prints a hash, and it has no business opening a window. The audit
              * runs after Phase 9, so without this the game comes all the way up first. */
+#ifdef _WIN32
+            _putenv("SWOS_HARNESS_TURBO=1");
+            _putenv("SWOS_NO_LOG=1");
+            if (!getenv("SDL_VIDEODRIVER")) _putenv("SDL_VIDEODRIVER=dummy");
+            if (!getenv("SDL_AUDIODRIVER")) _putenv("SDL_AUDIODRIVER=dummy");
+#else
+            setenv("SWOS_HARNESS_TURBO", "1", 1);
+            setenv("SWOS_NO_LOG", "1", 1);
+            if (!getenv("SDL_VIDEODRIVER")) setenv("SDL_VIDEODRIVER", "dummy", 1);
+            if (!getenv("SDL_AUDIODRIVER")) setenv("SDL_AUDIODRIVER", "dummy", 1);
+#endif
+        } else if ((v = match_kv(a, "convert-diy")) != NULL) {
+            /* A PC/SWOS 2020 .DIY as this game's JSON .DIY, for the Amiga
+             * (src/diy_import_dos.c, docs/CLASSIC_COMPETITIONS.md section 6). Run after
+             * Phase 9, once the data is loaded; headless, as --team-audit is. */
+            if (DiyConvert_Request(v) != 0) {
+                fprintf(stderr, "--convert-diy needs <in.DIY>,<out.DIY>\n");
+                return 1;
+            }
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
 #ifdef _WIN32
             _putenv("SWOS_HARNESS_TURBO=1");
             _putenv("SWOS_NO_LOG=1");

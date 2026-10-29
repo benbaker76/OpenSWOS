@@ -3563,6 +3563,51 @@ typedef struct Menu_Stadium
 } Menu_Stadium;
 #pragma pack(pop)
 
+/* OpenSWOS: CLASSICS, above WORLD CUP in PRESET COMPETITION's world list (src/classic_comps.c,
+ * docs/CLASSIC_COMPETITIONS.md): the groups, a group's competitions, who controls each team. */
+#pragma pack(push, 1)
+typedef struct Menu_ClassicComps
+{
+  MenuHeader hdr;
+  MenuMark markByteCoords;
+  MenuEntry_Byte_Colors_TextPtr header;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect uefa;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect worldCup;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect exit;
+  MenuMark markEndMenu;
+} Menu_ClassicComps;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct Menu_ClassicList
+{
+  MenuHeader hdr;
+  MenuMark markByteCoords;
+  MenuEntry_Byte_Colors_TextPtr header;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect competitions[32];
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect exit;
+  MenuMark markEndMenu;
+} Menu_ClassicList;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct Menu_ClassicTeams
+{
+  MenuHeader hdr;
+  MenuMark markByteCoords;
+  MenuEntry_Byte_Colors_TextPtr header;
+  MenuEntry_Byte_Colors_TextPtr hint;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect teams[64];
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect play;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect exit;
+  MenuMark markEndMenu;
+} Menu_ClassicTeams;
+#pragma pack(pop)
+
+
+extern Menu_ClassicComps _classicCompsMenu;
+extern Menu_ClassicList _classicListMenu;
+extern Menu_ClassicTeams _classicTeamsMenu;
 extern Menu_ChooseTeamsFriendly _chooseTeamsFriendlyMenu;
 extern Menu_ChooseTeamsFriendly2 _chooseTeamsFriendlyMenu2;
 extern Menu_DesignDIYLeague _designDiyLeagueMenu;

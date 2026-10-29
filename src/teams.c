@@ -21,8 +21,8 @@
 #include "career_init.h"
 #include "shooting_practice.h"  /* SHOOTING PRACTICE gates the team selection below */
 #include "champions36.h"        /* the 36-team european preset substitution */
-#ifdef SWOS_SDL_BUILD
 #include "classic_comps.h"      /* CLASSICS, above WORLD CUP in the preset world list */
+#ifdef SWOS_SDL_BUILD
 #include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in */
 #endif
 
@@ -2900,13 +2900,11 @@ void SelectTeamsInit(void)
  * Asm register convention:
  *   in:  d0.b = mode (0xFF=default, or a nationality/country number)
  * ================================================================ */
-#ifdef SWOS_SDL_BUILD
 /* CLASSICS (src/classic_comps.c): a row of PRESET COMPETITION's world list, above WORLD
  * CUP. It is no competition: its slot in leaguesPtrTable holds this marker, which the
  * selection below catches before anything reads the slot as a Competition. */
-static char    k_classicsName[] = "CLASSICS";
+extern char    _aClassics[];
 static uint8_t k_classicsMarker;
-#endif
 
 __attribute__((used, externally_visible))
 void SelectTeamsFinalMenu(uint16_t mode)
@@ -3022,14 +3020,12 @@ loc_E012:
     leagueNumsOut = _leagueNumbersTable;
     d1 = 0;
     a5 = compList;
-#ifdef SWOS_SDL_BUILD
-    if ((uint8_t)d7 == 254 && _choosingPreset != 0) {
-        *teamNamesPtr++ = (void *)k_classicsName;
+    if ((uint8_t)d7 == 254 && _choosingPreset != 0) {     /* CLASSICS, above WORLD CUP */
+        *teamNamesPtr++ = (void *)_aClassics;
         *leaguesPtrOut++ = (void *)&k_classicsMarker;
         *leagueNumsOut++ = 0xFFFF;
         d1++;
     }
-#endif
 
     /* loc_13E086: iterate through competition entries */
 loc_E086:
@@ -3273,7 +3269,6 @@ loc_E2D0:
     if (_viewSelectedTeams != 0)
         goto loc_E73A;
 
-#ifdef SWOS_SDL_BUILD
     /* CLASSICS: pick and load one; leave as if backed out, for PresetCompetitionMenu
      * to start it, or come back to the world list. */
     if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
@@ -3282,7 +3277,6 @@ loc_E2D0:
             goto exit_clear;
         goto loc_E012;
     }
-#endif
 
     /* Check selectedTeamIndex */
     d7 = (uint16_t)_selectedTeamIndex;

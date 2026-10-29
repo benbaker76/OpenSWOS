@@ -23,7 +23,7 @@
 #                       unzip and play. Excludes save/ (per-user dir, and 24 MB
 #                       of test careers here).
 #   dist/SWOS-Amiga.zip the m68k binary + ONLY the trees it actually opens
-#                       (data grafs grafs_aga sound), as a SWOS drawer with its
+#                       (data grafs grafs_aga sound classic), as a SWOS drawer with its
 #                       icon: drop it onto a hard drive and double-click SWOS.
 #                       c/ s/ inside the drawer boot an emulator from it.
 #   dist/SWOS-Setup.exe the Inno Setup installer: the same content as
@@ -182,7 +182,7 @@ ZIP_MEMBERS="SWOS SWOS.x86_64 SWOS.aarch64 SWOS.armhf SWOS.exe SWOS2"
 # save/ is deliberately EXCLUDED: it is 24 MB of test careers here, and saves go
 # to a per-user directory anyway (swos_io.c), so shipping it would both bloat the
 # zip and drop stale saves on testers.
-FULL_DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup"
+FULL_DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup classic"
 # The data setup, built by the `setup` target.
 SETUP_CLI="tools/swosdata/build/swosdata"
 SETUP_EXE="tools/swosdata/build_win_static/bin/Release/openswos-setup.exe"
@@ -273,7 +273,7 @@ LINUX_LIBDIR="${LINUX_LIBDIR:-/usr/lib}"
 #   SWOS.info                  the drawer's icon
 #   SWOS/SWOS2                 the binary
 #   SWOS/SWOS + SWOS.info      what Workbench starts: double-click the icon
-#   SWOS/data grafs grafs_aga sound save
+#   SWOS/data grafs grafs_aga sound classic save
 #   SWOS/c SWOS/s              to boot an emulator straight from the drawer
 #
 # packaging/amiga mirrors that layout and holds what the strings rule above cannot
@@ -288,7 +288,7 @@ LINUX_LIBDIR="${LINUX_LIBDIR:-/usr/lib}"
 # level s/ would replace that drive's own S:startup-sequence. Inside the drawer they
 # do nothing until the drawer itself is mounted as the boot volume, when
 # s/startup-sequence runs SYS:SWOS2 and then c/UAEquit.
-AMIGA_DATA_DIRS="data grafs grafs_aga sound"
+AMIGA_DATA_DIRS="data grafs grafs_aga sound classic"
 AMIGA_BOOT_DIRS="c s"
 AMIGA_PKG_DIR="packaging/amiga"
 CYGWIN_BIN="${CYGWIN_BIN:-/mnt/c/cygwin64/bin}"

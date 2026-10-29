@@ -189,6 +189,10 @@ def up():
     drawer.mkdir(exist_ok=True)
     for name in ("c", "s", "data", "grafs", "grafs_aga", "sound", "save"):
         shutil.copytree(Path(REPO_CYG) / "bin" / name, drawer / name, dirs_exist_ok=True)
+    # The classic competitions, converted on the PC (docs/CLASSIC_COMPETITIONS.md): not in
+    # the repository, so only when a developer has made them.
+    if (Path(REPO_CYG) / "bin" / "classic").is_dir():
+        shutil.copytree(Path(REPO_CYG) / "bin" / "classic", drawer / "classic", dirs_exist_ok=True)
     shutil.copy2(Path(REPO_CYG) / "bin/SWOS2", drawer / "SWOS2")
     (drawer / "data/CHALGEN.DAT").unlink(missing_ok=True)
     if not os.path.exists(ELF_CYG):

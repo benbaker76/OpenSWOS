@@ -62,6 +62,13 @@ extern void ChooseTeamsInit(void);
 extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
 extern void ChooseTeamsPlayMatchSelected(void);
+extern void ClassicComps_ListInit(void);
+extern void ClassicComps_PickCompetition(void);
+extern void ClassicComps_PickUefa(void);
+extern void ClassicComps_PickWorldCup(void);
+extern void ClassicComps_Play(void);
+extern void ClassicComps_TeamsInit(void);
+extern void ClassicComps_ToggleTeam(void);
 extern void ClubBusinessInit(void);
 extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
@@ -438,6 +445,12 @@ extern char _aCareer_1[];
 extern char _aChallenges[];
 extern char _aChooseTeam[];
 extern char _aChooseTeams[];
+extern char _aClassics[];
+extern char _aClassicsBlank[];
+extern char _aClassicsHint[];
+extern char _aClassicsPlay[];
+extern char _aClassicsUefa[];
+extern char _aClassicsWorldCup[];
 extern char _aClubBusiness[];
 extern char _aClubTeams[];
 extern char _aCoach[];
@@ -759,6 +772,13 @@ const MenuSymbol _menuSymbols[] = {
     { "ChooseTeamsMenu", (void*)ChooseTeamsMenu, SYM_FUNC },
     { "ChooseTeamsPlayGame", (void*)ChooseTeamsPlayGame, SYM_FUNC },
     { "ChooseTeamsPlayMatchSelected", (void*)ChooseTeamsPlayMatchSelected, SYM_FUNC },
+    { "ClassicComps_ListInit", (void*)ClassicComps_ListInit, SYM_FUNC },
+    { "ClassicComps_PickCompetition", (void*)ClassicComps_PickCompetition, SYM_FUNC },
+    { "ClassicComps_PickUefa", (void*)ClassicComps_PickUefa, SYM_FUNC },
+    { "ClassicComps_PickWorldCup", (void*)ClassicComps_PickWorldCup, SYM_FUNC },
+    { "ClassicComps_Play", (void*)ClassicComps_Play, SYM_FUNC },
+    { "ClassicComps_TeamsInit", (void*)ClassicComps_TeamsInit, SYM_FUNC },
+    { "ClassicComps_ToggleTeam", (void*)ClassicComps_ToggleTeam, SYM_FUNC },
     { "ClubBusinessInit", (void*)ClubBusinessInit, SYM_FUNC },
     { "ClubBusinessMenu", (void*)ClubBusinessMenu, SYM_FUNC },
     { "ClubTeams", (void*)ClubTeams, SYM_FUNC },
@@ -1132,6 +1152,12 @@ const MenuSymbol _menuSymbols[] = {
     { "_aChallenges", (void*)_aChallenges, SYM_STRING },
     { "_aChooseTeam", (void*)_aChooseTeam, SYM_STRING },
     { "_aChooseTeams", (void*)_aChooseTeams, SYM_STRING },
+    { "_aClassics", (void*)_aClassics, SYM_STRING },
+    { "_aClassicsBlank", (void*)_aClassicsBlank, SYM_STRING },
+    { "_aClassicsHint", (void*)_aClassicsHint, SYM_STRING },
+    { "_aClassicsPlay", (void*)_aClassicsPlay, SYM_STRING },
+    { "_aClassicsUefa", (void*)_aClassicsUefa, SYM_STRING },
+    { "_aClassicsWorldCup", (void*)_aClassicsWorldCup, SYM_STRING },
     { "_aClubBusiness", (void*)_aClubBusiness, SYM_STRING },
     { "_aClubTeams", (void*)_aClubTeams, SYM_STRING },
     { "_aCoach", (void*)_aCoach, SYM_STRING },

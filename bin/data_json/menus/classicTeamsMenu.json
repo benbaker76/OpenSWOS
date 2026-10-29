@@ -1,64 +1,59 @@
 {
-  "name": "classicTeamsMenu",
-  "source": {
-    "project": "openswos"
-  },
-  "menu_flags": {
-    "dos_redraw": true
-  },
-  "onInit": "classicTeamsMenu_OnInit",
+  "name": "_classicTeamsMenu",
+  "comment": "OpenSWOS's CLASSICS: who controls each team of the competition picked. 64 team buttons, listed a column at a time and filled a row at a time, four across; every team starts as COMPUTER and a click cycles PLAYER-COACH and COACH (src/classic_comps.c). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "onInit": "ClassicComps_TeamsInit",
   "onReturn": null,
-  "onDraw": "classicTeamsMenu_OnDraw",
+  "onDraw": null,
   "defaultEntry": 2,
-  "exports": {},
   "items": [
     {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
       "kind": "entry",
-      "name": "header",
       "coords": {
-        "x": 2,
+        "x": 35,
         "y": 0,
-        "w": 316,
+        "w": -6,
         "h": 15
       },
       "commands": [
         {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "CLASSIC COMPETITIONS"
-        },
-        {
           "op": "colors",
           "frame_color": 1,
           "background_color": 7
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "hint",
       "coords": {
-        "x": 2,
+        "x": 35,
         "y": 17,
-        "w": 316,
+        "w": -6,
         "h": 9
       },
       "commands": [
         {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "CLICK A TEAM TO CHANGE WHO CONTROLS IT"
-        },
-        {
           "op": "colors",
           "frame_color": 0,
           "background_color": 0
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsHint"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team0",
       "coords": {
         "x": 4,
         "y": 29,
@@ -66,16 +61,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -84,14 +69,23 @@
           "down": 3
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team1",
       "coords": {
         "x": 4,
         "y": 38,
@@ -99,16 +93,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -117,14 +101,23 @@
           "down": 4
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team2",
       "coords": {
         "x": 4,
         "y": 47,
@@ -132,16 +125,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -150,14 +133,23 @@
           "down": 5
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team3",
       "coords": {
         "x": 4,
         "y": 56,
@@ -165,16 +157,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -183,14 +165,23 @@
           "down": 6
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team4",
       "coords": {
         "x": 4,
         "y": 65,
@@ -198,16 +189,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -216,14 +197,23 @@
           "down": 7
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team5",
       "coords": {
         "x": 4,
         "y": 74,
@@ -231,16 +221,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -249,14 +229,23 @@
           "down": 8
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team6",
       "coords": {
         "x": 4,
         "y": 83,
@@ -264,16 +253,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -282,14 +261,23 @@
           "down": 9
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team7",
       "coords": {
         "x": 4,
         "y": 92,
@@ -297,16 +285,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -315,14 +293,23 @@
           "down": 10
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team8",
       "coords": {
         "x": 4,
         "y": 101,
@@ -330,16 +317,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -348,14 +325,23 @@
           "down": 11
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team9",
       "coords": {
         "x": 4,
         "y": 110,
@@ -363,16 +349,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -381,14 +357,23 @@
           "down": 12
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team10",
       "coords": {
         "x": 4,
         "y": 119,
@@ -396,16 +381,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -414,31 +389,30 @@
           "down": 13
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team11",
       "coords": {
         "x": 4,
-        "y": 128,
+        "y": -128,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -447,31 +421,30 @@
           "down": 14
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team12",
       "coords": {
         "x": 4,
-        "y": 137,
+        "y": -119,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -480,31 +453,30 @@
           "down": 15
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team13",
       "coords": {
         "x": 4,
-        "y": 146,
+        "y": -110,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -513,31 +485,30 @@
           "down": 16
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team14",
       "coords": {
         "x": 4,
-        "y": 155,
+        "y": -101,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -546,31 +517,30 @@
           "down": 17
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team15",
       "coords": {
         "x": 4,
-        "y": 164,
+        "y": -92,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": -1,
@@ -579,14 +549,23 @@
           "down": 66
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team16",
       "coords": {
         "x": 83,
         "y": 29,
@@ -594,16 +573,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 2,
@@ -612,14 +581,23 @@
           "down": 19
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team17",
       "coords": {
         "x": 83,
         "y": 38,
@@ -627,16 +605,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 3,
@@ -645,14 +613,23 @@
           "down": 20
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team18",
       "coords": {
         "x": 83,
         "y": 47,
@@ -660,16 +637,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 4,
@@ -678,14 +645,23 @@
           "down": 21
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team19",
       "coords": {
         "x": 83,
         "y": 56,
@@ -693,16 +669,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 5,
@@ -711,14 +677,23 @@
           "down": 22
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team20",
       "coords": {
         "x": 83,
         "y": 65,
@@ -726,16 +701,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 6,
@@ -744,14 +709,23 @@
           "down": 23
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team21",
       "coords": {
         "x": 83,
         "y": 74,
@@ -759,16 +733,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 7,
@@ -777,14 +741,23 @@
           "down": 24
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team22",
       "coords": {
         "x": 83,
         "y": 83,
@@ -792,16 +765,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 8,
@@ -810,14 +773,23 @@
           "down": 25
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team23",
       "coords": {
         "x": 83,
         "y": 92,
@@ -825,16 +797,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 9,
@@ -843,14 +805,23 @@
           "down": 26
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team24",
       "coords": {
         "x": 83,
         "y": 101,
@@ -858,16 +829,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 10,
@@ -876,14 +837,23 @@
           "down": 27
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team25",
       "coords": {
         "x": 83,
         "y": 110,
@@ -891,16 +861,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 11,
@@ -909,14 +869,23 @@
           "down": 28
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team26",
       "coords": {
         "x": 83,
         "y": 119,
@@ -924,16 +893,6 @@
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 12,
@@ -942,31 +901,30 @@
           "down": 29
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team27",
       "coords": {
         "x": 83,
-        "y": 128,
+        "y": -128,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 13,
@@ -975,31 +933,30 @@
           "down": 30
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team28",
       "coords": {
         "x": 83,
-        "y": 137,
+        "y": -119,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 14,
@@ -1008,31 +965,30 @@
           "down": 31
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team29",
       "coords": {
         "x": 83,
-        "y": 146,
+        "y": -110,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 15,
@@ -1041,31 +997,30 @@
           "down": 32
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team30",
       "coords": {
         "x": 83,
-        "y": 155,
+        "y": -101,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 16,
@@ -1074,31 +1029,30 @@
           "down": 33
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team31",
       "coords": {
         "x": 83,
-        "y": 164,
+        "y": -92,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 17,
@@ -1107,31 +1061,30 @@
           "down": 66
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team32",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 29,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 18,
@@ -1140,31 +1093,30 @@
           "down": 35
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team33",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 38,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 19,
@@ -1173,31 +1125,30 @@
           "down": 36
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team34",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 47,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 20,
@@ -1206,31 +1157,30 @@
           "down": 37
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team35",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 56,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 21,
@@ -1239,31 +1189,30 @@
           "down": 38
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team36",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 65,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 22,
@@ -1272,31 +1221,30 @@
           "down": 39
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team37",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 74,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 23,
@@ -1305,31 +1253,30 @@
           "down": 40
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team38",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 83,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 24,
@@ -1338,31 +1285,30 @@
           "down": 41
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team39",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 92,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 25,
@@ -1371,31 +1317,30 @@
           "down": 42
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team40",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 101,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 26,
@@ -1404,31 +1349,30 @@
           "down": 43
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team41",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 110,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 27,
@@ -1437,31 +1381,30 @@
           "down": 44
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team42",
       "coords": {
-        "x": 162,
+        "x": -94,
         "y": 119,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 28,
@@ -1470,31 +1413,30 @@
           "down": 45
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team43",
       "coords": {
-        "x": 162,
-        "y": 128,
+        "x": -94,
+        "y": -128,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 29,
@@ -1503,31 +1445,30 @@
           "down": 46
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team44",
       "coords": {
-        "x": 162,
-        "y": 137,
+        "x": -94,
+        "y": -119,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 30,
@@ -1536,31 +1477,30 @@
           "down": 47
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team45",
       "coords": {
-        "x": 162,
-        "y": 146,
+        "x": -94,
+        "y": -110,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 31,
@@ -1569,31 +1509,30 @@
           "down": 48
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team46",
       "coords": {
-        "x": 162,
-        "y": 155,
+        "x": -94,
+        "y": -101,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 32,
@@ -1602,31 +1541,30 @@
           "down": 49
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team47",
       "coords": {
-        "x": 162,
-        "y": 164,
+        "x": -94,
+        "y": -92,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 33,
@@ -1635,31 +1573,30 @@
           "down": 66
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team48",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 29,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 34,
@@ -1668,31 +1605,30 @@
           "down": 51
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team49",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 38,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 35,
@@ -1701,31 +1637,30 @@
           "down": 52
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team50",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 47,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 36,
@@ -1734,31 +1669,30 @@
           "down": 53
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team51",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 56,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 37,
@@ -1767,31 +1701,30 @@
           "down": 54
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team52",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 65,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 38,
@@ -1800,31 +1733,30 @@
           "down": 55
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team53",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 74,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 39,
@@ -1833,31 +1765,30 @@
           "down": 56
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team54",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 83,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 40,
@@ -1866,31 +1797,30 @@
           "down": 57
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team55",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 92,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 41,
@@ -1899,31 +1829,30 @@
           "down": 58
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team56",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 101,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 42,
@@ -1932,31 +1861,30 @@
           "down": 59
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team57",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 110,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 43,
@@ -1965,31 +1893,30 @@
           "down": 60
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team58",
       "coords": {
-        "x": 241,
+        "x": -15,
         "y": 119,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 44,
@@ -1998,31 +1925,30 @@
           "down": 61
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team59",
       "coords": {
-        "x": 241,
-        "y": 128,
+        "x": -15,
+        "y": -128,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 45,
@@ -2031,31 +1957,30 @@
           "down": 62
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team60",
       "coords": {
-        "x": 241,
-        "y": 137,
+        "x": -15,
+        "y": -119,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 46,
@@ -2064,31 +1989,30 @@
           "down": 63
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team61",
       "coords": {
-        "x": 241,
-        "y": 146,
+        "x": -15,
+        "y": -110,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 47,
@@ -2097,31 +2021,30 @@
           "down": 64
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team62",
       "coords": {
-        "x": 241,
-        "y": 155,
+        "x": -15,
+        "y": -101,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 48,
@@ -2130,31 +2053,30 @@
           "down": 65
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "team63",
       "coords": {
-        "x": 241,
-        "y": 164,
+        "x": -15,
+        "y": -92,
         "w": 76,
         "h": 8
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 10
-        },
         {
           "op": "nav",
           "left": 49,
@@ -2163,31 +2085,30 @@
           "down": 66
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsToggle"
+          "func": "ClassicComps_ToggleTeam"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "play",
       "coords": {
         "x": 60,
-        "y": 185,
+        "y": -71,
         "w": 96,
         "h": 15
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "PLAY"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 14
-        },
         {
           "op": "nav",
           "left": -1,
@@ -2196,25 +2117,36 @@
           "down": -1
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsPlay"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicTeamsPlay"
+          "func": "ClassicComps_Play"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "exit",
       "coords": {
-        "x": 164,
-        "y": 185,
+        "x": -92,
+        "y": -71,
         "w": 96,
         "h": 15
       },
       "commands": [
         {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "EXIT"
+          "op": "nav",
+          "left": 66,
+          "right": -1,
+          "up": 17,
+          "down": -1
         },
         {
           "op": "colors",
@@ -2222,11 +2154,9 @@
           "background_color": 12
         },
         {
-          "op": "nav",
-          "left": 66,
-          "right": -1,
-          "up": 17,
-          "down": -1
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
         },
         {
           "op": "onselect_fire",

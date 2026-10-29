@@ -1406,6 +1406,22 @@ static void file_Deletefile(uint8_t *name)
     enable_vblank();
 }
 
+/* The files (not folders) in a directory of the game's drawer, as NUL-terminated
+ * names one after another in `buffer`; how many fitted. For the classic competitions'
+ * folders (src/classic_comps.c), which are not the save folder. */
+__attribute__((used, externally_visible))
+uint32_t Resload_ListDir(const uint8_t *dirname, uint8_t *buffer, uint32_t buffersize)
+{
+    uint32_t count;
+
+    disable_vblank_and_wait();
+    swap_int2_to_os();
+    count = resload_listfiles(buffersize, (uint8_t *)dirname, buffer, (uint32_t *)0);
+    swap_int2_to_game();
+    enable_vblank();
+    return count;
+}
+
 static void file_ListFiles(uint32_t buffersize, uint8_t *dirname, uint8_t *buffer)
 {
     disable_vblank_and_wait();
@@ -1453,6 +1469,15 @@ static uint8_t *fix_filename(uint8_t *name)
     /* Need at least 4 chars for extension check */
     if (end - a0 < 4)
         return a0;
+
+    /* A name with a folder in it already says where it is: the classic competitions
+     * (classic/uefa/EC1964.DIY, src/classic_comps.c) are .DIY files, not saves. */
+    {
+        const uint8_t *s;
+        for (s = a0; s < end; s++)
+            if (*s == '/')
+                return a0;
+    }
 
     /* Read last 4 chars as big-endian uint32_t */
     uint32_t ext = ((uint32_t)end[-4] << 24) | ((uint32_t)end[-3] << 16) |

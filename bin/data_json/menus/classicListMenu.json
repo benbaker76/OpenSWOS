@@ -1,59 +1,45 @@
 {
-  "name": "classicListMenu",
-  "source": {
-    "project": "openswos"
-  },
-  "menu_flags": {
-    "dos_redraw": true
-  },
-  "onInit": "classicListMenu_OnInit",
+  "name": "_classicListMenu",
+  "comment": "OpenSWOS's CLASSICS: a group's competitions, from assets/classic/<group>/ (the Amiga: classic/<group>/ in its drawer), two columns of 16, by year. ClassicComps_ListInit names the rows and hides the unused ones (src/classic_comps.c). Both targets: a classic packed menu, so the m68k build gets it from the baked src/menu_data.c.",
+  "onInit": "ClassicComps_ListInit",
   "onReturn": null,
-  "onDraw": "classicListMenu_OnDraw",
+  "onDraw": null,
   "defaultEntry": 1,
-  "exports": {},
   "items": [
     {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
       "kind": "entry",
-      "name": "header",
       "coords": {
         "x": 60,
         "y": 0,
-        "w": 200,
+        "w": -56,
         "h": 15
       },
       "commands": [
         {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "CLASSIC COMPETITIONS"
-        },
-        {
           "op": "colors",
           "frame_color": 1,
           "background_color": 7
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassics"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp0",
       "coords": {
         "x": 8,
         "y": 20,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -62,31 +48,30 @@
           "down": 2
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp1",
       "coords": {
         "x": 8,
         "y": 30,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -95,31 +80,30 @@
           "down": 3
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp2",
       "coords": {
         "x": 8,
         "y": 40,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -128,31 +112,30 @@
           "down": 4
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp3",
       "coords": {
         "x": 8,
         "y": 50,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -161,31 +144,30 @@
           "down": 5
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp4",
       "coords": {
         "x": 8,
         "y": 60,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -194,31 +176,30 @@
           "down": 6
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp5",
       "coords": {
         "x": 8,
         "y": 70,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -227,31 +208,30 @@
           "down": 7
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp6",
       "coords": {
         "x": 8,
         "y": 80,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -260,31 +240,30 @@
           "down": 8
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp7",
       "coords": {
         "x": 8,
         "y": 90,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -293,31 +272,30 @@
           "down": 9
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp8",
       "coords": {
         "x": 8,
         "y": 100,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -326,31 +304,30 @@
           "down": 10
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp9",
       "coords": {
         "x": 8,
         "y": 110,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -359,31 +336,30 @@
           "down": 11
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp10",
       "coords": {
         "x": 8,
         "y": 120,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -392,31 +368,30 @@
           "down": 12
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp11",
       "coords": {
         "x": 8,
-        "y": 130,
-        "w": 148,
+        "y": -126,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -425,31 +400,30 @@
           "down": 13
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp12",
       "coords": {
         "x": 8,
-        "y": 140,
-        "w": 148,
+        "y": -116,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -458,31 +432,30 @@
           "down": 14
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp13",
       "coords": {
         "x": 8,
-        "y": 150,
-        "w": 148,
+        "y": -106,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -491,31 +464,30 @@
           "down": 15
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp14",
       "coords": {
         "x": 8,
-        "y": 160,
-        "w": 148,
+        "y": -96,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -524,31 +496,30 @@
           "down": 16
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp15",
       "coords": {
         "x": 8,
-        "y": 170,
-        "w": 148,
+        "y": -86,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": -1,
@@ -557,31 +528,30 @@
           "down": 33
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp16",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 20,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 1,
@@ -590,31 +560,30 @@
           "down": 18
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp17",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 30,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 2,
@@ -623,31 +592,30 @@
           "down": 19
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp18",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 40,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 3,
@@ -656,31 +624,30 @@
           "down": 20
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp19",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 50,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 4,
@@ -689,31 +656,30 @@
           "down": 21
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp20",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 60,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 5,
@@ -722,31 +688,30 @@
           "down": 22
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp21",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 70,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 6,
@@ -755,31 +720,30 @@
           "down": 23
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp22",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 80,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 7,
@@ -788,31 +752,30 @@
           "down": 24
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp23",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 90,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 8,
@@ -821,31 +784,30 @@
           "down": 25
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp24",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 100,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 9,
@@ -854,31 +816,30 @@
           "down": 26
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp25",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 110,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 10,
@@ -887,31 +848,30 @@
           "down": 27
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp26",
       "coords": {
-        "x": 164,
+        "x": -92,
         "y": 120,
-        "w": 148,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 11,
@@ -920,31 +880,30 @@
           "down": 28
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp27",
       "coords": {
-        "x": 164,
-        "y": 130,
-        "w": 148,
+        "x": -92,
+        "y": -126,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 12,
@@ -953,31 +912,30 @@
           "down": 29
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp28",
       "coords": {
-        "x": 164,
-        "y": 140,
-        "w": 148,
+        "x": -92,
+        "y": -116,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 13,
@@ -986,31 +944,30 @@
           "down": 30
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp29",
       "coords": {
-        "x": 164,
-        "y": 150,
-        "w": 148,
+        "x": -92,
+        "y": -106,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 14,
@@ -1019,31 +976,30 @@
           "down": 31
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp30",
       "coords": {
-        "x": 164,
-        "y": 160,
-        "w": 148,
+        "x": -92,
+        "y": -96,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 15,
@@ -1052,31 +1008,30 @@
           "down": 32
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "comp31",
       "coords": {
-        "x": 164,
-        "y": 170,
-        "w": 148,
+        "x": -92,
+        "y": -86,
+        "w": -108,
         "h": 9
       },
       "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "-"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
         {
           "op": "nav",
           "left": 16,
@@ -1085,25 +1040,36 @@
           "down": 33
         },
         {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aClassicsBlank"
+        },
+        {
           "op": "onselect_fire",
-          "func": "classicListPick"
+          "func": "ClassicComps_PickCompetition"
         }
       ]
     },
     {
       "kind": "entry",
-      "name": "exit",
       "coords": {
         "x": 92,
-        "y": 185,
-        "w": 136,
+        "y": -71,
+        "w": -120,
         "h": 15
       },
       "commands": [
         {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "EXIT"
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 16,
+          "down": -1
         },
         {
           "op": "colors",
@@ -1111,11 +1077,9 @@
           "background_color": 12
         },
         {
-          "op": "nav",
-          "left": -1,
-          "right": -1,
-          "up": 16,
-          "down": -1
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
         },
         {
           "op": "onselect_fire",

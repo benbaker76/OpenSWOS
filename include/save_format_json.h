@@ -43,6 +43,8 @@ int16_t SaveJson_LoadPreset (uint8_t *filename, const uint8_t *src, uint32_t src
 
 int16_t SaveJson_WriteDIY   (uint8_t *filename);
 int16_t SaveJson_LoadDIY    (uint8_t *filename, const uint8_t *src, uint32_t src_size);
+/* A .DIY's JSON text already in memory (NUL-terminated): a classic competition. */
+int16_t SaveJson_LoadDIYData(const uint8_t *src, uint32_t src_size);
 
 int16_t SaveJson_WriteHighlights(uint8_t *filename);
 int16_t SaveJson_LoadHighlights (uint8_t *filename, const uint8_t *src, uint32_t src_size);

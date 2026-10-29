@@ -6896,6 +6896,884 @@ Menu_CreditsAga _creditsAgaMenu = {
 };
 #endif
 
+/* ---- CLASSICS (OpenSWOS, no SWOS2.s counterpart) ------------------------
+ * PRESET COMPETITION's CLASSICS row (teams.c): src/classic_comps.c fills the names and
+ * colours in its init handlers. Coordinates are bytes, read 0..255 (164 = -92). */
+extern void ClassicComps_PickUefa(void);
+extern void ClassicComps_PickWorldCup(void);
+extern void ClassicComps_PickCompetition(void);
+extern void ClassicComps_ToggleTeam(void);
+extern void ClassicComps_Play(void);
+extern void ClassicComps_ListInit(void);
+extern void ClassicComps_TeamsInit(void);
+extern char _aClassics[];
+extern char _aClassicsUefa[];
+extern char _aClassicsWorldCup[];
+extern char _aClassicsBlank[];
+extern char _aClassicsHint[];
+extern char _aClassicsPlay[];
+Menu_ClassicComps _classicCompsMenu = {
+    { 0, 0, 0, 1 },
+    MENU_MARK_BYTE_COORDS,
+    {
+        { 60, 0, -56, 15 },
+        { MENU_CMD_COLORS, 0x17 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassics },
+        MENU_CMD_END
+    },
+    {
+        { 76, 60, -88, 16 },
+        { MENU_CMD_NAV, -1, -1, -1, 2 },
+        { MENU_CMD_COLORS, 0xB },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassicsUefa },
+        { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickUefa },
+        MENU_CMD_END
+    },
+    {
+        { 76, 84, -88, 16 },
+        { MENU_CMD_NAV, -1, -1, 1, 3 },
+        { MENU_CMD_COLORS, 0xB },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassicsWorldCup },
+        { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickWorldCup },
+        MENU_CMD_END
+    },
+    {
+        { 76, -71, -88, 15 },
+        { MENU_CMD_NAV, -1, -1, 2, -1 },
+        { MENU_CMD_COLORS, 0xC },
+        { MENU_CMD_TEXT_PTR, 0x0, _aExit },
+        { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
+    MENU_MARK_END_MENU
+};
+
+Menu_ClassicList _classicListMenu = {
+    { ClassicComps_ListInit, 0, 0, 1 },
+    MENU_MARK_BYTE_COORDS,
+    {
+        { 60, 0, -56, 15 },
+        { MENU_CMD_COLORS, 0x17 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassics },
+        MENU_CMD_END
+    },
+    {
+        {
+            { 8, 20, -108, 9 },
+            { MENU_CMD_NAV, -1, 17, -1, 2 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 30, -108, 9 },
+            { MENU_CMD_NAV, -1, 18, 1, 3 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 40, -108, 9 },
+            { MENU_CMD_NAV, -1, 19, 2, 4 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 50, -108, 9 },
+            { MENU_CMD_NAV, -1, 20, 3, 5 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 60, -108, 9 },
+            { MENU_CMD_NAV, -1, 21, 4, 6 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 70, -108, 9 },
+            { MENU_CMD_NAV, -1, 22, 5, 7 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 80, -108, 9 },
+            { MENU_CMD_NAV, -1, 23, 6, 8 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 90, -108, 9 },
+            { MENU_CMD_NAV, -1, 24, 7, 9 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 100, -108, 9 },
+            { MENU_CMD_NAV, -1, 25, 8, 10 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 110, -108, 9 },
+            { MENU_CMD_NAV, -1, 26, 9, 11 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, 120, -108, 9 },
+            { MENU_CMD_NAV, -1, 27, 10, 12 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, -126, -108, 9 },
+            { MENU_CMD_NAV, -1, 28, 11, 13 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, -116, -108, 9 },
+            { MENU_CMD_NAV, -1, 29, 12, 14 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, -106, -108, 9 },
+            { MENU_CMD_NAV, -1, 30, 13, 15 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, -96, -108, 9 },
+            { MENU_CMD_NAV, -1, 31, 14, 16 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { 8, -86, -108, 9 },
+            { MENU_CMD_NAV, -1, 32, 15, 33 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 20, -108, 9 },
+            { MENU_CMD_NAV, 1, -1, -1, 18 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 30, -108, 9 },
+            { MENU_CMD_NAV, 2, -1, 17, 19 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 40, -108, 9 },
+            { MENU_CMD_NAV, 3, -1, 18, 20 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 50, -108, 9 },
+            { MENU_CMD_NAV, 4, -1, 19, 21 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 60, -108, 9 },
+            { MENU_CMD_NAV, 5, -1, 20, 22 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 70, -108, 9 },
+            { MENU_CMD_NAV, 6, -1, 21, 23 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 80, -108, 9 },
+            { MENU_CMD_NAV, 7, -1, 22, 24 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 90, -108, 9 },
+            { MENU_CMD_NAV, 8, -1, 23, 25 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 100, -108, 9 },
+            { MENU_CMD_NAV, 9, -1, 24, 26 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 110, -108, 9 },
+            { MENU_CMD_NAV, 10, -1, 25, 27 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, 120, -108, 9 },
+            { MENU_CMD_NAV, 11, -1, 26, 28 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, -126, -108, 9 },
+            { MENU_CMD_NAV, 12, -1, 27, 29 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, -116, -108, 9 },
+            { MENU_CMD_NAV, 13, -1, 28, 30 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, -106, -108, 9 },
+            { MENU_CMD_NAV, 14, -1, 29, 31 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, -96, -108, 9 },
+            { MENU_CMD_NAV, 15, -1, 30, 32 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        },
+        {
+            { -92, -86, -108, 9 },
+            { MENU_CMD_NAV, 16, -1, 31, 33 },
+            { MENU_CMD_COLORS, 0xD },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_PickCompetition },
+            MENU_CMD_END
+        }
+    },
+    {
+        { 92, -71, -120, 15 },
+        { MENU_CMD_NAV, -1, -1, 16, -1 },
+        { MENU_CMD_COLORS, 0xC },
+        { MENU_CMD_TEXT_PTR, 0x0, _aExit },
+        { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
+    MENU_MARK_END_MENU
+};
+
+Menu_ClassicTeams _classicTeamsMenu = {
+    { ClassicComps_TeamsInit, 0, 0, 2 },
+    MENU_MARK_BYTE_COORDS,
+    {
+        { 35, 0, -6, 15 },
+        { MENU_CMD_COLORS, 0x17 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+        MENU_CMD_END
+    },
+    {
+        { 35, 17, -6, 9 },
+        { MENU_CMD_COLORS, 0x0 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassicsHint },
+        MENU_CMD_END
+    },
+    {
+        {
+            { 4, 29, 76, 8 },
+            { MENU_CMD_NAV, -1, 18, -1, 3 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 38, 76, 8 },
+            { MENU_CMD_NAV, -1, 19, 2, 4 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 47, 76, 8 },
+            { MENU_CMD_NAV, -1, 20, 3, 5 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 56, 76, 8 },
+            { MENU_CMD_NAV, -1, 21, 4, 6 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 65, 76, 8 },
+            { MENU_CMD_NAV, -1, 22, 5, 7 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 74, 76, 8 },
+            { MENU_CMD_NAV, -1, 23, 6, 8 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 83, 76, 8 },
+            { MENU_CMD_NAV, -1, 24, 7, 9 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 92, 76, 8 },
+            { MENU_CMD_NAV, -1, 25, 8, 10 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 101, 76, 8 },
+            { MENU_CMD_NAV, -1, 26, 9, 11 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 110, 76, 8 },
+            { MENU_CMD_NAV, -1, 27, 10, 12 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, 119, 76, 8 },
+            { MENU_CMD_NAV, -1, 28, 11, 13 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, -128, 76, 8 },
+            { MENU_CMD_NAV, -1, 29, 12, 14 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, -119, 76, 8 },
+            { MENU_CMD_NAV, -1, 30, 13, 15 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, -110, 76, 8 },
+            { MENU_CMD_NAV, -1, 31, 14, 16 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, -101, 76, 8 },
+            { MENU_CMD_NAV, -1, 32, 15, 17 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 4, -92, 76, 8 },
+            { MENU_CMD_NAV, -1, 33, 16, 66 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 29, 76, 8 },
+            { MENU_CMD_NAV, 2, 34, -1, 19 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 38, 76, 8 },
+            { MENU_CMD_NAV, 3, 35, 18, 20 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 47, 76, 8 },
+            { MENU_CMD_NAV, 4, 36, 19, 21 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 56, 76, 8 },
+            { MENU_CMD_NAV, 5, 37, 20, 22 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 65, 76, 8 },
+            { MENU_CMD_NAV, 6, 38, 21, 23 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 74, 76, 8 },
+            { MENU_CMD_NAV, 7, 39, 22, 24 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 83, 76, 8 },
+            { MENU_CMD_NAV, 8, 40, 23, 25 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 92, 76, 8 },
+            { MENU_CMD_NAV, 9, 41, 24, 26 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 101, 76, 8 },
+            { MENU_CMD_NAV, 10, 42, 25, 27 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 110, 76, 8 },
+            { MENU_CMD_NAV, 11, 43, 26, 28 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, 119, 76, 8 },
+            { MENU_CMD_NAV, 12, 44, 27, 29 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, -128, 76, 8 },
+            { MENU_CMD_NAV, 13, 45, 28, 30 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, -119, 76, 8 },
+            { MENU_CMD_NAV, 14, 46, 29, 31 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, -110, 76, 8 },
+            { MENU_CMD_NAV, 15, 47, 30, 32 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, -101, 76, 8 },
+            { MENU_CMD_NAV, 16, 48, 31, 33 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { 83, -92, 76, 8 },
+            { MENU_CMD_NAV, 17, 49, 32, 66 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 29, 76, 8 },
+            { MENU_CMD_NAV, 18, 50, -1, 35 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 38, 76, 8 },
+            { MENU_CMD_NAV, 19, 51, 34, 36 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 47, 76, 8 },
+            { MENU_CMD_NAV, 20, 52, 35, 37 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 56, 76, 8 },
+            { MENU_CMD_NAV, 21, 53, 36, 38 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 65, 76, 8 },
+            { MENU_CMD_NAV, 22, 54, 37, 39 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 74, 76, 8 },
+            { MENU_CMD_NAV, 23, 55, 38, 40 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 83, 76, 8 },
+            { MENU_CMD_NAV, 24, 56, 39, 41 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 92, 76, 8 },
+            { MENU_CMD_NAV, 25, 57, 40, 42 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 101, 76, 8 },
+            { MENU_CMD_NAV, 26, 58, 41, 43 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 110, 76, 8 },
+            { MENU_CMD_NAV, 27, 59, 42, 44 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, 119, 76, 8 },
+            { MENU_CMD_NAV, 28, 60, 43, 45 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, -128, 76, 8 },
+            { MENU_CMD_NAV, 29, 61, 44, 46 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, -119, 76, 8 },
+            { MENU_CMD_NAV, 30, 62, 45, 47 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, -110, 76, 8 },
+            { MENU_CMD_NAV, 31, 63, 46, 48 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, -101, 76, 8 },
+            { MENU_CMD_NAV, 32, 64, 47, 49 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -94, -92, 76, 8 },
+            { MENU_CMD_NAV, 33, 65, 48, 66 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 29, 76, 8 },
+            { MENU_CMD_NAV, 34, -1, -1, 51 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 38, 76, 8 },
+            { MENU_CMD_NAV, 35, -1, 50, 52 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 47, 76, 8 },
+            { MENU_CMD_NAV, 36, -1, 51, 53 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 56, 76, 8 },
+            { MENU_CMD_NAV, 37, -1, 52, 54 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 65, 76, 8 },
+            { MENU_CMD_NAV, 38, -1, 53, 55 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 74, 76, 8 },
+            { MENU_CMD_NAV, 39, -1, 54, 56 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 83, 76, 8 },
+            { MENU_CMD_NAV, 40, -1, 55, 57 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 92, 76, 8 },
+            { MENU_CMD_NAV, 41, -1, 56, 58 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 101, 76, 8 },
+            { MENU_CMD_NAV, 42, -1, 57, 59 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 110, 76, 8 },
+            { MENU_CMD_NAV, 43, -1, 58, 60 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, 119, 76, 8 },
+            { MENU_CMD_NAV, 44, -1, 59, 61 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, -128, 76, 8 },
+            { MENU_CMD_NAV, 45, -1, 60, 62 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, -119, 76, 8 },
+            { MENU_CMD_NAV, 46, -1, 61, 63 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, -110, 76, 8 },
+            { MENU_CMD_NAV, 47, -1, 62, 64 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, -101, 76, 8 },
+            { MENU_CMD_NAV, 48, -1, 63, 65 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        },
+        {
+            { -15, -92, 76, 8 },
+            { MENU_CMD_NAV, 49, -1, 64, 66 },
+            { MENU_CMD_COLORS, 0xA },
+            { MENU_CMD_TEXT_PTR, 0x0, _aClassicsBlank },
+            { MENU_CMD_ONSELECT_FIRE, ClassicComps_ToggleTeam },
+            MENU_CMD_END
+        }
+    },
+    {
+        { 60, -71, 96, 15 },
+        { MENU_CMD_NAV, -1, 67, 17, -1 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aClassicsPlay },
+        { MENU_CMD_ONSELECT_FIRE, ClassicComps_Play },
+        MENU_CMD_END
+    },
+    {
+        { -92, -71, 96, 15 },
+        { MENU_CMD_NAV, 66, -1, 17, -1 },
+        { MENU_CMD_COLORS, 0xC },
+        { MENU_CMD_TEXT_PTR, 0x0, _aExit },
+        { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
+    MENU_MARK_END_MENU
+};
+
 Menu_SWOSMainMenu _swosMainMenu = {
     { SWOSMainMenuInit, GlobalRetn, 0, 6 },
     { 88, -24, 128, 76 },
