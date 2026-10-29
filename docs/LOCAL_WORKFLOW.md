@@ -110,8 +110,8 @@ diff <(tr -d '\r' < src/menu_data.c) <(tr -d '\r' < /c/cygwin64/tmp/menu_data_re
 # 2. the running game agrees with its JSON
 cd bin && SWOS_MENU_JSON=1 SWOS_MENU_JSON_VERIFY=1 ./SWOS.exe
 grep menu-json ~/Documents/SWOS/SWOS.log
-#   [menu-json] verify: 48/48 byte-identical, 0 differ, 0 error
-#   [menu-json] install: 48/48 menus loaded from JSON in place (0 edited vs compiled, ...)
+#   [menu-json] verify: 55/55 byte-identical, 0 differ, 0 error
+#   [menu-json] install: 55/55 menus loaded from JSON in place (0 edited vs compiled, ...)
 ```
 
 The counts must go **up by one** when a menu is added. This check is logged at start-up,

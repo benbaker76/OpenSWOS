@@ -206,6 +206,20 @@ competition name through entry 11's stale `fg` pointer -- `EditMenuSelected` /
 `scripts/swos_drive.ps1` + docs/UI_DRIVER.md drive the game from a script to check such a change;
 `scripts/run_amiga_fsuae.ps1` runs the m68k build under FS-UAE.
 
+**CLASSICS** (both targets; docs/CLASSIC_COMPETITIONS.md). PRESET COMPETITION's world list has a
+row above WORLD CUP that plays SWOS 2020's DLC cups -- every Euro 1960-2024 and World Cup 1930-2018,
+shipped in `bin/classic/{uefa,worldcup}/` as this game's JSON `.DIY` (and, on SDL, the player's own
+SWOS 2020 files from `assets/classic/`, `scripts/copy_classics.ps1`, which is how the 48-team 2026
+gets in). Three classic packed menus (`_classicCompsMenu`, `_classicListMenu`, `_classicTeamsMenu`,
+`src/classic_comps.c`): a group, its competitions by year, then every team as COMPUTER until a click
+cycles it to PLAYER-COACH or COACH; PLAY starts it as LOAD OLD COMPETITION would, keeping the player's
+options and USER tactics. The PC game's / SWOS 2020's `.DIY` is the raw DOS dump of
+`competitionFileBuffer` (little-endian, a 35-byte name); `src/diy_import_dos.c` reads it on SDL (LOAD
+OLD COMPETITION too), and `SWOS.exe --convert-diy=<in>,<out>` writes it as JSON for the Amiga, which
+cannot read the dump. Since SAVE reads a competition's extension back from the name it offers, that
+name must keep its `.DIY`. SWOS 2020's cups make every team COACH; CLASSICS and the converter make
+them COMPUTER.
+
 **UNIFORM and MY CUSTOM TEAM** (SDL only; docs/UNIFORM.md, docs/CUSTOM_TEAMS.md). The PLAY MATCH
 screen's UNIFORM button (entry 68, hidden on the Amiga) opens SWOS 2020's uniform selector
 (`src/uniform_menu.c`): a kit per side for ONE match, kept beside the team and applied at kick-off
@@ -379,10 +393,10 @@ libraries on any platform, and the *runnable* ones each carry their own
 (`SWOS-Setup.exe`/`SWOS-portable.zip` the Cygwin DLLs and now `lib/<arch>`,
 `SWOS-macOS-app.zip` its bundled `SDL2.framework`). `--no-full` skips the big one.
 
-The **Amiga** drop carries `data grafs grafs_aga sound` plus `c s`, in a drawer (below). The data list
-was derived from the built binary, not guessed —
+The **Amiga** drop carries `data grafs grafs_aga sound classic` plus `c s`, in a drawer (below). The
+data list was derived from the built binary, not guessed —
 `strings bin/SWOS2 | grep -oE '^(data|grafs|...)/'` shows it opens exactly those
-four plus `save/`, and never touches `grafs_dos`, `grafs_2020`, `grafs_arcade` or
+four plus `save/` (and, since 2026-10-29, `classic/`: CLASSICS' competitions), and never touches `grafs_dos`, `grafs_2020`, `grafs_arcade` or
 `data_json` (SDL-only asset tiers, ~50 MB the Amiga can't load). `save/` ships
 EMPTY: the binary writes there but won't create the directory.
 
@@ -682,6 +696,8 @@ Nothing is duplicated under `uae/` any more.
   in the intro: `sound_dos/title.mp3`, streamed by `src/music_stream.c` with dr_mp3
   (`third_party/dr_mp3`, public domain).
 - bin/save - save games, shared by both targets
+- bin/classic - CLASSICS' competitions (SWOS 2020's DLC Euros and World Cups, as JSON `.DIY`), both
+  targets; docs/CLASSIC_COMPETITIONS.md
 - bin/data_json - editable JSON that bakes into competition/menu/tactics C (SDL only)
 - If a file starts with `RNC` then it's RNC compressed; `src/rnc.c` decompresses it on both targets.
 
