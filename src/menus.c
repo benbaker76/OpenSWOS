@@ -33,6 +33,9 @@
 #include "menu_system.h"
 #include "online_menus.h"   /* MULTIPLAYER opens SWOS 2020's online flow */
 #include "credits_menu.h"   /* CREDITS (SDL) */
+#ifdef SWOS_SDL_BUILD
+#include "classic_comps.h"  /* CLASSICS, in PRESET COMPETITION's chooser */
+#endif
 #include "deterministic.h"
 #include "string_utils.h"
 #include "text_render.h"
@@ -3884,6 +3887,16 @@ void PresetCompetitionMenu(void)
     }
 
     SelectTeamsForPresetCompetition();
+#ifdef SWOS_SDL_BUILD
+    /* CLASSICS, above WORLD CUP in the chooser, loaded a classic competition (SWOS
+     * 2020's DLC cups, src/classic_comps.c): it starts as a loaded one does
+     * (LoadOldCompetitionMenu). */
+    if (ClassicComps_TakeReady()) {
+        CommonMenuExit();
+        StartContest();
+        return;
+    }
+#endif
     if (_chooseTeamsResult == 0) {
         CommonMenuExit();
         return;
