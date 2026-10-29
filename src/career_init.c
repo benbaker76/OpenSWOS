@@ -644,7 +644,7 @@ void InitCareer(uint16_t teamNo)
     /* Clear 2000 bytes of diyLeagueSeasonStateTable (volatile to prevent memset optimization) */
     {
         volatile uint8_t *p = _diyLeagueSeasonStateTable;
-        for (int16_t i = 1999; i >= 0; i--)
+        for (int16_t i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--)
             *p++ = 0;
     }
     TeamPool_Reset();

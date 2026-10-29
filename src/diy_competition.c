@@ -1049,7 +1049,7 @@ const char *GetCupRoundString(uint16_t cur, uint16_t flag, uint16_t idx,
 /* ================================================================
  * DIY_LoadLeagueScratchFromTable  (SWOS2.s line 35209)
  *
- * Copies 2000 bytes from diyLeagueSeasonStateTable to
+ * Copies the table (GLOBAL_TEAM_NUMBERS bytes; the original's 2000) from diyLeagueSeasonStateTable to
  * diyLeagueScratchBuffer. Uses volatile to prevent GCC from
  * optimizing the copy loop into a memcpy call (no libc available).
  * ================================================================ */
@@ -1059,14 +1059,14 @@ void DIY_LoadLeagueScratchFromTable(void)
     const volatile uint8_t *src = (const volatile uint8_t *)_diyLeagueSeasonStateTable;
     volatile uint8_t *dst = (volatile uint8_t *)_diyLeagueScratchBuffer;
     int16_t i;
-    for (i = 0x7CF; i >= 0; i--)
+    for (i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--)
         *dst++ = *src++;
 }
 
 /* ================================================================
  * DIY_SaveLeagueScratchToTable  (SWOS2.s line 35220)
  *
- * Copies 2000 bytes from diyLeagueScratchBuffer back to
+ * Copies GLOBAL_TEAM_NUMBERS bytes from diyLeagueScratchBuffer back to
  * diyLeagueSeasonStateTable.
  * ================================================================ */
 __attribute__((used, externally_visible))
@@ -1075,7 +1075,7 @@ void DIY_SaveLeagueScratchToTable(void)
     volatile uint8_t *dst = (volatile uint8_t *)_diyLeagueSeasonStateTable;
     const volatile uint8_t *src = (const volatile uint8_t *)_diyLeagueScratchBuffer;
     int16_t i;
-    for (i = 0x7CF; i >= 0; i--)
+    for (i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--)
         *dst++ = *src++;
 }
 
@@ -1420,11 +1420,11 @@ void DIY_SyncProgressToDiyFileBufferCopy(void)
 __attribute__((used, externally_visible))
 void DIY_ValidateLeagueScratchBuffer(void)
 {
-    /* Part 1: checksum entire 2000-byte scratch buffer.
+    /* Part 1: checksum the entire scratch buffer (GLOBAL_TEAM_NUMBERS bytes).
      * Use volatile to prevent LTO from optimizing the checksum loop. */
     uint8_t checksum = 0;
     volatile uint8_t *p = _diyLeagueScratchBuffer;
-    for (int16_t i = 0x7CF; i >= 0; i--) {
+    for (int16_t i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--) {
         checksum += *p++;
     }
     if (checksum != 0) {

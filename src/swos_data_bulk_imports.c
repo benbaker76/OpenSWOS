@@ -59,7 +59,7 @@ uint8_t _cupWinnersCupEligibleCompetitionIds[33] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 
  * writes via the global must coincide with reads via offset 0x24E
  * in DIY_BuildTeamSelectionPointerCache etc. */
 uint8_t _diyGroupPatternLookup[76] = { 15, 0, 2, 3, 1, 23, 1, 2, 0, 3, 39, 1, 2, 0, 3, 27, 1, 2, 0, 3, 43, 1, 2, 0, 3, 51, 1, 2, 0, 3, 29, 0, 1, 2, 3, 45, 0, 1, 2, 3, 53, 3, 1, 0, 2, 57, 3, 1, 0, 2, 30, 0, 1, 2, 3, 46, 0, 1, 2, 3, 54, 0, 2, 1, 3, 58, 0, 2, 1, 3, 60, 3, 0, 1, 2, 255 };
-uint8_t _diyLeagueScratchBuffer[2000];
+uint8_t _diyLeagueScratchBuffer[GLOBAL_TEAM_NUMBERS];   /* (the original's 2000: game_types.h) */
 /* MOVED to careerFileBufferBuf overlay (see swos_globals_career_overlay.c): diyLeagueSeasonStateTable */
 // uint8_t diyLeagueSeasonStateTable[2000];
 /* diyLeagueTeamIds: backing storage moved to swos_globals.c — on

@@ -67,7 +67,7 @@ static CompetitionLeague kWorld2627_italianLeague = {
 
 /* A country's range of global team numbers (base + ordinal, _teamsCountryNumbers) sized
  * to the world's clubs: every later country's base moves by the difference. The league
- * state table holds 2000; past it is a broken world, said so. */
+ * state table holds GLOBAL_TEAM_NUMBERS; past it is a broken world, said so. */
 extern uint16_t _teamsCountryNumbers[256];
 extern volatile uint16_t _panicReasonCode;
 extern void PanicHaltLoop(void);
@@ -78,7 +78,7 @@ static void resize_country(uint16_t country, uint16_t teams)
                                              _teamsCountryNumbers[country]));
     for (uint16_t i = country + 1; i < 256; i++)
         _teamsCountryNumbers[i] = (uint16_t)(_teamsCountryNumbers[i] + delta);
-    if (_teamsCountryNumbers[255] > 2000) {
+    if (_teamsCountryNumbers[255] > GLOBAL_TEAM_NUMBERS) {
         _panicReasonCode = 0x8F02;
         PanicHaltLoop();
     }

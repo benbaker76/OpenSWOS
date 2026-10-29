@@ -179,6 +179,82 @@ def italy():
     return out, picked
 
 
+# The world's countries onto ours (include/world.h): a Mod country by its name (as 96/97 names
+# it), or new -- numbers no club country has (src/strings_data.c _countriesTable: free).
+COUNTRY_ALIASES = {"NETHERLANDS": "HOLLAND", "CZECH REP.": "CZECH REPUBLIC", "FAROE IS.": "FAROE ISLANDS",
+                   "EIRE": "REPUBLIC IRELAND", "N. IRELAND": "NORTHERN IRELAND", "SERBIA": "YUGOSLAVIA"}
+# A new country's number is in every save that holds it: fixed here, never by order. Free:
+# 99 (and, if 96/97's national teams never need them, 100-251).
+NEW_COUNTRY_NUMBERS = {
+    "AND": 47, "ARM": 52, "AZE": 53, "BIH": 54, "CAN": 56, "CHN": 57, "CRC": 58, "EGY": 59,
+    "GEO": 61, "GIB": 63, "GUA": 68, "HON": 70, "IRN": 74, "KAZ": 86, "KOR": 87, "KOS": 88,
+    "KSA": 89, "LIE": 90, "MAR": 91, "MDA": 92, "MKD": 93, "MNE": 94, "PAN": 95, "QAT": 96,
+    "TUN": 97, "UAE": 98,
+}
+
+
+def mod_counts():
+    """The Mod's countries: code, name, its team files (Davide's COUNTS.json, beside the teams)."""
+    for path in (os.path.join(MOD, "teams", "COUNTS.json"),):
+        if os.path.exists(path):
+            return json.load(open(path, encoding="utf-8"))
+    out = []                    # (no COUNTS.json: from the team files themselves)
+    for f in sorted(os.listdir(os.path.join(MOD, "teams"))):
+        if re.fullmatch(r"[A-Z]{3}\.json", f):
+            d = json.load(open(os.path.join(MOD, "teams", f), encoding="utf-8"))
+            out.append({"code": f[:3], "country": d.get("country_name"), "json": f[:3], "files": 1,
+                        "clubs": len(d["teams"])})
+    return out
+
+
+def world_countries():
+    """[{code, name, number, new, base}] -- base: our team file's name (teams/<base>.json), or
+    None for a country new to the game."""
+    ours = {c["name"].replace("_", " "): c for c in json.load(open(os.path.join(
+        BASE, "competitions", "countries.json"), encoding="utf-8"))["countries"] if c["number"] < 80}
+    out = []
+    for c in sorted(mod_counts(), key=lambda c: c["code"]):
+        name = COUNTRY_ALIASES.get(c["country"], c["country"])
+        o = ours.get(name)
+        if o:
+            out.append({"code": c["code"], "name": name, "number": o["number"], "new": False,
+                        "base": os.path.splitext(os.path.basename(o["team_file"]))[0], "mod": c})
+        else:
+            if c["code"] not in NEW_COUNTRY_NUMBERS:
+                sys.exit("world countries: %s (%s) is new: give it a number (NEW_COUNTRY_NUMBERS)"
+                         % (c["code"], c["country"]))
+            out.append({"code": c["code"], "name": c["country"], "number": NEW_COUNTRY_NUMBERS[c["code"]],
+                        "new": True, "base": None, "mod": c})
+    return out
+
+
+def country_teams(wc):
+    """A country whole (as italy(): the Mod's clubs in their divisions' order), our team file's
+    form; a new country's from nothing. Returns (the file, [(entry, division)])."""
+    mod = json.load(open(os.path.join(MOD, "teams", wc["mod"]["json"] + ".json"), encoding="utf-8"))
+    if wc["base"]:
+        base = json.load(open(os.path.join(BASE, "teams", wc["base"] + ".json"), encoding="utf-8"))
+        home = collections.Counter(p["nationality"] for t in base["teams"]
+                                   for p in t["players"]).most_common(1)[0][0]
+    else:
+        base = {"type": "team", "country": wc["number"], "country_name": wc["name"], "count": 0, "teams": []}
+        named = [p["nationality"] & 255 for t in mod["teams"] for p in t["players"]
+                 if (p["nationality"] & 255) < NATIONS_NAMED]
+        home = collections.Counter(named).most_common(1)[0][0] if named else 0xFF
+    by_div = collections.defaultdict(list)
+    for e in mod["teams"]:
+        by_div[mod_division(e)].append(e)
+    if None in by_div:
+        sys.exit("%s: a club in no division" % wc["code"])
+    picked = [(e, d) for d in sorted(by_div) for e in by_div[d]]
+    if len(picked) > 256:
+        sys.exit("%s: %d clubs, a file holds 256" % (wc["code"], len(picked)))
+    teams = [team(e, wc["number"], i, i, league, home) for i, (e, league) in enumerate(picked)]
+    out = copy.copy(base)
+    out["country"], out["teams"], out["count"] = wc["number"], teams, len(teams)
+    return out, picked
+
+
 POOL_FILE = 194             # the Mod's pseudo team file of Italy's pool (ITA_POOL.json "pool_file")
 
 
@@ -571,7 +647,6 @@ def team_file_binary(teams):
     return tf.dict_filename(teams), tf.rnc_pack(tf.dict_to_blob(teams), tf.dict_rnc_method(teams))
 
 
-GLOBAL_TEAM_NUMBERS = 2000      # the league state table they index (career_diy_league_state.c)
 
 WORLD_DATA_C = """/*
  * world_data.c -- the worlds' baked competition records (include/world.h).
@@ -597,7 +672,7 @@ WORLD_DATA_C = """/*
 
 /* A country's range of global team numbers (base + ordinal, _teamsCountryNumbers) sized
  * to the world's clubs: every later country's base moves by the difference. The league
- * state table holds 2000; past it is a broken world, said so. */
+ * state table holds GLOBAL_TEAM_NUMBERS; past it is a broken world, said so. */
 extern uint16_t _teamsCountryNumbers[256];
 extern volatile uint16_t _panicReasonCode;
 extern void PanicHaltLoop(void);
@@ -608,7 +683,7 @@ static void resize_country(uint16_t country, uint16_t teams)
                                              _teamsCountryNumbers[country]));
     for (uint16_t i = country + 1; i < 256; i++)
         _teamsCountryNumbers[i] = (uint16_t)(_teamsCountryNumbers[i] + delta);
-    if (_teamsCountryNumbers[255] > %(globals)d) {
+    if (_teamsCountryNumbers[255] > GLOBAL_TEAM_NUMBERS) {
         _panicReasonCode = 0x8F02;
         PanicHaltLoop();
     }
@@ -834,7 +909,6 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd):
         cd_cases = "    case WORLD_%s:\n        return &%s;" % (tag, sym)
     return WORLD_DATA_C % {"externs": "\n".join(sorted(externs)),
                            "records": "\n\n".join(strings + records), "cases": cases,
-                           "globals": GLOBAL_TEAM_NUMBERS,
                            "groups": "\n\n".join(group_tables), "group_cases": group_cases,
                            "playoffs": "\n\n".join(po_tables), "po_cases": po_cases,
                            "pools": "\n\n".join(pool_tables), "pool_cases": pool_cases,

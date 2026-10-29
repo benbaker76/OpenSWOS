@@ -966,7 +966,7 @@ extern CompetitionSlotBuffer _diyCompetitionContextBuf;   /* slot-4 untangle (S2
 /* Other career-overlay byte regions referenced by the scalar table —
  * declared further down for the per-region section but needed earlier
  * for static initialiser address resolution. */
-extern uint8_t  _diyLeagueSeasonStateTable[];
+extern uint8_t  _diyLeagueSeasonStateTable[GLOBAL_TEAM_NUMBERS];
 /* diyTeamIdListType0/1/2 reached via primaryCompetitionBuf casts now (S6). */
 extern uint8_t  _careerUnavailablePlayerLookupTable[];
 extern uint8_t  _careerUnavailablePlayerNames[];
@@ -1347,7 +1347,7 @@ static const FieldDesc s_career_scalars[] = {
      * globalTeamNumber, read in teams.c:setLeagueNumbers and
      * career_init.c when deriving currentDivisionIndex. Editable via the
      * DIY-edit-leagues menu's scratch buffer. Flat int8[2000]. */
-    FA("diy_league_season_state_table",   _diyLeagueSeasonStateTable, 2000, FLD_BYTES),
+    FA("diy_league_season_state_table",   _diyLeagueSeasonStateTable, GLOBAL_TEAM_NUMBERS, FLD_BYTES),
 
     /* DIY team-id lists per competition type (league/cup/hybrid). Each
      * is an array of BE byte-pairs [country, ordinal] — see
@@ -6414,6 +6414,20 @@ static void apply_semantic_load(const char *src, int src_size)
     load_ctx_league_standings((const char *)src, (int)src_size, "euro",
                    (DIYCompetitionEx *)&_euroCupsCompetitionContextBuf);
     PROF_END(comp_slots, "career-load");
+
+    /* Saves from before 2026-10-28: the league offsets by global team number had the
+     * original's 2000 entries; the rest of the table (GLOBAL_TEAM_NUMBERS) is 0, no offset. */
+    {
+        const char *arr = NULL; int alen = 0, n = 0;
+        if (mjson_find(src, src_size, "$.career_scalars.diy_league_season_state_table",
+                       &arr, &alen) == MJSON_TOK_ARRAY) {
+            int pos = 0, voff, vlen, vt;
+            while ((pos = fast_array_next(arr, alen, pos, &voff, &vlen, &vt)) != 0)
+                n++;
+        }
+        for (int i = n > 0 ? n : GLOBAL_TEAM_NUMBERS; i < GLOBAL_TEAM_NUMBERS; i++)
+            _diyLeagueSeasonStateTable[i] = 0;
+    }
 
     /* Saves from before 2026-10-27: careerLastMatchIndexByCompetitionSlot (indexed by
      * compId) was 162 bytes, and the Copa Libertadores was compId 128 -- the Hungarian
