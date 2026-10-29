@@ -2809,6 +2809,7 @@ void DIY_UpdateCompetitionProgress(void)
     /* A world's play-off: the next round its rules' ties, not the draw (world_playoff.c). */
     WorldPlayoff_ArrangeNextRound();
     WorldCups_ArrangeNextRound();   /* a world cup's first season: the real bracket (world_cups.c) */
+    CupD_ArrangeNextRound();        /* the Coppa Italia Serie D's slot-2 cup: by its table (world_cupd.c) */
 
     {
         uint8_t *grid = comp->teamGridPairings;

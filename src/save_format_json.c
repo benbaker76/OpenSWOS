@@ -6077,7 +6077,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "generated", (int)d->gen, "preliminary_ties", (int)d->np, "sides");
         for (int i = 0; i < 2 * (WORLD_CUPD_PRE + WORLD_CUPD_R1); i++)
             mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)d->side[i]);
-        mjson_printf(json_out_emit, &out, "%s", "]}");
+        mjson_printf(json_out_emit, &out, "],%Q:%d}", "slot2", (int)d->slot2);
     }
 
     /* A world's play-off the career club plays (world_playoff.c): which, its clubs (team
@@ -6592,6 +6592,7 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(cd, cdlen, "$.team_b", &v) > 0) d->teamB = (uint16_t)v;
             if (mjson_get_long(cd, cdlen, "$.generated", &v) > 0) d->gen = (uint8_t)v;
             if (mjson_get_long(cd, cdlen, "$.preliminary_ties", &v) > 0) d->np = (uint8_t)v;
+            if (mjson_get_long(cd, cdlen, "$.slot2", &v) > 0) d->slot2 = (uint8_t)v;
             if (mjson_find(cd, cdlen, "$.sides", &arr, &al) == MJSON_TOK_ARRAY)
                 for (pos = 0, i = 0; i < 2 * (WORLD_CUPD_PRE + WORLD_CUPD_R1) &&
                      (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0; )

@@ -356,7 +356,7 @@ void WorldCups_PlayLeagueCupEarly(uint8_t country)
 
 int32_t WorldCups_RoundStringIndex(uint8_t compId, uint16_t round, uint16_t rounds)
 {
-    const int32_t cupd = CupD_RoundStringIndex(compId);   /* (a Coppa Italia Serie D tie: world_cupd.c) */
+    const int32_t cupd = CupD_RoundStringIndex(compId, round);   /* (the Coppa Italia Serie D: world_cupd.c) */
     if (cupd >= 0)
         return cupd;
     int32_t count = 0, ours = 0;

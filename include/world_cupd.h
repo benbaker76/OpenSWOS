@@ -24,6 +24,11 @@
  * both rounds paired within a group where possible, else at random; from the third round a
  * fixed bracket (tie k: the winners of ties 2k, 2k + 1), the table's weeks, hosts and
  * drawn semi-finals.
+ *
+ * From its round of 64 (the Mod's 4.0: CDS1), a club still in it plays the rest as the game's
+ * own knockout in slot 2 (the league cup's; a Serie D club has none): 64 clubs in the table's
+ * order, each later round laid out by the table (its ties, hosts, the drawn semi-finals)
+ * instead of the engine's draw, every tie's result back into it.
  */
 #ifndef WORLD_CUPD_H
 #define WORLD_CUPD_H
@@ -69,6 +74,7 @@ typedef struct {
     uint8_t gen;                    /* this season's rounds 0-1 generated (not the table's): */
     uint8_t np;                     /* its preliminary ties, */
     uint16_t side[2 * (WORLD_CUPD_PRE + WORLD_CUPD_R1)];   /* tie t's sides 2t, 2t + 1 */
+    uint8_t slot2;                  /* the rest in slot 2 from round r64 (+ 1; 0: not) */
 } WorldCupDState;
 
 extern WorldCupDState g_worldCupD;
@@ -92,8 +98,12 @@ int32_t CupD_InSlot4(void);
 /* After a career is loaded: slot 4 back on the tie, if one is under way. */
 void CupD_RestoreSlot(void);
 
-/* A round's name in the cup round tables for the tie under way, -1 if not ours. */
-int32_t CupD_RoundStringIndex(uint8_t compId);
+/* A round's name in the cup round tables for the tie under way, or the slot-2 cup's round
+ * (its index), -1 if not ours. */
+int32_t CupD_RoundStringIndex(uint8_t compId, uint16_t round);
+
+/* Right after the engine draws the next round: the slot-2 cup's by the table. */
+void CupD_ArrangeNextRound(void);
 
 /* The season end has the final tables (league_playoffs.c, before the moves): each club's
  * division, a Serie D club's place from the bottom (gplay.c cd_rank). */

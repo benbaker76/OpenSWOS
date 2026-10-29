@@ -7,7 +7,10 @@ uint8_t _diyLeagueSeasonStateTable[2000];
 uint16_t _teamsCountryNumbers[256];
 TeamFileEx _careerTeam;
 DIYCompetitionEx _diyCompetitionStart;
-CompetitionSlotBuffer _diyCompetitionContextBuf, _primaryCompetitionBuf;
+CompetitionSlotBuffer _diyCompetitionContextBuf, _primaryCompetitionBuf, _tertiaryCompetitionContextBuf;
+uint8_t *_tertiaryCompetitionPtr;
+static uint8_t s_season[256];
+uint8_t *GetCurrentSeasonPointer(void) { return s_season; }
 uint8_t *_diyCompetitionPtr;
 uint32_t *_diyCompetitionTablePtr;
 uint16_t _competitionSlotUpdatedFlag, _teamSelectionKeyCacheCount;
