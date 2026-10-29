@@ -81,6 +81,11 @@ cd bin && ./SWOS.exe                 # the window opens on the loader intro
 
 ## Running the Amiga build
 
+For automated FS-UAE menu testing, use [AMIGA_UI_TESTING.md](AMIGA_UI_TESTING.md):
+the owned debugger session boots once per build, drives menus without focus,
+and reports boot/navigation/match-load timings separately. The commands below
+are the ordinary interactive launcher.
+
 ```powershell
 scripts\run_amiga_fsuae.ps1              # finds FS-UAE + the A1200 Kickstart by itself here
 scripts\run_amiga_fsuae.ps1 -Build       # build first (uses WINDOWS=1 + the bundled gnumake)
@@ -89,8 +94,10 @@ scripts\run_amiga_fsuae.ps1 -StageData   # copy the game data out of the assets 
 
 `bin/` is mounted as the boot volume, so `s/startup-sequence` runs `SYS:SWOS2` then
 `c/UAEquit` — quitting the game closes the emulator. **FS-UAE does not notice a relink:**
-after rebuilding, `Stop-Process -Name fs-uae -Force` and run the script again, or you are
-looking at the previous binary.
+after rebuilding, close only the appropriate disposable test session and relaunch,
+or you are looking at the previous binary. Never kill all FS-UAE processes by name
+or stop a game the user is playing. The owned test launcher checks build hashes
+and provides a targeted `amiga_session.py down` command.
 
 ## Proving a data/menu change (before claiming it works)
 

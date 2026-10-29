@@ -14,6 +14,7 @@ The subprocess path stays available (SWOS_TEST_FAST=0): it is what
 amiga_gdb.sh and the historical helpers use, and the fallback if the socket
 semantics ever drift.
 """
+import os
 import socket
 
 from harness_lib import GdbHarness
@@ -26,7 +27,7 @@ class FastGdb(GdbHarness):
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.settimeout(max(timeout, 5.0))
         try:
-            s.connect(SOCK_PATH)
+            s.connect(os.environ.get("SWOS_GDB_SOCKET", SOCK_PATH))
             s.sendall((req + "\n\n").encode("utf-8"))
             s.shutdown(socket.SHUT_WR)
             out = b""

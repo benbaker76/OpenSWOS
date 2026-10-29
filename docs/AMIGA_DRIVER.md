@@ -1,5 +1,12 @@
 # AMIGA_DRIVER.md — driving the Amiga build under FS-UAE from a script
 
+For agent-driven menu tests, start with [AMIGA_UI_TESTING.md](AMIGA_UI_TESTING.md).
+That is the tested, fast debugger workflow with isolated saves, state assertions
+and timing reports. This page documents the **legacy host-key/screenshot driver**.
+Its launch/untargeted shutdown can stop other emulators; its challenge route
+predates the collection hub. Use it with an explicit `-EmulatorId` for screenshots
+or host-input checks, not as the default automated route.
+
 `scripts/amiga_drive.ps1` drives the **m68k** build inside FS-UAE without a human at the
 keyboard: it injects real OS key events into the emulator window, grabs that window to
 PNG, and collects the small `.BIN` dumps the game writes into `bin/`. It is the Amiga
@@ -10,9 +17,10 @@ Use `-EmulatorId <pid>` to drive an existing specific session while other emulat
 (for example, isolated challenge generators) run. Do not combine it with `-Launch`.
 
 The difference from the SDL harness is what you get to look at. **The Amiga build writes
-no `SWOS.log` and has no `[menu-nav]` lines**, so there is no ordinal to navigate by:
+no `SWOS.log` and has no `[menu-nav]` lines**, so this legacy driver has no logged ordinal to navigate by:
 every step of a route below was derived from a *screenshot*, and the screenshots a run
-leaves behind are the only way to check it still lands where it used to.
+leaves behind are how this driver checks where it landed. The newer debugger
+workflow reads menu ordinals and state directly, without needing Amiga logs.
 
 ## Running it
 

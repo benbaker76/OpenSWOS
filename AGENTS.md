@@ -1,5 +1,24 @@
 # OpenSWOS agent entry points
 
+## Driving or testing the Amiga UI in FS-UAE
+
+Read `docs/AMIGA_UI_TESTING.md` and `docs/LOCAL_WORKFLOW.md` first. Use the
+tested debugger workflow in `scripts/testing_support/amiga_session.py` and
+`amiga_challenge_benchmark.py` for fast menu flows. It observes game memory and
+does not require Windows focus or Amiga `SWOS.log` output.
+
+Reuse a healthy, paused test session for the same build. A changed executable
+requires a fresh boot; never claim that a running emulator picked up a rebuild.
+Budget about 30 seconds for boot, then measure menu actions and match loading
+separately. Do not rediscover or promise warp acceleration: the tested settings
+did not reduce this machine's boot time.
+
+Never kill FS-UAE or GDB by process name. Only stop an owned, disposable test
+session; after handing a running match to the user, leave it alone. Use the
+private proxy/socket specified in the guide, not the legacy shared debugger.
+For real keyboard/focus or visual checks, use the explicitly targeted fallback
+in that guide and distinguish those checks from debugger-driven menu tests.
+
 ## Creating challenges
 
 When the user asks to **create a challenge**, **generate a challenge**, **make an

@@ -143,6 +143,24 @@ class SwosStateAdapter:
     def activate(self, ordinal, timeout=20):
         """Select `ordinal` by memory write, then one fire pulse."""
         h = self.sw.h
+        if os.environ.get("SWOS_TEST_BATCH", "1") == "1":
+            # A sourced script runs through continue, stops at the existing
+            # anchor, then releases the pulse. One host request, same game path.
+            path = SCRIPT_PATH + ".action"
+            commands = [self._SELECT.format(ordinal=ordinal)]
+            for name, value in (("_fire", 1), ("_shortFire", 1)):
+                commands.append(f"set var *(unsigned short *)&{name} = {value}")
+            for name in ("_up", "_down", "_left", "_right"):
+                commands.append(f"set var *(unsigned char *)&{name} = 0")
+            commands += ["continue", "set var *(unsigned short *)&_fire = 0",
+                         "set var *(unsigned short *)&_shortFire = 0",
+                         'printf "ACTION_DONE\\n"']
+            with open(path, "w") as stream:
+                stream.write("\n".join(commands) + "\n")
+            out = h.cmd(f"source {SCRIPT_PATH_GDB}.action", timeout=timeout)
+            if "ACTION_DONE" not in out:
+                raise RuntimeError(f"Input batch did not complete: {out[-1000:]}")
+            return
         self.select_entry(ordinal)
         h.set_var("_fire", 1)
         h.set_var("_shortFire", 1)

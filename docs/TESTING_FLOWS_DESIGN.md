@@ -519,6 +519,12 @@ them after touching the executor, the adapter, or the menus they walk.
 
 ### Headless operation and performance
 
+**2026-10-29 FS-UAE update:** use [AMIGA_UI_TESTING.md](AMIGA_UI_TESTING.md) for
+current commands, the private proxy, session ownership/reuse and measured input
+batching results. The older examples and timings below are historical; in
+particular, `amiga_session.py up` now reuses a healthy paused session of the same
+build instead of always tearing it down.
+
 **Everything above ran headless.** The framework never looks at pixels: it
 reads game memory over gdb, so no window, renderer or audio device is
 needed. Screenshots remain an opt-in diagnostic (`SwosHarness.screencap`),
