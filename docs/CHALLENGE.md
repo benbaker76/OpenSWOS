@@ -10,27 +10,27 @@ For the full feature guide, save format and maintenance notes, see
 [CHALLENGE_COLLECTION.md](CHALLENGE_COLLECTION.md).
 
 CHALLENGES now opens **CHALLENGE COLLECTION** and **SAVED POSITIONS**.
-The collection is available on SDL and Amiga, with two challenges in each group:
+The collection is available on SDL and Amiga, each challenge rated 1-5 stars
+(a tick on the list marks a completed one):
 
-| Difficulty | Challenge | Human team first | Start |
+| Stars | Challenge | Human team first | Start |
 | --- | --- | --- | --- |
-| Easy | Finish the Job | AC Milan vs Juventus | 2-0 at 75, Juventus kickoff |
-| Easy | Hold Your Nerve | Italy vs Malta | 1-0 at 80, Malta corner |
-| Medium | Find the Winner | Liverpool vs Everton | 0-0 at 75, Liverpool corner |
-| Medium | Turn It Around | Barcelona vs Real Madrid | 0-1 at 65, Barcelona kickoff |
-| Hard | Against the Clock | Juventus vs AC Milan | 0-2 at 80, Juventus kickoff |
-| Hard | Derby Miracle | Partizan vs Red Star | 0-3 at 67, Partizan corner |
+| 1 | Finish the Job | AC Milan vs Juventus | 2-0 at 75, Juventus kickoff |
+| 2 | Hold Your Nerve | Italy vs Malta | 1-0 at 80, Malta corner |
+| 3 | Find the Winner | Liverpool vs Everton | 0-0 at 75, Liverpool corner |
+| 3 | Turn It Around | Barcelona vs Real Madrid | 0-1 at 65, Barcelona kickoff |
+| 4 | Against the Clock | Juventus vs AC Milan | 0-2 at 80, Juventus kickoff |
+| 5 | Derby Miracle | Partizan vs Red Star | 0-3 at 67, Partizan corner |
 
 All six are available immediately. Select a row for its details, then PLAY.
-**Win at full time** to complete it; a draw or abandoning the match fails.
-There is no extra time or penalty shootout. The existing REPLAY / EXIT screen
-still appears after the match: choose EXIT to see the challenge result, then
-RETRY, NEXT CHALLENGE (after success), or CHALLENGE LIST. A failed replay never
-removes an existing completion. Finishing all six shows ALL CHALLENGES COMPLETED.
-REPLAY on the existing match-end screen reloads the original challenge position,
-including its minute, score and players, and starts a fresh completion attempt.
-This also applies to personal saved positions; ordinary friendly replays still
-start a new match.
+**Win the match** to complete it: a level score at 90 goes to extra time, then
+penalties, and a shootout win counts; abandoning the match fails. The match goes
+straight to the challenge result screen: RETRY (reloads the original position,
+minute, score and players for a fresh attempt), NEXT CHALLENGE (after success),
+CHALLENGE LIST or EXIT. A failed retry never removes an existing completion.
+Finishing all six shows ALL CHALLENGES COMPLETED. Personal saved positions still
+end on the friendly's REPLAY / EXIT screen, whose REPLAY reloads the position;
+ordinary friendly replays still start a new match.
 
 Progress saves automatically at the final whistle and loads when entering the
 collection after a restart. `CHPROG1.PRG` and `CHPROG2.PRG` live in the normal

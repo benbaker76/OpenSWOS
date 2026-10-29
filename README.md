@@ -44,7 +44,7 @@ copy, once, and downloads nothing. [INSTALL.md](INSTALL.md) shows you how.
   management.
 - **Online multiplayer:** play a friend over the internet (MULTIPLAYER on the main menu).
 - **[Challenge collection](docs/CHALLENGE_COLLECTION.md):** six predefined challenges
-  on SDL and Amiga, grouped by difficulty, with automatic completion and saved
+  on SDL and Amiga, rated 1-5 stars, with automatic completion and saved
   progress. Press C during a match to create personal saved positions too.
 - **Widescreen** at any resolution, fullscreen, CRT effects, gamepads, two players on one
   computer.
