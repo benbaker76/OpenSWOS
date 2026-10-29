@@ -630,7 +630,65 @@ NEW_COMP_IDS = {
     ("BOL", "cup"): 164, ("CHI", "cup"): 165, ("CHI", "league_cup"): 166, ("GHA", "cup"): 167,
     ("IND", "cup"): 168, ("RSA", "league_cup"): 169, ("SUR", "cup"): 170, ("VEN", "cup"): 171,
     ("NZL", "cup"): 172, ("POR", "league_cup"): 173,
+    # (the countries new to the game)
+    ("AND", "cup"): 203, ("ARM", "cup"): 204, ("AZE", "cup"): 205, ("BIH", "cup"): 206, ("CAN", "cup"): 207,
+    ("CHN", "cup"): 208, ("CRC", "cup"): 209, ("EGY", "cup"): 210, ("EGY", "league_cup"): 211,
+    ("GEO", "cup"): 212, ("GIB", "cup"): 213, ("IRN", "cup"): 214, ("KAZ", "cup"): 215, ("KOR", "cup"): 216,
+    ("KOS", "cup"): 217, ("KSA", "cup"): 218, ("LIE", "cup"): 219, ("MAR", "cup"): 220, ("MDA", "cup"): 221,
+    ("MKD", "cup"): 222, ("MNE", "cup"): 223, ("QAT", "cup"): 224, ("QAT", "league_cup"): 225,
+    ("TUN", "cup"): 226, ("UAE", "cup"): 227, ("UAE", "league_cup"): 228,
 }
+# A new country's league: an id of its own (fixed: saves hold it), its record's shape a 96/97
+# country's of the same continent (its season's months), its continent's byte (the first of
+# its _countriesTable name: 0 Europe, the cups' test) and region (the picker's 80..85).
+NEW_LEAGUE_IDS = {
+    "AND": 174, "ARM": 175, "AZE": 176, "BIH": 177, "CAN": 178, "CHN": 179, "CRC": 180, "EGY": 181,
+    "GEO": 182, "GIB": 183, "GUA": 184, "HON": 185, "IRN": 186, "KAZ": 187, "KOR": 188, "KOS": 189,
+    "KSA": 190, "LIE": 191, "MAR": 192, "MDA": 193, "MKD": 194, "MNE": 195, "PAN": 196, "QAT": 197,
+    "TUN": 198, "UAE": 199,
+}
+CONTINENTS = {          # pack 'continent': (name byte, region, the 96/97 league its record is shaped on)
+    "europe": (0, 80, "_albanianLeague"), "north_america": (1, 83, "_mexicanLeague"),
+    "south_america": (2, 82, "_bolivianLeague"), "asia": (3, 84, "_japaneseLeague"),
+    "oceania": (4, 85, "_newZealandLeague"), "africa": (5, 81, "_ghanaLeague"),
+}
+REGION_TABLES = {80: "_europeTable", 81: "_africaTable", 82: "_southAmericaTable",
+                 83: "_northAmericaTable", 84: "_asiaTable", 85: "_oceaniaTable"}
+
+
+def file_name(name):
+    """A new country's team file name (teams/<it>.json): its name in capitals and _."""
+    return re.sub(r"[^A-Z0-9]+", "_", name.upper()).strip("_")
+
+
+def our_lists():
+    """96/97's continent lists (the picker's: competition_data.c's QualifyingGroups) and its
+    season end's countries (_careerCompetitionIdRemapTable), from the source."""
+    src = open(os.path.join(REPO, "src", "competition_data.c"), encoding="utf-8").read()
+    regions = {}
+    for region, sym in REGION_TABLES.items():
+        m = re.search(r"QualifyingGroup %s = \{.*?\},\s*\{([^}]*)\}" % sym, src, re.S)
+        regions[region] = [int(x) for x in m.group(1).replace(" ", "").split(",") if x and int(x) != 255]
+    m = re.search(r"_careerCompetitionIdRemapTable\[\d+\] = \{([^}]*)\}", src, re.S)
+    season = [int(x) for x in m.group(1).split(",") if x.strip() and int(x) != 255]
+    return regions, season
+
+
+def world_lists(news):
+    """The world's continent lists: 96/97's with each new country put in by its name (the
+    lists are in name order), and its season end's countries: 96/97's, the new ones after
+    (the old ones' order, and so their seasons, as they were)."""
+    regions, season = our_lists()
+    names = {c["number"]: c["name"].replace("_", " ") for c in json.load(open(os.path.join(
+        BASE, "competitions", "countries.json"), encoding="utf-8"))["countries"]}
+    for wc in news:
+        lst = regions[wc["region"]]
+        at = next((i for i, n in enumerate(lst) if names.get(n, "") > wc["name"]), len(lst))
+        lst.insert(at, wc["number"])
+        names[wc["number"]] = wc["name"]
+        season.append(wc["number"])
+    return regions, season
+
 
 
 def mod_pack(code):
@@ -667,7 +725,14 @@ def country_league(wc, pk, picked):
     the real names; no 96/97 play-off links (the qualifier offsets 0: the world's play-offs
     are the pack's)."""
     lg = pack_league(pk)
-    rec = copy.deepcopy(our_records("leagues")[our_country_table(wc["number"])["leagues"][0]])
+    if wc["new"]:
+        rec = copy.deepcopy(our_records("leagues")[CONTINENTS[pk["continent"]][2]])
+        rec["id"] = "_world%sLeague" % wc["code"].title()
+        rec["new"] = {"country": wc["number"], "name": wc["name"], "byte": CONTINENTS[pk["continent"]][0]}
+        rec["comp"].update(comp_id=NEW_LEAGUE_IDS[wc["code"]], team_number=wc["number"])
+        rec["playoff_links"], rec["promotion_link_data"] = [], []
+    else:
+        rec = copy.deepcopy(our_records("leagues")[our_country_table(wc["number"])["leagues"][0]])
     mdivs = lg.get("divisions") or [{"teams": len(picked), "promoted": 0, "relegated": 0,
                                     "names": lg["names"]}]
     sizes = collections.Counter(d for _, d in picked)
@@ -932,6 +997,40 @@ WORLD_DATA_C = """/*
 
 %(records)s
 
+/* The countries new to the game (96/97 has no clubs there): each one's name (its first
+ * byte its continent's: 0 Europe), its table (its league; its cups go in with the world's,
+ * world_cups.c); the world's continent lists (the career picker's: 96/97's with the new
+ * countries in, by name) and its season end's countries (96/97's order, the new ones
+ * after). */
+%(countries)s
+
+const uint8_t *World_ContinentCountries(uint8_t region)
+{
+    switch (World_Current()) {
+%(region_cases)s
+    default:
+        return 0;
+    }
+}
+
+const uint8_t *World_SeasonCountries(void)
+{
+    switch (World_Current()) {
+%(season_cases)s
+    default:
+        return 0;
+    }
+}
+
+const char *World_CountryTeamFile(uint8_t country)
+{
+    switch (World_Current()) {
+%(file_cases)s
+    default:
+        return 0;
+    }
+}
+
 /* A country's range of global team numbers (base + ordinal, _teamsCountryNumbers) sized
  * to the world's clubs: every later country's base moves by the difference. The league
  * state table holds GLOBAL_TEAM_NUMBERS; past it is a broken world, said so. */
@@ -1044,8 +1143,8 @@ def c_string(text):
     return '"%s"' % text.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd):
-    externs, strings, records, installs = set(), [], [], []
+def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=()):
+    externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
     def symbol(text):
@@ -1067,9 +1166,35 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd):
             names.append(n)
         baked = dict(rec, id="kWorld%s%s" % (tag, rec["id"]), name=names)
         records.append("static " + emit_competitions.emit_league(baked))
+        if rec.get("new"):      # (a country new to the game: its own table, its name)
+            nw = rec["new"]
+            name_sym, table_sym = "kWorld%s_country%d" % (tag, nw["country"]), "kWorld%s%sTable" % (tag, rec["id"])
+            new_countries.append("static const char %s[] = \"\\%03o\" %s \"\\0\" %s;" % (
+                name_sym, nw["byte"], c_string(nw["name"]), c_string(nw["name"])))
+            new_countries.append("static Competition *%s[] = { (Competition *)&%s, (Competition *)-2, "
+                                 "(Competition *)-1 };" % (table_sym, baked["id"]))
+            installs.append("        _countriesTable[%d] = (void *)%s;   /* %s */" % (nw["country"], name_sym, nw["name"]))
+            installs.append("        _competitionsTable[%d] = %s;" % (nw["country"], table_sym))
+            installs.append("        Comp_Register((Competition *)&%s);" % baked["id"])
+            continue
         externs.add("extern CompetitionLeague %s;" % rec["id"])
         installs.append("        install_league(&%s, &%s);" % (rec["id"], baked["id"]))
     installs.append("        FixtureRounds_Install();")
+    regions, season = world_lists(news)
+    lists = []
+    for region in sorted(regions):
+        lists.append("static const uint8_t kWorld%s_region%d[] = { %s, 255 };" % (
+            tag, region, ", ".join(map(str, regions[region]))))
+    lists.append("static const uint8_t kWorld%sSeasonCountries[] = { %s, 255 };" % (
+        tag, ", ".join(map(str, season))))
+    region_cases = ("    case WORLD_%s:\n        return region >= 80 && region <= 85 ? kWorld%sRegions[region - 80] : 0;"
+                    % (tag, tag))
+    lists.append("static const uint8_t *const kWorld%sRegions[6] = { %s };" % (
+        tag, ", ".join("kWorld%s_region%d" % (tag, r) for r in range(80, 86))))
+    season_cases = "    case WORLD_%s:\n        return kWorld%sSeasonCountries;" % (tag, tag)
+    file_cases = "    case WORLD_%s:\n        switch (country) {\n%s\n        default:\n            return 0;\n        }" % (
+        tag, "\n".join('        case %d:\n            return "teams/%s.json";' % (wc["number"], wc["base"])
+                       for wc in news))
     cases = "    case WORLD_%s:\n%s\n        break;" % (tag, "\n".join(installs))
     group_tables, group_entries = [], []
     for g in groups:
@@ -1181,7 +1306,11 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd):
             sym, cupd["country"], len(cupd["rounds"]), sym, len(cupd["ties"]), sym, cupd["first"], cupd["groups"],
             sym, sym, len(cupd["pool_strength"]), sym, names[0], names[1]))
         cd_cases = "    case WORLD_%s:\n        return &%s;" % (tag, sym)
-    return WORLD_DATA_C % {"externs": "\n".join(sorted(externs)),
+    if news:
+        externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
+    return WORLD_DATA_C % {"countries": "\n".join(new_countries + lists), "region_cases": region_cases,
+                           "season_cases": season_cases, "file_cases": file_cases,
+                           "externs": "\n".join(sorted(externs)),
                            "records": "\n\n".join(strings + records), "cases": cases,
                            "groups": "\n\n".join(group_tables), "group_cases": group_cases,
                            "playoffs": "\n\n".join(po_tables), "po_cases": po_cases,
@@ -1221,7 +1350,7 @@ def main():
     (teams, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
     country = teams["teams"][0]["team"]["country_number"]
-    pools = []
+    pools, news = [], []
 
     def add_pool(code, name, number, base):     # (home: as country_teams, 96/97's file's)
         home = home_nation(json.load(open(os.path.join(BASE, "teams", base + ".json"), encoding="utf-8")))
@@ -1237,17 +1366,22 @@ def main():
     playoffs = [italian_playoffs(country, leagues, picked)]
     cups = italian_cups(picked, country)
     for wc in world_countries():
-        if wc["code"] not in PLAIN:
+        if wc["code"] not in PLAIN and not wc["new"]:
             continue
         pk = mod_pack(wc["code"])
         t, pk_picked = country_teams(wc)
+        if wc["new"]:           # (its team file's name, after country_teams: 96/97 has none)
+            wc["base"] = file_name(wc["name"])
+            wc["region"] = CONTINENTS[pk["continent"]][1]
+            news.append(wc)
         write_team_file(t, wc["base"])
         leagues["leagues"].append(country_league(wc, pk, pk_picked))
         po = country_playoffs(wc, pk, pk_picked)
         if po:
             playoffs.append(po)
         cups += country_cups(wc, pk, pk_picked)
-        add_pool(wc["code"], wc["name"].title().replace(" ", ""), wc["number"], wc["base"])
+        if not wc["new"]:
+            add_pool(wc["code"], wc["name"].title().replace(" ", ""), wc["number"], wc["base"])
         resized.append((wc["number"], t["count"]))
         counts["countries imported"] += 1
     for rec in leagues["leagues"]:          # (the world's play-offs are the pack's: no 96/97 links)
@@ -1259,7 +1393,7 @@ def main():
     with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
         f.write(world_data_c("2627", leagues, resized,
                              [italian_groups(picked, country, leagues)],
-                             playoffs, pools, cups, italian_cupd(picked, country, None)))
+                             playoffs, pools, cups, italian_cupd(picked, country, None), news))
     print("wrote src/world_data.c")
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))

@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "teams.h"
+#include "world.h"
 #include "career_teams.h"
 #include "comp_identity.h"
 #include "swos_platform.h"   /* HLOG — force-included by the SDL Makefile, not the
@@ -3276,6 +3277,8 @@ loc_E2D0:
          * stays pointed at countries[] so the `a5[index]` country lookups in the
          * selection handling below are correct too. See STRUCT_CONSOLIDATE.md §4d. */
         a5 = (void **)((QualifyingGroup *)compListAddr)->countries;
+        if (d7 != 254 && World_ContinentCountries((uint8_t)d7))    /* (a world's, its new countries in) */
+            a5 = (void **)World_ContinentCountries((uint8_t)d7);
         cPtr = (uint8_t *)a5;
         for (;;) {
             cByte = *cPtr++;

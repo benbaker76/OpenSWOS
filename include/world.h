@@ -35,6 +35,14 @@ int32_t     World_Set(const char *tag);      /* 0, or -1 (unknown: unchanged) */
  * competition tables; the SDL JSON install (data_json/worlds/<tag>/) runs after it. */
 void        World_InstallBaked(void);
 
+/* A world's countries new to the game (src/world_data.c): its continent lists for the
+ * career picker (region 80..85; 96/97's with them in), its season end's countries (0xFF-
+ * ended; 0: 96/97's own lists), and a new country's team file under the world's folder
+ * ("teams/<NAME>.json", the SDL's; 0: not one -- the Amiga reads data/TEAM.nnn). */
+const uint8_t *World_ContinentCountries(uint8_t region);
+const uint8_t *World_SeasonCountries(void);
+const char    *World_CountryTeamFile(uint8_t country);
+
 #ifndef SWOS_SDL_BUILD
 /* The Amiga reads no SWOS.ini: a drawer made for a world says so in data/WORLD (its tag;
  * OpenSWOS Setup writes it). None: 96/97. */

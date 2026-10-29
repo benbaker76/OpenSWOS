@@ -3045,6 +3045,13 @@ static char *dj_slurp_country_teams(int countryNum, char *team_file, int team_fi
         }
     }
     free(cj);
+    if (!team_file[0] && World_CountryTeamFile((uint8_t)countryNum)) {
+        /* A country new to the game: the world's file alone (include/world.h). */
+        char wpath[256];
+        snprintf(team_file, team_file_size, "%s", World_CountryTeamFile((uint8_t)countryNum));
+        snprintf(wpath, sizeof wpath, "data_json/worlds/%s/%s", World_Tag(), team_file);
+        return dj_slurp(wpath, out_len);
+    }
     if (!team_file[0])
         return NULL;   /* country not represented in the JSON corpus */
 

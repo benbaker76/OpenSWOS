@@ -9,6 +9,7 @@
  */
 
 #include "career_season.h"
+#include "world.h"
 #include "career_eurocups.h"
 #include "career_init.h"
 #include "career_status.h"
@@ -1712,7 +1713,8 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
     }
 
     /* Loop through all competition IDs in the remap table */
-    uint8_t *remapPtr = _careerCompetitionIdRemapTable;
+    const uint8_t *remapPtr = World_SeasonCountries() ? World_SeasonCountries()    /* (a world's: */
+                                                      : _careerCompetitionIdRemapTable; /* its new ones too) */
     for (;;) {
         uint8_t compByte = *remapPtr++;
         if (compByte == 0xFF)
