@@ -14,7 +14,8 @@
 # (Italy's league, and each other country with B teams).
 # Then the mid-season splits' tables, fixture stages too (scripts/world_split.py), against the
 # Mod's split.entry.
-# Then the UEFA qualifying rounds (src/uefa_access.c) against the Mod's uefaq.c.
+# Then the UEFA qualifying rounds (src/uefa_access.c) against the Mod's uefaq.c, and the league
+# phase's draw (src/league_phase.c) against its rules.
 # Then the cups' clubs from the second season (its 4.0.1 cf_build, CF_SEED 1 as released):
 # random moves, last season's places and career clubs, both cups' lists compared.
 # Then the Coppa Italia Serie D table against its cupd.py compile_table, and its later
@@ -214,3 +215,8 @@ else
     diff "$OUT/uefa_mod.txt" "$OUT/uefa_ours.txt" | head -4 | cut -c1-300
     exit 1
 fi
+
+# The league phase's draw (src/league_phase.c, the Mod's lp36 model): random fields, the pots as
+# the Mod makes them, every draw's rules (lp36.check / check6).
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/lp_check" $T/lp_check.c
+"$OUT/lp_check" "$((N / 10))"
