@@ -2,10 +2,10 @@
  *
  * Each one is a .DIY kept by group in a classic/ folder:
  *
- *   SDL:    <assets>/classic/uefa/, <assets>/classic/worldcup/
+ *   SDL:    <assets>/classic/{uefa,worldcup,club}/
  *           the PC game's or SWOS 2020's own files (its DLC cups), read by
  *           diy_import_dos.c, or this game's JSON .DIY
- *   Amiga:  classic/uefa/, classic/worldcup/ in the game's drawer
+ *   Amiga:  classic/{uefa,worldcup,club}/ in the game's drawer
  *           this game's JSON .DIY only, converted on a PC (--convert-diy): the
  *           Amiga cannot read the DOS dump (docs/CLASSIC_COMPETITIONS.md section 6)
  *
@@ -16,8 +16,10 @@
  * and the teams screen lets the player cycle each one through COMPUTER / PLAYER-COACH /
  * COACH, as the friendly team list does.
  *
- * The three screens are classic packed menus (menu_data.c _classicCompsMenu,
- * _classicListMenu, _classicTeamsMenu; JSON in bin/data_json/menus/ on SDL). They open
+ * The screens are classic packed menus (menu_data.c _classicCompsMenu -- NATIONAL or
+ * CLUB --, _classicNationalMenu -- UEFA or WORLD CUP --, _classicListMenu,
+ * _classicTeamsMenu; JSON in bin/data_json/menus/ on SDL). CLUB has one group, so it
+ * goes straight to its list. They open
  * from CLASSICS, the row above WORLD CUP in PRESET COMPETITION's world list (teams.c
  * SelectTeamsFinalMenu); PRESET COMPETITION has asked about the competition under way
  * and seeded the RNG by then. Once one is loaded the chooser closes as if backed out
@@ -48,7 +50,8 @@ extern uint8_t     _competitionFilename[14];
 extern CompetitionSlotBuffer _primaryCompetitionBuf;
 extern TeamTactics _teamTacticsUSERA, _teamTacticsUSERB, _teamTacticsUSERC;
 extern TeamTactics _teamTacticsUSERD, _teamTacticsUSERE, _teamTacticsUSERF;
-extern uint8_t     _classicCompsMenu[], _classicListMenu[], _classicTeamsMenu[];
+extern uint8_t     _classicCompsMenu[], _classicNationalMenu[], _classicListMenu[];
+extern uint8_t     _classicTeamsMenu[];
 extern void SetExitMenuFlag(void);
 extern void SaveOptions(void);
 extern void RestoreOptions(void);
@@ -61,6 +64,7 @@ extern uint32_t Resload_ListDir(const uint8_t *dirname, uint8_t *buffer, uint32_
 
 /* The menus' entries, in the order menu_data.c lists them. */
 enum { ClassicList_header, ClassicList_first, kListRows = 32,     /* 2 columns of 16 */
+       kListColumn = kListRows / 2,
        ClassicList_exit = ClassicList_first + kListRows };
 enum { ClassicTeams_header, ClassicTeams_hint, ClassicTeams_first, kTeamSlots = 64,
        ClassicTeams_play = ClassicTeams_first + kTeamSlots, ClassicTeams_exit,
@@ -75,10 +79,12 @@ enum {
     kFileLen           = 64,
 };
 
-static const char *const k_groupDirs[] = { "uefa", "worldcup" };
-static const char *const k_groupTitles[] = { "UEFA", "WORLD CUP" };
+enum { kGroupUefa, kGroupWorldCup, kGroupClub };
+static const char *const k_groupDirs[] = { "uefa", "worldcup", "club" };
+static const char *const k_groupTitles[] = { "EURO", "WORLD CUP", "CLUB" };
 
 static struct {
+    int32_t kind;                   /* CLASSICS' pick: 0 NATIONAL, 1 CLUB, -1 = EXIT */
     int32_t group;                  /* the group picked, -1 = EXIT */
     int32_t pick;                   /* the competition picked, -1 = EXIT */
     int32_t play;                   /* PLAY pressed on the teams screen */
@@ -266,14 +272,24 @@ static void scan_group(int32_t group)
 
 /* ---- the menus' handlers (named in menu_data.c) ---- */
 
-void ClassicComps_PickUefa(void)     { s.group = 0; SetExitMenuFlag(); }
-void ClassicComps_PickWorldCup(void) { s.group = 1; SetExitMenuFlag(); }
+void ClassicComps_PickNational(void) { s.kind = 0; SetExitMenuFlag(); }
+void ClassicComps_PickClub(void)     { s.kind = 1; SetExitMenuFlag(); }
+void ClassicComps_PickUefa(void)     { s.group = kGroupUefa; SetExitMenuFlag(); }
+void ClassicComps_PickWorldCup(void) { s.group = kGroupWorldCup; SetExitMenuFlag(); }
 
 void ClassicComps_ListInit(void)
 {
     static char none[] = "NO COMPETITIONS IN THIS FOLDER";
+    /* A list that fits the first column is drawn in the middle, halfway between the two
+     * columns; a second column puts it back on the left. The entries are unpacked afresh
+     * each time the menu opens, so the columns' x is the menu's own. */
+    uint16_t left = CalcMenuEntryAddress(ClassicList_first)->x;
+    uint16_t right = CalcMenuEntryAddress(ClassicList_first + kListColumn)->x;
+    uint16_t x = s.count <= kListColumn ? (uint16_t)((left + right) / 2) : left;
     int32_t i;
 
+    for (i = 0; i < kListColumn; i++)
+        CalcMenuEntryAddress((uint16_t)(ClassicList_first + i))->x = x;
     CalcMenuEntryAddress(ClassicList_header)->fg = (uintptr_t)s.title;
     for (i = 0; i < kListRows; i++) {
         MenuEntry *e = CalcMenuEntryAddress((uint16_t)(ClassicList_first + i));
@@ -397,40 +413,61 @@ static int32_t load_competition(int32_t group, int32_t pick)
     return 1;
 }
 
+/* The list, then the teams screen: 1 = PLAY (a competition is ready), 0 = EXIT. */
+static int32_t choose_in_group(int32_t group)
+{
+    memcpy(s.title, k_groupTitles[group], str_len(k_groupTitles[group]) + 1);
+    scan_group(group);
+    for (;;) {
+        s.pick = -1;
+        ShowMenu(_classicListMenu);
+        if (s.pick < 0)
+            return 0;
+        if (!load_competition(group, s.pick))
+            continue;
+        s.play = 0;
+        ShowMenu(_classicTeamsMenu);
+        if (s.play) {
+            /* SAVE offers the file's own name, as after LOAD OLD COMPETITION: WITH its
+             * extension, which SAVE's dialog reads back from after the '.' when the
+             * name is accepted (file_io.c CopyFilenameExtensionAndSetExitMenuFlag) --
+             * without one it saved "WC1990" outside save/. 8.3, as SWOS's names are. */
+            uint32_t n = str_len(s.file[s.pick]) - 4;
+            if (n > 8)
+                n = 8;
+            memcpy(_competitionFilename, s.file[s.pick], n);
+            memcpy(_competitionFilename + n, ".DIY", 5);
+            s.ready = 1;
+            return 1;
+        }
+        InitCareerVariables(0);
+        RestoreOptions();
+    }
+}
+
+/* EXIT goes back one screen: from a list to NATIONAL's groups, or to CLASSICS for CLUB,
+ * which has only the one. */
 int32_t ClassicComps_Choose(void)
 {
     s.ready = 0;
     for (;;) {
-        s.group = -1;
+        s.kind = -1;
         ShowMenu(_classicCompsMenu);
-        if (s.group < 0)
+        if (s.kind < 0)
             return 0;
-        memcpy(s.title, k_groupTitles[s.group], str_len(k_groupTitles[s.group]) + 1);
-        scan_group(s.group);
-        for (;;) {
-            s.pick = -1;
-            ShowMenu(_classicListMenu);
-            if (s.pick < 0)
-                break;
-            if (!load_competition(s.group, s.pick))
-                continue;
-            s.play = 0;
-            ShowMenu(_classicTeamsMenu);
-            if (s.play) {
-                /* SAVE offers the file's own name, as after LOAD OLD COMPETITION: WITH its
-                 * extension, which SAVE's dialog reads back from after the '.' when the
-                 * name is accepted (file_io.c CopyFilenameExtensionAndSetExitMenuFlag) --
-                 * without one it saved "WC1990" outside save/. 8.3, as SWOS's names are. */
-                uint32_t n = str_len(s.file[s.pick]) - 4;
-                if (n > 8)
-                    n = 8;
-                memcpy(_competitionFilename, s.file[s.pick], n);
-                memcpy(_competitionFilename + n, ".DIY", 5);
-                s.ready = 1;
+        if (s.kind == 1) {
+            s.group = kGroupClub;
+            if (choose_in_group(s.group))
                 return 1;
-            }
-            InitCareerVariables(0);
-            RestoreOptions();
+            continue;
+        }
+        for (;;) {
+            s.group = -1;
+            ShowMenu(_classicNationalMenu);
+            if (s.group < 0)
+                break;
+            if (choose_in_group(s.group))
+                return 1;
         }
     }
 }

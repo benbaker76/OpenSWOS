@@ -33,7 +33,9 @@ char _aCredits[]      = "CREDITS";
  * screens (src/classic_comps.c, docs/CLASSIC_COMPETITIONS.md). _aClassicsBlank is the text
  * the list and team buttons start with, before the init handlers name them. */
 char _aClassics[]          = "CLASSICS";
-char _aClassicsUefa[]      = "UEFA";
+char _aClassicsNational[]  = "NATIONAL";
+char _aClassicsClub[]      = "CLUB";
+char _aClassicsUefa[]      = "EURO";   /* the uefa/ group */
 char _aClassicsWorldCup[]  = "WORLD CUP";
 char _aClassicsBlank[]     = "-";
 char _aClassicsHint[]      = "CLICK A TEAM TO CHANGE WHO CONTROLS IT";

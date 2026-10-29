@@ -5,7 +5,8 @@
 #include "menu_system.h"
 
 /* CLASSICS (src/classic_comps.c), the row above WORLD CUP in PRESET COMPETITION's world
- * list (teams.c SelectTeamsFinalMenu): a group, then a competition from its classic/
+ * list (teams.c SelectTeamsFinalMenu): NATIONAL (then UEFA or WORLD CUP) or CLUB, then a
+ * competition from that group's classic/
  * folder, then who controls each team. 1 when a competition is loaded, and
  * PresetCompetitionMenu is to start it (StartContest); 0 when the player backed out, to
  * the world list. */
@@ -15,7 +16,9 @@ int32_t ClassicComps_Choose(void);
  * competition is to be started. */
 int32_t ClassicComps_TakeReady(void);
 
-/* The three menus' handlers, named in menu_data.c. */
+/* The menus' handlers, named in menu_data.c. */
+void ClassicComps_PickNational(void);
+void ClassicComps_PickClub(void);
 void ClassicComps_PickUefa(void);
 void ClassicComps_PickWorldCup(void);
 void ClassicComps_ListInit(void);
