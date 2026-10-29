@@ -410,6 +410,11 @@ ifeq ($(SWOS_TEST_RULES),1)
 DEBUG_FLAGS += -DSWOS_TEST_RULES=1
 endif
 
+# The football worlds beyond 96/97 (World 2026-27 and all it brought: include/swos_types.h,
+# docs/WORLD_2026_27.md). `make SWOS_WORLDS=0` compiles them out: 96/97 alone, as before them.
+SWOS_WORLDS ?= 1
+DEBUG_FLAGS += -DSWOS_WORLDS=$(SWOS_WORLDS)
+
 # Build with the PRISTINE Amiga data for the four formations this port
 # deliberately corrected — 4-4-2, 4-3-3, 3-4-3, Sweep (commit 1828528, whose
 # tester-supplied fix un-swaps central defenders that crossed sides instead of

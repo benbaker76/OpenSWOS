@@ -165,6 +165,9 @@ DUMP_ASM ?= 1
 ifeq ($(DUMP_ASM),1)
 CCFLAGS   += -save-temps=obj -fverbose-asm
 endif
+# The football worlds beyond 96/97 (include/swos_types.h): `SWOS_WORLDS=0` compiles them out.
+SWOS_WORLDS ?= 1
+CCFLAGS   += -DSWOS_WORLDS=$(SWOS_WORLDS)
 # Escape hatch for one-off defines, e.g. make EXTRA_CFLAGS=-DPITCH_SCROLL_TEST
 CCFLAGS   += $(EXTRA_CFLAGS)
 CPPFLAGS  = $(CCFLAGS) -fno-rtti -fcoroutines -fno-use-cxa-atexit

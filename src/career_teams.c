@@ -12,6 +12,7 @@
 
 #include "career_teams.h"
 #include "league_split.h"
+#include "league_phase.h"
 #include "world_playoff.h"
 #include "world_cups.h"
 #include "world_cupd.h"
@@ -2378,8 +2379,10 @@ void DIY_AdvanceToNextCompetitionSlot(void)
     uint8_t *comp = (uint8_t *)&_diyCompetitionStart;
 
     if (slotRec->isLeagueFormat != 0) {
-        /* League type: build seeded bracket */
+        /* League type: build seeded bracket (a world's league phase: its play-off ties) */
+        LeaguePhase_GroupsEnd(buf, 0);
         DIY_BuildSeededBracketAndUpdateScores(buf, slot, comp, comp);
+        LeaguePhase_GroupsEnd(buf, 1);
     } else {
         /* Cup type: copy team grid */
         DIY_CopyTeamGridFromCompToDIY(buf, slot, comp, comp);

@@ -182,6 +182,16 @@ proves a refusal. A raw
 PLAYERS -- SWOS 2020 renumbers custom teams. `--custom-team-selftest` runs all 1,631 database
 teams through the rule and the file; run it after touching either.
 
+**`SWOS_WORLDS`** (default 1; `make SWOS_WORLDS=0`, the same on `Makefile.amiga`): the football worlds
+beyond 96/97 -- World 2026-27 and all it brought (docs/WORLD_2026_27.md: its countries, leagues,
+splits, play-offs, cups, pools, the Coppa D, Europe's league phases). At 0 the game is 96/97 alone, as
+before them: `World_Current()` is the constant 96/97, `World_Set` takes no other, the generated
+world data (`src/world_data.c`) compiles out, so every world hook finds nothing and does nothing,
+and the global team numbers are 96/97's 2000. New world code must keep that true: gate on the world's
+data or `World_Current()`, never act for 96/97. Proved: the 96/97 golden careers on a
+`SWOS_WORLDS=0` build equal the record made with the worlds on (a save writes the league offsets at
+2000 when nothing past them is used, so it is the same from either build).
+
 **The golden career test** (`scripts/career_golden_test.sh`, docs/WORLD_2026_27.md phase 0): the
 game's career autopilot (`--career-golden=new:<continent>/<country>/<division>/<club>` or a save;
 `src/career_autopilot.c`) plays seven new careers -- England's two top divisions, Italy, Germany,

@@ -30,6 +30,7 @@
 #include "career_season.h"
 #include "game_init.h"
 #include "league_split.h"
+#include "league_phase.h"
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
 
 /* ---- Constants ---- */
@@ -605,6 +606,8 @@ void DIY_CacheSelectedTeamPointers(void)
 __attribute__((used, externally_visible))
 void DIY_SortLeagueTableByStandings(void)
 {
+    if (LeaguePhase_Sort())     /* (a world's league phase: one table of 36, include/league_phase.h) */
+        return;
     DIYCompetitionEx *comp = &_diyCompetitionStart;
     DIYCompetition *a4s = &comp->base;
     uint8_t *a4 = (uint8_t *)a4s;
@@ -922,6 +925,11 @@ void DIYTournament_RecalculateMatchesPerTeam(void)
             total = total / halfTeams;
             total *= slot->playEachTeam;
             slot->matchesPerSlot = (uint16_t)total;
+            /* (a world's 36-club league phase: its matchdays, include/league_phase.h) */
+            const int32_t lp = LeaguePhase_StageDays((uint8_t)_diyFileBufferCopy.header.field_2E,
+                                                     slot->groups, slot->teamsPerGroup);
+            if (lp)
+                slot->matchesPerSlot = (uint16_t)lp;
         } else {
             /* League: default 2 matches */
             slot->matchesPerSlot = 2;
@@ -1864,6 +1872,8 @@ static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
 {
     if (LeagueSplit_Pair(team1Out, team2Out))   /* (after a world league's split: its days) */
         return;
+    if (LeaguePhase_Pair(team1Out, team2Out))   /* (a world's league phase: its draw) */
+        return;
     DIYCompetitionEx *compEx = &_diyCompetitionStart;
     DIYCompetition *a0s = &compEx->base;
     uint8_t *a0 = (uint8_t *)a0s;
@@ -1929,7 +1939,7 @@ static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
                             "matchesInRound=%d sectionProg=%u "
                             "d5(grid stride)=%u "
                             "fxPositionsOff=0x%lx "
-                            "schedule[0..3]=%02X %02X %02X %02X "
+                            "schedule[0..1]=%02X %02X "
                             "posA=%u posB=%u gridA=%d gridB=%d "
                             "swap=%u\n",
                             s_gfCalls,
@@ -1938,8 +1948,8 @@ static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
                             (unsigned)roundIdx,
                             (unsigned)d5,
                             (unsigned long)(fixturePositions - a0),
-                            (unsigned)schedule[0], (unsigned)schedule[1],
-                            (unsigned)schedule[2], (unsigned)schedule[3],
+                            (unsigned)schedule[0], (unsigned)schedule[1],   /* (not [2..3]: past
+                                                                             * the table at its last pair) */
                             (unsigned)posA, (unsigned)posB,
                             (int)gridIdxA, (int)gridIdxB,
                             (unsigned)swapFlag);
@@ -2188,7 +2198,9 @@ void DIY_SyncCompetitionTeamGridOrBuildBracket(void)
     uint8_t *a5 = (uint8_t *)&_diyCompetitionStart.base;
 
     if (a3Slot->isLeagueFormat != 0) {
+        LeaguePhase_GroupsEnd(a2, 0);       /* (a world's league phase: the play-off ties) */
         DIY_BuildSeededBracketAndUpdateScores(a2, a3, a4, a5);
+        LeaguePhase_GroupsEnd(a2, 1);
     } else {
         DIY_CopyTeamGridFromCompToDIY(a2, a3, a4, a5);
     }
@@ -4304,6 +4316,10 @@ void DIY_ShuffleTeamsAndBuildCompTeamList(uint8_t *diy, uint8_t *slot,
         goto copy_to_comp;
     }
 
+    /* A world's league phase: its knockouts keep their order (include/league_phase.h) */
+    if (LeaguePhase_KnockoutDraw(diy, s->numTeams))
+        goto build_comp_list;
+
     /* Standard shuffle path */
     {
         uint16_t field54 = (uint16_t)diyS->roundComplete;
@@ -4514,6 +4530,7 @@ void DIY_LoadCurrentCompetitionSlot(void)
 
         a5s->field_2E = a2s->field_2E;  /* 0x2E */
         a5s->numTeamsInStage = a2s->numTeams;  /* 0x4E = numTeams from a2 */
+        LeaguePhase_StageStart();       /* (a world's league phase: its draw, include/league_phase.h) */
     } else {
         /* Cup path — init DIY cup, then fill from file buffer */
         InitDIYCup();
@@ -9115,6 +9132,28 @@ static uint8_t *prependCountryNameIfClub(uint8_t *record, uint8_t *dst)
     return dst;
 }
 
+/* The competition's name into its 36-byte field (the country first for a club competition),
+ * at most 35 characters: a longer one (a world's "EL SALVADOR SEGUNDA DIVISION ORIENTE", 36)
+ * ran into namePtr after the field -- the season record's league name was then another
+ * string's tail, and which one depended on the build's layout (2026-10-29). 96/97's names all
+ * fit, unchanged. */
+static void copyCompetitionName(uint8_t *record, uint8_t *field, const uint8_t *name)
+{
+    uint8_t tmp[96];
+    uint8_t *t = prependCountryNameIfClub(record, tmp);
+    uint32_t n = 0, room = (uint32_t)(sizeof tmp - (uint32_t)(t - tmp)) - 1;
+    while (name && name[n] && n < room) {
+        t[n] = name[n];
+        n++;
+    }
+    t[n] = 0;
+    const uint32_t cap = (uint32_t)sizeof(((DIYCompetition *)0)->competitionName) - 1;
+    uint32_t i = 0;
+    for (; i < cap && tmp[i]; i++)
+        field[i] = tmp[i];
+    field[i] = 0;
+}
+
 /* Helper: set pitch type fields at offsets 0x34/0x36 in competition buffer. */
 static void setPitchTypeFields(uint8_t *comp)
 {
@@ -9202,7 +9241,6 @@ void InitDIYCompetitionFromTableEntry(uint16_t idx, uint8_t *table)
 
     /* Build competition name at offset 4 */
     uint8_t *a1 = a6 + 4;
-    a1 = prependCountryNameIfClub(table, a1);
 
     /* Division/competition name.
      *
@@ -9223,7 +9261,7 @@ void InitDIYCompetitionFromTableEntry(uint16_t idx, uint8_t *table)
                              : (uint8_t *)_divisionStringTable[d7];
     }
     a6s->namePtr = nameSource;  /* 0x28 */
-    a1 = StringCopy(nameSource, a1);
+    copyCompetitionName(table, a1, nameSource);   /* (bounded: the field holds 35) */
 
     ((DIYCompetitionEx *)a6)->pointsForAWin = (int16_t)league->pointsForWin;
 
@@ -9272,7 +9310,6 @@ void InitDIYCupFromRecord(uint8_t *cupRec)
 
     /* Build competition name at offset 4 */
     uint8_t *a1 = a6 + 4;
-    a1 = prependCountryNameIfClub(cupRec, a1);
 
     /* Cup name */
     uint8_t *nameSource = (uint8_t *)_aCup_0; /* "CUP" default */
@@ -9281,7 +9318,7 @@ void InitDIYCupFromRecord(uint8_t *cupRec)
         if (nameTbl) nameSource = (uint8_t *)nameTbl[0];
     }
     a6s->namePtr = nameSource;  /* 0x28 */
-    a1 = StringCopy(nameSource, a1);
+    copyCompetitionName(cupRec, a1, nameSource);   /* (bounded: the field holds 35) */
 
     a6s->playEachTeam = (int8_t)cup->awayGoalsMode;  /* 0x5E */
 
@@ -9420,7 +9457,6 @@ void InitDIYLeagueFromRecord(uint8_t *leagueRec)
 
     /* Build competition name at offset 4 */
     uint8_t *a1 = a6 + 4;
-    a1 = prependCountryNameIfClub(a5, a1);
 
     /* League name */
     uint8_t *nameSource = (uint8_t *)_aLeague_1; /* "LEAGUE" default */
@@ -9429,7 +9465,7 @@ void InitDIYLeagueFromRecord(uint8_t *leagueRec)
         if (nameTbl) nameSource = (uint8_t *)nameTbl[0];
     }
     a6s->namePtr = nameSource;  /* 0x28 */
-    a1 = StringCopy(nameSource, a1);
+    copyCompetitionName(a5, a1, nameSource);   /* (bounded: the field holds 35) */
 
     a6s->menuState = (int8_t)a5[0xA];              /* 0x4A */
 
@@ -11624,6 +11660,7 @@ uint16_t DIY_PlayOrSimulateLeagueFixture(int16_t allowSquadChanges, int16_t sele
     r2->goalsFor     += d2;
     r2->goalsAgainst += d1;
     LeagueSplit_AfterResult(compPtr1, compPtr2, d1, d2);   /* (a world league's split) */
+    LeaguePhase_Result(compPtr1, compPtr2, d1, d2);       /* (a world's league phase) */
 
     /* Sort standings and process promotions/relegations if diyCompetitionStart.minSubstitutes == 0 */
     if (_diyCompetitionStart.minSubstitutes == 0) {

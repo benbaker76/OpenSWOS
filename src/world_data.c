@@ -5,6 +5,8 @@
  * the JSON (or the script), not this. World_InstallBaked copies each world's records over
  * 96/97's compiled ones at start-up, on both targets (frontend.c) -- the Amiga has no
  * JSON -- keeping each league's compiled playoff plumbing, as the SDL JSON install does.
+ * SWOS_WORLDS=0 (include/swos_types.h) compiles every world's data out: the functions stay,
+ * their tables empty.
  */
 #include "game_types.h"
 #include "competition_data.h"
@@ -17,6 +19,7 @@
 #include "world_cupd.h"
 #include "league_split.h"
 
+#if SWOS_WORLDS
 extern CompetitionLeague _albanianLeague;
 extern CompetitionLeague _algerianLeague;
 extern CompetitionLeague _australianLeague;
@@ -85,7 +88,9 @@ extern char _aSerieA[];
 extern char _aSerieB[];
 extern void *_competitionsTable[256];
 extern void *_countriesTable[262];
+#endif
 
+#if SWOS_WORLDS
 static char kWorld2627_name0[] = "SERIE C GIRONE A";
 
 static char kWorld2627_name1[] = "SERIE C GIRONE B";
@@ -1281,12 +1286,14 @@ static CompetitionLeague kWorld2627_welshLeague = {
     0,
     { kWorld2627_name164, kWorld2627_name164 }
 };
+#endif
 
 /* The countries new to the game (96/97 has no clubs there): each one's name (its first
  * byte its continent's: 0 Europe), its table (its league; its cups go in with the world's,
  * world_cups.c); the world's continent lists (the career picker's: 96/97's with the new
  * countries in, by name) and its season end's countries (96/97's order, the new ones
  * after). */
+#if SWOS_WORLDS
 static const char kWorld2627_country47[] = "\000" "ANDORRA" "\0" "ANDORRA";
 static Competition *kWorld2627_worldAndLeagueTable[] = { (Competition *)&kWorld2627_worldAndLeague, (Competition *)-2, (Competition *)-1 };
 static const char kWorld2627_country52[] = "\000" "ARMENIA" "\0" "ARMENIA";
@@ -1347,12 +1354,15 @@ static const uint8_t kWorld2627_region84[] = { 57, 75, 74, 55, 96, 89, 87, 67, 9
 static const uint8_t kWorld2627_region85[] = { 44, 62, 255 };
 static const uint8_t kWorld2627SeasonCountries[] = { 0, 1, 76, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 78, 34, 35, 36, 37, 38, 39, 40, 41, 42, 79, 69, 43, 45, 46, 48, 49, 50, 64, 65, 66, 71, 77, 51, 60, 73, 75, 55, 67, 44, 62, 47, 52, 53, 54, 56, 57, 58, 59, 61, 63, 68, 70, 74, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 255 };
 static const uint8_t *const kWorld2627Regions[6] = { kWorld2627_region80, kWorld2627_region81, kWorld2627_region82, kWorld2627_region83, kWorld2627_region84, kWorld2627_region85 };
+#endif
 
 const uint8_t *World_ContinentCountries(uint8_t region)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         return region >= 80 && region <= 85 ? kWorld2627Regions[region - 80] : 0;
+#endif
     default:
         return 0;
     }
@@ -1361,8 +1371,10 @@ const uint8_t *World_ContinentCountries(uint8_t region)
 const uint8_t *World_SeasonCountries(void)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         return kWorld2627SeasonCountries;
+#endif
     default:
         return 0;
     }
@@ -1371,6 +1383,7 @@ const uint8_t *World_SeasonCountries(void)
 const char *World_CountryTeamFile(uint8_t country)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         switch (country) {
         case 47:
@@ -1428,6 +1441,7 @@ const char *World_CountryTeamFile(uint8_t country)
         default:
             return 0;
         }
+#endif
     default:
         return 0;
     }
@@ -1463,6 +1477,7 @@ static void install_league(CompetitionLeague *dst, const CompetitionLeague *src)
 void World_InstallBaked(void)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         resize_country(20, 256);
         resize_country(0, 10);
@@ -1694,6 +1709,7 @@ void World_InstallBaked(void)
         install_league(&_welshLeague, &kWorld2627_welshLeague);
         FixtureRounds_Install();
         break;
+#endif
     default:
         break;
     }
@@ -1701,6 +1717,7 @@ void World_InstallBaked(void)
 
 /* The leagues with groups side by side (src/league_groups.c): each one's levels, and its
  * clubs with their division in the team file and their area at each level of groups. */
+#if SWOS_WORLDS
 static const LeagueLevel kWorld2627_italyLevels[] = {
     { 0, 1, { 20 }, 0 },
     { 1, 1, { 20 }, 0 },
@@ -2098,13 +2115,16 @@ static const LeagueGroups kWorld2627Groups[] = {
     { 44, 2, kWorld2627_australiaLevels, 54, kWorld2627_australiaClubs },   /* Australia */
     { 51, 3, kWorld2627_elsalvadorLevels, 55, kWorld2627_elsalvadorClubs },   /* ElSalvador */
 };
+#endif
 
 const LeagueGroups *World_LeagueGroups(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         *count = 3;
         return kWorld2627Groups;
+#endif
     default:
         *count = 0;
         return 0;
@@ -2113,6 +2133,7 @@ const LeagueGroups *World_LeagueGroups(int32_t *count)
 
 /* The leagues' play-offs and play-outs (src/league_playoffs.c): the Mod's counts per
  * division, its Italian rules, its knockouts compiled as tools/gplay.py compiles them. */
+#if SWOS_WORLDS
 static const uint8_t kWorld2627_italyPromoted[] = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
 static const uint8_t kWorld2627_italyRelegated[] = { 3, 3, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
@@ -2715,13 +2736,16 @@ static const LeaguePlayoffs kWorld2627Playoffs[] = {
     { 71, 2, kWorld2627_uruguayPromoted, kWorld2627_uruguayRelegated, 0, 0, 0, 0, kWorld2627_uruguaySpec, 0, kWorld2627_uruguaySeconds, 255, 0 },   /* Uruguay */
     { 40, 1, kWorld2627_walesPromoted, kWorld2627_walesRelegated, 0, 0, 0, 0, kWorld2627_walesSpec, 0, kWorld2627_walesSeconds, 255, 0 },   /* Wales */
 };
+#endif
 
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         *count = 31;
         return kWorld2627Playoffs;
+#endif
     default:
         *count = 0;
         return 0;
@@ -2730,6 +2754,7 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count)
 
 /* The off-file pools (src/team_pool.c): the team file each serves, its own file, its
  * clubs' areas at the levels of groups. */
+#if SWOS_WORLDS
 static const uint8_t kWorld2627_italyPoolAreas[][2] = {
     { 0, 1 },
     { 0, 2 },
@@ -2813,13 +2838,16 @@ static const TeamPool kWorld2627Pools[] = {
     { 25, 195, "HOLLAND_POOL.json", 6, kWorld2627_hollandPoolAreas },   /* Holland */
     { 29, 196, "PORTUGAL_POOL.json", 5, kWorld2627_portugalPoolAreas },   /* Portugal */
 };
+#endif
 
 const TeamPool *World_TeamPools(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         *count = 5;
         return kWorld2627Pools;
+#endif
     default:
         *count = 0;
         return 0;
@@ -2829,6 +2857,7 @@ const TeamPool *World_TeamPools(int32_t *count)
 /* The national cups (src/world_cups.c): their records, the clubs in the real bracket's
  * order, round 1's real ties and the later rounds' ties played the other way round; from
  * the second season, per division its clubs and how many of them have a bye. */
+#if SWOS_WORLDS
 static CompetitionCup kWorld2627_italianCup = {
     { { -124, 1, 20, 56, 32, 15, 0, 21, 1 }, 0, 16, 0, 53, 2 },
     { 84, 84, -108, 84, 0, 0 },
@@ -5746,13 +5775,16 @@ static const WorldCup kWorld2627Cups[] = {
     { 40, 1, &kWorld2627_welshCup, 16, 8, 0, 4, kWorld2627_welshCupFlips, 1, kWorld2627_welshCupQuota, kWorld2627_welshCupOrder1, 1, 1 },   /* _welshCup */
     { 40, 2, &kWorld2627_worldWalLeagueCup, 16, 8, 0, 4, kWorld2627_worldWalLeagueCupFlips, 1, kWorld2627_worldWalLeagueCupQuota, kWorld2627_worldWalLeagueCupOrder1, 0, 1 },   /* _worldWalLeagueCup */
 };
+#endif
 
 const WorldCup *World_Cups(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         *count = 98;
         return kWorld2627Cups;
+#endif
     default:
         *count = 0;
         return 0;
@@ -5761,6 +5793,7 @@ const WorldCup *World_Cups(int32_t *count)
 
 /* The divisions' mid-season splits and own meetings (src/league_split.c): the SWOS 96/97
  * Mod's tables, compiled as its split.py compiles them (scripts/world_split.py). */
+#if SWOS_WORLDS
 static const uint8_t kWorld2627_split0_0[72] = {
     0, 0, 0, 10, 5, 36, 3, 1, 44, 0, 48, 0, 54, 0, 72, 0, 0, 2, 0, 0, 0, 4, 2, 4,
     6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0,
@@ -6612,13 +6645,16 @@ static const LeagueSplit kWorld2627Splits[] = {
     { 71, 0, kWorld2627_split71_0 },
     { 40, 0, kWorld2627_split40_0 },
 };
+#endif
 
 const LeagueSplit *World_LeagueSplits(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         *count = 36;
         return kWorld2627Splits;
+#endif
     default:
         *count = 0;
         return 0;
@@ -6627,6 +6663,7 @@ const LeagueSplit *World_LeagueSplits(int32_t *count)
 
 /* The Coppa Italia Serie D (src/world_cupd.c): its rounds and ties as the Mod's cupd.py
  * compiles them, the Serie D level, each ordinal's base division, the strengths. */
+#if SWOS_WORLDS
 static const uint8_t kWorld2627CupDRounds[][8] = {
     { 61, 0, 1, 2, 34, 2, 0, 0 },
     { 63, 0, 1, 2, 64, 2, 34, 0 },
@@ -6842,12 +6879,15 @@ static const WorldCupD kWorld2627CupD = {
     20, 8, kWorld2627CupDRounds, 161, kWorld2627CupDTies, 5, 9, kWorld2627CupDBase, kWorld2627CupDStrength,
     42, kWorld2627CupDPoolStrength, { kWorld2627_name288, kWorld2627_name289 }
 };
+#endif
 
 const WorldCupD *World_CupD(void)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
     case WORLD_2627:
         return &kWorld2627CupD;
+#endif
     default:
         return 0;
     }

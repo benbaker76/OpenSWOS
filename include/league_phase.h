@@ -55,4 +55,33 @@ void LeaguePhase_Rank(const LeaguePhaseRow *row, const uint8_t (*cal)[2], int32_
 /* How far the last draw relaxed the country rules (0: not at all). */
 int32_t LeaguePhase_Relaxed(void);
 
+/* ---- the league phase in the engine (a world's European cups: type-2 contests whose first
+ * stage is 2 groups of 18, the Mod's careerworld LP_STAGES) ---- */
+
+/* The stage that DIYTournament_RecalculateMatchesPerTeam gives its days: ours -> its matchdays
+ * (8, the Conference League 6), else 0. */
+int32_t LeaguePhase_StageDays(uint8_t compId, uint16_t groups, uint16_t perGroup);
+
+/* DIY_LoadCurrentCompetitionSlot, the group stage's league started: ours -> its counters, the
+ * pots and the draw, the away figures cleared (the Mod's lp_start). */
+void LeaguePhase_StageStart(void);
+
+/* getCurrentFixtureTeamPtrs: ours -> the match's rows from the draw (1), else 0 (lp_pair). */
+int32_t LeaguePhase_Pair(uint8_t **team1, uint8_t **team2);
+
+/* DIY_PlayOrSimulateLeagueFixture, the result in the table: the away figures (lp_res). */
+void LeaguePhase_Result(uint8_t *team1, uint8_t *team2, uint16_t goals1, uint16_t goals2);
+
+/* DIY_SortLeagueTableByStandings: ours -> the one table of 36 over both groups, places 1-18
+ * in the first group's rows, 19-36 in the second's (1: done), else 0 (lp_sort). */
+int32_t LeaguePhase_Sort(void);
+
+/* DIY_BuildSeededBracketAndUpdateScores, at the group stage's end: before (after 0) the final
+ * table; after (1) the contest list's first 24: the play-off ties, then 1st-8th (lp_gend). */
+void LeaguePhase_GroupsEnd(uint8_t *diy, int32_t after);
+
+/* DIY_ShuffleTeamsAndBuildCompTeamList: a knockout stage after ours keeps its order (1: no
+ * shuffle), the round of 16 its play-off winners against the seeds (lp_draw); else 0. */
+int32_t LeaguePhase_KnockoutDraw(uint8_t *diy, uint16_t numTeams);
+
 #endif

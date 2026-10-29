@@ -471,10 +471,7 @@ extern uint16_t _worldCupHostTeam;
 extern uint8_t  _diyLeagueSeasonStateTable[];
 extern uint8_t  _diyLeagueScratchBuffer[];
 extern uint16_t _sameNationalCallFlag;
-extern uint16_t _boardConfidenceHistory0;
-extern uint16_t _boardConfidenceHistory1;
-extern uint16_t _boardConfidenceHistory2;
-extern uint16_t _boardConfidenceHistory3;
+extern uint16_t _boardConfidenceHistory[4];
 extern uint16_t _boardConfidenceScore;
 extern uint16_t _gamesPlayed;
 extern uint16_t _numWins;
@@ -655,10 +652,8 @@ void InitCareer(uint16_t teamNo)
 
     _sameNationalCallFlag = 0;
     _careerSeasonsCompleted = 0;
-    _boardConfidenceHistory0 = 0;
-    _boardConfidenceHistory1 = 0;
-    _boardConfidenceHistory2 = 0;
-    _boardConfidenceHistory3 = 0;
+    for (int i = 0; i < 4; i++)
+        _boardConfidenceHistory[i] = 0;
     _boardConfidenceScore = 0;
     _gamesPlayed = 0;
     _numWins = 0;

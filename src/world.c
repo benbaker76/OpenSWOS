@@ -10,7 +10,7 @@ static const char *const kTags[WORLD_COUNT] = {
 
 static WorldId s_world = WORLD_9697;
 
-WorldId World_Current(void)
+WorldId (World_Current)(void)       /* (parenthesised: SWOS_WORLDS=0 makes it a macro) */
 {
     return s_world;
 }
@@ -60,7 +60,7 @@ void World_ReadFromData(void)
 int32_t World_Set(const char *tag)
 {
     const int32_t w = World_FromTag(tag);
-    if (w < 0)
+    if (w < 0 || (!SWOS_WORLDS && w != WORLD_9697))    /* (SWOS_WORLDS=0: 96/97 alone) */
         return -1;
     s_world = (WorldId)w;
     return 0;

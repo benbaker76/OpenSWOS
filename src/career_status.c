@@ -129,10 +129,7 @@ extern uint16_t   _removedOfferPlayersFromSelectedTeamCount;
 
 /* Board confidence */
 extern int16_t    _boardConfidenceScore;
-extern int16_t    _boardConfidenceHistory0;
-extern int16_t    _boardConfidenceHistory1;
-extern int16_t    _boardConfidenceHistory2;
-extern int16_t    _boardConfidenceHistory3;
+extern uint16_t   _boardConfidenceHistory[4];     /* (newest first; read signed) */
 
 /* Trophy/win flags */
 extern uint16_t   _wonWorldCup;
@@ -1765,7 +1762,7 @@ void InitializeCareerSeasonFinancials(void) {
 static int16_t calcBoardConfidenceDeltaPercent(void) {
     if (_isNationalSelector != 0) {
         if (_seasonFinished == 0)
-            return _boardConfidenceHistory3;
+            return (int16_t)_boardConfidenceHistory[3];
         return seasonReviewConfidenceDeltaTable[_seasonReview];
     }
 
@@ -1781,9 +1778,9 @@ static int16_t calcBoardConfidenceDeltaPercent(void) {
 __attribute__((used, externally_visible))
 int16_t GetBoardConfidenceScore(void) {
     int16_t d0 = calcBoardConfidenceDeltaPercent();
-    d0 += _boardConfidenceHistory0;
-    d0 += _boardConfidenceHistory1;
-    d0 += _boardConfidenceHistory2;
+    d0 += (int16_t)_boardConfidenceHistory[0];
+    d0 += (int16_t)_boardConfidenceHistory[1];
+    d0 += (int16_t)_boardConfidenceHistory[2];
     d0 += _boardConfidenceScore;
     return d0;
 }
@@ -1818,11 +1815,11 @@ int16_t UpdateBoardConfidenceScore(void) {
 /* PushBoardConfidenceHistory */
 __attribute__((used, externally_visible))
 int16_t PushBoardConfidenceHistory(void) {
-    _boardConfidenceHistory3 = _boardConfidenceHistory2;
-    _boardConfidenceHistory2 = _boardConfidenceHistory1;
-    _boardConfidenceHistory1 = _boardConfidenceHistory0;
+    _boardConfidenceHistory[3] = _boardConfidenceHistory[2];
+    _boardConfidenceHistory[2] = _boardConfidenceHistory[1];
+    _boardConfidenceHistory[1] = _boardConfidenceHistory[0];
     int16_t d0 = calcBoardConfidenceDeltaPercent();
-    _boardConfidenceHistory0 = d0;
+    _boardConfidenceHistory[0] = (uint16_t)d0;
     return d0;
 }
 

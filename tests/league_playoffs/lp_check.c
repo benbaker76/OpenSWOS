@@ -4,6 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../src/league_phase.c"
+/* (the engine's half is not run here: its symbols, stubbed) */
+DIYCompetitionEx _diyCompetitionStart;
+DIYTournamentState _diyFileBufferCopy;
+uint8_t _seasonPlaying;
+WorldId (World_Current)(void) { return WORLD_9697; }
+uint16_t Rand2(void) { return 0; }
+uint8_t *diy_resolve_team(int32_t sel) { (void)sel; return 0; }
+uint8_t *diy_resolve_team_name(int32_t sel) { (void)sel; return 0; }
 /* The table's order on built rows: points, then goal difference, goals, away goals; equals in
  * the contest order; while the phase runs, the names after the away wins. */
 static int rank_cases(void)

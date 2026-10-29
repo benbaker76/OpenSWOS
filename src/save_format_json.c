@@ -736,6 +736,21 @@ typedef struct {
                              * ignores this flag and emits the whole table. */
 } FieldDesc;
 
+/* The league offsets (diy_league_season_state_table) are written at the original's 2000 when
+ * nothing past it is in use -- every 96/97 career -- so a save is the same from a build with the
+ * worlds (GLOBAL_TEAM_NUMBERS 2560) and one without them (2000, SWOS_WORLDS=0); a world's
+ * career writes them all. The load reads either length (the rest zero). */
+static uint32_t emitted_len(const FieldDesc *f, const uint8_t *p)
+{
+    if (f->size <= 2000 || strcmp(f->name, "diy_league_season_state_table") != 0)
+        return f->size;
+    for (uint32_t i = 2000; i < f->size; i++)
+        if (p[i])
+            return f->size;
+    return 2000;
+}
+
+
 #ifdef SWOS_SAVE_FORMAT_JSON_VERIFY
 /* Per-field round-trip verify — defined after field_byte_size, but the career
  * write path (above) calls it, so forward-declare here. */
@@ -781,7 +796,7 @@ extern uint16_t _sensisoftPlcSponsorshipFactor;
 extern uint16_t _additionalInvestments;
 extern uint16_t _teamValueDivisor;
 extern uint16_t _expectedLeagueRankIndex;
-extern uint16_t _boardConfidenceHistory0;
+extern uint16_t _boardConfidenceHistory[4];
 extern uint16_t _boardConfidenceScore;
 extern uint16_t _previousBoardConfidence;
 extern uint16_t _playWinCupAnimation;
@@ -1113,7 +1128,7 @@ static const FieldDesc s_career_scalars[] = {
     FX("team_value_divisor",              _teamValueDivisor,            FLD_U16),
     FX("expected_league_rank_index",      _expectedLeagueRankIndex,     FLD_U16),
     /* int16_t[4] in game code — endian-neutral 16-bit decimals, not bytes. */
-    FA("board_confidence_history",        _boardConfidenceHistory0, 8,  FLD_U16_ARRAY),
+    FA("board_confidence_history",        _boardConfidenceHistory, 8,  FLD_U16_ARRAY),
     FX("board_confidence_score",          _boardConfidenceScore,        FLD_U16),
     FX("previous_board_confidence",       _previousBoardConfidence,     FLD_U16),
     FX("play_win_cup_animation",          _playWinCupAnimation,         FLD_U16),
@@ -1509,14 +1524,16 @@ static void emit_scalar_table(mjson_print_fn_t fn, void *fnd,
             mjson_printf(fn, fnd, "%Q:%.*Q", f->name, (int)n, (const char *)p);
             break;
         }
-        case FLD_BYTES:
+        case FLD_BYTES: {
+            const uint32_t len = emitted_len(f, p);
             mjson_printf(fn, fnd, "%Q:[", f->name);
-            for (uint32_t i = 0; i < f->size; i++) {
+            for (uint32_t i = 0; i < len; i++) {
                 if (i > 0) mjson_printf(fn, fnd, "%s", ",");
                 mjson_printf(fn, fnd, "%u", (unsigned)p[i]);
             }
             mjson_printf(fn, fnd, "%s", "]");
             break;
+        }
         case FLD_U16_ARRAY:
             /* Emit each 16-bit word as a host-native-read decimal so the
              * on-disk value is byte-order-independent. */

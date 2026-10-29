@@ -1020,6 +1020,8 @@ WORLD_DATA_C = """/*
  * the JSON (or the script), not this. World_InstallBaked copies each world's records over
  * 96/97's compiled ones at start-up, on both targets (frontend.c) -- the Amiga has no
  * JSON -- keeping each league's compiled playoff plumbing, as the SDL JSON install does.
+ * SWOS_WORLDS=0 (include/swos_types.h) compiles every world's data out: the functions stay,
+ * their tables empty.
  */
 #include "game_types.h"
 #include "competition_data.h"
@@ -1032,21 +1034,29 @@ WORLD_DATA_C = """/*
 #include "world_cupd.h"
 #include "league_split.h"
 
+#if SWOS_WORLDS
 %(externs)s
+#endif
 
+#if SWOS_WORLDS
 %(records)s
+#endif
 
 /* The countries new to the game (96/97 has no clubs there): each one's name (its first
  * byte its continent's: 0 Europe), its table (its league; its cups go in with the world's,
  * world_cups.c); the world's continent lists (the career picker's: 96/97's with the new
  * countries in, by name) and its season end's countries (96/97's order, the new ones
  * after). */
+#if SWOS_WORLDS
 %(countries)s
+#endif
 
 const uint8_t *World_ContinentCountries(uint8_t region)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(region_cases)s
+#endif
     default:
         return 0;
     }
@@ -1055,7 +1065,9 @@ const uint8_t *World_ContinentCountries(uint8_t region)
 const uint8_t *World_SeasonCountries(void)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(season_cases)s
+#endif
     default:
         return 0;
     }
@@ -1064,7 +1076,9 @@ const uint8_t *World_SeasonCountries(void)
 const char *World_CountryTeamFile(uint8_t country)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(file_cases)s
+#endif
     default:
         return 0;
     }
@@ -1100,7 +1114,9 @@ static void install_league(CompetitionLeague *dst, const CompetitionLeague *src)
 void World_InstallBaked(void)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(cases)s
+#endif
     default:
         break;
     }
@@ -1108,12 +1124,16 @@ void World_InstallBaked(void)
 
 /* The leagues with groups side by side (src/league_groups.c): each one's levels, and its
  * clubs with their division in the team file and their area at each level of groups. */
+#if SWOS_WORLDS
 %(groups)s
+#endif
 
 const LeagueGroups *World_LeagueGroups(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(group_cases)s
+#endif
     default:
         *count = 0;
         return 0;
@@ -1122,12 +1142,16 @@ const LeagueGroups *World_LeagueGroups(int32_t *count)
 
 /* The leagues' play-offs and play-outs (src/league_playoffs.c): the Mod's counts per
  * division, its Italian rules, its knockouts compiled as tools/gplay.py compiles them. */
+#if SWOS_WORLDS
 %(playoffs)s
+#endif
 
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(po_cases)s
+#endif
     default:
         *count = 0;
         return 0;
@@ -1136,12 +1160,16 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count)
 
 /* The off-file pools (src/team_pool.c): the team file each serves, its own file, its
  * clubs' areas at the levels of groups. */
+#if SWOS_WORLDS
 %(pools)s
+#endif
 
 const TeamPool *World_TeamPools(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(pool_cases)s
+#endif
     default:
         *count = 0;
         return 0;
@@ -1151,12 +1179,16 @@ const TeamPool *World_TeamPools(int32_t *count)
 /* The national cups (src/world_cups.c): their records, the clubs in the real bracket's
  * order, round 1's real ties and the later rounds' ties played the other way round; from
  * the second season, per division its clubs and how many of them have a bye. */
+#if SWOS_WORLDS
 %(cups)s
+#endif
 
 const WorldCup *World_Cups(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(cup_cases)s
+#endif
     default:
         *count = 0;
         return 0;
@@ -1165,12 +1197,16 @@ const WorldCup *World_Cups(int32_t *count)
 
 /* The divisions' mid-season splits and own meetings (src/league_split.c): the SWOS 96/97
  * Mod's tables, compiled as its split.py compiles them (scripts/world_split.py). */
+#if SWOS_WORLDS
 %(splits)s
+#endif
 
 const LeagueSplit *World_LeagueSplits(int32_t *count)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(split_cases)s
+#endif
     default:
         *count = 0;
         return 0;
@@ -1179,12 +1215,16 @@ const LeagueSplit *World_LeagueSplits(int32_t *count)
 
 /* The Coppa Italia Serie D (src/world_cupd.c): its rounds and ties as the Mod's cupd.py
  * compiles them, the Serie D level, each ordinal's base division, the strengths. */
+#if SWOS_WORLDS
 %(cupd)s
+#endif
 
 const WorldCupD *World_CupD(void)
 {
     switch (World_Current()) {
+#if SWOS_WORLDS
 %(cupd_cases)s
+#endif
     default:
         return 0;
     }

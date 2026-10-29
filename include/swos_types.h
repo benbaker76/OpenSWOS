@@ -95,10 +95,23 @@ typedef unsigned long long uint64_t;
 #include <stddef.h>
 #endif
 
+/* SWOS_WORLDS: the football worlds beyond 96/97 (include/world.h; docs/WORLD_2026_27.md) --
+ * World 2026-27 and everything it brought: its countries, leagues, splits, play-offs, cups,
+ * pools, the Coppa Italia Serie D, Europe's league phases. `make SWOS_WORLDS=0` compiles them
+ * out: the game is 96/97 alone, as it was before them (its world pinned, the worlds' data
+ * gone, every world hook inert). Default on. */
+#ifndef SWOS_WORLDS
+#define SWOS_WORLDS 1
+#endif
+
 /* Global team numbers (a country's base + ordinal, _teamsCountryNumbers): the tables indexed
  * by them -- the league offsets (_diyLeagueSeasonStateTable, its scratch). The original's
  * 2000 held 96/97's 1730; a world's whole set needs more (World 2026-27: 2,226 clubs). */
+#if SWOS_WORLDS
 #define GLOBAL_TEAM_NUMBERS 2560
+#else
+#define GLOBAL_TEAM_NUMBERS 2000
+#endif
 
 /* Cross-toolchain debug print. Amiga m68k toolchain has no <stdio.h>,
  * so fprintf(stderr, ...) doesn't compile. SWOS_DBG / SWOS_DBG_FLUSH

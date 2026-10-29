@@ -447,3 +447,215 @@ void LeaguePhase_Rank(const LeaguePhaseRow *row, const uint8_t (*cal)[2], int32_
         order[j] = (uint8_t)i;
     }
 }
+
+/* =====================================================================
+ * The league phase in the engine: the SWOS 96/97 Mod's hooks (lp36.py: lp_days, lp_start,
+ * lp_pair, lp_res, lp_sort, lp_gend, lp_draw), on our type-2 contest. A world's European cup
+ * (ids 0..2, World 2026-27) whose first stage is 2 groups of 18; the engine's counters already
+ * make 18 matches a day of 2 groups of 18; ours: the draw's 144 (108) matches in 72 (54) pair
+ * steps a cycle, one table of 36, the knockout play-offs' list.
+ * ===================================================================== */
+#include "game_types.h"
+#include "diy_competition.h"
+#include "world.h"
+#include "random.h"
+
+extern DIYCompetitionEx _diyCompetitionStart;
+extern DIYTournamentState _diyFileBufferCopy;
+extern uint8_t  _seasonPlaying;
+
+typedef char _lp_state_check[(sizeof(((LeaguePhaseState *)0)->cal) == LEAGUE_PHASE_MATCHES * 2) ? 1 : -1];
+
+#define ROW 18
+#define CONFERENCE 2                            /* (the world's UEFA Cup slot: 6 pots of 6) */
+
+static const uint8_t kPlayoffTies[16] = {       /* the Mod's playoff_slots(): places (0-based) of */
+    16, 9, 22, 13, 18, 11, 20, 15,              /* the play-off ties, unseeded first, in the order */
+    23, 8, 17, 12, 21, 10, 19, 14,              /* of the round-of-16 bracket */
+};
+static const uint8_t kR16Seeds[8] = { 0, 7, 2, 4, 1, 6, 3, 5 };     /* (lp36 R16_SEEDS) */
+
+static int32_t ours_id(uint8_t compId)
+{
+    return SWOS_WORLDS && World_Current() != WORLD_9697 && compId <= CONFERENCE;
+}
+
+int32_t LeaguePhase_StageDays(uint8_t compId, uint16_t groups, uint16_t perGroup)
+{
+    return ours_id(compId) && groups == 2 && perGroup == 18 ? (compId == CONFERENCE ? 6 : 8) : 0;
+}
+
+/* The league phase is in _diyCompetitionStart (any of its matches). */
+static int32_t ours(void)
+{
+    const DIYCompetition *b = &_diyCompetitionStart.base;
+    return ours_id((uint8_t)b->field_2E) && b->matchPairsPerRound == 2 && b->totalMatchesInRound == 18;
+}
+
+static DIYTeamStats *lp_row(int32_t row)
+{
+    return (DIYTeamStats *)((uint8_t *)&_diyCompetitionStart + (uint32_t)row * ROW + DIY_STANDINGS_OFFSET);
+}
+
+static TeamFileEx *lp_team(int32_t row)
+{
+    return (TeamFileEx *)diy_resolve_team(lp_row(row)->teamSelOffset);
+}
+
+void LeaguePhase_StageStart(void)
+{
+    if (!ours())
+        return;
+    DIYCompetitionEx *c = &_diyCompetitionStart;
+    const int32_t six = c->base.field_2E == CONFERENCE, matches = six ? 108 : 144;
+    c->matchData.league.totalMatchesPerSection = (uint16_t)(matches / 2);      /* (2 groups a pair step) */
+    c->matchData.league.totalMatchesPerSectionLive = (uint16_t)(matches / 2);
+    c->leagueTotalMatches = (uint16_t)(six ? 6 : 8);
+    LeaguePhaseState *st = &c->leaguePhase;
+    for (int32_t r = 0; r < N; r++)
+        st->awayGoals[r] = st->awayWins[r] = st->discipline[r] = 0;
+    /* The pots: positions = the contest list's, their rows' clubs by strength (the 16 players'
+     * prices; the club coefficients later), a country capped; the draw over them. */
+    uint8_t row_of[N], country[N], order[N], drawn[N];
+    uint32_t key[N], seed = (uint32_t)c->base.field_2E * 7919u + _seasonPlaying * 131u;
+    for (int32_t p = 0; p < N; p++) {
+        row_of[p] = c->matchData.league.shuffleAndPad[p];
+        const TeamFileEx *t = lp_team(row_of[p]);
+        uint32_t v = 0;
+        for (int32_t k = 0; k < 16; k++)
+            v += (uint8_t)t->players[k].price;
+        key[p] = v;
+        country[p] = t->team.countryNumber;
+        seed = seed * 31u + t->team.teamOrdinal + ((uint32_t)t->team.countryNumber << 8);
+    }
+    LeaguePhase_Pots(key, country, six, order);
+    for (int32_t q = 0; q < N; q++)
+        drawn[q] = country[order[q]];
+    uint8_t cal[LEAGUE_PHASE_MATCHES][2];
+    if (!LeaguePhase_Draw(drawn, six, seed, cal))
+        return;                                 /* (never: a relaxed draw at worst) */
+    for (int32_t m = 0; m < matches; m++) {
+        st->cal[m][0] = row_of[order[cal[m][0]]];
+        st->cal[m][1] = row_of[order[cal[m][1]]];
+    }
+}
+
+int32_t LeaguePhase_Pair(uint8_t **team1, uint8_t **team2)
+{
+    if (!ours())
+        return 0;
+    const DIYCompetitionEx *c = &_diyCompetitionStart;
+    const int32_t m = 2 * c->leagueSectionState.sectionMatchesProgress + c->base.subRoundCounter;
+    if (m >= (c->base.field_2E == CONFERENCE ? 108 : 144))
+        return 0;
+    *team1 = (uint8_t *)&_diyCompetitionStart + (uint32_t)c->leaguePhase.cal[m][0] * ROW;
+    *team2 = (uint8_t *)&_diyCompetitionStart + (uint32_t)c->leaguePhase.cal[m][1] * ROW;
+    return 1;
+}
+
+void LeaguePhase_Result(uint8_t *team1, uint8_t *team2, uint16_t goals1, uint16_t goals2)
+{
+    (void)team1;
+    if (!ours())
+        return;
+    LeaguePhaseState *st = &_diyCompetitionStart.leaguePhase;
+    const int32_t away = (int32_t)(team2 - (uint8_t *)&_diyCompetitionStart) / ROW;
+    if (away < 0 || away >= N)
+        return;
+    st->awayGoals[away] = (uint8_t)(st->awayGoals[away] + goals2);
+    if (goals2 > goals1)
+        st->awayWins[away]++;
+}
+
+/* The table's order, rows best first (finished: the phase over -- the full criteria). */
+static void rank_rows(int32_t finished, uint8_t *order)
+{
+    DIYCompetitionEx *c = &_diyCompetitionStart;
+    LeaguePhaseRow r[N];
+    for (int32_t i = 0; i < N; i++) {
+        const DIYTeamStats *s = lp_row(i);
+        r[i].points = s->points;
+        r[i].goalsFor = s->goalsFor;
+        r[i].goalsAgainst = s->goalsAgainst;
+        r[i].wins = s->wins;
+        r[i].awayGoals = c->leaguePhase.awayGoals[i];
+        r[i].awayWins = c->leaguePhase.awayWins[i];
+        r[i].discipline = c->leaguePhase.discipline[i];
+        r[i].coef = 255u - (uint32_t)i;         /* (the contest order: the coefficients later) */
+        r[i].nameRank = 0;
+        const uint8_t *ni = diy_resolve_team_name(s->teamSelOffset);
+        for (int32_t j = 0; j < N; j++) {       /* (how many sort before it by name) */
+            const uint8_t *nj = diy_resolve_team_name(lp_row(j)->teamSelOffset), *a = nj, *b = ni;
+            while (*a && *a == *b)
+                a++, b++;
+            r[i].nameRank = (uint8_t)(r[i].nameRank + (*a < *b));
+        }
+    }
+    LeaguePhase_Rank(r, (const uint8_t (*)[2])c->leaguePhase.cal, c->base.field_2E == CONFERENCE ? 108 : 144,
+                     finished, order);
+}
+
+int32_t LeaguePhase_Sort(void)
+{
+    if (!ours())
+        return 0;
+    DIYCompetitionEx *c = &_diyCompetitionStart;
+    uint8_t order[N];
+    rank_rows(c->minSubstitutes == 0, order);
+    for (int32_t p = 0; p < N; p++)             /* places 1-18 in the first group's, 19-36 the second's */
+        c->matchData.league.teamEntryOffsets[p] = (uint16_t)(order[p] * ROW);
+    return 1;
+}
+
+static uint8_t s_final[N];                      /* the final table (GroupsEnd before -> after) */
+static uint8_t s_finalOk;
+
+void LeaguePhase_GroupsEnd(uint8_t *diy, int32_t after)
+{
+    if (!after) {
+        s_finalOk = (uint8_t)ours();
+        if (s_finalOk)
+            rank_rows(1, s_final);
+        return;
+    }
+    if (!s_finalOk)
+        return;
+    s_finalOk = 0;
+    uint8_t *list = ((DIYTournamentState *)diy)->teamIndexOrder;
+    for (int32_t k = 0; k < 16; k++)            /* the play-off ties, unseeded first */
+        list[k] = s_final[kPlayoffTies[k]];
+    for (int32_t k = 0; k < 8; k++)             /* the round of 16's seeded club of tie k */
+        list[16 + k] = s_final[kR16Seeds[k]];
+    for (int32_t b = 0; b < 4; b++) {           /* the draws: which seeded club meets which, which */
+        uint8_t x;                              /* half each seeded pair goes in */
+        if (Rand2() & 1) {
+            x = list[2 * b + 1];
+            list[2 * b + 1] = list[2 * b + 9];
+            list[2 * b + 9] = x;
+        }
+        if (Rand2() & 1) {
+            x = list[16 + b];
+            list[16 + b] = list[20 + b];
+            list[20 + b] = x;
+        }
+    }
+}
+
+int32_t LeaguePhase_KnockoutDraw(uint8_t *diy, uint16_t numTeams)
+{
+    DIYTournamentState *t = (DIYTournamentState *)diy;
+    if (!ours_id((uint8_t)t->header.field_2E) || t->slots[0].groups != 2 || t->slots[0].teamsPerGroup != 18 ||
+        t->header.roundComplete == 0)
+        return 0;
+    if (numTeams == 16 && t->header.roundComplete == 2) {   /* the round of 16 */
+        uint8_t w[8];
+        for (int32_t k = 0; k < 8; k++)
+            w[k] = t->teamIndexOrder[k];        /* (the play-off winners, tie order) */
+        for (int32_t k = 0; k < 8; k++) {
+            t->teamIndexOrder[2 * k] = w[k];
+            t->teamIndexOrder[2 * k + 1] = t->teamIndexOrder[16 + k];
+        }
+    }
+    return 1;
+}
+

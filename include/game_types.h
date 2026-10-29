@@ -1058,6 +1058,16 @@ typedef struct __attribute__((packed)) LeagueSplitState {
     uint8_t  pre[LEAGUE_SPLIT_MAX_CLUBS];       /* row -> its points before rounding (a tie-break) */
 } LeagueSplitState;
 
+/* A world's 36-club league phase while it runs (src/league_phase.c; include/league_phase.h):
+ * the draw's matches (home row, away row) matchday by matchday, each row's away goals and away
+ * wins and disciplinary points (the table's tie-breaks). In the league table's rows 36.. */
+typedef struct __attribute__((packed)) LeaguePhaseState {
+    uint8_t cal[144][2];
+    uint8_t awayGoals[36];
+    uint8_t awayWins[36];
+    uint8_t discipline[36];
+} LeaguePhaseState;
+
 typedef struct __attribute__((packed, aligned(2))) DIYCompetitionEx_LeagueSectionState {
     uint16_t halfGroupCount;            /* 0x00 (parent 0x1C6) */
     uint16_t matchesPerHalf;            /* 0x02 (parent 0x1C8) */
@@ -1167,8 +1177,20 @@ typedef struct __attribute__((packed, aligned(2))) DIYCompetitionEx {
      *     clobbers a cup (sub-)slot's teamGridPairings / teamOffsetTable.
      *     Reached via DIY_STANDINGS_OFFSET / diy_standings_row (offsetof-based,
      *     so the 32/64-bit struct growth tracks automatically). --- */
-    DIYTeamStats leagueStandings[64];   /* 0x5C8 / 0x5D0 .. +0x480 */
+    union __attribute__((packed)) {
+        DIYTeamStats leagueStandings[64];   /* 0x5C8 / 0x5D0 .. +0x480 */
+        struct __attribute__((packed)) {    /* a world's 36-club league phase (src/league_phase.c):
+                                             * its own figures in the rows a stage of 36 leaves
+                                             * unused, copied and saved with the contest, as the
+                                             * SWOS 96/97 Mod keeps them (lp36.py: rows 36+) */
+            DIYTeamStats     leaguePhaseRows[36];
+            LeaguePhaseState leaguePhase;
+        };
+    };
 } DIYCompetitionEx;
+
+typedef char _leaguephase_fits_check[(36 * sizeof(DIYTeamStats) + sizeof(LeaguePhaseState) <=
+                                      64 * sizeof(DIYTeamStats)) ? 1 : -1];
 
 /* DIYCompetitionEx embeds DIYCompetition (which has 1 pointer);
  * +4 on 64-bit via that. The DIYCompetitionEx_* view variants are

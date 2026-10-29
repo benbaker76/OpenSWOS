@@ -25,6 +25,11 @@ typedef enum {
 } WorldId;
 
 WorldId     World_Current(void);
+#if !SWOS_WORLDS
+/* (SWOS_WORLDS=0, include/swos_types.h: 96/97 alone -- a constant, every world branch folds
+ * away) */
+#define World_Current() WORLD_9697
+#endif
 const char *World_Tag(void);                 /* the current world's: "9697" */
 const char *World_TagOf(WorldId w);          /* NULL for an unknown id */
 int32_t     World_FromTag(const char *tag);  /* the id, or -1 */
