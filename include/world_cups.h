@@ -2,10 +2,11 @@
  * world_cups.h -- a world's national cups as the SWOS 96/97 Mod's packs have them
  * (src/world_cups.c; docs/WORLD_2026_27.md, phase 4).
  *
- * A world cup is a fixed list of clubs in its record (as the Mod's: the pack's ties.csv),
- * in the order of the real bracket: in the world's first season round 1 is the real draw
- * and each later round the winners of ties 2k and 2k + 1 of the one before -- the real
- * pairs, with the side each was played on -- instead of the engine's draw. From the second
+ * A world cup is a fixed list of clubs in its record (as the Mod's: the pack's ties.csv): in
+ * the world's first season round 1 is the real draw, its real ties first, and after it each
+ * winner goes to its place in the real bracket (order1), each later round the winners of
+ * ties 2k and 2k + 1 of the one before -- the real pairs, the home club first -- instead of
+ * the engine's draw. A list can hold 64 clubs (the record carries the rest after it). From the second
  * season (the Mod's 4.0.1: tools/cupsf.py, gplay.c cf_build) the clubs come from the
  * divisions as they are that season, as many from each as the real list had (and as many
  * of them waiting for round 2): within a division the clubs relegated into it first, then
@@ -36,6 +37,10 @@ typedef struct {
     const uint16_t *flips;      /* per later round, its ties played the other way round (bit k) */
     uint8_t         groups;     /* from the second season: per division of the real list, */
     const uint8_t (*quota)[3];  /* (its division, its clubs, how many of them have a bye) */
+    const uint8_t  *order1;     /* round 1's ties as played (real ties first): each one's place
+                                   in the bracket, where its winner goes after round 1 */
+    uint8_t         numbered;   /* its rounds named by number (FIRST ROUND ..), from */
+    uint8_t         firstRound; /* this one (the EFL Cup: from its 4th) */
 } WorldCup;
 
 const WorldCup *World_Cups(int32_t *count);     /* (world_data.c, generated) */

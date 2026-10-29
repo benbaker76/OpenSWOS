@@ -58,6 +58,48 @@ else
     exit 1
 fi
 
+# Every pack's knockouts (not only Italy's): our compile_spec's bytes against the Mod's, then
+# its gp_season against ours over random tables of that league's shape.
+python3 -I - "$MOD" "$OUT" <<'PY'
+import glob, json, os, sys
+sys.path.insert(0, 'scripts'); sys.path.insert(1, sys.argv[1] + '/tools')
+import world_import as w
+import gplay
+out = open(os.path.join(sys.argv[2], 'packs.txt'), 'w')
+for f in sorted(glob.glob(os.path.join(w.MOD, 'packs', '*', 'pack.json'))):
+    for c in json.load(open(f, encoding='utf-8'))['competitions']:
+        if c.get('key') != 'league' or not c.get('ko_playoffs'):
+            continue
+        nd = len(c.get('divisions') or [1])
+        sizes = [d['teams'] for d in c.get('divisions') or []] or [len(c.get('clubs') or []) or 16]
+        code = os.path.basename(os.path.dirname(f))
+        mod = bytes(gplay.compile_spec(c['ko_playoffs'], nd, c.get('names')))
+        if w.compile_spec(c['ko_playoffs'], nd) != mod:
+            sys.exit('FAIL: %s: compile_spec differs from the Mod\'s' % code)
+        open(os.path.join(sys.argv[2], code + '.spec'), 'wb').write(mod)
+        out.write('%s %s\n' % (code, ','.join(map(str, sizes))))
+PY
+PN=$(( N / 10 ))
+npacks=0; bad=""
+while read -r code shape; do
+    "$OUT/mod" "$OUT/$code.spec" "$PN" "$shape" > "$OUT/p_mod.txt"
+    "$OUT/ours" "$OUT/$code.spec" "$PN" "$shape" > "$OUT/p_ours.txt" 2>/dev/null
+    if cmp -s "$OUT/p_mod.txt" "$OUT/p_ours.txt"; then
+        npacks=$((npacks + 1))
+    else
+        bad="$bad $code"
+        [ -n "${VERBOSE:-}" ] && { echo "  $code ($shape) differs:"; diff "$OUT/p_mod.txt" "$OUT/p_ours.txt" | head -3; }
+    fi
+done < "$OUT/packs.txt"
+KNOWN=" arg"     # (Argentina: relegation by average, promedio -- not ported yet)
+if [ "$bad" = "$KNOWN" ] || [ -z "$bad" ]; then
+    echo "PASS: every pack's knockouts ($npacks leagues): compiled as the Mod compiles them, $PN seasons each," \
+         "every move the Mod's${bad:+ (known, not ported yet:$bad)}"
+else
+    echo "FAIL: the knockouts of$bad differ from the Mod's ($npacks leagues equal; VERBOSE=1 for the first seasons)"
+    exit 1
+fi
+
 # The B-team rules (the Mod's sec_post): built cases, then random ones against the Mod's.
 $CC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/mod_sec" $T/mod_sec.c
 $CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/seconds" $T/seconds.c

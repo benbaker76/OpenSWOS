@@ -78,8 +78,9 @@ static int32_t first_season(void)
 }
 
 /* Each cup's real list (its record's, as installed: the first season's). */
-#define WORLD_CUPS_MAX 8
-static TeamId s_real[WORLD_CUPS_MAX][32];
+#define WORLD_CUPS_MAX 128
+#define WORLD_CUP_CLUBS 64
+static TeamId s_real[WORLD_CUPS_MAX][WORLD_CUP_CLUBS];
 
 static int32_t cup_index(const WorldCup *c)
 {
@@ -104,7 +105,7 @@ static int32_t build(const WorldCup *c, TeamId *out)
     const LeagueGroups *lg = LeagueGroups_ForCountry(c->country);
     const int32_t ranked = g_worldCups.placesCountry == c->country &&
                            (uint8_t)(g_worldCups.placesSeason + 1) == g_worldCups.seasons;
-    TeamId byes[32];
+    TeamId byes[WORLD_CUP_CLUBS];
     uint8_t cand[256];
     uint32_t key[256];
     int32_t at = 0, nb = 0;
@@ -144,14 +145,15 @@ static int32_t build(const WorldCup *c, TeamId *out)
                     break;
                 }
         for (int32_t k = 0; k < want; k++) {
-            TeamId *t = k >= want - wb ? (nb < 32 ? &byes[nb++] : 0) : (at < 32 ? &out[at++] : 0);
+            TeamId *t = k >= want - wb ? (nb < WORLD_CUP_CLUBS ? &byes[nb++] : 0) :
+                                          (at < WORLD_CUP_CLUBS ? &out[at++] : 0);
             if (t) {
                 t->countryNumber = c->country;
                 t->teamOrdinal = cand[k];
             }
         }
     }
-    for (int32_t k = 0; k < nb && at < 32; k++)
+    for (int32_t k = 0; k < nb && at < WORLD_CUP_CLUBS; k++)
         out[at++] = byes[k];                    /* (the byes after round 1's clubs) */
     return at == c->n ? at : 0;
 }
@@ -159,7 +161,7 @@ static int32_t build(const WorldCup *c, TeamId *out)
 /* The cup's clubs this season, in its record's order (round 1's, then the byes). */
 static const TeamId *entrants(const WorldCup *c)
 {
-    static TeamId list[32];
+    static TeamId list[WORLD_CUP_CLUBS];
     const int32_t i = cup_index(c);
     if (build(c, list))
         return list;
@@ -198,23 +200,55 @@ void WorldCups_KeepPlace(uint8_t country, uint16_t division, uint16_t team, uint
                                                level_of(LeagueGroups_ForCountry(country), division) << 5);
 }
 
+/* Each world country's own table (its 96/97 one has no room for a cup it lacked): its
+ * leagues as they were, -2, its national cup, its league cup, -1. */
+#define WORLD_CUP_COUNTRIES 96
+static Competition *s_tables[WORLD_CUP_COUNTRIES][12];
+static uint8_t s_tableCountry[WORLD_CUP_COUNTRIES];
+static int32_t s_tables_n;
+
+static Competition **own_table(uint8_t country)
+{
+    for (int32_t i = 0; i < s_tables_n; i++)
+        if (s_tableCountry[i] == country)
+            return s_tables[i];
+    if (s_tables_n >= WORLD_CUP_COUNTRIES)
+        return 0;
+    Competition **old = (Competition **)_competitionsTable[country], **t = s_tables[s_tables_n];
+    int32_t k = 0;
+    while (old && (intptr_t)old[k] != -1 && k < 11) {
+        t[k] = old[k];
+        k++;
+    }
+    t[k] = (Competition *)(intptr_t)-1;
+    s_tableCountry[s_tables_n++] = country;
+    _competitionsTable[country] = t;
+    return t;
+}
+
 void WorldCups_Install(void)
 {
     int32_t count = 0;
     const WorldCup *cups = World_Cups(&count);
     for (int32_t i = 0; i < count; i++) {
-        Competition **tbl = (Competition **)_competitionsTable[cups[i].country];
-        int32_t sep = 0;
+        Competition **tbl = own_table(cups[i].country);
+        int32_t sep = 0, end;
+        if (!tbl)
+            continue;
         while ((intptr_t)tbl[sep] != -2)
             sep++;
-        /* [leagues, -2, national cup, league cup, -1]: the league cup's table has the room
-         * (competition_data.c, the SDL's DJ_TABLE_SLOTS) */
-        if (cups[i].slot == 2 && (intptr_t)tbl[sep + 2] == -1)
-            tbl[sep + 3] = (Competition *)(intptr_t)-1;
+        for (end = sep + 1; (intptr_t)tbl[end] != -1; end++)
+            ;
+        /* [leagues, -2, national cup, league cup, -1] */
+        if (sep + cups[i].slot >= end) {
+            if (end < sep + cups[i].slot)
+                continue;                       /* (a league cup without a national cup: none) */
+            tbl[sep + cups[i].slot + 1] = (Competition *)(intptr_t)-1;
+        }
         tbl[sep + cups[i].slot] = (Competition *)cups[i].record;
         Comp_Register((Competition *)cups[i].record);
         const TeamId *list = comp_team_seed_list((Competition *)cups[i].record);
-        for (int32_t k = 0; i < WORLD_CUPS_MAX && k < cups[i].n && k < 32; k++)
+        for (int32_t k = 0; i < WORLD_CUPS_MAX && k < cups[i].n && k < WORLD_CUP_CLUBS; k++)
             s_real[i][k] = list[k];
     }
 }
@@ -290,6 +324,12 @@ void WorldCups_ArrangeNextRound(void)
         w[x->teamShuffleOrder[i]] = grid[i];
     for (int32_t i = 0; i < n && i < 64; i++)
         grid[i] = w[i];
+    if (played == 0 && c->order1) {             /* (round 1's winners to their bracket places) */
+        for (int32_t i = 0; i < n && i < 64; i++)
+            w[c->order1[i]] = grid[i];
+        for (int32_t i = 0; i < n && i < 64; i++)
+            grid[i] = w[i];
+    }
     const uint16_t flips = c->flips[played];
     for (int32_t k = 0; 2 * k + 1 < n; k++)
         if (flips & (1u << k)) {
@@ -366,6 +406,11 @@ int32_t WorldCups_RoundStringIndex(uint8_t compId, uint16_t round, uint16_t roun
             ours = 1;
     if (!ours || round + 3 >= rounds)
         return -1;                              /* (the last three: the engine's names) */
+    for (int32_t i = 0; i < count; i++)
+        if ((uint8_t)((const Competition *)cups[i].record)->compId == compId && cups[i].numbered) {
+            const int32_t k = round + cups[i].firstRound - 1;
+            return k < 6 ? k : 5;               /* (FIRST .. SIXTH ROUND) */
+        }
     if (round + 4 == rounds)
         return 12;                              /* ROUND OF 16 (_cupRoundStringTable) */
     return round;                               /* FIRST ROUND ... */

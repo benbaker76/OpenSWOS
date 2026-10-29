@@ -341,55 +341,160 @@ def italian_groups(picked, country, league):
 
 
 # The Mod's knockout play-offs (pack.json 'ko_playoffs'), compiled as tools/gplay.py's
-# compile_spec compiles them -- the same bytes, so src/league_playoffs.c walks them as
-# gplay.c does -- for the kinds played at our season end (promotion, play-out) and the
-# placement play-offs the career club plays (gplay.c leaves them alone at the season end):
-# entrants [division, place], rounds of ties.
-KINDS = {"promotion": 1, "placement": 3, "playout": 4}   # (placement: the career club's
-                                                          # contest only -- no move, no draw)
+# compile_spec compiles them -- ported, the same bytes (league_playoffs_check.sh compares
+# them for every pack), so src/league_playoffs.c walks them as gplay.c does. Every kind is
+# compiled: the season end moves clubs by promotion, play-out and promedio; the others it
+# walks past (a placement is the career club's contest; title, europe, stage_title need the
+# splits and stages still to come).
+KINDS = {"promotion": 1, "europe": 2, "placement": 3, "playout": 4, "title": 5, "continental": 6,
+         "promedio": 7, "stage_title": 8}
 HOSTS = {"listed": 0, "better": 1, "drawn": 2, "neutral": 3}
 LEVELS = {"better": 0, "et_pens": 1, "et_better": 2, "pens": 3, "away_pens": 4, "away_better": 5}
 RESERVE = 0xFE
+SKIP_SAME = 0x80            # (host byte bit 7: a tie of one club with itself is not played)
+BEST_LOSER = 0x3F           # (member 'BL': the best placed loser of the previous round)
+
+
+def compile_spec(pos, ndiv):
+    """pack.json 'ko_playoffs' -> the bytes gplay.c walks, ended by a 0 (the Mod's
+    tools/gplay.py compile_spec, MIT, Davide Lorigliola: its bytes only, not its tables of
+    names, stages and round names)."""
+    out = bytearray()
+    for po in pos:
+        key = po.get("key", "?")
+        kind = KINDS.get(po.get("kind"))
+        if not kind:
+            sys.exit("%s: kind %s" % (key, po.get("kind")))
+        if kind == 7:                           # (Argentina: matches this season, loser_div)
+            m, ld = po.get("matches"), po.get("loser_div")
+            if not (isinstance(m, int) and 1 <= m < 256 and isinstance(ld, int) and 0 < ld < ndiv):
+                sys.exit("%s: promedio needs matches 1..255 and loser_div 1..%d" % (key, ndiv - 1))
+            out += bytes((7, 0, 0, m, ld, 0))
+            continue
+        ents = []
+        for e in po["entrants"]:
+            if isinstance(e, list) and len(e) == 2:
+                d, p = e
+                if not (0 <= d < ndiv and p >= 1):
+                    sys.exit("%s: entrant %s" % (key, e))
+                ents.append((0, d, p, 0))
+            elif isinstance(e, dict) and e.get("best_without_europe"):
+                ents.append((1, e["div"], 0, 0))
+            elif isinstance(e, dict) and "stage_place" in e:
+                d, st, a_ = e.get("div", 0), e["stage_place"], e.get("place", 1)
+                if not (0 <= d < ndiv and (0 <= st < 2 or 4 <= st < 8) and a_ >= 1):
+                    sys.exit("%s: entrant %s" % (key, e))
+                ents.append((3, d, a_, st))
+            elif isinstance(e, dict) and "split_seed" in e:
+                d, st, k = e.get("div", 0), e.get("stage", 0), e["split_seed"]
+                if not (0 <= d < ndiv and 0 <= st < 2 and 1 <= k <= 4):
+                    sys.exit("%s: entrant %s" % (key, e))
+                ents.append((6, d, k, st))
+            elif isinstance(e, dict) and "title_seed" in e:
+                d, k, r_ = e.get("div", 0), e["title_seed"], {"uru": 1, "per": 2}.get(e.get("rule"))
+                if not (0 <= d < ndiv and 1 <= k <= 4 and r_):
+                    sys.exit("%s: entrant %s" % (key, e))
+                ents.append((7, d, k, r_))
+            elif isinstance(e, dict) and e.get("loser_of_previous"):
+                ents.append((4, 0, 0, 0))
+            elif isinstance(e, dict) and "stage_title" in e:
+                c, d = e["stage_title"], e.get("div", 0)
+                if not (c in (1, 2, 3, 4) and 0 <= d < ndiv):
+                    sys.exit("%s: entrant %s" % (key, e))
+                ents.append((5, d, c, 0))
+            elif isinstance(e, dict) and e.get("league_cup_winner"):
+                a_, b_ = e.get("if_places", [0, 0])
+                ents.append((2, 0, a_, b_))
+            else:
+                sys.exit("%s: entrant %s" % (key, e))
+        if not 2 <= len(ents) <= 63:
+            sys.exit("%s: 2..63 entrants" % key)
+        rounds, nt, npl, nrd = bytearray(), 0, 0, 0
+
+        def code(m):
+            if m == "BL":
+                if not nt:
+                    sys.exit("%s: BL needs an earlier knockout round" % key)
+                return BEST_LOSER
+            if isinstance(m, int):
+                if not 0 <= m < len(ents):
+                    sys.exit("%s: member %s" % (key, m))
+                return m
+            mm = re.fullmatch(r"([WLP])(\d+)", str(m))
+            if not mm or int(mm.group(2)) >= (npl if mm.group(1) == "P" else nt):
+                sys.exit("%s: member %s" % (key, m))
+            return {"W": 0x80, "L": 0xC0, "P": 0x40}[mm.group(1)] | int(mm.group(2))
+
+        for rd in po["rounds"]:
+            for c in list(rd.get("clubs") or []):     # ({'best_of': [P..]}: a ranking round first)
+                if isinstance(c, dict) and "best_of" in c:
+                    bo = c["best_of"]
+                    if not (2 <= len(bo) <= 24 and all(re.fullmatch(r"P\d+", str(m)) for m in bo)):
+                        sys.exit("%s: best_of: 2..24 earlier placings" % key)
+                    rounds += bytes((len(bo), 0x80, HOSTS["neutral"], 0, 0, 0)) + bytes(code(m) for m in bo)
+                    rounds += bytes(len(bo))
+                    rd = dict(rd, clubs=["P%d" % npl if x is c else x for x in rd["clubs"]])
+                    npl += len(bo)
+                    nrd += 1
+            nrd += 1
+            if "group" in rd:                           # (a round robin)
+                g, mem = rd["group"], rd["members"]
+                meet, bonus = g.get("rounds", 2), g.get("bonus", [0] * len(mem))
+                if not (2 <= len(mem) <= 24 and meet in (1, 2, 3, 4) and len(bonus) == len(mem)
+                        and all(0 <= x < 256 for x in bonus) and g.get("host", "listed") in ("listed", "neutral")):
+                    sys.exit("%s: a group of 2..24 members" % key)
+                rounds += bytes((len(mem), 0x80 | meet, HOSTS[g.get("host", "listed")], 0, 0, 0))
+                rounds += bytes(code(m) for m in mem) + bytes(bonus)
+                npl += len(mem)
+                continue
+            tl = list(rd.get("ties") or [])             # (a best_worst / draw block first, then listed ties)
+            blk = rd if rd.get("pairing") else (tl.pop(0) if tl and isinstance(tl[0], dict) else None)
+            if blk is not None and (blk.get("pairing") not in ("best_worst", "draw") or len(blk["clubs"]) % 2):
+                sys.exit("%s: pairing best_worst / draw with an even number of clubs" % key)
+            if any(isinstance(t, dict) for t in tl):
+                sys.exit("%s: a best_worst block only as the first tie" % key)
+            bm = list(blk["clubs"]) if blk is not None else []
+            mem = bm + [m for t in tl for m in t]
+            ties = len(mem) // 2
+            pairing = len(bm) | (0x80 if blk is not None and blk.get("pairing") == "draw" else 0)
+            codes = [code(m) for m in mem]
+            legs = rd.get("legs", 1)
+            if rd.get("series"):
+                if rd["series"] != 3 or legs != 1:
+                    sys.exit('%s: "series": 3 (single matches)' % key)
+                legs = 3
+            if legs not in (1, 2, 3) or rd.get("host", "listed") not in HOSTS or rd.get("level", "et_pens") not in LEVELS:
+                sys.exit("%s: legs, host, level" % key)
+            gap = rd.get("gap", 0)
+            host = HOSTS[rd.get("host", "listed")] | (SKIP_SAME if rd.get("skip_if_same") else 0)
+            rounds += bytes((ties, legs, host, LEVELS[rd.get("level", "et_pens")], pairing, gap))
+            rounds += bytes(codes)
+            nt += ties
+        if nt > 63 or npl > 64:
+            sys.exit("%s: at most 63 ties, 64 group placings" % key)
+        win = po.get("winners", 1)
+        wd, ld = po.get("winner_div", 0), po.get("loser_div", 0)
+        ld = RESERVE if ld == "reserve" else ld
+        if kind == 8:                               # (stage_title: the stage | its division << 2)
+            wd, ld = po.get("stage"), 0
+            sdv = {e.get("div", 0) for e in po.get("entrants", []) if isinstance(e, dict)}
+            wd |= (sdv.pop() if sdv else 0) << 2
+        flags = ((1 if po.get("skip_qualified") else 0) | (2 if po.get("host_by_record") else 0)
+                 | ((win if win > 1 else 0) << 4) | (8 if po.get("draw_pot") else 0))
+        out += bytes((kind, len(ents), nrd, wd, ld, flags))
+        out += b"".join(bytes(e) for e in ents) + rounds
+    return bytes(out + b"\0")
 
 
 def compile_playoff(po, ndiv):
-    kind = KINDS[po["kind"]]
-    ents = []
-    for e in po["entrants"]:
-        d, p = e
-        if not (0 <= d < ndiv and p >= 1):
-            sys.exit("%s: entrant %s" % (po["key"], e))
-        ents.append((0, d, p, 0))
-    rounds, nt = bytearray(), 0
-
-    def code(m):
-        if m == "BL":
-            return 0x3F
-        if isinstance(m, int):
-            return m
-        mm = re.fullmatch(r"([WL])(\d+)", str(m))
-        if not mm or int(mm.group(2)) >= nt:
-            sys.exit("%s: member %s" % (po["key"], m))
-        return {"W": 0x80, "L": 0xC0}[mm.group(1)] | int(mm.group(2))
-
-    for rd in po["rounds"]:
-        if "group" in rd or rd.get("pairing") or rd.get("clubs"):
-            sys.exit("%s: only rounds of listed ties here" % po["key"])
-        mem = [m for t in rd["ties"] for m in t]
-        legs = 3 if rd.get("series") else rd.get("legs", 1)
-        host = HOSTS[rd.get("host", "listed")] | (0x80 if rd.get("skip_if_same") else 0)
-        rounds += bytes((len(mem) // 2, legs, host, LEVELS[rd.get("level", "et_pens")], 0,
-                         rd.get("gap", 0)))
-        rounds += bytes(code(m) for m in mem)
-        nt += len(mem) // 2
-    ld = po.get("loser_div", 0)
-    ld = RESERVE if ld == "reserve" else ld
-    flags = 2 if po.get("host_by_record") else 0
-    return (bytes((kind, len(ents), len(po["rounds"]), po.get("winner_div", 0), ld, flags)) +
-            b"".join(bytes(e) for e in ents) + rounds)
+    """One play-off's bytes (compile_spec of one, without the end)."""
+    return compile_spec([po], ndiv)[:-1]
 
 
-SECOND_RULES = {"ita": (1, 1)}   # the Mod's mkseason.SECOND_RULES: B teams up to Serie B, play-offs too
+SECOND_RULES = {             # the Mod's mkseason.SECOND_RULES: the top level a B team may reach
+    "ita": (1, 1),          # (0xFF: any, the first team's always a bound), play-offs allowed
+    "esp": (0xFF, 0), "ger": (2, 0), "ned": (1, 0), "por": (0xFF, 0),
+}
 
 
 def italian_playoffs(country, league, picked=None):
@@ -398,10 +503,8 @@ def italian_playoffs(country, league, picked=None):
     at the season end (its groups' play-outs; Serie D's go to the pool below, not yet)."""
     mod = mod_league()
     ndiv = len(mod["divisions"])
-    spec = b"".join(compile_playoff(po, ndiv) for po in mod.get("ko_playoffs", [])
-                    if po["kind"] in KINDS) + b"\0"
-    counts["play-offs compiled (promotion / placement / play-out)"] += sum(
-        1 for po in mod.get("ko_playoffs", []) if po["kind"] in KINDS)
+    spec = compile_spec(mod.get("ko_playoffs", []), ndiv)
+    counts["play-offs compiled"] += len(mod.get("ko_playoffs", []))
     seconds, top, flags = [], 0xFF, 0
     rules = (mod.get("second_teams") or {}).get("rules")
     if rules in SECOND_RULES and picked:
@@ -421,19 +524,21 @@ def italian_playoffs(country, league, picked=None):
             "groups": SERIE_C_GROUPS, "spec": spec}
 
 
-CUP_ROUND = {"single_et": 0x14, "two_legs": 0x94}   # legs 7-6 (2 two), e.t. 5-4, penalties 3-2
+CUP_ROUND = {"two_legs": 0x94, "two_legs_pens": 0x84, "single": 0x14, "single_et": 0x54}
+# (the Mod's mkseason.ROUND, the bytes its DOS build plays: legs 7-6 -- 2 two legs, 1 a
+#  single match at a ground, 0 a single match --, extra time 5-4, penalties 3-2)
 LEAGUE_CUP_ID = 163         # a free competition id (include/comp_identity.h: 162..255)
 
 
 def bracket_order(rows, rounds):
     """A cup's real draw (ties.csv: round, home, away; a bye has no away) as the engine plays
-    a fixed bracket: round 1's ties in an order where tie k of each later round is the
-    winners of ties 2k and 2k + 1 of the one before -- the tree from the final down, each
-    tie's two from the earlier round's ties holding its clubs. Round 1's real ties must come
-    first (the engine plays a round's first ties, the byes wait after them), so where a
-    tie's away side holds more of them its two sides are laid out the other way round and
-    the tie changes sides when played: a bit per tie of each later round (flips[r - 2]).
-    Returns (round 1's ties in order, the flips, the rounds the draw covers)."""
+    a fixed bracket: from the final down, each tie the winners of the earlier round's two
+    ties holding its clubs, its home club's first -- so tie k of each later round is the
+    winners of ties 2k and 2k + 1 of the one before. Round 1's real ties are played first
+    (the engine plays a round's first ties, the byes wait after them): `order1` gives each of
+    round 1's ties, as played, its place in the bracket (world_cups.c puts the winners there
+    after round 1). Returns (round 1's ties as played, the flips -- none: every later tie
+    with its home club first --, the rounds the draw covers, order1)."""
     by_round = collections.defaultdict(list)
     for r in rows:
         by_round[int(r["round"])].append((r["home"], r["away"] or None))
@@ -442,40 +547,24 @@ def bracket_order(rows, rounds):
         sys.exit("a cup's draw: rounds 1..%d, one tie in the last (%s)" % (last, sorted(by_round)))
 
     def holds(r, club):
-        """round r's tie a club played (or waited) in, by index."""
         for i, t in enumerate(by_round[r]):
             if club in t:
                 return i
         sys.exit("a cup's draw: %s not in round %d" % (club, r))
 
-    level = collections.defaultdict(list)   # per round, its ties in the engine's order: (index, flipped)
-
-    def real(r, i):
-        """round r's tie i: how many real first-round ties lead to it."""
-        if r == 1:
-            return 1 if by_round[1][i][1] else 0
-        h, a = by_round[r][i]
-        return real(r - 1, holds(r - 1, h)) + real(r - 1, holds(r - 1, a))
-
     def lay(r, i):
-        """round r's tie i laid out: its round-1 ties in order (each round's ties are met
-        left to right, so level[r] is in the engine's order)."""
         if r == 1:
             return [i]
         h, a = by_round[r][i]
-        home, away = holds(r - 1, h), holds(r - 1, a)
-        flip = real(r - 1, away) > real(r - 1, home)
-        level[r].append(flip)
-        first, second = (away, home) if flip else (home, away)
-        return lay(r - 1, first) + lay(r - 1, second)
+        return lay(r - 1, holds(r - 1, h)) + lay(r - 1, holds(r - 1, a))
 
-    order, played = lay(last, 0), real(last, 0)
+    order = lay(last, 0)
     if sorted(order) != list(range(len(by_round[1]))):
         sys.exit("a cup's draw: round 1's ties do not make one bracket")
-    if any(not by_round[1][i][1] for i in order[:played]):
-        sys.exit("a cup's draw: its real first-round ties cannot all come first")
-    flips = [sum(1 << k for k, f in enumerate(level[r]) if f) for r in range(2, last + 1)]
-    return [by_round[1][i] for i in order], flips, last
+    real = [i for i in order if by_round[1][i][1]]
+    played = real + [i for i in order if not by_round[1][i][1]]
+    order1 = [order.index(i) for i in played]
+    return [by_round[1][i] for i in played], [0] * (last - 1), last, order1
 
 
 def italian_cups(picked, country):
@@ -494,7 +583,7 @@ def italian_cups(picked, country):
     out = []
     for key, slot in (("cup", 1), ("league_cup", 2)):
         spec = next(c for c in pack["competitions"] if c["key"] == key)
-        ties, flips, rounds = bracket_order([r for r in rows if r["competition"] == key], len(spec["rounds"]))
+        ties, flips, rounds, order1 = bracket_order([r for r in rows if r["competition"] == key], len(spec["rounds"]))
         if rounds != len(spec["rounds"]):
             sys.exit("%s: %d rounds in the draw, %d in the pack" % (key, rounds, len(spec["rounds"])))
         entrants = [c for t in ties for c in t if c]
@@ -521,10 +610,177 @@ def italian_cups(picked, country):
             q[0] += 1
             q[1] += c in byes
         out.append({"slot": slot, "record": rec, "n": len(entrants), "ties": real,
-                    "europe": 0, "flips": flips,
+                    "europe": 0, "flips": flips, "order1": order1, "numbered": 0, "first_round": 1,
                     "quota": [(d, n, b) for d, (n, b) in sorted(quota.items())]})
         counts["%s: clubs (byes)" % key] += len(entrants)
         counts["%s: first round byes" % key] += len(ties) - real
+    return out
+
+
+# ---- Any country (phase 8: the whole world) ---------------------------------------------
+
+# A cup a country has in the world and not in 96/97: its competition id, fixed (in saves:
+# never by order). Free: 162..255 but the ones taken (include/comp_identity.h).
+NEW_COMP_IDS = {
+    ("BOL", "cup"): 164, ("CHI", "cup"): 165, ("CHI", "league_cup"): 166, ("GHA", "cup"): 167,
+    ("IND", "cup"): 168, ("RSA", "league_cup"): 169, ("SUR", "cup"): 170, ("VEN", "cup"): 171,
+}
+
+
+def mod_pack(code):
+    return json.load(open(os.path.join(MOD, "packs", code.lower(), "pack.json"), encoding="utf-8"))
+
+
+def pack_league(pk):
+    return next(c for c in pk["competitions"] if c["key"] == "league")
+
+
+def text_names(names):
+    """A pack's names {lang: [long, short]} -> [long, short] (the game's English)."""
+    n = names.get("*") or names.get("en") or next(iter(names.values()))
+    return [n[0], n[1] if len(n) > 1 else n[0]]
+
+
+def our_records(kind):
+    path = os.path.join(BASE, "competitions", kind + ".json")
+    d = json.load(open(path, encoding="utf-8"))
+    return {r["id"]: r for r in d["leagues" if kind == "leagues" else "competitions"]}
+
+
+def our_country_table(number):
+    for c in json.load(open(os.path.join(BASE, "competitions", "country_competitions.json"),
+                            encoding="utf-8"))["countries"]:
+        if c["number"] == number:
+            return c
+    return {}
+
+
+def country_league(wc, pk, picked):
+    """The country's 96/97 league record as the pack's pyramid: its divisions' clubs, the
+    Mod's promotion and relegation counts (its play-offs add the rest: league_playoffs.c),
+    the real names; no 96/97 play-off links (the qualifier offsets 0: the world's play-offs
+    are the pack's)."""
+    lg = pack_league(pk)
+    rec = copy.deepcopy(our_records("leagues")[our_country_table(wc["number"])["leagues"][0]])
+    mdivs = lg.get("divisions") or [{"teams": len(picked), "promoted": 0, "relegated": 0,
+                                    "names": lg["names"]}]
+    sizes = collections.Counter(d for _, d in picked)
+    template = rec["divisions"][0]
+    rec["divisions"], names = [], []
+    for i, d in enumerate(mdivs):
+        if sizes[i] != d["teams"]:
+            sys.exit("%s: division %d has %d clubs in the file, %d in the pack" % (wc["code"], i, sizes[i], d["teams"]))
+        # BALANCED counts (the original's season end checks each division's moves sum to
+        # zero, DIY_ValidateLeagueScratchBuffer): as many up from it as come down from the
+        # one above, as Italy's; the Mod's own counts (the play-offs add the rest) are its
+        # play-off rules' (country_playoffs, league_playoffs.c)
+        rec["divisions"].append(dict(template, teams=d["teams"],
+                                     promoted=mdivs[i - 1].get("relegated", 0) if i else 0,
+                                     relegated=d.get("relegated", 0) if i + 1 < len(mdivs) else 0,
+                                     promoted_po=0, relegated_po=0, qualifier_link_offset=0))
+        names += text_names(d.get("names") or lg["names"])
+    rec["name"] = names
+    rec["comp"]["name_table_offset"] = 33               # (the league layout's: names follow)
+    rec["divisions_count"] = len(rec["divisions"])
+    rec["rounds"] = lg.get("games", rec["rounds"])
+    rec["points_for_win"] = lg.get("win_points", rec["points_for_win"])
+    return rec
+
+
+def country_playoffs(wc, pk, picked):
+    """A country's play-off rules (as italian_playoffs, any country): the Mod's counts per
+    division, the pack's knockouts compiled, its B teams' rules."""
+    lg = pack_league(pk)
+    mdivs = lg.get("divisions") or [{"teams": len(picked), "promoted": 0, "relegated": 0}]
+    ndiv = len(mdivs)
+    spec = compile_spec(lg.get("ko_playoffs", []), ndiv)
+    counts["play-offs compiled"] += len(lg.get("ko_playoffs", []))
+    seconds, top, flags = [], 0xFF, 0
+    rules = (lg.get("second_teams") or {}).get("rules")
+    if rules in SECOND_RULES:
+        top, po = SECOND_RULES[rules]
+        flags = po | (2 if (lg.get("reserve") or {}).get("off_file") else 0)
+        ordinal = {e.get("x_swos9697", {}).get("club_id"): o for o, (e, _) in enumerate(picked)}
+        for o, (e, _) in enumerate(picked):
+            first = e.get("x_swos9697", {}).get("second_of")
+            if first:
+                seconds.append((o, ordinal.get(first, 0xFF)))
+        counts["B teams"] += len(seconds)
+    if spec == b"\0" and not seconds:
+        return None
+    return {"name": wc["name"].title().replace(" ", ""), "country": wc["number"], "divisions": ndiv,
+            "seconds": seconds, "secondTop": top, "secondFlags": flags,
+            "promoted": [d.get("promoted", 0) for d in mdivs], "relegated": [d.get("relegated", 0) for d in mdivs],
+            "italy": 0, "serieB": 0, "groupFirst": 0, "groups": 0, "spec": spec}
+
+
+def country_cups(wc, pk, picked):
+    """A country's national cup (slot 1) and league cup (slot 2) as its pack has them (as
+    italian_cups, any country): its 96/97 records reshaped, or new ones."""
+    rows = []
+    tp = os.path.join(MOD, "packs", wc["code"].lower(), "ties.csv")
+    if os.path.exists(tp):
+        rows = list(csv.DictReader(open(tp, encoding="utf-8")))
+    names = {r["key"]: r["name"] for r in csv.DictReader(open(os.path.join(MOD, "packs", wc["code"].lower(),
+                                                                           "clubs.csv"), encoding="utf-8"))}
+    ordinal = {e["team"]["team_name"]: o for o, (e, _) in enumerate(picked)}
+    division = {o: d for o, (_, d) in enumerate(picked)}
+    ours = our_records("cups")
+    table = our_country_table(wc["number"]).get("cups", [])
+    template = ours["_italianCup"]
+    out = []
+    for key, slot in (("cup", 1), ("league_cup", 2)):
+        if pk.get("season", {}).get(key) != key:
+            continue
+        spec = next(c for c in pk["competitions"] if c["key"] == key)
+        cup_rows = [r for r in rows if r["competition"] == key]
+        if not cup_rows:
+            counts["cups without a draw (96/97's kept)"] += 1
+            continue
+        try:
+            ties, flips, rounds, order1 = bracket_order(cup_rows, len(spec["rounds"]))
+        except SystemExit as e:
+            counts["cups whose draw is no bracket (96/97's kept)"] += 1
+            print("  %s %s: %s" % (wc["code"], key, e))
+            continue
+        entrants = [c for t in ties for c in t if c]
+        if any(names.get(c) not in ordinal for c in entrants):
+            counts["cups with a club outside the file (96/97's kept)"] += 1
+            continue
+        size = 1 << (len(ties) * 2 - 1).bit_length()
+        if rounds != len(spec["rounds"]) or size > 64 or len(entrants) != len(set(entrants)):
+            counts["cups of another shape (96/97's kept)"] += 1
+            continue
+        if len(table) >= slot:
+            rec = copy.deepcopy(ours[table[slot - 1]])
+        else:
+            if (wc["code"], key) not in NEW_COMP_IDS:
+                sys.exit("%s %s: a new cup: give it an id (NEW_COMP_IDS)" % (wc["code"], key))
+            rec = copy.deepcopy(template)
+            rec["id"] = "_world%s%s" % (wc["code"].title(), "LeagueCup" if slot == 2 else "Cup")
+            rec["comp"].update(comp_id=NEW_COMP_IDS[(wc["code"], key)] - 256, team_number=wc["number"])
+            if slot == 2:
+                rec["comp"]["end_month"] = 16           # (as England's: before the league's end)
+        rec["comp"].update(team_list_offset=21, seed_reorder_flag=1)
+        rec["name"] = text_names(spec["names"])
+        rec.update(teams=size, away_goals_mode=0,
+                   round_rule_flags=[{"legs": b >> 6, "extra_time": b >> 4 & 3, "penalties": b >> 2 & 3}
+                                     for b in [CUP_ROUND[x] for x in spec["rounds"]] + [0] * (6 - rounds)],
+                   team_seed_list=[{"country": wc["number"], "ordinal": ordinal[names[c]]} for c in entrants])
+        real = sum(1 for t in ties if t[1])
+        byes = {c for t in ties if not t[1] for c in t if c}
+        quota = collections.OrderedDict()
+        for c in entrants:
+            q = quota.setdefault(division[ordinal[names[c]]], [0, 0])
+            q[0] += 1
+            q[1] += c in byes
+        out.append({"slot": slot, "record": rec, "n": len(entrants), "ties": real,
+                    "europe": int(bool(slot == 2 and pk.get("season", {}).get("league_cup_europe"))),
+                    "flips": flips, "order1": order1,
+                    "quota": [(d, n, b) for d, (n, b) in sorted(quota.items())],
+                    "numbered": int(spec.get("round_names") == "numbered"),
+                    "first_round": spec.get("first_round", 1)})
+        counts["cups"] += 1
     return out
 
 
@@ -869,14 +1125,26 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd):
                 externs.add("extern char %s[];" % n)
             names.append(n)
         sym = "kWorld%s%s" % (tag, rec["id"])
-        cup_tables.append("static " + emit_competitions.emit_cup(dict(rec, id=sym, name=names)))
+        seeds = rec["team_seed_list"]
+        if len(seeds) > 32:                 # (a list of more than the record's 32: carried after it)
+            body = emit_competitions.emit_cup(dict(rec, id="rec", name=names, team_seed_list=seeds[:32]))
+            more = ",\n".join("        { %d, %d }" % (x["country"], x["ordinal"]) for x in seeds[32:])
+            cup_tables.append("static struct __attribute__((packed)) { CompetitionCup rec; TeamId more[32]; } %s = {\n"
+                              "    %s,\n    {\n%s\n    }\n};" % (
+                sym + "Ext", body.split(" = ", 1)[1].rstrip(";").replace("\n", "\n    "), more))
+            cup_tables.append("#define %s (%sExt.rec)" % (sym, sym))
+        else:
+            cup_tables.append("static " + emit_competitions.emit_cup(dict(rec, id=sym, name=names)))
         cup_tables.append("static const uint16_t %sFlips[] = { %s };" % (
             sym, ", ".join(map(str, c["flips"])) or "0"))
+        cup_tables.append("static const uint8_t %sOrder1[] = { %s };" % (
+            sym, ", ".join(map(str, c.get("order1") or [0]))))
         cup_tables.append("static const uint8_t %sQuota[][3] = { %s };" % (
             sym, ", ".join("{ %d, %d, %d }" % q for q in c["quota"])))
-        cup_entries.append("    { %d, %d, &%s, %d, %d, %d, %d, %sFlips, %d, %sQuota },   /* %s */" % (
+        cup_entries.append("    { %d, %d, &%s, %d, %d, %d, %d, %sFlips, %d, %sQuota, %s, %d, %d },   /* %s */" % (
             rec["comp"]["team_number"], c["slot"], sym, c["n"], c["ties"], c["europe"],
-            len(c["flips"]) + 1, sym, len(c["quota"]), sym, rec["id"]))
+            len(c["flips"]) + 1, sym, len(c["quota"]), sym, sym + "Order1" if c.get("order1") else "0",
+            c.get("numbered", 0), c.get("first_round", 1), rec["id"]))
     cup_tables.append("static const WorldCup kWorld%sCups[] = {\n%s\n};" % (tag, "\n".join(cup_entries)))
     cup_cases = ("    case WORLD_%s:\n        *count = %d;\n        return kWorld%sCups;"
                  % (tag, len(cups), tag))
@@ -924,29 +1192,57 @@ def write(path, data):
     print("wrote", os.path.relpath(path, REPO))
 
 
-def main():
-    if not os.path.isdir(MOD):
-        sys.exit("no %s: the Mod's data (Davide's private copies) is not here" % os.path.relpath(MOD, REPO))
-    (teams, picked), leagues = italy(), italian_league()
-    write(os.path.join(WORLD, "teams", "ITALY.json"), teams)
-    write(os.path.join(WORLD, "competitions", "leagues.json"), leagues)
+# The countries imported so far (docs/WORLD_2026_27.md, phase 8): Italy whole (its own
+# functions), then the plain countries 96/97 has -- their divisions, the pack's knockouts,
+# their cups (the others keep 96/97's until their league's features are in).
+PLAIN = ("ALG BEL BLR BOL CHI CRO ENG EST FRA FRO GHA HUN IND IRL JPN LTU LUX LVA NOR POL RSA "
+         "RUS SCO SUR SVN SWE TPE TUR UKR VEN").split()
+
+
+def write_team_file(teams, json_name):
+    write(os.path.join(WORLD, "teams", json_name + ".json"), teams)
     name, packed = team_file_binary(teams)
     path = os.path.join(WORLD, "data", name.upper())
     os.makedirs(os.path.dirname(path), exist_ok=True)
     open(path, "wb").write(packed)
-    print("wrote", os.path.relpath(path, REPO), "(%d bytes)" % len(packed))
+
+
+def main():
+    if not os.path.isdir(MOD):
+        sys.exit("no %s: the Mod's data (Davide's private copies) is not here" % os.path.relpath(MOD, REPO))
+    (teams, picked), leagues = italy(), italian_league()
+    write_team_file(teams, "ITALY")
     country = teams["teams"][0]["team"]["country_number"]
     pool, pool_info = italian_pool(country)
     write(os.path.join(WORLD, "teams", pool_info["json"]), pool)
     name, packed = team_file_binary(pool)
-    path = os.path.join(WORLD, "data", name.upper())
-    open(path, "wb").write(packed)
-    print("wrote", os.path.relpath(path, REPO), "(%d bytes)" % len(packed))
+    open(os.path.join(WORLD, "data", name.upper()), "wb").write(packed)
+    resized = [(country, teams["count"])]
+    playoffs = [italian_playoffs(country, leagues, picked)]
+    cups = italian_cups(picked, country)
+    for wc in world_countries():
+        if wc["code"] not in PLAIN:
+            continue
+        pk = mod_pack(wc["code"])
+        t, pk_picked = country_teams(wc)
+        write_team_file(t, wc["base"])
+        leagues["leagues"].append(country_league(wc, pk, pk_picked))
+        po = country_playoffs(wc, pk, pk_picked)
+        if po:
+            playoffs.append(po)
+        cups += country_cups(wc, pk, pk_picked)
+        resized.append((wc["number"], t["count"]))
+        counts["countries imported"] += 1
+    for rec in leagues["leagues"]:          # (the world's play-offs are the pack's: no 96/97 links)
+        if rec["id"] != "_italianLeague":
+            rec.pop("playoff_links", None)
+            rec.pop("promotion_link_data", None)
+    leagues["count"] = len(leagues["leagues"])
+    write(os.path.join(WORLD, "competitions", "leagues.json"), leagues)
     with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
-        f.write(world_data_c("2627", leagues, [(country, teams["count"])],
+        f.write(world_data_c("2627", leagues, resized,
                              [italian_groups(picked, country, leagues)],
-                             [italian_playoffs(country, leagues, picked)], [pool_info],
-                             italian_cups(picked, country), italian_cupd(picked, country, None)))
+                             playoffs, [pool_info], cups, italian_cupd(picked, country, None)))
     print("wrote src/world_data.c")
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))

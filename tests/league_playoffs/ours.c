@@ -19,8 +19,8 @@ void WorldCups_KeepPlace(uint8_t c, uint16_t d, uint16_t t, uint8_t p) { (void)c
 void CupD_KeepPlace(uint8_t c, uint16_t d, uint16_t t, int32_t p, int32_t n) { (void)c; (void)d; (void)t; (void)p; (void)n; }
 void CupD_NoteArrival(uint8_t c, uint8_t o) { (void)c; (void)o; }
 
-static const uint8_t PROM[14] = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-static const uint8_t REL[14] = { 3, 3, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
+static const uint8_t PROM[16] = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+static const uint8_t REL[16] = { 3, 3, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
 static LeaguePlayoffs lp = { 20, 14, PROM, REL, 1, 1, 2, 3, spec };
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count) { *count = 1; return &lp; }
 const LeagueGroups *LeagueGroups_ForCountry(uint16_t c) { (void)c; return 0; }
@@ -28,13 +28,14 @@ static int8_t table[2000], scratch[2000];
 int main(int argc, char **argv)
 {
     unsigned N = argc > 2 ? (unsigned)atoi(argv[2]) : 20000;
-    struct trow t[14][32]; int n[14];
+    struct trow t[16][32]; int n[16];
     load_spec(argv[1]);
+    if (argc > 3) { set_shape(argv[3]); lp.divisions = (uint8_t)ND; lp.italy = 0; }
     for (unsigned it = 0; it < N; it++) {
         make_tables(it, t, n);
         s_cupw = cup_winner(it, t, n);
         LeaguePlayoffs_Begin();
-        for (int d = 0; d < 14; d++) {
+        for (int d = 0; d < ND; d++) {
             for (int k = 0; k < n[d]; k++) {
                 struct lp_row *r = &s_in.t[d][k];
                 r->team = t[d][k].team; r->glob = t[d][k].glob; r->won = t[d][k].won;
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
             }
             s_in.n[d] = (u8)n[d];
         }
-        s_in.nd = 14;
+        s_in.nd = (u8)ND;
         LeaguePlayoffs_Decide(20, table, scratch);
         printf("%u", it);
         /* dp moves carry a delta of +-1 and come first; the knockouts' after (as the Mod's
