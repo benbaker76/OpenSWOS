@@ -29,3 +29,35 @@ static void make_case(unsigned it, unsigned short glob[14][32], int move[14][32]
         glob[db][kb] = (unsigned short)(CBASE + BT[i][0]);
     }
 }
+
+/* The other countries with B teams (World 2026-27: no groups, a pool below the lowest
+ * division, no play-offs for a B team): each league's shape, its B teams (their ordinals,
+ * their first teams'), each first team at a random place of any division but the lowest,
+ * its B team in one below; the moves of the Mod's record by place. Each country's clubs are
+ * global numbers of their own (base + ordinal), its SEC_TAB row in mod_sec.c. */
+typedef struct {
+    const char *name;
+    int country, base, nd, sz[3], prom[3], rel[3], nb, bt[4][2], top, flags;
+} SecShape;
+static const SecShape SHAPES[4] = {
+    { "ESP", 35, 1600, 2, { 20, 22 }, { 0, 2 }, { 3, 0 }, 1, { { 31, 9 } }, 255, 2 },
+    { "GER", 14, 1900, 3, { 18, 18, 20 }, { 0, 2, 2 }, { 2, 2, 0 }, 2, { { 46, 3 }, { 48, 4 } }, 2, 2 },
+    { "NED", 25, 2200, 2, { 18, 20 }, { 0, 2 }, { 2, 0 }, 4, { { 21, 0 }, { 26, 5 }, { 31, 6 }, { 34, 4 } }, 1, 2 },
+    { "POR", 29, 2500, 2, { 18, 18 }, { 0, 2 }, { 2, 0 }, 3, { { 20, 0 }, { 25, 2 }, { 28, 1 } }, 255, 2 },
+};
+static void make_shape_case(const SecShape *s, unsigned it, unsigned short glob[14][32], int move[14][32])
+{
+    cs = it * 2654435761u + 11 + (unsigned)s->country;
+    for (int d = 0; d < s->nd; d++)
+        for (int k = 0; k < s->sz[d]; k++) {
+            glob[d][k] = (unsigned short)(1000 + d * 32 + k);
+            move[d][k] = k < s->prom[d] && d > 0 ? -1 : k >= s->sz[d] - s->rel[d] ? 1 : 0;
+        }
+    for (int i = 0; i < s->nb; i++) {
+        int df = (int)crand((unsigned)s->nd - 1), db = df + 1 + (int)crand((unsigned)(s->nd - 1 - df)), kf, kb;
+        do { kf = (int)crand((unsigned)s->sz[df]); } while (glob[df][kf] < 1000);
+        do { kb = (int)crand((unsigned)s->sz[db]); } while (glob[db][kb] < 1000);
+        glob[df][kf] = (unsigned short)(s->base + s->bt[i][1]);
+        glob[db][kb] = (unsigned short)(s->base + s->bt[i][0]);
+    }
+}

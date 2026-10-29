@@ -6031,19 +6031,28 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit, &out, "%s", "]");
     }
 
-    /* A world's pool below the league (team_pool.c): which club each swapped slot of its
-     * team file is now, and the queue below -- identities by number (a slot of the file,
-     * 256 + a club of the pool), never records. */
-    if (g_teamPool.init) {
-        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:[", "team_pool",
-                     "country", (int)g_teamPool.country, "queue");
-        for (int i = 0; i < g_teamPool.queued; i++)
-            mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)g_teamPool.queue[i]);
+    /* A world's pools below the leagues (team_pool.c): per pooled country, which club each
+     * swapped slot of its team file is now, and the queue below -- identities by number (a
+     * slot of the file, 256 + a club of the pool), never records. */
+    int pools = 0;
+    for (int k = 0; k < TEAM_POOL_FILES; k++) {
+        const TeamPoolState *st = &g_teamPool[k];
+        if (!st->init)
+            continue;
+        if (!pools++)
+            mjson_printf(json_out_emit, &out, ",\n  %Q:[", "team_pools");
+        else
+            mjson_printf(json_out_emit, &out, "%s", ",");
+        mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:[", "country", (int)st->country, "queue");
+        for (int i = 0; i < st->queued; i++)
+            mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)st->queue[i]);
         mjson_printf(json_out_emit, &out, "],%Q:[", "map");
         for (int i = 0; i < TEAM_POOL_SLOTS; i++)
-            mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)g_teamPool.map[i]);
+            mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)st->map[i]);
         mjson_printf(json_out_emit, &out, "%s", "]}");
     }
+    if (pools)
+        mjson_printf(json_out_emit, &out, "%s", "]");
 
     /* A world's cups (world_cups.c): the seasons the career has ended in the world, the
      * league cup's winner and its season. */
@@ -6234,6 +6243,28 @@ int SaveJson_FileIsJson(const uint8_t *filename)
     }
     swos_io_free(buf);
     return verdict;
+}
+
+/* One pool's state (team_pool.h) from its save object. */
+static void load_team_pool(const char *tp, int tplen, TeamPoolState *st)
+{
+    long v = 0;
+    const char *arr;
+    int al, pos = 0, voff, vlen, vt, i = 0;
+    if (mjson_get_long(tp, tplen, "$.country", &v) > 0)
+        st->country = (uint8_t)v;
+    if (mjson_find(tp, tplen, "$.queue", &arr, &al) == MJSON_TOK_ARRAY)
+        while (i < TEAM_POOL_QUEUE && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0)
+            if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
+                st->queue[i++] = (uint16_t)v;
+    st->queued = (uint8_t)i;
+    pos = 0;
+    i = 0;
+    if (mjson_find(tp, tplen, "$.map", &arr, &al) == MJSON_TOK_ARRAY)
+        while (i < TEAM_POOL_SLOTS && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0)
+            if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
+                st->map[i++] = (uint16_t)v;
+    st->init = 1;
 }
 
 /* ---------- .CAR loader ---------- */
@@ -6532,27 +6563,18 @@ static void apply_semantic_load(const char *src, int src_size)
     }
     PROF_END(tmd_teams, "career-load");
 
-    /* A world's pool (team_pool.c); a save without it: every slot its own. */
+    /* A world's pools (team_pool.c); a save without them: every slot its own. An older
+     * save has one, "team_pool" (Italy's). */
     TeamPool_Reset();
     {
         const char *tp = NULL;
         int tplen = 0;
-        if (mjson_find(src, src_size, "$.team_pool", &tp, &tplen) == MJSON_TOK_OBJECT) {
-            long v = 0;
-            const char *arr; int al, pos = 0, voff, vlen, vt, i = 0;
-            if (mjson_get_long(tp, tplen, "$.country", &v) > 0)
-                g_teamPool.country = (uint8_t)v;
-            if (mjson_find(tp, tplen, "$.queue", &arr, &al) == MJSON_TOK_ARRAY)
-                while (i < TEAM_POOL_QUEUE && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0)
-                    if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
-                        g_teamPool.queue[i++] = (uint16_t)v;
-            g_teamPool.queued = (uint8_t)i;
-            pos = 0; i = 0;
-            if (mjson_find(tp, tplen, "$.map", &arr, &al) == MJSON_TOK_ARRAY)
-                while (i < TEAM_POOL_SLOTS && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0)
-                    if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
-                        g_teamPool.map[i++] = (uint16_t)v;
-            g_teamPool.init = 1;
+        if (mjson_find(src, src_size, "$.team_pools", &tp, &tplen) == MJSON_TOK_ARRAY) {
+            int pos = 0, voff, vlen, vt, k = 0;
+            while (k < TEAM_POOL_FILES && (pos = fast_array_next(tp, tplen, pos, &voff, &vlen, &vt)) != 0)
+                load_team_pool(tp + voff, vlen, &g_teamPool[k++]);
+        } else if (mjson_find(src, src_size, "$.team_pool", &tp, &tplen) == MJSON_TOK_OBJECT) {
+            load_team_pool(tp, tplen, &g_teamPool[0]);
         }
     }
     {

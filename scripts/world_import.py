@@ -231,7 +231,8 @@ def world_countries():
 def country_teams(wc):
     """A country whole (as italy(): the Mod's clubs in their divisions' order), our team file's
     form; a new country's from nothing. Returns (the file, [(entry, division)])."""
-    mod = json.load(open(os.path.join(MOD, "teams", wc["mod"]["json"] + ".json"), encoding="utf-8"))
+    league_file = wc["mod"]["json"].split(",")[0].strip()      # ("ESP, ESP_POOL": the pool's apart)
+    mod = json.load(open(os.path.join(MOD, "teams", league_file + ".json"), encoding="utf-8"))
     if wc["base"]:
         base = json.load(open(os.path.join(BASE, "teams", wc["base"] + ".json"), encoding="utf-8"))
         home = collections.Counter(p["nationality"] for t in base["teams"]
@@ -255,9 +256,6 @@ def country_teams(wc):
     return out, picked
 
 
-POOL_FILE = 194             # the Mod's pseudo team file of Italy's pool (ITA_POOL.json "pool_file")
-
-
 def area_codes(entry):
     """A club's areas at the levels of groups (the Mod's "X/Y"), each 0.. or None."""
     out = []
@@ -266,25 +264,32 @@ def area_codes(entry):
     return out
 
 
-def italian_pool(country):
-    """The off-file pool below Serie D (the Mod's Eccellenza, ITA_POOL.json): its clubs in our
-    format, in the pack's first order (the queue a relegated Serie D slot takes from), and
-    each one's areas -- the group a slot that takes it plays in (src/team_pool.c)."""
-    base = json.load(open(os.path.join(BASE, "teams", "ITALY.json"), encoding="utf-8"))
-    mod = json.load(open(os.path.join(MOD, "teams", "ITA_POOL.json"), encoding="utf-8"))
-    home = collections.Counter(p["nationality"] for t in base["teams"] for p in t["players"]).most_common(1)[0][0]
-    order = mod_league()["reserve"]["first"]
-    pack_ids = [e.get("x_swos9697", {}).get("club_id") for e in mod["teams"]]
+def country_pool(code, name, country, home):
+    """A league's off-file pool below its lowest division (the Mod's <CODE>_POOL.json, the
+    pack's league 'reserve': Italy's Eccellenza; Spain's, Germany's, the Netherlands' and
+    Portugal's, which only a B team forced out of the lowest division goes down to): its
+    clubs in our format, in the pack's first order (the queue a relegated slot takes from:
+    the file's own order), each one's areas -- the group a slot that takes it plays in
+    (src/team_pool.c). The pool's file number is the Mod's (pool_file). None: no pool."""
+    path = os.path.join(MOD, "teams", code + "_POOL.json")
+    lg = pack_league(mod_pack(code))
+    if not (lg.get("reserve") or {}).get("off_file") or not os.path.exists(path):
+        return None, None
+    mod = json.load(open(path, encoding="utf-8"))
+    file = mod["x_swos9697"]["pool_file"]
+    order = lg["reserve"]["first"]
     if len(order) != len(mod["teams"]):
-        sys.exit("Italy's pool: %d clubs, the pack's first order %d" % (len(mod["teams"]), len(order)))
-    teams = [team(e, POOL_FILE, i, 0, 0, home) for i, e in enumerate(mod["teams"])]
-    out = copy.copy(base)
-    out["country"], out["teams"], out["count"] = POOL_FILE, teams, len(teams)
-    out.pop("country_name", None)
-    areas = [area_codes(e) for e in mod["teams"]]
+        sys.exit("%s's pool: %d clubs, the pack's first order %d" % (code, len(mod["teams"]), len(order)))
+    teams = [team(e, file, i, 0, 0, home) for i, e in enumerate(mod["teams"])]
+    out = {"type": "team", "country": file, "count": len(teams), "teams": teams}
     counts["pool clubs"] += len(teams)
-    return out, {"name": "Italy", "country": country, "file": POOL_FILE, "json": "ITALY_POOL.json",
-                 "count": len(teams), "areas": areas, "ids": pack_ids}
+    return out, {"name": name, "country": country, "file": file, "json": name.upper() + "_POOL.json",
+                 "count": len(teams), "areas": [area_codes(e) for e in mod["teams"]],
+                 "ids": [e.get("x_swos9697", {}).get("club_id") for e in mod["teams"]]}
+
+
+def home_nation(teams):
+    return collections.Counter(p["nationality"] for t in teams["teams"] for p in t["players"]).most_common(1)[0][0]
 
 
 def mod_league():
@@ -624,6 +629,7 @@ def italian_cups(picked, country):
 NEW_COMP_IDS = {
     ("BOL", "cup"): 164, ("CHI", "cup"): 165, ("CHI", "league_cup"): 166, ("GHA", "cup"): 167,
     ("IND", "cup"): 168, ("RSA", "league_cup"): 169, ("SUR", "cup"): 170, ("VEN", "cup"): 171,
+    ("NZL", "cup"): 172, ("POR", "league_cup"): 173,
 }
 
 
@@ -1196,7 +1202,9 @@ def write(path, data):
 # functions), then the plain countries 96/97 has -- their divisions, the pack's knockouts,
 # their cups (the others keep 96/97's until their league's features are in).
 PLAIN = ("ALG BEL BLR BOL CHI CRO ENG EST FRA FRO GHA HUN IND IRL JPN LTU LUX LVA NOR POL RSA "
-         "RUS SCO SUR SVN SWE TPE TUR UKR VEN").split()
+         "RUS SCO SUR SVN SWE TPE TUR UKR VEN "
+         # (B teams, an off-file pool below the lowest division: src/team_pool.c)
+         "ESP GER NED POR NZL").split()
 
 
 def write_team_file(teams, json_name):
@@ -1213,10 +1221,18 @@ def main():
     (teams, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
     country = teams["teams"][0]["team"]["country_number"]
-    pool, pool_info = italian_pool(country)
-    write(os.path.join(WORLD, "teams", pool_info["json"]), pool)
-    name, packed = team_file_binary(pool)
-    open(os.path.join(WORLD, "data", name.upper()), "wb").write(packed)
+    pools = []
+
+    def add_pool(code, name, number, base):     # (home: as country_teams, 96/97's file's)
+        home = home_nation(json.load(open(os.path.join(BASE, "teams", base + ".json"), encoding="utf-8")))
+        pool, info = country_pool(code, name, number, home)
+        if pool:
+            write(os.path.join(WORLD, "teams", info["json"]), pool)
+            pname, packed = team_file_binary(pool)
+            open(os.path.join(WORLD, "data", pname.upper()), "wb").write(packed)
+            pools.append(info)
+        return info
+    pool_info = add_pool("ITA", "Italy", country, "ITALY")
     resized = [(country, teams["count"])]
     playoffs = [italian_playoffs(country, leagues, picked)]
     cups = italian_cups(picked, country)
@@ -1231,6 +1247,7 @@ def main():
         if po:
             playoffs.append(po)
         cups += country_cups(wc, pk, pk_picked)
+        add_pool(wc["code"], wc["name"].title().replace(" ", ""), wc["number"], wc["base"])
         resized.append((wc["number"], t["count"]))
         counts["countries imported"] += 1
     for rec in leagues["leagues"]:          # (the world's play-offs are the pack's: no 96/97 links)
@@ -1242,7 +1259,7 @@ def main():
     with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
         f.write(world_data_c("2627", leagues, resized,
                              [italian_groups(picked, country, leagues)],
-                             playoffs, [pool_info], cups, italian_cupd(picked, country, None)))
+                             playoffs, pools, cups, italian_cupd(picked, country, None)))
     print("wrote src/world_data.c")
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))

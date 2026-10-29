@@ -156,8 +156,9 @@ static uint32_t cd_str(const WorldCupD *c, uint16_t w)
 {
     const int32_t i = w >> 8;
     int32_t id = i;
-    if (g_teamPool.init && g_teamPool.country == c->country && g_teamPool.map[i])
-        id = g_teamPool.map[i] - 1;
+    const TeamPoolState *pool = TeamPool_State(c->country);
+    if (pool && pool->map[i])
+        id = pool->map[i] - 1;
     uint32_t v = id < 256 ? c->strength[id] : id - 256 < c->pool ? c->poolStrength[id - 256] : 5;
     if (v < 5)
         v = 5;

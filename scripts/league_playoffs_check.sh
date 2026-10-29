@@ -10,7 +10,8 @@
 # tables for Italy 2026-27's 14 divisions, season after season, and compares every move.
 # The Mod's side walks the pack's whole knockout spec (its compile_spec, every kind); ours
 # the part world_import.py compiles (promotion, play-out) -- the rest must not change them.
-# Then the B-team rules (its sec_post): built cases, and random ones against the Mod's.
+# Then the B-team rules (its sec_post): built cases, and random ones against the Mod's
+# (Italy's league, and each other country with B teams).
 # Then the cups' clubs from the second season (its 4.0.1 cf_build, CF_SEED 1 as released):
 # random moves, last season's places and career clubs, both cups' lists compared.
 # Then the Coppa Italia Serie D table against its cupd.py compile_table, and its later
@@ -107,7 +108,8 @@ $CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/seconds
 "$OUT/mod_sec" "$N" > "$OUT/mod_sec.txt"
 "$OUT/seconds" random "$N" > "$OUT/sec.txt" 2> "$OUT/sec.log"
 if cmp -s "$OUT/mod_sec.txt" "$OUT/sec.txt"; then
-    echo "PASS: B teams, $N cases ($(grep -o '^[0-9]* of' "$OUT/sec.log" | cut -d' ' -f1) changed by the rules), every move the Mod's"
+    echo "PASS: B teams, $N cases in each of Italy, Spain, Germany, the Netherlands, Portugal" \
+         "($(grep -o '^[0-9]* of' "$OUT/sec.log" | cut -d' ' -f1) changed by the rules), every move the Mod's"
 else
     echo "FAIL: B teams, the first case that differs (Mod, then ours):"
     diff "$OUT/mod_sec.txt" "$OUT/sec.txt" | head -4

@@ -17,7 +17,7 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count) { *count = 0; return 
 static const LeagueLevel LV[4] = { { 0, 1, { 20 }, 0 }, { 1, 1, { 20 }, 0 }, { 2, 3, { 20, 20, 20 }, 0 },
                                    { 5, 9, { 17, 17, 17, 18, 17, 18, 17, 17, 18 }, 0 } };
 static const LeagueGroups LG = { 20, 4, LV, 0, 0 };
-const LeagueGroups *LeagueGroups_ForCountry(uint16_t c) { (void)c; return &LG; }
+const LeagueGroups *LeagueGroups_ForCountry(uint16_t c) { return c == 20 ? &LG : 0; }
 static const uint8_t PROM[14] = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 static const uint8_t REL[14] = { 3, 3, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
 static const uint8_t SEC[3][2] = { { 44, 5 }, { 67, 6 }, { 89, 0 } };   /* Juve NG, Atalanta U23, Inter U23 */
@@ -66,7 +66,31 @@ static int random_cases(unsigned N)
             for (int k = 0; k < SZ[d]; k++) printf("%c", s_want[d][k] < 0 ? 'u' : s_want[d][k] > 0 ? 'd' : '.');
         printf("\n");
     }
-    fprintf(stderr, "%u of %u cases changed by the rules\n", changed, N);
+    for (int c = 0; c < 4; c++) {          /* the countries of SHAPES, no groups */
+        const SecShape *sh = &SHAPES[c];
+        uint8_t prom[3], rel[3], sec[4][2];
+        for (int d = 0; d < sh->nd; d++) { prom[d] = (uint8_t)sh->prom[d]; rel[d] = (uint8_t)sh->rel[d]; }
+        for (int i = 0; i < sh->nb; i++) { sec[i][0] = (uint8_t)sh->bt[i][0]; sec[i][1] = (uint8_t)sh->bt[i][1]; }
+        const LeaguePlayoffs lp = { (uint8_t)sh->country, (uint8_t)sh->nd, prom, rel, 0, 0, 0, 0, 0,
+                                    (uint8_t)sh->nb, sec, (uint8_t)sh->top, (uint8_t)sh->flags };
+        for (unsigned it = 0; it < N; it++) {
+            unsigned short glob[14][32]; int move[14][32];
+            make_shape_case(sh, it, glob, move);
+            s_in.nd = (u8)sh->nd;
+            for (int d = 0; d < sh->nd; d++) {
+                s_in.n[d] = (u8)sh->sz[d];
+                for (int k = 0; k < sh->sz[d]; k++) { s_in.t[d][k].glob = glob[d][k]; s_want[d][k] = (s8)move[d][k]; }
+            }
+            second_teams(&lp, 0, (u16)sh->base);
+            for (int d = 0, ch = 0; d < sh->nd && !ch; d++)
+                for (int k = 0; k < sh->sz[d]; k++) if (s_want[d][k] != move[d][k]) { changed++; ch = 1; break; }
+            printf("%s %u", sh->name, it);
+            for (int d = 0; d < sh->nd; d++)
+                for (int k = 0; k < sh->sz[d]; k++) printf("%c", s_want[d][k] < 0 ? 'u' : s_want[d][k] > 0 ? 'd' : '.');
+            printf("\n");
+        }
+    }
+    fprintf(stderr, "%u of %u cases changed by the rules\n", changed, 5 * N);
     return 0;
 }
 

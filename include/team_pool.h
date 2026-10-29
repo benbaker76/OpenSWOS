@@ -38,7 +38,10 @@ const TeamPool *World_TeamPools(int32_t *count);
 
 /* The career's identities of one pooled file: map[slot] 0 = its own record, else the
  * identity + 1 (an identity < 256 is that slot's own record of the file, 256 + k the
- * pool's k-th club); the queue of identities waiting below the league. */
+ * pool's k-th club); the queue of identities waiting below the league. One per pooled
+ * country (World 2026-27: Italy's Eccellenza; Spain's, Germany's, the Netherlands' and
+ * Portugal's, which take B teams forced out of the lowest division), as the Mod's per-file
+ * RI_STATE. */
 typedef struct {
     uint8_t  init;              /* 0: not started (a new career) */
     uint8_t  country;
@@ -48,7 +51,11 @@ typedef struct {
     uint16_t map[TEAM_POOL_SLOTS];
 } TeamPoolState;
 
-extern TeamPoolState g_teamPool;
+#define TEAM_POOL_FILES 8       /* (gplay.c RF) */
+extern TeamPoolState g_teamPool[TEAM_POOL_FILES];
+
+/* The state of `country`'s pool, 0 if it has none yet (the career has not swapped it). */
+TeamPoolState *TeamPool_State(uint8_t country);
 
 /* A new career: every slot its own, the queue the pool's first order. */
 void TeamPool_Reset(void);
