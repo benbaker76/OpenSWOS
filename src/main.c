@@ -261,6 +261,7 @@ static void print_usage(const char *argv0)
         "                            mismatching fields. Default: 1 (stop at the\n"
         "                            first — gameplay is chaotic, so everything after\n"
         "                            it is noise).\n"
+        "  --skip-intro              Start at the main menu, without the loader intro.\n"
         "  --menu=<name>             Open a menu that exists only as JSON before the\n"
         "                            main menu, e.g. swos2020/logInMenu (a file under\n"
         "                            data_json/menus/, docs/MENUS.md section 10).\n"
@@ -737,6 +738,11 @@ int main(int argc, char **argv)
             if      (strcmp(v, "amiga") == 0)  opts.kit_art = 0;
             else if (strcmp(v, "jaguar") == 0) opts.kit_art = 1;
             else { fprintf(stderr, "--kit-art must be amiga or jaguar (got %s)\n", v); return 1; }
+        } else if (strcmp(a, "--skip-intro") == 0) {
+            /* Straight to the main menu, which then runs as a player sees it: what a
+             * scripted run (scripts/swos_drive.ps1) starts from. Fire pressed through
+             * the intro instead falls through onto FRIENDLY. */
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if ((v = match_kv(a, "menu")) != NULL) {
             OnlineMenus_SetStartMenu(v);
             /* Same reason as --matchmaker-menu: this flag exists to reach a menu,

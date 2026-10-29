@@ -795,6 +795,17 @@ uint8_t *MenuJson_Load(const char *name)
     return copy;
 }
 
+const char *MenuJson_NameOf(const uint8_t *menu)
+{
+    for (int i = 0; i < NUM_STATIC_MENUS; i++)
+        if (s_staticMenus[i].menu == menu)
+            return s_staticMenus[i].name;
+    for (int i = 0; i < s_numDynamicMenus; i++)
+        if (s_dynamicMenus[i].packed == menu)
+            return s_dynamicMenus[i].name;
+    return NULL;
+}
+
 /* Unpack a JSON-only menu into scratch memory -- never the live _currentMenu -- and
  * check what UnpackMenu made of it against the JSON it came from: the entry count,
  * and for every entry its ordinal, screen rectangle, nav links and text (a literal's

@@ -24,6 +24,10 @@ void     MenuJson_RegisterSymbols(const MenuSymbol *syms, int count);
  * ".json" (e.g. "swos2020/logInMenu"). Built once and cached; NULL if it cannot be. */
 uint8_t *MenuJson_Load(const char *name);
 
+/* The name of a packed menu -- a compiled one ("swosMainMenu") or a JSON-only one
+ * ("swos2020/logInMenu") -- for the [menu] log; NULL if it is neither. */
+const char *MenuJson_NameOf(const uint8_t *menu);
+
 /* Unpack such a menu into scratch memory and check the result against its JSON.
  * Mismatch count, or -1 if it would not load. */
 int      MenuJson_VerifyDynamic(const char *name, int expectedEntries);

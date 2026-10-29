@@ -56,6 +56,8 @@ cd bin && ./SWOS.exe                 # the window opens on the loader intro
 - **The intro waits on the configured SHOOT/fire button** (`z` with the current bindings).
   Without it a timed run spends its whole life in the intro and never reaches a menu. The
   boot log prints the binding: `[input] key_fire = Z`.
+- `--skip-intro` **starts at the main menu**, which then runs as a player sees it. Any
+  scripted run starts here; fire pressed through the intro instead falls onto FRIENDLY.
 - `--menu=<name>` **skips the intro and opens that menu directly** (it sets
   `_skipLoaderIntro`), e.g. `--menu=editMenu`, `--menu=p2p/p2pMenu`. Fastest look at one
   screen by far.
@@ -65,15 +67,16 @@ cd bin && ./SWOS.exe                 # the window opens on the loader intro
   into `bin/swos_shotNNN.png`:
 
   ```powershell
-  scripts\swos_drive.ps1 -Launch -Keys "Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,WAIT1200,SHOT"
-  scripts\swos_drive.ps1 -Keys "DOWN,DOWN,Z,WAIT800,SHOT"   # drives the instance already up
-  scripts\swos_drive.ps1 -Keys "WAIT200"                    # focus it, press nothing
+  scripts\swos_drive.ps1 -Launch -Keys "SHOT"     # no intro; returns once the main menu is up
+  scripts\swos_drive.ps1 -Keys "LEFT,DOWN,DOWN,DOWN,DOWN,Z,MENU:challenge/hub,SHOT"
+  scripts\swos_drive.ps1 -Keys "WAIT200"           # focus it, press nothing
   scripts\swos_drive.ps1 -Shutdown
   ```
 
-  **Navigate by ordinal from the `[menu-nav]` log, not by counting fire presses** — eleven
-  blind `Z`s land in the middle of the FRIENDLY flow, and in team selection a stray `Z`
-  cycles a team's control type instead of advancing. Delete the screenshots afterwards:
+  **Navigate by ordinal from the `[menu-nav]` log and wait on the `[menu]` lines
+  (`MENU:<name>`), not by counting fire presses** — blind `Z`s through the intro land in
+  the FRIENDLY flow, and in team selection a stray `Z` cycles a team's control type
+  instead of advancing. The main menu's ordinals are in docs/UI_DRIVER.md. Delete the screenshots afterwards:
   they are untracked and NOT gitignored.
 
 ## Running the Amiga build

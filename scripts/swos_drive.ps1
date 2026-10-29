@@ -4,13 +4,23 @@
 # screenshots (F12 -> bin/swos_shotNNN.png), so a UI change can be verified without a
 # human at the keyboard. See docs/UI_DRIVER.md.
 #
-#   scripts/swos_drive.ps1 -Launch -Keys "Z,Z,Z,WAIT700,SHOT"
+#   scripts/swos_drive.ps1 -Launch -Keys "DOWN,Z,MENU:challengeMenu,SHOT"
 #   scripts/swos_drive.ps1 -Keys "DOWN,DOWN,Z"
 #   scripts/swos_drive.ps1 -Shutdown
+#
+# -Launch starts the game with --skip-intro and returns only once SWOS.log says the
+# main menu is up ("[menu] show swosMainMenu"), so the first key lands on it. Fire
+# pressed through the intro instead falls onto FRIENDLY. -Intro keeps the intro (for
+# testing it); -GameArgs passes more arguments (with --menu= or --challenge= the game
+# does not start at the main menu, so -Launch does not wait for it).
 #
 # Keys: UP DOWN LEFT RIGHT | FIRE/Z (fire) | X ENTER ESC SPACE | SHOT (F12 screenshot)
 #       any bare letter/digit types that character (filename entry; Z is still fire)
 #       WAIT<ms> pauses. -KeyDelayMs sets the gap between keys (default 350).
+#       MENU:<name> waits until the latest [menu] line in SWOS.log names that menu or
+#       screen (swosMainMenu, challengeMenu, challenge/list, swos2020/logInMenu ...),
+#       and stops the run if it does not within -MenuTimeoutMs (default 8000).
+#       The [menu] lines need a tester build or SWOS_MENU_NAV_LOG=1.
 #
 # Two things make it work, and both are easy to break:
 #  * Focus. SetForegroundWindow from a background process is blocked by Windows, so
@@ -22,7 +32,10 @@ param(
     [string]$Keys = "",
     [switch]$Launch,
     [switch]$Shutdown,
-    [int]$KeyDelayMs = 350
+    [switch]$Intro,
+    [string[]]$GameArgs = @(),
+    [int]$KeyDelayMs = 350,
+    [int]$MenuTimeoutMs = 8000
 )
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
@@ -102,6 +115,7 @@ public class SwosDrv {
         return sb.ToString();
     }
 
+
     public static void Tap(ushort vk, bool ext, int holdMs) {
         ushort sc = (ushort)MapVirtualKey(vk, 0);
         uint f = 0x0008u | (ext ? 0x0001u : 0u);   // SCANCODE | EXTENDEDKEY
@@ -123,6 +137,34 @@ $KeyMap = @{
 
 function Get-GameProc { Get-Process SWOS -ErrorAction SilentlyContinue | Select-Object -First 1 }
 
+# The menu or screen the latest "[menu] show|back <name> [(<screen>)] on #N" line names.
+function Get-CurrentMenu {
+    if (-not (Test-Path $LogPath)) { return $null }
+    $lines = @(Get-Content $LogPath -ErrorAction SilentlyContinue |
+               Where-Object { $_ -match '^\[menu\] (show|back) ' })
+    if ($lines.Count -eq 0) { return $null }
+    if ($lines[-1] -match '^\[menu\] (show|back) (\S+)(?: \((\S+)\))? on #(-?\d+)') {
+        return [pscustomobject]@{ Menu = $Matches[2]; Screen = $Matches[3]; Entry = [int]$Matches[4] }
+    }
+    return $null
+}
+
+function Wait-Menu([string]$name, $proc) {
+    $deadline = (Get-Date).AddMilliseconds($MenuTimeoutMs)
+    while ((Get-Date) -lt $deadline) {
+        $m = Get-CurrentMenu
+        if ($m -and ($m.Menu -eq $name -or $m.Screen -eq $name)) {
+            Write-Host "on $($m.Menu)$(if ($m.Screen) { " ($($m.Screen))" }) #$($m.Entry)"
+            return $true
+        }
+        if ($proc -and $proc.HasExited) { break }
+        Start-Sleep -Milliseconds 100
+    }
+    $m = Get-CurrentMenu
+    Write-Host "!! not on $name after $MenuTimeoutMs ms; latest: $(if ($m) { "$($m.Menu) $($m.Screen) #$($m.Entry)" } else { 'no [menu] line in SWOS.log' })"
+    return $false
+}
+
 if ($Shutdown) { Get-Process SWOS -ErrorAction SilentlyContinue | Stop-Process -Force; Write-Host "stopped"; exit 0 }
 
 if ($Launch) {
@@ -131,12 +173,23 @@ if ($Launch) {
     if (Test-Path $LogPath) { Remove-Item $LogPath -Force }
     Get-ChildItem "$GameDir\swos_shot*.png" -ErrorAction SilentlyContinue | Remove-Item -Force
     foreach ($d in $DllDirs) { if (Test-Path $d) { $env:PATH = "$d;" + $env:PATH } }
-    Start-Process -FilePath "$GameDir\SWOS.exe" -WorkingDirectory $GameDir
-    Start-Sleep -Seconds 4
+    $argList = @($GameArgs)
+    if (-not $Intro) { $argList = @("--skip-intro") + $argList }
+    if ($argList.Count -gt 0) {
+        Start-Process -FilePath "$GameDir\SWOS.exe" -WorkingDirectory $GameDir -ArgumentList $argList
+    } else {
+        Start-Process -FilePath "$GameDir\SWOS.exe" -WorkingDirectory $GameDir
+    }
+    Start-Sleep -Milliseconds 500
 }
 
 $proc = Get-GameProc
 if (-not $proc) { Write-Host "SWOS NOT RUNNING"; exit 1 }
+# Without the intro the main menu is the first screen: wait for it rather than for a
+# fixed time. (With -Intro the script cannot know when the intro ends; drive it. With
+# --menu=/--challenge= the main menu is not first: wait with MENU: or WAIT.)
+$startsElsewhere = @($GameArgs | Where-Object { $_ -match '^--(menu|challenge)=' }).Count -gt 0
+if ($Launch -and -not $Intro -and -not $startsElsewhere -and -not (Wait-Menu "swosMainMenu" $proc)) { exit 1 }
 
 $hwnd = [SwosDrv]::FindGameWindow([uint32]$proc.Id)
 if ($hwnd -eq [IntPtr]::Zero) { $hwnd = $proc.MainWindowHandle }
@@ -144,10 +197,14 @@ $focused = [SwosDrv]::Focus($hwnd)
 Write-Host "focus ok=$focused (foreground now: '$([SwosDrv]::FgTitle())')"
 
 foreach ($k in ($Keys -split ",")) {
-    $k = $k.Trim().ToUpper()
+    $raw = $k.Trim()
+    $k = $raw.ToUpper()
     if ($k -eq "") { continue }
     if ($proc.HasExited) { Write-Host "!! game exited (code $($proc.ExitCode)) before key '$k'"; break }
-    if ($k -match "^WAIT(\d+)$") { Start-Sleep -Milliseconds ([int]$Matches[1]); continue }
+    if ($k -match "^WAIT(\d+)$") { Start-Sleep -Milliseconds ([int]$Matches[1]); continue }    if ($k -match "^MENU:") {   # menu names are case sensitive: the token as written
+        if (-not (Wait-Menu $raw.Substring(5) $proc)) { exit 1 }
+        continue
+    }
     if ($KeyMap.ContainsKey($k)) {
         $vk,$ext = $KeyMap[$k]
     } elseif ($k -match "^[A-Z0-9]$") {

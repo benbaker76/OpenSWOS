@@ -201,6 +201,14 @@ void ChallengeCollection_MenuInit(void)
         if (above >= 0) CalcMenuEntryAddress(7)->downEntry = 6;
     }
     SetCurrentEntry((uint16_t)(screen == LIST && actions[listFocus] ? listFocus : first));
+#ifdef SWOS_SDL_BUILD
+    {   /* one packed menu, four screens: name this one in the [menu] show line */
+        extern void MenuLog_Screen(const char *name);
+        static const char *const names[] = { "challenge/hub", "challenge/list",
+                                             "challenge/details", "challenge/result" };
+        MenuLog_Screen(names[screen]);
+    }
+#endif
 }
 
 void ChallengeCollection_MenuSelect(void *entry)

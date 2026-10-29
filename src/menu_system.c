@@ -152,6 +152,61 @@ extern uint8_t *_spriteGraphicsPtr;
  * X button click. ShowMenu loops check it to break out of nested menus. */
 extern uint16_t _quitToDos;
 
+#ifdef SWOS_SDL_BUILD
+#include "menu_load_json.h"     /* MenuJson_NameOf, for the [menu] log */
+
+/* The menu log: [menu-nav] (each direction pressed, in MenuProc) and [menu] (each
+ * menu as it opens or comes back, ActivateMenu/RestorePreviousMenu) -- what a tester's
+ * SWOS.log needs to retrace a menu path, and what scripts/swos_drive.ps1 waits on
+ * instead of guessing how long a screen takes. ON by default in a TESTER build, so
+ * a tester only has to run the game and send SWOS.log -- no environment variables
+ * to set. SWOS_MENU_NAV_LOG=0/1 overrides either way. */
+static int menu_nav_log_on(void)
+{
+    static int8_t s_navLog = -1;
+    if (s_navLog < 0) {
+        const char *v = getenv("SWOS_MENU_NAV_LOG");
+#ifdef SWOS_TEST_RULES      /* a tester build (include/test_rules.h) */
+        s_navLog = v ? (v[0] != '0') : 1;
+#else
+        s_navLog = v ? (v[0] != '0') : 0;
+#endif
+    }
+    return s_navLog;
+}
+
+static const char *s_menuScreen;    /* MenuLog_Screen, for the next "show" line */
+
+/* "[menu] show swosMainMenu on #1", "[menu] show challengeMenu (challenge/list) on #3",
+ * "[menu] back swosMainMenu on #6": the menu, the screen when one packed menu draws
+ * several, and the selected entry's ordinal. */
+static void menu_log(const char *what, const uint8_t *packedMenu)
+{
+    const char *screen = s_menuScreen;
+    s_menuScreen = NULL;
+    if (!menu_nav_log_on())
+        return;
+    const char *name = MenuJson_NameOf(packedMenu);
+    const MenuEntry *sel = ((Menu *)_currentMenu)->selectedEntry;
+    char buf[24];
+    if (!name) {
+        snprintf(buf, sizeof buf, "%p", (const void *)packedMenu);
+        name = buf;
+    }
+    if (screen)
+        fprintf(stderr, "[menu] %s %s (%s) on #%d\n", what, name, screen, sel ? (int)sel->ordinal : -1);
+    else
+        fprintf(stderr, "[menu] %s %s on #%d\n", what, name, sel ? (int)sel->ordinal : -1);
+}
+
+/* For a menu that draws several screens in one packed menu (the challenge
+ * collection), called from its init: which one ActivateMenu's "show" line names. */
+void MenuLog_Screen(const char *name)
+{
+    s_menuScreen = name;
+}
+#endif
+
 #ifdef SWOS_DEBUG_AUTOSKIP
 /* Map a packed-menu pointer to a human name for the autoskip log. */
 extern uint8_t _diyCupMenu[], _diyLeagueTournamentMenu[], _chairmanMemosMenu[];
@@ -1773,21 +1828,9 @@ no_event_or_done:
 #ifdef SWOS_SDL_BUILD
     /* Menu navigation log: every direction the menu sees, what it walked through and
      * where the cursor ended up -- for a cursor that will not move on one machine
-     * and moves on every other (the log-in screen, 2026-09-24). ON by default in a
-     * TESTER build, so a tester only has to run the game and send SWOS.log -- no
-     * environment variables to set; a line is written only when a direction is
-     * pressed. SWOS_MENU_NAV_LOG=0/1 overrides either way. Ordinals are the menu
-     * JSON's item numbers. */
-    static int8_t s_navLog = -1;
-    if (s_navLog < 0) {
-        const char *v = getenv("SWOS_MENU_NAV_LOG");
-#ifdef SWOS_TEST_RULES      /* a tester build (include/test_rules.h) */
-        s_navLog = v ? (v[0] != '0') : 1;
-#else
-        s_navLog = v ? (v[0] != '0') : 0;
-#endif
-    }
-    if (s_navLog && (_menuControlsDirection >= 0 || _pl1Direction >= 0 || (_twoPlayers && _pl2Direction >= 0) ||
+     * and moves on every other (the log-in screen, 2026-09-24). A line is written
+     * only when a direction is pressed. Ordinals are the menu JSON's item numbers. */
+    if (menu_nav_log_on() && (_menuControlsDirection >= 0 || _pl1Direction >= 0 || (_twoPlayers && _pl2Direction >= 0) ||
                      (_currentKey >= 0x10 && _currentKey <= 0x13)))
         fprintf(stderr, "[menu-nav] on #%u: dir=%d fire=%u (pl1 dir=%d fire=%u, pl2 dir=%d fire=%u, "
                         "two=%u, key=0x%02x)%s\n", (unsigned)selectedEntry->ordinal,
@@ -1810,7 +1853,7 @@ no_event_or_done:
 
         navOrd = *((int8_t *)(navBase + 8 + fieldOff));
 #ifdef SWOS_SDL_BUILD
-        if (s_navLog)
+        if (menu_nav_log_on())
             fprintf(stderr, "[menu-nav]   #%u dir %u -> %d%s\n", (unsigned)selectedEntry->ordinal,
                     (unsigned)dirIdx, (int)navOrd, navOrd == -1 ? " (no link: stays)" : "");
 #endif
@@ -1821,14 +1864,14 @@ no_event_or_done:
             MenuEntry *cand = CalcMenuEntryAddress((uint16_t)(uint8_t)navOrd);
 
 #ifdef SWOS_SDL_BUILD
-            if (s_navLog)
+            if (menu_nav_log_on())
                 fprintf(stderr, "[menu-nav]   #%d%s%s\n", (int)navOrd,
                         cand->isInvisible ? " invisible" : "", cand->isDisabled ? " disabled" : "");
 #endif
             if (cand->isDisabled == 0 && cand->isInvisible == 0) {
                 menu->selectedEntry = cand;
 #ifdef SWOS_SDL_BUILD
-                if (s_navLog)
+                if (menu_nav_log_on())
                     fprintf(stderr, "[menu-nav]   moved to #%u\n", (unsigned)cand->ordinal);
 #endif
                 if (selectedEntry->background == NO_BACKGROUND)
@@ -1843,7 +1886,7 @@ no_event_or_done:
                 if (dirField == -1) {
                     navOrd = *((int8_t *)((uint8_t *)cand + 8 + fieldOff));
 #ifdef SWOS_SDL_BUILD
-                    if (s_navLog && navOrd == -1)
+                    if (menu_nav_log_on() && navOrd == -1)
                         fprintf(stderr, "[menu-nav]   dead end: stays on #%u\n",
                                 (unsigned)selectedEntry->ordinal);
 #endif
@@ -1888,10 +1931,19 @@ void ActivateMenu(uint8_t *packedMenu)
     if (onInitPtr != 0) {
         CallMenuCallback((void *)onInitPtr);
     }
-    if (_exitMenu != 0)
+    if (_exitMenu != 0) {
+#ifdef SWOS_SDL_BUILD
+        s_menuScreen = NULL;    /* never shown: no line, and no screen name left over */
+#endif
         return;
+    }
 
     DrawMenu();
+#ifdef SWOS_SDL_BUILD
+    /* Here rather than in ShowMenu: the main menu and several others are entered by
+     * calling ActivateMenu directly. */
+    menu_log("show", packedMenu);
+#endif
 }
 
 /* ================================================================
@@ -1983,6 +2035,9 @@ void RestorePreviousMenu(MenuEntry *oldSelectedEntry, uint8_t *oldPackedMenu)
 
     menu = (Menu *)_currentMenu;
     menu->selectedEntry = oldSelectedEntry;
+#ifdef SWOS_SDL_BUILD
+    menu_log("back", oldPackedMenu);
+#endif
 
     afterDrawPtr = menu->afterDraw;
     if (afterDrawPtr != 0) {

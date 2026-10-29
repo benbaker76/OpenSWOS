@@ -12,14 +12,21 @@ you can see the cursor land on the entry and watch what the press did.
 ## Running it
 
 ```powershell
-# launch, skip the intro, screenshot
-scripts\swos_drive.ps1 -Launch -Keys "Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,WAIT700,SHOT"
+# launch (no intro), wait for the main menu, go to the challenge list, screenshot
+scripts\swos_drive.ps1 -Launch -Keys "LEFT,DOWN,DOWN,DOWN,DOWN,Z,MENU:challenge/hub,Z,MENU:challenge/list,SHOT"
 
 # keep driving the instance that is already up
 scripts\swos_drive.ps1 -Keys "DOWN,DOWN,Z,WAIT800,SHOT"
 
 scripts\swos_drive.ps1 -Shutdown
 ```
+
+**`-Launch` starts at the main menu.** It runs the game with `--skip-intro` and returns
+only once `SWOS.log` says `[menu] show swosMainMenu` (~4 s), so the first key lands on the
+main menu, with FRIENDLY (#6) selected. Never press fire through the intro instead: the
+presses left over once it ends start the FRIENDLY flow, which is how a route to CHALLENGES
+used to detour through friendlies. `-Intro` keeps the intro (when the intro is what is
+tested; nothing can be waited on then), `-GameArgs` adds arguments.
 
 | key | meaning |
 |---|---|
@@ -28,6 +35,7 @@ scripts\swos_drive.ps1 -Shutdown
 | `X` `ENTER` `ESC` `SPACE` | as named |
 | `SHOT` | F12 — the game writes `bin/swos_shotNNN.png` |
 | `WAIT<ms>` | pause, e.g. `WAIT1500` |
+| `MENU:<name>` | wait until the latest `[menu]` line names that menu or screen (`swosMainMenu`, `challengeMenu`, `challenge/list`, `swos2020/logInMenu` ...); the run stops with the menu it IS on if not within `-MenuTimeoutMs` (8000). Names are case sensitive |
 
 `-KeyDelayMs` sets the gap between keys (default 350). Menus need time to redraw; too
 fast and presses are swallowed.
@@ -50,7 +58,19 @@ You are not driving blind. Use all three:
    ```
    A line is written only when a **direction** is pressed — a fire press alone logs
    nothing, so absence of a line after `Z` proves nothing.
-3. **`SWOS.ini` / boot lines** — confirm the fire key and the asset paths actually in use.
+3. **`SWOS.log`, `[menu]` lines** — which menu is up, every time one opens (`show`, from
+   `ActivateMenu`) or comes back after a nested one closes (`back`), with the selected
+   ordinal. A menu that draws several screens in one packed menu names the screen too:
+   ```
+   [menu] show swosMainMenu on #6
+   [menu] show challengeMenu (challenge/hub) on #2
+   [menu] back swosMainMenu on #5
+   [menu] show challengeMenu (challenge/list) on #3
+   ```
+   (The `back` between two collection screens is real: the collection is a loop of
+   `ShowMenu` calls from the main menu.) This is what `MENU:` waits on. Both kinds of line
+   are on in a tester build; `SWOS_MENU_NAV_LOG=0/1` overrides.
+4. **`SWOS.ini` / boot lines** — confirm the fire key and the asset paths actually in use.
 
 ## Writing a route
 
@@ -59,11 +79,38 @@ Navigate by **ordinal**, confirmed from the nav log, not by counting keypresses.
 extra `Z` silently cycles a team's control type
 (`NOT_SELECTED → COMPUTER → PLAYER-COACH → COACH`, `teams.c`) instead of advancing.
 
-Verify at each decision point rather than chaining one long sequence. For a friendly:
+Verify at each decision point rather than chaining one long sequence; `MENU:` after
+every press that opens a menu.
+
+**The main menu** (`swosMainMenu`, opens on #6):
+
+| left column | | right column | |
+|---|---|---|---|
+| #1 | EDIT | #6 | FRIENDLY |
+| #2 | PRACTICE | #7 | DIY COMPETITION |
+| #3 | HIGHLIGHTS | #8 | PRESET COMPETITION |
+| #4 | OPTIONS | #9 | SEASON |
+| #5 | CHALLENGES | #10 | CAREER |
+
+Below them MULTIPLAYER, LOAD OLD COMPETITION and CREDITS. From #6, `LEFT` reaches #1.
+
+**A challenge** — the collection list, then the first challenge's details:
 
 ```powershell
-# 1. intro -> continent -> country -> division -> team list   (verify with SHOT)
--Launch -Keys "Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,WAIT700,Z,WAIT900,SHOT"
+-Launch -Keys "LEFT,DOWN,DOWN,DOWN,DOWN,Z,MENU:challenge/hub,Z,MENU:challenge/list,SHOT"
+-Keys "Z,MENU:challenge/details,SHOT"       # PLAY from there starts the match
+```
+
+The hub's first row is CHALLENGE COLLECTION, the list opens on its first challenge. A
+SAVED POSITION (`.CHL` in the save folder) skips the menus altogether:
+`-GameArgs "--challenge=CHAL01.CHL"`.
+
+**A friendly:**
+
+```powershell
+# 1. FRIENDLY (#6, where the main menu opens) -> continent -> country -> division ->
+#    team list: one Z per screen, checking each with SHOT and the [menu] lines
+-Launch -Keys "Z,WAIT900,SHOT"
 
 # 2. first team: Z twice => PLAYER-COACH (blue). second: RIGHT then Z once => COMPUTER (red).
 #    Check the colours in the screenshot before going on.
@@ -72,6 +119,14 @@ Verify at each decision point rather than chaining one long sequence. For a frie
 # 3. down to the bottom row, then PLAY FRIENDLY (watch for "moved to #57")
 -Keys "DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,DOWN,WAIT400,Z,WAIT2500,SHOT"
 ```
+
+## The Amiga build is not driven by this script
+
+`swos_drive.ps1` drives the SDL window only; a menu change on the m68k build is checked
+by hand under FS-UAE for now. There the keyboard joystick's fire is **Right Ctrl**
+(arrows move), not `Z`, and the m68k build writes no log, so a script would have to
+recognise screens from captures of the window. The flow-testing framework drives it
+through gdb memory writes instead (docs/TESTING_FLOWS_DESIGN.md).
 
 ## Gotchas
 
