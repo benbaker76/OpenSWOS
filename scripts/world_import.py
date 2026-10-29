@@ -346,6 +346,38 @@ def italian_groups(picked, country, league):
     return {"name": "Italy", "country": country, "levels": levels, "clubs": clubs}
 
 
+def country_groups(wc, pk, picked, rec):
+    """A league's levels (as italian_groups, any country: its pack's 'parallel' levels of
+    groups side by side) and each club's group at the levels of groups by its area (the Mod's
+    "X/Y", or one letter for every level: El Salvador's). None: no level of groups."""
+    lg = pack_league(pk)
+    par = lg.get("parallel")
+    par = par if isinstance(par, list) else [par] if par else []
+    if not par:
+        return None
+    sizes = [d["teams"] for d in rec["divisions"]]
+    groups_at = {q["first"]: q["count"] for q in par}
+    levels, first = [], 0
+    while first < len(sizes):
+        n = groups_at.get(first, 1)
+        name = None
+        if n > 1:       # the groups' names without their own part: "SEGUNDA DIVISION OCCIDENTE" -> "SEGUNDA DIVISION"
+            names = [rec["name"][2 * d] for d in range(first, first + n)]
+            name = re.sub(r"\s*\b(GIRONE|GROUP)\s*$", "", os.path.commonprefix(names)).strip()
+            name = re.sub(r"\s+\S*$", "", name) if not names[0].startswith(name + " ") else name
+        levels.append((first, n, sizes[first:first + n], name))
+        first += n
+    nlv = sum(1 for _, n, _, _ in levels if n > 1)
+    clubs = []
+    for ordinal, (e, division) in enumerate(picked):
+        letters = (e.get("x_swos9697", {}).get("area") or "").split("/")
+        if len(letters) == 1:
+            letters = letters * nlv
+        areas = [ord(x) - ord("A") if len(x) == 1 and "A" <= x <= "Z" else None for x in (letters + ["", ""])[:2]]
+        clubs.append((ordinal, division, areas))
+    return {"name": wc["name"].title().replace(" ", ""), "country": wc["number"], "levels": levels, "clubs": clubs}
+
+
 # The Mod's knockout play-offs (pack.json 'ko_playoffs'), compiled as tools/gplay.py's
 # compile_spec compiles them -- ported, the same bytes (league_playoffs_check.sh compares
 # them for every pack), so src/league_playoffs.c walks them as gplay.c does. Every kind is
@@ -1222,7 +1254,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         sym = "kWorld%s_%s" % (tag, g["name"].lower())
         rows = []
         for first, n, sizes, name in g["levels"]:
-            if name:
+            if name and name not in symbols:
                 strings.append("static char %s[] = %s;" % (symbol(name), c_string(name)))
             rows.append("    { %d, %d, { %s }, %s }," % (first, n, ", ".join(map(str, sizes)),
                                                        symbol(name) if name else "0"))
@@ -1373,7 +1405,9 @@ PLAIN = ("ALG BEL BLR BOL CHI CRO ENG EST FRA FRO GHA HUN IND IRL JPN LTU LUX LV
          # (a mid-season split: src/league_split.c)
          "ALB AUT BUL CYP CZE DEN ECU FIN GRE ISL ISR NIR ROU SRB SUI SVK WAL "
          # (fixture stages, Apertura / Clausura, as one league yet: their titles not played)
-         "COL MEX PAR PER URU MLT SMR").split()
+         "COL MEX PAR PER URU MLT SMR "
+         # (levels of groups side by side: src/league_groups.c)
+         "SLV AUS").split()
 
 
 def division_rows(wc, picked, d):
@@ -1428,6 +1462,7 @@ def main():
     write_team_file(teams, "ITALY")
     country = teams["teams"][0]["team"]["country_number"]
     pools, news, splits = [], [], []
+    groups = [italian_groups(picked, country, leagues)]
 
     def add_pool(code, name, number, base):     # (home: as country_teams, 96/97's file's)
         home = home_nation(json.load(open(os.path.join(BASE, "teams", base + ".json"), encoding="utf-8")))
@@ -1459,6 +1494,9 @@ def main():
             playoffs.append(po)
         cups += country_cups(wc, pk, pk_picked)
         splits += [(wc["number"], d, tb) for d, tb in country_splits(wc, pk, pk_picked)]
+        grp = country_groups(wc, pk, pk_picked, leagues["leagues"][-1])
+        if grp:
+            groups.append(grp)
         if not wc["new"]:
             add_pool(wc["code"], wc["name"].title().replace(" ", ""), wc["number"], wc["base"])
         resized.append((wc["number"], t["count"]))
@@ -1471,7 +1509,7 @@ def main():
     write(os.path.join(WORLD, "competitions", "leagues.json"), leagues)
     with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
         f.write(world_data_c("2627", leagues, resized,
-                             [italian_groups(picked, country, leagues)],
+                             groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits))
     print("wrote src/world_data.c")
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.

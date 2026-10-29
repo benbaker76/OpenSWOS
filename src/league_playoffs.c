@@ -443,9 +443,11 @@ static void gp_season(const u8 *s)
             int pairing = r[4], gap = r[5];
             const u8 *m = r + 6;
             int mem[2 * GN];
-            if (legs & 0x80) {          /* a group round: not compiled for here */
+            if (legs & 0x80) {          /* a group round (m members, m bonus points: 2 x ties
+                                         * bytes, as a knockout round's): not played here */
                 ok = 0;
-                break;
+                r = m + 2 * ties;
+                continue;
             }
             for (int i = 0; i < 2 * ties; i++) {
                 int c = m[i], v = -1;
