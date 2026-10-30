@@ -2218,6 +2218,33 @@ static const uint8_t kWorld2627_italySeconds[][2] = {
     { 89, 0 },
 };
 
+static const char *const kWorld2627_italyNames[][2] = {
+    { "SERIE C GROUP A PLAY-OU", "PLAY-OUT G. A" },
+    { "SERIE C GROUP B PLAY-OU", "PLAY-OUT G. B" },
+    { "SERIE C GROUP C PLAY-OU", "PLAY-OUT G. C" },
+    { "SERIE D GROUP A PLAY-OF", "PLAY-OFF G. A" },
+    { "SERIE D GROUP B PLAY-OF", "PLAY-OFF G. B" },
+    { "SERIE D GROUP C PLAY-OF", "PLAY-OFF G. C" },
+    { "SERIE D GROUP D PLAY-OF", "PLAY-OFF G. D" },
+    { "SERIE D GROUP E PLAY-OF", "PLAY-OFF G. E" },
+    { "SERIE D GROUP F PLAY-OF", "PLAY-OFF G. F" },
+    { "SERIE D GROUP G PLAY-OF", "PLAY-OFF G. G" },
+    { "SERIE D GROUP H PLAY-OF", "PLAY-OFF G. H" },
+    { "SERIE D GROUP I PLAY-OF", "PLAY-OFF G. I" },
+    { "SERIE D GROUP A PLAY-OU", "PLAY-OUT G. A" },
+    { "SERIE D GROUP B PLAY-OU", "PLAY-OUT G. B" },
+    { "SERIE D GROUP C PLAY-OU", "PLAY-OUT G. C" },
+    { "SERIE D GROUP D PLAY-OU", "PLAY-OUT G. D" },
+    { "SERIE D GROUP E PLAY-OU", "PLAY-OUT G. E" },
+    { "SERIE D GROUP F PLAY-OU", "PLAY-OUT G. F" },
+    { "SERIE D GROUP G PLAY-OU", "PLAY-OUT G. G" },
+    { "SERIE D GROUP H PLAY-OU", "PLAY-OUT G. H" },
+    { "SERIE D GROUP I PLAY-OU", "PLAY-OUT G. I" },
+    { "SERIE D CHAMPIONSHIP PO", "TITLE POULE" },
+};
+
+static const uint8_t kWorld2627_italyThen[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
 static const uint8_t kWorld2627_australiaPromoted[] = { 0, 0, 0, 0 };
 
 static const uint8_t kWorld2627_australiaRelegated[] = { 0, 0, 0, 0 };
@@ -2233,6 +2260,12 @@ static const uint8_t kWorld2627_australiaSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_australiaNames[][2] = {
+    { "A-LEAGUE FINALS SERIES", "FINALS SERIES" },
+};
+
+static const uint8_t kWorld2627_australiaThen[] = { 0 };
+
 static const uint8_t kWorld2627_austriaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_austriaRelegated[] = { 0 };
@@ -2247,6 +2280,12 @@ static const uint8_t kWorld2627_austriaSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_austriaNames[][2] = {
+    { "EUROPEAN PLAY-OFF", "EUROPE PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_austriaThen[] = { 0 };
+
 static const uint8_t kWorld2627_bulgariaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_bulgariaRelegated[] = { 0 };
@@ -2259,6 +2298,12 @@ static const uint8_t kWorld2627_bulgariaSpec[23] = {
 static const uint8_t kWorld2627_bulgariaSeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_bulgariaNames[][2] = {
+    { "EUROPEAN PLAY-OFF", "EUROPE PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_bulgariaThen[] = { 0 };
 
 static const uint8_t kWorld2627_canadaPromoted[] = { 0 };
 
@@ -2273,6 +2318,12 @@ static const uint8_t kWorld2627_canadaSpec[41] = {
 static const uint8_t kWorld2627_canadaSeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_canadaNames[][2] = {
+    { "CANADIAN PREMIER L. PLA", "CPL PLAYOFFS" },
+};
+
+static const uint8_t kWorld2627_canadaThen[] = { 0 };
 
 static const uint8_t kWorld2627_colombiaPromoted[] = { 0 };
 
@@ -2295,6 +2346,13 @@ static const uint8_t kWorld2627_colombiaSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_colombiaNames[][2] = {
+    { "TORNEO APERTURA", "APERTURA" },
+    { "TORNEO FINALIZACION", "FINALIZACION" },
+};
+
+static const uint8_t kWorld2627_colombiaThen[] = { 0, 0 };
+
 static const uint8_t kWorld2627_costaricaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_costaricaRelegated[] = { 0 };
@@ -2313,6 +2371,13 @@ static const uint8_t kWorld2627_costaricaSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_costaricaNames[][2] = {
+    { "APERTURA", "APERTURA" },
+    { "CLAUSURA", "CLAUSURA" },
+};
+
+static const uint8_t kWorld2627_costaricaThen[] = { 0, 0 };
+
 static const uint8_t kWorld2627_czechrepublicPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_czechrepublicRelegated[] = { 0 };
@@ -2327,6 +2392,12 @@ static const uint8_t kWorld2627_czechrepublicSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_czechrepublicNames[][2] = {
+    { "PLACINGS GROUP 7-10", "PLACINGS" },
+};
+
+static const uint8_t kWorld2627_czechrepublicThen[] = { 0 };
+
 static const uint8_t kWorld2627_denmarkPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_denmarkRelegated[] = { 0 };
@@ -2339,6 +2410,12 @@ static const uint8_t kWorld2627_denmarkSpec[23] = {
 static const uint8_t kWorld2627_denmarkSeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_denmarkNames[][2] = {
+    { "EUROPEAN PLAY-OFF", "EUROPE PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_denmarkThen[] = { 0 };
 
 static const uint8_t kWorld2627_englandPromoted[] = { 0, 2, 2, 3 };
 
@@ -2360,6 +2437,14 @@ static const uint8_t kWorld2627_englandSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_englandNames[][2] = {
+    { "CHAMPIONSHIP PLAY-OFFS", "CHAMP PLAY-OFFS" },
+    { "LEAGUE ONE PLAY-OFFS", "L1 PLAY-OFFS" },
+    { "LEAGUE TWO PLAY-OFFS", "L2 PLAY-OFFS" },
+};
+
+static const uint8_t kWorld2627_englandThen[] = { 0, 0, 0 };
+
 static const uint8_t kWorld2627_spainPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_spainRelegated[] = { 3, 0 };
@@ -2373,6 +2458,12 @@ static const uint8_t kWorld2627_spainSpec[41] = {
 static const uint8_t kWorld2627_spainSeconds[][2] = {
     { 31, 9 },
 };
+
+static const char *const kWorld2627_spainNames[][2] = {
+    { "PROMOTION PLAY-OFF", "PROMO PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_spainThen[] = { 0 };
 
 static const uint8_t kWorld2627_francePromoted[] = { 0, 2 };
 
@@ -2388,6 +2479,12 @@ static const uint8_t kWorld2627_franceSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_franceNames[][2] = {
+    { "LIGUE 1 PLAY-OFF", "PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_franceThen[] = { 0 };
+
 static const uint8_t kWorld2627_germanyPromoted[] = { 0, 2, 2 };
 
 static const uint8_t kWorld2627_germanyRelegated[] = { 2, 2, 0 };
@@ -2402,6 +2499,13 @@ static const uint8_t kWorld2627_germanySeconds[][2] = {
     { 46, 3 },
     { 48, 4 },
 };
+
+static const char *const kWorld2627_germanyNames[][2] = {
+    { "BUNDESLIGA PLAY-OFF", "PLAY-OFF 1/2" },
+    { "2. BUNDESLIGA PLAY-OFF", "PLAY-OFF 2/3" },
+};
+
+static const uint8_t kWorld2627_germanyThen[] = { 0, 0 };
 
 static const uint8_t kWorld2627_guatemalaPromoted[] = { 0 };
 
@@ -2422,6 +2526,13 @@ static const uint8_t kWorld2627_guatemalaSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_guatemalaNames[][2] = {
+    { "APERTURA", "APERTURA" },
+    { "CLAUSURA", "CLAUSURA" },
+};
+
+static const uint8_t kWorld2627_guatemalaThen[] = { 0, 0 };
+
 static const uint8_t kWorld2627_hondurasPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_hondurasRelegated[] = { 0 };
@@ -2441,6 +2552,13 @@ static const uint8_t kWorld2627_hondurasSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_hondurasNames[][2] = {
+    { "APERTURA", "APERTURA" },
+    { "CLAUSURA", "CLAUSURA" },
+};
+
+static const uint8_t kWorld2627_hondurasThen[] = { 0, 0 };
+
 static const uint8_t kWorld2627_japanPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_japanRelegated[] = { 3, 0 };
@@ -2454,6 +2572,12 @@ static const uint8_t kWorld2627_japanSpec[41] = {
 static const uint8_t kWorld2627_japanSeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_japanNames[][2] = {
+    { "J1 PROMOTION PLAY-OFFS", "J1 PLAY-OFFS" },
+};
+
+static const uint8_t kWorld2627_japanThen[] = { 0 };
 
 static const uint8_t kWorld2627_mexicoPromoted[] = { 0, 0 };
 
@@ -2487,6 +2611,17 @@ static const uint8_t kWorld2627_mexicoSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_mexicoNames[][2] = {
+    { "LIGA MX APERTURA 2026", "APERTURA 2026" },
+    { "LIGA MX CLAUSURA 2027", "CLAUSURA 2027" },
+    { "CAMPEON DE CAMPEONES", "CAMP. DE CAMP." },
+    { "EXPANSION APERTURA 2026", "APERTURA 2026" },
+    { "EXPANSION CLAUSURA 2027", "CLAUSURA 2027" },
+    { "CAMPEON DE CAMPEONES", "CAMP. DE CAMP." },
+};
+
+static const uint8_t kWorld2627_mexicoThen[] = { 0, 3, 0, 0, 6, 0 };
+
 static const uint8_t kWorld2627_maltaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_maltaRelegated[] = { 0 };
@@ -2500,6 +2635,12 @@ static const uint8_t kWorld2627_maltaSpec[41] = {
 static const uint8_t kWorld2627_maltaSeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_maltaNames[][2] = {
+    { "PREMIER LEAGUE FINAL FO", "FINAL FOUR" },
+};
+
+static const uint8_t kWorld2627_maltaThen[] = { 0 };
 
 static const uint8_t kWorld2627_hollandPromoted[] = { 0, 2 };
 
@@ -2522,6 +2663,13 @@ static const uint8_t kWorld2627_hollandSeconds[][2] = {
     { 34, 4 },
 };
 
+static const char *const kWorld2627_hollandNames[][2] = {
+    { "PROMOTION/RELEGATION PL", "PROMO/REL PO" },
+    { "EUROPEAN PLAY-OFF", "EUROPE PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_hollandThen[] = { 0, 0 };
+
 static const uint8_t kWorld2627_northernirelandPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_northernirelandRelegated[] = { 0 };
@@ -2536,6 +2684,12 @@ static const uint8_t kWorld2627_northernirelandSpec[51] = {
 static const uint8_t kWorld2627_northernirelandSeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_northernirelandNames[][2] = {
+    { "EUROPEAN PLAY-OFF", "EUROPE PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_northernirelandThen[] = { 0 };
 
 static const uint8_t kWorld2627_panamaPromoted[] = { 0 };
 
@@ -2556,6 +2710,13 @@ static const uint8_t kWorld2627_panamaSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_panamaNames[][2] = {
+    { "APERTURA", "APERTURA" },
+    { "CLAUSURA", "CLAUSURA" },
+};
+
+static const uint8_t kWorld2627_panamaThen[] = { 0, 0 };
+
 static const uint8_t kWorld2627_paraguayPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_paraguayRelegated[] = { 0 };
@@ -2569,6 +2730,13 @@ static const uint8_t kWorld2627_paraguaySpec[45] = {
 static const uint8_t kWorld2627_paraguaySeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_paraguayNames[][2] = {
+    { "TORNEO APERTURA", "APERTURA" },
+    { "TORNEO CLAUSURA", "CLAUSURA" },
+};
+
+static const uint8_t kWorld2627_paraguayThen[] = { 0, 0 };
 
 static const uint8_t kWorld2627_peruPromoted[] = { 0 };
 
@@ -2587,6 +2755,14 @@ static const uint8_t kWorld2627_peruSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_peruNames[][2] = {
+    { "TORNEO APERTURA", "APERTURA" },
+    { "TORNEO CLAUSURA", "CLAUSURA" },
+    { "PLAYOFFS LIGA 1", "PLAYOFFS" },
+};
+
+static const uint8_t kWorld2627_peruThen[] = { 0, 0, 0 };
+
 static const uint8_t kWorld2627_portugalPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_portugalRelegated[] = { 2, 0 };
@@ -2602,6 +2778,12 @@ static const uint8_t kWorld2627_portugalSeconds[][2] = {
     { 28, 1 },
 };
 
+static const char *const kWorld2627_portugalNames[][2] = {
+    { "PROMOTION PLAY-OFF", "PROMO PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_portugalThen[] = { 0 };
+
 static const uint8_t kWorld2627_romaniaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_romaniaRelegated[] = { 0 };
@@ -2615,6 +2797,12 @@ static const uint8_t kWorld2627_romaniaSpec[35] = {
 static const uint8_t kWorld2627_romaniaSeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_romaniaNames[][2] = {
+    { "EUROPEAN PLAY-OFF", "EUROPE PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_romaniaThen[] = { 0 };
 
 static const uint8_t kWorld2627_scotlandPromoted[] = { 0, 1, 1, 1 };
 
@@ -2634,6 +2822,14 @@ static const uint8_t kWorld2627_scotlandSpec[127] = {
 static const uint8_t kWorld2627_scotlandSeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_scotlandNames[][2] = {
+    { "PREMIERSHIP PLAY-OFF", "PREM PLAY-OFF" },
+    { "CHAMPIONSHIP PLAY-OFF", "CHAMP PLAY-OFF" },
+    { "LEAGUE ONE PLAY-OFF", "L1 PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_scotlandThen[] = { 0, 0, 0 };
 
 static const uint8_t kWorld2627_elsalvadorPromoted[] = { 0, 0, 0, 1, 1 };
 
@@ -2655,6 +2851,14 @@ static const uint8_t kWorld2627_elsalvadorSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_elsalvadorNames[][2] = {
+    { "SEGUNDA DIVISION FINAL", "SEGUNDA FINAL" },
+    { "APERTURA", "APERTURA" },
+    { "CLAUSURA", "CLAUSURA" },
+};
+
+static const uint8_t kWorld2627_elsalvadorThen[] = { 0, 0, 0 };
+
 static const uint8_t kWorld2627_sanmarinoPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_sanmarinoRelegated[] = { 0 };
@@ -2672,6 +2876,12 @@ static const uint8_t kWorld2627_sanmarinoSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_sanmarinoNames[][2] = {
+    { "EUROPEAN PLAY-OFF", "EUROPE PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_sanmarinoThen[] = { 0 };
+
 static const uint8_t kWorld2627_turkeyPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_turkeyRelegated[] = { 3, 0 };
@@ -2686,6 +2896,12 @@ static const uint8_t kWorld2627_turkeySpec[53] = {
 static const uint8_t kWorld2627_turkeySeconds[][2] = {
     { 0, 0 },
 };
+
+static const char *const kWorld2627_turkeyNames[][2] = {
+    { "TFF 1. LIG PLAY-OFF", "1. LIG PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_turkeyThen[] = { 0 };
 
 static const uint8_t kWorld2627_uruguayPromoted[] = { 0, 3 };
 
@@ -2705,6 +2921,15 @@ static const uint8_t kWorld2627_uruguaySeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_uruguayNames[][2] = {
+    { "TORNEO APERTURA", "APERTURA" },
+    { "TORNEO INTERMEDIO", "INTERMEDIO" },
+    { "TORNEO CLAUSURA", "CLAUSURA" },
+    { "CAMPEONATO URUGUAYO", "CAMPEONATO" },
+};
+
+static const uint8_t kWorld2627_uruguayThen[] = { 0, 0, 0, 0 };
+
 static const uint8_t kWorld2627_walesPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_walesRelegated[] = { 0 };
@@ -2720,38 +2945,44 @@ static const uint8_t kWorld2627_walesSeconds[][2] = {
     { 0, 0 },
 };
 
+static const char *const kWorld2627_walesNames[][2] = {
+    { "EUROPEAN PLAY-OFF", "EUROPE PLAY-OFF" },
+};
+
+static const uint8_t kWorld2627_walesThen[] = { 0 };
+
 static const LeaguePlayoffs kWorld2627Playoffs[] = {
-    { 20, 14, kWorld2627_italyPromoted, kWorld2627_italyRelegated, 1, 1, 2, 3, kWorld2627_italySpec, 3, kWorld2627_italySeconds, 1, 3 },   /* Italy */
-    { 44, 4, kWorld2627_australiaPromoted, kWorld2627_australiaRelegated, 0, 0, 0, 0, kWorld2627_australiaSpec, 0, kWorld2627_australiaSeconds, 255, 0 },   /* Australia */
-    { 1, 1, kWorld2627_austriaPromoted, kWorld2627_austriaRelegated, 0, 0, 0, 0, kWorld2627_austriaSpec, 0, kWorld2627_austriaSeconds, 255, 0 },   /* Austria */
-    { 3, 1, kWorld2627_bulgariaPromoted, kWorld2627_bulgariaRelegated, 0, 0, 0, 0, kWorld2627_bulgariaSpec, 0, kWorld2627_bulgariaSeconds, 255, 0 },   /* Bulgaria */
-    { 56, 1, kWorld2627_canadaPromoted, kWorld2627_canadaRelegated, 0, 0, 0, 0, kWorld2627_canadaSpec, 0, kWorld2627_canadaSeconds, 255, 0 },   /* Canada */
-    { 49, 1, kWorld2627_colombiaPromoted, kWorld2627_colombiaRelegated, 0, 0, 0, 0, kWorld2627_colombiaSpec, 0, kWorld2627_colombiaSeconds, 255, 0 },   /* Colombia */
-    { 58, 1, kWorld2627_costaricaPromoted, kWorld2627_costaricaRelegated, 0, 0, 0, 0, kWorld2627_costaricaSpec, 0, kWorld2627_costaricaSeconds, 255, 0 },   /* CostaRica */
-    { 6, 1, kWorld2627_czechrepublicPromoted, kWorld2627_czechrepublicRelegated, 0, 0, 0, 0, kWorld2627_czechrepublicSpec, 0, kWorld2627_czechrepublicSeconds, 255, 0 },   /* CzechRepublic */
-    { 7, 1, kWorld2627_denmarkPromoted, kWorld2627_denmarkRelegated, 0, 0, 0, 0, kWorld2627_denmarkSpec, 0, kWorld2627_denmarkSeconds, 255, 0 },   /* Denmark */
-    { 8, 4, kWorld2627_englandPromoted, kWorld2627_englandRelegated, 0, 0, 0, 0, kWorld2627_englandSpec, 0, kWorld2627_englandSeconds, 255, 0 },   /* England */
-    { 35, 2, kWorld2627_spainPromoted, kWorld2627_spainRelegated, 0, 0, 0, 0, kWorld2627_spainSpec, 1, kWorld2627_spainSeconds, 255, 2 },   /* Spain */
-    { 13, 2, kWorld2627_francePromoted, kWorld2627_franceRelegated, 0, 0, 0, 0, kWorld2627_franceSpec, 0, kWorld2627_franceSeconds, 255, 0 },   /* France */
-    { 14, 3, kWorld2627_germanyPromoted, kWorld2627_germanyRelegated, 0, 0, 0, 0, kWorld2627_germanySpec, 2, kWorld2627_germanySeconds, 2, 2 },   /* Germany */
-    { 68, 1, kWorld2627_guatemalaPromoted, kWorld2627_guatemalaRelegated, 0, 0, 0, 0, kWorld2627_guatemalaSpec, 0, kWorld2627_guatemalaSeconds, 255, 0 },   /* Guatemala */
-    { 70, 1, kWorld2627_hondurasPromoted, kWorld2627_hondurasRelegated, 0, 0, 0, 0, kWorld2627_hondurasSpec, 0, kWorld2627_hondurasSeconds, 255, 0 },   /* Honduras */
-    { 55, 2, kWorld2627_japanPromoted, kWorld2627_japanRelegated, 0, 0, 0, 0, kWorld2627_japanSpec, 0, kWorld2627_japanSeconds, 255, 0 },   /* Japan */
-    { 60, 2, kWorld2627_mexicoPromoted, kWorld2627_mexicoRelegated, 0, 0, 0, 0, kWorld2627_mexicoSpec, 0, kWorld2627_mexicoSeconds, 255, 0 },   /* Mexico */
-    { 24, 1, kWorld2627_maltaPromoted, kWorld2627_maltaRelegated, 0, 0, 0, 0, kWorld2627_maltaSpec, 0, kWorld2627_maltaSeconds, 255, 0 },   /* Malta */
-    { 25, 2, kWorld2627_hollandPromoted, kWorld2627_hollandRelegated, 0, 0, 0, 0, kWorld2627_hollandSpec, 4, kWorld2627_hollandSeconds, 1, 2 },   /* Holland */
-    { 26, 1, kWorld2627_northernirelandPromoted, kWorld2627_northernirelandRelegated, 0, 0, 0, 0, kWorld2627_northernirelandSpec, 0, kWorld2627_northernirelandSeconds, 255, 0 },   /* NorthernIreland */
-    { 95, 1, kWorld2627_panamaPromoted, kWorld2627_panamaRelegated, 0, 0, 0, 0, kWorld2627_panamaSpec, 0, kWorld2627_panamaSeconds, 255, 0 },   /* Panama */
-    { 64, 1, kWorld2627_paraguayPromoted, kWorld2627_paraguayRelegated, 0, 0, 0, 0, kWorld2627_paraguaySpec, 0, kWorld2627_paraguaySeconds, 255, 0 },   /* Paraguay */
-    { 65, 1, kWorld2627_peruPromoted, kWorld2627_peruRelegated, 0, 0, 0, 0, kWorld2627_peruSpec, 0, kWorld2627_peruSeconds, 255, 0 },   /* Peru */
-    { 29, 2, kWorld2627_portugalPromoted, kWorld2627_portugalRelegated, 0, 0, 0, 0, kWorld2627_portugalSpec, 3, kWorld2627_portugalSeconds, 255, 2 },   /* Portugal */
-    { 30, 1, kWorld2627_romaniaPromoted, kWorld2627_romaniaRelegated, 0, 0, 0, 0, kWorld2627_romaniaSpec, 0, kWorld2627_romaniaSeconds, 255, 0 },   /* Romania */
-    { 33, 4, kWorld2627_scotlandPromoted, kWorld2627_scotlandRelegated, 0, 0, 0, 0, kWorld2627_scotlandSpec, 0, kWorld2627_scotlandSeconds, 255, 0 },   /* Scotland */
-    { 51, 5, kWorld2627_elsalvadorPromoted, kWorld2627_elsalvadorRelegated, 0, 0, 0, 0, kWorld2627_elsalvadorSpec, 0, kWorld2627_elsalvadorSeconds, 255, 0 },   /* ElSalvador */
-    { 32, 1, kWorld2627_sanmarinoPromoted, kWorld2627_sanmarinoRelegated, 0, 0, 0, 0, kWorld2627_sanmarinoSpec, 0, kWorld2627_sanmarinoSeconds, 255, 0 },   /* SanMarino */
-    { 38, 2, kWorld2627_turkeyPromoted, kWorld2627_turkeyRelegated, 0, 0, 0, 0, kWorld2627_turkeySpec, 0, kWorld2627_turkeySeconds, 255, 0 },   /* Turkey */
-    { 71, 2, kWorld2627_uruguayPromoted, kWorld2627_uruguayRelegated, 0, 0, 0, 0, kWorld2627_uruguaySpec, 0, kWorld2627_uruguaySeconds, 255, 0 },   /* Uruguay */
-    { 40, 1, kWorld2627_walesPromoted, kWorld2627_walesRelegated, 0, 0, 0, 0, kWorld2627_walesSpec, 0, kWorld2627_walesSeconds, 255, 0 },   /* Wales */
+    { 20, 14, kWorld2627_italyPromoted, kWorld2627_italyRelegated, 1, 1, 2, 3, kWorld2627_italySpec, 3, kWorld2627_italySeconds, 1, 3, kWorld2627_italyNames, 22, kWorld2627_italyThen },   /* Italy */
+    { 44, 4, kWorld2627_australiaPromoted, kWorld2627_australiaRelegated, 0, 0, 0, 0, kWorld2627_australiaSpec, 0, kWorld2627_australiaSeconds, 255, 0, kWorld2627_australiaNames, 1, kWorld2627_australiaThen },   /* Australia */
+    { 1, 1, kWorld2627_austriaPromoted, kWorld2627_austriaRelegated, 0, 0, 0, 0, kWorld2627_austriaSpec, 0, kWorld2627_austriaSeconds, 255, 0, kWorld2627_austriaNames, 1, kWorld2627_austriaThen },   /* Austria */
+    { 3, 1, kWorld2627_bulgariaPromoted, kWorld2627_bulgariaRelegated, 0, 0, 0, 0, kWorld2627_bulgariaSpec, 0, kWorld2627_bulgariaSeconds, 255, 0, kWorld2627_bulgariaNames, 1, kWorld2627_bulgariaThen },   /* Bulgaria */
+    { 56, 1, kWorld2627_canadaPromoted, kWorld2627_canadaRelegated, 0, 0, 0, 0, kWorld2627_canadaSpec, 0, kWorld2627_canadaSeconds, 255, 0, kWorld2627_canadaNames, 1, kWorld2627_canadaThen },   /* Canada */
+    { 49, 1, kWorld2627_colombiaPromoted, kWorld2627_colombiaRelegated, 0, 0, 0, 0, kWorld2627_colombiaSpec, 0, kWorld2627_colombiaSeconds, 255, 0, kWorld2627_colombiaNames, 2, kWorld2627_colombiaThen },   /* Colombia */
+    { 58, 1, kWorld2627_costaricaPromoted, kWorld2627_costaricaRelegated, 0, 0, 0, 0, kWorld2627_costaricaSpec, 0, kWorld2627_costaricaSeconds, 255, 0, kWorld2627_costaricaNames, 2, kWorld2627_costaricaThen },   /* CostaRica */
+    { 6, 1, kWorld2627_czechrepublicPromoted, kWorld2627_czechrepublicRelegated, 0, 0, 0, 0, kWorld2627_czechrepublicSpec, 0, kWorld2627_czechrepublicSeconds, 255, 0, kWorld2627_czechrepublicNames, 1, kWorld2627_czechrepublicThen },   /* CzechRepublic */
+    { 7, 1, kWorld2627_denmarkPromoted, kWorld2627_denmarkRelegated, 0, 0, 0, 0, kWorld2627_denmarkSpec, 0, kWorld2627_denmarkSeconds, 255, 0, kWorld2627_denmarkNames, 1, kWorld2627_denmarkThen },   /* Denmark */
+    { 8, 4, kWorld2627_englandPromoted, kWorld2627_englandRelegated, 0, 0, 0, 0, kWorld2627_englandSpec, 0, kWorld2627_englandSeconds, 255, 0, kWorld2627_englandNames, 3, kWorld2627_englandThen },   /* England */
+    { 35, 2, kWorld2627_spainPromoted, kWorld2627_spainRelegated, 0, 0, 0, 0, kWorld2627_spainSpec, 1, kWorld2627_spainSeconds, 255, 2, kWorld2627_spainNames, 1, kWorld2627_spainThen },   /* Spain */
+    { 13, 2, kWorld2627_francePromoted, kWorld2627_franceRelegated, 0, 0, 0, 0, kWorld2627_franceSpec, 0, kWorld2627_franceSeconds, 255, 0, kWorld2627_franceNames, 1, kWorld2627_franceThen },   /* France */
+    { 14, 3, kWorld2627_germanyPromoted, kWorld2627_germanyRelegated, 0, 0, 0, 0, kWorld2627_germanySpec, 2, kWorld2627_germanySeconds, 2, 2, kWorld2627_germanyNames, 2, kWorld2627_germanyThen },   /* Germany */
+    { 68, 1, kWorld2627_guatemalaPromoted, kWorld2627_guatemalaRelegated, 0, 0, 0, 0, kWorld2627_guatemalaSpec, 0, kWorld2627_guatemalaSeconds, 255, 0, kWorld2627_guatemalaNames, 2, kWorld2627_guatemalaThen },   /* Guatemala */
+    { 70, 1, kWorld2627_hondurasPromoted, kWorld2627_hondurasRelegated, 0, 0, 0, 0, kWorld2627_hondurasSpec, 0, kWorld2627_hondurasSeconds, 255, 0, kWorld2627_hondurasNames, 2, kWorld2627_hondurasThen },   /* Honduras */
+    { 55, 2, kWorld2627_japanPromoted, kWorld2627_japanRelegated, 0, 0, 0, 0, kWorld2627_japanSpec, 0, kWorld2627_japanSeconds, 255, 0, kWorld2627_japanNames, 1, kWorld2627_japanThen },   /* Japan */
+    { 60, 2, kWorld2627_mexicoPromoted, kWorld2627_mexicoRelegated, 0, 0, 0, 0, kWorld2627_mexicoSpec, 0, kWorld2627_mexicoSeconds, 255, 0, kWorld2627_mexicoNames, 6, kWorld2627_mexicoThen },   /* Mexico */
+    { 24, 1, kWorld2627_maltaPromoted, kWorld2627_maltaRelegated, 0, 0, 0, 0, kWorld2627_maltaSpec, 0, kWorld2627_maltaSeconds, 255, 0, kWorld2627_maltaNames, 1, kWorld2627_maltaThen },   /* Malta */
+    { 25, 2, kWorld2627_hollandPromoted, kWorld2627_hollandRelegated, 0, 0, 0, 0, kWorld2627_hollandSpec, 4, kWorld2627_hollandSeconds, 1, 2, kWorld2627_hollandNames, 2, kWorld2627_hollandThen },   /* Holland */
+    { 26, 1, kWorld2627_northernirelandPromoted, kWorld2627_northernirelandRelegated, 0, 0, 0, 0, kWorld2627_northernirelandSpec, 0, kWorld2627_northernirelandSeconds, 255, 0, kWorld2627_northernirelandNames, 1, kWorld2627_northernirelandThen },   /* NorthernIreland */
+    { 95, 1, kWorld2627_panamaPromoted, kWorld2627_panamaRelegated, 0, 0, 0, 0, kWorld2627_panamaSpec, 0, kWorld2627_panamaSeconds, 255, 0, kWorld2627_panamaNames, 2, kWorld2627_panamaThen },   /* Panama */
+    { 64, 1, kWorld2627_paraguayPromoted, kWorld2627_paraguayRelegated, 0, 0, 0, 0, kWorld2627_paraguaySpec, 0, kWorld2627_paraguaySeconds, 255, 0, kWorld2627_paraguayNames, 2, kWorld2627_paraguayThen },   /* Paraguay */
+    { 65, 1, kWorld2627_peruPromoted, kWorld2627_peruRelegated, 0, 0, 0, 0, kWorld2627_peruSpec, 0, kWorld2627_peruSeconds, 255, 0, kWorld2627_peruNames, 3, kWorld2627_peruThen },   /* Peru */
+    { 29, 2, kWorld2627_portugalPromoted, kWorld2627_portugalRelegated, 0, 0, 0, 0, kWorld2627_portugalSpec, 3, kWorld2627_portugalSeconds, 255, 2, kWorld2627_portugalNames, 1, kWorld2627_portugalThen },   /* Portugal */
+    { 30, 1, kWorld2627_romaniaPromoted, kWorld2627_romaniaRelegated, 0, 0, 0, 0, kWorld2627_romaniaSpec, 0, kWorld2627_romaniaSeconds, 255, 0, kWorld2627_romaniaNames, 1, kWorld2627_romaniaThen },   /* Romania */
+    { 33, 4, kWorld2627_scotlandPromoted, kWorld2627_scotlandRelegated, 0, 0, 0, 0, kWorld2627_scotlandSpec, 0, kWorld2627_scotlandSeconds, 255, 0, kWorld2627_scotlandNames, 3, kWorld2627_scotlandThen },   /* Scotland */
+    { 51, 5, kWorld2627_elsalvadorPromoted, kWorld2627_elsalvadorRelegated, 0, 0, 0, 0, kWorld2627_elsalvadorSpec, 0, kWorld2627_elsalvadorSeconds, 255, 0, kWorld2627_elsalvadorNames, 3, kWorld2627_elsalvadorThen },   /* ElSalvador */
+    { 32, 1, kWorld2627_sanmarinoPromoted, kWorld2627_sanmarinoRelegated, 0, 0, 0, 0, kWorld2627_sanmarinoSpec, 0, kWorld2627_sanmarinoSeconds, 255, 0, kWorld2627_sanmarinoNames, 1, kWorld2627_sanmarinoThen },   /* SanMarino */
+    { 38, 2, kWorld2627_turkeyPromoted, kWorld2627_turkeyRelegated, 0, 0, 0, 0, kWorld2627_turkeySpec, 0, kWorld2627_turkeySeconds, 255, 0, kWorld2627_turkeyNames, 1, kWorld2627_turkeyThen },   /* Turkey */
+    { 71, 2, kWorld2627_uruguayPromoted, kWorld2627_uruguayRelegated, 0, 0, 0, 0, kWorld2627_uruguaySpec, 0, kWorld2627_uruguaySeconds, 255, 0, kWorld2627_uruguayNames, 4, kWorld2627_uruguayThen },   /* Uruguay */
+    { 40, 1, kWorld2627_walesPromoted, kWorld2627_walesRelegated, 0, 0, 0, 0, kWorld2627_walesSpec, 0, kWorld2627_walesSeconds, 255, 0, kWorld2627_walesNames, 1, kWorld2627_walesThen },   /* Wales */
 };
 #endif
 
@@ -6510,8 +6741,8 @@ static const uint8_t kWorld2627_split3_0[200] = {
 
 static const uint8_t kWorld2627_split49_0[1364] = {
     0, 49, 0, 20, 1, 0, 38, 2, 72, 0, 110, 0, 186, 0, 84, 5, 0, 1, 4, 0, 0, 20, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 46, 5, 19, 1, 5, 0,
-    0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 46, 5, 19, 1, 5, 0,
+    0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1, 0, 0, 0,
     10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
     10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 10, 0, 20, 0, 30, 0, 40, 0,
     50, 0, 60, 0, 70, 0, 80, 0, 90, 0, 100, 0, 110, 0, 120, 0, 130, 0, 140, 0, 150, 0, 160, 0,
@@ -6570,8 +6801,8 @@ static const uint8_t kWorld2627_split49_0[1364] = {
 
 static const uint8_t kWorld2627_split58_0[756] = {
     0, 58, 0, 10, 1, 0, 36, 2, 72, 0, 108, 0, 180, 0, 244, 2, 0, 1, 4, 0, 0, 10, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 208, 2, 18, 1, 5, 0,
-    0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 208, 2, 18, 1, 5, 0,
+    0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1, 0, 0, 0,
     5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
     5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 5, 0, 10, 0, 15, 0, 20, 0, 25, 0,
     30, 0, 35, 0, 40, 0, 45, 0, 50, 0, 55, 0, 60, 0, 65, 0, 70, 0, 75, 0, 80, 0, 85, 0,
@@ -6691,8 +6922,8 @@ static const uint8_t kWorld2627_split15_0[236] = {
 
 static const uint8_t kWorld2627_split68_0[1040] = {
     0, 68, 0, 12, 1, 0, 44, 2, 72, 0, 116, 0, 204, 0, 16, 4, 0, 1, 4, 0, 0, 12, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 228, 3, 22, 1, 5, 0,
-    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 228, 3, 22, 1, 5, 0,
+    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1, 0, 0, 0,
     6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
     6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0,
     12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0, 48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0,
@@ -6738,8 +6969,8 @@ static const uint8_t kWorld2627_split68_0[1040] = {
 
 static const uint8_t kWorld2627_split70_0[776] = {
     0, 70, 0, 12, 1, 0, 32, 2, 72, 0, 104, 0, 168, 0, 8, 3, 0, 1, 4, 0, 0, 12, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 232, 2, 16, 1, 5, 0,
-    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 232, 2, 16, 1, 5, 0,
+    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1, 0, 0, 0,
     6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
     6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0, 12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0,
     48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0, 84, 0, 90, 0, 96, 0, 102, 0, 108, 0, 114, 0,
@@ -6824,8 +7055,8 @@ static const uint8_t kWorld2627_split92_0[164] = {
 
 static const uint8_t kWorld2627_split60_0[1128] = {
     0, 60, 0, 18, 1, 0, 34, 2, 72, 0, 106, 0, 174, 0, 104, 4, 0, 1, 4, 0, 0, 18, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 68, 4, 17, 1, 5, 0,
-    0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 68, 4, 17, 1, 5, 0,
+    0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0,
     9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
     9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, 0, 9, 0, 18, 0, 27, 0, 36, 0, 45, 0, 54, 0,
     63, 0, 72, 0, 81, 0, 90, 0, 99, 0, 108, 0, 117, 0, 126, 0, 135, 0, 144, 0, 153, 0, 162, 0,
@@ -6874,8 +7105,8 @@ static const uint8_t kWorld2627_split60_0[1128] = {
 
 static const uint8_t kWorld2627_split60_1[912] = {
     0, 60, 1, 16, 1, 0, 30, 2, 72, 0, 102, 0, 162, 0, 144, 3, 0, 1, 4, 0, 0, 16, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 114, 3, 15, 1, 5, 0,
-    0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 3, 0, 0, 114, 3, 15, 1, 5, 0,
+    0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 4, 0, 0, 0, 0,
     8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
     8, 8, 8, 8, 8, 8, 0, 0, 8, 0, 16, 0, 24, 0, 32, 0, 40, 0, 48, 0, 56, 0, 64, 0,
     72, 0, 80, 0, 88, 0, 96, 0, 104, 0, 112, 0, 120, 0, 128, 0, 136, 0, 144, 0, 152, 0, 160, 0,
@@ -6963,8 +7194,8 @@ static const uint8_t kWorld2627_split26_0[296] = {
 
 static const uint8_t kWorld2627_split95_0[800] = {
     0, 95, 0, 12, 1, 0, 32, 2, 72, 0, 104, 0, 168, 0, 32, 3, 0, 2, 12, 0, 0, 6, 0, 6,
-    6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 232, 2, 0, 1, 0, 0, 244, 2, 16, 2, 13, 0,
-    0, 6, 0, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 3, 0, 2, 1, 0, 0, 0,
+    6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 232, 2, 1, 1, 0, 0, 244, 2, 16, 2, 13, 0,
+    0, 6, 0, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 3, 2, 2, 1, 0, 0, 0,
     6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
     6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0, 12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0,
     48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0, 84, 0, 90, 0, 96, 0, 102, 0, 108, 0, 114, 0,
@@ -7000,8 +7231,8 @@ static const uint8_t kWorld2627_split95_0[800] = {
 
 static const uint8_t kWorld2627_split64_0[1040] = {
     0, 64, 0, 12, 1, 0, 44, 2, 72, 0, 116, 0, 204, 0, 16, 4, 0, 1, 4, 0, 0, 12, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 228, 3, 22, 1, 5, 0,
-    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 228, 3, 22, 1, 5, 0,
+    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1, 0, 0, 0,
     6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
     6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0,
     12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0, 48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0,
@@ -7047,8 +7278,8 @@ static const uint8_t kWorld2627_split64_0[1040] = {
 
 static const uint8_t kWorld2627_split65_0[1128] = {
     0, 65, 0, 18, 1, 0, 34, 2, 72, 0, 106, 0, 174, 0, 104, 4, 0, 1, 4, 0, 0, 18, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 68, 4, 17, 1, 5, 0,
-    0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 68, 4, 17, 1, 5, 0,
+    0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1, 0, 0, 0,
     9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
     9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, 0, 9, 0, 18, 0, 27, 0, 36, 0, 45, 0, 54, 0,
     63, 0, 72, 0, 81, 0, 90, 0, 99, 0, 108, 0, 117, 0, 126, 0, 135, 0, 144, 0, 153, 0, 162, 0,
@@ -7141,8 +7372,8 @@ static const uint8_t kWorld2627_split33_3[16] = {
 
 static const uint8_t kWorld2627_split51_0[1040] = {
     0, 51, 0, 12, 1, 0, 44, 2, 72, 0, 116, 0, 204, 0, 16, 4, 0, 1, 4, 0, 0, 12, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 228, 3, 22, 1, 5, 0,
-    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 228, 3, 22, 1, 5, 0,
+    0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 1, 0, 0, 0,
     6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
     6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 6, 0,
     12, 0, 18, 0, 24, 0, 30, 0, 36, 0, 42, 0, 48, 0, 54, 0, 60, 0, 66, 0, 72, 0, 78, 0,
@@ -7229,9 +7460,9 @@ static const uint8_t kWorld2627_split78_0[256] = {
 
 static const uint8_t kWorld2627_split71_0[1156] = {
     0, 71, 0, 16, 1, 0, 37, 3, 100, 0, 138, 0, 212, 0, 132, 4, 0, 1, 4, 0, 0, 16, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 76, 4, 15, 2, 33, 0,
-    0, 8, 0, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 113, 4, 0, 0, 0, 2, 0, 0, 0, 0,
-    22, 1, 5, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 76, 4, 15, 2, 33, 0,
+    0, 8, 0, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 113, 4, 0, 0, 2, 2, 0, 0, 0, 0,
+    22, 1, 5, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4,
     1, 0, 0, 0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
     8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0, 0, 0, 8, 0, 16, 0,
     24, 0, 32, 0, 40, 0, 48, 0, 56, 0, 64, 0, 72, 0, 80, 0, 88, 0, 96, 0, 104, 0, 112, 0,

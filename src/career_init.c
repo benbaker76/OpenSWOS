@@ -267,6 +267,7 @@ void ChooseTeamAndStartCareer(void)
     CupD_Reset();
     UefaCoef_Reset();
     LeaguePlayoffs_ResetStages();
+    WorldPlayoff_ResetStageTitles();
     _teamsLoaded = 0;
     SelectTeamToManage();
     if (_selectedTeamPtr == 0) {
@@ -653,6 +654,7 @@ void InitCareer(uint16_t teamNo)
     CupD_Reset();
     UefaCoef_Reset();
     LeaguePlayoffs_ResetStages();
+    WorldPlayoff_ResetStageTitles();
 
     DIY_LoadLeagueScratchFromTable();
 

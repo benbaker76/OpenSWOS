@@ -28,6 +28,7 @@
 #include "diy_competition.h"
 #include "endian_helpers.h"
 #include "league_playoffs.h"
+#include "world_playoff.h"
 
 extern DIYCompetitionEx _diyCompetitionStart;
 extern uint8_t  _teamSelectionKeyCache[];
@@ -414,6 +415,11 @@ void LeagueSplit_AfterResult(uint8_t *team1, uint8_t *team2, uint16_t goals1, ui
             DIY_SortLeagueTableByStandings();
             LeaguePlayoffs_StageTable(t[1], (uint32_t)(rec[23] - 1), rec[24]);
             SWOS_DBG("[split] country %d division %d: stage table %d kept\n", (int)t[1], (int)t[2], (int)rec[23] - 1);
+        }
+        if (rec[22] && is_career_league()) {    /* (its stage-title knockout: the career club's to play) */
+            DIYCompetitionEx *c = &_diyCompetitionStart;
+            const int32_t day = c->leagueMatchProgress ? c->leagueMatchProgress - 1 : 0;
+            WorldPlayoff_StageEnded(t[1], t[2], rec[22] - 1, c->leagueSectionState.phaseStartMonths[day]);
         }
     }
     if (s_pend) {                               /* a stage starting on day s_pend - 1 */

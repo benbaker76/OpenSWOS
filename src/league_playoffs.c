@@ -516,9 +516,13 @@ static void gp_move(int c, int delta) { add_move(gp_row(c)->glob, delta); }
  * numbers) -- the Mod's GP_IN.pl_w; applied after the tie is simulated, so the random
  * numbers drawn are the same either way. */
 static u16 s_playedA, s_playedB, s_playedW;
+static int s_pidx;                     /* (gp_season: the play-off walked) */
 static int gp_played(int a, int b, int w)
 {
     const u16 ta = gp_row(a)->team, tb = gp_row(b)->team;
+    u16 pw;
+    if (WorldPlayoff_PlayedTie(s_pidx, ta, tb, &pw))    /* (the career club's play-off, played) */
+        return pw == ta ? a : pw == tb ? b : w;
     if (!s_playedW || !((ta == s_playedA && tb == s_playedB) || (ta == s_playedB && tb == s_playedA)))
         return w;
     return s_playedW == ta ? a : s_playedW == tb ? b : w;
@@ -598,9 +602,16 @@ static struct lp_res *sres_of(int d)            /* the career club's division's 
     return s_srl;
 }
 
+static const WorldStageTitle *stage_dec(int w)  /* w = stage | division << 2: the career club's division's,
+                                                   decided mid-season (world_playoff.c), or 0 */
+{
+    return (w >> 2) == gp_mgr_div() ? WorldPlayoff_StageTitle(w & 3) : 0;
+}
+
 static u16 stage_glob(int d, int k, int j)      /* division d's stage k champion (j 0) / runner-up (1) */
 {
-    return sres_of(d)[k].glob[j];               /* (decided mid-season: not yet) */
+    const WorldStageTitle *x = stage_dec(k | d << 2);
+    return x ? x->glob[j] : sres_of(d)[k].glob[j];
 }
 
 static int title_club(int d, int c)             /* the Trofeo's finalists (entrant type 5) */
@@ -746,6 +757,26 @@ static void pot_perm(const u8 *s, int *pm)
     for (int i = n - 1; i > h; i--) { int j = h + (int)gp_below((u32)(i - h + 1)), x = pm[i]; pm[i] = pm[j]; pm[j] = x; }
 }
 
+/* A play-off's entrants -> clubs (division * GT + place), as gp_season resolves them; the
+ * previous play-off's loser given. 0: one not known. */
+static int resolve_entrants(const u8 *s, int prev_loser, int *club)
+{
+    int n = s[1], ok = 1;
+    const u8 *e = s + 6;
+    for (int i = 0; i < n && i < GN; i++) {
+        int ty = e[4 * i], d = e[4 * i + 1], p = e[4 * i + 2];
+        if (ty == 3) club[i] = stage_club(d, e[4 * i + 3], p);
+        else if (ty == 4) club[i] = prev_loser;
+        else if (ty == 5) club[i] = title_club(d, p);
+        else if (ty == 6) club[i] = split_seed(d, e[4 * i + 3], p);
+        else if (ty == 7) club[i] = title_seed(d, e[4 * i + 3], p);
+        else if (ty != 0 || d >= s_in.nd || p < 1 || p > s_in.n[d]) club[i] = -1;
+        else club[i] = d * GT + p - 1;
+        if (club[i] < 0) ok = 0;
+    }
+    return ok;
+}
+
 static void gp_season(const u8 *s, uint8_t country)
 {
     u32 h = 0;
@@ -772,28 +803,13 @@ static void gp_season(const u8 *s, uint8_t country)
             continue;
         }
         int club[GN], ok = kind == 1 || kind == 4 || kind == K_TITLE || kind == K_CONT || kind == K_STAGE;
+        const WorldStageTitle *dec = kind == K_STAGE ? stage_dec(wdiv) : 0;     /* (decided mid-season) */
+        if (dec) ok = 0;
+        s_pidx = pidx;
         int W[GN], L[GN], nt = 0, last = -1, lastr = 0, nlast = 0;
         int P[GN], np = 0, glast = -1, winners = s[5] >> 4 ? s[5] >> 4 : 1;
-        for (int i = 0; i < n && i < GN; i++) {
-            int ty = e[4 * i], d = e[4 * i + 1], p = e[4 * i + 2];
-            if (ty == 3) {
-                club[i] = stage_club(d, e[4 * i + 3], p);
-                if (club[i] < 0) ok = 0;
-            } else if (ty == 4) {
-                club[i] = prev_loser;
-                if (club[i] < 0) ok = 0;
-            } else if (ty == 5) {
-                club[i] = title_club(d, p);
-                if (club[i] < 0) ok = 0;
-            } else if (ty == 6) {
-                club[i] = split_seed(d, e[4 * i + 3], p);
-                if (club[i] < 0) ok = 0;
-            } else if (ty == 7) {
-                club[i] = title_seed(d, e[4 * i + 3], p);
-                if (club[i] < 0) ok = 0;
-            } else if (ty != 0 || d >= s_in.nd || p < 1 || p > s_in.n[d]) ok = 0;
-            else club[i] = d * GT + p - 1;
-        }
+        if (!resolve_entrants(s, prev_loser, club))
+            ok = 0;
         if (s[5] & 8) {                         /* (the drawn pot) */
             int pm[GN], tmp[GN];
             pot_perm(s, pm);
@@ -859,7 +875,11 @@ static void gp_season(const u8 *s, uint8_t country)
         if (ldiv == RESERVE) ldiv = s_in.nd;    /* (the reserve: out of every division) */
         if (kind == K_STAGE) {                  /* a stage title: its champion / runner-up, no move */
             struct lp_res *x = (wdiv & 3) < 3 ? &sres_of(wdiv >> 2)[wdiv & 3] : 0;
-            if (x && ok && last >= 0) {
+            if (x && dec) {
+                x->kind = K_STAGE; x->div = (u8)(wdiv >> 2);
+                x->team[0] = dec->team[0]; x->team[1] = dec->team[1];
+                x->glob[0] = dec->glob[0]; x->glob[1] = dec->glob[1];
+            } else if (x && ok && last >= 0) {
                 x->kind = K_STAGE; x->div = (u8)DV(W[last]);
                 x->team[0] = gp_row(W[last])->team; x->glob[0] = gp_row(W[last])->glob;
                 x->team[1] = L[last] != W[last] ? gp_row(L[last])->team : 0xFFFF;
@@ -892,6 +912,83 @@ static void gp_season(const u8 *s, uint8_t country)
         s = r;
     }
     if (s_ssUsed) SSB->fresh = 0;               /* (this league's stage tables used: next season's are new) */
+}
+
+/* Play-off pidx of the country's spec (its bytes), 0: none. */
+const uint8_t *LeaguePlayoffs_SpecAt(uint8_t country, int32_t pidx)
+{
+    int32_t count = 0;
+    const LeaguePlayoffs *all = World_LeaguePlayoffs(&count), *lp = 0;
+    for (int32_t i = 0; i < count; i++)
+        if (all[i].country == country)
+            lp = &all[i];
+    if (!lp || !lp->spec || pidx < 0)
+        return 0;
+    const u8 *s = lp->spec;
+    for (int32_t i = 0; i < pidx && *s; i++) {
+        const u8 *r = s + 6 + 4 * s[1];
+        if (s[0] != K_PROM)
+            for (int k = 0; k < s[2]; k++) r += 6 + 2 * r[0];
+        s = r;
+    }
+    return *s ? s : 0;
+}
+
+/* The career club's own play-off (world_playoff.c): play-off pidx of the country's spec, its
+ * entrants from division d's table (best first) and the league's stage tables, as the season
+ * end would resolve them -- in entrant order, with their places (a stage entrant: its stage
+ * place) and points. */
+int32_t LeaguePlayoffs_ContestEntrants(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
+                                       int32_t pidx, uint16_t *team, uint16_t *glob, uint8_t *prio,
+                                       uint16_t *pts, const uint8_t **spec)
+{
+    int32_t count = 0;
+    const LeaguePlayoffs *all = World_LeaguePlayoffs(&count), *lp = 0;
+    for (int32_t i = 0; i < count; i++)
+        if (all[i].country == country)
+            lp = &all[i];
+    const u8 *s = LeaguePlayoffs_SpecAt(country, pidx);
+    (void)lp;
+    if (!s || d < 0 || d >= GD || n < 2 || n > GT)
+        return 0;
+    s_in.nd = (u8)(d + 1);
+    for (int32_t j = 0; j < d; j++)
+        s_in.n[j] = 0;
+    s_in.n[d] = (u8)n;
+    for (int32_t k = 0; k < n; k++) {
+        struct lp_row *r = &s_in.t[d][k];
+        r->team = table[k].team; r->glob = table[k].glob; r->won = table[k].won;
+        r->gf = table[k].gf; r->ga = table[k].ga; r->pts = table[k].pts;
+    }
+    SSB = bank_of(country, 0);
+    if (!SSB)
+        SSB = &s_noBank;
+    s_nst[0] = s_nst[1] = 0;
+    if (SSB != &s_noBank && SSB->nKept && SSB->keptDiv == d) {
+        for (int32_t i = 0; i < SSB->nKept; i++)
+            s_st[0][i] = SSB->kept[i];
+        s_nst[0] = SSB->nKept;
+    }
+    s_srlDiv = -1;
+    {
+        extern uint16_t _selTeamNumber;
+        s_mgr = _selTeamNumber;                 /* (the stage titles decided: the career club's division) */
+    }
+    int club[GN];
+    const u8 fresh = SSB->fresh;
+    const int ok = s[1] <= WORLD_PLAYOFF_MAX && resolve_entrants(s, -1, club);
+    SSB->fresh = fresh;                         /* (read only: the season end uses them again) */
+    if (!ok)
+        return 0;
+    const u8 *e = s + 6;
+    for (int32_t i = 0; i < s[1]; i++) {
+        team[i] = gp_row(club[i])->team;
+        glob[i] = gp_row(club[i])->glob;
+        pts[i] = gp_row(club[i])->pts;
+        prio[i] = (u8)(e[4 * i] == 3 ? e[4 * i + 2] - 1 : club[i] > 255 ? 255 : club[i]);
+    }
+    *spec = s;
+    return s[1];
 }
 
 /* =====================================================================

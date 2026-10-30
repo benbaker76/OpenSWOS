@@ -1642,6 +1642,7 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
     if (_teamSelectionKeyCacheCount) {
         CupD_Step(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
         UefaQual_Daily();       /* (a world's: the career club's qualifying tie decided) */
+        WorldPlayoff_Advance(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
     }
 
     if (_gameType == 4) {

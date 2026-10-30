@@ -559,7 +559,7 @@ def italian_playoffs(country, league, picked=None):
             "promoted": [d["promoted"] for d in mod["divisions"]],
             "relegated": [d["relegated"] for d in mod["divisions"]],
             "italy": mod.get("playoffs") == "ita", "serieB": 1, "groupFirst": 2,
-            "groups": SERIE_C_GROUPS, "spec": spec}
+            "groups": SERIE_C_GROUPS, "spec": spec, "names": playoff_names(mod.get("ko_playoffs", []))}
 
 
 CUP_ROUND = {"two_legs": 0x94, "two_legs_pens": 0x84, "single": 0x14, "single_et": 0x54}
@@ -796,6 +796,19 @@ def country_league(wc, pk, picked):
     return rec
 
 
+def playoff_names(pos):
+    """Each play-off's names, the pack's English ones (or its every-language '*'): [(long, short)],
+    in the spec's order -- a played contest's name (world_playoff.c)."""
+    keys = [po.get("key") for po in pos]
+    out = []
+    for po in pos:
+        nm = po.get("names") or {}
+        ln, sh = (nm.get("en") or nm.get("*") or ["PLAY-OFF", "PLAY-OFF"])[:2]
+        then = keys.index(po["then_build"]) + 1 if po.get("then_build") in keys else 0
+        out.append((ln.upper()[:23], sh.upper()[:15], then))   # (then: the play-off built when it ends + 1)
+    return out
+
+
 def country_playoffs(wc, pk, picked):
     """A country's play-off rules (as italian_playoffs, any country): the Mod's counts per
     division, the pack's knockouts compiled, its B teams' rules."""
@@ -820,7 +833,8 @@ def country_playoffs(wc, pk, picked):
     return {"name": wc["name"].title().replace(" ", ""), "country": wc["number"], "divisions": ndiv,
             "seconds": seconds, "secondTop": top, "secondFlags": flags,
             "promoted": [d.get("promoted", 0) for d in mdivs], "relegated": [d.get("relegated", 0) for d in mdivs],
-            "italy": 0, "serieB": 0, "groupFirst": 0, "groups": 0, "spec": spec}
+            "italy": 0, "serieB": 0, "groupFirst": 0, "groups": 0, "spec": spec,
+            "names": playoff_names(lg.get("ko_playoffs", []))}
 
 
 def country_cups(wc, pk, picked):
@@ -1351,10 +1365,16 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             "    " + ", ".join("0x%02X" % b for b in spec[i:i + 16]) + "," for i in range(0, len(spec), 16))))
         po_tables.append("static const uint8_t %sSeconds[][2] = {\n%s\n};" % (sym, "\n".join(
             "    { %d, %d }," % (b, f) for b, f in po["seconds"]) or "    { 0, 0 },"))
-        po_entries.append("    { %d, %d, %sPromoted, %sRelegated, %d, %d, %d, %d, %sSpec, %d, %sSeconds, %d, %d },"
-                          "   /* %s */" % (
+        names = po.get("names") or []
+        po_tables.append("static const char *const %sNames[][2] = {\n%s\n};" % (sym, "\n".join(
+            "    { %s, %s }," % (c_string(a), c_string(b)) for a, b, _ in names) or "    { 0, 0 },"))
+        po_tables.append("static const uint8_t %sThen[] = { %s };" % (sym, ", ".join(
+            str(t) for _, _, t in names) or "0"))
+        po_entries.append("    { %d, %d, %sPromoted, %sRelegated, %d, %d, %d, %d, %sSpec, %d, %sSeconds, %d, %d,"
+                          " %sNames, %d, %sThen },   /* %s */" % (
             po["country"], po["divisions"], sym, sym, int(po["italy"]), po["serieB"], po["groupFirst"],
-            po["groups"], sym, len(po["seconds"]), sym, po["secondTop"], po["secondFlags"], po["name"]))
+            po["groups"], sym, len(po["seconds"]), sym, po["secondTop"], po["secondFlags"], sym, len(names),
+            sym, po["name"]))
     po_tables.append("static const LeaguePlayoffs kWorld%sPlayoffs[] = {\n%s\n};" % (tag, "\n".join(po_entries)))
     po_cases = ("    case WORLD_%s:\n        *count = %d;\n        return kWorld%sPlayoffs;"
                 % (tag, len(playoffs), tag))
@@ -1582,7 +1602,9 @@ def country_splits(wc, pk, picked):
             if sp or games is not None:
                 counts["splits of more than 20 clubs (one league yet)"] += 1
             continue
-        spec = world_split.division_spec(n, sp, games, division_rows(wc, picked, d))
+        builds = {po["build_after"]: i for i, po in enumerate(lg.get("ko_playoffs") or [])
+                  if po.get("kind") == "stage_title" and po.get("build_after")}   # (its 'then': play-off i)
+        spec = world_split.division_spec(n, sp, games, division_rows(wc, picked, d), builds)
         if spec is None:
             continue
         table, d1, d2 = world_split.entry(0, wc["number"], d, n, spec, world_split.pair_table(n))

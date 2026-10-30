@@ -32,6 +32,9 @@ typedef struct {
     const uint8_t (*second)[2]; /* team file; the highest level one may reach (0xFF any), */
     uint8_t        secondTop;   /* flags: 1 play-offs allowed, 2 it may leave the league */
     uint8_t        secondFlags; /* from the lowest division (the pool) */
+    const char *const (*names)[2];      /* each play-off's names (long, short), spec order */
+    uint8_t        nnames;
+    const uint8_t *then;        /* each play-off's 'then_build': the one built when it ends + 1 */
 } LeaguePlayoffs;
 
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count);
@@ -62,6 +65,11 @@ void LeaguePlayoffs_StageTable(uint8_t country, uint32_t k, uint32_t annual);
 /* A 'keep' stage's table frozen (Malta's Opening Round, its title play-off's seeds): the
  * division's kept table, read at the season end (the Mod's gp_keep). */
 void LeaguePlayoffs_KeepStage(uint8_t country, uint16_t division);
+
+const uint8_t *LeaguePlayoffs_SpecAt(uint8_t country, int32_t pidx);
+int32_t LeaguePlayoffs_ContestEntrants(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
+                                       int32_t pidx, uint16_t *team, uint16_t *glob, uint8_t *prio,
+                                       uint16_t *pts, const uint8_t **spec);
 
 void LeaguePlayoffs_Begin(void);
 void LeaguePlayoffs_KeepTable(const uint8_t *competition, uint16_t division);

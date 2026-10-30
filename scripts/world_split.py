@@ -178,8 +178,10 @@ def entry(world, file, div, n, spec, table):
     cycles = games + (1 if stages else 0)
     days, recs = [], []
     for st in stages:
-        extra = (st.get("members"), 0, st["table"] + 1 if st.get("table") is not None else 0,
-                 int(bool(st.get("annual"))))     # (the stage table, gplay.c gp_stage; 'then': not yet)
+        extra = (st.get("members"), st["build"] + 1 if st.get("build") is not None else 0,
+                 st["table"] + 1 if st.get("table") is not None else 0,
+                 int(bool(st.get("annual"))))     # (the knockout its end builds: the play-off's index + 1;
+                                                  #  the stage table, gplay.c gp_stage)
         if "fixtures" in st:                        # a fixture list by rows
             mem = st.get("members")
             assert st["after"] - d1 == len(days)
@@ -248,7 +250,7 @@ def entry(world, file, div, n, spec, table):
     return body + b"\0" * (length - len(body)), d1, d2
 
 
-def division_spec(n, sp, games=None, rows=None):
+def division_spec(n, sp, games=None, rows=None, builds=None):
     """A division's split as the Mod's mkseason.splits makes its spec: None if the division has
     neither a split nor meetings of its own. rows: the division's club keys in table-row (team
     file) order, for a fixture stage."""
@@ -271,6 +273,7 @@ def division_spec(n, sp, games=None, rows=None):
             spec["stages"].append({"after": day, "fixtures": fxd, "members": mem, "reset": bool(st.get("reset")),
                                    "wins": st.get("tiebreak") == "wins", "table": st.get("table"),
                                    "annual": bool(st.get("annual")),
+                                   "build": (builds or {}).get(st.get("then")),
                                    "groups": [len(z) for z in st.get("zones") or [rows]]})
             day += len(fxd)
             continue
@@ -289,7 +292,7 @@ def division_spec(n, sp, games=None, rows=None):
                "rounds": [ROUNDS[g.get("rounds", "single")] for g in gs],
                "points": [g.get("points", "full") for g in gs], "home": st.get("home", "seeded"),
                "reset": bool(st.get("reset")), "keep": st.get("keep"), "table": st.get("table"),
-               "annual": bool(st.get("annual"))}
+               "annual": bool(st.get("annual")), "build": (builds or {}).get(st.get("then"))}
         if expl is not None:
             one["perm"] = [p - 1 for e in expl for p in e]
         spec["stages"].append(one)

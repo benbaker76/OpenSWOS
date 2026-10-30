@@ -16,6 +16,8 @@ int32_t TeamPool_Swap(uint8_t c, uint8_t o) { (void)c; (void)o; return -1; }
 void TeamPool_SwapsDone(void) { }
 void LeagueGroups_Enter(uint16_t g) { (void)g; }
 WorldPlayoffState g_worldPlayoff;
+int32_t WorldPlayoff_PlayedTie(int32_t p, uint16_t a, uint16_t b, uint16_t *w) { (void)p; (void)a; (void)b; (void)w; return 0; }
+const WorldStageTitle *WorldPlayoff_StageTitle(int32_t k) { (void)k; return 0; }
 static uint16_t s_cupw;
 uint16_t WorldCups_LeagueCupWinner(uint8_t c) { (void)c; return s_cupw; }
 void WorldCups_KeepPlace(uint8_t c, uint16_t d, uint16_t t, uint8_t p) { (void)c; (void)d; (void)t; (void)p; }

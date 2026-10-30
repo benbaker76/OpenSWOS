@@ -40,7 +40,7 @@
 #include "swos_types.h"
 
 enum { WORLD_PLAYOFF_NONE, WORLD_PLAYOFF_B_PLAYOUT, WORLD_PLAYOFF_B_PLAYOFF, WORLD_PLAYOFF_GROUP_TIE,
-       WORLD_PLAYOFF_C_PLAYOFF, WORLD_PLAYOFF_PLACEMENT };
+       WORLD_PLAYOFF_C_PLAYOFF, WORLD_PLAYOFF_PLACEMENT, WORLD_PLAYOFF_SPEC };
 
 /* The contest under way or played this season (saved with the career). */
 #define WORLD_PLAYOFF_MAX 32
@@ -71,7 +71,33 @@ typedef struct {
     uint8_t  earlyDiv[2], earlyN[2];
     WorldPlayoffRow earlyRow[2][WORLD_PLAYOFF_EARLY_ROWS];
     uint16_t winner;            /* its last tie's winner, 0: not decided yet */
+    /* WORLD_PLAYOFF_SPEC: a play-off of the pack's spec, played (the Mod's gp_ko knockouts) */
+    uint8_t  country, pidx;     /* the spec: the country's, its play-off index */
+    uint8_t  stage;             /* a stage title's stage (0..2), 0xFF: a season-end play-off */
+    uint8_t  season;            /* (g_worldCups.seasons + 1 when built) */
+    uint8_t  week;              /* its first week (mid-season: after its stage's last); 0: after the league */
+    uint8_t  tw[WORLD_PLAYOFF_MAX], tl[WORLD_PLAYOFF_MAX];   /* each tie's winner / loser (entrant), 0xFF */
+    uint8_t  tieT[16];          /* the round under way: its real ties' tie indices */
+    uint16_t glob[WORLD_PLAYOFF_MAX];   /* the entrants' global numbers */
 } WorldPlayoffState;
+
+/* A stage title the career club's division decided mid-season (its knockout played or
+ * decided at once), read by the season end instead of a simulation (the Mod's GP_ST.dec). */
+typedef struct {
+    uint8_t  season, done;      /* (g_worldCups.seasons + 1) */
+    uint16_t team[2], glob[2];  /* the champion, the runner-up (0xFFFF none) */
+} WorldStageTitle;
+extern WorldStageTitle g_worldStageTitle[3];
+
+/* A split stage of the career club's league just ended (league_split.c) whose end builds a
+ * stage-title knockout (the split's 'then', the pack's build_after): play-off pidx; it is
+ * built when the club plays its first round, else decided at the season end. */
+void WorldPlayoff_StageEnded(uint8_t country, uint16_t division, int32_t pidx, uint8_t week);
+void WorldPlayoff_Advance(uint16_t week);  /* (the calendar's advance: a deferred build) */
+/* The season end (league_playoffs.c): a played play-off's ties (team numbers), for pidx. */
+int32_t WorldPlayoff_PlayedTie(int32_t pidx, uint16_t a, uint16_t b, uint16_t *winner);
+const WorldStageTitle *WorldPlayoff_StageTitle(int32_t stage);
+void WorldPlayoff_ResetStageTitles(void);   /* (a new career, a save without them) */
 
 extern WorldPlayoffState g_worldPlayoff;
 

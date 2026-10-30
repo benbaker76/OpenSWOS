@@ -6165,7 +6165,34 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                 rows[nr++] = r->lost; rows[nr++] = r->gf; rows[nr++] = r->ga; rows[nr++] = r->pts;
             }
         wp_emit_u16(&out, "early_rows", rows, nr);
+        if (w->kind == WORLD_PLAYOFF_SPEC) {    /* (a play-off of the pack's spec: which, its ties) */
+            const uint8_t id[5] = { w->country, w->pidx, w->stage, w->season, w->week };
+            wp_emit_u8(&out, "spec", id, 5);
+            wp_emit_u8(&out, "tie_winners", w->tw, WORLD_PLAYOFF_MAX);
+            wp_emit_u8(&out, "tie_losers", w->tl, WORLD_PLAYOFF_MAX);
+            wp_emit_u8(&out, "round_ties", w->tieT, 16);
+            wp_emit_u16(&out, "global_numbers", w->glob, w->n);
+        }
         mjson_printf(json_out_emit, &out, "%s", "}");
+    }
+
+    /* A world's stage titles decided mid-season (world_playoff.c): per stage the season,
+     * whether decided, the champion's and the runner-up's team and global numbers. */
+    {
+        int any = 0;
+        uint16_t st[3 * 6];
+        for (int k = 0; k < 3; k++) {
+            const WorldStageTitle *x = &g_worldStageTitle[k];
+            any |= x->done;
+            st[6 * k] = x->season; st[6 * k + 1] = x->done;
+            st[6 * k + 2] = x->team[0]; st[6 * k + 3] = x->team[1];
+            st[6 * k + 4] = x->glob[0]; st[6 * k + 5] = x->glob[1];
+        }
+        if (any) {
+            mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:0", "stage_titles", "version");
+            wp_emit_u16(&out, "stages", st, 3 * 6);
+            mjson_printf(json_out_emit, &out, "%s", "}");
+        }
     }
 
     /* A world's UEFA coefficients (uefa_coef.c): per association its clubs and points this
@@ -6823,6 +6850,31 @@ static void apply_semantic_load(const char *src, int src_size)
                     r->team = rows[i++]; r->played = rows[i++]; r->won = rows[i++]; r->drawn = rows[i++];
                     r->lost = rows[i++]; r->gf = rows[i++]; r->ga = rows[i++]; r->pts = rows[i++];
                 }
+            if (w->kind == WORLD_PLAYOFF_SPEC) {
+                uint8_t id[5] = { 0, 0, 0xFF, 0, 0 };
+                wp_load_u8(wp, wplen, "$.spec", id, 5);
+                w->country = id[0]; w->pidx = id[1]; w->stage = id[2]; w->season = id[3]; w->week = id[4];
+                for (int t = 0; t < WORLD_PLAYOFF_MAX; t++) w->tw[t] = w->tl[t] = 0xFF;
+                wp_load_u8(wp, wplen, "$.tie_winners", w->tw, WORLD_PLAYOFF_MAX);
+                wp_load_u8(wp, wplen, "$.tie_losers", w->tl, WORLD_PLAYOFF_MAX);
+                wp_load_u8(wp, wplen, "$.round_ties", w->tieT, 16);
+                wp_load_u16(wp, wplen, "$.global_numbers", w->glob, WORLD_PLAYOFF_MAX);
+            }
+        }
+    }
+    WorldPlayoff_ResetStageTitles();
+    {
+        const char *sto = NULL;
+        int stolen = 0;
+        if (mjson_find(src, src_size, "$.stage_titles", &sto, &stolen) == MJSON_TOK_OBJECT) {
+            uint16_t st[3 * 6] = { 0 };
+            wp_load_u16(sto, stolen, "$.stages", st, 3 * 6);
+            for (int k = 0; k < 3; k++) {
+                WorldStageTitle *x = &g_worldStageTitle[k];
+                x->season = (uint8_t)st[6 * k]; x->done = (uint8_t)st[6 * k + 1];
+                x->team[0] = st[6 * k + 2]; x->team[1] = st[6 * k + 3];
+                x->glob[0] = st[6 * k + 4]; x->glob[1] = st[6 * k + 5];
+            }
         }
     }
 
