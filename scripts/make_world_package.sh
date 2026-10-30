@@ -15,7 +15,8 @@
 #
 # The fingerprint is baked into the game too (src/world_data.c World_DataFingerprint): a
 # package belongs with the builds made from the same import run. Make a new one, and upload
-# it, whenever world_import.py's output changes (the fingerprint in WORLD.ini says so).
+# it, whenever world_import.py's output changes (the fingerprint in WORLD.ini says so). The
+# matchmaking server's team list is refreshed here too (assign_team_uuids.py --worlds).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -47,3 +48,11 @@ print("%d files" % n)
 PY
 mv "$OUT.tmp" "$OUT"
 echo "$OUT: $(du -h "$OUT" | cut -f1), data $FP"
+
+# The matchmaking server's team list carries the world's teams (their ids and checksums: an
+# online match's teams are checked against it): it goes with the same data.
+python3 -I "$ROOT/scripts/assign_team_uuids.py" --registry --worlds | grep "^registry:"
+if ! git -C "$ROOT" diff --quiet -- third_party/matchmaker/Server/include/TeamRegistry.inc; then
+    echo "make_world_package: the server's team list changed -- commit TeamRegistry.inc, then rebuild"
+    echo "and deploy the server (its admin page) when the package goes up"
+fi

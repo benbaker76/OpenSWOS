@@ -157,3 +157,49 @@ void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath)
     }
 #endif
 }
+
+/* ---- the world's data package (include/world.h; OpenSWOS Setup installs it) ---- */
+
+static int32_t s_worldState;
+static char    s_worldTag[16], s_worldHave[40], s_worldWant[40];
+
+void AssetsCheck_SetWorld(int32_t state, const char *tag, const char *have, const char *want)
+{
+    s_worldState = state;
+    snprintf(s_worldTag, sizeof s_worldTag, "%s", tag ? tag : "");
+    snprintf(s_worldHave, sizeof s_worldHave, "%s", have && have[0] ? have : "unknown");
+    snprintf(s_worldWant, sizeof s_worldWant, "%s", want ? want : "");
+}
+
+void AssetsCheck_World(PlatformInitOptions *opts)
+{
+#if defined(SWOS_WASM_BUILD) || defined(SWOS_SWITCH_BUILD)
+    (void)opts;
+#else
+    const char *driver = SDL_GetCurrentVideoDriver();
+    char text[640];
+    if (!s_worldState || getenv("SWOS_NO_ASSETS_CHECK") || opts->arcade ||
+        !driver || strcmp(driver, "dummy") == 0 || strcmp(driver, "offscreen") == 0)
+        return;
+    /* (World 2026-27 is the only world besides 96/97: its name, its package's) */
+    if (s_worldState == 1)
+        snprintf(text, sizeof text,
+                 "SWOS.ini asks for World 2026-27 (world = %s), but its data is not installed.\n\n"
+                 "Download the World 2026-27 package, then add it in OpenSWOS Setup and click "
+                 "Install.\n\n"
+                 "SWOS 96/97 is played meanwhile.", s_worldTag);
+    else
+        snprintf(text, sizeof text,
+                 "Your World 2026-27 data is not the one this version of OpenSWOS was made for "
+                 "(it is %s, this version's is %s).\n\n"
+                 "Download the World 2026-27 package for this version, then add it in OpenSWOS "
+                 "Setup and click Install.\n\n"
+                 "Until then a World 2026-27 career may not play correctly: leagues and clubs can "
+                 "be missing or wrong.", s_worldHave, s_worldWant);
+    fprintf(stderr, "[world] message box: %s\n", s_worldState == 1 ? "not installed" : "other data");
+    SDL_ShowSimpleMessageBox(s_worldState == 1 ? SDL_MESSAGEBOX_INFORMATION : SDL_MESSAGEBOX_WARNING,
+                             s_worldState == 1 ? "OpenSWOS: World 2026-27 is not installed"
+                                               : "OpenSWOS: update World 2026-27",
+                             text, NULL);
+#endif
+}

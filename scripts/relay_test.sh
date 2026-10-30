@@ -110,7 +110,8 @@ if [ "$REMOTE" = 1 ]; then
     SERVER_PID=
 else
     PLAY_HOST=127.0.0.1; PLAY_PORT=$PORT; RELAY_PEER="127.0.0.1:$PORT"
-    [ -x "$SERVER" ] || scripts/run_matchmaker.sh --build-only >/dev/null 2>&1
+    # (the build here: up to date every run -- its team list above all; another SERVER as it is)
+    [ "$SERVER" = build/matchmaker/swos-matchmaker ] && scripts/run_matchmaker.sh --build-only >/dev/null 2>&1
     [ -x "$SERVER" ] || { echo "relay-test: $SERVER not built" >&2; exit 1; }
     if command -v ss >/dev/null && ss -ulnp 2>/dev/null | grep -q ":$PORT "; then
         echo "relay-test: UDP $PORT is taken; set PORT=" >&2

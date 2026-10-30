@@ -33,6 +33,7 @@
 #include "test_rules.h"
 #include "platform_sdl.h"
 #include "swos_settings.h"
+#include "assets_check.h"
 #include "swos_io.h"            /* swos_save_dir_init() — macOS-writable save dir */
 #include "save_format_json.h"   /* DataJson_SelfTest */
 #include "dos_mode.h"   /* gDosGraphics/gDosGameplay — defined in dos_graphics.c */
@@ -1192,15 +1193,18 @@ int main(int argc, char **argv)
         if (!f) {
             fprintf(stderr, "[world] %s: its data is not installed (OpenSWOS Setup: its package) -- playing 9697\n",
                     World_Tag());
+            AssetsCheck_SetWorld(1, World_Tag(), "", "");
             World_Set("9697");
         } else {
             while (fgets(line, sizeof line, f))
                 if (sscanf(line, " fingerprint = %39s", fp) == 1)
                     break;
             fclose(f);
-            if (World_DataFingerprint()[0] && strcmp(fp, World_DataFingerprint()) != 0)
+            if (World_DataFingerprint()[0] && strcmp(fp, World_DataFingerprint()) != 0) {
                 fprintf(stderr, "[world] %s: its installed data is %s, this build's is %s -- install the package "
                         "made for this version\n", World_Tag(), fp[0] ? fp : "unknown", World_DataFingerprint());
+                AssetsCheck_SetWorld(2, World_Tag(), fp, World_DataFingerprint());
+            }
         }
     }
     fprintf(stderr, "[world] %s\n", World_Tag());
@@ -1407,6 +1411,8 @@ int main(int argc, char **argv)
     /* Game data an older OpenSWOS Setup made (ASSETS.ini): say so, once. */
     { extern void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath);
       AssetsCheck_Run(&opts, ini_path); }
+    /* The world asked for: its package not installed, or of other data than this build's. */
+    AssetsCheck_World(&opts);
 
     /* Hand off to the (ported) Amiga bootstrap. startShim runs _start()
      * (hardware init -- now no-ops via stubs) then mainC() which is the

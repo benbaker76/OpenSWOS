@@ -198,7 +198,9 @@ fingerprint must be the one `world_import.py` baked into `src/world_data.c`), wh
 imports like the original game's data (source "World 2026-27", part `world`). 96/97 is the default
 world: a run plays `--world`, else `SWOS_WORLD`, else SWOS.ini's `[general] world`, else 96/97 (a
 world without its WORLD.ini installed falls back to 96/97, said in `[world]` lines); the Amiga plays
-its drawer's `data/WORLD`, written only when the player ticks the world on the Amiga tab. Test rigs
+its drawer's `data/WORLD`, written only when the player ticks the world on the Amiga tab. The
+matchmaking server's team list carries the world's teams (`TeamRegistry.inc`, refreshed by the package
+script: commit it and redeploy the server with each package). Test rigs
 whose corpus or careers are 96/97's export `SWOS_WORLD=9697` -- a new one must too.
 
 **The golden career test** (`scripts/career_golden_test.sh`, docs/WORLD_2026_27.md phase 0): the
