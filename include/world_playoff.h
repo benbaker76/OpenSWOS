@@ -85,6 +85,9 @@ typedef struct {
      * since (a game 3 nobody needed); a series' wins by tie, the better placed's in the low
      * nibble */
     uint8_t  g0, skip;
+    uint8_t  gend, more;        /* a contest of more than the engine's six rounds is played in parts
+                                 * (the MLS's wild card club: seven): this part's end game round (0:
+                                 * the last), the next part to build at the calendar's advance */
     uint8_t  sw[WORLD_PLAYOFF_MAX];
 } WorldPlayoffState;
 

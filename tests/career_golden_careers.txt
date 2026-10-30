@@ -88,3 +88,6 @@ GER2627-BAYERN-PLAYOFF SWOS_TEST_PLAYOFF_PLACE=16 @2627 EUROPE/GERMANY/BUNDESLIG
 # ... a group contest played (the Mod's ko_t2): Serie D's champions' Poule Scudetto, its clubs from the
 # nine groups (eight simulated early), in slot 3 as the game's type-2 contest.
 ITA2627-LIGORNA-POULE SWOS_TEST_PLAYOFF_PLACE=1 @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LIGORNA
+# ... a play-off of more rounds than the engine's six, in parts: the MLS's wild card club (seven game
+# rounds: the wild card, then round one's best-of-three to the MLS Cup).
+USA2627-LAGALAXY-WILDCARD SWOS_TEST_PLAYOFF_PLACE=23 @2627 NORTH AMERICA/U.S.A./LA GALAXY

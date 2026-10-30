@@ -57,6 +57,10 @@ static uint8_t k_flags(int32_t legs, int32_t level);
 static char s_kName[24], s_kShort[16];
 enum { K_GAMES = 12 };
 static int32_t k_games(const uint8_t *s, uint8_t *gsr, uint8_t *gno);
+static int32_t k_end(int32_t ng)                /* (this part's end game round) */
+{
+    return g_worldPlayoff.gend && g_worldPlayoff.gend < ng ? g_worldPlayoff.gend : ng;
+}
 
 /* The bracket's places: its clubs (Serie C's 28 in a bracket of 64: the byes and the
  * fillers after each round's real ties). */
@@ -65,7 +69,7 @@ static int32_t bracket_size(void)
     if (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC) {
         const uint8_t *s = LeaguePlayoffs_SpecAt(g_worldPlayoff.country, g_worldPlayoff.pidx);
         uint8_t gsr[K_GAMES], gno[K_GAMES];
-        int32_t b = s ? 1 << (k_games(s, gsr, gno) - g_worldPlayoff.g0) : g_worldPlayoff.n;
+        int32_t b = s ? 1 << (k_end(k_games(s, gsr, gno)) - g_worldPlayoff.g0) : g_worldPlayoff.n;
         while (b < g_worldPlayoff.n)            /* (its list: the clubs of the rounds decided at the */
             b <<= 1;                            /*  build too -- the rounds then numRoundsOverride's) */
         return b;
@@ -126,7 +130,7 @@ static void make_record(void)
         uint8_t gsr[K_GAMES], gno[K_GAMES];
         const int32_t ng = sp ? k_games(sp, gsr, gno) : 0;
         int32_t days = 0;
-        for (int32_t q = 0; g_worldPlayoff.g0 + q < ng && q < 6; q++) {   /* (its game rounds') */
+        for (int32_t q = 0; g_worldPlayoff.g0 + q < k_end(ng) && q < 6; q++) {   /* (its game rounds') */
             const uint8_t *rd = k_round(sp, gsr[g_worldPlayoff.g0 + q]);
             s_rec.roundRuleFlags[q] = (int8_t)k_flags(rd[1] == 3 ? 1 : rd[1], rd[3]);
             days += rd[1] == 2 ? 2 : 1;
@@ -137,8 +141,8 @@ static void make_record(void)
         }
         s_rec.name[0] = s_kName;
         s_rec.name[1] = s_kShort;
-        if (bracket_size() != 1 << (ng - g_worldPlayoff.g0))
-            s_rec.header.numRoundsOverride = (int8_t)(ng - g_worldPlayoff.g0);
+        if (bracket_size() != 1 << (k_end(ng) - g_worldPlayoff.g0))
+            s_rec.header.numRoundsOverride = (int8_t)(k_end(ng) - g_worldPlayoff.g0);
     } else if (g_worldPlayoff.kind == WORLD_PLAYOFF_GROUP_TIE) {
         s_rec.roundRuleFlags[0] = (int8_t)g_worldPlayoff.rules;
         s_rec.name[0] = s_tieName;
@@ -182,6 +186,26 @@ static int32_t force_place(DIYCompetitionEx *ex, int32_t n)
         order[mine] = order[want];
         order[want] = o;
     }
+    {   /* and in the country's stage tables written this season (the Mod's gp_force): the same place
+         * there -- a play-off seeded by one (the MLS's) sees the forced place */
+        extern uint16_t _selTeamNumber;
+        for (int32_t bk = 0; bk < LEAGUE_STAGE_BANKS; bk++) {
+            LeagueStageBank *b = &g_leagueStages[bk];
+            if (!b->used || b->key != (uint8_t)_careerTeam.team.countryNumber)
+                continue;
+            for (int32_t k = 0; k < LEAGUE_STAGE_TABLES; k++) {
+                if (!(b->fresh >> k & 1) || want >= b->n[k])
+                    continue;
+                for (int32_t i = 0; i < b->n[k]; i++)
+                    if (b->r[k][i].team == _selTeamNumber && i != want) {
+                        const LeagueStageRow x = b->r[k][i];
+                        b->r[k][i] = b->r[k][want];
+                        b->r[k][want] = x;
+                        break;
+                    }
+            }
+        }
+    }
     LeaguePlayoffs_TestHeld = 1;
     return 1;
 }
@@ -201,6 +225,7 @@ static void round_rules(int32_t r, uint16_t legs, uint16_t et, uint16_t pens)
 static void lay_out(int32_t pairs);
 
 static void k_lay_out(const uint8_t *s, int32_t r, int32_t sr);
+static int32_t s_pairs;                         /* (the round laid out: its places, WorldPlayoff_RoundSize) */
 
 static void first_round(void)
 {
@@ -210,8 +235,7 @@ static void first_round(void)
         uint8_t gsr[K_GAMES], gno[K_GAMES];
         if (s && g_worldPlayoff.g0 < k_games(s, gsr, gno))
             k_lay_out(s, 0, gsr[g_worldPlayoff.g0]);
-        if (c->base.numRounds >= 1)             /* (a bracket over its rounds: numRoundsOverride) */
-            c->base.matchPairsPerRound = (int16_t)(1 << (c->base.numRounds - 1));
+        c->base.matchPairsPerRound = (int16_t)s_pairs;  /* (its places: k_lay_out) */
         c->base.totalMatchesInRound = g_worldPlayoff.ties;
     }
     if (g_worldPlayoff.kind == WORLD_PLAYOFF_B_PLAYOFF)
@@ -781,9 +805,14 @@ static int32_t k_waiting(const uint8_t *s, int32_t sr, uint8_t *wait)
 static void k_lay_out(const uint8_t *s, int32_t r, int32_t sr)
 {
     uint8_t *grid = _diyCompetitionStart.teamGridPairings, wait[16];
+    uint8_t gsr[K_GAMES], gno[K_GAMES];
     const int32_t left = _diyCompetitionStart.base.numRounds - r - 1;
-    const int32_t pairs = left >= 0 ? 1 << left : 1, nw = k_waiting(s, sr, wait);
-    int32_t k = 0;
+    const int32_t last = g_worldPlayoff.g0 + r + g_worldPlayoff.skip + 1 >= k_end(k_games(s, gsr, gno));
+    const int32_t nw = last ? 0 : k_waiting(s, sr, wait);   /* (a part's last round: no byes, the next */
+    int32_t pairs = left >= 0 ? 1 << left : 1, k = 0;       /*  part lays its own out) */
+    while (pairs < g_worldPlayoff.ties + nw && pairs < 32)  /* (the halving bracket, wider where a round */
+        pairs <<= 1;                                         /*  needs it: the MLS's wild card, 2 ties) */
+    s_pairs = pairs;
     for (int32_t t = 0; t < g_worldPlayoff.ties && k < pairs; t++, k++) {
         grid[2 * k] = g_worldPlayoff.tieA[t];
         grid[2 * k + 1] = g_worldPlayoff.tieB[t];
@@ -862,17 +891,20 @@ static int32_t k_make_ex(uint8_t country, int32_t ntab, const int32_t *divs, con
     while (nt == 0 && g0 + 1 < ng && gno[g0 + 1] == 0)
         nt = k_build(s, ++g0, 0);
     g_worldPlayoff.g0 = (uint8_t)g0;
-    const int32_t gr = ng - g0, bracket = gr <= 6 ? 1 << gr : 0;
-    for (int32_t g = g0; g < ng; g++)           /* (every round's ties in the engine's halving bracket) */
-        if (!gno[g] && 2 * k_round(s, gsr[g])[0] > bracket >> (g - g0))
+    if (ng - g0 > 6)                            /* (more rounds than the engine's six: in parts, the */
+        g_worldPlayoff.gend = (uint8_t)(ng - 6);    /*  first the rounds past six -- the MLS's wild card) */
+    const int32_t gr = k_end(ng) - g0;
+    for (int32_t g = g0; g < k_end(ng); g++)    /* (every round's ties in the engine's grid of 32) */
+        if (!gno[g] && k_round(s, gsr[g])[0] > 32)
             nt = -1;
     in = 0;
     for (int32_t t = 0; t < nt; t++)
         in |= g_worldPlayoff.team[g_worldPlayoff.tieA[t]] == _selTeamNumber ||
               g_worldPlayoff.team[g_worldPlayoff.tieB[t]] == _selTeamNumber;
     uint8_t wait[16];
-    if (nt <= 0 || !in || ne > 32 || 2 * nt + k_waiting(s, gsr[g0], wait) > bracket) {
-        if (presim || gr > 6)
+    if (nt <= 0 || !in || ne > 32 || gr > 6 ||
+        nt + (g0 + 1 >= k_end(ng) ? 0 : k_waiting(s, gsr[g0], wait)) > 32) {
+        if (presim)
             SWOS_DBG("[world-playoff] play-off %d: not played (%d game rounds from %d, %d ties)\n", (int)pidx,
                      (int)ng, (int)g0, (int)nt);
         WorldPlayoff_Reset();                   /* (not the club's to play: the season end decides) */
@@ -989,6 +1021,35 @@ void WorldPlayoff_StageEnded(uint8_t country, uint16_t division, int32_t pidx, u
  * into slot 4 when the career club plays its first round (else the season end decides it). */
 void WorldPlayoff_Advance(uint16_t week)
 {
+    if (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC && g_worldPlayoff.more) {
+        /* a contest's next part (its first part's rounds decided): from the game round after,
+         * the career club in it -- else the season end decides the rest, the part's ties kept */
+        const uint8_t *s = k_spec();
+        uint8_t gsr[K_GAMES], gno[K_GAMES];
+        extern uint16_t _selTeamNumber;
+        g_worldPlayoff.more = 0;
+        if (!s)
+            return;
+        const int32_t ng = k_games(s, gsr, gno);
+        int32_t g0 = g_worldPlayoff.gend, nt = k_build(s, g0, 0), in = 0;
+        while (nt == 0 && g0 + 1 < ng && gno[g0 + 1] == 0)
+            nt = k_build(s, ++g0, 0);
+        for (int32_t t = 0; t < nt; t++)
+            in |= g_worldPlayoff.team[g_worldPlayoff.tieA[t]] == _selTeamNumber ||
+                  g_worldPlayoff.team[g_worldPlayoff.tieB[t]] == _selTeamNumber;
+        if (nt <= 0 || !in) {
+            SWOS_DBG("[world-playoff] its next part without the career club: the season end decides it\n");
+            g_worldPlayoff.gend = (uint8_t)ng;
+            return;
+        }
+        g_worldPlayoff.g0 = (uint8_t)g0;
+        g_worldPlayoff.skip = 0;
+        g_worldPlayoff.gend = (uint8_t)(ng - g0 > 6 ? ng - 6 : 0);
+        g_worldPlayoff.week = (uint8_t)(week + 1 < 255 ? week + 1 : 255);
+        SWOS_DBG("[world-playoff] its next part: game rounds %d.., from week %u\n", (int)g0, (unsigned)g_worldPlayoff.week);
+        k_slot4();
+        return;
+    }
     if (!s_pendStage.on)
         return;
     s_pendStage.on = 0;
@@ -1435,6 +1496,25 @@ void WorldPlayoff_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won)
     const DIYCompetition *b = &_diyCompetitionStart.base;
     if (!our_tie(team1, team2) || b->currentRoundIndex + 1 != b->numRounds)
         return;                                 /* (the last round's: the contest's result) */
+    if (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC && g_worldPlayoff.gend) {
+        /* a part's last round: its ties' winners, the next part built when all are decided */
+        int32_t open = 0;
+        for (int32_t t = 0; t < g_worldPlayoff.ties; t++) {
+            const uint8_t a = g_worldPlayoff.tieA[t], c = g_worldPlayoff.tieB[t], tt = g_worldPlayoff.tieT[t];
+            if ((g_worldPlayoff.team[a] == team1 && g_worldPlayoff.team[c] == team2) ||
+                (g_worldPlayoff.team[a] == team2 && g_worldPlayoff.team[c] == team1)) {
+                const uint8_t w = g_worldPlayoff.team[c] == (team2Won ? team2 : team1) ? c : a;
+                g_worldPlayoff.tw[tt] = w;
+                g_worldPlayoff.tl[tt] = w == a ? c : a;
+            }
+            open += g_worldPlayoff.tw[tt] == NOC;
+        }
+        if (!open)
+            g_worldPlayoff.more = 1;
+        SWOS_DBG("[world-playoff] part decided: %04X v %04X, %d tie(s) left\n", (unsigned)team1, (unsigned)team2,
+                 (int)open);
+        return;
+    }
     g_worldPlayoff.winner = team2Won ? team2 : team1;
     SWOS_DBG("[world-playoff] decided: %04X\n", (unsigned)g_worldPlayoff.winner);
     if (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC && g_worldPlayoff.ties) {   /* (the final's tie) */
@@ -1556,10 +1636,10 @@ void WorldPlayoff_ArrangeNextRound(void)
             g_worldPlayoff.tw[tt] = w;
             g_worldPlayoff.tl[tt] = w == a ? b : a;
         }
-        if (g + 1 >= ng)
-            return;                             /* (the final: WorldPlayoff_TieDecided) */
+        if (g + 1 >= k_end(ng))
+            return;                             /* (the final, a part's last: WorldPlayoff_TieDecided) */
         int32_t gn = g + 1, nb;
-        while ((nb = k_build(sp, gn, 0)) == 0 && gn + 1 < ng)
+        while ((nb = k_build(sp, gn, 0)) == 0 && gn + 1 < k_end(ng))
             gn++;
         if (nb > 0) {
             if (gn > g + 1) {                   /* (game rounds with no match: the contest shorter) */
@@ -1663,10 +1743,9 @@ void WorldPlayoff_RoundSize(void)
     DIYCompetition *b = &_diyCompetitionStart.base;
     if (!ours())
         return;
-    if (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC) {   /* (a round skipped: the bracket of the rounds left) */
-        const int32_t left = b->numRounds - b->currentRoundIndex - 1;
-        b->matchPairsPerRound = (int16_t)(left >= 0 ? 1 << left : 1);
-    }
+    if (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC)  /* (the round's places: the halving bracket of the
+                                                     *  rounds left, wider where it needs: k_lay_out) */
+        b->matchPairsPerRound = (int16_t)s_pairs;
     if (g_worldPlayoff.kind == WORLD_PLAYOFF_C_PLAYOFF || g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC)
         b->totalMatchesInRound = g_worldPlayoff.ties;
 }

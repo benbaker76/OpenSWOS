@@ -6204,9 +6204,10 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                 rows[nr++] = r->lost; rows[nr++] = r->gf; rows[nr++] = r->ga; rows[nr++] = r->pts;
             }
         wp_emit_u16(&out, "early_rows", rows, nr);
-        if (w->kind == WORLD_PLAYOFF_SPEC) {    /* (a play-off of the pack's spec: which, its ties) */
-            const uint8_t id[7] = { w->country, w->pidx, w->stage, w->season, w->week, w->g0, w->skip };
-            wp_emit_u8(&out, "spec", id, 7);
+        if (w->kind == WORLD_PLAYOFF_SPEC || w->kind == WORLD_PLAYOFF_GROUPS) {   /* (a play-off of the pack's spec: which, its ties) */
+            const uint8_t id[9] = { w->country, w->pidx, w->stage, w->season, w->week, w->g0, w->skip, w->gend,
+                                    w->more };
+            wp_emit_u8(&out, "spec", id, 9);
             wp_emit_u8(&out, "series_wins", w->sw, WORLD_PLAYOFF_MAX);
             wp_emit_u8(&out, "tie_winners", w->tw, WORLD_PLAYOFF_MAX);
             wp_emit_u8(&out, "tie_losers", w->tl, WORLD_PLAYOFF_MAX);
@@ -6954,11 +6955,12 @@ static void apply_semantic_load(const char *src, int src_size)
                     r->team = rows[i++]; r->played = rows[i++]; r->won = rows[i++]; r->drawn = rows[i++];
                     r->lost = rows[i++]; r->gf = rows[i++]; r->ga = rows[i++]; r->pts = rows[i++];
                 }
-            if (w->kind == WORLD_PLAYOFF_SPEC) {
-                uint8_t id[7] = { 0, 0, 0xFF, 0, 0, 0, 0 };    /* (an older save: no game rounds before, none skipped) */
-                wp_load_u8(wp, wplen, "$.spec", id, 7);
+            if (w->kind == WORLD_PLAYOFF_SPEC || w->kind == WORLD_PLAYOFF_GROUPS) {
+                uint8_t id[9] = { 0, 0, 0xFF, 0, 0, 0, 0, 0, 0 };  /* (an older save: no game rounds before,
+                                                                   *  none skipped, one part) */
+                wp_load_u8(wp, wplen, "$.spec", id, 9);
                 w->country = id[0]; w->pidx = id[1]; w->stage = id[2]; w->season = id[3]; w->week = id[4];
-                w->g0 = id[5]; w->skip = id[6];
+                w->g0 = id[5]; w->skip = id[6]; w->gend = id[7]; w->more = id[8];
                 wp_load_u8(wp, wplen, "$.series_wins", w->sw, WORLD_PLAYOFF_MAX);
                 for (int t = 0; t < WORLD_PLAYOFF_MAX; t++) w->tw[t] = w->tl[t] = 0xFF;
                 wp_load_u8(wp, wplen, "$.tie_winners", w->tw, WORLD_PLAYOFF_MAX);

@@ -1688,22 +1688,23 @@ def write(path, data):
     print("wrote", os.path.relpath(path, REPO))
 
 
-# The countries imported so far (docs/WORLD_2026_27.md, phase 8): Italy whole (its own
-# functions), then the plain countries 96/97 has -- their divisions, the pack's knockouts,
-# their cups (the others keep 96/97's until their league's features are in).
+# The countries imported (docs/WORLD_2026_27.md, phase 8): Italy whole (its own functions),
+# then the countries 96/97 has -- their divisions, the pack's knockouts, their cups, by the
+# features their leagues need -- and the 26 new to the game (NEW_COUNTRY_NUMBERS): all 91.
 PLAIN = ("ALG BEL BLR BOL CHI CRO ENG EST FRA FRO GHA HUN IND IRL JPN LTU LUX LVA NOR POL RSA "
          "RUS SCO SUR SVN SWE TPE TUR UKR VEN "
          # (B teams, an off-file pool below the lowest division: src/team_pool.c)
          "ESP GER NED POR NZL "
          # (a mid-season split: src/league_split.c)
          "ALB AUT BUL CYP CZE DEN ECU FIN GRE ISL ISR NIR ROU SRB SUI SVK WAL "
-         # (fixture stages, Apertura / Clausura, as one league yet: their titles not played)
+         # (fixture stages, Apertura / Clausura: their stage titles played, world_playoff.c)
          "COL MEX PAR PER URU MLT SMR "
          # (levels of groups side by side: src/league_groups.c)
          "SLV AUS "
          # (30 clubs, a fixture list's season: league_split.c)
          "USA ARG "
-         # (its league only yet; the state-only clubs in the file, the states not played: statesim)
+         # (its league and the state-only clubs in one file; the states simulated, the career
+         # club's own played: state_sim.c, states.c)
          "BRA").split()
 
 
