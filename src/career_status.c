@@ -2006,6 +2006,8 @@ check_tertiary_winner:
 
     if ((_euroCupSlotIndex == 7 || _euroCupSlotIndex == 8) && Conti_TrophyTier() < 0)
         return;                         /* (another confederation's tie: a trophy only as its cup's final) */
+    if (_euroCupSlotIndex == 9)
+        return;                         /* (a world's group contest: a title, not a cup) */
     const uint16_t euroIdx = _euroCupSlotIndex == 7 || _euroCupSlotIndex == 8 ? (uint16_t)Conti_TrophyTier()
                            : _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
     if (euroIdx == 0 || euroIdx == 3) {  /* (4..6: a world's qualifying tie, its cup's tier) */
@@ -3062,6 +3064,7 @@ skipSponsorship:
         uint32_t d0;
 
         const uint16_t euroIdx = _euroCupSlotIndex == 7 ? 1     /* (another confederation's cups) */
+                               : _euroCupSlotIndex == 9 ? 2     /* (a world's group contest) */
                                : _euroCupSlotIndex == 8 ? (uint16_t)(Conti_TrophyTier() < 0 ? 1 : Conti_TrophyTier())
                                : _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
         if (euroIdx == 1) {             /* (4..6: a world's qualifying tie, its cup's tier) */

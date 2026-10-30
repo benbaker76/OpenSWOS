@@ -96,7 +96,8 @@ enum CompId {
      * 200 (world_playoff.c), the Coppa Serie D's ties 201 / 202 (world_cupd.c); the UEFA
      * qualifying ties (uefa_coef.c), the other confederations' tie and main round
      * (conti_season.c: one id, its cup saved beside it), the state championship (states.c).
-     * 244..246 are the USA's, Argentina's and Brazil's cups; 248..255 are left. */
+     * 244..246 are the USA's, Argentina's and Brazil's cups; 248 a world's group contest
+     * (world_playoff.c, the Poule Scudetto); 249..255 are left. */
     COMPID_uefaTieChampionsLeague            = 239,
     COMPID_uefaTieEuropaLeague               = 240,
     COMPID_uefaTieConferenceLeague           = 241,
@@ -104,6 +105,8 @@ enum CompId {
     COMPID_contiMain                         = 243,
     COMPID_stateContest                      = 247,     /* (a world's state championship the career club
                                                          * plays: states.c; one id, its state saved beside) */
+    COMPID_worldGroups                       = 248,     /* (a world's group contest the career club plays
+                                                         * in slot 3: world_playoff.c) */
 };
 
 /* Read a competition's id (compId = byte 0 of the record). Endian-neutral

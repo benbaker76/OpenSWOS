@@ -85,10 +85,15 @@ int32_t LeaguePlayoffs_ContestEntrantsEx(uint8_t country, int32_t nt, const int3
                                          const LeagueStageRow *const *tables, const int32_t *ns, int32_t pidx,
                                          uint16_t *team, uint16_t *glob, uint8_t *prio, uint16_t *pts,
                                          const uint8_t **spec);
+/* A group contest (gplay.c t2_shape: a title of g groups of m entrants, meet meetings, then nk
+ * knockout stages of kt ties, the first taking q -- the groups' winners and best runners-up --
+ * kb their round bytes): play-off pidx's shape, 0 when it is not one. */
+typedef struct { uint8_t g, m, meet, nk, q, kt[4], kb[4]; } LeagueGroupShape;
+int32_t LeaguePlayoffs_GroupShape(uint8_t country, int32_t pidx, LeagueGroupShape *shape);
 /* The career club's play-off at its league's end (the Mod's gp_need, a career): the first playable
  * one in spec order with the club (`club` in division d's final table) among its entrants -- its
- * index, the other divisions its entrants come from (at most two, to simulate now) in other[];
- * -2 - its index when it is a group contest (the Mod's type-2: not played here); -1 none. */
+ * index, the other divisions its entrants come from (to simulate now: at most two; nine for a
+ * group contest -- other[] holds 9) in other[]; -2 - its index when it is a group contest; -1 none. */
 int32_t LeaguePlayoffs_ClubPlayoff(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
                                    uint16_t club, uint8_t *other, int32_t *nother);
 /* Right after ContestEntrants: a round-1 tie simulated at the contest's build, the career club

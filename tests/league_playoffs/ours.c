@@ -18,6 +18,7 @@ void LeagueGroups_Enter(uint16_t g) { (void)g; }
 WorldPlayoffState g_worldPlayoff;
 int32_t WorldPlayoff_PlayedTie(int32_t p, uint16_t a, uint16_t b, uint16_t *w) { (void)p; (void)a; (void)b; (void)w; return 0; }
 const WorldStageTitle *WorldPlayoff_StageTitle(int32_t k) { (void)k; return 0; }
+int32_t WorldPlayoff_PlayedTitle(int32_t p, uint16_t *w, uint16_t *l) { (void)p; (void)w; (void)l; return 0; }
 static uint16_t s_cupw;
 uint16_t WorldCups_LeagueCupWinner(uint8_t c) { (void)c; return s_cupw; }
 void WorldCups_KeepPlace(uint8_t c, uint16_t d, uint16_t t, uint8_t p) { (void)c; (void)d; (void)t; (void)p; }
@@ -87,12 +88,12 @@ static void ours_ko(struct trow (*t)[32], const int *n)
     }
     for (int d = 0; d < ND; d++)                /* (the club's play-off: gp_need, each club) */
         for (int k = 0; k < n[d]; k++) {
-            uint8_t other[2];
+            uint8_t other[9];
             int32_t no = 0;
             const int32_t pi = LeaguePlayoffs_ClubPlayoff(20, d, tab[d], n[d], tab[d][k].team, other, &no);
             if (pi == -1) continue;
             printf(" N%d.%d:%d", d, k, pi < -1 ? -2 - pi : pi);
-            for (int j = 0; j < no; j++) printf("/%d", other[j]);
+            for (int j = 0; pi >= 0 && j < no; j++) printf("/%d", other[j]);
         }
 }
 int main(int argc, char **argv)

@@ -686,7 +686,7 @@ NEW_COMP_IDS = {
     ("USA", "cup"): 244, ("ARG", "cup"): 245, ("BRA", "cup"): 246,
 }
 # (the ids a world's own contests hold: include/comp_identity.h -- none of the above may take one)
-RESERVED_COMP_IDS = {200, 201, 202, 239, 240, 241, 242, 243, 247}
+RESERVED_COMP_IDS = {200, 201, 202, 239, 240, 241, 242, 243, 247, 248}
 assert not RESERVED_COMP_IDS & set(NEW_COMP_IDS.values()), "NEW_COMP_IDS: an id of comp_identity.h's"
 # A new country's league: an id of its own (fixed: saves hold it), its record's shape a 96/97
 # country's of the same continent (its season's months), its continent's byte (the first of

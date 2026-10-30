@@ -6179,7 +6179,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
      * simulated early, the winner once decided. */
     if (g_worldPlayoff.kind) {
         const WorldPlayoffState *w = &g_worldPlayoff;
-        uint16_t rows[2 * WORLD_PLAYOFF_EARLY_ROWS * 8];
+        uint16_t rows[WORLD_PLAYOFF_EARLY * WORLD_PLAYOFF_EARLY_ROWS * 8];
         int nr = 0;
         mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d", "world_playoff",
                      "kind", (int)w->kind, "etp", (int)w->etp, "rules", (int)w->rules,
@@ -6197,7 +6197,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         wp_emit_u8(&out, "tie_b", w->tieB, w->ties);
         wp_emit_u8(&out, "early_divisions", w->earlyDiv, w->early);
         wp_emit_u8(&out, "early_counts", w->earlyN, w->early);
-        for (int e = 0; e < w->early && e < 2; e++)     /* (team, played, won, drawn, lost, gf, ga, pts) */
+        for (int e = 0; e < w->early && e < WORLD_PLAYOFF_EARLY; e++)   /* (team, played, won, drawn, lost, gf, ga, pts) */
             for (int k = 0; k < w->earlyN[e] && k < WORLD_PLAYOFF_EARLY_ROWS; k++) {
                 const WorldPlayoffRow *r = &w->earlyRow[e][k];
                 rows[nr++] = r->team; rows[nr++] = r->played; rows[nr++] = r->won; rows[nr++] = r->drawn;
@@ -6927,7 +6927,7 @@ static void apply_semantic_load(const char *src, int src_size)
         int wplen = 0;
         if (mjson_find(src, src_size, "$.world_playoff", &wp, &wplen) == MJSON_TOK_OBJECT) {
             WorldPlayoffState *w = &g_worldPlayoff;
-            uint16_t rows[2 * WORLD_PLAYOFF_EARLY_ROWS * 8];
+            uint16_t rows[WORLD_PLAYOFF_EARLY * WORLD_PLAYOFF_EARLY_ROWS * 8];
             long v = 0;
             int nr;
             if (mjson_get_long(wp, wplen, "$.kind", &v) > 0) w->kind = (uint8_t)v;
@@ -6945,10 +6945,10 @@ static void apply_semantic_load(const char *src, int src_size)
             wp_load_u8(wp, wplen, "$.groups", w->group, WORLD_PLAYOFF_MAX);
             w->ties = (uint8_t)wp_load_u8(wp, wplen, "$.tie_a", w->tieA, 16);
             wp_load_u8(wp, wplen, "$.tie_b", w->tieB, 16);
-            w->early = (uint8_t)wp_load_u8(wp, wplen, "$.early_divisions", w->earlyDiv, 2);
-            wp_load_u8(wp, wplen, "$.early_counts", w->earlyN, 2);
-            nr = wp_load_u16(wp, wplen, "$.early_rows", rows, 2 * WORLD_PLAYOFF_EARLY_ROWS * 8);
-            for (int e = 0, i = 0; e < w->early && e < 2; e++)
+            w->early = (uint8_t)wp_load_u8(wp, wplen, "$.early_divisions", w->earlyDiv, WORLD_PLAYOFF_EARLY);
+            wp_load_u8(wp, wplen, "$.early_counts", w->earlyN, WORLD_PLAYOFF_EARLY);
+            nr = wp_load_u16(wp, wplen, "$.early_rows", rows, WORLD_PLAYOFF_EARLY * WORLD_PLAYOFF_EARLY_ROWS * 8);
+            for (int e = 0, i = 0; e < w->early && e < WORLD_PLAYOFF_EARLY; e++)
                 for (int k = 0; k < w->earlyN[e] && k < WORLD_PLAYOFF_EARLY_ROWS && i + 8 <= nr; k++) {
                     WorldPlayoffRow *r = &w->earlyRow[e][k];
                     r->team = rows[i++]; r->played = rows[i++]; r->won = rows[i++]; r->drawn = rows[i++];

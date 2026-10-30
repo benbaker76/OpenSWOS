@@ -1764,6 +1764,8 @@ static void Rebuild_CompetitionSlotPointers(void)
             euroCup3 = UefaQual_RestoreTie(_euroCupSlotIndex);
         else if (_euroCupSlotIndex == 7 || _euroCupSlotIndex == 8)    /* (another confederation's cups) */
             euroCup3 = Conti_RestoreTie(_euroCupSlotIndex);
+        else if (_euroCupSlotIndex == 9)                               /* (a world's group contest) */
+            euroCup3 = WorldPlayoff_GroupsRecord();
 
         DIYCompetition *q3 = (DIYCompetition *)_careerCompetitionSlotPtrTable[3];
         /* Participation gate: euroCupSlotIndex is only written on qualification

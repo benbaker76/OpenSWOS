@@ -871,8 +871,17 @@ static void promedio(uint8_t country, int d, int mnow, int ldiv)
 #undef PR_PTS
 }
 
+static int team_code(u16 team)                  /* a team word -> its club, or -1 (gplay.c team_club) */
+{
+    for (int d = 0; d < s_in.nd && d < GD; d++)
+        for (int k = 0; k < s_in.n[d]; k++)
+            if (s_in.t[d][k].team == team) return d * GT + k;
+    return -1;
+}
+
 static void gp_season(const u8 *s, uint8_t country)
 {
+    u16 pw0, pw1;
     u32 h = 0;
     for (int d = 0; d < s_in.nd && d < GD; d++)
         for (int k = 0; k < s_in.n[d]; k++) h = h * 31 + s_in.t[d][k].glob + ((u32)s_in.t[d][k].pts << 9);
@@ -980,6 +989,10 @@ static void gp_season(const u8 *s, uint8_t country)
                 x->team[1] = L[last] != W[last] ? gp_row(L[last])->team : 0xFFFF;
                 x->glob[1] = L[last] != W[last] ? gp_row(L[last])->glob : 0xFFFF;
             }
+        } else if (kind == K_TITLE && WorldPlayoff_PlayedTitle(pidx, &pw0, &pw1) && team_code(pw0) >= 0) {
+            gp_result(kind, team_code(pw0), team_code(pw1));     /* (played: a group contest's final) */
+            SWOS_DBG("[playoffs] play-off %d: the group contest played, its champion %04X (runner-up %04X)\n",
+                     pidx, (unsigned)pw0, (unsigned)pw1);
         } else if (ok && (kind == K_TITLE || kind == K_CONT) && glast >= 0) {   /* a final group: its 1st (2nd) */
             gp_result(kind, P[glast], np - glast > 1 ? P[glast + 1] : -1);
         } else if (ok && (kind == K_TITLE || kind == K_CONT) && last >= 0) {   /* the last tie's winner (loser) */
@@ -1094,7 +1107,7 @@ int32_t LeaguePlayoffs_ContestEntrantsEx(uint8_t country, int32_t nt, const int3
                                          const uint8_t **spec)
 {
     const u8 *s = LeaguePlayoffs_SpecAt(country, pidx);
-    if (!s || nt < 1 || nt > 3 || !ce_tables(country, nt, divs, tables, ns))
+    if (!s || nt < 1 || nt > 10 || !ce_tables(country, nt, divs, tables, ns))
         return 0;
     int *club = s_ceClub;
     const u8 fresh = SSB->fresh;
@@ -1151,28 +1164,42 @@ static int gp_playable(const u8 *s)
     return nt <= 24;
 }
 
-/* gplay.c t2_shape (its check): a title of groups (entrants in order, one meeting count), ranking
- * rounds, then knockouts -- the Mod plays it as the game's type-2 contest (the Poule Scudetto). */
-static int gp_t2_shape(const u8 *s)
+/* gplay.c t2_shape: a title of groups (entrants in order, one meeting count), ranking rounds, then
+ * knockouts -- the Mod plays it as the game's type-2 contest (the Poule Scudetto); its shape. */
+static int gp_t2_shape_out(const u8 *s, LeagueGroupShape *o)
 {
-    int n = s[1], nr = s[2], k = 0, ent = 0, g = 0, m = 0, meet = 0, nk = 0, q = 0;
+    LeagueGroupShape x;
+    int n = s[1], nr = s[2], k = 0, ent = 0;
     const u8 *r = s + 6 + 4 * n;
     if (s[0] != K_TITLE || nr < 2) return 0;
     for (int i = 0; i < n; i++) if (s[6 + 4 * i] != 0) return 0;
+    x.g = 0; x.m = 0; x.meet = 0; x.nk = 0; x.q = 0;
     for (; k < nr && (r[1] & 0x80) && (r[1] & 0x7F); k++) {
-        if (g && (r[0] != m || (r[1] & 0x7F) != meet)) return 0;
-        m = r[0]; meet = r[1] & 0x7F; g++;
+        if (x.g && (r[0] != x.m || (r[1] & 0x7F) != x.meet)) return 0;
+        x.m = r[0]; x.meet = r[1] & 0x7F; x.g++;
         for (int i = 0; i < r[0]; i++) if (r[6 + i] != ent++) return 0;
         r += 6 + 2 * r[0];
     }
     for (; k < nr && r[1] == 0x80; k++) r += 6 + 2 * r[0];
     for (; k < nr; k++) {
-        if ((r[1] & 0x80) || r[1] < 1 || r[1] > 2 || nk >= 4) return 0;
-        if (!nk) q = 2 * r[0];
-        nk++;
+        if ((r[1] & 0x80) || r[1] < 1 || r[1] > 2 || x.nk >= 4) return 0;
+        if (!x.nk) x.q = 2 * r[0];
+        x.kt[x.nk] = r[0];
+        x.kb[x.nk++] = (u8)((r[1] == 2 ? 0x80 : 0x01) | (r[3] == LV_PENS ? 0x04 : r[3] == LV_ET_PENS ? 0x14 :
+                                                       r[3] == LV_ET_BETTER ? 0x10 : 0));
         r += 6 + 2 * r[0];
     }
-    return !(g < 2 || !nk || ent != n || q < g || q > 2 * g || g * m > 24);
+    if (x.g < 2 || !x.nk || ent != n || x.q < x.g || x.q > 2 * x.g || x.g * x.m > 24) return 0;
+    if (o) *o = x;
+    return 1;
+}
+
+static int gp_t2_shape(const u8 *s) { return gp_t2_shape_out(s, 0); }
+
+int32_t LeaguePlayoffs_GroupShape(uint8_t country, int32_t pidx, LeagueGroupShape *shape)
+{
+    const u8 *s = LeaguePlayoffs_SpecAt(country, pidx);
+    return s && gp_t2_shape_out(s, shape);
 }
 
 int32_t LeaguePlayoffs_ClubPlayoff(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
@@ -1198,7 +1225,6 @@ int32_t LeaguePlayoffs_ClubPlayoff(uint8_t country, int32_t d, const LeagueStage
         if ((!gp_playable(s) && !t2) || s[0] == K_STAGE)
             continue;                           /* (stage titles: built mid-season) */
         int in = 0, ok = 1, no = 0;
-        u8 t2div[9];
         by_rec = s[5] & 2;
         for (int i = 0; i < s[1]; i++) {
             const int c = ent_code(e + 4 * i, -1);
@@ -1207,16 +1233,15 @@ int32_t LeaguePlayoffs_ClubPlayoff(uint8_t country, int32_t d, const LeagueStage
         if (!in)
             continue;
         for (int i = 0; i < s[1] && ok; i++) {  /* the other divisions: simulated now (at most 2; a group */
-            const int dd = e[4 * i + 1];        /*  contest's, at most 9, only counted: not played here) */
+            const int dd = e[4 * i + 1];        /*  contest's at most 9: SD, SDX) */
             int j = 0;
-            u8 *seen = t2 ? t2div : other;
             if (dd == d) continue;
-            while (j < no && seen[j] != dd) j++;
-            if (j == no) { if (no < (t2 ? 9 : 2)) seen[no++] = (u8)dd; else ok = 0; }
+            while (j < no && other[j] != dd) j++;
+            if (j == no) { if (no < (t2 ? 9 : 2)) other[no++] = (u8)dd; else ok = 0; }
         }
         if (!ok)
             continue;
-        *nother = t2 ? 0 : no;
+        *nother = no;
         found = t2 ? -2 - pidx : pidx;
     }
     SSB->fresh = fresh;                         /* (read only) */

@@ -40,11 +40,12 @@
 #include "swos_types.h"
 
 enum { WORLD_PLAYOFF_NONE, WORLD_PLAYOFF_B_PLAYOUT, WORLD_PLAYOFF_B_PLAYOFF, WORLD_PLAYOFF_GROUP_TIE,
-       WORLD_PLAYOFF_C_PLAYOFF, WORLD_PLAYOFF_PLACEMENT, WORLD_PLAYOFF_SPEC };
+       WORLD_PLAYOFF_C_PLAYOFF, WORLD_PLAYOFF_PLACEMENT, WORLD_PLAYOFF_SPEC, WORLD_PLAYOFF_GROUPS };
 
 /* The contest under way or played this season (saved with the career). */
 #define WORLD_PLAYOFF_MAX 32
 #define WORLD_PLAYOFF_EARLY_ROWS 24
+#define WORLD_PLAYOFF_EARLY 9           /* (a group contest's other divisions: the Mod's SDX) */
 
 /* A group's final table simulated early, kept for the season end (dplay.c dp_restore). */
 typedef struct {
@@ -68,8 +69,8 @@ typedef struct {
     uint8_t  ties;              /* the round under way: its real ties (entrants), the byes after */
     uint8_t  tieA[16], tieB[16];
     uint8_t  early;             /* the other groups simulated early: their divisions, tables */
-    uint8_t  earlyDiv[2], earlyN[2];
-    WorldPlayoffRow earlyRow[2][WORLD_PLAYOFF_EARLY_ROWS];
+    uint8_t  earlyDiv[WORLD_PLAYOFF_EARLY], earlyN[WORLD_PLAYOFF_EARLY];
+    WorldPlayoffRow earlyRow[WORLD_PLAYOFF_EARLY][WORLD_PLAYOFF_EARLY_ROWS];
     uint16_t winner;            /* its last tie's winner, 0: not decided yet */
     /* WORLD_PLAYOFF_SPEC: a play-off of the pack's spec, played (the Mod's gp_ko knockouts) */
     uint8_t  country, pidx;     /* the spec: the country's, its play-off index */
@@ -102,6 +103,8 @@ void WorldPlayoff_StageEnded(uint8_t country, uint16_t division, int32_t pidx, u
 void WorldPlayoff_Advance(uint16_t week);  /* (the calendar's advance: a deferred build) */
 /* The season end (league_playoffs.c): a played play-off's ties (team numbers), for pidx. */
 int32_t WorldPlayoff_PlayedTie(int32_t pidx, uint16_t a, uint16_t b, uint16_t *winner);
+/* ... and a played group contest's (WORLD_PLAYOFF_GROUPS) champion and runner-up, for pidx. */
+int32_t WorldPlayoff_PlayedTitle(int32_t pidx, uint16_t *champion, uint16_t *runnerUp);
 const WorldStageTitle *WorldPlayoff_StageTitle(int32_t stage);
 void WorldPlayoff_ResetStageTitles(void);   /* (a new career, a save without them) */
 
@@ -140,6 +143,9 @@ int32_t WorldPlayoff_RoundStringIndex(uint8_t compId, uint16_t round);
 
 /* A round's name for the contest under way where the engine's would mislead, or 0. */
 const char *WorldPlayoff_RoundName(uint16_t round, uint16_t rounds);
+
+/* A loaded career's group contest in slot 3 (_euroCupSlotIndex 9): its record, 0 for none. */
+uint8_t *WorldPlayoff_GroupsRecord(void);
 
 /* After a career is loaded: slot 4 back on the contest, if one is under way. */
 void WorldPlayoff_RestoreSlot(void);

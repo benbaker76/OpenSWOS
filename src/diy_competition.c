@@ -8,6 +8,7 @@
  * Chunk 60: 16 functions ported from SWOS2.s.
  */
 
+#include "world.h"
 #include "diy_competition.h"
 #include "comp_identity.h"
 #include "translations.h"
@@ -9571,8 +9572,10 @@ void InitDIYLeagueFromRecord(uint8_t *leagueRec)
         uint8_t groupCount = *stageRec++;
         slot->teamsPerGroup = groupCount;
 
-        /* Validate: if cup mode and group count is odd, panic */
-        if (slot->isLeagueFormat != 0) {
+        /* Validate: if cup mode and group count is odd, panic -- not in a world: the SWOS 96/97
+         * Mod's exe allows odd groups (historic.py odd_groups: the groups are DIY leagues, which
+         * rest a club each day; the Poule Scudetto's groups of 3) */
+        if (slot->isLeagueFormat != 0 && World_Current() == WORLD_9697) {
             if (groupCount & 1) {
                 _panicReasonCode = 0x1313;
                 PanicHaltLoop();
