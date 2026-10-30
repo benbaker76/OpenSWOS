@@ -31,6 +31,7 @@
 #include "league_playoffs.h"
 #include "world_playoff.h"
 #include "world_cups.h"
+#include "states.h"
 
 extern uint8_t _diyLeagueSeasonStateTable[];
 extern uint8_t _diyLeagueScratchBuffer[];
@@ -839,6 +840,7 @@ void Career_ProcessCompetitionForNextSeason(uint16_t compIndex)
      * places they decide (one-level moves, placed by InitializeNewSeason's groups pass). */
     LeaguePlayoffs_Decide(compIndex & 0xFF, (const int8_t *)_diyLeagueSeasonStateTable,
                           (int8_t *)_diyLeagueScratchBuffer);
+    States_SeasonEnd((uint8_t)compIndex);  /* (a world's state championships, Brazil's: states.c) */
 }
 
 /* ================================================================

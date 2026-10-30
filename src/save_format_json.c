@@ -27,6 +27,8 @@
 #include "uefa_coef.h"         /* "uefa_coef", "uefa_qualifying" in career saves */
 #include "league_playoffs.h"   /* "league_stages" in career saves */
 #include "world_conti.h"       /* "conti_holders", "conti_edition" in career saves */
+#include "states.h"            /* "state_pools" in career saves */
+#include "state_pool.h"
 #include "uefa_access.h"
 #include "world_cups.h"        /* "world_cups" in career saves */
 #include "world_cupd.h"        /* "world_cupd" in career saves */
@@ -6328,6 +6330,21 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         if (nb)
             mjson_printf(json_out_emit, &out, "%s", "]");
     }
+    /* A world's state championships (states.c): the state pools (the Mod's RI_STATE: per file
+     * its start, per pool its queue's length and its contest's overrides, the queues, the
+     * identities -- the latter also in "team_pools", as every pooled file's) and the champions. */
+#if SWOS_WORLDS
+    if (RI_STATE.init[0]) {
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d", "state_pools", "seasons", (int)g_stateSeasons);
+        wp_emit_u8(&out, "started", RI_STATE.init, STATE_POOL_FILES);
+        wp_emit_u8(&out, "queued", RI_STATE.qn, STATE_POOL_POOLS);
+        wp_emit_u16(&out, "queues", RI_STATE.q, STATE_POOL_QUEUE);
+        wp_emit_u16(&out, "overrides", &RI_STATE.ovr[0][0], STATE_POOL_POOLS * STATE_POOL_ENTRIES);
+        wp_emit_u16(&out, "identities", RI_STATE.maps, STATE_POOL_MAP);
+        wp_emit_u16(&out, "champions", g_stateChampions, 13);
+        mjson_printf(json_out_emit, &out, "%s", "}");
+    }
+#endif
     /* Argentina's promedio history (league_playoffs.c): each club's global number, points and
      * matches of the two seasons before. */
     if (g_promedio.init) {
@@ -7069,6 +7086,23 @@ static void apply_semantic_load(const char *src, int src_size)
         }
     }
 
+#if SWOS_WORLDS
+    States_Reset();                     /* (a world's state pools, states.c; a save without them: none yet) */
+    {
+        const char *so = NULL;
+        int solen = 0;
+        if (mjson_find(src, src_size, "$.state_pools", &so, &solen) == MJSON_TOK_OBJECT) {
+            long v = 0;
+            if (mjson_get_long(so, solen, "$.seasons", &v) > 0) g_stateSeasons = (uint16_t)v;
+            wp_load_u8(so, solen, "$.started", RI_STATE.init, STATE_POOL_FILES);
+            wp_load_u8(so, solen, "$.queued", RI_STATE.qn, STATE_POOL_POOLS);
+            wp_load_u16(so, solen, "$.queues", RI_STATE.q, STATE_POOL_QUEUE);
+            wp_load_u16(so, solen, "$.overrides", &RI_STATE.ovr[0][0], STATE_POOL_POOLS * STATE_POOL_ENTRIES);
+            wp_load_u16(so, solen, "$.identities", RI_STATE.maps, STATE_POOL_MAP);
+            wp_load_u16(so, solen, "$.champions", g_stateChampions, 13);
+        }
+    }
+#endif
     {   /* Argentina's promedio history (league_playoffs.c); a save without it: the world's again */
         const char *po = NULL;
         int polen = 0;

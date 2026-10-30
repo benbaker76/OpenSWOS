@@ -76,3 +76,6 @@ AUS2627-NEWCASTLE @2627 OCEANIA/AUSTRALIA/A-LEAGUE MEN/NEWCASTLE
 # MLS's two conferences; Argentina's Apertura and Clausura, their knockouts, the promedio.
 USA2627-LAGALAXY @2627 NORTH AMERICA/U.S.A./LA GALAXY
 ARG2627-BOCA @2627 SOUTH AMERICA/ARGENTINA/LIGA PROFESIONAL DE FUTBOL/BOCA JUNIORS
+# ... Brazil: its league, the 13 state championships simulated at the season end and their pools
+# (src/state_sim.c, src/state_pool.c: the state-only clubs swap identities with the pool's).
+BRA2627-FLAMENGO @2627 SOUTH AMERICA/BRAZIL/CAMPEONATO BRASILEIRO SERIE A/FLAMENGO

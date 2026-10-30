@@ -182,6 +182,27 @@ int32_t TeamPool_Swap(uint8_t country, uint8_t ordinal)
     return in;
 }
 
+/* At the season end: the slot of `country`'s file at `ordinal` takes `identity` (< 256 a slot's own
+ * record, 256 + k the pool's k-th club) -- a state pool's swap (states.c: the queue is its). */
+void TeamPool_Assign(uint8_t country, uint8_t ordinal, uint16_t identity)
+{
+    const TeamPool *tp = pool_for(country);
+    TeamPoolState *st;
+    if (!tp || !(st = start(tp)))
+        return;
+    if (s_cur != st) {
+        if (s_cur)
+            TeamPool_SwapsDone();
+        s_cur = st;
+        s_taken = s_outs = 0;
+        for (int32_t i = 0; i < TEAM_POOL_SLOTS / 8; i++)
+            s_swapped[i] = 0;
+    }
+    st->map[ordinal] = identity == ordinal ? 0 : (uint16_t)(identity + 1);
+    s_swapped[ordinal >> 3] |= (uint8_t)(1 << (ordinal & 7));
+    s_outs = s_outs ? s_outs : -1;      /* (something swapped: SwapsDone refreshes, its queue untouched) */
+}
+
 static void refresh(TeamFileEx *recs, uint32_t n, const TeamPool *tp, const TeamPoolState *st)
 {
     for (uint32_t k = 0; k < n; k++) {
@@ -200,14 +221,16 @@ void TeamPool_SwapsDone(void)
     s_cur = 0;
     if (!tp || (!s_taken && !s_outs))
         return;
-    /* The queue: drop the taken, append the ones that went down (its length stays). */
-    int32_t k = 0;
-    const int32_t n = st->queued;
-    for (int32_t i = s_taken; i < n; i++)
-        st->queue[k++] = st->queue[i];
-    for (int32_t i = 0; i < s_outs && k < n; i++)
-        st->queue[k++] = s_out[i];
-    st->queued = (uint8_t)k;
+    if (s_outs >= 0) {                  /* (a state pool's assignments: its own queue, states.c) */
+        /* The queue: drop the taken, append the ones that went down (its length stays). */
+        int32_t k = 0;
+        const int32_t n = st->queued;
+        for (int32_t i = s_taken; i < n; i++)
+            st->queue[k++] = st->queue[i];
+        for (int32_t i = 0; i < s_outs && k < n; i++)
+            st->queue[k++] = s_out[i];
+        st->queued = (uint8_t)k;
+    }
     s_taken = s_outs = 0;
 
     if (load_records(tp)) {

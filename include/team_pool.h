@@ -68,6 +68,10 @@ void TeamPool_ApplyToFile(uint8_t country, uint8_t *teamFileBuffer);
  * Returns the identity taken, or -1 (no pool, or the queue empty). */
 int32_t TeamPool_Swap(uint8_t country, uint8_t ordinal);
 
+/* At the season end: the slot takes `identity` (< 256 a slot's own record, 256 + k the pool's
+ * k-th club): a state pool's swap (states.c), its queue its own. */
+void TeamPool_Assign(uint8_t country, uint8_t ordinal, uint16_t identity);
+
 /* After the swaps: every record the career holds of a swapped slot gets its identity, and
  * the loaded team file is read again at its next use. */
 void TeamPool_SwapsDone(void);

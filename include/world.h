@@ -74,4 +74,16 @@ typedef struct WorldPromedio {
 } WorldPromedio;
 const WorldPromedio *World_Promedio(uint8_t country, int32_t *count);
 
+/* A country's state championships (Brazil's; src/states.c): the season end's simulation table
+ * (state_sim.c) and its pools' (state_pool.c), their team words the Mod's two files' -- the
+ * league's clubs the country's number, the state-only clubs statesFile with their ordinal among
+ * them (ours: firstState + it). */
+typedef struct WorldStates {
+    uint8_t country, statesFile, world, firstState, states;
+    uint16_t simBytes;
+    const uint8_t *sim, *pools;
+    const uint16_t *wordsAt;            /* each state's words in sim (its contest's entries: the overrides') */
+} WorldStates;
+const WorldStates *World_States(uint8_t country);
+
 #endif

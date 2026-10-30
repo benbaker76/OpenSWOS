@@ -1149,8 +1149,38 @@ void WorldPlayoff_ArrangeNextRound(void)
             g_worldPlayoff.tw[g_worldPlayoff.tieT[t]] = w;
             g_worldPlayoff.tl[g_worldPlayoff.tieT[t]] = w == a ? b : a;
         }
-        if (r + 1 < sp[2] && k_build(sp, r + 1) >= 0)
+        const int32_t nb = r + 1 < sp[2] ? k_build(sp, r + 1) : -1;
+        if (nb > 0)
             k_lay_out(sp, r + 1);
+        else if (nb == 0 && r + 2 >= sp[2]) {
+            /* the last round with no tie to play (one club twice: Uruguay's final when the
+             * semi-final's winner is the 3rd seed too, skip_if_same) -- the contest decided:
+             * finished as the engine finishes a cup after its final, its winner the club */
+            const int32_t last = k_t0(sp, r + 1) + k_round(sp, r + 1)[0] - 1;
+            const uint8_t w = last >= 0 && last < WORLD_PLAYOFF_MAX ? g_worldPlayoff.tw[last] : NOC;
+            if (w != NOC) {
+                grid[0] = grid[1] = w;
+                c->matchData.cup.cupRoundResults[0] = 0;
+                c->base.competitionFinished = 1;
+                c->base.resultCode = (int16_t)BE_READ_U16(&c->cupTeamIds[w]);
+                g_worldPlayoff.winner = g_worldPlayoff.team[w];
+                SWOS_DBG("[world-playoff] decided without a final: %04X\n", (unsigned)g_worldPlayoff.winner);
+                k_done();
+                /* its dates still to come leave the calendar (done: the walk passes them) */
+                extern uint8_t _teamSelectionKeyCache[];
+                extern uint16_t _teamSelectionKeyCacheCount, _teamSelectionKeyCacheIndex, _teamSelectionKeyCacheOffset;
+                const uint8_t slot = (uint8_t)*(uint16_t *)&c->base.compSlot;
+                uint8_t *e = _teamSelectionKeyCache + _teamSelectionKeyCacheOffset;
+                for (int32_t i = _teamSelectionKeyCacheIndex; i < _teamSelectionKeyCacheCount; i++) {
+                    TeamSelectionKeyCacheEntry *h = (TeamSelectionKeyCacheEntry *)e;
+                    if (i > _teamSelectionKeyCacheIndex && h->compSlot == slot) {
+                        h->phaseFlag = 1;
+                        h->remainingElements = 0;
+                    }
+                    e += h->entryStride;
+                }
+            }
+        }
         return;
     }
     if (g_worldPlayoff.kind == WORLD_PLAYOFF_C_PLAYOFF) {

@@ -229,11 +229,17 @@ def world_countries():
     return out
 
 
+NO_LEAGUE = 4               # (a club in no division: 96/97's own files mark theirs 4, Italy's 13, England's one)
+
+
 def country_teams(wc):
     """A country whole (as italy(): the Mod's clubs in their divisions' order), our team file's
     form; a new country's from nothing. Returns (the file, [(entry, division)])."""
-    league_file = wc["mod"]["json"].split(",")[0].strip()      # ("ESP, ESP_POOL": the pool's apart)
-    mod = json.load(open(os.path.join(MOD, "teams", league_file + ".json"), encoding="utf-8"))
+    files = [f.strip() for f in wc["mod"]["json"].split(",") if not f.strip().endswith("_POOL")]
+    mod = {"teams": []}                 # ("ESP, ESP_POOL": the pool's apart; "BRA_1, BRA_2": one file of ours)
+    for f in files:
+        mod["teams"] += json.load(open(os.path.join(MOD, "teams", f + ".json"), encoding="utf-8"))["teams"]
+    states = any(c.get("type") == "state" for c in mod_pack(wc["code"]).get("competitions", []))
     if wc["base"]:
         base = json.load(open(os.path.join(BASE, "teams", wc["base"] + ".json"), encoding="utf-8"))
         home = collections.Counter(p["nationality"] for t in base["teams"]
@@ -246,12 +252,15 @@ def country_teams(wc):
     by_div = collections.defaultdict(list)
     for e in mod["teams"]:
         by_div[mod_division(e)].append(e)
-    if None in by_div:
+    if None in by_div and not states:
         sys.exit("%s: a club in no division" % wc["code"])
-    picked = [(e, d) for d in sorted(by_div) for e in by_div[d]]
+    # (a club of no division: a state championship's only (Brazil's), after the league's clubs)
+    picked = [(e, d) for d in sorted(k for k in by_div if k is not None) for e in by_div[d]]
+    picked += [(e, None) for e in by_div.get(None, [])]
     if len(picked) > 256:
         sys.exit("%s: %d clubs, a file holds 256" % (wc["code"], len(picked)))
-    teams = [team(e, wc["number"], i, i, league, home) for i, (e, league) in enumerate(picked)]
+    teams = [team(e, wc["number"], i, i, NO_LEAGUE if league is None else league, home)
+             for i, (e, league) in enumerate(picked)]
     out = copy.copy(base)
     out["country"], out["teams"], out["count"] = wc["number"], teams, len(teams)
     return out, picked
@@ -676,7 +685,7 @@ NEW_COMP_IDS = {
     # (the fixture stages' countries')
     ("COL", "cup"): 234, ("PAR", "cup"): 235, ("PER", "cup"): 236, ("SLV", "cup"): 237, ("URU", "cup"): 238,
     # (the 30-club countries'; 239..243 are comp_identity.h's)
-    ("USA", "cup"): 244, ("ARG", "cup"): 245,
+    ("USA", "cup"): 244, ("ARG", "cup"): 245, ("BRA", "cup"): 246,
 }
 # (the ids a world's own contests hold: include/comp_identity.h -- none of the above may take one)
 RESERVED_COMP_IDS = {200, 201, 202, 239, 240, 241, 242, 243}
@@ -1252,6 +1261,18 @@ const uint8_t *World_ContiSpec(void)
     }
 }
 
+const WorldStates *World_States(uint8_t country)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(st_cases)s
+#endif
+    default:
+        break;
+    }
+    return 0;
+}
+
 const WorldPromedio *World_Promedio(uint8_t country, int32_t *count)
 {
     switch (World_Current()) {
@@ -1331,7 +1352,7 @@ def c_string(text):
 
 
 def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None,
-                 guests=(), proms=()):
+                 guests=(), proms=(), states=()):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1541,6 +1562,19 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         tag, len(splits), tag)
     if news:
         externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
+    st_tabs, st_items = [], []
+    for country, sim, ri, first, words_at in states:
+        st_tabs.append("static const uint16_t kWorld%sStatesWords%d[%d] = { %s };" % (
+            tag, country, len(words_at), ", ".join(map(str, words_at))))
+        for nm, b in (("Sim", sim), ("Pools", ri)):
+            st_tabs.append("static const uint8_t kWorld%sStates%s%d[%d] = {\n%s\n};" % (tag, nm, country, len(b), "\n".join(
+                "    " + ", ".join("0x%02X" % x for x in b[i:i + 16]) + "," for i in range(0, len(b), 16))))
+        st_tabs.append("static const WorldStates kWorld%sStates%d = { %d, %d, %d, %d, %d, %d, kWorld%sStatesSim%d, "
+                       "kWorld%sStatesPools%d, kWorld%sStatesWords%d };" % (
+                           tag, country, country, STATES_FILE, STATES_WORLD, first, len(words_at), len(sim),
+                           tag, country, tag, country, tag, country))
+        st_items.append("        if (country == %d)\n            return &kWorld%sStates%d;" % (country, tag, country))
+    st_cases = ("    case WORLD_%s:\n%s\n        break;" % (tag, "\n".join(st_items))) if st_items else ""
     prom_tabs, prom_items = [], []
     for country, rows in proms:
         prom_tabs.append("static const WorldPromedio kWorld%sPromedio%d[%d] = {\n%s\n};" % (tag, country, len(rows),
@@ -1560,7 +1594,9 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         conti_cup_cases = "    case WORLD_%s:\n        *count = %d;\n        return kWorld%sContiCups;" % (
             tag, len(named), tag)
     return WORLD_DATA_C % {"europe": "\n\n".join(euro_tables), "europe_cases": euro_cases,
-                           "conti": conti_tab + ("\n\n" + "\n\n".join(prom_tabs) if prom_tabs else ""),
+                           "conti": conti_tab + ("\n\n" + "\n\n".join(prom_tabs) if prom_tabs else "")
+                                    + ("\n\n" + "\n\n".join(st_tabs) if st_tabs else ""),
+                           "st_cases": st_cases,
                            "conti_cases": conti_cases, "conti_cup_cases": conti_cup_cases, "prom_cases": prom_cases,
                            "coef_cases": coef_cases,
                            "splits": "\n\n".join(split_tables), "split_cases": split_cases,
@@ -1601,7 +1637,58 @@ PLAIN = ("ALG BEL BLR BOL CHI CRO ENG EST FRA FRO GHA HUN IND IRL JPN LTU LUX LV
          # (levels of groups side by side: src/league_groups.c)
          "SLV AUS "
          # (30 clubs, a fixture list's season: league_split.c)
-         "USA ARG").split()
+         "USA ARG "
+         # (its league only yet; the state-only clubs in the file, the states not played: statesim)
+         "BRA").split()
+
+
+STATES_FILE = 0xFE         # (the states' file's number in the state tables' team words: ours is the country's own)
+STATES_WORLD = 1           # (the pools' table's world byte: our world)
+
+
+def country_states(wc, pk, picked, t):
+    """A country's state championships (Brazil's estaduais; scripts/world_states.py, the Mod's statespec and its
+    state pools): writes its pool's team file (the Mod's <CODE>_POOL.json, its pool_file's number) and returns
+    (pool info as country_pool's, the simulation's table, the pools' table, the first state-only ordinal), or None.
+    The tables' team words are the Mod's two files': the league's clubs the country's number, the state-only clubs
+    STATES_FILE with their ordinal among them (ours: the first state-only ordinal + it)."""
+    import world_states
+    states = [c for c in pk.get("competitions", []) if c.get("type") == "state"]
+    if not states:
+        return None
+    path = os.path.join(MOD, "packs", wc["code"].lower())
+    key_of = {r["name"]: r["key"] for r in csv.DictReader(open(os.path.join(path, "clubs.csv"), encoding="utf-8"))}
+    first = sum(1 for e, d in picked if d is not None)
+    ordinal = {key_of.get(e["team"]["team_name"]): i for i, (e, d) in enumerate(picked)}
+    pool_mod = json.load(open(os.path.join(MOD, "teams", wc["code"] + "_POOL.json"), encoding="utf-8"))
+    pool_keys = [key_of.get(e["team"]["team_name"]) for e in pool_mod["teams"]]
+    pool_file = pool_mod["x_swos9697"]["pool_file"]
+
+    def where(k):
+        if k in ordinal:
+            o = ordinal[k]
+            return (wc["number"], o) if o < first else (STATES_FILE, o - first)
+        return (pool_file, pool_keys.index(k))
+    price = lambda e: sum(p["price"] & 255 for p in e["players"][:16])
+    entry = {key_of.get(e["team"]["team_name"]): e for e, d in picked}
+    entry.update({k: e for k, e in zip(pool_keys, pool_mod["teams"])})
+    word = lambda k: where(k)[0] | where(k)[1] << 8
+    sim = world_states.sim_table(states, word, world_states.strengths(path))
+    pools = world_states.state_pools(states, where, STATES_FILE, 0, pool_keys.index, lambda k: price(entry[k]))
+    spares = [ordinal[k] - first for k in pk.get("state_spares") or []]
+    ri = world_states.pool_table([(STATES_WORLD, STATES_FILE, pools, 0, spares, len(picked) - first, len(pool_keys))])
+    home = home_nation(t)
+    teams = [team(e, pool_file, i, 0, 0, home) for i, e in enumerate(pool_mod["teams"])]
+    name = wc["name"].title().replace(" ", "")
+    out = {"type": "team", "country": pool_file, "count": len(teams), "teams": teams}
+    write(os.path.join(WORLD, "teams", name.upper() + "_POOL.json"), out)
+    pname, packed = team_file_binary(out)
+    open(os.path.join(WORLD, "data", pname.upper()), "wb").write(packed)
+    WRITTEN.add(os.path.abspath(os.path.join(WORLD, "data", pname.upper())))
+    counts["state championships (simulated)"] += len(states)
+    info = {"name": name, "country": wc["number"], "file": pool_file, "json": name.upper() + "_POOL.json",
+            "count": len(teams), "areas": [(None, None)] * len(teams), "ids": []}
+    return info, sim, ri, first, list(world_states.SIM_WORDS)
 
 
 def promedio_history(wc, pk, picked):
@@ -1771,7 +1858,7 @@ def main():
     (teams, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
     country = teams["teams"][0]["team"]["country_number"]
-    pools, news, splits, picks, proms = [], [], [], {}, []
+    pools, news, splits, picks, proms, states = [], [], [], {}, [], []
     groups = [italian_groups(picked, country, leagues)]
     picks["ITA"] = ({"number": country}, picked)
 
@@ -1814,6 +1901,10 @@ def main():
             groups.append(grp)
         if not wc["new"]:
             add_pool(wc["code"], wc["name"].title().replace(" ", ""), wc["number"], wc["base"])
+        sts = country_states(wc, pk, pk_picked, t)
+        if sts:
+            pools.append(sts[0])
+            states.append((wc["number"], sts[1], sts[2], sts[3], sts[4]))
         resized.append((wc["number"], t["count"]))
         counts["countries imported"] += 1
     for rec in leagues["leagues"]:          # (the world's play-offs are the pack's: no 96/97 links)
@@ -1827,7 +1918,7 @@ def main():
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks), conti_spec(), guests, proms))
+                             europe(picks), conti_spec(), guests, proms, states))
     print("wrote src/world_data.c")
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):

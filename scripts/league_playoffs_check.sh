@@ -181,6 +181,75 @@ else
     exit 1
 fi
 
+# The state championships (Brazil's estaduais): the season end's simulation (src/state_sim.c, the
+# Mod's statesim.c) and the state pools (src/state_pool.c, the Mod's gplay.c ri_season, its 'state'
+# pools) -- their tables as scripts/world_states.py compiles them, byte for byte the Mod's
+# (statespec.sim_table, ripool.table_bytes); both C files over the same seasons (the pools' over
+# the Mod's own rankings): every block, champion, queue, override and identity the Mod's.
+SPACKS=$(for d in "$PWD"/bin/data_json/worlds/2627/mod/packs/*/; do [ -f "$d/pack.json" ] && printf '%s,' "${d%/}"; done)
+SEASON_PACKS="${SPACKS%,}" python3 -I - "$MOD" "$OUT" "$PWD/bin/data_json/worlds/2627/mod/packs" <<'PY' > /dev/null
+import json, os, sys
+mod, out, packs = sys.argv[1:4]
+sys.path.insert(0, os.path.abspath("scripts")); sys.path.insert(1, mod + "/tools")
+import mkseason, ripool, statespec, world_states as ws
+sim = statespec.sim_table()
+pk = next((p for p in mkseason.packs() if p.world is not None and any(c["type"] == "state" for c in p.comps)), None)
+if not sim or pk is None:
+    sys.exit(0)
+raw = json.load(open(os.path.join(packs, os.path.basename(pk.path.rstrip(os.sep)), "pack.json"), encoding="utf-8"))
+states = [c for c in raw["competitions"] if c.get("type") == "state"]
+mine = ws.sim_table(states, lambda k: pk.where[k][0] | pk.where[k][1] << 8,
+                    ws.strengths(os.path.join(packs, os.path.basename(pk.path.rstrip(os.sep)))))
+recs = dict(pk.team_files())
+price = lambda r: sum(r[76 + j * 38 + 32] for j in range(16))
+def price_of(k):
+    f, o = pk.where[k]
+    if k in pk.pool_clubs:
+        return price(pk.pool_data[2 + 684 * pk.pool_clubs.index(k):][:684])
+    return price(recs[f][2 + 684 * o:][:684])
+base = next(b for f, b in pk.files.values() if f == pk.pool_file)
+pools = ws.state_pools(states, lambda k: pk.where[k], pk.pool_file, base, pk.pool_clubs.index, price_of)
+spares = [pk.where[k][1] for k in raw.get("state_spares") or []]
+ri = ws.pool_table([(pk.world, pk.pool_file, pools, base, spares, pk._nrec(pk.pool_file), len(pk.pool_clubs))])
+if mine != sim or ri != ripool.table_bytes([pk.off_pool()]):
+    sys.exit(0)
+open(os.path.join(out, "ss_tab.bin"), "wb").write(sim)
+open(os.path.join(out, "ri_tab.bin"), "wb").write(ri)
+PY
+if [ ! -s "$OUT/ss_tab.bin" ] || [ ! -s "$OUT/ri_tab.bin" ]; then
+    echo "FAIL: the state championships: scripts/world_states.py's tables differ from the Mod's (statespec / ripool)"
+    exit 1
+fi
+SN=$((N / 10))
+$CC -w -DMOD -o "$OUT/ss_mod" $T/states_drv.c "$MOD/tools/statesim.c"
+$CC -w -Iinclude -include include/swos_platform.h -DSWOS_WORLDS=1 -o "$OUT/ss_ours" $T/states_drv.c
+"$OUT/ss_mod" "$OUT/ss_tab.bin" "$SN" > "$OUT/ss_mod.txt"
+"$OUT/ss_ours" "$OUT/ss_tab.bin" "$SN" > "$OUT/ss_ours.txt"
+python3 -I - "$OUT" <<'PY'
+import re, sys
+out = sys.argv[1]
+with open(out + "/sr.txt", "w") as o:
+    for line in open(out + "/ss_mod.txt"):
+        words = []
+        for blk in re.findall(r"\[([0-9a-f ]+)\]", line.split(" champ")[0]):
+            w = blk.split()
+            words += [w[0], "%x" % (len(w) - 1)] + w[1:]
+        o.write(" ".join(words) + "\n")
+PY
+$CC -m32 -w -fno-builtin -DMOD -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/ri_mod" $T/pools_drv.c
+$CC -w -Iinclude -include include/swos_platform.h -DSWOS_WORLDS=1 -o "$OUT/ri_ours" $T/pools_drv.c
+"$OUT/ri_mod" "$OUT/ri_tab.bin" "$OUT/sr.txt" > "$OUT/ri_mod.txt"
+"$OUT/ri_ours" "$OUT/ri_tab.bin" "$OUT/sr.txt" > "$OUT/ri_ours.txt"
+if cmp -s "$OUT/ss_mod.txt" "$OUT/ss_ours.txt" && cmp -s "$OUT/ri_mod.txt" "$OUT/ri_ours.txt"; then
+    echo "PASS: the state championships, $SN seasons of $(head -c 1 "$OUT/ss_tab.bin" | od -An -tu1 | tr -d ' ') states:" \
+         "every ranking, champion and pool swap the Mod's; their tables compiled as the Mod's"
+else
+    echo "FAIL: the state championships, the first season that differs (Mod, then ours):"
+    cmp -s "$OUT/ss_mod.txt" "$OUT/ss_ours.txt" || diff "$OUT/ss_mod.txt" "$OUT/ss_ours.txt" | head -4 | cut -c1-300
+    cmp -s "$OUT/ri_mod.txt" "$OUT/ri_ours.txt" || diff "$OUT/ri_mod.txt" "$OUT/ri_ours.txt" | head -4 | cut -c1-300
+    exit 1
+fi
+
 # The UEFA qualifying rounds (src/uefa_access.c, the Mod's uefaq.c): random seasons -- the
 # associations, their clubs, holders, a career club, league cup winners, the packs' own European
 # play-offs -- the three league phases, the bracket, the career club's ties, the coefficient
