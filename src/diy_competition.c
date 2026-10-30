@@ -7396,6 +7396,20 @@ extern uint16_t _highlightedLeagueTeamId;
 
 /* DIYLeagueTournamentOnRestore — menu onReturn callback for DIY league/tournament menu */
 /* Rebuilds title string, adjusts entry heights for >22 teams, computes fixture row count */
+/* The table screen's shape: the league's groups and clubs a group, or a split league's pages
+ * (more than 22 clubs: its zones, league_split.c). */
+static uint16_t table_groups(void)
+{
+    uint16_t g, n;
+    return LeagueSplit_Pages(&g, &n) ? g : (uint16_t)_diyCompetitionStart.base.matchPairsPerRound;
+}
+
+static uint16_t table_per_group(void)
+{
+    uint16_t g, n;
+    return LeagueSplit_Pages(&g, &n) ? n : (uint16_t)_diyCompetitionStart.base.totalMatchesInRound;
+}
+
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentOnRestore(void)
 {
@@ -7403,7 +7417,7 @@ void DIYLeagueTournamentOnRestore(void)
     uint8_t *comp = (uint8_t *)&_diyCompetitionStart;  /* raw pointer for name data access */
 
     /* If halfTeams == 1, adjust bg color of entry 16 */
-    if (compS->matchPairsPerRound == 1) {
+    if (table_groups() == 1) {
         MenuEntry *a0 = &_menuEntries[16];
         a0->bgColor = (a0->bgColor & 0xFFF0) | 0; /* PINK_TO_BROWN_0 = 0 */
     }
@@ -7455,7 +7469,7 @@ void DIYLeagueTournamentOnRestore(void)
     _diyLeagueTournament_fixtureRowHeight = 6;
     _diyLeagueTournament_fixtureRowYStep = 7;
 
-    uint16_t numTeamsPerGroup = (uint16_t)compS->totalMatchesInRound;
+    uint16_t numTeamsPerGroup = table_per_group();
 
     /* If numTeamsPerGroup > 22, adjust menu entry dimensions */
     if (numTeamsPerGroup > 22) {
@@ -7520,8 +7534,8 @@ void DIYLeagueTournamentOnRestore(void)
         d3 += _menuEntries[16].dwHeight + 1;
 
         uint16_t d0 = (uint16_t)((uint32_t)(uint16_t)d1 / d3);
-        if (d0 > (uint16_t)compS->matchPairsPerRound)
-            d0 = (uint16_t)compS->matchPairsPerRound;
+        if (d0 > table_groups())
+            d0 = table_groups();
         _numDiyResults = d0;
 
         uint16_t d4 = d3 * _numDiyResults;
@@ -7540,7 +7554,7 @@ void DIYLeagueTournamentOnRestore(void)
         }
 
         /* If halfTeams == numDiyResults, hide scroll buttons */
-        if ((uint16_t)compS->matchPairsPerRound == _numDiyResults) {
+        if (table_groups() == _numDiyResults) {
             _menuEntries[40].isInvisible = 1;
             _menuEntries[41].isInvisible = 1;
         }
@@ -7591,10 +7605,10 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
     DIYCompetition *compS = &_diyCompetitionStart.base;
     uint8_t *comp = (uint8_t *)&_diyCompetitionStart;  /* raw pointer for extended buffer access */
     int16_t d7 = entry->ordinal - 16 + _currentDiyLine;
-    uint16_t numTeamsPerGroup = (uint16_t)compS->totalMatchesInRound;
+    uint16_t numTeamsPerGroup = table_per_group();
 
     /* Set group string if halfTeams != 1 */
-    if (compS->matchPairsPerRound != 1) {
+    if (table_groups() != 1) {
         entry->fg = (uintptr_t)_groupStringTable[d7];
     }
     const int32_t lpTable = LeaguePhase_Showing();     /* (a world's league phase: one table of 36) */
@@ -8913,7 +8927,7 @@ void DIYLeagueTournamentScrollDown(void)
 {
     uint16_t bottom = _currentDiyLine + _numDiyResults;
     /* field_3A + $16 = offset 0x50 = halfTeams (total fixture lines) */
-    if (bottom >= (uint16_t)(&_diyCompetitionStart.base)->matchPairsPerRound)
+    if (bottom >= table_groups())
         return;
     _currentDiyLine++;
     /* nullsub_15 omitted (no-op) */

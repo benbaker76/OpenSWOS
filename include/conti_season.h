@@ -20,6 +20,7 @@ void Conti_GroupsEnd(uint8_t *diy, int32_t after);  /* a group stage's end in a 
 int32_t Conti_RoundStringIndex(uint8_t compId); /* a tie's round name (_cupRoundStringTable), -1 */
 int32_t Conti_TieIsFinal(void);                /* the tie in slot 3 was its cup's final */
 int32_t Conti_TrophyTier(void);                 /* slot 3's (index 7 / 8): -1 none, else its cup's rank 0..2 */
-int32_t Conti_ReplacesCopa(void);               /* a world's cups: the 96/97 Copa not the career club's */
+int32_t Conti_ReplacesCopa(void);
+extern uint8_t g_contiMainCup;                  /* the cup of the main round in slot 3 */               /* a world's cups: the 96/97 Copa not the career club's */
 
 #endif

@@ -96,10 +96,9 @@ while read -r code shape; do
         [ -n "${VERBOSE:-}" ] && { echo "  $code ($shape) differs:"; diff "$OUT/p_mod.txt" "$OUT/p_ours.txt" | head -3; }
     fi
 done < "$OUT/packs.txt"
-KNOWN=" arg"     # (Argentina: relegation by average, promedio -- not ported yet)
-if [ "$bad" = "$KNOWN" ] || [ -z "$bad" ]; then
+if [ -z "$bad" ]; then     # (Argentina's promedio too, its history kept season to season)
     echo "PASS: every pack's knockouts ($npacks leagues): compiled as the Mod compiles them, $PN seasons each (stage tables given)," \
-         "every move, champion and stage title the Mod's${bad:+ (known, not ported yet:$bad)}"
+         "every move, champion and stage title the Mod's"
 else
     echo "FAIL: the knockouts of$bad differ from the Mod's ($npacks leagues equal; VERBOSE=1 for the first seasons)"
     exit 1
@@ -175,7 +174,7 @@ PY
 # pair tables as its oddtables'.
 if python3 -I $T/split_check.py "$MOD/tools" bin/data_json/worlds/2627/mod/packs > "$OUT/split.txt"; then
     echo "PASS: the splits, $(grep -c '^PASS' "$OUT/split.txt") divisions' tables byte for byte the Mod's" \
-         "($(grep -c '^SKIP' "$OUT/split.txt") of more than 20 clubs: Argentina, the USA)"
+         "($(grep -c '^SKIP' "$OUT/split.txt") skipped)"
 else
     echo "FAIL: the splits:"
     grep '^FAIL' "$OUT/split.txt" | head -5

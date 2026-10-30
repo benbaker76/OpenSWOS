@@ -28,6 +28,7 @@ static const uint8_t PROM[16] = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 static const uint8_t REL[16] = { 3, 3, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
 static LeaguePlayoffs lp = { 20, 14, PROM, REL, 1, 1, 2, 3, spec };
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count) { *count = 1; return &lp; }
+const WorldPromedio *World_Promedio(uint8_t c, int32_t *count) { (void)c; *count = 0; return 0; }   /* (the Mod's GP_PROM_TAB here: none) */
 const LeagueGroups *LeagueGroups_ForCountry(uint16_t c) { (void)c; return 0; }
 static int8_t table[2000], scratch[2000];
 int main(int argc, char **argv)

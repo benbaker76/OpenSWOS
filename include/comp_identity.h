@@ -91,6 +91,16 @@ enum CompId {
      * too: a save from then holding 128 in the European-cup slot is translated on
      * load, save_format_json.c); a world's play-off uses 200 (world_playoff.c). */
     COMPID_copaLibertadores                  = 162,
+    /* A world's own contests (fixed: saves hold them; scripts/world_import.py's NEW_COMP_IDS
+     * and NEW_LEAGUE_IDS take the rest -- 164..238 -- and refuse these): the world play-off
+     * 200 (world_playoff.c), the Coppa Serie D's ties 201 / 202 (world_cupd.c); the UEFA
+     * qualifying ties (uefa_coef.c), the other confederations' tie and main round
+     * (conti_season.c: one id, its cup saved beside it). 244..255 are left for new cups. */
+    COMPID_uefaTieChampionsLeague            = 239,
+    COMPID_uefaTieEuropaLeague               = 240,
+    COMPID_uefaTieConferenceLeague           = 241,
+    COMPID_contiTie                          = 242,
+    COMPID_contiMain                         = 243,
 };
 
 /* Read a competition's id (compId = byte 0 of the record). Endian-neutral

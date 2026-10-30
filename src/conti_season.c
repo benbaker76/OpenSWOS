@@ -27,6 +27,7 @@
 #include "game_types.h"
 #include "endian_helpers.h"
 #include "diy_competition.h"
+#include "comp_identity.h"
 
 #if SWOS_WORLDS
 
@@ -45,7 +46,7 @@ static uint8_t s_on;
 static u16 modWord(uint16_t team) { return (u16)((team >> 8) | (team << 8)); }
 static uint16_t ourId(u16 w) { return (uint16_t)((w >> 8) | (w << 8)); }
 
-#define CONTI_TIE_ID 232                /* (a free competition id: uefa_coef.c's ties are 229-231) */
+#define CONTI_TIE_ID COMPID_contiTie    /* (comp_identity.h) */
 #define CONTI_TIE_INDEX 7               /* (_euroCupSlotIndex: 0-2 the European cups, 3 the Copa, 4-6 UEFA ties) */
 static CompetitionCup s_tie;
 static uint16_t s_tieWinner;            /* (the career club's tie decided today: its winner) */
@@ -53,7 +54,8 @@ static uint8_t s_final;                 /* (the tie in slot 3 is its cup's final
 static uint8_t s_gplace;                /* (a group stage just ended: the career club's place) */
 static uint8_t s_list[64], s_listOk;    /* (and its next stage's list, as the real draw) */
 
-#define CONTI_MAIN_ID0 233              /* (233 + the cup: its main round's contest) */
+#define CONTI_MAIN_ID COMPID_contiMain  /* (its main round's contest, whichever the cup: g_contiMainCup) */
+uint8_t g_contiMainCup;                 /* (the cup of the main round in slot 3; saved in "conti_edition") */
 #define CONTI_MAIN_INDEX 8              /* (_euroCupSlotIndex) */
 static u16 s_lp[CT_NCUP][32];           /* (CT_LP: the main rounds' lists, as conti.c draws them) */
 static CompetitionTournament s_groups;  /* (the career club's main round: a group stage) */
@@ -75,6 +77,7 @@ void Conti_Reset(void)
     s_tieWinner = 0;
     s_gplace = 0;
     s_listOk = 0;
+    g_contiMainCup = 0;
 }
 
 void Conti_Country(void)
@@ -231,7 +234,8 @@ static uint8_t *make_main(int32_t c)
             return 0;
         CompetitionTournament *t = &s_groups;
         *t = _euroCup;
-        t->header.comp.compId = (int8_t)(CONTI_MAIN_ID0 + c);
+        t->header.comp.compId = (int8_t)CONTI_MAIN_ID;
+        g_contiMainCup = (uint8_t)c;
         t->header.comp.beginMonth = (int8_t)begin;
         t->header.comp.endMonth = (int8_t)end;
         t->header.seedingType = 0;
@@ -266,7 +270,8 @@ static uint8_t *make_main(int32_t c)
         return 0;
     CompetitionCup *k = &s_knockout;
     *k = _cupWinnersCup;
-    k->header.comp.compId = (int8_t)(CONTI_MAIN_ID0 + c);
+    k->header.comp.compId = (int8_t)CONTI_MAIN_ID;
+    g_contiMainCup = (uint8_t)c;
     if (end <= begin)                   /* (a one-round cup, the Recopa's: a month's window) */
         end = (u8)(begin + 8);
     k->header.comp.beginMonth = (int8_t)begin;
@@ -318,7 +323,7 @@ uint8_t *Conti_RestoreTie(uint16_t index)
     if (index == CONTI_MAIN_INDEX) {    /* (its contest: the cup the loaded slot holds -- CT_SEG may be past
                                            its main round, its group place reported) */
         const uint8_t id = (uint8_t)((DIYCompetition *)_careerCompetitionSlotPtrTable[3])->field_2E;
-        return id >= CONTI_MAIN_ID0 && id < CONTI_MAIN_ID0 + CT_NCUP ? make_main(id - CONTI_MAIN_ID0) : 0;
+        return id == CONTI_MAIN_ID ? make_main(g_contiMainCup) : 0;
     }
     uint16_t now = 0;
     uint8_t *rec = make_game(&now);
@@ -356,7 +361,7 @@ void Conti_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won)
 void Conti_GroupsEnd(uint8_t *diy, int32_t after)
 {
     const uint8_t id = (uint8_t)_diyCompetitionStart.base.field_2E;
-    if (id < CONTI_MAIN_ID0 || id >= CONTI_MAIN_ID0 + CT_NCUP || !spec())
+    if (id != CONTI_MAIN_ID || !spec())
         return;
     if (after) {
         if (s_listOk) {
@@ -382,7 +387,7 @@ void Conti_GroupsEnd(uint8_t *diy, int32_t after)
         played[i] = s->gamesPlayed;
         pts[i] = s->points;
     }
-    const int32_t c = id - CONTI_MAIN_ID0;
+    const int32_t c = g_contiMainCup;
     s_gplace = (uint8_t)ct_gplace(c, ng, gs, word, played);
     for (int32_t i = 0; i < 64; i++)
         s_list[i] = 0xFF;
@@ -469,6 +474,7 @@ uint8_t *Conti_RestoreTie(uint16_t index) { (void)index; return 0; }
 void Conti_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won) { (void)team1; (void)team2; (void)team2Won; }
 void Conti_Daily(void) { }
 void Conti_GroupsEnd(uint8_t *diy, int32_t after) { (void)diy; (void)after; }
+uint8_t g_contiMainCup;
 int32_t Conti_RoundStringIndex(uint8_t compId) { (void)compId; return -1; }
 int32_t Conti_ReplacesCopa(void) { return 0; }
 int32_t Conti_TieIsFinal(void) { return 0; }

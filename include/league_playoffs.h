@@ -51,6 +51,13 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count);
 #define LEAGUE_STAGE_TABLES 4
 #define LEAGUE_STAGE_BANKS  24
 typedef struct { uint16_t team, glob, won, gf, ga, pts; } LeagueStageRow;
+
+/* Argentina's promedio history (league_playoffs.c, the Mod's PR_STATE): each top-flight club's
+ * points and matches of the two seasons before, by global number; saved ("promedio"). */
+#define PROMEDIO_CLUBS 48
+typedef struct { uint16_t glob, p[2]; uint8_t m[2]; } LeaguePromedioClub;
+typedef struct { uint8_t init, n, pad[2]; LeaguePromedioClub c[PROMEDIO_CLUBS]; } LeaguePromedio;
+extern LeaguePromedio g_promedio;
 typedef struct {
     uint8_t used, key, fresh, pad;      /* key: the league's country; fresh: bit k = r[k] this season's */
     uint8_t n[LEAGUE_STAGE_TABLES];

@@ -60,6 +60,7 @@ void LeagueSplit_Walking(int32_t on);
  * no more today (a shorter group, an odd group's rest): 1 = the rest of the day was
  * simulated, the caller returns. */
 int32_t LeagueSplit_RestOfDayWithoutCareerClub(void);
+int32_t LeagueSplit_Pages(uint16_t *groups, uint16_t *perGroup);   /* a table of > 22: its zones as pages */
 
 /* The career league's head-to-head points (a split league's, the career's; saved). */
 #define LEAGUE_SPLIT_H2H 64

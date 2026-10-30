@@ -57,6 +57,7 @@
 #include "game_types.h"
 #include "diy_competition.h"
 #include "endian_helpers.h"
+#include "world.h"
 
 extern uint16_t _playPromotedAnimation;
 extern uint16_t _playRelegatedAnimation;
@@ -120,6 +121,9 @@ static LeagueStageBank s_noBank;        /* (no room: nothing kept) */
 
 void LeaguePlayoffs_ResetStages(void)
 {
+    uint8_t *pr = (uint8_t *)&g_promedio;       /* (a new career: the world's history again) */
+    for (uint32_t k = 0; k < sizeof g_promedio; k++)
+        pr[k] = 0;
     uint8_t *p = (uint8_t *)g_leagueStages;
     for (uint32_t i = 0; i < sizeof g_leagueStages; i++)
         p[i] = 0;
@@ -777,6 +781,91 @@ static int resolve_entrants(const u8 *s, int prev_loser, int *club)
     return ok;
 }
 
+/* Argentina's relegation (the Mod's promedio, gplay.c; LPF reglamento 2026 art. 26, AFA statute
+ * art. 93): kind 7 (no entrants, no rounds; winner_div byte = the season's matches counted,
+ * loser_div = where the relegated go): the last of the promedios (points per match over this
+ * season's annual table and the two before, top-flight seasons only) and the last of the annual
+ * table (the stage bank's 2) go down; a tie in a relegation place -> a play-off match at a
+ * neutral ground. The history per club (g_promedio, saved) is the world's (World_Promedio) at
+ * a new career, shifted after every season end. */
+LeaguePromedio g_promedio;
+
+static LeaguePromedioClub *pr_find(u16 g)
+{
+    for (int i = 0; i < g_promedio.n; i++) if (g_promedio.c[i].glob == g) return &g_promedio.c[i];
+    return 0;
+}
+
+static void pr_seed(uint8_t country)
+{
+    int32_t k = 0;
+    const WorldPromedio *t = World_Promedio(country, &k);
+    g_promedio.n = 0;
+    for (int i = 0; i < k && i < PROMEDIO_CLUBS; i++) {
+        LeaguePromedioClub *c = &g_promedio.c[g_promedio.n++];
+        c->glob = (u16)(_teamsCountryNumbers[country] + t[i].ordinal);
+        c->p[0] = t[i].points2; c->m[0] = t[i].matches2; c->p[1] = t[i].points1; c->m[1] = t[i].matches1;
+    }
+    g_promedio.init = 1;
+}
+
+static void promedio(uint8_t country, int d, int mnow, int ldiv)
+{
+    if (!g_promedio.init) pr_seed(country);
+    int n = SSB->n[2];
+    const LeagueStageRow *a = SSB->r[2];
+    if (!(SSB->fresh & 4) || n != s_in.n[d]) {  /* (no annual table this season: the league's final table) */
+        n = s_in.n[d];
+        a = 0;
+    }
+    s_ssUsed = 1;
+    if (n < 3) return;
+#define PR_GLOB(i) (a ? a[i].glob : s_in.t[d][i].glob)
+#define PR_PTS(i) (a ? a[i].pts : s_in.t[d][i].pts)
+    u32 P[GT], M[GT];
+    for (int i = 0; i < n; i++) {
+        LeaguePromedioClub *c = pr_find(PR_GLOB(i));
+        P[i] = PR_PTS(i) + (c ? c->p[0] + c->p[1] : 0);
+        M[i] = (u32)mnow + (c ? c->m[0] + c->m[1] : 0);
+    }
+    int w = 0, w2 = -1;                         /* the worst promedio (P / M), then the next worst */
+    for (int i = 1; i < n; i++) if (P[i] * M[w] < P[w] * M[i] || (P[i] * M[w] == P[w] * M[i] && i > w)) w = i;
+    for (int i = 0; i < n; i++) if (i != w && (w2 < 0 || P[i] * M[w2] < P[w2] * M[i])) w2 = i;
+    int down1 = w;
+    if (w2 >= 0 && P[w2] * M[w] == P[w] * M[w2]) {          /* level: a play-off match, the loser goes down */
+        int ca = glob_club(d, PR_GLOB(w)), cb = glob_club(d, PR_GLOB(w2));
+        if (ca >= 0 && cb >= 0) down1 = gp_tie(ca, cb, 1, HOST_NEUTRAL, LV_ET_PENS) == ca ? w2 : w;
+    }
+    int l = n - 1;                              /* the annual table's last, the promedio's relegated apart */
+    if (l == down1) l--;
+    int l2 = l - 1 == down1 ? l - 2 : l - 1, down2 = l;
+    if (l2 >= 0 && PR_PTS(l2) == PR_PTS(l)) {
+        int ca = glob_club(d, PR_GLOB(l)), cb = glob_club(d, PR_GLOB(l2));
+        if (ca >= 0 && cb >= 0) down2 = gp_tie(ca, cb, 1, HOST_NEUTRAL, LV_ET_PENS) == ca ? l2 : l;
+    }
+    int c1 = glob_club(d, PR_GLOB(down1)), c2 = glob_club(d, PR_GLOB(down2));
+    SWOS_DBG("[promedio] country %d: down by the promedio %04X (%u / %u), the annual table's last %04X\n", (int)country,
+             c1 >= 0 ? (unsigned)gp_row(c1)->team : 0u, (unsigned)P[down1], (unsigned)M[down1],
+             c2 >= 0 ? (unsigned)gp_row(c2)->team : 0u);
+    if (c1 >= 0) gp_move(c1, ldiv - d);
+    if (c2 >= 0) gp_move(c2, ldiv - d);
+    static LeaguePromedioClub nx[PROMEDIO_CLUBS];  /* next season's history: this season and the one before */
+    int nn = 0;
+    for (int i = 0; i < n && nn < PROMEDIO_CLUBS; i++) {
+        if (i == down1 || i == down2) continue;
+        LeaguePromedioClub *c = pr_find(PR_GLOB(i)), *o = &nx[nn++];
+        o->glob = PR_GLOB(i);
+        o->p[0] = c ? c->p[1] : 0; o->m[0] = c ? c->m[1] : 0;
+        o->p[1] = (u16)PR_PTS(i); o->m[1] = (u8)mnow;
+    }
+    for (int i = 0; i < nn; i++)
+        g_promedio.c[i] = nx[i];
+    g_promedio.n = (u8)nn;
+    g_promedio.init = 1;
+#undef PR_GLOB
+#undef PR_PTS
+}
+
 static void gp_season(const u8 *s, uint8_t country)
 {
     u32 h = 0;
@@ -798,7 +887,8 @@ static void gp_season(const u8 *s, uint8_t country)
         int kind = s[0], n = s[1], nr = s[2], wdiv = s[3], ldiv = s[4];
         const u8 *e = s + 6, *r = e + 4 * n;
         by_rec = s[5] & 2;
-        if (kind == K_PROM) {                   /* (Argentina's promedio: not ported yet) */
+        if (kind == K_PROM) {                   /* (no entrants, no rounds) */
+            promedio(country, 0, wdiv, ldiv);
             s = r;
             continue;
         }

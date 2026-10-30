@@ -3,7 +3,7 @@ makes it from the same pack, its bytes as split.entry makes them, the odd pair t
 
   python3 tests/league_playoffs/split_check.py <the Mod's tools/> <the world's mod/packs/>
 
-Prints one line per league (PASS / FAIL / SKIP: more than 20 clubs) and exits 1 on a FAIL. The stage
+Prints one line per league (PASS / FAIL / SKIP: more than 20 clubs not of a fixture list) and exits 1 on a FAIL. The stage
 titles' parts (after-stage routines, stage tables) are not compiled yet: compared without them."""
 import os
 import sys
@@ -35,8 +35,8 @@ for world, file, div, n, spec in mkseason.splits():
     pk = next(p for p in mkseason.packs() if p.files[p.league["clubs"]][0] == file)
     code = os.path.basename(pk.path.rstrip(os.sep))
     where = "%s division %d (%d clubs)" % (code, div + 1, n)
-    if n > 20:
-        print("SKIP: %s: more than 20 clubs" % where)
+    if n > 20 and not (spec["stages"] and "fixtures" in spec["stages"][0]):
+        print("SKIP: %s: more than 20 clubs not of a fixture list" % where)
         continue
     wc = wcs[code]
     if code not in picks:
@@ -46,7 +46,7 @@ for world, file, div, n, spec in mkseason.splits():
     games = dv.get("games") if "divisions" in pk.league else None
     mine = ours.division_spec(n, sp, games, world_import.division_rows(wc, picks[code], div))
     theirs = dict(spec, stages=[{k: v for k, v in st.items() if k not in TITLE} for st in spec["stages"]])
-    table = ours.pair_table(n)
+    table = ours.pair_table(n) if n <= 24 else None    # (30 clubs: a fixture list from day 0, no pairs)
     a = ours.entry(world, file, div, n, mine, table)
     b = split.entry(world, file, div, n, dict(theirs, stages=[dict(st, then=None) for st in theirs["stages"]]), table)
     if a != b:

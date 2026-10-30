@@ -65,4 +65,13 @@ typedef struct WorldContiCup {
 } WorldContiCup;
 const WorldContiCup *World_ContiCups(int32_t *count);
 
+/* Argentina's promedio history (src/league_playoffs.c; the Mod's GP_PROM_TAB): each club's points and
+ * matches in the top flight the two seasons before the world's first (0 / 0: not there), by its
+ * ordinal in the country's team file. */
+typedef struct WorldPromedio {
+    uint8_t ordinal, matches2, matches1;
+    uint16_t points2, points1;
+} WorldPromedio;
+const WorldPromedio *World_Promedio(uint8_t country, int32_t *count);
+
 #endif

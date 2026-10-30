@@ -68,7 +68,7 @@ static DIYTeamStats *row_stats(int32_t row)
 static const uint8_t *active(void)
 {
     DIYCompetitionEx *c = &_diyCompetitionStart;
-    const LeagueSplitState *st = &c->leagueSectionState.split;
+    const LeagueSplitState *st = &c->leagueSplit;
     int32_t n = 0;
     const LeagueSplit *sp = World_LeagueSplits(&n);
     if (c->base.competitionType != 0 || st->magic != LEAGUE_SPLIT_MAGIC || !st->entry || st->entry > n ||
@@ -105,7 +105,7 @@ void LeagueSplit_Walking(int32_t on)
 void LeagueSplit_Init(uint8_t country, uint16_t division, int32_t after)
 {
     DIYCompetitionEx *c = &_diyCompetitionStart;
-    LeagueSplitState *st = &c->leagueSectionState.split;
+    LeagueSplitState *st = &c->leagueSplit;
     int32_t n = 0, k = -1;
     const LeagueSplit *sp = World_LeagueSplits(&n);
     for (int32_t i = 0; i < n; i++)
@@ -155,7 +155,7 @@ static int32_t slot_of(int32_t row, int32_t n)
  * calendar's walk, before the stage is played: places = rows). */
 static void rows(const uint8_t *t, int32_t day, int32_t m, int32_t *home, int32_t *away)
 {
-    const LeagueSplitState *st = &_diyCompetitionStart.leagueSectionState.split;
+    const LeagueSplitState *st = &_diyCompetitionStart.leagueSplit;
     const int32_t k = stage_of(t, day);
     const uint8_t *rec = t + 16 + SR * k;
     const uint8_t *pr = t + w16(t + 12) + 3 * (w16(t + w16(t + 10) + 2 * day) + m);
@@ -219,7 +219,7 @@ static void calendar(const uint8_t *t, int32_t from)
 static void dump(const char *what, const uint8_t *t)
 {
     DIYCompetitionEx *c = &_diyCompetitionStart;
-    const LeagueSplitState *st = &c->leagueSectionState.split;
+    const LeagueSplitState *st = &c->leagueSplit;
     SWOS_DBG("[split] country %d division %d %s, day %d:", (int)t[1], (int)t[2], what, (int)c->leagueMatchProgress);
     for (int32_t p = 0; p < t[3]; p++) {
         const int32_t row = c->matchData.league.teamEntryOffsets[p] / ROW;
@@ -236,7 +236,7 @@ static void dump(const char *what, const uint8_t *t)
 static void freeze(const uint8_t *t, int32_t k)
 {
     DIYCompetitionEx *c = &_diyCompetitionStart;
-    LeagueSplitState *st = &c->leagueSectionState.split;
+    LeagueSplitState *st = &c->leagueSplit;
     const uint8_t *rec = t + 16 + SR * k;
     const int32_t n = t[3], career = is_career_league();
     const uint8_t *h2h = career ? g_leagueSplitH2H : s_simH2H;
@@ -303,7 +303,7 @@ static void freeze(const uint8_t *t, int32_t k)
 static void stage_due(const uint8_t *t, int32_t day)
 {
     const int32_t k = stage_of(t, day);
-    if (_diyCompetitionStart.leagueSectionState.split.frozen != k + 1 && !s_walking)
+    if (_diyCompetitionStart.leagueSplit.frozen != k + 1 && !s_walking)
         freeze(t, k);
 }
 
@@ -315,7 +315,7 @@ int32_t LeagueSplit_Pair(uint8_t **team1, uint8_t **team2)
     DIYCompetitionEx *c = &_diyCompetitionStart;
     const int32_t day = (int32_t)c->leagueMatchProgress - t[5];
     if (day < 0) {
-        c->leagueSectionState.split.frozen = 0;     /* (before the split: a new season) */
+        c->leagueSplit.frozen = 0;     /* (before the split: a new season) */
         return 0;
     }
     if (day >= t[6])
@@ -389,7 +389,9 @@ void LeagueSplit_AfterResult(uint8_t *team1, uint8_t *team2, uint16_t goals1, ui
     int32_t h2h = 0;
     for (int32_t g = 0; g < rec[1]; g++)
         h2h |= rec[6 + 3 * g] == 4;
-    if (h2h && c->leagueSectionState.split.frozen == 0 && !s_walking) {
+    if (n * n > LEAGUE_SPLIT_H2H)               /* (head-to-head groups: the small leagues') */
+        h2h = 0;
+    if (h2h && c->leagueSplit.frozen == 0 && !s_walking) {
         /* Before the split, every pair's points (a group of head-to-head points). */
         uint8_t *b = is_career_league() ? g_leagueSplitH2H : s_simH2H;
         const int32_t r1 = (int32_t)(team1 - (uint8_t *)&_diyCompetitionStart) / ROW;
@@ -434,7 +436,7 @@ void LeagueSplit_Sort(void)
 {
     const uint8_t *t = active();
     DIYCompetitionEx *c = &_diyCompetitionStart;
-    const LeagueSplitState *st = &c->leagueSectionState.split;
+    const LeagueSplitState *st = &c->leagueSplit;
     if (!t || !st->frozen)
         return;
     const uint8_t *rec = t + 16 + SR * (st->frozen - 1);
@@ -461,6 +463,23 @@ void LeagueSplit_Sort(void)
                 order[p + 1] = x;
             }
         }
+}
+
+/* A split league of more than 22 clubs on the table screen (diy_competition.c): its groups
+ * (zones) as pages, one a page -- the Mod's "zone A first, then zone B" -- as a 36-club league
+ * phase shows its two groups; 0: the league's own shape. */
+int32_t LeagueSplit_Pages(uint16_t *groups, uint16_t *perGroup)
+{
+    const uint8_t *t = active();
+    if (!t || t[3] <= 22)
+        return 0;
+    const LeagueSplitState *st = &_diyCompetitionStart.leagueSplit;
+    uint16_t g = st->frozen ? t[16 + SR * (st->frozen - 1) + 1] : 2;
+    if (g < 2)
+        g = 2;
+    *groups = g;
+    *perGroup = (uint16_t)((t[3] + g - 1) / g);
+    return 1;
 }
 
 int32_t LeagueSplit_RestOfDayWithoutCareerClub(void)

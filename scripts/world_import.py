@@ -675,7 +675,12 @@ NEW_COMP_IDS = {
     ("NIR", "league_cup"): 232, ("WAL", "league_cup"): 233,
     # (the fixture stages' countries')
     ("COL", "cup"): 234, ("PAR", "cup"): 235, ("PER", "cup"): 236, ("SLV", "cup"): 237, ("URU", "cup"): 238,
+    # (the 30-club countries'; 239..243 are comp_identity.h's)
+    ("USA", "cup"): 244, ("ARG", "cup"): 245,
 }
+# (the ids a world's own contests hold: include/comp_identity.h -- none of the above may take one)
+RESERVED_COMP_IDS = {200, 201, 202, 239, 240, 241, 242, 243}
+assert not RESERVED_COMP_IDS & set(NEW_COMP_IDS.values()), "NEW_COMP_IDS: an id of comp_identity.h's"
 # A new country's league: an id of its own (fixed: saves hold it), its record's shape a 96/97
 # country's of the same continent (its season's months), its continent's byte (the first of
 # its _countriesTable name: 0 Europe, the cups' test) and region (the picker's 80..85).
@@ -685,6 +690,7 @@ NEW_LEAGUE_IDS = {
     "KSA": 190, "LIE": 191, "MAR": 192, "MDA": 193, "MKD": 194, "MNE": 195, "PAN": 196, "QAT": 197,
     "TUN": 198, "UAE": 199,
 }
+assert not RESERVED_COMP_IDS & set(NEW_LEAGUE_IDS.values()), "NEW_LEAGUE_IDS: an id of comp_identity.h's"
 CONTINENTS = {          # pack 'continent': (name byte, region, the 96/97 league its record is shaped on)
     "europe": (0, 80, "_albanianLeague"), "north_america": (1, 83, "_mexicanLeague"),
     "south_america": (2, 82, "_bolivianLeague"), "asia": (3, 84, "_japaneseLeague"),
@@ -1246,6 +1252,19 @@ const uint8_t *World_ContiSpec(void)
     }
 }
 
+const WorldPromedio *World_Promedio(uint8_t country, int32_t *count)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(prom_cases)s
+#endif
+    default:
+        break;
+    }
+    *count = 0;
+    return 0;
+}
+
 const WorldContiCup *World_ContiCups(int32_t *count)
 {
     switch (World_Current()) {
@@ -1312,7 +1331,7 @@ def c_string(text):
 
 
 def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None,
-                 guests=()):
+                 guests=(), proms=()):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1522,6 +1541,13 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         tag, len(splits), tag)
     if news:
         externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
+    prom_tabs, prom_items = [], []
+    for country, rows in proms:
+        prom_tabs.append("static const WorldPromedio kWorld%sPromedio%d[%d] = {\n%s\n};" % (tag, country, len(rows),
+                         "\n".join("    { %d, %d, %d, %d, %d }," % (o, m2, m1, p2, p1) for o, p2, m2, p1, m1 in rows)))
+        prom_items.append("        if (country == %d) {\n            *count = %d;\n            return kWorld%sPromedio%d;\n        }"
+                          % (country, len(rows), tag, country))
+    prom_cases = ("    case WORLD_%s:\n%s\n        break;" % (tag, "\n".join(prom_items))) if prom_items else ""
     conti_tab, conti_cases, conti_cup_cases = "", "", ""
     if conti:
         conti, named = conti
@@ -1534,7 +1560,8 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         conti_cup_cases = "    case WORLD_%s:\n        *count = %d;\n        return kWorld%sContiCups;" % (
             tag, len(named), tag)
     return WORLD_DATA_C % {"europe": "\n\n".join(euro_tables), "europe_cases": euro_cases,
-                           "conti": conti_tab, "conti_cases": conti_cases, "conti_cup_cases": conti_cup_cases,
+                           "conti": conti_tab + ("\n\n" + "\n\n".join(prom_tabs) if prom_tabs else ""),
+                           "conti_cases": conti_cases, "conti_cup_cases": conti_cup_cases, "prom_cases": prom_cases,
                            "coef_cases": coef_cases,
                            "splits": "\n\n".join(split_tables), "split_cases": split_cases,
                            "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
@@ -1572,7 +1599,30 @@ PLAIN = ("ALG BEL BLR BOL CHI CRO ENG EST FRA FRO GHA HUN IND IRL JPN LTU LUX LV
          # (fixture stages, Apertura / Clausura, as one league yet: their titles not played)
          "COL MEX PAR PER URU MLT SMR "
          # (levels of groups side by side: src/league_groups.c)
-         "SLV AUS").split()
+         "SLV AUS "
+         # (30 clubs, a fixture list's season: league_split.c)
+         "USA ARG").split()
+
+
+def promedio_history(wc, pk, picked):
+    """Argentina's promedio history (the Mod's Pack.promedio: league 'promedio_history', [club key,
+    points y-2, matches y-2, points y-1, matches y-1]) as [(ordinal, ...)]: the clubs' team file
+    order (its global numbers, base + ordinal, the game makes)."""
+    hist = (pack_league(pk) or {}).get("promedio_history")
+    if not hist:
+        return None
+    path = os.path.join(MOD, "packs", wc["code"].lower(), "clubs.csv")
+    key_of = {r["name"]: r["key"] for r in csv.DictReader(open(path, encoding="utf-8"))}
+    ordinal = {key_of.get(e["team"]["team_name"]): i for i, (e, div) in enumerate(picked)}
+    out = []
+    for key, p2, m2, p1, m1 in hist:
+        if key not in ordinal:
+            sys.exit("%s promedio_history: %s is not a club of its team file" % (wc["code"], key))
+        out.append((ordinal[key], p2, m2, p1, m1))
+    if len(out) > 48:
+        sys.exit("%s promedio_history: %d clubs (at most 48, league_playoffs.c PR_N)" % (wc["code"], len(out)))
+    counts["promedio histories"] += 1
+    return out
 
 
 def division_rows(wc, picked, d):
@@ -1687,19 +1737,20 @@ def country_splits(wc, pk, picked):
         sp = dv.get("split") or (lg.get("split") if d == 0 else None)
         games = dv.get("games") if "divisions" in lg else None
         n = dv["teams"]
-        if n > 20:              # (past 20 clubs a split's state has no room; past 24 a table no screen)
+        if n > 20 and not ((sp or {}).get("stages") or [{}])[0].get("fixtures"):
+            # (past 20 clubs only a fixture-list season from day 0: the game's pair tables end at 24)
             if sp or games is not None:
-                counts["splits of more than 20 clubs (one league yet)"] += 1
+                counts["splits of more than 20 clubs not of fixture lists (one league yet)"] += 1
             continue
         builds = {po["build_after"]: i for i, po in enumerate(lg.get("ko_playoffs") or [])
                   if po.get("kind") == "stage_title" and po.get("build_after")}   # (its 'then': play-off i)
         spec = world_split.division_spec(n, sp, games, division_rows(wc, picked, d), builds)
         if spec is None:
             continue
-        table, d1, d2 = world_split.entry(0, wc["number"], d, n, spec, world_split.pair_table(n))
-        if spec["stages"] and (n > 20 or d1 + d2 > 48):
+        table, d1, d2 = world_split.entry(0, wc["number"], d, n, spec, world_split.pair_table(n) if n <= 24 else None)
+        if spec["stages"] and (n > 32 or d1 + d2 > 48):
             sys.exit("%s division %d: a split of %d clubs and %d days (include/game_types.h "
-                     "LEAGUE_SPLIT_MAX_CLUBS 20, _DAYS 48)" % (wc["code"], d, n, d1 + d2))
+                     "LEAGUE_SPLIT_MAX_CLUBS 32, _DAYS 48)" % (wc["code"], d, n, d1 + d2))
         counts["splits" if spec["stages"] else "divisions with meetings of their own"] += 1
         out.append((d, table))
     return out
@@ -1720,7 +1771,7 @@ def main():
     (teams, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
     country = teams["teams"][0]["team"]["country_number"]
-    pools, news, splits, picks = [], [], [], {}
+    pools, news, splits, picks, proms = [], [], [], {}, []
     groups = [italian_groups(picked, country, leagues)]
     picks["ITA"] = ({"number": country}, picked)
 
@@ -1744,6 +1795,9 @@ def main():
         pk = mod_pack(wc["code"])
         t, pk_picked = country_teams(wc)
         picks[wc["code"]] = (wc, pk_picked)
+        prom = promedio_history(wc, pk, pk_picked)
+        if prom:
+            proms.append((wc["number"], prom))
         if wc["new"]:           # (its team file's name, after country_teams: 96/97 has none)
             wc["base"] = file_name(wc["name"])
             wc["region"] = CONTINENTS[pk["continent"]][1]
@@ -1773,7 +1827,7 @@ def main():
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks), conti_spec(), guests))
+                             europe(picks), conti_spec(), guests, proms))
     print("wrote src/world_data.c")
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):

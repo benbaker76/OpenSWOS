@@ -15,6 +15,7 @@
 #include "league_phase.h"
 #include "world.h"
 #include "league_playoffs.h"
+#include "comp_identity.h"
 #ifdef SWOS_SDL_BUILD
 #include <stdlib.h>              /* (getenv: SWOS_UEFAQ_FORCE) */
 #endif
@@ -469,7 +470,7 @@ void UefaQual_Fill(void)
  * are rewritten with its results (uq_resolve: the stand-in back to the club, every result
  * unlike the simulated one swapping the two clubs from there on) and the league phase it
  * reached takes slot 3. */
-#define UEFA_TIE_ID0 229                /* (free competition ids: 229 CL, 230 EL, 231 UECL ties) */
+#define UEFA_TIE_ID0 COMPID_uefaTieChampionsLeague  /* (the CL, EL and UECL ties: comp_identity.h) */
 static CompetitionCup s_tie[3];
 static char kTieName[3][2][24] = {
     { "QUAL. CHAMPIONS LEAGUE", "QUAL. CL" },

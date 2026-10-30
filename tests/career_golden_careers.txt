@@ -72,3 +72,7 @@ PAN2627-PLAZA @2627 NORTH AMERICA/PANAMA/PLAZA AMADOR
 # Segunda's and the Tercera's two regional groups), Australia (three state leagues).
 SLV2627-FAS @2627 NORTH AMERICA/EL SALVADOR/PRIMERA DIVISION/FAS
 AUS2627-NEWCASTLE @2627 OCEANIA/AUSTRALIA/A-LEAGUE MEN/NEWCASTLE
+# ... 30 clubs, a fixture list's season (src/league_split.c, its zones as the table's pages): the
+# MLS's two conferences; Argentina's Apertura and Clausura, their knockouts, the promedio.
+USA2627-LAGALAXY @2627 NORTH AMERICA/U.S.A./LA GALAXY
+ARG2627-BOCA @2627 SOUTH AMERICA/ARGENTINA/LIGA PROFESIONAL DE FUTBOL/BOCA JUNIORS

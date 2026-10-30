@@ -1038,12 +1038,14 @@ typedef char _diymatchdata_size_check[(sizeof(DIYCompetitionEx_MatchData) == 0xE
  * phase-start-month table used by the league progression path in
  * DIY_RecomputeCompetitionDerivedFields and friends.
  * ================================================================== */
-/* A world league division's mid-season split (src/league_split.c), while it runs: in the
- * tail of the match days' weeks (a split league has at most LEAGUE_SPLIT_MAX_DAYS days), so
- * it is copied, saved and restored with the league, as the SWOS 96/97 Mod keeps its own
- * (split.py's state at the end of its weeks table). Every league init clears its mark. */
+/* A world league division's mid-season split (src/league_split.c), while it runs: its days'
+ * weeks in the match days' table (a split league has at most LEAGUE_SPLIT_MAX_DAYS days), its
+ * state in the table's rows a league of LEAGUE_SPLIT_MAX_CLUBS leaves unused (DIYCompetitionEx
+ * leagueSplit), so it is copied with the league, as the SWOS 96/97 Mod keeps its own (split.py's
+ * state, 30 rows since its 4.1: Argentina's and the MLS's 30 clubs); saved by name
+ * (save_format_json.c "league_split"). Every league init clears its mark. */
 #define LEAGUE_SPLIT_MAX_DAYS  48
-#define LEAGUE_SPLIT_MAX_CLUBS 20
+#define LEAGUE_SPLIT_MAX_CLUBS 32
 #define LEAGUE_SPLIT_MAGIC     0x50FE   /* (FEh: never a week) */
 typedef struct __attribute__((packed)) LeagueSplitState {
     uint16_t magic;                     /* LEAGUE_SPLIT_MAGIC: a split league */
@@ -1075,15 +1077,9 @@ typedef struct __attribute__((packed, aligned(2))) DIYCompetitionEx_LeagueSectio
     uint16_t sectionMatchesProgress;    /* 0x06 (parent 0x1CC) */
     union __attribute__((packed)) {
         uint8_t  phaseStartMonths[128]; /* 0x08 (parent 0x1CE..0x24D): viewRandomPhase[phaseIdx] source */
-        struct __attribute__((packed)) {
-            uint8_t          splitWeeks[LEAGUE_SPLIT_MAX_DAYS];
-            LeagueSplitState split;     /* (a split league's: its days end before it) */
-        };
+        uint8_t  splitWeeks[LEAGUE_SPLIT_MAX_DAYS]; /* (a split league's days, its state in the rows) */
     };
 } DIYCompetitionEx_LeagueSectionState;
-
-typedef char _leaguesplit_fits_check[
-    (LEAGUE_SPLIT_MAX_DAYS + sizeof(LeagueSplitState) <= 128) ? 1 : -1];
 
 typedef char _diysecstate_size_check[
     (sizeof(DIYCompetitionEx_LeagueSectionState) == 0x88) ? 1 : -1];
@@ -1186,8 +1182,16 @@ typedef struct __attribute__((packed, aligned(2))) DIYCompetitionEx {
             DIYTeamStats     leaguePhaseRows[36];
             LeaguePhaseState leaguePhase;
         };
+        struct __attribute__((packed)) {    /* a world league's split (src/league_split.c): its
+                                             * state in the rows a league of 32 leaves unused */
+            DIYTeamStats     leagueSplitRows[LEAGUE_SPLIT_MAX_CLUBS];
+            LeagueSplitState leagueSplit;
+        };
     };
 } DIYCompetitionEx;
+
+typedef char _leaguesplit_fits_check[(LEAGUE_SPLIT_MAX_CLUBS * sizeof(DIYTeamStats) + sizeof(LeagueSplitState) <=
+                                      64 * sizeof(DIYTeamStats)) ? 1 : -1];
 
 typedef char _leaguephase_fits_check[(36 * sizeof(DIYTeamStats) + sizeof(LeaguePhaseState) <=
                                       64 * sizeof(DIYTeamStats)) ? 1 : -1];

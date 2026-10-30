@@ -5543,6 +5543,22 @@ static void emit_competition_overrides(mjson_print_fn_t fn, void *fnd)
                 "pts", (unsigned)r->points);
         }
         mjson_printf(fn, fnd, "%s", "]");
+        /* A world league's split (league_split.c), by name: its state rides in the rows past
+         * 32, which the rows above carry as numbers -- this restores it byte for byte after. */
+        const LeagueSplitState *st = &comp->leagueSplit;
+        if (st->magic == LEAGUE_SPLIT_MAGIC) {
+            mjson_printf(fn, fnd, ",%Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d", "league_split", "entry", (int)st->entry,
+                         "frozen", (int)st->frozen, "n", (int)st->n, "comp", (int)st->compId);
+            static const char *const names[3] = { "place_row", "group", "pre" };
+            const uint8_t *arr[3] = { st->placeRow, st->group, st->pre };
+            for (int a = 0; a < 3; a++) {
+                mjson_printf(fn, fnd, ",%Q:[", names[a]);
+                for (int i = 0; i < LEAGUE_SPLIT_MAX_CLUBS; i++)
+                    mjson_printf(fn, fnd, i ? ",%d" : "%d", (int)arr[a][i]);
+                mjson_printf(fn, fnd, "%s", "]");
+            }
+            mjson_printf(fn, fnd, "%s", "}");
+        }
     }
     mjson_printf(fn, fnd, "%s", "}");
 }
@@ -5594,6 +5610,26 @@ static void load_competition_overrides(const char *buf, int buflen)
         r->goalsAgainst = (uint16_t)ga;
         r->points       = (uint16_t)pts;
         i++;
+    }
+    LeagueSplitState *st = &comp->leagueSplit;     /* (after the rows: they hold it as numbers) */
+    const char *so = NULL; int sl = 0;
+    if (mjson_find(obj, obj_len, "$.league_split", &so, &sl) == MJSON_TOK_OBJECT) {
+        long v = 0;
+        uint8_t *p = (uint8_t *)st;
+        for (uint32_t k = 0; k < sizeof *st; k++)
+            p[k] = 0;
+        st->magic = LEAGUE_SPLIT_MAGIC;
+        if (mjson_get_long(so, sl, "$.entry", &v) > 0) st->entry = (uint8_t)v;
+        if (mjson_get_long(so, sl, "$.frozen", &v) > 0) st->frozen = (uint8_t)v;
+        if (mjson_get_long(so, sl, "$.n", &v) > 0) st->n = (uint8_t)v;
+        if (mjson_get_long(so, sl, "$.comp", &v) > 0) st->compId = (uint8_t)v;
+        static const char *const names[3] = { "$.place_row", "$.group", "$.pre" };
+        uint8_t *arr[3] = { st->placeRow, st->group, st->pre };
+        for (int a = 0; a < 3; a++) {
+            const char *ar = NULL; int al = 0;
+            if (mjson_find(so, sl, names[a], &ar, &al) == MJSON_TOK_ARRAY)
+                parse_byte_array_slice(ar, al, arr[a], LEAGUE_SPLIT_MAX_CLUBS);
+        }
     }
 }
 
@@ -6292,6 +6328,19 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         if (nb)
             mjson_printf(json_out_emit, &out, "%s", "]");
     }
+    /* Argentina's promedio history (league_playoffs.c): each club's global number, points and
+     * matches of the two seasons before. */
+    if (g_promedio.init) {
+        static uint16_t pr[PROMEDIO_CLUBS * 5];
+        int np = 0;
+        for (int i = 0; i < g_promedio.n && i < PROMEDIO_CLUBS; i++) {
+            const LeaguePromedioClub *c = &g_promedio.c[i];
+            pr[np++] = c->glob; pr[np++] = c->p[0]; pr[np++] = c->m[0]; pr[np++] = c->p[1]; pr[np++] = c->m[1];
+        }
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d", "promedio", "clubs_count", (int)g_promedio.n);
+        wp_emit_u16(&out, "clubs", pr, np);
+        mjson_printf(json_out_emit, &out, "%s", "}");
+    }
 
     /* A world's other confederations' cups (world_conti.c): each cup's holder (team word as the
      * Mod's, association, strength, ranking points) and the edition under way -- its entrants
@@ -6318,9 +6367,9 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         for (int i = 0; i < 16; i++) {
             res[3 * i] = CT_ED.f[i].c; res[3 * i + 1] = CT_ED.f[i].r; res[3 * i + 2] = CT_ED.f[i].v;
         }
-        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%lu,%Q:%d,%Q:%d", "conti_edition",
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%lu,%Q:%d,%Q:%d,%Q:%d", "conti_edition",
                      "mark", (int)CT_ED.mark, "seed", (unsigned long)CT_ED.seed, "manager_club", (int)CT_ED.mgr,
-                     "results_count", (int)CT_ED.nf);
+                     "results_count", (int)CT_ED.nf, "main_cup", (int)g_contiMainCup);
         wp_emit_u16(&out, "entrants", ent, ne);
         wp_emit_u16(&out, "results", res, 16 * 3);
         mjson_printf(json_out_emit, &out, "%s", "}");
@@ -7020,6 +7069,22 @@ static void apply_semantic_load(const char *src, int src_size)
         }
     }
 
+    {   /* Argentina's promedio history (league_playoffs.c); a save without it: the world's again */
+        const char *po = NULL;
+        int polen = 0;
+        if (mjson_find(src, src_size, "$.promedio", &po, &polen) == MJSON_TOK_OBJECT) {
+            static uint16_t pr[PROMEDIO_CLUBS * 5];
+            const int np = wp_load_u16(po, polen, "$.clubs", pr, PROMEDIO_CLUBS * 5);
+            g_promedio.n = 0;
+            for (int at = 0; at + 5 <= np && g_promedio.n < PROMEDIO_CLUBS; at += 5) {
+                LeaguePromedioClub *c = &g_promedio.c[g_promedio.n++];
+                c->glob = pr[at]; c->p[0] = pr[at + 1]; c->m[0] = (uint8_t)pr[at + 2];
+                c->p[1] = pr[at + 3]; c->m[1] = (uint8_t)pr[at + 4];
+            }
+            g_promedio.init = 1;
+        }
+    }
+
     /* A world's other confederations' cups (world_conti.c); a save without them: none yet. */
     Conti_Reset();
 #if SWOS_WORLDS
@@ -7045,6 +7110,7 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(co, colen, "$.seed", &v) > 0) CT_ED.seed = (u32)v;
             if (mjson_get_long(co, colen, "$.manager_club", &v) > 0) CT_ED.mgr = (u16)v;
             if (mjson_get_long(co, colen, "$.results_count", &v) > 0) CT_ED.nf = (u8)(v > 16 ? 16 : v);
+            if (mjson_get_long(co, colen, "$.main_cup", &v) > 0) g_contiMainCup = (uint8_t)v;
             const int ne = wp_load_u16(co, colen, "$.entrants", ent, CT_NED * 3);
             CT_ED.ne = 0;
             for (int i = 0; i + 3 <= ne; i += 3, CT_ED.ne++) {
