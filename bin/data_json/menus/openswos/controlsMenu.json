@@ -401,7 +401,7 @@
         {
           "op": "text",
           "flags": "0x0",
-          "literal": "NO OWN KEYS"
+          "literal": "DEFAULT KEYS"
         },
         {
           "op": "colors",

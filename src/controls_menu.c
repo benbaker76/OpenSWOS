@@ -56,7 +56,7 @@ extern void      CallDrawMenuItem(MenuEntry *entry);
 extern void      SetExitMenuFlag(void);
 extern volatile uint16_t _shortFire;
 
-static char s_rowText[kKeys][24];       /* what each key row shows */
+static char s_rowText[kKeys][32];       /* what each key row shows */
 static char s_note[64];                 /* the line under the rows */
 
 static MenuEntry *entry_at(int32_t ordinal)
@@ -94,16 +94,24 @@ static void save(void)
         Settings_Save(g_arcadeOpts, g_arcadeIniPath);
 }
 
+/* The keys every control has whatever is chosen here (built_in below): what a row shows
+ * with no key of the player's ("NOT SET" read as no key at all: tester report 0044). */
+static const char *const k_builtIn[kKeys] = { "CURSOR UP", "CURSOR DOWN", "CURSOR LEFT", "CURSOR RIGHT", "CTRL" };
+
 static void refresh(void)
 {
     int32_t i;
 
     for (i = 0; i < kKeys; i++) {
         const char *name = InputSDL_KeyBindingName(i);
-        if (name[0])
-            upper(s_rowText[i], sizeof s_rowText[i], name);
-        else
-            snprintf(s_rowText[i], sizeof s_rowText[i], "NOT SET");
+        if (name[0]) {
+            char own[16];
+            upper(own, sizeof own, name);
+            snprintf(s_rowText[i], sizeof s_rowText[i], "%s OR %s", own, k_builtIn[i]);
+            if (strlen(s_rowText[i]) > 24)      /* (the row's 150 px: the player's key alone) */
+                snprintf(s_rowText[i], sizeof s_rowText[i], "%s", own);
+        } else
+            snprintf(s_rowText[i], sizeof s_rowText[i], "%s", k_builtIn[i]);
         entry_at(ControlsMenu_up + 2 * i)->fg = (uintptr_t)s_rowText[i];
     }
     entry_at(ControlsMenu_latch)->fg = (uintptr_t)(InputSDL_PressLatch() ? "ALWAYS COUNT" : "CAN BE MISSED");

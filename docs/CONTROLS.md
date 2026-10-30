@@ -22,8 +22,10 @@ between two reads" all look the same. Three things now cover that.
   exception is a text field (`_gTextInputActive`, set by `InputText`), where a letter is a
   letter.
 - On the menu: fire on a row, then the key. ESC (or fire again) leaves it as it was,
-  BACKSPACE or DELETE takes the key away, NO OWN KEYS clears all five. The choice is written
-  to `SWOS.ini` at once.
+  BACKSPACE or DELETE takes the key away, DEFAULT KEYS clears all five. Each row says what
+  the control uses: its built-in key (CURSOR UP ... CTRL), or the player's and it ("W OR
+  CURSOR UP"; the player's alone when both do not fit). The choice is written to `SWOS.ini`
+  at once.
 - There is no key for the bench: the port's bench keys (`Q`/`W`) are a team each, and the
   DOS second button is a pad button. Player 2 has no keyboard at all, as before.
 
