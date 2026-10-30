@@ -8285,7 +8285,7 @@ static void emit_team_game(mjson_print_fn_t fn, void *fnd,
             "position",      (int)(int8_t)p[offsetof(struct PlayerInfo, position)],
             "face",          (int)(int8_t)p[offsetof(struct PlayerInfo, face)],
             "is_injured",    (int)(int8_t)p[offsetof(struct PlayerInfo, isInjured)],
-            "field_7",       (int)(int8_t)p[offsetof(struct PlayerInfo, field_7)],
+            "field_7",       (int)(int8_t)p[offsetof(struct PlayerInfo, blond)],   /* (blond: the saves' name) */
             "field_8",       (int)(int8_t)p[offsetof(struct PlayerInfo, field_8)],
             "previous_cards",(int)(int8_t)p[offsetof(struct PlayerInfo, previousCards)],
             "num_yellow_cards",(int)(int8_t)p[offsetof(struct PlayerInfo, numYellowCards)],
@@ -8392,7 +8392,7 @@ static void load_team_game_slice(const char *buf, int buflen, uint8_t *tg)
         LOAD_PB("position",        position);
         LOAD_PB("face",            face);
         LOAD_PB("is_injured",      isInjured);
-        LOAD_PB("field_7",         field_7);
+        LOAD_PB("field_7",         blond);
         LOAD_PB("field_8",         field_8);
         LOAD_PB("previous_cards",  previousCards);
         LOAD_PB("num_yellow_cards",numYellowCards);

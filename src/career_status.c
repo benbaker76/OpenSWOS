@@ -29,6 +29,7 @@
  */
 
 #include "career_status.h"
+#include "teams.h"
 #include "league_phase.h"
 #include "uefa_coef.h"
 #include "conti_season.h"
@@ -2609,6 +2610,8 @@ uint8_t *TrainingMatch_AddTrialPlayerAtPosition(uint16_t position)
 
     /* Set shirtNumber as a flag (used as a marker here) */
     pf->shirtNumber = 0x10;
+    if (_selTeamNumber == BE_READ_U16(&_careerTeam))
+        SquadNumbers_Free(freeSlot);    /* (real squad numbers: a free one, teams.c) */
 
     /* Store position into positionAndFace (position << 5) */
     pf->positionAndFace = (uint8_t)(position << PF_POSITION_SHIFT);

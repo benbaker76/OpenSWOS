@@ -338,7 +338,7 @@ static const char * const k_infoMemberNames[] = {
 static const MemberDesc k_playerMembers[] = {
     P(skip, RT_S8), P(playerIndex, RT_S8), P(goalsScored, RT_S8),
     P(shirtNumber, RT_S8), P(position, RT_S8), P(face, RT_S8),
-    P(isInjured, RT_S8), P(field_7, RT_S8), P(field_8, RT_S8),
+    P(isInjured, RT_S8), { "field_7", RT_S8, (uint16_t)offsetof(PlayerInfo, blond) },   /* (blond: the recordings' name) */ P(field_8, RT_S8),
     P(previousCards, RT_S8), P(numYellowCards, RT_S8), P(field_B, RT_S8),
     P(passing, RT_S8), P(shooting, RT_S8), P(heading, RT_S8),
     P(tackling, RT_S8), P(ballControl, RT_S8), P(speed, RT_S8),

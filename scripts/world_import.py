@@ -27,7 +27,6 @@ country stays 96/97's (the overlay falls back to it).
 
 What our engine cannot show yet is mapped, and counted on the way:
   - 16 players a team (the Mod's extra 14 are left out);
-  - face 3 (black skin, blond hair) -> 2;
   - nationalities past the Mod's 213 (none in 2026-27) -> the club's country's;
   - shirt numbers outside 1..99 -> the free ones.
 
@@ -40,6 +39,7 @@ computes it. The data is not to be published yet: bin/data_json/worlds/ is ignor
 import collections
 import copy
 import csv
+import glob
 import hashlib
 import json
 import os
@@ -77,8 +77,7 @@ def player(p, home_nation):
     pf, ci = p["position_and_face"] & 255, p["cards_injuries"] & 255
     face = (pf >> 3) & 3
     if face == 3:
-        face = 2
-        counts["face 3 -> 2"] += 1
+        counts["face 3 (black, blond hair)"] += 1
     nat = p["nationality"] & 255
     if nat >= NATIONS_NAMED:
         nat = home_nation
@@ -1270,6 +1269,19 @@ CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32
 %(conti)s
 #endif
 
+/* Real squad numbers (a pack's 'squad_numbers', the Mod's benchnum.py): a career keeps every
+ * player's own shirt number (teams.c, transfer_market.c). */
+int32_t World_SquadNumbers(void)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(squad_cases)s
+#endif
+    default:
+        return 0;
+    }
+}
+
 const uint8_t *World_ContiSpec(void)
 {
     switch (World_Current()) {
@@ -1371,8 +1383,17 @@ def c_string(text):
     return '"%s"' % text.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def squad_numbers():
+    """The world keeps real squad numbers when a pack says so (pack.json 'squad_numbers': the
+    Mod's benchnum.py reads it world-wide)."""
+    for f in sorted(glob.glob(os.path.join(MOD, "packs", "*", "pack.json"))):
+        if json.load(open(f, encoding="utf-8")).get("squad_numbers"):
+            return True
+    return False
+
+
 def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None,
-                 guests=(), proms=(), states=()):
+                 guests=(), proms=(), states=(), squad=False):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1641,6 +1662,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                                     + ("\n\n" + "\n\n".join(st_tabs) if st_tabs else ""),
                            "st_cases": st_cases,
                            "conti_cases": conti_cases, "conti_cup_cases": conti_cup_cases, "prom_cases": prom_cases,
+                           "squad_cases": "    case WORLD_%s:\n        return 1;" % tag if squad else "",
                            "coef_cases": coef_cases,
                            "splits": "\n\n".join(split_tables), "split_cases": split_cases,
                            "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
@@ -1974,7 +1996,7 @@ def main():
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks), conti_spec(), guests, proms, states))
+                             europe(picks), conti_spec(), guests, proms, states, squad_numbers()))
     print("wrote src/world_data.c")
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):

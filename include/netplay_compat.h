@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 3      /* 3: shirt numbers 17..99 their own sprites (shirt_numbers.c) */
+#define NETPLAY_COMPAT 4      /* 4: face 3, blond hair: its own sprite set (player_face3.c) */
 
 #endif

@@ -251,7 +251,7 @@ struct PlayerInfo {
     int8_t  position;           /* 4 */
     int8_t  face;               /* 5 */
     int8_t  isInjured;          /* 6 */
-    int8_t  field_7;            /* 7 */
+    int8_t  blond;              /* 7: face 3 (black, blond hair), its face 2 (player_face3.c) */
     int8_t  field_8;            /* 8 */
     int8_t  previousCards;      /* 9 */
     int8_t  numYellowCards;     /* 10 */

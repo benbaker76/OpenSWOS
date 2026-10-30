@@ -3,6 +3,9 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#ifdef SWOS_SDL_BUILD
+#include <stdlib.h>
+#endif
 #include "game_init.h"
 #include "league_phase.h"
 #include "dos_gameplay.h"   /* ApplyGameStyle — DOS/Amiga match tuning */
@@ -432,7 +435,12 @@ void InitInGamePlayer(uint16_t playerIndex, uint16_t playerSlot,
 
     /* Face from positionAndFace: bits 3-4 → 0-3 */
     uint16_t face = (uint16_t)(pf->positionAndFace & PF_FACE_MASK) >> 3;
-    pi->face = (int8_t)face;
+#ifdef SWOS_SDL_BUILD
+    if (getenv("SWOS_TEST_FACE3"))      /* test: every player face 3 -- to look at it */
+        face = 3;
+#endif
+    pi->blond = face == 3;              /* (face 3: a black player, blond: player_face3.c) */
+    pi->face = (int8_t)(face == 3 ? 2 : face);
 
     /* Position: bits 5-7 of positionAndFace */
     uint16_t pos = (uint16_t)(pf->positionAndFace & PF_POSITION_MASK) >> 5;

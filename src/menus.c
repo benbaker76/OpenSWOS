@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "player_face3.h"
 #include "menus.h"
 #ifdef SWOS_SDL_BUILD
 /* PlatformInitOptions + Settings_Save, for the OPTIONS -> GAMEPLAY row. Guarded
@@ -1056,6 +1057,8 @@ extern uint8_t  _currentMatchPlayers[];
 extern uint16_t _careerNumPlayers;
 extern void CallDrawMenuItem(MenuEntry *entry);
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
+extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern void SquadNumbers_Free(uint16_t slot);
 extern uint8_t *GetPlayerAtIndex(uint16_t teamNumber, uint16_t ordinal);
 extern uint16_t _cGetPlayerAtIndexFileIdx;
 
@@ -1150,8 +1153,10 @@ static void squadSwapPlayersAtIndices(uint16_t prevFileIdx, uint16_t currFileIdx
         PlayerFile *prevPf = (PlayerFile *)(prevBlockPtr + 76);
         PlayerFile *currPf = (PlayerFile *)(currBlockPtr + 76);
         int8_t tmpShirt = currPf->shirtNumber;
-        currPf->shirtNumber = prevPf->shirtNumber;
-        prevPf->shirtNumber = tmpShirt;
+        if (!SquadNumbers_On()) {       /* (real squad numbers: not swapped, teams.c) */
+            currPf->shirtNumber = prevPf->shirtNumber;
+            prevPf->shirtNumber = tmpShirt;
+        }
     }
 
     /* Always swap player number array entries at break positions */
@@ -5351,8 +5356,7 @@ void SetMenuEntryPlayerFace(MenuEntry *entry, PlayerFile *playerFile) {
     uint16_t d0 = playerFile[2].positionAndFace;
     d0 &= 0x18;
     d0 >>= 3;
-    d0 += SPR_PL_FACE_WHITE_GUY;
-    entry->fgWord = d0;
+    entry->fgWord = (uint16_t)Face_MenuIcon(d0);     /* (face 3: player_face3.c) */
 }
 
 /* ---- Chunk 142: SaveCareer ---- */
@@ -5420,7 +5424,7 @@ void SetSquadMenuEntryStatusSprite(MenuEntry *entry, PlayerFile *playerFile, uin
 
         if (d2 == 0) {
             if (d3 == 0) {
-                entry->fgWord = d1 + 0xBA;
+                entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
                 return;
             }
             if (d3 == 0x20) {
@@ -5465,7 +5469,7 @@ void SetSquadMenuEntryStatusSprite(MenuEntry *entry, PlayerFile *playerFile, uin
 
     if (d2 == 0) {
         if (d3 == 0) {
-            entry->fgWord = d1 + 0xBA;
+            entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
             return;
         }
         if (d3 == 0x20) {
@@ -5529,7 +5533,7 @@ void SetSquadMenuEntryStatusSprite_AfterSim(MenuEntry *entry, PlayerFile *player
     uint16_t d3 = playerFile->cardsInjuries & 0xE0;
 
     if (d3 == 0) {
-        entry->fgWord = d1 + 0xBA;
+        entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
         return;
     }
     if (d3 == 0x20) {

@@ -71,7 +71,7 @@ extern void    SetExitMenuFlag(void);
 enum {
     kPlayers = TEAM_PLAYERS,
     kTeamRecord = 684,
-    kFaces = 3,                     /* EditTeamsChangePlayerFace: white, ginger, black */
+    kFaces = 4,                     /* EditTeamsChangePlayerFace: white, ginger, black, black with blond hair */
     kFormatVersion = 3,             /* 3: links to the database by id; no player data */
     kNationalities = 214,           /* the three-letter names a nationality indexes (_shortCountryNames) */
     kMaxShirtNumber = 99,

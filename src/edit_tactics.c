@@ -41,6 +41,7 @@
  * Chunk 89: LoadTactics
  */
 
+#include "player_face3.h"
 #include "shirt_numbers.h"
 #include "edit_tactics.h"
 #include "endian_helpers.h"
@@ -169,6 +170,8 @@ extern uint8_t _editTacticsMenu[];
 
 /* ---- C-callable bridges for asm functions (defined in swos2_unit.s) ---- */
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
+extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern void SquadNumbers_Free(uint16_t slot);
 extern void EditTactics_CommitPlayerPositionsAndRecalcSkill(void);
 extern void EditTacticsMenuSavePlayerPositions(void);
 extern void InitLittlePlayerSprites(void);
@@ -1487,6 +1490,7 @@ void DrawLittlePlayersAndBall(void)
         /* Determine skin color sprite */
         uint8_t posAndFace = teamEx->players[playerNum].positionAndFace;
         uint16_t skinIdx = (posAndFace & PF_FACE_MASK) >> 3;   /* 0..3 */
+        if (skinIdx > 2) skinIdx = 2;   /* (face 3's little player: the black one) */
         uint16_t playerSprite = SPR_SMALL_PL_WHITE + skinIdx;
         DrawSpriteCentered(playerSprite, px, py);
 
@@ -1510,6 +1514,7 @@ nextIter:
     int8_t gkNum = (int8_t)playerNums[0];
     uint8_t gkPosAndFace = teamEx->players[gkNum].positionAndFace;
     uint16_t gkSkinIdx = (gkPosAndFace & PF_FACE_MASK) >> 3;
+    if (gkSkinIdx > 2) gkSkinIdx = 2;
     uint16_t gkSprite = SPR_SMALL_GK_WHITE + gkSkinIdx;
     DrawSpriteCentered(gkSprite, 87, 234);
 }
@@ -1543,6 +1548,7 @@ void DrawEditTacticsHighlightedPlayerRoute(void)
     /* Determine skin color sprite for the player */
     uint8_t posAndFace = teamEx->players[markedNum].positionAndFace;
     uint16_t skinIdx = (posAndFace & PF_FACE_MASK) >> 3;
+    if (skinIdx > 2) skinIdx = 2;
     uint16_t playerSprite = SPR_SMALL_PL_WHITE + skinIdx;
 
     /* Determine shirt number sprite */
@@ -2162,8 +2168,10 @@ void EditTactics_SwapPlayersInSlots(uint16_t slot1, uint16_t slot2)
 
         /* Swap shirt numbers between players */
         int8_t tmp2 = pf2->shirtNumber;
-        pf2->shirtNumber = pf1->shirtNumber;
-        pf1->shirtNumber = tmp2;
+        if (!SquadNumbers_On()) {       /* (real squad numbers: not swapped, teams.c) */
+            pf2->shirtNumber = pf1->shirtNumber;
+            pf1->shirtNumber = tmp2;
+        }
     }
 
     /* Swap entries in the player number mapping array */
@@ -2760,13 +2768,13 @@ void EditTeamsChangePlayerFace(MenuEntry *entry)
     uint16_t faceIdx = (posAndFace & PF_FACE_MASK) >> 3;
 
     faceIdx++;
-    if (faceIdx == 3)
+    if (faceIdx == 4)                   /* (0..3: face 3 black with blond hair, player_face3.c) */
         faceIdx = 0;
 
     pf->positionAndFace = (posAndFace & (uint8_t)~PF_FACE_MASK) | (uint8_t)(faceIdx << PF_FACE_SHIFT);
 
     /* Update menu entry sprite to show new face */
-    entry->fgWord = (uint16_t)(faceIdx + 186);  /* SPR_PL_FACE_WHITE_GUY */
+    entry->fgWord = (uint16_t)Face_MenuIcon(faceIdx);
     CallDrawMenuItem(entry);
 }
 
@@ -2808,7 +2816,7 @@ void InitEditTeamsMenu(void)
         PlayerFile *pf = &teamEx->players[15 - i];
         uint8_t posAndFace = pf->positionAndFace;
         uint16_t faceIdx = (posAndFace & PF_FACE_MASK) >> 3;
-        faceEntry->fgWord = (uint16_t)(faceIdx + 186);  /* SPR_PL_FACE_WHITE_GUY */
+        faceEntry->fgWord = (uint16_t)Face_MenuIcon(faceIdx);
         faceEntry = (MenuEntry *)((uint8_t *)faceEntry + MENUENTRY_STRIDE);
 
         nameEntry->fg = (uintptr_t)(uint8_t *)pf->playerName;

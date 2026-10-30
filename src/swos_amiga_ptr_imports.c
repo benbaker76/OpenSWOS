@@ -26,10 +26,13 @@ extern uint16_t _bigNumbersColorConversionTable[];
  * _bigNumbersColorConversionTable int16 array — i.e. int16 indices
  * 48/61/74. Without this FillSkinColorConversionTable reads NULL
  * and segfaults. */
-void *_skinAndHairColorConversionTable[3] = {
+/* face 3 (the SWOS 96/97 Mod's blond.py): black skin, the hair yellow (15) and orange (6) */
+static int16_t kSkinAndHairBlond[13] = { 6, 4, 5, 4, 4, 3, 13, 15, 9, 15, 12, 6, -1 };
+void *_skinAndHairColorConversionTable[4] = {
     (_bigNumbersColorConversionTable + 48),
     (_bigNumbersColorConversionTable + 61),
     (_bigNumbersColorConversionTable + 74),
+    kSkinAndHairBlond,
 };
 
 extern const char _aTspvhcfstpvhcf[];

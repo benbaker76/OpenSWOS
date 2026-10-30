@@ -7863,6 +7863,20 @@ static const uint8_t kWorld2627StatesPools46[917] = {
 static const WorldStates kWorld2627States46 = { 46, 254, 1, 40, 13, 2124, kWorld2627StatesSim46, kWorld2627StatesPools46, kWorld2627StatesWords46, kWorld2627StateContests46 };
 #endif
 
+/* Real squad numbers (a pack's 'squad_numbers', the Mod's benchnum.py): a career keeps every
+ * player's own shirt number (teams.c, transfer_market.c). */
+int32_t World_SquadNumbers(void)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+    case WORLD_2627:
+        return 1;
+#endif
+    default:
+        return 0;
+    }
+}
+
 const uint8_t *World_ContiSpec(void)
 {
     switch (World_Current()) {

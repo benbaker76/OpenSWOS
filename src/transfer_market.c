@@ -3905,6 +3905,8 @@ extern void Career_RemovePlayerFromTeamInternal(uint16_t teamNumber, uint16_t pl
 extern void AddCareerPoolPlayer(uint16_t teamNumber, uint16_t playerOrdinal, PlayerFile *playerFile);
 extern void Career_RemovePlayerFromSelectedTeamRoster(uint16_t playerIndex);
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
+extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern void SquadNumbers_Free(uint16_t slot);
 extern void TrainingMatch_SaveSelectedPlayerId(uint16_t value);
 extern void Career_UpdatePlayerWeeklyWageCache(uint16_t playerIndex);
 extern int16_t SearchTeamInTmdFile(uint16_t teamNumber);
@@ -4303,6 +4305,7 @@ void Career_RemovePlayerAndAddAsTrialist(uint16_t sourceTeam, uint16_t playerOrd
     SetBenchPlayersNumbers(&_careerTeam);
 
     _careerNumPlayers++;
+    SquadNumbers_Free(freeSlot);        /* (real squad numbers: his own, or a free one; teams.c) */
     Career_UpdatePlayerWeeklyWageCache(freeSlot);
 
     /* Convert player to trialist using source name */
@@ -4789,6 +4792,8 @@ void TrainingMatch_AddTrialPlayerToSelectedTeam(uint16_t role)
     PlayerFile *pf = (PlayerFile *)(base + PF_OFF);
     pf->positionAndFace |= PF_TRIALIST;  /* bset #2 — mark as trialist */
     pf->shirtNumber = 0x10;       /* shirt number 16 */
+    if (_selTeamNumber == BE_READ_U16(&_careerTeam))
+        SquadNumbers_Free(freeSlot);    /* (real squad numbers: a free one, teams.c) */
 
     /* Set position/role: lsl.w #5,d7; move.b d7,$66(a3) */
     pf->positionAndFace = (uint8_t)(role << 5);  /* this overwrites — matches asm: move.b d7,$66 */

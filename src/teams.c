@@ -1198,11 +1198,56 @@ extern uint16_t _removedPlayerStatAccum;
  * to get the player record pointer, then writes (ordinal + 1) as the
  * shirt number at offset PF_SHIRTNUM from that raw pointer.
  * ================================================================ */
+/* ---- Real squad numbers (a world's 'squad_numbers': the SWOS 96/97 Mod's benchnum.py) ----
+ * The game binds numbers to line-up places and writes them into the player records: the
+ * bench's 11..15 get 12..16 (SetBenchPlayersNumbers), a starter swapped with a bench player
+ * swaps numbers with him. In a career of such a world none of that happens -- a real 23 on the
+ * bench stays 23 -- for the computer's sides too; a new player of the managed club (a purchase,
+ * the game's reserve or trial player) keeps his number when no one in the squad has it, else
+ * takes the lowest free of 2..99 (1 too for a keeper). */
+int32_t SquadNumbers_On(void)
+{
+    extern uint16_t _gameType;
+    return _gameType == 4 && World_SquadNumbers();
+}
+
+void SquadNumbers_Free(uint16_t slot)
+{
+    const uint16_t numPlayers = *(uint16_t *)_careerNumPlayers;   /* (a word: declared bytes here) */
+    uint8_t used[100];
+    const uint16_t team = BE_READ_U16(&_careerTeam);   /* (the managed club, as SetBenchPlayersNumbers reads it) */
+    if (!SquadNumbers_On() || slot >= 32)
+        return;
+    for (int32_t n = 0; n < 100; n++)
+        used[n] = 0;
+    for (uint16_t i = 0; i < numPlayers; i++) {
+        const uint8_t s = _currentMatchPlayers[i];
+        if (s == slot || s >= 32)
+            continue;
+        const uint8_t n = (uint8_t)((PlayerFile *)(GetPlayer(team, s) + 76))->shirtNumber;
+        if (n < 100)
+            used[n] = 1;
+    }
+    PlayerFile *pf = (PlayerFile *)(GetPlayer(team, slot) + 76);
+    const uint8_t own = (uint8_t)pf->shirtNumber;
+    const int32_t keeper = (pf->positionAndFace >> 5) == 0;
+    if (own != 0 && own < 100 && (own != 1 || keeper) && !used[own])
+        return;                                 /* (his own number, free) */
+    for (int32_t n = keeper ? 1 : 2; n < 100; n++)
+        if (!used[n]) {
+            pf->shirtNumber = (int8_t)n;
+            return;
+        }                                       /* (99 numbers taken: his own) */
+}
+
 __attribute__((used, externally_visible))
 void SetBenchPlayersNumbers(TeamFileEx *team)
 {
     uint16_t teamNum = BE_READ_U16(team);  /* first word: countryNumber + teamOrdinal */
     uint16_t d1;
+
+    if (SquadNumbers_On())              /* (real squad numbers: the players' own) */
+        return;
 
     for (d1 = 11; d1 < 16; d1++) {
         uint8_t *player = GetPlayerAtIndex(teamNum, d1);
@@ -1372,8 +1417,10 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
             PlayerFile *pf1 = (PlayerFile *)(a1 + 76);
             PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
             int8_t tmpShirt = pf2->shirtNumber;
-            pf2->shirtNumber = pf1->shirtNumber;
-            pf1->shirtNumber = tmpShirt;
+            if (!SquadNumbers_On()) {   /* (real squad numbers: not swapped) */
+                pf2->shirtNumber = pf1->shirtNumber;
+                pf1->shirtNumber = tmpShirt;
+            }
         }
 
         d1 = d2;  /* now d1 = bench slot to be removed */
@@ -1416,8 +1463,10 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
             PlayerFile *pf1 = (PlayerFile *)(a1 + 76);
             PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
             int8_t tmpShirt = pf2->shirtNumber;
-            pf2->shirtNumber = pf1->shirtNumber;
-            pf1->shirtNumber = tmpShirt;
+            if (!SquadNumbers_On()) {   /* (real squad numbers: not swapped) */
+                pf2->shirtNumber = pf1->shirtNumber;
+                pf1->shirtNumber = tmpShirt;
+            }
         }
 
         /* Asm reads d1 from the reserve slot (where the to-remove player

@@ -56,6 +56,8 @@ void        World_ReadFromData(void);
 
 /* The other confederations' cups' spec (src/world_data.c; src/world_conti.c's CT_SPEC), 0: none. */
 const uint8_t *World_ContiSpec(void);
+/* A world whose careers keep real squad numbers (a pack's squad_numbers). */
+int32_t World_SquadNumbers(void);
 /* Its cups' names, in the spec's order, and each round's name (_cupRoundStringTable, by key). */
 typedef struct WorldContiCup {
     const char *name, *shortName;

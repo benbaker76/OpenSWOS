@@ -51,6 +51,10 @@ uint16_t GetPlayerSlotIndexByPlayerNumber(uint16_t teamNumber, uint16_t playerNu
 
 /* ---- SetBenchPlayersNumbers, Career_RemovePlayerFromSelectedTeamRoster (Chunk 95) ---- */
 void SetBenchPlayersNumbers(TeamFileEx *team);
+/* Real squad numbers (a world's squad_numbers, in a career): on; a new player of the managed club
+ * (its slot) keeps his number or takes the lowest free. */
+int32_t SquadNumbers_On(void);
+void SquadNumbers_Free(uint16_t slot);
 void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index);
 void RemovePlayerFromTeam(uint16_t playerOrd);
 

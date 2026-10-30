@@ -1608,11 +1608,12 @@ SWOS_CHIP_BSS IntroChipRam g_introChipRam;
  * slots (the DOS overlay fills 227..1219) + 84 font-extension slots at 1220..1303
  * (accented capitals incl. Spanish Á Ú Ñ + ¿ ¡ and French Œ Ÿ, full ASCII, $),
  * which the DOS sprite build never touches, so the glyphs survive in DOS-graphics
- * mode as well as Amiga. Then 1310..1480, the shirt numbers: a match's 17..99, the menus' 12..99 (shirt_numbers.c). */
+ * mode as well as Amiga. Then 1310..1480, the shirt numbers: a match's 17..99, the menus' 12..99 (shirt_numbers.c);
+ * 1481..1683 face 3's two sets and its menu icon (player_face3.c). */
 #if UINTPTR_MAX == 0xFFFFFFFFu
-SWOS_CHIP_BSS char _spriteGraphics[1481 * 4];          /* 1481 ptrs × 4 B (32-bit) */
+SWOS_CHIP_BSS char _spriteGraphics[1684 * 4];          /* 1684 ptrs × 4 B (32-bit) */
 #else
-SWOS_CHIP_BSS char _spriteGraphics[1481 * 8];          /* 1481 ptrs × 8 B */
+SWOS_CHIP_BSS char _spriteGraphics[1684 * 8];          /* 1684 ptrs × 8 B */
 #endif
 /* spriteGraphicsPtr: real data in swos_amiga_data_imports.c */
 /* squadChangesAllowed: real data in swos_amiga_data_imports.c */

@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "player_face3.h"
 #include "player_sprites.h"
 #include "game_types.h"
 #include "string_utils.h"
@@ -299,6 +300,8 @@ void InitializePlayerSpriteFrameIndices(void)
                 if (face == -1)
                     face = 0;
                 face = face * 0x3A;
+            } else if (_topTeamPtr->players[idx].blond) {
+                face = Face3_FrameOffset(0);    /* (face 3: player_face3.c) */
             } else {
                 face = face * 0x65;
             }
@@ -314,6 +317,8 @@ void InitializePlayerSpriteFrameIndices(void)
                 if (face == -1)
                     face = 0;
                 face = face * 0x3A;
+            } else if (_bottomTeamPtr->players[idx].blond) {
+                face = Face3_FrameOffset(1);
             } else {
                 face = face * 0x65;
             }
