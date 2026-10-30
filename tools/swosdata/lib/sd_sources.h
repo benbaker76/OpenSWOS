@@ -1,7 +1,7 @@
 /*
  * sd_sources.h -- the player's own copy of the game, wherever it is.
  *
- * Four kinds of source, any combination:
+ * Five kinds of source, any combination:
  *   - the Amiga version: its two floppy images (.adf), told apart by their volume
  *     names, "SWOS" (disk 1) and "SWOS2" (disk 2), never by file name -- or a hard
  *     disk image (.hdf) with the game installed on it (ASWOS's, sensiblesoccer.de's,
@@ -10,6 +10,9 @@
  *   - the PC version: the installed game folder (GOG's, or any copy of one) --
  *     found by SPRITE.DAT, any case.
  *   - the Atari Jaguar version: the cartridge image (.jag, .j64, .rom or .bin, 2 MB).
+ *   - a world's data (the game's include/world.h): OpenSWOS-World-<tag>.zip, the package
+ *     scripts/make_world_package.sh makes (hosted apart from OpenSWOS: World 2026-27's squads
+ *     are its authors'), or the folder it was unpacked to -- found by its WORLD.ini.
  *   - SWOS 2020: its install folder, for the pitches its launcher has put in the
  *     game's own folder (swos/) -- whichever set the player picked. Found by the
  *     program in that folder, swos-port-Release.exe; that folder also looks like
@@ -37,6 +40,7 @@ typedef struct {
     char  dosDir[1024];     /* the PC game folder */
     char  jagRom[1024];     /* the Jaguar cartridge image */
     char  s2020Dir[1024];   /* SWOS 2020's game folder: <install>/swos */
+    char  world[1024];      /* a world's package (.zip) or the folder with its WORLD.ini */
     Adf  *disk1, *disk2;    /* open while SdSources_Open .. Close */
     Adf  *hdfDisk;
     LhaArchive *lhaArc;
@@ -76,6 +80,14 @@ const char *SdSources_AmigaProblem(void);
 int32_t SdSources_HaveDos(const SdSources *s);
 int32_t SdSources_HaveJaguar(const SdSources *s);
 int32_t SdSources_HaveSwos2020(const SdSources *s);
+int32_t SdSources_HaveWorld(const SdSources *s);
+
+/* A world's package or folder: its WORLD.ini read -- the world's tag ("2627"), its name, the
+ * fingerprint of its data (scripts/world_import.py) -- and, for a .zip, unpacked to a folder of
+ * the setup's own under the system's temporary folder; that folder (with WORLD.ini) in `dir`.
+ * 0 when it is one. */
+typedef struct { char tag[16], name[64], fingerprint[24]; } SdWorldInfo;
+int32_t SdSources_OpenWorld(const char *path, SdWorldInfo *info, char *dir, uint32_t cap);
 
 /* Open the disks for reading. 0 on success. */
 int32_t SdSources_Open(SdSources *s, char *err);

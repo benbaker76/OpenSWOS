@@ -85,6 +85,10 @@ void SwosData_Plan(const SdJob *job, SdStepInfo info[SD_STEP_COUNT])
     info[SD_STEP_SWOS2020].name = "SWOS 2020 pitches";
     info[SD_STEP_SWOS2020].needs = "a SWOS 2020 install";
     info[SD_STEP_SWOS2020].ready = SdSources_HaveSwos2020(&job->src);
+
+    info[SD_STEP_WORLD].name = "World 2026-27";
+    info[SD_STEP_WORLD].needs = "the World 2026-27 package";
+    info[SD_STEP_WORLD].ready = SdSources_HaveWorld(&job->src);
 }
 
 static int32_t write_out(SdJob *job, const char *rel, const SgBuf *b, char *err)
@@ -491,6 +495,27 @@ static int32_t step_swos2020(SdJob *job, int32_t *done, int32_t total, char *err
 
 static int32_t write_assets_ini(SdJob *job, const SdStepInfo info[SD_STEP_COUNT], char *err);
 
+/* A world's package (OpenSWOS-World-<tag>.zip, or the folder it was unpacked to) into the assets
+ * folder (SwosData_InstallWorld). */
+static int32_t step_world(SdJob *job, int32_t *done, int32_t total, char *err)
+{
+    SdWorldInfo w;
+    char dir[1400];
+    if (SdSources_OpenWorld(job->src.world, &w, dir, sizeof dir) != 0) {
+        snprintf(err, 256, "%.200s is not a world package (no WORLD.ini)", job->src.world);
+        return -1;
+    }
+    if (job->log) {
+        char line[256];
+        snprintf(line, sizeof line, "%s (%s), data %s", w.name[0] ? w.name : "a world", w.tag,
+                 w.fingerprint[0] ? w.fingerprint : "?");
+        job->log(job->user, line);
+    }
+    int32_t rc = SwosData_InstallWorld(dir, w.tag, job->outDir, NULL, job->log, job->user, err);
+    tick(job, done, total);
+    return rc;
+}
+
 int32_t SwosData_Run(SdJob *job, char *err)
 {
     SdStepInfo info[SD_STEP_COUNT];
@@ -511,6 +536,8 @@ int32_t SwosData_Run(SdJob *job, char *err)
         total += SD_JAG_FILE_COUNT;
     if (info[SD_STEP_SWOS2020].ready)
         total += count_2020() + 6;
+    if (info[SD_STEP_WORLD].ready)
+        total += 1;
 
     if (SdSources_Open(&job->src, err) != 0)
         return -1;
@@ -528,19 +555,11 @@ int32_t SwosData_Run(SdJob *job, char *err)
         case SD_STEP_TEAMS:       rc = step_teams(job, &done, total, err); break;
         case SD_STEP_JAGUAR:      rc = step_jaguar(job, &done, total, err); break;
         case SD_STEP_SWOS2020:    rc = step_swos2020(job, &done, total, err); break;
+        case SD_STEP_WORLD:       rc = step_world(job, &done, total, err); break;
         default: break;
         }
     }
     SdSources_Close(&job->src);
-    if (rc == 0) {
-        /* The default world (the game's World 2026-27): its built files, which OpenSWOS ships
-         * (resDir/data_json/worlds/<tag>), installed beside the game data, so the Amiga's drawer
-         * and WHDLoad package get it (the PC game reads them beside itself as well). */
-        char world[1100], probe[1100];
-        Sg_PathJoin(world, sizeof world, job->resDir, "data_json/worlds/" SD_DEFAULT_WORLD);
-        if (job->outDir[0] && Sg_FindNoCase(world, "competitions/leagues.json", probe, sizeof probe) == 0)
-            rc = SwosData_InstallWorld(world, SD_DEFAULT_WORLD, job->outDir, NULL, job->log, job->user, err);
-    }
     if (rc == 0)
         rc = write_assets_ini(job, info, err);
     return rc;
@@ -559,10 +578,10 @@ int32_t     SwosData_PartVersion(SdStep step) { return step < SD_STEP_COUNT ? kP
 const char *SwosData_PartKey(SdStep step)     { return step < SD_STEP_COUNT ? kPartKey[step] : ""; }
 
 /* The [sources] keys, beside the SdSources field each one is. */
-enum { SRC_ADF1, SRC_ADF2, SRC_HDF, SRC_LHA, SRC_DOS, SRC_JAG, SRC_2020, SRC_COUNT };
+enum { SRC_ADF1, SRC_ADF2, SRC_HDF, SRC_LHA, SRC_DOS, SRC_JAG, SRC_2020, SRC_WORLD, SRC_COUNT };
 static const char *const kSourceKey[SRC_COUNT] = {
     ASSETS_SRC_AMIGA_DISK1, ASSETS_SRC_AMIGA_DISK2, ASSETS_SRC_AMIGA_HDF, ASSETS_SRC_AMIGA_LHA,
-    ASSETS_SRC_PC, ASSETS_SRC_JAGUAR, ASSETS_SRC_SWOS2020
+    ASSETS_SRC_PC, ASSETS_SRC_JAGUAR, ASSETS_SRC_SWOS2020, ASSETS_SRC_WORLD
 };
 static char *source_field(SdSources *s, int32_t i)
 {
@@ -573,6 +592,7 @@ static char *source_field(SdSources *s, int32_t i)
     case SRC_LHA:  return s->lha;
     case SRC_DOS:  return s->dosDir;
     case SRC_JAG:  return s->jagRom;
+    case SRC_WORLD: return s->world;
     default:       return s->s2020Dir;
     }
 }
@@ -796,6 +816,10 @@ void SwosData_Installed(const char *assetsDir, SdInstalled out[SD_STEP_COUNT])
     count_file(assetsDir, "grafs_jag/JAG.PAL", n);
     count_file(assetsDir, "grafs_jag/JAGKITS.BIN", n);
 
+    n = &out[SD_STEP_WORLD];                /* (the world the Amiga plays when asked: its package's) */
+    count_file(assetsDir, "data_json/worlds/" SD_AMIGA_WORLD "/WORLD.ini", n);
+    count_file(assetsDir, "data_json/worlds/" SD_AMIGA_WORLD "/competitions/leagues.json", n);
+
     n = &out[SD_STEP_SWOS2020];
     for (int32_t i = 0; g_sd2020Copy[i].dest; i++)
         count_file(assetsDir, g_sd2020Copy[i].dest, n);
@@ -909,7 +933,8 @@ static int32_t copy_tree(const char *src, const char *dst, const char *rel, char
 /* A ready drawer: the program (`programDir` holds SWOS.info and the SWOS drawer, as
  * SWOS-Amiga.zip unpacks) copied into `destDir`, then filled as above. */
 int32_t SwosData_MakeAmigaDrawer(const char *assetsDir, const char *programDir, const char *destDir,
-                                 void (*log)(void *user, const char *line), void *user, char *err)
+                                 int32_t withWorld, void (*log)(void *user, const char *line), void *user,
+                                 char *err)
 {
     char from[1100], to[1100], drawer[1100];
     SgBuf b;
@@ -941,7 +966,7 @@ int32_t SwosData_MakeAmigaDrawer(const char *assetsDir, const char *programDir, 
         log(user, line);
     }
     Sg_PathJoin(drawer, sizeof drawer, destDir, "SWOS");
-    return SwosData_FillAmigaDrawer(assetsDir, drawer, log, user, err);
+    return SwosData_FillAmigaDrawer(assetsDir, drawer, withWorld, log, user, err);
 }
 
 /* ---- the WHDLoad package --------------------------------------------------- */
@@ -1039,7 +1064,7 @@ static int32_t pkg_tree(Pkg *p, const char *src, const char *rel, const char *pr
 #define WHD_TOP   "OpenSWOSAGA-NE"
 
 int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const char *resDir,
-                             const char *outPath, void (*log)(void *user, const char *line),
+                             const char *outPath, int32_t withWorld, void (*log)(void *user, const char *line),
                              void *user, char *err)
 {
     static const char *const kTrees[] = { "data", "grafs", "grafs_aga", "sound" };
@@ -1106,7 +1131,7 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
         Sg_PathJoin(amigaOnly, sizeof amigaOnly, assetsDir, AGA_ONLY_DIR);
         pkg_tree(&pkg, amigaOnly, "grafs_aga", WHD_TOP "/data/");
     }
-    {   /* The default world's team files and data/WORLD, as in the drawer. */
+    if (withWorld) {   /* Asked for: the world's team files and data/WORLD, as in the drawer. */
         char world[1100];
         Sg_PathJoin(world, sizeof world, assetsDir, SD_WORLD_AMIGA_DIR);
         if (Sg_FindNoCase(world, "data/WORLD", probe, sizeof probe) == 0)
@@ -1145,7 +1170,7 @@ done:
     return rc;
 }
 
-int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
+int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir, int32_t withWorld,
                                  void (*log)(void *user, const char *line), void *user,
                                  char *err)
 {
@@ -1181,9 +1206,12 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
             copy_tree(amigaOnly, drawerDir, "grafs_aga", err) < 0)
             return -1;
     }
-    /* Then the default world's team files and data/WORLD (SwosData_InstallWorld), when the
-     * assets folder has it. */
-    {
+    /* Then, asked for, the world's team files and data/WORLD (SwosData_InstallWorld); not asked
+     * for, no data/WORLD an earlier drawer left (96/97's team files were just copied over its). */
+    if (!withWorld) {
+        Sg_PathJoin(probe, sizeof probe, drawerDir, "data/WORLD");
+        remove(probe);
+    } else {
         char world[1100];
         Sg_PathJoin(world, sizeof world, assetsDir, SD_WORLD_AMIGA_DIR);
         if (Sg_FindNoCase(world, "data/WORLD", probe, sizeof probe) == 0) {
@@ -1192,7 +1220,7 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
                 return -1;
             if (log) {
                 char line[256];
-                snprintf(line, sizeof line, "Amiga drawer: the world %s (%d files)", SD_DEFAULT_WORLD, n);
+                snprintf(line, sizeof line, "Amiga drawer: the world %s (%d files)", SD_AMIGA_WORLD, n);
                 log(user, line);
             }
         }
@@ -1234,6 +1262,18 @@ int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char 
             log(user, line);
         }
     }
+    {   /* its WORLD.ini (the tag, the data's fingerprint: the game checks it) */
+        char from[1100], to[1100];
+        SgBuf b;
+        if (Sg_FindNoCase(worldDir, "WORLD.ini", from, sizeof from) == 0) {
+            Sg_PathJoin(to, sizeof to, dst, "WORLD.ini");
+            if (Sg_ReadFile(from, &b, err) != 0 || Sg_WriteFile(to, b.data, b.size, err) != 0) {
+                Sg_BufFree(&b);
+                return -1;
+            }
+            Sg_BufFree(&b);
+        }
+    }
     Sg_PathJoin(amiga, sizeof amiga, dst, "amiga");
     int32_t n = copy_tree(worldDir, amiga, "data", err);
     if (n < 0)
@@ -1258,4 +1298,11 @@ int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char 
         }
     }
     return 0;
+}
+
+int32_t SwosData_HaveAmigaWorld(const char *assetsDir)
+{
+    char world[1100], probe[1100];
+    Sg_PathJoin(world, sizeof world, assetsDir, SD_WORLD_AMIGA_DIR);
+    return Sg_FindNoCase(world, "data/WORLD", probe, sizeof probe) == 0;
 }

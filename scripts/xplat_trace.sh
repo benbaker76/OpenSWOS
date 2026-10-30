@@ -8,7 +8,7 @@
 # RECORDING identically; what is compared here is mac against win, not either against the
 # corpus, and SWOS_REPLAY_ALLOW_FLAGS=1 is what lets the rig run at all.
 set -u
-export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 SCR="${SWOS_HUNT_OUT:-$(cd "$(dirname "$0")/.." && pwd)/tests/hunt}"; mkdir -p "$SCR"
 ROOT=/mnt/c/Projects/AI/SWOS/OpenSWOS
 GAMEPLAY="${GAMEPLAY:-on}"; GP="$GAMEPLAY"

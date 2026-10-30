@@ -1500,6 +1500,20 @@ CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32
 %(conti)s
 #endif
 
+/* The fingerprint of the world's data this build was made with (its package's WORLD.ini:
+ * scripts/world_import.py world_fingerprint), "" for none: a package of other data does not
+ * fit the league records above. */
+const char *World_DataFingerprint(void)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(fp_cases)s
+#endif
+    default:
+        return "";
+    }
+}
+
 /* Real squad numbers (a pack's 'squad_numbers', the Mod's benchnum.py): a career keeps every
  * player's own shirt number (teams.c, transfer_market.c). */
 int32_t World_SquadNumbers(void)
@@ -1624,7 +1638,7 @@ def squad_numbers():
 
 
 def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None,
-                 guests=(), proms=(), states=(), squad=False):
+                 guests=(), proms=(), states=(), squad=False, fingerprint=""):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1905,6 +1919,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                            "st_cases": st_cases,
                            "conti_cases": conti_cases, "conti_cup_cases": conti_cup_cases, "prom_cases": prom_cases,
                            "squad_cases": "    case WORLD_%s:\n        return 1;" % tag if squad else "",
+                           "fp_cases": '    case WORLD_%s:\n        return "%s";' % (tag, fingerprint) if fingerprint else "",
                            "coef_cases": coef_cases,
                            "splits": "\n\n".join(split_tables), "split_cases": split_cases,
                            "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
@@ -2173,6 +2188,22 @@ def write_team_file(teams, json_name):
     WRITTEN.add(os.path.abspath(path))
 
 
+def world_fingerprint():
+    """The world's data as its package carries it -- teams/, competitions/, data/: the SHA-1 of
+    every file's path and bytes, in path order, its first 16 hex digits. Baked into world_data.c
+    (World_DataFingerprint), written into WORLD.ini: a package and a build of other data are told
+    apart (src/world.c World_CheckData)."""
+    h = hashlib.sha1()
+    for sub in ("teams", "competitions", "data"):
+        folder = os.path.join(WORLD, sub)
+        for f in sorted(os.listdir(folder)):
+            path = os.path.join(folder, f)
+            if os.path.isfile(path):
+                h.update(("%s/%s\0" % (sub, f)).encode())
+                h.update(open(path, "rb").read())
+    return h.hexdigest()[:16]
+
+
 def main():
     if not os.path.isdir(MOD):
         sys.exit("no %s: the Mod's data (Davide's private copies) is not here" % os.path.relpath(MOD, REPO))
@@ -2235,12 +2266,6 @@ def main():
     leagues["count"] = len(leagues["leagues"])
     write(os.path.join(WORLD, "competitions", "leagues.json"), leagues)
     guests = guest_team_files()
-    with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
-        f.write(world_data_c("2627", leagues, resized,
-                             groups,
-                             playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks), conti_spec(), guests, proms, states, squad_numbers()))
-    print("wrote src/world_data.c")
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):
         folder = os.path.join(WORLD, sub)
@@ -2249,6 +2274,17 @@ def main():
             if re.fullmatch(pattern, f) and path not in WRITTEN:
                 os.remove(path)
                 print("removed", os.path.relpath(path, REPO), "(an earlier run's)")
+    fingerprint = world_fingerprint()
+    with open(os.path.join(WORLD, "WORLD.ini"), "w", newline="\n") as f:
+        f.write("; A world's data for OpenSWOS -- written by scripts/world_import.py; the package\n"
+                "; (scripts/make_world_package.sh) carries it, OpenSWOS Setup installs it.\n"
+                "tag = 2627\nname = World 2026-27\nfingerprint = %s\n" % fingerprint)
+    with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
+        f.write(world_data_c("2627", leagues, resized,
+                             groups,
+                             playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
+                             europe(picks), conti_spec(), guests, proms, states, squad_numbers(), fingerprint))
+    print("wrote src/world_data.c (data %s)" % fingerprint)
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))
 

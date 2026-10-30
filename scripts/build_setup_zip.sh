@@ -13,7 +13,6 @@
 #     setup/  data/           the setup's own files (bin/setup, credits_icons.bmp),
 #                             found ABOVE each program by both of them; setup/whdload
 #                             is the WHDLoad package's wrapper (SwosData_MakeWhdload)
-#     data_json/worlds/2627/  the default world's Amiga team files and competitions
 #     amiga/SWOS/             the Amiga program, SWOS-Amiga.zip's drawer: the setup
 #                             makes a ready drawer or WHDLoad package from it, so an
 #                             Amiga player needs this one download
@@ -78,11 +77,6 @@ readelf -d "$STAGE/Linux/openswos-setup" | grep -q 'path: \[\$ORIGIN\]' ||
 echo "== the setup's own files"
 # Tracked files only, keeping their folders (setup/whdload/...).
 scripts/stage_runtime.sh "$STAGE" setup >/dev/null || fail "copying bin/setup failed"
-# The default world's Amiga files (the setup installs them, SwosData_Run, and puts them in the
-# drawer and the WHDLoad package): its team files and its competitions; not its teams' JSON,
-# which only the PC game reads, beside itself.
-scripts/stage_runtime.sh "$STAGE" data_json/worlds/2627/data data_json/worlds/2627/competitions >/dev/null ||
-    fail "copying the world's files failed"
 
 echo "== the Amiga program (dist/SWOS-Amiga.zip)"
 AMIGA_ZIP=dist/SWOS-Amiga.zip

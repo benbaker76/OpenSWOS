@@ -8564,6 +8564,21 @@ static const uint8_t kWorld2627StatesPools46[917] = {
 static const WorldStates kWorld2627States46 = { 46, 254, 1, 40, 13, 2124, kWorld2627StatesSim46, kWorld2627StatesPools46, kWorld2627StatesWords46, kWorld2627StateContests46 };
 #endif
 
+/* The fingerprint of the world's data this build was made with (its package's WORLD.ini:
+ * scripts/world_import.py world_fingerprint), "" for none: a package of other data does not
+ * fit the league records above. */
+const char *World_DataFingerprint(void)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+    case WORLD_2627:
+        return "a80213616368e240";
+#endif
+    default:
+        return "";
+    }
+}
+
 /* Real squad numbers (a pack's 'squad_numbers', the Mod's benchnum.py): a career keeps every
  * player's own shirt number (teams.c, transfer_market.c). */
 int32_t World_SquadNumbers(void)

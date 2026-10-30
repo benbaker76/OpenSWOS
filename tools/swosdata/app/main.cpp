@@ -48,6 +48,10 @@ extern "C" {
 #include <nfd.h>
 #endif
 
+// Where World 2026-27's package is downloaded from (hosted apart from OpenSWOS: its squads are
+// their authors'): "" until it is up, and the World 2026-27 row has no link.
+static const char kWorldUrl[] = "";
+
 namespace {
 
 slint::SharedString Str(const std::string& s) { return slint::SharedString(s); }
@@ -294,7 +298,7 @@ struct App {
   // floppies, a hard disk image, a WHDLoad .lha, or a .zip of any of them. A path
   // that is not the thing its row asks for stays in the box (so it can be
   // corrected), marked, and is not used.
-  enum Row { ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020, ROW_COUNT };
+  enum Row { ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020, ROW_WORLD, ROW_COUNT };
   std::string unusable[ROW_COUNT];
   std::shared_ptr<slint::VectorModel<SourceRow>> rows;
   std::string amigaKey, amigaSeason, amigaProblem;   // the season, for this Amiga source
@@ -303,6 +307,7 @@ struct App {
     switch (r) {
       case ROW_PC: return src.dosDir;
       case ROW_JAG: return src.jagRom;
+      case ROW_WORLD: return src.world;
       default: return src.s2020Dir;
     }
   }
@@ -413,6 +418,22 @@ struct App {
                             "https://www.atarimania.com/games/atari-jaguar-games-sensible-soccer-international-edition-30123"}});
         path = src.jagRom;
         break;
+      case ROW_WORLD: {
+        row.label = "World 2026-27";
+        row.placeholder = "OpenSWOS-World-2627.zip";
+        row.need_pc = "optional";
+        row.need_amiga = "optional";
+        row.about_pc = "The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its "
+                       "package is a download of its own. The game plays it when SWOS.ini says world = 2627.";
+        row.about_amiga = "The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its "
+                          "package is a download of its own; tick it below to play it on the Amiga.";
+        if (kWorldUrl[0]) row.links = Links({{"OpenSWOS-World-2627.zip", kWorldUrl}});
+        path = src.world;
+        SdWorldInfo wi;
+        if (src.world[0] && SdSources_OpenWorld(src.world, &wi, nullptr, 0) == 0 && wi.fingerprint[0])
+          row.detail = Str("Data " + std::string(wi.fingerprint) + ".");
+        break;
+      }
       default:
         row.label = "SWOS 2020";
         row.placeholder = "the SWOS 2020 install folder";
@@ -438,8 +459,8 @@ struct App {
       rows = std::make_shared<slint::VectorModel<SourceRow>>();
       for (int r = 0; r < ROW_COUNT; r++) rows->push_back(MakeRow(r));
       w().set_sources(rows);
-      auto pc = std::make_shared<slint::VectorModel<int>>(std::vector<int>{ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020});
-      auto am = std::make_shared<slint::VectorModel<int>>(std::vector<int>{ROW_AMIGA, ROW_PC, ROW_2020});
+      auto pc = std::make_shared<slint::VectorModel<int>>(std::vector<int>{ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020, ROW_WORLD});
+      auto am = std::make_shared<slint::VectorModel<int>>(std::vector<int>{ROW_AMIGA, ROW_PC, ROW_2020, ROW_WORLD});
       w().set_rows_pc(pc);
       w().set_rows_amiga(am);
       return;
@@ -519,6 +540,11 @@ struct App {
         src.jagRom[0] = '\0';
         unusable[r] = path;
         return "Not the Sensible Soccer Jaguar cartridge (a 2 MB .jag, .j64, .rom or .bin).";
+      case ROW_WORLD:
+        if (found.world[0]) { take(src.world, found.world); return ""; }
+        src.world[0] = '\0';
+        unusable[r] = path;
+        return "Not a world's package: OpenSWOS-World-2627.zip, or the folder it was unpacked to.";
       default:
         if (found.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); return ""; }
         src.s2020Dir[0] = '\0';
@@ -554,6 +580,7 @@ struct App {
       case ROW_PC:
       case ROW_2020: picked = PickFolder(current[0] ? current : std::string()); break;
       case ROW_AMIGA: picked = PickFile("Amiga version", "adf,hdf,lha,zip"); break;
+      case ROW_WORLD: picked = PickFile("World 2026-27 package", "zip"); break;
       default: picked = PickFile("Jaguar cartridge", "jag,j64,rom,bin"); break;
     }
     if (picked.empty()) return;
@@ -667,6 +694,10 @@ struct App {
     const bool installedAlready = Has(SD_STEP_AMIGA_FILES) && Has(SD_STEP_AGA_PC);
     w().set_can_make_amiga(!amigaProgram.empty() && !dest.empty() && !outDir.empty() &&
                            (sources || installedAlready));
+    // World 2026-27 on the Amiga: its package installed already, or about to be.
+    const bool world = info[SD_STEP_WORLD].ready || SwosData_HaveAmigaWorld(outDir.c_str());
+    w().set_amiga_world_available(world);
+    if (!world) w().set_amiga_world(false);
     if (!busy && !w().get_amiga_done() && !w().get_amiga_error()) {
       std::string text;
       if (amigaProgram.empty())
@@ -716,7 +747,7 @@ struct App {
 
   static int32_t CountFound(const SdSources& s) {
     return (s.adf1[0] != 0) + (s.adf2[0] != 0) + (s.hdf[0] != 0) + (s.lha[0] != 0) + (s.dosDir[0] != 0) +
-           (s.jagRom[0] != 0) + (s.s2020Dir[0] != 0);
+           (s.jagRom[0] != 0) + (s.s2020Dir[0] != 0) + (s.world[0] != 0);
   }
 
   struct ScanProgress {
@@ -1021,16 +1052,18 @@ struct App {
 
     const std::string program = amigaProgram, dest = kindDrawer ? drawerTo : whdloadTo,
                       assets = outDir, res = resDir;
-    worker = std::thread([this, job, any, kindDrawer, program, dest, assets, res] {
+    const int32_t withWorld = w().get_amiga_world() ? 1 : 0;
+    worker = std::thread([this, job, any, kindDrawer, program, dest, assets, res, withWorld] {
       char err[256] = {0};
       int32_t rc = any ? SwosData_Run(job.get(), err) : 0;
       SdSources_Close(&job->src);
       if (rc == 0) {
         PipeLog(&pipe, kindDrawer ? "Making the drawer..." : "Making the WHDLoad package...");
         rc = kindDrawer
-                 ? SwosData_MakeAmigaDrawer(assets.c_str(), program.c_str(), dest.c_str(), PipeLog, &pipe, err)
+                 ? SwosData_MakeAmigaDrawer(assets.c_str(), program.c_str(), dest.c_str(), withWorld, PipeLog,
+                                            &pipe, err)
                  : SwosData_MakeWhdload(assets.c_str(), Join(program, "SWOS").c_str(), res.c_str(), dest.c_str(),
-                                        PipeLog, &pipe, err);
+                                        withWorld, PipeLog, &pipe, err);
       }
       const std::string msg(err);
       slint::invoke_from_event_loop([this, rc, msg, kindDrawer, dest] {
@@ -1112,6 +1145,7 @@ struct App {
     if (found.dosDir[0] && !src.dosDir[0]) { take(src.dosDir, found.dosDir); unusable[ROW_PC].clear(); what = "the PC game"; }
     if (found.jagRom[0] && !src.jagRom[0]) { take(src.jagRom, found.jagRom); unusable[ROW_JAG].clear(); what = "the Jaguar cartridge"; }
     if (found.s2020Dir[0] && !src.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); unusable[ROW_2020].clear(); what = "SWOS 2020"; }
+    if (found.world[0] && !src.world[0]) { take(src.world, found.world); unusable[ROW_WORLD].clear(); what = "World 2026-27"; }
     if (found.adf1[0] || found.adf2[0] || found.hdf[0] || found.lha[0]) {
       // The library's own rule picks the better of the two Amiga versions.
       SdSources_AddFile(&src, path.c_str());

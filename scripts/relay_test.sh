@@ -68,7 +68,7 @@
 # Each side's input comes from its own generator (SWOS_LIVE_RANDOM_INPUT), so both
 # predict wrong and roll back, and the relay carries real rollback traffic.
 set -uo pipefail
-export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 BIN="${BIN:-SWOS.x86_64}"

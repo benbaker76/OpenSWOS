@@ -32,7 +32,7 @@
 #   presented frames, which stalls that peer. It stops after 60 files a process, so keep
 #   ROUND short (a restart per round) if the stall is what you are sampling.
 set -u
-export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 SCR="${SWOS_HUNT_OUT:-$(cd "$(dirname "$0")/.." && pwd)/tests/hunt}"; mkdir -p "$SCR"
 ROOT=/mnt/c/Projects/AI/SWOS/OpenSWOS
 MINUTES_PER_ROUND="${ROUND:-25}"

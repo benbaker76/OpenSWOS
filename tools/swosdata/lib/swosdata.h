@@ -35,6 +35,7 @@ typedef enum {
     SD_STEP_TEAMS,          /* data_json/teams/ (and data/ without the Amiga disks) */
     SD_STEP_JAGUAR,         /* grafs_jag/: the Jaguar's sprites, gaps from the PC game */
     SD_STEP_SWOS2020,       /* grafs_2020/ and grafs_aga/P2020_n.MAP: SWOS 2020's pitches */
+    SD_STEP_WORLD,          /* data_json/worlds/<tag>/: a world's package (World 2026-27) */
     SD_STEP_COUNT
 } SdStep;
 
@@ -89,7 +90,7 @@ int32_t SwosData_Run(SdJob *job, char *err);
  * drawer unpacked from SWOS-Amiga.zip, which ships the program but no game
  * data. The drawer is recognised by its SWOS2 program. Needs the Amiga disks'
  * files in the assets folder (grafs/, sound/). 0 on success. */
-int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
+int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir, int32_t withWorld,
                                  void (*log)(void *user, const char *line), void *user,
                                  char *err);
 
@@ -97,7 +98,8 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
  * SWOS-Amiga.zip was unpacked; the setup carries one in amiga/), then filled as
  * SwosData_FillAmigaDrawer does. 0 on success. */
 int32_t SwosData_MakeAmigaDrawer(const char *assetsDir, const char *programDir, const char *destDir,
-                                 void (*log)(void *user, const char *line), void *user, char *err);
+                                 int32_t withWorld, void (*log)(void *user, const char *line), void *user,
+                                 char *err);
 
 /* The WHDLoad package, OpenSWOSAGA-WHDL.lha at `outPath`: OpenSWOS's own Slave
  * (OpenSWOS.slave, from the SWOS drawer `drawerDir` -- unpacked SWOS-Amiga.zip, built
@@ -106,18 +108,21 @@ int32_t SwosData_MakeAmigaDrawer(const char *assetsDir, const char *programDir, 
  * SwosData_FillAmigaDrawer puts it in a drawer. No Kickstart image, no AmigaOS files:
  * the Slave starts SWOS2 directly. 0 on success. */
 int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const char *resDir,
-                             const char *outPath, void (*log)(void *user, const char *line),
+                             const char *outPath, int32_t withWorld, void (*log)(void *user, const char *line),
                              void *user, char *err);
 
-/* The game's default world (World 2026-27) and, in an assets folder, where its Amiga files are. */
-#define SD_DEFAULT_WORLD   "2627"
-#define SD_WORLD_AMIGA_DIR "data_json/worlds/" SD_DEFAULT_WORLD "/amiga"
+/* The world the Amiga plays when asked (withWorld above: World 2026-27, installed from its
+ * package), and where its Amiga files are in an assets folder. */
+#define SD_AMIGA_WORLD     "2627"
+#define SD_WORLD_AMIGA_DIR "data_json/worlds/" SD_AMIGA_WORLD "/amiga"
+/* Whether the assets folder has that world's Amiga files (the drawer's choice is offered). */
+int32_t SwosData_HaveAmigaWorld(const char *assetsDir);
 
-/* A world's built files (`worldDir`: scripts/world_import.py's bin/data_json/worlds/<tag>/ --
- * teams/, competitions/, data/) into the assets folder's data_json/worlds/<tag>/, where the PC
- * game reads them (--world=<tag> or [general] world), and, given a SWOS drawer, its data/ over
- * the drawer's with data/WORLD naming the world. OpenSWOS ships no world's data: the player
- * brings it. 0 on success. */
+/* A world's built files (`worldDir`: a world package unpacked -- WORLD.ini, teams/,
+ * competitions/, data/; scripts/make_world_package.sh) into the assets folder's
+ * data_json/worlds/<tag>/: WORLD.ini, teams/ and competitions/ where the PC game reads them,
+ * amiga/data/ (the team files and WORLD) for the Amiga's drawer and WHDLoad package when the
+ * player asks for the world there; given a SWOS drawer, into it at once. 0 on success. */
 int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char *assetsDir,
                               const char *drawerDir, void (*log)(void *user, const char *line),
                               void *user, char *err);

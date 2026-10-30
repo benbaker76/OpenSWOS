@@ -30,7 +30,8 @@
     X(AGA_AMIGA,   "aga_amiga",   1)  /* grafs_aga/ loading and disk screens */         \
     X(TEAMS,       "teams",       1)  /* data_json/teams/ (and data/ teams) */          \
     X(JAGUAR,      "jaguar",      1)  /* grafs_jag/ */                                  \
-    X(SWOS2020,    "swos2020",    1)  /* grafs_2020/, grafs_aga/P2020_n.MAP */
+    X(SWOS2020,    "swos2020",    1)  /* grafs_2020/, grafs_aga/P2020_n.MAP */          \
+    X(WORLD,       "world",       1)  /* data_json/worlds/<tag>/: a world's package */
 
 /* The [sources] keys. */
 #define ASSETS_SRC_AMIGA_DISK1 "amiga_disk1"
@@ -40,5 +41,6 @@
 #define ASSETS_SRC_PC          "pc"
 #define ASSETS_SRC_JAGUAR      "jaguar"
 #define ASSETS_SRC_SWOS2020    "swos2020"
+#define ASSETS_SRC_WORLD       "world"          /* a world's package (OpenSWOS-World-<tag>.zip) */
 
 #endif /* ASSETS_INI_H */

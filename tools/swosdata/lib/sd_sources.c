@@ -378,6 +378,169 @@ static int32_t add_zip(SdSources *s, const char *path)
     return added ? 0 : -1;
 }
 
+/* ---- a world's package ------------------------------------------------------- */
+
+typedef struct {
+    char    name[260];
+    uint8_t isDir;
+} Entry;
+static Entry *list_dir(const char *dir, int32_t *count);
+
+/* WORLD.ini's text -> info. 0 when it names a world. */
+static int32_t world_ini(const char *text, size_t len, SdWorldInfo *info)
+{
+    memset(info, 0, sizeof *info);
+    size_t i = 0;
+    while (i < len) {
+        char line[256];
+        size_t n = 0;
+        while (i < len && text[i] != '\n' && n + 1 < sizeof line)
+            line[n++] = text[i++];
+        while (i < len && text[i] != '\n')
+            i++;
+        i++;
+        line[n] = '\0';
+        char *eq = strchr(line, '=');
+        if (line[0] == ';' || !eq)
+            continue;
+        char *k = line, *v = eq + 1, *e = eq;
+        while (e > k && (e[-1] == ' ' || e[-1] == '\t')) e--;
+        *e = '\0';
+        while (*v == ' ' || *v == '\t') v++;
+        e = v + strlen(v);
+        while (e > v && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r')) e--;
+        *e = '\0';
+        if (strcmp(k, "tag") == 0) snprintf(info->tag, sizeof info->tag, "%s", v);
+        else if (strcmp(k, "name") == 0) snprintf(info->name, sizeof info->name, "%s", v);
+        else if (strcmp(k, "fingerprint") == 0) snprintf(info->fingerprint, sizeof info->fingerprint, "%s", v);
+    }
+    for (const char *t = info->tag; *t; t++)
+        if (!isalnum((unsigned char)*t))
+            return -1;
+    return info->tag[0] ? 0 : -1;
+}
+
+/* The folder holding WORLD.ini: `dir` itself or a folder in it. */
+static int32_t world_root(const char *dir, char *out, uint32_t cap)
+{
+    char probe[1400];
+    if (Sg_FindNoCase(dir, "WORLD.ini", probe, sizeof probe) == 0) {
+        snprintf(out, cap, "%s", dir);
+        return 0;
+    }
+    int32_t n;
+    Entry *list = list_dir(dir, &n);
+    int32_t rc = -1;
+    for (int32_t i = 0; i < n && rc; i++) {
+        char sub[1400];
+        if (!list[i].isDir)
+            continue;
+        Sg_PathJoin(sub, sizeof sub, dir, list[i].name);
+        if (Sg_FindNoCase(sub, "WORLD.ini", probe, sizeof probe) == 0) {
+            snprintf(out, cap, "%s", sub);
+            rc = 0;
+        }
+    }
+    free(list);
+    return rc;
+}
+
+/* A .zip with a WORLD.ini at its top or one folder down: that entry's text. */
+static int32_t zip_world_ini(mz_zip_archive *z, SdWorldInfo *info)
+{
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(z); i++) {
+        mz_zip_archive_file_stat st;
+        if (!mz_zip_reader_file_stat(z, i, &st) || st.m_is_directory || st.m_uncomp_size > 4096)
+            continue;
+        const char *name = st.m_filename, *leaf = name + strlen(name);
+        int32_t depth = 0;
+        for (const char *c = name; *c; c++)
+            depth += *c == '/' || *c == '\\';
+        while (leaf > name && leaf[-1] != '/' && leaf[-1] != '\\')
+            leaf--;
+        if (depth > 1 || !(tolower((unsigned char)leaf[0]) == 'w' && ends_with_nocase(leaf, "world.ini") &&
+                           strlen(leaf) == 9))
+            continue;
+        size_t len = 0;
+        char *text = (char *)mz_zip_reader_extract_to_heap(z, i, &len, 0);
+        int32_t rc = text ? world_ini(text, len, info) : -1;
+        mz_free(text);
+        return rc;
+    }
+    return -1;
+}
+
+static int32_t unpack_zip(mz_zip_archive *z, const char *dir)
+{
+    int32_t ok = 1;
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(z) && ok; i++) {
+        mz_zip_archive_file_stat st;
+        if (!mz_zip_reader_file_stat(z, i, &st))
+            continue;
+        const char *name = st.m_filename;
+        /* Its own folders only: no entry may climb out of the one it is unpacked to. */
+        if (name[0] == '/' || name[0] == '\\' || strchr(name, ':') || strstr(name, ".."))
+            continue;
+        char out[2048];
+        snprintf(out, sizeof out, "%s/%s", dir, name);
+        if (st.m_is_directory) {
+            Sg_MakeDirs(out);
+            continue;
+        }
+        char parent[2048];
+        snprintf(parent, sizeof parent, "%s", out);
+        char *slash = strrchr(parent, '/');
+        if (slash) {
+            *slash = '\0';
+            Sg_MakeDirs(parent);
+        }
+        ok = mz_zip_reader_extract_to_file(z, i, out, 0);
+    }
+    return ok ? 0 : -1;
+}
+
+int32_t SdSources_OpenWorld(const char *path, SdWorldInfo *info, char *dir, uint32_t cap)
+{
+    char root[1400];
+    if (is_dir(path)) {
+        if (world_root(path, root, sizeof root) != 0)
+            return -1;
+    } else if (ends_with_nocase(path, ".zip")) {
+        mz_zip_archive z;
+        memset(&z, 0, sizeof z);
+        if (!mz_zip_reader_init_file(&z, path, 0))
+            return -1;
+        int32_t rc = zip_world_ini(&z, info);
+        if (rc == 0 && dir) {
+            const char *base = path + strlen(path);
+            while (base > path && base[-1] != '/' && base[-1] != '\\')
+                base--;
+            char tmp[1400];
+            snprintf(tmp, sizeof tmp, "%s/openswos-setup/%s", temp_root(), base);
+            rc = unpack_zip(&z, tmp) == 0 && world_root(tmp, root, sizeof root) == 0 ? 0 : -1;
+        }
+        mz_zip_reader_end(&z);
+        if (rc != 0)
+            return -1;
+        if (!dir)
+            return 0;
+    } else {
+        return -1;
+    }
+    char ini[1500];
+    if (Sg_FindNoCase(root, "WORLD.ini", ini, sizeof ini) != 0)
+        return -1;
+    SgBuf b;
+    char err[256];
+    if (Sg_ReadFile(ini, &b, err) != 0)
+        return -1;
+    int32_t rc = world_ini((const char *)b.data, b.size, info);
+    Sg_BufFree(&b);
+    if (rc == 0 && dir)
+        snprintf(dir, cap, "%s", root);
+    return rc;
+}
+
 int32_t SdSources_UnpackAmigaProgram(const char *zip, char *dir, uint32_t cap)
 {
     mz_zip_archive z;
@@ -438,8 +601,15 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
             snprintf(s->lha, sizeof s->lha, "%s", path);
         return 0;
     }
-    if (ends_with_nocase(path, ".zip"))
+    if (ends_with_nocase(path, ".zip")) {
+        SdWorldInfo w;
+        if (SdSources_OpenWorld(path, &w, NULL, 0) == 0) {
+            if (!s->world[0])
+                snprintf(s->world, sizeof s->world, "%s", path);
+            return 0;
+        }
         return add_zip(s, path);
+    }
     if (ends_with_nocase(path, ".adf")) {
         Adf *a = Adf_Open(path, err);
         if (!a)
@@ -501,6 +671,12 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
                 snprintf(s->s2020Dir, sizeof s->s2020Dir, "%s", game);
             return 0;
         }
+        SdWorldInfo w;
+        if (SdSources_OpenWorld(path, &w, game, sizeof game) == 0) {
+            if (!s->world[0])
+                snprintf(s->world, sizeof s->world, "%s", game);
+            return 0;
+        }
         return -1;
     }
     /* A file inside the PC game folder or SWOS 2020's: take its folder. */
@@ -523,6 +699,12 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
                 snprintf(s->s2020Dir, sizeof s->s2020Dir, "%s", game);
             return 0;
         }
+        SdWorldInfo w;               /* (its WORLD.ini, or a file beside it) */
+        if (SdSources_OpenWorld(dir, &w, game, sizeof game) == 0 && strcmp(game, dir) == 0) {
+            if (!s->world[0])
+                snprintf(s->world, sizeof s->world, "%s", game);
+            return 0;
+        }
     }
     return -1;
 }
@@ -530,7 +712,7 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
 static int32_t count_found(const SdSources *s)
 {
     return (s->adf1[0] != 0) + (s->adf2[0] != 0) + (s->hdf[0] != 0) + (s->lha[0] != 0) +
-           (s->dosDir[0] != 0) + (s->jagRom[0] != 0) + (s->s2020Dir[0] != 0);
+           (s->dosDir[0] != 0) + (s->jagRom[0] != 0) + (s->s2020Dir[0] != 0) + (s->world[0] != 0);
 }
 
 /* ---- the folder search ---------------------------------------------------- */
@@ -549,7 +731,7 @@ typedef struct {
 static int32_t all_found(const SdSources *s)
 {
     return SdSources_HaveAmiga(s) && (s->adf1[0] && s->adf2[0]) && s->dosDir[0] && s->jagRom[0] &&
-           s->s2020Dir[0];
+           s->s2020Dir[0] && s->world[0];
 }
 
 static int32_t contains_nocase(const char *s, const char *word)
@@ -598,10 +780,6 @@ static void scan_file(SdSources *s, const char *path, const char *name)
     SdSources_AddFile(s, path);
 }
 
-typedef struct {
-    char    name[260];
-    uint8_t isDir;
-} Entry;
 
 /* One folder's entries, links left out (a junction or symbolic link could lead
  * back up, so it is never followed). malloc'd; *count entries. */
@@ -697,6 +875,14 @@ static void scan_dir(SdSources *s, const char *dir, int32_t depth, ScanCtx *ctx)
         if (!s->dosDir[0])
             snprintf(s->dosDir, sizeof s->dosDir, "%s", dir);
         gameDir = 1;
+    } else if (has_entry(list, n, "WORLD.ini", 0) && has_entry(list, n, "competitions", 1)) {
+        SdWorldInfo w;               /* (an unpacked world package) */
+        char root[1024];
+        if (SdSources_OpenWorld(dir, &w, root, sizeof root) == 0) {
+            if (!s->world[0])
+                snprintf(s->world, sizeof s->world, "%s", root);
+            gameDir = 1;
+        }
     } else if (has_entry(list, n, "swos", 1) || has_entry(list, n, "swos-port-Release.exe", 0)) {
         char game[1024];
         if (find_s2020(dir, game, sizeof game) == 0) {
@@ -735,6 +921,7 @@ int32_t SdSources_HaveAmiga(const SdSources *s)
 int32_t SdSources_HaveDos(const SdSources *s) { return s->dosDir[0] != 0; }
 int32_t SdSources_HaveJaguar(const SdSources *s) { return s->jagRom[0] != 0; }
 int32_t SdSources_HaveSwos2020(const SdSources *s) { return s->s2020Dir[0] != 0; }
+int32_t SdSources_HaveWorld(const SdSources *s) { return s->world[0] != 0; }
 
 int32_t SdSources_Open(SdSources *s, char *err)
 {

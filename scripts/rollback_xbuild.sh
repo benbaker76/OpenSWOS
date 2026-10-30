@@ -18,7 +18,7 @@
 # Linux), bin/SWOS.exe (Cygwin, run through cmd.exe from WSL). Build them first; at least
 # two are needed. Exit code: 0 everything identical, 2 a difference, 1 setup failure.
 set -uo pipefail
-export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 cd "$(dirname "$0")/.."
 
 OUT=tests/rollback/xbuild

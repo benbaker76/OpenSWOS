@@ -2,7 +2,7 @@
 // the Amiga's. Each says what to download (with the links), finds it (the Downloads
 // folder is watched, a folder can be searched, a path given), and has the one button
 // that makes it.
-import { ListView, ProgressIndicator, Palette } from "std-widgets.slint";
+import { ListView, ProgressIndicator, Palette, CheckBox } from "std-widgets.slint";
 import { Theme, TextButton, Link, Card, IconButton, PathField } from "theme.slint";
 
 export { Theme }
@@ -367,6 +367,10 @@ export component MainWindow inherits Window {
     in property <bool> amiga-error;
     in property <bool> amiga-done;
     in property <float> amiga-progress;
+    // World 2026-27 on the Amiga: offered once its package is installed (or a source), off
+    // unless asked for (the Amiga has no SWOS.ini: the drawer plays the world it is made with).
+    in property <bool> amiga-world-available;
+    in-out property <bool> amiga-world;
 
     callback choose-folder();
     callback browse-source(int);
@@ -651,6 +655,12 @@ export component MainWindow inherits Window {
                     vertical-alignment: center;
                     open(u) => { root.open-url(u); }
                 }
+            }
+            if root.amiga-world-available: CheckBox {
+                text: "Play World 2026-27 (its clubs and players) instead of 96/97";
+                checked <=> root.amiga-world;
+                enabled: !root.busy;
+                toggled => { root.amiga-kind-changed(); }
             }
             HorizontalLayout {
                 spacing: 12px;

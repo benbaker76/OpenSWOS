@@ -18,7 +18,7 @@
 #   --gameplay amiga|dos|both, --jobs N, --out DIR
 # Exit code: 0 all identical, 2 a difference, 1 setup failure.
 set -uo pipefail
-export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 cd "$(dirname "$0")/.."
 
 SIM_WIDTH=484

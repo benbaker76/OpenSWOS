@@ -8,7 +8,7 @@
 #
 # Exit code is the rig's: 0 every frame matched, 2 a divergence, 1 setup failed.
 set -uo pipefail
-export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 cd "$(dirname "$0")/.."
 
 REC=tests/dos/zkz-12065730.RGD.gz     # v1.5, 1519 frames — the shortest

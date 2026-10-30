@@ -27,7 +27,7 @@
 #
 # Exit status: 0 consistent (or recorded), 1 a raise is missing, 2 could not run.
 set -uo pipefail
-export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 cd "$(dirname "$0")/.." || exit 2
 
 RECORD=tests/netplay_compat.txt

@@ -151,7 +151,8 @@ def main():
                 f.write(out)
     # A world's teams (bin/data_json/worlds/<tag>/teams, scripts/world_import.py: their own ids and
     # checksums, made there) join the server's list as they are: checked, never written.
-    # Only with --worlds: their names publish the world's data (on hold until its author agrees).
+    # Only with --worlds: a world's data is never in OpenSWOS (its package is hosted apart); its teams'
+    # names and checksums on the public server are the owner's call.
     worlds = glob.glob(os.path.join(REPO, "bin", "data_json", "worlds", "*", "teams", "*.json")) \
         if "--worlds" in sys.argv else []
     for path in sorted(worlds):

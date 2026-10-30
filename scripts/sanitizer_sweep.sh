@@ -7,7 +7,7 @@
 # cross-platform fuzzer does -- a read that only a particular situation performs needs that
 # situation to happen.
 set -u
-export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 SCR="${SWOS_HUNT_OUT:-$(cd "$(dirname "$0")/.." && pwd)/tests/hunt}"; mkdir -p "$SCR"
 cd /mnt/c/Projects/AI/SWOS/OpenSWOS/bin || exit 1
 OUT="$SCR/asan_reports"
