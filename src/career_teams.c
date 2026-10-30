@@ -13,6 +13,7 @@
 #include "career_teams.h"
 #include "uefa_coef.h"
 #include "conti_season.h"
+#include "states.h"
 #include "league_split.h"
 #include "league_phase.h"
 #include "world_playoff.h"
@@ -2412,8 +2413,10 @@ void DIY_AdvanceToNextCompetitionSlot(void)
         DIY_BuildSeededBracketAndUpdateScores(buf, slot, comp, comp);
         LeaguePhase_GroupsEnd(buf, 1);
         Conti_GroupsEnd(buf, 1);
+        States_GroupsEnd(buf, 1);             /* (a world's state championship: states.c) */
     } else {
         /* Cup type: copy team grid */
+        States_KnockoutEnd();
         DIY_CopyTeamGridFromCompToDIY(buf, slot, comp, comp);
     }
 

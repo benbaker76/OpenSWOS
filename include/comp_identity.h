@@ -95,12 +95,15 @@ enum CompId {
      * and NEW_LEAGUE_IDS take the rest -- 164..238 -- and refuse these): the world play-off
      * 200 (world_playoff.c), the Coppa Serie D's ties 201 / 202 (world_cupd.c); the UEFA
      * qualifying ties (uefa_coef.c), the other confederations' tie and main round
-     * (conti_season.c: one id, its cup saved beside it). 244..255 are left for new cups. */
+     * (conti_season.c: one id, its cup saved beside it), the state championship (states.c).
+     * 244..246 are the USA's, Argentina's and Brazil's cups; 248..255 are left. */
     COMPID_uefaTieChampionsLeague            = 239,
     COMPID_uefaTieEuropaLeague               = 240,
     COMPID_uefaTieConferenceLeague           = 241,
     COMPID_contiTie                          = 242,
     COMPID_contiMain                         = 243,
+    COMPID_stateContest                      = 247,     /* (a world's state championship the career club
+                                                         * plays: states.c; one id, its state saved beside) */
 };
 
 /* Read a competition's id (compId = byte 0 of the record). Endian-neutral

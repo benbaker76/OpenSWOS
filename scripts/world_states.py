@@ -124,44 +124,124 @@ def _matching(rng, n, edges):
     return out if go() else None
 
 
+GRP_ON = False      # (the Mod's: st_grp, a later group stage by 'from', off -- the game spreads its qualifiers)
+
+
 def compile_state(c, n_clubs):
-    """A 'state' comp -> {'stages': [(groups, per group, qualifiers)], 'stage_bytes', 'meetings', 'points',
-    'months', 'fixture': (groups, per group, days, calendar) or None} (the Mod's, the parts the simulation reads)."""
+    """pack.json 'state' comp -> {'stages': [(groups, per group, qualifiers)], 'stage_bytes', 'meetings', 'points',
+    'months': (b3, b4), 'draws': [(perm, sort)], 'fixture': (groups, per group, days, calendar) or None}."""
     w = f"{c['key']}:"
     st = c.get('stages') or []
     _need(2 <= len(st) <= 5, f'{w} 2 to 5 stages (the last one the final)')
+    _need(isinstance(c.get('win_points'), int) and 1 <= c['win_points'] <= 9, f'{w} win_points 1..9')
     m1, m2 = c.get('months', [1, 6])
-    trip, sb, meet, fixture, prev = [], [], None, None, None
+    _need(1 <= m1 <= m2 <= 12, f'{w} months [first, last], 1..12')
+    trip, sb, draws, meet, fixture, prev, byes, ko = [], [], [], None, None, None, [], []
     for i, x in enumerate(st):
         t, n = x.get('type'), x.get('teams')
         sw = f'{w} stage {i + 1}:'
+        nko = len(ko)
         _need(t in ('groups', 'knockout'), f'{sw} type groups or knockout')
+        _need(isinstance(n, int) and n >= 2, f'{sw} teams')
         if i == 0:
             _need(n == n_clubs, f'{sw} {n} teams, {n_clubs} clubs')
+        elif prev['type'] == 'groups':
+            _need(n < prev['teams'], f'{sw} fewer teams than the group stage before')
+        elif prev.get('byes'):
+            _need(n == prev['teams'] // 2 + len(prev['byes']), f'{sw} {n} teams: the winners + the byes before')
+        else:
+            _need(n * 2 == prev['teams'], f'{sw} {n} teams: half of the knockout before')
         if t == 'groups':
             g = x.get('groups')
+            _need(isinstance(g, int) and g >= 1 and n % g == 0 and 2 <= n // g <= 24, f'{sw} groups: 2..24 per group')
             mt = x.get('meetings', 1)
+            _need(meet in (None, mt) and mt in (1, 2, 3, 4), f'{sw} meetings 1..4, the same for every group stage')
             meet = mt
             cr = x.get('cross')
             if cr:
+                _need(i == 0 and n % cr == 0 and n % 2 == 0 and g in (1, cr) and mt == 1,
+                      f'{sw} cross k: the first stage, k equal blocks, groups 1 or k, one meeting, even teams')
                 cal, days = cross_calendar(n, cr)
                 fixture = (g, n // g, days, cal)
-            if i == 0 and not cr and g > 1 and not x.get('fixtures'):
-                cal, days = group_calendar(g, n // g, mt)
-                fixture = (g, n // g, days, cal)
+            if i == 0 and not cr and g > 1 and not x.get('fixtures'):   # (careers: a fixed calendar inside each
+                cal, days = group_calendar(g, n // g, mt)          # group, so the groups are the clubs' list blocks
+                fixture = (g, n // g, days, cal)                    # - the game's own draw scatters them: Cearense)
             fx = x.get('fixtures')
             if fx:
+                _need(i == 0 and not cr and g == 1 and mt == 1 and n % 2 == 0,
+                      f'{sw} fixtures: the first stage, one group, one meeting, even teams, no cross')
+                seen = set()
+                for d, day in enumerate(fx):
+                    clubs = [v for pr in day for v in pr]
+                    _need(sorted(clubs) == list(range(n)), f'{sw} fixtures day {d + 1}: every club once')
+                    for a, b in day:
+                        _need((min(a, b), max(a, b)) not in seen, f'{sw} fixtures: {a} v {b} twice')
+                        seen.add((min(a, b), max(a, b)))
                 fixture = (1, n, len(fx), [(a, b) for day in fx for a, b in day])
             nxt = st[i + 1]['teams'] + len(st[i + 1].get('byes') or []) if i + 1 < len(st) else 1
             trip.append((g, n // g, nxt))
             sb.append(0)
         else:
+            _need(n & (n - 1) == 0, f'{sw} a knockout stage needs 2, 4, 8 or 16 teams')
+            _need(x.get('matches') in MATCHES, f"{sw} matches: one of {', '.join(MATCHES)}")
             b = x.get('byes') or []
-            trip.append((0, n + len(b), n // 2 + len(b)))
+            _need(not b or (i > 0 and prev['type'] == 'groups' and x.get('from')),
+                  f'{sw} byes: on the knockout after a group stage, with from')
+            trip.append((0, n + len(b), n // 2 + len(b)))    # (the round has n + b clubs: the b wait, lib97 nc_adv)
+            if b:
+                byes.append((n + len(b), len(b)))
             sb.append(MATCHES[x['matches']])
+        frm = x.get('from')
+        if frm is not None:
+            _need(i > 0 and prev['type'] == 'groups', f'{sw} from: only on the stage after a group stage')
+            g = prev['groups']
+            _need(n % g == 0, f'{sw} from needs the same number of qualifiers from every group')
+            b = x.get('byes') or []
+            q = n + len(b)
+            labels = [f'{r}{chr(65 + k)}' for r in range(1, q // g + 1) for k in range(g)]
+            _need(sorted(frm + b) == sorted(labels), f"{sw} from + byes must list {' '.join(labels)} once each")
+            draws.append((q, [labels.index(x_) for x_ in frm + b], False))   # (the byes at the end: they wait)
+            if x['type'] != 'knockout':                  # (careers: the group stage after the first, st_grp:
+                if i == 1 and GRP_ON:                    # b = FEh; later ones stay the game's)
+                    ko.append((q, 0xFE, g, prev['teams'] // g, draws[-1][1]))
+            elif i == 1 or g == 1:                       # (careers: groups = team-list blocks: the first stage's;
+                                                         # code = place * g + group)
+                ko.append((q, len(b), g, prev['teams'] // g, draws[-1][1]))
+            else:
+                _need(not b, f'{sw} byes after a second group stage of several groups: not in careers yet')
+        elif x.get('pairs'):                             # after a stage with byes: W<k> the winner of tie k, B<k> bye k
+            _need(prev.get('byes'), f'{sw} pairs: only after a stage with byes')
+            k, bb = prev['teams'] // 2, len(prev['byes'])
+            toks = [f'W{j + 1}' for j in range(k)] + [f'B{j + 1}' for j in range(bb)]
+            _need(sorted(x['pairs']) == sorted(toks), f"{sw} pairs must list {' '.join(toks)} once each")
+            draws.append((n, [toks.index(t_) for t_ in x['pairs']], False))
+            ko.append((n, k, 0, prev['teams'] + bb, draws[-1][1]))   # (g = 0: winners of the k ties, then byes)
+        elif x.get('pairing') == 'merit':                # after a group stage: the qualifiers in merit order (the
+            _need(i > 0 and prev['type'] == 'groups' and x['type'] == 'knockout',   # engine's), 1st v last, 2nd v
+                  f'{sw} pairing merit: a knockout after a group stage')            # last but one ... (Mineiro)
+            pm = [v for k_ in range(n // 2) for v in (k_, n - 1 - k_)]
+            draws.append((n, pm, False))
+            ko.append((n, 0, 255, 0, pm))                # (g = 255: positions in the copy's +59h)
+        elif i == 0:
+            draws.append((n, list(range(n)), False))     # the clubs into the groups in list order
+        elif prev['type'] != 'groups' and n > 2:
+            draws.append((n, list(range(n)), True))      # tie k = the winners of ties 2k-1, 2k (their contest order)
+            if ko and ko[-1][0] == prev['teams']:        # (careers: after a stage of ST_TAB, by the ties it kept)
+                ko.append((n, prev['teams'] // 2, 0, prev['teams'], list(range(n))))
+        if x.get('host') is not None:                    # the better placed of stage 1 at home (a single match) or at
+            _need(x['host'] == 'better' and t == 'knockout', f"{sw} host: 'better' on a knockout stage")   # home in
+            if len(ko) == nko and n == 2 and ko and ko[-1][0] == prev['teams']:   # the second leg (careers: st_ko by
+                ko.append((n, prev['teams'] // 2, 0, prev['teams'], [0, 1]))      # ST_RANK; the final: the SF's
+            _need(len(ko) == nko + 1, f'{sw} host: needs a fixed draw here (from / pairs / merit / after one)')   # winners)
+            q_, b_, g_, sz_, pm_ = ko[-1]
+            ko[-1] = (q_, b_, g_, sz_ | 0x80 | (0x40 if x['matches'].startswith('two_legs') else 0), pm_)
         prev = dict(x, teams=n)
+    _need(st[-1]['type'] == 'knockout' and st[-1]['teams'] == 2, f'{w} the last stage must be the final (2)')
+    ns = [d[0] for d in draws]
+    _need(len(set(ns)) == len(ns), f'{w} two stages with {ns} teams: a fixed order needs different team counts')
     return {'stages': trip, 'stage_bytes': sb, 'meetings': meet or 1, 'points': c['win_points'],
-            'months': (8 * (m1 - 1), 8 * (m2 - 1)), 'fixture': fixture}
+            'months': (8 * (m1 - 1), 8 * (m2 - 1)), 'draws': [(pm, srt) for _, pm, srt in draws], 'fixture': fixture,
+            'byes': byes, 'ko_draws': ko}     # (careers: lib97.st_draw; tourney mode: historic.hist_draw)
 
 
 def _code(label, g, w):

@@ -688,7 +688,7 @@ NEW_COMP_IDS = {
     ("USA", "cup"): 244, ("ARG", "cup"): 245, ("BRA", "cup"): 246,
 }
 # (the ids a world's own contests hold: include/comp_identity.h -- none of the above may take one)
-RESERVED_COMP_IDS = {200, 201, 202, 239, 240, 241, 242, 243}
+RESERVED_COMP_IDS = {200, 201, 202, 239, 240, 241, 242, 243, 247}
 assert not RESERVED_COMP_IDS & set(NEW_COMP_IDS.values()), "NEW_COMP_IDS: an id of comp_identity.h's"
 # A new country's league: an id of its own (fixed: saves hold it), its record's shape a 96/97
 # country's of the same continent (its season's months), its continent's byte (the first of
@@ -1563,16 +1563,37 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
     if news:
         externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
     st_tabs, st_items = [], []
-    for country, sim, ri, first, words_at in states:
+    for country, sim, ri, first, words_at, contests in states:
         st_tabs.append("static const uint16_t kWorld%sStatesWords%d[%d] = { %s };" % (
             tag, country, len(words_at), ", ".join(map(str, words_at))))
+        rows = []
+        for k, ct in enumerate(contests):
+            sym = "kWorld%sState%d_%d" % (tag, country, k)
+            st_tabs.append("static const uint16_t %sTeams[%d] = { %s };" % (
+                sym, len(ct["teams"]), ", ".join("0x%04X" % t for t in ct["teams"])))
+            fx = ct["fixture"]
+            if fx:
+                st_tabs.append("static const uint8_t %sCal[%d][2] = { %s };" % (
+                    sym, len(fx[3]), ", ".join("{ %d, %d }" % (a, b) for a, b in fx[3])))
+            dr = b"".join(bytes([n, b, g, sz, *pm]) for n, b, g, sz, pm in ct["draws"])
+            st_tabs.append("static const uint8_t %sDraws[%d] = { %s };" % (
+                sym, max(1, len(dr)), ", ".join(map(str, dr)) or "0"))
+            trip = ", ".join("{ %d, %d, %d }" % t for t in ct["stages"])
+            rows.append('    { "%s", "%s", %d, %d, %d, %d, %d, %d, { %s }, { %s }, %sTeams, %d, %d, %d, %d, %s, %d, '
+                        '%sDraws, 0x%04X },' % (
+                            ct["name"], ct["short"], len(ct["teams"]), ct["months"][0], ct["months"][1], ct["points"],
+                            ct["meetings"], len(ct["stages"]), trip, ", ".join(map(str, ct["bytes"])), sym,
+                            fx[0] if fx else 0, fx[1] if fx else 0, fx[2] if fx else 0, len(fx[3]) if fx else 0,
+                            sym + "Cal" if fx else "0", len(ct["draws"]), sym, ct["key"]))
+        st_tabs.append("static const WorldStateContest kWorld%sStateContests%d[%d] = {\n%s\n};" % (
+            tag, country, len(contests), "\n".join(rows)))
         for nm, b in (("Sim", sim), ("Pools", ri)):
             st_tabs.append("static const uint8_t kWorld%sStates%s%d[%d] = {\n%s\n};" % (tag, nm, country, len(b), "\n".join(
                 "    " + ", ".join("0x%02X" % x for x in b[i:i + 16]) + "," for i in range(0, len(b), 16))))
         st_tabs.append("static const WorldStates kWorld%sStates%d = { %d, %d, %d, %d, %d, %d, kWorld%sStatesSim%d, "
-                       "kWorld%sStatesPools%d, kWorld%sStatesWords%d };" % (
+                       "kWorld%sStatesPools%d, kWorld%sStatesWords%d, kWorld%sStateContests%d };" % (
                            tag, country, country, STATES_FILE, STATES_WORLD, first, len(words_at), len(sim),
-                           tag, country, tag, country, tag, country))
+                           tag, country, tag, country, tag, country, tag, country))
         st_items.append("        if (country == %d)\n            return &kWorld%sStates%d;" % (country, tag, country))
     st_cases = ("    case WORLD_%s:\n%s\n        break;" % (tag, "\n".join(st_items))) if st_items else ""
     prom_tabs, prom_items = [], []
@@ -1688,7 +1709,20 @@ def country_states(wc, pk, picked, t):
     counts["state championships (simulated)"] += len(states)
     info = {"name": name, "country": wc["number"], "file": pool_file, "json": name.upper() + "_POOL.json",
             "count": len(teams), "areas": [(None, None)] * len(teams), "ids": []}
-    return info, sim, ri, first, list(world_states.SIM_WORDS)
+    # each state's contest, played by the career club (states.c): the Mod's statecup.contest_bytes' parts --
+    # its names, months, points, meetings, stages (groups, per group, qualifiers) and their round bytes, its
+    # clubs (our team words), its fixed calendar (lp36.FIXTURES' (groups, per group, days, pairs)) and its
+    # knockout stages' fixed draws (ko_draws: clubs, byes, groups, size | flags, codes)
+    contests = []
+    for c in states:
+        sp = world_states.compile_state(c, len(c["clubs"]))
+        nm = c["names"].get("*") or c["names"].get("en")
+        teams = [wc["number"] << 8 | ordinal[k] for k in c["clubs"]]
+        contests.append({"name": nm[0].upper()[:30], "short": nm[1].upper()[:16], "months": sp["months"],
+                         "points": sp["points"], "meetings": sp["meetings"], "stages": sp["stages"],
+                         "bytes": sp["stage_bytes"], "teams": teams, "fixture": sp["fixture"],
+                         "draws": sp["ko_draws"], "key": word(c["clubs"][0])})
+    return info, sim, ri, first, list(world_states.SIM_WORDS), contests
 
 
 def promedio_history(wc, pk, picked):
@@ -1904,7 +1938,7 @@ def main():
         sts = country_states(wc, pk, pk_picked, t)
         if sts:
             pools.append(sts[0])
-            states.append((wc["number"], sts[1], sts[2], sts[3], sts[4]))
+            states.append((wc["number"], sts[1], sts[2], sts[3], sts[4], sts[5]))
         resized.append((wc["number"], t["count"]))
         counts["countries imported"] += 1
     for rec in leagues["leagues"]:          # (the world's play-offs are the pack's: no 96/97 links)

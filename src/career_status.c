@@ -1140,6 +1140,8 @@ void UpdateCareerFinancesAfterMatch(DIYCompetitionEx *comp, TeamFileEx *team, Te
         goto league_match;
     } else if (compType == 4) {
         goto cup_match_type4;
+    } else if (compType == 2 && comp->base.hasGroups) {
+        goto diy_comp_match;            /* (a world's state championship in slot 2: states.c) */
     } else if (compType == 1 || compType == 2) {
         goto cup_match_type1or2;
     } else if (compType == 3) {
@@ -4404,6 +4406,8 @@ void Career_SetCurrentCompetitionSlot(uint8_t *comp, uint16_t slot, uint16_t div
             if (compType == 0 || compType == 2)
                 goto validated;
         }
+        if (compType == 2 && slot == 2 && (uint8_t)compHdr->compId == COMPID_stateContest)
+            goto validated;                     /* (a world's state championship: states.c) */
         /* Default: compType must be 1 */
         if (compType != 1)
             goto panic_mismatch;

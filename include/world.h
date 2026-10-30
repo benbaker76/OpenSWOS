@@ -78,11 +78,32 @@ const WorldPromedio *World_Promedio(uint8_t country, int32_t *count);
  * (state_sim.c) and its pools' (state_pool.c), their team words the Mod's two files' -- the
  * league's clubs the country's number, the state-only clubs statesFile with their ordinal among
  * them (ours: firstState + it). */
+/* A state's contest as the career club plays it (states.c; the Mod's statecup.contest_bytes and its
+ * fixed calendar and draws): stage k is (groups, clubs a group, its qualifiers) -- a knockout's
+ * (0, its clubs, its qualifiers) -- with its round byte; the fixed calendar of the first stage
+ * (calGroups x calSize clubs, calDays days, pairs of list indices: 0 the game's own round robin);
+ * each knockout stage's fixed draw: its clubs N, byes b, groups g (0: the stage after one with
+ * byes, 255: merit positions), size | 80h host by stage 1's place | 40h two legs, N codes. */
+typedef struct WorldStateContest {
+    const char *name, *shortName;
+    uint8_t clubs, beginMonth, endMonth, winPoints, meetings, stages;
+    uint8_t stage[5][3];
+    uint8_t stageByte[5];
+    const uint16_t *teams;              /* our team words, in the contest's list order */
+    uint8_t calGroups, calSize, calDays;
+    uint16_t calMatches;
+    const uint8_t (*cal)[2];
+    uint8_t draws;
+    const uint8_t *draw;
+    uint16_t key;                       /* its first club's word as the tables have it (the rankings' block) */
+} WorldStateContest;
+
 typedef struct WorldStates {
     uint8_t country, statesFile, world, firstState, states;
     uint16_t simBytes;
     const uint8_t *sim, *pools;
     const uint16_t *wordsAt;            /* each state's words in sim (its contest's entries: the overrides') */
+    const WorldStateContest *contest;   /* each state's contest, the career club's to play */
 } WorldStates;
 const WorldStates *World_States(uint8_t country);
 

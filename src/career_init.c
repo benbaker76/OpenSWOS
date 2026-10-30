@@ -1324,6 +1324,23 @@ void InitializeNewSeason(void)
         }
     }
 
+    /* A world's state championship (states.c): the career club's own state in slot 2 when its
+     * country's table has nothing there (Brazil: its league cup's slot). */
+    if (_tertiaryCompetitionPtr == 0) {
+        uint8_t *st = States_SlotContest();
+        if (st) {
+            uint16_t savedA2 = _tertiaryCompetitionContextBuf.tourn.header.slotStateA;
+            uint16_t savedB2 = _tertiaryCompetitionContextBuf.tourn.header.slotStateB;
+            uint16_t savedC2 = _tertiaryCompetitionContextBuf.tourn.header.slotStateC;
+            Career_SetCurrentCompetitionSlot(st, 2, 0, 0);
+            ((SeasonInformations *)GetCurrentSeasonPointer())->strPtr2 =
+                ((DIYCompetition *)_careerCompetitionSlotPtrTable[2])->namePtr;
+            _tertiaryCompetitionContextBuf.tourn.header.slotStateC = savedC2;
+            _tertiaryCompetitionContextBuf.tourn.header.slotStateB = savedB2;
+            _tertiaryCompetitionContextBuf.tourn.header.slotStateA = savedA2;
+        }
+    }
+
     /* Try euro cups for slot 3 (quaternary); if the club is in none of them, try
      * Copa Libertadores (a South-American club). The quaternary slot holds the
      * player's ONE continental cup — euro and Copa are mutually exclusive, so this
@@ -1682,6 +1699,9 @@ static void Rebuild_CompetitionSlotPointers(void)
         _secondaryCompetitionPtr = 0;
     if (!WorldCups_Plays(_tertiaryCompetitionPtr))
         _tertiaryCompetitionPtr = 0;
+    if (!_tertiaryCompetitionPtr &&             /* (a world's state championship in slot 2: states.c) */
+        (uint8_t)((DIYCompetition *)&_tertiaryCompetitionContextBuf)->field_2E == COMPID_stateContest)
+        _tertiaryCompetitionPtr = States_RestoreContest();
 
     /* Slot 4 (DIY) — derive from primary comp's DIY link. Mirrors
      * `DIY_SelectCompetitionSlot4FromCurrentDivision`. The diyEntry

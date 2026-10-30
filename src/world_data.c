@@ -7390,6 +7390,92 @@ static const WorldPromedio kWorld2627Promedio43[30] = {
 
 static const uint16_t kWorld2627StatesWords46[13] = { 8, 240, 410, 581, 751, 866, 1023, 1152, 1339, 1507, 1667, 1793, 1959 };
 
+static const uint16_t kWorld2627State46_0Teams[16] = { 0x2E16, 0x2E01, 0x2E09, 0x2E2B, 0x2E0C, 0x2E07, 0x2E2D, 0x2E0B, 0x2E28, 0x2E1F, 0x2E03, 0x2E2C, 0x2E24, 0x2E29, 0x2E2A, 0x2E26 };
+
+static const uint8_t kWorld2627State46_0Cal[64][2] = { { 0, 9 }, { 1, 7 }, { 2, 4 }, { 11, 3 }, { 5, 12 }, { 6, 10 }, { 8, 15 }, { 13, 14 }, { 7, 0 }, { 4, 1 }, { 13, 2 }, { 10, 3 }, { 5, 11 }, { 9, 6 }, { 14, 8 }, { 15, 12 }, { 0, 12 }, { 9, 1 }, { 10, 2 }, { 5, 3 }, { 7, 4 }, { 13, 6 }, { 8, 11 }, { 15, 14 }, { 10, 0 }, { 1, 8 }, { 2, 12 }, { 3, 14 }, { 4, 15 }, { 5, 7 }, { 6, 11 }, { 9, 13 }, { 0, 8 }, { 1, 10 }, { 2, 9 }, { 3, 15 }, { 4, 5 }, { 12, 6 }, { 7, 14 }, { 11, 13 }, { 11, 0 }, { 3, 1 }, { 14, 2 }, { 4, 6 }, { 15, 5 }, { 13, 7 }, { 8, 9 }, { 12, 10 }, { 2, 0 }, { 1, 5 }, { 6, 3 }, { 12, 4 }, { 8, 7 }, { 14, 9 }, { 11, 10 }, { 15, 13 }, { 0, 1 }, { 7, 2 }, { 3, 8 }, { 14, 4 }, { 10, 5 }, { 6, 15 }, { 9, 11 }, { 12, 13 } };
+
+static const uint8_t kWorld2627State46_0Draws[26] = { 8, 0, 1, 144, 0, 7, 3, 4, 1, 6, 2, 5, 4, 4, 0, 136, 0, 1, 2, 3, 2, 2, 0, 196, 0, 1 };
+
+static const uint16_t kWorld2627State46_1Teams[12] = { 0x2E04, 0x2E0D, 0x2E2F, 0x2E30, 0x2E34, 0x2E2E, 0x2E05, 0x2E31, 0x2E32, 0x2E00, 0x2E33, 0x2E35 };
+
+static const uint8_t kWorld2627State46_1Cal[36][2] = { { 11, 0 }, { 1, 8 }, { 2, 7 }, { 3, 9 }, { 4, 10 }, { 5, 6 }, { 0, 9 }, { 1, 6 }, { 11, 2 }, { 8, 3 }, { 4, 7 }, { 10, 5 }, { 0, 10 }, { 9, 1 }, { 2, 8 }, { 7, 3 }, { 6, 4 }, { 5, 11 }, { 0, 7 }, { 1, 11 }, { 6, 2 }, { 10, 3 }, { 9, 4 }, { 8, 5 }, { 6, 0 }, { 7, 1 }, { 2, 10 }, { 3, 11 }, { 4, 8 }, { 5, 9 }, { 8, 0 }, { 10, 1 }, { 9, 2 }, { 3, 6 }, { 11, 4 }, { 7, 5 } };
+
+static const uint8_t kWorld2627State46_1Draws[20] = { 8, 0, 2, 134, 0, 6, 2, 4, 1, 7, 3, 5, 4, 4, 0, 200, 0, 1, 2, 3 };
+
+static const uint16_t kWorld2627State46_2Teams[12] = { 0x2E0A, 0x2E3C, 0x2E38, 0x2E3B, 0x2E1D, 0x2E36, 0x2E3A, 0x2E37, 0x2E02, 0x2E39, 0x2E3D, 0x2E1E };
+
+static const uint8_t kWorld2627State46_2Cal[48][2] = { { 6, 0 }, { 8, 1 }, { 5, 2 }, { 10, 3 }, { 4, 9 }, { 11, 7 }, { 0, 4 }, { 10, 1 }, { 11, 2 }, { 7, 3 }, { 5, 8 }, { 9, 6 }, { 11, 0 }, { 1, 4 }, { 9, 2 }, { 3, 5 }, { 6, 8 }, { 10, 7 }, { 0, 9 }, { 1, 11 }, { 2, 4 }, { 6, 3 }, { 5, 10 }, { 8, 7 }, { 0, 5 }, { 1, 9 }, { 7, 2 }, { 3, 11 }, { 4, 8 }, { 10, 6 }, { 7, 0 }, { 1, 6 }, { 2, 10 }, { 8, 3 }, { 4, 11 }, { 9, 5 }, { 8, 0 }, { 7, 1 }, { 2, 6 }, { 3, 9 }, { 4, 10 }, { 11, 5 }, { 0, 10 }, { 5, 1 }, { 2, 8 }, { 3, 4 }, { 6, 11 }, { 9, 7 } };
+
+static const uint8_t kWorld2627State46_2Draws[8] = { 4, 0, 255, 192, 0, 3, 1, 2 };
+
+static const uint16_t kWorld2627State46_3Teams[12] = { 0x2E0F, 0x2E22, 0x2E50, 0x2E55, 0x2E52, 0x2E54, 0x2E08, 0x2E4E, 0x2E53, 0x2E51, 0x2E56, 0x2E4F };
+
+static const uint8_t kWorld2627State46_3Cal[36][2] = { { 11, 0 }, { 1, 8 }, { 2, 7 }, { 3, 9 }, { 4, 10 }, { 5, 6 }, { 0, 9 }, { 1, 6 }, { 11, 2 }, { 8, 3 }, { 4, 7 }, { 10, 5 }, { 0, 10 }, { 9, 1 }, { 2, 8 }, { 7, 3 }, { 6, 4 }, { 5, 11 }, { 0, 7 }, { 1, 11 }, { 6, 2 }, { 10, 3 }, { 9, 4 }, { 8, 5 }, { 6, 0 }, { 7, 1 }, { 2, 10 }, { 3, 11 }, { 4, 8 }, { 5, 9 }, { 8, 0 }, { 10, 1 }, { 9, 2 }, { 3, 6 }, { 11, 4 }, { 7, 5 } };
+
+static const uint8_t kWorld2627State46_3Draws[26] = { 8, 0, 2, 134, 0, 6, 3, 5, 2, 4, 1, 7, 4, 4, 0, 200, 0, 1, 2, 3, 2, 2, 0, 196, 0, 1 };
+
+static const uint16_t kWorld2627State46_4Teams[8] = { 0x2E17, 0x2E84, 0x2E85, 0x2E82, 0x2E86, 0x2E88, 0x2E83, 0x2E87 };
+
+static const uint8_t kWorld2627State46_4Draws[8] = { 4, 0, 1, 8, 3, 0, 2, 1 };
+
+static const uint16_t kWorld2627State46_5Teams[10] = { 0x2E06, 0x2E0E, 0x2E49, 0x2E48, 0x2E4B, 0x2E4D, 0x2E47, 0x2E4A, 0x2E4C, 0x2E46 };
+
+static const uint8_t kWorld2627State46_5Draws[8] = { 4, 0, 1, 10, 0, 3, 1, 2 };
+
+static const uint16_t kWorld2627State46_6Teams[10] = { 0x2E21, 0x2E58, 0x2E59, 0x2E5B, 0x2E5A, 0x2E20, 0x2E57, 0x2E5C, 0x2E5D, 0x2E5E };
+
+static const uint8_t kWorld2627State46_6Cal[20][2] = { { 4, 1 }, { 9, 6 }, { 2, 3 }, { 7, 8 }, { 4, 0 }, { 9, 5 }, { 2, 1 }, { 7, 6 }, { 0, 3 }, { 5, 8 }, { 2, 4 }, { 7, 9 }, { 2, 0 }, { 7, 5 }, { 3, 1 }, { 8, 6 }, { 0, 1 }, { 5, 6 }, { 3, 4 }, { 8, 9 } };
+
+static const uint8_t kWorld2627State46_6Draws[1] = { 0 };
+
+static const uint16_t kWorld2627State46_7Teams[12] = { 0x2E1C, 0x2E6A, 0x2E6E, 0x2E68, 0x2E6B, 0x2E6D, 0x2E6C, 0x2E15, 0x2E1A, 0x2E70, 0x2E6F, 0x2E69 };
+
+static const uint8_t kWorld2627State46_7Cal[48][2] = { { 6, 0 }, { 8, 1 }, { 5, 2 }, { 10, 3 }, { 4, 9 }, { 11, 7 }, { 0, 4 }, { 10, 1 }, { 11, 2 }, { 7, 3 }, { 5, 8 }, { 9, 6 }, { 11, 0 }, { 1, 4 }, { 9, 2 }, { 3, 5 }, { 6, 8 }, { 10, 7 }, { 0, 9 }, { 1, 11 }, { 2, 4 }, { 6, 3 }, { 5, 10 }, { 8, 7 }, { 0, 5 }, { 1, 9 }, { 7, 2 }, { 3, 11 }, { 4, 8 }, { 10, 6 }, { 7, 0 }, { 1, 6 }, { 2, 10 }, { 8, 3 }, { 4, 11 }, { 9, 5 }, { 8, 0 }, { 7, 1 }, { 2, 6 }, { 3, 9 }, { 4, 10 }, { 11, 5 }, { 0, 10 }, { 5, 1 }, { 2, 8 }, { 3, 4 }, { 6, 11 }, { 9, 7 } };
+
+static const uint8_t kWorld2627State46_7Draws[20] = { 8, 0, 1, 12, 7, 0, 4, 3, 6, 1, 5, 2, 4, 4, 0, 8, 0, 1, 2, 3 };
+
+static const uint16_t kWorld2627State46_8Teams[10] = { 0x2E19, 0x2E89, 0x2E8A, 0x2E8B, 0x2E8C, 0x2E8D, 0x2E8E, 0x2E8F, 0x2E90, 0x2E91 };
+
+static const uint8_t kWorld2627State46_8Draws[18] = { 6, 2, 1, 10, 5, 2, 4, 3, 0, 1, 4, 2, 0, 6, 0, 3, 1, 2 };
+
+static const uint16_t kWorld2627State46_9Teams[12] = { 0x2E13, 0x2E7B, 0x2E81, 0x2E79, 0x2E7C, 0x2E80, 0x2E77, 0x2E7D, 0x2E7E, 0x2E78, 0x2E7F, 0x2E7A };
+
+static const uint8_t kWorld2627State46_9Cal[36][2] = { { 11, 0 }, { 1, 8 }, { 2, 7 }, { 3, 9 }, { 4, 10 }, { 5, 6 }, { 0, 9 }, { 1, 6 }, { 11, 2 }, { 8, 3 }, { 4, 7 }, { 10, 5 }, { 0, 10 }, { 9, 1 }, { 2, 8 }, { 7, 3 }, { 6, 4 }, { 5, 11 }, { 0, 7 }, { 1, 11 }, { 6, 2 }, { 10, 3 }, { 9, 4 }, { 8, 5 }, { 6, 0 }, { 7, 1 }, { 2, 10 }, { 3, 11 }, { 4, 8 }, { 5, 9 }, { 8, 0 }, { 10, 1 }, { 9, 2 }, { 3, 6 }, { 11, 4 }, { 7, 5 } };
+
+static const uint8_t kWorld2627State46_9Draws[20] = { 8, 0, 1, 12, 0, 7, 3, 4, 1, 6, 2, 5, 4, 4, 0, 8, 0, 1, 2, 3 };
+
+static const uint16_t kWorld2627State46_10Teams[8] = { 0x2E23, 0x2E27, 0x2E71, 0x2E72, 0x2E73, 0x2E74, 0x2E75, 0x2E76 };
+
+static const uint8_t kWorld2627State46_10Draws[18] = { 6, 2, 1, 8, 5, 2, 4, 3, 0, 1, 4, 2, 0, 6, 0, 3, 1, 2 };
+
+static const uint16_t kWorld2627State46_11Teams[12] = { 0x2E25, 0x2E43, 0x2E11, 0x2E44, 0x2E3E, 0x2E42, 0x2E3F, 0x2E10, 0x2E40, 0x2E1B, 0x2E41, 0x2E45 };
+
+static const uint8_t kWorld2627State46_11Cal[36][2] = { { 11, 0 }, { 1, 8 }, { 2, 7 }, { 3, 9 }, { 4, 10 }, { 5, 6 }, { 0, 9 }, { 1, 6 }, { 11, 2 }, { 8, 3 }, { 4, 7 }, { 10, 5 }, { 0, 10 }, { 9, 1 }, { 2, 8 }, { 7, 3 }, { 6, 4 }, { 5, 11 }, { 0, 7 }, { 1, 11 }, { 6, 2 }, { 10, 3 }, { 9, 4 }, { 8, 5 }, { 6, 0 }, { 7, 1 }, { 2, 10 }, { 3, 11 }, { 4, 8 }, { 5, 9 }, { 8, 0 }, { 10, 1 }, { 9, 2 }, { 3, 6 }, { 11, 4 }, { 7, 5 } };
+
+static const uint8_t kWorld2627State46_11Draws[20] = { 8, 0, 2, 6, 6, 0, 4, 2, 7, 1, 5, 3, 4, 4, 0, 8, 0, 1, 2, 3 };
+
+static const uint16_t kWorld2627State46_12Teams[12] = { 0x2E5F, 0x2E18, 0x2E63, 0x2E66, 0x2E65, 0x2E64, 0x2E61, 0x2E12, 0x2E14, 0x2E62, 0x2E60, 0x2E67 };
+
+static const uint8_t kWorld2627State46_12Cal[36][2] = { { 11, 0 }, { 1, 8 }, { 2, 7 }, { 3, 9 }, { 4, 10 }, { 5, 6 }, { 0, 9 }, { 1, 6 }, { 11, 2 }, { 8, 3 }, { 4, 7 }, { 10, 5 }, { 0, 10 }, { 9, 1 }, { 2, 8 }, { 7, 3 }, { 6, 4 }, { 5, 11 }, { 0, 7 }, { 1, 11 }, { 6, 2 }, { 10, 3 }, { 9, 4 }, { 8, 5 }, { 6, 0 }, { 7, 1 }, { 2, 10 }, { 3, 11 }, { 4, 8 }, { 5, 9 }, { 8, 0 }, { 10, 1 }, { 9, 2 }, { 3, 6 }, { 11, 4 }, { 7, 5 } };
+
+static const uint8_t kWorld2627State46_12Draws[20] = { 8, 0, 2, 6, 6, 0, 5, 3, 7, 1, 4, 2, 4, 4, 0, 8, 0, 1, 2, 3 };
+
+static const WorldStateContest kWorld2627StateContests46[13] = {
+    { "CAMPEONATO PAULISTA", "PAULISTA", 16, 0, 16, 3, 1, 4, { { 1, 16, 8 }, { 0, 8, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 20, 20, 132 }, kWorld2627State46_0Teams, 1, 16, 8, 64, kWorld2627State46_0Cal, 3, kWorld2627State46_0Draws, 0x162E },
+    { "CAMPEONATO CARIOCA", "CARIOCA", 12, 0, 16, 3, 1, 4, { { 2, 6, 8 }, { 0, 8, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 20, 132, 20 }, kWorld2627State46_1Teams, 2, 6, 6, 36, kWorld2627State46_1Cal, 2, kWorld2627State46_1Draws, 0x042E },
+    { "CAMPEONATO MINEIRO", "MINEIRO", 12, 0, 16, 3, 1, 3, { { 3, 4, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 132, 20 }, kWorld2627State46_2Teams, 3, 4, 8, 48, kWorld2627State46_2Cal, 1, kWorld2627State46_2Draws, 0x0A2E },
+    { "CAMPEONATO GAUCHO", "GAUCHO", 12, 0, 16, 3, 1, 4, { { 2, 6, 8 }, { 0, 8, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 20, 132, 132 }, kWorld2627State46_3Teams, 2, 6, 6, 36, kWorld2627State46_3Cal, 3, kWorld2627State46_3Draws, 0x0F2E },
+    { "CAMPEONATO ALAGOANO", "ALAGOANO", 8, 0, 16, 3, 1, 3, { { 1, 8, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 132, 132 }, kWorld2627State46_4Teams, 0, 0, 0, 0, 0, 1, kWorld2627State46_4Draws, 0x172E },
+    { "CAMPEONATO BAIANO", "BAIANO", 10, 0, 16, 3, 1, 3, { { 1, 10, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 20, 20 }, kWorld2627State46_5Teams, 0, 0, 0, 0, 0, 1, kWorld2627State46_5Draws, 0x062E },
+    { "CAMPEONATO CEARENSE", "CEARENSE", 10, 0, 16, 3, 1, 4, { { 2, 5, 6 }, { 2, 3, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 0, 132, 132 }, kWorld2627State46_6Teams, 2, 5, 5, 20, kWorld2627State46_6Cal, 0, kWorld2627State46_6Draws, 0x212E },
+    { "CAMPEONATO GOIANO", "GOIANO", 12, 0, 24, 3, 1, 4, { { 1, 12, 8 }, { 0, 8, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 132, 132, 132 }, kWorld2627State46_7Teams, 1, 12, 8, 48, kWorld2627State46_7Cal, 2, kWorld2627State46_7Draws, 0x1C2E },
+    { "CAMPEONATO MATO-GROSSENSE", "MATO-GROSS.", 10, 0, 16, 3, 1, 4, { { 1, 10, 6 }, { 0, 6, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 20, 132, 132 }, kWorld2627State46_8Teams, 0, 0, 0, 0, 0, 2, kWorld2627State46_8Draws, 0x192E },
+    { "CAMPEONATO PARAENSE", "PARAENSE", 12, 0, 16, 3, 1, 4, { { 1, 12, 8 }, { 0, 8, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 20, 20, 132 }, kWorld2627State46_9Teams, 1, 12, 6, 36, kWorld2627State46_9Cal, 2, kWorld2627State46_9Draws, 0x132E },
+    { "CAMPEONATO PERNAMBUCANO", "PERNAMBUC.", 8, 0, 16, 3, 1, 4, { { 1, 8, 6 }, { 0, 6, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 132, 132, 132 }, kWorld2627State46_10Teams, 0, 0, 0, 0, 0, 2, kWorld2627State46_10Draws, 0x232E },
+    { "CAMPEONATO PARANAENSE", "PARANAENSE", 12, 0, 16, 3, 1, 4, { { 2, 6, 8 }, { 0, 8, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 132, 132, 132 }, kWorld2627State46_11Teams, 2, 6, 6, 36, kWorld2627State46_11Cal, 2, kWorld2627State46_11Draws, 0x252E },
+    { "CAMPEONATO CATARINENSE", "CATARINENSE", 12, 0, 24, 3, 1, 4, { { 2, 6, 8 }, { 0, 8, 4 }, { 0, 4, 2 }, { 0, 2, 1 } }, { 0, 132, 132, 132 }, kWorld2627State46_12Teams, 2, 6, 6, 36, kWorld2627State46_12Cal, 2, kWorld2627State46_12Draws, 0x37FE },
+};
+
 static const uint8_t kWorld2627StatesSim46[2124] = {
     0x0D, 0x2E, 0x16, 0x10, 0x01, 0x10, 0x02, 0x08, 0x2E, 0x16, 0x2E, 0x01, 0x2E, 0x09, 0xFE, 0x03,
     0x2E, 0x0C, 0x2E, 0x07, 0xFE, 0x05, 0x2E, 0x0B, 0xFE, 0x00, 0x2E, 0x1F, 0x2E, 0x03, 0xFE, 0x04,
@@ -7587,7 +7673,7 @@ static const uint8_t kWorld2627StatesPools46[917] = {
     0x3F, 0x15, 0x16, 0x17, 0x18,
 };
 
-static const WorldStates kWorld2627States46 = { 46, 254, 1, 40, 13, 2124, kWorld2627StatesSim46, kWorld2627StatesPools46, kWorld2627StatesWords46 };
+static const WorldStates kWorld2627States46 = { 46, 254, 1, 40, 13, 2124, kWorld2627StatesSim46, kWorld2627StatesPools46, kWorld2627StatesWords46, kWorld2627StateContests46 };
 #endif
 
 const uint8_t *World_ContiSpec(void)

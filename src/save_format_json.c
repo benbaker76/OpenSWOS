@@ -6334,7 +6334,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
      * its start, per pool its queue's length and its contest's overrides, the queues, the
      * identities -- the latter also in "team_pools", as every pooled file's) and the champions. */
 #if SWOS_WORLDS
-    if (RI_STATE.init[0]) {
+    if (RI_STATE.init[0] || g_stateCup != 0xFF) {
         mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d", "state_pools", "seasons", (int)g_stateSeasons);
         wp_emit_u8(&out, "started", RI_STATE.init, STATE_POOL_FILES);
         wp_emit_u8(&out, "queued", RI_STATE.qn, STATE_POOL_POOLS);
@@ -6342,6 +6342,8 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         wp_emit_u16(&out, "overrides", &RI_STATE.ovr[0][0], STATE_POOL_POOLS * STATE_POOL_ENTRIES);
         wp_emit_u16(&out, "identities", RI_STATE.maps, STATE_POOL_MAP);
         wp_emit_u16(&out, "champions", g_stateChampions, 13);
+        mjson_printf(json_out_emit, &out, ",%Q:%d", "played_state", (int)g_stateCup);
+        wp_emit_u8(&out, "played_ranking", g_stateRank0, (int)sizeof g_stateRank0);
         mjson_printf(json_out_emit, &out, "%s", "}");
     }
 #endif
@@ -7100,6 +7102,8 @@ static void apply_semantic_load(const char *src, int src_size)
             wp_load_u16(so, solen, "$.overrides", &RI_STATE.ovr[0][0], STATE_POOL_POOLS * STATE_POOL_ENTRIES);
             wp_load_u16(so, solen, "$.identities", RI_STATE.maps, STATE_POOL_MAP);
             wp_load_u16(so, solen, "$.champions", g_stateChampions, 13);
+            if (mjson_get_long(so, solen, "$.played_state", &v) > 0) g_stateCup = (uint8_t)v;
+            wp_load_u8(so, solen, "$.played_ranking", g_stateRank0, (int)sizeof g_stateRank0);
         }
     }
 #endif

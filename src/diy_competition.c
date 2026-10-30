@@ -33,6 +33,7 @@
 #include "league_phase.h"
 #include "uefa_coef.h"
 #include "conti_season.h"
+#include "states.h"
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
 
 /* ---- Constants ---- */
@@ -932,6 +933,10 @@ void DIYTournament_RecalculateMatchesPerTeam(void)
                                                      slot->groups, slot->teamsPerGroup);
             if (lp)
                 slot->matchesPerSlot = (uint16_t)lp;
+            const int32_t sd = States_StageDays((uint8_t)_diyFileBufferCopy.header.field_2E,     /* (a state's */
+                                                slot->groups, slot->teamsPerGroup);              /*  calendar) */
+            if (sd)
+                slot->matchesPerSlot = (uint16_t)sd;
         } else {
             /* League: default 2 matches */
             slot->matchesPerSlot = 2;
@@ -1876,6 +1881,8 @@ static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
         return;
     if (LeaguePhase_Pair(team1Out, team2Out))   /* (a world's league phase: its draw) */
         return;
+    if (States_Pair(team1Out, team2Out))        /* (a world's state championship: its calendar, states.c) */
+        return;
     DIYCompetitionEx *compEx = &_diyCompetitionStart;
     DIYCompetition *a0s = &compEx->base;
     uint8_t *a0 = (uint8_t *)a0s;
@@ -2200,12 +2207,14 @@ void DIY_SyncCompetitionTeamGridOrBuildBracket(void)
     uint8_t *a5 = (uint8_t *)&_diyCompetitionStart.base;
 
     if (a3Slot->isLeagueFormat != 0) {
-        LeaguePhase_GroupsEnd(a2, 0);
-        Conti_GroupsEnd(a2, 0);              /* (another confederation's main round: conti_season.c) */       /* (a world's league phase: the play-off ties) */
+        LeaguePhase_GroupsEnd(a2, 0);       /* (a world's league phase: the play-off ties) */
+        Conti_GroupsEnd(a2, 0);             /* (another confederation's main round: conti_season.c) */
         DIY_BuildSeededBracketAndUpdateScores(a2, a3, a4, a5);
         LeaguePhase_GroupsEnd(a2, 1);
         Conti_GroupsEnd(a2, 1);
+        States_GroupsEnd(a2, 1);            /* (a world's state championship: its merit order, states.c) */
     } else {
+        States_KnockoutEnd();               /* (its ties' winners: a later stage's pairs, states.c) */
         DIY_CopyTeamGridFromCompToDIY(a2, a3, a4, a5);
     }
 }
@@ -4535,6 +4544,7 @@ void DIY_LoadCurrentCompetitionSlot(void)
         a5s->field_2E = a2s->field_2E;  /* 0x2E */
         a5s->numTeamsInStage = a2s->numTeams;  /* 0x4E = numTeams from a2 */
         LeaguePhase_StageStart();       /* (a world's league phase: its draw, include/league_phase.h) */
+        States_StageStart();            /* (a world's state championship: its calendar, states.c) */
     } else {
         /* Cup path — init DIY cup, then fill from file buffer */
         InitDIYCup();
@@ -4572,6 +4582,7 @@ void DIY_LoadCurrentCompetitionSlot(void)
 
         /* Shuffle teams and build comp team list */
         DIY_ShuffleTeamsAndBuildCompTeamList(a2, a3, a4, a5);
+        States_KnockoutStart();         /* (a world's state championship: its fixed draw, states.c) */
 
         /* Start month */
         a4s->startMonth = (int8_t)s->progressionTable[0];
