@@ -17,6 +17,25 @@ uint16_t World_FirstYear(void)
     return kFirstYear[World_Current()];
 }
 
+#ifdef SWOS_SDL_BUILD
+#include <stdio.h>
+#include "swos_io.h"
+/* The default world: World 2026-27 when its data is there (beside the game or in the assets
+ * folder, where the data setup installs it), else 96/97. */
+const char *World_DefaultTag(void)
+{
+#if SWOS_WORLDS
+    char buf[1024];
+    FILE *f = fopen(swos_data_path("data_json/worlds/2627/competitions/leagues.json", buf, (uint32_t)sizeof buf), "rb");
+    if (f) {                            /* (opened: swos_data_exists says yes on the web and the Switch) */
+        fclose(f);
+        return kTags[WORLD_2627];
+    }
+#endif
+    return kTags[WORLD_9697];
+}
+#endif
+
 uint16_t World_SeasonYear(uint8_t seasonPlaying)
 {
     uint16_t year = (uint16_t)(1900u + seasonPlaying);

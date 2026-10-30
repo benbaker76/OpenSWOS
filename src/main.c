@@ -447,7 +447,7 @@ int main(int argc, char **argv)
     opts.netplay_name[0] = '\0';
     opts.netplay_remember = 1;    /* REMEMBER LOGIN INFO: on, as the login screen shows it */
     opts.assets_reminder_off[0] = '\0';  /* remind about older game data (src/assets_check.c) */
-    opts.world[0] = '\0';                /* [general] world: 96/97 (include/world.h) */
+    opts.world[0] = '\0';                /* [general] world: the default (include/world.h) */
     opts.matchmaker[0] = '\0';    /* default: a matchmaking server on this machine */
     opts.record[0] = '\0';        /* default: "server" once SWOS.ini is read (below) */
     opts.netplay_balance = 0;     /* [netplay] balance: off unless asked for (docs/NETPLAY_BALANCE.md) */
@@ -1177,7 +1177,12 @@ int main(int argc, char **argv)
         Countries_Localize();
         Currency_Set(opts.currency);   /* pound (stock £) | dollar ($) | euro (€) */
     }
-    /* The football world (include/world.h): 96/97 unless SWOS.ini names another. */
+    /* The football world (include/world.h): --world, else SWOS_WORLD, else SWOS.ini's, else the
+     * default -- World 2026-27 when its data is there (World_DefaultTag), else 96/97. */
+    if (!opts.world[0] && getenv("SWOS_WORLD") && getenv("SWOS_WORLD")[0])
+        snprintf(opts.world, sizeof opts.world, "%s", getenv("SWOS_WORLD"));
+    if (!opts.world[0])
+        snprintf(opts.world, sizeof opts.world, "%s", World_DefaultTag());
     if (opts.world[0] && World_Set(opts.world) != 0)
         fprintf(stderr, "[world] unknown world '%s' in SWOS.ini: playing %s\n", opts.world, World_Tag());
     fprintf(stderr, "[world] %s\n", World_Tag());

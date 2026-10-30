@@ -11,6 +11,7 @@
 # the doc still shows you where it is. Takes a few minutes: each cell replays
 # until it diverges, and the long recordings run tens of thousands of frames.
 set -uo pipefail
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
 cd "$(dirname "$0")/.."
 
 LEVELS="scalars teams info sprites"

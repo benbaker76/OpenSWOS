@@ -24,6 +24,7 @@
 # the SAME ~/.swos/SWOS.log and clobber each other, and the interesting output
 # is the part that disappears.
 set -uo pipefail
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1

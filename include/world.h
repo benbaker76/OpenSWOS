@@ -38,6 +38,12 @@ uint16_t    World_SeasonYear(uint8_t seasonPlaying);
 const char *World_TagOf(WorldId w);          /* NULL for an unknown id */
 int32_t     World_FromTag(const char *tag);  /* the id, or -1 */
 int32_t     World_Set(const char *tag);      /* 0, or -1 (unknown: unchanged) */
+#ifdef SWOS_SDL_BUILD
+/* The world a run plays when neither --world, SWOS_WORLD nor SWOS.ini names one: World 2026-27
+ * when its data is there, else 96/97. (The Amiga: its drawer's data/WORLD, written by the data
+ * setup.) */
+const char *World_DefaultTag(void);
+#endif
 
 /* The world's baked competition records over 96/97's (src/world_data.c, made by
  * scripts/world_import.py): on both targets, at start-up, before anything reads the

@@ -55,6 +55,7 @@
 #                   plain run (docs/NETPLAY.md, "One simulation width")
 # Exit code: 0 everything passed, 2 something failed, 1 setup failure.
 set -uo pipefail
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
 cd "$(dirname "$0")/.."
 
 MODES="direct synctest:1 synctest:8 p2p"

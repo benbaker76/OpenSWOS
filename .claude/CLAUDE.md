@@ -191,6 +191,14 @@ and the global team numbers are 96/97's 2000. New world code must keep that true
 data or `World_Current()`, never act for 96/97. Proved: the 96/97 golden careers on a
 `SWOS_WORLDS=0` build equal the record made with the worlds on (a save writes the league offsets at
 2000 when nothing past them is used, so it is the same from either build).
+**World 2026-27 is the DEFAULT world** (since 2026-10-30): a run plays `--world`, else `SWOS_WORLD`,
+else SWOS.ini's `[general] world`, else 2627 when `data_json/worlds/2627/` is there (beside the game or
+in the assets folder; `World_DefaultTag`), else 96/97; the Amiga plays its drawer's `data/WORLD`. Its
+data (built by `scripts/world_import.py` from `worlds/2627/mod/`) is to be tracked and shipped -- drops
+stage it without mod/ -- but is ON HOLD until Davide agrees to publish it: still .gitignored, and so is
+the server team list's 2026-27 part (`assign_team_uuids.py --registry --worlds` adds it). Never commit either
+before the owner says so. **A test rig whose corpus or careers are 96/97's must pin it**: the scripts export
+`SWOS_WORLD=9697` at the top -- a new rig must too, or it plays 2026-27's clubs.
 
 **The golden career test** (`scripts/career_golden_test.sh`, docs/WORLD_2026_27.md phase 0): the
 game's career autopilot (`--career-golden=new:<continent>/<country>/<division>/<club>` or a save;

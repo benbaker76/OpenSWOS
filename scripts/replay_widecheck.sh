@@ -32,6 +32,7 @@
 # several render widths with one simulation draw width and compares the SIM hash of every
 # frame. That is the check for "two displays play the same match" (docs/NETPLAY.md).
 set -uo pipefail
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
 cd "$(dirname "$0")/.."
 
 WIDTH="${1:-484}"

@@ -603,7 +603,9 @@ LDFLAGS += -sASYNCIFY -sASYNCIFY_STACK_SIZE=65536 \
            -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,FS -lidbfs.js \
            --pre-js wasm/pre.js --shell-file $(WASM_SHELL) \
            $(foreach d,$(WASM_DATA_DIRS),$(foreach r,bin $(SWOS_ASSETS),\
-               $(if $(wildcard $(r)/$(d)),--preload-file $(r)/$(d)@/$(d))))
+               $(if $(wildcard $(r)/$(d)),--preload-file $(r)/$(d)@/$(d)))) \
+           --exclude-file '*worlds/*/mod' --exclude-file '*worlds/*/data' --exclude-file '*worlds/*/amiga'
+# (a world's sources and its Amiga files: the game reads its teams/ and competitions/ only)
 # Re-link when the pre-js or shell HTML changes (both embedded at link time).
 WASM_LINK_DEPS := wasm/pre.js $(WASM_SHELL)
 # The --preload-file dirs are baked into SWOS.data AT LINK TIME, but nothing above

@@ -10,6 +10,7 @@
 # macOS arm64 and Windows x86_64 run the same (recording, seed, gameplay) AT THE SAME TIME
 # -- they are different machines, so there is no reason to wait for one before the other.
 set -u
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's; World 2026-27 is the game's default)
 SCR="${SWOS_HUNT_OUT:-$(cd "$(dirname "$0")/.." && pwd)/tests/hunt}"; mkdir -p "$SCR"
 ROOT=/mnt/c/Projects/AI/SWOS/OpenSWOS
 GP="${GAMEPLAY:-off}"

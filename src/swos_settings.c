@@ -34,6 +34,7 @@
  */
 
 #include "swos_settings.h"
+#include "world.h"
 #include "swos_io.h"   /* swos_save_commit — Switch save durability */
 #include "ini.h"
 
@@ -604,9 +605,10 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; an older OpenSWOS Setup -- the data versions it was about. Empty: remind (src/assets_check.c).",
         opts->assets_reminder_off };
     SETTING(n) = (IniEntry){ "general","world",
-        "; world: 9697 -- the football world: its countries, clubs and competitions\n"
-        "; (docs/WORLD_2026_27.md). A save is played in the world it was made in.",
-        opts->world[0] ? opts->world : "9697" };
+        "; world: 2627 | 9697 -- the football world: its countries, clubs and competitions\n"
+        "; (docs/WORLD_2026_27.md): World 2026-27 (the default, when its data is there) or\n"
+        "; SWOS 96/97. A save is played in the world it was made in.",
+        opts->world[0] ? opts->world : World_DefaultTag() };
     if (n >= SETTINGS_MAX)
         fprintf(stderr, "[settings] the settings table is full (%d): raise SETTINGS_MAX\n", n);
     return n;

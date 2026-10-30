@@ -109,6 +109,10 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
                              const char *outPath, void (*log)(void *user, const char *line),
                              void *user, char *err);
 
+/* The game's default world (World 2026-27) and, in an assets folder, where its Amiga files are. */
+#define SD_DEFAULT_WORLD   "2627"
+#define SD_WORLD_AMIGA_DIR "data_json/worlds/" SD_DEFAULT_WORLD "/amiga"
+
 /* A world's built files (`worldDir`: scripts/world_import.py's bin/data_json/worlds/<tag>/ --
  * teams/, competitions/, data/) into the assets folder's data_json/worlds/<tag>/, where the PC
  * game reads them (--world=<tag> or [general] world), and, given a SWOS drawer, its data/ over

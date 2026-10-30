@@ -29,7 +29,7 @@ for d in "$@"; do
         mkdir -p "$DEST/$(dirname "$f")"
         cp "$f" "$DEST/$f"
         n=$((n + 1))
-    done < <(git ls-files -z -- "$d")
+    done < <(git ls-files -z -- "$d" ':!:*/worlds/*/mod/*')   # (a world's sources: the importer's, not the game's)
     if [ "$n" -gt 0 ]; then STAGED="$STAGED $d"
     else echo "stage_runtime: nothing tracked in bin/$d" >&2; fi
 done

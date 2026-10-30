@@ -532,6 +532,15 @@ int32_t SwosData_Run(SdJob *job, char *err)
         }
     }
     SdSources_Close(&job->src);
+    if (rc == 0) {
+        /* The default world (the game's World 2026-27): its built files, which OpenSWOS ships
+         * (resDir/data_json/worlds/<tag>), installed beside the game data, so the Amiga's drawer
+         * and WHDLoad package get it (the PC game reads them beside itself as well). */
+        char world[1100], probe[1100];
+        Sg_PathJoin(world, sizeof world, job->resDir, "data_json/worlds/" SD_DEFAULT_WORLD);
+        if (job->outDir[0] && Sg_FindNoCase(world, "competitions/leagues.json", probe, sizeof probe) == 0)
+            rc = SwosData_InstallWorld(world, SD_DEFAULT_WORLD, job->outDir, NULL, job->log, job->user, err);
+    }
     if (rc == 0)
         rc = write_assets_ini(job, info, err);
     return rc;
@@ -1097,6 +1106,12 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
         Sg_PathJoin(amigaOnly, sizeof amigaOnly, assetsDir, AGA_ONLY_DIR);
         pkg_tree(&pkg, amigaOnly, "grafs_aga", WHD_TOP "/data/");
     }
+    {   /* The default world's team files and data/WORLD, as in the drawer. */
+        char world[1100];
+        Sg_PathJoin(world, sizeof world, assetsDir, SD_WORLD_AMIGA_DIR);
+        if (Sg_FindNoCase(world, "data/WORLD", probe, sizeof probe) == 0)
+            pkg_tree(&pkg, world, "data", WHD_TOP "/");
+    }
 
     {
         LhaWriter *w = Lha_Create(outPath, err);
@@ -1166,6 +1181,22 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
             copy_tree(amigaOnly, drawerDir, "grafs_aga", err) < 0)
             return -1;
     }
+    /* Then the default world's team files and data/WORLD (SwosData_InstallWorld), when the
+     * assets folder has it. */
+    {
+        char world[1100];
+        Sg_PathJoin(world, sizeof world, assetsDir, SD_WORLD_AMIGA_DIR);
+        if (Sg_FindNoCase(world, "data/WORLD", probe, sizeof probe) == 0) {
+            int32_t n = copy_tree(world, drawerDir, "data", err);
+            if (n < 0)
+                return -1;
+            if (log) {
+                char line[256];
+                snprintf(line, sizeof line, "Amiga drawer: the world %s (%d files)", SD_DEFAULT_WORLD, n);
+                log(user, line);
+            }
+        }
+    }
     /* The program writes saves there but will not create the folder. */
     Sg_PathJoin(probe, sizeof probe, drawerDir, "save");
     Sg_MakeDirs(probe);
@@ -1173,22 +1204,22 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
 }
 
 /* A world (the game's include/world.h): a world's built files -- what scripts/world_import.py
- * writes into bin/data_json/worlds/<tag>/ from the SWOS 96/97 Mod's data, which OpenSWOS does
- * not ship -- into the assets folder's data_json/worlds/<tag>/ (teams/, competitions/: the PC
- * game reads them there), and, given a SWOS drawer, its data/ (the world's binary team files)
- * over the drawer's with data/WORLD naming the world. */
+ * writes into bin/data_json/worlds/<tag>/ from the SWOS 96/97 Mod's data -- into the assets
+ * folder's data_json/worlds/<tag>/: teams/ and competitions/, which the PC game reads there, and
+ * amiga/data/ (the world's binary team files and WORLD, naming it), which SwosData_FillAmigaDrawer
+ * and SwosData_MakeWhdload put in the Amiga's data/. Given a SWOS drawer, that too at once. */
 int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char *assetsDir,
                               const char *drawerDir, void (*log)(void *user, const char *line),
                               void *user, char *err)
 {
     static const char *const kTrees[] = { "teams", "competitions" };
-    char dst[1100], rel[64], probe[1100], line[256];
+    char dst[1100], amiga[1100], rel[64], probe[1100], line[256];
     if (!tag || !tag[0] || strlen(tag) > 8 || strchr(tag, '/') || strchr(tag, '\\')) {
         snprintf(err, 256, "a world's tag is a short name (2627)");
         return -1;
     }
     if (Sg_FindNoCase(worldDir, "competitions/leagues.json", probe, sizeof probe) != 0) {
-        snprintf(err, 256, "%s is not a built world (no competitions/leagues.json)", worldDir);
+        snprintf(err, 256, "%.200s is not a built world (no competitions/leagues.json)", worldDir);
         return -1;
     }
     snprintf(rel, sizeof rel, "data_json/worlds/%s", tag);
@@ -1203,19 +1234,26 @@ int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char 
             log(user, line);
         }
     }
+    Sg_PathJoin(amiga, sizeof amiga, dst, "amiga");
+    int32_t n = copy_tree(worldDir, amiga, "data", err);
+    if (n < 0)
+        return -1;
+    Sg_PathJoin(probe, sizeof probe, amiga, "data/WORLD");
+    if (n && Sg_WriteFile(probe, (const uint8_t *)tag, (uint32_t)strlen(tag), err) != 0)
+        return -1;
+    if (log) {
+        snprintf(line, sizeof line, "world %s: the Amiga's data/ (%d files)", tag, n);
+        log(user, line);
+    }
     if (drawerDir) {
         if (Sg_FindNoCase(drawerDir, "SWOS2", probe, sizeof probe) != 0) {
-            snprintf(err, 256, "%s is not a SWOS drawer (no SWOS2 in it)", drawerDir);
+            snprintf(err, 256, "%.200s is not a SWOS drawer (no SWOS2 in it)", drawerDir);
             return -1;
         }
-        int32_t n = copy_tree(worldDir, drawerDir, "data", err);
-        if (n < 0)
-            return -1;
-        Sg_PathJoin(probe, sizeof probe, drawerDir, "data/WORLD");
-        if (Sg_WriteFile(probe, (const uint8_t *)tag, (uint32_t)strlen(tag), err) != 0)
+        if (copy_tree(amiga, drawerDir, "data", err) < 0)
             return -1;
         if (log) {
-            snprintf(line, sizeof line, "world %s: the drawer's data/ (%d files), data/WORLD", tag, n);
+            snprintf(line, sizeof line, "world %s: the drawer's data/", tag);
             log(user, line);
         }
     }
