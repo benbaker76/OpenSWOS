@@ -4,6 +4,7 @@
  */
 #include "game_types.h"
 #include "uefa_coef.h"
+#include "conti_season.h"
 #include "swos_types.h"
 #include "world_cups.h"
 #include "world_cupd.h"
@@ -403,6 +404,9 @@ int32_t WorldCups_RoundStringIndex(uint8_t compId, uint16_t round, uint16_t roun
     const int32_t uq = UefaQual_RoundStringIndex(compId);       /* (a UEFA qualifying tie: uefa_coef.c) */
     if (uq >= 0)
         return uq;
+    const int32_t ct = Conti_RoundStringIndex(compId);          /* (another confederation's tie: conti_season.c) */
+    if (ct >= 0)
+        return ct;
     int32_t count = 0, ours = 0;
     const WorldCup *cups = World_Cups(&count);
     for (int32_t i = 0; i < count; i++)

@@ -91,6 +91,11 @@ extern struct ct_seg CT_SEG;
 
 void ct_table(const u8 *diy);
 void ct_table_words(const u16 *w, int n);    /* (ours: the final table as team words) */
+const u8 *ct_round_spec(int c, int r);       /* (ours: cup c's round r in the spec, 0 past its last) */
+/* A group stage's end in the game's contest (the Mod's ct_gpre / ct_gend over our contest as arrays: its
+   groups in the game's order -- row index, team word, matches played, points -- and the next stage's list). */
+u32 ct_gplace(int c, int ng, int gs, const u16 *word, const u16 *played);
+u32 ct_gend(int c, int ng, int gs, u8 *row, const u16 *word, const u16 *pts, u8 *list);
 void ct_begin(void);
 void ct_country(const u8 *stand, const u8 *cuprec);
 void ct_go(u32 manager, u32 seed, u32 uefa);
@@ -99,9 +104,6 @@ void ct_season(void);
 void ct_result(u32 v);
 void ct_resume(void);
 
-/* The season end's glue (src/conti_season.c). */
-void Conti_Country(void);               /* a country's qualifiers: its table, top 9 and cup winner */
-void Conti_SeasonEnd(void);             /* every country seen: the next editions */
-void Conti_Reset(void);                 /* a new career */
+#include "conti_season.h"           /* (the season's glue: src/conti_season.c) */
 
 #endif

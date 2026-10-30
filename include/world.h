@@ -56,5 +56,13 @@ void        World_ReadFromData(void);
 
 /* The other confederations' cups' spec (src/world_data.c; src/world_conti.c's CT_SPEC), 0: none. */
 const uint8_t *World_ContiSpec(void);
+/* Its cups' names, in the spec's order, and each round's name (_cupRoundStringTable, by key). */
+typedef struct WorldContiCup {
+    const char *name, *shortName;
+    uint8_t round[8];
+    uint8_t rank;                       /* in its confederation: 0 its first (a Champions Cup's trophy), 1, 2 */
+    uint8_t contest;                    /* its main round a contest of the game's (0: a stepladder, ties only) */
+} WorldContiCup;
+const WorldContiCup *World_ContiCups(int32_t *count);
 
 #endif

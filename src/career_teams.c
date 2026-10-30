@@ -12,6 +12,7 @@
 
 #include "career_teams.h"
 #include "uefa_coef.h"
+#include "conti_season.h"
 #include "league_split.h"
 #include "league_phase.h"
 #include "world_playoff.h"
@@ -1642,6 +1643,7 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
     if (_teamSelectionKeyCacheCount) {
         CupD_Step(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
         UefaQual_Daily();       /* (a world's: the career club's qualifying tie decided) */
+        Conti_Daily();          /* (or its tie in another confederation's cup) */
         WorldPlayoff_Advance(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
     }
 
@@ -2406,8 +2408,10 @@ void DIY_AdvanceToNextCompetitionSlot(void)
     if (slotRec->isLeagueFormat != 0) {
         /* League type: build seeded bracket (a world's league phase: its play-off ties) */
         LeaguePhase_GroupsEnd(buf, 0);
+        Conti_GroupsEnd(buf, 0);              /* (another confederation's main round: conti_season.c) */
         DIY_BuildSeededBracketAndUpdateScores(buf, slot, comp, comp);
         LeaguePhase_GroupsEnd(buf, 1);
+        Conti_GroupsEnd(buf, 1);
     } else {
         /* Cup type: copy team grid */
         DIY_CopyTeamGridFromCompToDIY(buf, slot, comp, comp);

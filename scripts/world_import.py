@@ -1246,6 +1246,18 @@ const uint8_t *World_ContiSpec(void)
     }
 }
 
+const WorldContiCup *World_ContiCups(int32_t *count)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(conti_cup_cases)s
+#endif
+    default:
+        *count = 0;
+        return 0;
+    }
+}
+
 /* The UEFA coefficients' seeds (src/uefa_coef.c): the associations' last 5 seasons, the clubs'. */
 const WorldUefaSeeds *World_UefaSeeds(void)
 {
@@ -1299,7 +1311,8 @@ def c_string(text):
     return '"%s"' % text.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None):
+def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None,
+                 guests=()):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1349,8 +1362,8 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         tag, ", ".join("kWorld%s_region%d" % (tag, r) for r in range(80, 86))))
     season_cases = "    case WORLD_%s:\n        return kWorld%sSeasonCountries;" % (tag, tag)
     file_cases = "    case WORLD_%s:\n        switch (country) {\n%s\n        default:\n            return 0;\n        }" % (
-        tag, "\n".join('        case %d:\n            return "teams/%s.json";' % (wc["number"], wc["base"])
-                       for wc in news))
+        tag, "\n".join('        case %d:\n            return "teams/%s.json";' % (number, base)
+                       for number, base in [(wc["number"], wc["base"]) for wc in news] + list(guests)))
     cases = "    case WORLD_%s:\n%s\n        break;" % (tag, "\n".join(installs))
     group_tables, group_entries = [], []
     for g in groups:
@@ -1509,13 +1522,19 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         tag, len(splits), tag)
     if news:
         externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
-    conti_tab, conti_cases = "", ""
+    conti_tab, conti_cases, conti_cup_cases = "", "", ""
     if conti:
+        conti, named = conti
         conti_tab = "static const uint8_t kWorld%sContiSpec[%d] = {\n%s\n};" % (tag, len(conti), "\n".join(
             "    " + ", ".join("0x%02X" % b for b in conti[i:i + 16]) + "," for i in range(0, len(conti), 16)))
+        conti_tab += "\n\nstatic const WorldContiCup kWorld%sContiCups[%d] = {\n%s\n};" % (tag, len(named), "\n".join(
+            '    { "%s", "%s", { %s }, %d, %d },' % (n, sn, ", ".join(str(r) for r in rounds), rank, contest)
+            for n, sn, rounds, rank, contest in named))
         conti_cases = "    case WORLD_%s:\n        return kWorld%sContiSpec;" % (tag, tag)
+        conti_cup_cases = "    case WORLD_%s:\n        *count = %d;\n        return kWorld%sContiCups;" % (
+            tag, len(named), tag)
     return WORLD_DATA_C % {"europe": "\n\n".join(euro_tables), "europe_cases": euro_cases,
-                           "conti": conti_tab, "conti_cases": conti_cases,
+                           "conti": conti_tab, "conti_cases": conti_cases, "conti_cup_cases": conti_cup_cases,
                            "coef_cases": coef_cases,
                            "splits": "\n\n".join(split_tables), "split_cases": split_cases,
                            "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
@@ -1608,18 +1627,52 @@ def europe(picks):
             "cup_only": cup_only}
 
 
+# The guest clubs' team files (one a confederation; the Mod's 191-194 are our off-file pools'):
+# numbers no country has, their global numbers past the world's (as the pools': never in a league).
+GUEST_FILES = {"caf": 186, "afc": 187, "ofc": 188, "concacaf": 189}
+
+
+def guest_team_files():
+    """[(number, json name)] of the guest clubs' team files, written (the Mod's guests.build)."""
+    import world_conti
+    out = []
+    for conf, number in sorted(GUEST_FILES.items(), key=lambda kv: kv[1]):
+        g = world_conti._read(conf, "guests")
+        if not g or not g.get("clubs"):
+            continue
+        teams = []
+        for i, c in enumerate(g["clubs"]):
+            home = collections.Counter(int(r["nat"]) for r in c["players"]).most_common(1)[0][0]
+            teams.append(team(world_conti.guest_entry(c), number, i, 0, 0, home))
+        name = "GUESTS_" + conf.upper()
+        write_team_file({"type": "team", "country": number, "count": len(teams), "teams": teams}, name)
+        counts["guest clubs (other confederations' cups)"] += len(teams)
+        out.append((number, name))
+    return out
+
+
 def conti_spec():
     """The other confederations' cups (scripts/world_conti.py, the Mod's conti.load): their
     associations' league team files the world's countries' numbers; the ranking's clubs none
     (its keys never match the Mod's words: neither does the Mod's build); season 1's holders
-    decided in-game (src/world_conti.c's caller)."""
+    decided in-game (src/world_conti.c's caller); the guests in their own files (GUEST_FILES)."""
     import world_conti
     if not os.path.isdir(world_conti.DATA):
         return None
+    world_conti._Guests.FILES = dict(GUEST_FILES)
     files = {c["code"].lower(): c["number"] for c in world_countries()}
     spec, assocs, cups = world_conti.load(world_conti.CONFS, files=files)
     counts["continental cups (conti)"] = len(cups)
-    return spec
+    named = []                  # (each cup's names; its rounds' _cupRoundStringTable index, by key; its rank
+    rn = {"final": 9, "sf": 7, "qf": 6, "r16": 12, "r32": 13, "pre": 15, "qual": 15}   # in its confederation (the
+    for conf, key in cups:                                                              # trophy's: the first a
+        c = next(c for c in world_conti._read(conf, "format")["cups"] if c["key"] == key)  # Champions Cup's); no
+        long_, short = c["names"]["en"]                                                 # contest of its own: a
+        rank = [k for cf, k in cups if cf == conf].index(key)                          # stepladder's ties only)
+        named.append((long_.upper()[:30], short.upper()[:16],
+                      [rn.get(r["key"], min(j, 5)) for j, r in enumerate(c["rounds"][:8])],
+                      min(rank, 2), 0 if c.get("stepladder") else 1))
+    return spec, named
 
 
 def country_splits(wc, pk, picked):
@@ -1715,11 +1768,12 @@ def main():
             rec.pop("promotion_link_data", None)
     leagues["count"] = len(leagues["leagues"])
     write(os.path.join(WORLD, "competitions", "leagues.json"), leagues)
+    guests = guest_team_files()
     with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks), conti_spec()))
+                             europe(picks), conti_spec(), guests))
     print("wrote src/world_data.c")
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):

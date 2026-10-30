@@ -29,6 +29,7 @@
 #include "comp_identity.h"
 #include "competition_data.h"
 #include "career_teams.h"
+#include "conti_season.h"
 
 /* ---- routing: the 10 CONMEBOL league competition indices ----
  *
@@ -94,7 +95,7 @@ __attribute__((used, externally_visible))
 Competition *Career_CopaWorkingCopy(void)
 {
     Competition *tmpl = Comp_ById(COMPID_copaLibertadores);
-    if (!tmpl)
+    if (!tmpl || Conti_ReplacesCopa())  /* (a world's own cups take its place: conti_season.c) */
         return NULL;
     for (int i = 0; i < CAREER_CONTESTS_CAP; i++) {
         if (_careerContests[i].competition == tmpl)
@@ -247,7 +248,7 @@ uint16_t Career_CopaLibertadoresQualifiedTeamCount(void)
 __attribute__((used, externally_visible))
 uint16_t Career_CopaLibertadoresExpectedTeamCount(void)
 {
-    return Comp_ById(COMPID_copaLibertadores) ? 20 : 0;
+    return Comp_ById(COMPID_copaLibertadores) && !Conti_ReplacesCopa() ? 20 : 0;
 }
 
 /* Career_UpdateCopaLibertadoresCompetitionSlot — analog of

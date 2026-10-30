@@ -1328,6 +1328,8 @@ void InitializeNewSeason(void)
      * cup (or leaves slot 3 inactive). */
     uint16_t tieIndex = 0;
     uint8_t *tie = UefaQual_SeasonTie(&tieIndex);  /* (a world's: the career club's qualifying tie first) */
+    if (!tie)
+        tie = Conti_SeasonTie(&tieIndex);           /* (or its tie in another confederation's cup) */
     if (!tie || Career_SelectEuroCupSlotIfTeamParticipates(tie, tieIndex) != 0)
     if (Career_SelectEuroCupSlotIfTeamParticipates(_euroCupCopy, 0) != 0) {
         if (Career_SelectEuroCupSlotIfTeamParticipates(_cupWinnersCupCopy, 1) != 0) {
@@ -1737,6 +1739,8 @@ static void Rebuild_CompetitionSlotPointers(void)
         }
         else if (_euroCupSlotIndex >= 4 && _euroCupSlotIndex <= 6)    /* (a world's qualifying tie) */
             euroCup3 = UefaQual_RestoreTie(_euroCupSlotIndex);
+        else if (_euroCupSlotIndex == 7 || _euroCupSlotIndex == 8)    /* (another confederation's cups) */
+            euroCup3 = Conti_RestoreTie(_euroCupSlotIndex);
 
         DIYCompetition *q3 = (DIYCompetition *)_careerCompetitionSlotPtrTable[3];
         /* Participation gate: euroCupSlotIndex is only written on qualification

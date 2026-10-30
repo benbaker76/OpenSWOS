@@ -37,6 +37,64 @@ class _Guests:
         return bytes(r)
 
 
+# A guest club as the Mod's team-file entry (its guests.record's bytes, field by field: mkseason's
+# Pack._explicit_player and auto_lineup), for our team files (scripts/world_import.py).
+G_POS = ['G', 'RB', 'LB', 'D', 'RW', 'LW', 'M', 'A']                # player byte 26, bits 5-7
+G_SKIN = {'light': 0, 'ginger': 1, 'dark': 2, 'darkblond': 3}      # bits 3-4
+G_SKILLS = ['pa', 've', 'he', 'ta', 'co', 'sp', 'fi']               # nibbles 1-7 of +28 (a trailing *: a key skill)
+SLOT_POS = [0, 1, 3, 3, 2, 4, 6, 6, 5, 7, 7]                         # the 4-4-2 starters: GK RB D D LB RW M M LW A A
+POS_CLASS = {0: 0, 1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 3}
+
+
+def auto_lineup(positions):
+    """The 16-byte lineup from the players' positions: the starters' slots exact first, then by class."""
+    used, start = set(), [None] * 11
+    for exact in (True, False):
+        for k, want in enumerate(SLOT_POS):
+            if start[k] is not None:
+                continue
+            for j, ps in enumerate(positions):
+                if j not in used and (ps == want if exact else POS_CLASS[ps] == POS_CLASS[want]):
+                    start[k] = j
+                    used.add(j)
+                    break
+    for k in range(11):
+        if start[k] is None:
+            start[k] = next(j for j in range(16) if j not in used)
+            used.add(start[k])
+    return start + [j for j in range(16) if j not in used]
+
+
+def _swos_name(s):
+    import unicodedata
+    s = unicodedata.normalize('NFKD', str(s).replace('ß', 'ss')).encode('ascii', 'ignore').decode()
+    return s.upper()[:22]
+
+
+def guest_entry(c):
+    players = []
+    for row in c['players'][:16]:
+        nib = [0]
+        for sk in G_SKILLS:
+            v = str(row.get(sk, '0')).strip()
+            nib.append(int(v.rstrip('*')) | (8 if v.endswith('*') else 0))
+        b = [nib[2 * i] << 4 | nib[2 * i + 1] for i in range(4)]
+        players.append({'nationality': int(row['nat']), 'field_1': 0, 'shirt_number': int(row['number']),
+                        'player_name': _swos_name(row['name']), 'field_19': 0,
+                        'position_and_face': G_POS.index(row['position']) << 5 | G_SKIN[row['skin']] << 3,
+                        'cards_injuries': 0, 'passing': b[0], 'velocity_heading': b[1], 'tackling_control': b[2],
+                        'speed_finishing': b[3], 'price': int(row['price']), 'goal_stats': [0, 0, 0, 0],
+                        'some_flag': 0})
+    lineup = [int(x) for x in str(c['lineup']).split()] if c.get('lineup') else list(range(16))
+    if lineup == list(range(16)):
+        lineup = auto_lineup([p['position_and_face'] >> 5 for p in players])
+    kits = [int(x) for x in str(c['kit1']).split()] + [int(x) for x in str(c['kit2']).split()]
+    return {'team': {'team_controls': 0, 'team_name': c['name'][:16], 'writes_zero_here': 0, 'and_with_0xfe': 0,
+                     'tactics': int(c.get('tactic') or 0), 'kit_colors': kits,
+                     'coach_name': _swos_name(c.get('coach') or ''), 'some_flag': 0, 'player_numbers': lineup},
+            'players': players, 'x_swos9697': {'club_id': 'guest:%s' % c['key']}}
+
+
 CONFS = ['conmebol', 'concacaf', 'afc', 'caf', 'ofc', 'fifa']
 IDS = [0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xD0, 0xD1, 0xDA, 0xDD, 0xDE, 0xDF, 0xEC, 0xED, 0xEE, 0xEF]   # (mkseason.RESERVED_IDS)
 RB = 24

@@ -245,7 +245,7 @@ if [ ! -s "$OUT/conti.spec" ]; then
     echo "FAIL: the other confederations' cups: scripts/world_conti.py's spec differs from the Mod's conti.load"
     exit 1
 fi
-$CC -w -fno-builtin -DCONTI_C="\"$MOD/tools/conti.c\"" -o "$OUT/conti_mod" $T/conti_mod.c
+$CC -m32 -w -fno-builtin -DCONTI_C="\"$MOD/tools/conti.c\"" -o "$OUT/conti_mod" $T/conti_mod.c
 $CC -w -fno-builtin -Iinclude -include include/swos_platform.h -o "$OUT/conti_ours" $T/conti_ours.c
 CN=$((N / 400))
 "$OUT/conti_mod" "$OUT/conti.spec" "$CN" > "$OUT/conti_mod.txt"

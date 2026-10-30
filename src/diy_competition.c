@@ -32,6 +32,7 @@
 #include "league_split.h"
 #include "league_phase.h"
 #include "uefa_coef.h"
+#include "conti_season.h"
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
 
 /* ---- Constants ---- */
@@ -2199,9 +2200,11 @@ void DIY_SyncCompetitionTeamGridOrBuildBracket(void)
     uint8_t *a5 = (uint8_t *)&_diyCompetitionStart.base;
 
     if (a3Slot->isLeagueFormat != 0) {
-        LeaguePhase_GroupsEnd(a2, 0);       /* (a world's league phase: the play-off ties) */
+        LeaguePhase_GroupsEnd(a2, 0);
+        Conti_GroupsEnd(a2, 0);              /* (another confederation's main round: conti_season.c) */       /* (a world's league phase: the play-off ties) */
         DIY_BuildSeededBracketAndUpdateScores(a2, a3, a4, a5);
         LeaguePhase_GroupsEnd(a2, 1);
+        Conti_GroupsEnd(a2, 1);
     } else {
         DIY_CopyTeamGridFromCompToDIY(a2, a3, a4, a5);
     }
@@ -10686,6 +10689,9 @@ setDecisive:
         UefaQual_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
                             PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
                             d7 & 1);
+        Conti_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                         PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                         d7 & 1);
     }
 
 careerUpdate:

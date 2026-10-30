@@ -31,6 +31,7 @@
 #include "career_status.h"
 #include "league_phase.h"
 #include "uefa_coef.h"
+#include "conti_season.h"
 #include "test_rules.h"
 #include "comp_identity.h"
 #include "diy_competition.h"
@@ -2000,7 +2001,10 @@ check_tertiary_winner:
     if (_selTeamNumber != _euroCupsCompetitionContextBuf.tourn.header.winnerTeam)
         return;
 
-    const uint16_t euroIdx = _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
+    if ((_euroCupSlotIndex == 7 || _euroCupSlotIndex == 8) && Conti_TrophyTier() < 0)
+        return;                         /* (another confederation's tie: a trophy only as its cup's final) */
+    const uint16_t euroIdx = _euroCupSlotIndex == 7 || _euroCupSlotIndex == 8 ? (uint16_t)Conti_TrophyTier()
+                           : _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
     if (euroIdx == 0 || euroIdx == 3) {  /* (4..6: a world's qualifying tie, its cup's tier) */
         /* European Cup (0) or Copa Libertadores (3): the premier continental club
          * cup -> major trophy bonus. */
@@ -3052,7 +3056,9 @@ skipSponsorship:
         int16_t bonus = (int8_t)_euroCupsCompetitionContextBuf.tourn.header.trophyBonusValue;
         uint32_t d0;
 
-        const uint16_t euroIdx = _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
+        const uint16_t euroIdx = _euroCupSlotIndex == 7 ? 1     /* (another confederation's cups) */
+                               : _euroCupSlotIndex == 8 ? (uint16_t)(Conti_TrophyTier() < 0 ? 1 : Conti_TrophyTier())
+                               : _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
         if (euroIdx == 1) {             /* (4..6: a world's qualifying tie, its cup's tier) */
             d0 = (uint32_t)((uint16_t)bonus) * 62644;
         } else if (euroIdx == 2) {

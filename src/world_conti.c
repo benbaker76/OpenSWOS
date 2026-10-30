@@ -685,6 +685,11 @@ void ct_table_words(const u16 *w, int n) {
     for (int i = 0; i < n; i++) TAB[i] = w[i];
     ntab = n;
 }
+const u8 *ct_round_spec(int c, int r) { /* (ours: cup c's round r in the spec, 0 past its last) */
+    if (!CT_SPEC) return 0;
+    parse();
+    return c < ncup && r < nrd[c] ? RND(c, r) : 0;
+}
 void ct_finish(void);
 void ct_begin(void) {                   /* the season end's first country: this season's edition finished first */
     ct_finish();
@@ -880,6 +885,90 @@ void ct_resume(void) {                  /* after a load: CT_SEG again from the s
     if (!CT_SPEC || CT_ED.mark != 0x4543) { CT_SEG.kind = 0xFF; return; }
     parse();
     run(1);
+}
+
+/* --- a group stage's end in the game's contest (the Mod's gplace / ct_gpre / ct_gend; ours takes the
+   contest as arrays -- its groups in the game's order, of rows: row[] each one's row index, word[] its
+   team word, played[] / pts[] its matches and points -- where the Mod reads the DOS structures) --------- */
+static int reported(int c, int r) {     /* the club's result of cup c's round r already given (CT_ED.f) */
+    for (int i = 0; i < CT_ED.nf && i < 16; i++) if (CT_ED.f[i].c == c && CT_ED.f[i].r == r) return 1;
+    return 0;
+}
+u32 ct_gplace(int c, int ng, int gs, const u16 *word, const u16 *played) {
+    /* the career club's group complete -> its place (once; 0: not yet / not ours / a place that stays in
+       the cup or goes out) */
+    if (!CT_SPEC || CT_ED.mark != 0x4543 || !CT_ED.mgr) return 0;
+    parse();
+    if (c < 0 || c >= ncup) return 0;
+    int mr = -1;
+    for (int r = 0; r < nrd[c]; r++) if (RND(c, r)[17]) mr = r;
+    if (mr < 0 || RND(c, mr)[0] != K_GROUPS || reported(c, mr)) return 0;
+    int need = (gs - 1) * (RND(c, mr)[8] ? RND(c, mr)[8] : 2);
+    if (ng != RND(c, mr)[6] || gs != RND(c, mr)[7] || ng < 1 || ng > 16 || gs < 2 || gs > 16) return 0;
+    for (int g = 0; g < ng; g++) {
+        int place = 0;
+        for (int q = 0; q < gs; q++)
+            if (word[g * gs + q] == CT_ED.mgr) place = q + 1;
+        if (!place) continue;
+        for (int q = 0; q < gs; q++)                    /* (its group complete: every row played them all) */
+            if ((int)played[g * gs + q] != need) return 0;
+        if (gid[ncup] && gid[ncup] <= gs) place = gid[ncup];   /* (CONTI_GPLACE, test builds) */
+        u8 t = place <= 4 ? RND(c, mr)[12 + place - 1] : OUT;
+        if (t == OUT || t >> 4 == c) return 0;
+        return (u32)place;
+    }
+    return 0;
+}
+u32 ct_gend(int c, int ng, int gs, u8 *row, const u16 *word, const u16 *pts, u8 *list) {
+    /* -> the career club's place in its group (0: not in this contest). A Libertadores-style knockout after
+       the groups (draw 'seeded_1v2', 8 groups): the next stage's list (list) rewritten as the real draw -- the
+       group winners by points, each against a drawn runner-up of another group if possible, the winner at
+       home in the second leg; a league stage's top n per region into a by-place round */
+    if (!CT_SPEC) return 0;
+    parse();
+    if (c < 0 || c >= ncup) return 0;
+    int place = 0, mg = 0;
+    if (ng < 1 || ng > 16 || gs < 2 || gs > 16) return 0;
+    for (int g = 0; g < ng; g++)
+        for (int q = 0; q < gs; q++)
+            if (CT_ED.mgr && word[g * gs + q] == CT_ED.mgr) { place = q + 1; mg = g; }
+    int mr = -1;
+    for (int r = 0; r < nrd[c]; r++) if (RND(c, r)[17]) mr = r;
+    if (place && gid[ncup] && gid[ncup] <= gs) {   /* (CONTI_GPLACE, test builds: the club's row moved to that
+                                                      place, so the game's own qualifiers agree with ours) */
+        u8 *a = row + mg * gs + place - 1, *b = row + mg * gs + gid[ncup] - 1, t = *a;
+        *a = *b; *b = t;
+        place = gid[ncup];
+    }
+    if (mr >= 0 && mr + 1 < nrd[c] && ng == 8 && RND(c, mr + 1)[0] == K_KO && RND(c, mr + 1)[4] == D_SEED12) {
+        u8 fr[8], sr[8], fg[8], sg[8];
+        u32 fp[8];
+        for (int g = 0; g < 8; g++) {
+            fr[g] = row[g * gs]; sr[g] = row[g * gs + 1]; fg[g] = sg[g] = (u8)g;
+            fp[g] = pts[g * gs] * 64 + below(64);
+        }
+        for (int i = 1; i < 8; i++) { int j = i; u8 a = fr[i], b = fg[i]; u32 x = fp[i];   /* winners by points */
+            while (j > 0 && fp[j - 1] < x) { fr[j] = fr[j - 1]; fg[j] = fg[j - 1]; fp[j] = fp[j - 1]; j--; }
+            fr[j] = a; fg[j] = b; fp[j] = x; }
+        rng ^= CT_ED.seed + (u32)place * 2654435761u;
+        for (int tries = 0; tries < 50; tries++) {
+            for (int i = 7; i > 0; i--) { int j = below(i + 1); u8 t = sr[i]; sr[i] = sr[j]; sr[j] = t;
+                t = sg[i]; sg[i] = sg[j]; sg[j] = t; }
+            int ok = 1;
+            for (int k = 0; k < 8; k++) if (sg[k] == fg[k]) ok = 0;
+            if (ok) break;
+        }
+        for (int k = 0; k < 8; k++) { list[2 * k] = sr[k]; list[2 * k + 1] = fr[k]; }
+    }
+    if (mr >= 0 && mr + 1 < nrd[c] && RND(c, mr)[19] && RND(c, mr + 1)[4] == D_PLACE) {
+        int n = RND(c, mr)[19], k = 0;
+        for (int g = 0; g < ng; g++)
+            for (int q = 0; q < n / 2; q++) {
+                list[k++] = row[g * gs + n - 1 - q];
+                list[k++] = row[g * gs + q];
+            }
+    }
+    return place;
 }
 
 #define OFF(t, f) ((u32) __builtin_offsetof(struct t, f))
