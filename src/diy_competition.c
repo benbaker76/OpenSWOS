@@ -31,6 +31,7 @@
 #include "game_init.h"
 #include "league_split.h"
 #include "league_phase.h"
+#include "uefa_coef.h"
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
 
 /* ---- Constants ---- */
@@ -10658,6 +10659,9 @@ setDecisive:
         CupD_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
                         PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
                         d7 & 1);
+        UefaQual_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                            PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                            d7 & 1);
     }
 
 careerUpdate:

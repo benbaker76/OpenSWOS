@@ -11,6 +11,7 @@
  */
 
 #include "career_teams.h"
+#include "uefa_coef.h"
 #include "league_split.h"
 #include "league_phase.h"
 #include "world_playoff.h"
@@ -1638,8 +1639,10 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
 {
     /* the Coppa Italia Serie D's rounds that have come (world_cupd.c): the entry just
      * played is the current one */
-    if (_teamSelectionKeyCacheCount)
+    if (_teamSelectionKeyCacheCount) {
         CupD_Step(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
+        UefaQual_Daily();       /* (a world's: the career club's qualifying tie decided) */
+    }
 
     if (_gameType == 4) {
         _homeMarketUpdateBacklog++;

@@ -30,6 +30,7 @@
 
 #include "career_status.h"
 #include "league_phase.h"
+#include "uefa_coef.h"
 #include "test_rules.h"
 #include "comp_identity.h"
 #include "diy_competition.h"
@@ -1999,11 +2000,12 @@ check_tertiary_winner:
     if (_selTeamNumber != _euroCupsCompetitionContextBuf.tourn.header.winnerTeam)
         return;
 
-    if (_euroCupSlotIndex == 0 || _euroCupSlotIndex == 3) {
+    const uint16_t euroIdx = _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
+    if (euroIdx == 0 || euroIdx == 3) {  /* (4..6: a world's qualifying tie, its cup's tier) */
         /* European Cup (0) or Copa Libertadores (3): the premier continental club
          * cup -> major trophy bonus. */
         _majorTrophyBonusActive = 1;
-    } else if (_euroCupSlotIndex == 2) {
+    } else if (euroIdx == 2) {
         _cupBonus2Active = 1;
     } else {
         _cupBonus1Active = 1;
@@ -3050,9 +3052,10 @@ skipSponsorship:
         int16_t bonus = (int8_t)_euroCupsCompetitionContextBuf.tourn.header.trophyBonusValue;
         uint32_t d0;
 
-        if (_euroCupSlotIndex == 1) {
+        const uint16_t euroIdx = _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
+        if (euroIdx == 1) {             /* (4..6: a world's qualifying tie, its cup's tier) */
             d0 = (uint32_t)((uint16_t)bonus) * 62644;
-        } else if (_euroCupSlotIndex == 2) {
+        } else if (euroIdx == 2) {
             d0 = (uint32_t)((uint16_t)bonus) * 41668;
             d0 <<= 1;
         } else {

@@ -1771,6 +1771,8 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
             _careerFileBuffer == euroAfter + Career_CopaLibertadoresQualifiedTeamCount()) {
             Career_StorePromotionRelegationInSeasonInfo();
             WorldCups_SeasonEnded();    /* (the next season plays its cups' own draw) */
+            if (lp)
+                UefaQual_Post();        /* (the career club's qualifying opponents' records) */
             return;
         }
         _panicReasonCode = 0x8998;

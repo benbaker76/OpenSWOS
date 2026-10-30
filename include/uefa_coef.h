@@ -75,5 +75,12 @@ void UefaQual_Country(void);            /* a country's top 9 + cup winner (_prim
 void UefaQual_Fill(void);               /* the qualifying rounds, the three lists */
 int32_t UefaQual_KeepsUeclHolder(void); /* the UECL holder is in the Champions League list already */
 uint16_t UefaQual_Listed(void);         /* clubs it put in the lists (the holders join after) */
+void UefaQual_Post(void);               /* after the last count check: the career club's opponents' records */
+
+/* The career club's own qualifying ties: slot 3 (_euroCupSlotIndex 4..6 = CL / EL / UECL tie). */
+uint8_t *UefaQual_SeasonTie(uint16_t *index);   /* the season start's (0 = none) */
+uint8_t *UefaQual_RestoreTie(uint16_t index);   /* a loaded career's */
+void UefaQual_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won);
+void UefaQual_Daily(void);              /* a day played: a decided tie -> the next, or the league phase */
 
 #endif
