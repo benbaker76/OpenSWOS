@@ -3,8 +3,12 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#ifdef SWOS_SDL_BUILD
+#include <stdlib.h>          /* (getenv: the purple test switch) */
+#endif
 #include "team_colors.h"
 #include "game_types.h"
+#include "display.h"     /* (AGA: the 256-colour menu palette) */
 
 /* ---- External globals (in SWOS2.s code section) ---- */
 /* shirtColorTable: 10-entry kit-color index → palette-index LUT.
@@ -14,14 +18,16 @@
  * feeds team{1,2}PlayersColorTable[10..15] used by ConvertSpriteColors.
  * Kept as a definition here (not an auto-generated 4K zero stub) so kit
  * colors actually survive the first conversion. */
-uint8_t _shirtColorTable[10] = { 1, 2, 3, 6, 10, 11, 12, 13, 14, 15 };
+uint8_t _shirtColorTable[11] = { 1, 2, 3, 6, 10, 11, 12, 13, 14, 15,
+                                 12 };   /* purple (the Mod's purple.py): maroon's entry, see below */
 
 /* kTeamColorsTable: maps a team-color index (0..9 or 10..19 for shirt
  * type variants) to a palette index. The Amiga layout is a 20-byte array
  * `{0,1, 0,2, …}` accessed via word reads; on a BE host those reads
  * combine to {0x0001, 0x0002, …}. Expose it as native uint16[10] here
  * so LE callers get the same 10 effective entries. Data.c:1892. */
-uint16_t _kTeamColorsTable[10] = { 1, 2, 3, 6, 10, 11, 12, 13, 14, 15 };
+uint16_t _kTeamColorsTable[11] = { 1, 2, 3, 6, 10, 11, 12, 13, 14, 15,
+                                   12 };  /* purple: a menu palette entry of its own (TeamColors_Init) */
 
 /* The little-player colour table is now the .colTable field of the
  * EditTeamsSpriteCopy `stadiumMenuLittlePlayerSpriteCopy` struct in
@@ -64,6 +70,77 @@ extern TeamGame _bottomTeamInGame;
  * Converts a team color index (0..9) to the in-game palette color.
  * Original: ConvertTeamColor in SWOS2.s (line 45843)
  */
+/* ---- Purple, an 11th kit colour (the SWOS 96/97 Mod's purple.py: Fiorentina, Anderlecht,
+ * Austria Wien, Valladolid ...) ----
+ * A match draws kits with the game palette's 16 entries, all taken: purple borrows maroon's
+ * (12). The kits worn are marked as they are converted (ConvertTeamKitColors, the Mod's
+ * pk_mark), and when a side wears purple and neither wears maroon entry 12 is purple for the
+ * match (TeamColors_MatchPalette, its pk_pal); both, and purple shows as maroon. Purple and
+ * maroon clash in the kit rule, so the game's own choice gives one side its other kit. In the
+ * menus purple is a palette entry of its own where the palette has 256 (the nearest to it of
+ * the menu palette's), maroon's on the OCS. */
+#define KIT_PURPLE 10
+#define KIT_MAROON 6
+#define PURPLE_RGB12 0x0628             /* the Mod's 6-bit VGA (24, 8, 34) */
+static uint8_t s_kitMarks[2];           /* top / bottom team: bit 0 purple, bit 1 maroon */
+static uint16_t s_maroonGame;           /* game palette entry 12 as loaded */
+
+static uint8_t kit_mark(uint8_t colour)
+{
+    return colour == KIT_PURPLE ? 1 : colour == KIT_MAROON ? 2 : 0;
+}
+
+void TeamColors_Init(void)
+{
+#ifdef AGA
+    extern uint16_t _menuPalette[];
+    int32_t best = 12, bestD = 1 << 30;
+    for (int32_t i = 16; i < 256; i++) {
+        const int32_t dr = ((_menuPalette[i] >> 8) & 15) - ((PURPLE_RGB12 >> 8) & 15);
+        const int32_t dg = ((_menuPalette[i] >> 4) & 15) - ((PURPLE_RGB12 >> 4) & 15);
+        const int32_t db = (_menuPalette[i] & 15) - (PURPLE_RGB12 & 15);
+        const int32_t d = dr * dr + dg * dg + db * db;
+        if (d < bestD) { bestD = d; best = i; }
+    }
+    _kTeamColorsTable[KIT_PURPLE] = (uint16_t)best;
+#endif
+}
+
+/* Before a match's sprites are coloured (ConvertColorsAndTextSprites, its first team): entry 12
+ * purple or maroon. */
+void TeamColors_MatchPalette(TeamGame *team1)
+{
+    extern uint16_t _gamePalette[];
+#ifdef SWOS_SDL_BUILD
+    {   /* test (SWOS_TEST_KIT_PURPLE=1): the first team's shirt purple -- to look at it */
+        const char *e = getenv("SWOS_TEST_KIT_PURPLE");
+        if (e && *e == '1') {
+            team1->prShirtType = SHIRT_ORDINARY;
+            team1->prShirtCol = team1->prStripesCol = _shirtColorTable[KIT_PURPLE];
+            s_kitMarks[team1 == &_bottomTeamInGame] = 1;
+            s_kitMarks[team1 != &_bottomTeamInGame] &= (uint8_t)~2;
+        }
+    }
+#endif
+    if (!s_maroonGame)
+        s_maroonGame = _gamePalette[12];
+    _gamePalette[12] = TeamColors_PurpleInMatch() ? PURPLE_RGB12 : s_maroonGame;
+}
+
+int32_t TeamColors_PurpleInMatch(void)
+{
+    const uint8_t worn = (uint8_t)(s_kitMarks[0] | s_kitMarks[1]);
+    return (worn & 1) && !(worn & 2);
+}
+
+/* The kit colours a side was last given (the uniform selector reads them back: purple and
+ * maroon are the same palette entry in a match). */
+static uint8_t s_kitWorn[2][5];
+const uint8_t *TeamColors_Worn(const TeamGame *team)
+{
+    return team == &_topTeamInGame ? s_kitWorn[0] : team == &_bottomTeamInGame ? s_kitWorn[1] : 0;
+}
+
 uint16_t __attribute__((used, externally_visible))
 ConvertTeamColor(uint16_t color)
 {
@@ -378,6 +455,14 @@ ConvertTeamKitColors(
 {
     int16_t st = (int16_t)(int8_t)(uint8_t)shirtType;  /* ext.w d0 (sign-extend byte to word) */
     team->prShirtType = st;
+
+    if (team == &_topTeamInGame || team == &_bottomTeamInGame) {   /* (purple: the Mod's pk_mark) */
+        const int32_t k = team == &_bottomTeamInGame;
+        s_kitMarks[k] = (uint8_t)(kit_mark(stripesColor) | (st != SHIRT_ORDINARY ? kit_mark(basicColor) : 0) |
+                                  kit_mark(shortsColor) | kit_mark(socksColor));
+        s_kitWorn[k][0] = (uint8_t)st; s_kitWorn[k][1] = stripesColor; s_kitWorn[k][2] = basicColor;
+        s_kitWorn[k][3] = shortsColor; s_kitWorn[k][4] = socksColor;
+    }
 
     uint16_t col = ConvertTeamColor(stripesColor);
     team->prShirtCol = col;

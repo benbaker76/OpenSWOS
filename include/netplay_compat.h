@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 1
+#define NETPLAY_COMPAT 2      /* 2: purple, an 11th kit colour (team_colors.c) */
 
 #endif

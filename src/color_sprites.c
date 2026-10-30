@@ -340,6 +340,7 @@ static uint16_t findMostFrequentFaceAndApplyLUT(TeamGame *team, uint16_t *colorT
 __attribute__((used, externally_visible))
 void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
 {
+    TeamColors_MatchPalette(team1);      /* purple: maroon's entry 12 for this match (team_colors.c) */
     JagGfx_NewMatch();      /* these two teams' kit ramps, not the last pair's */
     uint16_t d0;
     uint16_t totalWidth;

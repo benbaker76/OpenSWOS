@@ -2362,7 +2362,7 @@ extern uint8_t *_editTeamsSelectedTeam;   /* pointer to source team data */
 extern uint16_t _saveCustomTeams;
 extern uint16_t _teamIsImported;
 extern uint16_t _controlMask;
-extern uint16_t _kTeamColorsTable[];      /* 10 word entries */
+extern uint16_t _kTeamColorsTable[];      /* KIT_COLOURS word entries (purple the 11th) */
 /* edit-teams kit sprite-copy descriptors; .colTable[16] is the palette remap
  * (was the editTeams*ColTable .equ aliases at descriptor +4). */
 extern EditTeamsSpriteCopy _editTeamsPrimaryShirts;
@@ -2540,30 +2540,30 @@ void EditTeamsChangeShirtsPrimary(void)
 
     if (_controlMask == 0x41) {          /* left+fire */
         d0 = tf->prStripesColor;
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
         tf->prStripesColor = d0;
     } else if (_controlMask == 0x81) {   /* right+fire */
         d0 = tf->prStripesColor;
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
         tf->prStripesColor = d0;
     } else if (_controlMask == 0x101) {  /* up+fire */
         if (tf->prShirtType == 0) {  /* SHIRT_ORDINARY */
             d0 = tf->prStripesColor;
-            d0 = (d0 == 0) ? 9 : d0 - 1;
+            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
             tf->prStripesColor = d0;
         } else {
             d0 = tf->prBasicColor;
-            d0 = (d0 == 0) ? 9 : d0 - 1;
+            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
             tf->prBasicColor = d0;
         }
     } else if (_controlMask == 0x201) {  /* down+fire */
         if (tf->prShirtType == 0) {  /* SHIRT_ORDINARY */
             d0 = tf->prStripesColor;
-            d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
             tf->prStripesColor = d0;
         } else {
             d0 = tf->prBasicColor;
-            d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
             tf->prBasicColor = d0;
         }
     } else {
@@ -2584,30 +2584,30 @@ void EditTeamsChangeShirtsSecondary(void)
 
     if (_controlMask == 0x41) {          /* left+fire */
         d0 = tf->secStripesColor;
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
         tf->secStripesColor = d0;
     } else if (_controlMask == 0x81) {   /* right+fire */
         d0 = tf->secStripesColor;
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
         tf->secStripesColor = d0;
     } else if (_controlMask == 0x101) {  /* up+fire */
         if (tf->secShirtType == 0) {
             d0 = tf->secStripesColor;
-            d0 = (d0 == 0) ? 9 : d0 - 1;
+            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
             tf->secStripesColor = d0;
         } else {
             d0 = tf->secBasicColor;
-            d0 = (d0 == 0) ? 9 : d0 - 1;
+            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
             tf->secBasicColor = d0;
         }
     } else if (_controlMask == 0x201) {  /* down+fire */
         if (tf->secShirtType == 0) {
             d0 = tf->secStripesColor;
-            d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
             tf->secStripesColor = d0;
         } else {
             d0 = tf->secBasicColor;
-            d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
             tf->secBasicColor = d0;
         }
     } else {
@@ -2627,9 +2627,9 @@ void EditTeamsChangeShortsPrimary(void)
     uint8_t d0 = tf->prShortsColor;
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
     } else {
         return;
     }
@@ -2648,9 +2648,9 @@ void EditTeamsChangeShortsSecondary(void)
     uint8_t d0 = tf->secShortsColor;
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
     } else {
         return;
     }
@@ -2669,9 +2669,9 @@ void EditTeamsChangeSocksPrimary(void)
     uint8_t d0 = tf->prSocksColor;
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
     } else {
         return;
     }
@@ -2689,9 +2689,9 @@ void EditTeamsChangeSocksSecondary(void)
     uint8_t d0 = tf->secSocksColor;
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
     } else {
         return;
     }

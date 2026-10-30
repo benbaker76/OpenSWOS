@@ -38,6 +38,7 @@
 #include "custom_team.h"
 #include "endian_helpers.h"
 #include "kit_art.h"
+#include "team_colors.h"
 #include "menu_load_json.h"
 #include "menu_symbols.h"
 #include "menu_system.h"
@@ -509,7 +510,7 @@ static void json_kit(const char *json, int32_t length, const char *which, KitLoo
 
     for (i = 0; i < 5; i++) {
         snprintf(path, sizeof path, "$.team.%s_%s", which, k_fields[i]);
-        *value[i] = (uint8_t)json_int(json, length, path, 0, i == 0 ? 3 : 9, *value[i]);
+        *value[i] = (uint8_t)json_int(json, length, path, 0, i == 0 ? 3 : KIT_COLOURS - 1, *value[i]);
     }
 }
 

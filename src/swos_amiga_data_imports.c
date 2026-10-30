@@ -55,7 +55,9 @@ uint16_t _team1GoalkeeperReplaced[1] = { 0x0000 };
 uint16_t _editTacticsLastBallLocation[1] = { 0x0000               };
 uint16_t _titleTextPalette[16] = { 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000, 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000 };
 uint16_t _bench1Called[1] = { 0x0000               };
-uint16_t _conflictingBasicTeamColorsTable[10] = { 0x01A1,0x0002,0x0164,0x0218,0x0058,0x00A5,0x0054,0x00A1 , 0x0105,0x0208 };
+/* 11 rows: purple (10, the Mod's purple.py) clashes with purple and maroon, maroon with purple */
+uint16_t _conflictingBasicTeamColorsTable[11] = { 0x01A1,0x0002,0x0164,0x0218,0x0058,0x00A5,0x0454,0x00A1 , 0x0105,0x0208,
+                                                  0x0440 };
 uint16_t _buyPlayerRedrawList[3] = { 5,7,-1              };
 uint16_t _gotCountryName[1] = { 0x0000 };
 uint16_t _injuriesForever[7] = { 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000  };
@@ -506,7 +508,8 @@ uint16_t _hideBall[1] = { 0x0000               };
 uint16_t _initialSubsState[1] = { 0x0000 };
 uint16_t _contAbortResult[1] = { 0x0000               };
 uint16_t _careerAddIntlPlayerSelectedTeamNumber[1] = { 0x0000 };
-uint16_t _conflictingShortsTeamColorsTable[10] = { 0x01A3,0x0283,0x0164,0x0218,0x0058,0x00E5,0x0074,0x00A3 , 0x0105,0x020A };
+uint16_t _conflictingShortsTeamColorsTable[11] = { 0x01A3,0x0283,0x0164,0x0218,0x0058,0x00E5,0x0474,0x00A3 , 0x0105,0x020A,
+                                                   0x0440 };
 uint16_t _contAbortDefault[1] = { 0x0000               };
 uint16_t _AI_maxStoppageTime[1] = { 0x0000 };
 uint16_t _initialKickWriteOnlyTicks[1] = { 0x0000 };

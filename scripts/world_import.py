@@ -27,7 +27,6 @@ country stays 96/97's (the overlay falls back to it).
 
 What our engine cannot show yet is mapped, and counted on the way:
   - 16 players a team (the Mod's extra 14 are left out);
-  - kit colour 10 (purple) -> 6 (maroon: the palette entry the Mod borrows for it);
   - face 3 (black skin, blond hair) -> 2;
   - nationalities past the Mod's 213 (none in 2026-27) -> the club's country's;
   - shirt numbers above 16 (the game draws 1..16) -> the free ones of 1..16.
@@ -120,8 +119,7 @@ def team(entry, country, ordinal, global_number, league, home_nation):
     t, x = entry["team"], entry.get("x_swos9697", {})
     kits = [k & 255 for k in t["kit_colors"]]
     if PURPLE in kits:
-        kits = [MAROON if k == PURPLE else k for k in kits]
-        counts["purple kit -> maroon"] += 1
+        counts["purple kits"] += 1
     players = [player(p, home_nation) for p in entry["players"]]
     shirt_numbers(players)
     club = x.get("club_id") or "club:%d.%d" % (country, ordinal)

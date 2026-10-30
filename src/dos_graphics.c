@@ -5,6 +5,7 @@
  * Palette + decode tables transcribed from the working swos-port-c reference
  * (vm_stubs.cpp, ultimately DosPalette.cs). DOS files are little-endian.
  */
+#include "team_colors.h"
 #include "dos_graphics.h"
 #include "display.h"
 #include "dos_mode.h"
@@ -128,6 +129,9 @@ void DosGfx_BuildPalette(int pitchType, uint8_t *rgb888Out)
         pal6[dst + 0] = kPitchPalettes[pitchType][i * 3 + 0];
         pal6[dst + 1] = kPitchPalettes[pitchType][i * 3 + 1];
         pal6[dst + 2] = kPitchPalettes[pitchType][i * 3 + 2];
+    }
+    if (TeamColors_PurpleInMatch()) {   /* purple in maroon's entry (team_colors.c, the Mod's pk_pal) */
+        pal6[12 * 3 + 0] = 24; pal6[12 * 3 + 1] = 8; pal6[12 * 3 + 2] = 34;
     }
 #ifdef SWOS_SDL_BUILD
     /* A pitch drawn from a map takes the condition's entries from the map's

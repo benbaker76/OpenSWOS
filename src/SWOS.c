@@ -232,7 +232,11 @@ void mainC(void)
     InitSkinAndDefaultPointers();
 
     /* ---- Phase 2: Build palettes ---- */
-    
+    {
+        extern void TeamColors_Init(void);
+        TeamColors_Init();          /* purple's menu palette entry (team_colors.c) */
+    }
+
 #ifdef AGA
     {
         extern uint16_t _menuPalette[];

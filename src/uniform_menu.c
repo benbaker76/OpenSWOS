@@ -40,7 +40,7 @@
 #include "team_colors.h"
 
 extern TeamGame  _topTeamInGame, _bottomTeamInGame;
-extern uint16_t  _kTeamColorsTable[10];
+extern uint16_t  _kTeamColorsTable[KIT_COLOURS];
 extern uint16_t  _controlMask;
 extern uint8_t   _currentMenu[];
 extern void      SetExitMenuFlag(void);
@@ -157,7 +157,7 @@ static int32_t same_look(const KitLook *a, const KitLook *b)
 static uint8_t colour_of(int16_t paletteEntry)
 {
     uint8_t c;
-    for (c = 0; c < 10; c++)
+    for (c = 0; c < KIT_COLOURS; c++)
         if (_kTeamColorsTable[c] == (uint16_t)paletteEntry)
             return c;
     return 0;
@@ -168,11 +168,12 @@ static void worn(const TeamGame *game, const TeamFile *kits, KitLook *out)
 {
     KitLook pr, sec;
 
+    const uint8_t *w = TeamColors_Worn(game);  /* (the colours given: purple and maroon are one entry) */
     out->type    = (uint8_t)(game->prShirtType & 3);
-    out->stripes = colour_of(game->prShirtCol);
-    out->basic   = colour_of(game->prStripesCol);
-    out->shorts  = colour_of(game->prShortsCol);
-    out->socks   = colour_of(game->prSocksCol);
+    out->stripes = w ? w[1] : colour_of(game->prShirtCol);
+    out->basic   = w ? (out->type != SHIRT_ORDINARY ? w[2] : w[1]) : colour_of(game->prStripesCol);
+    out->shorts  = w ? w[3] : colour_of(game->prShortsCol);
+    out->socks   = w ? w[4] : colour_of(game->prSocksCol);
     /* A plain shirt has no second colour to read back: keep the kit's own, so that
      * changing the type afterwards starts from the team's colours. */
     KitArt_FromTeam(kits, 0, &pr);
@@ -437,7 +438,7 @@ static int32_t selected_side(void)
 
 static void step(uint8_t *colour, int32_t by)
 {
-    *colour = (uint8_t)((*colour + 10 + by) % 10);
+    *colour = (uint8_t)((*colour + KIT_COLOURS + by) % KIT_COLOURS);
 }
 
 enum { kStripes, kBasic, kShorts, kSocks };
