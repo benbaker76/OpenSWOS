@@ -985,6 +985,13 @@ DEFINE_PLAY(1); DEFINE_PLAY(2); DEFINE_PLAY(3);
 DEFINE_PLAY(4); DEFINE_PLAY(5); DEFINE_PLAY(6);
 #undef DEFINE_PLAY
 
+/* The first stage's "PLAY EACH TEAM X 1" in another text while a contest that needs it is shown
+ * (a world's league phase: "8 OPPONENTS, ONCE"), 0 = the game's own (diy_competition.c). */
+void DIY_SetFirstStagePlayOnceText(const char *text)
+{
+    _diyStage1PlayCountStrTab.entries[0] = text ? (void *)text : (void *)_aPlayEachTeamX1;
+}
+
 #undef STAGE_PTR
 #undef MONTHS
 #undef LEGS_3

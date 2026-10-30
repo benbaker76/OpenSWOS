@@ -65,6 +65,8 @@ static int32_t     s_started;
 static int32_t     s_hubs;          /* season-end hubs reached (and saves written) */
 static int32_t     s_hubSeason = -1;
 static int32_t     s_jobs;          /* job offers taken after a sacking */
+static int32_t     s_infoShown;
+static int32_t     s_viewShot;      /* (SWOS_GOLDEN_VIEW_SLOT3: screens left to shoot) */
 
 /* --career-golden=new:<continent>/<country>/<division>/<club>: a new career, the club
  * picked through CAREER -> CHOOSE TEAM AND START CAREER by the rows' labels (the picker
@@ -344,6 +346,12 @@ void CareerAutopilot_Tick(void)
             shot = getenv("SWOS_GOLDEN_SHOT_COMP");
             shotFrom = from ? atoi(from) : 0;
         }
+        if (s_viewShot && menu->onInit != shotLast) {
+            s_viewShot--;
+            shotLast = menu->onInit;
+            Platform_RequestScreenshot();
+            say("[golden] view screenshot (contest %d)\n", (int)(uint8_t)_diyCompetitionStart.base.field_2E);
+        } else
         if (shot && (uint8_t)_diyCompetitionStart.base.field_2E == (uint8_t)atoi(shot) &&
             s_hubs > shotFrom && menu->onInit != shotLast && shots < 40) {
             shotLast = menu->onInit;
@@ -364,10 +372,33 @@ void CareerAutopilot_Tick(void)
         at_hub();
     else if (menu->onInit == ContestMenuInit) {
         /* The in-season hub: NEXT MATCH plays the next match day (PLAY MATCH, its
-         * default, only opens the table). */
-        static const MenuEntryFn next[] = { NextMatch };
-        select_first(next, 1);
-        _shortFire = 1;
+         * default, only opens the table). Test (SWOS_GOLDEN_VIEW_SLOT3=<n>): the first n
+         * match days of slot 3 (the European cup) by PLAY MATCH, its table on screen --
+         * with SWOS_GOLDEN_SHOT_COMP, to look at it. */
+        static const char *view = (const char *)1;
+        static int32_t viewed;
+        extern uint8_t _teamSelectionKeyCache[];
+        extern uint16_t _teamSelectionKeyCacheOffset;
+        if (view == (const char *)1)
+            view = getenv("SWOS_GOLDEN_VIEW_SLOT3");
+        const char *from = getenv("SWOS_GOLDEN_SHOT_FROM");
+        if (view && viewed < atoi(view) && s_hubs > (from ? atoi(from) : 0) &&
+            ((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->compSlot == 3) {
+            viewed++;
+            s_viewShot = 2;             /* (the screens it opens: a screenshot each) */
+            say("[golden] viewing slot 3 (%d)\n", (int)viewed);
+            _shortFire = 1;             /* (its default: PLAY MATCH) */
+        } else {
+            static const MenuEntryFn next[] = { NextMatch };
+            select_first(next, 1);
+            _shortFire = 1;
+        }
+    }
+    else if (menu->onInit == DIYLeagueTournamentInit && s_viewShot && !s_infoShown) {
+        extern void ShowTournamentInfo(void);       /* (SWOS_GOLDEN_VIEW_SLOT3: its info screen once) */
+        s_infoShown = 1;
+        s_viewShot = 1;
+        ShowTournamentInfo();
     }
     else if (menu->onInit == DIYLeagueTournamentInit) {
         /* The match-day screen: on with the fixtures (it opens on EXIT, which only

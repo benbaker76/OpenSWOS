@@ -96,4 +96,12 @@ void LeaguePhase_GroupsEnd(uint8_t *diy, int32_t after);
  * shuffle), the round of 16 its play-off winners against the seeds (lp_draw); else 0. */
 int32_t LeaguePhase_KnockoutDraw(uint8_t *diy, uint16_t numTeams);
 
+/* The table screen (diy_competition.c DIYLeagueTournament16BeforeDraw; the Mod's lp_hdr / lp_num /
+ * lp_col): the two group pages are one table of 36 -- the page's header, a row's place and colour
+ * (1-8 the round of 16, 9-24 the play-offs, 25-36 out). 0 when the contest shown is no league phase. */
+int32_t LeaguePhase_Showing(void);
+void LeaguePhase_GameStarting(const void *team1, const void *team2);   /* (game_init.c: the match played) */
+const char *LeaguePhase_PageHeader(int32_t page);
+uint16_t LeaguePhase_RowColour(int32_t place);  /* place 1..36: the zone's colour, 0 = the game's own */
+
 #endif

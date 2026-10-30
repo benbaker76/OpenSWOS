@@ -6032,6 +6032,13 @@ void DesignDIYTournamentOnDraw(void)
     slot = _diyFileBufferCopy.slots;
     int16_t d7 = 0;
 
+    /* A world's league phase (include/league_phase.h): its first stage is one table of 36
+     * (the Mod's lp36 INFO strings), each club meeting 8 opponents (the Conference League 6). */
+    extern void DIY_SetFirstStagePlayOnceText(const char *text);
+    const int32_t lpDays = LeaguePhase_StageDays((uint8_t)_diyFileBufferCopy.header.field_2E,
+                                                 slot->groups, slot->teamsPerGroup);
+    DIY_SetFirstStagePlayOnceText(lpDays == 8 ? "8 OPPONENTS, ONCE" : lpDays ? "6 OPPONENTS, ONCE" : 0);
+
     for (d7 = 0; d7 < 6; d7++) {
         /* Check if this slot is past the last active stage */
         if (d7 == (int16_t)numStages) {
@@ -6091,6 +6098,10 @@ void DesignDIYTournamentOnDraw(void)
                 uint16_t numGrp = slot->groups;
                 uint16_t grpSize = slot->teamsPerGroup;
                 const uint8_t *fmt;
+                if (d7 == 0 && lpDays) {        /* (the league phase: one table) */
+                    numGrp = 1;
+                    grpSize = (uint16_t)(slot->groups * slot->teamsPerGroup);
+                }
                 if (numGrp == 1) {
                     fmt = _a1GroupOf1; /* "1 GROUP OF %1" */
                 } else {
@@ -6135,6 +6146,10 @@ void DesignDIYTournamentOnDraw(void)
                 uint16_t d0 = slot->divisionFactor;
                 const uint8_t *fmt;
 
+                if (d7 == 0 && lpDays) {
+                    StringCopy((const uint8_t *)"(TOP 8 TO THE LAST 16, 9-24 PLAY-OFFS)", dst);
+                    goto after_qual_text;
+                }
                 if (d0 == 1) {
                     StringCopy(_aGroupWinnerWin, dst); /* "(GROUP WINNER WINS TOURNAMENT)" */
                     goto after_qual_text;
@@ -7579,6 +7594,9 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
     if (compS->matchPairsPerRound != 1) {
         entry->fg = (uintptr_t)_groupStringTable[d7];
     }
+    const int32_t lpTable = LeaguePhase_Showing();     /* (a world's league phase: one table of 36) */
+    if (lpTable)
+        entry->fg = (uintptr_t)LeaguePhase_PageHeader(d7);
 
     int16_t d2 = entry->y;
 
@@ -7620,7 +7638,7 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
 
         /* Entry for team number */
         a5->y = d2;
-        a5->fgWord = d5; /* ENTRYTYPE2UNION_NUMBER */
+        a5->fgWord = lpTable ? (uint16_t)(d5 + d7 * numTeamsPerGroup) : d5; /* ENTRYTYPE2UNION_NUMBER */
         a5++;
 
         /* Entry for team name */
@@ -7722,6 +7740,12 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
             d3 = 7;
             if (d5 & 1)
                 d3 = 9;
+        }
+        if (lpTable) {                  /* (its zones; a computer club's name in the zone's colour) */
+            const uint16_t zone = LeaguePhase_RowColour(d5 + d7 * numTeamsPerGroup);
+            d3 = zone ? zone : 7;
+            if (teamPtr->team.teamControls == 1)
+                a5->bgColor = zone ? zone : 10;
         }
         /* Highlight player's team */
         if (_highlightedLeagueTeamId == BE_READ_U16(teamPtr))

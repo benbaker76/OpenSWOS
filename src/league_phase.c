@@ -563,6 +563,59 @@ int32_t LeaguePhase_Pair(uint8_t **team1, uint8_t **team2)
     return 1;
 }
 
+/* The match the engine is about to play (game_init.c; the Mod's lp_game): a league-phase result
+ * between these two clubs takes its cards from the match's statistics. */
+static const void *s_game1, *s_game2;
+static uint8_t s_gamePlay;
+
+void LeaguePhase_GameStarting(const void *team1, const void *team2)
+{
+    s_game1 = team1;
+    s_game2 = team2;
+    s_gamePlay = 1;
+}
+
+/* Criterion 9 (the Mod's lp_disc): a yellow card 1 point, a sending-off 3; a simulated match
+ * draws them at the real rates (2025-26's league phases: 1.90 yellows and 0.119 expulsions a
+ * club), Poisson thresholds in 1/256 -- the Mod's tables, read as it reads them (its counting
+ * stops at the first 255, the tables' end). */
+static const uint8_t kYellows[] = { 38, 111, 180, 224, 245, 253, 255 };
+static const uint8_t kReds[] = { 227, 254, 255 };
+
+static int32_t cards(const uint8_t *t)
+{
+    const uint8_t b = (uint8_t)Rand2();
+    int32_t k = 0;
+    while (t[k] != 0xFF && b >= t[k])
+        k++;
+    return k;
+}
+
+static void disc_add(int32_t row, int32_t points)
+{
+    LeaguePhaseState *st = &_diyCompetitionStart.leaguePhase;
+    const int32_t v = st->discipline[row] + points;
+    st->discipline[row] = (uint8_t)(v > 255 ? 255 : v);
+}
+
+static void discipline(int32_t home, int32_t away)
+{
+    extern TeamStatisticsData _team1StatsData, _team2StatsData;
+    const void *th = lp_team(home), *ta = lp_team(away);
+    if (s_gamePlay && ((th == s_game1 && ta == s_game2) || (th == s_game2 && ta == s_game1))) {
+        const TeamStatisticsData *sh = th == s_game1 ? &_team1StatsData : &_team2StatsData;
+        const TeamStatisticsData *sa = th == s_game1 ? &_team2StatsData : &_team1StatsData;
+        s_gamePlay = 0;
+        disc_add(home, sh->bookings + 3 * sh->sendingsOff);
+        disc_add(away, sa->bookings + 3 * sa->sendingsOff);
+        return;
+    }
+    const int32_t yh = cards(kYellows), rh = cards(kReds);
+    disc_add(home, yh + 3 * rh);
+    const int32_t ya = cards(kYellows), ra = cards(kReds);
+    disc_add(away, ya + 3 * ra);
+}
+
 void LeaguePhase_Result(uint8_t *team1, uint8_t *team2, uint16_t goals1, uint16_t goals2)
 {
     if (!ours())
@@ -575,6 +628,8 @@ void LeaguePhase_Result(uint8_t *team1, uint8_t *team2, uint16_t goals1, uint16_
     if (goals2 > goals1)
         st->awayWins[away]++;
     const int32_t home = (int32_t)(team1 - (uint8_t *)&_diyCompetitionStart) / ROW;
+    if (home >= 0 && home < N)
+        discipline(home, away);
     if (home >= 0 && home < N)
         UefaCoef_Result((uint8_t)_diyCompetitionStart.base.field_2E, lp_word(home), lp_word(away), goals1, goals2);
 }
@@ -689,6 +744,23 @@ int32_t LeaguePhase_KnockoutDraw(uint8_t *diy, uint16_t numTeams)
         w[i] = BE_READ_U16((const uint8_t *)&t->teamIds[t->teamIndexOrder[i]]);
     UefaCoef_Draw((uint8_t)t->header.field_2E, t->header.roundComplete, w, n);
     return 1;
+}
+
+
+int32_t LeaguePhase_Showing(void)
+{
+    return ours();
+}
+
+const char *LeaguePhase_PageHeader(int32_t page)
+{
+    static const char *const kHeaders[2] = { "STANDINGS 1-18", "STANDINGS 19-36" };
+    return kHeaders[page ? 1 : 0];
+}
+
+uint16_t LeaguePhase_RowColour(int32_t place)
+{
+    return place <= 8 ? 13 : place <= 24 ? 14 : 0;     /* (light blue, green; out: plain) */
 }
 
 

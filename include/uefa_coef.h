@@ -81,6 +81,7 @@ void UefaQual_Post(void);               /* after the last count check: the caree
 uint8_t *UefaQual_SeasonTie(uint16_t *index);   /* the season start's (0 = none) */
 uint8_t *UefaQual_RestoreTie(uint16_t index);   /* a loaded career's */
 void UefaQual_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won);
-void UefaQual_Daily(void);              /* a day played: a decided tie -> the next, or the league phase */
+void UefaQual_Daily(void);
+int32_t UefaQual_RoundStringIndex(uint8_t compId);    /* a tie's round name (_cupRoundStringTable), -1 */              /* a day played: a decided tie -> the next, or the league phase */
 
 #endif

@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "game_init.h"
+#include "league_phase.h"
 #include "dos_gameplay.h"   /* ApplyGameStyle — DOS/Amiga match tuning */
 #include "endian_helpers.h"
 #include "game_types.h"
@@ -1073,6 +1074,7 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
     _plgD3Param = (uint16_t)paramD3;
     _gameTeam1 = team1;
     _gameTeam2 = team2;
+    LeaguePhase_GameStarting(team1, team2);     /* (a world's league phase: its cards, league_phase.c) */
 
     /* Compute old player skill for view result (for both teams) */
     ComputeOldPlayerSkillForViewResult((TeamFileEx *)team1, (uint16_t)maxSubs);

@@ -20,6 +20,7 @@ WorldCupsState g_worldCups;
 WorldPlayoffState g_worldPlayoff;
 TeamPoolState *TeamPool_State(uint8_t c) { (void)c; return 0; }
 void Career_SetCurrentCompetitionSlot(uint8_t *c, uint16_t s, uint16_t d, uint16_t h) { (void)c; (void)s; (void)d; (void)h; }
+void Career_RetireSlotCalendarEntries(uint8_t s) { (void)s; }
 void Career_LoadCompetitionSlotStateFromBuffer(uint8_t *s) { (void)s; }
 void Career_StoreCompetitionSlotStateToBuffer(uint8_t *s) { (void)s; }
 void DIY_BuildTeamSelectionPointerCache(void) { }

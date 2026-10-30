@@ -621,5 +621,15 @@ void UefaQual_Daily(void)
         slot3((uint8_t *)cup[UQ_R.dest], UQ_R.dest);
 }
 
+/* A tie's round name (world_cups.c): FIRST .. FOURTH ROUND for Q1, Q2, Q3 and the play-off, by
+ * its weeks -- the contest's name says which qualifying (the Mod's uq_tie_round); -1: not a tie. */
+int32_t UefaQual_RoundStringIndex(uint8_t compId)
+{
+    if (compId < UEFA_TIE_ID0 || compId > UEFA_TIE_ID0 + 2)
+        return -1;
+    const int32_t w = s_tie[compId - UEFA_TIE_ID0].header.comp.beginMonth;
+    return w < 0x35 ? 0 : w < 0x39 ? 1 : w < 0x3C ? 2 : 3;
+}
+
 int32_t UefaQual_KeepsUeclHolder(void) { return s_keepUecl; }
 uint16_t UefaQual_Listed(void) { return s_listed; }

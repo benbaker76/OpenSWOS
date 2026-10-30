@@ -9,6 +9,7 @@
 DIYCompetitionEx _diyCompetitionStart;
 DIYTournamentState _diyFileBufferCopy;
 uint8_t _seasonPlaying;
+TeamStatisticsData _team1StatsData, _team2StatsData;
 CompetitionCareer _careerContests[CAREER_CONTESTS_CAP];
 void UefaCoef_StageStart(uint8_t c, const uint16_t *t, int32_t n) { (void)c; (void)t; (void)n; }
 void UefaCoef_Result(uint8_t c, uint16_t h, uint16_t a, uint16_t g1, uint16_t g2) { (void)c; (void)h; (void)a; (void)g1; (void)g2; }
