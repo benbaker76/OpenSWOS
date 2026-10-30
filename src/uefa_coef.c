@@ -14,6 +14,7 @@
 #include "endian_helpers.h"
 #include "league_phase.h"
 #include "world.h"
+#include "league_playoffs.h"
 #ifdef SWOS_SDL_BUILD
 #include <stdlib.h>              /* (getenv: SWOS_UEFAQ_FORCE) */
 #endif
@@ -366,8 +367,15 @@ void UefaQual_Country(void)
             UQ_IN.cup[rk] = seen(cw, idx, rk);
         }
     }
-    /* (a league cup winner's place -- pack season.league_cup_europe -- and a country's European
-     * play-offs: none in World 2026-27 yet; the access list then takes the next league club) */
+    /* Its knockout play-offs (the Mod's UQ_EPP, gplay's bytes by its league file): a 'europe'
+     * one gives its last Conference League place (Austria, Bulgaria, Denmark, the Netherlands,
+     * Northern Ireland, Romania, San Marino, Wales), run by uq_season (ep_run). (A league cup
+     * winner's place -- pack season.league_cup_europe -- no pack of World 2026-27 has.) */
+    int32_t np = 0;
+    const LeaguePlayoffs *po = World_LeaguePlayoffs(&np);
+    for (int32_t i = 0; i < np && !UQ_IN.eplay[rk]; i++)
+        if (po[i].country == first && po[i].spec)
+            UQ_IN.eplay[rk] = po[i].spec;       /* (the first of its file, as the Mod's table) */
 }
 
 /* uq_fill: the holders, the 2 European Performance Spots, the seed, the rounds, the lists. */
