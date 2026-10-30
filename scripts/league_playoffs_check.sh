@@ -220,3 +220,41 @@ fi
 # the Mod makes them, every draw's rules (lp36.check / check6).
 $CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/lp_check" $T/lp_check.c
 "$OUT/lp_check" "$((N / 10))"
+
+# The other confederations' cups (src/world_conti.c, the Mod's conti.c as it is): the world's
+# cups packed by the Mod's own conti.load over the world's data, both C files over random
+# seasons of a synthetic world -- every round's entrants and draw, every winner the Mod's.
+PACKS="$PWD/bin/data_json/worlds/2627/mod/packs"
+SEASON_PACKS=$(ls -d "$PACKS"/*/ | tr '\n' ',' | sed 's/,$//') \
+    python3 -I - "$MOD" "$OUT" "$PWD/bin/data_json/worlds/2627/mod/conti" <<'PY' > /dev/null
+import sys
+mod, out, data = sys.argv[1:4]
+sys.path.insert(0, mod + "/tools")
+import conti
+conti.DATA = data
+spec, assocs, cups = conti.load(conti.CONFS)
+open(out + "/conti.spec", "wb").write(spec)
+sys.path.insert(0, "scripts")
+import world_conti                      # (ours: the same bytes, with and without the team files)
+files = {k: 100 + i for i, k in enumerate(assocs)}
+if world_conti.load(world_conti.CONFS) != (spec, assocs, cups) or \
+        world_conti.load(world_conti.CONFS, files=files) != conti.load(conti.CONFS, files=files):
+    open(out + "/conti.spec", "wb").write(b"")
+PY
+if [ ! -s "$OUT/conti.spec" ]; then
+    echo "FAIL: the other confederations' cups: scripts/world_conti.py's spec differs from the Mod's conti.load"
+    exit 1
+fi
+$CC -w -fno-builtin -DCONTI_C="\"$MOD/tools/conti.c\"" -o "$OUT/conti_mod" $T/conti_mod.c
+$CC -w -fno-builtin -Iinclude -include include/swos_platform.h -o "$OUT/conti_ours" $T/conti_ours.c
+CN=$((N / 400))
+"$OUT/conti_mod" "$OUT/conti.spec" "$CN" > "$OUT/conti_mod.txt"
+"$OUT/conti_ours" "$OUT/conti.spec" "$CN" > "$OUT/conti_ours.txt"
+if cmp -s "$OUT/conti_mod.txt" "$OUT/conti_ours.txt"; then
+    echo "PASS: the other confederations' cups, $CN seasons of $(head -c 4 "$OUT/conti.spec" | od -An -tu1 | awk '{print $1}') cups," \
+         "every round's draw and every winner the Mod's; their spec packed as the Mod packs it"
+else
+    echo "FAIL: the other confederations' cups, the first season that differs (Mod, then ours):"
+    diff "$OUT/conti_mod.txt" "$OUT/conti_ours.txt" | head -4 | cut -c1-300
+    exit 1
+fi
