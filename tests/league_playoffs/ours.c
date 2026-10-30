@@ -36,24 +36,32 @@ static int8_t table[2000], scratch[2000];
  * presim), the club the first entrant that waits in round 1: as mod_ko. */
 static void ours_ko(struct trow (*t)[32], const int *n)
 {
-    LeagueStageRow tab[32];
+    static LeagueStageRow tab[16][32];
+    const LeagueStageRow *tabs[3];
+    int32_t divs[3], ns[3];
+    for (int d = 0; d < ND; d++)
+        for (int k = 0; k < n[d]; k++) {
+            tab[d][k].team = t[d][k].team; tab[d][k].glob = t[d][k].glob; tab[d][k].won = t[d][k].won;
+            tab[d][k].gf = t[d][k].gf; tab[d][k].ga = t[d][k].ga; tab[d][k].pts = t[d][k].pts;
+        }
     const uint8_t *s;
     for (int pi = 0; (s = LeaguePlayoffs_SpecAt(20, pi)) != 0; pi++) {
-        const int d = s[6] == 0 && s[7] < ND ? s[7] : 0;    /* (the division of its first entrant) */
-        for (int k = 0; k < n[d]; k++) {
-            tab[k].team = t[d][k].team; tab[k].glob = t[d][k].glob; tab[k].won = t[d][k].won;
-            tab[k].gf = t[d][k].gf; tab[k].ga = t[d][k].ga; tab[k].pts = t[d][k].pts;
-        }
         int ne = s[1], grp = 0, wait = -1, in0[64] = { 0 };
         const uint8_t *r = s + 6 + 4 * ne, *r0 = r, *sp = 0;
         uint16_t team[64], glob[64], pts[64];
         uint8_t prio[64];
         for (int k = 0; k < s[2]; k++) { grp |= r[1] & 0x80; r += 6 + 2 * r[0]; }
-        for (int i = 1; i < ne; i++)
-            grp |= s[6 + 4 * i] == 0 && (s[6] != 0 || s[7 + 4 * i] != s[7]);
+        int dv[3], nd = 0;
+        for (int i = 0; i < ne && !grp; i++) {  /* (its entrants' divisions: at most three) */
+            int j = 0;
+            while (j < nd && dv[j] != s[7 + 4 * i]) j++;
+            if (j == nd) { if (nd < 3) dv[nd++] = s[7 + 4 * i]; else grp = 1; }
+        }
         if (grp || r0[4] || ne > 64) continue;
         _selTeamNumber = 0xFFFF;
-        if (LeaguePlayoffs_ContestEntrants(20, d, tab, n[d], pi, team, glob, prio, pts, &sp) != ne) continue;
+        for (int j = 0; j < nd; j++) { divs[j] = dv[j]; tabs[j] = tab[dv[j]]; ns[j] = n[dv[j]]; }
+        if (dv[0] >= ND || LeaguePlayoffs_ContestEntrantsEx(20, nd, divs, tabs, ns, pi, team, glob, prio, pts, &sp) != ne)
+            continue;
         for (int i = 0; i < r0[0]; i++)
             for (int x = 0; x < 2; x++) if (r0[6 + 2 * i + x] < ne) in0[r0[6 + 2 * i + x]] = 1;
         for (int i = 0; i < ne && wait < 0; i++) {
@@ -63,7 +71,7 @@ static void ours_ko(struct trow (*t)[32], const int *n)
         }
         if (wait < 0) continue;
         _selTeamNumber = team[wait];
-        LeaguePlayoffs_ContestEntrants(20, d, tab, n[d], pi, team, glob, prio, pts, &sp);
+        LeaguePlayoffs_ContestEntrantsEx(20, nd, divs, tabs, ns, pi, team, glob, prio, pts, &sp);
         LeaguePlayoffs_ContestSeed(pi, team, ne);
         printf(" K%d:", pi);
         for (int i = 0; i < r0[0]; i++) {
@@ -77,6 +85,15 @@ static void ours_ko(struct trow (*t)[32], const int *n)
             for (int p = 0; p < 256; p++)
                 for (int j = 0; j < ne; j++) if (prio[j] == p) printf("r%04X", team[j]);
     }
+    for (int d = 0; d < ND; d++)                /* (the club's play-off: gp_need, each club) */
+        for (int k = 0; k < n[d]; k++) {
+            uint8_t other[2];
+            int32_t no = 0;
+            const int32_t pi = LeaguePlayoffs_ClubPlayoff(20, d, tab[d], n[d], tab[d][k].team, other, &no);
+            if (pi == -1) continue;
+            printf(" N%d.%d:%d", d, k, pi < -1 ? -2 - pi : pi);
+            for (int j = 0; j < no; j++) printf("/%d", other[j]);
+        }
 }
 int main(int argc, char **argv)
 {

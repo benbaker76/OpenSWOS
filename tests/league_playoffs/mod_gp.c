@@ -45,6 +45,22 @@ void mod_gp(const unsigned short (*rows)[32][6], const int *n, int nd, const u8 
     for (int k = 0; k < 3; k++)
         if (GP_OUT.sres[k].kind) fprintf(out, " S%d:%u/%u", k, GP_OUT.sres[k].glob[0], GP_OUT.sres[k].glob[1]);
 }
+/* The career club's play-off at its league's end (gp_need, a career), for every club of every
+   division: its index and the divisions simulated early. */
+void mod_need(FILE *out)
+{
+    GP_IN.gtype = 4;
+    for (int d = 0; d < GP_IN.nd; d++)
+        for (int k = 0; k < GP_IN.n[d]; k++) {
+            GP_IN.mdiv = (u8)d;
+            GP_IN.mgr = GP_IN.t[d][k].team;
+            if (!gp_need()) continue;
+            fprintf(out, " N%d.%d:%d", d, k, GP_IN.pi[0]);
+            if (!t2_shape(po_at(GP_IN.pi[0]), 0))
+                for (int j = 0; j < SD && GP_IN.sim[j] != NOC; j++) fprintf(out, "/%d", GP_IN.sim[j]);
+        }
+}
+
 /* The career club's contest (ko_build) for each play-off of knockouts, the club the first entrant
    that waits in round 1: its round-1 ties simulated at the build (presim) -- their winners -- and,
    by record ('host_by_record'), its clubs in rank order. */
@@ -61,8 +77,15 @@ void mod_ko(FILE *out)
         const u8 *r = s + 6 + 4 * n, *r0 = r;
         u16 team[64];
         for (int k = 0; k < s[2]; k++) { grp |= r[1] & 0x80; r += 6 + 2 * r[0]; }
-        for (int i = 1; i < n; i++)             /* (entrants of two divisions: ours plays only one's) */
-            grp |= s[6 + 4 * i] == 0 && (s[6] != 0 || s[7 + 4 * i] != s[7]);
+        {                                       /* (entrants of more than three divisions: not ours) */
+            int dv[64], nd = 0;
+            for (int i = 0; i < n; i++) {
+                int j = 0;
+                while (j < nd && dv[j] != s[7 + 4 * i]) j++;
+                if (j == nd) dv[nd++] = s[7 + 4 * i];
+            }
+            grp |= nd > 3;
+        }
         if (grp || r0[4] || n > 64) continue;   /* (group rounds, a paired round 1: not here) */
         for (int i = 0; i < n; i++) {
             int c = ent_club(s + 6 + 4 * i, s[0]);
@@ -86,4 +109,20 @@ void mod_ko(FILE *out)
             for (int p = 0; p < 256; p++)
                 for (int j = 0; j < k->n; j++) if (k->prio[j] == p) fprintf(out, "r%04X", k->team[j]);
     }
+}
+
+/* the contests' checks leave the season's state as they found it (gp_need picks a bank, ko_build
+   marks GP_ST): the next season's gp_season must not see them */
+static struct gp_state ko_st;
+static struct gp_in ko_in;
+static unsigned char ko_ssb[sizeof GP_SSB];
+void mod_ko_all(FILE *out)
+{
+    struct gp_ss *ssb = SSB;
+    ko_st = GP_ST; ko_in = GP_IN;
+    for (unsigned i = 0; i < sizeof GP_SSB; i++) ko_ssb[i] = ((unsigned char *)GP_SSB)[i];
+    mod_ko(out);
+    mod_need(out);
+    GP_ST = ko_st; GP_IN = ko_in; SSB = ssb;
+    for (unsigned i = 0; i < sizeof GP_SSB; i++) ((unsigned char *)GP_SSB)[i] = ko_ssb[i];
 }

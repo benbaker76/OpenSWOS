@@ -99,7 +99,7 @@ while read -r code shape; do
 done < "$OUT/packs.txt"
 if [ -z "$bad" ]; then     # (Argentina's promedio too, its history kept season to season)
     echo "PASS: every pack's knockouts ($npacks leagues): compiled as the Mod compiles them, $PN seasons each (stage tables given)," \
-         "every move, champion and stage title the Mod's; the career club's contest built as its ko_build" \
+         "every move, champion and stage title the Mod's; the career club's contest built as its ko_build, every club's play-off chosen as its gp_need" \
          "($(cat "$OUT"/p_ours_ko.txt 2>/dev/null || echo 0) round-1 ties simulated at the build)"
 else
     echo "FAIL: the knockouts of$bad differ from the Mod's ($npacks leagues equal; VERBOSE=1 for the first seasons)"

@@ -65,7 +65,10 @@ static int32_t bracket_size(void)
     if (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC) {
         const uint8_t *s = LeaguePlayoffs_SpecAt(g_worldPlayoff.country, g_worldPlayoff.pidx);
         uint8_t gsr[K_GAMES], gno[K_GAMES];
-        return s ? 1 << (k_games(s, gsr, gno) - g_worldPlayoff.g0) : g_worldPlayoff.n;
+        int32_t b = s ? 1 << (k_games(s, gsr, gno) - g_worldPlayoff.g0) : g_worldPlayoff.n;
+        while (b < g_worldPlayoff.n)            /* (its list: the clubs of the rounds decided at the */
+            b <<= 1;                            /*  build too -- the rounds then numRoundsOverride's) */
+        return b;
     }
     return g_worldPlayoff.kind == WORLD_PLAYOFF_C_PLAYOFF ? 64 : g_worldPlayoff.n;
 }
@@ -134,6 +137,8 @@ static void make_record(void)
         }
         s_rec.name[0] = s_kName;
         s_rec.name[1] = s_kShort;
+        if (bracket_size() != 1 << (ng - g_worldPlayoff.g0))
+            s_rec.header.numRoundsOverride = (int8_t)(ng - g_worldPlayoff.g0);
     } else if (g_worldPlayoff.kind == WORLD_PLAYOFF_GROUP_TIE) {
         s_rec.roundRuleFlags[0] = (int8_t)g_worldPlayoff.rules;
         s_rec.name[0] = s_tieName;
@@ -205,6 +210,8 @@ static void first_round(void)
         uint8_t gsr[K_GAMES], gno[K_GAMES];
         if (s && g_worldPlayoff.g0 < k_games(s, gsr, gno))
             k_lay_out(s, 0, gsr[g_worldPlayoff.g0]);
+        if (c->base.numRounds >= 1)             /* (a bracket over its rounds: numRoundsOverride) */
+            c->base.matchPairsPerRound = (int16_t)(1 << (c->base.numRounds - 1));
         c->base.totalMatchesInRound = g_worldPlayoff.ties;
     }
     if (g_worldPlayoff.kind == WORLD_PLAYOFF_B_PLAYOFF)
@@ -807,16 +814,16 @@ static void k_names(uint8_t country, int32_t pidx)
 
 /* The career club's play-off pidx: its entrants, its first round with the club in it, its
  * bracket fitting; 1: the state made (WORLD_PLAYOFF_SPEC). */
-static int32_t k_make(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n, int32_t pidx,
-                      int32_t stage)
+static int32_t k_make_ex(uint8_t country, int32_t ntab, const int32_t *divs, const LeagueStageRow *const *tables,
+                         const int32_t *ns, int32_t pidx, int32_t stage)
 {
     const uint8_t *s = 0;
     extern uint16_t _selTeamNumber;
     WorldPlayoff_Reset();
-    const int32_t ne = LeaguePlayoffs_ContestEntrants(country, d, table, n, pidx, g_worldPlayoff.team,
-                                                      g_worldPlayoff.glob, g_worldPlayoff.prio,
-                                                      g_worldPlayoff.pts, &s);
-    if (ne < 2 || !s || s[2] < 1 || s[2] > 5) {
+    const int32_t ne = LeaguePlayoffs_ContestEntrantsEx(country, ntab, divs, tables, ns, pidx, g_worldPlayoff.team,
+                                                        g_worldPlayoff.glob, g_worldPlayoff.prio,
+                                                        g_worldPlayoff.pts, &s);
+    if (ne < 2 || !s || s[2] < 1 || s[2] > 8) {
         WorldPlayoff_Reset();
         return 0;
     }
@@ -864,7 +871,7 @@ static int32_t k_make(uint8_t country, int32_t d, const LeagueStageRow *table, i
         in |= g_worldPlayoff.team[g_worldPlayoff.tieA[t]] == _selTeamNumber ||
               g_worldPlayoff.team[g_worldPlayoff.tieB[t]] == _selTeamNumber;
     uint8_t wait[16];
-    if (nt <= 0 || !in || ne > bracket || 2 * nt + k_waiting(s, gsr[g0], wait) > bracket) {
+    if (nt <= 0 || !in || ne > 32 || 2 * nt + k_waiting(s, gsr[g0], wait) > bracket) {
         if (presim || gr > 6)
             SWOS_DBG("[world-playoff] play-off %d: not played (%d game rounds from %d, %d ties)\n", (int)pidx,
                      (int)ng, (int)g0, (int)nt);
@@ -875,6 +882,14 @@ static int32_t k_make(uint8_t country, int32_t d, const LeagueStageRow *table, i
         SWOS_DBG("[world-playoff] play-off %d: its first %d game rounds decided at the build (the club %04X)\n",
                  (int)pidx, (int)g0, (unsigned)_selTeamNumber);
     return 1;
+}
+
+static int32_t k_make(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n, int32_t pidx,
+                      int32_t stage)
+{
+    const LeagueStageRow *tables[1] = { table };
+    const int32_t divs[1] = { d }, ns[1] = { n };
+    return k_make_ex(country, 1, divs, tables, ns, pidx, stage);
 }
 
 /* The decided contest's result: a stage title for the season end. */
@@ -993,22 +1008,58 @@ void WorldPlayoff_Advance(uint16_t week)
     k_slot4();
 }
 
-/* A 'title' play-off the career club is in (AUS, CAN, MLT, PER, URU: the champion is its
- * winner), built at the league's end. */
-static int32_t title_playoff(const LeaguePlayoffs *lp, int32_t d, const TableRow *own, int32_t nown)
+/* The career club's play-off of the pack's, built at the league's end (the Mod's gp_need +
+ * ko_build, a career): the first it can play with the club among its entrants -- a title (AUS,
+ * CAN, MLT, PER, URU, the MLS), a promotion play-off (England's, a barrage), a continental one;
+ * the other divisions its entrants come from (France's and Germany's barrages: the division
+ * above or below) simulated now, at most two, their tables kept for the season end
+ * (WorldPlayoff_RestoreEarlyTable, the Mod's gp_simkeep / gp_restore). A group contest (the
+ * Mod's type 2) and a play-off not the club's to start are decided at the season end. */
+static int32_t spec_playoff(const LeaguePlayoffs *lp, int32_t d, const TableRow *own, int32_t nown)
 {
-    static LeagueStageRow table[32];
-    const uint8_t *s = lp->spec;
-    for (int32_t k = 0; k < nown && k < 32; k++) {
-        table[k].team = own[k].team; table[k].glob = own[k].glob; table[k].won = own[k].r.won;
-        table[k].gf = own[k].r.gf; table[k].ga = own[k].r.ga; table[k].pts = own[k].r.pts;
+    static LeagueStageRow table[3][32];
+    static TableRow early[32];
+    extern uint16_t _selTeamNumber;
+    const uint8_t country = (uint8_t)lp->country;
+    uint8_t other[2];
+    int32_t no = 0, divs[3] = { d, 0, 0 }, ns[3] = { nown < 32 ? nown : 32, 0, 0 };
+    const LeagueStageRow *tables[3] = { table[0], table[1], table[2] };
+    for (int32_t k = 0; k < ns[0]; k++) {
+        table[0][k].team = own[k].team; table[0][k].glob = own[k].glob; table[0][k].won = own[k].r.won;
+        table[0][k].gf = own[k].r.gf; table[0][k].ga = own[k].r.ga; table[0][k].pts = own[k].r.pts;
     }
-    for (int32_t pidx = 0; s && *s; pidx++) {
-        if (s[0] == 5 && k_make((uint8_t)lp->country, d, table, nown, pidx, 0xFF))
-            return 1;
-        s = LeaguePlayoffs_SpecAt((uint8_t)lp->country, pidx + 1);
+    const int32_t pidx = LeaguePlayoffs_ClubPlayoff(country, d, table[0], ns[0], _selTeamNumber, other, &no);
+    if (pidx < 0) {
+        if (pidx < -1)
+            SWOS_DBG("[world-playoff] play-off %d: a group contest, decided at the season end\n", (int)(-2 - pidx));
+        return 0;
     }
-    return 0;
+    WorldPlayoffRow rows[2][WORLD_PLAYOFF_EARLY_ROWS];
+    for (int32_t e = 0; e < no; e++) {          /* (the other divisions, now: as the season end will) */
+        const int32_t n = simulate_early(other[e], early, 32);
+        if (n > WORLD_PLAYOFF_EARLY_ROWS)
+            return 0;                           /* (more clubs than an early table keeps) */
+        divs[e + 1] = other[e];
+        ns[e + 1] = n;
+        for (int32_t k = 0; k < n; k++) {
+            LeagueStageRow *r = &table[e + 1][k];
+            r->team = early[k].team; r->glob = early[k].glob; r->won = early[k].r.won;
+            r->gf = early[k].r.gf; r->ga = early[k].r.ga; r->pts = early[k].r.pts;
+            rows[e][k] = early[k].r;
+        }
+    }
+    if (!k_make_ex(country, no + 1, divs, tables, ns, pidx, 0xFF))
+        return 0;
+    g_worldPlayoff.early = (uint8_t)no;         /* (k_make_ex reset the state: kept now) */
+    for (int32_t e = 0; e < no; e++) {
+        g_worldPlayoff.earlyDiv[e] = other[e];
+        g_worldPlayoff.earlyN[e] = (uint8_t)ns[e + 1];
+        for (int32_t k = 0; k < ns[e + 1]; k++)
+            g_worldPlayoff.earlyRow[e][k] = rows[e][k];
+    }
+    if (no)
+        SWOS_DBG("[world-playoff] play-off %d: %d other division(s) simulated early\n", (int)pidx, (int)no);
+    return 1;
 }
 
 static int32_t league_ended(void);
@@ -1099,7 +1150,7 @@ static int32_t league_ended(void)
     } else if (!serieB) {
         if (!group_tie(lp, (int32_t)_currentDivisionIndex, team, pts, n, mine) &&
             !group_placement(lp, (int32_t)_currentDivisionIndex, team, pts, n, mine) &&
-            !title_playoff(lp, (int32_t)_currentDivisionIndex, own, nown))
+            !spec_playoff(lp, (int32_t)_currentDivisionIndex, own, nown))
             return 0;
     } else if (mine >= 2 && mine <= 7 && LeaguePlayoffs_PlayoffHeld(pts[2], pts[3])) {
         g_worldPlayoff.kind = WORLD_PLAYOFF_B_PLAYOFF;
@@ -1120,6 +1171,16 @@ static int32_t league_ended(void)
     } else
         return 0;
 
+    if (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC && !g_worldPlayoff.week) {
+        /* a league ending after 96/97's play-off dates (Germany's, France's): its days from the
+         * week after, a leg a week -- dated before the calendar's place, the walk went back */
+        extern uint8_t _teamSelectionKeyCache[];
+        extern uint16_t _teamSelectionKeyCacheOffset;
+        const uint8_t now = ((const TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache +
+                             _teamSelectionKeyCacheOffset))->sortKey;
+        if ((uint8_t)_div1Playoffs.comp.beginMonth <= now)
+            g_worldPlayoff.week = (uint8_t)(now < 254 ? now + 1 : 255);
+    }
     put_in_slot4();
     SWOS_DBG("[world-playoff] %s: %u clubs, the career club %d%s\n",
              g_worldPlayoff.kind == WORLD_PLAYOFF_C_PLAYOFF ? "PLAY-OFF SERIE C" :

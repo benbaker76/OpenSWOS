@@ -80,6 +80,17 @@ int32_t LeaguePlayoffs_TopTable(uint16_t *teams, int32_t cap);
 int32_t LeaguePlayoffs_ContestEntrants(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
                                        int32_t pidx, uint16_t *team, uint16_t *glob, uint8_t *prio,
                                        uint16_t *pts, const uint8_t **spec);
+/* The same over several divisions' tables (divs[0] the club's, then the ones simulated early). */
+int32_t LeaguePlayoffs_ContestEntrantsEx(uint8_t country, int32_t nt, const int32_t *divs,
+                                         const LeagueStageRow *const *tables, const int32_t *ns, int32_t pidx,
+                                         uint16_t *team, uint16_t *glob, uint8_t *prio, uint16_t *pts,
+                                         const uint8_t **spec);
+/* The career club's play-off at its league's end (the Mod's gp_need, a career): the first playable
+ * one in spec order with the club (`club` in division d's final table) among its entrants -- its
+ * index, the other divisions its entrants come from (at most two, to simulate now) in other[];
+ * -2 - its index when it is a group contest (the Mod's type-2: not played here); -1 none. */
+int32_t LeaguePlayoffs_ClubPlayoff(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
+                                   uint16_t club, uint8_t *other, int32_t *nother);
 /* Right after ContestEntrants: a round-1 tie simulated at the contest's build, the career club
  * waiting (the Mod's presim): the seed (hseed of game round 0), then each tie of entrants a, b
  * (legs 3: a best of three); the winner, a or b. */
