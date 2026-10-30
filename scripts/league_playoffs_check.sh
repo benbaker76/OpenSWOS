@@ -94,7 +94,7 @@ while read -r code shape; do
         echo $(( $(cat "$OUT/p_ours_ko.txt" 2>/dev/null || echo 0) + $(grep -o 'K[0-9]*:[0-9A-F,]*' "$OUT/p_ours.txt" | tr -cd , | wc -c) )) > "$OUT/p_ours_ko.txt"
     else
         bad="$bad $code"
-        [ -n "${VERBOSE:-}" ] && { echo "  $code ($shape) differs:"; diff "$OUT/p_mod.txt" "$OUT/p_ours.txt" | head -3; }
+        [ -n "${VERBOSE:-}" ] && { echo "  $code ($shape) differs:"; diff "$OUT/p_mod.txt" "$OUT/p_ours.txt" | head -"${VLINES:-3}"; }
     fi
 done < "$OUT/packs.txt"
 if [ -z "$bad" ]; then     # (Argentina's promedio too, its history kept season to season)
@@ -103,6 +103,55 @@ if [ -z "$bad" ]; then     # (Argentina's promedio too, its history kept season 
          "($(cat "$OUT"/p_ours_ko.txt 2>/dev/null || echo 0) round-1 ties simulated at the build)"
 else
     echo "FAIL: the knockouts of$bad differ from the Mod's ($npacks leagues equal; VERBOSE=1 for the first seasons)"
+    exit 1
+fi
+
+# The SEASON WINNERS page's titles (the Mod's fmtgame.win_lines, English) against ours
+# (world_import.winners_lines), every pack's league: each division's titles and sources.
+if python3 -I - "$MOD" > "$OUT/winners.txt" <<'PY'
+import csv, glob, json, os, sys
+sys.path.insert(0, 'scripts'); sys.path.insert(1, sys.argv[1] + '/tools')
+import world_import as w
+import complist, fmtgame
+bad = n = titles = 0
+for f in sorted(glob.glob(os.path.join(w.MOD, 'packs', '*', 'pack.json'))):
+    d = os.path.dirname(f)
+    pk = json.load(open(f, encoding='utf-8'))
+    lg = next((c for c in pk['competitions'] if c['type'] == 'league'), None)
+    if not lg:
+        continue
+    cp = os.path.join(d, 'clubs.csv')
+    clubs = [dict(r, file=r.get('file') or 'league', division=r.get('division') or '0')
+             for r in csv.DictReader(open(cp, encoding='utf-8'))] if os.path.exists(cp) else []
+    nt = sum(1 for r in clubs if r['file'] == lg['clubs'] and r['division'] not in ('reserve', ''))
+    ours = w.winners_lines(pk, lg, nt)
+    m = complist.load_pack(d)
+    fmtgame._WN_RAW.clear()
+    fmtgame._raw_names(pk, m)
+    comp = next(c for c in m['competitions'] if c['type'] == 'league')
+    theirs, k = [], 0
+    for lv in complist._league(comp, clubs)['levels']:
+        for div in lv:
+            theirs += [(k, t, s) for t, s in fmtgame.win_lines(comp, div, k, (m.get('id') or '').rsplit('-', 1)[-1]).get('en', [])]
+            k += 1
+    if any(c['type'] == 'state' for c in m['competitions']):
+        theirs.append((0xFE, None, 'C'))
+    n += 1
+    titles += len(ours)
+    if ours != theirs:
+        bad += 1
+        print('DIFF', os.path.basename(d), ours, theirs)
+print('RESULT %d %d %d' % (n, bad, titles))
+PY
+then
+    read -r _ wn wbad wtitles <<< "$(grep '^RESULT' "$OUT/winners.txt")"
+fi
+if [ "${wbad:-1}" = 0 ]; then
+    echo "PASS: the SEASON WINNERS page, $wtitles titles of $wn leagues: each division's titles and sources the Mod's" \
+         "(its last season's record checked with every gp_season above)"
+else
+    echo "FAIL: the SEASON WINNERS page's titles differ from the Mod's:"
+    grep -v '^RESULT' "$OUT/winners.txt" | head -3 | cut -c1-300
     exit 1
 fi
 

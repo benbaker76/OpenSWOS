@@ -10,6 +10,21 @@ static const char *const kTags[WORLD_COUNT] = {
 
 static WorldId s_world = WORLD_9697;
 
+static const uint16_t kFirstYear[WORLD_COUNT] = { 1996, 2026 };   /* (its first season's start) */
+
+uint16_t World_FirstYear(void)
+{
+    return kFirstYear[World_Current()];
+}
+
+uint16_t World_SeasonYear(uint8_t seasonPlaying)
+{
+    uint16_t year = (uint16_t)(1900u + seasonPlaying);
+    if (year < 1996)
+        year += 100;
+    return (uint16_t)(year + World_FirstYear() - 1996);
+}
+
 WorldId (World_Current)(void)       /* (parenthesised: SWOS_WORLDS=0 makes it a macro) */
 {
     return s_world;

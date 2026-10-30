@@ -959,6 +959,53 @@ static void k_done(void)
     }
 }
 
+/* The SEASON WINNERS page (world_winners.c; the Mod's gp_wn_c on its GP_ST.ko): play-off pidx's
+ * contest this season, tie `tie`'s winner (-1: the last tie's; a group contest's: its champion) in
+ * *team -- 1 decided, 0 being played, -1 no contest of it this season. */
+int32_t WorldPlayoff_WinnerOf(int32_t pidx, int32_t tie, uint16_t *team)
+{
+    WorldPlayoffState *w = &g_worldPlayoff;
+    if ((w->kind != WORLD_PLAYOFF_SPEC && w->kind != WORLD_PLAYOFF_GROUPS) ||
+        w->season != (uint8_t)(g_worldCups.seasons + 1) || w->pidx != pidx)
+        return -1;
+    if (w->kind == WORLD_PLAYOFF_GROUPS) {
+        if (tie >= 0)
+            return -1;
+        if (w->tw[0] >= w->n)
+            return 0;
+        *team = w->team[w->tw[0]];
+        return 1;
+    }
+    const uint8_t *s = k_spec();
+    if (!s || !s[2])
+        return -1;
+    if (tie < 0)
+        tie = k_t0(s, s[2] - 1) + k_round(s, s[2] - 1)[0] - 1;
+    if (tie < 0 || tie >= WORLD_PLAYOFF_MAX)
+        return -1;
+    if (w->tw[tie] == NOC)
+        return 0;
+    *team = w->team[w->tw[tie]];
+    return 1;
+}
+
+/* The Italian rules' contest the career club plays (dplay: 1 Serie B's play-off, 2 its play-out,
+ * 3 Serie C's play-off): its winner (the play-out's: the club relegated) -- 1 decided, 0 being
+ * played, -1 none. */
+int32_t WorldPlayoff_ItalianResult(int32_t k, uint16_t *team)
+{
+    const WorldPlayoffState *w = &g_worldPlayoff;
+    static const uint8_t kinds[4] = { 0, WORLD_PLAYOFF_B_PLAYOFF, WORLD_PLAYOFF_B_PLAYOUT, WORLD_PLAYOFF_C_PLAYOFF };
+    if (k < 1 || k > 3 || w->kind != kinds[k])
+        return -1;
+    if (!w->winner)
+        return 0;
+    *team = w->winner;
+    if (k == 2)                                 /* (the play-out: the other club goes down) */
+        *team = w->team[0] == w->winner ? w->team[1] : w->team[0];
+    return 1;
+}
+
 /* The career club's result in the contest, as the season record's codes (the Mod's club_res,
  * FillManagementRecordInfo's): 1 WINNERS, -100 FINALIST (the last round lost), -101 REACHED
  * SEMI-FINAL, -102 REACHED QUARTER-FINAL, -110 - n KNOCKED OUT IN ROUND n; 0: not in it or

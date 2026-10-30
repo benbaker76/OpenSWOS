@@ -31,6 +31,10 @@ WorldId     World_Current(void);
 #define World_Current() WORLD_9697
 #endif
 const char *World_Tag(void);                 /* the current world's: "9697" */
+/* The world's first season's year (96/97: 1996), and a season's start year by the game's
+ * _seasonPlaying (96 its first season, as in the original), shown in the world's own years. */
+uint16_t    World_FirstYear(void);
+uint16_t    World_SeasonYear(uint8_t seasonPlaying);
 const char *World_TagOf(WorldId w);          /* NULL for an unknown id */
 int32_t     World_FromTag(const char *tag);  /* the id, or -1 */
 int32_t     World_Set(const char *tag);      /* 0, or -1 (unknown: unchanged) */

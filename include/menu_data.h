@@ -1187,6 +1187,7 @@ typedef struct Menu_CompetitionStats
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry2;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;    /* WINNERS (a world's; world_winners.c) */
   MenuMark markEndMenu;
 } Menu_CompetitionStats;
 #pragma pack(pop)

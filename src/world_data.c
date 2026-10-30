@@ -2417,6 +2417,36 @@ static const uint8_t kWorld2627_italyRounds[][12] = {
 
 static const char *const kWorld2627_italyRecords[] = { "SERIE C GROUP A PLAY-OUTS", "SERIE C GROUP B PLAY-OUTS", "SERIE C GROUP C PLAY-OUTS", "SERIE D GROUP A PLAY-OFFS", "SERIE D GROUP B PLAY-OFFS", "SERIE D GROUP C PLAY-OFFS", "SERIE D GROUP D PLAY-OFFS", "SERIE D GROUP E PLAY-OFFS", "SERIE D GROUP F PLAY-OFFS", "SERIE D GROUP G PLAY-OFFS", "SERIE D GROUP H PLAY-OFFS", "SERIE D GROUP I PLAY-OFFS", "SERIE D GROUP A PLAY-OUTS", "SERIE D GROUP B PLAY-OUTS", "SERIE D GROUP C PLAY-OUTS", "SERIE D GROUP D PLAY-OUTS", "SERIE D GROUP E PLAY-OUTS", "SERIE D GROUP F PLAY-OUTS", "SERIE D GROUP G PLAY-OUTS", "SERIE D GROUP H PLAY-OUTS", "SERIE D GROUP I PLAY-OUTS", "ITALIAN AMATEUR CHAMPIONS" };
 
+static const LeagueWinLine kWorld2627_italyWinners[] = {
+    { 1, "SERIE B", "L2601" },
+    { 1, "PLAY-OFF SERIE B", "P1" },
+    { 1, "PLAY-OUT SERIE B - RELEGATED", "P2" },
+    { 2, "SERIE C GIRONE A", "L2602" },
+    { 2, "PLAY-OFF SERIE C", "P3" },
+    { 3, "SERIE C GIRONE B", "L2603" },
+    { 3, "PLAY-OFF SERIE C", "P3" },
+    { 4, "SERIE C GIRONE C", "L2604" },
+    { 4, "PLAY-OFF SERIE C", "P3" },
+    { 5, "SERIE D GIRONE A", "L2005" },
+    { 5, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+    { 6, "SERIE D GIRONE B", "L2006" },
+    { 6, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+    { 7, "SERIE D GIRONE C", "L2007" },
+    { 7, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+    { 8, "SERIE D GIRONE D", "L2208" },
+    { 8, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+    { 9, "SERIE D GIRONE E", "L2009" },
+    { 9, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+    { 10, "SERIE D GIRONE F", "L220A" },
+    { 10, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+    { 11, "SERIE D GIRONE G", "L200B" },
+    { 11, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+    { 12, "SERIE D GIRONE H", "L200C" },
+    { 12, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+    { 13, "SERIE D GIRONE I", "L220D" },
+    { 13, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
+};
+
 static const uint8_t kWorld2627_argentinaPromoted[] = { 0, 0, 0 };
 
 static const uint8_t kWorld2627_argentinaRelegated[] = { 0, 0, 0 };
@@ -2512,6 +2542,19 @@ static const char *const kWorld2627_argentinaCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_argentinaWinners[] = {
+    { 0, "LIGA PROFESIONAL DE FUTBOL", "S22000" },
+    { 0, "TORNEO APERTURA", "D00300" },
+    { 0, "TORNEO CLAUSURA", "D10410" },
+    { 0, "TROFEO DE CAMPEONES", "D205FF" },
+    { 1, "PRIMERA NACIONAL ZONA A", "L2201" },
+    { 1, "PRIMERA NACIONAL FINAL", "K01" },
+    { 1, "PRIMERA NACIONAL REDUCIDO", "K02" },
+    { 2, "PRIMERA NACIONAL ZONA B", "L2202" },
+    { 2, "PRIMERA NACIONAL FINAL", "K01" },
+    { 2, "PRIMERA NACIONAL REDUCIDO", "K02" },
+};
+
 static const uint8_t kWorld2627_australiaPromoted[] = { 0, 0, 0, 0 };
 
 static const uint8_t kWorld2627_australiaRelegated[] = { 0, 0, 0, 0 };
@@ -2539,6 +2582,11 @@ static const uint8_t kWorld2627_australiaRounds[][12] = {
 
 static const char *const kWorld2627_australiaRecords[] = { "A-LEAGUE FINALS SERIES" };
 
+static const LeagueWinLine kWorld2627_australiaWinners[] = {
+    { 0, "A-LEAGUE PREMIERS", "L1600" },
+    { 0, "PLAYOFFS - A-LEAGUE MEN CHAMPIONS", "K00" },
+};
+
 static const uint8_t kWorld2627_austriaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_austriaRelegated[] = { 0 };
@@ -2564,6 +2612,11 @@ static const uint8_t kWorld2627_austriaRounds[][12] = {
 };
 
 static const char *const kWorld2627_austriaRecords[] = { "EUROPEAN PLAY-OFF" };
+
+static const LeagueWinLine kWorld2627_austriaWinners[] = {
+    { 0, "BUNDESLIGA", "L2000" },
+    { 0, "EUROPEAN PLAY-OFF", "K00" },
+};
 
 static const uint8_t kWorld2627_brazilPromoted[] = { 0, 2 };
 
@@ -2593,6 +2646,13 @@ static const uint8_t kWorld2627_brazilRounds[][12] = {
 
 static const char *const kWorld2627_brazilRecords[] = { "SERIE B PROMOTION GROUP A", "SERIE B PROMOTION GROUP B" };
 
+static const LeagueWinLine kWorld2627_brazilWinners[] = {
+    { 1, "CAMPEONATO BRASILEIRO SERIE B", "L2601" },
+    { 1, "SERIE B PROMOTION GROUP A", "K00" },
+    { 1, "SERIE B PROMOTION GROUP B", "K01" },
+    { 254, 0, "C" },
+};
+
 static const uint8_t kWorld2627_bulgariaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_bulgariaRelegated[] = { 0 };
@@ -2617,6 +2677,11 @@ static const uint8_t kWorld2627_bulgariaRounds[][12] = {
 };
 
 static const char *const kWorld2627_bulgariaRecords[] = { "EUROPEAN PLAY-OFF" };
+
+static const LeagueWinLine kWorld2627_bulgariaWinners[] = {
+    { 0, "PARVA PROFESIONALNA LIGA", "L2000" },
+    { 0, "EUROPEAN PLAY-OFF", "K00" },
+};
 
 static const uint8_t kWorld2627_canadaPromoted[] = { 0 };
 
@@ -2643,6 +2708,11 @@ static const uint8_t kWorld2627_canadaRounds[][12] = {
 };
 
 static const char *const kWorld2627_canadaRecords[] = { "CANADIAN PREMIER L. PLAYOFFS" };
+
+static const LeagueWinLine kWorld2627_canadaWinners[] = {
+    { 0, "CPL SHIELD", "L1C00" },
+    { 0, "PLAYOFFS - NORTH STAR CUP", "K00" },
+};
 
 static const uint8_t kWorld2627_colombiaPromoted[] = { 0 };
 
@@ -2714,6 +2784,12 @@ static const char *const kWorld2627_colombiaCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_colombiaWinners[] = {
+    { 0, "CATEGORIA PRIMERA A", "S22600" },
+    { 0, "TORNEO APERTURA", "D00000" },
+    { 0, "TORNEO FINALIZACION", "D10113" },
+};
+
 static const uint8_t kWorld2627_costaricaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_costaricaRelegated[] = { 0 };
@@ -2781,6 +2857,12 @@ static const char *const kWorld2627_costaricaCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_costaricaWinners[] = {
+    { 0, "PRIMERA DIVISION", "S22400" },
+    { 0, "APERTURA", "D00000" },
+    { 0, "CLAUSURA", "D10112" },
+};
+
 static const uint8_t kWorld2627_czechrepublicPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_czechrepublicRelegated[] = { 0 };
@@ -2832,6 +2914,11 @@ static const uint8_t kWorld2627_denmarkRounds[][12] = {
 
 static const char *const kWorld2627_denmarkRecords[] = { "EUROPEAN PLAY-OFF" };
 
+static const LeagueWinLine kWorld2627_denmarkWinners[] = {
+    { 0, "SUPERLIGAEN", "L2000" },
+    { 0, "EUROPEAN PLAY-OFF", "K00" },
+};
+
 static const uint8_t kWorld2627_englandPromoted[] = { 0, 2, 2, 3 };
 
 static const uint8_t kWorld2627_englandRelegated[] = { 3, 3, 4, 0 };
@@ -2868,6 +2955,15 @@ static const uint8_t kWorld2627_englandRounds[][12] = {
 
 static const char *const kWorld2627_englandRecords[] = { "CHAMPIONSHIP PLAY-OFFS", "LEAGUE ONE PLAY-OFFS", "LEAGUE TWO PLAY-OFFS" };
 
+static const LeagueWinLine kWorld2627_englandWinners[] = {
+    { 1, "EFL CHAMPIONSHIP", "L2E01" },
+    { 1, "CHAMPIONSHIP PLAY-OFFS", "K00" },
+    { 2, "EFL LEAGUE ONE", "L2E02" },
+    { 2, "LEAGUE ONE PLAY-OFFS", "K01" },
+    { 3, "EFL LEAGUE TWO", "L2E03" },
+    { 3, "LEAGUE TWO PLAY-OFFS", "K02" },
+};
+
 static const uint8_t kWorld2627_spainPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_spainRelegated[] = { 3, 0 };
@@ -2894,6 +2990,11 @@ static const uint8_t kWorld2627_spainRounds[][12] = {
 
 static const char *const kWorld2627_spainRecords[] = { "PROMOTION PLAY-OFF" };
 
+static const LeagueWinLine kWorld2627_spainWinners[] = {
+    { 1, "SEGUNDA DIVISION", "L2A01" },
+    { 1, "PROMOTION PLAY-OFF", "K00" },
+};
+
 static const uint8_t kWorld2627_francePromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_franceRelegated[] = { 2, 0 };
@@ -2919,6 +3020,13 @@ static const uint8_t kWorld2627_franceRounds[][12] = {
 };
 
 static const char *const kWorld2627_franceRecords[] = { "LIGUE 1 PLAY-OFF" };
+
+static const LeagueWinLine kWorld2627_franceWinners[] = {
+    { 0, "LIGUE 1", "L2200" },
+    { 0, "LIGUE 1 PLAY-OFF", "K00" },
+    { 1, "LIGUE 2", "L2201" },
+    { 1, "LIGUE 1 PLAY-OFF", "K00" },
+};
 
 static const uint8_t kWorld2627_germanyPromoted[] = { 0, 2, 2 };
 
@@ -2948,6 +3056,16 @@ static const uint8_t kWorld2627_germanyRounds[][12] = {
 };
 
 static const char *const kWorld2627_germanyRecords[] = { "BUNDESLIGA PLAY-OFF", "2. BUNDESLIGA PLAY-OFF" };
+
+static const LeagueWinLine kWorld2627_germanyWinners[] = {
+    { 0, "BUNDESLIGA", "L2200" },
+    { 0, "BUNDESLIGA PLAY-OFF", "K00" },
+    { 1, "2. BUNDESLIGA", "L2201" },
+    { 1, "BUNDESLIGA PLAY-OFF", "K00" },
+    { 1, "2. BUNDESLIGA PLAY-OFF", "K01" },
+    { 2, "3. LIGA", "L2602" },
+    { 2, "2. BUNDESLIGA PLAY-OFF", "K01" },
+};
 
 static const uint8_t kWorld2627_guatemalaPromoted[] = { 0 };
 
@@ -3015,6 +3133,12 @@ static const char *const kWorld2627_guatemalaCombined[32] = {
     0,
     0,
     0,
+};
+
+static const LeagueWinLine kWorld2627_guatemalaWinners[] = {
+    { 0, "LIGA NACIONAL - ANNUAL TABLE", "S22C00" },
+    { 0, "APERTURA", "D00000" },
+    { 0, "CLAUSURA", "D10116" },
 };
 
 static const uint8_t kWorld2627_hondurasPromoted[] = { 0 };
@@ -3085,6 +3209,12 @@ static const char *const kWorld2627_hondurasCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_hondurasWinners[] = {
+    { 0, "LIGA NACIONAL", "S22000" },
+    { 0, "APERTURA", "D00000" },
+    { 0, "CLAUSURA", "D10110" },
+};
+
 static const uint8_t kWorld2627_japanPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_japanRelegated[] = { 3, 0 };
@@ -3110,6 +3240,11 @@ static const uint8_t kWorld2627_japanRounds[][12] = {
 };
 
 static const char *const kWorld2627_japanRecords[] = { "J1 PROMOTION PLAY-OFFS" };
+
+static const LeagueWinLine kWorld2627_japanWinners[] = {
+    { 1, "J2 LEAGUE", "L2601" },
+    { 1, "J1 PROMOTION PLAY-OFFS", "K00" },
+};
 
 static const uint8_t kWorld2627_mexicoPromoted[] = { 0, 0 };
 
@@ -3200,6 +3335,17 @@ static const char *const kWorld2627_mexicoCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_mexicoWinners[] = {
+    { 0, "LIGA MX", "S12200" },
+    { 0, "LIGA MX APERTURA 2026", "D00000" },
+    { 0, "LIGA MX CLAUSURA 2027", "D10111" },
+    { 0, "CAMPEON DE CAMPEONES", "D202FF" },
+    { 1, "LIGA DE EXPANSION MX", "S31E01" },
+    { 1, "EXPANSION APERTURA 2026", "D00300" },
+    { 1, "EXPANSION CLAUSURA 2027", "D1040F" },
+    { 1, "CAMPEON DE CAMPEONES", "D205FF" },
+};
+
 static const uint8_t kWorld2627_maltaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_maltaRelegated[] = { 0 };
@@ -3225,6 +3371,11 @@ static const uint8_t kWorld2627_maltaRounds[][12] = {
 };
 
 static const char *const kWorld2627_maltaRecords[] = { "PREMIER LEAGUE FINAL FOUR" };
+
+static const LeagueWinLine kWorld2627_maltaWinners[] = {
+    { 0, "MALTESE PREMIER LEAGUE (REGULAR SEASON)", "L1000" },
+    { 0, "PLAYOFFS - MALTESE CHAMPIONS", "K00" },
+};
 
 static const uint8_t kWorld2627_hollandPromoted[] = { 0, 2 };
 
@@ -3261,6 +3412,14 @@ static const uint8_t kWorld2627_hollandRounds[][12] = {
 
 static const char *const kWorld2627_hollandRecords[] = { "PROMOTION/RELEGATION PLAY-OFF", "EUROPEAN PLAY-OFF" };
 
+static const LeagueWinLine kWorld2627_hollandWinners[] = {
+    { 0, "EREDIVISIE", "L2200" },
+    { 0, "PROMOTION/RELEGATION PLAY-OFF", "K00" },
+    { 0, "EUROPEAN PLAY-OFF", "K01" },
+    { 1, "EERSTE DIVISIE", "L2601" },
+    { 1, "PROMOTION/RELEGATION PLAY-OFF", "K00" },
+};
+
 static const uint8_t kWorld2627_northernirelandPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_northernirelandRelegated[] = { 0 };
@@ -3287,6 +3446,11 @@ static const uint8_t kWorld2627_northernirelandRounds[][12] = {
 };
 
 static const char *const kWorld2627_northernirelandRecords[] = { "EUROPEAN PLAY-OFF" };
+
+static const LeagueWinLine kWorld2627_northernirelandWinners[] = {
+    { 0, "NIFL PREMIERSHIP", "L2600" },
+    { 0, "EUROPEAN PLAY-OFF", "K00" },
+};
 
 static const uint8_t kWorld2627_panamaPromoted[] = { 0 };
 
@@ -3356,6 +3520,12 @@ static const char *const kWorld2627_panamaCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_panamaWinners[] = {
+    { 0, "LIGA PANAMENA DE FUTBOL", "S22000" },
+    { 0, "APERTURA", "D00000" },
+    { 0, "CLAUSURA", "D10110" },
+};
+
 static const uint8_t kWorld2627_paraguayPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_paraguayRelegated[] = { 0 };
@@ -3417,6 +3587,12 @@ static const char *const kWorld2627_paraguayCombined[32] = {
     0,
     0,
     0,
+};
+
+static const LeagueWinLine kWorld2627_paraguayWinners[] = {
+    { 0, "DIVISION PROFESIONAL - ANNUAL TABLE", "S22C00" },
+    { 0, "TORNEO APERTURA", "D00000" },
+    { 0, "TORNEO CLAUSURA", "D10116" },
 };
 
 static const uint8_t kWorld2627_peruPromoted[] = { 0 };
@@ -3487,6 +3663,13 @@ static const char *const kWorld2627_peruCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_peruWinners[] = {
+    { 0, "LIGA 1 - ACCUMULATED TABLE", "S22200" },
+    { 0, "TORNEO APERTURA", "D00000" },
+    { 0, "TORNEO CLAUSURA", "D10111" },
+    { 0, "PLAYOFFS LIGA 1", "Q202" },
+};
+
 static const uint8_t kWorld2627_portugalPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_portugalRelegated[] = { 2, 0 };
@@ -3514,6 +3697,13 @@ static const uint8_t kWorld2627_portugalRounds[][12] = {
 
 static const char *const kWorld2627_portugalRecords[] = { "PROMOTION PLAY-OFF" };
 
+static const LeagueWinLine kWorld2627_portugalWinners[] = {
+    { 0, "LIGA PORTUGAL", "L2200" },
+    { 0, "PROMOTION PLAY-OFF", "K00" },
+    { 1, "LIGA PORTUGAL 2", "L2201" },
+    { 1, "PROMOTION PLAY-OFF", "K00" },
+};
+
 static const uint8_t kWorld2627_romaniaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_romaniaRelegated[] = { 0 };
@@ -3539,6 +3729,11 @@ static const uint8_t kWorld2627_romaniaRounds[][12] = {
 };
 
 static const char *const kWorld2627_romaniaRecords[] = { "EUROPEAN PLAY-OFF" };
+
+static const LeagueWinLine kWorld2627_romaniaWinners[] = {
+    { 0, "SUPERLIGA", "L2800" },
+    { 0, "EUROPEAN PLAY-OFF", "K00" },
+};
 
 static const uint8_t kWorld2627_scotlandPromoted[] = { 0, 1, 1, 1 };
 
@@ -3574,6 +3769,19 @@ static const uint8_t kWorld2627_scotlandRounds[][12] = {
 };
 
 static const char *const kWorld2627_scotlandRecords[] = { "PREMIERSHIP PLAY-OFF", "CHAMPIONSHIP PLAY-OFF", "LEAGUE ONE PLAY-OFF" };
+
+static const LeagueWinLine kWorld2627_scotlandWinners[] = {
+    { 0, "SCOTTISH PREMIERSHIP", "L2600" },
+    { 0, "PREMIERSHIP PLAY-OFF", "K00" },
+    { 1, "SCOTTISH CHAMPIONSHIP", "L2401" },
+    { 1, "PREMIERSHIP PLAY-OFF", "K00" },
+    { 1, "CHAMPIONSHIP PLAY-OFF", "K01" },
+    { 2, "SCOTTISH LEAGUE ONE", "L2402" },
+    { 2, "CHAMPIONSHIP PLAY-OFF", "K01" },
+    { 2, "LEAGUE ONE PLAY-OFF", "K02" },
+    { 3, "SCOTTISH LEAGUE TWO", "L2403" },
+    { 3, "LEAGUE ONE PLAY-OFF", "K02" },
+};
 
 static const uint8_t kWorld2627_elsalvadorPromoted[] = { 0, 0, 0, 1, 1 };
 
@@ -3646,6 +3854,16 @@ static const char *const kWorld2627_elsalvadorCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_elsalvadorWinners[] = {
+    { 0, "PRIMERA DIVISION - ANNUAL TABLE", "S22C00" },
+    { 0, "APERTURA", "D00100" },
+    { 0, "CLAUSURA", "D10216" },
+    { 1, "SEGUNDA DIVISION OCCIDENTE", "L1601" },
+    { 1, "SEGUNDA DIVISION FINAL", "K00" },
+    { 2, "SEGUNDA DIVISION ORIENTE", "L1602" },
+    { 2, "SEGUNDA DIVISION FINAL", "K00" },
+};
+
 static const uint8_t kWorld2627_sanmarinoPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_sanmarinoRelegated[] = { 0 };
@@ -3675,6 +3893,11 @@ static const uint8_t kWorld2627_sanmarinoRounds[][12] = {
 
 static const char *const kWorld2627_sanmarinoRecords[] = { "EUROPEAN PLAY-OFF" };
 
+static const LeagueWinLine kWorld2627_sanmarinoWinners[] = {
+    { 0, "CAMPIONATO SAMMARINESE", "L1E00" },
+    { 0, "EUROPEAN PLAY-OFF", "K00" },
+};
+
 static const uint8_t kWorld2627_turkeyPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_turkeyRelegated[] = { 3, 0 };
@@ -3701,6 +3924,11 @@ static const uint8_t kWorld2627_turkeyRounds[][12] = {
 };
 
 static const char *const kWorld2627_turkeyRecords[] = { "TFF 1. LIG PLAY-OFF" };
+
+static const LeagueWinLine kWorld2627_turkeyWinners[] = {
+    { 1, "TFF 1. LIG", "L2601" },
+    { 1, "TFF 1. LIG PLAY-OFF", "K00" },
+};
 
 static const uint8_t kWorld2627_uruguayPromoted[] = { 0, 3 };
 
@@ -3773,6 +4001,14 @@ static const char *const kWorld2627_uruguayCombined[32] = {
     0,
 };
 
+static const LeagueWinLine kWorld2627_uruguayWinners[] = {
+    { 0, "CAMPEONATO URUGUAYO - ANNUAL TABLE", "S21E00" },
+    { 0, "TORNEO APERTURA", "D00000" },
+    { 0, "TORNEO INTERMEDIO", "D2010F" },
+    { 0, "TORNEO CLAUSURA", "D1020F" },
+    { 0, "CAMPEONATO URUGUAYO", "Q103" },
+};
+
 static const uint8_t kWorld2627_usaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_usaRelegated[] = { 0 };
@@ -3805,6 +4041,13 @@ static const uint8_t kWorld2627_usaRounds[][12] = {
 
 static const char *const kWorld2627_usaRecords[] = { "MLS CUP PLAYOFFS" };
 
+static const LeagueWinLine kWorld2627_usaWinners[] = {
+    { 0, "SUPPORTERS' SHIELD", "S32300" },
+    { 0, "PLAYOFFS - MLS CUP", "K00" },
+    { 0, "EASTERN CONFERENCE CHAMPIONS", "T000E" },
+    { 0, "WESTERN CONFERENCE CHAMPIONS", "T000F" },
+};
+
 static const uint8_t kWorld2627_walesPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_walesRelegated[] = { 0 };
@@ -3832,41 +4075,46 @@ static const uint8_t kWorld2627_walesRounds[][12] = {
 
 static const char *const kWorld2627_walesRecords[] = { "EUROPEAN PLAY-OFF" };
 
+static const LeagueWinLine kWorld2627_walesWinners[] = {
+    { 0, "CYMRU PREMIER", "L2300" },
+    { 0, "EUROPEAN PLAY-OFF", "K00" },
+};
+
 static const LeaguePlayoffs kWorld2627Playoffs[] = {
-    { 20, 14, kWorld2627_italyPromoted, kWorld2627_italyRelegated, 1, 1, 2, 3, kWorld2627_italySpec, 3, kWorld2627_italySeconds, 1, 3, kWorld2627_italyNames, 22, kWorld2627_italyThen, kWorld2627_italyRounds, kWorld2627_italyRecords, 0 },   /* Italy */
-    { 43, 3, kWorld2627_argentinaPromoted, kWorld2627_argentinaRelegated, 0, 0, 0, 0, kWorld2627_argentinaSpec, 0, kWorld2627_argentinaSeconds, 255, 0, kWorld2627_argentinaNames, 6, kWorld2627_argentinaThen, kWorld2627_argentinaRounds, kWorld2627_argentinaRecords, kWorld2627_argentinaCombined },   /* Argentina */
-    { 44, 4, kWorld2627_australiaPromoted, kWorld2627_australiaRelegated, 0, 0, 0, 0, kWorld2627_australiaSpec, 0, kWorld2627_australiaSeconds, 255, 0, kWorld2627_australiaNames, 1, kWorld2627_australiaThen, kWorld2627_australiaRounds, kWorld2627_australiaRecords, 0 },   /* Australia */
-    { 1, 1, kWorld2627_austriaPromoted, kWorld2627_austriaRelegated, 0, 0, 0, 0, kWorld2627_austriaSpec, 0, kWorld2627_austriaSeconds, 255, 0, kWorld2627_austriaNames, 1, kWorld2627_austriaThen, kWorld2627_austriaRounds, kWorld2627_austriaRecords, 0 },   /* Austria */
-    { 46, 2, kWorld2627_brazilPromoted, kWorld2627_brazilRelegated, 0, 0, 0, 0, kWorld2627_brazilSpec, 0, kWorld2627_brazilSeconds, 255, 0, kWorld2627_brazilNames, 2, kWorld2627_brazilThen, kWorld2627_brazilRounds, kWorld2627_brazilRecords, 0 },   /* Brazil */
-    { 3, 1, kWorld2627_bulgariaPromoted, kWorld2627_bulgariaRelegated, 0, 0, 0, 0, kWorld2627_bulgariaSpec, 0, kWorld2627_bulgariaSeconds, 255, 0, kWorld2627_bulgariaNames, 1, kWorld2627_bulgariaThen, kWorld2627_bulgariaRounds, kWorld2627_bulgariaRecords, 0 },   /* Bulgaria */
-    { 56, 1, kWorld2627_canadaPromoted, kWorld2627_canadaRelegated, 0, 0, 0, 0, kWorld2627_canadaSpec, 0, kWorld2627_canadaSeconds, 255, 0, kWorld2627_canadaNames, 1, kWorld2627_canadaThen, kWorld2627_canadaRounds, kWorld2627_canadaRecords, 0 },   /* Canada */
-    { 49, 1, kWorld2627_colombiaPromoted, kWorld2627_colombiaRelegated, 0, 0, 0, 0, kWorld2627_colombiaSpec, 0, kWorld2627_colombiaSeconds, 255, 0, kWorld2627_colombiaNames, 2, kWorld2627_colombiaThen, kWorld2627_colombiaRounds, kWorld2627_colombiaRecords, kWorld2627_colombiaCombined },   /* Colombia */
-    { 58, 1, kWorld2627_costaricaPromoted, kWorld2627_costaricaRelegated, 0, 0, 0, 0, kWorld2627_costaricaSpec, 0, kWorld2627_costaricaSeconds, 255, 0, kWorld2627_costaricaNames, 2, kWorld2627_costaricaThen, kWorld2627_costaricaRounds, kWorld2627_costaricaRecords, kWorld2627_costaricaCombined },   /* CostaRica */
-    { 6, 1, kWorld2627_czechrepublicPromoted, kWorld2627_czechrepublicRelegated, 0, 0, 0, 0, kWorld2627_czechrepublicSpec, 0, kWorld2627_czechrepublicSeconds, 255, 0, kWorld2627_czechrepublicNames, 1, kWorld2627_czechrepublicThen, kWorld2627_czechrepublicRounds, kWorld2627_czechrepublicRecords, 0 },   /* CzechRepublic */
-    { 7, 1, kWorld2627_denmarkPromoted, kWorld2627_denmarkRelegated, 0, 0, 0, 0, kWorld2627_denmarkSpec, 0, kWorld2627_denmarkSeconds, 255, 0, kWorld2627_denmarkNames, 1, kWorld2627_denmarkThen, kWorld2627_denmarkRounds, kWorld2627_denmarkRecords, 0 },   /* Denmark */
-    { 8, 4, kWorld2627_englandPromoted, kWorld2627_englandRelegated, 0, 0, 0, 0, kWorld2627_englandSpec, 0, kWorld2627_englandSeconds, 255, 0, kWorld2627_englandNames, 3, kWorld2627_englandThen, kWorld2627_englandRounds, kWorld2627_englandRecords, 0 },   /* England */
-    { 35, 2, kWorld2627_spainPromoted, kWorld2627_spainRelegated, 0, 0, 0, 0, kWorld2627_spainSpec, 1, kWorld2627_spainSeconds, 255, 2, kWorld2627_spainNames, 1, kWorld2627_spainThen, kWorld2627_spainRounds, kWorld2627_spainRecords, 0 },   /* Spain */
-    { 13, 2, kWorld2627_francePromoted, kWorld2627_franceRelegated, 0, 0, 0, 0, kWorld2627_franceSpec, 0, kWorld2627_franceSeconds, 255, 0, kWorld2627_franceNames, 1, kWorld2627_franceThen, kWorld2627_franceRounds, kWorld2627_franceRecords, 0 },   /* France */
-    { 14, 3, kWorld2627_germanyPromoted, kWorld2627_germanyRelegated, 0, 0, 0, 0, kWorld2627_germanySpec, 2, kWorld2627_germanySeconds, 2, 2, kWorld2627_germanyNames, 2, kWorld2627_germanyThen, kWorld2627_germanyRounds, kWorld2627_germanyRecords, 0 },   /* Germany */
-    { 68, 1, kWorld2627_guatemalaPromoted, kWorld2627_guatemalaRelegated, 0, 0, 0, 0, kWorld2627_guatemalaSpec, 0, kWorld2627_guatemalaSeconds, 255, 0, kWorld2627_guatemalaNames, 2, kWorld2627_guatemalaThen, kWorld2627_guatemalaRounds, kWorld2627_guatemalaRecords, kWorld2627_guatemalaCombined },   /* Guatemala */
-    { 70, 1, kWorld2627_hondurasPromoted, kWorld2627_hondurasRelegated, 0, 0, 0, 0, kWorld2627_hondurasSpec, 0, kWorld2627_hondurasSeconds, 255, 0, kWorld2627_hondurasNames, 2, kWorld2627_hondurasThen, kWorld2627_hondurasRounds, kWorld2627_hondurasRecords, kWorld2627_hondurasCombined },   /* Honduras */
-    { 55, 2, kWorld2627_japanPromoted, kWorld2627_japanRelegated, 0, 0, 0, 0, kWorld2627_japanSpec, 0, kWorld2627_japanSeconds, 255, 0, kWorld2627_japanNames, 1, kWorld2627_japanThen, kWorld2627_japanRounds, kWorld2627_japanRecords, 0 },   /* Japan */
-    { 60, 2, kWorld2627_mexicoPromoted, kWorld2627_mexicoRelegated, 0, 0, 0, 0, kWorld2627_mexicoSpec, 0, kWorld2627_mexicoSeconds, 255, 0, kWorld2627_mexicoNames, 6, kWorld2627_mexicoThen, kWorld2627_mexicoRounds, kWorld2627_mexicoRecords, kWorld2627_mexicoCombined },   /* Mexico */
-    { 24, 1, kWorld2627_maltaPromoted, kWorld2627_maltaRelegated, 0, 0, 0, 0, kWorld2627_maltaSpec, 0, kWorld2627_maltaSeconds, 255, 0, kWorld2627_maltaNames, 1, kWorld2627_maltaThen, kWorld2627_maltaRounds, kWorld2627_maltaRecords, 0 },   /* Malta */
-    { 25, 2, kWorld2627_hollandPromoted, kWorld2627_hollandRelegated, 0, 0, 0, 0, kWorld2627_hollandSpec, 4, kWorld2627_hollandSeconds, 1, 2, kWorld2627_hollandNames, 2, kWorld2627_hollandThen, kWorld2627_hollandRounds, kWorld2627_hollandRecords, 0 },   /* Holland */
-    { 26, 1, kWorld2627_northernirelandPromoted, kWorld2627_northernirelandRelegated, 0, 0, 0, 0, kWorld2627_northernirelandSpec, 0, kWorld2627_northernirelandSeconds, 255, 0, kWorld2627_northernirelandNames, 1, kWorld2627_northernirelandThen, kWorld2627_northernirelandRounds, kWorld2627_northernirelandRecords, 0 },   /* NorthernIreland */
-    { 95, 1, kWorld2627_panamaPromoted, kWorld2627_panamaRelegated, 0, 0, 0, 0, kWorld2627_panamaSpec, 0, kWorld2627_panamaSeconds, 255, 0, kWorld2627_panamaNames, 2, kWorld2627_panamaThen, kWorld2627_panamaRounds, kWorld2627_panamaRecords, kWorld2627_panamaCombined },   /* Panama */
-    { 64, 1, kWorld2627_paraguayPromoted, kWorld2627_paraguayRelegated, 0, 0, 0, 0, kWorld2627_paraguaySpec, 0, kWorld2627_paraguaySeconds, 255, 0, kWorld2627_paraguayNames, 2, kWorld2627_paraguayThen, kWorld2627_paraguayRounds, kWorld2627_paraguayRecords, kWorld2627_paraguayCombined },   /* Paraguay */
-    { 65, 1, kWorld2627_peruPromoted, kWorld2627_peruRelegated, 0, 0, 0, 0, kWorld2627_peruSpec, 0, kWorld2627_peruSeconds, 255, 0, kWorld2627_peruNames, 3, kWorld2627_peruThen, kWorld2627_peruRounds, kWorld2627_peruRecords, kWorld2627_peruCombined },   /* Peru */
-    { 29, 2, kWorld2627_portugalPromoted, kWorld2627_portugalRelegated, 0, 0, 0, 0, kWorld2627_portugalSpec, 3, kWorld2627_portugalSeconds, 255, 2, kWorld2627_portugalNames, 1, kWorld2627_portugalThen, kWorld2627_portugalRounds, kWorld2627_portugalRecords, 0 },   /* Portugal */
-    { 30, 1, kWorld2627_romaniaPromoted, kWorld2627_romaniaRelegated, 0, 0, 0, 0, kWorld2627_romaniaSpec, 0, kWorld2627_romaniaSeconds, 255, 0, kWorld2627_romaniaNames, 1, kWorld2627_romaniaThen, kWorld2627_romaniaRounds, kWorld2627_romaniaRecords, 0 },   /* Romania */
-    { 33, 4, kWorld2627_scotlandPromoted, kWorld2627_scotlandRelegated, 0, 0, 0, 0, kWorld2627_scotlandSpec, 0, kWorld2627_scotlandSeconds, 255, 0, kWorld2627_scotlandNames, 3, kWorld2627_scotlandThen, kWorld2627_scotlandRounds, kWorld2627_scotlandRecords, 0 },   /* Scotland */
-    { 51, 5, kWorld2627_elsalvadorPromoted, kWorld2627_elsalvadorRelegated, 0, 0, 0, 0, kWorld2627_elsalvadorSpec, 0, kWorld2627_elsalvadorSeconds, 255, 0, kWorld2627_elsalvadorNames, 3, kWorld2627_elsalvadorThen, kWorld2627_elsalvadorRounds, kWorld2627_elsalvadorRecords, kWorld2627_elsalvadorCombined },   /* ElSalvador */
-    { 32, 1, kWorld2627_sanmarinoPromoted, kWorld2627_sanmarinoRelegated, 0, 0, 0, 0, kWorld2627_sanmarinoSpec, 0, kWorld2627_sanmarinoSeconds, 255, 0, kWorld2627_sanmarinoNames, 1, kWorld2627_sanmarinoThen, kWorld2627_sanmarinoRounds, kWorld2627_sanmarinoRecords, 0 },   /* SanMarino */
-    { 38, 2, kWorld2627_turkeyPromoted, kWorld2627_turkeyRelegated, 0, 0, 0, 0, kWorld2627_turkeySpec, 0, kWorld2627_turkeySeconds, 255, 0, kWorld2627_turkeyNames, 1, kWorld2627_turkeyThen, kWorld2627_turkeyRounds, kWorld2627_turkeyRecords, 0 },   /* Turkey */
-    { 71, 2, kWorld2627_uruguayPromoted, kWorld2627_uruguayRelegated, 0, 0, 0, 0, kWorld2627_uruguaySpec, 0, kWorld2627_uruguaySeconds, 255, 0, kWorld2627_uruguayNames, 4, kWorld2627_uruguayThen, kWorld2627_uruguayRounds, kWorld2627_uruguayRecords, kWorld2627_uruguayCombined },   /* Uruguay */
-    { 73, 1, kWorld2627_usaPromoted, kWorld2627_usaRelegated, 0, 0, 0, 0, kWorld2627_usaSpec, 0, kWorld2627_usaSeconds, 255, 0, kWorld2627_usaNames, 1, kWorld2627_usaThen, kWorld2627_usaRounds, kWorld2627_usaRecords, 0 },   /* Usa */
-    { 40, 1, kWorld2627_walesPromoted, kWorld2627_walesRelegated, 0, 0, 0, 0, kWorld2627_walesSpec, 0, kWorld2627_walesSeconds, 255, 0, kWorld2627_walesNames, 1, kWorld2627_walesThen, kWorld2627_walesRounds, kWorld2627_walesRecords, 0 },   /* Wales */
+    { 20, 14, kWorld2627_italyPromoted, kWorld2627_italyRelegated, 1, 1, 2, 3, kWorld2627_italySpec, 3, kWorld2627_italySeconds, 1, 3, kWorld2627_italyNames, 22, kWorld2627_italyThen, kWorld2627_italyRounds, kWorld2627_italyRecords, 0, kWorld2627_italyWinners, 27 },   /* Italy */
+    { 43, 3, kWorld2627_argentinaPromoted, kWorld2627_argentinaRelegated, 0, 0, 0, 0, kWorld2627_argentinaSpec, 0, kWorld2627_argentinaSeconds, 255, 0, kWorld2627_argentinaNames, 6, kWorld2627_argentinaThen, kWorld2627_argentinaRounds, kWorld2627_argentinaRecords, kWorld2627_argentinaCombined, kWorld2627_argentinaWinners, 10 },   /* Argentina */
+    { 44, 4, kWorld2627_australiaPromoted, kWorld2627_australiaRelegated, 0, 0, 0, 0, kWorld2627_australiaSpec, 0, kWorld2627_australiaSeconds, 255, 0, kWorld2627_australiaNames, 1, kWorld2627_australiaThen, kWorld2627_australiaRounds, kWorld2627_australiaRecords, 0, kWorld2627_australiaWinners, 2 },   /* Australia */
+    { 1, 1, kWorld2627_austriaPromoted, kWorld2627_austriaRelegated, 0, 0, 0, 0, kWorld2627_austriaSpec, 0, kWorld2627_austriaSeconds, 255, 0, kWorld2627_austriaNames, 1, kWorld2627_austriaThen, kWorld2627_austriaRounds, kWorld2627_austriaRecords, 0, kWorld2627_austriaWinners, 2 },   /* Austria */
+    { 46, 2, kWorld2627_brazilPromoted, kWorld2627_brazilRelegated, 0, 0, 0, 0, kWorld2627_brazilSpec, 0, kWorld2627_brazilSeconds, 255, 0, kWorld2627_brazilNames, 2, kWorld2627_brazilThen, kWorld2627_brazilRounds, kWorld2627_brazilRecords, 0, kWorld2627_brazilWinners, 4 },   /* Brazil */
+    { 3, 1, kWorld2627_bulgariaPromoted, kWorld2627_bulgariaRelegated, 0, 0, 0, 0, kWorld2627_bulgariaSpec, 0, kWorld2627_bulgariaSeconds, 255, 0, kWorld2627_bulgariaNames, 1, kWorld2627_bulgariaThen, kWorld2627_bulgariaRounds, kWorld2627_bulgariaRecords, 0, kWorld2627_bulgariaWinners, 2 },   /* Bulgaria */
+    { 56, 1, kWorld2627_canadaPromoted, kWorld2627_canadaRelegated, 0, 0, 0, 0, kWorld2627_canadaSpec, 0, kWorld2627_canadaSeconds, 255, 0, kWorld2627_canadaNames, 1, kWorld2627_canadaThen, kWorld2627_canadaRounds, kWorld2627_canadaRecords, 0, kWorld2627_canadaWinners, 2 },   /* Canada */
+    { 49, 1, kWorld2627_colombiaPromoted, kWorld2627_colombiaRelegated, 0, 0, 0, 0, kWorld2627_colombiaSpec, 0, kWorld2627_colombiaSeconds, 255, 0, kWorld2627_colombiaNames, 2, kWorld2627_colombiaThen, kWorld2627_colombiaRounds, kWorld2627_colombiaRecords, kWorld2627_colombiaCombined, kWorld2627_colombiaWinners, 3 },   /* Colombia */
+    { 58, 1, kWorld2627_costaricaPromoted, kWorld2627_costaricaRelegated, 0, 0, 0, 0, kWorld2627_costaricaSpec, 0, kWorld2627_costaricaSeconds, 255, 0, kWorld2627_costaricaNames, 2, kWorld2627_costaricaThen, kWorld2627_costaricaRounds, kWorld2627_costaricaRecords, kWorld2627_costaricaCombined, kWorld2627_costaricaWinners, 3 },   /* CostaRica */
+    { 6, 1, kWorld2627_czechrepublicPromoted, kWorld2627_czechrepublicRelegated, 0, 0, 0, 0, kWorld2627_czechrepublicSpec, 0, kWorld2627_czechrepublicSeconds, 255, 0, kWorld2627_czechrepublicNames, 1, kWorld2627_czechrepublicThen, kWorld2627_czechrepublicRounds, kWorld2627_czechrepublicRecords, 0, 0, 0 },   /* CzechRepublic */
+    { 7, 1, kWorld2627_denmarkPromoted, kWorld2627_denmarkRelegated, 0, 0, 0, 0, kWorld2627_denmarkSpec, 0, kWorld2627_denmarkSeconds, 255, 0, kWorld2627_denmarkNames, 1, kWorld2627_denmarkThen, kWorld2627_denmarkRounds, kWorld2627_denmarkRecords, 0, kWorld2627_denmarkWinners, 2 },   /* Denmark */
+    { 8, 4, kWorld2627_englandPromoted, kWorld2627_englandRelegated, 0, 0, 0, 0, kWorld2627_englandSpec, 0, kWorld2627_englandSeconds, 255, 0, kWorld2627_englandNames, 3, kWorld2627_englandThen, kWorld2627_englandRounds, kWorld2627_englandRecords, 0, kWorld2627_englandWinners, 6 },   /* England */
+    { 35, 2, kWorld2627_spainPromoted, kWorld2627_spainRelegated, 0, 0, 0, 0, kWorld2627_spainSpec, 1, kWorld2627_spainSeconds, 255, 2, kWorld2627_spainNames, 1, kWorld2627_spainThen, kWorld2627_spainRounds, kWorld2627_spainRecords, 0, kWorld2627_spainWinners, 2 },   /* Spain */
+    { 13, 2, kWorld2627_francePromoted, kWorld2627_franceRelegated, 0, 0, 0, 0, kWorld2627_franceSpec, 0, kWorld2627_franceSeconds, 255, 0, kWorld2627_franceNames, 1, kWorld2627_franceThen, kWorld2627_franceRounds, kWorld2627_franceRecords, 0, kWorld2627_franceWinners, 4 },   /* France */
+    { 14, 3, kWorld2627_germanyPromoted, kWorld2627_germanyRelegated, 0, 0, 0, 0, kWorld2627_germanySpec, 2, kWorld2627_germanySeconds, 2, 2, kWorld2627_germanyNames, 2, kWorld2627_germanyThen, kWorld2627_germanyRounds, kWorld2627_germanyRecords, 0, kWorld2627_germanyWinners, 7 },   /* Germany */
+    { 68, 1, kWorld2627_guatemalaPromoted, kWorld2627_guatemalaRelegated, 0, 0, 0, 0, kWorld2627_guatemalaSpec, 0, kWorld2627_guatemalaSeconds, 255, 0, kWorld2627_guatemalaNames, 2, kWorld2627_guatemalaThen, kWorld2627_guatemalaRounds, kWorld2627_guatemalaRecords, kWorld2627_guatemalaCombined, kWorld2627_guatemalaWinners, 3 },   /* Guatemala */
+    { 70, 1, kWorld2627_hondurasPromoted, kWorld2627_hondurasRelegated, 0, 0, 0, 0, kWorld2627_hondurasSpec, 0, kWorld2627_hondurasSeconds, 255, 0, kWorld2627_hondurasNames, 2, kWorld2627_hondurasThen, kWorld2627_hondurasRounds, kWorld2627_hondurasRecords, kWorld2627_hondurasCombined, kWorld2627_hondurasWinners, 3 },   /* Honduras */
+    { 55, 2, kWorld2627_japanPromoted, kWorld2627_japanRelegated, 0, 0, 0, 0, kWorld2627_japanSpec, 0, kWorld2627_japanSeconds, 255, 0, kWorld2627_japanNames, 1, kWorld2627_japanThen, kWorld2627_japanRounds, kWorld2627_japanRecords, 0, kWorld2627_japanWinners, 2 },   /* Japan */
+    { 60, 2, kWorld2627_mexicoPromoted, kWorld2627_mexicoRelegated, 0, 0, 0, 0, kWorld2627_mexicoSpec, 0, kWorld2627_mexicoSeconds, 255, 0, kWorld2627_mexicoNames, 6, kWorld2627_mexicoThen, kWorld2627_mexicoRounds, kWorld2627_mexicoRecords, kWorld2627_mexicoCombined, kWorld2627_mexicoWinners, 8 },   /* Mexico */
+    { 24, 1, kWorld2627_maltaPromoted, kWorld2627_maltaRelegated, 0, 0, 0, 0, kWorld2627_maltaSpec, 0, kWorld2627_maltaSeconds, 255, 0, kWorld2627_maltaNames, 1, kWorld2627_maltaThen, kWorld2627_maltaRounds, kWorld2627_maltaRecords, 0, kWorld2627_maltaWinners, 2 },   /* Malta */
+    { 25, 2, kWorld2627_hollandPromoted, kWorld2627_hollandRelegated, 0, 0, 0, 0, kWorld2627_hollandSpec, 4, kWorld2627_hollandSeconds, 1, 2, kWorld2627_hollandNames, 2, kWorld2627_hollandThen, kWorld2627_hollandRounds, kWorld2627_hollandRecords, 0, kWorld2627_hollandWinners, 5 },   /* Holland */
+    { 26, 1, kWorld2627_northernirelandPromoted, kWorld2627_northernirelandRelegated, 0, 0, 0, 0, kWorld2627_northernirelandSpec, 0, kWorld2627_northernirelandSeconds, 255, 0, kWorld2627_northernirelandNames, 1, kWorld2627_northernirelandThen, kWorld2627_northernirelandRounds, kWorld2627_northernirelandRecords, 0, kWorld2627_northernirelandWinners, 2 },   /* NorthernIreland */
+    { 95, 1, kWorld2627_panamaPromoted, kWorld2627_panamaRelegated, 0, 0, 0, 0, kWorld2627_panamaSpec, 0, kWorld2627_panamaSeconds, 255, 0, kWorld2627_panamaNames, 2, kWorld2627_panamaThen, kWorld2627_panamaRounds, kWorld2627_panamaRecords, kWorld2627_panamaCombined, kWorld2627_panamaWinners, 3 },   /* Panama */
+    { 64, 1, kWorld2627_paraguayPromoted, kWorld2627_paraguayRelegated, 0, 0, 0, 0, kWorld2627_paraguaySpec, 0, kWorld2627_paraguaySeconds, 255, 0, kWorld2627_paraguayNames, 2, kWorld2627_paraguayThen, kWorld2627_paraguayRounds, kWorld2627_paraguayRecords, kWorld2627_paraguayCombined, kWorld2627_paraguayWinners, 3 },   /* Paraguay */
+    { 65, 1, kWorld2627_peruPromoted, kWorld2627_peruRelegated, 0, 0, 0, 0, kWorld2627_peruSpec, 0, kWorld2627_peruSeconds, 255, 0, kWorld2627_peruNames, 3, kWorld2627_peruThen, kWorld2627_peruRounds, kWorld2627_peruRecords, kWorld2627_peruCombined, kWorld2627_peruWinners, 4 },   /* Peru */
+    { 29, 2, kWorld2627_portugalPromoted, kWorld2627_portugalRelegated, 0, 0, 0, 0, kWorld2627_portugalSpec, 3, kWorld2627_portugalSeconds, 255, 2, kWorld2627_portugalNames, 1, kWorld2627_portugalThen, kWorld2627_portugalRounds, kWorld2627_portugalRecords, 0, kWorld2627_portugalWinners, 4 },   /* Portugal */
+    { 30, 1, kWorld2627_romaniaPromoted, kWorld2627_romaniaRelegated, 0, 0, 0, 0, kWorld2627_romaniaSpec, 0, kWorld2627_romaniaSeconds, 255, 0, kWorld2627_romaniaNames, 1, kWorld2627_romaniaThen, kWorld2627_romaniaRounds, kWorld2627_romaniaRecords, 0, kWorld2627_romaniaWinners, 2 },   /* Romania */
+    { 33, 4, kWorld2627_scotlandPromoted, kWorld2627_scotlandRelegated, 0, 0, 0, 0, kWorld2627_scotlandSpec, 0, kWorld2627_scotlandSeconds, 255, 0, kWorld2627_scotlandNames, 3, kWorld2627_scotlandThen, kWorld2627_scotlandRounds, kWorld2627_scotlandRecords, 0, kWorld2627_scotlandWinners, 10 },   /* Scotland */
+    { 51, 5, kWorld2627_elsalvadorPromoted, kWorld2627_elsalvadorRelegated, 0, 0, 0, 0, kWorld2627_elsalvadorSpec, 0, kWorld2627_elsalvadorSeconds, 255, 0, kWorld2627_elsalvadorNames, 3, kWorld2627_elsalvadorThen, kWorld2627_elsalvadorRounds, kWorld2627_elsalvadorRecords, kWorld2627_elsalvadorCombined, kWorld2627_elsalvadorWinners, 7 },   /* ElSalvador */
+    { 32, 1, kWorld2627_sanmarinoPromoted, kWorld2627_sanmarinoRelegated, 0, 0, 0, 0, kWorld2627_sanmarinoSpec, 0, kWorld2627_sanmarinoSeconds, 255, 0, kWorld2627_sanmarinoNames, 1, kWorld2627_sanmarinoThen, kWorld2627_sanmarinoRounds, kWorld2627_sanmarinoRecords, 0, kWorld2627_sanmarinoWinners, 2 },   /* SanMarino */
+    { 38, 2, kWorld2627_turkeyPromoted, kWorld2627_turkeyRelegated, 0, 0, 0, 0, kWorld2627_turkeySpec, 0, kWorld2627_turkeySeconds, 255, 0, kWorld2627_turkeyNames, 1, kWorld2627_turkeyThen, kWorld2627_turkeyRounds, kWorld2627_turkeyRecords, 0, kWorld2627_turkeyWinners, 2 },   /* Turkey */
+    { 71, 2, kWorld2627_uruguayPromoted, kWorld2627_uruguayRelegated, 0, 0, 0, 0, kWorld2627_uruguaySpec, 0, kWorld2627_uruguaySeconds, 255, 0, kWorld2627_uruguayNames, 4, kWorld2627_uruguayThen, kWorld2627_uruguayRounds, kWorld2627_uruguayRecords, kWorld2627_uruguayCombined, kWorld2627_uruguayWinners, 5 },   /* Uruguay */
+    { 73, 1, kWorld2627_usaPromoted, kWorld2627_usaRelegated, 0, 0, 0, 0, kWorld2627_usaSpec, 0, kWorld2627_usaSeconds, 255, 0, kWorld2627_usaNames, 1, kWorld2627_usaThen, kWorld2627_usaRounds, kWorld2627_usaRecords, 0, kWorld2627_usaWinners, 4 },   /* Usa */
+    { 40, 1, kWorld2627_walesPromoted, kWorld2627_walesRelegated, 0, 0, 0, 0, kWorld2627_walesSpec, 0, kWorld2627_walesSeconds, 255, 0, kWorld2627_walesNames, 1, kWorld2627_walesThen, kWorld2627_walesRounds, kWorld2627_walesRecords, 0, kWorld2627_walesWinners, 2 },   /* Wales */
 };
 #endif
 

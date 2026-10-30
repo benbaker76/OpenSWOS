@@ -568,7 +568,9 @@ def italian_playoffs(country, league, picked=None):
             "italy": mod.get("playoffs") == "ita", "serieB": 1, "groupFirst": 2,
             "groups": SERIE_C_GROUPS, "spec": spec, "names": playoff_names(mod.get("ko_playoffs", [])),
             "records": playoff_records(mod.get("ko_playoffs", [])),
-            "combined": stage_combined(mod.get("ko_playoffs", []))}
+            "combined": stage_combined(mod.get("ko_playoffs", [])),
+            "winners": winners_lines(json.load(open(os.path.join(MOD, "packs", "ita", "pack.json"),
+                                                    encoding="utf-8")), mod)}
 
 
 CUP_ROUND = {"two_legs": 0x94, "two_legs_pens": 0x84, "single": 0x14, "single_et": 0x54}
@@ -918,6 +920,157 @@ def playoff_round_names(po):
     return [ROUND_NAME_KEYS[x] for x in names] + [0xFF] * (ROUND_NAMES_MAX - len(names))
 
 
+# The SEASON WINNERS page (the Mod's winners.py; its titles from fmtgame.win_lines): per division a
+# list of (title, source), the source as the Mod writes it -- 'L' hh dd the table's 1st once it has
+# played hh matches; 'S' k hh dd stage table k's 1st after hh match days; 'K' pi play-off pi's last
+# tie; 'D' s pi ss stage title s (play-off pi, its stage after ss days); 'Q' r pi a title_seed
+# play-off; 'T' pi tt tie tt of play-off pi; 'P' k the Italian play-offs (dplay); 'C' a state
+# championship. English only, as the rest of the world's names.
+WN_PX = 298                             # (the page's width: fmtgame.PX_MAX)
+WN_SKIP = ("promedio", "playout", "placement")
+WN_TITLES = {   # fmtgame.WN_TITLES, English: (country, play-off key) -> title; (country, None): the table's
+    ("usa", "mls_po"): "MLS CUP", ("aus", "finals"): "A-LEAGUE MEN CHAMPIONS", ("can", "cpl_po"): "NORTH STAR CUP",
+    ("mlt", "final_four"): "MALTESE CHAMPIONS", ("ita", "poule_scudetto"): "SERIE D CHAMPIONS",
+    ("usa", None): "SUPPORTERS' SHIELD", ("aus", None): "A-LEAGUE PREMIERS", ("can", None): "CPL SHIELD",
+    ("per", None): "LIGA 1 - ACCUMULATED TABLE", ("gua", None): "LIGA NACIONAL - ANNUAL TABLE",
+    ("slv", None): "PRIMERA DIVISION - ANNUAL TABLE", ("par", None): "DIVISION PROFESIONAL - ANNUAL TABLE",
+    ("uru", None): "CAMPEONATO URUGUAYO - ANNUAL TABLE",
+}
+WN_SUBS = {("usa", "mls_po"): [(14, "EASTERN CONFERENCE CHAMPIONS"), (15, "WESTERN CONFERENCE CHAMPIONS")]}
+WN_ITALY = ("PLAY-OFF SERIE B", "PLAY-OUT SERIE B", "PLAY-OFF SERIE C")    # (dplay.NAMES)
+
+
+def text_upper(text):
+    """fmtgame.ascii_up: upper case in the game's font, accents dropped."""
+    import unicodedata
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().upper()
+
+
+def wn_px(text):
+    widths = {" ": 3, "'": 2, "(": 3, ")": 3, ",": 2, "-": 4, ".": 2, "1": 2, ":": 2, ";": 3, "I": 2}
+    return sum(widths.get(c, 6) for c in text)
+
+
+def wn_fit(names, tail=""):
+    """fmtgame._wn_fit: the long name (+ tail), else the short one, else the last without the tail."""
+    if isinstance(names, (str, list)):
+        v = [names] if isinstance(names, str) else names
+    else:
+        v = names.get("en") or names.get("*") or next(iter(names.values()))
+        v = v if isinstance(v, list) else [v]
+    for t in [x + tail for x in v] + [v[-1]]:
+        t = text_upper(t).replace(";", ",")
+        if wn_px(t + ":") <= WN_PX:
+            return t
+    sys.exit("SEASON WINNERS: %s does not fit" % v)
+
+
+def wn_po_divs(po):
+    out = set()
+    for e in po.get("entrants") or []:
+        if isinstance(e, list) and len(e) == 2:
+            out.add(e[0])
+        elif isinstance(e, dict) and ("div" in e or "stage_place" in e or "split_seed" in e):
+            out.add(e.get("div", 0))
+    return out
+
+
+def wn_stages(div):
+    sp = div.get("split") or {}
+    return sp.get("stages") or ([sp] if sp else [])
+
+
+def wn_stage_start(div, po):
+    days = 0
+    for st in wn_stages(div):
+        if po.get("build_after") and st.get("then") == po["build_after"]:
+            return days if days < 0xFF else 0xFF
+        days += len(st.get("fixtures") or [])
+    return 0xFF
+
+
+def wn_end_played(div):
+    """fmtgame.end_played: the matches the table's 1st has played once the league is over."""
+    n, g = div["teams"], div["games"]
+    stages = wn_stages(div)
+    fx = [st for st in stages if "fixtures" in st]
+    if fx:
+        cnt = {}
+        for st in fx:
+            for day in st["fixtures"]:
+                for m in day:
+                    for c in m[:2]:
+                        cnt[c] = cnt.get(c, 0) + 1
+        out = cnt.popitem()[1] if cnt and len(set(cnt.values())) == 1 else None
+    elif stages:
+        st = stages[-1]
+        gr = (st.get("groups") or [{}])[0]
+        a, b = gr.get("places", [1, 0])
+        r = {"none": 0, "single": 1, "double": 2, "triple": 3, "quadruple": 4}[gr.get("rounds", "single")]
+        base = max([x["after"] for x in stages if x.get("reset")] or [0])
+        out = st["after"] - base + (b - a) * r if n % 2 == 0 and a == 1 and b > a else None
+    else:
+        out = (n - 1) * g
+    return out if out is not None and 0 < out < 256 else None
+
+
+def winners_lines(pk, lg, teams=0):
+    """fmtgame.win_lines for every division of the league (complist._league's: a division's split,
+    else the league's for the first), and a state championship's line (division 0xFE): [(division,
+    title, source)]; the title None: the contest's own name."""
+    cc = (pk.get("id") or "").rsplit("-", 1)[-1]
+    pos = lg.get("ko_playoffs") or []
+    pos = pos if isinstance(pos, list) else []
+    mdivs = lg.get("divisions") or [{"teams": teams, "names": lg["names"]}]   # (teams: the league's clubs)
+    par = lg.get("parallel")
+    par = par[0] if isinstance(par, list) else par
+    out = []
+    for k, dv in enumerate(mdivs):
+        div = dict(dv, games=dv.get("games", lg.get("games", 2)),
+                   split=dv.get("split") or (lg.get("split") if k == 0 else None))
+        lines, title_po = [], False
+        for pi, po in enumerate(pos):
+            divs = wn_po_divs(po)
+            if po.get("kind") in WN_SKIP or not po.get("names") or k not in divs or pi > 0xFF:
+                continue
+            title_po |= po.get("kind") == "title" and divs == {k}
+            st = po.get("stage") if po.get("kind") == "stage_title" else None
+            seed = next((e.get("rule") for e in po.get("entrants") or []
+                         if isinstance(e, dict) and "title_seed" in e), None)
+            src = ("D%d%02X%02X" % (st, pi, wn_stage_start(div, po)) if st is not None and 0 <= st < 3 else
+                   "Q%d%02X" % ({"uru": 1, "per": 2}[seed], pi) if seed in ("uru", "per") else "K%02X" % pi)
+            own = WN_TITLES.get((cc, po.get("key")))
+            if own and po.get("kind") == "title":
+                own = "PLAYOFFS - " + own
+            lines.append((wn_fit(own or po["names"]), src))
+            for tie, nm in WN_SUBS.get((cc, po.get("key")), []):
+                lines.append((wn_fit(nm), "T%02X%02X" % (pi, tie)))
+        if lg.get("playoffs") == "ita" and par:
+            if k == par["upper"]:
+                lines += [(wn_fit(WN_ITALY[0]), "P1"), (wn_fit([WN_ITALY[1]], " - RELEGATED"), "P2")]
+            elif par["first"] <= k < par["first"] + par["count"]:
+                lines.append((wn_fit(WN_ITALY[2]), "P3"))
+        if not lines:
+            continue
+        tabs = [st for st in wn_stages(div) if st.get("table") is not None]
+        days = sum(len(st.get("fixtures") or []) for st in wn_stages(div))
+        end = wn_end_played(div)
+        src = None
+        if tabs and 0 < days < 256:
+            src = "S%d%02X" % (2 if any(st.get("annual") for st in tabs) else tabs[-1]["table"], days)
+        elif not tabs and end is not None:
+            src = "L%02X" % end
+        if src:
+            own = WN_TITLES.get((cc, None)) if title_po or tabs else None
+            lines.insert(0, (wn_fit(own) if own else wn_fit(dv["names"], " (REGULAR SEASON)" if title_po else ""),
+                             src + "%02X" % k))
+        out += [(k, t, s) for t, s in lines]
+    if any(c.get("type") == "state" for c in pk.get("competitions", [])):
+        out.append((0xFE, None, "C"))
+    counts["SEASON WINNERS titles"] += len(out)
+    return out
+
+
 def country_playoffs(wc, pk, picked):
     """A country's play-off rules (as italian_playoffs, any country): the Mod's counts per
     division, the pack's knockouts compiled, its B teams' rules."""
@@ -937,7 +1090,8 @@ def country_playoffs(wc, pk, picked):
             if first:
                 seconds.append((o, ordinal.get(first, 0xFF)))
         counts["B teams"] += len(seconds)
-    if spec == b"\0" and not seconds:
+    winners = winners_lines(pk, lg, len(picked))
+    if spec == b"\0" and not seconds and not winners:
         return None
     return {"name": wc["name"].title().replace(" ", ""), "country": wc["number"], "divisions": ndiv,
             "seconds": seconds, "secondTop": top, "secondFlags": flags,
@@ -945,7 +1099,7 @@ def country_playoffs(wc, pk, picked):
             "italy": 0, "serieB": 0, "groupFirst": 0, "groups": 0, "spec": spec,
             "names": playoff_names(lg.get("ko_playoffs", [])),
             "records": playoff_records(lg.get("ko_playoffs", [])),
-            "combined": stage_combined(lg.get("ko_playoffs", []))}
+            "combined": stage_combined(lg.get("ko_playoffs", [])), "winners": winners}
 
 
 def country_cups(wc, pk, picked):
@@ -1565,11 +1719,16 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         if comb:
             po_tables.append("static const char *const %sCombined[32] = {\n%s\n};" % (sym, "\n".join(
                 "    %s," % (c_string(c) if c else "0") for c in comb)))
+        win = po.get("winners") or []
+        if win:
+            po_tables.append("static const LeagueWinLine %sWinners[] = {\n%s\n};" % (sym, "\n".join(
+                "    { %d, %s, %s }," % (d, c_string(t) if t else "0", c_string(src)) for d, t, src in win)))
         po_entries.append("    { %d, %d, %sPromoted, %sRelegated, %d, %d, %d, %d, %sSpec, %d, %sSeconds, %d, %d,"
-                          " %sNames, %d, %sThen, %sRounds, %sRecords, %s },   /* %s */" % (
+                          " %sNames, %d, %sThen, %sRounds, %sRecords, %s, %s, %d },   /* %s */" % (
             po["country"], po["divisions"], sym, sym, int(po["italy"]), po["serieB"], po["groupFirst"],
             po["groups"], sym, len(po["seconds"]), sym, po["secondTop"], po["secondFlags"], sym, len(names),
-            sym, sym, sym, sym + "Combined" if comb else "0", po["name"]))
+            sym, sym, sym, sym + "Combined" if comb else "0", sym + "Winners" if win else "0", len(win),
+            po["name"]))
     po_tables.append("static const LeaguePlayoffs kWorld%sPlayoffs[] = {\n%s\n};" % (tag, "\n".join(po_entries)))
     po_cases = ("    case WORLD_%s:\n        *count = %d;\n        return kWorld%sPlayoffs;"
                 % (tag, len(playoffs), tag))

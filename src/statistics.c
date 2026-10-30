@@ -7,6 +7,7 @@
 #include "translations.h"
 #include "comp_identity.h"
 #include "game_types.h"
+#include "world.h"
 #include "menu_system.h"
 #include "play_match_menu.h"
 #include "input_text.h"
@@ -2162,8 +2163,8 @@ void FillManagementRecordInfo(void)
     {
         uint16_t seasonNum = _currentSeasonNumber;
         uint16_t d0 = seasonNum + 1;
-        uint16_t d1 = seasonNum + 1996;
-        uint16_t d2 = seasonNum + 97;
+        uint16_t d1 = seasonNum + World_FirstYear();     /* (the world's years: world.h) */
+        uint16_t d2 = (uint16_t)((d1 + 1) % 100);
         const uint8_t *fmt;
 
         if (d2 >= 100)

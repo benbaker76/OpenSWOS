@@ -3252,14 +3252,8 @@ void PrintNameAndSeason(void)
 
     /* Set season year in entry 2 */
     uint8_t *entry2Str = (uint8_t *)_menuEntries[2].fg;
-    uint16_t year = (uint16_t)(_seasonPlaying & 0xFF);
-    uint16_t d1 = year;
-    year += 1900;
-    if (year < 1996)
-        year += 100;
-    d1 += 1;
-    if (d1 >= 100)
-        d1 -= 100;
+    uint16_t year = World_SeasonYear(_seasonPlaying);     /* (the world's years: world.h) */
+    uint16_t d1 = (uint16_t)((year + 1) % 100);
     uint8_t *fmt;
     if (d1 >= 10)
         fmt = _a01Season;    /* "%0/%1 SEASON" */
@@ -4457,10 +4451,7 @@ void CareerOverFinish(void)
     {
         MenuEntry *e2 = &_menuEntries[2];
         dest = (uint8_t *)e2->fg;
-        uint16_t year = (uint16_t)_seasonPlaying + 1900;
-        if (year < 1996)
-            year += 100;
-        year += 1;
+        uint16_t year = (uint16_t)(World_SeasonYear(_seasonPlaying) + 1);   /* (the world's years) */
         src = _a0EndSeason;
         PrintFormatted(src, dest, year, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     }

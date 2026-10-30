@@ -879,9 +879,20 @@ static int team_code(u16 team)                  /* a team word -> its club, or -
     return -1;
 }
 
+/* gplay.c's WN_ST (the SEASON WINNERS page's last season): written by gp_season's pass over the
+ * career club's country only. */
+LeagueWinners g_leagueWinners;
+static int wn_on;
+static void wn_add(int type, int idx, u16 team)
+{
+    if (!wn_on || team == 0xFFFF || g_leagueWinners.n >= LEAGUE_WINNERS_MAX) return;
+    LeagueWinnersEntry *x = &g_leagueWinners.e[g_leagueWinners.n++];
+    x->type = (u8)type; x->idx = (u8)idx; x->team = team;
+}
+
 static void gp_season(const u8 *s, uint8_t country)
 {
-    u16 pw0, pw1;
+    u16 pw0 = 0, pw1 = 0;
     u32 h = 0;
     for (int d = 0; d < s_in.nd && d < GD; d++)
         for (int k = 0; k < s_in.n[d]; k++) h = h * 31 + s_in.t[d][k].glob + ((u32)s_in.t[d][k].pts << 9);
@@ -897,6 +908,18 @@ static void gp_season(const u8 *s, uint8_t country)
     SSB = bank_of(country, 0);
     if (!SSB)
         SSB = &s_noBank;
+    wn_on = 0;                                  /* (the career club's country: its titles into WN_ST) */
+    int wn_div = 0;
+    for (int d = 0; d < s_in.nd && d < GD && s_mgr; d++)
+        for (int k = 0; k < s_in.n[d]; k++) if (s_in.t[d][k].team == s_mgr) { wn_on = 1; wn_div = d; }
+    if (wn_on) {
+        g_leagueWinners.n = 0; g_leagueWinners.fresh = 1;
+        wn_add('M', wn_div, s_mgr);             /* (the division it played in: the last season's page) */
+        for (int d = 0; d < s_in.nd && d < GD; d++)
+            if (s_in.n[d])
+                wn_add('L', d, d == 0 && (SSB->fresh & 4) && SSB->n[2] == s_in.n[0] ? SSB->r[2][0].team
+                                                                                      : s_in.t[d][0].team);
+    }
     for (int pidx = 0; s && *s; pidx++) {
         int kind = s[0], n = s[1], nr = s[2], wdiv = s[3], ldiv = s[4];
         const u8 *e = s + 6, *r = e + 4 * n;
@@ -910,7 +933,7 @@ static void gp_season(const u8 *s, uint8_t country)
         const WorldStageTitle *dec = kind == K_STAGE ? stage_dec(wdiv) : 0;     /* (decided mid-season) */
         if (dec) ok = 0;
         s_pidx = pidx;
-        int W[GN], L[GN], nt = 0, last = -1, lastr = 0, nlast = 0;
+        int W[GN], L[GN], nt = 0, last = -1, lastr = 0, nlast = 0, played_t2 = 0;
         int P[GN], np = 0, glast = -1, winners = s[5] >> 4 ? s[5] >> 4 : 1;
         if (!resolve_entrants(s, prev_loser, club))
             ok = 0;
@@ -989,7 +1012,7 @@ static void gp_season(const u8 *s, uint8_t country)
                 x->team[1] = L[last] != W[last] ? gp_row(L[last])->team : 0xFFFF;
                 x->glob[1] = L[last] != W[last] ? gp_row(L[last])->glob : 0xFFFF;
             }
-        } else if (kind == K_TITLE && WorldPlayoff_PlayedTitle(pidx, &pw0, &pw1) && team_code(pw0) >= 0) {
+        } else if (kind == K_TITLE && (played_t2 = WorldPlayoff_PlayedTitle(pidx, &pw0, &pw1) && team_code(pw0) >= 0)) {
             gp_result(kind, team_code(pw0), team_code(pw1));     /* (played: a group contest's final) */
             SWOS_DBG("[playoffs] play-off %d: the group contest played, its champion %04X (runner-up %04X)\n",
                      pidx, (unsigned)pw0, (unsigned)pw1);
@@ -1016,9 +1039,19 @@ static void gp_season(const u8 *s, uint8_t country)
                 gp_move(c, to - DV(c));
             }
         }
+        if (kind == K_STAGE)                    /* (WN_ST: this play-off's winner) */
+            wn_add('K', pidx, (wdiv & 3) < 3 && sres_of(wdiv >> 2)[wdiv & 3].kind ? sres_of(wdiv >> 2)[wdiv & 3].team[0]
+                                                                                : 0xFFFF);
+        else if (kind == K_TITLE && played_t2)
+            wn_add('K', pidx, pw0 ? pw0 : 0xFFFF);
+        else if (ok && kind != 4 && (glast >= 0 || last >= 0))
+            wn_add('K', pidx, gp_row(glast >= 0 ? P[glast] : W[last])->team);
+        if (ok && kind == K_TITLE && glast < 0)  /* (a title play-off's last three ties: the MLS conference finals) */
+            for (int t = nt > 3 ? nt - 3 : 0; t < nt && t < GN; t++) wn_add(0x80 | (pidx & 0x7F), t, gp_row(W[t])->team);
         prev_loser = ok && last >= 0 ? L[last] : -1;
         s = r;
     }
+    wn_on = 0;
     if (s_ssUsed) SSB->fresh = 0;               /* (this league's stage tables used: next season's are new) */
 }
 

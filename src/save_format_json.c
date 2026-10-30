@@ -24,6 +24,7 @@
 #include "world.h"             /* "world" in career and competition saves */
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
+#include "world_winners.h"     /* "season_winners" */
 #include "uefa_coef.h"         /* "uefa_coef", "uefa_qualifying" in career saves */
 #include "league_playoffs.h"   /* "league_stages" in career saves */
 #include "world_conti.h"       /* "conti_holders", "conti_edition" in career saves */
@@ -6244,6 +6245,22 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
     }
 
+    /* The SEASON WINNERS page's last season (league_playoffs.c, world_winners.c): its season,
+     * then per title its type, index and team word. */
+    if (g_leagueWinners.season && g_leagueWinners.n) {
+        uint16_t e[3 * LEAGUE_WINNERS_MAX];
+        int ne = 0;
+        for (int i = 0; i < g_leagueWinners.n && i < LEAGUE_WINNERS_MAX; i++) {
+            e[ne++] = g_leagueWinners.e[i].type;
+            e[ne++] = g_leagueWinners.e[i].idx;
+            e[ne++] = g_leagueWinners.e[i].team;
+        }
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:0,%Q:%d", "season_winners", "version", "season",
+                     (int)g_leagueWinners.season);
+        wp_emit_u16(&out, "titles", e, ne);
+        mjson_printf(json_out_emit, &out, "%s", "}");
+    }
+
     /* A world's UEFA coefficients (uefa_coef.c): per association its clubs and points this
      * season and its 5 ring seasons (thousandths), per club (team number) its points this season
      * and its ring's, each cup's last knockout round and final. */
@@ -6998,6 +7015,25 @@ static void apply_semantic_load(const char *src, int src_size)
                     g_worldStageTitle[k].clubResult = (int8_t)res[2 * k];
                     g_worldStageTitle[k].pidx1 = res[2 * k + 1];
                 }
+            }
+        }
+    }
+
+    WorldWinners_Reset();
+    {
+        const char *wn = NULL;
+        int wnlen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.season_winners", &wn, &wnlen) == MJSON_TOK_OBJECT &&
+            mjson_get_long(wn, wnlen, "$.season", &v) > 0) {
+            uint16_t e[3 * LEAGUE_WINNERS_MAX] = { 0 };
+            const int ne = wp_load_u16(wn, wnlen, "$.titles", e, 3 * LEAGUE_WINNERS_MAX);
+            g_leagueWinners.season = (uint8_t)v;
+            for (int i = 0; 3 * i + 2 < ne && i < LEAGUE_WINNERS_MAX; i++) {
+                g_leagueWinners.e[i].type = (uint8_t)e[3 * i];
+                g_leagueWinners.e[i].idx = (uint8_t)e[3 * i + 1];
+                g_leagueWinners.e[i].team = e[3 * i + 2];
+                g_leagueWinners.n = (uint8_t)(i + 1);
             }
         }
     }

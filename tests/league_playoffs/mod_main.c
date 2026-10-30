@@ -4,6 +4,7 @@
 void mod_dp(const unsigned short (*rows)[32][6], const int *n, unsigned short cupw, FILE *out);
 void mod_gp(const unsigned short (*rows)[32][6], const int *n, int nd, const unsigned char *sp, FILE *out);
 void mod_ko(FILE *out);
+void mod_mgr(unsigned short team);
 void mod_need(FILE *out);
 void mod_ko_all(FILE *out);
 void mod_stages(const unsigned short (*r)[32][6], const int *n, int nk, const unsigned short (*keep)[6], int fresh);
@@ -34,7 +35,12 @@ int main(int argc, char **argv)
         }
         printf("%u", it);
         if (!GP_ONLY) mod_dp((const unsigned short (*)[32][6])rows, n, cup_winner(it, t, n), stdout);
+        {                                       /* (the career club: a club of each division in turn) */
+            const int d = (int)(it % ND);
+            mod_mgr(n[d] ? t[d][(it / ND) % n[d]].team : 0);
+        }
         mod_gp((const unsigned short (*)[32][6])rows, n, ND, spec, stdout);
+        mod_mgr(0);                             /* (the contests' checks below: as before) */
         if (argc > 4) mod_ko_all(stdout);   /* (the played contests' build: 'ko') */
         printf("\n");
     }

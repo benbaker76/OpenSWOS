@@ -134,6 +134,11 @@ int main(int argc, char **argv)
                 b->kept[i].won = b->kept[i].gf = b->kept[i].ga = 0; b->kept[i].pts = st.keep[i].pts;
             }
         }
+        const uint16_t sel = _selTeamNumber;    /* (the contests' checks below: as before) */
+        {                                       /* (the career club: a club of each division in turn) */
+            const int d = (int)(it % ND);
+            _selTeamNumber = n[d] ? t[d][(it / ND) % n[d]].team : 0;
+        }
         LeaguePlayoffs_Decide(20, table, scratch);
         printf("%u", it);
         /* dp moves carry a delta of +-1 and come first; the knockouts' after (as the Mod's
@@ -144,6 +149,13 @@ int main(int argc, char **argv)
             printf(" T%u:%u/%u", s_res[i].kind, s_res[i].glob[0], s_res[i].glob[1]);
         for (int k = 0; k < 3; k++)
             if (s_sres[k].kind) printf(" S%d:%u/%u", k, s_sres[k].glob[0], s_sres[k].glob[1]);
+        if (_selTeamNumber && g_leagueWinners.fresh) {     /* (the SEASON WINNERS page's last season) */
+            printf(" W");
+            for (int i = 0; i < g_leagueWinners.n; i++)
+                printf("%02X.%u.%04X,", g_leagueWinners.e[i].type, g_leagueWinners.e[i].idx, g_leagueWinners.e[i].team);
+            g_leagueWinners.fresh = 0;
+        }
+        _selTeamNumber = sel;
         if (argc > 4) ours_ko(t, n);
         printf("\n");
     }

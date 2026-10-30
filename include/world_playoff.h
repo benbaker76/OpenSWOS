@@ -154,6 +154,13 @@ const char *WorldPlayoff_RoundName(uint16_t round, uint16_t rounds);
  * season and the contest the career club played, written into the current season's record. */
 void WorldPlayoff_RecordLines(void);
 
+/* The SEASON WINNERS page (world_winners.c): play-off pidx's contest this season, tie `tie`'s
+ * winner (-1 the last tie's, a group contest's champion) -- 1 decided (*team), 0 being played,
+ * -1 no contest of it; and the Italian rules' contest k (1 Serie B's play-off, 2 its play-out:
+ * the club relegated, 3 Serie C's play-off), the same. */
+int32_t WorldPlayoff_WinnerOf(int32_t pidx, int32_t tie, uint16_t *team);
+int32_t WorldPlayoff_ItalianResult(int32_t k, uint16_t *team);
+
 /* A loaded career's group contest in slot 3 (_euroCupSlotIndex 9): its record, 0 for none. */
 uint8_t *WorldPlayoff_GroupsRecord(void);
 

@@ -30,6 +30,7 @@
 #include "transfer_market.h"
 #include "league_playoffs.h"
 #include "world_playoff.h"
+#include "world_winners.h"
 #include "world_cups.h"
 #include "states.h"
 
@@ -840,6 +841,7 @@ void Career_ProcessCompetitionForNextSeason(uint16_t compIndex)
      * places they decide (one-level moves, placed by InitializeNewSeason's groups pass). */
     LeaguePlayoffs_Decide(compIndex & 0xFF, (const int8_t *)_diyLeagueSeasonStateTable,
                           (int8_t *)_diyLeagueScratchBuffer);
+    WorldWinners_SeasonDecided();          /* (the SEASON WINNERS page's last season: world_winners.c) */
     States_SeasonEnd((uint8_t)compIndex);  /* (a world's state championships, Brazil's: states.c) */
 }
 

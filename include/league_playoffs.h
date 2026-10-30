@@ -19,6 +19,15 @@
 
 #include "swos_types.h"
 
+/* A title of the SEASON WINNERS page (src/world_winners.c; the Mod's winners.py): division
+ * (0xFE: a state championship), its title (0: the contest's own name), its source as the Mod's
+ * fmtgame.win_lines writes it. */
+typedef struct {
+    uint8_t     division;
+    const char *title;
+    const char *src;
+} LeagueWinLine;
+
 /* A league's play-off rules (src/world_data.c, generated from the Mod's pack.json). */
 typedef struct {
     uint8_t        country;
@@ -40,6 +49,8 @@ typedef struct {
     const char *const *records;         /* each play-off's season record line, won (the pack's 'record') */
     const char *const *combined;        /* the stage titles won together: a line per mask of stages 0..2,
                                          * 8 a division (32; 0 none) -- or 0 */
+    const LeagueWinLine *winners;       /* the SEASON WINNERS page's titles, division order */
+    uint8_t        nwinners;
 } LeaguePlayoffs;
 
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count);
@@ -104,6 +115,15 @@ int32_t LeaguePlayoffs_ClubPlayoff(uint8_t country, int32_t d, const LeagueStage
  * (legs 3: a best of three); the winner, a or b. */
 void LeaguePlayoffs_ContestSeed(int32_t pidx, const uint16_t *team, int32_t n);
 int32_t LeaguePlayoffs_ContestTie(int32_t a, int32_t b, int32_t legs, int32_t host, int32_t level);
+
+/* The SEASON WINNERS page's last season (the Mod's WN_ST, written by gp_season for the career club's
+ * country): 'M' the division the club played in, 'L' each division's 1st, 'K' each play-off's winner,
+ * 0x80 | play-off: a title play-off's last three ties' winners (idx: the tie); team words. `fresh`
+ * when this season end wrote it (world_winners.c stamps the season); saved with the career. */
+#define LEAGUE_WINNERS_MAX 40
+typedef struct { uint8_t type, idx; uint16_t team; } LeagueWinnersEntry;
+typedef struct { uint8_t season, n, fresh, pad; LeagueWinnersEntry e[LEAGUE_WINNERS_MAX]; } LeagueWinners;
+extern LeagueWinners g_leagueWinners;
 
 void LeaguePlayoffs_Begin(void);
 void LeaguePlayoffs_KeepTable(const uint8_t *competition, uint16_t division);

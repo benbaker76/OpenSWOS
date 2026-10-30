@@ -26,6 +26,7 @@ void mod_stages(const unsigned short (*r)[32][6], const int *n, int nk, const un
         x->team = keep[i][0]; x->glob = keep[i][1]; x->won = 0; x->gf = 0; x->ga = 0; x->pts = keep[i][5];
     }
 }
+void mod_mgr(unsigned short team) { GP_IN.mgr = team; }   /* (the career club at the season end) */
 void mod_gp(const unsigned short (*rows)[32][6], const int *n, int nd, const u8 *sp, FILE *out)
 {
     GP_IN.nd = (u8)nd;
@@ -44,6 +45,11 @@ void mod_gp(const unsigned short (*rows)[32][6], const int *n, int nd, const u8 
         fprintf(out, " T%u:%u/%u", GP_OUT.res[i].kind, GP_OUT.res[i].glob[0], GP_OUT.res[i].glob[1]);
     for (int k = 0; k < 3; k++)
         if (GP_OUT.sres[k].kind) fprintf(out, " S%d:%u/%u", k, GP_OUT.sres[k].glob[0], GP_OUT.sres[k].glob[1]);
+    if (GP_IN.mgr && WN_ST.magic == WN_MAGIC) {   /* (the SEASON WINNERS page's last season: WN_ST) */
+        fprintf(out, " W");
+        for (int i = 0; i < WN_ST.n; i++) fprintf(out, "%02X.%u.%04X,", WN_ST.e[i].type, WN_ST.e[i].idx, WN_ST.e[i].team);
+        WN_ST.magic = 0;
+    }
 }
 /* The career club's play-off at its league's end (gp_need, a career), for every club of every
    division: its index and the divisions simulated early. */

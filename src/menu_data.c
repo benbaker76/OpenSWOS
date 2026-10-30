@@ -77,6 +77,8 @@ extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
+extern void CompetitionStatsInit(void);
+extern void CompetitionStatsWinners(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
 extern void ConsiderJobOffer(void);
@@ -579,6 +581,7 @@ extern char _aViewResult[];
 extern char _aViewSelectedTe[];
 extern char _aViewSquad[];
 extern char _aViewSquads[];
+extern char _aWinners[];
 extern char _aViewTeam[];
 extern char _aViewWorld[];
 extern char _aW[];
@@ -4993,7 +4996,7 @@ Menu_Squad _squadMenu = {
     MENU_MARK_END_MENU
 };
 Menu_CompetitionStats _competitionStatsMenu = {
-    { 0, 0, 0, 1 },
+    { CompetitionStatsInit, CompetitionStatsInit, 0, 1 },
     MENU_MARK_BYTE_COORDS,
     {
         { 92, 0, 120, 15 },
@@ -5019,7 +5022,7 @@ Menu_CompetitionStats _competitionStatsMenu = {
     },
     {
         { 92, 90, 120, 15 },
-        { MENU_CMD_NAV, -1, -1, 2, 4 },
+        { MENU_CMD_NAV, -1, -1, 2, 5 },
         { MENU_CMD_COLORS, 0xE },
         { MENU_CMD_TEXT_PTR, 0x0, _aViewSquads },
         { MENU_CMD_ONSELECT_FIRE, StatsViewSquads },
@@ -5027,10 +5030,18 @@ Menu_CompetitionStats _competitionStatsMenu = {
     },
     {
         { 102, -71, 100, 15 },
-        { MENU_CMD_NAV, -1, -1, 3, -1 },
+        { MENU_CMD_NAV, -1, -1, 5, -1 },
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, StatsExit },
+        MENU_CMD_END
+    },
+    {
+        { 92, 115, 120, 15 },
+        { MENU_CMD_NAV, -1, -1, 3, 4 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aWinners },
+        { MENU_CMD_ONSELECT_FIRE, CompetitionStatsWinners },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

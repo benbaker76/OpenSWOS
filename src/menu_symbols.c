@@ -38,10 +38,9 @@ extern void ChangeAutoReplays(void);
 extern void ChangeAutoSaveHighlights(void);
 extern void ChangeGameLength(void);
 extern void ChangeGameplayStyle(void);
-extern void ShowControlsMenu(void);
-extern void ChangePitchStyle(void);
 extern void ChangeMenuMusic(void);
 extern void ChangeNationality(void);
+extern void ChangePitchStyle(void);
 extern void ChangePitchType(void);
 extern void ChangeSex(void);
 extern void ChangeTeams(void);
@@ -61,6 +60,8 @@ extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
+extern void CompetitionStatsInit(void);
+extern void CompetitionStatsWinners(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
 extern void ConsiderJobOffer(void);
@@ -318,6 +319,7 @@ extern void SelectTraining(void);
 extern void SetExitMenuFlag(void);
 extern void SetName(void);
 extern void SetSurname(void);
+extern void ShowControlsMenu(void);
 extern void ShowPlayerMarket(void);
 extern void ShowPlayerMarketInit(void);
 extern void ShowStadiumInit(void);
@@ -431,6 +433,7 @@ extern char _aConfirmOffer[];
 extern char _aConsider[];
 extern char _aContinue[];
 extern char _aContinueCareer[];
+extern char _aControls[];
 extern char _aCopy[];
 extern char _aCredits[];
 extern char _aCriteria[];
@@ -460,9 +463,6 @@ extern char _aFriendlyDiyGam[];
 extern char _aFriendly_1[];
 extern char _aFrom[];
 extern char _aGameplay[];
-extern char _aControls[];
-extern char _aRedefineKeys[];
-extern char _aPitches[];
 extern char _aGateReceipts[];
 extern char _aGeneralRunning[];
 extern char _aGiveFreeTransf[];
@@ -505,6 +505,7 @@ extern char _aOldBalance[];
 extern char _aOptions[];
 extern char _aOriginalCustom[];
 extern char _aOwnGoals[];
+extern char _aPitches[];
 extern char _aPl[];
 extern char _aPlayEachTeam[];
 extern char _aPlayMatch[];
@@ -518,6 +519,7 @@ extern char _aPointsForAWin[];
 extern char _aPresetCompetit_0[];
 extern char _aPts[];
 extern char _aPutPlayerOnTra_0[];
+extern char _aRedefineKeys[];
 extern char _aReject[];
 extern char _aRejectOffer[];
 extern char _aRemovePlayers[];
@@ -574,6 +576,7 @@ extern char _aViewSquads[];
 extern char _aViewTeam[];
 extern char _aViewWorld[];
 extern char _aW[];
+extern char _aWinners[];
 extern char _aYourCareerIsOv[];
 extern char _aYourChairman[];
 extern char* _allPlTeamsEqualStrTable[];
@@ -655,12 +658,12 @@ extern char* _flipStrTable[];
 extern char* _friendlyPitchTypeTable[];
 extern char* _gameLengthStrTable[];
 extern char* _gameplayStyleStrTable[];
-extern char* _pitchStyleStrTable[];
 extern char _managerNameBuffer[];
 extern char _managerSexBuffer[];
 extern char _managerSurnameBuffer[];
 extern char* _menuMusicStrTable[];
 extern char _offsetCoachOrPlayer[];
+extern char* _pitchStyleStrTable[];
 extern char* _pitchTypeOrSeasonTable[];
 extern char* _pitchTypeStrTable[];
 extern char* _positionFilterStringTable[];
@@ -728,6 +731,8 @@ const MenuSymbol _menuSymbols[] = {
     { "ClubTeams", (void*)ClubTeams, SYM_FUNC },
     { "CoachOrPlayerCoach", (void*)CoachOrPlayerCoach, SYM_FUNC },
     { "CompetitionInfo", (void*)CompetitionInfo, SYM_FUNC },
+    { "CompetitionStatsInit", (void*)CompetitionStatsInit, SYM_FUNC },
+    { "CompetitionStatsWinners", (void*)CompetitionStatsWinners, SYM_FUNC },
     { "CompetitionTopGoalScorersExit", (void*)CompetitionTopGoalScorersExit, SYM_FUNC },
     { "CompetitionTopGoalScorersInit", (void*)CompetitionTopGoalScorersInit, SYM_FUNC },
     { "ConsiderJobOffer", (void*)ConsiderJobOffer, SYM_FUNC },
@@ -1239,6 +1244,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aViewTeam", (void*)_aViewTeam, SYM_STRING },
     { "_aViewWorld", (void*)_aViewWorld, SYM_STRING },
     { "_aW", (void*)_aW, SYM_STRING },
+    { "_aWinners", (void*)_aWinners, SYM_STRING },
     { "_aYourCareerIsOv", (void*)_aYourCareerIsOv, SYM_STRING },
     { "_aYourChairman", (void*)_aYourChairman, SYM_STRING },
     { "_allPlTeamsEqualStrTable", (void*)_allPlTeamsEqualStrTable, SYM_TABLE },

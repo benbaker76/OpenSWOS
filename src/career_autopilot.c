@@ -15,6 +15,8 @@
  *     the joystick, not the menu's fire); every other screen: fire on its selection.
  */
 #include "career_autopilot.h"
+#include "world_winners.h"
+#include "comp_identity.h"
 #include "menu_system.h"
 #include "game_types.h"
 #include "save_format_json.h"
@@ -67,6 +69,27 @@ static int32_t     s_hubSeason = -1;
 static int32_t     s_jobs;          /* job offers taken after a sacking */
 static int32_t     s_infoShown;
 static int32_t     s_viewShot;      /* (SWOS_GOLDEN_VIEW_SLOT3: screens left to shoot) */
+static int32_t     s_winPage, s_winWait;    /* (SWOS_GOLDEN_VIEW_WINNERS: the page shown, drawn yet) */
+extern DIYCompetitionEx _diyCompetitionStart;
+extern void Platform_RequestScreenshot(void);
+
+/* Test (SWOS_GOLDEN_VIEW_WINNERS=<n>): the SEASON WINNERS page (world_winners.c) from every n-th
+ * match-day screen of a contest with titles (SWOS_GOLDEN_SHOT_FROM: from that season-end hub on),
+ * its pages each a screenshot; at most 48 times. */
+static int32_t view_winners(void)
+{
+    static const char *env = (const char *)1;
+    static int32_t visits, opened;
+    if (env == (const char *)1)
+        env = getenv("SWOS_GOLDEN_VIEW_WINNERS");
+    const char *from = getenv("SWOS_GOLDEN_SHOT_FROM");
+    if (!env || atoi(env) < 1 || opened >= 48 || s_hubs < (from ? atoi(from) : 0) || !WorldWinners_Available())
+        return 0;
+    if (++visits % atoi(env))
+        return 0;
+    opened++;
+    return 1;
+}
 
 /* --career-golden=new:<continent>/<country>/<division>/<club>: a new career, the club
  * picked through CAREER -> CHOOSE TEAM AND START CAREER by the rows' labels (the picker
@@ -393,6 +416,24 @@ void CareerAutopilot_Tick(void)
             select_first(next, 1);
             _shortFire = 1;
         }
+    }
+    else if (menu->onInit == WorldWinnersMenuInit && (s_winWait || s_winPage + 1 < WorldWinners_Pages())) {
+        if (s_winWait)                  /* (SWOS_GOLDEN_VIEW_WINNERS: a page drawn, its screenshot taken) */
+            s_winWait = 0;
+        else {                          /* (then the next, a screenshot each) */
+            s_winPage++;
+            WorldWinnersNextPage();
+            Platform_RequestScreenshot();
+            s_winWait = 1;
+            say("[golden] winners page %d\n", (int)s_winPage + 1);
+        }
+    }
+    else if (menu->onInit == DIYLeagueTournamentInit && view_winners()) {
+        s_winPage = 0;
+        s_winWait = 1;
+        s_viewShot = 1;
+        say("[golden] viewing the season winners (contest %d)\n", (int)(uint8_t)_diyCompetitionStart.base.field_2E);
+        CompetitionStatsWinners();
     }
     else if (menu->onInit == DIYLeagueTournamentInit && s_viewShot && !s_infoShown) {
         extern void ShowTournamentInfo(void);       /* (SWOS_GOLDEN_VIEW_SLOT3: its info screen once) */

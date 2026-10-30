@@ -45,6 +45,7 @@ extern uint16_t _careerSeasonsCompleted;
 #include "league_groups.h"
 #include "team_pool.h"
 #include "world_playoff.h"
+#include "world_winners.h"
 #include "world_cups.h"
 #include "world_cupd.h"
 extern uint16_t _currentSeasonShowing;
@@ -270,6 +271,7 @@ void ChooseTeamAndStartCareer(void)
     UefaCoef_Reset();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
+    WorldWinners_Reset();
     Conti_Reset();
     States_Reset();
     _teamsLoaded = 0;
@@ -659,6 +661,7 @@ void InitCareer(uint16_t teamNo)
     UefaCoef_Reset();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
+    WorldWinners_Reset();
     Conti_Reset();
     States_Reset();
 
