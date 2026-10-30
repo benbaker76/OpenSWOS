@@ -164,12 +164,16 @@ SWOS_CHIP_BSS uint32_t _copperZeroLong;
 /* AGA 256-colour menu palette (Amiga 12-bit 0RGB). Converted from the DOS
  * "Menu" palette via SwosGfx ToAmiga12 (upper nibble of each 8-bit channel);
  * the AGA menu banks (menus.raw / menubg.raw) were rendered against this
- * palette so their pixel indices map here. First 16 entries ≈ the OCS values
- * in the #else branch. Regenerate with SwosGfx -palettes -pal-color=amiga12
+ * palette so their pixel indices map here. The first 16 entries ARE the OCS values
+ * in the #else branch (below). Regenerate with SwosGfx -palettes -pal-color=amiga12
  * -pal-format=c -pal-count=256 from DOS_Palettes/Menu.txt. */
+/* Entries 0-15 are the menus' own colours (buttons, text, frames, tables): the original's 16
+ * (SWOS2.s menuPalette, the #else table below), not the DOS palette's -- the DOS table has greys
+ * where the Amiga has blues, and the career hub's TRANSFERS / CLUB BUSINESS (colour 8) came out
+ * dark grey instead of navy (tester report 0046, 2026-10-30). */
 uint16_t _menuPalette[256] = {
-    0x0002, 0x0BBB, 0x0FFF, 0x0000, 0x0620, 0x0B40, 0x0F60, 0x0666,
-    0x0222, 0x0444, 0x0F00, 0x000F, 0x0602, 0x099F, 0x0290, 0x0FF0,
+    0x0001, 0x0AAB, 0x0FFF, 0x0102, 0x0621, 0x0A40, 0x0F71, 0x0667,
+    0x0204, 0x0445, 0x0F00, 0x000F, 0x0702, 0x088F, 0x0380, 0x0FF0,
     0x0975, 0x0985, 0x0A86, 0x0B97, 0x0CA8, 0x0CB8, 0x0DC9, 0x0ECA,
     0x0EDB, 0x0EDB, 0x0EDC, 0x0FED, 0x0FED, 0x0FEE, 0x0FFF, 0x0FFF,
     0x0000, 0x0000, 0x0001, 0x0001, 0x0002, 0x0002, 0x0003, 0x0003,
