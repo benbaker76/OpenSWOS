@@ -27,6 +27,7 @@
 #include "game_types.h"
 #include "diy_competition.h"
 #include "endian_helpers.h"
+#include "league_playoffs.h"
 
 extern DIYCompetitionEx _diyCompetitionStart;
 extern uint8_t  _teamSelectionKeyCache[];
@@ -38,6 +39,7 @@ extern void DIY_SortLeagueTableByStandings(void);
 #define SR 28                   /* a stage's record */
 #define ROW 18                  /* a table row's stride (the rows' offsets are row * 18) */
 #define F_RESET   1
+#define F_KEEP    2
 #define F_ROWS    4
 #define F_MEMBERS 8
 #define F_WINS    16
@@ -48,6 +50,8 @@ static uint8_t s_simH2H[LEAGUE_SPLIT_H2H];      /* (a simulated league's: the se
 static uint8_t s_walking;                       /* the career calendar's walk */
 static uint8_t s_pend;                          /* the day (+ 1) whose stage starts once this
                                                    match's result is in */
+static uint8_t s_end;                           /* the day (+ 1) a stage ended on, its table kept
+                                                   once this match's result is in */
 
 static uint16_t w16(const uint8_t *p)
 {
@@ -236,6 +240,8 @@ static void freeze(const uint8_t *t, int32_t k)
     const int32_t n = t[3], career = is_career_league();
     const uint8_t *h2h = career ? g_leagueSplitH2H : s_simH2H;
     DIY_SortLeagueTableByStandings();           /* (the last results in the table's order) */
+    if (rec[2] & F_KEEP)                        /* (the table before it: Malta's Opening Round) */
+        LeaguePlayoffs_KeepStage(t[1], t[2]);
     if (rec[2] & F_RESET)
         for (int32_t r = 0; r < n; r++) {
             DIYTeamStats *s = row_stats(r);
@@ -357,6 +363,12 @@ int32_t LeagueSplit_Count(void)
     _viewRandomPhase = c->base.viewRandomPhase;
     if (!s_walking)                             /* (a stage starting tomorrow: once this */
         s_pend = (uint8_t)(day + 2);            /*  match's result is in) */
+    if (!s_walking) {                           /* (the day a stage ends on: its table) */
+        const int32_t k = stage_of(t, day);
+        const int32_t next = k + 1 < t[7] ? t[16 + SR * (k + 1)] : t[6];
+        if (day + 1 == next)
+            s_end = (uint8_t)(day + 1);
+    }
     if (day + 1 >= t[6]) {
         c->minSubstitutes = 0;                  /* the last day: the league is over */
         if (!s_walking)
@@ -393,6 +405,15 @@ void LeagueSplit_AfterResult(uint8_t *team1, uint8_t *team2, uint16_t goals1, ui
             } else {
                 b[r2 * n + r1] += (uint8_t)c->pointsForAWin;
             }
+        }
+    }
+    if (s_end) {                                /* a stage over on day s_end - 1: its table kept */
+        const uint8_t *rec = t + 16 + SR * stage_of(t, s_end - 1);
+        s_end = 0;
+        if (rec[23]) {                          /* (the Mod's sp_stage_end: gplay.c gp_stage) */
+            DIY_SortLeagueTableByStandings();
+            LeaguePlayoffs_StageTable(t[1], (uint32_t)(rec[23] - 1), rec[24]);
+            SWOS_DBG("[split] country %d division %d: stage table %d kept\n", (int)t[1], (int)t[2], (int)rec[23] - 1);
         }
     }
     if (s_pend) {                               /* a stage starting on day s_pend - 1 */

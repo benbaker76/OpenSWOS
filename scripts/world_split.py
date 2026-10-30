@@ -168,8 +168,9 @@ def entry(world, file, div, n, spec, table):
     """One split table (the Mod's SP_TAB entry): its bytes, its days before and after. spec:
     games, stages [{after, groups, rounds, points, home, reset, keep, perm}] or a fixture stage
     {after, fixtures: [[(home row, away row), ...] per day], members, reset, wins}; weeks: a
-    week byte per day (optional, all the days). The after-stage routines ('then') and the stage
-    tables ('table', 'annual') are not played yet: their bytes are 0."""
+    week byte per day (optional, all the days). A fixture stage's table ('table', 'annual': the
+    league's bank, league_playoffs.c) is kept at its end; its after-stage routine ('then') not yet
+    (its byte 0)."""
     games = spec["games"]
     stages = spec.get("stages") or []
     assert n <= NMAX and len(stages) <= 8, (n, len(stages))
@@ -177,7 +178,8 @@ def entry(world, file, div, n, spec, table):
     cycles = games + (1 if stages else 0)
     days, recs = [], []
     for st in stages:
-        extra = (st.get("members"), 0, 0, 0)
+        extra = (st.get("members"), 0, st["table"] + 1 if st.get("table") is not None else 0,
+                 int(bool(st.get("annual"))))     # (the stage table, gplay.c gp_stage; 'then': not yet)
         if "fixtures" in st:                        # a fixture list by rows
             mem = st.get("members")
             assert st["after"] - d1 == len(days)
@@ -267,7 +269,8 @@ def division_spec(n, sp, games=None, rows=None):
             if st.get("zones"):
                 mem = [next(g for g, z in enumerate(st["zones"]) if c in z) for c in rows]
             spec["stages"].append({"after": day, "fixtures": fxd, "members": mem, "reset": bool(st.get("reset")),
-                                   "wins": st.get("tiebreak") == "wins",
+                                   "wins": st.get("tiebreak") == "wins", "table": st.get("table"),
+                                   "annual": bool(st.get("annual")),
                                    "groups": [len(z) for z in st.get("zones") or [rows]]})
             day += len(fxd)
             continue
@@ -285,7 +288,8 @@ def division_spec(n, sp, games=None, rows=None):
         one = {"after": st["after"], "groups": [g["places"][1] - g["places"][0] + 1 for g in gs],
                "rounds": [ROUNDS[g.get("rounds", "single")] for g in gs],
                "points": [g.get("points", "full") for g in gs], "home": st.get("home", "seeded"),
-               "reset": bool(st.get("reset")), "keep": st.get("keep")}
+               "reset": bool(st.get("reset")), "keep": st.get("keep"), "table": st.get("table"),
+               "annual": bool(st.get("annual"))}
         if expl is not None:
             one["perm"] = [p - 1 for e in expl for p in e]
         spec["stages"].append(one)

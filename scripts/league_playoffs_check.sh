@@ -98,8 +98,8 @@ while read -r code shape; do
 done < "$OUT/packs.txt"
 KNOWN=" arg"     # (Argentina: relegation by average, promedio -- not ported yet)
 if [ "$bad" = "$KNOWN" ] || [ -z "$bad" ]; then
-    echo "PASS: every pack's knockouts ($npacks leagues): compiled as the Mod compiles them, $PN seasons each," \
-         "every move the Mod's${bad:+ (known, not ported yet:$bad)}"
+    echo "PASS: every pack's knockouts ($npacks leagues): compiled as the Mod compiles them, $PN seasons each (stage tables given)," \
+         "every move, champion and stage title the Mod's${bad:+ (known, not ported yet:$bad)}"
 else
     echo "FAIL: the knockouts of$bad differ from the Mod's ($npacks leagues equal; VERBOSE=1 for the first seasons)"
     exit 1

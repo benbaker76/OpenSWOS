@@ -28,7 +28,7 @@ import mkseason                     # noqa: E402
 
 import world_import                 # noqa: E402
 
-TITLE = ("then", "table", "annual")    # (the stage titles' parts: not compiled yet)
+TITLE = ("then",)                   # (the after-stage routines: not compiled yet)
 wcs = {c["code"].lower(): c for c in world_import.world_countries()}
 picks = {}
 for world, file, div, n, spec in mkseason.splits():
@@ -48,8 +48,7 @@ for world, file, div, n, spec in mkseason.splits():
     theirs = dict(spec, stages=[{k: v for k, v in st.items() if k not in TITLE} for st in spec["stages"]])
     table = ours.pair_table(n)
     a = ours.entry(world, file, div, n, mine, table)
-    b = split.entry(world, file, div, n, dict(theirs, stages=[dict(st, then=None, table=None, annual=False)
-                                                               for st in theirs["stages"]]), table)
+    b = split.entry(world, file, div, n, dict(theirs, stages=[dict(st, then=None) for st in theirs["stages"]]), table)
     if a != b:
         print("FAIL: %s: the table's bytes differ (%d / %d bytes; days %d+%d / %d+%d)"
               % (where, len(a[0]), len(b[0]), a[1], a[2], b[1], b[2]))

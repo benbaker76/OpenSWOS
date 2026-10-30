@@ -25,6 +25,7 @@
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
 #include "uefa_coef.h"         /* "uefa_coef", "uefa_qualifying" in career saves */
+#include "league_playoffs.h"   /* "league_stages" in career saves */
 #include "uefa_access.h"
 #include "world_cups.h"        /* "world_cups" in career saves */
 #include "world_cupd.h"        /* "world_cupd" in career saves */
@@ -6226,6 +6227,44 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit, &out, "%s", "}");
     }
 
+    /* A world's stage tables (league_playoffs.c): per league (its country) the tables kept at
+     * its fixture stages' ends, for the season end's stage-title and title play-offs -- rows
+     * as (team, global number, won, for, against, points) -- and a 'keep' stage's table. */
+    {
+        int nb = 0;
+        static uint16_t rows[LEAGUE_STAGE_TABLES * 32 * 6];
+        for (int i = 0; i < LEAGUE_STAGE_BANKS; i++) {
+            const LeagueStageBank *b = &g_leagueStages[i];
+            if (!b->used)
+                continue;
+            if (nb++)
+                mjson_printf(json_out_emit, &out, "%s", ",");
+            else
+                mjson_printf(json_out_emit, &out, ",\n  %Q:[", "league_stages");
+            mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:%d,%Q:%d", "country", (int)b->key, "fresh", (int)b->fresh,
+                         "kept_division", (int)b->keptDiv);
+            wp_emit_u8(&out, "clubs", b->n, LEAGUE_STAGE_TABLES);
+            int nr = 0;
+            for (int k = 0; k < LEAGUE_STAGE_TABLES; k++)
+                for (int r = 0; r < b->n[k] && r < 32; r++) {
+                    const LeagueStageRow *x = &b->r[k][r];
+                    rows[nr++] = x->team; rows[nr++] = x->glob; rows[nr++] = x->won;
+                    rows[nr++] = x->gf; rows[nr++] = x->ga; rows[nr++] = x->pts;
+                }
+            wp_emit_u16(&out, "tables", rows, nr);
+            nr = 0;
+            for (int r = 0; r < b->nKept && r < 32; r++) {
+                const LeagueStageRow *x = &b->kept[r];
+                rows[nr++] = x->team; rows[nr++] = x->glob; rows[nr++] = x->won;
+                rows[nr++] = x->gf; rows[nr++] = x->ga; rows[nr++] = x->pts;
+            }
+            wp_emit_u16(&out, "kept", rows, nr);
+            mjson_printf(json_out_emit, &out, "%s", "}");
+        }
+        if (nb)
+            mjson_printf(json_out_emit, &out, "%s", "]");
+    }
+
     /* Foreign-market player pool — fixed-size MarketPlayer[432]. Emit
      * all 432 slots so unpopulated entries (teamId == 0) round-trip
      * faithfully; the array is dense in practice for active careers. */
@@ -6852,6 +6891,44 @@ static void apply_semantic_load(const char *src, int src_size)
                 q->br[q->nbr].aw = (uint8_t)br[i + 1];
                 q->br[q->nbr].a = br[i + 2];
                 q->br[q->nbr].b = br[i + 3];
+            }
+        }
+    }
+
+    /* A world's stage tables (league_playoffs.c); a save without them: none kept. */
+    LeaguePlayoffs_ResetStages();
+    {
+        const char *ls = NULL;
+        int lslen = 0;
+        if (mjson_find(src, src_size, "$.league_stages", &ls, &lslen) == MJSON_TOK_ARRAY) {
+            int pos = 0, voff, vlen, vt, i = 0;
+            static uint16_t rows[LEAGUE_STAGE_TABLES * 32 * 6];
+            while (i < LEAGUE_STAGE_BANKS && (pos = fast_array_next(ls, lslen, pos, &voff, &vlen, &vt)) != 0) {
+                const char *o = ls + voff;
+                LeagueStageBank *b = &g_leagueStages[i++];
+                long v = 0;
+                b->used = 1;
+                if (mjson_get_long(o, vlen, "$.country", &v) > 0) b->key = (uint8_t)v;
+                if (mjson_get_long(o, vlen, "$.fresh", &v) > 0) b->fresh = (uint8_t)v;
+                if (mjson_get_long(o, vlen, "$.kept_division", &v) > 0) b->keptDiv = (uint8_t)v;
+                wp_load_u8(o, vlen, "$.clubs", b->n, LEAGUE_STAGE_TABLES);
+                int nr = wp_load_u16(o, vlen, "$.tables", rows, LEAGUE_STAGE_TABLES * 32 * 6), at = 0;
+                for (int k = 0; k < LEAGUE_STAGE_TABLES; k++) {
+                    if (b->n[k] > 32) b->n[k] = 32;
+                    for (int r = 0; r < b->n[k]; r++) {
+                        LeagueStageRow *x = &b->r[k][r];
+                        if (at + 6 > nr) { b->n[k] = (uint8_t)r; break; }
+                        x->team = rows[at++]; x->glob = rows[at++]; x->won = rows[at++];
+                        x->gf = rows[at++]; x->ga = rows[at++]; x->pts = rows[at++];
+                    }
+                }
+                nr = wp_load_u16(o, vlen, "$.kept", rows, 32 * 6);
+                b->nKept = 0;
+                for (at = 0; at + 6 <= nr && b->nKept < 32; b->nKept++) {
+                    LeagueStageRow *x = &b->kept[b->nKept];
+                    x->team = rows[at++]; x->glob = rows[at++]; x->won = rows[at++];
+                    x->gf = rows[at++]; x->ga = rows[at++]; x->pts = rows[at++];
+                }
             }
         }
     }

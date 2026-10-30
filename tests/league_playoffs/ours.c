@@ -7,6 +7,9 @@
 DIYCompetitionEx _diyCompetitionStart;
 uint8_t *diy_resolve_team(int32_t sel) { (void)sel; return 0; }
 TeamFileEx _careerTeam;
+uint16_t _selTeamNumber;
+uint8_t _primaryQualifiedTeamGrids[10 * 684];
+uint16_t _cachedPrimaryQualifiedTeamIds[9];
 uint16_t _playPromotedAnimation, _playRelegatedAnimation;
 uint16_t _teamsCountryNumbers[256];
 int32_t TeamPool_Swap(uint8_t c, uint8_t o) { (void)c; (void)o; return -1; }
@@ -44,12 +47,35 @@ int main(int argc, char **argv)
             s_in.n[d] = (u8)n[d];
         }
         s_in.nd = (u8)ND;
+        {
+            struct stages st;
+            LeagueStageBank *b = &g_leagueStages[0];
+            make_stages(it, t, n, &st);
+            b->used = 1; b->key = 20; b->fresh = (uint8_t)st.fresh;
+            for (int k = 0; k < 4; k++) {
+                b->n[k] = (uint8_t)st.n[k];
+                for (int i = 0; i < st.n[k]; i++) {
+                    const struct trow *x = &st.r[k][i];
+                    b->r[k][i].team = x->team; b->r[k][i].glob = x->glob; b->r[k][i].won = x->won;
+                    b->r[k][i].gf = x->gf; b->r[k][i].ga = x->ga; b->r[k][i].pts = x->pts;
+                }
+            }
+            b->keptDiv = 0; b->nKept = (uint8_t)st.nkeep;
+            for (int i = 0; i < st.nkeep; i++) {
+                b->kept[i].team = st.keep[i].team; b->kept[i].glob = st.keep[i].glob;
+                b->kept[i].won = b->kept[i].gf = b->kept[i].ga = 0; b->kept[i].pts = st.keep[i].pts;
+            }
+        }
         LeaguePlayoffs_Decide(20, table, scratch);
         printf("%u", it);
         /* dp moves carry a delta of +-1 and come first; the knockouts' after (as the Mod's
          * two lists): told apart by how many dp_season made */
         for (int i = 0; i < s_nmv; i++)
             printf(" %c%u:%d", i < s_dp_moves ? 'd' : 'g', s_mv[i].glob, s_mv[i].delta);
+        for (int i = 0; i < s_nres; i++)
+            printf(" T%u:%u/%u", s_res[i].kind, s_res[i].glob[0], s_res[i].glob[1]);
+        for (int k = 0; k < 3; k++)
+            if (s_sres[k].kind) printf(" S%d:%u/%u", k, s_sres[k].glob[0], s_sres[k].glob[1]);
         printf("\n");
     }
     return 0;

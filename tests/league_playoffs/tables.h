@@ -32,6 +32,34 @@ static void make_tables(unsigned it, struct trow t[16][32], int n[16])
         }
     }
 }
+/* The season's stage tables (the kept 'keep' table and the four GP_SS ones) of the top
+ * division: its clubs in a random order with random points, each table written in about
+ * three seasons of four -- its own hash, so the tables above stay the ones they were. */
+struct stages { int n[4], fresh, nkeep; struct trow r[4][32], keep[32]; };
+static void make_stages(unsigned it, struct trow t[16][32], const int n[16], struct stages *s)
+{
+    unsigned h = it * 2246822519u + 7u;
+    s->fresh = 0;
+    s->nkeep = 0;
+    for (int k = 0; k < 5; k++) {
+        int m = n[0], ord[32];
+        struct trow *o = k < 4 ? s->r[k] : s->keep;
+        h = h * 1664525u + 1013904223u;
+        if ((h >> 24) % 4 == 0) { if (k < 4) s->n[k] = 0; continue; }
+        for (int i = 0; i < m; i++) ord[i] = i;
+        for (int i = m - 1; i > 0; i--) {
+            h = h * 1664525u + 1013904223u;
+            int j = (int)((h >> 8) % (unsigned)(i + 1)), x = ord[i]; ord[i] = ord[j]; ord[j] = x;
+        }
+        for (int i = 0; i < m; i++) {
+            o[i] = t[0][ord[i]];
+            o[i].pts = (unsigned short)(40 - i);
+        }
+        if (k < 4) { s->n[k] = m; s->fresh |= 1 << k; }
+        else s->nkeep = m < 21 ? m : 21;
+    }
+}
+
 /* The season's Coppa Italia Serie C winner (dplay.c's cupw): none a quarter of the time,
  * else any club of Serie C's groups (divisions 2..4), at any place -- its own hash, so the
  * tables stay the ones before it was added. */

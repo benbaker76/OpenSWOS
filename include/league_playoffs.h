@@ -39,6 +39,30 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count);
 /* The season end of the career country's primary league: Begin before its divisions are
  * played out, KeepTable after each (its final table in the DIY competition), Decide after
  * the balanced-moves check (DIY_ValidateLeagueScratchBuffer). */
+/* A league's stage tables (the Mod's GP_SS bank: gplay.c gp_stage), kept at a fixture stage's
+ * end (src/league_split.c, the split table's stage 'table'): r[k] in the table's order; the
+ * knockouts' 'stage_place' entrants 4..7 read r[0..3] (Argentina: 4 the Apertura, 5 the
+ * Clausura, 6 the annual table -- r[2] = r[0] + r[1] by club when the stage is 'annual').
+ * One bank per league (its country), saved with the career: the career league's stages are
+ * played through the season, the others' at its end. */
+#define LEAGUE_STAGE_TABLES 4
+#define LEAGUE_STAGE_BANKS  24
+typedef struct { uint16_t team, glob, won, gf, ga, pts; } LeagueStageRow;
+typedef struct {
+    uint8_t used, key, fresh, pad;      /* key: the league's country; fresh: bit k = r[k] this season's */
+    uint8_t n[LEAGUE_STAGE_TABLES];
+    LeagueStageRow r[LEAGUE_STAGE_TABLES][32];
+    uint8_t keptDiv, nKept;             /* a 'keep' stage's frozen table (its division; 0 clubs: none) */
+    LeagueStageRow kept[32];
+} LeagueStageBank;
+extern LeagueStageBank g_leagueStages[LEAGUE_STAGE_BANKS];
+void LeaguePlayoffs_ResetStages(void);
+/* A fixture stage just over (league_split.c): the DIY league's table into its league's bank. */
+void LeaguePlayoffs_StageTable(uint8_t country, uint32_t k, uint32_t annual);
+/* A 'keep' stage's table frozen (Malta's Opening Round, its title play-off's seeds): the
+ * division's kept table, read at the season end (the Mod's gp_keep). */
+void LeaguePlayoffs_KeepStage(uint8_t country, uint16_t division);
+
 void LeaguePlayoffs_Begin(void);
 void LeaguePlayoffs_KeepTable(const uint8_t *competition, uint16_t division);
 void LeaguePlayoffs_Decide(uint16_t country, const int8_t *table, int8_t *scratch);
