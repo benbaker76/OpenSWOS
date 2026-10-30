@@ -31,6 +31,53 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count) { *count = 1; return 
 const WorldPromedio *World_Promedio(uint8_t c, int32_t *count) { (void)c; *count = 0; return 0; }   /* (the Mod's GP_PROM_TAB here: none) */
 const LeagueGroups *LeagueGroups_ForCountry(uint16_t c) { (void)c; return 0; }
 static int8_t table[2000], scratch[2000];
+
+/* The career club's contest for each play-off (world_playoff.c k_make, its ContestEntrants and
+ * presim), the club the first entrant that waits in round 1: as mod_ko. */
+static void ours_ko(struct trow (*t)[32], const int *n)
+{
+    LeagueStageRow tab[32];
+    const uint8_t *s;
+    for (int pi = 0; (s = LeaguePlayoffs_SpecAt(20, pi)) != 0; pi++) {
+        const int d = s[6] == 0 && s[7] < ND ? s[7] : 0;    /* (the division of its first entrant) */
+        for (int k = 0; k < n[d]; k++) {
+            tab[k].team = t[d][k].team; tab[k].glob = t[d][k].glob; tab[k].won = t[d][k].won;
+            tab[k].gf = t[d][k].gf; tab[k].ga = t[d][k].ga; tab[k].pts = t[d][k].pts;
+        }
+        int ne = s[1], grp = 0, wait = -1, in0[64] = { 0 };
+        const uint8_t *r = s + 6 + 4 * ne, *r0 = r, *sp = 0;
+        uint16_t team[64], glob[64], pts[64];
+        uint8_t prio[64];
+        for (int k = 0; k < s[2]; k++) { grp |= r[1] & 0x80; r += 6 + 2 * r[0]; }
+        for (int i = 1; i < ne; i++)
+            grp |= s[6 + 4 * i] == 0 && (s[6] != 0 || s[7 + 4 * i] != s[7]);
+        if (grp || r0[4] || ne > 64) continue;
+        _selTeamNumber = 0xFFFF;
+        if (LeaguePlayoffs_ContestEntrants(20, d, tab, n[d], pi, team, glob, prio, pts, &sp) != ne) continue;
+        for (int i = 0; i < r0[0]; i++)
+            for (int x = 0; x < 2; x++) if (r0[6 + 2 * i + x] < ne) in0[r0[6 + 2 * i + x]] = 1;
+        for (int i = 0; i < ne && wait < 0; i++) {
+            if (in0[i]) continue;
+            wait = i;
+            for (int j = 0; j < ne; j++) if (j != i && team[j] == team[i]) wait = -1;
+        }
+        if (wait < 0) continue;
+        _selTeamNumber = team[wait];
+        LeaguePlayoffs_ContestEntrants(20, d, tab, n[d], pi, team, glob, prio, pts, &sp);
+        LeaguePlayoffs_ContestSeed(pi, team, ne);
+        printf(" K%d:", pi);
+        for (int i = 0; i < r0[0]; i++) {
+            const int a = r0[6 + 2 * i], b = r0[7 + 2 * i];
+            int w = -1;
+            if (a < ne && b < ne)
+                w = team[a] == team[b] ? a : LeaguePlayoffs_ContestTie(a, b, r0[1], r0[2] & 0x7F, r0[3]);
+            printf("%04X,", w >= 0 ? team[w] : 0);
+        }
+        if (s[5] & 2)
+            for (int p = 0; p < 256; p++)
+                for (int j = 0; j < ne; j++) if (prio[j] == p) printf("r%04X", team[j]);
+    }
+}
 int main(int argc, char **argv)
 {
     unsigned N = argc > 2 ? (unsigned)atoi(argv[2]) : 20000;
@@ -79,6 +126,7 @@ int main(int argc, char **argv)
             printf(" T%u:%u/%u", s_res[i].kind, s_res[i].glob[0], s_res[i].glob[1]);
         for (int k = 0; k < 3; k++)
             if (s_sres[k].kind) printf(" S%d:%u/%u", k, s_sres[k].glob[0], s_sres[k].glob[1]);
+        if (argc > 4) ours_ko(t, n);
         printf("\n");
     }
     return 0;

@@ -5,6 +5,7 @@
 #include "game_types.h"
 #include "uefa_coef.h"
 #include "conti_season.h"
+#include "world_playoff.h"
 #include "swos_types.h"
 #include "world_cups.h"
 #include "world_cupd.h"
@@ -398,6 +399,9 @@ void WorldCups_PlayLeagueCupEarly(uint8_t country)
 
 int32_t WorldCups_RoundStringIndex(uint8_t compId, uint16_t round, uint16_t rounds)
 {
+    const int32_t wp = WorldPlayoff_RoundStringIndex(compId, round);  /* (a play-off's: world_playoff.c) */
+    if (wp >= 0)
+        return wp;
     const int32_t cupd = CupD_RoundStringIndex(compId, round);   /* (the Coppa Italia Serie D: world_cupd.c) */
     if (cupd >= 0)
         return cupd;

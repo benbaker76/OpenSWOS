@@ -195,6 +195,18 @@ extern char _aPrelimRound[];
 extern char _aLast32[];
 extern char _aLast64[];
 extern char _aPrelim[];
+extern char _aWildCard[];
+extern char _aRoundOneGame1[];
+extern char _aRoundOneGame2[];
+extern char _aRoundOneGame3[];
+extern char _aConfSemiFinals[];
+extern char _aConfFinal[];
+extern char _aMlsCup[];
+extern char _aR1Game1[];
+extern char _aR1Game2[];
+extern char _aR1Game3[];
+extern char _aConfSemis[];
+extern char _aConfFinal_0[];
 extern char _aQuarterFinal[];
 extern char _aRb[];
 extern char _aRememberUnless[];
@@ -1415,7 +1427,7 @@ void *_divStringTable[4] = {
     _aDiv2,
     _aDiv3,
 };
-void *_cupRoundStringTable[16] = {
+void *_cupRoundStringTable[23] = {
     _aFirstRound,
     _aSecondRound,
     _aThirdRound,
@@ -1432,8 +1444,15 @@ void *_cupRoundStringTable[16] = {
     _aRoundOf32,             /* 13: the Coppa Italia Serie D's (world_cupd.c) */
     _aRoundOf64,             /* 14 */
     _aPrelimRound,           /* 15 */
+    _aWildCard,              /* 16: a world's MLS play-off (world_playoff.c) */
+    _aRoundOneGame1,         /* 17 */
+    _aRoundOneGame2,         /* 18 */
+    _aRoundOneGame3,         /* 19 */
+    _aConfSemiFinals,        /* 20 */
+    _aConfFinal,             /* 21 */
+    _aMlsCup,                /* 22 */
 };
-void *_roundStringTable[16] = {
+void *_roundStringTable[23] = {
     _aRound1,
     _aRound2,
     _aRound3,
@@ -1450,6 +1469,13 @@ void *_roundStringTable[16] = {
     _aLast32,                /* 13 */
     _aLast64,                /* 14 */
     _aPrelim,                /* 15 */
+    _aWildCard,              /* 16 */
+    _aR1Game1,               /* 17 */
+    _aR1Game2,               /* 18 */
+    _aR1Game3,               /* 19 */
+    _aConfSemis,             /* 20 */
+    _aConfFinal_0,           /* 21 */
+    _aMlsCup,                /* 22 */
 };
 void *_rndStringTable[15] = {
     _aRnd1,

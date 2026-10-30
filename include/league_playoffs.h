@@ -35,6 +35,8 @@ typedef struct {
     const char *const (*names)[2];      /* each play-off's names (long, short), spec order */
     uint8_t        nnames;
     const uint8_t *then;        /* each play-off's 'then_build': the one built when it ends + 1 */
+    const uint8_t (*rounds)[12];        /* each play-off's game rounds' names (_cupRoundStringTable's
+                                         * indices, 0xFF the game's): the pack's 'round_names' */
 } LeaguePlayoffs;
 
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count);
@@ -78,6 +80,11 @@ int32_t LeaguePlayoffs_TopTable(uint16_t *teams, int32_t cap);
 int32_t LeaguePlayoffs_ContestEntrants(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
                                        int32_t pidx, uint16_t *team, uint16_t *glob, uint8_t *prio,
                                        uint16_t *pts, const uint8_t **spec);
+/* Right after ContestEntrants: a round-1 tie simulated at the contest's build, the career club
+ * waiting (the Mod's presim): the seed (hseed of game round 0), then each tie of entrants a, b
+ * (legs 3: a best of three); the winner, a or b. */
+void LeaguePlayoffs_ContestSeed(int32_t pidx, const uint16_t *team, int32_t n);
+int32_t LeaguePlayoffs_ContestTie(int32_t a, int32_t b, int32_t legs, int32_t host, int32_t level);
 
 void LeaguePlayoffs_Begin(void);
 void LeaguePlayoffs_KeepTable(const uint8_t *competition, uint16_t division);

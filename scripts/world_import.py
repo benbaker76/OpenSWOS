@@ -820,8 +820,29 @@ def playoff_names(pos):
         nm = po.get("names") or {}
         ln, sh = (nm.get("en") or nm.get("*") or ["PLAY-OFF", "PLAY-OFF"])[:2]
         then = keys.index(po["then_build"]) + 1 if po.get("then_build") in keys else 0
-        out.append((ln.upper()[:23], sh.upper()[:15], then))   # (then: the play-off built when it ends + 1)
+        out.append((ln.upper()[:23], sh.upper()[:15], then,    # (then: the play-off built when it ends + 1)
+                    playoff_round_names(po)))
     return out
+
+
+# A play-off's game rounds' names (the Mod's gplay.py rnames: pack 'round_names', one per game round,
+# a best-of-three's games apart; else F, SF, QF, R16 from the end): _cupRoundStringTable's indices,
+# 0xFF the game's own (world_playoff.c).
+ROUND_NAME_KEYS = {"WC": 16, "R1G1": 17, "R1G2": 18, "R1G3": 19, "CSF": 20, "CF": 21, "CUP": 22,
+                   "PRE": 15, "R16": 12, "QF": 6, "SF": 7, "F": 8}
+ROUND_NAMES_MAX = 12                    # (gplay.c KG)
+
+
+def playoff_round_names(po):
+    names = po.get("round_names")
+    if not names:
+        rs = po.get("rounds") or []
+        names = [] if (not rs or len(rs) > 4 or len(rs[-1].get("ties") or []) != 1 or
+                       any("group" in r or r.get("legs", 1) not in (1, 2) or not r.get("ties") for r in rs)) \
+            else ["R16", "QF", "SF", "F"][4 - len(rs):]
+    if not isinstance(names, list) or len(names) > ROUND_NAMES_MAX or any(x not in ROUND_NAME_KEYS for x in names):
+        sys.exit("%s: round_names: up to %d of %s" % (po.get("key"), ROUND_NAMES_MAX, " ".join(ROUND_NAME_KEYS)))
+    return [ROUND_NAME_KEYS[x] for x in names] + [0xFF] * (ROUND_NAMES_MAX - len(names))
 
 
 def country_playoffs(wc, pk, picked):
@@ -1436,14 +1457,16 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             "    { %d, %d }," % (b, f) for b, f in po["seconds"]) or "    { 0, 0 },"))
         names = po.get("names") or []
         po_tables.append("static const char *const %sNames[][2] = {\n%s\n};" % (sym, "\n".join(
-            "    { %s, %s }," % (c_string(a), c_string(b)) for a, b, _ in names) or "    { 0, 0 },"))
+            "    { %s, %s }," % (c_string(a), c_string(b)) for a, b, _, _ in names) or "    { 0, 0 },"))
         po_tables.append("static const uint8_t %sThen[] = { %s };" % (sym, ", ".join(
-            str(t) for _, _, t in names) or "0"))
+            str(t) for _, _, t, _ in names) or "0"))
+        po_tables.append("static const uint8_t %sRounds[][%d] = {\n%s\n};" % (sym, ROUND_NAMES_MAX, "\n".join(
+            "    { %s }," % ", ".join("0x%02X" % x for x in r) for _, _, _, r in names) or "    { 0xFF },"))
         po_entries.append("    { %d, %d, %sPromoted, %sRelegated, %d, %d, %d, %d, %sSpec, %d, %sSeconds, %d, %d,"
-                          " %sNames, %d, %sThen },   /* %s */" % (
+                          " %sNames, %d, %sThen, %sRounds },   /* %s */" % (
             po["country"], po["divisions"], sym, sym, int(po["italy"]), po["serieB"], po["groupFirst"],
             po["groups"], sym, len(po["seconds"]), sym, po["secondTop"], po["secondFlags"], sym, len(names),
-            sym, po["name"]))
+            sym, sym, po["name"]))
     po_tables.append("static const LeaguePlayoffs kWorld%sPlayoffs[] = {\n%s\n};" % (tag, "\n".join(po_entries)))
     po_cases = ("    case WORLD_%s:\n        *count = %d;\n        return kWorld%sPlayoffs;"
                 % (tag, len(playoffs), tag))

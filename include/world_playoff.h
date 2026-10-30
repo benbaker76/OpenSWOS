@@ -79,6 +79,12 @@ typedef struct {
     uint8_t  tw[WORLD_PLAYOFF_MAX], tl[WORLD_PLAYOFF_MAX];   /* each tie's winner / loser (entrant), 0xFF */
     uint8_t  tieT[16];          /* the round under way: its real ties' tie indices */
     uint16_t glob[WORLD_PLAYOFF_MAX];   /* the entrants' global numbers */
+    /* its game rounds (the Mod's gp_ko: a best-of-three round is three single-match rounds):
+     * the contest's first (the rounds before decided at its build), the game rounds skipped
+     * since (a game 3 nobody needed); a series' wins by tie, the better placed's in the low
+     * nibble */
+    uint8_t  g0, skip;
+    uint8_t  sw[WORLD_PLAYOFF_MAX];
 } WorldPlayoffState;
 
 /* A stage title the career club's division decided mid-season (its knockout played or
@@ -127,6 +133,10 @@ void WorldPlayoff_RoundSize(void);
 /* The season end has simulated division d afresh: a group simulated early gets the early
  * results, place by place (dplay.c dp_restore), so the play-off's seeding stands. */
 void WorldPlayoff_RestoreEarlyTable(uint16_t division);
+
+/* A game round's name of the contest (the pack's 'round_names': _cupRoundStringTable's index),
+ * -1: not ours, or the game's own. */
+int32_t WorldPlayoff_RoundStringIndex(uint8_t compId, uint16_t round);
 
 /* A round's name for the contest under way where the engine's would mislead, or 0. */
 const char *WorldPlayoff_RoundName(uint16_t round, uint16_t rounds);

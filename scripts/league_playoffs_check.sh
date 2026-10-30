@@ -87,10 +87,11 @@ PY
 PN=$(( N / 10 ))
 npacks=0; bad=""
 while read -r code shape; do
-    "$OUT/mod" "$OUT/$code.spec" "$PN" "$shape" > "$OUT/p_mod.txt"
-    "$OUT/ours" "$OUT/$code.spec" "$PN" "$shape" > "$OUT/p_ours.txt" 2>/dev/null
+    "$OUT/mod" "$OUT/$code.spec" "$PN" "$shape" ko > "$OUT/p_mod.txt"
+    "$OUT/ours" "$OUT/$code.spec" "$PN" "$shape" ko > "$OUT/p_ours.txt" 2>/dev/null
     if cmp -s "$OUT/p_mod.txt" "$OUT/p_ours.txt"; then
         npacks=$((npacks + 1))
+        echo $(( $(cat "$OUT/p_ours_ko.txt" 2>/dev/null || echo 0) + $(grep -o 'K[0-9]*:[0-9A-F,]*' "$OUT/p_ours.txt" | tr -cd , | wc -c) )) > "$OUT/p_ours_ko.txt"
     else
         bad="$bad $code"
         [ -n "${VERBOSE:-}" ] && { echo "  $code ($shape) differs:"; diff "$OUT/p_mod.txt" "$OUT/p_ours.txt" | head -3; }
@@ -98,7 +99,8 @@ while read -r code shape; do
 done < "$OUT/packs.txt"
 if [ -z "$bad" ]; then     # (Argentina's promedio too, its history kept season to season)
     echo "PASS: every pack's knockouts ($npacks leagues): compiled as the Mod compiles them, $PN seasons each (stage tables given)," \
-         "every move, champion and stage title the Mod's"
+         "every move, champion and stage title the Mod's; the career club's contest built as its ko_build" \
+         "($(cat "$OUT"/p_ours_ko.txt 2>/dev/null || echo 0) round-1 ties simulated at the build)"
 else
     echo "FAIL: the knockouts of$bad differ from the Mod's ($npacks leagues equal; VERBOSE=1 for the first seasons)"
     exit 1

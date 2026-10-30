@@ -45,3 +45,45 @@ void mod_gp(const unsigned short (*rows)[32][6], const int *n, int nd, const u8 
     for (int k = 0; k < 3; k++)
         if (GP_OUT.sres[k].kind) fprintf(out, " S%d:%u/%u", k, GP_OUT.sres[k].glob[0], GP_OUT.sres[k].glob[1]);
 }
+/* The career club's contest (ko_build) for each play-off of knockouts, the club the first entrant
+   that waits in round 1: its round-1 ties simulated at the build (presim) -- their winners -- and,
+   by record ('host_by_record'), its clubs in rank order. */
+static u8 KO_NM[12 * 64];
+void mod_ko(FILE *out)
+{
+    const u8 *s;
+    GP_NM = (const u32 *)KO_NM;
+    GP_RN = 0;
+    GP_TH = 0;
+    GP_IN.gtype = 4;
+    for (int pi = 0; (s = po_at(pi)); pi++) {
+        int n = s[1], grp = 0, wait = -1, in0[64] = { 0 }, ok = 1;
+        const u8 *r = s + 6 + 4 * n, *r0 = r;
+        u16 team[64];
+        for (int k = 0; k < s[2]; k++) { grp |= r[1] & 0x80; r += 6 + 2 * r[0]; }
+        for (int i = 1; i < n; i++)             /* (entrants of two divisions: ours plays only one's) */
+            grp |= s[6 + 4 * i] == 0 && (s[6] != 0 || s[7 + 4 * i] != s[7]);
+        if (grp || r0[4] || n > 64) continue;   /* (group rounds, a paired round 1: not here) */
+        for (int i = 0; i < n; i++) {
+            int c = ent_club(s + 6 + 4 * i, s[0]);
+            if (c < 0) ok = 0; else team[i] = row(c)->team;
+        }
+        if (!ok) continue;
+        for (int i = 0; i < r0[0]; i++)
+            for (int x = 0; x < 2; x++) if (r0[6 + 2 * i + x] < n) in0[r0[6 + 2 * i + x]] = 1;
+        for (int i = 0; i < n && wait < 0; i++) {
+            if (in0[i]) continue;
+            wait = i;
+            for (int j = 0; j < n; j++) if (j != i && team[j] == team[i]) wait = -1;
+        }
+        if (wait < 0) continue;
+        GP_IN.mgr = team[wait];
+        struct gp_ko *k = &GP_ST.ko[0];
+        ko_build(k, pi, 4, 0xFE);
+        fprintf(out, " K%d:", pi);
+        for (int t = 0; t < r0[0]; t++) fprintf(out, "%04X,", k->tw[t] != NOC ? k->team[k->tw[t]] : 0);
+        if (s[5] & 2)
+            for (int p = 0; p < 256; p++)
+                for (int j = 0; j < k->n; j++) if (k->prio[j] == p) fprintf(out, "r%04X", k->team[j]);
+    }
+}

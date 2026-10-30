@@ -2390,6 +2390,31 @@ static const char *const kWorld2627_italyNames[][2] = {
 
 static const uint8_t kWorld2627_italyThen[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
+static const uint8_t kWorld2627_italyRounds[][12] = {
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_argentinaPromoted[] = { 0, 0, 0 };
 
 static const uint8_t kWorld2627_argentinaRelegated[] = { 0, 0, 0 };
@@ -2439,6 +2464,15 @@ static const char *const kWorld2627_argentinaNames[][2] = {
 
 static const uint8_t kWorld2627_argentinaThen[] = { 0, 0, 0, 0, 6, 0 };
 
+static const uint8_t kWorld2627_argentinaRounds[][12] = {
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x0C, 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x0C, 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_australiaPromoted[] = { 0, 0, 0, 0 };
 
 static const uint8_t kWorld2627_australiaRelegated[] = { 0, 0, 0, 0 };
@@ -2460,6 +2494,10 @@ static const char *const kWorld2627_australiaNames[][2] = {
 
 static const uint8_t kWorld2627_australiaThen[] = { 0 };
 
+static const uint8_t kWorld2627_australiaRounds[][12] = {
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_austriaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_austriaRelegated[] = { 0 };
@@ -2479,6 +2517,10 @@ static const char *const kWorld2627_austriaNames[][2] = {
 };
 
 static const uint8_t kWorld2627_austriaThen[] = { 0 };
+
+static const uint8_t kWorld2627_austriaRounds[][12] = {
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_brazilPromoted[] = { 0, 2 };
 
@@ -2501,6 +2543,11 @@ static const char *const kWorld2627_brazilNames[][2] = {
 
 static const uint8_t kWorld2627_brazilThen[] = { 0, 0 };
 
+static const uint8_t kWorld2627_brazilRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_bulgariaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_bulgariaRelegated[] = { 0 };
@@ -2519,6 +2566,10 @@ static const char *const kWorld2627_bulgariaNames[][2] = {
 };
 
 static const uint8_t kWorld2627_bulgariaThen[] = { 0 };
+
+static const uint8_t kWorld2627_bulgariaRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_canadaPromoted[] = { 0 };
 
@@ -2539,6 +2590,10 @@ static const char *const kWorld2627_canadaNames[][2] = {
 };
 
 static const uint8_t kWorld2627_canadaThen[] = { 0 };
+
+static const uint8_t kWorld2627_canadaRounds[][12] = {
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_colombiaPromoted[] = { 0 };
 
@@ -2568,6 +2623,11 @@ static const char *const kWorld2627_colombiaNames[][2] = {
 
 static const uint8_t kWorld2627_colombiaThen[] = { 0, 0 };
 
+static const uint8_t kWorld2627_colombiaRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_costaricaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_costaricaRelegated[] = { 0 };
@@ -2593,6 +2653,11 @@ static const char *const kWorld2627_costaricaNames[][2] = {
 
 static const uint8_t kWorld2627_costaricaThen[] = { 0, 0 };
 
+static const uint8_t kWorld2627_costaricaRounds[][12] = {
+    { 0x07, 0x08, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_czechrepublicPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_czechrepublicRelegated[] = { 0 };
@@ -2613,6 +2678,10 @@ static const char *const kWorld2627_czechrepublicNames[][2] = {
 
 static const uint8_t kWorld2627_czechrepublicThen[] = { 0 };
 
+static const uint8_t kWorld2627_czechrepublicRounds[][12] = {
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_denmarkPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_denmarkRelegated[] = { 0 };
@@ -2631,6 +2700,10 @@ static const char *const kWorld2627_denmarkNames[][2] = {
 };
 
 static const uint8_t kWorld2627_denmarkThen[] = { 0 };
+
+static const uint8_t kWorld2627_denmarkRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_englandPromoted[] = { 0, 2, 2, 3 };
 
@@ -2660,6 +2733,12 @@ static const char *const kWorld2627_englandNames[][2] = {
 
 static const uint8_t kWorld2627_englandThen[] = { 0, 0, 0 };
 
+static const uint8_t kWorld2627_englandRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_spainPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_spainRelegated[] = { 3, 0 };
@@ -2680,6 +2759,10 @@ static const char *const kWorld2627_spainNames[][2] = {
 
 static const uint8_t kWorld2627_spainThen[] = { 0 };
 
+static const uint8_t kWorld2627_spainRounds[][12] = {
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_francePromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_franceRelegated[] = { 2, 0 };
@@ -2699,6 +2782,10 @@ static const char *const kWorld2627_franceNames[][2] = {
 };
 
 static const uint8_t kWorld2627_franceThen[] = { 0 };
+
+static const uint8_t kWorld2627_franceRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_germanyPromoted[] = { 0, 2, 2 };
 
@@ -2721,6 +2808,11 @@ static const char *const kWorld2627_germanyNames[][2] = {
 };
 
 static const uint8_t kWorld2627_germanyThen[] = { 0, 0 };
+
+static const uint8_t kWorld2627_germanyRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_guatemalaPromoted[] = { 0 };
 
@@ -2748,6 +2840,11 @@ static const char *const kWorld2627_guatemalaNames[][2] = {
 
 static const uint8_t kWorld2627_guatemalaThen[] = { 0, 0 };
 
+static const uint8_t kWorld2627_guatemalaRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_hondurasPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_hondurasRelegated[] = { 0 };
@@ -2774,6 +2871,11 @@ static const char *const kWorld2627_hondurasNames[][2] = {
 
 static const uint8_t kWorld2627_hondurasThen[] = { 0, 0 };
 
+static const uint8_t kWorld2627_hondurasRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_japanPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_japanRelegated[] = { 3, 0 };
@@ -2793,6 +2895,10 @@ static const char *const kWorld2627_japanNames[][2] = {
 };
 
 static const uint8_t kWorld2627_japanThen[] = { 0 };
+
+static const uint8_t kWorld2627_japanRounds[][12] = {
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_mexicoPromoted[] = { 0, 0 };
 
@@ -2837,6 +2943,15 @@ static const char *const kWorld2627_mexicoNames[][2] = {
 
 static const uint8_t kWorld2627_mexicoThen[] = { 0, 3, 0, 0, 6, 0 };
 
+static const uint8_t kWorld2627_mexicoRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_maltaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_maltaRelegated[] = { 0 };
@@ -2856,6 +2971,10 @@ static const char *const kWorld2627_maltaNames[][2] = {
 };
 
 static const uint8_t kWorld2627_maltaThen[] = { 0 };
+
+static const uint8_t kWorld2627_maltaRounds[][12] = {
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_hollandPromoted[] = { 0, 2 };
 
@@ -2885,6 +3004,11 @@ static const char *const kWorld2627_hollandNames[][2] = {
 
 static const uint8_t kWorld2627_hollandThen[] = { 0, 0 };
 
+static const uint8_t kWorld2627_hollandRounds[][12] = {
+    { 0x0C, 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_northernirelandPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_northernirelandRelegated[] = { 0 };
@@ -2905,6 +3029,10 @@ static const char *const kWorld2627_northernirelandNames[][2] = {
 };
 
 static const uint8_t kWorld2627_northernirelandThen[] = { 0 };
+
+static const uint8_t kWorld2627_northernirelandRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_panamaPromoted[] = { 0 };
 
@@ -2932,6 +3060,11 @@ static const char *const kWorld2627_panamaNames[][2] = {
 
 static const uint8_t kWorld2627_panamaThen[] = { 0, 0 };
 
+static const uint8_t kWorld2627_panamaRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_paraguayPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_paraguayRelegated[] = { 0 };
@@ -2952,6 +3085,11 @@ static const char *const kWorld2627_paraguayNames[][2] = {
 };
 
 static const uint8_t kWorld2627_paraguayThen[] = { 0, 0 };
+
+static const uint8_t kWorld2627_paraguayRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_peruPromoted[] = { 0 };
 
@@ -2978,6 +3116,12 @@ static const char *const kWorld2627_peruNames[][2] = {
 
 static const uint8_t kWorld2627_peruThen[] = { 0, 0, 0 };
 
+static const uint8_t kWorld2627_peruRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_portugalPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_portugalRelegated[] = { 2, 0 };
@@ -2999,6 +3143,10 @@ static const char *const kWorld2627_portugalNames[][2] = {
 
 static const uint8_t kWorld2627_portugalThen[] = { 0 };
 
+static const uint8_t kWorld2627_portugalRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_romaniaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_romaniaRelegated[] = { 0 };
@@ -3018,6 +3166,10 @@ static const char *const kWorld2627_romaniaNames[][2] = {
 };
 
 static const uint8_t kWorld2627_romaniaThen[] = { 0 };
+
+static const uint8_t kWorld2627_romaniaRounds[][12] = {
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_scotlandPromoted[] = { 0, 1, 1, 1 };
 
@@ -3045,6 +3197,12 @@ static const char *const kWorld2627_scotlandNames[][2] = {
 };
 
 static const uint8_t kWorld2627_scotlandThen[] = { 0, 0, 0 };
+
+static const uint8_t kWorld2627_scotlandRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_elsalvadorPromoted[] = { 0, 0, 0, 1, 1 };
 
@@ -3074,6 +3232,12 @@ static const char *const kWorld2627_elsalvadorNames[][2] = {
 
 static const uint8_t kWorld2627_elsalvadorThen[] = { 0, 0, 0 };
 
+static const uint8_t kWorld2627_elsalvadorRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_sanmarinoPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_sanmarinoRelegated[] = { 0 };
@@ -3097,6 +3261,10 @@ static const char *const kWorld2627_sanmarinoNames[][2] = {
 
 static const uint8_t kWorld2627_sanmarinoThen[] = { 0 };
 
+static const uint8_t kWorld2627_sanmarinoRounds[][12] = {
+    { 0x0C, 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_turkeyPromoted[] = { 0, 2 };
 
 static const uint8_t kWorld2627_turkeyRelegated[] = { 3, 0 };
@@ -3117,6 +3285,10 @@ static const char *const kWorld2627_turkeyNames[][2] = {
 };
 
 static const uint8_t kWorld2627_turkeyThen[] = { 0 };
+
+static const uint8_t kWorld2627_turkeyRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
 
 static const uint8_t kWorld2627_uruguayPromoted[] = { 0, 3 };
 
@@ -3145,6 +3317,13 @@ static const char *const kWorld2627_uruguayNames[][2] = {
 
 static const uint8_t kWorld2627_uruguayThen[] = { 0, 0, 0, 0 };
 
+static const uint8_t kWorld2627_uruguayRounds[][12] = {
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_usaPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_usaRelegated[] = { 0 };
@@ -3171,6 +3350,10 @@ static const char *const kWorld2627_usaNames[][2] = {
 
 static const uint8_t kWorld2627_usaThen[] = { 0 };
 
+static const uint8_t kWorld2627_usaRounds[][12] = {
+    { 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const uint8_t kWorld2627_walesPromoted[] = { 0 };
 
 static const uint8_t kWorld2627_walesRelegated[] = { 0 };
@@ -3192,41 +3375,45 @@ static const char *const kWorld2627_walesNames[][2] = {
 
 static const uint8_t kWorld2627_walesThen[] = { 0 };
 
+static const uint8_t kWorld2627_walesRounds[][12] = {
+    { 0x06, 0x07, 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+};
+
 static const LeaguePlayoffs kWorld2627Playoffs[] = {
-    { 20, 14, kWorld2627_italyPromoted, kWorld2627_italyRelegated, 1, 1, 2, 3, kWorld2627_italySpec, 3, kWorld2627_italySeconds, 1, 3, kWorld2627_italyNames, 22, kWorld2627_italyThen },   /* Italy */
-    { 43, 3, kWorld2627_argentinaPromoted, kWorld2627_argentinaRelegated, 0, 0, 0, 0, kWorld2627_argentinaSpec, 0, kWorld2627_argentinaSeconds, 255, 0, kWorld2627_argentinaNames, 6, kWorld2627_argentinaThen },   /* Argentina */
-    { 44, 4, kWorld2627_australiaPromoted, kWorld2627_australiaRelegated, 0, 0, 0, 0, kWorld2627_australiaSpec, 0, kWorld2627_australiaSeconds, 255, 0, kWorld2627_australiaNames, 1, kWorld2627_australiaThen },   /* Australia */
-    { 1, 1, kWorld2627_austriaPromoted, kWorld2627_austriaRelegated, 0, 0, 0, 0, kWorld2627_austriaSpec, 0, kWorld2627_austriaSeconds, 255, 0, kWorld2627_austriaNames, 1, kWorld2627_austriaThen },   /* Austria */
-    { 46, 2, kWorld2627_brazilPromoted, kWorld2627_brazilRelegated, 0, 0, 0, 0, kWorld2627_brazilSpec, 0, kWorld2627_brazilSeconds, 255, 0, kWorld2627_brazilNames, 2, kWorld2627_brazilThen },   /* Brazil */
-    { 3, 1, kWorld2627_bulgariaPromoted, kWorld2627_bulgariaRelegated, 0, 0, 0, 0, kWorld2627_bulgariaSpec, 0, kWorld2627_bulgariaSeconds, 255, 0, kWorld2627_bulgariaNames, 1, kWorld2627_bulgariaThen },   /* Bulgaria */
-    { 56, 1, kWorld2627_canadaPromoted, kWorld2627_canadaRelegated, 0, 0, 0, 0, kWorld2627_canadaSpec, 0, kWorld2627_canadaSeconds, 255, 0, kWorld2627_canadaNames, 1, kWorld2627_canadaThen },   /* Canada */
-    { 49, 1, kWorld2627_colombiaPromoted, kWorld2627_colombiaRelegated, 0, 0, 0, 0, kWorld2627_colombiaSpec, 0, kWorld2627_colombiaSeconds, 255, 0, kWorld2627_colombiaNames, 2, kWorld2627_colombiaThen },   /* Colombia */
-    { 58, 1, kWorld2627_costaricaPromoted, kWorld2627_costaricaRelegated, 0, 0, 0, 0, kWorld2627_costaricaSpec, 0, kWorld2627_costaricaSeconds, 255, 0, kWorld2627_costaricaNames, 2, kWorld2627_costaricaThen },   /* CostaRica */
-    { 6, 1, kWorld2627_czechrepublicPromoted, kWorld2627_czechrepublicRelegated, 0, 0, 0, 0, kWorld2627_czechrepublicSpec, 0, kWorld2627_czechrepublicSeconds, 255, 0, kWorld2627_czechrepublicNames, 1, kWorld2627_czechrepublicThen },   /* CzechRepublic */
-    { 7, 1, kWorld2627_denmarkPromoted, kWorld2627_denmarkRelegated, 0, 0, 0, 0, kWorld2627_denmarkSpec, 0, kWorld2627_denmarkSeconds, 255, 0, kWorld2627_denmarkNames, 1, kWorld2627_denmarkThen },   /* Denmark */
-    { 8, 4, kWorld2627_englandPromoted, kWorld2627_englandRelegated, 0, 0, 0, 0, kWorld2627_englandSpec, 0, kWorld2627_englandSeconds, 255, 0, kWorld2627_englandNames, 3, kWorld2627_englandThen },   /* England */
-    { 35, 2, kWorld2627_spainPromoted, kWorld2627_spainRelegated, 0, 0, 0, 0, kWorld2627_spainSpec, 1, kWorld2627_spainSeconds, 255, 2, kWorld2627_spainNames, 1, kWorld2627_spainThen },   /* Spain */
-    { 13, 2, kWorld2627_francePromoted, kWorld2627_franceRelegated, 0, 0, 0, 0, kWorld2627_franceSpec, 0, kWorld2627_franceSeconds, 255, 0, kWorld2627_franceNames, 1, kWorld2627_franceThen },   /* France */
-    { 14, 3, kWorld2627_germanyPromoted, kWorld2627_germanyRelegated, 0, 0, 0, 0, kWorld2627_germanySpec, 2, kWorld2627_germanySeconds, 2, 2, kWorld2627_germanyNames, 2, kWorld2627_germanyThen },   /* Germany */
-    { 68, 1, kWorld2627_guatemalaPromoted, kWorld2627_guatemalaRelegated, 0, 0, 0, 0, kWorld2627_guatemalaSpec, 0, kWorld2627_guatemalaSeconds, 255, 0, kWorld2627_guatemalaNames, 2, kWorld2627_guatemalaThen },   /* Guatemala */
-    { 70, 1, kWorld2627_hondurasPromoted, kWorld2627_hondurasRelegated, 0, 0, 0, 0, kWorld2627_hondurasSpec, 0, kWorld2627_hondurasSeconds, 255, 0, kWorld2627_hondurasNames, 2, kWorld2627_hondurasThen },   /* Honduras */
-    { 55, 2, kWorld2627_japanPromoted, kWorld2627_japanRelegated, 0, 0, 0, 0, kWorld2627_japanSpec, 0, kWorld2627_japanSeconds, 255, 0, kWorld2627_japanNames, 1, kWorld2627_japanThen },   /* Japan */
-    { 60, 2, kWorld2627_mexicoPromoted, kWorld2627_mexicoRelegated, 0, 0, 0, 0, kWorld2627_mexicoSpec, 0, kWorld2627_mexicoSeconds, 255, 0, kWorld2627_mexicoNames, 6, kWorld2627_mexicoThen },   /* Mexico */
-    { 24, 1, kWorld2627_maltaPromoted, kWorld2627_maltaRelegated, 0, 0, 0, 0, kWorld2627_maltaSpec, 0, kWorld2627_maltaSeconds, 255, 0, kWorld2627_maltaNames, 1, kWorld2627_maltaThen },   /* Malta */
-    { 25, 2, kWorld2627_hollandPromoted, kWorld2627_hollandRelegated, 0, 0, 0, 0, kWorld2627_hollandSpec, 4, kWorld2627_hollandSeconds, 1, 2, kWorld2627_hollandNames, 2, kWorld2627_hollandThen },   /* Holland */
-    { 26, 1, kWorld2627_northernirelandPromoted, kWorld2627_northernirelandRelegated, 0, 0, 0, 0, kWorld2627_northernirelandSpec, 0, kWorld2627_northernirelandSeconds, 255, 0, kWorld2627_northernirelandNames, 1, kWorld2627_northernirelandThen },   /* NorthernIreland */
-    { 95, 1, kWorld2627_panamaPromoted, kWorld2627_panamaRelegated, 0, 0, 0, 0, kWorld2627_panamaSpec, 0, kWorld2627_panamaSeconds, 255, 0, kWorld2627_panamaNames, 2, kWorld2627_panamaThen },   /* Panama */
-    { 64, 1, kWorld2627_paraguayPromoted, kWorld2627_paraguayRelegated, 0, 0, 0, 0, kWorld2627_paraguaySpec, 0, kWorld2627_paraguaySeconds, 255, 0, kWorld2627_paraguayNames, 2, kWorld2627_paraguayThen },   /* Paraguay */
-    { 65, 1, kWorld2627_peruPromoted, kWorld2627_peruRelegated, 0, 0, 0, 0, kWorld2627_peruSpec, 0, kWorld2627_peruSeconds, 255, 0, kWorld2627_peruNames, 3, kWorld2627_peruThen },   /* Peru */
-    { 29, 2, kWorld2627_portugalPromoted, kWorld2627_portugalRelegated, 0, 0, 0, 0, kWorld2627_portugalSpec, 3, kWorld2627_portugalSeconds, 255, 2, kWorld2627_portugalNames, 1, kWorld2627_portugalThen },   /* Portugal */
-    { 30, 1, kWorld2627_romaniaPromoted, kWorld2627_romaniaRelegated, 0, 0, 0, 0, kWorld2627_romaniaSpec, 0, kWorld2627_romaniaSeconds, 255, 0, kWorld2627_romaniaNames, 1, kWorld2627_romaniaThen },   /* Romania */
-    { 33, 4, kWorld2627_scotlandPromoted, kWorld2627_scotlandRelegated, 0, 0, 0, 0, kWorld2627_scotlandSpec, 0, kWorld2627_scotlandSeconds, 255, 0, kWorld2627_scotlandNames, 3, kWorld2627_scotlandThen },   /* Scotland */
-    { 51, 5, kWorld2627_elsalvadorPromoted, kWorld2627_elsalvadorRelegated, 0, 0, 0, 0, kWorld2627_elsalvadorSpec, 0, kWorld2627_elsalvadorSeconds, 255, 0, kWorld2627_elsalvadorNames, 3, kWorld2627_elsalvadorThen },   /* ElSalvador */
-    { 32, 1, kWorld2627_sanmarinoPromoted, kWorld2627_sanmarinoRelegated, 0, 0, 0, 0, kWorld2627_sanmarinoSpec, 0, kWorld2627_sanmarinoSeconds, 255, 0, kWorld2627_sanmarinoNames, 1, kWorld2627_sanmarinoThen },   /* SanMarino */
-    { 38, 2, kWorld2627_turkeyPromoted, kWorld2627_turkeyRelegated, 0, 0, 0, 0, kWorld2627_turkeySpec, 0, kWorld2627_turkeySeconds, 255, 0, kWorld2627_turkeyNames, 1, kWorld2627_turkeyThen },   /* Turkey */
-    { 71, 2, kWorld2627_uruguayPromoted, kWorld2627_uruguayRelegated, 0, 0, 0, 0, kWorld2627_uruguaySpec, 0, kWorld2627_uruguaySeconds, 255, 0, kWorld2627_uruguayNames, 4, kWorld2627_uruguayThen },   /* Uruguay */
-    { 73, 1, kWorld2627_usaPromoted, kWorld2627_usaRelegated, 0, 0, 0, 0, kWorld2627_usaSpec, 0, kWorld2627_usaSeconds, 255, 0, kWorld2627_usaNames, 1, kWorld2627_usaThen },   /* Usa */
-    { 40, 1, kWorld2627_walesPromoted, kWorld2627_walesRelegated, 0, 0, 0, 0, kWorld2627_walesSpec, 0, kWorld2627_walesSeconds, 255, 0, kWorld2627_walesNames, 1, kWorld2627_walesThen },   /* Wales */
+    { 20, 14, kWorld2627_italyPromoted, kWorld2627_italyRelegated, 1, 1, 2, 3, kWorld2627_italySpec, 3, kWorld2627_italySeconds, 1, 3, kWorld2627_italyNames, 22, kWorld2627_italyThen, kWorld2627_italyRounds },   /* Italy */
+    { 43, 3, kWorld2627_argentinaPromoted, kWorld2627_argentinaRelegated, 0, 0, 0, 0, kWorld2627_argentinaSpec, 0, kWorld2627_argentinaSeconds, 255, 0, kWorld2627_argentinaNames, 6, kWorld2627_argentinaThen, kWorld2627_argentinaRounds },   /* Argentina */
+    { 44, 4, kWorld2627_australiaPromoted, kWorld2627_australiaRelegated, 0, 0, 0, 0, kWorld2627_australiaSpec, 0, kWorld2627_australiaSeconds, 255, 0, kWorld2627_australiaNames, 1, kWorld2627_australiaThen, kWorld2627_australiaRounds },   /* Australia */
+    { 1, 1, kWorld2627_austriaPromoted, kWorld2627_austriaRelegated, 0, 0, 0, 0, kWorld2627_austriaSpec, 0, kWorld2627_austriaSeconds, 255, 0, kWorld2627_austriaNames, 1, kWorld2627_austriaThen, kWorld2627_austriaRounds },   /* Austria */
+    { 46, 2, kWorld2627_brazilPromoted, kWorld2627_brazilRelegated, 0, 0, 0, 0, kWorld2627_brazilSpec, 0, kWorld2627_brazilSeconds, 255, 0, kWorld2627_brazilNames, 2, kWorld2627_brazilThen, kWorld2627_brazilRounds },   /* Brazil */
+    { 3, 1, kWorld2627_bulgariaPromoted, kWorld2627_bulgariaRelegated, 0, 0, 0, 0, kWorld2627_bulgariaSpec, 0, kWorld2627_bulgariaSeconds, 255, 0, kWorld2627_bulgariaNames, 1, kWorld2627_bulgariaThen, kWorld2627_bulgariaRounds },   /* Bulgaria */
+    { 56, 1, kWorld2627_canadaPromoted, kWorld2627_canadaRelegated, 0, 0, 0, 0, kWorld2627_canadaSpec, 0, kWorld2627_canadaSeconds, 255, 0, kWorld2627_canadaNames, 1, kWorld2627_canadaThen, kWorld2627_canadaRounds },   /* Canada */
+    { 49, 1, kWorld2627_colombiaPromoted, kWorld2627_colombiaRelegated, 0, 0, 0, 0, kWorld2627_colombiaSpec, 0, kWorld2627_colombiaSeconds, 255, 0, kWorld2627_colombiaNames, 2, kWorld2627_colombiaThen, kWorld2627_colombiaRounds },   /* Colombia */
+    { 58, 1, kWorld2627_costaricaPromoted, kWorld2627_costaricaRelegated, 0, 0, 0, 0, kWorld2627_costaricaSpec, 0, kWorld2627_costaricaSeconds, 255, 0, kWorld2627_costaricaNames, 2, kWorld2627_costaricaThen, kWorld2627_costaricaRounds },   /* CostaRica */
+    { 6, 1, kWorld2627_czechrepublicPromoted, kWorld2627_czechrepublicRelegated, 0, 0, 0, 0, kWorld2627_czechrepublicSpec, 0, kWorld2627_czechrepublicSeconds, 255, 0, kWorld2627_czechrepublicNames, 1, kWorld2627_czechrepublicThen, kWorld2627_czechrepublicRounds },   /* CzechRepublic */
+    { 7, 1, kWorld2627_denmarkPromoted, kWorld2627_denmarkRelegated, 0, 0, 0, 0, kWorld2627_denmarkSpec, 0, kWorld2627_denmarkSeconds, 255, 0, kWorld2627_denmarkNames, 1, kWorld2627_denmarkThen, kWorld2627_denmarkRounds },   /* Denmark */
+    { 8, 4, kWorld2627_englandPromoted, kWorld2627_englandRelegated, 0, 0, 0, 0, kWorld2627_englandSpec, 0, kWorld2627_englandSeconds, 255, 0, kWorld2627_englandNames, 3, kWorld2627_englandThen, kWorld2627_englandRounds },   /* England */
+    { 35, 2, kWorld2627_spainPromoted, kWorld2627_spainRelegated, 0, 0, 0, 0, kWorld2627_spainSpec, 1, kWorld2627_spainSeconds, 255, 2, kWorld2627_spainNames, 1, kWorld2627_spainThen, kWorld2627_spainRounds },   /* Spain */
+    { 13, 2, kWorld2627_francePromoted, kWorld2627_franceRelegated, 0, 0, 0, 0, kWorld2627_franceSpec, 0, kWorld2627_franceSeconds, 255, 0, kWorld2627_franceNames, 1, kWorld2627_franceThen, kWorld2627_franceRounds },   /* France */
+    { 14, 3, kWorld2627_germanyPromoted, kWorld2627_germanyRelegated, 0, 0, 0, 0, kWorld2627_germanySpec, 2, kWorld2627_germanySeconds, 2, 2, kWorld2627_germanyNames, 2, kWorld2627_germanyThen, kWorld2627_germanyRounds },   /* Germany */
+    { 68, 1, kWorld2627_guatemalaPromoted, kWorld2627_guatemalaRelegated, 0, 0, 0, 0, kWorld2627_guatemalaSpec, 0, kWorld2627_guatemalaSeconds, 255, 0, kWorld2627_guatemalaNames, 2, kWorld2627_guatemalaThen, kWorld2627_guatemalaRounds },   /* Guatemala */
+    { 70, 1, kWorld2627_hondurasPromoted, kWorld2627_hondurasRelegated, 0, 0, 0, 0, kWorld2627_hondurasSpec, 0, kWorld2627_hondurasSeconds, 255, 0, kWorld2627_hondurasNames, 2, kWorld2627_hondurasThen, kWorld2627_hondurasRounds },   /* Honduras */
+    { 55, 2, kWorld2627_japanPromoted, kWorld2627_japanRelegated, 0, 0, 0, 0, kWorld2627_japanSpec, 0, kWorld2627_japanSeconds, 255, 0, kWorld2627_japanNames, 1, kWorld2627_japanThen, kWorld2627_japanRounds },   /* Japan */
+    { 60, 2, kWorld2627_mexicoPromoted, kWorld2627_mexicoRelegated, 0, 0, 0, 0, kWorld2627_mexicoSpec, 0, kWorld2627_mexicoSeconds, 255, 0, kWorld2627_mexicoNames, 6, kWorld2627_mexicoThen, kWorld2627_mexicoRounds },   /* Mexico */
+    { 24, 1, kWorld2627_maltaPromoted, kWorld2627_maltaRelegated, 0, 0, 0, 0, kWorld2627_maltaSpec, 0, kWorld2627_maltaSeconds, 255, 0, kWorld2627_maltaNames, 1, kWorld2627_maltaThen, kWorld2627_maltaRounds },   /* Malta */
+    { 25, 2, kWorld2627_hollandPromoted, kWorld2627_hollandRelegated, 0, 0, 0, 0, kWorld2627_hollandSpec, 4, kWorld2627_hollandSeconds, 1, 2, kWorld2627_hollandNames, 2, kWorld2627_hollandThen, kWorld2627_hollandRounds },   /* Holland */
+    { 26, 1, kWorld2627_northernirelandPromoted, kWorld2627_northernirelandRelegated, 0, 0, 0, 0, kWorld2627_northernirelandSpec, 0, kWorld2627_northernirelandSeconds, 255, 0, kWorld2627_northernirelandNames, 1, kWorld2627_northernirelandThen, kWorld2627_northernirelandRounds },   /* NorthernIreland */
+    { 95, 1, kWorld2627_panamaPromoted, kWorld2627_panamaRelegated, 0, 0, 0, 0, kWorld2627_panamaSpec, 0, kWorld2627_panamaSeconds, 255, 0, kWorld2627_panamaNames, 2, kWorld2627_panamaThen, kWorld2627_panamaRounds },   /* Panama */
+    { 64, 1, kWorld2627_paraguayPromoted, kWorld2627_paraguayRelegated, 0, 0, 0, 0, kWorld2627_paraguaySpec, 0, kWorld2627_paraguaySeconds, 255, 0, kWorld2627_paraguayNames, 2, kWorld2627_paraguayThen, kWorld2627_paraguayRounds },   /* Paraguay */
+    { 65, 1, kWorld2627_peruPromoted, kWorld2627_peruRelegated, 0, 0, 0, 0, kWorld2627_peruSpec, 0, kWorld2627_peruSeconds, 255, 0, kWorld2627_peruNames, 3, kWorld2627_peruThen, kWorld2627_peruRounds },   /* Peru */
+    { 29, 2, kWorld2627_portugalPromoted, kWorld2627_portugalRelegated, 0, 0, 0, 0, kWorld2627_portugalSpec, 3, kWorld2627_portugalSeconds, 255, 2, kWorld2627_portugalNames, 1, kWorld2627_portugalThen, kWorld2627_portugalRounds },   /* Portugal */
+    { 30, 1, kWorld2627_romaniaPromoted, kWorld2627_romaniaRelegated, 0, 0, 0, 0, kWorld2627_romaniaSpec, 0, kWorld2627_romaniaSeconds, 255, 0, kWorld2627_romaniaNames, 1, kWorld2627_romaniaThen, kWorld2627_romaniaRounds },   /* Romania */
+    { 33, 4, kWorld2627_scotlandPromoted, kWorld2627_scotlandRelegated, 0, 0, 0, 0, kWorld2627_scotlandSpec, 0, kWorld2627_scotlandSeconds, 255, 0, kWorld2627_scotlandNames, 3, kWorld2627_scotlandThen, kWorld2627_scotlandRounds },   /* Scotland */
+    { 51, 5, kWorld2627_elsalvadorPromoted, kWorld2627_elsalvadorRelegated, 0, 0, 0, 0, kWorld2627_elsalvadorSpec, 0, kWorld2627_elsalvadorSeconds, 255, 0, kWorld2627_elsalvadorNames, 3, kWorld2627_elsalvadorThen, kWorld2627_elsalvadorRounds },   /* ElSalvador */
+    { 32, 1, kWorld2627_sanmarinoPromoted, kWorld2627_sanmarinoRelegated, 0, 0, 0, 0, kWorld2627_sanmarinoSpec, 0, kWorld2627_sanmarinoSeconds, 255, 0, kWorld2627_sanmarinoNames, 1, kWorld2627_sanmarinoThen, kWorld2627_sanmarinoRounds },   /* SanMarino */
+    { 38, 2, kWorld2627_turkeyPromoted, kWorld2627_turkeyRelegated, 0, 0, 0, 0, kWorld2627_turkeySpec, 0, kWorld2627_turkeySeconds, 255, 0, kWorld2627_turkeyNames, 1, kWorld2627_turkeyThen, kWorld2627_turkeyRounds },   /* Turkey */
+    { 71, 2, kWorld2627_uruguayPromoted, kWorld2627_uruguayRelegated, 0, 0, 0, 0, kWorld2627_uruguaySpec, 0, kWorld2627_uruguaySeconds, 255, 0, kWorld2627_uruguayNames, 4, kWorld2627_uruguayThen, kWorld2627_uruguayRounds },   /* Uruguay */
+    { 73, 1, kWorld2627_usaPromoted, kWorld2627_usaRelegated, 0, 0, 0, 0, kWorld2627_usaSpec, 0, kWorld2627_usaSeconds, 255, 0, kWorld2627_usaNames, 1, kWorld2627_usaThen, kWorld2627_usaRounds },   /* Usa */
+    { 40, 1, kWorld2627_walesPromoted, kWorld2627_walesRelegated, 0, 0, 0, 0, kWorld2627_walesSpec, 0, kWorld2627_walesSeconds, 255, 0, kWorld2627_walesNames, 1, kWorld2627_walesThen, kWorld2627_walesRounds },   /* Wales */
 };
 #endif
 

@@ -1040,6 +1040,8 @@ const uint8_t *LeaguePlayoffs_SpecAt(uint8_t country, int32_t pidx)
  * entrants from division d's table (best first) and the league's stage tables, as the season
  * end would resolve them -- in entrant order, with their places (a stage entrant: its stage
  * place) and points. */
+static int s_ceClub[GN], s_ceN;          /* (the last ContestEntrants' club codes) */
+
 int32_t LeaguePlayoffs_ContestEntrants(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
                                        int32_t pidx, uint16_t *team, uint16_t *glob, uint8_t *prio,
                                        uint16_t *pts, const uint8_t **spec)
@@ -1076,8 +1078,9 @@ int32_t LeaguePlayoffs_ContestEntrants(uint8_t country, int32_t d, const LeagueS
         extern uint16_t _selTeamNumber;
         s_mgr = _selTeamNumber;                 /* (the stage titles decided: the career club's division) */
     }
-    int club[GN];
+    int *club = s_ceClub;
     const u8 fresh = SSB->fresh;
+    by_rec = s[5] & 2;
     const int ok = s[1] <= WORLD_PLAYOFF_MAX && resolve_entrants(s, -1, club);
     SSB->fresh = fresh;                         /* (read only: the season end uses them again) */
     if (!ok)
@@ -1089,8 +1092,35 @@ int32_t LeaguePlayoffs_ContestEntrants(uint8_t country, int32_t d, const LeagueS
         pts[i] = gp_row(club[i])->pts;
         prio[i] = (u8)(e[4 * i] == 3 ? e[4 * i + 2] - 1 : club[i] > 255 ? 255 : club[i]);
     }
+    if (by_rec)                                 /* (the better record hosts: the ranks by it, ko_build) */
+        for (int32_t i = 0; i < s[1]; i++) {
+            prio[i] = 0;
+            for (int32_t j = 0; j < s[1]; j++)
+                if (j != i && gp_better(club[j], club[i])) prio[i]++;
+        }
+    s_ceN = s[1];
     *spec = s;
     return s[1];
+}
+
+/* The contest's round-1 ties simulated at its build, the career club waiting in round 1 (the
+ * Mod's ko_build 'presim', build_game): its draw seeded as hseed (the play-off index, the
+ * entrants' team words), entrants a, b of the last ContestEntrants; the winner (a or b). */
+void LeaguePlayoffs_ContestSeed(int32_t pidx, const uint16_t *team, int32_t n)
+{
+    u32 h = (u32)pidx;
+    for (int32_t i = 0; i < n; i++)
+        h = h * 31 + team[i];
+    gp_rng = h;
+}
+
+int32_t LeaguePlayoffs_ContestTie(int32_t a, int32_t b, int32_t legs, int32_t host, int32_t level)
+{
+    if (a < 0 || b < 0 || a >= s_ceN || b >= s_ceN)
+        return a;
+    const int ca = s_ceClub[a], cb = s_ceClub[b];
+    const int w = legs == 3 ? gp_series(ca, cb, level) : gp_tie(ca, cb, legs, host, level);
+    return w == ca ? a : b;
 }
 
 /* =====================================================================

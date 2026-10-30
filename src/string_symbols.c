@@ -120,6 +120,8 @@ extern char _aGroupF[];                       extern char _aGroupG[];           
 extern char _aHigh[];                         extern char _aQF[];                           extern char _aQFinal[];
 extern char _aLast16[];                       extern char _aRoundOf16[];                    extern char _aRoundOf32[];
 extern char _aRoundOf64[];                    extern char _aPrelimRound[];                  extern char _aLast32[];
+extern char _aWildCard[], _aRoundOneGame1[], _aRoundOneGame2[], _aRoundOneGame3[], _aConfSemiFinals[];
+extern char _aConfFinal[], _aMlsCup[], _aR1Game1[], _aR1Game2[], _aR1Game3[], _aConfSemis[], _aConfFinal_0[];
 extern char _aLast64[];                       extern char _aPrelim[];                       extern char _aRnd1[];
 extern char _aRnd2[];                         extern char _aRnd3[];                         extern char _aRnd4[];
 extern char _aRnd5[];                         extern char _aRnd6[];                         extern char _aRound1[];
@@ -722,6 +724,18 @@ const StringSymbol _stringSymbols[] = {
     { "_aLast32", (void *)_aLast32 },
     { "_aLast64", (void *)_aLast64 },
     { "_aPrelim", (void *)_aPrelim },
+    { "_aWildCard", (void *)_aWildCard },
+    { "_aRoundOneGame1", (void *)_aRoundOneGame1 },
+    { "_aRoundOneGame2", (void *)_aRoundOneGame2 },
+    { "_aRoundOneGame3", (void *)_aRoundOneGame3 },
+    { "_aConfSemiFinals", (void *)_aConfSemiFinals },
+    { "_aConfFinal", (void *)_aConfFinal },
+    { "_aMlsCup", (void *)_aMlsCup },
+    { "_aR1Game1", (void *)_aR1Game1 },
+    { "_aR1Game2", (void *)_aR1Game2 },
+    { "_aR1Game3", (void *)_aR1Game3 },
+    { "_aConfSemis", (void *)_aConfSemis },
+    { "_aConfFinal_0", (void *)_aConfFinal_0 },
     { "_aRnd1", (void *)_aRnd1 },
     { "_aRnd2", (void *)_aRnd2 },
     { "_aRnd3", (void *)_aRnd3 },

@@ -6205,8 +6205,9 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             }
         wp_emit_u16(&out, "early_rows", rows, nr);
         if (w->kind == WORLD_PLAYOFF_SPEC) {    /* (a play-off of the pack's spec: which, its ties) */
-            const uint8_t id[5] = { w->country, w->pidx, w->stage, w->season, w->week };
-            wp_emit_u8(&out, "spec", id, 5);
+            const uint8_t id[7] = { w->country, w->pidx, w->stage, w->season, w->week, w->g0, w->skip };
+            wp_emit_u8(&out, "spec", id, 7);
+            wp_emit_u8(&out, "series_wins", w->sw, WORLD_PLAYOFF_MAX);
             wp_emit_u8(&out, "tie_winners", w->tw, WORLD_PLAYOFF_MAX);
             wp_emit_u8(&out, "tie_losers", w->tl, WORLD_PLAYOFF_MAX);
             wp_emit_u8(&out, "round_ties", w->tieT, 16);
@@ -6954,9 +6955,11 @@ static void apply_semantic_load(const char *src, int src_size)
                     r->lost = rows[i++]; r->gf = rows[i++]; r->ga = rows[i++]; r->pts = rows[i++];
                 }
             if (w->kind == WORLD_PLAYOFF_SPEC) {
-                uint8_t id[5] = { 0, 0, 0xFF, 0, 0 };
-                wp_load_u8(wp, wplen, "$.spec", id, 5);
+                uint8_t id[7] = { 0, 0, 0xFF, 0, 0, 0, 0 };    /* (an older save: no game rounds before, none skipped) */
+                wp_load_u8(wp, wplen, "$.spec", id, 7);
                 w->country = id[0]; w->pidx = id[1]; w->stage = id[2]; w->season = id[3]; w->week = id[4];
+                w->g0 = id[5]; w->skip = id[6];
+                wp_load_u8(wp, wplen, "$.series_wins", w->sw, WORLD_PLAYOFF_MAX);
                 for (int t = 0; t < WORLD_PLAYOFF_MAX; t++) w->tw[t] = w->tl[t] = 0xFF;
                 wp_load_u8(wp, wplen, "$.tie_winners", w->tw, WORLD_PLAYOFF_MAX);
                 wp_load_u8(wp, wplen, "$.tie_losers", w->tl, WORLD_PLAYOFF_MAX);
