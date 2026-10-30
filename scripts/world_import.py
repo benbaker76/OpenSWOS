@@ -1034,6 +1034,7 @@ WORLD_DATA_C = """/*
 #include "world_cupd.h"
 #include "league_split.h"
 #include "league_phase.h"
+#include "uefa_coef.h"
 
 #if SWOS_WORLDS
 %(externs)s
@@ -1211,6 +1212,18 @@ CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32
     default:
         *places = 0;
         *count = 0;
+        return 0;
+    }
+}
+
+/* The UEFA coefficients' seeds (src/uefa_coef.c): the associations' last 5 seasons, the clubs'. */
+const WorldUefaSeeds *World_UefaSeeds(void)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(coef_cases)s
+#endif
+    default:
         return 0;
     }
 }
@@ -1419,7 +1432,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             sym, cupd["country"], len(cupd["rounds"]), sym, len(cupd["ties"]), sym, cupd["first"], cupd["groups"],
             sym, sym, len(cupd["pool_strength"]), sym, names[0], names[1]))
         cd_cases = "    case WORLD_%s:\n        return &%s;" % (tag, sym)
-    euro_tables, euro_cases = [], ""
+    euro_tables, euro_cases, coef_cases = [], "", ""
     if euro:
         recs = []
         for i, k in enumerate(("cc", "cwc", "uefa")):
@@ -1437,6 +1450,14 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             "    { %d, %d, %d, %d },   /* %s */" % p for p in euro["places"])))
         euro_cases = ("    case WORLD_%s:\n        *places = kWorld%sEuropePlaces;\n        *count = %d;\n"
                       "        return kWorld%sLeaguePhases;" % (tag, tag, len(euro["places"]), tag))
+        euro_tables.append("static const WorldUefaCountry kWorld%sUefaCountries[] = {\n%s\n};" % (tag, "\n".join(
+            "    { %d, { %s } },   /* %s */" % (f, ", ".join(str(x) for x in v), c) for f, v, c in euro["coef_countries"])))
+        euro_tables.append("static const WorldUefaClub kWorld%sUefaClubs[] = {\n%s\n};" % (tag, "\n".join(
+            "    { %d, %d, %d },   /* %s */" % (f, o, u, nm.replace("*/", "")) for f, o, u, nm in euro["coef_clubs"])))
+        euro_tables.append("static const WorldUefaSeeds kWorld%sUefaSeeds = {\n    kWorld%sUefaCountries, %d, "
+                           "kWorld%sUefaClubs, %d, %d\n};" % (tag, tag, len(euro["coef_countries"]), tag,
+                                                              len(euro["coef_clubs"]), euro["cup_only"]))
+        coef_cases = "    case WORLD_%s:\n        return &kWorld%sUefaSeeds;" % (tag, tag)
         records.append("static CompetitionLeaguePhase kWorld%sLeaguePhases[3];   /* (below) */" % tag)
         cases = cases.replace("        FixtureRounds_Install();", "        LeaguePhase_InstallCups(kWorld%sLeaguePhases);\n"
                               "        FixtureRounds_Install();" % tag)
@@ -1453,6 +1474,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
     if news:
         externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
     return WORLD_DATA_C % {"europe": "\n\n".join(euro_tables), "europe_cases": euro_cases,
+                           "coef_cases": coef_cases,
                            "splits": "\n\n".join(split_tables), "split_cases": split_cases,
                            "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
                            "season_cases": season_cases, "file_cases": file_cases,
@@ -1511,7 +1533,7 @@ def europe(picks):
     holders making them 36 -- the Champions League takes its own and the Europa League's, the
     Europa League the Conference League's). picks: {code: (wc, picked)}."""
     lists = {k: [] for k in ("cc", "cwc", "uefa")}
-    places = []
+    places, coef_countries, coef_clubs, cup_only = [], [], [], 0
     for code in sorted(picks):
         wc, picked = picks[code]
         pk = mod_pack(code)
@@ -1526,10 +1548,22 @@ def europe(picks):
         ep = pk.get("europe_places")
         if ep:
             places.append((wc["number"], ep.get("cc", 0), ep.get("cwc", 0), ep.get("uefa", 0), code))
+        uc = pk.get("uefa_coef")        # (the Mod's mkseason w['coef'] / uefacoef seeds, pack order)
+        if uc:
+            if len(uc.get("country", [])) != 5:
+                sys.exit("%s uefa_coef.country: 5 seasons" % code)
+            coef_countries.append((wc["number"], [int(round(v * 1000)) for v in uc["country"]], code))
+            for key, v in uc.get("clubs", {}).items():
+                if names.get(key) not in ordinal:
+                    sys.exit("%s uefa_coef: %s is not in the team file" % (code, key))
+                coef_clubs.append((wc["number"], ordinal[names[key]], int(round(v * 8 / 5)), names[key]))
+        if code == "LIE":
+            cup_only = wc["number"]
     for k, v in lists.items():
         if len(v) != 36:
             sys.exit("the first season's %s: %d clubs, its league phase takes 36" % (k, len(v)))
-    return {"lists": lists, "places": places}
+    return {"lists": lists, "places": places, "coef_countries": coef_countries, "coef_clubs": coef_clubs,
+            "cup_only": cup_only}
 
 
 def country_splits(wc, pk, picked):

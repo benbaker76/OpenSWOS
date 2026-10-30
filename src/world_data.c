@@ -19,6 +19,7 @@
 #include "world_cupd.h"
 #include "league_split.h"
 #include "league_phase.h"
+#include "uefa_coef.h"
 
 #if SWOS_WORLDS
 extern CompetitionLeague _albanianLeague;
@@ -6001,6 +6002,446 @@ static const uint8_t kWorld2627EuropePlaces[][4] = {
     { 39, 0, 1, 1 },   /* UKR */
     { 40, 0, 0, 0 },   /* WAL */
 };
+
+static const WorldUefaCountry kWorld2627UefaCountries[] = {
+    { 0, { 1625, 875, 2125, 1250, 2250 } },   /* ALB */
+    { 47, { 1500, 666, 1666, 1000, 2000 } },   /* AND */
+    { 52, { 1875, 2375, 2250, 4375, 4187 } },   /* ARM */
+    { 1, { 10400, 4900, 4800, 9650, 4100 } },   /* AUT */
+    { 53, { 4375, 4000, 5875, 2875, 5812 } },   /* AZE */
+    { 2, { 6600, 14200, 14400, 15650, 11400 } },   /* BEL */
+    { 54, { 1625, 2000, 2250, 4531, 3312 } },   /* BIH */
+    { 76, { 250, 625, 1750, 1875, 2125 } },   /* BLR */
+    { 3, { 3375, 4500, 4375, 3625, 5187 } },   /* BUL */
+    { 4, { 6000, 3375, 5875, 5875, 7031 } },   /* CRO */
+    { 5, { 4125, 5100, 3750, 10562, 12156 } },   /* CYP */
+    { 6, { 6700, 6750, 13500, 10550, 11025 } },   /* CZE */
+    { 7, { 7800, 5900, 8500, 7656, 12250 } },   /* DEN */
+    { 8, { 21000, 23000, 17375, 29464, 28680 } },   /* ENG */
+    { 35, { 18428, 16571, 16062, 23892, 22093 } },   /* ESP */
+    { 10, { 3666, 1166, 125, 1625, 1625 } },   /* EST */
+    { 12, { 3750, 2625, 1750, 2250, 3625 } },   /* FIN */
+    { 13, { 18416, 12583, 16250, 17928, 18321 } },   /* FRA */
+    { 11, { 1500, 2250, 2750, 1500, 1750 } },   /* FRO */
+    { 61, { 1250, 1125, 1250, 1250, 1125 } },   /* GEO */
+    { 14, { 16214, 17125, 19357, 18421, 21785 } },   /* GER */
+    { 63, { 1250, 875, 166, 1500, 3333 } },   /* GIB */
+    { 15, { 8000, 2125, 11400, 12687, 14200 } },   /* GRE */
+    { 16, { 2750, 5875, 4500, 6625, 7437 } },   /* HUN */
+    { 18, { 2875, 3375, 1500, 5343, 4250 } },   /* IRL */
+    { 17, { 1500, 3000, 3833, 4562, 3625 } },   /* ISL */
+    { 19, { 6750, 6250, 8750, 2875, 2875 } },   /* ISR */
+    { 20, { 15714, 22357, 21000, 21875, 19000 } },   /* ITA */
+    { 86, { 2875, 1125, 3125, 3000, 3625 } },   /* KAZ */
+    { 88, { 2333, 2875, 3000, 2000, 3781 } },   /* KOS */
+    { 90, { 0, 6500, 500, 500, 1000 } },   /* LIE */
+    { 22, { 1750, 2375, 1125, 1375, 1125 } },   /* LTU */
+    { 23, { 1250, 1125, 2250, 1250, 750 } },   /* LUX */
+    { 21, { 2625, 2750, 1625, 3875, 2000 } },   /* LVA */
+    { 92, { 5250, 3750, 2000, 2125, 1500 } },   /* MDA */
+    { 93, { 625, 1625, 1500, 666, 3343 } },   /* MKD */
+    { 24, { 1875, 2625, 1500, 1000, 2000 } },   /* MLT */
+    { 94, { 750, 1000, 1333, 2500, 1000 } },   /* MNE */
+    { 25, { 19200, 13500, 10000, 15250, 9979 } },   /* NED */
+    { 26, { 1625, 1250, 1125, 1500, 1750 } },   /* NIR */
+    { 27, { 7625, 5750, 8000, 11812, 8050 } },   /* NOR */
+    { 28, { 4625, 7750, 6875, 11750, 15750 } },   /* POL */
+    { 29, { 12916, 12500, 11000, 16250, 20500 } },   /* POR */
+    { 30, { 2250, 6250, 3250, 7750, 5750 } },   /* ROU */
+    { 33, { 7900, 3500, 6400, 9250, 5000 } },   /* SCO */
+    { 32, { 166, 833, 333, 666, 833 } },   /* SMR */
+    { 41, { 9500, 5375, 1400, 3725, 5750 } },   /* SRB */
+    { 37, { 7750, 8500, 5200, 7050, 6200 } },   /* SUI */
+    { 78, { 4125, 6000, 5000, 4625, 2625 } },   /* SVK */
+    { 34, { 3000, 2125, 3875, 9093, 6375 } },   /* SVN */
+    { 36, { 5125, 6250, 1875, 11375, 5000 } },   /* SWE */
+    { 38, { 6700, 11800, 12000, 10300, 11075 } },   /* TUR */
+    { 39, { 4200, 5700, 4100, 3600, 8312 } },   /* UKR */
+    { 40, { 1500, 1166, 625, 2000, 333 } },   /* WAL */
+};
+
+static const WorldUefaClub kWorld2627UefaClubs[] = {
+    { 0, 4, 12 },   /* PARTIZANI */
+    { 0, 0, 10 },   /* VLLAZNIA */
+    { 0, 2, 7 },   /* EGNATIA */
+    { 0, 5, 6 },   /* TIRANA */
+    { 0, 8, 6 },   /* LACI */
+    { 0, 7, 3 },   /* TEUTA */
+    { 47, 0, 12 },   /* INTER D'ESCALDES */
+    { 47, 3, 8 },   /* AC ESCALDES */
+    { 47, 2, 8 },   /* SANTA COLOMA */
+    { 52, 1, 17 },   /* NOAH YEREVAN */
+    { 52, 2, 16 },   /* PYUNIK YEREVAN */
+    { 52, 0, 11 },   /* ARARAT-ARMENIA */
+    { 52, 4, 8 },   /* URARTU YEREVAN */
+    { 52, 3, 8 },   /* ALASHKERT */
+    { 52, 8, 4 },   /* ARARAT YEREVAN */
+    { 1, 4, 72 },   /* SALZBURG */
+    { 1, 8, 48 },   /* RAPID VIENNA */
+    { 1, 2, 45 },   /* STURM GRAZ */
+    { 1, 0, 34 },   /* LASK */
+    { 1, 6, 15 },   /* AUSTRIA VIENNA */
+    { 1, 3, 8 },   /* WOLFSBERGER */
+    { 53, 1, 68 },   /* QARABAG */
+    { 53, 3, 10 },   /* NEFTCHI */
+    { 53, 0, 10 },   /* SABAH */
+    { 53, 4, 9 },   /* ZIRA */
+    { 53, 5, 3 },   /* ARAZ-NAKHCHIVAN */
+    { 53, 6, 5 },   /* SUMGAYIT */
+    { 53, 10, 5 },   /* GABALA */
+    { 2, 1, 120 },   /* BRUGGE */
+    { 2, 0, 77 },   /* UNION SG */
+    { 2, 3, 62 },   /* GENT */
+    { 2, 5, 49 },   /* ANDERLECHT */
+    { 2, 6, 46 },   /* GENK */
+    { 2, 13, 20 },   /* CERCLE BRUGGE */
+    { 2, 9, 20 },   /* ROYAL ANTWERP */
+    { 2, 10, 2 },   /* ROYAL CHARLEROI */
+    { 54, 1, 21 },   /* ZRINJSKI MOSTAR */
+    { 54, 0, 21 },   /* BORAC BANJA LUKA */
+    { 54, 2, 8 },   /* SARAJEVO */
+    { 54, 3, 7 },   /* VELEZ MOSTAR */
+    { 54, 5, 4 },   /* ZELJEZNICAR */
+    { 54, 4, 2 },   /* SIROKI BRIJEG */
+    { 76, 1, 10 },   /* DINAMO MINSK */
+    { 76, 7, 10 },   /* NEMAN GRODNO */
+    { 76, 6, 9 },   /* TORPEDO ZHODINO */
+    { 76, 9, 9 },   /* BATE BORISOV */
+    { 76, 3, 4 },   /* DYNAMO BREST */
+    { 76, 8, 2 },   /* GOMEL */
+    { 76, 5, 2 },   /* ISLOCH */
+    { 3, 6, 46 },   /* LUDOGORETS */
+    { 3, 0, 11 },   /* LEVSKI SOFIA */
+    { 3, 9, 10 },   /* CSKA SOFIA */
+    { 3, 4, 6 },   /* ARDA KARDZHALI */
+    { 3, 7, 5 },   /* CHERNO MORE */
+    { 3, 3, 6 },   /* CSKA */
+    { 3, 10, 6 },   /* BOTEV PLOVDIV */
+    { 3, 1, 3 },   /* LOKO PLOVDIV */
+    { 4, 0, 74 },   /* DINAMO ZAGREB */
+    { 4, 3, 30 },   /* RIJEKA */
+    { 4, 1, 16 },   /* HAJDUK SPLIT */
+    { 4, 8, 12 },   /* OSIJEK */
+    { 4, 2, 2 },   /* VARAZDIN */
+    { 5, 3, 39 },   /* PAFOS */
+    { 5, 0, 34 },   /* OMONIA NICOSIA */
+    { 5, 1, 32 },   /* AEK LARNACA */
+    { 5, 4, 24 },   /* APOEL NICOSIA */
+    { 5, 5, 10 },   /* ARIS LIMASSOL */
+    { 5, 2, 10 },   /* APOLLON LIMASSOL */
+    { 5, 6, 8 },   /* ANORTHOSIS */
+    { 5, 7, 3 },   /* AEL LIMASSOL */
+    { 6, 2, 81 },   /* VIKTORIA PLZEN */
+    { 6, 0, 70 },   /* SLAVIA PRAGUE */
+    { 6, 1, 61 },   /* SPARTA PRAHA */
+    { 6, 6, 11 },   /* SIGMA OLOMOUC */
+    { 6, 13, 7 },   /* BANIK OSTRAVA */
+    { 6, 9, 6 },   /* MLADA BOLESLAV */
+    { 6, 8, 2 },   /* BOHEMIANS PRAGUE */
+    { 6, 12, 9 },   /* 1.FC SLOVACKO */
+    { 6, 3, 8 },   /* JABLONEC */
+    { 7, 6, 87 },   /* COPENHAGEN */
+    { 7, 1, 77 },   /* MIDTJYLLAND */
+    { 7, 3, 15 },   /* BRONDBY */
+    { 7, 9, 13 },   /* SILKEBORG */
+    { 7, 5, 11 },   /* NORDSJAELLAND */
+    { 7, 0, 5 },   /* AARHUS GF */
+    { 7, 4, 4 },   /* VIBORG */
+    { 7, 8, 11 },   /* RANDERS */
+    { 8, 4, 208 },   /* LIVERPOOL */
+    { 8, 1, 201 },   /* MANCHESTER CITY */
+    { 8, 0, 190 },   /* ARSENAL */
+    { 8, 9, 159 },   /* CHELSEA */
+    { 8, 3, 133 },   /* ASTON VILLA */
+    { 8, 16, 131 },   /* TOTTENHAM */
+    { 8, 2, 122 },   /* MAN UTD */
+    { 8, 38, 110 },   /* WEST HAM UNITED */
+    { 8, 11, 48 },   /* NEWCASTLE UNITED */
+    { 8, 15, 37 },   /* NOTT'M FOREST */
+    { 8, 14, 35 },   /* CRYSTAL PALACE */
+    { 8, 7, 26 },   /* BRIGHTON */
+    { 8, 62, 21 },   /* LEICESTER CITY */
+    { 35, 1, 231 },   /* REAL MADRID */
+    { 35, 0, 181 },   /* BARCELONA */
+    { 35, 3, 168 },   /* ATLETICO MADRID */
+    { 35, 4, 119 },   /* BETIS */
+    { 35, 2, 94 },   /* VILLARREAL */
+    { 35, 9, 91 },   /* REAL SOCIEDAD */
+    { 35, 12, 62 },   /* SEVILLA */
+    { 35, 11, 62 },   /* ATHLETIC BILBAO */
+    { 35, 7, 35 },   /* RAYO */
+    { 35, 5, 26 },   /* CELTA */
+    { 35, 36, 13 },   /* GIRONA */
+    { 35, 16, 4 },   /* OSASUNA */
+    { 10, 0, 16 },   /* FLORA TALLINN */
+    { 10, 1, 12 },   /* FCI LEVADIA */
+    { 10, 3, 12 },   /* PAIDE */
+    { 10, 2, 2 },   /* KALJU */
+    { 10, 4, 2 },   /* NARVA TRANS */
+    { 12, 3, 22 },   /* KUPS KUOPIO */
+    { 12, 2, 22 },   /* HJK HELSINKI */
+    { 12, 1, 6 },   /* ILVES TAMPERE */
+    { 12, 4, 4 },   /* SJK SEINAJOKI */
+    { 12, 6, 2 },   /* VPS */
+    { 12, 0, 3 },   /* INTER TURKU */
+    { 13, 0, 211 },   /* PARIS-SG */
+    { 13, 2, 110 },   /* LILLE */
+    { 13, 3, 105 },   /* LYON */
+    { 13, 6, 90 },   /* MONACO */
+    { 13, 4, 86 },   /* MARSEILLE */
+    { 13, 5, 56 },   /* RENNES */
+    { 13, 7, 34 },   /* STRASBOURG */
+    { 13, 15, 32 },   /* NICE */
+    { 13, 11, 27 },   /* BREST */
+    { 13, 1, 20 },   /* LENS */
+    { 13, 8, 16 },   /* TOULOUSE */
+    { 13, 32, 13 },   /* NANTES */
+    { 11, 0, 17 },   /* KI KLAKSVIK */
+    { 11, 1, 11 },   /* HB TORSHAVN */
+    { 11, 3, 10 },   /* VIKINGUR GOTA */
+    { 11, 4, 8 },   /* B36 TORSHAVN */
+    { 11, 2, 3 },   /* NSI RUNAVIK */
+    { 61, 5, 10 },   /* DINAMO BATUMI */
+    { 61, 1, 9 },   /* DILA GORI */
+    { 61, 0, 8 },   /* IBERIA TBILISI */
+    { 61, 3, 8 },   /* DINAMO TBILISI */
+    { 61, 2, 7 },   /* TORPEDO KUTAISI */
+    { 61, 9, 2 },   /* SPAERI TBILISI */
+    { 61, 4, 2 },   /* GAGRA */
+    { 14, 0, 236 },   /* BAYERN */
+    { 14, 5, 168 },   /* LEVERKUSEN */
+    { 14, 1, 161 },   /* DORTMUND */
+    { 14, 7, 133 },   /* FRANKFURT */
+    { 14, 2, 98 },   /* LEIPZIG */
+    { 14, 6, 90 },   /* FREIBURG */
+    { 14, 3, 44 },   /* STUTTGART */
+    { 14, 10, 37 },   /* UNION BERLIN */
+    { 14, 9, 28 },   /* MAINZ */
+    { 14, 32, 13 },   /* 1.FC HEIDENHEIM */
+    { 14, 4, 11 },   /* HOFFENHEIM */
+    { 14, 13, 10 },   /* KOLN */
+    { 14, 31, 13 },   /* WOLFSBURG */
+    { 63, 0, 22 },   /* LINCOLN RED IMPS */
+    { 63, 1, 8 },   /* ST JOSEPH'S */
+    { 63, 6, 7 },   /* MAGPIES */
+    { 63, 3, 5 },   /* EUROPA */
+    { 63, 2, 2 },   /* MONS CALPE */
+    { 15, 1, 100 },   /* OLYMPIACOS */
+    { 15, 2, 77 },   /* PAOK */
+    { 15, 3, 47 },   /* PANATHINAIKOS */
+    { 15, 0, 38 },   /* AEK ATHENS */
+    { 15, 7, 11 },   /* ARIS SALONIKI */
+    { 16, 1, 82 },   /* FERENCVAROSI TC */
+    { 16, 5, 11 },   /* PUSKAS AKADEMIA */
+    { 16, 2, 7 },   /* PAKSI */
+    { 16, 3, 3 },   /* DEBRECENI VSC */
+    { 16, 4, 2 },   /* ZALAEGERSZEGI TE */
+    { 16, 8, 3 },   /* KISVARDA */
+    { 16, 6, 3 },   /* UJPEST */
+    { 18, 0, 31 },   /* SHAMROCK ROVERS */
+    { 18, 4, 12 },   /* ST. PATRICK'S */
+    { 18, 2, 6 },   /* SHELBOURNE */
+    { 18, 1, 6 },   /* DERRY CITY */
+    { 18, 9, 6 },   /* DUNDALK */
+    { 18, 6, 5 },   /* SLIGO ROVERS */
+    { 18, 3, 3 },   /* BOHEMIAN */
+    { 17, 3, 19 },   /* BREIDABLIK */
+    { 17, 0, 19 },   /* VIKINGUR */
+    { 17, 1, 7 },   /* VALUR REYKJAVIK */
+    { 17, 7, 6 },   /* KA AKUREYRI */
+    { 17, 2, 4 },   /* STJARNAN */
+    { 17, 8, 2 },   /* KR REYKJAVIK */
+    { 17, 4, 2 },   /* FH HAFNARFJORDUR */
+    { 19, 2, 52 },   /* MACCABI TEL AVIV */
+    { 19, 4, 28 },   /* MACCABI HAIFA */
+    { 19, 0, 22 },   /* H. BEER SHEVA */
+    { 19, 1, 6 },   /* BEITAR JERUSALEM */
+    { 19, 12, 3 },   /* M. PETAH TIKVA */
+    { 19, 6, 2 },   /* MACCABI NETANYA */
+    { 20, 0, 203 },   /* INTER */
+    { 20, 2, 156 },   /* ROMA */
+    { 20, 6, 134 },   /* ATALANTA */
+    { 20, 14, 122 },   /* FIORENTINA */
+    { 20, 5, 116 },   /* JUVENTUS */
+    { 20, 4, 106 },   /* MILAN */
+    { 20, 1, 101 },   /* NAPOLI */
+    { 20, 8, 94 },   /* LAZIO */
+    { 20, 7, 49 },   /* BOLOGNA */
+    { 86, 1, 20 },   /* ASTANA */
+    { 86, 0, 18 },   /* KAIRAT ALMATY */
+    { 86, 2, 13 },   /* TOBOL KOSTANAY */
+    { 86, 4, 7 },   /* AKTOBE */
+    { 86, 6, 7 },   /* ORDABASY */
+    { 88, 0, 22 },   /* DRITA */
+    { 88, 2, 16 },   /* BALLKANI */
+    { 88, 6, 6 },   /* PRISHTINA */
+    { 88, 7, 6 },   /* LLAPI */
+    { 88, 1, 3 },   /* MALISHEVA */
+    { 88, 3, 2 },   /* DUKAGJINI */
+    { 88, 4, 3 },   /* GJILANI */
+    { 90, 0, 14 },   /* VADUZ */
+    { 22, 2, 19 },   /* ZALGIRIS VILNIUS */
+    { 22, 5, 10 },   /* PANEVEZYS */
+    { 22, 0, 10 },   /* KAUNO ZALGIRIS */
+    { 22, 3, 5 },   /* SUDUVA */
+    { 22, 1, 3 },   /* HEGELMANN */
+    { 22, 7, 2 },   /* BANGA GARGZDAI */
+    { 22, 9, 2 },   /* TRANSINVEST */
+    { 22, 4, 2 },   /* FA SIAULIAI */
+    { 23, 4, 13 },   /* F91 DUDELANGE */
+    { 23, 1, 10 },   /* DIFFERDANGE 03 */
+    { 23, 6, 6 },   /* RFCU LUXEMBOURG */
+    { 23, 5, 6 },   /* JEUNESSE ESCH */
+    { 23, 10, 5 },   /* PR. NIEDERKORN */
+    { 23, 11, 5 },   /* SWIFT HESPERANGE */
+    { 23, 3, 4 },   /* UNA STRASSEN */
+    { 21, 0, 20 },   /* RIGA */
+    { 21, 4, 7 },   /* AUDA */
+    { 21, 2, 6 },   /* LIEPAJA */
+    { 21, 3, 2 },   /* BFC DAUGAVPILS */
+    { 92, 2, 32 },   /* SHERIFF TIRASPOL */
+    { 92, 0, 14 },   /* PETROCUB */
+    { 92, 3, 12 },   /* MILSAMI ORHEI */
+    { 92, 1, 7 },   /* ZIMBRU CHISINAU */
+    { 93, 1, 17 },   /* SHKENDIJA TETOVO */
+    { 93, 2, 8 },   /* STRUGA */
+    { 93, 3, 3 },   /* SILEKS KRATOVO */
+    { 93, 0, 2 },   /* VARDAR SKOPJE */
+    { 93, 9, 2 },   /* SKOPJE */
+    { 93, 4, 2 },   /* TIKVES KAVADARCI */
+    { 24, 0, 14 },   /* HAMRUN SPARTANS */
+    { 24, 5, 9 },   /* HIBERNIANS */
+    { 24, 6, 9 },   /* GZIRA UNITED */
+    { 24, 1, 6 },   /* FLORIANA */
+    { 24, 9, 6 },   /* BIRKIRKARA */
+    { 24, 3, 2 },   /* SLIEMA WANDERERS */
+    { 24, 4, 2 },   /* MARSAXLOKK */
+    { 24, 10, 2 },   /* BALZAN */
+    { 24, 8, 2 },   /* MOSTA */
+    { 94, 4, 12 },   /* B. PODGORICA */
+    { 94, 0, 10 },   /* SUTJESKA NIKSIC */
+    { 94, 3, 9 },   /* DECIC TUZI */
+    { 94, 1, 3 },   /* MORNAR BAR */
+    { 94, 6, 2 },   /* ARSENAL TIVAT */
+    { 25, 0, 114 },   /* PSV EINDHOVEN */
+    { 25, 1, 114 },   /* FEYENOORD */
+    { 25, 6, 101 },   /* AZ ALKMAAR */
+    { 25, 4, 93 },   /* AJAX AMSTERDAM */
+    { 25, 11, 10 },   /* GO AHEAD EAGLES */
+    { 25, 5, 5 },   /* UTRECHT */
+    { 25, 3, 22 },   /* TWENTE ENSCHEDE */
+    { 25, 29, 14 },   /* VITESSE ARNHEM */
+    { 26, 3, 15 },   /* LINFIELD */
+    { 26, 0, 14 },   /* LARNE */
+    { 26, 10, 6 },   /* CRUSADERS */
+    { 26, 4, 6 },   /* CLIFTONVILLE */
+    { 26, 1, 3 },   /* GLENTORAN */
+    { 26, 5, 2 },   /* DUNGANNON SWIFTS */
+    { 26, 2, 2 },   /* COLERAINE */
+    { 27, 1, 102 },   /* BODO/GLIMT */
+    { 27, 9, 35 },   /* MOLDE */
+    { 27, 3, 20 },   /* BRANN */
+    { 27, 6, 11 },   /* ROSENBORG */
+    { 27, 7, 4 },   /* FREDRIKSTAD */
+    { 27, 0, 7 },   /* VIKING */
+    { 27, 2, 3 },   /* TROMSO IL */
+    { 27, 13, 3 },   /* LILLESTROM */
+    { 27, 5, 2 },   /* VALERENGA */
+    { 28, 5, 52 },   /* LEGIA WARSZAWA */
+    { 28, 0, 44 },   /* LECH POZNAN */
+    { 28, 3, 36 },   /* RAKOW */
+    { 28, 2, 35 },   /* JAGIELLONIA */
+    { 28, 15, 4 },   /* WISLA KRAKOW */
+    { 28, 16, 6 },   /* SLASK WROCLAW */
+    { 28, 8, 8 },   /* POGON SZCZECIN */
+    { 29, 2, 144 },   /* BENFICA */
+    { 29, 1, 134 },   /* SPORTING */
+    { 29, 0, 129 },   /* PORTO */
+    { 29, 3, 102 },   /* BRAGA */
+    { 29, 8, 30 },   /* VIT. GUIMARAES */
+    { 29, 12, 8 },   /* SANTA CLARA */
+    { 29, 7, 3 },   /* AROUCA */
+    { 29, 5, 4 },   /* GIL VICENTE */
+    { 30, 6, 41 },   /* FCSB */
+    { 30, 3, 28 },   /* CFR CLUJ */
+    { 30, 0, 17 },   /* UNIV. CRAIOVA */
+    { 30, 14, 10 },   /* SEPSI OSK */
+    { 30, 2, 2 },   /* U CLUJ */
+    { 30, 13, 3 },   /* CORVINUL */
+    { 30, 10, 4 },   /* FARUL CONSTANTA */
+    { 33, 1, 95 },   /* RANGERS */
+    { 33, 2, 70 },   /* CELTIC */
+    { 33, 0, 18 },   /* HEARTS */
+    { 33, 7, 16 },   /* ABERDEEN */
+    { 33, 4, 11 },   /* HIBERNIAN */
+    { 33, 6, 6 },   /* DUNDEE UNITED */
+    { 33, 10, 4 },   /* KILMARNOCK */
+    { 33, 9, 3 },   /* ST. MIRREN */
+    { 33, 3, 2 },   /* MOTHERWELL */
+    { 33, 11, 4 },   /* ST. JOHNSTONE */
+    { 32, 3, 10 },   /* FIORITA */
+    { 32, 2, 7 },   /* TRE PENNE */
+    { 32, 1, 6 },   /* VIRTUS ACQUAVIVA */
+    { 32, 0, 4 },   /* TRE FIORI */
+    { 32, 4, 2 },   /* FOLGORE/FALCIANO */
+    { 32, 7, 2 },   /* COSMOS */
+    { 41, 0, 74 },   /* RED STAR */
+    { 41, 2, 35 },   /* PARTIZAN */
+    { 41, 6, 10 },   /* CUKARICKI */
+    { 41, 1, 9 },   /* VOJVODINA */
+    { 41, 9, 5 },   /* RADNICKI 1923 */
+    { 41, 4, 2 },   /* NOVI PAZAR */
+    { 41, 10, 2 },   /* RADNICKI NIS */
+    { 37, 4, 55 },   /* BASEL */
+    { 37, 5, 47 },   /* YOUNG BOYS */
+    { 37, 2, 34 },   /* LUGANO */
+    { 37, 7, 20 },   /* SERVETTE */
+    { 37, 8, 16 },   /* LAUSANNE-SPORT */
+    { 37, 1, 6 },   /* ST. GALLEN */
+    { 37, 9, 8 },   /* ZURICH */
+    { 37, 6, 6 },   /* LUZERN */
+    { 78, 0, 58 },   /* SLO. BRATISLAVA */
+    { 78, 3, 17 },   /* SPARTAK TRNAVA */
+    { 78, 1, 10 },   /* DUNAJSKA STREDA */
+    { 78, 2, 9 },   /* MSK ZILINA */
+    { 78, 7, 2 },   /* KOSICE */
+    { 78, 6, 6 },   /* MFK RUZOMBEROK */
+    { 34, 0, 37 },   /* CELJE */
+    { 34, 3, 29 },   /* OLIMPIJA */
+    { 34, 4, 16 },   /* MARIBOR */
+    { 34, 1, 5 },   /* KOPER */
+    { 34, 2, 2 },   /* BRAVO */
+    { 34, 7, 6 },   /* NS MURA */
+    { 36, 4, 51 },   /* DJURGARDENS */
+    { 36, 5, 24 },   /* MALMO */
+    { 36, 7, 18 },   /* ELFSBORG */
+    { 36, 9, 16 },   /* HACKEN */
+    { 36, 1, 10 },   /* HAMMARBY */
+    { 36, 14, 2 },   /* KALMAR */
+    { 38, 1, 92 },   /* FENERBAHCE */
+    { 38, 0, 86 },   /* GALATASARAY */
+    { 38, 4, 31 },   /* BASAKSEHIR */
+    { 38, 3, 25 },   /* BESIKTAS */
+    { 38, 24, 20 },   /* SIVASSPOR */
+    { 38, 6, 18 },   /* SAMSUNSPOR */
+    { 38, 2, 18 },   /* TRABZONSPOR */
+    { 38, 8, 3 },   /* KONYASPOR */
+    { 39, 0, 90 },   /* SHAKHTAR DONETSK */
+    { 39, 3, 28 },   /* DYNAMO KYIV */
+    { 39, 7, 19 },   /* ZORYA LUGANSK */
+    { 39, 2, 6 },   /* POLISSYA */
+    { 39, 6, 4 },   /* KRYVBAS */
+    { 39, 5, 3 },   /* KOLOS KOVALIVKA */
+    { 40, 0, 14 },   /* THE NEW SAINTS */
+    { 40, 1, 6 },   /* CONNAH'S QUAY */
+    { 40, 2, 4 },   /* HAVERFORDWEST */
+    { 40, 7, 3 },   /* PENYBONT */
+    { 40, 4, 2 },   /* CAERNARFON TOWN */
+};
+
+static const WorldUefaSeeds kWorld2627UefaSeeds = {
+    kWorld2627UefaCountries, 54, kWorld2627UefaClubs, 376, 90
+};
 #endif
 
 CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32_t *count)
@@ -6015,6 +6456,19 @@ CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32
     default:
         *places = 0;
         *count = 0;
+        return 0;
+    }
+}
+
+/* The UEFA coefficients' seeds (src/uefa_coef.c): the associations' last 5 seasons, the clubs'. */
+const WorldUefaSeeds *World_UefaSeeds(void)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+    case WORLD_2627:
+        return &kWorld2627UefaSeeds;
+#endif
+    default:
         return 0;
     }
 }

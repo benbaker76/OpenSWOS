@@ -11,6 +11,7 @@
  * numbers are its own (seeded by the caller), so a season replays the same.
  */
 #include "league_phase.h"
+#include "uefa_coef.h"
 
 #define N   LEAGUE_PHASE_CLUBS
 #define MAXM LEAGUE_PHASE_MATCHES
@@ -502,6 +503,12 @@ static TeamFileEx *lp_team(int32_t row)
     return (TeamFileEx *)diy_resolve_team(lp_row(row)->teamSelOffset);
 }
 
+static uint16_t lp_word(int32_t row)
+{
+    const TeamFileEx *t = lp_team(row);
+    return PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal);
+}
+
 void LeaguePhase_StageStart(void)
 {
     if (!ours())
@@ -517,6 +524,7 @@ void LeaguePhase_StageStart(void)
     /* The pots: positions = the contest list's, their rows' clubs by strength (the 16 players'
      * prices; the club coefficients later), a country capped; the draw over them. */
     uint8_t row_of[N], country[N], order[N], drawn[N];
+    uint16_t words[N];
     uint32_t key[N], seed = (uint32_t)c->base.field_2E * 7919u + _seasonPlaying * 131u;
     for (int32_t p = 0; p < N; p++) {
         row_of[p] = c->matchData.league.shuffleAndPad[p];
@@ -524,7 +532,8 @@ void LeaguePhase_StageStart(void)
         uint32_t v = 0;
         for (int32_t k = 0; k < 16; k++)
             v += (uint8_t)t->players[k].price;
-        key[p] = v;
+        words[p] = PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal);
+        key[p] = UefaCoef_PotKey((uint8_t)c->base.field_2E, words[p], v);  /* (club coefficients) */
         country[p] = t->team.countryNumber;
         seed = seed * 31u + t->team.teamOrdinal + ((uint32_t)t->team.countryNumber << 8);
     }
@@ -538,6 +547,7 @@ void LeaguePhase_StageStart(void)
         st->cal[m][0] = row_of[order[cal[m][0]]];
         st->cal[m][1] = row_of[order[cal[m][1]]];
     }
+    UefaCoef_StageStart((uint8_t)c->base.field_2E, words, N);
 }
 
 int32_t LeaguePhase_Pair(uint8_t **team1, uint8_t **team2)
@@ -555,7 +565,6 @@ int32_t LeaguePhase_Pair(uint8_t **team1, uint8_t **team2)
 
 void LeaguePhase_Result(uint8_t *team1, uint8_t *team2, uint16_t goals1, uint16_t goals2)
 {
-    (void)team1;
     if (!ours())
         return;
     LeaguePhaseState *st = &_diyCompetitionStart.leaguePhase;
@@ -565,6 +574,9 @@ void LeaguePhase_Result(uint8_t *team1, uint8_t *team2, uint16_t goals1, uint16_
     st->awayGoals[away] = (uint8_t)(st->awayGoals[away] + goals2);
     if (goals2 > goals1)
         st->awayWins[away]++;
+    const int32_t home = (int32_t)(team1 - (uint8_t *)&_diyCompetitionStart) / ROW;
+    if (home >= 0 && home < N)
+        UefaCoef_Result((uint8_t)_diyCompetitionStart.base.field_2E, lp_word(home), lp_word(away), goals1, goals2);
 }
 
 /* The table's order, rows best first (finished: the phase over -- the full criteria). */
@@ -581,7 +593,8 @@ static void rank_rows(int32_t finished, uint8_t *order)
         r[i].awayGoals = c->leaguePhase.awayGoals[i];
         r[i].awayWins = c->leaguePhase.awayWins[i];
         r[i].discipline = c->leaguePhase.discipline[i];
-        r[i].coef = 255u - (uint32_t)i;         /* (the contest order: the coefficients later) */
+        r[i].coef = UefaCoef_On() ? UefaCoef_Club(lp_word(i))     /* (criterion 10) */
+                                  : 255u - (uint32_t)i;             /* (no coefficients: the contest order) */
         r[i].nameRank = 0;
         const uint8_t *ni = diy_resolve_team_name(s->teamSelOffset);
         for (int32_t j = 0; j < N; j++) {       /* (how many sort before it by name) */
@@ -614,8 +627,13 @@ void LeaguePhase_GroupsEnd(uint8_t *diy, int32_t after)
 {
     if (!after) {
         s_finalOk = (uint8_t)ours();
-        if (s_finalOk)
+        if (s_finalOk) {
+            uint16_t w[N];
             rank_rows(1, s_final);
+            for (int32_t p = 0; p < N; p++)
+                w[p] = lp_word(s_final[p]);
+            UefaCoef_PhaseEnd((uint8_t)_diyCompetitionStart.base.field_2E, w);
+        }
         return;
     }
     if (!s_finalOk)
@@ -665,6 +683,11 @@ int32_t LeaguePhase_KnockoutDraw(uint8_t *diy, uint16_t numTeams)
             t->teamIndexOrder[16 + k] = l[k];
         }
     }
+    uint16_t w[16];                             /* (the round's clubs: their coefficients) */
+    const int32_t n = numTeams < 16 ? numTeams : 16;
+    for (int32_t i = 0; i < n; i++)
+        w[i] = BE_READ_U16((const uint8_t *)&t->teamIds[t->teamIndexOrder[i]]);
+    UefaCoef_Draw((uint8_t)t->header.field_2E, t->header.roundComplete, w, n);
     return 1;
 }
 

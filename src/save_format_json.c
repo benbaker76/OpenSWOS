@@ -24,6 +24,8 @@
 #include "world.h"             /* "world" in career and competition saves */
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
+#include "uefa_coef.h"         /* "uefa_coef", "uefa_qualifying" in career saves */
+#include "uefa_access.h"
 #include "world_cups.h"        /* "world_cups" in career saves */
 #include "world_cupd.h"        /* "world_cupd" in career saves */
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
@@ -2759,6 +2761,25 @@ static void wp_emit_u8(void *out, const char *name, const uint8_t *a, int n)
     for (int i = 0; i < n; i++)
         mjson_printf(json_out_emit, out, "%s%d", i ? "," : "", (int)a[i]);
     mjson_printf(json_out_emit, out, "%s", "]");
+}
+
+static void wp_emit_u32(void *out, const char *name, const uint32_t *a, int n)
+{
+    mjson_printf(json_out_emit, out, ",%Q:[", name);
+    for (int i = 0; i < n; i++)
+        mjson_printf(json_out_emit, out, "%s%lu", i ? "," : "", (unsigned long)a[i]);
+    mjson_printf(json_out_emit, out, "%s", "]");
+}
+
+static int wp_load_u32(const char *o, int ol, const char *path, uint32_t *a, int cap)
+{
+    const char *arr; int al, pos = 0, voff, vlen, vt, i = 0;
+    long v;                             /* (the values fit 31 bits: the Amiga's mjson has no doubles) */
+    if (mjson_find(o, ol, path, &arr, &al) == MJSON_TOK_ARRAY)
+        while (i < cap && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0)
+            if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
+                a[i++] = (uint32_t)v;
+    return i;
 }
 
 static int wp_load_u16(const char *o, int ol, const char *path, uint16_t *a, int cap)
@@ -6146,6 +6167,65 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit, &out, "%s", "}");
     }
 
+    /* A world's UEFA coefficients (uefa_coef.c): per association its clubs and points this
+     * season and its 5 ring seasons (thousandths), per club (team number) its points this season
+     * and its ring's, each cup's last knockout round and final. */
+    if (g_uefaCoef.init) {
+        const UefaCoefState *u = &g_uefaCoef;
+        static uint16_t kc[UEFA_COEF_CLUBS * 7];
+        uint16_t prev[3 * 16], fin[6];
+        int nk = 0;
+        for (int i = 0; i < u->nClubs; i++) {
+            kc[nk++] = u->club[i].team;
+            kc[nk++] = u->club[i].pts;
+            for (int k = 0; k < 5; k++)
+                kc[nk++] = u->club[i].hist[k];
+        }
+        for (int c = 0; c < 3; c++) {
+            for (int i = 0; i < 16; i++)
+                prev[c * 16 + i] = u->prev[c][i];
+            fin[2 * c] = u->fin[c][0];
+            fin[2 * c + 1] = u->fin[c][1];
+        }
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d", "uefa_coef", "ring", (int)u->ring,
+                     "season_closed", (int)u->done);
+        wp_emit_u8(&out, "association_clubs", u->teams, 256);
+        wp_emit_u32(&out, "association_points", u->pts, 256);
+        wp_emit_u32(&out, "association_seasons", &u->hist[0][0], 5 * 256);
+        wp_emit_u16(&out, "clubs", kc, nk);
+        wp_emit_u8(&out, "previous_counts", u->prevN, 3);
+        wp_emit_u16(&out, "previous", prev, 3 * 16);
+        wp_emit_u16(&out, "finals", fin, 6);
+        wp_emit_u8(&out, "phase_ended", u->phaseEnded, 3);
+        mjson_printf(json_out_emit, &out, "%s", "}");
+    }
+
+    /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
+     * points at the next season end -- per tie its round, whether its first club went through,
+     * the two clubs (the Mod's team words, file | ordinal << 8). */
+    if (g_uefaCoef.init && (g_uqState.nbr || g_uqState.mark)) {
+        const struct uq_state *q = &g_uqState;
+        static uint16_t br[NBR * 4];
+        uint16_t gl[3 * 36];
+        int nb = 0;
+        for (int i = 0; i < q->nbr && i < NBR; i++) {
+            br[nb++] = q->br[i].r;
+            br[nb++] = q->br[i].aw;
+            br[nb++] = q->br[i].a;
+            br[nb++] = q->br[i].b;
+        }
+        for (int c = 0; c < 3; c++)
+            for (int i = 0; i < 36; i++)
+                gl[c * 36 + i] = q->gl[c][i];
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d", "uefa_qualifying",
+                     "mark", (int)q->mark, "manager_club", (int)q->m, "stand_in", (int)q->s,
+                     "stand_in_cup", (int)q->sc, "ties_played", (int)q->k, "results", (int)q->res);
+        wp_emit_u8(&out, "list_counts", q->gn, 3);
+        wp_emit_u16(&out, "lists", gl, 3 * 36);
+        wp_emit_u16(&out, "bracket", br, nb);
+        mjson_printf(json_out_emit, &out, "%s", "}");
+    }
+
     /* Foreign-market player pool — fixed-size MarketPlayer[432]. Emit
      * all 432 slots so unpopulated entries (teamId == 0) round-trip
      * faithfully; the array is dense in practice for active careers. */
@@ -6704,6 +6784,75 @@ static void apply_semantic_load(const char *src, int src_size)
                     r->team = rows[i++]; r->played = rows[i++]; r->won = rows[i++]; r->drawn = rows[i++];
                     r->lost = rows[i++]; r->gf = rows[i++]; r->ga = rows[i++]; r->pts = rows[i++];
                 }
+        }
+    }
+
+    /* A world's UEFA coefficients and qualifying bracket (uefa_coef.c); a save without them:
+     * the seeds at their first use. */
+    UefaCoef_Reset();
+    {
+        const char *uc = NULL;
+        int uclen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.uefa_coef", &uc, &uclen) == MJSON_TOK_OBJECT) {
+            UefaCoefState *u = &g_uefaCoef;
+            static uint16_t kc[UEFA_COEF_CLUBS * 7];
+            uint16_t prev[3 * 16], fin[6];
+            uint8_t *p = (uint8_t *)u;
+            for (uint32_t i = 0; i < sizeof *u; i++)
+                p[i] = 0;
+            u->init = 1;
+            if (mjson_get_long(uc, uclen, "$.ring", &v) > 0) u->ring = (uint8_t)(v % 5);
+            if (mjson_get_long(uc, uclen, "$.season_closed", &v) > 0) u->done = (uint8_t)v;
+            wp_load_u8(uc, uclen, "$.association_clubs", u->teams, 256);
+            wp_load_u32(uc, uclen, "$.association_points", u->pts, 256);
+            wp_load_u32(uc, uclen, "$.association_seasons", &u->hist[0][0], 5 * 256);
+            int nk = wp_load_u16(uc, uclen, "$.clubs", kc, UEFA_COEF_CLUBS * 7);
+            for (int i = 0; i + 7 <= nk; i += 7) {
+                UefaClubCoef *k = &u->club[u->nClubs++];
+                k->team = kc[i];
+                k->pts = kc[i + 1];
+                for (int j = 0; j < 5; j++)
+                    k->hist[j] = kc[i + 2 + j];
+            }
+            wp_load_u8(uc, uclen, "$.previous_counts", u->prevN, 3);
+            wp_load_u16(uc, uclen, "$.previous", prev, 3 * 16);
+            wp_load_u16(uc, uclen, "$.finals", fin, 6);
+            wp_load_u8(uc, uclen, "$.phase_ended", u->phaseEnded, 3);
+            for (int c = 0; c < 3; c++) {
+                if (u->prevN[c] > 16)
+                    u->prevN[c] = 16;
+                for (int i = 0; i < 16; i++)
+                    u->prev[c][i] = prev[c * 16 + i];
+                u->fin[c][0] = fin[2 * c];
+                u->fin[c][1] = fin[2 * c + 1];
+            }
+        }
+        const char *uq = NULL;
+        int uqlen = 0;
+        if (mjson_find(src, src_size, "$.uefa_qualifying", &uq, &uqlen) == MJSON_TOK_OBJECT) {
+            struct uq_state *q = &g_uqState;
+            static uint16_t br[NBR * 4];
+            uint16_t gl[3 * 36];
+            if (mjson_get_long(uq, uqlen, "$.mark", &v) > 0) q->mark = (uint16_t)v;
+            if (mjson_get_long(uq, uqlen, "$.manager_club", &v) > 0) q->m = (uint16_t)v;
+            if (mjson_get_long(uq, uqlen, "$.stand_in", &v) > 0) q->s = (uint16_t)v;
+            if (mjson_get_long(uq, uqlen, "$.stand_in_cup", &v) > 0) q->sc = (uint8_t)v;
+            if (mjson_get_long(uq, uqlen, "$.ties_played", &v) > 0) q->k = (uint8_t)v;
+            if (mjson_get_long(uq, uqlen, "$.results", &v) > 0) q->res = (uint8_t)v;
+            wp_load_u8(uq, uqlen, "$.list_counts", q->gn, 3);
+            wp_load_u16(uq, uqlen, "$.lists", gl, 3 * 36);
+            for (int c = 0; c < 3; c++)
+                for (int i = 0; i < 36; i++)
+                    q->gl[c][i] = gl[c * 36 + i];
+            int nb = wp_load_u16(uq, uqlen, "$.bracket", br, NBR * 4);
+            q->nbr = 0;
+            for (int i = 0; i + 4 <= nb; i += 4, q->nbr++) {
+                q->br[q->nbr].r = (uint8_t)br[i];
+                q->br[q->nbr].aw = (uint8_t)br[i + 1];
+                q->br[q->nbr].a = br[i + 2];
+                q->br[q->nbr].b = br[i + 3];
+            }
         }
     }
 

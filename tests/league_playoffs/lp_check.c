@@ -10,6 +10,13 @@ DIYCompetitionEx _diyCompetitionStart;
 DIYTournamentState _diyFileBufferCopy;
 uint8_t _seasonPlaying;
 CompetitionCareer _careerContests[CAREER_CONTESTS_CAP];
+void UefaCoef_StageStart(uint8_t c, const uint16_t *t, int32_t n) { (void)c; (void)t; (void)n; }
+void UefaCoef_Result(uint8_t c, uint16_t h, uint16_t a, uint16_t g1, uint16_t g2) { (void)c; (void)h; (void)a; (void)g1; (void)g2; }
+void UefaCoef_PhaseEnd(uint8_t c, const uint16_t *o) { (void)c; (void)o; }
+void UefaCoef_Draw(uint8_t c, int32_t s, const uint16_t *t, int32_t n) { (void)c; (void)s; (void)t; (void)n; }
+uint32_t UefaCoef_PotKey(uint8_t c, uint16_t t, uint32_t v) { (void)c; (void)t; return v; }
+uint32_t UefaCoef_Club(uint16_t t) { (void)t; return 0; }
+int32_t UefaCoef_On(void) { return 0; }
 WorldId (World_Current)(void) { return WORLD_9697; }
 uint16_t Rand2(void) { return 0; }
 uint8_t *diy_resolve_team(int32_t sel) { (void)sel; return 0; }

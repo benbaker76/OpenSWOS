@@ -16,6 +16,7 @@
 #include "career_teams.h"
 #include "panic.h"
 #include "league_phase.h"
+#include "uefa_coef.h"
 
 /* ---- ASM externs (globals defined in assembly) ---- */
 extern DIYCompetitionEx _diyCompetitionStart;
@@ -271,11 +272,9 @@ static void qualifyTeamsForUefaCup(void)
  * Group B: Exported qualification entry point
  * ================================================================ */
 
-/* ---- A world's league phases (include/league_phase.h): the SWOS 96/97 Mod's league-phase
- * world (careerworld.QUAL_ASM) -- each of the country's places (the world's, this season's
- * eligible lists) the next club of its league's top 9 that is no title holder and in no list
- * yet; the Europa League's first its cup winner (if not taken); the holders after every country
- * (Career_DrawEuropeanCupTeamsAndCopyGrids). ---- */
+/* ---- A world's league phases (include/league_phase.h): every country's top 9 and cup winner
+ * go to the UEFA qualifying rounds (src/uefa_coef.c, the SWOS 96/97 Mod's uefaq), which fill
+ * the three lists; the holders join after (Career_DrawEuropeanCupTeamsAndCopyGrids). ---- */
 
 static int32_t worldLeaguePhases(void)
 {
@@ -284,49 +283,15 @@ static int32_t worldLeaguePhases(void)
     return World_LeaguePhaseCups(&places, &n) != 0;
 }
 
-static int32_t worldSkip(uint16_t team)
+/* The qualifying rounds' lists (uefa_coef.c): a club into cup 0..2's list and the TMD pool. */
+void Career_AppendTeamToEuroCupListN(int32_t cup, TeamFileEx *record)
 {
-    return team == 0 || team == 0xFFFF || team == _euroCupTitleHolderTeamId ||
-           team == _cupWinnersCupTitleHolderTeamId || team == _uefaCupTitleHolderTeamId ||
-           isTeamInList(team, _euroCupTeamListPtr, _euroCupQualifiedTeamCount) ||
-           isTeamInCupWinnersCupList(team) || isTeamInUefaCupList(team);
-}
-
-/* The league's 10th to 12th, cached with its top 9 in a world with league phases: a holder in
- * the top 9 plays as holder, so its country's league places go down the table (three holders
- * free three places at most; the Mod's top 9 alone left them empty). */
-#define WORLD_EXTRA_GRIDS 3
-static TeamFileEx worldExtraGrids[WORLD_EXTRA_GRIDS];
-
-/* The next of the league's top 12 not to skip, or 0. */
-static uint8_t *worldNextLeagueClub(void)
-{
-    for (int32_t i = 0; i < 9 + WORLD_EXTRA_GRIDS; i++) {
-        uint8_t *g = i < 9 ? _primaryQualifiedTeamGrids + (uint32_t)i * sizeof(TeamFileEx)
-                           : (uint8_t *)&worldExtraGrids[i - 9];
-        if (!worldSkip(BE_READ_U16(g)))
-            return g;
-    }
-    return 0;
-}
-
-static void worldQualify(void)
-{
-    uint8_t *g;
-    while (tryConsumeCompetitionIdFromList(_euroCupEligibleCompetitionIds))
-        if ((g = worldNextLeagueClub()) != 0)
-            appendTeamToEuroCupList(g);
-    int32_t first = 1;
-    while (tryConsumeCompetitionIdFromList(_cupWinnersCupEligibleCompetitionIds)) {
-        uint8_t *cup = _primaryQualifiedTeamGrids + 9 * sizeof(TeamFileEx);     /* (the cup winner) */
-        g = first && !worldSkip(BE_READ_U16(cup)) ? cup : worldNextLeagueClub();
-        first = 0;
-        if (g)
-            appendTeamToCupWinnersCupList(g);
-    }
-    while (tryConsumeCompetitionIdFromList(_uefaCupEligibleCompetitionIds))
-        if ((g = worldNextLeagueClub()) != 0)
-            appendTeamToUefaCupList(g);
+    if (cup == 0)
+        appendTeamToEuroCupList((uint8_t *)record);
+    else if (cup == 1)
+        appendTeamToCupWinnersCupList((uint8_t *)record);
+    else
+        appendTeamToUefaCupList((uint8_t *)record);
 }
 
 __attribute__((used, externally_visible))
@@ -337,8 +302,8 @@ void Career_ProcessCompetitionForEuropeanCupQualification(void)
     uint8_t *countryPtr = (uint8_t *)_countriesTable[idx];
     if (*countryPtr != 0)
         return; /* not European (first byte != 0) → skip */
-    if (worldLeaguePhases()) {
-        worldQualify();
+    if (worldLeaguePhases()) {     /* (its top 9 and cup winner: the qualifying rounds, uefa_coef.c) */
+        UefaQual_Country();
         return;
     }
     qualifyTeamForEuroCup();
@@ -384,19 +349,6 @@ void DIY_CachePrimaryQualifiedTeamsGrid(void)
         TeamFileEx *teamData = VerifyTeamLoaded(teamNum);
         copyTeamGridWords((uint8_t *)teamData, dst, 0x155);
         dst += sizeof(TeamFileEx);
-    }
-    if (!worldLeaguePhases())
-        return;
-    for (uint16_t i = 0; i < WORLD_EXTRA_GRIDS; i++) {
-        uint8_t *g = (uint8_t *)&worldExtraGrids[i];
-        if ((uint16_t)(9 + i) >= numTeams) {
-            g[0] = 0;
-            g[1] = 0;
-            continue;
-        }
-        uint16_t slotIdx = (uint16_t)((uint32_t)(int32_t)(int16_t)leaguePositions[i] / 18) << 1;
-        TeamFileEx *teamData = VerifyTeamLoaded(BE_READ_U16((uint8_t *)teamIdsTable + slotIdx));
-        copyTeamGridWords((uint8_t *)teamData, g, 0x155);
     }
 }
 
@@ -534,6 +486,19 @@ static void reloadEuroCupTeamSelectionFromRestoredField(void)
         (uint16_t)_diyCompetitionStart.base.numTeams);
 }
 
+/* The same for a world's league phase (type 2, its 36 in the tournament's list): a loaded
+ * career's selection holds its league only, and the slot's update validates every club of the
+ * contest (VerifyTeamLoaded panic on the first club of another country). */
+extern DIYTournamentState _diyFileBufferCopy;
+static void reloadLeaguePhaseSelection(void)
+{
+    _numSelectedTeams = 0;
+    AppendTeamsToSelectionFromTmdOrTeamFile(
+        (uint16_t *)_diyFileBufferCopy.teamIds,
+        (uint16_t *)_diyFileBufferCopy.teamIds,
+        (uint16_t)_diyFileBufferCopy.header.numTeams);
+}
+
 /* Career_UpdateEuroCupCompetitionSlot (SWOS2.s line 31764)
  * If euroCupCopy is the active quaternary competition, edit it interactively;
  * otherwise auto-advance it as a league competition and copy the grid. */
@@ -552,8 +517,12 @@ void Career_UpdateEuroCupCompetitionSlot(void)
     if (a4 == _quaternaryCompetitionPtr) {
         RestoreSelectedTeams();
         Career_CopyEuroCupsCompetitionContextToOrFromActive();
+        if (worldLeaguePhases())
+            reloadLeaguePhaseSelection();
         DIY_EditCompetitionSlot(1, 1, 0);
         Career_CopyEuroCupTeamGridAndTitleHolder();
+        if (worldLeaguePhases())
+            RestoreSelectedTeams();     /* (the backup stays the league's, as the cup path below) */
         SaveSelectedTeams();
     } else {
         Career_AutoAdvanceLeagueCompetitionFromRecord(a4);
@@ -571,8 +540,10 @@ void Career_UpdateCupWinnersCupCompetitionSlot(void)
         if (a4 == _quaternaryCompetitionPtr) {
             RestoreSelectedTeams();
             Career_CopyEuroCupsCompetitionContextToOrFromActive();
+            reloadLeaguePhaseSelection();
             DIY_EditCompetitionSlot(1, 1, 0);
             Career_CopyCupWinnersCupTeamGridAndTitleHolder();
+            RestoreSelectedTeams();
             SaveSelectedTeams();
         } else {
             Career_AutoAdvanceLeagueCompetitionFromRecord(a4);
@@ -614,8 +585,10 @@ void Career_UpdateUefaCupCompetitionSlot(void)
         if (a4 == _quaternaryCompetitionPtr) {
             RestoreSelectedTeams();
             Career_CopyEuroCupsCompetitionContextToOrFromActive();
+            reloadLeaguePhaseSelection();
             DIY_EditCompetitionSlot(1, 1, 0);
             Career_CopyUefaCupTeamGridAndTitleHolder();
+            RestoreSelectedTeams();
             SaveSelectedTeams();
         } else {
             Career_AutoAdvanceLeagueCompetitionFromRecord(a4);
@@ -718,8 +691,8 @@ void Career_DrawEuropeanCupTeamsAndCopyGrids(void)
             appendTeamToEuroCupList(_euroCupTitleHolderGrid);
         if (_cupWinnersCupTitleHolderTeamId != 0xFFFF)
             appendTeamToEuroCupList(_cupWinnersCupTitleHolderGrid);
-        if (_uefaCupTitleHolderTeamId != 0xFFFF)
-            appendTeamToCupWinnersCupList(_uefaCupTitleHolderGrid);
+        if (_uefaCupTitleHolderTeamId != 0xFFFF && !UefaQual_KeepsUeclHolder())
+            appendTeamToCupWinnersCupList(_uefaCupTitleHolderGrid);     /* (unless it won its league) */
         return;
     }
     drawRandomTeamFromPoolAndCopyGrid(
