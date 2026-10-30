@@ -31,6 +31,7 @@ extern uint16_t _competitionSlotUpdatedFlag;
 extern DIYCompetitionEx _diyCompetitionStart;
 uint16_t Career_SelectEuroCupSlotIfTeamParticipates(uint8_t *cupCopy, uint16_t euroCupIndex);
 void Career_AppendTeamToTmdTeamPool(TeamFileEx *team);
+void Career_RetireSlotCalendarEntries(uint8_t slot);
 void Career_AppendTeamToEuroCupListN(int32_t cup, TeamFileEx *record);    /* (career_eurocups.c) */
 
 static uint16_t modId(uint16_t team) { return (uint16_t)((team >> 8) | (team << 8)); }
@@ -563,17 +564,10 @@ uint8_t *UefaQual_RestoreTie(uint16_t index)
 }
 
 /* Slot 3 from the season start's own (Career_SelectEuroCupSlotIfTeamParticipates): its
- * calendar's entries so far retired first (their round FFh: the cache's lookups take a slot's
- * first entry of the round, the finished tie's otherwise -- the Mod's uq_daily .build). */
+ * calendar's entries so far retired first (Career_RetireSlotCalendarEntries). */
 static void slot3(uint8_t *rec, uint16_t index)
 {
-    uint8_t *e = _teamSelectionKeyCache;
-    for (int32_t i = 0; i < _teamSelectionKeyCacheCount; i++) {
-        TeamSelectionKeyCacheEntry *x = (TeamSelectionKeyCacheEntry *)e;
-        if (x->compSlot == 3)
-            x->roundIdx = 0xFF;
-        e += x->entryStride;
-    }
+    Career_RetireSlotCalendarEntries(3);
     uint16_t idx = _teamSelectionKeyCacheIndex, off = _teamSelectionKeyCacheOffset;
     Career_SelectEuroCupSlotIfTeamParticipates(rec, index);
     _teamSelectionKeyCacheIndex = idx;  /* (the new entries all come later: the position stays) */

@@ -30,6 +30,7 @@ extern uint16_t _internationalAutoAdvanceFlag;
 extern uint8_t *_currentCompetitionPtr;
 extern uint16_t _numSelectedTeams;
 extern Playoffs _div1Playoffs;
+extern void Career_RetireSlotCalendarEntries(uint8_t slot);
 extern void Career_SetCurrentCompetitionSlot(uint8_t *comp, uint16_t slot, uint16_t divisionIndex,
                                              uint16_t hasSelectedTeams);
 extern void Career_LoadCompetitionSlotStateFromBuffer(uint8_t *slot);
@@ -623,6 +624,7 @@ int32_t WorldPlayoff_CareerLeagueEnded(void)
     /* Into slot 4, as 96/97's play-offs: the record (its calendar), then its clubs. */
     make_record();
     _diyCompetitionTablePtr = (uint32_t *)0;
+    Career_RetireSlotCalendarEntries(4);  /* (the slot's earlier contest's entries) */
     Career_SetCurrentCompetitionSlot((uint8_t *)&s_rec, 4, 0, 0);
     {
         uint8_t *ctx = (uint8_t *)&_diyCompetitionContextBuf;

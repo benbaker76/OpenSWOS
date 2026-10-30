@@ -1691,6 +1691,23 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
     }
 }
 
+/* A slot about to take another contest mid-season (a world's ties and play-offs): its calendar
+ * entries up to the current one get round FFh. The cache's lookups take a slot's first entry of
+ * the round from the cache's start, so the finished contest's (a Coppa Serie D tie in slot 4)
+ * would take the new one's matches and leave its own entries empty -- a play-out simulated
+ * instead of played. The later entries stay: a contest still running keeps its own. (The SWOS
+ * 96/97 Mod's uefaq .build does the same.) */
+void Career_RetireSlotCalendarEntries(uint8_t slot)
+{
+    uint8_t *e = _teamSelectionKeyCache;
+    for (uint16_t i = 0; i < _teamSelectionKeyCacheCount && i <= _teamSelectionKeyCacheIndex; i++) {
+        TeamSelectionKeyCacheEntry *x = (TeamSelectionKeyCacheEntry *)e;
+        if (x->compSlot == slot)
+            x->roundIdx = 0xFF;
+        e += x->entryStride;
+    }
+}
+
 /* ================================================================
  * Chunk 93 — Career Match Flow & Competition Slot Processing
  *

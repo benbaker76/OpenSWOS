@@ -25,6 +25,7 @@ extern uint16_t _competitionSlotUpdatedFlag;
 extern uint16_t _teamSelectionKeyCacheCount;
 extern uint8_t _teamSelectionKeyCache[];
 extern Playoffs _div1Playoffs;
+extern void Career_RetireSlotCalendarEntries(uint8_t slot);
 extern void Career_SetCurrentCompetitionSlot(uint8_t *comp, uint16_t slot, uint16_t divisionIndex,
                                              uint16_t hasSelectedTeams);
 extern void Career_LoadCompetitionSlotStateFromBuffer(uint8_t *slot);
@@ -265,6 +266,7 @@ static void build_tie(const WorldCupD *c, int32_t t, uint16_t a, uint16_t b, uin
     s->teamB = (uint16_t)((away & 0xFF) << 8 | away >> 8);
     make_record(c);
     _diyCompetitionTablePtr = (uint32_t *)0;
+    Career_RetireSlotCalendarEntries(4);  /* (the slot's earlier contest's entries) */
     Career_SetCurrentCompetitionSlot((uint8_t *)&s_rec, 4, 0, 0);
     {
         uint8_t *ctx = (uint8_t *)&_diyCompetitionContextBuf;
@@ -490,6 +492,7 @@ static int32_t build_cup64(const WorldCupD *c, int32_t r64)
         return 0;
     s->slot2 = (uint8_t)(r64 + 1);              /* (first: the calendar's round names read it) */
     s->round = (uint8_t)r64;
+    Career_RetireSlotCalendarEntries(2);  /* (the slot's earlier contest's entries) */
     Career_SetCurrentCompetitionSlot((uint8_t *)&s_cup64.rec, 2, 0, 0);
     _tertiaryCompetitionContextBuf.tourn.header.slotStateA = _primaryCompetitionBuf.tourn.header.slotStateA;
     _tertiaryCompetitionContextBuf.tourn.header.slotStateB = _primaryCompetitionBuf.tourn.header.slotStateB;
