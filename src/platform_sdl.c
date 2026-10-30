@@ -11,6 +11,7 @@
  */
 
 #include <stdint.h>
+#include "project_identity.h"
 #include "platform_sdl.h"
 #include "crt_effects.h"   /* CRT mask / vignette / curved corners */
 #include "display.h"
@@ -716,7 +717,7 @@ int Platform_Init(const PlatformInitOptions *opts)
     /* The build goes in the title bar as well as on the main menu: a windowed
      * screenshot then carries it even when the shot crops to the game area. */
     static char s_title[96];
-    snprintf(s_title, sizeof s_title, "OpenSWOS %s (%s)", Build_Id(), Build_Platform());
+    snprintf(s_title, sizeof s_title, PROJECT_NAME " %s (%s)", Build_Id(), Build_Platform());
 
     /* [video] resolution=WxH IS THE CLIENT AREA, when one is named.
      *

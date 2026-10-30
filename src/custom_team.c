@@ -36,6 +36,7 @@
 #include <strings.h>
 
 #include "custom_team.h"
+#include "project_identity.h"   /* PROJECT_TEAM_FORMAT */
 #include "endian_helpers.h"
 #include "kit_art.h"
 #include "team_colors.h"
@@ -433,7 +434,7 @@ static int32_t write_json(const CustomTeam *custom, char *json, size_t size)
     Text t = { json, size, 0 };
     int32_t i, j;
 
-    put(&t, "{\n  \"format\": \"openswos-team\",\n  \"version\": %d,\n", kFormatVersion);
+    put(&t, "{\n  \"format\": \"" PROJECT_TEAM_FORMAT "\",\n  \"version\": %d,\n", kFormatVersion);
     put(&t, "  \"made_from\": { \"uuid\": \"%s\", \"checksum\": \"%s\", \"name\": ", custom->madeFrom,
         custom->checksum);
     if (base) put_string(&t, base->team.team.teamName, sizeof base->team.team.teamName);

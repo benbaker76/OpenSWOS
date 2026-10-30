@@ -11,7 +11,8 @@
 #include "dos2amiga.h"
 #include "font_extend.h"
 #include "jag_tier.h"
-#include "../../../include/assets_ini.h"   /* the parts, their data versions, ASSETS.ini */
+#include "../../../include/assets_ini.h"
+#include "../../../include/project_identity.h"   /* the player's folder, the names */   /* the parts, their data versions, ASSETS.ini */
 #include "rnc_pack.h"
 #include "lha.h"
 #include "sg_dir.h"
@@ -656,8 +657,8 @@ static int32_t ini_write(const char *assetsDir, const SdAssetsIni *ini, char *er
         snprintf(err, 256, "cannot write %.200s", path);
         return -1;
     }
-    fprintf(f, "; " ASSETS_INI_NAME " -- written by OpenSWOS Setup: what it made in this folder.\n"
-               "; [data]: the data version of each part made (OpenSWOS Setup asks you to install\n"
+    fprintf(f, "; " ASSETS_INI_NAME " -- written by " PROJECT_SETUP_NAME ": what it made in this folder.\n"
+               "; [data]: the data version of each part made (" PROJECT_SETUP_NAME " asks you to install\n"
                "; again when a newer setup makes a part differently). [sources]: what it was made\n"
                "; from, filled in for you next time. Your own paths: do not share this file.\n"
                "\n[data]\n");
@@ -855,16 +856,16 @@ void SwosData_DefaultAssetsDir(char *out, uint32_t cap)
     }
 #ifdef _WIN32
     const char *profile = getenv("USERPROFILE");
-    snprintf(out, cap, "%s/Documents/SWOS/assets", profile ? profile : ".");
+    snprintf(out, cap, "%s/Documents/" PROJECT_USER_DIR "/assets", profile ? profile : ".");
     for (char *p = out; *p; p++)
         if (*p == '\\')
             *p = '/';
 #elif defined(__APPLE__)
     const char *home = getenv("HOME");
-    snprintf(out, cap, "%s/Library/Application Support/SWOS/assets", home ? home : ".");
+    snprintf(out, cap, "%s/Library/Application Support/" PROJECT_USER_DIR "/assets", home ? home : ".");
 #else
     const char *home = getenv("HOME");
-    snprintf(out, cap, "%s/.swos/assets", home ? home : ".");
+    snprintf(out, cap, "%s/" PROJECT_USER_DOT_DIR "/assets", home ? home : ".");
 #endif
 }
 

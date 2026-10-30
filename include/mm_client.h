@@ -25,6 +25,8 @@
 #ifndef MM_CLIENT_H
 #define MM_CLIENT_H
 
+#include "project_identity.h"
+
 #ifdef SWOS_SDL_BUILD
 
 #include "swos_types.h"
@@ -43,7 +45,7 @@
  * docs/NETPLAY_SETUP.md, docs/INDEX.md). A default, not a lock:
  * the SERVER row and [netplay] matchmaker override it, and SWOS_MM_HOST overrides both --
  * which every local test sets, so none of them reaches this server by accident. */
-#define MM_DEFAULT_HOST    "online.openswos.net"
+#define MM_DEFAULT_HOST    PROJECT_MM_HOST   /* online.openswos.net (project_identity.h) */
 
 typedef enum {
     MM_IDLE,          /* no socket */

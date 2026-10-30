@@ -319,7 +319,10 @@ component LogView inherits Rectangle {
 }
 
 export component MainWindow inherits Window {
-    title: "OpenSWOS Setup";
+    // The project's name and home (project_identity.h, set by main.cpp): a fork's own.
+    in property <string> project-name: "OpenSWOS";
+    in property <string> project-url: "github.com/benbaker76/OpenSWOS";
+    title: root.project-name + " Setup";
     icon: @image-url("../../../../packaging/linux/hicolor/256x256/apps/openswos.png");
     preferred-width: 860px;
     preferred-height: 860px;
@@ -413,13 +416,13 @@ export component MainWindow inherits Window {
                 alignment: center;
                 spacing: 4px;
                 Text {
-                    text: "OpenSWOS Setup";
+                    text: root.project-name + " Setup";
                     font-size: 20px;
                     font-weight: 700;
                     color: Theme.text;
                 }
                 Text {
-                    text: "OpenSWOS plays with the data of a copy of Sensible World of Soccer you own. Get it from the links below: what you download is found here by itself.";
+                    text: root.project-name + " plays with the data of a copy of Sensible World of Soccer you own. Get it from the links below: what you download is found here by itself.";
                     wrap: word-wrap;
                     color: Theme.text-dim;
                 }
@@ -458,8 +461,8 @@ export component MainWindow inherits Window {
             title: root.tab == 0 ? "1.  Get the game" : "1.  Get the game's data";
             Text {
                 text: root.tab == 0
-                    ? "You need the PC game or the Amiga version; with both, OpenSWOS plays the Amiga's music and sounds on the PC game's data."
-                    : "The Amiga version of OpenSWOS needs both: the Amiga version for the game's own files, the PC game for the AGA pitches and pictures.";
+                    ? "You need the PC game or the Amiga version; with both, " + root.project-name + " plays the Amiga's music and sounds on the PC game's data."
+                    : "The Amiga version of " + root.project-name + " needs both: the Amiga version for the game's own files, the PC game for the AGA pitches and pictures.";
                 wrap: word-wrap;
                 color: Theme.text-dim;
                 font-size: 12px;
@@ -575,7 +578,7 @@ export component MainWindow inherits Window {
                     }
                 }
                 if root.done && root.can-play: TextButton {
-                    label: "Play OpenSWOS";
+                    label: "Play " + root.project-name;
                     primary: true;
                     width: 150px;
                     clicked => { root.play(); }
@@ -771,7 +774,7 @@ export component MainWindow inherits Window {
                         alignment: center;
                         spacing: 4px;
                         Text {
-                            text: "OpenSWOS Setup " + root.version;
+                            text: root.project-name + " Setup " + root.version;
                             font-size: 20px;
                             font-weight: 700;
                             color: Theme.text;
@@ -781,8 +784,8 @@ export component MainWindow inherits Window {
                             color: Theme.text-dim;
                         }
                         Link {
-                            text: "github.com/benbaker76/OpenSWOS";
-                            url: "https://github.com/benbaker76/OpenSWOS";
+                            text: root.project-url;
+                            url: "https://" + root.project-url;
                             open(u) => { root.open-url(u); }
                         }
                     }

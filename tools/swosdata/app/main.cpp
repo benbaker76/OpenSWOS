@@ -22,6 +22,7 @@
 // without --auto; --play presses Play OpenSWOS
 // when the install is done. --no-watch leaves the Downloads folder alone.
 #include <atomic>
+#include "../../../include/project_identity.h"
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -403,7 +404,7 @@ struct App {
           row.detail_warn = true;
         } else if (!amigaSeason.empty()) {
           row.detail = Str("The " + amigaSeason + " season" + (src.adf1[0] ? " (both disks)" : "") +
-                           ". OpenSWOS plays 96/97's teams: they come from the PC game when it is here.");
+                           ". " PROJECT_NAME " plays 96/97's teams: they come from the PC game when it is here.");
         } else if (src.adf1[0] && src.adf2[0]) {
           row.detail = "Both disks.";
         }
@@ -641,7 +642,7 @@ struct App {
       bool sources = false;
       for (int s = 0; s < SD_STEP_COUNT; s++) sources = sources || info[s].ready;
       w().set_status(Str("Some of the game's data in " + Shown(outDir) +
-                         " was made by an older OpenSWOS Setup. " +
+                         " was made by an older " PROJECT_SETUP_NAME ". " +
                          (sources ? "Click Update to make it again from your copy."
                                   : "Choose the folder your copy is in, then click Update.")));
     }
@@ -1266,8 +1267,8 @@ struct App {
 int Usage() {
   sd::AttachParentConsole();
   std::printf(
-      "OpenSWOS Setup %s\n"
-      "usage: openswos-setup [--res DIR] [--scan DIR]... [--out DIR] [--amiga]\n"
+      PROJECT_SETUP_NAME " %s\n"
+      "usage: " PROJECT_SETUP_PROGRAM " [--res DIR] [--scan DIR]... [--out DIR] [--amiga]\n"
       "                      [--program DIR] [--drawer-to DIR | --whdload-to FILE]\n"
       "  --res DIR         the game's own files (with setup/glyphs.txt); default: beside\n"
       "                    this program, else the nearest bin/ above it\n"
@@ -1366,7 +1367,7 @@ int main(int argc, char** argv) {
     char when[32];
     std::strftime(when, sizeof when, "%Y-%m-%d %H:%M:%S", std::localtime(&now));
     const char* backend = std::getenv("SLINT_BACKEND");
-    app.FileLog(std::string("OpenSWOS Setup ") + SD_VERSION + ", " + when);
+    app.FileLog(std::string(PROJECT_SETUP_NAME " ") + SD_VERSION + ", " + when);
     app.FileLog("renderer: " + std::string(backend && *backend ? backend : "Slint's default"));
     app.FileLog("program: " + Shown(app.exeDir));
     app.FileLog("game's files: " + (app.resDir.empty() ? std::string("(not found)") : Shown(app.resDir)));
@@ -1375,7 +1376,7 @@ int main(int argc, char** argv) {
 
   // Wayland matches this against a .desktop file for the icon; X11 and
   // Windows/macOS use the Window's own icon.
-  slint::set_xdg_app_id("openswos-setup");
+  slint::set_xdg_app_id(PROJECT_SETUP_PROGRAM);
 
   auto ui = MainWindow::create();
   app.ui = &ui;
@@ -1383,6 +1384,8 @@ int main(int argc, char** argv) {
   ui->set_log(app.log);
   ui->set_tab(amigaTab ? 1 : 0);
   ui->set_version(SD_VERSION);
+  ui->set_project_name(PROJECT_NAME);
+  ui->set_project_url(PROJECT_URL);
   ui->set_show_about(about);
   ui->set_show_details(details);
   if (!whdloadArg.empty()) ui->set_amiga_kind(1);
@@ -1402,7 +1405,7 @@ int main(int argc, char** argv) {
   if (app.exeDir.find("/AppTranslocation/") != std::string::npos) {
     app.FileLog("running translocated: " + Shown(app.exeDir));
     app.standing = "macOS is running this app from a hidden copy, so Play cannot find SWOS.app "
-                   "beside it. To fix it, move the OpenSWOS folder somewhere else with Finder "
+                   "beside it. To fix it, move the " PROJECT_NAME " folder somewhere else with Finder "
                    "(your Desktop or Applications) and open the setup from there.";
     app.Notice("", true);
   } else

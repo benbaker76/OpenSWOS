@@ -34,6 +34,7 @@
  */
 
 #include "swos_settings.h"
+#include "project_identity.h"
 #include "swos_io.h"   /* swos_save_commit — Switch save durability */
 #include "ini.h"
 
@@ -481,7 +482,7 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         opts->replay_auto_save ? "true" : "false" };
     SETTING(n) = (IniEntry){ "netplay", "matchmaker",
         "; matchmaker: the server MULTIPLAYER logs in to, as \"host\" or \"host:port\"\n"
-        "; (default port 19602). Empty means the public server, online.openswos.net. You can type it\n"
+        "; (default port 19602). Empty means the public server, " PROJECT_MM_HOST ". You can type it\n"
         "; on the login screen instead -- it is saved back here.",
         opts->matchmaker };
     SETTING(n) = (IniEntry){ "netplay", "name",
@@ -591,11 +592,11 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "general","currency",   "; currency: pound | dollar | euro", opts->currency[0] ? opts->currency : "pound" };
     SETTING(n) = (IniEntry){ "general","assets_reminder_off",
         "; assets_reminder_off: set by \"Don't remind me\" on the reminder that your game data was made by\n"
-        "; an older OpenSWOS Setup -- the data versions it was about. Empty: remind (src/assets_check.c).",
+        "; an older " PROJECT_SETUP_NAME " -- the data versions it was about. Empty: remind (src/assets_check.c).",
         opts->assets_reminder_off };
     SETTING(n) = (IniEntry){ "general","world",
         "; world: 9697 | 2627 -- the football world: its countries, clubs and competitions\n"
-        "; (docs/WORLD_2026_27.md): SWOS 96/97, or World 2026-27 once OpenSWOS Setup has\n"
+        "; (docs/WORLD_2026_27.md): SWOS 96/97, or World 2026-27 once " PROJECT_SETUP_NAME " has\n"
         "; imported its data. A save is played in the world it was made in.",
         opts->world[0] ? opts->world : "9697" };
     if (n >= SETTINGS_MAX)

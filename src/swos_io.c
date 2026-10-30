@@ -5,6 +5,7 @@
  */
 /* swos_io.c — portable I/O + heap shim. See swos_io.h. */
 #include "swos_io.h"
+#include "project_identity.h"   /* PROJECT_USER_DIR: the player\'s folder */
 #if defined(SWOS_SDL_BUILD) && !defined(_WIN32)
 /* SDL_GetPrefPath / SDL_free — the Switch mounts save:/ through them, and
  * macOS uses SDL_GetPrefPath when a .app launch leaves HOME unset. On the
@@ -284,7 +285,7 @@ void swos_save_dir_init(void)
      * The mount is flat and small, so unlike the desktops there is no separate
      * user/ and user/save split: SWOS.ini and the .CAR files share it. */
     {
-        char *pref = SDL_GetPrefPath(NULL, "SWOS");
+        char *pref = SDL_GetPrefPath(NULL, PROJECT_USER_DIR);
         if (pref && *pref) {
             size_t n = strlen(pref);
             /* SDL returns a trailing separator; the rest of this file composes
@@ -318,7 +319,7 @@ void swos_save_dir_init(void)
     const char *profile = getenv("USERPROFILE");
     if (!profile || !*profile)
         return;                                  /* fall back to "save" / "." */
-    snprintf(user, sizeof user, "%s/Documents/SWOS", profile);
+    snprintf(user, sizeof user, "%s/Documents/" PROJECT_USER_DIR, profile);
     for (char *p = user; *p; p++)
         if (*p == '\\') *p = '/';
 # elif defined(__APPLE__)
@@ -336,9 +337,9 @@ void swos_save_dir_init(void)
      * tried first: it is what the docs say and what a terminal launch uses. */
     const char *home = getenv("HOME");
     if (home && *home) {
-        snprintf(user, sizeof user, "%s/Library/Application Support/SWOS", home);
+        snprintf(user, sizeof user, "%s/Library/Application Support/" PROJECT_USER_DIR, home);
     } else {
-        char *pref = SDL_GetPrefPath(NULL, "SWOS");
+        char *pref = SDL_GetPrefPath(NULL, PROJECT_USER_DIR);
         if (!pref || !*pref) {
             fprintf(stderr, "[settings] no HOME and SDL_GetPrefPath failed (%s) "
                             "— SWOS.ini and saves fall back to the CWD\n",
@@ -361,9 +362,9 @@ void swos_save_dir_init(void)
      * silent "." fallback is the worst of the options. */
     const char *home = getenv("HOME");
     if (home && *home) {
-        snprintf(user, sizeof user, "%s/.swos", home);
+        snprintf(user, sizeof user, "%s/" PROJECT_USER_DOT_DIR, home);
     } else {
-        char *pref = SDL_GetPrefPath(NULL, "SWOS");
+        char *pref = SDL_GetPrefPath(NULL, PROJECT_USER_DIR);
         if (!pref || !*pref) {
             fprintf(stderr, "[settings] no HOME and SDL_GetPrefPath failed (%s) "
                             "— SWOS.ini and saves fall back to the CWD\n",

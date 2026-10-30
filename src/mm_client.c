@@ -20,6 +20,7 @@
  */
 #include "mm_client.h"
 #include "netplay_compat.h"   /* NETPLAY_COMPAT: in the VERSION: tag */
+#include "project_identity.h" /* PROJECT_NETPLAY_TAG: its name */
 #include "world.h"            /* and the football world, if not 96/97 */
 
 #ifdef SWOS_SDL_BUILD
@@ -102,7 +103,8 @@ uint16_t MmClient_DefaultPort(void)
 #  define MM_HAVE_IFADDRS 1
 #endif
 
-/* The compatibility tag sent as VERSION:, OPENSWOS/<NETPLAY_COMPAT>: the server lists
+/* The compatibility tag sent as VERSION:, <PROJECT_NETPLAY_TAG>/<NETPLAY_COMPAT> (OPENSWOS/5,
+ * project_identity.h): the server lists
  * a game only to players whose number is the same (Connections.cpp, PlayKey), so a
  * player never joins one the handshake would refuse (include/netplay_compat.h). A world
  * other than 96/97 adds -<world> (MmClient_Connect). */
@@ -112,9 +114,9 @@ uint16_t MmClient_DefaultPort(void)
 /* The browser build says so: it can only play through the server, so the server
  * relays any match it is in (Connections.cpp). Still OPENSWOS to everything that
  * compares the prefix. */
-#define MM_GAME_ID_DEFAULT "OPENSWOS-WEB/" MM_STR(NETPLAY_COMPAT)
+#define MM_GAME_ID_DEFAULT PROJECT_NETPLAY_TAG "-WEB/" MM_STR(NETPLAY_COMPAT)
 #else
-#define MM_GAME_ID_DEFAULT "OPENSWOS/" MM_STR(NETPLAY_COMPAT)
+#define MM_GAME_ID_DEFAULT PROJECT_NETPLAY_TAG "/" MM_STR(NETPLAY_COMPAT)
 #endif
 
 /* ---- message headers, exactly as common/Message.cpp spells them ---- */

@@ -15,6 +15,7 @@
  * rigs), in the arcade cabinet, in the web build (its data is built in) or on the Switch.
  */
 #include <stdint.h>
+#include "project_identity.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,7 +87,7 @@ static void outdated_parts(const char *assetsDir, char *out, uint32_t cap)
         for (uint32_t i = 0; i < sizeof kTrees / sizeof kTrees[0]; i++) {
             snprintf(path, sizeof path, "%s/%s", assetsDir, kTrees[i]);
             if (is_dir(path)) {
-                snprintf(out, cap, "no %s (an older OpenSWOS Setup)", ASSETS_INI_NAME);
+                snprintf(out, cap, "no %s (an older " PROJECT_SETUP_NAME ")", ASSETS_INI_NAME);
                 return;
             }
         }
@@ -125,7 +126,7 @@ void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath)
     outdated_parts(dir, why, sizeof why);
     if (!why[0])
         return;
-    fprintf(stderr, "[assets] game data made by an older OpenSWOS Setup: %s\n", why);
+    fprintf(stderr, "[assets] game data made by an older " PROJECT_SETUP_NAME ": %s\n", why);
     version_signature(sig, sizeof sig);
     if (getenv("SWOS_NO_ASSETS_CHECK") || opts->arcade ||
         !driver || strcmp(driver, "dummy") == 0 || strcmp(driver, "offscreen") == 0)
@@ -140,10 +141,10 @@ void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath)
     SDL_MessageBoxData box;
     memset(&box, 0, sizeof box);
     box.flags      = SDL_MESSAGEBOX_INFORMATION;
-    box.title      = "OpenSWOS: update your game data";
-    box.message    = "Your game data was made by an older OpenSWOS Setup, and this version of "
-                     "OpenSWOS makes some of it differently.\n\n"
-                     "Open OpenSWOS Setup and click Update. It remembers where your copy of the "
+    box.title      = PROJECT_NAME ": update your game data";
+    box.message    = "Your game data was made by an older " PROJECT_SETUP_NAME ", and this version of "
+                     PROJECT_NAME " makes some of it differently.\n\n"
+                     "Open " PROJECT_SETUP_NAME " and click Update. It remembers where your copy of the "
                      "game is, so it only takes a moment.\n\n"
                      "The game still plays meanwhile; some pictures may be out of date.";
     box.numbuttons = (int)(sizeof kButtons / sizeof kButtons[0]);
@@ -185,21 +186,21 @@ void AssetsCheck_World(PlatformInitOptions *opts)
     if (s_worldState == 1)
         snprintf(text, sizeof text,
                  "SWOS.ini asks for World 2026-27 (world = %s), but its data is not installed.\n\n"
-                 "Download the World 2026-27 package, then add it in OpenSWOS Setup and click "
+                 "Download the World 2026-27 package, then add it in " PROJECT_SETUP_NAME " and click "
                  "Install.\n\n"
                  "SWOS 96/97 is played meanwhile.", s_worldTag);
     else
         snprintf(text, sizeof text,
-                 "Your World 2026-27 data is not the one this version of OpenSWOS was made for "
+                 "Your World 2026-27 data is not the one this version of " PROJECT_NAME " was made for "
                  "(it is %s, this version's is %s).\n\n"
-                 "Download the World 2026-27 package for this version, then add it in OpenSWOS "
+                 "Download the World 2026-27 package for this version, then add it in " PROJECT_NAME " "
                  "Setup and click Install.\n\n"
                  "Until then a World 2026-27 career may not play correctly: leagues and clubs can "
                  "be missing or wrong.", s_worldHave, s_worldWant);
     fprintf(stderr, "[world] message box: %s\n", s_worldState == 1 ? "not installed" : "other data");
     SDL_ShowSimpleMessageBox(s_worldState == 1 ? SDL_MESSAGEBOX_INFORMATION : SDL_MESSAGEBOX_WARNING,
-                             s_worldState == 1 ? "OpenSWOS: World 2026-27 is not installed"
-                                               : "OpenSWOS: update World 2026-27",
+                             s_worldState == 1 ? PROJECT_NAME ": World 2026-27 is not installed"
+                                               : PROJECT_NAME ": update World 2026-27",
                              text, NULL);
 #endif
 }

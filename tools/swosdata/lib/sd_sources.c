@@ -6,6 +6,7 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 #include "sd_sources.h"
+#include "../../../include/project_identity.h"
 #include "sd_manifest.h"
 #include "miniz.h"
 #include "sg_dir.h"
@@ -356,7 +357,7 @@ static int32_t add_zip(SdSources *s, const char *path)
     while (base > path && base[-1] != '/' && base[-1] != '\\')
         base--;
     char dir[1100];
-    snprintf(dir, sizeof dir, "%s/openswos-setup/%s", temp_root(), base);
+    snprintf(dir, sizeof dir, "%s/" PROJECT_SETUP_PROGRAM "/%s", temp_root(), base);
     int32_t added = 0;
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&z); i++) {
         mz_zip_archive_file_stat st;
@@ -516,7 +517,7 @@ int32_t SdSources_OpenWorld(const char *path, SdWorldInfo *info, char *dir, uint
             while (base > path && base[-1] != '/' && base[-1] != '\\')
                 base--;
             char tmp[1400];
-            snprintf(tmp, sizeof tmp, "%s/openswos-setup/%s", temp_root(), base);
+            snprintf(tmp, sizeof tmp, "%s/" PROJECT_SETUP_PROGRAM "/%s", temp_root(), base);
             rc = unpack_zip(&z, tmp) == 0 && world_root(tmp, root, sizeof root) == 0 ? 0 : -1;
         }
         mz_zip_reader_end(&z);
@@ -550,7 +551,7 @@ int32_t SdSources_UnpackAmigaProgram(const char *zip, char *dir, uint32_t cap)
     const char *base = zip + strlen(zip);
     while (base > zip && base[-1] != '/' && base[-1] != '\\')
         base--;
-    snprintf(dir, cap, "%s/openswos-setup/%s", temp_root(), base);
+    snprintf(dir, cap, "%s/" PROJECT_SETUP_PROGRAM "/%s", temp_root(), base);
     int32_t ok = 1;
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&z) && ok; i++) {
         mz_zip_archive_file_stat st;

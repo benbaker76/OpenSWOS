@@ -17,6 +17,7 @@
 
 
 #include <SDL.h>
+#include "project_identity.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1189,7 +1190,7 @@ int main(int argc, char **argv)
         snprintf(rel, sizeof rel, "data_json/worlds/%s/WORLD.ini", World_Tag());
         FILE *f = fopen(swos_data_path(rel, path, (uint32_t)sizeof path), "rb");
         if (!f) {
-            fprintf(stderr, "[world] %s: its data is not installed (OpenSWOS Setup: its package) -- playing 9697\n",
+            fprintf(stderr, "[world] %s: its data is not installed (" PROJECT_SETUP_NAME ": its package) -- playing 9697\n",
                     World_Tag());
             AssetsCheck_SetWorld(1, World_Tag(), "", "");
             World_Set("9697");

@@ -1,4 +1,5 @@
 #include "Connections.h"
+#include "../../../include/project_identity.h"   // PROJECT_NETPLAY_TAG: OpenSWOS's (a fork's own)
 #include "User.h"
 #include "Message.h"
 #include "Sender.h"
@@ -170,7 +171,7 @@ void Connections::BroadcastActiveUsers() const
 // commit) plays only those; any other client (SWOS 2020's) only its own tag.
 static std::string PlayKey(const std::string& version)
 {
-    const std::string ours = "OPENSWOS";
+    const std::string ours = PROJECT_NETPLAY_TAG;
     if (version.compare(0, ours.size(), ours) != 0)
         return version;
     const auto slash = version.rfind('/');
@@ -277,8 +278,8 @@ bool Connections::StartGame(User* owner)
         // A browser (VERSION OPENSWOS-WEB, through the WebSocket gate) can reach
         // nothing but this server, so its match is relayed whether or not the server
         // relays everyone's.
-        const std::string ours = "OPENSWOS";
-        const std::string web = "OPENSWOS-WEB";
+        const std::string ours = PROJECT_NETPLAY_TAG;
+        const std::string web = PROJECT_NETPLAY_TAG "-WEB";
         bool anyWeb = owner->Version().compare(0, web.size(), web) == 0 ||
                       p2->Version().compare(0, web.size(), web) == 0;
         if (m_relay && (m_relay->Enabled() || (anyWeb && m_relay->ServesWeb())) &&

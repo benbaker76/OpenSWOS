@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "menu_data.h"
+#include "project_identity.h"
 
 extern void MultiplayerMenuSelected(void);
 extern void CreditsMenuSelected(void);
@@ -6844,7 +6845,7 @@ Menu_ContinueAbort _continueAbortMenu = {
  * so the last credits line (three lines of testers since 2026-10-21) clears it. */
 extern void CreditsAgaInit(void);
 extern void CreditsAgaDraw(void);
-char _aCreditsAgaHeader[] = "OPENSWOS - CREDITS";
+char _aCreditsAgaHeader[] = PROJECT_NAME_UPPER " - CREDITS";
 char _aCreditsAgaExit[]   = "AMIGA FOREVER!";
 Menu_CreditsAga _creditsAgaMenu = {
     { CreditsAgaInit, 0, CreditsAgaDraw, 1 },

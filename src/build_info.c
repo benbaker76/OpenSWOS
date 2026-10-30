@@ -18,6 +18,7 @@
  * no libc.
  */
 #include "build_info.h"
+#include "project_identity.h"
 #include "swos_build.h"
 
 /* ---- which platform is this binary for? ----------------------------------
@@ -86,7 +87,7 @@ const char *Build_Platform(void)
 
 const char *Build_Version(void)
 {
-    return "OpenSWOS " SWOS_BUILD_ID " (" SWOS_BUILD_DATE ", " SWOS_PLATFORM SWOS_BUILD_RULES ")";
+    return PROJECT_NAME " " SWOS_BUILD_ID " (" SWOS_BUILD_DATE ", " SWOS_PLATFORM SWOS_BUILD_RULES ")";
 }
 
 /* ---- the on-screen form ---------------------------------------------------
