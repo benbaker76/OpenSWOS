@@ -109,4 +109,13 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
                              const char *outPath, void (*log)(void *user, const char *line),
                              void *user, char *err);
 
+/* A world's built files (`worldDir`: scripts/world_import.py's bin/data_json/worlds/<tag>/ --
+ * teams/, competitions/, data/) into the assets folder's data_json/worlds/<tag>/, where the PC
+ * game reads them (--world=<tag> or [general] world), and, given a SWOS drawer, its data/ over
+ * the drawer's with data/WORLD naming the world. OpenSWOS ships no world's data: the player
+ * brings it. 0 on success. */
+int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char *assetsDir,
+                              const char *drawerDir, void (*log)(void *user, const char *line),
+                              void *user, char *err);
+
 #endif

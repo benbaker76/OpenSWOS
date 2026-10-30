@@ -1171,3 +1171,53 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
     Sg_MakeDirs(probe);
     return 0;
 }
+
+/* A world (the game's include/world.h): a world's built files -- what scripts/world_import.py
+ * writes into bin/data_json/worlds/<tag>/ from the SWOS 96/97 Mod's data, which OpenSWOS does
+ * not ship -- into the assets folder's data_json/worlds/<tag>/ (teams/, competitions/: the PC
+ * game reads them there), and, given a SWOS drawer, its data/ (the world's binary team files)
+ * over the drawer's with data/WORLD naming the world. */
+int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char *assetsDir,
+                              const char *drawerDir, void (*log)(void *user, const char *line),
+                              void *user, char *err)
+{
+    static const char *const kTrees[] = { "teams", "competitions" };
+    char dst[1100], rel[64], probe[1100], line[256];
+    if (!tag || !tag[0] || strlen(tag) > 8 || strchr(tag, '/') || strchr(tag, '\\')) {
+        snprintf(err, 256, "a world's tag is a short name (2627)");
+        return -1;
+    }
+    if (Sg_FindNoCase(worldDir, "competitions/leagues.json", probe, sizeof probe) != 0) {
+        snprintf(err, 256, "%s is not a built world (no competitions/leagues.json)", worldDir);
+        return -1;
+    }
+    snprintf(rel, sizeof rel, "data_json/worlds/%s", tag);
+    Sg_PathJoin(dst, sizeof dst, assetsDir, rel);
+    Sg_MakeDirs(dst);
+    for (uint32_t i = 0; i < sizeof kTrees / sizeof kTrees[0]; i++) {
+        int32_t n = copy_tree(worldDir, dst, kTrees[i], err);
+        if (n < 0)
+            return -1;
+        if (log) {
+            snprintf(line, sizeof line, "world %s: %s/ (%d files)", tag, kTrees[i], n);
+            log(user, line);
+        }
+    }
+    if (drawerDir) {
+        if (Sg_FindNoCase(drawerDir, "SWOS2", probe, sizeof probe) != 0) {
+            snprintf(err, 256, "%s is not a SWOS drawer (no SWOS2 in it)", drawerDir);
+            return -1;
+        }
+        int32_t n = copy_tree(worldDir, drawerDir, "data", err);
+        if (n < 0)
+            return -1;
+        Sg_PathJoin(probe, sizeof probe, drawerDir, "data/WORLD");
+        if (Sg_WriteFile(probe, (const uint8_t *)tag, (uint32_t)strlen(tag), err) != 0)
+            return -1;
+        if (log) {
+            snprintf(line, sizeof line, "world %s: the drawer's data/ (%d files), data/WORLD", tag, n);
+            log(user, line);
+        }
+    }
+    return 0;
+}

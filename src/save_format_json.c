@@ -2920,7 +2920,8 @@ int DataJson_LoadTeamArray(const char *json, int len, struct TeamFileEx *out, in
    Caller frees. Returns NULL on any error. */
 static char *dj_slurp(const char *path, int *out_len)
 {
-    FILE *f = fopen(path, "rb");
+    char found[1024];                   /* (the assets folder first: a world the data setup installed) */
+    FILE *f = fopen(swos_data_path(path, found, (uint32_t)sizeof found), "rb");
     if (!f)
         return NULL;
     fseek(f, 0, SEEK_END);

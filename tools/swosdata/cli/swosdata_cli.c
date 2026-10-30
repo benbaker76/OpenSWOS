@@ -64,6 +64,7 @@ static int32_t usage(void)
             "                                           no sources: the last install's, from --out's ASSETS.ini)\n"
             "       swosdata --compare OUT REF\n"
             "       swosdata --whdload OUT.lha --drawer SWOSDRAWER --assets ASSETSDIR [--res DIR]\n"
+            "       swosdata --world WORLDDIR --tag TAG --assets ASSETSDIR [--drawer SWOSDRAWER]\n"
             "       swosdata --installed ASSETSDIR\n"
             "       swosdata --list-parts ASSETSDIR   (part, data version, file: check_data_versions.py)\n");
     return 2;
@@ -224,6 +225,24 @@ int main(int argc, char **argv)
         if (!res[0])
             find_res_dir(argv[0], res, sizeof res);
         if (SwosData_MakeWhdload(assets, drawer, res, out, on_log, NULL, err) != 0) {
+            fprintf(stderr, "failed: %s\n", err);
+            return 1;
+        }
+        return 0;
+    }
+    /* --world DIR --tag TAG --assets DIR [--drawer DIR]: a world's built files into the
+     * assets folder (and a SWOS drawer) -- SwosData_InstallWorld. */
+    if (argc >= 2 && strcmp(argv[1], "--world") == 0) {
+        const char *world = argc > 2 ? argv[2] : NULL, *tag = NULL, *assets = NULL, *drawer = NULL;
+        for (int i = 3; i + 1 < argc; i += 2) {
+            if (strcmp(argv[i], "--tag") == 0) tag = argv[i + 1];
+            else if (strcmp(argv[i], "--assets") == 0) assets = argv[i + 1];
+            else if (strcmp(argv[i], "--drawer") == 0) drawer = argv[i + 1];
+            else return usage();
+        }
+        if (!world || !tag || !assets)
+            return usage();
+        if (SwosData_InstallWorld(world, tag, assets, drawer, on_log, NULL, err) != 0) {
             fprintf(stderr, "failed: %s\n", err);
             return 1;
         }
