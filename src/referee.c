@@ -10,6 +10,7 @@
  * InitRefereeAnimationTable, UpdateReferee, UpdateBookedPlayerNumberSprite
  */
 
+#include "shirt_numbers.h"
 #include "referee.h"
 #include "dos_sound.h"
 #include "dos_mode.h"      /* _gDosGameplay: the DOS second-yellow table runs off its end */
@@ -516,7 +517,7 @@ void UpdateBookedPlayerNumberSprite(void)
         TeamGame        *inGameTeam = teamInfo->inGameTeamPtr;
         uint16_t ordinal = (uint16_t)playerSprite->playerOrdinal;
         int8_t shirtNum = inGameTeam->players[ordinal - 1].shirtNumber;
-        int16_t sprIdx  = SPR_CORNER_FLAG_FRAME_3 + (int16_t)shirtNum;
+        int16_t sprIdx  = ShirtNumber_Sprite(shirtNum);     /* (1..99: shirt_numbers.c) */
         a0->imageIndex  = sprIdx;
     }
 

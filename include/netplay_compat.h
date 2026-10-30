@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 2      /* 2: purple, an 11th kit colour (team_colors.c) */
+#define NETPLAY_COMPAT 3      /* 3: shirt numbers 17..99 their own sprites (shirt_numbers.c) */
 
 #endif

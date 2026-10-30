@@ -2163,9 +2163,9 @@ static void drawSubstitutesMenuEntry(uint16_t y, uint16_t baseColor, int16_t sel
             uint8_t numStr[4];
             uint8_t *p = numStr;
             uint8_t num = (uint8_t)d5;
-            if (num >= 10) {
-                *p++ = '1';
-                num -= 10;
+            if (num >= 10) {                /* (0..99: the game wrote 10..19 only, 23 as "1=") */
+                *p++ = (uint8_t)('0' + num / 10 % 10);
+                num %= 10;
             }
             *p = num + '0';
             p++;

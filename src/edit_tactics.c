@@ -41,6 +41,7 @@
  * Chunk 89: LoadTactics
  */
 
+#include "shirt_numbers.h"
 #include "edit_tactics.h"
 #include "endian_helpers.h"
 #include "menu_system.h"
@@ -1497,8 +1498,9 @@ void DrawLittlePlayersAndBall(void)
 
         /* Draw shirt number above player */
         int8_t shirtNum = teamEx->players[playerNum].shirtNumber;
-        uint16_t numSprite = SPR_SHIRT_NUMBER_BASE + (uint16_t)(int16_t)shirtNum;
-        DrawSpriteCentered(numSprite, px, py - 9);
+        int16_t numSprite = ShirtNumber_MenuSprite(shirtNum);  /* (1..99: shirt_numbers.c) */
+        if (numSprite >= 0)
+            DrawSpriteCentered((uint16_t)numSprite, px, py - 9);
 
 nextIter:
         ;
@@ -1545,7 +1547,7 @@ void DrawEditTacticsHighlightedPlayerRoute(void)
 
     /* Determine shirt number sprite */
     int8_t shirtNum = teamEx->players[markedNum].shirtNumber;
-    uint16_t numSprite = SPR_SHIRT_NUMBER_BASE + (uint16_t)(int16_t)shirtNum;
+    int16_t numSprite = ShirtNumber_MenuSprite(shirtNum);  /* (1..99: shirt_numbers.c) */
 
     /* Loop over all 35 ball areas */
     for (int16_t i = 34; i >= 0; i--) {
@@ -1566,7 +1568,8 @@ void DrawEditTacticsHighlightedPlayerRoute(void)
         }
 
         /* Draw shirt number above player */
-        DrawSpriteCentered(numSprite, px, py - 9);
+        if (numSprite >= 0)
+            DrawSpriteCentered((uint16_t)numSprite, px, py - 9);
     }
 }
 

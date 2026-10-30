@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "shirt_numbers.h"
 #include "color_sprites.h"
 #include "team_colors.h"   /* SHIRT_* kit-pattern constants */
 #include "game_types.h"
@@ -536,4 +537,6 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
             convertSpriteRange(1007, 1065, _team2PlayersColorTable);
         }
     }
+
+    ShirtNumbers_Build();   /* the shirt numbers 17..99 from this match's digits (shirt_numbers.c) */
 }

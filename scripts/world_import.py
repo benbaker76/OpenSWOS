@@ -29,7 +29,7 @@ What our engine cannot show yet is mapped, and counted on the way:
   - 16 players a team (the Mod's extra 14 are left out);
   - face 3 (black skin, blond hair) -> 2;
   - nationalities past the Mod's 213 (none in 2026-27) -> the club's country's;
-  - shirt numbers above 16 (the game draws 1..16) -> the free ones of 1..16.
+  - shirt numbers outside 1..99 -> the free ones.
 
 Ids: every team and player gets its uuid here, CANONICAL for netplay (docs/TEAM_IDS.md):
 uuid5 in the database's namespace of "2627/team/<club id>" and ".../player/<index>" --
@@ -106,13 +106,14 @@ def player(p, home_nation):
 
 
 def shirt_numbers(players):
-    """Numbers above 16 (the game draws only 1..16) take the free ones, in order."""
-    used = {p["shirt_number"] for p in players if 1 <= p["shirt_number"] <= 16}
-    free = [n for n in range(1, 17) if n not in used]
+    """Numbers outside 1..99 (the game draws 1..99: shirt_numbers.c) take the free ones, in order
+    (as the Mod's mkseason renumbers them)."""
+    used = {p["shirt_number"] for p in players if 1 <= p["shirt_number"] <= 99}
+    free = [n for n in range(1, 100) if n not in used]
     for p in players:
-        if not 1 <= p["shirt_number"] <= 16:
+        if not 1 <= p["shirt_number"] <= 99:
             p["shirt_number"] = free.pop(0)
-            counts["shirt number above 16 -> a free one"] += 1
+            counts["shirt number outside 1..99 -> a free one"] += 1
 
 
 def team(entry, country, ordinal, global_number, league, home_nation):
