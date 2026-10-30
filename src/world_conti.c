@@ -34,6 +34,18 @@
 
 #if SWOS_WORLDS
 
+/* (the Mod's names; the header's are prefixed) */
+#define NA CT_NA
+#define NL CT_NL
+#define NC CT_NC
+#define NCUP CT_NCUP
+#define NRD CT_NRD
+#define NE CT_NE
+#define RB CT_RB
+#define OUT CT_NONE
+#define CHAMP CT_CHAMP
+#define NED CT_NED
+
 /* The other confederations' club cups of a world career (World 2026-27): CONMEBOL, CONCACAF, AFC, CAF, OFC, FIFA.
 
    Compiled twice: for the game (tools/cobj.py: i686 freestanding, linked into an obj1 cave, called from the season
@@ -664,6 +676,13 @@ void ct_table(const u8 *diy) {
         int row = (diy[0x6D + 2 * i] | diy[0x6E + 2 * i] << 8) / 18;
         TAB[i] = diy[0x12D + 2 * row] | diy[0x12E + 2 * row] << 8;
     }
+    ntab = n;
+}
+/* (OpenSWOS: ct_table's input as team words, the Mod's file | ordinal << 8, in place order --
+   our competition layout is not the DOS game's) */
+void ct_table_words(const u16 *w, int n) {
+    if (n > NL) n = NL;
+    for (int i = 0; i < n; i++) TAB[i] = w[i];
     ntab = n;
 }
 void ct_finish(void);

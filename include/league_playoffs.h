@@ -67,6 +67,7 @@ void LeaguePlayoffs_StageTable(uint8_t country, uint32_t k, uint32_t annual);
 void LeaguePlayoffs_KeepStage(uint8_t country, uint16_t division);
 
 const uint8_t *LeaguePlayoffs_SpecAt(uint8_t country, int32_t pidx);
+int32_t LeaguePlayoffs_TopTable(uint16_t *teams, int32_t cap);
 int32_t LeaguePlayoffs_ContestEntrants(uint8_t country, int32_t d, const LeagueStageRow *table, int32_t n,
                                        int32_t pidx, uint16_t *team, uint16_t *glob, uint8_t *prio,
                                        uint16_t *pts, const uint8_t **spec);

@@ -11,6 +11,7 @@
 #include "game_types.h"
 #include "league_playoffs.h"
 #include "uefa_coef.h"
+#include "world_conti.h"
 #include "comp_identity.h"
 #include <string.h>   /* memcpy in Rebuild_CupRecordNameSourcePointers */
 #include "endian_helpers.h"
@@ -268,6 +269,7 @@ void ChooseTeamAndStartCareer(void)
     UefaCoef_Reset();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
+    Conti_Reset();
     _teamsLoaded = 0;
     SelectTeamToManage();
     if (_selectedTeamPtr == 0) {
@@ -655,6 +657,7 @@ void InitCareer(uint16_t teamNo)
     UefaCoef_Reset();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
+    Conti_Reset();
 
     DIY_LoadLeagueScratchFromTable();
 

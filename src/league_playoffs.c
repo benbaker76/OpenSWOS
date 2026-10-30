@@ -914,6 +914,18 @@ static void gp_season(const u8 *s, uint8_t country)
     if (s_ssUsed) SSB->fresh = 0;               /* (this league's stage tables used: next season's are new) */
 }
 
+/* The season end's top division of the country just captured: its final table's team words
+ * (the other confederations' cups, conti_season.c). */
+int32_t LeaguePlayoffs_TopTable(uint16_t *teams, int32_t cap)
+{
+    int32_t n = s_in.nd ? s_in.n[0] : 0;
+    if (n > cap)
+        n = cap;
+    for (int32_t k = 0; k < n; k++)
+        teams[k] = s_in.t[0][k].team;
+    return n;
+}
+
 /* Play-off pidx of the country's spec (its bytes), 0: none. */
 const uint8_t *LeaguePlayoffs_SpecAt(uint8_t country, int32_t pidx)
 {

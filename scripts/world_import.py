@@ -1230,6 +1230,22 @@ CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32
     }
 }
 
+/* The other confederations' cups (src/world_conti.c): their spec (scripts/world_conti.py). */
+#if SWOS_WORLDS
+%(conti)s
+#endif
+
+const uint8_t *World_ContiSpec(void)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(conti_cases)s
+#endif
+    default:
+        return 0;
+    }
+}
+
 /* The UEFA coefficients' seeds (src/uefa_coef.c): the associations' last 5 seasons, the clubs'. */
 const WorldUefaSeeds *World_UefaSeeds(void)
 {
@@ -1283,7 +1299,7 @@ def c_string(text):
     return '"%s"' % text.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None):
+def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1493,7 +1509,13 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         tag, len(splits), tag)
     if news:
         externs.update(("extern void *_countriesTable[262];", "extern void *_competitionsTable[256];"))
+    conti_tab, conti_cases = "", ""
+    if conti:
+        conti_tab = "static const uint8_t kWorld%sContiSpec[%d] = {\n%s\n};" % (tag, len(conti), "\n".join(
+            "    " + ", ".join("0x%02X" % b for b in conti[i:i + 16]) + "," for i in range(0, len(conti), 16)))
+        conti_cases = "    case WORLD_%s:\n        return kWorld%sContiSpec;" % (tag, tag)
     return WORLD_DATA_C % {"europe": "\n\n".join(euro_tables), "europe_cases": euro_cases,
+                           "conti": conti_tab, "conti_cases": conti_cases,
                            "coef_cases": coef_cases,
                            "splits": "\n\n".join(split_tables), "split_cases": split_cases,
                            "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
@@ -1584,6 +1606,20 @@ def europe(picks):
             sys.exit("the first season's %s: %d clubs, its league phase takes 36" % (k, len(v)))
     return {"lists": lists, "places": places, "coef_countries": coef_countries, "coef_clubs": coef_clubs,
             "cup_only": cup_only}
+
+
+def conti_spec():
+    """The other confederations' cups (scripts/world_conti.py, the Mod's conti.load): their
+    associations' league team files the world's countries' numbers; the ranking's clubs none
+    (its keys never match the Mod's words: neither does the Mod's build); season 1's holders
+    decided in-game (src/world_conti.c's caller)."""
+    import world_conti
+    if not os.path.isdir(world_conti.DATA):
+        return None
+    files = {c["code"].lower(): c["number"] for c in world_countries()}
+    spec, assocs, cups = world_conti.load(world_conti.CONFS, files=files)
+    counts["continental cups (conti)"] = len(cups)
+    return spec
 
 
 def country_splits(wc, pk, picked):
@@ -1683,7 +1719,7 @@ def main():
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks)))
+                             europe(picks), conti_spec()))
     print("wrote src/world_data.c")
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):

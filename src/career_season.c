@@ -10,6 +10,7 @@
 
 #include "career_season.h"
 #include "uefa_coef.h"
+#include "world_conti.h"
 #include "world.h"
 #include "career_eurocups.h"
 #include "career_init.h"
@@ -1758,6 +1759,7 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
     const int32_t lp = World_LeaguePhaseCups(&lpPlaces, &lpN) != 0;
     if (lp)
         UefaQual_Fill();
+    Conti_SeasonEnd();      /* (a world's other confederations' cups: the next editions) */
     const uint16_t euroBefore = lp ? UefaQual_Listed() : 0x50, euroAfter = lp ? 108 : 0x50;
     if (_careerFileBuffer == euroBefore + Career_CopaLibertadoresQualifiedTeamCount()) {
         Career_DrawEuropeanCupTeamsAndCopyGrids();

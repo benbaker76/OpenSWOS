@@ -17,6 +17,7 @@
 #include "panic.h"
 #include "league_phase.h"
 #include "uefa_coef.h"
+#include "world_conti.h"
 
 /* ---- ASM externs (globals defined in assembly) ---- */
 extern DIYCompetitionEx _diyCompetitionStart;
@@ -297,6 +298,7 @@ void Career_AppendTeamToEuroCupListN(int32_t cup, TeamFileEx *record)
 __attribute__((used, externally_visible))
 void Career_ProcessCompetitionForEuropeanCupQualification(void)
 {
+    Conti_Country();        /* (a world's other confederations' cups: every country's table, conti_season.c) */
     /* countriesTable is uint32_t[] (pointer table); index by competition ID */
     uint16_t idx = (uint8_t)_currentCompetitionIndex;
     uint8_t *countryPtr = (uint8_t *)_countriesTable[idx];

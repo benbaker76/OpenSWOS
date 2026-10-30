@@ -26,6 +26,7 @@
 #include "world_playoff.h"     /* "world_playoff" in career saves */
 #include "uefa_coef.h"         /* "uefa_coef", "uefa_qualifying" in career saves */
 #include "league_playoffs.h"   /* "league_stages" in career saves */
+#include "world_conti.h"       /* "conti_holders", "conti_edition" in career saves */
 #include "uefa_access.h"
 #include "world_cups.h"        /* "world_cups" in career saves */
 #include "world_cupd.h"        /* "world_cupd" in career saves */
@@ -6292,6 +6293,40 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             mjson_printf(json_out_emit, &out, "%s", "]");
     }
 
+    /* A world's other confederations' cups (world_conti.c): each cup's holder (team word as the
+     * Mod's, association, strength, ranking points) and the edition under way -- its entrants
+     * (team word, cup << 4 | round, strength / 16 | slot << 12), the career club's results. */
+#if SWOS_WORLDS
+    if (CT_ST.mark == 0x5443 || CT_ED.mark == 0x4543) {
+        static uint32_t hold[CT_NCUP * 4];
+        static uint16_t ent[CT_NED * 3];
+        uint16_t res[16 * 3];
+        for (int c = 0; c < CT_NCUP; c++) {
+            hold[4 * c] = CT_ST.hold[c].id; hold[4 * c + 1] = CT_ST.hold[c].assoc;
+            hold[4 * c + 2] = CT_ST.hold[c].str; hold[4 * c + 3] = CT_ST.hold[c].pts;
+        }
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d", "conti_holders", "mark", (int)CT_ST.mark,
+                     "season", (int)CT_ST.season);
+        wp_emit_u32(&out, "holders", hold, CT_NCUP * 4);
+        mjson_printf(json_out_emit, &out, "%s", "}");
+        int ne = 0;
+        for (int i = 0; i < CT_ED.ne && i < CT_NED; i++) {
+            ent[ne++] = (uint16_t)(CT_ED.e[i].id0 | CT_ED.e[i].id1 << 8);
+            ent[ne++] = CT_ED.e[i].cr;
+            ent[ne++] = (uint16_t)(CT_ED.e[i].s0 | CT_ED.e[i].s1 << 8);
+        }
+        for (int i = 0; i < 16; i++) {
+            res[3 * i] = CT_ED.f[i].c; res[3 * i + 1] = CT_ED.f[i].r; res[3 * i + 2] = CT_ED.f[i].v;
+        }
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%lu,%Q:%d,%Q:%d", "conti_edition",
+                     "mark", (int)CT_ED.mark, "seed", (unsigned long)CT_ED.seed, "manager_club", (int)CT_ED.mgr,
+                     "results_count", (int)CT_ED.nf);
+        wp_emit_u16(&out, "entrants", ent, ne);
+        wp_emit_u16(&out, "results", res, 16 * 3);
+        mjson_printf(json_out_emit, &out, "%s", "}");
+    }
+#endif
+
     /* Foreign-market player pool — fixed-size MarketPlayer[432]. Emit
      * all 432 slots so unpopulated entries (teamId == 0) round-trip
      * faithfully; the array is dense in practice for active careers. */
@@ -6984,6 +7019,46 @@ static void apply_semantic_load(const char *src, int src_size)
             }
         }
     }
+
+    /* A world's other confederations' cups (world_conti.c); a save without them: none yet. */
+    Conti_Reset();
+#if SWOS_WORLDS
+    {
+        const char *co = NULL;
+        int colen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.conti_holders", &co, &colen) == MJSON_TOK_OBJECT) {
+            static uint32_t hold[CT_NCUP * 4];
+            if (mjson_get_long(co, colen, "$.mark", &v) > 0) CT_ST.mark = (u16)v;
+            if (mjson_get_long(co, colen, "$.season", &v) > 0) CT_ST.season = (u16)v;
+            for (int i = 0; i < CT_NCUP * 4; i++) hold[i] = 0;
+            wp_load_u32(co, colen, "$.holders", hold, CT_NCUP * 4);
+            for (int c = 0; c < CT_NCUP; c++) {
+                CT_ST.hold[c].id = (u16)hold[4 * c]; CT_ST.hold[c].assoc = (u8)hold[4 * c + 1];
+                CT_ST.hold[c].str = hold[4 * c + 2]; CT_ST.hold[c].pts = hold[4 * c + 3];
+            }
+        }
+        if (mjson_find(src, src_size, "$.conti_edition", &co, &colen) == MJSON_TOK_OBJECT) {
+            static uint16_t ent[CT_NED * 3];
+            uint16_t res[16 * 3] = { 0 };
+            if (mjson_get_long(co, colen, "$.mark", &v) > 0) CT_ED.mark = (u16)v;
+            if (mjson_get_long(co, colen, "$.seed", &v) > 0) CT_ED.seed = (u32)v;
+            if (mjson_get_long(co, colen, "$.manager_club", &v) > 0) CT_ED.mgr = (u16)v;
+            if (mjson_get_long(co, colen, "$.results_count", &v) > 0) CT_ED.nf = (u8)(v > 16 ? 16 : v);
+            const int ne = wp_load_u16(co, colen, "$.entrants", ent, CT_NED * 3);
+            CT_ED.ne = 0;
+            for (int i = 0; i + 3 <= ne; i += 3, CT_ED.ne++) {
+                CT_ED.e[CT_ED.ne].id0 = (u8)ent[i]; CT_ED.e[CT_ED.ne].id1 = (u8)(ent[i] >> 8);
+                CT_ED.e[CT_ED.ne].cr = (u8)ent[i + 1];
+                CT_ED.e[CT_ED.ne].s0 = (u8)ent[i + 2]; CT_ED.e[CT_ED.ne].s1 = (u8)(ent[i + 2] >> 8);
+            }
+            wp_load_u16(co, colen, "$.results", res, 16 * 3);
+            for (int i = 0; i < 16; i++) {
+                CT_ED.f[i].c = (u8)res[3 * i]; CT_ED.f[i].r = (u8)res[3 * i + 1]; CT_ED.f[i].v = (u8)res[3 * i + 2];
+            }
+        }
+    }
+#endif
 
     /* Foreign-market player pool — fixed-size MarketPlayer[432]. */
     PROF_START(market_players);

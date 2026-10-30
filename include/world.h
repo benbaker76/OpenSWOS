@@ -54,4 +54,7 @@ const char    *World_CountryTeamFile(uint8_t country);
 void        World_ReadFromData(void);
 #endif
 
+/* The other confederations' cups' spec (src/world_data.c; src/world_conti.c's CT_SPEC), 0: none. */
+const uint8_t *World_ContiSpec(void);
+
 #endif
