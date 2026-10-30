@@ -18,6 +18,7 @@
 #endif
 #include "game_utils.h"
 #include "game_types.h"
+#include "world.h"
 #include "frontend.h"
 #include "test_rules.h"
 #include "display.h"            /* AGA: which Amiga display this build is */
@@ -4756,6 +4757,23 @@ extern CompetitionSlotBuffer _euroCupsCompetitionContextBuf;   /* slot-3 untangl
 extern uint8_t  _plNationality;
 extern uint8_t  _nationalityOrdinal;
 extern uint8_t  _nationalityOrdinalsArray[];
+
+/* The career menu's nationalities: the game's 63 and OTHER (0xFF); a world's own adds the SWOS 96/97
+ * Mod's four before OTHER (careerworld.py MENU_NATS: East Germany 153, the USSR 154, West Germany
+ * 155, Yugoslavia 37 -- a coach can be one). */
+static const uint8_t *career_nationalities(int32_t *count)
+{
+    static uint8_t world[68];
+    if (World_Current() == WORLD_9697) {
+        *count = 64;
+        return _nationalityOrdinalsArray;
+    }
+    for (int32_t i = 0; i < 63; i++)
+        world[i] = _nationalityOrdinalsArray[i];
+    world[63] = 153; world[64] = 154; world[65] = 155; world[66] = 37; world[67] = 0xFF;
+    *count = 68;
+    return world;
+}
 extern uint8_t  _shortCountryNames[];
 extern uint8_t  _aOther[];               /* "OTHER" */
 extern uint16_t _controlMask;
@@ -4911,11 +4929,13 @@ void CareerMenuFinish(void)
     CheckSex();
     SetPlayerCoachFieldColor();
 
-    /* Find nationalityOrdinal for the current plNationality */
+    /* Find nationalityOrdinal for the current plNationality (one the world's list has not:
+     * OTHER, the last) */
+    int32_t count;
     nat = _plNationality;
-    table = _nationalityOrdinalsArray;
+    table = (uint8_t *)career_nationalities(&count);
     idx = 0;
-    while (*table != nat)
+    while (idx < count - 1 && *table != nat)
     {
         table++;
         idx++;
@@ -4951,13 +4971,15 @@ void ChangeNationality(MenuEntry *entry)
 {
     uint16_t ctrl = _controlMask;
     int8_t ord;
+    int32_t count;
+    const uint8_t *table = career_nationalities(&count);
 
     /* Right or Down → increment */
     if (ctrl == 0x81 || ctrl == 0x101)
     {
         ord = (int8_t)_nationalityOrdinal;
         ord++;
-        if (ord == 64)
+        if (ord >= count)
             ord = 0;
     }
     /* Left or Up → decrement */
@@ -4966,7 +4988,7 @@ void ChangeNationality(MenuEntry *entry)
         ord = (int8_t)_nationalityOrdinal;
         ord--;
         if (ord < 0)
-            ord = 63;
+            ord = (int8_t)(count - 1);
     }
     else
     {
@@ -4976,7 +4998,7 @@ void ChangeNationality(MenuEntry *entry)
     _nationalityOrdinal = (uint8_t)ord;
     {
         int16_t idx = (int16_t)(int8_t)ord;  /* ext.w d0 */
-        _plNationality = _nationalityOrdinalsArray[idx];
+        _plNationality = table[idx];
     }
     SetNationalityField();
     CallDrawMenuItem(entry);

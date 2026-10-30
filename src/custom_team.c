@@ -72,7 +72,7 @@ enum {
     kTeamRecord = 684,
     kFaces = 3,                     /* EditTeamsChangePlayerFace: white, ginger, black */
     kFormatVersion = 3,             /* 3: links to the database by id; no player data */
-    kNationalities = 155,           /* the three-letter names a nationality indexes (_shortCountryNames) */
+    kNationalities = 214,           /* the three-letter names a nationality indexes (_shortCountryNames) */
     kMaxShirtNumber = 99,
     kCountries = 256,
     kJsonMax = 8192,

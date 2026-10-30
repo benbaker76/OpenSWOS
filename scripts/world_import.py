@@ -29,7 +29,7 @@ What our engine cannot show yet is mapped, and counted on the way:
   - 16 players a team (the Mod's extra 14 are left out);
   - kit colour 10 (purple) -> 6 (maroon: the palette entry the Mod borrows for it);
   - face 3 (black skin, blond hair) -> 2;
-  - nationalities the game has no name for (153 on) -> the club's country's;
+  - nationalities past the Mod's 213 (none in 2026-27) -> the club's country's;
   - shirt numbers above 16 (the game draws 1..16) -> the free ones of 1..16.
 
 Ids: every team and player gets its uuid here, CANONICAL for netplay (docs/TEAM_IDS.md):
@@ -59,7 +59,7 @@ BASE = os.path.join(REPO, "bin", "data_json")
 
 NAMESPACE = uuid.UUID("af19cc5a-6529-537b-935b-407bd73b75fb")   # assign_team_uuids.py's
 SKILLS = ("passing", "velocity", "heading", "tackling", "control", "speed", "finishing")
-NATIONS_NAMED = 153         # the game's short country names (menus.c, _shortCountryNames)
+NATIONS_NAMED = 214         # the short country names (_shortCountryNames: the game's 153, the Mod's 61)
 PURPLE, MAROON = 10, 6
 counts = collections.Counter()
 
