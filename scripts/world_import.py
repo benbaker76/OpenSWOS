@@ -566,7 +566,9 @@ def italian_playoffs(country, league, picked=None):
             "promoted": [d["promoted"] for d in mod["divisions"]],
             "relegated": [d["relegated"] for d in mod["divisions"]],
             "italy": mod.get("playoffs") == "ita", "serieB": 1, "groupFirst": 2,
-            "groups": SERIE_C_GROUPS, "spec": spec, "names": playoff_names(mod.get("ko_playoffs", []))}
+            "groups": SERIE_C_GROUPS, "spec": spec, "names": playoff_names(mod.get("ko_playoffs", [])),
+            "records": playoff_records(mod.get("ko_playoffs", [])),
+            "combined": stage_combined(mod.get("ko_playoffs", []))}
 
 
 CUP_ROUND = {"two_legs": 0x94, "two_legs_pens": 0x84, "single": 0x14, "single_et": 0x54}
@@ -823,6 +825,79 @@ def playoff_names(pos):
     return out
 
 
+def playoff_records(pos):
+    """Each play-off's season record line when the career club wins it (the Mod's gplay.py
+    names_lines: the pack's 'record', else the long name) -- world_playoff.c's record lines."""
+    out = []
+    for po in pos:
+        nm = po.get("names") or {}
+        ln = (nm.get("en") or nm.get("*") or ["PLAY-OFF"])[0]
+        rec = po.get("record") or {}
+        out.append((rec.get("en") or rec.get("*") or ln).upper()[:31])
+    return out
+
+
+# The menus' small font, as the game's GetTextWidth adds it (the Mod's complist.SMALL_W):
+# a season record line is at most REC_PX wide (ManagementRecordMenu's competition column).
+SMALL_W = dict({c: 6 for c in 'ABCDEFGHJKLMNOPQRSTUVWXYZ023456789!"#$%&*+/<=>?@'},
+               **{"I": 2, "1": 2, "'": 2, "(": 3, ")": 3, ",": 2, "-": 4, ".": 2, ":": 2, " ": 3})
+REC_PX = 144
+
+
+def small_px(text):
+    return sum(SMALL_W.get(c, 6) for c in text.upper())
+
+
+def combined_title(parts):
+    """Several stage titles won in one season -> one record line (the Mod's gplay.py combined, its
+    English: 'TORNEO APERTURA AND CLAUSURA' style, fitted to REC_PX): parts = [(long, short)] in
+    stage order."""
+    join = lambda xs: xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " AND " + xs[-1]
+    cands = []
+    words = [p[0].split() for p in parts]
+    k = 0
+    while all(len(w) > k + 1 and w[k] == words[0][k] for w in words):
+        k += 1
+    if k:
+        cands.append(" ".join(words[0][:k]) + " " + join([" ".join(w[k:]) for w in words]))
+    shorts = [p[1] for p in parts]
+    first = [x.split()[0] for x in shorts]
+    cands += [join(shorts), "/".join(shorts), join(first), "/".join(first)]
+    for c in cands:
+        if small_px(c) <= REC_PX:
+            return c
+    n = max(len(x) for x in shorts)
+    while n > 3:
+        n -= 1
+        c = "/".join(x if len(x) <= n else x[:n].rstrip() + "." for x in shorts)
+        if small_px(c) <= REC_PX:
+            return c
+    sys.exit("combined stage titles %s: no name fits %d px" % (shorts, REC_PX))
+
+
+def stage_combined(pos):
+    """A league's stage titles won together: one record line per mask of stages 0..2, 8 masks a
+    division 0..3 (the Mod's GPC rows: 32 entries; None where fewer than two, or a stage has no
+    title); None for a league with fewer than two stage titles."""
+    stages = []
+    for po in pos:
+        if po.get("kind") != "stage_title":
+            continue
+        nm = po.get("names") or {}
+        ln, sh = (nm.get("en") or nm.get("*") or [po.get("key", "?").upper()] * 2)[:2]
+        sdv = {e.get("div", 0) for e in po.get("entrants", []) if isinstance(e, dict)}
+        stages.append((po.get("stage"), (ln.upper(), sh.upper()), sdv.pop() if sdv else 0))
+    if len(stages) < 2:
+        return None
+    row = []
+    for m in range(32):
+        st = {stg: names for stg, names, dv in stages if dv == m >> 3}
+        mm = m & 7
+        ok = bin(mm).count("1") >= 2 and all(x in st for x in range(3) if mm & 1 << x)
+        row.append(combined_title([st[x] for x in range(3) if mm & 1 << x]) if ok else None)
+    return row
+
+
 # A play-off's game rounds' names (the Mod's gplay.py rnames: pack 'round_names', one per game round,
 # a best-of-three's games apart; else F, SF, QF, R16 from the end): _cupRoundStringTable's indices,
 # 0xFF the game's own (world_playoff.c).
@@ -868,7 +943,9 @@ def country_playoffs(wc, pk, picked):
             "seconds": seconds, "secondTop": top, "secondFlags": flags,
             "promoted": [d.get("promoted", 0) for d in mdivs], "relegated": [d.get("relegated", 0) for d in mdivs],
             "italy": 0, "serieB": 0, "groupFirst": 0, "groups": 0, "spec": spec,
-            "names": playoff_names(lg.get("ko_playoffs", []))}
+            "names": playoff_names(lg.get("ko_playoffs", [])),
+            "records": playoff_records(lg.get("ko_playoffs", [])),
+            "combined": stage_combined(lg.get("ko_playoffs", []))}
 
 
 def country_cups(wc, pk, picked):
@@ -1482,11 +1559,17 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             str(t) for _, _, t, _ in names) or "0"))
         po_tables.append("static const uint8_t %sRounds[][%d] = {\n%s\n};" % (sym, ROUND_NAMES_MAX, "\n".join(
             "    { %s }," % ", ".join("0x%02X" % x for x in r) for _, _, _, r in names) or "    { 0xFF },"))
+        po_tables.append("static const char *const %sRecords[] = { %s };" % (sym, ", ".join(
+            c_string(r) for r in po.get("records") or []) or "0"))
+        comb = po.get("combined")
+        if comb:
+            po_tables.append("static const char *const %sCombined[32] = {\n%s\n};" % (sym, "\n".join(
+                "    %s," % (c_string(c) if c else "0") for c in comb)))
         po_entries.append("    { %d, %d, %sPromoted, %sRelegated, %d, %d, %d, %d, %sSpec, %d, %sSeconds, %d, %d,"
-                          " %sNames, %d, %sThen, %sRounds },   /* %s */" % (
+                          " %sNames, %d, %sThen, %sRounds, %sRecords, %s },   /* %s */" % (
             po["country"], po["divisions"], sym, sym, int(po["italy"]), po["serieB"], po["groupFirst"],
             po["groups"], sym, len(po["seconds"]), sym, po["secondTop"], po["secondFlags"], sym, len(names),
-            sym, sym, po["name"]))
+            sym, sym, sym, sym + "Combined" if comb else "0", po["name"]))
     po_tables.append("static const LeaguePlayoffs kWorld%sPlayoffs[] = {\n%s\n};" % (tag, "\n".join(po_entries)))
     po_cases = ("    case WORLD_%s:\n        *count = %d;\n        return kWorld%sPlayoffs;"
                 % (tag, len(playoffs), tag))

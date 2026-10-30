@@ -96,6 +96,8 @@ typedef struct {
 typedef struct {
     uint8_t  season, done;      /* (g_worldCups.seasons + 1) */
     uint16_t team[2], glob[2];  /* the champion, the runner-up (0xFFFF none) */
+    int8_t   clubResult;        /* the career club's result in it, the season record's code (0: not in it) */
+    uint8_t  pidx1;             /* its play-off + 1 (the record line's name) */
 } WorldStageTitle;
 extern WorldStageTitle g_worldStageTitle[3];
 
@@ -146,6 +148,11 @@ int32_t WorldPlayoff_RoundStringIndex(uint8_t compId, uint16_t round);
 
 /* A round's name for the contest under way where the engine's would mislead, or 0. */
 const char *WorldPlayoff_RoundName(uint16_t round, uint16_t rounds);
+
+/* The season record's lines of the world's titles (the Mod's gp_rlines_c; a career's season
+ * end, SeasonFinished, and the management record's refresh): the stage titles decided this
+ * season and the contest the career club played, written into the current season's record. */
+void WorldPlayoff_RecordLines(void);
 
 /* A loaded career's group contest in slot 3 (_euroCupSlotIndex 9): its record, 0 for none. */
 uint8_t *WorldPlayoff_GroupsRecord(void);

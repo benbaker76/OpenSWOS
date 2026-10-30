@@ -6232,6 +6232,14 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         if (any) {
             mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:0", "stage_titles", "version");
             wp_emit_u16(&out, "stages", st, 3 * 6);
+            {
+                uint8_t res[3 * 2];
+                for (int k = 0; k < 3; k++) {
+                    res[2 * k] = (uint8_t)g_worldStageTitle[k].clubResult;
+                    res[2 * k + 1] = g_worldStageTitle[k].pidx1;
+                }
+                wp_emit_u8(&out, "club_results", res, 3 * 2);   /* (the record lines: code, play-off + 1) */
+            }
             mjson_printf(json_out_emit, &out, "%s", "}");
         }
     }
@@ -6982,6 +6990,14 @@ static void apply_semantic_load(const char *src, int src_size)
                 x->season = (uint8_t)st[6 * k]; x->done = (uint8_t)st[6 * k + 1];
                 x->team[0] = st[6 * k + 2]; x->team[1] = st[6 * k + 3];
                 x->glob[0] = st[6 * k + 4]; x->glob[1] = st[6 * k + 5];
+            }
+            {
+                uint8_t res[3 * 2] = { 0 };
+                wp_load_u8(sto, stolen, "$.club_results", res, 3 * 2);
+                for (int k = 0; k < 3; k++) {
+                    g_worldStageTitle[k].clubResult = (int8_t)res[2 * k];
+                    g_worldStageTitle[k].pidx1 = res[2 * k + 1];
+                }
             }
         }
     }

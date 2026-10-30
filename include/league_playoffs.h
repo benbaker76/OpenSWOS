@@ -37,6 +37,9 @@ typedef struct {
     const uint8_t *then;        /* each play-off's 'then_build': the one built when it ends + 1 */
     const uint8_t (*rounds)[12];        /* each play-off's game rounds' names (_cupRoundStringTable's
                                          * indices, 0xFF the game's): the pack's 'round_names' */
+    const char *const *records;         /* each play-off's season record line, won (the pack's 'record') */
+    const char *const *combined;        /* the stage titles won together: a line per mask of stages 0..2,
+                                         * 8 a division (32; 0 none) -- or 0 */
 } LeaguePlayoffs;
 
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count);

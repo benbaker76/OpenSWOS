@@ -720,6 +720,7 @@ static int32_t k_members(const uint8_t *s, int32_t r, int32_t *mem)
 /* Game round g's real ties into tieA/tieB/tieT (the Mod's build_game; ties decided without a
  * match recorded): the count, -1 when a member is not known. presim: the career club waits in
  * round 1, whose ties are simulated now (LeaguePlayoffs_ContestTie, seeded by the caller). */
+static int32_t k_club_res(void);
 static int32_t k_build(const uint8_t *s, int32_t g, int32_t presim)
 {
     uint8_t gsr[K_GAMES], gno[K_GAMES];
@@ -941,6 +942,8 @@ static void k_done(void)
     x->glob[0] = g_worldPlayoff.glob[w];
     x->team[1] = l != NOC && l != w ? g_worldPlayoff.team[l] : 0xFFFF;
     x->glob[1] = l != NOC && l != w ? g_worldPlayoff.glob[l] : 0xFFFF;
+    x->clubResult = (int8_t)k_club_res();       /* (the career club's: its season record line) */
+    x->pidx1 = (uint8_t)(g_worldPlayoff.pidx + 1);
     SWOS_DBG("[world-playoff] stage %d title: %04X (runner-up %04X)\n", (int)g_worldPlayoff.stage,
              (unsigned)x->team[0], (unsigned)x->team[1]);
     {   /* the play-off built when this one ends ('then_build': Mexico's Campeon de Campeones),
@@ -953,6 +956,170 @@ static void k_done(void)
                 s_pendStage.on = 1;
                 s_pendStage.pidx = (uint8_t)(all[i].then[g_worldPlayoff.pidx] - 1);
             }
+    }
+}
+
+/* The career club's result in the contest, as the season record's codes (the Mod's club_res,
+ * FillManagementRecordInfo's): 1 WINNERS, -100 FINALIST (the last round lost), -101 REACHED
+ * SEMI-FINAL, -102 REACHED QUARTER-FINAL, -110 - n KNOCKED OUT IN ROUND n; 0: not in it or
+ * undecided. */
+static int32_t k_club_res(void)
+{
+    extern uint16_t _selTeamNumber;
+    const uint8_t *s = k_spec();
+    int32_t me = -1;
+    for (int32_t i = 0; i < g_worldPlayoff.n; i++)
+        if (g_worldPlayoff.team[i] == _selTeamNumber) me = i;
+    if (!s || me < 0)
+        return 0;
+    const int32_t nrs = s[2], ntie = k_t0(s, nrs);
+    const uint16_t club = g_worldPlayoff.team[me];  /* (by the club: one club can be two entrants, the
+                                                     *  Trofeo's Clausura and annual champion) */
+#define K_IS_CLUB(e) ((e) != NOC && (e) < g_worldPlayoff.n && g_worldPlayoff.team[e] == club)
+    if (ntie < 1 || ntie > WORLD_PLAYOFF_MAX)
+        return 0;
+    if (K_IS_CLUB(g_worldPlayoff.tw[ntie - 1]))
+        return 1;
+    for (int32_t t = 0; t < ntie; t++) {
+        if (!K_IS_CLUB(g_worldPlayoff.tl[t]) || K_IS_CLUB(g_worldPlayoff.tw[t]))
+            continue;
+        int32_t r = 0;
+        while (r + 1 < nrs && t >= k_t0(s, r + 1)) r++;
+        const int32_t d = nrs - 1 - r;
+        return d == 0 ? -100 : d == 1 ? -101 : d == 2 ? -102 : -(110 + r + 1);
+    }
+#undef K_IS_CLUB
+    return 0;
+}
+
+static const LeaguePlayoffs *k_playoffs(uint8_t country)
+{
+    int32_t count = 0;
+    const LeaguePlayoffs *all = World_LeaguePlayoffs(&count);
+    for (int32_t i = 0; i < count; i++)
+        if (all[i].country == country)
+            return &all[i];
+    return 0;
+}
+
+static const char *k_name(const LeaguePlayoffs *lp, int32_t pidx, int32_t record)
+{
+    if (!lp || pidx < 0 || pidx >= lp->nnames)
+        return 0;
+    return record && lp->records ? lp->records[pidx] : lp->names ? lp->names[pidx][0] : 0;
+}
+
+/* a line's worth to keep (lower: replaced first by a title won): KNOCKED OUT IN ROUND n by n,
+ * then '-', still in, 4th, 3rd, quarter, semi, final lost (the Mod's rl_rank) */
+static int32_t rl_rank(int32_t c)
+{
+    static const int8_t ord[] = { -106, -104, -105, -103, -102, -101, -100, 2 };
+    if (c <= -110) return -(c + 110);
+    for (int32_t i = 0; i < 8; i++) if (c == ord[i]) return 40 + i;
+    return 48;
+}
+
+static int32_t same_text(const char *a, const char *b)
+{
+    while (*a && *a == *b) { a++; b++; }
+    return *a == *b;
+}
+
+void WorldPlayoff_RecordLines(void)
+{
+    extern uint16_t _gameType;
+    extern uint8_t *GetCurrentSeasonPointer(void);
+    const char *rln[4];
+    int8_t rlc[4];
+    int32_t rl_n = 0, rl_w = 0, kstage = -1, wmask = 0, wd = 0;
+    const char *wname[3] = { 0, 0, 0 };
+    const uint8_t season = (uint8_t)(g_worldCups.seasons + 1);
+    if (_gameType != 4)
+        return;
+#define RL_ADD(name, code) do {                                                  \
+        const char *nm_ = (name); const int8_t c_ = (int8_t)(code);              \
+        if (nm_ && rl_n < 4) {                                                   \
+            if (c_ == 1) {                                                       \
+                for (int32_t i_ = rl_n; i_ > rl_w; i_--) { rln[i_] = rln[i_ - 1]; rlc[i_] = rlc[i_ - 1]; } \
+                rln[rl_w] = nm_; rlc[rl_w++] = 1; rl_n++;                        \
+            } else { rln[rl_n] = nm_; rlc[rl_n++] = c_; }                       \
+        } } while (0)
+    const int32_t live = (g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC || g_worldPlayoff.kind == WORLD_PLAYOFF_GROUPS) &&
+                         g_worldPlayoff.season == season;
+    const LeaguePlayoffs *lp = k_playoffs(live ? g_worldPlayoff.country : (uint8_t)_careerTeam.team.countryNumber);
+    const uint8_t *ks = live ? k_spec() : 0;
+    if (live && g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC && ks && ks[0] == 8) {
+        kstage = ks[3] & 3;
+        wd = ks[3] >> 2;
+    }
+    for (int32_t st = 0; st < 3 && lp; st++) {  /* (the stage titles decided before: Apertura, Clausura, Trofeo) */
+        const WorldStageTitle *x = &g_worldStageTitle[st];
+        if (st == kstage || x->season != season || !x->done || !x->clubResult || !x->pidx1)
+            continue;
+        if (x->clubResult == 1) {
+            const uint8_t *ps = LeaguePlayoffs_SpecAt((uint8_t)lp->country, x->pidx1 - 1);
+            wmask |= 1 << st;
+            wname[st] = k_name(lp, x->pidx1 - 1, 0);
+            if (ps && ps[0] == 8) wd = ps[3] >> 2;
+        } else
+            RL_ADD(k_name(lp, x->pidx1 - 1, 0), x->clubResult);
+    }
+    const char *kn = 0;                         /* the contest's line (after the stage titles) */
+    int32_t kr = 0;
+    if (live && g_worldPlayoff.kind == WORLD_PLAYOFF_GROUPS) {
+        extern uint16_t _selTeamNumber;
+        if (g_worldPlayoff.tw[0] < g_worldPlayoff.n && g_worldPlayoff.team[g_worldPlayoff.tw[0]] == _selTeamNumber) {
+            kn = k_name(lp, g_worldPlayoff.pidx, 1);
+            kr = 1;
+        }
+    } else if (live && ks && (ks[0] == 5 || ks[0] == 8)) {
+        const int32_t r = k_club_res();
+        if (r == 1 && ks[0] == 8 && kstage >= 0 && kstage < 3) {
+            wmask |= 1 << kstage;
+            wname[kstage] = k_name(lp, g_worldPlayoff.pidx, 0);
+        } else if (r) {
+            kn = k_name(lp, g_worldPlayoff.pidx, r == 1 && ks[0] == 5);
+            kr = r;
+        }
+    }
+    if ((wmask & (wmask - 1)) && lp && lp->combined && lp->combined[wmask + 8 * (wd & 3)]) {
+        RL_ADD(lp->combined[wmask + 8 * (wd & 3)], 1);  /* (several stage titles: one line) */
+        wmask = 0;
+    }
+    for (int32_t st = 0; st < 3; st++)
+        if (wmask & 1 << st) RL_ADD(wname[st], 1);
+    if (kr) RL_ADD(kn, kr);
+#undef RL_ADD
+    if (!rl_n)
+        return;
+    {   /* each into its line if there already, else the first free of lines 4 / 3 / 2; a title won
+         * with none free: in place of the weakest line not won (an elimination), not ours */
+        SeasonInformations *rec = (SeasonInformations *)GetCurrentSeasonPointer();
+        uint8_t **line[4] = { &rec->leagueStrPtr, &rec->strPtr1, &rec->strPtr2, &rec->strPtr3 };
+        int8_t *code[4] = { &rec->comp1Result, &rec->comp2Result, &rec->comp3Result, &rec->comp4Result };
+        int32_t ours = 0;
+        for (int32_t i = 0; i < rl_n; i++) {
+            int32_t at = -1;
+            for (int32_t o = 3; o >= 1 && at < 0; o--)
+                if (!(ours & 1 << o) && *line[o] && same_text((const char *)*line[o], rln[i])) at = o;
+            for (int32_t o = 3; o >= 1 && at < 0; o--)
+                if (!*line[o]) at = o;
+            if (at < 0 && rlc[i] == 1) {
+                int32_t best = 99;
+                for (int32_t o = 3; o >= 1; o--) {
+                    const int32_t c = *code[o];
+                    if (ours & 1 << o || c == 1 || rl_rank(c) >= best) continue;
+                    best = rl_rank(c);
+                    at = o;
+                }
+            }
+            if (at < 0)
+                continue;
+            *line[at] = (uint8_t *)rln[i];
+            *code[at] = rlc[i];
+            ours |= 1 << at;
+            SWOS_DBG("[world-playoff] season record line %d: %s (%d)\n", (int)at, rln[i], (int)rlc[i]);
+        }
     }
 }
 

@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "world_playoff.h"
 #include "player_face3.h"
 #include "menus.h"
 #ifdef SWOS_SDL_BUILD
@@ -2509,6 +2510,7 @@ void ManagementRecordMenu(void)
 {
     if (_youreSacked == 0) {
         Career_FillCurrentSeasonInfo();
+        WorldPlayoff_RecordLines();     /* (a world's titles: their lines again, world_playoff.c) */
     }
     ShowMenu(_managementRecordMenu);
 }
@@ -3629,6 +3631,7 @@ void SeasonFinished(void)
     }
 
     /* loc_13BD4C */
+    WorldPlayoff_RecordLines();         /* (a world's titles into the season record: world_playoff.c) */
     Career_HandleRetirement();
     ActivateMenu(_contestMenu);
 }
