@@ -3,7 +3,7 @@
   "source": {
     "project": "swos-2020",
     "file": "src/menus/mpGameSetup.mnu",
-    "commit": "ebf1cc4"
+    "commit": "df38d20"
   },
   "menu_flags": {
     "dos_redraw": true
@@ -1546,57 +1546,10 @@
     },
     {
       "kind": "entry",
-      "name": "switchCatchUpLabel",
-      "coords": {
-        "x": -8,
-        "y": 106,
-        "w": 120,
-        "h": 12
-      },
-      "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "CATCH UP"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 7
-        }
-      ]
-    },
-    {
-      "kind": "entry",
-      "name": "switchCatchUp",
-      "coords": {
-        "x": 113,
-        "y": 106,
-        "w": 48,
-        "h": 12
-      },
-      "commands": [
-        {
-          "op": "text_no_ptr",
-          "flags": "0x0"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
-        {
-          "op": "onselect_fire",
-          "func": "selectSwitchCatchUp"
-        }
-      ]
-    },
-    {
-      "kind": "entry",
       "name": "switchKickoffSyncLabel",
       "coords": {
         "x": -8,
-        "y": 119,
+        "y": 106,
         "w": 120,
         "h": 12
       },
@@ -1618,7 +1571,7 @@
       "name": "switchKickoffSync",
       "coords": {
         "x": 113,
-        "y": 119,
+        "y": 106,
         "w": 48,
         "h": 12
       },
@@ -1640,57 +1593,10 @@
     },
     {
       "kind": "entry",
-      "name": "switchBalanceLabel",
-      "coords": {
-        "x": -8,
-        "y": 132,
-        "w": 120,
-        "h": 12
-      },
-      "commands": [
-        {
-          "op": "text",
-          "flags": "0x0",
-          "literal": "BALANCE"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 7
-        }
-      ]
-    },
-    {
-      "kind": "entry",
-      "name": "switchBalance",
-      "coords": {
-        "x": 113,
-        "y": 132,
-        "w": 48,
-        "h": 12
-      },
-      "commands": [
-        {
-          "op": "text_no_ptr",
-          "flags": "0x0"
-        },
-        {
-          "op": "colors",
-          "frame_color": 0,
-          "background_color": 13
-        },
-        {
-          "op": "onselect_fire",
-          "func": "selectSwitchBalance"
-        }
-      ]
-    },
-    {
-      "kind": "entry",
       "name": "switchCardsInjuriesLabel",
       "coords": {
         "x": -8,
-        "y": 145,
+        "y": 119,
         "w": 120,
         "h": 12
       },
@@ -1712,7 +1618,7 @@
       "name": "switchCardsInjuries",
       "coords": {
         "x": 113,
-        "y": 145,
+        "y": 119,
         "w": 48,
         "h": 12
       },

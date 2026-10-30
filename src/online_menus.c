@@ -1035,12 +1035,10 @@ static const char *length_name(uint16_t length)
  * CANCEL. */
 /* The host's switches (netplay_match.h), one row each on the left of the lobby: the
  * entries scripts/import_swos2020_menus.py adds to SWOS 2020's screen. */
-enum { LOBBY_SWITCH_ROWS = 5 };
+enum { LOBBY_SWITCH_ROWS = 3 };
 static const struct { int32_t entry; uint16_t sw; } s_switchRows[LOBBY_SWITCH_ROWS] = {
     { MpGameSetupMenu_switchShortPresses,  NETPLAY_SW_SHORT_PRESSES },
-    { MpGameSetupMenu_switchCatchUp,       NETPLAY_SW_CATCH_UP },
     { MpGameSetupMenu_switchKickoffSync,   NETPLAY_SW_KICKOFF_SYNC },
-    { MpGameSetupMenu_switchBalance,       NETPLAY_SW_BALANCE },
     { MpGameSetupMenu_switchCardsInjuries, NETPLAY_SW_CARDS_INJURIES },
 };
 
@@ -1084,15 +1082,14 @@ static void lobby_layout(void)
      * through them as it does through the joiner's rules. */
     {
         static const int32_t right[LOBBY_SWITCH_ROWS] = {
-            MpGameSetupMenu_legOpt1, MpGameSetupMenu_legOpt1, MpGameSetupMenu_legOpt1,
-            MpGameSetupMenu_gameLength1, MpGameSetupMenu_pitchType1,
+            MpGameSetupMenu_legOpt1, MpGameSetupMenu_gameLength1, MpGameSetupMenu_pitchType1,
         };
         for (i = 0; i < LOBBY_SWITCH_ROWS; i++)
             lobby_nav(s_switchRows[i].entry, -1, right[i],
                       i ? s_switchRows[i - 1].entry : teams,
                       i + 1 < LOBBY_SWITCH_ROWS ? s_switchRows[i + 1].entry : MpGameSetupMenu_cancel);
-        entry_at(MpGameSetupMenu_legOpt1)->leftEntry = (int8_t)MpGameSetupMenu_switchKickoffSync;
-        entry_at(MpGameSetupMenu_gameLength1)->leftEntry = (int8_t)MpGameSetupMenu_switchBalance;
+        entry_at(MpGameSetupMenu_legOpt1)->leftEntry = (int8_t)MpGameSetupMenu_switchShortPresses;
+        entry_at(MpGameSetupMenu_gameLength1)->leftEntry = (int8_t)MpGameSetupMenu_switchKickoffSync;
         entry_at(MpGameSetupMenu_pitchType1)->leftEntry = (int8_t)MpGameSetupMenu_switchCardsInjuries;
         entry_at(MpGameSetupMenu_minSubs1)->leftEntry = (int8_t)MpGameSetupMenu_switchCardsInjuries;
         entry_at(MpGameSetupMenu_cancel)->upEntry = (int8_t)MpGameSetupMenu_switchCardsInjuries;
@@ -1592,15 +1589,11 @@ static void selectMaxSubs1(void)    { change_rules(next_max_subs); }
 
 /* The host's switches: each row flips its own. */
 static void flip_short_presses(LobbyRules *r)  { r->switches ^= NETPLAY_SW_SHORT_PRESSES; }
-static void flip_catch_up(LobbyRules *r)       { r->switches ^= NETPLAY_SW_CATCH_UP; }
 static void flip_kickoff_sync(LobbyRules *r)   { r->switches ^= NETPLAY_SW_KICKOFF_SYNC; }
-static void flip_balance(LobbyRules *r)        { r->switches ^= NETPLAY_SW_BALANCE; }
 static void flip_cards_injuries(LobbyRules *r) { r->switches ^= NETPLAY_SW_CARDS_INJURIES; }
 
 static void selectSwitchShortPresses(void)  { change_rules(flip_short_presses); }
-static void selectSwitchCatchUp(void)       { change_rules(flip_catch_up); }
 static void selectSwitchKickoffSync(void)   { change_rules(flip_kickoff_sync); }
-static void selectSwitchBalance(void)       { change_rules(flip_balance); }
 static void selectSwitchCardsInjuries(void) { change_rules(flip_cards_injuries); }
 
 static void selectMPSettingStart(void)
@@ -2069,9 +2062,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(selectMinSubs1),
     HANDLER(selectMaxSubs1),
     HANDLER(selectSwitchShortPresses),
-    HANDLER(selectSwitchCatchUp),
     HANDLER(selectSwitchKickoffSync),
-    HANDLER(selectSwitchBalance),
     HANDLER(selectSwitchCardsInjuries),
     HANDLER(selectMPSettingStart),
     HANDLER(selectMPSettingExit),

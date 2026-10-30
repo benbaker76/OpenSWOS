@@ -271,8 +271,10 @@ static SDL_mutex    *s_render_mtx;       /* serializes Platform_RenderFrame call
 static Uint64        s_perf_freq;
 static Uint64        s_next_frame_perf;  /* high-res counter for 50 Hz pacing */
 /* How many frames late the limiter will still catch up on, by running frames back to
- * back, before it drops the rest (Platform_SetCatchUpFrames). */
-static int           s_catchup_frames = 1;
+ * back, before it drops the rest: one -- a burst of frames after a hitch only looks
+ * worse. (A live match caught up on its whole prediction window, the host's CATCH UP
+ * switch, fd911618; removed 2026-10-30: it caused netplay problems.) */
+static const int     s_catchup_frames = 1;
 static int           s_display_hz;       /* monitor refresh, 0 = unknown. See the pacing note in Platform_VBlank. */
 static double        k_frame_secs = 1.0 / 50.0;  /* refreshed per frame from the
                                                   * active game style (DOS 70 / Amiga 50) */
@@ -2232,18 +2234,6 @@ int Platform_VBlank(void)
 static double s_wasm_extra_ms;
 #endif
 
-/* Catch-up after a stall. Offline the limiter drops a backlog of more than one frame:
- * a burst of frames after a hitch only looks worse. A LIVE match sets it to its
- * prediction window (netplay_match.c) and back to 1 when it ends, on thd79's
- * advice: there a game that stalled and then dropped the frames comes back BEHIND,
- * and it is the OTHER player who pays -- held at the prediction limit through the
- * stall, then slowed by time sync until the two are level. Catching up on as many
- * frames as the other game can be ahead puts the cost on the player who stalled. */
-void Platform_SetCatchUpFrames(int frames)
-{
-    s_catchup_frames = frames < 1 ? 1 : frames;
-}
-
 void Platform_DelayNextFrame(uint32_t us)
 {
 #ifdef SWOS_WASM_BUILD
@@ -2334,8 +2324,7 @@ int Platform_Present(void)
         double sleep_ms = s_frame_deadline - now;
         if (sleep_ms < 1.0) {                 /* work overran the frame budget */
             sleep_ms = 1.0;                   /* still yield so the browser paints + polls input */
-            /* Drop the backlog -- beyond a live match's catch-up (Platform_SetCatchUpFrames),
-             * which runs back to back, as the native limiter does. */
+            /* Drop the backlog past one frame (s_catchup_frames), as the native limiter does. */
             if (now - s_frame_deadline > period * (s_catchup_frames - 1))
                 s_frame_deadline = now + period - period * (s_catchup_frames - 1);
         } else if (sleep_ms > period) {       /* first frame / clock jumped back */
@@ -2418,9 +2407,8 @@ int Platform_Present(void)
     {
     const Sint64 frame_perf = (Sint64)((double)s_perf_freq * k_frame_secs);
     if ((Sint64)(now - s_next_frame_perf) > frame_perf * s_catchup_frames) {
-        /* Further behind than we catch up on (one frame, or a live match's prediction
-         * window: Platform_SetCatchUpFrames) — drop the rest, and run what is left
-         * back to back. */
+        /* Further behind than we catch up on (s_catchup_frames: one frame) — drop the
+         * rest, and run what is left back to back. */
         s_next_frame_perf = now - (Uint64)(frame_perf * (s_catchup_frames - 1));
     } else {
         /* Sleep almost-to-deadline, leaving a 2 ms margin for the spin. */

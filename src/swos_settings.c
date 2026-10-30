@@ -198,10 +198,6 @@ static int handler(void *user, const char *section,
             int b;
             if (parse_bool(value, &b))
                 opts->reports = b;
-        } else if (eqi(name, "balance")) {
-            int b;
-            if (parse_bool(value, &b))
-                opts->netplay_balance = b;
         } else if (eqi(name, "prediction")) {
             int b;
             if (parse_bool(value, &b))
@@ -506,12 +502,6 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; HOW WAS THE MATCH? to the other player and the server, zipped (a copy is kept in\n"
         "; save/netplay either way). false: nothing leaves this machine.",
         opts->reports ? "true" : "false" };
-    SETTING(n) = (IniEntry){ "netplay", "balance",
-        "; balance: true | false -- online, when one player is predicting the other's input two\n"
-        "; frames or more deeper than the other is, that player waits a little. Timing only,\n"
-        "; never the match. It works only when BOTH players have it on\n"
-        "; (docs/NETPLAY_BALANCE.md).\n",
-        opts->netplay_balance ? "true" : "false" };
     SETTING(n) = (IniEntry){ "netplay", "prediction",
         "; prediction: true | false -- keep what each player SAW of an online match in its\n"
         "; replay: how many of the other player's inputs were guesses on each frame, the\n"

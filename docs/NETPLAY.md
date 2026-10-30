@@ -761,6 +761,19 @@ round trip it measured (`propose_delay`), they exchange proposals, and both take
 **maximum** — the same two numbers on both sides, so the same answer — fixed for the
 match. `P2PLink_AgreedDelay()`.
 
+**The proposal is Playa's table** (2026-10-30), from the measured ping, never 0, capped:
+
+| Delay | DOS gameplay (70 fps) | Amiga gameplay (50 fps) |
+|---|---|---|
+| 1 | up to 35 ms | up to 50 ms |
+| 2 | 36–70 ms | 51–99 ms |
+| 3 | 71–140 ms | 100–175 ms |
+| 4 | 141–210 ms | over 175 ms (the cap) |
+| 5 | over 210 ms (the cap) | — |
+
+It replaced SWOS 2020's AUTO formula (33 ms off the ping, 0 on a clean link,
+ceil(rtt / 3 frames), capped at 3 / 4); jitter no longer counts.
+
 This is deliberate, and it is the bug that makes one player feel they are **chasing** the
 other. SWOS 2020 derives a delay on each machine from that machine's own ping, jitter and
 `1000/getMPFps()`, and applies it to its own player only; two machines do not measure the
@@ -826,7 +839,7 @@ the host and the top team.
 | GAME LENGTH, PITCH TYPE, SUBSTITUTES | host | the friendly menu's own cycles; the joiner sees them change |
 | START | host | lit when both are ready on the current rules |
 | FRAME DELAY | — | the delay the link agreed; shown, not chosen |
-| SHORT PRESSES, CATCH UP, KICK-OFF SYNC, BALANCE, CARDS/INJURIES | host | the host's switches, ON/OFF, on the left; below |
+| SHORT PRESSES, KICK-OFF SYNC, CARDS/INJURIES | host | the host's switches, ON/OFF, on the left; below |
 
 **The host's switches** (`NETPLAY_SW_*`, `include/netplay_match.h`). Report 0042 said online
 play changed after 7d9d6d9; each netplay change since then that can be turned off is a
@@ -838,10 +851,13 @@ take them back after (`NetplayLobby_RestoreTactics`). ON is how this build plays
 | Switch | Default | OFF means |
 |---|---|---|
 | SHORT PRESSES | the host's own `[input] latch_presses` | a fire tap shorter than a frame is lost, as before 6976feaf (`input_sdl.c`, the press latch) |
-| CATCH UP | ON | after a stall the backlog is dropped, as before fd911618 (`Platform_SetCatchUpFrames`) |
 | KICK-OFF SYNC | ON | GGPO-X predicts the whole window from frame 0, as before 4e7553f3 (`ggpo_set_kickoff_prediction`) |
-| BALANCE | the host's own `[netplay] balance` | GGPO-X's prediction balance off (docs/NETPLAY_BALANCE.md); ON turns it on for BOTH |
 | CARDS/INJURIES | ON | nobody booked or injured: the old tester builds' online game (`TestRules_Force`); the recording's rules say 0xD8 and `--srp-resim` replays it by that rule. Hidden in a `--release` build, which has the rule compiled out: as host it always plays with cards, and as joiner it will not ready up for a host with them off ("HOST PLAYS WITHOUT CARDS: NOT IN YOUR BUILD") |
+
+CATCH UP (a stall's backlog played back to back, fd911618) and BALANCE (GGPO-X's prediction
+balance, docs/NETPLAY_BALANCE.md) were switches too until 2026-10-30, when they were removed:
+Playa's tests found them causing netplay problems. Their bits (0x02, 0x08) are never set, and
+an older host's are dropped (`clamp_rules`); `NETPLAY_COMPAT` 5.
 
 Not a switch: the time sync's frame advantage (29009dbd). The old builds sent garbage there
 that was nearly always 0, and 0 is what is sent now (`GGPO_SEND_FRAME_ADVANTAGE=0`).

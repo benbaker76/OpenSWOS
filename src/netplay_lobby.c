@@ -150,6 +150,7 @@ static void set_notice(const char *text)
 
 static void clamp_rules(LobbyRules *r)
 {
+    r->switches &= NETPLAY_SW_ALL;      /* (an older host's CATCH UP / BALANCE: gone) */
     if (r->gameLength > 3)
         r->gameLength = 0;
     if (r->pitchType != RANDOM_PITCH && r->pitchType > 6)
@@ -373,10 +374,8 @@ static void apply_switches(uint16_t sw)
     /* CARDS/INJURIES off: the old tester builds' rule, for this match, on both machines,
      * from the kick-off on (test_rules.h; the recording says so -- netplay_match.c). */
     TestRules_Force((sw & NETPLAY_SW_CARDS_INJURIES) ? -1 : 1);
-    fprintf(stderr, "[lobby] the host's switches: short presses %s, catch up %s, kick-off sync %s, "
-            "balance %s, cards/injuries %s\n",
-            (sw & NETPLAY_SW_SHORT_PRESSES) ? "ON" : "OFF", (sw & NETPLAY_SW_CATCH_UP) ? "ON" : "OFF",
-            (sw & NETPLAY_SW_KICKOFF_SYNC) ? "ON" : "OFF", (sw & NETPLAY_SW_BALANCE) ? "ON" : "OFF",
+    fprintf(stderr, "[lobby] the host's switches: short presses %s, kick-off sync %s, cards/injuries %s\n",
+            (sw & NETPLAY_SW_SHORT_PRESSES) ? "ON" : "OFF", (sw & NETPLAY_SW_KICKOFF_SYNC) ? "ON" : "OFF",
             (sw & NETPLAY_SW_CARDS_INJURIES) ? "ON" : "OFF");
 }
 
@@ -663,15 +662,13 @@ void NetplayLobby_Begin(int32_t localPlayer, const char *localName)
         s_lobby.rules.pitchType  = _pitchType <= 6 ? _pitchType : RANDOM_PITCH;
         s_lobby.rules.minSubs    = 2;
         s_lobby.rules.maxSubs    = 5;
-        /* The switches as this build plays, with the host's own SHORT PRESSES and
-         * BALANCE settings: what the host played by before there were switches. */
+        /* The switches as this build plays, with the host's own SHORT PRESSES setting:
+         * what the host played by before there were switches. */
         {
             extern int InputSDL_PressLatch(void);
-            uint16_t sw = NETPLAY_SW_DEFAULT & ~(NETPLAY_SW_SHORT_PRESSES | NETPLAY_SW_BALANCE);
+            uint16_t sw = NETPLAY_SW_DEFAULT & ~NETPLAY_SW_SHORT_PRESSES;
             if (InputSDL_PressLatch())
                 sw |= NETPLAY_SW_SHORT_PRESSES;
-            if (NetplayMatch_BalanceSetting())
-                sw |= NETPLAY_SW_BALANCE;
             s_lobby.rules.switches = sw;
         }
         clamp_rules(&s_lobby.rules);

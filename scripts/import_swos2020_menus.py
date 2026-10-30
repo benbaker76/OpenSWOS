@@ -202,8 +202,9 @@ NAV_FIXUPS = {
 # (online_menus.c lobby_layout), as for the rest of this screen.
 def _switch_rows():
     rows = []
-    for i, (name, label) in enumerate((("ShortPresses", "SHORT PRESSES"), ("CatchUp", "CATCH UP"),
-                                       ("KickoffSync", "KICK-OFF SYNC"), ("Balance", "BALANCE"),
+    # (CATCH UP and BALANCE were rows too, until 2026-10-30: removed, netplay problems)
+    for i, (name, label) in enumerate((("ShortPresses", "SHORT PRESSES"),
+                                       ("KickoffSync", "KICK-OFF SYNC"),
                                        ("CardsInjuries", "CARDS/INJURIES"))):
         y = 93 + 13 * i
         rows.append({"kind": "entry", "name": "switch%sLabel" % name,

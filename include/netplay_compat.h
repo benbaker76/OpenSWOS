@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 4      /* 4: face 3, blond hair: its own sprite set (player_face3.c) */
+#define NETPLAY_COMPAT 5      /* 5: CATCH UP and BALANCE removed, Playa's input delay table (p2p_link.c) */
 
 #endif

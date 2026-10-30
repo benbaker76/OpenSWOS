@@ -3,7 +3,7 @@
   "source": {
     "project": "swos-2020",
     "file": "src/menus/oooInfo.mnu",
-    "commit": "ebf1cc4"
+    "commit": "df38d20"
   },
   "menu_flags": {
     "dos_redraw": true

@@ -132,12 +132,10 @@ estimate alone, which is what the pacing in `src/netplay_match.c` was tuned agai
 2026-10-06 by accident (the fork's `min()` returned a dangling reference, so the figure a peer
 sent was noise; that noise tipped matches into one player predicting 2+ frames deeper). Do not
 switch the true figure on without retuning the pacing: the peers swing five frames apart. The
-balance itself is in the fork (`lib/ggpo/prediction_balance.h`, `GGPO_PREDICTION_BALANCE`): the
-peers exchange their average prediction depth in the quality report and the one 1.5 frames or
-more deeper is told to wait a quarter of the gap (`NETPLAY_EVENT_BALANCE`) -- never a gap of
-one frame, which cannot be closed without adding prediction. `[netplay] balance = true`, OFF by
-default, both players; `SWOS_LIVE_BALANCE=1` for a test. A change to either: several runs a
-link of the doc's matrix, never one.
+prediction balance (and the CATCH UP switch) were REMOVED from the game 2026-10-30 -- they
+caused netplay problems (Playa); the balance's code stays in the fork, unused. The input delay
+is Playa's ping table (`propose_delay`, docs/NETPLAY.md: DOS 1-5, Amiga 1-4, never 0). A change
+to the pacing: several runs a link of NETPLAY_BALANCE.md's matrix, never one.
 "Ghosting" (players running through each other online) has its own doc, docs/NETPLAY_GHOSTING.md:
 every match records each frame as drawn and as played (`src/netplay_ghost.c`), logs `[ghost]`
 lines, keeps windows around the worst detected events for the report zip, and
@@ -440,7 +438,7 @@ real rules whatever either file says -- unless the HOST switches CARDS/INJURIES 
 lobby (the host's switches, below) -- and so do the rigs (replay corpus, rollback, netplay
 tests); `--srp-resim` plays a recording by the rule it was recorded under.
 **The host's switches** (`include/netplay_match.h`, report 0042, docs/NETPLAY.md "The lobby"):
-SHORT PRESSES, CATCH UP, KICK-OFF SYNC, BALANCE and CARDS/INJURIES, ON/OFF on the left of
+SHORT PRESSES, KICK-OFF SYNC and CARDS/INJURIES, ON/OFF on the left of
 the lobby -- each a netplay change since 7d9d6d9 -- decided by the host ALONE and played by
 both (they travel in the host's rules; `NetplayLobby_ApplyMatch` puts them in force,
 `NetplayLobby_RestoreTactics` takes them back). The rows are entries OpenSWOS adds to SWOS

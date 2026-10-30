@@ -660,32 +660,29 @@ static int32_t propose_delay(int32_t pingMs, int32_t jitterMs)
      * running slow propose a different delay from its opponent -- which is
      * precisely the asymmetry this routine exists to avoid. */
     const int32_t fps = _gDosGameplay ? 70 : 50;
-    int32_t rtt, d, cap;
 
-    /* SWOS 2020's AUTO, exactly (MPGame::getAutoFrameDelay, mpgame.cpp):
+    /* Playa's table (2026-10-30), from the ping the lobby shows: never 0 (no buffer
+     * at all), and capped; each gameplay mode has its own (its frame time):
      *
-     *  - 33 ms off the measured ping first: "the extra added by the delay of the
-     *    menu loop". Ours is measured the same way -- stamped and answered from
-     *    the per-frame poll -- so each end adds up to a frame too.
-     *  - 0 frames only on a genuinely clean link: under 15 ms AND jitter under one
-     *    frame, since 0 leaves no buffer for the next spike.
-     *  - otherwise ceil(rtt / (3 * frameTime)), at least 1,
-     *  - capped at 3 frames at 50 fps (AMIGA) and 4 at 70 (DOS): more than that
-     *    is more input lag than a player accepts without choosing it.
+     *      DOS (70 fps)              AMIGA (50 fps)
+     *      1   up to 35 ms           1   up to 50 ms
+     *      2   36 - 70 ms            2   51 - 99 ms
+     *      3   71 - 140 ms           3   100 - 175 ms
+     *      4   141 - 210 ms          4   over 175 ms (the cap)
+     *      5   over 210 ms (the cap)
      *
-     * We had ported the formula alone -- no 33 ms, no cap -- and so picked more
-     * than SWOS 2020 at the same ping: 5 frames at 190 ms in DOS where it picks 4,
-     * and climbing with no ceiling (a tester's "HUGE delay", 2026-09-25). */
-    rtt = (pingMs > 33 ? pingMs : 33) - 33;
-    if (rtt < 15 && jitterMs * fps < 1000)
-        return 0;
-    /* ceil(rtt / (3 * 1000/fps)), in integers */
-    d = (rtt * fps + 2999) / 3000;
-    if (d < 1)
-        d = 1;
-    cap = fps <= 50 ? 3 : 4;
-    if (d > cap)
-        d = cap;
+     * It replaced SWOS 2020's AUTO (MPGame::getAutoFrameDelay: 33 ms off the ping, 0 frames
+     * on a clean link, ceil(rtt / (3 * frame time)), capped at 3 / 4). Jitter no longer
+     * counts: only the ping does. */
+    static const int16_t kDos[]   = { 35, 70, 140, 210 };   /* each delay's top, ms */
+    static const int16_t kAmiga[] = { 50, 99, 175 };
+    const int16_t *top = fps > 50 ? kDos : kAmiga;
+    const int32_t n = fps > 50 ? (int32_t)(sizeof kDos / sizeof kDos[0])
+                               : (int32_t)(sizeof kAmiga / sizeof kAmiga[0]);
+    int32_t d = 1;
+    (void)jitterMs;
+    while (d <= n && pingMs > top[d - 1])
+        d++;
     return d;
 }
 

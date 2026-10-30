@@ -451,7 +451,6 @@ int main(int argc, char **argv)
     opts.world[0] = '\0';                /* [general] world: 96/97 (include/world.h) */
     opts.matchmaker[0] = '\0';    /* default: a matchmaking server on this machine */
     opts.record[0] = '\0';        /* default: "server" once SWOS.ini is read (below) */
-    opts.netplay_balance = 0;     /* [netplay] balance: off unless asked for (docs/NETPLAY_BALANCE.md) */
     opts.prediction = 1;          /* default: a live match's replay keeps what each player saw */
     opts.no_injuries_cards = 0;   /* [testing] no_injuries_cards: the real rules unless asked (test_rules.h) */
 #ifdef SWOS_TEST_RULES
@@ -1034,7 +1033,6 @@ int main(int argc, char **argv)
     /* And whether a match report leaves this machine (include/match_report.h). */
     MatchReport_SetEnabled(opts.reports);
     { extern void ReplayRec_SetPredictionKept(int32_t on); ReplayRec_SetPredictionKept(opts.prediction); }
-    { extern void NetplayMatch_SetBalance(int32_t on); NetplayMatch_SetBalance(opts.netplay_balance); }
     /* The testers' rule, for offline play (include/test_rules.h). Said in the log: a
      * report from a career played without injuries is read differently. */
     TestRules_SetSetting(opts.no_injuries_cards);
