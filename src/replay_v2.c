@@ -25,6 +25,7 @@
 #include "display.h"
 #include "endian_helpers.h"
 #include "game_types.h"
+#include "sprites.h"            /* Sprite_PastWalkOffEdge */
 #include "miniz_swos.h"
 #include "srp_writer.h"     /* the file's layout, shared with the recorder */
 #include "swos_io.h"
@@ -528,6 +529,8 @@ void ReplayRec_CaptureSprites(void)
         if (!s || s->imageIndex < 0 || s->z.s.i >= HUD_Z_MIN)
             continue;
         g = graphics((uint16_t)s->imageIndex);
+        if (Sprite_PastWalkOffEdge(s, g))
+            continue;               /* (walked off past the original's screen: not drawn either) */
         p = s_rec.frms + s_rec.frmsLen;
         BE_WRITE_U16(p, (uint16_t)s->imageIndex);
         BE_WRITE_U16(p + 2, (uint16_t)(s->x.s.i - g->centerX));

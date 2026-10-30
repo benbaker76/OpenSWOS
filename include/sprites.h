@@ -32,6 +32,9 @@ void DrawSprites(void);
  * this rather than on Sprite.onScreen, which is the simulation view — see
  * BuildSpriteBandAndGeneralRenderStacks in sprites.c. */
 int Sprite_AnimVisible(const Sprite *s);
+/* While the players walk off (half time, the end): a world sprite past the right edge of the
+ * original 336-wide screen, which is neither drawn nor recorded (sprites.c). */
+int Sprite_PastWalkOffEdge(const Sprite *s, const SpriteGraphics *g);
 
 /* Sprites outside the simulation view that still animate because a wider render draws
  * them (BuildSpriteBandAndGeneralRenderStacks; read by Sprite_AnimVisible). */

@@ -2418,6 +2418,22 @@ int16_t       g_spriteAnimVisibleCount;
  * both peers agreed, so a 4:3 and a 16:9 player animate the same margin. (It used to
  * be the render width everywhere but the rig, which made two such peers diverge.) */
 
+/* The players walking off (to half time, or the showers at the end) leave by the right touchline,
+ * and the original's screen -- 336 wide, the game camera's -- loses them there: they walk out of
+ * the picture and stop beyond it. A wider view still has room for them, and showed them standing
+ * in a row at the edge (tester report 0045, 2026-10-30). So while they walk off, a world sprite
+ * past that window's right edge is not drawn, nor recorded (replay_v2.c), as on the original;
+ * nothing the game decides depends on it (onScreen stays as it is). */
+int Sprite_PastWalkOffEdge(const Sprite *s, const SpriteGraphics *g)
+{
+    extern uint16_t _gameState;
+    if (_gameState != ST_GOING_TO_HALFTIME && _gameState != ST_PLAYERS_GOING_TO_SHOWER)
+        return 0;
+    if (s->z.s.i >= HUD_LAYER_Z_MIN)
+        return 0;
+    return (int16_t)(s->x.s.i - g->centerX - _cameraX.s.i) >= SCREEN_WIDTH;
+}
+
 int Sprite_AnimVisible(const Sprite *s)
 {
     int16_t i;
@@ -2546,7 +2562,7 @@ void BuildSpriteBandAndGeneralRenderStacks(void)
                 if (animVis && g_spriteAnimVisibleCount < SPRITE_ANIMVIS_MAX)
                     g_spriteAnimVisible[g_spriteAnimVisibleCount++] = a1;
             }
-            if (!inRenderView) {
+            if (!inRenderView || Sprite_PastWalkOffEdge(a1, a0)) {
                 d7--;
                 if (d7 < 0) break;
                 continue;
