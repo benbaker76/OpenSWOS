@@ -744,6 +744,13 @@ endif
 endif
 endif
 
+# ---- A fork's own build additions ----
+# A fork of OpenSWOS (docs/FORKING.md) puts what only it builds in fork.mk beside this file --
+# a library of its own (OBJECTS += its objects, with their rules), flags, libraries to link
+# (FORK_CFLAGS counts in the build-flags stamp below) -- so it never edits this Makefile, and
+# merging OpenSWOS's never conflicts here. OpenSWOS has none.
+-include fork.mk
+
 # ---- A changed flag rebuilds everything ----
 # make compares TIMESTAMPS, not flags. Toggling a -D (SWOS_TEST_NO_INJURIES_CARDS,
 # say) used to relink the old objects, and hand back a binary with the old flag in
@@ -756,7 +763,7 @@ endif
 # they change, and every object depends on it. $(shell), not $(file): macOS still
 # ships GNU make 3.81.
 BUILD_FLAGS_STAMP := $(OBJDIR)/.build-flags
-BUILD_FLAGS_NOW   := $(strip $(CC) $(CFLAGS) :: $(CXX) $(GGPO_CXXFLAGS) :: $(ENET_CFLAGS))
+BUILD_FLAGS_NOW   := $(strip $(CC) $(CFLAGS) :: $(CXX) $(GGPO_CXXFLAGS) :: $(ENET_CFLAGS) :: $(FORK_CFLAGS))
 ifneq ($(BUILD_FLAGS_NOW),$(strip $(shell cat $(BUILD_FLAGS_STAMP) 2>/dev/null)))
 $(shell mkdir -p $(OBJDIR) && printf '%s\n' '$(BUILD_FLAGS_NOW)' > $(BUILD_FLAGS_STAMP))
 endif

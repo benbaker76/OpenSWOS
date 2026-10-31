@@ -55,6 +55,13 @@ OpenSWOS players -- and then every change to how a match plays has to be in both
 `NETPLAY_COMPAT`; a fork with its own tag is a community of its own. The matchmaking server
 (third_party/matchmaker) reads the same header, so a fork's server answers to the fork's tag.
 
+**A fork's own code** goes in files OpenSWOS does not have, so a merge never touches them:
+sources in `src/` (the Makefile compiles every `src/*.c`), and what they need built besides --
+a vendored library, flags, link libraries -- in **`fork.mk`** beside the Makefile, which
+`-include`s it (OpenSWOS has none). Accounts on a fork's online service: set
+`PROJECT_ACCOUNTS` in the identity header and supply `include/online_account.h` from a file of
+the fork's own (OpenSWOS's `src/online_account.c` then compiles to nothing).
+
 **Not in the header** (a fork replaces the files themselves): the icons (`SWOS.svg` and what
 `scripts/generate_icons.py` makes from it), the credits text (`include/credits_text.h`), the
 installer's ids (`packaging/windows/swos.iss`: give a fork its own `AppId`), the release
