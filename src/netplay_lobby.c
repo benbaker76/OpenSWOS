@@ -314,12 +314,19 @@ static void fail_with(const char *text)
 }
 
 /* Field by field: the struct has padding (before matchId), which a memcmp would read. */
-static int32_t rules_equal(const LobbyRules *a, const LobbyRules *b)
+/* The terms a player agrees to by being ready: everything but the service's match and leg ids,
+ * which are its bookkeeping (a ranked match's ids arrive after it is played). */
+static int32_t same_terms(const LobbyRules *a, const LobbyRules *b)
 {
     return a->gameLength == b->gameLength && a->pitchType == b->pitchType && a->minSubs == b->minSubs &&
            a->maxSubs == b->maxSubs && a->legs == b->legs && a->tieBreak == b->tieBreak && a->leg == b->leg &&
            a->firstLeg1 == b->firstLeg1 && a->firstLeg2 == b->firstLeg2 && a->switches == b->switches &&
-           a->mode == b->mode && a->matchId == b->matchId && a->legId == b->legId;
+           a->mode == b->mode;
+}
+
+static int32_t rules_equal(const LobbyRules *a, const LobbyRules *b)
+{
+    return same_terms(a, b) && a->matchId == b->matchId && a->legId == b->legId;
 }
 
 static void clamp_rules(LobbyRules *r)
@@ -523,7 +530,7 @@ static void read_peer_state(void)
          * not agreed to these yet. */
         if (rulesGen != s_lobby.rulesGen) {
             clamp_rules(&rules);
-            if (s_lobby.rulesGen != 0 && !rules_equal(&rules, &s_lobby.rules))
+            if (s_lobby.rulesGen != 0 && !same_terms(&rules, &s_lobby.rules))
                 drop_my_ready();
             s_lobby.rules    = rules;
             s_lobby.rulesGen = rulesGen;
