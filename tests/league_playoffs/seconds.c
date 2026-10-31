@@ -9,7 +9,7 @@ uint8_t *diy_resolve_team(int32_t sel) { (void)sel; return 0; }
 TeamFileEx _careerTeam;
 uint16_t _playPromotedAnimation, _playRelegatedAnimation;
 uint16_t _teamsCountryNumbers[256];
-int32_t TeamPool_Swap(uint8_t c, uint8_t o) { (void)c; (void)o; return -1; }
+int32_t TeamPool_Swap(uint8_t c, uint16_t o) { (void)c; (void)o; return -1; }
 void TeamPool_SwapsDone(void) { }
 void LeagueGroups_Enter(uint16_t g) { (void)g; }
 WorldPlayoffState g_worldPlayoff;

@@ -1527,10 +1527,10 @@ void LeaguePlayoffs_Decide(uint16_t country, const int8_t *table, int8_t *scratc
         }
     for (int32_t o = 0; o < TEAM_POOL_SLOTS; o++)      /* (the slots in their order, as the Mod's) */
         if (out[o >> 3] & (1 << (o & 7))) {
-            const int32_t in = TeamPool_Swap((u8)country, (u8)o);
+            const int32_t in = TeamPool_Swap((u8)country, (u16)o);
             if (in >= 0) {
                 LeagueGroups_Enter((u16)(base + o));
-                CupD_NoteArrival((uint8_t)country, (uint8_t)o);     /* (the Coppa D's entry order) */
+                CupD_NoteArrival((uint8_t)country, (uint16_t)o);    /* (the Coppa D's entry order) */
                 SWOS_DBG("[pool] slot %d (global %u) -> identity %d\n", (int)o, (unsigned)(base + o), (int)in);
             }
         }

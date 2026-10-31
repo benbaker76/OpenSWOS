@@ -18,6 +18,7 @@
 #include "league_phase.h"
 #include "uefa_coef.h"
 #include "world_conti.h"
+#include "world.h"
 
 /* ---- ASM externs (globals defined in assembly) ---- */
 extern DIYCompetitionEx _diyCompetitionStart;
@@ -660,10 +661,10 @@ static void drawRandomTeamFromPoolAndCopyGrid(uint16_t titleHolder,
             continue;
 
         if (_teamNoOfferAccepted != 0xFFFF) {
-            if (selectedCountry == (uint8_t)(_teamNoOfferAccepted >> 8))
+            if (selectedCountry == World_FileCountry((uint8_t)(_teamNoOfferAccepted >> 8)))
                 continue;
         } else {
-            if (selectedCountry == (uint8_t)(_selTeamNumber >> 8))
+            if (selectedCountry == World_FileCountry((uint8_t)(_selTeamNumber >> 8)))   /* (include/world.h) */
                 continue;
         }
         break;

@@ -80,3 +80,40 @@ int32_t World_Set(const char *tag)
     s_world = (WorldId)w;
     return 0;
 }
+
+#if SWOS_WORLDS
+/* ---- a country over two team files (include/world.h) ---- */
+
+extern uint16_t _teamsCountryNumbers[256];
+extern void *_competitionsTable[];
+extern void *_countriesTable[];
+
+uint16_t World_Slot(uint8_t file, uint8_t ordinal)
+{
+    const uint8_t country = World_FileCountry(file);
+    return (uint16_t)(country != file ? 256 + ordinal : ordinal);
+}
+
+uint16_t World_SlotTeam(uint8_t country, uint16_t slot)
+{
+    const uint8_t second = slot >= 256 ? World_SecondFile(country) : 0;
+    return second ? (uint16_t)(second << 8 | (slot - 256)) : (uint16_t)(country << 8 | (slot & 0xFF));
+}
+
+uint16_t World_GlobalBase(uint8_t file)
+{
+    const uint8_t country = World_FileCountry(file);
+    return country != file ? (uint16_t)(_teamsCountryNumbers[country] + 256) : _teamsCountryNumbers[file];
+}
+
+void World_SyncSecondFiles(void)
+{
+    for (int32_t c = 0; c < 256; c++) {
+        const uint8_t second = World_SecondFile((uint8_t)c);
+        if (second) {
+            _competitionsTable[second] = _competitionsTable[c];
+            _countriesTable[second] = _countriesTable[c];
+        }
+    }
+}
+#endif

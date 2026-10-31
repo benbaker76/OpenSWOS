@@ -12,7 +12,7 @@ uint8_t _primaryQualifiedTeamGrids[10 * 684];
 uint16_t _cachedPrimaryQualifiedTeamIds[9];
 uint16_t _playPromotedAnimation, _playRelegatedAnimation;
 uint16_t _teamsCountryNumbers[256];
-int32_t TeamPool_Swap(uint8_t c, uint8_t o) { (void)c; (void)o; return -1; }
+int32_t TeamPool_Swap(uint8_t c, uint16_t o) { (void)c; (void)o; return -1; }
 void TeamPool_SwapsDone(void) { }
 void LeagueGroups_Enter(uint16_t g) { (void)g; }
 WorldPlayoffState g_worldPlayoff;
@@ -23,7 +23,7 @@ static uint16_t s_cupw;
 uint16_t WorldCups_LeagueCupWinner(uint8_t c) { (void)c; return s_cupw; }
 void WorldCups_KeepPlace(uint8_t c, uint16_t d, uint16_t t, uint8_t p) { (void)c; (void)d; (void)t; (void)p; }
 void CupD_KeepPlace(uint8_t c, uint16_t d, uint16_t t, int32_t p, int32_t n) { (void)c; (void)d; (void)t; (void)p; (void)n; }
-void CupD_NoteArrival(uint8_t c, uint8_t o) { (void)c; (void)o; }
+void CupD_NoteArrival(uint8_t c, uint16_t o) { (void)c; (void)o; }
 
 static const uint8_t PROM[16] = { 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 static const uint8_t REL[16] = { 3, 3, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2 };

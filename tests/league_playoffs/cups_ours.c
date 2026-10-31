@@ -14,6 +14,10 @@ int32_t UefaQual_RoundStringIndex(uint8_t c) { (void)c; return -1; }
 int32_t Conti_RoundStringIndex(uint8_t c) { (void)c; return -1; }
 int32_t WorldPlayoff_RoundStringIndex(uint8_t c, uint16_t r) { (void)c; (void)r; return -1; }
 void Comp_Register(Competition *c) { (void)c; }
+uint8_t World_FileCountry(uint8_t f) { return f; }                  /* (one file a country here) */
+uint16_t World_Slot(uint8_t f, uint8_t o) { (void)f; return o; }
+uint16_t World_SlotTeam(uint8_t c, uint16_t s) { return (uint16_t)(c << 8 | s); }
+void World_SyncSecondFiles(void) { }
 void DIY_ShuffleTeamGridPairs(void) { }
 void SaveSelectedTeams(void) { }
 void RestoreSelectedTeams(void) { }
@@ -37,7 +41,7 @@ int main(int argc, char **argv)
     for (unsigned it = 0; it < N; it++) {
         make_case(it, &cc);
         for (int i = 0; i < 256; i++) {
-            s_clubs[i].ordinal = (uint8_t)i; s_clubs[i].base = cc.base[i];
+            s_clubs[i].slot = (uint16_t)i; s_clubs[i].base = cc.base[i];
             _diyLeagueSeasonStateTable[i] = (uint8_t)cc.delta[i];
             g_worldCups.place[i] = cc.place[i];
         }

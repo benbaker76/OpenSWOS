@@ -5,6 +5,7 @@ makes it from the same pack, its bytes as split.entry makes them, the odd pair t
 
 Prints one line per league (PASS / FAIL / SKIP: more than 20 clubs not of a fixture list) and exits 1 on a FAIL. The stage
 titles' parts (after-stage routines, stage tables) are not compiled yet: compared without them."""
+import json
 import os
 import sys
 
@@ -22,7 +23,10 @@ for n in range(5, 24, 2):           # the odd sizes: our pair tables are oddtabl
         print("FAIL: the pair table of %d clubs differs from oddtables'" % n)
         bad += 1
 
-codes = sorted(c for c in os.listdir(PACKS) if os.path.exists(os.path.join(PACKS, c, "pack.json")))
+# (a pack whose league is over two team files -- Italy's, v4: "files" "league2" -- the Mod's own
+# mkseason cannot load, its file holding 256; it has no split)
+codes = sorted(c for c in os.listdir(PACKS) if os.path.exists(os.path.join(PACKS, c, "pack.json"))
+               and "league2" not in json.load(open(os.path.join(PACKS, c, "pack.json"), encoding="utf-8")).get("files", {}))
 os.environ["SEASON_PACKS"] = ",".join(os.path.join(PACKS, c) for c in codes)
 import mkseason                     # noqa: E402
 

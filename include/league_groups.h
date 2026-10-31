@@ -27,13 +27,14 @@ typedef struct {
     const char *name;
 } LeagueLevel;
 
-/* A club that can play at a level of groups: its ordinal in the country's team file, its
- * division in that file (what the league table's offset is from), and its area at each
- * level of groups, top-down (LEAGUE_GROUPS_NO_AREA: none). */
+/* A club that can play at a level of groups: its slot in the country (include/world.h: its
+ * ordinal in the country's team file, 256 + it in a second file), its division in that file
+ * (what the league table's offset is from), and its area at each level of groups, top-down
+ * (LEAGUE_GROUPS_NO_AREA: none). */
 typedef struct {
-    uint8_t ordinal;
-    uint8_t base;
-    uint8_t area[2];
+    uint16_t slot;
+    uint8_t  base;
+    uint8_t  area[2];
 } LeagueGroupClub;
 
 typedef struct {

@@ -3769,6 +3769,7 @@ void DataJson_InstallCompetitionGraph(void)
         }
     }
     free(fb);
+    World_SyncSecondFiles();                         /* (a second team file: its country's table) */
 
     /* Standalone competition globals — the tournaments (European cups, World Cup,
        continental cups, WC/EC qualification) and promotion playoffs that the
@@ -6119,8 +6120,9 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
     }
 
     /* A world's pools below the leagues (team_pool.c): per pooled country, which club each
-     * swapped slot of its team file is now, and the queue below -- identities by number (a
-     * slot of the file, 256 + a club of the pool), never records. */
+     * swapped slot of its team files is now, and the queue below -- identities by number (a
+     * slot of the country, TEAM_POOL_SLOTS + a club of the pool: "ids" 2; before it, 256 +),
+     * never records. The map's trailing zeros are left out. */
     int pools = 0;
     for (int k = 0; k < TEAM_POOL_FILES; k++) {
         const TeamPoolState *st = &g_teamPool[k];
@@ -6130,11 +6132,14 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", "team_pools");
         else
             mjson_printf(json_out_emit, &out, "%s", ",");
-        mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:[", "country", (int)st->country, "queue");
+        mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:%d,%Q:[", "country", (int)st->country, "ids", 2, "queue");
         for (int i = 0; i < st->queued; i++)
             mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)st->queue[i]);
         mjson_printf(json_out_emit, &out, "],%Q:[", "map");
-        for (int i = 0; i < TEAM_POOL_SLOTS; i++)
+        int last = TEAM_POOL_SLOTS;
+        while (last > 256 && !st->map[last - 1])
+            last--;
+        for (int i = 0; i < last; i++)
             mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)st->map[i]);
         mjson_printf(json_out_emit, &out, "%s", "]}");
     }
@@ -6150,7 +6155,10 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "league_cup_season", (int)g_worldCups.leagueCupSeason,
                      "places_season", (int)g_worldCups.placesSeason,
                      "places_country", (int)g_worldCups.placesCountry, "places");
-        for (int i = 0; i < 256; i++)
+        int last = WORLD_SLOTS;             /* (by slot: a second file's past 256, include/world.h) */
+        while (last > 256 && !g_worldCups.place[last - 1])
+            last--;
+        for (int i = 0; i < last; i++)
             mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)g_worldCups.place[i]);
         mjson_printf(json_out_emit, &out, "%s", "]}");
     }
@@ -6565,6 +6573,15 @@ static void load_team_pool(const char *tp, int tplen, TeamPoolState *st)
         while (i < TEAM_POOL_SLOTS && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0)
             if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
                 st->map[i++] = (uint16_t)v;
+    /* (a save before "ids" 2: a pool club was 256 + k, its slots one file's) */
+    if (mjson_get_long(tp, tplen, "$.ids", &v) <= 0 || v < 2) {
+        for (i = 0; i < st->queued; i++)
+            if (st->queue[i] >= 256)
+                st->queue[i] = (uint16_t)(st->queue[i] - 256 + TEAM_POOL_SLOTS);
+        for (i = 0; i < 256; i++)
+            if (st->map[i] > 256)
+                st->map[i] = (uint16_t)(st->map[i] - 256 + TEAM_POOL_SLOTS);
+    }
     st->init = 1;
 }
 
@@ -6902,7 +6919,7 @@ static void apply_semantic_load(const char *src, int src_size)
                 g_worldCups.placesCountry = (uint8_t)v;
             const char *arr; int al, pos = 0, voff, vlen, vt, i = 0;
             if (mjson_find(wc, wclen, "$.places", &arr, &al) == MJSON_TOK_ARRAY)
-                while (i < 256 && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0)
+                while (i < WORLD_SLOTS && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0)
                     if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
                         g_worldCups.place[i++] = (uint8_t)v;
         }

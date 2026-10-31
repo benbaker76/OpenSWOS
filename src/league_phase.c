@@ -534,7 +534,7 @@ void LeaguePhase_StageStart(void)
             v += (uint8_t)t->players[k].price;
         words[p] = PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal);
         key[p] = UefaCoef_PotKey((uint8_t)c->base.field_2E, words[p], v);  /* (club coefficients) */
-        country[p] = t->team.countryNumber;
+        country[p] = World_FileCountry(t->team.countryNumber);    /* (a second team file: its country, include/world.h) */
         seed = seed * 31u + t->team.teamOrdinal + ((uint32_t)t->team.countryNumber << 8);
     }
     LeaguePhase_Pots(key, country, six, order);

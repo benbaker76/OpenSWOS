@@ -28,6 +28,7 @@
 
 #include "diy_competition.h"
 #include "file_io.h"
+#include "world.h"
 
 /* ---- Constants ---- */
 /* Bytes parked by SaveSelectedTeams: numSelectedTeams + the records. The original parked 32
@@ -825,6 +826,9 @@ void AppendTeamsToSelectionFromTmdOrTeamFile(uint16_t *out, uint16_t *teamIds, u
  *     leagueFilter  = league value to match at offset 25 (d1 → d6)
  *     expectedCount = expected number of matching teams (d2 in asm)
  * ================================================================ */
+/* One file's clubs of the division, from idOut on; returns past the last written. */
+static uint16_t *fillLeagueTeamsOfLoadedFile(uint16_t *idOut, uint16_t leagueFilter);
+
 static void fillLeagueTeamSelectionFromFile(uint16_t extNumber, uint16_t leagueFilter,
                                              int16_t expectedCount)
 {
@@ -839,6 +843,19 @@ static void fillLeagueTeamSelectionFromFile(uint16_t extNumber, uint16_t leagueF
     for (j = 0; j < tfCount; j++) {
         if (tfBase[j].team.league == (uint8_t)leagueFilter)
             actualCount++;
+    }
+    /* A country over two team files (include/world.h): the division's clubs of the second
+     * too, when the first falls short; the first file loaded again after it. */
+    const uint8_t second = World_SecondFile((uint8_t)extNumber);
+    if (second && (int16_t)actualCount < expectedCount) {
+        uint16_t *idOut = fillLeagueTeamsOfLoadedFile(_diyCompetitionStart.matchData.league.leagueTeamIds,
+                                                      leagueFilter);
+        LoadTeamFile(second);
+        uint16_t *end = fillLeagueTeamsOfLoadedFile(idOut, leagueFilter);
+        actualCount = (uint16_t)(end - _diyCompetitionStart.matchData.league.leagueTeamIds);
+        LoadTeamFile(extNumber);
+        if ((int16_t)actualCount == expectedCount)
+            return;
     }
     if ((int16_t)actualCount != expectedCount) {
         /* [verify-fill] -O2 makes gdb's `expectedCount=...` value
@@ -858,9 +875,15 @@ static void fillLeagueTeamSelectionFromFile(uint16_t extNumber, uint16_t leagueF
      * produce the same `(country << 8) | ordinal` value that
      * findTeamInCache / isTeamInCache compare against, and
      * BE_WRITE_U16 to store. */
+    fillLeagueTeamsOfLoadedFile(_diyCompetitionStart.matchData.league.leagueTeamIds, leagueFilter);
+}
+
+static uint16_t *fillLeagueTeamsOfLoadedFile(uint16_t *idOut, uint16_t leagueFilter)
+{
+    TeamFileEx *tfBase = (TeamFileEx *)(&_teamFileBuffer + 2);
+    uint16_t tfCount = *(uint16_t *)&_teamFileBuffer;
     TeamFileEx *selDst = _selectedTeams + _numSelectedTeams;
-    uint16_t *idOut = _diyCompetitionStart.matchData.league.leagueTeamIds;
-    for (j = 0; j < tfCount; j++) {
+    for (uint16_t j = 0; j < tfCount; j++) {
         TeamFileEx *src = &tfBase[j];
         if (src->team.league == (uint8_t)leagueFilter) {
             uint16_t teamId = PACK_BE_U16(src->team.countryNumber,
@@ -874,6 +897,7 @@ static void fillLeagueTeamSelectionFromFile(uint16_t extNumber, uint16_t leagueF
             }
         }
     }
+    return idOut;
 }
 
 /* ================================================================

@@ -1248,7 +1248,7 @@ void InitializeNewSeason(void)
         compTablePtr = (void **)&_careerCupPickList;
     } else {
         /* Club team */
-        _nationalTeamFileCode = (uint8_t)(_selTeamNumber >> 8);  /* move.b — high byte */
+        _nationalTeamFileCode = World_FileCountry((uint8_t)(_selTeamNumber >> 8));  /* move.b — high byte (a second team file: its country's, include/world.h) */
 
         uint16_t tableIdx = _selTeamNumber >> 8;
         compTablePtr = (void **)_competitionsTable[tableIdx];

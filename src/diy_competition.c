@@ -1457,6 +1457,18 @@ void DIY_ValidateLeagueScratchBuffer(void)
     volatile uint16_t *tfb = (volatile uint16_t *)_teamFileBuffer;
     uint16_t count = tfb[0];
     uint16_t offset = tfb[2];  /* word at offset 4 = index 2 */
+#if SWOS_WORLDS
+    /* A country over two team files (include/world.h): its moves balance over both -- a club
+     * up from the second, one down from the first --, its whole range of global numbers. */
+    {
+        extern uint16_t _teamsCountryNumbers[256];
+        const uint8_t c = World_FileCountry(_teamFileBuffer[2]);
+        if (count && World_SecondFile(c)) {
+            offset = _teamsCountryNumbers[c];
+            count = (uint16_t)(_teamsCountryNumbers[c + 1] - offset);
+        }
+    }
+#endif
     volatile uint8_t *teamData = _diyLeagueScratchBuffer + offset;
 
     checksum = 0;

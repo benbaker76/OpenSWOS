@@ -22,6 +22,7 @@
 #include "career_init.h"
 #include "league_groups.h"
 #include "team_pool.h"
+#include "swos_io.h"
 #ifdef SWOS_SDL_BUILD
 #include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in */
 #endif
@@ -191,12 +192,11 @@ void SetTeamGlobalNumbers(uint16_t numTeams, uint8_t *firstTeam)
 
     team = (TeamFileEx *)firstTeam;
     for (i = numTeams; i > 0; i--) {
-        uint16_t countryNum = team->team.countryNumber & 0xFF;
         uint16_t localNum;
         uint16_t globalNum;
 
-        countryNum = countryNum << 1;   /* word index */
-        globalNum = *((uint16_t *)((uint8_t *)_teamsCountryNumbers + countryNum));
+        /* (a country's second team file runs on from its first: include/world.h) */
+        globalNum = World_GlobalBase((uint8_t)team->team.countryNumber);
 
         localNum = team->team.teamOrdinal & 0xFF;
         globalNum += localNum;
@@ -214,9 +214,15 @@ void SetTeamGlobalNumbers(uint16_t numTeams, uint8_t *firstTeam)
  * and uses diyLeagueSeasonStateTable to add a league offset
  * to the team's league field.
  * ================================================================ */
+static void setLeagueNumbersOf(uint8_t *teamBuf);
+
 static void setLeagueNumbers(void)
 {
-    uint8_t *teamBuf = _teamFileBuffer;
+    setLeagueNumbersOf(_teamFileBuffer);
+}
+
+static void setLeagueNumbersOf(uint8_t *teamBuf)
+{
     uint16_t count = *((uint16_t *)teamBuf);
     TeamFileEx *team;
     uint16_t i;
@@ -434,6 +440,44 @@ int16_t LoadTeamFile(uint16_t extNumber)
 
     return 0;
 }
+
+#if SWOS_WORLDS
+/* A country's second team file (include/world.h), read beside the loaded one -- for a list
+ * of a division's clubs (the team picker), whose records are pointed at, so never into
+ * _teamFileBuffer: its records as LoadTeamFile makes them (global numbers, a career's pool
+ * identities and divisions). 0: none, or it could not be read. */
+#define SECOND_FILE_MAX 16
+static uint8_t *s_secondFile;
+
+static uint8_t *loadSecondFile(uint8_t file)
+{
+    if (!s_secondFile)
+        s_secondFile = (uint8_t *)swos_io_alloc(2 + SECOND_FILE_MAX * sizeof(TeamFileEx));
+    if (!s_secondFile)
+        return 0;
+#ifdef SWOS_SDL_BUILD
+    extern int DataJson_LoadTeamFileForCountry(int, uint8_t *, int);
+    if (DataJson_LoadTeamFileForCountry(file, s_secondFile, SECOND_FILE_MAX) <= 0)
+        return 0;
+#else
+    {
+        uint8_t name[] = "data/TEAM.000";
+        uint32_t size = 0;
+        name[10] = (uint8_t)('0' + file / 100);
+        name[11] = (uint8_t)('0' + file / 10 % 10);
+        name[12] = (uint8_t)('0' + file % 10);
+        if (LoadFileEx(name, s_secondFile, &size) != 0 ||
+            size > 2 + SECOND_FILE_MAX * sizeof(TeamFileEx))
+            return 0;
+    }
+#endif
+    SetTeamGlobalNumbers(*(uint16_t *)s_secondFile, s_secondFile + 2);
+    TeamPool_ApplyToFile(file, s_secondFile);
+    if (_gameType == GAME_TYPE_CAREER && _skipLeagueNumbers == 0)
+        setLeagueNumbersOf(s_secondFile);
+    return s_secondFile;
+}
+#endif
 
 /* ================================================================
  * CheckIsTeamNational  (SWOS2.s line 29246)
@@ -2228,8 +2272,7 @@ void ChooseTeamsFriendlyCommon2(MenuEntry *entry)
         return;
     }
 
-    uint8_t teamOrd = team->team.teamOrdinal;
-    uint8_t *tableEntry = &_teamsTable[teamOrd];
+    uint8_t *tableEntry = &_teamsTable[World_Slot(team->team.countryNumber, team->team.teamOrdinal)];
     uint8_t ctrl = *tableEntry;
 
     if (ctrl == 0) {
@@ -2525,8 +2568,20 @@ void ChooseTeamsFriendlyInitFinish(void)
     uint16_t selNum = _selTeamNumber;
     uint16_t i;
 
-    for (i = 0; i < numTeamsInFile; i++) {
-        if (teamRecord->team.league == league) {
+#if SWOS_WORLDS
+    /* A country over two team files (include/world.h): the division's clubs of the second too. */
+    uint8_t *second = _lastLoadedExtNumber != 100 && World_SecondFile(_lastLoadedExtNumber)
+                    ? loadSecondFile(World_SecondFile(_lastLoadedExtNumber)) : 0;
+    const uint16_t numSecond = second ? *(uint16_t *)second : 0;
+#else
+    const uint16_t numSecond = 0;
+#endif
+    for (i = 0; i < numTeamsInFile + numSecond; i++) {
+#if SWOS_WORLDS
+        if (i == numTeamsInFile)
+            teamRecord = (TeamFileEx *)(second + 2);
+#endif
+        if (teamRecord->team.league == league && count < 100) {    /* (_teamsPtrTable[100]) */
             /* selNum is BE-packed (country<<8 | ordinal); compare via
              * PACK_BE_U16 so the user's own team is correctly skipped
              * out of the friendly-menu list on LE hosts (a raw
@@ -2578,10 +2633,10 @@ void ChooseTeamsFriendlyInitFinish(void)
         } while (swapped);
     }
 
-    /* Clear teamsTable (one byte per ordinal) — use volatile to prevent memset optimization */
+    /* Clear teamsTable (one byte per slot: include/world.h) — use volatile to prevent memset optimization */
     {
         volatile uint8_t *tt = (volatile uint8_t *)_teamsTable;
-        for (i = 0; i < TEAM_FILE_MAX_TEAMS; i++)
+        for (i = 0; i < WORLD_SLOTS; i++)
             tt[i] = 0;
     }
 
@@ -2594,9 +2649,8 @@ void ChooseTeamsFriendlyInitFinish(void)
 
         for (ns = 0; ns < _numSelectedTeams; ns++) {
             if (_lastLoadedExtNumber == 0x64 ||
-                (*(selTeam) == extNum && *(selTeam + 0x19) == lg)) {
-                uint8_t ordinal = *(selTeam + 1);
-                _teamsTable[ordinal] = *(selTeam + 4);
+                (World_FileCountry(*selTeam) == extNum && *(selTeam + 0x19) == lg)) {
+                _teamsTable[World_Slot(*selTeam, *(selTeam + 1))] = *(selTeam + 4);
             }
             selTeam += 684;
         }
@@ -2668,11 +2722,10 @@ outer:
 
     int8_t tidx = (int8_t)_teamsIndex[d5];
     TeamFileEx *team = (TeamFileEx *)_teamsPtrTable[(uint16_t)(int16_t)tidx];
-    uint8_t teamOrd = team->team.teamOrdinal;
     e->fg = (uintptr_t)team->team.teamName;
 
     uint16_t color = defaultColor;
-    uint8_t ctrl = _teamsTable[teamOrd];
+    uint8_t ctrl = _teamsTable[World_Slot(team->team.countryNumber, team->team.teamOrdinal)];
     if (ctrl != 0) {
         color = 10;
         if (ctrl != 1) {

@@ -25,6 +25,7 @@
 #define WORLD_CUPS_H
 
 #include "swos_types.h"
+#include "world.h"
 
 typedef struct {
     uint8_t         country;
@@ -52,7 +53,7 @@ typedef struct {
     uint16_t leagueCupWinner;   /* {country, ordinal}, 0: not decided yet */
     uint8_t  placesSeason;      /* the season (seasons) the places are of */
     uint8_t  placesCountry;     /* its country, 0: none kept */
-    uint8_t  place[256];        /* per ordinal: its final place (1..31) | its division's level << 5 */
+    uint8_t  place[WORLD_SLOTS];    /* per slot (include/world.h): its final place (1..31) | its division's level << 5 */
 } WorldCupsState;
 
 extern WorldCupsState g_worldCups;

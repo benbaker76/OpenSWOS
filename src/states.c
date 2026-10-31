@@ -80,7 +80,7 @@ extern DIYCompetitionEx _diyCompetitionStart;
 
 static const WorldStates *career_states(void)
 {
-    return _isNationalSelector ? 0 : World_States((uint8_t)(_selTeamNumber >> 8));
+    return _isNationalSelector ? 0 : World_States(World_FileCountry((uint8_t)(_selTeamNumber >> 8)));
 }
 
 static uint16_t mod_word(const WorldStates *ws, uint16_t team)  /* ours -> the tables' (the Mod's) */
@@ -347,7 +347,7 @@ void States_SeasonEnd(uint8_t country)
     }
     for (uint32_t i = 0; i < sizeof s_rank; i++)
         s_rank[i] = 0;
-    if (g_stateRank0[2] && country == (uint8_t)(_selTeamNumber >> 8))   /* (the career club's played state) */
+    if (g_stateRank0[2] && country == World_FileCountry((uint8_t)(_selTeamNumber >> 8)))   /* (the career club's played state) */
         for (uint32_t i = 0; i < sizeof g_stateRank0; i++)
             s_rank[i] = g_stateRank0[i];
     for (uint32_t i = 0; i < sizeof g_stateRank0; i++)
@@ -365,8 +365,8 @@ void States_SeasonEnd(uint8_t country)
     for (int32_t i = 0; i < nmap && ws->firstState + i < 256; i++)
         if (RI_SWAPPED[0][i >> 3] & (1 << (i & 7))) {
             const int32_t id = RI_STATE.maps[i] ? RI_STATE.maps[i] - 1 : i;
-            TeamPool_Assign(country, (uint8_t)(ws->firstState + i),
-                            (uint16_t)(id < 256 ? ws->firstState + id : id));
+            TeamPool_Assign(country, (uint16_t)(ws->firstState + i),       /* (the Mod's pool: 256 + k) */
+                            (uint16_t)(id < 256 ? ws->firstState + id : id - 256 + TEAM_POOL_SLOTS));
             swapped++;
         }
     if (swapped)

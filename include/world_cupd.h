@@ -46,10 +46,10 @@ typedef struct {
     uint8_t          ties;
     const uint8_t  (*tie)[6];       /* a (lo, hi), b (lo, hi), the real winner (0, 1, 2), - */
     uint8_t          first, groups; /* the Serie D level: its first division, its groups */
-    const uint8_t   *base;          /* each ordinal's base division (FFh: none) */
-    const uint16_t  *strength;      /* each ordinal's (its own record's) */
+    const uint8_t   *base;          /* each slot's base division (FFh: none; WORLD_SLOTS, include/world.h) */
+    const uint16_t  *strength;      /* each slot's (its own record's) */
     uint8_t          pool;
-    const uint16_t  *poolStrength;  /* the pool's clubs' (team_pool.h's identities 256 + k) */
+    const uint16_t  *poolStrength;  /* the pool's clubs' (team_pool.h's identities TEAM_POOL_SLOTS + k) */
     char            *name[2];
 } WorldCupD;
 
@@ -110,10 +110,10 @@ void CupD_ArrangeNextRound(void);
 void CupD_KeepPlace(uint8_t country, uint16_t division, uint16_t team, int32_t place, int32_t clubs);
 
 /* The season end gave a slot a pool club's identity: a new arrival next season. */
-void CupD_NoteArrival(uint8_t country, uint8_t ordinal);
+void CupD_NoteArrival(uint8_t country, uint16_t slot);   /* (include/world.h) */
 
 /* The career club is a Coppa Italia Serie D club this season (a Serie D club: it plays no
  * Coppa Italia and no Serie C cup, gplay.c cd_member_c). */
-int32_t CupD_Member(uint8_t country, uint8_t ordinal);
+int32_t CupD_Member(uint8_t file, uint8_t ordinal);
 
 #endif

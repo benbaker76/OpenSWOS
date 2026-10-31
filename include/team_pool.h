@@ -19,6 +19,7 @@
 #define TEAM_POOL_H
 
 #include "swos_types.h"
+#include "world.h"
 
 /* A world's pool (src/world_data.c, generated): the team file (country) it serves, its own
  * file (data/TEAM.<file>, or the world's teams/<json>), its clubs and their areas at the
@@ -33,12 +34,13 @@ typedef struct {
 
 const TeamPool *World_TeamPools(int32_t *count);
 
-#define TEAM_POOL_SLOTS 256     /* a team file's (TEAM_FILE_MAX_TEAMS) */
+#define TEAM_POOL_SLOTS WORLD_SLOTS     /* a country's slots: its team files' (include/world.h) */
 #define TEAM_POOL_QUEUE 64
 
-/* The career's identities of one pooled file: map[slot] 0 = its own record, else the
- * identity + 1 (an identity < 256 is that slot's own record of the file, 256 + k the
- * pool's k-th club); the queue of identities waiting below the league. One per pooled
+/* The career's identities of one pooled country: map[slot] 0 = its own record, else the
+ * identity + 1 (an identity < TEAM_POOL_SLOTS is that slot's own record -- the slot of the
+ * country's files, include/world.h --, TEAM_POOL_SLOTS + k the pool's k-th club); the queue
+ * of identities waiting below the league. One per pooled
  * country (World 2026-27: Italy's Eccellenza; Spain's, Germany's, the Netherlands' and
  * Portugal's, which take B teams forced out of the lowest division), as the Mod's per-file
  * RI_STATE. */
@@ -61,16 +63,16 @@ TeamPoolState *TeamPool_State(uint8_t country);
 void TeamPool_Reset(void);
 
 /* After a team file is read: in a career, its swapped slots take their identities. */
-void TeamPool_ApplyToFile(uint8_t country, uint8_t *teamFileBuffer);
+void TeamPool_ApplyToFile(uint8_t file, uint8_t *teamFileBuffer);
 
-/* At the season end: the slot of `country`'s file at `ordinal`, relegated out of the
- * lowest division, takes the queue's next identity (the club going down joins the queue).
- * Returns the identity taken, or -1 (no pool, or the queue empty). */
-int32_t TeamPool_Swap(uint8_t country, uint8_t ordinal);
+/* At the season end: `country`'s slot, relegated out of the lowest division, takes the
+ * queue's next identity (the club going down joins the queue). Returns the identity taken,
+ * or -1 (no pool, or the queue empty). */
+int32_t TeamPool_Swap(uint8_t country, uint16_t slot);
 
-/* At the season end: the slot takes `identity` (< 256 a slot's own record, 256 + k the pool's
- * k-th club): a state pool's swap (states.c), its queue its own. */
-void TeamPool_Assign(uint8_t country, uint8_t ordinal, uint16_t identity);
+/* At the season end: the slot takes `identity` (< TEAM_POOL_SLOTS a slot's own record,
+ * TEAM_POOL_SLOTS + k the pool's k-th club): a state pool's swap (states.c), its queue its own. */
+void TeamPool_Assign(uint8_t country, uint16_t slot, uint16_t identity);
 
 /* After the swaps: every record the career holds of a swapped slot gets its identity, and
  * the loaded team file is read again at its next use. */
@@ -78,6 +80,6 @@ void TeamPool_SwapsDone(void);
 
 /* A slot's area at a level of groups (p: its index among the levels of groups), by its
  * identity: `own` is the slot's own (its file record's). */
-uint8_t TeamPool_Area(uint8_t country, uint8_t ordinal, int32_t p, uint8_t own);
+uint8_t TeamPool_Area(uint8_t country, uint16_t slot, int32_t p, uint8_t own);
 
 #endif

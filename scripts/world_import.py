@@ -154,12 +154,29 @@ def mod_division(e):
     return int(div) if div not in (None, "") else None
 
 
+# A country over two team files (include/world.h): the Mod's second file of it (Davide's v4,
+# 2026-10-31: the real Serie D's 162 clubs make Italy 262, a file holds 256) -- its number, its
+# file's name of ours. Its clubs are the country's slots 256.. (in a team word: the file, and
+# their ordinal in it).
+SECOND_FILES = {"ITA": (197, "ITALY_2")}
+WORLD_SLOTS = 512           # (include/world.h)
+
+
+def slot_team(country, slot, code="ITA"):
+    """A slot's (file, ordinal)."""
+    return (country, slot) if slot < 256 else (SECOND_FILES[code][0], slot - 256)
+
+
 def italy():
-    """Italy whole, 256 clubs (the country's range of global numbers grows to them:
+    """Italy whole, 262 clubs (the country's range of global numbers grows to them:
     world_data.c, resize_country), in the Mod's divisions, the league's fourteen: Serie A 0,
-    Serie B 1, Serie C's groups 2..4, Serie D's 5..13."""
+    Serie B 1, Serie C's groups 2..4, Serie D's 5..13. Its first file's 256 in their divisions'
+    order, then the Mod's second file's clubs (ITA_2.json, its Serie D clubs the first could not
+    hold), slots 256.. ."""
     base = json.load(open(os.path.join(BASE, "teams", "ITALY.json"), encoding="utf-8"))
     mod = json.load(open(os.path.join(MOD, "teams", "ITA.json"), encoding="utf-8"))
+    path2 = os.path.join(MOD, "teams", "ITA_2.json")
+    mod2 = json.load(open(path2, encoding="utf-8"))["teams"] if os.path.exists(path2) else []
     slots = base["teams"]
     country = slots[0]["team"]["country_number"]
     home = collections.Counter(p["nationality"] for t in slots for p in t["players"]).most_common(1)[0][0]
@@ -171,11 +188,19 @@ def italy():
         sys.exit("Italy: expected Serie A, B and C's groups of 20 and every club in a division,"
                  " got %s" % sizes)
     picked = [(e, d) for d in sorted(by_div) for e in by_div[d]]
+    if len(picked) != 256 and mod2:
+        sys.exit("Italy: a second file with %d clubs in the first" % len(picked))
+    picked += [(e, e["team"]["league"] & 255) for e in mod2]      # (its "division" is "D group A")
     first = slots[0]["team"]["global_team_number"]   # recomputed at load (SetTeamGlobalNumbers)
-    teams = [team(e, country, i, first + i, league, home) for i, (e, league) in enumerate(picked)]
+    teams = [team(e, *slot_team(country, i), first + i, league, home) for i, (e, league) in enumerate(picked)]
     out = copy.copy(base)
-    out["teams"], out["count"] = teams, len(teams)
-    return out, picked
+    out["teams"], out["count"] = teams[:256], min(256, len(teams))
+    second = None
+    if len(teams) > 256:
+        number = SECOND_FILES["ITA"][0]
+        second = {"type": "team", "country": number, "count": len(teams) - 256, "teams": teams[256:]}
+        counts["Italy's second file: clubs"] += len(teams) - 256
+    return out, second, picked
 
 
 # The world's countries onto ours (include/world.h): a Mod country by its name (as 96/97 names
@@ -648,7 +673,8 @@ def italian_cups(picked, country):
         rec.update(teams=size, away_goals_mode=0,
                    round_rule_flags=[{"legs": b >> 6, "extra_time": b >> 4 & 3, "penalties": b >> 2 & 3}
                                      for b in [CUP_ROUND[x] for x in spec["rounds"]] + [0] * (6 - rounds)],
-                   team_seed_list=[{"country": country, "ordinal": ordinal[names[c]]} for c in entrants])
+                   team_seed_list=[dict(zip(("country", "ordinal"), slot_team(country, ordinal[names[c]])))
+                                   for c in entrants])
         real = sum(1 for t in ties if t[1])
         # From the second season (the Mod's 4.0.1, tools/cupsf.py): per division of the
         # real list, its clubs and how many of them wait for round 2
@@ -1257,7 +1283,8 @@ def italian_cupd(picked, country, pool_ids):
     def word(key):              # (a club of the league's file; the pool's are off-file: 0)
         if not key or key not in name_of or name_of[key] not in ordinal:
             return None
-        return country | ordinal[name_of[key]] << 8
+        f, o = slot_team(country, ordinal[name_of[key]])
+        return f | o << 8
     rounds, ties = cupd_table(d, word)
     prices = collections.defaultdict(list)
     for r in csv.DictReader(open(os.path.join(pk, "players.csv"), encoding="utf-8")):
@@ -1266,7 +1293,7 @@ def italian_cupd(picked, country, pool_ids):
     def strength(key):
         return max(5, min(0xFFFF, sum(sorted(prices.get(key, []), reverse=True)[:11])))
     key_of = {name_of[k]: k for k in name_of}
-    st = [5] * 256
+    st = [5] * WORLD_SLOTS
     for o, (e, _) in enumerate(picked):
         k = key_of.get(e["team"]["team_name"])
         if k:
@@ -1277,7 +1304,7 @@ def italian_cupd(picked, country, pool_ids):
     mod = mod_league()
     par = mod["parallel"]
     df, dc = par[-1]["first"], par[-1]["count"]
-    base = [div for _, div in picked] + [0xFF] * (256 - len(picked))
+    base = [div for _, div in picked] + [0xFF] * (WORLD_SLOTS - len(picked))
     nd = sum(1 for b in base if df <= b < df + dc)
     assert 2 << (len(rounds) - 2) < nd <= (2 << (len(rounds) - 2)) + 41, (nd, len(rounds))
     names = (d.get("names") or {}).get("*") or ["COPPA ITALIA SERIE D", "COPPA SERIE D"]
@@ -1364,6 +1391,28 @@ const char *World_CountryTeamFile(uint8_t country)
         return 0;
     }
 }
+
+#if SWOS_WORLDS
+/* A country over two team files (include/world.h): its second file, and the country a file's
+ * clubs play for. */
+uint8_t World_SecondFile(uint8_t country)
+{
+    switch (World_Current()) {
+%(second_cases)s
+    default:
+        return 0;
+    }
+}
+
+uint8_t World_FileCountry(uint8_t file)
+{
+    switch (World_Current()) {
+%(file_country_cases)s
+    default:
+        return file;
+    }
+}
+#endif
 
 /* A country's range of global team numbers (base + ordinal, _teamsCountryNumbers) sized
  * to the world's clubs: every later country's base moves by the difference. The league
@@ -1638,7 +1687,7 @@ def squad_numbers():
 
 
 def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None,
-                 guests=(), proms=(), states=(), squad=False, fingerprint=""):
+                 guests=(), proms=(), states=(), squad=False, fingerprint="", seconds=()):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -1675,6 +1724,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         externs.add("extern CompetitionLeague %s;" % rec["id"])
         installs.append("        install_league(&%s, &%s);" % (rec["id"], baked["id"]))
     installs.append("        FixtureRounds_Install();")
+    installs.append("        World_SyncSecondFiles();")
     regions, season = world_lists(news)
     lists = []
     for region in sorted(regions):
@@ -1689,7 +1739,12 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
     season_cases = "    case WORLD_%s:\n        return kWorld%sSeasonCountries;" % (tag, tag)
     file_cases = "    case WORLD_%s:\n        switch (country) {\n%s\n        default:\n            return 0;\n        }" % (
         tag, "\n".join('        case %d:\n            return "teams/%s.json";' % (number, base)
-                       for number, base in [(wc["number"], wc["base"]) for wc in news] + list(guests)))
+                       for number, base in [(wc["number"], wc["base"]) for wc in news] + list(guests)
+                       + [(f, name) for _, f, name in seconds]))
+    second_cases = "    case WORLD_%s:\n        switch (country) {\n%s\n        default:\n            return 0;\n        }" % (
+        tag, "\n".join("        case %d:\n            return %d;" % (c, f) for c, f, _ in seconds))
+    file_country_cases = "    case WORLD_%s:\n        switch (file) {\n%s\n        default:\n            return file;\n        }" % (
+        tag, "\n".join("        case %d:\n            return %d;" % (f, c) for c, f, _ in seconds))
     cases = "    case WORLD_%s:\n%s\n        break;" % (tag, "\n".join(installs))
     group_tables, group_entries = [], []
     for g in groups:
@@ -1812,8 +1867,8 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         for a, b, win in cupd["ties"]:
             tb.append("    { %d, %d, %d, %d, %d, 0 }," % (a & 0xFF, a >> 8, b & 0xFF, b >> 8, win))
         cd_tables.append("static const uint8_t %sTies[][6] = {\n%s\n};" % (sym, "\n".join(tb)))
-        cd_tables.append("static const uint8_t %sBase[256] = {\n%s\n};" % (sym, rows(cupd["base"], 32)))
-        cd_tables.append("static const uint16_t %sStrength[256] = {\n%s\n};" % (sym, rows(cupd["strength"], 16)))
+        cd_tables.append("static const uint8_t %sBase[WORLD_SLOTS] = {\n%s\n};" % (sym, rows(cupd["base"], 32)))
+        cd_tables.append("static const uint16_t %sStrength[WORLD_SLOTS] = {\n%s\n};" % (sym, rows(cupd["strength"], 16)))
         cd_tables.append("static const uint16_t %sPoolStrength[] = {\n%s\n};" % (sym, rows(cupd["pool_strength"], 16)))
         cd_tables.append("static const WorldCupD %s = {\n    %d, %d, %sRounds, %d, %sTies, %d, %d, %sBase, %sStrength,\n"
                          "    %d, %sPoolStrength, { %s, %s }\n};" % (
@@ -1924,6 +1979,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                            "splits": "\n\n".join(split_tables), "split_cases": split_cases,
                            "countries": "\n".join(new_countries + lists), "region_cases": region_cases,
                            "season_cases": season_cases, "file_cases": file_cases,
+                           "second_cases": second_cases, "file_country_cases": file_country_cases,
                            "externs": "\n".join(sorted(externs)),
                            "records": "\n\n".join(strings + records), "cases": cases,
                            "groups": "\n\n".join(group_tables), "group_cases": group_cases,
@@ -2207,8 +2263,12 @@ def world_fingerprint():
 def main():
     if not os.path.isdir(MOD):
         sys.exit("no %s: the Mod's data (Davide's private copies) is not here" % os.path.relpath(MOD, REPO))
-    (teams, picked), leagues = italy(), italian_league()
+    (teams, second, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
+    seconds = []
+    if second:
+        write_team_file(second, SECOND_FILES["ITA"][1])
+        seconds.append((teams["teams"][0]["team"]["country_number"],) + SECOND_FILES["ITA"])
     country = teams["teams"][0]["team"]["country_number"]
     pools, news, splits, picks, proms, states = [], [], [], {}, [], []
     groups = [italian_groups(picked, country, leagues)]
@@ -2225,7 +2285,7 @@ def main():
             pools.append(info)
         return info
     pool_info = add_pool("ITA", "Italy", country, "ITALY")
-    resized = [(country, teams["count"])]
+    resized = [(country, len(picked))]
     playoffs = [italian_playoffs(country, leagues, picked)]
     cups = italian_cups(picked, country)
     for wc in world_countries():
@@ -2283,7 +2343,8 @@ def main():
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks), conti_spec(), guests, proms, states, squad_numbers(), fingerprint))
+                             europe(picks), conti_spec(), guests, proms, states, squad_numbers(), fingerprint,
+                             seconds))
     print("wrote src/world_data.c (data %s)" % fingerprint)
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))

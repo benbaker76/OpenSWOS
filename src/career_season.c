@@ -95,7 +95,7 @@ void Career_FillRandomTeamListExcludingSelected(uint16_t excludeCount,
                                                   uint8_t *table, uint8_t *compIndexs)
 {
     /* move.b (selTeamNumber).l,d0 — reads MSB on big-endian 68k */
-    uint8_t selTeam = (uint8_t)(_selTeamNumber >> 8);
+    uint8_t selTeam = World_FileCountry((uint8_t)(_selTeamNumber >> 8));     /* (a second team file: its country, include/world.h) */
     int16_t d7 = (int16_t)excludeCount;
     uint8_t *out = compIndexs;
 
@@ -269,7 +269,7 @@ void Career_PrepareEuropeanCupQualificationState(void)
         uint8_t *bucketData = *(uint8_t **)_euroCupQualGroupSeedBuckets_15_18_22;
         uint16_t excludeCount = 0;
         if (_isNationalSelector == 0) {
-            uint8_t teamByte = (uint8_t)(_selTeamNumber >> 8);
+            uint8_t teamByte = World_FileCountry((uint8_t)(_selTeamNumber >> 8));
             while (*bucketData != 0xFF) {
                 if (*bucketData == teamByte) {
                     excludeCount++;
@@ -432,7 +432,7 @@ uint16_t Career_UpdateLastNationalityCall(void)
 
     /* move.b (selTeamNumber).l,d0 — reads high byte on big-endian 68k.
      * This extracts the team file ID (country file index) from selTeamNumber. */
-    d0 = GetNationalTeamNumberFromTeamFileId(_selTeamNumber >> 8);
+    d0 = GetNationalTeamNumberFromTeamFileId(World_FileCountry((uint8_t)(_selTeamNumber >> 8)));
 
 check_self:
     /* If the national team IS the selected team, set to 0xFFFF (no call-up) */
@@ -1731,7 +1731,7 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
     _careerFileBuffer = 0;
 
     if (!_isNationalSelector) {
-        uint16_t compIndex = (uint8_t)(_selTeamNumber >> 8);
+        uint16_t compIndex = World_FileCountry((uint8_t)(_selTeamNumber >> 8));   /* (include/world.h) */
         Career_ProcessCompetitionForNextSeason(compIndex);
         Career_ProcessCompetitionForEuropeanCupQualification();
         Career_ProcessCompetitionForCopaLibertadoresQualification();   /* Inc3 */
@@ -1744,7 +1744,7 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
         uint8_t compByte = *remapPtr++;
         if (compByte == 0xFF)
             break;
-        if (!_isNationalSelector && compByte == (uint8_t)(_selTeamNumber >> 8))
+        if (!_isNationalSelector && compByte == World_FileCountry((uint8_t)(_selTeamNumber >> 8)))
             continue;
         Career_ProcessCompetitionForNextSeason((uint16_t)compByte);
         Career_ProcessCompetitionForEuropeanCupQualification();

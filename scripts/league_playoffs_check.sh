@@ -203,7 +203,7 @@ import csv, json, os, struct, sys
 sys.path.insert(0, 'scripts'); sys.path.insert(1, sys.argv[1] + '/tools')
 import world_import as w
 import cupd
-picked = w.italy()[1]
+picked = w.italy()[2]
 ours = w.italian_cupd(picked, 20, None)
 pk = os.path.join(w.MOD, 'packs', 'ita')
 name_of = {r['key']: r['name'] for r in csv.DictReader(open(os.path.join(pk, 'clubs.csv'), encoding='utf-8'))}
@@ -211,7 +211,8 @@ ordinal = {e['team']['team_name']: o for o, (e, _) in enumerate(picked)}
 def word(key):
     if not key or key not in name_of or name_of[key] not in ordinal:
         return None
-    return 20 | ordinal[name_of[key]] << 8
+    f, o = w.slot_team(20, ordinal[name_of[key]])       # (a second file's slot: its file, include/world.h)
+    return f | o << 8
 tab, nr, nt = cupd.compile_table(json.load(open(os.path.join(pk, 'cupd.json'), encoding='utf-8')), word)
 mine = b''.join(bytes(r[:6]) + struct.pack('<H', r[6]) for r in ours['rounds'])
 mine += b''.join(struct.pack('<HHBB', a, b, win, 0) for a, b, win in ours['ties'])
@@ -237,7 +238,15 @@ fi
 # pools) -- their tables as scripts/world_states.py compiles them, byte for byte the Mod's
 # (statespec.sim_table, ripool.table_bytes); both C files over the same seasons (the pools' over
 # the Mod's own rankings): every block, champion, queue, override and identity the Mod's.
-SPACKS=$(for d in "$PWD"/bin/data_json/worlds/2627/mod/packs/*/; do [ -f "$d/pack.json" ] && printf '%s,' "${d%/}"; done)
+# (the packs the Mod's own mkseason can load: not one whose league is over two team files --
+# Italy's, v4, "files" "league2": its file holds 256; it has no states, splits or other
+# confederation's cups)
+mod_packs() {
+    for d in "$PWD"/bin/data_json/worlds/2627/mod/packs/*/; do
+        [ -f "$d/pack.json" ] && ! grep -q '"league2"' "$d/pack.json" && printf '%s,' "${d%/}"
+    done
+}
+SPACKS=$(mod_packs)
 SEASON_PACKS="${SPACKS%,}" python3 -I - "$MOD" "$OUT" "$PWD/bin/data_json/worlds/2627/mod/packs" <<'PY' > /dev/null
 import json, os, sys
 mod, out, packs = sys.argv[1:4]
@@ -344,7 +353,8 @@ $CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/lp_chec
 # cups packed by the Mod's own conti.load over the world's data, both C files over random
 # seasons of a synthetic world -- every round's entrants and draw, every winner the Mod's.
 PACKS="$PWD/bin/data_json/worlds/2627/mod/packs"
-SEASON_PACKS=$(ls -d "$PACKS"/*/ | tr '\n' ',' | sed 's/,$//') \
+SPACKS=$(mod_packs)
+SEASON_PACKS="${SPACKS%,}" \
     python3 -I - "$MOD" "$OUT" "$PWD/bin/data_json/worlds/2627/mod/conti" <<'PY' > /dev/null
 import sys
 mod, out, data = sys.argv[1:4]

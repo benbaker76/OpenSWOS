@@ -722,7 +722,7 @@ static char kWorld2627_name311[] = "CONF. LEAGUE";
 
 static CompetitionLeague kWorld2627_italianLeague = {
     { { 61, 0, 20, 64, 32, 33, 0, 0, 0 }, 14, 2, 3, 53 },
-    { { 20, 0, 0, 3, 0, 0 }, { 20, 3, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 17, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 } },
+    { { 20, 0, 0, 3, 0, 0 }, { 20, 3, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 20, 1, 0, 3, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 }, { 18, 1, 0, 0, 0, 0 } },
     0,
     { _aSerieA, _aSerieA, _aSerieB, _aSerieB, kWorld2627_name0, kWorld2627_name0, kWorld2627_name1, kWorld2627_name1, kWorld2627_name2, kWorld2627_name2, kWorld2627_name3, kWorld2627_name3, kWorld2627_name4, kWorld2627_name4, kWorld2627_name5, kWorld2627_name5, kWorld2627_name6, kWorld2627_name6, kWorld2627_name7, kWorld2627_name7, kWorld2627_name8, kWorld2627_name8, kWorld2627_name9, kWorld2627_name9, kWorld2627_name10, kWorld2627_name10, kWorld2627_name11, kWorld2627_name11 }
 };
@@ -1518,6 +1518,8 @@ const char *World_CountryTeamFile(uint8_t country)
             return "teams/GUESTS_OFC.json";
         case 189:
             return "teams/GUESTS_CONCACAF.json";
+        case 197:
+            return "teams/ITALY_2.json";
         default:
             return 0;
         }
@@ -1526,6 +1528,40 @@ const char *World_CountryTeamFile(uint8_t country)
         return 0;
     }
 }
+
+#if SWOS_WORLDS
+/* A country over two team files (include/world.h): its second file, and the country a file's
+ * clubs play for. */
+uint8_t World_SecondFile(uint8_t country)
+{
+    switch (World_Current()) {
+    case WORLD_2627:
+        switch (country) {
+        case 20:
+            return 197;
+        default:
+            return 0;
+        }
+    default:
+        return 0;
+    }
+}
+
+uint8_t World_FileCountry(uint8_t file)
+{
+    switch (World_Current()) {
+    case WORLD_2627:
+        switch (file) {
+        case 197:
+            return 20;
+        default:
+            return file;
+        }
+    default:
+        return file;
+    }
+}
+#endif
 
 /* A country's range of global team numbers (base + ordinal, _teamsCountryNumbers) sized
  * to the world's clubs: every later country's base moves by the difference. The league
@@ -1559,7 +1595,7 @@ void World_InstallBaked(void)
     switch (World_Current()) {
 #if SWOS_WORLDS
     case WORLD_2627:
-        resize_country(20, 256);
+        resize_country(20, 262);
         resize_country(0, 10);
         resize_country(42, 16);
         resize_country(47, 10);
@@ -1795,6 +1831,7 @@ void World_InstallBaked(void)
         install_league(&_welshLeague, &kWorld2627_welshLeague);
         LeaguePhase_InstallCups(kWorld2627LeaguePhases);
         FixtureRounds_Install();
+        World_SyncSecondFiles();
         break;
 #endif
     default:
@@ -1809,7 +1846,7 @@ static const LeagueLevel kWorld2627_italyLevels[] = {
     { 0, 1, { 20 }, 0 },
     { 1, 1, { 20 }, 0 },
     { 2, 3, { 20, 20, 20 }, kWorld2627_name177 },
-    { 5, 9, { 17, 17, 17, 18, 17, 18, 17, 17, 18 }, kWorld2627_name178 },
+    { 5, 9, { 18, 18, 18, 18, 18, 18, 18, 18, 18 }, kWorld2627_name178 },
 };
 
 static const LeagueGroupClub kWorld2627_italyClubs[] = {
@@ -2069,6 +2106,12 @@ static const LeagueGroupClub kWorld2627_italyClubs[] = {
     { 253, 13, { 2, 8 } },
     { 254, 13, { 2, 8 } },
     { 255, 13, { 2, 8 } },
+    { 256, 5, { 0, 0 } },
+    { 257, 6, { 0, 1 } },
+    { 258, 7, { 0, 2 } },
+    { 259, 9, { 1, 4 } },
+    { 260, 11, { 2, 6 } },
+    { 261, 12, { 2, 7 } },
 };
 
 static const LeagueLevel kWorld2627_argentinaLevels[] = {
@@ -2272,7 +2315,7 @@ static const LeagueGroupClub kWorld2627_elsalvadorClubs[] = {
 };
 
 static const LeagueGroups kWorld2627Groups[] = {
-    { 20, 4, kWorld2627_italyLevels, 256, kWorld2627_italyClubs },   /* Italy */
+    { 20, 4, kWorld2627_italyLevels, 262, kWorld2627_italyClubs },   /* Italy */
     { 43, 2, kWorld2627_argentinaLevels, 66, kWorld2627_argentinaClubs },   /* Argentina */
     { 44, 2, kWorld2627_australiaLevels, 54, kWorld2627_australiaClubs },   /* Australia */
     { 51, 3, kWorld2627_elsalvadorLevels, 55, kWorld2627_elsalvadorClubs },   /* ElSalvador */
@@ -2330,21 +2373,21 @@ static const uint8_t kWorld2627_italySpec[853] = {
     0x03, 0x04, 0x02, 0x00, 0x00, 0x00, 0x00, 0x0D, 0x02, 0x00, 0x00, 0x0D, 0x05, 0x00, 0x00, 0x0D,
     0x03, 0x00, 0x00, 0x0D, 0x04, 0x00, 0x02, 0x01, 0x01, 0x02, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03,
     0x01, 0x01, 0x01, 0x02, 0x00, 0x00, 0x80, 0x81, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x05,
-    0x0C, 0x00, 0x00, 0x05, 0x0F, 0x00, 0x00, 0x05, 0x0D, 0x00, 0x00, 0x05, 0x0E, 0x00, 0x02, 0x01,
+    0x0D, 0x00, 0x00, 0x05, 0x10, 0x00, 0x00, 0x05, 0x0E, 0x00, 0x00, 0x05, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x06,
-    0x0C, 0x00, 0x00, 0x06, 0x0F, 0x00, 0x00, 0x06, 0x0D, 0x00, 0x00, 0x06, 0x0E, 0x00, 0x02, 0x01,
+    0x0D, 0x00, 0x00, 0x06, 0x10, 0x00, 0x00, 0x06, 0x0E, 0x00, 0x00, 0x06, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x07,
-    0x0C, 0x00, 0x00, 0x07, 0x0F, 0x00, 0x00, 0x07, 0x0D, 0x00, 0x00, 0x07, 0x0E, 0x00, 0x02, 0x01,
+    0x0D, 0x00, 0x00, 0x07, 0x10, 0x00, 0x00, 0x07, 0x0E, 0x00, 0x00, 0x07, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x08,
     0x0D, 0x00, 0x00, 0x08, 0x10, 0x00, 0x00, 0x08, 0x0E, 0x00, 0x00, 0x08, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x09,
-    0x0C, 0x00, 0x00, 0x09, 0x0F, 0x00, 0x00, 0x09, 0x0D, 0x00, 0x00, 0x09, 0x0E, 0x00, 0x02, 0x01,
+    0x0D, 0x00, 0x00, 0x09, 0x10, 0x00, 0x00, 0x09, 0x0E, 0x00, 0x00, 0x09, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x0A,
     0x0D, 0x00, 0x00, 0x0A, 0x10, 0x00, 0x00, 0x0A, 0x0E, 0x00, 0x00, 0x0A, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x0B,
-    0x0C, 0x00, 0x00, 0x0B, 0x0F, 0x00, 0x00, 0x0B, 0x0D, 0x00, 0x00, 0x0B, 0x0E, 0x00, 0x02, 0x01,
+    0x0D, 0x00, 0x00, 0x0B, 0x10, 0x00, 0x00, 0x0B, 0x0E, 0x00, 0x00, 0x0B, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x0C,
-    0x0C, 0x00, 0x00, 0x0C, 0x0F, 0x00, 0x00, 0x0C, 0x0D, 0x00, 0x00, 0x0C, 0x0E, 0x00, 0x02, 0x01,
+    0x0D, 0x00, 0x00, 0x0C, 0x10, 0x00, 0x00, 0x0C, 0x0E, 0x00, 0x00, 0x0C, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x04, 0x04, 0x01, 0x00, 0xFE, 0x00, 0x00, 0x0D,
     0x0D, 0x00, 0x00, 0x0D, 0x10, 0x00, 0x00, 0x0D, 0x0E, 0x00, 0x00, 0x0D, 0x0F, 0x00, 0x02, 0x01,
     0x01, 0x02, 0x00, 0x08, 0x00, 0x01, 0x02, 0x03, 0x05, 0x09, 0x06, 0x00, 0x00, 0x00, 0x00, 0x05,
@@ -2427,21 +2470,21 @@ static const LeagueWinLine kWorld2627_italyWinners[] = {
     { 3, "PLAY-OFF SERIE C", "P3" },
     { 4, "SERIE C GIRONE C", "L2604" },
     { 4, "PLAY-OFF SERIE C", "P3" },
-    { 5, "SERIE D GIRONE A", "L2005" },
+    { 5, "SERIE D GIRONE A", "L2205" },
     { 5, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
-    { 6, "SERIE D GIRONE B", "L2006" },
+    { 6, "SERIE D GIRONE B", "L2206" },
     { 6, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
-    { 7, "SERIE D GIRONE C", "L2007" },
+    { 7, "SERIE D GIRONE C", "L2207" },
     { 7, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
     { 8, "SERIE D GIRONE D", "L2208" },
     { 8, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
-    { 9, "SERIE D GIRONE E", "L2009" },
+    { 9, "SERIE D GIRONE E", "L2209" },
     { 9, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
     { 10, "SERIE D GIRONE F", "L220A" },
     { 10, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
-    { 11, "SERIE D GIRONE G", "L200B" },
+    { 11, "SERIE D GIRONE G", "L220B" },
     { 11, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
-    { 12, "SERIE D GIRONE H", "L200C" },
+    { 12, "SERIE D GIRONE H", "L220C" },
     { 12, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
     { 13, "SERIE D GIRONE I", "L220D" },
     { 13, "PLAYOFFS - SERIE D CHAMPIONS", "K15" },
@@ -4136,12 +4179,6 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count)
  * clubs' areas at the levels of groups. */
 #if SWOS_WORLDS
 static const uint8_t kWorld2627_italyPoolAreas[][2] = {
-    { 0, 1 },
-    { 0, 2 },
-    { 2, 6 },
-    { 1, 4 },
-    { 0, 0 },
-    { 2, 7 },
     { 0, 0 },
     { 1, 4 },
     { 1, 5 },
@@ -4258,7 +4295,7 @@ static const uint8_t kWorld2627_portugalPoolAreas[][2] = {
 };
 
 static const TeamPool kWorld2627Pools[] = {
-    { 20, 194, "ITALY_POOL.json", 42, kWorld2627_italyPoolAreas },   /* Italy */
+    { 20, 194, "ITALY_POOL.json", 36, kWorld2627_italyPoolAreas },   /* Italy */
     { 46, 191, "BRAZIL_POOL.json", 43, kWorld2627_brazilPoolAreas },   /* Brazil */
     { 35, 192, "SPAIN_POOL.json", 4, kWorld2627_spainPoolAreas },   /* Spain */
     { 14, 193, "GERMANY_POOL.json", 4, kWorld2627_germanyPoolAreas },   /* Germany */
@@ -8572,7 +8609,7 @@ const char *World_DataFingerprint(void)
     switch (World_Current()) {
 #if SWOS_WORLDS
     case WORLD_2627:
-        return "a80213616368e240";
+        return "bf50ef15a18f05ae";
 #endif
     default:
         return "";
@@ -9702,19 +9739,19 @@ static const uint8_t kWorld2627CupDRounds[][8] = {
 };
 
 static const uint8_t kWorld2627CupDTies[][6] = {
-    { 20, 133, 0, 0, 1, 0 },
+    { 20, 133, 197, 1, 1, 0 },
     { 20, 197, 20, 198, 2, 0 },
     { 20, 149, 20, 147, 2, 0 },
-    { 20, 234, 0, 0, 1, 0 },
+    { 20, 234, 197, 5, 1, 0 },
     { 20, 231, 20, 235, 2, 0 },
     { 20, 200, 20, 202, 2, 0 },
     { 20, 203, 20, 185, 2, 0 },
     { 20, 199, 20, 182, 2, 0 },
     { 20, 217, 20, 216, 1, 0 },
     { 20, 218, 20, 219, 2, 0 },
-    { 0, 0, 20, 220, 1, 0 },
+    { 197, 4, 20, 220, 1, 0 },
     { 20, 180, 20, 166, 1, 0 },
-    { 0, 0, 20, 183, 2, 0 },
+    { 197, 3, 20, 183, 2, 0 },
     { 20, 148, 20, 145, 2, 0 },
     { 20, 130, 20, 150, 2, 0 },
     { 20, 161, 20, 162, 2, 0 },
@@ -9722,14 +9759,14 @@ static const uint8_t kWorld2627CupDTies[][6] = {
     { 20, 114, 20, 109, 1, 0 },
     { 20, 160, 20, 110, 1, 0 },
     { 20, 116, 20, 115, 1, 0 },
-    { 20, 112, 0, 0, 2, 0 },
+    { 20, 112, 197, 0, 2, 0 },
     { 20, 113, 20, 111, 1, 0 },
     { 20, 181, 20, 184, 1, 0 },
     { 20, 248, 20, 254, 2, 0 },
     { 20, 249, 20, 251, 2, 0 },
     { 20, 232, 20, 237, 1, 0 },
     { 20, 215, 20, 236, 1, 0 },
-    { 20, 146, 0, 0, 1, 0 },
+    { 20, 146, 197, 2, 1, 0 },
     { 20, 253, 20, 233, 1, 0 },
     { 20, 255, 20, 245, 1, 0 },
     { 20, 165, 20, 163, 1, 0 },
@@ -9865,7 +9902,7 @@ static const uint8_t kWorld2627CupDTies[][6] = {
     { 255, 158, 255, 159, 0, 0 },
 };
 
-static const uint8_t kWorld2627CupDBase[256] = {
+static const uint8_t kWorld2627CupDBase[WORLD_SLOTS] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3,
     3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -9874,9 +9911,17 @@ static const uint8_t kWorld2627CupDBase[256] = {
     8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10,
     10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12,
     12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
+    5, 6, 7, 9, 11, 12, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
-static const uint16_t kWorld2627CupDStrength[256] = {
+static const uint16_t kWorld2627CupDStrength[WORLD_SLOTS] = {
     419, 400, 382, 379, 378, 367, 350, 339, 350, 328, 295, 313, 313, 286, 287, 285,
     251, 267, 237, 269, 258, 245, 231, 207, 213, 207, 202, 226, 203, 210, 180, 195,
     184, 247, 241, 237, 192, 176, 197, 183, 166, 156, 157, 142, 155, 148, 139, 140,
@@ -9893,17 +9938,33 @@ static const uint16_t kWorld2627CupDStrength[256] = {
     87, 68, 93, 74, 66, 63, 56, 72, 49, 97, 53, 58, 31, 110, 69, 88,
     100, 84, 81, 50, 65, 66, 51, 46, 106, 93, 77, 80, 62, 43, 116, 87,
     85, 84, 67, 64, 50, 59, 34, 16, 57, 37, 60, 66, 52, 44, 36, 28,
+    23, 37, 8, 12, 10, 32, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
 };
 
 static const uint16_t kWorld2627CupDPoolStrength[] = {
-    37, 8, 10, 12, 23, 32, 35, 81, 27, 18, 72, 76, 33, 20, 75, 67,
-    24, 49, 26, 29, 20, 29, 30, 54, 31, 26, 56, 30, 34, 26, 35, 32,
-    32, 28, 61, 28, 27, 32, 36, 36, 62, 35,
+    35, 81, 27, 18, 72, 76, 33, 20, 75, 67, 24, 49, 26, 29, 20, 29,
+    30, 54, 31, 26, 56, 30, 34, 26, 35, 32, 32, 28, 61, 28, 27, 32,
+    36, 36, 62, 35,
 };
 
 static const WorldCupD kWorld2627CupD = {
     20, 8, kWorld2627CupDRounds, 161, kWorld2627CupDTies, 5, 9, kWorld2627CupDBase, kWorld2627CupDStrength,
-    42, kWorld2627CupDPoolStrength, { kWorld2627_name304, kWorld2627_name305 }
+    36, kWorld2627CupDPoolStrength, { kWorld2627_name304, kWorld2627_name305 }
 };
 #endif
 

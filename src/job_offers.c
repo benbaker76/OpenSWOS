@@ -18,6 +18,7 @@
 #include "menu_system.h"
 #include "random.h"
 #include "string_utils.h"
+#include "world.h"
 
 /* Prevent GCC from converting byte loops to memcpy/memset (no libc) */
 #pragma GCC optimize("no-tree-loop-distribute-patterns")
@@ -1181,7 +1182,8 @@ searchDomestic:
              * home-country job-offer search effectively never found a
              * candidate, and offers only ever showed up via the
              * `searchForeign` fallback that triggers when youreSacked. */
-            if ((uint8_t)(_selTeamNumber >> 8) != a0tf->countryNumber)
+            if (World_FileCountry((uint8_t)(_selTeamNumber >> 8)) !=
+                World_FileCountry(a0tf->countryNumber))     /* (a second team file: include/world.h) */
                 continue;
 
             /* Asm: move.w (a0),d3 — reads packed team number at offset 0 */
@@ -1239,7 +1241,8 @@ searchForeign:
              * byte-read pre-fix used the ordinal, so the skip rarely
              * fired and same-country teams accidentally counted as
              * foreign candidates. */
-            if ((uint8_t)(_selTeamNumber >> 8) == a0tf->countryNumber)
+            if (World_FileCountry((uint8_t)(_selTeamNumber >> 8)) ==
+                World_FileCountry(a0tf->countryNumber))
                 continue;
 
             /* Asm: move.w (a0),d3 — reads packed team number at offset 0 */

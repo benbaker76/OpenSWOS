@@ -13,6 +13,7 @@
 #include "input_text.h"
 #include "teams.h"
 #include "auto_skip_debug.h"
+#include "world.h"
 
 /* Offset from GetPlayer() return value to actual PlayerFile data */
 #define PF_OFF              76  /* sizeof(TeamFile) */
@@ -701,7 +702,8 @@ retry:
      * format mismatch — both with the selTeamNumber check here AND
      * with downstream consumers via AddPlayerToCareerContest →
      * homeMarketPlayers → PlayerMarketBuildVisiblePlayerList. */
-    if (*teamEntry != homeCountry)                          /* cmp.b (a0),d3 */
+    if (World_FileCountry(*teamEntry) != World_FileCountry(homeCountry))  /* cmp.b (a0),d3 (a second
+                                                             * team file's clubs: their country's, include/world.h) */
         goto retry;
     teamNum = PACK_BE_U16(teamEntry[0], teamEntry[1]);
     if (teamNum == _selTeamNumber)                            /* cmp.w (selTeamNumber).l,d1 */
@@ -4350,7 +4352,7 @@ static uint8_t *pickRandomTeamRecordAvoidingTeam(uint16_t avoidTeamWord, uint8_t
             uint16_t candTeamId = PACK_BE_U16(result->team.countryNumber,
                                               result->team.teamOrdinal);
             if (candTeamId != avoidTeamWord) {
-                if (result->team.countryNumber == countryByte)
+                if (World_FileCountry(result->team.countryNumber) == World_FileCountry(countryByte))
                     return (uint8_t *)result;
             }
             if (retries == 0)
@@ -4366,7 +4368,7 @@ static uint8_t *pickRandomTeamRecordAvoidingTeam(uint16_t avoidTeamWord, uint8_t
         uint16_t candTeamId2 = PACK_BE_U16(result->team.countryNumber,
                                            result->team.teamOrdinal);
         if (candTeamId2 != avoidTeamWord) {
-            if (result->team.countryNumber == countryByte)
+            if (World_FileCountry(result->team.countryNumber) == World_FileCountry(countryByte))
                 return (uint8_t *)result;
         }
         if (retries == 0)

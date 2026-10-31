@@ -38,6 +38,8 @@ void Career_AppendTeamToEuroCupListN(int32_t cup, TeamFileEx *record);    /* (ca
 
 static uint16_t modId(uint16_t team) { return (uint16_t)((team >> 8) | (team << 8)); }
 static uint16_t ourId(uint16_t id) { return (uint16_t)((id >> 8) | (id << 8)); }
+/* A club's association: its file's country (a second team file's is its country's, include/world.h). */
+static uint8_t assoc(uint16_t team) { return World_FileCountry((uint8_t)(team >> 8)); }
 
 const WorldUefaSeeds *World_UefaSeeds(void);
 
@@ -104,7 +106,7 @@ static int32_t ok(uint8_t compId)
 /* uc_add: a club's units this season, and its association's. */
 static void add(uint16_t team, uint32_t units)
 {
-    g_uefaCoef.pts[team >> 8] += units;
+    g_uefaCoef.pts[assoc(team)] += units;
     UefaClubCoef *k = club(team, 1);
     if (k)
         k->pts = (uint16_t)(k->pts + units);
@@ -119,7 +121,7 @@ void UefaCoef_StageStart(uint8_t compId, const uint16_t *teams, int32_t n)
     c->phaseEnded[compId] = 0;
     c->done = 0;                        /* (a season is running: its end will be counted) */
     for (int32_t i = 0; i < n; i++) {
-        c->teams[teams[i] >> 8]++;
+        c->teams[assoc(teams[i])]++;
         if (compId == 0)
             add(teams[i], 48);          /* (Champions League league phase: 6 points) */
     }
@@ -189,7 +191,7 @@ uint32_t UefaCoef_Club(uint16_t team)
     for (int32_t s = 0; s < 5; s++) {
         if (k)
             own += k->hist[s];
-        a += c->hist[s][team >> 8];
+        a += c->hist[s][assoc(team)];
     }
     a /= 625;                           /* (thousandths of points / 5 / 1000 * 8) */
     return a > own ? a : own;
@@ -257,7 +259,7 @@ static void close_season(void)
         uint16_t t = ourId(UQ_CP[i].team);
         add(t, UQ_CP[i].units);
         if (UQ_CP[i].count)
-            c->teams[t >> 8]++;         /* (a club of its association's divisor: no league phase) */
+            c->teams[assoc(t)]++;       /* (a club of its association's divisor: no league phase) */
     }
     rank();
     const int32_t r = c->ring;
@@ -335,7 +337,7 @@ void UefaQual_Country(void)
     for (int32_t i = 0; i < 9 && first < 0; i++) {
         uint16_t t = BE_READ_U16(g0 + (uint32_t)i * sizeof(TeamFileEx));
         if (t && t != 0xFFFF)
-            first = t >> 8;
+            first = assoc(t);
     }
     int32_t rk = 0;
     for (int32_t i = 0; i < s_rankN && !rk; i++)
@@ -401,7 +403,7 @@ void UefaQual_Fill(void)
             i = 550 + k;
             UQ_IN.club[i].id = modId(hold[k]);
             for (int32_t r = 0; r < s_rankN; r++)
-                if (s_rankC[r] == hold[k] >> 8)
+                if (s_rankC[r] == assoc(hold[k]))
                     UQ_IN.club[i].rank = (u8)(r + 1);
         }
         UQ_IN.hold[k] = (u16)(i + 1);

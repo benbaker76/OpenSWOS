@@ -93,7 +93,7 @@ static const LeaguePlayoffs *viewed_titles(uint8_t *division)
         return 0;
     if ((uint8_t)c->base.field_2E == COMPID_stateContest) {
         *division = 0xFE;
-        return country_rules(_careerTeam.team.countryNumber);
+        return country_rules(World_FileCountry((uint8_t)_careerTeam.team.countryNumber));
     }
     if (c->base.competitionType != 0 || c->base.numTeams < 2)
         return 0;
@@ -106,7 +106,7 @@ static const LeaguePlayoffs *viewed_titles(uint8_t *division)
             return 0;
     }
     *division = t->league;
-    return country_rules(t->countryNumber);
+    return country_rules(World_FileCountry(t->countryNumber));
 }
 
 static int32_t count_titles(const LeaguePlayoffs *lp, uint8_t division)
@@ -311,7 +311,7 @@ static void build(void)
             block(l->title ? l->title : (const char *)c->base.competitionName, w);
     }
     /* the last season, a page of its own: the division the career club played in ('M') */
-    if (!last_known() || lp->country != _careerTeam.team.countryNumber)
+    if (!last_known() || lp->country != World_FileCountry((uint8_t)_careerTeam.team.countryNumber))
         return;
     int32_t md = -1;
     for (int32_t i = 0; i < g_leagueWinners.n; i++)

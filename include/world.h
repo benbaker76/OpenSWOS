@@ -57,6 +57,31 @@ const uint8_t *World_ContinentCountries(uint8_t region);
 const uint8_t *World_SeasonCountries(void);
 const char    *World_CountryTeamFile(uint8_t country);
 
+/* A country over two team files (World 2026-27's Italy: 262 clubs, a file holds 256). The
+ * second file has a number of its own (Italy's 197, the Mod's), the team words of its clubs
+ * that number, and its clubs play for the country: its league, its cups, its name. A club's
+ * SLOT in its country is its ordinal in the first file, 256 + its ordinal in the second; the
+ * global numbers run on in the same order (the country's base + the slot), so a slot is a
+ * global number less the country's base. (src/world_data.c, generated; src/world.c.) */
+#define WORLD_SLOTS 512                             /* a country's slots: two files' */
+#if SWOS_WORLDS
+uint8_t  World_SecondFile(uint8_t country);         /* its second file's number, 0: none */
+uint8_t  World_FileCountry(uint8_t file);           /* the country a file's clubs play for */
+uint16_t World_Slot(uint8_t file, uint8_t ordinal); /* a club's slot in that country */
+uint16_t World_SlotTeam(uint8_t country, uint16_t slot);    /* its {file, ordinal}: file << 8 | ordinal */
+uint16_t World_GlobalBase(uint8_t file);            /* a file's ordinal 0's global number */
+/* The second files' entries of the per-country tables the original code reads by a club's
+ * file number (_competitionsTable, _countriesTable): their country's, after any is replaced. */
+void     World_SyncSecondFiles(void);
+#else
+#define World_SecondFile(country)       0
+#define World_FileCountry(file)         (file)
+#define World_Slot(file, ordinal)       ((uint16_t)(ordinal))
+#define World_SlotTeam(country, slot)   ((uint16_t)((country) << 8 | (slot)))
+#define World_GlobalBase(file)          (_teamsCountryNumbers[(file)])
+#define World_SyncSecondFiles()         ((void)0)
+#endif
+
 #ifndef SWOS_SDL_BUILD
 /* The Amiga reads no SWOS.ini: a drawer made for a world says so in data/WORLD (its tag;
  * OpenSWOS Setup writes it). None: 96/97. */
