@@ -463,6 +463,40 @@ EMSCRIPTEN_KEEPALIVE void InputSDL_TouchKey(int32_t akey)
         push_amiga_key((uint8_t)akey);
 }
 
+/* RAW TEXT (InputText's, for a password): the characters themselves, as typed -- small
+ * letters, symbols -- from SDL's text input, where the game's keys only give capitals and
+ * digits. A queue the editor empties each frame. */
+static uint8_t s_rawq[64];
+static int     s_rawHead, s_rawTail, s_rawOn;
+
+void InputSDL_RawText(int on)
+{
+    s_rawHead = s_rawTail = 0;
+    s_rawOn = on;
+#ifndef SWOS_WASM_BUILD
+    if (on)
+        SDL_StartTextInput();
+#endif
+}
+
+static void raw_push(int ch)
+{
+    if (ch < 0x20 || ch > 0x7E || ((s_rawTail + 1) & 63) == s_rawHead)
+        return;
+    s_rawq[s_rawTail] = (uint8_t)ch;
+    s_rawTail = (s_rawTail + 1) & 63;
+}
+
+int InputSDL_RawChar(void)
+{
+    int ch;
+    if (s_rawHead == s_rawTail)
+        return -1;
+    ch = s_rawq[s_rawHead];
+    s_rawHead = (s_rawHead + 1) & 63;
+    return ch;
+}
+
 /* A character the page's hidden text field got from a phone's on-screen keyboard
  * (wasm/shell.html), while the game asks for text (InputText): the key that types it
  * into the FIFO, as a key press does. `ch`: a printable ASCII character, or 8 BACKSPACE,
@@ -470,6 +504,10 @@ EMSCRIPTEN_KEEPALIVE void InputSDL_TouchKey(int32_t akey)
 EMSCRIPTEN_KEEPALIVE void InputSDL_WebChar(int32_t ch)
 {
     int a;
+    if (s_rawOn && ch >= 0x20 && ch <= 0x7E) {     /* a password: the character itself */
+        raw_push(ch);
+        return;
+    }
     if (ch == 8)
         a = sdl_to_amiga(SDLK_BACKSPACE);
     else if (ch == 13)
@@ -669,6 +707,13 @@ void InputSDL_Shutdown(void)
 void InputSDL_HandleEvent(const SDL_Event *e)
 {
     switch (e->type) {
+    case SDL_TEXTINPUT:
+        if (s_rawOn) {
+            const char *t;
+            for (t = e->text.text; *t; t++)
+                raw_push((uint8_t)*t);
+        }
+        break;
     case SDL_KEYDOWN: {
         /* The CONTROLS menu is waiting for a key: this is it. */
         if (s_capture) {

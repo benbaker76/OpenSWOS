@@ -1660,6 +1660,7 @@ static void pump_events_any_thread(void)
             }
             /* fallthrough */
         case SDL_KEYUP:
+        case SDL_TEXTINPUT:             /* (a password's characters: InputSDL_RawText) */
         case SDL_CONTROLLERBUTTONDOWN:
         case SDL_CONTROLLERBUTTONUP:
         case SDL_CONTROLLERAXISMOTION:

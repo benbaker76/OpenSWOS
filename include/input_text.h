@@ -36,6 +36,12 @@ void PrintFormatted(const uint8_t *fmt, uint8_t *out,
  */
 uint16_t InputText(uint16_t maxLenPlus1, uint8_t *entry);
 
+/* SDL: the next InputText calls take the characters themselves -- small letters, symbols --
+ * for a password (src/input_sdl.c, SDL's text input); `shown` 0 draws each as '*'. The
+ * string is the characters as typed; the entry should draw it masked after (the menu font
+ * has capitals only). Off again with on 0. */
+void InputText_SetRaw(int32_t on, int32_t shown);
+
 /* ---- InsertCharacter ----
  * Inserts a character at pos in inMenuKeyboardBuffer, shifting right.
  * pos: pointer within inMenuKeyboardBuffer

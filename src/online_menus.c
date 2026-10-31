@@ -44,6 +44,7 @@
 #include "match_prediction.h" /* both players' PRED and SEEN cross after the match */
 #include "uniform.h"          /* the UNIFORM screen, from the lobby's team screen */
 #include "custom_team.h"      /* MY CUSTOM TEAM */
+#include "online_account.h"   /* accounts: none here; a fork's (SWOS United's) */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,6 +174,14 @@ static char s_server[64];
 static int32_t s_rememberLogin = 1;   /* the .mnu's initial ON/OFF texts */
 static int32_t s_liveCast = 1;
 
+/* A project with accounts (include/online_account.h: SWOS United's) asks for a PASSWORD in
+ * that row instead, and checks the two at LOGIN; the server is then its own. */
+static char    s_password[33];
+static char    s_passwordShown[33];         /* what the row draws: '*'s, or the capitals */
+static int32_t s_showPassword;
+static int32_t s_checking;                  /* LOGIN: the account is being checked */
+static char    s_loginLine[64];             /* under the title: the prompt, or how the check went */
+
 /* What the SERVER row shows: what the player typed, else what SWOS.ini holds, else
  * the server LOGIN will actually use -- the public default, or a test's SWOS_MM_HOST.
  * Upper-cased for the menu font (a host name is case-blind), in a buffer of its own
@@ -217,20 +226,43 @@ static void server_save(void)
  * USERNAME / PASSWORD / SHOW PASSWORD come back and the buttons lose their text,
  * and there is no onReturn to redo it in. Every assignment here is a pointer
  * store, so doing it each frame costs nothing. */
+static const char *password_text(void)
+{
+    uint32_t i;
+    for (i = 0; s_password[i] && i < sizeof s_passwordShown - 1; i++) {
+        char c = s_password[i];
+        s_passwordShown[i] = !s_showPassword ? '*' : (c >= 'a' && c <= 'z') ? (char)(c - 'a' + 'A') :
+                             (c >= ' ' && c <= 'Z') ? c : '?';
+    }
+    s_passwordShown[i] = 0;
+    return s_passwordShown;
+}
+
 static void logInMenu_layout(void)
 {
-    set_text(LogInMenu_header, "PLAY ONLINE");
-    set_text(LogInMenu_subTitle, "CHOOSE A NAME AND THE SERVER TO MEET ON");
-    set_text(LogInMenu_username, "NAME");
-    set_text(LogInMenu_password, "SERVER");
+    const int32_t accounts = Account_Enabled();
+    int32_t i;
+
+    set_text(LogInMenu_header, accounts ? "MULTIPLAYER LOGIN" : "PLAY ONLINE");
+    set_text(LogInMenu_subTitle, s_loginLine[0] ? s_loginLine : Account_Prompt());
+    set_text(LogInMenu_username, accounts ? "USERNAME" : "NAME");
+    set_text(LogInMenu_password, accounts ? "PASSWORD" : "SERVER");
     set_text(LogInMenu_usernameInput, s_username);
-    set_text(LogInMenu_passwordInput, server_text());
+    set_text(LogInMenu_passwordInput, accounts ? password_text() : server_text());
     set_text(LogInMenu_logInContinue, "LOGIN");
-    set_text(LogInMenu_OfflinelogOut, "PLAY OFFLINE");
+    set_text(LogInMenu_OfflinelogOut, "ABOUT");
     set_text(LogInMenu_news, "NEWS");
-    /* Nothing to show or hide about an address, and nothing reads a password. */
-    entry_at(LogInMenu_showPasswordLabel)->isInvisible = 1;
-    entry_at(LogInMenu_showPassword)->isInvisible = 1;
+    /* SHOW PASSWORD only where there is one; no live cast here. */
+    entry_at(LogInMenu_showPasswordLabel)->isInvisible = accounts ? 0 : 1;
+    entry_at(LogInMenu_showPassword)->isInvisible = accounts ? 0 : 1;
+    entry_at(LogInMenu_liveCastLabel)->isInvisible = 1;
+    entry_at(LogInMenu_liveCast)->isInvisible = 1;
+    /* REGISTER, MY PASSWORD?, MY USERNAME?: the account's web pages, where it has them. */
+    for (i = 0; i < 3; i++) {
+        static const char *const label[3] = { "REGISTER", "MY PASSWORD?", "MY USERNAME?" };
+        set_text(LogInMenu_registerUser + i, label[i]);
+        entry_at(LogInMenu_registerUser + i)->isInvisible = Account_Url((AccountLink)i) ? 0 : 1;
+    }
 }
 
 /* REMEMBER LOGIN INFO: the name is kept in SWOS.ini beside the server ([netplay] name,
@@ -273,12 +305,27 @@ static void logInMenu_OnInit(void)
 }
 
 /* Runs every frame (the menu is flagged dos_redraw), so the toggles just follow state. */
+static void login_connect(void);
+
 static void logInMenu_OnDraw(void)
 {
+    if (s_checking) {                   /* LOGIN with an account: how the check is going */
+        const int32_t r = Account_Poll();
+        if (r > 0) {
+            s_checking = 0;
+            s_loginLine[0] = 0;
+            login_connect();
+            return;
+        }
+        if (r < 0) {
+            s_checking = 0;
+            snprintf(s_loginLine, sizeof s_loginLine, "%s", Account_Error());
+        }
+    }
     logInMenu_layout();
     set_text(LogInMenu_rememberLogInInfo, s_rememberLogin ? "ON" : "OFF");
+    set_text(LogInMenu_showPassword, s_showPassword ? "ON" : "OFF");
     set_text(LogInMenu_liveCast, s_liveCast ? "ON" : "OFF");
-    set_text(LogInMenu_passwordInput, server_text());
 }
 
 static void usernameInput_OnSelect(void)
@@ -304,6 +351,23 @@ static void serverInput_OnSelect(void)
     server_save();
 }
 
+/* PASSWORD (a project with accounts): typed as it is -- small letters, symbols -- and drawn
+ * masked unless SHOW PASSWORD. */
+static void passwordInput_OnSelect(void)
+{
+    MenuEntry *e = entry_at(LogInMenu_passwordInput);
+    if (!Account_Enabled()) {
+        serverInput_OnSelect();
+        return;
+    }
+    e->fg = (uintptr_t)s_password;
+    InputText_SetRaw(1, s_showPassword);
+    InputText(sizeof s_password, (uint8_t *)e);
+    InputText_SetRaw(0, 0);
+    e->fg = (uintptr_t)password_text();
+}
+
+static void showPassword_OnSelect(void)      { s_showPassword = !s_showPassword; }
 static void rememberLogInInfo_OnSelect(void) { s_rememberLogin = !s_rememberLogin; login_save(); }
 static void liveCast_OnSelect(void)          { s_liveCast = !s_liveCast; }
 
@@ -321,14 +385,50 @@ static uint16_t    mm_port(void) { return MmClient_DefaultPort(); }
  * for here -- matchMakingMenu's OnDraw polls it and shows CONNECTING / ONLINE /
  * the failure, so a server that is not there leaves a usable menu saying so
  * rather than a frozen one. */
-static void logInMenuLogInContinue_OnSelect(void)
+static void login_connect(void)
 {
-    if (!s_username[0])
-        snprintf(s_username, sizeof s_username, "PLAYER");
-    login_save();
     MmClient_Connect(mm_host(), mm_port(), s_username, NULL);
     OnlineMenus_Show(SWOS2020_MENU(matchMakingMenu));
 }
+
+static void logInMenuLogInContinue_OnSelect(void)
+{
+    if (s_checking)
+        return;
+    if (Account_Enabled()) {
+        /* The account first: checked off this thread, LOGIN's progress under the title. */
+        if (!s_username[0] || !s_password[0]) {
+            snprintf(s_loginLine, sizeof s_loginLine, "TYPE YOUR USERNAME AND PASSWORD");
+            return;
+        }
+        login_save();
+        snprintf(s_loginLine, sizeof s_loginLine, "CHECKING USERNAME AND PASSWORD...");
+        Account_Begin(s_username, s_password);
+        s_checking = 1;
+        return;
+    }
+    if (!s_username[0])
+        snprintf(s_username, sizeof s_username, "PLAYER");
+    login_save();
+    login_connect();
+}
+
+/* ABOUT: the game's credits. */
+static void logInMenuAbout_OnSelect(void)
+{
+    CreditsMenu_Show();
+}
+
+/* REGISTER, MY PASSWORD?, MY USERNAME?: the account's web pages, in the browser. */
+static void open_account_page(AccountLink link)
+{
+    const char *url = Account_Url(link);
+    if (url && SDL_OpenURL(url) != 0)
+        fprintf(stderr, "[online] could not open %s: %s\n", url, SDL_GetError());
+}
+static void registerUserMenuNews_OnSelect(void)  { open_account_page(ACCOUNT_LINK_REGISTER); }
+static void registerUserMenuNews2_OnSelect(void) { open_account_page(ACCOUNT_LINK_PASSWORD); }
+static void registerUserMenuNews3_OnSelect(void) { open_account_page(ACCOUNT_LINK_USERNAME); }
 
 static void logInMenuNews_OnSelect(void)
 {
@@ -2180,7 +2280,11 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(logInMenu_OnDraw),
     HANDLER(usernameInput_OnSelect),
     /* The .mnu calls it the password input; it is the SERVER address here. */
-    HANDLER_AS("passwordInput_OnSelect", serverInput_OnSelect),
+    HANDLER(passwordInput_OnSelect),
+    HANDLER(showPassword_OnSelect),
+    HANDLER(registerUserMenuNews_OnSelect),
+    HANDLER(registerUserMenuNews2_OnSelect),
+    HANDLER(registerUserMenuNews3_OnSelect),
     HANDLER(rememberLogInInfo_OnSelect),
     /* SHOW PASSWORD has nothing left to show -- the row is hidden in OnInit. */
     HANDLER_AS("showPassword_OnSelect", SetExitMenuFlag),
@@ -2247,7 +2351,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER_AS("leagueInfoMain_exit_onSelect",       SetExitMenuFlag),
     HANDLER_AS("leagueInfoView_exit_onSelect",       SetExitMenuFlag),
     HANDLER_AS("logInMenuCancel_OnSelect",           SetExitMenuFlag),
-    HANDLER_AS("logInMenuOfflinelogOut_OnSelect",    SetExitMenuFlag),
+    HANDLER_AS("logInMenuOfflinelogOut_OnSelect",    logInMenuAbout_OnSelect),
     HANDLER_AS("mLogReaderMenu_exit_onSelect",       SetExitMenuFlag),
     HANDLER_AS("mLogStatsMenu_exit_onSelect",        SetExitMenuFlag),
     HANDLER_AS("mLogTickerMenu_exit_onSelect",       SetExitMenuFlag),

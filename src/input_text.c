@@ -26,6 +26,30 @@ static void web_text_field(int on)
 #endif
 }
 
+#ifdef SWOS_SDL_BUILD
+/* RAW text (InputText_SetRaw): a password's characters as typed, small letters and symbols
+ * too, kept in s_raw while the field draws each as '*' -- or, shown, as the menu font can. */
+extern void InputSDL_RawText(int on);
+extern int  InputSDL_RawChar(void);
+static int     s_rawMode, s_rawShown;
+static uint8_t s_raw[100];
+
+void InputText_SetRaw(int32_t on, int32_t shown)
+{
+    s_rawMode  = on;
+    s_rawShown = shown;
+}
+
+static uint8_t raw_face(uint8_t c)
+{
+    if (!s_rawShown)
+        return '*';
+    if (c >= 'a' && c <= 'z')
+        return (uint8_t)(c - 'a' + 'A');
+    return (c >= ' ' && c <= 'Z') ? c : '?';
+}
+#endif
+
 /* ---- External globals ---- */
 extern volatile uint16_t _panicReasonCode;
 extern uint8_t _inMenuKeyboardBuffer[100];
@@ -269,6 +293,15 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
      * Asm: GetStringLength stub sets a0 = buffer + len (at NUL). */
     uint16_t initLen = GetStringLength(_inMenuKeyboardBuffer);
     uint8_t *pos = _inMenuKeyboardBuffer + initLen;
+#ifdef SWOS_SDL_BUILD
+    if (s_rawMode) {
+        uint16_t i;
+        StringCopy(origStr, s_raw);
+        for (i = 0; i < initLen; i++)
+            _inMenuKeyboardBuffer[i] = raw_face(s_raw[i]);
+        InputSDL_RawText(1);
+    }
+#endif
 
     _deadInputTextVar = 0;
 
@@ -278,7 +311,27 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
         if (_shortFire != 0)
             goto commit;
 
+#ifdef SWOS_SDL_BUILD
+        if (s_rawMode) {                /* the characters typed, beside what is drawn for them */
+            int ch;
+            while ((ch = InputSDL_RawChar()) >= 0) {
+                uint16_t len = GetStringLength(_inMenuKeyboardBuffer);
+                uint16_t at = (uint16_t)(pos - _inMenuKeyboardBuffer);
+                if (len == maxLen)
+                    break;
+                for (uint16_t i = (uint16_t)(len + 1); i > at; i--)
+                    s_raw[i] = s_raw[i - 1];
+                s_raw[at] = (uint8_t)ch;
+                InsertCharacter(pos, raw_face((uint8_t)ch));
+                pos++;
+            }
+        }
+#endif
         uint16_t key = InputTextFilterKey();
+#ifdef SWOS_SDL_BUILD
+        if (s_rawMode && key >= 0x20 && key < 0x7E)
+            key = 0;                    /* (the game's own keys give the capitals: taken above) */
+#endif
 
         if (key == 0) {
             goto insert_cursor;
@@ -303,6 +356,10 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
         }
 
         if (key == 27) { /* Escape — cancel */
+#ifdef SWOS_SDL_BUILD
+            if (s_rawMode)
+                InputSDL_RawText(0);
+#endif
             entry->fg = (uintptr_t)origStr;
             inputTextRedraw(entry);
             _deadVar02 = 0;
@@ -312,12 +369,20 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
         if (key == 127) { /* Backspace — delete char to the left */
             if (pos > _inMenuKeyboardBuffer) {
                 pos--;
+#ifdef SWOS_SDL_BUILD
+                if (s_rawMode)
+                    StringCopy(s_raw + (pos - _inMenuKeyboardBuffer) + 1, s_raw + (pos - _inMenuKeyboardBuffer));
+#endif
                 InputTextDeleteCharAtCursor(pos);
             }
             goto insert_cursor;
         }
 
         if (key == 126) { /* 0x7E — delete at cursor (like Delete key) */
+#ifdef SWOS_SDL_BUILD
+            if (s_rawMode && *pos)
+                StringCopy(s_raw + (pos - _inMenuKeyboardBuffer) + 1, s_raw + (pos - _inMenuKeyboardBuffer));
+#endif
             InputTextDeleteCharAtCursor(pos);
             goto insert_cursor;
         }
@@ -339,6 +404,16 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
     }
 
 commit:
+#ifdef SWOS_SDL_BUILD
+    if (s_rawMode) {
+        InputSDL_RawText(0);
+        StringCopy(s_raw, origStr);     /* the characters, not their faces */
+        entry->fg = (uintptr_t)origStr;
+        inputTextRedraw(entry);
+        _deadVar02 = 0;
+        return 0;
+    }
+#endif
     StringCopy(_inMenuKeyboardBuffer, origStr);
     entry->fg = (uintptr_t)origStr;
     inputTextRedraw(entry);
