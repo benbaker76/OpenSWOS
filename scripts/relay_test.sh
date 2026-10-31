@@ -23,6 +23,8 @@
 #                                             # the server's fallback session (RELAYFB:,
 #                                             # p2p_link.c relay_fallback); BLOCK=join or host:
 #                                             # one side only, a link that works one way
+#   HOST_NAME=A JOIN_NAME=B ...               # the players' names (default RELAYHOST /
+#                                             # RELAYJOIN): a fork's test accounts
 #
 # MM_HOST=<name> [MM_PORT=19602] plays through a server someone else runs, so it tests a
 # DEPLOYMENT: the round trip to it and its relay. No server is started. What cannot be
@@ -98,13 +100,15 @@ mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)"   # the game chdirs to bin/
 [ -n "$DESYNC_FRAME" ] && [ "$REMOTE" = 1 ] && { echo "relay-test: DESYNC_FRAME needs a server of our own (its ledger names the frame)" >&2; exit 1; }
 [ -n "$DESYNC_FRAME" ] && MATCHES=1     # the match ends at the desync; one is the test
 [ -x "bin/$BIN" ] || { echo "relay-test: bin/$BIN not built" >&2; exit 1; }
-HNAME=RELAYHOST; JNAME=RELAYJOIN
+# HOST_NAME / JOIN_NAME: the players' names (a fork's accounts: SWOS United's test logins)
+NAMED_HOST="${HOST_NAME:-}"; NAMED_JOIN="${JOIN_NAME:-}"
+HNAME="${NAMED_HOST:-RELAYHOST}"; JNAME="${NAMED_JOIN:-RELAYJOIN}"
 if [ "$REMOTE" = 1 ]; then
     # Theirs: resolve it, because a relayed match's peer is the server by ADDRESS.
     MM_IP=$(getent ahostsv4 "$MM_HOST" 2>/dev/null | awk 'NR == 1 { print $1 }')
     [ -n "$MM_IP" ] || { echo "relay-test: cannot resolve $MM_HOST" >&2; exit 1; }
     PLAY_HOST=$MM_HOST; PLAY_PORT=$MM_PORT; RELAY_PEER="$MM_IP:$MM_PORT"
-    n=$(( $$ % 10000 )); HNAME="UHOST$n"; JNAME="UJOIN$n"   # never two runs' players mixed
+    n=$(( $$ % 10000 )); HNAME="${NAMED_HOST:-UHOST$n}"; JNAME="${NAMED_JOIN:-UJOIN$n}"   # never two runs' players mixed
     [ -n "${NETEM:-}" ] && echo "relay-test: NETEM is the server's to choose; ignored for $MM_HOST" >&2
     echo "relay-test: through $MM_HOST ($RELAY_PEER) as $HNAME and $JNAME"
     SERVER_PID=
