@@ -961,9 +961,12 @@ of every menu. **Returning from it restores the lobby menu from its template**, 
 entry visible again, so the lobby re-applies its layout (and the navigation links SWOS 2020
 wires in code) on every draw.
 
-Not ported: the location flags, ranked and tournament modes, team database choice, chat and
-the live cast — hidden. (Cup legs are there now: the CUP row, below. So is editing a tactic:
-TACTICS opens the team screen, whose EDIT TACTICS is the game's own editor.)
+Not ported: the location flags, team database choice and the live cast — hidden. (Cup legs
+are there now: the CUP row, below. So are the CHAT and FRAME DELAY, and editing a tactic:
+TACTICS opens the team screen, whose EDIT TACTICS is the game's own editor.) Ranked and league
+/ cup matches are a service's (`include/online_account.h`): OpenSWOS has none, so its rules'
+`mode` is always FRIENDLY; a fork with accounts asks at OPEN and follows the lobby through the
+hooks there. `SWOS_LOBBY_MODE=friendly|ranked|league` sets the host's for a test.
 
 **Both peers kick off from the host's state.** The init (`InitAndPlayGame`) does not write
 everything a match reads: the game state, the stoppage timers, where the ball and players

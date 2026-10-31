@@ -981,12 +981,20 @@ static void lobby_test_knobs(void)
     const char *cup = getenv("SWOS_LOBBY_CUP");     /* host: <legs>:<1 ET+PEN | 2 PEN ONLY> */
     const char *sw = getenv("SWOS_LOBBY_SWITCHES"); /* host: NETPLAY_SW_* in hex */
     const char *say = getenv("SWOS_LOBBY_SAY");     /* a chat line, said as the lobby opens */
+    const char *mode = getenv("SWOS_LOBBY_MODE");   /* host: what OPEN's choice would have been */
     unsigned file, ordinal, legs, tie, mask;
 
     if (say && say[0])
         (void)NetplayLobby_Say(say);
     if (getenv("SWOS_LOBBY_EXTRA_DELAY"))           /* FRAME DELAY +: this player's extra frames */
         NetplayLobby_SetExtraDelay(atoi(getenv("SWOS_LOBBY_EXTRA_DELAY")));
+
+    if (mode && NetplayLobby_IsHost()) {
+        LobbyRules r = *NetplayLobby_Rules();
+        r.mode = (uint16_t)(!strcmp(mode, "ranked") ? LOBBY_MODE_RANKED :
+                            !strcmp(mode, "league") ? LOBBY_MODE_LEAGUE : LOBBY_MODE_FRIENDLY);
+        NetplayLobby_SetRules(&r);
+    }
 
     if (sw && NetplayLobby_IsHost() && sscanf(sw, "%x", &mask) == 1) {
         LobbyRules r = *NetplayLobby_Rules();
