@@ -55,7 +55,7 @@ OpenSWOS players -- and then every change to how a match plays has to be in both
 **Not in the header** (a fork replaces the files themselves): the icons (`SWOS.svg` and what
 `scripts/generate_icons.py` makes from it), the credits text (`include/credits_text.h`), the
 installer's ids (`packaging/windows/swos.iss`: give a fork its own `AppId`), the release
-scripts' archive names, and the docs. Each of those is a file OpenSWOS rarely touches; a
+scripts' archive names, `CONTRIBUTING.md` (where a fork's discussion happens), and the docs. Each of those is a file OpenSWOS rarely touches; a
 fork's copy can still conflict when it does, and is resolved by keeping the fork's.
 
 ## Keeping the merge quiet

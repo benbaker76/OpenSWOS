@@ -68,6 +68,12 @@ helps, however small. Say which version you have (the bottom line of the main me
 you did and what happened, and attach your `SWOS.log` (where it is:
 [INSTALL.md](INSTALL.md#if-something-goes-wrong)). A screenshot or your save helps too.
 
+## Contributing
+
+Pull requests are welcome -- small and focused, please, and a big change discussed in an issue
+first. AI-assisted work too, if you understand and have tested every line. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 Copyright (C) 2025-2026 Ben Baker and the OpenSWOS contributors.
