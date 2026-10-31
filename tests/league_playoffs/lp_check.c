@@ -19,6 +19,7 @@ uint32_t UefaCoef_PotKey(uint8_t c, uint16_t t, uint32_t v) { (void)c; (void)t; 
 uint32_t UefaCoef_Club(uint16_t t) { (void)t; return 0; }
 int32_t UefaCoef_On(void) { return 0; }
 WorldId (World_Current)(void) { return WORLD_9697; }
+uint8_t (World_FileCountry)(uint8_t file) { return file; }
 uint16_t Rand2(void) { return 0; }
 uint8_t *diy_resolve_team(int32_t sel) { (void)sel; return 0; }
 uint8_t *diy_resolve_team_name(int32_t sel) { (void)sel; return 0; }
