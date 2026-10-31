@@ -50,7 +50,8 @@ extern "C" {
 #endif
 
 // Where World 2026-27's package is downloaded from (hosted apart from OpenSWOS: its squads are
-// their authors'): "" until it is up, and the World 2026-27 row has no link.
+// their authors'): "" until it is up -- and until then the setup shows no World 2026-27 row at
+// all (nobody could get the package; `swosdata --world FILE` still installs one, for testing).
 static const char kWorldUrl[] = "";
 
 namespace {
@@ -460,8 +461,13 @@ struct App {
       rows = std::make_shared<slint::VectorModel<SourceRow>>();
       for (int r = 0; r < ROW_COUNT; r++) rows->push_back(MakeRow(r));
       w().set_sources(rows);
-      auto pc = std::make_shared<slint::VectorModel<int>>(std::vector<int>{ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020, ROW_WORLD});
-      auto am = std::make_shared<slint::VectorModel<int>>(std::vector<int>{ROW_AMIGA, ROW_PC, ROW_2020, ROW_WORLD});
+      std::vector<int> pcRows{ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020}, amRows{ROW_AMIGA, ROW_PC, ROW_2020};
+      if (kWorldUrl[0]) {                 // (World 2026-27: once its package can be downloaded)
+        pcRows.push_back(ROW_WORLD);
+        amRows.push_back(ROW_WORLD);
+      }
+      auto pc = std::make_shared<slint::VectorModel<int>>(pcRows);
+      auto am = std::make_shared<slint::VectorModel<int>>(amRows);
       w().set_rows_pc(pc);
       w().set_rows_amiga(am);
       return;
@@ -672,8 +678,12 @@ struct App {
     auto left = std::make_shared<slint::VectorModel<PlanStep>>();
     auto right = std::make_shared<slint::VectorModel<PlanStep>>();
     bool any = false;
+    // (World 2026-27 listed once its package can be downloaded -- or was given, or is installed)
+    const bool world = kWorldUrl[0] || info[SD_STEP_WORLD].ready || InstalledState(SD_STEP_WORLD) != 0;
+    const int steps = world ? SD_STEP_COUNT : SD_STEP_COUNT - 1;
     for (int i = 0; i < SD_STEP_COUNT; i++) {
-      (i < (SD_STEP_COUNT + 1) / 2 ? left : right)
+      if (i == SD_STEP_WORLD && !world) continue;
+      (i < (steps + 1) / 2 ? left : right)
           ->push_back({Str(info[i].name), bool(info[i].ready), Str(info[i].needs), InstalledState(i)});
       any = any || info[i].ready;
     }
@@ -1146,7 +1156,7 @@ struct App {
     if (found.dosDir[0] && !src.dosDir[0]) { take(src.dosDir, found.dosDir); unusable[ROW_PC].clear(); what = "the PC game"; }
     if (found.jagRom[0] && !src.jagRom[0]) { take(src.jagRom, found.jagRom); unusable[ROW_JAG].clear(); what = "the Jaguar cartridge"; }
     if (found.s2020Dir[0] && !src.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); unusable[ROW_2020].clear(); what = "SWOS 2020"; }
-    if (found.world[0] && !src.world[0]) { take(src.world, found.world); unusable[ROW_WORLD].clear(); what = "World 2026-27"; }
+    if (kWorldUrl[0] && found.world[0] && !src.world[0]) { take(src.world, found.world); unusable[ROW_WORLD].clear(); what = "World 2026-27"; }
     if (found.adf1[0] || found.adf2[0] || found.hdf[0] || found.lha[0]) {
       // The library's own rule picks the better of the two Amiga versions.
       SdSources_AddFile(&src, path.c_str());
