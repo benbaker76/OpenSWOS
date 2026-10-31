@@ -1039,10 +1039,13 @@ static void lobby_test_draw(LobbyState st)
         openSince = SDL_GetTicks() | 1u;
     /* The host leaves once the lobby has been back up for three seconds -- long enough
      * for the joiner to be back too, and for a capture to see the screen -- and the last
-     * match's report has crossed both ways. */
+     * match's report has crossed both ways. SWOS_LOBBY_LINGER_MS: longer (a service's
+     * requests after the match: a fork's results to its site). */
+    const char *linger = getenv("SWOS_LOBBY_LINGER_MS");
+    const uint32_t stay = linger ? (uint32_t)atoi(linger) : 3000;
     if (matches && s_lobbyMatches >= atoi(matches) &&
         (st == LOBBY_FAILED ||
-         (st == LOBBY_OPEN && NetplayLobby_IsHost() && SDL_GetTicks() - openSince > 3000 &&
+         (st == LOBBY_OPEN && NetplayLobby_IsHost() && SDL_GetTicks() - openSince > stay &&
           !MatchReport_Pending()))) {
         printf("[lobby] %d match%s played; leaving (%s)\n", s_lobbyMatches,
                s_lobbyMatches == 1 ? "" : "es", st == LOBBY_FAILED ? NetplayLobby_Notice() : "host");
