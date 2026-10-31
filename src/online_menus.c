@@ -873,7 +873,13 @@ static void lobby_test_knobs(void)
     const char *team = getenv("SWOS_LOBBY_TEAM");
     const char *cup = getenv("SWOS_LOBBY_CUP");     /* host: <legs>:<1 ET+PEN | 2 PEN ONLY> */
     const char *sw = getenv("SWOS_LOBBY_SWITCHES"); /* host: NETPLAY_SW_* in hex */
+    const char *say = getenv("SWOS_LOBBY_SAY");     /* a chat line, said as the lobby opens */
     unsigned file, ordinal, legs, tie, mask;
+
+    if (say && say[0])
+        (void)NetplayLobby_Say(say);
+    if (getenv("SWOS_LOBBY_EXTRA_DELAY"))           /* FRAME DELAY +: this player's extra frames */
+        NetplayLobby_SetExtraDelay(atoi(getenv("SWOS_LOBBY_EXTRA_DELAY")));
 
     if (sw && NetplayLobby_IsHost() && sscanf(sw, "%x", &mask) == 1) {
         LobbyRules r = *NetplayLobby_Rules();
@@ -1042,6 +1048,17 @@ static const struct { int32_t entry; uint16_t sw; } s_switchRows[LOBBY_SWITCH_RO
     { MpGameSetupMenu_switchCardsInjuries, NETPLAY_SW_CARDS_INJURIES },
 };
 
+/* The left half under the players is the CHAT (SWOS 2020's lobby chat), or -- SWITCHES,
+ * where SWOS 2020 has LIVE CAST URL (no live cast here) -- the host's switches; the same
+ * button says CHAT then and brings the chat back. */
+enum { LOBBY_PANE_CHAT, LOBBY_PANE_SWITCHES };
+enum { CHAT_ROWS = 10 };                /* chatMsg00..09: a line is two rows, its name and its text */
+static int32_t  s_lobbyPane;
+static int32_t  s_chatScroll;           /* lines back from the newest */
+static uint32_t s_chatSeen;             /* NetplayLobby_ChatSerial when last drawn */
+static char     s_chatRow[CHAT_ROWS][LOBBY_CHAT_TEXT + 1];
+static char     s_chatInput[LOBBY_CHAT_TEXT + 1];
+
 static void lobby_nav(int32_t ordinal, int32_t left, int32_t right, int32_t up, int32_t down)
 {
     MenuEntry *e = entry_at(ordinal);
@@ -1071,33 +1088,75 @@ static void lobby_layout(void)
     lobby_nav(MpGameSetupMenu_gameLength1, -1, -1, MpGameSetupMenu_etPen1, MpGameSetupMenu_pitchType1);
     lobby_nav(MpGameSetupMenu_pitchType1,  -1, -1, MpGameSetupMenu_gameLength1, MpGameSetupMenu_minSubs1);
     lobby_nav(MpGameSetupMenu_minSubs1, -1, MpGameSetupMenu_maxSubs1,
-              MpGameSetupMenu_pitchType1, MpGameSetupMenu_cancel);
+              MpGameSetupMenu_pitchType1, MpGameSetupMenu_ggpoFrameDelayDec);
     lobby_nav(MpGameSetupMenu_maxSubs1, MpGameSetupMenu_minSubs1, -1,
-              MpGameSetupMenu_pitchType1, MpGameSetupMenu_start);
-    lobby_nav(MpGameSetupMenu_cancel, -1, MpGameSetupMenu_start, MpGameSetupMenu_minSubs1, -1);
-    lobby_nav(MpGameSetupMenu_start, MpGameSetupMenu_cancel, -1, MpGameSetupMenu_maxSubs1, -1);
+              MpGameSetupMenu_pitchType1, MpGameSetupMenu_ggpoFrameDelayInc);
+    /* FRAME DELAY: each player's own - and + (the value between puts it back to AUTO). */
+    lobby_nav(MpGameSetupMenu_ggpoFrameDelayDec, -1, MpGameSetupMenu_ggpoFrameDelay_,
+              MpGameSetupMenu_minSubs1, MpGameSetupMenu_cancel);
+    lobby_nav(MpGameSetupMenu_ggpoFrameDelay_, MpGameSetupMenu_ggpoFrameDelayDec,
+              MpGameSetupMenu_ggpoFrameDelayInc, MpGameSetupMenu_minSubs1, MpGameSetupMenu_start);
+    lobby_nav(MpGameSetupMenu_ggpoFrameDelayInc, MpGameSetupMenu_ggpoFrameDelay_, -1,
+              MpGameSetupMenu_maxSubs1, MpGameSetupMenu_start);
+    lobby_nav(MpGameSetupMenu_cancel, -1, MpGameSetupMenu_start, MpGameSetupMenu_ggpoFrameDelayDec, -1);
+    lobby_nav(MpGameSetupMenu_start, MpGameSetupMenu_cancel, -1, MpGameSetupMenu_ggpoFrameDelayInc, -1);
 
-    /* The host's switches, a column on the left: RIGHT goes to the rules beside them,
-     * and the rules' LEFT comes back. The joiner's are disabled, so the cursor passes
-     * through them as it does through the joiner's rules. */
-    {
+    /* The pane's button, under our row; then the chat or the switches below it, and the
+     * rules' LEFT comes back to them. */
+    lobby_nav(MpGameSetupMenu_liveCastUrlBtn, -1, MpGameSetupMenu_legOpt1, teams,
+              s_lobbyPane == LOBBY_PANE_CHAT ? MpGameSetupMenu_scrollUp : s_switchRows[0].entry);
+    if (s_lobbyPane == LOBBY_PANE_SWITCHES) {
+        /* The host's switches, a column: RIGHT goes to the rules beside them. The joiner's
+         * are disabled, so the cursor passes through them as it does the joiner's rules. */
         static const int32_t right[LOBBY_SWITCH_ROWS] = {
             MpGameSetupMenu_legOpt1, MpGameSetupMenu_gameLength1, MpGameSetupMenu_pitchType1,
         };
         for (i = 0; i < LOBBY_SWITCH_ROWS; i++)
             lobby_nav(s_switchRows[i].entry, -1, right[i],
-                      i ? s_switchRows[i - 1].entry : teams,
+                      i ? s_switchRows[i - 1].entry : MpGameSetupMenu_liveCastUrlBtn,
                       i + 1 < LOBBY_SWITCH_ROWS ? s_switchRows[i + 1].entry : MpGameSetupMenu_cancel);
-        entry_at(MpGameSetupMenu_legOpt1)->leftEntry = (int8_t)MpGameSetupMenu_switchShortPresses;
-        entry_at(MpGameSetupMenu_gameLength1)->leftEntry = (int8_t)MpGameSetupMenu_switchKickoffSync;
-        entry_at(MpGameSetupMenu_pitchType1)->leftEntry = (int8_t)MpGameSetupMenu_switchCardsInjuries;
+        entry_at(MpGameSetupMenu_legOpt1)->leftEntry = (int8_t)MpGameSetupMenu_liveCastUrlBtn;
+        entry_at(MpGameSetupMenu_gameLength1)->leftEntry = (int8_t)MpGameSetupMenu_switchShortPresses;
+        entry_at(MpGameSetupMenu_pitchType1)->leftEntry = (int8_t)MpGameSetupMenu_switchKickoffSync;
         entry_at(MpGameSetupMenu_minSubs1)->leftEntry = (int8_t)MpGameSetupMenu_switchCardsInjuries;
         entry_at(MpGameSetupMenu_cancel)->upEntry = (int8_t)MpGameSetupMenu_switchCardsInjuries;
+        entry_at(MpGameSetupMenu_cancel)->leftEntry = (int8_t)MpGameSetupMenu_switchCardsInjuries;
+        for (i = 0; i < LOBBY_SWITCH_ROWS; i++) {               /* (hiding stays: show both panes' own) */
+            set_visible(s_switchRows[i].entry, 1);
+            set_visible(s_switchRows[i].entry - 1, 1);
+        }
+        for (i = MpGameSetupMenu_chatMsg00; i <= MpGameSetupMenu_chatMsg09; i++)
+            lobby_hide(i);
+        lobby_hide(MpGameSetupMenu_scrollUp);
+        lobby_hide(MpGameSetupMenu_scrollDown);
+        lobby_hide(MpGameSetupMenu_inputChatMsg);
 #ifndef SWOS_TEST_RULES
         /* A release has the old rule compiled out: nothing to switch. */
         lobby_hide(MpGameSetupMenu_switchCardsInjuriesLabel);
         lobby_hide(MpGameSetupMenu_switchCardsInjuries);
 #endif
+    } else {
+        /* The chat: the two arrows down its right edge, then the line to type in. */
+        lobby_nav(MpGameSetupMenu_scrollUp, -1, MpGameSetupMenu_gameLength1,
+                  MpGameSetupMenu_liveCastUrlBtn, MpGameSetupMenu_scrollDown);
+        lobby_nav(MpGameSetupMenu_scrollDown, -1, MpGameSetupMenu_minSubs1,
+                  MpGameSetupMenu_scrollUp, MpGameSetupMenu_inputChatMsg);
+        lobby_nav(MpGameSetupMenu_inputChatMsg, -1, MpGameSetupMenu_cancel,
+                  MpGameSetupMenu_scrollDown, -1);
+        entry_at(MpGameSetupMenu_legOpt1)->leftEntry = (int8_t)MpGameSetupMenu_liveCastUrlBtn;
+        entry_at(MpGameSetupMenu_gameLength1)->leftEntry = (int8_t)MpGameSetupMenu_scrollUp;
+        entry_at(MpGameSetupMenu_pitchType1)->leftEntry = (int8_t)MpGameSetupMenu_scrollUp;
+        entry_at(MpGameSetupMenu_minSubs1)->leftEntry = (int8_t)MpGameSetupMenu_scrollDown;
+        entry_at(MpGameSetupMenu_cancel)->leftEntry = (int8_t)MpGameSetupMenu_inputChatMsg;
+        for (i = 0; i < LOBBY_SWITCH_ROWS; i++) {
+            lobby_hide(s_switchRows[i].entry);
+            lobby_hide(s_switchRows[i].entry - 1);      /* (its label, just before it) */
+        }
+        for (i = MpGameSetupMenu_chatMsg00; i <= MpGameSetupMenu_chatMsg09; i++)
+            set_visible(i, 1);
+        set_visible(MpGameSetupMenu_scrollUp, 1);
+        set_visible(MpGameSetupMenu_scrollDown, 1);
+        set_visible(MpGameSetupMenu_inputChatMsg, 1);
     }
 
     lobby_hide(MpGameSetupMenu_teamDB);
@@ -1109,16 +1168,17 @@ static void lobby_layout(void)
     lobby_hide(MpGameSetupMenu_rankedModeOption1);
     lobby_hide(MpGameSetupMenu_teamDB1Label);
     lobby_hide(MpGameSetupMenu_teamDB1);
-    lobby_hide(MpGameSetupMenu_ggpoFrameDelayDec);
-    lobby_hide(MpGameSetupMenu_ggpoFrameDelayInc);
     lobby_hide(MpGameSetupMenu_matchInfo);
-    lobby_hide(MpGameSetupMenu_chatLabel);
-    lobby_hide(MpGameSetupMenu_liveCastUrlBtn);
-    for (i = MpGameSetupMenu_chatMsg00; i <= MpGameSetupMenu_chatMsg09; i++)
-        lobby_hide(i);
-    lobby_hide(MpGameSetupMenu_scrollUp);
-    lobby_hide(MpGameSetupMenu_scrollDown);
-    lobby_hide(MpGameSetupMenu_inputChatMsg);
+    set_entry(MpGameSetupMenu_chatLabel, s_lobbyPane == LOBBY_PANE_CHAT ? "CHAT" : "SWITCHES", 0, kGreen);
+    entry_at(MpGameSetupMenu_chatLabel)->dwWidth = 69;      /* (the .mnu's runs under the button) */
+    /* The arrows: SWOS 2020 draws its own; here, small boxes with the direction in them. */
+    entry_at(MpGameSetupMenu_scrollUp)->background = ENTRY_FRAME_AND_BACK_COLOR;
+    entry_at(MpGameSetupMenu_scrollDown)->background = ENTRY_FRAME_AND_BACK_COLOR;
+    set_entry(MpGameSetupMenu_scrollUp, "+", 1, kRed);
+    set_entry(MpGameSetupMenu_scrollDown, "-", 1, kRed);
+    set_entry(MpGameSetupMenu_liveCastUrlBtn, s_lobbyPane == LOBBY_PANE_CHAT ? "SWITCHES" : "CHAT", 1,
+              kLightBlue);
+    set_text(MpGameSetupMenu_inputChatMsg, s_chatInput);
 
     set_entry(MpGameSetupMenu_cPlayers_00, "PLAYERS", 0, kGray);
     set_entry(MpGameSetupMenu_teams_00,    "TEAMS",   0, kGray);
@@ -1126,12 +1186,103 @@ static void lobby_layout(void)
     set_entry(MpGameSetupMenu_go_00,       "GO",      0, kGray);
     set_text(MpGameSetupMenu_latencyLabel, "LATENCY:");
     set_entry(MpGameSetupMenu_gameStyle1, "", 0, kGray);        /* the link already made both agree */
-    set_entry(MpGameSetupMenu_ggpoFrameDelay_, "", 0, kGray);   /* agreed by the link, not chosen here */
+}
+
+/* ---- the chat ---- */
+
+enum { kWhiteText2 = 2, kGreenText = 14, kYellowText = 15, kLeftAligned = 1 << 15 };
+
+static void chat_row(int32_t row, const char *text, uint16_t color)
+{
+    MenuEntry *e = entry_at(MpGameSetupMenu_chatMsg00 + row);
+    snprintf(s_chatRow[row], sizeof s_chatRow[row], "%s", text);
+    e->fg = (uintptr_t)s_chatRow[row];
+    e->stringFlags = (uint16_t)(kLeftAligned | color);
+}
+
+/* The newest lines that fit, or further back after UP: each one its sayer, then what they
+ * said -- the bot's in yellow when someone arrives, green otherwise (SWOS 2020's colours). */
+static void chat_draw(void)
+{
+    const int32_t n = NetplayLobby_ChatCount(), shown = CHAT_ROWS / 2;
+    int32_t first, k;
+    if (s_lobbyPane != LOBBY_PANE_CHAT)
+        return;
+    if (NetplayLobby_ChatSerial() != s_chatSeen) {      /* a new line: back to the newest */
+        s_chatSeen = NetplayLobby_ChatSerial();
+        s_chatScroll = 0;
+    }
+    if (s_chatScroll > n - shown)
+        s_chatScroll = n - shown > 0 ? n - shown : 0;
+    first = n - shown - s_chatScroll;
+    if (first < 0)
+        first = 0;
+    for (k = 0; k < shown; k++) {
+        const LobbyChatLine *l = NetplayLobby_ChatLine(first + k);
+        char name[LOBBY_NAME_MAX + 2];
+        if (!l) {
+            chat_row(2 * k, "", kWhiteText2);
+            chat_row(2 * k + 1, "", kWhiteText2);
+            continue;
+        }
+        if (l->who == LOBBY_CHAT_BOT)
+            snprintf(name, sizeof name, "JON HARE (BOT):");
+        else
+            snprintf(name, sizeof name, "%s:",
+                     NetplayLobby_Player(l->who == LOBBY_CHAT_ME ? NetplayLobby_LocalPlayer()
+                                                                 : 3 - NetplayLobby_LocalPlayer())->name);
+        chat_row(2 * k, name, kWhiteText2);
+        chat_row(2 * k + 1, l->text, l->who != LOBBY_CHAT_BOT ? kWhiteText2 :
+                 strstr(l->text, "CONNECTED") ? kYellowText : kGreenText);
+    }
+}
+
+/* FRAME DELAY: this player's extra frames, never below AUTO (netplay_lobby.h). */
+static void selectGgpoFrameDelayDec(void)
+{
+    NetplayLobby_SetExtraDelay(NetplayLobby_Player(NetplayLobby_LocalPlayer())->extraDelay - 1);
+}
+
+static void selectGgpoFrameDelayInc(void)
+{
+    NetplayLobby_SetExtraDelay(NetplayLobby_Player(NetplayLobby_LocalPlayer())->extraDelay + 1);
+}
+
+static void selectGGPOFrameDelay(void)
+{
+    NetplayLobby_SetExtraDelay(0);
+}
+
+/* SWITCHES / CHAT (SWOS 2020's LIVE CAST URL button). */
+static void selectLiveCastUrl(void)
+{
+    s_lobbyPane = s_lobbyPane == LOBBY_PANE_CHAT ? LOBBY_PANE_SWITCHES : LOBBY_PANE_CHAT;
+}
+
+static void matchMaking_chat_scrollUp_onSelect(void)
+{
+    s_chatScroll++;                     /* (chat_draw keeps it in range) */
+}
+
+static void matchMaking_chat_scrollDown_onSelect(void)
+{
+    if (s_chatScroll > 0)
+        s_chatScroll--;
+}
+
+/* The line to type in: Enter says it, Esc leaves it as it was. */
+static void selectInputChatMsg(void)
+{
+    if (InputText(sizeof s_chatInput, (uint8_t *)entry_at(MpGameSetupMenu_inputChatMsg)) == 0 &&
+        NetplayLobby_Say(s_chatInput) == 0)
+        s_chatInput[0] = 0;
 }
 
 static void mpGameSetupMenu_OnInit(void)
 {
     Platform_SetFrameHook(lobby_frame_hook);
+    s_lobbyPane  = LOBBY_PANE_CHAT;
+    s_chatScroll = 0;
     lobby_layout();
 
     /* Start on this player's TEAMS button: the first thing to do. */
@@ -1164,6 +1315,7 @@ static void mpGameSetupMenu_OnDraw(void)
     }
 
     lobby_layout();
+    chat_draw();
     me    = NetplayLobby_LocalPlayer();
     host  = NetplayLobby_IsHost();
     open  = st == LOBBY_OPEN;
@@ -1227,8 +1379,18 @@ static void mpGameSetupMenu_OnDraw(void)
     {
         int32_t delay;
         NetplayLobby_Peer(NULL, 0, NULL, NULL, &delay, NULL);
-        snprintf(s_ruleDelay, sizeof s_ruleDelay, "%d", delay);
-        set_text(MpGameSetupMenu_ggpoFrameDelay_, s_ruleDelay);
+        if (delay > NetplayLobby_AutoDelay())
+            snprintf(s_ruleDelay, sizeof s_ruleDelay, "%d+%d", NetplayLobby_AutoDelay(),
+                     delay - NetplayLobby_AutoDelay());
+        else
+            snprintf(s_ruleDelay, sizeof s_ruleDelay, "AUTO (%d)", delay);
+        set_entry(MpGameSetupMenu_ggpoFrameDelay_, s_ruleDelay, open && players[me - 1]->extraDelay > 0,
+                  kLightBlue);
+        set_entry(MpGameSetupMenu_ggpoFrameDelayDec, "-", open && players[me - 1]->extraDelay > 0,
+                  open && players[me - 1]->extraDelay > 0 ? kLightBlue : kGray);
+        set_entry(MpGameSetupMenu_ggpoFrameDelayInc, "+",
+                  open && players[me - 1]->extraDelay < LOBBY_EXTRA_DELAY_MAX,
+                  open && players[me - 1]->extraDelay < LOBBY_EXTRA_DELAY_MAX ? kLightBlue : kGray);
     }
 
     /* The host's switches: the host's to change, the joiner's to see -- both play by
@@ -2061,6 +2223,13 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(selectPitchType1),
     HANDLER(selectMinSubs1),
     HANDLER(selectMaxSubs1),
+    HANDLER(selectLiveCastUrl),
+    HANDLER(selectGgpoFrameDelayDec),
+    HANDLER(selectGgpoFrameDelayInc),
+    HANDLER(selectGGPOFrameDelay),
+    HANDLER(matchMaking_chat_scrollUp_onSelect),
+    HANDLER(matchMaking_chat_scrollDown_onSelect),
+    HANDLER(selectInputChatMsg),
     HANDLER(selectSwitchShortPresses),
     HANDLER(selectSwitchKickoffSync),
     HANDLER(selectSwitchCardsInjuries),

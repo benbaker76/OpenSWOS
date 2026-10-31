@@ -1502,7 +1502,7 @@
       "name": "switchShortPressesLabel",
       "coords": {
         "x": -8,
-        "y": 93,
+        "y": 106,
         "w": 120,
         "h": 12
       },
@@ -1524,7 +1524,7 @@
       "name": "switchShortPresses",
       "coords": {
         "x": 113,
-        "y": 93,
+        "y": 106,
         "w": 48,
         "h": 12
       },
@@ -1549,7 +1549,7 @@
       "name": "switchKickoffSyncLabel",
       "coords": {
         "x": -8,
-        "y": 106,
+        "y": 119,
         "w": 120,
         "h": 12
       },
@@ -1571,7 +1571,7 @@
       "name": "switchKickoffSync",
       "coords": {
         "x": 113,
-        "y": 106,
+        "y": 119,
         "w": 48,
         "h": 12
       },
@@ -1596,7 +1596,7 @@
       "name": "switchCardsInjuriesLabel",
       "coords": {
         "x": -8,
-        "y": 119,
+        "y": 132,
         "w": 120,
         "h": 12
       },
@@ -1618,7 +1618,7 @@
       "name": "switchCardsInjuries",
       "coords": {
         "x": 113,
-        "y": 119,
+        "y": 132,
         "w": 48,
         "h": 12
       },

@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 5      /* 5: CATCH UP and BALANCE removed, Playa's input delay table (p2p_link.c) */
+#define NETPLAY_COMPAT 6      /* 6: the lobby chat (a link channel of its own, netplay_lobby.c) */
 
 #endif

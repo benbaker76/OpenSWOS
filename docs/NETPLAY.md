@@ -838,8 +838,9 @@ the host and the top team.
 | CUP | host | how a draw is settled, SWOS 2020's row: **OFF** (a friendly: a draw stands), **1 LEG** or **2 LEGS**, then **ET + PEN** or **PEN ONLY**. Details below |
 | GAME LENGTH, PITCH TYPE, SUBSTITUTES | host | the friendly menu's own cycles; the joiner sees them change |
 | START | host | lit when both are ready on the current rules |
-| FRAME DELAY | — | the delay the link agreed; shown, not chosen |
-| SHORT PRESSES, KICK-OFF SYNC, CARDS/INJURIES | host | the host's switches, ON/OFF, on the left; below |
+| FRAME DELAY | each player | **never below AUTO** -- the delay the link agreed from the ping (Playa's table, `propose_delay`) -- but **-** and **+** add a player's own extra frames (up to 4), against a stutter. Both play the same delay: AUTO plus the larger of the two extras, put in the START by the host (`NetplayLobby_SetExtraDelay`). Shown `AUTO (n)`, or `n+x` with frames added; a change takes both GOs down |
+| CHAT / SWITCHES | everyone | the left half under the players: **the chat** (below), or, after SWITCHES (where SWOS 2020 has LIVE CAST URL), **the host's switches**; the button then says CHAT and brings the chat back |
+| SHORT PRESSES, KICK-OFF SYNC, CARDS/INJURIES | host | the host's switches, ON/OFF, behind SWITCHES; below |
 
 **The host's switches** (`NETPLAY_SW_*`, `include/netplay_match.h`). Report 0042 said online
 play changed after 7d9d6d9; each netplay change since then that can be turned off is a
@@ -864,6 +865,16 @@ that was nearly always 0, and 0 is what is sent now (`GGPO_SEND_FRAME_ADVANTAGE=
 `[lobby]` and `[netplay] the host's switches: ...` lines in both logs (so in the match report)
 say what a match was played by. `SWOS_LOBBY_SWITCHES=<hex>` sets them in the lobby and relay
 tests: `HOST_ENV=SWOS_LOBBY_SWITCHES=0 scripts/netplay_lobby_test.sh`.
+
+**The chat** (SWOS 2020's lobby chat, 2026-10-31). Type on the bar under it (Enter says it);
+**+** and **-** scroll back and forward. Each line goes to the other player only, over the
+lobby's own link -- never through a server -- and the bot, JON HARE (BOT), adds lines of its
+own on each machine: who connected, FULL TIME and the score after each match, a cup's next leg,
+why the lobby closed. It is kept for the whole lobby, across rematches. On the wire (channel 5,
+`NETPLAY_COMPAT` 6) each message is the sender's last 8 lines with the number of the first, so
+one replaced before it arrived costs nothing, and a reconnect re-sends them without showing any
+twice. `SWOS_LOBBY_SAY=<text>` says a line as the lobby opens; `relay_test.sh` has each player
+say one and requires the other's exactly once, and every line is logged as `[chat]`.
 
 The protocol is three messages, each on a link channel of its own:
 

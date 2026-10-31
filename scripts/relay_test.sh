@@ -173,12 +173,14 @@ run() {   # name, auto, team, extra env...
 # <side>.log is the raw output; <side>.ts the same lines with the time each arrived,
 # to line up against the server's timed [relay] and [record] lines.
 stamp() { gawk '{ print strftime("%H:%M:%S"), $0; fflush() }'; }
-( run "$HNAME" host "${HOST_TEAM:-50:0B}" SWOS_MM_AUTO_PEER="$JNAME" ${HOST_START_ENV} SWOS_LIVE_RANDOM_INPUT=0xA5A5F00D HOME="$OUT/home-host" ${HOST_ENV:-} \
+# The lobby chat (netplay_lobby.c): each side says a line as the lobby opens; each must have
+# the other's exactly once -- the window is sent again after a rematch's reconnect.
+( run "$HNAME" host "${HOST_TEAM:-50:0B}" SWOS_MM_AUTO_PEER="$JNAME" ${HOST_START_ENV} SWOS_LIVE_RANDOM_INPUT=0xA5A5F00D HOME="$OUT/home-host" SWOS_LOBBY_SAY="HELLO FROM THE HOST" ${HOST_ENV:-} \
     2>&1 | tee "$OUT/host.log" | stamp > "$OUT/host.ts"
   echo "[relay-test] exit ${PIPESTATUS[0]}" >> "$OUT/host.log" ) &
 HOST_PID=$!
 sleep 3
-( run "$JNAME" join "${JOIN_TEAM:-52:02}" SWOS_MM_AUTO_PEER="$HNAME" SWOS_LIVE_RANDOM_INPUT=0x5A5A0FF0 HOME="$OUT/home-join" ${JOIN_ENV:-} \
+( run "$JNAME" join "${JOIN_TEAM:-52:02}" SWOS_MM_AUTO_PEER="$HNAME" SWOS_LIVE_RANDOM_INPUT=0x5A5A0FF0 HOME="$OUT/home-join" SWOS_LOBBY_SAY="HELLO FROM THE JOINER" ${JOIN_ENV:-} \
     2>&1 | tee "$OUT/join.log" | stamp > "$OUT/join.ts"
   echo "[relay-test] exit ${PIPESTATUS[0]}" >> "$OUT/join.log" ) &
 JOIN_PID=$!
@@ -220,6 +222,9 @@ for side in host join; do
     grep -E "^\[p2p\] (relay|direct connection|link (failed|closed))|^\[netplay\] (p2p match|live match|desync|the peer|network)|^\[live\] final sim|^\[record\]|^\[relay-test\]" \
         "$OUT/$side.log"
     grep -q '^\[relay-test\] exit 0$' "$OUT/$side.log" || { echo "!! $side did not exit 0"; fail=1; }
+    other=JOINER; [ "$side" = join ] && other=HOST
+    n=$(grep -c "^\[chat\] them: HELLO FROM THE $other\$" "$OUT/$side.log")
+    [ "$n" = 1 ] || { echo "!! $side: the other player's chat line arrived $n times, not once"; fail=1; }
     # The team check (include/team_proto.h): each game asked the server about both
     # teams, and both are on its list. Only where the server is ours to know.
     if [ "$REMOTE" != 1 ]; then

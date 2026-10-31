@@ -206,7 +206,7 @@ def _switch_rows():
     for i, (name, label) in enumerate((("ShortPresses", "SHORT PRESSES"),
                                        ("KickoffSync", "KICK-OFF SYNC"),
                                        ("CardsInjuries", "CARDS/INJURIES"))):
-        y = 93 + 13 * i
+        y = 106 + 13 * i            # (under CHAT / SWITCHES: the pane they share with the chat)
         rows.append({"kind": "entry", "name": "switch%sLabel" % name,
                      "coords": {"x": -8, "y": y, "w": 120, "h": 12},
                      "commands": [{"op": "text", "flags": "0x0", "literal": label},

@@ -184,7 +184,7 @@ int32_t        P2PLink_PeerProposedDelay(void);
  *
  * Buffers stay valid until the next poll that completes a newer message on the
  * same channel, or until the link closes -- copy out what you keep. */
-#define P2P_NUM_CHANNELS 5     /* 0-2 the lobby, 3 the match report, 4 PRED (match_prediction.h) */
+#define P2P_NUM_CHANNELS 6     /* 0-2 the lobby, 3 the match report, 4 PRED (match_prediction.h), 5 the chat */
 
 /* Queue a message, replacing the channel's last. 0 on success (connected only). */
 int32_t        P2PLink_Send(int32_t channel, const uint8_t *data, uint32_t len);
