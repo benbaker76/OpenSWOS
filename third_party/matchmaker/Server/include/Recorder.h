@@ -37,6 +37,8 @@ public:
     // Once per main-loop pass: read what arrived, compare, and close matches that
     // are over.
     void Update();
+    // A recording stream is open (TCP, which the server polls).
+    bool Busy() const { return !m_connections.empty(); }
 
 private:
     struct Side
