@@ -251,7 +251,7 @@ static void logInMenu_layout(void)
     set_text(LogInMenu_passwordInput, accounts ? password_text() : server_text());
     set_text(LogInMenu_logInContinue, "LOGIN");
     set_text(LogInMenu_OfflinelogOut, "ABOUT");
-    set_text(LogInMenu_news, "NEWS");
+    set_text(LogInMenu_news, Account_Has(ACCOUNT_HAS_RANKINGS) ? "RANKINGS" : "NEWS");
     /* SHOW PASSWORD only where there is one; no live cast here. */
     entry_at(LogInMenu_showPasswordLabel)->isInvisible = accounts ? 0 : 1;
     entry_at(LogInMenu_showPassword)->isInvisible = accounts ? 0 : 1;
@@ -432,7 +432,10 @@ static void registerUserMenuNews3_OnSelect(void) { open_account_page(ACCOUNT_LIN
 
 static void logInMenuNews_OnSelect(void)
 {
-    OnlineMenus_Show(SWOS2020_MENU(newsMenu));
+    if (Account_Has(ACCOUNT_HAS_RANKINGS))      /* (the log-in's RANKINGS, SWOS United's screen) */
+        OnlineMenus_Show(SWOS2020_MENU(rankingsMenu));
+    else
+        OnlineMenus_Show(SWOS2020_MENU(newsMenu));
 }
 
 /* ======================================================================
@@ -529,6 +532,10 @@ static void matchMaking_layout(void)
         for (r = 0; r < 3; r++)
             if (column[c][r] >= 0)
                 entry_at(column[c][r])->x = (uint16_t)(kLeft + c * kStep);
+    /* RANKINGS, LEAGUES, MATCH LOGS: only a service with them (online_account.h). */
+    entry_at(MatchMakingMenu_rankings)->isInvisible  = Account_Has(ACCOUNT_HAS_RANKINGS) ? 0 : 1;
+    entry_at(MatchMakingMenu_leagues)->isInvisible   = Account_Has(ACCOUNT_HAS_LEAGUES) ? 0 : 1;
+    entry_at(MatchMakingMenu_matchLogs)->isInvisible = Account_Has(ACCOUNT_HAS_MATCH_LOGS) ? 0 : 1;
     entry_at(MatchMakingMenu_desc)->x = (uint16_t)(20 + 24 - kShift);
     entry_at(MatchMakingMenu_connector)->x = (uint16_t)(203 + 24 - kShift);
     entry_at(MatchMakingMenu_numOfUsers)->dwWidth = 120 - 8;
@@ -2381,6 +2388,7 @@ void OnlineMenus_Init(void)
         return;
     registered = 1;
     MenuJson_RegisterSymbols(k_handlers, (int)(sizeof k_handlers / sizeof k_handlers[0]));
+    Account_Init();             /* (a fork's own screens: online_account.h) */
 }
 
 /* ======================================================================

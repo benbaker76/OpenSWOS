@@ -26,6 +26,21 @@ typedef enum {
     ACCOUNT_LINKS
 } AccountLink;
 
+/* What the service has beyond the log-in. A screen OpenSWOS imported from SWOS 2020 for
+ * one (RANKINGS, LEAGUES, MATCH LOGS, the ranked and league/cup matches of OPEN) shows its
+ * button only when the service says it has it; the screens' handlers are the fork's own,
+ * registered by Account_Init (MenuJson_RegisterSymbols). */
+typedef enum {
+    ACCOUNT_HAS_RANKINGS,
+    ACCOUNT_HAS_LEAGUES,
+    ACCOUNT_HAS_MATCH_LOGS,
+    ACCOUNT_HAS_RANKED,         /* OPEN offers FRIENDLY, RANKED MATCH and LEAGUE / CUP */
+    ACCOUNT_FEATURES
+} AccountFeature;
+
+void        Account_Init(void);                 /* once, with the online menus */
+int32_t     Account_Has(AccountFeature feature);
+
 /* A password is asked for and checked at LOGIN. 0: a name is all. */
 int32_t     Account_Enabled(void);
 /* The log-in screen's line under its title ("LOGIN TO YOUR SENSIBLESOCCER.DE ACCOUNT"). */

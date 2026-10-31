@@ -13,6 +13,8 @@
 
 #if !PROJECT_ACCOUNTS
 
+void        Account_Init(void)                 {}
+int32_t     Account_Has(AccountFeature feature) { (void)feature; return 0; }
 int32_t     Account_Enabled(void)              { return 0; }
 const char *Account_Prompt(void)               { return "CHOOSE A NAME AND THE SERVER TO MEET ON"; }
 const char *Account_Url(AccountLink link)      { (void)link; return 0; }
