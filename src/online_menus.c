@@ -1047,10 +1047,20 @@ static void lobby_test_draw(LobbyState st)
 
 /* The lobby, for as long as the two players stay in it: after every match it comes
  * back, reconnecting to the same player (run_live_match), until one of them leaves. */
+static int32_t s_peerTold;           /* Account_LobbyPeer has had the other player's name */
+static int32_t s_openMode;          /* LOBBY_MODE_*: what OPEN's game counts for (online_account.h) */
+
 void OnlineMenus_EnterLobby(int32_t player, const char *name)
 {
     OnlineMenus_Init();
     NetplayLobby_Begin(player, name);
+    if (player == 1 && s_openMode != LOBBY_MODE_FRIENDLY) {    /* what OPEN's game counts for */
+        LobbyRules r = *NetplayLobby_Rules();
+        r.mode = (uint16_t)s_openMode;
+        NetplayLobby_SetRules(&r);
+    }
+    s_peerTold = 0;
+    Account_LobbyOpened(player == 1);
     lobby_test_knobs();
     s_lobbyMatches = 0;
     do {
@@ -1344,6 +1354,12 @@ static void chat_draw(void)
     }
 }
 
+/* SELECT MATCH: the service's (online_account.h). */
+static void selectRankedModeOption1(void)
+{
+    Account_SelectMatch();
+}
+
 /* FRAME DELAY: this player's extra frames, never below AUTO (netplay_lobby.h). */
 static void selectGgpoFrameDelayDec(void)
 {
@@ -1430,7 +1446,28 @@ static void mpGameSetupMenu_OnDraw(void)
     players[0] = NetplayLobby_Player(1);
     players[1] = NetplayLobby_Player(2);
 
-    snprintf(s_lobbyHeader, sizeof s_lobbyHeader, "FRIENDLY GAME - LOBBY (%s)", host ? "HOST" : "CLIENT");
+    snprintf(s_lobbyHeader, sizeof s_lobbyHeader, "%s - LOBBY (%s)",
+             rules->mode == LOBBY_MODE_RANKED ? "RANKED MATCH" : rules->mode == LOBBY_MODE_LEAGUE ? "LEAGUE / CUP"
+                                                                                               : "FRIENDLY GAME",
+             host ? "HOST" : "CLIENT");
+    /* A service with ranked and league / cup matches (online_account.h): its lines, the other
+     * player's arrival, and the MATCH row -- what this match is for, SELECT MATCH the host's. */
+    Account_LobbyPoll();
+    if (!s_peerTold && players[1 - (me - 1)]->known && players[1 - (me - 1)]->name[0]) {
+        s_peerTold = 1;
+        Account_LobbyPeer(players[1 - (me - 1)]->name);
+    }
+    {
+        const char *matchText = Account_MatchText();
+        set_visible(MpGameSetupMenu_matchInfo, matchText != NULL);
+        set_visible(MpGameSetupMenu_rankedMode1Label, matchText != NULL);
+        set_visible(MpGameSetupMenu_rankedModeOption1, matchText != NULL && rules->mode == LOBBY_MODE_LEAGUE);
+        if (matchText) {
+            set_entry(MpGameSetupMenu_matchInfo, matchText, 0, 0);
+            set_entry(MpGameSetupMenu_rankedModeOption1, "SELECT MATCH", host && open,
+                      host && open ? kLightBlue : kGray);
+        }
+    }
     set_text(MpGameSetupMenu_header, s_lobbyHeader);
     snprintf(s_lobbyStyle, sizeof s_lobbyStyle, "%s", _gDosGameplay ? "PC (70FPS)" : "AMIGA (50FPS)");
     set_text(MpGameSetupMenu_gameStyle, s_lobbyStyle);
@@ -2018,6 +2055,52 @@ static void rate_match(const char *opponent, int32_t outcome, const char *why)
  *
  * InitAndPlayGame runs the whole match and returns when it is over, exactly as it
  * does for the friendly menu and for arcade mode. */
+/* Goals a side scored in extra time: the scorers list keeps each goal's minute (three digits
+ * after a byte that is not one; goal_scored.c), and a shoot-out's are not in it. */
+static int32_t extra_time_goals(const ScorerInfo *list)
+{
+    int32_t n = 0, s, g;
+    for (s = 0; s < 8; s++)
+        for (g = 0; g < list[s].numGoals && g < 10; g++) {
+            const int8_t *t = list[s].goals[g].time;
+            const int32_t minute = (t[1] - '0') * 100 + (t[2] - '0') * 10 + (t[3] - '0');
+            if (minute > 90)
+                n++;
+        }
+    return n;
+}
+
+/* A match is over: how it ended, from this player's side, to the service (online_account.h). */
+static void tell_service(int32_t completed)
+{
+    extern uint16_t _statsTeam1Goals, _statsTeam2Goals, _team1PenaltyGoals, _team2PenaltyGoals;
+    extern ScorerInfo _team1Scorers[], _team2Scorers[];
+    extern int _gDosGameplay;
+    const LobbyRules *rules = NetplayLobby_Rules();
+    const int32_t me = NetplayLobby_LocalPlayer();
+    const LobbyPlayer *other = NetplayLobby_Player(3 - me);
+    int32_t goals[2][3];
+    AccountResult r;
+
+    goals[0][2] = _team1PenaltyGoals;
+    goals[1][2] = _team2PenaltyGoals;
+    goals[0][1] = extra_time_goals(_team1Scorers);
+    goals[1][1] = extra_time_goals(_team2Scorers);
+    goals[0][0] = (int32_t)_statsTeam1Goals - goals[0][2] - goals[0][1];
+    goals[1][0] = (int32_t)_statsTeam2Goals - goals[1][2] - goals[1][1];
+    memset(&r, 0, sizeof r);
+    r.mode      = rules->mode;
+    r.matchId   = rules->matchId;
+    r.legId     = rules->legId;
+    r.host      = me == 1;
+    r.completed = completed;
+    r.dosStyle  = _gDosGameplay != 0;
+    memcpy(r.mine, goals[me - 1], sizeof r.mine);       /* (player 1 is the top team, team 1) */
+    memcpy(r.theirs, goals[2 - me], sizeof r.theirs);
+    snprintf(r.opponent, sizeof r.opponent, "%s", other ? other->name : "");
+    Account_MatchPlayed(&r);
+}
+
 static void run_live_match(void)
 {
     extern TeamFileEx  _selectedTeams[SELECTED_TEAMS_MAX];
@@ -2067,6 +2150,7 @@ static void run_live_match(void)
                      (unsigned)_statsTeam1Goals, (unsigned)_statsTeam2Goals);
         else
             snprintf(notice, sizeof notice, "FULL TIME - PRESS GO FOR A REMATCH");
+        tell_service(!s_matchEndedEarly);       /* (before the rules move on: the leg it was) */
         /* A two-leg tie moves on (the host's rules; the joiner hears of it). */
         NetplayLobby_MatchPlayed(!s_matchEndedEarly, _statsTeam1Goals, _statsTeam2Goals);
         NetplayMatch_Finish();
@@ -2088,6 +2172,12 @@ static void run_live_match(void)
  * played in the HOST's style: whoever joins takes it for that game (p2p_link.c). */
 static void matchMaking_openGame_onSelect(void)
 {
+    /* A service with ranked and league / cup matches asks what this one is for first. */
+    s_openMode = Account_Has(ACCOUNT_HAS_RANKED) ? Account_ChooseMode() : LOBBY_MODE_FRIENDLY;
+    if (s_openMode < 0) {
+        s_openMode = LOBBY_MODE_FRIENDLY;
+        return;
+    }
     s_askStyle = 1;
     OnlineMenus_Show(SWOS2020_MENU(hostGameMessageMenu));
     s_askStyle = 0;                 /* EXIT, or the answer (which cleared it already) */
@@ -2335,6 +2425,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(selectMinSubs1),
     HANDLER(selectMaxSubs1),
     HANDLER(selectLiveCastUrl),
+    HANDLER(selectRankedModeOption1),
     HANDLER(selectGgpoFrameDelayDec),
     HANDLER(selectGgpoFrameDelayInc),
     HANDLER(selectGGPOFrameDelay),

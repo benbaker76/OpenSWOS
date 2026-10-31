@@ -87,13 +87,14 @@ enum {
 #define STATE_MAGIC   0x53554C42u       /* "SULB" */
 #define START_MAGIC   0x53555354u       /* "SUST" */
 #define ANSWER_MAGIC  0x5355414Eu       /* "SUAN" */
-#define LOBBY_VERSION 6     /* 2: START carries the match's packet key; 3: and the kick-off state;
+#define LOBBY_VERSION 7     /* 2: START carries the match's packet key; 3: and the kick-off state;
                                4: the cup rules; 5: the host's switches; 6: FRAME DELAY's extra
-                               frames (STATE) and the match's delay (START) */
+                               frames (STATE) and the match's delay (START); 7: the match's
+                               mode and the service's match / leg ids (the rules) */
 
 /* STATE: magic, version, player, ready, activity, hasTeam, tactic, rulesGen, the ten
  * rules, the name, the team, the USER tactic, the extra delay frames. */
-enum { RULE_WORDS = 10 };
+enum { RULE_WORDS = 15 };            /* (the last five: the mode, the match id and the leg id) */
 enum { CHAT_WINDOW = 8, CHAT_MAGIC = 0x43484154 /* "CHAT" */ };
 enum { STATE_BYTES = 4 + 2 + 4 + 2 + 2 + RULE_WORDS * 2 + LOBBY_NAME_MAX + NETPLAY_TEAM_BYTES +
                      TACTIC_BYTES + 1 };
@@ -312,6 +313,15 @@ static void fail_with(const char *text)
     NetplayLobby_ChatNotice(text);
 }
 
+/* Field by field: the struct has padding (before matchId), which a memcmp would read. */
+static int32_t rules_equal(const LobbyRules *a, const LobbyRules *b)
+{
+    return a->gameLength == b->gameLength && a->pitchType == b->pitchType && a->minSubs == b->minSubs &&
+           a->maxSubs == b->maxSubs && a->legs == b->legs && a->tieBreak == b->tieBreak && a->leg == b->leg &&
+           a->firstLeg1 == b->firstLeg1 && a->firstLeg2 == b->firstLeg2 && a->switches == b->switches &&
+           a->mode == b->mode && a->matchId == b->matchId && a->legId == b->legId;
+}
+
 static void clamp_rules(LobbyRules *r)
 {
     r->switches &= NETPLAY_SW_ALL;      /* (an older host's CATCH UP / BALANCE: gone) */
@@ -339,6 +349,10 @@ static void clamp_rules(LobbyRules *r)
         r->firstLeg1 = 99;
     if (r->firstLeg2 > 99)
         r->firstLeg2 = 99;
+    if (r->mode > LOBBY_MODE_RANKED)
+        r->mode = LOBBY_MODE_FRIENDLY;
+    if (r->mode == LOBBY_MODE_FRIENDLY)
+        r->matchId = r->legId = 0;
     r->switches &= NETPLAY_SW_ALL;
 #ifndef SWOS_TEST_RULES
     /* A release has the no-cards rule compiled out: as the host it always plays with them.
@@ -393,6 +407,9 @@ static int32_t encode_state(uint8_t *out)
     BE_WRITE_U16(q, s_lobby.rules.firstLeg1);     q += 2;
     BE_WRITE_U16(q, s_lobby.rules.firstLeg2);     q += 2;
     BE_WRITE_U16(q, s_lobby.rules.switches);      q += 2;
+    BE_WRITE_U16(q, s_lobby.rules.mode);          q += 2;
+    BE_WRITE_U32(q, s_lobby.rules.matchId);       q += 4;
+    BE_WRITE_U32(q, s_lobby.rules.legId);         q += 4;
     memset(q, 0, LOBBY_NAME_MAX);
     memcpy(q, p->name, strnlen(p->name, LOBBY_NAME_MAX)); q += LOBBY_NAME_MAX;
     NetplaySetup_WriteTeam(q, &p->team);          q += NETPLAY_TEAM_BYTES;
@@ -443,6 +460,8 @@ static void read_peer_state(void)
     LobbyRules rules;
     uint16_t rulesGen;
 
+    memset(&rules, 0, sizeof rules);
+
     if (!m || gen == s_lobby.peerStateGen)
         return;
     s_lobby.peerStateGen = gen;
@@ -468,6 +487,9 @@ static void read_peer_state(void)
     rules.firstLeg1  = BE_READ_U16(q);            q += 2;
     rules.firstLeg2  = BE_READ_U16(q);            q += 2;
     rules.switches   = BE_READ_U16(q);            q += 2;
+    rules.mode       = BE_READ_U16(q);            q += 2;
+    rules.matchId    = BE_READ_U32(q);            q += 4;
+    rules.legId      = BE_READ_U32(q);            q += 4;
     memcpy(got.name, q, LOBBY_NAME_MAX);          q += LOBBY_NAME_MAX;
     got.name[LOBBY_NAME_MAX] = '\0';
     NetplaySetup_ReadTeam(&got.team, q);          q += NETPLAY_TEAM_BYTES;
@@ -501,7 +523,7 @@ static void read_peer_state(void)
          * not agreed to these yet. */
         if (rulesGen != s_lobby.rulesGen) {
             clamp_rules(&rules);
-            if (s_lobby.rulesGen != 0 && memcmp(&rules, &s_lobby.rules, sizeof rules) != 0)
+            if (s_lobby.rulesGen != 0 && !rules_equal(&rules, &s_lobby.rules))
                 drop_my_ready();
             s_lobby.rules    = rules;
             s_lobby.rulesGen = rulesGen;
@@ -1095,7 +1117,7 @@ void NetplayLobby_SetRules(const LobbyRules *rules)
     if (r.legs != s_lobby.rules.legs || r.tieBreak != s_lobby.rules.tieBreak)
         r.leg = 1;
     clamp_rules(&r);
-    if (memcmp(&r, &s_lobby.rules, sizeof r) == 0)
+    if (rules_equal(&r, &s_lobby.rules))
         return;
     s_lobby.rules = r;
     s_lobby.rulesGen++;

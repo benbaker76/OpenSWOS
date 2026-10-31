@@ -54,4 +54,35 @@ void        Account_Begin(const char *user, const char *password);
 int32_t     Account_Poll(void);
 const char *Account_Error(void);
 
+/* ---- ranked and league / cup matches (a service with ACCOUNT_HAS_RANKED) ----
+ *
+ * OPEN asks the service what the match counts for (its screen: FRIENDLY, RANKED MATCH,
+ * LEAGUE / CUP): a LOBBY_MODE_* (netplay_lobby.h), or -1 to open nothing. The host's choice
+ * goes into the lobby's rules, where the joiner sees it, with the service's match and leg ids
+ * once there are any; the service follows the lobby through the calls below, on both
+ * machines, and may change the host's rules itself (NetplayLobby_SetRules: a ranked match
+ * the players' ratings do not allow played as a friendly, a league match selected). Its lines
+ * go into the chat (NetplayLobby_ChatNotice). */
+int32_t     Account_ChooseMode(void);
+void        Account_LobbyOpened(int32_t host);
+void        Account_LobbyPeer(const char *name);    /* the other player's name has arrived */
+void        Account_LobbyPoll(void);                /* each frame the lobby is up */
+/* The lobby's MATCH row: what this match is for ("(NO MATCH INFO)"), NULL hides the row and
+ * its SELECT MATCH button. */
+const char *Account_MatchText(void);
+void        Account_SelectMatch(void);              /* SELECT MATCH */
+
+/* After every match, on both machines: how it ended, from THIS player's side -- goals in the
+ * ninety minutes, in extra time, in the shoot-out -- and whether it was played to the end. */
+typedef struct {
+    int32_t  mode;                  /* LOBBY_MODE_*: the rules it was played by */
+    uint32_t matchId, legId;
+    int32_t  host;                  /* this player opened the game */
+    int32_t  completed;
+    int32_t  dosStyle;              /* played the PC game's way (else the Amiga's) */
+    int32_t  mine[3], theirs[3];    /* goals: [0] the ninety minutes, [1] extra time, [2] penalties */
+    char     opponent[24];
+} AccountResult;
+void        Account_MatchPlayed(const AccountResult *result);
+
 #endif /* ONLINE_ACCOUNT_H */

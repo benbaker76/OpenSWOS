@@ -21,5 +21,12 @@ const char *Account_Url(AccountLink link)      { (void)link; return 0; }
 void        Account_Begin(const char *user, const char *password) { (void)user; (void)password; }
 int32_t     Account_Poll(void)                 { return 1; }
 const char *Account_Error(void)                { return ""; }
+int32_t     Account_ChooseMode(void)           { return 0; }
+void        Account_LobbyOpened(int32_t host)  { (void)host; }
+void        Account_LobbyPeer(const char *name) { (void)name; }
+void        Account_LobbyPoll(void)            {}
+const char *Account_MatchText(void)            { return 0; }
+void        Account_SelectMatch(void)          {}
+void        Account_MatchPlayed(const AccountResult *result) { (void)result; }
 
 #endif

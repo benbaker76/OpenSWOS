@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 6      /* 6: the lobby chat (a link channel of its own, netplay_lobby.c) */
+#define NETPLAY_COMPAT 7      /* 7: the lobby's match mode and service ids (6: the lobby chat) */
 
 #endif

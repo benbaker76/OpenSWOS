@@ -69,9 +69,15 @@ typedef struct {
     /* The host's switches, NETPLAY_SW_* (netplay_match.h): how the match is played where
      * the builds since 7d9d6d9 changed it. Only the host's count; both play by them. */
     uint16_t switches;
+    /* What the match counts for, on a service with rankings and leagues (online_account.h;
+     * OpenSWOS's matches are all friendlies): the host's choice at OPEN, and for a league or
+     * cup match, or a ranked one once the service has made it, the service's ids for it. */
+    uint16_t mode;                  /* LOBBY_MODE_* */
+    uint32_t matchId, legId;        /* 0: none (yet) */
 } LobbyRules;
 
 enum { LOBBY_TIE_ET_PEN = 1, LOBBY_TIE_PEN_ONLY = 2 };
+enum { LOBBY_MODE_FRIENDLY = 0, LOBBY_MODE_LEAGUE = 1, LOBBY_MODE_RANKED = 2 };
 
 typedef enum {
     LOBBY_CLOSED,                   /* not begun */
