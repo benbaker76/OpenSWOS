@@ -1033,6 +1033,11 @@ static void lobby_test_draw(LobbyState st)
         s_testReady = 0;
     }
     static uint32_t openSince;
+    static int32_t openAfter = -1;      /* the matches played when openSince was taken */
+    if (st != LOBBY_OPEN || openAfter != s_lobbyMatches) {
+        openSince = 0;                  /* (a match is played without this draw: reset here) */
+        openAfter = s_lobbyMatches;
+    }
     if (st != LOBBY_OPEN)
         openSince = 0;
     else if (!openSince)
