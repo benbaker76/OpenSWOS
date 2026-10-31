@@ -463,6 +463,31 @@ EMSCRIPTEN_KEEPALIVE void InputSDL_TouchKey(int32_t akey)
         push_amiga_key((uint8_t)akey);
 }
 
+/* A character the page's hidden text field got from a phone's on-screen keyboard
+ * (wasm/shell.html), while the game asks for text (InputText): the key that types it
+ * into the FIFO, as a key press does. `ch`: a printable ASCII character, or 8 BACKSPACE,
+ * 13 ENTER, 27 ESC. A character no key types is dropped. */
+EMSCRIPTEN_KEEPALIVE void InputSDL_WebChar(int32_t ch)
+{
+    int a;
+    if (ch == 8)
+        a = sdl_to_amiga(SDLK_BACKSPACE);
+    else if (ch == 13)
+        a = sdl_to_amiga(SDLK_RETURN);
+    else if (ch == 27)
+        a = sdl_to_amiga(SDLK_ESCAPE);
+    else if (ch >= 'A' && ch <= 'Z')
+        a = sdl_to_amiga((SDL_Keycode)(ch - 'A' + 'a'));    /* (the field is capitals anyway) */
+    else if (ch > ' ' && ch < 0x7F)
+        a = sdl_to_amiga((SDL_Keycode)ch);
+    else if (ch == ' ')
+        a = sdl_to_amiga(SDLK_SPACE);
+    else
+        a = -1;
+    if (a >= 0)
+        push_amiga_key((uint8_t)a);
+}
+
 static void touch_controls(int *_up, int *_down, int *left, int *right, int *_fire)
 {
     if (s_touch_dirs & 1) *_up    = 1;

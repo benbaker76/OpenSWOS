@@ -11,6 +11,20 @@
 #include "input_text.h"
 #include "menu_system.h"
 #include "string_utils.h"
+#ifdef SWOS_WASM_BUILD
+#include <emscripten.h>
+#endif
+
+/* The web page (wasm/shell.html) is told a text field is open, and puts up a phone's on-screen
+ * keyboard (its hidden field; what is typed comes back through InputSDL_WebChar). */
+static void web_text_field(int on)
+{
+#ifdef SWOS_WASM_BUILD
+    EM_ASM({ if (Module.swosTextInput) Module.swosTextInput($0); }, on);
+#else
+    (void)on;
+#endif
+}
 
 /* ---- External globals ---- */
 extern volatile uint16_t _panicReasonCode;
@@ -225,7 +239,9 @@ uint16_t InputText(uint16_t maxLenPlus1, uint8_t *entryRaw)
 {
     uint16_t r;
     _gTextInputActive = 1;
+    web_text_field(1);
     r = inputTextBody(maxLenPlus1, entryRaw);
+    web_text_field(0);
     _gTextInputActive = 0;
     return r;
 }

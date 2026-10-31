@@ -72,6 +72,12 @@
     #padBtn:hover, #padBtn.on { opacity: 1; }
     #padBtn.on { color: #6c6; border-color: #6c6; }
     #padBtn svg { width: 19px; height: 19px; display: block; }
+    /* The phone keyboard's field (below): there to be focused, never seen. 16px, or iOS
+       zooms the page when it takes focus. */
+    #textKbd {
+      position: fixed; left: 0; bottom: 0; width: 1px; height: 1px;
+      opacity: 0; border: 0; padding: 0; font-size: 16px; z-index: -1;
+    }
     #touch { display: none; }
     #touch.on { display: block; }
     #touch .zone {
@@ -178,6 +184,8 @@
     <div class="key" id="kPause">PAUSE</div>
     <div class="key" id="kEsc">ESC</div>
   </div>
+  <input id="textKbd" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters"
+         spellcheck="false" enterkeyhint="done" aria-hidden="true" tabindex="-1">
   <input id="impFile" type="file" multiple
          accept=".CAR,.SEA,.PRE,.DIY,.TAC,.HIL,.EDT,.CFG,.car,.sea,.pre,.diy,.tac,.hil,.edt,.cfg">
   <div id="impMsg"></div>
@@ -439,6 +447,60 @@
       var touchScreen = ('ontouchstart' in window) ||
                         (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
       show(saved === null ? !!touchScreen : saved === '1');
+    })();
+
+    // --- A phone's keyboard for the game's text fields ---------------------
+    // A file name, a team's name, the online user name: when the game asks for text
+    // (InputText, src/input_text.c) it calls Module.swosTextInput(1), and (0) when done.
+    // A phone shows its keyboard only for a focused text field, so a hidden one takes the
+    // focus meanwhile; what is typed into it goes to the game a character at a time
+    // (InputSDL_WebChar, src/input_sdl.c) and the field is emptied again. Its key events
+    // stop there, so a tablet's own keyboard does not type everything twice. A computer's
+    // keyboard goes to the game as before: the field is used only on a touch screen.
+    // Safari on iOS opens the keyboard only from a tap: if the field could not take the
+    // focus by itself, any tap gives it.
+    (function () {
+      var field = document.getElementById('textKbd');
+      var canvas = document.getElementById('canvas');
+      var SENTINEL = '_';                         // so a soft backspace still changes the field
+      var active = false;
+      var touchScreen = ('ontouchstart' in window) ||
+                        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      function send(ch) {
+        if (Module.swosReady && Module._InputSDL_WebChar) Module._InputSDL_WebChar(ch);
+      }
+      function open() {
+        field.value = SENTINEL;
+        field.focus({ preventScroll: true });
+        try { field.setSelectionRange(1, 1); } catch (e) {}
+      }
+      Module.swosTextInput = function (on) {
+        active = !!on && touchScreen;
+        if (active) open();
+        else if (document.activeElement === field) { field.blur(); canvas.focus(); }
+      };
+      // Any tap -- the game, or the on-screen FIRE that chose the field -- while the keyboard
+      // is down (closed by the phone's own "done", or not opened by a script on iOS).
+      ['touchend', 'pointerup'].forEach(function (ev) {
+        document.addEventListener(ev, function () {
+          if (active && document.activeElement !== field) open();
+        }, true);
+      });
+      field.addEventListener('keydown', function (e) {
+        e.stopPropagation();                      // the game hears it from below, once
+        if (e.key === 'Enter') { e.preventDefault(); send(13); }
+        else if (e.key === 'Backspace') { e.preventDefault(); send(8); }
+        else if (e.key === 'Escape') { e.preventDefault(); send(27); }
+      });
+      field.addEventListener('keyup', function (e) { e.stopPropagation(); });
+      field.addEventListener('keypress', function (e) { e.stopPropagation(); });
+      field.addEventListener('input', function () {
+        var v = field.value;
+        if (v.length < SENTINEL.length) send(8);  // a soft keyboard's backspace
+        else for (var i = SENTINEL.length; i < v.length; i++) send(v.charCodeAt(i));
+        field.value = SENTINEL;
+        try { field.setSelectionRange(1, 1); } catch (e) {}
+      });
     })();
 
     // --- Import saves from the local disk -------------------------------
