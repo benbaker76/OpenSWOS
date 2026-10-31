@@ -1,9 +1,9 @@
 /*
  * project_identity.h -- what this project is called, and how it is told apart online.
  *
- * OpenSWOS is forked downstream (SWOS United, github.com/SWOS-United): a fork changes THIS
- * file, and only this one, for its name, its online identifiers and its servers, so that
- * merging OpenSWOS into it never conflicts over them (docs/FORKING.md). Every string the
+ * A fork of OpenSWOS (SWOS United, github.com/SWOS-United, is one) changes THIS file, and only
+ * this one, for its name, its online identifiers and its servers, so that a fork which merges
+ * OpenSWOS's later changes never conflicts over them (docs/FORKING.md). Every string the
  * player sees that names the project, and every identifier another build or a server
  * compares, comes from here. Shared by the game (both targets), OpenSWOS Setup
  * (tools/swosdata) and the matchmaking server (third_party/matchmaker).

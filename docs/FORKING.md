@@ -1,26 +1,29 @@
-# FORKING.md — OpenSWOS downstream (SWOS United)
+# FORKING.md — forking OpenSWOS, and taking its changes if you want them
 
-SWOS United (github.com/SWOS-United/SWOS-United) is a fork of OpenSWOS that keeps OpenSWOS's
-history and takes every change OpenSWOS makes. OpenSWOS stays the upstream: it never takes
-changes back by merge. This file is how the two are kept together without conflicts.
+A fork of OpenSWOS -- SWOS United (github.com/SWOS-United/SWOS-United) is one -- is its own
+project: it owes OpenSWOS nothing but the licence (GPL-3.0-or-later, the copyright notices
+kept), and it decides for itself whether, when and how much of OpenSWOS it takes. This file is
+for a fork that DOES want OpenSWOS's later changes: how to take them with the fewest conflicts,
+and what OpenSWOS does to keep that cheap. A fork that diverges for good needs none of it.
 
-## The rule: one direction, by merge
+## Taking OpenSWOS's changes: by merge, when you choose
 
-- Work that both need goes into **OpenSWOS first**: the engine, fixes, tester reports, netplay
-  and GGPO-X, World 2026-27, the data setup, the tests. SWOS United gets it at its next sync.
-- Only what makes SWOS United different is committed there.
-- A fix made in SWOS United first that OpenSWOS needs too is **cherry-picked** into OpenSWOS;
-  the next sync then sees the same change on both sides and goes through cleanly.
-- Never merge SWOS United into OpenSWOS.
+- **Merge** (`git merge upstream/main`) to take everything since the last merge; **cherry-pick**
+  to take one fix. The fewer shared files a fork changes, the cheaper both stay.
+- OpenSWOS never merges a fork. A fix of a fork's that OpenSWOS wants is cherry-picked into
+  OpenSWOS; the fork's next merge then sees the same change on both sides.
+- Online, a fork with its own servers or rules is a community of its own (its own
+  `PROJECT_NETPLAY_TAG`, below): nothing about the match then has to stay in step.
 
-In SWOS United, once:
+In the fork, once:
 
 ```bash
 git remote add upstream git@github.com:benbaker76/OpenSWOS.git
 git config rerere.enabled true      # a conflict resolved once is resolved the next time too
 ```
 
-Then, every sync (often: small merges rarely conflict):
+Then, each time you want OpenSWOS's changes (often, while you want them: small merges rarely
+conflict):
 
 ```bash
 git fetch upstream

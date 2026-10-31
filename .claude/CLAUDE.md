@@ -28,10 +28,11 @@ see `SDL_ONLY_SRCS` in `Makefile.amiga`.
 > `openswos-team`, ggpo-x branch `openswos`): a build of another fork with different ones
 > does not meet it online.
 
-**Forks:** SWOS United (github.com/SWOS-United) is downstream of OpenSWOS and merges it. The
+**Forks:** SWOS United (github.com/SWOS-United) is a fork of OpenSWOS, its own project: it takes
+OpenSWOS's changes when ITS team chooses, and its online play is its own (servers, log-in). The
 project's name, online identifiers, servers and player folder are ALL in
-`include/project_identity.h` -- never write them anywhere else (docs/FORKING.md); shared work
-lands here first.
+`include/project_identity.h` -- never write them anywhere else (docs/FORKING.md), so a fork that
+does merge changes nothing else for them.
 
 **Docs map:** `docs/INDEX.md` lists every doc in `docs/` (what it is, whether it is current,
 when to read it) and every path the project uses — repos, tools, servers, save folders.
