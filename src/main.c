@@ -515,6 +515,12 @@ int main(int argc, char **argv)
       g_arcadeOpts = &opts; g_arcadeIniPath = ini_path; }
 
     /* 3) CLI overrides INI (highest precedence — explicit user intent). */
+#if SWOS_ONLINE_CLIENT
+    /* The online client starts at the multiplayer log-in, and leaving it quits (an option
+     * below that opens a menu of its own still wins: the last start menu set is shown). */
+    OnlineMenus_StartOnline(1);
+    { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+#endif
     for (int i = 1; i < argc; ++i) {
         const char *a = argv[i];
         const char *v;
@@ -679,6 +685,10 @@ int main(int argc, char **argv)
             if      (strcmp(v, "amiga") == 0)  opts.kit_art = 0;
             else if (strcmp(v, "jaguar") == 0) opts.kit_art = 1;
             else { fprintf(stderr, "--kit-art must be amiga or jaguar (got %s)\n", v); return 1; }
+        } else if (strcmp(a, "--online") == 0) {
+            /* Straight to the multiplayer log-in; leaving it, the main menu. */
+            OnlineMenus_StartOnline(0);
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if ((v = match_kv(a, "menu")) != NULL) {
             OnlineMenus_SetStartMenu(v);
             /* Same reason as --matchmaker-menu: this flag exists to reach a menu,

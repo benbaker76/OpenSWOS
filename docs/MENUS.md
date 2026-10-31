@@ -847,6 +847,11 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
   setup) and `src/mpgame.cpp` (everything else); most of it needs the servers.
 - `bin/SWOS.x86_64 --menu=swos2020/logInMenu` opens a menu before the main menu;
   leaving it lands on the main menu.
+- `--online` opens the multiplayer log-in first (the intro skipped), leaving it for the main
+  menu; **the online client**, `make ONLINE_CLIENT=1` (`SWOS_ONLINE_CLIENT`), always starts
+  there and quits when it is left -- a build for playing online and nothing else, SWOS
+  United's. A build flavour, not a fork's default, so every test rig and the career autopilot
+  still start at the main menu.
 - The main menu's **MULTIPLAYER** button (entry 14, `MultiplayerMenuSelected` in
   `src/menus.c`) opens SWOS 2020's online flow, `swos2020/logInMenu` -- log in to a
   matchmaking server (`src/mm_client.c`, docs/NETPLAY.md section 7). OpenSWOS's own

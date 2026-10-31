@@ -196,8 +196,13 @@ void FrontEndMainLoop(void)
      * does (CommonMenuExit). Without it CONTINUE and SAVE came back as two blank, live
      * rows under MULTIPLAYER. */
     extern int32_t OnlineMenus_ShowStartMenu(void);
-    if (OnlineMenus_ShowStartMenu())
-        CommonMenuExit();
+    extern int32_t OnlineMenus_QuitAfterStartMenu(void);
+    if (OnlineMenus_ShowStartMenu()) {
+        if (OnlineMenus_QuitAfterStartMenu())
+            _quitToDos = 1;             /* the online client: leaving the log-in is leaving */
+        else
+            CommonMenuExit();
+    }
 #endif
 
     do

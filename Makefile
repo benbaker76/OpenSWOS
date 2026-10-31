@@ -415,6 +415,12 @@ endif
 SWOS_WORLDS ?= 1
 DEBUG_FLAGS += -DSWOS_WORLDS=$(SWOS_WORLDS)
 
+# The online client (`make ONLINE_CLIENT=1`, SDL with netplay): the game starts at the
+# multiplayer log-in, and leaving it quits -- a build for playing online and nothing else
+# (SWOS United's). `--online` starts any build there, leaving it for the main menu.
+ONLINE_CLIENT ?= 0
+DEBUG_FLAGS += -DSWOS_ONLINE_CLIENT=$(ONLINE_CLIENT)
+
 # Build with the PRISTINE Amiga data for the four formations this port
 # deliberately corrected — 4-4-2, 4-3-3, 3-4-3, Sweep (commit 1828528, whose
 # tester-supplied fix un-swaps central defenders that crossed sides instead of

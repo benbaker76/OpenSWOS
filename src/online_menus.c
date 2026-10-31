@@ -2292,9 +2292,26 @@ void OnlineMenus_SetAutoLogin(const char *name)
     OnlineMenus_SetStartMenu("swos2020/matchMakingMenu");
 }
 
+static int32_t s_quitAfterStart;
+
 void OnlineMenus_SetStartMenu(const char *name)
 {
     snprintf(s_startMenu, sizeof s_startMenu, "%s", name);
+    s_quitAfterStart = 0;               /* (another start menu: the main menu after it) */
+}
+
+/* --online, and the online client (make ONLINE_CLIENT=1): the multiplayer log-in first --
+ * with quitAfter, leaving it quits the game. */
+
+void OnlineMenus_StartOnline(int32_t quitAfter)
+{
+    OnlineMenus_SetStartMenu("swos2020/logInMenu");
+    s_quitAfterStart = quitAfter;
+}
+
+int32_t OnlineMenus_QuitAfterStartMenu(void)
+{
+    return s_quitAfterStart;
 }
 
 /* --netplay-lobby=host|join: two instances on one machine meet over loopback and open

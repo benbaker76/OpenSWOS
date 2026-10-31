@@ -18,6 +18,10 @@ void    OnlineMenus_Show(const char *name);
  * main menu must be put back, as every main-menu button does: CommonMenuExit). */
 void    OnlineMenus_SetStartMenu(const char *name);
 int32_t OnlineMenus_ShowStartMenu(void);
+/* --online, and the online client (make ONLINE_CLIENT=1): start at the multiplayer log-in;
+ * quitAfter, leaving it quits the game (FrontEndMainLoop asks QuitAfterStartMenu). */
+void    OnlineMenus_StartOnline(int32_t quitAfter);
+int32_t OnlineMenus_QuitAfterStartMenu(void);
 
 /* --menu-selftest: load, unpack and check every imported menu, report how many
  * of their handlers are ported. 0 on success. */
