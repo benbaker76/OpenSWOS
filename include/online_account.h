@@ -67,6 +67,9 @@ int32_t     Account_ChooseMode(void);
 void        Account_LobbyOpened(int32_t host);
 void        Account_LobbyPeer(const char *name);    /* the other player's name has arrived */
 void        Account_LobbyPoll(void);                /* each frame the lobby is up */
+/* 0 holds the host's START (greyed): the service is still deciding what the match is -- a
+ * ranked match's ratings not in yet, a league match not selected. */
+int32_t     Account_LobbyCanStart(void);
 /* The lobby's MATCH row: what this match is for ("(NO MATCH INFO)"), NULL hides the row and
  * its SELECT MATCH button. */
 const char *Account_MatchText(void);

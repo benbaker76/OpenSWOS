@@ -25,6 +25,7 @@ int32_t     Account_ChooseMode(void)           { return 0; }
 void        Account_LobbyOpened(int32_t host)  { (void)host; }
 void        Account_LobbyPeer(const char *name) { (void)name; }
 void        Account_LobbyPoll(void)            {}
+int32_t     Account_LobbyCanStart(void)        { return 1; }
 const char *Account_MatchText(void)            { return 0; }
 void        Account_SelectMatch(void)          {}
 void        Account_MatchPlayed(const AccountResult *result) { (void)result; }

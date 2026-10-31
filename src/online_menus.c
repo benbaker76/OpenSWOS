@@ -1426,6 +1426,12 @@ static void mpGameSetupMenu_OnInit(void)
 static void run_live_match(void);
 static int32_t current_ordinal(void);
 
+/* START: the lobby's two players ready on the same rules, and the service (if any) done. */
+static int32_t lobby_can_start(void)
+{
+    return NetplayLobby_CanStart() && Account_LobbyCanStart();
+}
+
 static void mpGameSetupMenu_OnDraw(void)
 {
     extern int _gDosGameplay;
@@ -1436,7 +1442,7 @@ static void mpGameSetupMenu_OnDraw(void)
 
     NetplayLobby_Poll();
     lobby_test_draw(NetplayLobby_State());
-    if (getenv("SWOS_LOBBY_START") && NetplayLobby_CanStart() &&
+    if (getenv("SWOS_LOBBY_START") && lobby_can_start() &&
         !(getenv("SWOS_LOBBY_MATCHES") && s_lobbyMatches >= atoi(getenv("SWOS_LOBBY_MATCHES"))))
         (void)NetplayLobby_Start();
     st = NetplayLobby_State();
@@ -1552,7 +1558,7 @@ static void mpGameSetupMenu_OnDraw(void)
                   host && open, host && open ? kLightBlue : kGray);
 
     if (host) {
-        int32_t can = NetplayLobby_CanStart();
+        int32_t can = lobby_can_start();
         set_entry(MpGameSetupMenu_start, "START", can, can ? kRed : kGray);
     } else {
         set_visible(MpGameSetupMenu_start, 0);
@@ -1912,7 +1918,8 @@ static void selectSwitchCardsInjuries(void) { change_rules(flip_cards_injuries);
 
 static void selectMPSettingStart(void)
 {
-    (void)NetplayLobby_Start();
+    if (lobby_can_start())
+        (void)NetplayLobby_Start();
 }
 
 static void selectMPSettingExit(void)
