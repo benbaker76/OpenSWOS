@@ -994,12 +994,15 @@ uint16_t Career_SelectCopaLibertadoresSlotIfTeamParticipates(void)
 extern CompetitionLeague _englishLeague;
 extern Leagues _englishLeagues1, _englishLeagues2, _englishLeagues3;
 
-__attribute__((used, externally_visible))
-void DIY_SelectCompetitionSlot4FromCurrentDivision(void)
+/* The current division's play-off link: its play-off competition and the table it feeds (the
+ * pair the Amiga reached by a self-relative byte walk; see below). 0: none. Used in play
+ * (DIY_SelectCompetitionSlot4FromCurrentDivision) and after a career is loaded
+ * (RebuildPointersAfterLoad), which must find the same pair. */
+static int32_t slot4_link(uint8_t **diyCompOut, void **diyTableOut)
 {
     uint8_t *comp = (uint8_t *)_currentCompetitionPtr;
-    if (((Competition *)comp)->type != 0)   /* type at offset 1; 0 == league */
-        return;
+    if (!comp || ((Competition *)comp)->type != 0)   /* type at offset 1; 0 == league */
+        return 0;
 
     /* The original asm followed divisions[currentDivisionIndex].qualifierLinkOffset
      * (was unk1) as a SELF-RELATIVE byte offset (from that byte) to a {diyComp,
@@ -1018,29 +1021,35 @@ void DIY_SelectCompetitionSlot4FromCurrentDivision(void)
      *   div 3: _div2.playoffs/nextGroup     = {&div3Playoffs, &_div3} */
     CompetitionLeague *league = (CompetitionLeague *)comp;
     if (league->divisions[(uint16_t)_currentDivisionIndex].qualifierLinkOffset == 0)
-        return;
-    if (comp_id(comp) != COMPID_englishLeague)   /* comp non-NULL: deref'd at type check above */
-        return;  /* only the English leagues carry these per-division links */
+        return 0;
+    if (comp_id(comp) != COMPID_englishLeague)
+        return 0;  /* only the English leagues carry these per-division links */
 
-    uint8_t *diyComp;
-    void    *diyTable;
     switch ((uint16_t)_currentDivisionIndex) {
     case 1:
-        diyComp  = (uint8_t *)_englishLeague.playoffLinkPtrs[0];
-        diyTable = _englishLeague.playoffLinkPtrs[1];
-        break;
+        *diyCompOut  = (uint8_t *)_englishLeague.playoffLinkPtrs[0];
+        *diyTableOut = _englishLeague.playoffLinkPtrs[1];
+        return 1;
     case 2:
-        diyComp  = (uint8_t *)_englishLeagues1.playoffs;
-        diyTable = _englishLeagues1.nextGroup;
-        break;
+        *diyCompOut  = (uint8_t *)_englishLeagues1.playoffs;
+        *diyTableOut = _englishLeagues1.nextGroup;
+        return 1;
     case 3:
-        diyComp  = (uint8_t *)_englishLeagues2.playoffs;
-        diyTable = _englishLeagues2.nextGroup;
-        break;
+        *diyCompOut  = (uint8_t *)_englishLeagues2.playoffs;
+        *diyTableOut = _englishLeagues2.nextGroup;
+        return 1;
     default:
-        return;
+        return 0;
     }
+}
 
+__attribute__((used, externally_visible))
+void DIY_SelectCompetitionSlot4FromCurrentDivision(void)
+{
+    uint8_t *diyComp;
+    void    *diyTable;
+    if (!slot4_link(&diyComp, &diyTable))
+        return;
     _diyCompetitionTablePtr = (uint32_t *)diyTable;
     Career_SetCurrentCompetitionSlot(diyComp, 4, 0, 0);
 }
@@ -1706,24 +1715,20 @@ static void Rebuild_CompetitionSlotPointers(void)
         (uint8_t)((DIYCompetition *)&_tertiaryCompetitionContextBuf)->field_2E == COMPID_stateContest)
         _tertiaryCompetitionPtr = States_RestoreContest();
 
-    /* Slot 4 (DIY) — derive from primary comp's DIY link. Mirrors
-     * `DIY_SelectCompetitionSlot4FromCurrentDivision`. The diyEntry
-     * payload is two pointers (diy comp ptr + diy table ptr) — 8 B
-     * stride on 64-bit. Use `void **` read instead of the old
-     * `*(uint32_t *)` which truncated. */
+    /* Slot 4 (the division's play-offs): the same link DIY_SelectCompetitionSlot4FromCurrentDivision
+     * follows in play (slot4_link). Until 2026-11-01 this still did the Amiga's self-relative
+     * byte walk, which since the structs widened lands in the division's name: a career saved
+     * with its play-offs to come loaded with slot 4 NULL -- the season screen crashed drawing
+     * the play-off game (desktop), or showed the club against itself and froze at VIEW RESULT
+     * (the web build, where address 0 reads), a tester's Hartlepool, Division Three. */
     _diyCompetitionPtr = 0;
     _diyCompetitionTablePtr = (uint32_t *)0;
-    if (_currentCompetitionPtr != 0) {
-        uint8_t *primary = (uint8_t *)_currentCompetitionPtr;
-        if (((Competition *)primary)->type == 0) {
-            uint16_t off = _currentDivisionIndex * 6;
-            uint8_t *entry = primary + off;
-            uint8_t diyOffset = entry[0x12];
-            if (diyOffset != 0) {
-                void **diyEntry = (void **)(entry + 0x12 + diyOffset);
-                _diyCompetitionPtr = (uint8_t *)diyEntry[0];
-                _diyCompetitionTablePtr = (uint32_t *)diyEntry[1];
-            }
+    {
+        uint8_t *diyComp;
+        void    *diyTable;
+        if (slot4_link(&diyComp, &diyTable)) {
+            _diyCompetitionPtr = diyComp;
+            _diyCompetitionTablePtr = (uint32_t *)diyTable;
         }
     }
     WorldPlayoff_RestoreSlot();     /* a world's play-off under way (world_playoff.c) */
