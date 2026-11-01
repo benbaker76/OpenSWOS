@@ -9,13 +9,16 @@ strings); other languages are copies of it with the values translated.
 
 This is the string analogue of the menu/competition JSON: the data files carry
 the symbol NAME (e.g. "_aDivision1"), never the literal text, and the language
-file maps name -> text. bin/data_json is gitignored/regenerated; this script is
-the source of truth.
+file maps name -> text. en.json is TRACKED in git, and the game reads it at start: a
+string listed there wins over the compiled text, so a string changed in the C shows the
+OLD text until this is rerun. Change a UI string -> run this -> commit en.json with it.
 
 Run from the repo root:  python3 scripts/export_translations.py
+                         python3 scripts/export_translations.py --check   # 1 if en.json is stale
 """
 import os
 import re
+import sys
 import json
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -90,13 +93,21 @@ def main():
            "strings": dict(sorted(strings.items())),
            "countries": dict(sorted(countries.items()))}
     path = os.path.join(OUT_DIR, "en.json")
+    # ensure_ascii=True so the handful of strings carrying a high byte (0xFF
+    # render marker, 0x9C pound glyph) are written as \uXXXX like the control
+    # bytes already are — one consistent escape form for translations.c's
+    # tr_dup() to decode back to a single byte. (Plain text is unaffected.)
+    text = json.dumps(out, ensure_ascii=True, indent=1) + "\n"
+    if "--check" in sys.argv[1:]:
+        old = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+        if old != text:
+            print("%s is stale: a UI string changed in src/ without rerunning "
+                  "scripts/export_translations.py" % os.path.relpath(path, REPO))
+            sys.exit(1)
+        print("%s is current" % os.path.relpath(path, REPO))
+        return
     with open(path, "w", encoding="utf-8") as f:
-        # ensure_ascii=True so the handful of strings carrying a high byte (0xFF
-        # render marker, 0x9C pound glyph) are written as \uXXXX like the control
-        # bytes already are — one consistent escape form for translations.c's
-        # tr_dup() to decode back to a single byte. (Plain text is unaffected.)
-        json.dump(out, f, ensure_ascii=True, indent=1)
-        f.write("\n")
+        f.write(text)
     print("wrote %s: %d strings + %d countries (%d duplicate names skipped)"
           % (os.path.relpath(path, REPO), len(strings), len(countries), dups))
 

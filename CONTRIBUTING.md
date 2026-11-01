@@ -35,6 +35,11 @@ What makes a pull request easy to accept:
   `replay_v2_test.sh` and `rollback_test.sh` for the match, `netplay_test.sh` and
   `relay_test.sh` for netplay. [docs/INDEX.md](docs/INDEX.md) says which doc covers which
   area, and each says how it is tested. Say in the PR which ones you ran.
+- **Changed a word the game shows?** The text in `src/strings_data.c` and
+  `src/swos_amiga_strings.c` is exported to `bin/data_json/translations/en.json`, which the game
+  reads at start -- and which wins over the compiled text. Run
+  `python3 scripts/export_translations.py` and commit `en.json` with your change
+  (`--check` says whether it is up to date).
 
 ## AI-assisted contributions
 
