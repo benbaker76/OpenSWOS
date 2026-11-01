@@ -1,0 +1,24 @@
+{
+  "version": 4,
+  "name": "swos.zip",
+  "items": ["Sensible World of Soccer.sh", "swos"],
+  "items_opt": [],
+  "attr": {
+    "title": "Sensible World of Soccer",
+    "porter": ["jhob101"],
+    "desc": "OpenSWOS, an open-source C port of Sensible World of Soccer 96/97. Needs game data made from your own copy.",
+    "desc_md": null,
+    "inst": "Run OpenSWOS Setup on a PC or Mac, then copy its assets folder to ports/swos/assets.",
+    "inst_md": null,
+    "genres": ["sports"],
+    "image": {},
+    "rtr": false,
+    "exp": false,
+    "runtime": [],
+    "store": [],
+    "availability": "",
+    "reqs": [],
+    "arch": ["aarch64"],
+    "min_glibc": ""
+  }
+}
