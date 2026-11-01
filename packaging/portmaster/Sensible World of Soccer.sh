@@ -36,6 +36,8 @@ $ESUDO chmod +x "$BIN" "$GLIBC_DIR/ld-linux-aarch64.so.1"
 # The game keeps SWOS.ini, saves and its log in $HOME/.swos.
 export HOME="$GAMEDIR/conf"
 export SWOS_ASSETS="$GAMEDIR/assets"
+# The panels hold presents to 60 Hz; without this, DOS gameplay's 70 Hz runs 14% slow.
+export SWOS_FRAME_SKIP=1
 mkdir -p "$HOME/.swos/save"
 [ -f "$HOME/.swos/SWOS.ini" ] || cp SWOS.ini.default "$HOME/.swos/SWOS.ini"
 

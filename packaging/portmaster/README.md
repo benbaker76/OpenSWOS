@@ -60,4 +60,5 @@ taken from `bin/`, so game data in a local `bin/` cannot reach the zip.
 Settings and saves are in `ports/swos/conf/.swos/`, the log in `ports/swos/log.txt`.
 
 The port defaults to the Amiga style, at 50 Hz. The DOS style paces at 70 Hz, which a
-60 Hz panel holds back to 60, so it runs about 14% slow.
+60 Hz panel would hold back to 60, about 14% slow, so the launcher sets
+`SWOS_FRAME_SKIP=1`: the game keeps its full rate and shows 6 frames in every 7.

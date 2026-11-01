@@ -15,7 +15,8 @@ BUILD=1
 [ "${1:-}" = "--no-build" ] && BUILD=0
 
 [ "$(uname -m)" = "aarch64" ] || { echo "run this on aarch64 Linux" >&2; exit 1; }
-[ "$BUILD" = 1 ] && make ARM64=1 -j"$(nproc)"
+# The save verifier is on in a plain make and damages the running game: see build_dist.sh.
+[ "$BUILD" = 1 ] && make ARM64=1 SWOS_SAVE_FORMAT_JSON_VERIFY=0 -j"$(nproc)"
 
 STAGE=dist/portmaster
 SRC=packaging/portmaster

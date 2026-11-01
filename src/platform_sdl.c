@@ -412,6 +412,14 @@ static int           s_frame_count;
  * hardware (D3D / GL / Metal) contexts are thread-bound. */
 static int           s_renderer_is_hw;
 static int           s_vsync_enabled;
+/* SWOS_FRAME_SKIP=1: for a screen that holds every present to its own refresh, whatever
+ * vsync says (the PortMaster handhelds' 60 Hz panels). DOS gameplay paces at 70 Hz, so
+ * there the presents held the whole game to 60 and it played 14% slow. A frame that
+ * starts past its deadline runs in full and only isn't shown, so the match keeps its
+ * rate, never two in a row. Nothing here touches the simulation. */
+static int           s_frame_skip;
+static int           s_frame_skip_now;   /* this frame is not shown */
+static int           s_frames_skipped;   /* for SWOS_PRESENT_STATS */
 
 /* Harness TURBO (env SWOS_HARNESS_TURBO, read once in Platform_Init): when
  * set, the inferior runs frames CPU-bound instead of paced to a 50 Hz wall
@@ -1093,6 +1101,7 @@ int Platform_Init(const PlatformInitOptions *opts)
         }
     }
     s_present_stats = (getenv("SWOS_PRESENT_STATS") != NULL);
+    s_frame_skip    = (getenv("SWOS_FRAME_SKIP") != NULL);
     {
         const char *pc = getenv("SWOS_PRESENT_CAPTURE");
         const char *from = getenv("SWOS_PRESENT_CAPTURE_FROM");
@@ -2060,6 +2069,7 @@ static void render_frame_impl(int pump_full)
 #endif
 
     if (!s_renderer || !s_textures[0]) return;
+    if (pump_full && s_frame_skip_now) return;
 
     SDL_LockMutex(s_render_mtx);
 
@@ -2315,10 +2325,22 @@ static void present_interval_stats(void)
                             "(%d Hz): %d long (>1.5x), %d short (<0.5x) of %d\n",
                     (double)s_sum / s_n * ms, (double)s_min * ms, (double)s_max * ms,
                     period * ms, Platform_ActivePacingFps(), s_long, s_short, s_n);
+            if (s_frame_skip)
+                fprintf(stderr, "[present] frame skip: %d of %d not shown\n",
+                        s_frames_skipped, s_n);
+            s_frames_skipped = 0;
             s_sum = s_max = 0; s_n = s_long = s_short = 0;
         }
     }
     s_last = now;
+}
+
+/* Has this frame already missed its deadline? s_next_frame_perf is still the last
+ * frame's, so the frame's own is one period on. */
+static int frame_is_late(void)
+{
+    Uint64 period = (Uint64)s_perf_freq / (Uint64)Platform_ActivePacingFps();
+    return s_next_frame_perf && SDL_GetPerformanceCounter() > s_next_frame_perf + period;
 }
 
 int Platform_Present(void)
@@ -2333,6 +2355,8 @@ int Platform_Present(void)
     key_script_tick();
     if (s_present_stats)
         present_interval_stats();
+    s_frame_skip_now = s_frame_skip && !s_frame_skip_now && frame_is_late();
+    s_frames_skipped += s_frame_skip_now;
     Platform_RenderFrame();
 
 #ifdef SWOS_WASM_BUILD
@@ -2442,7 +2466,8 @@ int Platform_Present(void)
 
     {
     const Sint64 frame_perf = (Sint64)((double)s_perf_freq * k_frame_secs);
-    if ((Sint64)(now - s_next_frame_perf) > frame_perf * s_catchup_frames) {
+    /* Skipping is how the frames catch up, so they must be allowed to fall behind. */
+    if ((Sint64)(now - s_next_frame_perf) > frame_perf * (s_frame_skip ? 3 : s_catchup_frames)) {
         /* Further behind than we catch up on (s_catchup_frames: one frame) — drop the
          * rest, and run what is left back to back. */
         s_next_frame_perf = now - (Uint64)(frame_perf * (s_catchup_frames - 1));
