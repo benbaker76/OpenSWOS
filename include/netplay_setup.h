@@ -39,6 +39,9 @@ int32_t  NetplaySetup_Apply(const uint8_t *in, uint32_t len);
  * nothing, so a friendly from the menus is never a cup tie left over from online. */
 void     NetplaySetup_ArmTieRules(int32_t armed);
 void     NetplaySetup_TakeTieRules(void);
+/* The host's crowd for pitch file `mapIndex` (include/pitch.h), once, for the match the
+ * setup was armed for (NetplaySetup_ArmTieRules); NULL when there is none. */
+const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex);
 
 /* Round-trip check: encode, scribble over every global it covers, apply, and
  * require equality. Part of --netplay-selftest. 0 on success. */

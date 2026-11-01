@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 7      /* 7: the lobby's match mode and service ids (6: the lobby chat) */
+#define NETPLAY_COMPAT 8      /* 8: the host's crowd in the setup (7: the lobby's match mode and service ids; 6: the lobby chat) */
 
 #endif

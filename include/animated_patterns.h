@@ -29,6 +29,12 @@ void ResetAnimatedPatternsForBothTeams(void);
  * restored those slots (src/sim_state.c).
  */
 void AnimatedPatterns_SyncTileMirror(int32_t first, int32_t count);
+
+/* A crowd cell whose tile is the match's (the host's, Pitch_ApplyCrowdLayout) and not this
+ * pitch's own: the animation goes on flipping its slot -- that is the match -- but the cell
+ * is drawn as this game loaded it, still. Cleared by LoadPitchMap. */
+void AnimatedPatterns_ClearOwnCells(void);
+void AnimatedPatterns_SetOwnCell(int32_t slot);
 #endif
 
 #endif
