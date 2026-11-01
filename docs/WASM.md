@@ -173,6 +173,15 @@ the game's own LOAD dialog. Two constraints it has to respect:
   uppercases and sanitises to 8.3.
 - **The selector caps at 45 files** (`SelectFilesInputSaveFilenameOnSelect`).
 
+**Exporting saves, settings and the log (2026-10-31).** Under the import button, the ⬇ export
+button downloads `OpenSWOS-saves-<date>.zip`: every file in `/save`, `SWOS.ini` (localStorage)
+and the game's log -- the web build has no SWOS.log file, so the page keeps the last 3,000 lines
+of `print`/`printErr` and writes them to localStorage at most once a second; at start the last
+session's moves to `SWOS-previous.log`, so after a game that froze (which stops the page's
+JavaScript too) and a reload, the export still has that session's log. A stored zip written in
+the page (no library). It is how a web player sends a save with a bug report (a tester's season
+froze after a match, 2026-10-31: before this there was no way to get the save out).
+
 **The write-side hook landed (2026-09-12).** `rob_save` / `rob_delete`
 (`resload.c`) now call `FS.syncfs(false, …)` via `EM_ASM` after a successful
 write, so a career saved IN THE BROWSER survives a reload. That single pair of

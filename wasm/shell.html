@@ -60,9 +60,20 @@
     #imp:hover { opacity: 1; }
     #imp svg { width: 17px; height: 17px; display: block; }
     #impFile { display: none; }
+    /* --- Export: the save folder, the settings and the game's log, as one zip --- */
+    #exp {
+      position: fixed; top: 108px; right: 8px; z-index: 10;
+      width: 28px; height: 28px; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
+      color: #ccc; background: rgba(0,0,0,0.45);
+      border: 1px solid #444; border-radius: 4px; cursor: pointer;
+      user-select: none; opacity: 0.45; transition: opacity .15s;
+    }
+    #exp:hover { opacity: 1; }
+    #exp svg { width: 17px; height: 17px; display: block; }
     /* --- On-screen controls toggle, and the controls (a phone has no keyboard) --- */
     #padBtn {
-      position: fixed; top: 108px; right: 8px; z-index: 10;
+      position: fixed; top: 142px; right: 8px; z-index: 10;
       width: 28px; height: 28px; box-sizing: border-box;
       display: flex; align-items: center; justify-content: center;
       color: #ccc; background: rgba(0,0,0,0.45);
@@ -171,6 +182,12 @@
       <path d="M12 16V4M12 4L8 8M12 4l4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
     </svg>
   </div>
+  <div id="exp" title="Export your saves, settings and the game's log (a zip -- for a bug report or a backup)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 4v12M12 16l-4-4M12 16l4-4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+    </svg>
+  </div>
   <div id="padBtn" title="On-screen controls">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -207,6 +224,25 @@
   </div>
 
   <script type="text/javascript">
+    // The game's log (what the desktop builds write to SWOS.log): its last lines, kept in
+    // localStorage at most once a second -- a game that hangs stops this page's JavaScript
+    // too, so after the reload the export still has the session that froze, kept at start
+    // as SWOS-previous.log. Exported by the Export button below.
+    var swosLogLines = [], swosLogTimer = null, SWOS_LOG_MAX = 3000;
+    try {
+      var prevLog = localStorage.getItem('SWOS.log');
+      if (prevLog) localStorage.setItem('SWOS-previous.log', prevLog);
+      localStorage.removeItem('SWOS.log');
+    } catch (e) { /* no localStorage: the log lives in this page only */ }
+    function swosLog(t) {
+      swosLogLines.push(String(t));
+      if (swosLogLines.length > SWOS_LOG_MAX) swosLogLines.splice(0, swosLogLines.length - SWOS_LOG_MAX);
+      if (swosLogTimer) return;
+      swosLogTimer = setTimeout(function () {
+        swosLogTimer = null;
+        try { localStorage.setItem('SWOS.log', swosLogLines.join('\n') + '\n'); } catch (e) { }
+      }, 1000);
+    }
     var statusEl = document.getElementById('status');
     var Module = {
       canvas: document.getElementById('canvas'),
@@ -218,8 +254,8 @@
       // The page's controls may call into the game from here on (calling an export
       // before the runtime is up aborts it).
       onRuntimeInitialized: function () { Module.swosReady = true; },
-      print:    function (t) { console.log(t); },
-      printErr: function (t) { console.error(t); },
+      print:    function (t) { console.log(t); swosLog(t); },
+      printErr: function (t) { console.error(t); swosLog(t); },
     };
     Module.setStatus('downloading…');
     window.onerror = function () { Module.setStatus('error — see console (F12)'); };
@@ -594,6 +630,91 @@
             document.getElementById('canvas').focus();
           });
         }
+      });
+    })();
+
+    // --- Export: everything a bug report needs, as one zip ------------------------
+    // The save folder (/save, IndexedDB-backed: careers, highlights, replays, custom teams),
+    // the settings (SWOS.ini) and the game's log, this session's and the one before. A
+    // stored zip (no compression -- the saves are mostly JSON and small; no library needed).
+    (function () {
+      var btn = document.getElementById('exp');
+      var CRC = (function () {
+        var t = new Uint32Array(256);
+        for (var n = 0; n < 256; n++) {
+          var c = n;
+          for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+          t[n] = c >>> 0;
+        }
+        return t;
+      })();
+      function crc32(b) {
+        var c = 0xFFFFFFFF;
+        for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8);
+        return (c ^ 0xFFFFFFFF) >>> 0;
+      }
+      function zip(files) {             // [{name, data: Uint8Array}] -> Uint8Array (stored)
+        var enc = new TextEncoder(), parts = [], central = [], off = 0;
+        var now = new Date();
+        var dtime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+        var ddate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+        files.forEach(function (f) {
+          var name = enc.encode(f.name), crc = crc32(f.data), n = f.data.length;
+          var h = new DataView(new ArrayBuffer(30));
+          h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0, true);
+          h.setUint16(8, 0, true); h.setUint16(10, dtime, true); h.setUint16(12, ddate, true);
+          h.setUint32(14, crc, true); h.setUint32(18, n, true); h.setUint32(22, n, true);
+          h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+          parts.push(new Uint8Array(h.buffer), name, f.data);
+          var c = new DataView(new ArrayBuffer(46));
+          c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true);
+          c.setUint16(8, 0, true); c.setUint16(10, 0, true); c.setUint16(12, dtime, true);
+          c.setUint16(14, ddate, true); c.setUint32(16, crc, true); c.setUint32(20, n, true);
+          c.setUint32(24, n, true); c.setUint16(28, name.length, true);
+          c.setUint32(42, off, true);
+          central.push(new Uint8Array(c.buffer), name);
+          off += 30 + name.length + n;
+        });
+        var csize = central.reduce(function (a, p) { return a + p.length; }, 0);
+        var e = new DataView(new ArrayBuffer(22));
+        e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true);
+        e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+        var all = parts.concat(central, [new Uint8Array(e.buffer)]);
+        var out = new Uint8Array(all.reduce(function (a, p) { return a + p.length; }, 0)), at = 0;
+        all.forEach(function (p) { out.set(p, at); at += p.length; });
+        return out;
+      }
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var files = [], enc = new TextEncoder();
+        if (typeof Module !== 'undefined' && Module.FS) {
+          try {
+            Module.FS.readdir('/save').forEach(function (n) {
+              if (n === '.' || n === '..') return;
+              try {
+                var st = Module.FS.stat('/save/' + n);
+                if (Module.FS.isFile(st.mode))
+                  files.push({ name: 'save/' + n, data: Module.FS.readFile('/save/' + n) });
+              } catch (err) { }
+            });
+          } catch (err) { }
+        }
+        var extra = [['SWOS.ini', 'SWOS.ini'], ['SWOS.log', 'SWOS.log'], ['SWOS-previous.log', 'SWOS-previous.log']];
+        extra.forEach(function (x) {
+          var v = null;
+          try { v = localStorage.getItem(x[0]); } catch (err) { }
+          if (x[0] === 'SWOS.log' && swosLogLines.length) v = swosLogLines.join('\n') + '\n';
+          if (v) files.push({ name: x[1], data: enc.encode(v) });
+        });
+        var d = new Date(), pad = function (x) { return (x < 10 ? '0' : '') + x; };
+        var stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes());
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([zip(files)], { type: 'application/zip' }));
+        a.download = 'OpenSWOS-saves-' + stamp + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        document.getElementById('canvas').focus();
       });
     })();
   </script>
