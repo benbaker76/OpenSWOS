@@ -48,6 +48,7 @@ edit its values, so the file never conflicts:
 | `PROJECT_TEAM_FORMAT` | openswos-team | a custom team file's `format` |
 | `PROJECT_MM_HOST` | online.openswos.net | the public matchmaking server, recorder and team check |
 | `PROJECT_USER_DIR`, `PROJECT_USER_DOT_DIR` | SWOS, .swos | the player's folder: saves, SWOS.ini, the assets (game and setup agree) |
+| `PROJECT_HIDE_SWOS2020_EXTRAS` | 1 | hides SWOS 2020's online-menu entries for features OpenSWOS will not have (NEWS, the chat and commentary rows, JOIN DISCORD, ...); 0 keeps them for a fork that builds them |
 
 **Online.** Two builds meet only when `PROJECT_NETPLAY_TAG`, `PROJECT_GGPO_GAME` and
 `NETPLAY_COMPAT` (include/netplay_compat.h) agree. A fork that keeps OpenSWOS's tags plays

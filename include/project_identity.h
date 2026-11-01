@@ -39,4 +39,9 @@
 #define PROJECT_USER_DIR        "SWOS"
 #define PROJECT_USER_DOT_DIR    ".swos"
 
+/* SWOS 2020's online-menu entries for features this project will not have -- the log-in's NEWS,
+ * MULTIPLAYER SETTINGS' commentary and chat rows, JOIN AMIGA SUPER LEAGUE, JOIN DISCORD, HELP
+ * DESK (src/online_menus.c): 1 hides them, 0 keeps them for a fork that builds them. */
+#define PROJECT_HIDE_SWOS2020_EXTRAS 1
+
 #endif /* PROJECT_IDENTITY_H */

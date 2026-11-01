@@ -20,6 +20,7 @@
  */
 #include "test_rules.h"
 #include "online_menus.h"
+#include "project_identity.h"  /* PROJECT_HIDE_SWOS2020_EXTRAS */
 #include "mm_client.h"         /* the matchmaking server (docs/NETPLAY.md section 7) */
 #include "p2p_menu.h"
 #include "controls_menu.h"          /* OpenSWOS's own JSON-only menus */
@@ -251,7 +252,11 @@ static void logInMenu_layout(void)
     set_text(LogInMenu_passwordInput, accounts ? password_text() : server_text());
     set_text(LogInMenu_logInContinue, "LOGIN");
     set_text(LogInMenu_OfflinelogOut, "ABOUT");
+    /* The button is RANKINGS for a service with them, else SWOS 2020's NEWS (its "latest
+     * runs" and a Discord link) -- hidden where the project has no news
+     * (PROJECT_HIDE_SWOS2020_EXTRAS). */
     set_text(LogInMenu_news, Account_Has(ACCOUNT_HAS_RANKINGS) ? "RANKINGS" : "NEWS");
+    set_visible(LogInMenu_news, Account_Has(ACCOUNT_HAS_RANKINGS) || !PROJECT_HIDE_SWOS2020_EXTRAS);
     /* SHOW PASSWORD only where there is one; no live cast here. */
     entry_at(LogInMenu_showPasswordLabel)->isInvisible = accounts ? 0 : 1;
     entry_at(LogInMenu_showPassword)->isInvisible = accounts ? 0 : 1;
@@ -2334,6 +2339,25 @@ static void mmsOnDraw(void)
      * (include/match_report.h). */
     set_text(MmSettingsMenu_soundFxLabel, "SEND MATCH REPORTS");
     set_text(MmSettingsMenu_soundFx, MatchReport_Enabled() ? "ON" : "OFF");
+    /* SWOS 2020's other rows -- its commentary and chat options, JOIN AMIGA SUPER LEAGUE,
+     * JOIN DISCORD, HELP DESK -- are features this project will not have: hidden (the cursor
+     * passes over a hidden entry to the next one its way), MY CUSTOM TEAM moved up under the
+     * two rows above. A fork that builds them keeps them (PROJECT_HIDE_SWOS2020_EXTRAS). */
+    if (PROJECT_HIDE_SWOS2020_EXTRAS) {
+        int32_t o;
+        for (o = MmSettingsMenu_commentaryLabel; o <= MmSettingsMenu_chatWindowScale; o++)
+            set_visible(o, 0);
+        set_visible(MmSettingsMenu_joinASL, 0);
+        set_visible(MmSettingsMenu_joinDiscord, 0);
+        set_visible(MmSettingsMenu_helpDesk, 0);
+        entry_at(MmSettingsMenu_createOwnCustom)->y = (uint16_t)(entry_at(MmSettingsMenu_soundFx)->y + 12);
+    }
+}
+
+/* MY CUSTOM TEAM: the slots, as MATCH MAKING's button opens them. */
+static void mmsSelectCreateOwnCustom(void)
+{
+    CustomTeam_Manage();
 }
 
 /* Toggle and keep it, both places it lives: SWOS.ini, the way the SERVER row
@@ -2416,6 +2440,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(matchMakingMenu_OnDraw),
     HANDLER(matchMaking_menuSettings_onSelect),
     HANDLER(matchMaking_menuCustomTeam_onSelect),
+    HANDLER(mmsSelectCreateOwnCustom),
     /* MULTIPLAYER SETTINGS: its first row is RECORD MATCHES. */
     HANDLER(mmsOnInit),
     HANDLER(mmsOnDraw),
