@@ -6344,7 +6344,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             else
                 mjson_printf(json_out_emit, &out, ",\n  %Q:[", "league_stages");
             mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:%d,%Q:%d", "country", (int)b->key, "fresh", (int)b->fresh,
-                         "kept_division", (int)b->keptDiv);
+                         "kept_division", (int)b->kept_div);
             wp_emit_u8(&out, "clubs", b->n, LEAGUE_STAGE_TABLES);
             int nr = 0;
             for (int k = 0; k < LEAGUE_STAGE_TABLES; k++)
@@ -6355,7 +6355,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                 }
             wp_emit_u16(&out, "tables", rows, nr);
             nr = 0;
-            for (int r = 0; r < b->nKept && r < 32; r++) {
+            for (int r = 0; r < b->n_kept && r < 32; r++) {
                 const LeagueStageRow *x = &b->kept[r];
                 rows[nr++] = x->team; rows[nr++] = x->glob; rows[nr++] = x->won;
                 rows[nr++] = x->gf; rows[nr++] = x->ga; rows[nr++] = x->pts;
@@ -7140,7 +7140,7 @@ static void apply_semantic_load(const char *src, int src_size)
                 b->used = 1;
                 if (mjson_get_long(o, vlen, "$.country", &v) > 0) b->key = (uint8_t)v;
                 if (mjson_get_long(o, vlen, "$.fresh", &v) > 0) b->fresh = (uint8_t)v;
-                if (mjson_get_long(o, vlen, "$.kept_division", &v) > 0) b->keptDiv = (uint8_t)v;
+                if (mjson_get_long(o, vlen, "$.kept_division", &v) > 0) b->kept_div = (uint8_t)v;
                 wp_load_u8(o, vlen, "$.clubs", b->n, LEAGUE_STAGE_TABLES);
                 int nr = wp_load_u16(o, vlen, "$.tables", rows, LEAGUE_STAGE_TABLES * 32 * 6), at = 0;
                 for (int k = 0; k < LEAGUE_STAGE_TABLES; k++) {
@@ -7153,9 +7153,9 @@ static void apply_semantic_load(const char *src, int src_size)
                     }
                 }
                 nr = wp_load_u16(o, vlen, "$.kept", rows, 32 * 6);
-                b->nKept = 0;
-                for (at = 0; at + 6 <= nr && b->nKept < 32; b->nKept++) {
-                    LeagueStageRow *x = &b->kept[b->nKept];
+                b->n_kept = 0;
+                for (at = 0; at + 6 <= nr && b->n_kept < 32; b->n_kept++) {
+                    LeagueStageRow *x = &b->kept[b->n_kept];
                     x->team = rows[at++]; x->glob = rows[at++]; x->won = rows[at++];
                     x->gf = rows[at++]; x->ga = rows[at++]; x->pts = rows[at++];
                 }

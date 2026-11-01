@@ -220,6 +220,15 @@ transfers or saves**; `--update` records a deliberate change, `--twice` re-prove
 `scripts/career_golden_diff.py A B` names what changed. A save must hold no address -- the test
 found two (`namePtr` in the competition blobs, now written as a set/unset marker).
 
+**The season-end and cup rules are a library shared with the SWOS 96/97 Mod** (docs/RULES_LIBRARY.md):
+`third_party/swos-competition-engine` (submodule, Davide Lorigliola's repo), its `rules/` built as
+`src/swos_rules_*.c` on every target -- the Italian play-offs, every pack's knockouts, the career
+club's play-off contests, B teams and the season's moves, the cups' clubs, the Coppa D's later
+seasons. `league_playoffs.c`, `world_cups.c` and `world_cupd.c` are the game's side of them. A rule
+change goes there as a pull request with its comparison against the Mod's C (`make rules-check
+MOD=...` there); `scripts/league_playoffs_check.sh` here runs ours through it. Freestanding C99, no
+libc, one caller-owned state (`sr_state`): the Mod links the same code into the DOS exe.
+
 **Whole-match replays** (`.SRP`, `src/replay_v2.c`, docs/REPLAY_FORMAT_V2.md) are SDL-only and
 recorded from every match that is not training, the arcade cabinet or the rig: `LATEST.SRP` in the
 save folder, plus a dated copy under `[replays] auto_save`. They play through the highlights viewer
