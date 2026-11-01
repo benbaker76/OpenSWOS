@@ -269,6 +269,15 @@ void InitGameSaveTeams(TeamGame *leftTeam, TeamGame *rightTeam)
     /* Load pitch map (high byte of pitchNumberAndType is the index) */
     LoadPitchMap(_pitchNumberAndType >> 8);
     FixupAndColorPitchFile();
+#ifdef SWOS_SDL_BUILD
+    {   /* A live match: the host's crowd over this pitch's own (include/pitch.h). */
+        extern const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex);
+        extern void Pitch_ApplyCrowdLayout(const uint16_t *in);
+        const uint16_t *crowd = NetplaySetup_TakeCrowd((uint16_t)(_pitchNumberAndType >> 8));
+        if (crowd)
+            Pitch_ApplyCrowdLayout(crowd);
+    }
+#endif
     ConvertColorsAndTextSprites(leftTeam, rightTeam);
 
     /* Wait for both fire buttons released.

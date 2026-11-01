@@ -980,6 +980,20 @@ its own LOCAL fields (`SimState_RestoreLocal`): the HUD is placed for its own di
 Checked with `SWOS_LIVE_DESYNC_FRAME=150` on the joiner for three matches in a row: every
 one now agrees up to 151; before, matches 2 and 3 parted at frame 0.
 
+**The crowd** is match state, and it comes from each player's own pitch artwork. The crowd
+animation (`animated_patterns.c`) flips cells of the two fan rows between a still and a waving
+tile, and which tile a cell holds decides whether it flips -- and with it how many random numbers
+the frame draws. The SWOS 2020 pitches (`[graphics] style = 2020`) have a different crowd
+entirely, and a release of the game data can differ in a few cells: a live match went out of
+step at frame 1 (Elsheimy / Lauchlan, 2026-11-01; found with `SWOS_SRP_DIFF_KICKOFF`, which
+names the fields two recordings kicked off differently on). Since `SETUP_VERSION` 4 (NETPLAY_COMPAT
+8) the setup carries the host's crowd for all six pitch files (`Pitch_CrowdLayout`, read from its
+files without loading them: the pitch is chosen at the match's init), and once the pitch is
+loaded both games put it over their own (`Pitch_ApplyCrowdLayout`, armed with the tie rules for
+one match). On the host that changes nothing; a joiner cell whose own tile differs plays the
+host's and is drawn still, in the joiner's own artwork (`AnimatedPatterns_SetOwnCell`). Proved
+with the lobby test, a joiner and a host on `amiga`, `dos` and `2020` in every pairing.
+
 **The CUP row** is the game's own tie-break, not an imitation: the setup carries
 `_extraTimeState`, `_penaltiesState`, `_secondLeg`, `_playing2ndGame` and the first leg's
 score (`SETUP_VERSION` 3), and `game_state.c` settles the draw as it does in a DIY cup. The

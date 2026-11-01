@@ -99,6 +99,34 @@ extern uint16_t Rand(void);
 extern void PanicHaltLoop(void);
 extern void DrawSprite16Pixels(uint16_t spriteIndex, int16_t x, int16_t y);
 
+#ifdef SWOS_SDL_BUILD
+/* Cells drawn in this game's own artwork, not from the match's slot (include/pitch.h). */
+static uint8_t s_ownCell[2310];
+
+void AnimatedPatterns_ClearOwnCells(void)
+{
+    int32_t i;
+    for (i = 0; i < 2310; i++)
+        s_ownCell[i] = 0;
+}
+
+void AnimatedPatterns_SetOwnCell(int32_t slot)
+{
+    if (slot >= 0 && slot < 2310)
+        s_ownCell[slot] = 1;
+}
+
+/* The drawn tile of a cell the animation has just flipped -- unless the cell is drawn in
+ * this game's own artwork. */
+static void set_drawn_tile(int32_t slot, uint32_t tileIndex)
+{
+    extern uint8_t *_s_pitchFullPtrs[];
+    if (slot < 0 || slot >= 2310 || tileIndex >= 2310 || s_ownCell[slot])
+        return;
+    _s_pitchFullPtrs[slot] = _pitchChunkyBuffer + (size_t)tileIndex * 256;
+}
+#endif
+
 /* ================================================================
  * swapTwoRandomIndicesFromAnimPatternsTable
  * (SWOS2.s line 53512)
@@ -292,13 +320,7 @@ static void resetAnimatedPatterns(uint32_t *a0, int16_t count)
             /* Mirror the toggle into s_pitchFullPtrs — see comment in
              * DrawAnimatedPatterns. The slot index is the byte offset
              * of `a0` from the pitchDatBuffer base divided by 4. */
-            {
-                ptrdiff_t slotIdx = a0 - pitchBase;
-                uint32_t newTileIdx = (d0 - ANIM_TILE_SIZE) >> ANIM_TILE_SIZE_SHIFT;
-                if (slotIdx >= 0 && slotIdx < 2310 && newTileIdx < 2310) {
-                    _s_pitchFullPtrs[slotIdx] = _pitchChunkyBuffer + (size_t)newTileIdx * 256;
-                }
-            }
+            set_drawn_tile((int32_t)(a0 - pitchBase), (d0 - ANIM_TILE_SIZE) >> ANIM_TILE_SIZE_SHIFT);
 #endif
         }
         a0++;
@@ -351,6 +373,8 @@ void AnimatedPatterns_SyncTileMirror(int32_t first, int32_t count)
 
     for (i = first; i < first + count && i < 2310; i++) {
         uint32_t tileIndex;
+        if (s_ownCell[i])
+            continue;               /* (drawn in this game's own artwork) */
         if (slots[i] == (uint32_t)(uintptr_t)_s_pitchFullPtrs[i])
             continue;
         tileIndex = ((uint32_t)(slots[i] - (uint32_t)ANIM_TILE_BASE)) >> ANIM_TILE_SIZE_SHIFT;
@@ -424,7 +448,7 @@ static void drawFanMirror(int16_t baseIdx, int do_toggle, uint16_t d4)
             newIndex = tileIndex - 1; /* even (animated) -> odd (static) */
         }
         *p = ANIM_TILE_BASE + ((uint32_t)newIndex << ANIM_TILE_SIZE_SHIFT);
-        _s_pitchFullPtrs[mirrorIdx] = _pitchChunkyBuffer + (size_t)newIndex * 256;
+        set_drawn_tile(mirrorIdx, (uint32_t)newIndex);
     }
     drawPatternFromIndex((uint16_t)mirrorIdx);
 }
@@ -718,13 +742,7 @@ pattern_loop:
                  * rendering the *previous* tile variant — fan animation
                  * appears frozen. Mirror the toggle into the side
                  * table so reader and writer stay in sync. */
-                {
-                    extern uint8_t *_s_pitchFullPtrs[];
-                    extern uint8_t _pitchChunkyBuffer[];
-                    if (d3 >= 0 && d3 < 2310) {
-                        _s_pitchFullPtrs[d3] = _pitchChunkyBuffer + (size_t)newIndex * 256;
-                    }
-                }
+                set_drawn_tile(d3, (uint32_t)newIndex);
 #endif
             }
 #ifdef SWOS_SDL_BUILD
