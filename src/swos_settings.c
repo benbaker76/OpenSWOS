@@ -272,6 +272,25 @@ static int handler(void *user, const char *section,
         int b;
         if (eqi(name, "no_injuries_cards") && parse_bool(value, &b))
             opts->no_injuries_cards = b;
+    } else if (eqi(section, "options")) {
+        static const char *const kLength[] = { "3", "5", "7", "10" };
+        static const char *const kPitch[]  = { "seasonal", "random", "frozen", "muddy", "wet",
+                                               "soft", "normal", "dry", "hard" };
+        int b, i;
+        if (eqi(name, "game_length")) {
+            for (i = 0; i < 4; i++)
+                if (value && eqi(value, kLength[i])) opts->opt_game_length = i;
+        } else if (eqi(name, "pitch_type")) {
+            for (i = 0; i < 9; i++)
+                if (value && eqi(value, kPitch[i])) opts->opt_pitch_type = i - 2;
+        } else if (eqi(name, "auto_replays") && parse_bool(value, &b))
+            opts->opt_auto_replays = b;
+        else if (eqi(name, "all_teams_equal") && parse_bool(value, &b))
+            opts->opt_all_teams_equal = b;
+        else if (eqi(name, "auto_save_highlights") && parse_bool(value, &b))
+            opts->opt_auto_save_highlights = b;
+        else if (eqi(name, "menu_music") && parse_bool(value, &b))
+            opts->opt_menu_music = b;
     } else if (eqi(section, "general")) {
         if (eqi(name, "language") && value && value[0])
             snprintf(opts->language, sizeof opts->language, "%s", value);
@@ -599,6 +618,26 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; (docs/WORLD_2026_27.md): SWOS 96/97, or World 2026-27 once " PROJECT_SETUP_NAME " has\n"
         "; imported its data. A save is played in the world it was made in.",
         opts->world[0] ? opts->world : "9697" };
+    {   /* [options]: unset = the game's defaults (SetDefaultOptions) */
+        static const char *const kLength[] = { "3", "5", "7", "10" };
+        static const char *const kPitch[]  = { "seasonal", "random", "frozen", "muddy", "wet",
+                                               "soft", "normal", "dry", "hard" };
+        int len = opts->opt_game_length, pitch = opts->opt_pitch_type;
+#define OPT_BOOL(v, def) ((v) == OPTION_UNSET ? (def) : (v)) ? "true" : "false"
+        SETTING(n) = (IniEntry){ "options", "game_length",
+            "; The OPTIONS screen, as it was left (a loaded career plays its own).\n"
+            "; game_length: 3 | 5 | 7 | 10 (minutes)",
+            kLength[len >= 0 && len < 4 ? len : 0] };
+        SETTING(n) = (IniEntry){ "options", "pitch_type",
+            "; pitch_type: seasonal | random | frozen | muddy | wet | soft | normal | dry | hard",
+            kPitch[pitch >= -2 && pitch <= 6 ? pitch + 2 : 0] };
+        SETTING(n) = (IniEntry){ "options", "auto_replays", "; auto_replays, all_teams_equal, auto_save_highlights, menu_music: true | false",
+            OPT_BOOL(opts->opt_auto_replays, 1) };
+        SETTING(n) = (IniEntry){ "options", "all_teams_equal", NULL, OPT_BOOL(opts->opt_all_teams_equal, 0) };
+        SETTING(n) = (IniEntry){ "options", "auto_save_highlights", NULL, OPT_BOOL(opts->opt_auto_save_highlights, 1) };
+        SETTING(n) = (IniEntry){ "options", "menu_music", NULL, OPT_BOOL(opts->opt_menu_music, 1) };
+#undef OPT_BOOL
+    }
     if (n >= SETTINGS_MAX)
         fprintf(stderr, "[settings] the settings table is full (%d): raise SETTINGS_MAX\n", n);
     return n;

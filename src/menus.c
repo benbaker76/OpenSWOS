@@ -189,6 +189,45 @@ void ZeroOutStars(void)
  *
  * Initializes game options to default values.
  * ================================================================ */
+#ifdef SWOS_SDL_BUILD
+/* The OPTIONS screen between runs: SWOS.ini's [options] (include/platform_sdl.h), over the
+ * defaults below, and written back at every change on the screen. The original kept them in
+ * memory and in a career only, so they were the defaults again at every start. */
+static void options_apply_saved(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    const PlatformInitOptions *o = g_arcadeOpts;
+    if (!o)
+        return;
+    if (o->opt_game_length != OPTION_UNSET)          _gameLength = (uint16_t)o->opt_game_length;
+    if (o->opt_pitch_type != OPTION_UNSET)           _pitchType = (uint16_t)(int16_t)o->opt_pitch_type;
+    if (o->opt_auto_replays != OPTION_UNSET)         _autoReplays = (uint16_t)o->opt_auto_replays;
+    if (o->opt_all_teams_equal != OPTION_UNSET)      _allPlayerTeamsEqual = (uint16_t)o->opt_all_teams_equal;
+    if (o->opt_auto_save_highlights != OPTION_UNSET) _autoSaveHighlights = (uint16_t)o->opt_auto_save_highlights;
+    if (o->opt_menu_music != OPTION_UNSET)           _menuMusic = (uint16_t)o->opt_menu_music;
+}
+
+static void options_keep(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    PlatformInitOptions *o = g_arcadeOpts;
+    if (!o)
+        return;
+    o->opt_game_length = _gameLength;
+    o->opt_pitch_type = (int16_t)_pitchType;
+    o->opt_auto_replays = _autoReplays;
+    o->opt_all_teams_equal = _allPlayerTeamsEqual;
+    o->opt_auto_save_highlights = _autoSaveHighlights;
+    o->opt_menu_music = _menuMusic;
+    if (g_arcadeIniPath)
+        Settings_Save(o, g_arcadeIniPath);
+}
+#define OPTIONS_KEEP() options_keep()
+#else
+#define OPTIONS_KEEP() ((void)0)
+#endif
+
 __attribute__((used, externally_visible))
 void SetDefaultOptions(void)
 {
@@ -198,6 +237,9 @@ void SetDefaultOptions(void)
     _autoSaveHighlights = 1;
     _pitchType = SEASONAL;
     _allPlayerTeamsEqual = 0;
+#ifdef SWOS_SDL_BUILD
+    options_apply_saved();
+#endif
 }
 
 /* ================================================================
@@ -2072,6 +2114,7 @@ void ChangePitchType(MenuEntry *entry)
     if (_pitchType == 7)
         _pitchType = 0xFFFE; /* RANDOM */
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeGameLength: cycle gameLength 0→1→2→3→0→... */
@@ -2082,6 +2125,7 @@ void ChangeGameLength(MenuEntry *entry)
     if (_gameLength == 4)
         _gameLength = 0;
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeAutoReplays: toggle autoReplays */
@@ -2090,6 +2134,7 @@ void ChangeAutoReplays(MenuEntry *entry)
 {
     _autoReplays ^= 1;
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeAllPlTeamsEqual: toggle allPlayerTeamsEqual */
@@ -2098,6 +2143,7 @@ void ChangeAllPlTeamsEqual(MenuEntry *entry)
 {
     _allPlayerTeamsEqual ^= 1;
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeAutoSaveHighlights: toggle autoSaveHighlights */
@@ -2106,6 +2152,7 @@ void ChangeAutoSaveHighlights(MenuEntry *entry)
 {
     _autoSaveHighlights ^= 1;
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeMenuMusic: toggle menuMusic, restart music, redraw */
@@ -2121,6 +2168,7 @@ void ChangeMenuMusic(MenuEntry *entry)
 #endif
     TryRestartingMusic();
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ================================================================

@@ -165,6 +165,16 @@ typedef struct {
                                                      * game data" reminder was dismissed (src/assets_check.c), "" none */
     char                   currency[8];      /* "pound" (default) or "dollar" — money symbol */
     char                   world[8];         /* [general] world: the football world (include/world.h), "" = 9697 */
+    /* [options]: the game's OPTIONS screen (game length, pitch type, auto replays, all player teams
+     * equal, auto save highlights, menu music), kept between runs -- the original kept them only in
+     * memory and in a career. OPTION_UNSET: not in SWOS.ini, the game's own default. */
+#define OPTION_UNSET (-100)
+    int                    opt_game_length;      /* _gameLength: 0..3 = 3, 5, 7, 10 minutes */
+    int                    opt_pitch_type;       /* _pitchType: -2 seasonal, -1 random, 0..6 frozen..hard */
+    int                    opt_auto_replays;
+    int                    opt_all_teams_equal;
+    int                    opt_auto_save_highlights;
+    int                    opt_menu_music;
 } PlatformInitOptions;
 
 int  Platform_Init(const PlatformInitOptions *opts);

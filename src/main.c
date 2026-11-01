@@ -534,6 +534,8 @@ int main(int argc, char **argv)
     opts.netplay_remember = 1;    /* REMEMBER LOGIN INFO: on, as the login screen shows it */
     opts.assets_reminder_off[0] = '\0';  /* remind about older game data (src/assets_check.c) */
     opts.world[0] = '\0';                /* [general] world: 96/97 (include/world.h) */
+    opts.opt_game_length = opts.opt_pitch_type = opts.opt_auto_replays = OPTION_UNSET;   /* [options]: */
+    opts.opt_all_teams_equal = opts.opt_auto_save_highlights = opts.opt_menu_music = OPTION_UNSET;  /* the game's */
     opts.matchmaker[0] = '\0';    /* default: a matchmaking server on this machine */
     opts.record[0] = '\0';        /* default: "server" once SWOS.ini is read (below) */
     opts.prediction = 1;          /* default: a live match's replay keeps what each player saw */
