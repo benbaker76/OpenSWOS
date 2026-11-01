@@ -67,6 +67,8 @@ uint16_t DIY_CountUnselectedTeams(void);
 
 /* --- DIY League Table --- */
 void DIY_SortLeagueTableByStandings(void);
+void DIY_UpdateLeagueQualifiers(void);
+int16_t DIY_RestoreLeagueQualifiersAfterLoad(void);
 
 /* --- DIY Strength/Bracket --- */
 uint32_t DIY_ComputeAverageTeamStrengthTier(uint16_t count, uint8_t *table);

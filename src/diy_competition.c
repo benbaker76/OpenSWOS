@@ -10363,6 +10363,109 @@ void DIY_RecomputeCompetitionDerivedProgressionTable(void)
     }
 }
 
+/* The active league's sorted table -> its winner (resultCode) and the promoted and relegated
+ * clubs' ids (qualifiedTeamsByDivision), as after every league result
+ * (ProcessDIYLeagueMatchResultAndCareerUpdates). Not saved: rebuilt by the next result -- or by
+ * a caller that needs it without one. */
+void DIY_UpdateLeagueQualifiers(void)
+{
+    DIY_SortLeagueTableByStandings();
+
+    DIYCompetitionEx *compEx = &_diyCompetitionStart;
+    DIYCompetition *a5s = &compEx->base;
+    uint16_t *standingsLookup = compEx->matchData.league.leagueTeamIds;
+    /* Promotions/relegations output buffer: byte offset 0x60 into
+     * _bss_2E0AE (parent struct offset 0x1AE on 32-bit, 0x1B2 on
+     * 64-bit due to namePtr growth). Typed field access keeps the
+     * 64-bit shift correct — was `a5 + 0x1AE` previously, which
+     * underflowed 4 bytes on 64-bit. */
+    uint16_t *promRelOutput = compEx->qualifiedTeamsByDivision;
+    int16_t *rankings = (int16_t *)compEx->matchData.league.teamEntryOffsets;
+
+    /* Determine winner */
+    int16_t doWinner = 1;
+    if (a5s->hasGroups != 0) {  /* 0x48 */
+        /* Has groups — only determine winner if all group rounds done */
+        DIYCompetition *bufCopyS3 = &_diyFileBufferCopy.header;
+        uint16_t bufCopyCurRound = (uint16_t)bufCopyS3->roundComplete;   /* 0x54 */
+        if (bufCopyCurRound + 1 != (uint16_t)bufCopyS3->totalMatchesInRound)    /* 0x52 */
+            doWinner = 0;
+    }
+    if (doWinner) {
+        int16_t ranking = rankings[0];
+        uint16_t idx = (uint16_t)((uint32_t)(uint16_t)ranking / 18);
+        /* standingsLookup (leagueTeamIds) is BE-packed per 295c9f3.
+         * resultCode is compared host-native elsewhere (e.g. cup
+         * result-flip detection) so unpack into the host-native
+         * packed value here. */
+        a5s->resultCode = (int16_t)BE_READ_U16(&standingsLookup[idx]);  /* 0x3A */
+    }
+
+    /* Process promotions */
+    {
+        uint16_t numPromotions = (uint16_t)a5s->competitionFinished;  /* 0x56 */
+        if (numPromotions != 0) {
+            uint16_t promOffset = (uint16_t)a5s->roundComplete;  /* 0x54 */
+            int16_t *src = rankings + promOffset;
+            for (uint16_t i = 0; i < numPromotions; i++) {
+                int16_t rank = *src++;
+                uint16_t lookupIdx = (uint16_t)((uint32_t)(uint16_t)rank / 18);
+                /* Preserve BE byte order from standingsLookup into the
+                 * promotion output region. diyQualifiedTeamIndices —
+                 * the eventual consumer via
+                 * DIY_CopyCompetitionTeamIndexTable — expects BE
+                 * bytes per 295c9f3. */
+                uint16_t teamId = BE_READ_U16(&standingsLookup[lookupIdx]);
+                BE_WRITE_U16(promRelOutput, teamId);
+                promRelOutput++;
+            }
+        }
+    }
+
+    /* Process relegations */
+    {
+        uint16_t numRelegations = (uint16_t)a5s->numRounds;  /* 0x5A */
+        if (numRelegations != 0) {
+            uint16_t totalEntries = (uint16_t)a5s->numTeams;  /* 0x32 */
+            uint16_t field58 = (uint16_t)a5s->currentRoundIndex;  /* 0x58 */
+            uint16_t relOffset = totalEntries - field58 - numRelegations;
+            int16_t *src = rankings + relOffset;
+            for (uint16_t i = 0; i < numRelegations; i++) {
+                int16_t rank = *src++;
+                uint16_t lookupIdx = (uint16_t)((uint32_t)(uint16_t)rank / 18);
+                /* BE-preserving copy — see promotion loop above. */
+                uint16_t teamId = BE_READ_U16(&standingsLookup[lookupIdx]);
+                BE_WRITE_U16(promRelOutput, teamId);
+                promRelOutput++;
+            }
+        }
+    }
+}
+
+/* After a career load: the primary league's qualifiers, which the save does not hold, from the
+ * table it does -- or a career saved after its last league match finds its play-offs and its
+ * promotions empty (a play-off of the champions against themselves, then a division of 25).
+ * Only once the league has a result: before one, nothing reads them and a play wrote none. The
+ * table is in sort order already, and the sort is a total order, so this is what the session
+ * that saved had in memory. Expects the primary slot in diyCompetitionStart; 1 when it wrote
+ * them (the caller stores the slot back). */
+int16_t DIY_RestoreLeagueQualifiersAfterLoad(void)
+{
+    DIYCompetitionEx *compEx = &_diyCompetitionStart;
+    uint8_t *base = (uint8_t *)&compEx->base;
+    if (compEx->base.competitionType != 0 || compEx->minSubstitutes != 0)
+        return 0;
+    for (uint16_t i = 0; i < (uint16_t)compEx->base.numTeams; i++) {
+        DIYTeamStats *row = (DIYTeamStats *)(base + compEx->matchData.league.teamEntryOffsets[i]
+                                             + DIY_STANDINGS_OFFSET);
+        if (row->gamesPlayed != 0) {
+            DIY_UpdateLeagueQualifiers();
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /* ===================================================================
  * Chunk 190: GetCachedOrCalculateViewResult,
  *            GetCachedOrCalculateExtraTimeResult,
@@ -11737,79 +11840,8 @@ uint16_t DIY_PlayOrSimulateLeagueFixture(int16_t allowSquadChanges, int16_t sele
     LeaguePhase_Result(compPtr1, compPtr2, d1, d2);       /* (a world's league phase) */
 
     /* Sort standings and process promotions/relegations if diyCompetitionStart.minSubstitutes == 0 */
-    if (_diyCompetitionStart.minSubstitutes == 0) {
-        DIY_SortLeagueTableByStandings();
-
-        DIYCompetitionEx *compEx = &_diyCompetitionStart;
-        DIYCompetition *a5s = &compEx->base;
-        uint16_t *standingsLookup = compEx->matchData.league.leagueTeamIds;
-        /* Promotions/relegations output buffer: byte offset 0x60 into
-         * _bss_2E0AE (parent struct offset 0x1AE on 32-bit, 0x1B2 on
-         * 64-bit due to namePtr growth). Typed field access keeps the
-         * 64-bit shift correct — was `a5 + 0x1AE` previously, which
-         * underflowed 4 bytes on 64-bit. */
-        uint16_t *promRelOutput = compEx->qualifiedTeamsByDivision;
-        int16_t *rankings = (int16_t *)compEx->matchData.league.teamEntryOffsets;
-
-        /* Determine winner */
-        int16_t doWinner = 1;
-        if (a5s->hasGroups != 0) {  /* 0x48 */
-            /* Has groups — only determine winner if all group rounds done */
-            DIYCompetition *bufCopyS3 = &_diyFileBufferCopy.header;
-            uint16_t bufCopyCurRound = (uint16_t)bufCopyS3->roundComplete;   /* 0x54 */
-            if (bufCopyCurRound + 1 != (uint16_t)bufCopyS3->totalMatchesInRound)    /* 0x52 */
-                doWinner = 0;
-        }
-        if (doWinner) {
-            int16_t ranking = rankings[0];
-            uint16_t idx = (uint16_t)((uint32_t)(uint16_t)ranking / 18);
-            /* standingsLookup (leagueTeamIds) is BE-packed per 295c9f3.
-             * resultCode is compared host-native elsewhere (e.g. cup
-             * result-flip detection) so unpack into the host-native
-             * packed value here. */
-            a5s->resultCode = (int16_t)BE_READ_U16(&standingsLookup[idx]);  /* 0x3A */
-        }
-
-        /* Process promotions */
-        {
-            uint16_t numPromotions = (uint16_t)a5s->competitionFinished;  /* 0x56 */
-            if (numPromotions != 0) {
-                uint16_t promOffset = (uint16_t)a5s->roundComplete;  /* 0x54 */
-                int16_t *src = rankings + promOffset;
-                for (uint16_t i = 0; i < numPromotions; i++) {
-                    int16_t rank = *src++;
-                    uint16_t lookupIdx = (uint16_t)((uint32_t)(uint16_t)rank / 18);
-                    /* Preserve BE byte order from standingsLookup into the
-                     * promotion output region. diyQualifiedTeamIndices —
-                     * the eventual consumer via
-                     * DIY_CopyCompetitionTeamIndexTable — expects BE
-                     * bytes per 295c9f3. */
-                    uint16_t teamId = BE_READ_U16(&standingsLookup[lookupIdx]);
-                    BE_WRITE_U16(promRelOutput, teamId);
-                    promRelOutput++;
-                }
-            }
-        }
-
-        /* Process relegations */
-        {
-            uint16_t numRelegations = (uint16_t)a5s->numRounds;  /* 0x5A */
-            if (numRelegations != 0) {
-                uint16_t totalEntries = (uint16_t)a5s->numTeams;  /* 0x32 */
-                uint16_t field58 = (uint16_t)a5s->currentRoundIndex;  /* 0x58 */
-                uint16_t relOffset = totalEntries - field58 - numRelegations;
-                int16_t *src = rankings + relOffset;
-                for (uint16_t i = 0; i < numRelegations; i++) {
-                    int16_t rank = *src++;
-                    uint16_t lookupIdx = (uint16_t)((uint32_t)(uint16_t)rank / 18);
-                    /* BE-preserving copy — see promotion loop above. */
-                    uint16_t teamId = BE_READ_U16(&standingsLookup[lookupIdx]);
-                    BE_WRITE_U16(promRelOutput, teamId);
-                    promRelOutput++;
-                }
-            }
-        }
-    }
+    if (_diyCompetitionStart.minSubstitutes == 0)
+        DIY_UpdateLeagueQualifiers();
 
     /* Store team pointers and results for DIYSetTeamNamesAndResults.
      * In asm, a1/a2/d1/d2 survive as register outputs and are stored

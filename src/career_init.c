@@ -1618,6 +1618,8 @@ void InitNewSeason(uint8_t *src, uint16_t divisionIndex)
  * same rebuild.
  * ================================================================ */
 extern void Career_LoadCompetitionSlotStateFromBuffer(uint8_t *src);
+extern void Career_StoreCompetitionSlotStateToBuffer(uint8_t *dst);
+extern int16_t DIY_RestoreLeagueQualifiersAfterLoad(void);
 /* declared at top of file (line 615) — uint16_t *teamList */
 
 /* Step 3 helper: walk careerContests and re-derive each *Copy
@@ -1912,6 +1914,12 @@ void RebuildPointersAfterLoad(void)
      * The Play Match / Next Match menus skip that helper, so we
      * have to populate diyCompetitionStart up-front at load time. */
     Career_LoadCompetitionSlotStateFromBuffer((uint8_t *)&_primaryCompetitionBuf);
+
+    /* Step 2b: the league's promoted, relegated and play-off clubs, which the save does not
+     * hold -- a career saved after its last league match otherwise ends its season with
+     * none (tester, 2026-11-01: Hartlepool in a play-off against themselves). */
+    if (DIY_RestoreLeagueQualifiersAfterLoad())
+        Career_StoreCompetitionSlotStateToBuffer((uint8_t *)&_primaryCompetitionBuf);
 
     /* Step 3: walk careerContests and rewrite each *Copy record's
      * embedded nameSource pointer at (record + 5 + nameOffset).
