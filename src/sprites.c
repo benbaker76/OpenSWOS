@@ -2418,20 +2418,25 @@ int16_t       g_spriteAnimVisibleCount;
  * both peers agreed, so a 4:3 and a 16:9 player animate the same margin. (It used to
  * be the render width everywhere but the rig, which made two such peers diverge.) */
 
-/* The players walking off (to half time, or the showers at the end) leave by the right touchline,
- * and the original's screen -- 336 wide, the game camera's -- loses them there: they walk out of
- * the picture and stop beyond it. A wider view still has room for them, and showed them standing
- * in a row at the edge (tester report 0045, 2026-10-30). So while they walk off, a world sprite
- * past that window's right edge is not drawn, nor recorded (replay_v2.c), as on the original;
- * nothing the game decides depends on it (onScreen stays as it is). */
+/* The players walking off (to half time, or the showers at the end) leave by the right touchline
+ * and stop just beyond the original's screen -- 336 wide, the game camera's -- so there they walk
+ * out of the picture. A wider view still has room for them, and showed them standing in a row at
+ * its edge (tester report 0045, 2026-10-30); hiding them at the 336 edge instead made them vanish
+ * in the middle of a wide picture (EMPI, 2026-11-01). So while they walk off, whoever crosses the
+ * right touchline (x 590, where the ball goes out) is gone -- off to the tunnel -- at every width,
+ * so a recording is the same at any width too. Not drawn, nor recorded (replay_v2.c); nothing the
+ * game decides depends on it (onScreen stays as it is). */
+#define WALK_OFF_TOUCHLINE_X 590
 int Sprite_PastWalkOffEdge(const Sprite *s, const SpriteGraphics *g)
 {
     extern uint16_t _gameState;
-    if (_gameState != ST_GOING_TO_HALFTIME && _gameState != ST_PLAYERS_GOING_TO_SHOWER)
-        return 0;
+    (void)g;
+    if (_gameState != ST_GOING_TO_HALFTIME && _gameState != ST_PLAYERS_GOING_TO_SHOWER &&
+        _gameState != ST_RESULT_ON_HALFTIME && _gameState != ST_RESULT_AFTER_THE_GAME)
+        return 0;                   /* (and while the result shows: the last ones are still walking) */
     if (s->z.s.i >= HUD_LAYER_Z_MIN)
         return 0;
-    return (int16_t)(s->x.s.i - g->centerX - _cameraX.s.i) >= SCREEN_WIDTH;
+    return s->x.s.i > WALK_OFF_TOUCHLINE_X;
 }
 
 int Sprite_AnimVisible(const Sprite *s)
