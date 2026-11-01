@@ -129,7 +129,7 @@ static SDL_Renderer *s_renderer;
  * Worst case the HUD covers the whole screen (the result/scoreboard overlay),
  * hence a full second screen's worth. */
 #define PLATFORM_TEX_H  (PLATFORM_SCREEN_H * 2)
-static SDL_Texture  *s_textures[PLATFORM_TEX_RING];  /* RGBA8888 streaming, _screen_width x 272 */
+static SDL_Texture  *s_textures[PLATFORM_TEX_RING];  /* RGBA8888 streaming, the widest picture x PLATFORM_TEX_H; used at _screen_width */
 static int           s_tex_idx;
 /* Cached-RAM staging buffer: ALL per-pixel work (8bpp→RGBA, overlay blend) happens
  * here, then one SDL_UpdateTexture uploads it. Writing/reading SDL_LockTexture's
@@ -276,6 +276,7 @@ static Uint64        s_next_frame_perf;  /* high-res counter for 50 Hz pacing */
  * worse. (A live match caught up on its whole prediction window, the host's CATCH UP
  * switch, fd911618; removed 2026-10-30: it caused netplay problems.) */
 static const int     s_catchup_frames = 1;
+static int           s_display_index = -1;    /* the display the window is on (check_display) */
 static int           s_display_hz;       /* monitor refresh, 0 = unknown. See the pacing note in Platform_VBlank. */
 static double        k_frame_secs = 1.0 / 50.0;  /* refreshed per frame from the
                                                   * active game style (DOS 70 / Amiga 50) */
@@ -793,6 +794,7 @@ int Platform_Init(const PlatformInitOptions *opts)
 #endif
 
 #ifndef SWOS_WASM_BUILD
+    s_display_index = SDL_GetWindowDisplayIndex(s_window);  /* (the one it opened on: check_display) */
     /* Post-creation window fit (windowed only). The pre-creation scale clamp
      * uses SDL_GetDisplayUsableBounds, which can under-shrink (DPI virtualization
      * on Windows, work-area quirks) and CANNOT account for the title bar — that's
@@ -1007,7 +1009,10 @@ int Platform_Init(const PlatformInitOptions *opts)
     /* HUD layer + its conversion scratch. Allocation failure is not fatal:
      * Platform_HudLayerBuffer() then returns NULL and the HUD simply stays in
      * the main framebuffer, i.e. today's behaviour with a wobble. */
-    s_hud_layer = (uint8_t *)SDL_calloc(1, (size_t)_screen_width * PLATFORM_SCREEN_H);
+    /* (At the widest picture, as the textures and s_frame_rgba below: the width can grow
+     * after start-up -- the window moved to a wider display (main.c Video_DisplayChanged).
+     * Each is used at the current width, its strides and upload rects _screen_width.) */
+    s_hud_layer = (uint8_t *)SDL_calloc(1, (size_t)PITCH_VIEW_MAX_WIDTH * PLATFORM_SCREEN_H);
     if (!s_hud_layer)
         fprintf(stderr, "[render] HUD layer alloc failed — the HUD will ride the "
                         "sub-pixel shift (harmless, slightly jittery)\n");
@@ -1030,14 +1035,14 @@ int Platform_Init(const PlatformInitOptions *opts)
             s_renderer,
             SDL_PIXELFORMAT_ARGB8888,
             SDL_TEXTUREACCESS_STREAMING,
-            _screen_width, PLATFORM_TEX_H);
+            PITCH_VIEW_MAX_WIDTH, PLATFORM_TEX_H);
         if (!s_textures[ti]) {
             fprintf(stderr, "SDL_CreateTexture[%d]: %s\n", ti, SDL_GetError());
             return -1;
         }
         (void)0;
     }
-    s_frame_rgba = (uint32_t *)SDL_malloc((size_t)_screen_width * PLATFORM_TEX_H * 4);
+    s_frame_rgba = (uint32_t *)SDL_malloc((size_t)PITCH_VIEW_MAX_WIDTH * PLATFORM_TEX_H * 4);
     if (!s_frame_rgba) {
         fprintf(stderr, "frame buffer alloc failed (%d x %d)\n", _screen_width, PLATFORM_SCREEN_H);
         return -1;
@@ -1136,6 +1141,34 @@ void Platform_Shutdown(void)
     if (s_hud_layer)  { SDL_free(s_hud_layer);  s_hud_layer  = NULL; }
     if (s_renderer) { SDL_DestroyRenderer(s_renderer); s_renderer = NULL; }
     if (s_window)   { SDL_DestroyWindow(s_window);     s_window = NULL; }
+}
+
+/* Which display the window is on. It decides the picture's width and the refresh the pacing
+ * keys on, both taken at start-up -- a window moved to another monitor kept its first one's
+ * (a 16:10 laptop's picture on a 21:9 monitor, even fullscreen: a tester, macOS, 2026-10-31).
+ * Checked on every window event: SDL_WINDOWEVENT_DISPLAY_CHANGED where SDL has it (2.0.18+),
+ * a move or resize anywhere. */
+static void check_display(void)
+{
+#ifndef SWOS_WASM_BUILD
+    if (!s_window)
+        return;
+    const int d = SDL_GetWindowDisplayIndex(s_window);
+    if (d < 0 || d == s_display_index)
+        return;
+    const int first = s_display_index < 0;
+    s_display_index = d;
+    SDL_DisplayMode dm;
+    if (first || SDL_GetDesktopDisplayMode(d, &dm) != 0)
+        return;
+    fprintf(stderr, "[video] the window is on display %d now: %dx%d @%dHz\n", d, dm.w, dm.h, dm.refresh_rate);
+    if (dm.refresh_rate > 0)
+        s_display_hz = dm.refresh_rate;
+    {
+        extern void Video_DisplayChanged(int dw, int dh);
+        Video_DisplayChanged(dm.w, dm.h);
+    }
+#endif
 }
 
 void Platform_ToggleFullscreen(void)
@@ -1572,6 +1605,7 @@ static void pump_events_any_thread(void)
             AudioSDL_PauseAndClear();
             break;
         case SDL_WINDOWEVENT:
+            check_display();                /* (another monitor: its shape, its refresh) */
             if (ev.window.event == SDL_WINDOWEVENT_CLOSE) {
                 Platform_RequestQuit();
                 if (s_window) SDL_HideWindow(s_window);

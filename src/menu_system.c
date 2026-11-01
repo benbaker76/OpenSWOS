@@ -1945,6 +1945,13 @@ void ShowMenu(uint8_t *packedMenu)
         unsigned proc_iters = 0;
 #endif
         do {
+#ifdef SWOS_SDL_BUILD
+            {   /* the window went to a display of another shape: this menu at its width */
+                extern int Video_ApplyDisplayChange(void);
+                if (Video_ApplyDisplayChange())
+                    DrawMenu();
+            }
+#endif
             MenuProc();
 #ifdef SWOS_DEBUG_AUTOSKIP
             proc_iters++;

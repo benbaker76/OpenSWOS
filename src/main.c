@@ -347,6 +347,90 @@ static const char *match_kv(const char *arg, const char *key)
     return arg + 2 + klen + 1;
 }
 
+/* ---- The render width: the display's shape, at 272 lines ---- */
+
+/* The widescreen width for a display of dw x dh (resolution=auto: its desktop mode). *aspect
+ * (optional): the width before the display's own cap. */
+int Video_WideWidth(int dw, int dh, int *aspect)
+{
+    int w = (int)((long)SCREEN_HEIGHT * dw / (dh > 0 ? dh : 1));
+    w = (w + 1) & ~1;                          /* round up to even */
+    if (aspect)
+        *aspect = w;
+    /* NEVER WIDER THAN THE DISPLAY IT IS FILLING. The width above is "how much game
+     * fits this shape at 272 lines", which is the point on a 2560x1080 monitor -- but
+     * a small resolution means a small screen, not a wide one. `resolution=320x200`
+     * (someone comparing against DOS, which really is 320x200) has an aspect of
+     * 1.60:1, and 272 * 1.60 = 436, so the game came up 436x272: WIDER than either
+     * original, showing more pitch than the thing being compared against. Reported by
+     * a tester 2026-09-18, and reproduced exactly. */
+    if (w > dw) w = dw & ~1;
+    if (w < SCREEN_WIDTH)          w = SCREEN_WIDTH;
+    if (w > PITCH_VIEW_MAX_WIDTH)  w = PITCH_VIEW_MAX_WIDTH;
+    return w;
+}
+
+/* The window went to another display (platform_sdl.c): with widescreen on and the resolution
+ * 'auto', the picture takes THAT display's shape -- the width was taken once, from the display
+ * the game opened on, so a window opened on a 16:10 laptop and moved to a 21:9 monitor stayed
+ * 16:10 there, even fullscreen (a tester, macOS, 2026-10-31). Applied by the next menu frame
+ * (Video_ApplyDisplayChange): a match or replay on screen keeps the width it started with. */
+static int s_videoFollows;              /* widescreen + resolution=auto */
+static int s_videoPending;
+
+void Video_DisplayChanged(int dw, int dh)
+{
+    if (!s_videoFollows || dw <= 0 || dh <= 0)
+        return;
+    s_videoPending = Video_WideWidth(dw, dh, 0);
+    if (s_videoPending == _screen_width)
+        s_videoPending = 0;
+}
+
+int Video_ApplyDisplayChange(void)
+{
+    {   /* SWOS_TEST_DISPLAY=WxH: as if the window had gone to such a display (a test with one) */
+        static int tested;
+        const char *t = getenv("SWOS_TEST_DISPLAY");
+        int tw, th;
+        if (!tested && t && sscanf(t, "%dx%d", &tw, &th) == 2) {
+            tested = 1;
+            Video_DisplayChanged(tw, th);
+        }
+    }
+    extern int32_t GameLoop_Active(void);
+    extern void Platform_ViewChanged(void);
+    extern int _dos_view_width, _dos_view_height;
+    const int w = s_videoPending;
+    if (!w || GameLoop_Active())
+        return 0;
+    s_videoPending = 0;
+    extern uint8_t _frontbufferMaskBuffer[];
+    const int ow = _screen_width;
+    fprintf(stderr, "[video] another display: render %dx%d (was %d wide)\n", w, _screen_height, ow);
+    {   /* The menu's backdrop (the panel DrawMenu copies) is laid out at the old stride: each
+         * row's centred picture to the new one, the margins cleared. Rows in the order that
+         * never overwrites one not yet read (wider: from the bottom). */
+        const int keep = w < ow ? w : ow, from = (ow - keep) / 2, to = (w - keep) / 2;
+        uint8_t row[PITCH_VIEW_MAX_WIDTH];
+        for (int i = 0; i < SCREEN_HEIGHT; i++) {
+            const int y = w > ow ? SCREEN_HEIGHT - 1 - i : i;
+            uint8_t *src = _frontbufferMaskBuffer + (size_t)y * ow, *dst = _frontbufferMaskBuffer + (size_t)y * w;
+            memcpy(row, src + from, (size_t)keep);
+            memset(dst, 0, (size_t)w);
+            memcpy(dst + to, row, (size_t)keep);
+        }
+    }
+    if (_sim_draw_width == _screen_width)   /* (offline: this display's; online the agreed one stays) */
+        _sim_draw_width = w;
+    _screen_width = w;
+    _dos_view_width = w;                    /* (widescreen: the DOS view is the same picture) */
+    _dos_view_height = SCREEN_HEIGHT;
+    _menu_draw_x_offset = WIDE_MARGIN;
+    Platform_ViewChanged();
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     /* Line-buffer stdout. Every self-test and harness in here reports progress
@@ -1326,21 +1410,10 @@ int main(int argc, char **argv)
             if (opts.widescreen != 1) dosw = DOS_VIEW_WIDTH;   /* the PC release's own (stretched or not) */
             _dos_view_width = dosw;
         }
-        int w = (int)((long)SCREEN_HEIGHT * dw / dh);
         int aspectW;
-        w = (w + 1) & ~1;                          /* round up to even */
-        aspectW = w;
-        /* NEVER WIDER THAN THE DISPLAY IT IS FILLING. The width above is "how much game
-         * fits this shape at 272 lines", which is the point on a 2560x1080 monitor -- but
-         * a small resolution means a small screen, not a wide one. `resolution=320x200`
-         * (someone comparing against DOS, which really is 320x200) has an aspect of
-         * 1.60:1, and 272 * 1.60 = 436, so the game came up 436x272: WIDER than either
-         * original, showing more pitch than the thing being compared against. Reported by
-         * a tester 2026-09-18, and reproduced exactly. */
-        if (w > dw) w = dw & ~1;
-        if (w < SCREEN_WIDTH)          w = SCREEN_WIDTH;
-        if (w > PITCH_VIEW_MAX_WIDTH)  w = PITCH_VIEW_MAX_WIDTH;
+        int w = Video_WideWidth(dw, dh, &aspectW);
         if (opts.widescreen != 1)      w = SCREEN_WIDTH;   /* the Amiga's own width (stretched or not) */
+        s_videoFollows = opts.widescreen == 1 && !(opts.res_w > 0 && opts.res_h > 0);
         _screen_width = w;
         /* WIDESCREEN IN THE DOS VIEW means the widescreen PICTURE: the same w x 272 as the
          * Amiga view's, showing more pitch in both directions -- not the 200-line DOS

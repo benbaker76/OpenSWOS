@@ -901,8 +901,22 @@ static GameFrameResult runFrame(void)
 /* ====================================================================
  * GameLoop — main per-frame game loop
  * ==================================================================== */
+static void game_loop_body(void);
+static int32_t s_gameLoopDepth;
+
+/* A match (or a replay) is on screen: the menus it shows keep the view it has
+ * (Video_ApplyDisplayChange waits for the menus after it). */
+int32_t GameLoop_Active(void) { return s_gameLoopDepth > 0; }
+
 void __attribute__((used, externally_visible))
 GameLoop(void)
+{
+    s_gameLoopDepth++;
+    game_loop_body();
+    s_gameLoopDepth--;
+}
+
+static void game_loop_body(void)
 {
     int16_t d1, d2;
 
