@@ -203,6 +203,20 @@ void SaveHighlightsMenu(void)
     if (Asset_PromptInsertSaveDiskDf0(_aSaveHighlights) != 0)
         return;
 
+#ifdef SWOS_SDL_BUILD
+    {   /* A whole-match replay (.SRP: LATEST and the dated copies) is loaded: it has no highlight
+         * scenes, so what is kept is the recording itself, under the name chosen. */
+        extern int32_t ReplayV2_Loaded(void);
+        extern int32_t ReplayV2_SaveCopy(const uint8_t *name);
+        if (ReplayV2_Loaded()) {
+            if (SelectFileToSaveDialog(0x2E535250u /* '.SRP' */, _hilFilename, _aSaveHighlights) == 0 &&
+                ReplayV2_SaveCopy(_selectedFilename) != 0)
+                ShowErrorMenu(_aNotAHighlights);
+            goto cleanup;
+        }
+    }
+#endif
+
     if (SelectFileToSaveDialog(0x2E48494Cu /* '.HIL' */, _hilFilename, _aSaveHighlights) != 0)
         goto cleanup;
 

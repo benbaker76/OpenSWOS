@@ -656,6 +656,15 @@ int16_t LoadHilFile(uint8_t *filename)
     int16_t result;
 
     if (SaveJson_FileIsJson(filename) == 1) {
+#ifdef SWOS_SDL_BUILD
+        {   /* as the other branches: our own recording's geometry and rate (the JSON sets its
+             * rate) -- not a DOS / SWOS 2020 file's, left by the one watched before */
+            extern int _replayRecordingIsWide;
+            extern int _replayPlaybackFps;
+            _replayRecordingIsWide = 0;
+            _replayPlaybackFps = 50;
+        }
+#endif
         int16_t jr = SaveJson_LoadHighlights(filename, NULL, 0);
         if (jr != 0) {
             _hilNumGoals = 0;
@@ -991,6 +1000,9 @@ int16_t SelectFileToSaveDialog(uint32_t filterExt, uint8_t *defaultFilename,
                 ext == 0x2E534541u || /* .SEA */
                 ext == 0x2E434152u || /* .CAR */
                 ext == 0x2E544143u || /* .TAC */
+#ifdef SWOS_SDL_BUILD
+                ext == 0x2E535250u || /* .SRP: a whole-match replay kept by SAVE HIGHLIGHTS */
+#endif
                 ext == 0x2E48494Cu)   /* .HIL */
             {
                 _totalNumberOfFiles++;

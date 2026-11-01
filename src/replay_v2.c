@@ -1084,6 +1084,7 @@ static struct {
     int32_t     dosView;        /* the view it was played in: 1 DOS, 0 Amiga, -1 not known */
     char        names[2][64];   /* PLYR: who played, "" when the file does not say */
     uint16_t    simHeight;      /* META: the view height it was simulated in, 0 not known */
+    char        file[256];      /* the file it was loaded from (ReplayV2_SaveCopy) */
 } s_play;
 
 /* Worked out on load, never in a file: this frame was DRAWN wrong for that player -- one
@@ -1094,6 +1095,11 @@ static struct {
 
 void ReplayV2_Unload(void)
 {
+    if (s_play.loaded) {                /* (the HIL header it wrote: no highlights behind it) */
+        extern volatile uint16_t _numScenesInHilFile;
+        _hilNumGoals = 0;
+        _numScenesInHilFile = 0;
+    }
     Audio_SetSfxObserver(NULL);         /* the playback trace's, if it was watching */
     free(s_play.frms);
     free(s_play.offsets);
@@ -1106,6 +1112,21 @@ void ReplayV2_Unload(void)
 }
 
 int32_t ReplayV2_Loaded(void)   { return s_play.loaded; }
+
+/* SAVE HIGHLIGHTS with a whole-match replay loaded: the recording kept under another name (it
+ * has no highlight scenes to save -- saving the HIL buffer then wrote a header and a junk scene,
+ * a file that showed the line-ups and went back to the menu: a tester, 2026-10-31). */
+int32_t ReplayV2_SaveCopy(const uint8_t *name)
+{
+    uint32_t len = 0;
+    uint8_t *file;
+    int32_t rc;
+    if (!s_play.loaded || !s_play.file[0] || !(file = read_file(s_play.file, &len)))
+        return 1;
+    rc = strcmp(s_play.file, (const char *)name) == 0 ? 0 : write_file((const char *)name, file, len);
+    free(file);
+    return rc;
+}
 int32_t ReplayV2_HasAudio(void) { return s_play.loaded && (s_play.flags & SWRP_FLAG_AUDIO); }
 
 static uint8_t *read_file(const char *name, uint32_t *len)
@@ -1505,6 +1526,7 @@ int32_t ReplayV2_Load(const uint8_t *name)
     }
 
     DosReplay_ClearRpl();
+    snprintf(s_play.file, sizeof s_play.file, "%s", (const char *)name);   /* (ReplayV2_SaveCopy) */
     apply_meta(meta);
     free(meta);
     free(file);
@@ -2027,6 +2049,33 @@ void ReplayV2_ViewTestRun(void)
             extern void    CopyTeamsAndHeader(void);
             if (LoadHilFile((uint8_t *)s_viewPath) != 0)
                 exit(1);
+            {   /* SWOS_TEST_HIL_RESAVE=NAME: saved as SAVE HIGHLIGHTS saves (DoSaveHighlights),
+                 * loaded back, every byte of the highlights compared, then played from it */
+                const char *re = getenv("SWOS_TEST_HIL_RESAVE");
+                if (re && *re) {
+                    extern int16_t DoSaveHighlights(uint8_t *filename);
+                    extern uint16_t _hilNumGoals;
+                    const uint32_t n = 2254u + (uint32_t)_hilNumGoals * 19000u;
+                    uint8_t *before = (uint8_t *)malloc(n);
+                    uint32_t diff = 0, first = 0;
+                    memcpy(before, _hilFileBuffer, n);
+                    if (DoSaveHighlights((uint8_t *)re) != 0 || LoadHilFile((uint8_t *)re) != 0)
+                        exit(1);
+                    for (uint32_t i = 0; i < n; i++)
+                        if (before[i] != _hilFileBuffer[i]) {
+                            if (!diff++)
+                                first = i;
+                            if (getenv("SWOS_TEST_HIL_DIFFS"))
+                                fprintf(stderr, "[replay] byte %u: %02X -> %02X\n", (unsigned)i, before[i], _hilFileBuffer[i]);
+                        }
+                    fprintf(stderr, "[replay] %s saved as %s and loaded back: %u goals, %u of %u bytes differ%s",
+                            s_viewPath, re, (unsigned)_hilNumGoals, (unsigned)diff, (unsigned)n,
+                            diff ? "" : "\n");
+                    if (diff)
+                        fprintf(stderr, " (the first at %u)\n", (unsigned)first);
+                    free(before);
+                }
+            }
             _hilStarted = 1;
             _gameMaxSubstitutes = _hilMaxSubstitutes;
             _teamsLoaded = 0;
@@ -2040,6 +2089,15 @@ void ReplayV2_ViewTestRun(void)
     }
     if (ReplayV2_Load((const uint8_t *)s_viewPath) != 0)
         exit(1);
+    {   /* SWOS_TEST_SRP_SAVECOPY=NAME: kept under NAME as SAVE HIGHLIGHTS keeps a loaded .SRP */
+        const char *cp = getenv("SWOS_TEST_SRP_SAVECOPY");
+        if (cp && *cp) {
+            const int32_t r = ReplayV2_SaveCopy((const uint8_t *)cp);
+            fprintf(stderr, "[replay] %s saved as %s: %s\n", s_viewPath, cp, r ? "FAILED" : "ok");
+            if (r)
+                exit(1);
+        }
+    }
     _hilStarted = 1;
     _gameMaxSubstitutes = _hilMaxSubstitutes;
     _teamsLoaded = 0;
