@@ -1171,6 +1171,28 @@ static void check_display(void)
 #endif
 }
 
+/* Fullscreen, by SDL's flags or by the window covering its display. macOS's green button puts the
+ * window in a fullscreen Space without setting SDL's flags (SDL 2.30: only SDL_SetWindowFullscreen
+ * sets them), so a resize there "for the windowed size" shrank the window inside the Space: the
+ * picture top-left at its windowed size, black around it -- the first fullscreen after moving to
+ * another monitor, whose display change is seen as the Space opens (issue #5). */
+static int window_is_fullscreen(void)
+{
+    if (SDL_GetWindowFlags(s_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP))
+        return 1;
+#ifndef SWOS_WASM_BUILD
+    {
+        SDL_Rect b;
+        int w = 0, h = 0;
+        const int d = SDL_GetWindowDisplayIndex(s_window);
+        SDL_GetWindowSize(s_window, &w, &h);
+        if (d >= 0 && SDL_GetDisplayBounds(d, &b) == 0 && b.w > 0 && w >= b.w && h >= b.h)
+            return 1;
+    }
+#endif
+    return 0;
+}
+
 void Platform_ToggleFullscreen(void)
 {
     if (!s_window) return;
@@ -1239,14 +1261,10 @@ void Platform_ViewChanged(void)
      *
      * Not when fullscreen (SDL letterboxes, which is right), and not when
      * [video] resolution pinned a client area -- that was asked for by name. */
-    if (!s_window || s_pinned_w > 0) return;
-    {
-        Uint32 flags = SDL_GetWindowFlags(s_window);
-        if (flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) return;
-        SDL_SetWindowSize(s_window,
-                          _screen_width  * s_win_scale_current,
-                          _screen_height * s_win_scale_current);
-    }
+    if (!s_window || s_pinned_w > 0 || window_is_fullscreen()) return;
+    SDL_SetWindowSize(s_window,
+                      _screen_width  * s_win_scale_current,
+                      _screen_height * s_win_scale_current);
 }
 
 void Platform_SetWindowScale(int scale)
@@ -1261,8 +1279,7 @@ void Platform_SetWindowScale(int scale)
     s_pinned_w = s_pinned_h = 0;
     /* Only resize when actually windowed — fullscreen ignores the size
      * (SDL_RenderSetLogicalSize handles letterboxing for us). */
-    Uint32 flags = SDL_GetWindowFlags(s_window);
-    if ((flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) == 0) {
+    if (!window_is_fullscreen()) {
         SDL_SetWindowSize(s_window,
             _screen_width * scale,
             _screen_height * scale);
