@@ -224,9 +224,10 @@ found two (`namePtr` in the competition blobs, now written as a set/unset marker
 `third_party/swos-competition-engine` (submodule, Davide Lorigliola's repo), its `rules/` built as
 `src/swos_rules_*.c` on every target -- the Italian play-offs, every pack's knockouts, the career
 club's play-off contests, B teams and the season's moves, the cups' clubs, the Coppa D's later
-seasons, the parallel groups (`sr_pg_season`; `league_groups.c` the game's side) -- at the tag **M1**
-plus #10 and #12, the Mod 4.0.5's rules (docs/RULES_LIBRARY.md §10-11); v1 is frozen once #12 is in
-(additions 1.x, a change to what exists a v2 agreed with Davide). `league_playoffs.c`,
+seasons, the parallel groups (`sr_pg_season`; `league_groups.c` the game's side) -- at the tag **v1**
+(87b6527, 2026-11-02: the Mod 4.0.5's rules, 4.0.6's pg_a2 guard; docs/RULES_LIBRARY.md §10-11).
+**v1 is frozen**: struct layouts, signatures and results stay; additions are 1.x, a change to what
+exists is a v2 agreed with Davide. `league_playoffs.c`,
 `world_cups.c` and `world_cupd.c` are the game's side of them; it gives the library each spec's length
 (`spec_len`, required) and the B teams' `b_in_ko` / `base` / `levels`. A rule
 change goes there as a pull request with its comparison against the Mod's C (`make rules-check

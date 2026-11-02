@@ -1,6 +1,6 @@
 # RULES_LIBRARY.md — the shared rules library with the SWOS 96/97 Mod
 
-**Status, 2026-11-01: in, at the tag M1 -- the Mod 4.0.5's rules** (§10). The library is `rules/` in Davide's repository
+**Status, 2026-11-02: in, at the tag v1 -- the Mod 4.0.5's rules, frozen** (§10-11). The library is `rules/` in Davide's repository
 (github.com/aminta/swos-competition-engine, its `docs/rules-library.md`), a submodule here at
 `third_party/swos-competition-engine`, compiled as `src/swos_rules_*.c` on every target. Six
 modules went in as six pull requests (#1-#6 there, stacked), each with its comparison against the
@@ -286,7 +286,7 @@ things came out of it for the library:
   `league_playoffs_check.sh` compares our baked spec with the Mod's `Pack.gplay()` with that byte
   translated. A spec shared byte for byte (a `.SWC`) needs a club reference that names no file --
   the bridge's question, Davide's.
-- **The parallel groups** (now the library's `sr_pg_season`, its rules 11 / PR #12, with 4.0.6's
+- **The parallel groups** (now the library's `sr_pg_season`, its rules 11 / #12 -- in v1 --, with 4.0.6's
   `pg_a2` guard; `src/league_groups.c` is the game's side -- the world's tables, the pool's swaps):
   4.0.5's areas are a 1st and 2nd choice of group per level (`C,B!/H`: `!` never another group,
   `*` any), the Mod's `area_byte`; `pg_season` places a club in its 1st choice, else its 2nd, a
@@ -305,7 +305,8 @@ not public), against our A (the same release's): SAME, 204 files and `world_data
 fingerprint efe1464b6d1d62b8 -- the package he hosts. The control (B with England's `win_points` 2):
 DIFFERENT.
 
-**v1 (agreed with Davide, 2026-11-02):** once rules 11 is in, the tag v1 freezes what exists --
+**v1, tagged 2026-11-02 (87b6527, Davide's merge of rules 11 / #12; checked by him against 4.0.5 and
+his 4.0.6 integration branch; the submodule is at it):** the tag freezes what exists --
 struct layouts, function signatures, the same results for the same input. New functions, modules,
 structs and trailing fields whose zero is the old behaviour stay 1.x; a v2 only changes something
 that exists. His engine's first slice (tables and season end, on the library) starts after the
