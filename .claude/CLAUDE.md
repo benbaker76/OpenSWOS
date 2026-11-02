@@ -9,6 +9,8 @@ original `SWOS2.s`. **One** source tree builds **both** targets:
 |---|---|---|---|
 | SDL (Linux/Windows/macOS/WASM/ARM) | `make` | `bin/SWOS*` | the day-to-day dev target |
 | Amiga m68k (A1200/AGA) | `make -f Makefile.amiga` | `bin/SWOS2` | runs under FS-UAE/WinUAE or real hardware |
+| Android (arm64, x86_64) | `scripts/build_android.sh` | `dist/OpenSWOS-Android.apk` | a flavour of the SDL build: Gradle + `packaging/mobile/CMakeLists.txt` (mirrors the Makefile -- keep in step); signed with the key in `~/.openswos-keys` (never lose it). See `docs/MOBILE.md` |
+| iOS (arm64) | `scripts/build_ios.sh` | `dist/OpenSWOS-iOS.ipa` | built on the Mac mini over ssh; unsigned, for sideloading (AltStore/Sideloadly). See `docs/MOBILE.md` |
 | Nintendo Switch (NX-NXFP2-a64) | `scripts/build_switch.sh` | `bin/SWOS.nss` | a flavour of the SDL build; needs the NDA SDK + SDL fork, neither in this tree. **Not yet linked or run** — see `docs/SWITCH.md` |
 
 `src/` and `include/` are **shared**. Platform divergence is expressed with

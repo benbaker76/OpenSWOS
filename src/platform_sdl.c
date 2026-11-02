@@ -665,6 +665,10 @@ int Platform_Init(const PlatformInitOptions *opts)
         }
     }
 #endif
+#ifdef SWOS_MOBILE_BUILD
+    /* Phones: the whole screen, always (docs/MOBILE.md). */
+    fs_mode = PLATFORM_FULLSCREEN_DESKTOP;
+#endif
 #ifdef SWOS_WASM_BUILD
     /* Web: fullscreen is browser-managed (F11) — SDL desktop-fullscreen at boot
      * is user-gesture-gated and would stretch the canvas — so force windowed
@@ -698,6 +702,9 @@ int Platform_Init(const PlatformInitOptions *opts)
     Uint32 wflags = SDL_WINDOW_SHOWN;
 #ifndef SWOS_WASM_BUILD
     wflags |= SDL_WINDOW_RESIZABLE;
+#endif
+#ifdef SWOS_MOBILE_BUILD
+    wflags |= SDL_WINDOW_ALLOW_HIGHDPI;     /* (the screen's own pixels, not iOS's points) */
 #endif
     if (fs_mode == PLATFORM_FULLSCREEN_DESKTOP) {
         /* Borderless window sized to the desktop, no display-mode
@@ -1602,6 +1609,19 @@ static void maybe_dump_frame(const uint32_t *argb)
  * call from multiple threads: the queue is internally locked, events
  * are consumed by whichever pump grabs them first, and Platform_RequestQuit
  * is safe from any thread. */
+#ifdef SWOS_MOBILE_BUILD
+/* The phones' on-screen controls (src/touch_controls.c): an event, with the output's size. */
+extern void TouchControls_HandleEvent(const SDL_Event *e, int w, int h);
+extern void TouchControls_Draw(SDL_Renderer *r);
+static void touch_event(const SDL_Event *e)
+{
+    int w = 0, h = 0;
+    if (s_renderer)
+        SDL_GetRendererOutputSize(s_renderer, &w, &h);
+    TouchControls_HandleEvent(e, w, h);
+}
+#endif
+
 static void pump_events_any_thread(void)
 {
     SDL_Event ev;
@@ -1719,8 +1739,19 @@ static void pump_events_any_thread(void)
         case SDL_CONTROLLERDEVICEREMOVED:
         case SDL_JOYDEVICEADDED:
         case SDL_JOYDEVICEREMOVED:
+#ifdef SWOS_MOBILE_BUILD
+            if (ev.type == SDL_CONTROLLERBUTTONDOWN)
+                touch_event(&ev);           /* (a controller played: the on-screen controls go) */
+#endif
             InputSDL_HandleEvent(&ev);
             break;
+#ifdef SWOS_MOBILE_BUILD
+        case SDL_FINGERDOWN:
+        case SDL_FINGERMOTION:
+        case SDL_FINGERUP:
+            touch_event(&ev);
+            break;
+#endif
         default:
             break;
         }
@@ -2187,6 +2218,9 @@ shots_done:
     /* CRT effects go on LAST, over the finished frame and its HUD, so the
      * grille and the glass edge sit on the picture rather than under it. */
     CrtEffects_Apply(s_renderer);
+#ifdef SWOS_MOBILE_BUILD
+    TouchControls_Draw(s_renderer);  /* (the phones' on-screen controls, over everything) */
+#endif
     capture_presented_frame();     /* after every draw, before the swap */
     SDL_RenderPresent(s_renderer);
 

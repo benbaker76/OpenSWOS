@@ -16,11 +16,15 @@
 #endif
 
 /* The web page (wasm/shell.html) is told a text field is open, and puts up a phone's on-screen
- * keyboard (its hidden field; what is typed comes back through InputSDL_WebChar). */
+ * keyboard (its hidden field; what is typed comes back through InputSDL_WebChar); a phone build
+ * brings up the system's (what is typed comes back as SDL_TEXTINPUT, input_sdl.c). */
 static void web_text_field(int on)
 {
 #ifdef SWOS_WASM_BUILD
     EM_ASM({ if (Module.swosTextInput) Module.swosTextInput($0); }, on);
+#elif defined(SWOS_MOBILE_BUILD)
+    extern void Mobile_TextInput(int on);     /* (a phone: its system keyboard, src/mobile.c) */
+    Mobile_TextInput(on);
 #else
     (void)on;
 #endif

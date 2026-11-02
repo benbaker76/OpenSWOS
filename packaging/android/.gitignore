@@ -1,0 +1,6 @@
+# Gradle's and the NDK's build output, and the SDK's local path (docs/MOBILE.md)
+.gradle/
+build/
+app/build/
+app/.cxx/
+local.properties

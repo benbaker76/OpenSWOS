@@ -138,6 +138,7 @@ docs drift: search by function name.
 | [WASM.md](WASM.md) | The Emscripten/ASYNCIFY web target's design, and the asm-storage-to-C log. Now live, online, plus the player build. | historical | the web build's pacing, threading, IDBFS saves, preload list |
 | [MACOS_BUILD.md](MACOS_BUILD.md) | Building on a Mac: universal binary, `make macos-app`, Gatekeeper; releases go through `scripts/build_macos.sh`. | current | building on the Mac itself |
 | [SWITCH.md](SWITCH.md) | Building, packaging and debugging the Switch flavour; the filesystem/logging differences. No SDK content (NDA). | current — but it says "builds, links and packages" where CLAUDE.md says "not yet linked or run": the owner knows which | `Makefile.switch`, `scripts/build_switch.*` |
+| [MOBILE.md](MOBILE.md) | Android and iOS: building (Gradle / the Mac), the signing key, sideloading, and what differs on a phone (folders, the game data copied from a PC, touch controls). | current | `packaging/mobile`, `packaging/android`, `packaging/ios`, `scripts/build_android.sh`, `scripts/build_ios.sh` |
 
 ## The Amiga target (AGA resumed 2026-10-10: a whole match plays)
 
@@ -239,6 +240,8 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `C:\Projects\AI\SWOS\SWOS_C`, `SWOS_C_SDL` | the two pre-merge trees — **not here**, gone since 2026-08-12 |
 | `D:\Projects\SWOS\OpenSWOS\...` (Arcade, Copa Libertadores notes) | design notes some docs cite — **not here** on this PC |
 | the Switch SDK and SDL fork | outside the repo, under NDA — never committed ([SWITCH.md](SWITCH.md)) |
+| the Android release key | `~/.openswos-keys` (WSL): `openswos-release.jks` + `android.env` -- outside the repo, never lost ([MOBILE.md](MOBILE.md)) |
+| the Android SDK, JDK | `~/Android/Sdk`, `~/opt/jdk-17*` (WSL) |
 
 ## Other machines and servers
 

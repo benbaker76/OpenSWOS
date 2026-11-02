@@ -14,6 +14,9 @@ only someone changing the artwork runs it:
     packaging/macos/SWOS.iconset/     the same images unpacked -- what iconutil takes
     packaging/linux/hicolor/          the freedesktop icon theme's sizes
     packaging/switch/swos_icon.bmp    Switch: the 1024x1024 24-bit BMP AuthoringTool wants
+    packaging/android/app/src/main/res/mipmap-*/ic_launcher.png   Android: the launcher's sizes
+    packaging/ios/icons/              iOS: the app's icons, opaque (iOS draws transparency black):
+                                      the artwork at 80 %, centred on black
     include/swos_window_icon.h        the window icon on Linux desktops, as RGBA pixels
     wasm/shell.html                   the web build's favicon, inlined as a data: URI
 
@@ -273,6 +276,23 @@ def write_favicon(path: Path, image: Image.Image) -> None:
     path.write_bytes((text.replace("\n", "\r\n") if crlf else text).encode("utf-8"))
 
 
+# Android's launcher icon, per screen density.
+ANDROID_MIPMAPS = [("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xxxhdpi", 192)]
+# iOS's (packaging/ios/Info.plist.in names them): iPhone 60@2x, 60@3x; iPad 76@2x, 83.5@2x; the store's.
+IOS_ICONS = [("AppIcon60x60@2x.png", 120), ("AppIcon60x60@3x.png", 180),
+             ("AppIcon76x76@2x~ipad.png", 152), ("AppIcon83.5x83.5@2x~ipad.png", 167),
+             ("AppIcon1024.png", 1024)]
+
+
+def ios_icon(size: int) -> Image.Image:
+    """Opaque: the artwork at 80 %, centred on black (iOS rounds the corners itself)."""
+    inner = round(size * 0.8)
+    art = render(inner)
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 255))
+    out.alpha_composite(art, ((size - inner) // 2, (size - inner) // 2))
+    return out.convert("RGB")
+
+
 def main() -> int:
     if not SOURCE.exists():
         sys.exit(f"no source artwork at {SOURCE}")
@@ -309,6 +329,16 @@ def main() -> int:
     switch = ROOT / "packaging" / "switch" / "swos_icon.bmp"
     write_switch_bmp(switch)
 
+    android = ROOT / "packaging" / "android" / "app" / "src" / "main" / "res"
+    for density, size in ANDROID_MIPMAPS:
+        write_png(render(size), android / f"mipmap-{density}" / "ic_launcher.png")
+
+    ios = ROOT / "packaging" / "ios" / "icons"
+    for name, size in IOS_ICONS:
+        path = ios / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        ios_icon(size).save(path, optimize=True)
+
     window = ROOT / "include" / "swos_window_icon.h"
     write_window_icon_header(window, images[WINDOW_ICON_SIZE])
 
@@ -319,6 +349,8 @@ def main() -> int:
         print(f"  {path.relative_to(ROOT)}  {path.stat().st_size:,} bytes")
     print(f"  {iconset.relative_to(ROOT)}/  {len(ICONSET)} files")
     print(f"  {hicolor.relative_to(ROOT)}/  {len(HICOLOR_SIZES)} files")
+    print(f"  {android.relative_to(ROOT)}/mipmap-*/  {len(ANDROID_MIPMAPS)} files")
+    print(f"  {ios.relative_to(ROOT)}/  {len(IOS_ICONS)} files")
     return 0
 
 

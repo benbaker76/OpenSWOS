@@ -46,6 +46,22 @@
  * mounted at save:/ and a write there is not durable until it is committed,
  * and printf reaches nobody — the log has to go through NN_LOG. See
  * docs/SWITCH.md. */
+/* The phones (flavours of the SDL build: packaging/mobile/CMakeLists.txt, docs/MOBILE.md):
+ * Android and iOS, SWOS_MOBILE_BUILD on both. What differs: the folders (the player's on
+ * Android's shared storage / in iOS's Documents, the project's own data unpacked from the APK /
+ * in the app bundle), on-screen touch controls, and the system keyboard for text. */
+#if defined(__ANDROID__)
+#define SWOS_ANDROID_BUILD 1
+#define SWOS_MOBILE_BUILD 1
+#endif
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#if TARGET_OS_IPHONE
+#define SWOS_IOS_BUILD 1
+#define SWOS_MOBILE_BUILD 1
+#endif
+#endif
+
 #if defined(SWOS_SWITCH_BUILD) || defined(__NX) || defined(__NINTENDO_SWITCH__)
 #undef  SWOS_SWITCH_BUILD
 #define SWOS_SWITCH_BUILD 1
