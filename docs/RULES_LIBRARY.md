@@ -297,3 +297,9 @@ things came out of it for the library:
 
 `league_playoffs_check.sh` builds the Mod's side from the Mod's own Python now (`mkseason.Pack`:
 `gplay()` resolves a `{"club": key}` entrant, `parallel()` the groups) -- 15 PASS against 4.0.5.
+
+**The gate, run here on Davide's B packs (2026-11-02):** the 91 World 2026-27 packs of 4.0.5, each
+`pack.json` taken through swc/1 and back by his `tools/swc_pack.py` (Mod branch `engine-b`, 041ec7f,
+not public), against our A (the same release's): SAME, 204 files and `world_data.c` byte for byte,
+fingerprint efe1464b6d1d62b8 -- the package he hosts. The control (B with England's `win_points` 2):
+DIFFERENT.
