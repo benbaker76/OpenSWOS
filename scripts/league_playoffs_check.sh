@@ -474,7 +474,7 @@ open(os.path.join(out, 'groups.txt'), 'w').write('\n'.join(codes) + '\n')
 sys.exit(1 if bad else 0)
 PY
 $MC -I$T -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/groups_mod" $T/groups_mod.c
-$CC -Iinclude -I$T -include include/swos_platform.h -o "$OUT/groups_ours" $T/groups_ours.c src/league_groups.c
+$CC -Iinclude -I$T -include include/swos_platform.h -o "$OUT/groups_ours" $T/groups_ours.c src/league_groups.c src/swos_rules_groups.c
 GN=$((N / 10)); bad=""
 while read -r code; do
     "$OUT/groups_mod" "$OUT/$code.pg" "$OUT/$code.pr" "$GN" > "$OUT/g_mod.txt"

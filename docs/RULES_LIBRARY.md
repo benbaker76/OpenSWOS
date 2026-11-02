@@ -286,7 +286,8 @@ things came out of it for the library:
   `league_playoffs_check.sh` compares our baked spec with the Mod's `Pack.gplay()` with that byte
   translated. A spec shared byte for byte (a `.SWC`) needs a club reference that names no file --
   the bridge's question, Davide's.
-- **The parallel groups** (`src/league_groups.c`, still ours, the next module for the library):
+- **The parallel groups** (now the library's `sr_pg_season`, its rules 11 / PR #12, with 4.0.6's
+  `pg_a2` guard; `src/league_groups.c` is the game's side -- the world's tables, the pool's swaps):
   4.0.5's areas are a 1st and 2nd choice of group per level (`C,B!/H`: `!` never another group,
   `*` any), the Mod's `area_byte`; `pg_season` places a club in its 1st choice, else its 2nd, a
   full group making room by moving a club that may go elsewhere (`pg_make_room`'s five passes),
@@ -303,3 +304,11 @@ things came out of it for the library:
 not public), against our A (the same release's): SAME, 204 files and `world_data.c` byte for byte,
 fingerprint efe1464b6d1d62b8 -- the package he hosts. The control (B with England's `win_points` 2):
 DIFFERENT.
+
+**v1 (agreed with Davide, 2026-11-02):** once rules 11 is in, the tag v1 freezes what exists --
+struct layouts, function signatures, the same results for the same input. New functions, modules,
+structs and trailing fields whose zero is the old behaviour stay 1.x; a v2 only changes something
+that exists. His engine's first slice (tables and season end, on the library) starts after the
+Mod's 4.0.6, which changes no rule's result (its `pg_a2` guard is in rules 11). Still to come as
+1.x additions: the rest of the Coppa D, `SEC_BQ` (may each B team go up next season: the zone
+colours, an output), the pool's queue (`team_pool.c` vs the Mod's RI section).
