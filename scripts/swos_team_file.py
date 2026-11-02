@@ -19,9 +19,8 @@ built on top of it.  The parse produces plain JSON-serialisable dicts and
 (binary -> dict -> binary) — the foundation for the data->JSON migration
 (see docs/DATA_JSON.md).
 
-RNC method (v1/v2) is auto-detected from the header.  Decompression reuses the
-existing port (rnc_propack.py); set RNC_PROPACK_DIR if it is not on a default
-search path.
+RNC method (v1/v2) is auto-detected from the header.  Compression and decompression
+are scripts/rnc_propack.py (beside this file; RNC_PROPACK_DIR picks another copy).
 """
 import os
 import sys
@@ -40,8 +39,6 @@ _POS_REV = {v: k for k, v in POSITIONS.items()}
 
 _RNC_DIRS = [
     os.environ.get("RNC_PROPACK_DIR"),
-    "/mnt/c/Projects/Python/SWOS",
-    r"C:\Projects\Python\SWOS",
     os.path.dirname(os.path.abspath(__file__)),
 ]
 

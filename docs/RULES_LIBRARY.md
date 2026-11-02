@@ -271,3 +271,29 @@ the same packs, and the same packs re-serialised, SAME; one round's legs changed
 
 The golden careers changed with it (the 4.0.5 rules decide some season ends differently): recorded
 again after `career_golden_diff.py` named only season-end moves and titles.
+
+## 11. The 4.0.5 data, team words, the groups (2026-11-02)
+
+The world was imported again from Davide's 4.0.5 `mod/` (docs/WORLD_2026_27.md, "4.0.5"). Two
+things came out of it for the library:
+
+- **Team words are each game's own.** A spec names a club (entrant type 8: New Zealand's reserves)
+  by its file and ordinal, the two bytes the Mod's `compile_spec` writes; the Mod's team word is
+  `file | ordinal << 8`, ours `file << 8 | ordinal` (`PACK_BE_U16`). `sr_league.team_file_high`
+  (PR #10, `rules 10`; 0 the Mod's, the zeroed default) says how to make this game's word from
+  them; `league_of` sets 1. The spec's LAYOUT is then the same in both games -- not its bytes: the
+  file number is each game's (New Zealand is 62 here, 214 in the Mod; Argentina 43 and 163), so
+  `league_playoffs_check.sh` compares our baked spec with the Mod's `Pack.gplay()` with that byte
+  translated. A spec shared byte for byte (a `.SWC`) needs a club reference that names no file --
+  the bridge's question, Davide's.
+- **The parallel groups** (`src/league_groups.c`, still ours, the next module for the library):
+  4.0.5's areas are a 1st and 2nd choice of group per level (`C,B!/H`: `!` never another group,
+  `*` any), the Mod's `area_byte`; `pg_season` places a club in its 1st choice, else its 2nd, a
+  full group making room by moving a club that may go elsewhere (`pg_make_room`'s five passes),
+  else the nearest group with room. Ported, and checked for the first time: the importer's tables
+  against the Mod's `Pack.parallel` (Italy, Argentina, Australia, El Salvador), then 2,000 random
+  season ends a league of both C (`tests/league_playoffs/groups_*.c`, clubs entering from below on
+  odd seasons, every fourth season all of one area).
+
+`league_playoffs_check.sh` builds the Mod's side from the Mod's own Python now (`mkseason.Pack`:
+`gplay()` resolves a `{"club": key}` entrant, `parallel()` the groups) -- 15 PASS against 4.0.5.

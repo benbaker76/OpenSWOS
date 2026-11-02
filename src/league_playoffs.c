@@ -239,6 +239,8 @@ static void league_of(const LeaguePlayoffs *lp, uint8_t country, sr_league *lg)
     lg->spec = lp->spec;
     lg->spec_len = spec_bytes(lp->spec);
     lg->second_team = 0;                /* (the world's rows carry their global numbers) */
+    lg->team_file_high = 1;             /* (our team words: PACK_BE_U16(file, ordinal) -- a spec's club, its
+                                           (file, ordinal) bytes, made into one; the Mod's are file | ordinal << 8) */
     lg->promedio_seeds = 0;
     for (int32_t i = 0; t && i < k && i < PROMEDIO_CLUBS; i++) {
         sr_promedio_seed *x = &s_seed[lg->promedio_seeds++];

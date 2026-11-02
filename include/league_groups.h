@@ -29,8 +29,9 @@ typedef struct {
 
 /* A club that can play at a level of groups: its slot in the country (include/world.h: its
  * ordinal in the country's team file, 256 + it in a second file), its division in that file
- * (what the league table's offset is from), and its area at each level of groups, top-down
- * (LEAGUE_GROUPS_NO_AREA: none). */
+ * (what the league table's offset is from), and its area byte at each level of groups, top-down:
+ * the Mod's area_byte (4.0.5) -- low nibble its 1st choice of group, high nibble its 2nd + 1, + 8
+ * never another group, Eh any group, Fh / 0 no 2nd (LEAGUE_GROUPS_NO_AREA: none at all). */
 typedef struct {
     uint16_t slot;
     uint8_t  base;
