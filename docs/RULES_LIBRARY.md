@@ -261,5 +261,13 @@ season end; fixed in 4.0.6). The B teams' test gives the Mod SEC_TAB's 8-byte en
 importer follows 4.0.5's SEASON WINNERS titles (no Poule Scudetto title: the Poule's own name);
 the world's data is still the earlier import's until the next package.
 
+**The pack bridge's gate** (step B, Davide's `pack.json` <-> schema v1): whichever form the packs
+come from, OpenSWOS imports the same world. `scripts/world_import_compare.sh PACKS_A PACKS_B [MOD]`
+imports twice (`world_import.py --mod --out --data-c`, into a temporary folder) and requires every
+file -- `competitions/leagues.json`, `teams/`, `data/TEAM.nnn`, `WORLD.ini`'s fingerprint, the
+baked `world_data.c` -- byte for byte the same; MOD is the rest of the Mod's data the import reads,
+and must be of the packs' release (4.0.5's packs want 4.0.5's teams and pool). Proved both ways:
+the same packs, and the same packs re-serialised, SAME; one round's legs changed, DIFFERENT.
+
 The golden careers changed with it (the 4.0.5 rules decide some season ends differently): recorded
 again after `career_golden_diff.py` named only season-end moves and titles.

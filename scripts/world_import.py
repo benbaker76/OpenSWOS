@@ -3,6 +3,10 @@
 (docs/WORLD_2026_27.md, phase 3).
 
     python3 -I scripts/world_import.py              # World 2026-27 -> bin/data_json/worlds/2627/
+    python3 -I scripts/world_import.py --mod DIR --out DIR --data-c FILE
+                                                    # from another copy of the Mod's data, into
+                                                    # another folder (scripts/world_import_compare.sh:
+                                                    # the same import from two sets of packs)
 
 Reads the Mod's data as Davide Lorigliola sent it (bin/data_json/worlds/2627/mod/: his
 teams in OpenSWOS team JSON, his packs) and writes what the game reads for that world:
@@ -54,6 +58,7 @@ import world_split                     # noqa: E402  (emit_league)
 import swos_team_file as tf                  # noqa: E402  (the binary TEAM.nnn)
 WORLD = os.path.join(REPO, "bin", "data_json", "worlds", "2627")
 MOD = os.path.join(WORLD, "mod")
+DATA_C = os.path.join(REPO, "src", "world_data.c")
 BASE = os.path.join(REPO, "bin", "data_json")
 
 NAMESPACE = uuid.UUID("af19cc5a-6529-537b-935b-407bd73b75fb")   # assign_team_uuids.py's
@@ -2263,6 +2268,20 @@ def world_fingerprint():
 
 
 def main():
+    global WORLD, MOD, DATA_C
+    import argparse
+    ap = argparse.ArgumentParser(description="World 2026-27 from the SWOS 96/97 Mod's data")
+    ap.add_argument("--mod", help="the Mod's data (default: <out>/mod)")
+    ap.add_argument("--out", help="the world's folder (default: bin/data_json/worlds/2627)")
+    ap.add_argument("--data-c", help="the baked tables (default: src/world_data.c)")
+    a = ap.parse_args()
+    if a.out:
+        WORLD = os.path.abspath(a.out)
+        for sub in ("teams", "data", "competitions"):
+            os.makedirs(os.path.join(WORLD, sub), exist_ok=True)
+    MOD = os.path.abspath(a.mod) if a.mod else os.path.join(WORLD, "mod")
+    if a.data_c:
+        DATA_C = os.path.abspath(a.data_c)
     if not os.path.isdir(MOD):
         sys.exit("no %s: the Mod's data (Davide's private copies) is not here" % os.path.relpath(MOD, REPO))
     (teams, second, picked), leagues = italy(), italian_league()
@@ -2341,13 +2360,13 @@ def main():
         f.write("; A world's data for OpenSWOS -- written by scripts/world_import.py; the package\n"
                 "; (scripts/make_world_package.sh) carries it, OpenSWOS Setup installs it.\n"
                 "tag = 2627\nname = World 2026-27\nfingerprint = %s\n" % fingerprint)
-    with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
+    with open(DATA_C, "w") as f:
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
                              europe(picks), conti_spec(), guests, proms, states, squad_numbers(), fingerprint,
                              seconds))
-    print("wrote src/world_data.c (data %s)" % fingerprint)
+    print("wrote %s (data %s)" % (os.path.relpath(DATA_C, REPO), fingerprint))
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))
 
