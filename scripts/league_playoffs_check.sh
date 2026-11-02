@@ -47,11 +47,22 @@ open(out + "/mod.spec", "wb").write(bytes(g.compile_spec(lg["ko_playoffs"], nd))
 open(out + "/ours.spec", "wb").write(w.italian_playoffs(20, None)["spec"])
 PY
 CC="gcc -O1 -w"
-$CC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -c -o "$OUT/mod_gp.o" $T/mod_gp.c
-$CC -DDPLAY_C="\"$MOD/tools/dplay.c\"" -c -o "$OUT/mod_dp.o" $T/mod_dp.c
+# The Mod's own C with its locals pattern-filled where a compiler can (the rules library's
+# check.sh does the same): the Mod 4.0.5's per-play-off seed (gplay.c gp_season, rc19) reads club[i]
+# of an entrant that failed its check and never set it -- a random address, a crash once in a few
+# runs; pattern-filled it is negative, the library's "no club". Fixed in the Mod 4.0.6.
+MC="$CC"
+for c in gcc clang /usr/lib/llvm-14/bin/clang; do
+    if echo 'int main(void){return 0;}' | $c -ftrivial-auto-var-init=pattern -x c -o /dev/null - 2>/dev/null; then
+        MC="$c -O1 -w -ftrivial-auto-var-init=pattern"
+        break
+    fi
+done
+$MC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -c -o "$OUT/mod_gp.o" $T/mod_gp.c
+$MC -DDPLAY_C="\"$MOD/tools/dplay.c\"" -c -o "$OUT/mod_dp.o" $T/mod_dp.c
 $CC -c -o "$OUT/mod_main.o" $T/mod_main.c
 $CC -o "$OUT/mod" "$OUT/mod_main.o" "$OUT/mod_dp.o" "$OUT/mod_gp.o"
-$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/ours" $T/ours.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/ours" $T/ours.c src/swos_rules_dplay.c src/swos_rules_gplay.c src/swos_rules_post.c src/swos_rules_check.c
 "$OUT/mod" "$OUT/mod.spec" "$N" > "$OUT/mod.txt"
 "$OUT/ours" "$OUT/ours.spec" "$N" > "$OUT/ours.txt" 2>/dev/null   # (its [playoffs] log)
 if cmp -s "$OUT/mod.txt" "$OUT/ours.txt"; then
@@ -156,8 +167,8 @@ else
 fi
 
 # The B-team rules (the Mod's sec_post): built cases, then random ones against the Mod's.
-$CC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/mod_sec" $T/mod_sec.c
-$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/seconds" $T/seconds.c
+$MC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/mod_sec" $T/mod_sec.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/seconds" $T/seconds.c src/swos_rules_dplay.c src/swos_rules_gplay.c src/swos_rules_post.c src/swos_rules_check.c
 "$OUT/seconds" 2>/dev/null
 "$OUT/mod_sec" "$N" > "$OUT/mod_sec.txt"
 "$OUT/seconds" random "$N" > "$OUT/sec.txt" 2> "$OUT/sec.log"
@@ -171,8 +182,8 @@ else
 fi
 
 # The cups' clubs from the second season (the Mod's cf_build; src/world_cups.c build).
-$CC -DCF_SEED=1 -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cups_mod" $T/cups_mod.c
-$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cups_ours" $T/cups_ours.c
+$MC -DCF_SEED=1 -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cups_mod" $T/cups_mod.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cups_ours" $T/cups_ours.c src/swos_rules_cups.c src/swos_rules_check.c
 "$OUT/cups_mod" "$N" > "$OUT/cups_mod.txt"
 "$OUT/cups_ours" "$N" > "$OUT/cups_ours.txt" 2>/dev/null
 if cmp -s "$OUT/cups_mod.txt" "$OUT/cups_ours.txt"; then
@@ -184,8 +195,8 @@ else
 fi
 
 # The Coppa Italia Serie D's later seasons (the Mod's cd_rank, cd_season, cd_make; ours).
-$CC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cupd_mod" $T/cupd_mod.c
-$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cupd_ours" $T/cupd_ours.c
+$MC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cupd_mod" $T/cupd_mod.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cupd_ours" $T/cupd_ours.c src/swos_rules_cupd.c src/swos_rules_check.c
 "$OUT/cupd_mod" "$N" > "$OUT/cupd_mod.txt"
 "$OUT/cupd_ours" "$N" > "$OUT/cupd_ours.txt" 2>/dev/null
 if cmp -s "$OUT/cupd_mod.txt" "$OUT/cupd_ours.txt"; then

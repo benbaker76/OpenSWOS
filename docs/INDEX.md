@@ -89,7 +89,7 @@ docs drift: search by function name.
 |---|---|---|---|
 | [COMPETITION_DYNAMIC_REFACTOR.md](COMPETITION_DYNAMIC_REFACTOR.md) | Making competitions id-based and data-addable; how Copa Libertadores was built on it. | historical | adding a data-only competition, `Comp_ById`, `_careerContests` |
 | [WORLD_2026_27.md](WORLD_2026_27.md) | Worlds (data sets), and porting the SWOS 96/97 Mod's World 2026-27 (its season-end C, generators and limits) onto our season end, for both targets. | plan | a second world, the Mod's modules, raising team/league limits |
-| [RULES_LIBRARY.md](RULES_LIBRARY.md) | The shared rules library with the SWOS 96/97 Mod: what moves in (the checked ports of its season-end, cup and Coppa D rules), the draft interface, the DOS build's limits, the bugs found on the way, the questions for Davide. | draft | before touching league_playoffs.c, world_cups.c, world_cupd.c's rules |
+| [RULES_LIBRARY.md](RULES_LIBRARY.md) | The shared rules library with the SWOS 96/97 Mod: what moved in (its season-end, cup and Coppa D rules, each checked against the Mod's C), the interface, the DOS build's limits, the bugs found on the way, what is not in yet. | current | before touching league_playoffs.c, world_cups.c, world_cupd.c's rules |
 | [COPA_LIBERTADORES.md](COPA_LIBERTADORES.md) | The original design of the Copa Libertadores (format, 1996 field, draw, qualification) — built differently in places. | historical | changing Copa rules or CONMEBOL qualification |
 | [FEATURES.md](FEATURES.md) | Sketches of three enhancements: Copa (done), career length (done, `num_seasons`), easy data add/remove (partly). | historical / plan | extending competitions, career length, data-driven content |
 | [COMPETITION_SLOT_ALIAS_UNTANGLE.md](COMPETITION_SLOT_ALIAS_UNTANGLE.md) | Retiring the 46 comp-slot `.equ` aliases and the careerFileBuffer overlay. | historical | the 5 career competition slot buffers or their save descriptors |
@@ -220,6 +220,7 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `C:\Projects\GitHub\swos-2020` | SWOS 2020, which OpenSWOS continues: its online menus and netplay are the references |
 | `C:\Projects\GitHub\swos-port` | the DOS port whose recordings (`tests/data/`) seeded the replay rig |
 | `C:\Projects\AI\SWOS\swos-port-c` | partial C++ port with the Amiga game loop working; the verified game-loop reference |
+| `third_party/swos-competition-engine` | the rules library (submodule; github.com/aminta/swos-competition-engine, Davide Lorigliola's): `rules/` built here as `src/swos_rules_*.c`; its `make rules-check MOD=<the Mod's checkout>` compares it with the Mod's C |
 | `C:\Projects\AI\SWOS\swosgfx` | swosgfx (github.com/benbaker76/swosgfx): the C99/C++ rewrite of SwosGfx, byte-identical to it; the converters `tools/swosdata` uses (submodule `third_party/swosgfx`). Converter changes go here |
 | `C:\Projects\GitHub\SwosGfx` | the C# SwosGfx (now github.com/benbaker76/SwosGfx-CSharp); `SwosGfx\AmigaTools.cs` is the authority for Amiga SPRITE/PITCH/PALETTE parsing; `bin\Debug\net8.0\Amiga_Images_16` the extracted graphics |
 | `C:\msys64\home\headk\rjp1player` | the RJP1 player for the music modules and SFX extraction |

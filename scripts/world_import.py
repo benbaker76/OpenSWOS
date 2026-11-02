@@ -956,7 +956,9 @@ WN_PX = 298                             # (the page's width: fmtgame.PX_MAX)
 WN_SKIP = ("promedio", "playout", "placement")
 WN_TITLES = {   # fmtgame.WN_TITLES, English: (country, play-off key) -> title; (country, None): the table's
     ("usa", "mls_po"): "MLS CUP", ("aus", "finals"): "A-LEAGUE MEN CHAMPIONS", ("can", "cpl_po"): "NORTH STAR CUP",
-    ("mlt", "final_four"): "MALTESE CHAMPIONS", ("ita", "poule_scudetto"): "SERIE D CHAMPIONS",
+    ("mlt", "final_four"): "MALTESE CHAMPIONS",
+    # (the Mod 4.0.5: no ("ita", "poule_scudetto") title -- the line is the Poule's own name, not
+    #  'PLAYOFFS - SERIE D CHAMPIONS', which read as the Serie D groups' play-offs)
     ("usa", None): "SUPPORTERS' SHIELD", ("aus", None): "A-LEAGUE PREMIERS", ("can", None): "CPL SHIELD",
     ("per", None): "LIGA 1 - ACCUMULATED TABLE", ("gua", None): "LIGA NACIONAL - ANNUAL TABLE",
     ("slv", None): "PRIMERA DIVISION - ANNUAL TABLE", ("par", None): "DIVISION PROFESIONAL - ANNUAL TABLE",

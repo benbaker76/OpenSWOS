@@ -8,6 +8,7 @@
 #include "world_playoff.h"
 #include "swos_types.h"
 #include "world_cups.h"
+#include "league_playoffs.h"   /* (the rules library: swosrules.h) */
 #include "world_cupd.h"
 #include "endian_helpers.h"
 #include "league_groups.h"
@@ -101,65 +102,43 @@ static int32_t level_of(const LeagueGroups *lg, int32_t division)
     return division;
 }
 
-/* This season's clubs of a cup (gplay.c cf_build, CF_SEED 1): 0 when it plays the real list
- * (the first season; a division with fewer clubs than its quota). */
+/* This season's clubs of a cup (the rules library's sr_cup_entrants: gplay.c cf_build, CF_SEED 1):
+ * 0 when it plays the real list (the first season; a division with fewer clubs than its quota). */
 static int32_t build(const WorldCup *c, TeamId *out)
 {
     const LeagueGroups *lg = LeagueGroups_ForCountry(c->country);
     const int32_t ranked = g_worldCups.placesCountry == c->country &&
                            (uint8_t)(g_worldCups.placesSeason + 1) == g_worldCups.seasons;
-    TeamId byes[WORLD_CUP_CLUBS];
-    uint16_t cand[WORLD_SLOTS];                 /* (slots: include/world.h) */
-    uint32_t key[WORLD_SLOTS];
-    int32_t at = 0, nb = 0;
-    if (first_season() || !lg || !c->groups)
+    static uint16_t slot[WORLD_SLOTS];          /* (slots: include/world.h) */
+    static uint8_t division[WORLD_SLOTS];
+    sr_quota q[LEAGUE_MAX_DIVISIONS];
+    uint8_t level[LEAGUE_MAX_DIVISIONS];
+    uint16_t list[SR_CUP_CLUBS];
+    int32_t career = -1, n;
+    if (first_season() || !lg || !c->groups || c->groups > LEAGUE_MAX_DIVISIONS || lg->clubs > WORLD_SLOTS)
         return 0;
     for (int32_t g = 0; g < c->groups; g++) {
-        const int32_t dv = c->quota[g][0], want = c->quota[g][1], wb = c->quota[g][2];
-        const int32_t nl = level_of(lg, dv);
-        int32_t m = 0;
-        /* the division's clubs this season (its base, moved by the league's table), by slot */
-        for (int32_t q = 0; q < lg->clubs; q++) {
-            const LeagueGroupClub *k = &lg->club[q];
-            const uint16_t glob = (uint16_t)(_teamsCountryNumbers[c->country] + k->slot);
-            if (k->base + (int8_t)_diyLeagueSeasonStateTable[glob] == dv)
-                cand[m++] = k->slot;
-        }
-        if (m < want)
-            return 0;
-        /* relegated into it, stayed, promoted, without a place; then the place, the ordinal */
-        for (int32_t i = 0; i < m; i++) {
-            const int32_t v = ranked ? g_worldCups.place[cand[i]] : 0;
-            const int32_t r = v ? (v & 31) : 0xFF, ol = v ? v >> 5 : nl;
-            const int32_t grp = !v ? 3 : ol < nl ? 0 : ol == nl ? 1 : 2;
-            key[i] = (uint32_t)grp << 17 | (uint32_t)r << 9 | cand[i];
-        }
-        for (int32_t i = 1; i < m; i++)
-            for (int32_t j = i; j > 0 && key[j - 1] > key[j]; j--) {
-                const uint32_t kk = key[j]; key[j] = key[j - 1]; key[j - 1] = kk;
-                const uint16_t x = cand[j]; cand[j] = cand[j - 1]; cand[j - 1] = x;
-            }
-        if (World_FileCountry(_careerTeam.team.countryNumber) == c->country)    /* the career club first */
-            for (int32_t i = 0; i < m; i++)
-                if (cand[i] == World_Slot(_careerTeam.team.countryNumber, _careerTeam.team.teamOrdinal)) {
-                    const uint16_t x = cand[i];
-                    for (int32_t j = i; j > 0; j--) cand[j] = cand[j - 1];
-                    cand[0] = x;
-                    break;
-                }
-        for (int32_t k = 0; k < want; k++) {
-            TeamId *t = k >= want - wb ? (nb < WORLD_CUP_CLUBS ? &byes[nb++] : 0) :
-                                          (at < WORLD_CUP_CLUBS ? &out[at++] : 0);
-            if (t) {
-                const uint16_t w = World_SlotTeam(c->country, cand[k]);
-                t->countryNumber = (uint8_t)(w >> 8);
-                t->teamOrdinal = (uint8_t)w;
-            }
-        }
+        q[g].division = c->quota[g][0]; q[g].clubs = c->quota[g][1]; q[g].byes = c->quota[g][2];
     }
-    for (int32_t k = 0; k < nb && at < WORLD_CUP_CLUBS; k++)
-        out[at++] = byes[k];                    /* (the byes after round 1's clubs) */
-    return at == c->n ? at : 0;
+    for (int32_t d = 0; d < LEAGUE_MAX_DIVISIONS; d++)
+        level[d] = (uint8_t)level_of(lg, d);
+    /* the clubs this season (their base, moved by the league's table) */
+    for (int32_t i = 0; i < lg->clubs; i++) {
+        const LeagueGroupClub *k = &lg->club[i];
+        const uint16_t glob = (uint16_t)(_teamsCountryNumbers[c->country] + k->slot);
+        slot[i] = k->slot;
+        division[i] = (uint8_t)(k->base + (int8_t)_diyLeagueSeasonStateTable[glob]);
+    }
+    if (World_FileCountry(_careerTeam.team.countryNumber) == c->country)    /* the career club first */
+        career = World_Slot(_careerTeam.team.countryNumber, _careerTeam.team.teamOrdinal);
+    n = sr_cup_entrants(q, c->groups, c->n, lg->clubs, slot, division, ranked ? g_worldCups.place : 0, level,
+                        career, list);
+    for (int32_t k = 0; k < n && k < WORLD_CUP_CLUBS; k++) {
+        const uint16_t w = World_SlotTeam(c->country, list[k]);
+        out[k].countryNumber = (uint8_t)(w >> 8);
+        out[k].teamOrdinal = (uint8_t)w;
+    }
+    return n;
 }
 
 /* The cup's clubs this season, in its record's order (round 1's, then the byes). */

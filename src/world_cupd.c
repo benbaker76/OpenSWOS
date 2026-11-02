@@ -5,6 +5,7 @@
 #include "game_types.h"
 #include "swos_types.h"
 #include "world_cupd.h"
+#include "league_playoffs.h"   /* (the rules library: swosrules.h) */
 #include "world_cups.h"
 #include "team_pool.h"
 #include "world_playoff.h"
@@ -308,10 +309,8 @@ static int32_t slot4_free(void)
 }
 
 /* The season end's tables and the pool's new arrivals (the season start's entry order: in
- * one session with it, so not saved -- as the Mod's GP_IN). */
-static uint8_t s_place[WORLD_SLOTS];    /* a Serie D club's place from the bottom of its group + 2 */
-static uint8_t s_lastDiv[WORLD_SLOTS];  /* every club's division (FFh: not seen) */
-static uint8_t s_arrival[WORLD_SLOTS / 8];   /* (by slot) */
+ * one session with it, so not saved -- as the Mod's GP_IN): the rules library's sr_cupd_end. */
+static sr_cupd_end s_end;
 static uint8_t s_ranked;                /* the tables kept (the season they are of + 1) */
 
 void CupD_KeepPlace(uint8_t country, uint16_t division, uint16_t team, int32_t place, int32_t clubs)
@@ -320,114 +319,43 @@ void CupD_KeepPlace(uint8_t country, uint16_t division, uint16_t team, int32_t p
     if (!c || country != c->country || World_FileCountry((uint8_t)(team >> 8)) != country)
         return;
     if (s_ranked != (uint8_t)(g_worldCups.seasons + 1)) {
-        for (int32_t i = 0; i < WORLD_SLOTS; i++) {
-            s_place[i] = 0;
-            s_lastDiv[i] = 0xFF;
-        }
-        for (int32_t i = 0; i < WORLD_SLOTS / 8; i++)
-            s_arrival[i] = 0;
+        sr_cupd_end_reset(&s_end);
         s_ranked = (uint8_t)(g_worldCups.seasons + 1);
     }
-    const uint16_t o = World_Slot((uint8_t)(team >> 8), (uint8_t)team);
-    s_lastDiv[o] = (uint8_t)division;
-    if (division >= c->first && division < c->first + c->groups)
-        s_place[o] = (uint8_t)(2 + (clubs - 1 - place));        /* (place 0 the top) */
+    sr_cupd_keep_place(&s_end, c->first, c->groups, division, World_Slot((uint8_t)(team >> 8), (uint8_t)team),
+                       place, clubs);
 }
 
 void CupD_NoteArrival(uint8_t country, uint16_t ordinal)
 {
     const WorldCupD *c = World_CupD();
     if (c && country == c->country && s_ranked == (uint8_t)(g_worldCups.seasons + 1))
-        s_arrival[ordinal >> 3] |= (uint8_t)(1 << (ordinal & 7));
+        sr_cupd_note_arrival(&s_end, ordinal);
 }
 
-/* m sides -> ties from side[at]: shuffled, each paired with the next of its group, else the
- * next (gplay.c cd_pair). */
-static void cd_pair(uint16_t *side, uint8_t *sg, int32_t m, int32_t at)
-{
-    for (int32_t i = m - 1; i > 0; i--) {
-        const int32_t j = (int32_t)below((uint32_t)i + 1);
-        const uint16_t x = side[i]; const uint8_t y = sg[i];
-        side[i] = side[j]; side[j] = x; sg[i] = sg[j]; sg[j] = y;
-    }
-    uint8_t used[256];
-    for (int32_t i = 0; i < m; i++)
-        used[i] = 0;
-    for (int32_t i = 0; i < m; i++) {
-        if (used[i])
-            continue;
-        int32_t j = -1;
-        for (int32_t k = i + 1; k < m && j < 0; k++)
-            if (!used[k] && sg[k] != 0xFF && sg[k] == sg[i]) j = k;
-        for (int32_t k = i + 1; k < m && j < 0; k++)
-            if (!used[k]) j = k;
-        used[i] = 1;
-        g_worldCupD.side[at++] = side[i];
-        if (j >= 0) { used[j] = 1; g_worldCupD.side[at++] = side[j]; } else g_worldCupD.side[at++] = 0;
-    }
-}
-
-/* A later season's rounds 0-1 (gplay.c cd_season's keys, then cd_make). */
+/* A later season's rounds 0-1 (the rules library's sr_cupd_make: gplay.c cd_season's keys, then
+ * cd_make), from the last season end's tables. */
 static void cd_make(const WorldCupD *c)
 {
     WorldCupDState *s = &g_worldCupD;
-    const int32_t df = c->first, dc = c->groups, lf = c->country;
     const int32_t fresh = s_ranked == g_worldCups.seasons;      /* (the last season end's tables) */
-    uint16_t ord[WORLD_SLOTS];
-    uint8_t grp[WORLD_SLOTS], sg[256], pg[WORLD_CUPD_PRE];
-    uint16_t key[WORLD_SLOTS], side[256];
-    int32_t n = 0;
-    s_rng = gp_seas() * 104729u + 17;
+    static uint8_t division[WORLD_SLOTS];
+    static uint16_t word[WORLD_SLOTS];
+    static sr_cupd_rounds out;
     for (int32_t i = 0; i < WORLD_SLOTS; i++) {
         const int32_t b = c->base[i];
-        if (b == 0xFF)
-            continue;
-        const int32_t dv = b + (int8_t)_diyLeagueSeasonStateTable[_teamsCountryNumbers[lf] + i];
-        if (dv < df || dv >= df + dc)
-            continue;
-        int32_t e = 0x40;                                       /* (unknown) */
-        if (fresh) {
-            const int32_t od = s_lastDiv[i];
-            if (s_arrival[i >> 3] & (1 << (i & 7)))
-                e = 1;                                          /* (a pool club's identity) */
-            else if (od == 0xFF)
-                e = 0x40;                                       /* (in no table: unknown) */
-            else if (od < df || od >= df + dc)
-                e = 1;                                          /* (relegated from Serie C) */
-            else if (s_place[i] >= 2)
-                e = s_place[i];                                 /* (from the bottom of its group) */
-        }
-        ord[n] = (uint16_t)i;
-        grp[n] = (uint8_t)(dv - df);
-        key[n] = (uint16_t)(e << 8 | below(256));
-        n++;
+        division[i] = b == 0xFF ? 0xFF
+                                : (uint8_t)(b + (int8_t)_diyLeagueSeasonStateTable[_teamsCountryNumbers[c->country] + i]);
+        word[i] = cd_word(c->country, (uint16_t)i);
     }
-    for (int32_t i = 1; i < n; i++)                             /* (the entry order: by key) */
-        for (int32_t j = i; j > 0 && key[j - 1] > key[j]; j--) {
-            uint16_t k = key[j]; key[j] = key[j - 1]; key[j - 1] = k;
-            k = ord[j]; ord[j] = ord[j - 1]; ord[j - 1] = k;
-            const uint8_t o = grp[j]; grp[j] = grp[j - 1]; grp[j - 1] = o;
-        }
-    const int32_t n1 = 1 << (c->rounds - 2);
-    int32_t p = n - 2 * n1, m = 0;
-    if (p < 0) p = 0;
-    if (p > WORLD_CUPD_PRE) p = WORLD_CUPD_PRE;
-    s->np = (uint8_t)p;
-    for (int32_t k = 0; k < 2 * p; k++) { side[m] = cd_word((uint8_t)lf, ord[k]); sg[m++] = grp[k]; }
-    cd_pair(side, sg, m, 0);
-    for (int32_t t = 0; t < p; t++) {                           /* (a preliminary tie's group: its first side's) */
-        const int32_t o = cd_slot(s->side[2 * t]);
-        pg[t] = 0xFF;
-        for (int32_t k = 0; k < 2 * p; k++) if (ord[k] == o) pg[t] = grp[k];
-    }
-    m = 0;
-    for (int32_t t = 0; t < p; t++) { side[m] = CD_REF(t); sg[m++] = pg[t]; }
-    for (int32_t k = 2 * p; k < n && m < 2 * n1; k++) { side[m] = cd_word((uint8_t)lf, ord[k]); sg[m++] = grp[k]; }
-    while (m < 2 * n1) { side[m] = 0; sg[m++] = 0xFF; }
-    cd_pair(side, sg, m, 2 * p);
+    const int32_t n = sr_cupd_make(fresh ? &s_end : 0, gp_seas(), c->rounds, c->first, c->groups, WORLD_SLOTS,
+                                   division, word, &out);
+    s->np = out.np;
+    for (int32_t i = 0; i < 2 * (WORLD_CUPD_PRE + WORLD_CUPD_R1); i++)
+        s->side[i] = out.side[i];
     s->gen = 1;
     SWOS_DBG("[world-cupd] season %u: %d Serie D clubs, %d preliminary ties%s\n", (unsigned)gp_seas(),
-             (int)n, (int)p, fresh ? "" : " (no tables kept: random entry order)");
+             (int)n, (int)s->np, fresh ? "" : " (no tables kept: random entry order)");
 }
 
 /* A round's generator and, for a drawn round, its draw (as step's: gplay.c cd_step_c). */

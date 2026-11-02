@@ -1,9 +1,13 @@
-# RULES_LIBRARY.md — the shared rules library: interface draft (for the freeze after phase 4)
+# RULES_LIBRARY.md — the shared rules library with the SWOS 96/97 Mod
 
-Draft, 2026-10-28, for Davide Lorigliola (SWOS 96/97 Mod) and OpenSWOS. Nothing here is
-built yet: this is what OpenSWOS proposes to move into the library and the interface it
-would have, written now that phase 4 (a world's league rules) is done
-(docs/WORLD_2026_27.md §6).
+**Status, 2026-11-01: in, at the tag M1 -- the Mod 4.0.5's rules** (§10). The library is `rules/` in Davide's repository
+(github.com/aminta/swos-competition-engine, its `docs/rules-library.md`), a submodule here at
+`third_party/swos-competition-engine`, compiled as `src/swos_rules_*.c` on every target. Six
+modules went in as six pull requests (#1-#6 there, stacked), each with its comparison against the
+Mod's own C (`make rules-check MOD=...` there; `scripts/league_playoffs_check.sh` here runs ours
+through it): the Italian rules, the pack's knockouts, the career club's contests, B teams and the
+season's moves, the cups' clubs from the second season, the Coppa D's later seasons (§9). Below,
+the draft of 2026-10-28 as it was agreed.
 
 ## 1. What was agreed (2026-10-27)
 
@@ -209,3 +213,53 @@ is fixed in its 4.0.3.
 3. Do you want the career club's results passed in as today (`po_win`, ...), or the whole
    played bracket?
 4. Repository: under your account, ours, or a shared organisation?
+
+## 9. What was built (2026-10-31)
+
+| Here before | The library's | Its test (there) |
+|---|---|---|
+| `league_playoffs.c` dp_season | `sr_italy` (`rules/sr_dplay.c`) | 20,000 seasons, every move |
+| `league_playoffs.c` gp_season | `sr_knockouts` (`rules/sr_gplay.c`) | Italy's whole season end, 20,000 seasons; every pack's knockouts, 2,000 each |
+| `league_playoffs.c` ContestEntrants, ClubPlayoff, GroupShape, ContestSeed / Tie | `sr_contest_entrants`, `sr_club_playoff`, `sr_group_shape_of`, `sr_contest_seed` / `sr_contest_tie` | 30,667 contests and every club's choice |
+| `league_playoffs.c` second_teams and the record's moves | `sr_final_moves`, `sr_b_teams` (`rules/sr_post.c`) | built cases; 20,000 random in five countries |
+| `world_cups.c` build | `sr_cup_entrants` (`rules/sr_cups.c`) | 20,000 seasons, both cups |
+| `world_cupd.c` cd_make, the season end's places | `sr_cupd_make`, `sr_cupd_keep_place`, `sr_cupd_note_arrival` (`rules/sr_cupd.c`) | 20,000 later seasons |
+
+The interface is §3's with what the whole gp_season needed: the stage tables (`sr_stage_bank`,
+OpenSWOS's `LeagueStageBank` is now a typedef of it), the promedio (`sr_promedio`), the winners
+page (`sr_winners`), and `sr_host` -- callbacks for what the career club played itself
+(world_playoff.c) and the log. Clubs are by slot where a country spans two team files. The
+library builds as one freestanding i486 object with no undefined symbols, and for the Amiga
+(`SWOSRULES_HAVE_STDINT`: its toolchain has no `<stdint.h>`).
+
+**Not in yet:** the rest of the Coppa D's pure part (the table walk, hosts, simulated ties: to be
+checked against the Mod's 4.0.3, which has §5's fix; the public repo is at 4.0.2), the parallel
+groups (`league_groups.c`, against `pgroups`), the pool (`team_pool.c`, against the RI section).
+
+OpenSWOS's `rules-library` branch carried the change here until Davide merged the pull requests;
+then the submodule moved to his tag and the branch merged (§10).
+
+## 10. M1: the Mod 4.0.5's rules (2026-11-01)
+
+Davide merged #1-#9 and tagged **M1** (4484b81), swosrules.h v1 frozen: the six modules as above,
+brought up to the Mod 4.0.5 (#7: each play-off's own random stream, the season-end preview, New
+Zealand's club-by-team-word entrants and Grand Final, Mexico's supercup left to the next season,
+`skip_second`, and B teams passed over as play-off entrants by place -- the Mod's `place_club`,
+older than 4.0.2, never in the library), and untrusted input checked up front (#8, #9:
+`sr_spec_check`, `sr_league_check`, `sr_season_check`). The submodule is at M1; what OpenSWOS gives
+it (`league_playoffs.c`):
+
+- `sr_league.spec_len`: required with a spec -- the world spec's bytes, walked once (`spec_bytes`);
+- `sr_season.b_in_ko` 1, `base` (the country's first global number) and `levels`: the B teams
+  passed over in the knockouts as the Mod does;
+- a refused league (`sr_italy` / `sr_knockouts` -1) is logged with the library's field.
+
+`scripts/league_playoffs_check.sh` needs **a 4.0.5 checkout** now (`MOD=`): the rules are 4.0.5's.
+It builds the Mod's C with its locals pattern-filled where a compiler can (gcc 12+ or clang): the
+Mod 4.0.5's per-play-off seed reads `club[i]` of an entrant whose check failed (San Marino's every
+season end; fixed in 4.0.6). The B teams' test gives the Mod SEC_TAB's 8-byte entries. 14 PASS. The
+importer follows 4.0.5's SEASON WINNERS titles (no Poule Scudetto title: the Poule's own name);
+the world's data is still the earlier import's until the next package.
+
+The golden careers changed with it (the 4.0.5 rules decide some season ends differently): recorded
+again after `career_golden_diff.py` named only season-end moves and titles.

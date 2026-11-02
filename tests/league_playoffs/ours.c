@@ -108,7 +108,7 @@ int main(int argc, char **argv)
         LeaguePlayoffs_Begin();
         for (int d = 0; d < ND; d++) {
             for (int k = 0; k < n[d]; k++) {
-                struct lp_row *r = &s_in.t[d][k];
+                lp_row *r = &s_in.t[d][k];
                 r->team = t[d][k].team; r->glob = t[d][k].glob; r->won = t[d][k].won;
                 r->gf = t[d][k].gf; r->ga = t[d][k].ga; r->pts = t[d][k].pts;
             }
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
                     b->r[k][i].gf = x->gf; b->r[k][i].ga = x->ga; b->r[k][i].pts = x->pts;
                 }
             }
-            b->keptDiv = 0; b->nKept = (uint8_t)st.nkeep;
+            b->kept_div = 0; b->n_kept = (uint8_t)st.nkeep;
             for (int i = 0; i < st.nkeep; i++) {
                 b->kept[i].team = st.keep[i].team; b->kept[i].glob = st.keep[i].glob;
                 b->kept[i].won = b->kept[i].gf = b->kept[i].ga = 0; b->kept[i].pts = st.keep[i].pts;
@@ -143,12 +143,12 @@ int main(int argc, char **argv)
         printf("%u", it);
         /* dp moves carry a delta of +-1 and come first; the knockouts' after (as the Mod's
          * two lists): told apart by how many dp_season made */
-        for (int i = 0; i < s_nmv; i++)
-            printf(" %c%u:%d", i < s_dp_moves ? 'd' : 'g', s_mv[i].glob, s_mv[i].delta);
-        for (int i = 0; i < s_nres; i++)
-            printf(" T%u:%u/%u", s_res[i].kind, s_res[i].glob[0], s_res[i].glob[1]);
+        for (int i = 0; i < s_rules.nmv; i++)
+            printf(" %c%u:%d", i < s_rules.dp_moves ? 'd' : 'g', s_rules.mv[i].glob, s_rules.mv[i].delta);
+        for (int i = 0; i < s_rules.gp.nres; i++)
+            printf(" T%u:%u/%u", s_rules.gp.res[i].kind, s_rules.gp.res[i].glob[0], s_rules.gp.res[i].glob[1]);
         for (int k = 0; k < 3; k++)
-            if (s_sres[k].kind) printf(" S%d:%u/%u", k, s_sres[k].glob[0], s_sres[k].glob[1]);
+            if (s_rules.gp.sres[k].kind) printf(" S%d:%u/%u", k, s_rules.gp.sres[k].glob[0], s_rules.gp.sres[k].glob[1]);
         if (_selTeamNumber && g_leagueWinners.fresh) {     /* (the SEASON WINNERS page's last season) */
             printf(" W");
             for (int i = 0; i < g_leagueWinners.n; i++)
