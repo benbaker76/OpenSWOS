@@ -280,7 +280,7 @@ things came out of it for the library:
 - **Team words are each game's own.** A spec names a club (entrant type 8: New Zealand's reserves)
   by its file and ordinal, the two bytes the Mod's `compile_spec` writes; the Mod's team word is
   `file | ordinal << 8`, ours `file << 8 | ordinal` (`PACK_BE_U16`). `sr_league.team_file_high`
-  (PR #10, `rules 10`; 0 the Mod's, the zeroed default) says how to make this game's word from
+  (PR #10, `rules 10`, merged as 0f5c5fe -- the submodule's commit; 0 the Mod's, the zeroed default) says how to make this game's word from
   them; `league_of` sets 1. The spec's LAYOUT is then the same in both games -- not its bytes: the
   file number is each game's (New Zealand is 62 here, 214 in the Mod; Argentina 43 and 163), so
   `league_playoffs_check.sh` compares our baked spec with the Mod's `Pack.gplay()` with that byte

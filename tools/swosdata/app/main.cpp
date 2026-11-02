@@ -49,10 +49,12 @@ extern "C" {
 #include <nfd.h>
 #endif
 
-// Where World 2026-27's package is downloaded from (hosted apart from OpenSWOS: its squads are
-// their authors'): "" until it is up -- and until then the setup shows no World 2026-27 row at
-// all (nobody could get the package; `swosdata --world FILE` still installs one, for testing).
-static const char kWorldUrl[] = "";
+// Where World 2026-27's package is downloaded from: hosted apart from OpenSWOS, by its authors
+// (the SWOS 96/97 Mod's Davide Lorigliola, 2026-11-02), its squads being theirs; the same URL for
+// each new package. "" would show no World 2026-27 row at all (`swosdata --world FILE` still
+// installs one, for testing). Its README beside it: the data's sources and credits.
+static const char kWorldUrl[] = "https://worldofswos.com/static/openswos/OpenSWOS-World-2627.zip";
+static const char kWorldCredits[] = "https://worldofswos.com/static/openswos/README.txt";
 
 namespace {
 
@@ -429,7 +431,7 @@ struct App {
                        "package is a download of its own. The game plays it when SWOS.ini says world = 2627.";
         row.about_amiga = "The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its "
                           "package is a download of its own; tick it below to play it on the Amiga.";
-        if (kWorldUrl[0]) row.links = Links({{"OpenSWOS-World-2627.zip", kWorldUrl}});
+        if (kWorldUrl[0]) row.links = Links({{"OpenSWOS-World-2627.zip", kWorldUrl}, {"credits", kWorldCredits}});
         path = src.world;
         SdWorldInfo wi;
         if (src.world[0] && SdSources_OpenWorld(src.world, &wi, nullptr, 0) == 0 && wi.fingerprint[0])
