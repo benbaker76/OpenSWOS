@@ -2418,25 +2418,29 @@ int16_t       g_spriteAnimVisibleCount;
  * both peers agreed, so a 4:3 and a 16:9 player animate the same margin. (It used to
  * be the render width everywhere but the rig, which made two such peers diverge.) */
 
-/* The players walking off (to half time, or the showers at the end) leave by the right touchline
- * and stop just beyond the original's screen -- 336 wide, the game camera's -- so there they walk
- * out of the picture. A wider view still has room for them, and showed them standing in a row at
- * its edge (tester report 0045, 2026-10-30); hiding them at the 336 edge instead made them vanish
- * in the middle of a wide picture (EMPI, 2026-11-01). So while they walk off, whoever crosses the
- * right touchline (x 590, where the ball goes out) is gone -- off to the tunnel -- at every width,
- * so a recording is the same at any width too. Not drawn, nor recorded (replay_v2.c); nothing the
- * game decides depends on it (onScreen stays as it is). */
-#define WALK_OFF_TOUCHLINE_X 590
-int Sprite_PastWalkOffEdge(const Sprite *s, const SpriteGraphics *g)
+/* The players walking off (to half time, or the showers at the end) go to their team's exit point
+ * beyond the right touchline -- (635, 392) or (636, 406): every player of a team to the same spot --
+ * and stop just beyond the original's screen, 336 wide, the game camera's: there they walk out of
+ * the picture. A wider view still has room for them, and showed them standing in a row at its edge
+ * (tester report 0045, 2026-10-30); hiding them at the 336 edge made them vanish in the middle of a
+ * wide picture, and at the touchline (x 590) still in plain sight (EMPI, 2026-11-01/02). So while
+ * they walk off, whoever reaches the exit point -- within WALK_OFF_REACH of it: they stop and would
+ * walk into each other -- is gone, into the tunnel, at every width, so a recording is the same at
+ * any width too. Not drawn, nor recorded (replay_v2.c); nothing the game decides depends on it
+ * (onScreen stays as it is). */
+#define WALK_OFF_EXIT_X_MIN 590             /* (an exit point is beyond the touchline) */
+#define WALK_OFF_REACH      12          /* (they stop 8..11 short of it: measured, a whole match) */
+int Sprite_WalkedOff(const Sprite *s, const SpriteGraphics *g)
 {
     extern uint16_t _gameState;
     (void)g;
     if (_gameState != ST_GOING_TO_HALFTIME && _gameState != ST_PLAYERS_GOING_TO_SHOWER &&
         _gameState != ST_RESULT_ON_HALFTIME && _gameState != ST_RESULT_AFTER_THE_GAME)
         return 0;                   /* (and while the result shows: the last ones are still walking) */
-    if (s->z.s.i >= HUD_LAYER_Z_MIN)
+    if (s->z.s.i >= HUD_LAYER_Z_MIN || s->destX <= WALK_OFF_EXIT_X_MIN)
         return 0;
-    return s->x.s.i > WALK_OFF_TOUCHLINE_X;
+    const int32_t dx = s->x.s.i - s->destX, dy = s->y.s.i - s->destY;
+    return dx >= -WALK_OFF_REACH && dx <= WALK_OFF_REACH && dy >= -WALK_OFF_REACH && dy <= WALK_OFF_REACH;
 }
 
 int Sprite_AnimVisible(const Sprite *s)
@@ -2567,7 +2571,7 @@ void BuildSpriteBandAndGeneralRenderStacks(void)
                 if (animVis && g_spriteAnimVisibleCount < SPRITE_ANIMVIS_MAX)
                     g_spriteAnimVisible[g_spriteAnimVisibleCount++] = a1;
             }
-            if (!inRenderView || Sprite_PastWalkOffEdge(a1, a0)) {
+            if (!inRenderView || Sprite_WalkedOff(a1, a0)) {
                 d7--;
                 if (d7 < 0) break;
                 continue;
