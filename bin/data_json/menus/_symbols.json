@@ -37,6 +37,7 @@
     "ChangePitchType",
     "ChangeSex",
     "ChangeTeams",
+    "ChangeWorld",
     "ChooseTacticsInit",
     "ChooseTeamAndStartCareer",
     "ChooseTeamsFriendlyCommon",
@@ -570,6 +571,7 @@
     "_aViewWorld",
     "_aW",
     "_aWinners",
+    "_aWorldOption",
     "_aYourCareerIsOv",
     "_aYourChairman",
     "_asc_131FF2",
@@ -650,7 +652,8 @@
     "_pitchTypeOrSeasonTable",
     "_pitchTypeStrTable",
     "_positionFilterStringTable",
-    "_skillFilterStringTable"
+    "_skillFilterStringTable",
+    "_worldStrTable"
   ],
   "sprite_copies": [
     "_editTeamsPrimaryShirts",

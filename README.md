@@ -3,8 +3,8 @@
 # OpenSWOS
 
 ***Sensible World of Soccer*, rebuilt in C from the original Amiga game.** Same game,
-same feel, now on **Windows (10 or later), macOS, Linux, the Raspberry Pi** and the **Amiga 1200**,
-with **online multiplayer**.
+same feel, now on **Windows (10 or later), macOS, Linux, the Raspberry Pi**, the **Amiga 1200**,
+**Android** and **iPhone/iPad**, with **online multiplayer**.
 
 <p align="center"><b><a href="https://baker76.itch.io/openswos">Download OpenSWOS on itch.io</a></b></p>
 
@@ -48,6 +48,10 @@ copy, once, and downloads nothing. [INSTALL.md](INSTALL.md) shows you how.
 - **The PC and Amiga versions' looks and sounds**, and optionally the Atari Jaguar's
   sprites and SWOS 2020's pitches.
 - **A real Amiga version** for the A1200/A4000 (AGA), built from the same source code.
+- **Android and iPhone/iPad**, with on-screen controls or a Bluetooth controller.
+- **World 2026-27** (optional): today's clubs, players and competitions, from the
+  [SWOS 96/97 Mod](https://github.com/aminta/swos-9697-mod) -- a download of its own, switched
+  on in OPTIONS → WORLD ([INSTALL.md](INSTALL.md#4a-world-2026-27-optional)).
 - An **arcade (coin-op) mode** for cabinets.
 
 ## Documentation

@@ -470,6 +470,10 @@ char _aControls[] = "CONTROLS";
 char _aRedefineKeys[] = "REDEFINE KEYS";
 /* OPTIONS -> PITCHES: DOS / 2020, which pitches the AGA Amiga draws (pitch.c). */
 char _aPitches[] = "PITCHES";
+/* OPTIONS -> WORLD (menus.c ChangeWorld): its label and its two values. */
+char _aWorldOption[] = "WORLD";
+char _aWorld9697[] = "96/97";
+char _aWorld2627[] = "2026-27";
 char _a2020Style[] = "2020";
 char _aGoals[] = "GOALS";
 char _aForm[] = "FORM";

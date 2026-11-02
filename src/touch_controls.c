@@ -88,6 +88,14 @@ static void release_all(void)
     send();
 }
 
+/* Everything let go: the window lost focus or the app went to the background -- a message box or
+ * the system took the finger, and its lift never comes (a FIRE held through it pressed again). */
+void TouchControls_ReleaseAll(void)
+{
+    if (s_stickFinger != -1 || s_fire || s_keyDown[0] || s_keyDown[1])
+        release_all();
+}
+
 /* An event; w, h the renderer's output size (platform_sdl.c). */
 void TouchControls_HandleEvent(const SDL_Event *e, int w, int h)
 {

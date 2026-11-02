@@ -1314,6 +1314,9 @@ int main(int argc, char **argv)
         }
     }
     fprintf(stderr, "[world] %s\n", World_Tag());
+    /* OPTIONS -> WORLD draws the world SWOS.ini names (menus.c ChangeWorld). */
+    { extern uint16_t _worldOption;
+      _worldOption = (uint16_t)(World_FromTag(opts.world[0] ? opts.world : "9697") == (int32_t)WORLD_2627); }
 
     if (_gDosGraphics)
         fprintf(stderr, "[dos] DOS graphics mode ON (bin/%s)\n", _gDosGraphicsDir);

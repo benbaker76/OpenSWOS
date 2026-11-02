@@ -44,6 +44,7 @@ extern void ChangePitchStyle(void);
 extern void ChangePitchType(void);
 extern void ChangeSex(void);
 extern void ChangeTeams(void);
+extern void ChangeWorld(void);
 extern void ChooseTacticsInit(void);
 extern void ChooseTeamAndStartCareer(void);
 extern void ChooseTeamsFriendlyCommon(void);
@@ -577,6 +578,7 @@ extern char _aViewTeam[];
 extern char _aViewWorld[];
 extern char _aW[];
 extern char _aWinners[];
+extern char _aWorldOption[];
 extern char _aYourCareerIsOv[];
 extern char _aYourChairman[];
 extern char* _allPlTeamsEqualStrTable[];
@@ -676,6 +678,7 @@ extern char _teamTacticsUSERC[];
 extern char _teamTacticsUSERD[];
 extern char _teamTacticsUSERE[];
 extern char _teamTacticsUSERF[];
+extern char* _worldStrTable[];
 
 const MenuSymbol _menuSymbols[] = {
     { "AbortChooseTeamsFriendly", (void*)AbortChooseTeamsFriendly, SYM_FUNC },
@@ -715,6 +718,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ChangePitchType", (void*)ChangePitchType, SYM_FUNC },
     { "ChangeSex", (void*)ChangeSex, SYM_FUNC },
     { "ChangeTeams", (void*)ChangeTeams, SYM_FUNC },
+    { "ChangeWorld", (void*)ChangeWorld, SYM_FUNC },
     { "ChooseTacticsInit", (void*)ChooseTacticsInit, SYM_FUNC },
     { "ChooseTeamAndStartCareer", (void*)ChooseTeamAndStartCareer, SYM_FUNC },
     { "ChooseTeamsFriendlyCommon", (void*)ChooseTeamsFriendlyCommon, SYM_FUNC },
@@ -1245,6 +1249,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aViewWorld", (void*)_aViewWorld, SYM_STRING },
     { "_aW", (void*)_aW, SYM_STRING },
     { "_aWinners", (void*)_aWinners, SYM_STRING },
+    { "_aWorldOption", (void*)_aWorldOption, SYM_STRING },
     { "_aYourCareerIsOv", (void*)_aYourCareerIsOv, SYM_STRING },
     { "_aYourChairman", (void*)_aYourChairman, SYM_STRING },
     { "_allPlTeamsEqualStrTable", (void*)_allPlTeamsEqualStrTable, SYM_TABLE },
@@ -1344,6 +1349,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_teamTacticsUSERD", (void*)_teamTacticsUSERD, SYM_BUFFER },
     { "_teamTacticsUSERE", (void*)_teamTacticsUSERE, SYM_BUFFER },
     { "_teamTacticsUSERF", (void*)_teamTacticsUSERF, SYM_BUFFER },
+    { "_worldStrTable", (void*)_worldStrTable, SYM_TABLE },
     { "locret_139AE2", (void*)locret_139AE2, SYM_FUNC },
 };
 const int _menuSymbolsCount =

@@ -9,6 +9,9 @@ static const char *const kTags[WORLD_COUNT] = {
 };
 
 static WorldId s_world = WORLD_9697;
+/* OPTIONS -> WORLD (menus.c ChangeWorld): the world SWOS.ini names -- 0 96/97, 1 2026-27 --,
+ * which the game plays from its next start; the row draws it. */
+uint16_t _worldOption;
 
 static const uint16_t kFirstYear[WORLD_COUNT] = { 1996, 2026 };   /* (its first season's start) */
 

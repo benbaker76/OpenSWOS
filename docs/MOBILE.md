@@ -1,8 +1,10 @@
 # MOBILE.md — OpenSWOS on Android and iOS
 
-**Status (2026-11-02): both build and run.** iOS has been run on the iPhone 16 simulator: the
-missing-data message, then the intro, the menus and the touch controls with a real assets folder.
-Android builds a signed APK. Neither has been played on a real phone yet. Both are flavours of the
+**Status (2026-11-02): both build and run, on real hardware.** The signed release APK plays a match
+on a Pixel 8 (touch stick and FIRE, a Bluetooth controller); the iOS build runs on an iPod touch and
+the iPhone 16 simulator. OPTIONS -> WORLD was tested on the Pixel (World 2026-27 copied in with the
+assets folder; `[world] 2627` after a restart). Touches held when the app loses focus or goes to the
+background are released (`TouchControls_ReleaseAll`), so a FIRE held over a message box does not stay down. Both are flavours of the
 SDL build, the same sources as every other target (`SWOS_MOBILE_BUILD`, with `SWOS_ANDROID_BUILD` /
 `SWOS_IOS_BUILD`: `include/swos_platform.h`).
 
@@ -73,6 +75,5 @@ re-signs every 7 days). `build_ios.sh sim` and the Mac's development identity ar
 
 ## Not done yet
 
-- Played on a real Android phone or iPhone.
 - Importing the game's data in the app (the Setup's library on the phone) instead of copying it.
 - Haptics, the controls' size and placement as a setting, a controls layout for a second player.

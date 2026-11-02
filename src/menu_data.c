@@ -56,6 +56,7 @@ extern void ChangeAutoSaveHighlights(void);
 extern void ChangeGameLength(void);
 extern void ChangeMenuMusic(void);
 extern void ChangeGameplayStyle(void);
+extern void ChangeWorld(void);
 extern void ShowControlsMenu(void);
 extern void ChangePitchStyle(void);
 extern void ChangeNationality(void);
@@ -498,6 +499,7 @@ extern char _aMatch[];
 extern char _aMemoFromTheClu[];
 extern char _aMenuMusic[];
 extern char _aGameplay[];
+extern char _aWorldOption[];
 extern char _aControls[];
 extern char _aRedefineKeys[];
 extern char _aPitches[];
@@ -662,6 +664,7 @@ extern char* _friendlyPitchTypeTable[];
 extern char* _gameLengthStrTable[];
 extern char* _menuMusicStrTable[];
 extern char* _gameplayStyleStrTable[];
+extern char* _worldStrTable[];
 extern char* _pitchStyleStrTable[];
 extern char* _pitchTypeOrSeasonTable[];
 extern char* _pitchTypeStrTable[];
@@ -2907,7 +2910,7 @@ Menu_Options _optionsMenu = {
     },
     {
         { -102, 148, -116, 11 },
-        { MENU_CMD_NAV, -1, -1, 14, 19 },
+        { MENU_CMD_NAV, -1, -1, 14, 22 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aRedefineKeys },
         { MENU_CMD_ONSELECT_FIRE, ShowControlsMenu },
@@ -2929,7 +2932,7 @@ Menu_Options _optionsMenu = {
     },
     { MENU_MARK_START_MENU, 0, 0 },
     { 102, -71, 100, 15 },
-    { MENU_CMD_NAV, -1, -1, 16, -1 },
+    { MENU_CMD_NAV, -1, -1, 22, -1 },
     { MENU_CMD_COLORS, 0xC },
     { MENU_CMD_TEXT_PTR, 0x0, _aExit },
     { MENU_CMD_INPUT_FUNC, 0x30, ExitOptions },
@@ -2938,6 +2941,20 @@ Menu_Options _optionsMenu = {
     { MENU_CMD_INVISIBLE },
     { MENU_CMD_TEXT_PTR, 0x0, _aSwosVersion152 },
     MENU_CMD_END,
+    {
+        { 10, 160, -116, 11 },
+        { MENU_CMD_COLORS, 0x9 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aWorldOption },
+        MENU_CMD_END
+    },
+    {
+        { -102, 160, -116, 11 },
+        { MENU_CMD_NAV, -1, -1, 16, 19 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_STRING_TABLE, 0x0, _worldStrTable },
+        { MENU_CMD_ONSELECT_FIRE, ChangeWorld },
+        MENU_CMD_END
+    },
     MENU_MARK_END_MENU
 };
 Menu_DesignDiyTournament _designDiyTournamentMenu = {

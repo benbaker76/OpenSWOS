@@ -21,6 +21,11 @@
 #include "game_utils.h"
 #include "game_types.h"
 #include "world.h"
+#ifdef SWOS_SDL_BUILD
+#include <SDL.h>              /* OPTIONS -> WORLD: its messages */
+#include "project_identity.h"
+#include "swos_io.h"            /* swos_data_path */
+#endif
 #include "frontend.h"
 #include "test_rules.h"
 #include "display.h"            /* AGA: which Amiga display this build is */
@@ -2071,7 +2076,17 @@ void OptionsMenuBeforeDraw(void)
 #ifdef SWOS_SDL_BUILD
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
+#if !SWOS_WORLDS
+    /* (no worlds in this build: no WORLD row; CONTROLS and EXIT step to each other) */
+    _menuEntries[21].isInvisible = 1;
+    _menuEntries[22].isInvisible = 1;
+    _menuEntries[16].downEntry = 19;
+    _menuEntries[19].upEntry = 16;
+#endif
 #else
+    /* WORLD (21/22) is SDL only: the Amiga's world is its drawer's (OpenSWOS Setup). */
+    _menuEntries[21].isInvisible = 1;
+    _menuEntries[22].isInvisible = 1;
     _menuEntries[15].isInvisible = 1;
     _menuEntries[16].isInvisible = 1;
 #ifdef AGA
@@ -2094,6 +2109,49 @@ void ChangePitchStyle(MenuEntry *entry)
     extern uint16_t _pitchStyleOption;
     _pitchStyleOption ^= 1;
     CallDrawMenuItem(entry);
+}
+
+/* OPTIONS -> WORLD: 96/97 / 2026-27 -- [general] world in SWOS.ini (include/world.h). A world
+ * goes over 96/97's tables when the menus start (World_InstallBaked), and nothing keeps 96/97's
+ * to go back to, so the choice is played from the NEXT start: the row shows it, SWOS.ini keeps it,
+ * and a message says so. 2026-27 only once its data is installed (OpenSWOS Setup: its package,
+ * data_json/worlds/2627/WORLD.ini) -- else the row stays and the message says where to get it. */
+__attribute__((used, externally_visible))
+void ChangeWorld(MenuEntry *entry)
+{
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    extern uint16_t _worldOption;
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    const int want = !_worldOption;                 /* 1: 2026-27 */
+    if (want) {
+        char path[1024];
+        FILE *f = fopen(swos_data_path("data_json/worlds/2627/WORLD.ini", path, (uint32_t)sizeof path), "rb");
+        if (!f) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME ": World 2026-27",
+                "World 2026-27 is not installed.\n\nOpen " PROJECT_SETUP_NAME ": its row \"World 2026-27\" "
+                "has the link to download it, then click Install. (On a phone: do that on your "
+                "computer, then copy the assets folder over again.)", NULL);
+            return;
+        }
+        fclose(f);
+    }
+    _worldOption = (uint16_t)want;
+    if (g_arcadeOpts) {
+        snprintf(g_arcadeOpts->world, sizeof g_arcadeOpts->world, "%s", want ? "2627" : "9697");
+        if (g_arcadeIniPath)
+            Settings_Save(g_arcadeOpts, g_arcadeIniPath);
+    }
+    CallDrawMenuItem(entry);
+    if ((int)World_Current() != (want ? (int)WORLD_2627 : (int)WORLD_9697))
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME ": World",
+            want ? "World 2026-27 is played from the next time " PROJECT_NAME " starts.\n\n"
+                   "Close it and start it again. Saves stay in the world they were made in."
+                 : "96/97 is played from the next time " PROJECT_NAME " starts.\n\n"
+                   "Close it and start it again. Saves stay in the world they were made in.", NULL);
+#else
+    (void)entry;
+#endif
 }
 
 /* OPTIONS -> CONTROLS: the player's own keys and the press latch (src/controls_menu.c). */

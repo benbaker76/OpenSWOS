@@ -1657,6 +1657,10 @@ static void pump_events_any_thread(void)
                  * highlighted menu entry. Drop everything; new presses
                  * after focus returns will repopulate via KEYDOWN. */
                 InputSDL_ClearKeyState();
+#ifdef SWOS_MOBILE_BUILD
+                /* (and a finger whose lift went to a message box or the system) */
+                { extern void TouchControls_ReleaseAll(void); TouchControls_ReleaseAll(); }
+#endif
             } else if (ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
                 /* Defence-in-depth: also clear on regain in case any
                  * KEYDOWN slipped in between FOCUS_LOST and the actual
@@ -1750,6 +1754,9 @@ static void pump_events_any_thread(void)
         case SDL_FINGERMOTION:
         case SDL_FINGERUP:
             touch_event(&ev);
+            break;
+        case SDL_APP_WILLENTERBACKGROUND:   /* (the app sent away: no lift comes for a held finger) */
+            { extern void TouchControls_ReleaseAll(void); TouchControls_ReleaseAll(); }
             break;
 #endif
         default:

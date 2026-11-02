@@ -119,8 +119,8 @@
     <ol>
       <li><a href="#need">What you need</a></li>
       <li><a href="#download">Download</a></li>
-      <li><a href="#install">Install the game</a>: <a href="#windows">Windows</a> · <a href="#macos">Mac</a> · <a href="#linux">Linux</a> · <a href="#amiga">Amiga</a></li>
-      <li><a href="#setup">Run OpenSWOS Setup</a></li>
+      <li><a href="#install">Install the game</a>: <a href="#windows">Windows</a> · <a href="#macos">Mac</a> · <a href="#linux">Linux</a> · <a href="#amiga">Amiga</a> · <a href="#android">Android</a> · <a href="#ios">iPhone and iPad</a></li>
+      <li><a href="#setup">Run OpenSWOS Setup</a> (and <a href="#world">World 2026-27</a>, optional)</li>
       <li><a href="#play">Play</a></li>
     </ol>
     <p style="margin:6px 0 0"><a href="#help">If something goes wrong</a></p>
@@ -157,6 +157,8 @@ free, and never asks you to pay or sign up anywhere else. Pick the file for your
   <tr><td><strong>Mac</strong> (Apple silicon or Intel)</td><td><code>SWOS-macOS-app.zip</code></td></tr>
   <tr><td><strong>Linux</strong> (PC or Raspberry Pi)</td><td><code>SWOS-portable.zip</code>, and <code>OpenSWOS-Setup.zip</code> for the setup window</td></tr>
   <tr><td><strong>Amiga</strong> (A1200/A4000 or an emulator)</td><td><code>OpenSWOS-Setup.zip</code>, to run on a PC or Mac: it has the Amiga program in it</td></tr>
+  <tr><td><strong>Android</strong> (8.0 or later)</td><td><code>OpenSWOS-Android.apk</code>, and the setup for your PC or Mac (above)</td></tr>
+  <tr><td><strong>iPhone or iPad</strong> (iOS 15 or later)</td><td><code>OpenSWOS-iOS.ipa</code>, and the setup for your PC or Mac (above)</td></tr>
 </table></div>
 <p class="center"><a class="button" href="https://baker76.itch.io/openswos">Go to the downloads</a></p>
 
@@ -166,6 +168,8 @@ free, and never asks you to pay or sign up anywhere else. Pick the file for your
   <a href="#macos"><b>Mac</b><span>Apple silicon or Intel</span></a>
   <a href="#linux"><b>Linux</b><span>PC or Raspberry Pi</span></a>
   <a href="#amiga"><b>Amiga</b><span>A1200 / A4000</span></a>
+  <a href="#android"><b>Android</b><span>8.0 or later</span></a>
+  <a href="#ios"><b>iPhone / iPad</b><span>iOS 15 or later</span></a>
 </div>
 
 <h3 id="windows">Windows</h3>
@@ -213,6 +217,38 @@ free, and never asks you to pay or sign up anywhere else. Pick the file for your
 </ol>
 <p class="note">You need an AGA Amiga with a 68020 or better (an A1200 or A4000, or an emulator
 set up as one), with a hard drive, Workbench and 8 MB of fast memory.</p>
+
+<h3 id="android">Android</h3>
+<p>The setup can't run on a phone either, so the game's data is made on a PC or Mac and copied over:</p>
+<ol>
+  <li>On your PC or Mac, install OpenSWOS (above) and do <a href="#setup">step 4</a>. It makes a folder
+    called <strong><code>assets</code></strong> (Windows: <code>Documents\SWOS\assets</code>; Mac:
+    <code>~/Library/Application Support/SWOS/assets</code>; Linux: <code>~/.swos/assets</code>).</li>
+  <li>On the phone, open <strong><code>OpenSWOS-Android.apk</code></strong> (download it on the phone, or
+    copy it over) and allow installing it when Android asks: it isn't from the Play Store.</li>
+  <li>Start <strong>OpenSWOS</strong> once: it says it needs the game's data, and where it goes.</li>
+  <li>Connect the phone to the computer by USB (choose <strong>File transfer</strong> on the phone) and
+    copy the <strong><code>assets</code></strong> folder into
+    <strong><code>Android/data/net.openswos.game/files</code></strong> on the phone.</li>
+  <li>Start OpenSWOS again.</li>
+</ol>
+
+<h3 id="ios">iPhone and iPad</h3>
+<p>iPhones and iPads install apps only from the App Store, so <strong><code>OpenSWOS-iOS.ipa</code></strong>
+is installed with a sideloading tool, <a href="https://altstore.io">AltStore</a> or
+<a href="https://sideloadly.io">Sideloadly</a>, which signs it with your own Apple ID (with a free Apple
+ID it has to be refreshed every 7 days; the tool does that for you). Then:</p>
+<ol>
+  <li>On your PC or Mac, install OpenSWOS (above) and do <a href="#setup">step 4</a>, which makes the
+    <strong><code>assets</code></strong> folder (see Android, above).</li>
+  <li>Start <strong>OpenSWOS</strong> on the phone once, so its folder appears.</li>
+  <li>Copy the <strong><code>assets</code></strong> folder into it: from a Mac, Finder → your phone →
+    <strong>Files</strong> → <strong>OpenSWOS</strong>; from Windows, the Apple Devices app (or iTunes) →
+    <strong>File Sharing</strong> → <strong>OpenSWOS</strong>; or on the phone, the <strong>Files</strong>
+    app → <strong>On My iPhone</strong> → <strong>OpenSWOS</strong>.</li>
+  <li>Start OpenSWOS again.</li>
+</ol>
+<p class="note">On a phone, the stick and buttons are on the screen; a Bluetooth controller works too.</p>
 
 <h2 id="setup"><span class="n">4</span>Run OpenSWOS Setup</h2>
 <p>This is the one step that matters. The setup has two tabs: <strong>PC · Mac · Linux</strong> for
@@ -281,6 +317,33 @@ new version of OpenSWOS makes some of the data differently, the game tells you w
 OpenSWOS Setup, where those parts say <strong>update needed</strong>, and click <strong>Update</strong>.</p>
 <p class="note">The screenshots are from Windows; the setup looks the same on a Mac and on Linux.</p>
 
+<h3 id="world">World 2026-27 (optional)</h3>
+<p><strong>World 2026-27</strong> is today's football: the clubs, players and competitions of the
+2026-27 season, from the <a href="https://github.com/aminta/swos-9697-mod">SWOS 96/97 Mod</a> by
+Davide Lorigliola. It's a download of its own, and the game plays 96/97 unless you ask for it.</p>
+<ol>
+  <li><strong>Get it.</strong> In OpenSWOS Setup, the <strong>World 2026-27</strong> row has a link,
+    <strong>OpenSWOS-World-2627.zip</strong>: click it. Like the game, the setup finds the download by
+    itself (or click <strong>…</strong> beside the row and pick the zip).</li>
+  <li><strong>Install it.</strong> Click <strong>Install</strong> (or <strong>Update</strong>). The
+    world's step goes in with the rest.</li>
+  <li><strong>Turn it on.</strong> In the game, choose <strong>OPTIONS</strong> on the main menu, then
+    <strong>WORLD</strong>: it switches between <strong>96/97</strong> and <strong>2026-27</strong>. The
+    game plays the new world from the next time it starts, so close it and start it again. (It's
+    <code>world=2627</code> under <code>[general]</code> in <code>SWOS.ini</code>, if you'd rather set it
+    there.) A career or competition you saved is always played in the world it was started in.</li>
+</ol>
+<ul>
+  <li><strong>On an Amiga,</strong> tick <strong>Play World 2026-27 (its clubs and players) instead of
+    96/97</strong> on the setup's <strong>Amiga</strong> tab before making the drawer or the WHDLoad
+    package.</li>
+  <li><strong>On a phone,</strong> do steps 1 and 2 on your computer, then copy the
+    <strong><code>assets</code></strong> folder over again (it holds the world too), and choose it in
+    <strong>OPTIONS → WORLD</strong>.</li>
+  <li>The world's data is its authors' (<a href="https://worldofswos.com/static/openswos/README.txt">credits</a>).</li>
+</ul>
+
+
 <h2 id="play"><span class="n">5</span>Play</h2>
 <ul>
   <li><strong>Windows:</strong> start <strong>OpenSWOS</strong> from the Start menu (or the
@@ -290,6 +353,8 @@ OpenSWOS Setup, where those parts say <strong>update needed</strong>, and click 
   <li><strong>Amiga:</strong> double-click <strong>SWOS</strong> in its drawer, or with WHDLoad,
     <strong>OpenSWOS</strong> in the <strong>OpenSWOSAGA-NE</strong> drawer. Under WHDLoad,
     <strong>Del</strong> quits back to Workbench.</li>
+  <li><strong>Android, iPhone and iPad:</strong> tap <strong>OpenSWOS</strong>. The stick (left) and
+    FIRE (right) are on the screen, with PAUSE and ESC above FIRE.</li>
 </ul>
 <p>Menus use the <strong>arrow keys</strong> and <strong>Enter</strong> (or a gamepad). In a
 match, the arrow keys move and <strong>Ctrl</strong>, <strong>Space</strong> or
