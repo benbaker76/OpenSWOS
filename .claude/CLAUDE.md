@@ -9,6 +9,8 @@ original `SWOS2.s`. **One** source tree builds **both** targets:
 |---|---|---|---|
 | SDL (Linux/Windows/macOS/WASM/ARM) | `make` | `bin/SWOS*` | the day-to-day dev target |
 | Amiga m68k (A1200/AGA) | `make -f Makefile.amiga` | `bin/SWOS2` | runs under FS-UAE/WinUAE or real hardware |
+| Android (arm64, x86_64) | `scripts/build_android.sh` | `dist/OpenSWOS-Android.apk` | a flavour of the SDL build: Gradle + `packaging/mobile/CMakeLists.txt` (mirrors the Makefile -- keep in step); signed with the key in `~/.openswos-keys` (never lose it). See `docs/MOBILE.md` |
+| iOS (arm64) | `scripts/build_ios.sh` | `dist/OpenSWOS-iOS.ipa` | built on the Mac mini over ssh; unsigned, for sideloading (AltStore/Sideloadly). See `docs/MOBILE.md` |
 | Nintendo Switch (NX-NXFP2-a64) | `scripts/build_switch.sh` | `bin/SWOS.nss` | a flavour of the SDL build; needs the NDA SDK + SDL fork, neither in this tree. **Not yet linked or run** — see `docs/SWITCH.md` |
 
 `src/` and `include/` are **shared**. Platform divergence is expressed with
@@ -193,7 +195,7 @@ before them: `World_Current()` is the constant 96/97, `World_Set` takes no other
 world data (`src/world_data.c`) compiles out, so every world hook finds nothing and does nothing,
 and the global team numbers are 96/97's 2000. New world code must keep that true: gate on the world's
 data or `World_Current()`, never act for 96/97. **A club's file number is not always its country**: a
-world's country can be over two team files (World 2026-27's Italy: 262 clubs, its second file 197),
+world's country can be over two team files (the v4 delta's Italy: 262 clubs, its second file 197; 4.0.5's is one again),
 so world code reads a club's country through `World_FileCountry` and indexes clubs by SLOT
 (`World_Slot`, `WORLD_SLOTS`; include/world.h, docs/WORLD_2026_27.md phase 4). Proved: the 96/97 golden careers on a
 `SWOS_WORLDS=0` build equal the record made with the worlds on (a save writes the league offsets at
@@ -219,6 +221,20 @@ for five seasons, deterministically, and compares every season-end JSON save wit
 transfers or saves**; `--update` records a deliberate change, `--twice` re-proves the runs repeat,
 `scripts/career_golden_diff.py A B` names what changed. A save must hold no address -- the test
 found two (`namePtr` in the competition blobs, now written as a set/unset marker).
+
+**The season-end and cup rules are a library shared with the SWOS 96/97 Mod** (docs/RULES_LIBRARY.md):
+`third_party/swos-competition-engine` (submodule, Davide Lorigliola's repo), its `rules/` built as
+`src/swos_rules_*.c` on every target -- the Italian play-offs, every pack's knockouts, the career
+club's play-off contests, B teams and the season's moves, the cups' clubs, the Coppa D's later
+seasons, the parallel groups (`sr_pg_season`; `league_groups.c` the game's side) -- at the tag **v1**
+(87b6527, 2026-11-02: the Mod 4.0.5's rules, 4.0.6's pg_a2 guard; docs/RULES_LIBRARY.md §10-11).
+**v1 is frozen**: struct layouts, signatures and results stay; additions are 1.x, a change to what
+exists is a v2 agreed with Davide. `league_playoffs.c`,
+`world_cups.c` and `world_cupd.c` are the game's side of them; it gives the library each spec's length
+(`spec_len`, required) and the B teams' `b_in_ko` / `base` / `levels`. A rule
+change goes there as a pull request with its comparison against the Mod's C (`make rules-check
+MOD=...` there); `scripts/league_playoffs_check.sh` here runs ours through it (MOD= a 4.0.5 checkout). Freestanding C99, no
+libc, one caller-owned state (`sr_state`): the Mod links the same code into the DOS exe.
 
 **Whole-match replays** (`.SRP`, `src/replay_v2.c`, docs/REPLAY_FORMAT_V2.md) are SDL-only and
 recorded from every match that is not training, the arcade cabinet or the rig: `LATEST.SRP` in the

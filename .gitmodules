@@ -8,3 +8,6 @@
 [submodule "third_party/swosgfx"]
 	path = third_party/swosgfx
 	url = https://github.com/benbaker76/swosgfx.git
+[submodule "third_party/swos-competition-engine"]
+	path = third_party/swos-competition-engine
+	url = https://github.com/aminta/swos-competition-engine

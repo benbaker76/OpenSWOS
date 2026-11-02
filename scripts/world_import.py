@@ -3,6 +3,10 @@
 (docs/WORLD_2026_27.md, phase 3).
 
     python3 -I scripts/world_import.py              # World 2026-27 -> bin/data_json/worlds/2627/
+    python3 -I scripts/world_import.py --mod DIR --out DIR --data-c FILE
+                                                    # from another copy of the Mod's data, into
+                                                    # another folder (scripts/world_import_compare.sh:
+                                                    # the same import from two sets of packs)
 
 Reads the Mod's data as Davide Lorigliola sent it (bin/data_json/worlds/2627/mod/: his
 teams in OpenSWOS team JSON, his packs) and writes what the game reads for that world:
@@ -54,6 +58,7 @@ import world_split                     # noqa: E402  (emit_league)
 import swos_team_file as tf                  # noqa: E402  (the binary TEAM.nnn)
 WORLD = os.path.join(REPO, "bin", "data_json", "worlds", "2627")
 MOD = os.path.join(WORLD, "mod")
+DATA_C = os.path.join(REPO, "src", "world_data.c")
 BASE = os.path.join(REPO, "bin", "data_json")
 
 NAMESPACE = uuid.UUID("af19cc5a-6529-537b-935b-407bd73b75fb")   # assign_team_uuids.py's
@@ -289,12 +294,31 @@ def country_teams(wc):
     return out, picked
 
 
+def area_byte(x):
+    """A level's area as the Mod's tools/mkseason.py area_byte writes it (MIT, Davide Lorigliola;
+    4.0.5): low nibble the 1st choice (A = 0), high nibble the 2nd + 1 (F none, E any group: a
+    second team; + 8 never another group, 'C,B!') -- 'C' -> F2h, 'C,B' -> 22h, 'C,B!' -> A2h,
+    'A,*' -> E0h (src/league_groups.c reads it)."""
+    first, _, second = x.partition(",")
+    ban = second.endswith("!")
+    second = second.rstrip("!")
+    return "ABCDEFGHI".index(first) | (0xE0 if second == "*" else
+                                       ("ABCDEFGHI".index(second) + 1 | 8 * ban) << 4 if second else 0xF0)
+
+
+def area_list(a, n, own=None):
+    """A club's area bytes at the n levels of groups, from its 'area' ("X/Y" a level each, one for
+    every level, or none: own -- its own group's index, as the Mod's Pack.parallel -- else none)."""
+    if "/" in a:
+        return [area_byte(x) for x in a.split("/")][:n]
+    if a:
+        return [area_byte(a)] * n
+    return [None if own is None else own] * n
+
+
 def area_codes(entry):
-    """A club's areas at the levels of groups (the Mod's "X/Y"), each 0.. or None."""
-    out = []
-    for letter in ((entry.get("x_swos9697", {}).get("area") or "").split("/") + ["", ""])[:2]:
-        out.append(ord(letter) - ord("A") if len(letter) == 1 and "A" <= letter <= "Z" else None)
-    return out
+    """A pool identity's area bytes at the levels of groups (the Mod's ripool IDA_TAB), None: none."""
+    return (area_list(entry.get("x_swos9697", {}).get("area") or "", 2) + [None, None])[:2]
 
 
 def country_pool(code, name, country, home):
@@ -365,16 +389,13 @@ def italian_groups(picked, country, league):
             name = re.sub(r"\s*\bGIRONE\s*$", "", os.path.commonprefix(names)).strip()
         levels.append((first, n, sizes[first:first + n], name))
         first += n
+    own = {first + g: g for first, n, _, _ in levels if n > 1 for g in range(n)}
     clubs = []
     for ordinal, (e, division) in enumerate(picked):
-        areas = []
-        for letter in ((e.get("x_swos9697", {}).get("area") or "").split("/") + ["", ""])[:2]:
-            if len(letter) == 1 and "A" <= letter <= "Z":
-                areas.append(ord(letter) - ord("A"))
-            else:
-                areas.append(None)
-                counts["club without an area at a level of groups"] += 1
-        clubs.append((ordinal, division, areas))
+        a = e.get("x_swos9697", {}).get("area") or ""
+        if not a:
+            counts["club without an area at a level of groups"] += 1
+        clubs.append((ordinal, division, area_list(a, 2, own.get(division))))
     return {"name": "Italy", "country": country, "levels": levels, "clubs": clubs}
 
 
@@ -400,13 +421,11 @@ def country_groups(wc, pk, picked, rec):
         levels.append((first, n, sizes[first:first + n], name))
         first += n
     nlv = sum(1 for _, n, _, _ in levels if n > 1)
+    own = {first + g: g for first, n, _, _ in levels if n > 1 for g in range(n)}
     clubs = []
     for ordinal, (e, division) in enumerate(picked):
-        letters = (e.get("x_swos9697", {}).get("area") or "").split("/")
-        if len(letters) == 1:
-            letters = letters * nlv
-        areas = [ord(x) - ord("A") if len(x) == 1 and "A" <= x <= "Z" else None for x in (letters + ["", ""])[:2]]
-        clubs.append((ordinal, division, areas))
+        areas = area_list(e.get("x_swos9697", {}).get("area") or "", nlv, own.get(division))
+        clubs.append((ordinal, division, (areas + [None, None])[:2]))
     return {"name": wc["name"].title().replace(" ", ""), "country": wc["number"], "levels": levels, "clubs": clubs}
 
 
@@ -425,10 +444,13 @@ SKIP_SAME = 0x80            # (host byte bit 7: a tie of one club with itself is
 BEST_LOSER = 0x3F           # (member 'BL': the best placed loser of the previous round)
 
 
-def compile_spec(pos, ndiv):
+def compile_spec(pos, ndiv, clubs=None):
     """pack.json 'ko_playoffs' -> the bytes gplay.c walks, ended by a 0 (the Mod's
     tools/gplay.py compile_spec, MIT, Davide Lorigliola: its bytes only, not its tables of
-    names, stages and round names)."""
+    names, stages and round names). clubs: {key: (file, ordinal, division)} -- an entrant
+    {"club": key} is that club, as the Mod's mkseason.gplay resolves it: its bytes (8, division,
+    file, ordinal), the Mod's exactly. (The game's team words are its own: the library makes
+    one from the two bytes, sr_league.team_file_high -- the rules library's PR #10.)"""
     out = bytearray()
     for po in pos:
         key = po.get("key", "?")
@@ -443,6 +465,9 @@ def compile_spec(pos, ndiv):
             continue
         ents = []
         for e in po["entrants"]:
+            if isinstance(e, dict) and "club" in e and clubs and e["club"] in clubs:
+                f, o, dv = clubs[e["club"]]
+                e = {"club_team": f | o << 8, "div": dv}
             if isinstance(e, list) and len(e) == 2:
                 d, p = e
                 if not (0 <= d < ndiv and p >= 1):
@@ -465,6 +490,11 @@ def compile_spec(pos, ndiv):
                 if not (0 <= d < ndiv and 1 <= k <= 4 and r_):
                     sys.exit("%s: entrant %s" % (key, e))
                 ents.append((7, d, k, r_))
+            elif isinstance(e, dict) and "club_team" in e:    # (4.0.5 NZ: a given club, by its team word)
+                d, g = e.get("div", 0), e["club_team"]
+                if not (0 <= d < ndiv and 0 <= g < 0x10000):
+                    sys.exit("%s: entrant %s" % (key, e))
+                ents.append((8, d, g & 0xFF, g >> 8))
             elif isinstance(e, dict) and e.get("loser_of_previous"):
                 ents.append((4, 0, 0, 0))
             elif isinstance(e, dict) and "stage_title" in e:
@@ -543,6 +573,8 @@ def compile_spec(pos, ndiv):
         if nt > 63 or npl > 64:
             sys.exit("%s: at most 63 ties, 64 group placings" % key)
         win = po.get("winners", 1)
+        if not 1 <= win <= 7:
+            sys.exit("%s: winners 1..7 (flags bits 4-6; bit 7 skip_second)" % key)
         wd, ld = po.get("winner_div", 0), po.get("loser_div", 0)
         ld = RESERVE if ld == "reserve" else ld
         if kind == 8:                               # (stage_title: the stage | its division << 2)
@@ -550,7 +582,10 @@ def compile_spec(pos, ndiv):
             sdv = {e.get("div", 0) for e in po.get("entrants", []) if isinstance(e, dict)}
             wd |= (sdv.pop() if sdv else 0) << 2
         flags = ((1 if po.get("skip_qualified") else 0) | (2 if po.get("host_by_record") else 0)
-                 | ((win if win > 1 else 0) << 4) | (8 if po.get("draw_pot") else 0))
+                 | ((win if win > 1 else 0) << 4) | (8 if po.get("draw_pot") else 0)
+                 | (4 if po.get("supercup") else 0) | (0x80 if po.get("skip_second") else 0))
+        # (4.0.5: 'supercup' is not played at the season end -- Mexico's Campeon de Campeones, the
+        #  next season's supercup; 'skip_second': New Zealand's placings skip B teams)
         out += bytes((kind, len(ents), nrd, wd, ld, flags))
         out += b"".join(bytes(e) for e in ents) + rounds
     return bytes(out + b"\0")
@@ -564,6 +599,7 @@ def compile_playoff(po, ndiv):
 SECOND_RULES = {             # the Mod's mkseason.SECOND_RULES: the top level a B team may reach
     "ita": (1, 1),          # (0xFF: any, the first team's always a bound), play-offs allowed
     "esp": (0xFF, 0), "ger": (2, 0), "ned": (1, 0), "por": (0xFF, 0),
+    "nzl": (0xFF, 0),       # (4.0.5: the A-League reserves -- first teams in Australia)
 }
 
 
@@ -956,7 +992,9 @@ WN_PX = 298                             # (the page's width: fmtgame.PX_MAX)
 WN_SKIP = ("promedio", "playout", "placement")
 WN_TITLES = {   # fmtgame.WN_TITLES, English: (country, play-off key) -> title; (country, None): the table's
     ("usa", "mls_po"): "MLS CUP", ("aus", "finals"): "A-LEAGUE MEN CHAMPIONS", ("can", "cpl_po"): "NORTH STAR CUP",
-    ("mlt", "final_four"): "MALTESE CHAMPIONS", ("ita", "poule_scudetto"): "SERIE D CHAMPIONS",
+    ("mlt", "final_four"): "MALTESE CHAMPIONS",
+    # (the Mod 4.0.5: no ("ita", "poule_scudetto") title -- the line is the Poule's own name, not
+    #  'PLAYOFFS - SERIE D CHAMPIONS', which read as the Serie D groups' play-offs)
     ("usa", None): "SUPPORTERS' SHIELD", ("aus", None): "A-LEAGUE PREMIERS", ("can", None): "CPL SHIELD",
     ("per", None): "LIGA 1 - ACCUMULATED TABLE", ("gua", None): "LIGA NACIONAL - ANNUAL TABLE",
     ("slv", None): "PRIMERA DIVISION - ANNUAL TABLE", ("par", None): "DIVISION PROFESIONAL - ANNUAL TABLE",
@@ -1057,7 +1095,7 @@ def winners_lines(pk, lg, teams=0):
         lines, title_po = [], False
         for pi, po in enumerate(pos):
             divs = wn_po_divs(po)
-            if po.get("kind") in WN_SKIP or not po.get("names") or k not in divs or pi > 0xFF:
+            if po.get("kind") in WN_SKIP or po.get("supercup") or not po.get("names") or k not in divs or pi > 0xFF:
                 continue
             title_po |= po.get("kind") == "title" and divs == {k}
             st = po.get("stage") if po.get("kind") == "stage_title" else None
@@ -1103,18 +1141,26 @@ def country_playoffs(wc, pk, picked):
     lg = pack_league(pk)
     mdivs = lg.get("divisions") or [{"teams": len(picked), "promoted": 0, "relegated": 0}]
     ndiv = len(mdivs)
-    spec = compile_spec(lg.get("ko_playoffs", []), ndiv)
+    # (the pack's clubs by key, as the Mod's mkseason has them: clubs.csv, a club found in the team
+    #  file by its name)
+    rows = list(csv.DictReader(open(os.path.join(MOD, "packs", wc["code"].lower(), "clubs.csv"), encoding="utf-8")))
+    by_name = {e["team"]["team_name"]: o for o, (e, _) in enumerate(picked)}
+    ordinal = {r["key"]: by_name[r["name"]] for r in rows if r["name"] in by_name}
+    clubs = {r["key"]: (wc["number"], ordinal[r["key"]], int(r["division"] or 0))
+             for r in rows if r["key"] in ordinal}
+    spec = compile_spec(lg.get("ko_playoffs", []), ndiv, clubs)
     counts["play-offs compiled"] += len(lg.get("ko_playoffs", []))
     seconds, top, flags = [], 0xFF, 0
     rules = (lg.get("second_teams") or {}).get("rules")
     if rules in SECOND_RULES:
         top, po = SECOND_RULES[rules]
         flags = po | (2 if (lg.get("reserve") or {}).get("off_file") else 0)
-        ordinal = {e.get("x_swos9697", {}).get("club_id"): o for o, (e, _) in enumerate(picked)}
-        for o, (e, _) in enumerate(picked):
-            first = e.get("x_swos9697", {}).get("second_of")
-            if first:
-                seconds.append((o, ordinal.get(first, 0xFF)))
+        # (B teams from clubs.csv's second_of, as the Mod's second_table: a first team outside the
+        #  league -- 4.0.5's New Zealand reserves, of Australian clubs -- is FFh)
+        for r in rows:
+            if r.get("second_of") and r["key"] in ordinal:
+                seconds.append((ordinal[r["key"]], ordinal.get(r["second_of"], 0xFF)))
+        seconds.sort()
         counts["B teams"] += len(seconds)
     winners = winners_lines(pk, lg, len(picked))
     if spec == b"\0" and not seconds and not winners:
@@ -2261,6 +2307,20 @@ def world_fingerprint():
 
 
 def main():
+    global WORLD, MOD, DATA_C
+    import argparse
+    ap = argparse.ArgumentParser(description="World 2026-27 from the SWOS 96/97 Mod's data")
+    ap.add_argument("--mod", help="the Mod's data (default: <out>/mod)")
+    ap.add_argument("--out", help="the world's folder (default: bin/data_json/worlds/2627)")
+    ap.add_argument("--data-c", help="the baked tables (default: src/world_data.c)")
+    a = ap.parse_args()
+    if a.out:
+        WORLD = os.path.abspath(a.out)
+        for sub in ("teams", "data", "competitions"):
+            os.makedirs(os.path.join(WORLD, sub), exist_ok=True)
+    MOD = os.path.abspath(a.mod) if a.mod else os.path.join(WORLD, "mod")
+    if a.data_c:
+        DATA_C = os.path.abspath(a.data_c)
     if not os.path.isdir(MOD):
         sys.exit("no %s: the Mod's data (Davide's private copies) is not here" % os.path.relpath(MOD, REPO))
     (teams, second, picked), leagues = italy(), italian_league()
@@ -2339,13 +2399,13 @@ def main():
         f.write("; A world's data for OpenSWOS -- written by scripts/world_import.py; the package\n"
                 "; (scripts/make_world_package.sh) carries it, OpenSWOS Setup installs it.\n"
                 "tag = 2627\nname = World 2026-27\nfingerprint = %s\n" % fingerprint)
-    with open(os.path.join(REPO, "src", "world_data.c"), "w") as f:
+    with open(DATA_C, "w") as f:
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
                              europe(picks), conti_spec(), guests, proms, states, squad_numbers(), fingerprint,
                              seconds))
-    print("wrote src/world_data.c (data %s)" % fingerprint)
+    print("wrote %s (data %s)" % (os.path.relpath(DATA_C, REPO), fingerprint))
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))
 

@@ -269,6 +269,10 @@ converters always made). `tools/swosdata` is built on
 [swosgfx](https://github.com/benbaker76/swosgfx) (the converters; a submodule at
 `third_party/swosgfx`, so `git submodule update --init` first) plus an ADF reader.
 
+The game's competition rules are a submodule too: `third_party/swos-competition-engine`, the
+rules it shares with the SWOS 96/97 Mod (docs/RULES_LIBRARY.md), compiled into every target --
+after a clone, `git submodule update --init` (the release scripts do it).
+
 ## Tools
 
 - **[swosgfx](https://github.com/benbaker76/swosgfx)** — converts SWOS graphics

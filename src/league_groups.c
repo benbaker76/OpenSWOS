@@ -1,7 +1,10 @@
 /*
  * league_groups.c -- leagues with parallel groups at the season end (include/league_groups.h).
  *
- * Ported from the SWOS 96/97 Mod's tools/gplay.c (pg_one, pg_level), which carries this
+ * The placement is the rules library's sr_pg_season (third_party/swos-competition-engine,
+ * rules/sr_groups.c, its rules 11 -- moved there from here, checked against the Mod's C); this is
+ * the game's side of it: the world's tables, the pool's swaps, the new offsets back. It was
+ * ported from the SWOS 96/97 Mod's tools/gplay.c (pg_one, pg_level), which carries this
  * notice:
  *
  *   Copyright (c) 2026 Davide Lorigliola
@@ -30,13 +33,16 @@
  *
  * How: the game has moved every club one division up or down its chain (its divisions'
  * promoted / relegated counts), as the original does. Here each move becomes one LEVEL:
- * into a single division as it is; into a level of groups, the group of the club's area
- * for that level, else the nearest with room, so every group keeps its size. Clubs that
- * stay are counted in their group first, then the movers are placed.
+ * into a single division as it is; into a level of groups, the club's 1st choice of group
+ * for that level, then its 2nd (the Mod 4.0.5: Serie C's from where the Lega Pro put each
+ * region's clubs), a full group making room by moving a club that may go elsewhere, else the
+ * nearest with room, so every group keeps its size. Clubs that stay are counted in their
+ * group first, then the movers are placed.
  */
 #include "league_groups.h"
 #include "team_pool.h"
 #include "world.h"
+#include "../third_party/swos-competition-engine/rules/swosrules.h"
 
 extern uint16_t _teamsCountryNumbers[256];
 
@@ -57,69 +63,47 @@ static int32_t entering(uint16_t g)
     return 0;
 }
 
-/* The level of division d (levels, past the last one: the level below the chain). */
-static int32_t level_of(int32_t d, const LeagueGroups *lg)
-{
-    const LeagueLevel *last = &lg->level[lg->levels - 1];
-    if (d >= last->first + last->groups)
-        return lg->levels;
-    for (int32_t l = lg->levels - 1; l >= 0; l--)
-        if (d >= lg->level[l].first)
-            return l;
-    return 0;
-}
-
+/* One league's season end: its table as the rules library's (a club by its index in it, its area
+ * bytes this season's -- a swapped pool slot's its new identity's), sr_pg_season, the new offsets
+ * back. */
 static void apply_one(const LeagueGroups *lg, const int8_t *table, int8_t *scratch)
 {
-    uint8_t occ[LEAGUE_GROUPS_MAX_LEVELS][LEAGUE_GROUPS_MAX_GROUPS] = { { 0 } };
-    uint8_t parallel[LEAGUE_GROUPS_MAX_LEVELS];   /* its index among the levels of groups */
-    uint8_t pending[WORLD_SLOTS] = { 0 };         /* by club */
+    static sr_pg_level level[SR_PG_LEVELS];
+    static sr_pg_club club[WORLD_SLOTS];
+    static int8_t old_off[WORLD_SLOTS], new_off[WORLD_SLOTS];
+    static uint8_t enter[WORLD_SLOTS];
     const uint16_t base = _teamsCountryNumbers[lg->country];
-    int32_t np = 0;
+    sr_pg_league pg;
 
-    if (lg->levels > LEAGUE_GROUPS_MAX_LEVELS || lg->clubs > WORLD_SLOTS)
+    if (lg->levels > SR_PG_LEVELS || lg->clubs > WORLD_SLOTS)
         return;
-    for (int32_t l = 0; l < lg->levels; l++)
-        parallel[l] = lg->level[l].groups > 1 ? (uint8_t)np++ : LEAGUE_GROUPS_NO_AREA;
-
-    for (int32_t pass = 0; pass < 2; pass++)
-        for (uint16_t i = 0; i < lg->clubs; i++) {
-            const LeagueGroupClub *c = &lg->club[i];
-            const uint16_t g = (uint16_t)(base + c->slot);
-            const int32_t o = table[g] + c->base, n = scratch[g] + c->base;
-            const int32_t in = entering(g);     /* a new identity from below: */
-            const int32_t lo = in ? lg->levels : level_of(o, lg);
-            const int32_t tl = in ? lg->levels - 1 : n < o ? lo - 1 : n > o ? lo + 1 : lo;
-            if (pass == 0) {
-                if (tl < 0 || tl >= lg->levels)
-                    continue;                   /* off the chain: as the game moved it */
-                const LeagueLevel *L = &lg->level[tl];
-                if (tl == lo) {                 /* staying: counted in its group */
-                    if (o - L->first < L->groups)
-                        occ[lo][o - L->first]++;
-                } else if (L->groups == 1)
-                    scratch[g] = (int8_t)(L->first - c->base);
-                else
-                    pending[i] = 1;
-                continue;
-            }
-            if (!pending[i])
-                continue;
-            /* Into a level of groups: the area's group, else the nearest with room. */
-            const LeagueLevel *L = &lg->level[tl];
-            const uint8_t p = parallel[tl];
-            const int32_t area = p < 2 ? TeamPool_Area(lg->country, c->slot, p, c->area[p])
-                                       : LEAGUE_GROUPS_NO_AREA;
-            int32_t a = area < L->groups ? area
-                      : area == LEAGUE_GROUPS_NO_AREA ? L->groups / 2 : L->groups - 1;
-            int32_t to = a;
-            for (int32_t k = 0; k < LEAGUE_GROUPS_MAX_GROUPS; k++) {
-                if (a + k < L->groups && occ[tl][a + k] < L->sizes[a + k]) { to = a + k; break; }
-                if (a - k >= 0 && occ[tl][a - k] < L->sizes[a - k]) { to = a - k; break; }
-            }
-            occ[tl][to]++;
-            scratch[g] = (int8_t)(L->first + to - c->base);
-        }
+    for (int32_t l = 0; l < lg->levels; l++) {
+        const LeagueLevel *L = &lg->level[l];
+        level[l].first = L->first;
+        level[l].groups = L->groups;
+        for (int32_t g = 0; g < SR_PG_GROUPS; g++)
+            level[l].size[g] = g < L->groups && g < LEAGUE_GROUPS_MAX_GROUPS ? L->sizes[g] : 0;
+    }
+    for (uint16_t i = 0; i < lg->clubs; i++) {
+        const LeagueGroupClub *c = &lg->club[i];
+        const uint16_t g = (uint16_t)(base + c->slot);
+        club[i].base = c->base;
+        for (uint8_t p = 0; p < SR_PG_PARALLEL; p++)
+            club[i].area[p] = p < 2 ? TeamPool_Area(lg->country, c->slot, p, c->area[p]) : LEAGUE_GROUPS_NO_AREA;
+        old_off[i] = table[g];
+        new_off[i] = scratch[g];
+        enter[i] = (uint8_t)entering(g);
+    }
+    pg.levels = lg->levels;
+    pg.level = level;
+    pg.clubs = lg->clubs;
+    pg.club = club;
+    if (sr_pg_season(&pg, old_off, new_off, enter) != 0) {
+        SWOS_DBG("[groups] country %d: refused by the rules library (sr_pg_season)\n", lg->country);
+        return;
+    }
+    for (uint16_t i = 0; i < lg->clubs; i++)
+        scratch[base + lg->club[i].slot] = new_off[i];
 }
 
 const LeagueGroups *LeagueGroups_ForCountry(uint16_t country)

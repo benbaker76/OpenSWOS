@@ -39,6 +39,11 @@
 #define PROJECT_USER_DIR        "SWOS"
 #define PROJECT_USER_DOT_DIR    ".swos"
 
+/* The phone apps (packaging/android, packaging/mobile/CMakeLists.txt; docs/MOBILE.md): the Android
+ * application id and the iOS bundle id -- an app's identity in its store and on the phone, so a
+ * fork's own apps install beside OpenSWOS's. Read from here by the mobile build. */
+#define PROJECT_APP_ID          "net.openswos.game"
+
 /* SWOS 2020's online-menu entries for features this project will not have -- the log-in's NEWS,
  * MULTIPLAYER SETTINGS' commentary and chat rows, JOIN AMIGA SUPER LEAGUE, JOIN DISCORD, HELP
  * DESK (src/online_menus.c): 1 hides them, 0 keeps them for a fork that builds them. */

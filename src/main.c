@@ -468,7 +468,18 @@ int main(int argc, char **argv)
      * /data, /grafs, … and cwd is already "/", so skip the chdir.
      * Switch: the content is a read-only mount at rom:/ and there is no chdir
      * to make; swos_data_path() (swos_io.h) anchors the data reads instead. */
-#if !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
+#if defined(SWOS_MOBILE_BUILD)
+    /* Phones: the project's own data is unpacked from the APK (Android) or in the app bundle
+     * (iOS) -- src/mobile.c, docs/MOBILE.md. */
+    {
+        extern void Mobile_SetHints(void);
+        extern const char *Mobile_DataDir(void);
+        Mobile_SetHints();
+        const char *dir = Mobile_DataDir();
+        if (!dir || chdir(dir) != 0)
+            fprintf(stderr, "warning: no game data folder (%s)\n", dir ? dir : "none");
+    }
+#elif !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
     chdir_to_binary(argv ? argv[0] : NULL);
 #endif
 
@@ -1303,6 +1314,9 @@ int main(int argc, char **argv)
         }
     }
     fprintf(stderr, "[world] %s\n", World_Tag());
+    /* OPTIONS -> WORLD draws the world SWOS.ini names (menus.c ChangeWorld). */
+    { extern uint16_t _worldOption;
+      _worldOption = (uint16_t)(World_FromTag(opts.world[0] ? opts.world : "9697") == (int32_t)WORLD_2627); }
 
     if (_gDosGraphics)
         fprintf(stderr, "[dos] DOS graphics mode ON (bin/%s)\n", _gDosGraphicsDir);
@@ -1492,6 +1506,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
+#ifdef SWOS_MOBILE_BUILD
+    /* A phone has no setup: the player copies the game's data over from a PC (src/mobile.c). */
+    { extern int Mobile_CheckGameData(void);
+      if (!Mobile_CheckGameData()) { SDL_Quit(); return 1; } }
+#endif
     /* Game data an older OpenSWOS Setup made (ASSETS.ini): say so, once. */
     { extern void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath);
       AssetsCheck_Run(&opts, ini_path); }

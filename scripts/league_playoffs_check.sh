@@ -20,6 +20,8 @@
 # random moves, last season's places and career clubs, both cups' lists compared.
 # Then the Coppa Italia Serie D table against its cupd.py compile_table, and its later
 # seasons' entry order (cd_rank, cd_season, cd_make) over random season ends.
+# Then the parallel groups (src/league_groups.c): each league's table against the Mod's, and its
+# season ends against its pg_season (4.0.5's two choices of group).
 # Needs the world's data (bin/data_json/worlds/2627/mod/, not in git): skipped without it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -47,11 +49,22 @@ open(out + "/mod.spec", "wb").write(bytes(g.compile_spec(lg["ko_playoffs"], nd))
 open(out + "/ours.spec", "wb").write(w.italian_playoffs(20, None)["spec"])
 PY
 CC="gcc -O1 -w"
-$CC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -c -o "$OUT/mod_gp.o" $T/mod_gp.c
-$CC -DDPLAY_C="\"$MOD/tools/dplay.c\"" -c -o "$OUT/mod_dp.o" $T/mod_dp.c
+# The Mod's own C with its locals pattern-filled where a compiler can (the rules library's
+# check.sh does the same): the Mod 4.0.5's per-play-off seed (gplay.c gp_season, rc19) reads club[i]
+# of an entrant that failed its check and never set it -- a random address, a crash once in a few
+# runs; pattern-filled it is negative, the library's "no club". Fixed in the Mod 4.0.6.
+MC="$CC"
+for c in gcc clang /usr/lib/llvm-14/bin/clang; do
+    if echo 'int main(void){return 0;}' | $c -ftrivial-auto-var-init=pattern -x c -o /dev/null - 2>/dev/null; then
+        MC="$c -O1 -w -ftrivial-auto-var-init=pattern"
+        break
+    fi
+done
+$MC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -c -o "$OUT/mod_gp.o" $T/mod_gp.c
+$MC -DDPLAY_C="\"$MOD/tools/dplay.c\"" -c -o "$OUT/mod_dp.o" $T/mod_dp.c
 $CC -c -o "$OUT/mod_main.o" $T/mod_main.c
 $CC -o "$OUT/mod" "$OUT/mod_main.o" "$OUT/mod_dp.o" "$OUT/mod_gp.o"
-$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/ours" $T/ours.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/ours" $T/ours.c src/swos_rules_dplay.c src/swos_rules_gplay.c src/swos_rules_post.c src/swos_rules_check.c
 "$OUT/mod" "$OUT/mod.spec" "$N" > "$OUT/mod.txt"
 "$OUT/ours" "$OUT/ours.spec" "$N" > "$OUT/ours.txt" 2>/dev/null   # (its [playoffs] log)
 if cmp -s "$OUT/mod.txt" "$OUT/ours.txt"; then
@@ -63,24 +76,56 @@ else
     exit 1
 fi
 
-# Every pack's knockouts (not only Italy's): our compile_spec's bytes against the Mod's, then
-# its gp_season against ours over random tables of that league's shape.
-python3 -I - "$MOD" "$OUT" <<'PY'
-import glob, json, os, sys
-sys.path.insert(0, 'scripts'); sys.path.insert(1, sys.argv[1] + '/tools')
+# Every pack's knockouts (not only Italy's): the bytes src/world_data.c bakes for its league against
+# the Mod's own (mkseason's Pack.gplay: its compile_spec, a {"club": key} entrant resolved to its
+# file and ordinal -- New Zealand's reserves, 4.0.5; the file our number for it, as the Mod's is its
+# own), then its gp_season against ours over random tables of that league's shape (the Mod's bytes).
+python3 -I - "$MOD" "$OUT" "$DATA" <<'PY'
+import glob, json, os, re, sys
+sys.path.insert(1, sys.argv[1] + '/tools')
+import mkseason
+wd = open('src/world_data.c', encoding='utf-8').read()
+specs = {m.group(1): bytes(int(x, 0) for x in m.group(2).split(',') if x.strip())
+         for m in re.finditer(r'static const uint8_t (kWorld\w+Spec)\[\d+\] = \{(.*?)\};', wd, re.S)}
+baked = {int(m.group(1)): specs[m.group(2)] for m in re.finditer(r'^    \{ (\d+), \d+, \w+, \w+, [^}]*?(kWorld\w+Spec),', wd, re.M)}
+sys.path.insert(0, 'scripts')
 import world_import as w
-import gplay
+ours_file = {c['code'].lower(): c['number'] for c in w.world_countries()}
+ours_file['ita'] = w.italy()[0]['teams'][0]['team']['country_number']
+
+
+def as_ours(spec, mod_file, our_file):
+    """The Mod's spec with a club entrant's file (type 8: file, ordinal -- the rules library's
+    team_file_high) as our number for the league's file, the Mod's own numbers being its own."""
+    b, at = bytearray(spec), 0
+    while b[at]:
+        n, nr = b[at + 1], b[at + 2]
+        if b[at] == 7:
+            at += 6
+            continue
+        for i in range(n):
+            e = at + 6 + 4 * i
+            if b[e] == 8 and b[e + 2] == mod_file:
+                b[e + 2] = our_file
+        at += 6 + 4 * n
+        for _ in range(nr):
+            at += 6 + 2 * b[at]
+    return bytes(b)
+
+
 out = open(os.path.join(sys.argv[2], 'packs.txt'), 'w')
-for f in sorted(glob.glob(os.path.join(w.MOD, 'packs', '*', 'pack.json'))):
+for f in sorted(glob.glob(os.path.join(sys.argv[3], 'packs', '*', 'pack.json'))):
     for c in json.load(open(f, encoding='utf-8'))['competitions']:
         if c.get('key') != 'league' or not c.get('ko_playoffs'):
             continue
-        nd = len(c.get('divisions') or [1])
         sizes = [d['teams'] for d in c.get('divisions') or []] or [len(c.get('clubs') or []) or 16]
         code = os.path.basename(os.path.dirname(f))
-        mod = bytes(gplay.compile_spec(c['ko_playoffs'], nd, c.get('names')))
-        if w.compile_spec(c['ko_playoffs'], nd) != mod:
-            sys.exit('FAIL: %s: compile_spec differs from the Mod\'s' % code)
+        built = mkseason.Pack(os.path.dirname(f)).gplay()
+        if not built:
+            sys.exit('FAIL: %s: the Mod builds no knockouts for it' % code)
+        mod = bytes(built[2])
+        if baked.get(ours_file.get(code)) != as_ours(mod, built[1], ours_file.get(code, 0)):
+            sys.exit("FAIL: %s: world_data.c's spec (file %s) differs from the Mod's" % (code, ours_file.get(code)))
         open(os.path.join(sys.argv[2], code + '.spec'), 'wb').write(mod)
         out.write('%s %s\n' % (code, ','.join(map(str, sizes))))
 PY
@@ -156,8 +201,8 @@ else
 fi
 
 # The B-team rules (the Mod's sec_post): built cases, then random ones against the Mod's.
-$CC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/mod_sec" $T/mod_sec.c
-$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/seconds" $T/seconds.c
+$MC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/mod_sec" $T/mod_sec.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/seconds" $T/seconds.c src/swos_rules_dplay.c src/swos_rules_gplay.c src/swos_rules_post.c src/swos_rules_check.c
 "$OUT/seconds" 2>/dev/null
 "$OUT/mod_sec" "$N" > "$OUT/mod_sec.txt"
 "$OUT/seconds" random "$N" > "$OUT/sec.txt" 2> "$OUT/sec.log"
@@ -171,8 +216,8 @@ else
 fi
 
 # The cups' clubs from the second season (the Mod's cf_build; src/world_cups.c build).
-$CC -DCF_SEED=1 -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cups_mod" $T/cups_mod.c
-$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cups_ours" $T/cups_ours.c
+$MC -DCF_SEED=1 -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cups_mod" $T/cups_mod.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cups_ours" $T/cups_ours.c src/swos_rules_cups.c src/swos_rules_check.c
 "$OUT/cups_mod" "$N" > "$OUT/cups_mod.txt"
 "$OUT/cups_ours" "$N" > "$OUT/cups_ours.txt" 2>/dev/null
 if cmp -s "$OUT/cups_mod.txt" "$OUT/cups_ours.txt"; then
@@ -184,8 +229,8 @@ else
 fi
 
 # The Coppa Italia Serie D's later seasons (the Mod's cd_rank, cd_season, cd_make; ours).
-$CC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cupd_mod" $T/cupd_mod.c
-$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cupd_ours" $T/cupd_ours.c
+$MC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/cupd_mod" $T/cupd_mod.c
+$CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/cupd_ours" $T/cupd_ours.c src/swos_rules_cupd.c src/swos_rules_check.c
 "$OUT/cupd_mod" "$N" > "$OUT/cupd_mod.txt"
 "$OUT/cupd_ours" "$N" > "$OUT/cupd_ours.txt" 2>/dev/null
 if cmp -s "$OUT/cupd_mod.txt" "$OUT/cupd_ours.txt"; then
@@ -385,5 +430,61 @@ if cmp -s "$OUT/conti_mod.txt" "$OUT/conti_ours.txt"; then
 else
     echo "FAIL: the other confederations' cups, the first season that differs (Mod, then ours):"
     diff "$OUT/conti_mod.txt" "$OUT/conti_ours.txt" | head -4 | cut -c1-300
+    exit 1
+fi
+
+# The parallel groups (src/league_groups.c) against the Mod's gplay.c pg_season (4.0.5: two choices
+# of group per level, a full group making room): each league with groups -- first its tables as
+# world_data.c bakes them against the Mod's Pack.parallel (levels, sizes, every club's division and
+# area bytes), then random season ends of both C over the Mod's own table (groups_cases.h: the
+# clubs coming back from below on odd seasons, every fourth season all of one area).
+python3 -I - "$MOD" "$OUT" "$DATA" <<'PY'
+import json, os, re, sys
+mod, out, data = sys.argv[1], sys.argv[2], sys.argv[3]
+sys.path.insert(0, mod + '/tools')
+import mkseason, pgroups
+NAMES = {'ita': 'italy', 'arg': 'argentina', 'aus': 'australia', 'slv': 'elsalvador'}
+wd = open('src/world_data.c', encoding='utf-8').read()
+bad = 0
+codes = []
+for code, name in NAMES.items():
+    pk = mkseason.Pack(os.path.join(data, 'packs', code))
+    world, levels, clubs = pk.parallel()
+    open(os.path.join(out, code + '.pg'), 'wb').write(pgroups.table_bytes([(world, levels, clubs)]))
+    divs = pk.divisions()
+    open(os.path.join(out, code + '.pr'), 'w').write(' '.join(str(d.get('promoted', 0)) for d in divs) + '\n'
+                                                     + ' '.join(str(d.get('relegated', 0)) for d in divs) + '\n')
+    # ours, as world_data.c bakes it: the levels, then every club (ordinal, base division, areas)
+    lv = re.search(r'kWorld2627_%sLevels\[\] = \{\n(.*?)\n\};' % name, wd, re.S).group(1)
+    ours_lv = [(int(a), [int(x) for x in s.split(',')]) for a, _, s in re.findall(r'\{ (\d+), (\d+), \{ ([\d, ]+) \}', lv)]
+    cl = re.search(r'kWorld2627_%sClubs\[\] = \{\n(.*?)\n\};' % name, wd, re.S).group(1)
+    ours = [(int(o), int(b), [255 if x.strip() == 'LEAGUE_GROUPS_NO_AREA' else int(x) for x in a.split(',')])
+            for o, b, a in re.findall(r'\{ (\d+), (\d+), \{ ([^}]*) \} \}', cl)]
+    npar = sum(1 for _, s in levels if len(s) > 1)
+    gmin = min(g for g, _, _ in clubs)
+    theirs = sorted((g - gmin, b, (list(a) if isinstance(a, (list, tuple)) else [a] * npar)) for g, b, a in clubs)
+    ours = sorted((o, b, a[:npar]) for o, b, a in ours)
+    if [(f, list(s)) for f, s in levels] != ours_lv:
+        print('FAIL: %s levels: the Mod %s, ours %s' % (code, levels, ours_lv)); bad += 1
+    if theirs != ours:
+        diff = [(t, o) for t, o in zip(theirs, ours) if t != o][:3]
+        print('FAIL: %s clubs (%d / %d): first differences (the Mod, ours) %s' % (code, len(theirs), len(ours), diff)); bad += 1
+    codes.append(code)
+open(os.path.join(out, 'groups.txt'), 'w').write('\n'.join(codes) + '\n')
+sys.exit(1 if bad else 0)
+PY
+$MC -I$T -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/groups_mod" $T/groups_mod.c
+$CC -Iinclude -I$T -include include/swos_platform.h -o "$OUT/groups_ours" $T/groups_ours.c src/league_groups.c src/swos_rules_groups.c
+GN=$((N / 10)); bad=""
+while read -r code; do
+    "$OUT/groups_mod" "$OUT/$code.pg" "$OUT/$code.pr" "$GN" > "$OUT/g_mod.txt"
+    "$OUT/groups_ours" "$OUT/$code.pg" "$OUT/$code.pr" "$GN" > "$OUT/g_ours.txt"
+    cmp -s "$OUT/g_mod.txt" "$OUT/g_ours.txt" || bad="$bad $code"
+done < "$OUT/groups.txt"
+if [ -z "$bad" ]; then
+    echo "PASS: the parallel groups ($(tr '\n' ' ' < "$OUT/groups.txt")), their tables the Mod's and $GN season ends each:" \
+         "every club placed as the Mod's pg_season places it"
+else
+    echo "FAIL: the parallel groups of$bad differ from the Mod's pg_season"
     exit 1
 fi

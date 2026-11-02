@@ -16,8 +16,9 @@ BRA-FLAMENGO  SOUTH AMERICA/BRAZIL/FLAMENGO
 ITA2627-NAPOLI @2627 EUROPE/ITALY/SERIE A/NAPOLI
 ITA2627-RAVENNA @2627 EUROPE/ITALY/SERIE C/SERIE C GIRONE B/RAVENNA
 ITA2627-LIGORNA @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LIGORNA
-# A club of Italy's second team file (include/world.h: Serie D's 162, a file holds 256).
-ITA2627-LASCARIS @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LASCARIS
+# A club of Italy's second team file (include/world.h: Serie D's 162, a file holds 256) -- the v4
+# delta's; the Mod 4.0.5's Italy is one file again (Lascaris in the pool): back with its 4.1.
+#ITA2627-LASCARIS @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LASCARIS
 # The career club rests on the last match day (an odd league -- Gibraltar's 11, since Serie D's
 # groups are all 18: SWOS_TEST_REST_LAST).
 GIB2627-LINCOLN-REST SWOS_TEST_REST_LAST=1 @2627 EUROPE/GIBRALTAR/LINCOLN RED IMPS

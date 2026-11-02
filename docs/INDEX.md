@@ -89,7 +89,7 @@ docs drift: search by function name.
 |---|---|---|---|
 | [COMPETITION_DYNAMIC_REFACTOR.md](COMPETITION_DYNAMIC_REFACTOR.md) | Making competitions id-based and data-addable; how Copa Libertadores was built on it. | historical | adding a data-only competition, `Comp_ById`, `_careerContests` |
 | [WORLD_2026_27.md](WORLD_2026_27.md) | Worlds (data sets), and porting the SWOS 96/97 Mod's World 2026-27 (its season-end C, generators and limits) onto our season end, for both targets. | plan | a second world, the Mod's modules, raising team/league limits |
-| [RULES_LIBRARY.md](RULES_LIBRARY.md) | The shared rules library with the SWOS 96/97 Mod: what moves in (the checked ports of its season-end, cup and Coppa D rules), the draft interface, the DOS build's limits, the bugs found on the way, the questions for Davide. | draft | before touching league_playoffs.c, world_cups.c, world_cupd.c's rules |
+| [RULES_LIBRARY.md](RULES_LIBRARY.md) | The shared rules library with the SWOS 96/97 Mod: what moved in (its season-end, cup and Coppa D rules, each checked against the Mod's C), the interface, the DOS build's limits, the bugs found on the way, what is not in yet. | current | before touching league_playoffs.c, world_cups.c, world_cupd.c's rules |
 | [COPA_LIBERTADORES.md](COPA_LIBERTADORES.md) | The original design of the Copa Libertadores (format, 1996 field, draw, qualification) — built differently in places. | historical | changing Copa rules or CONMEBOL qualification |
 | [FEATURES.md](FEATURES.md) | Sketches of three enhancements: Copa (done), career length (done, `num_seasons`), easy data add/remove (partly). | historical / plan | extending competitions, career length, data-driven content |
 | [COMPETITION_SLOT_ALIAS_UNTANGLE.md](COMPETITION_SLOT_ALIAS_UNTANGLE.md) | Retiring the 46 comp-slot `.equ` aliases and the careerFileBuffer overlay. | historical | the 5 career competition slot buffers or their save descriptors |
@@ -138,6 +138,7 @@ docs drift: search by function name.
 | [WASM.md](WASM.md) | The Emscripten/ASYNCIFY web target's design, and the asm-storage-to-C log. Now live, online, plus the player build. | historical | the web build's pacing, threading, IDBFS saves, preload list |
 | [MACOS_BUILD.md](MACOS_BUILD.md) | Building on a Mac: universal binary, `make macos-app`, Gatekeeper; releases go through `scripts/build_macos.sh`. | current | building on the Mac itself |
 | [SWITCH.md](SWITCH.md) | Building, packaging and debugging the Switch flavour; the filesystem/logging differences. No SDK content (NDA). | current — but it says "builds, links and packages" where CLAUDE.md says "not yet linked or run": the owner knows which | `Makefile.switch`, `scripts/build_switch.*` |
+| [MOBILE.md](MOBILE.md) | Android and iOS: building (Gradle / the Mac), the signing key, sideloading, and what differs on a phone (folders, the game data copied from a PC, touch controls). | current | `packaging/mobile`, `packaging/android`, `packaging/ios`, `scripts/build_android.sh`, `scripts/build_ios.sh` |
 
 ## The Amiga target (AGA resumed 2026-10-10: a whole match plays)
 
@@ -220,6 +221,7 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `C:\Projects\GitHub\swos-2020` | SWOS 2020, which OpenSWOS continues: its online menus and netplay are the references |
 | `C:\Projects\GitHub\swos-port` | the DOS port whose recordings (`tests/data/`) seeded the replay rig |
 | `C:\Projects\AI\SWOS\swos-port-c` | partial C++ port with the Amiga game loop working; the verified game-loop reference |
+| `third_party/swos-competition-engine` | the rules library (submodule; github.com/aminta/swos-competition-engine, Davide Lorigliola's): `rules/` built here as `src/swos_rules_*.c`; its `make rules-check MOD=<the Mod's checkout>` compares it with the Mod's C |
 | `C:\Projects\AI\SWOS\swosgfx` | swosgfx (github.com/benbaker76/swosgfx): the C99/C++ rewrite of SwosGfx, byte-identical to it; the converters `tools/swosdata` uses (submodule `third_party/swosgfx`). Converter changes go here |
 | `C:\Projects\GitHub\SwosGfx` | the C# SwosGfx (now github.com/benbaker76/SwosGfx-CSharp); `SwosGfx\AmigaTools.cs` is the authority for Amiga SPRITE/PITCH/PALETTE parsing; `bin\Debug\net8.0\Amiga_Images_16` the extracted graphics |
 | `C:\msys64\home\headk\rjp1player` | the RJP1 player for the music modules and SFX extraction |
@@ -238,6 +240,8 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `C:\Projects\AI\SWOS\SWOS_C`, `SWOS_C_SDL` | the two pre-merge trees — **not here**, gone since 2026-08-12 |
 | `D:\Projects\SWOS\OpenSWOS\...` (Arcade, Copa Libertadores notes) | design notes some docs cite — **not here** on this PC |
 | the Switch SDK and SDL fork | outside the repo, under NDA — never committed ([SWITCH.md](SWITCH.md)) |
+| the Android release key | `~/.openswos-keys` (WSL): `openswos-release.jks` + `android.env` -- outside the repo, never lost ([MOBILE.md](MOBILE.md)) |
+| the Android SDK, JDK | `~/Android/Sdk`, `~/opt/jdk-17*` (WSL) |
 
 ## Other machines and servers
 

@@ -38,8 +38,12 @@
 #else
 #  if   defined(__CYGWIN__) || defined(_WIN32)
 #    define SWOS_PLATFORM_OS "windows"
+#  elif defined(SWOS_IOS_BUILD)
+#    define SWOS_PLATFORM_OS "ios"
 #  elif defined(__APPLE__)
 #    define SWOS_PLATFORM_OS "macos"
+#  elif defined(SWOS_ANDROID_BUILD)
+#    define SWOS_PLATFORM_OS "android"
 #  elif defined(__linux__)
 #    define SWOS_PLATFORM_OS "linux"
 #  else

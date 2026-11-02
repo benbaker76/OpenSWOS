@@ -313,7 +313,29 @@ void swos_save_dir_init(void)
      * truncation (a home path this long can't happen in practice). */
     char user[512];
 
-# if defined(_WIN32) || defined(__CYGWIN__)
+# if defined(SWOS_ANDROID_BUILD)
+    /* Android: the app's own folder on shared storage, Android/data/<app id>/files -- a PC
+     * reaches it over USB, so it is where the player copies the assets folder OpenSWOS Setup
+     * made (docs/MOBILE.md), and finds SWOS.ini, SWOS.log and save/. No permission is needed
+     * for an app's own folder. Without shared storage (none mounted): the internal one. */
+    const char *base = SDL_AndroidGetExternalStoragePath();
+    if (!base || !*base)
+        base = SDL_AndroidGetInternalStoragePath();
+    if (!base || !*base) {
+        fprintf(stderr, "[settings] no storage for the app (%s) -- SWOS.ini and saves fall back "
+                        "to the CWD\n", SDL_GetError());
+        return;
+    }
+    snprintf(user, sizeof user, "%s", base);
+# elif defined(SWOS_IOS_BUILD)
+    /* iOS: the app's Documents, which the Files app shows (UIFileSharingEnabled): the player
+     * copies the assets folder OpenSWOS Setup made into it (docs/MOBILE.md), and finds SWOS.ini,
+     * SWOS.log and save/ there. HOME is the app's sandbox. */
+    const char *home = getenv("HOME");
+    if (!home || !*home)
+        return;
+    snprintf(user, sizeof user, "%s/Documents", home);
+# elif defined(_WIN32) || defined(__CYGWIN__)
     /* Windows: %USERPROFILE%\Documents\SWOS. Forward slashes are accepted by
      * both the native CRT and Cygwin's path layer. */
     const char *profile = getenv("USERPROFILE");

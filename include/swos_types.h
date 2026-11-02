@@ -94,6 +94,7 @@ typedef unsigned long long uint64_t;
 #include <stdint.h>
 #include <stddef.h>
 #endif
+#define SWOSRULES_HAVE_STDINT 1     /* (the rules library's header: the types are here, both builds) */
 
 /* SWOS_WORLDS: the football worlds beyond 96/97 (include/world.h; docs/WORLD_2026_27.md) --
  * World 2026-27 and everything it brought: its countries, leagues, splits, play-offs, cups,

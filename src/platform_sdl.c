@@ -673,6 +673,10 @@ int Platform_Init(const PlatformInitOptions *opts)
         }
     }
 #endif
+#ifdef SWOS_MOBILE_BUILD
+    /* Phones: the whole screen, always (docs/MOBILE.md). */
+    fs_mode = PLATFORM_FULLSCREEN_DESKTOP;
+#endif
 #ifdef SWOS_WASM_BUILD
     /* Web: fullscreen is browser-managed (F11) — SDL desktop-fullscreen at boot
      * is user-gesture-gated and would stretch the canvas — so force windowed
@@ -706,6 +710,9 @@ int Platform_Init(const PlatformInitOptions *opts)
     Uint32 wflags = SDL_WINDOW_SHOWN;
 #ifndef SWOS_WASM_BUILD
     wflags |= SDL_WINDOW_RESIZABLE;
+#endif
+#ifdef SWOS_MOBILE_BUILD
+    wflags |= SDL_WINDOW_ALLOW_HIGHDPI;     /* (the screen's own pixels, not iOS's points) */
 #endif
     if (fs_mode == PLATFORM_FULLSCREEN_DESKTOP) {
         /* Borderless window sized to the desktop, no display-mode
@@ -1180,6 +1187,28 @@ static void check_display(void)
 #endif
 }
 
+/* Fullscreen, by SDL's flags or by the window covering its display. macOS's green button puts the
+ * window in a fullscreen Space without setting SDL's flags (SDL 2.30: only SDL_SetWindowFullscreen
+ * sets them), so a resize there "for the windowed size" shrank the window inside the Space: the
+ * picture top-left at its windowed size, black around it -- the first fullscreen after moving to
+ * another monitor, whose display change is seen as the Space opens (issue #5). */
+static int window_is_fullscreen(void)
+{
+    if (SDL_GetWindowFlags(s_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP))
+        return 1;
+#ifndef SWOS_WASM_BUILD
+    {
+        SDL_Rect b;
+        int w = 0, h = 0;
+        const int d = SDL_GetWindowDisplayIndex(s_window);
+        SDL_GetWindowSize(s_window, &w, &h);
+        if (d >= 0 && SDL_GetDisplayBounds(d, &b) == 0 && b.w > 0 && w >= b.w && h >= b.h)
+            return 1;
+    }
+#endif
+    return 0;
+}
+
 void Platform_ToggleFullscreen(void)
 {
     if (!s_window) return;
@@ -1248,14 +1277,10 @@ void Platform_ViewChanged(void)
      *
      * Not when fullscreen (SDL letterboxes, which is right), and not when
      * [video] resolution pinned a client area -- that was asked for by name. */
-    if (!s_window || s_pinned_w > 0) return;
-    {
-        Uint32 flags = SDL_GetWindowFlags(s_window);
-        if (flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) return;
-        SDL_SetWindowSize(s_window,
-                          _screen_width  * s_win_scale_current,
-                          _screen_height * s_win_scale_current);
-    }
+    if (!s_window || s_pinned_w > 0 || window_is_fullscreen()) return;
+    SDL_SetWindowSize(s_window,
+                      _screen_width  * s_win_scale_current,
+                      _screen_height * s_win_scale_current);
 }
 
 void Platform_SetWindowScale(int scale)
@@ -1270,8 +1295,7 @@ void Platform_SetWindowScale(int scale)
     s_pinned_w = s_pinned_h = 0;
     /* Only resize when actually windowed — fullscreen ignores the size
      * (SDL_RenderSetLogicalSize handles letterboxing for us). */
-    Uint32 flags = SDL_GetWindowFlags(s_window);
-    if ((flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) == 0) {
+    if (!window_is_fullscreen()) {
         SDL_SetWindowSize(s_window,
             _screen_width * scale,
             _screen_height * scale);
@@ -1594,6 +1618,19 @@ static void maybe_dump_frame(const uint32_t *argb)
  * call from multiple threads: the queue is internally locked, events
  * are consumed by whichever pump grabs them first, and Platform_RequestQuit
  * is safe from any thread. */
+#ifdef SWOS_MOBILE_BUILD
+/* The phones' on-screen controls (src/touch_controls.c): an event, with the output's size. */
+extern void TouchControls_HandleEvent(const SDL_Event *e, int w, int h);
+extern void TouchControls_Draw(SDL_Renderer *r);
+static void touch_event(const SDL_Event *e)
+{
+    int w = 0, h = 0;
+    if (s_renderer)
+        SDL_GetRendererOutputSize(s_renderer, &w, &h);
+    TouchControls_HandleEvent(e, w, h);
+}
+#endif
+
 static void pump_events_any_thread(void)
 {
     SDL_Event ev;
@@ -1629,6 +1666,10 @@ static void pump_events_any_thread(void)
                  * highlighted menu entry. Drop everything; new presses
                  * after focus returns will repopulate via KEYDOWN. */
                 InputSDL_ClearKeyState();
+#ifdef SWOS_MOBILE_BUILD
+                /* (and a finger whose lift went to a message box or the system) */
+                { extern void TouchControls_ReleaseAll(void); TouchControls_ReleaseAll(); }
+#endif
             } else if (ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
                 /* Defence-in-depth: also clear on regain in case any
                  * KEYDOWN slipped in between FOCUS_LOST and the actual
@@ -1711,8 +1752,22 @@ static void pump_events_any_thread(void)
         case SDL_CONTROLLERDEVICEREMOVED:
         case SDL_JOYDEVICEADDED:
         case SDL_JOYDEVICEREMOVED:
+#ifdef SWOS_MOBILE_BUILD
+            if (ev.type == SDL_CONTROLLERBUTTONDOWN)
+                touch_event(&ev);           /* (a controller played: the on-screen controls go) */
+#endif
             InputSDL_HandleEvent(&ev);
             break;
+#ifdef SWOS_MOBILE_BUILD
+        case SDL_FINGERDOWN:
+        case SDL_FINGERMOTION:
+        case SDL_FINGERUP:
+            touch_event(&ev);
+            break;
+        case SDL_APP_WILLENTERBACKGROUND:   /* (the app sent away: no lift comes for a held finger) */
+            { extern void TouchControls_ReleaseAll(void); TouchControls_ReleaseAll(); }
+            break;
+#endif
         default:
             break;
         }
@@ -2180,6 +2235,9 @@ shots_done:
     /* CRT effects go on LAST, over the finished frame and its HUD, so the
      * grille and the glass edge sit on the picture rather than under it. */
     CrtEffects_Apply(s_renderer);
+#ifdef SWOS_MOBILE_BUILD
+    TouchControls_Draw(s_renderer);  /* (the phones' on-screen controls, over everything) */
+#endif
     capture_presented_frame();     /* after every draw, before the swap */
     SDL_RenderPresent(s_renderer);
 

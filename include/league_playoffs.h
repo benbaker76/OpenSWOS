@@ -6,8 +6,9 @@
  * bottom `relegated`. A world's league can decide some of those places by knockout ties
  * after the season -- Serie B's third promotion by a play-off of the 3rd-8th, its fourth
  * relegation by a play-out of the 16th and 17th, a Serie C group's by play-outs. They are
- * decided here, as the SWOS 96/97 Mod decides them (ported: its dplay.c and gplay.c),
- * from every division's final table, and simulated: the career club's ties too, for now.
+ * decided as the SWOS 96/97 Mod decides them -- by its own rules, the library both games link
+ * (third_party/swos-competition-engine, docs/RULES_LIBRARY.md) -- from every division's final
+ * table; the career club's own ties as it played them (world_playoff.c).
  *
  * The league's own record keeps BALANCED counts, so the season's one-division moves pass
  * the original's balanced-moves check as ever; after it, each club whose place the Mod's
@@ -18,6 +19,7 @@
 #define LEAGUE_PLAYOFFS_H
 
 #include "swos_types.h"
+#include "../third_party/swos-competition-engine/rules/swosrules.h"    /* the rules (swos_rules_*.c) */
 
 /* A title of the SEASON WINNERS page (src/world_winners.c; the Mod's winners.py): division
  * (0xFE: a state championship), its title (0: the contest's own name), its source as the Mod's
@@ -64,23 +66,20 @@ const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count);
  * Clausura, 6 the annual table -- r[2] = r[0] + r[1] by club when the stage is 'annual').
  * One bank per league (its country), saved with the career: the career league's stages are
  * played through the season, the others' at its end. */
-#define LEAGUE_STAGE_TABLES 4
+#define LEAGUE_STAGE_TABLES SR_STAGE_TABLES
 #define LEAGUE_STAGE_BANKS  24
-typedef struct { uint16_t team, glob, won, gf, ga, pts; } LeagueStageRow;
+typedef sr_row LeagueStageRow;          /* (the rules library's: team, glob, won, gf, ga, pts) */
 
-/* Argentina's promedio history (league_playoffs.c, the Mod's PR_STATE): each top-flight club's
- * points and matches of the two seasons before, by global number; saved ("promedio"). */
-#define PROMEDIO_CLUBS 48
-typedef struct { uint16_t glob, p[2]; uint8_t m[2]; } LeaguePromedioClub;
-typedef struct { uint8_t init, n, pad[2]; LeaguePromedioClub c[PROMEDIO_CLUBS]; } LeaguePromedio;
+/* Argentina's promedio history (the Mod's PR_STATE, the rules library's sr_promedio): each
+ * top-flight club's points and matches of the two seasons before, by global number; saved
+ * ("promedio"). */
+#define PROMEDIO_CLUBS SR_PROMEDIO_CLUBS
+typedef sr_promedio_club LeaguePromedioClub;
+typedef sr_promedio LeaguePromedio;
 extern LeaguePromedio g_promedio;
-typedef struct {
-    uint8_t used, key, fresh, pad;      /* key: the league's country; fresh: bit k = r[k] this season's */
-    uint8_t n[LEAGUE_STAGE_TABLES];
-    LeagueStageRow r[LEAGUE_STAGE_TABLES][32];
-    uint8_t keptDiv, nKept;             /* a 'keep' stage's frozen table (its division; 0 clubs: none) */
-    LeagueStageRow kept[32];
-} LeagueStageBank;
+/* (key: the league's country; fresh: bit k = r[k] this season's; kept_div / n_kept: a 'keep'
+ * stage's frozen table, 0 clubs none) */
+typedef sr_stage_bank LeagueStageBank;
 extern LeagueStageBank g_leagueStages[LEAGUE_STAGE_BANKS];
 void LeaguePlayoffs_ResetStages(void);
 /* A fixture stage just over (league_split.c): the DIY league's table into its league's bank. */
@@ -102,7 +101,7 @@ int32_t LeaguePlayoffs_ContestEntrantsEx(uint8_t country, int32_t nt, const int3
 /* A group contest (gplay.c t2_shape: a title of g groups of m entrants, meet meetings, then nk
  * knockout stages of kt ties, the first taking q -- the groups' winners and best runners-up --
  * kb their round bytes): play-off pidx's shape, 0 when it is not one. */
-typedef struct { uint8_t g, m, meet, nk, q, kt[4], kb[4]; } LeagueGroupShape;
+typedef sr_group_shape LeagueGroupShape;
 int32_t LeaguePlayoffs_GroupShape(uint8_t country, int32_t pidx, LeagueGroupShape *shape);
 /* The career club's play-off at its league's end (the Mod's gp_need, a career): the first playable
  * one in spec order with the club (`club` in division d's final table) among its entrants -- its
@@ -120,9 +119,9 @@ int32_t LeaguePlayoffs_ContestTie(int32_t a, int32_t b, int32_t legs, int32_t ho
  * country): 'M' the division the club played in, 'L' each division's 1st, 'K' each play-off's winner,
  * 0x80 | play-off: a title play-off's last three ties' winners (idx: the tie); team words. `fresh`
  * when this season end wrote it (world_winners.c stamps the season); saved with the career. */
-#define LEAGUE_WINNERS_MAX 40
-typedef struct { uint8_t type, idx; uint16_t team; } LeagueWinnersEntry;
-typedef struct { uint8_t season, n, fresh, pad; LeagueWinnersEntry e[LEAGUE_WINNERS_MAX]; } LeagueWinners;
+#define LEAGUE_WINNERS_MAX SR_WINNERS_MAX
+typedef sr_winners_entry LeagueWinnersEntry;
+typedef sr_winners LeagueWinners;
 extern LeagueWinners g_leagueWinners;
 
 void LeaguePlayoffs_Begin(void);

@@ -1136,6 +1136,11 @@ typedef struct Menu_Options
   MenuCmd_Invisible versionText_invisible;
   MenuCmd_TextPtr versionText_text;
   MenuCommand versionText_end;
+  /* WORLD: 96/97 / 2026-27 -- [general] world in SWOS.ini, played from the next start
+   * (ChangeWorld). SDL only -- the Amiga's world is its drawer's (OpenSWOS Setup); appended
+   * last so no entry's number moves (entries 21, 22). */
+  MenuEntry_Byte_Colors_TextPtr labelWorld;
+  MenuEntry_Byte_Nav_Colors_StringTable_OnSelect world;
   MenuMark markEndMenu;
 } Menu_Options;
 #pragma pack(pop)

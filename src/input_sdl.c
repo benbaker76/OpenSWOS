@@ -149,6 +149,7 @@ static int sdl_to_amiga(SDL_Keycode k)
 
     switch (k) {
     case SDLK_ESCAPE:       return AKEY_ESC;
+    case SDLK_AC_BACK:      return AKEY_ESC;    /* (Android's back button: ESC) */
     case SDLK_RETURN:       return AKEY_ENTER;
     case SDLK_KP_ENTER:     return AKEY_ENTER;
     case SDLK_SPACE:        return AKEY_SPACE;
@@ -776,7 +777,7 @@ void InputSDL_HandleEvent(const SDL_Event *e)
         extern int32_t NetplayMatch_Enabled(void);
         extern void    NetplayMatch_RequestLeave(void);
         int in_match = NetplayMatch_Enabled();
-        if (in_match && e->key.keysym.sym == SDLK_ESCAPE && e->key.repeat == 0)
+        if (in_match && (e->key.keysym.sym == SDLK_ESCAPE || e->key.keysym.sym == SDLK_AC_BACK) && e->key.repeat == 0)
             NetplayMatch_RequestLeave();
         if (is_alt || in_match) {
             /* Don't record keyState, don't push to keyBuffer, don't
