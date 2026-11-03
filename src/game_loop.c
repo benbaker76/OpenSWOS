@@ -405,6 +405,18 @@ MainKeysCheck(uint16_t key)
             return;
         if (_playGame == 0)
             goto stop_highlight_playback;
+#ifdef SWOS_SDL_BUILD
+        /* Asked first: QUIT THE MATCH? RESUME / QUIT (src/esc_confirm.c) -- a handheld's
+         * trigger is ESC, and easily pressed. Offline only, never under a rig. */
+        {
+            extern int EscConfirm_Wanted(void);
+            extern int EscConfirm_Ask(void);
+            const int ends = _gameStatePl == ST_GAME_IN_PROGRESS ||
+                             (_gameState != ST_PLAYERS_GOING_TO_SHOWER && _gameState != ST_RESULT_AFTER_THE_GAME);
+            if (ends && EscConfirm_Wanted() && !EscConfirm_Ask())
+                return;
+        }
+#endif
 
         _playGame = 0;
         _overlayActiveFlag = 0;
