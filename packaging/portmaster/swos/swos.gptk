@@ -1,0 +1,4 @@
+# The game reads the pad itself: start pause, select statistics, A/B fire,
+# Y instant replay, X replay after the match. Mapping those here would fire
+# them twice. Its only pad binding for ESC is R3, which these devices lack.
+l2 = esc
