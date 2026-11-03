@@ -196,10 +196,22 @@ std::string Page(const std::string& userAgent, bool noApp) {
 void Serve(sock_t s, std::string peer) {
   std::string req;
   char buf[2048];
+#ifdef _WIN32
+  DWORD wait = 5000;
+#else
+  timeval wait{5, 0};
+#endif
+  setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (const char*)&wait, sizeof wait);   // a silent connection
   while (req.find("\r\n\r\n") == std::string::npos && req.size() < 16384) {
     const int n = (int)recv(s, buf, sizeof buf, 0);
     if (n <= 0) break;
     req.append(buf, size_t(n));
+    // A TLS handshake: Chrome trying https:// on this port first ("HTTPS-Upgrades"). Closed at
+    // once, it falls back to http://; left waiting, it gave up (ERR_TOO_MANY_RETRIES).
+    if ((unsigned char)req[0] == 0x16) {
+      CloseSock(s);
+      return;
+    }
   }
   std::string path;
   if (req.compare(0, 4, "GET ") == 0) {
