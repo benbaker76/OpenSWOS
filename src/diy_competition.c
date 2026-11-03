@@ -3159,36 +3159,19 @@ process_fixtures:
             team2 = tmpP;
         }
 
-        /* Check if team1 is human-controlled (category == 1) */
+        /* The home/away marker (SWOS2.s loc_12D424): set whenever the round has one
+         * (`tst.w $14C(a2)`, its format), 2 when the human team is listed first, 1
+         * otherwise. The original tests nothing else -- the FRIENDLY / playEachTeam test
+         * the translation added here is the LEAGUE writer's (loc_12D314), and cleared the
+         * marker of every two-legged tie: the European cups' qualifying rounds showed no
+         * (H) / (A) (ReportBot 0047). */
         if (team1[4] == 1) {
             /* team2 must also be human for pair to be skipped */
             if (team2[4] == 1)
                 goto next_fixture;
-
-            /* Check competition name for FRIENDLY or playEachTeam */
-            if (comp->matchData.cup.roundFormat == 0) {
-                a5[0x0A] = 0;
-            } else {
-                if (a2s->namePtr == _aFriendly ||
-                    a2s->playEachTeam == 1) {
-                    /* FRIENDLY or playEachTeam == 1 */
-                    a5[0x0A] = 2;
-                } else {
-                    a5[0x0A] = 0;
-                }
-            }
+            a5[0x0A] = comp->matchData.cup.roundFormat != 0 ? 2 : 0;
         } else {
-            /* Non-human team1 */
-            if (comp->matchData.cup.roundFormat == 0) {
-                a5[0x0A] = 0;
-            } else {
-                if (a2s->namePtr == _aFriendly ||
-                    a2s->playEachTeam == 1) {
-                    a5[0x0A] = 1;
-                } else {
-                    a5[0x0A] = 0;
-                }
-            }
+            a5[0x0A] = comp->matchData.cup.roundFormat != 0 ? 1 : 0;
         }
 
         ((TeamSelectionKeyCacheEntry *)cacheEntry)->totalElements++;
@@ -3472,18 +3455,22 @@ process_next:
 #endif
             goto check_continue;
         }
-        if (a6s->namePtr == _aFriendly || a6s->playEachTeam != 1) {
+        if (a6s->namePtr == _aFriendly || a6s->playEachTeam != 1 || LeaguePhase_Showing()) {
             resultPtr[0x0A] = 2;
         } else {
             resultPtr[0x0A] = 0;
         }
     } else {
-        if (a6s->namePtr == _aFriendly || a6s->playEachTeam != 1) {
+        if (a6s->namePtr == _aFriendly || a6s->playEachTeam != 1 || LeaguePhase_Showing()) {
             resultPtr[0x0A] = 1;
         } else {
             resultPtr[0x0A] = 0;
         }
     }
+    /* (A world's league phase plays each opponent once, as the original's one-leg leagues
+     * do, whose rows have no marker -- but its draw decides who hosts each match, so its
+     * rows show (H) / (A) as a two-leg league's do: ReportBot 0047. LeaguePhase_Showing is
+     * 0 for every other contest, and in 96/97.) */
 
     ((TeamSelectionKeyCacheEntry *)cache)->totalElements++;
     ((TeamSelectionKeyCacheEntry *)cache)->remainingElements++;
