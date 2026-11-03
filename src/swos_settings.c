@@ -38,6 +38,7 @@
 #include "swos_io.h"   /* swos_save_commit — Switch save durability */
 #include "ini.h"
 #include "dos_mode.h"   /* GAMEPLAY_*: [gameplay] style */
+#include "touch_controls.h" /* TOUCH_CONTROLS_*: [input] touch_controls */
 
 #include <ctype.h>
 #include <errno.h>
@@ -175,6 +176,10 @@ static int handler(void *user, const char *section,
         } else if (eqi(name, "latch_presses")) {
             int b;
             if (parse_bool(value, &b)) opts->latch_presses = b;
+        } else if (eqi(name, "touch_controls")) {
+            if      (eqi(value, "auto"))   opts->touch_controls = TOUCH_CONTROLS_AUTO;
+            else if (eqi(value, "always")) opts->touch_controls = TOUCH_CONTROLS_ALWAYS;
+            else if (eqi(value, "never"))  opts->touch_controls = TOUCH_CONTROLS_NEVER;
         } else {
             static const char *const keys[5] = { "key_up", "key_down", "key_left", "key_right", "key_fire" };
             int i;
@@ -458,6 +463,13 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; still counts as pressed for one frame, so a very short tap is never lost.\n"
         "; false: only what is held at the moment of the read counts, as before.",
         opts->latch_presses ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "input", "touch_controls",
+        "; touch_controls: auto | always | never -- a phone's on-screen stick and buttons.\n"
+        "; auto (the default): hidden while a game controller is played, back on a touch;\n"
+        "; always: always on screen; never: never (a handheld with controls of its own).\n"
+        "; OPTIONS -> CONTROLS sets it. The desktops have none.",
+        opts->touch_controls == TOUCH_CONTROLS_NEVER ? "never"
+        : opts->touch_controls == TOUCH_CONTROLS_ALWAYS ? "always" : "auto" };
     SETTING(n) = (IniEntry){ "input", "key_up",
         "; key_up, key_down, key_left, key_right, key_fire: your own keys, BESIDE the\n"
         "; built-in ones (the cursor keys; either CTRL or ENTER to fire), which keep\n"

@@ -12,6 +12,7 @@
  * section 10) and flagged dos_redraw, so its onDraw runs every frame.
  */
 #include "controls_menu.h"
+#include "touch_controls.h"   /* ON-SCREEN: the phones' touch controls */
 
 #ifdef SWOS_SDL_BUILD
 
@@ -38,6 +39,7 @@ enum {
     ControlsMenu_note,
     ControlsMenu_clear,
     ControlsMenu_exit,
+    ControlsMenu_touchLabel, ControlsMenu_touch,    /* (appended: a phone's only) */
     ControlsMenu_kNumEntries
 };
 
@@ -90,6 +92,7 @@ static void save(void)
     for (i = 0; i < kKeys; i++)
         snprintf(g_arcadeOpts->key_bind[i], sizeof g_arcadeOpts->key_bind[i], "%s", InputSDL_KeyBindingName(i));
     g_arcadeOpts->latch_presses = InputSDL_PressLatch();
+    g_arcadeOpts->touch_controls = TouchControls_Mode();
     if (g_arcadeIniPath)
         Settings_Save(g_arcadeOpts, g_arcadeIniPath);
 }
@@ -115,6 +118,8 @@ static void refresh(void)
         entry_at(ControlsMenu_up + 2 * i)->fg = (uintptr_t)s_rowText[i];
     }
     entry_at(ControlsMenu_latch)->fg = (uintptr_t)(InputSDL_PressLatch() ? "ALWAYS COUNT" : "CAN BE MISSED");
+    entry_at(ControlsMenu_touch)->fg = (uintptr_t)(TouchControls_Mode() == TOUCH_CONTROLS_NEVER ? "NEVER"
+                                                 : TouchControls_Mode() == TOUCH_CONTROLS_ALWAYS ? "ALWAYS" : "AUTO");
     entry_at(ControlsMenu_note)->fg = (uintptr_t)s_note;
 }
 
@@ -194,8 +199,28 @@ static void choose(int32_t which)
 
 /* ---- handlers ---- */
 
+/* Set a row's links (the JSON's are the desktops'). */
+static void nav(int32_t ordinal, int32_t up, int32_t down)
+{
+    MenuEntry *e = entry_at(ordinal);
+    e->upEntry = (int8_t)up;
+    e->downEntry = (int8_t)down;
+    e->directionUp = e->directionDown = -1;
+}
+
 static void controlsMenu_OnInit(void)
 {
+    /* ON-SCREEN (the touch controls): a phone's row, between SHORT PRESSES and the buttons. */
+#ifdef SWOS_MOBILE_BUILD
+    const int32_t touch = 1;
+#else
+    const int32_t touch = 0;
+#endif
+    entry_at(ControlsMenu_touchLabel)->isInvisible = !touch;
+    entry_at(ControlsMenu_touch)->isInvisible = !touch;
+    nav(ControlsMenu_latch, ControlsMenu_fire, touch ? ControlsMenu_touch : ControlsMenu_clear);
+    nav(ControlsMenu_clear, touch ? ControlsMenu_touch : ControlsMenu_latch, -1);
+    nav(ControlsMenu_exit,  touch ? ControlsMenu_touch : ControlsMenu_latch, -1);
     note("");
     refresh();
 }
@@ -217,6 +242,17 @@ static void controlsMenu_latch_OnSelect(void)
     InputSDL_SetPressLatch(!InputSDL_PressLatch());
     note(InputSDL_PressLatch() ? "A TAP SHORTER THAN A FRAME STILL COUNTS"
                                : "ONLY WHAT IS HELD WHEN THE GAME LOOKS");
+    save();
+}
+
+/* ON-SCREEN: [input] touch_controls, AUTO -> ALWAYS -> NEVER. */
+static void controlsMenu_touch_OnSelect(void)
+{
+    const int32_t mode = (TouchControls_Mode() + 1) % 3;
+    TouchControls_SetMode(mode);
+    note(mode == TOUCH_CONTROLS_NEVER  ? "OFF: FOR A HANDHELD WITH ITS OWN CONTROLS"
+       : mode == TOUCH_CONTROLS_ALWAYS ? "ON SCREEN WHATEVER CONTROLLER IS USED"
+                                       : "HIDDEN WHILE A CONTROLLER IS PLAYED");
     save();
 }
 
@@ -247,6 +283,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(controlsMenu_right_OnSelect),
     HANDLER(controlsMenu_fire_OnSelect),
     HANDLER(controlsMenu_latch_OnSelect),
+    HANDLER(controlsMenu_touch_OnSelect),
     HANDLER(controlsMenu_clear_OnSelect),
     HANDLER(controlsMenu_exit_OnSelect),
 };

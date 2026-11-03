@@ -38,6 +38,7 @@
 #include "swos_io.h"            /* swos_save_dir_init() — macOS-writable save dir */
 #include "save_format_json.h"   /* DataJson_SelfTest */
 #include "dos_mode.h"   /* gDosGraphics/gDosGameplay — defined in dos_graphics.c */
+#include "touch_controls.h"   /* TouchControls_SetMode: [input] touch_controls */
 #include "display.h"    /* _screen_width, WIDESCREEN_WIDTH, SCREEN_WIDTH */
 #include "replay_test.h"        /* --replay-test: recorded-game regression rig */
 #include "replay_v2.h"          /* --record-replay, --view-replay: whole-match .SRP replays */
@@ -1177,6 +1178,7 @@ int main(int argc, char **argv)
         extern int InputSDL_SetKeyBinding(int which, const char *name);
         int i;
         InputSDL_SetPressLatch(opts.latch_presses);
+        TouchControls_SetMode(opts.touch_controls);     /* the phones' on-screen controls */
         for (i = 0; i < 5; i++)
             InputSDL_SetKeyBinding(i, opts.key_bind[i]);
     }

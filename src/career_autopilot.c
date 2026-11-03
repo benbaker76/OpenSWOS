@@ -148,6 +148,11 @@ static char        s_pathBuf[256];
 static const char *s_path[NEW_PATH_MAX];
 static int32_t     s_pathN, s_pathK;
 static int32_t     s_choosing;      /* still picking the club */
+/* --career-golden=menu:<label>/<label>/...: no career -- from the main menu, each label in
+ * turn, then a screenshot of the screen it ends on and exit 0 (a screen that crashes or
+ * panics on the way says so). For screens no career passes through: PRESET COMPETITION,
+ * SEASON, a world's cups. */
+static int32_t     s_menuMode;
 static int32_t     s_waited;        /* passes without the next label showing */
 
 /* To stdout (the game sends stderr to SWOS.log), flushed: the test script reads it. */
@@ -179,9 +184,10 @@ int32_t CareerAutopilot_ParseArg(const char *a)
         if (!getenv("SDL_VIDEODRIVER")) setenv("SDL_VIDEODRIVER", "dummy", 1);
         if (!getenv("SDL_AUDIODRIVER")) setenv("SDL_AUDIODRIVER", "dummy", 1);
 #endif
-        if (strncmp(s_save, "new:", 4) == 0) {
+        if (strncmp(s_save, "new:", 4) == 0 || strncmp(s_save, "menu:", 5) == 0) {
             char *p = s_pathBuf;
-            snprintf(s_pathBuf, sizeof s_pathBuf, "%s", s_save + 4);
+            s_menuMode = s_save[0] == 'm';
+            snprintf(s_pathBuf, sizeof s_pathBuf, "%s", s_save + (s_menuMode ? 5 : 4));
             for (s_pathN = 0; *p && s_pathN < NEW_PATH_MAX; s_pathN++) {
                 s_path[s_pathN] = p;
                 while (*p && *p != '/') p++;
@@ -303,6 +309,40 @@ static void choose_step(const Menu *menu)
     }
 }
 
+/* One pass of a menu: path: the next label, or, past the last, the screenshot and out. */
+static void menu_path_step(const Menu *menu)
+{
+    static int32_t done;
+    int32_t i;
+    if (s_pathK < s_pathN) {
+        if ((i = entry_labelled(s_path[s_pathK])) >= 0) {
+            SetCurrentEntry((uint16_t)i);
+            _shortFire = 1;
+            s_waited = 0;
+            say("[golden] menu: %s\n", s_path[s_pathK]);
+            s_pathK++;
+            return;
+        }
+        if (++s_waited > 300) {
+            say("[golden] '%s' is not on this screen; its rows:\n", s_path[s_pathK]);
+            for (uint16_t k = 0; k < menu->numEntries; k++) {
+                const MenuEntry *e = CalcMenuEntryAddress(k);
+                if (!e->isInvisible && e->content == ENTRY_STRING && e->fg)
+                    say("[golden]   %s\n", (const char *)e->fg);
+            }
+            exit(2);
+        }
+        return;
+    }
+    if (++done == 30) {
+        extern void Platform_RequestScreenshot(void);
+        Platform_RequestScreenshot();
+        say("[golden] menu path done: a screenshot of the last screen\n");
+    } else if (done == 60) {
+        exit(0);
+    }
+}
+
 static void start(void)
 {
     /* The original takes randomness from the game tick too -- the chairman's 50% (career
@@ -313,6 +353,10 @@ static void start(void)
     s_started = 1;
     swos_set_save_dir(s_outDir);
     pin_random();
+    if (s_menuMode) {
+        say("[golden] menu path, %d label(s)\n", (int)s_pathN);
+        return;
+    }
     if (s_pathN > 0) {
         say("[golden] new career, %d season(s) (SWOSMainMenuInit at %p)\n", (int)s_seasons,
             (void *)(uintptr_t)SWOSMainMenuInit);
@@ -433,6 +477,10 @@ void CareerAutopilot_Tick(void)
         }
     }
     _currentTick++;                     /* the clock the game's seeds read, once per pass */
+    if (s_menuMode) {
+        menu_path_step(menu);
+        return;
+    }
     if (s_choosing) {
         choose_step(menu);
         return;

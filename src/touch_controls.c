@@ -10,10 +10,17 @@
  * degrees each, nothing inside its dead zone (SWOS's stick is digital). They go when a game
  * controller's button is pressed (it is player 1's then), and come back with the next touch -- not
  * on a controller merely being there: a phone can report one nobody holds (the iOS simulator's).
+ *
+ * That is AUTO, the default; [input] touch_controls (OPTIONS -> CONTROLS, ON-SCREEN) can say ALWAYS
+ * (never hidden) or NEVER (never drawn): a handheld with its own controls, the Retroid / AYN kind,
+ * whose built-in pad may not even be a "controller" to SDL (2026-11-03). NEVER still answers a touch
+ * where the controls would be -- a phone with nothing else to steer by is not locked out of the menu
+ * that would put them back.
  */
 #include <SDL.h>
 #include <math.h>
 #include <string.h>
+#include "touch_controls.h"
 
 #ifdef SWOS_MOBILE_BUILD
 
@@ -25,6 +32,7 @@ enum { KEY_P = 0x19, KEY_ESC = 0x45 };          /* (raw Amiga scancodes) */
 
 static SDL_FingerID s_stickFinger = -1, s_fireFinger[4] = { -1, -1, -1, -1 };
 static int   s_dirs, s_fire, s_sent = -1, s_hidden, s_keyDown[2];
+static int   s_mode = TOUCH_CONTROLS_AUTO;      /* [input] touch_controls */
 static float s_knobX, s_knobY;                  /* (the knob's offset, in output pixels) */
 
 /* The layout, in output pixels, from the output's size (the web page's, in proportion: its
@@ -90,6 +98,20 @@ static void release_all(void)
 
 /* Everything let go: the window lost focus or the app went to the background -- a message box or
  * the system took the finger, and its lift never comes (a FIRE held through it pressed again). */
+void TouchControls_SetMode(int mode)
+{
+    if (mode < TOUCH_CONTROLS_AUTO || mode > TOUCH_CONTROLS_NEVER)
+        mode = TOUCH_CONTROLS_AUTO;
+    s_mode = mode;
+    release_all();
+    s_hidden = 0;
+}
+
+int TouchControls_Mode(void)
+{
+    return s_mode;
+}
+
 void TouchControls_ReleaseAll(void)
 {
     if (s_stickFinger != -1 || s_fire || s_keyDown[0] || s_keyDown[1])
@@ -102,7 +124,7 @@ void TouchControls_HandleEvent(const SDL_Event *e, int w, int h)
     Circle stick, fire;
     Box pause, esc;
     if (e->type == SDL_CONTROLLERBUTTONDOWN) {
-        if (!s_hidden) { s_hidden = 1; release_all(); }
+        if (!s_hidden && s_mode == TOUCH_CONTROLS_AUTO) { s_hidden = 1; release_all(); }
         return;
     }
     if (e->type != SDL_FINGERDOWN && e->type != SDL_FINGERMOTION && e->type != SDL_FINGERUP)
@@ -196,7 +218,8 @@ void TouchControls_Draw(SDL_Renderer *r)
     int w, h;
     Circle stick, fire;
     Box pause, esc;
-    if (s_hidden || SDL_GetRendererOutputSize(r, &w, &h) != 0 || w <= 0 || h <= 0)
+    if (s_hidden || s_mode == TOUCH_CONTROLS_NEVER || SDL_GetRendererOutputSize(r, &w, &h) != 0 ||
+        w <= 0 || h <= 0)
         return;
     layout(w, h, &stick, &fire, &pause, &esc);
     const float u = (float)h / 360.0f;
@@ -246,5 +269,11 @@ void TouchControls_Draw(SDL_Renderer *r)
         SDL_RenderSetScale(r, sx, sy);
     SDL_RenderSetViewport(r, lw ? NULL : &vp);
 }
+
+#else   /* the desktops have no on-screen controls: the setting is kept, and does nothing */
+
+static int s_mode;
+void TouchControls_SetMode(int mode) { s_mode = mode; }
+int  TouchControls_Mode(void)        { return s_mode; }
 
 #endif /* SWOS_MOBILE_BUILD */

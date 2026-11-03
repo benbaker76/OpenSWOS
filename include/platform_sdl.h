@@ -135,6 +135,8 @@ typedef struct {
                                               * Empty = none (input_sdl.c) */
     int                    latch_presses;    /* [input] latch_presses: a fire press that came and went
                                               * between two reads still counts (default on) */
+    int                    touch_controls;   /* [input] touch_controls: TOUCH_CONTROLS_* -- the phones'
+                                              * on-screen controls, auto (0) | always | never */
     char                   netplay_name[33]; /* [netplay] name: the name typed on the MULTIPLAYER login
                                               * screen, kept while REMEMBER LOGIN INFO is on */
     int                    netplay_remember; /* [netplay] remember_login: that switch (default on) */
