@@ -42,10 +42,13 @@ FetchContent_Declare(SDL2
 FetchContent_MakeAvailable(SDL2)
 
 # ---- the game: the Makefile's SDL build ----
-file(GLOB GAME_SOURCES ${REPO}/src/*.c ${REPO}/src/generated/*.c)
+# CONFIGURE_DEPENDS: the glob is checked again at every build. Without it a source added to
+# src/ after the first configure was never compiled into a build tree that already existed
+# (Gradle keeps its .cxx): the APK of 4708b6ab failed to link, CalLabel_Fit undefined.
+file(GLOB GAME_SOURCES CONFIGURE_DEPENDS ${REPO}/src/*.c ${REPO}/src/generated/*.c)
 
 set(GGPO_DIR ${REPO}/third_party/ggpo-x/src)
-file(GLOB GGPO_SOURCES ${GGPO_DIR}/lib/ggpo/*.cpp ${GGPO_DIR}/lib/ggpo/network/*.cpp
+file(GLOB GGPO_SOURCES CONFIGURE_DEPENDS ${GGPO_DIR}/lib/ggpo/*.cpp ${GGPO_DIR}/lib/ggpo/network/*.cpp
                        ${GGPO_DIR}/lib/ggpo/backends/*.cpp)
 list(FILTER GGPO_SOURCES EXCLUDE REGEX "platform_windows\\.cpp$")
 set(ENET_DIR ${REPO}/third_party/enet)
