@@ -2513,6 +2513,7 @@ int Platform_Present(void)
     if (s_vsync_enabled && s_display_hz > 0 &&
         s_display_hz == Platform_ActivePacingFps()) {
         s_next_frame_perf = SDL_GetPerformanceCounter();
+        pump_events_any_thread();       /* (after the present's own wait: see below) */
         return _quitToDos ? 1 : 0;
     }
 
@@ -2546,6 +2547,13 @@ int Platform_Present(void)
     }
     }
 
+    /* The controls read as late as they can be: the frame's own pump ran before the
+     * present and the wait above (most of the 20 ms), so a press during the wait was
+     * seen only after the NEXT frame -- a frame of input lag the Amiga, which reads the
+     * joystick in the VBlank interrupt as the frame begins, never had (ReportBot 0051:
+     * ~40 ms more than a plain SDL game, by a 240 fps camera). Pumped again here, the
+     * frame about to run reads what was pressed up to now. */
+    pump_events_any_thread();
     return _quitToDos ? 1 : 0;
 }
 
