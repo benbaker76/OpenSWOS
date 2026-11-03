@@ -52,7 +52,7 @@ chose onto it. A World 2026-27 already on the card stays. By hand:
 
 | Button | Action |
 |---|---|
-| D-pad | Move |
+| D-pad or left stick | Move |
 | A / B | Fire (B also skips) |
 | Start | Pause |
 | Select | Statistics |
