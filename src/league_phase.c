@@ -460,6 +460,7 @@ void LeaguePhase_Rank(const LeaguePhaseRow *row, const uint8_t (*cal)[2], int32_
 #include "diy_competition.h"
 #include "world.h"
 #include "random.h"
+#include "competition_data.h"   /* _europeTable, the 96/97 cups (LeaguePhase_InstallCups) */
 
 extern DIYCompetitionEx _diyCompetitionStart;
 extern DIYTournamentState _diyFileBufferCopy;
@@ -770,8 +771,17 @@ extern CompetitionCareer _careerContests[];
 
 void LeaguePhase_InstallCups(CompetitionLeaguePhase *cups)
 {
+    const Competition *was[3] = { (const Competition *)&_euroCup, (const Competition *)&_cupWinnersCup,
+                                  (const Competition *)&_uefaCup };
     for (int32_t k = 0; k < 3; k++) {           /* (the contest table's first three: the euro cups) */
         _careerContests[k].competition = (Competition *)&cups[k];
         _careerContests[k].templateSize = (uint16_t)sizeof(CompetitionLeaguePhase);
+        /* ... and VIEW WORLD's Europe row (competition_data.c _europeTable): its cups are found
+         * in _careerContests to view their copy -- with 96/97's templates there, the view of a
+         * cup the career club is not in loaded 96/97's own entrants, clubs a world's files may
+         * not have (ReportBot 0053: Poland's 23rd, VerifyTeamLoaded's panic). */
+        for (int32_t i = 0; i < 9 && (uintptr_t)_europeTable.compCup[i] != (uintptr_t)-1; i++)
+            if (_europeTable.compCup[i] == was[k])
+                _europeTable.compCup[i] = (Competition *)&cups[k];
     }
 }

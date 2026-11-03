@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string.h>
 
 extern uint8_t  _currentMenu[];
 extern volatile uint16_t _shortFire;
@@ -103,12 +104,26 @@ static int32_t entry_labelled(const char *label);
 static int32_t view_world(const Menu *menu)
 {
     static const char *env = (const char *)1;
+    static char row[64];
+    static const char *then;        /* <continent>/<row>: that row of the continent's screen too */
     static int32_t stage, waited;
     int32_t i;
-    if (env == (const char *)1)
+    if (env == (const char *)1) {
         env = getenv("SWOS_GOLDEN_VIEW_WORLD");
+        const char *slash = env ? strchr(env, '/') : NULL;
+        if (slash) {
+            snprintf(row, sizeof row, "%.*s", (int)(slash - env), env);
+            then = slash + 1;
+            env = row;
+        }
+    }
     if (!env || !*env)
         return 0;
+    {   /* (SWOS_GOLDEN_SHOT_FROM=<n>: from the hub after the n-th season's end) */
+        const char *from = getenv("SWOS_GOLDEN_SHOT_FROM");
+        if (stage == 0 && from && s_hubs < atoi(from))
+            return 0;
+    }
     if (stage == 0 && menu->onInit == ContestMenuInit) {
         if ((i = entry_with((MenuEntryFn)ViewWorldMenu)) < 0)
             return 0;
@@ -124,6 +139,28 @@ static int32_t view_world(const Menu *menu)
         _shortFire = 1;
         stage = 2;
         waited = 0;
+        return 1;
+    }
+    if (stage == 2 && then && menu->onInit == SelectTeamsInit) {
+        if (++waited < 10)
+            return 1;
+        if ((i = entry_labelled(then)) < 0)
+            return waited > 300 ? (say("[golden] '%s' is not on %s\n", then, env), exit(2), 1) : 1;
+        say("[golden] view world: %s -> %s\n", env, then);
+        SetCurrentEntry((uint16_t)i);
+        _shortFire = 1;
+        stage = 3;
+        waited = 0;
+        return 1;
+    }
+    if (stage == 3) {
+        if (++waited == 2) {
+            extern void Platform_RequestScreenshot(void);
+            Platform_RequestScreenshot();
+        } else if (waited == 80) {
+            say("[golden] done\n");
+            exit(0);
+        }
         return 1;
     }
     if (stage == 2 && menu->onInit == SelectTeamsInit) {
