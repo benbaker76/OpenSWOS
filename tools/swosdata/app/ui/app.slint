@@ -7,7 +7,7 @@
 //   ADVANCED MODE: two tabs, one per version of the game -- the PC/Mac/Linux game and the
 //   Amiga's. Each says what to download (with the links), finds it (the Downloads folder is
 //   watched, a folder can be searched, a path given), and has the one button that makes it.
-import { ListView, ProgressIndicator, Palette, CheckBox } from "std-widgets.slint";
+import { ListView, ProgressIndicator, Palette, CheckBox, ScrollView } from "std-widgets.slint";
 import { Theme, TextButton, Link, Card, IconButton, PathField } from "theme.slint";
 import { Step, BigTile, ExtraRow, DropZone, StepDots, BigButton, LinkButton, Instruction, OptionLine } from "wizard.slint";
 
@@ -343,6 +343,7 @@ export component MainWindow inherits Window {
     icon: @image-url("../../../../packaging/linux/hicolor/256x256/apps/openswos.png");
     preferred-width: 860px;
     preferred-height: 860px;
+    min-height: 520px;      // (the wizard's screen scrolls between its top and foot)
     min-width: 720px;
     background: Theme.chrome;
     default-font-size: 13px;
@@ -520,12 +521,18 @@ export component MainWindow inherits Window {
         }
         Rectangle { height: 1px; background: Theme.line; }
 
-        // The screen.
-        VerticalLayout {
+        // The screen, between the fixed top and foot: it scrolls when it does not fit (a small
+        // window, a long list of GAME OPTIONS, a long message), so Next never leaves the window.
+        screen := ScrollView {
             vertical-stretch: 1;
+            viewport-width: self.visible-width;
+            viewport-height: max(self.visible-height, body.preferred-height);
+          body := VerticalLayout {
+            width: screen.visible-width;
             spacing: 14px;
             padding-left: 24px;
             padding-right: 24px;
+            padding-bottom: 8px;
             alignment: start;
 
             // 1. Where you will play.
@@ -1222,6 +1229,7 @@ export component MainWindow inherits Window {
                     }
                 }
             }
+          }
         }
 
         // The foot: back, how far along, next.
