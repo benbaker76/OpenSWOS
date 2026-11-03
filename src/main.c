@@ -62,6 +62,7 @@
 #include "netplay_match.h"      /* --netplay-match */
 #include "rollback_rig.h"       /* --rollback */
 #include "world.h"              /* [general] world */
+#include "phone_fetch.h"        /* --phone-fetch */
 
 #define WIN_SCALE 3
 
@@ -813,6 +814,9 @@ int main(int argc, char **argv)
             /* Same reason as --matchmaker-menu: this flag exists to reach a menu,
              * and the loader intro plays in front of it in real time. */
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+        } else if ((v = match_kv(a, "phone-fetch")) != NULL) {
+            /* The phones' Wi-Fi copy, from a desktop (src/phone_fetch.c): a link, or "find". */
+            return PhoneFetch_Cli(v, ini_path);
         } else if (strcmp(a, "--game-options-selftest") == 0) {
             return Settings_GameOptionsSelfTest();
         } else if (strcmp(a, "--menu-selftest") == 0) {
@@ -1527,9 +1531,9 @@ int main(int argc, char **argv)
     }
 
 #ifdef SWOS_MOBILE_BUILD
-    /* A phone has no setup: the player copies the game's data over from a PC (src/mobile.c). */
-    { extern int Mobile_CheckGameData(void);
-      if (!Mobile_CheckGameData()) { SDL_Quit(); return 1; } }
+    /* A phone has no setup: the game's data comes from a PC's, over Wi-Fi or by hand (src/mobile.c). */
+    { extern int Mobile_CheckGameData(PlatformInitOptions *opts, const char *iniPath);
+      if (!Mobile_CheckGameData(&opts, ini_path)) { SDL_Quit(); return 1; } }
 #endif
     /* Game data an older OpenSWOS Setup made (ASSETS.ini): say so, once. */
     { extern void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath);

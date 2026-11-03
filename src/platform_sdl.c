@@ -2553,3 +2553,27 @@ Uint64 Platform_NowMs(void)
 {
     return SDL_GetTicks64();
 }
+
+/* A bar across the screen, `permille`/1000 full: the phones' Wi-Fi copy of the game's data
+ * (src/mobile.c, src/phone_fetch.c), drawn before there are any of the game's graphics. */
+void Platform_ShowProgress(int permille)
+{
+    if (!s_renderer)
+        return;
+    SDL_PumpEvents();
+    int w = 0, h = 0;
+    SDL_RenderGetLogicalSize(s_renderer, &w, &h);
+    if (w <= 0 || h <= 0)
+        SDL_GetRendererOutputSize(s_renderer, &w, &h);
+    SDL_SetRenderTarget(s_renderer, NULL);
+    SDL_SetRenderDrawColor(s_renderer, 13, 17, 23, 255);
+    SDL_RenderClear(s_renderer);
+    SDL_Rect frame = { w / 8, h / 2 - h / 32, w * 3 / 4, h / 16 };
+    if (frame.h < 4) frame.h = 4;
+    SDL_SetRenderDrawColor(s_renderer, 48, 54, 61, 255);
+    SDL_RenderFillRect(s_renderer, &frame);
+    SDL_Rect bar = { frame.x, frame.y, (int)((int64_t)frame.w * (permille < 0 ? 0 : permille > 1000 ? 1000 : permille) / 1000), frame.h };
+    SDL_SetRenderDrawColor(s_renderer, 59, 130, 246, 255);
+    SDL_RenderFillRect(s_renderer, &bar);
+    SDL_RenderPresent(s_renderer);
+}

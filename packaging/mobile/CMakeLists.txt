@@ -25,6 +25,8 @@ string(REGEX MATCH "#define PROJECT_APP_ID +\"([^\"]+)\"" _ "${IDENTITY}")
 set(APP_ID ${CMAKE_MATCH_1})
 string(REGEX MATCH "#define PROJECT_NAME +\"([^\"]+)\"" _ "${IDENTITY}")
 set(APP_NAME ${CMAKE_MATCH_1})
+string(REGEX MATCH "#define PROJECT_URL_SCHEME +\"([^\"]+)\"" _ "${IDENTITY}")
+set(SWOS_URL_SCHEME ${CMAKE_MATCH_1})          # (packaging/ios/Info.plist.in: the setup's link)
 
 # ---- SDL2 ----
 include(FetchContent)

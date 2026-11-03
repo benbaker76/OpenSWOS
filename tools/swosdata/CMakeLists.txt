@@ -169,7 +169,9 @@ if(SD_WITH_APP)
 
     set_property(GLOBAL PROPERTY SLINT_STYLE fluent-dark)
 
-    add_executable(openswos-setup app/main.cpp app/platform.cpp ${NFD_SOURCE} ${SD_PLATFORM_SOURCES})
+    # The Wi-Fi copy to a phone (app/phone_server.cpp): its QR code, Project Nayuki's (MIT).
+    add_executable(openswos-setup app/main.cpp app/platform.cpp app/phone_server.cpp
+                   ${OPENSWOS_ROOT}/third_party/qrcodegen/qrcodegen.c ${NFD_SOURCE} ${SD_PLATFORM_SOURCES})
     target_link_libraries(openswos-setup PRIVATE swosdata_lib Slint::Slint)
     # The window icon is compiled in, not referenced by absolute path.
     set_property(TARGET openswos-setup PROPERTY SLINT_EMBED_RESOURCES embed-files)
@@ -180,7 +182,7 @@ if(SD_WITH_APP)
     target_link_libraries(openswos-setup PRIVATE Threads::Threads)
     if(WIN32)
       # The Downloads folder (SHGetKnownFolderPath) and GOG's registry entries.
-      target_link_libraries(openswos-setup PRIVATE shell32 ole32 advapi32)
+      target_link_libraries(openswos-setup PRIVATE shell32 ole32 advapi32 ws2_32)
     endif()
 
     if(SD_HAVE_DIALOGS)
@@ -196,10 +198,10 @@ if(SD_WITH_APP)
     endif()
 
     if(MSVC)
-      set_source_files_properties(app/main.cpp app/platform.cpp
+      set_source_files_properties(app/main.cpp app/platform.cpp app/phone_server.cpp
                                   PROPERTIES COMPILE_OPTIONS "/W3;/utf-8")
     else()
-      set_source_files_properties(app/main.cpp app/platform.cpp
+      set_source_files_properties(app/main.cpp app/platform.cpp app/phone_server.cpp
                                   PROPERTIES COMPILE_OPTIONS "-Wall")
     endif()
 

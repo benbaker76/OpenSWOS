@@ -59,8 +59,8 @@ re-signs every 7 days). `build_ios.sh sim` and the Mac's development identity ar
   the APK's assets with a manifest (a stamp, then "size path" per file), copied out to internal
   storage on the first start and again when the stamp changes.
 - **The game's data**: OpenSWOS Setup cannot run on a phone, and no drop carries the original data.
-  The player runs the Setup on a PC or Mac and copies its `assets` folder over; without it the game
-  says where it goes (`Mobile_CheckGameData`) and closes.
+  The player runs the Setup on a PC or Mac and copies its `assets` folder over -- over Wi-Fi (below)
+  or by hand; without it the game says how (`Mobile_CheckGameData`), and closes only when told to.
 - **Touch controls** (`src/touch_controls.c`): the web page's (`wasm/shell.html`) done natively --
   a stick on the left, FIRE on the right, PAUSE and ESC above it, drawn over the picture in the
   present path, player 1's through `InputSDL_TouchControls` / `InputSDL_TouchKey`. They go when a
@@ -73,7 +73,39 @@ re-signs every 7 days). `build_ios.sh sim` and the Mac's development identity ar
 - **Hints** (`Mobile_SetHints`): the accelerometer is not a joystick (it would take player 1's place).
 - Online play is in: the same GGPO-X and matchmaking as the desktops (`NETPLAY_COMPAT` alike).
 
+## Copying over Wi-Fi
+
+The wizard's phone screen serves the setup's assets folder on the local network while it is open,
+and shows a QR code (`include/phone_copy.h` is the whole protocol; the setup's end
+`tools/swosdata/app/phone_server.cpp`, the phone's `src/phone_fetch.c`):
+
+- **The QR code is a plain `http://<ip>:<port>/<key>/` page**, not the app's link: Android's camera
+  apps do not launch a custom scheme from a code, every phone's browser opens a page. The page's
+  button opens the app with `<PROJECT_URL_SCHEME>://get?h=<ip>:<port>&k=<key>` -- on Android as an
+  `intent://` link, whose fallback comes back to the page saying the app is not installed.
+- **The app takes the link** at the start or while it waits on its "the game's data" message:
+  Android's `OpenSWOSActivity` keeps the intent's (`takeLink`, over JNI; the activity is
+  `singleInstance`), iOS's SDL hands `openURL` over as an `SDL_DROPFILE`. The manifest's VIEW
+  filter and the plist's `CFBundleURLTypes` take the scheme from `project_identity.h`.
+- **Without the code**, COPY FROM MY COMPUTER broadcasts `PHONE_COPY_ASK` on UDP 38630 and the setup
+  answers with its port and key. Android only in practice: iOS sends a broadcast only with an
+  entitlement Apple grants (`com.apple.developer.networking.multicast`).
+- **The copy** goes into `<assets>.part`, and takes the assets folder's place only when every file
+  came, at its size. The list's paths are checked (relative, no `..`); the setup serves only files
+  of its own list, by their name in it, under a key it makes up each run. The Amiga drawer's
+  `amiga/` is left out.
+- **SWOS.ini**: the setup's GAME OPTIONS for the phone (`<user dir>/phone/SWOS.ini`) come too, and
+  only their keys (`include/game_options.h`, phone ones, known values) are set in the phone's file,
+  which is then read again.
+- **The port: 38630**, else the next nine, else any (the code and the answer carry it). Not
+  44620-48715: WSL2 in mirrored mode holds those on Windows, and `netsh` does not list them.
+- **Testing from a desktop**: `--phone-fetch=<link>` or `--phone-fetch=find` copies into
+  `swos_assets_dir()` (set `HOME`/`SWOS_ASSETS` to a scratch folder). From WSL in mirrored mode use
+  `h=127.0.0.1`: the LAN address is WSL's own too, and WSL's broadcast never reaches the Windows
+  host -- a phone, another device, has neither problem.
+
 ## Not done yet
 
 - Importing the game's data in the app (the Setup's library on the phone) instead of copying it.
+- The Wi-Fi copy from a running game (OPTIONS), not only at the start; tried on a real phone.
 - Haptics, the controls' size and placement as a setting, a controls layout for a second player.

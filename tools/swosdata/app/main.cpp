@@ -41,6 +41,7 @@
 
 #include "app.h"
 #include "platform.hpp"
+#include "phone_server.hpp"
 
 extern "C" {
 #include "swosdata.h"
@@ -1331,7 +1332,71 @@ struct App {
       w().set_tab(0);
     } else if (kind == 12) {
       RefreshOptions();
+    } else if (kind == 8) {
+      PhoneStart();
     }
+  }
+
+  // ------------------------------------------------- the Wi-Fi copy to a phone ---
+
+  slint::Timer phoneTimer;
+  std::string phoneSaid;
+
+  // The phone screen: the assets folder served on the network, its QR code shown. Kept up
+  // until the setup closes (a phone half way through a copy is not cut off by Back).
+  void PhoneStart() {
+    if (!sd::PhoneServerStart(outDir, IniPath(true))) {
+      const std::string err = sd::PhoneServerStatus().error;
+      w().set_phone_status(Str(err));
+      FileLog("phone copy: " + err);
+      return;
+    }
+    const sd::PhoneServerState st = sd::PhoneServerStatus();
+    w().set_phone_url(Str(st.url));
+    int n = 0;
+    const std::vector<bool> qr = sd::QrCode(st.url, &n);
+    if (n > 0) {
+      const int scale = 6, border = 4, side = (n + 2 * border) * scale;
+      slint::SharedPixelBuffer<slint::Rgb8Pixel> px{static_cast<uint32_t>(side), static_cast<uint32_t>(side)};
+      slint::Rgb8Pixel* p = px.begin();
+      for (int y = 0; y < side; y++)
+        for (int x = 0; x < side; x++) {
+          const int mx = x / scale - border, my = y / scale - border;
+          const bool dark = mx >= 0 && my >= 0 && mx < n && my < n && qr[size_t(my * n + mx)];
+          const uint8_t v = dark ? 0 : 255;
+          p[y * side + x] = slint::Rgb8Pixel{v, v, v};
+        }
+      w().set_phone_qr(slint::Image(px));
+    }
+    if (phoneSaid.empty()) FileLog("phone copy: serving " + Shown(outDir) + " at " + st.url);
+    PhonePoll();
+    if (!phoneTimer.running())
+      phoneTimer.start(slint::TimerMode::Repeated, std::chrono::milliseconds(400), [this] { PhonePoll(); });
+  }
+
+  void PhonePoll() {
+    const sd::PhoneServerState st = sd::PhoneServerStatus();
+    std::string said;
+    int state = 0;     // app.slint's phone-state: 0 waiting, 1 copying, 2 done, 3 cannot
+    if (!st.running) {
+      said = st.error;
+      state = 3;
+    } else if (st.finished) {
+      said = "Copied to the phone (" + std::to_string(st.files) + " files). " PROJECT_NAME " on it is ready to play.";
+      state = 2;
+    } else if (st.files > 0) {
+      const int pct = st.bytes ? int(st.bytesSent * 100 / st.bytes) : 0;
+      said = "Copying to the phone: " + std::to_string(pct > 100 ? 100 : pct) + "% (" + std::to_string(st.filesSent) +
+             " of " + std::to_string(st.files) + " files)";
+      state = 1;
+    } else if (!st.phone.empty()) {
+      said = "The phone found this computer (" + st.phone + "). Tap Open in " PROJECT_NAME " on it.";
+    } else
+      said = "Waiting for the phone...";
+    w().set_phone_status(Str(said));
+    w().set_phone_state(state);
+    if (state != 1 && said != phoneSaid) FileLog("phone copy: " + said);
+    phoneSaid = said;
   }
 
   // Files dropped on the window: each found as a download would be, a folder that is not one
@@ -1662,6 +1727,7 @@ int main(int argc, char** argv) {
   ui->set_tab(amigaTab ? 1 : 0);
   ui->set_version(SD_VERSION);
   ui->set_project_name(PROJECT_NAME);
+  ui->set_app_id(PROJECT_APP_ID);
   ui->set_project_url(PROJECT_URL);
   ui->set_show_about(about);
   ui->set_show_details(details);
@@ -1790,5 +1856,6 @@ int main(int argc, char** argv) {
   // Closed mid-install: let the worker finish writing rather than cut a file
   // in half. Its posts to the stopped event loop are dropped.
   if (app.worker.joinable()) app.worker.join();
+  sd::PhoneServerStop();
   return app.exitCode;
 }

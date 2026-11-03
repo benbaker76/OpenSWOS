@@ -231,6 +231,8 @@ void Platform_SetFrameHook(void (*hook)(void));
 /* Just pump SDL events, render bitplanes, and present. No pacing.
  * Safe to call from the SDL_AddTimer thread. */
 void Platform_RenderFrame(void);
+/* A progress bar alone on the screen (the phones' Wi-Fi copy, before the game's data). */
+void Platform_ShowProgress(int permille);
 
 /* Run the Amiga Level-3 VBlank ISR body, throttled to ~50 Hz max and
  * mutex-guarded so concurrent calls from the timer thread and the main

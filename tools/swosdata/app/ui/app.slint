@@ -337,6 +337,7 @@ component LogView inherits Rectangle {
 export component MainWindow inherits Window {
     // The project's name and home (project_identity.h, set by main.cpp): a fork's own.
     in property <string> project-name: "OpenSWOS";
+    in property <string> app-id: "net.openswos.game";     // the phone app's folder (PROJECT_APP_ID)
     in property <string> project-url: "github.com/benbaker76/OpenSWOS";
     title: root.project-name + " Setup";
     icon: @image-url("../../../../packaging/linux/hicolor/256x256/apps/openswos.png");
@@ -425,6 +426,10 @@ export component MainWindow inherits Window {
     in property <bool> drop-hover;          // a file is being dragged over the window
     in property <bool> can-drop;            // this platform takes files dropped on the window
     in property <string> phone-folder;      // where the assets folder is, for the phone's screen
+    in property <string> phone-url;         // the Wi-Fi copy's page (phone_server.cpp), its QR code
+    in property <image> phone-qr;
+    in property <string> phone-status;
+    in property <int> phone-state;          // 0 waiting, 1 copying, 2 copied, 3 cannot
     in property <[OptionRow]> options;      // GAME OPTIONS' rows, for what is ticked
     callback option-chosen(int, int);       // a row, the choice: written to SWOS.ini at once
     callback wizard-changed();              // a tick changed: main.cpp works the steps out again
@@ -848,7 +853,7 @@ export component MainWindow inherits Window {
                     }
                 }
                 Text {
-                    text: "The phone can't run this setup, so it takes the folder this computer just made: the \"assets\" folder in " + root.phone-folder + ".";
+                    text: "The phone can't run this setup, so it takes the game's data from this computer. Easiest over Wi-Fi: the phone and this computer on the same network.";
                     wrap: word-wrap;
                     font-size: 14px;
                     color: Theme.text-dim;
@@ -857,13 +862,63 @@ export component MainWindow inherits Window {
                     border-radius: 12px;
                     background: Theme.panel;
                     border-width: 1px;
-                    border-color: Theme.line;
-                    VerticalLayout {
+                    border-color: root.phone-state == 2 ? Theme.ok : Theme.line;
+                    HorizontalLayout {
                         padding: 18px;
-                        spacing: 10px;
-                        Text { text: "Android"; font-size: 15px; font-weight: 700; color: Theme.text; }
-                        Instruction { number: 1; text: "Install " + root.project-name + " on the phone and start it once, then connect the phone to this computer with a USB cable (choose File transfer on the phone)."; }
-                        Instruction { number: 2; text: "Copy the assets folder into Android / data / net.openswos.game / files on the phone."; }
+                        spacing: 20px;
+                        VerticalLayout {
+                            alignment: start;
+                            Rectangle {
+                                width: 196px;
+                                height: 196px;
+                                border-radius: 8px;
+                                background: #ffffff;
+                                clip: true;
+                                Image {
+                                    source: root.phone-qr;
+                                    width: 196px;
+                                    height: 196px;
+                                    image-rendering: pixelated;
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                            spacing: 10px;
+                            alignment: start;
+                            HorizontalLayout {
+                                spacing: 8px;
+                                Image { source: @image-url("icons/wifi.svg"); width: 20px; height: 20px; colorize: Theme.link; }
+                                Text { text: "Over Wi-Fi"; font-size: 15px; font-weight: 700; color: Theme.text; vertical-alignment: center; }
+                            }
+                            Instruction { number: 1; text: "Install " + root.project-name + " on the phone (Android, or an iPhone with AltStore or Sideloadly) and start it once."; }
+                            Instruction { number: 2; text: "Scan this code with the phone's camera, open the page, and tap Open in " + root.project-name + ". It copies everything, and the game options you chose."; }
+                            Instruction { number: 3; text: "On Android, without the code: start " + root.project-name + " and tap Copy from my computer -- it finds this one."; }
+                            HorizontalLayout {
+                                spacing: 8px;
+                                Image {
+                                    source: root.phone-state == 2 ? @image-url("icons/circle-check.svg")
+                                          : root.phone-state == 3 ? @image-url("icons/alert-circle.svg")
+                                          : @image-url("icons/circle-dashed.svg");
+                                    width: 18px;
+                                    height: 18px;
+                                    colorize: root.phone-state == 2 ? Theme.ok : root.phone-state == 3 ? Theme.danger : Theme.text-dim;
+                                }
+                                Text {
+                                    text: root.phone-status;
+                                    wrap: word-wrap;
+                                    font-size: 13px;
+                                    font-weight: root.phone-state == 2 ? 700 : 400;
+                                    color: root.phone-state == 2 ? Theme.ok : root.phone-state == 3 ? Theme.danger : Theme.text;
+                                    horizontal-stretch: 1;
+                                }
+                            }
+                            Text {
+                                text: root.phone-url == "" ? "" : "Windows may ask whether " + root.project-name + " Setup may use the network: allow it on private networks. The page: " + root.phone-url;
+                                wrap: word-wrap;
+                                font-size: 11px;
+                                color: Theme.text-dim;
+                            }
+                        }
                     }
                 }
                 Rectangle {
@@ -873,10 +928,18 @@ export component MainWindow inherits Window {
                     border-color: Theme.line;
                     VerticalLayout {
                         padding: 18px;
-                        spacing: 10px;
-                        Text { text: "iPhone or iPad"; font-size: 15px; font-weight: 700; color: Theme.text; }
-                        Instruction { number: 1; text: "Install " + root.project-name + " (AltStore or Sideloadly) and start it once."; }
-                        Instruction { number: 2; text: "Copy the assets folder into the Files app, On My iPhone > " + root.project-name + " -- with Finder on a Mac, or iCloud Drive, AirDrop or a USB stick."; }
+                        spacing: 8px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Image { source: @image-url("icons/usb.svg"); width: 20px; height: 20px; colorize: Theme.link; }
+                            Text { text: "Or by cable"; font-size: 15px; font-weight: 700; color: Theme.text; vertical-alignment: center; }
+                        }
+                        Text {
+                            text: "Copy the \"assets\" folder in " + root.phone-folder + " to the phone. Android: by USB (File transfer) into Android / data / " + root.app-id + " / files. iPhone or iPad: into the Files app, On My iPhone > " + root.project-name + " (Finder on a Mac, iCloud Drive, AirDrop or a USB stick).";
+                            wrap: word-wrap;
+                            font-size: 13px;
+                            color: Theme.text-dim;
+                        }
                     }
                 }
                 HorizontalLayout {
