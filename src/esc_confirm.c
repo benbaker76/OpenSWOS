@@ -56,7 +56,7 @@ static void draw(int quit, int blink)
     _menu_draw_x_offset = 0;
     Platform_HudLayerMark(bx - 4, 72, 158, 100);
     FillRectangle((uint16_t)(bx - 4), 72, 158, 100, 0);        /* (clear the last one) */
-    DrawMenuBack150x20(2, (uint16_t)bx, 78);
+    DrawMenuBack150x20(11, (uint16_t)bx, 78);                  /* (blue: 2 is white, the text's) */
     DrawMenuTextCentered((uint16_t)cx, 84, 2, (uint8_t *)"QUIT THE MATCH?", _bigCharsTable);
     DrawMenuBack150x20(quit ? 12 : 14, (uint16_t)bx, 112);
     DrawMenuTextCentered((uint16_t)cx, 118, 2, (uint8_t *)"RESUME", _bigCharsTable);
