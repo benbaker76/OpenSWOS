@@ -42,6 +42,9 @@
 #include "app.h"
 #include "platform.hpp"
 #include "phone_server.hpp"
+#include "tr.hpp"
+using sd::T;
+using sd::Tf;
 
 extern "C" {
 #include "swosdata.h"
@@ -350,7 +353,7 @@ struct App {
   }
 
   static std::shared_ptr<slint::VectorModel<LinkItem>> Links(
-      std::initializer_list<std::pair<const char*, const char*>> l) {
+      std::initializer_list<std::pair<std::string, std::string>> l) {
     auto m = std::make_shared<slint::VectorModel<LinkItem>>();
     // A download (its button's arrow): a file host's link, a .zip, archive.org's copy. The rest
     // (GOG's shop, a news page, the credits) are pages to read.
@@ -369,92 +372,92 @@ struct App {
     std::string path;
     switch (r) {
       case ROW_PC:
-        row.label = "PC game";
-        row.placeholder = "the game's folder (the one with SPRITE.DAT in it)";
-        row.need_pc = "needed";
-        row.need_amiga = "needed";
-        row.about_pc = "Sensible World of Soccer 96/97 for PC. Buy it on GOG and install it: its folder is "
-                       "found by itself. Or name any copy of the game's folder.";
-        row.about_amiga = "The AGA version takes its pitches, backdrops and pictures from the PC game. Buy it "
-                          "on GOG and install it: its folder is found by itself.";
+        row.label = Str(T("PC game"));
+        row.placeholder = Str(T("the game's folder (the one with SPRITE.DAT in it)"));
+        row.need_pc = Str(T("needed"));
+        row.need_amiga = Str(T("needed"));
+        row.about_pc = Str(T("Sensible World of Soccer 96/97 for PC. Buy it on GOG and install it: its folder is "
+                       "found by itself. Or name any copy of the game's folder."));
+        row.about_amiga = Str(T("The AGA version takes its pitches, backdrops and pictures from the PC game. Buy it "
+                          "on GOG and install it: its folder is found by itself."));
         row.links = Links({{"GOG", "https://www.gog.com/en/game/sensible_world_of_soccer_9697"},
                            {"PC CD (archive.org)",
                             "https://archive.org/details/msdos_Sensible_World_of_Soccer_96-97_1996"}});
         path = src.dosDir;
         if (!src.dosDir[0] && gogInstaller) {
-          row.detail = "GOG's installer is in your Downloads: run it, and the game it installs is found here by itself.";
+          row.detail = Str(T("GOG's installer is in your Downloads: run it, and the game it installs is found here by itself."));
           row.detail_warn = true;
         }
         break;
       case ROW_AMIGA: {
-        row.label = "Amiga version";
-        row.placeholder = "the floppies (.adf), a hard disk image (.hdf), a WHDLoad .lha, or a .zip of them";
-        row.need_pc = "optional";
-        row.need_amiga = "needed";
-        row.about_pc = "Adds the Amiga's music, sound effects and loading screens -- or plays without the PC "
-                       "game. Download one of the files on the right; ASWOS's swos.hdf works too.";
-        row.about_amiga = "The game's own files. Download one of the files on the right (either will do), or "
-                          "use both floppies, ASWOS's swos.hdf or a WHDLoad install.";
+        row.label = Str(T("Amiga version"));
+        row.placeholder = Str(T("the floppies (.adf), a hard disk image (.hdf), a WHDLoad .lha, or a .zip of them"));
+        row.need_pc = Str(T("optional"));
+        row.need_amiga = Str(T("needed"));
+        row.about_pc = Str(T("Adds the Amiga's music, sound effects and loading screens -- or plays without the PC "
+                       "game. Download one of the files on the right; ASWOS's swos.hdf works too."));
+        row.about_amiga = Str(T("The game's own files. Download one of the files on the right (either will do), or "
+                          "use both floppies, ASWOS's swos.hdf or a WHDLoad install."));
         row.links = Links({{"swos2425.hdf", "https://www.mediafire.com/file/4fu4wbhjiaco2ts/swos2425.hdf/file"},
                            {"WHDLoad .lha",
                             "https://www.mediafire.com/file/8l9nr2rjg0zteb5/SensibleWorldOfSoccer2425_v2.3.lha/file"},
-                           {"about it", "https://www.sensiblesoccer.de/index.php?&view=newsdetails&id=206"}});
+                           {T("about it"), "https://www.sensiblesoccer.de/index.php?&view=newsdetails&id=206"}});
         path = AmigaPath();
         UpdateSeason();
         if (src.adf1[0] && !src.adf2[0]) {
-          row.detail = "Disk 1 only: add disk 2 too.";
+          row.detail = Str(T("Disk 1 only: add disk 2 too."));
           row.detail_warn = true;
         } else if (src.adf2[0] && !src.adf1[0]) {
-          row.detail = "Disk 2 only: add disk 1 too.";
+          row.detail = Str(T("Disk 2 only: add disk 1 too."));
           row.detail_warn = true;
         } else if (!amigaProblem.empty()) {
-          row.detail = Str("This copy cannot be used: " + amigaProblem + ". Try another download.");
+          row.detail = Str(Tf("This copy cannot be used: {0}. Try another download.", amigaProblem));
           row.detail_warn = true;
         } else if (amigaSeason == "96/97") {
-          row.detail = "The 96/97 release.";
+          row.detail = Str(T("The 96/97 release."));
         } else if (amigaSeason == "an unknown season") {
-          row.detail = "A season this setup does not know: it may install, or it may not.";
+          row.detail = Str(T("A season this setup does not know: it may install, or it may not."));
           row.detail_warn = true;
         } else if (!amigaSeason.empty()) {
-          row.detail = Str("The " + amigaSeason + " season" + (src.adf1[0] ? " (both disks)" : "") +
-                           ". " PROJECT_NAME " plays 96/97's teams: they come from the PC game when it is here.");
+          row.detail = Str((src.adf1[0] ? Tf("The {0} season (both disks).", amigaSeason) : Tf("The {0} season.", amigaSeason)) + " " +
+                           Tf("{0} plays 96/97's teams: they come from the PC game when it is here.", PROJECT_NAME));
         } else if (src.adf1[0] && src.adf2[0]) {
-          row.detail = "Both disks.";
+          row.detail = Str(T("Both disks."));
         }
         break;
       }
       case ROW_JAG:
-        row.label = "Atari Jaguar cartridge";
-        row.placeholder = "Sensible Soccer International Edition (.jag, .j64, .rom or .bin)";
-        row.need_pc = "optional";
-        row.about_pc = "The Jaguar's redrawn players, an option in the game's graphics settings.";
+        row.label = Str(T("Atari Jaguar cartridge"));
+        row.placeholder = Str(T("Sensible Soccer International Edition (.jag, .j64, .rom or .bin)"));
+        row.need_pc = Str(T("optional"));
+        row.about_pc = Str(T("The Jaguar's redrawn players, an option in the game's graphics settings."));
         row.links = Links({{"Atarimania",
                             "https://www.atarimania.com/games/atari-jaguar-games-sensible-soccer-international-edition-30123"}});
         path = src.jagRom;
         break;
       case ROW_WORLD: {
-        row.label = "World 2026-27";
+        row.label = Str(T("World 2026-27"));
         row.placeholder = "OpenSWOS-World-2627.zip";
-        row.need_pc = "optional";
-        row.need_amiga = "optional";
-        row.about_pc = "The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its "
-                       "package is a download of its own. The game plays it when SWOS.ini says world = 2627.";
-        row.about_amiga = "The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its "
-                          "package is a download of its own; tick it below to play it on the Amiga.";
-        if (kWorldUrl[0]) row.links = Links({{"OpenSWOS-World-2627.zip", kWorldUrl}, {"credits", kWorldCredits}});
+        row.need_pc = Str(T("optional"));
+        row.need_amiga = Str(T("optional"));
+        row.about_pc = Str(T("The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its "
+                       "package is a download of its own. The game plays it when SWOS.ini says world = 2627."));
+        row.about_amiga = Str(T("The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its "
+                          "package is a download of its own; tick it below to play it on the Amiga."));
+        if (kWorldUrl[0]) row.links = Links({{"OpenSWOS-World-2627.zip", kWorldUrl}, {T("credits"), kWorldCredits}});
         path = src.world;
         SdWorldInfo wi;
         if (src.world[0] && SdSources_OpenWorld(src.world, &wi, nullptr, 0) == 0 && wi.fingerprint[0])
-          row.detail = Str("Data " + std::string(wi.fingerprint) + ".");
+          row.detail = Str(Tf("Data {0}.", wi.fingerprint));
         break;
       }
       default:
-        row.label = "SWOS 2020";
-        row.placeholder = "the SWOS 2020 install folder";
-        row.need_pc = "optional";
-        row.need_amiga = "optional";
-        row.about_pc = "SWOS 2020's pitches, the set its launcher picked.";
-        row.about_amiga = "SWOS 2020's pitches, the set its launcher picked.";
+        row.label = Str(T("SWOS 2020"));
+        row.placeholder = Str(T("the SWOS 2020 install folder"));
+        row.need_pc = Str(T("optional"));
+        row.need_amiga = Str(T("optional"));
+        row.about_pc = Str(T("SWOS 2020's pitches, the set its launcher picked."));
+        row.about_amiga = Str(T("SWOS 2020's pitches, the set its launcher picked."));
         row.links = Links({{"sensiblesoccer.de", "https://www.sensiblesoccer.de/"}});
         path = src.s2020Dir;
         break;
@@ -514,9 +517,9 @@ struct App {
       // A disk: kept beside the other one of a pair in the making.
       if (found.adf1[0]) take(src.adf1, found.adf1);
       else take(src.adf2, found.adf2);
-      if (!src.adf1[0]) return "That is disk 2: add disk 1 too.";
-      if (!src.adf2[0]) return "That is disk 1: add disk 2 too.";
-      return "";
+      if (!src.adf1[0]) return N_("That is disk 2: add disk 1 too.");
+      if (!src.adf2[0]) return N_("That is disk 1: add disk 2 too.");
+      return N_("");
     }
     ClearAmiga();
     take(src.adf1, found.adf1);
@@ -526,8 +529,8 @@ struct App {
     src.hdfVolume = found.hdfVolume;
     std::snprintf(src.hdfDir, sizeof src.hdfDir, "%s", found.hdfDir);
     std::snprintf(src.lhaDir, sizeof src.lhaDir, "%s", found.lhaDir);
-    if (one) return found.adf1[0] ? "That is disk 1: add disk 2 too." : "That is disk 2: add disk 1 too.";
-    return "";
+    if (one) return found.adf1[0] ? N_("That is disk 1: add disk 2 too.") : N_("That is disk 2: add disk 1 too.");
+    return N_("");
   }
 
   // Put `text` in row r. Returns what to tell the player ("" for nothing).
@@ -537,38 +540,38 @@ struct App {
     if (path.empty()) {
       if (r == ROW_AMIGA) ClearAmiga();
       else RowPath(r)[0] = '\0';
-      return "";
+      return N_("");
     }
     SdSources found{};
     SdSources_AddFile(&found, path.c_str());
     auto take = [](char* to, const char* from) { std::snprintf(to, 1024, "%s", from); };
     switch (r) {
       case ROW_PC:
-        if (found.dosDir[0]) { take(src.dosDir, found.dosDir); return ""; }
+        if (found.dosDir[0]) { take(src.dosDir, found.dosDir); return N_(""); }
         src.dosDir[0] = '\0';
         unusable[r] = path;
-        return found.s2020Dir[0] ? "That is SWOS 2020, not the PC game: it goes in the SWOS 2020 row."
-                                 : "Not the PC game's folder: it is the one with SPRITE.DAT and DATA in it.";
+        return found.s2020Dir[0] ? N_("That is SWOS 2020, not the PC game: it goes in the SWOS 2020 row.")
+                                 : N_("Not the PC game's folder: it is the one with SPRITE.DAT and DATA in it.");
       case ROW_AMIGA:
         if (found.adf1[0] || found.adf2[0] || found.hdf[0] || found.lha[0]) return TakeAmiga(found);
         unusable[r] = path;
-        return "Not the Amiga version of Sensible World of Soccer: its floppies (.adf), a hard disk image "
-               "(.hdf) or a WHDLoad .lha with the game on it.";
+        return N_("Not the Amiga version of Sensible World of Soccer: its floppies (.adf), a hard disk image "
+               "(.hdf) or a WHDLoad .lha with the game on it.");
       case ROW_JAG:
-        if (found.jagRom[0]) { take(src.jagRom, found.jagRom); return ""; }
+        if (found.jagRom[0]) { take(src.jagRom, found.jagRom); return N_(""); }
         src.jagRom[0] = '\0';
         unusable[r] = path;
-        return "Not the Sensible Soccer Jaguar cartridge (a 2 MB .jag, .j64, .rom or .bin).";
+        return N_("Not the Sensible Soccer Jaguar cartridge (a 2 MB .jag, .j64, .rom or .bin).");
       case ROW_WORLD:
-        if (found.world[0]) { take(src.world, found.world); return ""; }
+        if (found.world[0]) { take(src.world, found.world); return N_(""); }
         src.world[0] = '\0';
         unusable[r] = path;
-        return "Not a world's package: OpenSWOS-World-2627.zip, or the folder it was unpacked to.";
+        return N_("Not a world's package: OpenSWOS-World-2627.zip, or the folder it was unpacked to.");
       default:
-        if (found.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); return ""; }
+        if (found.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); return N_(""); }
         src.s2020Dir[0] = '\0';
         unusable[r] = path;
-        return "Not a SWOS 2020 install: it is the folder with gameLauncher.exe and the swos folder in it.";
+        return N_("Not a SWOS 2020 install: it is the folder with gameLauncher.exe and the swos folder in it.");
     }
   }
 
@@ -587,7 +590,7 @@ struct App {
   void RowCommitted(int r, const std::string& text) {
     if (r == ROW_AMIGA && CleanPath(text) == Shown(AmigaPath())) return;   // unchanged
     const std::string msg = SetRow(r, text);
-    Notice(msg, !msg.empty() && msg.rfind("That is disk", 0) != 0);
+    Notice(T(msg), !msg.empty() && msg.rfind("That is disk", 0) != 0);
     RefreshRows();
     RefreshPlan();
   }
@@ -659,20 +662,17 @@ struct App {
       SwosData_Plan(&job, info);
       bool sources = false;
       for (int s = 0; s < SD_STEP_COUNT; s++) sources = sources || info[s].ready;
-      w().set_status(Str("Some of the game's data in " + Shown(outDir) +
-                         " was made by an older " PROJECT_SETUP_NAME ". " +
-                         (sources ? "Click Update to make it again from your copy."
-                                  : "Choose the folder your copy is in, then click Update.")));
+      w().set_status(Str(Tf("Some of the game's data in {0} was made by an older {1}.", Shown(outDir), PROJECT_SETUP_NAME) + " " +
+                         (sources ? T("Click Update to make it again from your copy.")
+                                  : T("Choose the folder your copy is in, then click Update."))));
     }
     else if (playable)
-      w().set_status(Str("The game's data is already installed in " + Shown(outDir) +
-                         (game.empty() ? ". Install again from your copy to add to it."
-                                       : ". Play, or install again from your copy to add to it.")));
+      w().set_status(Str(game.empty() ? Tf("The game's data is already installed in {0}. Install again from your copy to add to it.", Shown(outDir))
+                                      : Tf("The game's data is already installed in {0}. Play, or install again from your copy to add to it.", Shown(outDir))));
     else if (any)
-      w().set_status(Str("Some of the game's data is in " + Shown(outDir) +
-                         ", but not enough to play: install from your copy."));
+      w().set_status(Str(Tf("Some of the game's data is in {0}, but not enough to play: install from your copy.", Shown(outDir))));
     else
-      w().set_status(Str("Ready."));
+      w().set_status(Str(T("Ready.")));
   }
 
   // Everything below the sources: where it goes and what will be made.
@@ -680,9 +680,8 @@ struct App {
     w().set_out_dir(Str(Shown(outDir)));
     w().set_phone_folder(Str(Shown(sd::ParentDir(outDir))));
     w().set_out_note(Shown(outDir) == Shown(defaultOutDir)
-                         ? Str("This is the folder the game reads its data from.")
-                         : Str("The game reads " + Shown(defaultOutDir) +
-                               " — to use this folder instead, start the game with SWOS_ASSETS set to it."));
+                         ? Str(T("This is the folder the game reads its data from."))
+                         : Str(Tf("The game reads {0} — to use this folder instead, start the game with SWOS_ASSETS set to it.", Shown(defaultOutDir))));
 
     SdJob job{};
     job.src = Usable();
@@ -697,7 +696,7 @@ struct App {
     for (int i = 0; i < SD_STEP_COUNT; i++) {
       if (i == SD_STEP_WORLD && !world) continue;
       (i < (steps + 1) / 2 ? left : right)
-          ->push_back({Str(info[i].name), bool(info[i].ready), Str(info[i].needs), InstalledState(i)});
+          ->push_back({Str(T(info[i].name)), bool(info[i].ready), Str(T(info[i].needs)), InstalledState(i)});
       any = any || info[i].ready;
     }
     w().set_plan_left(left);
@@ -730,15 +729,15 @@ struct App {
     if (!busy && !w().get_amiga_done() && !w().get_amiga_error()) {
       std::string text;
       if (amigaProgram.empty())
-        text = "Choose the Amiga program first: SWOS-Amiga.zip, from the same place as this setup.";
+        text = N_("Choose the Amiga program first: SWOS-Amiga.zip, from the same place as this setup.");
       else if (!sources && !installedAlready)
         text = !SdSources_HaveAmiga(&src) && !SdSources_HaveDos(&src)
-                   ? "It needs the Amiga version and the PC game first."
-               : !SdSources_HaveAmiga(&src) ? "It needs the Amiga version too."
-                                            : "It needs the PC game too.";
+                   ? N_("It needs the Amiga version and the PC game first.")
+               : !SdSources_HaveAmiga(&src) ? N_("It needs the Amiga version too.")
+                                            : N_("It needs the PC game too.");
       else
-        text = kindDrawer ? "Ready to make the drawer." : "Ready to make the package.";
-      w().set_amiga_status(Str(text));
+        text = kindDrawer ? N_("Ready to make the drawer.") : N_("Ready to make the package.");
+      w().set_amiga_status(Str(T(text)));
     }
   }
 
@@ -790,7 +789,7 @@ struct App {
     if (now - p->last >= std::chrono::milliseconds(100)) {
       p->last = now;
       App* app = p->app;
-      const std::string text = "Searching... " + std::to_string(folders) + " folders: " + Shown(dir);
+      const std::string text = Tf("Searching... {0} folders: {1}", folders, Shown(dir));
       slint::invoke_from_event_loop([app, text] { app->w().set_scan_status(Str(text)); });
     }
     return p->app->stopScan.load() ? 1 : 0;
@@ -802,7 +801,7 @@ struct App {
     SetBusy(true);
     stopScan = false;
     w().set_scanning(true);
-    w().set_scan_status(Str("Searching " + Shown(dir) + " ..."));
+    w().set_scan_status(Str(Tf("Searching {0} ...", Shown(dir))));
     Notice("", false);
     const SdSources start = src;
     worker = std::thread([this, dir, start] {
@@ -824,12 +823,12 @@ struct App {
     std::string text;
     bool error = false;
     if (added > 0)
-      text = "Found " + std::to_string(added) + " in " + Shown(dir) + ".";
+      text = Tf("Found {0} in {1}.", added, Shown(dir));
     else {
-      text = "Nothing new in " + Shown(dir) + " or the folders inside it.";
+      text = Tf("Nothing new in {0} or the folders inside it.", Shown(dir));
       error = true;
     }
-    if (stopped) text += " (Stopped before the end.)";
+    if (stopped) text += " " + T("(Stopped before the end.)");
     if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src))
       text += " The game needs the PC game or the Amiga version.";
     else if (src.adf1[0] != 0 && src.adf2[0] == 0)
@@ -862,7 +861,7 @@ struct App {
     w().set_done(false);
     w().set_status_error(false);
     w().set_progress(0.0f);
-    w().set_status(Str("Installing to " + Shown(outDir) + " ..."));
+    w().set_status(Str(Tf("Installing to {0} ...", Shown(outDir))));
     log->clear();
     if (resDir.empty())
       Log("warning: the game's own files (setup/glyphs.txt) were not found beside this program; "
@@ -898,12 +897,12 @@ struct App {
       w().set_done(true);
       game = FindGame(exeDir);
       w().set_can_play(!game.empty());
-      w().set_status(Str("Done. The game's data is in " + Shown(outDir) + "."));
+      w().set_status(Str(Tf("Done. The game's data is in {0}.", Shown(outDir))));
       FileLog("install done: " + Shown(outDir));
       exitCode = 0;
     } else {
       w().set_status_error(true);
-      w().set_status(Str("Failed: " + err));
+      w().set_status(Str(Tf("Failed: {0}", err)));
       FileLog("install failed: " + err);
       Log("failed: " + err);
       exitCode = 1;
@@ -928,7 +927,7 @@ struct App {
       slint::quit_event_loop();
     } else {
       w().set_status_error(true);
-      w().set_status(Str("Could not start " + game + "."));
+      w().set_status(Str(Tf("Could not start {0}.", game)));
       FileLog("could not start " + game);
     }
   }
@@ -1061,7 +1060,7 @@ struct App {
     w().set_amiga_done(false);
     w().set_amiga_error(false);
     w().set_amiga_progress(0.0f);
-    w().set_amiga_status(Str("Installing the game's data to " + Shown(outDir) + " ..."));
+    w().set_amiga_status(Str(Tf("Installing the game's data to {0} ...", Shown(outDir))));
     log->clear();
 
     auto job = std::make_shared<SdJob>();
@@ -1105,10 +1104,10 @@ struct App {
         w().set_amiga_progress(rc == 0 ? 1.0f : 0.0f);
         if (rc == 0)
           w().set_amiga_status(Str(kindDrawer
-              ? "Done: the SWOS drawer is in " + Shown(dest) + ". Copy it, with SWOS.info, to your Amiga and double-click SWOS."
-              : "Done: " + Shown(dest) + ". Unpack it on your Amiga (lha x OpenSWOSAGA-WHDL.lha), open the OpenSWOSAGA-NE drawer and double-click OpenSWOS."));
+              ? Tf("Done: the SWOS drawer is in {0}. Copy it, with SWOS.info, to your Amiga and double-click SWOS.", Shown(dest))
+              : Tf("Done: {0}. Unpack it on your Amiga (lha x OpenSWOSAGA-WHDL.lha), open the OpenSWOSAGA-NE drawer and double-click OpenSWOS.", Shown(dest))));
         else {
-          w().set_amiga_status(Str("Failed: " + msg));
+          w().set_amiga_status(Str(Tf("Failed: {0}", msg)));
           FileLog("amiga failed: " + msg);
           Log("failed: " + msg);
         }
@@ -1247,7 +1246,7 @@ struct App {
       for (int pass = 0; pass < 2 && v.empty(); pass++)
         for (int t = 0; t < 3 && v.empty(); t++)
           if ((o.where & TargetBit(t)) && (pass || Ticked(t))) v = IniValue(text[t], o.section, o.key);
-      if (v.empty()) v = o.def;
+      if (v.empty()) v = !std::strcmp(o.key, "language") ? sd::CurrentLanguage().c_str() : o.def;
       for (int k = 0; k < o.count; k++)
         if (v == o.values[k].value) optChoice[size_t(i)] = k;
     }
@@ -1274,7 +1273,7 @@ struct App {
         if (!ValueAvailable(o.values[k])) continue;
         if (k == optChoice[size_t(i)]) selected = int(values.size());
         values.push_back(k);
-        labels->push_back(Str(o.values[k].label));
+        labels->push_back(Str(T(o.values[k].label)));
       }
       if (values.size() < 2) continue;                 // nothing to choose between
       // Ticked targets it is not for: the tag names the ones it is.
@@ -1283,10 +1282,10 @@ struct App {
       for (int t = 0; t < 3; t++)
         if (Ticked(t) && (o.where & TargetBit(t))) {
           applies++;
-          tag += std::string(tag.empty() ? "" : ", ") + (t == kComputer ? "this computer" : t == kPhone ? "phone" : "handheld");
+          tag += std::string(tag.empty() ? "" : ", ") + T(t == kComputer ? "this computer" : t == kPhone ? "phone" : "handheld");
         }
       if (applies == ticked) tag.clear();
-      rows->push_back({Str(o.label), Str(o.about), Str(tag), labels, selected});
+      rows->push_back({Str(T(o.label)), Str(T(o.about)), Str(tag), labels, selected});
       optRows.push_back({i, values});
     }
     w().set_options(rows);
@@ -1296,7 +1295,15 @@ struct App {
   void OptionChosen(int row, int choice) {
     if (row < 0 || row >= int(optRows.size()) || choice < 0 || choice >= int(optRows[size_t(row)].second.size())) return;
     const int i = optRows[size_t(row)].first;
-    optChoice[size_t(i)] = optRows[size_t(row)].second[size_t(choice)];
+    if (!std::strcmp(kGameOptions[i].key, "language")) gameLangChosen = true;
+    WriteOption(i, optRows[size_t(row)].second[size_t(choice)]);
+    RefreshOptions();
+  }
+
+  // Option i set to its value k, in the SWOS.ini of every ticked target it is for.
+  void WriteOption(int i, int k) {
+    if (optChoice.empty()) LoadOptions();
+    optChoice[size_t(i)] = k;
     const GameOption& o = kGameOptions[i];
     const char* value = o.values[optChoice[size_t(i)]].value;
     for (int t = 0; t < 3; t++) {
@@ -1309,9 +1316,57 @@ struct App {
         std::fclose(f);
         FileLog("game options: " + Shown(path) + ": [" + o.section + "] " + o.key + "=" + value);
       } else
-        Notice("Could not write " + Shown(path) + ".", true);
+        Notice(Tf("Could not write {0}.", Shown(path)), true);
     }
-    RefreshOptions();
+  }
+
+  // ------------------------------------------------------- the setup's language ---
+
+  bool gameLangChosen = false;   // the player chose the game's language on GAME OPTIONS
+
+  std::string SetupIni() const { return Join(UserDir(), "setup.ini"); }
+
+  // The setup in `code`: its bundled translation, its own texts, and -- unless the player chose
+  // the game's language themselves -- the game's language with it.
+  void LanguageChosen(const std::string& code, bool remember) {
+    sd::SetLanguage(code);
+    slint::select_bundled_translation(sd::CurrentLanguage() == "en" ? "" : sd::CurrentLanguage());
+    w().set_language(Str(sd::CurrentLanguage()));
+    if (remember) {
+      const std::string text = IniSet(ReadFile(SetupIni()), "setup", "language", sd::CurrentLanguage().c_str());
+      sd::MakeDirs(UserDir());
+      if (FILE* f = sd::OpenFile(SetupIni(), "wb")) {
+        std::fwrite(text.data(), 1, text.size(), f);
+        std::fclose(f);
+      }
+      FileLog("language: " + sd::CurrentLanguage());
+      SyncGameLanguage();
+    }
+    // What C++ made in the old language, made again.
+    Refresh();
+    RefreshWizard();
+    if (!optChoice.empty()) RefreshOptions();
+    if (phoneTimer.running()) PhonePoll();
+    HandheldShow();
+    if (watchTimer.running()) w().set_watching(Str(WatchingText()));
+  }
+
+  // The game's language as the setup's, unless the player chose it on GAME OPTIONS themselves.
+  void SyncGameLanguage() {
+    if (gameLangChosen) return;
+    for (int i = 0; i < GAME_OPTION_COUNT(kGameOptions); i++)
+      if (!std::strcmp(kGameOptions[i].key, "language"))
+        for (int k = 0; k < kGameOptions[i].count; k++)
+          if (sd::CurrentLanguage() == kGameOptions[i].values[k].value) WriteOption(i, k);
+  }
+
+  // At the start: the language chosen last time, else the system's.
+  std::string cliLanguage;      // --language=xx: this run in that language, not remembered
+
+  void StartLanguage() {
+    std::string code = !cliLanguage.empty() ? cliLanguage : IniValue(ReadFile(SetupIni()), "setup", "language");
+    if (code.empty()) code = sd::SystemLanguage();
+    LanguageChosen(code, false);
   }
 
   // --------------------------------------------- the handheld (PortMaster) ---
@@ -1389,16 +1444,16 @@ struct App {
     if (w().get_hh_state() == 2 || w().get_hh_state() == 3) return;   // copying, copied: as it was
     if (hhPorts.empty()) {
       w().set_hh_state(0);
-      w().set_hh_status(Str("No handheld card found. Put its SD card in this computer, or choose its ports folder."));
+      w().set_hh_status(Str(T("No handheld card found. Put its SD card in this computer, or choose its ports folder.")));
     } else if (!port && hhZip.empty()) {
       w().set_hh_state(4);
-      w().set_hh_status(Str(PROJECT_NAME " for PortMaster is not on this card, and this setup has no copy of it: "
-                            "download swos.zip (" PROJECT_NAME " for PortMaster) and drop it on this window."));
+      w().set_hh_status(Str(Tf("{0} for PortMaster is not on this card, and this setup has no copy of it: "
+                               "download swos.zip ({0} for PortMaster) and drop it on this window.", PROJECT_NAME)));
     } else {
       w().set_hh_state(1);
-      w().set_hh_status(Str(port ? (hhZip.empty() ? "Ready to copy the game's data to the card."
-                                                  : "Ready: the game on the card is updated from " + Shown(hhZip) + ", and its data copied.")
-                                 : "Ready: " PROJECT_NAME " is installed on the card from " + Shown(hhZip) + ", with the game's data."));
+      w().set_hh_status(Str(port ? (hhZip.empty() ? T("Ready to copy the game's data to the card.")
+                                                  : Tf("Ready: the game on the card is updated from {0}, and its data copied.", Shown(hhZip)))
+                                 : Tf("Ready: {0} is installed on the card from {1}, with the game's data.", PROJECT_NAME, Shown(hhZip))));
     }
   }
 
@@ -1411,7 +1466,7 @@ struct App {
     if (ports.empty() && name == "swos") ports = sd::ParentDir(dir);
     if (ports.empty()) {
       w().set_hh_state(4);
-      w().set_hh_status(Str("No ports folder in " + Shown(dir) + ": choose the card itself, or its ports folder."));
+      w().set_hh_status(Str(Tf("No ports folder in {0}: choose the card itself, or its ports folder.", Shown(dir))));
       return;
     }
     hhPorts = ports;
@@ -1428,7 +1483,7 @@ struct App {
     const std::string ports = hhPorts, zip = hhZip, assets = outDir, sent = IniPath(kHandheld);
     hhTotal = sd::TreeSize(assets, "amiga");
     hhDone = 0;
-    w().set_hh_status(Str("Copying to the card..."));
+    w().set_hh_status(Str(T("Copying to the card...")));
     FileLog("handheld: copying " + Shown(assets) + " to " + Shown(ports) + (zip.empty() ? "" : ", the port from " + Shown(zip)));
     hhTimer.start(slint::TimerMode::Repeated, std::chrono::milliseconds(200), [this] {
       w().set_hh_progress(hhTotal ? float(double(hhDone) / double(hhTotal)) : 0.0f);
@@ -1443,19 +1498,19 @@ struct App {
         const std::string tmp = Join(sd::ParentDir(outDir), ".portmaster-unpack");
         sd::RemoveTree(tmp);
         if (SdSources_Unzip(zip.c_str(), tmp.c_str()) != 0 || !sd::IsDir(Join(tmp, "swos")))
-          err = "could not unpack " + zip;
-        if (err.empty() && !sd::CopyTree(Join(tmp, "swos"), game, "", nullptr, &err)) err = "could not copy the port: " + err;
+          err = Tf("could not unpack {0}", zip);
+        if (err.empty() && !sd::CopyTree(Join(tmp, "swos"), game, "", nullptr, &err)) err = Tf("could not copy the port: {0}", err);
         for (const char* f : {"Sensible World of Soccer.sh", "port.json", "README.md"}) {
           if (!err.empty() || !sd::IsFile(Join(tmp, f))) continue;
           const std::string text = ReadFile(Join(tmp, f));
           const std::string to = std::string(f).back() == 'h' ? Join(ports, f) : Join(game, f);
           FILE* o = sd::OpenFile(to, "wb");
-          if (!o || std::fwrite(text.data(), 1, text.size(), o) != text.size()) err = std::string("could not write ") + f + " on the card";
+          if (!o || std::fwrite(text.data(), 1, text.size(), o) != text.size()) err = Tf("could not write {0} on the card", f);
           if (o) std::fclose(o);
         }
         sd::RemoveTree(tmp);
       }
-      if (err.empty() && !sd::IsFile(Join(game, "SWOS.aarch64"))) err = PROJECT_NAME " for PortMaster is not on the card";
+      if (err.empty() && !sd::IsFile(Join(game, "SWOS.aarch64"))) err = Tf("{0} for PortMaster is not on the card", PROJECT_NAME);
       // 2. The game's data, into assets.part, then in the old one's place.
       const std::string part = Join(game, "assets.part"), dest = Join(game, "assets");
       if (err.empty()) {
@@ -1473,7 +1528,7 @@ struct App {
           }
         }
         sd::RemoveTree(dest);
-        if (!sd::RenamePath(part, dest)) err = "could not put the game's data in place on the card";
+        if (!sd::RenamePath(part, dest)) err = N_("could not put the game's data in place on the card");
       }
       // 3. The options chosen for the handheld, into its SWOS.ini (the port's defaults first).
       if (err.empty()) {
@@ -1494,7 +1549,7 @@ struct App {
           std::fwrite(text.data(), 1, text.size(), f);
           std::fclose(f);
         } else
-          err = "could not write the game's settings on the card";
+          err = N_("could not write the game's settings on the card");
       }
       slint::invoke_from_event_loop([this, err] {
         hhTimer.stop();
@@ -1502,12 +1557,12 @@ struct App {
         if (err.empty()) {
           w().set_hh_progress(1.0f);
           w().set_hh_state(3);
-          w().set_hh_status(Str("Copied. Eject the card safely, put it back in the handheld, and start "
-                                "Sensible World of Soccer from Ports (refresh the games list if it is not there)."));
+          w().set_hh_status(Str(T("Copied. Eject the card safely, put it back in the handheld, and start "
+                                  "Sensible World of Soccer from Ports (refresh the games list if it is not there).")));
           FileLog("handheld: copied");
         } else {
           w().set_hh_state(4);
-          w().set_hh_status(Str("The copy did not work: " + err + "."));
+          w().set_hh_status(Str(Tf("The copy did not work: {0}.", T(err))));
           FileLog("handheld: failed: " + err);
           exitCode = 1;
         }
@@ -1559,6 +1614,7 @@ struct App {
     } else if (kind == 7) {
       w().set_tab(0);
     } else if (kind == 12) {
+      SyncGameLanguage();
       RefreshOptions();
     } else if (kind == 8) {
       PhoneStart();
@@ -1609,20 +1665,19 @@ struct App {
     std::string said;
     int state = 0;     // app.slint's phone-state: 0 waiting, 1 copying, 2 done, 3 cannot
     if (!st.running) {
-      said = st.error;
+      said = T(st.error);
       state = 3;
     } else if (st.finished) {
-      said = "Copied to the phone (" + std::to_string(st.files) + " files). " PROJECT_NAME " on it is ready to play.";
+      said = Tf("Copied to the phone ({0} files). {1} on it is ready to play.", st.files, PROJECT_NAME);
       state = 2;
     } else if (st.files > 0) {
       const int pct = st.bytes ? int(st.bytesSent * 100 / st.bytes) : 0;
-      said = "Copying to the phone: " + std::to_string(pct > 100 ? 100 : pct) + "% (" + std::to_string(st.filesSent) +
-             " of " + std::to_string(st.files) + " files)";
+      said = Tf("Copying to the phone: {0}% ({1} of {2} files)", pct > 100 ? 100 : pct, st.filesSent, st.files);
       state = 1;
     } else if (!st.phone.empty()) {
-      said = "The phone found this computer (" + st.phone + "). Tap Open in " PROJECT_NAME " on it.";
+      said = Tf("The phone found this computer ({0}). Tap Open in {1} on it.", st.phone, PROJECT_NAME);
     } else
-      said = "Waiting for the phone...";
+      said = T("Waiting for the phone...");
     w().set_phone_status(Str(said));
     w().set_phone_state(state);
     if (state != 1 && said != phoneSaid) FileLog("phone copy: " + said);
@@ -1634,31 +1689,33 @@ struct App {
   void Dropped(const std::vector<std::string>& paths) {
     if (busy) return;
     std::string said;
+    bool notOne = false;
     for (const std::string& path : paths) {
       FileLog("dropped: " + Shown(path));
       if (PortZip(path)) {
         hhZip = path;
-        said = "Found " PROJECT_NAME " for PortMaster in " + Shown(path) + ".";
+        said = Tf("Found {0} for PortMaster in {1}.", PROJECT_NAME, Shown(path));
         HandheldShow();
         continue;
       }
       if (ProgramZip(path) && TakeProgram(path)) {
         ownProgram = true;
-        said = "Found the Amiga program in " + Shown(path) + ".";
+        said = Tf("Found the Amiga program in {0}.", Shown(path));
         continue;
       }
       const std::string what = Offer(path);
       if (!what.empty()) {
-        said = "Found " + what + " in " + Shown(path) + ".";
+        said = Tf("Found {0} in {1}.", T(what), Shown(path));
         continue;
       }
       if (sd::IsDir(path)) {
         StartScan(path);
         return;
       }
-      said = Shown(path) + " is not one of the game's files.";
+      said = Tf("{0} is not one of the game's files.", Shown(path));
+      notOne = true;
     }
-    Notice(said, said.find(" is not ") != std::string::npos);
+    Notice(said, notOne);
     Refresh();
   }
 
@@ -1713,10 +1770,10 @@ struct App {
     if (SdSources_AddFile(&found, path.c_str()) != 0) return {};
     auto take = [](char* to, const char* from) { std::snprintf(to, 1024, "%s", from); };
     std::string what;
-    if (found.dosDir[0] && !src.dosDir[0]) { take(src.dosDir, found.dosDir); unusable[ROW_PC].clear(); what = "the PC game"; }
-    if (found.jagRom[0] && !src.jagRom[0]) { take(src.jagRom, found.jagRom); unusable[ROW_JAG].clear(); what = "the Jaguar cartridge"; }
-    if (found.s2020Dir[0] && !src.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); unusable[ROW_2020].clear(); what = "SWOS 2020"; }
-    if (kWorldUrl[0] && found.world[0] && !src.world[0]) { take(src.world, found.world); unusable[ROW_WORLD].clear(); what = "World 2026-27"; }
+    if (found.dosDir[0] && !src.dosDir[0]) { take(src.dosDir, found.dosDir); unusable[ROW_PC].clear(); what = N_("the PC game"); }
+    if (found.jagRom[0] && !src.jagRom[0]) { take(src.jagRom, found.jagRom); unusable[ROW_JAG].clear(); what = N_("the Jaguar cartridge"); }
+    if (found.s2020Dir[0] && !src.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); unusable[ROW_2020].clear(); what = N_("SWOS 2020"); }
+    if (kWorldUrl[0] && found.world[0] && !src.world[0]) { take(src.world, found.world); unusable[ROW_WORLD].clear(); what = N_("World 2026-27"); }
     if (found.adf1[0] || found.adf2[0] || found.hdf[0] || found.lha[0]) {
       // The library's own rule picks the better of the two Amiga versions.
       SdSources_AddFile(&src, path.c_str());
@@ -1736,10 +1793,10 @@ struct App {
           // A lone disk that this one made a pair with is of the same unusable release.
           if (!SdSources_HaveAmiga(&src) && (found.adf1[0] || found.adf2[0])) ClearAmiga();
           UpdateSeason();
-          return "a copy of the Amiga version that cannot be used (" + why + ")";
+          return Tf("a copy of the Amiga version that cannot be used ({0})", why);
         }
         unusable[ROW_AMIGA].clear();
-        what = "the Amiga version";
+        what = N_("the Amiga version");
       }
     }
     return what;
@@ -1749,7 +1806,7 @@ struct App {
     if (busy) return;
     std::string found;
     auto note = [&found](const std::string& what, const std::string& where) {
-      if (!what.empty()) found = "Found " + what + " in " + Shown(where) + ".";
+      if (!what.empty()) found = Tf("Found {0} in {1}.", T(what), Shown(where));
     };
     if (!src.dosDir[0] && lookForGog)
       for (const std::string& dir : sd::GogInstallDirs()) {
@@ -1771,7 +1828,7 @@ struct App {
           const std::pair<uint64_t, int64_t> stamp{e.size, e.mtime};
           if (seen.count(e.path) && seen[e.path] == stamp) continue;
           seen[e.path] = stamp;
-          if (TakeProgram(e.path)) found = "Found the Amiga program in " + Shown(e.path) + ".";
+          if (TakeProgram(e.path)) found = Tf("Found the Amiga program in {0}.", Shown(e.path));
           continue;
         }
         if (!Candidate(e)) continue;
@@ -1796,11 +1853,15 @@ struct App {
     }
   }
 
+  std::string WatchingText() const {
+    return downloads.empty()
+               ? T("What you download is not looked for (no Downloads folder): search the folder you saved it in.")
+               : Tf("Watching {0}: what you download from the links above is found by itself.", Shown(downloads));
+  }
+
   void StartWatching() {
     downloads = !watchDir.empty() ? watchDir : sd::DownloadsDir();
-    w().set_watching(Str(downloads.empty()
-        ? "What you download is not looked for (no Downloads folder): search the folder you saved it in."
-        : "Watching " + Shown(downloads) + ": what you download from the links above is found by itself."));
+    w().set_watching(Str(WatchingText()));
     Watch(true);
     watchTimer.start(slint::TimerMode::Repeated, std::chrono::seconds(2), [this] { Watch(false); });
   }
@@ -1901,6 +1962,8 @@ int main(int argc, char** argv) {
       wizardArg = a.substr(9);
     } else if (a.rfind("--wizard-step=", 0) == 0) {
       wizardStep = std::atoi(a.c_str() + 14);
+    } else if (a.rfind("--language=", 0) == 0) {
+      app.cliLanguage = a.substr(11);
     } else if (a.rfind("--handheld-copy=", 0) == 0) {
       app.hhAuto = a.substr(16);
     } else if (a == "--no-gog") {
@@ -1992,6 +2055,7 @@ int main(int argc, char** argv) {
   for (const auto& s : scans) SdSources_Scan(&app.src, s.c_str());
   // What the last install was made from (ASSETS.ini), where --scan found nothing.
   SwosData_LoadSources(app.outDir.c_str(), &app.src);
+  app.StartLanguage();
   app.Refresh();
 #if defined(__APPLE__)
   // Gatekeeper's App Translocation: an unsigned app opened where it was unzipped
@@ -2006,12 +2070,12 @@ int main(int argc, char** argv) {
   } else
 #endif
   if (app.resDir.empty())
-    app.Notice("The game's own files (setup/glyphs.txt) were not found beside this program. "
-               "Start it with --res DIR, or install the game first.",
+    app.Notice(T("The game's own files (setup/glyphs.txt) were not found beside this program. "
+                 "Start it with --res DIR, or install the game first."),
                true);
 #ifndef SD_WITH_DIALOGS
   else
-    app.Notice("This build has no folder picker (built without dbus); start it with --scan DIR.", true);
+    app.Notice(T("This build has no folder picker (built without dbus); start it with --scan DIR."), true);
 #endif
   // What an earlier run left: Play is there at once if the game can be played.
   app.CheckInstalled();
@@ -2046,6 +2110,7 @@ int main(int argc, char** argv) {
   ui->on_open_amiga_dest([&app] { app.OpenAmigaDest(); });
   ui->on_wizard_changed([&app] { app.RefreshWizard(); });
   ui->on_option_chosen([&app](int row, int choice) { app.OptionChosen(row, choice); });
+  ui->on_language_chosen([&app](slint::SharedString code) { app.LanguageChosen(std::string(code), true); });
   ui->on_step_shown([&app](int kind) { app.StepShown(kind); });
   ui->on_open_out([&app] { sd::OpenUrl(sd::ParentDir(app.outDir)); });
   ui->on_hh_change([&app] { app.HandheldChange(); });

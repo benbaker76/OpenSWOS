@@ -132,6 +132,7 @@ export component BigTile inherits Rectangle {
             font-weight: 700;
             color: Theme.text;
             horizontal-alignment: center;
+            wrap: word-wrap;            // (a longer language's "This computer" takes two lines)
         }
         Text {
             text: root.text;
@@ -271,10 +272,10 @@ export component DropZone inherits Rectangle {
             font-size: 16px;
             font-weight: 700;
             color: root.state == 1 ? Theme.ok : root.state == 2 ? Theme.danger : Theme.text;
-            text: root.hover ? "Drop it here"
-                : root.state == 1 ? "Found it"
-                : root.state == 2 ? "This one will not do"
-                : root.can-drop ? "Drag the download or its folder here" : "Choose the download or its folder";
+            text: root.hover ? @tr("Drop it here")
+                : root.state == 1 ? @tr("Found it")
+                : root.state == 2 ? @tr("This one will not do")
+                : root.can-drop ? @tr("Drag the download or its folder here") : @tr("Choose the download or its folder");
         }
         if root.state != 0 && root.found != "": Text {
             horizontal-alignment: center;
@@ -301,13 +302,13 @@ export component DropZone inherits Rectangle {
             alignment: center;
             spacing: 10px;
             TextButton {
-                label: root.state == 1 ? "Choose another…" : "Browse…";
+                label: root.state == 1 ? @tr("Choose another…") : @tr("Browse…");
                 icon: @image-url("icons/folder-open.svg");
                 enabled: root.enabled && root.can-pick;
                 clicked => { root.browse(); }
             }
             TextButton {
-                label: "Search a folder…";
+                label: @tr("Search a folder…");
                 icon: @image-url("icons/folder-search.svg");
                 enabled: root.enabled && root.can-pick;
                 clicked => { root.search(); }
@@ -447,5 +448,94 @@ export component Instruction inherits HorizontalLayout {
         color: Theme.text;
         vertical-alignment: center;
         horizontal-stretch: 1;
+    }
+}
+
+// The setup's languages (app/tr.hpp, app/lang): a flag that opens the list of them.
+export struct LangItem {
+    code: string,
+    name: string,
+}
+
+export component LangFlag inherits Image {
+    in property <string> code;
+    width: 24px;
+    height: 16px;
+    image-rendering: pixelated;
+    source: root.code == "de" ? @image-url("flags/de.svg")
+          : root.code == "fr" ? @image-url("flags/fr.svg")
+          : root.code == "es" ? @image-url("flags/es.svg")
+          : root.code == "it" ? @image-url("flags/it.svg")
+          : root.code == "nl" ? @image-url("flags/nl.svg")
+          : @image-url("flags/en.svg");
+}
+
+export component LanguageButton inherits Rectangle {
+    in property <string> language;
+    in property <bool> enabled: true;
+    callback chosen(string);
+    // (each in its own words: whoever cannot read the current one finds theirs)
+    property <[LangItem]> langs: [
+        { code: "en", name: "English" }, { code: "de", name: "Deutsch" }, { code: "fr", name: "Français" },
+        { code: "es", name: "Español" }, { code: "it", name: "Italiano" }, { code: "nl", name: "Nederlands" },
+    ];
+    width: 46px;
+    height: 30px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.line;
+    background: ta.has-hover ? Theme.hover : transparent;
+    accessible-role: button;
+    accessible-label: "Language";
+    LangFlag {
+        code: root.language;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { popup.show(); }
+    }
+    popup := PopupWindow {
+        x: root.width - 190px;
+        y: root.height + 4px;
+        width: 190px;
+        Rectangle {
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.line;
+            border-radius: 8px;
+            drop-shadow-blur: 12px;
+            drop-shadow-color: #00000080;
+            VerticalLayout {
+                padding: 6px;
+                spacing: 2px;
+                for l in root.langs: Rectangle {
+                    height: 34px;
+                    border-radius: 6px;
+                    background: l.code == root.language ? Theme.accent.with-alpha(0.25) : lta.has-hover ? Theme.hover : transparent;
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        spacing: 10px;
+                        VerticalLayout {
+                            alignment: center;
+                            LangFlag { code: l.code; }
+                        }
+                        Text {
+                            text: l.name;
+                            font-size: 14px;
+                            font-weight: l.code == root.language ? 700 : 400;
+                            color: Theme.text;
+                            vertical-alignment: center;
+                        }
+                    }
+                    lta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.chosen(l.code); }
+                    }
+                }
+            }
+        }
     }
 }

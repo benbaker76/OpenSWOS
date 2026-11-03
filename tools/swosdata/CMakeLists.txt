@@ -170,11 +170,15 @@ if(SD_WITH_APP)
     set_property(GLOBAL PROPERTY SLINT_STYLE fluent-dark)
 
     # The Wi-Fi copy to a phone (app/phone_server.cpp): its QR code, Project Nayuki's (MIT).
-    add_executable(openswos-setup app/main.cpp app/platform.cpp app/phone_server.cpp
+    add_executable(openswos-setup app/main.cpp app/platform.cpp app/phone_server.cpp app/tr.cpp
                    ${OPENSWOS_ROOT}/third_party/qrcodegen/qrcodegen.c ${NFD_SOURCE} ${SD_PLATFORM_SOURCES})
     target_link_libraries(openswos-setup PRIVATE swosdata_lib Slint::Slint)
     # The window icon is compiled in, not referenced by absolute path.
     set_property(TARGET openswos-setup PROPERTY SLINT_EMBED_RESOURCES embed-files)
+    # The languages (app/tr.hpp): the .po files bundled into the program for the .slint texts,
+    # one msgid per English text (no per-component context), the same files' table for C++.
+    set_property(TARGET openswos-setup PROPERTY SLINT_BUNDLE_TRANSLATIONS "${CMAKE_CURRENT_SOURCE_DIR}/app/lang")
+    set_property(TARGET openswos-setup PROPERTY SLINT_NO_DEFAULT_TRANSLATION_CONTEXT ON)
     slint_target_sources(openswos-setup app/ui/app.slint)
     target_compile_definitions(openswos-setup PRIVATE SD_VERSION="${PROJECT_VERSION}")
 
@@ -183,6 +187,10 @@ if(SD_WITH_APP)
     if(WIN32)
       # The Downloads folder (SHGetKnownFolderPath) and GOG's registry entries.
       target_link_libraries(openswos-setup PRIVATE shell32 ole32 advapi32 ws2_32)
+    endif()
+
+    if(APPLE)
+      target_link_libraries(openswos-setup PRIVATE "-framework CoreFoundation")   # (tr.cpp: the system's language)
     endif()
 
     if(SD_HAVE_DIALOGS)
@@ -198,10 +206,10 @@ if(SD_WITH_APP)
     endif()
 
     if(MSVC)
-      set_source_files_properties(app/main.cpp app/platform.cpp app/phone_server.cpp
+      set_source_files_properties(app/main.cpp app/platform.cpp app/phone_server.cpp app/tr.cpp
                                   PROPERTIES COMPILE_OPTIONS "/W3;/utf-8")
     else()
-      set_source_files_properties(app/main.cpp app/platform.cpp app/phone_server.cpp
+      set_source_files_properties(app/main.cpp app/platform.cpp app/phone_server.cpp app/tr.cpp
                                   PROPERTIES COMPILE_OPTIONS "-Wall")
     endif()
 
