@@ -57,7 +57,8 @@ fi
 echo "Launching: ${RUN[*]}"
 
 $GPTOKEYB "SWOS.${DEVICE_ARCH}" -c "./swos.gptk" &
-pm_platform_helper "$BIN"
+# (an older PortMaster -- ArkOS on an R36S -- has no pm_platform_helper)
+command -v pm_platform_helper >/dev/null 2>&1 && pm_platform_helper "$BIN"
 
 "${RUN[@]}"
 
