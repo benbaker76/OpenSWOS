@@ -34,6 +34,7 @@ CC := gcc
 PKGCONF := pkg-config
 else
 CC := aarch64-linux-gnu-gcc
+CXX := aarch64-linux-gnu-g++   # (NETPLAY=1: GGPO-X is C++ -- the PortMaster port's online play)
 PKGCONF := PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig pkg-config
 endif
 else ifdef ARM

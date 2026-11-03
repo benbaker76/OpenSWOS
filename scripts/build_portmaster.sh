@@ -5,8 +5,10 @@
 #   scripts/build_portmaster.sh             # build bin/SWOS.aarch64 and package
 #   scripts/build_portmaster.sh --no-build  # package the existing binary
 #
-# Runs on aarch64 Linux: it bundles this machine's glibc as the port's fallback
-# for firmware older than 2.34. See packaging/portmaster/README.md.
+# Runs on aarch64 Linux, which bundles this machine's glibc as the port's fallback for
+# firmware older than 2.34 -- or cross-compiles on another Linux with the aarch64 toolchain
+# (make ARM64=1, as build_dist.sh), bundling that toolchain's glibc, the one the binary was
+# linked against. See packaging/portmaster/README.md.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -14,9 +16,23 @@ cd "$(dirname "$0")/.."
 BUILD=1
 [ "${1:-}" = "--no-build" ] && BUILD=0
 
-[ "$(uname -m)" = "aarch64" ] || { echo "run this on aarch64 Linux" >&2; exit 1; }
+if [ "$(uname -m)" = "aarch64" ]; then
+    LIBDIR=/lib/aarch64-linux-gnu
+elif command -v aarch64-linux-gnu-gcc >/dev/null 2>&1 && [ -d /usr/aarch64-linux-gnu/lib ]; then
+    LIBDIR=/usr/aarch64-linux-gnu/lib        # (the cross toolchain's)
+else
+    echo "run this on aarch64 Linux, or install the aarch64-linux-gnu cross toolchain" >&2
+    exit 1
+fi
 # The save verifier is on in a plain make and damages the running game: see build_dist.sh.
-[ "$BUILD" = 1 ] && make ARM64=1 NETPLAY=1 SWOS_SAVE_FORMAT_JSON_VERIFY=0 -j"$(nproc)"
+# Online play is C++ (GGPO-X): cross-compiled, it needs the aarch64 g++ as well.
+NETPLAY=1
+if [ "$(uname -m)" != "aarch64" ] && ! command -v aarch64-linux-gnu-g++ >/dev/null 2>&1; then
+    echo "build_portmaster: no aarch64-linux-gnu-g++ -- building WITHOUT online play" \
+         "(sudo apt install g++-aarch64-linux-gnu)" >&2
+    NETPLAY=0
+fi
+[ "$BUILD" = 1 ] && make ARM64=1 NETPLAY=$NETPLAY SWOS_SAVE_FORMAT_JSON_VERIFY=0 -j"$(nproc)"
 
 STAGE=dist/portmaster
 SRC=packaging/portmaster
@@ -34,7 +50,6 @@ git ls-files -z bin/data bin/data_json bin/grafs bin/grafs_aga bin/sound bin/sou
     cp "$f" "$STAGE/swos/${f#bin/}"
   done
 
-LIBDIR=/lib/aarch64-linux-gnu
 for f in ld-linux-aarch64.so.1 libc.so.6 libm.so.6 libdl.so.2 libpthread.so.0 librt.so.1; do
   cp -L "$LIBDIR/$f" "$STAGE/swos/libs.aarch64/glibc/"
 done
