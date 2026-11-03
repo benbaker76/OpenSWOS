@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -30,6 +31,13 @@ bool Launch(const std::string& exe, const std::string& cwd);
 // the sizes Windows asks for (Slint hands Windows one bitmap for both). False
 // while the window does not exist yet; true elsewhere.
 bool ApplyNativeWindowIcon();
+
+// Files dropped on the setup's window: onDrop gets their paths, onHover whether a drag is over
+// the window. Windows only (an OLE drop target on the window; Slint's winit backend passes no
+// dropped file on): elsewhere false, and nothing happens. AttachFileDrop registers it on the
+// window once the window exists -- false until then, call it again.
+bool EnableFileDrop(std::function<void(std::vector<std::string>)> onDrop, std::function<void(bool)> onHover);
+bool AttachFileDrop();
 
 // Windows: a GUI-subsystem program has no console; attach the parent's so
 // --help prints somewhere. No-op elsewhere.

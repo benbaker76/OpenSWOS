@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <functional>
 #include <vector>
 
 #ifdef _WIN32
@@ -16,6 +17,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <ole2.h>
 #include <io.h>
 #else
 #include <cerrno>
@@ -162,10 +164,10 @@ bool Launch(const std::string& exe, const std::string& cwd) {
 #endif
 }
 
-bool ApplyNativeWindowIcon() {
 #ifdef _WIN32
-  // Slint exposes no HWND. The largest visible unowned top-level window on this
-  // thread is ours (winit also keeps a tiny helper window, hence the floor).
+// Slint exposes no HWND. The largest visible unowned top-level window on this
+// thread is ours (winit also keeps a tiny helper window, hence the floor).
+static HWND MainWindow() {
   struct Candidate {
     HWND window = nullptr;
     long long area = 0;
@@ -187,6 +189,13 @@ bool ApplyNativeWindowIcon() {
         return TRUE;
       },
       reinterpret_cast<LPARAM>(&best));
+  return best.window;
+}
+#endif
+
+bool ApplyNativeWindowIcon() {
+#ifdef _WIN32
+  struct { HWND window; } best{MainWindow()};
   if (!best.window) return false;
   const HINSTANCE self = GetModuleHandleW(nullptr);
   const auto icon_of = [self](int metric) {
@@ -199,6 +208,106 @@ bool ApplyNativeWindowIcon() {
   if (const HICON b = icon_of(SM_CXICON))
     SendMessageW(best.window, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(b));
   return true;
+#else
+  return true;
+#endif
+}
+
+// ------------------------------------------------------------ dropped files ---
+static std::function<void(std::vector<std::string>)> s_onDrop;
+static std::function<void(bool)> s_onHover;
+
+#ifdef _WIN32
+// An OLE drop target for files from Explorer (CF_HDROP). winit registers its own, which
+// Slint never hears from, so ours replaces it.
+class FileDropTarget : public IDropTarget {
+  LONG refs_ = 1;
+  bool files_ = false;
+ public:
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** out) override {
+    if (riid == IID_IUnknown || riid == IID_IDropTarget) {
+      *out = static_cast<IDropTarget*>(this);
+      AddRef();
+      return S_OK;
+    }
+    *out = nullptr;
+    return E_NOINTERFACE;
+  }
+  ULONG STDMETHODCALLTYPE AddRef() override { return ULONG(InterlockedIncrement(&refs_)); }
+  ULONG STDMETHODCALLTYPE Release() override {
+    const LONG n = InterlockedDecrement(&refs_);
+    if (n == 0) delete this;
+    return ULONG(n);
+  }
+  HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* data, DWORD, POINTL, DWORD* effect) override {
+    FORMATETC f{CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
+    files_ = data && data->QueryGetData(&f) == S_OK;
+    *effect = files_ ? DROPEFFECT_COPY : DROPEFFECT_NONE;
+    if (files_ && s_onHover) s_onHover(true);
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE DragOver(DWORD, POINTL, DWORD* effect) override {
+    *effect = files_ ? DROPEFFECT_COPY : DROPEFFECT_NONE;
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE DragLeave() override {
+    if (files_ && s_onHover) s_onHover(false);
+    files_ = false;
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE Drop(IDataObject* data, DWORD, POINTL, DWORD* effect) override {
+    std::vector<std::string> paths;
+    FORMATETC f{CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
+    STGMEDIUM m{};
+    if (data && data->GetData(&f, &m) == S_OK) {
+      HDROP drop = static_cast<HDROP>(GlobalLock(m.hGlobal));
+      if (drop) {
+        const UINT n = DragQueryFileW(drop, 0xFFFFFFFF, nullptr, 0);
+        for (UINT i = 0; i < n; i++) {
+          const UINT len = DragQueryFileW(drop, i, nullptr, 0);
+          std::wstring w(len + 1, L'\0');
+          DragQueryFileW(drop, i, w.data(), len + 1);
+          w.resize(len);
+          paths.push_back(Narrow(w));
+        }
+        GlobalUnlock(m.hGlobal);
+      }
+      ReleaseStgMedium(&m);
+    }
+    *effect = paths.empty() ? DROPEFFECT_NONE : DROPEFFECT_COPY;
+    if (s_onHover) s_onHover(false);
+    files_ = false;
+    if (!paths.empty() && s_onDrop) s_onDrop(paths);
+    return S_OK;
+  }
+};
+#endif
+
+bool EnableFileDrop(std::function<void(std::vector<std::string>)> onDrop, std::function<void(bool)> onHover) {
+#ifdef _WIN32
+  s_onDrop = std::move(onDrop);
+  s_onHover = std::move(onHover);
+  return true;
+#else
+  (void)onDrop;
+  (void)onHover;
+  return false;
+#endif
+}
+
+bool AttachFileDrop() {
+#ifdef _WIN32
+  const HWND window = MainWindow();
+  if (!window) return false;
+  RevokeDragDrop(window);   // winit's
+  FileDropTarget* target = new FileDropTarget;
+  HRESULT hr = RegisterDragDrop(window, target);
+  if (hr == CO_E_NOTINITIALIZED || hr == E_OUTOFMEMORY) {
+    OleInitialize(nullptr);
+    hr = RegisterDragDrop(window, target);
+  }
+  target->Release();        // OLE holds its own reference
+  return SUCCEEDED(hr);
 #else
   return true;
 #endif

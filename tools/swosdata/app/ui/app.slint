@@ -1,15 +1,22 @@
-// OpenSWOS Setup: two tabs, one per version of the game -- the PC/Mac/Linux game and
-// the Amiga's. Each says what to download (with the links), finds it (the Downloads
-// folder is watched, a folder can be searched, a path given), and has the one button
-// that makes it.
+// OpenSWOS Setup. Two ways through it:
+//
+//   the WIZARD (the default): where you will play, then one screen at a time for only what
+//   that needs -- get this, drop it here, install, copy it there -- Back and Next between them
+//   (main.cpp RefreshWizard works the screens out from what was ticked; wizard.slint has the
+//   pieces);
+//   ADVANCED MODE: two tabs, one per version of the game -- the PC/Mac/Linux game and the
+//   Amiga's. Each says what to download (with the links), finds it (the Downloads folder is
+//   watched, a folder can be searched, a path given), and has the one button that makes it.
 import { ListView, ProgressIndicator, Palette, CheckBox } from "std-widgets.slint";
 import { Theme, TextButton, Link, Card, IconButton, PathField } from "theme.slint";
+import { Step, BigTile, ExtraRow, DropZone, StepDots, BigButton, LinkButton, Instruction } from "wizard.slint";
 
-export { Theme }
+export { Theme, Step }
 
 export struct LinkItem {
     text: string,
     url: string,
+    download: bool,     // a file to download (else a page to read): its button's icon
 }
 
 // One source: its path as shown, and its state -- 0 none, 1 found, 2 not usable.
@@ -391,12 +398,634 @@ export component MainWindow inherits Window {
     callback amiga-kind-changed();
     callback open-amiga-dest();
 
+    // ---- the wizard ----
+    in-out property <bool> wizard: true;
+    // Where you will play (several may be ticked), and the extras.
+    in-out property <bool> t-computer: true;
+    in-out property <bool> t-phone;
+    in-out property <bool> t-amiga;
+    in-out property <bool> t-whdload;
+    in-out property <bool> x-world;
+    in-out property <bool> x-2020;
+    in-out property <bool> x-jaguar;
+    in property <bool> world-available;     // World 2026-27 can be downloaded (kWorldUrl)
+    // A computer or phone alone plays with either copy: 0 the PC game, 1 the Amiga version, 2 both.
+    in-out property <int> have: 0;
+    in property <[int]> steps: [0];         // Step.*, worked out by main.cpp
+    in-out property <int> step: 0;          // an index into steps
+    in property <bool> drop-hover;          // a file is being dragged over the window
+    in property <bool> can-drop;            // this platform takes files dropped on the window
+    in property <string> phone-folder;      // where the assets folder is, for the phone's screen
+    callback wizard-changed();              // a tick changed: main.cpp works the steps out again
+    callback step-shown(int);               // the step on screen (Step.*): what it needs set up
+    callback open-out();                    // show the assets folder
+    callback close-setup();
+
+    property <int> kind: root.step < root.steps.length ? root.steps[root.step] : Step.targets;
+    // A source's screen: its row in `sources` (main.cpp Row), -1 for another screen.
+    property <int> src-row: root.kind == Step.pc ? 0 : root.kind == Step.amiga ? 1 : root.kind == Step.jaguar ? 2
+                          : root.kind == Step.s2020 ? 3 : root.kind == Step.world ? 4 : -1;
+    property <bool> src-optional: root.kind == Step.world || root.kind == Step.s2020 || root.kind == Step.jaguar;
+    property <bool> any-target: root.t-computer || root.t-phone || root.t-amiga || root.t-whdload;
+    // Next: what this screen asks for is done.
+    property <bool> next-ok: root.busy ? false
+        : root.kind == Step.targets ? root.any-target
+        : root.src-row >= 0 && !root.src-optional ? root.sources[root.src-row].state == 1
+        : root.kind == Step.install ? root.done
+        : root.kind == Step.drawer || root.kind == Step.whdload ? root.amiga-done
+        : true;
+    property <bool> last: root.step >= root.steps.length - 1;
+    function go(i: int) {
+        root.step = max(0, min(root.steps.length - 1, i));
+        root.step-shown(root.steps[root.step]);
+    }
+
     init => {
         Palette.color-scheme = ColorScheme.dark;
     }
 
 
-    VerticalLayout {
+    if root.wizard: wiz := VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+
+        // The top: who, how far along, and the way out to the advanced mode.
+        HorizontalLayout {
+            spacing: 12px;
+            Image {
+                source: @image-url("../../../../packaging/linux/hicolor/64x64/apps/openswos.png");
+                width: 36px;
+                height: 36px;
+            }
+            VerticalLayout {
+                alignment: center;
+                Text {
+                    text: root.project-name + " Setup";
+                    font-size: 17px;
+                    font-weight: 700;
+                    color: Theme.text;
+                }
+                Text {
+                    text: "Step " + (root.step + 1) + " of " + root.steps.length;
+                    font-size: 12px;
+                    color: Theme.text-dim;
+                }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            VerticalLayout {
+                alignment: center;
+                TextButton {
+                    label: "Advanced mode";
+                    icon: @image-url("icons/adjustments-horizontal.svg");
+                    enabled: !root.busy;
+                    clicked => { root.wizard = false; }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconButton {
+                    icon: @image-url("icons/info-circle.svg");
+                    tooltip: "About";
+                    clicked => { root.show-about = true; }
+                }
+            }
+        }
+        Rectangle { height: 1px; background: Theme.line; }
+
+        // The screen.
+        VerticalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+            padding-left: 24px;
+            padding-right: 24px;
+            alignment: start;
+
+            // 1. Where you will play.
+            if root.kind == Step.targets: VerticalLayout {
+                spacing: 14px;
+                Text {
+                    text: "Where do you want to play?";
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: Theme.text;
+                }
+                Text {
+                    text: "Tick everything you want. " + root.project-name + " plays with a copy of Sensible World of Soccer you own: the next screens show you how to get it, one step at a time.";
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.text-dim;
+                }
+                HorizontalLayout {
+                    spacing: 12px;
+                    BigTile {
+                        icon: @image-url("icons/device-desktop.svg");
+                        title: "This computer";
+                        text: "Windows, Mac or Linux";
+                        selected: root.t-computer;
+                        clicked => { root.t-computer = !root.t-computer; root.wizard-changed(); }
+                    }
+                    BigTile {
+                        icon: @image-url("icons/device-mobile.svg");
+                        title: "Phone or tablet";
+                        text: "Android, iPhone or iPad";
+                        selected: root.t-phone;
+                        clicked => { root.t-phone = !root.t-phone; root.wizard-changed(); }
+                    }
+                    BigTile {
+                        icon: @image-url("images/amiga-drawer.svg");
+                        colorize-icon: false;
+                        icon-size: 52px;
+                        title: "Amiga";
+                        text: "A SWOS drawer for an A1200 or an emulator";
+                        selected: root.t-amiga;
+                        clicked => { root.t-amiga = !root.t-amiga; root.wizard-changed(); }
+                    }
+                    BigTile {
+                        icon: @image-url("images/whdload.png");
+                        colorize-icon: false;
+                        icon-size: 64px;
+                        title: "Amiga WHDLoad";
+                        text: "A package for an Amiga with WHDLoad";
+                        selected: root.t-whdload;
+                        clicked => { root.t-whdload = !root.t-whdload; root.wizard-changed(); }
+                    }
+                }
+                Text {
+                    text: "Extras (optional)";
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: Theme.text;
+                }
+                if root.world-available: ExtraRow {
+                    icon: @image-url("icons/world.svg");
+                    title: "World 2026-27";
+                    text: "Today's clubs, players and competitions, from the SWOS 96/97 Mod";
+                    selected: root.x-world;
+                    clicked => { root.x-world = !root.x-world; root.wizard-changed(); }
+                }
+                ExtraRow {
+                    icon: @image-url("icons/map-2.svg");
+                    title: "SWOS 2020 pitches";
+                    text: "The pitches of SWOS 2020, if you have it installed";
+                    selected: root.x-2020;
+                    clicked => { root.x-2020 = !root.x-2020; root.wizard-changed(); }
+                }
+                if root.t-computer || root.t-phone: ExtraRow {
+                    icon: @image-url("icons/device-gamepad-2.svg");
+                    title: "Atari Jaguar players";
+                    text: "The Jaguar version's redrawn players, from its cartridge";
+                    selected: root.x-jaguar;
+                    clicked => { root.x-jaguar = !root.x-jaguar; root.wizard-changed(); }
+                }
+            }
+
+            // 2. Which copy (a computer or phone alone: either will do).
+            if root.kind == Step.copy: VerticalLayout {
+                spacing: 14px;
+                Text {
+                    text: "Which copy of the game do you have?";
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: Theme.text;
+                }
+                Text {
+                    text: "Either one is enough. With both, " + root.project-name + " plays the Amiga's music and sounds on the PC game's data. Not sure? Pick the PC game: it is the one you can buy today.";
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.text-dim;
+                }
+                HorizontalLayout {
+                    spacing: 12px;
+                    BigTile {
+                        icon: @image-url("icons/disc.svg");
+                        title: "The PC game";
+                        text: "Sensible World of Soccer 96/97, from GOG";
+                        radio: true;
+                        selected: root.have == 0;
+                        clicked => { root.have = 0; root.wizard-changed(); }
+                    }
+                    BigTile {
+                        icon: @image-url("images/amiga-check.svg");
+                        colorize-icon: false;
+                        icon-size: 48px;
+                        title: "The Amiga version";
+                        text: "Its floppies, a hard disk image or a WHDLoad .lha";
+                        radio: true;
+                        selected: root.have == 1;
+                        clicked => { root.have = 1; root.wizard-changed(); }
+                    }
+                    BigTile {
+                        icon: @image-url("icons/check.svg");
+                        title: "Both";
+                        text: "The PC game and the Amiga version";
+                        radio: true;
+                        selected: root.have == 2;
+                        clicked => { root.have = 2; root.wizard-changed(); }
+                    }
+                }
+            }
+
+            // A source: get it, then drop it here (or it is found by itself).
+            if root.src-row >= 0: VerticalLayout {
+                spacing: 14px;
+                HorizontalLayout {
+                    spacing: 14px;
+                    Image {
+                        width: 44px;
+                        height: 44px;
+                        source: root.kind == Step.pc ? @image-url("icons/disc.svg")
+                              : root.kind == Step.amiga ? @image-url("images/amiga-check.svg")
+                              : root.kind == Step.world ? @image-url("icons/world.svg")
+                              : root.kind == Step.s2020 ? @image-url("icons/map-2.svg")
+                              : @image-url("icons/device-gamepad-2.svg");
+                        colorize: root.kind == Step.amiga ? transparent : Theme.link;
+                        image-fit: contain;
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 2px;
+                        Text {
+                            text: root.kind == Step.pc ? "Get the PC game"
+                                : root.kind == Step.amiga ? "Get the Amiga version"
+                                : root.kind == Step.world ? "Get World 2026-27"
+                                : root.kind == Step.s2020 ? "Add SWOS 2020's pitches"
+                                : "Add the Jaguar's players";
+                            font-size: 24px;
+                            font-weight: 700;
+                            color: Theme.text;
+                        }
+                        if root.src-optional || root.t-amiga || root.t-whdload: Text {
+                            text: root.src-optional ? "Optional: Skip if you would rather not." : root.kind == Step.pc
+                                ? "The Amiga version takes its pitches and pictures from the PC game."
+                                : "The game's own files, for the Amiga.";
+                            font-size: 13px;
+                            color: Theme.text-dim;
+                        }
+                    }
+                }
+                if root.kind == Step.pc: VerticalLayout {
+                    spacing: 8px;
+                    Instruction { number: 1; text: "Buy Sensible World of Soccer 96/97 on GOG, and install it with GOG's installer or GOG Galaxy."; }
+                    Instruction { number: 2; text: "That is all: an installed game is found by itself. Have it somewhere else? Drag its folder here."; }
+                }
+                if root.kind == Step.amiga: VerticalLayout {
+                    spacing: 8px;
+                    Instruction { number: 1; text: "Download one of the files below (either will do), or use your own floppies (.adf), hard disk image (.hdf) or WHDLoad .lha."; }
+                    Instruction { number: 2; text: "Drag it here, or just leave it in your Downloads folder: it is found by itself."; }
+                }
+                if root.kind == Step.world: VerticalLayout {
+                    spacing: 8px;
+                    Instruction { number: 1; text: "Download OpenSWOS-World-2627.zip below."; }
+                    Instruction { number: 2; text: "Drag it here, or leave it in your Downloads folder. You choose the world in the game, in OPTIONS -> WORLD."; }
+                }
+                if root.kind == Step.s2020: VerticalLayout {
+                    spacing: 8px;
+                    Instruction { number: 1; text: "Install SWOS 2020 and run its launcher once (it picks the pitches)."; }
+                    Instruction { number: 2; text: "Drag its folder here, or choose it with Browse."; }
+                }
+                if root.kind == Step.jaguar: VerticalLayout {
+                    spacing: 8px;
+                    Instruction { number: 1; text: "Find the Sensible Soccer International Edition cartridge image (.jag, .j64, .rom or .bin)."; }
+                    Instruction { number: 2; text: "Drag it here, or choose it with Browse."; }
+                }
+                HorizontalLayout {
+                    spacing: 10px;
+                    alignment: start;
+                    for l in root.sources[root.src-row].links: LinkButton {
+                        text: l.text;
+                        url: l.url;
+                        download: l.download;
+                        open(u) => { root.open-url(u); }
+                    }
+                }
+                DropZone {
+                    state: root.sources[root.src-row].state;
+                    found: root.sources[root.src-row].value;
+                    detail: root.scanning ? root.scan-status : root.sources[root.src-row].detail;
+                    detail-warn: root.sources[root.src-row].detail-warn;
+                    hover: root.drop-hover;
+                    can-drop: root.can-drop;
+                    watching: root.notice != "" ? root.notice : root.watching;
+                    enabled: !root.busy && !root.scanning;
+                    can-pick: root.can-pick;
+                    browse => { root.browse-source(root.src-row); }
+                    search => { root.choose-folder(); }
+                }
+            }
+
+            // Install, for a computer or a phone.
+            if root.kind == Step.install: VerticalLayout {
+                spacing: 14px;
+                Text {
+                    text: root.done && !root.busy ? "The game's data is installed" : "Install the game's data";
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: Theme.text;
+                }
+                Text {
+                    text: "One click: " + root.project-name + " Setup makes the game's data from your copy, into the folder the game reads.";
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.text-dim;
+                }
+                Rectangle {
+                    border-radius: 12px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: root.done ? Theme.ok.with-alpha(0.6) : Theme.line;
+                    VerticalLayout {
+                        padding: 20px;
+                        spacing: 12px;
+                        HorizontalLayout {
+                            spacing: 10px;
+                            Image {
+                                source: @image-url("icons/folder-open.svg");
+                                width: 20px;
+                                height: 20px;
+                                y: (parent.height - self.height) / 2;
+                                colorize: Theme.text-dim;
+                            }
+                            Text {
+                                text: root.out-dir;
+                                horizontal-stretch: 1;
+                                color: Theme.text;
+                                overflow: elide;
+                                vertical-alignment: center;
+                            }
+                            TextButton {
+                                label: "Change…";
+                                enabled: !root.busy && root.can-pick;
+                                clicked => { root.change-out(); }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 14px;
+                            BigButton {
+                                label: root.busy ? "Installing…" : root.outdated ? "Update" : root.done ? "Install again" : "Install";
+                                icon: @image-url("icons/download.svg");
+                                primary: !root.done || root.outdated;
+                                enabled: root.can-install && !root.busy;
+                                clicked => { root.install(); }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                horizontal-stretch: 1;
+                                ProgressIndicator { progress: root.progress; height: 8px; }
+                            }
+                        }
+                        Text {
+                            text: root.status;
+                            wrap: word-wrap;
+                            color: root.status-error ? Theme.danger : root.outdated ? Theme.warn : root.done ? Theme.ok : Theme.text-dim;
+                            font-weight: root.done ? 700 : 400;
+                        }
+                    }
+                }
+            }
+
+            // The phone: copy the folder over.
+            if root.kind == Step.phone: VerticalLayout {
+                spacing: 14px;
+                HorizontalLayout {
+                    spacing: 14px;
+                    Image {
+                        source: @image-url("icons/device-mobile.svg");
+                        width: 44px;
+                        height: 44px;
+                        colorize: Theme.link;
+                    }
+                    Text {
+                        text: "Copy it to your phone or tablet";
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: Theme.text;
+                        vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: "The phone can't run this setup, so it takes the folder this computer just made: the \"assets\" folder in " + root.phone-folder + ".";
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.text-dim;
+                }
+                Rectangle {
+                    border-radius: 12px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    VerticalLayout {
+                        padding: 18px;
+                        spacing: 10px;
+                        Text { text: "Android"; font-size: 15px; font-weight: 700; color: Theme.text; }
+                        Instruction { number: 1; text: "Install " + root.project-name + " on the phone and start it once, then connect the phone to this computer with a USB cable (choose File transfer on the phone)."; }
+                        Instruction { number: 2; text: "Copy the assets folder into Android / data / net.openswos.game / files on the phone."; }
+                    }
+                }
+                Rectangle {
+                    border-radius: 12px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    VerticalLayout {
+                        padding: 18px;
+                        spacing: 10px;
+                        Text { text: "iPhone or iPad"; font-size: 15px; font-weight: 700; color: Theme.text; }
+                        Instruction { number: 1; text: "Install " + root.project-name + " (AltStore or Sideloadly) and start it once."; }
+                        Instruction { number: 2; text: "Copy the assets folder into the Files app, On My iPhone > " + root.project-name + " -- with Finder on a Mac, or iCloud Drive, AirDrop or a USB stick."; }
+                    }
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    BigButton {
+                        label: "Show the assets folder";
+                        icon: @image-url("icons/folder-open.svg");
+                        clicked => { root.open-out(); }
+                    }
+                }
+            }
+
+            // The Amiga: the drawer or the WHDLoad package.
+            if root.kind == Step.drawer || root.kind == Step.whdload: VerticalLayout {
+                spacing: 14px;
+                HorizontalLayout {
+                    spacing: 14px;
+                    Image {
+                        source: root.kind == Step.drawer ? @image-url("images/amiga-drawer.svg") : @image-url("images/whdload.png");
+                        width: root.kind == Step.drawer ? 52px : 72px;
+                        height: 44px;
+                        image-fit: contain;
+                    }
+                    Text {
+                        text: root.kind == Step.drawer ? "Make the SWOS drawer" : "Make the WHDLoad package";
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: Theme.text;
+                        vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: root.kind == Step.drawer
+                        ? "A drawer to copy to your Amiga's hard drive, or to use as a folder in WinUAE or FS-UAE. Double-click SWOS to play."
+                        : "OpenSWOSAGA-WHDL.lha, to unpack on an Amiga with WHDLoad installed. No Kickstart image needed.";
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.text-dim;
+                }
+                Rectangle {
+                    border-radius: 12px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: root.amiga-done ? Theme.ok.with-alpha(0.6) : Theme.line;
+                    VerticalLayout {
+                        padding: 20px;
+                        spacing: 12px;
+                        HorizontalLayout {
+                            spacing: 10px;
+                            Text { text: root.kind == Step.drawer ? "Into" : "Save as"; color: Theme.text-dim; vertical-alignment: center; }
+                            Text { text: root.amiga-dest; horizontal-stretch: 1; color: Theme.text; overflow: elide; vertical-alignment: center; }
+                            TextButton {
+                                label: "Change…";
+                                enabled: !root.busy && root.can-pick;
+                                clicked => { root.change-amiga-dest(); }
+                            }
+                        }
+                        if root.amiga-own-program && root.amiga-program == "": HorizontalLayout {
+                            spacing: 10px;
+                            Text {
+                                text: "This setup has no copy of the Amiga program: choose SWOS-Amiga.zip, from the same place as this setup.";
+                                horizontal-stretch: 1;
+                                wrap: word-wrap;
+                                color: Theme.warn;
+                                vertical-alignment: center;
+                            }
+                            TextButton {
+                                label: "Choose…";
+                                enabled: !root.busy && root.can-pick;
+                                clicked => { root.choose-amiga-program(); }
+                            }
+                        }
+                        if root.amiga-world-available: CheckBox {
+                            text: "Play World 2026-27 (its clubs and players) instead of 96/97";
+                            checked <=> root.amiga-world;
+                            enabled: !root.busy;
+                            toggled => { root.amiga-kind-changed(); }
+                        }
+                        HorizontalLayout {
+                            spacing: 14px;
+                            BigButton {
+                                label: root.busy ? "Making…" : root.kind == Step.drawer ? "Make the drawer" : "Make the package";
+                                icon: @image-url("icons/download.svg");
+                                primary: !root.amiga-done;
+                                enabled: root.can-make-amiga && !root.busy;
+                                clicked => { root.make-amiga(); }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                horizontal-stretch: 1;
+                                ProgressIndicator { progress: root.amiga-progress; height: 8px; }
+                            }
+                            if root.amiga-done: TextButton {
+                                label: "Show it";
+                                icon: @image-url("icons/folder-open.svg");
+                                clicked => { root.open-amiga-dest(); }
+                            }
+                        }
+                        Text {
+                            text: root.amiga-status;
+                            wrap: word-wrap;
+                            color: root.amiga-error ? Theme.danger : root.amiga-done ? Theme.ok : Theme.text-dim;
+                            font-weight: root.amiga-done ? 700 : 400;
+                        }
+                    }
+                }
+            }
+
+            // Done.
+            if root.kind == Step.done: VerticalLayout {
+                spacing: 16px;
+                alignment: center;
+                HorizontalLayout {
+                    alignment: center;
+                    Image {
+                        source: @image-url("icons/circle-check.svg");
+                        width: 72px;
+                        height: 72px;
+                        colorize: Theme.ok;
+                    }
+                }
+                Text {
+                    text: "All done!";
+                    font-size: 28px;
+                    font-weight: 700;
+                    color: Theme.text;
+                    horizontal-alignment: center;
+                }
+                Text {
+                    text: (root.t-computer ? "Play on this computer with the button below, or start " + root.project-name + " from where you unzipped it. " : "")
+                        + (root.t-phone ? "On your phone, start " + root.project-name + " once the assets folder is copied over. " : "")
+                        + (root.t-amiga || root.t-whdload ? "On the Amiga, copy what was made and double-click SWOS. " : "")
+                        + "You can run this setup again whenever you like.";
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.text-dim;
+                    horizontal-alignment: center;
+                }
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 12px;
+                    if root.t-computer && root.can-play: BigButton {
+                        label: "Play " + root.project-name;
+                        icon: @image-url("icons/player-play.svg");
+                        primary: true;
+                        clicked => { root.play(); }
+                    }
+                    if root.t-amiga || root.t-whdload: BigButton {
+                        label: "Show the Amiga files";
+                        icon: @image-url("icons/folder-open.svg");
+                        clicked => { root.open-amiga-dest(); }
+                    }
+                }
+            }
+        }
+
+        // The foot: back, how far along, next.
+        Rectangle { height: 1px; background: Theme.line; }
+        HorizontalLayout {
+            spacing: 12px;
+            BigButton {
+                label: "Home";
+                icon: @image-url("icons/home.svg");
+                enabled: root.step > 0 && !root.busy;
+                clicked => { root.go(0); }
+            }
+            BigButton {
+                label: "Back";
+                icon: @image-url("icons/arrow-left.svg");
+                enabled: root.step > 0 && !root.busy;
+                clicked => { root.go(root.step - 1); }
+            }
+            StepDots {
+                horizontal-stretch: 1;
+                count: root.steps.length;
+                current: root.step;
+            }
+            if !root.last: BigButton {
+                label: root.src-optional && root.sources[root.src-row].state != 1 ? "Skip" : "Next";
+                icon-after: @image-url("icons/arrow-right.svg");
+                primary: true;
+                enabled: root.next-ok;
+                clicked => { root.go(root.step + 1); }
+            }
+            if root.last: BigButton {
+                label: "Close";
+                primary: !(root.t-computer && root.can-play);
+                enabled: !root.busy;
+                clicked => { root.close-setup(); }
+            }
+        }
+    }
+
+    if !root.wizard: VerticalLayout {
         padding: 16px;
         spacing: 12px;
         // Details open: its log takes the spare height. Closed: everything at its own
@@ -425,6 +1054,15 @@ export component MainWindow inherits Window {
                     text: root.project-name + " plays with the data of a copy of Sensible World of Soccer you own. Get it from the links below: what you download is found here by itself.";
                     wrap: word-wrap;
                     color: Theme.text-dim;
+                }
+            }
+            VerticalLayout {
+                alignment: start;
+                TextButton {
+                    label: "Wizard";
+                    icon: @image-url("icons/arrow-right.svg");
+                    enabled: !root.busy;
+                    clicked => { root.wizard = true; root.go(root.step); }
                 }
             }
             VerticalLayout {

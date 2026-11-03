@@ -350,7 +350,15 @@ struct App {
   static std::shared_ptr<slint::VectorModel<LinkItem>> Links(
       std::initializer_list<std::pair<const char*, const char*>> l) {
     auto m = std::make_shared<slint::VectorModel<LinkItem>>();
-    for (const auto& [text, url] : l) m->push_back({Str(text), Str(url)});
+    // A download (its button's arrow): a file host's link, a .zip, archive.org's copy. The rest
+    // (GOG's shop, a news page, the credits) are pages to read.
+    for (const auto& [text, url] : l) {
+      const std::string u(url);
+      const bool file = u.find("mediafire.com/file") != std::string::npos ||
+                        u.find("archive.org/details") != std::string::npos ||
+                        (u.size() > 4 && u.compare(u.size() - 4, 4, ".zip") == 0);
+      m->push_back({Str(text), Str(url), file});
+    }
     return m;
   }
 
@@ -668,6 +676,7 @@ struct App {
   // Everything below the sources: where it goes and what will be made.
   void RefreshPlan() {
     w().set_out_dir(Str(Shown(outDir)));
+    w().set_phone_folder(Str(Shown(sd::ParentDir(outDir))));
     w().set_out_note(Shown(outDir) == Shown(defaultOutDir)
                          ? Str("This is the folder the game reads its data from.")
                          : Str("The game reads " + Shown(defaultOutDir) +
@@ -717,9 +726,9 @@ struct App {
         text = "Choose the Amiga program first: SWOS-Amiga.zip, from the same place as this setup.";
       else if (!sources && !installedAlready)
         text = !SdSources_HaveAmiga(&src) && !SdSources_HaveDos(&src)
-                   ? "Get the Amiga version and the PC game above."
-               : !SdSources_HaveAmiga(&src) ? "Get the Amiga version above too."
-                                            : "Get the PC game above too.";
+                   ? "It needs the Amiga version and the PC game first."
+               : !SdSources_HaveAmiga(&src) ? "It needs the Amiga version too."
+                                            : "It needs the PC game too.";
       else
         text = kindDrawer ? "Ready to make the drawer." : "Ready to make the package.";
       w().set_amiga_status(Str(text));
@@ -1104,6 +1113,74 @@ struct App {
     });
   }
 
+  // ------------------------------------------------------------ the wizard ---
+
+  // The screens, from what was ticked (app.slint's Step): where you will play first; a computer
+  // or a phone alone asks which copy you have (either will do), an Amiga needs both; then each
+  // source, each extra, install, the phone's copy, the Amiga's outputs, done.
+  void RefreshWizard() {
+    const bool compPhone = w().get_t_computer() || w().get_t_phone();
+    const bool amigaT = w().get_t_amiga() || w().get_t_whdload();
+    const int have = w().get_have();
+    std::vector<int> steps{0};
+    if (compPhone || amigaT) {
+      const bool needPc = amigaT || have != 1, needAmiga = amigaT || have != 0;
+      if (compPhone && !amigaT) steps.push_back(1);
+      if (needPc) steps.push_back(2);
+      if (needAmiga) steps.push_back(3);
+      if (kWorldUrl[0] && w().get_x_world()) steps.push_back(4);
+      if (w().get_x_2020()) steps.push_back(5);
+      if (compPhone && w().get_x_jaguar()) steps.push_back(6);
+      if (compPhone) steps.push_back(7);
+      if (w().get_t_phone()) steps.push_back(8);
+      if (w().get_t_amiga()) steps.push_back(9);
+      if (w().get_t_whdload()) steps.push_back(10);
+      steps.push_back(11);
+    }
+    w().set_steps(std::make_shared<slint::VectorModel<int>>(steps));
+    if (w().get_step() >= int(steps.size())) w().set_step(int(steps.size()) - 1);
+  }
+
+  // A screen comes up: the Amiga's two make the drawer or the package (one setting between
+  // them), with World 2026-27 when it was ticked.
+  void StepShown(int kind) {
+    if (kind == 9 || kind == 10) {
+      w().set_tab(1);
+      w().set_amiga_kind(kind == 9 ? 0 : 1);
+      AmigaKindChanged();
+      if (w().get_x_world() && w().get_amiga_world_available()) w().set_amiga_world(true);
+    } else if (kind == 7) {
+      w().set_tab(0);
+    }
+  }
+
+  // Files dropped on the window: each found as a download would be, a folder that is not one
+  // searched.
+  void Dropped(const std::vector<std::string>& paths) {
+    if (busy) return;
+    std::string said;
+    for (const std::string& path : paths) {
+      FileLog("dropped: " + Shown(path));
+      if (ProgramZip(path) && TakeProgram(path)) {
+        ownProgram = true;
+        said = "Found the Amiga program in " + Shown(path) + ".";
+        continue;
+      }
+      const std::string what = Offer(path);
+      if (!what.empty()) {
+        said = "Found " + what + " in " + Shown(path) + ".";
+        continue;
+      }
+      if (sd::IsDir(path)) {
+        StartScan(path);
+        return;
+      }
+      said = Shown(path) + " is not one of the game's files.";
+    }
+    Notice(said, said.find(" is not ") != std::string::npos);
+    Refresh();
+  }
+
   void OpenAmigaDest() {
     const std::string dest = w().get_amiga_kind() == 0 ? drawerTo : sd::ParentDir(whdloadTo);
     if (!dest.empty()) sd::OpenUrl(dest);
@@ -1315,7 +1392,9 @@ int main(int argc, char** argv) {
   app.exeDir = sd::ExeDir();
   std::vector<std::string> scans;
   std::string resArg, outArg, programArg, drawerArg, whdloadArg;
-  bool amigaTab = false, watch = true, details = false, about = false;
+  bool amigaTab = false, watch = true, details = false, about = false, advanced = false;
+  std::string wizardArg;
+  int wizardStep = 0;
   int snapshotAt = 1200;
 
   for (int i = 1; i < argc; i++) {
@@ -1335,6 +1414,12 @@ int main(int argc, char** argv) {
       details = true;
     } else if (a == "--about") {
       about = true;
+    } else if (a == "--advanced") {
+      advanced = true;
+    } else if (a.rfind("--wizard=", 0) == 0) {
+      wizardArg = a.substr(9);
+    } else if (a.rfind("--wizard-step=", 0) == 0) {
+      wizardStep = std::atoi(a.c_str() + 14);
     } else if (a == "--no-gog") {
       app.lookForGog = false;
     } else if (a == "--help" || a == "-h") {
@@ -1400,6 +1485,19 @@ int main(int argc, char** argv) {
   ui->set_project_url(PROJECT_URL);
   ui->set_show_about(about);
   ui->set_show_details(details);
+  ui->set_wizard(!advanced && !amigaTab && !app.autoRun);
+  ui->set_world_available(kWorldUrl[0] != '\0');
+  if (!wizardArg.empty()) {   // testing: --wizard=computer,phone,amiga,whdload,world,2020,jaguar,amigacopy,both
+    auto has = [&wizardArg](const char* t) { return ("," + wizardArg + ",").find(std::string(",") + t + ",") != std::string::npos; };
+    ui->set_t_computer(has("computer"));
+    ui->set_t_phone(has("phone"));
+    ui->set_t_amiga(has("amiga"));
+    ui->set_t_whdload(has("whdload"));
+    ui->set_x_world(has("world"));
+    ui->set_x_2020(has("2020"));
+    ui->set_x_jaguar(has("jaguar"));
+    ui->set_have(has("both") ? 2 : has("amigacopy") ? 1 : 0);
+  }
   if (!whdloadArg.empty()) ui->set_amiga_kind(1);
 #ifndef SD_WITH_DIALOGS
   ui->set_can_pick(false);
@@ -1461,13 +1559,38 @@ int main(int argc, char** argv) {
   ui->on_make_amiga([&app] { app.MakeAmiga(); });
   ui->on_amiga_kind_changed([&app] { app.AmigaKindChanged(); });
   ui->on_open_amiga_dest([&app] { app.OpenAmigaDest(); });
+  ui->on_wizard_changed([&app] { app.RefreshWizard(); });
+  ui->on_step_shown([&app](int kind) { app.StepShown(kind); });
+  ui->on_open_out([&app] { sd::OpenUrl(sd::ParentDir(app.outDir)); });
+  ui->on_close_setup([] { slint::quit_event_loop(); });
+  app.RefreshWizard();
+  if (wizardStep > 0) {
+    ui->set_step(wizardStep);
+    app.RefreshWizard();   // (clamped)
+    app.StepShown(ui->get_steps()->row_data(ui->get_step()).value_or(0));
+  }
+  // Files dropped on the window (Windows): found as a download is.
+  ui->set_can_drop(sd::EnableFileDrop(
+      [&app](std::vector<std::string> paths) {
+        slint::invoke_from_event_loop([&app, paths] { app.Dropped(paths); });
+      },
+      [&app](bool hover) {
+        slint::invoke_from_event_loop([&app, hover] { app.w().set_drop_hover(hover); });
+      }));
 
   // Windows only: the title-bar icon from the resource, once the window exists.
+  // (And the window takes dropped files, Windows too: the same window, once it is there.)
   slint::Timer icon_timer;
   int icon_tries = 0;
+  bool icon_done = false, drop_done = !ui->get_can_drop();
   icon_timer.start(slint::TimerMode::Repeated, std::chrono::milliseconds(100),
-                   [&icon_timer, &icon_tries] {
-                     if (sd::ApplyNativeWindowIcon() || ++icon_tries >= 30) icon_timer.stop();
+                   [&app, &icon_timer, &icon_tries, &icon_done, &drop_done] {
+                     icon_done = icon_done || sd::ApplyNativeWindowIcon();
+                     if (!drop_done && sd::AttachFileDrop()) {
+                       drop_done = true;
+                       app.FileLog("dropped files: taken on the window");
+                     }
+                     if ((icon_done && drop_done) || ++icon_tries >= 30) icon_timer.stop();
                    });
 
   if (!app.snapshot.empty())
