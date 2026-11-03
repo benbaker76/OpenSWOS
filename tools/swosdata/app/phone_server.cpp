@@ -209,9 +209,19 @@ void Serve(sock_t s, std::string peer) {
     // A TLS handshake: Chrome trying https:// on this port first ("HTTPS-Upgrades"). Closed at
     // once, it falls back to http://; left waiting, it gave up (ERR_TOO_MANY_RETRIES).
     if ((unsigned char)req[0] == 0x16) {
+      fprintf(stderr, "phone copy: %s: a TLS handshake, closed\n", peer.c_str());
+      fflush(stderr);
       CloseSock(s);
       return;
     }
+  }
+  {   // what came (the setup's log, stderr): the first line, or the first bytes when it is not one
+    std::string first = req.substr(0, req.find("\r\n"));
+    if (first.size() > 120) first = first.substr(0, 120);
+    for (char& c : first)
+      if ((unsigned char)c < 32 || (unsigned char)c > 126) c = '?';
+    fprintf(stderr, "phone copy: %s: %s (%zu bytes)\n", peer.c_str(), first.c_str(), req.size());
+    fflush(stderr);
   }
   std::string path;
   if (req.compare(0, 4, "GET ") == 0) {
@@ -432,6 +442,13 @@ PhoneServerState PhoneServerStatus() {
   if (!g) return {};
   std::lock_guard<std::mutex> lk(g->lock);
   return g->state;
+}
+
+std::string PhoneServerLink() {
+  if (!g) return "";
+  std::lock_guard<std::mutex> lk(g->lock);
+  if (!g->state.running) return "";
+  return "https://" PROJECT_SITE "/get/#h=" + g->host + ":" + std::to_string(g->port) + "&k=" + g->key;
 }
 
 std::vector<bool> QrCode(const std::string& text, int* size) {

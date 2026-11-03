@@ -216,7 +216,8 @@ static int pending_link(char *out, size_t cap)
     for (int i = 0; i < 20 && !out[0]; i++) {       /* (the run loop delivers openURL) */
         SDL_PumpEvents();
         while (SDL_PeepEvents(&e, 1, SDL_GETEVENT, SDL_DROPFILE, SDL_DROPFILE) > 0) {
-            if (e.drop.file && !out[0] && strncmp(e.drop.file, PROJECT_URL_SCHEME "://", strlen(PROJECT_URL_SCHEME) + 3) == 0)
+            if (e.drop.file && !out[0] && (strncmp(e.drop.file, PROJECT_URL_SCHEME "://", strlen(PROJECT_URL_SCHEME) + 3) == 0 ||
+                                           strncmp(e.drop.file, "https://" PROJECT_SITE "/get", strlen(PROJECT_SITE) + 12) == 0))
                 snprintf(out, cap, "%s", e.drop.file);
             SDL_free(e.drop.file);
         }

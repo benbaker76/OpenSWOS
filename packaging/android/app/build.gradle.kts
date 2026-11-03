@@ -16,6 +16,7 @@ fun identityOf(name: String): String =
 val appId = identityOf("PROJECT_APP_ID")
 val appName = identityOf("PROJECT_NAME")
 val urlScheme = identityOf("PROJECT_URL_SCHEME")
+val siteHost = identityOf("PROJECT_SITE")
 
 // The version: the commit count (versionCode must grow), and the commit.
 fun git(vararg args: String): String {
@@ -40,6 +41,7 @@ android {
         versionName = "1.0.$commitCount ($commit)"
         resValue("string", "app_name", appName)
         manifestPlaceholders["urlScheme"] = urlScheme
+        manifestPlaceholders["siteHost"] = siteHost
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }

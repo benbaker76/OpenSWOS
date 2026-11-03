@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!--
+  openswos.net/get/: the QR code OpenSWOS Setup shows on its phone screen (the Wi-Fi copy of the
+  game's data, docs/MOBILE.md "Copying over Wi-Fi") opens this page:
+      https://openswos.net/get/#h=<the computer's address>:<port>&k=<key>
+  The part after # never leaves the phone (a browser does not send it), so the server learns
+  nothing about the player's network. On Android the link is an App Link (/.well-known/
+  assetlinks.json) and the camera opens the app without this page; here, its button opens it:
+  an intent link on Android, the app's own <scheme>://get?... elsewhere. The page itself reaches
+  nothing on the local network: Android 17 lets a browser do that only with a permission.
+  Served from /var/www/openswos.net/get/ (packaging/web/site is that folder).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenSWOS: copy the game's data</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/openswos-logo.png">
+<style>
+  :root { --bg: #09140b; --panel: #143820; --edge: #1f5030; --text: #e8f0e6; --muted: #a9bea6;
+          --accent: #f2c94c; --button: #fa5c5c; --button-hover: #ff7373; --link: #8fd3ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); text-align: center;
+         font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 30em; margin: 0 auto; padding: 32px 16px 48px; }
+  img { width: 96px; height: 96px; }
+  h1 { font-size: 24px; margin: 12px 0 8px; }
+  p { color: var(--muted); margin: 12px 0; }
+  .panel { background: var(--panel); border: 1px solid var(--edge); border-radius: 12px; padding: 4px 18px; margin: 22px 0; }
+  a.button { display: block; margin: 24px 0; padding: 16px; border-radius: 12px; background: var(--button);
+             color: #fff; font-weight: 700; font-size: 19px; text-decoration: none; }
+  a.button:hover { background: var(--button-hover); }
+  a { color: var(--link); }
+  .note { color: var(--accent); }
+  [hidden] { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/openswos-logo.png" alt="">
+  <h1>Copy the game's data</h1>
+
+  <div id="ready" hidden>
+    <p>Copy the game's data from <b>OpenSWOS Setup</b> on your computer to OpenSWOS on this phone.</p>
+    <a id="open" class="button" href="#">Open in OpenSWOS</a>
+    <p>Keep OpenSWOS Setup open on its phone screen until the game says the copy is done. The
+       phone and the computer must be on the same Wi-Fi.</p>
+  </div>
+
+  <div id="noapp" class="panel" hidden>
+    <p class="note">OpenSWOS isn't installed on this phone yet.</p>
+    <p>Get it from <a href="https://baker76.itch.io/openswos">itch.io</a> (Android: the APK; iPhone:
+       the IPA, installed with AltStore or Sideloadly), start it once, then scan the setup's QR
+       code again.</p>
+  </div>
+
+  <div id="nolink" hidden>
+    <p>This page is opened by the QR code <b>OpenSWOS Setup</b> shows on its phone screen. Run the
+       setup on your computer, go to its phone screen, and scan the code with this phone's camera.</p>
+    <p><a href="/install/">How to install OpenSWOS</a></p>
+  </div>
+</main>
+<script>
+(function () {
+  var SCHEME = "openswos", PACKAGE = "net.openswos.game";   // include/project_identity.h
+  var hash = location.hash.replace(/^#/, "");
+  var h = (hash.match(/(?:^|&)h=([0-9.]+:[0-9]+)(?:&|$)/) || [])[1];
+  var k = (hash.match(/(?:^|&)k=([a-z0-9]+)(?:&|$)/) || [])[1];
+  if (/[?&]noapp\b/.test(location.search)) document.getElementById("noapp").hidden = false;
+  if (!h || !k) { document.getElementById("nolink").hidden = false; return; }
+  var query = "h=" + h + "&k=" + k;
+  var href = SCHEME + "://get?" + query;
+  if (/Android/i.test(navigator.userAgent)) {
+    var back = location.origin + location.pathname + "?noapp#" + query;
+    href = "intent://get?" + query + "#Intent;scheme=" + SCHEME + ";package=" + PACKAGE +
+           ";S.browser_fallback_url=" + encodeURIComponent(back) + ";end";
+  }
+  document.getElementById("open").href = href;
+  document.getElementById("ready").hidden = false;
+})();
+</script>
+</body>
+</html>

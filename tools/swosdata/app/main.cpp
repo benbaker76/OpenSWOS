@@ -1354,7 +1354,7 @@ struct App {
     const sd::PhoneServerState st = sd::PhoneServerStatus();
     w().set_phone_url(Str(st.url));
     int n = 0;
-    const std::vector<bool> qr = sd::QrCode(st.url, &n);
+    const std::vector<bool> qr = sd::QrCode(sd::PhoneServerLink(), &n);
     if (n > 0) {
       const int scale = 6, border = 4, side = (n + 2 * border) * scale;
       slint::SharedPixelBuffer<slint::Rgb8Pixel> px{static_cast<uint32_t>(side), static_cast<uint32_t>(side)};

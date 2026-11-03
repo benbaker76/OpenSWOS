@@ -208,8 +208,15 @@ static int http_get(const char *host, int port, const char *path, FILE *f, char 
 int PhoneFetch_ParseLink(const char *link, PhoneFetchSetup *out)
 {
     memset(out, 0, sizeof *out);
-    const char *p = strstr(link, "://get?");
-    if (!p || strncmp(link, PROJECT_URL_SCHEME, (size_t)(p - link)) != 0 || (size_t)(p - link) != strlen(PROJECT_URL_SCHEME))
+    /* <scheme>://get?h=..&k=..  or  https://<site>/get/#h=..&k=.. (the QR code's: an App Link) */
+    static const char site[] = "https://" PROJECT_SITE "/get";
+    const char *p = NULL;
+    const char *s = strstr(link, "://get?");
+    if (s && (size_t)(s - link) == strlen(PROJECT_URL_SCHEME) && !strncmp(link, PROJECT_URL_SCHEME, (size_t)(s - link)))
+        p = s + 7;
+    else if (!strncmp(link, site, sizeof site - 1) && (p = strchr(link, '#')) != NULL)
+        p++;
+    if (!p)
         return 0;
     const char *h = strstr(p, "h="), *k = strstr(p, "k=");
     if (!h || !k)

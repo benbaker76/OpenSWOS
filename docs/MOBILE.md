@@ -79,10 +79,19 @@ The wizard's phone screen serves the setup's assets folder on the local network 
 and shows a QR code (`include/phone_copy.h` is the whole protocol; the setup's end
 `tools/swosdata/app/phone_server.cpp`, the phone's `src/phone_fetch.c`):
 
-- **The QR code is a plain `http://<ip>:<port>/<key>/` page**, not the app's link: Android's camera
-  apps do not launch a custom scheme from a code, every phone's browser opens a page. The page's
-  button opens the app with `<PROJECT_URL_SCHEME>://get?h=<ip>:<port>&k=<key>` -- on Android as an
-  `intent://` link, whose fallback comes back to the page saying the app is not installed.
+- **The QR code is `https://openswos.net/get/#h=<ip>:<port>&k=<key>`** (`PROJECT_SITE`,
+  `PhoneServerLink`). Two dead ends before it: a code of the setup's own `http://<ip>:<port>/` page
+  fails on **Android 17**, which lets an app reach the local network only with a permission that
+  Chrome does not have by default (`ACCESS_LOCAL_NETWORK: ignore` -- Chrome showed
+  ERR_TOO_MANY_RETRIES, nothing reached the setup); a code of `openswos://get?...` the Pixel's
+  camera shows but does not open. So: on Android an **App Link** -- the manifest's
+  `autoVerify` filter for `https://<site>/get`, proved by `packaging/web/site/.well-known/
+  assetlinks.json` (the release key's SHA-256: a new key means a new file) -- and the camera opens
+  the app directly (`pm get-app-links net.openswos.game` says `verified`). Anywhere else (iOS, an
+  app not installed) the site's `/get/` page opens; it reaches nothing on the local network, and
+  its button opens the app (`intent://` on Android, `openswos://` elsewhere). Everything after
+  `#` stays on the phone: the server never sees the player's address or key. The setup's own
+  `/<key>/` page is still served, for a browser that may reach it.
 - **The app takes the link** at the start or while it waits on its "the game's data" message:
   Android's `OpenSWOSActivity` keeps the intent's (`takeLink`, over JNI; the activity is
   `singleInstance`), iOS's SDL hands `openURL` over as an `SDL_DROPFILE`. The manifest's VIEW
@@ -119,6 +128,6 @@ and shows a QR code (`include/phone_copy.h` is the whole protocol; the setup's e
 - Importing the game's data in the app (the Setup's library on the phone) instead of copying it.
 - The Wi-Fi copy from a running game (OPTIONS), not only at the start. Tried on a Pixel 8
   (2026-11-03): COPY FROM MY COMPUTER found the PC, 451 files, the options taken, a link with data
-  there asks first, one while the game plays restarts it and copies; the QR code through the
-  camera and the page not yet, nor iOS.
+  there asks first, one while the game plays restarts it and copies, and the QR code through the
+  camera opens the app straight (App Link). iOS not yet.
 - Haptics, the controls' size and placement as a setting, a controls layout for a second player.

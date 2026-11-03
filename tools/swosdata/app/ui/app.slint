@@ -891,7 +891,7 @@ export component MainWindow inherits Window {
                                 Text { text: "Over Wi-Fi"; font-size: 15px; font-weight: 700; color: Theme.text; vertical-alignment: center; }
                             }
                             Instruction { number: 1; text: "Install " + root.project-name + " on the phone (Android, or an iPhone with AltStore or Sideloadly) and start it once."; }
-                            Instruction { number: 2; text: "Scan this code with the phone's camera, open the page, and tap Open in " + root.project-name + ". It copies everything, and the game options you chose."; }
+                            Instruction { number: 2; text: "Scan this code with the phone's camera and open its link: " + root.project-name + " starts and copies everything, with the game options you chose. (If a page opens instead, tap Open in " + root.project-name + " on it.)"; }
                             Instruction { number: 3; text: "On Android, without the code: start " + root.project-name + " and tap Copy from my computer -- it finds this one."; }
                             HorizontalLayout {
                                 spacing: 8px;
@@ -913,7 +913,7 @@ export component MainWindow inherits Window {
                                 }
                             }
                             Text {
-                                text: root.phone-url == "" ? "" : "Windows may ask whether " + root.project-name + " Setup may use the network: allow it on private networks. The page: " + root.phone-url;
+                                text: root.phone-url == "" ? "" : "Windows may ask whether " + root.project-name + " Setup may use the network: allow it on private networks. This computer: " + root.phone-url;
                                 wrap: word-wrap;
                                 font-size: 11px;
                                 color: Theme.text-dim;

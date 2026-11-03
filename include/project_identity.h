@@ -49,6 +49,12 @@
  * Lower case, letters only. */
 #define PROJECT_URL_SCHEME      "openswos"
 
+/* The project's public site (packaging/web/site): the Wi-Fi copy's QR code is
+ * https://<site>/get/#h=<address>&k=<key> -- a page any phone's camera opens without reaching the
+ * local network (Android 17 lets a browser reach it only with a permission), whose button opens
+ * the app; on Android it opens the app directly (an App Link: <site>/.well-known/assetlinks.json). */
+#define PROJECT_SITE            "openswos.net"
+
 /* SWOS 2020's online-menu entries for features this project will not have -- the log-in's NEWS,
  * MULTIPLAYER SETTINGS' commentary and chat rows, JOIN AMIGA SUPER LEAGUE, JOIN DISCORD, HELP
  * DESK (src/online_menus.c): 1 hides them, 0 keeps them for a fork that builds them. */

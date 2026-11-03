@@ -26,6 +26,11 @@ bool PhoneServerStart(const std::string& assetsDir, const std::string& phoneIni)
 void PhoneServerStop();
 PhoneServerState PhoneServerStatus();
 
+// What the QR code holds: https://<PROJECT_SITE>/get/#h=<ip>:<port>&k=<key> -- a public page the
+// camera opens without reaching the local network (Android 17 lets a browser reach it only with a
+// permission), and on Android an App Link straight into the app. "" when not serving.
+std::string PhoneServerLink();
+
 // A QR code of `text`: `size` modules a side, row by row (true = dark). Empty when it does not fit.
 std::vector<bool> QrCode(const std::string& text, int* size);
 
