@@ -86,11 +86,20 @@ static void chdir_to_binary(const char *argv0)
         got_path = 1;
     }
 #else
-    /* Linux: /proc/self/exe is a symlink to the running binary. */
+    /* Linux: /proc/self/exe is a symlink to the running binary -- unless a dynamic loader
+     * was started with the game as its argument (the PortMaster launcher does that with the
+     * glibc it brings, on a firmware whose own is too old: stock ArkOS on an R36S). Then it is
+     * the LOADER, in libs.aarch64/glibc, and every file of the game's own beside the binary
+     * (the JSON menus: CREDITS, MULTIPLAYER) was looked for there and not found, while what
+     * SWOS_ASSETS points at still loaded (2026-11-03). The loader passes the game's path on
+     * as argv[0], so that is the one to use. */
     ssize_t n = readlink("/proc/self/exe", path, sizeof(path) - 1);
     if (n > 0) {
+        const char *base;
         path[n] = 0;
-        got_path = 1;
+        base = strrchr(path, '/');
+        base = base ? base + 1 : path;
+        got_path = strncmp(base, "ld-linux", 8) != 0 && strncmp(base, "ld.so", 5) != 0;
     }
 #endif
 
