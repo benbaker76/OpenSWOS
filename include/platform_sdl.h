@@ -117,7 +117,7 @@ typedef struct {
     int                    menu_recording;   /* with music_style 1: 1 = play sound_dos/menu.mp3, 0 = menu.xmi on the emulated chip */
     int                    music_style;      /* the menus' music: 0 = the Amiga's, 1 = the PC game's menu.xmi (dos_music.h) */
     int                    commentary;       /* the PC game's commentary: 0 off, 1 on (over the Amiga's sounds too), 2 auto = with sound_style 1 */
-    int                    dos_gameplay;     /* 1 = DOS gameplay tweaks (framerate etc.). PC-only; reserved */
+    int                    dos_gameplay;     /* the gameplay style, GAMEPLAY_* (dos_mode.h): 0 AMIGA, 1 DOS, 2 XBOX */
     int                    contest_own_ratings; /* 1 = a contested ball's dice rates each side by the man at the
                                               * ball; 0 (default) = the original's squad-slot lookup
                                               * (ball_possession.c, _gContestOwnRatings). Offline only. */

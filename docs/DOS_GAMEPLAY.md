@@ -1,6 +1,7 @@
 # DOS gameplay (70 FPS) support
 
-> **Status (2026-09-30): implemented.** Written as the research + porting plan;
+> **Status (2026-11-02): implemented, with a third style, XBOX (section 9).**
+> **(2026-09-30): DOS implemented.** Written as the research + porting plan;
 > the plan has landed. `src/dos_gameplay.c` (`ApplyGameStyle`,
 > `DosGameplay_TargetFps`) switches the §3 constants, the formations
 > (`TacticsData_SelectRelease`, 71e174a) and the §8.3 movement scale
@@ -40,8 +41,8 @@ default 0), set via `--game-style=N` / ini `gameStyle`:
 | 3 | Amiga | 60 | experimental |
 | 4 | XBOX | 60 | XBLA tuning (DOS keeper dist + strong keeper AI) |
 
-Only **0 (DOS/70)** and **1 (Amiga/50)** matter for this port; 2/3/4 are bonus
-reference points. The style→FPS map (`render.cpp::getTargerFPS()` 4620-4640,
+**0 (DOS/70)** and **1 (Amiga/50)** are the two releases; **4 (XBOX/60)** is
+OpenSWOS's third style since 2026-11-02 (section 9). 2 and 3 are reference points. The style→FPS map (`render.cpp::getTargerFPS()` 4620-4640,
 `game.cpp:8927`) is `0→70, 1→50, 2→50, 3→60, 4→60`.
 
 **For our port:** `_gDosGameplay` (`include/dos_mode.h`) selects DOS(70) vs
@@ -384,6 +385,48 @@ at a higher refresh. Cost: an interpolated render layer (all match-render positi
 reads consult prev/curr + alpha). Bigger than the DOS speed_factor, but the only
 faithful path. NOTE: `.HIL`/`.RPL` replays and the arcade attract reels are
 frame-rate-tagged (§7.6) — a decoupled loop must record/replay at the logic rate.
+
+## 9. XBOX (60 FPS) — SWOS 2020's style 4 (implemented 2026-11-02)
+
+`[gameplay] style = xbox` (`--gameplay=xbox`, OPTIONS -> GAMEPLAY's third value, the
+online OPEN prompt's third button). `_gGameplayStyle` (`include/dos_mode.h`) is the
+style; `_gDosGameplay` stays (style == DOS) for the DOS release's code paths, and
+`_gDosKeepers` (DOS or XBOX) is the DOS goalkeeper's code. `Gameplay_SetStyle`
+(`src/dos_gameplay.c`) sets all three. SDL only: the Amiga build has no 60 Hz tick.
+
+What it is, from swos-2020 (`options.cpp` setGameStyleVariables style 4, `render.cpp`
+CalculateDeltaXAndY_125) -- "60 FPS, Amiga physics, DOS goalkeepers":
+
+| | XBOX | |
+|---|---|---|
+| frame rate | 60 | `DosGameplay_TargetFps` |
+| ball | ground 16, air 10, the Amiga pitch table; gravity **3840** | the Amiga's ball at 60 (x50/60) |
+| player movement | deltas **x50/60**, C truncation (`math68k.c`'s general path) | swos-2020's `g_BallMoved` is never set, so always |
+| keeper | save distance **16**, `GS_27_22` **27**, reach table **0x40000..0x78000** | "XBOX GK Values"; DOS's is 0x28000.., Amiga's 0x30000.. |
+| keeper code | the DOS dive index and the DOS diving-catch ball placement | `_gDosKeepers`: goalkeeper.c, ball_physics.c |
+| keeper's loose ball | the deltaZ window **[+0x8000, 0x8000]** | below |
+| timers | clock **59**; the rest the Amiga's x1.2 (60, 120, 420, 600, 720, 900; the rig's later reloads the same x1.2: 300/180, 60, 120/300/840/1800) | swos-2020 has GS_* for the first set only |
+| formations, view, everything else | the Amiga's | |
+| online input delay | the Amiga table x50/60: 1 to 42 ms, 2 to 83, 3 to 146, then 4 | no table of Playa's for 60 |
+
+**The keeper's loose ball** (`update_players.c`, `_gsKeeperLooseBallMinDeltaZ`): a slow
+ball near the keeper, low, with its vertical speed in [-0x8000, 0x8000], and he goes for
+it -- both releases. swos-2020 replaced the DOS compare's -0x8000 with `GS_SF_8000h__8000h`,
+**+0x8000** in its DOS and XBOX styles ("sign fix", swos.asm 113924), so its keepers
+leave almost every such ball. Its other five `GS_SF` sites add +/-128 to a direction and
+mask it to a byte straight after, which makes the sign irrelevant. Our DOS style keeps the
+real DOS -0x8000 (the recorded-game rig matches it); XBOX takes swos-2020's.
+
+**What is not ported:** swos-2020's `setDeltaZVariables` (x1.2 kick and pass speeds) and
+`setGameStyleVariablesAdditional` both `return` on their first line; its ball-trajectory
+hooks are `#if (0)`. `KeeperAI::set` is the challenge mode's CPU keeper levels only.
+
+**Online:** a match plays the host's style. The handshake's setup carries it (byte 19,
+`setup_style`: 0 from an older build reads the rules byte's DOS bit), recordings carry it
+(SIMV byte 3, META flag 32, the recorder stream's byte 9 -- `--srp-resim` replays an XBOX
+match as one), NETPLAY_COMPAT 9. `P2PLink_SetPlayer` tells a punched link which side it is:
+without it both sides of the direct-IP lobby's rematch, and of the test harnesses, borrowed
+each other's style. `HOST_STYLE=xbox scripts/netplay_lobby_test.sh` plays it.
 
 ## Authoritative swos-2020 files
 - `src/options.cpp` — `setGameStyleVariables()` (1563-1843, THE table),

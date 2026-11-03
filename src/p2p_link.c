@@ -33,6 +33,8 @@
 #include "build_info.h"      /* Build_Id: the handshake logs builds */
 #include "netplay_compat.h"  /* NETPLAY_COMPAT: and compares this */
 #include "world.h"           /* and the football world */
+#include "dos_mode.h"        /* and the gameplay style (GAMEPLAY_*) */
+#include "dos_gameplay.h"    /* DosGameplay_TargetFps: its frame rate */
 
 #ifdef SWOS_NETPLAY
 
@@ -127,7 +129,19 @@ typedef struct {
     uint8_t  dirty;             /* built from uncommitted changes: plays only its commit */
     uint8_t  world;             /* the football world (include/world.h); 0 = 96/97, which
                                  * is what the byte always held before worlds */
+    uint8_t  style;             /* the gameplay style, GAMEPLAY_* (dos_mode.h); the packet's
+                                 * byte 19, 0 before XBOX -- setup_style reads such a peer's
+                                 * from its rules byte */
 } Setup;
+
+/* A setup's gameplay style: its own byte, or (0, from a build before the byte said it)
+ * the rules byte's DOS bit. */
+static int setup_style(const Setup *s)
+{
+    if (s->style)
+        return s->style;
+    return (s->gameplay & P2P_RULE_DOS) ? GAMEPLAY_DOS : GAMEPLAY_AMIGA;
+}
 
 /* The message being sent on one channel. Sending again replaces it: the new one
  * gets the next generation and whatever of the old one was still unacked is
@@ -271,6 +285,7 @@ static void setup_local(Setup *s)
     s->compat = NETPLAY_COMPAT;
     s->dirty  = strstr(Build_Id(), "-dirty") != NULL;
     s->world  = (uint8_t)World_Current();
+    s->style  = (uint8_t)_gGameplayStyle;
 }
 
 static P2PLinkFailure setup_mismatch(const Setup *mine, const Setup *theirs)
@@ -339,7 +354,7 @@ static void pkt_write_setup(uint8_t *p, const Setup *s)
     BE_WRITE_U32(p + 12, s->stateLo);
     BE_WRITE_U16(p + 16, s->screenWidth);
     p[18] = s->gameplay;
-    p[19] = 0;
+    p[19] = s->style;
     memcpy(p + 20, s->build, 8);
     BE_WRITE_U16(p + 28, s->compat);
     p[30] = s->dirty;
@@ -352,6 +367,7 @@ static void pkt_read_setup(const uint8_t *p, Setup *s)
     s->stateLo     = BE_READ_U32(p + 12);
     s->screenWidth = BE_READ_U16(p + 16);
     s->gameplay    = p[18];
+    s->style       = p[19];
     memcpy(s->build, p + 20, 8);
     s->build[8] = '\0';
     s->compat      = BE_READ_U16(p + 28);
@@ -652,14 +668,13 @@ static int32_t s_proposedPing = -1, s_proposedJitter = -1;
 
 static int32_t propose_delay(int32_t pingMs, int32_t jitterMs)
 {
-    extern int _gDosGameplay;               /* dos_mode.h */
     /* The frame rate comes from the GAMEPLAY MODE, not from anything this
      * machine measures. That matters: setup_mismatch already refuses a peer
      * whose gameplay flags differ, so both sides are certain to use the same
      * number here. Taking it from the actual pacing would let a machine that is
      * running slow propose a different delay from its opponent -- which is
      * precisely the asymmetry this routine exists to avoid. */
-    const int32_t fps = _gDosGameplay ? 70 : 50;
+    const int32_t fps = DosGameplay_TargetFps();
 
     /* Playa's table (2026-10-30), from the ping the lobby shows: never 0 (no buffer
      * at all), and capped; each gameplay mode has its own (its frame time):
@@ -676,8 +691,12 @@ static int32_t propose_delay(int32_t pingMs, int32_t jitterMs)
      * counts: only the ping does. */
     static const int16_t kDos[]   = { 35, 70, 140, 210 };   /* each delay's top, ms */
     static const int16_t kAmiga[] = { 50, 99, 175 };
-    const int16_t *top = fps > 50 ? kDos : kAmiga;
-    const int32_t n = fps > 50 ? (int32_t)(sizeof kDos / sizeof kDos[0])
+    /* XBOX (60 fps) has no table of Playa's: the Amiga's, scaled to its frame time
+     * (x50/60), capped the same -- 1 to 42 ms, 2 to 83, 3 to 146, then 4. */
+    static const int16_t kXbox[]  = { 42, 83, 146 };
+    const int16_t *top = fps > 60 ? kDos : fps > 50 ? kXbox : kAmiga;
+    const int32_t n = fps > 60 ? (int32_t)(sizeof kDos / sizeof kDos[0])
+                    : fps > 50 ? (int32_t)(sizeof kXbox / sizeof kXbox[0])
                                : (int32_t)(sizeof kAmiga / sizeof kAmiga[0]);
     int32_t d = 1;
     (void)jitterMs;
@@ -1021,14 +1040,15 @@ static void link_connected(P2PLink *l, const struct sockaddr_in *from, const Set
      * it (GameplayStyle_GiveBack). Before any of the link's state changes, so what
      * is compared from here on is the style actually played. */
     {
-        extern void GameplayStyle_Borrow(int dos);
+        extern void GameplayStyle_Borrow(int style);
         int follower = l->punchPlayer ? l->punchPlayer == 2 : l->state == P2P_JOINING;
-        if (follower && ((theirs->gameplay ^ l->local.gameplay) & P2P_RULE_DOS)) {
-            int dos = (theirs->gameplay & P2P_RULE_DOS) != 0;
-            GameplayStyle_Borrow(dos);
+        if (follower && setup_style(theirs) != setup_style(&l->local)) {
+            int style = setup_style(theirs);
+            GameplayStyle_Borrow(style);
             l->local.gameplay = P2PLink_GameplayFlags();
+            l->local.style = (uint8_t)_gGameplayStyle;
             fprintf(stderr, "[p2p] the host plays %s: this game is played that way\n",
-                    dos ? "DOS" : "AMIGA");
+                    Gameplay_StyleName(style));
         }
     }
     blob_free(l);   /* nothing carries over from a previous peer */
@@ -1568,6 +1588,11 @@ void P2PLink_SetRelay(uint64_t token, int32_t player)
     s_link.punchPlayer = player;        /* direct too: which side settles the path */
 }
 
+void P2PLink_SetPlayer(int32_t player)
+{
+    s_link.punchPlayer = player;
+}
+
 uint64_t P2PLink_RelayToken(void) { return s_link.relayToken; }
 
 void P2PLink_SetRelayFallback(uint64_t token, int32_t player, const char *server)
@@ -2036,6 +2061,7 @@ int32_t P2PLink_SelfTest(void)
         int before = _gDosGameplay;
         setup_local(&theirs);
         theirs.gameplay ^= P2P_RULE_DOS | P2P_RULE_DOS_VIEW;   /* the other style, view with it */
+        theirs.style = (theirs.gameplay & P2P_RULE_DOS) ? GAMEPLAY_DOS : GAMEPLAY_AMIGA;
         memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
         mismatched.joinTimeoutMs = 1000;
         check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "a player on the other style joins");
@@ -2044,6 +2070,26 @@ int32_t P2PLink_SelfTest(void)
         check(mismatched.state == P2P_CONNECTED, "it is let in");
         check(_gDosGameplay == before && (mismatched.local.gameplay & P2P_RULE_DOS) == (host.local.gameplay & P2P_RULE_DOS),
               "and plays the host's style");
+        link_close(&mismatched);
+        pump(two, 1, 1500, host_waiting_again, &host);
+        GameplayStyle_GiveBack();
+    }
+    /* 4d. XBOX, which the rules byte cannot say (its DOS bit is clear): the style byte. */
+    {
+        extern void GameplayStyle_GiveBack(void);
+        Setup theirs;
+        int before = _gGameplayStyle;
+        setup_local(&theirs);
+        theirs.style = before == GAMEPLAY_XBOX ? GAMEPLAY_AMIGA : GAMEPLAY_XBOX;
+        theirs.gameplay &= (uint8_t)~(P2P_RULE_DOS | P2P_RULE_DOS_VIEW);
+        memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
+        mismatched.joinTimeoutMs = 1000;
+        check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "a player on XBOX joins");
+        P2PLink *two[2] = { &host, &mismatched };
+        pump(two, 2, 1500, link_settled, &mismatched);
+        check(mismatched.state == P2P_CONNECTED, "it is let in");
+        check(_gGameplayStyle == before && mismatched.local.style == host.local.style,
+              "and plays the host's style, XBOX or not");
         link_close(&mismatched);
         pump(two, 1, 1500, host_waiting_again, &host);
         GameplayStyle_GiveBack();
@@ -2176,6 +2222,7 @@ int32_t P2PLink_Punch(const char *const *addresses, int32_t count, uint16_t loca
     return 1;
 }
 void           P2PLink_SetRelay(uint64_t token, int32_t player) { (void)token; (void)player; }
+void           P2PLink_SetPlayer(int32_t player) { (void)player; }
 uint64_t       P2PLink_RelayToken(void) { return 0; }
 void           P2PLink_SetRelayFallback(uint64_t token, int32_t player, const char *server)
                { (void)token; (void)player; (void)server; }

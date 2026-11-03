@@ -930,6 +930,7 @@ int32_t NetplayLobby_Rematch(const char *notice)
         return 1;
     }
     snprintf(addr, sizeof addr, "%s:%u", s_lobby.peerIp, (unsigned)s_lobby.peerPort);
+    P2PLink_SetPlayer(s_lobby.me);      /* the host stays the host: whose style is played */
     if (P2PLink_Punch(list, 1, s_lobby.localPort) != 0) {
         fail_with("COULD NOT RECONNECT");
         return 1;

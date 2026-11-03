@@ -86,7 +86,8 @@ int32_t SrpResim_Rules(int *dosGameplay, int *fireHoldLockout, int *dosView)
         }
         s_loaded = 1;
     }
-    *dosGameplay = (s_rec.rules & P2P_RULE_DOS) != 0;
+    /* The style (GAMEPLAY_*): SIMV's own byte, or, before XBOX, the rules byte's DOS bit. */
+    *dosGameplay = s_rec.style ? s_rec.style : (s_rec.rules & P2P_RULE_DOS) ? GAMEPLAY_DOS : GAMEPLAY_AMIGA;
     *fireHoldLockout = (s_rec.rules & P2P_RULE_FIRE_LOCKOUT) != 0;
     /* The view is a rule too (P2PLink_GameplayFlags). A recording from before it said
      * so plays by this machine's own -- see the hint if it parts at frame 1. */

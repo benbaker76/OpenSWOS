@@ -84,7 +84,7 @@
  * can be played again exactly, from any frame) -- the parts SIMV, SETP and STAT hold:
  *   0  8  the registry layout (SimState_LayoutHash)
  *   8  1  the rules (P2P_RULE_*)
- *   9  1  0
+ *   9  1  the gameplay style (GAMEPLAY_*, dos_mode.h; 0 from a build before XBOX: the rules say)
  *  10  2  the simulation draw width
  *  12  4  the setup's length
  *  16     the setup (NetplaySetup_Encode), then the kick-off state (a state_wire packet)

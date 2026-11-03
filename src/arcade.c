@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 
 #include "arcade.h"
+#include "dos_mode.h"         /* Gameplay_SetStyle: the cabinet plays AMIGA or DOS */
 #include "swos_io.h"   /* swos_save_commit — Switch save durability */
 #include "text_render.h"    /* DrawMenuText, DrawMenuTextRightAligned */
 #include "display.h"        /* _screen_width, SCREEN_HEIGHT */
@@ -2390,9 +2391,10 @@ void ArcadeMainLoop(void)
      * work. The DOS palette only applies during a match/reel (refresh_palette_from_copper
      * gates it on _playGame/_playHighlightFlag), so the menus/selectors/line-up keep
      * their normal palettes. Gameplay feel (dos_gameplay) is a separate setting. */
-    { extern int _gDosGraphics, _gDosGameplay;
+    { extern int _gDosGraphics;
       _gDosGraphics = 1;
-      if (g_arcadeOpts) _gDosGameplay = g_arcadeOpts->arcade_gameplay; }
+      /* The cabinet plays AMIGA or DOS (its reels are by mode); never XBOX. */
+      if (g_arcadeOpts) Gameplay_SetStyle(g_arcadeOpts->arcade_gameplay ? GAMEPLAY_DOS : GAMEPLAY_AMIGA); }
 
     /* No animated advertising hoardings in the arcade — the themed pitches carry
      * their own static perimeter art, and the sliding ad sprites would draw over it.
@@ -2429,7 +2431,8 @@ void ArcadeMainLoop(void)
             s_serviceReq = 0;
             arc_service_menu();
             /* GAMEPLAY may have changed: re-apply it and re-pick the reel subdir. */
-            { extern int _gDosGameplay; if (g_arcadeOpts) _gDosGameplay = g_arcadeOpts->arcade_gameplay; }
+            if (g_arcadeOpts)
+                Gameplay_SetStyle(g_arcadeOpts->arcade_gameplay ? GAMEPLAY_DOS : GAMEPLAY_AMIGA);
             arc_scan_reels();
             arc_music_attract();         /* re-apply ATTRACT AUDIO (may have changed) */
             continue;

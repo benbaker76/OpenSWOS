@@ -37,6 +37,7 @@
 #include "project_identity.h"
 #include "swos_io.h"   /* swos_save_commit — Switch save durability */
 #include "ini.h"
+#include "dos_mode.h"   /* GAMEPLAY_*: [gameplay] style */
 
 #include <ctype.h>
 #include <errno.h>
@@ -158,8 +159,9 @@ static int handler(void *user, const char *section,
         else if (eqi(name, "contest_own_ratings") && parse_bool(value, &b))
             opts->contest_own_ratings = b;
         else if (eqi(name, "style")) {
-            if      (eqi(value, "amiga")) opts->dos_gameplay = 0;
-            else if (eqi(value, "dos"))   opts->dos_gameplay = 1;
+            if      (eqi(value, "amiga")) opts->dos_gameplay = GAMEPLAY_AMIGA;
+            else if (eqi(value, "dos"))   opts->dos_gameplay = GAMEPLAY_DOS;
+            else if (eqi(value, "xbox"))  opts->dos_gameplay = GAMEPLAY_XBOX;
         }
         /* `view` is gone (2026-09-29): the view is part of the style, one setting.
          * An old line is ignored rather than honoured -- a view that differs from the
@@ -488,12 +490,13 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
 
 
     SETTING(n) = (IniEntry){ "gameplay", "style",
-        "; style: amiga | dos. The Amiga release is the definitive one and what this\n"
-        "; port is reverse engineered from; dos is the PC release's 70 FPS physics,\n"
+        "; style: amiga | dos | xbox. The Amiga release is the definitive one and what\n"
+        "; this port is reverse engineered from; dos is the PC release's 70 FPS physics,\n"
         "; timers and formations, and its 320x200 view -- the view is part of how it\n"
         "; plays (what is on screen decides which players the game picks), so the\n"
-        "; style sets both. Online, the game plays the HOST's style.\n",
-        opts->dos_gameplay ? "dos" : "amiga" };
+        "; style sets both; xbox is SWOS 2020's XBOX style: 60 FPS, the Amiga's ball\n"
+        "; physics and view, the DOS goalkeepers. Online, the game plays the HOST's style.\n",
+        opts->dos_gameplay == GAMEPLAY_DOS ? "dos" : opts->dos_gameplay == GAMEPLAY_XBOX ? "xbox" : "amiga" };
     SETTING(n) = (IniEntry){ "replays", "auto_save",
         "; auto_save: true | false — every match is recorded to LATEST.SRP in the save\n"
         "; folder and can be watched from HIGHLIGHTS -> LOAD. true also keeps a dated\n"

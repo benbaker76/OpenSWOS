@@ -410,7 +410,7 @@ store:
  * ================================================================== */
 static void placeBallOnDivingKeeper(Sprite *gkSprite, int16_t yOff)
 {
-    if (_gDosGameplay) {
+    if (_gDosKeepers) {         /* the DOS keeper: DOS, and XBOX (dos_mode.h) */
         _ballSprite.x.s.i    = gkSprite->x.s.i;
         _ballSprite.y.s.frac = gkSprite->y.s.frac;
     } else {

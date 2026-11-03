@@ -6,6 +6,7 @@
 #include "world_playoff.h"
 #include "player_face3.h"
 #include "menus.h"
+#include "dos_mode.h"         /* GAMEPLAY_*, Gameplay_SetStyle: OPTIONS -> GAMEPLAY */
 #ifdef SWOS_SDL_BUILD
 /* PlatformInitOptions + Settings_Save, for the OPTIONS -> GAMEPLAY row. Guarded
  * because this header reaches platform_sdl.h and therefore SDL.h, which the
@@ -2233,9 +2234,10 @@ void ChangeMenuMusic(MenuEntry *entry)
 /* ================================================================
  * ChangeGameplayStyle — the OPTIONS menu's "GAMEPLAY" row
  *
- * Toggles AMIGA <-> DOS, which is the same switch as `--dos-gameplay` and
- * [dos] gameplay in SWOS.ini: the DOS release's 70fps physics, its timer
- * reloads and its formation set, against the Amiga's.
+ * Steps AMIGA -> DOS -> XBOX (SDL; the Amiga build, AMIGA <-> DOS), the same
+ * switch as `--gameplay` and [gameplay] style in SWOS.ini: the DOS release's
+ * 70fps physics, its timer reloads and its formation set, or SWOS 2020's XBOX
+ * (60fps, the Amiga's ball, the DOS keepers), against the Amiga's.
  *
  * Three things have to happen together, and the order matters:
  *
@@ -2254,17 +2256,15 @@ void ChangeMenuMusic(MenuEntry *entry)
 #ifdef SWOS_SDL_BUILD
 /* The switch itself, for this menu row and for the online lobby (GameplayStyle_Borrow).
  * `persist` writes it to SWOS.ini, as the OPTIONS row does; a borrowed style does not. */
-void GameplayStyle_Set(int dos, int persist)
+void GameplayStyle_Set(int style, int persist)
 {
     extern int _gDosGameplay;
-    extern uint16_t _gameplayStyleOption;
     extern void ApplyGameStyle(void);
     extern int _gDosView;
     extern PlatformInitOptions *g_arcadeOpts;
     extern const char *g_arcadeIniPath;
 
-    _gameplayStyleOption = (uint16_t)(dos ? 1 : 0);
-    _gDosGameplay = dos ? 1 : 0;
+    Gameplay_SetStyle(style);   /* the style, its flags, the row's mirror (dos_gameplay.c) */
 
     ApplyGameStyle();
 
@@ -2292,7 +2292,7 @@ void GameplayStyle_Set(int dos, int persist)
         _gDosView = (g_arcadeOpts->view_style == VIEW_STYLE_DOS) ||
                     (g_arcadeOpts->view_style == VIEW_STYLE_AUTO && _gDosGameplay);
         if (persist) {
-            g_arcadeOpts->dos_gameplay = _gDosGameplay;
+            g_arcadeOpts->dos_gameplay = _gGameplayStyle;
             if (g_arcadeIniPath)
                 Settings_Save(g_arcadeOpts, g_arcadeIniPath);
         }
@@ -2305,12 +2305,11 @@ void GameplayStyle_Set(int dos, int persist)
  * OPTIONS. Borrowing twice keeps the first style to give back. */
 static int s_ownStyle = -1;
 
-void GameplayStyle_Borrow(int dos)
+void GameplayStyle_Borrow(int style)
 {
-    extern int _gDosGameplay;
     if (s_ownStyle < 0)
-        s_ownStyle = _gDosGameplay;
-    GameplayStyle_Set(dos, 0);
+        s_ownStyle = _gGameplayStyle;
+    GameplayStyle_Set(style, 0);
 }
 
 void GameplayStyle_GiveBack(void)
@@ -2318,7 +2317,7 @@ void GameplayStyle_GiveBack(void)
     if (s_ownStyle < 0)
         return;
     GameplayStyle_Set(s_ownStyle, 0);
-    fprintf(stderr, "[p2p] back to this player's own style (%s)\n", s_ownStyle ? "DOS" : "AMIGA");
+    fprintf(stderr, "[p2p] back to this player's own style (%s)\n", Gameplay_StyleName(s_ownStyle));
     s_ownStyle = -1;
 }
 #endif
@@ -2327,16 +2326,12 @@ void ChangeGameplayStyle(MenuEntry *entry)
 {
 #ifdef SWOS_SDL_BUILD
     /* The switch, the view and SWOS.ini: GameplayStyle_Set. */
-    extern int _gDosGameplay;
-    GameplayStyle_Set(!_gDosGameplay, 1);
+    GameplayStyle_Set((_gGameplayStyle + 1) % GAMEPLAY_STYLES, 1);
 #else
-    extern int _gDosGameplay;
-    extern uint16_t _gameplayStyleOption;
     extern void ApplyGameStyle(void);
 
-    _gameplayStyleOption ^= 1;
-    _gDosGameplay = (int)_gameplayStyleOption;
-
+    /* No XBOX on the Amiga: no 60 Hz tick. */
+    Gameplay_SetStyle(_gGameplayStyle == GAMEPLAY_DOS ? GAMEPLAY_AMIGA : GAMEPLAY_DOS);
     ApplyGameStyle();
 #endif
 

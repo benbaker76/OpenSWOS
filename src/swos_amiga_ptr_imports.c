@@ -873,16 +873,16 @@ ON_OFF_TABLE(_allPlTeamsEqualStrTable, _allPlayerTeamsEqual);
 ON_OFF_TABLE(_autoSaveHlStrTable,      _autoSaveHighlights);
 ON_OFF_TABLE(_menuMusicStrTable,       _menuMusic);
 
-/* OPTIONS -> GAMEPLAY: AMIGA / DOS, indexed by _gameplayStyleOption
- * (dos_gameplay.c). Same shape as the ON/OFF tables above; spelled out because
- * the entries are not _aOff/_aOn. */
-extern char _aAmigaStyle[], _aDosStyle[];
+/* OPTIONS -> GAMEPLAY: AMIGA / DOS / XBOX, indexed by _gameplayStyleOption
+ * (dos_gameplay.c, GAMEPLAY_*; the Amiga build never reaches XBOX). Same shape as
+ * the ON/OFF tables above; spelled out because the entries are not _aOff/_aOn. */
+extern char _aAmigaStyle[], _aDosStyle[], _aXboxStyle[];
 extern uint16_t _gameplayStyleOption;
 struct __attribute__((packed)) {
-    void    *indexPtr; uint16_t base; void    *entries[2];
+    void    *indexPtr; uint16_t base; void    *entries[3];
 } _gameplayStyleStrTable = {
     (&_gameplayStyleOption), 0,
-    { (void *)_aAmigaStyle, (void *)_aDosStyle }
+    { (void *)_aAmigaStyle, (void *)_aDosStyle, (void *)_aXboxStyle }
 };
 
 /* OPTIONS -> PITCHES: DOS / 2020, indexed by _pitchStyleOption (pitch.c). */

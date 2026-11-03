@@ -12,6 +12,7 @@
 #include "goalkeeper.h"
 #include "tackle_foul.h"
 #include "headers.h"
+extern int32_t _gsKeeperLooseBallMinDeltaZ;   /* the keeper's loose ball -- dos_gameplay.c */
 extern int16_t _gsBallDefensiveZ;   /* GS_27_22 goalie-catch z-threshold — dos_gameplay.c */
 extern int16_t _gsThrowInHideResult; /* GS_55_50 throw-in UI gate — dos_gameplay.c */
 #include "player_anim.h"
@@ -694,7 +695,8 @@ not_in_penalty:
                 goto save_not_attempted_set_run_speed;
             if (ball->deltaZ.raw > 0x8000)
                 goto save_not_attempted_set_run_speed;
-            if (ball->deltaZ.raw < -0x8000)
+            /* -0x8000 in both releases; +0x8000 in XBOX (dos_gameplay.c). */
+            if (ball->deltaZ.raw < _gsKeeperLooseBallMinDeltaZ)
                 goto save_not_attempted_set_run_speed;
             goto mark_opponent_and_chase;
         }

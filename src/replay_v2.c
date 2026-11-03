@@ -310,6 +310,7 @@ static struct {
     uint32_t  kickoffLen;
     uint64_t  layout;
     uint8_t   rules;
+    uint8_t   style;            /* GAMEPLAY_*: the rules byte cannot say XBOX */
     uint16_t  simWidth;
     uint8_t  *inputs;           /* SRP_INPUT_BYTES a frame */
     uint32_t *hashes;
@@ -347,6 +348,7 @@ void ReplayRec_SetKickoff(const uint8_t *packet, uint32_t len, uint64_t layout, 
         memcpy(s_resume.kickoff, packet, len);
     s_resume.layout = layout;
     s_resume.rules = rules;
+    s_resume.style = (uint8_t)_gGameplayStyle;
     s_resume.simWidth = simWidth;
 }
 
@@ -625,9 +627,11 @@ static uint8_t *build_meta(void)
     BE_WRITE_U16(q, 1);                                           q += 2;  /* meta version */
     BE_WRITE_U16(q, (uint16_t)_screen_width);                     q += 2;
     /* 8 the DOS view (320x200), 16 "the view is recorded" -- a recording made before the
-     * view was kept says neither, and the player works it out (recorded_view). */
+     * view was kept says neither, and the player works it out (recorded_view); 32 the
+     * XBOX gameplay style (1 is DOS's; neither, the Amiga's). */
     BE_WRITE_U16(q, (uint16_t)((_gDosGameplay ? 1 : 0) | (_gDosGraphics ? 2 : 0) |
-                               (_gArcadeMode ? 4 : 0) | (_gDosView ? 8 : 0) | 16));   q += 2;
+                               (_gArcadeMode ? 4 : 0) | (_gDosView ? 8 : 0) | 16 |
+                               (_gGameplayStyle == GAMEPLAY_XBOX ? 32 : 0)));   q += 2;
     /* The height the match was SIMULATED in (display.h _sim_view_height): 200 in the DOS
      * view, 272 in the Amiga's, whatever the picture. Playback maps the recorded camera
      * onto its own picture from it, exactly as the live match did (camera.c
@@ -711,6 +715,7 @@ static void content(SrpContent *c)
         c->hashes     = s_resume.hashes;
         c->layout     = s_resume.layout;
         c->rules      = s_resume.rules;
+        c->style      = s_resume.style;
         c->simWidth   = s_resume.simWidth;
     }
 }
@@ -1214,6 +1219,7 @@ int32_t ReplayV2_LoadResume(const char *name, ReplayResume *out)
         rc = 3;
     } else {
         out->rules = simv[2];
+        out->style = simv[3];
         out->layout = ((uint64_t)BE_READ_U32(simv + 4) << 32) | BE_READ_U32(simv + 8);
         out->simWidth = BE_READ_U16(simv + 12);
         out->hashes = (uint32_t *)malloc((size_t)out->frames * sizeof(uint32_t) + 1);

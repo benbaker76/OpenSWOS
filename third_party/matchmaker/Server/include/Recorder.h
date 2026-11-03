@@ -73,6 +73,7 @@ private:
         bool resume = false;
         uint64_t layout = 0;
         uint8_t rules = 0;
+        uint8_t style = 0;          // the gameplay style (GAMEPLAY_*): the RESUME message's byte 9
         uint16_t resumeSimWidth = 0;
         std::vector<uint8_t> setup, kickoff, inputs;   // inputs: SRP_INPUT_BYTES a frame
         bool inputsBroken = false;              // a batch came without its inputs

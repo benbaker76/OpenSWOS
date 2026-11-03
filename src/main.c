@@ -192,6 +192,10 @@ static void print_usage(const char *argv0)
         "  --dos-graphics=<on|off>   Render the DOS-version graphics (bin/grafs_dos)\n"
         "                            instead of the Amiga graphics. Default: off.\n"
         "                            PC-only extra; the Amiga look is the default.\n"
+        "  --gameplay=<amiga|dos|xbox>  The gameplay style ([gameplay] style): the\n"
+        "                            Amiga's (50 Hz), the DOS version's (70 Hz), or\n"
+        "                            SWOS 2020's XBOX (60 Hz, the Amiga's ball physics,\n"
+        "                            the DOS goalkeepers).\n"
         "  --dos-gameplay=<on|off>   Use the DOS version's gameplay tuning: a 70 Hz\n"
         "                            game tick (movement scaled 41/64 so it doesn't\n"
         "                            play faster), plus the DOS goalkeeper reach and\n"
@@ -697,9 +701,17 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Invalid --jag-graphics value '%s' (expected on|off)\n", v);
                 return 1;
             }
+        } else if ((v = match_kv(a, "gameplay")) != NULL) {
+            if      (strcmp(v, "amiga") == 0) opts.dos_gameplay = GAMEPLAY_AMIGA;
+            else if (strcmp(v, "dos") == 0)   opts.dos_gameplay = GAMEPLAY_DOS;
+            else if (strcmp(v, "xbox") == 0)  opts.dos_gameplay = GAMEPLAY_XBOX;
+            else {
+                fprintf(stderr, "Invalid --gameplay value '%s' (expected amiga|dos|xbox)\n", v);
+                return 1;
+            }
         } else if ((v = match_kv(a, "dos-gameplay")) != NULL) {
-            if (strcmp(v, "on") == 0 || strcmp(v, "1") == 0)       opts.dos_gameplay = 1;
-            else if (strcmp(v, "off") == 0 || strcmp(v, "0") == 0) opts.dos_gameplay = 0;
+            if (strcmp(v, "on") == 0 || strcmp(v, "1") == 0)       opts.dos_gameplay = GAMEPLAY_DOS;
+            else if (strcmp(v, "off") == 0 || strcmp(v, "0") == 0) opts.dos_gameplay = GAMEPLAY_AMIGA;
             else {
                 fprintf(stderr, "Invalid --dos-gameplay value '%s' (expected on|off)\n", v);
                 return 1;
@@ -1023,7 +1035,7 @@ int main(int argc, char **argv)
         if (Rollback_Enabled() || NetplayMatch_Enabled())
             SDL_setenv("SWOS_AUDIO_OFF", "1", 1);
         if (!Rollback_Enabled())
-        opts.dos_gameplay = 1;   /* the corpus is DOS gameplay (docs/TESTS.md 5c) */
+        opts.dos_gameplay = GAMEPLAY_DOS;   /* the corpus is DOS gameplay (docs/TESTS.md 5c) */
         /* The recordings were made against a reference implementation of the
          * ORIGINAL, so a replay has to PLAY the original — including its
          * fire-hold lockout bug. Without this the rig diverges on quick_fire /
@@ -1204,22 +1216,17 @@ int main(int argc, char **argv)
     DosMusic_SetMenuRecording(opts.menu_recording);
     DosSound_SetCommentary(opts.commentary);
     { extern int _gArcadeMode; _gArcadeMode = opts.arcade; }
-    _gDosGameplay = opts.dos_gameplay;
+    Gameplay_SetStyle(opts.dos_gameplay);      /* the style, its flags and the OPTIONS row */
     { extern int _gOriginalFireHoldLockout;
       _gOriginalFireHoldLockout = opts.fire_hold_lockout; }
     { extern int _gContestOwnRatings;
       _gContestOwnRatings = opts.contest_own_ratings; }
-    /* The OPTIONS menu draws its GAMEPLAY row from a uint16_t mirror (the
-     * string-table header reads its index as one). Seed it here so the row
-     * shows what SWOS.ini / --dos-gameplay actually selected; the toggle
-     * itself keeps the two in step (ChangeGameplayStyle in menus.c). */
-    { extern uint16_t _gameplayStyleOption;
-      _gameplayStyleOption = (uint16_t)(opts.dos_gameplay != 0); }
-
     /* And say which style is actually in force, so "it ran in Amiga mode" is
      * something a tester can read off rather than infer from feel. */
-    fprintf(stderr, "[gameplay] %s\n", _gDosGameplay
+    fprintf(stderr, "[gameplay] %s\n", _gGameplayStyle == GAMEPLAY_DOS
             ? "DOS (70fps physics and timers, DOS formations)"
+            : _gGameplayStyle == GAMEPLAY_XBOX
+            ? "XBOX (SWOS 2020's: 60fps, Amiga ball physics, DOS goalkeepers)"
             : "AMIGA (the shipped default)");
     /* Say it out loud — this one is a deliberate departure from the original,
      * so a tester comparing against real SWOS can see which half he is on. */
@@ -1374,7 +1381,7 @@ int main(int argc, char **argv)
     int dosView;
     {
         dosView = (opts.view_style == VIEW_STYLE_DOS) ||
-                      (opts.view_style == VIEW_STYLE_AUTO && opts.dos_gameplay);
+                      (opts.view_style == VIEW_STYLE_AUTO && opts.dos_gameplay == GAMEPLAY_DOS);
         /* Remembered, not applied: the MENUS are 272 lines tall (Amiga artwork),
          * so switching the whole game to 200 cuts their bottom rows off -- which
          * is exactly what it did when this was set at startup. The view changes
@@ -1382,10 +1389,10 @@ int main(int argc, char **argv)
         { extern int _gDosView; _gDosView = dosView; }
         if (dosView)
             ;   /* reported below, once the display shape is known */
-        if (opts.view_style == VIEW_STYLE_AMIGA && opts.dos_gameplay)
+        if (opts.view_style == VIEW_STYLE_AMIGA && opts.dos_gameplay == GAMEPLAY_DOS)
             fprintf(stderr, "[video] DOS gameplay with the Amiga view (--view): a mix that "
                             "matches neither original -- without --view the style sets both\n");
-        if (opts.view_style == VIEW_STYLE_DOS && !opts.dos_gameplay)
+        if (opts.view_style == VIEW_STYLE_DOS && opts.dos_gameplay != GAMEPLAY_DOS)
             fprintf(stderr, "[video] the DOS view with Amiga gameplay (--view): a mix that "
                             "matches neither original -- without --view the style sets both\n");
     }

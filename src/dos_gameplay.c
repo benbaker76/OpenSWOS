@@ -1,7 +1,8 @@
 /*
- * dos_gameplay.c — apply the DOS (70 FPS) or Amiga (50 FPS) gameplay tuning.
- * See dos_gameplay.h / docs/DOS_GAMEPLAY.md. Everything here is gated on
- * gDosGameplay; with it 0 the Amiga values (== the globals' defaults) are written.
+ * dos_gameplay.c — apply the gameplay style's tuning: the Amiga (50 FPS), the DOS
+ * (70 FPS) or SWOS 2020's XBOX (60 FPS: the Amiga's ball, the DOS keepers).
+ * See dos_gameplay.h / docs/DOS_GAMEPLAY.md (section 9: XBOX). With the AMIGA style the
+ * Amiga values (== the globals' defaults) are written.
  */
 #include "dos_gameplay.h"
 #include "dos_mode.h"
@@ -127,15 +128,18 @@ int16_t  _gsStoppageGameOver     = 1500; /* GS_1650_1500 GameOver */
  * exactly. Ball trajectory is NOT scaled here — it rides the §3 physics constants;
  * callers that read only the direction (AI goal-angle, tactics arrows) are
  * unaffected. Default 1/1 so the Amiga build (dos=0) never scales. ---------------- */
-/* The OPTIONS menu's "GAMEPLAY" row: 0 = AMIGA, 1 = DOS. A separate 16-bit
+/* The OPTIONS menu's "GAMEPLAY" row: 0 = AMIGA, 1 = DOS, 2 = XBOX (GAMEPLAY_*). A separate 16-bit
  * mirror of _gDosGameplay because the menu's string-table header reads its
  * index as a uint16_t (menu_system.c) — pointing it at the `int` would read
  * the wrong two bytes on the big-endian Amiga build, and read as 0 forever.
  * ChangeGameplayStyle (menus.c) is what keeps the two in step. */
 uint16_t _gameplayStyleOption = 0;
 
-int16_t  _gMoveDeltaScaleNum = 1;       /* DOS 41 / Amiga 1  (future Amiga-60: 50) */
-int16_t  _gMoveDeltaScaleDen = 1;       /* DOS 64 / Amiga 1  (future Amiga-60: 60) */
+/* XBOX 50/60: SWOS 2020's `D1 * 50 / 60` for its 60 fps styles (render.cpp
+ * CalculateDeltaXAndY_125, whose g_BallMoved is never set), C truncation and all --
+ * math68k.c's general path. */
+int16_t  _gMoveDeltaScaleNum = 1;       /* DOS 41 / Amiga 1 / XBOX 50 */
+int16_t  _gMoveDeltaScaleDen = 1;       /* DOS 64 / Amiga 1 / XBOX 60 */
 
 /* GS_54_49 — MEASURED, not chosen. docs/DOS_GAMEPLAY.md originally took 54 from
  * swos-2020's `GS_54_49 = 69; // original = 54`, but a DOS recording settles it:
@@ -148,15 +152,55 @@ int16_t  _gMoveDeltaScaleDen = 1;       /* DOS 64 / Amiga 1  (future Amiga-60: 6
 #define GS_FRAMES_PER_GAME_SECOND_DOS  70    /* was 54 (swos-2020 comment); see above */
 #define GS_FRAMES_PER_GAME_SECOND_AMIGA 49
 
+/* The goalkeeper's loose ball (update_players.c, far_or_unfavorable_shot_branch): a slow
+ * ball near him, low, with its vertical speed inside [this, 0x8000], and he goes for it.
+ * Both releases compare against -0x8000 (SWOS2.s; swos.asm 113924). SWOS 2020 replaced
+ * the DOS compare with GS_SF_8000h__8000h, +0x8000 in its DOS and XBOX styles ("sign
+ * fix"), so its keepers leave almost every such ball; its other five GS_SF sites are
+ * masked to a byte straight after and change nothing. Our DOS style keeps the real DOS
+ * value, which the recorded-game rig matches; XBOX is SWOS 2020's, so it takes theirs. */
+int32_t  _gsKeeperLooseBallMinDeltaZ = -0x8000;
+
+int _gGameplayStyle = GAMEPLAY_AMIGA;
+int _gDosKeepers = 0;
+
+const char *Gameplay_StyleName(int style)
+{
+    return style == GAMEPLAY_DOS ? "DOS" : style == GAMEPLAY_XBOX ? "XBOX" : "AMIGA";
+}
+
+/* The one place the style changes: the three flags together, and the OPTIONS row's
+ * mirror. The constants follow with ApplyGameStyle (the callers' business: at kick-off
+ * it runs anyway). The Amiga build has no 60 Hz tick, so XBOX is SDL's. */
+void Gameplay_SetStyle(int style)
+{
+#ifndef SWOS_SDL_BUILD
+    if (style == GAMEPLAY_XBOX)
+        style = GAMEPLAY_AMIGA;
+#endif
+    if (style < 0 || style >= GAMEPLAY_STYLES)
+        style = GAMEPLAY_AMIGA;
+    _gGameplayStyle = style;
+    _gDosGameplay = style == GAMEPLAY_DOS;
+    _gDosKeepers = style == GAMEPLAY_DOS || style == GAMEPLAY_XBOX;
+    _gameplayStyleOption = (uint16_t)style;
+}
+
 int DosGameplay_TargetFps(void)
 {
-    return _gDosGameplay ? 70 : 50;
+    return _gGameplayStyle == GAMEPLAY_DOS ? 70 : _gGameplayStyle == GAMEPLAY_XBOX ? 60 : 50;
 }
 
 void ApplyGameStyle(void)
 {
-    const int dos = _gDosGameplay;
+    const int style = _gGameplayStyle;
+    const int dos = style == GAMEPLAY_DOS;
     int i;
+    /* A constant's value in each style: the Amiga's, the DOS release's, XBOX's. XBOX is
+     * SWOS 2020's style 4 (src/options.cpp setGameStyleVariables): its timers are the
+     * Amiga's x1.2 (60 frames a second for 50), and where SWOS 2020 has no GS_* constant
+     * -- the reloads the replay rig found after it, below -- the same x1.2 is ours. */
+#define BY_STYLE(amiga, dosv, xbox) (style == GAMEPLAY_DOS ? (dosv) : style == GAMEPLAY_XBOX ? (xbox) : (amiga))
 
     /* --- Formations ---
      * The DOS release re-tuned 4-4-2, 4-3-3 and Sweep (21 coverage bytes; its
@@ -167,17 +211,20 @@ void ApplyGameStyle(void)
     TacticsData_SelectRelease(dos);
 
     /* --- Goalkeeper --- */
-    _kKeeperSaveDistance[0] = dos ? 16 : 24;
-    /* DOS reacts at shorter range: the whole reach table shifts down by 0x8000. */
+    _kKeeperSaveDistance[0] = BY_STYLE(24, 16, 16);
+    /* DOS reacts at shorter range: the whole reach table shifts down by 0x8000. XBOX's
+     * starts two steps above the DOS one, 0x40000..0x78000 ("XBOX GK Values"). */
     for (i = 0; i < 8; i++) {
         uint32_t amiga = (uint32_t)(0x30000 + i * 0x8000);
-        _kGoalkeeperDiveDeltas[i] = dos ? (amiga - 0x8000u) : amiga;
+        _kGoalkeeperDiveDeltas[i] = BY_STYLE(amiga, amiga - 0x8000u, amiga + 0x10000u);
     }
+    _gsKeeperLooseBallMinDeltaZ = BY_STYLE(-0x8000, -0x8000, 0x8000);
 
     /* --- Ball physics (existing k-globals) --- */
     _kBallGroundConstant[0] = dos ? 13u : 16u;
     _kBallAirConstant[0]    = dos ? 4u  : 10u;
-    _kGravityConstant[0]    = dos ? 3291u : 4608u;
+    /* XBOX: the Amiga's ball at 60 frames a second -- its gravity per frame x50/60. */
+    _kGravityConstant[0]    = BY_STYLE(4608u, 3291u, 3840u);
     /* Only the first 3 entries of kPitchBallSpeedInfluence differ between styles
      * (stored as uint16 holding signed values, read back as int16). */
     _kPitchBallSpeedInfluence[0] = (uint16_t)(int16_t)(dos ? -3 : -2);
@@ -186,30 +233,31 @@ void ApplyGameStyle(void)
     /* [3..6] = 0,0,-1,-1 in both styles (left at their defaults). */
 
     /* --- Match clock + GS_* stoppage timers --- */
-    _gsFramesPerGameSecond = dos ? GS_FRAMES_PER_GAME_SECOND_DOS : GS_FRAMES_PER_GAME_SECOND_AMIGA;
-    _gsEndGameCounter      = dos ? 55  : 50;
-    _gsBallDefensiveZ      = dos ? 27  : 22;
-    _gsPenaltyTimer        = dos ? 110 : 100;
-    _gsPenaltiesKeeperFree = dos ?  55 :  50;
-    _gsHalftimeStoppage    = dos ? 385 : 350;
-    _gsBallOutOfGameTimer  = dos ? 550 : 500;
-    _gsResultAutoAdvance   = dos ? 660 : 600;
-    _gsKickoffStoppage     = dos ? 825 : 750;
-    _gsStoppageEventReload = dos ? 55  : 50;
-    _gsResultHalftimeLength = dos ? 275 : 250;
-    _gsResultBreakLength    = dos ? 165 : 150;
-    _gsSubsMovementDelay    = dos ? 4   : 2;
-    _gsCameraLeavingSubs    = dos ? 55  : 50;
-    _gsPlayerDownTimer      = dos ? 55  : 50;
-    _gsThrowInHideResult    = dos ? 55  : 50;
-    _gsStoppageShowerPan    = dos ? 110 : 100;
-    _gsStoppageHalfEnded    = dos ? 275 : 250;
-    _gsStoppageHalftime     = dos ? 770 : 700;
-    _gsStoppageGameOver     = dos ? 1650: 1500;
+    _gsFramesPerGameSecond = BY_STYLE(GS_FRAMES_PER_GAME_SECOND_AMIGA, GS_FRAMES_PER_GAME_SECOND_DOS, 59);
+    _gsEndGameCounter      = BY_STYLE(50, 55, 60);
+    _gsBallDefensiveZ      = BY_STYLE(22, 27, 27);      /* XBOX: the DOS keeper's ("XBOX GK Values") */
+    _gsPenaltyTimer        = BY_STYLE(100, 110, 120);
+    _gsPenaltiesKeeperFree = BY_STYLE(50, 55, 60);
+    _gsHalftimeStoppage    = BY_STYLE(350, 385, 420);
+    _gsBallOutOfGameTimer  = BY_STYLE(500, 550, 600);
+    _gsResultAutoAdvance   = BY_STYLE(600, 660, 720);
+    _gsKickoffStoppage     = BY_STYLE(750, 825, 900);
+    _gsStoppageEventReload = BY_STYLE(50, 55, 60);
+    _gsResultHalftimeLength = BY_STYLE(250, 275, 300);
+    _gsResultBreakLength    = BY_STYLE(150, 165, 180);
+    _gsSubsMovementDelay    = BY_STYLE(2, 4, 2);       /* DOS's 4 is a feel change, not a rate */
+    _gsCameraLeavingSubs    = BY_STYLE(50, 55, 60);
+    _gsPlayerDownTimer      = BY_STYLE(50, 55, 60);
+    _gsThrowInHideResult    = BY_STYLE(50, 55, 60);
+    _gsStoppageShowerPan    = BY_STYLE(100, 110, 120);
+    _gsStoppageHalfEnded    = BY_STYLE(250, 275, 300);
+    _gsStoppageHalftime     = BY_STYLE(700, 770, 840);
+    _gsStoppageGameOver     = BY_STYLE(1500, 1650, 1800);
 
     /* --- Movement speed_factor (swos-2020 CalculateDeltaXAndY_125, §8.3) ---
      * DOS/PC 70fps scales the per-frame movement deltas by 41/64 so players don't
      * cover 1.4x the ground per second at the higher frame rate; Amiga 50fps = 1/1. */
-    _gMoveDeltaScaleNum = dos ? 41 : 1;
-    _gMoveDeltaScaleDen = dos ? 64 : 1;
+    _gMoveDeltaScaleNum = BY_STYLE(1, 41, 50);
+    _gMoveDeltaScaleDen = BY_STYLE(1, 64, 60);
+#undef BY_STYLE
 }

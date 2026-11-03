@@ -91,6 +91,13 @@ int32_t        P2PLink_Punch(const char *const *addresses, int32_t count, uint16
  * rematch through the lobby registers again by itself. token 0 = direct, which
  * the direct-IP entry points (Host, Join) also set. */
 void           P2PLink_SetRelay(uint64_t token, int32_t player);
+/* Which player this side is (1 the host, 2 the joiner) on a link that PUNCHES, without
+ * touching the relay: what decides who follows whose gameplay style (link_connected).
+ * A punched link otherwise has both sides joining, and both borrowed the other's style
+ * -- the direct-IP lobby's rematch, and the test harness's every link: AMIGA against DOS
+ * or XBOX swapped and went out of step at frame 1 (2026-11-02). The matchmaker's games
+ * get it from P2PLink_SetRelay. Kept across P2PLink_Punch calls, as that is. */
+void           P2PLink_SetPlayer(int32_t player);
 /* The token of the relayed match in progress, or 0 when it is played direct. */
 uint64_t       P2PLink_RelayToken(void);
 /* The relay as a FALLBACK: the server made a session (`token`, as `player`) in case the

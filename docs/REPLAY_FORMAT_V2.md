@@ -122,7 +122,7 @@ or CRC is refused with a reason rather than played.
 Version, screen width the recording was made on, gameplay flags (1 DOS
 gameplay, 2 DOS graphics, 4 arcade, 8 the DOS view, 16 the view is recorded -- a file
 without 16 predates it, and the viewer works the view out: docs/PLAYBACK.md, "A recording
-is shown in the view it was played in"), then (since 2026-09-30, in what was a reserved word)
+is shown in the view it was played in"; 32 the XBOX gameplay style, since 2026-11-02), then (since 2026-09-30, in what was a reserved word)
 the view HEIGHT the match was simulated in -- 200 DOS, 272 Amiga; 0 in older files --
 which playback maps the camera from onto its own picture (docs/WIDESCREEN.md "The DOS
 view"), the UTC time, the 32-character build
@@ -219,7 +219,7 @@ finds some but not all refuses the file, rather than play half of it).
 |---|---|---|
 | `SIMV` | as is, 16 bytes | version u16 (1); the handshake's rules byte (`P2P_RULE_*`: 0x01 DOS gameplay, 0x02 arcade, 0x04 fire-hold lockout, 0x08 no bookings, 0x10 no injuries, 0x20 the DOS view, 0x40 the view is known -- `--srp-resim` plays in the recorded view; a recording without 0x40 plays in the local one and, if it parts at frame 1, says to try the other `--view`; 0x80 one clock tick a frame -- a recording without it was
 played on the double clock every live match ran before 2026-09-29, and `--srp-resim` replays
-it that way, `NetplayMatch_SetLegacyDoubleClock`, docs/NETPLAY.md §5); 0; the registry's layout hash u64 (`SimState_LayoutHash`); the simulation width u16 (`_sim_draw_width`); 0 |
+it that way, `NetplayMatch_SetLegacyDoubleClock`, docs/NETPLAY.md §5); the gameplay style (`GAMEPLAY_*`: 1 DOS, 2 XBOX -- since 2026-11-02; 0, in an older file or an AMIGA match, means the rules byte's DOS bit says); the registry's layout hash u64 (`SimState_LayoutHash`); the simulation width u16 (`_sim_draw_width`); 0 |
 | `SETP` | deflated | the match setup the host sent (`include/netplay_setup.h`): teams, tactics, the rules they are played by |
 | `STAT` | as is (it is deflated already) | a `state_wire` packet of the SIM and VIEW tiers at the start of frame 0, in the portable encoding (`src/state_wire.c`) |
 | `INPT` | deflated | 4 bytes a frame: player 1's two bytes (controls, key), then player 2's, as `MatchStep_UnpackInput` reads them |

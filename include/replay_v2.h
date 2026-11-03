@@ -90,6 +90,7 @@ typedef struct {
     uint32_t  frames;
     uint64_t  layout;       /* SimState_LayoutHash of the build that recorded it */
     uint8_t   rules;        /* P2P_RULE_* it was played by */
+    uint8_t   style;        /* GAMEPLAY_* (SIMV byte 3); 0 before XBOX: the rules byte's DOS bit */
     uint16_t  simWidth;
 } ReplayResume;
 /* 0; 1 no such .SRP; 2 recorded only to be watched (no resume parts); 3 broken. A bare

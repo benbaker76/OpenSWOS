@@ -18,7 +18,7 @@
     X(matchMakingMenu, "swos2020/matchMakingMenu", MatchMakingMenu, 53) \
     X(openLobbyMenu, "swos2020/openLobbyMenu", OpenLobbyMenu, 9) \
     X(mpWaitingMenu, "swos2020/mpWaitingMenu", MpWaitingMenu, 7) \
-    X(hostGameMessageMenu, "swos2020/hostGameMessageMenu", HostGameMessageMenu, 10) \
+    X(hostGameMessageMenu, "swos2020/hostGameMessageMenu", HostGameMessageMenu, 11) \
     X(mmSettingsMenu, "swos2020/mmSettingsMenu", MmSettingsMenu, 22) \
     X(rankingsMenu, "swos2020/rankingsMenu", RankingsMenu, 6) \
     X(rankingMenu, "swos2020/rankingMenu", RankingMenu, 178) \
@@ -41,7 +41,7 @@
     X(myFriendlyStatsMenu, "swos2020/myFriendlyStatsMenu", MyFriendlyStatsMenu, 107) \
     X(selectUniformMenu, "swos2020/selectUniformMenu", SelectUniformMenu, 39) \
 
-/* Every handler name the imported menus reference (261), sorted. */
+/* Every handler name the imported menus reference (262), sorted. */
 #define SWOS2020_MENU_CALLBACKS(X) \
     X(LeftBasicColor_Dec_onSelect) \
     X(LeftBasicColor_Inc_onSelect) \
@@ -94,6 +94,7 @@
     X(hostGameMessageMenu_OnInit) \
     X(hostGameMessageMenu_button1_OnSelect) \
     X(hostGameMessageMenu_button2_OnSelect) \
+    X(hostGameMessageMenu_button3_OnSelect) \
     X(hostGameMessageMenu_exit_OnSelect) \
     X(leagueInfo1_button1_onSelect) \
     X(leagueInfo1_button2_onSelect) \
@@ -700,8 +701,9 @@ enum {
     HostGameMessageMenu_button1 = 7,
     HostGameMessageMenu_button2 = 8,
     HostGameMessageMenu_exit = 9,
+    HostGameMessageMenu_button3 = 10,
 };
-#define HostGameMessageMenu_numEntries 10
+#define HostGameMessageMenu_numEntries 11
 
 /* ---- mmSettingsMenu -- src/menus/mmSettings.mnu ---- */
 enum {

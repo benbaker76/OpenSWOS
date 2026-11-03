@@ -1171,9 +1171,9 @@ static void applySetup(void)
      * must NOT pin the RNG -- a Rand() that returns a constant would hide every RNG
      * variable the rollback registry is missing. */
     if (!Rollback_Enabled()) {
-        if (!_gDosGameplay) {
-            fprintf(stderr, "[replay] forcing --dos-gameplay=on (the corpus is DOS)\n");
-            _gDosGameplay = 1;
+        if (_gGameplayStyle != GAMEPLAY_DOS) {
+            fprintf(stderr, "[replay] forcing --gameplay=dos (the corpus is DOS)\n");
+            Gameplay_SetStyle(GAMEPLAY_DOS);
         }
         _replayFixedRandom = s_setup.fixedRandomValue;
     }

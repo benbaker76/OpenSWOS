@@ -219,8 +219,19 @@ def _switch_rows():
     return rows
 
 
+# hostGameMessageMenu: a THIRD button, for the question OPEN asks the host -- which
+# gameplay the game plays (online_menus.c host_in_style): AMIGA, PC and XBOX. Under
+# button2 at the same pitch; shown only for that question, hidden for "X wants to play",
+# and its navigation set in code (online_menus.c hostGameMessageMenu_OnInit).
+_STYLE_BUTTON = [{"kind": "entry", "name": "button3",
+                  "coords": {"x": 52, "y": 169, "w": 200, "h": 14},
+                  "commands": [{"op": "text_no_ptr", "flags": "0x0"},
+                               {"op": "colors", "frame_color": 0, "background_color": 13},
+                               {"op": "onselect_fire", "func": "hostGameMessageMenu_button3_OnSelect"}]}]
+
 EXTRA_ENTRIES = {
     "mpGameSetup": _switch_rows(),
+    "hostGameMessage": _STYLE_BUTTON,
 }
 
 

@@ -13,7 +13,8 @@
 #   HOST_RES=1024x768 JOIN_RES=320x200 ...    # a [video] resolution each: two display
 #                                             # widths (362 and 336), as a Mac and a PC had
 #   GAMEPLAY=dos RECORD=1 ...                 # DOS gameplay on both (a resim must take it
-#                                             # from the file, not from its own SWOS.ini)
+#                                             # from the file, not from its own SWOS.ini);
+#                                             # GAMEPLAY=xbox the same, at 60 fps
 #   MM_HOST=us.swos.eu scripts/relay_test.sh  # through an EXISTING server, not one of ours
 #   REPORTS=1 RELAY=0 scripts/relay_test.sh   # the match reports (include/match_report.h):
 #                                             # each player zips both logs and sends it here
@@ -86,13 +87,13 @@ REPORTS="${REPORTS:-0}"
 RECORD_MODE="${RECORD_MODE:-full}"
 DESYNC_FRAME="${DESYNC_FRAME:-}"
 SERVER="${SERVER:-build/matchmaker/swos-matchmaker}"
-GAMEPLAY="${GAMEPLAY:-}"                # dos | amiga: both players, whatever SWOS.ini says
+GAMEPLAY="${GAMEPLAY:-}"                # amiga | dos | xbox: both players, whatever SWOS.ini says
 MM_HOST="${MM_HOST:-}"                  # an existing server to play through instead of our own
 MM_PORT="${MM_PORT:-19602}"
 REMOTE=0; [ -n "$MM_HOST" ] && REMOTE=1
 case "$GAMEPLAY" in
-    ''|amiga|dos) ;;
-    *) echo "relay-test: GAMEPLAY must be amiga or dos" >&2; exit 1 ;;
+    ''|amiga|dos|xbox) ;;
+    *) echo "relay-test: GAMEPLAY must be amiga, dos or xbox" >&2; exit 1 ;;
 esac
 mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)"   # the game chdirs to bin/
 [ -n "$DESYNC_FRAME" ] && [ "$RECORD" != 1 ] && { echo "relay-test: DESYNC_FRAME needs RECORD=1" >&2; exit 1; }
@@ -172,7 +173,7 @@ run() {   # name, auto, team, extra env...
         SWOS_LOBBY_TEAM="$team" SWOS_LOBBY_READY=1 SWOS_LOBBY_MATCHES="$MATCHES" \
         SWOS_LIVE_FRAMES="$FRAMES" $RECORD_ENV "$@" \
         timeout -s KILL "$WAIT" ./"$BIN" --matchmaker-menu="$name" \
-        ${GAMEPLAY:+--dos-gameplay=$([ "$GAMEPLAY" = dos ] && echo on || echo off)}
+        ${GAMEPLAY:+--gameplay=$GAMEPLAY}
 }
 # <side>.log is the raw output; <side>.ts the same lines with the time each arrived,
 # to line up against the server's timed [relay] and [record] lines.

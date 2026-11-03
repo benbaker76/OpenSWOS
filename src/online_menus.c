@@ -20,6 +20,7 @@
  */
 #include "test_rules.h"
 #include "online_menus.h"
+#include "dos_mode.h"           /* the gameplay style: OPEN asks it, the lobby shows it */
 #include "project_identity.h"  /* PROJECT_HIDE_SWOS2020_EXTRAS */
 #include "mm_client.h"         /* the matchmaking server (docs/NETPLAY.md section 7) */
 #include "p2p_menu.h"
@@ -697,6 +698,8 @@ static char s_joinPrompt[64];
  * about to OPEN plays (matchMaking_openGame_onSelect). */
 static int32_t s_askStyle;
 
+static void lobby_nav(int32_t ordinal, int32_t left, int32_t right, int32_t up, int32_t down);
+
 static void hostGameMessageMenu_OnInit(void)
 {
     if (s_askStyle) {
@@ -706,9 +709,18 @@ static void hostGameMessageMenu_OnInit(void)
         set_text(HostGameMessageMenu_message3, "");
         set_entry(HostGameMessageMenu_button1, "AMIGA (50FPS)", 1, kLightBrownWithRedFrame);
         set_entry(HostGameMessageMenu_button2, "PC (70FPS)", 1, kLightBrownWithRedFrame);
+        /* The third, OpenSWOS's own (scripts/import_swos2020_menus.py EXTRA_ENTRIES). */
+        set_entry(HostGameMessageMenu_button3, "XBOX (60FPS)", 1, kLightBrownWithRedFrame);
+        set_visible(HostGameMessageMenu_button3, 1);
+        lobby_nav(HostGameMessageMenu_button2, -1, -1, HostGameMessageMenu_button1, HostGameMessageMenu_button3);
+        lobby_nav(HostGameMessageMenu_button3, -1, -1, HostGameMessageMenu_button2, HostGameMessageMenu_exit);
+        lobby_nav(HostGameMessageMenu_exit, -1, -1, HostGameMessageMenu_button3, -1);
         set_text(HostGameMessageMenu_exit,     "EXIT");
         return;
     }
+    set_visible(HostGameMessageMenu_button3, 0);
+    lobby_nav(HostGameMessageMenu_button2, -1, -1, HostGameMessageMenu_button1, HostGameMessageMenu_exit);
+    lobby_nav(HostGameMessageMenu_exit, -1, -1, HostGameMessageMenu_button2, -1);
     snprintf(s_joinPrompt, sizeof s_joinPrompt, "%s WANTS TO PLAY", s_joinAsker);
     set_text(HostGameMessageMenu_header,   "A CHALLENGER");
     set_text(HostGameMessageMenu_message1, s_joinPrompt);
@@ -730,12 +742,12 @@ static void hostGameMessageMenu_OnDraw(void)
 }
 
 /* OPEN's question answered: the style, as OPTIONS would set it (saved), then the game. */
-static void host_in_style(int dos)
+static void host_in_style(int style)
 {
-    extern void GameplayStyle_Set(int dos, int persist);
+    extern void GameplayStyle_Set(int style, int persist);
     s_askStyle = 0;
-    GameplayStyle_Set(dos, 1);
-    fprintf(stderr, "[mm] hosting a %s game\n", dos ? "DOS" : "AMIGA");
+    GameplayStyle_Set(style, 1);
+    fprintf(stderr, "[mm] hosting a %s game\n", Gameplay_StyleName(style));
     MmClient_CreateGame();
     SetExitMenuFlag();
 }
@@ -743,7 +755,7 @@ static void host_in_style(int dos)
 static void hostGameMessageMenu_button1_OnSelect(void)   /* ACCEPT */
 {
     if (s_askStyle) {
-        host_in_style(0);                                    /* AMIGA */
+        host_in_style(GAMEPLAY_AMIGA);
         return;
     }
     if (s_joinAsker[0])
@@ -755,13 +767,19 @@ static void hostGameMessageMenu_button1_OnSelect(void)   /* ACCEPT */
 static void hostGameMessageMenu_button2_OnSelect(void)   /* REFUSE */
 {
     if (s_askStyle) {
-        host_in_style(1);                                    /* DOS */
+        host_in_style(GAMEPLAY_DOS);
         return;
     }
     if (s_joinAsker[0])
         MmClient_Eject(s_joinAsker);
     s_joinAsker[0] = '\0';
     SetExitMenuFlag();
+}
+
+static void hostGameMessageMenu_button3_OnSelect(void)   /* only for the style question */
+{
+    if (s_askStyle)
+        host_in_style(GAMEPLAY_XBOX);
 }
 
 /* ======================================================================
@@ -1496,7 +1514,8 @@ static void mpGameSetupMenu_OnDraw(void)
         }
     }
     set_text(MpGameSetupMenu_header, s_lobbyHeader);
-    snprintf(s_lobbyStyle, sizeof s_lobbyStyle, "%s", _gDosGameplay ? "PC (70FPS)" : "AMIGA (50FPS)");
+    snprintf(s_lobbyStyle, sizeof s_lobbyStyle, "%s", _gGameplayStyle == GAMEPLAY_DOS ? "PC (70FPS)"
+             : _gGameplayStyle == GAMEPLAY_XBOX ? "XBOX (60FPS)" : "AMIGA (50FPS)");
     set_text(MpGameSetupMenu_gameStyle, s_lobbyStyle);
     set_text(MpGameSetupMenu_gameStyle1, s_lobbyStyle);
     snprintf(s_lobbyConn, sizeof s_lobbyConn, "%s",
@@ -2457,6 +2476,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(hostGameMessageMenu_OnDraw),
     HANDLER(hostGameMessageMenu_button1_OnSelect),
     HANDLER(hostGameMessageMenu_button2_OnSelect),
+    HANDLER(hostGameMessageMenu_button3_OnSelect),
 
     HANDLER(mpWaitingMenu_OnDraw),
     HANDLER(mpWaiting_menuExit_OnSelect),
@@ -2592,6 +2612,7 @@ int32_t OnlineMenus_ShowStartMenu(void)
         s_matchPlayer = player;
         snprintf(s_myName, sizeof s_myName, "%s", player == 1 ? "HOST" : "JOIN");
         snprintf(s_matchStatus, sizeof s_matchStatus, "CONNECTING OVER LOOPBACK");
+        P2PLink_SetPlayer(player);      /* as the matchmaker's games are: whose style is played */
         if (P2PLink_Punch(list, 1, (uint16_t)(player == 1 ? kHostPort : kJoinPort)) != 0)
             return 0;
         OnlineMenus_Show(SWOS2020_MENU(mpWaitingMenu));

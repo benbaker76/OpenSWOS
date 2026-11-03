@@ -491,7 +491,7 @@ void MatchRecord_Replay(uint32_t confirmed)
         }
         Record_Put64(m, c.layout);
         m[8] = c.rules;
-        m[9] = 0;
+        m[9] = c.style;         /* GAMEPLAY_* (0 from a build before XBOX: m[8] says) */
         Record_Put16(m + 10, c.simWidth);
         Record_Put32(m + 12, c.setupLen);
         memcpy(m + 16, c.setup, c.setupLen);
