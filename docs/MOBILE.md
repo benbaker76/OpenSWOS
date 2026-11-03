@@ -87,6 +87,10 @@ and shows a QR code (`include/phone_copy.h` is the whole protocol; the setup's e
   Android's `OpenSWOSActivity` keeps the intent's (`takeLink`, over JNI; the activity is
   `singleInstance`), iOS's SDL hands `openURL` over as an `SDL_DROPFILE`. The manifest's VIEW
   filter and the plist's `CFBundleURLTypes` take the scheme from `project_identity.h`.
+- **A link while the game plays** cannot be taken in place (its data is loaded): the activity asks
+  ("starts again to do it: anything not saved is lost") and restarts through `RestartActivity`, in a
+  process of its own (`:restart`), with `&ok=1` on the link so the game does not ask twice. Until
+  the game has its data (`gamePlaying`, over JNI) a link is kept for it as it is.
 - **Without the code**, COPY FROM MY COMPUTER broadcasts `PHONE_COPY_ASK` on UDP 38630 and the setup
   answers with its port and key. Android only in practice: iOS sends a broadcast only with an
   entitlement Apple grants (`com.apple.developer.networking.multicast`).
@@ -115,5 +119,6 @@ and shows a QR code (`include/phone_copy.h` is the whole protocol; the setup's e
 - Importing the game's data in the app (the Setup's library on the phone) instead of copying it.
 - The Wi-Fi copy from a running game (OPTIONS), not only at the start. Tried on a Pixel 8
   (2026-11-03): COPY FROM MY COMPUTER found the PC, 451 files, the options taken, a link with data
-  there asks first; the QR code through the camera and the page not yet, nor iOS.
+  there asks first, one while the game plays restarts it and copies; the QR code through the
+  camera and the page not yet, nor iOS.
 - Haptics, the controls' size and placement as a setting, a controls layout for a second player.

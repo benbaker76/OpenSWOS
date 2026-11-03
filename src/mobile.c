@@ -227,6 +227,25 @@ static int pending_link(char *out, size_t cap)
     return out[0] != 0;
 }
 
+/* The game has its data and plays: a link from now on restarts the app (OpenSWOSActivity). */
+static void playing(void)
+{
+#ifdef SWOS_ANDROID_BUILD
+    JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+    jobject act = (jobject)SDL_AndroidGetActivity();
+    if (!env || !act)
+        return;
+    jclass cls = (*env)->GetObjectClass(env, act);
+    jmethodID m = (*env)->GetStaticMethodID(env, cls, "gamePlaying", "()V");
+    if (m)
+        (*env)->CallStaticVoidMethod(env, cls, m);
+    if ((*env)->ExceptionCheck(env))
+        (*env)->ExceptionClear(env);
+    (*env)->DeleteLocalRef(env, cls);
+    (*env)->DeleteLocalRef(env, act);
+#endif
+}
+
 static int have_game_data(void)
 {
     const char *assets = swos_assets_dir();
@@ -280,7 +299,7 @@ int Mobile_CheckGameData(PlatformInitOptions *opts, const char *iniPath)
         fprintf(stderr, "[mobile] opened by %s\n", link);
         if (!PhoneFetch_ParseLink(link, &from))
             ask(PROJECT_NAME, "That link is not one from " PROJECT_SETUP_NAME ". Scan its QR code again.", "OK", NULL);
-        else if (!have_game_data() ||
+        else if (!have_game_data() || strstr(link, "&ok=1") ||    /* (asked before the restart) */
                  ask(PROJECT_NAME, "Copy the game's data from " PROJECT_SETUP_NAME " again? It replaces the data on this phone.",
                      "Copy", "Not now"))
             copy_from(&from, opts, iniPath);
@@ -313,6 +332,7 @@ int Mobile_CheckGameData(PlatformInitOptions *opts, const char *iniPath)
             ask(PROJECT_NAME, "No " PROJECT_SETUP_NAME " answered on this Wi-Fi. Open it on its phone screen "
                 "and scan its QR code with this phone's camera.", "OK", NULL);
     }
+    playing();
     return 1;
 }
 

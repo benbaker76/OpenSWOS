@@ -46,5 +46,11 @@
                 <data android:scheme="${urlScheme}" android:host="get" />
             </intent-filter>
         </activity>
+        <!-- Starts the game again with a link from the setup that came while it played. -->
+        <activity
+            android:name="net.openswos.game.RestartActivity"
+            android:process=":restart"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false" />
     </application>
 </manifest>
