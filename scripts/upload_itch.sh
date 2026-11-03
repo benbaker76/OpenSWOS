@@ -41,6 +41,7 @@ CHANNELS=(
     "OpenSWOS-Setup.zip:setup-windows-mac-linux"
     "OpenSWOS-Android.apk:android"
     "OpenSWOS-iOS.ipa:ios"
+    "swos.zip:portmaster"
 )
 # The developer downloads -- the game programs alone, and the Mac program without its app
 # (it needs SDL2 installed) -- are no use to a player, so the page does not offer them

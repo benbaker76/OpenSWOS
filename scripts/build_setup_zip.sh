@@ -85,6 +85,12 @@ grep -q "commit=$(git rev-parse --short=8 HEAD)" dist/.build-status 2>/dev/null 
     fail "$AMIGA_ZIP is not from this commit -- rerun scripts/build_dist.sh"
 mkdir -p "$STAGE/amiga" && python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" \
     "$AMIGA_ZIP" "$STAGE/amiga" || fail "unpacking $AMIGA_ZIP failed"
+# The PortMaster port, for the Handheld screen (found in the folder above the setup programs).
+if [ -f dist/swos.zip ]; then
+    mkdir -p "$STAGE/portmaster" && cp dist/swos.zip "$STAGE/portmaster/" || fail "copying dist/swos.zip failed"
+else
+    echo "build_setup_zip: NOTE no dist/swos.zip (scripts/build_portmaster.sh): the Handheld screen will ask for it" >&2
+fi
 cp bin/data/credits_icons.bmp "$STAGE/data/" &&
     cp packaging/setup/ReadMe.txt "$STAGE/ReadMe.txt" || fail "copying the ReadMe failed"
 

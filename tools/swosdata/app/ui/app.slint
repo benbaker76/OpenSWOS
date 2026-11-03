@@ -415,6 +415,7 @@ export component MainWindow inherits Window {
     in-out property <bool> t-phone;
     in-out property <bool> t-amiga;
     in-out property <bool> t-whdload;
+    in-out property <bool> t-handheld;      // the PortMaster port on a handheld (an R36S, an Anbernic, a TrimUI)
     in-out property <bool> x-world;
     in-out property <bool> x-2020;
     in-out property <bool> x-jaguar;
@@ -430,6 +431,16 @@ export component MainWindow inherits Window {
     in property <image> phone-qr;
     in property <string> phone-status;
     in property <int> phone-state;          // 0 waiting, 1 copying, 2 copied, 3 cannot
+    // The handheld's card (main.cpp HandheldFind/HandheldCopy).
+    in property <string> hh-card;           // its ports folder, "" when none was found
+    in property <string> hh-port;           // the port's swos.zip this setup has, "" for none
+    in property <bool> hh-installed;        // the port is on the card already
+    in property <string> hh-status;
+    in-out property <int> hh-state;         // 0 no card, 1 ready, 2 copying, 3 copied, 4 cannot
+    in property <float> hh-progress;
+    callback hh-change();
+    callback hh-copy();
+    callback hh-find();
     in property <[OptionRow]> options;      // GAME OPTIONS' rows, for what is ticked
     callback option-chosen(int, int);       // a row, the choice: written to SWOS.ini at once
     callback wizard-changed();              // a tick changed: main.cpp works the steps out again
@@ -442,13 +453,14 @@ export component MainWindow inherits Window {
     property <int> src-row: root.kind == Step.pc ? 0 : root.kind == Step.amiga ? 1 : root.kind == Step.jaguar ? 2
                           : root.kind == Step.s2020 ? 3 : root.kind == Step.world ? 4 : -1;
     property <bool> src-optional: root.kind == Step.world || root.kind == Step.s2020 || root.kind == Step.jaguar;
-    property <bool> any-target: root.t-computer || root.t-phone || root.t-amiga || root.t-whdload;
+    property <bool> any-target: root.t-computer || root.t-phone || root.t-amiga || root.t-whdload || root.t-handheld;
     // Next: what this screen asks for is done.
     property <bool> next-ok: root.busy ? false
         : root.kind == Step.targets ? root.any-target
         : root.src-row >= 0 && !root.src-optional ? root.sources[root.src-row].state == 1
         : root.kind == Step.install ? root.done
         : root.kind == Step.drawer || root.kind == Step.whdload ? root.amiga-done
+        : root.kind == Step.handheld ? root.hh-state == 3
         : true;
     property <bool> last: root.step >= root.steps.length - 1;
     function go(i: int) {
@@ -548,6 +560,13 @@ export component MainWindow inherits Window {
                         clicked => { root.t-phone = !root.t-phone; root.wizard-changed(); }
                     }
                     BigTile {
+                        icon: @image-url("icons/device-gamepad-3.svg");
+                        title: "Handheld";
+                        text: "PortMaster: R36S, Anbernic, TrimUI";
+                        selected: root.t-handheld;
+                        clicked => { root.t-handheld = !root.t-handheld; root.wizard-changed(); }
+                    }
+                    BigTile {
                         icon: @image-url("images/amiga-drawer.svg");
                         colorize-icon: false;
                         icon-size: 52px;
@@ -586,7 +605,7 @@ export component MainWindow inherits Window {
                     selected: root.x-2020;
                     clicked => { root.x-2020 = !root.x-2020; root.wizard-changed(); }
                 }
-                if root.t-computer || root.t-phone: ExtraRow {
+                if root.t-computer || root.t-phone || root.t-handheld: ExtraRow {
                     icon: @image-url("icons/device-gamepad-2.svg");
                     title: "Atari Jaguar players";
                     text: "The Jaguar version's redrawn players, from its cartridge";
@@ -952,6 +971,123 @@ export component MainWindow inherits Window {
                 }
             }
 
+            // The handheld: the port and the game's data onto its SD card.
+            if root.kind == Step.handheld: VerticalLayout {
+                spacing: 14px;
+                HorizontalLayout {
+                    spacing: 14px;
+                    Image {
+                        source: @image-url("icons/device-gamepad-3.svg");
+                        width: 44px;
+                        height: 44px;
+                        colorize: Theme.link;
+                    }
+                    Text {
+                        text: "Copy it to your handheld";
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: Theme.text;
+                        vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: "Put the handheld's SD card in this computer (the card with its games: on an R36S, EASYROMS). " + root.project-name + " goes into its PortMaster ports folder, with the game's data and the options you chose.";
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.text-dim;
+                }
+                Rectangle {
+                    border-radius: 12px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: root.hh-state == 3 ? Theme.ok : Theme.line;
+                    VerticalLayout {
+                        padding: 18px;
+                        spacing: 12px;
+                        HorizontalLayout {
+                            spacing: 10px;
+                            Image { source: @image-url("icons/sd-card.svg"); width: 20px; height: 20px; colorize: Theme.link; y: (parent.height - self.height) / 2; }
+                            Text {
+                                text: root.hh-card == "" ? "No card found" : root.hh-card;
+                                font-size: 14px;
+                                font-weight: 700;
+                                color: root.hh-card == "" ? Theme.text-dim : Theme.text;
+                                vertical-alignment: center;
+                                horizontal-stretch: 1;
+                            }
+                            BigButton {
+                                label: "Look again";
+                                enabled: !root.busy;
+                                clicked => { root.hh-find(); }
+                            }
+                            BigButton {
+                                label: "Change...";
+                                icon: @image-url("icons/folder-open.svg");
+                                enabled: !root.busy;
+                                clicked => { root.hh-change(); }
+                            }
+                        }
+                        Text {
+                            text: root.hh-installed ? "OpenSWOS is on this card." + (root.hh-port != "" ? " It is updated from " + root.hh-port + "." : "")
+                                : root.hh-port != "" ? "OpenSWOS for PortMaster will be installed from " + root.hh-port + "."
+                                : "";
+                            visible: self.text != "";
+                            wrap: word-wrap;
+                            font-size: 12px;
+                            color: Theme.text-dim;
+                        }
+                        HorizontalLayout {
+                            spacing: 14px;
+                            BigButton {
+                                label: root.hh-state == 3 ? "Copy again" : "Copy to the card";
+                                icon: @image-url("icons/download.svg");
+                                primary: root.hh-state == 1;
+                                enabled: !root.busy && (root.hh-state == 1 || root.hh-state == 3);
+                                clicked => { root.hh-copy(); }
+                            }
+                            Rectangle {
+                                y: (parent.height - self.height) / 2;
+                                height: 8px;
+                                border-radius: 4px;
+                                background: Theme.sunken;
+                                horizontal-stretch: 1;
+                                Rectangle {
+                                    x: 0;
+                                    width: parent.width * root.hh-progress;
+                                    height: parent.height;
+                                    border-radius: 4px;
+                                    background: root.hh-state == 3 ? Theme.ok : Theme.accent;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Image {
+                                source: root.hh-state == 3 ? @image-url("icons/circle-check.svg")
+                                      : root.hh-state == 4 ? @image-url("icons/alert-circle.svg")
+                                      : @image-url("icons/circle-dashed.svg");
+                                width: 18px;
+                                height: 18px;
+                                colorize: root.hh-state == 3 ? Theme.ok : root.hh-state == 4 ? Theme.danger : Theme.text-dim;
+                            }
+                            Text {
+                                text: root.hh-status;
+                                wrap: word-wrap;
+                                font-size: 13px;
+                                color: root.hh-state == 3 ? Theme.ok : root.hh-state == 4 ? Theme.danger : Theme.text;
+                                horizontal-stretch: 1;
+                            }
+                        }
+                    }
+                }
+                Text {
+                    text: "No PortMaster yet? Install it on the handheld first (most firmwares have it: ArkOS, ROCKNIX, Knulli, AmberELEC, muOS).";
+                    wrap: word-wrap;
+                    font-size: 12px;
+                    color: Theme.text-dim;
+                }
+            }
+
             // The Amiga: the drawer or the WHDLoad package.
             if root.kind == Step.drawer || root.kind == Step.whdload: VerticalLayout {
                 spacing: 14px;
@@ -1071,6 +1207,7 @@ export component MainWindow inherits Window {
                 Text {
                     text: (root.t-computer ? "Play on this computer with the button below, or start " + root.project-name + " from where you unzipped it. " : "")
                         + (root.t-phone ? "On your phone, start " + root.project-name + " once the assets folder is copied over. " : "")
+                        + (root.t-handheld ? "On the handheld, start Sensible World of Soccer from Ports. " : "")
                         + (root.t-amiga || root.t-whdload ? "On the Amiga, copy what was made and double-click SWOS. " : "")
                         + "You can run this setup again whenever you like.";
                     wrap: word-wrap;

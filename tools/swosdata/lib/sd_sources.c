@@ -542,16 +542,12 @@ int32_t SdSources_OpenWorld(const char *path, SdWorldInfo *info, char *dir, uint
     return rc;
 }
 
-int32_t SdSources_UnpackAmigaProgram(const char *zip, char *dir, uint32_t cap)
+int32_t SdSources_Unzip(const char *zip, const char *dir)
 {
     mz_zip_archive z;
     memset(&z, 0, sizeof z);
     if (!mz_zip_reader_init_file(&z, zip, 0))
         return -1;
-    const char *base = zip + strlen(zip);
-    while (base > zip && base[-1] != '/' && base[-1] != '\\')
-        base--;
-    snprintf(dir, cap, "%s/" PROJECT_SETUP_PROGRAM "/%s", temp_root(), base);
     int32_t ok = 1;
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&z) && ok; i++) {
         mz_zip_archive_file_stat st;
@@ -577,9 +573,29 @@ int32_t SdSources_UnpackAmigaProgram(const char *zip, char *dir, uint32_t cap)
         ok = mz_zip_reader_extract_to_file(&z, i, out, 0);
     }
     mz_zip_reader_end(&z);
+    return ok ? 0 : -1;
+}
+
+int32_t SdSources_UnpackAmigaProgram(const char *zip, char *dir, uint32_t cap)
+{
+    const char *base = zip + strlen(zip);
+    while (base > zip && base[-1] != '/' && base[-1] != '\\')
+        base--;
+    snprintf(dir, cap, "%s/" PROJECT_SETUP_PROGRAM "/%s", temp_root(), base);
     char probe[1400];
     snprintf(probe, sizeof probe, "%s/SWOS/SWOS2", dir);
-    return ok && Sg_IsFile(probe) ? 0 : -1;
+    return SdSources_Unzip(zip, dir) == 0 && Sg_IsFile(probe) ? 0 : -1;
+}
+
+int32_t SdSources_ZipHas(const char *zip, const char *name)
+{
+    mz_zip_archive z;
+    memset(&z, 0, sizeof z);
+    if (!mz_zip_reader_init_file(&z, zip, 0))
+        return 0;
+    const int found = mz_zip_reader_locate_file(&z, name, NULL, 0) >= 0;
+    mz_zip_reader_end(&z);
+    return found;
 }
 
 int32_t SdSources_AddFile(SdSources *s, const char *path)

@@ -40,6 +40,9 @@
 #   linux-x86      make                 -> bin/SWOS          (32-bit, -m32)
 #   linux-x86_64   make X86_64=1        -> bin/SWOS.x86_64
 #   linux-arm64    make ARM64=1         -> bin/SWOS.aarch64
+#   portmaster     scripts/build_portmaster.sh --no-build -> dist/swos.zip (that binary, for
+#                  PortMaster handhelds; also portmaster/swos.zip in SWOS-portable.zip, where
+#                  the setup's Handheld screen finds it)
 #   linux-armhf    make ARM=1           -> bin/SWOS.armhf
 #   wasm           make WASM=1          -> dist/web/SWOS.html/.js/.wasm/.data
 #   amiga          make -f Makefile.amiga -> bin/SWOS2
@@ -161,7 +164,7 @@ SDL_SWITCH_ROOT="${SDL_SWITCH_ROOT:-D:\\Projects\\GitHub\\SDL-switch}"
 
 # `installer` is a packaging step rather than a compile, but it lives in this
 # list so --only/--skip and the summary treat it like everything else.
-ALL_TARGETS="linux-x86 linux-x86_64 linux-arm64 linux-armhf wasm amiga windows setup switch installer"
+ALL_TARGETS="linux-x86 linux-x86_64 linux-arm64 portmaster linux-armhf wasm amiga windows setup switch installer"
 
 # Binaries that go into the zip. The WASM outputs are deliberately excluded:
 # SWOS.html/.js/.wasm/.data are a web deployment, not something a tester runs
@@ -480,6 +483,14 @@ if wanted linux-arm64; then
     fi
 fi
 
+if wanted portmaster; then
+    if [ -f bin/SWOS.aarch64 ] && [ "${STATUS[linux-arm64]:-}" != "FAIL" ]; then
+        run portmaster "portmaster         -> dist/swos.zip" scripts/build_portmaster.sh --no-build
+    else
+        record portmaster "SKIP (no bin/SWOS.aarch64: the linux-arm64 target)"
+    fi
+fi
+
 if wanted linux-armhf; then
     if command -v arm-linux-gnueabihf-gcc >/dev/null 2>&1 || \
        [ "$(uname -m)" = "armv7l" ]; then
@@ -669,6 +680,13 @@ if [ "$DO_FULL" = 1 ] && [ -n "$ZIPPED" ] && command -v zip >/dev/null 2>&1; the
             zip -j -q "$FULL_ZIP_PATH" $SETUP_IN && echo "-- setup:   $(echo $SETUP_IN | tr ' ' '\n' | sed 's|.*/||' | tr '\n' ' ')"
         else
             echo "-- NOTE: no data setup built (the setup target): the drop needs it to be played"
+        fi
+        # The PortMaster port, for the setup's Handheld screen to put on a card.
+        if [ -f dist/swos.zip ]; then
+            PM_TMP="$(mktemp -d)" && mkdir -p "$PM_TMP/portmaster" && cp dist/swos.zip "$PM_TMP/portmaster/" &&
+                ( cd "$PM_TMP" && zip -q -0 "$ROOT/$FULL_ZIP_PATH" portmaster/swos.zip ) &&
+                echo "-- port:     portmaster/swos.zip"
+            rm -rf "$PM_TMP"
         fi
 
         # Windows runtime beside SWOS.exe. Skipped cleanly off-Cygwin hosts.

@@ -1132,7 +1132,16 @@ struct App {
   bool haveWorldData = false, havePcData = false, have2020Data = false, haveJagData = false;
 
   std::string UserDir() const { return sd::ParentDir(defaultOutDir); }
-  std::string IniPath(bool phone) const { return Join(phone ? Join(UserDir(), "phone") : UserDir(), "SWOS.ini"); }
+  // The SWOS.ini each target's options go in: 0 this computer's (the game's own), 1 the phone's
+  // (sent by the Wi-Fi copy), 2 the handheld's (merged into the card's by the handheld copy).
+  enum { kComputer = 0, kPhone = 1, kHandheld = 2 };
+  static int TargetBit(int t) { return t == kComputer ? GAME_OPTION_COMPUTER : t == kPhone ? GAME_OPTION_PHONE : GAME_OPTION_HANDHELD; }
+  bool Ticked(int t) {
+    return t == kComputer ? w().get_t_computer() : t == kPhone ? w().get_t_phone() : w().get_t_handheld();
+  }
+  std::string IniPath(int t) const {
+    return Join(t == kComputer ? UserDir() : Join(UserDir(), t == kPhone ? "phone" : "handheld"), "SWOS.ini");
+  }
 
   static std::string ReadFile(const std::string& path) {
     std::string text;
@@ -1229,12 +1238,15 @@ struct App {
   // The choices from the files, once: the phone's file when there is one and no computer is
   // ticked, else the computer's; a value it does not have is the game's default.
   void LoadOptions() {
-    const std::string pc = ReadFile(IniPath(false)), phone = ReadFile(IniPath(true));
+    std::string text[3];
+    for (int t = 0; t < 3; t++) text[t] = ReadFile(IniPath(t));
     optChoice.assign(size_t(GAME_OPTION_COUNT(kGameOptions)), 0);
     for (int i = 0; i < GAME_OPTION_COUNT(kGameOptions); i++) {
       const GameOption& o = kGameOptions[i];
-      std::string v = !(o.where & GAME_OPTION_COMPUTER) || (!phone.empty() && pc.empty())
-                          ? IniValue(phone, o.section, o.key) : IniValue(pc, o.section, o.key);
+      std::string v;          // the first ticked target's file that says, then any that does
+      for (int pass = 0; pass < 2 && v.empty(); pass++)
+        for (int t = 0; t < 3 && v.empty(); t++)
+          if ((o.where & TargetBit(t)) && (pass || Ticked(t))) v = IniValue(text[t], o.section, o.key);
       if (v.empty()) v = o.def;
       for (int k = 0; k < o.count; k++)
         if (v == o.values[k].value) optChoice[size_t(i)] = k;
@@ -1244,7 +1256,12 @@ struct App {
   // The rows for what is ticked, with the values its data allows.
   void RefreshOptions() {
     if (optChoice.empty()) LoadOptions();
-    const int where = (w().get_t_computer() ? GAME_OPTION_COMPUTER : 0) | (w().get_t_phone() ? GAME_OPTION_PHONE : 0);
+    int where = 0, ticked = 0;
+    for (int t = 0; t < 3; t++)
+      if (Ticked(t)) {
+        where |= TargetBit(t);
+        ticked++;
+      }
     auto rows = std::make_shared<slint::VectorModel<OptionRow>>();
     optRows.clear();
     for (int i = 0; i < GAME_OPTION_COUNT(kGameOptions); i++) {
@@ -1260,8 +1277,15 @@ struct App {
         labels->push_back(Str(o.values[k].label));
       }
       if (values.size() < 2) continue;                 // nothing to choose between
-      const bool both = (where & GAME_OPTION_COMPUTER) && (where & GAME_OPTION_PHONE);
-      const char* tag = !both ? "" : o.where == GAME_OPTION_COMPUTER ? "this computer" : o.where == GAME_OPTION_PHONE ? "phone" : "";
+      // Ticked targets it is not for: the tag names the ones it is.
+      std::string tag;
+      int applies = 0;
+      for (int t = 0; t < 3; t++)
+        if (Ticked(t) && (o.where & TargetBit(t))) {
+          applies++;
+          tag += std::string(tag.empty() ? "" : ", ") + (t == kComputer ? "this computer" : t == kPhone ? "phone" : "handheld");
+        }
+      if (applies == ticked) tag.clear();
       rows->push_back({Str(o.label), Str(o.about), Str(tag), labels, selected});
       optRows.push_back({i, values});
     }
@@ -1275,11 +1299,10 @@ struct App {
     optChoice[size_t(i)] = optRows[size_t(row)].second[size_t(choice)];
     const GameOption& o = kGameOptions[i];
     const char* value = o.values[optChoice[size_t(i)]].value;
-    for (int phone = 0; phone < 2; phone++) {
-      if (!(o.where & (phone ? GAME_OPTION_PHONE : GAME_OPTION_COMPUTER))) continue;
-      if (phone ? !w().get_t_phone() : !w().get_t_computer()) continue;
-      const std::string path = IniPath(phone != 0);
-      if (phone) sd::MakeDirs(sd::ParentDir(path));
+    for (int t = 0; t < 3; t++) {
+      if (!(o.where & TargetBit(t)) || !Ticked(t)) continue;
+      const std::string path = IniPath(t);
+      if (t != kComputer) sd::MakeDirs(sd::ParentDir(path));
       const std::string text = IniSet(ReadFile(path), o.section, o.key, value);
       if (FILE* f = sd::OpenFile(path, "wb")) {
         std::fwrite(text.data(), 1, text.size(), f);
@@ -1291,13 +1314,217 @@ struct App {
     RefreshOptions();
   }
 
+  // --------------------------------------------- the handheld (PortMaster) ---
+
+  // The card: a disk with PortMaster's ports folder where one of the firmwares keeps it
+  // (ArkOS, ROCKNIX, AmberELEC: ports/ on the games partition; Knulli/Batocera: roms/ports;
+  // stock TrimUI: Data/ports), or the folder the player picked. The port is ports/swos.
+  std::string hhPorts;          // the card's ports folder, "" when none is found
+  std::string hhZip;            // the port, OpenSWOS for PortMaster: swos.zip
+  std::atomic<uint64_t> hhDone{0};
+  std::string hhAuto;           // testing: --handheld-copy=DIR, that ports folder copied to at once
+  uint64_t hhTotal = 0;
+  slint::Timer hhTimer;
+
+  static std::string PortsIn(const std::string& root) {
+    for (const char* rel : {"ports", "roms/ports", "Roms/ports", "Data/ports", "ROMS/PORTS", "roms/PORTS"})
+      if (sd::IsDir(Join(root, rel))) return Join(root, rel);
+    return {};
+  }
+
+  static bool PortZip(const std::string& path) {
+    const std::string name = Lower(path.substr(path.find_last_of("/\\") + 1));
+    return EndsWith(name, ".zip") && (name == "swos.zip" || name.rfind("openswos-portmaster", 0) == 0) &&
+           SdSources_ZipHas(path.c_str(), "Sensible World of Soccer.sh");
+  }
+
+  std::string FindPortZip() const {
+    for (std::string d = exeDir; !d.empty();) {
+      for (const char* rel : {"swos.zip", "portmaster/swos.zip", "dist/swos.zip"})
+        if (sd::IsFile(Join(d, rel)) && PortZip(Join(d, rel))) return Join(d, rel);
+      const std::string up = sd::ParentDir(d);
+      if (up == d) break;
+      d = up;
+    }
+    std::string best;
+    int64_t newest = 0;
+    const std::string dl = !watchDir.empty() ? watchDir : sd::DownloadsDir();
+    if (!dl.empty())
+      for (const sd::DirEntry& e : sd::ListDir(dl))
+        if (!e.dir && (best.empty() || e.mtime > newest) && PortZip(e.path)) {
+          best = e.path;
+          newest = e.mtime;
+        }
+    return best;
+  }
+
+  void HandheldFind() {
+    if (hhZip.empty()) hhZip = FindPortZip();
+    if (!hhAuto.empty()) {
+      hhPorts = hhAuto;
+      HandheldShow();
+      hhAuto.clear();
+      autoRun = true;
+      HandheldCopy();
+      return;
+    }
+    if (hhPorts.empty() || !sd::IsDir(hhPorts))
+      for (const std::string& root : sd::VolumeRoots()) {
+        const std::string ports = PortsIn(root);
+        const bool ownDisk = root.size() > 1 && root[1] == ':' && exeDir.size() > 1 && exeDir[1] == ':' &&
+                             std::toupper((unsigned char)root[0]) == std::toupper((unsigned char)exeDir[0]);
+        if (!ports.empty() && !ownDisk) {   // (not this program's own disk)
+          hhPorts = ports;
+          break;
+        }
+      }
+    HandheldShow();
+  }
+
+  void HandheldShow() {
+    const bool port = !hhPorts.empty() && sd::IsFile(Join(hhPorts, "swos/SWOS.aarch64"));
+    w().set_hh_card(Str(hhPorts.empty() ? "" : Shown(hhPorts)));
+    w().set_hh_port(Str(hhZip.empty() ? "" : Shown(hhZip)));
+    w().set_hh_installed(port);
+    if (w().get_hh_state() == 2 || w().get_hh_state() == 3) return;   // copying, copied: as it was
+    if (hhPorts.empty()) {
+      w().set_hh_state(0);
+      w().set_hh_status(Str("No handheld card found. Put its SD card in this computer, or choose its ports folder."));
+    } else if (!port && hhZip.empty()) {
+      w().set_hh_state(4);
+      w().set_hh_status(Str(PROJECT_NAME " for PortMaster is not on this card, and this setup has no copy of it: "
+                            "download swos.zip (" PROJECT_NAME " for PortMaster) and drop it on this window."));
+    } else {
+      w().set_hh_state(1);
+      w().set_hh_status(Str(port ? (hhZip.empty() ? "Ready to copy the game's data to the card."
+                                                  : "Ready: the game on the card is updated from " + Shown(hhZip) + ", and its data copied.")
+                                 : "Ready: " PROJECT_NAME " is installed on the card from " + Shown(hhZip) + ", with the game's data."));
+    }
+  }
+
+  void HandheldChange() {
+    const std::string dir = PickFolder(hhPorts.empty() ? std::string() : hhPorts);
+    if (dir.empty()) return;
+    std::string ports = PortsIn(dir);
+    const std::string name = Lower(dir.substr(dir.find_last_of("/\\") + 1));
+    if (ports.empty() && (name == "ports" || sd::IsDir(Join(dir, "swos")))) ports = dir;
+    if (ports.empty() && name == "swos") ports = sd::ParentDir(dir);
+    if (ports.empty()) {
+      w().set_hh_state(4);
+      w().set_hh_status(Str("No ports folder in " + Shown(dir) + ": choose the card itself, or its ports folder."));
+      return;
+    }
+    hhPorts = ports;
+    w().set_hh_state(0);
+    HandheldShow();
+  }
+
+  void HandheldCopy() {
+    if (busy || hhPorts.empty()) return;
+    if (worker.joinable()) worker.join();
+    SetBusy(true);
+    w().set_hh_state(2);
+    w().set_hh_progress(0.0f);
+    const std::string ports = hhPorts, zip = hhZip, assets = outDir, sent = IniPath(kHandheld);
+    hhTotal = sd::TreeSize(assets, "amiga");
+    hhDone = 0;
+    w().set_hh_status(Str("Copying to the card..."));
+    FileLog("handheld: copying " + Shown(assets) + " to " + Shown(ports) + (zip.empty() ? "" : ", the port from " + Shown(zip)));
+    hhTimer.start(slint::TimerMode::Repeated, std::chrono::milliseconds(200), [this] {
+      w().set_hh_progress(hhTotal ? float(double(hhDone) / double(hhTotal)) : 0.0f);
+    });
+    worker = std::thread([this, ports, zip, assets, sent] {
+      std::string err;
+      const std::string game = Join(ports, "swos");
+      // 1. The port: unpacked beside this setup, then its launcher and its folder onto the card
+      //    (over what is there: its own files only, conf/ and assets/ stay); port.json and the
+      //    README into its folder, not loose in ports/ where another port's could be.
+      if (!zip.empty()) {
+        const std::string tmp = Join(sd::ParentDir(outDir), ".portmaster-unpack");
+        sd::RemoveTree(tmp);
+        if (SdSources_Unzip(zip.c_str(), tmp.c_str()) != 0 || !sd::IsDir(Join(tmp, "swos")))
+          err = "could not unpack " + zip;
+        if (err.empty() && !sd::CopyTree(Join(tmp, "swos"), game, "", nullptr, &err)) err = "could not copy the port: " + err;
+        for (const char* f : {"Sensible World of Soccer.sh", "port.json", "README.md"}) {
+          if (!err.empty() || !sd::IsFile(Join(tmp, f))) continue;
+          const std::string text = ReadFile(Join(tmp, f));
+          const std::string to = std::string(f).back() == 'h' ? Join(ports, f) : Join(game, f);
+          FILE* o = sd::OpenFile(to, "wb");
+          if (!o || std::fwrite(text.data(), 1, text.size(), o) != text.size()) err = std::string("could not write ") + f + " on the card";
+          if (o) std::fclose(o);
+        }
+        sd::RemoveTree(tmp);
+      }
+      if (err.empty() && !sd::IsFile(Join(game, "SWOS.aarch64"))) err = PROJECT_NAME " for PortMaster is not on the card";
+      // 2. The game's data, into assets.part, then in the old one's place.
+      const std::string part = Join(game, "assets.part"), dest = Join(game, "assets");
+      if (err.empty()) {
+        sd::RemoveTree(part);
+        if (!sd::CopyTree(assets, part, "amiga", [this](uint64_t n) { hhDone += n; }, &err)) sd::RemoveTree(part);
+      }
+      if (err.empty()) {
+        // A world on the card the setup does not have (copied by hand) stays.
+        for (const sd::DirEntry& e : sd::ListDir(Join(dest, "data_json/worlds"))) {
+          const std::string name = e.path.substr(e.path.find_last_of("/\\") + 1);
+          const std::string to = Join(part, "data_json/worlds/" + name);
+          if (e.dir && !sd::IsDir(to)) {
+            sd::MakeDirs(sd::ParentDir(to));
+            sd::RenamePath(e.path, to);
+          }
+        }
+        sd::RemoveTree(dest);
+        if (!sd::RenamePath(part, dest)) err = "could not put the game's data in place on the card";
+      }
+      // 3. The options chosen for the handheld, into its SWOS.ini (the port's defaults first).
+      if (err.empty()) {
+        const std::string ini = Join(game, "conf/.swos/SWOS.ini");
+        std::string text = ReadFile(ini);
+        if (text.empty()) text = ReadFile(Join(game, "SWOS.ini.default"));
+        const std::string chosen = ReadFile(sent);
+        int set = 0;
+        for (int i = 0; i < GAME_OPTION_COUNT(kGameOptions); i++) {
+          const GameOption& o = kGameOptions[i];
+          const std::string v = IniValue(chosen, o.section, o.key);
+          if (!(o.where & GAME_OPTION_HANDHELD) || v.empty()) continue;
+          text = IniSet(text, o.section, o.key, v.c_str());
+          set++;
+        }
+        sd::MakeDirs(Join(game, "conf/.swos/save"));
+        if (FILE* f = sd::OpenFile(ini, "wb")) {
+          std::fwrite(text.data(), 1, text.size(), f);
+          std::fclose(f);
+        } else
+          err = "could not write the game's settings on the card";
+      }
+      slint::invoke_from_event_loop([this, err] {
+        hhTimer.stop();
+        SetBusy(false);
+        if (err.empty()) {
+          w().set_hh_progress(1.0f);
+          w().set_hh_state(3);
+          w().set_hh_status(Str("Copied. Eject the card safely, put it back in the handheld, and start "
+                                "Sensible World of Soccer from Ports (refresh the games list if it is not there)."));
+          FileLog("handheld: copied");
+        } else {
+          w().set_hh_state(4);
+          w().set_hh_status(Str("The copy did not work: " + err + "."));
+          FileLog("handheld: failed: " + err);
+          exitCode = 1;
+        }
+        HandheldShow();
+        AutoFinished();
+      });
+    });
+  }
+
   // ------------------------------------------------------------ the wizard ---
 
   // The screens, from what was ticked (app.slint's Step): where you will play first; a computer
   // or a phone alone asks which copy you have (either will do), an Amiga needs both; then each
   // source, each extra, install, the phone's copy, the Amiga's outputs, done.
   void RefreshWizard() {
-    const bool compPhone = w().get_t_computer() || w().get_t_phone();
+    // (a computer, a phone and a handheld all play the SDL game: the same data, options, install)
+    const bool compPhone = w().get_t_computer() || w().get_t_phone() || w().get_t_handheld();
     const bool amigaT = w().get_t_amiga() || w().get_t_whdload();
     const int have = w().get_have();
     std::vector<int> steps{0};
@@ -1312,6 +1539,7 @@ struct App {
       if (compPhone) steps.push_back(12);   // game options
       if (compPhone) steps.push_back(7);
       if (w().get_t_phone()) steps.push_back(8);
+      if (w().get_t_handheld()) steps.push_back(13);
       if (w().get_t_amiga()) steps.push_back(9);
       if (w().get_t_whdload()) steps.push_back(10);
       steps.push_back(11);
@@ -1334,6 +1562,8 @@ struct App {
       RefreshOptions();
     } else if (kind == 8) {
       PhoneStart();
+    } else if (kind == 13) {
+      HandheldFind();
     }
   }
 
@@ -1345,7 +1575,7 @@ struct App {
   // The phone screen: the assets folder served on the network, its QR code shown. Kept up
   // until the setup closes (a phone half way through a copy is not cut off by Back).
   void PhoneStart() {
-    if (!sd::PhoneServerStart(outDir, IniPath(true))) {
+    if (!sd::PhoneServerStart(outDir, IniPath(kPhone))) {
       const std::string err = sd::PhoneServerStatus().error;
       w().set_phone_status(Str(err));
       FileLog("phone copy: " + err);
@@ -1406,6 +1636,12 @@ struct App {
     std::string said;
     for (const std::string& path : paths) {
       FileLog("dropped: " + Shown(path));
+      if (PortZip(path)) {
+        hhZip = path;
+        said = "Found " PROJECT_NAME " for PortMaster in " + Shown(path) + ".";
+        HandheldShow();
+        continue;
+      }
       if (ProgramZip(path) && TakeProgram(path)) {
         ownProgram = true;
         said = "Found the Amiga program in " + Shown(path) + ".";
@@ -1665,6 +1901,8 @@ int main(int argc, char** argv) {
       wizardArg = a.substr(9);
     } else if (a.rfind("--wizard-step=", 0) == 0) {
       wizardStep = std::atoi(a.c_str() + 14);
+    } else if (a.rfind("--handheld-copy=", 0) == 0) {
+      app.hhAuto = a.substr(16);
     } else if (a == "--no-gog") {
       app.lookForGog = false;
     } else if (a == "--help" || a == "-h") {
@@ -1739,6 +1977,7 @@ int main(int argc, char** argv) {
     ui->set_t_phone(has("phone"));
     ui->set_t_amiga(has("amiga"));
     ui->set_t_whdload(has("whdload"));
+    ui->set_t_handheld(has("handheld"));
     ui->set_x_world(has("world"));
     ui->set_x_2020(has("2020"));
     ui->set_x_jaguar(has("jaguar"));
@@ -1809,6 +2048,9 @@ int main(int argc, char** argv) {
   ui->on_option_chosen([&app](int row, int choice) { app.OptionChosen(row, choice); });
   ui->on_step_shown([&app](int kind) { app.StepShown(kind); });
   ui->on_open_out([&app] { sd::OpenUrl(sd::ParentDir(app.outDir)); });
+  ui->on_hh_change([&app] { app.HandheldChange(); });
+  ui->on_hh_copy([&app] { app.HandheldCopy(); });
+  ui->on_hh_find([&app] { app.HandheldFind(); });
   ui->on_close_setup([] { slint::quit_event_loop(); });
   app.RefreshWizard();
   if (wizardStep > 0) {

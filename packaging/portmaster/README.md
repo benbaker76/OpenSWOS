@@ -19,6 +19,12 @@ taken from `bin/`, so game data in a local `bin/` cannot reach the zip.
 
 ## Install
 
+**The easy way:** run OpenSWOS Setup on a PC or Mac, tick **Handheld**, and follow it. Its last
+screen finds the handheld's SD card by its PortMaster `ports` folder (`ports/` on ArkOS,
+ROCKNIX and AmberELEC, `roms/ports` on Knulli, `Data/ports` on stock TrimUI) and copies the
+port (`portmaster/swos.zip`, beside the setup in its zip), the game's data and the options you
+chose onto it. A World 2026-27 already on the card stays. By hand:
+
 1. Copy `dist/swos.zip` into PortMaster's `autoinstall` folder, then open PortMaster:
 
    | Firmware | Folder |

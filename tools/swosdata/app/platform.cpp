@@ -348,6 +348,98 @@ bool MakeDirs(const std::string& path) {
   return !ec;
 }
 
+bool RemoveTree(const std::string& path) {
+  std::error_code ec;
+  fs::remove_all(U8Path(path), ec);
+  return !ec;
+}
+
+bool RenamePath(const std::string& from, const std::string& to) {
+  std::error_code ec;
+  fs::rename(U8Path(from), U8Path(to), ec);
+  return !ec;
+}
+
+uint64_t TreeSize(const std::string& dir, const std::string& skipTop) {
+  std::error_code ec;
+  uint64_t n = 0;
+  const fs::path root = U8Path(dir);
+  for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end;
+       it.increment(ec)) {
+    if (!skipTop.empty() && it.depth() == 0 && it->is_directory() && PathU8(it->path().filename()) == skipTop) {
+      it.disable_recursion_pending();
+      continue;
+    }
+    if (it->is_regular_file(ec)) n += it->file_size(ec);
+  }
+  return n;
+}
+
+bool CopyTree(const std::string& from, const std::string& to, const std::string& skipTop,
+              const std::function<void(uint64_t)>& copied, std::string* error) {
+  std::error_code ec;
+  const fs::path root = U8Path(from), dest = U8Path(to);
+  fs::create_directories(dest, ec);
+  std::vector<char> buf(1 << 20);
+  for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end;
+       it.increment(ec)) {
+    if (!skipTop.empty() && it.depth() == 0 && it->is_directory() && PathU8(it->path().filename()) == skipTop) {
+      it.disable_recursion_pending();
+      continue;
+    }
+    const fs::path out = dest / fs::relative(it->path(), root, ec);
+    if (it->is_directory()) {
+      fs::create_directories(out, ec);
+      continue;
+    }
+    FILE* in = OpenFile(PathU8(it->path()), "rb");
+    FILE* o = OpenFile(PathU8(out), "wb");
+    bool ok = in && o;
+    size_t n;
+    while (ok && (n = fread(buf.data(), 1, buf.size(), in)) > 0) {
+      ok = fwrite(buf.data(), 1, n, o) == n;
+      if (ok && copied) copied(n);
+    }
+    if (in) fclose(in);
+    if (o && fclose(o) != 0) ok = false;
+    if (!ok) {
+      if (error) *error = "could not copy " + PathU8(it->path()) + " to " + PathU8(out);
+      return false;
+    }
+  }
+  if (ec) {
+    if (error) *error = ec.message();
+    return false;
+  }
+  return true;
+}
+
+std::vector<std::string> VolumeRoots() {
+  std::vector<std::string> out;
+#ifdef _WIN32
+  const DWORD mask = GetLogicalDrives();
+  for (int i = 2; i < 26; i++)       // C: on: A: and B: are floppies
+    if (mask & (1u << i)) out.push_back(std::string(1, char('A' + i)) + ":/");
+#else
+  std::vector<std::string> parents;
+#ifdef __APPLE__
+  parents.push_back("/Volumes");
+#else
+  const char* user = std::getenv("USER");
+  if (user) {
+    parents.push_back(std::string("/media/") + user);
+    parents.push_back(std::string("/run/media/") + user);
+  }
+  parents.push_back("/media");
+  parents.push_back("/mnt");
+#endif
+  for (const std::string& p : parents)
+    for (const DirEntry& e : ListDir(p))
+      if (e.dir) out.push_back(e.path);
+#endif
+  return out;
+}
+
 std::string DownloadsDir() {
 #ifdef _WIN32
   PWSTR w = nullptr;

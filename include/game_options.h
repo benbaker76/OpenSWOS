@@ -20,6 +20,7 @@
 enum {
     GAME_OPTION_COMPUTER = 1,   /* the desktop game */
     GAME_OPTION_PHONE    = 2,   /* the phone / tablet game */
+    GAME_OPTION_HANDHELD = 4,   /* the PortMaster port on a handheld (its own SWOS.ini on the card) */
 };
 
 /* What it needs, or it is not shown (the setup knows what was installed). */
@@ -68,20 +69,21 @@ static const GameOptionValue kGoLanguage[] = { { "en", "English", 0 }, { "de", "
 
 #define GAME_OPTION_COUNT(a) ((int32_t)(sizeof(a) / sizeof((a)[0])))
 #define GAME_OPTION_BOTH (GAME_OPTION_COMPUTER | GAME_OPTION_PHONE)
+#define GAME_OPTION_ALL  (GAME_OPTION_COMPUTER | GAME_OPTION_PHONE | GAME_OPTION_HANDHELD)
 
 static const GameOption kGameOptions[] = {
     { "general",  "world",          "World",       "The football the game plays: 96/97, or today's",
-      GAME_OPTION_BOTH, GAME_OPTION_NEEDS_WORLD, "9697", kGoWorld, GAME_OPTION_COUNT(kGoWorld) },
+      GAME_OPTION_ALL, GAME_OPTION_NEEDS_WORLD, "9697", kGoWorld, GAME_OPTION_COUNT(kGoWorld) },
     { "gameplay", "style",          "Gameplay",    "How a match plays: the Amiga's 50 fps, the PC's 70, or SWOS 2020's Xbox mode",
-      GAME_OPTION_BOTH, 0, "amiga", kGoGameplay, GAME_OPTION_COUNT(kGoGameplay) },
+      GAME_OPTION_ALL, 0, "amiga", kGoGameplay, GAME_OPTION_COUNT(kGoGameplay) },
     { "graphics", "style",          "Graphics",    "What the pitch, the scoreboard and the menus look like",
-      GAME_OPTION_BOTH, 0, "amiga", kGoGraphics, GAME_OPTION_COUNT(kGoGraphics) },
+      GAME_OPTION_ALL, 0, "amiga", kGoGraphics, GAME_OPTION_COUNT(kGoGraphics) },
     { "graphics", "sprites",        "Players",     "The players' look",
-      GAME_OPTION_BOTH, 0, "amiga", kGoSprites, GAME_OPTION_COUNT(kGoSprites) },
+      GAME_OPTION_ALL, 0, "amiga", kGoSprites, GAME_OPTION_COUNT(kGoSprites) },
     { "audio",    "style",          "Sound",       "The sounds of a match: the Amiga's, or the PC game's crowd and chants",
-      GAME_OPTION_BOTH, 0, "amiga", kGoSound, GAME_OPTION_COUNT(kGoSound) },
+      GAME_OPTION_ALL, 0, "amiga", kGoSound, GAME_OPTION_COUNT(kGoSound) },
     { "audio",    "music",          "Music",       "The Amiga's music, or the PC game's",
-      GAME_OPTION_BOTH, 0, "amiga", kGoMusic, GAME_OPTION_COUNT(kGoMusic) },
+      GAME_OPTION_ALL, 0, "amiga", kGoMusic, GAME_OPTION_COUNT(kGoMusic) },
     { "video",    "fullscreen",     "Screen",      "Full screen, or in a window",
       GAME_OPTION_COMPUTER, 0, "off", kGoFull, GAME_OPTION_COUNT(kGoFull) },
     { "video",    "widescreen",     "Shape",       "Widescreen shows more of the pitch; 4:3 draws it as the original did",
@@ -89,7 +91,7 @@ static const GameOption kGameOptions[] = {
     { "input",    "touch_controls", "On-screen controls", "The stick and buttons drawn on a phone's screen: Never, for a handheld with its own",
       GAME_OPTION_PHONE, 0, "auto", kGoTouch, GAME_OPTION_COUNT(kGoTouch) },
     { "general",  "language",       "Language",    "The game's menus",
-      GAME_OPTION_BOTH, 0, "en", kGoLanguage, GAME_OPTION_COUNT(kGoLanguage) },
+      GAME_OPTION_ALL, 0, "en", kGoLanguage, GAME_OPTION_COUNT(kGoLanguage) },
 };
 
 #endif

@@ -67,6 +67,10 @@ int32_t SdSources_AddFile(SdSources *s, const char *path);
  * the system's temporary folder; that folder (the one with SWOS.info and the SWOS drawer)
  * in `dir`. 0 when it holds SWOS/SWOS2. */
 int32_t SdSources_UnpackAmigaProgram(const char *zip, char *dir, uint32_t cap);
+/* A zip unpacked into dir (made), none of its entries outside it: 0, or -1. */
+int32_t SdSources_Unzip(const char *zip, const char *dir);
+/* Whether a zip holds an entry of that name. */
+int32_t SdSources_ZipHas(const char *zip, const char *name);
 
 int32_t SdSources_HaveAmiga(const SdSources *s);   /* both disks, a hard disk image or a WHDLoad .lha */
 
