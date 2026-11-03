@@ -918,6 +918,16 @@ Fixed so far:
   8 px apart and 7 tall instead of 9 and 8, with no extra gap, only when the list would not
   fit between the header and EXIT. 96/97's lists keep the original spacing.
 
-Open: **short competition names in the career's fixture list** (`CareerGameListCommon`):
-the name column has about 68 px before the "(H)"/"(A)" marker of a home-and-away league
-row; 133 of World 2026-27's 322 short names are wider (2026-11-02).
+- **Short competition names in the career's fixture list** (`CareerGameListCommon`): the
+  name column has 70 px of the small font before a home-and-away row's "(H)"/"(A)"; 133 of
+  World 2026-27's 322 short names were wider and ran into it. The SWOS 96/97 Mod's DOS game
+  has the same column and fits every short name when it builds (its `tools/complist.py`,
+  `fit_short`: a hand-picked label, else standard abbreviations last word first, else the
+  widest words cut). `src/cal_label.c` is that function in C (MIT, its notice kept), applied
+  where the column is drawn, to a name that does not fit only: the labels read as in the
+  Mod (all 560 of the world's strings checked against its Python), and 96/97's names, which
+  all fit, never change. `SWOS_MENU_OVERLAP_WIDTHS` prints each line's label (`[calfit]`);
+  `SWOS_GOLDEN_SHOT_HUB=<n>` screenshots the hub, its fixture list, the n-th time it is up.
+
+After both, a season in each of the world's 91 career countries and VIEW WORLD on every
+continent report nothing (2026-11-02).

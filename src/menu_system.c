@@ -626,6 +626,7 @@ void CallDrawMenuItem(MenuEntry *entry)
  * A text entry over a filled backdrop entry is the normal layering, not a finding.
  * ================================================================ */
 #include "menu_symbols.h"
+#include "cal_label.h"
 #include <stdarg.h>
 
 static int32_t menu_overlap_on(void)
@@ -755,7 +756,8 @@ static void menu_overlap_report(uint32_t key, const char *fmt, ...)
 
 /* SWOS_MENU_OVERLAP_WIDTHS=<file>: once, each line of the file measured in the small and
  * the big font -- "[widths] <small> <big> <text>" -- so names that never reach a screen
- * in a test run (a world's every division) can be checked against a column's room. */
+ * in a test run (a world's every division) can be checked against a column's room; and
+ * each line's fixture-list label, "[calfit] <text> => <label>" (cal_label.c). */
 static void menu_overlap_widths(void)
 {
     static int32_t s_done;
@@ -771,9 +773,13 @@ static void menu_overlap_widths(void)
     }
     while (fgets(line, sizeof line, f)) {
         line[strcspn(line, "\r\n")] = 0;
-        if (line[0])
+        if (line[0]) {
+            uint8_t fit[32];
             fprintf(stderr, "[widths] %d %d %s\n", (int)GetTextWidth((uint8_t *)line, (uint8_t *)_charTables[0]),
                     (int)GetTextWidth((uint8_t *)line, (uint8_t *)_charTables[1]), line);
+            fprintf(stderr, "[calfit] %s => %s\n", line,
+                    (const char *)CalLabel_Fit((const uint8_t *)line, fit, (int32_t)sizeof fit));
+        }
     }
     fclose(f);
 }

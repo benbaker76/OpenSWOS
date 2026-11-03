@@ -35,6 +35,7 @@
 #include "deterministic.h"
 #include "string_utils.h"
 #include "text_render.h"
+#include "cal_label.h"   /* CareerGameListCommon: a long competition name fitted */
 #include "edit_tactics.h"
 #include "teams.h"
 #include "audio.h"
@@ -6991,6 +6992,10 @@ extern uint8_t  _aCup_2[];       /* "CUP" */
 extern uint8_t *_careerCompetitionSlotPtrTable[];
 
 __attribute__((used, externally_visible))
+/* Each row's fitted competition name, when it needed one (cal_label.c): the 14 rows of
+ * _gameListArray. */
+static uint8_t s_calLabel[14][32];
+
 void CareerGameListCommon(MenuEntry *item)
 {
     MenuEntry *a5 = item;
@@ -7242,7 +7247,7 @@ pastTeamLoad:
                 namePtr = (uint8_t *)nameTbl[_currentDivisionIndex * 2 + 1];
             }
 
-            a5->fg = (uintptr_t)namePtr;
+            a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
             a5->isInvisible = 0;
             a5++; /* next entry */
 
@@ -7257,7 +7262,7 @@ pastTeamLoad:
             if (nameTbl)
                 namePtr = (uint8_t *)nameTbl[1];
 
-            a5->fg = (uintptr_t)namePtr;
+            a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
 
             /* Height check depends on whether a4 == a6 */
             if (a4 == a6) {
@@ -7331,7 +7336,7 @@ pastTeamLoad:
             if (nameTbl)
                 namePtr = (uint8_t *)nameTbl[1];
 
-            a5->fg = (uintptr_t)namePtr;
+            a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
 
             /* Height check */
             if (a4 == a6) {

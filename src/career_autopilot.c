@@ -465,7 +465,17 @@ void CareerAutopilot_Tick(void)
             say("[golden] viewing slot 3 (%d)\n", (int)viewed);
             _shortFire = 1;             /* (its default: PLAY MATCH) */
         } else {
+            /* Test (SWOS_GOLDEN_SHOT_HUB=<n>): a screenshot of the hub -- its fixture list --
+             * the n-th time it is up (cal_label.c's labels, docs/MENUS.md section 11). */
             static const MenuEntryFn next[] = { NextMatch };
+            static int32_t hubPasses;
+            const char *hubShot = getenv("SWOS_GOLDEN_SHOT_HUB");
+            if (hubShot && ++hubPasses == atoi(hubShot)) {
+                extern void Platform_RequestScreenshot(void);
+                Platform_RequestScreenshot();
+                say("[golden] hub screenshot\n");
+                return;
+            }
             select_first(next, 1);
             _shortFire = 1;
         }
