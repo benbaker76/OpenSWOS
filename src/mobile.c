@@ -275,6 +275,7 @@ int Mobile_CheckGameData(PlatformInitOptions *opts, const char *iniPath)
 {
     char link[512];
     PhoneFetchSetup from;
+    PhoneFetch_Tidy(swos_assets_dir());
     if (pending_link(link, sizeof link)) {
         fprintf(stderr, "[mobile] opened by %s\n", link);
         if (!PhoneFetch_ParseLink(link, &from))
@@ -286,20 +287,17 @@ int Mobile_CheckGameData(PlatformInitOptions *opts, const char *iniPath)
     }
     while (!have_game_data()) {
         fprintf(stderr, "[mobile] no game data in %s\n", swos_assets_dir());
-        char msg[1600];
-        snprintf(msg, sizeof msg,
-                 PROJECT_NAME " needs the original game's data, made from your own copy of the game by "
-                 PROJECT_SETUP_NAME " on a PC or Mac.\n\n"
-                 "Run " PROJECT_SETUP_NAME " to its phone screen, then scan its QR code with this phone's camera"
+        /* (Short: a phone's dialog in landscape does not scroll, and its buttons go first.) */
+        const char *msg =
+            "The game's data comes from " PROJECT_SETUP_NAME " on your PC or Mac. Run it to its "
+            "phone screen, then scan its QR code with the camera"
 #ifdef SWOS_ANDROID_BUILD
-                 " -- or tap Copy from my computer with this phone on the same Wi-Fi.\n\n"
-                 "By USB instead: copy the setup's \"assets\" folder into Android/data/" PROJECT_APP_ID "/files."
+            ", or tap Copy from my computer (on the same Wi-Fi)."
 #else
-                 ".\n\nOr copy the setup's \"assets\" folder into this app's folder: in the Files app, "
-                 "On My iPhone > " PROJECT_NAME "."
+            "."
 #endif
-                 );
-        if (!ask(PROJECT_NAME ": the game's data", msg, "Copy from my computer", "Close"))
+            ;
+        if (!ask(PROJECT_NAME, msg, "Copy from my computer", "Close"))
             return 0;
         if (pending_link(link, sizeof link) && PhoneFetch_ParseLink(link, &from)) {
             copy_from(&from, opts, iniPath);

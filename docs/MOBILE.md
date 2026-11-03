@@ -94,6 +94,12 @@ and shows a QR code (`include/phone_copy.h` is the whole protocol; the setup's e
   came, at its size. The list's paths are checked (relative, no `..`); the setup serves only files
   of its own list, by their name in it, under a key it makes up each run. The Amiga drawer's
   `amiga/` is left out.
+- **A world the phone has** (`data_json/worlds/<n>`) and the setup did not send is kept: a player
+  who copied World 2026-27 over by hand does not lose it to a computer that never had it. What a
+  copy cut off leaves (`assets.part`, `assets.old`) the app clears at its next start
+  (`PhoneFetch_Tidy`) -- the adb shell cannot delete what the app wrote.
+- **The messages are short on purpose**: SDL's Android dialog does not scroll, and in landscape a
+  long one pushes its buttons off the screen (a Pixel 8 showed no buttons at all).
 - **SWOS.ini**: the setup's GAME OPTIONS for the phone (`<user dir>/phone/SWOS.ini`) come too, and
   only their keys (`include/game_options.h`, phone ones, known values) are set in the phone's file,
   which is then read again.
@@ -107,5 +113,7 @@ and shows a QR code (`include/phone_copy.h` is the whole protocol; the setup's e
 ## Not done yet
 
 - Importing the game's data in the app (the Setup's library on the phone) instead of copying it.
-- The Wi-Fi copy from a running game (OPTIONS), not only at the start; tried on a real phone.
+- The Wi-Fi copy from a running game (OPTIONS), not only at the start. Tried on a Pixel 8
+  (2026-11-03): COPY FROM MY COMPUTER found the PC, 451 files, the options taken, a link with data
+  there asks first; the QR code through the camera and the page not yet, nor iOS.
 - Haptics, the controls' size and placement as a setting, a controls layout for a second player.

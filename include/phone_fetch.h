@@ -26,6 +26,10 @@ int PhoneFetch_Find(PhoneFetchSetup *out, int waitMs);
 int PhoneFetch_Copy(const PhoneFetchSetup *from, const char *assetsDir, const char *iniPath,
                     void (*progress)(int permille), char *err, int errCap);
 
+/* What a copy cut off left beside the assets folder: <assets>.part removed, <assets>.old put
+ * back when the assets folder is gone (the copy stopped between its renames), else removed. */
+void PhoneFetch_Tidy(const char *assetsDir);
+
 /* --phone-fetch=<link|find>: a copy, from a desktop, into swos_assets_dir() (a test). */
 int PhoneFetch_Cli(const char *arg, const char *iniPath);
 

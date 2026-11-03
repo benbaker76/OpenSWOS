@@ -463,6 +463,46 @@ static void encode_path(const char *p, char *out, size_t cap)
     out[o] = 0;
 }
 
+/* A world package the phone had and the setup did not send (data_json/worlds/<n>: the player
+ * copied it over by hand, or the setup's computer never had it) is kept, not lost with the old
+ * folder. */
+static void keep_worlds(const char *oldDir, const char *newDir)
+{
+    char from[1600], to[1600];
+    snprintf(from, sizeof from, "%s/data_json/worlds", oldDir);
+    DIR *d = opendir(from);
+    if (!d)
+        return;
+    struct dirent *e;
+    while ((e = readdir(d)) != NULL) {
+        if (e->d_name[0] == '.')
+            continue;
+        struct stat st;
+        snprintf(to, sizeof to, "%s/data_json/worlds/%s", newDir, e->d_name);
+        if (stat(to, &st) == 0)
+            continue;                              /* the setup sent its own */
+        char src[1600];
+        snprintf(src, sizeof src, "%s/%s", from, e->d_name);
+        make_dirs(to);
+        if (rename(src, to) == 0)
+            fprintf(stderr, "[phone copy] kept the phone's world %s\n", e->d_name);
+    }
+    closedir(d);
+}
+
+void PhoneFetch_Tidy(const char *assetsDir)
+{
+    char p[1280];
+    snprintf(p, sizeof p, "%s.part", assetsDir);
+    remove_tree(p);
+    snprintf(p, sizeof p, "%s.old", assetsDir);
+    struct stat st;
+    if (stat(assetsDir, &st) != 0 && stat(p, &st) == 0)
+        rename(p, assetsDir);                      /* a copy cut off between its two renames */
+    else
+        remove_tree(p);
+}
+
 int PhoneFetch_Copy(const PhoneFetchSetup *from, const char *assetsDir, const char *iniPath,
                     void (*progress)(int permille), char *err, int errCap)
 {
@@ -553,6 +593,7 @@ int PhoneFetch_Copy(const PhoneFetchSetup *from, const char *assetsDir, const ch
         rename(old, assetsDir);
         return 0;
     }
+    keep_worlds(old, assetsDir);
     remove_tree(old);
     fprintf(stderr, "[phone copy] %d files, %lld bytes\n", copied, (long long)s_total);
 
@@ -587,6 +628,7 @@ int PhoneFetch_Cli(const char *arg, const char *iniPath)
 #else  /* no sockets here */
 
 int PhoneFetch_Cli(const char *arg, const char *iniPath) { (void)arg; (void)iniPath; return 1; }
+void PhoneFetch_Tidy(const char *assetsDir) { (void)assetsDir; }
 
 int PhoneFetch_ParseLink(const char *link, PhoneFetchSetup *out) { (void)link; (void)out; return 0; }
 int PhoneFetch_Find(PhoneFetchSetup *out, int waitMs) { (void)out; (void)waitMs; return 0; }
