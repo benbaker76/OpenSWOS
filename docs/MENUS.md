@@ -890,3 +890,34 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
 - **Literal text is not translated** — `tr()` is keyed by symbol name.
 - **Blinking text** (`kBlinkText`) in a `dos_redraw` menu would add a vsync per blink
   frame (`UpdateBlinkingMenuText` redraws on its own). None of the imported menus blink.
+
+## 11. Overlaps (`SWOS_MENU_OVERLAP=1`)
+
+The menus were laid out for 96/97's data. A world's data can outgrow them: World 2026-27's
+Europe has 55 countries, and its packs' short competition names are often wider than
+96/97's. A menu draws whatever it is given, on top of whatever is already there.
+
+`SWOS_MENU_OVERLAP=1` (SDL, `src/menu_system.c`) checks every full redraw and writes each
+finding once to `SWOS.log` as an `[overlap]` line, naming the menu by its init function:
+
+- **boxes**: two visible filled entries that cross, neither holding the other (a row inside
+  a backdrop is normal layering);
+- **text and text**: two drawn strings that cross (leading and trailing spaces trimmed);
+- **text and box**: a string that crosses the edge of another entry's box.
+
+`SWOS_MENU_OVERLAP_WIDTHS=<file>` also measures each line of the file in the small and the
+big font, once (`[widths] <small> <big> <text>`): for names no test run puts on screen.
+
+To sweep a world: a one-season career for a club of every country (`--career-golden=new:...
+--golden-seasons=1`), and `SWOS_GOLDEN_VIEW_WORLD=<continent>` (`src/career_autopilot.c`)
+for VIEW WORLD's continent screen, its competitions above its countries. 96/97 gives none.
+
+Fixed so far:
+
+- **A continent's list taller than its room** (`SetTeamsCoordinates`, `src/teams.c`): rows
+  8 px apart and 7 tall instead of 9 and 8, with no extra gap, only when the list would not
+  fit between the header and EXIT. 96/97's lists keep the original spacing.
+
+Open: **short competition names in the career's fixture list** (`CareerGameListCommon`):
+the name column has about 68 px before the "(H)"/"(A)" marker of a home-and-away league
+row; 133 of World 2026-27's 322 short names are wider (2026-11-02).

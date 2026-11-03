@@ -615,6 +615,220 @@ void CallDrawMenuItem(MenuEntry *entry)
 #endif
 }
 
+#ifdef SWOS_SDL_BUILD
+/* ================================================================
+ * SWOS_MENU_OVERLAP=1: report what a screen draws on top of itself (docs/MENUS.md
+ * "Overlaps"). Data the original never had -- a world's 55 European countries, a
+ * pack's long competition names -- can outgrow a layout made for 96/97; the menu
+ * draws it anyway. Two findings, each logged once as an [overlap] line:
+ *   text   a string wider than the entry it is drawn in;
+ *   boxes  two visible entries with filled backgrounds that intersect.
+ * A text entry over a filled backdrop entry is the normal layering, not a finding.
+ * ================================================================ */
+#include "menu_symbols.h"
+#include <stdarg.h>
+
+static int32_t menu_overlap_on(void)
+{
+    static int8_t s_on = -1;
+    if (s_on < 0) {
+        const char *v = getenv("SWOS_MENU_OVERLAP");
+        s_on = (v && v[0] && v[0] != '0') ? 1 : 0;
+    }
+    return s_on;
+}
+
+/* The menu's name for the log: its onInit (else onDraw) callback's symbol. */
+static const char *menu_overlap_name(void)
+{
+    const Menu *m = (const Menu *)_currentMenu;
+    void *fn = m ? (void *)(m->onInit ? m->onInit : m->onDraw) : 0;
+    int32_t i;
+    if (!fn)
+        return "?";
+    for (i = 0; i < _menuSymbolsCount; i++)
+        if (_menuSymbols[i].kind == SYM_FUNC && _menuSymbols[i].ptr == fn)
+            return _menuSymbols[i].name;
+    return "?";
+}
+
+/* Once per finding: a small set of hashes of what was reported. */
+static int32_t menu_overlap_new(uint32_t h)
+{
+    static uint32_t s_seen[1024];
+    static int32_t s_n;
+    int32_t i;
+    for (i = 0; i < s_n; i++)
+        if (s_seen[i] == h)
+            return 0;
+    if (s_n < (int32_t)(sizeof s_seen / sizeof s_seen[0]))
+        s_seen[s_n++] = h;
+    return 1;
+}
+
+static uint32_t menu_overlap_hash(uint32_t h, const uint8_t *s)
+{
+    while (s && *s)
+        h = (h ^ *s++) * 16777619u;
+    return h;
+}
+
+/* What a full redraw put on screen: each text's visible span and its entry. */
+typedef struct { int16_t x0, y0, x1, y1; uint16_t ordinal; char text[48]; } MenuOverlapText;
+static MenuOverlapText s_ovText[256];
+static int32_t s_ovTexts, s_ovCollect;
+
+static int32_t text_width_n(const uint8_t *text, int32_t n, uint8_t *charTable)
+{
+    uint8_t buf[128];
+    if (n <= 0)
+        return 0;
+    if (n > (int32_t)sizeof buf - 1)
+        n = (int32_t)sizeof buf - 1;
+    memcpy(buf, text, (size_t)n);
+    buf[n] = 0;
+    return GetTextWidth(buf, charTable);
+}
+
+/* Record where a text lands: the drawing code's own arithmetic (DrawMenuText*),
+ * trimmed of leading and trailing spaces, which draw nothing. */
+static void menu_overlap_text(const MenuEntry *e, uint8_t *text, uint8_t *charTable,
+                              uint16_t textY, uint16_t flags)
+{
+    MenuOverlapText *t;
+    int32_t len = (int32_t)strlen((const char *)text), a = 0, b = len, w, x0;
+    if (!s_ovCollect || s_ovTexts >= (int32_t)(sizeof s_ovText / sizeof s_ovText[0]))
+        return;
+    while (a < len && text[a] == ' ')
+        a++;
+    while (b > a && text[b - 1] == ' ')
+        b--;
+    if (a == b)
+        return;
+    w = GetTextWidth(text, charTable);
+    if (flags & (1 << 15))
+        x0 = (int16_t)e->x + (e->background != NO_BACKGROUND ? 2 : 0);
+    else if (flags & (1 << 14))
+        x0 = (int16_t)e->x + e->dwWidth - 1 - (e->background != NO_BACKGROUND ? 2 : 0) - w + 1;
+    else
+        x0 = (int16_t)e->x + (e->dwWidth >> 1) - ((w + 1) >> 1);
+    t = &s_ovText[s_ovTexts++];
+    t->x0 = (int16_t)(x0 + text_width_n(text, a, charTable));
+    t->x1 = (int16_t)(x0 + text_width_n(text, b, charTable) - 1);   /* inclusive */
+    t->y0 = (int16_t)textY;
+    t->y1 = (int16_t)(textY + *(uint16_t *)(charTable + CHARTABLE_CHARHEIGHT) - 1);
+    t->ordinal = e->ordinal;
+    snprintf(t->text, sizeof t->text, "%.*s", (int)(b - a), (const char *)text + a);
+}
+
+static int32_t menu_overlap_solid(const MenuEntry *e)
+{
+    return !e->isInvisible && e->dwWidth > 0 && e->dwHeight > 0 &&
+           e->background == ENTRY_FRAME_AND_BACK_COLOR && (e->bgColor & 0xF) != 0;
+}
+
+/* Rectangles as inclusive x0,y0,x1,y1. */
+static int32_t ov_cross(int32_t ax0, int32_t ay0, int32_t ax1, int32_t ay1,
+                        int32_t bx0, int32_t by0, int32_t bx1, int32_t by1)
+{
+    return ax0 <= bx1 && bx0 <= ax1 && ay0 <= by1 && by0 <= ay1;
+}
+static int32_t ov_inside(int32_t ax0, int32_t ay0, int32_t ax1, int32_t ay1,
+                         int32_t bx0, int32_t by0, int32_t bx1, int32_t by1)
+{
+    return ax0 >= bx0 && ax1 <= bx1 && ay0 >= by0 && ay1 <= by1;
+}
+
+static void menu_overlap_report(uint32_t key, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+static void menu_overlap_report(uint32_t key, const char *fmt, ...)
+{
+    const char *name = menu_overlap_name();
+    va_list ap;
+    if (!menu_overlap_new(menu_overlap_hash(key, (const uint8_t *)name)))
+        return;
+    fprintf(stderr, "[overlap] %s: ", name);
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    fputc('\n', stderr);
+}
+
+/* SWOS_MENU_OVERLAP_WIDTHS=<file>: once, each line of the file measured in the small and
+ * the big font -- "[widths] <small> <big> <text>" -- so names that never reach a screen
+ * in a test run (a world's every division) can be checked against a column's room. */
+static void menu_overlap_widths(void)
+{
+    static int32_t s_done;
+    const char *path = getenv("SWOS_MENU_OVERLAP_WIDTHS");
+    char line[256];
+    FILE *f;
+    if (s_done || !path || !*path || !_charTables[0] || !_charTables[1])
+        return;
+    s_done = 1;
+    if (!(f = fopen(path, "r"))) {
+        fprintf(stderr, "[widths] cannot open %s\n", path);
+        return;
+    }
+    while (fgets(line, sizeof line, f)) {
+        line[strcspn(line, "\r\n")] = 0;
+        if (line[0])
+            fprintf(stderr, "[widths] %d %d %s\n", (int)GetTextWidth((uint8_t *)line, (uint8_t *)_charTables[0]),
+                    (int)GetTextWidth((uint8_t *)line, (uint8_t *)_charTables[1]), line);
+    }
+    fclose(f);
+}
+
+/* After a full redraw: boxes that cross without one holding the other; texts that
+ * cross each other; a text that crosses the edge of another entry's box. */
+static void menu_overlap_check(void)
+{
+    const Menu *m = (const Menu *)_currentMenu;
+    int32_t i, j, n = m ? m->numEntries : 0;
+    MenuEntry *a, *b;
+#define BOX(e) (int16_t)(e)->x, (int16_t)(e)->y, (int16_t)(e)->x + (e)->dwWidth - 1, (int16_t)(e)->y + (e)->dwHeight - 1
+    for (i = 0; i < n; i++) {
+        a = (MenuEntry *)((uint8_t *)_menuEntries + i * MENUENTRY_STRIDE);
+        if (!menu_overlap_solid(a))
+            continue;
+        for (j = i + 1; j < n; j++) {
+            b = (MenuEntry *)((uint8_t *)_menuEntries + j * MENUENTRY_STRIDE);
+            if (!menu_overlap_solid(b) || !ov_cross(BOX(a), BOX(b)) ||
+                ov_inside(BOX(a), BOX(b)) || ov_inside(BOX(b), BOX(a)))
+                continue;
+            menu_overlap_report(0x5a5a0000u ^ (uint32_t)a->ordinal << 8 ^ b->ordinal,
+                                "boxes #%u (x %d y %d %dx%d) and #%u (x %d y %d %dx%d) cross",
+                                (unsigned)a->ordinal, (int)(int16_t)a->x, (int)(int16_t)a->y,
+                                (int)a->dwWidth, (int)a->dwHeight, (unsigned)b->ordinal,
+                                (int)(int16_t)b->x, (int)(int16_t)b->y, (int)b->dwWidth, (int)b->dwHeight);
+        }
+    }
+    for (i = 0; i < s_ovTexts; i++) {
+        const MenuOverlapText *t = &s_ovText[i], *u;
+        for (j = i + 1; j < s_ovTexts; j++) {
+            u = &s_ovText[j];
+            if (u->ordinal == t->ordinal || !ov_cross(t->x0, t->y0, t->x1, t->y1, u->x0, u->y0, u->x1, u->y1))
+                continue;
+            menu_overlap_report(menu_overlap_hash(menu_overlap_hash(0x7e7e0000u, (const uint8_t *)t->text),
+                                                  (const uint8_t *)u->text),
+                                "text \"%s\" (#%u, x %d-%d y %d) and \"%s\" (#%u, x %d-%d y %d) cross",
+                                t->text, (unsigned)t->ordinal, t->x0, t->x1, t->y0,
+                                u->text, (unsigned)u->ordinal, u->x0, u->x1, u->y0);
+        }
+        for (j = 0; j < n; j++) {
+            b = (MenuEntry *)((uint8_t *)_menuEntries + j * MENUENTRY_STRIDE);
+            if (b->ordinal == t->ordinal || !menu_overlap_solid(b) ||
+                !ov_cross(t->x0, t->y0, t->x1, t->y1, BOX(b)) || ov_inside(t->x0, t->y0, t->x1, t->y1, BOX(b)))
+                continue;
+            menu_overlap_report(menu_overlap_hash(0x3c3c0000u ^ b->ordinal, (const uint8_t *)t->text),
+                                "text \"%s\" (#%u, x %d-%d y %d) crosses the edge of box #%u (x %d y %d %dx%d)",
+                                t->text, (unsigned)t->ordinal, t->x0, t->x1, t->y0, (unsigned)b->ordinal,
+                                (int)(int16_t)b->x, (int)(int16_t)b->y, (int)b->dwWidth, (int)b->dwHeight);
+        }
+    }
+#undef BOX
+}
+#endif
+
 /* ================================================================
  * DrawMenuItem — main menu item renderer
  * ================================================================ */
@@ -875,6 +1089,10 @@ fg_text_common:
     }
 
     textColor = flags & STR_COLOR_MASK;
+#ifdef SWOS_SDL_BUILD
+    if (menu_overlap_on())
+        menu_overlap_text(entry, textPtr, charTable, textY, flags);
+#endif
 
     /* Check alignment bits — asm: btst #15 → left, btst #14 → right */
     if (flags & (1 << 15)) {
@@ -1379,6 +1597,12 @@ void DrawMenu(void)
     }
 
     /* Draw all entries (centered via the persistent _menu_draw_x_offset). */
+#ifdef SWOS_SDL_BUILD
+    s_ovTexts = 0;
+    s_ovCollect = menu_overlap_on();
+    if (s_ovCollect)
+        menu_overlap_widths();
+#endif
     entry = (MenuEntry *)_menuEntries;
     count = (int16_t)menu->numEntries;
     for (i = 0; i < count; i++) {
@@ -1389,6 +1613,12 @@ void DrawMenu(void)
      * redrawn every frame, nothing else would. */
     if (s_menuFlags & MENU_FLAG_DOS_REDRAW)
         DrawSelectedMenuItemFrame();
+#ifdef SWOS_SDL_BUILD
+    if (menu_overlap_on()) {
+        menu_overlap_check();
+        s_ovCollect = 0;
+    }
+#endif
 
     /* Which build is this? Every tester report used to open with that question,
      * unanswerable after the fact -- and one macOS report cost a session because

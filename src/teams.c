@@ -2790,8 +2790,21 @@ void SetTeamsCoordinates(void)
     _headerYPlusHeight = topY;
     _exitY = _menuEntries[88].y; /* 0x1340/56=88 */
 
-    uint16_t totalHeight = d1 * 9;
-    int16_t space = (int16_t)(_exitY - _headerYPlusHeight) - (int16_t)totalHeight;
+    /* The original's rows are 9 px apart, with 2 px more before the teams. A list that
+     * does not fit between the header and EXIT -- World 2026-27's Europe: 55 countries
+     * (19 rows) under its 4 cups, 23 rows in 185 px -- has its rows 8 px apart, 7 tall
+     * (still a line between them; the text is 6) and no extra gap, rather than running
+     * under both (centred, the overflow went half over the header, half under EXIT).
+     * Every list that fits is as before. The height is set either way: the same entries
+     * hold the next list, after BACK. */
+    int16_t pitch = 9, gap = 2;
+    int16_t room = (int16_t)(_exitY - _headerYPlusHeight);
+    if ((int16_t)(d1 * pitch + gap) > room) {
+        pitch = 8;
+        gap = 0;
+    }
+    uint16_t totalHeight = d1 * pitch;
+    int16_t space = room - (int16_t)totalHeight;
     int16_t yPos = (space >> 1) + (int16_t)_headerYPlusHeight;
 
     /* Set league entry Y coordinates */
@@ -2802,14 +2815,15 @@ void SetTeamsCoordinates(void)
         int16_t j;
         for (j = 0; j <= n; j++) {
             e->y = (uint16_t)yPos;
-            yPos += 9;
+            e->dwHeight = (uint16_t)(pitch - 1);
+            yPos += pitch;
             e++;
         }
         /* Note: unreachable code at 55337-55348 in asm (after bra.s) — skipped */
     }
 
     /* Set team entry Y coordinates: 3 columns × 22 entries starting at entry 21 */
-    yPos += 2;
+    yPos += gap;
     MenuEntry *e = &_menuEntries[21]; /* 0x498/56=21 */
     int16_t col;
     for (col = 0; col < 3; col++) {
@@ -2817,7 +2831,8 @@ void SetTeamsCoordinates(void)
         int16_t row;
         for (row = 0; row < 22; row++) {
             e->y = (uint16_t)y;
-            y += 9;
+            e->dwHeight = (uint16_t)(pitch - 1);
+            y += pitch;
             e++;
         }
     }

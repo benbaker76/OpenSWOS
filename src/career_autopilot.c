@@ -46,6 +46,8 @@ extern void StartContest(void);
 extern void DIYLeagueTournamentInit(void);
 extern void ContestMenuInit(void);
 extern void NextMatch(MenuEntry *);
+extern void ViewWorldMenu(void);
+extern void SelectTeamsInit(void);
 extern void CareerMenu(void);                   /* menus.c */
 extern void JobOffersMenu(void);
 extern void JobOffersMenuRetired(void);
@@ -89,6 +91,53 @@ static int32_t view_winners(void)
         return 0;
     opened++;
     return 1;
+}
+
+/* Test (SWOS_GOLDEN_VIEW_WORLD=<continent>): from the first season hub, VIEW WORLD, that
+ * continent's row, a screenshot of the screen it opens (its competitions above its
+ * countries: the layout World 2026-27's Europe overran), then exit -- with
+ * SWOS_MENU_OVERLAP=1, its overlaps in SWOS.log. 1 while it is driving the screen. */
+static void say(const char *fmt, ...);
+static int32_t entry_with(MenuEntryFn fn);
+static int32_t entry_labelled(const char *label);
+static int32_t view_world(const Menu *menu)
+{
+    static const char *env = (const char *)1;
+    static int32_t stage, waited;
+    int32_t i;
+    if (env == (const char *)1)
+        env = getenv("SWOS_GOLDEN_VIEW_WORLD");
+    if (!env || !*env)
+        return 0;
+    if (stage == 0 && menu->onInit == ContestMenuInit) {
+        if ((i = entry_with((MenuEntryFn)ViewWorldMenu)) < 0)
+            return 0;
+        SetCurrentEntry((uint16_t)i);
+        _shortFire = 1;
+        stage = 1;
+        return 1;
+    }
+    if (stage == 1 && menu->onInit == SelectTeamsInit) {
+        if ((i = entry_labelled(env)) < 0)
+            return ++waited > 300 ? (say("[golden] '%s' is not on VIEW WORLD\n", env), exit(2), 1) : 1;
+        SetCurrentEntry((uint16_t)i);
+        _shortFire = 1;
+        stage = 2;
+        waited = 0;
+        return 1;
+    }
+    if (stage == 2 && menu->onInit == SelectTeamsInit) {
+        if (++waited == 10) {
+            extern void Platform_RequestScreenshot(void);
+            Platform_RequestScreenshot();
+            say("[golden] view world: %s\n", env);
+        } else if (waited == 40) {
+            say("[golden] done\n");
+            exit(0);
+        }
+        return 1;
+    }
+    return 0;
 }
 
 /* --career-golden=new:<continent>/<country>/<division>/<club>: a new career, the club
@@ -393,6 +442,10 @@ void CareerAutopilot_Tick(void)
 
     if (menu->onInit == CareerOverInit)
         at_hub();
+    else if (menu->onInit == ContestMenuInit && view_world(menu)) {
+    }
+    else if (menu->onInit == SelectTeamsInit && view_world(menu)) {
+    }
     else if (menu->onInit == ContestMenuInit) {
         /* The in-season hub: NEXT MATCH plays the next match day (PLAY MATCH, its
          * default, only opens the table). Test (SWOS_GOLDEN_VIEW_SLOT3=<n>): the first n
