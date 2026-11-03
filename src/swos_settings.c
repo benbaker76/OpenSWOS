@@ -876,3 +876,60 @@ void Settings_AppendMissing(const PlatformInitOptions *opts, const char *path)
 {
     Settings_Save(opts, path);
 }
+
+/* --game-options-selftest: every value OpenSWOS Setup may write (include/game_options.h) read
+ * by this file's reader and written back by its writer, unchanged. Fails when the game renames
+ * a key or a value the setup still writes. 0 when every one comes back. */
+#include "game_options.h"
+int Settings_GameOptionsSelfTest(void)
+{
+    char in[512], out[512], line[512];
+    const char *tmp = getenv("TMPDIR");
+    int32_t i, k, bad = 0, checked = 0;
+
+    snprintf(in, sizeof in, "%s/swos-game-options-in.ini", tmp && *tmp ? tmp : "/tmp");
+    snprintf(out, sizeof out, "%s/swos-game-options-out.ini", tmp && *tmp ? tmp : "/tmp");
+    for (i = 0; i < GAME_OPTION_COUNT(kGameOptions); i++) {
+        const GameOption *o = &kGameOptions[i];
+        for (k = 0; k < o->count; k++) {
+            PlatformInitOptions opts;
+            FILE *f = fopen(in, "w");
+            char got[64] = "";
+            int32_t inSection = 0;
+            if (!f) { fprintf(stderr, "game-options: cannot write %s\n", in); return 1; }
+            fprintf(f, "[%s]\n%s=%s\n", o->section, o->key, o->values[k].value);
+            fclose(f);
+            memset(&opts, 0, sizeof opts);
+            Settings_Load(&opts, in);
+            if (!strcmp(o->section, "video") && !strcmp(o->key, "fullscreen")) {
+                /* (written from the window's own state, not the setting: read it as loaded) */
+                snprintf(got, sizeof got, "%s", opts.fullscreen == PLATFORM_FULLSCREEN_DESKTOP ? "desktop"
+                                                : opts.fullscreen == PLATFORM_FULLSCREEN_EXCLUSIVE ? "exclusive" : "off");
+            } else {
+                Settings_Save(&opts, out);
+                if (!(f = fopen(out, "r"))) { fprintf(stderr, "game-options: cannot read %s\n", out); return 1; }
+                while (fgets(line, sizeof line, f)) {
+                    size_t n = strlen(o->key);
+                    if (line[0] == '[')
+                        inSection = !strncmp(line + 1, o->section, strlen(o->section)) && line[1 + strlen(o->section)] == ']';
+                    else if (inSection && !strncmp(line, o->key, n) && line[n] == '=') {
+                        sscanf(line + n + 1, "%63[^ \t\r\n;]", got);
+                        break;
+                    }
+                }
+                fclose(f);
+            }
+            checked++;
+            if (strcmp(got, o->values[k].value)) {
+                fprintf(stderr, "game-options: [%s] %s=%s came back as '%s'\n", o->section, o->key,
+                        o->values[k].value, got);
+                bad++;
+            }
+        }
+    }
+    remove(in);
+    remove(out);
+    printf("game-options self-test: %d of %d values come back%s\n", (int)(checked - bad), (int)checked,
+           bad ? " -- FAILED" : "");
+    return bad ? 1 : 0;
+}

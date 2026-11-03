@@ -23,6 +23,7 @@
 // when the install is done. --no-watch leaves the Downloads folder alone.
 #include <atomic>
 #include "../../../include/project_identity.h"
+#include "../../../include/game_options.h"   // the wizard's GAME OPTIONS (the game's SWOS.ini keys)
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -700,6 +701,11 @@ struct App {
     }
     w().set_plan_left(left);
     w().set_plan_right(right);
+    // What GAME OPTIONS may offer: the data that is installed, or about to be.
+    havePcData = info[SD_STEP_DOS_FILES].ready || Has(SD_STEP_DOS_FILES);
+    have2020Data = info[SD_STEP_SWOS2020].ready || Has(SD_STEP_SWOS2020);
+    haveJagData = info[SD_STEP_JAGUAR].ready || Has(SD_STEP_JAGUAR);
+    haveWorldData = info[SD_STEP_WORLD].ready || Has(SD_STEP_WORLD);
     w().set_can_install(any && !outDir.empty());
     RefreshAmiga(info);
   }
@@ -1113,6 +1119,177 @@ struct App {
     });
   }
 
+  // ------------------------------------------------------------ game options ---
+
+  // The wizard's GAME OPTIONS: the few SWOS.ini settings worth choosing before the first start
+  // (include/game_options.h; the game is the authority on the file -- --game-options-selftest).
+  // A choice is written at once, and only its own line: the rest of the file is left as it is.
+  // The computer's settings go to its SWOS.ini, beside the assets folder; the phone's to
+  // phone/SWOS.ini there, which goes to the phone with the assets folder.
+  std::vector<int> optChoice;                       // per kGameOptions: the value's index
+  std::vector<std::pair<int, std::vector<int>>> optRows;   // a shown row: its option, its values
+  bool haveWorldData = false, havePcData = false, have2020Data = false, haveJagData = false;
+
+  std::string UserDir() const { return sd::ParentDir(defaultOutDir); }
+  std::string IniPath(bool phone) const { return Join(phone ? Join(UserDir(), "phone") : UserDir(), "SWOS.ini"); }
+
+  static std::string ReadFile(const std::string& path) {
+    std::string text;
+    if (FILE* f = sd::OpenFile(path, "rb")) {
+      char buf[4096];
+      size_t n;
+      while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) text.append(buf, n);
+      std::fclose(f);
+    }
+    return text;
+  }
+
+  // Whether an ini line sets this key ("key=", "key =", leading spaces too).
+  static bool IniKeyIs(const std::string& line, const char* key) {
+    const size_t eq = line.find('=');
+    if (eq == std::string::npos) return false;
+    size_t a = line.find_first_not_of(" \t"), b = eq;
+    while (b > a && (line[b - 1] == ' ' || line[b - 1] == '\t')) b--;
+    return a < b && line.compare(a, b - a, key) == 0 && b - a == std::strlen(key);
+  }
+
+  // [section] key=value's value in an ini text, or empty.
+  static std::string IniValue(const std::string& text, const char* section, const char* key) {
+    std::string sec;
+    size_t pos = 0;
+    while (pos < text.size()) {
+      size_t end = text.find('\n', pos);
+      if (end == std::string::npos) end = text.size();
+      std::string line = text.substr(pos, end - pos);
+      pos = end + 1;
+      while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+      if (line.size() > 1 && line[0] == '[') {
+        sec = line.substr(1, line.find(']') - 1);
+        continue;
+      }
+      if (sec != section || !IniKeyIs(line, key)) continue;
+      std::string v = line.substr(line.find('=') + 1);
+      v.erase(0, v.find_first_not_of(" \t"));
+      const size_t cut = v.find_first_of(" \t;");
+      return cut == std::string::npos ? v : v.substr(0, cut);
+    }
+    return {};
+  }
+
+  // The text with [section] key=value set: its line replaced, or added to its section, or the
+  // section added. Nothing else moves.
+  static std::string IniSet(const std::string& text, const char* section, const char* key, const char* value) {
+    std::string out, sec;
+    bool done = false, inSec = false;
+    size_t pos = 0, lastInSec = std::string::npos;
+    std::vector<std::string> lines;
+    while (pos < text.size()) {
+      size_t end = text.find('\n', pos);
+      if (end == std::string::npos) end = text.size();
+      lines.push_back(text.substr(pos, end - pos));
+      pos = end + 1;
+    }
+    for (size_t i = 0; i < lines.size(); i++) {
+      std::string line = lines[i];
+      if (!line.empty() && line.back() == '\r') line.pop_back();
+      if (line.size() > 1 && line[0] == '[') {
+        inSec = line.substr(1, line.find(']') - 1) == section;
+        if (inSec) lastInSec = i;
+        continue;
+      }
+      if (!inSec) continue;
+      if (!line.empty()) lastInSec = i;
+      if (!done && IniKeyIs(line, key)) {
+        lines[i] = std::string(key) + "=" + value;
+        done = true;
+      }
+    }
+    if (!done) {
+      if (lastInSec != std::string::npos)
+        lines.insert(lines.begin() + long(lastInSec) + 1, std::string(key) + "=" + value);
+      else {
+        if (!lines.empty() && !lines.back().empty()) lines.push_back("");
+        lines.push_back(std::string("[") + section + "]");
+        lines.push_back(std::string(key) + "=" + value);
+      }
+    }
+    for (size_t i = 0; i < lines.size(); i++) {
+      out += lines[i];
+      if (i + 1 < lines.size() || !lines[i].empty()) out += "\n";
+    }
+    return out;
+  }
+
+  bool ValueAvailable(const GameOptionValue& v) const {
+    return v.needs == GAME_OPTION_VALUE_PC ? havePcData : v.needs == GAME_OPTION_VALUE_2020 ? have2020Data
+         : v.needs == GAME_OPTION_VALUE_JAGUAR ? haveJagData : true;
+  }
+
+  // The choices from the files, once: the phone's file when there is one and no computer is
+  // ticked, else the computer's; a value it does not have is the game's default.
+  void LoadOptions() {
+    const std::string pc = ReadFile(IniPath(false)), phone = ReadFile(IniPath(true));
+    optChoice.assign(size_t(GAME_OPTION_COUNT(kGameOptions)), 0);
+    for (int i = 0; i < GAME_OPTION_COUNT(kGameOptions); i++) {
+      const GameOption& o = kGameOptions[i];
+      std::string v = !(o.where & GAME_OPTION_COMPUTER) || (!phone.empty() && pc.empty())
+                          ? IniValue(phone, o.section, o.key) : IniValue(pc, o.section, o.key);
+      if (v.empty()) v = o.def;
+      for (int k = 0; k < o.count; k++)
+        if (v == o.values[k].value) optChoice[size_t(i)] = k;
+    }
+  }
+
+  // The rows for what is ticked, with the values its data allows.
+  void RefreshOptions() {
+    if (optChoice.empty()) LoadOptions();
+    const int where = (w().get_t_computer() ? GAME_OPTION_COMPUTER : 0) | (w().get_t_phone() ? GAME_OPTION_PHONE : 0);
+    auto rows = std::make_shared<slint::VectorModel<OptionRow>>();
+    optRows.clear();
+    for (int i = 0; i < GAME_OPTION_COUNT(kGameOptions); i++) {
+      const GameOption& o = kGameOptions[i];
+      if (!(o.where & where) || (o.needs == GAME_OPTION_NEEDS_WORLD && !haveWorldData)) continue;
+      std::vector<int> values;
+      auto labels = std::make_shared<slint::VectorModel<slint::SharedString>>();
+      int selected = 0;
+      for (int k = 0; k < o.count; k++) {
+        if (!ValueAvailable(o.values[k])) continue;
+        if (k == optChoice[size_t(i)]) selected = int(values.size());
+        values.push_back(k);
+        labels->push_back(Str(o.values[k].label));
+      }
+      if (values.size() < 2) continue;                 // nothing to choose between
+      const bool both = (where & GAME_OPTION_COMPUTER) && (where & GAME_OPTION_PHONE);
+      const char* tag = !both ? "" : o.where == GAME_OPTION_COMPUTER ? "this computer" : o.where == GAME_OPTION_PHONE ? "phone" : "";
+      rows->push_back({Str(o.label), Str(o.about), Str(tag), labels, selected});
+      optRows.push_back({i, values});
+    }
+    w().set_options(rows);
+  }
+
+  // A choice: kept, and written to the SWOS.ini(s) it belongs in.
+  void OptionChosen(int row, int choice) {
+    if (row < 0 || row >= int(optRows.size()) || choice < 0 || choice >= int(optRows[size_t(row)].second.size())) return;
+    const int i = optRows[size_t(row)].first;
+    optChoice[size_t(i)] = optRows[size_t(row)].second[size_t(choice)];
+    const GameOption& o = kGameOptions[i];
+    const char* value = o.values[optChoice[size_t(i)]].value;
+    for (int phone = 0; phone < 2; phone++) {
+      if (!(o.where & (phone ? GAME_OPTION_PHONE : GAME_OPTION_COMPUTER))) continue;
+      if (phone ? !w().get_t_phone() : !w().get_t_computer()) continue;
+      const std::string path = IniPath(phone != 0);
+      if (phone) sd::MakeDirs(sd::ParentDir(path));
+      const std::string text = IniSet(ReadFile(path), o.section, o.key, value);
+      if (FILE* f = sd::OpenFile(path, "wb")) {
+        std::fwrite(text.data(), 1, text.size(), f);
+        std::fclose(f);
+        FileLog("game options: " + Shown(path) + ": [" + o.section + "] " + o.key + "=" + value);
+      } else
+        Notice("Could not write " + Shown(path) + ".", true);
+    }
+    RefreshOptions();
+  }
+
   // ------------------------------------------------------------ the wizard ---
 
   // The screens, from what was ticked (app.slint's Step): where you will play first; a computer
@@ -1131,6 +1308,7 @@ struct App {
       if (kWorldUrl[0] && w().get_x_world()) steps.push_back(4);
       if (w().get_x_2020()) steps.push_back(5);
       if (compPhone && w().get_x_jaguar()) steps.push_back(6);
+      if (compPhone) steps.push_back(12);   // game options
       if (compPhone) steps.push_back(7);
       if (w().get_t_phone()) steps.push_back(8);
       if (w().get_t_amiga()) steps.push_back(9);
@@ -1151,6 +1329,8 @@ struct App {
       if (w().get_x_world() && w().get_amiga_world_available()) w().set_amiga_world(true);
     } else if (kind == 7) {
       w().set_tab(0);
+    } else if (kind == 12) {
+      RefreshOptions();
     }
   }
 
@@ -1560,6 +1740,7 @@ int main(int argc, char** argv) {
   ui->on_amiga_kind_changed([&app] { app.AmigaKindChanged(); });
   ui->on_open_amiga_dest([&app] { app.OpenAmigaDest(); });
   ui->on_wizard_changed([&app] { app.RefreshWizard(); });
+  ui->on_option_chosen([&app](int row, int choice) { app.OptionChosen(row, choice); });
   ui->on_step_shown([&app](int kind) { app.StepShown(kind); });
   ui->on_open_out([&app] { sd::OpenUrl(sd::ParentDir(app.outDir)); });
   ui->on_close_setup([] { slint::quit_event_loop(); });

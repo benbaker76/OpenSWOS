@@ -813,6 +813,8 @@ int main(int argc, char **argv)
             /* Same reason as --matchmaker-menu: this flag exists to reach a menu,
              * and the loader intro plays in front of it in real time. */
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+        } else if (strcmp(a, "--game-options-selftest") == 0) {
+            return Settings_GameOptionsSelfTest();
         } else if (strcmp(a, "--menu-selftest") == 0) {
             return OnlineMenus_SelfTest();
         } else if ((v = match_kv(a, "convert-teams")) != NULL) {

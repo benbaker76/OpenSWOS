@@ -334,6 +334,20 @@ static std::string PathU8(const fs::path& p) {
   return std::string(u.begin(), u.end());
 }
 
+FILE* OpenFile(const std::string& path, const char* mode) {
+#ifdef _WIN32
+  return _wfopen(Widen(path).c_str(), Widen(mode).c_str());
+#else
+  return std::fopen(path.c_str(), mode);
+#endif
+}
+
+bool MakeDirs(const std::string& path) {
+  std::error_code ec;
+  fs::create_directories(U8Path(path), ec);
+  return !ec;
+}
+
 std::string DownloadsDir() {
 #ifdef _WIN32
   PWSTR w = nullptr;

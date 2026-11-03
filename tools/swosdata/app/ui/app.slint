@@ -9,7 +9,7 @@
 //   watched, a folder can be searched, a path given), and has the one button that makes it.
 import { ListView, ProgressIndicator, Palette, CheckBox } from "std-widgets.slint";
 import { Theme, TextButton, Link, Card, IconButton, PathField } from "theme.slint";
-import { Step, BigTile, ExtraRow, DropZone, StepDots, BigButton, LinkButton, Instruction } from "wizard.slint";
+import { Step, BigTile, ExtraRow, DropZone, StepDots, BigButton, LinkButton, Instruction, OptionLine } from "wizard.slint";
 
 export { Theme, Step }
 
@@ -38,6 +38,15 @@ export struct SourceRow {
 
 // One step: `ready` when its sources are there (Install makes it), and what
 // the assets folder has of it already -- 0 nothing, 1 all of it, 2 some, 3 old.
+// A GAME OPTIONS row (main.cpp RefreshOptions, from include/game_options.h).
+export struct OptionRow {
+    label: string,
+    about: string,
+    tag: string,
+    choices: [string],
+    selected: int,
+}
+
 export struct PlanStep {
     name: string,
     ready: bool,
@@ -416,6 +425,8 @@ export component MainWindow inherits Window {
     in property <bool> drop-hover;          // a file is being dragged over the window
     in property <bool> can-drop;            // this platform takes files dropped on the window
     in property <string> phone-folder;      // where the assets folder is, for the phone's screen
+    in property <[OptionRow]> options;      // GAME OPTIONS' rows, for what is ticked
+    callback option-chosen(int, int);       // a row, the choice: written to SWOS.ini at once
     callback wizard-changed();              // a tick changed: main.cpp works the steps out again
     callback step-shown(int);               // the step on screen (Step.*): what it needs set up
     callback open-out();                    // show the assets folder
@@ -710,6 +721,40 @@ export component MainWindow inherits Window {
                     can-pick: root.can-pick;
                     browse => { root.browse-source(root.src-row); }
                     search => { root.choose-folder(); }
+                }
+            }
+
+            // The game's options, before it is first started.
+            if root.kind == Step.options: VerticalLayout {
+                spacing: 12px;
+                HorizontalLayout {
+                    spacing: 14px;
+                    Image {
+                        source: @image-url("icons/adjustments-horizontal.svg");
+                        width: 40px;
+                        height: 40px;
+                        colorize: Theme.link;
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 2px;
+                        Text { text: "Game options"; font-size: 24px; font-weight: 700; color: Theme.text; }
+                        Text {
+                            text: "Set up how the game looks and plays before you start it. Not sure? Leave them: you can change any of them in the game's OPTIONS later.";
+                            wrap: word-wrap;
+                            font-size: 13px;
+                            color: Theme.text-dim;
+                        }
+                    }
+                }
+                for o[i] in root.options: OptionLine {
+                    label: o.label;
+                    about: o.about;
+                    tag: o.tag;
+                    choices: o.choices;
+                    selected: o.selected;
+                    enabled: !root.busy;
+                    chosen(c) => { root.option-chosen(i, c); }
                 }
             }
 

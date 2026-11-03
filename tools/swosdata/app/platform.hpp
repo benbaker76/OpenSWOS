@@ -46,6 +46,11 @@ void AttachParentConsole();
 // The player's Downloads folder ("" when there is none).
 std::string DownloadsDir();
 
+// fopen with a UTF-8 path (Windows' own fopen reads it as the code page); every folder on
+// the way to a path made.
+FILE* OpenFile(const std::string& path, const char* mode);
+bool MakeDirs(const std::string& path);
+
 // What is in a folder, not inside its folders. Hidden entries are left out.
 struct DirEntry {
   std::string path;
