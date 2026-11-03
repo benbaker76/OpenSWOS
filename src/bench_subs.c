@@ -1568,6 +1568,13 @@ static void draw_bench_occupants_only(void)
     if ((uint8_t)_topTeamInGame.teamName[0] & 2) {
         uint16_t t = topY; topY = botY; botY = t;
     }
+    /* ... and the block's second swap: the bench team (here _topTeamPtr's) seated as the
+     * menu seats it. Without it, whenever _topTeamPtr is not _topTeamInGame the menu put
+     * each team on one bench and play on the other: the benches swapped as the substitute
+     * came on (ReportBot 0049). */
+    if (_topTeamPtr != &_topTeamInGame) {
+        uint16_t t = topY; topY = botY; botY = t;
+    }
 
     uint16_t savedLimit = _benchXLimit, savedBenchY = _benchY;
     uint16_t savedOppY  = _opponentBenchY, savedState = _subsState;
