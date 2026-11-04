@@ -179,7 +179,7 @@ Every converter is checked so a silent corruption can't slip in:
 | Asset | Faithfulness check |
 | --- | --- |
 | Competitions | `python3 scripts/emit_competitions.py` → emit → re-export → diff JSON (**0 diff**). Runtime: `SWOS_DATA_JSON_SELFTEST=1 ./SWOS.x86_64` (loaded-from-JSON == compiled). |
-| Menus | `python3 scripts/emit_menus.py` → round-trip (**0 diff**). Byte-exact: `SWOS_MENU_JSON_VERIFY=1 SWOS_MENU_JSON=1 ./SWOS.x86_64` → builds each menu from JSON with raw symbols and memcmps vs the compiled bytes (**47/47 byte-identical**). |
+| Menus | `python3 scripts/emit_menus.py` → round-trip (**0 diff**). Byte-exact: `SWOS_MENU_JSON_VERIFY=1 SWOS_MENU_JSON=1 ./SWOS.x86_64` → builds each menu from JSON with raw symbols and memcmps vs the compiled bytes (**51/51 byte-identical**). |
 | Teams | `python3 scripts/emit_teams.py` → emit + `rnc_pack` → byte-compare vs the originals (**76/76 1:1**). |
 
 The round-trip is the key idea: `export(emit(JSON)) == JSON` ⇒ the generated C/binary is

@@ -8158,10 +8158,11 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
 }
 
 /* The JSON text of a .PRE/.DIY, already read (src NUL-terminated): the competition
- * slot, the stage, the standings and the teams, as described below. */
-static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const char *kind)
+ * slot, the stage, the standings and the teams, as described below. any_world: load it
+ * whatever world it was saved in (a classic competition -- see SaveJson_LoadDIYData). */
+static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const char *kind,
+                                    int32_t any_world)
 {
-
     /* ONE linear pass over the root object captures every top-level slice
      * this loader needs. Each of the former root-level mjson_find/get calls
      * re-parsed the whole file through the mjson core (~a second each on the
@@ -8198,7 +8199,7 @@ static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const
         if (rk[RK_KIND].v == NULL || rk[RK_KIND].vt != MJSON_TOK_STRING ||
             rk[RK_KIND].vlen != kl + 2 ||
             memcmp(rk[RK_KIND].v + 1, kind, (size_t)kl) != 0 ||
-            !save_world_ok(src, src_size)) {
+            (!any_world && !save_world_ok(src, src_size))) {
             return 1;
         }
     }
@@ -8428,7 +8429,7 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
 
     if (read_save_file_heap(filename, &src, &src_size) != 0)
         return 1;
-    r = load_competition_mem(src, src_size, kind);
+    r = load_competition_mem(src, src_size, kind, 0);
     swos_io_free(src);
     return r;
 }
@@ -8458,10 +8459,13 @@ int16_t SaveJson_LoadDIY(uint8_t *filename, const uint8_t *src_unused,
 }
 
 /* A .DIY already in memory -- a classic competition, read from classic/ rather than
- * the save folder (src/classic_comps.c). */
+ * the save folder (src/classic_comps.c). It is loaded in any world: a .DIY carries every
+ * team it plays, so nothing in it comes from the world's database, and --convert-diy
+ * stamps the file with whatever world the PC that converted it was playing -- without
+ * this, a drawer on 96/97 refused every classic converted on a PC playing 2026-27. */
 int16_t SaveJson_LoadDIYData(const uint8_t *src, uint32_t src_size)
 {
-    return load_competition_mem(src, src_size, KIND_DIY);
+    return load_competition_mem(src, src_size, KIND_DIY, 1);
 }
 
 /* ---------- .HIL (highlights / match replay) ----------

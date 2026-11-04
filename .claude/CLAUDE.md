@@ -188,6 +188,16 @@ proves a refusal. A raw
 PLAYERS -- SWOS 2020 renumbers custom teams. `--custom-team-selftest` runs all 1,631 database
 teams through the rule and the file; run it after touching either.
 
+**HISTORIC TOURNAMENTS** (both targets; docs/CLASSIC_COMPETITIONS.md; the code says *classic*):
+a row above WORLD CUP in PRESET COMPETITION's world list (`SelectTeamsFinalMenu`, a marker in
+`leaguesPtrTable`) opening NATIONAL (EURO, WORLD CUP) / CLUB -> a list by year -> a teams screen
+where every team starts COMPUTER -> PLAY, which starts it as LOAD OLD COMPETITION does
+(`src/classic_comps.c`, four classic packed menus in `menu_data.c`). The competitions are SWOS
+2020's DLC `.DIY`s, **never in this repo** (the player's own: `assets/classic/` on SDL, which
+also reads the PC/SWOS 2020 DOS dump through `src/diy_import_dos.c`; the drawer's `classic/` on
+the Amiga, OpenSWOS's JSON `.DIY` made by `SWOS.exe --convert-diy=<in>,<out>`). A classic loads
+in any world (`SaveJson_LoadDIYData`): a `.DIY` carries all its teams.
+
 **`SWOS_WORLDS`** (default 1; `make SWOS_WORLDS=0`, the same on `Makefile.amiga`): the football worlds
 beyond 96/97 -- World 2026-27 and all it brought (docs/WORLD_2026_27.md: its countries, leagues,
 splits, play-offs, cups, pools, the Coppa D, Europe's league phases). At 0 the game is 96/97 alone, as

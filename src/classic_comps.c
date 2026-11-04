@@ -1,4 +1,4 @@
-/* classic_comps.c -- CLASSICS: famous tournaments, played like a preset competition.
+/* classic_comps.c -- HISTORIC TOURNAMENTS: famous tournaments, played like a preset competition.
  *
  * Each one is a .DIY kept by group in a classic/ folder:
  *
@@ -20,7 +20,7 @@
  * CLUB --, _classicNationalMenu -- UEFA or WORLD CUP --, _classicListMenu,
  * _classicTeamsMenu; JSON in bin/data_json/menus/ on SDL). CLUB has one group, so it
  * goes straight to its list. They open
- * from CLASSICS, the row above WORLD CUP in PRESET COMPETITION's world list (teams.c
+ * from HISTORIC TOURNAMENTS, the row above WORLD CUP in PRESET COMPETITION's world list (teams.c
  * SelectTeamsFinalMenu); PRESET COMPETITION has asked about the competition under way
  * and seeded the RNG by then. Once one is loaded the chooser closes as if backed out
  * of, and PresetCompetitionMenu starts it (ClassicComps_TakeReady, then StartContest,
@@ -83,7 +83,7 @@ static const char *const k_groupDirs[] = { "uefa", "worldcup", "club" };
 static const char *const k_groupTitles[] = { "EURO", "WORLD CUP", "CLUB" };
 
 static struct {
-    int32_t kind;                   /* CLASSICS' pick: 0 NATIONAL, 1 CLUB, -1 = EXIT */
+    int32_t kind;                   /* HISTORIC TOURNAMENTS' pick: 0 NATIONAL, 1 CLUB, -1 = EXIT */
     int32_t group;                  /* the group picked, -1 = EXIT */
     int32_t pick;                   /* the competition picked, -1 = EXIT */
     int32_t play;                   /* PLAY pressed on the teams screen */
@@ -522,7 +522,7 @@ static int32_t choose_in_group(int32_t group)
     }
 }
 
-/* EXIT goes back one screen: from a list to NATIONAL's groups, or to CLASSICS for CLUB,
+/* EXIT goes back one screen: from a list to NATIONAL's groups, or to HISTORIC TOURNAMENTS for CLUB,
  * which has only the one. */
 int32_t ClassicComps_Choose(void)
 {

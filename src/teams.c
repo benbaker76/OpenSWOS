@@ -23,7 +23,7 @@
 #include "league_groups.h"
 #include "team_pool.h"
 #include "swos_io.h"
-#include "classic_comps.h"      /* CLASSICS, above WORLD CUP in the preset world list */
+#include "classic_comps.h"      /* HISTORIC TOURNAMENTS, above WORLD CUP in the preset world list */
 #ifdef SWOS_SDL_BUILD
 #include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in */
 #endif
@@ -3068,7 +3068,7 @@ static uint16_t groupedLeagueRows(const LeagueGroups *lg, uint8_t *compEntry,
     return rows;
 }
 
-/* CLASSICS (src/classic_comps.c): a row of PRESET COMPETITION's world list, above WORLD
+/* HISTORIC TOURNAMENTS (src/classic_comps.c): a row of PRESET COMPETITION's world list, above WORLD
  * CUP. It is no competition: its slot in leaguesPtrTable holds this marker, which the
  * selection below catches before anything reads the slot as a Competition. */
 extern char    _aClassics[];
@@ -3187,7 +3187,7 @@ loc_E012:
     leagueNumsOut = _leagueNumbersTable;
     d1 = 0;
     a5 = compList;
-    if ((uint8_t)d7 == 254 && _choosingPreset != 0) {     /* CLASSICS, above WORLD CUP */
+    if ((uint8_t)d7 == 254 && _choosingPreset != 0) {     /* HISTORIC TOURNAMENTS, above WORLD CUP */
         *teamNamesPtr++ = (void *)_aClassics;
         *leaguesPtrOut++ = (void *)&k_classicsMarker;
         *leagueNumsOut++ = 0xFFFF;
@@ -3450,7 +3450,7 @@ loc_E2D0:
     if (_viewSelectedTeams != 0)
         goto loc_E73A;
 
-    /* CLASSICS: pick and load one; leave as if backed out, for PresetCompetitionMenu
+    /* HISTORIC TOURNAMENTS: pick and load one; leave as if backed out, for PresetCompetitionMenu
      * to start it, or come back to the world list. */
     if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
         _leaguesPtrTable[_selectedLeagueIndex] == (void *)&k_classicsMarker) {

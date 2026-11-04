@@ -2,8 +2,8 @@
 
 > **Status (2026-09-30): mostly done, not all as planned.** The C loader
 > (`src/menu_load_json.c`, `SWOS_MENU_JSON`, default-on) is live and verifies
-> 47/47 byte-identical. The "flip" happened as a **build-time bake**, not by
-> deleting `menu_data.c`: `scripts/emit_menus.py` regenerates `src/menu_data.c`
+> 51/51 byte-identical (the original's 47 and HISTORIC TOURNAMENTS' 4). The "flip" happened
+> as a **build-time bake**, not by deleting `menu_data.c`: `scripts/emit_menus.py` regenerates `src/menu_data.c`
 > from `bin/data_json/menus/*.json` at build (`docs/DATA_PIPELINE.md`), and the
 > Amiga compiles that C. The 76 scaffolding structs are still in
 > `include/menu_data.h` (§1d's model structs were not added); there is no
@@ -815,8 +815,8 @@ part of the name), with `SWOS_KEY_SCRIPT="300:Down 340:Down ..."` and
 
 ### 10c. Format extensions
 
-All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
-`SWOS_MENU_JSON_VERIFY=1` still reports **47/47 byte-identical**.
+All in the loader and `UnpackMenu`. None occurs in the 51 compiled menus, and
+`SWOS_MENU_JSON_VERIFY=1` still reports **51/51 byte-identical**.
 
 1. **Flags word** after the header (§0a).
 2. **`literal`** on `text` / `multiline` — a permanent heap string.

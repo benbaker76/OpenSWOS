@@ -4,7 +4,7 @@
 #include "swos_types.h"
 #include "menu_system.h"
 
-/* CLASSICS (src/classic_comps.c), the row above WORLD CUP in PRESET COMPETITION's world
+/* HISTORIC TOURNAMENTS (src/classic_comps.c), the row above WORLD CUP in PRESET COMPETITION's world
  * list (teams.c SelectTeamsFinalMenu): NATIONAL (then UEFA or WORLD CUP) or CLUB, then a
  * competition from that group's classic/
  * folder, then who controls each team. 1 when a competition is loaded, and

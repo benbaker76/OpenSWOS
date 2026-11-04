@@ -52,6 +52,9 @@ copy, once, and downloads nothing. [INSTALL.md](INSTALL.md) shows you how.
 - **World 2026-27** (optional): today's clubs, players and competitions, from the
   [SWOS 96/97 Mod](https://github.com/aminta/swos-9697-mod) -- a download of its own, switched
   on in OPTIONS → WORLD ([INSTALL.md](INSTALL.md#4a-world-2026-27-optional)).
+- **Historic tournaments** (optional): every Euro and World Cup and the 1990s European Cups
+  from SWOS 2020's DLC, under PRESET COMPETITION, from the player's own SWOS 2020 files
+  ([docs/CLASSIC_COMPETITIONS.md](docs/CLASSIC_COMPETITIONS.md)).
 - An **arcade (coin-op) mode** for cabinets.
 
 ## Documentation
