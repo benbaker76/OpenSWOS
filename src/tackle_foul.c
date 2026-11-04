@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "tweaks.h"   /* [tweaks] cpu_cards */
 #include "tackle_foul.h"
 #include "test_rules.h"
 #include "dos_sound.h"
@@ -300,7 +301,11 @@ TryBookingThePlayer(Sprite *player, TeamGeneralInfo *team)
     if (TestRules_NoInjuriesCards())
         return 1;  /* the testers' rule (test_rules.h): never book — eligibility=no */
 
-    if (_plgD3Param != 0) {
+    /* (The original books only a team with a human controller; [tweaks] cpu_cards books the
+     * computer's too: include/tweaks.h.) */
+    if (Tweaks_On(TWEAK_CPU_CARDS)) {
+        /* every side by the same rolls */
+    } else if (_plgD3Param != 0) {
         /* Highlight mode */
         if (team->playerNumber == 0 &&
             team->playerCoachNumber == 0) {
@@ -393,9 +398,9 @@ TrySendingOffThePlayer(Sprite *player, TeamGeneralInfo *team)
     if (TestRules_NoInjuriesCards())
         return 1;  /* the testers' rule (test_rules.h): never send off — eligibility=no */
 
-    /* Need at least one human controller */
+    /* Need at least one human controller (not with [tweaks] cpu_cards: include/tweaks.h) */
     if (team->playerNumber == 0 &&
-        team->playerCoachNumber == 0)
+        team->playerCoachNumber == 0 && !Tweaks_On(TWEAK_CPU_CARDS))
         return 1;
 
     /* Check injury quota */

@@ -37,6 +37,7 @@
 #include "assets_check.h"
 #include "swos_io.h"            /* swos_save_dir_init() — macOS-writable save dir */
 #include "mods.h"               /* Mods_Init: the enabled mods, before any data */
+#include "tweaks.h"             /* Tweaks_Set: [tweaks] */
 #include "save_format_json.h"   /* DataJson_SelfTest */
 #include "dos_mode.h"   /* gDosGraphics/gDosGameplay — defined in dos_graphics.c */
 #include "touch_controls.h"   /* TouchControls_SetMode: [input] touch_controls */
@@ -1310,6 +1311,12 @@ int main(int argc, char **argv)
         const char *env = getenv("SWOS_MODS_ENABLED");
         Mods_Init(s_modsArgSet ? s_modsArg : env ? env : opts.mods);
     }
+    Tweaks_Set(opts.tweaks);    /* [tweaks] (include/tweaks.h): off line only, off in the rigs */
+    if (opts.tweaks)
+        fprintf(stderr, "[tweaks] on:%s%s%s (off line only)\n",
+                (opts.tweaks & TWEAK_CPU_CARDS) ? " cpu_cards" : "",
+                (opts.tweaks & TWEAK_NO_TEAMMATE_TACKLES) ? " no_teammate_tackles" : "",
+                (opts.tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? " tackle_controlled_player" : "");
     /* Load the UI translation table for the selected language
      * (data_json/translations/<lang>.json) now that the CWD is the binary dir
      * and stderr is the log. tr(symbol) resolves menu/UI text through it; a

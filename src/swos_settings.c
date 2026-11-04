@@ -33,6 +33,7 @@
  * keys (";resolution=...") and unknown keys are preserved verbatim and in place.
  */
 
+#include "tweaks.h"   /* [tweaks] */
 #include "swos_settings.h"
 #include "project_identity.h"
 #include "swos_io.h"   /* swos_save_commit — Switch save durability */
@@ -310,6 +311,15 @@ static int handler(void *user, const char *section,
     } else if (eqi(section, "mods")) {
         if (eqi(name, "enabled"))
             snprintf(opts->mods, sizeof opts->mods, "%s", value ? value : "");
+    } else if (eqi(section, "tweaks")) {
+        static const struct { const char *key; uint32_t bit; } kTweaks[] = {
+            { "cpu_cards", TWEAK_CPU_CARDS }, { "no_teammate_tackles", TWEAK_NO_TEAMMATE_TACKLES },
+            { "tackle_controlled_player", TWEAK_TACKLE_CONTROLLED_PLAYER },
+        };
+        int b;
+        for (uint32_t i = 0; i < sizeof kTweaks / sizeof kTweaks[0]; i++)
+            if (eqi(name, kTweaks[i].key) && parse_bool(value, &b))
+                opts->tweaks = b ? (opts->tweaks | kTweaks[i].bit) : (opts->tweaks & ~kTweaks[i].bit);
     }
     /* Return nonzero on success, even for ignored keys — we don't want
      * inih to flag unknown sections as parse errors. */
@@ -641,6 +651,20 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; in that order: a file two of them have comes from the first, e.g. enabled = classics, hall.\n"
         "; Empty: none (docs/MODS.md). A mod that is not cosmetic keeps the game off line.",
         opts->mods };
+    SETTING(n) = (IniEntry){ "tweaks", "cpu_cards",
+        "; [tweaks]: small changes to the original's behaviour, each off by default and only off line\n"
+        "; (online, and in the test rigs, the original plays): docs/MODS.md.\n"
+        "; cpu_cards: true | false -- the computer's players are booked and sent off too\n"
+        "; (the original cards only a side a human controls).",
+        (opts->tweaks & TWEAK_CPU_CARDS) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "no_teammate_tackles",
+        "; no_teammate_tackles: true | false -- a team-mate leaves your player on the ball alone\n"
+        "; (in the original the nearest team-mate runs onto the ball and can slide or take it off you).",
+        (opts->tweaks & TWEAK_NO_TEAMMATE_TACKLES) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "tackle_controlled_player",
+        "; tackle_controlled_player: true | false -- fire slides the player you control\n"
+        "; (in the original a nearer team-mate may slide instead).",
+        (opts->tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? "true" : "false" };
     {   /* [options]: unset = the game's defaults (SetDefaultOptions) */
         static const char *const kLength[] = { "3", "5", "7", "10" };
         static const char *const kPitch[]  = { "seasonal", "random", "frozen", "muddy", "wet",

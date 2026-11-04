@@ -86,6 +86,7 @@ extern int16_t      _breakState;
 
 #ifdef DETERMINISTIC_MODE
 #include "deterministic.h"
+
 extern volatile uint16_t panicReasonCode;
 extern void PanicHaltLoop(void);
 extern Sprite **team2SpritesTable;
@@ -99,6 +100,18 @@ extern Sprite **team2SpritesTable;
 #else
 #define T2P6_DESTX_TRAP(lineid)
 #endif
+
+#include "tweaks.h"   /* [tweaks] no_teammate_tackles, tackle_controlled_player */
+
+/* [tweaks] no_teammate_tackles: on a human's team, his controlled player has the ball (within
+ * 72 units^2 of it, the nearest a slide starts from) -- the receiver leaves it to him. */
+static int32_t teammate_has_ball(const TeamGeneralInfo *team)
+{
+    const Sprite *ctrl = team->controlledPlayer;
+    return team->playerNumber != 0 && ctrl != (const Sprite *)0 && (uint32_t)ctrl->ballDistance <= 72 &&
+           Tweaks_On(TWEAK_NO_TEAMMATE_TACKLES);
+}
+
 extern int16_t      _inGameCounter;
 extern int16_t      _nobodysBallTimer;
 extern int16_t      _whichCard;
@@ -1628,8 +1641,11 @@ not_in_penalty:
             team->currentAllowedDirection >= 0 && team->plNotFarFromBall) {
             if (team->ballLessEqual4 || team->ball4To8) {
                 Sprite *passTarget = team->passToPlayerPtr;
+                /* [tweaks] tackle_controlled_player: on a human's team the player he controls
+                 * slides, whoever is nearer (the original lets a nearer receiver take it, below). */
                 if (passTarget == (Sprite *)0 ||
-                    passTarget->ballDistance >= player->ballDistance) {
+                    passTarget->ballDistance >= player->ballDistance ||
+                    (team->playerNumber != 0 && Tweaks_On(TWEAK_TACKLE_CONTROLLED_PLAYER))) {
                     /* Tackle site 1 of 2: `begin_tackle_and_clear_control`
                      * (data/SWOS2.s:30428) = `@@begin_tackling`
                      * (swos-port/swos/swos.asm:115123). NO opponent clears here, in
@@ -2265,9 +2281,13 @@ not_in_penalty:
             goto finalize;
         }
 
-        /* inplay_try_begin_tackle */
+        /* inplay_try_begin_tackle -- the receiver's slide. Not on a human's team with [tweaks]
+         * tackle_controlled_player (only the player he controls slides) or no_teammate_tackles
+         * while his player has the ball (include/tweaks.h). */
         if (player->playerOrdinal != 1 && team->fireThisFrame &&
-            team->currentAllowedDirection >= 0 && team->plNotFarFromBall) {
+            team->currentAllowedDirection >= 0 && team->plNotFarFromBall &&
+            !(team->playerNumber != 0 &&
+              (Tweaks_On(TWEAK_TACKLE_CONTROLLED_PLAYER) || teammate_has_ball(team)))) {
             if (team->ballLessEqual4 || team->ball4To8) {
                 Sprite *ctrl = team->controlledPlayer;
                 if (ctrl == (Sprite *)0 || ctrl->ballDistance >= player->ballDistance) {
@@ -2288,8 +2308,9 @@ not_in_penalty:
             }
         }
 
-        /* pass_chase_try_autoswitch */
-        if (!team->ballLessEqual4)
+        /* pass_chase_try_autoswitch -- not while a human's own player has the ball, with
+         * [tweaks] no_teammate_tackles: the receiver would take it off him. */
+        if (!team->ballLessEqual4 || teammate_has_ball(team))
             goto pass_follow_decide;
         if (_ballSprite.speed >= 1536) {
             if (team->plCloseToBall)
@@ -2335,6 +2356,16 @@ not_in_penalty:
         goto finalize;
 
     pass_follow_decide:
+        if (teammate_has_ball(team)) {
+            /* [tweaks] no_teammate_tackles: up to support distance, never onto the ball. */
+            team->passingBall = 0;
+            if ((uint32_t)player->ballDistance <= 3200) {
+                player->destX = player->x.s.i;
+                player->destY = player->y.s.i;
+                goto finalize;
+            }
+            goto pass_follow_update_dest;
+        }
         if (!team->passingBall) {
             Sprite *ctrl = team->controlledPlayer;
             if (ctrl != (Sprite *)0 && (uint32_t)ctrl->ballDistance <= 3200) {

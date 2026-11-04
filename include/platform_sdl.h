@@ -168,6 +168,7 @@ typedef struct {
     char                   currency[8];      /* "pound" (default) or "dollar" — money symbol */
     char                   world[8];         /* [general] world: the football world (include/world.h), "" = 9697 */
     char                   mods[256];        /* [mods] enabled: the mods to play with (include/mods.h), "" = none */
+    uint32_t               tweaks;           /* [tweaks]: TWEAK_* bits switched on (include/tweaks.h), 0 = none */
     /* [options]: the game's OPTIONS screen (game length, pitch type, auto replays, all player teams
      * equal, auto save highlights, menu music), kept between runs -- the original kept them only in
      * memory and in a career. OPTION_UNSET: not in SWOS.ini, the game's own default. */

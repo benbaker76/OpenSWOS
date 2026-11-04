@@ -167,8 +167,12 @@ expansion, or an emulator set up as one, is the likely floor, and the doc will s
    hooks; each mod a named section of the JSON save (named fields, never addresses: CLAUDE.md).
 6. **The online contract.** A `gameplay` mod's id, version and hash go in the handshake, and two
    builds whose gameplay mods differ do not start a match (like a different `NETPLAY_COMPAT`).
-   `cosmetic` mods may differ. Recordings carry the mod list, so a replay and `--srp-resim` play
-   by it. A gameplay mod's match state registers with the rollback registry (`src/sim_state.c`).
+   `cosmetic` mods may differ. **The goal (the owner, 2026-11-04): mods in multiplayer** -- two
+   players with the same gameplay mods, at the same versions, play each other; the matchmaker
+   lists a game only to players whose gameplay mods match (as it does by `NETPLAY_COMPAT`), and
+   the lobby says which mod is missing or differs. Until then a gameplay mod keeps the game off
+   line (§12). Tweaks travel the same way, in the host's rules (§4). Recordings carry the mod
+   list, so a replay and `--srp-resim` play by it. A gameplay mod's match state registers with the rollback registry (`src/sim_state.c`).
 
 ---
 
@@ -241,6 +245,18 @@ Mods are hosted by their authors (content with other people's rights stays their
   `grafs_aga/MENUBG.RAW` replaced the main menu's backdrop (screenshots with and without);
   `--menu-selftest` and `scripts/replay_v2_test.sh --all` unchanged with no mod.
 - **Not yet:** OpenSWOS Setup installing mods and writing `data/MODS`; a mods screen in the game.
+
+**The first tweaks (§4)** (`include/tweaks.h`, `src/tweaks.c`): `[tweaks]` in SWOS.ini, each
+`true | false`, off by default; off online and under every rig (`Tweaks_On`); the Amiga has none.
+
+| Key | The original (checked: SWOS2.s and swos.asm agree; our C matched) | The tweak |
+|---|---|---|
+| `cpu_cards` | `TryBookingThePlayer` / `TrySendingOffThePlayer` give no card to a side with no human (SWOS2.s:26026) | `src/tackle_foul.c`: every side by the same rolls |
+| `tackle_controlled_player` | whichever of the controlled player and the pass receiver is nearer the ball slides (SWOS2.s:30408-30431 and 31116-31146) | `src/update_players.c`: on a human's team only the controlled player slides |
+| `no_teammate_tackles` | the receiver runs onto the ball (`passingBall`), may slide on your fire press and is handed control on reaching it (SWOS2.s:31146-31215) | while a human's controlled player has the ball (within 72), the receiver comes to support distance only: no slide, no hand-over |
+
+Checked: with every tweak off, `rollback_test.sh --all`, `replay_v2_test.sh --all` and
+`netplay_test.sh --all` pass; both targets build. **Not yet played with the tweaks on.**
 
 ---
 
