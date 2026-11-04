@@ -83,6 +83,10 @@ void swos_save_dir_init(void);
  * whichever of those the caller owns. */
 const char *swos_data_path(const char *rel, char *buf, uint32_t buf_sz);
 
+/* swos_data_path without the mods (include/mods.h): for a WRITE or a delete, which must land
+ * in the game's own folders, never in a mod's. swos_data_path looks in each enabled mod first. */
+const char *swos_data_path_base(const char *rel, char *buf, uint32_t buf_sz);
+
 /* The other way: the part of an anchored data path below its root ("grafs/X"
  * for ".../assets/grafs/X" or "rom:/grafs/X"), or `path` itself when it has
  * no root. For code that reasons about a path swos_data_path() has built. */

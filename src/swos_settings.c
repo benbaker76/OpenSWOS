@@ -307,6 +307,9 @@ static int handler(void *user, const char *section,
             snprintf(opts->assets_reminder_off, sizeof opts->assets_reminder_off, "%s", value ? value : "");
         else if (eqi(name, "world") && value && value[0])
             snprintf(opts->world, sizeof opts->world, "%s", value);
+    } else if (eqi(section, "mods")) {
+        if (eqi(name, "enabled"))
+            snprintf(opts->mods, sizeof opts->mods, "%s", value ? value : "");
     }
     /* Return nonzero on success, even for ignored keys — we don't want
      * inih to flag unknown sections as parse errors. */
@@ -633,6 +636,11 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; (docs/WORLD_2026_27.md): SWOS 96/97, or World 2026-27 once " PROJECT_SETUP_NAME " has\n"
         "; imported its data. A save is played in the world it was made in.",
         opts->world[0] ? opts->world : "9697" };
+    SETTING(n) = (IniEntry){ "mods",   "enabled",
+        "; enabled: the mods to play with, by their folder's name in the mods folder beside this file,\n"
+        "; in that order: a file two of them have comes from the first, e.g. enabled = classics, hall.\n"
+        "; Empty: none (docs/MODS.md). A mod that is not cosmetic keeps the game off line.",
+        opts->mods };
     {   /* [options]: unset = the game's defaults (SetDefaultOptions) */
         static const char *const kLength[] = { "3", "5", "7", "10" };
         static const char *const kPitch[]  = { "seasonal", "random", "frozen", "muddy", "wet",

@@ -11,6 +11,8 @@
  * `FixSnoopBug`, etc.) — those keep their signatures so linking is
  * unchanged.
  * ============================================================ */
+#include "mods.h"         /* the enabled mods: a read looks in them first (both targets) */
+
 #ifdef SWOS_SDL_BUILD
 
 #include "resload.h"
@@ -61,7 +63,14 @@ static int has_save_ext(const char *name)
     return 0;
 }
 
+static void resolve_path_for(const uint8_t *amiga_name, char *out, size_t out_sz, int write);
 static void resolve_path(const uint8_t *amiga_name, char *out, size_t out_sz)
+{
+    resolve_path_for(amiga_name, out, out_sz, 0);
+}
+
+/* write: a save or a delete -- the game's own folders, never a mod's (include/mods.h). */
+static void resolve_path_for(const uint8_t *amiga_name, char *out, size_t out_sz, int write)
 {
     const char *src = (const char *)amiga_name;
     const char *colon = strchr(src, ':');
@@ -76,8 +85,8 @@ static void resolve_path(const uint8_t *amiga_name, char *out, size_t out_sz)
         /* Relative to the data root. Identity everywhere the game chdir()s to
          * its own directory; anchored at rom:/ on the Switch (swos_io.h). */
         char anchored[1024];
-        snprintf(out, out_sz, "%s",
-                 swos_data_path(src, anchored, (uint32_t)sizeof anchored));
+        snprintf(out, out_sz, "%s", write ? swos_data_path_base(src, anchored, (uint32_t)sizeof anchored)
+                                          : swos_data_path(src, anchored, (uint32_t)sizeof anchored));
     }
 }
 
@@ -278,7 +287,7 @@ static void wasm_persist_saves(void)
 static uint32_t rob_save(uint8_t *name, uint8_t *src, uint32_t fileSize)
 {
     char path[512];
-    resolve_path(name, path, sizeof(path));
+    resolve_path_for(name, path, sizeof(path), 1);
     uint32_t put = fs_save(path, src, fileSize);
     size = put;
     _rnl_d1_return = put;
@@ -297,7 +306,7 @@ static uint32_t rob_save(uint8_t *name, uint8_t *src, uint32_t fileSize)
 static uint32_t rob_delete(uint8_t *name)
 {
     char path[512];
-    resolve_path(name, path, sizeof(path));
+    resolve_path_for(name, path, sizeof(path), 1);
     fs_delete(path);
     wasm_persist_saves();     /* a deletion has to stick too */
     swos_save_commit();       /* ... on both of the targets that need telling */
@@ -1071,6 +1080,78 @@ static uint8_t *make_data_path(uint8_t *name)
     return data_path_buf;
 }
 
+/* ---- mods (include/mods.h): a read looks in each enabled mod's folder first ---- */
+
+static uint8_t mod_path_buf[256];
+static uint8_t s_modsRead;
+
+/* data/MODS, once, at the first read: with the DOS (or WHDLoad) calls the read is already
+ * inside -- going through the file calls from here would nest their interrupt swap. */
+static void read_mods_list(void)
+{
+    static char list[MODS_MAX * (MODS_ID_MAX + 2) + 1];
+    uint32_t n = 0;
+    s_modsRead = 1;
+    if (whd()) {
+        const uint8_t *name = (const uint8_t *)"data/MODS";
+        const uint32_t sz = whd_GetFileSize(name);
+        if (sz && sz < sizeof list)
+            n = whd_LoadFile(name, (uint8_t *)list);
+    } else {
+        void *dosBase = (void *)S_DosBase;
+        const uint32_t h = os_DosOpen(dosBase, (const uint8_t *)"PROGDIR:data/MODS", MODE_OLDFILE);
+        if (h) {
+            const int32_t r = os_DosRead(dosBase, h, list, sizeof list - 1);
+            os_DosClose(dosBase, h);
+            if (r > 0)
+                n = (uint32_t)r;
+        }
+    }
+    list[n < sizeof list ? n : sizeof list - 1] = '\0';
+    if (n)
+        Mods_Init(list);
+}
+
+/* make_data_path for a READ: the first enabled mod with the file, else the game's own.
+ * Saves (save/...) and names with a device are the game's own. */
+static uint8_t *make_read_path(uint8_t *name)
+{
+    if (!s_modsRead)
+        read_mods_list();
+    if (*name && Mods_Count()) {
+        const uint8_t *rel = name;
+        for (const uint8_t *p = name; *p; p++)
+            if (*p == ':') {
+                if (!whd())
+                    return make_data_path(name);
+                rel = p + 1;
+            }
+        if (!(rel[0] == 's' && rel[1] == 'a' && rel[2] == 'v' && rel[3] == 'e' && rel[4] == '/'))
+            for (int32_t i = 0; i < Mods_Count(); i++) {
+                uint8_t *dst = mod_path_buf, *end = mod_path_buf + sizeof mod_path_buf - 1;
+                const char *src;
+                if (!whd())
+                    for (src = "PROGDIR:"; *src; ) *dst++ = (uint8_t)*src++;
+                for (src = Mods_Dir(i); *src && dst < end; ) *dst++ = (uint8_t)*src++;
+                if (dst < end) *dst++ = '/';
+                for (const uint8_t *q = rel; *q && dst < end; ) *dst++ = *q++;
+                *dst = '\0';
+                if (whd()) {
+                    if (whd_GetFileSize(mod_path_buf))
+                        return mod_path_buf;
+                } else {
+                    void *dosBase = (void *)S_DosBase;
+                    const uint32_t lock = os_DosLock(dosBase, mod_path_buf, ACCESS_READ);
+                    if (lock) {
+                        os_DosUnLock(dosBase, lock);
+                        return mod_path_buf;
+                    }
+                }
+            }
+    }
+    return make_data_path(name);
+}
+
 /* Swap interrupt vector 2 to OS (restore saved) */
 static void swap_int2_to_os(void)
 {
@@ -1330,7 +1411,7 @@ void ExitToDos(void)
 /* GetFileSize: open, seek to end, seek back, close */
 static uint32_t resload_getfilesize(uint8_t *name)
 {
-    name = make_data_path(name);
+    name = make_read_path(name);
     if (whd()) return whd_GetFileSize(name);
     void *dosBase = (void *)S_DosBase;
 
@@ -1349,7 +1430,7 @@ static uint32_t resload_getfilesize(uint8_t *name)
 /* LoadFile: open, read, close */
 static uint32_t resload_loadfile(uint8_t *name, uint8_t *dest, uint32_t *outError)
 {
-    name = make_data_path(name);
+    name = make_read_path(name);
     if (whd()) {
         uint32_t n = whd_LoadFile(name, dest);
         if (n == 0) _custom->color[0] = 0x0F00u; /* red flash */
@@ -1382,7 +1463,7 @@ static uint32_t resload_loadfile(uint8_t *name, uint8_t *dest, uint32_t *outErro
 /* LoadFileDEC: load to temp buffer, RNC decompress or copy raw, free temp */
 static uint32_t resload_loadfiledec(uint8_t *name, uint8_t *dest, uint32_t *outError)
 {
-    name = make_data_path(name);
+    name = make_read_path(name);
 
     /* Get file size */
     uint32_t fileSize = resload_getfilesize(name);

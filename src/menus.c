@@ -31,7 +31,8 @@
 #include "test_rules.h"
 #include "display.h"            /* AGA: which Amiga display this build is */
 #include "menu_system.h"
-#include "online_menus.h"   /* MULTIPLAYER opens SWOS 2020's online flow */
+#include "online_menus.h"
+#include "mods.h"          /* Mods_OnlineBlocker: MULTIPLAYER with a gameplay mod on */   /* MULTIPLAYER opens SWOS 2020's online flow */
 #include "credits_menu.h"   /* CREDITS (SDL) */
 #include "deterministic.h"
 #include "string_utils.h"
@@ -2494,6 +2495,22 @@ __attribute__((used, externally_visible))
 void MultiplayerMenuSelected(void)
 {
 #ifdef SWOS_NETPLAY
+    {   /* A mod that changes the game keeps it off line until the handshake carries the mod
+         * list (include/mods.h, docs/MODS.md §8.6): the other player would play another game. */
+        extern void ShowErrorMenu(uint8_t *errorTextStr);
+        const char *mod = Mods_OnlineBlocker();
+        if (mod) {
+            static char msg[80];
+            int n = snprintf(msg, sizeof msg, "TO PLAY ONLINE, TURN OFF THE MOD ");
+            for (const char *p = mod; *p && n < (int)sizeof msg - 1 && n < 56; p++)
+                msg[n++] = (char)(*p >= 'a' && *p <= 'z' ? *p - 32 : *p);
+            msg[n] = '\0';
+            fprintf(stderr, "[mods] MULTIPLAYER refused: %s is not a cosmetic mod\n", mod);
+            ShowErrorMenu((uint8_t *)msg);
+            CommonMenuExit();
+            return;
+        }
+    }
     OnlineMenus_Init();
     OnlineMenus_Show("swos2020/logInMenu");
     /* Coming back re-unpacks the main menu from its packed bytes, where the CONTINUE and

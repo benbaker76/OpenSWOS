@@ -1,6 +1,6 @@
 # MODS.md — mods, tweaks, and what stays the base engine
 
-Status: **design, agreed 2026-11-04, nothing built yet.** People are forking OpenSWOS to add
+Status: **design agreed 2026-11-04; §8.1's overlay is built** (§12), the rest is not. People are forking OpenSWOS to add
 what they want, and that is good, but the project cannot merge every fork. A mod system lets
 those features exist without being merged, so the engine has to become flexible enough to
 host them. This file records the decisions, the survey they came from, and the plan.
@@ -217,3 +217,26 @@ Mods are hosted by their authors (content with other people's rights stays their
    with Indoor and Career+ as the first ports (with their authors).
 6. §6 the `.PCH` writer in Tile Agent's runtime and the Amiga's reader; later pitch stages.
 7. World 2026-27 as a mod.
+
+---
+
+## 12. Built so far
+
+**The overlay (§8.1), both targets** (`include/mods.h`, `src/mods.c`):
+
+- **SDL:** `[mods] enabled = a, b` in SWOS.ini (or `--mods=a,b`, or `SWOS_MODS_ENABLED` for one
+  run). Mods are folders in `mods/` in the player's game folder (`$SWOS_MODS` elsewhere), each
+  with a `mod.json`; one whose `targets` lacks `"sdl"`, or with no folder or manifest, is left
+  out and the log says why (`[mods]` lines). `swos_data_path()` looks in each mod, in order,
+  before the assets folder and the game's own files; `swos_data_path_base()` (saves, deletes)
+  never does. Mods start before translations load, so a mod can carry its own.
+- **Amiga:** the drawer's `data/MODS`, one id a line (an id ending in `*` is not cosmetic),
+  read at the first file read; `make_read_path()` in `src/resload.c` looks in
+  `PROGDIR:mods/<id>/` (or `mods/<id>/` under WHDLoad) for every load, never for a save.
+- **Online:** a mod whose `changes` is not `"cosmetic"` (or says nothing) keeps MULTIPLAYER
+  off ("TO PLAY ONLINE, TURN OFF THE MOD ..."), until §8.6.
+- **Checked:** SDL -- a test mod's `en.json` renamed an OPTIONS row (screenshots with and
+  without), MULTIPLAYER refused with a gameplay mod; Amiga (FS-UAE) -- a test mod's
+  `grafs_aga/MENUBG.RAW` replaced the main menu's backdrop (screenshots with and without);
+  `--menu-selftest` and `scripts/replay_v2_test.sh --all` unchanged with no mod.
+- **Not yet:** OpenSWOS Setup installing mods and writing `data/MODS`; a mods screen in the game.

@@ -15,6 +15,7 @@
 #endif
 #include <stdarg.h>
 #include <string.h>
+#include "mods.h"
 
 /* ============================================================
  * Minimal libc fallbacks for Amiga.
@@ -535,6 +536,19 @@ static int find_nocase(const char *root, const char *rel, char *out, uint32_t ca
 
 const char *swos_data_path(const char *rel, char *buf, uint32_t buf_sz)
 {
+#if !defined(SWOS_SWITCH_BUILD) && !defined(SWOS_WASM_BUILD)
+    /* The enabled mods first, in their order (include/mods.h): a file a mod has is read
+     * from it. Writes go through swos_data_path_base, which never looks there. */
+    if (rel && buf && buf_sz && rel[0] != '/' && rel[0] != '\\' && !strchr(rel, ':'))
+        for (int32_t i = 0; i < Mods_Count(); i++)
+            if (find_nocase(Mods_Dir(i), rel, buf, buf_sz) == 0)
+                return buf;
+#endif
+    return swos_data_path_base(rel, buf, buf_sz);
+}
+
+const char *swos_data_path_base(const char *rel, char *buf, uint32_t buf_sz)
+{
 #ifdef SWOS_SWITCH_BUILD
     /* The content is mounted read-only at rom:/ and there is no chdir, so the
      * relative paths the rest of the game uses have to be anchored here. */
@@ -557,8 +571,11 @@ const char *swos_data_path(const char *rel, char *buf, uint32_t buf_sz)
 
 const char *swos_data_relative(const char *path)
 {
-    const char *roots[2] = { swos_data_root(), swos_assets_dir() };
-    for (int i = 0; i < 2; i++) {
+    const char *roots[2 + MODS_MAX] = { swos_data_root(), swos_assets_dir() };
+    int count = 2;
+    for (int32_t m = 0; m < Mods_Count() && count < 2 + MODS_MAX; m++)
+        roots[count++] = Mods_Dir(m);       /* (a path swos_data_path found in a mod) */
+    for (int i = 0; i < count; i++) {
         size_t n = strlen(roots[i]);
         if (n && strncmp(path, roots[i], n) == 0 && (path[n] == '/' || path[n] == '\\')) {
             path += n;
