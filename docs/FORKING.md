@@ -56,6 +56,14 @@ OpenSWOS players -- and then every change to how a match plays has to be in both
 `NETPLAY_COMPAT`; a fork with its own tag is a community of its own. The matchmaking server
 (third_party/matchmaker) reads the same header, so a fork's server answers to the fork's tag.
 
+**The matchmaking server is OpenSWOS's alone.** online.openswos.net (`PROJECT_MM_HOST`), its
+relay, recorder and team check serve OpenSWOS's own builds only: a fork may not use it, with
+OpenSWOS's tags or its own. One server can't keep up with every fork's rules, teams and
+versions, and its bandwidth and storage are the project's. A fork that plays online runs its
+own server: the matchmaker is in this repository (`third_party/matchmaker`, built against the
+fork's `project_identity.h`), and docs/NETPLAY_SETUP.md is the runbook. Then set
+`PROJECT_MM_HOST` to it.
+
 **A fork's own code** goes in files OpenSWOS does not have, so a merge never touches them:
 sources in `src/` (the Makefile compiles every `src/*.c`), and what they need built besides --
 a vendored library, flags, link libraries -- in **`fork.mk`** beside the Makefile, which

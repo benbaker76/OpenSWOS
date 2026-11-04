@@ -66,6 +66,11 @@ you open a pull request:
   databases.
 - **No secrets** -- passwords, keys, server credentials.
 
+## Forks
+
+Forks are welcome (GPL-3.0-or-later): see [docs/FORKING.md](docs/FORKING.md). A fork runs its
+own matchmaking server; OpenSWOS's online.openswos.net is for OpenSWOS's own builds only.
+
 ## License
 
 OpenSWOS is GPL-3.0-or-later ([LICENSE](LICENSE)). By sending a pull request you agree that
