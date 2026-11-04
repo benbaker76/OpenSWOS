@@ -476,15 +476,6 @@ struct App {
       rows = std::make_shared<slint::VectorModel<SourceRow>>();
       for (int r = 0; r < ROW_COUNT; r++) rows->push_back(MakeRow(r));
       w().set_sources(rows);
-      std::vector<int> pcRows{ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020}, amRows{ROW_AMIGA, ROW_PC, ROW_2020};
-      if (kWorldUrl[0]) {                 // (World 2026-27: once its package can be downloaded)
-        pcRows.push_back(ROW_WORLD);
-        amRows.push_back(ROW_WORLD);
-      }
-      auto pc = std::make_shared<slint::VectorModel<int>>(pcRows);
-      auto am = std::make_shared<slint::VectorModel<int>>(amRows);
-      w().set_rows_pc(pc);
-      w().set_rows_amiga(am);
       return;
     }
     for (int r = 0; r < ROW_COUNT; r++) rows->set_row_data(r, MakeRow(r));
@@ -575,18 +566,7 @@ struct App {
     }
   }
 
-  // While typing: only the mark and the plan follow, nothing is said yet. (The Amiga
-  // row waits for Enter: a half-typed path is not worth opening an image for.)
-  void RowEdited(int r, const std::string& text) {
-    if (r == ROW_AMIGA) return;
-    SetRow(r, text);
-    SourceRow row = MakeRow(r);
-    row.value = Str(text);
-    rows->set_row_data(r, row);
-    RefreshPlan();
-  }
-
-  // Enter, or the box loses focus: the cleaned path, and what is wrong with it.
+  // A file or folder chosen (or dropped) for a row: the cleaned path, and what is wrong with it.
   void RowCommitted(int r, const std::string& text) {
     if (r == ROW_AMIGA && CleanPath(text) == Shown(AmigaPath())) return;   // unchanged
     const std::string msg = SetRow(r, text);
@@ -1906,12 +1886,12 @@ int Usage() {
       "  --scan DIR        look for the game's sources in DIR and every folder inside\n"
       "                    it (repeatable)\n"
       "  --out DIR         the assets folder to write (default: the one the game reads)\n"
-      "  --amiga           open on the Amiga tab\n"
+      "  --amiga           start with the Amiga ticked (with --auto: make it for the Amiga)\n"
       "  --program DIR     the Amiga program: an unpacked SWOS-Amiga.zip (default: the\n"
       "                    setup's own amiga/ folder)\n"
-      "  --drawer-to DIR   make the SWOS drawer in DIR (the Amiga tab)\n"
-      "  --whdload-to FILE make the WHDLoad package FILE (the Amiga tab)\n"
-      "testing: --auto (press the tab's button)  --snapshot PREFIX  --quit  --play\n"
+      "  --drawer-to DIR   make the SWOS drawer in DIR (for the Amiga)\n"
+      "  --whdload-to FILE make the WHDLoad package FILE (for the Amiga)\n"
+      "testing: --auto (install, or with --amiga make it)  --snapshot PREFIX  --quit  --play\n"
       "         --snapshot-at MS (when the -start snapshot is taken; 1200)\n"
       "         --no-watch (leave the Downloads folder alone)  --details  --about\n"
       "         --downloads DIR (watch DIR instead)  --no-gog (no GOG install lookup)\n",
@@ -1934,7 +1914,7 @@ int main(int argc, char** argv) {
   app.exeDir = sd::ExeDir();
   std::vector<std::string> scans;
   std::string resArg, outArg, programArg, drawerArg, whdloadArg;
-  bool amigaTab = false, watch = true, details = false, about = false, advanced = false;
+  bool amigaTab = false, watch = true, details = false, about = false;
   std::string wizardArg;
   int wizardStep = 0;
   int snapshotAt = 1200;
@@ -1956,8 +1936,6 @@ int main(int argc, char** argv) {
       details = true;
     } else if (a == "--about") {
       about = true;
-    } else if (a == "--advanced") {
-      advanced = true;
     } else if (a.rfind("--wizard=", 0) == 0) {
       wizardArg = a.substr(9);
     } else if (a.rfind("--wizard-step=", 0) == 0) {
@@ -2032,7 +2010,10 @@ int main(int argc, char** argv) {
   ui->set_project_url(PROJECT_URL);
   ui->set_show_about(about);
   ui->set_show_details(details);
-  ui->set_wizard(!advanced && !amigaTab && !app.autoRun);
+  if (amigaTab) {             // (where to play: the Amiga, not this computer)
+    ui->set_t_computer(false);
+    ui->set_t_amiga(true);
+  }
   ui->set_world_available(kWorldUrl[0] != '\0');
   if (!wizardArg.empty()) {   // testing: --wizard=computer,phone,amiga,whdload,world,2020,jaguar,amigacopy,both
     auto has = [&wizardArg](const char* t) { return ("," + wizardArg + ",").find(std::string(",") + t + ",") != std::string::npos; };
@@ -2089,8 +2070,6 @@ int main(int argc, char** argv) {
   });
   ui->on_stop_scan([&app] { app.stopScan = true; });
   ui->on_browse_source([&app](int r) { app.BrowseRow(r); });
-  ui->on_source_edited([&app](int r, const slint::SharedString& t) { app.RowEdited(r, std::string(t)); });
-  ui->on_source_committed([&app](int r, const slint::SharedString& t) { app.RowCommitted(r, std::string(t)); });
   ui->on_clear_sources([&app] { app.ClearSources(); });
   ui->on_change_out([&app] {
     const std::string dir = PickFolder(sd::IsDir(app.outDir) ? app.outDir : std::string());

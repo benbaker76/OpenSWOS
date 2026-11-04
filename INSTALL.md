@@ -140,7 +140,8 @@ the files afterwards:
 - **The GOG game is found by itself** once it's installed with GOG's installer or GOG Galaxy.
 - **Already have it somewhere?** Drag the file or folder onto the window, or click
   **Search a folder…** and pick a folder it's in: the setup looks through that folder **and
-  every folder inside it**. **Choose another…** picks a file or folder by hand.
+  every folder inside it**. **Choose another…** picks a file or folder by hand. **Start over**
+  forgets every copy the setup has found.
 
 When it has it, the screen turns green and says **Found it**:
 
@@ -160,7 +161,9 @@ of them in the game's **OPTIONS** later.
 ![Game options](docs/images/setup/wizard-4-options.png)
 
 **Install the game's data.** Click **Install**. It takes a few seconds. The folder at the top
-is where the game reads its data from: leave it as it is.
+is where the game reads its data from: leave it as it is. **Details** below it shows what will
+be made (parts you have nothing for are marked *skipped*: the game plays without them) and the
+log.
 
 ![Install the game's data](docs/images/setup/wizard-5-install.png)
 
@@ -236,9 +239,6 @@ this computer.
 You only need to do this once: OpenSWOS Setup remembers where your copy of the game is. If a
 new version of OpenSWOS makes some of the data differently, the game tells you when it
 starts: open OpenSWOS Setup, and on its install screen click **Update**.
-
-**Advanced mode** (top right) shows everything on one screen instead, with what will be made
-and the log, for players who know what they want.
 
 *(The screenshots are from Windows; the setup looks the same on a Mac and on Linux.)*
 
