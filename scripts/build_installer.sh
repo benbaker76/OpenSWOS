@@ -174,6 +174,14 @@ if [ -f "$SETUP_EXE" ]; then
 else
     die "no $SETUP_EXE: build it with tools/swosdata/build.bat static (the installer runs it)"
 fi
+# The PortMaster port, for the setup's Handheld screen: it looks for portmaster/swos.zip in
+# the folders above its own (build_dist.sh's portmaster target builds it before this).
+if [ -f dist/swos.zip ]; then
+    mkdir -p "$STAGE_DIR/portmaster" && cp dist/swos.zip "$STAGE_DIR/portmaster/" ||
+        die "cannot stage dist/swos.zip"
+else
+    echo "build_installer: NOTE no dist/swos.zip (scripts/build_portmaster.sh): the setup's Handheld screen will ask for it" >&2
+fi
 find "$STAGE_DIR" -name .DS_Store -delete 2>/dev/null
 find "$STAGE_DIR" -name '*.uaem' -delete 2>/dev/null
 

@@ -68,7 +68,7 @@ Then, if you play somewhere else as well:
 |---|---|
 | **Android** (8.0 or later) | `OpenSWOS-Android.apk`, on the phone |
 | **iPhone or iPad** (iOS 15 or later) | `OpenSWOS-iOS.ipa` |
-| **A handheld with PortMaster** (R36S, Anbernic, TrimUI, ...) | `swos.zip`, the PortMaster port: leave it in your Downloads folder, the setup finds it there. (`OpenSWOS-Setup.zip` has it in it already.) |
+| **A handheld with PortMaster** (R36S, Anbernic, TrimUI, ...) | nothing: the setup has OpenSWOS for PortMaster in it |
 | **Amiga** (A1200/A4000 or an emulator) | `OpenSWOS-Setup.zip`: it has the Amiga program in it. Run the setup from there. |
 
 ---
@@ -205,8 +205,7 @@ ArkOS, ROCKNIX, Knulli, AmberELEC, muOS). No PortMaster yet? Install it on the h
 2. Click **Copy to the card**. OpenSWOS goes into PortMaster's ports folder, with the game's
    data and the options you chose.
 
-If it says it has no copy of OpenSWOS for PortMaster, download **`swos.zip`** from the
-downloads page: it finds it in your Downloads folder.
+The port is also on the downloads page as **`swos.zip`**, for PortMaster on its own.
 
 ### Amiga
 
