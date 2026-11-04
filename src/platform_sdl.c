@@ -2549,8 +2549,9 @@ int Platform_Present(void)
 
     /* The controls read as late as they can be: the frame's own pump ran before the
      * present and the wait above (most of the 20 ms), so a press during the wait was
-     * seen only after the NEXT frame -- a frame of input lag the Amiga, which reads the
-     * joystick in the VBlank interrupt as the frame begins, never had (ReportBot 0051:
+     * seen only after the NEXT frame -- a frame of input lag the Amiga never had: it reads
+     * the joystick's register (JOY0DAT/JOY1DAT, Player1/2StatusProc) when the frame runs,
+     * after its VBlank wait, so a frame sees the stick as it is then (ReportBot 0051:
      * ~40 ms more than a plain SDL game, by a 240 fps camera). Pumped again here, the
      * frame about to run reads what was pressed up to now. */
     pump_events_any_thread();
