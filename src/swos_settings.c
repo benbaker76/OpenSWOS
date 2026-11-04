@@ -311,6 +311,8 @@ static int handler(void *user, const char *section,
     } else if (eqi(section, "mods")) {
         if (eqi(name, "enabled"))
             snprintf(opts->mods, sizeof opts->mods, "%s", value ? value : "");
+        else if (eqi(name, "disabled"))
+            snprintf(opts->mods_disabled, sizeof opts->mods_disabled, "%s", value ? value : "");
     } else if (eqi(section, "tweaks")) {
         static const struct { const char *key; uint32_t bit; } kTweaks[] = {
             { "cpu_cards", TWEAK_CPU_CARDS }, { "no_teammate_tackles", TWEAK_NO_TEAMMATE_TACKLES },
@@ -649,8 +651,11 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "mods",   "enabled",
         "; enabled: the mods to play with, by their folder's name in the mods folder beside this file,\n"
         "; in that order: a file two of them have comes from the first, e.g. enabled = classics, hall.\n"
-        "; Empty: none (docs/MODS.md). A mod that is not cosmetic keeps the game off line.",
+        "; Empty: none (docs/MODS.md). A downloaded (DLC) mod that is not cosmetic keeps the game off line.",
         opts->mods };
+    SETTING(n) = (IniEntry){ "mods",   "disabled",
+        "; disabled: the game's own (canonical) mods to turn off, by name; they are on by default.",
+        opts->mods_disabled };
     SETTING(n) = (IniEntry){ "tweaks", "cpu_cards",
         "; [tweaks]: small changes to the original's behaviour, each off by default and only off line\n"
         "; (online, and in the test rigs, the original plays): docs/MODS.md.\n"

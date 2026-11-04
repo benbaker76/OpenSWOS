@@ -23,11 +23,15 @@ extern int strcmp(const char *a, const char *b);
 
 static char    s_ids[MODS_MAX][MODS_ID_MAX];
 static char    s_names[MODS_MAX][48];
+static char    s_uuids[MODS_MAX][40];
+static uint8_t s_canonical[MODS_MAX];
 static uint8_t s_cosmetic[MODS_MAX];
 static int32_t s_count;
 
 int32_t Mods_Count(void) { return s_count; }
 const char *Mods_Id(int32_t i) { return i >= 0 && i < s_count ? s_ids[i] : ""; }
+const char *Mods_Uuid(int32_t i) { return i >= 0 && i < s_count ? s_uuids[i] : ""; }
+int32_t Mods_IsCanonical(int32_t i) { return i >= 0 && i < s_count && s_canonical[i]; }
 
 const char *Mods_OnlineBlocker(void)
 {
@@ -79,6 +83,7 @@ static int known(const char *id)
 
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include "mjson.h"
 #include "swos_io.h"
 
@@ -125,64 +130,168 @@ static int has_target(const char *json, int len, const char *want)
     return 0;
 }
 
-void Mods_Init(const char *list)
+/* A UUID's text form, 8-4-4-4-12 hex digits. */
+static int uuid_ok(const char *u)
+{
+    for (int i = 0; i < 36; i++) {
+        const char c = u[i];
+        if (i == 8 || i == 13 || i == 18 || i == 23) {
+            if (c != '-') return 0;
+        } else if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+            return 0;
+        }
+    }
+    return u[36] == '\0';
+}
+
+/* The canonical mods: those in the game's own mods/ folder (include/mods.h). */
+static struct { char id[MODS_ID_MAX]; char uuid[40]; uint8_t byDefault; } s_canon[MODS_MAX];
+static int32_t s_canonCount;
+
+static int in_list(const char *list, const char *id)
+{
+    char x[MODS_ID_MAX];
+    int star;
+    for (const char *p = list; p && (p = next_id(p, x, sizeof x, &star)) != NULL;)
+        if (strcmp(x, id) == 0) return 1;
+    return 0;
+}
+
+static int uuid_taken(const char *u)
+{
+    for (int32_t i = 0; i < s_count; i++)
+        if (strcmp(s_uuids[i], u) == 0) return 1;
+    return 0;
+}
+
+/* Load the mod in `dir` (its slug `id`) as the next one, if its manifest allows. */
+static void load_one(const char *id, const char *dir, int canonical)
+{
+    char manifest[1200], uuid[40] = "", changes[16] = "", version[24] = "";
+    struct stat st;
+    int len = 0;
+    if (s_count >= MODS_MAX) {
+        fprintf(stderr, "[mods] %s: left out -- at most %d mods\n", id, MODS_MAX);
+        return;
+    }
+    if (stat(dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
+        fprintf(stderr, "[mods] %s: left out -- no folder %s\n", id, dir);
+        return;
+    }
+    snprintf(manifest, sizeof manifest, "%s/mod.json", dir);
+    char *json = slurp(manifest, &len);
+    if (!json) {
+        fprintf(stderr, "[mods] %s: left out -- no mod.json in its folder\n", id);
+        return;
+    }
+    if (mjson_get_string(json, len, "$.uuid", uuid, (int)sizeof uuid) < 0 || !uuid_ok(uuid)) {
+        fprintf(stderr, "[mods] %s: left out -- its mod.json has no \"uuid\" (every mod has one: docs/MODS.md)\n", id);
+        free(json);
+        return;
+    }
+    if (!has_target(json, len, "sdl")) {
+        fprintf(stderr, "[mods] %s: left out -- not made for this game (its targets have no \"sdl\")\n", id);
+        free(json);
+        return;
+    }
+    if (uuid_taken(uuid)) {
+        fprintf(stderr, "[mods] %s: left out -- another enabled mod has its uuid %s\n", id, uuid);
+        free(json);
+        return;
+    }
+    if (!canonical)
+        for (int32_t c = 0; c < s_canonCount; c++)
+            if (strcmp(s_canon[c].uuid, uuid) == 0) {
+                fprintf(stderr, "[mods] %s: left out -- its uuid is the canonical mod %s's\n", id, s_canon[c].id);
+                free(json);
+                return;
+            }
+    if (mjson_get_string(json, len, "$.name", s_names[s_count], (int)sizeof s_names[0]) < 0)
+        s_names[s_count][0] = '\0';
+    if (mjson_get_string(json, len, "$.changes", changes, (int)sizeof changes) < 0)
+        changes[0] = '\0';
+    if (mjson_get_string(json, len, "$.version", version, (int)sizeof version) < 0)
+        version[0] = '\0';
+    free(json);
+    /* Anything but an explicit "cosmetic" counts as changing the game: a mod that says nothing
+     * is not assumed harmless online. A canonical mod is part of the build, which the handshake
+     * already compares (NETPLAY_COMPAT). */
+    s_cosmetic[s_count] = canonical || strcmp(changes, "cosmetic") == 0;
+    s_canonical[s_count] = (uint8_t)canonical;
+    snprintf(s_ids[s_count], sizeof s_ids[0], "%s", id);
+    snprintf(s_uuids[s_count], sizeof s_uuids[0], "%s", uuid);
+    snprintf(s_dirs[s_count], sizeof s_dirs[0], "%s", dir);
+    fprintf(stderr, "[mods] on: %s (%s %s, %s, %s %s) from %s\n", id, s_names[s_count][0] ? s_names[s_count] : id,
+            version, changes[0] ? changes : "changes not said: treated as gameplay",
+            canonical ? "canonical" : "dlc", uuid, dir);
+    s_count++;
+}
+
+void Mods_Init(const char *enabled, const char *disabled)
 {
     const char *env = getenv("SWOS_MODS");
-    s_count = 0;
+    s_count = s_canonCount = 0;
     if (env && env[0])
         snprintf(s_root, sizeof s_root, "%s", env);
     else if (swos_user_dir()[0])
         snprintf(s_root, sizeof s_root, "%s/mods", swos_user_dir());
     else
         snprintf(s_root, sizeof s_root, "mods");
-    if (!list || !list[0]) {
-        fprintf(stderr, "[mods] none enabled ([mods] enabled in SWOS.ini; mods are folders in %s)\n", s_root);
-        return;
-    }
-    char id[MODS_ID_MAX];
-    int star;
-    for (const char *p = list; (p = next_id(p, id, sizeof id, &star)) != NULL;) {
-        char manifest[1200];
-        struct stat st;
-        if (s_count >= MODS_MAX) {
-            fprintf(stderr, "[mods] %s: left out -- at most %d mods\n", id, MODS_MAX);
-            continue;
+
+    /* The canonical mods, beside the game: their slugs, uuids and "default". */
+    DIR *d = opendir(MODS_CANONICAL_DIR);
+    if (d) {
+        struct dirent *e;
+        while ((e = readdir(d)) != NULL && s_canonCount < MODS_MAX) {
+            char path[1200], x[MODS_ID_MAX];
+            int len = 0, star, b = 0;
+            if (e->d_name[0] == '.' || !next_id(e->d_name, x, sizeof x, &star) || strcmp(x, e->d_name) != 0)
+                continue;
+            snprintf(path, sizeof path, "%s/%s/mod.json", MODS_CANONICAL_DIR, e->d_name);
+            char *json = slurp(path, &len);
+            if (!json)
+                continue;
+            snprintf(s_canon[s_canonCount].id, sizeof s_canon[0].id, "%s", e->d_name);
+            if (mjson_get_string(json, len, "$.uuid", s_canon[s_canonCount].uuid, (int)sizeof s_canon[0].uuid) < 0)
+                s_canon[s_canonCount].uuid[0] = '\0';
+            s_canon[s_canonCount].byDefault = mjson_get_bool(json, len, "$.default", &b) && b;
+            free(json);
+            s_canonCount++;
         }
+        closedir(d);
+    }
+
+    /* The player's list first, in its order: a DLC from the player's folder, else a canonical
+     * mod of that slug; then each canonical mod that is on by default and not disabled. */
+    char id[MODS_ID_MAX], dir[1100];
+    int star;
+    for (const char *p = enabled; p && (p = next_id(p, id, sizeof id, &star)) != NULL;) {
+        struct stat st;
         if (known(id))
             continue;
-        snprintf(s_dirs[s_count], sizeof s_dirs[0], "%s/%s", s_root, id);
-        if (stat(s_dirs[s_count], &st) != 0 || !S_ISDIR(st.st_mode)) {
-            fprintf(stderr, "[mods] %s: left out -- no folder %s\n", id, s_dirs[s_count]);
+        snprintf(dir, sizeof dir, "%s/%s", s_root, id);
+        if (stat(dir, &st) == 0 && S_ISDIR(st.st_mode)) {
+            load_one(id, dir, 0);
             continue;
         }
-        snprintf(manifest, sizeof manifest, "%s/mod.json", s_dirs[s_count]);
-        int len = 0;
-        char *json = slurp(manifest, &len);
-        if (!json) {
-            fprintf(stderr, "[mods] %s: left out -- no mod.json in its folder\n", id);
-            continue;
+        int32_t c;
+        for (c = 0; c < s_canonCount && strcmp(s_canon[c].id, id) != 0; c++)
+            ;
+        if (c < s_canonCount) {
+            snprintf(dir, sizeof dir, "%s/%s", MODS_CANONICAL_DIR, id);
+            load_one(id, dir, 1);
+        } else {
+            fprintf(stderr, "[mods] %s: left out -- no folder %s/%s and no canonical mod of that name\n", id, s_root, id);
         }
-        char changes[16] = "", version[24] = "";
-        if (!has_target(json, len, "sdl")) {
-            fprintf(stderr, "[mods] %s: left out -- not made for this game (its targets have no \"sdl\")\n", id);
-            free(json);
-            continue;
-        }
-        if (mjson_get_string(json, len, "$.name", s_names[s_count], (int)sizeof s_names[0]) < 0)
-            s_names[s_count][0] = '\0';
-        if (mjson_get_string(json, len, "$.changes", changes, (int)sizeof changes) < 0)
-            changes[0] = '\0';
-        if (mjson_get_string(json, len, "$.version", version, (int)sizeof version) < 0)
-            version[0] = '\0';
-        free(json);
-        /* Anything but an explicit "cosmetic" counts as changing the game: a mod that says
-         * nothing is not assumed harmless online. */
-        s_cosmetic[s_count] = strcmp(changes, "cosmetic") == 0;
-        snprintf(s_ids[s_count], sizeof s_ids[0], "%s", id);
-        fprintf(stderr, "[mods] on: %s (%s %s, %s) from %s\n", id, s_names[s_count][0] ? s_names[s_count] : id,
-                version, changes[0] ? changes : "changes not said: treated as gameplay", s_dirs[s_count]);
-        s_count++;
     }
+    for (int32_t c = 0; c < s_canonCount; c++)
+        if (s_canon[c].byDefault && !known(s_canon[c].id) && !in_list(disabled, s_canon[c].id)) {
+            snprintf(dir, sizeof dir, "%s/%s", MODS_CANONICAL_DIR, s_canon[c].id);
+            load_one(s_canon[c].id, dir, 1);
+        }
+    if (!s_count)
+        fprintf(stderr, "[mods] none on ([mods] enabled in SWOS.ini; DLC mods are folders in %s, canonical ones in %s)\n",
+                s_root, MODS_CANONICAL_DIR);
 }
 
 #else  /* the Amiga */
@@ -194,10 +303,11 @@ static char s_dirs[MODS_MAX][MODS_ID_MAX + 6];
 const char *Mods_Dir(int32_t i) { return i >= 0 && i < s_count ? s_dirs[i] : ""; }
 const char *Mods_Root(void) { return "mods"; }
 
-void Mods_Init(const char *list)
+void Mods_Init(const char *list, const char *disabled)
 {
     char id[MODS_ID_MAX];
     int star;
+    (void)disabled;             /* (the setup writes data/MODS with what is on) */
     s_count = 0;
     for (const char *p = list; p && (p = next_id(p, id, sizeof id, &star)) != NULL;) {
         if (s_count >= MODS_MAX || known(id))

@@ -1309,7 +1309,7 @@ int main(int argc, char **argv)
      * Before anything reads the game's data -- translations included, which a mod may carry. */
     {
         const char *env = getenv("SWOS_MODS_ENABLED");
-        Mods_Init(s_modsArgSet ? s_modsArg : env ? env : opts.mods);
+        Mods_Init(s_modsArgSet ? s_modsArg : env ? env : opts.mods, opts.mods_disabled);
     }
     Tweaks_Set(opts.tweaks);    /* [tweaks] (include/tweaks.h): off line only, off in the rigs */
     if (opts.tweaks)

@@ -1109,7 +1109,7 @@ static void read_mods_list(void)
     }
     list[n < sizeof list ? n : sizeof list - 1] = '\0';
     if (n)
-        Mods_Init(list);
+        Mods_Init(list, (const char *)0);
 }
 
 /* make_data_path for a READ: the first enabled mod with the file, else the game's own.

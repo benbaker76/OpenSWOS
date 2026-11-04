@@ -1,6 +1,6 @@
 # MODS.md — mods, tweaks, and what stays the base engine
 
-Status: **design agreed 2026-11-04; §8.1's overlay is built** (§12), the rest is not. People are forking OpenSWOS to add
+Status: **design agreed 2026-11-04; §8.1's overlay, canonical/DLC mods and their uuids (§14), and the first tweaks are built** (§12), the rest is not. People are forking OpenSWOS to add
 what they want, and that is good, but the project cannot merge every fork. A mod system lets
 those features exist without being merged, so the engine has to become flexible enough to
 host them. This file records the decisions, the survey they came from, and the plan.
@@ -294,3 +294,42 @@ server).
   CHOOSE GAMEPLAY, 2026-11-04), the merge keeps OpenSWOS's in OpenSWOS's look and United's in
   its own; a conflict there is resolved by asking, not by picking a side.
 - **OpenSWOS never merges United** (FORKING.md); a United fix OpenSWOS wants is cherry-picked.
+
+---
+
+## 14. Canonical mods and DLC mods; every mod a UUID (the owner, 2026-11-04)
+
+Some of SWOS 2020's features become mods, so mods come in two kinds:
+
+| | **Canonical** | **DLC** |
+|---|---|---|
+| What | part of OpenSWOS: maintained in the repo, shipped in every drop, tested with each release | downloaded: by its author, or the project's, hosted outside the game |
+| Where | the game's own `mods/` (`MODS_CANONICAL_DIR`; `bin/mods/`, git-tracked) | the player's `mods/` folder (`Mods_Root()`), put there by OpenSWOS Setup or the Amiga DLC Manager |
+| Rights | only what OpenSWOS may ship | anything its author may share. **Content with other people's rights is always DLC**: World 2026-27, SWOS 2020's cups (HISTORIC TOURNAMENTS' data), the SWOS 2020 pitches. The engine capability that reads it can be canonical (the `.DIY` reader is base) |
+| On | when its manifest says `"default": true`, unless `[mods] disabled` names it; or when `[mods] enabled` does | only when `[mods] enabled` names it |
+| Online | part of the build: the same build has the same canonical mods (`NETPLAY_COMPAT`), so never a blocker | matched by uuid, version and hash (§8.6); until then a non-cosmetic one keeps the game off line |
+
+**Every mod has a `uuid`** in its `mod.json`, separate from its folder's name (the slug, a
+readable label that may change). The uuid is the identity in saves (a career made with a career
+mod records its uuid and version), the handshake, recordings, the index, and dependencies.
+
+- **Canonical:** `uuid5(NAMESPACE, "mod/<slug>")`, NAMESPACE being the project's
+  (`af19cc5a-6529-537b-935b-407bd73b75fb`, scripts/assign_team_uuids.py), written into the
+  manifest once and never changed:
+  `python3 -c "import uuid;print(uuid.uuid5(uuid.UUID('af19cc5a-6529-537b-935b-407bd73b75fb'),'mod/<slug>'))"`
+- **DLC:** a random uuid4, made by its author when the mod is made.
+- **Refused** (the log says which): a mod with no uuid; a second mod with a uuid already on; a
+  DLC with a canonical mod's uuid. The Amiga reads no manifest, so it trusts the setup's
+  `data/MODS`, which the setup writes from manifests it has checked.
+
+**Order:** the `[mods] enabled` list first, in its order (a slug that is a DLC folder is that DLC,
+else the canonical mod of that slug), then the canonical mods on by default. A file two mods
+have comes from the first.
+
+When the first canonical mod lands, add `mods` to the trees every drop stages
+(`build_dist.sh` FULL_DATA_DIRS, `build_installer.sh` DATA_DIRS, `make macos-app`,
+`packaging/mobile/CMakeLists.txt`, `build_portmaster.sh`, the Amiga drawer), as the other
+tracked `bin/` trees are.
+
+Checked (SDL): a DLC with no uuid refused; a DLC with one on; a DLC with a canonical uuid
+refused; a canonical mod on by default and off with `disabled`. Both targets build.

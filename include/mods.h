@@ -25,14 +25,27 @@
 #define MODS_MAX     16
 #define MODS_ID_MAX  32
 
-/* The enabled list, from `list` ("a, b c"; ids are letters, digits, '-' and '_'). SDL: each
- * must be a folder under Mods_Root() with a mod.json whose targets has "sdl", else it is left
- * out and the log says why. Call once, after the settings and before any data is read. The
- * Amiga's list comes from data/MODS, which src/resload.c reads at its first file read. */
-void        Mods_Init(const char *list);
+/* Two kinds (docs/MODS.md §14). CANONICAL mods are part of OpenSWOS: in the game's own
+ * MODS_CANONICAL_DIR (bin/mods/, git-tracked, in every drop), on when their manifest says
+ * "default": true unless [mods] disabled names them, or when [mods] enabled does. DLC mods are
+ * downloaded: folders in the player's Mods_Root(), on only when [mods] enabled names them. Every
+ * mod has a "uuid" in its mod.json (a canonical one: uuid5 of the project's namespace and
+ * "mod/<slug>"; a DLC: the author's uuid4), its identity in saves, the handshake and the index;
+ * a mod without one, a second mod with a uuid already on, or a DLC with a canonical uuid, is
+ * left out. */
+#define MODS_CANONICAL_DIR "mods"
+
+/* The mods on, from `enabled` ("a, b c"; slugs are letters, digits, '-' and '_') -- in that
+ * order, then the canonical defaults not in `disabled`. SDL: each needs a folder and a mod.json
+ * with a uuid and "sdl" in its targets, else it is left out and the log says why. Call once,
+ * after the settings and before any data is read. The Amiga's list (both kinds) comes from
+ * data/MODS, which src/resload.c reads at its first file read; `disabled` is unused there. */
+void        Mods_Init(const char *enabled, const char *disabled);
 
 int32_t     Mods_Count(void);
 const char *Mods_Id(int32_t i);
+const char *Mods_Uuid(int32_t i);           /* "" on the Amiga (it reads no manifest) */
+int32_t     Mods_IsCanonical(int32_t i);
 /* The mod's folder, no trailing slash: SDL "<Mods_Root()>/<id>", Amiga "mods/<id>". */
 const char *Mods_Dir(int32_t i);
 /* Where mods are found (SDL): $SWOS_MODS, else "mods" in the player's game folder. */
