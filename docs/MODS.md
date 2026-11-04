@@ -333,3 +333,42 @@ tracked `bin/` trees are.
 
 Checked (SDL): a DLC with no uuid refused; a DLC with one on; a DLC with a canonical uuid
 refused; a canonical mod on by default and off with `disabled`. Both targets build.
+
+---
+
+## 15. Registries (§8.2): what exists, what is built, what comes next
+
+**What a mod can already do on SDL, through the overlay alone** (found 2026-11-04):
+
+- **Replace any menu.** The original's 47 menus are rebuilt from `data_json/menus/*.json` at
+  every start (`MenuJson_InstallAll`, on by default), and those reads go through the overlay;
+  the SWOS 2020 and OpenSWOS menus load from JSON when first shown. Limit: an original menu may
+  not grow past its compiled size (it is written over the compiled bytes; a bigger one is
+  skipped and logged) -- growing one needs MENUS.md §1e's call-site repoint.
+- **Replace formations** (`data_json/tactics`, on by default) and the career parameters
+  (`career_params.json`).
+
+**Built: strings** (`src/translations.c`). A mod's `data_json/translations/<lang>.json` holds
+only the strings it adds or changes, and is **merged** over the game's: each key it has
+replaces the game's or joins the table, the first mod in the list winning a key two mods have.
+The game's own file is read without the overlay, so a mod never replaces the whole table.
+Checked: two mods each renaming an OPTIONS row and both renaming a third -- both renames shown,
+the first mod's winning the shared one.
+
+**Next, in order:**
+
+1. **A MODS screen** (OPTIONS -> MODS): the enabled mods, each with its name, version and kind,
+   and its own page. Mods add to the game **there, and at named hooks**, rather than by
+   squeezing rows into the original's screens -- those keep their layout, so `SWOS_ORIGINAL`
+   stays the original and two mods never fight over one row.
+2. **Mod settings.** `mod.json` `"settings": [{ "key", "label", "choices": [...], "default" }]`,
+   kept in SWOS.ini `[mod.<slug>]`, shown on the mod's page, read by its code
+   (`Mods_Setting(uuid, key)`).
+3. **Named hooks** where a mod's content appears in the game: "competitions from mods" in
+   PRESET COMPETITION (HISTORIC TOURNAMENTS is its first user), then modes (FRIENDLY, the main
+   menu) as mods need them -- each a generic entry the engine draws from what mods register.
+4. **Handlers.** A data-only mod's menus use the handlers the game already has (the menu
+   symbol registry, `_menuSymbols`); a code mod (§9) registers its own as `<slug>.<name>`.
+5. **The Amiga** has no menu symbol registry (`menu_symbols.c` is SDL-only) and no run-time
+   translations. Its mod menus will be packed binary (scripts/menu_json_to_bin.py, MENUS.md
+   §3) whose references are indices into a compact Amiga registry; measure its size first.
