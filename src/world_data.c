@@ -91,6 +91,7 @@ extern char _aCoppaItalia[];
 extern char _aCoppa[];
 extern char _aSerieA[];
 extern char _aSerieB[];
+extern uint8_t _shortCountryNames[214 * 3];
 extern void *_competitionsTable[256];
 extern void *_countriesTable[262];
 #endif
@@ -1418,7 +1419,8 @@ static const char kWorld2627_country97[] = "\005" "TUNISIA" "\0" "TUNISIA";
 static Competition *kWorld2627_worldTunLeagueTable[] = { (Competition *)&kWorld2627_worldTunLeague, (Competition *)-2, (Competition *)-1 };
 static const char kWorld2627_country98[] = "\003" "U.A.E." "\0" "U.A.E.";
 static Competition *kWorld2627_worldUaeLeagueTable[] = { (Competition *)&kWorld2627_worldUaeLeague, (Competition *)-2, (Competition *)-1 };
-static const uint8_t kWorld2627_region80[] = { 0, 47, 52, 1, 53, 76, 2, 54, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 61, 14, 63, 15, 25, 16, 17, 19, 20, 86, 88, 21, 90, 22, 23, 24, 92, 94, 93, 26, 27, 28, 29, 18, 30, 31, 32, 33, 78, 34, 35, 36, 37, 38, 39, 40, 41, 255 };
+static const char kWorld2627_country41[] = "\000" "SERBIA" "\0" "SERBIAN";
+static const uint8_t kWorld2627_region80[] = { 0, 47, 52, 1, 53, 76, 2, 54, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 61, 14, 63, 15, 25, 16, 17, 19, 20, 86, 88, 21, 90, 22, 23, 24, 92, 94, 93, 26, 27, 28, 29, 18, 30, 31, 32, 33, 41, 78, 34, 35, 36, 37, 38, 39, 40, 255 };
 static const uint8_t kWorld2627_region81[] = { 42, 59, 79, 91, 69, 97, 255 };
 static const uint8_t kWorld2627_region82[] = { 43, 45, 46, 48, 49, 50, 64, 65, 66, 71, 77, 255 };
 static const uint8_t kWorld2627_region83[] = { 56, 58, 51, 68, 70, 60, 95, 73, 255 };
@@ -1825,6 +1827,8 @@ void World_InstallBaked(void)
         install_league(&_americanLeague, &kWorld2627_americanLeague);
         install_league(&_venezuelanLeague, &kWorld2627_venezuelanLeague);
         install_league(&_welshLeague, &kWorld2627_welshLeague);
+        _countriesTable[41] = (void *)kWorld2627_country41;   /* SERBIA, renamed */
+        _shortCountryNames[37 * 3] = 'S'; _shortCountryNames[37 * 3 + 1] = 'R'; _shortCountryNames[37 * 3 + 2] = 'B';   /* nationality 37 */
         LeaguePhase_InstallCups(kWorld2627LeaguePhases);
         FixtureRounds_Install();
         World_SyncSecondFiles();

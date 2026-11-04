@@ -212,6 +212,11 @@ def italy():
 # it), or new -- numbers no club country has (src/strings_data.c _countriesTable: free).
 COUNTRY_ALIASES = {"NETHERLANDS": "HOLLAND", "CZECH REP.": "CZECH REPUBLIC", "FAROE IS.": "FAROE ISLANDS",
                    "EIRE": "REPUBLIC IRELAND", "N. IRELAND": "NORTHERN IRELAND", "SERBIA": "YUGOSLAVIA"}
+# A 96/97 country the world calls by another name (an alias above that is not just a spelling):
+# its number -> (continent byte, name, adjective, nationality, short name). The country keeps its
+# number, clubs and competitions; World 2026-27 shows the Mod's name (World_InstallBaked), and 96/97
+# keeps its own. Yugoslavia is Serbia in the Mod (Davide, 2026-11-04: "a bug").
+RENAMED_COUNTRIES = {41: (0, "SERBIA", "SERBIAN", 37, "SRB")}
 # A new country's number is in every save that holds it: fixed here, never by order. Free:
 # 99 (and, if 96/97's national teams never need them, 100-251).
 NEW_COUNTRY_NUMBERS = {
@@ -804,6 +809,13 @@ def world_lists(news):
         lst.insert(at, wc["number"])
         names[wc["number"]] = wc["name"]
         season.append(wc["number"])
+    for number, rename in RENAMED_COUNTRIES.items():     # (the picker's order by the world's name;
+        names[number] = rename[1]                        #  the season list's stays as it was)
+        for lst in regions.values():
+            if number in lst:
+                lst.remove(number)
+                at = next((i for i, n in enumerate(lst) if names.get(n, "") > rename[1]), len(lst))
+                lst.insert(at, number)
     return regions, season
 
 
@@ -1769,6 +1781,15 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             continue
         externs.add("extern CompetitionLeague %s;" % rec["id"])
         installs.append("        install_league(&%s, &%s);" % (rec["id"], baked["id"]))
+    for number, (byte, name, adjective, nation, short) in sorted(RENAMED_COUNTRIES.items()):
+        name_sym = "kWorld%s_country%d" % (tag, number)
+        new_countries.append("static const char %s[] = \"\\%03o\" %s \"\\0\" %s;" % (
+            name_sym, byte, c_string(name), c_string(adjective)))
+        installs.append("        _countriesTable[%d] = (void *)%s;   /* %s, renamed */" % (number, name_sym, name))
+        installs.append("        _shortCountryNames[%d * 3] = '%s'; _shortCountryNames[%d * 3 + 1] = '%s'; "
+                        "_shortCountryNames[%d * 3 + 2] = '%s';   /* nationality %d */"
+                        % (nation, short[0], nation, short[1], nation, short[2], nation))
+        externs.update(("extern void *_countriesTable[262];", "extern uint8_t _shortCountryNames[214 * 3];"))
     installs.append("        FixtureRounds_Install();")
     installs.append("        World_SyncSecondFiles();")
     regions, season = world_lists(news)
