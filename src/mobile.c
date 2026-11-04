@@ -183,6 +183,33 @@ const char *Mobile_DataDir(void)
 #endif
 }
 
+#ifndef SWOS_ANDROID_BUILD
+static char s_dropped[512];     /* a setup link iOS handed over (platform_sdl.c's pump) */
+static int  s_playing;          /* the data check is done: the game has its data loaded */
+
+static int is_setup_link(const char *f)
+{
+    return f && (strncmp(f, PROJECT_URL_SCHEME "://", strlen(PROJECT_URL_SCHEME) + 3) == 0 ||
+                 strncmp(f, "https://" PROJECT_SITE "/get", strlen(PROJECT_SITE) + 12) == 0);
+}
+
+/* A file or URL iOS handed over: a setup link is kept for the start-up's check. While the game
+ * plays it cannot be taken (the data is loaded, and iOS gives an app no way to start itself
+ * again, as Android's RestartActivity does): it says how instead. */
+void Mobile_LinkDropped(const char *link)
+{
+    if (!is_setup_link(link))
+        return;
+    if (!s_playing) {
+        snprintf(s_dropped, sizeof s_dropped, "%s", link);
+        return;
+    }
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME,
+                             "To copy the game's data from " PROJECT_SETUP_NAME ", close " PROJECT_NAME
+                             " (swipe it away), then open the link again.", NULL);
+}
+#endif
+
 /* A link from OpenSWOS Setup's Wi-Fi copy (include/phone_copy.h) that opened the app, into
  * `out`: Android keeps the intent's (OpenSWOSActivity.takeLink, at the start and on a new one),
  * iOS hands it over as a dropped "file" (SDL's openURL). 1 when there was one. */
@@ -212,6 +239,11 @@ static int pending_link(char *out, size_t cap)
         (*env)->DeleteLocalRef(env, act);
     }
 #else
+    if (s_dropped[0]) {                             /* (one the platform's pump kept) */
+        snprintf(out, cap, "%s", s_dropped);
+        s_dropped[0] = 0;
+        return 1;
+    }
     SDL_Event e;
     for (int i = 0; i < 20 && !out[0]; i++) {       /* (the run loop delivers openURL) */
         SDL_PumpEvents();
@@ -231,6 +263,9 @@ static int pending_link(char *out, size_t cap)
 /* The game has its data and plays: a link from now on restarts the app (OpenSWOSActivity). */
 static void playing(void)
 {
+#ifndef SWOS_ANDROID_BUILD
+    s_playing = 1;
+#endif
 #ifdef SWOS_ANDROID_BUILD
     JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
     jobject act = (jobject)SDL_AndroidGetActivity();
@@ -246,6 +281,7 @@ static void playing(void)
     (*env)->DeleteLocalRef(env, act);
 #endif
 }
+
 
 static int have_game_data(void)
 {

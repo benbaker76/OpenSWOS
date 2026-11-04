@@ -1636,6 +1636,15 @@ static void pump_events_any_thread(void)
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
         switch (ev.type) {
+        case SDL_DROPFILE:
+#ifdef SWOS_IOS_BUILD
+            /* iOS hands a URL the app was opened with (OpenSWOS Setup's Wi-Fi copy) over as a
+             * dropped file, whenever its run loop gets to it -- often before the start-up's
+             * data check looks: kept here, or this pump threw it away (src/mobile.c). */
+            { extern void Mobile_LinkDropped(const char *link); Mobile_LinkDropped(ev.drop.file); }
+#endif
+            SDL_free(ev.drop.file);
+            break;
         case SDL_QUIT:
             Platform_RequestQuit();
             /* Hide the window immediately so the main-menu unwind
