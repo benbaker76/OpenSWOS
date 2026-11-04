@@ -16,7 +16,9 @@ which has only the one.
 
 The competitions are SWOS 2020's DLC cups: every Euro (1960–2024) and World Cup
 (1930–2026, no 2022 in the DLC), and its club cups -- the European Cup 1991–92 and the
-Champions League 1992–93 to 1995–96 (8 or 16 clubs, as they played that season). The teams screen lists every team four across, row by row;
+Champions League 1992–93 to 1995–96 (8 or 16 clubs, as they played that season). The teams screen lists every team three across, row by row, in
+100-pixel buttons as the game's own team lists are (`chooseTeamsFriendlyMenu`), so a 16-letter
+name fits -- up to 48 teams; a file of more keeps the menu's four narrower columns;
 every one starts as COMPUTER and a click cycles it COMPUTER -> PLAYER-COACH -> COACH, in the
 friendly team list's colours (red / purple / blue). PLAY starts the competition the way LOAD
 OLD COMPETITION starts a loaded one (`StartContest`), and SAVE then offers the file's own name
@@ -34,13 +36,13 @@ that is not JSON), with the file's control types, options and tactics.
 
 ## 2. Where the files live
 
-**Shipped:** `bin/classic/uefa/`, `bin/classic/worldcup/` and `bin/classic/club/` — all 44
-competitions (2026's 48 teams included), as OpenSWOS's JSON `.DIY` (every team COMPUTER), converted from SWOS 2020's DLC
-with `--convert-diy` (section 6). SWOS 2020's DLC is a community project; these files were
-updated there by petarku, and they ship with that community's agreement (2026-10-29). Every
-drop carries `classic/` (`FULL_DATA_DIRS` and `AMIGA_DATA_DIRS` in `build_dist.sh`,
-`build_installer.sh`, `make macos-app`, `WASM_DATA_DIRS`); in the Amiga drawer it is
-`SWOS/classic/`.
+**None are in this repository**, like the rest of the game's data: the competitions are the
+player's own copy of SWOS 2020's DLC. CLASSICS lists what it finds; with no files a group's
+list is empty.
+
+**The Amiga:** `classic/{uefa,worldcup,club}/` in the game's drawer, as OpenSWOS's JSON
+`.DIY`, converted on a PC with `--convert-diy` (section 6) -- the Amiga cannot read the DOS
+dump.
 
 **The player's own (SDL):** `<assets>/classic/{uefa,worldcup,club}/`
 (`<assets>` is `swos_assets_dir()`, by default `Documents\SWOS\assets`), SWOS 2020's files as
@@ -50,7 +52,7 @@ CUP WINNERS, UEFA CUP, EUROPA, CLUB) goes to `club` -- tested FIRST, since "UEFA
 LEAGUE" and "UEFA EUROPEAN CUP" say UEFA and EURO too -- then WORLD CUP to `worldcup`, EURO or
 UEFA to `uefa`. The club cups' `CUSTOMS.EDT` is not needed: a `.DIY` carries its teams.
 
-SDL looks in the assets folder first, then in the game's own `classic/`; a file name already
+SDL looks in the assets folder first, then in a `classic/` beside the binary; a file name already
 listed from the first is not listed again. A file is listed by the name inside it, sorted by
 the first four-digit number in that name, then by name; one the target cannot read is skipped
 (SDL logs a `[classic]` line). A list holds 32 (two columns of 16); one that fits the first
@@ -142,7 +144,7 @@ imports the file, makes every team COMPUTER, writes the JSON (and, in a tester b
 and diffs it: `[json-verify-diy] 0 mismatches` for all 44), and refuses one of more than 64
 teams, a DIY competition's own limit (exit 2). Until 2026-10-29 it refused more than 32, a
 caution nothing on the Amiga needed: every structure the competition uses is sized for 64.
-The shipped `bin/classic/` is its output.
+An Amiga drawer's `classic/` is its output.
 
 ### Converting a competition
 
@@ -196,4 +198,4 @@ two-legged quarter- and semi-finals decided on aggregate, to the final (Galatasa
 Paris SG).
 
 Not done: OpenSWOS Setup does not copy or convert a player's own SWOS 2020 files for the
-Amiga; the shipped ones are every competition of the DLC.
+Amiga: a player converts them with `--convert-diy` and copies them into the drawer.

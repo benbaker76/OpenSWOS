@@ -45,7 +45,6 @@
 #include "swos_io.h"
 
 extern CompetitionSlotBuffer _primaryCompetitionBuf;
-extern TeamFileEx  _selectedTeams[100];
 extern uint16_t    _numSelectedTeams;
 extern uint16_t    _careerFileBuffer;
 extern uint16_t    _gameLength, _autoReplays, _menuMusic, _autoSaveHighlights;

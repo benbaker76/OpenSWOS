@@ -43,7 +43,6 @@
 #include "diy_import_dos.h"
 #endif
 
-extern TeamFileEx  _selectedTeams[100];
 extern uint16_t    _numSelectedTeams;
 extern uint16_t    _gameType;
 extern uint8_t     _competitionFilename[14];
@@ -108,8 +107,8 @@ static int32_t  str_cmp(const char *a, const char *b)
 /* ---- files ---- */
 
 /* Where classic/ folders are, first first: on SDL the player's assets folder (their own
- * SWOS 2020 files, scripts/copy_classics.ps1), then the game's own (bin/classic, what a
- * drop ships); on the Amiga the drawer's. "" = the game's folder. */
+ * SWOS 2020 files, scripts/copy_classics.ps1), then a classic/ beside the binary; on the
+ * Amiga the drawer's. "" = the game's folder. */
 static const char *classic_root(int32_t root)
 {
 #ifdef SWOS_SDL_BUILD
@@ -277,6 +276,17 @@ void ClassicComps_PickClub(void)     { s.kind = 1; SetExitMenuFlag(); }
 void ClassicComps_PickUefa(void)     { s.group = kGroupUefa; SetExitMenuFlag(); }
 void ClassicComps_PickWorldCup(void) { s.group = kGroupWorldCup; SetExitMenuFlag(); }
 
+/* The list's buttons are a column at a time, 16 and 16. A list that needs both columns
+ * fills them a row at a time, left then right, so the two end level; one that fits the
+ * first column keeps it, one competition per row. */
+static int32_t competition_of_entry(uint16_t ordinal)
+{
+    int32_t slot = (int32_t)ordinal - ClassicList_first;
+    if (s.count <= kListColumn)
+        return slot;
+    return slot % kListColumn * 2 + slot / kListColumn;
+}
+
 void ClassicComps_ListInit(void)
 {
     static char none[] = "NO COMPETITIONS IN THIS FOLDER";
@@ -293,27 +303,88 @@ void ClassicComps_ListInit(void)
     CalcMenuEntryAddress(ClassicList_header)->fg = (uintptr_t)s.title;
     for (i = 0; i < kListRows; i++) {
         MenuEntry *e = CalcMenuEntryAddress((uint16_t)(ClassicList_first + i));
-        e->fg = (uintptr_t)(i < s.count ? s.name[i] : none);
-        e->isInvisible = !(i < s.count || (i == 0 && s.count == 0));
+        int32_t comp = competition_of_entry(e->ordinal);
+        e->fg = (uintptr_t)(comp < s.count ? s.name[comp] : none);
+        e->isInvisible = !(comp < s.count || (comp == 0 && s.count == 0));
         e->isDisabled = s.count == 0;
+    }
+    if (s.count > kListColumn) {
+        /* Row by row, the cursor's links follow: across, down a column, and from a
+         * column's last competition to EXIT. */
+        int32_t left_rows = (s.count + 1) / 2, right_rows = s.count / 2;
+        for (i = 0; i < kListColumn; i++) {
+            MenuEntry *l = CalcMenuEntryAddress((uint16_t)(ClassicList_first + i));
+            MenuEntry *r = CalcMenuEntryAddress((uint16_t)(ClassicList_first + kListColumn + i));
+            l->rightEntry = i < right_rows ? (int8_t)r->ordinal : -1;
+            l->downEntry  = i + 1 < left_rows ? (int8_t)(l->ordinal + 1) : (int8_t)ClassicList_exit;
+            r->downEntry  = i + 1 < right_rows ? (int8_t)(r->ordinal + 1) : (int8_t)ClassicList_exit;
+        }
     }
 }
 
 void ClassicComps_PickCompetition(MenuEntry *entry)
 {
-    int32_t i = (int32_t)entry->ordinal - ClassicList_first;
+    int32_t i = competition_of_entry(entry->ordinal);
     if (i >= 0 && i < s.count) {
         s.pick = i;
         SetExitMenuFlag();
     }
 }
 
-/* The teams menu lists its buttons a column at a time; the teams fill them a row at a
- * time, four across, so a competition takes only the rows it needs. */
+/* The teams screen. A competition of up to 48 teams is laid out as the game's own team
+ * lists are (chooseTeamsFriendlyMenu, selectTeamsMenu): three columns of 100-pixel
+ * buttons, wide enough for a 16-letter name. The menu's own 4 x 16 grid of narrower
+ * buttons is kept for more than that, up to a DIY competition's 64. */
+enum { kWideColumns = 3, kWideWidth = 100, kWideTeams = kWideColumns * kTeamRows };
+
+static int8_t s_wide;     /* the buttons are in three columns, row by row */
+
+/* The menu lists its buttons a column at a time; the teams fill them a row at a time,
+ * so a competition takes only the rows it needs. */
 static int32_t team_of_entry(uint16_t ordinal)
 {
     int32_t slot = (int32_t)ordinal - ClassicTeams_first;
+    if (s_wide)
+        return slot;
     return slot % kTeamRows * kTeamColumns + slot / kTeamRows;
+}
+
+/* Three columns across the four's span, from the top-left button down, and the cursor's
+ * links to match: across a row, down a column, and from the last row to PLAY and EXIT. */
+static void lay_out_wide(int32_t teams)
+{
+    static uint16_t left, span, top, step;    /* the menu's grid, as unpacked */
+    int32_t i, last_row;
+    uint16_t gap;
+
+    if (step == 0) {
+        const MenuEntry *first = CalcMenuEntryAddress(ClassicTeams_first);
+        const MenuEntry *right =
+            CalcMenuEntryAddress((uint16_t)(ClassicTeams_first + (kTeamColumns - 1) * kTeamRows));
+        left = first->x;
+        span = (uint16_t)(right->x + right->dwWidth - left);
+        top  = first->y;
+        step = (uint16_t)(CalcMenuEntryAddress(ClassicTeams_first + 1)->y - top);
+    }
+    gap = (uint16_t)((span - kWideColumns * kWideWidth) / (kWideColumns - 1));
+    last_row = (teams - 1) / kWideColumns * kWideColumns;
+
+    for (i = 0; i < kTeamSlots; i++) {
+        MenuEntry *e = CalcMenuEntryAddress((uint16_t)(ClassicTeams_first + i));
+        int32_t col = i % kWideColumns;
+        int8_t  me  = (int8_t)(ClassicTeams_first + i);
+
+        e->x = (uint16_t)(left + col * (kWideWidth + gap));
+        e->y = (uint16_t)(top + i / kWideColumns * step);
+        e->dwWidth    = kWideWidth;
+        e->leftEntry  = col > 0 ? (int8_t)(me - 1) : -1;
+        e->rightEntry = col < kWideColumns - 1 && i + 1 < teams ? (int8_t)(me + 1) : -1;
+        e->upEntry    = i >= kWideColumns ? (int8_t)(me - kWideColumns) : -1;
+        e->downEntry  = i + kWideColumns < teams ? (int8_t)(me + kWideColumns)
+                                                  : (int8_t)ClassicTeams_play;
+    }
+    CalcMenuEntryAddress(ClassicTeams_play)->upEntry = (int8_t)(ClassicTeams_first + last_row);
+    CalcMenuEntryAddress(ClassicTeams_exit)->upEntry = (int8_t)(ClassicTeams_first + last_row);
 }
 
 static void name_team_entries(void)
@@ -334,7 +405,13 @@ static void name_team_entries(void)
     }
 }
 
-void ClassicComps_TeamsInit(void) { name_team_entries(); }
+void ClassicComps_TeamsInit(void)
+{
+    s_wide = _numSelectedTeams <= kWideTeams;
+    if (s_wide)
+        lay_out_wide(_numSelectedTeams);
+    name_team_entries();
+}
 
 void ClassicComps_ToggleTeam(MenuEntry *entry)
 {
