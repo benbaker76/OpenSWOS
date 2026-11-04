@@ -530,7 +530,7 @@
      "op": "nav",
      "left": -1,
      "right": -1,
-     "up": 22,
+     "up": 24,
      "down": -1
     },
     {
@@ -604,7 +604,7 @@
      "left": -1,
      "right": -1,
      "up": 16,
-     "down": 19
+     "down": 24
     },
     {
      "op": "colors",
@@ -619,6 +619,59 @@
     {
      "op": "onselect_fire",
      "func": "ChangeWorld"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 10,
+    "y": 172,
+    "w": -116,
+    "h": 11
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "str": "_aModsOption"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -102,
+    "y": 172,
+    "w": -116,
+    "h": 11
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 22,
+     "down": 19
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "str": "_aModsNone"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "ShowModsMenu"
     }
    ]
   }

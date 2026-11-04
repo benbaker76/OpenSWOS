@@ -2080,16 +2080,27 @@ void OptionsMenuBeforeDraw(void)
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
 #if !SWOS_WORLDS
-    /* (no worlds in this build: no WORLD row; CONTROLS and EXIT step to each other) */
+    /* (no worlds in this build: no WORLD row; CONTROLS and MODS step to each other) */
     _menuEntries[21].isInvisible = 1;
     _menuEntries[22].isInvisible = 1;
-    _menuEntries[16].downEntry = 19;
-    _menuEntries[19].upEntry = 16;
+    _menuEntries[16].downEntry = 24;
+    _menuEntries[24].upEntry = 16;
 #endif
+    {   /* MODS (23/24, src/mods_menu.c): how many are on */
+        static char modsOn[16];
+        if (Mods_Count())
+            snprintf(modsOn, sizeof modsOn, "%d ON", (int)Mods_Count());
+        else
+            snprintf(modsOn, sizeof modsOn, "NONE");
+        _menuEntries[24].fg = (uintptr_t)modsOn;
+    }
 #else
-    /* WORLD (21/22) is SDL only: the Amiga's world is its drawer's (OpenSWOS Setup). */
+    /* WORLD (21/22) and MODS (23/24) are SDL only: the Amiga's world and mods are its
+     * drawer's (OpenSWOS Setup writes data/WORLD and data/MODS). */
     _menuEntries[21].isInvisible = 1;
     _menuEntries[22].isInvisible = 1;
+    _menuEntries[23].isInvisible = 1;
+    _menuEntries[24].isInvisible = 1;
     _menuEntries[15].isInvisible = 1;
     _menuEntries[16].isInvisible = 1;
 #ifdef AGA
@@ -2154,6 +2165,16 @@ void ChangeWorld(MenuEntry *entry)
                    "Close it and start it again. Saves stay in the world they were made in.", NULL);
 #else
     (void)entry;
+#endif
+}
+
+/* OPTIONS -> MODS: the mods on disk, each turned on or off from the next start (src/mods_menu.c). */
+__attribute__((used, externally_visible))
+void ShowModsMenu(void)
+{
+#ifdef SWOS_SDL_BUILD
+    extern void ModsMenu_Show(void);
+    ModsMenu_Show();
 #endif
 }
 

@@ -357,8 +357,14 @@ the first mod's winning the shared one.
 
 **Next, in order:**
 
-1. **A MODS screen** (OPTIONS -> MODS): the enabled mods, each with its name, version and kind,
-   and its own page. Mods add to the game **there, and at named hooks**, rather than by
+1. **A MODS screen** (OPTIONS -> MODS) -- **built** (`src/mods_menu.c`,
+   `openswos/modsMenu.json`): every mod on disk (`Mods_Scan`), canonical then DLC, up to 8 rows
+   of name, version and kind with ON / OFF / CANNOT (a mod that cannot be on: fire says why);
+   fire turns one on or off, written to SWOS.ini at once, played from the next start. OPTIONS'
+   value says how many are on; hidden on the Amiga (its list is data/MODS). Checked: the screen
+   with a canonical, a DLC and a broken mod; toggling both kinds wrote `enabled=hall`,
+   `disabled=classics` and the next start played by it; `--menu-selftest` covers it. Still to
+   come: each mod's own page (its settings, item 2), more than 8 mods. Mods add to the game **there, and at named hooks**, rather than by
    squeezing rows into the original's screens -- those keep their layout, so `SWOS_ORIGINAL`
    stays the original and two mods never fight over one row.
 2. **Mod settings.** `mod.json` `"settings": [{ "key", "label", "choices": [...], "default" }]`,

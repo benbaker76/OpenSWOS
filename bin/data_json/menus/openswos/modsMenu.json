@@ -1,0 +1,525 @@
+{
+ "name": "modsMenu",
+ "comment": "OpenSWOS's MODS screen: every mod on disk, each turned on or off from the next start ([mods] in SWOS.ini, docs/MODS.md). JSON-only (docs/MENUS.md section 10); handlers in src/mods_menu.c. Opened from OPTIONS.",
+ "menu_flags": {
+  "dos_redraw": true
+ },
+ "onInit": "modsMenu_OnInit",
+ "onReturn": null,
+ "onDraw": "modsMenu_OnDraw",
+ "defaultEntry": 3,
+ "items": [
+  {
+   "kind": "entry",
+   "name": "header",
+   "coords": {
+    "x": 72,
+    "y": 0,
+    "w": 176,
+    "h": 16
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x10",
+     "literal": "MODS"
+    },
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "subTitle",
+   "coords": {
+    "x": 12,
+    "y": 20,
+    "w": 296,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "FIRE ON A MOD TURNS IT ON OR OFF"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "name0",
+   "coords": {
+    "x": 12,
+    "y": 36,
+    "w": 220,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "state0",
+   "coords": {
+    "x": 236,
+    "y": 36,
+    "w": 60,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_row0_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "name1",
+   "coords": {
+    "x": 12,
+    "y": 50,
+    "w": 220,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "state1",
+   "coords": {
+    "x": 236,
+    "y": 50,
+    "w": 60,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_row1_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "name2",
+   "coords": {
+    "x": 12,
+    "y": 64,
+    "w": 220,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "state2",
+   "coords": {
+    "x": 236,
+    "y": 64,
+    "w": 60,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_row2_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "name3",
+   "coords": {
+    "x": 12,
+    "y": 78,
+    "w": 220,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "state3",
+   "coords": {
+    "x": 236,
+    "y": 78,
+    "w": 60,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_row3_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "name4",
+   "coords": {
+    "x": 12,
+    "y": 92,
+    "w": 220,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "state4",
+   "coords": {
+    "x": 236,
+    "y": 92,
+    "w": 60,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_row4_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "name5",
+   "coords": {
+    "x": 12,
+    "y": 106,
+    "w": 220,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "state5",
+   "coords": {
+    "x": 236,
+    "y": 106,
+    "w": 60,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_row5_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "name6",
+   "coords": {
+    "x": 12,
+    "y": 120,
+    "w": 220,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "state6",
+   "coords": {
+    "x": 236,
+    "y": 120,
+    "w": 60,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_row6_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "name7",
+   "coords": {
+    "x": 12,
+    "y": 134,
+    "w": 220,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "state7",
+   "coords": {
+    "x": 236,
+    "y": 134,
+    "w": 60,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_row7_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "note",
+   "coords": {
+    "x": 12,
+    "y": 150,
+    "w": 296,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "exit",
+   "coords": {
+    "x": 102,
+    "y": 166,
+    "w": 100,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "EXIT"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_exit_OnSelect"
+    }
+   ]
+  }
+ ]
+}

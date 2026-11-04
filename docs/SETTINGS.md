@@ -110,6 +110,24 @@ key_service=F2
 Everything in `[arcade]` except `enabled` is also editable in-game from
 the F2 service menu, which writes changes straight back to `SWOS.ini`.
 
+#### `[mods]` and `[tweaks]` (docs/MODS.md)
+
+```ini
+[mods]
+enabled=classics, hall   ; mods to play with, by folder name, first first (a file two have
+                         ; comes from the first). DLC: folders in mods/ beside SWOS.ini
+disabled=                ; the game's own (canonical) mods to turn off; they are on by default
+
+[tweaks]                 ; changes to the original's behaviour, off by default, off line only
+cpu_cards=false          ; the computer's players are booked and sent off too
+no_teammate_tackles=false       ; a team-mate leaves your player on the ball alone
+tackle_controlled_player=false  ; fire slides the player you control, not a nearer team-mate
+```
+
+OPTIONS -> MODS turns each mod on or off (from the next start) and writes `[mods]`.
+`--mods=a,b` sets the mods for one run without saving them. A DLC mod that is not cosmetic
+keeps MULTIPLAYER off. Every tweak is off online and in the test rigs.
+
 ### Command-line options
 
 ```

@@ -321,6 +321,7 @@ extern void SetExitMenuFlag(void);
 extern void SetName(void);
 extern void SetSurname(void);
 extern void ShowControlsMenu(void);
+extern void ShowModsMenu(void);
 extern void ShowPlayerMarket(void);
 extern void ShowPlayerMarketInit(void);
 extern void ShowStadiumInit(void);
@@ -492,6 +493,8 @@ extern char _aManagementReco_0[];
 extern char _aMatch[];
 extern char _aMemoFromTheClu[];
 extern char _aMenuMusic[];
+extern char _aModsNone[];
+extern char _aModsOption[];
 extern char _aMultiplayer[];
 extern char _aName[];
 extern char _aNat[];
@@ -995,6 +998,7 @@ const MenuSymbol _menuSymbols[] = {
     { "SetName", (void*)SetName, SYM_FUNC },
     { "SetSurname", (void*)SetSurname, SYM_FUNC },
     { "ShowControlsMenu", (void*)ShowControlsMenu, SYM_FUNC },
+    { "ShowModsMenu", (void*)ShowModsMenu, SYM_FUNC },
     { "ShowPlayerMarket", (void*)ShowPlayerMarket, SYM_FUNC },
     { "ShowPlayerMarketInit", (void*)ShowPlayerMarketInit, SYM_FUNC },
     { "ShowStadiumInit", (void*)ShowStadiumInit, SYM_FUNC },
@@ -1163,6 +1167,8 @@ const MenuSymbol _menuSymbols[] = {
     { "_aMatch", (void*)_aMatch, SYM_STRING },
     { "_aMemoFromTheClu", (void*)_aMemoFromTheClu, SYM_STRING },
     { "_aMenuMusic", (void*)_aMenuMusic, SYM_STRING },
+    { "_aModsNone", (void*)_aModsNone, SYM_STRING },
+    { "_aModsOption", (void*)_aModsOption, SYM_STRING },
     { "_aMultiplayer", (void*)_aMultiplayer, SYM_STRING },
     { "_aName", (void*)_aName, SYM_STRING },
     { "_aNat", (void*)_aNat, SYM_STRING },

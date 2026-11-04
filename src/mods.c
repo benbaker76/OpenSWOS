@@ -164,67 +164,101 @@ static int uuid_taken(const char *u)
     return 0;
 }
 
+/* What a mod's folder and manifest say (`info`), or why it cannot be a mod (the return: "" when
+ * it can). The checks the loader and the MODS screen share. */
+static const char *read_manifest(const char *dir, int canonical, ModInfo *info)
+{
+    char manifest[1200], changes[16] = "";
+    struct stat st;
+    int len = 0, b = 0;
+    info->canonical = (uint8_t)canonical;
+    if (stat(dir, &st) != 0 || !S_ISDIR(st.st_mode))
+        return "no folder";
+    snprintf(manifest, sizeof manifest, "%s/mod.json", dir);
+    char *json = slurp(manifest, &len);
+    if (!json)
+        return "no mod.json in its folder";
+    if (mjson_get_string(json, len, "$.name", info->name, (int)sizeof info->name) < 0)
+        snprintf(info->name, sizeof info->name, "%s", info->slug);
+    if (mjson_get_string(json, len, "$.version", info->version, (int)sizeof info->version) < 0)
+        info->version[0] = '\0';
+    if (mjson_get_string(json, len, "$.changes", changes, (int)sizeof changes) < 0)
+        changes[0] = '\0';
+    /* Anything but an explicit "cosmetic" counts as changing the game: a mod that says nothing
+     * is not assumed harmless online. A canonical mod is part of the build, which the handshake
+     * already compares (NETPLAY_COMPAT). */
+    info->cosmetic = (uint8_t)(canonical || strcmp(changes, "cosmetic") == 0);
+    snprintf(info->changes, sizeof info->changes, "%s", changes[0] ? changes : "gameplay");
+    info->byDefault = (uint8_t)(mjson_get_bool(json, len, "$.default", &b) && b);
+    const int uuidOk = mjson_get_string(json, len, "$.uuid", info->uuid, (int)sizeof info->uuid) >= 0 &&
+                       uuid_ok(info->uuid);
+    const int sdl = has_target(json, len, "sdl");
+    free(json);
+    if (!uuidOk)
+        return "its mod.json has no \"uuid\" (every mod has one: docs/MODS.md)";
+    if (!sdl)
+        return "not made for this game (its targets have no \"sdl\")";
+    if (!canonical)
+        for (int32_t c = 0; c < s_canonCount; c++)
+            if (strcmp(s_canon[c].uuid, info->uuid) == 0)
+                return "its uuid is a canonical mod's";
+    return "";
+}
+
 /* Load the mod in `dir` (its slug `id`) as the next one, if its manifest allows. */
 static void load_one(const char *id, const char *dir, int canonical)
 {
-    char manifest[1200], uuid[40] = "", changes[16] = "", version[24] = "";
-    struct stat st;
-    int len = 0;
+    ModInfo info;
+    memset(&info, 0, sizeof info);
+    snprintf(info.slug, sizeof info.slug, "%s", id);
     if (s_count >= MODS_MAX) {
         fprintf(stderr, "[mods] %s: left out -- at most %d mods\n", id, MODS_MAX);
         return;
     }
-    if (stat(dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
-        fprintf(stderr, "[mods] %s: left out -- no folder %s\n", id, dir);
+    const char *why = read_manifest(dir, canonical, &info);
+    if (!why[0] && uuid_taken(info.uuid))
+        why = "another enabled mod has its uuid";
+    if (why[0]) {
+        fprintf(stderr, "[mods] %s: left out -- %s (%s)\n", id, why, dir);
         return;
     }
-    snprintf(manifest, sizeof manifest, "%s/mod.json", dir);
-    char *json = slurp(manifest, &len);
-    if (!json) {
-        fprintf(stderr, "[mods] %s: left out -- no mod.json in its folder\n", id);
-        return;
-    }
-    if (mjson_get_string(json, len, "$.uuid", uuid, (int)sizeof uuid) < 0 || !uuid_ok(uuid)) {
-        fprintf(stderr, "[mods] %s: left out -- its mod.json has no \"uuid\" (every mod has one: docs/MODS.md)\n", id);
-        free(json);
-        return;
-    }
-    if (!has_target(json, len, "sdl")) {
-        fprintf(stderr, "[mods] %s: left out -- not made for this game (its targets have no \"sdl\")\n", id);
-        free(json);
-        return;
-    }
-    if (uuid_taken(uuid)) {
-        fprintf(stderr, "[mods] %s: left out -- another enabled mod has its uuid %s\n", id, uuid);
-        free(json);
-        return;
-    }
-    if (!canonical)
-        for (int32_t c = 0; c < s_canonCount; c++)
-            if (strcmp(s_canon[c].uuid, uuid) == 0) {
-                fprintf(stderr, "[mods] %s: left out -- its uuid is the canonical mod %s's\n", id, s_canon[c].id);
-                free(json);
-                return;
-            }
-    if (mjson_get_string(json, len, "$.name", s_names[s_count], (int)sizeof s_names[0]) < 0)
-        s_names[s_count][0] = '\0';
-    if (mjson_get_string(json, len, "$.changes", changes, (int)sizeof changes) < 0)
-        changes[0] = '\0';
-    if (mjson_get_string(json, len, "$.version", version, (int)sizeof version) < 0)
-        version[0] = '\0';
-    free(json);
-    /* Anything but an explicit "cosmetic" counts as changing the game: a mod that says nothing
-     * is not assumed harmless online. A canonical mod is part of the build, which the handshake
-     * already compares (NETPLAY_COMPAT). */
-    s_cosmetic[s_count] = canonical || strcmp(changes, "cosmetic") == 0;
+    s_cosmetic[s_count] = info.cosmetic;
     s_canonical[s_count] = (uint8_t)canonical;
+    snprintf(s_names[s_count], sizeof s_names[0], "%s", info.name);
     snprintf(s_ids[s_count], sizeof s_ids[0], "%s", id);
-    snprintf(s_uuids[s_count], sizeof s_uuids[0], "%s", uuid);
+    snprintf(s_uuids[s_count], sizeof s_uuids[0], "%s", info.uuid);
     snprintf(s_dirs[s_count], sizeof s_dirs[0], "%s", dir);
-    fprintf(stderr, "[mods] on: %s (%s %s, %s, %s %s) from %s\n", id, s_names[s_count][0] ? s_names[s_count] : id,
-            version, changes[0] ? changes : "changes not said: treated as gameplay",
-            canonical ? "canonical" : "dlc", uuid, dir);
+    fprintf(stderr, "[mods] on: %s (%s %s, %s, %s %s) from %s\n", id, info.name, info.version, info.changes,
+            canonical ? "canonical" : "dlc", info.uuid, dir);
     s_count++;
+}
+
+int32_t Mods_Scan(ModInfo *out, int32_t max)
+{
+    int32_t n = 0;
+    for (int pass = 0; pass < 2; pass++) {          /* the canonical ones, then the DLC */
+        DIR *d = opendir(pass == 0 ? MODS_CANONICAL_DIR : s_root);
+        if (!d)
+            continue;
+        struct dirent *e;
+        while ((e = readdir(d)) != NULL && n < max) {
+            char x[MODS_ID_MAX], dir[1100];
+            int star;
+            if (e->d_name[0] == '.' || !next_id(e->d_name, x, sizeof x, &star) || strcmp(x, e->d_name) != 0)
+                continue;
+            snprintf(dir, sizeof dir, "%s/%s", pass == 0 ? MODS_CANONICAL_DIR : s_root, e->d_name);
+            memset(&out[n], 0, sizeof out[n]);
+            snprintf(out[n].slug, sizeof out[n].slug, "%s", e->d_name);
+            const char *why = read_manifest(dir, pass == 0, &out[n]);
+            if (why[0] && strcmp(why, "no folder") == 0)
+                continue;                           /* (a file, not a mod's folder) */
+            snprintf(out[n].problem, sizeof out[n].problem, "%s", why);
+            out[n].on = (uint8_t)known(e->d_name);
+            n++;
+        }
+        closedir(d);
+    }
+    return n;
 }
 
 void Mods_Init(const char *enabled, const char *disabled)

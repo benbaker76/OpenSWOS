@@ -25,6 +25,7 @@
 #include "mm_client.h"         /* the matchmaking server (docs/NETPLAY.md section 7) */
 #include "p2p_menu.h"
 #include "controls_menu.h"          /* OpenSWOS's own JSON-only menus */
+#include "mods_menu.h"
 #include "credits_menu.h"
 #include "swos2020_menus.h"
 #include "menu_load_json.h"
@@ -2696,6 +2697,16 @@ int32_t OnlineMenus_SelfTest(void)
         if (bad) {
             failed++;
             printf("  FAIL %-26s %s\n", "controlsMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
+    }
+    ModsMenu_Init();
+    {
+        int bad = MenuJson_VerifyDynamic(MODS_MENU_NAME, MODS_MENU_ENTRIES);
+        menus++;
+        entries += MODS_MENU_ENTRIES;
+        if (bad) {
+            failed++;
+            printf("  FAIL %-26s %s\n", "modsMenu", bad < 0 ? "did not load" : "mismatch (see log)");
         }
     }
     CreditsMenu_Init();

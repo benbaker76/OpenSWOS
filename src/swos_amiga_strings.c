@@ -476,6 +476,10 @@ char _aWorldOption[] = "WORLD";
 char _aWorld9697[] = "96/97";
 char _aWorld2627[] = "2026-27";
 char _a2020Style[] = "2020";
+/* OPTIONS -> MODS (menus.c ShowModsMenu, src/mods_menu.c): its label, and its value with none on
+ * (the SDL build writes how many are on over it, OptionsMenuBeforeDraw). */
+char _aModsOption[] = "MODS";
+char _aModsNone[] = "NONE";
 char _aGoals[] = "GOALS";
 char _aForm[] = "FORM";
 char _aLge[] = "LGE";

@@ -1141,6 +1141,11 @@ typedef struct Menu_Options
    * last so no entry's number moves (entries 21, 22). */
   MenuEntry_Byte_Colors_TextPtr labelWorld;
   MenuEntry_Byte_Nav_Colors_StringTable_OnSelect world;
+  /* MODS: opens the MODS screen (src/mods_menu.c); its value says how many are on. SDL only --
+   * the Amiga's mods are its drawer's (data/MODS, OpenSWOS Setup); appended last so no entry's
+   * number moves (entries 23, 24). */
+  MenuEntry_Byte_Colors_TextPtr labelMods;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect mods;
   MenuMark markEndMenu;
 } Menu_Options;
 #pragma pack(pop)

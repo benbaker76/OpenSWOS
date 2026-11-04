@@ -51,6 +51,20 @@ const char *Mods_Dir(int32_t i);
 /* Where mods are found (SDL): $SWOS_MODS, else "mods" in the player's game folder. */
 const char *Mods_Root(void);
 
+#ifdef SWOS_SDL_BUILD
+/* Every mod on disk, on or not (the MODS screen): the canonical ones, then the DLC. */
+typedef struct {
+    char    slug[MODS_ID_MAX];
+    char    name[48];
+    char    version[24];
+    char    uuid[40];
+    char    changes[16];        /* "cosmetic", "gameplay", "career" */
+    char    problem[80];        /* why it cannot be on ("" when it can) */
+    uint8_t canonical, cosmetic, byDefault, on;
+} ModInfo;
+int32_t     Mods_Scan(ModInfo *out, int32_t max);
+#endif
+
 /* The first enabled mod that is not "cosmetic" (its name), or NULL when online play is fine. */
 const char *Mods_OnlineBlocker(void);
 
