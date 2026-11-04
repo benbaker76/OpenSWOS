@@ -1,4 +1,12 @@
-# Version 1 is just released. Please test it and report any bug
+# Version 2
+
+- **Player age and aging:** All players now have age, and they age as the career progresses. I have tried to find accurate age for the majority of players in the database!
+
+- **Retirements!:** As players age, they retire! Enjoy your Baresi while you can, he will not be there forever, new players will emerge!
+
+- **AI Squad Improvement!:** As AI buys players, now it also checks whether reserves are better than the first team players, and swaps them!
+
+# Version 1
 
 # OpenSWOS Career+: New Features and Improvements
 
