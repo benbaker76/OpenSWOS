@@ -1,4 +1,4 @@
-# New Release Coming Soon - pre-built, ready to play
+# Version 1 is just released. Please test it and report any bug
 
 # OpenSWOS Career+: New Features and Improvements
 
