@@ -196,6 +196,15 @@ static int is_setup_link(const char *f)
 /* A file or URL iOS handed over: a setup link is kept for the start-up's check. While the game
  * plays it cannot be taken (the data is loaded, and iOS gives an app no way to start itself
  * again, as Android's RestartActivity does): it says how instead. */
+/* The app delegate's (packaging/ios/app_delegate.m): keeps a setup link while the game has not
+ * started, says nothing -- it is called inside the launch or the run loop, and the pump's
+ * SDL_DROPFILE comes to Mobile_LinkDropped after it for the rest. */
+void Mobile_LinkKept(const char *link)
+{
+    if (is_setup_link(link) && !s_playing)
+        snprintf(s_dropped, sizeof s_dropped, "%s", link);
+}
+
 void Mobile_LinkDropped(const char *link)
 {
     if (!is_setup_link(link))

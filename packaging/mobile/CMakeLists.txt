@@ -102,7 +102,7 @@ else()
     execute_process(COMMAND git rev-list --count HEAD WORKING_DIRECTORY ${REPO}
                     OUTPUT_VARIABLE APP_BUILD OUTPUT_STRIP_TRAILING_WHITESPACE)
     file(GLOB IOS_ICONS ${REPO}/packaging/ios/icons/*.png)
-    target_sources(${GAME} PRIVATE ${IOS_ICONS})
+    target_sources(${GAME} PRIVATE ${IOS_ICONS} ${REPO}/packaging/ios/app_delegate.m)
     set_source_files_properties(${IOS_ICONS} PROPERTIES MACOSX_PACKAGE_LOCATION .)
     set_target_properties(${GAME} PROPERTIES
         MACOSX_BUNDLE_INFO_PLIST ${REPO}/packaging/ios/Info.plist.in
