@@ -15,6 +15,12 @@
 #include "career_status.h"
 #include "career_teams.h"
 #include "panic.h"
+/* Detailed checkpoints for the season-end club European cup crash.
+ * Diagnostic only, writes no game state. */
+#include <stdio.h>
+#define EURO_TRACE(...) do { FILE *f = fopen("swos_euro_cup_crash.log", "a"); \
+    if (f) { fprintf(f, __VA_ARGS__); fputc('\n', f); fclose(f); } } while (0)
+
 
 /* ---- ASM externs (globals defined in assembly) ---- */
 extern DIYCompetitionEx _diyCompetitionStart;
@@ -473,16 +479,27 @@ void Career_UpdateEuroCupCompetitionSlot(void)
      * resurfaces here, the root cause is a STALE quaternaryCompetitionPtr, not
      * this branch — fix THAT, don't re-gate. See
      * project_eurocup_national_backup_clobber. */
+    EURO_TRACE("CHAMPIONS ENTER active=%u ptr=%p qptr=%p", (unsigned)(a4 == _quaternaryCompetitionPtr), (void *)a4, (void *)_quaternaryCompetitionPtr);
     if (a4 == _quaternaryCompetitionPtr) {
+        EURO_TRACE("CHAMPIONS ACTIVE restore begin");
         RestoreSelectedTeams();
+        EURO_TRACE("CHAMPIONS ACTIVE restore end");
         Career_CopyEuroCupsCompetitionContextToOrFromActive();
+        EURO_TRACE("CHAMPIONS MENU begin");
         DIY_EditCompetitionSlot(1, 1, 0);
+        EURO_TRACE("CHAMPIONS MENU end");
+        EURO_TRACE("CHAMPIONS GRID begin");
         Career_CopyEuroCupTeamGridAndTitleHolder();
+        EURO_TRACE("CHAMPIONS GRID end");
         SaveSelectedTeams();
     } else {
+        EURO_TRACE("CHAMPIONS AUTO begin");
         Career_AutoAdvanceLeagueCompetitionFromRecord(a4);
+        EURO_TRACE("CHAMPIONS AUTO end");
+        EURO_TRACE("CHAMPIONS GRID begin");
         Career_CopyEuroCupTeamGridAndTitleHolder();
-    }
+        EURO_TRACE("CHAMPIONS GRID end");
+    }    EURO_TRACE("CHAMPIONS EXIT");
 }
 
 /* Career_UpdateCupWinnersCupCompetitionSlot (SWOS2.s line 31792)
@@ -491,12 +508,19 @@ __attribute__((used, externally_visible))
 void Career_UpdateCupWinnersCupCompetitionSlot(void)
 {
     uint8_t *a4 = _cupWinnersCupCopy;
+    EURO_TRACE("CWC ENTER active=%u ptr=%p qptr=%p", (unsigned)(a4 == _quaternaryCompetitionPtr), (void *)a4, (void *)_quaternaryCompetitionPtr);
     if (a4 == _quaternaryCompetitionPtr) {
+        EURO_TRACE("CWC ACTIVE restore begin");
         RestoreSelectedTeams();
+        EURO_TRACE("CWC ACTIVE restore end");
         Career_CopyEuroCupsCompetitionContextToOrFromActive();
         reloadEuroCupTeamSelectionFromRestoredField();
+        EURO_TRACE("CWC MENU begin");
         ShowDIYCupMenuWithParams(1, 1, 0);
+        EURO_TRACE("CWC MENU end");
+        EURO_TRACE("CWC GRID begin");
         Career_CopyCupWinnersCupTeamGridAndTitleHolder();
+        EURO_TRACE("CWC GRID end");
         /* reloadEuroCupTeamSelectionFromRestoredField overwrote selTeamsPtr with
          * the cup field (needed by the menu's cache build + the title-grid copy
          * above), but it did NOT touch the shared savedTeamsBackupBuffer — which
@@ -510,9 +534,13 @@ void Career_UpdateCupWinnersCupCompetitionSlot(void)
         RestoreSelectedTeams();
         SaveSelectedTeams();
     } else {
+        EURO_TRACE("CWC AUTO begin");
         Career_AutoAdvanceCupCompetitionFromRecord(a4);
+        EURO_TRACE("CWC AUTO end");
+        EURO_TRACE("CWC GRID begin");
         Career_CopyCupWinnersCupTeamGridAndTitleHolder();
-    }
+        EURO_TRACE("CWC GRID end");
+    }    EURO_TRACE("CWC EXIT");
 }
 
 /* Career_UpdateUefaCupCompetitionSlot (SWOS2.s line 31820)
@@ -521,12 +549,19 @@ __attribute__((used, externally_visible))
 void Career_UpdateUefaCupCompetitionSlot(void)
 {
     uint8_t *a4 = _uefaCupCopy;
+    EURO_TRACE("UEFA ENTER active=%u ptr=%p qptr=%p", (unsigned)(a4 == _quaternaryCompetitionPtr), (void *)a4, (void *)_quaternaryCompetitionPtr);
     if (a4 == _quaternaryCompetitionPtr) {
+        EURO_TRACE("UEFA ACTIVE restore begin");
         RestoreSelectedTeams();
+        EURO_TRACE("UEFA ACTIVE restore end");
         Career_CopyEuroCupsCompetitionContextToOrFromActive();
         reloadEuroCupTeamSelectionFromRestoredField();
+        EURO_TRACE("UEFA MENU begin");
         ShowDIYCupMenuWithParams(1, 1, 0);
+        EURO_TRACE("UEFA MENU end");
+        EURO_TRACE("UEFA GRID begin");
         Career_CopyUefaCupTeamGridAndTitleHolder();
+        EURO_TRACE("UEFA GRID end");
         /* Restore the league selection into selTeamsPtr before saving — see the
          * Cup Winners' Cup update above for the full rationale (the reload left
          * the cup field in selTeamsPtr; the shared backup still holds the league
@@ -534,9 +569,13 @@ void Career_UpdateUefaCupCompetitionSlot(void)
         RestoreSelectedTeams();
         SaveSelectedTeams();
     } else {
+        EURO_TRACE("UEFA AUTO begin");
         Career_AutoAdvanceCupCompetitionFromRecord(a4);
+        EURO_TRACE("UEFA AUTO end");
+        EURO_TRACE("UEFA GRID begin");
         Career_CopyUefaCupTeamGridAndTitleHolder();
-    }
+        EURO_TRACE("UEFA GRID end");
+    }    EURO_TRACE("UEFA EXIT");
 }
 
 /* ---- Chunk 183: European Cup Team Draw ---- */

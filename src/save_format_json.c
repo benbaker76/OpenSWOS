@@ -17,9 +17,14 @@
  * See SAVE_FORMAT_JSON.md for the migration history.
  */
 
+#include "swos_age_identity_log.h"
+#include <stdlib.h>
 #include "ai_career_pool_capacity.h"
 #include "save_format_json.h"
+#include "swos_ai_identity_journal.h"
+#include "swos_identity_runtime.h"
 #include "mjson.h"
+#include "career_season.h"
 #include "game_types.h"
 #include "endian_helpers.h"
 #include "translations.h"   /* tr() — localize competition name symbols */
@@ -307,6 +312,7 @@ static void load_str_pool_field(const char *buf, int buflen,
  *       scores on top). Saves from v2 are rejected.
  */
 #define SAVE_JSON_SCHEMA_VERSION 3
+#define SAVE_JSON_CAREER_VERSION 4
 
 #define KIND_CAREER     "career"
 #define KIND_PRESET     "preset"
@@ -5646,6 +5652,36 @@ static void load_ctx_stage(const char *src, int src_size, const char *key,
     }
 }
 
+/* Optional age snapshot. Names are the current lookup identity; persistent
+ * per-player IDs will be needed before ageing same-name footballers separately. */
+extern void SWOS_AgesResetCareer(void);
+extern void SWOS_AgesBeginRestore(void);
+extern void SWOS_AgesEndRestore(void);
+extern size_t SWOS_AgesCount(void);
+extern int SWOS_AgesGet(size_t, const char **, unsigned *);
+extern int SWOS_AgesSet(const char *, unsigned);
+
+/* Season winners are a standalone persistent history, not part of the
+ * per-manager season_informations record.  Encode only occupied records.
+ * Legacy CAR v4 files without this field remain loadable. */
+static void emit_career_winners(mjson_print_fn_t fn, void *fnd)
+{
+    mjson_printf(fn, fnd, "%Q:[", "career_winners");
+    int first = 1;
+    for (unsigned season = 0; season < CAREER_WINNER_SEASONS; ++season) {
+        unsigned count = _careerWinnerCounts[season];
+        if (count > CAREER_WINNERS_PER_SEASON) count = CAREER_WINNERS_PER_SEASON;
+        for (unsigned i = 0; i < count; ++i) {
+            const CareerWinnerRecord *r = &_careerWinners[season][i];
+            mjson_printf(fn, fnd, "%s[%u,%u,%u,%u,%u]", first ? "" : ",",
+                         season, (unsigned)r->competitionId, (unsigned)r->kind,
+                         (unsigned)r->division, (unsigned)r->teamId);
+            first = 0;
+        }
+    }
+    mjson_printf(fn, fnd, "%s", "]");
+}
+
 int16_t SaveJson_WriteCareer(uint8_t *filename)
 {
     JsonOutBuf out = { NULL, 0, 0, 0 };
@@ -5667,11 +5703,13 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         "  %Q: %d,\n"
         "  %Q: %Q,\n"
         "  %Q: %d,\n  ",
-        "schema_version", SAVE_JSON_SCHEMA_VERSION,
+        "schema_version", SAVE_JSON_CAREER_VERSION,
         "file_kind",      KIND_CAREER,
         "num_selected_teams", (int)_numSelectedTeams);
 
     emit_season_informations(json_out_emit, &out);
+    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    emit_career_winners(json_out_emit, &out);
     mjson_printf(json_out_emit, &out, "%s", ",\n  ");
     /* careerCompetitionSlotPtrTable / *CompetitionPtr / *CompStringOffset /
      * careerCupPickList are all re-derivable from non-pointer state on
@@ -5939,6 +5977,129 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit,&out,"]");
     }
 
+    /* CAR v4 extension contract.  identity_tracking_enabled is explicitly
+     * false until player moves/generation are wired to an ID registry.
+     * Do not derive IDs from names: duplicates are real players. */
+    mjson_printf(json_out_emit, &out,
+                 ",\n  %Q:1,\n  %Q:false,\n  %Q:1",
+                 "career_extensions_version", "identity_tracking_enabled",
+                 "next_player_id");
+
+    /* Snapshot all age-table entries in the .CAR, retaining the 1996
+     * baseline even if the external CSV is subsequently edited. Older
+     * saves have no player_ages_v1 key and continue using CSV defaults. */
+    {
+        size_t i, count = SWOS_AgesCount();
+        const char *name; unsigned age;
+        swos_age_log("CAREER_SAVE_SNAPSHOT", "schema=4 age_entries=%zu identity_tracking=0", count);
+        mjson_printf(json_out_emit, &out, ",\n  %Q:[", "career_age_snapshot_v4");
+        for (i = 0; i < count; ++i) {
+            if (!SWOS_AgesGet(i, &name, &age)) continue;
+            if (i) mjson_printf(json_out_emit, &out, ",");
+            mjson_printf(json_out_emit, &out, "[%Q,%u]", name, age);
+        }
+        mjson_printf(json_out_emit, &out, "]");
+    }
+
+    /* Replayable AI transfer journal, diagnostic only. Player IDs are still
+     * inactive until every transfer/generation route updates the registry. */
+    {
+        unsigned journal_count = SWOS_AI_IdentityJournalCount();
+        unsigned values[6];
+        mjson_printf(json_out_emit, &out, ",\n  %Q:1,\n  %Q:[",
+                     "ai_identity_journal_version", "ai_identity_journal_v4");
+        for (unsigned i = 0; i < journal_count; ++i) {
+            if (!SWOS_AI_IdentityJournalGet(i, values)) { out.oom = 1; break; }
+            if (i) mjson_printf(json_out_emit, &out, ",");
+            mjson_printf(json_out_emit, &out, "[%u,%u,%u,%u,%u,%u]",
+                         values[0], values[1], values[2],
+                         values[3], values[4], values[5]);
+        }
+        mjson_printf(json_out_emit, &out, "]");
+        swos_age_log("AI_ID_JOURNAL_SAVE", "moves=%u dropped=%u",
+                     journal_count, SWOS_AI_IdentityJournalDropped());
+    }
+
+    /* Step 2U: validated AI-only player identity registry. Other gameplay
+     * transfer routes are not yet wired, so identity_tracking_enabled stays
+     * false. This is a shadow registry, not the AGE column's data source. */
+    {
+        unsigned count=SWOS_IdentityCount(),next_id=SWOS_IdentityNextId();
+        int valid=count && SWOS_IdentityCheck();
+        unsigned rec[4];
+        mjson_printf(json_out_emit,&out,",\n  %Q:%u,\n  %Q:%u,\n  %Q:[",
+                     "ai_identity_registry_version",valid?1u:0u,
+                     "ai_identity_registry_next_id",valid?next_id:1u,
+                     "ai_identity_registry_v4");
+        if(valid)for(unsigned i=0;i<count;i++){
+            if(!SWOS_IdentityGet(i,rec)){out.oom=1;break;}
+            if(i)mjson_printf(json_out_emit,&out,",");
+            mjson_printf(json_out_emit,&out,"[%u,%u,%u,%u]",rec[0],rec[1],rec[2],rec[3]);
+        }
+        mjson_printf(json_out_emit,&out,"]");
+        swos_age_log("IDENTITY_REGISTRY_SAVE","count=%u valid=%d next_id=%u",
+                     valid?count:0u,valid,next_id);
+    }
+
+    /* Generated player identities are supplementary and are not yet used
+     * as the authoritative age display for ordinary transfers. */
+    {
+        unsigned count=SWOS_GeneratedIdentityCount(),values[4];
+        mjson_printf(json_out_emit,&out,",\n  %Q:1,\n  %Q:[",
+                     "generated_identity_version","generated_identities_v4");
+        for(unsigned i=0;i<count;i++){
+            if(!SWOS_GeneratedIdentityGet(i,values)){out.oom=1;break;}
+            if(i)mjson_printf(json_out_emit,&out,",");
+            mjson_printf(json_out_emit,&out,"[%u,%u,%u,%u]",values[0],values[1],values[2],values[3]);
+        }
+        mjson_printf(json_out_emit,&out,"]");
+        swos_age_log("GENERATED_ID_SAVE","count=%u next_id=%u",count,SWOS_IdentityNextId());
+    }
+
+    /* Stable original-player identities copied into manual roster slots.
+     * Repair stale duplicate claims before serialising: the strict loader
+     * rejects two manual records with the same nonzero permanent ID. */
+    {
+        unsigned deduplicated=SWOS_ManualIdentityPrepareSave();
+        unsigned count=SWOS_ManualIdentityCount(),values[5];
+        if(deduplicated)
+            swos_age_log("MANUAL_ID_SAVE_RECOVERY", "duplicate_claims=%u",deduplicated);
+        mjson_printf(json_out_emit,&out,",\n  %Q:1,\n  %Q:[",
+                     "manual_identity_version","manual_identities_v4");
+        for(unsigned i=0;i<count;i++){
+            if(!SWOS_ManualIdentityGet(i,values)){out.oom=1;break;}
+            if(i)mjson_printf(json_out_emit,&out,",");
+            mjson_printf(json_out_emit,&out,"[%u,%u,%u,%u,%u]",
+                         values[0],values[1],values[2],values[3],values[4]);
+        }
+        mjson_printf(json_out_emit,&out,"]");
+        swos_age_log("MANUAL_ID_SAVE","count=%u",count);
+    }
+
+    /* Step 3E.1: explicit audit execution markers.  Log before and after
+     * the cross-registry check so a missing log can distinguish an old build,
+     * an unentered save/load path, and an audit failure.  Observational only. */
+    swos_age_log("IDENTITY_AUDIT_TRIGGER", "phase=save stage=after_registry_serialisation build=step3e1");
+    {
+        unsigned ok = SWOS_IdentityAudit();
+        swos_age_log("IDENTITY_AUDIT_RESULT", "phase=save completed=1 ok=%u build=step3e1", ok);
+    }
+
+    /* Optional Step 4F identity retirement ledger. Old CAR v4 files omit it. */
+    {
+        unsigned count=SWOS_RetiredIdentityCount(),values[5];
+        mjson_printf(json_out_emit,&out,",\n  %Q:1,\n  %Q:[",
+                     "retired_identity_version","retired_identities_v4");
+        for(unsigned i=0;i<count;i++){
+            if(!SWOS_RetiredIdentityGet(i,values)){out.oom=1;break;}
+            if(i)mjson_printf(json_out_emit,&out,",");
+            mjson_printf(json_out_emit,&out,"[%u,%u,%u,%u,%u]",
+                values[0],values[1],values[2],values[3],values[4]);
+        }
+        mjson_printf(json_out_emit,&out,"]");
+        swos_age_log("RETIRE_HISTORY_SAVE","count=%u",count);
+    }
+
     mjson_printf(json_out_emit, &out, "%s", "\n}\n");
 
     if (out.oom || !out.ptr) {
@@ -5948,6 +6109,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
 
     int16_t result = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
     swos_io_free(out.ptr);
+    swos_age_log("CAREER_SAVE_RESULT", "result=%d bytes=%zu", (int)result, out.len);
     if (result != 0) {
         ShowFsErrorByCode((uint16_t)result);
         return 1;
@@ -6001,6 +6163,40 @@ int SaveJson_FileIsJson(const uint8_t *filename)
  * dependency order. Used by both the main load path (after
  * opaque_data has been laid down) and the verify path (against a
  * zeroed buffer so we can diff). */
+/* Keep history intact across save/reload, including saves produced on
+ * different targets.  An absent key means an older save, not a parse error. */
+static void load_career_winners(const char *src, int src_size)
+{
+    CareerWinners_Clear();
+    const char *arr = NULL;
+    int arr_len = 0;
+    if (mjson_find(src, src_size, "$.career_winners", &arr, &arr_len)
+            != MJSON_TOK_ARRAY) return;
+    int pos = 0, off, len, typ;
+    while ((pos = fast_array_next(arr, arr_len, pos, &off, &len, &typ)) != 0) {
+        if (typ != MJSON_TOK_ARRAY) continue;
+        const char *row = arr + off;
+        int p = 0, n_off, n_len, n_typ;
+        long fields[5];
+        int valid = 1;
+        for (int i = 0; i < 5; ++i) {
+            p = fast_array_next(row, len, p, &n_off, &n_len, &n_typ);
+            if (!p || n_typ != MJSON_TOK_NUMBER ||
+                mjson_get_long(row + n_off, n_len, "$", &fields[i]) <= 0) {
+                valid = 0;
+                break;
+            }
+        }
+        if (!valid || fields[0] < 0 || fields[0] >= CAREER_WINNER_SEASONS ||
+            fields[1] < 0 || fields[1] > 255 || fields[2] < 0 || fields[2] > 3 ||
+            fields[3] < 0 || fields[3] > 255 || fields[4] < 0 || fields[4] > 65535)
+            continue;
+        CareerWinners_Record((uint16_t)fields[0], (uint8_t)fields[1],
+                             (uint8_t)fields[2], (uint8_t)fields[3],
+                             (uint16_t)fields[4]);
+    }
+}
+
 static void apply_semantic_load(const char *src, int src_size)
 {
     /* Reset the string pool up front so any { str: "..." } pointer
@@ -6012,6 +6208,7 @@ static void apply_semantic_load(const char *src, int src_size)
 
     PROF_START(season_info);
     load_season_informations(src, src_size);
+    load_career_winners(src, src_size);
     PROF_END(season_info, "career-load");
     /* Top-level pointer fields were removed from the save format —
      * RebuildPointersAfterLoad() re-derives them after this returns.
@@ -6352,7 +6549,7 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
         swos_io_free(src);
         return 1;
     }
-    if ((int)version != SAVE_JSON_SCHEMA_VERSION) {
+    if ((int)version != SAVE_JSON_CAREER_VERSION) {
         swos_io_free(src);
         return 1;
     }
@@ -6369,6 +6566,25 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
         return 1;
     }
 
+    /* CAR v4 requires the extension header and an age snapshot. Reject
+     * damaged or incomplete v4 saves before mutating the live career. */
+    {
+        long ext_version = 0, next_id = 0;
+        const char *age_array = NULL; int age_array_len = 0;
+        if (mjson_get_long((const char *)src, (int)src_size,
+                           "$.career_extensions_version", &ext_version) <= 0 ||
+            ext_version != 1 ||
+            mjson_get_long((const char *)src, (int)src_size,
+                           "$.next_player_id", &next_id) <= 0 ||
+            next_id < 1 ||
+            mjson_find((const char *)src, (int)src_size,
+                       "$.career_age_snapshot_v4", &age_array,
+                       &age_array_len) != MJSON_TOK_ARRAY) {
+            swos_io_free(src);
+            return 1;
+        }
+    }
+
     /* Clear the two surviving careerFileBuffer scalars before the typed load
      * repopulates them. The 256 KB careerFileBufferBuf overlay (which the
      * legacy load memset cleared whole) is RETIRED — every career field is now
@@ -6380,6 +6596,218 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
     _careerFileBuffer = 0;
     _numSelectedTeams = 0;
     PROF_END(memset_buf, "career-load");
+
+    swos_age_log("CAREER_LOAD", "schema=4 age_snapshot=present identity_tracking=0");
+    /* Restore CAR v4 age snapshot before menus query it. */
+    SWOS_AgesResetCareer();
+    {
+        const char *arr = NULL; int alen = 0;
+        if (mjson_find((const char *)src, (int)src_size,
+                       "$.career_age_snapshot_v4", &arr, &alen) == MJSON_TOK_ARRAY) {
+            SWOS_AgesBeginRestore();
+            int pos = 0, off, len, typ;
+            while ((pos = fast_array_next(arr, alen, pos, &off, &len, &typ)) != 0) {
+                if (typ != MJSON_TOK_ARRAY) continue;
+                const char *row = arr + off;
+                int p = 0, xoff, xlen, xtyp;
+                char name[48]; unsigned age;
+                p = fast_array_next(row, len, p, &xoff, &xlen, &xtyp);
+                if (!p || xtyp != MJSON_TOK_STRING) continue;
+                if (mjson_get_string(row + xoff, xlen, "$", name, sizeof name) <= 0)
+                    continue;
+                p = fast_array_next(row, len, p, &xoff, &xlen, &xtyp);
+                if (!p || xtyp != MJSON_TOK_NUMBER) continue;
+                long num = 0;
+                if (mjson_get_long(row + xoff, xlen, "$", &num) <= 0) continue;
+                age = (unsigned)num;
+                SWOS_AgesSet(name, age);
+            }
+            SWOS_AgesEndRestore();
+        }
+    }
+
+    /* Restore journal after validating its full layout. This is diagnostic
+     * history and does not activate the player-ID registry. */
+    {
+        const char *arr = NULL; int alen = 0;
+        long version = 0;
+        int found = mjson_find((const char *)src, (int)src_size,
+                               "$.ai_identity_journal_v4", &arr, &alen);
+        if (found != MJSON_TOK_ARRAY ||
+            mjson_get_long((const char *)src, (int)src_size,
+                           "$.ai_identity_journal_version", &version) <= 0 ||
+            version != 1) {
+            swos_io_free(src); return 1;
+        }
+        SWOS_AI_IdentityJournalClear();
+        int pos = 0, off, len, typ;
+        while ((pos = fast_array_next(arr, alen, pos, &off, &len, &typ)) != 0) {
+            if (typ != MJSON_TOK_ARRAY) { swos_io_free(src); return 1; }
+            const char *row = arr + off;
+            unsigned vals[6];
+            int p = 0, xoff, xlen, xtyp;
+            for (int k = 0; k < 6; ++k) {
+                long num = -1;
+                p = fast_array_next(row, len, p, &xoff, &xlen, &xtyp);
+                if (!p || xtyp != MJSON_TOK_NUMBER ||
+                    mjson_get_long(row+xoff, xlen, "$", &num) <= 0 ||
+                    num < 0 || num > 255) {
+                    swos_io_free(src); return 1;
+                }
+                vals[k] = (unsigned)num;
+            }
+            if (fast_array_next(row, len, p, &xoff, &xlen, &xtyp) != 0 ||
+                !SWOS_AI_IdentityJournalAdd(vals[0], vals[1], vals[2],
+                                            vals[3], vals[4], vals[5])) {
+                swos_io_free(src); return 1;
+            }
+        }
+        swos_age_log("AI_ID_JOURNAL_LOAD", "moves=%u",
+                     SWOS_AI_IdentityJournalCount());
+    }
+
+    /* Optional in older CAR v4 saves: restore complete canonical registry.
+     * All rows validated transactionally prior to activating any record. */
+    {
+        const char *arr=NULL;int alen=0;
+        int token=mjson_find((const char*)src,(int)src_size,
+                            "$.ai_identity_registry_v4",&arr,&alen);
+        SWOS_IdentityClear();
+        if(token==MJSON_TOK_ARRAY){
+            long ver=0,next_id=0;
+            if(mjson_get_long((const char*)src,(int)src_size,
+                             "$.ai_identity_registry_version",&ver)<=0||
+               mjson_get_long((const char*)src,(int)src_size,
+                             "$.ai_identity_registry_next_id",&next_id)<=0||
+               next_id<1){swos_io_free(src);return 1;}
+            if(ver==1){
+                unsigned capacity=SWOS_IDENTITY_EXPECTED_COUNT;
+                unsigned *records=malloc((size_t)capacity*4*sizeof(unsigned));
+                if(!records){swos_io_free(src);return 1;}
+                unsigned count=0;int pos=0,off,len,typ,valid=1;
+                while((pos=fast_array_next(arr,alen,pos,&off,&len,&typ))!=0){
+                    if(typ!=MJSON_TOK_ARRAY||count>=capacity){valid=0;break;}
+                    const char *row=arr+off;int p=0,xoff,xlen,xtyp;
+                    for(unsigned k=0;k<4;k++){
+                        long num=-1;
+                        p=fast_array_next(row,len,p,&xoff,&xlen,&xtyp);
+                        if(!p||xtyp!=MJSON_TOK_NUMBER||
+                           mjson_get_long(row+xoff,xlen,"$",&num)<=0||
+                           num<0||num>0xFFFFFF){valid=0;break;}
+                        records[4*count+k]=(unsigned)num;
+                    }
+                    if(!valid||fast_array_next(row,len,p,&xoff,&xlen,&xtyp)!=0){valid=0;break;}
+                    count++;
+                }
+                if(valid)valid=SWOS_IdentityRestore(records,count,(unsigned)next_id);
+                free(records);
+                swos_age_log("IDENTITY_REGISTRY_LOAD","count=%u valid=%d next_id=%ld",count,valid,next_id);
+                if(!valid){swos_io_free(src);return 1;}
+            }else if(ver!=0){swos_io_free(src);return 1;}
+        }
+    }
+
+    /* Restore generated ID rows after the original registry, so next_id
+     * can exceed the original player count without changing its layout. */
+    {
+        const char *arr=NULL;int alen=0;
+        int token=mjson_find((const char*)src,(int)src_size,"$.generated_identities_v4",&arr,&alen);
+        if(token==MJSON_TOK_ARRAY){
+            long ver=0,next=0;
+            if(mjson_get_long((const char*)src,(int)src_size,"$.generated_identity_version",&ver)<=0||ver!=1||
+               mjson_get_long((const char*)src,(int)src_size,"$.ai_identity_registry_next_id",&next)<=0){swos_io_free(src);return 1;}
+            unsigned cap=64,count=0;unsigned *rows=malloc((size_t)cap*4*sizeof(unsigned));
+            if(!rows){swos_io_free(src);return 1;}
+            int pos=0,off,len,typ,valid=1;
+            while((pos=fast_array_next(arr,alen,pos,&off,&len,&typ))!=0){
+                if(typ!=MJSON_TOK_ARRAY||count>=65536){valid=0;break;}
+                if(count==cap){unsigned nc=cap*2;void *p=realloc(rows,(size_t)nc*4*sizeof(unsigned));if(!p){valid=0;break;}rows=p;cap=nc;}
+                const char *row=arr+off;int rpos=0,xoff,xlen,xtyp;
+                for(unsigned k=0;k<4;k++){
+                    long value=-1;
+                    rpos=fast_array_next(row,len,rpos,&xoff,&xlen,&xtyp);
+                    if(!rpos||xtyp!=MJSON_TOK_NUMBER||mjson_get_long(row+xoff,xlen,"$",&value)<=0||value<0||value>0xFFFFFF){valid=0;break;}
+                    rows[4*count+k]=(unsigned)value;
+                }
+                if(!valid||fast_array_next(row,len,rpos,&xoff,&xlen,&xtyp)!=0){valid=0;break;}
+                count++;
+            }
+            if(valid)valid=SWOS_GeneratedIdentityRestore(rows,count,(unsigned)next);
+            free(rows);
+            swos_age_log("GENERATED_ID_LOAD","count=%u valid=%d",count,valid);
+            if(!valid){swos_io_free(src);return 1;}
+        }
+    }
+
+    /* Old saves have no manual identity section and remain valid. */
+    {
+        const char *arr=NULL;int alen=0;
+        int token=mjson_find((const char*)src,(int)src_size,"$.manual_identities_v4",&arr,&alen);
+        if(token==MJSON_TOK_ARRAY){
+            long ver=0;
+            if(mjson_get_long((const char*)src,(int)src_size,"$.manual_identity_version",&ver)<=0||ver!=1){swos_io_free(src);return 1;}
+            unsigned cap=32,count=0;unsigned *rows=malloc((size_t)cap*5*sizeof(unsigned));
+            if(!rows){swos_io_free(src);return 1;}
+            int pos=0,off,len,typ,valid=1;
+            while((pos=fast_array_next(arr,alen,pos,&off,&len,&typ))!=0){
+                if(typ!=MJSON_TOK_ARRAY||count>=65536u){valid=0;break;}
+                if(count==cap){unsigned nc=cap*2;void *p=realloc(rows,(size_t)nc*5*sizeof(unsigned));if(!p){valid=0;break;}rows=p;cap=nc;}
+                const char *row=arr+off;int rpos=0,xoff,xlen,xtyp;
+                for(unsigned k=0;k<5;k++){
+                    long value=-1;rpos=fast_array_next(row,len,rpos,&xoff,&xlen,&xtyp);
+                    if(!rpos||xtyp!=MJSON_TOK_NUMBER||mjson_get_long(row+xoff,xlen,"$",&value)<=0||value<0||value>0xFFFFFF){valid=0;break;}
+                    rows[5*count+k]=(unsigned)value;
+                }
+                if(!valid||fast_array_next(row,len,rpos,&xoff,&xlen,&xtyp)!=0){valid=0;break;}
+                count++;
+            }
+            if(valid)valid=SWOS_ManualIdentityRestore(rows,count);
+            free(rows);
+            if(!valid){swos_io_free(src);return 1;}
+        }
+    }
+
+    swos_age_log("IDENTITY_AUDIT_TRIGGER", "phase=load stage=after_all_identity_registries build=step3e1");
+    {
+        unsigned ok = SWOS_IdentityAudit();
+        swos_age_log("IDENTITY_AUDIT_RESULT", "phase=load completed=1 ok=%u build=step3e1", ok);
+    }
+
+    /* Restore ledger only after the registry is loaded, to validate ID bounds. */
+    {
+        const char *arr=NULL;int alen=0;
+        int token=mjson_find((const char*)src,(int)src_size,
+                            "$.retired_identities_v4",&arr,&alen);
+        if(token==MJSON_TOK_ARRAY){
+            long ver=0;
+            if(mjson_get_long((const char*)src,(int)src_size,
+                             "$.retired_identity_version",&ver)<=0||ver!=1){
+                swos_io_free(src);return 1;
+            }
+            unsigned cap=64,count=0;unsigned *rows=malloc((size_t)cap*5*sizeof(unsigned));
+            if(!rows){swos_io_free(src);return 1;}
+            int pos=0,off,len,typ,valid=1;
+            while((pos=fast_array_next(arr,alen,pos,&off,&len,&typ))!=0){
+                if(typ!=MJSON_TOK_ARRAY||count>=100000u){valid=0;break;}
+                if(count==cap){unsigned nc=cap*2;void *p=realloc(rows,(size_t)nc*5*sizeof(unsigned));if(!p){valid=0;break;}rows=p;cap=nc;}
+                const char *row=arr+off;int rp=0,xoff,xlen,xtyp;
+                for(unsigned k=0;k<5;k++){
+                    long num=-1;
+                    rp=fast_array_next(row,len,rp,&xoff,&xlen,&xtyp);
+                    if(!rp||xtyp!=MJSON_TOK_NUMBER||
+                       mjson_get_long(row+xoff,xlen,"$",&num)<=0||
+                       num<0||num>0xFFFFFF){valid=0;break;}
+                    rows[count*5+k]=(unsigned)num;
+                }
+                if(!valid||fast_array_next(row,len,rp,&xoff,&xlen,&xtyp)!=0){valid=0;break;}
+                count++;
+            }
+            if(valid)valid=SWOS_RetiredIdentityRestore(rows,count);
+            free(rows);
+            swos_age_log("RETIRE_HISTORY_LOAD","count=%u valid=%d",count,valid);
+            if(!valid){swos_io_free(src);return 1;}
+        }
+    }
 
     PROF_START(apply_semantic);
     apply_semantic_load((const char *)src, (int)src_size);

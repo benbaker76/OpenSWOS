@@ -1,12 +1,18 @@
+#include "swos_fixed_team_name.h"
 #include "career_params.h"
 /*
  * Amiga SWOS RE Project
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "swos_age_identity_log.h"
+#ifdef SWOS_SDL_BUILD
+#include "swos_identity_runtime.h"
+#endif
 #include "menus.h"
 #include "career_season.h"
 #include <stdio.h>
+#include <string.h>  /* managed retirement-news name snapshots */
 #ifdef SWOS_SDL_BUILD
 /* PlatformInitOptions + Settings_Save, for the OPTIONS -> GAMEPLAY row. Guarded
  * because this header reaches platform_sdl.h and therefore SDL.h, which the
@@ -36,6 +42,12 @@
 #include "career_status.h"
 #include "chairman_memo.h"
 #include "play_match_menu.h"
+#ifdef SWOS_SDL_BUILD
+#include "swos_io.h"
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#endif
 
 /* ---- Constants ---- */
 #define GAME_TYPE_NO_GAME 0
@@ -382,6 +394,9 @@ void InitCareerVariables(uint16_t gameTypeParam)
     _newRandomSeedCopy = (uint8_t)(_currentTick & 0xFF);
 #endif
     _gameType = gameTypeParam;
+    /* A newly created career starts a fresh 35-season winners archive.
+     * Loading a career restores its own archive from the save file. */
+    if (gameTypeParam == 4) CareerWinners_Clear();
     _contestStarted = 0;
     _teamsLoaded = 0;
     _careerAutoAdvanceInProgress = 0;
@@ -704,7 +719,9 @@ void ShowStadiumInit(void)
     /* Entry 2: top team name + trailing space */
     {
         uint8_t *dst = (uint8_t *)_menuEntries[2].fg;
-        uint8_t *end = StringCopy((uint8_t *)_topTeamInGame.teamName, dst);
+        uint8_t safeName[18];
+        SWOS_CopyTeamName18(safeName, _topTeamInGame.teamName);
+        uint8_t *end = StringCopy(safeName, dst);
         *end++ = ' ';
         *end = 0;
     }
@@ -728,7 +745,9 @@ void ShowStadiumInit(void)
     {
         uint8_t *dst = (uint8_t *)_menuEntries[4].fg;
         *dst++ = ' ';
-        StringCopy((uint8_t *)_bottomTeamInGame.teamName, dst);
+        uint8_t safeName[18];
+        SWOS_CopyTeamName18(safeName, _bottomTeamInGame.teamName);
+        StringCopy(safeName, dst);
     }
 
     /* Color bottom team name if not in highlights mode */
@@ -906,6 +925,8 @@ void SquadOnSelect11(void)
 {
     _isSquadViewMode = 0;
     SquadUpdateMenuState();
+    /* Restore the attribute heading when leaving the GOALS view. */
+    _menuEntries[13].fg = (uintptr_t)(const uint8_t *)"H F S C T P V";
     SetCurrentEntry(8);
     DrawMenu();
 }
@@ -1240,6 +1261,13 @@ static void setBgColorIndex(MenuEntry *e, uint16_t colorIdx) {
     e->bgColor = (e->bgColor & 0xFFF0) | colorIdx;
 }
 
+/* Fixed-width SWOS club names may occupy all 17 bytes, without a NUL.
+ * Keep menu text separate from adjacent live team fields (own-goal counter). */
+static char s_squadClubName[18];
+static char s_viewSquadClubName[18];
+/* Shared fixed-width name handling. */
+#define SWOS_MenuCopyClubName SWOS_CopyTeamName18
+
 /* SquadUpdateMenuState (SWOS2.s line 48491)
  * Updates squad menu entry visibility, colors, and strings based on
  * current mode (view vs edit), competition state, and team status. */
@@ -1274,9 +1302,10 @@ void SquadUpdateMenuState(void)
 
     /* Entries 15, 13 initially invisible */
     _menuEntries[15].isInvisible = 1;
-    _menuEntries[13].isInvisible = 1;
-    if (_isSquadViewMode == 0) {
-        _menuEntries[13].isInvisible = 0;
+    _menuEntries[13].isInvisible = 0;
+    if (_isSquadViewMode != 0) {
+        _menuEntries[13].fg = (uintptr_t)(const uint8_t *)"NAT";
+        _menuEntries[13].x = 200;
     }
 
     /* Entry 14 initially invisible */
@@ -1470,7 +1499,8 @@ afterEDE:
 
 afterBankBalance:
     /* Entry 2: fg = team name, Entry 5: fg = coach name */
-    _menuEntries[2].fg = (uintptr_t)tf->teamName;
+    SWOS_MenuCopyClubName(s_squadClubName, tf->teamName);
+    _menuEntries[2].fg = (uintptr_t)s_squadClubName;
     _menuEntries[5].fg = (uintptr_t)tf->coachName;
     return;
 
@@ -1529,6 +1559,209 @@ static void setColorPair46_48(uint16_t colorIdx) {
 /* Full seven-attribute display for the ordinary SQUAD tab.
  * Packed SWOS ratings have a 0..7 effective scale; the top nibble's
  * extra bit is not a separate skill level. Goalkeepers have no ratings. */
+/* Age display is intentionally a read-only first stage. Name lookup follows
+ * transfers, but cannot distinguish two players with identical names. The
+ * generated CSV excludes name collisions with different source ages. */
+#ifdef SWOS_SDL_BUILD
+typedef struct { char name[48]; uint8_t age; } SquadAgeRecord;
+static SquadAgeRecord *s_squadAges;
+static size_t s_squadAgeCount;
+static int s_squadAgesLoaded;
+static int s_squadAgeBulkRestore;
+static int SquadAgeCompare(const void *a, const void *b)
+{
+    return strcmp(((const SquadAgeRecord *)a)->name,
+                  ((const SquadAgeRecord *)b)->name);
+}
+static void SquadAgeLoad(void)
+{
+    char path[512], line[256];
+    FILE *f;
+    size_t capacity = 0;
+    if (s_squadAgesLoaded) return;
+    s_squadAgesLoaded = 1;
+    /* Team files are usually in DATA/.  swos_data_path() does not
+     * automatically prepend DATA, so try both layouts explicitly. */
+    {
+        static const char *const candidates[] = {
+            "DATA/player_ages_by_name.csv",
+            "data/player_ages_by_name.csv",
+            "player_ages_by_name.csv"
+        };
+        size_t i;
+        f = NULL;
+        for (i = 0; i < sizeof candidates / sizeof candidates[0]; ++i) {
+            const char *resolved = swos_data_path(candidates[i], path,
+                                                   (uint32_t)sizeof path);
+            f = fopen(resolved, "rb");
+            if (f) {
+                fprintf(stderr, "[squad-age] loading CSV: %s\n", resolved);
+                break;
+            }
+        }
+    }
+    if (!f) {
+        swos_age_log("CSV_MISSING", "fallback=25");
+        fprintf(stderr, "[squad-age] CSV not found (tried DATA/player_ages_by_name.csv "
+                        "and player_ages_by_name.csv). All ages default to 25.\n");
+        return;
+    }
+    while (fgets(line, sizeof line, f)) {
+        char *comma = strrchr(line, ',');
+        char *start = line;
+        char *end;
+        long age;
+        size_t n;
+        if (!comma) continue;
+        *comma++ = 0;
+        age = strtol(comma, &end, 10);
+        if (end == comma || age < 15 || age > 60) continue;
+        n = strlen(start);
+        if (!n || n >= sizeof s_squadAges[0].name) continue;
+        if (s_squadAgeCount == capacity) {
+            size_t next = capacity ? capacity * 2 : 1024;
+            SquadAgeRecord *newData = (SquadAgeRecord *)realloc(
+                s_squadAges, next * sizeof *newData);
+            if (!newData) break;
+            s_squadAges = newData;
+            capacity = next;
+        }
+        memcpy(s_squadAges[s_squadAgeCount].name, start, n + 1);
+        s_squadAges[s_squadAgeCount].age = (uint8_t)age;
+        ++s_squadAgeCount;
+    }
+    fclose(f);
+    qsort(s_squadAges, s_squadAgeCount, sizeof *s_squadAges,
+          SquadAgeCompare);
+    fprintf(stderr, "[squad-age] loaded %zu player ages\n", s_squadAgeCount);
+    swos_age_log("CSV_LOADED", "entries=%zu", s_squadAgeCount);
+}
+/* Career age snapshot storage. Original SWOS player records have no identity/age
+ * field. The current display keys ages by canonical name; save the snapshot
+ * inside each JSON career so later changes to the external CSV cannot alter
+ * the ages of an existing career. Duplicate names need a future identity pass. */
+void SWOS_AgesResetCareer(void)
+{
+    free(s_squadAges);
+    s_squadAges = NULL;
+    s_squadAgeCount = 0;
+    s_squadAgesLoaded = 0;
+    s_squadAgeBulkRestore = 0;
+    swos_age_log("AGE_RESET", "snapshot_cleared=1");
+}
+void SWOS_AgesBeginRestore(void)
+{
+    SWOS_AgesResetCareer();
+    s_squadAgesLoaded = 1;
+    s_squadAgeBulkRestore = 1;
+    swos_age_log("RESTORE_BEGIN", "name_indexed=1");
+}
+void SWOS_AgesEndRestore(void)
+{
+    s_squadAgeBulkRestore = 0;
+    qsort(s_squadAges, s_squadAgeCount, sizeof *s_squadAges, SquadAgeCompare);
+    swos_age_log("RESTORE_END", "entries=%zu", s_squadAgeCount);
+}
+size_t SWOS_AgesCount(void)
+{
+    SquadAgeLoad();
+    return s_squadAgeCount;
+}
+int SWOS_AgesGet(size_t i, const char **name, unsigned *age)
+{
+    SquadAgeLoad();
+    if (i >= s_squadAgeCount) return 0;
+    *name = s_squadAges[i].name;
+    *age = s_squadAges[i].age;
+    return 1;
+}
+/* Used by save loading and, later, by the seasonal-ageing mechanism.
+ * Only explicit ages 15..60 are accepted. */
+int SWOS_AgesSet(const char *name, unsigned age)
+{
+    SquadAgeRecord key, *found, *p;
+    size_t i, n;
+    if (!name || age < 15 || age > 60) return 0;
+    n = strlen(name);
+    if (!n || n >= sizeof key.name) return 0;
+    SquadAgeLoad();
+    memset(&key, 0, sizeof key);
+    for (i = 0; i < n; ++i)
+        key.name[i] = (char)toupper((unsigned char)name[i]);
+    found = s_squadAgeBulkRestore ? NULL : (SquadAgeRecord *)bsearch(&key, s_squadAges,
+                s_squadAgeCount, sizeof *s_squadAges, SquadAgeCompare);
+    if (found) { found->age = (uint8_t)age; return 1; }
+    p = (SquadAgeRecord *)realloc(s_squadAges,
+                       (s_squadAgeCount + 1) * sizeof *s_squadAges);
+    if (!p) return 0;
+    s_squadAges = p;
+    s_squadAges[s_squadAgeCount] = key;
+    s_squadAges[s_squadAgeCount].age = (uint8_t)age;
+    s_squadAgeCount++;
+    if (!s_squadAgeBulkRestore)
+        qsort(s_squadAges, s_squadAgeCount, sizeof *s_squadAges, SquadAgeCompare);
+    return 1;
+}
+/* Advance the name-indexed career age snapshot exactly once when called
+ * by ContinueCareerNextSeason. Do not call during new-career initialisation
+ * or loading an existing save. The JSON save persists these updated ages.
+ * Transitional support only: generated TRIAL/RES identities are NOT tracked. */
+void SWOS_AgesAdvanceOneSeason(void)
+{
+    size_t i;
+    SquadAgeLoad();
+    for (i = 0; i < s_squadAgeCount; ++i) {
+        if (s_squadAges[i].age < 60)
+            ++s_squadAges[i].age;
+    }
+    fprintf(stderr, "[squad-age] advanced %zu name-based ages by one year\n",
+            s_squadAgeCount);
+    swos_age_log("SEASON_AGE", "entries=%zu mechanism=name_based", s_squadAgeCount);
+}
+static uint8_t SquadAgeForPlayer(const PlayerFile *pf)
+{
+    /* Generated trialists and reserve players enter the career at age 17.
+     * Test before name lookup: generated players can reuse existing names. */
+    if ((uint8_t)pf->form == PLAYER_FORM_TRIALIST ||
+        (uint8_t)pf->form == PLAYER_FORM_RESERVE)
+        return 17;
+    char name[48];
+    SquadAgeRecord key;
+    SquadAgeRecord *found;
+    size_t n = 0;
+    SquadAgeLoad();
+    /* The player name is a fixed-width SWOS field, not always NUL ended. */
+    while (n < 22 && pf->playerName[n] && n < sizeof name - 1) {
+        unsigned char c = (unsigned char)pf->playerName[n];
+        name[n] = (char)toupper(c);
+        ++n;
+    }
+    while (n && name[n - 1] == ' ') --n;
+    name[n] = 0;
+    memset(&key, 0, sizeof key);
+    memcpy(key.name, name, n + 1);
+    found = (SquadAgeRecord *)bsearch(&key, s_squadAges,
+              s_squadAgeCount, sizeof *s_squadAges, SquadAgeCompare);
+    return found ? found->age : 25;
+}
+#else
+void SWOS_AgesAdvanceOneSeason(void) {}
+void SWOS_AgesResetCareer(void) {}
+void SWOS_AgesBeginRestore(void) {}
+void SWOS_AgesEndRestore(void) {}
+size_t SWOS_AgesCount(void) { return 0; }
+int SWOS_AgesGet(size_t i, const char **name, unsigned *age)
+{ (void)i; (void)name; (void)age; return 0; }
+int SWOS_AgesSet(const char *name, unsigned age)
+{ (void)name; (void)age; return 0; }
+static uint8_t SquadAgeForPlayer(const PlayerFile *pf)
+{
+    if ((uint8_t)pf->form == PLAYER_FORM_TRIALIST ||
+        (uint8_t)pf->form == PLAYER_FORM_RESERVE)
+        return 17;
+    return 25;
+}
+#endif
 static const uint8_t squadAttributeHeadings[] = "H F S C T P V";
 static uint8_t SquadFormatSevenAttributes(uint8_t *dst, const PlayerFile *pf)
 {
@@ -1548,6 +1781,8 @@ static uint8_t SquadFormatSevenAttributes(uint8_t *dst, const PlayerFile *pf)
         if (!isGK) total = (uint8_t)(total + ratings[i]);
         if (i != 6) *dst++ = ' ';
     }
+    /* Keep the formatted line inside the menu entry text buffer: 13 chars.
+     * Draw the total separately in the old nationality cell instead. */
     *dst = 0;
     return isGK ? 0xFF : total;
 }
@@ -1646,7 +1881,43 @@ void SquadAfterDrawCommon(void *entryPtr)
 
     /* Entry 48: player name */
     e = &_menuEntries[48];
-    e->fg = (uintptr_t)(uint8_t *)pf->playerName;
+    if (_isSquadViewMode == 0) {
+        /* Display age beside the name, never as a separate column.
+         * Each physical squad slot has its own stable text buffer. */
+        static char namesWithAge[32][32];
+        unsigned ix=(unsigned)d4_fileIdx & 31u;
+        unsigned age=SquadAgeForPlayer(pf);
+#ifdef SWOS_SDL_BUILD
+        if (_isNationalSquad == 0) {
+            unsigned club=PACK_BE_U16(tf->countryNumber,tf->teamOrdinal);
+            unsigned idAge=0,id=0,found=0;
+            if (_squadTeamFilePtr == (uintptr_t)&_careerTeam) {
+                unsigned generated[4];
+                for(unsigned gi=0;gi<SWOS_GeneratedIdentityCount();++gi) {
+                    if(SWOS_GeneratedIdentityGet(gi,generated) &&
+                       (generated[0]==(unsigned)_selTeamNumber || generated[0]==club) &&
+                       generated[1]==(unsigned)d4_fileIdx) {
+                        idAge=generated[3]; id=generated[2]; found=1; break;
+                    }
+                }
+            }
+            if (!found && SWOS_ManualIdentityIsTouched(club,(unsigned)d4_fileIdx))
+                found=SWOS_ManualIdentityAge(club,(unsigned)d4_fileIdx,&idAge,&id);
+            else if (!found && _squadTeamFilePtr != (uintptr_t)&_careerTeam &&
+                     (unsigned)d4_fileIdx<16u &&
+                     (uint8_t)pf->form!=PLAYER_FORM_TRIALIST &&
+                     (uint8_t)pf->form!=PLAYER_FORM_RESERVE)
+                found=SWOS_IdentityAgeForClub(club,(unsigned)d4_fileIdx,&idAge,&id);
+            if(found && id && idAge>=15u && idAge<=60u) age=idAge;
+        }
+#endif
+        /* Fit the existing compact name cell; no data is changed in pf. */
+        snprintf(namesWithAge[ix],sizeof namesWithAge[ix],"%.22s (%u)",
+                 (const char *)pf->playerName,age);
+        e->fg=(uintptr_t)namesWithAge[ix];
+    } else {
+        e->fg=(uintptr_t)(uint8_t *)pf->playerName;
+    }
     e->y = yPos;
 
     /* Entry 49: position string */
@@ -1663,10 +1934,19 @@ void SquadAfterDrawCommon(void *entryPtr)
     if (_isSquadViewMode == 0) {
         /* Entry 50 has writable menu text storage. Exactly 13 chars plus NUL. */
         SquadFormatSevenAttributes((uint8_t *)e->fg, pf);
-        e->x = 205; /* move attribute digits right, matching heading */
+        e->x = 200; /* attributes follow the name field */
         e->stringFlags = (uint16_t)((e->stringFlags & ~0x4000u) | 0x8000u);
     } else {
-        FormTopSkillsString((uint8_t *)e->fg, (PlayerFile *)player);
+        /* GOALS view: display nationality instead of the old top-skill digits.
+         * Use per-player storage because menu rows are drawn independently. */
+        static char goalsNationality[32][8];
+        unsigned ix = (unsigned)d4_fileIdx & 31u;
+        unsigned natIdx = (unsigned)(uint8_t)pf->nationality * 3u;
+        snprintf(goalsNationality[ix], sizeof goalsNationality[ix], "(%c%c%c)",
+                 _shortCountryNames[natIdx], _shortCountryNames[natIdx + 1u],
+                 _shortCountryNames[natIdx + 2u]);
+        e->fg = (uintptr_t)goalsNationality[ix];
+        e->x = 200;
     }
     e->y = yPos;
 
@@ -1696,27 +1976,18 @@ void SquadAfterDrawCommon(void *entryPtr)
     }
     _menuEntries[54].y = yPos;
     if (_isSquadViewMode == 0) {
-        /* Entry 54 normally holds the 5-character nationality string.
-         * In attributes view nationality is not shown, so safely reuse
-         * its allocated text storage for the 2-4-character skill total.
-         * Never write to entry 56: its fg pointer is not a text buffer. */
-        uint8_t total = SquadFormatSevenAttributes((uint8_t *)_menuEntries[50].fg, pf);
-        uint8_t *dst = (uint8_t *)_menuEntries[54].fg;
-        if (total == 0xFF) {
-            dst[0] = '-'; dst[1] = 0;
-        } else {
-            dst[0] = '(';
-            if (total >= 10) {
-                dst[1] = (uint8_t)('0' + total / 10);
-                dst[2] = (uint8_t)('0' + total % 10);
-                dst[3] = ')'; dst[4] = 0;
-            } else {
-                dst[1] = (uint8_t)('0' + total);
-                dst[2] = ')'; dst[3] = 0;
-            }
-        }
-        _menuEntries[54].x = 265; /* position bracketed total nearer player value */
-        _menuEntries[54].isInvisible = 0;
+        /* Reuse the genuine text entry for the seven-attribute total.
+         * Player age is displayed beside the name instead. */
+        static char totals[32][8];
+        unsigned ix=(unsigned)d4_fileIdx & 31u;
+        unsigned total=SquadFormatSevenAttributes((uint8_t[14]){0},pf);
+        if(total==0xFFu)
+            snprintf(totals[ix],sizeof totals[ix],"(-)");
+        else
+            snprintf(totals[ix],sizeof totals[ix],"(%02u)",total);
+        _menuEntries[54].fg=(uintptr_t)totals[ix];
+        _menuEntries[54].x=258; /* total immediately follows seven digits */
+        _menuEntries[54].isInvisible=0;
     }
 
     /* Entry 55: goals/stats */
@@ -1976,10 +2247,10 @@ void SquadFinish(void)
      * detailed statistics view, with its original headers and numbers. */
     if (_isSquadViewMode == 0) {
         _menuEntries[13].fg = (uintptr_t)squadAttributeHeadings;
-        _menuEntries[13].x = 205;
+        _menuEntries[13].x = 200;
         _menuEntries[13].stringFlags = (uint16_t)((_menuEntries[13].stringFlags & ~0x4000u) | 0x8000u);
         _menuEntries[13].isInvisible = 0;
-        _menuEntries[14].isInvisible = 1;  /* NAT header */
+        _menuEntries[14].isInvisible = 1; /* no separate age column */
     }
     SquadUpdateGoalsMenuText();
     /* The national squad also has a bank of competition-goal headings.
@@ -3270,6 +3541,7 @@ void BuildGameListArrayFromTeamSelectionKeyCache(void)
     }
 }
 
+
 /* PrintNameAndSeason — show manager name, team, and season year (SWOS2.s line 60445) */
 __attribute__((used, externally_visible))
 void PrintNameAndSeason(void)
@@ -3309,9 +3581,13 @@ void PrintNameAndSeason(void)
 
     /* Set team name in entry 1 */
     TeamFileEx *teamData = VerifyTeamLoaded(_selTeamNumber);
-    uint8_t *teamName = (uint8_t *)teamData->team.teamName;
     uint8_t *entry1Str = (uint8_t *)_menuEntries[1].fg;
-    StringCopy(teamName, entry1Str);
+    /* TeamFile.teamName is a 17-byte fixed-width field, not necessarily
+     * NUL-terminated. The next byte is the own-goals counter, which becomes
+     * visible as a stray character after a match if StringCopy reads through. */
+    char displayName[18];
+    SWOS_CopyTeamName18(displayName, teamData->team.teamName);
+    StringCopy((const uint8_t *)displayName, entry1Str);
 
     /* Set season year in entry 2 */
     uint8_t *entry2Str = (uint8_t *)_menuEntries[2].fg;
@@ -3716,6 +3992,89 @@ void TransfersMenu(void)
     ShowMenu(_transferMarketMenu);
 }
 
+/* Managed-club retirement news. Names are captured before the retired player
+ * is overwritten by the generated replacement in career_init.c. This is a
+ * transition-only notification, not a persistent retirement-history format. */
+#define SWOS_RETIREMENT_NEWS_MAX 32u
+#define SWOS_RETIREMENT_NEWS_PAGE 10u
+static struct {
+    char name[24];
+    uint8_t age;
+    uint8_t position;
+} s_retirementNews[SWOS_RETIREMENT_NEWS_MAX];
+static unsigned s_retirementNewsCount;
+static unsigned s_retirementNewsSeason;
+static unsigned s_retirementNewsPage;
+char _retirementNewsHeading[64] = "PLAYER RETIREMENTS";
+char _retirementNewsRows[10][64];
+char _retirementNewsAction[16] = "CONTINUE";
+extern uint8_t _retirementNewsMenu[];
+extern void DrawMenu(void);
+
+void SWOS_RetirementNewsClear(unsigned season)
+{
+    s_retirementNewsCount = 0;
+    s_retirementNewsPage = 0;
+    s_retirementNewsSeason = season;
+}
+
+void SWOS_RetirementNewsRecord(const PlayerFile *player, unsigned age)
+{
+    if (!player || s_retirementNewsCount >= SWOS_RETIREMENT_NEWS_MAX)
+        return;
+    unsigned i = s_retirementNewsCount++;
+    /* PlayerFile.playerName has 23 bytes, including its usual NUL. Never
+     * trust the runtime byte for menu string termination. */
+    memcpy(s_retirementNews[i].name, player->playerName, sizeof(player->playerName));
+    s_retirementNews[i].name[sizeof(player->playerName)] = 0;
+    s_retirementNews[i].age = age > 255u ? 255u : (uint8_t)age;
+    s_retirementNews[i].position = (player->positionAndFace >> 5) & 7u;
+}
+
+static void SWOS_RetirementNewsPopulate(void)
+{
+    static const char *positions[8] = {"GK", "RB", "LB", "D", "RW", "LW", "M", "A"};
+    unsigned start = s_retirementNewsPage * SWOS_RETIREMENT_NEWS_PAGE;
+    snprintf(_retirementNewsHeading, sizeof(_retirementNewsHeading),
+             "PLAYER RETIREMENTS - SEASON %u", s_retirementNewsSeason);
+    for (unsigned i = 0; i < SWOS_RETIREMENT_NEWS_PAGE; ++i) {
+        _retirementNewsRows[i][0] = 0;
+        if (start + i < s_retirementNewsCount) {
+            unsigned idx = start + i;
+            snprintf(_retirementNewsRows[i], sizeof(_retirementNewsRows[i]),
+                     "%-23.23s  AGE %2u  %s",
+                     s_retirementNews[idx].name,
+                     (unsigned)s_retirementNews[idx].age,
+                     positions[s_retirementNews[idx].position]);
+        }
+    }
+    snprintf(_retirementNewsAction, sizeof(_retirementNewsAction), "%s",
+             start + SWOS_RETIREMENT_NEWS_PAGE < s_retirementNewsCount ? "NEXT" : "CONTINUE");
+}
+
+void SWOS_RetirementNewsInit(void) { SWOS_RetirementNewsPopulate(); }
+
+void SWOS_RetirementNewsNext(void)
+{
+    if ((s_retirementNewsPage + 1u) * SWOS_RETIREMENT_NEWS_PAGE < s_retirementNewsCount) {
+        ++s_retirementNewsPage;
+        SWOS_RetirementNewsPopulate();
+        DrawMenu();
+    } else {
+        SetExitMenuFlag();
+    }
+}
+
+void SWOS_RetirementNewsShow(void)
+{
+    if (!s_retirementNewsCount)
+        return;
+    s_retirementNewsPage = 0;
+    ShowMenu(_retirementNewsMenu);
+    /* This event has been acknowledged. Reopening menus cannot replay it. */
+    s_retirementNewsCount = 0;
+}
+
 extern uint8_t _pastWinnersMenu[];
 extern TeamFileEx *GetTeamPointer(uint16_t teamId);
 extern void DrawMenu(void);
@@ -3755,9 +4114,11 @@ static void PastWinnersPopulate(void)
             /* Team identifiers are persisted rather than display names. Resolving
              * through the current database avoids duplicating the whole name. */
             TeamFileEx *team = GetTeamPointer(r->teamId);
-            const char *name = team ? (const char *)team->team.teamName : "UNKNOWN";
+            char safeName[18];
+            if (team) SWOS_CopyTeamName18(safeName, team->team.teamName);
+            else SWOS_CopyTeamName18(safeName, "UNKNOWN");
             snprintf(_pastWinnerRows[found], sizeof(_pastWinnerRows[found]),
-                     "SEASON %02u   %.37s", (unsigned)season + 1u, name);
+                     "SEASON %02u   %s", (unsigned)season + 1u, safeName);
             ++found;
         }
     }
@@ -3812,7 +4173,8 @@ void ViewWorldMenu(void)
 
     s_worldHistoryCompId = comp_id((uint8_t *)_selectedContest);
     s_worldHistoryDivision = (uint8_t)_contestLeagueNumber;
-    s_worldHistoryKind = ((Competition *)_selectedContest)->type == 2 ? 0 : 1;
+    /* League winners are stored as kind 0; all cup winners as kind 1. */
+    s_worldHistoryKind = ((Competition *)_selectedContest)->type == 0 ? 0 : 1;
     Career_ViewOrEditCompetitionSlot((uint8_t *)_selectedContest, _contestLeagueNumber);
     ContestMenuOnReturn();
 }
@@ -4598,10 +4960,11 @@ void CareerOverFinish(void)
     {
         uint16_t teamNum = _selTeamNumber;
         TeamFileEx *teamPtr = VerifyTeamLoaded(teamNum);
-        uint8_t *teamName = (uint8_t *)teamPtr->team.teamName;
         MenuEntry *e1 = &_menuEntries[1];
         dest = (uint8_t *)e1->fg;
-        StringCopy(teamName, dest);
+        char displayName[18];
+        SWOS_CopyTeamName18(displayName, teamPtr->team.teamName);
+        StringCopy((const uint8_t *)displayName, dest);
     }
 
     /* Set season year in entry 2 (offset $70/56 = 2) */
@@ -5942,7 +6305,8 @@ void ViewSquadInit(void)
 skipEntryShow:
 
     _menuEntries[0].fg = _viewSquadTitle;
-    _menuEntries[1].fg = (uintptr_t)_squadTeamPtr->teamName;
+    SWOS_MenuCopyClubName(s_viewSquadClubName, _squadTeamPtr->teamName);
+    _menuEntries[1].fg = (uintptr_t)s_viewSquadClubName;
 
     if (_viewSquadArg2) {
         _menuEntries[2].isInvisible = 1;  /* 0x70/56 = 2 */
@@ -6883,8 +7247,19 @@ extern DIYCompetitionEx _diyCompetitionStart;
  * Common helper: sets up squad menu state and shows it.
  * teamPtr = pointer to team file, rowMode = squad display mode.
  * ================================================================ */
+/* Keep the career squad viewer aligned with the transfer-market roster.
+ * AI transfers and retirements are stored as foreign-market overrides. The
+ * squad viewer may receive a cached team via ChooseTeamForEditTactics or
+ * VerifyTeamLoaded, neither of which necessarily reapplies these overrides.
+ * Patch that actual team record before drawing. This is idempotent and must
+ * never be used for the human-managed career team. */
+extern void Career_PatchTeamWithForeignMarketPlayers(TeamFileEx *teamPtr);
 static void ShowSquadMenuForTeam(uint8_t *teamPtr, uint16_t rowMode)
 {
+    if (_gameType == 4 /* GAME_TYPE_CAREER */ && teamPtr &&
+        (TeamFileEx *)teamPtr != &_careerTeam) {
+        Career_PatchTeamWithForeignMarketPlayers((TeamFileEx *)teamPtr);
+    }
     _squadTeamFilePtr = (uintptr_t)teamPtr;
     _squadRowMode = rowMode;
     _inEditTactics = rowMode;
@@ -7062,6 +7437,14 @@ extern uint8_t  _aCup_1[];       /* "CUP" */
 extern uint8_t  _aCup_2[];       /* "CUP" */
 extern uint8_t *_careerCompetitionSlotPtrTable[];
 
+/* Fixture names in TeamFile are fixed-width (17 bytes). The career game
+ * list passes names to C-string renderers, which must never read past that
+ * field when a team fills all 17 bytes. Keep owned, NUL-terminated copies
+ * for the duration of the draw rather than mutating saved team records. */
+static char careerFixtureTopName[18];
+static char careerFixtureBottomName[18];
+
+
 __attribute__((used, externally_visible))
 void CareerGameListCommon(MenuEntry *item)
 {
@@ -7183,7 +7566,8 @@ void CareerGameListCommon(MenuEntry *item)
             SWOS_DBG_FLUSH();
         }
         TeamFileEx *_topTeamData = VerifyTeamLoaded(topTeamIdx);
-        _careerGameTopTeamName = (char *)_topTeamData->team.teamName;
+        SWOS_CopyTeamName18(careerFixtureTopName, _topTeamData->team.teamName);
+        _careerGameTopTeamName = careerFixtureTopName;
 
         uint16_t botTeamIdx = BE_READ_U16(a4 + 0x0E);
         TeamFileEx *botTeamData = VerifyTeamLoaded(botTeamIdx);
@@ -7194,7 +7578,8 @@ void CareerGameListCommon(MenuEntry *item)
         else
             ctrl = 0xFFFF;
         _careerGameListTeamControl = ctrl;
-        _careerGameBottomTeamName = (char *)botTeamData->team.teamName;
+        SWOS_CopyTeamName18(careerFixtureBottomName, botTeamData->team.teamName);
+        _careerGameBottomTeamName = careerFixtureBottomName;
 
         /* Check if match has been played (matchFlags != 0). a4 is the cache
          * entry base; the first match slot starts at +0x0A. */

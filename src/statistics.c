@@ -1,3 +1,4 @@
+#include "swos_fixed_team_name.h"
 #include "career_params.h"
 /*
  * Amiga SWOS RE Project
@@ -1096,7 +1097,9 @@ void CompetitionTopGoalScorersInit(void)
             {
                 uint8_t *d = dest;
                 d = StringCopy(_aLparen, d);
-                d = StringCopy(teamName, d);
+                uint8_t safeTeamName[18];
+                SWOS_CopyTeamName18(safeTeamName, teamName);
+                d = StringCopy(safeTeamName, d);
                 d = StringCopy(_aRparen, d);
                 *d = 0;
             }
@@ -1248,7 +1251,9 @@ void TopGoalScorersBeforeDrawCommon(MenuEntry *entry)
         {
             uint8_t *d = dest;
             d = StringCopy(_aLparen, d);
-            d = StringCopy(teamName, d);
+            uint8_t safeTeamName[18];
+                SWOS_CopyTeamName18(safeTeamName, teamName);
+                d = StringCopy(safeTeamName, d);
             d = StringCopy(_aRparen, d);
             *d = 0;
         }

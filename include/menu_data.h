@@ -1192,6 +1192,19 @@ typedef struct Menu_CompetitionStats
 } Menu_CompetitionStats;
 #pragma pack(pop)
 
+/* End-of-season managed player retirement notification. */
+#pragma pack(push, 1)
+typedef struct Menu_RetirementNews {
+  MenuHeader hdr;
+  MenuMark markByteCoords;
+  MenuEntry_Byte_Colors_TextPtr heading;
+  MenuEntry_Byte_Colors_TextPtr rows[10];
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect next;
+  MenuMark markEndMenu;
+} Menu_RetirementNews;
+#pragma pack(pop)
+extern Menu_RetirementNews _retirementNewsMenu;
+
 /* PAST WINNERS: a career history menu, using the standard menu renderer. */
 #pragma pack(push, 1)
 typedef struct Menu_PastWinners {

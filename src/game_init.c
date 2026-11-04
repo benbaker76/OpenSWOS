@@ -1,3 +1,4 @@
+#include "swos_fixed_team_name.h"
 /*
  * Amiga SWOS RE Project
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
@@ -682,7 +683,7 @@ void InitInGameTeamStructure(TeamFileEx *teamFileBase, TeamGame *tg,
     } else {
         nameSource = (uint8_t *)tf->teamName;
     }
-    StringCopy(nameSource, (uint8_t *)tg->teamName);
+    SWOS_CopyTeamName17(tg->teamName, nameSource);
 }
 
 /* ========================================================================

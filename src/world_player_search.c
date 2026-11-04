@@ -8,6 +8,7 @@
 #include "career_teams.h"
 #include "endian_helpers.h"
 #include "swos_io.h"
+#include "swos_identity_runtime.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -40,6 +41,7 @@ typedef struct SearchPlayer {
     uint8_t fileIndex;
     uint8_t position;
     uint16_t valueK;
+    uint8_t age;
     char name[24];
     char club[25];
 } SearchPlayer;
@@ -65,8 +67,51 @@ extern uint8_t _aAddInternation_0[];
 extern void ShowMenu(uint8_t *menu);
 extern void ShowPlayerOfferMenuForPlayer(uint16_t teamNumber, uint16_t playerOrdinal);
 extern uint16_t _transferCompleted;
+extern void SWOS_IdentityRegisterClub(unsigned club,unsigned file,unsigned record);
 extern uint16_t _numForeignMarketPlayers2;
 extern MarketPlayer _careerForeignMarketPlayers[];
+
+/* Use the same live-cache precedence as GetTeamPointer(). The direct TEAM
+ * reader below remains necessary for speed and for inactive clubs, but it
+ * must not show an obsolete roster when the game is using a cached copy. */
+extern uint16_t _currentTeamNumber, _selTeamNumber;
+extern uint8_t _currentTeam[];
+extern TeamFileEx _careerTeam;
+extern uint16_t _numSelectedTeams, _careerFileBuffer;
+extern TeamFileEx _selectedTeams[];
+extern uint8_t _tmdFileBuffer[];
+extern uint16_t _careerAutoAdvanceInProgress;
+static const TeamFileEx *world_live_team(uint16_t id)
+{
+    if (id == _currentTeamNumber) {
+        const TeamFileEx *t = (const TeamFileEx *)_currentTeam;
+        if (PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal) == id)
+            return t;
+    }
+    if (id == _selTeamNumber ||
+        (_careerAutoAdvanceInProgress &&
+         PACK_BE_U16(_careerTeam.team.countryNumber,
+                     _careerTeam.team.teamOrdinal) == id)) {
+        if (PACK_BE_U16(_careerTeam.team.countryNumber,
+                        _careerTeam.team.teamOrdinal) == id)
+            return &_careerTeam;
+    }
+    unsigned n = _numSelectedTeams;
+    if (n > 100u) n = 100u;
+    for (unsigned i = 0; i < n; ++i) {
+        const TeamFileEx *t = &_selectedTeams[i];
+        if (PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal) == id)
+            return t;
+    }
+    n = _careerFileBuffer;
+    if (n > 128u) n = 128u;
+    const TeamFileEx *tmd = (const TeamFileEx *)_tmdFileBuffer;
+    for (unsigned i = 0; i < n; ++i)
+        if (PACK_BE_U16(tmd[i].team.countryNumber,
+                        tmd[i].team.teamOrdinal) == id)
+            return &tmd[i];
+    return NULL;
+}
 
 /* Fast index: team ID + physical player slot -> newest career replacement.
  * Avoid GetTeamPointer(), which reloads the country file and loops over
@@ -154,12 +199,12 @@ enum {
     SEARCH_NEXT_ENTRY = 17,
     SEARCH_EXIT_ENTRY = 18,
 };
-static char s_colHead[]="PLAYER                CLUB            POS VALUE";
+static char s_colHead[]="PLAYER (AGE)         CLUB       POS   VALUE";
 #define ROW(y,i,fn) { { 8, (y), -16, 9 }, \
     { MENU_CMD_NAV, SEARCH_FILTER_ENTRY, SEARCH_MIN_ENTRY, \
       ((i)==0 ? SEARCH_MAX_ENTRY : (SEARCH_FIRST_ROW_ENTRY+(i)-1)), \
       ((i)==SEARCH_ROWS-1 ? SEARCH_PREV_ENTRY : (SEARCH_FIRST_ROW_ENTRY+(i)+1)) }, \
-    {MENU_CMD_COLORS,0xE}, {MENU_CMD_TEXT_PTR,0x0,s_rows[i]}, \
+    {MENU_CMD_COLORS,0xE}, {MENU_CMD_TEXT_PTR,STR_ALIGN_LEFT,s_rows[i]}, \
     {MENU_CMD_ONSELECT_FIRE,fn}, MENU_CMD_END }
 #define BTN(x,y,w,left,right,up,down,str,fn) { {x,y,w,13}, \
     {MENU_CMD_NAV,left,right,up,down}, {MENU_CMD_COLORS,0xE}, \
@@ -167,7 +212,7 @@ static char s_colHead[]="PLAYER                CLUB            POS VALUE";
 static SearchMenu s_menu={
     {0,0,0,SEARCH_FIRST_ROW_ENTRY}, MENU_MARK_BYTE_COORDS,
     {{48,4,-96,14},{MENU_CMD_COLORS,0x17},{MENU_CMD_TEXT_PTR,0,s_title},MENU_CMD_END},
-    {{15,63,-28,9},{MENU_CMD_COLORS,0x0},{MENU_CMD_TEXT_PTR,0,s_colHead},MENU_CMD_END},
+    {{15,63,-28,9},{MENU_CMD_COLORS,0x0},{MENU_CMD_TEXT_PTR,STR_ALIGN_LEFT,s_colHead},MENU_CMD_END},
     BTN(8,23,145, SEARCH_MAX_ENTRY,SEARCH_MIN_ENTRY,SEARCH_EXIT_ENTRY,SEARCH_MAX_ENTRY,s_filterText,search_filter),
     BTN(163,23,145,SEARCH_FILTER_ENTRY,SEARCH_MAX_ENTRY,SEARCH_EXIT_ENTRY,SEARCH_MAX_ENTRY,s_minText,search_min),
     BTN(80,42,160,SEARCH_MIN_ENTRY,SEARCH_FILTER_ENTRY,SEARCH_MIN_ENTRY,SEARCH_FIRST_ROW_ENTRY,s_maxText,search_max),
@@ -234,6 +279,25 @@ static FILE *open_country_file(int country, char *chosen, size_t cap) {
     FILE *f=fopen(path,"rb");
     snprintf(chosen,cap,"%s",path);
     return f;
+}
+
+/* Use the career's permanent identities, including post-retirement players. */
+static unsigned world_player_age(uint16_t club, unsigned slot) {
+    unsigned age=0, id=0;
+    for (unsigned i=0, count=SWOS_GeneratedIdentityCount(); i<count; ++i) {
+        unsigned g[4];
+        if (SWOS_GeneratedIdentityGet(i,g) && g[0]==club && g[1]==slot &&
+            g[2] && g[3]>=15 && g[3]<=60)
+            return g[3];
+    }
+    if (SWOS_ManualIdentityIsTouched(club,slot)) {
+        if (SWOS_ManualIdentityAge(club,slot,&age,&id) && id && age>=15 && age<=60)
+            return age;
+        return 25;
+    }
+    if (SWOS_IdentityAgeForClub(club,slot,&age,&id) && id && age>=15 && age<=60)
+        return age;
+    return 25;
 }
 
 static void scan_world(void){
@@ -320,10 +384,21 @@ static void scan_world(void){
             if (team->team.countryNumber >= CN_EUROPE &&
                 team->team.countryNumber <= CN_OCEANIA) continue;
             uint16_t id=PACK_BE_U16(team->team.countryNumber,team->team.teamOrdinal);
-            /* Overlay current career players (including AI exchanges). */
-            for (unsigned slot=0;slot<16;slot++) {
-                const PlayerFile *patch=replacement_for(id,slot);
-                if (patch) memcpy(&team->players[slot],patch,sizeof(PlayerFile));
+            /* Direct TEAM-file reads bypass LoadTeamFile and its identity mapping.
+             * Register the actual record index, not the team ordinal: they
+             * need not be identical. This makes original player ages available. */
+            SWOS_IdentityRegisterClub(id,(unsigned)c,t);
+            /* Match GetTeamPointer: current/managed/selected/TMD cache first,
+             * otherwise the newest foreign-market patches over TEAM.NNN. */
+            const TeamFileEx *live = world_live_team(id);
+            if (live) {
+                memcpy(team->players, live->players, sizeof(team->players));
+                search_log("LIVE_ROSTER club=%04X source=career_cache", (unsigned)id);
+            } else {
+                for (unsigned slot=0;slot<16;slot++) {
+                    const PlayerFile *patch=replacement_for(id,slot);
+                    if (patch) memcpy(&team->players[slot],patch,sizeof(PlayerFile));
+                }
             }
             for (unsigned i=0;i<16;i++) {
                 PlayerFile *p=&team->players[i];
@@ -337,6 +412,7 @@ static void scan_world(void){
                 uint16_t val=GetDisplayedPlayerValue((uint8_t*)team+i*sizeof(PlayerFile));
                 if (val>80)val=80;
                 dst->valueK=_avgTeamValueBases[val];
+                dst->age=(uint8_t)world_player_age(id,i);
                 safe_copy(dst->name,sizeof(dst->name),(const char*)p->playerName,sizeof(p->playerName));
                 safe_copy(dst->club,sizeof(dst->club),(const char*)team->team.teamName,sizeof(team->team.teamName));
             }
@@ -369,7 +445,19 @@ static void build_list(void){
         char val[16];
         if(p->valueK>=1000)snprintf(val,sizeof(val),"%u.%uM",(unsigned)p->valueK/1000,(unsigned)(p->valueK%1000)/100);
         else snprintf(val,sizeof(val),"%uK",(unsigned)p->valueK);
-        snprintf(s_rows[row],sizeof(s_rows[row]),"%-17.17s %-14.14s %-3s %6s",p->name,p->club,s_posLabel[p->position],val);
+        /* Left-aligned name and age in one field. Keep the overall row width
+         * identical to the original so the right-hand value stays in place. */
+        char namedAge[48];
+        /* The SWOS row font is proportional, so spaces alone do not
+         * guarantee exact columns. Left-align the *menu entry itself* and
+         * use concise fixed-width fields within its 288px row. */
+        snprintf(namedAge,sizeof(namedAge),"%.16s (%u)",
+                 p->name, (unsigned)p->age);
+        snprintf(s_rows[row],sizeof(s_rows[row]),"%-21.21s %-10.10s %-3s %6s",
+                 namedAge,p->club,s_posLabel[p->position],val);
+        if (row == 0) search_log("ROW_DISPLAY team=%04X slot=%u id_age=%u formatted=%s",
+                                 (unsigned)p->team, (unsigned)p->fileIndex,
+                                 (unsigned)p->age, s_rows[row]);
     }
 }
 void WorldPlayerSearch(void){

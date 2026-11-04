@@ -4995,6 +4995,35 @@ Menu_Squad _squadMenu = {
     },
     MENU_MARK_END_MENU
 };
+extern void SWOS_RetirementNewsInit(void);
+extern void SWOS_RetirementNewsNext(void);
+extern char _retirementNewsHeading[];
+extern char _retirementNewsRows[10][64];
+extern char _retirementNewsAction[];
+
+Menu_RetirementNews _retirementNewsMenu = {
+    { SWOS_RetirementNewsInit, 0, 0, 11 },
+    MENU_MARK_BYTE_COORDS,
+    { { 42, 3, -84, 13 }, { MENU_CMD_COLORS, 0x17 },
+      { MENU_CMD_TEXT_PTR, 0, _retirementNewsHeading }, MENU_CMD_END },
+    {
+    { { 25, 22, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[0] }, MENU_CMD_END },
+    { { 25, 33, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[1] }, MENU_CMD_END },
+    { { 25, 44, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[2] }, MENU_CMD_END },
+    { { 25, 55, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[3] }, MENU_CMD_END },
+    { { 25, 66, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[4] }, MENU_CMD_END },
+    { { 25, 77, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[5] }, MENU_CMD_END },
+    { { 25, 88, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[6] }, MENU_CMD_END },
+    { { 25, 99, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[7] }, MENU_CMD_END },
+    { { 25, 110, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[8] }, MENU_CMD_END },
+    { { 25, 121, -50, 10 }, { MENU_CMD_COLORS, 0x79 }, { MENU_CMD_TEXT_PTR, 0x8000, _retirementNewsRows[9] }, MENU_CMD_END },
+    },
+    { { 104, -33, 112, 13 }, { MENU_CMD_NAV, -1, -1, -1, -1 },
+      { MENU_CMD_COLORS, 0xC }, { MENU_CMD_TEXT_PTR, 0, _retirementNewsAction },
+      { MENU_CMD_ONSELECT_FIRE, SWOS_RetirementNewsNext }, MENU_CMD_END },
+    MENU_MARK_END_MENU
+};
+
 extern void PastWinnersOpen(void);
 extern void PastWinnersInit(void);
 extern void PastWinnersPrevious(void);

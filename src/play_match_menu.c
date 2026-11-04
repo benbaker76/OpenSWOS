@@ -1486,8 +1486,9 @@ static void ReconcileNationalMatchStatus(TeamFileEx *matchTeam)
     for (unsigned i = 0; i < 16; ++i) {
         PlayerFile *dst = &matchTeam->players[i];
         unsigned transient = (unsigned)dst->cardsInjuries & 0xE0u;
+        int matchedCareerPlayer = 0;
         if (!transient || (dst->cardsInjuries & 0x1Fu))
-            continue;
+            continue;  /* Never erase cards or injuries from the match copy. */
         for (unsigned j = 0; j < 16; ++j) {
             const PlayerFile *src = &_careerTeam.players[j];
             unsigned k = 0;
@@ -1495,12 +1496,23 @@ static void ReconcileNationalMatchStatus(TeamFileEx *matchTeam)
                 if (dst->playerName[k] != src->playerName[k]) break;
             }
             if (k != sizeof(dst->playerName)) continue;
+            matchedCareerPlayer = 1;
             if ((src->cardsInjuries & 0xFFu) == 0) {
                 SWOS_DBG("[national-match] clearing transient bucket=%02x on match copy index=%u (career player index=%u)\n",
                     transient, i, j);
                 dst->cardsInjuries &= 0x1Fu;
             }
             break;
+        }
+        /* The tournament can retain an old national-team copy whose player no
+         * longer belongs to the human manager's selected squad. Such a player
+         * does not appear in the SQUAD screen, yet a leftover status bucket
+         * still makes the match menu reject the team. Only clear bucket-only
+         * states, and only in this stale national-team match copy. */
+        if (!matchedCareerPlayer) {
+            SWOS_DBG("[national-match] clearing orphan status bucket=%02x on stale national player index=%u\n",
+                transient, i);
+            dst->cardsInjuries &= 0x1Fu;
         }
     }
 }

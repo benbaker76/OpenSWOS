@@ -41,6 +41,11 @@
 #include "auto_skip_debug.h"
 #include "string_utils.h"
 #include "job_offers.h"
+#include "swos_identity_runtime.h"
+#include "swos_age_identity_log.h"
+
+extern int SWOS_AgesSet(const char *name, unsigned age);
+extern int SWOS_AgesGet(size_t index, const char **name, unsigned *age);
 
 /* ---- Assembly externs (functions still in asm) ---- */
 extern uint16_t Rand(void);
@@ -702,125 +707,111 @@ static uint16_t isPlayerDisabled(PlayerFile *pf, int16_t excludeCardsFlag) {
  * GetNumberOfAvailablePlayers
  * Returns (disabled << 16) | (available & 0xFFFF).
  * ================================================================ */
+/* The two live career-team buffers have 32 physical player slots (16 main
+ * players and 16 reserves); ordinary TEAM records have only 16.  Availability
+ * queries must not index past either allocation, even if a caller requests a
+ * full match selection when the roster is temporarily shorter than that. */
+static uint16_t availabilityRosterCount(TeamFileEx *team)
+{
+    uint16_t count = team == &_careerTeam ? _careerNumPlayers :
+                     team == &_currentTeam ? _numPlayers : 16;
+    const uint16_t capacity = team == &_careerTeam || team == &_currentTeam ? 32 : 16;
+    return count < capacity ? count : capacity;
+}
+
+static uint8_t *availabilityPlayerList(TeamFileEx *team)
+{
+    return team == &_careerTeam ? _currentMatchPlayers :
+           team == &_currentTeam ? _playerPositions : team->team.playerNumbers;
+}
+
+static uint16_t availabilityPhysicalCapacity(TeamFileEx *team)
+{
+    return team == &_careerTeam || team == &_currentTeam ? 32 : 16;
+}
+
+/* ================================================================
+ * GetNumberOfAvailablePlayers
+ * Returns (disabled << 16) | (available & 0xFFFF).
+ * Missing selection entries are disabled rather than read out of bounds.
+ * ================================================================ */
 __attribute__((used, externally_visible))
 uint32_t GetNumberOfAvailablePlayers(TeamFileEx *team, int16_t excludeCardsFlag, uint16_t numPl) {
-    uint8_t *playerList;
-    uint16_t totalCount;
-
-    if (team == &_careerTeam) {
-        playerList = _currentMatchPlayers;
-        totalCount = _careerNumPlayers;
-    } else if (team == &_currentTeam) {
-        playerList = _playerPositions;
-        totalCount = _numPlayers;
-    } else {
-        playerList = team->team.playerNumbers;
-        totalCount = 16;
-    }
-
-    if (numPl != 0)
-        totalCount = numPl;
-
+    uint8_t *playerList = availabilityPlayerList(team);
+    uint16_t count = availabilityRosterCount(team);
+    uint16_t requested = numPl ? numPl : count;
+    uint16_t physicalCapacity = availabilityPhysicalCapacity(team);
+    uint16_t available = 0;
     uint16_t disabled = 0;
-    uint16_t available = totalCount;
-    int16_t iter = (int16_t)totalCount - 1;
 
-    for (; iter >= 0; iter--) {
-        int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
-        if (isPlayerDisabled(pf, excludeCardsFlag)) {
+    /* A match-selection request can contain more entries than the roster.
+     * Count the missing entries as disabled, so PLAY is never enabled by
+     * scanning uninitialised list positions. */
+    if (requested > count)
+        disabled = requested - count;
+    if (requested < count)
+        count = requested;
+
+    for (uint16_t i = 0; i < count; ++i) {
+        uint16_t idx = playerList[i];
+        if (idx >= physicalCapacity || isPlayerDisabled(&team->players[idx], excludeCardsFlag))
             disabled++;
-            available--;
-        }
+        else
+            available++;
     }
-
     return ((uint32_t)disabled << 16) | (uint32_t)available;
 }
 
 /* ================================================================
  * GetNumberOfAvailableSubstitutes
  * Counts available goalkeeper-position players.
- * Returns (disabled << 16) | (available & 0xFFFF).
  * ================================================================ */
 __attribute__((used, externally_visible))
 uint32_t GetNumberOfAvailableSubstitutes(TeamFileEx *team, int16_t flag) {
-    uint8_t *playerList;
-    uint16_t totalCount;
-
-    if (team == &_careerTeam) {
-        playerList = _currentMatchPlayers;
-        totalCount = _careerNumPlayers;
-    } else if (team == &_currentTeam) {
-        playerList = _playerPositions;
-        totalCount = _numPlayers;
-    } else {
-        playerList = team->team.playerNumbers;
-        totalCount = 16;
-    }
-
+    uint8_t *playerList = availabilityPlayerList(team);
+    uint16_t count = availabilityRosterCount(team);
+    uint16_t physicalCapacity = availabilityPhysicalCapacity(team);
     uint16_t disabled = 0;
     uint16_t goalkeepers = 0;
-    int16_t iter = (int16_t)totalCount - 1;
-
-    for (; iter >= 0; iter--) {
-        int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
-
-        /* Check if goalkeeper (position == 0) */
-        uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
-        if (position != 0)
+    for (uint16_t i = 0; i < count; ++i) {
+        uint16_t idx = playerList[i];
+        if (idx >= physicalCapacity)
             continue;
-
-        goalkeepers++;
-        if (isPlayerDisabled(pf, flag)) {
+        PlayerFile *pf = &team->players[idx];
+        if (((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT)
+            continue;
+        if (isPlayerDisabled(pf, flag))
             disabled++;
-            goalkeepers--;
-        }
+        else
+            goalkeepers++;
     }
-
     return ((uint32_t)disabled << 16) | (uint32_t)goalkeepers;
 }
 
 /* ================================================================
  * GetNumberOfAvailableStartingPlayers
- * Counts available non-goalkeeper players. Uses career path only
- * (does not check currentTeam).
- * Returns (disabled << 16) | (available & 0xFFFF).
+ * Counts available outfield players using the appropriate live roster.
  * ================================================================ */
 __attribute__((used, externally_visible))
 uint32_t GetNumberOfAvailableStartingPlayers(TeamFileEx *team, int16_t flag) {
-    uint8_t *playerList;
-    uint16_t totalCount;
-
-    if (team == &_careerTeam) {
-        playerList = _currentMatchPlayers;
-        totalCount = _careerNumPlayers;
-    } else {
-        playerList = team->team.playerNumbers;
-        totalCount = 16;
-    }
-
+    uint8_t *playerList = availabilityPlayerList(team);
+    uint16_t count = availabilityRosterCount(team);
+    uint16_t physicalCapacity = availabilityPhysicalCapacity(team);
     uint16_t disabled = 0;
-    uint16_t starters = 0;
-    int16_t iter = (int16_t)totalCount - 1;
-
-    for (; iter >= 0; iter--) {
-        int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
-
-        /* Check if NOT goalkeeper (position != 0) */
-        uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
-        if (position == 0)
+    uint16_t outfield = 0;
+    for (uint16_t i = 0; i < count; ++i) {
+        uint16_t idx = playerList[i];
+        if (idx >= physicalCapacity)
             continue;
-
-        starters++;
-        if (isPlayerDisabled(pf, flag)) {
+        PlayerFile *pf = &team->players[idx];
+        if (!(((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT))
+            continue;
+        if (isPlayerDisabled(pf, flag))
             disabled++;
-            starters--;
-        }
+        else
+            outfield++;
     }
-
-    return ((uint32_t)disabled << 16) | (uint32_t)starters;
+    return ((uint32_t)disabled << 16) | (uint32_t)outfield;
 }
 
 /* ================================================================
@@ -2732,6 +2723,38 @@ uint8_t *TrainingMatch_AddTrialPlayerAtPosition(uint16_t position)
     /* Convert player to trialist */
     Career_ConvertPlayerToTrialistFromName(_selTeamNumber, freeSlot);
 
+    /* This is the second generated-player route, distinct from
+     * Career_GenerateTrialistForTeamPlayer in transfer_market.c. The previous
+     * Step 2W missed it, so RES -> regular form reverted to AGE=25. Register
+     * the freshly created footballer at the actual physical player slot. */
+    {
+        unsigned id = SWOS_GeneratedIdentityCreate((unsigned)_selTeamNumber,
+                                                    (unsigned)freeSlot, 17u);
+        const char *existing_name = NULL;
+        unsigned existing_age = 0;
+        int collision = 0;
+        for (size_t j = 0; SWOS_AgesGet(j, &existing_name, &existing_age); ++j) {
+            if (!existing_name) continue;
+            /* The name-indexed fallback cannot safely overwrite an older
+             * footballer's age. The generated ID above is authoritative. */
+            const unsigned char *a = (const unsigned char *)existing_name;
+            const unsigned char *b = (const unsigned char *)pf->playerName;
+            int equal = 1;
+            while (*a || *b) {
+                unsigned char ca = *a++, cb = *b++;
+                if (ca >= 'a' && ca <= 'z') ca -= 32;
+                if (cb >= 'a' && cb <= 'z') cb -= 32;
+                if (ca != cb) { equal = 0; break; }
+            }
+            if (equal) { collision = 1; break; }
+        }
+        int saved_age = collision ? 0 : SWOS_AgesSet(pf->playerName, 17u);
+        swos_age_log("TRIAL_ALT_ID_ATTACH",
+                     "team=%04X slot=%u id=%u age=17 age_saved=%d collision=%d",
+                     (unsigned)_selTeamNumber, (unsigned)freeSlot, id,
+                     saved_age, collision);
+    }
+
     /* Determine insertion point in currentMatchPlayers */
     uint16_t insertOffset;
     {
@@ -3510,8 +3533,12 @@ extern void Career_InitCompetitionTeamSelectionFromTableEntrySpec(uint8_t *recor
  * loads competition, runs cup match advancement, then restores RNG state.
  * a0 = competition record pointer. */
 __attribute__((used, externally_visible))
+
+extern uint8_t _currentCompetitionIndex;
+#define CUP_STEP(...) do { FILE *cf = fopen("swos_division_debug.log", "a"); if (cf) { fputs("CUPTRACE ", cf); fprintf(cf, __VA_ARGS__); fputc('\n', cf); fclose(cf); } } while (0)
 void Career_AutoAdvanceCupCompetitionFromRecord(uint8_t *record)
 {
+    CUP_STEP("ENTER comp=%u record=%p", (unsigned)_currentCompetitionIndex, (void *)record);
     /* Special-case English cup aliases (118/119 → 120/121). */
     uint8_t rid = record ? comp_id(record) : 0xFFu;
     if (rid == COMPID_englishCup)
@@ -3536,16 +3563,27 @@ void Career_AutoAdvanceCupCompetitionFromRecord(uint8_t *record)
     Randomize2(seed);
 
     _numSelectedTeams = 0;
+    CUP_STEP("TEAM_SELECTION_BEGIN comp=%u record=%p", (unsigned)_currentCompetitionIndex, (void *)record);
     Career_InitCompetitionTeamSelectionFromTableHeaderSpec(record);
+    CUP_STEP("TEAM_SELECTION_END comp=%u selected=%u", (unsigned)_currentCompetitionIndex, (unsigned)_numSelectedTeams);
+    CUP_STEP("MARKET_BEGIN comp=%u", (unsigned)_currentCompetitionIndex);
     Career_ApplyPendingForeignMarketPlayersToSelectedTeams();
+    CUP_STEP("MARKET_END comp=%u", (unsigned)_currentCompetitionIndex);
+    CUP_STEP("INIT_CUP_BEGIN comp=%u", (unsigned)_currentCompetitionIndex);
     InitDIYCupFromRecord(record);
+    CUP_STEP("INIT_CUP_END comp=%u", (unsigned)_currentCompetitionIndex);
+    CUP_STEP("INIT_TEAMS_BEGIN comp=%u", (unsigned)_currentCompetitionIndex);
     InitTeams();
+    CUP_STEP("INIT_TEAMS_END comp=%u", (unsigned)_currentCompetitionIndex);
+    CUP_STEP("MATCHES_BEGIN comp=%u", (unsigned)_currentCompetitionIndex);
     Career_AutoAdvanceCupMatches();
+    CUP_STEP("MATCHES_END comp=%u", (unsigned)_currentCompetitionIndex);
 
     _viewRandomPhase = savedViewRandom;
     _seasonPlaying = savedSeasonPlaying;
     RestoreRand2State();
     _careerLoadedFlag = 0;
+    CUP_STEP("EXIT comp=%u", (unsigned)_currentCompetitionIndex);
 }
 
 /* Career_AutoAdvanceLeagueCompetitionFromRecord (SWOS2.s line 35291)
