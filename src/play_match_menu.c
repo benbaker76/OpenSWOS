@@ -1329,9 +1329,30 @@ void DrawPlayerEntries(MenuEntry *a5) {
         posE->y = a5->y;
     }
 
-    /* Skills string (entry 35) */
+    /* Attribute total (entry 35), matching the SQUAD screen's seven
+     * 0-7 ratings. Keep FormTopSkillsString unchanged for other menus.
+     * The existing text buffer holds four bytes, so use two digits (no
+     * parentheses). As in SQUAD, goalkeepers have no outfield total. */
     MenuEntry *skE = posE + 1;
-    FormTopSkillsString((uint8_t *)skE->fg, (PlayerFile *)player);
+    {
+        uint8_t *text = (uint8_t *)skE->fg;
+        if ((playerPf->positionAndFace & PF_POSITION_MASK) == 0) {
+            text[0] = '-';
+            text[1] = 0;
+        } else {
+            unsigned total =
+                ((uint8_t)playerPf->velocityHeading & 7u) +
+                ((uint8_t)playerPf->speedFinishing & 7u) +
+                (((uint8_t)playerPf->speedFinishing >> 4) & 7u) +
+                ((uint8_t)playerPf->tacklingControl & 7u) +
+                (((uint8_t)playerPf->tacklingControl >> 4) & 7u) +
+                ((uint8_t)playerPf->passing & 7u) +
+                (((uint8_t)playerPf->velocityHeading >> 4) & 7u);
+            text[0] = (uint8_t)('0' + total / 10u);
+            text[1] = (uint8_t)('0' + total % 10u);
+            text[2] = 0;
+        }
+    }
     skE->y = a5->y;
 
     /* Value/status (entry 36) */

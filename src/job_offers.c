@@ -1,4 +1,3 @@
-#include "swos_fixed_team_name.h"
 /*
  * Amiga SWOS RE Project
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
@@ -347,21 +346,16 @@ void JobOffers_RemoveOffer(uint16_t teamNumber)
 /* ================================================================
  * JobOffers_MaybeExpireSomeNewOffers  (SWOS2.s line 84081)
  *
- * For each new job offer, there is a 1/32 chance (Rand2 < 0x20)
- * of expiring it by clearing its amountOffered field.
+ * Keep job offers available until the manager accepts or explicitly
+ * rejects them. Previously, every new offer had a 1/32 random chance
+ * of being withdrawn at each contract negotiation phase by setting
+ * amountOffered to zero. Preserve the function for existing callers,
+ * but do not expire valid offers automatically.
  * ================================================================ */
 __attribute__((used, externally_visible))
 void JobOffers_MaybeExpireSomeNewOffers(void)
 {
-    uint16_t count = _numNewJobOffers;
-    if (count == 0)
-        return;
-
-    for (int16_t i = (int16_t)(count - 1); i >= 0; i--) {
-        if (Rand2() < 0x20) {
-            _newJobOffers[i].amountOffered = 0;
-        }
-    }
+    /* No random withdrawal. */
 }
 
 /* ================================================================
@@ -384,7 +378,7 @@ void JobOffers_FillMissingNewOfferTeamNames(void)
 
         /* Look up team pointer and copy name */
         TeamFileEx *teamPtr = GetTeamPointer(offer->teamNo);
-        SWOS_CopyTeamName18(offer->teamName, teamPtr->team.teamName);
+        StringCopy((uint8_t *)teamPtr->team.teamName, (uint8_t *)offer->teamName);
     }
 }
 
@@ -542,9 +536,7 @@ void GotJobOfferFinish(void) {
 
     if (_jobOfferFunds != -1) {
         /* Domestic club offer */
-        uint8_t safeTeamName[18];
-        SWOS_CopyTeamName18(safeTeamName, ((uint8_t *)_teamOfferingJobPtr) + 5);
-        uint8_t *teamName = safeTeamName;
+        uint8_t *teamName = ((uint8_t *)_teamOfferingJobPtr) + 5;
 
         {
             uint8_t *out = (uint8_t *)_menuEntries[2].fg;
@@ -576,9 +568,7 @@ void GotJobOfferFinish(void) {
         int16_t newY = e0xA8->y + 10;
         _menuEntries[4].y = newY;
 
-        uint8_t safeTeamName[18];
-        SWOS_CopyTeamName18(safeTeamName, ((uint8_t *)_teamOfferingJobPtr) + 5);
-        uint8_t *teamName = safeTeamName;
+        uint8_t *teamName = ((uint8_t *)_teamOfferingJobPtr) + 5;
 
         {
             uint8_t *out = (uint8_t *)_menuEntries[2].fg;
@@ -612,9 +602,7 @@ acceptedJobPath:
 
     if (_jobOfferFunds != -1) {
         /* Domestic accepted */
-        uint8_t safeTeamName[18];
-        SWOS_CopyTeamName18(safeTeamName, ((uint8_t *)_teamOfferingJobPtr) + 5);
-        uint8_t *teamName = safeTeamName;
+        uint8_t *teamName = ((uint8_t *)_teamOfferingJobPtr) + 5;
 
         {
             uint8_t *out = (uint8_t *)_menuEntries[2].fg;
@@ -642,9 +630,7 @@ acceptedJobPath:
         }
         _menuEntries[7].y -= 15;
 
-        uint8_t safeTeamName[18];
-        SWOS_CopyTeamName18(safeTeamName, ((uint8_t *)_teamOfferingJobPtr) + 5);
-        uint8_t *teamName = safeTeamName;
+        uint8_t *teamName = ((uint8_t *)_teamOfferingJobPtr) + 5;
 
         {
             uint8_t *out = (uint8_t *)_menuEntries[2].fg;

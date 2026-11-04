@@ -206,7 +206,7 @@ void SetDefaultOptions(void)
 {
     _gameLength = 0;
     _autoReplays = 1;
-    _menuMusic = 1;
+    _menuMusic = 0;
     _autoSaveHighlights = 1;
     _pitchType = SEASONAL;
     _allPlayerTeamsEqual = 0;
@@ -1888,7 +1888,26 @@ void SquadAfterDrawCommon(void *entryPtr)
         unsigned ix=(unsigned)d4_fileIdx & 31u;
         unsigned age=SquadAgeForPlayer(pf);
 #ifdef SWOS_SDL_BUILD
-        if (_isNationalSquad == 0) {
+        int managedAgeResolved=0;
+        /* The managed club is special: its 16 original physical slots are
+         * held in _careerTeam and replaced in place after retirements. Read
+         * the persisted slot identity before any name-based fallback or
+         * national-squad/view-mode checks. In particular, a generated youth
+         * with normal form=0 must not be mistaken for an original age-25
+         * footballer simply because its name is absent from the CSV. */
+        if (_gameType == 4 &&
+            (_squadTeamFilePtr == (uintptr_t)&_careerTeam ||
+             PACK_BE_U16(tf->countryNumber,tf->teamOrdinal) == _selTeamNumber)) {
+            unsigned managedAge=0,managedId=0;
+            if(SWOS_IdentityAgeForClub((unsigned)_selTeamNumber,
+                                      (unsigned)d4_fileIdx,
+                                      &managedAge,&managedId) &&
+               managedId && managedAge>=15u && managedAge<=60u) {
+                age=managedAge;
+                managedAgeResolved=1;
+            }
+        }
+        if (!managedAgeResolved && _isNationalSquad == 0) {
             unsigned club=PACK_BE_U16(tf->countryNumber,tf->teamOrdinal);
             unsigned idAge=0,id=0,found=0;
             if (_squadTeamFilePtr == (uintptr_t)&_careerTeam) {
@@ -1903,12 +1922,70 @@ void SquadAfterDrawCommon(void *entryPtr)
             }
             if (!found && SWOS_ManualIdentityIsTouched(club,(unsigned)d4_fileIdx))
                 found=SWOS_ManualIdentityAge(club,(unsigned)d4_fileIdx,&idAge,&id);
-            else if (!found && _squadTeamFilePtr != (uintptr_t)&_careerTeam &&
-                     (unsigned)d4_fileIdx<16u &&
+            else if (!found && (unsigned)d4_fileIdx<16u &&
                      (uint8_t)pf->form!=PLAYER_FORM_TRIALIST &&
                      (uint8_t)pf->form!=PLAYER_FORM_RESERVE)
-                found=SWOS_IdentityAgeForClub(club,(unsigned)d4_fileIdx,&idAge,&id);
+                /* Canonical replacement identities cover the manager's
+                 * original squad slots too. The old != &_careerTeam test
+                 * excluded them and incorrectly displayed fallback age 25. */
+                found=SWOS_IdentityAgeForClub(
+                    _squadTeamFilePtr == (uintptr_t)&_careerTeam
+                        ? (unsigned)_selTeamNumber : club,
+                    (unsigned)d4_fileIdx,&idAge,&id);
             if(found && id && idAge>=15u && idAge<=60u) age=idAge;
+        }
+#endif
+#ifdef SWOS_SDL_BUILD
+        /* Recheck the live human squad without relying on the menu's game
+         * type or national-squad flags. Neither is guaranteed to describe
+         * the manager's club while the career menus are changing screens.
+         * The source of truth remains the persisted identity registry. */
+        if (_squadTeamFilePtr == (uintptr_t)&_careerTeam && d4_fileIdx < 32u) {
+            unsigned liveClub = PACK_BE_U16(tf->countryNumber, tf->teamOrdinal);
+            unsigned storedAge = 0, storedId = 0;
+            unsigned foundLive = SWOS_IdentityAgeForClub(
+                liveClub, (unsigned)d4_fileIdx, &storedAge, &storedId);
+            if (foundLive && storedId && storedAge >= 15u && storedAge <= 60u)
+                age = storedAge;
+            /* Log once per physical slot, not on every frame. This provides
+             * observable proof of which IDs and ages the renderer receives. */
+            static uint32_t loggedHumanSlots;
+            uint32_t bit = UINT32_C(1) << d4_fileIdx;
+            if (!(loggedHumanSlots & bit)) {
+                loggedHumanSlots |= bit;
+                swos_age_log("HUMAN_SQUAD_AGE_RENDER",
+                    "club=%04X selected=%04X slot=%u got=%u id=%u "
+                    "stored_age=%u shown_age=%u game_type=%u form=%u",
+                    liveClub, (unsigned)_selTeamNumber,
+                    (unsigned)d4_fileIdx, foundLive, storedId,
+                    storedAge, age, (unsigned)_gameType,
+                    (unsigned)(uint8_t)pf->form);
+            }
+        }
+#endif
+        /* Instrument the real age display, including squad views that use a
+         * temporary TeamFileEx rather than the literal &_careerTeam buffer.
+         * Log the first 32 render events (and every slot-five event), so
+         * a missing managed-team pointer match cannot hide the evidence. */
+#ifdef SWOS_SDL_BUILD
+        {
+            static unsigned ageRenderSamples;
+            unsigned debugClub = PACK_BE_U16(tf->countryNumber, tf->teamOrdinal);
+            unsigned debugStoredAge = 0, debugId = 0;
+            unsigned debugGot = SWOS_IdentityAgeForClub(
+                debugClub, (unsigned)d4_fileIdx, &debugStoredAge, &debugId);
+            if (ageRenderSamples < 32u || (unsigned)d4_fileIdx == 5u) {
+                swos_age_log("SQUAD_AGE_TRACE_V2",
+                    "slot=%u club=%04X sel=%04X is_managed_ptr=%u "
+                    "squad_view=%u nationality=%u got=%u id=%u "
+                    "identity_age=%u displayed_age=%u form=%u name=%.22s",
+                    (unsigned)d4_fileIdx,debugClub,(unsigned)_selTeamNumber,
+                    (unsigned)(_squadTeamFilePtr == (uintptr_t)&_careerTeam),
+                    (unsigned)_isSquadViewMode,(unsigned)_isNationalSquad,
+                    debugGot,debugId,debugStoredAge,age,
+                    (unsigned)(uint8_t)pf->form,(const char *)pf->playerName);
+            }
+            if (ageRenderSamples < 32u) ++ageRenderSamples;
         }
 #endif
         /* Fit the existing compact name cell; no data is changed in pf. */
@@ -4061,18 +4138,25 @@ void SWOS_RetirementNewsNext(void)
         SWOS_RetirementNewsPopulate();
         DrawMenu();
     } else {
+        /* End the dedicated retirement-news menu. ContinueCareer resumes
+         * and opens the next-season career screen after ShowMenu returns. */
+        s_retirementNewsCount = 0;
+        s_retirementNewsPage = 0;
         SetExitMenuFlag();
     }
 }
 
-void SWOS_RetirementNewsShow(void)
+int SWOS_RetirementNewsShow(void)
 {
     if (!s_retirementNewsCount)
-        return;
+        return 0;
     s_retirementNewsPage = 0;
+    /* Season-end results can leave a menu-exit request pending. ActivateMenu
+     * intentionally skips drawing if it sees that flag; clear it because the
+     * retirement notice is the next screen, not an exit from career mode. */
+    _exitMenu = 0;
     ShowMenu(_retirementNewsMenu);
-    /* This event has been acknowledged. Reopening menus cannot replay it. */
-    s_retirementNewsCount = 0;
+    return 1;
 }
 
 extern uint8_t _pastWinnersMenu[];

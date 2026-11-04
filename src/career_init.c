@@ -252,6 +252,7 @@ extern void SetExitMenuFlag(void);
 /* Forward declarations for Chunk 197 functions (defined later in this file) */
 void InitCareer(uint16_t teamNo);
 void ContinueCareerNextSeason(void);
+extern int SWOS_RetirementNewsShow(void);
 void InitializeNewSeason(void);
 void DIY_SelectCompetitionSlot4FromCurrentDivision(void);
 uint16_t Career_SelectEuroCupSlotIfTeamParticipates(uint8_t *cupCopy, uint16_t euroCupIndex);
@@ -303,6 +304,14 @@ void ContinueCareer(void)
         SetExitMenuFlag();
     } else {
         ContinueCareerNextSeason();
+        /* The season transition has now completed. Give the manager an
+         * additional, acknowledged step before opening the new season's
+         * career menu. Do not show the news from inside the update loop. */
+        /* This is a menu transition, not a nested modal. Keep Retirement
+         * News as the active menu until its CONTINUE entry is selected. */
+        /* Retirement News uses ShowMenu as an acknowledged intermediate
+         * step, returning only after the player selects CONTINUE. */
+        SWOS_RetirementNewsShow();
         ActivateMenu(_contestMenu);
     }
 }
@@ -1442,6 +1451,46 @@ unsigned SWOS_IdentityAgeForClub(unsigned club,unsigned slot,unsigned *age,unsig
     }
     if(SWOS_ManualIdentityIsTouched(club,slot))return SWOS_ManualIdentityAge(club,slot,age,id);
     unsigned v=s_identity_club_sources[club];
+    /* The club-to-TEAM source map is runtime-only, not persisted in .CAR.
+     * After loading a career, restore the managed club mapping on demand
+     * before reading its canonical player ages. Individual manual-transfer
+     * slots were checked above and remain authoritative. */
+    if(!v && club==(unsigned)_selTeamNumber){
+        SWOS_IdentityResolveClub(club);
+        v=s_identity_club_sources[club];
+    }
+    /* Human-team compatibility for legacy saves whose runtime TEAM source
+     * mapping is unavailable. Canonical retirement replacements are stored
+     * in the persisted identity registry with source=0 and a newly allocated
+     * ID. For clubs whose TEAM record index equals their team ordinal, this
+     * precise key recovers a replacement without guessing an original
+     * footballer's age. Never apply it to AI clubs, transferred slots, or
+     * ordinary seeded identities. */
+    if(club==(unsigned)_selTeamNumber) {
+        unsigned fallbackFile=(club>>8)&255u;
+        unsigned fallbackRecord=club&255u;
+        int fallbackIndex=SWOS_IdentityFind(
+            ((uint32_t)fallbackFile<<12)|
+            ((uint32_t)fallbackRecord<<4)|slot);
+        if(fallbackIndex>=0 &&
+           s_identity_records[fallbackIndex].id>SWOS_IDENTITY_SEED_COUNT &&
+           s_identity_records[fallbackIndex].source==0 &&
+           s_identity_records[fallbackIndex].age>=15u &&
+           s_identity_records[fallbackIndex].age<=60u) {
+            /* Honour the normal mapping if it points to the same canonical
+             * record. A different mapped record wins below: ordinal need
+             * not equal the original TEAM file index for every club. */
+            if(!v || (((v-1u)>>8)==fallbackFile &&
+                      ((v-1u)&255u)==fallbackRecord)) {
+                *age=s_identity_records[fallbackIndex].age;
+                *id=s_identity_records[fallbackIndex].id;
+                swos_age_log("MANAGED_AGE_REPLACEMENT_RECOVER",
+                    "club=%04X slot=%u id=%u age=%u source_map=%u",
+                    club,slot,*id,*age,v);
+                return 1;
+            }
+        }
+    }
     if(!v)return 0;
     unsigned file=(v-1u)>>8,record=(v-1u)&255u;
     int index=SWOS_IdentityFind(((uint32_t)file<<12)|((uint32_t)record<<4)|slot);
@@ -2491,7 +2540,13 @@ static unsigned SWOS_AI_P3Collect(SWOS_AI_P3Club *clubs)
             const TeamFileEx *team = &teams[i];
             if (team->team.countryNumber != country) continue;
             uint16_t id = (uint16_t)((country << 8) | team->team.teamOrdinal);
-            if (id == _selTeamNumber) continue;
+            /* The manager's club is excluded from AI transfers, but it
+             * still needs its canonical TEAM source registered for the
+             * first-team age and replacement-identity lookup. */
+            if (id == _selTeamNumber) {
+                SWOS_IdentityRegisterClub(id,country,i);
+                continue;
+            }
             SWOS_AI_P3Club *dst = &clubs[clubCount++];
             dst->id = id;
             dst->sourceFile = (uint8_t)country;
@@ -2804,7 +2859,7 @@ static void SWOS_RetirementBalanceFlush(unsigned season)
  * retiring player is replaced. The UI is shown only after the season update. */
 extern void SWOS_RetirementNewsClear(unsigned season);
 extern void SWOS_RetirementNewsRecord(const PlayerFile *player, unsigned age);
-extern void SWOS_RetirementNewsShow(void);
+extern int SWOS_RetirementNewsShow(void);
 
 /* Step 4C.2: Managed club original 16-slot retirement, separately opt-in.
  * Never infer identities for a previously transferred or unverified slot.
@@ -2908,6 +2963,20 @@ static void SWOS_RetirementLiveManaged(unsigned season,
             fresh=SWOS_IdentityReplaceCanonical(file,record,slot,17u,&prior);
         if(!fresh){skipped++;continue;}
         _careerTeam.players[slot]=youth;
+        /* The squad UI has a name-based age fallback when a physical-slot
+         * identity cannot be resolved. Register the new youth at age 17 as
+         * well as assigning its persistent ID, so it never falls back to 25. */
+        {
+            extern int SWOS_AgesSet(const char *name, unsigned age);
+            char youthDisplayName[sizeof(youth.playerName) + 1u];
+            memcpy(youthDisplayName, youth.playerName, sizeof(youth.playerName));
+            youthDisplayName[sizeof(youth.playerName)] = 0;
+            size_t youthNameLength = strlen(youthDisplayName);
+            while (youthNameLength && youthDisplayName[youthNameLength - 1u] == ' ')
+                youthDisplayName[--youthNameLength] = 0;
+            if (youthNameLength)
+                SWOS_AgesSet(youthDisplayName, 17u);
+        }
         if(slot<16u)local.players[slot]=youth;
         {
             extern uint16_t _currentTeamNumber;
@@ -3571,9 +3640,6 @@ void ContinueCareerNextSeason(void)
                 (unsigned)_numForeignMarketPlayers2);
     /* Observe the active worldwide squads after retirement and AI transfers. */
     SWOS_WorldQualitySnapshot((unsigned)_careerSeasonsCompleted);
-    /* Show one acknowledgement menu only if this manager lost players.
-     * This runs after all season, retirement, and AI transfer updates. */
-    SWOS_RetirementNewsShow();
     SWOS_AUTOSKIP_LOG("[bug1] ContinueCareerNextSeason EXIT");
 }
 
