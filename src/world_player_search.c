@@ -384,6 +384,13 @@ static void scan_world(void){
             if (team->team.countryNumber >= CN_EUROPE &&
                 team->team.countryNumber <= CN_OCEANIA) continue;
             uint16_t id=PACK_BE_U16(team->team.countryNumber,team->team.teamOrdinal);
+            /* Never offer a manager the players already at their own club.
+             * Use the selected career team ID, not a name or roster pointer:
+             * both can differ from the original TEAM data after transfers. */
+            if (id == _selTeamNumber) {
+                search_log("SKIP MANAGED CLUB team=%04X", (unsigned)id);
+                continue;
+            }
             /* Direct TEAM-file reads bypass LoadTeamFile and its identity mapping.
              * Register the actual record index, not the team ordinal: they
              * need not be identical. This makes original player ages available. */
@@ -496,6 +503,14 @@ void WorldPlayerSearch(void){
             focusEntry=SEARCH_FIRST_ROW_ENTRY+s_selected;
             if(at>=0 && at<s_visible){
                 SearchPlayer selected=s_players[s_filtered[at]];
+                /* Guard the purchase entry point as well as the search scan. */
+                if (selected.team == _selTeamNumber) {
+                    search_log("BLOCK SELF-PURCHASE team=%04X slot=%u",
+                               (unsigned)selected.team, (unsigned)selected.fileIndex);
+                    scan_world();
+                    s_page=0;
+                    continue;
+                }
                 search_log("OFFER team=%04x ordinal=%u name=%s",
                            (unsigned)selected.team,(unsigned)selected.fileIndex,selected.name);
                 ShowPlayerOfferMenuForPlayer(selected.team,selected.fileIndex);
