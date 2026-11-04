@@ -217,6 +217,7 @@ Mods are hosted by their authors (content with other people's rights stays their
    with Indoor and Career+ as the first ports (with their authors).
 6. §6 the `.PCH` writer in Tile Agent's runtime and the Amiga's reader; later pitch stages.
 7. World 2026-27 as a mod.
+8. The online-provider hook, with SWOS United as its first user (§13).
 
 ---
 
@@ -240,3 +241,40 @@ Mods are hosted by their authors (content with other people's rights stays their
   `grafs_aga/MENUBG.RAW` replaced the main menu's backdrop (screenshots with and without);
   `--menu-selftest` and `scripts/replay_v2_test.sh --all` unchanged with no mod.
 - **Not yet:** OpenSWOS Setup installing mods and writing `data/MODS`; a mods screen in the game.
+
+---
+
+## 13. SWOS United: a thin fork plus a mod (agreed 2026-11-04)
+
+SWOS United (github.com/SWOS-United/SWOS-United) is three things, and only two are a mod:
+
+| Part | Where it goes |
+|---|---|
+| SWOS 2020's online look: MATCH MAKING, RANKINGS, LEAGUES, the lobby, CHOOSE GAMEPLAY's icons | **the United mod** -- menus and their handlers, through the registries (§8.2) |
+| accounts and its own servers: SWOS-API log-in, swos.swosunited.com's rankings and leagues, its matchmaker | **the United mod**, as a source mod (it talks to the network and handles log-ins: not a sandboxed script), through a new **online-provider hook**: which server, how to log in, where rankings and leagues come from |
+| its identity: name, icon, phone app ids (`com.swosunited.game`), installer, player folder, netplay tag | **stays the fork**: `include/project_identity.h`, its packaging and icons. A mod cannot rename an app or give it an installer |
+
+The aim is a **thin fork**: `project_identity.h`, packaging, icons and the mod -- no shared file
+edited, so a merge of OpenSWOS never conflicts. (The merge of 2026-11-04 had five.)
+
+**Order:** after the registries (§8.2) and the online contract (§8.6). The online-provider hook
+is designed with United as its first user, and **with United's team**: it changes how they work.
+It is also the hook any fork uses for its own online service (FORKING.md: a fork runs its own
+server).
+
+**Syncing United while it moves -- the care it needs:**
+
+- **Until the hook exists, United stays a full fork** and merges OpenSWOS as today
+  (`git merge upstream/main`, never rebase; FORKING.md). Its online code is where conflicts
+  come from (`src/online_menus.c`, `src/platform_sdl.c`, `include/project_identity.h`).
+- **Move United's code into its mod one piece at a time**, each piece in its own United commit:
+  a screen goes into `mods/united/` as soon as the registry it needs exists in OpenSWOS, and its
+  edits to the shared file are removed in the same commit. Never half-move a screen.
+- **Each sync, after the merge:** build both targets; `--menu-selftest`; check the identity
+  header kept United's values (app id, tag, servers) and that player-facing paths name
+  `com.swosunited.game` (the Android folder in INSTALL.md and the install page); and log in
+  and play a match through United's own server, which OpenSWOS's tests never reach.
+- **Shared decisions stay explicit:** where OpenSWOS and United both have a feature (XBOX in
+  CHOOSE GAMEPLAY, 2026-11-04), the merge keeps OpenSWOS's in OpenSWOS's look and United's in
+  its own; a conflict there is resolved by asking, not by picking a side.
+- **OpenSWOS never merges United** (FORKING.md); a United fix OpenSWOS wants is cherry-picked.
