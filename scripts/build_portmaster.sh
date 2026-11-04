@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
-# build_portmaster.sh — build the PortMaster port into dist/swos.zip.
+# build_portmaster.sh — build the PortMaster port into dist/portmaster/swos.zip.
+# (A folder of its own: on a Windows drive dist/swos.zip IS dist/SWOS.zip, the binaries-only
+#  zip build_dist.sh writes after this -- it replaced the port in every drop until 2026-11-04.)
 #
 #   scripts/build_portmaster.sh             # build bin/SWOS.aarch64 and package
 #   scripts/build_portmaster.sh --no-build  # package the existing binary
@@ -34,9 +36,11 @@ if [ "$(uname -m)" != "aarch64" ] && ! command -v aarch64-linux-gnu-g++ >/dev/nu
 fi
 [ "$BUILD" = 1 ] && make ARM64=1 NETPLAY=$NETPLAY SWOS_SAVE_FORMAT_JSON_VERIFY=0 -j"$(nproc)"
 
-STAGE=dist/portmaster
+STAGE=dist/.portmaster-stage
 SRC=packaging/portmaster
-rm -rf "$STAGE" dist/swos.zip
+OUT=dist/portmaster/swos.zip
+rm -rf "$STAGE" dist/portmaster
+mkdir -p dist/portmaster
 mkdir -p "$STAGE/swos/libs.aarch64/glibc" "$STAGE/swos/licenses"
 
 cp -r "$SRC/swos/." "$STAGE/swos/"
@@ -56,5 +60,7 @@ done
 cp LICENSE "$STAGE/swos/licenses/OpenSWOS-LICENSE.txt"
 cp /usr/share/common-licenses/LGPL-2.1 "$STAGE/swos/licenses/glibc-LGPL-2.1.txt"
 
-(cd "$STAGE" && zip -qry ../swos.zip .)
-echo "dist/swos.zip: $(du -h dist/swos.zip | cut -f1)"
+(cd "$STAGE" && zip -qry "$(cd .. && pwd)/portmaster/swos.zip" .)
+rm -rf "$STAGE"
+unzip -Z1 "$OUT" | grep -xc "Sensible World of Soccer.sh" >/dev/null || { echo "build_portmaster: $OUT has no launcher" >&2; exit 1; }
+echo "$OUT: $(du -h "$OUT" | cut -f1)"

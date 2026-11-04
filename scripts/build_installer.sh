@@ -176,11 +176,13 @@ else
 fi
 # The PortMaster port, for the setup's Handheld screen: it looks for portmaster/swos.zip in
 # the folders above its own (build_dist.sh's portmaster target builds it before this).
-if [ -f dist/swos.zip ]; then
-    mkdir -p "$STAGE_DIR/portmaster" && cp dist/swos.zip "$STAGE_DIR/portmaster/" ||
-        die "cannot stage dist/swos.zip"
+if [ -f dist/portmaster/swos.zip ]; then
+    unzip -Z1 dist/portmaster/swos.zip | grep -xc "Sensible World of Soccer.sh" >/dev/null ||
+        die "dist/portmaster/swos.zip is not the PortMaster port (no launcher)"
+    mkdir -p "$STAGE_DIR/portmaster" && cp dist/portmaster/swos.zip "$STAGE_DIR/portmaster/" ||
+        die "cannot stage dist/portmaster/swos.zip"
 else
-    echo "build_installer: NOTE no dist/swos.zip (scripts/build_portmaster.sh): the setup's Handheld screen will ask for it" >&2
+    echo "build_installer: NOTE no dist/portmaster/swos.zip (scripts/build_portmaster.sh): the setup's Handheld screen will ask for it" >&2
 fi
 find "$STAGE_DIR" -name .DS_Store -delete 2>/dev/null
 find "$STAGE_DIR" -name '*.uaem' -delete 2>/dev/null

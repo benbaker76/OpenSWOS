@@ -40,7 +40,7 @@
 #   linux-x86      make                 -> bin/SWOS          (32-bit, -m32)
 #   linux-x86_64   make X86_64=1        -> bin/SWOS.x86_64
 #   linux-arm64    make ARM64=1         -> bin/SWOS.aarch64
-#   portmaster     scripts/build_portmaster.sh --no-build -> dist/swos.zip (that binary, for
+#   portmaster     scripts/build_portmaster.sh --no-build -> dist/portmaster/swos.zip (that binary, for
 #                  PortMaster handhelds; also portmaster/swos.zip in SWOS-portable.zip, where
 #                  the setup's Handheld screen finds it)
 #   linux-armhf    make ARM=1           -> bin/SWOS.armhf
@@ -485,7 +485,7 @@ fi
 
 if wanted portmaster; then
     if [ -f bin/SWOS.aarch64 ] && [ "${STATUS[linux-arm64]:-}" != "FAIL" ]; then
-        run portmaster "portmaster         -> dist/swos.zip" scripts/build_portmaster.sh --no-build
+        run portmaster "portmaster         -> dist/portmaster/swos.zip" scripts/build_portmaster.sh --no-build
     else
         record portmaster "SKIP (no bin/SWOS.aarch64: the linux-arm64 target)"
     fi
@@ -682,8 +682,10 @@ if [ "$DO_FULL" = 1 ] && [ -n "$ZIPPED" ] && command -v zip >/dev/null 2>&1; the
             echo "-- NOTE: no data setup built (the setup target): the drop needs it to be played"
         fi
         # The PortMaster port, for the setup's Handheld screen to put on a card.
-        if [ -f dist/swos.zip ]; then
-            PM_TMP="$(mktemp -d)" && mkdir -p "$PM_TMP/portmaster" && cp dist/swos.zip "$PM_TMP/portmaster/" &&
+        if [ -f dist/portmaster/swos.zip ]; then
+            unzip -Z1 dist/portmaster/swos.zip | grep -xc "Sensible World of Soccer.sh" >/dev/null ||
+                { echo "!! dist/portmaster/swos.zip is not the PortMaster port (no launcher)" >&2; exit 1; }
+            PM_TMP="$(mktemp -d)" && mkdir -p "$PM_TMP/portmaster" && cp dist/portmaster/swos.zip "$PM_TMP/portmaster/" &&
                 ( cd "$PM_TMP" && zip -q -0 "$ROOT/$FULL_ZIP_PATH" portmaster/swos.zip ) &&
                 echo "-- port:     portmaster/swos.zip"
             rm -rf "$PM_TMP"

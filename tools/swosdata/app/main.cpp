@@ -1375,7 +1375,7 @@ struct App {
 
   std::string FindPortZip() const {
     for (std::string d = exeDir; !d.empty();) {
-      for (const char* rel : {"swos.zip", "portmaster/swos.zip", "dist/swos.zip"})
+      for (const char* rel : {"swos.zip", "portmaster/swos.zip", "dist/portmaster/swos.zip"})
         if (sd::IsFile(Join(d, rel)) && PortZip(Join(d, rel))) return Join(d, rel);
       const std::string up = sd::ParentDir(d);
       if (up == d) break;

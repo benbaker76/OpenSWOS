@@ -11,7 +11,7 @@ No data from the original game is included. You need your own copy.
 On an aarch64 Linux machine with `libsdl2-dev`:
 
 ```bash
-scripts/build_portmaster.sh     # writes dist/swos.zip
+scripts/build_portmaster.sh     # writes dist/portmaster/swos.zip
 ```
 
 `--no-build` packages the existing `bin/SWOS.aarch64`. Only files tracked by git are
@@ -25,7 +25,7 @@ ROCKNIX and AmberELEC, `roms/ports` on Knulli, `Data/ports` on stock TrimUI) and
 port (`portmaster/swos.zip`, beside the setup in its zip), the game's data and the options you
 chose onto it. A World 2026-27 already on the card stays. By hand:
 
-1. Copy `dist/swos.zip` into PortMaster's `autoinstall` folder, then open PortMaster:
+1. Copy `dist/portmaster/swos.zip` into PortMaster's `autoinstall` folder, then open PortMaster:
 
    | Firmware | Folder |
    |---|---|

@@ -41,7 +41,7 @@ CHANNELS=(
     "OpenSWOS-Setup.zip:setup-windows-mac-linux"
     "OpenSWOS-Android.apk:android"
     "OpenSWOS-iOS.ipa:ios"
-    "swos.zip:portmaster"
+    "portmaster/swos.zip:portmaster"
 )
 # The developer downloads -- the game programs alone, and the Mac program without its app
 # (it needs SDL2 installed) -- are no use to a player, so the page does not offer them
@@ -105,6 +105,10 @@ for c in "${CHANNELS[@]}"; do
         [ "${c%%:*}" != OpenSWOS-Android.apk ] && [ "${c%%:*}" != OpenSWOS-iOS.ipa ] && \
         fail "$f is newer than the drop -- rebuild it"
 done
+# The port really is the port (until 2026-11-04 dist/swos.zip WAS dist/SWOS.zip on a Windows
+# drive, and the binaries went up as the PortMaster download).
+unzip -Z1 dist/portmaster/swos.zip | grep -xc "Sensible World of Soccer.sh" >/dev/null ||
+    fail "dist/portmaster/swos.zip is not the PortMaster port (no launcher)"
 [ "dist/OpenSWOS-Setup.zip" -nt "dist/OpenSWOS-Setup-macOS.zip" ] ||
     fail "dist/OpenSWOS-Setup.zip is older than the macOS part -- rerun scripts/build_setup_zip.sh"
 
