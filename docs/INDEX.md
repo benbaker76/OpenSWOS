@@ -210,7 +210,7 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `SWOS.svg` | the master icon (`scripts/generate_icons.py`) |
 | `docs/images/openswos-logo.png` | the OpenSWOS logo (README, the itch.io cover) |
 | `docs/images/screenshots/` | the README's screenshots (the same as the itch.io page's) |
-| `docs/images/setup/` | OpenSWOS Setup on Windows (start, found, done) for INSTALL.md: retaken with the setup's `--snapshot` from neutral copies of the sources (never the disk images' own names) and its default assets folder |
+| `docs/images/setup/` | OpenSWOS Setup's wizard on Windows, a screen each (`wizard-*.png`), for INSTALL.md and openswos.net/install (copied beside it): taken with `--wizard=... --wizard-step=N --snapshot`, `--language=en`, from neutral copies of the sources (`--scan`, `--no-gog`, Public Documents/Downloads: never the disk images' own names or a user's folders) |
 
 ## On the owner's PC
 
