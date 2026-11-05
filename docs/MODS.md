@@ -880,6 +880,8 @@ players, VIEW SQUAD and a national squad. `row` says the team, the player's slot
 the screen knows them: every one of these does except a market row with no player behind it) and
 the row; the hook rewrites cells with ModApi_MenuText (text it keeps) and may show, hide or move
 them. Display only: it changes no game state (Career+'s ratings, totals, ages and nationalities).
+For the text: `ModApi_SquadGoalsView` says which of a squad's views is shown (GOALS, or SKILLS),
+`ModApi_NationalityCode` a nationality's three letters as the game shows them.
 
 ---
 
@@ -956,7 +958,7 @@ careers and `check_netplay_compat.sh`.
 
 ## 31. The career's players (src/mod_career.c; Career+'s §3.5)
 
-Five calls (include/mod_api.h) that go through the game's own career code, so what a mod does
+Seven calls (include/mod_api.h) that go through the game's own career code, so what a mod does
 is kept, saved and shown as the game's own transfers are. A team is `file << 8 | ordinal`, a
 slot a player's place in the team's file (0-15; 0-31 for your club); each gives -1 outside a
 career or when it cannot.
@@ -967,6 +969,8 @@ career or when it cannot.
 | `ModApi_SetCareerPlayer(team, slot, player)` | another club's player becomes `player` for the rest of the career: the claim in the career's foreign pool (updated, or one added; -1 when the pool is full, `foreign_pool_capacity`) and every live copy (`Career_WriteTeamPlayer`). Never your club: its players change through the game's transfers |
 | `ModApi_OfferForPlayer(team, slot)` | the game's MAKE OFFER screen for that player, with BUY PLAYER's own tests first (time left to negotiate, room in the squad); 1 when the transfer was made. From a `MODPOINT_BUY_PLAYER` / `MODPOINT_TRANSFER_MARKET` entry the screen then closes as it does after the game's own buys |
 | `ModApi_CallUpPlayer(team, slot)` | a national selector's pick, from the `MODPOINT_NATIONAL_ADD_PLAYER` entry: refused as the squad screen greys players out (another nationality, already in the squad, unavailable); when the entry returns ADD PLAYER closes and the game adds him as HOME / ABROAD would, a full squad included (`Career_AddInternationalPlayerPicked`) |
+| `ModApi_CareerTeamName(team, out, cap)` | the club's name, found as `ModApi_CareerTeam` finds it (a 17-letter name has no NUL in the file; this one has) |
+| `ModApi_ViewedCompetition(&id, &league, &division)` | from a `MODPOINT_COMPETITION_STATS` entry: the contest that STATISTICS screen shows -- its id (as `competitionFinished` gives it), whether it is its country's league, and then its division; a cup otherwise (a continental league phase too). Read from `_diyCompetitionStart` as the WINNERS screen reads it (`WorldWinners_Viewed`) |
 | `ModApi_ListPlayer(slot)` | your player onto your transfer list: 1 when he is on it already (the game's own add does not check), -1 when the list is full (`transfer_list_capacity`) or the slot is empty |
 
 Both targets: on the Amiga, `Career_PeekTeam` asks resload whether `data/team.NNN` is there

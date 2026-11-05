@@ -110,6 +110,27 @@ static const LeaguePlayoffs *viewed_titles(uint8_t *division)
     return country_rules(World_FileCountry(t->countryNumber));
 }
 
+int32_t WorldWinners_Viewed(uint8_t *competitionId, int32_t *league, uint8_t *division)
+{
+    const DIYCompetitionEx *c = viewed();
+    if (c->base.numTeams < 1)
+        return -1;
+    *competitionId = (uint8_t)c->base.field_2E;
+    *league = 0;
+    *division = 0;
+    if (c->base.competitionType == 0 && c->base.numTeams >= 2) {
+        const TeamFile *t = row_team(c, 0);
+        extern void *_competitionsTable[];  /* (its country's league, not a cup's group: viewed_titles) */
+        void **entry = (void **)_competitionsTable[t->countryNumber];
+        const Competition *primary = entry ? (const Competition *)entry[0] : 0;
+        if (primary && (intptr_t)primary != -1 && (uint8_t)primary->compId == *competitionId) {
+            *league = 1;
+            *division = t->league;
+        }
+    }
+    return 0;
+}
+
 static int32_t count_titles(const LeaguePlayoffs *lp, uint8_t division)
 {
     int32_t n = 0;

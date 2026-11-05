@@ -18,6 +18,9 @@ void CompetitionStatsInit(void);
 
 /* The viewed contest (_diyCompetitionStart) has titles on the page: its WINNERS entry shown. */
 int32_t WorldWinners_Available(void);
+/* The contest the STATISTICS screen shows (ModApi_ViewedCompetition): its competition id
+ * (comp_id), whether it is its country's league, and then its division. 0 when there is one. */
+int32_t WorldWinners_Viewed(uint8_t *competitionId, int32_t *league, uint8_t *division);
 
 /* WINNERS (fire): the page. */
 void CompetitionStatsWinners(void);
