@@ -181,14 +181,44 @@ static void lineup_row(const ModPlayerRow *row)
     ModApi_MenuText(kLineupSkills, totals[ix]);
 }
 
+/* F2's ages: "NAME (age)" in a squad's name cell (48), "SURNAME (age)" in a transfer screen's
+ * (its fourth: the game's ExtractSurname), where the row says whose player he is. */
+enum { kSquadName = 48, kMarketName = 3 };
+
+static void squad_age(const ModPlayerRow *row)
+{
+    static char text[kRows][32];
+    if (row->team == 0xFFFF || row->slot >= 32)
+        return;
+    snprintf(text[row->slot], sizeof text[row->slot], "%.22s (%d)", (const char *)row->player->playerName,
+             (int)CP_Age(row->team, row->slot));
+    ModApi_MenuText(kSquadName, text[row->slot]);
+}
+
+static void market_age(const ModPlayerRow *row)
+{
+    extern uint8_t *ExtractSurname(uint8_t *name, uint16_t maxLenAndFlags);
+    static char text[64][32];
+    static int32_t next;
+    if (row->team == 0xFFFF || row->slot >= 32 || row->cells <= kMarketName)
+        return;
+    const char *surname = (const char *)ExtractSurname((uint8_t *)row->player->playerName, 0x0D + 0x10);
+    char *t = text[next++ & 63];            /* (each row's own: a screen's rows are drawn in turn) */
+    snprintf(t, sizeof text[0], "%.22s (%d)", surname, (int)CP_Age(row->team, row->slot));
+    ModApi_MenuText(row->firstCell + kMarketName, t);
+}
+
 void CP_Rows_Drawn(const ModPlayerRow *row)
 {
     if (!row->player)
         return;
-    if (row->screen == MODROWS_SQUAD)
+    if (row->screen == MODROWS_SQUAD) {
         squad_row(row);
-    else if (row->screen == MODROWS_PLAY_MATCH)
+        squad_age(row);
+    } else if (row->screen == MODROWS_PLAY_MATCH)
         lineup_row(row);
+    else if (row->screen == MODROWS_MARKET)
+        market_age(row);
 }
 
 #endif /* SWOS_SDL_BUILD */
