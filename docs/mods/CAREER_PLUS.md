@@ -181,18 +181,28 @@ The mod's career code uses its own generator, seeded from the career (its state 
 Where Career+ replaced a `Rand2` draw (sponsorship, trialists), the mod on gives another career,
 as it should; the mod off draws exactly as the original.
 
-## 5. The two match changes
+## 5. The match changes (decided: the owner said yes, 2026-11-04)
 
-Career+ changes matches in three places. Options, for the owner:
+Career+ changes matches in three places, and all three are **built-in `[tweaks]` the mod switches
+on**. Nothing in the mod writes a match. The rules (OpenSWOS docs/MODS.md §4, a61f73b2):
 
-- **AI straight reds** = `[tweaks] cpu_cards`. Needs: a mod may switch a tweak on while it is on
-  (offline only, as tweaks are).
-- **More fouls** (`tackle_foul.c:569`, a new `Rand()` draw: every later roll moves) and **AI injury
-  subs** (`bench_subs.c:431`, writes the match: swaps players, sub counts, tactics) become **tweaks
-  in the base** -- `more_fouls`, `cpu_injury_subs` -- and Career+ switches them on like
-  `cpu_cards`. The mod stays `career`; online plays the host's tweaks as it already does.
-- (The other way -- gameplay hooks that may write the match -- makes Career+ a `gameplay` mod
-  that refuses online play with anyone without it, and needs the hook to be rollback-safe.)
+- **AI straight reds** = `[tweaks] cpu_cards` (already on main).
+- **More fouls** (`tackle_foul.c:569`, a new `Rand()` draw: every later roll moves) = a new tweak.
+- **AI injury subs** (`bench_subs.c:431`: swaps players, sub counts, tactics) = a new tweak.
+
+1. All three are built-in `[tweaks]` keys, off by default and marked OFFLINE-ONLY. The game owns
+   them; a mod can only switch one on, through one call, `ModApi_SetTweak`. The main session
+   builds that call and the two new tweaks together, in OpenSWOS. Before writing either tweak it
+   checks SWOS2.s: if the original already does what is asked, it becomes a base bug fix instead.
+2. Online always wins: a match against another player plays without them. The rigs and the golden
+   careers run without them too. Career+ stays a `career` mod, so it never has to match between
+   two players.
+3. The player can see it: the tweak's OPTIONS row shows "ON (CAREER+)", and turning the mod off
+   restores the player's own setting.
+4. A recording stores the tweaks in force, so a replay or `--srp-resim` plays the same match.
+
+The mod calls `ModApi_SetTweak` for each of the three at start-up (its `init` hook), each behind
+one of its own settings (default on).
 
 ## 6. Open questions
 
