@@ -36,6 +36,26 @@ int32_t ModApi_CareerTeam(uint16_t team, struct PlayerFile *out)
     return 0;
 }
 
+int32_t ModApi_CareerTeamName(uint16_t team, char *out, int32_t cap)
+{
+    TeamFileEx t;
+    if (!in_career() || !out || cap < 1 || !Career_PeekTeam(team, &t))
+        return -1;
+    int32_t n = 0;
+    while (n < cap - 1 && n < (int32_t)sizeof t.team.teamName && t.team.teamName[n])
+        out[n] = (char)t.team.teamName[n], n++;     /* (17 letters have no NUL) */
+    out[n] = 0;
+    return 0;
+}
+
+int32_t ModApi_ViewedCompetition(uint8_t *competitionId, int32_t *league, uint8_t *division)
+{
+    extern int32_t WorldWinners_Viewed(uint8_t *competitionId, int32_t *league, uint8_t *division);
+    if (!in_career() || !competitionId || !league || !division)
+        return -1;
+    return WorldWinners_Viewed(competitionId, league, division);
+}
+
 int32_t ModApi_SetCareerPlayer(uint16_t team, uint16_t slot, const struct PlayerFile *player)
 {
     TeamFileEx t;

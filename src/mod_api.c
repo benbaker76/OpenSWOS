@@ -138,6 +138,24 @@ uint8_t *ModApi_Frame(int32_t *stride)
     return (uint8_t *)(uintptr_t)_frontbufferBasePtr;
 }
 
+int32_t ModApi_SquadGoalsView(void)
+{
+    extern uint16_t _isSquadViewMode;
+    return _isSquadViewMode != 0;
+}
+
+int32_t ModApi_NationalityCode(uint8_t nationality, char *out)
+{
+    extern uint8_t _shortCountryNames[];
+    enum { kCodes = 214 };              /* (swos_data_bulk_imports.c: _shortCountryNames[214 * 3]) */
+    if (!out || nationality >= kCodes)
+        return -1;
+    for (int32_t i = 0; i < 3; i++)
+        out[i] = (char)_shortCountryNames[nationality * 3 + i];
+    out[3] = 0;
+    return 0;
+}
+
 /* ---- colours ---- */
 
 #ifdef SWOS_SDL_BUILD

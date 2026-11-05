@@ -112,6 +112,11 @@ struct ModPlayerRow {
     int16_t  cells;         /* how many cells the row has */
     const struct PlayerFile *player;
 };
+/* For a row's hook: which of a squad's two views is shown -- 1 GOALS (its goals and clubs),
+ * 0 the SKILLS one (the original's _isSquadViewMode) -- and a nationality's three letters as the
+ * game shows them (PlayerFile.nationality; out: 4 bytes, NUL-ended). 0 when there is one. */
+int32_t ModApi_SquadGoalsView(void);
+int32_t ModApi_NationalityCode(uint8_t nationality, char *out);
 
 /* ---- the career hooks' arguments (ModDef's career hooks) ---- */
 typedef enum {
@@ -149,6 +154,13 @@ struct ModPlayerCreated {
 /* A club's players as the career has them now (its live copy, or its file with the career's
  * transfers on it), without disturbing what a screen shows. 0 when read. */
 int32_t ModApi_CareerTeam(uint16_t team, struct PlayerFile *out);   /* (out: 16 of them) */
+/* A club's name as the career has it (as ModApi_CareerTeam finds the club). 0 when read. */
+int32_t ModApi_CareerTeamName(uint16_t team, char *out, int32_t cap);
+/* The contest a competition's STATISTICS screen shows (from its MODPOINT_COMPETITION_STATS
+ * entry): its competition id (as competitionFinished's), whether it is its country's league --
+ * then `division` is its division, 0 the top -- or a cup (a continental league phase included).
+ * 0 when one is shown. */
+int32_t ModApi_ViewedCompetition(uint8_t *competitionId, int32_t *league, uint8_t *division);
 /* Another club's player at `slot` becomes `player` for the rest of the career (the career's
  * pool and every live copy, as the game's transfers are kept; not your club). 0 written, -1 not
  * (the pool full: foreign_pool_capacity). */
