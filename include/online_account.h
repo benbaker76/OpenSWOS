@@ -74,6 +74,9 @@ int32_t     Account_LobbyCanStart(void);
  * its SELECT MATCH button. */
 const char *Account_MatchText(void);
 void        Account_SelectMatch(void);              /* SELECT MATCH */
+/* A player's row chosen in the matchmaking list (SWOS 2020 opens MATCH INFO / PLAYER INFO
+ * there): the service shows what it has about them, or nothing. */
+void        Account_UserSelected(const char *name);
 
 /* After every match, on both machines: how it ended, from THIS player's side -- goals in the
  * ninety minutes, in extra time, in the shoot-out -- and whether it was played to the end. */

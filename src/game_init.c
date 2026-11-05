@@ -806,6 +806,14 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
         }
     }
     {
+        /* A mod's match (include/mod_api.h ModApi_PlayMatch): its sides, no prompts. */
+        extern int32_t ModMatch_SetupPlayers(TeamFileEx *t1, TeamFileEx *t2);
+        if (ModMatch_SetupPlayers(team1, team2)) {
+            (void)maxSubs; (void)excludeFlags; (void)allowSquadChanges; (void)mode; (void)d0;
+            return;
+        }
+    }
+    {
         extern int _gArcadeMode;
         if (_gArcadeMode) {
             /* Arcade: no pre-match squad/tactics menu — and the front-end menu
@@ -965,7 +973,10 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
 #ifdef SWOS_SDL_BUILD
         extern int _gArcadeMode;
         extern uint8_t _aArcadeMatchName[];   /* "GOLDEN GOAL" (arcade.c) */
-        if (_gArcadeMode)
+        extern const char *ModMatch_Name(void);  /* a mod's match's own (mod_match.c) */
+        if (ModMatch_Name())
+            StringCopy((uint8_t *)ModMatch_Name(), _gameName);
+        else if (_gArcadeMode)
             StringCopy(_aArcadeMatchName, _gameName);
         else
 #endif
@@ -989,6 +1000,8 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
         /* An online match's cup rules (the lobby's), put back after the clear. */
         extern void NetplaySetup_TakeTieRules(void);
         NetplaySetup_TakeTieRules();
+        extern void ModMatch_TieRules(void);    /* a mod's match's (mod_match.c) */
+        ModMatch_TieRules();
     }
 #endif
 
@@ -1232,7 +1245,12 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
      * events / audio. */
     {
         int16_t i;
+#ifdef SWOS_SDL_BUILD
+        extern int32_t ModMatch_SkipStadium(void);  /* a mod's match that wants none (mod_match.c) */
+        for (i = ModMatch_SkipStadium() ? -1 : 0x95; i >= 0; i--) {
+#else
         for (i = 0x95; i >= 0; i--) {
+#endif
             WaitForVSync();
         }
     }

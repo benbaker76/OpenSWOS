@@ -40,6 +40,19 @@ void ModHooks_PlayerDrawn(const struct Sprite *sprite, const struct SpriteGraphi
  * says whether it is a player and where his feet are). Draw only. */
 void ModHooks_ReplayFrameBegin(int32_t first, int32_t fresh);
 void ModHooks_ReplaySprite(uint16_t image, int16_t left, int16_t top);
+
+/* The rest, each named for its ModDef hook (include/mod_api.h says when each runs):
+ * Init (src/main.c, after Mods_Init), MenuDrawn (src/menu_system.c), MatchStart
+ * (src/match_setup.c, InitGameRestoreTeams' end), MatchFrame (src/game_loop.c, after the
+ * clock), MatchEvent (src/mod_match.c, from the event sites), MatchEnded (src/game_loop.c). */
+struct ModMatchEvent;
+struct ModMatchResult;
+void ModHooks_Init(void);
+void ModHooks_MenuDrawn(void);
+void ModHooks_MatchStart(void);
+void ModHooks_MatchFrame(void);
+void ModHooks_MatchEvent(const struct ModMatchEvent *event);
+void ModHooks_MatchEnded(const struct ModMatchResult *result);
 #endif
 
 #endif /* MOD_HOOKS_H */

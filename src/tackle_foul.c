@@ -9,6 +9,16 @@
 #include "dos_sound.h"
 #include "contest_log.h"    /* how long a slide leaves a player down (ContestLog_Down) */
 
+/* the mods' match events (include/mod_api.h ModEventKind): team, sprite */
+#ifdef SWOS_SDL_BUILD
+extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);   /* src/mod_match.c */
+extern int32_t ModMatch_PlayerIndex(const Sprite *s);
+#define MOD_EVENT(kind, team, sprite) ModMatch_Event((kind), (team)->teamNumber, ModMatch_PlayerIndex(sprite), 0)
+#else
+#define MOD_EVENT(kind, team, sprite) ((void)0)
+#endif
+
+
 extern int16_t  _gsPlayerDownTimer;   /* Amiga 50 / DOS 55 — dos_gameplay.c */
 
 /* Card types (not in game_types.h) */
@@ -260,6 +270,7 @@ PlayerTackled(Sprite *player, TeamGeneralInfo *team)
 
 apply_injury:
     pi->isInjured = 1;
+    MOD_EVENT(8 /* MODEVENT_INJURY */, team, player);
     DOS_SOUND(DOS_EV_INJURY, team->playerNumber != 0);
 
     /* Only upgrade injury severity, never downgrade */
@@ -372,6 +383,7 @@ TryBookingThePlayer(Sprite *player, TeamGeneralInfo *team)
             _team1NumAllowedInjuries--;
         else
             _team2NumAllowedInjuries--;
+        MOD_EVENT(6 /* MODEVENT_SECOND_YELLOW */, team, player);
         return 0;
     }
 
@@ -379,6 +391,7 @@ TryBookingThePlayer(Sprite *player, TeamGeneralInfo *team)
     _whichCard = CARD_YELLOW;
     stats = team->teamStatsPtr;
     stats->bookings++;
+    MOD_EVENT(5 /* MODEVENT_YELLOW_CARD */, team, player);
     return 0;
 }
 
@@ -452,6 +465,7 @@ TrySendingOffThePlayer(Sprite *player, TeamGeneralInfo *team)
     else
         _team2NumAllowedInjuries--;
 
+    MOD_EVENT(7 /* MODEVENT_RED_CARD */, team, player);
     return 0;
 }
 
@@ -550,6 +564,7 @@ PlayerTacklingTestFoul(Sprite *player, TeamGeneralInfo *team)
     /* It's a foul! Increment fouls counter */
     stats = team->teamStatsPtr;
     stats->foulsConceded++;
+    MOD_EVENT(4 /* MODEVENT_FOUL */, team, player);
 
     /* Check if cards are allowed */
     if (_cardsDisallowed != 0 || _trainingGame != 0)

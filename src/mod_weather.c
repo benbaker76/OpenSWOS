@@ -332,8 +332,11 @@ static void stamp(const Pool *pool)
     if (!fb || s_lutAge == 0xFFFFFFFFu)
         return;
     ModApi_ScreenSize(&w, &h);
-    draw_splashes(fb, stride, w, h);
-    stamp_prints(pool, fb, stride, w, h);
+    /* (its settings: the mod's page, SWOS.ini [mod.weather]) */
+    if (SDL_strcasecmp(ModApi_Setting("weather", "splashes", "on"), "off") != 0)
+        draw_splashes(fb, stride, w, h);
+    if (SDL_strcasecmp(ModApi_Setting("weather", "footprints", "on"), "off") != 0)
+        stamp_prints(pool, fb, stride, w, h);
 }
 
 /* A match's pitch is in the frame being drawn and the sprites are not yet. */
@@ -404,5 +407,13 @@ void ModWeather_FrameDrawn(SDL_Renderer *renderer)
     mud_update_live();
     weather_draw(renderer);
 }
+
+const ModDef ModDef_weather = {
+    .slug = "weather",
+    .frameDrawn = ModWeather_FrameDrawn,
+    .pitchDrawn = ModWeather_PitchDrawn,
+    .replayFrameBegin = ModWeather_ReplayFrameBegin,
+    .replaySprite = ModWeather_ReplaySprite,
+};
 
 #endif /* SWOS_SDL_BUILD */

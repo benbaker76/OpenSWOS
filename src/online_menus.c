@@ -2269,9 +2269,13 @@ static void matchMaking_host_onSelect(void)
     MmClient_JoinGame(games[s_rowGame[row]].owner);
 }
 
-/* A user row. Upstream opens playerInfoMenu here; nothing to show yet. */
+/* A user row. Upstream opens playerInfoMenu here: the account service's to show
+ * (Account_UserSelected; OpenSWOS's has nothing to show yet). */
 static void matchMaking_users_onSelect(void)
 {
+    const int32_t row = current_ordinal() - MatchMakingMenu_users_00;
+    if (row >= 0 && row < MatchMakingMenu_kGS_MaxRows2 && s_userRow[row][0])
+        Account_UserSelected(s_userRow[row]);
 }
 
 /* EXIT: leave the lobby properly rather than abandoning a socket -- otherwise
@@ -2638,6 +2642,8 @@ int32_t OnlineMenus_ShowStartMenu(void)
     }
     P2PMenu_Init();             /* --menu=p2p/p2pMenu wants its handlers too */
     ControlsMenu_Init();
+    ModsMenu_Init();            /* (--menu=openswos/modsMenu) */
+    { extern void ModEntries_Init(void); ModEntries_Init(); }   /* (--menu=openswos/modEntriesMenu) */
     if (!strcmp(name, CREDITS_MENU_NAME))
         CreditsMenu_Show();         /* with its photos' palette, as the button opens it */
     else if (!strcmp(name, SWOS2020_MENU(selectMyCustomTeams)))
@@ -2707,6 +2713,21 @@ int32_t OnlineMenus_SelfTest(void)
         if (bad) {
             failed++;
             printf("  FAIL %-26s %s\n", "modsMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
+        { extern void ModEntries_Init(void); ModEntries_Init(); }
+        bad = MenuJson_VerifyDynamic("openswos/modEntriesMenu", 12);
+        menus++;
+        entries += 12;
+        if (bad) {
+            failed++;
+            printf("  FAIL %-26s %s\n", "modEntriesMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
+        bad = MenuJson_VerifyDynamic(MOD_PAGE_MENU_NAME, MOD_PAGE_MENU_ENTRIES);
+        menus++;
+        entries += MOD_PAGE_MENU_ENTRIES;
+        if (bad) {
+            failed++;
+            printf("  FAIL %-26s %s\n", "modPageMenu", bad < 0 ? "did not load" : "mismatch (see log)");
         }
     }
     CreditsMenu_Init();

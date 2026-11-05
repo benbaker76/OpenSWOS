@@ -345,6 +345,9 @@ NextPenalty(void)
 {
     int16_t totalAttempts;
     int16_t *shooterIdx;
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_ShootoutKick(void); ModMatch_ShootoutKick(); }  /* the mods' event (mod_match.c) */
+#endif
 
     totalAttempts = _team1PenaltyAttempts + _team2PenaltyAttempts;
 

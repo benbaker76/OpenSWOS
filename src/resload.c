@@ -303,6 +303,19 @@ static uint32_t rob_save(uint8_t *name, uint8_t *src, uint32_t fileSize)
     return put ? 0 : 1;
 }
 
+/* A file at a full path, saved as the game saves (include/mod_api.h ModApi_SaveFile): written
+ * whole, then made durable as rob_save makes a save -- the web's IndexedDB sync, the Switch's
+ * commit. 0 on success. */
+int32_t Resload_SaveFileAt(const char *path, const uint8_t *src, uint32_t n)
+{
+    const uint32_t put = fs_save(path, src, n);
+    if (put) {
+        wasm_persist_saves();
+        swos_save_commit();
+    }
+    return put ? 0 : -1;
+}
+
 static uint32_t rob_delete(uint8_t *name)
 {
     char path[512];

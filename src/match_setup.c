@@ -479,6 +479,10 @@ void StartingMatch(void)
 __attribute__((used, externally_visible))
 void SetCameraMovingToShowerState(void)
 {
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(10 /* MODEVENT_SECOND_HALF */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
+#endif
     _halfNumber = 2;
     /* Invert teamPlayingUp: neg + add 3 (1->2, 2->1) */
     _teamPlayingUp = (uint16_t)(3 - _teamPlayingUp);
@@ -514,6 +518,10 @@ void SetCameraMovingToShowerState(void)
 __attribute__((used, externally_visible))
 void EndFirstHalf(void)
 {
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(9 /* MODEVENT_HALF_TIME */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
+#endif
     setBreakState(ST_FIRST_HALF_ENDED, ST_STOPPED, 100);
     ResetBothTeamsPlayerPassingKicking();
     clearCameraVelocity();
@@ -654,6 +662,10 @@ void GameOver(void)
 __attribute__((used, externally_visible))
 void StartFirstExtraTime(void)
 {
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(12 /* MODEVENT_EXTRA_TIME */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
+#endif
     _halfNumber = 1;
 
     /* Random teamPlayingUp and teamStarting */
@@ -752,6 +764,10 @@ void PrepareForInitialKick(void)
 __attribute__((used, externally_visible))
 void StartPenalties(void)
 {
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(13 /* MODEVENT_SHOOTOUT */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
+#endif
     _penaltiesState = 0xFFFF;
     _savedTeam1Goals = _statsTeam1Goals;
     _savedTeam2Goals = _statsTeam2Goals;
@@ -987,6 +1003,9 @@ apply_palette_and_pitch:
     ResetGoalAttempt();
     InitAnimatedPatterns();
     StartingMatch();
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_KickOff(void); ModMatch_KickOff(); }  /* a mod's starting score/clock; the mods told */
+#endif
     PlaySample1IfNotTraining();
 
     if (_playGame != 0) {

@@ -4,8 +4,30 @@
  "name": "Weather",
  "version": "1.0",
  "author": "C4ppy77 (the effect: github.com/C4ppy77/pitch-weather-SWOS, MIT); OpenSWOS",
- "about": "Rain, drizzle and snow over a match, from its pitch: frozen snow, muddy heavy rain, wet rain, soft drizzle.",
- "targets": ["sdl"],
+ "about": "Rain, drizzle and snow over a match from its pitch, mud trails, splashes.",
+ "targets": [
+  "sdl"
+ ],
  "changes": "cosmetic",
- "default": false
+ "default": false,
+ "settings": [
+  {
+   "key": "footprints",
+   "label": "Footprints in the mud",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "splashes",
+   "label": "Raindrops splashing",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  }
+ ]
 }

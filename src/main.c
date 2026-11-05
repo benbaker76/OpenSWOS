@@ -1311,6 +1311,15 @@ int main(int argc, char **argv)
         const char *env = getenv("SWOS_MODS_ENABLED");
         Mods_Init(s_modsArgSet ? s_modsArg : env ? env : opts.mods, opts.mods_disabled);
     }
+    /* The built-in mods that are on, set up (include/mod_api.h ModDef.init): their entries and
+     * their menus' handlers -- before the menus are built from JSON, which name them. */
+    { extern void ModHooks_Init(void); ModHooks_Init(); }
+    { extern void ModMatch_SelfTest(void);    /* (SWOS_MOD_MATCH_TEST=entry: its MODES entry, now) */
+      if (getenv("SWOS_MOD_MATCH_TEST") && strcmp(getenv("SWOS_MOD_MATCH_TEST"), "entry") == 0) ModMatch_SelfTest(); }
+    /* (SWOS_SKIP_INTRO=1: straight to the menus -- a test's; src/mod_match.c ModMatch_SelfTest too) */
+    if ((getenv("SWOS_MOD_MATCH_TEST") && strcmp(getenv("SWOS_MOD_MATCH_TEST"), "entry") != 0) ||
+        getenv("SWOS_SKIP_INTRO"))
+    { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
     Tweaks_Set(opts.tweaks);    /* [tweaks] (include/tweaks.h): off line only, off in the rigs */
     if (opts.tweaks)
         fprintf(stderr, "[tweaks] on:%s%s%s (off line only)\n",

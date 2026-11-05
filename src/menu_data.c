@@ -8,6 +8,7 @@
 
 extern void MultiplayerMenuSelected(void);
 extern void CreditsMenuSelected(void);
+extern void ModesMenuSelected(void);
 extern void SetExitMenuFlag(void);
 extern void TopGoalScorersMenu_0(void);
 extern void SetupDIYCompetitionStatsMenu(void);
@@ -502,6 +503,7 @@ extern char _aMenuMusic[];
 extern char _aGameplay[];
 extern char _aWorldOption[];
 extern char _aModsOption[];
+extern char _aModes[];
 extern char _aModsNone[];
 extern char _aControls[];
 extern char _aRedefineKeys[];
@@ -7026,6 +7028,14 @@ Menu_SWOSMainMenu _swosMainMenu = {
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aCredits },
         { MENU_CMD_ONSELECT_FIRE, CreditsMenuSelected },
+        MENU_CMD_END
+    },
+    {
+        { -12, -52, 60, 14 },
+        { MENU_CMD_NAV, -1, -1, 13, 15 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_TEXT_PTR, 0x0, _aModes },
+        { MENU_CMD_ONSELECT_FIRE, ModesMenuSelected },
         MENU_CMD_END
     },
     { MENU_MARK_START_MENU, 0, 0 },

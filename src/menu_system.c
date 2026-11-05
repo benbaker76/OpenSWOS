@@ -1643,6 +1643,9 @@ void DrawMenu(void)
         DrawMenuText(4, 256, 7, (uint8_t *)Build_ScreenText(),
                      (uint8_t *)_charTables[0]);   /* [0] = the small font */
 
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
+#endif
     WaitForVSync();
     BlitterCopyOverlayToScreen();
 }
@@ -1905,6 +1908,9 @@ void MenuProc(void)
     } else {
         if (_menuStatus == 0) {
             DrawSelectedMenuItemFrame();
+#ifdef SWOS_SDL_BUILD
+            { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
+#endif
             WaitForVSync();
         }
 

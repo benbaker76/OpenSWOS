@@ -184,6 +184,15 @@ skip_if_penalties:
         goalType = GT_OWN_GOAL;
     if (_penalty != 0)
         goalType = GT_PENALTY;
+#ifdef SWOS_SDL_BUILD
+    {   /* the mods' match event (src/mod_match.c): the team that scored, the man who put it in */
+        extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+        extern int32_t ModMatch_PlayerIndex(const Sprite *s);
+        ModMatch_Event(goalType == GT_OWN_GOAL ? 1 /* MODEVENT_OWN_GOAL */
+                       : goalType == GT_PENALTY ? 2 /* MODEVENT_PENALTY_GOAL */ : 0 /* MODEVENT_GOAL */,
+                       scoringTeam, ModMatch_PlayerIndex(scorerSprite), 0);
+    }
+#endif
 
     /* ---- select scorer tables by team ---- */
     if (scoringTeam == 1) {

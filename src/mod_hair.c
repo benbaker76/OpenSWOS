@@ -503,4 +503,10 @@ void ModHair_PlayerDrawn(const Sprite *sprite, const SpriteGraphics *gfx, int16_
     }
 }
 
+const ModDef ModDef_hair = {
+    .slug = "hair",
+    .playerSetsRaw = ModHair_PlayerSetsRaw,
+    .playerDrawn = (void (*)(const struct Sprite *, const struct SpriteGraphics *, int16_t, int16_t))ModHair_PlayerDrawn,
+};
+
 #endif /* SWOS_SDL_BUILD */

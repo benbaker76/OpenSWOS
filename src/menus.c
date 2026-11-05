@@ -2499,8 +2499,23 @@ extern uint8_t _viewCompetitionsMenu[];
 
 /* SWOSMainMenuInit — calls CommonMenuExit on main menu init (SWOS2.s line 68835) */
 __attribute__((used, externally_visible))
+/* ModesMenuSelected -- OpenSWOS's MODES button (main menu entry 16): the mods' entries, the
+ * MODES screen (src/mod_entries.c). */
+__attribute__((used, externally_visible))
+void ModesMenuSelected(void)
+{
+#ifdef SWOS_SDL_BUILD
+    extern void ModEntries_Show(int32_t point);
+    ModEntries_Show(0 /* MODPOINT_MODES */);
+#endif
+    CommonMenuExit();
+}
+
 void SWOSMainMenuInit(void)
 {
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_SelfTest(void); ModMatch_SelfTest(); }   /* (SWOS_MOD_MATCH_TEST) */
+#endif
     CommonMenuExit();
 }
 
@@ -2700,6 +2715,18 @@ void CommonMenuExit(void)
     /* CREDITS (entry 15): a JSON menu on SDL, a 256-colour picture on the AGA Amiga.
      * The OCS Amiga has neither. */
     _menuEntries[15].isInvisible = 1;
+#endif
+    /* MODES (entry 16): the mods' entries (include/mod_api.h MODPOINT_MODES) -- shown only
+     * while a mod that is on has one; never on the Amiga (no built-in mods there). */
+#ifdef SWOS_SDL_BUILD
+    {
+        extern int32_t ModEntries_Count(int32_t point);
+        const int32_t modes = ModEntries_Count(0 /* MODPOINT_MODES */) > 0;
+        _menuEntries[16].isInvisible = !modes;
+        _menuEntries[15].upEntry = (int8_t)(modes ? 16 : 13);   /* CREDITS up: MODES or LOAD OLD */
+    }
+#else
+    _menuEntries[16].isInvisible = 1;
 #endif
 #ifndef SWOS_NETPLAY
     /* OpenSWOS's MULTIPLAYER button (entry 14) plays over the network, so it is only

@@ -335,6 +335,11 @@ int32_t NetplayMatch_IsLive(void)
     return (s_np.mode == NETPLAY_MATCH_P2P && s_np.live) || s_np.mode == NETPLAY_MATCH_RESIM;
 }
 
+/* A frame GGPO re-simulates is being played (cbAdvance): the mods' match hooks are not told it
+ * (src/mod_match.c ModMatch_Quiet) -- it is played again, not for the first time. */
+static int32_t s_resimulating;
+int32_t NetplayMatch_Resimulating(void) { return s_resimulating; }
+
 int32_t NetplayMatch_IsP2P(void)
 {
     return s_np.mode == NETPLAY_MATCH_P2P;
@@ -727,7 +732,9 @@ static int32_t cbAdvance(void *ctx)
     int32_t resimFrame = 0;
     Netplay_CurrentFrame(s_np.session, &resimFrame);
     soundFrameBegin(resimFrame, 1);
+    s_resimulating = 1;
     r = step(inputs, -1, 0);
+    s_resimulating = 0;
     soundFrameEnd();
     if (s_np.mode == NETPLAY_MATCH_P2P) {
         Ghost_Played(resimFrame, 0);        /* the correction replaces what was drawn */
