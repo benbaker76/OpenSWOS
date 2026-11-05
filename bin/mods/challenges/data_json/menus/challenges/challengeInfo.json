@@ -1,0 +1,523 @@
+{
+ "name": "challengeInfo",
+ "comment": "A challenge: where the match stands, what wins it, PLAY. Handlers challenges.<name> (src/mod_challenges.c).",
+ "menu_flags": {
+  "dos_redraw": true
+ },
+ "onInit": "challenges.infoInit",
+ "onReturn": null,
+ "onDraw": "challenges.infoDraw",
+ "defaultEntry": 3,
+ "items": [
+  {
+   "kind": "entry",
+   "name": "header",
+   "coords": {
+    "x": 12,
+    "y": 0,
+    "w": 296,
+    "h": 16
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x10"
+    },
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "subTitle",
+   "coords": {
+    "x": 12,
+    "y": 20,
+    "w": 296,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "label0",
+   "coords": {
+    "x": 12,
+    "y": 36,
+    "w": 196,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "value0",
+   "coords": {
+    "x": 212,
+    "y": 36,
+    "w": 84,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.info0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "label1",
+   "coords": {
+    "x": 12,
+    "y": 50,
+    "w": 196,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "value1",
+   "coords": {
+    "x": 212,
+    "y": 50,
+    "w": 84,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.info1"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "label2",
+   "coords": {
+    "x": 12,
+    "y": 64,
+    "w": 196,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "value2",
+   "coords": {
+    "x": 212,
+    "y": 64,
+    "w": 84,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.info2"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "label3",
+   "coords": {
+    "x": 12,
+    "y": 78,
+    "w": 196,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "value3",
+   "coords": {
+    "x": 212,
+    "y": 78,
+    "w": 84,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.info3"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "label4",
+   "coords": {
+    "x": 12,
+    "y": 92,
+    "w": 196,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "value4",
+   "coords": {
+    "x": 212,
+    "y": 92,
+    "w": 84,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.info4"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "label5",
+   "coords": {
+    "x": 12,
+    "y": 106,
+    "w": 196,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "value5",
+   "coords": {
+    "x": 212,
+    "y": 106,
+    "w": 84,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.info5"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "label6",
+   "coords": {
+    "x": 12,
+    "y": 120,
+    "w": 196,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "value6",
+   "coords": {
+    "x": 212,
+    "y": 120,
+    "w": 84,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.info6"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "label7",
+   "coords": {
+    "x": 12,
+    "y": 134,
+    "w": 196,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "value7",
+   "coords": {
+    "x": 212,
+    "y": 134,
+    "w": 84,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.info7"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "note",
+   "coords": {
+    "x": 12,
+    "y": 150,
+    "w": 296,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "exit",
+   "coords": {
+    "x": 102,
+    "y": 166,
+    "w": 100,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "EXIT"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "challenges.exit"
+    }
+   ]
+  }
+ ]
+}

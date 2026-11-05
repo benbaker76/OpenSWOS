@@ -92,6 +92,7 @@ int32_t ModApi_ShowMenu(const char *menuPath);  /* MenuJson_Load + ShowMenu; 0 w
 void    ModApi_MenuText(int32_t entry, const char *text);
 void    ModApi_MenuVisible(int32_t entry, int32_t shown);
 void    ModApi_MenuNav(int32_t entry, int32_t up, int32_t down);
+void    ModApi_MenuSelect(int32_t entry);       /* the cursor on it */
 
 /* ---- a match a mod plays (H2, H4) ---- */
 typedef enum { MODSIDE_CPU, MODSIDE_PLAYER1, MODSIDE_PLAYER2 } ModSide;
@@ -109,7 +110,8 @@ typedef struct {
     uint8_t  stadium;       /* show the stadium screen before (0: straight to the pitch) */
     uint8_t  replayMenu;    /* show REPLAY / EXIT after (0: straight back to the mod) */
     int8_t   score[2];      /* the score at kick-off */
-    int16_t  minute;        /* the clock at kick-off, 0..44 (the first half) */
+    int16_t  minute;        /* the clock at kick-off, 0..89 (45 plays as 46: half time is its own
+                             * flow); from 46 the second half, playingUp then as it is played */
     const char *name;       /* the match's name on the screens ("PRACTICE"), NULL the friendly's */
     uint8_t  chosen;        /* the teams ModApi_ChooseTeams chose (team[] unused): the sides as
                              * the player set them there (a CPU team the CPU, the rest players) */
@@ -120,6 +122,7 @@ typedef struct {
     uint8_t  noCards;       /* fouls, no bookings */
     uint8_t  noInjuries;    /* tackles injure nobody */
     uint8_t  linesOut[2];   /* per team, MODLINE_* bits: those outfielders are not on the pitch */
+    uint32_t sentOff[2];    /* per team, bit n: the player with shirt number n starts sent off (G3) */
 } ModMatchSetup;
 
 enum { MODLINE_DEFENCE = 1, MODLINE_MIDFIELD = 2, MODLINE_ATTACK = 4 };   /* (backs and defenders;
@@ -128,6 +131,8 @@ enum { MODLINE_DEFENCE = 1, MODLINE_MIDFIELD = 2, MODLINE_ATTACK = 4 };   /* (ba
 /* The friendly's team screen: the player picks two teams, and who plays each (CPU / player).
  * 1 when two were chosen (then ModMatchSetup.chosen plays them), 0 when the player left. */
 int32_t ModApi_ChooseTeams(void);
+/* A database team by its uuid (docs/TEAM_IDS.md): its id for ModMatchSetup.team, or 0. */
+uint16_t ModApi_TeamByUuid(const char *uuid);
 /* A random national team's id (its own random numbers: the match's are not taken), or 0. */
 uint16_t ModApi_RandomTeam(void);
 /* The last chosen teams again (a retry: the ones the last ModMatchSetup.chosen match played,

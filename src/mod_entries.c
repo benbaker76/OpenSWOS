@@ -123,6 +123,8 @@ void ModApi_MenuNav(int32_t entry, int32_t up, int32_t down)
     e->directionUp = e->directionDown = -1;
 }
 
+void ModApi_MenuSelect(int32_t entry) { SetCurrentEntry((uint16_t)entry); }
+
 int32_t ModApi_ShowMenu(const char *menuPath)
 {
     uint8_t *menu = MenuJson_Load(menuPath);

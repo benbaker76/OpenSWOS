@@ -613,3 +613,22 @@ Checked: `SWOS_MOD_MATCH_TEST=speedrun:<n>` (fixed teams, team 0 counted as your
 frames and 1 GOAL in 1219, PASS, records.json written; header goals found across the replay corpus
 (15 of 178 goals, in the matches with headed goals); check_netplay_compat.sh unchanged.
 
+**`challenges`** (`src/mod_challenges.c`, `bin/mods/challenges`: canonical, `"modes"`, on by default;
+SWOS 2020's scenario mode): MODES -> CHALLENGES, each OPEN, DONE or LOCKED (locked while an easier
+one is not done, as SWOS 2020's `setScenariosLocked`); one shows its teams (YOU / CPU), the score,
+the minute and what wins it, PLAY; then YOU BEAT THE CHALLENGE / NOT THIS TIME, QUICK RETRY or EXIT.
+**Its format is OpenSWOS's own** (the owner: JSON is our format for data -- not `challenges.ini`,
+not `.SCN`): `data_json/challenges/*.json` in any mod that is on, `"format": "openswos-challenges"`
+(the file's header comment has every field): database teams BY UUID, which is yours, the score, the
+minute (0-89), shirt numbers already sent off, extra time / penalties, `"win"`: `win`, `draw` (at
+least) or `exact` (`win_score`, yours first). A challenge pack is a mod of such files. Progress:
+`save/mods/challenges/progress.json` (`openswos-challenges-progress`: completed, attempts). The
+mod's own six, from 96/97's teams: HOLD ON, LAST MINUTES, DERBY DAY, TEN MEN, TWO ALL, THE COMEBACK.
+New in the engine for it: a start in the SECOND half (the map's G2: minute 46-89 sets
+`_halfNumber` 2; 45 plays as 46, half time's own minute), players sent off before kick-off
+(`ModMatchSetup.sentOff`, G3: by shirt number, gone as a sent-off man), `ModApi_TeamByUuid`,
+`ModApi_MenuSelect`. Checked: `SWOS_MOD_MATCH_TEST=challenge:<id>` (CPU v CPU) -- THE COMEBACK from
+3-0 at 46 to the whistle without a half time (5-0), TEN MEN from 1-1 at 60, progress written; the
+list (its locks) and a challenge's screen drawn; check_netplay_compat.sh unchanged. Not yet: golden
+and silver goal, a starting event (G6), extra-time minutes, SWOS 2020's own challenges as a DLC pack.
+

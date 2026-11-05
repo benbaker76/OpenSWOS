@@ -304,6 +304,7 @@ static void result_init(void)
     const int32_t again = M_label0 + 2 * 3 + 1;
     ModApi_MenuNav(again, -1, M_exit);
     ModApi_MenuNav(M_exit, again, -1);
+    ModApi_MenuSelect(again);
     result_refresh();
 }
 

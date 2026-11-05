@@ -23,6 +23,7 @@
 #include "game_types.h"
 #include "mod_hooks.h"
 #include "play_match_menu.h"
+#include "team_db.h"
 
 #include <SDL.h>
 
@@ -205,6 +206,12 @@ int32_t ModApi_ChooseTeams(void)
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
 }
 
+uint16_t ModApi_TeamByUuid(const char *uuid)
+{
+    const TeamDbEntry *e = uuid ? TeamDb_ByUuid(uuid) : NULL;
+    return e ? (uint16_t)(e->team.team.countryNumber << 8 | e->team.team.teamOrdinal) : 0;
+}
+
 /* After ModApi_ChooseTeams: whether a chosen team is a player's (1) or the CPU's (0). */
 int32_t ModMatch_ChosenSide(int32_t team)
 {
@@ -338,7 +345,12 @@ void ModMatch_KickOff(void)
         _team2GoalsDigit2 = (uint16_t)(g2 % 10);
         int16_t m = s_mm.setup.minute;
         if (m < 0) m = 0;
-        if (m > 44) m = 44;                     /* (the first half: half time is its own flow) */
+        if (m > 89) m = 89;                     /* (extra time is its own flow) */
+        if (m == 45) m = 46;                    /* (45 is half time's minute: UpdateTime tests it) */
+        if (m > 45) {                           /* the second half (G2): its minutes, its half */
+            extern uint16_t _halfNumber;
+            _halfNumber = 2;
+        }
         uint8_t *t = (uint8_t *)&_gameTime;
         t[0] = 0;
         t[1] = (uint8_t)(m / 100);
@@ -369,13 +381,15 @@ void ModMatch_PlayersEntered(void)
     extern Sprite **_team2SpritesTable;
     extern TeamGame *_topTeamPtr;
     extern TeamGame *_bottomTeamPtr;
-    if (!s_mm.active || !(s_mm.setup.linesOut[0] | s_mm.setup.linesOut[1]))
+    if (!s_mm.active || !(s_mm.setup.linesOut[0] | s_mm.setup.linesOut[1] | s_mm.setup.sentOff[0] |
+                          s_mm.setup.sentOff[1]))
         return;
     for (int32_t t = 0; t < 2; t++) {
         Sprite **tab = t == 0 ? _team1SpritesTable : _team2SpritesTable;
         const TeamGame *team = t == 0 ? _topTeamPtr : _bottomTeamPtr;
         const uint8_t out = s_mm.setup.linesOut[t];
-        if (!out || !tab || !team)
+        const uint32_t off = s_mm.setup.sentOff[t];
+        if ((!out && !off) || !tab || !team)
             continue;
         for (int32_t i = 1; i < 11; i++) {          /* (never the goalkeeper) */
             const int8_t pos = team->players[i].position;
@@ -383,7 +397,9 @@ void ModMatch_PlayersEntered(void)
                                : (pos == POS_RIGHT_WING || pos == POS_LEFT_WING || pos == POS_MIDFIELDER) ? MODLINE_MIDFIELD
                                : MODLINE_DEFENCE;
             Sprite *sp = tab[i];
-            if (!(out & line) || !sp)
+            const int32_t shirt = team->players[i].shirtNumber;
+            const int32_t sent = shirt > 0 && shirt < 32 && (off >> shirt & 1);
+            if ((!(out & line) && !sent) || !sp)
                 continue;
             sp->cards = -1;
             sp->sentAway = 1;
@@ -406,7 +422,8 @@ void ModMatch_Frame(void)
     if (s_kickedOff && !ModMatch_Quiet())
         s_frames++;
     if (s_mm.active && s_mm.setup.clockStopped) {   /* (G7: the clock back to its start each frame) */
-        int16_t m = s_mm.setup.minute < 0 ? 0 : s_mm.setup.minute > 44 ? 44 : s_mm.setup.minute;
+        int16_t m = s_mm.setup.minute < 0 ? 0 : s_mm.setup.minute > 89 ? 89 : s_mm.setup.minute;
+        if (m == 45) m = 46;
         uint8_t *t = (uint8_t *)&_gameTime;
         t[1] = (uint8_t)(m / 100);
         t[2] = (uint8_t)(m / 10 % 10);
@@ -526,6 +543,11 @@ void ModMatch_SelfTest(void)
     if (done || !how)
         return;
     done = 1;
+    if (strncmp(how, "challenge:", 10) == 0) {  /* (the challenges mod's, src/mod_challenges.c) */
+        extern void ModChallenges_Test(const char *id);
+        ModChallenges_Test(how + 10);
+        return;
+    }
     if (strncmp(how, "speedrun:", 9) == 0) {    /* (the speedrun mod's run, src/mod_speedrun.c) */
         extern void ModSpeedrun_Test(int32_t target);
         ModSpeedrun_Test(atoi(how + 9));
