@@ -749,8 +749,15 @@ petarku's CHAMPIONS / EUROPA / CONFERENCE LEAGUE for 96/97 is a mod's data on th
   `World_UefaSeeds` answer with them (a world's own always win).
 - A career qualifies through the UEFA qualifying rounds when there are league phases, so a career
   needs the seeds; PRESET needs only the records, shown through the mod's own
-  MODPOINT_COMPETITIONS entry. The data -- the 36-club tiers -- is the mod's (openswos-78's
-  `euro36`), not the engine's.
+  MODPOINT_COMPETITIONS entry. The data -- the 36-club tiers -- is the mod's, not the engine's.
+- **The mod: canonical `euro36`** (`src/mod_euro36.c`, `bin/mods/euro36`; petarku's, by the5ar),
+  **off by default** (the owner, 2026-11-05: 96/97 plays its original cups unless the player turns
+  it on in OPTIONS -> MODS). Its clubs are petarku's curated tiers (`scripts/euro36_tiers.json`,
+  written into `src/mod_euro36_data.inc` by `scripts/make_euro36.py`); the UEFA seeds a career
+  draws on are DERIVED from the clubs' strength, the game's own metric, not real coefficients (the
+  owner's choice). PRESET COMPETITION -> EUROPE then lists its three cups by their own names: the
+  table is `_europeTable`, which `LeaguePhase_InstallCups` repoints. "career": never online.
+  Rigs: off, as every default-on gameplay mod (§26).
 
 ---
 
