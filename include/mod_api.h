@@ -160,6 +160,38 @@ struct WorldUefaSeeds;
 int32_t ModApi_SetLeaguePhases(const char *slug, void *cups /* CompetitionLeaguePhase[3] */,
                                const uint8_t (*places)[4], int32_t count, const struct WorldUefaSeeds *seeds);
 
+/* ---- the online provider (H9; docs/MODS.md §25) ----
+ * A mod that runs a project's online service (SWOS United's: its server, its log-ins, its
+ * rankings and leagues) gives the game its matchmaker and the account functions of
+ * include/online_account.h, at run time: a field left NULL / 0 keeps OpenSWOS's own answer
+ * (no accounts, its server). The server the player typed on the log-in screen still wins over
+ * mmHost, and a test's SWOS_MM_HOST over both. From the mod's init; one provider (the last
+ * mod to set it). */
+#include "online_account.h"
+typedef struct {
+    const char *name;                       /* for the log ("SWOS UNITED") */
+    const char *mmHost;                     /* its matchmaker, NULL OpenSWOS's */
+    uint16_t    mmPort;                     /* 0 the default */
+    void        (*init)(void);              /* Account_Init (with the online menus) */
+    int32_t     (*has)(AccountFeature feature);
+    int32_t     (*enabled)(void);
+    const char *(*prompt)(void);
+    const char *(*url)(AccountLink link);
+    void        (*begin)(const char *user, const char *password);
+    int32_t     (*poll)(void);
+    const char *(*error)(void);
+    int32_t     (*chooseMode)(void);
+    void        (*lobbyOpened)(int32_t host);
+    void        (*lobbyPeer)(const char *name);
+    void        (*lobbyPoll)(void);
+    int32_t     (*lobbyCanStart)(void);
+    const char *(*matchText)(void);
+    void        (*selectMatch)(void);
+    void        (*userSelected)(const char *name);
+    void        (*matchPlayed)(const AccountResult *result);
+} ModOnlineProvider;
+int32_t ModApi_SetOnlineProvider(const char *slug, const ModOnlineProvider *provider);   /* (kept) */
+
 /* ---- a match a mod plays (H2, H4) ---- */
 typedef enum { MODSIDE_CPU, MODSIDE_PLAYER1, MODSIDE_PLAYER2 } ModSide;
 

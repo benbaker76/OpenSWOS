@@ -767,3 +767,26 @@ pages of six) chooses two teams on the friendly's screen, then the score, the mi
 winning is and who you are on the info screen's rows; SAVE AND PLAY writes it to the player's
 `save/mods/challenges/custom.json` in the challenges format (ids by `ModApi_ChosenTeamUuid`) and
 plays it. A player's own challenges never lock or are locked.
+
+---
+
+## 24. The news ticker (canonical `ticker`)
+
+SWOS 2020's ticker (render.cpp `showNewsStr`): a line of news scrolling right to left through a
+menu's ticker box -- the entry its JSON names `"ticker_entry"` (docs/MENUS.md §13) -- one item a
+pass, the next at random. The news is `openswos-news` JSON (`{"items": [{"text", "link"}]}`), read
+from the player's `save/mods/ticker/news.json` first (where a feed's download goes), else the
+mod's own `data_json/ticker/news.json`. Setting `speed`: slow / normal / fast. OpenSWOS's own
+menus have no ticker row; SWOS United's menus2020 has one.
+
+---
+
+## 25. The online provider (H9)
+
+The hook §13 asked for: a mod runs a project's online service at run time, where a fork used to
+compile its own `online_account.c` (`PROJECT_ACCOUNTS`, which still works and turns this off).
+`ModApi_SetOnlineProvider(slug, &provider)` from the mod's init: `name`, `mmHost` / `mmPort`
+(its matchmaker) and any of the account functions of include/online_account.h -- the log-in
+check, the web pages, RANKINGS / LEAGUES / MATCH LOGS / RANKED, OPEN's mode, the lobby's calls,
+`matchPlayed`. A field left NULL keeps OpenSWOS's answer (no accounts). The server the player
+typed on the log-in screen still wins over `mmHost` (and a test's `SWOS_MM_HOST` over both).

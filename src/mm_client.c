@@ -72,12 +72,27 @@ const char *MmClient_ConfiguredServer(void)
     return s_cfgShown;
 }
 
+#ifndef PROJECT_ACCOUNTS
+#define PROJECT_ACCOUNTS 0
+#endif
+#define PROJECT_ACCOUNTS_BUILD PROJECT_ACCOUNTS   /* (a fork's own accounts: no provider hook) */
+
 const char *MmClient_DefaultHost(void)
 {
     const char *h = getenv("SWOS_MM_HOST");
     if (h && h[0])
         return h;
-    return s_cfgHost[0] ? s_cfgHost : MM_DEFAULT_HOST;
+    if (s_cfgHost[0])
+        return s_cfgHost;
+#if defined(SWOS_SDL_BUILD) && !PROJECT_ACCOUNTS_BUILD
+    {   /* a mod's online provider's server (online_account.c, docs/MODS.md §25) */
+        extern const char *OnlineProvider_MmHost(void);
+        const char *ph = OnlineProvider_MmHost();
+        if (ph && ph[0])
+            return ph;
+    }
+#endif
+    return MM_DEFAULT_HOST;
 }
 
 uint16_t MmClient_DefaultPort(void)
@@ -86,7 +101,16 @@ uint16_t MmClient_DefaultPort(void)
     int v = (p && p[0]) ? atoi(p) : 0;
     if (v > 0 && v <= 65535)
         return (uint16_t)v;
-    return s_cfgPort ? s_cfgPort : MM_DEFAULT_PORT;
+    if (s_cfgPort)
+        return s_cfgPort;
+#if defined(SWOS_SDL_BUILD) && !PROJECT_ACCOUNTS_BUILD
+    {
+        extern uint16_t OnlineProvider_MmPort(void);
+        if (OnlineProvider_MmPort())
+            return OnlineProvider_MmPort();
+    }
+#endif
+    return MM_DEFAULT_PORT;
 }
 
 #ifdef SWOS_NETPLAY
