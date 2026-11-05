@@ -53,6 +53,26 @@ void ModHooks_MatchStart(void);
 void ModHooks_MatchFrame(void);
 void ModHooks_MatchEvent(const struct ModMatchEvent *event);
 void ModHooks_MatchEnded(const struct ModMatchResult *result);
+
+/* The career's (docs/MODS.md §27), each named for its ModDef hook: CareerNew (src/career_init.c
+ * InitCareer), CareerSeasonEnd and CareerBeforeContinue (ContinueCareerNextSeason, ContinueCareer),
+ * CompetitionFinished (src/career_season.c, where each title is decided), PlayerMoved (a buy, a
+ * sale: src/transfer_market.c), PlayerCreated (a trialist, a replacement: the same file). */
+struct PlayerFile;
+void ModHooks_CareerNew(void);
+void ModHooks_CareerSeasonEnd(uint16_t season);
+void ModHooks_CareerBeforeContinue(void);
+void ModHooks_CompetitionFinished(uint16_t season, uint8_t competitionId, uint8_t kind, uint8_t division,
+                                  uint16_t winner);
+void ModHooks_PlayerMoved(uint16_t fromTeam, uint8_t fromSlot, uint16_t toTeam, uint8_t toSlot);
+void ModHooks_PlayerCreated(uint16_t team, uint8_t slot, uint8_t kind, struct PlayerFile *player);
+
+/* The career save's "mods" section (src/save_format_json.c): the text that follows the career's
+ * last member -- `,\n  "mods":{"<slug>":{...},...}` -- malloc'd, or NULL when no mod that is on
+ * wrote one (the save is then the one it always was); and a loaded career's JSON, each mod that
+ * is on told its object (or that there is none). */
+char *ModHooks_CareerSaveSection(void);
+void  ModHooks_CareerLoadSection(const char *json, int32_t len);
 #endif
 
 #endif /* MOD_HOOKS_H */

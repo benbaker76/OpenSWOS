@@ -36,6 +36,7 @@
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
 #include "translations.h"   /* tr() — localize competition name symbols */
 #include "career_capacity.h"   /* the career lists' original and compiled sizes */
+#include "mod_hooks.h"         /* "mods": the career mods' sections (docs/MODS.md §27), SDL builds */
 
 extern uint8_t *_currentCompetitionPtr;
 
@@ -6763,6 +6764,18 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
     }
 
+#ifdef SWOS_SDL_BUILD
+    /* The career mods' sections ("mods": {"<slug>": {...}}): only when a mod that is on wrote
+     * one, so a career without them saves as it always did. */
+    {
+        char *mods = ModHooks_CareerSaveSection();
+        if (mods) {
+            json_out_emit(mods, (int)strlen(mods), &out);
+            free(mods);
+        }
+    }
+#endif
+
     mjson_printf(json_out_emit, &out, "%s", "\n}\n");
 
     if (out.oom || !out.ptr)
@@ -7686,6 +7699,11 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
     extern void RebuildPointersAfterLoad(void);
     RebuildPointersAfterLoad();
     PROF_END(rebuild_ptrs, "career-load");
+
+#ifdef SWOS_SDL_BUILD
+    /* The career mods: each that is on gets its section, or is told there is none. */
+    ModHooks_CareerLoadSection((const char *)src, (int32_t)src_size);
+#endif
 
     swos_io_free(src);
     PROF_END(total, "career-load");

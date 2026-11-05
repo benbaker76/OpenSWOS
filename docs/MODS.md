@@ -810,3 +810,31 @@ The rigs prove the original game, as they do with every tweak off (§4): under `
 `cosmetic` (`Mods_SetRig`, src/mods.c). A mod the run names itself (`--mods=weather`) is still on:
 that is a test asking for it. So a default-on `career` mod (openswos-78's euro36) leaves the
 golden careers as they are.
+
+---
+
+## 27. Career events and a mod's section of the career save (§8.5; Career+'s §3.4)
+
+A `career` mod's ModDef has career hooks (include/mod_api.h). They run only while the mod is
+on, never on the Amiga, never in a match and never online. Unlike the other hooks, a career hook
+may change the career: its squads and its players, through the game's career code.
+
+| hook | runs |
+|---|---|
+| `careerNew()` | `InitCareer`: the new career's clubs set up, before its first `InitializeNewSeason` |
+| `careerSeasonEnd(season)` | the end of `ContinueCareerNextSeason`, after either job branch: the next season set up (`season` its index) |
+| `careerBeforeContinue()` | `ContinueCareer`, before the season's menu: may show a mod's menu (RETIREMENT NEWS) |
+| `competitionFinished(r)` | each title of the season end, as `career_season.c` decides it: every league division once its table is settled (before the moves are counted), the career country's main cup, its second and third cups, and the European cups' holders (after `Career_UpdateUefaCupCompetitionSlot`). `r`: the season, `comp_id`, `ModCompKind`, the division, the winner's team id. A title with no winner (0xFFFF) is not told. |
+| `playerMoved(m)` | a buy (`Career_RemovePlayerAndAddAsTrialist`: his club's slot -> your free slot) and a sale (`Career_TransferPlayerAndAddReplacedToMarketPool`: your slot -> the buyer's slot of the player he replaced) |
+| `playerCreated(c)` | a new player made by the game, who the hook may change: a trialist in the career club (`Career_GenerateTrialistForTeamPlayer`, and `Career_ConvertPlayerToTrialistFromName` for the training match's), and the player another club gets in place of the one you bought (`MODPLAYER_REPLACEMENT`) -- before that club's copy goes into the career pool |
+
+A squad's line-up changes only reorder the career club's index list (`_currentMatchPlayers`); a
+player keeps his slot in the team file, so they are not moves.
+
+**The save.** A mod's `careerSave(out)` writes its object's members with `ModJson_Printf` (named
+fields, never addresses: CLAUDE.md); the career's JSON gets `"mods": {"<slug>": {...}}` after
+its last member, and only when a mod that is on wrote something, so a career without career
+mods saves as it always did (the golden careers). On load, after the career's pointers are
+rebuilt, each mod that is on gets `careerLoad(json, len)`: its object, or NULL / 0 when the save
+has none (start its records empty). A mod that is off keeps its section unread, and the next
+save, made without it, drops the section.

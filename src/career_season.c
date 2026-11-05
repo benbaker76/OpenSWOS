@@ -33,6 +33,8 @@
 #include "world_winners.h"
 #include "world_cups.h"
 #include "states.h"
+#include "mod_hooks.h"       /* competitionFinished (docs/MODS.md §27): SDL builds */
+#include "mod_api.h"         /* (ModCompKind: SDL builds) */
 
 extern uint8_t _diyLeagueSeasonStateTable[];
 extern uint8_t _diyLeagueScratchBuffer[];
@@ -760,6 +762,27 @@ extern uint8_t _currentCompetitionIndex;
 /* Forward declaration for static function defined in Chunk 186 below */
 static void processPrimaryCompetitionForNextSeason(uint8_t *competition);
 
+#ifdef SWOS_SDL_BUILD
+/* A competition of the season end has been played (interactively or auto-advanced): its winner
+ * to the career mods (ModHooks_CompetitionFinished; benefactorr's Career+, PAST WINNERS). The
+ * winner is the slot's result (_diyCompetitionStart), and for a cup whose result was copied back
+ * into the tournament buffer on leaving its menu, that one's. Team 0x0000 is a team; 0xFFFF none. */
+static void careerCompetitionFinished(const uint8_t *record, uint8_t kind, uint8_t division)
+{
+    extern DIYCompetitionEx _diyCompetitionStart;
+    extern DIYTournamentState _diyFileBufferCopy;
+    extern uint16_t _currentSeasonShowing;
+    uint16_t winner = (uint16_t)_diyCompetitionStart.base.resultCode;
+    if (kind != MODCOMP_LEAGUE && winner == 0xFFFFu && _diyFileBufferCopy.header.competitionFinished != 0)
+        winner = (uint16_t)_diyFileBufferCopy.header.resultCode;
+    if (winner != 0xFFFFu)
+        ModHooks_CompetitionFinished(_currentSeasonShowing, comp_id(record), kind, division, winner);
+}
+#define CAREER_COMPETITION_FINISHED(record, kind, division) careerCompetitionFinished((record), (kind), (division))
+#else
+#define CAREER_COMPETITION_FINISHED(record, kind, division) ((void)0)
+#endif
+
 /* Career_ProcessSecondaryCompetitionForNextSeason (SWOS2.s line 31973)
  * Process secondary competition for next season: if active, edit interactively;
  * otherwise auto-advance as cup and cache qualified grid. */
@@ -776,10 +799,12 @@ void Career_ProcessSecondaryCompetitionForNextSeason(uint8_t *competition)
         Career_CopyCompetitionContextToOrFromActive();
         ShowDIYCupMenuWithParams(1, 1, 0);
         DIY_CacheSecondaryQualifiedTeamsGrid();
+        CAREER_COMPETITION_FINISHED(competition, MODCOMP_SECOND_CUP, 0);
         SaveSelectedTeams();
     } else {
         Career_AutoAdvanceCupCompetitionFromRecord(competition);
         DIY_CacheSecondaryQualifiedTeamsGrid();
+        CAREER_COMPETITION_FINISHED(competition, MODCOMP_SECOND_CUP, 0);
     }
 }
 
@@ -798,10 +823,12 @@ void Career_ProcessTertiaryCompetitionForNextSeason(uint8_t *competition)
         Career_CopyTertiaryCompetitionContextToOrFromActive();
         ShowDIYCupMenuWithParams(1, 1, 0);
         DIY_CacheTertiaryQualifiedTeamGrid();
+        CAREER_COMPETITION_FINISHED(competition, MODCOMP_THIRD_CUP, 0);
         SaveSelectedTeams();
     } else {
         Career_AutoAdvanceCupCompetitionFromRecord(competition);
         DIY_CacheTertiaryQualifiedTeamGrid();
+        CAREER_COMPETITION_FINISHED(competition, MODCOMP_THIRD_CUP, 0);
     }
     /* a world's league cup with no European place (world_cups.c): its winner takes none */
     if (!WorldCups_LeagueCupEurope(competition))
@@ -1626,6 +1653,7 @@ static void processPrimaryCompetitionForNextSeason(uint8_t *competition)
              * (asm calls Career_AutoAdvanceLeagueCompetitionFromRecord even for cups) */
             Career_AutoAdvanceLeagueCompetitionFromRecord(competition);
         }
+        CAREER_COMPETITION_FINISHED(competition, MODCOMP_CUP, 0);
         return;
     }
 
@@ -1673,6 +1701,7 @@ static void processPrimaryCompetitionForNextSeason(uint8_t *competition)
             if (d7 == 0)
                 DIY_CachePrimaryQualifiedTeamsGrid();
         }
+        CAREER_COMPETITION_FINISHED(competition, MODCOMP_LEAGUE, (uint8_t)d7);   /* (its table settled) */
         DIY_UpdatePromotionRelegationScratchCounts();
         LeaguePlayoffs_KeepTable(competition, d7);
         qualCursor = DIY_CopyCompetitionTeamIndexTable(qualCursor);
@@ -1726,6 +1755,21 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
     Career_UpdateEuroCupCompetitionSlot();
     Career_UpdateCupWinnersCupCompetitionSlot();
     Career_UpdateUefaCupCompetitionSlot();
+#ifdef SWOS_SDL_BUILD
+    {   /* the European holders, before the next season's draw changes the slots (career mods) */
+        extern uint16_t _euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId, _uefaCupTitleHolderTeamId;
+        extern uint16_t _currentSeasonShowing;
+        const struct { uint8_t id; uint16_t holder; } euro[3] = {
+            { COMPID_euroCup, _euroCupTitleHolderTeamId },
+            { COMPID_cupWinnersCup, _cupWinnersCupTitleHolderTeamId },
+            { COMPID_uefaCup, _uefaCupTitleHolderTeamId },
+        };
+        for (int32_t k = 0; k < 3; k++)
+            if (euro[k].holder != 0xFFFFu)
+                ModHooks_CompetitionFinished(_currentSeasonShowing, euro[k].id, MODCOMP_CONTINENTAL, 0,
+                                             euro[k].holder);
+    }
+#endif
     Career_UpdateCopaLibertadoresCompetitionSlot();   /* Inc3b-part-2: auto-advance Copa */
 
     _careerFileBuffer = 0;

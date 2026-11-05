@@ -11,7 +11,13 @@
 #include "mod_api.h"
 #include "mods.h"
 
+#include "mjson.h"
+
+#include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 extern const ModDef *const g_builtinMods[];
 extern void ModApi_NotePresent(void);       /* src/mod_api.c: what ModApi_InReplay counts by */
@@ -87,6 +93,124 @@ void ModHooks_MatchEvent(const ModMatchEvent *event)
 void ModHooks_MatchEnded(const ModMatchResult *result)
 {
     EACH(matchEnded) (*m_)->matchEnded(result);
+}
+
+/* ---- the career (docs/MODS.md §27) ---- */
+
+void ModHooks_CareerNew(void)
+{
+    EACH(careerNew) (*m_)->careerNew();
+}
+
+void ModHooks_CareerSeasonEnd(uint16_t season)
+{
+    EACH(careerSeasonEnd) (*m_)->careerSeasonEnd(season);
+}
+
+void ModHooks_CareerBeforeContinue(void)
+{
+    EACH(careerBeforeContinue) (*m_)->careerBeforeContinue();
+}
+
+void ModHooks_CompetitionFinished(uint16_t season, uint8_t competitionId, uint8_t kind, uint8_t division,
+                                  uint16_t winner)
+{
+    const ModCompetitionResult r = { season, competitionId, kind, division, winner };
+    EACH(competitionFinished) (*m_)->competitionFinished(&r);
+}
+
+void ModHooks_PlayerMoved(uint16_t fromTeam, uint8_t fromSlot, uint16_t toTeam, uint8_t toSlot)
+{
+    const ModPlayerMove m = { fromTeam, toTeam, fromSlot, toSlot };
+    EACH(playerMoved) (*m_)->playerMoved(&m);
+}
+
+void ModHooks_PlayerCreated(uint16_t team, uint8_t slot, uint8_t kind, PlayerFile *player)
+{
+    const ModPlayerCreated c = { team, slot, kind, player };
+    EACH(playerCreated) (*m_)->playerCreated(&c);
+}
+
+/* careerSave's writer: a growing buffer */
+struct ModJsonWriter {
+    char   *buf;
+    size_t  len, cap;
+    int32_t oom;
+};
+
+void ModJson_Printf(ModJsonWriter *out, const char *fmt, ...)
+{
+    if (!out || out->oom)
+        return;
+    va_list ap;
+    va_start(ap, fmt);
+    char small[256];
+    va_list ap2;
+    va_copy(ap2, ap);
+    const int n = vsnprintf(small, sizeof small, fmt, ap2);
+    va_end(ap2);
+    if (n < 0) {
+        va_end(ap);
+        out->oom = 1;
+        return;
+    }
+    if (out->len + (size_t)n + 1 > out->cap) {
+        size_t cap = out->cap ? out->cap : 1024;
+        while (out->len + (size_t)n + 1 > cap)
+            cap *= 2;
+        char *nb = (char *)realloc(out->buf, cap);
+        if (!nb) {
+            va_end(ap);
+            out->oom = 1;
+            return;
+        }
+        out->buf = nb;
+        out->cap = cap;
+    }
+    if ((size_t)n < sizeof small)
+        memcpy(out->buf + out->len, small, (size_t)n + 1);
+    else
+        vsnprintf(out->buf + out->len, (size_t)n + 1, fmt, ap);
+    out->len += (size_t)n;
+    va_end(ap);
+}
+
+char *ModHooks_CareerSaveSection(void)
+{
+    ModJsonWriter all = { 0 };
+    int32_t any = 0;
+    EACH(careerSave) {
+        ModJsonWriter one = { 0 };
+        (*m_)->careerSave(&one);
+        if (one.oom) {
+            fprintf(stderr, "[mods] %s: its career section ran out of memory; not saved\n", (*m_)->slug);
+        } else if (one.len) {
+            ModJson_Printf(&all, "%s\"%s\":{%s}", any ? "," : ",\n  \"mods\":{", (*m_)->slug, one.buf);
+            any = 1;
+        }
+        free(one.buf);
+    }
+    if (any)
+        ModJson_Printf(&all, "}");
+    if (!any || all.oom) {
+        free(all.buf);
+        return NULL;
+    }
+    return all.buf;
+}
+
+void ModHooks_CareerLoadSection(const char *json, int32_t len)
+{
+    EACH(careerLoad) {
+        char path[96];
+        const char *obj = NULL;
+        int objLen = 0;
+        snprintf(path, sizeof path, "$.mods.%s", (*m_)->slug);
+        if (json && mjson_find(json, (int)len, path, &obj, &objLen) == MJSON_TOK_OBJECT)
+            (*m_)->careerLoad(obj, (int32_t)objLen);
+        else
+            (*m_)->careerLoad(NULL, 0);
+    }
 }
 
 #endif /* SWOS_SDL_BUILD */

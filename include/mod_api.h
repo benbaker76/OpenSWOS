@@ -34,6 +34,10 @@ struct SpriteGraphics;
  * ====================================================================================== */
 typedef struct ModMatchEvent ModMatchEvent;
 typedef struct ModMatchResult ModMatchResult;
+typedef struct ModCompetitionResult ModCompetitionResult;
+typedef struct ModPlayerMove ModPlayerMove;
+typedef struct ModPlayerCreated ModPlayerCreated;
+typedef struct ModJsonWriter ModJsonWriter;
 
 typedef struct ModDef {
     const char *slug;                   /* its folder: bin/mods/<slug> (canonical) */
@@ -57,7 +61,63 @@ typedef struct ModDef {
     void (*matchFrame)(void);           /* each frame played, after the clock moved */
     void (*matchEvent)(const ModMatchEvent *event);
     void (*matchEnded)(const ModMatchResult *result);   /* any match's final whistle */
+
+    /* -- the career (docs/MODS.md §27): a "career" mod's hooks. Unlike the rest, a career
+     * hook may change the career -- its squads, its players -- through the game's career
+     * code; never a match. None runs in a match, nor online. -- */
+    void (*careerNew)(void);            /* a new career: its clubs set up, before its first
+                                         * season (InitCareer, before InitializeNewSeason) */
+    void (*careerSeasonEnd)(uint16_t season);   /* a season over and the next set up, after
+                                         * either job branch (ContinueCareerNextSeason's end);
+                                         * `season` the new one's index (0 the first) */
+    void (*careerBeforeContinue)(void); /* ContinueCareer, before the next season's menu: may
+                                         * show a menu of its own (ModApi_ShowMenu) */
+    void (*competitionFinished)(const ModCompetitionResult *result);   /* a title decided */
+    void (*playerMoved)(const ModPlayerMove *move);         /* a player bought or sold */
+    void (*playerCreated)(const ModPlayerCreated *created); /* a new player in a club: may
+                                         * rewrite him (created->player) */
+
+    /* -- its section of the career save: "mods": { "<slug>": { ... } } in the .CAR JSON --
+     * careerSave writes the object's members (ModJson_Printf: `"ages":[...],"winners":[...]`,
+     * named fields, never addresses: CLAUDE.md); nothing written, no section. careerLoad gets
+     * the object's text when a career is loaded, or NULL / 0 for a career without it (start
+     * the mod's records empty). A new career is careerNew, never careerLoad. -- */
+    void (*careerSave)(ModJsonWriter *out);
+    void (*careerLoad)(const char *json, int32_t len);
 } ModDef;
+
+/* ---- the career hooks' arguments (ModDef's career hooks) ---- */
+typedef enum {
+    MODCOMP_LEAGUE,         /* a league division: `division` 0 the top */
+    MODCOMP_CUP,            /* the career country's main competition when it is a cup */
+    MODCOMP_SECOND_CUP,     /* its secondary competition (a domestic cup) */
+    MODCOMP_THIRD_CUP,      /* its tertiary competition (a league cup) */
+    MODCOMP_CONTINENTAL     /* a European club cup's holder (Champions, Cup Winners', UEFA) */
+} ModCompKind;
+struct ModCompetitionResult {
+    uint16_t season;        /* the season it was played in (0 the first) */
+    uint8_t  competitionId; /* comp_id() (include/comp_identity.h): the competition's identity */
+    uint8_t  kind;          /* ModCompKind */
+    uint8_t  division;      /* a league's division (0 the top); 0 for a cup */
+    uint16_t winner;        /* the winning team: file (country) << 8 | ordinal */
+};
+struct ModPlayerMove {
+    uint16_t fromTeam, toTeam;  /* team ids, file << 8 | ordinal */
+    uint8_t  fromSlot, toSlot;  /* the player's slot in each team's file (0..15, 16..31 reserves) */
+};
+typedef enum {
+    MODPLAYER_TRIALIST,     /* a trialist in the career club (an emergency or a training one) */
+    MODPLAYER_REPLACEMENT   /* a new player at another club, where one you bought had been */
+} ModPlayerKind;
+struct PlayerFile;
+struct ModPlayerCreated {
+    uint16_t team;          /* the club, file << 8 | ordinal */
+    uint8_t  slot;          /* his slot in its file */
+    uint8_t  kind;          /* ModPlayerKind */
+    struct PlayerFile *player;  /* made by the game; the hook may change him */
+};
+/* careerSave's writer: appends text to the mod's object (printf's format). */
+void ModJson_Printf(ModJsonWriter *out, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 /* ---- entries: a mod's rows in the game's screens (H1) ----
  * MODPOINT_MODES: the MODES screen, which the main menu's MODES button opens (shown only while
