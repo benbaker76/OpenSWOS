@@ -5,7 +5,6 @@
  */
 #include "mod_hooks.h"
 
-#ifdef SWOS_SDL_BUILD
 
 #include "game_types.h"
 #include "mod_api.h"
@@ -276,4 +275,3 @@ void ModHooks_CareerLoadSection(const char *json, int32_t len)
     }
 }
 
-#endif /* SWOS_SDL_BUILD */

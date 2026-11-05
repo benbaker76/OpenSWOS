@@ -1,5 +1,6 @@
 /*
- * mods_builtin.c -- the built-in mods (include/mod_api.h ModDef; docs/MODS.md §16). SDL builds.
+ * mods_builtin.c -- the built-in mods (include/mod_api.h ModDef; docs/MODS.md §16). Both targets:
+ * the Amiga lists those of them that are ported there (MOD_AMIGA below).
  *
  * One line a mod: its ModDef, defined in its own src/mod_<slug>.c. A fork lists its own mods in
  * src/fork_mods.inc (a file OpenSWOS does not have), so merging OpenSWOS never meets a fork's
@@ -7,7 +8,6 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
 
 #include <stddef.h>
 
@@ -27,18 +27,25 @@ extern const ModDef ModDef_euro36;      /* src/mod_euro36.c */
 #endif
 #endif
 
+/* MOD_SDL: a mod only the SDL build has yet; MOD_AMIGA: one built on both targets. */
+#ifdef SWOS_SDL_BUILD
+#define MOD_SDL(m) &m,
+#else
+#define MOD_SDL(m)
+#endif
+#define MOD_AMIGA(m) &m,
+
 const ModDef *const g_builtinMods[] = {
-    &ModDef_weather,
-    &ModDef_hair,
-    &ModDef_practice,
-    &ModDef_speedrun,
-    &ModDef_challenges,
-    &ModDef_classics,
-    &ModDef_euro36,
+    MOD_SDL(ModDef_weather)
+    MOD_SDL(ModDef_hair)
+    MOD_SDL(ModDef_practice)
+    MOD_SDL(ModDef_speedrun)
+    MOD_SDL(ModDef_challenges)
+    MOD_SDL(ModDef_classics)
+    MOD_SDL(ModDef_euro36)
 #ifdef FORK_MODS
     FORK_MOD_LIST                       /* "&ModDef_<slug>," a fork's mods */
 #endif
     NULL,
 };
 
-#endif /* SWOS_SDL_BUILD */

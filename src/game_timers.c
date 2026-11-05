@@ -559,7 +559,7 @@ static void __attribute__((noinline)) writeRestartGlobalsAndStopPlayers(
     _cameraYVelocity = 0;
 }
 
-#ifdef SWOS_SDL_BUILD
+/* (both targets: the Amiga's mods start matches in a break too) */
 /* ---- A mod's match that starts in a break (mod_match.c, H6) ----
  * In place of the first kick-off, the break the engine itself would have called: a corner as
  * CheckIfBallOutOfPlay sets one, a free kick or a penalty as a foul does (tackle_foul.c) --
@@ -621,7 +621,6 @@ void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16
         _cameraYVelocity = 0;
     }
 }
-#endif
 
 /* ---- Helper: handle goal scoring ---- */
 static void __attribute__((noinline)) handleGoalScored(TeamGeneralInfo *teamData, uint16_t goalType, uint16_t teamNum)

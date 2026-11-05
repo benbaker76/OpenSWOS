@@ -5,7 +5,6 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
 
 #include "menu_load_json.h"
 #include "menu_symbols.h"
@@ -289,4 +288,3 @@ void ModEntries_AfterMatch(void)
         ModApi_ShowEntries(MODPOINT_AFTER_MATCH);
 }
 
-#endif /* SWOS_SDL_BUILD */

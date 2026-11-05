@@ -1,5 +1,5 @@
 /*
- * mod_hooks.h -- where a built-in (source) mod's code runs (docs/MODS.md §9, §16). SDL builds.
+ * mod_hooks.h -- where a built-in (source) mod's code runs (docs/MODS.md §9, §16). Both targets.
  *
  * A built-in mod is code in the game, with a canonical manifest (bin/mods/<slug>/mod.json): its
  * hooks run only while that mod is on (Mods_IsOn). The hooks are fixed points of the engine, never
@@ -9,8 +9,12 @@
 #ifndef MOD_HOOKS_H
 #define MOD_HOOKS_H
 
+#include "swos_types.h"
 #ifdef SWOS_SDL_BUILD
 #include <SDL.h>
+#else
+typedef struct SDL_Renderer SDL_Renderer;     /* (no renderer on the Amiga: FrameDrawn is never called) */
+#endif
 
 /* A frame of the game is on the renderer (world, sprites and HUD), in its logical size; before
  * the CRT effects, the touch controls and the swap. platform_sdl.c's present. */
@@ -78,6 +82,5 @@ void ModHooks_PlayerRowDrawn(uint8_t screen, uint16_t team, uint8_t slot, int16_
 
 char *ModHooks_CareerSaveSection(void);
 void  ModHooks_CareerLoadSection(const char *json, int32_t len);
-#endif
 
 #endif /* MOD_HOOKS_H */

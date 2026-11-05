@@ -1,5 +1,7 @@
 /*
- * mod_api.h -- what a built-in mod may ask the game (src/mod_api.c; docs/MODS.md §16). SDL builds.
+ * mod_api.h -- what a built-in mod may ask the game (src/mod_api.c; docs/MODS.md §16). Both targets:
+ * the Amiga builds the same API (docs/MODS.md, "Mod code on the Amiga"), where a call the Amiga
+ * cannot answer says so (its comment) and frameDrawn never runs (it has no renderer).
  *
  * A mod's code (src/mod_<slug>.c) runs at the hooks of include/mod_hooks.h, and asks the game what
  * it needs through these, never through the game's own globals: an engine change then changes
@@ -12,10 +14,12 @@
 #ifndef MOD_API_H
 #define MOD_API_H
 
-#ifdef SWOS_SDL_BUILD
-
 #include "swos_types.h"
+#ifdef SWOS_SDL_BUILD
 #include <SDL.h>
+#else
+typedef struct SDL_Renderer SDL_Renderer;     /* (frameDrawn's: never called on the Amiga) */
+#endif
 
 struct Sprite;
 struct SpriteGraphics;
@@ -558,5 +562,4 @@ int32_t     ModApi_SetTweak(const char *slug, const char *key, int32_t on);
 int32_t ModApi_SaveFile(const char *slug, const char *name, const void *data, uint32_t size);
 void   *ModApi_LoadFile(const char *slug, const char *name, uint32_t *size);
 
-#endif /* SWOS_SDL_BUILD */
 #endif /* MOD_API_H */

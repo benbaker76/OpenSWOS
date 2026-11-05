@@ -13,8 +13,9 @@
 #include "mod_api.h"
 
 #ifdef SWOS_SDL_BUILD
-
 #include "diy_import_dos.h"
+#include <dirent.h>
+#endif
 #include "game_types.h"
 #include "menu_system.h"
 #include "menus.h"
@@ -23,7 +24,6 @@
 #include "swos_io.h"
 #include "tactics_data.h"
 
-#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,6 +83,14 @@ static int32_t is_json(const uint8_t *data, uint32_t size)
     return size && *data == '{';
 }
 
+#ifndef SWOS_SDL_BUILD
+/* (the Amiga: through swos_io, NUL-terminated; free() is swos_io_free there) */
+static int32_t read_file(const char *path, uint8_t **data, uint32_t *size)
+{
+    *data = NULL;
+    return swos_io_load_data_alloc(path, data, size) != 0 || !*data || !*size;
+}
+#else
 static int32_t read_file(const char *path, uint8_t **data, uint32_t *size)
 {
     FILE *f = fopen(path, "rb");
@@ -104,6 +112,7 @@ static int32_t read_file(const char *path, uint8_t **data, uint32_t *size)
     *size = (uint32_t)n;
     return 0;
 }
+#endif
 
 int32_t ModApi_CompetitionFileName(const char *path, char *out, int32_t cap)
 {
@@ -117,12 +126,15 @@ int32_t ModApi_CompetitionFileName(const char *path, char *out, int32_t cap)
         extern int mjson_get_string(const char *s, int len, const char *path, char *to, int n);
         ok = mjson_get_string((const char *)data, (int)size,
                               "$.comp_scalars.diy_preset_name_of_competition", out, cap) > 0;
-    } else if (DiyImportDos_IsDosFile(data, size)) {
+    }
+#ifdef SWOS_SDL_BUILD   /* (the DOS game's .DIY: the SDL build reads those, docs/SAVE_DATA.md) */
+    else if (DiyImportDos_IsDosFile(data, size)) {
         const int32_t n = cap - 1 < 35 ? cap - 1 : 35;     /* a DOS .DIY's name: 35 bytes at 4 */
         memcpy(out, data + 4, (size_t)n);
         out[n] = 0;
         ok = 1;
     }
+#endif
     free(data);
     return ok;
 }
@@ -154,7 +166,11 @@ int32_t ModApi_LoadCompetition(const char *path)
             *tactics[i] = kept[i];
         RestoreOptions();
     } else {
+#ifdef SWOS_SDL_BUILD
         r = DiyImportDos_LoadData(path, data, size, 1);
+#else
+        r = 1;          /* (a DOS .DIY: the SDL build's only) */
+#endif
     }
     free(data);
     if (r != 0) {
@@ -252,6 +268,31 @@ int32_t ModApi_SetLeaguePhases(const char *slug, void *cups, const uint8_t (*pla
 
 /* ---- files ---- */
 
+#ifndef SWOS_SDL_BUILD
+/* (the Amiga: no assets folder -- its data is the drawer's -- and no whole-match replays) */
+const char *ModApi_AssetsDir(void) { return ""; }
+int32_t ModApi_LatestReplay(char *out, int32_t cap) { if (out && cap > 0) out[0] = 0; return 0; }
+
+/* Resload_ListDir: the mods' folders first, then the drawer's; NUL-separated names. */
+int32_t ModApi_ListFiles(const char *dir, int32_t (*each)(const char *name, void *ctx), void *ctx)
+{
+    extern uint32_t Resload_ListDir(const uint8_t *dirname, uint8_t *buffer, uint32_t buffersize);
+    static char names[4096];
+    if (!dir)
+        return 0;
+    const uint32_t count = Resload_ListDir((const uint8_t *)dir, (uint8_t *)names, sizeof names);
+    const char *p = names;
+    int32_t n = 0;
+    for (uint32_t i = 0; i < count && p < names + sizeof names; i++, p += strlen(p) + 1) {
+        if (p[0] == '.')
+            continue;
+        n++;
+        if (each && each(p, ctx) != 0)
+            break;
+    }
+    return n;
+}
+#else
 const char *ModApi_AssetsDir(void) { return swos_assets_dir(); }
 
 int32_t ModApi_LatestReplay(char *out, int32_t cap)
@@ -285,6 +326,7 @@ int32_t ModApi_ListFiles(const char *dir, int32_t (*each)(const char *name, void
     closedir(dp);
     return n;
 }
+#endif
 
 void ModApi_ShowError(const char *text)
 {
@@ -313,8 +355,12 @@ int32_t ModApi_TextWidth(const char *text, int32_t small)
 
 int32_t ModApi_MenuTickerEntry(void)
 {
+#ifdef SWOS_SDL_BUILD
     extern int32_t MenuExtras_TickerEntry(void);
     return MenuExtras_TickerEntry();
+#else
+    return -1;          /* (menu extras -- the ticker row among them -- are the SDL build's) */
+#endif
 }
 
 void ModApi_RestoreMenuBackground(int32_t x, int32_t y, int32_t w, int32_t h)
@@ -399,4 +445,3 @@ void ModApi_MenuRedraw(int32_t entry)
         CallDrawMenuItem(e);
 }
 
-#endif /* SWOS_SDL_BUILD */
