@@ -58,5 +58,19 @@
   "foreign_refill_mult": 1,
   "listed_bid_chance": 11,
   "foreign_bid_chance": 8,
-  "domestic_buyer_mode": 0
+  "domestic_buyer_mode": 0,
+
+  "_job_offers": "Career+'s: job_offer_expiry 0, job_offer_first_week 20, job_offer_waves 1, job_offer_stop_season7 0, job_offer_phase_gate 0, job_offer_own_national 0, job_offer_pass 220, job_offer_rep_high_pct 125, job_offer_rep_low_pct 55, job_offer_selector_clubs 96, job_offer_national_chance 192, job_offer_abroad_chance 128 (with job_offers_capacity 20)",
+  "job_offer_expiry": 1,
+  "job_offer_first_week": 0,
+  "job_offer_waves": 0,
+  "job_offer_stop_season7": 1,
+  "job_offer_phase_gate": 1,
+  "job_offer_own_national": 1,
+  "job_offer_pass": 42,
+  "job_offer_rep_high_pct": 100,
+  "job_offer_rep_low_pct": 75,
+  "job_offer_selector_clubs": 0,
+  "job_offer_national_chance": 0,
+  "job_offer_abroad_chance": 0
 }

@@ -79,6 +79,27 @@ typedef struct {
     uint16_t domestic_buyer_mode;        /* 0    the original's buyers at home; 1 also a club with a
                                           *      player worth half the listed one's price [1] */
 
+    /* ---- Job offers (Career+'s in brackets) ---- */
+    uint16_t job_offer_expiry;           /* 1    a new offer may be withdrawn (1 in 8 a phase) [0] */
+    uint16_t job_offer_first_week;       /* 0    routine offers from this season week (an offer
+                                          *      when sacked or searching comes at once) [20] */
+    uint16_t job_offer_waves;            /* 0    1 or 2 offers sought a week; 1 none before week 20,
+                                          *      then 6, 12 from week 25, 19-20 from week 30, and
+                                          *      19-20 when sacked or searching [1] */
+    uint16_t job_offer_stop_season7;     /* 1    no offers once 7 seasons are complete (the
+                                          *      original's career length) [0] */
+    uint16_t job_offer_phase_gate;       /* 1    a club offer only in the random phase's week [0] */
+    uint16_t job_offer_own_national;     /* 1    your own national team tried first [0: only when
+                                          *      searching for a national job] */
+    uint16_t job_offer_pass;             /* 42   in 256, an attempt goes on to look for a club [220] */
+    uint16_t job_offer_rep_high_pct;     /* 100  [125] clubs up to this % of your reputation */
+    uint16_t job_offer_rep_low_pct;      /* 75   [55]  and from this % */
+    uint16_t job_offer_selector_clubs;   /* 0    [96] a national selector gets club offers too: in
+                                          *      256, a national job looked for, else a club abroad */
+    uint16_t job_offer_national_chance;  /* 0    [192] in 256, a club manager (two seasons in, the
+                                          *      board not against him) is looked at for national jobs */
+    uint16_t job_offer_abroad_chance;    /* 0    [128] in 256, a club offer looked for abroad first */
+
     /* ---- Career length ---- */
     uint16_t num_seasons;                /* 20 (default) or up to CAREER_MAX_SEASONS (35) — the
                                           * career retires after this many seasons */

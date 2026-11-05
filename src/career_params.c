@@ -53,6 +53,20 @@ CareerParams _careerParams = {
     .foreign_bid_chance = 8,
     .domestic_buyer_mode = 0,
 
+    /* job offers: the original's */
+    .job_offer_expiry = 1,
+    .job_offer_first_week = 0,
+    .job_offer_waves = 0,
+    .job_offer_stop_season7 = 1,
+    .job_offer_phase_gate = 1,
+    .job_offer_own_national = 1,
+    .job_offer_pass = 42,
+    .job_offer_rep_high_pct = 100,
+    .job_offer_rep_low_pct = 75,
+    .job_offer_selector_clubs = 0,
+    .job_offer_national_chance = 0,
+    .job_offer_abroad_chance = 0,
+
     /* career length */
     .num_seasons = 20,
 

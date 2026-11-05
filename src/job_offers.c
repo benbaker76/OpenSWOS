@@ -41,6 +41,7 @@ extern uint16_t _highlightedLeagueTeamId;
 extern uint16_t _careerSeasonsCompleted;
 extern uint16_t _currentSeasonShowing;
 extern uint16_t _careerJobOfferMode;
+extern uint16_t _seasonWeeksDeducted;    /* (job_offer_first_week) */
 extern uint8_t  _viewRandomPhase;
 extern int8_t   _careerJobOfferPhaseBias;
 extern uint16_t _wageScalingDivisor;
@@ -313,7 +314,7 @@ __attribute__((used, externally_visible))
 void JobOffers_MaybeExpireSomeNewOffers(void)
 {
     uint16_t count = _numNewJobOffers;
-    if (count == 0)
+    if (count == 0 || !_careerParams.job_offer_expiry)   /* (career_params: offers kept, Career+'s) */
         return;
 
     for (int16_t i = (int16_t)(count - 1); i >= 0; i--) {
@@ -1071,7 +1072,11 @@ void Career_MaybeGenerateJobOffer(void)
 
     if (_teamNoOfferAccepted != 0xFFFF)
         return;
-    if (_careerSeasonsCompleted == 7)
+    if (_careerSeasonsCompleted == 7 && _careerParams.job_offer_stop_season7)
+        return;
+    /* (career_params: routine offers only from job_offer_first_week; sacked or searching, at once) */
+    if (_careerParams.job_offer_first_week && _careerJobOfferMode == 0 && _youreSacked == 0 &&
+        _seasonWeeksDeducted < _careerParams.job_offer_first_week)
         return;
 
     int16_t maxNewOffers = (int16_t)_careerParams.job_offers_capacity - (int16_t)_numJobOffers;
@@ -1112,7 +1117,7 @@ void Career_MaybeGenerateJobOffer(void)
         goto searchDomestic;
 
     /* Random phase check */
-    {
+    if (_careerParams.job_offer_phase_gate) {
         int8_t d0 = (int8_t)_viewRandomPhase - _careerJobOfferPhaseBias;
         int16_t d0w = (int16_t)d0;
         int32_t d0l = (int32_t)(d0w << 2);
@@ -1122,8 +1127,8 @@ void Career_MaybeGenerateJobOffer(void)
     }
 
 checkNational:
-    /* Try national team offer */
-    if (_sameNationalCallFlag == 0) {
+    /* Try national team offer (career_params: your own nation first, or only when searching) */
+    if (_sameNationalCallFlag == 0 && (_careerParams.job_offer_own_national || _careerJobOfferMode == 2)) {
         uint16_t natCall = _lastNationalityCall;
         if (natCall != 0xFFFF) {
             if (_careerJobOfferMode != 2) {
@@ -1157,7 +1162,7 @@ noNational:
     /* Random chance to generate offer */
     {
         uint16_t rnd = Rand();
-        if (rnd >= 42)
+        if (rnd >= _careerParams.job_offer_pass)     /* (42, the original's) */
             return;
     }
 
@@ -1193,7 +1198,11 @@ searchDomestic:
         }
     }
 
-    if (_youreSacked == 0) {
+    if (_youreSacked == 0 && (_careerParams.job_offer_rep_high_pct != 100 || _careerParams.job_offer_rep_low_pct != 75)) {
+        /* (career_params: a wider window, benefactorr's Career+) */
+        repHigh = (uint16_t)((uint32_t)repScore * _careerParams.job_offer_rep_high_pct / 100u);
+        repLow = (uint16_t)((uint32_t)repScore * _careerParams.job_offer_rep_low_pct / 100u);
+    } else if (_youreSacked == 0) {
         repHigh = repScore;
         repLow = (uint16_t)((uint16_t)(repHigh * 0x4B) / 100);
     } else {
@@ -1206,6 +1215,21 @@ searchDomestic:
 
     if (_youreSacked != 0 && _isNationalSelector != 0)
         goto searchSacked;
+
+    /* career_params (benefactorr's Career+; each 0, the original's, takes no Rand()): a national
+     * selector's club offers, a club manager looked at for national jobs, club offers abroad. */
+    if (_careerParams.job_offer_selector_clubs && _isNationalSelector != 0 && _careerJobOfferMode == 0) {
+        if ((Rand() & 0xFFu) < _careerParams.job_offer_selector_clubs)
+            goto searchNational;
+        goto searchForeign;
+    }
+    if (_careerParams.job_offer_national_chance && _careerJobOfferMode == 0 && _isNationalSelector == 0 &&
+        _youreSacked == 0 && _careerSeasonsCompleted >= 2 && GetBoardConfidenceScore() >= 0 &&
+        (Rand() & 0xFFu) < _careerParams.job_offer_national_chance)
+        goto searchNational;
+    if (_careerParams.job_offer_abroad_chance && _isNationalSelector == 0 &&
+        (Rand() & 0xFFu) < _careerParams.job_offer_abroad_chance)
+        goto searchForeign;
 
     /* Try domestic (selected teams) first */
     {
@@ -1293,6 +1317,10 @@ searchForeign:
     {
         uint16_t selTeam = _selTeamNumber;
         uint8_t *base = &_tmdFileBuffer;
+        /* (Career+'s routes here -- a selector's, abroad first -- can find no foreign clubs
+         * loaded; the original's never came here then) */
+        if (_careerFileBuffer == 0 && (_careerParams.job_offer_selector_clubs || _careerParams.job_offer_abroad_chance))
+            return;
 
         for (int16_t tries = 99; tries >= 0; tries--) {
             uint16_t rnd = Rand();
@@ -1307,8 +1335,9 @@ searchForeign:
              * byte-read pre-fix used the ordinal, so the skip rarely
              * fired and same-country teams accidentally counted as
              * foreign candidates. */
-            if (World_FileCountry((uint8_t)(_selTeamNumber >> 8)) ==
-                World_FileCountry(a0tf->countryNumber))
+            if (!(_careerParams.job_offer_selector_clubs && _isNationalSelector != 0) &&   /* (a selector */
+                World_FileCountry((uint8_t)(_selTeamNumber >> 8)) ==                       /* has no club */
+                World_FileCountry(a0tf->countryNumber))                                     /* country) */
                 continue;
 
             /* Asm: move.w (a0),d3 — reads packed team number at offset 0 */

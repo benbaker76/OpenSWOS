@@ -3186,6 +3186,18 @@ void DataJson_LoadCareerParams(void)
     LDU("$.listed_bid_chance",          listed_bid_chance);
     LDU("$.foreign_bid_chance",         foreign_bid_chance);
     LDU("$.domestic_buyer_mode",        domestic_buyer_mode);
+    LDU("$.job_offer_expiry",           job_offer_expiry);
+    LDU("$.job_offer_first_week",       job_offer_first_week);
+    LDU("$.job_offer_waves",            job_offer_waves);
+    LDU("$.job_offer_stop_season7",     job_offer_stop_season7);
+    LDU("$.job_offer_phase_gate",       job_offer_phase_gate);
+    LDU("$.job_offer_own_national",     job_offer_own_national);
+    LDU("$.job_offer_pass",             job_offer_pass);
+    LDU("$.job_offer_rep_high_pct",     job_offer_rep_high_pct);
+    LDU("$.job_offer_rep_low_pct",      job_offer_rep_low_pct);
+    LDU("$.job_offer_selector_clubs",   job_offer_selector_clubs);
+    LDU("$.job_offer_national_chance",  job_offer_national_chance);
+    LDU("$.job_offer_abroad_chance",    job_offer_abroad_chance);
     #undef LDU
     #undef LDS
     if (_careerParams.num_seasons < 1) _careerParams.num_seasons = 1;
@@ -3210,6 +3222,11 @@ void DataJson_LoadCareerParams(void)
     if (_careerParams.listed_bid_chance > 256) _careerParams.listed_bid_chance = 256;
     if (_careerParams.foreign_bid_chance > 256) _careerParams.foreign_bid_chance = 256;
     if (_careerParams.domestic_buyer_mode > 1) _careerParams.domestic_buyer_mode = 0;
+    if (_careerParams.job_offer_waves > 1) _careerParams.job_offer_waves = 0;
+    if (_careerParams.job_offer_pass > 256) _careerParams.job_offer_pass = 256;
+    if (_careerParams.job_offer_selector_clubs > 256) _careerParams.job_offer_selector_clubs = 256;
+    if (_careerParams.job_offer_national_chance > 256) _careerParams.job_offer_national_chance = 256;
+    if (_careerParams.job_offer_abroad_chance > 256) _careerParams.job_offer_abroad_chance = 256;
     free(j);
     fprintf(stderr, "[data-json] career params loaded from data_json/career_params.json\n");
 }

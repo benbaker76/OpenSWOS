@@ -3238,7 +3238,21 @@ void Career_PostMatchUpdate(void)
     JobOffers_RemoveExpiredOffers();
 
     /* Decide how many job offers to target: 1 or 2 */
-    uint16_t target = (Rand2() & 1) + 1;
+    uint16_t target;
+    if (_careerParams.job_offer_waves != 1) {
+        target = (Rand2() & 1) + 1;
+    } else {
+        /* (career_params: Career+'s waves -- none before week 20, then 6, 12 from week 25, 19-20
+         * from week 30; 19-20 at once when sacked or searching. The queue's capacity still caps it.) */
+        extern uint16_t _careerJobOfferMode;
+        target = 0;
+        if (_youreSacked != 0 || _careerJobOfferMode != 0 || _seasonWeeksDeducted >= 30)
+            target = (Rand2() & 1) + 19;
+        else if (_seasonWeeksDeducted >= 25)
+            target = 12;
+        else if (_seasonWeeksDeducted >= 20)
+            target = 6;
+    }
 
     /* Try up to 100 times to generate enough job offers */
     for (int16_t i = 99; i >= 0; i--) {

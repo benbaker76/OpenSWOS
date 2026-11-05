@@ -199,6 +199,17 @@ the original's formula budgets from 432, so a bigger pool left it at 0 and stopp
 `foreign_bid_chance` 8 [64] in 256 (a bid from abroad rather than home), `domestic_buyer_mode` 0
 [1: also a home club with a player priced at half the listed one's or more].
 
+**Job offers** (Career+'s in brackets, with `job_offers_capacity` 20): `job_offer_expiry` 1 [0],
+`job_offer_first_week` 0 [20] (routine offers from that week; sacked or searching, at once),
+`job_offer_waves` 0 [1: none before week 20, then 6, 12 from week 25, 19-20 from week 30],
+`job_offer_stop_season7` 1 [0] (the original's stop once 7 seasons are complete),
+`job_offer_phase_gate` 1 [0], `job_offer_own_national` 1 [0: only when searching],
+`job_offer_pass` 42 [220] in 256, `job_offer_rep_high_pct` 100 [125] and `job_offer_rep_low_pct`
+75 [55] (the clubs' reputation window), and three routes of Career+'s, each 0 off, in 256:
+`job_offer_selector_clubs` [96] (a national selector's: a national job, else a club abroad),
+`job_offer_national_chance` [192] (a club manager two seasons in, the board not against him,
+looked at for national jobs), `job_offer_abroad_chance` [128] (a club offer from abroad first).
+
 ---
 
 ## Verification
