@@ -1485,6 +1485,61 @@ void AddCareerPoolPlayer(uint16_t teamNumber, uint16_t playerOrdinal, PlayerFile
 }
 
 /* ================================================================
+ * Career_WriteTeamPlayer -- a career mod's change to another club's player (ModApi_SetCareerPlayer):
+ * the player at `slot` of team `teamId` becomes `player`, for the rest of the career. Written as
+ * the game writes its own transfers, into the career's foreign-market pool (every claim on that
+ * slot, or a new one appended: Career_PatchTeamWithForeignMarketPlayers puts it on the team
+ * whenever its file is read), and into every live copy -- the selected teams, the TMD pool, the
+ * current team -- so a screen and a match see it at once (benefactorr's Career+,
+ * SWOS_AI_P3WriteOverrideAt / SyncLiveSlot). Not the career club (its squad is its own), not a
+ * slot past 15. 0 written; -1 refused (the pool full: foreign_pool_capacity).
+ * ================================================================ */
+int32_t Career_WriteTeamPlayer(uint16_t teamId, uint16_t slot, const PlayerFile *player)
+{
+    extern uint16_t _careerFileBuffer, _currentTeamNumber;
+    extern uint8_t  _tmdFileBuffer;              /* (the TMD pool: TeamFileEx records) */
+    extern uint8_t  _currentTeam[];
+    extern uint8_t  _viewRandomPhase;
+    if (slot >= 16 || teamId == _selTeamNumber || !player)
+        return -1;
+    const uint8_t hi = (uint8_t)(teamId >> 8), lo = (uint8_t)teamId;
+    int32_t claimed = 0;
+    for (uint16_t k = 0; k < _numForeignMarketPlayers2; k++) {
+        MarketPlayer *e = &_careerForeignMarketPlayers[k];
+        if (((uint8_t *)&e->teamId)[0] == hi && ((uint8_t *)&e->teamId)[1] == lo && (uint8_t)e->playerOrdinal == slot) {
+            e->player = *player;
+            claimed = 1;
+        }
+    }
+    if (!claimed) {
+        if (_numForeignMarketPlayers2 >= _careerParams.foreign_pool_capacity)
+            return -1;
+        MarketPlayer *e = &_careerForeignMarketPlayers[_numForeignMarketPlayers2];
+        ((uint8_t *)&e->teamId)[0] = hi;
+        ((uint8_t *)&e->teamId)[1] = lo;
+        e->playerOrdinal = (int8_t)slot;
+        e->padding = (int8_t)_viewRandomPhase;
+        e->player = *player;
+        _numForeignMarketPlayers2++;
+        _pendingForeignPlayerCount++;
+    }
+    for (uint16_t i = 0; i < _numSelectedTeams; i++)
+        if (PACK_BE_U16(_selectedTeams[i].team.countryNumber, _selectedTeams[i].team.teamOrdinal) == teamId)
+            _selectedTeams[i].players[slot] = *player;
+    TeamFileEx *tmd = (TeamFileEx *)&_tmdFileBuffer;
+    for (uint16_t i = 0; i < _careerFileBuffer; i++)
+        if (PACK_BE_U16(tmd[i].team.countryNumber, tmd[i].team.teamOrdinal) == teamId)
+            tmd[i].players[slot] = *player;
+    if (_currentTeamNumber == teamId) {
+        TeamFileEx *ct = (TeamFileEx *)_currentTeam;
+        if (PACK_BE_U16(ct->team.countryNumber, ct->team.teamOrdinal) == teamId)
+            ct->players[slot] = *player;
+    }
+    _lastLoadedExtNumber = 255;     /* (a team file read again gets the pool's change) */
+    return 0;
+}
+
+/* ================================================================
  * Career_PatchTeamWithForeignMarketPlayers  (SWOS2.s line 71515)
  *
  * Iterates careerForeignMarketPlayers pool; for each entry whose

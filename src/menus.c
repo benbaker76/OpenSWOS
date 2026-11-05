@@ -6349,6 +6349,7 @@ extern int16_t  ShowSquad(TeamFile *teamPtr, uint8_t *title, uint32_t maskLo,
 extern void Career_CopyUnavailablePlayerToCareerTeamSlot(uint8_t *srcPlayer,
     uint8_t *dstTeam, uint8_t *srcName, uint16_t srcTeamNumber,
     uint16_t srcPlayerIndex, uint16_t dstSlotIndex);
+void Career_AddInternationalPlayerPicked(uint16_t team, uint16_t slot);
 
 /* Career_ShowAddInternationalPlayerDialog — show dialog to add international player.
  * If homeOrAbroadFlag==0: use nationality filter (home), else show all (abroad).
@@ -6358,6 +6359,13 @@ __attribute__((used, externally_visible))
 void Career_ShowAddInternationalPlayerDialog(uint16_t homeOrAbroadFlag)
 {
     _careerAddIntlPlayerResult = 0xFFFF;
+    if (homeOrAbroadFlag == 2) {    /* (a mod's pick, ModApi_CallUpPlayer: no dialog) */
+        extern int32_t ModCareer_TakeCallUp(uint16_t *team, uint16_t *slot);
+        uint16_t team, slot;
+        if (ModCareer_TakeCallUp(&team, &slot))
+            Career_AddInternationalPlayerPicked(team, slot);
+        return;
+    }
     if (homeOrAbroadFlag == 0) {
         /* Home: filter by nationality */
         ChooseTeamsDialogWithNationality((uint16_t)_nationalTeamFileId, 1, 0, 0,
@@ -6378,6 +6386,8 @@ void Career_ShowAddInternationalPlayerDialog(uint16_t homeOrAbroadFlag)
  * Displays a squad view filtered by nationality/unavailability, lets the
  * user pick a player, then copies that player into the career team.
  * ========================================================================== */
+
+static void addInternationalPlayerChosen(TeamFileEx *teamEx, uint16_t selected);
 
 /* Career_AddInternationalPlayerCommon
  * selectedTeam: pointer to team selection data (first word = team number)
@@ -6443,6 +6453,14 @@ void Career_AddInternationalPlayerCommon(uint8_t *selectedTeam, uint8_t *title)
     if (selected < 0)
         return;
 
+    addInternationalPlayerChosen(teamEx, (uint16_t)selected);
+}
+
+/* The squad pick made (the screen above, or a mod's: Career_AddInternationalPlayerPicked): the
+ * player goes into a free, position-compatible slot of the national squad, or -- none --
+ * _careerAddIntlPlayerResult 1, for NationalTeamAddPlayer to keep him pending. */
+static void addInternationalPlayerChosen(TeamFileEx *teamEx, uint16_t selected)
+{
     _careerSquadScreenDidSelectPlayerFlag = 1;
     _careerAddIntlPlayerSelectedPlayerOrdinal = (uint16_t)selected;
 
@@ -6543,6 +6561,15 @@ void Career_AddInternationalPlayerCommon(uint8_t *selectedTeam, uint8_t *title)
 
     /* No compatible empty slot found */
     _careerAddIntlPlayerResult = 1;
+}
+
+/* A mod's pick (ModApi_CallUpPlayer, then its ADD PLAYER row): team `team`'s player `slot`,
+ * checked there, added as the squad screen's pick is. */
+void Career_AddInternationalPlayerPicked(uint16_t team, uint16_t slot)
+{
+    _careerAddIntlPlayerSelectedTeamNumber = team;
+    _careerAddIntlPlayerResult = 0xFFFF;
+    addInternationalPlayerChosen(GetTeamPointer(team), slot);
 }
 
 /* AddInternationalPlayerHome — callback for home nationality team selection.
@@ -6709,9 +6736,36 @@ static void modRowChosen(int32_t row)
     ModEntries_RowChosen(k_modRowPoint[row]);
 }
 
-__attribute__((used, externally_visible)) void BuyPlayerModRow(void) { modRowChosen(MODROW_BUY_PLAYER); }
-__attribute__((used, externally_visible)) void TransferMarketModRow(void) { modRowChosen(MODROW_TRANSFER_MARKET); }
-__attribute__((used, externally_visible)) void NationalTeamAddPlayerModRow(void) { modRowChosen(MODROW_NATIONAL_ADD_PLAYER); }
+/* After a mod's entry: a transfer it completed (ModApi_OfferForPlayer) closes BUY PLAYER and
+ * TRANSFER MARKET as the game's own buys do; a player it picked (ModApi_CallUpPlayer) closes ADD
+ * PLAYER, which adds him (NationalTeamAddPlayer, add type 2). */
+__attribute__((used, externally_visible)) void BuyPlayerModRow(void)
+{
+    extern uint16_t _transferCompleted;
+    extern void BuyPlayerExit(void);
+    _transferCompleted = 0;
+    modRowChosen(MODROW_BUY_PLAYER);
+    if (_transferCompleted == 1)
+        BuyPlayerExit();
+}
+__attribute__((used, externally_visible)) void TransferMarketModRow(void)
+{
+    extern uint16_t _transferCompleted;
+    _transferCompleted = 0;
+    modRowChosen(MODROW_TRANSFER_MARKET);
+    if (_transferCompleted == 1)
+        SetExitMenuFlag();
+}
+__attribute__((used, externally_visible)) void NationalTeamAddPlayerModRow(void)
+{
+    modRowChosen(MODROW_NATIONAL_ADD_PLAYER);
+    extern int32_t ModCareer_CallUpPending(void);
+    extern uint16_t _careerNationalTeamAddPlayerType;
+    if (ModCareer_CallUpPending()) {
+        _careerNationalTeamAddPlayerType = 2;
+        SetExitMenuFlag();
+    }
+}
 __attribute__((used, externally_visible)) void CompetitionStatsModRow(void) { modRowChosen(MODROW_COMPETITION_STATS); }
 
 /* NationalTeamAddPlayer — shows the home/abroad sub-menu, then lets user

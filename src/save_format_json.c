@@ -3509,6 +3509,26 @@ int DataJson_LoadTeamIdsForCountry(int countryNum, struct TeamDbIds *out, int ma
     return n > 0 ? n : -1;
 }
 
+/* Whether a country has a team file LoadTeamFile can load (its data_json file, else its
+ * data/team.NNN): LoadTeamFile halts on a missing one (panic 0x8008), which is right for the
+ * game's own ids, so Career_PeekTeam asks this first about an id a mod gave it. */
+int DataJson_CountryHasTeamFile(int countryNum)
+{
+    char team_file[128], rel[32], found[1024];
+    int jlen = 0;
+    char *jj = dj_slurp_country_teams(countryNum, team_file, (int)sizeof team_file, &jlen);
+    if (jj) {
+        free(jj);
+        return 1;
+    }
+    snprintf(rel, sizeof rel, "data/team.%03d", countryNum);
+    FILE *f = fopen(swos_data_path(rel, found, (uint32_t)sizeof found), "rb");
+    if (!f)
+        return 0;
+    fclose(f);
+    return 1;
+}
+
 int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, int maxTeams)
 {
     char team_file[128];

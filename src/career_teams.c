@@ -11,6 +11,7 @@
  */
 
 #include "career_teams.h"
+#include <stdio.h>    /* (Career_PeekTeam) */
 #include "uefa_coef.h"
 #include "conti_season.h"
 #include "states.h"
@@ -209,6 +210,62 @@ TeamFileEx *GetTeamPointer(uint16_t teamId)
     /* Apply foreign market player patches */
     Career_PatchTeamWithForeignMarketPlayers(ptr);
     return ptr;
+}
+
+/* Whether team file `ext` is there for LoadTeamFile, which halts on a missing one (panic
+ * 0x8008, right for the game's own ids): Career_PeekTeam asks before loading a mod's id. 100 is
+ * CUSTOMS.EDT, never a career's. */
+static int32_t teamFileExists(uint8_t ext)
+{
+    if (ext == 100)
+        return 0;
+#ifdef SWOS_SDL_BUILD
+    extern int DataJson_CountryHasTeamFile(int countryNum);
+    return DataJson_CountryHasTeamFile(ext);
+#else
+    extern uint32_t Resload_FileSize(const char *name);
+    char name[16];
+    snprintf(name, sizeof name, "data/team.%03d", ext);
+    return Resload_FileSize(name) != 0;
+#endif
+}
+
+/* ================================================================
+ * Career_PeekTeam -- a copy of a team as the career has it (for the mods' ModApi_CareerTeam):
+ * the live copy (the current team, the career club, the selected teams, the TMD pool) or its
+ * team file's record with the career pool's changes on it, as GetTeamPointer would give -- but
+ * the team-file buffer, which a screen may be showing, is left as it was (snapshot and restore),
+ * and an id that is no team gives 0 rather than GetTeamPointer's endless scan. 1 when found.
+ * ================================================================ */
+int32_t Career_PeekTeam(uint16_t teamId, TeamFileEx *out)
+{
+    TeamFileEx *t;
+    uint16_t idx;
+    if (findTeamInCache(teamId, &t, &idx) == 0 || (t = findTeamInTmdBuffer(teamId)) != NULL) {
+        *out = *t;
+        return 1;
+    }
+    if (!teamFileExists((uint8_t)(teamId >> 8)))
+        return 0;
+    const int32_t other = !(_teamsLoaded && _lastLoadedExtNumber == (uint8_t)(teamId >> 8));
+    void *aside = NULL;             /* (allocated: the Amiga keeps no second team-file buffer) */
+    if (other && (aside = TeamFile_PutAside()) == NULL)
+        return 0;
+    int32_t found = 0;
+    if (LoadTeamFile((uint16_t)(teamId >> 8)) == 0) {
+        const uint16_t count = *(uint16_t *)&_teamFileBuffer;
+        const TeamFileEx *rec = (const TeamFileEx *)(&_teamFileBuffer + 2);
+        for (uint16_t i = 0; i < count && i < TEAM_FILE_MAX_TEAMS; i++, rec++)
+            if (PACK_BE_U16(rec->team.countryNumber, rec->team.teamOrdinal) == teamId) {
+                *out = *rec;
+                Career_PatchTeamWithForeignMarketPlayers(out);
+                found = 1;
+                break;
+            }
+    }
+    if (other)
+        TeamFile_PutBack(aside);
+    return found;
 }
 
 /* ================================================================

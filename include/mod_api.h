@@ -143,6 +143,30 @@ struct ModPlayerCreated {
     uint8_t  kind;          /* ModPlayerKind */
     struct PlayerFile *player;  /* made by the game; the hook may change him */
 };
+/* ---- the career (src/mod_career.c, docs/MODS.md §31): through the game's own career code.
+ * Team ids are file << 8 | ordinal, slots a player's place in the team's file (0..15; 0..31
+ * for your club). Each gives -1 outside a career or when it cannot. ---- */
+/* A club's players as the career has them now (its live copy, or its file with the career's
+ * transfers on it), without disturbing what a screen shows. 0 when read. */
+int32_t ModApi_CareerTeam(uint16_t team, struct PlayerFile *out);   /* (out: 16 of them) */
+/* Another club's player at `slot` becomes `player` for the rest of the career (the career's
+ * pool and every live copy, as the game's transfers are kept; not your club). 0 written, -1 not
+ * (the pool full: foreign_pool_capacity). */
+int32_t ModApi_SetCareerPlayer(uint16_t team, uint16_t slot, const struct PlayerFile *player);
+/* Make an offer for another club's player: the game's offer screen (BUY PLAYER's own tests:
+ * time to negotiate, room to buy). 1 when the transfer was made, 0 not, -1 not possible. From
+ * MODPOINT_BUY_PLAYER / MODPOINT_TRANSFER_MARKET's entry the screen then closes as the game's
+ * buys do. */
+int32_t ModApi_OfferForPlayer(uint16_t team, uint16_t slot);
+/* A national selector's pick from MODPOINT_NATIONAL_ADD_PLAYER's entry: checked as the squad
+ * screen greys players out (nationality, called up, unavailable); when the entry returns, ADD
+ * PLAYER closes and the game adds him as HOME / ABROAD would (or keeps him pending for a
+ * replacement when the squad is full). 0 picked. */
+int32_t ModApi_CallUpPlayer(uint16_t team, uint16_t slot);
+/* Your player at file slot `slot` onto your transfer list. 0 listed, 1 already there, -1 not
+ * (the list full: transfer_list_capacity; no player). */
+int32_t ModApi_ListPlayer(uint16_t slot);
+
 /* careerSave's writer: appends text to the mod's object (printf's format). */
 void ModJson_Printf(ModJsonWriter *out, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 

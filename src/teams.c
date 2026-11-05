@@ -23,9 +23,8 @@
 #include "league_groups.h"
 #include "team_pool.h"
 #include "swos_io.h"
-#ifdef SWOS_SDL_BUILD
-#include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in */
-#endif
+#include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in; malloc (TeamFile_PutAside) */
+#include <string.h>            /* (TeamFile_PutAside) */
 
 /* ---- Constants ---- */
 #define GAME_TYPE_CAREER            4
@@ -250,6 +249,28 @@ static void setLoadedTeamsGlobalNumbers(void)
 {
     uint16_t count = *((uint16_t *)_teamFileBuffer);
     SetTeamGlobalNumbers(count, _teamFileBuffer + 2);
+}
+
+/* TeamFile_PutAside / PutBack (include/teams.h): the buffer, then the file's number and
+ * whether one is loaded. */
+void *TeamFile_PutAside(void)
+{
+    uint8_t *aside = (uint8_t *)malloc(TEAM_FILE_BUFFER_SIZE + 4);
+    if (aside) {
+        memcpy(aside, _teamFileBuffer, TEAM_FILE_BUFFER_SIZE);
+        aside[TEAM_FILE_BUFFER_SIZE] = _lastLoadedExtNumber;
+        memcpy(aside + TEAM_FILE_BUFFER_SIZE + 2, &_teamsLoaded, 2);
+    }
+    return aside;
+}
+
+void TeamFile_PutBack(void *aside)
+{
+    uint8_t *a = (uint8_t *)aside;
+    memcpy(_teamFileBuffer, a, TEAM_FILE_BUFFER_SIZE);
+    _lastLoadedExtNumber = a[TEAM_FILE_BUFFER_SIZE];
+    memcpy(&_teamsLoaded, a + TEAM_FILE_BUFFER_SIZE + 2, 2);
+    free(a);
 }
 
 /* ================================================================

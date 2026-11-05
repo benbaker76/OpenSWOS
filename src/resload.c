@@ -1726,6 +1726,14 @@ uint32_t Resload_ReadSmallFile(const char *name, uint8_t *dest, uint32_t cap)
     return size;
 }
 
+/* A file's size, 0 when it is not there (Career_PeekTeam: whether a team file is, before
+ * LoadTeamFile, which halts on a missing one). */
+uint32_t Resload_FileSize(const char *name)
+{
+    file_GetFileSize((uint8_t *)name);
+    return size;
+}
+
 static void file_SaveFile(uint32_t fileSize, uint8_t *name, uint8_t *src)
 {
     disable_vblank_and_wait();

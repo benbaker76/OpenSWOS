@@ -946,3 +946,22 @@ minutes, Italy 1-0 Brazil. On SDL the mod tests are unchanged
 (`SWOS_MOD_MATCH_TEST=1`, `shootout`, `speedrun:0/3`, `SWOS_SHOOTING_TEST`), and so are the golden
 careers and `check_netplay_compat.sh`.
 
+---
+
+## 31. The career's players (src/mod_career.c; Career+'s §3.5)
+
+Five calls (include/mod_api.h) that go through the game's own career code, so what a mod does
+is kept, saved and shown as the game's own transfers are. A team is `file << 8 | ordinal`, a
+slot a player's place in the team's file (0-15; 0-31 for your club); each gives -1 outside a
+career or when it cannot.
+
+| call | what it does |
+|---|---|
+| `ModApi_CareerTeam(team, out)` | the club's 16 players as the career has them: its live copy (the current team, your club, the selected teams, the TMD pool), else its file's record with the career's pool on it, as GetTeamPointer gives -- but the team-file buffer a screen may be showing is put back as it was (`Career_PeekTeam`, `TeamFile_PutAside`/`PutBack`: allocated, as the Amiga keeps no second buffer), and an id with no team file gives -1 (LoadTeamFile halts on one, panic 0x8008) |
+| `ModApi_SetCareerPlayer(team, slot, player)` | another club's player becomes `player` for the rest of the career: the claim in the career's foreign pool (updated, or one added; -1 when the pool is full, `foreign_pool_capacity`) and every live copy (`Career_WriteTeamPlayer`). Never your club: its players change through the game's transfers |
+| `ModApi_OfferForPlayer(team, slot)` | the game's MAKE OFFER screen for that player, with BUY PLAYER's own tests first (time left to negotiate, room in the squad); 1 when the transfer was made. From a `MODPOINT_BUY_PLAYER` / `MODPOINT_TRANSFER_MARKET` entry the screen then closes as it does after the game's own buys |
+| `ModApi_CallUpPlayer(team, slot)` | a national selector's pick, from the `MODPOINT_NATIONAL_ADD_PLAYER` entry: refused as the squad screen greys players out (another nationality, already in the squad, unavailable); when the entry returns ADD PLAYER closes and the game adds him as HOME / ABROAD would, a full squad included (`Career_AddInternationalPlayerPicked`) |
+| `ModApi_ListPlayer(slot)` | your player onto your transfer list: 1 when he is on it already (the game's own add does not check), -1 when the list is full (`transfer_list_capacity`) or the slot is empty |
+
+Both targets: on the Amiga, `Career_PeekTeam` asks resload whether `data/team.NNN` is there
+(`Resload_FileSize`) where the SDL build asks the data_json corpus, then the binary file.
