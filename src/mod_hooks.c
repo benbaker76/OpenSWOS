@@ -97,8 +97,32 @@ void ModHooks_MatchEnded(const ModMatchResult *result)
 
 /* ---- the career (docs/MODS.md §27) ---- */
 
+/* The loaded career's "mods" members, kept as their JSON text: a mod that is off this session
+ * gets its section written back unchanged, so turning it off for a while loses nothing. A mod
+ * that is on and has careerSave writes its own instead. A new career has none. */
+#define CAREER_KEPT_MAX 32
+static struct { char slug[48]; char *json; } s_kept[CAREER_KEPT_MAX];
+static int32_t s_keptCount;
+
+static void kept_clear(void)
+{
+    for (int32_t i = 0; i < s_keptCount; i++)
+        free(s_kept[i].json);
+    s_keptCount = 0;
+}
+
+/* the mod that writes this slug's section itself: on, with careerSave */
+static int32_t slug_writes_own(const char *slug)
+{
+    EACH(careerSave)
+        if (strcmp((*m_)->slug, slug) == 0)
+            return 1;
+    return 0;
+}
+
 void ModHooks_CareerNew(void)
 {
+    kept_clear();
     EACH(careerNew) (*m_)->careerNew();
 }
 
@@ -190,6 +214,12 @@ char *ModHooks_CareerSaveSection(void)
         }
         free(one.buf);
     }
+    for (int32_t i = 0; i < s_keptCount; i++) {     /* (the sections of the mods that are off) */
+        if (slug_writes_own(s_kept[i].slug))
+            continue;
+        ModJson_Printf(&all, "%s\"%s\":%s", any ? "," : ",\n  \"mods\":{", s_kept[i].slug, s_kept[i].json);
+        any = 1;
+    }
     if (any)
         ModJson_Printf(&all, "}");
     if (!any || all.oom) {
@@ -201,6 +231,32 @@ char *ModHooks_CareerSaveSection(void)
 
 void ModHooks_CareerLoadSection(const char *json, int32_t len)
 {
+    kept_clear();
+    {   /* every member of "mods", as its text, whoever it belongs to */
+        const char *mods = NULL;
+        int modsLen = 0;
+        if (json && mjson_find(json, (int)len, "$.mods", &mods, &modsLen) == MJSON_TOK_OBJECT) {
+            int off = 0, koff, klen, voff, vlen, vt;
+            while ((off = mjson_next(mods, modsLen, off, &koff, &klen, &voff, &vlen, &vt)) != 0) {
+                if (vt != MJSON_TOK_OBJECT || klen < 3 || klen - 2 >= (int)sizeof s_kept[0].slug)
+                    continue;
+                if (s_keptCount >= CAREER_KEPT_MAX) {
+                    fprintf(stderr, "[mods] the career has more than %d mods' sections: the rest not kept\n",
+                            CAREER_KEPT_MAX);
+                    break;
+                }
+                char *copy = (char *)malloc((size_t)vlen + 1);
+                if (!copy)
+                    break;
+                memcpy(copy, mods + voff, (size_t)vlen);
+                copy[vlen] = '\0';
+                memcpy(s_kept[s_keptCount].slug, mods + koff + 1, (size_t)(klen - 2));   /* (without its quotes) */
+                s_kept[s_keptCount].slug[klen - 2] = '\0';
+                s_kept[s_keptCount].json = copy;
+                s_keptCount++;
+            }
+        }
+    }
     EACH(careerLoad) {
         char path[96];
         const char *obj = NULL;

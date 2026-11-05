@@ -836,5 +836,7 @@ fields, never addresses: CLAUDE.md); the career's JSON gets `"mods": {"<slug>": 
 its last member, and only when a mod that is on wrote something, so a career without career
 mods saves as it always did (the golden careers). On load, after the career's pointers are
 rebuilt, each mod that is on gets `careerLoad(json, len)`: its object, or NULL / 0 when the save
-has none (start its records empty). A mod that is off keeps its section unread, and the next
-save, made without it, drops the section.
+has none (start its records empty). The loaded career's "mods" members are kept as their text:
+a mod that is off this session has its section written back unchanged at the next save, so
+turning Career+ off for a while loses none of the career's Career+ data; a mod that is on and has
+careerSave writes its own instead. A new career keeps none.
