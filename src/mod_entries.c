@@ -99,6 +99,30 @@ int32_t ModApi_RegisterHandlers(const char *slug, const ModHandler *handlers, in
     return 0;
 }
 
+void ModApi_MenuText(int32_t entry, const char *text)
+{
+    MenuEntry *e = CalcMenuEntryAddress((uint16_t)entry);
+    if (e)
+        e->fg = (uintptr_t)text;
+}
+
+void ModApi_MenuVisible(int32_t entry, int32_t shown)
+{
+    MenuEntry *e = CalcMenuEntryAddress((uint16_t)entry);
+    if (e)
+        e->isInvisible = !shown;
+}
+
+void ModApi_MenuNav(int32_t entry, int32_t up, int32_t down)
+{
+    MenuEntry *e = CalcMenuEntryAddress((uint16_t)entry);
+    if (!e)
+        return;
+    e->upEntry = (int8_t)up;
+    e->downEntry = (int8_t)down;
+    e->directionUp = e->directionDown = -1;
+}
+
 int32_t ModApi_ShowMenu(const char *menuPath)
 {
     uint8_t *menu = MenuJson_Load(menuPath);

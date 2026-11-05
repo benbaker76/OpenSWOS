@@ -67,6 +67,7 @@ static struct {
 static uint32_t s_frames;               /* from kick-off, every match */
 static uint8_t  s_kickedOff;
 static uint8_t  s_endTold;              /* this kick-off's end told the mods */
+static int32_t  s_testTraining;         /* SWOS_MOD_MATCH_TEST=training (ModMatch_SelfTest) */
 
 int32_t ModMatch_Active(void) { return s_mm.active; }
 
@@ -82,6 +83,7 @@ void ModApi_DefaultSetup(ModMatchSetup *setup)
     setup->autoReplays = 1;
     setup->stadium = 1;
     setup->replayMenu = 1;
+    setup->playingUp = setup->kickOff = -1;
 }
 
 /* the team of that id (file << 8 | ordinal) into _selectedTeams[slot] */
@@ -154,10 +156,15 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
     fprintf(stderr, "[mods] %s plays a match: %04x v %04x\n", s_mm.slug, (unsigned)setup->team[0],
             (unsigned)setup->team[1]);
 
+    extern uint16_t _cardsDisallowed[];
+    const uint16_t keepCards = _cardsDisallowed[0];
+    if (setup->noCards)
+        _cardsDisallowed[0] = 1;
     InitTeams();
     s_mm.active = 1;
     InitAndPlayGame(&_selectedTeams[0], &_selectedTeams[1]);
     s_mm.active = 0;
+    _cardsDisallowed[0] = keepCards;
 
     _friendlyPitchType = keep[0];
     _maxSubstitutes = keep[1];
@@ -190,6 +197,12 @@ int32_t ModApi_ChooseTeams(void)
     extern uint8_t _aFriendly_1[], _aPlayFriendly[];
     GoGetTeamsForPlay(_aFriendly_1, _aPlayFriendly, 2, 1, 1, 1);
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
+}
+
+/* After ModApi_ChooseTeams: whether a chosen team is a player's (1) or the CPU's (0). */
+int32_t ModMatch_ChosenSide(int32_t team)
+{
+    return team >= 0 && team < 2 && _numSelectedTeams >= 2 && _selectedTeams[team].team.teamControls != TEAM_COMPUTER;
 }
 
 uint16_t ModApi_RandomTeam(void)
@@ -308,6 +321,52 @@ void ModMatch_KickOff(void)
     ModHooks_MatchStart();
 }
 
+/* InitGameRestoreTeams, the sides just drawn (G1): the mod's, where it said. */
+void ModMatch_Sides(void)
+{
+    extern uint16_t _teamPlayingUp, _teamStarting;
+    if (!s_mm.active)
+        return;
+    if (s_mm.setup.playingUp == 0 || s_mm.setup.playingUp == 1)
+        _teamPlayingUp = (uint16_t)(s_mm.setup.playingUp + 1);
+    if (s_mm.setup.kickOff == 0 || s_mm.setup.kickOff == 1)
+        _teamStarting = (uint16_t)(s_mm.setup.kickOff + 1);
+}
+
+/* InitPlayersBeforeEnteringPitch's end (G4): the lines left out, gone as a sent-off man goes --
+ * the engine already plays around one (sentAway) -- but in the tunnel already. */
+void ModMatch_PlayersEntered(void)
+{
+    extern Sprite **_team1SpritesTable;
+    extern Sprite **_team2SpritesTable;
+    extern TeamGame *_topTeamPtr;
+    extern TeamGame *_bottomTeamPtr;
+    if (!s_mm.active || !(s_mm.setup.linesOut[0] | s_mm.setup.linesOut[1]))
+        return;
+    for (int32_t t = 0; t < 2; t++) {
+        Sprite **tab = t == 0 ? _team1SpritesTable : _team2SpritesTable;
+        const TeamGame *team = t == 0 ? _topTeamPtr : _bottomTeamPtr;
+        const uint8_t out = s_mm.setup.linesOut[t];
+        if (!out || !tab || !team)
+            continue;
+        for (int32_t i = 1; i < 11; i++) {          /* (never the goalkeeper) */
+            const int8_t pos = team->players[i].position;
+            const uint8_t line = pos == POS_ATTACKER ? MODLINE_ATTACK
+                               : (pos == POS_RIGHT_WING || pos == POS_LEFT_WING || pos == POS_MIDFIELDER) ? MODLINE_MIDFIELD
+                               : MODLINE_DEFENCE;
+            Sprite *sp = tab[i];
+            if (!(out & line) || !sp)
+                continue;
+            sp->cards = -1;
+            sp->sentAway = 1;
+            sp->x.s.i = sp->destX = -20;
+            sp->y.s.i = sp->destY = 449;
+        }
+    }
+}
+
+int32_t ModMatch_NoInjuries(void) { return s_mm.active && s_mm.setup.noInjuries; }
+
 /* A re-simulated frame (netplay): the match hooks are told only frames as first played. */
 int32_t ModMatch_Quiet(void) { return NetplayMatch_Resimulating(); }
 
@@ -318,10 +377,20 @@ void ModMatch_Frame(void)
         s_kickedOff = 1;
     if (s_kickedOff && !ModMatch_Quiet())
         s_frames++;
+    if (s_mm.active && s_mm.setup.clockStopped) {   /* (G7: the clock back to its start each frame) */
+        int16_t m = s_mm.setup.minute < 0 ? 0 : s_mm.setup.minute > 44 ? 44 : s_mm.setup.minute;
+        uint8_t *t = (uint8_t *)&_gameTime;
+        t[1] = (uint8_t)(m / 100);
+        t[2] = (uint8_t)(m / 10 % 10);
+        t[3] = (uint8_t)(m % 10);
+        _gameSeconds = 0;
+    }
     if (s_mm.active && s_mm.setup.shootoutOnly && !s_mm.shootoutDone && s_kickedOff) {
         s_mm.shootoutDone = 1;
         ModApi_StartShootout();
     }
+    if (s_testTraining && s_mm.active && s_frames >= 3000)
+        ModApi_EndMatch();                  /* (the training test: a minute of play, then ended) */
     ModHooks_MatchFrame();
 }
 
@@ -420,6 +489,7 @@ void ModMatch_SelfTest(void)
         return;
     }
     s_testShootout = strcmp(how, "shootout") == 0;
+    s_testTraining = strcmp(how, "training") == 0;
     play_test_match(1);
 }
 
@@ -437,6 +507,15 @@ static void play_test_match(int32_t thenQuit)
     setup.replayMenu = 0;
     setup.autoReplays = 0;
     setup.name = "mod match test";
+    if (s_testTraining) {                   /* training's rules: the clock at 0, lines out, ended by us */
+        setup.clockStopped = setup.noCards = setup.noInjuries = 1;
+        setup.score[0] = setup.score[1] = 0;
+        setup.minute = 0;
+        setup.linesOut[0] = MODLINE_DEFENCE | MODLINE_ATTACK;
+        setup.linesOut[1] = MODLINE_MIDFIELD;
+        setup.playingUp = 0;
+        setup.kickOff = 1;
+    }
     if (s_testShootout) {                   /* straight to penalties: a shoot-out's result */
         setup.shootoutOnly = 1;
         setup.score[0] = setup.score[1] = 0;
@@ -449,8 +528,10 @@ static void play_test_match(int32_t thenQuit)
     if (!thenQuit)
         return;
     const int32_t ok = rc == 0 && r.frames > 0 &&
-                       (s_testShootout ? r.penaltyGoals[0] != r.penaltyGoals[1] : r.minute >= 90);
-    fprintf(stdout, "MOD MATCH TEST %s%s\n", s_testShootout ? "(shootout) " : "", ok ? "PASS" : "FAIL");
+                       (s_testShootout ? r.penaltyGoals[0] != r.penaltyGoals[1]
+                        : s_testTraining ? r.minute == 0 && r.endedByMod && r.frames >= 3000 : r.minute >= 90);
+    fprintf(stdout, "MOD MATCH TEST %s%s\n", s_testShootout ? "(shootout) " : s_testTraining ? "(training) " : "",
+            ok ? "PASS" : "FAIL");
     fflush(stdout);
     exit(ok ? 0 : 1);
 }

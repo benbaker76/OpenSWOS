@@ -422,6 +422,9 @@ void InitPlayersBeforeEnteringPitch(void)
             spritesTableA = _team2SpritesTable;
         }
     }
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_PlayersEntered(void); ModMatch_PlayersEntered(); }   /* a mod's lines left out */
+#endif
 }
 
 /* ================================================================
@@ -931,6 +934,9 @@ void InitGameRestoreTeams(void)
     /* Random teamPlayingUp and teamStarting */
     _teamPlayingUp = (uint16_t)((Rand() & 1) + 1);
     _teamStarting = (uint16_t)((Rand() & 1) + 1);
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_Sides(void); ModMatch_Sides(); }   /* a mod's match's own sides (mod_match.c) */
+#endif
 
     /* Set time delta from game length table */
     _timeDelta = *(uint16_t *)((uint8_t *)_gameLenSecondsTable + (_gameLengthInGame << 1));

@@ -212,6 +212,13 @@ PlayerTackled(Sprite *player, TeamGeneralInfo *team)
     int16_t severity;
     int16_t i;
 
+#ifdef SWOS_SDL_BUILD
+    {   /* a mod's match that injures nobody (mod_match.c): no roll taken */
+        extern int32_t ModMatch_NoInjuries(void);
+        if (ModMatch_NoInjuries())
+            goto set_tackled;
+    }
+#endif
     /* Training game: 25% chance of any injury processing */
     if (_trainingGame != 0) {
         roll = Rand();

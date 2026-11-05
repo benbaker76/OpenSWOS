@@ -87,6 +87,11 @@ typedef struct {
 } ModHandler;
 int32_t ModApi_RegisterHandlers(const char *slug, const ModHandler *handlers, int32_t count);
 int32_t ModApi_ShowMenu(const char *menuPath);  /* MenuJson_Load + ShowMenu; 0 when shown */
+/* The menu being shown, from its handlers: an entry's text (kept by the caller: the menu holds
+ * the pointer), whether it is shown, and its up / down neighbours (-1 none). */
+void    ModApi_MenuText(int32_t entry, const char *text);
+void    ModApi_MenuVisible(int32_t entry, int32_t shown);
+void    ModApi_MenuNav(int32_t entry, int32_t up, int32_t down);
 
 /* ---- a match a mod plays (H2, H4) ---- */
 typedef enum { MODSIDE_CPU, MODSIDE_PLAYER1, MODSIDE_PLAYER2 } ModSide;
@@ -108,7 +113,17 @@ typedef struct {
     const char *name;       /* the match's name on the screens ("PRACTICE"), NULL the friendly's */
     uint8_t  chosen;        /* the teams ModApi_ChooseTeams chose (team[] unused): the sides as
                              * the player set them there (a CPU team the CPU, the rest players) */
+    /* the rules of a practice (SWOS United's map: G1, G4, G7, G9) */
+    int8_t   playingUp;     /* the team attacking the top goal first, 0 / 1; -1 as the game draws */
+    int8_t   kickOff;       /* the team kicking off, 0 / 1; -1 as the game draws */
+    uint8_t  clockStopped;  /* the clock stays at its start: no half time, no end (EndMatch ends it) */
+    uint8_t  noCards;       /* fouls, no bookings */
+    uint8_t  noInjuries;    /* tackles injure nobody */
+    uint8_t  linesOut[2];   /* per team, MODLINE_* bits: those outfielders are not on the pitch */
 } ModMatchSetup;
+
+enum { MODLINE_DEFENCE = 1, MODLINE_MIDFIELD = 2, MODLINE_ATTACK = 4 };   /* (backs and defenders;
+                                                                           * wings and midfielders; attackers) */
 
 /* The friendly's team screen: the player picks two teams, and who plays each (CPU / player).
  * 1 when two were chosen (then ModMatchSetup.chosen plays them), 0 when the player left. */

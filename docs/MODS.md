@@ -578,9 +578,19 @@ default -- so the main menu's MODES button is there): MODES -> PRACTICE opens it
   plays each), then straight to a shoot-out (`shootoutOnly`), named SHOOTOUT; back to the menu.
 - **DEMO GAME**: two random national teams (`ModApi_RandomTeam`, its own random numbers), CPU v
   CPU, named DEMO GAME.
-- **TEAM TRAINING**: next -- it needs the frozen clock, the lines left out, the drills (F1-F12),
-  ghost players and the manual keeper (the map's G-items).
+- **TEAM TRAINING** (`practice.training`; SWOS 2020's practiceSetting.mnu): your defence,
+  midfield and attack, and the CPU's, each on or off, the goal you attack; START: the team screen,
+  then a match whose clock stays at 0 (no half time, no end but ESC), no cards, no injuries.
+  New in the setup (the map's G1, G4, G7, G9): `playingUp` / `kickOff` (set where the game draws
+  them, `InitGameRestoreTeams`), `linesOut[2]` (`MODLINE_*`: those outfielders sent away at
+  `InitPlayersBeforeEnteringPitch`'s end and put in the tunnel, as a sent-off man is -- the AI,
+  possession and team control already play around `sentAway`), `clockStopped` (the start minute
+  put back each frame, as SWOS 2020 does), `noCards` (`_cardsDisallowed`), `noInjuries` (no roll
+  in `PlayerTackled`). Menus of a mod's own: `ModApi_MenuText / MenuVisible / MenuNav`. Still to
+  come: the drills (F1-F12: forced restarts, G6), ghost players (G5), the manual keeper (G8).
 
-Checked: the menu draws from the mod's JSON; DEMO GAME plays two random teams;
-`SWOS_MOD_MATCH_TEST=shootout` plays a shoot-out from kick-off (every kick an event, 4-2).
+Checked: the menus draw from the mod's JSON; DEMO GAME plays two random teams;
+`SWOS_MOD_MATCH_TEST=shootout` plays a shoot-out from kick-off (every kick an event, 4-2);
+`SWOS_MOD_MATCH_TEST=training` plays 3000 frames with lines out (seen: one team's midfield alone)
+and the clock still at 0, ended by the mod -- PASS; check_netplay_compat.sh unchanged.
 
