@@ -127,6 +127,15 @@ void ModApi_MenuSelect(int32_t entry) { SetCurrentEntry((uint16_t)entry); }
 
 int32_t ModApi_ShowMenu(const char *menuPath)
 {
+    /* A key left in the buffer -- the press that chose this, its release still to come when a
+     * mod's work before the menu took frames (a team database walk) -- would be the new menu's
+     * first fire. Drained as the match does before kick-off (game_loop.c). */
+    {
+        extern volatile uint16_t _currentKey;
+        do
+            GetKey();
+        while (_currentKey != 0);
+    }
     uint8_t *menu = MenuJson_Load(menuPath);
     if (!menu) {
         fprintf(stderr, "[mods] cannot show %s\n", menuPath);

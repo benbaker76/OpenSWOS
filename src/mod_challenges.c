@@ -148,11 +148,8 @@ static void read_file(const char *path)
         c->win = !strcmp(w, "draw") ? W_DRAW : !strcmp(w, "exact") ? W_EXACT : W_WIN;
 #undef STR
 #undef NUM
-        if (!ModApi_TeamByUuid(c->teamUuid[0]) || !ModApi_TeamByUuid(c->teamUuid[1])) {
-            fprintf(stderr, "[challenges] %s: a team is not in the database -- left out\n", c->id);
-            continue;
-        }
-        s_count++;
+        s_count++;                          /* (its teams are looked up at PLAY: a uuid search walks
+                                             * the whole database, too slow for drawing the list) */
     }
     free(json);
 }
@@ -255,6 +252,10 @@ static void play(int32_t i)
 {
     Challenge *c = &s_ch[i];
     s_cur = i;
+    if (!ModApi_TeamByUuid(c->teamUuid[0]) || !ModApi_TeamByUuid(c->teamUuid[1])) {
+        fprintf(stderr, "[challenges] %s: a team is not in the database (or a pack that is on)\n", c->id);
+        return;
+    }
     for (;;) {
         ModMatchSetup setup;
         ModMatchResult r;
