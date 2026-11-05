@@ -401,3 +401,42 @@ the first mod's winning the shared one.
 5. **The Amiga** has no menu symbol registry (`menu_symbols.c` is SDL-only) and no run-time
    translations. Its mod menus will be packed binary (scripts/menu_json_to_bin.py, MENUS.md
    §3) whose references are indices into a compact Amiga registry; measure its size first.
+
+## 16. Built-in mods and their hooks (2026-11-04)
+
+A **built-in mod** is code in the game with a canonical manifest (`bin/mods/<slug>/mod.json`), the
+first kind of code mod (§9) and the way a feature that is "different" (§3) ships without a fork:
+its code runs only while the mod is on (`Mods_IsOn`), turned on or off on OPTIONS -> MODS like any
+other. The code runs at **hooks**, fixed points of the engine, never patches of it
+(`include/mod_hooks.h`, `src/mod_hooks.c`: one row per mod, its slug and its hooks):
+
+| hook | where | what may be done there |
+|---|---|---|
+| `ModHooks_FrameDrawn(renderer)` | `platform_sdl.c`'s present, after the frame and its HUD, before the CRT effects, the touch controls and the swap | draw over the finished picture in its logical size. Runs once per frame SHOWN, so never on a re-simulated one: the place to keep a mod's own state |
+| `ModHooks_PitchDrawn()` | `game_loop.c`, after `ScrollToCurrent` drew the pitch into the frame being made, before the sprites | draw into the 8bpp frame UNDER the players. The frame may be one GGPO re-simulates and never shows, so only draw here |
+
+Neither may write match state: the frame buffers are not in it (`src/sim_state.c`), and a mod's
+own state must not be either. A built-in mod that is cosmetic plays online like any other
+cosmetic mod. No random number the game draws may be taken (`Rand`, libc `rand`): a mod keeps
+its own generator.
+
+**`weather`** (off by default; `src/mod_weather.c`): the first built-in mod.
+- **The weather.** C4ppy77's pitch-weather (`third_party/pitch_weather`, MIT, ported to C:
+  `OPENSWOS.md` there), drawn at FrameDrawn with `SDL_RenderGeometry` (SDL 2.0.18; built only where
+  the SDL has it, `src/pitch_weather_impl.c`). From the match's pitch type: frozen snow, muddy
+  heavy rain, wet rain, soft drizzle, none on the others. Its intensity drifts over the 90
+  minutes (the clock's minute) from a seed taken at kick-off from real time.
+- **The mud.** On a muddy, wet or soft pitch every player leaves footprints: one every 5 pixels
+  he moves on the ground, left and right foot either side of his way, none across a jump (a
+  restart). They are added and aged at FrameDrawn (so a rollback never doubles them) and
+  stamped at PitchDrawn, a pixel at a time through a palette table: each entry's nearest entry
+  in the palette shown toward a dark earth brown, at three strengths, rebuilt every second (a
+  match's palette fades). A print starts dark and dries through the three, and in the last
+  quarter of its life its pixels go one by one, so the pitch never fills up: 14 s on muddy, 8 s
+  wet (both starting at full strength), 5 s soft (starting a level lighter). Both palettes, the
+  Amiga's and the PC's, take it.
+- `SWOS_WEATHER_PITCH=<0..6>` plays a pitch type's weather and mud whatever the match's -- for a
+  test: `SWOS_WEATHER_PITCH=1 SWOS_PRESENT_CAPTURE=150 SWOS_PRESENT_CAPTURE_FROM=1500
+  bin/SWOS.x86_64 --mods=weather --replay-test=../tests/replay/<a .swr> --dos-graphics=off`
+  writes the presented frames as `swos_presentNNN.png`.
+- SDL only (`"targets": ["sdl"]`): neither hook exists on the Amiga.

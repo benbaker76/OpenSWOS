@@ -185,7 +185,7 @@ ZIP_MEMBERS="SWOS SWOS.x86_64 SWOS.aarch64 SWOS.armhf SWOS.exe SWOS2"
 # save/ is deliberately EXCLUDED: it is 24 MB of test careers here, and saves go
 # to a per-user directory anyway (swos_io.c), so shipping it would both bloat the
 # zip and drop stale saves on testers.
-FULL_DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup"
+FULL_DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup mods"
 # The data setup, built by the `setup` target.
 SETUP_CLI="tools/swosdata/build/swosdata"
 SETUP_EXE="tools/swosdata/build_win_static/bin/Release/openswos-setup.exe"

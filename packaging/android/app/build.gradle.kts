@@ -121,7 +121,7 @@ abstract class StageGameData : DefaultTask() {
         out.deleteRecursively()
         out.mkdirs()
         val dirs = listOf("data", "grafs", "grafs_aga", "grafs_dos", "grafs_2020", "grafs_arcade",
-                          "grafs_jag", "sound", "sound_dos", "data_json")
+                          "grafs_jag", "sound", "sound_dos", "data_json", "mods")
         val p = ProcessBuilder(listOf("bash", "scripts/stage_runtime.sh", out.absolutePath) + dirs)
             .directory(root).redirectErrorStream(true).start()
         val log = p.inputStream.bufferedReader().readText()

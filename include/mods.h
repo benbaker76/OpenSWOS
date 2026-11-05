@@ -46,6 +46,8 @@ int32_t     Mods_Count(void);
 const char *Mods_Id(int32_t i);
 const char *Mods_Uuid(int32_t i);           /* "" on the Amiga (it reads no manifest) */
 int32_t     Mods_IsCanonical(int32_t i);
+/* Whether the mod of that slug is on in this run (a built-in mod's code asks: src/mod_hooks.c). */
+int32_t     Mods_IsOn(const char *slug);
 /* The mod's folder, no trailing slash: SDL "<Mods_Root()>/<id>", Amiga "mods/<id>". */
 const char *Mods_Dir(int32_t i);
 /* Where mods are found (SDL): $SWOS_MODS, else "mods" in the player's game folder. */

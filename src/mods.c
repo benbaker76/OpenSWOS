@@ -32,6 +32,13 @@ int32_t Mods_Count(void) { return s_count; }
 const char *Mods_Id(int32_t i) { return i >= 0 && i < s_count ? s_ids[i] : ""; }
 const char *Mods_Uuid(int32_t i) { return i >= 0 && i < s_count ? s_uuids[i] : ""; }
 int32_t Mods_IsCanonical(int32_t i) { return i >= 0 && i < s_count && s_canonical[i]; }
+int32_t Mods_IsOn(const char *slug)
+{
+    for (int32_t i = 0; i < s_count; i++)
+        if (strcmp(s_ids[i], slug) == 0)
+            return 1;
+    return 0;
+}
 
 const char *Mods_OnlineBlocker(void)
 {

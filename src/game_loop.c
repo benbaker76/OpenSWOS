@@ -743,6 +743,9 @@ GameFrameResult GameLoop_Frame(void)
     _cameraCoordinatesValid = (uint16_t)(_cameraX.s.i == _oldCameraX && _cameraY.s.i == _oldCameraY);
 #else
     ScrollToCurrent();
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_PitchDrawn(void); ModHooks_PitchDrawn(); }  /* (under the sprites: the mud) */
+#endif
 #endif
     /* Record the camera in the SAME space the per-sprite coordinates are written
      * in. Those come off the draw path (sprites.c), which measures from

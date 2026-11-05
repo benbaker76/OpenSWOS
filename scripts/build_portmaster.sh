@@ -48,7 +48,7 @@ cp "$SRC/Sensible World of Soccer.sh" "$SRC/port.json" "$SRC/README.md" "$STAGE/
 cp bin/SWOS.aarch64 "$STAGE/swos/"
 
 # Tracked files only: a local bin/ can hold game data, which must never ship.
-git ls-files -z bin/data bin/data_json bin/grafs bin/grafs_aga bin/sound bin/sound_dos |
+git ls-files -z bin/data bin/data_json bin/grafs bin/grafs_aga bin/sound bin/sound_dos bin/mods |
   while IFS= read -r -d '' f; do
     mkdir -p "$STAGE/swos/$(dirname "${f#bin/}")"
     cp "$f" "$STAGE/swos/${f#bin/}"

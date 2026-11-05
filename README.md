@@ -98,7 +98,7 @@ The license does **not** cover:
   here grants any right to them. OpenSWOS is a fan project and is not affiliated with
   Sensible Software or its current rights holders.
 - **Third-party code in `third_party/`**, which keeps its own license (see each folder):
-  GGPO-X, ENet, miniz, SimpleMatchmaker, opl_models and qrcodegen (MIT), Opal (public domain),
+  GGPO-X, ENet, miniz, SimpleMatchmaker, opl_models, qrcodegen and C4ppy77's pitch-weather (MIT), Opal (public domain),
   dr_mp3 (public domain or MIT-0), and Tile Agent's runtime.
 
 ## Support development

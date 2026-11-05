@@ -113,7 +113,7 @@ else()
         XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
     add_custom_command(TARGET ${GAME} POST_BUILD
         COMMAND bash ${REPO}/scripts/stage_runtime.sh $<TARGET_BUNDLE_DIR:${GAME}>
-                data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json
+                data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json mods
         WORKING_DIRECTORY ${REPO} VERBATIM)
     # The packed structs (game_types.h, the Amiga's layouts) hold pointers at unaligned offsets.
     # iOS 15's chained fixups cannot express those ("pointer not aligned in _cupWinnersCup+0x1C"),

@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include "project_identity.h"
 #include "platform_sdl.h"
+#include "mod_hooks.h"      /* ModHooks_FrameDrawn: the built-in mods' drawing */
 #include "crt_effects.h"   /* CRT mask / vignette / curved corners */
 #include "display.h"
 #include "dos_mode.h"        /* gDosGraphics */
@@ -1328,6 +1329,13 @@ uint8_t Platform_NearestColour(uint8_t r, uint8_t g, uint8_t b)
     return (uint8_t)best;
 }
 
+void Platform_PaletteColour(uint8_t index, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    *r = s_palette[index].r;
+    *g = s_palette[index].g;
+    *b = s_palette[index].b;
+}
+
 static void refresh_palette_from_copper(void)
 {
     /* DOS graphics use the full 256-colour DOS palette, but ONLY during a
@@ -2241,6 +2249,9 @@ shots_done:
     } else {
         present_frame_copy(tex);
     }
+    /* The built-in mods' drawing over the frame (src/mod_hooks.c: the weather), before the
+     * CRT effects so the grille and the glass sit on top of it too. */
+    ModHooks_FrameDrawn(s_renderer);
     /* CRT effects go on LAST, over the finished frame and its HUD, so the
      * grille and the glass edge sit on the picture rather than under it. */
     CrtEffects_Apply(s_renderer);

@@ -1,0 +1,11 @@
+{
+ "uuid": "10584935-892d-5780-9e9c-7025f021091c",
+ "id": "weather",
+ "name": "Weather",
+ "version": "1.0",
+ "author": "C4ppy77 (the effect: github.com/C4ppy77/pitch-weather-SWOS, MIT); OpenSWOS",
+ "about": "Rain, drizzle and snow over a match, from its pitch: frozen snow, muddy heavy rain, wet rain, soft drizzle.",
+ "targets": ["sdl"],
+ "changes": "cosmetic",
+ "default": false
+}

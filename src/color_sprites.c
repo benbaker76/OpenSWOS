@@ -458,6 +458,12 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
         _team1PlayersColorTable[15] = (uint16_t)team1->prSocksCol;
     }
 
+#ifdef SWOS_SDL_BUILD
+    /* SWOS_DUMP_HEADS=<folder> (a tool, for the hair work: docs/MODS.md): team 1's raw set, its
+     * hair pixels found, before anything recolours it. */
+    { extern void HeadDump_Raw(void); HeadDump_Raw(); }
+#endif
+
     /* Face 3 (black, blond hair): each team's raw first set copied before it is recoloured
      * (player_face3.c, the Mod's copy_sets) */
     if (_useIndividualPlayerSkinColor != 0)

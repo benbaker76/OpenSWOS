@@ -217,6 +217,8 @@ int  Platform_VBlank(void);
 int  Platform_Present(void);
 /* The entry of the palette last shown nearest an RGB colour (not entry 0). */
 uint8_t Platform_NearestColour(uint8_t r, uint8_t g, uint8_t b);
+/* The colour of a palette entry, as last shown. */
+void Platform_PaletteColour(uint8_t index, uint8_t *r, uint8_t *g, uint8_t *b);
 /* Make the next frame `us` microseconds longer than the frame rate says -- netplay's frame
  * pacing (src/netplay_match.c). The limiter keeps deadlines, so a plain sleep between
  * frames is taken back out of the next one and changes nothing; this moves the deadline.

@@ -37,6 +37,9 @@ static const char *const k_creditsLines[] = {
     CREDITS_GAP,
     "DONATORS: BENBAKER76, PLAYAVELI, STARWINDZ, PETARKU,",
     "GATIFUN, BURELLAPAOLO, AZ0MAN0, CARTOPLOTUS68, JOSON, ALIKO",
+#ifdef SWOS_SDL_BUILD
+    "THE WEATHER MOD: PITCH-WEATHER BY C4PPY77.",     /* (an SDL mod: not on the Amiga's screen) */
+#endif
 };
 
 enum {
