@@ -374,7 +374,13 @@ static int json_out_emit(const char *chunk, int chunk_len, void *ud)
     if (o->oom) return 0;
     if (o->len + (size_t)chunk_len + 1 > o->cap) {
         size_t want = (o->cap ? o->cap : 4096);
-        while (want < o->len + (size_t)chunk_len + 1) want *= 2;
+        /* Double up to 1 MB, then grow in 512 KB steps: the Amiga's swos_io_realloc is
+         * alloc-copy-free, so a step holds the OLD and NEW blocks at once, and doubling a
+         * megabyte-class buffer peaked at 3x the file -- which silently failed a ~1.2 MB
+         * career save on an 8 MB A1200 (the5ar, 723acf73). A writer with a known large
+         * output avoids growing at all (json_out_reserve). */
+        while (want < o->len + (size_t)chunk_len + 1)
+            want = (want < 0x100000) ? want * 2 : want + 0x80000;
         char *grew = (char *)swos_io_realloc(o->ptr, want);
         if (!grew) { o->oom = 1; return 0; }
         o->ptr = grew;
@@ -384,6 +390,35 @@ static int json_out_emit(const char *chunk, int chunk_len, void *ud)
     o->len += (size_t)chunk_len;
     o->ptr[o->len] = '\0';
     return chunk_len;
+}
+
+/* One up-front allocation for a writer whose output is known to be large: one block has no
+ * old + new transient, so it succeeds where growing cannot. A failure is not fatal: growing
+ * still gets its chance (the file may come out smaller than the estimate). */
+static void json_out_reserve(JsonOutBuf *o, size_t want)
+{
+    char *p;
+    if (o->ptr || o->oom)
+        return;
+    p = (char *)swos_io_realloc(NULL, (uint32_t)want);
+    if (!p)
+        return;
+    o->ptr = p;
+    o->cap = want;
+    o->len = 0;
+    o->ptr[0] = '\0';
+}
+
+/* A save that failed must say so: it used to return 1 silently, which read as "saved"
+ * until the load screen showed no file (the Amiga .CAR report, 2026-10-27). */
+extern void ShowErrorMenu(uint8_t *errorTextStr);
+static int16_t json_out_fail_oom(JsonOutBuf *o)
+{
+    static uint8_t msg[] = "NOT ENOUGH MEMORY TO SAVE";
+    if (o->ptr)
+        swos_io_free(o->ptr);
+    ShowErrorMenu(msg);
+    return 1;
 }
 
 /* ---------- seasonInformationsArray semantic encoder/decoder ----------
@@ -4796,7 +4831,7 @@ static void load_comp_copy_region(const char *buf, int buflen)
  * cache_strides[] holds one stride per entry; cache_scores[] holds 3
  * decimals (packed,agg,pen) per game record, flattened in walk order.
  * Both walks use the LIVE/just-restored strides + numGames; bounds-guarded
- * (stride [10,256], stay within TSKC_SIZE) so corrupt data can't overrun. */
+ * (stride [KEYCACHE_STRIDE_MIN, KEYCACHE_STRIDE_MAX], stay within TSKC_SIZE) so corrupt data can't overrun. */
 extern uint16_t _teamSelectionKeyCacheCount;
 #define TSKC_SIZE 1870u
 #define TSKC_GAMEREC_OFF 0x0A      /* game records start here within an entry */
@@ -4814,7 +4849,7 @@ static void emit_cache_strides(mjson_print_fn_t fn, void *fnd)
         uint16_t stride = *(uint16_t *)(base + off + 2);
         if (i > 0) mjson_printf(fn, fnd, "%s", ",");
         mjson_printf(fn, fnd, "%u", (unsigned)stride);
-        if (stride < 10 || stride > 256) break;
+        if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
         off += stride;
     }
     mjson_printf(fn, fnd, "%s", "]");
@@ -4826,7 +4861,7 @@ static void emit_cache_strides(mjson_print_fn_t fn, void *fnd)
     for (int i = 0; i < count; i++) {
         if (off + 6 > TSKC_SIZE) break;
         uint16_t stride = *(uint16_t *)(base + off + 2);
-        if (stride < 10 || stride > 256) break;
+        if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
         int numGames = base[off + 5];
         for (int g = 0; g < numGames; g++) {
             uint32_t rec = off + TSKC_GAMEREC_OFF + (uint32_t)g * 12u;
@@ -4861,7 +4896,7 @@ static void fixup_cache_strides_on_load(const char *buf, int buflen)
             if (off + 4 > TSKC_SIZE) break;
             uint16_t stride = (uint16_t)parse_long_slice(arr + voff, vlen);
             *(uint16_t *)(base + off + 2) = stride;
-            if (stride < 10 || stride > 256) break;
+            if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
             off += stride;
         }
     }
@@ -4878,7 +4913,7 @@ static void fixup_cache_strides_on_load(const char *buf, int buflen)
         for (int i = 0; i < count; i++) {
             if (off + 6 > TSKC_SIZE) break;
             uint16_t stride = *(uint16_t *)(base + off + 2);
-            if (stride < 10 || stride > 256) break;
+            if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
             int numGames = base[off + 5];
             for (int g = 0; g < numGames; g++) {
                 uint32_t rec = off + TSKC_GAMEREC_OFF + (uint32_t)g * 12u;
@@ -6069,6 +6104,10 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
 {
     JsonOutBuf out = { NULL, 0, 0, 0 };
 
+    /* A career / season JSON is megabyte-class (.SEA ~0.8 MB, .CAR ~1.2 MB): reserved at once,
+     * so the Amiga never pays growing's old + new transient. */
+    json_out_reserve(&out, 0x1C0000);
+
     /* Reset string pool — emit_str_pool_field consumers (the four
      * seasonInformations comp-name slots) read pointer-typed fields
      * whose post-load value lives in this pool. Resetting up front
@@ -6675,10 +6714,8 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
 
     mjson_printf(json_out_emit, &out, "%s", "\n}\n");
 
-    if (out.oom || !out.ptr) {
-        if (out.ptr) swos_io_free(out.ptr);
-        return 1;
-    }
+    if (out.oom || !out.ptr)
+        return json_out_fail_oom(&out);
 
     int16_t result = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
     swos_io_free(out.ptr);
@@ -8114,10 +8151,8 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
     }
     mjson_printf(json_out_emit, &out, "%s", "]\n}\n");
 
-    if (out.oom || !out.ptr) {
-        if (out.ptr) swos_io_free(out.ptr);
-        return 1;
-    }
+    if (out.oom || !out.ptr)
+        return json_out_fail_oom(&out);
     int16_t r = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
     swos_io_free(out.ptr);
     if (r != 0) {
@@ -9019,10 +9054,8 @@ int16_t SaveJson_WriteHighlights(uint8_t *filename)
     mjson_printf(json_out_emit, &out, "%s", "]\n}\n");
     PROF_END(scenes, "highlights-write");
 
-    if (out.oom || !out.ptr) {
-        if (out.ptr) swos_io_free(out.ptr);
-        return 1;
-    }
+    if (out.oom || !out.ptr)
+        return json_out_fail_oom(&out);
 
     PROF_START(write_file);
     int16_t r = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
@@ -9244,10 +9277,8 @@ static int16_t write_tactics_buf(uint8_t *filename, const uint8_t *src)
                  "ball_out_of_play_tactics",
                  (unsigned)src[offsetof(TeamTactics, ballOutOfPlayTactics)]);
 
-    if (out.oom || !out.ptr) {
-        if (out.ptr) swos_io_free(out.ptr);
-        return 1;
-    }
+    if (out.oom || !out.ptr)
+        return json_out_fail_oom(&out);
     int16_t r = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
     swos_io_free(out.ptr);
     if (r != 0) {

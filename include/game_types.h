@@ -1439,11 +1439,19 @@ typedef char _nationalteamrecord_size_check[(sizeof(NationalTeamRecord) == 6) ? 
  * helper `TeamSelectionKeyCache_GetCurrentMatchSlot()` returns the
  * properly-aligned `TeamSelectionKeyCacheMatchSlot *`.
  *
+ * An entry's stride is 10 + min(numTeams / 2, 24) * 12 (the builder caps a round at 24 matches),
+ * so it runs from 10 to 298: the walkers' corruption guards use these two bounds. 256 was used
+ * until 2026-11 and hid every fixture past a big cup round's entry (the English League Cup's
+ * second round: "the season shows only 6 games"; the5ar, b901477f).
+ *
  * Layout reverse-engineered from SWOS2.s lines 59549-59656 (entry
  * build), 60046-60054 (match-result write), 60723-60738
  * (GetCurrentSelectedElementPtr), and slot-build reads at
  * diy_competition.c:2776+ (compId/roundIdx lookup).
  * ================================================================== */
+#define KEYCACHE_STRIDE_MIN 10u
+#define KEYCACHE_STRIDE_MAX 298u
+
 typedef struct __attribute__((packed)) TeamSelectionKeyCacheMatchSlot {
     uint8_t  pairType;          /* +0  (elem[0x0A]) — 0/1/2 fixture type */
     uint8_t  matchFlags;        /* +1  (elem[0x0B]) — written post-match */

@@ -1508,7 +1508,7 @@ uint8_t *TeamSelectionKeyCache_GetListPtr(uint16_t listIndex)
          * same approach as the builder walker fix. See
          * docs/OVERLAPPED_DATA.md entry #8. */
         uint16_t stride = ((TeamSelectionKeyCacheEntry *)ptr)->entryStride;
-        if (stride < 10 || stride > 256)
+        if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX)
             return ptr;
         ptr += stride;
     }
@@ -1704,7 +1704,7 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
          * range, treat the season as finished early rather than walking
          * into the careerForeignMarketPlayers overlay. */
         uint16_t stride = ((TeamSelectionKeyCacheEntry *)ptr)->entryStride;
-        if (stride < 10 || stride > 256) {
+        if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) {
             _seasonFinished = 1;
             _careerFinished = 1;
             Career_FillCurrentSeasonInfo();
