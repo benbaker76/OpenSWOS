@@ -1745,6 +1745,46 @@ static void file_Deletefile(uint8_t *name)
     enable_vblank();
 }
 
+/* The files (not folders) in a directory of the game's drawer -- each enabled mod's
+ * copy of it first, then the game's own -- as NUL-terminated names one after another
+ * in `buffer`; how many fitted. A name is listed once per folder that has it; a read
+ * of it then takes the first mod's, as every read does (make_read_path). For data
+ * folders that are not the save folder: a mod's competitions, say. */
+__attribute__((used, externally_visible))
+uint32_t Resload_ListDir(const uint8_t *dirname, uint8_t *buffer, uint32_t buffersize)
+{
+    static uint8_t modDir[256];
+    uint32_t count = 0, used = 0;
+
+    disable_vblank_and_wait();
+    swap_int2_to_os();
+    if (!s_modsRead)
+        read_mods_list();
+    for (int32_t i = 0; i <= Mods_Count(); i++) {
+        uint8_t *dir = (uint8_t *)dirname;
+        uint32_t n;
+        if (i < Mods_Count()) {
+            uint8_t *dst = modDir, *end = modDir + sizeof modDir - 1;
+            for (const char *src = Mods_Dir(i); *src && dst < end; ) *dst++ = (uint8_t)*src++;
+            if (dst < end) *dst++ = '/';
+            for (const uint8_t *q = dirname; *q && dst < end; ) *dst++ = *q++;
+            *dst = '\0';
+            dir = modDir;
+        }
+        if (used >= buffersize)
+            break;
+        n = resload_listfiles(buffersize - used, dir, buffer + used, (uint32_t *)0);
+        count += n;
+        while (n--) {                       /* past the names this folder gave */
+            while (used < buffersize && buffer[used]) used++;
+            used++;
+        }
+    }
+    swap_int2_to_game();
+    enable_vblank();
+    return count;
+}
+
 static void file_ListFiles(uint32_t buffersize, uint8_t *dirname, uint8_t *buffer)
 {
     disable_vblank_and_wait();
@@ -1792,6 +1832,15 @@ static uint8_t *fix_filename(uint8_t *name)
     /* Need at least 4 chars for extension check */
     if (end - a0 < 4)
         return a0;
+
+    /* A name with a folder in it already says where it is: a .DIY in a data folder
+     * (a mod's competitions, say) is not a save, so it is not sent to save/. */
+    {
+        const uint8_t *s;
+        for (s = a0; s < end; s++)
+            if (*s == '/')
+                return a0;
+    }
 
     /* Read last 4 chars as big-endian uint32_t */
     uint32_t ext = ((uint32_t)end[-4] << 24) | ((uint32_t)end[-3] << 16) |

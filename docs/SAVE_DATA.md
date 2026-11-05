@@ -57,6 +57,17 @@ file no longer loads — accepted (all current saves are JSON). The then-unrefer
 `generated/amiga_address_map.c`) were removed 2026-06-11 — see "Cross-build pointer
 LUT … RETIRED" below.
 
+**One exception: a `.DIY` from the PC game or SWOS 2020** (SDL, little-endian hosts only;
+`src/diy_import_dos.c`, the5ar, 2026-11). That is not our old dump but THEIR raw DOS dump
+(5189-byte region, LE words, a 0x5F-byte competition header), which SWOS 2020's challenges
+and the community's competitions are written in. `LoadDIYFile` loads a JSON `.DIY` as before
+and imports any other file that is laid out as a DOS `.DIY` into the same named fields a JSON
+load fills. `--convert-diy=<in>,<out>` writes one as our JSON `.DIY` (every team COMPUTER),
+which the Amiga loads; the Amiga refuses the DOS file itself. `SaveJson_LoadDIYData` loads a
+JSON `.DIY` already in memory, in any world (a `.DIY` carries all its teams); a mod's
+competitions folder is listed on the Amiga by `Resload_ListDir`, mods first, and read with
+`swos_io_load_data_alloc` (the data root, not `save/`).
+
 **KEEP binary read/write — DO NOT retire.** `.TAC` (tactics), `.HIL`
 (highlights), `.EDT` (edited teams / `CUSTOMS.EDT`), and `.CFG` (options — no such file exists in this port today; see ".CFG" below) are
 small, fixed-layout binary records that the user/game exchanges as **binary**

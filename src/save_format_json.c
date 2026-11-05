@@ -8165,13 +8165,12 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
     return 0;
 }
 
-static int16_t load_competition_buf(uint8_t *filename, const char *kind)
+/* The JSON text of a .PRE/.DIY, already read (src NUL-terminated): the competition
+ * slot, the stage, the standings and the teams, as described below. any_world: load it
+ * whatever world it was saved in (a classic competition -- see SaveJson_LoadDIYData). */
+static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const char *kind,
+                                    int32_t any_world)
 {
-    uint8_t *src = NULL;
-    uint32_t src_size = 0;
-    if (read_save_file_heap(filename, &src, &src_size) != 0)
-        return 1;
-
     /* ONE linear pass over the root object captures every top-level slice
      * this loader needs. Each of the former root-level mjson_find/get calls
      * re-parsed the whole file through the mjson core (~a second each on the
@@ -8199,7 +8198,6 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
     if (rk[RK_SCHEMA].v == NULL || rk[RK_SCHEMA].vt != MJSON_TOK_NUMBER ||
         (int)parse_long_slice(rk[RK_SCHEMA].v, rk[RK_SCHEMA].vlen)
             != SAVE_JSON_SCHEMA_VERSION) {
-        swos_io_free(src);
         return 1;
     }
     /* file_kind is a plain identifier string ("preset"/"diy"/...), so the
@@ -8209,8 +8207,7 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
         if (rk[RK_KIND].v == NULL || rk[RK_KIND].vt != MJSON_TOK_STRING ||
             rk[RK_KIND].vlen != kl + 2 ||
             memcmp(rk[RK_KIND].v + 1, kind, (size_t)kl) != 0 ||
-            !save_world_ok(src, src_size)) {
-            swos_io_free(src);
+            (!any_world && !save_world_ok(src, src_size))) {
             return 1;
         }
     }
@@ -8429,8 +8426,20 @@ static int16_t load_competition_buf(uint8_t *filename, const char *kind)
      * own DIY path. The earlier crash was a SYMPTOM of mis-routing to the career
      * contestMenu because gameType wasn't restored; the real fix is setting
      * gameType in LoadDIYFile/LoadPresetFile. See project_diy_preset_load_gametype. */
-    swos_io_free(src);
     return 0;
+}
+
+static int16_t load_competition_buf(uint8_t *filename, const char *kind)
+{
+    uint8_t *src = NULL;
+    uint32_t src_size = 0;
+    int16_t r;
+
+    if (read_save_file_heap(filename, &src, &src_size) != 0)
+        return 1;
+    r = load_competition_mem(src, src_size, kind, 0);
+    swos_io_free(src);
+    return r;
 }
 
 int16_t SaveJson_WritePreset(uint8_t *filename)
@@ -8455,6 +8464,16 @@ int16_t SaveJson_LoadDIY(uint8_t *filename, const uint8_t *src_unused,
 {
     (void)src_unused; (void)src_size_unused;
     return load_competition_buf(filename, KIND_DIY);
+}
+
+/* A .DIY already in memory (NUL-terminated), not read from the save folder: one
+ * imported from the PC game or SWOS 2020 (src/diy_import_dos.c). It is loaded in any
+ * world: a .DIY carries every team it plays, so nothing in it comes from the world's
+ * database, and --convert-diy stamps the file with whatever world the PC that converted
+ * it was playing. */
+int16_t SaveJson_LoadDIYData(const uint8_t *src, uint32_t src_size)
+{
+    return load_competition_mem(src, src_size, KIND_DIY, 1);
 }
 
 /* ---------- .HIL (highlights / match replay) ----------

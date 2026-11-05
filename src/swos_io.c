@@ -451,11 +451,8 @@ static void resolve_save_path(const uint8_t *name, char *out, uint32_t out_sz)
     snprintf(out, out_sz, "%s/%s", swos_save_dir(), src);
 }
 
-int swos_io_load_alloc(const uint8_t *name, uint8_t **out_buf, uint32_t *out_size)
+static int load_alloc_path(const char *path, uint8_t **out_buf, uint32_t *out_size)
 {
-    char path[1280];   /* s_save_dir (up to 1023) + "/" + filename */
-    resolve_save_path(name, path, sizeof(path));
-
     FILE *f = fopen(path, "rb");
     if (!f) return 1;
 
@@ -474,6 +471,19 @@ int swos_io_load_alloc(const uint8_t *name, uint8_t **out_buf, uint32_t *out_siz
     *out_buf = buf;
     *out_size = (uint32_t)n;
     return 0;
+}
+
+int swos_io_load_alloc(const uint8_t *name, uint8_t **out_buf, uint32_t *out_size)
+{
+    char path[1280];   /* s_save_dir (up to 1023) + "/" + filename */
+    resolve_save_path(name, path, sizeof(path));
+    return load_alloc_path(path, out_buf, out_size);
+}
+
+int swos_io_load_data_alloc(const char *name, uint8_t **out_buf, uint32_t *out_size)
+{
+    char path[1280];
+    return load_alloc_path(swos_data_path(name, path, sizeof(path)), out_buf, out_size);
 }
 
 int swos_io_save(const uint8_t *name, const uint8_t *buf, uint32_t size)
@@ -660,6 +670,13 @@ int swos_io_load_alloc(const uint8_t *name, uint8_t **out_buf, uint32_t *out_siz
     *out_buf = buf;
     *out_size = sz;
     return 0;
+}
+
+/* The game runs from its own directory, and resload leaves a name with a folder in it
+ * (a mod's competitions/x.DIY, say) alone rather than sending it to save/. */
+int swos_io_load_data_alloc(const char *name, uint8_t **out_buf, uint32_t *out_size)
+{
+    return swos_io_load_alloc((const uint8_t *)name, out_buf, out_size);
 }
 
 /* Amiga: the game runs from its own directory and resload owns the save
