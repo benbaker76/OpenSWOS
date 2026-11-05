@@ -204,8 +204,10 @@ on**. Nothing in the mod writes a match. The rules (OpenSWOS docs/MODS.md §4, a
 The mod calls `ModApi_SetTweak("careerplus", key, on)` (main 304254f7; 0 = done, 1 = unknown key
 or not switchable) for each of the three, each behind one of its own settings (default on), from
 `init` and again from `matchStart`, so a settings change applies without a restart. Only the mod
-that switched a tweak on can switch it off; a mod's switch is never written to SWOS.ini. Until the
-two new tweaks exist, their calls return 1.
+that switched a tweak on can switch it off; a mod's switch is never written to SWOS.ini. The keys:
+`cpu_cards`, `more_fouls`, `ai_injury_subs` (the last two on main since 0461374a: one sideways
+tackle in 16 a foul, its `Rand()` drawn only with the tweak on; the fork's bench_subs.c code, the
+managed club excluded, the swapped-teams branch fixed).
 
 ## 6. Open questions
 
