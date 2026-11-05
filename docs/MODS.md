@@ -772,14 +772,14 @@ plays it. A player's own challenges never lock or are locked.
 
 ---
 
-## 24. The news ticker (canonical `ticker`)
+## 24. The news ticker -- SWOS United's, not OpenSWOS's (2026-11-05)
 
-SWOS 2020's ticker (render.cpp `showNewsStr`): a line of news scrolling right to left through a
-menu's ticker box -- the entry its JSON names `"ticker_entry"` (docs/MENUS.md §13) -- one item a
-pass, the next at random. The news is `openswos-news` JSON (`{"items": [{"text", "link"}]}`), read
-from the player's `save/mods/ticker/news.json` first (where a feed's download goes), else the
-mod's own `data_json/ticker/news.json`. Setting `speed`: slow / normal / fast. OpenSWOS's own
-menus have no ticker row; SWOS United's menus2020 has one.
+SWOS 2020's ticker is a mod of SWOS United's (its menus2020 has the ticker row; OpenSWOS's own
+menus have none), moved there on the owner's word: SWOS 2020's look and service belong to United,
+OpenSWOS keeps what any mod can use. What stays here are the pieces it is made of: a menu's
+`"ticker_entry"` (docs/MENUS.md §13), `ModApi_MenuTickerEntry`, `ModApi_DrawText` /
+`ModApi_TextWidth` and `ModApi_RestoreMenuBackground`. The mod as it was written here is in
+commit 0d924c1d (`src/mod_ticker.c`, `bin/mods/ticker`).
 
 ---
 
