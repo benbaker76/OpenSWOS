@@ -201,8 +201,11 @@ on**. Nothing in the mod writes a match. The rules (OpenSWOS docs/MODS.md §4, a
    restores the player's own setting.
 4. A recording stores the tweaks in force, so a replay or `--srp-resim` plays the same match.
 
-The mod calls `ModApi_SetTweak` for each of the three at start-up (its `init` hook), each behind
-one of its own settings (default on).
+The mod calls `ModApi_SetTweak("careerplus", key, on)` (main 304254f7; 0 = done, 1 = unknown key
+or not switchable) for each of the three, each behind one of its own settings (default on), from
+`init` and again from `matchStart`, so a settings change applies without a restart. Only the mod
+that switched a tweak on can switch it off; a mod's switch is never written to SWOS.ini. Until the
+two new tweaks exist, their calls return 1.
 
 ## 6. Open questions
 
