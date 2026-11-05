@@ -119,7 +119,7 @@
           "left": -1,
           "right": -1,
           "up": 2,
-          "down": 4
+          "down": 5
         },
         {
           "op": "colors",
@@ -150,7 +150,7 @@
           "op": "nav",
           "left": -1,
           "right": -1,
-          "up": 3,
+          "up": 5,
           "down": -1
         },
         {
@@ -166,6 +166,38 @@
         {
           "op": "onselect_fire",
           "func": "ExitChooseTeams"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 92,
+        "y": -90,
+        "w": 120,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 3,
+          "down": 4
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aTeamPacks"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "TeamPacksTeams"
         }
       ]
     },

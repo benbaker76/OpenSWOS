@@ -4453,6 +4453,38 @@ void GoGetTeamsForPlay(uint8_t *gameTypeStrParam, uint8_t *playWhatStrParam,
     ShowInsertDisk2Dialog((uint8_t *)0);
 }
 
+#ifdef SWOS_SDL_BUILD
+/* GoGetTeamsForPlay straight into a team pack's teams (include/team_packs.h, ModApi_ChooseFromPack):
+ * no CHOOSE TEAMS screen, the pack's list as TEAM PACKS would show it. */
+void GoGetTeamsFromPack(uint8_t *gameTypeStrParam, uint8_t *playWhatStrParam, uint16_t numTeams, int32_t pack)
+{
+    extern void TeamPacks_SetChosen(int32_t number);
+    _showClubTeams = 0;
+    _showNationalTeams = 0;
+    _showOrigCustomTeams = 0;
+    _gameTypeStr = (uintptr_t)gameTypeStrParam;
+    _playWhatStr = (uintptr_t)playWhatStrParam;
+    _chooseTeamsHeader1stPart = 0;
+    _numSelectedTeams = 0;
+    _numNeededTeams = numTeams;
+    _chooseTeamsFunc = 0;
+    _careerSquadScreenDidSelectPlayerFlag = 0;
+    _selectTeamsNoLimit = 0;
+    TeamPacks_SetChosen(pack);
+    _teamsType = 4;                         /* TEAM_PACK_TEAMS (teams.c) */
+    _chooseTeamsResult = 0;
+    _viewSelectedTeams = 0;
+    _changeTeams = 0;
+    _abortSelectTeams = 0;
+    _exitSelectTeams = 0;
+    _showCupsAndOther = 0;
+    _loadTeam = 1;
+    _playSeason = 0;
+    _chooseCompetitionOnly = 0;
+    SelectTeamsFinalMenu(255);
+}
+#endif
+
 
 /* ================================================================
  * Chunk 135 — Career Over callbacks, Stats dispatchers,
@@ -5358,6 +5390,33 @@ void EditedCustomTeams(void)
     _abortSelectTeams = 0;
     _exitSelectTeams = 0;
     SetExitMenuFlag();
+}
+
+
+/* ================================================================
+ * TeamPacksTeams -- OpenSWOS: CHOOSE TEAMS' TEAM PACKS row (entry 5, shown while a mod that
+ * is on has a team pack: include/team_packs.h). One pack: its teams; more: the list of them
+ * first (openswos/teamPacksMenu, src/team_packs_menu.c). Its teams then list as the custom
+ * teams do (teams.c TEAM_PACK_TEAMS).
+ * ================================================================ */
+__attribute__((used, externally_visible))
+void TeamPacksTeams(void)
+{
+#ifdef SWOS_SDL_BUILD
+    extern int32_t TeamPacksMenu_Choose(void);
+    extern void TeamPacks_SetChosen(int32_t number);
+    const int32_t pack = TeamPacksMenu_Choose();
+    if (pack <= 0)
+        return;                             /* (back on CHOOSE TEAMS) */
+    TeamPacks_SetChosen(pack);
+    _teamsType = 4;                         /* TEAM_PACK_TEAMS (teams.c) */
+    _chooseTeamsResult = 0;
+    _viewSelectedTeams = 0;
+    _changeTeams = 0;
+    _abortSelectTeams = 0;
+    _exitSelectTeams = 0;
+    SetExitMenuFlag();
+#endif
 }
 
 

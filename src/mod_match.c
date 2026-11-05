@@ -213,6 +213,28 @@ int32_t ModApi_ChooseTeams(void)
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
 }
 
+int32_t ModApi_PackCount(void)
+{
+    extern int32_t TeamPacks_Count(void);
+    return TeamPacks_Count();
+}
+
+int32_t ModApi_PackInfo(int32_t i, int32_t *number, const char **name, const char **description)
+{
+    extern int32_t TeamPacks_Info(int32_t i, int32_t *number, const char **name, const char **description,
+                                  int32_t *teams);
+    return TeamPacks_Info(i, number, name, description, NULL);
+}
+
+int32_t ModApi_ChooseFromPack(int32_t number)
+{
+    extern void GoGetTeamsFromPack(uint8_t *gameType, uint8_t *playWhat, uint16_t numTeams, int32_t pack);
+    extern uint16_t _chooseTeamsResult;
+    extern uint8_t _aFriendly_1[], _aPlayFriendly[];
+    GoGetTeamsFromPack(_aFriendly_1, _aPlayFriendly, 2, number);
+    return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
+}
+
 uint16_t ModApi_TeamByUuid(const char *uuid)
 {
     const TeamDbEntry *e = uuid ? TeamDb_ByUuid(uuid) : NULL;

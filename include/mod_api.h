@@ -128,6 +128,13 @@ typedef struct {
 enum { MODLINE_DEFENCE = 1, MODLINE_MIDFIELD = 2, MODLINE_ATTACK = 4 };   /* (backs and defenders;
                                                                            * wings and midfielders; attackers) */
 
+/* The team packs the mods that are on bring (include/team_packs.h): how many, and each one's
+ * number, name and description ("" when its file has none). */
+int32_t ModApi_PackCount(void);
+int32_t ModApi_PackInfo(int32_t i, int32_t *number, const char **name, const char **description);
+/* The game's team list of that pack, two teams picked as on the friendly's team screen (who
+ * plays each too); 1 when picked (then ModMatchSetup.chosen plays them), 0 when the player left. */
+int32_t ModApi_ChooseFromPack(int32_t number);
 /* The friendly's team screen: the player picks two teams, and who plays each (CPU / player).
  * 1 when two were chosen (then ModMatchSetup.chosen plays them), 0 when the player left. */
 int32_t ModApi_ChooseTeams(void);

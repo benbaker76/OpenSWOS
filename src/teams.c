@@ -31,6 +31,7 @@
 #define GAME_TYPE_CAREER            4
 #define ORIGINAL_CUSTOM_TEAMS   2
 #define EDITED_CUSTOM_TEAMS     3
+#define TEAM_PACK_TEAMS         4       /* a mod's team pack (include/team_packs.h): its own number */
 #define CN_EUROPE           80
 #define CN_AFRICA           81
 #define CN_SOUTH_AMERICA    82
@@ -2993,8 +2994,23 @@ void ChooseTeamsInit(void)
         return;
     }
 
-    /* entry 5 = (menuEntries+MENUENTRY_ALREADYDRAWN+$118) = entry at offset 0x118/56 = 5 */
-    MenuEntry *headerEntry = &_menuEntries[5];
+    /* TEAM PACKS (entry 5, OpenSWOS): shown while a mod that is on has a team pack
+     * (include/team_packs.h); never on the Amiga. Hidden, EDITED CUSTOM and EXIT are each
+     * other's neighbours again. */
+    {
+#ifdef SWOS_SDL_BUILD
+        extern int32_t TeamPacks_Count(void);
+        const int32_t packs = TeamPacks_Count() > 0;
+#else
+        const int32_t packs = 0;
+#endif
+        _menuEntries[5].isInvisible = !packs;
+        _menuEntries[3].downEntry = (int8_t)(packs ? 5 : 4);
+        _menuEntries[4].upEntry = (int8_t)(packs ? 5 : 3);
+    }
+
+    /* the title: entry 6 since OpenSWOS added TEAM PACKS as entry 5 (it was the 0x118/56 = 5) */
+    MenuEntry *headerEntry = &_menuEntries[6];
     char *dst = (char *)headerEntry->fg;
     char *src = (char *)_chooseTeamsHeader1stPart;
     if (src != 0) {
@@ -3145,6 +3161,12 @@ void SelectTeamsFinalMenu(uint16_t mode)
     } else if (_teamsType == ORIGINAL_CUSTOM_TEAMS) {
         d6 = 72;
     }
+#ifdef SWOS_SDL_BUILD
+    else if (_teamsType == TEAM_PACK_TEAMS) {   /* (as the custom teams, at the pack's number) */
+        extern int32_t TeamPacks_Chosen(void);
+        d6 = (uint16_t)TeamPacks_Chosen();
+    }
+#endif
 
     /* loc_13DFF6: */
     d7 = (uint8_t)d6;
@@ -3287,6 +3309,7 @@ skip_continental_check:
     if (_showCupsAndOther == 0 &&
         _teamsType != ORIGINAL_CUSTOM_TEAMS &&
         _teamsType != EDITED_CUSTOM_TEAMS &&
+        _teamsType != TEAM_PACK_TEAMS &&
         _teamDepthLevel != COUNTRY_DEPTH) {
         goto loc_E086;
     }

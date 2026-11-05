@@ -211,6 +211,7 @@ extern void EditedCustomTeams(void);
 extern void ExitCareerMenu(void);
 extern void ExitChooseTacticsMenu(void);
 extern void ExitChooseTeams(void);
+extern void TeamPacksTeams(void);
 extern void ExitChooseTeams2(void);
 extern void ExitHighlights(void);
 extern void ExitImportTactics(void);
@@ -504,6 +505,7 @@ extern char _aGameplay[];
 extern char _aWorldOption[];
 extern char _aModsOption[];
 extern char _aModes[];
+extern char _aTeamPacks[];
 extern char _aModsNone[];
 extern char _aControls[];
 extern char _aRedefineKeys[];
@@ -6559,7 +6561,7 @@ Menu_ChooseTeams _chooseTeamsMenu = {
     },
     {
         { 92, -116, 120, 25 },
-        { MENU_CMD_NAV, -1, -1, 2, 4 },
+        { MENU_CMD_NAV, -1, -1, 2, 5 },
         { MENU_CMD_COLORS, 0xE },
         { MENU_CMD_TEXT_PTR, 0x0, _aEditedCustomTe_0 },
         { MENU_CMD_ONSELECT_FIRE, EditedCustomTeams },
@@ -6567,10 +6569,18 @@ Menu_ChooseTeams _chooseTeamsMenu = {
     },
     {
         { 102, -71, 100, 15 },
-        { MENU_CMD_NAV, -1, -1, 3, -1 },
+        { MENU_CMD_NAV, -1, -1, 5, -1 },
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, ExitChooseTeams },
+        MENU_CMD_END
+    },
+    {
+        { 92, -90, 120, 15 },
+        { MENU_CMD_NAV, -1, -1, 3, 4 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_TEXT_PTR, 0x0, _aTeamPacks },
+        { MENU_CMD_ONSELECT_FIRE, TeamPacksTeams },
         MENU_CMD_END
     },
     MENU_MARK_WIDE_COORDS,

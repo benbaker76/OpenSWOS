@@ -341,6 +341,7 @@ extern void StatsExit(void);
 extern void StatsHighestScorerList(void);
 extern void StatsViewSquads(void);
 extern void TakeOffMarketMenu(void);
+extern void TeamPacksTeams(void);
 extern void ThirdPartyOfferMenuAfterDrawCommon(void);
 extern void ThirdPartyOfferMenuExit(void);
 extern void ThirdPartyOfferMenuInit(void);
@@ -551,6 +552,7 @@ extern char _aSubstitutes[];
 extern char _aSweep[];
 extern char _aSwosVersion152[];
 extern char _aTakeOffMarket[];
+extern char _aTeamPacks[];
 extern char _aTeams[];
 extern char _aThirdPartyOffe[];
 extern char _aToReplace[];
@@ -1020,6 +1022,7 @@ const MenuSymbol _menuSymbols[] = {
     { "StatsHighestScorerList", (void*)StatsHighestScorerList, SYM_FUNC },
     { "StatsViewSquads", (void*)StatsViewSquads, SYM_FUNC },
     { "TakeOffMarketMenu", (void*)TakeOffMarketMenu, SYM_FUNC },
+    { "TeamPacksTeams", (void*)TeamPacksTeams, SYM_FUNC },
     { "ThirdPartyOfferMenuAfterDrawCommon", (void*)ThirdPartyOfferMenuAfterDrawCommon, SYM_FUNC },
     { "ThirdPartyOfferMenuExit", (void*)ThirdPartyOfferMenuExit, SYM_FUNC },
     { "ThirdPartyOfferMenuInit", (void*)ThirdPartyOfferMenuInit, SYM_FUNC },
@@ -1227,6 +1230,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aSweep", (void*)_aSweep, SYM_STRING },
     { "_aSwosVersion152", (void*)_aSwosVersion152, SYM_STRING },
     { "_aTakeOffMarket", (void*)_aTakeOffMarket, SYM_STRING },
+    { "_aTeamPacks", (void*)_aTeamPacks, SYM_STRING },
     { "_aTeams", (void*)_aTeams, SYM_STRING },
     { "_aThirdPartyOffe", (void*)_aThirdPartyOffe, SYM_STRING },
     { "_aToReplace", (void*)_aToReplace, SYM_STRING },

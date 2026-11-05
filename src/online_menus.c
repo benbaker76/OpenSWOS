@@ -2644,6 +2644,7 @@ int32_t OnlineMenus_ShowStartMenu(void)
     ControlsMenu_Init();
     ModsMenu_Init();            /* (--menu=openswos/modsMenu) */
     { extern void ModEntries_Init(void); ModEntries_Init(); }   /* (--menu=openswos/modEntriesMenu) */
+    { extern void TeamPacksMenu_Init(void); TeamPacksMenu_Init(); }   /* (--menu=openswos/teamPacksMenu) */
     if (!strcmp(name, CREDITS_MENU_NAME))
         CreditsMenu_Show();         /* with its photos' palette, as the button opens it */
     else if (!strcmp(name, SWOS2020_MENU(selectMyCustomTeams)))

@@ -1382,11 +1382,12 @@ typedef struct Menu_ChooseTeams
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry2;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;   /* TEAM PACKS (OpenSWOS: SDL, a mod's packs) */
   MenuMark markWideCoords;
-  MenuCoords16 entry5_rc;
-  MenuCmd_Colors entry5_colors;
-  MenuCmd_TextNoPtr entry5_text;
-  MenuCommand entry5_end;
+  MenuCoords16 entry6_rc;
+  MenuCmd_Colors entry6_colors;
+  MenuCmd_TextNoPtr entry6_text;
+  MenuCommand entry6_end;
   MenuMark markEndMenu;
 } Menu_ChooseTeams;
 #pragma pack(pop)

@@ -137,6 +137,17 @@ lines in (SWOS United's server keeps its own). Checked: a pack of two teams copi
 file (number 210) -- CHELSEA, from the pack, plays a full match (`SWOS_MOD_MATCH_TEAMS=d201,5502
 SWOS_MOD_MATCH_TEST=1`) and the online rule accepts it. SWOS United's fun cup is built on it.
 
+**Choosing a pack's teams** (H11): CHOOSE TEAMS has a **TEAM PACKS** row (entry 5, the title
+moved to 6) while a mod that is on has a pack -- never on the Amiga. One pack: its teams; more: a
+list of them (`openswos/teamPacksMenu`, each its `country_name`, the cursor's its `description`).
+The teams then list as ORIGINAL CUSTOM TEAMS do, through the game's own team list: at start-up each
+pack gets a country name and a league of its own at its number (`TeamPacks_Install`: a copy of the
+customs league, its team file the pack's), and `SelectTeamsFinalMenu` takes the pack's number for
+the new team type `TEAM_PACK_TEAMS` (4) where it takes 72 for the custom teams. A mod goes there
+straight with `ModApi_ChooseFromPack(number)`; `ModApi_PackCount / PackInfo` list them. Checked:
+the row with a pack and without one, and a pack's two teams in the team list (CPU / player as for
+any team).
+
 ## 7. Still a plan: downloadable teams
 
 - **Downloadable teams** (the DLC manager, SWOS-Launcher) arrive as team JSON with their ids

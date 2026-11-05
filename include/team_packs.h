@@ -20,6 +20,23 @@
 /* The pack file (a path through the mods' overlay, "data_json/teampacks/<name>.json") of that
  * country number, or NULL. */
 const char *TeamPacks_File(int country);
+
+/* The packs found (in number order), for the screens that offer them: CHOOSE TEAMS' TEAM PACKS
+ * row (src/menus.c) and the mods (ModApi_PackCount / ModApi_PackInfo). Name: the file's
+ * "country_name"; description: its optional "description". */
+int32_t     TeamPacks_Count(void);
+int32_t     TeamPacks_Info(int32_t i, int32_t *number, const char **name, const char **description,
+                           int32_t *teams);
+
+/* Once at start-up (src/main.c, after the mods): each pack a country name and a league of its
+ * own at its number (_countriesTable, _competitionsTable: a copy of the customs league, the
+ * pack's number its team file), so the game's team lists show it as they show ORIGINAL CUSTOM
+ * TEAMS -- straight to its teams. */
+void        TeamPacks_Install(void);
+
+/* The pack CHOOSE TEAMS goes to (its TEAM PACKS row, ModApi_ChoosePackTeam), 0 none. */
+void        TeamPacks_SetChosen(int32_t number);
+int32_t     TeamPacks_Chosen(void);
 #endif
 
 #endif /* TEAM_PACKS_H */
