@@ -22,4 +22,8 @@ void CP_Winners_Record(const struct ModCompetitionResult *result);
 void CP_Winners_Save(struct ModJsonWriter *out);
 void CP_Winners_Load(const char *json, int32_t len);   /* (json NULL: none) */
 
+/* the player rows (mod_careerplus_rows.c) */
+struct ModPlayerRow;
+void CP_Rows_Drawn(const struct ModPlayerRow *row);
+
 #endif
