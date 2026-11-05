@@ -1,0 +1,341 @@
+{
+ "name": "winnersMenu",
+ "comment": "Career+'s PAST WINNERS (src/mod_careerplus_winners.c): every winner of the viewed competition in this career, newest first, ten a page.",
+ "onInit": "careerplus.winnersInit",
+ "onReturn": null,
+ "onDraw": null,
+ "defaultEntry": 13,
+ "items": [
+  {
+   "kind": "coords_mode",
+   "wide": false
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 42,
+    "y": 3,
+    "w": -84,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "PAST WINNERS"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 22,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 33,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 44,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 55,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 66,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 77,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 88,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 99,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 110,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 121,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 18,
+    "y": -33,
+    "w": 88,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 12,
+     "up": -1,
+     "down": 12
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "PREVIOUS"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.winnersPrevious"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 113,
+    "y": -33,
+    "w": 88,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 11,
+     "right": 13,
+     "up": 11,
+     "down": 13
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "NEXT"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.winnersNext"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 208,
+    "y": -33,
+    "w": 75,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 12,
+     "right": -1,
+     "up": 12,
+     "down": -1
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "EXIT"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "SetExitMenuFlag"
+    }
+   ]
+  }
+ ]
+}

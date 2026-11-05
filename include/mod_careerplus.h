@@ -12,4 +12,14 @@
 uint32_t CP_Rand(void);
 int32_t  CP_RandBelow(int32_t n);       /* 0..n-1 */
 
+struct ModCompetitionResult;
+struct ModJsonWriter;
+
+/* PAST WINNERS (mod_careerplus_winners.c) */
+void CP_Winners_Init(void);
+void CP_Winners_Clear(void);
+void CP_Winners_Record(const struct ModCompetitionResult *result);
+void CP_Winners_Save(struct ModJsonWriter *out);
+void CP_Winners_Load(const char *json, int32_t len);   /* (json NULL: none) */
+
 #endif

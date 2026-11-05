@@ -62,6 +62,7 @@ static void seed_rng(void)
 static void cp_init(void)
 {
     apply_tweaks();
+    CP_Winners_Init();
 }
 
 static void cp_matchStart(void)
@@ -72,11 +73,18 @@ static void cp_matchStart(void)
 static void cp_careerNew(void)
 {
     seed_rng();
+    CP_Winners_Clear();
+}
+
+static void cp_competitionFinished(const ModCompetitionResult *result)
+{
+    CP_Winners_Record(result);
 }
 
 static void cp_careerSave(ModJsonWriter *out)
 {
     ModJson_Printf(out, "\"rng\":%u", (unsigned)s_rng);
+    CP_Winners_Save(out);
 }
 
 static void cp_careerLoad(const char *json, int32_t len)
@@ -86,6 +94,7 @@ static void cp_careerLoad(const char *json, int32_t len)
         s_rng = (uint32_t)v;
     else
         seed_rng();         /* (a career Career+ did not save: from here on, the mod's) */
+    CP_Winners_Load(json, len);
 }
 
 const ModDef ModDef_careerplus = {
@@ -93,6 +102,7 @@ const ModDef ModDef_careerplus = {
     .init = cp_init,
     .matchStart = cp_matchStart,
     .careerNew = cp_careerNew,
+    .competitionFinished = cp_competitionFinished,
     .careerSave = cp_careerSave,
     .careerLoad = cp_careerLoad,
 };
