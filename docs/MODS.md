@@ -922,9 +922,16 @@ both targets. Run-time loading of mod code (LoadSeg, a script language) is still
 and `MOD_SDL` until then; its `mod.json` `"targets"` then includes `"amiga"`, which OpenSWOS Setup
 reads to copy it into an Amiga drawer and list it in `data/MODS`. Ported: **practice**, **euro36**,
 **speedrun**, **challenges** (and the data mod **challenge-collection**: its files carry each team's
-number, `"team": "5017"`, beside the uuid, and the editor writes it too). Not yet: classics (its
-competitions' files and big menus), hair (the palette calls), weather (its rain draws through the
-renderer). The drawer carries
+number, `"team": "5017"`, beside the uuid, and the editor writes it too). Not yet, each for a reason
+of its own:
+- **classics**: three of its four `.DIY` files are the PC game's binary format, which only the SDL
+  build reads (`src/diy_import_dos.c`), and the SWOS 2020 ones come from the assets folder, which an
+  Amiga drawer has none of. Its biggest menu (30 KB of JSON) would also take about four seconds to
+  build there.
+- **hair** and **weather**: they draw pixels, and `ModApi_Frame` is the SDL build's chunky frame
+  (a byte a pixel). The Amiga's screen is bitplanes, so a mod that draws needs a drawing API that
+  knows them (and `ModApi_PaletteColour` from the copper list) -- its own piece of design. The rain
+  draws through the renderer too. The drawer carries
 `data_json/menus/openswos/` (the MODES screen's menu: `build_dist.sh`, and the setup's WHDLoad
 package).
 
