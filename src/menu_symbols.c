@@ -227,6 +227,7 @@ extern void JobOffersFinish(void);
 extern void JobOffersInit(void);
 extern void JobOffersMenu(void);
 extern void JobOffersMenuRetired(void);
+extern void JobOffersNextPage(void);
 extern void JobOffers_DrawOldOfferLine(void);
 extern void LoadHighlightsMenu(void);
 extern void LoadLiverpool(void);
@@ -505,6 +506,7 @@ extern char _aNationalTeams[];
 extern char _aNationality[];
 extern char _aNewBalance[];
 extern char _aNextMatch[];
+extern char _aNextPage[];
 extern char _aNumberOfTeams[];
 extern char _aOffers[];
 extern char _aOk[];
@@ -908,6 +910,7 @@ const MenuSymbol _menuSymbols[] = {
     { "JobOffersInit", (void*)JobOffersInit, SYM_FUNC },
     { "JobOffersMenu", (void*)JobOffersMenu, SYM_FUNC },
     { "JobOffersMenuRetired", (void*)JobOffersMenuRetired, SYM_FUNC },
+    { "JobOffersNextPage", (void*)JobOffersNextPage, SYM_FUNC },
     { "JobOffers_DrawOldOfferLine", (void*)JobOffers_DrawOldOfferLine, SYM_FUNC },
     { "LoadHighlightsMenu", (void*)LoadHighlightsMenu, SYM_FUNC },
     { "LoadLiverpool", (void*)LoadLiverpool, SYM_FUNC },
@@ -1183,6 +1186,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aNationality", (void*)_aNationality, SYM_STRING },
     { "_aNewBalance", (void*)_aNewBalance, SYM_STRING },
     { "_aNextMatch", (void*)_aNextMatch, SYM_STRING },
+    { "_aNextPage", (void*)_aNextPage, SYM_STRING },
     { "_aNumberOfTeams", (void*)_aNumberOfTeams, SYM_STRING },
     { "_aOffers", (void*)_aOffers, SYM_STRING },
     { "_aOk", (void*)_aOk, SYM_STRING },

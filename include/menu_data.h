@@ -1631,6 +1631,8 @@ typedef struct Menu_JobOffers
   MenuEntry_Byte_NumberOnly entry15;
   MenuMark markWideCoords4;
   MenuEntry_Wide_TextNoPtrOnly entry16;
+  MenuMark markByteCoords5;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry17;   /* NEXT PAGE (OpenSWOS: job_offers_capacity > 5) */
   MenuMark markEndMenu;
 } Menu_JobOffers;
 #pragma pack(pop)
@@ -1728,6 +1730,19 @@ typedef struct Menu_TransferMarket
   MenuCoords16 entry25_rc;
   MenuCmd_TextPtr entry25_text;
   MenuCommand entry25_end;
+  /* OpenSWOS: transfer list rows 6-10 (entries 26-30), shown when transfer_list_capacity > 5 */
+  MenuMark_StartMenu menu3Start;
+  MenuMark template2_markStart;
+  MenuMark markByteCoords3;   /* (after the template's mark: the unpacker reads a coords mark
+                               * only where an entry's position starts) */
+  MenuCoords8 template2_rc;
+  MenuCmd_Colors template2_colors;
+  MenuCmd_BeforeDraw template2_afterDraw;
+  MenuCmd_OnSelect template2_onSelect;
+  MenuCommand template2_end;
+  MenuMark markWideCoords3;
+  MenuEntry_Wide_NavOnly entries26_30[5];
+  MenuMark markInitEntry2;
   MenuMark markEndMenu;
 } Menu_TransferMarket;
 #pragma pack(pop)

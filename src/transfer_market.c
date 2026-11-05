@@ -1755,10 +1755,56 @@ void BuyPlayerInit(void)
     GetBankBalance(str);
 }
 
+/* The TRANSFER MARKET's list rows: the original's five are entries 9-13; rows 6-10 (entries
+ * 26-30, OpenSWOS) show only when transfer_list_capacity is above the original's 5, and then
+ * the screen is laid out for ten. */
+#define TM_ROWS_FIRST        9
+#define TM_ROWS_EXTRA_FIRST  26
+#define TM_ROWS_ORIG         5
+
+static uint16_t tmRowEntry(uint16_t row)
+{
+    return (uint16_t)(row < TM_ROWS_ORIG ? TM_ROWS_FIRST + row : TM_ROWS_EXTRA_FIRST + (row - TM_ROWS_ORIG));
+}
+
+static uint16_t tmRowOfEntry(const MenuEntry *entry)
+{
+    uint16_t row = (uint16_t)(entry->ordinal - _menuEntries[TM_ROWS_FIRST].ordinal);
+    if (row >= TM_ROWS_ORIG)
+        row = (uint16_t)(entry->ordinal - _menuEntries[TM_ROWS_EXTRA_FIRST].ordinal + TM_ROWS_ORIG);
+    return row;
+}
+
+/* The original's layout with five rows; with a longer list (local y, the menu's own
+ * coordinates): BUY 34, VIEW OFFERS 52, PUT ON MARKET 70, the list's title 88, ten rows from
+ * 100, the bottom row at 201 (below the original's 185, as Career+ had it). Positions are set
+ * from the title's (entry 0, local y 0), so a call after a return redraws the same. */
+static void tmLayoutRows(void)
+{
+    const int32_t big = _careerParams.transfer_list_capacity > TM_ROWS_ORIG;
+    for (uint16_t k = 0; k < TM_ROWS_ORIG; k++)
+        _menuEntries[TM_ROWS_EXTRA_FIRST + k].isInvisible = !big;
+    if (!big)
+        return;
+    const uint16_t top = _menuEntries[0].y;
+    _menuEntries[2].y = (uint16_t)(top + 34);
+    _menuEntries[3].y = (uint16_t)(top + 52);
+    _menuEntries[4].y = (uint16_t)(top + 70);
+    _menuEntries[8].y = (uint16_t)(top + 88);
+    for (uint16_t row = 0; row < 2 * TM_ROWS_ORIG; row++)
+        _menuEntries[tmRowEntry(row)].y = (uint16_t)(top + 100 + 9 * row);
+    for (uint16_t e = 5; e <= 7; e++) {
+        _menuEntries[e].y = (uint16_t)(top + 201);
+        _menuEntries[e].upEntry = (int8_t)tmRowEntry(2 * TM_ROWS_ORIG - 1);
+    }
+    _menuEntries[tmRowEntry(TM_ROWS_ORIG - 1)].downEntry = (int8_t)tmRowEntry(TM_ROWS_ORIG);
+}
+
 /* TransferMarketFinish — refresh all transfer menu state (SWOS2.s line 76181) */
 __attribute__((used, externally_visible))
 void TransferMarketFinish(void)
 {
+    tmLayoutRows();
     TransferMenuSetBankState();
     CheckNumPlayersOnTransferMarket();
     CheckIfPlayerSelected();
@@ -2320,7 +2366,7 @@ void TransferMarketCommon(void *entryPtr)
     /* Compute relative index: entry ordinal minus base entry ordinal */
     /* Base entry is at menuEntries + MENUENTRY_ALREADYDRAWN + 0x1F8
      * = entry (8+0x1F8)/0x38 = 0x200/0x38 = 9.14... = entry 9 */
-    uint16_t d7 = entry->ordinal - _menuEntries[9].ordinal;
+    uint16_t d7 = tmRowOfEntry(entry);   /* (entries 9-13, and 26-30 for rows 6-10) */
     if (d7 == _playerSelected)
         d7 = 0xFFFF;
 
@@ -2329,7 +2375,7 @@ void TransferMarketCommon(void *entryPtr)
 
     /* If old selection was valid, redraw that entry */
     if ((int16_t)oldSel >= 0) {
-        uint16_t entryIdx = oldSel + 9;
+        uint16_t entryIdx = tmRowEntry(oldSel);
         MenuEntry *oldEntry = CalcMenuEntryAddress(entryIdx);
         CallDrawMenuItem(oldEntry);
     }
@@ -2557,8 +2603,8 @@ __attribute__((used, externally_visible))
 void TransferMarketAfterDrawCommon(void *entryPtr)
 {
     MenuEntry *entry = (MenuEntry *)entryPtr;
-    /* Base entry is menuEntries[9] */
-    uint16_t d6 = entry->ordinal - _menuEntries[9].ordinal;
+    /* Base entry is menuEntries[9] (rows 6-10: entries 26-30) */
+    uint16_t d6 = tmRowOfEntry(entry);
     uint8_t *player;
 
     if (d6 >= _numPlayersOnTransferMarket) {

@@ -481,6 +481,7 @@ char _a2020Style[] = "2020";
 char _aModsOption[] = "MODS";
 char _aModes[] = "MODES";
 char _aTeamPacks[] = "TEAM PACKS";
+char _aNextPage[] = "NEXT PAGE";   /* JOB OFFERS with more than one page (job_offers_capacity) */
 char _aModsNone[] = "NONE";
 char _aGoals[] = "GOALS";
 char _aForm[] = "FORM";

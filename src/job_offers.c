@@ -706,11 +706,51 @@ void ConsiderJobOffer(void) {
 
 extern uint8_t _gotJobOfferMenu[];
 
+/* Pages of the JOB OFFERS screen (job_offers_capacity above the original's 5: include/
+ * career_capacity.h). The screen has the original's room, five rows: a page is five offers of
+ * the new ones followed by the old ones, page 0 the first five. With 5 offers at most (the
+ * original's) there is one page and every row is the original's. */
+#define JOB_OFFER_ROWS 5u
+#define JOB_OFFERS_NEXT_PAGE_ENTRY 17   /* NEXT PAGE, left of EXIT (12) */
+#define JOB_OFFERS_EXIT_ENTRY      12
+static uint16_t s_jobOfferPage;
+
+static uint16_t jobOfferPages(void)
+{
+    uint16_t total = (uint16_t)(_numNewJobOffers + _numJobOffers);
+    uint16_t pages = (uint16_t)((total + JOB_OFFER_ROWS - 1) / JOB_OFFER_ROWS);
+    return pages ? pages : 1;
+}
+
+/* This page's new offers [*newStart, +*newCount) and old ones [*oldStart, +*oldCount). */
+static void jobOfferPageRange(uint16_t *newStart, uint16_t *newCount, uint16_t *oldStart, uint16_t *oldCount)
+{
+    const uint16_t first = (uint16_t)(s_jobOfferPage * JOB_OFFER_ROWS), last = (uint16_t)(first + JOB_OFFER_ROWS);
+    const uint16_t n = _numNewJobOffers, o = _numJobOffers;
+    *newStart = first < n ? first : n;
+    *newCount = (uint16_t)((last < n ? last : n) - *newStart);
+    *oldStart = first > n ? (uint16_t)(first - n) : 0;
+    uint16_t oldEnd = last > n ? (uint16_t)(last - n) : 0;
+    if (oldEnd > o) oldEnd = o;
+    *oldCount = oldEnd > *oldStart ? (uint16_t)(oldEnd - *oldStart) : 0;
+}
+
 /* JobOffers_UpdateMenuEntryLayout — position old offer menu entries
  * based on number of new/old offers (SWOS2.s line 81335) */
 __attribute__((used, externally_visible))
 void JobOffers_UpdateMenuEntryLayout(void)
 {
+    /* (a page past the last, when offers were taken or withdrawn: the last) */
+    const uint16_t pages = jobOfferPages();
+    if (s_jobOfferPage >= pages)
+        s_jobOfferPage = (uint16_t)(pages - 1);
+    uint16_t newStart, newCount, oldStart, oldCount;
+    jobOfferPageRange(&newStart, &newCount, &oldStart, &oldCount);
+
+    /* NEXT PAGE only with more than one page, and EXIT's left goes to it then */
+    _menuEntries[JOB_OFFERS_NEXT_PAGE_ENTRY].isInvisible = pages <= 1;
+    _menuEntries[JOB_OFFERS_EXIT_ENTRY].leftEntry = pages > 1 ? JOB_OFFERS_NEXT_PAGE_ENTRY : -1;
+
     /* Hide entries 13,14 and 15,16 */
     _menuEntries[13].isInvisible = 1;
     _menuEntries[14].isInvisible = 1;
@@ -720,15 +760,15 @@ void JobOffers_UpdateMenuEntryLayout(void)
     /* Hide entry 6 (old offers header) */
     _menuEntries[6].isInvisible = 1;
 
-    if (_numJobOffers == 0)
+    if (oldCount == 0)      /* (one page: _numJobOffers == 0, the original's test) */
         return;
 
     /* Show entry 6 */
     _menuEntries[6].isInvisible = 0;
 
-    /* Calculate y position: start from entry 1's y, offset by new offers */
+    /* Calculate y position: start from entry 1's y, offset by new offers (this page's) */
     uint16_t yPos = _menuEntries[1].y;
-    yPos += (uint16_t)(_numNewJobOffers * 0xF);
+    yPos += (uint16_t)(newCount * 0xF);
     yPos += 0x1E;
 
     /* Entry 6: old offers header */
@@ -762,6 +802,9 @@ void JobOffersCommon(MenuEntry *entry)
 {
     uint16_t baseOrdinal = _menuEntries[1].ordinal;
     int16_t d7 = (int16_t)(entry->ordinal - baseOrdinal);
+    uint16_t newStart, newCount, oldStart, oldCount;
+    jobOfferPageRange(&newStart, &newCount, &oldStart, &oldCount);
+    d7 += (int16_t)newStart;      /* (the offer the row shows: its page's) */
     _jobOfferOrdinal = d7;
     _oldJobOfferOrdinal = 0xFFFF;
     ShowMenu(_gotJobOfferMenu);
@@ -784,6 +827,9 @@ void OldJobOffersCommon(MenuEntry *entry)
 {
     uint16_t baseOrdinal = _menuEntries[7].ordinal;
     int16_t d7 = (int16_t)(entry->ordinal - baseOrdinal);
+    uint16_t newStart, newCount, oldStart, oldCount;
+    jobOfferPageRange(&newStart, &newCount, &oldStart, &oldCount);
+    d7 += (int16_t)oldStart;      /* (the offer the row shows: its page's) */
     _jobOfferOrdinal = 0xFFFF;
     _oldJobOfferOrdinal = d7;
     ShowMenu(_gotJobOfferMenu);
@@ -797,6 +843,16 @@ void OldJobOffersCommon(MenuEntry *entry)
         return;
     }
     SetExitMenuFlag();
+}
+
+/* JobOffersNextPage — NEXT PAGE (entry 17, shown with more than one page): the next five
+ * offers, after the last page the first. */
+__attribute__((used, externally_visible))
+void JobOffersNextPage(void)
+{
+    s_jobOfferPage = (uint16_t)((s_jobOfferPage + 1) % jobOfferPages());
+    JobOffers_UpdateMenuEntryLayout();
+    DrawMenu();
 }
 
 /* JobOffersExit — remove expired offers and exit menu (SWOS2.s line 81328) */
@@ -835,6 +891,7 @@ void JobOffersInit(void)
 
     JobOffers_FillMissingNewOfferTeamNames();
     _selectedOldJobOfferOrdinal = 0xFFFF;
+    s_jobOfferPage = 0;
 
     /* Fall through to JobOffersFinish */
     JobOffersFinish();
@@ -855,11 +912,14 @@ void JobOffers_DrawOldOfferLine(void *entryPtr)
     MenuEntry *a5 = (MenuEntry *)entryPtr;
     a5->isDisabled = 1;
 
-    /* d7 = a5->ordinal - entries[7].ordinal (entry 7 = 0x188/0x38) */
+    /* d7 = a5->ordinal - entries[7].ordinal (entry 7 = 0x188/0x38), then the page's offer */
     int16_t d7 = (int16_t)a5->ordinal - (int16_t)_menuEntries[7].ordinal;
+    uint16_t newStart, newCount, oldStart, oldCount;
+    jobOfferPageRange(&newStart, &newCount, &oldStart, &oldCount);
 
-    if ((uint16_t)d7 >= _numJobOffers)
+    if ((uint16_t)d7 >= oldCount)   /* (one page: _numJobOffers, the original's test) */
         return;
+    d7 += (int16_t)oldStart;
 
     a5->isDisabled = 0;
 
@@ -937,11 +997,14 @@ void JobOffersAfterDrawCommon(void *entryPtr)
     MenuEntry *a5 = (MenuEntry *)entryPtr;
     a5->isDisabled = 1;
 
-    /* d7 = a5->ordinal - entries[1].ordinal (entry 1 = 0x38/0x38) */
+    /* d7 = a5->ordinal - entries[1].ordinal (entry 1 = 0x38/0x38), then the page's offer */
     int16_t d7 = (int16_t)a5->ordinal - (int16_t)_menuEntries[1].ordinal;
+    uint16_t newStart, newCount, oldStart, oldCount;
+    jobOfferPageRange(&newStart, &newCount, &oldStart, &oldCount);
 
-    if ((uint16_t)d7 >= _numNewJobOffers)
+    if ((uint16_t)d7 >= newCount)   /* (one page: _numNewJobOffers, the original's test) */
         return;
+    d7 += (int16_t)newStart;
 
     a5->isDisabled = 0;
 

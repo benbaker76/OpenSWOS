@@ -240,6 +240,7 @@ extern void _JobOffer(void);
 extern void JobOffersAfterDrawCommon(void);
 extern void JobOffersCommon(void);
 extern void JobOffersExit(void);
+extern void JobOffersNextPage(void);
 extern void JobOffersFinish(void);
 extern void JobOffersInit(void);
 extern void JobOffersMenu(void);
@@ -465,6 +466,7 @@ extern char _aEditTactics[];
 extern char _aEditedCustomTe_0[];
 extern char _aExPlayerGoals[];
 extern char _aExit[];
+extern char _aNextPage[];
 extern char _aF[];
 extern char _aFilename[];
 extern char _aFirstKit[];
@@ -8493,6 +8495,43 @@ Menu_TransferMarket _transferMarketMenu = {
     { 272, 0, 32, 8 },
     { MENU_CMD_TEXT_PTR, 0x8000, 0 },
     MENU_CMD_END,
+    { MENU_MARK_START_MENU, 0, 130 },
+    MENU_MARK_START_TEMPLATE,
+    MENU_MARK_BYTE_COORDS,
+    { 0, 0, 0, 0 },
+    { MENU_CMD_COLORS, 0x0 },
+    { MENU_CMD_AFTER_DRAW, TransferMarketAfterDrawCommon },
+    { MENU_CMD_ONSELECT_FIRE, TransferMarketCommon },
+    MENU_CMD_END,
+    MENU_MARK_WIDE_COORDS,
+    {
+        {
+            { 0, 45, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 13, 27 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 54, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 26, 28 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 63, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 27, 29 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 72, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 28, 30 },
+            MENU_CMD_END
+        },
+        {
+            { 0, 81, 304, 8 },
+            { MENU_CMD_NAV, -1, -1, 29, 6 },
+            MENU_CMD_END
+        }
+    },
+    MENU_MARK_INIT_ENTRY,
     MENU_MARK_END_MENU
 };
 Menu_SelectNationalTeam _selectNationalTeamMenu = {
@@ -9248,6 +9287,15 @@ Menu_JobOffers _jobOffersMenu = {
     {
         { 15, 0, 289, 12 },
         { MENU_CMD_TEXT_NO_PTR, 0x8000 },
+        MENU_CMD_END
+    },
+    MENU_MARK_BYTE_COORDS,
+    {
+        { 24, -71, 88, 15 },
+        { MENU_CMD_NAV, -1, 12, 11, -1 },
+        { MENU_CMD_COLORS, 0xC },
+        { MENU_CMD_TEXT_PTR, 0x0, _aNextPage },
+        { MENU_CMD_ONSELECT_FIRE, JobOffersNextPage },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU
