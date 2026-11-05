@@ -970,7 +970,7 @@ static uint16_t pickRandomNationalTeamId(uint16_t minPrice, uint16_t maxPrice,
             continue;
 
         if (retries >= 0) {
-            uint16_t price = rec->skillOrPrice;
+            uint16_t price = BE_READ_U16(&rec->skillOrPrice);   /* (big-endian, as the table holds it) */
             if (price < minPrice || price > maxPrice) {
                 retries--;
                 continue;

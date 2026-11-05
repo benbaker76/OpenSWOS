@@ -1004,7 +1004,7 @@ extern uint8_t  _lastMatchPlayers[];
 extern uint8_t  _lastMatchSavedShirtNums[];
 extern uint8_t  _careerLastMatchIndexByCompetitionSlot[256];
 extern uint8_t  _teamBudgetRankTable[];
-extern uint8_t  _playersOnTransferMarket[];
+extern uint16_t _playersOnTransferMarket[];
 extern uint8_t  _foreignMarketPlayers[];
 extern uint8_t  _homeMarketPlayers[];
 extern uint8_t  _transferOfferTable[];
@@ -1388,7 +1388,9 @@ static const FieldDesc s_career_scalars[] = {
     FA("career_last_match_index_by_competition_slot",
                                           _careerLastMatchIndexByCompetitionSlot, 256, FLD_BYTES),
     FA("team_budget_rank_table",          _teamBudgetRankTable, 128,    FLD_BYTES),
-    FA("players_on_transfer_market",      _playersOnTransferMarket, 10, FLD_BYTES),
+    /* Typed words (Career+'s §3.1): it was FLD_BYTES of host-order words, not portable between
+     * byte orders. A new key, so a save from before loads without its list (at most 5 marks). */
+    FA("players_on_transfer_market_ids",  _playersOnTransferMarket, 10, FLD_U16_ARRAY),
 
     /* Market player slot tables — byte arrays of compact records. The
      * team-id fields are explicit BE byte pairs (id>>8 / id), so they are

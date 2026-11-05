@@ -4816,10 +4816,12 @@ void TrainingMatch_AddTrialPlayerToSelectedTeam(uint16_t role)
  * Adjusts the selected team roster for training match by removing
  * excess goalkeepers/subs and adding trial players to fill gaps.
  *
- * in: d0 = team number, d1 = base count, a0 = team pointer
+ * in: d0 = the availability flag (playMatchExcludeFlags; each GetNumberOfAvailable* gets it,
+ *     SWOS2.s `move.w d4,d0` -- it was passed as 0, counting suspended players: Career+'s
+ *     §3.1), d1 = base count, a0 = team pointer
  * ================================================================ */
 __attribute__((used, externally_visible))
-void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16_t baseCount, TeamFileEx *teamPtr)
+void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, uint16_t baseCount, TeamFileEx *teamPtr)
 {
     if (_isNationalSelector != 0)
         return;
@@ -4827,12 +4829,12 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16
     if (_trainingGame != 0)
         baseCount <<= 1;  /* lsl.w #1,d1 */
 
-    uint16_t d4 = teamNum;
+    uint16_t d4 = excludeFlags;   /* (the availability flag, not a team: `move.w d4,d0` before each count) */
     uint16_t d5 = baseCount;
 
     if (_trainingGame == 0) {
         /* Non-training: remove excess goalkeepers if more than 2 subs */
-        uint32_t subsResult = GetNumberOfAvailableSubstitutes(teamPtr, 0);
+        uint32_t subsResult = GetNumberOfAvailableSubstitutes(teamPtr, (int16_t)excludeFlags);
         uint16_t subs = (uint16_t)(subsResult & 0xFFFF);
         if (subs > 2) {
             int16_t d2 = (int16_t)_careerNumPlayers - 1;
@@ -4855,7 +4857,7 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16
         }
 
         /* Remove excess starting players if more than 16 */
-        uint32_t startResult = GetNumberOfAvailableStartingPlayers(teamPtr, 0);
+        uint32_t startResult = GetNumberOfAvailableStartingPlayers(teamPtr, (int16_t)excludeFlags);
         uint16_t starters = (uint16_t)(startResult & 0xFFFF);
         if (starters > 16) {
             int16_t d2 = (int16_t)_careerNumPlayers - 1;
@@ -4882,7 +4884,7 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16
 
     /* Add trial GK if needed: ensure at least 2 goalkeeper subs */
     while (_careerNumPlayers < 30) {
-        uint32_t subsResult = GetNumberOfAvailableSubstitutes(teamPtr, 0);
+        uint32_t subsResult = GetNumberOfAvailableSubstitutes(teamPtr, (int16_t)excludeFlags);
         uint16_t subs = (uint16_t)(subsResult & 0xFFFF);
         if (subs >= 2)
             break;
@@ -4899,7 +4901,7 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16
 
     /* Add trial field players if needed: fill to required starter count */
     while (_careerNumPlayers < 30) {
-        uint32_t startResult = GetNumberOfAvailableStartingPlayers(teamPtr, 0);
+        uint32_t startResult = GetNumberOfAvailableStartingPlayers(teamPtr, (int16_t)excludeFlags);
         uint16_t starters = (uint16_t)(startResult & 0xFFFF);
 
         uint16_t required = 11;

@@ -169,7 +169,7 @@ void Career_RemovePlayerAndAddAsTrialist(uint16_t sourceTeam, uint16_t playerOrd
 void Career_GenerateTrialistForTeamPlayer(uint16_t playerIndex);
 void Career_ConvertPlayerToTrialistFromName(uint16_t sourceTeam, uint16_t playerOrd);
 void TrainingMatch_AddTrialPlayerToSelectedTeam(uint16_t role);
-void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16_t baseCount, TeamFileEx *teamPtr);
+void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, uint16_t baseCount, TeamFileEx *teamPtr);
 
 /* --- PutPlayerOnMarketMenu (Chunk 177) --- */
 void PutPlayerOnMarketMenu(void);

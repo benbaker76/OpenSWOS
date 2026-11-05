@@ -3,6 +3,8 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
+#include "career_params.h"   /* num_seasons: the career's last season */
 #include "world_playoff.h"
 #include "player_face3.h"
 #include "menus.h"
@@ -754,7 +756,7 @@ void ShowStadiumInit(void)
     /* Entry 2: top team name + trailing space */
     {
         uint8_t *dst = (uint8_t *)_menuEntries[2].fg;
-        uint8_t *end = StringCopy((uint8_t *)_topTeamInGame.teamName, dst);
+        uint8_t *end = SWOS_TeamNameCopy((uint8_t *)_topTeamInGame.teamName, dst);
         *end++ = ' ';
         *end = 0;
     }
@@ -778,7 +780,7 @@ void ShowStadiumInit(void)
     {
         uint8_t *dst = (uint8_t *)_menuEntries[4].fg;
         *dst++ = ' ';
-        StringCopy((uint8_t *)_bottomTeamInGame.teamName, dst);
+        SWOS_TeamNameCopy((uint8_t *)_bottomTeamInGame.teamName, dst);
     }
 
     /* Color bottom team name if not in highlights mode */
@@ -2461,7 +2463,7 @@ extern void CareerOverFinish(void);
 __attribute__((used, externally_visible))
 void CareerOverInit(void)
 {
-    if (_currentSeasonShowing == 0x13) {
+    if (_currentSeasonShowing == _careerParams.num_seasons - 1) {
         SetCurrentEntry(6);
     } else if (_numNewJobOffers != 0 || _numJobOffers != 0) {
         SetCurrentEntry(5);
@@ -3405,7 +3407,7 @@ void PrintNameAndSeason(void)
     TeamFileEx *teamData = VerifyTeamLoaded(_selTeamNumber);
     uint8_t *teamName = (uint8_t *)teamData->team.teamName;
     uint8_t *entry1Str = (uint8_t *)_menuEntries[1].fg;
-    StringCopy(teamName, entry1Str);
+    SWOS_TeamNameCopy(teamName, entry1Str);
 
     /* Set season year in entry 2 */
     uint8_t *entry2Str = (uint8_t *)_menuEntries[2].fg;
@@ -4545,7 +4547,7 @@ static void CareerOverUpdateJobOffersEntry(void)
     MenuEntry *e;
 
     /* If season 19 (max), hide the entry entirely */
-    if (_currentSeasonShowing == 19)
+    if (_currentSeasonShowing == _careerParams.num_seasons - 1)
     {
         _menuEntries[0x118 / 56].isInvisible = 1;
         return;
@@ -4645,7 +4647,7 @@ void CareerOverFinish(void)
         uint8_t *teamName = (uint8_t *)teamPtr->team.teamName;
         MenuEntry *e1 = &_menuEntries[1];
         dest = (uint8_t *)e1->fg;
-        StringCopy(teamName, dest);
+        SWOS_TeamNameCopy(teamName, dest);
     }
 
     /* Set season year in entry 2 (offset $70/56 = 2) */
@@ -4660,7 +4662,7 @@ void CareerOverFinish(void)
     CareerOverUpdateJobOffersEntry();
 
     /* Season 19: final season special handling */
-    if (_currentSeasonShowing == 19)
+    if (_currentSeasonShowing == _careerParams.num_seasons - 1)
     {
         _menuEntries[0x188 / 56].isInvisible = 1;
         {

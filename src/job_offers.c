@@ -10,6 +10,8 @@
  * Chunk 99: 8 job offer menu functions from SWOS2.s lines 82566-82903.
  */
 
+#include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
+#include "career_params.h"   /* num_seasons: the career's last season */
 #include "job_offers.h"
 #include "translations.h"  /* tr_fmt — localize the offer-letter text */
 #include "endian_helpers.h"
@@ -340,7 +342,7 @@ void JobOffers_FillMissingNewOfferTeamNames(void)
 
         /* Look up team pointer and copy name */
         TeamFileEx *teamPtr = GetTeamPointer(offer->teamNo);
-        StringCopy((uint8_t *)teamPtr->team.teamName, (uint8_t *)offer->teamName);
+        SWOS_TeamNameCopy((uint8_t *)teamPtr->team.teamName, (uint8_t *)offer->teamName);
     }
 }
 
@@ -1013,7 +1015,7 @@ void Career_MaybeGenerateJobOffer(void)
         return;
     if ((int16_t)_numNewJobOffers >= maxNewOffers)
         return;
-    if (_currentSeasonShowing == 0x13)
+    if (_currentSeasonShowing == _careerParams.num_seasons - 1)
         return;
 
 #ifdef SWOS_INJECT_WC
@@ -1278,7 +1280,7 @@ searchNational:
                 /* teamId is compared against selTeamNumber (BE-packed)
                  * below — compose the same form via PACK_BE_U16. */
                 uint16_t teamId = PACK_BE_U16(rec->countryNumber, rec->teamOrdinal);
-                uint16_t skill = rec->skillOrPrice;
+                uint16_t skill = BE_READ_U16(&rec->skillOrPrice);   /* (big-endian, as the table holds it) */
 
                 if (skill < repLow || skill > repHigh)
                     continue;

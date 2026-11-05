@@ -3,6 +3,8 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
+#include "career_params.h"   /* num_seasons: the career's last season */
 #include "statistics.h"
 #include "translations.h"
 #include "comp_identity.h"
@@ -1096,7 +1098,7 @@ void CompetitionTopGoalScorersInit(void)
             {
                 uint8_t *d = dest;
                 d = StringCopy(_aLparen, d);
-                d = StringCopy(teamName, d);
+                d = SWOS_TeamNameCopy(teamName, d);
                 d = StringCopy(_aRparen, d);
                 *d = 0;
             }
@@ -1248,7 +1250,7 @@ void TopGoalScorersBeforeDrawCommon(MenuEntry *entry)
         {
             uint8_t *d = dest;
             d = StringCopy(_aLparen, d);
-            d = StringCopy(teamName, d);
+            d = SWOS_TeamNameCopy(teamName, d);
             d = StringCopy(_aRparen, d);
             *d = 0;
         }
@@ -1717,7 +1719,7 @@ void Career_FillCurrentSeasonInfo(void)
     a5->trophyFlags = d0;
 
     /* --- Manager status for final season / sacked --- */
-    if (_currentSeasonShowing == 0x13 && _seasonFinished != 0)
+    if (_currentSeasonShowing == _careerParams.num_seasons - 1 && _seasonFinished != 0)
         a5->managerStatus = 2;
     if (_youreSacked != 0)
         a5->managerStatus = (int8_t)0xFF;

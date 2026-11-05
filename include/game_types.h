@@ -1409,17 +1409,18 @@ extern EuroCupQualSeedBucketBlock _euroCupQualSeedBucketBlock;
  * the packed id against selTeamNumber via PACK_BE_U16, *not* a host
  * uint16 read.
  *
- * skillOrPrice is read host-native (`*(uint16_t *)(entry+4)`) by the
- * random-pick filters — see _PickRandomNationalTeamId / job_offers
- * searchNational. Keep that behaviour unchanged here; if it turns out
- * to be a latent endian bug, fix it separately and document.
+ * skillOrPrice is BIG-ENDIAN, as the table's bytes hold it (0x00 0x13 = 19):
+ * read it with BE_READ_U16. Read host-native it was 0x1300 on SDL, past every
+ * reputation window, so no national job offer was ever made and the career's
+ * friendly-cup / tour pick of national teams never filtered by it (Career+'s
+ * §3.1, 2026-11-05; the Amiga, big-endian, always read it right).
  * ================================================================== */
 typedef struct __attribute__((packed)) NationalTeamRecord {
     uint8_t  countryNumber;      /* 0 */
     uint8_t  teamOrdinal;        /* 1 */
     uint8_t  nationalityCode;    /* 2 */
     uint8_t  teamFileId;          /* 3 */
-    uint16_t skillOrPrice;        /* 4..5 — host-native, see note above */
+    uint16_t skillOrPrice;        /* 4..5 — big-endian: BE_READ_U16 (see above) */
 } NationalTeamRecord;
 
 typedef char _nationalteamrecord_size_check[(sizeof(NationalTeamRecord) == 6) ? 1 : -1];

@@ -8,6 +8,7 @@
  * Chunk 61: 3 functions ported from SWOS2.s.
  */
 
+#include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "game_types.h"
 #include "league_playoffs.h"
 #include "uefa_coef.h"
@@ -1133,7 +1134,7 @@ void InitializeNewSeason(void)
     si->managerStatus     = 0;
 
     /* Copy team name to season info CLUBNAME */
-    StringCopy((uint8_t *)_careerTeam.team.teamName, (uint8_t *)si->clubName);
+    SWOS_TeamNameCopy((uint8_t *)_careerTeam.team.teamName, (uint8_t *)si->clubName);
 
     /* Verify team loaded and get current division index */
     TeamFileEx *teamFile = VerifyTeamLoaded(_selTeamNumber);
@@ -1448,13 +1449,13 @@ void InitializeNewSeason(void)
 
     /* Show appropriate chairman message */
     if (_stayingInOldClub != 0) {
-        if (_currentSeasonShowing == 0x13) {
+        if (_currentSeasonShowing == _careerParams.num_seasons - 1) {
             ShowEnjoyLastSeasonMessage();
         } else {
             ShowWishYouSuccessMessage();
         }
     } else {
-        if (_currentSeasonShowing == 0x13) {
+        if (_currentSeasonShowing == _careerParams.num_seasons - 1) {
             ShowLastSeasonMessage();
         } else {
             ShowGreetingMessage();

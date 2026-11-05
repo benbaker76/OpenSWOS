@@ -491,7 +491,7 @@ extern uint16_t _friendlyPitchType;
 extern uint16_t _friendlySeason;
 extern uint16_t _minSubstitutes;
 extern uint16_t _maxSubstitutes;
-extern void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16_t baseCount, TeamFileEx *teamPtr);
+extern void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, uint16_t baseCount, TeamFileEx *teamPtr);
 extern void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2);
 extern uint8_t *GetPlayerAtIndex(uint16_t teamNumber, uint16_t ordinal);
 extern uint16_t IsPlayerInjured(PlayerFile *playerFile, int16_t mode);

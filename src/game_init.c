@@ -6,6 +6,7 @@
 #ifdef SWOS_SDL_BUILD
 #include <stdlib.h>
 #endif
+#include "swos_fixed_team_name.h"   /* SWOS_CopyTeamName17 */
 #include "game_init.h"
 #include "league_phase.h"
 #include "dos_gameplay.h"   /* ApplyGameStyle — DOS/Amiga match tuning */
@@ -700,7 +701,7 @@ void InitInGameTeamStructure(TeamFileEx *teamFileBase, TeamGame *tg,
     } else {
         nameSource = (uint8_t *)tf->teamName;
     }
-    StringCopy(nameSource, (uint8_t *)tg->teamName);
+    SWOS_CopyTeamName17(tg->teamName, nameSource);    /* (17 bytes: a 17-letter name, no NUL, stays inside) */
 }
 
 /* ========================================================================
