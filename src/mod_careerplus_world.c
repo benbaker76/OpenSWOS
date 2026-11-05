@@ -67,6 +67,26 @@ int32_t CP_World_Write(const CP_Club *club, int32_t slot)
     return ModApi_SetCareerPlayer(club->team, (uint16_t)slot, &club->players[slot]);
 }
 
+/* Every integer of a JSON slice of numbers ([[1,2],[3,-4]] -> 1 2 3 -4), in order, in one pass:
+ * the mod's saved arrays are numbers only, and mjson_next walks an array from its start at each
+ * element (20,000 ages took 9 s). How many were read, at most `max`. */
+int32_t CP_Numbers(const char *s, int32_t len, int32_t *out, int32_t max)
+{
+    int32_t n = 0;
+    for (int32_t i = 0; i < len && n < max; i++) {
+        if (s[i] == '-' || (s[i] >= '0' && s[i] <= '9')) {
+            const int32_t neg = s[i] == '-';
+            int32_t v = 0;
+            if (neg)
+                i++;
+            while (i < len && s[i] >= '0' && s[i] <= '9')
+                v = v * 10 + (s[i++] - '0');
+            out[n++] = neg ? -v : v;
+        }
+    }
+    return n;
+}
+
 int32_t CP_PlayerValid(const PlayerFile *p)
 {
     return p->playerName[0] && (uint8_t)p->playerName[0] != 0xFF && ModApi_PlayerValue(p) > 0;

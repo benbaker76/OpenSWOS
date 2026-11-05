@@ -82,22 +82,17 @@ void CP_Winners_Load(const char *json, int32_t len)
     s_count = 0;
     if (!json || mjson_find(json, len, "$.winners", &arr, &arrLen) != MJSON_TOK_ARRAY)
         return;
-    int off = 0, koff, klen, voff, vlen, vtype;
-    while ((off = mjson_next(arr, arrLen, off, &koff, &klen, &voff, &vlen, &vtype)) != 0) {
-        double v[5];
-        int32_t ok = vtype == MJSON_TOK_ARRAY;
-        for (int32_t k = 0; ok && k < 5; k++) {
-            char path[8];
-            snprintf(path, sizeof path, "$[%d]", (int)k);
-            ok = mjson_get_number(arr + voff, vlen, path, &v[k]) && v[k] >= 0 && v[k] <= 65535;
-        }
-        if (!ok) {
-            fprintf(stderr, "[careerplus] a winner that does not read: the rest kept\n");
+    int32_t *v = (int32_t *)malloc((size_t)arrLen / 2 * sizeof *v + sizeof *v);
+    const int32_t count = v ? CP_Numbers(arr, arrLen, v, arrLen / 2) : 0;
+    for (int32_t k = 0; k + 5 <= count; k += 5) {     /* [season, competition, league, division, team] */
+        if (v[k] < 0 || v[k + 1] < 0 || v[k + 1] > 255 || v[k + 3] < 0 || v[k + 3] > 255 ||
+            v[k + 4] < 0 || v[k + 4] > 65535)
             continue;
-        }
-        Winner w = { (uint16_t)v[0], (uint8_t)v[1], (uint8_t)(v[2] != 0), (uint8_t)v[3], (uint16_t)v[4] };
+        Winner w = { (uint16_t)v[k], (uint8_t)v[k + 1], (uint8_t)(v[k + 2] != 0), (uint8_t)v[k + 3],
+                     (uint16_t)v[k + 4] };
         add(w);
     }
+    free(v);
 }
 
 /* ---- the screen (data_json/menus/careerplus/winnersMenu.json): entry 0 the title, 1-10 the

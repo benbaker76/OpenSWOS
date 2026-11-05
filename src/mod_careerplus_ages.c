@@ -137,28 +137,22 @@ static void seed_ages(void)
     fclose(f);
     j[n] = 0;
     const char *arr;
-    int arrLen, off = 0, ko, kl, vo, vl, vt, clubs = 0;
-    if (mjson_find(j, (int)n, "$.clubs", &arr, &arrLen) == MJSON_TOK_ARRAY)
-        while ((off = mjson_next(arr, arrLen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
-            double file, ord;
-            const char *ages;
-            int agesLen;
-            if (!mjson_get_number(arr + vo, vl, "$[0]", &file) || !mjson_get_number(arr + vo, vl, "$[1]", &ord) ||
-                mjson_find(arr + vo, vl, "$[2]", &ages, &agesLen) != MJSON_TOK_ARRAY)
-                continue;
-            const uint16_t team = (uint16_t)((int32_t)file << 8 | (int32_t)ord);
-            int ao = 0, ako, akl, avo, avl, avt, slot = 0;
-            while (slot < 16 && (ao = mjson_next(ages, agesLen, ao, &ako, &akl, &avo, &avl, &avt)) != 0) {
-                const int32_t age = atoi(ages + avo);
-                if (age >= 15 && age <= 60) {
-                    AgeEntry *e = entry(team, slot, 1);
-                    if (e)
-                        e->base = e->seed = (int16_t)age;
-                }
-                slot++;
+    int arrLen, clubs = 0;
+    if (mjson_find(j, (int)n, "$.clubs", &arr, &arrLen) == MJSON_TOK_ARRAY) {
+        enum { kPerClub = 18 };             /* file, ordinal, the 16 ages */
+        int32_t *v = (int32_t *)malloc((size_t)arrLen / 2 * sizeof *v + sizeof *v);
+        const int32_t count = v ? CP_Numbers(arr, arrLen, v, arrLen / 2) : 0;
+        for (int32_t k = 0; k + kPerClub <= count; k += kPerClub, clubs++) {
+            const uint16_t team = (uint16_t)(v[k] << 8 | v[k + 1]);
+            for (int32_t slot = 0; slot < 16; slot++) {
+                const int32_t age = v[k + 2 + slot];
+                AgeEntry *e = age >= 15 && age <= 60 ? entry(team, slot, 1) : NULL;
+                if (e)
+                    e->base = e->seed = (int16_t)age;
             }
-            clubs++;
         }
+        free(v);
+    }
     free(j);
     fprintf(stderr, "[careerplus] ages of %d clubs' players\n", clubs);
 }
@@ -186,25 +180,26 @@ void CP_Ages_Load(const char *json, int32_t len)
     seed_ages();
     double v;
     const char *arr;
-    int arrLen, off = 0, ko, kl, vo, vl, vt;
+    int arrLen;
     if (!json)
         return;
     if (mjson_get_number(json, len, "$.aged", &v) && v >= 0 && v < 100)
         s_aged = (int32_t)v;
     if (mjson_find(json, len, "$.ages", &arr, &arrLen) != MJSON_TOK_ARRAY)
         return;
-    while ((off = mjson_next(arr, arrLen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
-        double t, s, b, m;
-        if (!mjson_get_number(arr + vo, vl, "$[0]", &t) || !mjson_get_number(arr + vo, vl, "$[1]", &s) ||
-            !mjson_get_number(arr + vo, vl, "$[2]", &b) || !mjson_get_number(arr + vo, vl, "$[3]", &m) ||
-            t < 0 || t > 65535 || s < 0 || s > 31 || b < -100 || b > 100 || m < 0 || m > 65535)
+    int32_t *n = (int32_t *)malloc((size_t)arrLen / 2 * sizeof *n + sizeof *n);
+    const int32_t count = n ? CP_Numbers(arr, arrLen, n, arrLen / 2) : 0;
+    for (int32_t k = 0; k + 4 <= count; k += 4) {     /* [team, slot, base, moved] */
+        const int32_t t = n[k], s = n[k + 1], b = n[k + 2], m = n[k + 3];
+        if (t < 0 || t > 65535 || s < 0 || s > 31 || b < -100 || b > 100 || m < 0 || m > 65535)
             continue;
-        AgeEntry *e = entry((uint16_t)t, (int32_t)s, 1);
+        AgeEntry *e = entry((uint16_t)t, s, 1);
         if (e) {
             e->base = (int16_t)b;
             e->moved = (uint16_t)m;
         }
     }
+    free(n);
 }
 
 void CP_Ages_New(void)

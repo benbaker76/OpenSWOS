@@ -44,6 +44,7 @@ int32_t  CP_World_Count(void);
 CP_Club *CP_World_Club(int32_t i);          /* (a file's clubs together) */
 CP_Club *CP_World_Find(uint16_t team);
 int32_t  CP_World_Write(const CP_Club *club, int32_t slot);     /* its player back to the career */
+int32_t  CP_Numbers(const char *s, int32_t len, int32_t *out, int32_t max);   /* a slice's integers */
 int32_t  CP_PlayerValid(const PlayerFile *p);   /* a player with a value */
 uint8_t  CP_Position(const PlayerFile *p);      /* 0 GK .. 7 attacker */
 void     CP_Ratings(const PlayerFile *p, uint8_t a[7]);
