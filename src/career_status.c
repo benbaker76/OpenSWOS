@@ -1118,8 +1118,11 @@ static uint16_t calcCupMatchGateReceiptsFactor(TeamFileEx *team1, TeamFileEx *te
 /* UpdateCareerFinancesAfterMatch
  * Complex dispatcher that calculates gate receipts based on competition type.
  */
+static int32_t careerSaturatingAdd(int32_t a, int64_t b);   /* (below, with the season's finances) */
+
 __attribute__((used, externally_visible))
 void UpdateCareerFinancesAfterMatch(DIYCompetitionEx *comp, TeamFileEx *team, TeamFileEx *opponent) {
+    int32_t leagueGate = 0;     /* (set on a non-DIY league's home gate) */
     if (_isNationalSelector != 0)
         return;
 
@@ -1233,6 +1236,7 @@ league_match:
         int16_t gateFactorResult = (int16_t)(gateProduct / 100);
         _gateReceiptsFactor = gateFactorResult;
         d7 = (uint32_t)(uint16_t)gateFactorResult;
+        leagueGate = 1;     /* (a league's home gate: league_gate_mult, final_update) */
         goto compute_receipts;
     }
 
@@ -1318,10 +1322,19 @@ increment_count:
 final_update:
     d7 &= 0xFFFF;
     d7 <<= 4;
+    if (leagueGate && _careerParams.league_gate_mult > 1 && team == &_careerTeam) {
+        /* (career_params: the career club's league home gate, times league_gate_mult; saturating) */
+        const int64_t credit = (int64_t)d7 * _careerParams.league_gate_mult;
+        _gateReceipts = careerSaturatingAdd(_gateReceipts, credit);
+        _newBalance = careerSaturatingAdd(_newBalance, credit);
+        _seasonGateReceiptsAccum2 = careerSaturatingAdd(_seasonGateReceiptsAccum2, credit);
+        _seasonGateReceiptsAccum = careerSaturatingAdd(_seasonGateReceiptsAccum, credit);
+    } else {
     _gateReceipts += (int32_t)d7;
     _newBalance += (int32_t)d7;
     _seasonGateReceiptsAccum2 += (int32_t)d7;
     _seasonGateReceiptsAccum += (int32_t)d7;
+    }
     ClampNewBalanceAndUpdateClubStatus();
     ClearOverdraftStateIfRecovered();
 }
@@ -1693,6 +1706,47 @@ static uint16_t getExpectedLeagueRankIndex(uint8_t *ctx, uint16_t moreExpensiveC
 }
 
 /* InitializeCareerSeasonFinancials */
+/* The weekly running costs by the career params (running_cost_mode / _pct; not the original's
+ * values): mode 1 halves them, then takes the part above 20,000 progressively less (90% to
+ * 100,000, 70% to 300,000, 55% to 600,000, 45% beyond: benefactorr's Career+), then the percent. */
+static int32_t careerRunningCosts(int32_t weekly)
+{
+    int64_t cost = weekly;
+    if (_careerParams.running_cost_mode == 1) {
+        cost /= 2;
+        if (cost > 20000) {
+            static const struct { int64_t width; int32_t pct; } bracket[] = {
+                { 80000, 90 }, { 200000, 70 }, { 300000, 55 }, { (int64_t)1 << 40, 45 },
+            };
+            int64_t rest = cost - 20000, sum = 20000;
+            for (uint32_t b = 0; rest > 0 && b < sizeof bracket / sizeof bracket[0]; b++) {
+                const int64_t part = rest < bracket[b].width ? rest : bracket[b].width;
+                sum += part * bracket[b].pct / 100;
+                rest -= part;
+            }
+            cost = sum;
+        }
+    }
+    cost = cost * _careerParams.running_cost_pct / 100;
+    return cost > INT32_MAX ? INT32_MAX : (int32_t)cost;
+}
+
+/* a season payment of so many weeks' wages, in whole thousands, at most `cap` */
+static int32_t careerWeeksOfWages(int32_t weeklyWages, uint16_t weeks, int32_t cap)
+{
+    if (weeklyWages <= 0 || weeks == 0)
+        return 0;
+    if (weeklyWages > cap / (int32_t)weeks)     /* (32-bit: the Amiga has no 64-bit modulo) */
+        return cap;
+    return weeklyWages * (int32_t)weeks / 1000 * 1000;
+}
+
+static int32_t careerSaturatingAdd(int32_t a, int64_t b)
+{
+    const int64_t sum = (int64_t)a + b;
+    return sum > INT32_MAX ? INT32_MAX : sum < -(int64_t)INT32_MAX - 1 ? (int32_t)(-INT32_MAX - 1) : (int32_t)sum;
+}
+
 __attribute__((used, externally_visible))
 void InitializeCareerSeasonFinancials(void) {
     /* Get more expensive teams count and set expected rank */
@@ -1720,9 +1774,18 @@ void InitializeCareerSeasonFinancials(void) {
     /* Compute total team value: weeklyPlayerWages * wageScalingDivisor */
     int32_t d6 = 0;
     int32_t wages = _weeklyPlayerWages;
+    if (_careerParams.team_value_wage_pct != 100) {     /* (career_params: the value made from more */
+        const int64_t w = (int64_t)wages * _careerParams.team_value_wage_pct / 100;   /* than the wages) */
+        wages = w > INT32_MAX ? INT32_MAX : (int32_t)w;
+    }
     uint16_t scalingCount = _wageScalingDivisor;
-    for (uint16_t i = 0; i < scalingCount; i++)
+    for (uint16_t i = 0; i < scalingCount; i++) {
+        if (_careerParams.team_value_wage_pct != 100 && wages > INT32_MAX - d6) {
+            d6 = INT32_MAX;     /* (a raised value saturates; the original's cannot reach it) */
+            break;
+        }
         d6 += wages;
+    }
     _totalTeamValue = d6;
 
     /* Compute weekly running costs from total team value */
@@ -1734,6 +1797,8 @@ void InitializeCareerSeasonFinancials(void) {
     d0 = (uint16_t)(d0 / _wageScalingDivisor); /* divu wageScalingDivisor */
     d0 = (uint32_t)(uint16_t)d0 * 1000;   /* mulu #$3E8 */
     _weeklyRunningCosts = (int32_t)d0;
+    if (_careerParams.running_cost_mode != 0 || _careerParams.running_cost_pct != 100)
+        _weeklyRunningCosts = careerRunningCosts((int32_t)d0);
 
     /* Clear accumulators */
     _seasonRunningCostsAccum = 0;
@@ -2296,6 +2361,8 @@ void Career_UpdatePlayerWeeklyWageCache(uint16_t playerIndex)
     wage = wage * _careerParams.wage_scale;
     wage = wage / (uint32_t)_wageScalingDivisor;
     wage &= 0xFFFF;  /* keep 16-bit quotient (68k divu behavior) */
+    if (_careerParams.wage_pct != 100)  /* (career_params: Career+'s 40%) */
+        wage = wage * _careerParams.wage_pct / 100u;
 
     _weeklyWageByPlayerIndex[playerIndex] = (int32_t)wage;
 
@@ -2767,6 +2834,8 @@ extern uint16_t GetTeamValueBase(uint16_t avgPrice);
 static inline int32_t computeTotalProfitLoss(void) {
     int32_t total = _startingBalanceCopy;
     total += _competitionBonuses;
+    if (_careerParams.profit_loss_sponsorship)  /* (career_params: the sponsor's money counted) */
+        total += _sensisoftPlcSponsorship;
     total += _gateReceipts;
     total += _playerSales;
     total -= _playerPurchases;
@@ -3010,6 +3079,17 @@ void Career_InitializeNewSeasonFinances(void)
     _gateReceipts = 0;
     _sensisoftPlcSponsorship = 0;
 
+    if (_careerParams.sponsorship_mode == 1) {
+        /* (career_params: a sponsor every season, the weekly wages times the division's weeks,
+         * at most 10,000,000; no draw) */
+        const uint16_t div = _currentDivisionIndex < 4 ? _currentDivisionIndex : 3;
+        _additionalInvestments = 0;
+        _sensisoftPlcSponsorship = careerWeeksOfWages(_weeklyPlayerWages, _careerParams.sponsorship_weeks[div], 10000000);
+        _sensisoftPlcSponsorshipFactor = _sensisoftPlcSponsorship > 0;
+        _newBalance = careerSaturatingAdd(_newBalance, _sensisoftPlcSponsorship);
+        goto skipSponsorship;
+    }
+
     if (_stayingInOldClub) {
         _additionalInvestments = 0;
         uint16_t d7 = _sensisoftPlcSponsorshipFactor;
@@ -3097,6 +3177,15 @@ skipSponsorship:
 
         d0 = (d0 / 1000) * 1000;
         _competitionBonuses += (int32_t)d0;
+    }
+
+    {   /* (career_params: the league's money, the weekly wages times the division's weeks, at
+         * most 12,000,000; booked with the competition bonuses) */
+        const uint16_t div = _currentDivisionIndex < 4 ? _currentDivisionIndex : 3;
+        const uint16_t weeks = _careerParams.league_distribution_weeks[div];
+        if (weeks)
+            _competitionBonuses = careerSaturatingAdd(_competitionBonuses,
+                                                      careerWeeksOfWages(_weeklyPlayerWages, weeks, 12000000));
     }
 
     /* Apply competition bonuses and starting balance */

@@ -3165,6 +3165,21 @@ void DataJson_LoadCareerParams(void)
     LDU("$.transfer_list_capacity",     transfer_list_capacity);
     LDU("$.job_offers_capacity",        job_offers_capacity);
     LDU("$.trialist_count_mode",        trialist_count_mode);
+    LDU("$.wage_pct",                   wage_pct);
+    LDU("$.team_value_wage_pct",        team_value_wage_pct);
+    LDU("$.running_cost_mode",          running_cost_mode);
+    LDU("$.running_cost_pct",           running_cost_pct);
+    LDU("$.league_gate_mult",           league_gate_mult);
+    LDU("$.sponsorship_mode",           sponsorship_mode);
+    LDU("$.sponsorship_weeks[0]",       sponsorship_weeks[0]);
+    LDU("$.sponsorship_weeks[1]",       sponsorship_weeks[1]);
+    LDU("$.sponsorship_weeks[2]",       sponsorship_weeks[2]);
+    LDU("$.sponsorship_weeks[3]",       sponsorship_weeks[3]);
+    LDU("$.league_distribution_weeks[0]", league_distribution_weeks[0]);
+    LDU("$.league_distribution_weeks[1]", league_distribution_weeks[1]);
+    LDU("$.league_distribution_weeks[2]", league_distribution_weeks[2]);
+    LDU("$.league_distribution_weeks[3]", league_distribution_weeks[3]);
+    LDU("$.profit_loss_sponsorship",    profit_loss_sponsorship);
     #undef LDU
     #undef LDS
     if (_careerParams.num_seasons < 1) _careerParams.num_seasons = 1;
@@ -3180,6 +3195,9 @@ void DataJson_LoadCareerParams(void)
     CLAMP_CAP(job_offers_capacity,      CAREER_ORIG_JOB_OFFERS,      CAREER_MAX_JOB_OFFERS);
     #undef CLAMP_CAP
     if (_careerParams.trialist_count_mode > 1) _careerParams.trialist_count_mode = 0;
+    if (_careerParams.running_cost_mode > 1) _careerParams.running_cost_mode = 0;
+    if (_careerParams.sponsorship_mode > 1) _careerParams.sponsorship_mode = 0;
+    if (_careerParams.league_gate_mult < 1) _careerParams.league_gate_mult = 1;
     free(j);
     fprintf(stderr, "[data-json] career params loaded from data_json/career_params.json\n");
 }

@@ -51,6 +51,23 @@ typedef struct {
     uint16_t board_tertiary_top2_bonus;  /* 2    tertiary-cup top-2 */
     uint16_t board_euro_top2_bonus;      /* 3    euro-cup top-2 */
 
+    /* ---- Finances: the rest of Career+'s (each default = the original's; benefactorr's fork's
+     * values in brackets) ---- */
+    uint16_t wage_pct;                   /* 100  [40] a player's weekly wage, % of the original's */
+    uint16_t team_value_wage_pct;        /* 100  [250] the wages the team value is made from, % of
+                                          *      the weekly wages (gate and running costs follow it) */
+    uint16_t running_cost_mode;          /* 0    the original's; 1 halved, then progressive brackets
+                                          *      (20k at 100%, 80k at 90, 200k at 70, 300k at 55, the
+                                          *      rest at 45) [1] */
+    uint16_t running_cost_pct;           /* 100  [45] the weekly running costs, % of the above */
+    uint16_t league_gate_mult;           /* 1    [100] the career club's league home gate, times */
+    uint16_t sponsorship_mode;           /* 0    the original's random sponsor; 1 every season, the
+                                          *      weekly wages times sponsorship_weeks [1] */
+    uint16_t sponsorship_weeks[4];       /* by division, the top first [18 14 10 6] (mode 1) */
+    uint16_t league_distribution_weeks[4]; /* 0 0 0 0 none; the season's league money by division,
+                                          *      the weekly wages times this [9 7 5 3] */
+    uint16_t profit_loss_sponsorship;    /* 0    [1] the sponsorship counts in the profit / loss */
+
     /* ---- Career length ---- */
     uint16_t num_seasons;                /* 20 (default) or up to CAREER_MAX_SEASONS (35) — the
                                           * career retires after this many seasons */

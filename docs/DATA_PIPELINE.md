@@ -182,6 +182,16 @@ maximum) whatever the param; the param only decides how far a list may grow.
 `trialist_count_mode` (0, the original's): 1 counts injured AND suspended players out in every
 non-training match when deciding on trialists (benefactorr's Career+).
 
+**Finances beyond the original's knobs** (each default the original's; Career+'s value in
+brackets): `wage_pct` 100 [40], `team_value_wage_pct` 100 [250] (the team value -- and so the
+gate and the running costs -- made from more than the wages), `running_cost_mode` 0 [1: halved,
+then progressive brackets above 20,000] and `running_cost_pct` 100 [45], `league_gate_mult` 1
+[100] (the career club's league home gate), `sponsorship_mode` 0 [1: every season, the weekly
+wages times `sponsorship_weeks` by division, 18/14/10/6], `league_distribution_weeks` 0/0/0/0
+[9/7/5/3: the league's money, booked with the competition bonuses], `profit_loss_sponsorship` 0
+[1: the sponsor counted in the season's profit / loss]. A param at its default runs the
+original's code, so the golden careers are unchanged.
+
 ---
 
 ## Verification

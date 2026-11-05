@@ -34,6 +34,17 @@ CareerParams _careerParams = {
     .board_tertiary_top2_bonus  = 2,
     .board_euro_top2_bonus      = 3,
 
+    /* the rest of Career+'s finances: the original's */
+    .wage_pct = 100,
+    .team_value_wage_pct = 100,
+    .running_cost_mode = 0,
+    .running_cost_pct = 100,
+    .league_gate_mult = 1,
+    .sponsorship_mode = 0,
+    .sponsorship_weeks = { 0, 0, 0, 0 },
+    .league_distribution_weeks = { 0, 0, 0, 0 },
+    .profit_loss_sponsorship = 0,
+
     /* career length */
     .num_seasons = 20,
 

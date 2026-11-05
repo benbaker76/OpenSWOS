@@ -39,5 +39,16 @@
   "job_offers_capacity": 5,
 
   "_trialists": "0 = count available players by the caller's flag, as the original; 1 = injured and suspended players out in every non-training match",
-  "trialist_count_mode": 0
+  "trialist_count_mode": 0,
+
+  "_finances2": "benefactorr's Career+ values in its own career_params.json: wage_pct 40, team_value_wage_pct 250, running_cost_mode 1 (halved, progressive brackets), running_cost_pct 45, league_gate_mult 100, sponsorship_mode 1 with sponsorship_weeks [18,14,10,6], league_distribution_weeks [9,7,5,3], profit_loss_sponsorship 1",
+  "wage_pct": 100,
+  "team_value_wage_pct": 100,
+  "running_cost_mode": 0,
+  "running_cost_pct": 100,
+  "league_gate_mult": 1,
+  "sponsorship_mode": 0,
+  "sponsorship_weeks": [0, 0, 0, 0],
+  "league_distribution_weeks": [0, 0, 0, 0],
+  "profit_loss_sponsorship": 0
 }
