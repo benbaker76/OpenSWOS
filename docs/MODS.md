@@ -998,9 +998,10 @@ owner's sketch had it.
   (HOLLAND -> Netherlands, REPUBLIC IRELAND -> Ireland, WEST GERMANY -> Germany, CZECHOSLOVAKIA -> the
   Czech flag, SERBIA-MONT. -> Yugoslavia...), else the file with the name's letters (GREECE ->
   Greece), else, for a club, its country's (`countries[<team file>]`). Every 96/97 national team and
-  club country has one; of the historic tournaments' teams, SOVIET UNION, EAST GERMANY, C.I.S.,
-  ZAIRE, DUTCH E. INDIES and GUADELOUPE have none in the set (a BMP of that name in a mod's `flags/`
-  adds one). A competition's own teams (a .DIY's, file 72) go by name only.
+  club country has one, and so does every team of the historic tournaments: SOVIET UNION, EAST
+  GERMANY, ZAIRE and C.I.S. are OpenSWOS's own drawings at the set's size (`scripts/draw_extra_flags.py`),
+  DUTCH E. INDIES plays under the Dutch flag and GUADELOUPE under the French. A BMP of a name in a
+  mod's `flags/` adds or replaces one. A competition's own teams (a .DIY's, file 72) go by name only.
 - **The art:** GoSquared's 24-pixel flag set (MIT, `LICENSE_Flags.txt` in the mod), each flag the
   icon's 22 x 16 middle, in true colour through the renderer (`frameDrawn`, over the HUD).
 - **API it added** (include/mod_api.h): `ModApi_MatchTeam` (the banner's two teams: name, file and

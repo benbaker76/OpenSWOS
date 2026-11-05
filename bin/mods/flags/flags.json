@@ -1,7 +1,7 @@
 {
  "format": "openswos-flags",
  "version": 1,
- "comment": "Flag files are flags/<name>.bmp (GoSquared's 24 px set, MIT: LICENSE_Flags.txt). A team's flag: names[its name], else the file whose name is its name's letters; a club with neither, countries[its team file].",
+ "comment": "Flag files are flags/<name>.bmp: GoSquared's 24 px set (MIT: LICENSE_Flags.txt), and four of OpenSWOS's own drawn at its size (Soviet-Union, East-Germany, Zaire, CIS: scripts/draw_extra_flags.py). A team's flag: names[its name], else the file whose name is its name's letters; a club with neither, countries[its team file].",
  "names": {
   "BOSNIA": "Bosnia-and-Herzegovina",
   "BOSNIA-HERZEGOV.": "Bosnia-and-Herzegovina",
@@ -10,9 +10,11 @@
   "CZECHIA": "Czech-Republic",
   "CZECHOSLOVAKIA": "Czech-Republic",
   "DR CONGO": "Democratic-Republic-of-the-Congo",
+  "DUTCH E. INDIES": "Netherlands",
   "EQ GUINEA": "Equatorial-Guinea",
   "FAROE ISLANDS": "Faroes",
   "FAROE ISLES": "Faroes",
+  "GUADELOUPE": "France",
   "HOLLAND": "Netherlands",
   "IVORY COAST": "Cote-dIvoire",
   "NORTH MACEDONIA": "Macedonia",
