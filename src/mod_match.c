@@ -21,6 +21,8 @@
 #include "game_types.h"
 #include "mod_hooks.h"
 #include "play_match_menu.h"
+#include "team_uuid.h"      /* (the Amiga: a team's number checked against its id) */
+#include "world.h"
 #ifdef SWOS_SDL_BUILD
 #include "team_db.h"
 #include <SDL.h>
@@ -272,9 +274,25 @@ uint16_t ModApi_TeamByUuid(const char *uuid)
     const TeamDbEntry *e = uuid ? TeamDb_ByUuid(uuid) : NULL;
     return e ? (uint16_t)(e->team.team.countryNumber << 8 | e->team.team.teamOrdinal) : 0;
 }
+
+uint16_t ModApi_TeamByUuidNumber(const char *uuid, uint16_t number)
+{
+    return uuid && uuid[0] ? ModApi_TeamByUuid(uuid) : number;
+}
 #else
 /* (the Amiga has no team database, so no ids: a mod there names teams by number) */
 uint16_t ModApi_TeamByUuid(const char *uuid) { (void)uuid; return 0; }
+
+uint16_t ModApi_TeamByUuidNumber(const char *uuid, uint16_t number)
+{
+    char derived[TEAM_UUID_TEXT];
+    if (!uuid || !uuid[0])
+        return number;
+    if (!number)
+        return 0;
+    TeamDb_DerivedTeamUuid(number >> 8, number & 0xFF, derived);
+    return strcmp(derived, uuid) == 0 ? number : 0;
+}
 
 /* A team by its number, from its team file (the Amiga's, for want of the database). */
 static const TeamFileEx *file_team(uint16_t teamId)
@@ -345,8 +363,22 @@ int32_t ModApi_ChosenTeamUuid(int32_t team, char *out, int32_t cap)
     snprintf(out, (size_t)cap, "%s", e->ids.uuid);
     return 1;
 #else
-    return 0;       /* (no ids on the Amiga) */
+    /* (the Amiga has no database: a 96/97 team's id is derived from its number -- a world's are
+     *  stated in its data, which the Amiga does not read) */
+    if (World_Current() != WORLD_9697)
+        return 0;
+    if (cap < TEAM_UUID_TEXT)
+        return 0;
+    TeamDb_DerivedTeamUuid(_selectedTeams[team].team.countryNumber, _selectedTeams[team].team.teamOrdinal, out);
+    return 1;
 #endif
+}
+
+uint16_t ModApi_ChosenTeamNumber(int32_t team)
+{
+    if (team < 0 || team > 1 || _numSelectedTeams < 2)
+        return 0;
+    return (uint16_t)(_selectedTeams[team].team.countryNumber << 8 | _selectedTeams[team].team.teamOrdinal);
 }
 
 const char *ModApi_ChosenName(int32_t team)

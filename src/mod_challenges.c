@@ -2,7 +2,7 @@
  * mod_challenges.c -- the challenges mod (canonical, bin/mods/challenges; docs/MODS.md §18):
  * SWOS 2020's scenario mode (game.cpp ScenarioGame), ported onto the mod API, its challenges in
  * a JSON format of OpenSWOS's own (the owner: JSON is our format for data -- not challenges.ini,
- * not .SCN). SDL builds.
+ * not .SCN). Both targets.
  *
  * MODES -> CHALLENGES: the challenges, each OPEN, DONE or LOCKED (locked while an easier one is
  * not done, as SWOS 2020 locks them). One: where the match stands and what wins it, PLAY; then
@@ -15,7 +15,8 @@
  *     "challenges": [ {
  *       "id": "ten-men", "name": "TEN MEN", "difficulty": 3,          1 (easiest) .. 5
  *       "about": "1-1 AND YOUR NUMBER 5 SENT OFF. WIN WITH TEN.",
- *       "teams": [ { "uuid": "...", "name": "MANCHESTER UTD" }, { ... } ],   database teams by uuid
+ *       "teams": [ { "uuid": "...", "team": "0a12", "name": "MANCHESTER UTD" }, { ... } ],   database teams by uuid
+ *                                                    (and number, hex: the Amiga's, which has no database)
  *       "yours": 0,                                                    which team you play
  *       "score": [1, 1], "minute": 60,                                 where it stands (minute 0-89)
  *       "sent_off": [[5], []],                                         shirt numbers already off
@@ -32,12 +33,10 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
-
 #include "mjson.h"
 #include "mods.h"
+#include "swos_io.h"        /* (the Amiga's file read) */
 
-#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,6 +48,7 @@ enum { W_WIN, W_DRAW, W_EXACT };
 
 typedef struct {
     char     id[40], name[32], about[96], teamName[2][24], teamUuid[2][40];
+    uint16_t teamNumber[2];     /* "team": its number (hex), for the Amiga, which has no database */
     int8_t   difficulty, yours, score[2], winScore[2];
     uint8_t  win, extraTime, penalties, length;
     int16_t  minute;
@@ -78,12 +78,24 @@ static void upper(char *s)
 
 static int32_t number(const char *json, int len, const char *path, int32_t fallback)
 {
-    double v;
-    return mjson_get_number(json, len, path, &v) ? (int32_t)v : fallback;
+    long v;     /* (whole numbers: mjson_get_long, which the Amiga has too -- no doubles there) */
+    return mjson_get_long(json, len, path, &v) ? (int32_t)v : fallback;
 }
 
 static void read_text(char *json, int len, const char *path, int32_t custom);
 
+#ifndef SWOS_SDL_BUILD
+static void read_file(const char *path)
+{
+    uint8_t *json = NULL;
+    uint32_t n = 0;
+    if (swos_io_load_data_alloc(path, &json, &n) != 0 || !json || !n) {
+        free(json);
+        return;
+    }
+    read_text((char *)json, (int)n, path, 0);  /* (NUL-terminated by swos_io) */
+}
+#else
 static void read_file(const char *path)
 {
     FILE *f = fopen(path, "rb");
@@ -102,6 +114,7 @@ static void read_file(const char *path)
     json[n] = '\0';
     read_text(json, (int)n, path, 0);
 }
+#endif
 
 /* A challenges file's text (freed here): its challenges after those loaded. */
 static void read_text(char *json, int len, const char *path, int32_t custom)
@@ -138,6 +151,12 @@ static void read_text(char *json, int len, const char *path, int32_t custom)
         for (int32_t t = 0; t < 2; t++) {
             snprintf(q, sizeof q, "$.challenges[%d].teams[%d].uuid", (int)i, (int)t);
             mjson_get_string(json, len, q, c->teamUuid[t], (int)sizeof c->teamUuid[t]);
+            {
+                char hexNumber[8] = "";
+                snprintf(q, sizeof q, "$.challenges[%d].teams[%d].team", (int)i, (int)t);
+                if (mjson_get_string(json, len, q, hexNumber, (int)sizeof hexNumber) > 0)
+                    c->teamNumber[t] = (uint16_t)strtol(hexNumber, NULL, 16);
+            }
             snprintf(q, sizeof q, "$.challenges[%d].teams[%d].name", (int)i, (int)t);
             mjson_get_string(json, len, q, c->teamName[t], (int)sizeof c->teamName[t]);
             upper(c->teamName[t]);
@@ -237,6 +256,18 @@ static int by_difficulty(const void *a, const void *b)
     return ((const Challenge *)a)->difficulty - ((const Challenge *)b)->difficulty;
 }
 
+/* (ModApi_ListFiles' callback: one file of a mod's data_json/challenges/) */
+static int32_t each_file(const char *name, void *ctx)
+{
+    const size_t l = strlen(name);
+    if (l > 5 && !strcmp(name + l - 5, ".json")) {
+        char path[1500];
+        snprintf(path, sizeof path, "%s/%s", (const char *)ctx, name);
+        read_file(path);
+    }
+    return 0;
+}
+
 /* every mod that is on: its data_json/challenges/ */
 static void load(void)
 {
@@ -246,19 +277,7 @@ static void load(void)
     for (int32_t m = 0; m < Mods_Count(); m++) {
         char dir[1200];
         snprintf(dir, sizeof dir, "%s/data_json/challenges", Mods_Dir(m));
-        DIR *d = opendir(dir);
-        if (!d)
-            continue;
-        struct dirent *e;
-        while ((e = readdir(d)) != NULL) {
-            const size_t l = strlen(e->d_name);
-            if (l > 5 && !strcmp(e->d_name + l - 5, ".json")) {
-                char path[1500];
-                snprintf(path, sizeof path, "%s/%s", dir, e->d_name);
-                read_file(path);
-            }
-        }
-        closedir(d);
+        ModApi_ListFiles(dir, each_file, dir);
     }
     qsort(s_ch, (size_t)s_count, sizeof s_ch[0], by_difficulty);
     {   /* the player's own, after the packs' (the editor writes them: custom.json) */
@@ -303,7 +322,8 @@ static void play(int32_t i)
 {
     Challenge *c = &s_ch[i];
     s_cur = i;
-    if (!ModApi_TeamByUuid(c->teamUuid[0]) || !ModApi_TeamByUuid(c->teamUuid[1])) {
+    if (!ModApi_TeamByUuidNumber(c->teamUuid[0], c->teamNumber[0]) ||
+        !ModApi_TeamByUuidNumber(c->teamUuid[1], c->teamNumber[1])) {
         fprintf(stderr, "[challenges] %s: a team is not in the database (or a pack that is on)\n", c->id);
         return;
     }
@@ -312,7 +332,7 @@ static void play(int32_t i)
         ModMatchResult r;
         ModApi_DefaultSetup(&setup);
         for (int32_t t = 0; t < 2; t++) {
-            setup.team[t] = ModApi_TeamByUuid(c->teamUuid[t]);
+            setup.team[t] = ModApi_TeamByUuidNumber(c->teamUuid[t], c->teamNumber[t]);
             setup.side[t] = (uint8_t)(t == c->yours && !s_test ? MODSIDE_PLAYER1 : MODSIDE_CPU);
             setup.score[t] = c->score[t];
             setup.sentOff[t] = c->sentOff[t];
@@ -350,7 +370,9 @@ static void play(int32_t i)
             fprintf(stdout, "CHALLENGE TEST %s: %d-%d %s, attempts %u\n", c->id, (int)r.goals[0], (int)r.goals[1],
                     s_won ? "won" : "lost", (unsigned)c->attempts);
             fflush(stdout);
+#ifdef SWOS_SDL_BUILD   /* (a test's: the Amiga has no environment to arm one) */
             exit(0);
+#endif
         }
         s_retry = 0;
         ModApi_ShowMenu("challenges/challengeResult");
@@ -477,6 +499,7 @@ static void edit_new(void)
             ModApi_ShowError("THAT TEAM HAS NO ID: CHOOSE ANOTHER");
             return;
         }
+        s_edit.teamNumber[t] = ModApi_ChosenTeamNumber(t);
         s_edit.scorers[t].team = -1;
     }
     for (int32_t k = 0; k < 8; k++)
@@ -532,10 +555,12 @@ static void save_custom(void)
             continue;
         n += snprintf(buf + n, sizeof buf - (size_t)n,
                       "%s  { \"id\": \"%s\", \"name\": \"%s\", \"about\": \"%s\", \"difficulty\": 0,\n"
-                      "    \"teams\": [ { \"uuid\": \"%s\", \"name\": \"%s\" }, { \"uuid\": \"%s\", \"name\": \"%s\" } ],\n"
+                      "    \"teams\": [ { \"uuid\": \"%s\", \"team\": \"%04x\", \"name\": \"%s\" },\n"
+                      "               { \"uuid\": \"%s\", \"team\": \"%04x\", \"name\": \"%s\" } ],\n"
                       "    \"yours\": %d, \"score\": [ %d, %d ], \"minute\": %d, \"win\": \"%s\" }",
-                      count ? ",\n" : "", c->id, c->name, "YOUR OWN CHALLENGE", c->teamUuid[0], c->teamName[0],
-                      c->teamUuid[1], c->teamName[1], (int)c->yours, (int)c->score[0], (int)c->score[1],
+                      count ? ",\n" : "", c->id, c->name, "YOUR OWN CHALLENGE", c->teamUuid[0],
+                      (unsigned)c->teamNumber[0], c->teamName[0], c->teamUuid[1], (unsigned)c->teamNumber[1],
+                      c->teamName[1], (int)c->yours, (int)c->score[0], (int)c->score[1],
                       (int)c->minute, c->win == W_DRAW ? "draw" : "win");
         count++;
     }
@@ -680,6 +705,7 @@ static void pick5(void) { pick(5); }
 static void pick6(void) { pick(6); }
 static void pick7(void) { pick(7); }
 
+#ifdef SWOS_SDL_BUILD
 /* (src/mod_match.c ModMatch_SelfTest: SWOS_MOD_MATCH_TEST=challenge:<id>) */
 void ModChallenges_Test(const char *id)
 {
@@ -693,6 +719,7 @@ void ModChallenges_Test(const char *id)
     fflush(stdout);
     exit(2);
 }
+#endif
 
 static void ch_init(void)
 {
@@ -716,5 +743,3 @@ const ModDef ModDef_challenges = {
     .slug = "challenges",
     .init = ch_init,
 };
-
-#endif /* SWOS_SDL_BUILD */

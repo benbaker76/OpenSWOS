@@ -6,7 +6,8 @@
  "author": "petarku (the5ar)",
  "about": "Six challenges for MODES -> CHALLENGES: from FINISH THE JOB to DERBY MIRACLE. Win the match; a draw goes to extra time and penalties.",
  "targets": [
-  "sdl"
+  "sdl",
+  "amiga"
  ],
  "changes": "modes",
  "default": true

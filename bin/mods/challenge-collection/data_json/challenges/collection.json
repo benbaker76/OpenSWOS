@@ -12,10 +12,12 @@
    "teams": [
     {
      "uuid": "e623d8c0-2867-521d-a89c-cfc352c02f1d",
+     "team": "1400",
      "name": "AC MILAN"
     },
     {
      "uuid": "ca8624cc-e706-54b7-8ffe-f9563d9ba5d7",
+     "team": "1416",
      "name": "JUVENTUS"
     }
    ],
@@ -54,10 +56,12 @@
    "teams": [
     {
      "uuid": "8250fcaa-bcdf-5f40-836a-87614846de84",
+     "team": "5017",
      "name": "ITALY"
     },
     {
      "uuid": "fc739eb8-1c90-55da-b66a-f92cf53132eb",
+     "team": "501d",
      "name": "MALTA"
     }
    ],
@@ -92,10 +96,12 @@
    "teams": [
     {
      "uuid": "0eaf2533-c243-5311-b452-fc8f8d53946e",
+     "team": "0812",
      "name": "LIVERPOOL"
     },
     {
      "uuid": "9a8ed68c-f546-5bd0-ab8f-a2de91e4d15b",
+     "team": "080c",
      "name": "EVERTON"
     }
    ],
@@ -124,10 +130,12 @@
    "teams": [
     {
      "uuid": "9a7ad1b1-ab77-57c1-824c-8596a8b9eadf",
+     "team": "2308",
      "name": "BARCELONA"
     },
     {
      "uuid": "09778597-b10b-5814-a802-8d8dc6da8173",
+     "team": "2323",
      "name": "REAL MADRID"
     }
    ],
@@ -161,10 +169,12 @@
    "teams": [
     {
      "uuid": "ca8624cc-e706-54b7-8ffe-f9563d9ba5d7",
+     "team": "1416",
      "name": "JUVENTUS"
     },
     {
      "uuid": "e623d8c0-2867-521d-a89c-cfc352c02f1d",
+     "team": "1400",
      "name": "AC MILAN"
     }
    ],
@@ -203,10 +213,12 @@
    "teams": [
     {
      "uuid": "f63eb672-c02e-5c9d-a105-fb0d51e41078",
+     "team": "2903",
      "name": "PARTIZAN"
     },
     {
      "uuid": "41c46ddf-f9cf-593e-abd9-0a63a5b461bb",
+     "team": "2907",
      "name": "RED STAR"
     }
    ],

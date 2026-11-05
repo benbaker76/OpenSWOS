@@ -914,15 +914,17 @@ both targets. Run-time loading of mod code (LoadSeg, a script language) is still
 | save files (`ModApi_SaveFile`/`LoadFile`) | `save/<slug>_<name>`: resload makes no folders, and FFS names are 30 characters |
 | `ModApi_ListFiles` | `Resload_ListDir`: the mods' folders first |
 | competitions | JSON `.DIY` only (no DOS `.DIY`); no assets folder, no whole-match replay |
-| teams | no team database, so no uuids (`ModApi_TeamByUuid` is 0); `ModApi_TeamPlayer` reads the team file |
+| teams | no team database: `ModApi_TeamByUuid` is 0, so a mod gives the team's number too (`ModApi_TeamByUuidNumber`: taken when the uuid is the one derived from it, docs/TEAM_IDS.md -- one SHA-1, src/team_uuid.c); `ModApi_ChosenTeamUuid` derives a 96/97 team's; `ModApi_TeamPlayer` reads the team file |
 | team packs, netplay, the ticker row | none (0, `ModMatch_Quiet` 0, -1) |
 | `ModApi_PaletteColour`/`NearestColour` | not yet: they come with the first mod that draws there |
 
 **Which mods:** `src/mods_builtin.c` lists a mod with `MOD_AMIGA` once it builds and plays there,
 and `MOD_SDL` until then; its `mod.json` `"targets"` then includes `"amiga"`, which OpenSWOS Setup
 reads to copy it into an Amiga drawer and list it in `data/MODS`. Ported: **practice**, **euro36**,
-**speedrun**. Not yet: challenges and classics (team uuids, file scans), hair (the palette calls),
-weather (its rain draws through the renderer). The drawer carries
+**speedrun**, **challenges** (and the data mod **challenge-collection**: its files carry each team's
+number, `"team": "5017"`, beside the uuid, and the editor writes it too). Not yet: classics (its
+competitions' files and big menus), hair (the palette calls), weather (its rain draws through the
+renderer). The drawer carries
 `data_json/menus/openswos/` (the MODES screen's menu: `build_dist.sh`, and the setup's WHDLoad
 package).
 
@@ -931,7 +933,9 @@ is allocated per menu on the Amiga; its tables are cut down there).
 
 Checked (FS-UAE, A1200, `data/MODS` = practice): MODES on the main menu, its screen, PRACTICE's
 menu from the mod's folder, a DEMO GAME (a mod's match, CPU against CPU) played to its end and
-back to the practice menu, and TEAM TRAINING's menu. On SDL the mod tests are unchanged
+back to the practice menu, and TEAM TRAINING's menu; SPEEDRUN's screen and its records saved and read
+back; CHALLENGES' list from both mods' folders, HOLD ON's page, and its match kicking off at 70
+minutes, Italy 1-0 Brazil. On SDL the mod tests are unchanged
 (`SWOS_MOD_MATCH_TEST=1`, `shootout`, `speedrun:0/3`, `SWOS_SHOOTING_TEST`), and so are the golden
 careers and `check_netplay_compat.sh`.
 

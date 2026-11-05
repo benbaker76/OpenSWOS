@@ -40,7 +40,7 @@ const ModDef *const g_builtinMods[] = {
     MOD_SDL(ModDef_hair)
     MOD_AMIGA(ModDef_practice)
     MOD_AMIGA(ModDef_speedrun)
-    MOD_SDL(ModDef_challenges)
+    MOD_AMIGA(ModDef_challenges)
     MOD_SDL(ModDef_classics)
     MOD_AMIGA(ModDef_euro36)
 #ifdef FORK_MODS

@@ -6,7 +6,8 @@
  "author": "OpenSWOS (SWOS 2020's challenges)",
  "about": "Win from where the match stands: the score, the minute, the men you have left.",
  "targets": [
-  "sdl"
+  "sdl",
+  "amiga"
  ],
  "changes": "modes",
  "default": true

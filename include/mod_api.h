@@ -391,8 +391,14 @@ int32_t ModApi_ChooseFromPack(int32_t number);
 /* The friendly's team screen: the player picks two teams, and who plays each (CPU / player).
  * 1 when two were chosen (then ModMatchSetup.chosen plays them), 0 when the player left. */
 int32_t ModApi_ChooseTeams(void);
-/* A database team by its uuid (docs/TEAM_IDS.md): its id for ModMatchSetup.team, or 0. */
+/* A database team by its uuid (docs/TEAM_IDS.md): its id for ModMatchSetup.team, or 0. The Amiga
+ * has no team database: there it is always 0, and a mod gives the team's number as well
+ * (ModApi_TeamByUuidNumber). */
 uint16_t ModApi_TeamByUuid(const char *uuid);
+/* The same with the team's number (country << 8 | ordinal) beside its uuid, for the Amiga: there the
+ * number is taken when the uuid is the one derived from it (a 96/97 team), and alone when there is
+ * no uuid. On SDL the uuid decides, and the number is used only without one. 0: no such team. */
+uint16_t ModApi_TeamByUuidNumber(const char *uuid, uint16_t number);
 /* A team's player by line-up slot (0 the goalkeeper, 1..10 the outfield, 11.. the bench), for a
  * mod's own squad screen (a shoot-out order): from the database by team id, or from a team
  * ModApi_ChooseTeams chose (0 / 1, as the player may have changed it). 1 when there is one. */
@@ -415,6 +421,7 @@ int32_t     ModApi_ChosenIsPlayer(int32_t team);
 /* A chosen team's uuid (docs/TEAM_IDS.md), for a mod that writes the choice down (a custom
  * challenge): 1 when it has one. */
 int32_t     ModApi_ChosenTeamUuid(int32_t team, char *out, int32_t cap);
+uint16_t    ModApi_ChosenTeamNumber(int32_t team);     /* its number, country << 8 | ordinal; 0 none */
 const char *ModApi_ChosenName(int32_t team);
 /* The match's frames a second, by the gameplay style (Amiga 50, DOS 70, XBOX 60): a frame count
  * in seconds. */
