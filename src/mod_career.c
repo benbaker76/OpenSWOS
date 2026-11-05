@@ -56,6 +56,22 @@ int32_t ModApi_ViewedCompetition(uint8_t *competitionId, int32_t *league, uint8_
     return WorldWinners_Viewed(competitionId, league, division);
 }
 
+/* The teams found so far (ModApi_SetCareerPlayer's check, and every club ModApi_CareerClubs
+ * visits): a team is there for good once found, and finding one reads its team file -- for each
+ * of a batch's thousands of writes, minutes (Career+'s AI transfers). */
+static uint8_t s_teamKnown[65536 / 8];
+
+static int32_t team_exists(uint16_t team)
+{
+    TeamFileEx t;
+    if (s_teamKnown[team >> 3] >> (team & 7) & 1)
+        return 1;
+    if (!Career_PeekTeam(team, &t))
+        return 0;
+    s_teamKnown[team >> 3] |= (uint8_t)(1u << (team & 7));
+    return 1;
+}
+
 typedef struct { int32_t (*each)(const ModCareerClub *club, void *ctx); void *ctx; } ClubWalk;
 
 static int32_t club_visited(const TeamFileEx *t, void *ctx)
@@ -63,6 +79,7 @@ static int32_t club_visited(const TeamFileEx *t, void *ctx)
     const ClubWalk *w = (const ClubWalk *)ctx;
     ModCareerClub club;
     club.team = PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal);
+    s_teamKnown[club.team >> 3] |= (uint8_t)(1u << (club.team & 7));
     club.league = t->team.league;
     int32_t n = 0;
     while (n < 16 && t->team.teamName[n])
@@ -104,8 +121,7 @@ int32_t ModApi_SetOwnPlayer(uint16_t slot, const struct PlayerFile *player)
 
 int32_t ModApi_SetCareerPlayer(uint16_t team, uint16_t slot, const struct PlayerFile *player)
 {
-    TeamFileEx t;
-    if (!in_career() || !Career_PeekTeam(team, &t))
+    if (!in_career() || !team_exists(team))
         return -1;
     return Career_WriteTeamPlayer(team, slot, player);
 }
