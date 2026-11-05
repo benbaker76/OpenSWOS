@@ -72,7 +72,6 @@ SDL_ONLY_SRCS := \
     match_record.c        \
     match_report.c        \
     match_step.c          \
-    menu_load_json.c      \
     menu_symbols.c        \
     miniz_impl.c          \
     pitch_map.c           \

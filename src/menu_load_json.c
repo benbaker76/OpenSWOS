@@ -16,9 +16,11 @@
  * SWOS_MENU_JSON; without it nothing runs and the static menus stay
  * authoritative, so the migration is incremental and reversible.
  *
- * Byte order is HOST-NATIVE here: the SDL build reads back its own freshly
- * built buffer, and UnpackMenu reads pointers via memcpy of sizeof(uintptr_t).
- * The Amiga (BE, 4-byte ptr) path is the Python emitter, docs/MENUS.md §3.
+ * Byte order is HOST-NATIVE here: UnpackMenu reads words natively and pointers
+ * via memcpy of sizeof(uintptr_t), so the same writer serves the Amiga (BE,
+ * 4-byte pointers), where it builds the menus of the mods (docs/MODS.md, "Mod
+ * code on the Amiga"); the game's own Amiga menus are the Python emitter's
+ * (docs/MENUS.md §3).
  * ====================================================================== */
 
 #include "mjson.h"
@@ -53,17 +55,14 @@ static void w8(MWriter *w, unsigned v)
 static void w16(MWriter *w, unsigned v)
 {
     if (w->p + 2 > w->end) { w->overflow = 1; return; }
-    w->p[0] = (uint8_t)(v & 0xFF);
-    w->p[1] = (uint8_t)((v >> 8) & 0xFF);
+    const uint16_t n = (uint16_t)v;     /* host order: UnpackMenu reads words natively */
+    memcpy(w->p, &n, 2);
     w->p += 2;
 }
 static void w32(MWriter *w, uint32_t v)
 {
     if (w->p + 4 > w->end) { w->overflow = 1; return; }
-    w->p[0] = (uint8_t)(v & 0xFF);
-    w->p[1] = (uint8_t)((v >> 8) & 0xFF);
-    w->p[2] = (uint8_t)((v >> 16) & 0xFF);
-    w->p[3] = (uint8_t)((v >> 24) & 0xFF);
+    memcpy(w->p, &v, 4);
     w->p += 4;
 }
 /* Native pointer-width slot — UnpackMenu reads these via memcpy(sizeof(uintptr_t)). */
@@ -78,7 +77,7 @@ static void wptr(MWriter *w, void *ptr)
  *      learn its byte length (the in-place install's overflow bound). Mirrors
  *      the parse in UnpackMenu / the build above, payload-width for payload-
  *      width, so it can never disagree about how far a menu extends. ---- */
-static unsigned rd16(const uint8_t *p) { return (unsigned)p[0] | ((unsigned)p[1] << 8); }
+static unsigned rd16(const uint8_t *p) { uint16_t n; memcpy(&n, p, 2); return n; }
 
 static int op_payload_width(int op)
 {
@@ -182,6 +181,25 @@ void MenuJson_RegisterSymbols(const MenuSymbol *syms, int count)
     s_extraSymbols[s_numExtraSymbolTables].count = count;
     s_numExtraSymbolTables++;
 }
+
+#ifndef SWOS_SDL_BUILD
+/* The Amiga has no registry of the game's symbols (menu_symbols.c is the SDL build's): a mod's
+ * menu names its own handlers (ModApi_RegisterHandlers) and only these of the game's. A mod menu
+ * that names another gets it unresolved, logged -- add it here. */
+extern void SetExitMenuFlag(void);
+extern char _aExit[];
+void *menu_resolve(const char *name)
+{
+    static const MenuSymbol k_core[] = {
+        { "SetExitMenuFlag", (void *)SetExitMenuFlag, SYM_FUNC },
+        { "_aExit", (void *)_aExit, SYM_STRING },
+    };
+    for (uint32_t i = 0; i < sizeof k_core / sizeof k_core[0]; i++)
+        if (strcmp(k_core[i].name, name) == 0)
+            return k_core[i].ptr;
+    return NULL;
+}
+#endif
 
 static void *resolve_symbol(const char *name)
 {
@@ -432,8 +450,8 @@ static void emit_entry(MWriter *w, const char *it, int itl, int byteMode, const 
      * UnpackMenu consumes that marker and then reads the coordinates without looking.
      * No compiled menu has such an entry (it would never have unpacked), so their
      * bytes are unchanged. */
-    unsigned first = byteMode ? (unsigned)((x & 0xFF) | ((y & 0xFF) << 8))
-                              : (unsigned)(x & 0xFFFF);     /* as w16/w8 lay it down */
+    const uint8_t xy[2] = { (uint8_t)(x & 0xFF), (uint8_t)(y & 0xFF) };
+    unsigned first = byteMode ? rd16(xy) : (unsigned)(x & 0xFFFF);     /* as w16/w8 lay it down */
     if (is_stream_marker(first))
         w16(w, byteMode ? MK_COORDS_BYTE : MK_COORDS_WIDE);
     if (byteMode) {
@@ -544,6 +562,40 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
     return (int)(w.p - out);
 }
 
+#ifdef SWOS_SDL_BUILD
+static uint8_t *menu_slurp(const char *path, int *out_len)
+{
+    /* Anchored at the data root — rom:/ on the Switch (swos_io.h). */
+    char anchored[1024];
+    FILE *f = fopen(swos_data_path(path, anchored, (uint32_t)sizeof anchored), "rb");
+    if (!f) return NULL;
+    fseek(f, 0, SEEK_END);
+    long n = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (n <= 0) { fclose(f); return NULL; }
+    uint8_t *buf = (uint8_t *)malloc((size_t)n);
+    if (!buf) { fclose(f); return NULL; }
+    size_t got = fread(buf, 1, (size_t)n, f);
+    fclose(f);
+    if (got != (size_t)n) { free(buf); return NULL; }
+    *out_len = (int)n;
+    return buf;
+}
+#else  /* the Amiga: through swos_io, so a mod's menu is read from its folder (the overlay) */
+static uint8_t *menu_slurp(const char *path, int *out_len)
+{
+    uint8_t *buf = NULL;
+    uint32_t n = 0;
+    if (swos_io_load_data_alloc(path, &buf, &n) != 0 || !buf || !n) {
+        if (buf) free(buf);
+        return NULL;
+    }
+    *out_len = (int)n;
+    return buf;         /* (free() is swos_io_free on the Amiga: include/amiga_libc) */
+}
+#endif
+
+#ifdef SWOS_SDL_BUILD   /* (the game's own menus from JSON: the SDL build's only) */
 /* ======================================================================
  * Verify: build every menu from JSON and compare against the compiled static
  * bytes (MENUS.md §2d/§3b). Pointer slots match exactly because menu_resolve
@@ -620,24 +672,6 @@ static const struct { const char *name; uint8_t *menu; } s_staticMenus[] = {
 };
 #define NUM_STATIC_MENUS ((int)(sizeof s_staticMenus / sizeof s_staticMenus[0]))
 
-static uint8_t *menu_slurp(const char *path, int *out_len)
-{
-    /* Anchored at the data root — rom:/ on the Switch (swos_io.h). */
-    char anchored[1024];
-    FILE *f = fopen(swos_data_path(path, anchored, (uint32_t)sizeof anchored), "rb");
-    if (!f) return NULL;
-    fseek(f, 0, SEEK_END);
-    long n = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    if (n <= 0) { fclose(f); return NULL; }
-    uint8_t *buf = (uint8_t *)malloc((size_t)n);
-    if (!buf) { fclose(f); return NULL; }
-    size_t got = fread(buf, 1, (size_t)n, f);
-    fclose(f);
-    if (got != (size_t)n) { free(buf); return NULL; }
-    *out_len = (int)n;
-    return buf;
-}
 
 /* Build menu `name` from JSON and memcmp vs its compiled static bytes.
  * Returns 0 = identical, 1 = differs, -1 = error. */
@@ -750,6 +784,7 @@ int MenuJson_InstallAll(void)
     fflush(stderr);     /* SWOS.log is fully buffered once freopen'd to a file */
     return toobig + err;
 }
+#endif /* SWOS_SDL_BUILD */
 
 /* ======================================================================
  * Menus with no compiled counterpart (docs/MENUS.md §10) -- the imported
@@ -803,7 +838,9 @@ uint8_t *MenuJson_Load(const char *name)
         return NULL;
     }
     memcpy(copy, packed, (size_t)len);
+#ifdef SWOS_SDL_BUILD
     { extern void MenuExtras_Commit(const uint8_t *menu); MenuExtras_Commit(copy); }
+#endif
     snprintf(s_dynamicMenus[s_numDynamicMenus].name, sizeof s_dynamicMenus[0].name, "%s", name);
     s_dynamicMenus[s_numDynamicMenus].packed = copy;
     s_numDynamicMenus++;
@@ -817,6 +854,7 @@ uint8_t *MenuJson_Load(const char *name)
  * characters, or a deferred buffer inside the unpacked menu). This runs the new
  * stream features -- the flags word, literals -- through the real unpacker.
  * Returns the number of mismatches, or -1 if the menu would not load. */
+#ifdef SWOS_SDL_BUILD
 int MenuJson_VerifyDynamic(const char *name, int expectedEntries)
 {
     uint8_t *packed = MenuJson_Load(name);
@@ -918,3 +956,5 @@ int MenuJson_VerifyDynamic(const char *name, int expectedEntries)
     free(j);
     return bad;
 }
+
+#endif /* SWOS_SDL_BUILD */
