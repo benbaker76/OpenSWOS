@@ -9,5 +9,34 @@
   "sdl"
  ],
  "changes": "career",
- "default": false
+ "default": false,
+ "settings": [
+  {
+   "key": "cpu_cards",
+   "label": "Computer players sent off",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "more_fouls",
+   "label": "More fouls",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "ai_injury_subs",
+   "label": "Computer replaces injured players",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  }
+ ]
 }
