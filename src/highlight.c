@@ -999,6 +999,21 @@ after_decode:
 
         uint16_t leftGoals  = _hilLeftTeamGoals;
         uint16_t rightGoals = _hilRightTeamGoals;
+#ifdef SWOS_SDL_BUILD
+        /* On the screen-pinned HUD layer, as a match's own score is (sprites.c HUD_LAYER_Z_MIN):
+         * drawn into the frame, it moved with the pitch's sub-pixel scroll, a pixel this way and
+         * that as the camera panned -- a whole-match replay keeps the camera in full 16.16. */
+        extern uint8_t *Platform_HudLayerBuffer(void);
+        extern void     Platform_HudLayerMark(int, int, int, int);
+        extern volatile uintptr_t _frontbufferBasePtr;
+        uint8_t *hudLayer = Platform_HudLayerBuffer();
+        const uintptr_t savedFbBase = _frontbufferBasePtr;
+        if (hudLayer) {
+            _frontbufferBasePtr = (uintptr_t)hudLayer;
+            extern int _menu_draw_x_offset;
+            Platform_HudLayerMark((int)bx + _menu_draw_x_offset, (int)by, 64, 32);
+        }
+#endif
         uint16_t lTens = leftGoals / 10,  lUnits = leftGoals % 10;
         uint16_t rTens = rightGoals / 10, rUnits = rightGoals % 10;
 
@@ -1016,6 +1031,10 @@ after_decode:
         /* Right team goals (SPR_BIG_0_ALT digit sprites) */
         if (rTens) { DarkenRectangle(SPR_BIG_0_ALT + rTens, bx, by); bx += 12; }
         DarkenRectangle(SPR_BIG_0_ALT + rUnits, bx, by);
+#ifdef SWOS_SDL_BUILD
+        if (hudLayer)
+            _frontbufferBasePtr = savedFbBase;
+#endif
     }
 
     /* State 3 timing: stretch each replay frame across 2 extra ticks
