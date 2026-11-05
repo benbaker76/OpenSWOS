@@ -57,12 +57,59 @@ static void seed_rng(void)
         s_rng = 1;
 }
 
+/* ---- RETIREMENT NEWS (data_json/menus/careerplus/newsMenu.json): entry 0 the title, 1-10 the
+ *      rows, 11 NEXT / CONTINUE ---- */
+
+enum { kNewsTitle = 0, kNewsRow = 1, kNewsRows = 10, kNewsButton = 11 };
+static int32_t s_newsPage;
+static char s_newsTitle[40], s_newsText[kNewsRows][48];
+
+static void news_fill(void)
+{
+    static const char *const kPos[8] = { "GK", "RB", "LB", "D", "RW", "LW", "M", "A" };
+    snprintf(s_newsTitle, sizeof s_newsTitle, "PLAYER RETIREMENTS - SEASON %d", (int)CP_News_Season());
+    ModApi_MenuText(kNewsTitle, s_newsTitle);
+    for (int32_t r = 0; r < kNewsRows; r++) {
+        uint8_t age = 0, pos = 0;
+        const char *name = CP_News_Line(s_newsPage * kNewsRows + r, &age, &pos);
+        if (name)
+            snprintf(s_newsText[r], sizeof s_newsText[r], "%-22.22s  AGE %2u  %s", name, (unsigned)age, kPos[pos & 7]);
+        else
+            s_newsText[r][0] = 0;
+        ModApi_MenuText(kNewsRow + r, s_newsText[r]);
+    }
+    ModApi_MenuText(kNewsButton, (s_newsPage + 1) * kNewsRows < CP_News_Count() ? "NEXT" : "CONTINUE");
+}
+
+static void newsInit(void) { news_fill(); }
+
+static void newsNext(void)
+{
+    extern void SetExitMenuFlag(void);      /* (what a menu's EXIT calls) */
+    if ((s_newsPage + 1) * kNewsRows >= CP_News_Count()) {
+        SetExitMenuFlag();
+        return;
+    }
+    s_newsPage++;
+    news_fill();
+    ModApi_MenuRedraw(kNewsTitle);
+    for (int32_t r = 0; r < kNewsRows; r++)
+        ModApi_MenuRedraw(kNewsRow + r);
+    ModApi_MenuRedraw(kNewsButton);
+}
+
 /* ---- the hooks: each feature's, in turn ---- */
 
 static void cp_init(void)
 {
+    static const ModHandler kHandlers[] = {
+        { "newsInit", newsInit },
+        { "newsNext", newsNext },
+    };
     apply_tweaks();
+    ModApi_RegisterHandlers(CP_SLUG, kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     CP_Winners_Init();
+    CP_AI_Init();
 }
 
 static void cp_matchStart(void)
@@ -74,6 +121,26 @@ static void cp_careerNew(void)
 {
     seed_rng();
     CP_Winners_Clear();
+    CP_Ages_New();
+    CP_AI_SetBatches(0);
+}
+
+/* A season over, the next set up: everyone a year older, the retirements, the AI transfers. */
+static void cp_careerSeasonEnd(uint16_t season)
+{
+    if (CP_World_Read() < 0)
+        return;
+    CP_Ages_SeasonEnd();
+    CP_Ages_Retire(season);
+    CP_AI_Batch();
+}
+
+static void cp_careerBeforeContinue(void)
+{
+    if (CP_News_Count() > 0) {
+        s_newsPage = 0;
+        ModApi_ShowMenu("careerplus/newsMenu");
+    }
 }
 
 static void cp_competitionFinished(const ModCompetitionResult *result)
@@ -81,10 +148,22 @@ static void cp_competitionFinished(const ModCompetitionResult *result)
     CP_Winners_Record(result);
 }
 
+static void cp_playerMoved(const ModPlayerMove *move)
+{
+    CP_Ages_Moved(move);
+}
+
+static void cp_playerCreated(const ModPlayerCreated *created)
+{
+    CP_Ages_Created(created);
+    CP_Trialists_Created(created);
+}
+
 static void cp_careerSave(ModJsonWriter *out)
 {
-    ModJson_Printf(out, "\"rng\":%u", (unsigned)s_rng);
+    ModJson_Printf(out, "\"rng\":%u,\"ai_batches\":%u", (unsigned)s_rng, (unsigned)CP_AI_Batches());
     CP_Winners_Save(out);
+    CP_Ages_Save(out);
 }
 
 static void cp_careerLoad(const char *json, int32_t len)
@@ -94,7 +173,10 @@ static void cp_careerLoad(const char *json, int32_t len)
         s_rng = (uint32_t)v;
     else
         seed_rng();         /* (a career Career+ did not save: from here on, the mod's) */
+    CP_AI_SetBatches(json && mjson_get_number(json, len, "$.ai_batches", &v) && v >= 0 && v <= 65535
+                     ? (uint16_t)v : 0);
     CP_Winners_Load(json, len);
+    CP_Ages_Load(json, len);
 }
 
 const ModDef ModDef_careerplus = {
@@ -102,8 +184,11 @@ const ModDef ModDef_careerplus = {
     .init = cp_init,
     .matchStart = cp_matchStart,
     .careerNew = cp_careerNew,
+    .careerSeasonEnd = cp_careerSeasonEnd,
+    .careerBeforeContinue = cp_careerBeforeContinue,
     .competitionFinished = cp_competitionFinished,
-    .playerCreated = CP_Trialists_Created,
+    .playerMoved = cp_playerMoved,
+    .playerCreated = cp_playerCreated,
     .playerRowDrawn = CP_Rows_Drawn,
     .careerSave = cp_careerSave,
     .careerLoad = cp_careerLoad,

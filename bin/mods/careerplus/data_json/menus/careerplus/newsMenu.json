@@ -1,0 +1,277 @@
+{
+ "name": "newsMenu",
+ "comment": "Career+'s RETIREMENT NEWS (src/mod_careerplus.c): the career club's players who retired at the season's end, ten a page; shown at CONTINUE CAREER.",
+ "onInit": "careerplus.newsInit",
+ "onReturn": null,
+ "onDraw": null,
+ "defaultEntry": 11,
+ "items": [
+  {
+   "kind": "coords_mode",
+   "wide": false
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 42,
+    "y": 3,
+    "w": -84,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "PLAYER RETIREMENTS"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 22,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 33,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 44,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 55,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 66,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 77,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 88,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 99,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 110,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 25,
+    "y": 121,
+    "w": -50,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 7,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 113,
+    "y": -33,
+    "w": 88,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "CONTINUE"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.newsNext"
+    }
+   ]
+  }
+ ]
+}
