@@ -656,3 +656,37 @@ more"): one lookup in the country-file search (`src/team_packs.c`), after which 
 the matches and the online rule take them as the database's. A pack mod is `"changes": "data"`.
 SWOS United's fun cup is the first user.
 
+
+---
+
+## 20. Competitions from mods; HISTORIC TOURNAMENTS (2026-11-04)
+
+petarku's PR #11 (HISTORIC TOURNAMENTS, by the5ar) as a canonical mod, `classics`
+(`src/mod_classics.c`, `bin/mods/classics`), on the engine pieces of §3's split.
+
+- **The row is the game's** (`src/mod_comps.c`, MODPOINT_COMPETITIONS): ONE row above WORLD CUP
+  in PRESET COMPETITION's world list (`teams.c` SelectTeamsFinalMenu; its tables hold 10 rows,
+  so mods never get more than one). It carries the entry's label when one mod has an entry, MORE
+  COMPETITIONS (a list) when more do. A marker in `_leaguesPtrTable` stands for it; the selection
+  catches it before anything reads it as a competition.
+- **The flow** (include/mod_api.h, "competitions from mods"): the entry's select shows the mod's
+  screens; one loads a file (`ModApi_LoadCompetition`: our JSON .DIY or the PC game's / SWOS
+  2020's, in any world, the player's options and USER tactics kept, every team COMPUTER, SAVE
+  offering the file's name), may show its teams (`ModApi_CompTeam*`, MODCONTROL_*), and on PLAY
+  calls `ModApi_StartCompetition`: the screens are left, the chooser closes, and
+  PresetCompetitionMenu starts it as LOAD OLD COMPETITION's is (StartContest). Backing out:
+  `ModApi_UnloadCompetition`.
+- **Helpers it needed, for any mod:** `ModApi_MenuCurrentEntry`, `ModApi_MenuEntryRect` /
+  `SetMenuEntryRect`, `ModApi_MenuNav4`, `ModApi_MenuColour`, `ModApi_MenuDisabled`,
+  `ModApi_MenuRedraw`, `ModApi_ShowError`, `ModApi_ListFiles`, `ModApi_AssetsDir`,
+  `ModApi_CompetitionFileName`, `ModApi_EntryLabel`.
+- **The cups are never in the repo.** The mod reads `classic/{uefa,worldcup,club}/*.DIY` from the
+  player's assets folder first, then its own folder (`mods/classics/classic/`, .gitignored). With
+  none, it adds no row. Its menus are the fork's, as the mod's JSON (`classics.<name>` handlers,
+  literals for the fork's strings).
+- **SDL only for now.** The mod API is SDL's; on the Amiga the fork's compiled menus are not
+  taken. The engine pieces the Amiga needs are in (the JSON .DIY reader, `Resload_ListDir` over
+  the mods, `fix_filename`); a mod API on the Amiga is its own step.
+- Checked through the real menus (key script + captures): the row, CLUB's list, a SWOS 2020 cup's
+  teams, a toggle (COMPUTER -> PLAYER-COACH), PLAY starting the league; the PC game's 14-team
+  CANADA ROGERS CUP in three columns.

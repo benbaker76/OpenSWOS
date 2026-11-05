@@ -1,0 +1,13 @@
+{
+ "uuid": "14e2f6d4-962f-5088-9187-19e107d1b8e3",
+ "id": "classics",
+ "name": "Historic Tournaments",
+ "version": "1.0",
+ "author": "petarku / the5ar (PR #11)",
+ "about": "Famous tournaments as preset competitions: the PC game's and SWOS 2020's .DIY cups, from classic/ in your assets folder.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "modes",
+ "default": true
+}

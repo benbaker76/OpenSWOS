@@ -62,11 +62,15 @@ typedef struct ModDef {
 /* ---- entries: a mod's rows in the game's screens (H1) ----
  * MODPOINT_MODES: the MODES screen, which the main menu's MODES button opens (shown only while
  * an entry is there). MODPOINT_AFTER_MATCH: a screen after a friendly's final whistle (and
- * its replay menu), shown only while an entry is there (H6). A fork's own screen shows any
+ * its replay menu), shown only while an entry is there (H6). MODPOINT_COMPETITIONS: PRESET
+ * COMPETITION's world list, one row above WORLD CUP -- the entry's label when there is one,
+ * MORE COMPETITIONS (a list of them) when more; see "competitions from mods" below. A fork's
+ * own screen shows any
  * point's list with ModApi_ShowEntries. Labels are shown in capitals; up to 8 a point. */
-typedef enum { MODPOINT_MODES, MODPOINT_AFTER_MATCH, MODPOINT_COUNT } ModPoint;
+typedef enum { MODPOINT_MODES, MODPOINT_AFTER_MATCH, MODPOINT_COMPETITIONS, MODPOINT_COUNT } ModPoint;
 int32_t ModApi_AddEntry(ModPoint point, const char *slug, const char *label, void (*select)(void));
 int32_t ModApi_EntryCount(ModPoint point);
+const char *ModApi_EntryLabel(ModPoint point, int32_t index);   /* (as shown: capitals) */
 void    ModApi_ShowEntries(ModPoint point);
 /* One mod's entry, from a screen of a fork's own (a COMPETITIONS screen's SPEEDRUNS row): its
  * index at the point (the first with that slug; -1 none, the mod off), and running it. */
@@ -93,6 +97,51 @@ void    ModApi_MenuText(int32_t entry, const char *text);
 void    ModApi_MenuVisible(int32_t entry, int32_t shown);
 void    ModApi_MenuNav(int32_t entry, int32_t up, int32_t down);
 void    ModApi_MenuSelect(int32_t entry);       /* the cursor on it */
+
+/* The menu being shown, more of it (a list or a teams screen laid out by the mod): the entry the
+ * cursor is on (-1 none); an entry's place and size (a -1 in Set leaves that one); all four of
+ * its neighbours (-1 none); its background colour (a palette index: the friendly team list's
+ * 10 red COMPUTER, 11 purple PLAYER-COACH, 13 blue COACH); whether it is disabled; and drawing it
+ * again now (after a change while the menu is up). */
+int32_t ModApi_MenuCurrentEntry(void);
+void    ModApi_MenuEntryRect(int32_t entry, int32_t *x, int32_t *y, int32_t *w, int32_t *h);
+void    ModApi_SetMenuEntryRect(int32_t entry, int32_t x, int32_t y, int32_t w, int32_t h);
+void    ModApi_MenuNav4(int32_t entry, int32_t left, int32_t right, int32_t up, int32_t down);
+void    ModApi_MenuColour(int32_t entry, int32_t colour);
+void    ModApi_MenuDisabled(int32_t entry, int32_t disabled);
+void    ModApi_MenuRedraw(int32_t entry);
+/* The game's error box with `text` (copied), until the player presses fire. */
+void    ModApi_ShowError(const char *text);
+/* Every file in a folder (an absolute path: ModApi_ModDir(slug) + "/..."), not the dot ones:
+ * `each` is called with its name (stop by returning nonzero); how many there were. */
+/* The player's assets folder (where the setup put the game's data from their own copy): a mod
+ * that plays files the player brings looks there, as HISTORIC TOURNAMENTS does. */
+const char *ModApi_AssetsDir(void);
+int32_t ModApi_ListFiles(const char *dir, int32_t (*each)(const char *name, void *ctx), void *ctx);
+
+/* ---- competitions from mods (MODPOINT_COMPETITIONS; docs/MODS.md §20) ----
+ * A .DIY a mod brings, played as a preset competition: STARTED, not resumed. The flow: the
+ * entry's select shows the mod's screens; one loads a file (ModApi_LoadCompetition), may show
+ * its teams (ModApi_CompTeam*) for the player to pick who plays which, and on PLAY calls
+ * ModApi_StartCompetition -- the screens are left (each its exit), the chooser closes, and the
+ * competition starts as LOAD OLD COMPETITION's does. Backing out of one that was loaded:
+ * ModApi_UnloadCompetition (a new load does it too).
+ *
+ * A file is this game's JSON .DIY, or the PC game's / SWOS 2020's own (diy_import_dos.c).
+ * It loads in any world (a .DIY carries its teams) with the player's options and USER tactics
+ * kept, every team COMPUTER; SAVE then offers the file's own name. 0 = loaded. */
+int32_t ModApi_LoadCompetition(const char *path);
+void    ModApi_UnloadCompetition(void);
+void    ModApi_StartCompetition(void);
+/* A file's competition name without loading it (for a list); 1 when it is a competition. */
+int32_t ModApi_CompetitionFileName(const char *path, char *out, int32_t cap);
+/* The loaded competition: its name, its teams, and who plays each. */
+enum { MODCONTROL_COMPUTER, MODCONTROL_PLAYER_COACH, MODCONTROL_COACH };
+const char *ModApi_CompName(void);
+int32_t     ModApi_CompTeamCount(void);
+const char *ModApi_CompTeamName(int32_t team);          /* (until the next call) */
+int32_t     ModApi_CompTeamControls(int32_t team);      /* MODCONTROL_* */
+void        ModApi_SetCompTeamControls(int32_t team, int32_t controls);
 
 /* ---- a match a mod plays (H2, H4) ---- */
 typedef enum { MODSIDE_CPU, MODSIDE_PLAYER1, MODSIDE_PLAYER2 } ModSide;

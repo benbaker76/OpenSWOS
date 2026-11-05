@@ -21,6 +21,7 @@
 extern void SetExitMenuFlag(void);
 extern int32_t GameLoop_Active(void);
 extern int32_t ModApi_InReplay(void);
+extern int32_t ModComps_Pending(void);   /* (mod_comps.c) */
 
 enum { kRows = 8 };
 
@@ -45,6 +46,13 @@ int32_t ModApi_AddEntry(ModPoint point, const char *slug, const char *label, voi
     e->label[i] = '\0';
     e->select = select;
     return 0;
+}
+
+const char *ModApi_EntryLabel(ModPoint point, int32_t index)
+{
+    if ((int32_t)point < 0 || point >= MODPOINT_COUNT || index < 0 || index >= s_entryCount[point])
+        return "";
+    return s_entries[point][index].label;
 }
 
 int32_t ModApi_EntryCount(ModPoint point)
@@ -161,8 +169,9 @@ static MenuEntry *entry_at(int32_t ordinal) { return CalcMenuEntryAddress((uint1
 
 static void refresh(void)
 {
-    static const char *const kTitle[MODPOINT_COUNT] = { "MODES", "AFTER THE MATCH" };
-    static const char *const kSub[MODPOINT_COUNT] = { "WHAT THE MODS THAT ARE ON ADD", "FROM THE MODS THAT ARE ON" };
+    static const char *const kTitle[MODPOINT_COUNT] = { "MODES", "AFTER THE MATCH", "MORE COMPETITIONS" };
+    static const char *const kSub[MODPOINT_COUNT] = { "WHAT THE MODS THAT ARE ON ADD", "FROM THE MODS THAT ARE ON",
+                                                      "FROM THE MODS THAT ARE ON" };
     entry_at(Entries_header)->fg = (uintptr_t)kTitle[s_shown];
     entry_at(Entries_subTitle)->fg = (uintptr_t)kSub[s_shown];
     for (int32_t i = 0; i < kRows; i++) {
@@ -202,6 +211,8 @@ static void run(int32_t i)
         fprintf(stderr, "[mods] %s: %s\n", s_entries[point][i].slug, s_entries[point][i].label);
         s_entries[point][i].select();
         s_shown = point;                    /* (an entry may show another point's list) */
+        if (point == MODPOINT_COMPETITIONS && ModComps_Pending())
+            SetExitMenuFlag();              /* (one is to start: the chooser closes too) */
     }
 }
 

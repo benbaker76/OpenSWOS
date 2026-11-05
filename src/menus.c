@@ -3939,6 +3939,18 @@ void PresetCompetitionMenu(void)
     }
 
     SelectTeamsForPresetCompetition();
+#ifdef SWOS_SDL_BUILD
+    /* A mod's competition, loaded from the row above WORLD CUP (src/mod_comps.c): started as
+     * a loaded one is (LoadOldCompetitionMenu). */
+    {
+        extern int32_t ModComps_TakeReady(void);
+        if (ModComps_TakeReady()) {
+            CommonMenuExit();
+            StartContest();
+            return;
+        }
+    }
+#endif
     if (_chooseTeamsResult == 0) {
         CommonMenuExit();
         return;
