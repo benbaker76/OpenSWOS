@@ -23,9 +23,8 @@
 #include "league_groups.h"
 #include "team_pool.h"
 #include "swos_io.h"
-#ifdef SWOS_SDL_BUILD
-#include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in */
-#endif
+#include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in; malloc (TeamFile_PutAside) */
+#include <string.h>            /* (TeamFile_PutAside) */
 
 /* ---- Constants ---- */
 #define GAME_TYPE_CAREER            4
@@ -250,6 +249,28 @@ static void setLoadedTeamsGlobalNumbers(void)
 {
     uint16_t count = *((uint16_t *)_teamFileBuffer);
     SetTeamGlobalNumbers(count, _teamFileBuffer + 2);
+}
+
+/* TeamFile_PutAside / PutBack (include/teams.h): the buffer, then the file's number and
+ * whether one is loaded. */
+void *TeamFile_PutAside(void)
+{
+    uint8_t *aside = (uint8_t *)malloc(TEAM_FILE_BUFFER_SIZE + 4);
+    if (aside) {
+        memcpy(aside, _teamFileBuffer, TEAM_FILE_BUFFER_SIZE);
+        aside[TEAM_FILE_BUFFER_SIZE] = _lastLoadedExtNumber;
+        memcpy(aside + TEAM_FILE_BUFFER_SIZE + 2, &_teamsLoaded, 2);
+    }
+    return aside;
+}
+
+void TeamFile_PutBack(void *aside)
+{
+    uint8_t *a = (uint8_t *)aside;
+    memcpy(_teamFileBuffer, a, TEAM_FILE_BUFFER_SIZE);
+    _lastLoadedExtNumber = a[TEAM_FILE_BUFFER_SIZE];
+    memcpy(&_teamsLoaded, a + TEAM_FILE_BUFFER_SIZE + 2, 2);
+    free(a);
 }
 
 /* ================================================================
@@ -1083,11 +1104,6 @@ uint16_t GetPlayerSlotIndexByPlayerNumber(uint16_t teamNumber, uint16_t playerNu
 __attribute__((used, externally_visible))
 uint8_t *GetNationalityRecordPtr(uint16_t teamFileAndOrdinal)
 {
-    /* Historical SWOS Yugoslavia (50:30) lives in an appended record;
-     * keep the original 63-record scan unchanged for other teams. */
-    if (teamFileAndOrdinal == PACK_BE_U16(0x50, 0x30))
-        return _nationalTeams + 144u * sizeof(NationalTeamRecord);
-
     NationalTeamRecord *rec = (NationalTeamRecord *)_nationalTeams;
     uint16_t count = _numNationalTeams;
     for (uint16_t i = 0; i < count; i++) {
@@ -1114,8 +1130,7 @@ int16_t GetNationalTeamNumber(uint16_t nationality)
     NationalTeamRecord *rec = (NationalTeamRecord *)_nationalTeams;
     uint16_t count = _numNationalTeams;
     for (uint16_t i = 0; i < count; i++) {
-        if (rec->countryNumber >= 0x50 && rec->countryNumber <= 0x55 &&
-            rec->nationalityCode == (uint8_t)nationality)
+        if (rec->nationalityCode == (uint8_t)nationality)
             /* The packed national-team ID is the BE byte pair
              * {countryNumber, teamOrdinal} — recompose via PACK_BE_U16
              * (was: BE_READ_U16(ptr) — same result, this is the
@@ -1139,9 +1154,7 @@ int16_t GetNationalTeamNumberFromTeamFileId(uint16_t teamFileId)
     NationalTeamRecord *rec = (NationalTeamRecord *)_nationalTeams;
     uint16_t count = _numNationalTeams;
     for (uint16_t i = 0; i < count; i++) {
-        if (rec->countryNumber >= 0x50 && rec->countryNumber <= 0x55 &&
-            rec->teamFileId != 0xFF &&
-            rec->teamFileId == (uint8_t)teamFileId)
+        if (rec->teamFileId == (uint8_t)teamFileId)
             /* Asm: `move.w (a0),d0` — on m68k BE this reads the
              * `(country<<8)|ordinal` packed national-team ID stored as
              * two adjacent bytes [country, ordinal]. Use PACK_BE_U16
@@ -3091,11 +3104,9 @@ static uint16_t groupedLeagueRows(const LeagueGroups *lg, uint8_t *compEntry,
     return rows;
 }
 
-#ifdef SWOS_SDL_BUILD
 extern const char *ModComps_RowLabel(void);     /* (src/mod_comps.c) */
 extern int32_t     ModComps_Choose(void);
 static uint8_t     k_modCompsMarker;
-#endif
 
 __attribute__((used, externally_visible))
 void SelectTeamsFinalMenu(uint16_t mode)
@@ -3216,7 +3227,6 @@ loc_E012:
     leagueNumsOut = _leagueNumbersTable;
     d1 = 0;
     a5 = compList;
-#ifdef SWOS_SDL_BUILD
     /* Competitions from mods (src/mod_comps.c, MODPOINT_COMPETITIONS): one row above WORLD CUP
      * in PRESET COMPETITION's world list. It is no competition: its slot in leaguesPtrTable
      * holds a marker, which the selection below catches before anything reads it as one. */
@@ -3226,7 +3236,6 @@ loc_E012:
         *leagueNumsOut++ = 0xFFFF;
         d1++;
     }
-#endif
 
     /* loc_13E086: iterate through competition entries */
 loc_E086:
@@ -3485,7 +3494,6 @@ loc_E2D0:
     if (_viewSelectedTeams != 0)
         goto loc_E73A;
 
-#ifdef SWOS_SDL_BUILD
     /* The mods' competitions row: their screens; leave as if backed out when one is to start
      * (PresetCompetitionMenu starts it), else back to the world list. */
     if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
@@ -3494,7 +3502,6 @@ loc_E2D0:
             goto exit_clear;
         goto loc_E012;
     }
-#endif
 
     /* Check selectedTeamIndex */
     d7 = (uint16_t)_selectedTeamIndex;

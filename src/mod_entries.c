@@ -5,7 +5,6 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
 
 #include "menu_load_json.h"
 #include "menu_symbols.h"
@@ -83,6 +82,25 @@ int32_t ModApi_RunEntry(ModPoint point, int32_t index)
 }
 
 int32_t ModApi_IsMainMenu(void) { return Menu_IsMainMenu(); }
+
+/* ---- a career screen's row (MODPOINT_BUY_PLAYER ..., docs/MODS.md §28) ---- */
+
+/* The row's label for the screen's init: the entry's own while one mod has one, MORE when several,
+ * NULL (the row hidden) when none. */
+const char *ModEntries_RowLabel(ModPoint point)
+{
+    const int32_t n = ModApi_EntryCount(point);
+    return n <= 0 ? NULL : n > 1 ? "MORE" : ModApi_EntryLabel(point, 0);
+}
+
+/* The row chosen: its one entry, or the list of them. */
+void ModEntries_RowChosen(ModPoint point)
+{
+    if (ModApi_EntryCount(point) == 1)
+        ModApi_RunEntry(point, 0);
+    else if (ModApi_EntryCount(point) > 1)
+        ModApi_ShowEntries(point);
+}
 
 /* ---- handlers: "<slug>.<name>" in the menu loader's symbols ---- */
 
@@ -169,8 +187,11 @@ static MenuEntry *entry_at(int32_t ordinal) { return CalcMenuEntryAddress((uint1
 
 static void refresh(void)
 {
-    static const char *const kTitle[MODPOINT_COUNT] = { "MODES", "AFTER THE MATCH", "MORE COMPETITIONS" };
+    static const char *const kTitle[MODPOINT_COUNT] = { "MODES", "AFTER THE MATCH", "MORE COMPETITIONS",
+                                                        "BUY PLAYER", "TRANSFER MARKET", "ADD PLAYER", "STATISTICS" };
     static const char *const kSub[MODPOINT_COUNT] = { "WHAT THE MODS THAT ARE ON ADD", "FROM THE MODS THAT ARE ON",
+                                                      "FROM THE MODS THAT ARE ON", "FROM THE MODS THAT ARE ON",
+                                                      "FROM THE MODS THAT ARE ON", "FROM THE MODS THAT ARE ON",
                                                       "FROM THE MODS THAT ARE ON" };
     entry_at(Entries_header)->fg = (uintptr_t)kTitle[s_shown];
     entry_at(Entries_subTitle)->fg = (uintptr_t)kSub[s_shown];
@@ -267,4 +288,3 @@ void ModEntries_AfterMatch(void)
         ModApi_ShowEntries(MODPOINT_AFTER_MATCH);
 }
 
-#endif /* SWOS_SDL_BUILD */

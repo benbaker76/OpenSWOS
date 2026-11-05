@@ -66,33 +66,18 @@ extern volatile uint16_t _seasonUpdateInProgress;
 #define BLT_L(reg, val) ((void)((reg) = (uint32_t)(val)))
 #endif
 
-/* End-of-season standings: the Amiga-style one-second hold for EVERY
- * results screen made full-world career transitions needlessly slow.
- * SDL defaults to 2 frames (~40 ms) so standings still present visually,
- * and SWOS_SEASON_REVIEW_FRAMES=0 removes the dwell altogether. Set it to
- * 50 to restore the previous one-second-per-screen presentation.
- * This affects only auto-firing season-update entries; the competition
- * calculations, promotion and relegation logic are unchanged. */
-#ifdef SWOS_SDL_BUILD
-static uint16_t seasonReviewHoldFrames(void)
-{
-    static int initialized;
-    static uint16_t frames = 2;
-    if (!initialized) {
-        const char *value = getenv("SWOS_SEASON_REVIEW_FRAMES");
-        initialized = 1;
-        if (value && *value) {
-            char *end;
-            long parsed = strtol(value, &end, 10);
-            if (end != value && *end == '\0' && parsed >= 0 && parsed <= 500)
-                frames = (uint16_t)parsed;
-        }
-    }
-    return frames;
-}
-#else
-#define seasonReviewHoldFrames() ((uint16_t)50)
-#endif
+/* Season-update menu hold: on Amiga, the slow CPU + blitter naturally
+ * stretched each cup/league result menu render to ~0.5-1 s. On x86 the
+ * controlMask=0xFFFF auto-fire dispatches in the first MenuProc iteration,
+ * so the season-transition chain visually skips in milliseconds. Hold each
+ * menu for SEASON_UPDATE_MENU_HOLD_FRAMES iterations (50 Hz pacing) so the
+ * user can read each result like on the original.
+ *
+ * Counter resets in ActivateMenu (per-menu boundary); MenuProc gates the
+ * auto-fire dispatch behind it when seasonUpdateInProgress is set. Only
+ * applies to controlMask==0xFFFF entries — every other dispatch path
+ * (normal fire-only, navigation, etc.) is unaffected. */
+#define SEASON_UPDATE_MENU_HOLD_FRAMES 50
 static uint16_t s_seasonUpdateHoldCounter;
 
 /* SDL-only: latched once SPACE / second controller button is pressed
@@ -1672,8 +1657,8 @@ void DrawMenu(void)
 
 #ifdef SWOS_SDL_BUILD
     { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }       /* (a JSON menu's images) */
-    { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
 #endif
+    { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
     WaitForVSync();
     BlitterCopyOverlayToScreen();
 }
@@ -1938,8 +1923,8 @@ void MenuProc(void)
             DrawSelectedMenuItemFrame();
 #ifdef SWOS_SDL_BUILD
             { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }       /* (its images, every frame) */
-            { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
 #endif
+            { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
             WaitForVSync();
         }
 
@@ -2030,17 +2015,14 @@ void MenuProc(void)
         if (_currentKey == 0x20)
             s_seasonSkipLatched = 1;
 #endif
-        {
-            const uint16_t holdFrames = seasonReviewHoldFrames();
-            if (s_seasonSkipLatched) {
-                s_seasonUpdateHoldCounter = holdFrames;
-            } else if (s_seasonUpdateHoldCounter < holdFrames) {
-                s_seasonUpdateHoldCounter++;
-                SWOS_AUTOSKIP_LOG("MenuProc: holding (counter=%u/%u)",
-                                  (unsigned)s_seasonUpdateHoldCounter,
-                                  (unsigned)holdFrames);
-                goto no_event_or_done;
-            }
+        if (s_seasonSkipLatched) {
+            s_seasonUpdateHoldCounter = SEASON_UPDATE_MENU_HOLD_FRAMES;
+        } else if (s_seasonUpdateHoldCounter < SEASON_UPDATE_MENU_HOLD_FRAMES) {
+            s_seasonUpdateHoldCounter++;
+            SWOS_AUTOSKIP_LOG("MenuProc: holding (counter=%u/%u)",
+                              (unsigned)s_seasonUpdateHoldCounter,
+                              (unsigned)SEASON_UPDATE_MENU_HOLD_FRAMES);
+            goto no_event_or_done;
         }
     }
 

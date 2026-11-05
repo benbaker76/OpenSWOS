@@ -34,6 +34,48 @@ CareerParams _careerParams = {
     .board_tertiary_top2_bonus  = 2,
     .board_euro_top2_bonus      = 3,
 
+    /* the rest of Career+'s finances: the original's */
+    .wage_pct = 100,
+    .team_value_wage_pct = 100,
+    .running_cost_mode = 0,
+    .running_cost_pct = 100,
+    .league_gate_mult = 1,
+    .sponsorship_mode = 0,
+    .sponsorship_weeks = { 0, 0, 0, 0 },
+    .league_distribution_weeks = { 0, 0, 0, 0 },
+    .profit_loss_sponsorship = 0,
+
+    /* transfers: the original's */
+    .transfer_quota_mode = 0,
+    .transfer_quota = 256,
+    .foreign_refill_mult = 1,
+    .listed_bid_chance = 11,
+    .foreign_bid_chance = 8,
+    .domestic_buyer_mode = 0,
+
+    /* job offers: the original's */
+    .job_offer_expiry = 1,
+    .job_offer_first_week = 0,
+    .job_offer_waves = 0,
+    .job_offer_stop_season7 = 1,
+    .job_offer_phase_gate = 1,
+    .job_offer_own_national = 1,
+    .job_offer_pass = 42,
+    .job_offer_rep_high_pct = 100,
+    .job_offer_rep_low_pct = 75,
+    .job_offer_selector_clubs = 0,
+    .job_offer_national_chance = 0,
+    .job_offer_abroad_chance = 0,
+
     /* career length */
-    .num_seasons = 35,
+    .num_seasons = 20,
+
+    /* list capacities: the original's (include/career_capacity.h) */
+    .foreign_pool_capacity    = CAREER_ORIG_FOREIGN_POOL,
+    .foreign_listing_capacity = CAREER_ORIG_FOREIGN_LISTING,
+    .transfer_list_capacity   = CAREER_ORIG_TRANSFER_LIST,
+    .job_offers_capacity      = CAREER_ORIG_JOB_OFFERS,
+
+    /* trialists: the caller's availability flag, as the original */
+    .trialist_count_mode = 0,
 };

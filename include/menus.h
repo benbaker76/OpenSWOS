@@ -258,4 +258,15 @@ void SquadMenu(void);
 
 /* --- Chunk 230: CareerGameListCommon (called from asm only) --- */
 
+/* A career screen's row for the mods (docs/MODS.md §28, include/mod_api.h MODPOINT_BUY_PLAYER ...):
+ * ModRow_Show, from the screen's init, shows menu entry `entry` with the point's label and gives
+ * 1 -- or hides it and gives 0 (no mod's entry there; always on the Amiga). The four rows' onSelect
+ * (BuyPlayerModRow ...) run the entry or list them. */
+enum { MODROW_BUY_PLAYER, MODROW_TRANSFER_MARKET, MODROW_NATIONAL_ADD_PLAYER, MODROW_COMPETITION_STATS };
+int32_t ModRow_Show(uint16_t entry, int32_t row);
+void BuyPlayerModRow(void);
+void TransferMarketModRow(void);
+void NationalTeamAddPlayerModRow(void);
+void CompetitionStatsModRow(void);
+
 #endif

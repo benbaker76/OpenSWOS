@@ -121,6 +121,9 @@ void TakeOffMarketMenu(void);
 void TransferMarketCommon(void *entry);
 
 /* --- BuildTransferPlayerMenuEntry (Chunk 163) --- */
+/* The player the next BuildTransferPlayerMenuEntry row shows (team id, his file slot, the row),
+ * for the mods' playerRowDrawn; taken by that call. */
+void TransferRow_Identity(uint16_t team, uint16_t slot, int16_t row);
 void BuildTransferPlayerMenuEntry(void *item, uint8_t *player,
                                     uint16_t y, int16_t idx,
                                     uint16_t style, uint8_t *extra);

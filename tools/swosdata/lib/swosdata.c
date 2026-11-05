@@ -1125,6 +1125,9 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
      * leaves a drawer. */
     for (uint32_t i = 0; i < sizeof kTrees / sizeof kTrees[0]; i++)
         pkg_tree(&pkg, drawerDir, kTrees[i], WHD_TOP "/data/");
+    /* The drawer's data_json/: the MODES screen's menu, which the mods' code shows (OpenSWOS's
+     * own file; docs/MODS.md §30). */
+    pkg_tree(&pkg, drawerDir, "data_json", WHD_TOP "/data/");
     for (uint32_t i = 0; i < sizeof kTrees / sizeof kTrees[0]; i++) {
         int32_t n = pkg_tree(&pkg, assetsDir, kTrees[i], WHD_TOP "/data/");
         if (log) {

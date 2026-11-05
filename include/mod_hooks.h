@@ -1,5 +1,5 @@
 /*
- * mod_hooks.h -- where a built-in (source) mod's code runs (docs/MODS.md §9, §16). SDL builds.
+ * mod_hooks.h -- where a built-in (source) mod's code runs (docs/MODS.md §9, §16). Both targets.
  *
  * A built-in mod is code in the game, with a canonical manifest (bin/mods/<slug>/mod.json): its
  * hooks run only while that mod is on (Mods_IsOn). The hooks are fixed points of the engine, never
@@ -9,8 +9,12 @@
 #ifndef MOD_HOOKS_H
 #define MOD_HOOKS_H
 
+#include "swos_types.h"
 #ifdef SWOS_SDL_BUILD
 #include <SDL.h>
+#else
+typedef struct SDL_Renderer SDL_Renderer;     /* (no renderer on the Amiga: FrameDrawn is never called) */
+#endif
 
 /* A frame of the game is on the renderer (world, sprites and HUD), in its logical size; before
  * the CRT effects, the touch controls and the swap. platform_sdl.c's present. */
@@ -53,6 +57,30 @@ void ModHooks_MatchStart(void);
 void ModHooks_MatchFrame(void);
 void ModHooks_MatchEvent(const struct ModMatchEvent *event);
 void ModHooks_MatchEnded(const struct ModMatchResult *result);
-#endif
+
+/* The career's (docs/MODS.md §27), each named for its ModDef hook: CareerNew (src/career_init.c
+ * InitCareer), CareerSeasonEnd and CareerBeforeContinue (ContinueCareerNextSeason, ContinueCareer),
+ * CompetitionFinished (src/career_season.c, where each title is decided), PlayerMoved (a buy, a
+ * sale: src/transfer_market.c), PlayerCreated (a trialist, a replacement: the same file). */
+struct PlayerFile;
+void ModHooks_CareerNew(void);
+void ModHooks_CareerSeasonEnd(uint16_t season);
+void ModHooks_CareerBeforeContinue(void);
+void ModHooks_CompetitionFinished(uint16_t season, uint8_t competitionId, uint8_t kind, uint8_t division,
+                                  uint16_t winner);
+void ModHooks_PlayerMoved(uint16_t fromTeam, uint8_t fromSlot, uint16_t toTeam, uint8_t toSlot);
+void ModHooks_PlayerCreated(uint16_t team, uint8_t slot, uint8_t kind, struct PlayerFile *player);
+
+/* The career save's "mods" section (src/save_format_json.c): the text that follows the career's
+ * last member -- `,\n  "mods":{"<slug>":{...},...}` -- malloc'd, or NULL when no mod that is on
+ * wrote one (the save is then the one it always was); and a loaded career's JSON, each mod that
+ * is on told its object (or that there is none). */
+/* A player's row filled (src/menus.c SquadAfterDrawCommon, src/play_match_menu.c DrawPlayerEntries,
+ * src/transfer_market.c BuildTransferPlayerMenuEntry), before it is drawn: screen ModRowScreen. */
+void ModHooks_PlayerRowDrawn(uint8_t screen, uint16_t team, uint8_t slot, int16_t row, int16_t firstCell,
+                             int16_t cells, const struct PlayerFile *player);
+
+char *ModHooks_CareerSaveSection(void);
+void  ModHooks_CareerLoadSection(const char *json, int32_t len);
 
 #endif /* MOD_HOOKS_H */

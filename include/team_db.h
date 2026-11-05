@@ -9,8 +9,7 @@
 
 #include "game_types.h"
 
-#define TEAM_UUID_TEXT      37      /* 8-4-4-4-12 and its NUL */
-#define TEAM_CHECKSUM_TEXT  17      /* 16 hex digits and its NUL */
+#include "team_uuid.h"     /* TEAM_UUID_TEXT, TEAM_CHECKSUM_TEXT; the derived 96/97 ids */
 #define TEAM_PLAYERS        16
 
 /* The ids a database file states for one team ("" where it states none). */
@@ -39,11 +38,7 @@ const TeamDbEntry *TeamDb_ByUuid(const char *uuid);
  * position, seven skills and value -- everything a match plays it by, nothing else. */
 void TeamDb_Checksum(const TeamFileEx *team, char out[TEAM_CHECKSUM_TEXT]);
 
-/* The ids of the original 96/97 database, which are derived rather than stored:
- * uuid5 of "96-97/team/<country>/<ordinal>" and ".../player/<index>" in the project's
- * namespace (scripts/assign_team_uuids.py computes the same). */
-void TeamDb_DerivedTeamUuid(int32_t country, int32_t ordinal, char out[TEAM_UUID_TEXT]);
-void TeamDb_DerivedPlayerUuid(int32_t country, int32_t ordinal, int32_t index, char out[TEAM_UUID_TEXT]);
+/* (TeamDb_DerivedTeamUuid / TeamDb_DerivedPlayerUuid: include/team_uuid.h) */
 
 /* Every team of the database: its stated ids are the derived ones, its stated checksum
  * the computed one, and no id is used twice. Prints one line; 1 = all of that holds. */

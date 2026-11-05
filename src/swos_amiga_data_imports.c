@@ -23,7 +23,7 @@ uint16_t _kInjuryRecoveryTime[8] = { 0,60,70,80,90,100,110,130 };
 uint16_t _selectedOldJobOfferOrdinal[1] = { 0x0000 };
 TeamGeneralInfo *_lastTeamPlayedBeforeBreak = (TeamGeneralInfo *)0;
 uint16_t _cameraXSaved0[1] = { 0x0000 };
-uint16_t _numNationalTeams[1] = { 145 }; /* includes newly mapped national teams */
+uint16_t _numNationalTeams[1] = { 0x003F };
 uint16_t _cameraXSaved1[1] = { 0x0000 };
 uint16_t _lastFrameTicks[1] = { 0x0000 };
 uint16_t _pl1SkipFireCounter[1] = { 0x0000               };
@@ -58,7 +58,7 @@ uint16_t _bench1Called[1] = { 0x0000               };
 /* 11 rows: purple (10, the Mod's purple.py) clashes with purple and maroon, maroon with purple */
 uint16_t _conflictingBasicTeamColorsTable[11] = { 0x01A1,0x0002,0x0164,0x0218,0x0058,0x00A5,0x0454,0x00A1 , 0x0105,0x0208,
                                                   0x0440 };
-uint16_t _buyPlayerRedrawList[3] = { 6,8,-1              };   /* Career+: WORLD PLAYER SEARCH is entry 5 */
+uint16_t _buyPlayerRedrawList[3] = { 5,7,-1              };
 uint16_t _gotCountryName[1] = { 0x0000 };
 uint16_t _injuriesForever[7] = { 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000  };
 uint16_t _team2NumAllowedInjuries[1] = { 0x0000 };

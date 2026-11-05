@@ -139,11 +139,44 @@
      "left": -1,
      "right": -1,
      "up": 3,
-     "down": 6
+     "down": 5
     },
     {
      "op": "onselect_fire",
      "func": "practice.training"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row3",
+   "coords": {
+    "x": 48,
+    "y": 78,
+    "w": 224,
+    "h": 12
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "SHOOTING PRACTICE"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 4,
+     "down": 7
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.shooting"
     }
    ]
   },
@@ -188,7 +221,7 @@
      "op": "nav",
      "left": -1,
      "right": -1,
-     "up": 4,
+     "up": 5,
      "down": -1
     },
     {

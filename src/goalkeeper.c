@@ -345,9 +345,7 @@ NextPenalty(void)
 {
     int16_t totalAttempts;
     int16_t *shooterIdx;
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_ShootoutKick(void); ModMatch_ShootoutKick(); }  /* the mods' event (mod_match.c) */
-#endif
 
     totalAttempts = _team1PenaltyAttempts + _team2PenaltyAttempts;
 
@@ -407,7 +405,6 @@ setup_next:
     (*shooterIdx)--;
     if (*shooterIdx == 0)
         *shooterIdx = 10;
-#ifdef SWOS_SDL_BUILD
     {
         /* A mod's match with its own order of takers (mod_match.c, H5; the5ar's SHOOTING
          * ORDER, 920e9123): written through the same variable, so all below sees nothing new. */
@@ -418,7 +415,6 @@ setup_next:
         if (slot)
             *shooterIdx = slot;
     }
-#endif
 
     /* Load penalty shooter sprite pointer */
     {

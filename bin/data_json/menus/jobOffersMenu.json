@@ -429,6 +429,42 @@
           "flags": "0x8000"
         }
       ]
+    },
+    {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 24,
+        "y": -71,
+        "w": 88,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 12,
+          "up": 11,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aNextPage"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "JobOffersNextPage"
+        }
+      ]
     }
   ]
 }

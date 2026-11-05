@@ -155,6 +155,25 @@ python3 scripts/emit_teams.py --write    # regenerate the RNC-compressed bin/dat
 Commit the JSON and the regenerated binaries together. Refresh the JSON from the binaries with
 `python3 scripts/decode_data.py --dump-json bin/data_json/teams`.
 
+### National teams (`national_teams.json`, a mod's)
+
+The national teams' records and the career manager's nationalities are compiled (the original's
+63 records -- of the 144 its table holds, the rest without nationality or team file -- and 63
+nationalities + OTHER; include/national_teams.h). A mod may bring
+`data_json/national_teams.json` through the overlay (SDL; OpenSWOS ships none):
+
+```json
+{ "records": [ { "country": 80, "ordinal": 0, "nationality": 0, "team_file": 0, "skill": 19 }, ... ],
+  "nationalities": [ 8, 31, ... ],      // the manager's choices; OTHER (255) is added last
+  "job_offer_pick": 41 }                // the first records a random national job is drawn from
+```
+
+The counts are the arrays' lengths (at most 256 records, 127 nationalities on SDL; the Amiga
+keeps the original's). `team_file` 255 means no club league in the game: that national
+selector's ADD PLAYER has no HOME, only ABROAD. A file that does not parse is refused whole,
+said in `[data-json]`, and the original's tables stay. Order matters where the original's does:
+a nationality's national team is the first record with it (`GetNationalTeamNumber`).
+
 ### Career-mode balance knobs (`career_params.json`)
 
 `bin/data_json/career_params.json` exposes career-mode economy + board-expectation
@@ -169,6 +188,46 @@ what each knob does.
 
 > Season **count** (20) is *not* a knob here — it's a compile-time array size tied to the
 > save-file layout, so changing it needs a code + save-format change, not a JSON edit.
+
+**List capacities** (`foreign_pool_capacity` 432, `foreign_listing_capacity` 15,
+`transfer_list_capacity` 5, `job_offers_capacity` 5 -- the original's; `include/career_capacity.h`):
+how much of a career list a career uses. The arrays are compiled at the SDL build's maximum
+(50,000 / 45 / 10 / 20) and the Amiga's at the original's, and the loader clamps a value to
+[original, maximum]. Every bound reads the param. The save writes what a list HOLDS, not its
+capacity: a list's storage past the original's size is written only when something is in it
+(`emitted_len`, the pool's and job offers' emitters), so a default career's save is the one it
+always was -- the golden careers prove it. A save holding a longer list loads whole (up to the
+maximum) whatever the param; the param only decides how far a list may grow.
+`trialist_count_mode` (0, the original's): 1 counts injured AND suspended players out in every
+non-training match when deciding on trialists (benefactorr's Career+).
+
+**Finances beyond the original's knobs** (each default the original's; Career+'s value in
+brackets): `wage_pct` 100 [40], `team_value_wage_pct` 100 [250] (the team value -- and so the
+gate and the running costs -- made from more than the wages), `running_cost_mode` 0 [1: halved,
+then progressive brackets above 20,000] and `running_cost_pct` 100 [45], `league_gate_mult` 1
+[100] (the career club's league home gate), `sponsorship_mode` 0 [1: every season, the weekly
+wages times `sponsorship_weeks` by division, 18/14/10/6], `league_distribution_weeks` 0/0/0/0
+[9/7/5/3: the league's money, booked with the competition bonuses], `profit_loss_sponsorship` 0
+[1: the sponsor counted in the season's profit / loss]. A param at its default runs the
+original's code, so the golden careers are unchanged.
+
+**Transfers** (Career+'s in brackets): `transfer_quota_mode` 0 [1: a fixed `transfer_quota` 256
+a season, half for sales and half for buys, and buys then limited only by the pool's room --
+the original's formula budgets from 432, so a bigger pool left it at 0 and stopped every bid],
+`foreign_refill_mult` 1 [3] (at most 3: the listing's 45), `listed_bid_chance` 11 [36] in 256,
+`foreign_bid_chance` 8 [64] in 256 (a bid from abroad rather than home), `domestic_buyer_mode` 0
+[1: also a home club with a player priced at half the listed one's or more].
+
+**Job offers** (Career+'s in brackets, with `job_offers_capacity` 20): `job_offer_expiry` 1 [0],
+`job_offer_first_week` 0 [20] (routine offers from that week; sacked or searching, at once),
+`job_offer_waves` 0 [1: none before week 20, then 6, 12 from week 25, 19-20 from week 30],
+`job_offer_stop_season7` 1 [0] (the original's stop once 7 seasons are complete),
+`job_offer_phase_gate` 1 [0], `job_offer_own_national` 1 [0: only when searching],
+`job_offer_pass` 42 [220] in 256, `job_offer_rep_high_pct` 100 [125] and `job_offer_rep_low_pct`
+75 [55] (the clubs' reputation window), and three routes of Career+'s, each 0 off, in 256:
+`job_offer_selector_clubs` [96] (a national selector's: a national job, else a club abroad),
+`job_offer_national_chance` [192] (a club manager two seasons in, the board not against him,
+looked at for national jobs), `job_offer_abroad_chance` [128] (a club offer from abroad first).
 
 ---
 

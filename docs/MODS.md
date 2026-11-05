@@ -172,7 +172,9 @@ expansion, or an emulator set up as one, is the likely floor, and the doc will s
    replaces a file, not memory: files already load on demand into their own buffers.
 2. **Registries instead of edits.** A mod adds menus and rows at named insertion points, strings
    with their translations, and settings with their OPTIONS rows. On the Amiga a mod ships its
-   menus already packed (the binary the JSON loader makes today), never as JSON.
+   menus already packed (the binary the JSON loader makes today), never as JSON. (2026-11-05: the
+   Amiga builds them from the JSON at their first show instead, about a second for a screen --
+   §30. Packing them is for when that is too slow.)
 3. **The ruleset.** One structure the match reads instead of constants: players per side, the
    pitch's size and walls, match length, card and substitution rules, physics parameters, the
    tactics set. Much of Indoor becomes a ruleset plus art; what is left becomes generic features
@@ -749,8 +751,15 @@ petarku's CHAMPIONS / EUROPA / CONFERENCE LEAGUE for 96/97 is a mod's data on th
   `World_UefaSeeds` answer with them (a world's own always win).
 - A career qualifies through the UEFA qualifying rounds when there are league phases, so a career
   needs the seeds; PRESET needs only the records, shown through the mod's own
-  MODPOINT_COMPETITIONS entry. The data -- the 36-club tiers -- is the mod's (openswos-78's
-  `euro36`), not the engine's.
+  MODPOINT_COMPETITIONS entry. The data -- the 36-club tiers -- is the mod's, not the engine's.
+- **The mod: canonical `euro36`** (`src/mod_euro36.c`, `bin/mods/euro36`; petarku's, by the5ar),
+  **off by default** (the owner, 2026-11-05: 96/97 plays its original cups unless the player turns
+  it on in OPTIONS -> MODS). Its clubs are petarku's curated tiers (`scripts/euro36_tiers.json`,
+  written into `src/mod_euro36_data.inc` by `scripts/make_euro36.py`); the UEFA seeds a career
+  draws on are DERIVED from the clubs' strength, the game's own metric, not real coefficients (the
+  owner's choice). PRESET COMPETITION -> EUROPE then lists its three cups by their own names: the
+  table is `_europeTable`, which `LeaguePhase_InstallCups` repoints. "career": never online.
+  Rigs: off, as every default-on gameplay mod (§26).
 
 ---
 
@@ -803,3 +812,156 @@ The rigs prove the original game, as they do with every tweak off (§4): under `
 `cosmetic` (`Mods_SetRig`, src/mods.c). A mod the run names itself (`--mods=weather`) is still on:
 that is a test asking for it. So a default-on `career` mod (openswos-78's euro36) leaves the
 golden careers as they are.
+
+---
+
+## 27. Career events and a mod's section of the career save (§8.5; Career+'s §3.4)
+
+A `career` mod's ModDef has career hooks (include/mod_api.h). They run only while the mod is
+on, never on the Amiga, never in a match and never online. Unlike the other hooks, a career hook
+may change the career: its squads and its players, through the game's career code.
+
+| hook | runs |
+|---|---|
+| `careerNew()` | `InitCareer`: the new career's clubs set up, before its first `InitializeNewSeason` |
+| `careerSeasonEnd(season)` | the end of `ContinueCareerNextSeason`, after either job branch: the next season set up (`season` its index) |
+| `careerBeforeContinue()` | `ContinueCareer`, before the season's menu: may show a mod's menu (RETIREMENT NEWS) |
+| `competitionFinished(r)` | each title of the season end, as `career_season.c` decides it: every league division once its table is settled (before the moves are counted), the career country's main cup, its second and third cups, and the European cups' holders (after `Career_UpdateUefaCupCompetitionSlot`). `r`: the season, `comp_id`, `ModCompKind`, the division, the winner's team id. A title with no winner (0xFFFF) is not told. |
+| `playerMoved(m)` | a buy (`Career_RemovePlayerAndAddAsTrialist`: his club's slot -> your free slot) and a sale (`Career_TransferPlayerAndAddReplacedToMarketPool`: your slot -> the buyer's slot of the player he replaced) |
+| `playerCreated(c)` | a new player made by the game, who the hook may change: a trialist in the career club (`Career_GenerateTrialistForTeamPlayer`, and `Career_ConvertPlayerToTrialistFromName` for the training match's), and the player another club gets in place of the one you bought (`MODPLAYER_REPLACEMENT`) -- before that club's copy goes into the career pool |
+
+A squad's line-up changes only reorder the career club's index list (`_currentMatchPlayers`); a
+player keeps his slot in the team file, so they are not moves.
+
+**The save.** A mod's `careerSave(out)` writes its object's members with `ModJson_Printf` (named
+fields, never addresses: CLAUDE.md); the career's JSON gets `"mods": {"<slug>": {...}}` after
+its last member, and only when a mod that is on wrote something, so a career without career
+mods saves as it always did (the golden careers). On load, after the career's pointers are
+rebuilt, each mod that is on gets `careerLoad(json, len)`: its object, or NULL / 0 when the save
+has none (start its records empty). The loaded career's "mods" members are kept as their text:
+a mod that is off this session has its section written back unchanged at the next save, so
+turning Career+ off for a while loses none of the career's Career+ data; a mod that is on and has
+careerSave writes its own instead. A new career keeps none.
+
+---
+
+## 28. Rows in the career screens (Career+'s §3.5)
+
+Four more points for `ModApi_AddEntry` (include/mod_api.h), each a row the game's screen shows only
+while a mod that is on has an entry there -- with the entry's label, or MORE (the list of them,
+`ModApi_ShowEntries`) when several mods have one -- and hides otherwise (always on the Amiga):
+
+| point | the screen | the row |
+|---|---|---|
+| `MODPOINT_BUY_PLAYER` | TRANSFER MARKET -> BUY PLAYER | entry 8, above EXIT; the five rows close up (local y 48-136) to make room |
+| `MODPOINT_TRANSFER_MARKET` | TRANSFER MARKET | entry 31, beside BUY PLAYER (the two centred, 100 wide each) |
+| `MODPOINT_NATIONAL_ADD_PLAYER` | a national team's ADD PLAYER | entry 4, under ABROAD |
+| `MODPOINT_COMPETITION_STATS` | a competition's STATISTICS | entry 6, after WINNERS (or in its place when WINNERS is hidden) |
+
+Each is the menu's last entry, so every original entry keeps its number, and the screen's own
+init lays it out (`ModRow_Show`, include/menus.h): without an entry the screen is the original's.
+
+---
+
+## 29. A player's row in a list (`playerRowDrawn`; Career+'s §3.5)
+
+`ModDef.playerRowDrawn(row)` runs when a player's row has been filled and before it is drawn, in
+three fills: a squad (`SquadAfterDrawCommon`, MODROWS_SQUAD: cells 46-63), PLAY MATCH's line-up
+(`DrawPlayerEntries`, MODROWS_PLAY_MATCH: cells 31-36) and every transfer screen's player row
+(`BuildTransferPlayerMenuEntry`, MODROWS_MARKET: 12 cells from the row's first) -- your transfer
+list, the domestic and foreign markets, another club's squad (BUY OTHER PLAYERS), an offer's
+players, VIEW SQUAD and a national squad. `row` says the team, the player's slot in its file (where
+the screen knows them: every one of these does except a market row with no player behind it) and
+the row; the hook rewrites cells with ModApi_MenuText (text it keeps) and may show, hide or move
+them. Display only: it changes no game state (Career+'s ratings, totals, ages and nationalities).
+
+---
+
+## 30. Mod code on the Amiga (2026-11-05)
+
+The owner: "we must add mod support for the Amiga after Career+". The built-in mods' code now
+builds into the Amiga binary too: one mod API, one set of hooks, the same `src/mod_<slug>.c` on
+both targets. Run-time loading of mod code (LoadSeg, a script language) is still not planned (§6).
+
+**What makes it build there:**
+- **A C library.** The m68k toolchain has none (its only header is a three-line string.h).
+  `include/amiga_libc/` (stdio, stdlib, string, ctype, stdint) is on `Makefile.amiga`'s
+  `-isystem` path only, and `src/amiga_libc.c` is behind it: `snprintf` with flags, width and
+  precision (no floating point -- none of the mods print one; 64-bit decimal without libgcc),
+  `malloc`/`free` over `swos_io_alloc` (Exec, or WHDLoad's heap), `strtol`, `qsort`, the `str*`
+  calls, and `getenv` = NULL. `fprintf`/`printf` go to `_gAmigaLog`, a 4 KB ring in `.data` that
+  the harness reads (`_gAmigaLogPos` bytes written so far). It has no file calls on purpose: a
+  mod's file goes through swos_io/resload, so the mod overlay and WHDLoad apply.
+- **The JSON menu loader** (`src/menu_load_json.c`). A mod's screens are JSON menus, built at
+  their first show and then kept. The writer lays words down in host order. The game's own menus
+  stay compiled on the Amiga. A mod menu there resolves its own handlers (`ModApi_RegisterHandlers`)
+  and two of the game's symbols, `SetExitMenuFlag` and `_aExit` (the only two any mod menu names;
+  add one to `menu_resolve` in that file when a mod needs it). **It costs time:** TEAM TRAINING's
+  7.5 KB of JSON took 52 VBlanks (about a second) to build on an emulated A1200. That happens once
+  per menu per run, which is why §8.2's packed binary menus are not needed yet.
+- **The hook sites** in the game are no longer SDL-only, except where the hook itself is: the
+  renderer's `frameDrawn` (no renderer: `SDL_Renderer` is an opaque type, so a `ModDef` is the same
+  struct on both targets), the replay viewer's `replayFrameBegin`/`replaySprite` (no `.SRP`),
+  LIVE CAST, the online provider, the menu extras and the OPTIONS -> MODS screen.
+- **Mods start** in `mainC` (src/SWOS.c) before the front end, after resload has read `data/MODS`.
+
+**What the API answers differently there** (include/mod_api.h says so at each call):
+
+| | the Amiga |
+|---|---|
+| `ModApi_Ticks` | the VBlank count x 20 ms |
+| settings (`ModApi_Setting`, `SetSetting`) | no SWOS.ini: a mod's defaults, and what it sets is kept for the run |
+| save files (`ModApi_SaveFile`/`LoadFile`) | `save/<slug>_<name>`: resload makes no folders, and FFS names are 30 characters |
+| `ModApi_ListFiles` | `Resload_ListDir`: the mods' folders first |
+| competitions | JSON `.DIY` only (no DOS `.DIY`); no assets folder, no whole-match replay |
+| teams | no team database: `ModApi_TeamByUuid` is 0, so a mod gives the team's number too (`ModApi_TeamByUuidNumber`: taken when the uuid is the one derived from it, docs/TEAM_IDS.md -- one SHA-1, src/team_uuid.c); `ModApi_ChosenTeamUuid` derives a 96/97 team's; `ModApi_TeamPlayer` reads the team file |
+| team packs, netplay, the ticker row | none (0, `ModMatch_Quiet` 0, -1) |
+| `ModApi_PaletteColour`/`NearestColour` | not yet: they come with the first mod that draws there |
+
+**Which mods:** `src/mods_builtin.c` lists a mod with `MOD_AMIGA` once it builds and plays there,
+and `MOD_SDL` until then; its `mod.json` `"targets"` then includes `"amiga"`, which OpenSWOS Setup
+reads to copy it into an Amiga drawer and list it in `data/MODS`. Ported: **practice**, **euro36**,
+**speedrun**, **challenges** (and the data mod **challenge-collection**: its files carry each team's
+number, `"team": "5017"`, beside the uuid, and the editor writes it too). Not yet, each for a reason
+of its own:
+- **classics**: three of its four `.DIY` files are the PC game's binary format, which only the SDL
+  build reads (`src/diy_import_dos.c`), and the SWOS 2020 ones come from the assets folder, which an
+  Amiga drawer has none of. Its biggest menu (30 KB of JSON) would also take about four seconds to
+  build there.
+- **hair** and **weather**: they draw pixels, and `ModApi_Frame` is the SDL build's chunky frame
+  (a byte a pixel). The Amiga's screen is bitplanes, so a mod that draws needs a drawing API that
+  knows them (and `ModApi_PaletteColour` from the copper list) -- its own piece of design. The rain
+  draws through the renderer too. The drawer carries
+`data_json/menus/openswos/` (the MODES screen's menu: `build_dist.sh`, and the setup's WHDLoad
+package).
+
+**Memory:** against the build before it, 54 KB more code and 30 KB more BSS (the loader's scratch
+is allocated per menu on the Amiga; its tables are cut down there).
+
+Checked (FS-UAE, A1200, `data/MODS` = practice): MODES on the main menu, its screen, PRACTICE's
+menu from the mod's folder, a DEMO GAME (a mod's match, CPU against CPU) played to its end and
+back to the practice menu, and TEAM TRAINING's menu; SPEEDRUN's screen and its records saved and read
+back; CHALLENGES' list from both mods' folders, HOLD ON's page, and its match kicking off at 70
+minutes, Italy 1-0 Brazil. On SDL the mod tests are unchanged
+(`SWOS_MOD_MATCH_TEST=1`, `shootout`, `speedrun:0/3`, `SWOS_SHOOTING_TEST`), and so are the golden
+careers and `check_netplay_compat.sh`.
+
+---
+
+## 31. The career's players (src/mod_career.c; Career+'s §3.5)
+
+Five calls (include/mod_api.h) that go through the game's own career code, so what a mod does
+is kept, saved and shown as the game's own transfers are. A team is `file << 8 | ordinal`, a
+slot a player's place in the team's file (0-15; 0-31 for your club); each gives -1 outside a
+career or when it cannot.
+
+| call | what it does |
+|---|---|
+| `ModApi_CareerTeam(team, out)` | the club's 16 players as the career has them: its live copy (the current team, your club, the selected teams, the TMD pool), else its file's record with the career's pool on it, as GetTeamPointer gives -- but the team-file buffer a screen may be showing is put back as it was (`Career_PeekTeam`, `TeamFile_PutAside`/`PutBack`: allocated, as the Amiga keeps no second buffer), and an id with no team file gives -1 (LoadTeamFile halts on one, panic 0x8008) |
+| `ModApi_SetCareerPlayer(team, slot, player)` | another club's player becomes `player` for the rest of the career: the claim in the career's foreign pool (updated, or one added; -1 when the pool is full, `foreign_pool_capacity`) and every live copy (`Career_WriteTeamPlayer`). Never your club: its players change through the game's transfers |
+| `ModApi_OfferForPlayer(team, slot)` | the game's MAKE OFFER screen for that player, with BUY PLAYER's own tests first (time left to negotiate, room in the squad); 1 when the transfer was made. From a `MODPOINT_BUY_PLAYER` / `MODPOINT_TRANSFER_MARKET` entry the screen then closes as it does after the game's own buys |
+| `ModApi_CallUpPlayer(team, slot)` | a national selector's pick, from the `MODPOINT_NATIONAL_ADD_PLAYER` entry: refused as the squad screen greys players out (another nationality, already in the squad, unavailable); when the entry returns ADD PLAYER closes and the game adds him as HOME / ABROAD would, a full squad included (`Career_AddInternationalPlayerPicked`) |
+| `ModApi_ListPlayer(slot)` | your player onto your transfer list: 1 when he is on it already (the game's own add does not check), -1 when the list is full (`transfer_list_capacity`) or the slot is empty |
+
+Both targets: on the Amiga, `Career_PeekTeam` asks resload whether `data/team.NNN` is there
+(`Resload_FileSize`) where the SDL build asks the data_json corpus, then the binary file.

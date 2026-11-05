@@ -17,14 +17,8 @@
  * See SAVE_FORMAT_JSON.md for the migration history.
  */
 
-#include "swos_age_identity_log.h"
-#include <stdlib.h>
-#include "ai_career_pool_capacity.h"
 #include "save_format_json.h"
-#include "swos_ai_identity_journal.h"
-#include "swos_identity_runtime.h"
 #include "mjson.h"
-#include "career_season.h"
 #include "game_types.h"
 #include "endian_helpers.h"
 #include "world.h"             /* "world" in career and competition saves */
@@ -41,6 +35,8 @@
 #include "world_cupd.h"        /* "world_cupd" in career saves */
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
 #include "translations.h"   /* tr() — localize competition name symbols */
+#include "career_capacity.h"   /* the career lists' original and compiled sizes */
+#include "mod_hooks.h"         /* "mods": the career mods' sections (docs/MODS.md §27), SDL builds */
 
 extern uint8_t *_currentCompetitionPtr;
 
@@ -59,8 +55,8 @@ uint8_t SaveJson_GetLoadedPrimaryCountryCode(void)
 }
 
 #include <string.h>
+#include <stdlib.h>  /* atoi; free (the mods' career sections) -- include/amiga_libc's on the Amiga */
 #ifdef SWOS_SDL_BUILD
-#include <stdlib.h>  /* atoi */
 #include <stdio.h>   /* DataJson self-test */
 #endif
 #ifdef SWOS_SAVE_FORMAT_JSON_PROFILE
@@ -325,7 +321,6 @@ static void load_str_pool_field(const char *buf, int buflen,
  *       scores on top). Saves from v2 are rejected.
  */
 #define SAVE_JSON_SCHEMA_VERSION 3
-#define SAVE_JSON_CAREER_VERSION 4
 
 /* The football world a save was made in (include/world.h): written by the career and
  * competition saves as "world"; a save without it is 96/97, the world before worlds. A
@@ -789,14 +784,26 @@ typedef struct {
  * nothing past it is in use -- every 96/97 career -- so a save is the same from a build with the
  * worlds (GLOBAL_TEAM_NUMBERS 2560) and one without them (2000, SWOS_WORLDS=0); a world's
  * career writes them all. The load reads either length (the rest zero). */
+/* A field whose storage is bigger than the original's writes only the original's length when
+ * nothing past it is used, so the save is the one it always was: the worlds' global team
+ * numbers past 96/97's 2000, and the career lists past their original sizes when their capacity
+ * params (include/career_capacity.h) are the original's. */
 static uint32_t emitted_len(const FieldDesc *f, const uint8_t *p)
 {
-    if (f->size <= 2000 || strcmp(f->name, "diy_league_season_state_table") != 0)
-        return f->size;
-    for (uint32_t i = 2000; i < f->size; i++)
-        if (p[i])
-            return f->size;
-    return 2000;
+    static const struct { const char *name; uint32_t orig; } grown[] = {
+        { "diy_league_season_state_table",  2000 },
+        { "foreign_market_players",         CAREER_ORIG_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE },
+        { "players_on_transfer_market_ids", CAREER_ORIG_TRANSFER_LIST * 2 },
+    };
+    for (uint32_t g = 0; g < sizeof grown / sizeof grown[0]; g++) {
+        if (f->size <= grown[g].orig || strcmp(f->name, grown[g].name) != 0)
+            continue;
+        for (uint32_t i = grown[g].orig; i < f->size; i++)
+            if (p[i])
+                return f->size;
+        return grown[g].orig;
+    }
+    return f->size;
 }
 
 
@@ -1011,8 +1018,13 @@ extern uint8_t  _lastMatchPlayers[];
 extern uint8_t  _lastMatchSavedShirtNums[];
 extern uint8_t  _careerLastMatchIndexByCompetitionSlot[256];
 extern uint8_t  _teamBudgetRankTable[];
-extern uint16_t _playersOnTransferMarket[];
-extern uint8_t  _foreignMarketPlayers[];
+extern uint16_t _playersOnTransferMarket[CAREER_MAX_TRANSFER_LIST];
+extern uint8_t  _foreignMarketPlayers[CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE];
+/* The two lists' save lengths are their storage, 2 B an entry for the transfer list. */
+_Static_assert(sizeof(_playersOnTransferMarket) == CAREER_MAX_TRANSFER_LIST * 2,
+               "players_on_transfer_market_ids: its FA length is the storage's bytes");
+_Static_assert(sizeof(_foreignMarketPlayers) == CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE,
+               "foreign_market_players: its FA length is the storage's bytes");
 extern uint8_t  _homeMarketPlayers[];
 extern uint8_t  _transferOfferTable[];
 extern uint8_t  _newJobOffers[];
@@ -1397,12 +1409,14 @@ static const FieldDesc s_career_scalars[] = {
     FA("team_budget_rank_table",          _teamBudgetRankTable, 128,    FLD_BYTES),
     /* Typed words (Career+'s §3.1): it was FLD_BYTES of host-order words, not portable between
      * byte orders. A new key, so a save from before loads without its list (at most 5 marks). */
-    FA("players_on_transfer_market_ids",  _playersOnTransferMarket, 20, FLD_U16_ARRAY),
+    FA("players_on_transfer_market_ids",  _playersOnTransferMarket,
+       CAREER_MAX_TRANSFER_LIST * 2,                                         FLD_U16_ARRAY),  /* (2 B an entry; 10 written: emitted_len) */
 
     /* Market player slot tables — byte arrays of compact records. The
      * team-id fields are explicit BE byte pairs (id>>8 / id), so they are
      * endian-stable as raw bytes — safe as FLD_BYTES. */
-    FA("foreign_market_players",          _foreignMarketPlayers, 180,   FLD_BYTES),
+    FA("foreign_market_players",          _foreignMarketPlayers,
+       CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE,                FLD_BYTES),   /* (60 written: emitted_len) */
     FA("home_market_players",             _homeMarketPlayers, 100,      FLD_BYTES),
     /* transfer_offer_table / job_offers / new_job_offers were FLD_BYTES but
      * hold host-native multi-byte fields (uint16/uint32) that byte-swap on a
@@ -1589,7 +1603,7 @@ static void emit_scalar_table(mjson_print_fn_t fn, void *fnd,
             /* Emit each 16-bit word as a host-native-read decimal so the
              * on-disk value is byte-order-independent. */
             mjson_printf(fn, fnd, "%Q:[", f->name);
-            for (uint32_t i = 0; i + 1 < f->size; i += 2) {
+            for (uint32_t i = 0, len = emitted_len(f, p); i + 1 < len; i += 2) {
                 if (i > 0) mjson_printf(fn, fnd, "%s", ",");
                 mjson_printf(fn, fnd, "%u", (unsigned)*(uint16_t *)(p + i));
             }
@@ -2793,7 +2807,7 @@ static const StructFieldDesc s_transfer_offer_fields[] = {
     { NULL, 0, 0, FLD_END }
 };
 
-/* JobOffer field table (jobOffers[10] / newJobOffers[10]). Promoted from raw
+/* JobOffer field table (jobOffers[5] / newJobOffers[5]). Promoted from raw
  * 130-byte FLD_BYTES blobs — teamNo (u16), amountOffered (u32) and unkn (u16)
  * are host-native and byte-swapped cross-target as raw bytes. */
 static const StructFieldDesc s_job_offer_fields[] = {
@@ -3146,14 +3160,153 @@ void DataJson_LoadCareerParams(void)
     LDU("$.board_tertiary_top2_bonus",  board_tertiary_top2_bonus);
     LDU("$.board_euro_top2_bonus",      board_euro_top2_bonus);
     LDU("$.num_seasons",                num_seasons);
-    /* Upgrade legacy 20-season installations to the new 35-season career. */
-    if (_careerParams.num_seasons == 20) _careerParams.num_seasons = 35;
+    LDU("$.foreign_pool_capacity",      foreign_pool_capacity);
+    LDU("$.foreign_listing_capacity",   foreign_listing_capacity);
+    LDU("$.transfer_list_capacity",     transfer_list_capacity);
+    LDU("$.job_offers_capacity",        job_offers_capacity);
+    LDU("$.trialist_count_mode",        trialist_count_mode);
+    LDU("$.wage_pct",                   wage_pct);
+    LDU("$.team_value_wage_pct",        team_value_wage_pct);
+    LDU("$.running_cost_mode",          running_cost_mode);
+    LDU("$.running_cost_pct",           running_cost_pct);
+    LDU("$.league_gate_mult",           league_gate_mult);
+    LDU("$.sponsorship_mode",           sponsorship_mode);
+    LDU("$.sponsorship_weeks[0]",       sponsorship_weeks[0]);
+    LDU("$.sponsorship_weeks[1]",       sponsorship_weeks[1]);
+    LDU("$.sponsorship_weeks[2]",       sponsorship_weeks[2]);
+    LDU("$.sponsorship_weeks[3]",       sponsorship_weeks[3]);
+    LDU("$.league_distribution_weeks[0]", league_distribution_weeks[0]);
+    LDU("$.league_distribution_weeks[1]", league_distribution_weeks[1]);
+    LDU("$.league_distribution_weeks[2]", league_distribution_weeks[2]);
+    LDU("$.league_distribution_weeks[3]", league_distribution_weeks[3]);
+    LDU("$.profit_loss_sponsorship",    profit_loss_sponsorship);
+    LDU("$.transfer_quota_mode",        transfer_quota_mode);
+    LDU("$.transfer_quota",             transfer_quota);
+    LDU("$.foreign_refill_mult",        foreign_refill_mult);
+    LDU("$.listed_bid_chance",          listed_bid_chance);
+    LDU("$.foreign_bid_chance",         foreign_bid_chance);
+    LDU("$.domestic_buyer_mode",        domestic_buyer_mode);
+    LDU("$.job_offer_expiry",           job_offer_expiry);
+    LDU("$.job_offer_first_week",       job_offer_first_week);
+    LDU("$.job_offer_waves",            job_offer_waves);
+    LDU("$.job_offer_stop_season7",     job_offer_stop_season7);
+    LDU("$.job_offer_phase_gate",       job_offer_phase_gate);
+    LDU("$.job_offer_own_national",     job_offer_own_national);
+    LDU("$.job_offer_pass",             job_offer_pass);
+    LDU("$.job_offer_rep_high_pct",     job_offer_rep_high_pct);
+    LDU("$.job_offer_rep_low_pct",      job_offer_rep_low_pct);
+    LDU("$.job_offer_selector_clubs",   job_offer_selector_clubs);
+    LDU("$.job_offer_national_chance",  job_offer_national_chance);
+    LDU("$.job_offer_abroad_chance",    job_offer_abroad_chance);
     #undef LDU
     #undef LDS
     if (_careerParams.num_seasons < 1) _careerParams.num_seasons = 1;
     if (_careerParams.num_seasons > CAREER_MAX_SEASONS) _careerParams.num_seasons = CAREER_MAX_SEASONS;
+    /* A capacity is the original's at least (the screens and the market's rules are laid out for
+     * it) and the compiled maximum at most (include/career_capacity.h). */
+    #define CLAMP_CAP(f, orig, max) do { \
+        if (_careerParams.f < (orig)) _careerParams.f = (uint16_t)(orig); \
+        if (_careerParams.f > (max))  _careerParams.f = (uint16_t)(max);  } while (0)
+    CLAMP_CAP(foreign_pool_capacity,    CAREER_ORIG_FOREIGN_POOL,    CAREER_MAX_FOREIGN_POOL);
+    CLAMP_CAP(foreign_listing_capacity, CAREER_ORIG_FOREIGN_LISTING, CAREER_MAX_FOREIGN_LISTING);
+    CLAMP_CAP(transfer_list_capacity,   CAREER_ORIG_TRANSFER_LIST,   CAREER_MAX_TRANSFER_LIST);
+    CLAMP_CAP(job_offers_capacity,      CAREER_ORIG_JOB_OFFERS,      CAREER_MAX_JOB_OFFERS);
+    #undef CLAMP_CAP
+    if (_careerParams.trialist_count_mode > 1) _careerParams.trialist_count_mode = 0;
+    if (_careerParams.running_cost_mode > 1) _careerParams.running_cost_mode = 0;
+    if (_careerParams.sponsorship_mode > 1) _careerParams.sponsorship_mode = 0;
+    if (_careerParams.league_gate_mult < 1) _careerParams.league_gate_mult = 1;
+    if (_careerParams.transfer_quota_mode > 1) _careerParams.transfer_quota_mode = 0;
+    if (_careerParams.foreign_refill_mult < 1) _careerParams.foreign_refill_mult = 1;
+    if (_careerParams.foreign_refill_mult > 3) _careerParams.foreign_refill_mult = 3;   /* (the listing's 45 at most) */
+    if (_careerParams.listed_bid_chance > 256) _careerParams.listed_bid_chance = 256;
+    if (_careerParams.foreign_bid_chance > 256) _careerParams.foreign_bid_chance = 256;
+    if (_careerParams.domestic_buyer_mode > 1) _careerParams.domestic_buyer_mode = 0;
+    if (_careerParams.job_offer_waves > 1) _careerParams.job_offer_waves = 0;
+    if (_careerParams.job_offer_pass > 256) _careerParams.job_offer_pass = 256;
+    if (_careerParams.job_offer_selector_clubs > 256) _careerParams.job_offer_selector_clubs = 256;
+    if (_careerParams.job_offer_national_chance > 256) _careerParams.job_offer_national_chance = 256;
+    if (_careerParams.job_offer_abroad_chance > 256) _careerParams.job_offer_abroad_chance = 256;
     free(j);
     fprintf(stderr, "[data-json] career params loaded from data_json/career_params.json\n");
+}
+
+#include "national_teams.h"
+/* data_json/national_teams.json (a mod's, through the overlay; OpenSWOS ships none): the national
+ * teams' records and the career manager's nationalities, in place of the compiled ones --
+ * include/national_teams.h. Each record a named object; the counts are the arrays' lengths. A
+ * missing file leaves the compiled tables as they are (the original's, byte for byte). A record
+ * that does not parse, a table past the maxima, or none at all is refused whole: the game keeps
+ * the original's, and says why. */
+void DataJson_LoadNationalTeams(void)
+{
+    extern uint8_t  _nationalTeams[];
+    extern uint16_t _numNationalTeams;
+    extern uint8_t  _nationalityOrdinalsArray[];
+    extern uint16_t _nat_teams_rand_limit1;
+    int len;
+    char *j = dj_slurp("data_json/national_teams.json", &len);
+    if (!j)
+        return;
+    static uint8_t rec[NATIONAL_TEAMS_MAX * 6], nats[NATIONALITIES_MAX];
+    uint32_t nRec = 0, nNat = 0;
+    const char *why = NULL;
+    const char *arr = NULL;
+    int arrLen = 0;
+    double v;
+    if (mjson_find(j, len, "$.records", &arr, &arrLen) != MJSON_TOK_ARRAY) {
+        why = "no \"records\" array";
+    } else {
+        int off = 0, ko, kl, vo, vl, vt;
+        while (!why && (off = mjson_next(arr, arrLen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
+            static const char *const keys[5] = { "$.country", "$.ordinal", "$.nationality", "$.team_file", "$.skill" };
+            uint32_t f[5];
+            if (nRec >= NATIONAL_TEAMS_MAX) { why = "more records than NATIONAL_TEAMS_MAX"; break; }
+            if (vt != MJSON_TOK_OBJECT) { why = "a record that is not an object"; break; }
+            for (int k = 0; k < 5; k++) {
+                if (mjson_get_number(arr + vo, vl, keys[k], &v) == 0 || v < 0 || v > (k == 4 ? 65535 : 255)) {
+                    why = "a record without a valid country/ordinal/nationality/team_file/skill";
+                    break;
+                }
+                f[k] = (uint32_t)v;
+            }
+            if (why) break;
+            uint8_t *r = rec + nRec * 6;
+            r[0] = (uint8_t)f[0]; r[1] = (uint8_t)f[1]; r[2] = (uint8_t)f[2]; r[3] = (uint8_t)f[3];
+            r[4] = (uint8_t)(f[4] >> 8); r[5] = (uint8_t)f[4];      /* (skillOrPrice: big-endian) */
+            nRec++;
+        }
+        if (!why && nRec == 0)
+            why = "no records";
+    }
+    if (!why && mjson_find(j, len, "$.nationalities", &arr, &arrLen) == MJSON_TOK_ARRAY) {
+        int off = 0, ko, kl, vo, vl, vt;
+        while ((off = mjson_next(arr, arrLen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
+            if (nNat >= NATIONALITIES_MAX - 1) { why = "more nationalities than NATIONALITIES_MAX"; break; }
+            if (vt != MJSON_TOK_NUMBER || mjson_get_number(arr + vo, vl, "$", &v) == 0 || v < 0 || v > 254) {
+                why = "a nationality that is not 0..254 (OTHER, 255, is added)";
+                break;
+            }
+            nats[nNat++] = (uint8_t)v;
+        }
+    }
+    if (why) {
+        fprintf(stderr, "[data-json] data_json/national_teams.json refused (%s): the original's national teams\n", why);
+        free(j);
+        return;
+    }
+    memset(_nationalTeams, 0, NATIONAL_TEAMS_MAX * 6);
+    memcpy(_nationalTeams, rec, nRec * 6);
+    _numNationalTeams = (uint16_t)nRec;
+    if (nNat) {     /* (none given: the compiled ones) */
+        memcpy(_nationalityOrdinalsArray, nats, nNat);
+        _nationalityOrdinalsArray[nNat] = 0xFF;     /* OTHER */
+    }
+    if (mjson_get_number(j, len, "$.job_offer_pick", &v) && v >= 1 && v <= 256)
+        _nat_teams_rand_limit1 = (uint16_t)v;   /* (the first records a random national job is drawn from) */
+    free(j);
+    fprintf(stderr, "[data-json] national teams from data_json/national_teams.json: %u records, %u nationalities\n",
+            (unsigned)nRec, (unsigned)(nNat ? nNat + 1 : 0));
 }
 
 /* Slurp `path`, find the record whose "$.id" == id inside the array at
@@ -3354,6 +3507,26 @@ int DataJson_LoadTeamIdsForCountry(int countryNum, struct TeamDbIds *out, int ma
     }
     free(jj);
     return n > 0 ? n : -1;
+}
+
+/* Whether a country has a team file LoadTeamFile can load (its data_json file, else its
+ * data/team.NNN): LoadTeamFile halts on a missing one (panic 0x8008), which is right for the
+ * game's own ids, so Career_PeekTeam asks this first about an id a mod gave it. */
+int DataJson_CountryHasTeamFile(int countryNum)
+{
+    char team_file[128], rel[32], found[1024];
+    int jlen = 0;
+    char *jj = dj_slurp_country_teams(countryNum, team_file, (int)sizeof team_file, &jlen);
+    if (jj) {
+        free(jj);
+        return 1;
+    }
+    snprintf(rel, sizeof rel, "data/team.%03d", countryNum);
+    FILE *f = fopen(swos_data_path(rel, found, (uint32_t)sizeof found), "rb");
+    if (!f)
+        return 0;
+    fclose(f);
+    return 1;
 }
 
 int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, int maxTeams)
@@ -6111,36 +6284,6 @@ static void load_ctx_stage(const char *src, int src_size, const char *key,
     }
 }
 
-/* Optional age snapshot. Names are the current lookup identity; persistent
- * per-player IDs will be needed before ageing same-name footballers separately. */
-extern void SWOS_AgesResetCareer(void);
-extern void SWOS_AgesBeginRestore(void);
-extern void SWOS_AgesEndRestore(void);
-extern size_t SWOS_AgesCount(void);
-extern int SWOS_AgesGet(size_t, const char **, unsigned *);
-extern int SWOS_AgesSet(const char *, unsigned);
-
-/* Season winners are a standalone persistent history, not part of the
- * per-manager season_informations record.  Encode only occupied records.
- * Legacy CAR v4 files without this field remain loadable. */
-static void emit_career_winners(mjson_print_fn_t fn, void *fnd)
-{
-    mjson_printf(fn, fnd, "%Q:[", "career_winners");
-    int first = 1;
-    for (unsigned season = 0; season < CAREER_WINNER_SEASONS; ++season) {
-        unsigned count = _careerWinnerCounts[season];
-        if (count > CAREER_WINNERS_PER_SEASON) count = CAREER_WINNERS_PER_SEASON;
-        for (unsigned i = 0; i < count; ++i) {
-            const CareerWinnerRecord *r = &_careerWinners[season][i];
-            mjson_printf(fn, fnd, "%s[%u,%u,%u,%u,%u]", first ? "" : ",",
-                         season, (unsigned)r->competitionId, (unsigned)r->kind,
-                         (unsigned)r->division, (unsigned)r->teamId);
-            first = 0;
-        }
-    }
-    mjson_printf(fn, fnd, "%s", "]");
-}
-
 int16_t SaveJson_WriteCareer(uint8_t *filename)
 {
     JsonOutBuf out = { NULL, 0, 0, 0 };
@@ -6167,14 +6310,12 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         "  %Q: %Q,\n"
         "  %Q: %Q,\n"
         "  %Q: %d,\n  ",
-        "schema_version", SAVE_JSON_CAREER_VERSION,
+        "schema_version", SAVE_JSON_SCHEMA_VERSION,
         "file_kind",      KIND_CAREER,
         "world",          World_Tag(),
         "num_selected_teams", (int)_numSelectedTeams);
 
     emit_season_informations(json_out_emit, &out);
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
-    emit_career_winners(json_out_emit, &out);
     mjson_printf(json_out_emit, &out, "%s", ",\n  ");
     /* careerCompetitionSlotPtrTable / *CompetitionPtr / *CompStringOffset /
      * careerCupPickList are all re-derivable from non-pointer state on
@@ -6697,19 +6838,19 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
     }
 #endif
 
-    /* Foreign-market player pool — fixed-size MarketPlayer[432]. Emit
+    /* Foreign-market player pool — MarketPlayer[432], the original's. Emit
      * all 432 slots so unpopulated entries (teamId == 0) round-trip
-     * faithfully; the array is dense in practice for active careers. */
+     * faithfully; the array is dense in practice for active careers. A pool
+     * past 432 (foreign_pool_capacity, include/career_capacity.h) writes the
+     * entries it holds as well, so a default career's save is unchanged. */
     {
+        extern uint16_t _numForeignMarketPlayers2;
+        uint32_t poolLen = _numForeignMarketPlayers2 > CAREER_ORIG_FOREIGN_POOL
+                         ? _numForeignMarketPlayers2 : CAREER_ORIG_FOREIGN_POOL;
+        if (poolLen > CAREER_MAX_FOREIGN_POOL)
+            poolLen = CAREER_MAX_FOREIGN_POOL;
         mjson_printf(json_out_emit, &out, ",\n  %Q:[", "career_foreign_market_players");
-        /* Avoid serializing thousands of unused entries. Preserve the
-         * original 432-slot JSON shape for small careers. */
-        uint32_t entries = _numForeignMarketPlayers2;
-        if (entries < SWOS_AI_CAREER_POOL_LEGACY_COUNT)
-            entries = SWOS_AI_CAREER_POOL_LEGACY_COUNT;
-        if (entries > SWOS_AI_CAREER_POOL_CAPACITY)
-            entries = SWOS_AI_CAREER_POOL_CAPACITY;
-        for (uint32_t i = 0; i < entries; i++) {
+        for (uint32_t i = 0; i < poolLen; i++) {
             if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
             emit_market_player_body(json_out_emit, &out,
                                     _careerForeignMarketPlayers + i * sizeof(MarketPlayer));
@@ -6729,12 +6870,18 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
         mjson_printf(json_out_emit, &out, "%s", "]");
 
-        const struct { const char *key; const uint8_t *base; } jobTabs[2] = {
-            { "new_job_offers", _newJobOffers }, { "job_offers", _jobOffers },
+        /* The job-offer queues: the original's 5 records, and the ones past them a bigger
+         * queue holds (job_offers_capacity, include/career_capacity.h). */
+        const struct { const char *key; const uint8_t *base; uint16_t num; } jobTabs[2] = {
+            { "new_job_offers", _newJobOffers, _numNewJobOffers },
+            { "job_offers",     _jobOffers,    _numJobOffers },
         };
         for (int t = 0; t < 2; t++) {
+            uint32_t jobLen = jobTabs[t].num > CAREER_ORIG_JOB_OFFERS ? jobTabs[t].num : CAREER_ORIG_JOB_OFFERS;
+            if (jobLen > CAREER_MAX_JOB_OFFERS)
+                jobLen = CAREER_MAX_JOB_OFFERS;
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", jobTabs[t].key);
-            for (uint32_t i = 0; i < 20; i++) {
+            for (uint32_t i = 0; i < jobLen; i++) {
                 if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
                 emit_struct_object(json_out_emit, &out,
                                    jobTabs[t].base + i * sizeof(JobOffer),
@@ -6762,146 +6909,14 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
     }
 
-    /* Versioned AI transfer cooldown. A compact string stores two 32-bit
-     * fingerprint halves and last-click number without JSON numeric precision
-     * or signed-long portability issues. Only active two-click entries saved. */
+    /* The career mods' sections ("mods": {"<slug>": {...}}): only when a mod that is on wrote
+     * one, so a career without them saves as it always did. */
     {
-        extern uint32_t SWOS_AI_P3GetClickNumber(void);
-        extern unsigned SWOS_AI_P3GetRecent(unsigned, uint32_t *,uint32_t *,uint32_t *);
-        mjson_printf(json_out_emit, &out, ",\n  %Q:%u,\n  %Q:[",
-                     "ai_transfer_clicks",(unsigned)SWOS_AI_P3GetClickNumber(),
-                     "ai_transfer_recent");
-        unsigned pos=0,count=0; uint32_t hi,lo,last;
-        while ((pos=SWOS_AI_P3GetRecent(pos,&hi,&lo,&last))!=0) {
-            char key[32];
-            snprintf(key,sizeof(key),"%08X%08X%08X",(unsigned)hi,(unsigned)lo,(unsigned)last);
-            if(count++) mjson_printf(json_out_emit,&out,",");
-            mjson_printf(json_out_emit,&out,"%Q",key);
+        char *mods = ModHooks_CareerSaveSection();
+        if (mods) {
+            json_out_emit(mods, (int)strlen(mods), &out);
+            free(mods);
         }
-        mjson_printf(json_out_emit,&out,"]");
-    }
-
-    /* CAR v4 extension contract.  identity_tracking_enabled is explicitly
-     * false until player moves/generation are wired to an ID registry.
-     * Do not derive IDs from names: duplicates are real players. */
-    mjson_printf(json_out_emit, &out,
-                 ",\n  %Q:1,\n  %Q:false,\n  %Q:1",
-                 "career_extensions_version", "identity_tracking_enabled",
-                 "next_player_id");
-
-    /* Snapshot all age-table entries in the .CAR, retaining the 1996
-     * baseline even if the external CSV is subsequently edited. Older
-     * saves have no player_ages_v1 key and continue using CSV defaults. */
-    {
-        size_t i, count = SWOS_AgesCount();
-        const char *name; unsigned age;
-        swos_age_log("CAREER_SAVE_SNAPSHOT", "schema=4 age_entries=%zu identity_tracking=0", count);
-        mjson_printf(json_out_emit, &out, ",\n  %Q:[", "career_age_snapshot_v4");
-        for (i = 0; i < count; ++i) {
-            if (!SWOS_AgesGet(i, &name, &age)) continue;
-            if (i) mjson_printf(json_out_emit, &out, ",");
-            mjson_printf(json_out_emit, &out, "[%Q,%u]", name, age);
-        }
-        mjson_printf(json_out_emit, &out, "]");
-    }
-
-    /* Replayable AI transfer journal, diagnostic only. Player IDs are still
-     * inactive until every transfer/generation route updates the registry. */
-    {
-        unsigned journal_count = SWOS_AI_IdentityJournalCount();
-        unsigned values[6];
-        mjson_printf(json_out_emit, &out, ",\n  %Q:1,\n  %Q:[",
-                     "ai_identity_journal_version", "ai_identity_journal_v4");
-        for (unsigned i = 0; i < journal_count; ++i) {
-            if (!SWOS_AI_IdentityJournalGet(i, values)) { out.oom = 1; break; }
-            if (i) mjson_printf(json_out_emit, &out, ",");
-            mjson_printf(json_out_emit, &out, "[%u,%u,%u,%u,%u,%u]",
-                         values[0], values[1], values[2],
-                         values[3], values[4], values[5]);
-        }
-        mjson_printf(json_out_emit, &out, "]");
-        swos_age_log("AI_ID_JOURNAL_SAVE", "moves=%u dropped=%u",
-                     journal_count, SWOS_AI_IdentityJournalDropped());
-    }
-
-    /* Step 2U: validated AI-only player identity registry. Other gameplay
-     * transfer routes are not yet wired, so identity_tracking_enabled stays
-     * false. This is a shadow registry, not the AGE column's data source. */
-    {
-        unsigned count=SWOS_IdentityCount(),next_id=SWOS_IdentityNextId();
-        int valid=count && SWOS_IdentityCheck();
-        unsigned rec[4];
-        mjson_printf(json_out_emit,&out,",\n  %Q:%u,\n  %Q:%u,\n  %Q:[",
-                     "ai_identity_registry_version",valid?1u:0u,
-                     "ai_identity_registry_next_id",valid?next_id:1u,
-                     "ai_identity_registry_v4");
-        if(valid)for(unsigned i=0;i<count;i++){
-            if(!SWOS_IdentityGet(i,rec)){out.oom=1;break;}
-            if(i)mjson_printf(json_out_emit,&out,",");
-            mjson_printf(json_out_emit,&out,"[%u,%u,%u,%u]",rec[0],rec[1],rec[2],rec[3]);
-        }
-        mjson_printf(json_out_emit,&out,"]");
-        swos_age_log("IDENTITY_REGISTRY_SAVE","count=%u valid=%d next_id=%u",
-                     valid?count:0u,valid,next_id);
-    }
-
-    /* Generated player identities are supplementary and are not yet used
-     * as the authoritative age display for ordinary transfers. */
-    {
-        unsigned count=SWOS_GeneratedIdentityCount(),values[4];
-        mjson_printf(json_out_emit,&out,",\n  %Q:1,\n  %Q:[",
-                     "generated_identity_version","generated_identities_v4");
-        for(unsigned i=0;i<count;i++){
-            if(!SWOS_GeneratedIdentityGet(i,values)){out.oom=1;break;}
-            if(i)mjson_printf(json_out_emit,&out,",");
-            mjson_printf(json_out_emit,&out,"[%u,%u,%u,%u]",values[0],values[1],values[2],values[3]);
-        }
-        mjson_printf(json_out_emit,&out,"]");
-        swos_age_log("GENERATED_ID_SAVE","count=%u next_id=%u",count,SWOS_IdentityNextId());
-    }
-
-    /* Stable original-player identities copied into manual roster slots.
-     * Repair stale duplicate claims before serialising: the strict loader
-     * rejects two manual records with the same nonzero permanent ID. */
-    {
-        unsigned deduplicated=SWOS_ManualIdentityPrepareSave();
-        unsigned count=SWOS_ManualIdentityCount(),values[5];
-        if(deduplicated)
-            swos_age_log("MANUAL_ID_SAVE_RECOVERY", "duplicate_claims=%u",deduplicated);
-        mjson_printf(json_out_emit,&out,",\n  %Q:1,\n  %Q:[",
-                     "manual_identity_version","manual_identities_v4");
-        for(unsigned i=0;i<count;i++){
-            if(!SWOS_ManualIdentityGet(i,values)){out.oom=1;break;}
-            if(i)mjson_printf(json_out_emit,&out,",");
-            mjson_printf(json_out_emit,&out,"[%u,%u,%u,%u,%u]",
-                         values[0],values[1],values[2],values[3],values[4]);
-        }
-        mjson_printf(json_out_emit,&out,"]");
-        swos_age_log("MANUAL_ID_SAVE","count=%u",count);
-    }
-
-    /* Step 3E.1: explicit audit execution markers.  Log before and after
-     * the cross-registry check so a missing log can distinguish an old build,
-     * an unentered save/load path, and an audit failure.  Observational only. */
-    swos_age_log("IDENTITY_AUDIT_TRIGGER", "phase=save stage=after_registry_serialisation build=step3e1");
-    {
-        unsigned ok = SWOS_IdentityAudit();
-        swos_age_log("IDENTITY_AUDIT_RESULT", "phase=save completed=1 ok=%u build=step3e1", ok);
-    }
-
-    /* Optional Step 4F identity retirement ledger. Old CAR v4 files omit it. */
-    {
-        unsigned count=SWOS_RetiredIdentityCount(),values[5];
-        mjson_printf(json_out_emit,&out,",\n  %Q:1,\n  %Q:[",
-                     "retired_identity_version","retired_identities_v4");
-        for(unsigned i=0;i<count;i++){
-            if(!SWOS_RetiredIdentityGet(i,values)){out.oom=1;break;}
-            if(i)mjson_printf(json_out_emit,&out,",");
-            mjson_printf(json_out_emit,&out,"[%u,%u,%u,%u,%u]",
-                values[0],values[1],values[2],values[3],values[4]);
-        }
-        mjson_printf(json_out_emit,&out,"]");
-        swos_age_log("RETIRE_HISTORY_SAVE","count=%u",count);
     }
 
     mjson_printf(json_out_emit, &out, "%s", "\n}\n");
@@ -6911,7 +6926,6 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
 
     int16_t result = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
     swos_io_free(out.ptr);
-    swos_age_log("CAREER_SAVE_RESULT", "result=%d bytes=%zu", (int)result, out.len);
     if (result != 0) {
         ShowFsErrorByCode((uint16_t)result);
         return 1;
@@ -7005,40 +7019,6 @@ static void load_team_pool(const char *tp, int tplen, TeamPoolState *st)
  * dependency order. Used by both the main load path (after
  * opaque_data has been laid down) and the verify path (against a
  * zeroed buffer so we can diff). */
-/* Keep history intact across save/reload, including saves produced on
- * different targets.  An absent key means an older save, not a parse error. */
-static void load_career_winners(const char *src, int src_size)
-{
-    CareerWinners_Clear();
-    const char *arr = NULL;
-    int arr_len = 0;
-    if (mjson_find(src, src_size, "$.career_winners", &arr, &arr_len)
-            != MJSON_TOK_ARRAY) return;
-    int pos = 0, off, len, typ;
-    while ((pos = fast_array_next(arr, arr_len, pos, &off, &len, &typ)) != 0) {
-        if (typ != MJSON_TOK_ARRAY) continue;
-        const char *row = arr + off;
-        int p = 0, n_off, n_len, n_typ;
-        long fields[5];
-        int valid = 1;
-        for (int i = 0; i < 5; ++i) {
-            p = fast_array_next(row, len, p, &n_off, &n_len, &n_typ);
-            if (!p || n_typ != MJSON_TOK_NUMBER ||
-                mjson_get_long(row + n_off, n_len, "$", &fields[i]) <= 0) {
-                valid = 0;
-                break;
-            }
-        }
-        if (!valid || fields[0] < 0 || fields[0] >= CAREER_WINNER_SEASONS ||
-            fields[1] < 0 || fields[1] > 255 || fields[2] < 0 || fields[2] > 3 ||
-            fields[3] < 0 || fields[3] > 255 || fields[4] < 0 || fields[4] > 65535)
-            continue;
-        CareerWinners_Record((uint16_t)fields[0], (uint8_t)fields[1],
-                             (uint8_t)fields[2], (uint8_t)fields[3],
-                             (uint16_t)fields[4]);
-    }
-}
-
 static void apply_semantic_load(const char *src, int src_size)
 {
     /* Reset the string pool up front so any { str: "..." } pointer
@@ -7050,7 +7030,6 @@ static void apply_semantic_load(const char *src, int src_size)
 
     PROF_START(season_info);
     load_season_informations(src, src_size);
-    load_career_winners(src, src_size);
     PROF_END(season_info, "career-load");
     /* Top-level pointer fields were removed from the save format —
      * RebuildPointersAfterLoad() re-derives them after this returns.
@@ -7076,6 +7055,12 @@ static void apply_semantic_load(const char *src, int src_size)
      * fixup. */
     load_comp_copy_region(src, src_size);
     PROF_START(scalars);
+    /* The career lists' storage past their original sizes (include/career_capacity.h) holds
+     * only what this save writes there: nothing left from a career loaded before. */
+    memset((uint8_t *)_foreignMarketPlayers + CAREER_ORIG_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE, 0,
+           (CAREER_MAX_FOREIGN_LISTING - CAREER_ORIG_FOREIGN_LISTING) * CAREER_MARKET_ENTRY_SIZE);
+    memset(_playersOnTransferMarket + CAREER_ORIG_TRANSFER_LIST, 0,
+           (CAREER_MAX_TRANSFER_LIST - CAREER_ORIG_TRANSFER_LIST) * sizeof(uint16_t));
     load_scalar_table(src, src_size, "career_scalars", s_career_scalars);
     PROF_END(scalars, "career-load");
 
@@ -7688,16 +7673,17 @@ static void apply_semantic_load(const char *src, int src_size)
     }
 #endif
 
-    /* Foreign-market player pool — fixed-size MarketPlayer[432]. */
+    /* Foreign-market player pool — MarketPlayer[432], or the entries a bigger pool held
+     * (up to CAREER_MAX_FOREIGN_POOL); the storage past what the save holds is cleared. */
     PROF_START(market_players);
     {
         const char *mp_arr = NULL;
         int mp_arr_len = 0;
+        uint32_t i = 0;
         if (mjson_find(src, src_size, "$.career_foreign_market_players",
                        &mp_arr, &mp_arr_len) == MJSON_TOK_ARRAY) {
             int pos = 0, voff, vlen, vt;
-            uint32_t i = 0;
-            while (i < SWOS_AI_CAREER_POOL_CAPACITY &&
+            while (i < CAREER_MAX_FOREIGN_POOL &&
                    (pos = fast_array_next(mp_arr, mp_arr_len, pos,
                                           &voff, &vlen, &vt)) != 0) {
                 if (vt != MJSON_TOK_OBJECT) { i++; continue; }
@@ -7706,31 +7692,47 @@ static void apply_semantic_load(const char *src, int src_size)
                 i++;
             }
         }
+        /* (past the original's 432 only: there a save always wrote every slot) */
+        if (i < CAREER_ORIG_FOREIGN_POOL)
+            i = CAREER_ORIG_FOREIGN_POOL;
+        if (i < CAREER_MAX_FOREIGN_POOL)
+            memset(_careerForeignMarketPlayers + i * sizeof(MarketPlayer), 0,
+                   (CAREER_MAX_FOREIGN_POOL - i) * sizeof(MarketPlayer));
     }
     PROF_END(market_players, "career-load");
 
     /* Transfer-offer + job-offer tables — typed arrays-of-objects (mirror of
-     * the write side). Transfer offers: 5 records; job offer tables: 10 records. */
+     * the write side). The transfer-offer table is a fixed 5 records; a job-offer
+     * queue 5, or the records a bigger one held (job_offers_capacity), the storage
+     * past them cleared. */
     {
         const struct { const char *path; uint8_t *base; size_t stride;
-                       const StructFieldDesc *table; } offerTabs[3] = {
-            { "$.transfer_offer_table", _transferOfferTable, sizeof(TransferOfferEntry), s_transfer_offer_fields },
-            { "$.new_job_offers",       _newJobOffers,        sizeof(JobOffer),           s_job_offer_fields },
-            { "$.job_offers",           _jobOffers,           sizeof(JobOffer),           s_job_offer_fields },
+                       const StructFieldDesc *table; uint32_t orig, max; } offerTabs[3] = {
+            { "$.transfer_offer_table", _transferOfferTable, sizeof(TransferOfferEntry), s_transfer_offer_fields, 5, 5 },
+            { "$.new_job_offers",       _newJobOffers,        sizeof(JobOffer),           s_job_offer_fields,
+              CAREER_ORIG_JOB_OFFERS, CAREER_MAX_JOB_OFFERS },
+            { "$.job_offers",           _jobOffers,           sizeof(JobOffer),           s_job_offer_fields,
+              CAREER_ORIG_JOB_OFFERS, CAREER_MAX_JOB_OFFERS },
         };
         for (int t = 0; t < 3; t++) {
             const char *arr = NULL; int arr_len = 0;
-            if (mjson_find(src, src_size, offerTabs[t].path, &arr, &arr_len) != MJSON_TOK_ARRAY)
-                continue;
-            int pos = 0, voff, vlen, vt;
             uint32_t i = 0;
-            while (i < (t == 0 ? 5u : 20u) && (pos = fast_array_next(arr, arr_len, pos, &voff, &vlen, &vt)) != 0) {
-                if (vt != MJSON_TOK_OBJECT) { i++; continue; }
-                load_struct_object(arr + voff, vlen,
-                                   offerTabs[t].base + i * offerTabs[t].stride,
-                                   offerTabs[t].table);
-                i++;
+            if (mjson_find(src, src_size, offerTabs[t].path, &arr, &arr_len) == MJSON_TOK_ARRAY) {
+                int pos = 0, voff, vlen, vt;
+                while (i < offerTabs[t].max &&
+                       (pos = fast_array_next(arr, arr_len, pos, &voff, &vlen, &vt)) != 0) {
+                    if (vt != MJSON_TOK_OBJECT) { i++; continue; }
+                    load_struct_object(arr + voff, vlen,
+                                       offerTabs[t].base + i * offerTabs[t].stride,
+                                       offerTabs[t].table);
+                    i++;
+                }
             }
+            if (i < offerTabs[t].orig)      /* (the original's records: as it always was) */
+                i = offerTabs[t].orig;
+            if (i < offerTabs[t].max)
+                memset(offerTabs[t].base + i * offerTabs[t].stride, 0,
+                       (offerTabs[t].max - i) * offerTabs[t].stride);
         }
     }
 
@@ -7789,7 +7791,7 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
         swos_io_free(src);
         return 1;
     }
-    if ((int)version != SAVE_JSON_CAREER_VERSION) {
+    if ((int)version != SAVE_JSON_SCHEMA_VERSION) {
         swos_io_free(src);
         return 1;
     }
@@ -7810,25 +7812,6 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
         return 1;
     }
 
-    /* CAR v4 requires the extension header and an age snapshot. Reject
-     * damaged or incomplete v4 saves before mutating the live career. */
-    {
-        long ext_version = 0, next_id = 0;
-        const char *age_array = NULL; int age_array_len = 0;
-        if (mjson_get_long((const char *)src, (int)src_size,
-                           "$.career_extensions_version", &ext_version) <= 0 ||
-            ext_version != 1 ||
-            mjson_get_long((const char *)src, (int)src_size,
-                           "$.next_player_id", &next_id) <= 0 ||
-            next_id < 1 ||
-            mjson_find((const char *)src, (int)src_size,
-                       "$.career_age_snapshot_v4", &age_array,
-                       &age_array_len) != MJSON_TOK_ARRAY) {
-            swos_io_free(src);
-            return 1;
-        }
-    }
-
     /* Clear the two surviving careerFileBuffer scalars before the typed load
      * repopulates them. The 256 KB careerFileBufferBuf overlay (which the
      * legacy load memset cleared whole) is RETIRED — every career field is now
@@ -7841,247 +7824,9 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
     _numSelectedTeams = 0;
     PROF_END(memset_buf, "career-load");
 
-    swos_age_log("CAREER_LOAD", "schema=4 age_snapshot=present identity_tracking=0");
-    /* Restore CAR v4 age snapshot before menus query it. */
-    SWOS_AgesResetCareer();
-    {
-        const char *arr = NULL; int alen = 0;
-        if (mjson_find((const char *)src, (int)src_size,
-                       "$.career_age_snapshot_v4", &arr, &alen) == MJSON_TOK_ARRAY) {
-            SWOS_AgesBeginRestore();
-            int pos = 0, off, len, typ;
-            while ((pos = fast_array_next(arr, alen, pos, &off, &len, &typ)) != 0) {
-                if (typ != MJSON_TOK_ARRAY) continue;
-                const char *row = arr + off;
-                int p = 0, xoff, xlen, xtyp;
-                char name[48]; unsigned age;
-                p = fast_array_next(row, len, p, &xoff, &xlen, &xtyp);
-                if (!p || xtyp != MJSON_TOK_STRING) continue;
-                if (mjson_get_string(row + xoff, xlen, "$", name, sizeof name) <= 0)
-                    continue;
-                p = fast_array_next(row, len, p, &xoff, &xlen, &xtyp);
-                if (!p || xtyp != MJSON_TOK_NUMBER) continue;
-                long num = 0;
-                if (mjson_get_long(row + xoff, xlen, "$", &num) <= 0) continue;
-                age = (unsigned)num;
-                SWOS_AgesSet(name, age);
-            }
-            SWOS_AgesEndRestore();
-        }
-    }
-
-    /* Restore journal after validating its full layout. This is diagnostic
-     * history and does not activate the player-ID registry. */
-    {
-        const char *arr = NULL; int alen = 0;
-        long version = 0;
-        int found = mjson_find((const char *)src, (int)src_size,
-                               "$.ai_identity_journal_v4", &arr, &alen);
-        if (found != MJSON_TOK_ARRAY ||
-            mjson_get_long((const char *)src, (int)src_size,
-                           "$.ai_identity_journal_version", &version) <= 0 ||
-            version != 1) {
-            swos_io_free(src); return 1;
-        }
-        SWOS_AI_IdentityJournalClear();
-        int pos = 0, off, len, typ;
-        while ((pos = fast_array_next(arr, alen, pos, &off, &len, &typ)) != 0) {
-            if (typ != MJSON_TOK_ARRAY) { swos_io_free(src); return 1; }
-            const char *row = arr + off;
-            unsigned vals[6];
-            int p = 0, xoff, xlen, xtyp;
-            for (int k = 0; k < 6; ++k) {
-                long num = -1;
-                p = fast_array_next(row, len, p, &xoff, &xlen, &xtyp);
-                if (!p || xtyp != MJSON_TOK_NUMBER ||
-                    mjson_get_long(row+xoff, xlen, "$", &num) <= 0 ||
-                    num < 0 || num > 255) {
-                    swos_io_free(src); return 1;
-                }
-                vals[k] = (unsigned)num;
-            }
-            if (fast_array_next(row, len, p, &xoff, &xlen, &xtyp) != 0 ||
-                !SWOS_AI_IdentityJournalAdd(vals[0], vals[1], vals[2],
-                                            vals[3], vals[4], vals[5])) {
-                swos_io_free(src); return 1;
-            }
-        }
-        swos_age_log("AI_ID_JOURNAL_LOAD", "moves=%u",
-                     SWOS_AI_IdentityJournalCount());
-    }
-
-    /* Optional in older CAR v4 saves: restore complete canonical registry.
-     * All rows validated transactionally prior to activating any record. */
-    {
-        const char *arr=NULL;int alen=0;
-        int token=mjson_find((const char*)src,(int)src_size,
-                            "$.ai_identity_registry_v4",&arr,&alen);
-        SWOS_IdentityClear();
-        if(token==MJSON_TOK_ARRAY){
-            long ver=0,next_id=0;
-            if(mjson_get_long((const char*)src,(int)src_size,
-                             "$.ai_identity_registry_version",&ver)<=0||
-               mjson_get_long((const char*)src,(int)src_size,
-                             "$.ai_identity_registry_next_id",&next_id)<=0||
-               next_id<1){swos_io_free(src);return 1;}
-            if(ver==1){
-                unsigned capacity=SWOS_IDENTITY_EXPECTED_COUNT;
-                unsigned *records=malloc((size_t)capacity*4*sizeof(unsigned));
-                if(!records){swos_io_free(src);return 1;}
-                unsigned count=0;int pos=0,off,len,typ,valid=1;
-                while((pos=fast_array_next(arr,alen,pos,&off,&len,&typ))!=0){
-                    if(typ!=MJSON_TOK_ARRAY||count>=capacity){valid=0;break;}
-                    const char *row=arr+off;int p=0,xoff,xlen,xtyp;
-                    for(unsigned k=0;k<4;k++){
-                        long num=-1;
-                        p=fast_array_next(row,len,p,&xoff,&xlen,&xtyp);
-                        if(!p||xtyp!=MJSON_TOK_NUMBER||
-                           mjson_get_long(row+xoff,xlen,"$",&num)<=0||
-                           num<0||num>0xFFFFFF){valid=0;break;}
-                        records[4*count+k]=(unsigned)num;
-                    }
-                    if(!valid||fast_array_next(row,len,p,&xoff,&xlen,&xtyp)!=0){valid=0;break;}
-                    count++;
-                }
-                if(valid)valid=SWOS_IdentityRestore(records,count,(unsigned)next_id);
-                free(records);
-                swos_age_log("IDENTITY_REGISTRY_LOAD","count=%u valid=%d next_id=%ld",count,valid,next_id);
-                if(!valid){swos_io_free(src);return 1;}
-            }else if(ver!=0){swos_io_free(src);return 1;}
-        }
-    }
-
-    /* Restore generated ID rows after the original registry, so next_id
-     * can exceed the original player count without changing its layout. */
-    {
-        const char *arr=NULL;int alen=0;
-        int token=mjson_find((const char*)src,(int)src_size,"$.generated_identities_v4",&arr,&alen);
-        if(token==MJSON_TOK_ARRAY){
-            long ver=0,next=0;
-            if(mjson_get_long((const char*)src,(int)src_size,"$.generated_identity_version",&ver)<=0||ver!=1||
-               mjson_get_long((const char*)src,(int)src_size,"$.ai_identity_registry_next_id",&next)<=0){swos_io_free(src);return 1;}
-            unsigned cap=64,count=0;unsigned *rows=malloc((size_t)cap*4*sizeof(unsigned));
-            if(!rows){swos_io_free(src);return 1;}
-            int pos=0,off,len,typ,valid=1;
-            while((pos=fast_array_next(arr,alen,pos,&off,&len,&typ))!=0){
-                if(typ!=MJSON_TOK_ARRAY||count>=65536){valid=0;break;}
-                if(count==cap){unsigned nc=cap*2;void *p=realloc(rows,(size_t)nc*4*sizeof(unsigned));if(!p){valid=0;break;}rows=p;cap=nc;}
-                const char *row=arr+off;int rpos=0,xoff,xlen,xtyp;
-                for(unsigned k=0;k<4;k++){
-                    long value=-1;
-                    rpos=fast_array_next(row,len,rpos,&xoff,&xlen,&xtyp);
-                    if(!rpos||xtyp!=MJSON_TOK_NUMBER||mjson_get_long(row+xoff,xlen,"$",&value)<=0||value<0||value>0xFFFFFF){valid=0;break;}
-                    rows[4*count+k]=(unsigned)value;
-                }
-                if(!valid||fast_array_next(row,len,rpos,&xoff,&xlen,&xtyp)!=0){valid=0;break;}
-                count++;
-            }
-            if(valid)valid=SWOS_GeneratedIdentityRestore(rows,count,(unsigned)next);
-            free(rows);
-            swos_age_log("GENERATED_ID_LOAD","count=%u valid=%d",count,valid);
-            if(!valid){swos_io_free(src);return 1;}
-        }
-    }
-
-    /* Old saves have no manual identity section and remain valid. */
-    {
-        const char *arr=NULL;int alen=0;
-        int token=mjson_find((const char*)src,(int)src_size,"$.manual_identities_v4",&arr,&alen);
-        if(token==MJSON_TOK_ARRAY){
-            long ver=0;
-            if(mjson_get_long((const char*)src,(int)src_size,"$.manual_identity_version",&ver)<=0||ver!=1){swos_io_free(src);return 1;}
-            unsigned cap=32,count=0;unsigned *rows=malloc((size_t)cap*5*sizeof(unsigned));
-            if(!rows){swos_io_free(src);return 1;}
-            int pos=0,off,len,typ,valid=1;
-            while((pos=fast_array_next(arr,alen,pos,&off,&len,&typ))!=0){
-                if(typ!=MJSON_TOK_ARRAY||count>=65536u){valid=0;break;}
-                if(count==cap){unsigned nc=cap*2;void *p=realloc(rows,(size_t)nc*5*sizeof(unsigned));if(!p){valid=0;break;}rows=p;cap=nc;}
-                const char *row=arr+off;int rpos=0,xoff,xlen,xtyp;
-                for(unsigned k=0;k<5;k++){
-                    long value=-1;rpos=fast_array_next(row,len,rpos,&xoff,&xlen,&xtyp);
-                    if(!rpos||xtyp!=MJSON_TOK_NUMBER||mjson_get_long(row+xoff,xlen,"$",&value)<=0||value<0||value>0xFFFFFF){valid=0;break;}
-                    rows[5*count+k]=(unsigned)value;
-                }
-                if(!valid||fast_array_next(row,len,rpos,&xoff,&xlen,&xtyp)!=0){valid=0;break;}
-                count++;
-            }
-            if(valid)valid=SWOS_ManualIdentityRestore(rows,count);
-            free(rows);
-            if(!valid){swos_io_free(src);return 1;}
-        }
-    }
-
-    swos_age_log("IDENTITY_AUDIT_TRIGGER", "phase=load stage=after_all_identity_registries build=step3e1");
-    {
-        unsigned ok = SWOS_IdentityAudit();
-        swos_age_log("IDENTITY_AUDIT_RESULT", "phase=load completed=1 ok=%u build=step3e1", ok);
-    }
-
-    /* Restore ledger only after the registry is loaded, to validate ID bounds. */
-    {
-        const char *arr=NULL;int alen=0;
-        int token=mjson_find((const char*)src,(int)src_size,
-                            "$.retired_identities_v4",&arr,&alen);
-        if(token==MJSON_TOK_ARRAY){
-            long ver=0;
-            if(mjson_get_long((const char*)src,(int)src_size,
-                             "$.retired_identity_version",&ver)<=0||ver!=1){
-                swos_io_free(src);return 1;
-            }
-            unsigned cap=64,count=0;unsigned *rows=malloc((size_t)cap*5*sizeof(unsigned));
-            if(!rows){swos_io_free(src);return 1;}
-            int pos=0,off,len,typ,valid=1;
-            while((pos=fast_array_next(arr,alen,pos,&off,&len,&typ))!=0){
-                if(typ!=MJSON_TOK_ARRAY||count>=100000u){valid=0;break;}
-                if(count==cap){unsigned nc=cap*2;void *p=realloc(rows,(size_t)nc*5*sizeof(unsigned));if(!p){valid=0;break;}rows=p;cap=nc;}
-                const char *row=arr+off;int rp=0,xoff,xlen,xtyp;
-                for(unsigned k=0;k<5;k++){
-                    long num=-1;
-                    rp=fast_array_next(row,len,rp,&xoff,&xlen,&xtyp);
-                    if(!rp||xtyp!=MJSON_TOK_NUMBER||
-                       mjson_get_long(row+xoff,xlen,"$",&num)<=0||
-                       num<0||num>0xFFFFFF){valid=0;break;}
-                    rows[count*5+k]=(unsigned)num;
-                }
-                if(!valid||fast_array_next(row,len,rp,&xoff,&xlen,&xtyp)!=0){valid=0;break;}
-                count++;
-            }
-            if(valid)valid=SWOS_RetiredIdentityRestore(rows,count);
-            free(rows);
-            swos_age_log("RETIRE_HISTORY_LOAD","count=%u valid=%d",count,valid);
-            if(!valid){swos_io_free(src);return 1;}
-        }
-    }
-
     PROF_START(apply_semantic);
     apply_semantic_load((const char *)src, (int)src_size);
     PROF_END(apply_semantic, "career-load");
-
-    /* The historical Yugoslavia national-team job-offer record (50:30)
-     * became selectable after expanding the national offer pool. Older
-     * careers made immediately after accepting the job can retain the
-     * zero-initialised Albania nationality in the saved career scalars.
-     * Repair the stored selector state BEFORE rebuilding pointers and
-     * other national-team state. Use the authoritative national record,
-     * not the country number (0x29) or team ordinal (0x30): Yugoslav
-     * player nationality is 0x25. */
-    if (_isNationalSelector && _selTeamNumber == 0x5030u) {
-        extern uint8_t *GetNationalityRecordPtr(uint16_t teamId);
-        const NationalTeamRecord *yugo =
-            (const NationalTeamRecord *)GetNationalityRecordPtr(_selTeamNumber);
-        if (yugo && yugo->nationalityCode == 0x25u) {
-            if (_nationalTeamNationality != yugo->nationalityCode ||
-                _nationalTeamFileId != yugo->teamFileId) {
-                SWOS_DBG("[SWOS YUGO LOAD] repairing nationality %u -> %u, file %u -> %u\n",
-                         (unsigned)_nationalTeamNationality,
-                         (unsigned)yugo->nationalityCode,
-                         (unsigned)_nationalTeamFileId,
-                         (unsigned)yugo->teamFileId);
-            }
-            _nationalTeamNationality = yugo->nationalityCode;
-            _nationalTeamFileId = yugo->teamFileId;
-        }
-    }
 
     /* Re-derive all pointer fields and distribute the loaded primary
      * slot's bytes into diyCompetitionStart / diyFileBufferCopy. The
@@ -8093,33 +7838,13 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
      * applied by apply_semantic_load above), so step 2 of the rebuild
      * dispatches to the correct (league/cup/hybrid) branch when it
      * reads slotPtr[0..1]. */
-    /* Optional fields: an older career can be loaded without any cooldown. */
-    {
-        extern void SWOS_AI_P3ResetHistory(void);
-        extern void SWOS_AI_P3SetClickNumber(uint32_t);
-        extern void SWOS_AI_P3LoadRecent(uint32_t,uint32_t,uint32_t);
-        SWOS_AI_P3ResetHistory();
-        long clicks=0;
-        if(mjson_get_long((const char *)src,(int)src_size,"$.ai_transfer_clicks",&clicks)>0
-           && clicks>0) SWOS_AI_P3SetClickNumber((uint32_t)clicks);
-        const char *arr=NULL; int alen=0;
-        if(mjson_find((const char *)src,(int)src_size,"$.ai_transfer_recent",
-                      &arr,&alen)==MJSON_TOK_ARRAY) {
-            int pos=0,off=0,len=0,vt=0;
-            while((pos=fast_array_next(arr,alen,pos,&off,&len,&vt))!=0) {
-                if(vt!=MJSON_TOK_STRING || len!=26) continue;
-                char item[25]; unsigned hi=0,lo=0,last=0;
-                memcpy(item,arr+off+1,24);item[24]=0;
-                if(sscanf(item,"%8x%8x%8x",&hi,&lo,&last)==3)
-                    SWOS_AI_P3LoadRecent((uint32_t)hi,(uint32_t)lo,(uint32_t)last);
-            }
-        }
-    }
-
     PROF_START(rebuild_ptrs);
     extern void RebuildPointersAfterLoad(void);
     RebuildPointersAfterLoad();
     PROF_END(rebuild_ptrs, "career-load");
+
+    /* The career mods: each that is on gets its section, or is told there is none. */
+    ModHooks_CareerLoadSection((const char *)src, (int32_t)src_size);
 
     swos_io_free(src);
     PROF_END(total, "career-load");

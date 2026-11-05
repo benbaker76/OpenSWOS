@@ -45,7 +45,6 @@ void JobOffersFinish(void);
 void JobOffersCommon(MenuEntry *entry);
 void OldJobOffersCommon(MenuEntry *entry);
 void JobOffersExit(void);
-void JobOffers_TogglePage(void);
 
 /* --- Career_MaybeGenerateJobOffer (Chunk 216) --- */
 void Career_MaybeGenerateJobOffer(void);

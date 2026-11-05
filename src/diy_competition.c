@@ -1,4 +1,3 @@
-#include "swos_fixed_team_name.h"
 /*
  * Amiga SWOS RE Project
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
@@ -37,75 +36,7 @@
 #include "conti_season.h"
 #include "states.h"
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
-#include <stdio.h>
 
-
-/* EURO qualification path trace. Diagnostic only: never modifies tournament state. */
-static void EuroQualTrace(const char *event, unsigned a, unsigned b,
-                          unsigned c, unsigned d, unsigned e)
-{
-    FILE *f = fopen("swos_euro_qualification_debug.log", "a");
-    if (!f) return;
-    fprintf(f, "%s a=%u b=%u c=%u d=%u e=%u\n", event, a, b, c, d, e);
-    fclose(f);
-}
-
-/* Detailed EURO standings. `offsets` are indices into 18-byte DIYTeamStats
- * rows, NOT the IDs in the original team list. Diagnostic only. */
-static void EuroQualTraceStandings(const char *phase, const DIYCompetitionEx *comp,
-                                   const DIYTournamentState *tourn)
-{
-    const DIYCompetition *base = &comp->base;
-    const uint16_t *offsets = comp->matchData.league.teamEntryOffsets;
-    FILE *f = fopen("swos_euro_qualification_debug.log", "a");
-    if (!f) return;
-    fprintf(f, "EURO_STANDINGS_%s groups=%u entries=%u\n", phase,
-            (unsigned)base->matchPairsPerRound,
-            (unsigned)base->totalMatchesInRound);
-    for (unsigned group=0; group<4; ++group) {
-        for (unsigned rank=0; rank<4; ++rank) {
-            unsigned k=group*4+rank;
-            unsigned off=offsets[k];
-            if (off % sizeof(DIYTeamStats) || off / sizeof(DIYTeamStats) >= 16) {
-                fprintf(f,"EURO_ROW phase=%s group=%u rank=%u bad_offset=%u\n",phase,group+1,rank+1,off);
-                continue;
-            }
-            unsigned idx=off/sizeof(DIYTeamStats);
-            const DIYTeamStats *r=(const DIYTeamStats *)((const uint8_t *)&comp->base + DIY_STANDINGS_OFFSET + off);
-            int gd=(int)r->goalsFor-(int)r->goalsAgainst;
-            unsigned teamId=BE_READ_U16((const uint8_t *)&tourn->teamIds[idx]);
-            const char *name=(const char *)diy_resolve_team_name(r->teamSelOffset);
-            fprintf(f,"EURO_ROW phase=%s group=%u rank=%u record=%u team_id=%04X "
-                    "points=%u played=%u gf=%u ga=%u gd=%d name=%.32s\n",
-                    phase,group+1,rank+1,idx,teamId,(unsigned)r->points,
-                    (unsigned)r->gamesPlayed,(unsigned)r->goalsFor,(unsigned)r->goalsAgainst,
-                    gd,name?name:"?");
-        }
-    }
-    fclose(f);
-}
-
-static void EuroQualTraceOrder(const char *phase, const DIYTournamentState *t,
-                               unsigned count)
-{
-    FILE *f=fopen("swos_euro_qualification_debug.log","a");
-    if(!f)return;
-    fprintf(f,"EURO_ORDER_%s count=%u\n",phase,count);
-    for(unsigned i=0;i<count && i<16;i++) {
-        unsigned idx=t->teamIndexOrder[i];
-        if(idx>=16) {
-            fprintf(f,"EURO_ORDER_ROW phase=%s slot=%u bad_index=%u\n",phase,i,idx);
-            continue;
-        }
-        unsigned teamId=BE_READ_U16((const uint8_t *)&t->teamIds[idx]);
-        fprintf(f,"EURO_ORDER_ROW phase=%s slot=%u index=%u team_id=%04X\n",
-                phase,i,idx,teamId);
-    }
-    fclose(f);
-}
-
-/* Used by menu diagnostics declared before all tracing callbacks. */
-extern uint16_t _diyTournamentViewOnly;
 /* ---- Constants ---- */
 #define DIY_CUP                         1
 
@@ -133,46 +64,6 @@ extern uint16_t _randomSeed;
 extern uint8_t _newRandomSeedCopy;
 extern uint8_t _viewRandomPhase;
 extern uint16_t _numSelectedTeams;
-/* Temporary investigation of Yugoslav second-division end-of-season crashes.
- * Remove after the table/menu failure has been identified. */
-static void debug_league_table_state(const char *stage)
-{
-    DIYCompetitionEx *ex = &_diyCompetitionStart;
-    DIYCompetition *b = &ex->base;
-    unsigned groups = (uint16_t)b->matchPairsPerRound;
-    unsigned perGroup = (uint16_t)b->totalMatchesInRound;
-    unsigned total = groups * perGroup;
-    FILE *f = fopen("swos_division_debug.log", "a");
-    if (!f) return;
-    fprintf(f, "TABLE %s groups=%u perGroup=%u total=%u numTeams=%d selected=%u offsetCapacity=%zu standingsCapacity=%zu\n",
-            stage, groups, perGroup, total, (int)b->numTeams,
-            (unsigned)_numSelectedTeams,
-            sizeof(ex->matchData.league.teamEntryOffsets)/sizeof(uint16_t),
-            sizeof(ex->leagueStandings)/sizeof(ex->leagueStandings[0]));
-    if (!groups || !perGroup || total > 64) {
-        fprintf(f, "TABLE INVALID DIMENSIONS: impossible standings count\n");
-        fclose(f); return;
-    }
-    if (total > 14)
-        fprintf(f, "TABLE WARNING: offset count exceeds declared 14-word field (possible legacy alias usage)\n");
-    /* The stored offsets are relative to the beginning of the standings rows,
-       NOT to the beginning of the competition structure. */
-    for (unsigned i = 0; i < total && i < 14; i++) {
-        unsigned off = ex->matchData.league.teamEntryOffsets[i];
-        unsigned valid = off % sizeof(DIYTeamStats) == 0 &&
-                         off / sizeof(DIYTeamStats) < 64;
-        fprintf(f, "TABLE entry[%u]=%u valid=%u\n", i, off, valid);
-        if (valid) {
-            DIYTeamStats *row = &ex->leagueStandings[off / sizeof(DIYTeamStats)];
-            fprintf(f, "TABLE stats[%u] teamSelOffset=%u points=%u goals=%u:%u\n",
-                    i, (unsigned)row->teamSelOffset, (unsigned)row->points,
-                    (unsigned)row->goalsFor, (unsigned)row->goalsAgainst);
-        }
-    }
-    fclose(f);
-}
-
-
 extern uint8_t _quadrantDistanceFactor[];
 
 /* ---- DIY team-selection identity helpers (step-4 phase 3) ----
@@ -1547,9 +1438,6 @@ void DIY_SyncProgressToDiyFileBufferCopy(void)
 __attribute__((used, externally_visible))
 void DIY_ValidateLeagueScratchBuffer(void)
 {
-    /* Validation checkpoints: preserve original checksum and panic behaviour. */
-    { FILE *f = fopen("swos_division_debug.log", "a");
-      if (f) { fprintf(f, "VALIDTRACE ENTER teamsLoaded=%u\n", (unsigned)_teamsLoaded); fclose(f); } }
     /* Part 1: checksum the entire scratch buffer (GLOBAL_TEAM_NUMBERS bytes).
      * Use volatile to prevent LTO from optimizing the checksum loop. */
     uint8_t checksum = 0;
@@ -1557,25 +1445,18 @@ void DIY_ValidateLeagueScratchBuffer(void)
     for (int16_t i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--) {
         checksum += *p++;
     }
-    { FILE *f = fopen("swos_division_debug.log", "a");
-      if (f) { fprintf(f, "VALIDTRACE PART1 checksum=%u status=%s\n", (unsigned)checksum, checksum ? "FAIL_4444" : "OK"); fclose(f); } }
     if (checksum != 0) {
         _panicReasonCode = 0x4444;
         PanicHaltLoop();
     }
 
     /* Part 2: validate loaded team portion */
-    if (_teamsLoaded == 0) {
-        FILE *f = fopen("swos_division_debug.log", "a");
-        if (f) { fputs("VALIDTRACE EXIT teams-not-loaded\n", f); fclose(f); }
+    if (_teamsLoaded == 0)
         return;
-    }
 
     volatile uint16_t *tfb = (volatile uint16_t *)_teamFileBuffer;
     uint16_t count = tfb[0];
     uint16_t offset = tfb[2];  /* word at offset 4 = index 2 */
-    { FILE *f = fopen("swos_division_debug.log", "a");
-      if (f) { fprintf(f, "VALIDTRACE PART2_BEGIN count=%u offset=%u end=%u\n", (unsigned)count, (unsigned)offset, (unsigned)count + (unsigned)offset); fclose(f); } }
 #if SWOS_WORLDS
     /* A country over two team files (include/world.h): its moves balance over both -- a club
      * up from the second, one down from the first --, its whole range of global numbers. */
@@ -1594,36 +1475,10 @@ void DIY_ValidateLeagueScratchBuffer(void)
     for (int16_t i = (int16_t)(count - 1); i >= 0; i--) {
         checksum += *teamData++;
     }
-    { FILE *f = fopen("swos_division_debug.log", "a");
-      if (f) { fprintf(f, "VALIDTRACE PART2 checksum=%u status=%s\n", (unsigned)checksum, checksum ? "FAIL_5555" : "OK"); fclose(f); } }
-    /* All country index ranges must be disjoint. Do not compensate for
-     * overlap here: that would hide incorrect global team numbering. */
-    if (checksum != 0) {
-        /* Dump the exact checksum range before the original panic.
-         * This is diagnostic only: no data is modified. */
-        FILE *f = fopen("swos_division_debug.log", "a");
-        if (f) {
-            fprintf(f, "VALIDTRACE PART2 BYTES offset=%u count=%u\n",
-                    (unsigned)offset, (unsigned)count);
-            for (uint32_t j = 0; j < (uint32_t)count && j < 2000u; ++j) {
-                uint32_t absolute = (uint32_t)offset + j;
-                if (absolute >= 2000u) {
-                    fprintf(f, "VALIDTRACE PART2 OUT_OF_RANGE index=%u\n", (unsigned)absolute);
-                    break;
-                }
-                uint8_t value = _diyLeagueScratchBuffer[absolute];
-                fprintf(f, "VALIDTRACE PART2 BYTE index=%u unsigned=%u signed=%d\n",
-                        (unsigned)absolute, (unsigned)value, (int)(int8_t)value);
-            }
-            fclose(f);
-        }
-    }
     if (checksum != 0) {
         _panicReasonCode = 0x5555;
         PanicHaltLoop();
     }
-    { FILE *f = fopen("swos_division_debug.log", "a");
-      if (f) { fputs("VALIDTRACE EXIT OK\n", f); fclose(f); } }
 }
 
 /* ================================================================
@@ -2299,10 +2154,6 @@ uint16_t DIY_GetCurrentFixtureTeamClass(void)
 __attribute__((used, externally_visible))
 void DIY_BuildQualifiedTeamListFromSortedTable(uint16_t count, uint8_t *out)
 {
-    EuroQualTrace("QUAL_FROM_SORTED_ENTER", count,
-                  (unsigned)_diyCompetitionStart.base.numTeams,
-                  (unsigned)_diyFileBufferCopy.header.competitionType,
-                  (unsigned)_diyFileBufferCopy.header.roundComplete, 0);
     DIY_SortLeagueTableByStandings();
 
     DIYCompetitionEx *comp = &_diyCompetitionStart;
@@ -2315,8 +2166,6 @@ void DIY_BuildQualifiedTeamListFromSortedTable(uint16_t count, uint8_t *out)
         int16_t val = (int16_t)*sortedIndices++;
         uint16_t slotIdx = (uint16_t)((uint32_t)(int32_t)val / 18);
         *dst++ = teamIds[slotIdx];
-        if (i < 16) EuroQualTrace("QUAL_FROM_SORTED_PICK", i, slotIdx,
-                                  (unsigned)teamIds[slotIdx], val, count);
     }
 }
 
@@ -2334,9 +2183,6 @@ void DIY_BuildQualifiedTeamListFromSortedTable(uint16_t count, uint8_t *out)
 __attribute__((used, externally_visible))
 void DIY_BuildQualifiedTeamListFromDiyFileBuffer(uint16_t count, uint8_t *out)
 {
-    EuroQualTrace("QUAL_FROM_DIY_ENTER", count,
-                  (unsigned)_diyFileBufferCopy.header.roundComplete,
-                  (unsigned)_diyCompetitionStart.base.numTeams, 0, 0);
     DIY_SyncCompetitionTeamGridOrBuildBracket();
 
     DIYTournamentState *t = &_diyFileBufferCopy;
@@ -2349,9 +2195,6 @@ void DIY_BuildQualifiedTeamListFromDiyFileBuffer(uint16_t count, uint8_t *out)
         int8_t idx = (int8_t)*indices++;
         int16_t wordIdx = (int16_t)idx;
         *dst++ = teamIds[wordIdx];
-        if (i < 16) EuroQualTrace("QUAL_FROM_DIY_PICK", i,
-                                  (unsigned)(uint8_t)idx,
-                                  (unsigned)teamIds[wordIdx], count, 0);
     }
 }
 
@@ -2376,13 +2219,7 @@ void DIY_SyncCompetitionTeamGridOrBuildBracket(void)
     uint8_t *a4 = (uint8_t *)&_diyCompetitionStart.base;
     uint8_t *a5 = (uint8_t *)&_diyCompetitionStart.base;
 
-    EuroQualTrace("SYNC_ROUTE", offset,
-                  (unsigned)a3Slot->isLeagueFormat,
-                  (unsigned)a3Slot->numTeams,
-                  (unsigned)a3Slot->groups,
-                  (unsigned)a3Slot->divisionFactor);
     if (a3Slot->isLeagueFormat != 0) {
-        EuroQualTrace("SYNC_SEEDED", offset, 0, 0, 0, 0);
         LeaguePhase_GroupsEnd(a2, 0);       /* (a world's league phase: the play-off ties) */
         Conti_GroupsEnd(a2, 0);             /* (another confederation's main round: conti_season.c) */
         DIY_BuildSeededBracketAndUpdateScores(a2, a3, a4, a5);
@@ -2390,7 +2227,6 @@ void DIY_SyncCompetitionTeamGridOrBuildBracket(void)
         Conti_GroupsEnd(a2, 1);
         States_GroupsEnd(a2, 1);            /* (a world's state championship: its merit order, states.c) */
     } else {
-        EuroQualTrace("SYNC_COPY", offset, 0, 0, 0, 0);
         States_KnockoutEnd();               /* (its ties' winners: a later stage's pairs, states.c) */
         DIY_CopyTeamGridFromCompToDIY(a2, a3, a4, a5);
     }
@@ -3877,10 +3713,6 @@ static const uint8_t diyCompSpecificShuffle4[4] = {0x02, 0x01, 0x00, 0x03};
 static void buildCompSpecificTeamShuffle(uint8_t *diy)
 {
     DIYCompetition *diyS = (DIYCompetition *)diy;
-    if (diyS->field_2E == COMPID_europeanChampionships ||
-        diyS->field_2E == COMPID_europeanChampionships2)
-        EuroQualTraceOrder("BEFORE_KNOCKOUT_SHUFFLE", (DIYTournamentState *)diy,
-                           diyS->roundComplete == 1 ? 8 : 16);
     uint16_t field54 = (uint16_t)diyS->roundComplete;
     uint8_t *src = ((DIYTournamentState *)diy)->teamIndexOrder;
     uint8_t *dst = _diyTeamShuffleScratch;
@@ -3904,24 +3736,6 @@ static void buildCompSpecificTeamShuffle(uint8_t *diy)
     } else {
         /* Case 3+: 2 teams, copy first word */
         *(uint16_t *)dst = *(uint16_t *)src;
-    }
-    if (diyS->field_2E == COMPID_europeanChampionships ||
-        diyS->field_2E == COMPID_europeanChampionships2) {
-        FILE *f=fopen("swos_euro_qualification_debug.log","a");
-        if(f) {
-            unsigned n=field54==0?16:field54==1?8:field54==2?4:2;
-            for(unsigned i=0;i<n;i++) {
-                unsigned idx=_diyTeamShuffleScratch[i];
-                if(idx<16)
-                    fprintf(f,"EURO_BRACKET_SLOT stage=%u slot=%u index=%u team_id=%04X\n",
-                            (unsigned)field54,i,idx,
-                            (unsigned)BE_READ_U16((const uint8_t *)&((DIYTournamentState *)diy)->teamIds[idx]));
-                else
-                    fprintf(f,"EURO_BRACKET_SLOT stage=%u slot=%u bad_index=%u\n",
-                            (unsigned)field54,i,idx);
-            }
-            fclose(f);
-        }
     }
 }
 
@@ -4111,66 +3925,6 @@ void DIY_AdjustWorldCupBracketScores(uint8_t *diy, uint8_t *slot, uint8_t *comp)
  *
  * asm: a2=diy, a3=slot, a4=comp(unused in body), a5=comp
  * ================================================================ */
-/* Reconcile the EURO group-stage team IDs with the team identities that
- * actually played the group matches. The tournament teamIds[] can be in a
- * different order from the leagueStandings[] records (seen in the reported
- * save: record 0 resolved to Yugoslavia but teamIds[0] named Portugal).
- * Qualifying by standings index and then using the mismatched IDs promoted
- * Yugoslavia from Russia's second-place record.
- *
- * Safety: require a perfect permutation of the same 16 distinct teams.
- * Never touch standings, points, team records, or any other competition. */
-static int EuroReconcileGroupTeamIds(DIYCompetitionEx *comp, DIYTournamentState *tourn)
-{
-    uint16_t original[16], actual[16];
-    unsigned changes = 0;
-    FILE *f = fopen("swos_euro_qualification_debug.log", "a");
-    for (unsigned i = 0; i < 16; ++i) {
-        int32_t identity = comp->leagueStandings[i].teamSelOffset;
-        if (identity < -1 || (identity >= 0 && (unsigned)identity >= (unsigned)_numSelectedTeams)) {
-            if (f) fprintf(f, "EURO_ID_RECONCILE_ABORT record=%u identity=%ld reason=invalid_identity\n", i, (long)identity);
-            if (f) fclose(f);
-            return 0;
-        }
-        TeamFileEx *team = (TeamFileEx *)diy_resolve_team(identity);
-        original[i] = BE_READ_U16(&tourn->teamIds[i]);
-        actual[i] = PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal);
-        if (actual[i] == 0 || actual[i] == 0xFFFFu) {
-            if (f) fprintf(f, "EURO_ID_RECONCILE_ABORT record=%u reason=invalid_team_id\n", i);
-            if (f) fclose(f);
-            return 0;
-        }
-    }
-    /* Preserve the original set of teams exactly. If even one team cannot
-     * be reconciled, leave the complete original tournament state intact. */
-    for (unsigned i = 0; i < 16; ++i) {
-        unsigned oldCount = 0, newCount = 0;
-        for (unsigned j = 0; j < 16; ++j) {
-            if (original[j] == actual[i]) ++oldCount;
-            if (actual[j] == actual[i]) ++newCount;
-        }
-        if (oldCount != 1 || newCount != 1) {
-            if (f) fprintf(f, "EURO_ID_RECONCILE_ABORT record=%u id=%04X old_count=%u new_count=%u\n",
-                           i, actual[i], oldCount, newCount);
-            if (f) fclose(f);
-            return 0;
-        }
-    }
-    for (unsigned i = 0; i < 16; ++i) {
-        if (original[i] == actual[i]) continue;
-        if (f) fprintf(f, "EURO_ID_RECONCILE record=%u old=%04X correct=%04X identity=%ld\n",
-                       i, original[i], actual[i], (long)comp->leagueStandings[i].teamSelOffset);
-        BE_WRITE_U16(&tourn->teamIds[i], actual[i]);
-        ++changes;
-    }
-    if (f) {
-        fprintf(f, "EURO_ID_RECONCILE_SUMMARY changes=%u valid=1 managed=%04X\n",
-                changes, (unsigned)_selTeamNumber);
-        fclose(f);
-    }
-    return 1;
-}
-
 __attribute__((used, externally_visible))
 void DIY_BuildSeededBracketAndUpdateScores(uint8_t *diy, uint8_t *slot,
                                              uint8_t *comp4, uint8_t *comp)
@@ -4183,16 +3937,6 @@ void DIY_BuildSeededBracketAndUpdateScores(uint8_t *diy, uint8_t *slot,
 
     /* Check if world cup competition */
     uint8_t compNum = diyS->field_2E;
-    EuroQualTrace("SEEDED_ENTER", compNum,
-                  (unsigned)s->numTeams,
-                  (unsigned)s->groups,
-                  (unsigned)s->divisionFactor,
-                  (unsigned)compS->numTeams);
-    EuroQualTrace("SEEDED_LAYOUT", (unsigned)s->isLeagueFormat,
-                  (unsigned)s->teamsPerGroup,
-                  (unsigned)compS->matchPairsPerRound,
-                  (unsigned)compS->totalMatchesInRound,
-                  (unsigned)diyS->roundComplete);
 #ifdef SWOS_DEBUG_AUTOSKIP
     {
         const uint8_t *teamList = ((DIYTournamentState *)diy)->teamIndexOrder;
@@ -4206,81 +3950,6 @@ void DIY_BuildSeededBracketAndUpdateScores(uint8_t *diy, uint8_t *slot,
                           teamList[12], teamList[13], teamList[14], teamList[15]);
     }
 #endif
-    /* EURO 16 -> 8: precisely two qualifiers from each group of four.
-     * The former check additionally tested header.roundComplete and the live
-     * match-count fields. Those fields can change during transition and caused
-     * this path to be bypassed, reverting to the generic seeded ranking and
-     * occasionally qualifying third-place teams. The slot definition is the
-     * stable source for whether this is the EURO group stage. */
-    if ((compNum == COMPID_europeanChampionships ||
-         compNum == COMPID_europeanChampionships2) &&
-        s->isLeagueFormat != 0 &&
-        s->numTeams == 16 && s->groups == 4 &&
-        s->teamsPerGroup == 4 && s->divisionFactor == 8 &&
-        compS->numTeams == 16) {
-        /* Fix record-index versus team-ID drift before promoting a team's
-         * group ranking into the knockout participant list. */
-        if (!EuroReconcileGroupTeamIds(compEx, (DIYTournamentState *)diy)) {
-            EuroQualTrace("EURO_ID_RECONCILE_FAILED", compNum, 0, 0, 0, 0);
-            /* Do not use the generic fallback: it could promote the wrong
-             * national team again. Abort this progression unchanged. */
-            return;
-        }
-        uint8_t qualifiers[8];
-        uint16_t seen = 0;
-        uint16_t *offsets = compEx->matchData.league.teamEntryOffsets;
-        int valid = 1;
-        /* Make the sort operate on four independent groups even if the live
-         * competition counters have already been adjusted by progression. */
-        const int16_t previousGroups = compS->matchPairsPerRound;
-        const int16_t previousGroupSize = compS->totalMatchesInRound;
-        compS->matchPairsPerRound = 4;
-        compS->totalMatchesInRound = 4;
-        EuroQualTraceStandings("BEFORE_SORT", compEx, (DIYTournamentState *)diy);
-        DIY_SortLeagueTableByStandings();
-        EuroQualTraceStandings("AFTER_SORT", compEx, (DIYTournamentState *)diy);
-        compS->matchPairsPerRound = previousGroups;
-        compS->totalMatchesInRound = previousGroupSize;
-        for (unsigned g = 0; g < 4 && valid; ++g) {
-            for (unsigned rank = 0; rank < 2; ++rank) {
-                uint16_t off = offsets[g * 4 + rank];
-                if (off % sizeof(DIYTeamStats) != 0 ||
-                    off / sizeof(DIYTeamStats) >= 16) {
-                    valid = 0;
-                    break;
-                }
-                unsigned idx = off / sizeof(DIYTeamStats);
-                /* A qualifying slot must come from its own four-team group.
-                 * Never silently promote an entry from another group. */
-                if (idx / 4 != g || (seen & (uint16_t)(1u << idx))) {
-                    valid = 0;
-                    break;
-                }
-                seen |= (uint16_t)(1u << idx);
-                qualifiers[g * 2 + rank] = (uint8_t)idx;
-            }
-        }
-        if (valid) {
-            EuroQualTrace("EURO_TOP_TWO_USED", qualifiers[0], qualifiers[1],
-                          qualifiers[2], qualifiers[3], qualifiers[4]);
-            memcpy(((DIYTournamentState *)diy)->teamIndexOrder,
-                   qualifiers, sizeof(qualifiers));
-            EuroQualTraceOrder("QUALIFIED_TOP_TWO", (DIYTournamentState *)diy, 8);
-            fprintf(stderr, "[euro-qualification] Top two per group: %u,%u / %u,%u / %u,%u / %u,%u\n",
-                    (unsigned)qualifiers[0], (unsigned)qualifiers[1],
-                    (unsigned)qualifiers[2], (unsigned)qualifiers[3],
-                    (unsigned)qualifiers[4], (unsigned)qualifiers[5],
-                    (unsigned)qualifiers[6], (unsigned)qualifiers[7]);
-            return;
-        }
-        /* Unexpected layout: diagnose it before using the original fallback. */
-        EuroQualTrace("EURO_TOP_TWO_INVALID", compNum, seen, 0, 0, 0);
-        fprintf(stderr, "[euro-qualification] WARNING: inconsistent group standings, using original ranking fallback\n");
-    }
-
-    EuroQualTrace("SEEDED_GENERIC_FALLBACK", compNum,
-                  (unsigned)s->numTeams, (unsigned)s->groups,
-                  (unsigned)s->divisionFactor, (unsigned)compS->numTeams);
     if (compNum == COMPID_worldCup) {
         DIY_AdjustWorldCupBracketScores(diy, slot, comp);
         goto copy_back;
@@ -6949,25 +6618,10 @@ extern void GoGetTeamsForPlay(uint8_t *_gameTypeStr, uint8_t *_playWhatStr,
  * `&selTeamNameBase + offset` is the team-name address. The Amiga
  * shorthand `(uint32_t)&selTeamNameBase + offset` truncates the pointer
  * on 64-bit. */
-/* Cup match lists and their result summaries use fixed-width 17-byte
- * TeamFile.teamName fields. A full name is NOT NUL-terminated, and the
- * following byte is a mutable game statistic. Keep persistent display-only
- * copies because the menu retains pointers between drawing callbacks. */
-static uint8_t swosCupMatchNames[32][18];
-static unsigned swosCupMatchNameCount;
-static uint8_t swosCupCurrentNames[2][18];
-static uint8_t swosCupResultNames[2][18];
-
-#define swosCupCopyTeamName SWOS_CopyTeamName18
-
 static uint8_t *getTeamNameFromIndex(int8_t idx, uint8_t *comp)
 {
     DIYCompetitionEx *compEx = (DIYCompetitionEx *)comp;
-    uint8_t *src = diy_resolve_team_name(compEx->bracketScratch.teamOffsetTable[(uint16_t)(int16_t)idx]);
-    /* At most twelve names are resolved in one six-row draw pass. */
-    uint8_t *dst = swosCupMatchNames[swosCupMatchNameCount++ % 32];
-    swosCupCopyTeamName(dst, src);
-    return dst;
+    return diy_resolve_team_name(compEx->bracketScratch.teamOffsetTable[(uint16_t)(int16_t)idx]);
 }
 
 /* Helper: advance menu entry pointer and set isInvisible = 1 */
@@ -6980,7 +6634,6 @@ static MenuEntry *hideAndAdvance(MenuEntry *e)
 __attribute__((used, externally_visible))
 void DesignDIYCup_BuildMatchListEntryStrings(void)
 {
-    swosCupMatchNameCount = 0;
     if (_diyCupMatchListDrawModeFlag != 0) {
         /* Draw mode path */
         uint8_t *a4 = (uint8_t *)&_diyCompetitionStart;
@@ -7421,15 +7074,13 @@ void DesignDIYCup_UpdateCurrentMatchTeamEntryStrings(void)
      * the pointer on 64-bit). */
     e->isInvisible = 0;
     uint8_t *teamName1 = diy_resolve_team_name(baseEx->bracketScratch.teamOffsetTable[(int16_t)slot1]);
-    swosCupCopyTeamName(swosCupCurrentNames[0], teamName1);
-    e->fg = (uintptr_t)swosCupCurrentNames[0];
+    e->fg = (uintptr_t)teamName1;
     e++;
 
     /* Entry 13: team 2 name, visible */
     e->isInvisible = 0;
     uint8_t *teamName2 = diy_resolve_team_name(baseEx->bracketScratch.teamOffsetTable[(int16_t)slot2]);
-    swosCupCopyTeamName(swosCupCurrentNames[1], teamName2);
-    e->fg = (uintptr_t)swosCupCurrentNames[1];
+    e->fg = (uintptr_t)teamName2;
     e++;
 
     /* Entry 14: hidden */
@@ -7546,14 +7197,12 @@ void DesignDIYCup_UpdateCurrentMatchResultHeaderEntries(void)
     e++;
 
     /* Entry 12: team 1 name */
-    swosCupCopyTeamName(swosCupResultNames[0], team1->team.teamName);
-    e->fg = (uintptr_t)swosCupResultNames[0];
+    e->fg = (uintptr_t)team1->team.teamName;
     e->isInvisible = 0;
     e++;
 
     /* Entry 13: team 2 name */
-    swosCupCopyTeamName(swosCupResultNames[1], team2->team.teamName);
-    e->fg = (uintptr_t)swosCupResultNames[1];
+    e->fg = (uintptr_t)team2->team.teamName;
     e->isInvisible = 0;
     e++;
 
@@ -7959,10 +7608,6 @@ void DIYLeagueTournamentOnRestore(void)
     DIYLeagueTournament_EnsureCurrentFixtureVisible();
 }
 
-/* Persistent name strings for 64 distinct standings records. DrawMultipleItems
- * can retain pointers; stack-local scratch buffers would become invalid. */
-static uint8_t swosLeagueDisplayNames[64][18];
-
 /* DIYLeagueTournament16BeforeDraw — beforeDraw callback for fixture display entries 16-23 */
 /* Draws league table rows and fixture rows for the current group */
 __attribute__((used, externally_visible))
@@ -8041,7 +7686,7 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
         {
             uint8_t *nameCheck = (uint8_t *)teamPtr->team.teamName;
             uint16_t ci;
-            for (ci = 0; ci < sizeof(teamPtr->team.teamName); ci++) {
+            for (ci = 0; ci < 19; ci++) {
                 uint8_t b = nameCheck[ci];
                 if (b == 0) break;  /* null terminator is OK */
                 if (b < 0x20) {
@@ -8066,15 +7711,8 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
         else
             a5->bgColor = 14; /* COLOR_ORANGE */
 
-        /* Set safe name string without modifying the live TeamFile. */
-        if (fixtureOff % 18u == 0 && fixtureOff / 18u < 64u) {
-            uint8_t *safeName = swosLeagueDisplayNames[fixtureOff / 18u];
-            SWOS_CopyTeamName18(safeName, teamPtr->team.teamName);
-            a5->fg = (uintptr_t)safeName;
-        } else {
-            /* Invalid standings index: do not hand arbitrary bytes to text draw. */
-            a5->fg = (uintptr_t)"UNKNOWN";
-        }
+        /* Set team name string */
+        a5->fg = (uintptr_t)teamPtr->team.teamName;
 
         /* Determine row color (d3) based on view options and promotion/relegation zones */
         uint16_t d3;
@@ -9059,7 +8697,7 @@ void Bureaucracy(void)
 extern uint16_t _currentDiyLine;
 extern uint16_t _diyAllMatchesPlayed;
 extern uint16_t _diyFixtureViewMode;
-
+extern uint16_t _diyTournamentViewOnly;
 extern uint16_t _diyLeagueTournament_viewOptionsAvailable;
 extern volatile uint16_t _seasonUpdateInProgress;
 extern TeamFileEx *_diyLeftTeamPtr;
@@ -9165,7 +8803,6 @@ set_ff_and_exit:
 __attribute__((used, externally_visible))
 void DIYLeagueTournament_UpdateViewOptionsAvailability(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_UpdateViewOptionsAvailability slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     _diyLeagueTournament_viewOptionsAvailable = 0;
 
     /* Check if in group stage (hasGroups field at $3A+$E = $48) */
@@ -9189,17 +8826,6 @@ void DIYLeagueTournament_UpdateViewOptionsAvailability(void)
     if (_diyCompetitionStart.leagueMatchProgress >= threshold) {
         _diyLeagueTournament_viewOptionsAvailable = 1;
     }
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_UpdateViewOptionsAvailability slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
-}
-
-/* Fixed-width team names can occupy all 17 bytes, with a nonzero
- * own-goal counter immediately afterwards. The menu keeps pointers beyond
- * this function, so use persistent, terminated display-only copies. */
-static uint8_t swosDiyFixtureNames[2][18];
-
-static void swosDiySetFixtureName(unsigned index, const uint8_t *name)
-{
-    if (index < 2 && name) SWOS_CopyTeamName18(swosDiyFixtureNames[index], name);
 }
 
 /* ================================================================
@@ -9222,13 +8848,11 @@ void DIYSetTeamNamesAndResults(void)
 
     e++;  /* entry 12 */
     e->isInvisible = 0;
-    swosDiySetFixtureName(0, (const uint8_t *)a1->team.teamName);
-    e->fg = (uintptr_t)swosDiyFixtureNames[0];
+    e->fg = (uintptr_t)a1->team.teamName;
 
     e++;  /* entry 13 */
     e->isInvisible = 0;
-    swosDiySetFixtureName(1, (const uint8_t *)a2->team.teamName);
-    e->fg = (uintptr_t)swosDiyFixtureNames[1];
+    e->fg = (uintptr_t)a2->team.teamName;
 
     e++;  /* entry 14 */
     e->isInvisible = 0;
@@ -9248,7 +8872,6 @@ void DIYSetTeamNamesAndResults(void)
 __attribute__((used, externally_visible))
 uint16_t DIYLeagueTournament_EnsureCurrentFixtureVisible(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_EnsureCurrentFixtureVisible slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     uint16_t targetLine = 0;
 
     if (_diyFixtureViewMode != 0) {
@@ -9282,7 +8905,6 @@ uint16_t DIYLeagueTournament_EnsureCurrentFixtureVisible(void)
     }
 
     return changed;
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_EnsureCurrentFixtureVisible slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -9291,11 +8913,9 @@ uint16_t DIYLeagueTournament_EnsureCurrentFixtureVisible(void)
 __attribute__((used, externally_visible))
 void DIYLeagueTournament_ScrollFixtureListToCurrentFixture(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_ScrollFixtureListToCurrentFixture slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     if (DIYLeagueTournament_EnsureCurrentFixtureVisible() != 0) {
         DrawMenu();
     }
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_ScrollFixtureListToCurrentFixture slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -9304,12 +8924,10 @@ void DIYLeagueTournament_ScrollFixtureListToCurrentFixture(void)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentScrollUp(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentScrollUp slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     if (_currentDiyLine == 0) return;
     _currentDiyLine--;
     /* nullsub_15 omitted (no-op) */
     DrawMenu();
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentScrollUp slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -9318,7 +8936,6 @@ void DIYLeagueTournamentScrollUp(void)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentScrollDown(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentScrollDown slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     uint16_t bottom = _currentDiyLine + _numDiyResults;
     /* field_3A + $16 = offset 0x50 = halfTeams (total fixture lines) */
     if (bottom >= table_groups())
@@ -9326,7 +8943,6 @@ void DIYLeagueTournamentScrollDown(void)
     _currentDiyLine++;
     /* nullsub_15 omitted (no-op) */
     DrawMenu();
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentScrollDown slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -9339,7 +8955,6 @@ void DIYLeagueTournamentScrollDown(void)
 __attribute__((used, externally_visible))
 void DIYLeagueTournament_SetupCurrentFixtureTeamNames(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_SetupCurrentFixtureTeamNames slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     DIY_GetCurrentFixtureTeamPtrs();
 
     /* DIY_GetCurrentFixtureTeamPtrs stores results in fixtureTeam1CompPtr/fixtureTeam2CompPtr */
@@ -9364,16 +8979,14 @@ void DIYLeagueTournament_SetupCurrentFixtureTeamNames(void)
      * correctly. */
     {
         int32_t nameOff = ((DIYTeamStats *)(team1 + DIY_STANDINGS_OFFSET))->teamSelOffset;
-        swosDiySetFixtureName(0, diy_resolve_team_name(nameOff));
-        e->fg = (uintptr_t)swosDiyFixtureNames[0];
+        e->fg = (uintptr_t)diy_resolve_team_name(nameOff);
     }
 
     e++;  /* entry 13 */
     e->isInvisible = 0;
     {
         int32_t nameOff = ((DIYTeamStats *)(team2 + DIY_STANDINGS_OFFSET))->teamSelOffset;
-        swosDiySetFixtureName(1, diy_resolve_team_name(nameOff));
-        e->fg = (uintptr_t)swosDiyFixtureNames[1];
+        e->fg = (uintptr_t)diy_resolve_team_name(nameOff);
     }
 
     e++;  /* entry 14 — invisible */
@@ -9381,7 +8994,6 @@ void DIYLeagueTournament_SetupCurrentFixtureTeamNames(void)
 
     e++;  /* entry 15 — invisible */
     e->isInvisible = 1;
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_SetupCurrentFixtureTeamNames slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -9390,7 +9002,6 @@ void DIYLeagueTournament_SetupCurrentFixtureTeamNames(void)
 __attribute__((used, externally_visible))
 void DIYLeagueTournament_DrawPlayMatchAndFixtureHeader(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_DrawPlayMatchAndFixtureHeader slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     DIYLeagueTournament_SetupCurrentFixtureTeamNames();
 
     MenuEntry *e1 = &_menuEntries[1];  /* 0x38/56=1 */
@@ -9398,7 +9009,6 @@ void DIYLeagueTournament_DrawPlayMatchAndFixtureHeader(void)
     CallDrawMenuItem(e1);
 
     CallDrawMultipleItems(5, &_menuEntries[11]);  /* 0x268/56=11, draw 5 entries */
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_DrawPlayMatchAndFixtureHeader slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -9407,7 +9017,6 @@ void DIYLeagueTournament_DrawPlayMatchAndFixtureHeader(void)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentNextMatch(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentNextMatch slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     DIYCompetitionEx *compEx = &_diyCompetitionStart;
     uint8_t *a0 = (uint8_t *)compEx;
     /* +0x60 = minSubstitutes; raw offset wrong on 64-bit, use typed
@@ -9429,7 +9038,6 @@ void DIYLeagueTournamentNextMatch(void)
     /* loc_132E24 tail: update visibility and draw entries */
     DIYLeagueTournament_UpdateMenuEntryVisibilityAndFocus();
     CallDrawMultipleItems(8, &_menuEntries[1]);  /* 0x38/56=1, draw 8 entries */
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentNextMatch slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -9441,7 +9049,6 @@ extern uint16_t _diyTournamentType; /* used by SWOS_AUTOSKIP_LOG */
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentInit(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentInit slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     SWOS_AUTOSKIP_LOG("DIYLeagueInit: ENTER seasonUpdate=%u type=%u viewOnly=%u focusOverride=%u "
                       "minSubs=%u hasGroups=%u",
                       (unsigned)_seasonUpdateInProgress,
@@ -9498,7 +9105,6 @@ void DIYLeagueTournamentInit(void)
                           sel ? (unsigned)sel->controlMask : 0u,
                           sel ? (void *)(uintptr_t)sel->onSelect : (void *)0);
     }
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentInit slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10042,10 +9648,8 @@ extern void SetCurrentEntry(uint16_t index);
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentMatch(MenuEntry *entry)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentMatch slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     *(uint16_t *)&_diyCompetitionStart.base.slotStateA = entry->ordinal;
     DIYLeagueTournamentMatchCommon(2);
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentMatch slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10057,10 +9661,8 @@ void DIYLeagueTournamentMatch(MenuEntry *entry)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentOnSelect4(MenuEntry *entry)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentOnSelect4 slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     *(uint16_t *)&_diyCompetitionStart.base.slotStateA = entry->ordinal;
     DIYLeagueTournamentMatchCommon(3);
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentOnSelect4 slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10072,10 +9674,8 @@ void DIYLeagueTournamentOnSelect4(MenuEntry *entry)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentResult(MenuEntry *entry)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentResult slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     *(uint16_t *)&_diyCompetitionStart.base.slotStateA = entry->ordinal;
     DIYLeagueTournamentMatchCommon(0);
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentResult slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10087,10 +9687,8 @@ void DIYLeagueTournamentResult(MenuEntry *entry)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentViewMatch(MenuEntry *entry)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentViewMatch slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     *(uint16_t *)&_diyCompetitionStart.base.slotStateC = entry->ordinal;
     DIYLeagueTournamentMatchCommon(1);
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentViewMatch slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10102,10 +9700,8 @@ void DIYLeagueTournamentViewMatch(MenuEntry *entry)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentViewHighlights(MenuEntry *entry)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentViewHighlights slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     *(uint16_t *)&_diyCompetitionStart.base.slotStateC = entry->ordinal;
     DIYLeagueTournamentMatchCommon(3);
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentViewHighlights slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10117,7 +9713,6 @@ void DIYLeagueTournamentViewHighlights(MenuEntry *entry)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentViewResult(MenuEntry *entry)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentViewResult slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     extern uint16_t _youreSacked;
     extern uint16_t _gameType;
     SWOS_AUTOSKIP_LOG("[bug1] DIYLeagueTournamentViewResult CALLED: ordinal=%u "
@@ -10126,7 +9721,6 @@ void DIYLeagueTournamentViewResult(MenuEntry *entry)
                       (unsigned)_youreSacked, (unsigned)_gameType);
     *(uint16_t *)&_diyCompetitionStart.base.slotStateC = entry->ordinal;
     DIYLeagueTournamentMatchCommon(0);
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentViewResult slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10138,7 +9732,6 @@ void DIYLeagueTournamentViewResult(MenuEntry *entry)
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentMatchCommon(uint16_t action)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentMatchCommon slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     /* ASM passes d6 (allowSquadChanges) implicitly via register preservation
      * from the outer caller. diyTournamentType==1 for career (squad changes allowed),
      * 0 for standalone DIY (no squad changes). */
@@ -10182,7 +9775,6 @@ void DIYLeagueTournamentMatchCommon(uint16_t action)
     DIYLeagueTournament_EnsureCurrentFixtureVisible();
     DIYLeagueTournament_UpdateMenuEntryVisibilityAndFocus();
     DrawMenu();
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentMatchCommon slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10195,7 +9787,6 @@ void DIYLeagueTournamentMatchCommon(uint16_t action)
 __attribute__((used, externally_visible))
 void DIYLeagueTournament_UpdateMenuEntryVisibilityAndFocus(void)
 {
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_UpdateMenuEntryVisibilityAndFocus slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     /* If view-only mode, hide entries 1-8 (action buttons) */
     if (_diyTournamentViewOnly != 0) {
         _menuEntries[1].isInvisible = 1;
@@ -10315,7 +9906,6 @@ show_match_view:
         SetCurrentEntry(*(uint16_t *)&_diyCompetitionStart.base.slotStateA);
         return;
     }
-    { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournament_UpdateMenuEntryVisibilityAndFocus slot=%u progress=%u view=%u\n", "EXIT", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
 }
 
 /* ================================================================
@@ -10339,9 +9929,7 @@ void ShowDiyLeaguesTournamentMenu(uint16_t type, uint16_t viewOnly, uint16_t foc
     _diyFixtureViewMode = type;
     _diyTournamentViewOnly = viewOnly;
     _diyInitFocusOverride = focusOverride;
-    debug_league_table_state("BEFORE_SORT");
     DIY_SortLeagueTableByStandings();
-    debug_league_table_state("AFTER_SORT");
 
     if (_seasonUpdateInProgress != 0) {
 #ifdef SWOS_DEBUG_AUTOSKIP
@@ -10368,19 +9956,7 @@ void ShowDiyLeaguesTournamentMenu(uint16_t type, uint16_t viewOnly, uint16_t foc
     }
 
     SWOS_AUTOSKIP_LOG("ShowDiyLeaguesTournamentMenu: -> ShowMenu(diyLeagueTournamentMenu)");
-    debug_league_table_state("BEFORE_SHOWMENU");
-    {
-        FILE *f = fopen("swos_division_debug.log", "a");
-        if (f) { fprintf(f, "MENU ENTER league menu type=%u viewOnly=%u focus=%u currentSlot=%u progress=%u\n",
-            (unsigned)type, (unsigned)viewOnly, (unsigned)focusOverride,
-            (unsigned)_diyCompetitionStart.leagueCurrentSlot,
-            (unsigned)_diyCompetitionStart.leagueMatchProgress); fclose(f); }
-    }
     ShowMenu((uint8_t *)&_diyLeagueTournamentMenu);
-    {
-        FILE *f = fopen("swos_division_debug.log", "a");
-        if (f) { fprintf(f, "MENU RETURN league menu\n"); fclose(f); }
-    }
     SWOS_AUTOSKIP_LOG("ShowDiyLeaguesTournamentMenu: <- ShowMenu returned");
     _writeOnlyVar01 = 0;
 }
@@ -11285,57 +10861,6 @@ static void getCurrentMatchTeamSlotIndices(int16_t *outSlot1, int16_t *outSlot2)
     *outSlot2 = (int16_t)(int8_t)grid[matchIdx * 2 + 1];
 }
 
-/* EURO: verify that the fixture's cached team identities still match the
- * authoritative cupTeamIds. The menu and the match must resolve the SAME
- * teams; otherwise a stale careerTeam pointer can offer an eliminated human
- * team a match that belongs to a qualified AI team. */
-static void EuroCheckCupFixtureIdentity(const char *site, int16_t slot1, int16_t slot2)
-{
-    DIYCompetitionEx *c = &_diyCompetitionStart;
-    const DIYCompetition *b = &c->base;
-    const uint8_t compId = _diyFileBufferCopy.header.field_2E;
-    if (compId != COMPID_europeanChampionships &&
-        compId != COMPID_europeanChampionships2)
-        return;
-    FILE *f = fopen("swos_euro_qualification_debug.log", "a");
-    if (f) {
-        fprintf(f, "EURO_FIXTURE_ENTER site=%s comp=%u round=%d stage=%d match=%u slots=%d,%d human=%04X\n",
-                site, (unsigned)compId, (int)b->currentRoundIndex,
-                (int)_diyFileBufferCopy.header.roundComplete,
-                (unsigned)c->matchData.cup.currentMatchIndex,
-                (int)slot1, (int)slot2, (unsigned)_selTeamNumber);
-    }
-    const int16_t slots[2] = {slot1, slot2};
-    for (unsigned side = 0; side < 2; ++side) {
-        int16_t slot = slots[side];
-        if (slot < 0 || slot >= 64) {
-            if (f) fprintf(f, "EURO_FIXTURE_BAD_SLOT side=%u slot=%d\n",side,(int)slot);
-            continue;
-        }
-        unsigned wanted = BE_READ_U16(&c->cupTeamIds[slot]);
-        int32_t identity = c->bracketScratch.teamOffsetTable[slot];
-        TeamFileEx *cached = (TeamFileEx *)diy_resolve_team(identity);
-        unsigned actual = PACK_BE_U16(cached->team.countryNumber,cached->team.teamOrdinal);
-        if (f) fprintf(f, "EURO_FIXTURE_TEAM site=%s side=%u slot=%d expected=%04X actual=%04X identity=%ld ctrl=%u\n",
-                       site,side,(int)slot,wanted,actual,(long)identity,
-                       (unsigned)cached->team.teamControls);
-        if (wanted != actual && wanted != 0 && wanted != 0xFFFF) {
-            TeamFileEx *correct = VerifyTeamLoaded((uint16_t)wanted);
-            int32_t newIdentity = diy_team_to_identity((const uint8_t *)correct);
-            unsigned resolved = PACK_BE_U16(correct->team.countryNumber,correct->team.teamOrdinal);
-            if (resolved == wanted) {
-                c->bracketScratch.teamOffsetTable[slot] = newIdentity;
-                if (f) fprintf(f, "EURO_FIXTURE_REPAIRED side=%u slot=%d expected=%04X previous=%04X new_identity=%ld\n",
-                               side,(int)slot,wanted,actual,(long)newIdentity);
-            } else if (f) {
-                fprintf(f, "EURO_FIXTURE_UNRESOLVED side=%u slot=%d expected=%04X returned=%04X\n",
-                        side,(int)slot,wanted,resolved);
-            }
-        }
-    }
-    if (f) fclose(f);
-}
-
 __attribute__((used, externally_visible))
 void DIY_GetCurrentMatchTeamSlots(uint8_t **outSlot1, uint8_t **outSlot2) {
     DIYCompetitionEx *baseEx = &_diyCompetitionStart;
@@ -11364,7 +10889,6 @@ __attribute__((used, externally_visible))
 uint16_t DIY_CompareCurrentMatchTeamCategories(void) {
     int16_t slot1Idx, slot2Idx;
     getCurrentMatchTeamSlotIndices(&slot1Idx, &slot2Idx);
-    EuroCheckCupFixtureIdentity("menu", slot1Idx, slot2Idx);
 
     /* Load team pointer from bracketScratch.teamOffsetTable[slotIdx] (selTeamsPtr-relative) */
     DIYCompetitionEx *baseEx = &_diyCompetitionStart;
@@ -11793,24 +11317,10 @@ uint16_t DIY_PlayCupMatchAndAdvance(int16_t allowSquadChanges, int16_t mode) {
      * bracketScratch.teamOffsetTable[slotIdx]. */
     int16_t slot1Idx, slot2Idx;
     getCurrentMatchTeamSlotIndices(&slot1Idx, &slot2Idx);
-    EuroCheckCupFixtureIdentity("play", slot1Idx, slot2Idx);
 
     DIYCompetitionEx *baseExForSlot = &_diyCompetitionStart;
     TeamFileEx *team1 = (TeamFileEx *)diy_resolve_team(baseExForSlot->bracketScratch.teamOffsetTable[slot1Idx]);
     TeamFileEx *team2 = (TeamFileEx *)diy_resolve_team(baseExForSlot->bracketScratch.teamOffsetTable[slot2Idx]);
-    if (_diyFileBufferCopy.header.field_2E == COMPID_europeanChampionships ||
-        _diyFileBufferCopy.header.field_2E == COMPID_europeanChampionships2) {
-        FILE *f = fopen("swos_euro_qualification_debug.log", "a");
-        if (f) {
-            fprintf(f,"EURO_ACTUAL_MATCH mode=%d home=%04X away=%04X managed=%04X round=%d stage=%d\n",
-                    (int)mode,
-                    (unsigned)PACK_BE_U16(team1->team.countryNumber,team1->team.teamOrdinal),
-                    (unsigned)PACK_BE_U16(team2->team.countryNumber,team2->team.teamOrdinal),
-                    (unsigned)_selTeamNumber,(int)baseS->currentRoundIndex,
-                    (int)_diyFileBufferCopy.header.roundComplete);
-            fclose(f);
-        }
-    }
 
     /* Route match based on mode */
     if (mode == 0) {

@@ -1154,23 +1154,15 @@
         "team_list_offset": 0,
         "seed_reorder_flag": 0
       },
-      "divisions_count": 2,
-      "rounds": 3,
+      "divisions_count": 1,
+      "rounds": 4,
       "points_for_win": 3,
       "substitutes": 3,
       "max_subs": 5,
       "divisions": [
         {
-          "teams": 12,
+          "teams": 10,
           "promoted": 0,
-          "promoted_po": 0,
-          "relegated": 2,
-          "relegated_po": 0,
-          "qualifier_link_offset": 0
-        },
-        {
-          "teams": 12,
-          "promoted": 2,
           "promoted_po": 0,
           "relegated": 0,
           "relegated_po": 0,

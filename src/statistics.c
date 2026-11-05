@@ -1,5 +1,3 @@
-#include "swos_fixed_team_name.h"
-#include "career_params.h"
 /*
  * Amiga SWOS RE Project
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)

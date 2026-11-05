@@ -859,15 +859,9 @@ CompetitionLeague _welshLeague = {
     0,
     {  }
 };
-/* Expanded FR Yugoslavia test database (TEAM.041): two groups of 12 clubs.
- * Division indices in the TEAM file must be 0 (top) and 1 (second).
- * Two round-robin legs yield 22 fixtures per club and avoid the original
- * four-leg schedule, which was intended for the ten-club league.
- * Direct promotion/relegation: two clubs per division boundary.
- * This changes the competition template, NOT existing career saves. */
 CompetitionLeague _yugoslavianLeague = {
-    { { 85, 0, 41, 64, 40, 0, 0, 0, 0 }, 2, 2, 3, 53 },
-    { { 12, 0, 0, 2, 0, 0 }, { 12, 2, 0, 0, 0, 0 } },
+    { { 85, 0, 41, 64, 40, 0, 0, 0, 0 }, 1, 4, 3, 53 },
+    { { 10, 0, 0, 0, 0, 0 } },
     0,
     {  }
 };

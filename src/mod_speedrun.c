@@ -1,7 +1,7 @@
 /*
  * mod_speedrun.c -- the speedrun mod (canonical, bin/mods/speedrun; docs/MODS.md §18): SWOS 2020's
  * SPEEDRUN (game.cpp challengeGame0Extras_OnSelect, checkSpeedrunWinningCondition), ported onto
- * the mod API. SDL builds.
+ * the mod API. Both targets.
  *
  * MODES -> SPEEDRUN: eight targets, each with its best time. Pick one, then the teams (the
  * friendly's team screen: yours is the one you play, the other the CPU's or a friend's), and the
@@ -27,7 +27,6 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
 
 #include "mjson.h"
 
@@ -75,13 +74,13 @@ static void records_read(void)
         for (int32_t t = 0; t < kTargets; t++) {
             if (strcmp(key, kTarget[t].key) != 0)
                 continue;
-            double v;
+            long v;     /* (whole numbers: mjson_get_long, which the Amiga has -- no doubles there) */
             snprintf(q, sizeof q, "$.records[%d].played", (int)i);
-            if (mjson_get_number(json, (int)size, q, &v)) s_rec[t].played = (uint32_t)v;
+            if (mjson_get_long(json, (int)size, q, &v)) s_rec[t].played = (uint32_t)v;
             snprintf(q, sizeof q, "$.records[%d].best_frames", (int)i);
-            if (mjson_get_number(json, (int)size, q, &v)) s_rec[t].best = (uint32_t)v;
+            if (mjson_get_long(json, (int)size, q, &v)) s_rec[t].best = (uint32_t)v;
             snprintf(q, sizeof q, "$.records[%d].last_frames", (int)i);
-            if (mjson_get_number(json, (int)size, q, &v)) s_rec[t].last = (uint32_t)v;
+            if (mjson_get_long(json, (int)size, q, &v)) s_rec[t].last = (uint32_t)v;
             snprintf(q, sizeof q, "$.records[%d].best_teams", (int)i);
             mjson_get_string(json, (int)size, q, s_rec[t].bestTeams, (int)sizeof s_rec[t].bestTeams);
         }
@@ -224,7 +223,9 @@ static void run(int32_t target, int32_t again)
             fprintf(stdout, "SPEEDRUN TEST %s: %s, %u frames, best %u, played %u\n", kTarget[target].key,
                     s_done ? "PASS" : "FAIL", (unsigned)s_doneAt, (unsigned)rec->best, (unsigned)rec->played);
             fflush(stdout);
+#ifdef SWOS_SDL_BUILD
             exit(s_done ? 0 : 1);
+#endif
         }
         s_retry = 0;
         ModApi_ShowMenu("speedrun/speedrunResult");
@@ -333,6 +334,7 @@ static void sr_init(void)
     ModApi_AddEntry(MODPOINT_MODES, "speedrun", "speedrun", sr_open);
 }
 
+#ifdef SWOS_SDL_BUILD
 /* (src/mod_match.c ModMatch_SelfTest: SWOS_MOD_MATCH_TEST=speedrun:<n>) */
 void ModSpeedrun_Test(int32_t target)
 {
@@ -341,6 +343,7 @@ void ModSpeedrun_Test(int32_t target)
     s_test = 1;
     run(target, 0);
 }
+#endif
 
 const ModDef ModDef_speedrun = {
     .slug = "speedrun",
@@ -349,4 +352,3 @@ const ModDef ModDef_speedrun = {
     .matchEnded = sr_ended,
 };
 
-#endif /* SWOS_SDL_BUILD */

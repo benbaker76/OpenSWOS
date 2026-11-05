@@ -18,14 +18,15 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
-
 #include "game_types.h"
 #include "mod_hooks.h"
 #include "play_match_menu.h"
+#include "team_uuid.h"      /* (the Amiga: a team's number checked against its id) */
+#include "world.h"
+#ifdef SWOS_SDL_BUILD
 #include "team_db.h"
-
 #include <SDL.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -152,6 +153,7 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
             if (load_team(setup->team[t], t, setup->side[t] == MODSIDE_CPU ? TEAM_COMPUTER : TEAM_PLAYER_COACH) != 0)
                 return -1;
         _numSelectedTeams = 2;
+#ifdef SWOS_SDL_BUILD
         if (getenv("SWOS_MOD_MATCH_TEAMS")) {   /* (the test: would the online rule take them?) */
             extern int32_t CustomTeam_Allowed(const TeamFileEx *team);
             for (int32_t t = 0; t < 2; t++)
@@ -159,6 +161,7 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
                         (const char *)_selectedTeams[t].team.teamName,
                         CustomTeam_Allowed(&_selectedTeams[t]) ? "accepts it" : "REFUSES it");
         }
+#endif
     }
 
     /* the friendly's own settings, kept to be put back: the mod's match is not the player's */
@@ -232,6 +235,16 @@ int32_t ModApi_ChooseTeams(void)
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
 }
 
+#ifndef SWOS_SDL_BUILD
+/* (team packs are the SDL build's: the Amiga has none to offer) */
+int32_t ModApi_PackCount(void) { return 0; }
+int32_t ModApi_PackInfo(int32_t i, int32_t *number, const char **name, const char **description)
+{
+    (void)i; (void)number; (void)name; (void)description;
+    return 0;
+}
+int32_t ModApi_ChooseFromPack(int32_t number) { (void)number; return 0; }
+#else
 int32_t ModApi_PackCount(void)
 {
     extern int32_t TeamPacks_Count(void);
@@ -253,12 +266,47 @@ int32_t ModApi_ChooseFromPack(int32_t number)
     GoGetTeamsFromPack(_aFriendly_1, _aPlayFriendly, 2, number);
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
 }
+#endif
 
+#ifdef SWOS_SDL_BUILD
 uint16_t ModApi_TeamByUuid(const char *uuid)
 {
     const TeamDbEntry *e = uuid ? TeamDb_ByUuid(uuid) : NULL;
     return e ? (uint16_t)(e->team.team.countryNumber << 8 | e->team.team.teamOrdinal) : 0;
 }
+
+uint16_t ModApi_TeamByUuidNumber(const char *uuid, uint16_t number)
+{
+    return uuid && uuid[0] ? ModApi_TeamByUuid(uuid) : number;
+}
+#else
+/* (the Amiga has no team database, so no ids: a mod there names teams by number) */
+uint16_t ModApi_TeamByUuid(const char *uuid) { (void)uuid; return 0; }
+
+uint16_t ModApi_TeamByUuidNumber(const char *uuid, uint16_t number)
+{
+    char derived[TEAM_UUID_TEXT];
+    if (!uuid || !uuid[0])
+        return number;
+    if (!number)
+        return 0;
+    TeamDb_DerivedTeamUuid(number >> 8, number & 0xFF, derived);
+    return strcmp(derived, uuid) == 0 ? number : 0;
+}
+
+/* A team by its number, from its team file (the Amiga's, for want of the database). */
+static const TeamFileEx *file_team(uint16_t teamId)
+{
+    if (LoadTeamFile((uint8_t)(teamId >> 8)) != 0)
+        return NULL;
+    const uint16_t count = *(uint16_t *)_teamFileBuffer;
+    const TeamFileEx *rec = (const TeamFileEx *)(_teamFileBuffer + 2);
+    for (uint16_t i = 0; i < count; i++)
+        if (rec[i].team.teamOrdinal == (teamId & 0xFF) && rec[i].team.countryNumber == (teamId >> 8))
+            return &rec[i];
+    return NULL;
+}
+#endif
 
 static int32_t team_player(const TeamFileEx *t, int32_t slot, ModTeamPlayer *out)
 {
@@ -282,8 +330,12 @@ static int32_t team_player(const TeamFileEx *t, int32_t slot, ModTeamPlayer *out
 
 int32_t ModApi_TeamPlayer(uint16_t teamId, int32_t slot, ModTeamPlayer *out)
 {
+#ifdef SWOS_SDL_BUILD
     const TeamDbEntry *e = TeamDb_Team(teamId >> 8, teamId & 0xFF);
     return e ? team_player(&e->team, slot, out) : 0;
+#else
+    return team_player(file_team(teamId), slot, out);
+#endif
 }
 
 int32_t ModApi_ChosenTeamPlayer(int32_t team, int32_t slot, ModTeamPlayer *out)
@@ -304,11 +356,29 @@ int32_t ModApi_ChosenTeamUuid(int32_t team, char *out, int32_t cap)
 {
     if (!out || cap <= 0 || team < 0 || team > 1 || _numSelectedTeams < 2)
         return 0;
+#ifdef SWOS_SDL_BUILD
     const TeamDbEntry *e = TeamDb_Team(_selectedTeams[team].team.countryNumber, _selectedTeams[team].team.teamOrdinal);
     if (!e || !e->ids.uuid[0])
         return 0;
     snprintf(out, (size_t)cap, "%s", e->ids.uuid);
     return 1;
+#else
+    /* (the Amiga has no database: a 96/97 team's id is derived from its number -- a world's are
+     *  stated in its data, which the Amiga does not read) */
+    if (World_Current() != WORLD_9697)
+        return 0;
+    if (cap < TEAM_UUID_TEXT)
+        return 0;
+    TeamDb_DerivedTeamUuid(_selectedTeams[team].team.countryNumber, _selectedTeams[team].team.teamOrdinal, out);
+    return 1;
+#endif
+}
+
+uint16_t ModApi_ChosenTeamNumber(int32_t team)
+{
+    if (team < 0 || team > 1 || _numSelectedTeams < 2)
+        return 0;
+    return (uint16_t)(_selectedTeams[team].team.countryNumber << 8 | _selectedTeams[team].team.teamOrdinal);
 }
 
 const char *ModApi_ChosenName(int32_t team)
@@ -335,7 +405,11 @@ uint16_t ModApi_RandomTeam(void)
 {
     static uint32_t state;
     if (!state)
+#ifdef SWOS_SDL_BUILD
         state = (uint32_t)SDL_GetPerformanceCounter() | 1u;
+#else
+        state = ModApi_Ticks() * 2654435761u | 1u;
+#endif
     for (int32_t tries = 0; tries < 8; tries++) {
         state = state * 1664525u + 1013904223u;
         const uint8_t file = (uint8_t)(0x50 + (state >> 16) % 6);  /* the national teams' files */
@@ -705,11 +779,13 @@ int32_t ModMatch_SpriteHidden(const Sprite *spr)
             if (spr == kResult[i])
                 return 1;
         /* ... the wide screen's third column of the banner's grid, and the scorer lines under it */
-        extern Sprite _gridUpperRowExtraSprite, _gridMiddleRowExtraSprite, _gridBottomRowExtraSprite;
         extern Sprite _team1ScorerSprite[], _team2ScorerSprite[];
+#ifdef SWOS_SDL_BUILD   /* (the widescreen tiles: the SDL build's) */
+        extern Sprite _gridUpperRowExtraSprite, _gridMiddleRowExtraSprite, _gridBottomRowExtraSprite;
         if (spr == &_gridUpperRowExtraSprite || spr == &_gridMiddleRowExtraSprite ||
             spr == &_gridBottomRowExtraSprite)
             return 1;
+#endif
         for (int32_t i = 0; i < 8; i++)
             if (spr == &_team1ScorerSprite[i] || spr == &_team2ScorerSprite[i])
                 return 1;
@@ -734,7 +810,11 @@ int32_t ModMatch_SpriteHidden(const Sprite *spr)
 int32_t ModMatch_HideClock(void) { return s_mm.active && s_mm.setup.hideClock; }
 
 /* A re-simulated frame (netplay): the match hooks are told only frames as first played. */
+#ifdef SWOS_SDL_BUILD
 int32_t ModMatch_Quiet(void) { return NetplayMatch_Resimulating(); }
+#else
+int32_t ModMatch_Quiet(void) { return 0; }      /* (no netplay on the Amiga: every frame is shown) */
+#endif
 
 /* Each frame of a match, after the clock. */
 void ModMatch_Frame(void)
@@ -867,6 +947,9 @@ void ModMatch_Ended(void)
  * Norway v New Zealand, CPU v CPU, 2-1 at minute 40, no stadium or replay menu -- its events
  * logged ([mods] event) and its result, then the game quits: the match hooks proved without a
  * mod (with SWOS_HARNESS_TURBO it runs as fast as it can). */
+#ifndef SWOS_SDL_BUILD
+void ModMatch_SelfTest(void) { }     /* (the tests are the SDL build's: SWOS_MOD_MATCH_TEST) */
+#else
 static void play_test_match(int32_t thenQuit);
 static int32_t s_testShootout;          /* SWOS_MOD_MATCH_TEST=shootout */
 
@@ -979,4 +1062,4 @@ static void play_test_match(int32_t thenQuit)
     exit(ok ? 0 : 1);
 }
 
-#endif /* SWOS_SDL_BUILD */
+#endif /* SWOS_SDL_BUILD: the self-test */

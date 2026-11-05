@@ -1,0 +1,14 @@
+{
+ "uuid": "2fb99dc7-ee40-5339-b2d4-267b5e65d3d3",
+ "id": "challenge-collection",
+ "name": "Challenge Collection",
+ "version": "1.0",
+ "author": "petarku (the5ar)",
+ "about": "Six challenges for MODES -> CHALLENGES: from FINISH THE JOB to DERBY MIRACLE. Win the match; a draw goes to extra time and penalties.",
+ "targets": [
+  "sdl",
+  "amiga"
+ ],
+ "changes": "modes",
+ "default": true
+}

@@ -30,5 +30,47 @@
   "board_euro_top2_bonus": 3,
 
   "_career_length": "how many seasons before the manager retires; 20 (classic) or _up to 35",
-  "num_seasons": 20
+  "num_seasons": 20,
+
+  "_capacities": "list sizes (include/career_capacity.h): the original's at least, the SDL build's maximum at most (50000 / 45 / 10 / 20)",
+  "foreign_pool_capacity": 432,
+  "foreign_listing_capacity": 15,
+  "transfer_list_capacity": 5,
+  "job_offers_capacity": 5,
+
+  "_trialists": "0 = count available players by the caller's flag, as the original; 1 = injured and suspended players out in every non-training match",
+  "trialist_count_mode": 0,
+
+  "_finances2": "benefactorr's Career+ values in its own career_params.json: wage_pct 40, team_value_wage_pct 250, running_cost_mode 1 (halved, progressive brackets), running_cost_pct 45, league_gate_mult 100, sponsorship_mode 1 with sponsorship_weeks [18,14,10,6], league_distribution_weeks [9,7,5,3], profit_loss_sponsorship 1",
+  "wage_pct": 100,
+  "team_value_wage_pct": 100,
+  "running_cost_mode": 0,
+  "running_cost_pct": 100,
+  "league_gate_mult": 1,
+  "sponsorship_mode": 0,
+  "sponsorship_weeks": [0, 0, 0, 0],
+  "league_distribution_weeks": [0, 0, 0, 0],
+  "profit_loss_sponsorship": 0,
+
+  "_transfers": "Career+'s: transfer_quota_mode 1 with transfer_quota 256 (half for sales, half for buys; buys then limited only by the pool's room), foreign_refill_mult 3, listed_bid_chance 36, foreign_bid_chance 64, domestic_buyer_mode 1",
+  "transfer_quota_mode": 0,
+  "transfer_quota": 256,
+  "foreign_refill_mult": 1,
+  "listed_bid_chance": 11,
+  "foreign_bid_chance": 8,
+  "domestic_buyer_mode": 0,
+
+  "_job_offers": "Career+'s: job_offer_expiry 0, job_offer_first_week 20, job_offer_waves 1, job_offer_stop_season7 0, job_offer_phase_gate 0, job_offer_own_national 0, job_offer_pass 220, job_offer_rep_high_pct 125, job_offer_rep_low_pct 55, job_offer_selector_clubs 96, job_offer_national_chance 192, job_offer_abroad_chance 128 (with job_offers_capacity 20)",
+  "job_offer_expiry": 1,
+  "job_offer_first_week": 0,
+  "job_offer_waves": 0,
+  "job_offer_stop_season7": 1,
+  "job_offer_phase_gate": 1,
+  "job_offer_own_national": 1,
+  "job_offer_pass": 42,
+  "job_offer_rep_high_pct": 100,
+  "job_offer_rep_low_pct": 75,
+  "job_offer_selector_clubs": 0,
+  "job_offer_national_chance": 0,
+  "job_offer_abroad_chance": 0
 }

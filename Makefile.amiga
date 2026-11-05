@@ -72,7 +72,6 @@ SDL_ONLY_SRCS := \
     match_record.c        \
     match_report.c        \
     match_step.c          \
-    menu_load_json.c      \
     menu_symbols.c        \
     miniz_impl.c          \
     pitch_map.c           \
@@ -163,7 +162,7 @@ FP  = -fomit-frame-pointer
 ifdef DBG
 OPT = -O0
 endif
-CCFLAGS   = -g -MP -MMD -m68020 $(OPT) -nostdlib -Wextra -Wno-unused-function -Wno-volatile-register-var -Wno-stringop-overflow $(FP) -fno-tree-loop-distribution -fno-strict-aliasing -fno-exceptions -fno-optimize-sibling-calls -ffunction-sections -fdata-sections -Iinclude $(DATA_FLAGS)
+CCFLAGS   = -g -MP -MMD -m68020 $(OPT) -nostdlib -Wextra -Wno-unused-function -Wno-volatile-register-var -Wno-stringop-overflow $(FP) -fno-tree-loop-distribution -fno-strict-aliasing -fno-exceptions -fno-optimize-sibling-calls -ffunction-sections -fdata-sections -Iinclude -isystem include/amiga_libc $(DATA_FLAGS)
 
 # DUMP_ASM=1 → save preprocessed .i and assembly .s next to each .o.
 # Slight build slowdown; output lands in obj/ alongside .o files.

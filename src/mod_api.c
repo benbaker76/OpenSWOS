@@ -5,21 +5,34 @@
 #include "mod_api.h"
 #include "tweaks.h"      /* ModApi_SetTweak */
 
-#ifdef SWOS_SDL_BUILD
 
 #include "display.h"
 #include "game_types.h"
 #include "mods.h"
-#include "platform_sdl.h"
 #include "player_face3.h"
 
 #include "swos_io.h"
 
-#include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef SWOS_SDL_BUILD
+#include "platform_sdl.h"
+#include <SDL.h>
 #include <sys/stat.h>
+#define mod_strcasecmp SDL_strcasecmp
+#else
+/* (the Amiga: no SDL; these are what the SDL calls below were) */
+static int mod_strcasecmp(const char *a, const char *b)
+{
+    for (;; a++, b++) {
+        int ca = (unsigned char)*a, cb = (unsigned char)*b;
+        if (ca >= 'a' && ca <= 'z') ca -= 32;
+        if (cb >= 'a' && cb <= 'z') cb -= 32;
+        if (ca != cb || !ca) return ca - cb;
+    }
+}
+#endif
 
 extern uint16_t  _pitchNumberAndType;
 extern uint32_t  _gameTime;
@@ -30,6 +43,7 @@ extern TeamGame *_topTeamPtr;
 extern TeamGame *_bottomTeamPtr;
 extern uint8_t  *_spriteGraphicsPtr;
 extern volatile uintptr_t _frontbufferBasePtr;
+extern FixedPoint _cameraX, _cameraY;      /* (Render_CameraX/Y on the Amiga: game_types.h) */
 
 /* ---- when (mod_hooks.c tells these) ---- */
 
@@ -40,15 +54,20 @@ void ModApi_NoteReplayFrame(void) { s_replayPresent = s_presents; }
 
 int32_t ModApi_InMatch(void) { return GameLoop_Active() != 0; }
 int32_t ModApi_InReplay(void) { return s_presents - s_replayPresent <= 2; }
+#ifdef SWOS_SDL_BUILD
 uint32_t ModApi_Ticks(void) { return SDL_GetTicks(); }
+#else
+/* (the VBlank's count, 50 a second on a PAL Amiga: 20 ms each) */
+uint32_t ModApi_Ticks(void) { extern volatile uint16_t _currentTick; return (uint32_t)_currentTick * 20u; }
+#endif
 
 /* ---- the match ---- */
 
 int32_t ModApi_PitchType(void)
 {
     /* (SWOS_WEATHER_PITCH=<0..6>: that pitch type whatever the match's -- a test's) */
-    const char *force = SDL_getenv("SWOS_WEATHER_PITCH");
-    return force && *force ? SDL_atoi(force) : (_pitchNumberAndType & 0xFF);
+    const char *force = getenv("SWOS_WEATHER_PITCH");
+    return force && *force ? atoi(force) : (_pitchNumberAndType & 0xFF);
 }
 
 int32_t ModApi_MatchMinute(void)
@@ -121,12 +140,14 @@ uint8_t *ModApi_Frame(int32_t *stride)
 
 /* ---- colours ---- */
 
+#ifdef SWOS_SDL_BUILD
 void ModApi_PaletteColour(uint8_t index, uint8_t *r, uint8_t *g, uint8_t *b)
 {
     Platform_PaletteColour(index, r, g, b);
 }
 
 uint8_t ModApi_NearestColour(uint8_t r, uint8_t g, uint8_t b) { return Platform_NearestColour(r, g, b); }
+#endif  /* (the Amiga's: with the first mod that draws there, from its copper list) */
 
 /* ---- the mod's own files ---- */
 
@@ -140,7 +161,11 @@ const char *ModApi_ModDir(const char *slug)
 
 /* ---- settings: SWOS.ini [mod.<slug>] (Settings_Save keeps sections it does not know) ---- */
 
+#ifdef SWOS_SDL_BUILD
 enum { kMaxSettings = 128 };
+#else
+enum { kMaxSettings = 32 };     /* (the Amiga: only what the mods set this run -- no SWOS.ini) */
+#endif
 typedef struct {
     char slug[MODS_ID_MAX], key[32], value[96];
 } Setting;
@@ -161,8 +186,9 @@ static void trim(char *t)
 
 static void read_settings(void)
 {
-    char line[256], section[64] = "";
     s_settingsRead = 1;
+#ifdef SWOS_SDL_BUILD
+    char line[256], section[64] = "";
     FILE *f = fopen(swos_ini_path(), "r");
     if (!f)
         return;
@@ -188,6 +214,7 @@ static void read_settings(void)
         trim(st->value);
     }
     fclose(f);
+#endif  /* (the Amiga has no SWOS.ini: a mod's settings are its defaults, and what it sets this run) */
 }
 
 static Setting *find_setting(const char *slug, const char *key)
@@ -195,7 +222,7 @@ static Setting *find_setting(const char *slug, const char *key)
     if (!s_settingsRead)
         read_settings();
     for (int32_t i = 0; i < s_settingCount; i++)
-        if (SDL_strcasecmp(s_settings[i].slug, slug) == 0 && SDL_strcasecmp(s_settings[i].key, key) == 0)
+        if (mod_strcasecmp(s_settings[i].slug, slug) == 0 && mod_strcasecmp(s_settings[i].key, key) == 0)
             return &s_settings[i];
     return NULL;
 }
@@ -211,9 +238,9 @@ int32_t ModApi_SettingInt(const char *slug, const char *key, int32_t fallback)
     const Setting *st = find_setting(slug, key);
     if (!st || !st->value[0])
         return fallback;
-    if (SDL_strcasecmp(st->value, "true") == 0 || SDL_strcasecmp(st->value, "on") == 0)
+    if (mod_strcasecmp(st->value, "true") == 0 || mod_strcasecmp(st->value, "on") == 0)
         return 1;
-    if (SDL_strcasecmp(st->value, "false") == 0 || SDL_strcasecmp(st->value, "off") == 0)
+    if (mod_strcasecmp(st->value, "false") == 0 || mod_strcasecmp(st->value, "off") == 0)
         return 0;
     return (int32_t)strtol(st->value, NULL, 10);
 }
@@ -236,7 +263,9 @@ int32_t ModApi_SetSetting(const char *slug, const char *key, const char *value)
         snprintf(st->key, sizeof st->key, "%s", key);
     }
     snprintf(st->value, sizeof st->value, "%s", value);
-
+#ifndef SWOS_SDL_BUILD
+    return 0;       /* (no SWOS.ini on the Amiga: kept for this run) */
+#else
     const char *path = swos_ini_path();
     static char lines[512][256];
     int32_t n = 0, sectionAt = -1, keyAt = -1, sectionEnd = -1;
@@ -258,7 +287,7 @@ int32_t ModApi_SetSetting(const char *slug, const char *key, const char *value)
             if (sectionAt >= 0 && sectionEnd < 0)
                 sectionEnd = i;
             snprintf(section, sizeof section, "%s", t + 1);
-            if (SDL_strcasecmp(section, want) == 0)
+            if (mod_strcasecmp(section, want) == 0)
                 sectionAt = i;
             continue;
         }
@@ -266,7 +295,7 @@ int32_t ModApi_SetSetting(const char *slug, const char *key, const char *value)
         if (eq && sectionAt >= 0 && sectionEnd < 0) {
             *eq = '\0';
             trim(t);
-            if (SDL_strcasecmp(t, key) == 0)
+            if (mod_strcasecmp(t, key) == 0)
                 keyAt = i;
         }
     }
@@ -291,10 +320,39 @@ int32_t ModApi_SetSetting(const char *slug, const char *key, const char *value)
     fclose(out);
     swos_save_commit();
     return 0;
+#endif
 }
 
-/* ---- the mod's save data: <save folder>/mods/<slug>/<name> ---- */
+/* ---- the mod's save data: <save folder>/mods/<slug>/<name>; on the Amiga save/<slug>_<name>
+ *      (resload makes no folders, and FFS names are 30 characters: keep a mod's names short) ---- */
 
+#ifndef SWOS_SDL_BUILD
+static int32_t amiga_save_name(const char *slug, const char *name, char *out, uint32_t cap)
+{
+    if (!slug || !name || !name[0] || strchr(name, '/') || strchr(name, ':') || strstr(name, ".."))
+        return -1;
+    const int n = snprintf(out, cap, "save/%s_%s", slug, name);     /* (a bare name is the drawer's) */
+    return n > 0 && (uint32_t)n < cap && n - 5 <= 30 ? 0 : -1;
+}
+
+int32_t ModApi_SaveFile(const char *slug, const char *name, const void *data, uint32_t size)
+{
+    char path[64];
+    if (amiga_save_name(slug, name, path, sizeof path) != 0)
+        return -1;
+    return swos_io_save((const uint8_t *)path, (const uint8_t *)data, size) == 0 ? 0 : -1;
+}
+
+void *ModApi_LoadFile(const char *slug, const char *name, uint32_t *size)
+{
+    char path[64];
+    uint8_t *buf = NULL;
+    *size = 0;
+    if (amiga_save_name(slug, name, path, sizeof path) != 0 || swos_io_load_alloc((const uint8_t *)path, &buf, size) != 0)
+        return NULL;
+    return buf;         /* (NUL-terminated, as on SDL; free() it) */
+}
+#else
 extern int32_t Resload_SaveFileAt(const char *path, const uint8_t *src, uint32_t n);
 
 static void make_dir(const char *path)
@@ -349,5 +407,4 @@ void *ModApi_LoadFile(const char *slug, const char *name, uint32_t *size)
     *size = (uint32_t)n;
     return buf;
 }
-
-#endif /* SWOS_SDL_BUILD */
+#endif

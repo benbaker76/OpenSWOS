@@ -40,22 +40,3 @@ void Career_SetCupPickList_ForSelectedRegion(uint16_t *teamList);
 
 /* --- Chunk 186: Season Update Functions --- */
 void Career_AdvanceToNextSeason_UpdateCompetitions(void);
-
-/* Persistent season champions, independent of manager-only SeasonInformations.
- * kind: 0 league division, 1 primary cup, 2 secondary cup, 3 tertiary cup.
- * The season index is zero-based; competition id is the original country code.
- * Entries are only written after results have been generated. */
-#define CAREER_WINNER_SEASONS 35
-#define CAREER_WINNERS_PER_SEASON 512
-
-typedef struct CareerWinnerRecord {
-    uint16_t teamId;
-    uint8_t competitionId;
-    uint8_t division;
-    uint8_t kind;
-} CareerWinnerRecord;
-extern CareerWinnerRecord _careerWinners[CAREER_WINNER_SEASONS][CAREER_WINNERS_PER_SEASON];
-extern uint16_t _careerWinnerCounts[CAREER_WINNER_SEASONS];
-void CareerWinners_Clear(void);
-void CareerWinners_Record(uint16_t season, uint8_t competitionId,
-                          uint8_t kind, uint8_t division, uint16_t teamId);

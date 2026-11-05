@@ -15,9 +15,9 @@
  * counters careerSeasonsCompleted..offerSwapSlotsUsed, now a 16-byte hole):
  *   run 1 (230 B): foreignMarketPlayers(60), homeMarketPlayers(100),
  *                  transferOfferTable(70)
- *   run 2 (296 B): numNewJobOffers, newJobOffers(JobOffer[20]=520), numJobOffers,
- *                  jobOffers(JobOffer[20]=520), timeToNegotiate,
- *                  numPlayersOnTransferMarket, playersOnTransferMarket(20),
+ *   run 2 (296 B): numNewJobOffers, newJobOffers(JobOffer[5]=130), numJobOffers,
+ *                  jobOffers(JobOffer[5]=130), timeToNegotiate,
+ *                  numPlayersOnTransferMarket, playersOnTransferMarket(10),
  *                  lastOffer{Primary,Swap,Extra}*Ordinal / ExtraPlayersWanted,
  *                  offerNegotiationAttemptCount, transferMarketRandOffset0..2,
  *                  transferMarketPhase
@@ -40,32 +40,40 @@
  */
 #include "swos_types.h"
 #include "swos_platform.h"
+#include "career_capacity.h"   /* CAREER_MAX_*: the lists' compiled sizes (the original's on the Amiga) */
 
-extern uint8_t _foreignMarketPlayers[180];
+#define JOB_OFFER_BYTES 26u    /* sizeof(JobOffer), game_types.h */
+extern uint8_t _foreignMarketPlayers[CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE];
 extern uint8_t _homeMarketPlayers[100];
 extern uint8_t _transferOfferTable[70];
-extern uint8_t _newJobOffers[520];
-extern uint8_t _jobOffers[520];
-extern uint16_t _playersOnTransferMarket[10];
-_Static_assert(sizeof(_foreignMarketPlayers)==180 && sizeof(_homeMarketPlayers)==100
-            && sizeof(_transferOfferTable)==70 && sizeof(_newJobOffers)==520
-            && sizeof(_jobOffers)==520 && sizeof(_playersOnTransferMarket)==20,
+extern uint8_t _newJobOffers[CAREER_MAX_JOB_OFFERS * JOB_OFFER_BYTES];
+extern uint8_t _jobOffers[CAREER_MAX_JOB_OFFERS * JOB_OFFER_BYTES];
+extern uint16_t _playersOnTransferMarket[CAREER_MAX_TRANSFER_LIST];
+_Static_assert(sizeof(_homeMarketPlayers)==100 && sizeof(_transferOfferTable)==70,
                "transfer-market array sizes must match the overlay reservation");
+_Static_assert(sizeof(_foreignMarketPlayers) >= 60 && sizeof(_newJobOffers) >= 130
+            && sizeof(_jobOffers) >= 130 && sizeof(_playersOnTransferMarket) >= 10,
+               "the lists hold the original's sizes at least (include/career_capacity.h)");
+#ifndef SWOS_SDL_BUILD
+_Static_assert(sizeof(_foreignMarketPlayers)==60 && sizeof(_newJobOffers)==130
+            && sizeof(_jobOffers)==130 && sizeof(_playersOnTransferMarket)==10,
+               "the Amiga keeps the original's sizes");
+#endif
 
 /* Standalone zero-init BSS storage — pure C (was an __asm__ .skip block;
  * converted for the WASM target — docs/WASM.md §4b). The arrays match their
  * in-file externs above (kept) with aligned() preserving the old .p2align 2;
  * newJobOffers/jobOffers are JobOffer[5] raw blobs (fixed-size &symbol save). */
-uint8_t  _foreignMarketPlayers[180]    __attribute__((aligned(4)));
+uint8_t  _foreignMarketPlayers[CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE] __attribute__((aligned(4)));
 uint8_t  _homeMarketPlayers[100]      __attribute__((aligned(4)));
 uint8_t  _transferOfferTable[70]      __attribute__((aligned(4)));
 uint16_t _numNewJobOffers;
-uint8_t  _newJobOffers[520]           __attribute__((aligned(4)));   /* JobOffer[20] */
+uint8_t  _newJobOffers[CAREER_MAX_JOB_OFFERS * JOB_OFFER_BYTES] __attribute__((aligned(4)));   /* JobOffer[] */
 uint16_t _numJobOffers;
-uint8_t  _jobOffers[520]              __attribute__((aligned(4)));   /* JobOffer[20] */
+uint8_t  _jobOffers[CAREER_MAX_JOB_OFFERS * JOB_OFFER_BYTES]    __attribute__((aligned(4)));   /* JobOffer[] */
 uint16_t _timeToNegotiate;
 uint16_t _numPlayersOnTransferMarket;
-uint16_t _playersOnTransferMarket[10];    /* the players listed: ids, host-order words (Career+: 10) */
+uint16_t _playersOnTransferMarket[CAREER_MAX_TRANSFER_LIST];   /* the players listed: ids, host-order words */
 uint16_t _lastOfferPrimaryPlayerOrdinal, _lastOfferExtraPlayersWanted,
          _lastOfferSwapPlayerOrdinal, _lastOfferExtraPlayerOrdinal,
          _offerNegotiationAttemptCount, _transferMarketRandOffset0,

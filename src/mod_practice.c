@@ -1,6 +1,6 @@
 /*
  * mod_practice.c -- the practice mod (canonical, bin/mods/practice; docs/MODS.md §18): SWOS 2020's
- * PRACTICE (its practice.mnu, game.cpp ChallengeGame), ported onto the mod API. SDL builds.
+ * PRACTICE (its practice.mnu, game.cpp ChallengeGame), ported onto the mod API. Both targets.
  *
  * MODES -> PRACTICE opens its menu (bin/mods/practice/data_json/menus/practice/practiceMenu.json,
  * its handlers practice.<name>):
@@ -13,6 +13,8 @@
  *                     yours and the CPU's, on or off, the goal you attack; START, the team screen,
  *                     then a match whose clock stays at 0 -- no half time, no end but leaving it
  *                     (ESC) -- with no cards and no injuries (trainingModePractice_OnSelect)
+ *   SHOOTING PRACTICE petarku's (shootingMenu.json): you against the CPU's goalkeeper (its
+ *                     defenders and midfield on or off), no clock, every kick-off yours
  * Each match returns here (the menu again), as SWOS 2020's do. Training's drills (F1-F12), ghost
  * players and the manual keeper are next (docs/MODS.md §18).
  *
@@ -20,7 +22,6 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -254,6 +255,170 @@ static void trow7(void) { training_row(7); }
 
 static void practice_training(void) { ModApi_ShowMenu("practice/trainingMenu"); }
 
+/* ---- shooting practice (petarku's, the5ar: his fork's shooting_practice.c) ----
+ * You against a CPU side stripped down to its goalkeeper, to practise finishing into an open
+ * defence. The settings (shootingMenu.json) keep the CPU's DEFENDERS (RB, LB, D) and/or MIDFIELD
+ * (M, LW, RW) -- its attackers always go -- and say which goal you attack; then the team screen
+ * (exactly one side the CPU's), the PLAY MATCH screen (EDIT TACTICS, VIEW OPPO, substitutes) and
+ * a match with no clock in which you take every kick-off (the other side may have nobody to send
+ * to the centre circle). TEAM TRAINING with the CPU's lines out, plus kickOffAlways, hideClock
+ * and playMatchScreen. SWOS_SHOOTING_TEST=1 plays it CPU v CPU, headless (below). */
+enum { kShootRows = 4 };
+enum { Sh_header, Sh_subTitle, Sh_label0, Sh_note = Sh_label0 + 2 * kShootRows, Sh_exit };
+
+static uint8_t s_keepDefenders;         /* the CPU keeps its back line */
+static uint8_t s_keepMidfield;          /* ... and/or its midfield */
+static uint8_t s_shootUp = 1;           /* you attack the top goal */
+static char    s_shootValues[kShootRows][12];
+
+static void shooting_refresh(void)
+{
+    static const char *const kLabels[kShootRows] = { "CPU DEFENDERS", "CPU MIDFIELD", "YOU ATTACK", "" };
+    for (int32_t i = 0; i < kShootRows; i++) {
+        const char *v = i == 0 ? (s_keepDefenders ? "ON" : "OFF")
+                      : i == 1 ? (s_keepMidfield ? "ON" : "OFF")
+                      : i == 2 ? (s_shootUp ? "UP" : "DOWN") : "START";
+        snprintf(s_shootValues[i], sizeof s_shootValues[i], "%s", v);
+        ModApi_MenuText(Sh_label0 + 2 * i, kLabels[i]);
+        ModApi_MenuText(Sh_label0 + 2 * i + 1, s_shootValues[i]);
+        ModApi_MenuVisible(Sh_label0 + 2 * i, i < kShootRows - 1);
+        ModApi_MenuVisible(Sh_label0 + 2 * i + 1, 1);
+    }
+    ModApi_MenuText(Sh_note, "THEN PICK YOUR TEAM AND THE CPU'S");
+}
+
+static void shooting_init(void)
+{
+    for (int32_t i = 0; i < kShootRows; i++) {
+        const int32_t v = Sh_label0 + 2 * i + 1;
+        ModApi_MenuNav(v, i ? v - 2 : -1, i + 1 < kShootRows ? v + 2 : Sh_exit);
+    }
+    ModApi_MenuNav(Sh_exit, Sh_label0 + 2 * kShootRows - 1, -1);
+    shooting_refresh();
+}
+
+static void shooting_draw(void) { shooting_refresh(); }
+
+/* The drill's rules, `you` being the team the player plays (the other the keeper-only CPU's). */
+static void shooting_setup(ModMatchSetup *setup, int32_t you)
+{
+    ModApi_DefaultSetup(setup);
+    setup->name = "shooting practice";
+    setup->clockStopped = 1;
+    setup->hideClock = 1;
+    setup->playMatchScreen = 1;
+    setup->autoReplays = 0;
+    setup->stadium = 0;
+    setup->replayMenu = 0;
+    setup->linesOut[1 - you] = (uint8_t)(MODLINE_ATTACK | (s_keepDefenders ? 0 : MODLINE_DEFENCE) |
+                                         (s_keepMidfield ? 0 : MODLINE_MIDFIELD));
+    setup->playingUp = (int8_t)(s_shootUp ? you : 1 - you);
+    setup->kickOff = (int8_t)you;
+    setup->kickOffAlways = 1;
+}
+
+static void shooting_start(void)
+{
+    extern int32_t ModMatch_ChosenSide(int32_t team);   /* (src/mod_match.c: CPU or not) */
+    ModMatchSetup setup;
+    ModMatchResult r;
+    int32_t cpu0, cpu1, you;
+
+    if (!ModApi_ChooseTeams())
+        return;
+    cpu0 = ModMatch_ChosenSide(0) == 0;
+    cpu1 = ModMatch_ChosenSide(1) == 0;
+    if (cpu0 == cpu1) {         /* the drill needs exactly one side the CPU's */
+        ModApi_ShowError("ONE TEAM MUST BE THE COMPUTER'S");
+        return;
+    }
+    you = cpu0 ? 1 : 0;
+    shooting_setup(&setup, you);
+    setup.chosen = 1;
+    if (ModApi_PlayMatch("practice", &setup, &r) == 0)
+        fprintf(stderr, "[practice] shooting practice: %d-%d in %u frames\n", (int)r.goals[0],
+                (int)r.goals[1], (unsigned)r.frames);
+}
+
+static void shooting_row(int32_t i)
+{
+    if (i == 0)
+        s_keepDefenders ^= 1;
+    else if (i == 1)
+        s_keepMidfield ^= 1;
+    else if (i == 2)
+        s_shootUp ^= 1;
+    else
+        shooting_start();
+}
+
+static void srow0(void) { shooting_row(0); }
+static void srow1(void) { shooting_row(1); }
+static void srow2(void) { shooting_row(2); }
+static void srow3(void) { shooting_row(3); }
+static void practice_shooting(void) { ModApi_ShowMenu("practice/shootingMenu"); }
+
+/* SWOS_SHOOTING_TEST=1 (SWOS_SKIP_INTRO=1, SWOS_HARNESS_TURBO=1): at the first main menu, the drill
+ * CPU v CPU (team 0 "you", Norway v New Zealand) for 6000 frames, without the PLAY MATCH screen;
+ * the keeper-only side's outfielders must never take the pitch, the clock must stay at 0 and no
+ * period may end; logs the goals; PASS or FAIL, then quits. */
+static int32_t s_shootTest, s_shootFailed, s_shootFrames;
+
+static void shooting_test_frame(void)
+{
+    ModPlayer p[22];
+    int32_t n;
+
+    if (!s_shootTest || !ModApi_ModMatch("practice"))
+        return;
+    n = ModApi_Players(p, 22);
+    for (int32_t i = 0; i < n; i++)
+        if (p[i].team == 1 && p[i].index != 0 && p[i].onPitch && !s_shootFailed) {
+            fprintf(stdout, "SHOOTING TEST: the CPU's player %d is on the pitch\n", (int)p[i].index);
+            s_shootFailed = 1;
+        }
+    if (ModApi_MatchMinute() != 0 && !s_shootFailed) {
+        fprintf(stdout, "SHOOTING TEST: the clock moved (%d)\n", (int)ModApi_MatchMinute());
+        s_shootFailed = 1;
+    }
+    if (++s_shootFrames >= 6000)
+        ModApi_EndMatch();
+}
+
+static void shooting_test_event(const ModMatchEvent *e)
+{
+    if (!s_shootTest || !ModApi_ModMatch("practice"))
+        return;
+    if (e->kind == MODEVENT_GOAL || e->kind == MODEVENT_OWN_GOAL || e->kind == MODEVENT_PENALTY_GOAL)
+        fprintf(stdout, "SHOOTING TEST: goal, team %d, frame %u\n", (int)e->team, (unsigned)e->frame);
+    else if (e->kind == MODEVENT_HALF_TIME || e->kind == MODEVENT_FULL_TIME) {
+        fprintf(stdout, "SHOOTING TEST: the clock ended a period (%d)\n", (int)e->kind);
+        s_shootFailed = 1;
+    }
+}
+
+static void shooting_test_menu(void)
+{
+    ModMatchSetup setup;
+    ModMatchResult r;
+
+    if (s_shootTest != 1 || !ModApi_IsMainMenu())
+        return;
+    s_shootTest = 2;
+    shooting_setup(&setup, 0);
+    setup.team[0] = 0x5020;                 /* Norway */
+    setup.team[1] = 0x5502;                 /* New Zealand */
+    setup.side[0] = setup.side[1] = MODSIDE_CPU;
+    setup.playMatchScreen = 0;              /* (it waits for a player) */
+    ModApi_PlayMatch("practice", &setup, &r);
+    fprintf(stdout, "SHOOTING TEST %s: %d-%d in %u frames\n",
+            s_shootFailed || s_shootFrames < 6000 ? "FAIL" : "PASS", (int)r.goals[0], (int)r.goals[1],
+            (unsigned)r.frames);
+#ifdef SWOS_SDL_BUILD   /* (a test's, SWOS_SHOOTING_TEST: the Amiga has no environment to arm it) */
+    exit(s_shootFailed || s_shootFrames < 6000);
+#endif
+}
+
 static void practice_exit(void) { SetExitMenuFlag(); }
 
 static void practice_open(void) { ModApi_ShowMenu("practice/practiceMenu"); }
@@ -268,6 +433,9 @@ static void practice_init(void)
         { "orderStart", order_start }, { "orderExit", order_exit },
         { "demo", practice_demo },
         { "training", practice_training },
+        { "shooting", practice_shooting },
+        { "shootingInit", shooting_init }, { "shootingDraw", shooting_draw },
+        { "srow0", srow0 }, { "srow1", srow1 }, { "srow2", srow2 }, { "srow3", srow3 },
         { "trainingInit", training_init },
         { "trainingDraw", training_draw },
         { "trow0", trow0 }, { "trow1", trow1 }, { "trow2", trow2 }, { "trow3", trow3 },
@@ -276,11 +444,14 @@ static void practice_init(void)
     };
     ModApi_RegisterHandlers("practice", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     ModApi_AddEntry(MODPOINT_MODES, "practice", "practice", practice_open);
+    s_shootTest = getenv("SWOS_SHOOTING_TEST") != NULL;
 }
 
 const ModDef ModDef_practice = {
     .slug = "practice",
     .init = practice_init,
+    .menuDrawn = shooting_test_menu,
+    .matchFrame = shooting_test_frame,
+    .matchEvent = shooting_test_event,
 };
 
-#endif /* SWOS_SDL_BUILD */

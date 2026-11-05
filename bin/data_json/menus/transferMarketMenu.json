@@ -580,6 +580,181 @@
           "str": null
         }
       ]
+    },
+    {
+      "kind": "set_origin",
+      "x": 0,
+      "y": 130
+    },
+    {
+      "kind": "start_template"
+    },
+    {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "template": true,
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 0
+        },
+        {
+          "op": "after_draw",
+          "func": "TransferMarketAfterDrawCommon"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "TransferMarketCommon"
+        }
+      ]
+    },
+    {
+      "kind": "coords_mode",
+      "wide": true
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 45,
+        "w": 304,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 13,
+          "down": 27
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 54,
+        "w": 304,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 26,
+          "down": 28
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 63,
+        "w": 304,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 27,
+          "down": 29
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 72,
+        "w": 304,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 28,
+          "down": 30
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 81,
+        "w": 304,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 29,
+          "down": 6
+        }
+      ]
+    },
+    {
+      "kind": "reset_template"
+    },
+    {
+      "kind": "set_origin",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": -98,
+        "y": 40,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": 2,
+          "right": -1,
+          "up": -1,
+          "down": 3
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aModRow"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "TransferMarketModRow"
+        }
+      ]
     }
   ]
 }

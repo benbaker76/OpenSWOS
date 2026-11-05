@@ -11,10 +11,12 @@
    "teams": [
     {
      "uuid": "8250fcaa-bcdf-5f40-836a-87614846de84",
+     "team": "5017",
      "name": "ITALY"
     },
     {
      "uuid": "30e26617-4001-56c3-a068-8d88849c8398",
+     "team": "5202",
      "name": "BRAZIL"
     }
    ],
@@ -34,10 +36,12 @@
    "teams": [
     {
      "uuid": "fad1a2cf-b275-5972-a3fa-35bda74afa6f",
+     "team": "500b",
      "name": "ENGLAND"
     },
     {
      "uuid": "2bb28358-8981-5501-bee3-0916d4b736cc",
+     "team": "5011",
      "name": "GERMANY"
     }
    ],
@@ -57,10 +61,12 @@
    "teams": [
     {
      "uuid": "9a7ad1b1-ab77-57c1-824c-8596a8b9eadf",
+     "team": "2308",
      "name": "BARCELONA"
     },
     {
      "uuid": "09778597-b10b-5814-a802-8d8dc6da8173",
+     "team": "2323",
      "name": "REAL MADRID"
     }
    ],
@@ -80,10 +86,12 @@
    "teams": [
     {
      "uuid": "e05db570-919c-5bbb-9578-046f4cf3f7f9",
+     "team": "0814",
      "name": "MANCHESTER UTD"
     },
     {
      "uuid": "0eaf2533-c243-5311-b452-fc8f8d53946e",
+     "team": "0812",
      "name": "LIVERPOOL"
     }
    ],
@@ -109,10 +117,12 @@
    "teams": [
     {
      "uuid": "1038aa79-ea25-56de-b729-559f21fbca47",
+     "team": "5013",
      "name": "HOLLAND"
     },
     {
      "uuid": "203075df-1393-56ba-aa82-a6dc212e7219",
+     "team": "500f",
      "name": "FRANCE"
     }
    ],
@@ -136,10 +146,12 @@
    "teams": [
     {
      "uuid": "e623d8c0-2867-521d-a89c-cfc352c02f1d",
+     "team": "1400",
      "name": "AC MILAN"
     },
     {
      "uuid": "0eaf2533-c243-5311-b452-fc8f8d53946e",
+     "team": "0812",
      "name": "LIVERPOOL"
     }
    ],

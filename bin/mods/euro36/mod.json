@@ -1,0 +1,14 @@
+{
+ "uuid": "94662785-9e65-521b-9d10-a760e65aa960",
+ "id": "euro36",
+ "name": "Champions League (36 clubs)",
+ "version": "1.0",
+ "author": "petarku (the5ar)",
+ "about": "In 96/97, Europe's three cups as today's 36-club league phases: the Champions League, the Europa League and the Conference League, in seasons and careers. Its clubs are petarku's picks; the UEFA coefficients a career draws on come from the clubs' strength, not real ones.",
+ "targets": [
+  "sdl",
+  "amiga"
+ ],
+ "changes": "career",
+ "default": false
+}

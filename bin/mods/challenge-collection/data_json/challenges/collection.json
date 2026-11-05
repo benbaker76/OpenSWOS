@@ -1,0 +1,259 @@
+{
+ "format": "openswos-challenges",
+ "version": 1,
+ "category": "COLLECTION",
+ "comment": "petarku's challenge collection (his fork's .CHL collection, docs/challenge_specs/collection/sdl_0n.json): a draw goes to extra time and penalties, and only a win counts. 'pitch_type' (0 frozen .. 6 hard, as ModApi_PitchType), 'restart' {kind kick_off|corner|free_kick|penalty, team, wing 0 left / 1 right as the taker attacks} and 'scorers' [{team, shirt, minute}] are read by the challenges mod (ModMatchSetup.pitchType, .restart, .scorers).",
+ "challenges": [
+  {
+   "id": "finish-the-job",
+   "name": "FINISH THE JOB",
+   "difficulty": 1,
+   "about": "TWO UP WITH A QUARTER HOUR LEFT. DO NOT LET JUVENTUS BACK IN IT!",
+   "teams": [
+    {
+     "uuid": "e623d8c0-2867-521d-a89c-cfc352c02f1d",
+     "team": "1400",
+     "name": "AC MILAN"
+    },
+    {
+     "uuid": "ca8624cc-e706-54b7-8ffe-f9563d9ba5d7",
+     "team": "1416",
+     "name": "JUVENTUS"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    2,
+    0
+   ],
+   "minute": 75,
+   "extra_time": true,
+   "penalties": true,
+   "win": "win",
+   "restart": {
+    "kind": "kick_off",
+    "team": 1
+   },
+   "scorers": [
+    {
+     "team": 0,
+     "shirt": 9,
+     "minute": 12
+    },
+    {
+     "team": 0,
+     "shirt": 9,
+     "minute": 60
+    }
+   ],
+   "pitch_type": 4
+  },
+  {
+   "id": "hold-your-nerve",
+   "name": "HOLD YOUR NERVE",
+   "difficulty": 2,
+   "about": "A NARROW LEAD OVER LITTLE MALTA. CLEAR THIS CORNER AND HANG ON.",
+   "teams": [
+    {
+     "uuid": "8250fcaa-bcdf-5f40-836a-87614846de84",
+     "team": "5017",
+     "name": "ITALY"
+    },
+    {
+     "uuid": "fc739eb8-1c90-55da-b66a-f92cf53132eb",
+     "team": "501d",
+     "name": "MALTA"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    1,
+    0
+   ],
+   "minute": 80,
+   "extra_time": true,
+   "penalties": true,
+   "win": "win",
+   "restart": {
+    "kind": "corner",
+    "team": 1,
+    "wing": 0
+   },
+   "scorers": [
+    {
+     "team": 0,
+     "shirt": 9,
+     "minute": 35
+    }
+   ],
+   "pitch_type": 4
+  },
+  {
+   "id": "find-the-winner",
+   "name": "FIND THE WINNER",
+   "difficulty": 3,
+   "about": "THE MERSEYSIDE DERBY IS LOCKED. USE THIS CORNER TO BREAK IT OPEN.",
+   "teams": [
+    {
+     "uuid": "0eaf2533-c243-5311-b452-fc8f8d53946e",
+     "team": "0812",
+     "name": "LIVERPOOL"
+    },
+    {
+     "uuid": "9a8ed68c-f546-5bd0-ab8f-a2de91e4d15b",
+     "team": "080c",
+     "name": "EVERTON"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    0,
+    0
+   ],
+   "minute": 75,
+   "extra_time": true,
+   "penalties": true,
+   "win": "win",
+   "restart": {
+    "kind": "corner",
+    "team": 0,
+    "wing": 0
+   },
+   "scorers": [],
+   "pitch_type": 4
+  },
+  {
+   "id": "turn-it-around",
+   "name": "TURN IT AROUND",
+   "difficulty": 3,
+   "about": "EL CLASICO, AND BARCA ARE BEHIND. TWENTY-FIVE MINUTES TO WIN IT.",
+   "teams": [
+    {
+     "uuid": "9a7ad1b1-ab77-57c1-824c-8596a8b9eadf",
+     "team": "2308",
+     "name": "BARCELONA"
+    },
+    {
+     "uuid": "09778597-b10b-5814-a802-8d8dc6da8173",
+     "team": "2323",
+     "name": "REAL MADRID"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    0,
+    1
+   ],
+   "minute": 65,
+   "extra_time": true,
+   "penalties": true,
+   "win": "win",
+   "restart": {
+    "kind": "kick_off",
+    "team": 0
+   },
+   "scorers": [
+    {
+     "team": 1,
+     "shirt": 9,
+     "minute": 60
+    }
+   ],
+   "pitch_type": 4
+  },
+  {
+   "id": "against-the-clock",
+   "name": "AGAINST THE CLOCK",
+   "difficulty": 4,
+   "about": "TWO DOWN TO MILAN, TEN TO PLAY. THREE GOALS OR NOTHING.",
+   "teams": [
+    {
+     "uuid": "ca8624cc-e706-54b7-8ffe-f9563d9ba5d7",
+     "team": "1416",
+     "name": "JUVENTUS"
+    },
+    {
+     "uuid": "e623d8c0-2867-521d-a89c-cfc352c02f1d",
+     "team": "1400",
+     "name": "AC MILAN"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    0,
+    2
+   ],
+   "minute": 80,
+   "extra_time": true,
+   "penalties": true,
+   "win": "win",
+   "restart": {
+    "kind": "kick_off",
+    "team": 0
+   },
+   "scorers": [
+    {
+     "team": 1,
+     "shirt": 9,
+     "minute": 20
+    },
+    {
+     "team": 1,
+     "shirt": 9,
+     "minute": 75
+    }
+   ],
+   "pitch_type": 4
+  },
+  {
+   "id": "derby-miracle",
+   "name": "DERBY MIRACLE",
+   "difficulty": 5,
+   "about": "THE ETERNAL DERBY, AND IT IS 0-3. CAN PARTIZAN PULL OFF A MIRACLE?",
+   "teams": [
+    {
+     "uuid": "f63eb672-c02e-5c9d-a105-fb0d51e41078",
+     "team": "2903",
+     "name": "PARTIZAN"
+    },
+    {
+     "uuid": "41c46ddf-f9cf-593e-abd9-0a63a5b461bb",
+     "team": "2907",
+     "name": "RED STAR"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    0,
+    3
+   ],
+   "minute": 67,
+   "extra_time": true,
+   "penalties": true,
+   "win": "win",
+   "restart": {
+    "kind": "corner",
+    "team": 0,
+    "wing": 0
+   },
+   "scorers": [
+    {
+     "team": 1,
+     "shirt": 9,
+     "minute": 15
+    },
+    {
+     "team": 1,
+     "shirt": 9,
+     "minute": 34
+    },
+    {
+     "team": 1,
+     "shirt": 9,
+     "minute": 56
+    }
+   ],
+   "pitch_type": 4
+  }
+ ]
+}

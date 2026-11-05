@@ -1,5 +1,7 @@
 /*
- * mod_api.h -- what a built-in mod may ask the game (src/mod_api.c; docs/MODS.md §16). SDL builds.
+ * mod_api.h -- what a built-in mod may ask the game (src/mod_api.c; docs/MODS.md §16). Both targets:
+ * the Amiga builds the same API (docs/MODS.md §30), where a call the Amiga
+ * cannot answer says so (its comment) and frameDrawn never runs (it has no renderer).
  *
  * A mod's code (src/mod_<slug>.c) runs at the hooks of include/mod_hooks.h, and asks the game what
  * it needs through these, never through the game's own globals: an engine change then changes
@@ -12,10 +14,12 @@
 #ifndef MOD_API_H
 #define MOD_API_H
 
-#ifdef SWOS_SDL_BUILD
-
 #include "swos_types.h"
+#ifdef SWOS_SDL_BUILD
 #include <SDL.h>
+#else
+typedef struct SDL_Renderer SDL_Renderer;     /* (frameDrawn's: never called on the Amiga) */
+#endif
 
 struct Sprite;
 struct SpriteGraphics;
@@ -34,6 +38,11 @@ struct SpriteGraphics;
  * ====================================================================================== */
 typedef struct ModMatchEvent ModMatchEvent;
 typedef struct ModMatchResult ModMatchResult;
+typedef struct ModCompetitionResult ModCompetitionResult;
+typedef struct ModPlayerMove ModPlayerMove;
+typedef struct ModPlayerCreated ModPlayerCreated;
+typedef struct ModJsonWriter ModJsonWriter;
+typedef struct ModPlayerRow ModPlayerRow;
 
 typedef struct ModDef {
     const char *slug;                   /* its folder: bin/mods/<slug> (canonical) */
@@ -57,7 +66,109 @@ typedef struct ModDef {
     void (*matchFrame)(void);           /* each frame played, after the clock moved */
     void (*matchEvent)(const ModMatchEvent *event);
     void (*matchEnded)(const ModMatchResult *result);   /* any match's final whistle */
+
+    /* -- the career (docs/MODS.md §27): a "career" mod's hooks. Unlike the rest, a career
+     * hook may change the career -- its squads, its players -- through the game's career
+     * code; never a match. None runs in a match, nor online. -- */
+    void (*careerNew)(void);            /* a new career: its clubs set up, before its first
+                                         * season (InitCareer, before InitializeNewSeason) */
+    void (*careerSeasonEnd)(uint16_t season);   /* a season over and the next set up, after
+                                         * either job branch (ContinueCareerNextSeason's end);
+                                         * `season` the new one's index (0 the first) */
+    void (*careerBeforeContinue)(void); /* ContinueCareer, before the next season's menu: may
+                                         * show a menu of its own (ModApi_ShowMenu) */
+    void (*competitionFinished)(const ModCompetitionResult *result);   /* a title decided */
+    void (*playerMoved)(const ModPlayerMove *move);         /* a player bought or sold */
+    void (*playerCreated)(const ModPlayerCreated *created); /* a new player in a club: may
+                                         * rewrite him (created->player) */
+
+    /* -- its section of the career save: "mods": { "<slug>": { ... } } in the .CAR JSON --
+     * careerSave writes the object's members (ModJson_Printf: `"ages":[...],"winners":[...]`,
+     * named fields, never addresses: CLAUDE.md); nothing written, no section. careerLoad gets
+     * the object's text when a career is loaded, or NULL / 0 for a career without it (start
+     * the mod's records empty). A new career is careerNew, never careerLoad. -- */
+    void (*careerSave)(ModJsonWriter *out);
+    void (*careerLoad)(const char *json, int32_t len);
+
+    /* -- a player's row in a list screen, filled and not yet drawn (docs/MODS.md §29): the
+     * hook may rewrite its cells' text (ModApi_MenuText, the text kept by the mod), show or hide
+     * them, move them (ModApi_SetMenuEntryRect). Display only: no game state. -- */
+    void (*playerRowDrawn)(const ModPlayerRow *row);
 } ModDef;
+
+/* playerRowDrawn's argument */
+typedef enum {
+    MODROWS_SQUAD,          /* a squad (VIEW SQUAD, the career's squads; SquadAfterDrawCommon) */
+    MODROWS_PLAY_MATCH,     /* PLAY MATCH's line-up (DrawPlayerEntries) */
+    MODROWS_MARKET          /* a transfer screen's player row (BuildTransferPlayerMenuEntry): your
+                             * transfer list, the markets, another club's squad, an offer */
+} ModRowScreen;
+struct ModPlayerRow {
+    uint8_t  screen;        /* ModRowScreen */
+    uint8_t  slot;          /* his slot in the team's file; 0xFF when the screen does not say */
+    uint16_t team;          /* the team, file << 8 | ordinal; 0xFFFF when the screen does not say */
+    int16_t  row;           /* the row on the screen, 0 the first (-1 none: an offer's) */
+    int16_t  firstCell;     /* the menu entry of the row's first cell (ModApi_MenuText's entry) */
+    int16_t  cells;         /* how many cells the row has */
+    const struct PlayerFile *player;
+};
+
+/* ---- the career hooks' arguments (ModDef's career hooks) ---- */
+typedef enum {
+    MODCOMP_LEAGUE,         /* a league division: `division` 0 the top */
+    MODCOMP_CUP,            /* the career country's main competition when it is a cup */
+    MODCOMP_SECOND_CUP,     /* its secondary competition (a domestic cup) */
+    MODCOMP_THIRD_CUP,      /* its tertiary competition (a league cup) */
+    MODCOMP_CONTINENTAL     /* a European club cup's holder (Champions, Cup Winners', UEFA) */
+} ModCompKind;
+struct ModCompetitionResult {
+    uint16_t season;        /* the season it was played in (0 the first) */
+    uint8_t  competitionId; /* comp_id() (include/comp_identity.h): the competition's identity */
+    uint8_t  kind;          /* ModCompKind */
+    uint8_t  division;      /* a league's division (0 the top); 0 for a cup */
+    uint16_t winner;        /* the winning team: file (country) << 8 | ordinal */
+};
+struct ModPlayerMove {
+    uint16_t fromTeam, toTeam;  /* team ids, file << 8 | ordinal */
+    uint8_t  fromSlot, toSlot;  /* the player's slot in each team's file (0..15, 16..31 reserves) */
+};
+typedef enum {
+    MODPLAYER_TRIALIST,     /* a trialist in the career club (an emergency or a training one) */
+    MODPLAYER_REPLACEMENT   /* a new player at another club, where one you bought had been */
+} ModPlayerKind;
+struct PlayerFile;
+struct ModPlayerCreated {
+    uint16_t team;          /* the club, file << 8 | ordinal */
+    uint8_t  slot;          /* his slot in its file */
+    uint8_t  kind;          /* ModPlayerKind */
+    struct PlayerFile *player;  /* made by the game; the hook may change him */
+};
+/* ---- the career (src/mod_career.c, docs/MODS.md §31): through the game's own career code.
+ * Team ids are file << 8 | ordinal, slots a player's place in the team's file (0..15; 0..31
+ * for your club). Each gives -1 outside a career or when it cannot. ---- */
+/* A club's players as the career has them now (its live copy, or its file with the career's
+ * transfers on it), without disturbing what a screen shows. 0 when read. */
+int32_t ModApi_CareerTeam(uint16_t team, struct PlayerFile *out);   /* (out: 16 of them) */
+/* Another club's player at `slot` becomes `player` for the rest of the career (the career's
+ * pool and every live copy, as the game's transfers are kept; not your club). 0 written, -1 not
+ * (the pool full: foreign_pool_capacity). */
+int32_t ModApi_SetCareerPlayer(uint16_t team, uint16_t slot, const struct PlayerFile *player);
+/* Make an offer for another club's player: the game's offer screen (BUY PLAYER's own tests:
+ * time to negotiate, room to buy). 1 when the transfer was made, 0 not, -1 not possible. From
+ * MODPOINT_BUY_PLAYER / MODPOINT_TRANSFER_MARKET's entry the screen then closes as the game's
+ * buys do. */
+int32_t ModApi_OfferForPlayer(uint16_t team, uint16_t slot);
+/* A national selector's pick from MODPOINT_NATIONAL_ADD_PLAYER's entry: checked as the squad
+ * screen greys players out (nationality, called up, unavailable); when the entry returns, ADD
+ * PLAYER closes and the game adds him as HOME / ABROAD would (or keeps him pending for a
+ * replacement when the squad is full). 0 picked. */
+int32_t ModApi_CallUpPlayer(uint16_t team, uint16_t slot);
+/* Your player at file slot `slot` onto your transfer list. 0 listed, 1 already there, -1 not
+ * (the list full: transfer_list_capacity; no player). */
+int32_t ModApi_ListPlayer(uint16_t slot);
+
+/* careerSave's writer: appends text to the mod's object (printf's format). */
+void ModJson_Printf(ModJsonWriter *out, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 /* ---- entries: a mod's rows in the game's screens (H1) ----
  * MODPOINT_MODES: the MODES screen, which the main menu's MODES button opens (shown only while
@@ -67,7 +178,16 @@ typedef struct ModDef {
  * MORE COMPETITIONS (a list of them) when more; see "competitions from mods" below. A fork's
  * own screen shows any
  * point's list with ModApi_ShowEntries. Labels are shown in capitals; up to 8 a point. */
-typedef enum { MODPOINT_MODES, MODPOINT_AFTER_MATCH, MODPOINT_COMPETITIONS, MODPOINT_COUNT } ModPoint;
+typedef enum {
+    MODPOINT_MODES, MODPOINT_AFTER_MATCH, MODPOINT_COMPETITIONS,
+    /* A row in a career screen (docs/MODS.md §28): shown with the entry's label while one mod has
+     * an entry there, MORE (a list of them) when several, hidden when none. */
+    MODPOINT_BUY_PLAYER,            /* TRANSFER MARKET -> BUY PLAYER, above EXIT */
+    MODPOINT_TRANSFER_MARKET,       /* TRANSFER MARKET, beside BUY PLAYER */
+    MODPOINT_NATIONAL_ADD_PLAYER,   /* a national team's ADD PLAYER, under ABROAD */
+    MODPOINT_COMPETITION_STATS,     /* a competition's STATISTICS, after WINNERS */
+    MODPOINT_COUNT
+} ModPoint;
 int32_t ModApi_AddEntry(ModPoint point, const char *slug, const char *label, void (*select)(void));
 int32_t ModApi_EntryCount(ModPoint point);
 const char *ModApi_EntryLabel(ModPoint point, int32_t index);   /* (as shown: capitals) */
@@ -295,8 +415,14 @@ int32_t ModApi_ChooseFromPack(int32_t number);
 /* The friendly's team screen: the player picks two teams, and who plays each (CPU / player).
  * 1 when two were chosen (then ModMatchSetup.chosen plays them), 0 when the player left. */
 int32_t ModApi_ChooseTeams(void);
-/* A database team by its uuid (docs/TEAM_IDS.md): its id for ModMatchSetup.team, or 0. */
+/* A database team by its uuid (docs/TEAM_IDS.md): its id for ModMatchSetup.team, or 0. The Amiga
+ * has no team database: there it is always 0, and a mod gives the team's number as well
+ * (ModApi_TeamByUuidNumber). */
 uint16_t ModApi_TeamByUuid(const char *uuid);
+/* The same with the team's number (country << 8 | ordinal) beside its uuid, for the Amiga: there the
+ * number is taken when the uuid is the one derived from it (a 96/97 team), and alone when there is
+ * no uuid. On SDL the uuid decides, and the number is used only without one. 0: no such team. */
+uint16_t ModApi_TeamByUuidNumber(const char *uuid, uint16_t number);
 /* A team's player by line-up slot (0 the goalkeeper, 1..10 the outfield, 11.. the bench), for a
  * mod's own squad screen (a shoot-out order): from the database by team id, or from a team
  * ModApi_ChooseTeams chose (0 / 1, as the player may have changed it). 1 when there is one. */
@@ -319,6 +445,7 @@ int32_t     ModApi_ChosenIsPlayer(int32_t team);
 /* A chosen team's uuid (docs/TEAM_IDS.md), for a mod that writes the choice down (a custom
  * challenge): 1 when it has one. */
 int32_t     ModApi_ChosenTeamUuid(int32_t team, char *out, int32_t cap);
+uint16_t    ModApi_ChosenTeamNumber(int32_t team);     /* its number, country << 8 | ordinal; 0 none */
 const char *ModApi_ChosenName(int32_t team);
 /* The match's frames a second, by the gameplay style (Amiga 50, DOS 70, XBOX 60): a frame count
  * in seconds. */
@@ -466,5 +593,4 @@ int32_t     ModApi_SetTweak(const char *slug, const char *key, int32_t on);
 int32_t ModApi_SaveFile(const char *slug, const char *name, const void *data, uint32_t size);
 void   *ModApi_LoadFile(const char *slug, const char *name, uint32_t *size);
 
-#endif /* SWOS_SDL_BUILD */
 #endif /* MOD_API_H */

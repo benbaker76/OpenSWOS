@@ -16,6 +16,7 @@
  * TogglePlayerCoach, GetPlayerPosition.
  */
 
+#include "mod_hooks.h"        /* playerRowDrawn (SDL) */
 #include "play_match_menu.h"
 #include "endian_helpers.h"
 #include "menu_system.h"
@@ -327,29 +328,29 @@ void ShowOrHidePlayMatchButton(void) {
                 if (careerSubs >= 2) goto checkMaxDisabled;
             }
             /* checkAvailSubs */
-            if (d2 < 1) { SWOS_DBG("[national-match] insufficient available goalkeepers: d2=%u\n", (unsigned)d2); goto cannotPlay; }
+            if (d2 < 1) goto cannotPlay;
         checkMaxDisabled:
-            if (d6_disabled > 4) { SWOS_DBG("[national-match] too many disabled squad players: %u\n", (unsigned)d6_disabled); goto cannotPlay; }
+            if (d6_disabled > 4) goto cannotPlay;
         } else {
-            if (d2 < 1) { SWOS_DBG("[national-match] insufficient available goalkeepers: d2=%u\n", (unsigned)d2); goto cannotPlay; }
+            if (d2 < 1) goto cannotPlay;
             if (d6_disabled > 2) goto cannotPlay;
         }
 
         /* checkSubstitutes */
         if (_gameType == GAME_TYPE_CAREER) {
             uint16_t ns = GetNumberOfSubstitutes((uint8_t *)team, 1);
-            if (ns != 1) { SWOS_DBG("[national-match] starting goalkeeper count=%u (expected 1)\n", (unsigned)ns); goto showPlayBtnPath; }
+            if (ns != 1) goto showPlayBtnPath;
 
             if (_maxSubstitutesEntries > 5) {
                 uint16_t nss = GetNumberOfSubstitutesInSelectionList((uint8_t *)team, 1);
-                if (nss != 1) { SWOS_DBG("[national-match] substitute goalkeeper count=%u (expected 1)\n", (unsigned)nss); goto showPlayBtnPath; }
+                if (nss != 1) goto showPlayBtnPath;
             }
 
             /* checkAvailPlayersLimit */
             uint32_t apR = GetNumberOfAvailablePlayers((uint8_t *)team, _playMatchExcludeFlags,
                                                          11 + _maxSubstitutesEntries);
             uint16_t disabled2 = (uint16_t)(apR >> 16);
-            if (disabled2 != 0) { SWOS_DBG("[national-match] unavailable player(s) in match selection=%u, selection size=%u\n", (unsigned)disabled2, (unsigned)(11 + _maxSubstitutesEntries)); goto showPlayBtnPath; }
+            if (disabled2 != 0) goto showPlayBtnPath;
 
             if (_trainingGame && team == &_careerTeam) {
                 uint16_t ns2 = GetNumberOfSubstitutes((uint8_t *)&_currentTeam, 1);
@@ -366,7 +367,7 @@ void ShowOrHidePlayMatchButton(void) {
         } else {
             /* nonCareerSubCheck */
             uint16_t ns = GetNumberOfSubstitutes((uint8_t *)team, 1);
-            if (ns != 1) { SWOS_DBG("[national-match] starting goalkeeper count=%u (expected 1)\n", (unsigned)ns); goto showPlayBtnPath; }
+            if (ns != 1) goto showPlayBtnPath;
 
             if (_maxSubstitutesEntries > 5) {
                 uint32_t sr3 = GetNumberOfAvailableSubstitutes((uint8_t *)team, _playMatchExcludeFlags);
@@ -395,7 +396,7 @@ cannotPlay:
 canPlay:
     /* loc_14874A */
     if (_playMatchTeam1Ptr == &_currentTeam) {
-        if (!_playMatchButtonVisibilityState) { SWOS_DBG("[national-match] visibility-state gate blocks PLAY; team pointer is currentTeam\n"); goto hidePlayBtn; }
+        if (!_playMatchButtonVisibilityState) goto hidePlayBtn;
         /* else fall through to showPlayBtn */
     } else {
         _playMatchButtonVisibilityState = 1;
@@ -1333,30 +1334,9 @@ void DrawPlayerEntries(MenuEntry *a5) {
         posE->y = a5->y;
     }
 
-    /* Attribute total (entry 35), matching the SQUAD screen's seven
-     * 0-7 ratings. Keep FormTopSkillsString unchanged for other menus.
-     * The existing text buffer holds four bytes, so use two digits (no
-     * parentheses). As in SQUAD, goalkeepers have no outfield total. */
+    /* Skills string (entry 35) */
     MenuEntry *skE = posE + 1;
-    {
-        uint8_t *text = (uint8_t *)skE->fg;
-        if ((playerPf->positionAndFace & PF_POSITION_MASK) == 0) {
-            text[0] = '-';
-            text[1] = 0;
-        } else {
-            unsigned total =
-                ((uint8_t)playerPf->velocityHeading & 7u) +
-                ((uint8_t)playerPf->speedFinishing & 7u) +
-                (((uint8_t)playerPf->speedFinishing >> 4) & 7u) +
-                ((uint8_t)playerPf->tacklingControl & 7u) +
-                (((uint8_t)playerPf->tacklingControl >> 4) & 7u) +
-                ((uint8_t)playerPf->passing & 7u) +
-                (((uint8_t)playerPf->velocityHeading >> 4) & 7u);
-            text[0] = (uint8_t)('0' + total / 10u);
-            text[1] = (uint8_t)('0' + total % 10u);
-            text[2] = 0;
-        }
-    }
+    FormTopSkillsString((uint8_t *)skE->fg, (PlayerFile *)player);
     skE->y = a5->y;
 
     /* Value/status (entry 36) */
@@ -1386,6 +1366,8 @@ void DrawPlayerEntries(MenuEntry *a5) {
         valE->isInvisible = 0;
     }
 
+    ModHooks_PlayerRowDrawn(1 /* MODROWS_PLAY_MATCH */, PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal),
+                            (uint8_t)fIdx, d7, 31, 6, (const PlayerFile *)(player + sizeof(TeamFile)));
     DrawMultipleItems(6, &_menuEntries[31]);
 }
 
@@ -1495,53 +1477,6 @@ extern uint16_t _inEditTactics;
 extern uint8_t _playMatchMenu[];
 extern void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, uint16_t baseCount, TeamFileEx *teamPtr);
 
-/* National career match roster copies can acquire a transient status bucket
- * while processing other fixtures, without that status being reflected in the
- * authoritative career squad. Reconcile bucket-only discrepancies by name.
- * Preserve real injuries/cards and statuses already present in the career squad.
- */
-extern uint16_t _isNationalSelector;
-static void ReconcileNationalMatchStatus(TeamFileEx *matchTeam)
-{
-    if (_gameType != GAME_TYPE_CAREER || !_isNationalSelector ||
-        !matchTeam || !IsTeamNational(matchTeam) ||
-        matchTeam == &_careerTeam)
-        return;
-
-    for (unsigned i = 0; i < 16; ++i) {
-        PlayerFile *dst = &matchTeam->players[i];
-        unsigned transient = (unsigned)dst->cardsInjuries & 0xE0u;
-        int matchedCareerPlayer = 0;
-        if (!transient || (dst->cardsInjuries & 0x1Fu))
-            continue;  /* Never erase cards or injuries from the match copy. */
-        for (unsigned j = 0; j < 16; ++j) {
-            const PlayerFile *src = &_careerTeam.players[j];
-            unsigned k = 0;
-            for (; k < sizeof(dst->playerName); ++k) {
-                if (dst->playerName[k] != src->playerName[k]) break;
-            }
-            if (k != sizeof(dst->playerName)) continue;
-            matchedCareerPlayer = 1;
-            if ((src->cardsInjuries & 0xFFu) == 0) {
-                SWOS_DBG("[national-match] clearing transient bucket=%02x on match copy index=%u (career player index=%u)\n",
-                    transient, i, j);
-                dst->cardsInjuries &= 0x1Fu;
-            }
-            break;
-        }
-        /* The tournament can retain an old national-team copy whose player no
-         * longer belongs to the human manager's selected squad. Such a player
-         * does not appear in the SQUAD screen, yet a leftover status bucket
-         * still makes the match menu reject the team. Only clear bucket-only
-         * states, and only in this stale national-team match copy. */
-        if (!matchedCareerPlayer) {
-            SWOS_DBG("[national-match] clearing orphan status bucket=%02x on stale national player index=%u\n",
-                transient, i);
-            dst->cardsInjuries &= 0x1Fu;
-        }
-    }
-}
-
 /* ShowPlayMatchMenu (SWOS2.s line 65312)
  * Sets up play match globals from params, optionally adjusts trialists,
  * shows the play match menu, returns playerNumThatStarted. */
@@ -1560,7 +1495,6 @@ int16_t ShowPlayMatchMenu(int16_t controlFlags, int16_t _maxSubstitutes,
     _inEditTactics = (uint16_t)excludeFlags;
 
     if (_gameType == GAME_TYPE_CAREER) {
-        ReconcileNationalMatchStatus(team1);
         TrainingMatch_AdjustSelectedTeamRosterForTrialists(
             (uint16_t)_playMatchExcludeFlags,
             _maxSubstitutesEntries,
