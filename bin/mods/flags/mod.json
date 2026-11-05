@@ -1,0 +1,13 @@
+{
+ "uuid": "f9ef7c0d-749b-5799-8d98-04c1aee365d1",
+ "id": "flags",
+ "name": "Flags",
+ "version": "1.0",
+ "author": "OpenSWOS; the flags by GoSquared (MIT, LICENSE_Flags.txt)",
+ "about": "Each team's flag beside its name on the score banner: a national team's own, a club's country's.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": true
+}

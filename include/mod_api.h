@@ -557,6 +557,24 @@ uint32_t ModApi_Ticks(void);            /* real time, ms: for what a mod animate
 int32_t  ModApi_PitchType(void);        /* 0 frozen, 1 muddy, 2 wet, 3 soft, 4 normal, 5 dry, 6 hard */
 int32_t  ModApi_MatchMinute(void);      /* the clock's minute, 0.. (120 in extra time) */
 
+/* The match's two teams as the banner names them (0 the left name, team 1; 1 the right): the name,
+ * and the number the team has in its file -- country (the team file: a club's country; 80-85 the
+ * national teams; 72 a competition's own teams, as a .DIY's are) << 8 | ordinal. 0 outside a match. */
+typedef struct {
+    char     name[18];
+    uint16_t team;
+} ModMatchTeam;
+int32_t  ModApi_MatchTeam(int32_t side, ModMatchTeam *out);
+
+/* The result banner (the score panel at kick-off, after a goal, at half and full time), in screen
+ * pixels when it is up: its box's left and right, and the top and height of the team names' row
+ * (both names are on one row). 0 when it is not up. */
+typedef struct {
+    int16_t left, right;
+    int16_t nameTop, nameHeight;
+} ModResultBanner;
+int32_t  ModApi_ResultBanner(ModResultBanner *out);
+
 /* The players as they are now (in a match, not a replay): up to 22, team 0's first, each team's
  * goalkeeper its first. */
 typedef struct {

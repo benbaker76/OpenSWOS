@@ -76,6 +76,34 @@ int32_t ModApi_MatchMinute(void)
     return t[1] * 100 + t[2] * 10 + t[3];
 }
 
+int32_t ModApi_MatchTeam(int32_t side, ModMatchTeam *out)
+{
+    extern TeamFile *_gameTeam1, *_gameTeam2;
+    const TeamFile *t = side == 0 ? _gameTeam1 : side == 1 ? _gameTeam2 : NULL;
+    if (!out || !t || !ModApi_InMatch())
+        return 0;
+    memset(out, 0, sizeof *out);
+    for (uint32_t i = 0; i < sizeof t->teamName && i + 1 < sizeof out->name && t->teamName[i]; i++)
+        out->name[i] = (char)t->teamName[i];
+    out->team = (uint16_t)(t->countryNumber << 8 | t->teamOrdinal);
+    return 1;
+}
+
+int32_t ModApi_ResultBanner(ModResultBanner *out)
+{
+    extern Sprite _team1NameSprite;
+    if (!out || !ModApi_InMatch() || !_team1NameSprite.visible)
+        return 0;
+    /* (the names' sprites are HUD: placed at camera + screen position, their z the HUD's layer --
+     *  game_state.c, the result panel) */
+    const SpriteGraphics *g = _spriteGraphicsPtr ? ((SpriteGraphics **)_spriteGraphicsPtr)[193 /* SPR_TEAM1_NAME */] : NULL;
+    out->left = (int16_t)HUD_MARGIN;
+    out->right = (int16_t)(HUD_MARGIN + HUD_WIDTH);
+    out->nameTop = (int16_t)(_team1NameSprite.y.s.i - Render_CameraY() - _team1NameSprite.z.s.i);
+    out->nameHeight = g ? (int16_t)g->nlines : 8;
+    return 1;
+}
+
 int32_t ModApi_Players(ModPlayer *out, int32_t max)
 {
     int32_t n = 0;
