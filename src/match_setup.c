@@ -734,6 +734,15 @@ void EndFirstExtraTime(void)
 __attribute__((used, externally_visible))
 void PrepareForInitialKick(void)
 {
+#ifdef SWOS_SDL_BUILD
+    {
+        /* A mod's match whose team takes every kick-off (mod_match.c, H1). */
+        extern int16_t ModMatch_KickOffTeam(void);
+        const int16_t forced = ModMatch_KickOffTeam();
+        if (forced)
+            _teamStarting = (uint16_t)forced;
+    }
+#endif
     SetBallPosition(336, 449);
 
     TeamGeneralInfo *kickoffTeam = &_topTeamData;
@@ -759,6 +768,9 @@ void PrepareForInitialKick(void)
     _stoppageTimerActive = 0;
     StopAllPlayers();
     clearCameraVelocity();
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_InitialKick(void); ModMatch_InitialKick(); }   /* a mod's match's own break (H6) */
+#endif
 }
 
 /* ================================================================

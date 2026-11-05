@@ -476,6 +476,16 @@ void SetPitchTypeAndNumber(void)
         d0 = 0x500;
 
     _pitchNumberAndType = (uint16_t)_pitchType + d0;
+#ifdef SWOS_SDL_BUILD
+    {
+        /* A mod's match on an exact pitch (mod_match.c, H7): after both random numbers, so the
+         * generators are where any kick-off leaves them; the pitch's own art (1..6). */
+        extern int16_t ModMatch_PitchNumber(void);
+        const int16_t n = ModMatch_PitchNumber();
+        if (n)
+            _pitchNumberAndType = (uint16_t)((_pitchNumberAndType & 0x00FF) | (uint16_t)((n - 1) << 8));
+    }
+#endif
 
 #ifdef DETERMINISTIC_MODE
     /* Force fixed pitch to ensure ASM and C versions match */

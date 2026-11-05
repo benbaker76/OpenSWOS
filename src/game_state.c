@@ -790,6 +790,20 @@ void UpdateTime(void)
     /* timeVar is always 31000 here -> convert to 150 */
     _timeVar = 150;
 
+#ifdef SWOS_SDL_BUILD
+    {
+        /* A mod's match with no clock shown (mod_match.c, H2): off the display list. */
+        extern int32_t ModMatch_HideClock(void);
+        if (ModMatch_HideClock()) {
+            if (_currentTimeSprite.visible) {
+                _currentTimeSprite.visible = 0;
+                InitDisplaySprites();
+            }
+            goto time_invisible;
+        }
+    }
+#endif
+
     /* Make time sprite visible if not already */
     if (_currentTimeSprite.visible == 0)
     {
@@ -797,6 +811,9 @@ void UpdateTime(void)
         InitDisplaySprites();
     }
 
+#ifdef SWOS_SDL_BUILD
+time_invisible:
+#endif
     /* --- Time update section (time_invisible) --- */
 
     /* If gameSeconds is negative -> last minute countdown in progress */

@@ -547,6 +547,70 @@ static void __attribute__((noinline)) writeRestartGlobalsAndStopPlayers(
     _cameraYVelocity = 0;
 }
 
+#ifdef SWOS_SDL_BUILD
+/* ---- A mod's match that starts in a break (mod_match.c, H6) ----
+ * In place of the first kick-off, the break the engine itself would have called: a corner as
+ * CheckIfBallOutOfPlay sets one, a free kick or a penalty as a foul does (tackle_foul.c) --
+ * the same states, places and flags, so the restart then plays exactly as in a match. The
+ * bottom team attacks the top goal (its corners are the upper flags). teamNumber is the taker's
+ * (1, 2); wing 0 the left flag as he attacks, 1 the right; x, y where a free kick's foul was. */
+void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16_t x, int16_t y)
+{
+    TeamGeneralInfo *taker = _topTeamData.teamNumber == teamNumber ? &_topTeamData : &_bottomTeamData;
+    const int32_t up = taker == &_bottomTeamData;       /* attacking the top goal */
+    int16_t d1, d2, d3;
+    uint8_t d4;
+
+    if (kind == 1) {                                    /* MODRESTART_CORNER */
+        if (up) {
+            if (!wing) { d1 = 86;  d2 = 134; d3 = 2; d4 = 0x1C; _gameState = ST_CORNER_LEFT; }
+            else       { d1 = 585; d2 = 134; d3 = 6; d4 = 0x70; _gameState = ST_CORNER_RIGHT; }
+        } else {    /* (attacking down the screen, his left flag is the screen's right) */
+            if (!wing) { d1 = 585; d2 = 764; d3 = 6; d4 = 0xC1; _gameState = ST_CORNER_LEFT; }
+            else       { d1 = 86;  d2 = 764; d3 = 2; d4 = 7;    _gameState = ST_CORNER_RIGHT; }
+        }
+        _breakCameraMode = 0xFFFF;
+        writeRestartGlobalsAndStopPlayers(taker, d1, d2, d3, d4);
+        return;
+    }
+
+    /* A free kick or a penalty: as a foul by the other team (tackle_foul.c's bands and
+     * quadrants, from the fouling team's side). */
+    {
+        TeamGeneralInfo *fouler = taker->opponentsTeam;
+        const int32_t top = fouler == &_topTeamData;
+        int16_t vx = x, vy = y;
+        if (kind == 3) {                                /* MODRESTART_PENALTY */
+            _gameState = ST_PENALTY;
+            _playerTurnFlags = top ? 0x83 : 0x38;
+            vx = 336;
+            vy = top ? 187 : 711;
+        } else {
+            static const uint8_t kTop[7] = { ST_FREE_KICK_LEFT1, ST_FREE_KICK_LEFT2, ST_FREE_KICK_LEFT3,
+                                             ST_FREE_KICK_CENTER, ST_FREE_KICK_RIGHT1, ST_FREE_KICK_RIGHT2,
+                                             ST_FREE_KICK_RIGHT3 };
+            const int32_t q = vx < 153 ? 0 : vx < 261 ? 1 : vx < 309 ? 2 : vx < 362 ? 3 : vx < 410 ? 4
+                            : vx < 518 ? 5 : 6;
+            const int32_t band = top ? (vy >= 216 && vy < 331) : (vy >= 567 && vy <= 682);
+            _gameState = !band ? ST_FOUL : top ? kTop[q] : kTop[6 - q];
+            _playerTurnFlags = 0xFF;
+        }
+        _cameraDirection = top ? 0 : 4;
+        _breakCameraMode = 0xFFFF;
+        _foulXCoordinate = (uint16_t)vx;
+        _foulYCoordinate = (uint16_t)vy;
+        _gameStatePl = ST_STOPPED;
+        _gameNotInProgressCounterWriteOnly = 0;
+        _lastTeamPlayedBeforeBreak = taker;
+        _stoppageTimerTotal = 0;
+        _stoppageTimerActive = 0;
+        StopAllPlayers();
+        _cameraXVelocity = 0;
+        _cameraYVelocity = 0;
+    }
+}
+#endif
+
 /* ---- Helper: handle goal scoring ---- */
 static void __attribute__((noinline)) handleGoalScored(TeamGeneralInfo *teamData, uint16_t goalType, uint16_t teamNum)
 {
@@ -572,6 +636,16 @@ static void __attribute__((noinline)) handleGoalScored(TeamGeneralInfo *teamData
         TeamGeneralInfo *opTeam = teamData->opponentsTeam;
         int16_t camDir;
         uint8_t turnFlags;
+#ifdef SWOS_SDL_BUILD
+        {
+            /* A mod's match whose team takes every kick-off (mod_match.c, H1): the restart
+             * after a goal too, not the side that conceded. */
+            extern int16_t ModMatch_KickOffTeam(void);
+            const int16_t forced = ModMatch_KickOffTeam();
+            if (forced)
+                opTeam = _topTeamData.teamNumber == forced ? &_topTeamData : &_bottomTeamData;
+        }
+#endif
 
         if (opTeam == &_topTeamData) {
             camDir = 4;

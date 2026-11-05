@@ -690,3 +690,35 @@ petarku's PR #11 (HISTORIC TOURNAMENTS, by the5ar) as a canonical mod, `classics
 - Checked through the real menus (key script + captures): the row, CLUB's list, a SWOS 2020 cup's
   teams, a toggle (COMPUTER -> PLAYER-COACH), PLAY starting the league; the PC game's 14-team
   CANADA ROGERS CUP in three columns.
+
+---
+
+## 21. petarku's game modes: the match hooks (PR #3, 2026-11-04)
+
+What petarku's (the5ar's) modes needed from the engine, as ModMatchSetup fields (include/mod_api.h)
+and fixed points in the match code, each a no-op unless a mod's match is being played: no online
+match, rig or recording meets them (check_netplay_compat.sh: 30 unchanged at NETPLAY_COMPAT 10).
+
+| Field | What | Where it acts |
+|---|---|---|
+| `kickOffAlways` (H1) | kickOff's team takes every kick-off, after goals and each period | `PrepareForInitialKick`, `handleGoalScored` (game_timers.c) |
+| `hideClock` (H2) | no clock on the screen | `UpdateTime` |
+| `playMatchScreen` (H3) | the friendly's PLAY MATCH screen before kick-off | `ModMatch_SetupPlayers` steps aside |
+| `manualKeeper` (H4) | at a penalty, a player's keeper dives where the stick is held (1: neutral = the game's, 2: neutral stands) | `UpdatePlayers` shot_at_goal, `GoalkeeperForceDiveAnim` |
+| `shootoutOrder[2][10]` (H5) | the takers by line-up slot | `NextPenalty` |
+| `restart` (H6) | the first kick-off is a corner, free kick or penalty instead | `PrepareForInitialKick` -> `GameTimers_ModRestart` |
+| `pitchNumber` (H7) | the pitch's art 1..6, after its random numbers | `SetPitchTypeAndNumber` |
+| `scorers[8]` (H7) | goals already in the scorer lists at kick-off (with `score`) | `ModMatch_KickOff`, through `GoalScored` |
+
+Plus `ModApi_TeamPlayer` / `ModApi_ChosenTeamPlayer` (a squad by line-up slot: name, position,
+shirt, skills) for a mod's own squad screen. The restart is the engine's own: a corner as
+`CheckIfBallOutOfPlay` sets one, a free kick in `tackle_foul.c`'s bands and quadrants, so it then
+plays as in any match.
+
+`manualKeeper` in every match (petarku's fork has it at any penalty a human defends, online
+too) would be a TWEAK -- match rules online, a NETPLAY_COMPAT raise -- and is checked against
+SWOS2.s first (§4); not done.
+
+Self-tests: `SWOS_MOD_MATCH_TEST=hooks` (2-1 at 40', a corner start, no clock, three preloaded
+scorers, pitch 3; seen on screen: the corner, the lists `[mods] scorer list`) and `=order` (a
+shoot-out by slots 1..10, logged per kick).

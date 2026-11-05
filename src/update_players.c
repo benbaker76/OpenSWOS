@@ -715,6 +715,29 @@ not_in_penalty:
         }
 
     shot_at_goal:
+#ifdef SWOS_SDL_BUILD
+        {
+            /* A mod's match whose players throw their own keeper at a penalty (mod_match.c,
+             * H4; the5ar): a held direction dives him at once, at full speed, at the height
+             * chosen (down = low); a stand leaves him where he is, the catch checks still his. */
+            extern int16_t ModMatch_ManualKeeper(const TeamGeneralInfo *team);
+            const int16_t manual = ModMatch_ManualKeeper(team);
+            if (manual == 0) {
+                player->destX = player->x.s.i;
+                player->destY = player->y.s.i;
+                goto goalie_can_catch_checks;
+            }
+            if (manual > 0) {
+                const int16_t dir = (manual == 5 || manual == 6) ? 6 : 2;
+                player->direction = dir;
+                GoalkeeperJumping(dir, 0, dir, player, ball, team);
+                GoalkeeperForceDiveAnim(player, team, manual == 3 || manual == 5);
+                team->passKickTimer = 0;
+                team->passingKickingPlayer = (Sprite *)0;
+                goto clamp_keeper_y_min;
+            }
+        }
+#endif
         if (ball->z.s.i > 16)
             goto save_not_attempted_set_run_speed;
 

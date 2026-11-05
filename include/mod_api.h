@@ -172,7 +172,36 @@ typedef struct {
     uint8_t  noInjuries;    /* tackles injure nobody */
     uint8_t  linesOut[2];   /* per team, MODLINE_* bits: those outfielders are not on the pitch */
     uint32_t sentOff[2];    /* per team, bit n: the player with shirt number n starts sent off (G3) */
+    /* petarku's game modes (PR #3, H1-H3) */
+    uint8_t  kickOffAlways; /* kickOff's team takes EVERY kick-off: after a goal and each period too */
+    uint8_t  hideClock;     /* no clock on the screen (with clockStopped: a practice that never ends) */
+    uint8_t  playMatchScreen; /* the friendly's PLAY MATCH screen before kick-off (EDIT TACTICS, VIEW
+                             * OPPONENT, the line-up), for the player's sides; 0 straight to the pitch */
+    uint8_t  shootoutOrder[2][10]; /* per team, its penalty takers in turn by line-up slot (1..10, the
+                             * goalkeeper never), the 11th kick the first again; a 0 anywhere in a
+                             * team's list: the game's own order for it (H5) */
+    uint8_t  manualKeeper;  /* at a penalty (a shoot-out's or a match's), a player's goalkeeper
+                             * defending it dives where his stick is held -- left / right, down-left
+                             * / down-right for low -- the moment the kick is struck (G8):
+                             * 0 the game's keeper, 1 a neutral stick leaves it to the game,
+                             * 2 a neutral stick stands still */
+    /* where the match starts (H6, H7: a challenge's moment) */
+    uint8_t  pitchNumber;   /* the pitch's own art, 1..6 (with pitchType, an exact pitch); 0 the game's */
+    struct {
+        uint8_t kind;       /* MODRESTART_*: the first kick-off is this break instead */
+        uint8_t team;       /* 0 / 1: the team that takes it */
+        uint8_t wing;       /* a corner: 0 the left flag, 1 the right, as the taker attacks */
+        int16_t x, y;       /* a free kick: where the foul was (world; MODRESTART_FREE_KICK) */
+    } restart;
+    struct {
+        int8_t  team;       /* 0 / 1 (its team-mate scores: an own goal is not one), -1 an unused row */
+        uint8_t shirt;      /* the scorer's shirt number (a man on the pitch at kick-off) */
+        uint8_t minute;
+        uint8_t penalty;    /* scored from a penalty */
+    } scorers[8];           /* goals already in the scorer lists at kick-off -- with score[], which
+                             * is the score; a challenge's "2-1, 70th minute" names who scored */
 } ModMatchSetup;
+enum { MODRESTART_KICK_OFF, MODRESTART_CORNER, MODRESTART_FREE_KICK, MODRESTART_PENALTY };
 
 enum { MODLINE_DEFENCE = 1, MODLINE_MIDFIELD = 2, MODLINE_ATTACK = 4 };   /* (backs and defenders;
                                                                            * wings and midfielders; attackers) */
@@ -189,6 +218,17 @@ int32_t ModApi_ChooseFromPack(int32_t number);
 int32_t ModApi_ChooseTeams(void);
 /* A database team by its uuid (docs/TEAM_IDS.md): its id for ModMatchSetup.team, or 0. */
 uint16_t ModApi_TeamByUuid(const char *uuid);
+/* A team's player by line-up slot (0 the goalkeeper, 1..10 the outfield, 11.. the bench), for a
+ * mod's own squad screen (a shoot-out order): from the database by team id, or from a team
+ * ModApi_ChooseTeams chose (0 / 1, as the player may have changed it). 1 when there is one. */
+typedef struct {
+    char    name[24];
+    uint8_t position;       /* 0 GK, 1 RB, 2 LB, 3 CD, 4 RW, 5 LW, 6 MF, 7 ST */
+    uint8_t shirt;
+    uint8_t passing, shooting, heading, tackling, control, speed, finishing;   /* 0..7 each */
+} ModTeamPlayer;
+int32_t ModApi_TeamPlayer(uint16_t teamId, int32_t slot, ModTeamPlayer *out);
+int32_t ModApi_ChosenTeamPlayer(int32_t team, int32_t slot, ModTeamPlayer *out);
 /* A random national team's id (its own random numbers: the match's are not taken), or 0. */
 uint16_t ModApi_RandomTeam(void);
 /* The last chosen teams again (a retry: the ones the last ModMatchSetup.chosen match played,
@@ -204,7 +244,7 @@ int32_t ModApi_FrameRate(void);
 
 /* A setup with the friendly's defaults: CPU v CPU, random pitch, length 0, 2 from 5 subs, no
  * extra time or penalties, replays on, the stadium and the replay menu shown, 0-0 at 0. */
-void ModApi_DefaultSetup(ModMatchSetup *setup);
+void ModApi_DefaultSetup(ModMatchSetup *setup);    /* (and no scorers: every row's team -1) */
 
 struct ModMatchResult {
     int16_t  goals[2], penaltyGoals[2];
