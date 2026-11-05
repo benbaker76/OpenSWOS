@@ -1198,6 +1198,7 @@ typedef struct Menu_CompetitionStats
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;    /* WINNERS (a world's; world_winners.c) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;    /* OpenSWOS: a mod's row (MODPOINT; mod_entries.c) */
   MenuMark markEndMenu;
 } Menu_CompetitionStats;
 #pragma pack(pop)
@@ -1435,6 +1436,7 @@ typedef struct Menu_BuyPlayer
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry7;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry8;    /* OpenSWOS: a mod's row (MODPOINT; mod_entries.c) */
   MenuMark markEndMenu;
 } Menu_BuyPlayer;
 #pragma pack(pop)
@@ -1449,6 +1451,7 @@ typedef struct Menu_NationalTeamAddPlayer
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry1;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry2;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;    /* OpenSWOS: a mod's row (MODPOINT; mod_entries.c) */
   MenuMark markEndMenu;
 } Menu_NationalTeamAddPlayer;
 #pragma pack(pop)
@@ -1743,6 +1746,9 @@ typedef struct Menu_TransferMarket
   MenuMark markWideCoords3;
   MenuEntry_Wide_NavOnly entries26_30[5];
   MenuMark markInitEntry2;
+  MenuMark_StartMenu menu4Start;
+  MenuMark markByteCoords4;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry31;   /* OpenSWOS: a mod's row (MODPOINT; mod_entries.c) */
   MenuMark markEndMenu;
 } Menu_TransferMarket;
 #pragma pack(pop)

@@ -236,6 +236,38 @@
           "func": "BuyPlayerExit"
         }
       ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 57,
+        "y": -126,
+        "w": -66,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 6,
+          "down": 7
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aModRow"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "BuyPlayerModRow"
+        }
+      ]
     }
   ]
 }

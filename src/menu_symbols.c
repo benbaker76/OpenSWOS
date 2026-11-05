@@ -23,6 +23,7 @@ extern void BuyOtherPlayersInit(void);
 extern void BuyPlayerExit(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
+extern void BuyPlayerModRow(void);
 extern void BuyPlayerViewSquad(void);
 extern void CareerGameListCommon(void);
 extern void CareerMenu(void);
@@ -62,6 +63,7 @@ extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
 extern void CompetitionStatsInit(void);
+extern void CompetitionStatsModRow(void);
 extern void CompetitionStatsWinners(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
@@ -246,6 +248,7 @@ extern void NationalTeamAddPlayerAbroadOnSelect(void);
 extern void NationalTeamAddPlayerExit(void);
 extern void NationalTeamAddPlayerHomeOnSelect(void);
 extern void NationalTeamAddPlayerInit(void);
+extern void NationalTeamAddPlayerModRow(void);
 extern void NationalTeamRemovePlayers(void);
 extern void NationalTeams(void);
 extern void NextMatch(void);
@@ -356,6 +359,7 @@ extern void TransferMarketAfterDrawCommon(void);
 extern void TransferMarketCommon(void);
 extern void TransferMarketFinish(void);
 extern void TransferMarketInit(void);
+extern void TransferMarketModRow(void);
 extern void TransferPlayerAfterDrawCommon(void);
 extern void TransferPlayerInit(void);
 extern void TransferPlayerOnSelect10(void);
@@ -496,6 +500,7 @@ extern char _aManagementReco_0[];
 extern char _aMatch[];
 extern char _aMemoFromTheClu[];
 extern char _aMenuMusic[];
+extern char _aModRow[];
 extern char _aModes[];
 extern char _aModsNone[];
 extern char _aModsOption[];
@@ -706,6 +711,7 @@ const MenuSymbol _menuSymbols[] = {
     { "BuyPlayerExit", (void*)BuyPlayerExit, SYM_FUNC },
     { "BuyPlayerInit", (void*)BuyPlayerInit, SYM_FUNC },
     { "BuyPlayerMenu", (void*)BuyPlayerMenu, SYM_FUNC },
+    { "BuyPlayerModRow", (void*)BuyPlayerModRow, SYM_FUNC },
     { "BuyPlayerViewSquad", (void*)BuyPlayerViewSquad, SYM_FUNC },
     { "CareerGameListCommon", (void*)CareerGameListCommon, SYM_FUNC },
     { "CareerMenu", (void*)CareerMenu, SYM_FUNC },
@@ -745,6 +751,7 @@ const MenuSymbol _menuSymbols[] = {
     { "CoachOrPlayerCoach", (void*)CoachOrPlayerCoach, SYM_FUNC },
     { "CompetitionInfo", (void*)CompetitionInfo, SYM_FUNC },
     { "CompetitionStatsInit", (void*)CompetitionStatsInit, SYM_FUNC },
+    { "CompetitionStatsModRow", (void*)CompetitionStatsModRow, SYM_FUNC },
     { "CompetitionStatsWinners", (void*)CompetitionStatsWinners, SYM_FUNC },
     { "CompetitionTopGoalScorersExit", (void*)CompetitionTopGoalScorersExit, SYM_FUNC },
     { "CompetitionTopGoalScorersInit", (void*)CompetitionTopGoalScorersInit, SYM_FUNC },
@@ -929,6 +936,7 @@ const MenuSymbol _menuSymbols[] = {
     { "NationalTeamAddPlayerExit", (void*)NationalTeamAddPlayerExit, SYM_FUNC },
     { "NationalTeamAddPlayerHomeOnSelect", (void*)NationalTeamAddPlayerHomeOnSelect, SYM_FUNC },
     { "NationalTeamAddPlayerInit", (void*)NationalTeamAddPlayerInit, SYM_FUNC },
+    { "NationalTeamAddPlayerModRow", (void*)NationalTeamAddPlayerModRow, SYM_FUNC },
     { "NationalTeamRemovePlayers", (void*)NationalTeamRemovePlayers, SYM_FUNC },
     { "NationalTeams", (void*)NationalTeams, SYM_FUNC },
     { "NextMatch", (void*)NextMatch, SYM_FUNC },
@@ -1039,6 +1047,7 @@ const MenuSymbol _menuSymbols[] = {
     { "TransferMarketCommon", (void*)TransferMarketCommon, SYM_FUNC },
     { "TransferMarketFinish", (void*)TransferMarketFinish, SYM_FUNC },
     { "TransferMarketInit", (void*)TransferMarketInit, SYM_FUNC },
+    { "TransferMarketModRow", (void*)TransferMarketModRow, SYM_FUNC },
     { "TransferPlayerAfterDrawCommon", (void*)TransferPlayerAfterDrawCommon, SYM_FUNC },
     { "TransferPlayerInit", (void*)TransferPlayerInit, SYM_FUNC },
     { "TransferPlayerOnSelect10", (void*)TransferPlayerOnSelect10, SYM_FUNC },
@@ -1176,6 +1185,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aMatch", (void*)_aMatch, SYM_STRING },
     { "_aMemoFromTheClu", (void*)_aMemoFromTheClu, SYM_STRING },
     { "_aMenuMusic", (void*)_aMenuMusic, SYM_STRING },
+    { "_aModRow", (void*)_aModRow, SYM_STRING },
     { "_aModes", (void*)_aModes, SYM_STRING },
     { "_aModsNone", (void*)_aModsNone, SYM_STRING },
     { "_aModsOption", (void*)_aModsOption, SYM_STRING },

@@ -127,7 +127,16 @@ void ModJson_Printf(ModJsonWriter *out, const char *fmt, ...) __attribute__((for
  * MORE COMPETITIONS (a list of them) when more; see "competitions from mods" below. A fork's
  * own screen shows any
  * point's list with ModApi_ShowEntries. Labels are shown in capitals; up to 8 a point. */
-typedef enum { MODPOINT_MODES, MODPOINT_AFTER_MATCH, MODPOINT_COMPETITIONS, MODPOINT_COUNT } ModPoint;
+typedef enum {
+    MODPOINT_MODES, MODPOINT_AFTER_MATCH, MODPOINT_COMPETITIONS,
+    /* A row in a career screen (docs/MODS.md §28): shown with the entry's label while one mod has
+     * an entry there, MORE (a list of them) when several, hidden when none. */
+    MODPOINT_BUY_PLAYER,            /* TRANSFER MARKET -> BUY PLAYER, above EXIT */
+    MODPOINT_TRANSFER_MARKET,       /* TRANSFER MARKET, beside BUY PLAYER */
+    MODPOINT_NATIONAL_ADD_PLAYER,   /* a national team's ADD PLAYER, under ABROAD */
+    MODPOINT_COMPETITION_STATS,     /* a competition's STATISTICS, after WINNERS */
+    MODPOINT_COUNT
+} ModPoint;
 int32_t ModApi_AddEntry(ModPoint point, const char *slug, const char *label, void (*select)(void));
 int32_t ModApi_EntryCount(ModPoint point);
 const char *ModApi_EntryLabel(ModPoint point, int32_t index);   /* (as shown: capitals) */

@@ -28,6 +28,7 @@
 #include "diy_competition.h"
 #include "career_teams.h"
 #include "menu_system.h"
+#include "menus.h"           /* ModRow_Show */
 #undef STR_COLOR_MASK                   /* (menu_data.h's enum names them too) */
 #undef STR_FLAGS_MASK
 #undef YELLOW_GREEN_BLACK_15
@@ -466,6 +467,7 @@ void CompetitionStatsWinners(void)
 #define STATS_SQUADS  3
 #define STATS_EXIT    4
 #define STATS_WINNERS 5
+#define STATS_MOD_ROW 6     /* (a mod's row: MODPOINT_COMPETITION_STATS, include/menus.h ModRow_Show) */
 int32_t WorldWinners_Available(void)
 {
     uint8_t division = 0;
@@ -479,6 +481,15 @@ void CompetitionStatsInit(void)
     _menuEntries[STATS_WINNERS].isInvisible = !on;
     _menuEntries[STATS_SQUADS].downEntry = on ? STATS_WINNERS : STATS_EXIT;
     _menuEntries[STATS_EXIT].upEntry = on ? STATS_WINNERS : STATS_SQUADS;
+    /* a mod's row (entry 6, MODPOINT_COMPETITION_STATS): after WINNERS, or in its place */
+    if (ModRow_Show(STATS_MOD_ROW, MODROW_COMPETITION_STATS)) {
+        const int32_t above = on ? STATS_WINNERS : STATS_SQUADS;
+        _menuEntries[STATS_MOD_ROW].y = (uint16_t)(_menuEntries[0].y + (on ? 140 : 115));
+        _menuEntries[above].downEntry = STATS_MOD_ROW;
+        _menuEntries[STATS_MOD_ROW].upEntry = (int8_t)above;
+        _menuEntries[STATS_MOD_ROW].downEntry = STATS_EXIT;
+        _menuEntries[STATS_EXIT].upEntry = STATS_MOD_ROW;
+    }
 }
 
 /* ---- The last season's record (league_playoffs.c writes it) ---- */

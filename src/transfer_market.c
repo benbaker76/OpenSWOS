@@ -1764,6 +1764,16 @@ void BuyPlayerInit(void)
 {
     uint8_t *str = (uint8_t *)_menuEntries[1].fg;
     GetBankBalance(str);
+    /* (a mod's row, entry 8, above EXIT: the five rows close up to make room -- local y 48 to
+     * 136, 22 apart, the row at 158; without it the original's layout) */
+    if (ModRow_Show(8, MODROW_BUY_PLAYER)) {
+        const uint16_t top = _menuEntries[0].y;
+        for (uint16_t e = 2; e <= 6; e++)
+            _menuEntries[e].y = (uint16_t)(top + 48 + 22 * (e - 2));
+        _menuEntries[8].y = (uint16_t)(top + 158);
+        _menuEntries[6].downEntry = 8;
+        _menuEntries[7].upEntry = 8;
+    }
 }
 
 /* The TRANSFER MARKET's list rows: the original's five are entries 9-13; rows 6-10 (entries
@@ -1792,6 +1802,12 @@ static uint16_t tmRowOfEntry(const MenuEntry *entry)
  * from the title's (entry 0, local y 0), so a call after a return redraws the same. */
 static void tmLayoutRows(void)
 {
+    if (ModRow_Show(31, MODROW_TRANSFER_MARKET)) {  /* (a mod's row, entry 31: BUY PLAYER and it side */
+        const uint16_t left = (uint16_t)(_menuEntries[0].x - 92);   /* by side, centred: local x 46 and */
+        _menuEntries[2].x = (uint16_t)(left + 46);                  /* 158, from the title's, so a call */
+        _menuEntries[31].x = (uint16_t)(left + 158);                /* after a return lays out the same) */
+        _menuEntries[2].rightEntry = 31;
+    }
     const int32_t big = _careerParams.transfer_list_capacity > TM_ROWS_ORIG;
     for (uint16_t k = 0; k < TM_ROWS_ORIG; k++)
         _menuEntries[TM_ROWS_EXTRA_FIRST + k].isInvisible = !big;
@@ -1799,6 +1815,7 @@ static void tmLayoutRows(void)
         return;
     const uint16_t top = _menuEntries[0].y;
     _menuEntries[2].y = (uint16_t)(top + 34);
+    _menuEntries[31].y = _menuEntries[2].y;     /* (the mod's row, beside BUY PLAYER) */
     _menuEntries[3].y = (uint16_t)(top + 52);
     _menuEntries[4].y = (uint16_t)(top + 70);
     _menuEntries[8].y = (uint16_t)(top + 88);

@@ -714,6 +714,47 @@
     },
     {
       "kind": "reset_template"
+    },
+    {
+      "kind": "set_origin",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "kind": "coords_mode",
+      "wide": false
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": -98,
+        "y": 40,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": 2,
+          "right": -1,
+          "up": -1,
+          "down": 3
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aModRow"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "TransferMarketModRow"
+        }
+      ]
     }
   ]
 }

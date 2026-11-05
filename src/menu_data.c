@@ -39,6 +39,10 @@ extern void BuyOtherPlayersCommon(void);
 extern void BuyOtherPlayersFinish(void);
 extern void BuyOtherPlayersInit(void);
 extern void BuyPlayerExit(void);
+extern void TransferMarketModRow(void);
+extern void NationalTeamAddPlayerModRow(void);
+extern void CompetitionStatsModRow(void);
+extern void BuyPlayerModRow(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerViewSquad(void);
@@ -466,6 +470,7 @@ extern char _aEditTactics[];
 extern char _aEditedCustomTe_0[];
 extern char _aExPlayerGoals[];
 extern char _aExit[];
+extern char _aModRow[];
 extern char _aNextPage[];
 extern char _aF[];
 extern char _aFilename[];
@@ -5085,6 +5090,14 @@ Menu_CompetitionStats _competitionStatsMenu = {
         { MENU_CMD_ONSELECT_FIRE, CompetitionStatsWinners },
         MENU_CMD_END
     },
+    {
+        { 92, -116, 120, 15 },
+        { MENU_CMD_NAV, -1, -1, 5, 4 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aModRow },
+        { MENU_CMD_ONSELECT_FIRE, CompetitionStatsModRow },
+        MENU_CMD_END
+    },
     MENU_MARK_END_MENU
 };
 Menu_CareerOver _careerOverMenu = {
@@ -8329,6 +8342,14 @@ Menu_BuyPlayer _buyPlayerMenu = {
         { MENU_CMD_ONSELECT_FIRE, BuyPlayerExit },
         MENU_CMD_END
     },
+    {
+        { 57, -126, -66, 15 },
+        { MENU_CMD_NAV, -1, -1, 6, 7 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aModRow },
+        { MENU_CMD_ONSELECT_FIRE, BuyPlayerModRow },
+        MENU_CMD_END
+    },
     MENU_MARK_END_MENU
 };
 Menu_TransferMarket _transferMarketMenu = {
@@ -8532,6 +8553,16 @@ Menu_TransferMarket _transferMarketMenu = {
         }
     },
     MENU_MARK_INIT_ENTRY,
+    { MENU_MARK_START_MENU, 0, 0 },
+    MENU_MARK_BYTE_COORDS,
+    {
+        { -98, 40, 100, 15 },
+        { MENU_CMD_NAV, 2, -1, -1, 3 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aModRow },
+        { MENU_CMD_ONSELECT_FIRE, TransferMarketModRow },
+        MENU_CMD_END
+    },
     MENU_MARK_END_MENU
 };
 Menu_SelectNationalTeam _selectNationalTeamMenu = {
@@ -8796,6 +8827,14 @@ Menu_NationalTeamAddPlayer _nationalTeamAddPlayerMenu = {
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, NationalTeamAddPlayerExit },
+        MENU_CMD_END
+    },
+    {
+        { 57, 120, -66, 15 },
+        { MENU_CMD_NAV, -1, -1, 2, 3 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aModRow },
+        { MENU_CMD_ONSELECT_FIRE, NationalTeamAddPlayerModRow },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

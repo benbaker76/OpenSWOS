@@ -6684,17 +6684,61 @@ void Career_RebuildInternationalPlayerSelectionMasks(void)
     _careerIntlPlayersWrongTypeMask = wrongMask;
 }
 
+/* ---- the career screens' rows for the mods (include/menus.h, docs/MODS.md §28) ---- */
+#ifdef SWOS_SDL_BUILD
+#include "mod_api.h"
+extern const char *ModEntries_RowLabel(ModPoint point);     /* (src/mod_entries.c) */
+extern void ModEntries_RowChosen(ModPoint point);
+static const ModPoint k_modRowPoint[4] = {
+    MODPOINT_BUY_PLAYER, MODPOINT_TRANSFER_MARKET, MODPOINT_NATIONAL_ADD_PLAYER, MODPOINT_COMPETITION_STATS,
+};
+#endif
+
+int32_t ModRow_Show(uint16_t entry, int32_t row)
+{
+#ifdef SWOS_SDL_BUILD
+    const char *label = ModEntries_RowLabel(k_modRowPoint[row]);
+    if (label) {
+        _menuEntries[entry].fg = (uintptr_t)label;
+        _menuEntries[entry].isInvisible = 0;
+        return 1;
+    }
+#else
+    (void)row;
+#endif
+    _menuEntries[entry].isInvisible = 1;
+    return 0;
+}
+
+static void modRowChosen(int32_t row)
+{
+#ifdef SWOS_SDL_BUILD
+    ModEntries_RowChosen(k_modRowPoint[row]);
+#else
+    (void)row;
+#endif
+}
+
+__attribute__((used, externally_visible)) void BuyPlayerModRow(void) { modRowChosen(MODROW_BUY_PLAYER); }
+__attribute__((used, externally_visible)) void TransferMarketModRow(void) { modRowChosen(MODROW_TRANSFER_MARKET); }
+__attribute__((used, externally_visible)) void NationalTeamAddPlayerModRow(void) { modRowChosen(MODROW_NATIONAL_ADD_PLAYER); }
+__attribute__((used, externally_visible)) void CompetitionStatsModRow(void) { modRowChosen(MODROW_COMPETITION_STATS); }
+
 /* NationalTeamAddPlayer — shows the home/abroad sub-menu, then lets user
  * select a player. If player selected but no room in career team (result==1),
  * copies player data for pending addition. */
 __attribute__((used, externally_visible))
 /* NATIONAL TEAM -> ADD PLAYER's init (the original's is empty): a nation with no club league in
  * the game (its record's team file NATIONAL_TEAM_NO_FILE, a mod's national teams) has no HOME --
- * only ABROAD, which lists every club. */
+ * only ABROAD, which lists every club; and a mod's row under ABROAD (entry 4). */
 __attribute__((used, externally_visible))
 void NationalTeamAddPlayerInit(void)
 {
     extern uint8_t _nationalTeamFileId;
+    if (ModRow_Show(4, MODROW_NATIONAL_ADD_PLAYER)) {
+        _menuEntries[2].downEntry = 4;      /* ABROAD -> the row -> EXIT */
+        _menuEntries[3].upEntry = 4;
+    }
     if (_nationalTeamFileId != NATIONAL_TEAM_NO_FILE)
         return;
     _menuEntries[1].isInvisible = 1;

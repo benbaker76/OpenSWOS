@@ -840,3 +840,21 @@ has none (start its records empty). The loaded career's "mods" members are kept 
 a mod that is off this session has its section written back unchanged at the next save, so
 turning Career+ off for a while loses none of the career's Career+ data; a mod that is on and has
 careerSave writes its own instead. A new career keeps none.
+
+---
+
+## 28. Rows in the career screens (Career+'s §3.5)
+
+Four more points for `ModApi_AddEntry` (include/mod_api.h), each a row the game's screen shows only
+while a mod that is on has an entry there -- with the entry's label, or MORE (the list of them,
+`ModApi_ShowEntries`) when several mods have one -- and hides otherwise (always on the Amiga):
+
+| point | the screen | the row |
+|---|---|---|
+| `MODPOINT_BUY_PLAYER` | TRANSFER MARKET -> BUY PLAYER | entry 8, above EXIT; the five rows close up (local y 48-136) to make room |
+| `MODPOINT_TRANSFER_MARKET` | TRANSFER MARKET | entry 31, beside BUY PLAYER (the two centred, 100 wide each) |
+| `MODPOINT_NATIONAL_ADD_PLAYER` | a national team's ADD PLAYER | entry 4, under ABROAD |
+| `MODPOINT_COMPETITION_STATS` | a competition's STATISTICS | entry 6, after WINNERS (or in its place when WINNERS is hidden) |
+
+Each is the menu's last entry, so every original entry keeps its number, and the screen's own
+init lays it out (`ModRow_Show`, include/menus.h): without an entry the screen is the original's.
