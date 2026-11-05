@@ -254,7 +254,13 @@ def encode_team(t: dict) -> bytearray:
     gtn = h["global_team_number"] & 0xFFFF
     b[2], b[3] = (gtn >> 8) & 0xFF, gtn & 0xFF
     b[4] = h["team_controls"] & 0xFF
-    _put_str(b, TEAM_NAME_OFF, TEAM_NAME_LEN, h["team_name"])
+    name = h["team_name"]
+    if len(name.encode("latin1", "replace")) > TEAM_NAME_LEN - 1:
+        # 16 letters and a NUL: the byte after the field is the team's goal count
+        # (writes_zero_here), so a 17-letter name is out of the format (none of 96/97's is)
+        sys.stderr.write("swos_team_file: team name %r is over %d letters, cut\n" % (name, TEAM_NAME_LEN - 1))
+        name = name.encode("latin1", "replace")[:TEAM_NAME_LEN - 1].decode("latin1")
+    _put_str(b, TEAM_NAME_OFF, TEAM_NAME_LEN, name)
     b[22] = h["writes_zero_here"] & 0xFF
     b[23] = h["and_with_0xfe"] & 0xFF
     b[24] = h["tactics"] & 0xFF
