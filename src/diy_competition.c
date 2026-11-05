@@ -7686,7 +7686,7 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
         {
             uint8_t *nameCheck = (uint8_t *)teamPtr->team.teamName;
             uint16_t ci;
-            for (ci = 0; ci < 19; ci++) {
+            for (ci = 0; ci < sizeof teamPtr->team.teamName; ci++) {   /* (17: a 17-letter name has no NUL) */
                 uint8_t b = nameCheck[ci];
                 if (b == 0) break;  /* null terminator is OK */
                 if (b < 0x20) {
