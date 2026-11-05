@@ -414,6 +414,8 @@ other. The code runs at **hooks**, fixed points of the engine, never patches of 
 |---|---|---|
 | `ModHooks_FrameDrawn(renderer)` | `platform_sdl.c`'s present, after the frame and its HUD, before the CRT effects, the touch controls and the swap | draw over the finished picture in its logical size. Runs once per frame SHOWN, so never on a re-simulated one: the place to keep a mod's own state |
 | `ModHooks_PitchDrawn()` | `game_loop.c`, after `ScrollToCurrent` drew the pitch into the frame being made, before the sprites | draw into the 8bpp frame UNDER the players. The frame may be one GGPO re-simulates and never shows, so only draw here |
+| `ModHooks_PlayerSetsRaw()` | `color_sprites.c` ConvertColorsAndTextSprites, once a match, before the player sets are recoloured | read the raw art (team 1's first set, sprites 227..327) |
+| `ModHooks_PlayerDrawn(sprite, gfx, x, y)` | `sprites.c` DrawQueuedSprites, right after a player sprite is drawn, before anything is drawn over it | redraw that sprite's own pixels, draw beside it; draw only, as PitchDrawn |
 
 Neither may write match state: the frame buffers are not in it (`src/sim_state.c`), and a mod's
 own state must not be either. A built-in mod that is cosmetic plays online like any other
@@ -439,4 +441,27 @@ its own generator.
   test: `SWOS_WEATHER_PITCH=1 SWOS_PRESENT_CAPTURE=150 SWOS_PRESENT_CAPTURE_FROM=1500
   bin/SWOS.x86_64 --mods=weather --replay-test=../tests/replay/<a .swr> --dos-graphics=off`
   writes the presented frames as `swos_presentNNN.png`.
+- **The splashes.** On a rain pitch, drops hitting the pitch: slots (150 heavy, 90 rain, 35
+  drizzle at full intensity, times the weather's intensity) each land a drop every 360 ms
+  somewhere new -- a dot, a crown, a ring going, 60 ms each -- stamped at PitchDrawn through a
+  lightening palette table, so under the players. Real time, a hash of the slot and its cycle.
 - SDL only (`"targets": ["sdl"]`): neither hook exists on the Amiga.
+
+**`hair`** (off by default; `src/mod_hair.c`): players with more than one head of hair.
+- At PlayerSetsRaw the raw frames are kept, with where each one's hair is (raw 9, 12, 13). At
+  PlayerDrawn an outfield player's frame is made again for his look, in raw colours, and every
+  pixel that changed is written through his face's colour table, only where the frame still
+  shows his sprite's pixel.
+- **Looks**: blonde (face 3's yellow and orange), black, receding (the 96/97 Mod's 'E' shape:
+  the hair's top row skin, and the next row's hair with a pixel on both sides), shaved (the
+  skull's tone, nearest the palette has to the Mod's), ponytail (the owner's 3x3 PONYTAIL.bmp in
+  hair colour 9: as drawn facing left, mirrored facing right, down the back facing away, unseen
+  from the front; upright frames only). Goalkeepers keep theirs.
+- **Who looks how**: `looks.csv` in the mod's folder (the Mod's `bald-looks` format:
+  `country,club,name,look[,face]`, matched by full name and club), else a hash of his name (7%
+  receding, 6% shaved, 4% ponytail; white 14% blonde, 10% black; ginger 30% black), so a player
+  always looks the same. `SWOS_HAIR_LOOK=<look>` gives everyone one (a test's).
+- **Marco's shaved art** (the Mod's `tools/shavedart.json`, per frame per skin) is used when it is
+  in the mod's folder as `shavedart.json`, else the hair becomes the skull's colour, its lowest
+  row a shade. Neither it nor the Mod's `packs/bald-looks-2627.csv` is in this repo: the Mod's
+  data is not MIT (its LICENSE §2) -- the owner asks Davide and Marco first.

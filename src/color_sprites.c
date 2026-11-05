@@ -462,6 +462,7 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
     /* SWOS_DUMP_HEADS=<folder> (a tool, for the hair work: docs/MODS.md): team 1's raw set, its
      * hair pixels found, before anything recolours it. */
     { extern void HeadDump_Raw(void); HeadDump_Raw(); }
+    { extern void ModHooks_PlayerSetsRaw(void); ModHooks_PlayerSetsRaw(); }   /* (the hair mod) */
 #endif
 
     /* Face 3 (black, blond hair): each team's raw first set copied before it is recoloured

@@ -59,6 +59,7 @@ static int32_t  s_next;
 static int16_t  s_lastX[22], s_lastY[22];
 static uint8_t  s_foot[22], s_have[22];
 static uint8_t  s_lut[kLevels][256];        /* palette entry -> its muddied entry, per level */
+static uint8_t  s_splash[256];              /* palette entry -> where a raindrop lands on it */
 static uint32_t s_lutAge = 0xFFFFFFFFu;
 
 /* How long a print lasts (presented frames) and how dark it starts, per pitch type: 0 none. */
@@ -91,6 +92,12 @@ static void build_luts(void)
             s_lut[l][i] = Platform_NearestColour((uint8_t)(r * k + tr * m * 0.9f), (uint8_t)(g * k + tg * m * 0.8f),
                                                  (uint8_t)(b * k + tb * m * 0.6f));
         }
+    for (i = 0; i < 256; i++) {                 /* a splash: the water, lighter and greyer */
+        uint8_t r, g, b;
+        Platform_PaletteColour((uint8_t)i, &r, &g, &b);
+        s_splash[i] = Platform_NearestColour((uint8_t)(r * 0.35f + 0xd8 * 0.65f), (uint8_t)(g * 0.35f + 0xe0 * 0.65f),
+                                             (uint8_t)(b * 0.35f + 0xe8 * 0.65f));
+    }
 }
 
 /* the next print's shape: its own generator, so no random number the game draws is taken */
@@ -166,7 +173,55 @@ static void mud_update(void)
     }
 }
 
-/* The pitch is in the frame being drawn and the sprites are not yet: stamp the prints. */
+/* ---- splashes: the drops hitting the pitch ---- */
+
+static float s_rainIntensity;               /* the weather's, as last drawn (0: no rain) */
+static int   s_rainKind;                    /* 1 heavy, 2 rain, 3 drizzle (the pitch type's) */
+
+static uint32_t mix32(uint32_t a, uint32_t b)
+{
+    uint32_t h = a * 0x9e3779b1u ^ (b + 0x7f4a7c15u + (a << 6) + (a >> 2));
+    h ^= h >> 15;
+    h *= 0x2c1b3c6du;
+    h ^= h >> 12;
+    return h;
+}
+
+/* Each splash slot lands a drop every so often somewhere new: a dot, a crown, a ring going. It
+ * runs on real time (SDL_GetTicks): what is drawn depends on nothing the match keeps. */
+static void draw_splashes(uint8_t *fb, int w, int h)
+{
+    static const int kSlots[4] = { 0, 150, 90, 35 };     /* by pitch type 1..3, at full intensity */
+    static const int8_t kStage[3][5][2] = {
+        { { 0, 0 }, { 99, 99 } },                                   /* the drop lands */
+        { { -1, -1 }, { 1, -1 }, { 0, 0 }, { 99, 99 } },            /* its crown */
+        { { -2, -1 }, { 2, -1 }, { -1, 0 }, { 1, 0 }, { 99, 99 } }, /* the ring, going */
+    };
+    if (s_rainKind < 1 || s_rainKind > 3 || s_rainIntensity <= 0)
+        return;
+    const int slots = (int)(kSlots[s_rainKind] * s_rainIntensity);
+    const uint32_t ms = SDL_GetTicks();
+    const uint32_t period = 360;                        /* ms from one drop of a slot to its next */
+    for (int i = 0; i < slots; i++) {
+        const uint32_t phase = mix32((uint32_t)i, 1) % period, t = ms + phase;
+        const uint32_t cycle = t / period, age = t % period;
+        const int stage = (int)(age / 60);              /* 60 ms a stage, then nothing till the next */
+        if (stage > 2)
+            continue;
+        const uint32_t where = mix32((uint32_t)i, cycle + 7);
+        const int x = (int)(where % (uint32_t)w), y = (int)((where >> 12) % (uint32_t)h);
+        for (int k = 0; kStage[stage][k][0] != 99; k++) {
+            const int px = x + kStage[stage][k][0], py = y + kStage[stage][k][1];
+            if (px >= 0 && py >= 0 && px < w && py < h) {
+                uint8_t *p = fb + py * w + px;
+                *p = s_splash[*p];
+            }
+        }
+    }
+}
+
+/* The pitch is in the frame being drawn and the sprites are not yet: stamp the prints and the
+ * splashes. */
 void ModWeather_PitchDrawn(void)
 {
     int32_t life, level, i;
@@ -175,6 +230,7 @@ void ModWeather_PitchDrawn(void)
     if (!life || !fb || s_lutAge == 0xFFFFFFFFu)
         return;
     const int w = FRONTBUFFER_ROW_STRIDE_BYTES, h = _screen_height;
+    draw_splashes(fb, w, h);
     const int cx = Render_CameraX(), cy = Render_CameraY();
     for (i = 0; i < kMaxPrints; i++) {
         const Print *p = &s_prints[i];
@@ -217,11 +273,15 @@ static void weather_draw(SDL_Renderer *renderer)
     if (inMatch && !wasInMatch)                 /* a new match: its own pattern */
         seed = (int)(SDL_GetPerformanceCounter() % 360);
     wasInMatch = inMatch;
-    if (!inMatch)
+    if (!inMatch) {
+        s_rainIntensity = 0;
         return;
+    }
     const uint8_t *t = (const uint8_t *)&_gameTime;
     const float minute = (float)(t[1] * 100 + t[2] * 10 + t[3]);
     const PitchWeather weather = PitchWeather_ForPitchType(pitch_type(), minute, seed);
+    s_rainKind = weather.kind == PITCH_WEATHER_SNOW ? 0 : pitch_type();
+    s_rainIntensity = weather.intensity;
     SDL_Rect area = { 0, 0, 0, 0 };
     SDL_RenderGetLogicalSize(renderer, &area.w, &area.h);
     if (area.w <= 0 || area.h <= 0)

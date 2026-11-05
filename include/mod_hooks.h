@@ -20,6 +20,17 @@ void ModHooks_FrameDrawn(SDL_Renderer *renderer);
  * ScrollToCurrent) and its sprites are not yet: what is drawn here is under the players. The
  * frame may be one GGPO re-simulates (and never shows), so a hook here only draws. */
 void ModHooks_PitchDrawn(void);
+
+/* A match's player sprites are loaded and not yet recoloured: each team's first set (team 1:
+ * sprites 227..327) is the raw art (src/color_sprites.c, ConvertColorsAndTextSprites). Read only. */
+void ModHooks_PlayerSetsRaw(void);
+
+/* An outfield or goalkeeper sprite (teamNumber 1 or 2) has just been drawn into the frame being
+ * made at x, y (src/sprites.c DrawQueuedSprites); nothing has been drawn over it yet. May redraw
+ * the sprite's own pixels and draw beside it. Like PitchDrawn, possibly a re-simulated frame. */
+struct Sprite;
+struct SpriteGraphics;
+void ModHooks_PlayerDrawn(const struct Sprite *sprite, const struct SpriteGraphics *gfx, int16_t x, int16_t y);
 #endif
 
 #endif /* MOD_HOOKS_H */

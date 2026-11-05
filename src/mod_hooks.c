@@ -13,18 +13,41 @@
 
 #include <stddef.h>
 
+#include "game_types.h"
+
 extern void ModWeather_FrameDrawn(SDL_Renderer *renderer);    /* src/mod_weather.c */
 extern void ModWeather_PitchDrawn(void);
+extern void ModHair_PlayerSetsRaw(void);                        /* src/mod_hair.c */
+extern void ModHair_PlayerDrawn(const Sprite *sprite, const SpriteGraphics *gfx, int16_t x, int16_t y);
 
 typedef struct {
     const char *slug;
     void (*frameDrawn)(SDL_Renderer *renderer);
     void (*pitchDrawn)(void);
+    void (*playerSetsRaw)(void);
+    void (*playerDrawn)(const Sprite *sprite, const SpriteGraphics *gfx, int16_t x, int16_t y);
 } BuiltinMod;
 
 static const BuiltinMod k_builtin[] = {
-    { "weather", ModWeather_FrameDrawn, ModWeather_PitchDrawn },
+    { "weather", ModWeather_FrameDrawn, ModWeather_PitchDrawn, NULL, NULL },
+    { "hair", NULL, NULL, ModHair_PlayerSetsRaw, ModHair_PlayerDrawn },
 };
+
+void ModHooks_PlayerSetsRaw(void)
+{
+    size_t i;
+    for (i = 0; i < sizeof k_builtin / sizeof k_builtin[0]; i++)
+        if (k_builtin[i].playerSetsRaw && Mods_IsOn(k_builtin[i].slug))
+            k_builtin[i].playerSetsRaw();
+}
+
+void ModHooks_PlayerDrawn(const Sprite *sprite, const SpriteGraphics *gfx, int16_t x, int16_t y)
+{
+    size_t i;
+    for (i = 0; i < sizeof k_builtin / sizeof k_builtin[0]; i++)
+        if (k_builtin[i].playerDrawn && Mods_IsOn(k_builtin[i].slug))
+            k_builtin[i].playerDrawn(sprite, gfx, x, y);
+}
 
 void ModHooks_PitchDrawn(void)
 {
