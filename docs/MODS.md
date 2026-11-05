@@ -918,7 +918,7 @@ both targets. Run-time loading of mod code (LoadSeg, a script language) is still
 | | the Amiga |
 |---|---|
 | `ModApi_Ticks` | the VBlank count x 20 ms |
-| settings (`ModApi_Setting`, `SetSetting`) | no SWOS.ini: a mod's defaults, and what it sets is kept for the run |
+| settings (`ModApi_Setting`, `SetSetting`) | no SWOS.ini: `save/MODS.INI` holds them, the same `[mod.<slug>]` sections, read when the mods start (never from inside a match frame) and written whole on each `SetSetting` |
 | save files (`ModApi_SaveFile`/`LoadFile`) | `save/<slug>_<name>`: resload makes no folders, and FFS names are 30 characters |
 | `ModApi_ListFiles` | `Resload_ListDir`: the mods' folders first |
 | competitions | JSON `.DIY` only (no DOS `.DIY`); no assets folder, no whole-match replay |

@@ -182,7 +182,7 @@ const char *ModApi_ModDir(const char *slug)
 #ifdef SWOS_SDL_BUILD
 enum { kMaxSettings = 128 };
 #else
-enum { kMaxSettings = 32 };     /* (the Amiga: only what the mods set this run -- no SWOS.ini) */
+enum { kMaxSettings = 32 };     /* (the Amiga: save/MODS.INI's) */
 #endif
 typedef struct {
     char slug[MODS_ID_MAX], key[32], value[96];
@@ -202,38 +202,98 @@ static void trim(char *t)
         memmove(t, t + i, n - i + 1);
 }
 
+/* One line of an INI ([mod.<slug>] sections, key = value), into s_settings. */
+static void settings_line(char *line, char *section, uint32_t sectionCap)
+{
+    trim(line);
+    if (line[0] == '[') {
+        char *e = strchr(line, ']');
+        if (e) {
+            *e = '\0';
+            snprintf(section, sectionCap, "%s", line + 1);
+        }
+        return;
+    }
+    char *eq = strchr(line, '=');
+    if (!eq || line[0] == ';' || line[0] == '#' || strncmp(section, "mod.", 4) != 0 ||
+        s_settingCount >= kMaxSettings)
+        return;
+    *eq = '\0';
+    Setting *st = &s_settings[s_settingCount++];
+    snprintf(st->slug, sizeof st->slug, "%s", section + 4);
+    snprintf(st->key, sizeof st->key, "%s", line);
+    snprintf(st->value, sizeof st->value, "%s", eq + 1);
+    trim(st->key);
+    trim(st->value);
+}
+
+#ifndef SWOS_SDL_BUILD
+/* The Amiga has no SWOS.ini: the mods' settings are a file of their own in the save folder, the
+ * same [mod.<slug>] sections (OpenSWOS Setup may write it into a drawer). */
+#define AMIGA_MOD_SETTINGS "save/MODS.INI"
+#endif
+
 static void read_settings(void)
 {
+    char line[256], section[64] = "";
     s_settingsRead = 1;
 #ifdef SWOS_SDL_BUILD
-    char line[256], section[64] = "";
     FILE *f = fopen(swos_ini_path(), "r");
     if (!f)
         return;
-    while (fgets(line, sizeof line, f) && s_settingCount < kMaxSettings) {
-        trim(line);
-        if (line[0] == '[') {
-            char *e = strchr(line, ']');
-            if (e) {
-                *e = '\0';
-                snprintf(section, sizeof section, "%s", line + 1);
-            }
-            continue;
-        }
-        char *eq = strchr(line, '=');
-        if (!eq || line[0] == ';' || line[0] == '#' || strncmp(section, "mod.", 4) != 0)
-            continue;
-        *eq = '\0';
-        Setting *st = &s_settings[s_settingCount++];
-        snprintf(st->slug, sizeof st->slug, "%s", section + 4);
-        snprintf(st->key, sizeof st->key, "%s", line);
-        snprintf(st->value, sizeof st->value, "%s", eq + 1);
-        trim(st->key);
-        trim(st->value);
-    }
+    while (fgets(line, sizeof line, f) && s_settingCount < kMaxSettings)
+        settings_line(line, section, sizeof section);
     fclose(f);
-#endif  /* (the Amiga has no SWOS.ini: a mod's settings are its defaults, and what it sets this run) */
+#else
+    uint8_t *buf = NULL;
+    uint32_t size = 0;
+    if (swos_io_load_alloc((const uint8_t *)AMIGA_MOD_SETTINGS, &buf, &size) != 0 || !buf)
+        return;
+    for (uint32_t i = 0; i < size;) {
+        uint32_t n = 0;
+        while (i < size && buf[i] != '\n' && n < sizeof line - 1)
+            line[n++] = (char)buf[i++];
+        while (i < size && buf[i] != '\n')     /* (a line past 255: the rest of it dropped) */
+            i++;
+        i++;
+        line[n] = '\0';
+        settings_line(line, section, sizeof section);
+    }
+    free(buf);
+#endif
 }
+
+#ifndef SWOS_SDL_BUILD
+/* At the mods' start (ModHooks_Init), not at a mod's first question: a file read from inside a
+ * match frame would turn the OS back on in the middle of it. */
+void ModApi_ReadSettings(void)
+{
+    if (!s_settingsRead)
+        read_settings();
+}
+
+/* save/MODS.INI written again from what is known, one section a mod. */
+static int32_t write_settings(void)
+{
+    static char text[kMaxSettings * 140 + 64];
+    uint32_t n = 0;
+    for (int32_t i = 0; i < s_settingCount; i++) {
+        int32_t first = 1;
+        for (int32_t k = 0; k < i; k++)
+            if (mod_strcasecmp(s_settings[k].slug, s_settings[i].slug) == 0)
+                first = 0;
+        if (!first)
+            continue;
+        n += (uint32_t)snprintf(text + n, sizeof text - n, "%s[mod.%s]\n", n ? "\n" : "", s_settings[i].slug);
+        for (int32_t k = i; k < s_settingCount && n < sizeof text; k++)
+            if (mod_strcasecmp(s_settings[k].slug, s_settings[i].slug) == 0)
+                n += (uint32_t)snprintf(text + n, sizeof text - n, "%s = %s\n", s_settings[k].key, s_settings[k].value);
+    }
+    if (n >= sizeof text)
+        return -1;
+    return swos_io_save((const uint8_t *)AMIGA_MOD_SETTINGS, (const uint8_t *)text, n) == 0 ? 0 : -1;
+}
+#endif
 
 static Setting *find_setting(const char *slug, const char *key)
 {
@@ -282,7 +342,7 @@ int32_t ModApi_SetSetting(const char *slug, const char *key, const char *value)
     }
     snprintf(st->value, sizeof st->value, "%s", value);
 #ifndef SWOS_SDL_BUILD
-    return 0;       /* (no SWOS.ini on the Amiga: kept for this run) */
+    return write_settings();    /* (save/MODS.INI: the Amiga has no SWOS.ini) */
 #else
     const char *path = swos_ini_path();
     static char lines[512][256];

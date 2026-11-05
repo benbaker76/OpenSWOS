@@ -30,6 +30,9 @@ extern int32_t ModMatch_Quiet(void);        /* src/mod_match.c: a re-simulated f
 
 void ModHooks_Init(void)
 {
+#ifndef SWOS_SDL_BUILD
+    { extern void ModApi_ReadSettings(void); ModApi_ReadSettings(); }   /* (save/MODS.INI, now: mod_api.c) */
+#endif
     EACH(init) (*m_)->init();
 }
 
