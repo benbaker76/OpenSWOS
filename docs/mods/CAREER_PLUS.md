@@ -1,10 +1,35 @@
 # CAREER_PLUS.md — porting benefactorr's Career+ fork to one mod
 
-Status (2026-11-04): **plan; the engine side is requested, nothing converted yet.**
-Branch `career-plus-mod` of github.com/benbaker76/OpenSWOS, which merged OpenSWOS main
-(c8b6c06d) into benefactorr/OpenSWOS main (8a6baf60). That merge commit is the reference:
-Career+ on today's engine. The PR goes back to benefactorr/OpenSWOS:main, so the fork keeps
-its history and ends up as OpenSWOS + one mod.
+Status (2026-11-05): **converted.** Career+ is `mods/careerplus` plus `src/mod_careerplus*.c`
+(listed through `src/fork_mods.inc`), on OpenSWOS main's hooks and APIs; the fork's engine
+edits left in the merge of 9316b349. Every engine change it needed went to OpenSWOS main as a
+patch (§3, §5, and the gaps found while writing it: a mod's bigger team file, 16-letter team
+names, the career calls of docs/MODS.md §31, the parked selection in the save). Branch
+`career-plus-mod` of github.com/benbaker76/OpenSWOS; the PR goes back to
+benefactorr/OpenSWOS:main, so the fork keeps its history and ends up as OpenSWOS + one mod.
+
+**Where it differs from the fork** (on purpose):
+- Its random numbers are its own, seeded from the career and saved with it: a career repeats
+  under the autopilot (the fork drew on the clock).
+- Retirements use the real season (the fork's counter only moved on a job change, so its
+  retirement draws and RETIREMENT NEWS's season repeated while you stayed at a club).
+- A goalkeeper youth's price stays within 49 (the fork's 127 made a youth of a 48-49 keeper
+  "no player" to the transfers, retirements and line-up tidy).
+- A player with no age in the data is 25 and ages (the fork showed 25 for ever).
+- SEARCH NATIONAL PLAYERS calls the player up (the fork opened his club's squad to pick
+  again); AI TRANSFERS says how many transfers the clubs made.
+- BUDUCNOST VALJEVO is B. VALJEVO: a team name is 16 letters.
+- The joke teams (TEAM.072) are not clubs: the fork's searches and AI transfers left them out
+  by a list, OpenSWOS by CN_CUSTOM.
+- Not carried over: the fork's diagnostics (logs, CSVs, dry runs, journals) and its test knobs
+  (`SWOS_AI_WORLD_MAX_CLUBS`, `SWOS_SEASON_REVIEW_FRAMES`); its crash guards (§2: none of
+  them reproduces with the mod in eight five-season careers); ReconcileNationalMatchStatus (a
+  national selector's career, which the autopilot cannot reach -- untested).
+
+**Checked:** with the mod off the branch's golden careers equal OpenSWOS main's record; with it
+on, the seven golden careers and a Yugoslav one play five seasons each. A season-3 save is
+about 8.4 MB (the career's foreign-market pool: about 20,000 claims after the AI transfers,
+levelling off near 24,000) and writes in about 30 ms, loads in about 250 ms (desktop SDL).
 
 The mod system is docs/MODS.md. Career+ is named there as one of the first code mods to port
 (§9, §11 item 5).
