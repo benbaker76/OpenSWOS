@@ -4,6 +4,8 @@
   "_aUniform": "UNIFORME",
  "language": "es",
  "strings": {
+  "_aModsNone": "NINGUNO",
+  "_aModsOption": "MODS",
   "_a001Season": "TEMPORADA %0/0%1",
   "_a01Season": "TEMPORADA %0/%1",
   "_a0611961355Asm6": "(06/11/96 13.55) ASM 6/11/1996",

@@ -39,6 +39,15 @@ export struct SourceRow {
 // One step: `ready` when its sources are there (Install makes it), and what
 // the assets folder has of it already -- 0 nothing, 1 all of it, 2 some, 3 old.
 // A GAME OPTIONS row (main.cpp RefreshOptions, from include/game_options.h).
+// A mod on disk (main.cpp ModsRefresh, docs/MODS.md).
+export struct ModRow {
+    name: string,
+    info: string,
+    on: bool,
+    problem: string,        // why it cannot be on ("" when it can)
+    canonical: bool,        // the game's own: it cannot be removed here
+}
+
 export struct OptionRow {
     label: string,
     about: string,
@@ -216,6 +225,7 @@ export component MainWindow inherits Window {
     in-out property <bool> x-world;
     in-out property <bool> x-2020;
     in-out property <bool> x-jaguar;
+    in-out property <bool> x-mods;          // mods (docs/MODS.md): the Mods screen
     in property <bool> world-available;     // World 2026-27 can be downloaded (kWorldUrl)
     // A computer or phone alone plays with either copy: 0 the PC game, 1 the Amiga version, 2 both.
     in-out property <int> have: 0;
@@ -235,6 +245,15 @@ export component MainWindow inherits Window {
     in property <string> hh-status;
     in-out property <int> hh-state;         // 0 no card, 1 ready, 2 copying, 3 copied, 4 cannot
     in property <float> hh-progress;
+    // The mods (main.cpp ModsRefresh): what is installed, mod zips found in Downloads.
+    in property <[ModRow]> mods;
+    in property <[string]> mods-found;
+    in property <string> mods-status;
+    in property <bool> mods-status-error;
+    callback mods-toggle(int);
+    callback mods-remove(int);
+    callback mods-browse();
+    callback mods-install-found(int);
     callback hh-change();
     callback hh-copy();
     callback hh-find();
@@ -413,6 +432,13 @@ export component MainWindow inherits Window {
                     text: @tr("The Jaguar version's redrawn players, from its cartridge");
                     selected: root.x-jaguar;
                     clicked => { root.x-jaguar = !root.x-jaguar; root.wizard-changed(); }
+                }
+                ExtraRow {
+                    icon: @image-url("icons/drag-drop.svg");
+                    title: @tr("Mods");
+                    text: @tr("What players have made for {0}: install a mod, turn mods on or off", root.project-name);
+                    selected: root.x-mods;
+                    clicked => { root.x-mods = !root.x-mods; root.wizard-changed(); }
                 }
             }
 
@@ -833,6 +859,107 @@ export component MainWindow inherits Window {
             }
 
             // The handheld: the port and the game's data onto its SD card.
+            // The mods (docs/MODS.md): what is installed, each on or off; install a mod's zip.
+            if root.kind == Step.mods: VerticalLayout {
+                spacing: 14px;
+                HorizontalLayout {
+                    spacing: 14px;
+                    Image {
+                        source: @image-url("icons/drag-drop.svg");
+                        width: 44px;
+                        height: 44px;
+                        colorize: Theme.link;
+                    }
+                    Text {
+                        text: @tr("Mods");
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: Theme.text;
+                        vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: @tr("A mod is something players made for {0}: new pitches, kits, competitions, ways to play. Drop a mod's .zip on this window, or leave it in your Downloads folder. A mod you turn off stays installed; the game plays the change from its next start.", root.project-name);
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.text-dim;
+                }
+                Rectangle {
+                    border-radius: 12px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    VerticalLayout {
+                        padding: 18px;
+                        spacing: 10px;
+                        if root.mods.length == 0: Text {
+                            text: @tr("No mods installed yet.");
+                            font-size: 14px;
+                            color: Theme.text-dim;
+                        }
+                        for m[i] in root.mods: HorizontalLayout {
+                            spacing: 10px;
+                            VerticalLayout {
+                                horizontal-stretch: 1;
+                                alignment: center;
+                                Text { text: m.name; font-size: 14px; font-weight: 700; color: Theme.text; overflow: elide; }
+                                Text {
+                                    text: m.problem != "" ? m.problem : m.info;
+                                    font-size: 12px;
+                                    color: m.problem != "" ? Theme.danger : Theme.text-dim;
+                                    overflow: elide;
+                                }
+                            }
+                            BigButton {
+                                label: m.problem != "" ? @tr("Cannot") : m.on ? @tr("On") : @tr("Off");
+                                primary: m.on && m.problem == "";
+                                enabled: !root.busy && m.problem == "";
+                                clicked => { root.mods-toggle(i); }
+                            }
+                            if !m.canonical: BigButton {
+                                label: @tr("Remove");
+                                enabled: !root.busy;
+                                clicked => { root.mods-remove(i); }
+                            }
+                        }
+                        for z[i] in root.mods-found: HorizontalLayout {
+                            spacing: 10px;
+                            Text {
+                                text: @tr("In your Downloads: {0}", z);
+                                font-size: 14px;
+                                color: Theme.text;
+                                vertical-alignment: center;
+                                horizontal-stretch: 1;
+                                overflow: elide;
+                            }
+                            BigButton {
+                                label: @tr("Install");
+                                icon: @image-url("icons/download.svg");
+                                primary: true;
+                                enabled: !root.busy;
+                                clicked => { root.mods-install-found(i); }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 10px;
+                            alignment: end;
+                            BigButton {
+                                label: @tr("Install a mod...");
+                                icon: @image-url("icons/folder-open.svg");
+                                enabled: !root.busy && root.can-pick;
+                                clicked => { root.mods-browse(); }
+                            }
+                        }
+                        if root.mods-status != "": Text {
+                            text: root.mods-status;
+                            wrap: word-wrap;
+                            font-size: 13px;
+                            color: root.mods-status-error ? Theme.danger : Theme.ok;
+                        }
+                    }
+                }
+            }
+
             if root.kind == Step.handheld: VerticalLayout {
                 spacing: 14px;
                 HorizontalLayout {

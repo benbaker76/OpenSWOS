@@ -24,3 +24,8 @@ The translations were made by machine (2026-11) and want a native speaker's eye:
 are welcome as pull requests to the `.po` files.
 
 The picker's flags are ours, in `../ui/flags` (make_flags.py).
+
+**After changing a `.po` file, touch `../ui/app.slint`** (and `wizard.slint`) before building:
+the Slint compiler bundles the translations when it compiles the UI, and the build does not
+know the `.po` files are its inputs -- an unchanged UI keeps the old translations (2026-11-04:
+the Mods screen's labels stayed English until it was touched).

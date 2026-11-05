@@ -244,7 +244,19 @@ Mods are hosted by their authors (content with other people's rights stays their
   without), MULTIPLAYER refused with a gameplay mod; Amiga (FS-UAE) -- a test mod's
   `grafs_aga/MENUBG.RAW` replaced the main menu's backdrop (screenshots with and without);
   `--menu-selftest` and `scripts/replay_v2_test.sh --all` unchanged with no mod.
-- **Not yet:** OpenSWOS Setup installing mods and writing `data/MODS`; a mods screen in the game.
+- **OpenSWOS Setup installs mods** (`tools/swosdata/app/main.cpp`, "the mods"): the **Mods** extra
+  on its first screen adds a Mods screen -- the mods installed (canonical and DLC), each On / Off
+  (`[mods]` of this computer's SWOS.ini, the list the game reads) and Remove (a DLC's folder);
+  a mod's `.zip` dropped on the window, picked with "Install a mod...", or found in Downloads is
+  installed: its `mod.json` (at the zip's root or in one folder) checked as the game checks it
+  (a uuid; `sdl` or `amiga` in its targets; not a canonical uuid), the folder put in the
+  player's `mods/<slug>` (slug: the manifest's `id`, else the zip's name; the same uuid under
+  another slug is replaced), turned on. `--mod-install=ZIP` does it without the window. Making an
+  Amiga drawer copies the mods that are on and made for the Amiga into its `mods/`, and writes
+  `data/MODS` (no `data/MODS` when none is). Checked: an install, a refusal (no uuid), the
+  screen with a mod in Downloads, a drawer with `data/MODS = indoor-hall*`, the German screen.
+  **Not yet:** mods in the WHDLoad package, on a phone (the Wi-Fi copy sends the assets folder),
+  on a handheld's card.
 
 **The first tweaks (§4)** (`include/tweaks.h`, `src/tweaks.c`): `[tweaks]` in SWOS.ini, each
 `true | false`, off by default; off online and under every rig (`Tweaks_On`); the Amiga has none.

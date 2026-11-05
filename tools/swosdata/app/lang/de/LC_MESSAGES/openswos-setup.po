@@ -1172,3 +1172,90 @@ msgstr "Italiano"
 #: include/game_options.h:68
 msgid "Nederlands"
 msgstr "Nederlands"
+
+msgid "Mods"
+msgstr "Mods"
+
+msgid "What players have made for {0}: install a mod, turn mods on or off"
+msgstr "Was Spieler für {0} gemacht haben: einen Mod installieren, Mods ein- oder ausschalten"
+
+msgid "A mod is something players made for {0}: new pitches, kits, competitions, ways to play. Drop a mod's .zip on this window, or leave it in your Downloads folder. A mod you turn off stays installed; the game plays the change from its next start."
+msgstr "Ein Mod ist etwas, das Spieler für {0} gemacht haben: neue Spielfelder, Trikots, Wettbewerbe, Spielweisen. Zieh die .zip eines Mods auf dieses Fenster oder lass sie in deinem Download-Ordner. Ein ausgeschalteter Mod bleibt installiert; das Spiel übernimmt die Änderung beim nächsten Start."
+
+msgid "No mods installed yet."
+msgstr "Noch keine Mods installiert."
+
+msgid "Cannot"
+msgstr "Geht nicht"
+
+msgid "On"
+msgstr "An"
+
+msgid "Off"
+msgstr "Aus"
+
+msgid "Remove"
+msgstr "Entfernen"
+
+msgid "In your Downloads: {0}"
+msgstr "In deinen Downloads: {0}"
+
+msgid "Install a mod..."
+msgstr "Mod installieren..."
+
+msgid "no mod.json in its folder"
+msgstr "keine mod.json in seinem Ordner"
+
+msgid "its mod.json has no uuid"
+msgstr "seine mod.json hat keine uuid"
+
+msgid "not made for this game (no \"sdl\" or \"amiga\" in its targets)"
+msgstr "nicht für dieses Spiel gemacht (kein \"sdl\" oder \"amiga\" in seinen targets)"
+
+msgid "its uuid is the game's own mod's"
+msgstr "seine uuid ist die eines Mods des Spiels"
+
+msgid "{0}, {1}{2}"
+msgstr "{0}, {1}{2}"
+
+msgid "part of the game"
+msgstr "Teil des Spiels"
+
+msgid "downloaded"
+msgstr "heruntergeladen"
+
+msgid ", also on the Amiga"
+msgstr ", auch auf dem Amiga"
+
+msgid ", Amiga only"
+msgstr ", nur Amiga"
+
+msgid "cosmetic"
+msgstr "optisch"
+
+msgid "gameplay"
+msgstr "Spielweise"
+
+msgid "career"
+msgstr "Karriere"
+
+msgid "{0} is not a mod (no mod.json in it)"
+msgstr "{0} ist kein Mod (keine mod.json darin)"
+
+msgid "could not install it: {0}"
+msgstr "konnte ihn nicht installieren: {0}"
+
+msgid "Installed {0}: it is on from the next time the game starts."
+msgstr "{0} installiert: er ist ab dem nächsten Spielstart an."
+
+msgid "Not installed: {0}."
+msgstr "Nicht installiert: {0}."
+
+msgid "{0} is on from the next time the game starts."
+msgstr "{0} ist ab dem nächsten Spielstart an."
+
+msgid "{0} is off from the next time the game starts."
+msgstr "{0} ist ab dem nächsten Spielstart aus."
+
+msgid "Removed {0}."
+msgstr "{0} entfernt."

@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <cctype>
 #include <ctime>
 #include <functional>
@@ -1082,6 +1083,7 @@ struct App {
         w().set_amiga_done(rc == 0);
         w().set_amiga_error(rc != 0);
         w().set_amiga_progress(rc == 0 ? 1.0f : 0.0f);
+        if (rc == 0 && kindDrawer) ModsToDrawer(Join(dest, "SWOS"));
         if (rc == 0)
           w().set_amiga_status(Str(kindDrawer
               ? Tf("Done: the SWOS drawer is in {0}. Copy it, with SWOS.info, to your Amiga and double-click SWOS.", Shown(dest))
@@ -1552,6 +1554,284 @@ struct App {
     });
   }
 
+  // -------------------------------------------------------------- the mods ---
+  //
+  // docs/MODS.md §14: a mod is a folder with a mod.json; DLC mods are the player's, in the mods
+  // folder beside SWOS.ini (UserDir()/mods), the game's own (canonical) ones beside the game
+  // (its setup/ folder's parent's mods/). Installing one: its zip unpacked, its manifest checked
+  // as the game checks it (a uuid; "sdl" or "amiga" in its targets; not a canonical uuid), the
+  // folder put in place and the mod turned on ([mods] enabled in this computer's SWOS.ini). The
+  // game reads the same list (src/mods.c); OPTIONS -> MODS toggles it there too.
+
+  struct ModFile {
+    std::string slug, dir, name, version, uuid, changes, problem;
+    bool canonical = false, byDefault = false, sdl = false, amiga = false;
+  };
+  std::vector<ModFile> modList;
+  static constexpr const char* kModChanges[] = { N_("cosmetic"), N_("gameplay"), N_("career") };   // (shown translated)
+  std::vector<std::string> modZipsFound;   // mod zips in Downloads, not installed
+
+  std::string ModsDir() const { return Join(UserDir(), "mods"); }
+  std::string CanonicalModsDir() const { return resDir.empty() ? std::string() : Join(sd::ParentDir(resDir), "mods"); }
+
+  // A top-level "key": value of a manifest -- a string, true/false, or for "targets" a list of
+  // strings. A small reader for a small, flat file (mod.json has nothing nested but that list).
+  static std::string ManifestValue(const std::string& j, const char* key) {
+    const std::string k = std::string("\"") + key + "\"";
+    size_t at = j.find(k);
+    if (at == std::string::npos) return {};
+    at = j.find(':', at + k.size());
+    if (at == std::string::npos) return {};
+    at = j.find_first_not_of(" \t\r\n", at + 1);
+    if (at == std::string::npos) return {};
+    if (j[at] == '"') {
+      std::string out;
+      for (size_t i = at + 1; i < j.size() && j[i] != '"'; i++) {
+        if (j[i] == '\\' && i + 1 < j.size()) i++;
+        out += j[i];
+      }
+      return out;
+    }
+    if (j[at] == '[') {
+      const size_t end = j.find(']', at);
+      return end == std::string::npos ? std::string() : j.substr(at, end - at + 1);
+    }
+    size_t end = j.find_first_of(",}\r\n", at);
+    std::string v = j.substr(at, end == std::string::npos ? std::string::npos : end - at);
+    while (!v.empty() && (v.back() == ' ' || v.back() == '\t')) v.pop_back();
+    return v;
+  }
+  static bool UuidOk(const std::string& u) {
+    if (u.size() != 36) return false;
+    for (size_t i = 0; i < 36; i++) {
+      const char c = u[i];
+      if (i == 8 || i == 13 || i == 18 || i == 23) { if (c != '-') return false; }
+      else if (!std::isxdigit((unsigned char)c)) return false;
+    }
+    return true;
+  }
+  static bool SlugOk(const std::string& s) {
+    if (s.empty() || s.size() >= 32) return false;
+    for (char c : s)
+      if (!std::isalnum((unsigned char)c) && c != '-' && c != '_') return false;
+    return true;
+  }
+
+  // What a mod's folder says; problem "" when the game can take it.
+  ModFile ReadMod(const std::string& dir, bool canonical) const {
+    ModFile m;
+    m.dir = dir;
+    m.slug = dir.substr(dir.find_last_of("/\\") + 1);
+    m.canonical = canonical;
+    const std::string j = ReadFile(Join(dir, "mod.json"));
+    if (j.empty()) { m.problem = N_("no mod.json in its folder"); return m; }
+    m.name = ManifestValue(j, "name");
+    if (m.name.empty()) m.name = m.slug;
+    m.version = ManifestValue(j, "version");
+    m.uuid = ManifestValue(j, "uuid");
+    m.changes = ManifestValue(j, "changes");
+    if (m.changes.empty()) m.changes = "gameplay";
+    m.byDefault = ManifestValue(j, "default") == "true";
+    const std::string targets = ManifestValue(j, "targets");
+    m.sdl = targets.find("\"sdl\"") != std::string::npos;
+    m.amiga = targets.find("\"amiga\"") != std::string::npos;
+    if (!UuidOk(m.uuid)) m.problem = N_("its mod.json has no uuid");
+    else if (!m.sdl && !m.amiga) m.problem = N_("not made for this game (no \"sdl\" or \"amiga\" in its targets)");
+    return m;
+  }
+
+  // [mods] enabled / disabled of this computer's SWOS.ini, as lists of slugs.
+  static std::vector<std::string> SplitList(const std::string& v) {
+    std::vector<std::string> out;
+    std::string cur;
+    for (char c : v + ",") {
+      if (c == ',' || c == ' ' || c == '\t') { if (!cur.empty()) out.push_back(cur); cur.clear(); }
+      else cur += c;
+    }
+    return out;
+  }
+  static std::string JoinList(const std::vector<std::string>& l) {
+    std::string out;
+    for (const std::string& s : l) out += (out.empty() ? "" : ", ") + s;
+    return out;
+  }
+  bool ModOn(const ModFile& m) const {
+    const std::string ini = ReadFile(IniPath(kComputer));
+    const auto has = [](const std::vector<std::string>& l, const std::string& s) {
+      return std::find(l.begin(), l.end(), s) != l.end();
+    };
+    if (m.canonical && m.byDefault) return !has(SplitList(IniValue(ini, "mods", "disabled")), m.slug);
+    return has(SplitList(IniValue(ini, "mods", "enabled")), m.slug);
+  }
+  void SetModOn(const ModFile& m, bool on) {
+    const std::string path = IniPath(kComputer);
+    std::string ini = ReadFile(path);
+    std::vector<std::string> en = SplitList(IniValue(ini, "mods", "enabled")),
+                             dis = SplitList(IniValue(ini, "mods", "disabled"));
+    en.erase(std::remove(en.begin(), en.end(), m.slug), en.end());
+    dis.erase(std::remove(dis.begin(), dis.end(), m.slug), dis.end());
+    if (m.canonical && m.byDefault) { if (!on) dis.push_back(m.slug); }
+    else if (on) en.push_back(m.slug);
+    ini = IniSet(ini, "mods", "enabled", JoinList(en).c_str());
+    ini = IniSet(ini, "mods", "disabled", JoinList(dis).c_str());
+    sd::MakeDirs(sd::ParentDir(path));
+    if (FILE* f = sd::OpenFile(path, "wb")) {
+      std::fwrite(ini.data(), 1, ini.size(), f);
+      std::fclose(f);
+    }
+    FileLog("mods: " + m.slug + (on ? " on" : " off") + " ([mods] enabled = " + JoinList(en) + "; disabled = " + JoinList(dis) + ")");
+  }
+
+  // Every mod on disk: the canonical ones, then the DLC; and the mod zips in Downloads.
+  void ModsRefresh() {
+    modList.clear();
+    for (int pass = 0; pass < 2; pass++) {
+      const std::string root = pass == 0 ? CanonicalModsDir() : ModsDir();
+      if (root.empty()) continue;
+      for (const sd::DirEntry& e : sd::ListDir(root)) {
+        if (!e.dir) continue;
+        ModFile m = ReadMod(e.path, pass == 0);
+        if (!SlugOk(m.slug)) continue;
+        modList.push_back(m);
+      }
+    }
+    for (ModFile& m : modList)       // (a DLC with a canonical uuid: the game refuses it too)
+      if (!m.canonical && m.problem.empty())
+        for (const ModFile& c : modList)
+          if (c.canonical && c.uuid == m.uuid) m.problem = N_("its uuid is the game's own mod's");
+    modZipsFound.clear();
+    const std::string dl = !watchDir.empty() ? watchDir : sd::DownloadsDir();
+    if (!dl.empty())
+      for (const sd::DirEntry& e : sd::ListDir(dl))
+        if (!e.dir && EndsWith(Lower(e.path), ".zip") && ModZip(e.path).size()) {
+          const std::string stem = Lower(e.path.substr(e.path.find_last_of("/\\") + 1));
+          bool have = false;
+          for (const ModFile& m : modList)
+            if (stem == Lower(m.slug) + ".zip") have = true;
+          if (!have) modZipsFound.push_back(e.path);
+        }
+    auto rows = std::make_shared<slint::VectorModel<ModRow>>();
+    for (const ModFile& m : modList) {
+      ModRow r;
+      r.name = Str(m.name + (m.version.empty() ? "" : " " + m.version));
+      r.info = Str(Tf("{0}, {1}{2}", m.canonical ? T("part of the game") : T("downloaded"), T(m.changes),
+                      m.amiga && m.sdl ? T(", also on the Amiga") : m.amiga ? T(", Amiga only") : ""));
+      r.on = m.problem.empty() && ModOn(m);
+      r.problem = Str(m.problem.empty() ? "" : T(m.problem.c_str()));
+      r.canonical = m.canonical;
+      rows->push_back(r);
+    }
+    w().set_mods(rows);
+    auto found = std::make_shared<slint::VectorModel<slint::SharedString>>();
+    for (const std::string& z : modZipsFound) found->push_back(Str(z.substr(z.find_last_of("/\\") + 1)));
+    w().set_mods_found(found);
+  }
+
+  // The zip's mod.json entry ("mod.json", or "<folder>/mod.json" for a zip of one folder), or "".
+  static std::string ModZip(const std::string& zip) {
+    if (SdSources_ZipHas(zip.c_str(), "mod.json")) return "mod.json";
+    std::string stem = zip.substr(zip.find_last_of("/\\") + 1);
+    if (stem.size() > 4) stem.resize(stem.size() - 4);
+    const std::string nested = stem + "/mod.json";
+    return SdSources_ZipHas(zip.c_str(), nested.c_str()) ? nested : std::string();
+  }
+
+  // Install a mod's zip into the mods folder, turned on. "" when it is in, else why not.
+  std::string ModInstall(const std::string& zip) {
+    const std::string entry = ModZip(zip);
+    if (entry.empty()) return Tf("{0} is not a mod (no mod.json in it)", Shown(zip));
+    const std::string tmp = Join(UserDir(), ".mod-unpack");
+    sd::RemoveTree(tmp);
+    if (SdSources_Unzip(zip.c_str(), tmp.c_str()) != 0) { sd::RemoveTree(tmp); return Tf("could not unpack {0}", Shown(zip)); }
+    const std::string from = entry == "mod.json" ? tmp : Join(tmp, entry.substr(0, entry.size() - 9));
+    ModFile m = ReadMod(from, false);
+    std::string slug = ManifestValue(ReadFile(Join(from, "mod.json")), "id");
+    if (!SlugOk(slug)) {
+      slug = zip.substr(zip.find_last_of("/\\") + 1);
+      slug.resize(slug.size() - 4);
+      for (char& c : slug) if (!std::isalnum((unsigned char)c) && c != '-' && c != '_') c = '_';
+      if (slug.size() > 31) slug.resize(31);
+    }
+    for (const ModFile& c : modList)
+      if (c.canonical && c.uuid == m.uuid) { sd::RemoveTree(tmp); return T("its uuid is the game's own mod's"); }
+    if (!m.problem.empty()) { sd::RemoveTree(tmp); return T(m.problem.c_str()); }
+    // The same mod (its uuid) under another folder is this one's older copy: replaced.
+    for (const ModFile& c : modList)
+      if (!c.canonical && c.uuid == m.uuid && c.slug != slug) { SetModOn(c, false); sd::RemoveTree(c.dir); }
+    const std::string to = Join(ModsDir(), slug);
+    std::string err;
+    sd::RemoveTree(to);
+    sd::MakeDirs(ModsDir());
+    if (!sd::CopyTree(from, to, "", nullptr, &err)) { sd::RemoveTree(tmp); return Tf("could not install it: {0}", err); }
+    sd::RemoveTree(tmp);
+    m = ReadMod(to, false);
+    SetModOn(m, true);
+    FileLog("mods: installed " + slug + " (" + m.name + " " + m.version + ", " + m.uuid + ") from " + Shown(zip));
+    return "";
+  }
+
+  void ModsInstallFrom(const std::string& zip) {
+    const std::string why = ModInstall(zip);
+    ModsRefresh();
+    w().set_mods_status(Str(why.empty() ? Tf("Installed {0}: it is on from the next time the game starts.", Shown(zip))
+                                        : Tf("Not installed: {0}.", why)));
+    w().set_mods_status_error(!why.empty());
+  }
+  void ModsBrowse() {
+    const std::string picked = PickFile("A mod", "zip");
+    if (!picked.empty()) ModsInstallFrom(picked);
+  }
+  void ModsInstallFound(int i) {
+    if (i >= 0 && i < int(modZipsFound.size())) ModsInstallFrom(modZipsFound[i]);
+  }
+  void ModsToggle(int i) {
+    if (i < 0 || i >= int(modList.size()) || !modList[i].problem.empty()) return;
+    const bool on = !ModOn(modList[i]);
+    SetModOn(modList[i], on);
+    ModsRefresh();
+    w().set_mods_status(Str(Tf(on ? T("{0} is on from the next time the game starts.").c_str()
+                                  : T("{0} is off from the next time the game starts.").c_str(), modList[i].name)));
+    w().set_mods_status_error(false);
+  }
+  void ModsRemove(int i) {
+    if (i < 0 || i >= int(modList.size()) || modList[i].canonical) return;
+    const ModFile m = modList[i];
+    SetModOn(m, false);
+    sd::RemoveTree(m.dir);
+    FileLog("mods: removed " + m.slug);
+    ModsRefresh();
+    w().set_mods_status(Str(Tf("Removed {0}.", m.name)));
+    w().set_mods_status_error(false);
+  }
+
+  // An Amiga drawer made in `drawerGame` (its SWOS folder): the mods that are on and made for the
+  // Amiga into its mods/, and data/MODS listing them (an id with '*': not cosmetic) -- or no
+  // data/MODS when none is, so an earlier one does not stay.
+  void ModsToDrawer(const std::string& drawerGame) {
+    ModsRefresh();
+    std::string list;
+    const std::string data = Join(drawerGame, "data/MODS");
+    sd::RemoveTree(Join(drawerGame, "mods"));
+    for (const ModFile& m : modList) {
+      if (!m.amiga || !m.problem.empty() || !ModOn(m)) continue;
+      std::string err;
+      if (!sd::CopyTree(m.dir, Join(Join(drawerGame, "mods"), m.slug), "", nullptr, &err)) {
+        FileLog("mods: could not copy " + m.slug + " to the drawer: " + err);
+        continue;
+      }
+      list += m.slug + (m.changes == "cosmetic" || m.canonical ? "" : "*") + "\n";
+    }
+    if (list.empty()) {
+      std::remove(data.c_str());
+      return;
+    }
+    if (FILE* f = sd::OpenFile(data, "wb")) {
+      std::fwrite(list.data(), 1, list.size(), f);
+      std::fclose(f);
+    }
+    FileLog("mods: the drawer's data/MODS = " + list);
+  }
+
   // ------------------------------------------------------------ the wizard ---
 
   // The screens, from what was ticked (app.slint's Step): where you will play first; a computer
@@ -1572,6 +1852,7 @@ struct App {
       if (w().get_x_2020()) steps.push_back(5);
       if (compPhone && w().get_x_jaguar()) steps.push_back(6);
       if (compPhone) steps.push_back(12);   // game options
+      if (w().get_x_mods()) steps.push_back(14);   // mods (docs/MODS.md)
       if (compPhone) steps.push_back(7);
       if (w().get_t_phone()) steps.push_back(8);
       if (w().get_t_handheld()) steps.push_back(13);
@@ -1600,6 +1881,8 @@ struct App {
       PhoneStart();
     } else if (kind == 13) {
       HandheldFind();
+    } else if (kind == 14) {
+      ModsRefresh();
     }
   }
 
@@ -1672,6 +1955,10 @@ struct App {
     bool notOne = false;
     for (const std::string& path : paths) {
       FileLog("dropped: " + Shown(path));
+      if (EndsWith(Lower(path), ".zip") && !ModZip(path).empty()) {     // a mod (docs/MODS.md)
+        ModsInstallFrom(path);
+        return;
+      }
       if (PortZip(path)) {
         hhZip = path;
         said = Tf("Found {0} for PortMaster in {1}.", PROJECT_NAME, Shown(path));
@@ -1894,7 +2181,8 @@ int Usage() {
       "testing: --auto (install, or with --amiga make it)  --snapshot PREFIX  --quit  --play\n"
       "         --snapshot-at MS (when the -start snapshot is taken; 1200)\n"
       "         --no-watch (leave the Downloads folder alone)  --details  --about\n"
-      "         --downloads DIR (watch DIR instead)  --no-gog (no GOG install lookup)\n",
+      "         --downloads DIR (watch DIR instead)  --no-gog (no GOG install lookup)\n"
+      "  --mod-install=ZIP install that mod into the mods folder, turned on, and quit (docs/MODS.md)\n",
       SD_VERSION);
   std::fflush(stdout);
   return 2;
@@ -1915,6 +2203,7 @@ int main(int argc, char** argv) {
   std::vector<std::string> scans;
   std::string resArg, outArg, programArg, drawerArg, whdloadArg;
   bool amigaTab = false, watch = true, details = false, about = false;
+  std::string modInstall;      // --mod-install=ZIP: install that mod (docs/MODS.md) and quit
   std::string wizardArg;
   int wizardStep = 0;
   int snapshotAt = 1200;
@@ -1944,6 +2233,8 @@ int main(int argc, char** argv) {
       app.cliLanguage = a.substr(11);
     } else if (a.rfind("--handheld-copy=", 0) == 0) {
       app.hhAuto = a.substr(16);
+    } else if (a.rfind("--mod-install=", 0) == 0) {
+      modInstall = a.substr(14);
     } else if (a == "--no-gog") {
       app.lookForGog = false;
     } else if (a == "--help" || a == "-h") {
@@ -2025,6 +2316,7 @@ int main(int argc, char** argv) {
     ui->set_x_world(has("world"));
     ui->set_x_2020(has("2020"));
     ui->set_x_jaguar(has("jaguar"));
+    ui->set_x_mods(has("mods"));
     ui->set_have(has("both") ? 2 : has("amigacopy") ? 1 : 0);
   }
   if (!whdloadArg.empty()) ui->set_amiga_kind(1);
@@ -2038,6 +2330,12 @@ int main(int argc, char** argv) {
   SwosData_LoadSources(app.outDir.c_str(), &app.src);
   app.StartLanguage();
   app.Refresh();
+  if (!modInstall.empty()) {   // (no window needed: the mods folder and SWOS.ini only)
+    app.ModsRefresh();
+    const std::string why = app.ModInstall(modInstall);
+    std::printf("%s\n", why.empty() ? ("installed " + modInstall).c_str() : ("not installed: " + why).c_str());
+    return why.empty() ? 0 : 1;
+  }
 #if defined(__APPLE__)
   // Gatekeeper's App Translocation: an unsigned app opened where it was unzipped
   // runs from a random read-only copy, where SWOS.app beside it cannot be seen.
@@ -2095,6 +2393,10 @@ int main(int argc, char** argv) {
   ui->on_hh_change([&app] { app.HandheldChange(); });
   ui->on_hh_copy([&app] { app.HandheldCopy(); });
   ui->on_hh_find([&app] { app.HandheldFind(); });
+  ui->on_mods_toggle([&app](int i) { app.ModsToggle(i); });
+  ui->on_mods_remove([&app](int i) { app.ModsRemove(i); });
+  ui->on_mods_browse([&app] { app.ModsBrowse(); });
+  ui->on_mods_install_found([&app](int i) { app.ModsInstallFound(i); });
   ui->on_close_setup([] { slint::quit_event_loop(); });
   app.RefreshWizard();
   if (wizardStep > 0) {

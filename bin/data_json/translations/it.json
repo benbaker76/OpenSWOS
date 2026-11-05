@@ -4,6 +4,8 @@
   "_aUniform": "DIVISA",
  "language": "it",
  "strings": {
+  "_aModsNone": "NESSUNA",
+  "_aModsOption": "MOD",
   "_a001Season": "STAGIONE %0/0%1",
   "_a01Season": "STAGIONE %0/%1",
   "_a0611961355Asm6": "(06/11/96 13.55) ASM 6/11/1996",
