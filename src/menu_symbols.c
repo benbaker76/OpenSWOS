@@ -238,6 +238,7 @@ extern void ManagementRecordInit(void);
 extern void ManagementRecordMenu(void);
 extern void MaxSubstitutes(void);
 extern void MinSubstitutes(void);
+extern void ModesMenuSelected(void);
 extern void MultiplayerMenuSelected(void);
 extern void NationalTeamAddPlayer(void);
 extern void NationalTeamAddPlayerAbroadOnSelect(void);
@@ -493,6 +494,7 @@ extern char _aManagementReco_0[];
 extern char _aMatch[];
 extern char _aMemoFromTheClu[];
 extern char _aMenuMusic[];
+extern char _aModes[];
 extern char _aModsNone[];
 extern char _aModsOption[];
 extern char _aMultiplayer[];
@@ -915,6 +917,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ManagementRecordMenu", (void*)ManagementRecordMenu, SYM_FUNC },
     { "MaxSubstitutes", (void*)MaxSubstitutes, SYM_FUNC },
     { "MinSubstitutes", (void*)MinSubstitutes, SYM_FUNC },
+    { "ModesMenuSelected", (void*)ModesMenuSelected, SYM_FUNC },
     { "MultiplayerMenuSelected", (void*)MultiplayerMenuSelected, SYM_FUNC },
     { "NationalTeamAddPlayer", (void*)NationalTeamAddPlayer, SYM_FUNC },
     { "NationalTeamAddPlayerAbroadOnSelect", (void*)NationalTeamAddPlayerAbroadOnSelect, SYM_FUNC },
@@ -1167,6 +1170,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aMatch", (void*)_aMatch, SYM_STRING },
     { "_aMemoFromTheClu", (void*)_aMemoFromTheClu, SYM_STRING },
     { "_aMenuMusic", (void*)_aMenuMusic, SYM_STRING },
+    { "_aModes", (void*)_aModes, SYM_STRING },
     { "_aModsNone", (void*)_aModsNone, SYM_STRING },
     { "_aModsOption", (void*)_aModsOption, SYM_STRING },
     { "_aMultiplayer", (void*)_aMultiplayer, SYM_STRING },

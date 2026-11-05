@@ -106,7 +106,15 @@ typedef struct {
     int8_t   score[2];      /* the score at kick-off */
     int16_t  minute;        /* the clock at kick-off, 0..44 (the first half) */
     const char *name;       /* the match's name on the screens ("PRACTICE"), NULL the friendly's */
+    uint8_t  chosen;        /* the teams ModApi_ChooseTeams chose (team[] unused): the sides as
+                             * the player set them there (a CPU team the CPU, the rest players) */
 } ModMatchSetup;
+
+/* The friendly's team screen: the player picks two teams, and who plays each (CPU / player).
+ * 1 when two were chosen (then ModMatchSetup.chosen plays them), 0 when the player left. */
+int32_t ModApi_ChooseTeams(void);
+/* A random national team's id (its own random numbers: the match's are not taken), or 0. */
+uint16_t ModApi_RandomTeam(void);
 
 /* A setup with the friendly's defaults: CPU v CPU, random pitch, length 0, 2 from 5 subs, no
  * extra time or penalties, replays on, the stadium and the replay menu shown, 0-0 at 0. */

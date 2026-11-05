@@ -13,6 +13,7 @@
 
 extern const ModDef ModDef_weather;     /* src/mod_weather.c */
 extern const ModDef ModDef_hair;        /* src/mod_hair.c */
+extern const ModDef ModDef_practice;    /* src/mod_practice.c */
 
 #if defined(__has_include)
 #if __has_include("fork_mods.inc")
@@ -25,6 +26,7 @@ extern const ModDef ModDef_hair;        /* src/mod_hair.c */
 const ModDef *const g_builtinMods[] = {
     &ModDef_weather,
     &ModDef_hair,
+    &ModDef_practice,
 #ifdef FORK_MODS
     FORK_MOD_LIST                       /* "&ModDef_<slug>," a fork's mods */
 #endif

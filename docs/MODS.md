@@ -565,3 +565,22 @@ own art stays an asset tier the setup builds from the player's cartridge.
 line and the career autopilot; and the Makefile rebuilds `mods_builtin.o` when a fork's
 `src/fork_mods.inc` first appears (make would not, and `__has_include` hides it).
 
+## 18. SWOS 2020's modes as canonical mods (2026-11-04)
+
+Ported from SWOS 2020's own code (the owner's choice), mapped onto the engine by SWOS United's
+`docs/SWOS2020_MODES_MAP.md` (its G1-G15 are the hooks still to add).
+
+**`practice`** (`src/mod_practice.c`, `bin/mods/practice`: canonical, `"changes": "modes"`, on by
+default -- so the main menu's MODES button is there): MODES -> PRACTICE opens its own menu
+(`practice/practiceMenu`, in the mod's folder; handlers `practice.shootout`, `practice.demo`,
+`practice.exit`, which a fork's menus can name too):
+- **PENALTY SHOOTOUT**: the friendly's team screen (`ModApi_ChooseTeams`: the two teams and who
+  plays each), then straight to a shoot-out (`shootoutOnly`), named SHOOTOUT; back to the menu.
+- **DEMO GAME**: two random national teams (`ModApi_RandomTeam`, its own random numbers), CPU v
+  CPU, named DEMO GAME.
+- **TEAM TRAINING**: next -- it needs the frozen clock, the lines left out, the drills (F1-F12),
+  ghost players and the manual keeper (the map's G-items).
+
+Checked: the menu draws from the mod's JSON; DEMO GAME plays two random teams;
+`SWOS_MOD_MATCH_TEST=shootout` plays a shoot-out from kick-off (every kick an event, 4-2).
+

@@ -24,6 +24,8 @@
 #include "mod_hooks.h"
 #include "play_match_menu.h"
 
+#include <SDL.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -121,11 +123,23 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
             s_mm.name[i] = (char)(setup->name[i] >= 'a' && setup->name[i] <= 'z' ? setup->name[i] - 32 : setup->name[i]);
         s_mm.name[i] = '\0';
     }
-    _numSelectedTeams = 0;
-    for (int32_t t = 0; t < 2; t++)
-        if (load_team(setup->team[t], t, setup->side[t] == MODSIDE_CPU ? TEAM_COMPUTER : TEAM_PLAYER_COACH) != 0)
+    if (setup->chosen) {
+        /* the team screen's: who plays each as the player set it there */
+        if (_numSelectedTeams < 2)
             return -1;
-    _numSelectedTeams = 2;
+        int32_t players = 0;
+        for (int32_t t = 0; t < 2; t++) {
+            const int32_t cpu = _selectedTeams[t].team.teamControls == TEAM_COMPUTER;
+            s_mm.setup.side[t] = (uint8_t)(cpu ? MODSIDE_CPU : players++ ? MODSIDE_PLAYER2 : MODSIDE_PLAYER1);
+            _selectedTeams[t].team.teamControls = (uint8_t)(cpu ? TEAM_COMPUTER : TEAM_PLAYER_COACH);
+        }
+    } else {
+        _numSelectedTeams = 0;
+        for (int32_t t = 0; t < 2; t++)
+            if (load_team(setup->team[t], t, setup->side[t] == MODSIDE_CPU ? TEAM_COMPUTER : TEAM_PLAYER_COACH) != 0)
+                return -1;
+        _numSelectedTeams = 2;
+    }
 
     /* the friendly's own settings, kept to be put back: the mod's match is not the player's */
     const uint16_t keep[6] = { _friendlyPitchType, _maxSubstitutes, _minSubstitutes, _gameLength, _autoReplays,
@@ -164,6 +178,36 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
         result->modMatch = 1;
         result->minute = clock_minute();
         result->frames = s_frames;
+    }
+    return 0;
+}
+
+int32_t ModApi_ChooseTeams(void)
+{
+    extern void GoGetTeamsForPlay(uint8_t *gameType, uint8_t *playWhat, uint16_t numTeams, uint16_t showClub,
+                                  uint16_t showNational, uint16_t showOrigCustom);
+    extern uint16_t _chooseTeamsResult;
+    extern uint8_t _aFriendly_1[], _aPlayFriendly[];
+    GoGetTeamsForPlay(_aFriendly_1, _aPlayFriendly, 2, 1, 1, 1);
+    return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
+}
+
+uint16_t ModApi_RandomTeam(void)
+{
+    static uint32_t state;
+    if (!state)
+        state = (uint32_t)SDL_GetPerformanceCounter() | 1u;
+    for (int32_t tries = 0; tries < 8; tries++) {
+        state = state * 1664525u + 1013904223u;
+        const uint8_t file = (uint8_t)(0x50 + (state >> 16) % 6);  /* the national teams' files */
+        if (LoadTeamFile(file) != 0)
+            continue;
+        const uint16_t count = *(uint16_t *)_teamFileBuffer;
+        if (!count)
+            continue;
+        state = state * 1664525u + 1013904223u;
+        const TeamFileEx *rec = (const TeamFileEx *)(_teamFileBuffer + 2) + (state >> 16) % count;
+        return (uint16_t)(rec->team.countryNumber << 8 | rec->team.teamOrdinal);
     }
     return 0;
 }
@@ -359,6 +403,7 @@ void ModMatch_Ended(void)
  * logged ([mods] event) and its result, then the game quits: the match hooks proved without a
  * mod (with SWOS_HARNESS_TURBO it runs as fast as it can). */
 static void play_test_match(int32_t thenQuit);
+static int32_t s_testShootout;          /* SWOS_MOD_MATCH_TEST=shootout */
 
 static void test_entry(void) { play_test_match(0); }
 
@@ -374,6 +419,7 @@ void ModMatch_SelfTest(void)
         ModApi_AddEntry(MODPOINT_MODES, "selftest", "mod match test", test_entry);
         return;
     }
+    s_testShootout = strcmp(how, "shootout") == 0;
     play_test_match(1);
 }
 
@@ -391,15 +437,22 @@ static void play_test_match(int32_t thenQuit)
     setup.replayMenu = 0;
     setup.autoReplays = 0;
     setup.name = "mod match test";
+    if (s_testShootout) {                   /* straight to penalties: a shoot-out's result */
+        setup.shootoutOnly = 1;
+        setup.score[0] = setup.score[1] = 0;
+        setup.minute = 0;
+    }
     const int32_t rc = ModApi_PlayMatch("selftest", &setup, &r);
     fprintf(stderr, "[mods] mod match test: rc %d, %d-%d (pens %d-%d), winner %d, minute %d, %u frames, quit %d\n",
             (int)rc, (int)r.goals[0], (int)r.goals[1], (int)r.penaltyGoals[0], (int)r.penaltyGoals[1],
             (int)r.winner, (int)r.minute, (unsigned)r.frames, (int)r.quit);
     if (!thenQuit)
         return;
-    fprintf(stdout, "MOD MATCH TEST %s\n", rc == 0 && r.frames > 0 && r.minute >= 90 ? "PASS" : "FAIL");
+    const int32_t ok = rc == 0 && r.frames > 0 &&
+                       (s_testShootout ? r.penaltyGoals[0] != r.penaltyGoals[1] : r.minute >= 90);
+    fprintf(stdout, "MOD MATCH TEST %s%s\n", s_testShootout ? "(shootout) " : "", ok ? "PASS" : "FAIL");
     fflush(stdout);
-    exit(rc == 0 && r.frames > 0 && r.minute >= 90 ? 0 : 1);
+    exit(ok ? 0 : 1);
 }
 
 #endif /* SWOS_SDL_BUILD */
