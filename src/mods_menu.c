@@ -180,7 +180,7 @@ static void toggle(int32_t i)
         Settings_Save(g_arcadeOpts, g_arcadeIniPath);
     fprintf(stderr, "[mods] %s set %s, from the next start ([mods] enabled = %s; disabled = %s)\n", m->slug,
             on ? "on" : "off", g_arcadeOpts->mods, g_arcadeOpts->mods_disabled);
-    note(on && !m->cosmetic ? "ON FROM THE NEXT START: KEEPS THE GAME OFF LINE"
+    note(on && !m->cosmetic ? "ON FROM THE NEXT START: ONLINE, SAME MODS ONLY"
          : on               ? "ON FROM THE NEXT START"
                             : "OFF FROM THE NEXT START");
 }

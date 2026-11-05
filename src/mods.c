@@ -26,6 +26,9 @@ static char    s_names[MODS_MAX][48];
 static char    s_uuids[MODS_MAX][40];
 static uint8_t s_canonical[MODS_MAX];
 static uint8_t s_cosmetic[MODS_MAX];
+static uint8_t s_online[MODS_MAX];          /* must be alike online: "gameplay" or "data" */
+static char    s_versions[MODS_MAX][24];
+static uint32_t s_fileHash[MODS_MAX];
 static int32_t s_count;
 
 int32_t Mods_Count(void) { return s_count; }
@@ -40,17 +43,104 @@ int32_t Mods_IsOn(const char *slug)
     return 0;
 }
 
-const char *Mods_OnlineBlocker(void)
+#ifdef SWOS_SDL_BUILD
+static uint32_t fnv(uint32_t h, const void *data, uint32_t n)
 {
-    for (int32_t i = 0; i < s_count; i++)
-        if (!s_cosmetic[i])
-            return s_names[i][0] ? s_names[i] : s_ids[i];
-    return NULL;
+    const uint8_t *p = (const uint8_t *)data;
+    for (uint32_t i = 0; i < n; i++)
+        h = (h ^ p[i]) * 16777619u;
+    return h;
 }
+
+uint32_t Mods_OnlineSignature(char *names, uint32_t cap)
+{
+    /* in uuid order, so the order the mods are listed in does not matter */
+    int32_t order[MODS_MAX], n = 0;
+    for (int32_t i = 0; i < s_count; i++)
+        if (s_online[i]) {
+            int32_t k = n++;
+            while (k > 0 && strcmp(s_uuids[order[k - 1]], s_uuids[i]) > 0) {
+                order[k] = order[k - 1];
+                k--;
+            }
+            order[k] = i;
+        }
+    if (names && cap)
+        names[0] = '\0';
+    if (!n)
+        return 0;
+    uint32_t h = 2166136261u, used = 0;
+    for (int32_t k = 0; k < n; k++) {
+        const int32_t i = order[k];
+        h = fnv(h, s_uuids[i], (uint32_t)strlen(s_uuids[i]) + 1);
+        h = fnv(h, s_versions[i], (uint32_t)strlen(s_versions[i]) + 1);
+        h = fnv(h, &s_fileHash[i], sizeof s_fileHash[i]);
+        if (names && used + 1 < cap)
+            used += (uint32_t)snprintf(names + used, cap - used, "%s%s %s", k ? ", " : "",
+                                       s_names[i][0] ? s_names[i] : s_ids[i], s_versions[i]);
+    }
+    return h ? h : 1;
+}
+#else
+/* (the Amiga plays no online match) */
+uint32_t Mods_OnlineSignature(char *names, uint32_t cap)
+{
+    if (names && cap)
+        names[0] = '\0';
+    return 0;
+}
+#endif
 
 /* The next id in `p` (separated by commas, spaces, tabs, new lines), into `out`; returns
  * where the scan stopped, or NULL at the end. An id with anything but letters, digits, '-'
  * and '_' is skipped (it names a folder: no '/', no '..'). `*star`: a '*' followed it. */
+#ifdef SWOS_SDL_BUILD
+#include <dirent.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+/* Every file under a mod's folder, in name order: its path and its bytes (the online
+ * signature's; a copy edited by hand, or half updated, is another mod). */
+static int name_cmp(const void *a, const void *b) { return strcmp(*(char *const *)a, *(char *const *)b); }
+
+static uint32_t hash_tree(const char *root, const char *rel, uint32_t h)
+{
+    char dir[1300];
+    snprintf(dir, sizeof dir, "%s%s%s", root, rel[0] ? "/" : "", rel);
+    DIR *d = opendir(dir);
+    if (!d)
+        return h;
+    char *names[512];
+    int32_t n = 0;
+    struct dirent *e;
+    while ((e = readdir(d)) != NULL && n < 512)
+        if (e->d_name[0] != '.')
+            names[n++] = strdup(e->d_name);
+    closedir(d);
+    qsort(names, (size_t)n, sizeof names[0], name_cmp);
+    for (int32_t i = 0; i < n; i++) {
+        char sub[1300], full[1300];
+        struct stat st;
+        snprintf(sub, sizeof sub, "%s%s%s", rel, rel[0] ? "/" : "", names[i]);
+        snprintf(full, sizeof full, "%s/%s", root, sub);
+        if (stat(full, &st) == 0 && S_ISDIR(st.st_mode)) {
+            h = hash_tree(root, sub, h);
+        } else {
+            FILE *f = fopen(full, "rb");
+            h = fnv(h, sub, (uint32_t)strlen(sub) + 1);
+            if (f) {
+                uint8_t buf[8192];
+                size_t got;
+                while ((got = fread(buf, 1, sizeof buf, f)) > 0)
+                    h = fnv(h, buf, (uint32_t)got);
+                fclose(f);
+            }
+        }
+        free(names[i]);
+    }
+    return h;
+}
+#endif
+
 static const char *next_id(const char *p, char *out, uint32_t cap, int *star)
 {
     for (;;) {
@@ -191,11 +281,15 @@ static const char *read_manifest(const char *dir, int canonical, ModInfo *info)
         info->version[0] = '\0';
     if (mjson_get_string(json, len, "$.changes", changes, (int)sizeof changes) < 0)
         changes[0] = '\0';
-    /* Anything but an explicit "cosmetic" counts as changing the game: a mod that says nothing
-     * is not assumed harmless online. A canonical mod is part of the build, which the handshake
-     * already compares (NETPLAY_COMPAT). */
-    info->cosmetic = (uint8_t)(canonical || strcmp(changes, "cosmetic") == 0);
+    /* What it changes: "cosmetic" (how it looks), "modes" (matches of its own, a normal one
+     * untouched), "career" (careers and their saves) never matter online; "gameplay" (how a
+     * match plays) and "data" (the teams, the world it plays with) must be alike in both
+     * players' games (Mods_OnlineSignature) -- and a mod that says nothing is not assumed
+     * harmless. Canonical or not: the build's own mods can be on in one game and off in the
+     * other. */
     snprintf(info->changes, sizeof info->changes, "%s", changes[0] ? changes : "gameplay");
+    info->cosmetic = (uint8_t)(strcmp(info->changes, "gameplay") != 0 && strcmp(info->changes, "data") != 0);
+    (void)canonical;
     info->byDefault = (uint8_t)(mjson_get_bool(json, len, "$.default", &b) && b);
     const int uuidOk = mjson_get_string(json, len, "$.uuid", info->uuid, (int)sizeof info->uuid) >= 0 &&
                        uuid_ok(info->uuid);
@@ -230,6 +324,9 @@ static void load_one(const char *id, const char *dir, int canonical)
         return;
     }
     s_cosmetic[s_count] = info.cosmetic;
+    s_online[s_count] = (uint8_t)!info.cosmetic;
+    snprintf(s_versions[s_count], sizeof s_versions[0], "%s", info.version);
+    s_fileHash[s_count] = s_online[s_count] ? hash_tree(dir, "", 2166136261u) : 0;
     s_canonical[s_count] = (uint8_t)canonical;
     snprintf(s_names[s_count], sizeof s_names[0], "%s", info.name);
     snprintf(s_ids[s_count], sizeof s_ids[0], "%s", id);

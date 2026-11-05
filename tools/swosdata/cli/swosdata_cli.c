@@ -60,6 +60,7 @@ static int32_t usage(void)
     fprintf(stderr,
             "usage: swosdata [--scan DIR]... [--adf FILE]... [--dos DIR] [--jag FILE]\n"
             "                [--swos2020 DIR] [--world PACKAGE]   (OpenSWOS-World-<tag>.zip, or unpacked)\n"
+            "                [--mods-dir DIR]     (with --world: install it there as a mod, world<tag>)\n"
             "                [--out DIR [--res DIR]]   (no --out: report what was found;\n"
             "                                           no sources: the last install's, from --out's ASSETS.ini)\n"
             "       swosdata --compare OUT REF\n"
@@ -278,6 +279,8 @@ int main(int argc, char **argv)
             }
         } else if (strcmp(a, "--out") == 0)
             snprintf(job.outDir, sizeof job.outDir, "%s", v);
+        else if (strcmp(a, "--mods-dir") == 0)      /* a world as a mod, into this mods folder */
+            snprintf(job.modsDir, sizeof job.modsDir, "%s", v);
         else if (strcmp(a, "--res") == 0)
             snprintf(job.resDir, sizeof job.resDir, "%s", v);
         else

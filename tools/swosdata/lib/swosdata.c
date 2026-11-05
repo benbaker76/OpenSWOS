@@ -28,6 +28,7 @@
 #else
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>         /* rmdir */
 #endif
 
 static void logf_(SdJob *job, const char *fmt, ...)
@@ -512,7 +513,10 @@ static int32_t step_world(SdJob *job, int32_t *done, int32_t total, char *err)
                  w.fingerprint[0] ? w.fingerprint : "?");
         job->log(job->user, line);
     }
-    int32_t rc = SwosData_InstallWorld(dir, w.tag, job->outDir, NULL, job->log, job->user, err);
+    int32_t rc = job->modsDir[0]
+                     ? SwosData_InstallWorldMod(dir, w.tag, w.name, w.fingerprint, job->modsDir, job->outDir, NULL, 0,
+                                                job->log, job->user, err)
+                     : SwosData_InstallWorld(dir, w.tag, job->outDir, NULL, job->log, job->user, err);
     tick(job, done, total);
     return rc;
 }
@@ -1317,6 +1321,143 @@ int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char 
             snprintf(line, sizeof line, "world %s: the drawer's data/", tag);
             log(user, line);
         }
+    }
+    return 0;
+}
+
+/* World 2026-27's mod uuid: fixed for ever (a DLC's own, docs/MODS.md §14), the one a package
+ * without a mod.json is given. */
+#define SD_WORLD_2627_UUID "15ea9117-6aa0-4968-a293-6cf33092ff33"
+
+static void remove_tree(const char *path)
+{
+#ifdef _WIN32
+    char pattern[1100];
+    Sg_PathJoin(pattern, sizeof pattern, path, "*");
+    WIN32_FIND_DATAA fd;
+    HANDLE h = FindFirstFileA(pattern, &fd);
+    if (h != INVALID_HANDLE_VALUE) {
+        do {
+            if (!strcmp(fd.cFileName, ".") || !strcmp(fd.cFileName, ".."))
+                continue;
+            char full[1100];
+            Sg_PathJoin(full, sizeof full, path, fd.cFileName);
+            if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                remove_tree(full);
+            else
+                DeleteFileA(full);
+        } while (FindNextFileA(h, &fd));
+        FindClose(h);
+    }
+    RemoveDirectoryA(path);
+#else
+    DIR *d = opendir(path);
+    if (d) {
+        struct dirent *e;
+        while ((e = readdir(d)) != NULL) {
+            if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, ".."))
+                continue;
+            char full[1100];
+            struct stat st;
+            Sg_PathJoin(full, sizeof full, path, e->d_name);
+            if (stat(full, &st) == 0 && S_ISDIR(st.st_mode))
+                remove_tree(full);
+            else
+                remove(full);
+        }
+        closedir(d);
+    }
+    rmdir(path);
+#endif
+}
+
+int32_t SwosData_InstallWorldMod(const char *worldDir, const char *tag, const char *name,
+                                 const char *version, const char *modsDir, const char *assetsDir,
+                                 char *slugOut, uint32_t slugCap,
+                                 void (*log)(void *user, const char *line), void *user, char *err)
+{
+    static const char *const kTrees[] = { "teams", "competitions" };
+    char slug[32], mod[1100], dst[1100], rel[96], probe[1100], line[256];
+    if (!tag || !tag[0] || strlen(tag) > 8 || strchr(tag, '/') || strchr(tag, '\\')) {
+        snprintf(err, 256, "a world's tag is a short name (2627)");
+        return -1;
+    }
+    if (Sg_FindNoCase(worldDir, "competitions/leagues.json", probe, sizeof probe) != 0) {
+        snprintf(err, 256, "%.200s is not a built world (no competitions/leagues.json)", worldDir);
+        return -1;
+    }
+    snprintf(slug, sizeof slug, "world%s", tag);
+    Sg_PathJoin(mod, sizeof mod, modsDir, slug);
+    remove_tree(mod);                       /* (an older copy: replaced whole) */
+    snprintf(rel, sizeof rel, "data_json/worlds/%s", tag);
+    Sg_PathJoin(dst, sizeof dst, mod, rel);
+    Sg_MakeDirs(dst);
+    for (uint32_t i = 0; i < sizeof kTrees / sizeof kTrees[0]; i++) {
+        const int32_t n = copy_tree(worldDir, dst, kTrees[i], err);
+        if (n < 0)
+            return -1;
+        if (log) {
+            snprintf(line, sizeof line, "world %s: %s/ (%d files)", tag, kTrees[i], n);
+            log(user, line);
+        }
+    }
+    {   /* WORLD.ini, and the package's mod.json (else one made) */
+        char from[1100], to[1100];
+        SgBuf b;
+        if (Sg_FindNoCase(worldDir, "WORLD.ini", from, sizeof from) == 0) {
+            Sg_PathJoin(to, sizeof to, dst, "WORLD.ini");
+            if (Sg_ReadFile(from, &b, err) != 0 || Sg_WriteFile(to, b.data, b.size, err) != 0) {
+                Sg_BufFree(&b);
+                return -1;
+            }
+            Sg_BufFree(&b);
+        }
+        Sg_PathJoin(to, sizeof to, mod, "mod.json");
+        if (Sg_FindNoCase(worldDir, "mod.json", from, sizeof from) == 0) {
+            if (Sg_ReadFile(from, &b, err) != 0 || Sg_WriteFile(to, b.data, b.size, err) != 0) {
+                Sg_BufFree(&b);
+                return -1;
+            }
+            Sg_BufFree(&b);
+        } else if (strcmp(tag, "2627") == 0) {
+            char json[1024];
+            const int len = snprintf(json, sizeof json,
+                "{\n \"uuid\": \"" SD_WORLD_2627_UUID "\",\n \"id\": \"%s\",\n \"name\": \"%s\",\n"
+                " \"version\": \"%s\",\n \"author\": \"the SWOS 96/97 Mod (Davide Lorigliola and its contributors)\",\n"
+                " \"about\": \"The football world of 2026-27: its countries, leagues, cups and squads.\",\n"
+                " \"targets\": [\"sdl\", \"amiga\"],\n \"changes\": \"data\",\n \"default\": false\n}\n",
+                slug, name && name[0] ? name : "World 2026-27", version && version[0] ? version : "1");
+            if (Sg_WriteFile(to, (const uint8_t *)json, (uint32_t)len, err) != 0)
+                return -1;
+        } else {
+            snprintf(err, 256, "the world %s's package has no mod.json", tag);
+            return -1;
+        }
+    }
+    {   /* the Amiga's: amiga/data/ -- its team files and WORLD, naming the world */
+        char amiga[1100];
+        Sg_PathJoin(amiga, sizeof amiga, mod, "amiga");
+        const int32_t n = copy_tree(worldDir, amiga, "data", err);
+        if (n < 0)
+            return -1;
+        Sg_PathJoin(probe, sizeof probe, amiga, "data/WORLD");
+        if (n && Sg_WriteFile(probe, (const uint8_t *)tag, (uint32_t)strlen(tag), err) != 0)
+            return -1;
+        if (log) {
+            snprintf(line, sizeof line, "world %s: the Amiga's data/ (%d files)", tag, n);
+            log(user, line);
+        }
+    }
+    if (assetsDir && assetsDir[0]) {        /* an earlier setup's copy: the mod decides now */
+        char old[1100];
+        Sg_PathJoin(old, sizeof old, assetsDir, rel);
+        remove_tree(old);
+    }
+    if (slugOut && slugCap)
+        snprintf(slugOut, slugCap, "%s", slug);
+    if (log) {
+        snprintf(line, sizeof line, "world %s: the mod %s", tag, slug);
+        log(user, line);
     }
     return 0;
 }

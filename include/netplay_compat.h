@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 9      /* 9: the XBOX gameplay style, the handshake's style byte (8: the host's crowd in the setup; 7: the lobby's match mode and service ids; 6: the lobby chat) */
+#define NETPLAY_COMPAT 10     /* 10: the handshake carries the mods that change the match (9: the XBOX gameplay style, the handshake's style byte; 8: the host's crowd in the setup; 7: the lobby's match mode and service ids; 6: the lobby chat) */
 
 #endif

@@ -27,10 +27,10 @@ struct SpriteGraphics;
  * They are fixed points of the engine, never patches of it; where each runs is said here and
  * in docs/MODS.md §16.
  *
- * Online (a live match, or GGPO's re-simulation of one) only cosmetic mods run, and the match
- * hooks (matchFrame, matchEvent) are told only frames as first played, never a re-simulated
- * one. A gameplay mod keeps the game off line (Mods_OnlineBlocker) until the handshake carries
- * the mod list (§8.6).
+ * Online, the match hooks (matchFrame, matchEvent) are told only frames as first played,
+ * never one GGPO re-simulates. A mod whose "changes" is "gameplay" or "data" plays online only
+ * against a player with the same mods -- uuid, version and files (Mods_OnlineSignature, the
+ * handshake, §8.6); "cosmetic", "modes" and "career" mods never matter there.
  * ====================================================================================== */
 typedef struct ModMatchEvent ModMatchEvent;
 typedef struct ModMatchResult ModMatchResult;

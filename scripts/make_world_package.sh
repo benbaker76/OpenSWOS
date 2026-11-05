@@ -8,6 +8,8 @@
 # step_world). It is scripts/world_import.py's output, unchanged:
 #
 #   OpenSWOS-World-2627/
+#     mod.json         the world as a mod (docs/MODS.md §17): OpenSWOS Setup installs it into the
+#                      player's mods/world<tag>/ (an older setup ignores this file)
 #     WORLD.ini        tag, name, the fingerprint of the files below
 #     teams/           the PC game's team files (JSON)
 #     competitions/    leagues.json
@@ -32,11 +34,23 @@ grep -q "\"$FP\"" "$ROOT/src/world_data.c" ||
     { echo "make_world_package: WORLD.ini's data ($FP) is not src/world_data.c's -- rerun world_import.py" >&2; exit 1; }
 
 mkdir -p "$ROOT/dist"
-python3 -I - "$SRC" "$OUT.tmp" "OpenSWOS-World-$TAG" <<'PY'
-import os, sys, zipfile
-src, out, top = sys.argv[1:]
+python3 -I - "$SRC" "$OUT.tmp" "OpenSWOS-World-$TAG" "$TAG" "$FP" <<'PY'
+import json, os, sys, zipfile
+src, out, top, tag, fp = sys.argv[1:]
+# The mod's uuid is the world's for ever (a DLC's own: docs/MODS.md §14); the version, its data.
+UUIDS = {"2627": "15ea9117-6aa0-4968-a293-6cf33092ff33"}
+if tag not in UUIDS:
+    sys.exit("make_world_package: world %s has no mod uuid yet -- give it one (uuid4) in UUIDS" % tag)
+name = "World %s-%s" % ("20" + tag[:2], tag[2:]) if len(tag) == 4 else "World " + tag
+manifest = {
+    "uuid": UUIDS[tag], "id": "world" + tag, "name": name, "version": fp,
+    "author": "the SWOS 96/97 Mod (Davide Lorigliola and its contributors)",
+    "about": "The football world of %s: its countries, leagues, cups and squads." % name[6:],
+    "targets": ["sdl", "amiga"], "changes": "data", "default": False,
+}
 n = 0
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+    z.writestr(top + "/mod.json", json.dumps(manifest, indent=1) + "\n")
     z.write(os.path.join(src, "WORLD.ini"), top + "/WORLD.ini")
     for sub in ("teams", "competitions", "data"):
         for f in sorted(os.listdir(os.path.join(src, sub))):

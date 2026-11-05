@@ -19,6 +19,8 @@
 typedef struct {
     SdSources   src;
     char        outDir[1024];   /* the assets folder */
+    char        modsDir[1024];  /* the player's mods folder: a world is installed there as a mod
+                                 * (SwosData_InstallWorldMod); "" for the assets folder, as before */
     char        resDir[1024];   /* the game's own files, laid out as bin/ is:
                                  * data/credits_icons.bmp, setup/glyphs.txt, ... */
     /* Called for every line worth showing, and for progress. Either may be NULL. */
@@ -119,6 +121,18 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
 #define SD_WORLD_AMIGA_DIR "data_json/worlds/" SD_AMIGA_WORLD "/amiga"
 /* Whether the assets folder has that world's Amiga files (the drawer's choice is offered). */
 int32_t SwosData_HaveAmigaWorld(const char *assetsDir);
+
+/* A world as a mod (docs/MODS.md §17): its package into `modsDir`/world<tag>/ --
+ *   mod.json                          the package's, else made: World 2026-27's uuid, "data"
+ *   data_json/worlds/<tag>/           WORLD.ini, teams/, competitions/ (the PC game's)
+ *   amiga/data/                       the Amiga's team files and WORLD (a drawer's mods/ gets
+ *                                     amiga/'s contents: the Amiga's files only)
+ * and the world's old copy in `assetsDir` (an earlier setup's) taken away, so the mod's being on
+ * or off is what decides. `slugOut` gets the mod's folder name. */
+int32_t SwosData_InstallWorldMod(const char *worldDir, const char *tag, const char *name,
+                                 const char *version, const char *modsDir, const char *assetsDir,
+                                 char *slugOut, uint32_t slugCap,
+                                 void (*log)(void *user, const char *line), void *user, char *err);
 
 /* A world's built files (`worldDir`: a world package unpacked -- WORLD.ini, teams/,
  * competitions/, data/; scripts/make_world_package.sh) into the assets folder's

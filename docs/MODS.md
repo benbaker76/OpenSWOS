@@ -170,8 +170,8 @@ expansion, or an emulator set up as one, is the likely floor, and the doc will s
    `cosmetic` mods may differ. **The goal (the owner, 2026-11-04): mods in multiplayer** -- two
    players with the same gameplay mods, at the same versions, play each other; the matchmaker
    lists a game only to players whose gameplay mods match (as it does by `NETPLAY_COMPAT`), and
-   the lobby says which mod is missing or differs. Until then a gameplay mod keeps the game off
-   line (§12). Tweaks travel the same way, in the host's rules (§4). Recordings carry the mod
+   the lobby says which mod is missing or differs. **Built (§17):** the handshake refuses a
+   player whose gameplay and data mods differ (uuid, version, files). Tweaks travel the same way, in the host's rules (§4). Recordings carry the mod
    list, so a replay and `--srp-resim` play by it. A gameplay mod's match state registers with the rollback registry (`src/sim_state.c`).
 
 ---
@@ -330,7 +330,7 @@ Some of SWOS 2020's features become mods, so mods come in two kinds:
 | Where | the game's own `mods/` (`MODS_CANONICAL_DIR`; `bin/mods/`, git-tracked) | the player's `mods/` folder (`Mods_Root()`), put there by OpenSWOS Setup or the Amiga DLC Manager |
 | Rights | only what OpenSWOS may ship | anything its author may share. **Content with other people's rights is always DLC**: World 2026-27, SWOS 2020's cups (HISTORIC TOURNAMENTS' data), the SWOS 2020 pitches. The engine capability that reads it can be canonical (the `.DIY` reader is base) |
 | On | when its manifest says `"default": true`, unless `[mods] disabled` names it; or when `[mods] enabled` does | only when `[mods] enabled` names it |
-| Online | part of the build: the same build has the same canonical mods (`NETPLAY_COMPAT`), so never a blocker | matched by uuid, version and hash (§8.6); until then a non-cosmetic one keeps the game off line |
+| Online | matched like a DLC when it changes the match: on in one game and off in the other is a different game (§17) | matched by uuid, version and the hash of its files (§17) |
 
 **Every mod has a `uuid`** in its `mod.json`, separate from its folder's name (the slug, a
 readable label that may change). The uuid is the identity in saves (a career made with a career
@@ -505,3 +505,51 @@ its own generator.
   in the mod's folder as `shavedart.json`, else the hair becomes the skull's colour, its lowest
   row a shade. Neither it nor the Mod's `packs/bald-looks-2627.csv` is in this repo: the Mod's
   data is not MIT (its LICENSE §2) -- the owner asks Davide and Marco first.
+
+## 17. Worlds as mods; mods online (2026-11-04)
+
+**World 2026-27 is a DLC mod, `world2627`** (uuid `15ea9117-6aa0-4968-a293-6cf33092ff33`, for
+ever; `"changes": "data"`, both targets). Its code stays in the engine -- the league splits, the
+play-offs, the rules library, behind `SWOS_WORLDS` -- because that makes the engine able to do
+more (§1); the mod is its data, Davide's, hosted apart as before
+(`scripts/make_world_package.sh` -> `dist/OpenSWOS-World-2627.zip`, now with a `mod.json` an
+older setup ignores). OpenSWOS Setup installs the package into the player's mods folder
+(`SwosData_InstallWorldMod`; `swosdata --world PKG --mods-dir DIR`), turns it on, and takes
+away an earlier setup's copy in the assets folder, so the mod's being on is what decides:
+
+    mods/world2627/
+      mod.json
+      data_json/worlds/2627/    WORLD.ini, teams/, competitions/  -- the PC game's, through the overlay
+      amiga/data/               the Amiga's team files and WORLD   -- a drawer's or WHDLoad package's
+                                                                      mods/world2627/ gets these only
+
+The game needed nothing: every read of a world goes through `swos_data_path`, which looks in the
+mods first. With the mod off (and no older copy), `[world] 2627: its data is not installed ...
+playing 9697`. A mod with an `amiga/` folder gives the Amiga that folder's contents (its files
+for that target); the drawer and the WHDLoad package take the world's mod with the Amiga tab's
+World 2026-27 tick (`ModsToDrawer`), and on the Amiga its `data/WORLD` names the world as before.
+The phone and the handheld copy it as every DLC mod that is on. Next (for a world with new dates
+and no rebuild): what `scripts/world_import.py` compiles into `src/world_data.c` read from the
+mod, and the setup's fixed tag (`SD_AMIGA_WORLD`) taken from the mod.
+
+**Online: the same mods play each other** (the owner, 2026-11-04). What a mod changes:
+
+| `"changes"` | means | online |
+|---|---|---|
+| `cosmetic` | how the game looks or sounds | never matters |
+| `modes` | matches and screens of its own; a normal match untouched (practice, challenges) | never matters |
+| `career` | careers and their saves | never matters |
+| `gameplay` | how a match plays | both players need it alike |
+| `data` | what a match plays with: teams, a world | both players need it alike |
+
+A mod that says nothing counts as `gameplay`; canonical mods are no exception (one game can
+have a canonical mod on and the other off). `Mods_OnlineSignature` hashes, in uuid order, each
+such mod's uuid, its version and a hash of all its files (taken at start-up), so a copy edited
+by hand or half updated is another mod. The handshake (`src/p2p_link.c`, protocol 6, the setup
+packet's bytes 32-35) refuses a player whose signature differs: **YOUR MODS ARE DIFFERENT / BOTH
+NEED THE SAME MODS: OPTIONS, MODS** (`P2P_FAIL_MODS`; the self-test's case 4f). The world mod
+plays online because the server checks both teams against its list anyway (`TeamRegistry.inc`,
+which carries the world's teams). `NETPLAY_COMPAT` 10. Next: the matchmaker lists a game only to
+players with the same signature (as it does by `NETPLAY_COMPAT`), and the lobby names the mod
+that differs.
+

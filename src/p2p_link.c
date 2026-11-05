@@ -33,6 +33,7 @@
 #include "build_info.h"      /* Build_Id: the handshake logs builds */
 #include "netplay_compat.h"  /* NETPLAY_COMPAT: and compares this */
 #include "world.h"           /* and the football world */
+#include "mods.h"            /* and the mods that change the match */
 #include "dos_mode.h"        /* and the gameplay style (GAMEPLAY_*) */
 #include "dos_gameplay.h"    /* DosGameplay_TargetFps: its frame rate */
 
@@ -60,8 +61,9 @@
  * generation, so a peer can replace what it sent (the lobby's selections). 3: every
  * packet ends in a checksum (wire_send), and the match's GGPO packets carry a keyed one
  * whose key the lobby's START hands over. */
-enum { kProtocol = 5 };      /* 4: the setup carries the build (2026-09-27); 5: and
-                              * NETPLAY_COMPAT, compared in its place (2026-10-25) */
+enum { kProtocol = 6 };      /* 4: the setup carries the build (2026-09-27); 5: and
+                              * NETPLAY_COMPAT, compared in its place (2026-10-25); 6: and
+                              * the mods that must be alike (2026-11-04) */
 
 enum {
     PKT_HELLO = 1, PKT_WELCOME = 2, PKT_REFUSE = 3,
@@ -73,7 +75,7 @@ enum {
 
 enum {
     kHeaderLen  = 8,
-    kSetupLen   = 32,   /* header + the setup fields + the build id + compat, flags */
+    kSetupLen   = 36,   /* header + the setup fields + the build id + compat, flags, mods */
     kRefuseLen  = 9,
     kPingLen    = 12,
     kDelayLen   = 9,
@@ -132,6 +134,8 @@ typedef struct {
     uint8_t  style;             /* the gameplay style, GAMEPLAY_* (dos_mode.h); the packet's
                                  * byte 19, 0 before XBOX -- setup_style reads such a peer's
                                  * from its rules byte */
+    uint32_t mods;              /* Mods_OnlineSignature: the mods that change the match, alike
+                                 * or no match (0: none) */
 } Setup;
 
 /* A setup's gameplay style: its own byte, or (0, from a build before the byte said it)
@@ -286,6 +290,7 @@ static void setup_local(Setup *s)
     s->dirty  = strstr(Build_Id(), "-dirty") != NULL;
     s->world  = (uint8_t)World_Current();
     s->style  = (uint8_t)_gGameplayStyle;
+    s->mods   = Mods_OnlineSignature(NULL, 0);
 }
 
 static P2PLinkFailure setup_mismatch(const Setup *mine, const Setup *theirs)
@@ -313,6 +318,15 @@ static P2PLinkFailure setup_mismatch(const Setup *mine, const Setup *theirs)
         fprintf(stderr, "[p2p] the other player plays world %u, this is %u: refused\n",
                 (unsigned)theirs->world, (unsigned)mine->world);
         return P2P_FAIL_WORLD;
+    }
+    /* The same mods, where a mod changes the match (include/mods.h): each by its uuid, its
+     * version and its files. */
+    if (mine->mods != theirs->mods) {
+        char names[160];
+        Mods_OnlineSignature(names, sizeof names);
+        fprintf(stderr, "[p2p] the other player's mods differ (%08x, this is %08x: %s): refused\n",
+                (unsigned)theirs->mods, (unsigned)mine->mods, names[0] ? names : "none");
+        return P2P_FAIL_MODS;
     }
     if (mine->stateHi != theirs->stateHi || mine->stateLo != theirs->stateLo)
         return P2P_FAIL_STATE;
@@ -359,6 +373,7 @@ static void pkt_write_setup(uint8_t *p, const Setup *s)
     BE_WRITE_U16(p + 28, s->compat);
     p[30] = s->dirty;
     p[31] = s->world;
+    BE_WRITE_U32(p + 32, s->mods);
 }
 
 static void pkt_read_setup(const uint8_t *p, Setup *s)
@@ -373,6 +388,7 @@ static void pkt_read_setup(const uint8_t *p, Setup *s)
     s->compat      = BE_READ_U16(p + 28);
     s->dirty       = p[30];
     s->world       = p[31];
+    s->mods        = BE_READ_U32(p + 32);
 }
 
 /* The self-test's lossy wire: drop every Nth datagram a link sends, and flip a bit in
@@ -1082,6 +1098,7 @@ static P2PLinkFailure refuse_reason(uint8_t byte)
     case P2P_FAIL_VERSION:
     case P2P_FAIL_VIEW:
     case P2P_FAIL_WORLD:
+    case P2P_FAIL_MODS:
         return (P2PLinkFailure)byte;
     default:
         return P2P_FAIL_PROTOCOL;   /* a reason this version does not know */
@@ -2139,6 +2156,21 @@ int32_t P2PLink_SelfTest(void)
         check(host.state == P2P_HOSTING && host.notice == P2P_FAIL_WORLD, "the host says which world");
         link_close(&mismatched);
     }
+    /* 4f. Other mods (or the same mods' other versions or files) are refused. */
+    {
+        Setup theirs;
+        setup_local(&theirs);
+        theirs.mods ^= 0x5a5a5a5au;
+        memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
+        mismatched.joinTimeoutMs = 1000;
+        check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "a player with other mods joins");
+        P2PLink *two[2] = { &host, &mismatched };
+        pump(two, 2, 1500, link_settled, &mismatched);
+        check(mismatched.state == P2P_FAILED && mismatched.failure == P2P_FAIL_MODS,
+              "it is refused: other mods");
+        check(host.state == P2P_HOSTING && host.notice == P2P_FAIL_MODS, "the host says the mods differ");
+        link_close(&mismatched);
+    }
     /* 4d. Another commit with the same number plays -- unless either side has
      * uncommitted changes. */
     for (int32_t dirty = 0; dirty <= 1; dirty++) {
@@ -2304,6 +2336,8 @@ void P2PLink_FailureText(P2PLinkFailure failure, const char **line1, const char 
         *line1 = "YOUR BUILDS PLAY BY DIFFERENT RULES"; *line2 = "ONE OF YOU HAS A TEST BUILD"; break;
     case P2P_FAIL_WORLD:
         *line1 = "YOU PLAY DIFFERENT WORLDS"; *line2 = "PICK THE SAME WORLD IN SWOS.INI"; break;
+    case P2P_FAIL_MODS:
+        *line1 = "YOUR MODS ARE DIFFERENT"; *line2 = "BOTH NEED THE SAME MODS: OPTIONS, MODS"; break;
     default:
         *line1 = ""; *line2 = ""; break;
     }

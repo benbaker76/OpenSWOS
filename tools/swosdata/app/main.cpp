@@ -704,7 +704,7 @@ struct App {
     w().set_can_make_amiga(!amigaProgram.empty() && !dest.empty() && !outDir.empty() &&
                            (sources || installedAlready));
     // World 2026-27 on the Amiga: its package installed already, or about to be.
-    const bool world = info[SD_STEP_WORLD].ready || SwosData_HaveAmigaWorld(outDir.c_str());
+    const bool world = info[SD_STEP_WORLD].ready || SwosData_HaveAmigaWorld(outDir.c_str()) || HaveWorldMod();
     w().set_amiga_world_available(world);
     if (!world) w().set_amiga_world(false);
     if (!busy && !w().get_amiga_done() && !w().get_amiga_error()) {
@@ -855,6 +855,7 @@ struct App {
     job->src.lhaArc = nullptr;
     std::snprintf(job->outDir, sizeof job->outDir, "%s", outDir.c_str());
     std::snprintf(job->resDir, sizeof job->resDir, "%s", resDir.c_str());
+    std::snprintf(job->modsDir, sizeof job->modsDir, "%s", ModsDir().c_str());   // (a world: a mod)
     job->log = PipeLog;
     job->progress = PipeProgress;
     job->user = &pipe;
@@ -874,6 +875,7 @@ struct App {
     SwosData_Installed(outDir.c_str(), installed);
     RefreshPlan();
     if (rc == 0) {
+      WorldModOn();
       w().set_progress(1.0f);
       w().set_done(true);
       game = FindGame(exeDir);
@@ -1051,6 +1053,7 @@ struct App {
     job->src.lhaArc = nullptr;
     std::snprintf(job->outDir, sizeof job->outDir, "%s", outDir.c_str());
     std::snprintf(job->resDir, sizeof job->resDir, "%s", resDir.c_str());
+    std::snprintf(job->modsDir, sizeof job->modsDir, "%s", ModsDir().c_str());   // (a world: a mod)
     job->log = PipeLog;
     job->progress = PipeProgress;
     job->user = &pipe;
@@ -1068,10 +1071,14 @@ struct App {
       modsStage = Join(UserDir(), ".whdload-mods");
       sd::RemoveTree(modsStage);
       sd::MakeDirs(Join(modsStage, "data"));
-      ModsToDrawer(modsStage);
+      ModsToDrawer(modsStage, w().get_amiga_world());
     }
-    const int32_t withWorld = w().get_amiga_world() ? 1 : 0;
-    worker = std::thread([this, job, any, kindDrawer, program, dest, assets, res, withWorld, modsStage] {
+    // A world as a mod goes in with the mods (ModsToDrawer); an earlier setup's copy in the
+    // assets folder, as before.
+    const bool worldMod = HaveWorldMod();
+    const bool worldTick = w().get_amiga_world();
+    const int32_t withWorld = worldTick && !worldMod ? 1 : 0;
+    worker = std::thread([this, job, any, kindDrawer, program, dest, assets, res, withWorld, worldTick, modsStage] {
       char err[256] = {0};
       int32_t rc = any ? SwosData_Run(job.get(), err) : 0;
       SdSources_Close(&job->src);
@@ -1084,7 +1091,7 @@ struct App {
                                         withWorld, modsStage.c_str(), PipeLog, &pipe, err);
       }
       const std::string msg(err);
-      slint::invoke_from_event_loop([this, rc, msg, kindDrawer, dest] {
+      slint::invoke_from_event_loop([this, rc, msg, kindDrawer, dest, worldTick] {
         Flush();
         if (!kindDrawer) sd::RemoveTree(Join(UserDir(), ".whdload-mods"));   // (the package has them)
         amigaRun = false;
@@ -1093,7 +1100,7 @@ struct App {
         w().set_amiga_done(rc == 0);
         w().set_amiga_error(rc != 0);
         w().set_amiga_progress(rc == 0 ? 1.0f : 0.0f);
-        if (rc == 0 && kindDrawer) ModsToDrawer(Join(dest, "SWOS"));
+        if (rc == 0 && kindDrawer) ModsToDrawer(Join(dest, "SWOS"), worldTick);
         if (rc == 0)
           w().set_amiga_status(Str(kindDrawer
               ? Tf("Done: the SWOS drawer is in {0}. Copy it, with SWOS.info, to your Amiga and double-click SWOS.", Shown(dest))
@@ -1584,7 +1591,29 @@ struct App {
     bool canonical = false, byDefault = false, sdl = false, amiga = false;
   };
   std::vector<ModFile> modList;
-  static constexpr const char* kModChanges[] = { N_("cosmetic"), N_("gameplay"), N_("career") };   // (shown translated)
+  static constexpr const char* kModChanges[] = { N_("cosmetic"), N_("gameplay"), N_("career"), N_("data"),
+                                                 N_("modes") };   // (shown translated)
+
+  // A world's mod (docs/MODS.md §17): its folder world<tag>, its data a world's.
+  static bool IsWorldMod(const ModFile& m) {
+    return m.slug.rfind("world", 0) == 0 && sd::IsDir(Join(m.dir, "data_json/worlds"));
+  }
+  // An install that put a world in (SwosData_InstallWorldMod) leaves its mod on: the player
+  // asked for it.
+  void WorldModOn() {
+    ModsScan();
+    for (const ModFile& m : modList)
+      if (!m.canonical && IsWorldMod(m) && m.problem.empty() && !ModOn(m)) {
+        SetModOn(m, true);
+        FileLog("mods: " + m.slug + " on (the world just installed)");
+      }
+  }
+  bool HaveWorldMod() {
+    ModsScan();
+    for (const ModFile& m : modList)
+      if (IsWorldMod(m) && m.problem.empty() && m.amiga) return true;
+    return false;
+  }
   std::vector<std::string> modZipsFound;   // mod zips in Downloads, not installed
 
   std::string ModsDir() const { return Join(UserDir(), "mods"); }
@@ -1854,15 +1883,19 @@ struct App {
   // An Amiga drawer made in `drawerGame` (its SWOS folder): the mods that are on and made for the
   // Amiga into its mods/, and data/MODS listing them (an id with '*': not cosmetic) -- or no
   // data/MODS when none is, so an earlier one does not stay.
-  void ModsToDrawer(const std::string& drawerGame) {
+  // A mod with an amiga/ folder gives the Amiga that folder's contents only (World 2026-27: its
+  // Amiga team files, not the PC's). A world's mod goes in only with the World 2026-27 tick.
+  void ModsToDrawer(const std::string& drawerGame, bool withWorld) {
     ModsScan();
     std::string list;
     const std::string data = Join(drawerGame, "data/MODS");
     sd::RemoveTree(Join(drawerGame, "mods"));
     for (const ModFile& m : modList) {
       if (!m.amiga || !m.problem.empty() || !ModOn(m)) continue;
+      if (IsWorldMod(m) && !withWorld) continue;
       std::string err;
-      if (!sd::CopyTree(m.dir, Join(Join(drawerGame, "mods"), m.slug), "", nullptr, &err)) {
+      const std::string from = sd::IsDir(Join(m.dir, "amiga")) ? Join(m.dir, "amiga") : m.dir;
+      if (!sd::CopyTree(from, Join(Join(drawerGame, "mods"), m.slug), "", nullptr, &err)) {
         FileLog("mods: could not copy " + m.slug + " to the drawer: " + err);
         continue;
       }

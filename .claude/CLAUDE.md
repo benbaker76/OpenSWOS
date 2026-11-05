@@ -204,10 +204,13 @@ so world code reads a club's country through `World_FileCountry` and indexes clu
 `bin/data_json/worlds/` stays .gitignored. It is a package hosted apart (`scripts/make_world_package.sh`
 -> `dist/OpenSWOS-World-2627.zip`, made after every import whose output changed: its WORLD.ini
 fingerprint must be the one `world_import.py` baked into `src/world_data.c`), which OpenSWOS Setup
-imports like the original game's data (source "World 2026-27", part `world`). 96/97 is the default
+installs as a DLC **mod**, `mods/world2627/` (docs/MODS.md §17: `data_json/worlds/2627/` for the PC,
+`amiga/data/` for the Amiga; uuid `15ea9117-...` for ever). 96/97 is the default
 world: a run plays `--world`, else `SWOS_WORLD`, else SWOS.ini's `[general] world`, else 96/97 (a
-world without its WORLD.ini installed falls back to 96/97, said in `[world]` lines); the Amiga plays
-its drawer's `data/WORLD`, written only when the player ticks the world on the Amiga tab. The
+world without its WORLD.ini installed -- the mod off -- falls back to 96/97, said in `[world]` lines);
+the Amiga plays the world's mod's `data/WORLD`, in a drawer only when the player ticks the world on the
+Amiga tab. **Online, mods whose `"changes"` is `gameplay` or `data` must be alike in both games**
+(uuid, version, files: `Mods_OnlineSignature`, the handshake's `P2P_FAIL_MODS`). The
 matchmaking server's team list carries the world's teams (`TeamRegistry.inc`, refreshed by the package
 script: commit it and redeploy the server with each package). Test rigs
 whose corpus or careers are 96/97's export `SWOS_WORLD=9697` -- a new one must too.

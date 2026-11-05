@@ -15,7 +15,7 @@
  * (an id followed by '*': not cosmetic) is read by src/resload.c at its first file read.
  *
  * Online: until the handshake carries the mod list (MODS.md §8.6), a build with a mod that is
- * not cosmetic does not play online (Mods_OnlineBlocker).
+ * that changes how a match plays plays online only against the same mods (Mods_OnlineSignature).
  */
 #ifndef MODS_H
 #define MODS_H
@@ -67,7 +67,11 @@ typedef struct {
 int32_t     Mods_Scan(ModInfo *out, int32_t max);
 #endif
 
-/* The first enabled mod that is not "cosmetic" (its name), or NULL when online play is fine. */
-const char *Mods_OnlineBlocker(void);
+/* What both players of an online match must have alike (docs/MODS.md §8.6): the mods that are
+ * on and change how a match plays or what it plays with -- "changes": "gameplay" or "data" --
+ * each by its uuid, its version and a hash of its files (taken at start-up). 0 when there are
+ * none (cosmetic, modes and career mods never matter online). `names`, when given, gets them
+ * ("Name 1.0, ..."). The handshake refuses a player whose signature differs. */
+uint32_t    Mods_OnlineSignature(char *names, uint32_t cap);
 
 #endif /* MODS_H */
