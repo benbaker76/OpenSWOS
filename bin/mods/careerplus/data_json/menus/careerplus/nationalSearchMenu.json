@@ -1,0 +1,585 @@
+{
+ "name": "nationalSearchMenu",
+ "comment": "Career+'s NATIONAL PLAYER SEARCH (src/mod_careerplus_search.c, from the fork's own): entries 0 title, 1 heading, 2 position, 3 SORT, 4 unused, 5-14 the players, 15 the page, 16 PREV, 17 NEXT, 18 EXIT.",
+ "onInit": "careerplus.searchInit",
+ "onReturn": null,
+ "onDraw": null,
+ "defaultEntry": 5,
+ "items": [
+  {
+   "kind": "coords_mode",
+   "wide": false
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 48,
+    "y": 4,
+    "w": -96,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "NATIONAL PLAYER SEARCH"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 15,
+    "y": 63,
+    "w": -28,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 0
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": "PLAYER (AGE)      CLUB           POS  VALUE"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 13,
+    "y": 25,
+    "w": 136,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 3,
+     "right": 3,
+     "up": 18,
+     "down": 5
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "POSITION: ALL"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchFilter"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 168,
+    "y": 25,
+    "w": 136,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 2,
+     "up": 18,
+     "down": 5
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "SORT: HIGH"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchSecond"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 80,
+    "y": 42,
+    "w": 160,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 74,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 2,
+     "down": 6
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 84,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 5,
+     "down": 7
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow1"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 94,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 6,
+     "down": 8
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow2"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 104,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 7,
+     "down": 9
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow3"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 114,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 8,
+     "down": 10
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow4"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 124,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 9,
+     "down": 11
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow5"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 134,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 10,
+     "down": 12
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow6"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 144,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 11,
+     "down": 13
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow7"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 154,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 12,
+     "down": 14
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow8"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 164,
+    "w": -16,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 3,
+     "up": 13,
+     "down": 16
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x8000",
+     "literal": ""
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchRow9"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 164,
+    "y": 178,
+    "w": 143,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 0
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": ""
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 14,
+    "y": 187,
+    "w": 67,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 18,
+     "right": 17,
+     "up": 14,
+     "down": 2
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "PREV"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchPrev"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 90,
+    "y": 187,
+    "w": 67,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 16,
+     "right": 18,
+     "up": 14,
+     "down": 3
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "NEXT"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "careerplus.searchNext"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 236,
+    "y": 187,
+    "w": 71,
+    "h": 13
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 17,
+     "right": 16,
+     "up": 14,
+     "down": 3
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "EXIT"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "SetExitMenuFlag"
+    }
+   ]
+  }
+ ]
+}

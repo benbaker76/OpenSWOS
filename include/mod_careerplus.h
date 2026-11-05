@@ -73,4 +73,9 @@ int32_t  CP_AI_Batch(void);                 /* the CP_World clubs read already *
 uint16_t CP_AI_Batches(void);
 void     CP_AI_SetBatches(uint16_t n);
 
+/* the player searches (mod_careerplus_search.c) */
+void CP_Search_Init(void);
+void CP_Search_Stale(void);                 /* the career's squads changed: read them again */
+void CP_Search_Fresh(void);                 /* CP_World has the career's squads as they are */
+
 #endif

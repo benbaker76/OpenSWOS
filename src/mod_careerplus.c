@@ -110,6 +110,7 @@ static void cp_init(void)
     ModApi_RegisterHandlers(CP_SLUG, kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     CP_Winners_Init();
     CP_AI_Init();
+    CP_Search_Init();
 }
 
 static void cp_matchStart(void)
@@ -123,6 +124,7 @@ static void cp_careerNew(void)
     CP_Winners_Clear();
     CP_Ages_New();
     CP_AI_SetBatches(0);
+    CP_Search_Stale();
 }
 
 /* A season over, the next set up: everyone a year older, the retirements, the AI transfers. */
@@ -133,6 +135,7 @@ static void cp_careerSeasonEnd(uint16_t season)
     CP_Ages_SeasonEnd();
     CP_Ages_Retire(season);
     CP_AI_Batch();
+    CP_Search_Fresh();      /* (CP_World changed as the career did) */
 }
 
 static void cp_careerBeforeContinue(void)
@@ -151,12 +154,14 @@ static void cp_competitionFinished(const ModCompetitionResult *result)
 static void cp_playerMoved(const ModPlayerMove *move)
 {
     CP_Ages_Moved(move);
+    CP_Search_Stale();
 }
 
 static void cp_playerCreated(const ModPlayerCreated *created)
 {
     CP_Ages_Created(created);
     CP_Trialists_Created(created);
+    CP_Search_Stale();
 }
 
 static void cp_careerSave(ModJsonWriter *out)
@@ -177,6 +182,7 @@ static void cp_careerLoad(const char *json, int32_t len)
                      ? (uint16_t)v : 0);
     CP_Winners_Load(json, len);
     CP_Ages_Load(json, len);
+    CP_Search_Stale();
 }
 
 const ModDef ModDef_careerplus = {

@@ -197,6 +197,7 @@ static void ai_transfers_now(void)
     if (CP_World_Read() < 0)
         return;
     const int32_t n = CP_AI_Batch();
+    CP_Search_Fresh();
     snprintf(text, sizeof text, "THE CLUBS MADE %d TRANSFERS", (int)n);
     ModApi_ShowError(text);
 }
