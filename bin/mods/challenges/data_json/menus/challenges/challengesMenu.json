@@ -5,7 +5,7 @@
   "dos_redraw": true
  },
  "onInit": "challenges.listInit",
- "onReturn": null,
+ "onReturn": "challenges.listInit",
  "onDraw": "challenges.listDraw",
  "defaultEntry": 3,
  "items": [

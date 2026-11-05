@@ -5,7 +5,7 @@
   "dos_redraw": true
  },
  "onInit": "practice.trainingInit",
- "onReturn": null,
+ "onReturn": "practice.trainingInit",
  "onDraw": "practice.trainingDraw",
  "defaultEntry": 3,
  "items": [
