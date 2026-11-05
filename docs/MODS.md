@@ -553,3 +553,15 @@ which carries the world's teams). `NETPLAY_COMPAT` 10. Next: the matchmaker list
 players with the same signature (as it does by `NETPLAY_COMPAT`), and the lobby names the mod
 that differs.
 
+**Sprite sets** (2026-11-04): a mod with `"sprites": "jaguar"` is drawn by the Jaguar tier -- its
+`grafs_jag/` sheets to the tier's colour roles, its four shading settings its own
+(docs/JAGUAR.md, "Sprite sets as mods"; `scripts/make_jag_graphics.py --mod DIR`). The Jaguar's
+own art stays an asset tier the setup builds from the player's cartridge.
+
+**For forks' screens** (SWOS United's asks, 2026-11-04): `ModApi_FindEntry(point, slug)` and
+`ModApi_RunEntry(point, index)` run one mod's entry from a fork's own screen (its SPEEDRUNS row);
+`ModApi_IsMainMenu()` / `Menu_IsMainMenu()` say the main menu is up by the menu being shown
+(`_swosMainMenu`'s buffer), so a mod's replacement of it, with its own onInit, still gets the build
+line and the career autopilot; and the Makefile rebuilds `mods_builtin.o` when a fork's
+`src/fork_mods.inc` first appears (make would not, and `__has_include` hides it).
+

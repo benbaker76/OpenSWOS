@@ -1314,6 +1314,22 @@ int main(int argc, char **argv)
     /* The built-in mods that are on, set up (include/mod_api.h ModDef.init): their entries and
      * their menus' handlers -- before the menus are built from JSON, which name them. */
     { extern void ModHooks_Init(void); ModHooks_Init(); }
+    {   /* A sprite set as a mod ("sprites": "jaguar", docs/JAGUAR.md): the Jaguar tier draws its
+         * grafs_jag/, with the four shading settings its own (its page; [graphics]'s otherwise). */
+        const char *set = Mods_JaguarSprites();
+        if (set) {
+            extern int32_t ModApi_SettingInt(const char *slug, const char *key, int32_t fallback);
+            const int32_t o = ModApi_SettingInt(set, "outfit_shading", opts.outfit_shading);
+            const int32_t sh = ModApi_SettingInt(set, "shadow_shading", opts.shadow_shading);
+            const int32_t h = ModApi_SettingInt(set, "hair_shading", opts.hair_shading);
+            int32_t st = ModApi_SettingInt(set, "shade_step", opts.shade_step);
+            if (st < 1 || st > 5) st = opts.shade_step;
+            JagGfx_SetEnabled(1);
+            JagGfx_SetShading(o, sh, h, st);
+            fprintf(stderr, "[mods] %s: its sprites, by the Jaguar tier (outfit %d, shadow %d, hair %d, step %d)\n",
+                    set, (int)o, (int)sh, (int)h, (int)st);
+        }
+    }
     { extern void ModMatch_SelfTest(void);    /* (SWOS_MOD_MATCH_TEST=entry: its MODES entry, now) */
       if (getenv("SWOS_MOD_MATCH_TEST") && strcmp(getenv("SWOS_MOD_MATCH_TEST"), "entry") == 0) ModMatch_SelfTest(); }
     /* (SWOS_SKIP_INTRO=1: straight to the menus -- a test's; src/mod_match.c ModMatch_SelfTest too) */

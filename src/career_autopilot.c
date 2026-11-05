@@ -317,7 +317,7 @@ static void choose_step(const Menu *menu)
         _shortFire = 1;
         return;
     }
-    if (menu->onInit == SWOSMainMenuInit) {
+    if (Menu_IsMainMenu()) {
         if ((i = entry_with((MenuEntryFn)CareerMenu)) >= 0) {
             SetCurrentEntry((uint16_t)i);
             _shortFire = 1;
@@ -460,7 +460,7 @@ void CareerAutopilot_Tick(void)
         return;
     menu = (const Menu *)_currentMenu;
     if (!s_started) {
-        if (menu->onInit != SWOSMainMenuInit)
+        if (!Menu_IsMainMenu())
             return;
         start();                /* loads and runs a saved career; returns for a new one */
     }

@@ -29,6 +29,7 @@ static uint8_t s_cosmetic[MODS_MAX];
 static uint8_t s_online[MODS_MAX];          /* must be alike online: "gameplay" or "data" */
 static char    s_versions[MODS_MAX][24];
 static uint32_t s_fileHash[MODS_MAX];
+static uint8_t s_jagSprites[MODS_MAX];      /* "sprites": "jaguar" */
 static int32_t s_count;
 
 int32_t Mods_Count(void) { return s_count; }
@@ -80,6 +81,13 @@ uint32_t Mods_OnlineSignature(char *names, uint32_t cap)
                                        s_names[i][0] ? s_names[i] : s_ids[i], s_versions[i]);
     }
     return h ? h : 1;
+}
+const char *Mods_JaguarSprites(void)
+{
+    for (int32_t i = 0; i < s_count; i++)
+        if (s_jagSprites[i])
+            return s_ids[i];
+    return NULL;
 }
 #else
 /* (the Amiga plays no online match) */
@@ -288,6 +296,8 @@ static const char *read_manifest(const char *dir, int canonical, ModInfo *info)
      * harmless. Canonical or not: the build's own mods can be on in one game and off in the
      * other. */
     snprintf(info->changes, sizeof info->changes, "%s", changes[0] ? changes : "gameplay");
+    if (mjson_get_string(json, len, "$.sprites", info->sprites, (int)sizeof info->sprites) < 0)
+        info->sprites[0] = '\0';
     info->cosmetic = (uint8_t)(strcmp(info->changes, "gameplay") != 0 && strcmp(info->changes, "data") != 0);
     (void)canonical;
     info->byDefault = (uint8_t)(mjson_get_bool(json, len, "$.default", &b) && b);
@@ -325,6 +335,7 @@ static void load_one(const char *id, const char *dir, int canonical)
     }
     s_cosmetic[s_count] = info.cosmetic;
     s_online[s_count] = (uint8_t)!info.cosmetic;
+    s_jagSprites[s_count] = strcmp(info.sprites, "jaguar") == 0;
     snprintf(s_versions[s_count], sizeof s_versions[0], "%s", info.version);
     s_fileHash[s_count] = s_online[s_count] ? hash_tree(dir, "", 2166136261u) : 0;
     s_canonical[s_count] = (uint8_t)canonical;

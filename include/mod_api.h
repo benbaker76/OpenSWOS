@@ -68,6 +68,13 @@ typedef enum { MODPOINT_MODES, MODPOINT_AFTER_MATCH, MODPOINT_COUNT } ModPoint;
 int32_t ModApi_AddEntry(ModPoint point, const char *slug, const char *label, void (*select)(void));
 int32_t ModApi_EntryCount(ModPoint point);
 void    ModApi_ShowEntries(ModPoint point);
+/* One mod's entry, from a screen of a fork's own (a COMPETITIONS screen's SPEEDRUNS row): its
+ * index at the point (the first with that slug; -1 none, the mod off), and running it. */
+int32_t ModApi_FindEntry(ModPoint point, const char *slug);
+int32_t ModApi_RunEntry(ModPoint point, int32_t index);     /* 0 when it ran */
+/* The main menu is the one being shown (a mod's replacement of it too: by the menu, not its
+ * onInit). */
+int32_t ModApi_IsMainMenu(void);
 
 /* ---- a mod's own menus' handlers (H10) ----
  * A mod's menus (its JSON, data_json/menus/<slug>/..., through the overlay) name their

@@ -802,6 +802,10 @@ $(OUTDIR):
 # Compile each src/*.c into build/<os>/<arch>/*.o (mirrors src/ subdirs, e.g.
 # src/generated/x.c -> $(OBJDIR)/generated/x.o). The mkdir creates the
 # per-target object tree on first build.
+# A fork's mods (src/fork_mods.inc, include/mod_api.h): __has_include finds it, but make would not
+# rebuild mods_builtin.o the first time it appears -- the fork's mods silently missing.
+$(OBJDIR)/mods_builtin.o: $(wildcard $(SRCDIR)/fork_mods.inc)
+
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(BUILD_FLAGS_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@

@@ -60,7 +60,8 @@ typedef struct {
     char    name[48];
     char    version[24];
     char    uuid[40];
-    char    changes[16];        /* "cosmetic", "gameplay", "career" */
+    char    changes[16];        /* "cosmetic", "modes", "career", "gameplay", "data" */
+    char    sprites[16];        /* "jaguar": its grafs_jag/ is a sprite set the Jaguar tier draws */
     char    problem[80];        /* why it cannot be on ("" when it can) */
     uint8_t canonical, cosmetic, byDefault, on;
 } ModInfo;
@@ -73,5 +74,9 @@ int32_t     Mods_Scan(ModInfo *out, int32_t max);
  * none (cosmetic, modes and career mods never matter online). `names`, when given, gets them
  * ("Name 1.0, ..."). The handshake refuses a player whose signature differs. */
 uint32_t    Mods_OnlineSignature(char *names, uint32_t cap);
+
+/* The first mod that is on whose manifest says "sprites": "jaguar" (its slug), or NULL: its
+ * grafs_jag/ sheets are drawn by the Jaguar tier (docs/JAGUAR.md, "Sprite sets as mods"). SDL. */
+const char *Mods_JaguarSprites(void);
 
 #endif /* MODS_H */

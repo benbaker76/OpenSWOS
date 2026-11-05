@@ -6904,6 +6904,11 @@ Menu_CreditsAga _creditsAgaMenu = {
 };
 #endif
 
+/* The main menu's address (src/menu_system.c Menu_IsMainMenu): this file alone knows its type. */
+const void *MenuData_MainMenu(void);
+Menu_SWOSMainMenu _swosMainMenu;
+const void *MenuData_MainMenu(void) { return &_swosMainMenu; }
+
 Menu_SWOSMainMenu _swosMainMenu = {
     { SWOSMainMenuInit, GlobalRetn, 0, 6 },
     { 88, -24, 128, 76 },

@@ -54,6 +54,28 @@ int32_t ModApi_EntryCount(ModPoint point)
 
 int32_t ModApi_InMenus(void) { return !GameLoop_Active() && !ModApi_InReplay(); }
 
+int32_t ModApi_FindEntry(ModPoint point, const char *slug)
+{
+    if ((int32_t)point < 0 || point >= MODPOINT_COUNT || !slug)
+        return -1;
+    for (int32_t i = 0; i < s_entryCount[point]; i++)
+        if (strcmp(s_entries[point][i].slug, slug) == 0)
+            return i;
+    return -1;
+}
+
+int32_t ModApi_RunEntry(ModPoint point, int32_t index)
+{
+    if ((int32_t)point < 0 || point >= MODPOINT_COUNT || index < 0 || index >= s_entryCount[point] ||
+        !s_entries[point][index].select)
+        return -1;
+    fprintf(stderr, "[mods] %s: %s\n", s_entries[point][index].slug, s_entries[point][index].label);
+    s_entries[point][index].select();
+    return 0;
+}
+
+int32_t ModApi_IsMainMenu(void) { return Menu_IsMainMenu(); }
+
 /* ---- handlers: "<slug>.<name>" in the menu loader's symbols ---- */
 
 int32_t ModApi_RegisterHandlers(const char *slug, const ModHandler *handlers, int32_t count)

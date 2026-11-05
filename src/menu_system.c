@@ -1557,6 +1557,15 @@ void DrawSelectedMenuItemFrame(void)
  * DrawMenu
  * ================================================================ */
 __attribute__((used, externally_visible, noinline))
+/* The main menu is up: the one in _swosMainMenu's buffer -- what a mod's replacement of it is
+ * shown from too -- whatever its onInit (a mod's replacement names its own). */
+int32_t Menu_IsMainMenu(void)
+{
+    extern const void *MenuData_MainMenu(void);
+    const Menu *menu = (const Menu *)_currentMenu;
+    return _currentMenuPtr == (uintptr_t)MenuData_MainMenu() || menu->onInit == (MenuVoidFn)SWOSMainMenuInit;
+}
+
 void DrawMenu(void)
 {
     Menu *menu = (Menu *)_currentMenu;
@@ -1639,7 +1648,7 @@ void DrawMenu(void)
      * STR_COLOR_MASK / STR_FLAGS_MASK / YELLOW_GREEN_BLACK_15 as enum constants
      * while menu_system.h defines the same three names as macros, so the two
      * headers cannot meet in one translation unit. */
-    if (menu->onInit == (MenuVoidFn)SWOSMainMenuInit)
+    if (Menu_IsMainMenu())
         DrawMenuText(4, 256, 7, (uint8_t *)Build_ScreenText(),
                      (uint8_t *)_charTables[0]);   /* [0] = the small font */
 
