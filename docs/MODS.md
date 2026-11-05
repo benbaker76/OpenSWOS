@@ -958,7 +958,7 @@ careers and `check_netplay_compat.sh`.
 
 ## 31. The career's players (src/mod_career.c; Career+'s §3.5)
 
-Seven calls (include/mod_api.h) that go through the game's own career code, so what a mod does
+Ten calls (include/mod_api.h) that go through the game's own career code, so what a mod does
 is kept, saved and shown as the game's own transfers are. A team is `file << 8 | ordinal`, a
 slot a player's place in the team's file (0-15; 0-31 for your club); each gives -1 outside a
 career or when it cannot.
@@ -971,6 +971,9 @@ career or when it cannot.
 | `ModApi_CallUpPlayer(team, slot)` | a national selector's pick, from the `MODPOINT_NATIONAL_ADD_PLAYER` entry: refused as the squad screen greys players out (another nationality, already in the squad, unavailable); when the entry returns ADD PLAYER closes and the game adds him as HOME / ABROAD would, a full squad included (`Career_AddInternationalPlayerPicked`) |
 | `ModApi_CareerTeamName(team, out, cap)` | the club's name, found as `ModApi_CareerTeam` finds it (a 17-letter name has no NUL in the file; this one has) |
 | `ModApi_ViewedCompetition(&id, &league, &division)` | from a `MODPOINT_COMPETITION_STATS` entry: the contest that STATISTICS screen shows -- its id (as `competitionFinished` gives it), whether it is its country's league, and then its division; a cup otherwise (a continental league phase too). Read from `_diyCompetitionStart` as the WINNERS screen reads it (`WorldWinners_Viewed`) |
+| `ModApi_CareerClubs(each, ctx)` | every club of the career's countries (those with a league: no national team, no joke teams), each as `ModApi_CareerTeam` would give it -- team id, name, division, line-up order (`playerNumbers`), its 16 -- a team file at a time (`Career_ForEachClub`: read once and copied, so `each` may call the rest; the team-file buffer put back). About 1,500 clubs, about 2 s on a desktop: once a season, not every frame |
+| `ModApi_PlayerValue(player)` | his value in thousands, as the transfer screens show another club's player (`_avgTeamValueBases[_avgTeamValues[price]]`) |
+| `ModApi_SetOwnPlayer(slot, player)` | your club's player at slot 0-31 (the reserves too) becomes `player`, a new man in his place (Career+'s retirements): the career squad and its live copies, its values marked to be worked out again (`Career_WriteOwnPlayer`). Not a national team's squad |
 | `ModApi_ListPlayer(slot)` | your player onto your transfer list: 1 when he is on it already (the game's own add does not check), -1 when the list is full (`transfer_list_capacity`) or the slot is empty |
 
 Both targets: on the Amiga, `Career_PeekTeam` asks resload whether `data/team.NNN` is there

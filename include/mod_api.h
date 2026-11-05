@@ -161,6 +161,23 @@ int32_t ModApi_CareerTeamName(uint16_t team, char *out, int32_t cap);
  * then `division` is its division, 0 the top -- or a cup (a continental league phase included).
  * 0 when one is shown. */
 int32_t ModApi_ViewedCompetition(uint8_t *competitionId, int32_t *league, uint8_t *division);
+/* Every club of the career's countries (those with a league: no national team), as the career
+ * has it now -- what ModApi_CareerTeam would give each, read a team file at a time. `each` returns
+ * nonzero to stop, and may call the other career calls. The clubs visited; -1 not possible. */
+typedef struct {
+    uint16_t team;                      /* file << 8 | ordinal */
+    uint8_t  league;                    /* its division in its country (TeamFile.league) */
+    char     name[17];                  /* (NUL-ended) */
+    uint8_t  order[16];                 /* its line-up: order[place] = a file slot (TeamFile.playerNumbers) */
+    const struct PlayerFile *players;   /* its 16, by file slot */
+} ModCareerClub;
+int32_t ModApi_CareerClubs(int32_t (*each)(const ModCareerClub *club, void *ctx), void *ctx);
+/* A player's value as the transfer screens show it, in thousands; -1 for no player. */
+int32_t ModApi_PlayerValue(const struct PlayerFile *player);
+/* Your own club's player at `slot` (0..31, the reserves included) becomes `player`: a new man
+ * in his place, for the rest of the career (a mod's retirements). Not a national team's squad.
+ * 0 written. */
+int32_t ModApi_SetOwnPlayer(uint16_t slot, const struct PlayerFile *player);
 /* Another club's player at `slot` becomes `player` for the rest of the career (the career's
  * pool and every live copy, as the game's transfers are kept; not your club). 0 written, -1 not
  * (the pool full: foreign_pool_capacity). */
