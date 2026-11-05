@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<!--
+  The beta testers' downloads page: openswos.net/beta/, behind its own login
+  (nginx auth_basic, /etc/nginx/.htpasswd-openswos-beta: packaging/server/nginx/openswos.net.conf).
+
+  TEMPLATE: scripts/gen_beta_page.sh fills the @...@ placeholders (the build, when it was built,
+  one table row per archive that is in dist/) and writes dist/beta/index.html;
+  scripts/upload_beta.sh publishes it with the archives. Edit THIS file, never the copy on the
+  server -- the next upload overwrites it. (It grew from the old baker76.com/swos.html.)
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>OpenSWOS beta</title>
+<style>
+  :root {
+    --bg: #12160f;
+    --panel: #1b2117;
+    --line: #2f3a27;
+    --text: #e8ece3;
+    --muted: #9aa78e;
+    --accent: #7fd34e;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f6f1;
+      --panel: #ffffff;
+      --line: #d8ded0;
+      --text: #1a1f16;
+      --muted: #5d6a52;
+      --accent: #3d7a1c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem 4rem;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 56rem; margin: 0 auto; }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  h2 {
+    font-size: 1.15rem; margin: 2.5rem 0 .75rem;
+    padding-bottom: .35rem; border-bottom: 1px solid var(--line);
+  }
+  .build { color: var(--muted); font-size: .9rem; margin: 0 0 1.5rem; }
+  .build code { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; margin: 0; }
+  th, td {
+    text-align: left; padding: .6rem .7rem;
+    border-bottom: 1px solid var(--line); vertical-align: top;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem;
+       text-transform: uppercase; letter-spacing: .04em; }
+  tbody tr:hover { background: var(--panel); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .file { font-weight: 600; white-space: nowrap; }
+  .size { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .plat { white-space: nowrap; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .9em; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 4px; padding: .05rem .3rem;
+  }
+  p.note { color: var(--muted); font-size: .9rem; }
+  /* The changelog is its own page (changelog.html, updated without a drop), shown here
+     in a frame that scrolls on its own. */
+  iframe.changelog {
+    display: block; width: 100%; height: 18rem;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--bg);
+  }
+  /* A list, not a table: the narrow-screen rule below hides every table's second column. */
+  dl.credits {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: .45rem 1.25rem; margin: 0;
+  }
+  dl.credits dt { color: var(--muted); }
+  dl.credits dd { margin: 0; }
+  @media (max-width: 34rem) {
+    th:nth-child(2), td:nth-child(2) { display: none; }
+    dl.credits { grid-template-columns: 1fr; gap: .1rem; }
+    dl.credits dd { margin-bottom: .6rem; }
+    body { padding-top: 1.25rem; }
+  }
+  /* The logo is the page's title (alt text "OpenSWOS"). On a narrow screen the downloads
+     table is wider than the screen, so centring would put the logo off its right edge:
+     there it sits on the left like the text, no wider than the screen. */
+  h1.logo { margin: 0 0 .5rem; text-align: center; }
+  h1.logo img { max-width: 100%; height: auto; }
+  h1.logo + .build { text-align: center; }
+  @media (max-width: 34rem) {
+    h1.logo, h1.logo + .build { text-align: left; }
+    h1.logo img { max-width: calc(100vw - 2.5rem); }
+  }
+</style>
+</head>
+<body>
+<main>
+<h1 class="logo"><img src="/openswos-logo.png" alt="OpenSWOS" width="360" height="304"></h1>
+<p class="build">Beta build <code>@BUILD@</code> &middot; <time datetime="@STAMP_ISO@" title="@STAMP@">@STAMP@</time></p>
+<p class="note"><strong>For our testers only.</strong> Please don't pass on these files, this page or its
+login &mdash; this build is not a release, and it may have bugs a release would not.</p>
+
+<h2>Downloads</h2>
+<table>
+  <thead>
+    <tr><th>File</th><th>Platform</th><th>What it is</th><th>Size</th></tr>
+  </thead>
+  <tbody>
+@ROWS@
+  </tbody>
+</table>
+<p class="note">You need your own copy of the game: <em>OpenSWOS Setup</em> makes the game's data
+from the PC version (<a href="https://www.gog.com/en/game/sensible_world_of_soccer_9697">GOG</a>) and/or
+your Amiga disk images, as in a release. An install you already have keeps its data and saves.</p>
+
+<h2>What to test in this build</h2>
+<h3>Every platform</h3>
+<ol class="note">
+  <li><strong>MODES</strong> on the main menu: PRACTICE (penalty shootout, demo game, team training,
+    shooting practice), SPEEDRUN and CHALLENGES. Play one of each; leave a screen with EXIT and back out
+    of a match with ESC.</li>
+  <li><strong>Historic tournaments:</strong> PRESET COMPETITION &rarr; HISTORIC TOURNAMENTS. Try EURO,
+    WORLD CUP, CONTINENTAL CUPS and CLUB; start one and play a few matches of it. Are the teams and
+    the groups right for that year?</li>
+  <li><strong>Flags</strong> (PC, Mac, Linux): a national team's flag beside its name on the score
+    banner at kick-off, after a goal and at half and full time. A club shows its country's.</li>
+  <li><strong>OPTIONS &rarr; MODS</strong> (PC, Mac, Linux): turn a mod off, restart, and check it has
+    gone; turn it back on.</li>
+</ol>
+<h3>Amiga (a real A1200, FS-UAE or WinUAE)</h3>
+<ol class="note">
+  <li>On a PC or Mac, run OpenSWOS Setup with your disk images and the PC game, then
+    <em>Amiga version &rarr; Add the game data</em> to SWOS-Amiga.zip's drawer. Leave the mods on.</li>
+  <li>Copy the drawer to your Amiga and start it from Workbench. Is <strong>MODES</strong> on the
+    main menu? Try PRACTICE, SPEEDRUN, CHALLENGES and HISTORIC TOURNAMENTS as above. A mod's screen
+    takes about a second the first time it opens, and a historic tournament two to five seconds to
+    load: tell us if anything takes much longer.</li>
+  <li>Do the same with the <strong>WHDLoad</strong> package the setup makes.</li>
+  <li>Play a SPEEDRUN target, quit the game, start it again: is your best time still there?</li>
+  <li>If your Workbench is in NTSC: the game should now fill the screen and run at 50 Hz, and
+    Workbench should come back in its own mode when you quit.</li>
+</ol>
+
+<h2>Reporting what you find</h2>
+<p class="note">Say which build you are on &mdash; it is on the bottom line of the main menu, in the
+window title and the first line of <code>SWOS.log</code> &mdash; and which platform. Attach
+<code>SWOS.log</code> (in the folder below) if the game crashed, and a screenshot if something looks
+wrong.</p>
+<table>
+  <thead>
+    <tr><th>Platform</th><th>Folder</th></tr>
+  </thead>
+  <tbody>
+    <tr><td class="plat">Windows</td><td><code>%USERPROFILE%\Documents\SWOS</code></td></tr>
+    <tr><td class="plat">macOS</td><td><code>~/Library/Application Support/SWOS</code></td></tr>
+    <tr><td class="plat">Linux</td><td><code>~/.swos</code></td></tr>
+    <tr><td class="plat">Amiga</td><td><code>save/</code> beside the game</td></tr>
+  </tbody>
+</table>
+</main>
+<script>
+  /* The build time is written in UTC; show it in the reader's own time zone.
+     Without script the UTC text stays, which is still right. */
+  (function () {
+    var t = document.querySelector('p.build time[datetime]');
+    var d = t && new Date(t.getAttribute('datetime'));
+    if (!d || isNaN(d.getTime()))
+      return;
+    t.textContent = d.toLocaleString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
+    });
+  })();
+</script>
+</body>
+</html>
