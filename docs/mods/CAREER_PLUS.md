@@ -224,12 +224,14 @@ managed club excluded, the swapped-teams branch fixed).
 - Q1. Yugoslavia's `rounds`: `leagues.json` says 3, the compiled fallback (competition_data.c:868)
   2. And the 24-club league overlaps Algeria's scratch-validation window [928, 944)
   (career_season.c's capture code shows it).
-- Q2. PAST WINNERS and the base's WINNERS (world_winners.c: a world's last season) overlap. One
-  screen in the base with the whole history, or the mod's?
+- Q2. **Decided (2026-11-05): PAST WINNERS stays the mod's own screen.** The base's WINNERS
+  (world_winners.c) is the worlds' titles page, from the SWOS 96/97 Mod, and stays as it is; Career+
+  keeps its whole-career record from `competitionFinished` (§3.4), saves it in
+  `mods.careerplus.winners`, and shows it from a MODPOINT in COMPETITION STATS (§3.5).
 - Q3. Do the EURO team-id repair (`EuroReconcileGroupTeamIds`, diy_competition.c:4123;
   `EuroCheckCupFixtureIdentity` :11292) and the national fixture rebind (career_status.c:4087)
   happen on main with stock data, or only with the 145-team table? If on main, base fixes.
-- Q4. Careers saved by the fork (schema 4) will not load in the mod. Does benefactorr need a
-  one-off converter for his players' saves?
+- Q4. **Decided (2026-11-05): no converter.** Career+ is new enough that its schema-4 saves need
+  not carry over; a Career+ career starts again with the mod.
 - Q5. Departing a club keeps the displayed XI and squad slots 16-31 (transfer_market.c:4069):
   does main lose signings in 16-31? Then a base fix, else the mod's.
