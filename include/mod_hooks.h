@@ -26,11 +26,20 @@ void ModHooks_PitchDrawn(void);
 void ModHooks_PlayerSetsRaw(void);
 
 /* An outfield or goalkeeper sprite (teamNumber 1 or 2) has just been drawn into the frame being
- * made at x, y (src/sprites.c DrawQueuedSprites); nothing has been drawn over it yet. May redraw
+ * made with its top left at screen x, y (src/sprites.c DrawQueuedSprites); nothing has been drawn over it yet. May redraw
  * the sprite's own pixels and draw beside it. Like PitchDrawn, possibly a re-simulated frame. */
 struct Sprite;
 struct SpriteGraphics;
 void ModHooks_PlayerDrawn(const struct Sprite *sprite, const struct SpriteGraphics *gfx, int16_t x, int16_t y);
+
+/* A replay frame (the in-match one, src/highlight.c DrawReplayFrame, or a .SRP's,
+ * src/replay_v2.c ReplayV2_DrawFrame): its pitch is drawn into the frame and its sprites are not
+ * yet -- what is drawn here is under them. `first`: the replay's first frame, or one it jumped
+ * to; `fresh`: a frame not shown before (0 when paused, the frame drawn again). Then each of its
+ * sprites is told, as recorded: its image and its top left in the world (ModApi_ReplayPlayerFeet
+ * says whether it is a player and where his feet are). Draw only. */
+void ModHooks_ReplayFrameBegin(int32_t first, int32_t fresh);
+void ModHooks_ReplaySprite(uint16_t image, int16_t left, int16_t top);
 #endif
 
 #endif /* MOD_HOOKS_H */

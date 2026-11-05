@@ -25,10 +25,8 @@
 
 #ifdef SWOS_SDL_BUILD
 
-#include "display.h"
 #include "game_types.h"
-#include "mods.h"
-#include "platform_sdl.h"
+#include "mod_api.h"
 #include "player_face3.h"
 
 #include <stdio.h>
@@ -41,7 +39,6 @@ extern Sprite  **_team2SpritesTable;
 extern TeamGame *_topTeamPtr;
 extern TeamGame *_bottomTeamPtr;
 extern void     *_skinAndHairColorConversionTable[];
-extern volatile uintptr_t _frontbufferBasePtr;
 
 enum {
     kSet = 101,
@@ -117,9 +114,9 @@ static uint32_t s_paletteAge = 0xFFFFFFFFu;
 static uint8_t mix(uint8_t a, uint8_t b, int wa, int wb)
 {
     uint8_t ar, ag, ab, br, bg, bb;
-    Platform_PaletteColour(a, &ar, &ag, &ab);
-    Platform_PaletteColour(b, &br, &bg, &bb);
-    return Platform_NearestColour((uint8_t)((ar * wa + br * wb) / (wa + wb)), (uint8_t)((ag * wa + bg * wb) / (wa + wb)),
+    ModApi_PaletteColour(a, &ar, &ag, &ab);
+    ModApi_PaletteColour(b, &br, &bg, &bb);
+    return ModApi_NearestColour((uint8_t)((ar * wa + br * wb) / (wa + wb)), (uint8_t)((ag * wa + bg * wb) / (wa + wb)),
                                   (uint8_t)((ab * wa + bb * wb) / (wa + wb)));
 }
 
@@ -127,7 +124,7 @@ static void refresh_colours(void)
 {
     /* black hair: the darkest of the palette's near-greys; a shaved skull: a shade between the
      * skin's lightest two, the Mod's new tone, as near as the palette has it */
-    s_black = Platform_NearestColour(14, 12, 12);
+    s_black = ModApi_NearestColour(14, 12, 12);
     s_toneLight = mix(face_colour(0, 6), face_colour(0, 5), 1, 1);
     s_toneDark = mix(face_colour(2, 6), face_colour(2, 4), 1, 1);
 }
@@ -174,13 +171,7 @@ static int parse_look(const char *w, Look *out)
     return 0;
 }
 
-static const char *mod_dir(void)
-{
-    for (int32_t i = 0; i < Mods_Count(); i++)
-        if (strcmp(Mods_Id(i), "hair") == 0)
-            return Mods_Dir(i);
-    return NULL;
-}
+static const char *mod_dir(void) { return ModApi_ModDir("hair"); }
 
 static void upper_copy(char *dst, size_t cap, const char *src)
 {
@@ -469,11 +460,12 @@ void ModHair_PlayerDrawn(const Sprite *sprite, const SpriteGraphics *gfx, int16_
         s_paletteAge = 0;
     }
 
-    uint8_t *fb = (uint8_t *)(uintptr_t)_frontbufferBasePtr;
+    int32_t w, h, sw;
+    uint8_t *fb = ModApi_Frame(&w);
     if (!fb)
         return;
-    const int w = FRONTBUFFER_ROW_STRIDE_BYTES, h = _screen_height;
-    const int x0 = dstX + _menu_draw_x_offset, y0 = dstY;
+    ModApi_ScreenSize(&sw, &h);
+    const int x0 = dstX, y0 = dstY;
     static uint8_t frame[kH][kW];
     look_frame(f, face, &look, frame);
     for (int y = 0; y < s_lines[f]; y++)

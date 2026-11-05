@@ -4,60 +4,62 @@
  * drizzle -- its intensity drifting over the 90 minutes. The effect is C4ppy77's pitch-weather
  * (third_party/pitch_weather, MIT).
  *
- * And mud: on a muddy, wet or soft pitch every player leaves a trail of footprints, each fading
- * out after a while (heavier and longer-lived the wetter the pitch) so the pitch never gets too
- * messed up.
+ * On a muddy, wet or soft pitch every player leaves a trail of footprints, each fading out after a
+ * while (heavier and longer-lived the wetter the pitch) so the pitch never gets too messed up; and
+ * on a rain pitch the drops splash on the grass. Both are on the pitch, in its own pixels: under
+ * the players and moving with it. A replay (the one after a goal, or VIEW's) has its own trail,
+ * made from the players it shows.
  *
  * Cosmetic: the weather is drawn over the finished frame, its clock and its per-match pattern
- * real time and a random seed, which no match state sees. The footprints are stamped into the
- * frame being drawn just after the pitch and before the sprites, so the players walk over them;
- * the frame is not match state (src/sim_state.c), and the prints are added and aged only when a
- * frame is presented, which a re-simulated frame never is. The weather needs an SDL with
- * SDL_RenderGeometry (2.0.18); the mud does not.
+ * real time and a random seed, which no match state sees. The footprints and splashes are stamped
+ * into the frame being drawn just after the pitch and before the sprites; the frame is not match
+ * state (src/sim_state.c), and the prints are added and aged only when a frame is presented,
+ * which a re-simulated frame never is. Through include/mod_api.h only. The weather needs an SDL
+ * with SDL_RenderGeometry (2.0.18); the rest does not.
  */
 #include "mod_hooks.h"
 
 #ifdef SWOS_SDL_BUILD
 
-#include "display.h"
-#include "game_types.h"
-#include "platform_sdl.h"
+#include "mod_api.h"
 
 #include <stdlib.h>      /* abs */
 #include <string.h>
 
-extern uint16_t _pitchNumberAndType;        /* low byte: the match's pitch type, 0 frozen .. 6 hard */
-extern int32_t  GameLoop_Active(void);
-extern Sprite **_team1SpritesTable;
-extern Sprite **_team2SpritesTable;
-extern volatile uintptr_t _frontbufferBasePtr;
-
-/* (SWOS_WEATHER_PITCH=<0..6>: that pitch's weather whatever the match's -- a test's) */
-static int pitch_type(void)
-{
-    const char *force = SDL_getenv("SWOS_WEATHER_PITCH");
-    return force && *force ? SDL_atoi(force) : (_pitchNumberAndType & 0xFF);
-}
-
 /* ---- mud ---- */
 
 enum {
-    kMaxPrints = 4096,
-    kLevels    = 3,                 /* how dark a print is: fresh, drying, nearly gone */
-    kStride    = 5,                 /* pixels a player moves between two prints */
+    kMaxPrints  = 4096,
+    kLevels     = 3,                /* how dark a print is: fresh, drying, nearly gone */
+    kStride     = 5,                /* pixels a player moves between two prints */
+    kMaxWalkers = 32,
 };
 
 typedef struct {
-    int16_t  x, y;                  /* the pitch's pixels */
+    int16_t  x, y;                  /* world */
     uint16_t age;                   /* presented frames */
     uint8_t  shape;                 /* which pixels of the 2x2 (the foot) */
     uint8_t  used;
 } Print;
 
-static Print    s_prints[kMaxPrints];
-static int32_t  s_next;
-static int16_t  s_lastX[22], s_lastY[22];
-static uint8_t  s_foot[22], s_have[22];
+typedef struct {
+    Print   prints[kMaxPrints];
+    int32_t next;
+} Pool;
+
+/* someone walking: where his last print is, which foot is next */
+typedef struct {
+    int16_t x, y, lastX, lastY;
+    uint8_t foot, have, seen;
+} Walker;
+
+static Pool     s_live, s_replay;   /* the match's trail, a replay's */
+static Walker   s_liveWalkers[22];
+static Walker   s_replayWalkers[kMaxWalkers];
+static int32_t  s_replayWalkerCount;
+static int16_t  s_collected[kMaxWalkers][2];   /* the players a replay frame showed, their feet */
+static int32_t  s_collectedCount;
+
 static uint8_t  s_lut[kLevels][256];        /* palette entry -> its muddied entry, per level */
 static uint8_t  s_splash[256];              /* palette entry -> where a raindrop lands on it */
 static uint32_t s_lutAge = 0xFFFFFFFFu;
@@ -76,7 +78,8 @@ static void mud_for(int pitch, int32_t *life, int32_t *level)
 }
 
 /* The palette entries a pixel becomes under mud, nearest in the palette shown: browner and
- * darker, less so each level. Rebuilt every second or so, since a match's palette can fade. */
+ * darker, less so each level; and under a splash, lighter and greyer. Rebuilt every second or so,
+ * since a match's palette can fade. */
 static void build_luts(void)
 {
     static const float kDark[kLevels] = { 0.50f, 0.62f, 0.76f };
@@ -84,19 +87,25 @@ static void build_luts(void)
     for (l = 0; l < kLevels; l++)
         for (i = 0; i < 256; i++) {
             uint8_t r, g, b;
-            Platform_PaletteColour((uint8_t)i, &r, &g, &b);
-            const float k = kDark[l];
+            ModApi_PaletteColour((uint8_t)i, &r, &g, &b);
+            const float k = kDark[l], m = 1.0f - k;
             /* toward a dark earth brown */
-            const float tr = 0x5a, tg = 0x40, tb = 0x22;
-            const float m = 1.0f - k;
-            s_lut[l][i] = Platform_NearestColour((uint8_t)(r * k + tr * m * 0.9f), (uint8_t)(g * k + tg * m * 0.8f),
-                                                 (uint8_t)(b * k + tb * m * 0.6f));
+            s_lut[l][i] = ModApi_NearestColour((uint8_t)(r * k + 0x5a * m * 0.9f), (uint8_t)(g * k + 0x40 * m * 0.8f),
+                                               (uint8_t)(b * k + 0x22 * m * 0.6f));
         }
-    for (i = 0; i < 256; i++) {                 /* a splash: the water, lighter and greyer */
+    for (i = 0; i < 256; i++) {
         uint8_t r, g, b;
-        Platform_PaletteColour((uint8_t)i, &r, &g, &b);
-        s_splash[i] = Platform_NearestColour((uint8_t)(r * 0.35f + 0xd8 * 0.65f), (uint8_t)(g * 0.35f + 0xe0 * 0.65f),
-                                             (uint8_t)(b * 0.35f + 0xe8 * 0.65f));
+        ModApi_PaletteColour((uint8_t)i, &r, &g, &b);
+        s_splash[i] = ModApi_NearestColour((uint8_t)(r * 0.35f + 0xd8 * 0.65f), (uint8_t)(g * 0.35f + 0xe0 * 0.65f),
+                                           (uint8_t)(b * 0.35f + 0xe8 * 0.65f));
+    }
+}
+
+static void keep_luts(void)
+{
+    if (++s_lutAge >= 50) {
+        build_luts();
+        s_lutAge = 0;
     }
 }
 
@@ -108,68 +117,149 @@ static uint8_t shape_next(void)
     return (uint8_t)(1 + ((state >> 24) & 7));
 }
 
-static void add_print(int16_t x, int16_t y, uint8_t shape)
+static void add_print(Pool *pool, int16_t x, int16_t y)
 {
-    Print *p = &s_prints[s_next];
-    s_next = (s_next + 1) % kMaxPrints;
+    Print *p = &pool->prints[pool->next];
+    pool->next = (pool->next + 1) % kMaxPrints;
     p->x = x;
     p->y = y;
     p->age = 0;
-    p->shape = shape;
+    p->shape = shape_next();
     p->used = 1;
 }
 
-/* A presented frame of a match: new prints where the players have walked, the old ones aged. */
-static void mud_update(void)
+static void age_pool(Pool *pool, int32_t life)
+{
+    for (int32_t i = 0; i < kMaxPrints; i++)
+        if (pool->prints[i].used && ++pool->prints[i].age >= life)
+            pool->prints[i].used = 0;
+}
+
+/* He is at x, y now: a print when he has gone a stride from his last one. */
+static void walk(Pool *pool, Walker *w, int16_t x, int16_t y)
+{
+    w->x = x;
+    w->y = y;
+    if (!w->have) {
+        w->lastX = x;
+        w->lastY = y;
+        w->have = 1;
+        return;
+    }
+    const int32_t dx = x - w->lastX, dy = y - w->lastY;
+    if (dx * dx + dy * dy < kStride * kStride)
+        return;
+    if (dx * dx + dy * dy <= 40 * 40) {             /* (more is a jump, a restart: no trail across it) */
+        /* left foot and right foot either side of the way he is going */
+        const int side = w->foot ? 1 : -1;
+        const int ox = abs(dy) > abs(dx) ? side : 0, oy = abs(dy) > abs(dx) ? 0 : side;
+        w->foot ^= 1;
+        add_print(pool, (int16_t)(x + ox), (int16_t)(y + oy));
+    }
+    w->lastX = x;
+    w->lastY = y;
+}
+
+/* A presented frame of a match (not a replay): new prints where the players have walked. */
+static void mud_update_live(void)
 {
     static int wasInMatch;
-    const int inMatch = GameLoop_Active() != 0;
-    int32_t life, level, i;
-    if (inMatch && !wasInMatch) {               /* a new match: a clean pitch */
-        memset(s_prints, 0, sizeof s_prints);
-        memset(s_have, 0, sizeof s_have);
+    const int inMatch = ModApi_InMatch() != 0;
+    int32_t life, level;
+    if (inMatch && !wasInMatch) {                   /* a new match: a clean pitch */
+        memset(&s_live, 0, sizeof s_live);
+        memset(s_liveWalkers, 0, sizeof s_liveWalkers);
         s_lutAge = 0xFFFFFFFFu;
     }
     wasInMatch = inMatch;
-    mud_for(pitch_type(), &life, &level);
-    if (!inMatch || !life || !_team1SpritesTable || !_team2SpritesTable)
+    mud_for(ModApi_PitchType(), &life, &level);
+    if (!inMatch || !life || ModApi_InReplay())     /* (a replay: the match's trail waits for it) */
         return;
-    if (++s_lutAge >= 50) {
-        build_luts();
-        s_lutAge = 0;
+    keep_luts();
+    age_pool(&s_live, life);
+    ModPlayer players[22];
+    const int32_t n = ModApi_Players(players, 22);
+    for (int32_t i = 0; i < n; i++) {
+        Walker *w = &s_liveWalkers[players[i].team * 11 + players[i].index];
+        if (!players[i].onPitch || players[i].z > 2) {  /* (off the pitch, or in the air) */
+            w->have = 0;
+            continue;
+        }
+        walk(&s_live, w, players[i].x, players[i].y);
     }
-    for (i = 0; i < kMaxPrints; i++)
-        if (s_prints[i].used && ++s_prints[i].age >= life)
-            s_prints[i].used = 0;
+}
 
-    for (i = 0; i < 22; i++) {
-        const Sprite *s = i < 11 ? _team1SpritesTable[i] : _team2SpritesTable[i - 11];
-        if (!s || !s->visible || s->z.s.i > 2) {     /* (off the pitch, or in the air) */
-            s_have[i] = 0;
-            continue;
+/* A replay frame: its players (no names, only where they are) followed by the nearest of where
+ * they were. */
+static void mud_update_replay(void)
+{
+    int32_t life, level;
+    mud_for(ModApi_PitchType(), &life, &level);
+    if (!life)
+        return;
+    keep_luts();
+    age_pool(&s_replay, life);
+    for (int32_t i = 0; i < s_replayWalkerCount; i++)
+        s_replayWalkers[i].seen = 0;
+    for (int32_t c = 0; c < s_collectedCount; c++) {
+        const int16_t x = s_collected[c][0], y = s_collected[c][1];
+        int32_t best = -1, bestD = 12 * 12 + 1;
+        for (int32_t i = 0; i < s_replayWalkerCount; i++) {
+            const int32_t dx = x - s_replayWalkers[i].x, dy = y - s_replayWalkers[i].y, d = dx * dx + dy * dy;
+            if (!s_replayWalkers[i].seen && d < bestD) {
+                bestD = d;
+                best = i;
+            }
         }
-        const int16_t x = s->x.s.i, y = s->y.s.i;
-        if (!s_have[i]) {
-            s_lastX[i] = x;
-            s_lastY[i] = y;
-            s_have[i] = 1;
-            continue;
+        if (best < 0) {
+            if (s_replayWalkerCount == kMaxWalkers)
+                continue;
+            best = s_replayWalkerCount++;
+            memset(&s_replayWalkers[best], 0, sizeof s_replayWalkers[best]);
         }
-        const int32_t dx = x - s_lastX[i], dy = y - s_lastY[i];
-        if (dx * dx + dy * dy < kStride * kStride)
+        s_replayWalkers[best].seen = 1;
+        walk(&s_replay, &s_replayWalkers[best], x, y);
+    }
+    /* who was not seen has gone */
+    for (int32_t i = 0; i < s_replayWalkerCount;)
+        if (!s_replayWalkers[i].seen)
+            s_replayWalkers[i] = s_replayWalkers[--s_replayWalkerCount];
+        else
+            i++;
+    s_collectedCount = 0;
+}
+
+static void stamp_prints(const Pool *pool, uint8_t *fb, int32_t stride, int32_t w, int32_t h)
+{
+    int32_t life, level;
+    int16_t cx, cy;
+    mud_for(ModApi_PitchType(), &life, &level);
+    if (!life)
+        return;
+    ModApi_Camera(&cx, &cy);
+    static const int8_t kDx[4] = { 0, 1, 0, 1 }, kDy[4] = { 0, 0, 1, 1 };
+    for (int32_t i = 0; i < kMaxPrints; i++) {
+        const Print *p = &pool->prints[i];
+        if (!p->used)
             continue;
-        if (dx * dx + dy * dy > 40 * 40) {           /* a jump (a restart): no trail across it */
-            s_lastX[i] = x;
-            s_lastY[i] = y;
+        const int sx = p->x - cx, sy = p->y - cy;
+        if (sx < 0 || sy < 0 || sx + 1 >= w || sy + 1 >= h)
             continue;
+        /* drier and fainter with age, and in its last quarter its pixels go one by one */
+        int lv = level + p->age * (kLevels - level) / life;
+        if (lv >= kLevels)
+            lv = kLevels - 1;
+        const int fading = p->age > life * 3 / 4;
+        const int keep = fading ? 4 - (p->age - life * 3 / 4) * 4 / (life - life * 3 / 4 + 1) : 4;
+        for (int k = 0, n = 0; k < 4; k++) {
+            /* shape: the pixels of the 2x2 left out -- a foot is never a solid square */
+            if (k == (p->shape & 3) && (p->shape & 4))
+                continue;
+            if (++n > keep)
+                break;
+            uint8_t *px = fb + (sy + kDy[k]) * stride + sx + kDx[k];
+            *px = s_lut[lv][*px];
         }
-        /* left foot and right foot either side of the way he is going */
-        const int side = s_foot[i] ? 1 : -1;
-        const int ox = abs(dy) > abs(dx) ? side : 0, oy = abs(dy) > abs(dx) ? 0 : side;
-        s_foot[i] ^= 1;
-        add_print((int16_t)(x + ox), (int16_t)(y + oy), shape_next());
-        s_lastX[i] = x;
-        s_lastY[i] = y;
     }
 }
 
@@ -187,75 +277,96 @@ static uint32_t mix32(uint32_t a, uint32_t b)
     return h;
 }
 
-/* Each splash slot lands a drop every so often somewhere new: a dot, a crown, a ring going. It
- * runs on real time (SDL_GetTicks): what is drawn depends on nothing the match keeps. */
-static void draw_splashes(uint8_t *fb, int w, int h)
+/* The pitch is cut into cells of 32 pixels, each with a few splash slots; a slot lands a drop
+ * every so often somewhere new in its cell -- a dot, a crown, a ring going -- so the splashes are
+ * where they hit the pitch, and stay there as the camera moves. Real time (ModApi_Ticks): what is
+ * drawn depends on nothing the match keeps. */
+static void draw_splashes(uint8_t *fb, int32_t stride, int32_t w, int32_t h)
 {
-    static const int kSlots[4] = { 0, 150, 90, 35 };     /* by pitch type 1..3, at full intensity */
+    static const int kPerScreen[4] = { 0, 150, 90, 35 };    /* by pitch type 1..3, at full intensity */
     static const int8_t kStage[3][5][2] = {
         { { 0, 0 }, { 99, 99 } },                                   /* the drop lands */
         { { -1, -1 }, { 1, -1 }, { 0, 0 }, { 99, 99 } },            /* its crown */
         { { -2, -1 }, { 2, -1 }, { -1, 0 }, { 1, 0 }, { 99, 99 } }, /* the ring, going */
     };
+    enum { kCell = 32, kSlotsPerCell = 4, kPeriod = 360 };          /* ms from a slot's drop to its next */
     if (s_rainKind < 1 || s_rainKind > 3 || s_rainIntensity <= 0)
         return;
-    const int slots = (int)(kSlots[s_rainKind] * s_rainIntensity);
-    const uint32_t ms = SDL_GetTicks();
-    const uint32_t period = 360;                        /* ms from one drop of a slot to its next */
-    for (int i = 0; i < slots; i++) {
-        const uint32_t phase = mix32((uint32_t)i, 1) % period, t = ms + phase;
-        const uint32_t cycle = t / period, age = t % period;
-        const int stage = (int)(age / 60);              /* 60 ms a stage, then nothing till the next */
-        if (stage > 2)
-            continue;
-        const uint32_t where = mix32((uint32_t)i, cycle + 7);
-        const int x = (int)(where % (uint32_t)w), y = (int)((where >> 12) % (uint32_t)h);
-        for (int k = 0; kStage[stage][k][0] != 99; k++) {
-            const int px = x + kStage[stage][k][0], py = y + kStage[stage][k][1];
-            if (px >= 0 && py >= 0 && px < w && py < h) {
-                uint8_t *p = fb + py * w + px;
-                *p = s_splash[*p];
+    /* of a cell's slots, the share that rains: the screen's drops over its cells' slots */
+    const float cells = (float)(w * h) / (kCell * kCell);
+    const uint32_t share = (uint32_t)(1000.0f * kPerScreen[s_rainKind] * s_rainIntensity / (cells * kSlotsPerCell));
+    int16_t camX, camY;
+    ModApi_Camera(&camX, &camY);
+    const uint32_t ms = ModApi_Ticks();
+    const int cx0 = (camX >= 0 ? camX : camX - kCell + 1) / kCell, cy0 = (camY >= 0 ? camY : camY - kCell + 1) / kCell;
+    for (int cy = cy0; cy * kCell < camY + h; cy++)
+        for (int cx = cx0; cx * kCell < camX + w; cx++) {
+            const uint32_t cell = (uint32_t)(cx * 7919 + cy * 104729);
+            for (uint32_t s = 0; s < kSlotsPerCell; s++) {
+                const uint32_t slot = mix32(cell, s);
+                if (slot % 1000 >= share)
+                    continue;
+                const uint32_t t = ms + (slot >> 10) % kPeriod, cycle = t / kPeriod, age = t % kPeriod;
+                const int stage = (int)(age / 60);  /* 60 ms a stage, then nothing till the next */
+                if (stage > 2)
+                    continue;
+                const uint32_t where = mix32(slot, cycle);
+                const int x = cx * kCell + (int)(where % kCell) - camX, y = cy * kCell + (int)((where >> 8) % kCell) - camY;
+                for (int k = 0; kStage[stage][k][0] != 99; k++) {
+                    const int px = x + kStage[stage][k][0], py = y + kStage[stage][k][1];
+                    if (px >= 0 && py >= 0 && px < w && py < h) {
+                        uint8_t *p = fb + py * stride + px;
+                        *p = s_splash[*p];
+                    }
+                }
             }
         }
-    }
 }
 
-/* The pitch is in the frame being drawn and the sprites are not yet: stamp the prints and the
- * splashes. */
+/* ---- the hooks ---- */
+
+static void stamp(const Pool *pool)
+{
+    int32_t stride, w, h;
+    uint8_t *fb = ModApi_Frame(&stride);
+    if (!fb || s_lutAge == 0xFFFFFFFFu)
+        return;
+    ModApi_ScreenSize(&w, &h);
+    draw_splashes(fb, stride, w, h);
+    stamp_prints(pool, fb, stride, w, h);
+}
+
+/* A match's pitch is in the frame being drawn and the sprites are not yet. */
 void ModWeather_PitchDrawn(void)
 {
-    int32_t life, level, i;
-    uint8_t *fb = (uint8_t *)(uintptr_t)_frontbufferBasePtr;
-    mud_for(pitch_type(), &life, &level);
-    if (!life || !fb || s_lutAge == 0xFFFFFFFFu)
-        return;
-    const int w = FRONTBUFFER_ROW_STRIDE_BYTES, h = _screen_height;
-    draw_splashes(fb, w, h);
-    const int cx = Render_CameraX(), cy = Render_CameraY();
-    for (i = 0; i < kMaxPrints; i++) {
-        const Print *p = &s_prints[i];
-        if (!p->used)
-            continue;
-        const int sx = p->x - cx, sy = p->y - cy;
-        if (sx < 0 || sy < 0 || sx + 1 >= w || sy + 1 >= h)
-            continue;
-        /* drier and fainter with age, and in its last quarter its pixels go one by one */
-        int lv = level + p->age * (kLevels - level) / life;
-        if (lv >= kLevels)
-            lv = kLevels - 1;
-        const int fading = p->age > life * 3 / 4;
-        const int keep = fading ? 4 - (p->age - life * 3 / 4) * 4 / (life - life * 3 / 4 + 1) : 4;
-        int k, n = 0;
-        static const int8_t kDx[4] = { 0, 1, 0, 1 }, kDy[4] = { 0, 0, 1, 1 };
-        for (k = 0; k < 4; k++) {
-            /* shape: the pixels of the 2x2 left out -- a foot is never a solid square */
-            if (k == (p->shape & 3) && (p->shape & 4))
-                continue;
-            if (++n > keep)
-                break;
-            uint8_t *px = fb + (sy + kDy[k]) * w + sx + kDx[k];
-            *px = s_lut[lv][*px];
+    stamp(&s_live);
+}
+
+/* A replay's: `first` its first frame (or one it jumped to), `fresh` one not shown before. */
+void ModWeather_ReplayFrameBegin(int32_t first, int32_t fresh)
+{
+    if (first) {
+        memset(&s_replay, 0, sizeof s_replay);
+        s_replayWalkerCount = 0;
+        s_collectedCount = 0;
+        if (s_lutAge == 0xFFFFFFFFu) {              /* (a replay from VIEW: no match before it) */
+            build_luts();
+            s_lutAge = 0;
         }
+    } else if (fresh) {
+        mud_update_replay();
+    }
+    s_collectedCount = fresh ? s_collectedCount : 0;
+    stamp(&s_replay);
+}
+
+void ModWeather_ReplaySprite(uint16_t image, int16_t left, int16_t top)
+{
+    int16_t x, y;
+    if (s_collectedCount < kMaxWalkers && ModApi_ReplayPlayerFeet(image, left, top, &x, &y)) {
+        s_collected[s_collectedCount][0] = x;
+        s_collected[s_collectedCount][1] = y;
+        s_collectedCount++;
     }
 }
 
@@ -264,29 +375,25 @@ void ModWeather_PitchDrawn(void)
 #if SDL_VERSION_ATLEAST(2, 0, 18)
 #include "../third_party/pitch_weather/pitch_weather.h"
 
-extern uint32_t _gameTime;                  /* the clock's digits: [1] hundreds, [2] tens, [3] ones */
-
 static void weather_draw(SDL_Renderer *renderer)
 {
-    static int wasInMatch, seed;
-    const int inMatch = GameLoop_Active() != 0;
-    if (inMatch && !wasInMatch)                 /* a new match: its own pattern */
+    static int wasShowing, seed;
+    const int showing = ModApi_InMatch() || ModApi_InReplay();
+    if (showing && !wasShowing)                 /* a new match (or replay): its own pattern */
         seed = (int)(SDL_GetPerformanceCounter() % 360);
-    wasInMatch = inMatch;
-    if (!inMatch) {
+    wasShowing = showing;
+    if (!showing) {
         s_rainIntensity = 0;
         return;
     }
-    const uint8_t *t = (const uint8_t *)&_gameTime;
-    const float minute = (float)(t[1] * 100 + t[2] * 10 + t[3]);
-    const PitchWeather weather = PitchWeather_ForPitchType(pitch_type(), minute, seed);
-    s_rainKind = weather.kind == PITCH_WEATHER_SNOW ? 0 : pitch_type();
+    const PitchWeather weather = PitchWeather_ForPitchType(ModApi_PitchType(), (float)ModApi_MatchMinute(), seed);
+    s_rainKind = weather.kind == PITCH_WEATHER_SNOW ? 0 : ModApi_PitchType();
     s_rainIntensity = weather.intensity;
     SDL_Rect area = { 0, 0, 0, 0 };
     SDL_RenderGetLogicalSize(renderer, &area.w, &area.h);
     if (area.w <= 0 || area.h <= 0)
         SDL_GetRendererOutputSize(renderer, &area.w, &area.h);
-    PitchWeather_Draw(renderer, &area, &weather, SDL_GetTicks() / 1000.0);
+    PitchWeather_Draw(renderer, &area, &weather, ModApi_Ticks() / 1000.0);
 }
 #else
 static void weather_draw(SDL_Renderer *renderer) { (void)renderer; }    /* (an SDL without RenderGeometry) */
@@ -294,7 +401,7 @@ static void weather_draw(SDL_Renderer *renderer) { (void)renderer; }    /* (an S
 
 void ModWeather_FrameDrawn(SDL_Renderer *renderer)
 {
-    mud_update();
+    mud_update_live();
     weather_draw(renderer);
 }
 

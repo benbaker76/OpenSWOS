@@ -415,7 +415,13 @@ other. The code runs at **hooks**, fixed points of the engine, never patches of 
 | `ModHooks_FrameDrawn(renderer)` | `platform_sdl.c`'s present, after the frame and its HUD, before the CRT effects, the touch controls and the swap | draw over the finished picture in its logical size. Runs once per frame SHOWN, so never on a re-simulated one: the place to keep a mod's own state |
 | `ModHooks_PitchDrawn()` | `game_loop.c`, after `ScrollToCurrent` drew the pitch into the frame being made, before the sprites | draw into the 8bpp frame UNDER the players. The frame may be one GGPO re-simulates and never shows, so only draw here |
 | `ModHooks_PlayerSetsRaw()` | `color_sprites.c` ConvertColorsAndTextSprites, once a match, before the player sets are recoloured | read the raw art (team 1's first set, sprites 227..327) |
+| `ModHooks_ReplayFrameBegin(first, fresh)`, `ModHooks_ReplaySprite(image, left, top)` | `highlight.c` DrawReplayFrame (the in-match replay) and `replay_v2.c` ReplayV2_DrawFrame (VIEW's .SRP): the pitch drawn, before the sprites; then each recorded sprite | draw under the replay's sprites; learn where its players are (`ModApi_ReplayPlayerFeet`) |
 | `ModHooks_PlayerDrawn(sprite, gfx, x, y)` | `sprites.c` DrawQueuedSprites, right after a player sprite is drawn, before anything is drawn over it | redraw that sprite's own pixels, draw beside it; draw only, as PitchDrawn |
+
+**The mod API** (`include/mod_api.h`, `src/mod_api.c`): what a mod asks the game -- whether a
+match or a replay is on, the pitch type and minute, the players (where, facing, face, name),
+the camera, the screen, the frame to draw into, the palette, its own folder -- never the game's
+globals, so an engine change changes mod_api.c and no mod.
 
 Neither may write match state: the frame buffers are not in it (`src/sim_state.c`), and a mod's
 own state must not be either. A built-in mod that is cosmetic plays online like any other
@@ -436,15 +442,18 @@ its own generator.
   match's palette fades). A print starts dark and dries through the three, and in the last
   quarter of its life its pixels go one by one, so the pitch never fills up: 14 s on muddy, 8 s
   wet (both starting at full strength), 5 s soft (starting a level lighter). Both palettes, the
-  Amiga's and the PC's, take it.
+  Amiga's and the PC's, take it. A replay has a trail of its own (the match's waits), made at
+  ReplayFrameBegin from the players its last frame showed, each followed by the nearest of where
+  they were; it starts again at a replay's start or a jump.
 - `SWOS_WEATHER_PITCH=<0..6>` plays a pitch type's weather and mud whatever the match's -- for a
   test: `SWOS_WEATHER_PITCH=1 SWOS_PRESENT_CAPTURE=150 SWOS_PRESENT_CAPTURE_FROM=1500
   bin/SWOS.x86_64 --mods=weather --replay-test=../tests/replay/<a .swr> --dos-graphics=off`
   writes the presented frames as `swos_presentNNN.png`.
-- **The splashes.** On a rain pitch, drops hitting the pitch: slots (150 heavy, 90 rain, 35
-  drizzle at full intensity, times the weather's intensity) each land a drop every 360 ms
-  somewhere new -- a dot, a crown, a ring going, 60 ms each -- stamped at PitchDrawn through a
-  lightening palette table, so under the players. Real time, a hash of the slot and its cycle.
+- **The splashes.** On a rain pitch, drops hitting the pitch, in the pitch's own cells of 32
+  pixels (so they stay where they hit as the camera moves): 4 slots a cell, a share of them
+  raining (150 heavy, 90 rain, 35 drizzle a screen at full intensity, times the weather's), each
+  landing a drop every 360 ms somewhere new in its cell -- a dot, a crown, a ring going, 60 ms
+  each -- stamped under the players through a lightening palette table. Real time.
 - SDL only (`"targets": ["sdl"]`): neither hook exists on the Amiga.
 
 **`hair`** (off by default; `src/mod_hair.c`): players with more than one head of hair.

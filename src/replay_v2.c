@@ -18,6 +18,7 @@
 #ifdef SWOS_SDL_BUILD
 
 #include "replay_v2.h"
+#include "mod_hooks.h"
 #include <SDL.h>            /* the checkpoint's thread */
 #include "dos_sound.h"
 #include "audio_sfx_filter.h"
@@ -1885,6 +1886,8 @@ static uint32_t shown_camera_y(uint32_t cy)
     return cy;
 }
 
+static uint32_t s_modLastCursor = 0xFFFFFFF0u;     /* the frame the mods were last told of */
+
 void ReplayV2_DrawFrame(void)
 {
     const uint8_t *h, *sp;
@@ -1930,6 +1933,9 @@ void ReplayV2_DrawFrame(void)
     }
     h = s_play.frms + s_play.offsets[s_play.cursor];
 
+    /* (the replay's start, or a jump: the mods' trail starts again; a held frame is the same one) */
+    const int32_t modFirst = _replayState == 1 ||
+                             (s_play.cursor != s_modLastCursor + 1 && s_play.cursor != s_modLastCursor);
     if (_replayState == 1) {
         /* The first frame: the camera straight to where the match had it, both buffers. */
         int16_t x = (int16_t)(BE_READ_U32(h + 2) >> 16), y = (int16_t)(shown_camera_y(BE_READ_U32(h + 6)) >> 16);
@@ -1961,6 +1967,8 @@ void ReplayV2_DrawFrame(void)
     _hilRightTeamGoals = BE_READ_U16(h + 12);
     _animPatternsState = BE_READ_U16(h + 14);
     DrawAnimatedPatterns();
+    ModHooks_ReplayFrameBegin(modFirst, fresh);     /* (under the sprites: the weather mod's mud) */
+    s_modLastCursor = s_play.cursor;
 
     origin = Render_CameraX();
     camY = Render_CameraY();
@@ -1975,6 +1983,7 @@ void ReplayV2_DrawFrame(void)
     for (i = 0; i < sprites; i++, sp += SPRITE_BYTES) {
         extern int _menu_draw_x_offset;
         uint16_t image = BE_READ_U16(sp);
+        ModHooks_ReplaySprite(image, (int16_t)BE_READ_U16(sp + 2), (int16_t)BE_READ_U16(sp + 4));
         /* Where it lands on screen: the world position through the playback camera, as
          * live drawing does -- moved to where a player's screen had it, when that is
          * the screen being shown. */

@@ -781,8 +781,14 @@ void DrawReplayFrame(void)
     }
 #endif
 
+#ifdef SWOS_SDL_BUILD
+    static int32_t s_modFirst;                  /* (the mods' replay hooks: a new replay) */
+#endif
     if (_replayState == 1) {
         /* STATE 1 → 2: Initialize replay */
+#ifdef SWOS_SDL_BUILD
+        s_modFirst = 1;
+#endif
         _replayState = 2;
         _savedCameraX = _cameraX.s.i;
         _savedCameraY = _cameraY.s.i;
@@ -822,6 +828,13 @@ void DrawReplayFrame(void)
     a0 = wrapPointerFwd(a0);
 
     DrawAnimatedPatterns();
+#ifdef SWOS_SDL_BUILD
+    {   /* (under the sprites: the weather mod's mud; include/mod_hooks.h) */
+        extern void ModHooks_ReplayFrameBegin(int32_t first, int32_t fresh);
+        ModHooks_ReplayFrameBegin(s_modFirst, 1);
+        s_modFirst = 0;
+    }
+#endif
 
     /* Read next entry after frame marker */
     d0 = BE_READ_U32(a0);
@@ -866,6 +879,10 @@ sprite_decode:
             extern int _menu_draw_x_offset;
             int32_t worldX = sx + (int32_t)s_replayRecCamX;
             int32_t worldY = sy + (int32_t)s_replayRecCamY;
+            {
+                extern void ModHooks_ReplaySprite(uint16_t image, int16_t left, int16_t top);
+                ModHooks_ReplaySprite((uint16_t)sprIdx, (int16_t)worldX, (int16_t)worldY);
+            }
 
             /* ---- Goal-overlay anchor guard ------------------------------------
              * The goal overlay is the one recorded sprite whose world position is
