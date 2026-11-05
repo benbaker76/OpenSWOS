@@ -135,6 +135,8 @@ void Career_InitSeasonTransferMarketState(void)
     int16_t numerator = (int16_t)(0x1B0 - _numForeignMarketPlayers2 - seasonsAdj);
     /* ext.l + divu.w: sign-extend to 32-bit then unsigned divide by word */
     uint16_t quota = (uint16_t)((uint32_t)(int32_t)numerator / divisor);
+    if (_careerParams.transfer_quota_mode == 1)     /* (career_params: a fixed quota, Career+'s: */
+        quota = _careerParams.transfer_quota;       /* a pool past 432 left the formula at 0) */
 
     _seasonTransferQuota = quota;
     _pendingForeignPlayerCount = 0;

@@ -50,5 +50,13 @@
   "sponsorship_mode": 0,
   "sponsorship_weeks": [0, 0, 0, 0],
   "league_distribution_weeks": [0, 0, 0, 0],
-  "profit_loss_sponsorship": 0
+  "profit_loss_sponsorship": 0,
+
+  "_transfers": "Career+'s: transfer_quota_mode 1 with transfer_quota 256 (half for sales, half for buys; buys then limited only by the pool's room), foreign_refill_mult 3, listed_bid_chance 36, foreign_bid_chance 64, domestic_buyer_mode 1",
+  "transfer_quota_mode": 0,
+  "transfer_quota": 256,
+  "foreign_refill_mult": 1,
+  "listed_bid_chance": 11,
+  "foreign_bid_chance": 8,
+  "domestic_buyer_mode": 0
 }

@@ -3180,6 +3180,12 @@ void DataJson_LoadCareerParams(void)
     LDU("$.league_distribution_weeks[2]", league_distribution_weeks[2]);
     LDU("$.league_distribution_weeks[3]", league_distribution_weeks[3]);
     LDU("$.profit_loss_sponsorship",    profit_loss_sponsorship);
+    LDU("$.transfer_quota_mode",        transfer_quota_mode);
+    LDU("$.transfer_quota",             transfer_quota);
+    LDU("$.foreign_refill_mult",        foreign_refill_mult);
+    LDU("$.listed_bid_chance",          listed_bid_chance);
+    LDU("$.foreign_bid_chance",         foreign_bid_chance);
+    LDU("$.domestic_buyer_mode",        domestic_buyer_mode);
     #undef LDU
     #undef LDS
     if (_careerParams.num_seasons < 1) _careerParams.num_seasons = 1;
@@ -3198,6 +3204,12 @@ void DataJson_LoadCareerParams(void)
     if (_careerParams.running_cost_mode > 1) _careerParams.running_cost_mode = 0;
     if (_careerParams.sponsorship_mode > 1) _careerParams.sponsorship_mode = 0;
     if (_careerParams.league_gate_mult < 1) _careerParams.league_gate_mult = 1;
+    if (_careerParams.transfer_quota_mode > 1) _careerParams.transfer_quota_mode = 0;
+    if (_careerParams.foreign_refill_mult < 1) _careerParams.foreign_refill_mult = 1;
+    if (_careerParams.foreign_refill_mult > 3) _careerParams.foreign_refill_mult = 3;   /* (the listing's 45 at most) */
+    if (_careerParams.listed_bid_chance > 256) _careerParams.listed_bid_chance = 256;
+    if (_careerParams.foreign_bid_chance > 256) _careerParams.foreign_bid_chance = 256;
+    if (_careerParams.domestic_buyer_mode > 1) _careerParams.domestic_buyer_mode = 0;
     free(j);
     fprintf(stderr, "[data-json] career params loaded from data_json/career_params.json\n");
 }

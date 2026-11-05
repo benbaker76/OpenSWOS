@@ -192,6 +192,13 @@ wages times `sponsorship_weeks` by division, 18/14/10/6], `league_distribution_w
 [1: the sponsor counted in the season's profit / loss]. A param at its default runs the
 original's code, so the golden careers are unchanged.
 
+**Transfers** (Career+'s in brackets): `transfer_quota_mode` 0 [1: a fixed `transfer_quota` 256
+a season, half for sales and half for buys, and buys then limited only by the pool's room --
+the original's formula budgets from 432, so a bigger pool left it at 0 and stopped every bid],
+`foreign_refill_mult` 1 [3] (at most 3: the listing's 45), `listed_bid_chance` 11 [36] in 256,
+`foreign_bid_chance` 8 [64] in 256 (a bid from abroad rather than home), `domestic_buyer_mode` 0
+[1: also a home club with a player priced at half the listed one's or more].
+
 ---
 
 ## Verification

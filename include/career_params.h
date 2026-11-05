@@ -68,6 +68,17 @@ typedef struct {
                                           *      the weekly wages times this [9 7 5 3] */
     uint16_t profit_loss_sponsorship;    /* 0    [1] the sponsorship counts in the profit / loss */
 
+    /* ---- Transfers (Career+'s in brackets) ---- */
+    uint16_t transfer_quota_mode;        /* 0    the season's quota by the original's formula; 1 a
+                                          *      fixed transfer_quota, half for sales, half for buys,
+                                          *      and buys limited only by the pool's room [1] */
+    uint16_t transfer_quota;             /* 256  (mode 1) */
+    uint16_t foreign_refill_mult;        /* 1    [3] foreign players added to the market, times */
+    uint16_t listed_bid_chance;          /* 11   [36] in 256, a bid for a player you listed, a week */
+    uint16_t foreign_bid_chance;         /* 8    [64] in 256, a bid comes from abroad, not home */
+    uint16_t domestic_buyer_mode;        /* 0    the original's buyers at home; 1 also a club with a
+                                          *      player worth half the listed one's price [1] */
+
     /* ---- Career length ---- */
     uint16_t num_seasons;                /* 20 (default) or up to CAREER_MAX_SEASONS (35) — the
                                           * career retires after this many seasons */

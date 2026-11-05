@@ -135,6 +135,11 @@ uint16_t _cGetPlayerAtIndexFileIdx __attribute__((used, externally_visible));
 __attribute__((used, externally_visible))
 uint16_t GetRemainingTransferPoolSlots(void)
 {
+    if (_careerParams.transfer_quota_mode == 1) {   /* (career_params: buys limited by the pool's room) */
+        const uint32_t used = _numForeignMarketPlayers2, cap = _careerParams.foreign_pool_capacity;
+        const uint32_t room = used >= cap ? 0 : cap - used;
+        return (uint16_t)(room > 32767u ? 32767u : room);
+    }
     return _transferPoolSlotLimit - _transferPoolSlotsUsed;
 }
 
@@ -153,6 +158,9 @@ uint16_t GetRemainingOfferSwapSlots(void)
      * bigger list (a capacity param above the original's) can use more slots than the season's
      * limit: then none are left, not 65535. */
     if (CareerParams_CapacitiesRaised() && _offerSwapSlotsUsed > _offerSwapSlotLimit)
+        return 0;
+    if (_careerParams.transfer_quota_mode == 1 &&   /* (a fixed quota: none once the pool is full) */
+        (_offerSwapSlotsUsed >= _offerSwapSlotLimit || _numForeignMarketPlayers2 >= _careerParams.foreign_pool_capacity))
         return 0;
     return _offerSwapSlotLimit - _offerSwapSlotsUsed;
 }
@@ -874,6 +882,7 @@ void FillForeignMarketPlayers(void)
 
     numToAdd = 15;                                          /* move.w #$F,d7 */
     numToAdd -= (Rand2() & 7);                             /* andi.w #7,d0; sub.w */
+    numToAdd = (uint16_t)(numToAdd * _careerParams.foreign_refill_mult);   /* (career_params: 1) */
     if ((int16_t)numToAdd <= 0)
         return;
 
@@ -2010,7 +2019,7 @@ void GenerateRandomTransferOffers(void)
                 int onMarket = 0;
                 /* _cGetPlayerAtIndexFileIdx holds the file index from last GetPlayerAtIndex call */
                 if (FindPlayerOnTransferMarket(fileIdx) == 0) {
-                    threshold = 11;
+                    threshold = _careerParams.listed_bid_chance;   /* (11, the original's) */
                     onMarket = 1;
                     boostedFound++;
                 }
@@ -5336,6 +5345,25 @@ extern void RestoreRand2State(void);
 extern void Randomize2(uint16_t _seed);
 extern uint16_t GetPlayerRandomNum(PlayerFile *playerFile);
 
+/* A home club that may bid for your listed player: the original's (IsTeamEligibleForOfferByRefSkill),
+ * and with domestic_buyer_mode 1 also any club in the league with a player priced at half the
+ * listed one's or more (benefactorr's Career+). 0 = eligible, as IsTeamEligibleForOfferByRefSkill. */
+static int16_t domesticBuyerEligible(TeamFileEx *team, uint16_t refSkill)
+{
+    if (IsTeamEligibleForOfferByRefSkill(team, refSkill) == 0)
+        return 0;
+    if (_careerParams.domestic_buyer_mode != 1)
+        return 1;
+    if (PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal) == _selTeamNumber ||
+        Team_IsOutsideLeague(&team->team))
+        return 1;
+    const uint8_t minPrice = (uint8_t)(((uint8_t)refSkill + 1u) / 2u);
+    for (int32_t i = 0; i < 16; i++)
+        if ((uint8_t)team->players[i].price >= minPrice)
+            return 0;
+    return 1;
+}
+
 __attribute__((used, externally_visible))
 void CreateRandomTransferOfferForPlayer(uint16_t playerOrdinal)
 {
@@ -5364,7 +5392,7 @@ void CreateRandomTransferOfferForPlayer(uint16_t playerOrdinal)
     uint8_t *teamsBase;
     uint16_t teamCount;
 
-    if (rnd >= 8) {
+    if (rnd >= _careerParams.foreign_bid_chance) {     /* (8, the original's) */
         /* Home market path */
         _homeMarketRandomPickRetries++;
         uint8_t *a0 = &_selTeamsPtr;
@@ -5380,7 +5408,7 @@ void CreateRandomTransferOfferForPlayer(uint16_t playerOrdinal)
         uint8_t selTeamByte = (uint8_t)(_selTeamNumber >> 8);
         while (d4 < _numSelectedTeams) {
             if (selTeamByte == *a0) {
-                if (IsTeamEligibleForOfferByRefSkill((TeamFileEx *)a0, refSkill) == 0) {
+                if (domesticBuyerEligible((TeamFileEx *)a0, refSkill) == 0) {
                     _offerCandidateTeamIndexBuffer[d5] = (uint8_t)d4;
                     d5++;
                 }

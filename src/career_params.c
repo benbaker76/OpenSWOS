@@ -45,6 +45,14 @@ CareerParams _careerParams = {
     .league_distribution_weeks = { 0, 0, 0, 0 },
     .profit_loss_sponsorship = 0,
 
+    /* transfers: the original's */
+    .transfer_quota_mode = 0,
+    .transfer_quota = 256,
+    .foreign_refill_mult = 1,
+    .listed_bid_chance = 11,
+    .foreign_bid_chance = 8,
+    .domestic_buyer_mode = 0,
+
     /* career length */
     .num_seasons = 20,
 
