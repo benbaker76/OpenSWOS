@@ -1542,6 +1542,15 @@ same anywhere), and it never touches the players or the match.
   The recorder rebuilds a viewer's batches from its own copy, at most ~1 MB waiting per viewer.
 - The client appends what arrives to the loaded recording (`ReplayV2_LiveAppend`), so the player
   plays on where it would have held the last frame.
+- **For a mod's menus** (include/mod_api.h, "LIVE CAST"): `ModApi_LiveList` (the matches as
+  data, ~2 s at most), `ModApi_LiveAny` (is anything live: the last answer, asked again in the
+  background at most every 20 s, for a main-menu icon), `ModApi_LiveWatch(id)` (watch, and back to
+  the calling menu: 0 the match ended, 1 the viewer left). All on the server matchmaking uses.
+  `ModApi_SetMenuImage` changes an entry's image while its menu is up (the icon's live / idle).
+- **A player can say no:** `[netplay] live_cast = false` (default true, as SWOS 2020's LIVE CAST
+  ON) sets HELLO's `RECORD_HELLO_NO_WATCH`; the recorder never lists or sends a match either player
+  keeps from viewers. Recording it for the desync checks goes on as before.
+  `JOIN_INI='[netplay]\nlive_cast=false' RECORD=1 scripts/relay_test.sh` checks it.
 - **The server must be rebuilt and redeployed** for viewers (an older one closes a viewer's
   connection). Checked: `RECORD=1 FRAMES=4000 scripts/relay_test.sh` with a viewer attached
   mid-match -- the viewer played on for 40 s, and the recorder's copy was still the host's

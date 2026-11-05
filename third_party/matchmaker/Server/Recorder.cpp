@@ -272,6 +272,7 @@ bool Recorder::OnHello(Connection& c, const uint8_t* p, uint32_t len)
     s.relayToken = Record_Get64(p + 16);
     s.simWidth = (int)Record_Get16(p + 24);
     s.delay = p[26];
+    s.noWatch = (p[27] & RECORD_HELLO_NO_WATCH) != 0;  // (LIVE CAST: this player said no)
     uint32_t at = RECORD_HELLO_FIXED;
     if (!TakeString(p, len, &at, &s.build) || !TakeString(p, len, &at, &s.platform) ||
         !TakeString(p, len, &at, &s.name) || !TakeString(p, len, &at, &s.peer) ||
@@ -876,6 +877,9 @@ void PutString(std::vector<uint8_t>& v, const std::string& str)
 
 const Recorder::Side* Recorder::WatchedSide(const Match& m, int* which)
 {
+    // A match either player keeps from viewers ([netplay] live_cast = off) is never listed or sent.
+    if ((m.side[0].present && m.side[0].noWatch) || (m.side[1].present && m.side[1].noWatch))
+        return nullptr;
     for (int i = 0; i < 2; i++)                     // the host's stream when it has one
         if (m.side[i].replay && !m.side[i].offsets.empty())
         {

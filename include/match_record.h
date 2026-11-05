@@ -31,6 +31,9 @@ typedef struct {
 
 /* [netplay] record, published by main.c. */
 void MatchRecord_SetConfigured(const char *spec);
+/* [netplay] live_cast: 1 (the default) lets LIVE CAST's viewers watch this player's matches on the
+ * recorder; 0 keeps them off its list (recording for desync checks goes on as before). */
+void MatchRecord_SetLiveCast(int32_t on);
 
 /* The next match was arranged by the matchmaker (its START), or not (the direct-IP menu,
  * a test's loopback pair). "server" records only matches the matchmaker arranged -- to that

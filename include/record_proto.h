@@ -42,7 +42,8 @@
  *  16  8  relay token, 0 when played peer to peer
  *  24  2  simulation width
  *  26  1  input delay
- *  27  1  0
+ *  27  1  flags: RECORD_HELLO_NO_WATCH (1) this player keeps the match from LIVE CAST's viewers
+ *         ([netplay] live_cast = off); 0 from a build before it
  *  28     strings, each a length byte then the bytes: build id, platform, this
  *         player's name, the other player's name, team 1, team 2
  *
@@ -152,6 +153,7 @@
 #define RECORD_MODE_FULL     1     /* ... and the match itself, as a .SRP */
 
 #define RECORD_HELLO_FIXED   28    /* before the strings */
+#define RECORD_HELLO_NO_WATCH 0x01 /* HELLO byte 27 */
 #define RECORD_BATCH_MAX     1024  /* frames per RECORD_FRAMES */
 
 static inline void Record_Put16(uint8_t *p, uint32_t v) { p[0] = (uint8_t)(v >> 8); p[1] = (uint8_t)v; }

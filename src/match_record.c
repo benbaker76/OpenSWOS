@@ -19,6 +19,10 @@
 static char s_configured[80];
 static int32_t s_arrangedByServer;
 
+/* [netplay] live_cast (LIVE CAST, src/live_cast.c): 0 keeps this player's matches from viewers. */
+static int32_t s_noWatch;
+void MatchRecord_SetLiveCast(int32_t on) { s_noWatch = !on; }
+
 void MatchRecord_SetConfigured(const char *spec)
 {
     snprintf(s_configured, sizeof s_configured, "%s", spec ? spec : "");
@@ -313,6 +317,7 @@ void MatchRecord_Begin(const MatchRecordInfo *info)
     Record_Put64(hello + 16, info->relayToken);
     Record_Put16(hello + 24, (uint32_t)info->simWidth);
     hello[26] = (uint8_t)info->delay;
+    hello[27] = s_noWatch ? RECORD_HELLO_NO_WATCH : 0;  /* ([netplay] live_cast = off) */
     n = RECORD_HELLO_FIXED;
     n += put_string(hello + n, Build_Id());
     n += put_string(hello + n, Build_Platform());

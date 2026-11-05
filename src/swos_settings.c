@@ -203,6 +203,11 @@ static int handler(void *user, const char *section,
                 opts->netplay_remember = b;
         } else if (eqi(name, "record"))
             snprintf(opts->record, sizeof opts->record, "%s", value);
+        else if (eqi(name, "live_cast")) {
+            int b;
+            if (parse_bool(value, &b))
+                opts->live_cast = b;
+        }
         else if (eqi(name, "reports")) {
             int b;
             if (parse_bool(value, &b))
@@ -543,6 +548,10 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; above, for the matches it arranges), a recorder of your own as \"host\" or\n"
         "; \"host:port\" (every match), or \"off\". Empty means the default.",
         opts->record };
+    SETTING(n) = (IniEntry){ "netplay", "live_cast",
+        "; live_cast: true | false -- let LIVE CAST's viewers watch your online matches on the\n"
+        "; recorder (false keeps them off its list; recording for desync checks goes on).",
+        opts->live_cast ? "true" : "false" };
     SETTING(n) = (IniEntry){ "netplay", "reports",
         "; reports: true | false -- after an online match, send both players' SWOS.log and\n"
         "; HOW WAS THE MATCH? to the other player and the server, zipped (a copy is kept in\n"

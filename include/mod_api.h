@@ -104,6 +104,9 @@ void    ModApi_MenuSelect(int32_t entry);       /* the cursor on it */
  * 10 red COMPUTER, 11 purple PLAYER-COACH, 13 blue COACH); whether it is disabled; and drawing it
  * again now (after a change while the menu is up). */
 int32_t ModApi_MenuCurrentEntry(void);
+/* An entry's image ("image" in the JSON, docs/MENUS.md §13) changed while the menu is up -- a
+ * path, NULL none; its place ("image_x" / "image_y") kept. */
+void    ModApi_SetMenuImage(int32_t entry, const char *path);
 void    ModApi_MenuEntryRect(int32_t entry, int32_t *x, int32_t *y, int32_t *w, int32_t *h);
 void    ModApi_SetMenuEntryRect(int32_t entry, int32_t x, int32_t y, int32_t w, int32_t h);
 void    ModApi_MenuNav4(int32_t entry, int32_t left, int32_t right, int32_t up, int32_t down);
@@ -191,6 +194,24 @@ typedef struct {
     void        (*matchPlayed)(const AccountResult *result);
 } ModOnlineProvider;
 int32_t ModApi_SetOnlineProvider(const char *slug, const ModOnlineProvider *provider);   /* (kept) */
+
+/* ---- LIVE CAST: the live online matches (src/live_cast.c; docs/NETPLAY.md §7) ----
+ * On the server matchmaking uses (the provider's, the player's typed one, the default). */
+typedef struct {
+    uint64_t id;                            /* for ModApi_LiveWatch */
+    char     players[2][24], teams[2][24];
+    uint32_t frames;                        /* recorded so far */
+} ModLiveMatch;
+/* The live matches (up to `cap`): how many, -1 when the server cannot be reached. Blocks up to
+ * ~2 s: show a "LOOKING..." line first. */
+int32_t ModApi_LiveList(ModLiveMatch *out, int32_t cap);
+/* Is anything live? 1 / 0, -1 not known: the last answer, never waiting -- asked again in the
+ * background at most every 20 s (a main-menu icon calls it each frame). */
+int32_t ModApi_LiveAny(void);
+/* Watch a match (0: the one recorded the longest) in the replay viewer, ~3 s behind the players,
+ * and return to the calling menu: 0 when the match ended, 1 the viewer left (ESC), -1 no such
+ * match or no server. */
+int32_t ModApi_LiveWatch(uint64_t id);
 
 /* ---- a match a mod plays (H2, H4) ---- */
 typedef enum { MODSIDE_CPU, MODSIDE_PLAYER1, MODSIDE_PLAYER2 } ModSide;

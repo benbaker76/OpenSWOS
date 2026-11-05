@@ -49,6 +49,7 @@ private:
         std::string address;
         std::string build, platform, name, peer, team1, team2;
         int gameplay = 0, mode = 0, delay = 0, simWidth = 0;
+        bool noWatch = false;       // LIVE CAST: its player keeps the match from viewers
         uint64_t relayToken = 0;
         std::vector<uint64_t> hashes;   // [frame]
         int outcome = -1;

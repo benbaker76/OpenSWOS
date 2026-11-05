@@ -137,6 +137,36 @@ static MenuExtras *current(void)
     return NULL;
 }
 
+/* An entry's image, changed while its menu is up (ModApi_SetMenuImage): loaded at its next draw. */
+void ModApi_SetMenuImage(int32_t entry, const char *path)
+{
+    MenuExtras *m;
+    extern uintptr_t _currentMenuPtr;
+    if (entry < 0 || entry >= kMaxEntries)
+        return;
+    m = current();
+    if (!m) {
+        if (s_count == kMaxMenus)
+            return;
+        m = &s_menus[s_count++];
+        memset(m, 0, sizeof *m);
+        m->menu = (const uint8_t *)_currentMenuPtr;
+        m->descEntry = m->tickerEntry = -1;
+        for (int32_t i = 0; i < kMaxEntries; i++)
+            m->entry[i].imageX = m->entry[i].imageY = -1;
+    }
+    Extra *e = &m->entry[entry];
+    if (e->imagePath && path && strcmp(e->imagePath, path) == 0)
+        return;
+    free(e->imagePath);
+    free(e->rgb);
+    free(e->pixels);
+    e->imagePath = path ? strdup(path) : NULL;
+    e->rgb = NULL;
+    e->pixels = NULL;
+    e->failed = 0;
+}
+
 /* The current menu's ticker box, -1 none (ModApi_MenuTickerEntry). */
 int32_t MenuExtras_TickerEntry(void)
 {

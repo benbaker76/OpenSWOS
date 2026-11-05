@@ -24,6 +24,7 @@
 #                                             # the server's fallback session (RELAYFB:,
 #                                             # p2p_link.c relay_fallback); BLOCK=join or host:
 #                                             # one side only, a link that works one way
+#   JOIN_INI='[netplay]\nlive_cast=false' ...  # lines for the joiner's SWOS.ini
 #   HOST_NAME=A JOIN_NAME=B ...               # the players' names (default RELAYHOST /
 #                                             # RELAYJOIN): a fork's test accounts
 #
@@ -147,6 +148,8 @@ NO_LOG="SWOS_NO_LOG=1"
 mkdir -p "$OUT/home-host/.swos" "$OUT/home-join/.swos"
 [ -n "${HOST_RES:-}" ] && printf '[video]\nresolution=%s\n' "$HOST_RES" > "$OUT/home-host/.swos/SWOS.ini"
 [ -n "${JOIN_RES:-}" ] && printf '[video]\nresolution=%s\n' "$JOIN_RES" > "$OUT/home-join/.swos/SWOS.ini"
+# JOIN_INI='[netplay]\nlive_cast=false': lines for the joiner's SWOS.ini (after the above)
+[ -n "${JOIN_INI:-}" ] && printf '%b\n' "$JOIN_INI" >> "$OUT/home-join/.swos/SWOS.ini"
 [ -n "$DESYNC_FRAME" ] && JOIN_ENV="${JOIN_ENV:-} SWOS_LIVE_DESYNC_FRAME=$DESYNC_FRAME"
 # BLOCK=both|host|join: those players let nothing in from the other, only from the server,
 # so the match must end up relayed through the fallback session however RELAY is set.

@@ -889,6 +889,15 @@ void ModMatch_SelfTest(void)
         ModSpeedrun_Test(atoi(how + 9));
         return;
     }
+    if (strcmp(how, "live") == 0) {           /* (LIVE CAST from a menu: src/live_cast.c) */
+        ModLiveMatch m[8];
+        const int32_t n = ModApi_LiveList(m, 8);
+        const int32_t rc = n > 0 ? ModApi_LiveWatch(m[0].id) : -1;
+        fprintf(stdout, "LIVE TEST: %d live, watched %016llx: rc %d (back in the menu)\n", (int)n,
+                n > 0 ? (unsigned long long)m[0].id : 0ull, (int)rc);
+        fflush(stdout);
+        exit(rc == 0 ? 0 : 1);
+    }
     if (strcmp(how, "entry") == 0) {
         /* (=entry: a MODES entry that plays it, for trying the hooks by hand) */
         ModApi_AddEntry(MODPOINT_MODES, "selftest", "mod match test", test_entry);
