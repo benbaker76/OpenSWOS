@@ -2629,10 +2629,8 @@ void BuildTransferPlayerMenuEntry(void *itemPtr, uint8_t *player,
         flags = (flags & 0xFFF0) | colorBits;
         a0->stringFlags = flags;
     }
-#ifdef SWOS_SDL_BUILD
     ModHooks_PlayerRowDrawn(2 /* MODROWS_MARKET */, s_rowTeam, s_rowSlot, s_rowIndex,
                             (int16_t)((MenuEntry *)itemPtr - _menuEntries), 12, pf);
-#endif
     s_rowTeam = 0xFFFF; s_rowSlot = 0xFF; s_rowIndex = -1;
 }
 
@@ -4200,10 +4198,8 @@ void Career_TransferPlayerAndAddReplacedToMarketPool(uint16_t sourceTeam, uint16
         Career_RemovePlayerFromTeamInternal(d6, bestOrdinal);
         AddCareerPoolPlayer(d6, bestOrdinal, (PlayerFile *)bestPlayer);
         _offerSwapSlotsUsed++;
-#ifdef SWOS_SDL_BUILD
         /* (sold: your player is now the buyer's, in the slot of the one he replaced) */
         ModHooks_PlayerMoved(_selTeamNumber, (uint8_t)savedOrd, d6, (uint8_t)bestOrdinal);
-#endif
 
         /* Remove from selected team roster */
         Career_RemovePlayerFromSelectedTeamRoster(savedOrd);
@@ -4420,10 +4416,8 @@ void Career_RemovePlayerAndAddAsTrialist(uint16_t sourceTeam, uint16_t playerOrd
     _careerNumPlayers++;
     SquadNumbers_Free(freeSlot);        /* (real squad numbers: his own, or a free one; teams.c) */
     Career_UpdatePlayerWeeklyWageCache(freeSlot);
-#ifdef SWOS_SDL_BUILD
     /* (bought: his club's player is now yours; his old slot gets a new player, below) */
     ModHooks_PlayerMoved(savedTeam, (uint8_t)savedOrd, _selTeamNumber, (uint8_t)freeSlot);
-#endif
 
     /* Convert player to trialist using source name */
     Career_ConvertPlayerToTrialistFromName(savedTeam, savedOrd);
@@ -4660,9 +4654,7 @@ void Career_GenerateTrialistForTeamPlayer(uint16_t playerIndex)
     /* Mark as trialist (bit 1) */
     pf->positionAndFace |= PF_LOAN;  /* bset #1 */
     pf->form = 0;
-#ifdef SWOS_SDL_BUILD
     ModHooks_PlayerCreated(d4, (uint8_t)d6, MODPLAYER_TRIALIST, pf);   /* (a career mod may change him) */
-#endif
 }
 
 /* ================================================================
@@ -4863,11 +4855,9 @@ void Career_ConvertPlayerToTrialistFromName(uint16_t sourceTeam, uint16_t player
 
     /* Init skill attributes */
     careerInitTrialistAttributes(pf, d5);
-#ifdef SWOS_SDL_BUILD
     /* (his name, nationality and skills made: a career mod may change him -- before another
      * club's copy goes into the career pool, so the pool has the changed one) */
     ModHooks_PlayerCreated(d5, (uint8_t)d6, d5 == _selTeamNumber ? MODPLAYER_TRIALIST : MODPLAYER_REPLACEMENT, pf);
-#endif
 
     if (d5 == _selTeamNumber) {
         /* Same team: set as goalkeeper sub and clear trialist/other flags */

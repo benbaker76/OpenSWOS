@@ -10,13 +10,9 @@
 #include "contest_log.h"    /* how long a slide leaves a player down (ContestLog_Down) */
 
 /* the mods' match events (include/mod_api.h ModEventKind): team, sprite */
-#ifdef SWOS_SDL_BUILD
 extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);   /* src/mod_match.c */
 extern int32_t ModMatch_PlayerIndex(const Sprite *s);
 #define MOD_EVENT(kind, team, sprite) ModMatch_Event((kind), (team)->teamNumber, ModMatch_PlayerIndex(sprite), 0)
-#else
-#define MOD_EVENT(kind, team, sprite) ((void)0)
-#endif
 
 
 extern int16_t  _gsPlayerDownTimer;   /* Amiga 50 / DOS 55 — dos_gameplay.c */
@@ -213,13 +209,11 @@ PlayerTackled(Sprite *player, TeamGeneralInfo *team)
     int16_t severity;
     int16_t i;
 
-#ifdef SWOS_SDL_BUILD
     {   /* a mod's match that injures nobody (mod_match.c): no roll taken */
         extern int32_t ModMatch_NoInjuries(void);
         if (ModMatch_NoInjuries())
             goto set_tackled;
     }
-#endif
     /* Training game: 25% chance of any injury processing */
     if (_trainingGame != 0) {
         roll = Rand();
@@ -581,13 +575,11 @@ PlayerTacklingTestFoul(Sprite *player, TeamGeneralInfo *team)
     /* Check if cards are allowed */
     if (_cardsDisallowed != 0 || _trainingGame != 0)
         goto foul_no_card;
-#ifdef SWOS_SDL_BUILD
     {   /* a mod's match where every carded foul is a red (mod_match.c, G9) */
         extern int32_t ModMatch_StraightReds(void);
         if (ModMatch_StraightReds())
             goto try_red;
     }
-#endif
 
     /* Discipline zone check: victim inside main playing area? */
     {
@@ -919,13 +911,11 @@ apply_break:
 void __attribute__((used, externally_visible))
 PlayerBeginTackling(int16_t pressedDir, Sprite *player, TeamGeneralInfo *team)
 {
-#ifdef SWOS_SDL_BUILD
     {   /* a mod's match with no tackles (mod_match.c, G9) */
         extern int32_t ModMatch_NoTackles(void);
         if (ModMatch_NoTackles())
             return;
     }
-#endif
     player->tackleState = 0;
     team->controlledPlDirection = pressedDir;
     player->direction = pressedDir;

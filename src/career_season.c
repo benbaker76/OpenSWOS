@@ -762,7 +762,6 @@ extern uint8_t _currentCompetitionIndex;
 /* Forward declaration for static function defined in Chunk 186 below */
 static void processPrimaryCompetitionForNextSeason(uint8_t *competition);
 
-#ifdef SWOS_SDL_BUILD
 /* A competition of the season end has been played (interactively or auto-advanced): its winner
  * to the career mods (ModHooks_CompetitionFinished; benefactorr's Career+, PAST WINNERS). The
  * winner is the slot's result (_diyCompetitionStart), and for a cup whose result was copied back
@@ -779,9 +778,6 @@ static void careerCompetitionFinished(const uint8_t *record, uint8_t kind, uint8
         ModHooks_CompetitionFinished(_currentSeasonShowing, comp_id(record), kind, division, winner);
 }
 #define CAREER_COMPETITION_FINISHED(record, kind, division) careerCompetitionFinished((record), (kind), (division))
-#else
-#define CAREER_COMPETITION_FINISHED(record, kind, division) ((void)0)
-#endif
 
 /* Career_ProcessSecondaryCompetitionForNextSeason (SWOS2.s line 31973)
  * Process secondary competition for next season: if active, edit interactively;
@@ -1755,7 +1751,6 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
     Career_UpdateEuroCupCompetitionSlot();
     Career_UpdateCupWinnersCupCompetitionSlot();
     Career_UpdateUefaCupCompetitionSlot();
-#ifdef SWOS_SDL_BUILD
     {   /* the European holders, before the next season's draw changes the slots (career mods) */
         extern uint16_t _euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId, _uefaCupTitleHolderTeamId;
         extern uint16_t _currentSeasonShowing;
@@ -1769,7 +1764,6 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
                 ModHooks_CompetitionFinished(_currentSeasonShowing, euro[k].id, MODCOMP_CONTINENTAL, 0,
                                              euro[k].holder);
     }
-#endif
     Career_UpdateCopaLibertadoresCompetitionSlot();   /* Inc3b-part-2: auto-advance Copa */
 
     _careerFileBuffer = 0;

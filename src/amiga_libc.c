@@ -2,7 +2,7 @@
  * amiga_libc.c -- the C library the Amiga build lacks, for the shared code that runs there too
  * (include/amiga_libc: the headers; -isystem in Makefile.amiga only). SDL builds use the host's.
  *
- * What is here is what the mod API and the built-in mods use (docs/MODS.md, "Mod code on the Amiga"): formatting into
+ * What is here is what the mod API and the built-in mods use (docs/MODS.md §30): formatting into
  * a buffer (no floating point: none of that code prints one), the heap over swos_io_alloc, the
  * string calls, strtol, qsort. strlen/strcmp/strncmp/memcmp/atoi stay in src/swos_io.c and
  * memcpy/memset/memmove in src/main.c, where they always were.
@@ -167,8 +167,10 @@ FILE *const stderr = &s_logFile;
 FILE *const stdout = &s_logFile;
 
 #define AMIGA_LOG_SIZE 4096
-__attribute__((used)) char _gAmigaLog[AMIGA_LOG_SIZE];
-__attribute__((used)) uint32_t _gAmigaLogPos;     /* (total written; the ring's next byte is % size) */
+/* (in .data, not .bss: the harness's gdb relocates every section by the code's offset, which is
+ *  right for the data hunk and wrong for the BSS, so a BSS ring could not be read there) */
+__attribute__((used, section(".data"))) char _gAmigaLog[AMIGA_LOG_SIZE];
+__attribute__((used, section(".data"))) uint32_t _gAmigaLogPos;   /* (total written; next byte is % size) */
 
 int fputs(const char *s, FILE *f)
 {
@@ -179,6 +181,17 @@ int fputs(const char *s, FILE *f)
 }
 
 int puts(const char *s) { fputs(s, stdout); return fputs("\n", stdout); }
+/* (GCC turns a printf with nothing to format into these) */
+int fputc(int c, FILE *f) { (void)f; _gAmigaLog[_gAmigaLogPos++ % AMIGA_LOG_SIZE] = (char)c; return c; }
+int putc(int c, FILE *f) { return fputc(c, f); }
+int putchar(int c) { return fputc(c, stdout); }
+size_t fwrite(const void *p, size_t size, size_t n, FILE *f)
+{
+    const char *s = (const char *)p;
+    for (size_t i = 0; i < size * n; i++)
+        fputc(s[i], f);
+    return n;
+}
 int fflush(FILE *f) { (void)f; return 0; }
 
 int vfprintf(FILE *f, const char *fmt, va_list ap)

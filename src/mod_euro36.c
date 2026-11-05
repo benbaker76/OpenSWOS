@@ -19,7 +19,6 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
 
 #include <stdio.h>
 #include <string.h>
@@ -75,4 +74,3 @@ const ModDef ModDef_euro36 = {
     .init = euro36_init,
 };
 
-#endif /* SWOS_SDL_BUILD */

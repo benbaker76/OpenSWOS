@@ -3083,11 +3083,9 @@ static uint16_t groupedLeagueRows(const LeagueGroups *lg, uint8_t *compEntry,
     return rows;
 }
 
-#ifdef SWOS_SDL_BUILD
 extern const char *ModComps_RowLabel(void);     /* (src/mod_comps.c) */
 extern int32_t     ModComps_Choose(void);
 static uint8_t     k_modCompsMarker;
-#endif
 
 __attribute__((used, externally_visible))
 void SelectTeamsFinalMenu(uint16_t mode)
@@ -3208,7 +3206,6 @@ loc_E012:
     leagueNumsOut = _leagueNumbersTable;
     d1 = 0;
     a5 = compList;
-#ifdef SWOS_SDL_BUILD
     /* Competitions from mods (src/mod_comps.c, MODPOINT_COMPETITIONS): one row above WORLD CUP
      * in PRESET COMPETITION's world list. It is no competition: its slot in leaguesPtrTable
      * holds a marker, which the selection below catches before anything reads it as one. */
@@ -3218,7 +3215,6 @@ loc_E012:
         *leagueNumsOut++ = 0xFFFF;
         d1++;
     }
-#endif
 
     /* loc_13E086: iterate through competition entries */
 loc_E086:
@@ -3477,7 +3473,6 @@ loc_E2D0:
     if (_viewSelectedTeams != 0)
         goto loc_E73A;
 
-#ifdef SWOS_SDL_BUILD
     /* The mods' competitions row: their screens; leave as if backed out when one is to start
      * (PresetCompetitionMenu starts it), else back to the world list. */
     if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
@@ -3486,7 +3481,6 @@ loc_E2D0:
             goto exit_clear;
         goto loc_E012;
     }
-#endif
 
     /* Check selectedTeamIndex */
     d7 = (uint16_t)_selectedTeamIndex;

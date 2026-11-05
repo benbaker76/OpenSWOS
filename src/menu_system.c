@@ -1657,8 +1657,8 @@ void DrawMenu(void)
 
 #ifdef SWOS_SDL_BUILD
     { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }       /* (a JSON menu's images) */
-    { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
 #endif
+    { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
     WaitForVSync();
     BlitterCopyOverlayToScreen();
 }
@@ -1923,8 +1923,8 @@ void MenuProc(void)
             DrawSelectedMenuItemFrame();
 #ifdef SWOS_SDL_BUILD
             { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }       /* (its images, every frame) */
-            { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
 #endif
+            { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
             WaitForVSync();
         }
 

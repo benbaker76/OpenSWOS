@@ -38,11 +38,11 @@ extern const ModDef ModDef_euro36;      /* src/mod_euro36.c */
 const ModDef *const g_builtinMods[] = {
     MOD_SDL(ModDef_weather)
     MOD_SDL(ModDef_hair)
-    MOD_SDL(ModDef_practice)
-    MOD_SDL(ModDef_speedrun)
+    MOD_AMIGA(ModDef_practice)
+    MOD_AMIGA(ModDef_speedrun)
     MOD_SDL(ModDef_challenges)
     MOD_SDL(ModDef_classics)
-    MOD_SDL(ModDef_euro36)
+    MOD_AMIGA(ModDef_euro36)
 #ifdef FORK_MODS
     FORK_MOD_LIST                       /* "&ModDef_<slug>," a fork's mods */
 #endif

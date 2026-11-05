@@ -25,6 +25,10 @@ int fprintf(FILE *f, const char *fmt, ...) __attribute__((format(printf, 2, 3)))
 int vfprintf(FILE *f, const char *fmt, va_list ap);
 int printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 int fputs(const char *s, FILE *f);
+int fputc(int c, FILE *f);
+int putc(int c, FILE *f);
+int putchar(int c);
+size_t fwrite(const void *p, size_t size, size_t n, FILE *f);
 int puts(const char *s);
 int fflush(FILE *f);
 

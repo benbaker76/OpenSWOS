@@ -715,7 +715,6 @@ not_in_penalty:
         }
 
     shot_at_goal:
-#ifdef SWOS_SDL_BUILD
         {
             /* A mod's match whose players throw their own keeper at a penalty (mod_match.c,
              * H4; the5ar): a held direction dives him at once, at full speed, at the height
@@ -737,7 +736,6 @@ not_in_penalty:
                 goto clamp_keeper_y_min;
             }
         }
-#endif
         if (ball->z.s.i > 16)
             goto save_not_attempted_set_run_speed;
 

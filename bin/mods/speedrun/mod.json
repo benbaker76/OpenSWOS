@@ -6,7 +6,8 @@
  "author": "OpenSWOS (SWOS 2020's speedruns)",
  "about": "Race the clock: a goal, a header, a tackle, a card, a win -- your best times kept.",
  "targets": [
-  "sdl"
+  "sdl",
+  "amiga"
  ],
  "changes": "modes",
  "default": true

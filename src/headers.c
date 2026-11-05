@@ -223,9 +223,7 @@ apply_dir:
     player->heading = 1;
 
     DOS_SOUND(DOS_EV_HEADER, team->playerNumber != 0);
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_Header(const Sprite *s); ModMatch_Header(player); }   /* (a goal's kind: mod_match.c) */
-#endif
     PlayKickSample();
     ResetBothTeamSpinTimers();
 }
@@ -382,9 +380,7 @@ apply_hit:
     player->heading = 1;
 
     DOS_SOUND(DOS_EV_HEADER, team->playerNumber != 0);
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_Header(const Sprite *s); ModMatch_Header(player); }   /* (a goal's kind: mod_match.c) */
-#endif
     PlayKickSample();
     ResetBothTeamSpinTimers();
 }

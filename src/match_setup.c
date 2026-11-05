@@ -422,9 +422,7 @@ void InitPlayersBeforeEnteringPitch(void)
             spritesTableA = _team2SpritesTable;
         }
     }
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_PlayersEntered(void); ModMatch_PlayersEntered(); }   /* a mod's lines left out */
-#endif
 }
 
 /* ================================================================
@@ -482,10 +480,8 @@ void StartingMatch(void)
 __attribute__((used, externally_visible))
 void SetCameraMovingToShowerState(void)
 {
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
       ModMatch_Event(10 /* MODEVENT_SECOND_HALF */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
-#endif
     _halfNumber = 2;
     /* Invert teamPlayingUp: neg + add 3 (1->2, 2->1) */
     _teamPlayingUp = (uint16_t)(3 - _teamPlayingUp);
@@ -521,10 +517,8 @@ void SetCameraMovingToShowerState(void)
 __attribute__((used, externally_visible))
 void EndFirstHalf(void)
 {
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
       ModMatch_Event(9 /* MODEVENT_HALF_TIME */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
-#endif
     setBreakState(ST_FIRST_HALF_ENDED, ST_STOPPED, 100);
     ResetBothTeamsPlayerPassingKicking();
     clearCameraVelocity();
@@ -665,10 +659,8 @@ void GameOver(void)
 __attribute__((used, externally_visible))
 void StartFirstExtraTime(void)
 {
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
       ModMatch_Event(12 /* MODEVENT_EXTRA_TIME */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
-#endif
     _halfNumber = 1;
 
     /* Random teamPlayingUp and teamStarting */
@@ -734,7 +726,6 @@ void EndFirstExtraTime(void)
 __attribute__((used, externally_visible))
 void PrepareForInitialKick(void)
 {
-#ifdef SWOS_SDL_BUILD
     {
         /* A mod's match whose team takes every kick-off (mod_match.c, H1). */
         extern int16_t ModMatch_KickOffTeam(void);
@@ -742,7 +733,6 @@ void PrepareForInitialKick(void)
         if (forced)
             _teamStarting = (uint16_t)forced;
     }
-#endif
     SetBallPosition(336, 449);
 
     TeamGeneralInfo *kickoffTeam = &_topTeamData;
@@ -768,9 +758,7 @@ void PrepareForInitialKick(void)
     _stoppageTimerActive = 0;
     StopAllPlayers();
     clearCameraVelocity();
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_InitialKick(void); ModMatch_InitialKick(); }   /* a mod's match's own break (H6) */
-#endif
 }
 
 /* ================================================================
@@ -779,10 +767,8 @@ void PrepareForInitialKick(void)
 __attribute__((used, externally_visible))
 void StartPenalties(void)
 {
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
       ModMatch_Event(13 /* MODEVENT_SHOOTOUT */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
-#endif
     _penaltiesState = 0xFFFF;
     _savedTeam1Goals = _statsTeam1Goals;
     _savedTeam2Goals = _statsTeam2Goals;
@@ -946,9 +932,7 @@ void InitGameRestoreTeams(void)
     /* Random teamPlayingUp and teamStarting */
     _teamPlayingUp = (uint16_t)((Rand() & 1) + 1);
     _teamStarting = (uint16_t)((Rand() & 1) + 1);
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_Sides(void); ModMatch_Sides(); }   /* a mod's match's own sides (mod_match.c) */
-#endif
 
     /* Set time delta from game length table */
     _timeDelta = *(uint16_t *)((uint8_t *)_gameLenSecondsTable + (_gameLengthInGame << 1));
@@ -1021,9 +1005,7 @@ apply_palette_and_pitch:
     ResetGoalAttempt();
     InitAnimatedPatterns();
     StartingMatch();
-#ifdef SWOS_SDL_BUILD
     { extern void ModMatch_KickOff(void); ModMatch_KickOff(); }  /* a mod's starting score/clock; the mods told */
-#endif
     PlaySample1IfNotTraining();
 
     if (_playGame != 0) {

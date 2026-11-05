@@ -1,6 +1,6 @@
 /*
  * mod_practice.c -- the practice mod (canonical, bin/mods/practice; docs/MODS.md §18): SWOS 2020's
- * PRACTICE (its practice.mnu, game.cpp ChallengeGame), ported onto the mod API. SDL builds.
+ * PRACTICE (its practice.mnu, game.cpp ChallengeGame), ported onto the mod API. Both targets.
  *
  * MODES -> PRACTICE opens its menu (bin/mods/practice/data_json/menus/practice/practiceMenu.json,
  * its handlers practice.<name>):
@@ -22,7 +22,6 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -415,7 +414,9 @@ static void shooting_test_menu(void)
     fprintf(stdout, "SHOOTING TEST %s: %d-%d in %u frames\n",
             s_shootFailed || s_shootFrames < 6000 ? "FAIL" : "PASS", (int)r.goals[0], (int)r.goals[1],
             (unsigned)r.frames);
+#ifdef SWOS_SDL_BUILD   /* (a test's, SWOS_SHOOTING_TEST: the Amiga has no environment to arm it) */
     exit(s_shootFailed || s_shootFrames < 6000);
+#endif
 }
 
 static void practice_exit(void) { SetExitMenuFlag(); }
@@ -454,4 +455,3 @@ const ModDef ModDef_practice = {
     .matchEvent = shooting_test_event,
 };
 
-#endif /* SWOS_SDL_BUILD */

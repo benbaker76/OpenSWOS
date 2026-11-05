@@ -1,6 +1,6 @@
 /*
  * mod_api.h -- what a built-in mod may ask the game (src/mod_api.c; docs/MODS.md §16). Both targets:
- * the Amiga builds the same API (docs/MODS.md, "Mod code on the Amiga"), where a call the Amiga
+ * the Amiga builds the same API (docs/MODS.md §30), where a call the Amiga
  * cannot answer says so (its comment) and frameDrawn never runs (it has no renderer).
  *
  * A mod's code (src/mod_<slug>.c) runs at the hooks of include/mod_hooks.h, and asks the game what

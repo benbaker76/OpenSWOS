@@ -6,7 +6,8 @@
  "author": "petarku (the5ar)",
  "about": "In 96/97, Europe's three cups as today's 36-club league phases: the Champions League, the Europa League and the Conference League, in seasons and careers. Its clubs are petarku's picks; the UEFA coefficients a career draws on come from the clubs' strength, not real ones.",
  "targets": [
-  "sdl"
+  "sdl",
+  "amiga"
  ],
  "changes": "career",
  "default": false

@@ -833,6 +833,7 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
             return;
         }
     }
+#endif
     {
         /* A mod's match (include/mod_api.h ModApi_PlayMatch): its sides, no prompts. */
         extern int32_t ModMatch_SetupPlayers(TeamFileEx *t1, TeamFileEx *t2);
@@ -842,6 +843,7 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
             return;
         }
     }
+#ifdef SWOS_SDL_BUILD
     {
         extern int _gArcadeMode;
         if (_gArcadeMode) {
@@ -1002,16 +1004,18 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
     if (_trainingGame != 0) {
         StringCopy(_aTraining, _gameName);
     } else {
+        extern const char *ModMatch_Name(void);  /* a mod's match's own (mod_match.c) */
 #ifdef SWOS_SDL_BUILD
         extern int _gArcadeMode;
         extern uint8_t _aArcadeMatchName[];   /* "GOLDEN GOAL" (arcade.c) */
-        extern const char *ModMatch_Name(void);  /* a mod's match's own (mod_match.c) */
+#endif
         if (ModMatch_Name())
             StringCopy((uint8_t *)ModMatch_Name(), _gameName);
+#ifdef SWOS_SDL_BUILD
         else if (_gArcadeMode)
             StringCopy(_aArcadeMatchName, _gameName);
-        else
 #endif
+        else
         StringCopy(_aFriendly_1, _gameName);
     }
     _gameRound = 0;
@@ -1032,10 +1036,9 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
         /* An online match's cup rules (the lobby's), put back after the clear. */
         extern void NetplaySetup_TakeTieRules(void);
         NetplaySetup_TakeTieRules();
-        extern void ModMatch_TieRules(void);    /* a mod's match's (mod_match.c) */
-        ModMatch_TieRules();
     }
 #endif
+    { extern void ModMatch_TieRules(void); ModMatch_TieRules(); }   /* a mod's match's (mod_match.c) */
 
     /* d0=1, d1=minSubs, d2=maxSubs, d3=0, d7=-1, a1=team1, a2=team2 */
     InitializeInGameTeamsAndStartGame(1, (int16_t)_minSubstitutes,
@@ -1277,12 +1280,8 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
      * events / audio. */
     {
         int16_t i;
-#ifdef SWOS_SDL_BUILD
         extern int32_t ModMatch_SkipStadium(void);  /* a mod's match that wants none (mod_match.c) */
         for (i = ModMatch_SkipStadium() ? -1 : 0x95; i >= 0; i--) {
-#else
-        for (i = 0x95; i >= 0; i--) {
-#endif
             WaitForVSync();
         }
     }

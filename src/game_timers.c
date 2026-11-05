@@ -303,13 +303,11 @@ static void __attribute__((noinline)) handleBreakCameraMode(TeamGeneralInfo *a6)
         if (_gameState == ST_KEEPER_HOLDS_BALL)
             break;
         _stoppageEventTimer = (uint16_t)_gsStoppageEventReload;   /* GS_GK_55_50 */
-#ifdef SWOS_SDL_BUILD
         {   /* a mod's match with quick restarts (mod_match.c, G9) */
             extern int32_t ModMatch_QuickRestarts(void);
             if (ModMatch_QuickRestarts())
                 _stoppageEventTimer = 1;
         }
-#endif
         if (_goalCameraMode != 0)
             _stoppageEventTimer = 75;
         break;
@@ -500,12 +498,8 @@ void UpdateGameTimersAndCameraBreakMode(void)
         _stoppageTimerActive += d0;
         a6 = _lastTeamPlayedBeforeBreak;
         if (a6->playerNumber == 0) {
-#ifdef SWOS_SDL_BUILD
             extern int32_t ModMatch_QuickRestarts(void);    /* (a mod's match, G9: no wait) */
-            if (_stoppageTimerActive >= (ModMatch_QuickRestarts() ? 0 : _gsKickoffStoppage)) {
-#else
-            if (_stoppageTimerActive >= _gsKickoffStoppage) {   /* GS_825_750 */
-#endif
+            if (_stoppageTimerActive >= (ModMatch_QuickRestarts() ? 0 : _gsKickoffStoppage)) {   /* GS_825_750 */
                 PrepareForInitialKick();
                 _initialKickWriteOnlyTicks += 1;
             }
@@ -647,7 +641,6 @@ static void __attribute__((noinline)) handleGoalScored(TeamGeneralInfo *teamData
         TeamGeneralInfo *opTeam = teamData->opponentsTeam;
         int16_t camDir;
         uint8_t turnFlags;
-#ifdef SWOS_SDL_BUILD
         {
             /* A mod's match whose team takes every kick-off (mod_match.c, H1): the restart
              * after a goal too, not the side that conceded. */
@@ -656,7 +649,6 @@ static void __attribute__((noinline)) handleGoalScored(TeamGeneralInfo *teamData
             if (forced)
                 opTeam = _topTeamData.teamNumber == forced ? &_topTeamData : &_bottomTeamData;
         }
-#endif
 
         if (opTeam == &_topTeamData) {
             camDir = 4;

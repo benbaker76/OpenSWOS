@@ -229,7 +229,11 @@ static void unported_handler(void)
  * logged once however many entries name it (a list row repeats one handler). */
 static int first_unported_sighting(const char *name)
 {
+#ifdef SWOS_SDL_BUILD
     static char seen[256][80];      /* mj_sym's name buffer is 80 */
+#else
+    static char seen[16][80];       /* (the Amiga: a mod's menu names only its own handlers) */
+#endif
     static int numSeen;
     for (int i = 0; i < numSeen; i++)
         if (strcmp(seen[i], name) == 0)
@@ -822,22 +826,38 @@ uint8_t *MenuJson_Load(const char *name)
         return NULL;
     }
 
+#ifdef SWOS_SDL_BUILD
     static uint8_t packed[32768];
+    const int packedCap = (int)sizeof packed;
+#else
+    /* (the Amiga: a scratch the size of the JSON, which is always longer than what it packs to --
+     *  a coordinate is a word there, a dozen characters here -- rather than 32 KB kept for ever) */
+    const int packedCap = jl + 64;
+    uint8_t *packed = (uint8_t *)malloc((size_t)packedCap);
+    if (!packed) {
+        free(j);
+        fprintf(stderr, "[menu-json] Load %s: out of memory\n", name);
+        return NULL;
+    }
+#endif
     s_dynamicBuild = 1;
-    int len = MenuJson_BuildPacked((const char *)j, jl, packed, (int)sizeof packed);
+    int len = MenuJson_BuildPacked((const char *)j, jl, packed, packedCap);
     s_dynamicBuild = 0;
     free(j);
+    uint8_t *copy = len < 0 ? NULL : (uint8_t *)malloc((size_t)len);
+    if (copy)
+        memcpy(copy, packed, (size_t)len);
+#ifndef SWOS_SDL_BUILD
+    free(packed);
+#endif
     if (len < 0) {
         fprintf(stderr, "[menu-json] Load %s: build failed (overflow/parse)\n", name);
         return NULL;
     }
-
-    uint8_t *copy = (uint8_t *)malloc((size_t)len);
     if (!copy) {
         fprintf(stderr, "[menu-json] Load %s: out of memory (%d B)\n", name, len);
         return NULL;
     }
-    memcpy(copy, packed, (size_t)len);
 #ifdef SWOS_SDL_BUILD
     { extern void MenuExtras_Commit(const uint8_t *menu); MenuExtras_Commit(copy); }
 #endif

@@ -172,7 +172,9 @@ expansion, or an emulator set up as one, is the likely floor, and the doc will s
    replaces a file, not memory: files already load on demand into their own buffers.
 2. **Registries instead of edits.** A mod adds menus and rows at named insertion points, strings
    with their translations, and settings with their OPTIONS rows. On the Amiga a mod ships its
-   menus already packed (the binary the JSON loader makes today), never as JSON.
+   menus already packed (the binary the JSON loader makes today), never as JSON. (2026-11-05: the
+   Amiga builds them from the JSON at their first show instead, about a second for a screen --
+   §30. Packing them is for when that is too slow.)
 3. **The ruleset.** One structure the match reads instead of constants: players per side, the
    pitch's size and walls, match length, card and substitution rules, physics parameters, the
    tactics set. Much of Indoor becomes a ruleset plus art; what is left becomes generic features
@@ -872,3 +874,64 @@ players, VIEW SQUAD and a national squad. `row` says the team, the player's slot
 the screen knows them: every one of these does except a market row with no player behind it) and
 the row; the hook rewrites cells with ModApi_MenuText (text it keeps) and may show, hide or move
 them. Display only: it changes no game state (Career+'s ratings, totals, ages and nationalities).
+
+---
+
+## 30. Mod code on the Amiga (2026-11-05)
+
+The owner: "we must add mod support for the Amiga after Career+". The built-in mods' code now
+builds into the Amiga binary too: one mod API, one set of hooks, the same `src/mod_<slug>.c` on
+both targets. Run-time loading of mod code (LoadSeg, a script language) is still not planned (§6).
+
+**What makes it build there:**
+- **A C library.** The m68k toolchain has none (its only header is a three-line string.h).
+  `include/amiga_libc/` (stdio, stdlib, string, ctype, stdint) is on `Makefile.amiga`'s
+  `-isystem` path only, and `src/amiga_libc.c` is behind it: `snprintf` with flags, width and
+  precision (no floating point -- none of the mods print one; 64-bit decimal without libgcc),
+  `malloc`/`free` over `swos_io_alloc` (Exec, or WHDLoad's heap), `strtol`, `qsort`, the `str*`
+  calls, and `getenv` = NULL. `fprintf`/`printf` go to `_gAmigaLog`, a 4 KB ring in `.data` that
+  the harness reads (`_gAmigaLogPos` bytes written so far). It has no file calls on purpose: a
+  mod's file goes through swos_io/resload, so the mod overlay and WHDLoad apply.
+- **The JSON menu loader** (`src/menu_load_json.c`). A mod's screens are JSON menus, built at
+  their first show and then kept. The writer lays words down in host order. The game's own menus
+  stay compiled on the Amiga. A mod menu there resolves its own handlers (`ModApi_RegisterHandlers`)
+  and two of the game's symbols, `SetExitMenuFlag` and `_aExit` (the only two any mod menu names;
+  add one to `menu_resolve` in that file when a mod needs it). **It costs time:** TEAM TRAINING's
+  7.5 KB of JSON took 52 VBlanks (about a second) to build on an emulated A1200. That happens once
+  per menu per run, which is why §8.2's packed binary menus are not needed yet.
+- **The hook sites** in the game are no longer SDL-only, except where the hook itself is: the
+  renderer's `frameDrawn` (no renderer: `SDL_Renderer` is an opaque type, so a `ModDef` is the same
+  struct on both targets), the replay viewer's `replayFrameBegin`/`replaySprite` (no `.SRP`),
+  LIVE CAST, the online provider, the menu extras and the OPTIONS -> MODS screen.
+- **Mods start** in `mainC` (src/SWOS.c) before the front end, after resload has read `data/MODS`.
+
+**What the API answers differently there** (include/mod_api.h says so at each call):
+
+| | the Amiga |
+|---|---|
+| `ModApi_Ticks` | the VBlank count x 20 ms |
+| settings (`ModApi_Setting`, `SetSetting`) | no SWOS.ini: a mod's defaults, and what it sets is kept for the run |
+| save files (`ModApi_SaveFile`/`LoadFile`) | `save/<slug>_<name>`: resload makes no folders, and FFS names are 30 characters |
+| `ModApi_ListFiles` | `Resload_ListDir`: the mods' folders first |
+| competitions | JSON `.DIY` only (no DOS `.DIY`); no assets folder, no whole-match replay |
+| teams | no team database, so no uuids (`ModApi_TeamByUuid` is 0); `ModApi_TeamPlayer` reads the team file |
+| team packs, netplay, the ticker row | none (0, `ModMatch_Quiet` 0, -1) |
+| `ModApi_PaletteColour`/`NearestColour` | not yet: they come with the first mod that draws there |
+
+**Which mods:** `src/mods_builtin.c` lists a mod with `MOD_AMIGA` once it builds and plays there,
+and `MOD_SDL` until then; its `mod.json` `"targets"` then includes `"amiga"`, which OpenSWOS Setup
+reads to copy it into an Amiga drawer and list it in `data/MODS`. Ported: **practice**, **euro36**,
+**speedrun**. Not yet: challenges and classics (team uuids, file scans), hair (the palette calls),
+weather (its rain draws through the renderer). The drawer carries
+`data_json/menus/openswos/` (the MODES screen's menu: `build_dist.sh`, and the setup's WHDLoad
+package).
+
+**Memory:** against the build before it, 54 KB more code and 30 KB more BSS (the loader's scratch
+is allocated per menu on the Amiga; its tables are cut down there).
+
+Checked (FS-UAE, A1200, `data/MODS` = practice): MODES on the main menu, its screen, PRACTICE's
+menu from the mod's folder, a DEMO GAME (a mod's match, CPU against CPU) played to its end and
+back to the practice menu, and TEAM TRAINING's menu. On SDL the mod tests are unchanged
+(`SWOS_MOD_MATCH_TEST=1`, `shootout`, `speedrun:0/3`, `SWOS_SHOOTING_TEST`), and so are the golden
+careers and `check_netplay_compat.sh`.
+

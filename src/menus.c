@@ -1855,10 +1855,8 @@ void SquadAfterDrawCommon(void *entryPtr)
         e->y = yPos;
     }
 
-#ifdef SWOS_SDL_BUILD
     ModHooks_PlayerRowDrawn(0 /* MODROWS_SQUAD */, PACK_BE_U16(tf->countryNumber, tf->teamOrdinal),
                             (uint8_t)d4_fileIdx, (int16_t)d7, 46, 18, pf);
-#endif
     /* Draw 18 entries starting from entry 46 */
     DrawMultipleItems(18, &_menuEntries[46]);
 }
@@ -2511,10 +2509,8 @@ __attribute__((used, externally_visible))
 __attribute__((used, externally_visible))
 void ModesMenuSelected(void)
 {
-#ifdef SWOS_SDL_BUILD
     extern void ModEntries_Show(int32_t point);
     ModEntries_Show(0 /* MODPOINT_MODES */);
-#endif
     CommonMenuExit();
 }
 
@@ -2714,17 +2710,13 @@ void CommonMenuExit(void)
     _menuEntries[15].isInvisible = 1;
 #endif
     /* MODES (entry 16): the mods' entries (include/mod_api.h MODPOINT_MODES) -- shown only
-     * while a mod that is on has one; never on the Amiga (no built-in mods there). */
-#ifdef SWOS_SDL_BUILD
+     * while a mod that is on has one. */
     {
         extern int32_t ModEntries_Count(int32_t point);
         const int32_t modes = ModEntries_Count(0 /* MODPOINT_MODES */) > 0;
         _menuEntries[16].isInvisible = !modes;
         _menuEntries[15].upEntry = (int8_t)(modes ? 16 : 13);   /* CREDITS up: MODES or LOAD OLD */
     }
-#else
-    _menuEntries[16].isInvisible = 1;
-#endif
 #ifndef SWOS_NETPLAY
     /* OpenSWOS's MULTIPLAYER button (entry 14) plays over the network, so it is only
      * in a build that has the netplay library (make NETPLAY=1, docs/NETPLAY.md): never
@@ -3946,7 +3938,6 @@ void PresetCompetitionMenu(void)
     }
 
     SelectTeamsForPresetCompetition();
-#ifdef SWOS_SDL_BUILD
     /* A mod's competition, loaded from the row above WORLD CUP (src/mod_comps.c): started as
      * a loaded one is (LoadOldCompetitionMenu). */
     {
@@ -3957,7 +3948,6 @@ void PresetCompetitionMenu(void)
             return;
         }
     }
-#endif
     if (_chooseTeamsResult == 0) {
         CommonMenuExit();
         return;
@@ -6695,38 +6685,28 @@ void Career_RebuildInternationalPlayerSelectionMasks(void)
 }
 
 /* ---- the career screens' rows for the mods (include/menus.h, docs/MODS.md §28) ---- */
-#ifdef SWOS_SDL_BUILD
 #include "mod_api.h"
 extern const char *ModEntries_RowLabel(ModPoint point);     /* (src/mod_entries.c) */
 extern void ModEntries_RowChosen(ModPoint point);
 static const ModPoint k_modRowPoint[4] = {
     MODPOINT_BUY_PLAYER, MODPOINT_TRANSFER_MARKET, MODPOINT_NATIONAL_ADD_PLAYER, MODPOINT_COMPETITION_STATS,
 };
-#endif
 
 int32_t ModRow_Show(uint16_t entry, int32_t row)
 {
-#ifdef SWOS_SDL_BUILD
     const char *label = ModEntries_RowLabel(k_modRowPoint[row]);
     if (label) {
         _menuEntries[entry].fg = (uintptr_t)label;
         _menuEntries[entry].isInvisible = 0;
         return 1;
     }
-#else
-    (void)row;
-#endif
     _menuEntries[entry].isInvisible = 1;
     return 0;
 }
 
 static void modRowChosen(int32_t row)
 {
-#ifdef SWOS_SDL_BUILD
     ModEntries_RowChosen(k_modRowPoint[row]);
-#else
-    (void)row;
-#endif
 }
 
 __attribute__((used, externally_visible)) void BuyPlayerModRow(void) { modRowChosen(MODROW_BUY_PLAYER); }

@@ -6,7 +6,8 @@
  "author": "OpenSWOS (SWOS 2020's practice modes)",
  "about": "Practice on your own: a penalty shootout, a demo game; team training to come.",
  "targets": [
-  "sdl"
+  "sdl",
+  "amiga"
  ],
  "changes": "modes",
  "default": true

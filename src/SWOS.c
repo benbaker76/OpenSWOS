@@ -357,6 +357,13 @@ skip_title_screens: ;
     _assetLoaderAltPathReady = 1;
     _hilNumGoals = 0;
 
+#ifndef SWOS_SDL_BUILD
+    /* The built-in mods that are on (data/MODS, read by resload at the first file read), set up:
+     * their entries and their menus' handlers (include/mod_api.h ModDef.init). The SDL build
+     * does this in main.c, after its mods list. */
+    { extern void ModHooks_Init(void); ModHooks_Init(); }
+#endif
+
     /* ---- Phase 9: Enter front-end loop (or arcade attract loop) ---- */
 #ifdef SWOS_SDL_BUILD
     {

@@ -55,8 +55,8 @@ uint8_t SaveJson_GetLoadedPrimaryCountryCode(void)
 }
 
 #include <string.h>
+#include <stdlib.h>  /* atoi; free (the mods' career sections) -- include/amiga_libc's on the Amiga */
 #ifdef SWOS_SDL_BUILD
-#include <stdlib.h>  /* atoi */
 #include <stdio.h>   /* DataJson self-test */
 #endif
 #ifdef SWOS_SAVE_FORMAT_JSON_PROFILE
@@ -6889,7 +6889,6 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
     }
 
-#ifdef SWOS_SDL_BUILD
     /* The career mods' sections ("mods": {"<slug>": {...}}): only when a mod that is on wrote
      * one, so a career without them saves as it always did. */
     {
@@ -6899,7 +6898,6 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             free(mods);
         }
     }
-#endif
 
     mjson_printf(json_out_emit, &out, "%s", "\n}\n");
 
@@ -7825,10 +7823,8 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
     RebuildPointersAfterLoad();
     PROF_END(rebuild_ptrs, "career-load");
 
-#ifdef SWOS_SDL_BUILD
     /* The career mods: each that is on gets its section, or is told there is none. */
     ModHooks_CareerLoadSection((const char *)src, (int32_t)src_size);
-#endif
 
     swos_io_free(src);
     PROF_END(total, "career-load");

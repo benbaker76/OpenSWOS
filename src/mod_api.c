@@ -161,7 +161,11 @@ const char *ModApi_ModDir(const char *slug)
 
 /* ---- settings: SWOS.ini [mod.<slug>] (Settings_Save keeps sections it does not know) ---- */
 
+#ifdef SWOS_SDL_BUILD
 enum { kMaxSettings = 128 };
+#else
+enum { kMaxSettings = 32 };     /* (the Amiga: only what the mods set this run -- no SWOS.ini) */
+#endif
 typedef struct {
     char slug[MODS_ID_MAX], key[32], value[96];
 } Setting;
@@ -327,8 +331,8 @@ static int32_t amiga_save_name(const char *slug, const char *name, char *out, ui
 {
     if (!slug || !name || !name[0] || strchr(name, '/') || strchr(name, ':') || strstr(name, ".."))
         return -1;
-    const int n = snprintf(out, cap, "%s_%s", slug, name);
-    return n > 0 && (uint32_t)n < cap && n <= 30 ? 0 : -1;
+    const int n = snprintf(out, cap, "save/%s_%s", slug, name);     /* (a bare name is the drawer's) */
+    return n > 0 && (uint32_t)n < cap && n - 5 <= 30 ? 0 : -1;
 }
 
 int32_t ModApi_SaveFile(const char *slug, const char *name, const void *data, uint32_t size)
