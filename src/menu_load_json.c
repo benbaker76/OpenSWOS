@@ -465,7 +465,8 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
 #ifdef SWOS_SDL_BUILD
     extern void MenuExtras_Begin(void);
     extern void MenuExtras_DescriptionEntry(int32_t entry);
-    extern void MenuExtras_Entry(int32_t ordinal, const char *description, const char *image);
+    extern void MenuExtras_Entry(int32_t ordinal, const char *description, const char *image, int32_t imageX,
+                                 int32_t imageY);
     int32_t extrasOrdinal = 0;
     MenuExtras_Begin();
     if (mj_long_def(j, jl, "$.description_entry", -1) >= 0)
@@ -511,7 +512,8 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
                 char desc[160] = "", image[160] = "";
                 mjson_get_string(it, itl, "$.description", desc, (int)sizeof desc);
                 mjson_get_string(it, itl, "$.image", image, (int)sizeof image);
-                MenuExtras_Entry(extrasOrdinal++, desc, image);
+                MenuExtras_Entry(extrasOrdinal++, desc, image, (int32_t)mj_long_def(it, itl, "$.image_x", -1),
+                                 (int32_t)mj_long_def(it, itl, "$.image_y", -1));
             }
 #endif
             emit_entry(&w, it, itl, byteMode, menuName);

@@ -6,8 +6,10 @@
  *   "ticker_entry": N             (the menu) the box a ticker mod scrolls its news in
  *   "description": "..."          (an entry) that line
  *   "image": "<path>"             (an entry) a .bmp under the data folder (a mod's overlay first),
- *                                 drawn in the entry's box, centred, colours to the nearest of the
- *                                 menu palette; its colour 0 / magenta (255, 0, 255) transparent
+ *                                 drawn in the entry's box -- centred, or at "image_x" / "image_y"
+ *                                 from its top left -- each colour the nearest in the palette on
+ *                                 screen (mapped again when it changes: a menu fades in); black /
+ *                                 magenta (255, 0, 255) transparent. Drawn every menu frame.
  *
  * The packed format has no room for them, so the loader (menu_load_json.c) gives them here as it
  * builds, filed under the menu's final packed bytes: the pointer ShowMenu is given and
@@ -30,7 +32,10 @@ enum { kMaxMenus = 64, kMaxEntries = 128 };
 typedef struct {
     char    *description;
     char    *imagePath;
-    uint8_t *pixels;            /* the image as palette indices, 0xFF transparent; NULL until drawn */
+    int32_t  imageX, imageY;    /* its place in the box (-1: centred) */
+    uint32_t *rgb;              /* the image, 0xRRGGBB, 0xFF000000 transparent; NULL until drawn */
+    uint8_t *pixels;            /* ... as palette indices (0xFF transparent), for `paletteHash` */
+    uint32_t paletteHash;
     int32_t  w, h, failed;
 } Extra;
 
@@ -72,10 +77,13 @@ void MenuExtras_DescriptionEntry(int32_t entry)
     s_pendingAny = 1;
 }
 
-void MenuExtras_Entry(int32_t ordinal, const char *description, const char *image)
+void MenuExtras_Entry(int32_t ordinal, const char *description, const char *image, int32_t imageX,
+                      int32_t imageY)
 {
     if (ordinal < 0 || ordinal >= kMaxEntries)
         return;
+    s_pending.entry[ordinal].imageX = imageX;
+    s_pending.entry[ordinal].imageY = imageY;
     if (description && description[0]) {
         s_pending.entry[ordinal].description = strdup(description);
         s_pendingAny = 1;
@@ -105,6 +113,7 @@ void MenuExtras_Commit(const uint8_t *menu)
         for (int32_t i = 0; i < kMaxEntries; i++) {
             free(m->entry[i].description);
             free(m->entry[i].imagePath);
+            free(m->entry[i].rgb);
             free(m->entry[i].pixels);
         }
     }
@@ -168,21 +177,47 @@ static void load_image(Extra *e)
         return;
     e->w = rgb->w;
     e->h = rgb->h;
+    e->rgb = (uint32_t *)malloc((size_t)e->w * (size_t)e->h * sizeof *e->rgb);
     e->pixels = (uint8_t *)malloc((size_t)e->w * (size_t)e->h);
-    if (e->pixels) {
+    if (e->rgb && e->pixels) {
         SDL_LockSurface(rgb);
         for (int32_t y = 0; y < e->h; y++) {
             const uint32_t *row = (const uint32_t *)((const uint8_t *)rgb->pixels + (size_t)y * (size_t)rgb->pitch);
             for (int32_t x = 0; x < e->w; x++) {
-                const uint8_t r = (uint8_t)(row[x] >> 16), g = (uint8_t)(row[x] >> 8), b = (uint8_t)row[x];
-                e->pixels[y * e->w + x] = (r == 255 && g == 0 && b == 255) || (r | g | b) == 0
-                                              ? 0xFF : Platform_NearestColour(r, g, b);
+                const uint32_t c = row[x] & 0xFFFFFFu;
+                e->rgb[y * e->w + x] = (c == 0xFF00FFu || c == 0) ? 0xFF000000u : c;
             }
         }
         SDL_UnlockSurface(rgb);
+        e->paletteHash = 0;             /* (mapped at its first draw) */
         e->failed = 0;
     }
     SDL_FreeSurface(rgb);
+}
+
+/* The palette on screen, as a number: an image is mapped again when it changes (a menu fades
+ * in from black, so its first frames' palette is not the menu's). */
+static uint32_t palette_hash(void)
+{
+    uint32_t h = 2166136261u;
+    for (int32_t i = 0; i < 256; i++) {
+        uint8_t r, g, b;
+        Platform_PaletteColour((uint8_t)i, &r, &g, &b);
+        h = (h ^ r) * 16777619u;
+        h = (h ^ g) * 16777619u;
+        h = (h ^ b) * 16777619u;
+    }
+    return h | 1u;
+}
+
+static void map_image(Extra *e, uint32_t hash)
+{
+    for (int32_t i = 0; i < e->w * e->h; i++) {
+        const uint32_t c = e->rgb[i];
+        e->pixels[i] = c == 0xFF000000u ? 0xFF
+                     : Platform_NearestColour((uint8_t)(c >> 16), (uint8_t)(c >> 8), (uint8_t)c);
+    }
+    e->paletteHash = hash;
 }
 
 /* DrawMenu, after the entries: each visible entry's image in its box. */
@@ -194,6 +229,7 @@ void MenuExtras_Drawn(void)
         return;
     uint8_t *frame = (uint8_t *)(uintptr_t)_frontbufferBasePtr;
     const int32_t sw = _screen_width, sh = _screen_height;
+    uint32_t hash = 0;
     for (int32_t i = 0; i < kMaxEntries && frame; i++) {
         Extra *e = &m->entry[i];
         if (!e->imagePath)
@@ -201,12 +237,17 @@ void MenuExtras_Drawn(void)
         const MenuEntry *ent = CalcMenuEntryAddress((uint16_t)i);
         if (!ent || ent->isInvisible)
             continue;
-        if (!e->pixels && !e->failed)
+        if (!e->rgb && !e->failed)
             load_image(e);
-        if (!e->pixels)
+        if (!e->rgb || !e->pixels)
             continue;
-        const int32_t x0 = ent->x + _menu_draw_x_offset + ((int32_t)ent->dwWidth - e->w) / 2;
-        const int32_t y0 = ent->y + ((int32_t)ent->dwHeight - e->h) / 2;
+        if (!hash)
+            hash = palette_hash();
+        if (e->paletteHash != hash)
+            map_image(e, hash);
+        const int32_t x0 = ent->x + _menu_draw_x_offset +
+                           (e->imageX >= 0 ? e->imageX : ((int32_t)ent->dwWidth - e->w) / 2);
+        const int32_t y0 = ent->y + (e->imageY >= 0 ? e->imageY : ((int32_t)ent->dwHeight - e->h) / 2);
         for (int32_t y = 0; y < e->h; y++) {
             const int32_t fy = y0 + y;
             if (fy < 0 || fy >= sh)

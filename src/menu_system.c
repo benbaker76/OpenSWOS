@@ -1922,6 +1922,7 @@ void MenuProc(void)
         if (_menuStatus == 0) {
             DrawSelectedMenuItemFrame();
 #ifdef SWOS_SDL_BUILD
+            { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }       /* (its images, every frame) */
             { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
 #endif
             WaitForVSync();
