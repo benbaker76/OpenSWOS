@@ -8,6 +8,7 @@
 #include "world_playoff.h"
 #include "player_face3.h"
 #include "menus.h"
+#include "mod_hooks.h"        /* playerRowDrawn (SDL) */
 #include "dos_mode.h"         /* GAMEPLAY_*, Gameplay_SetStyle: OPTIONS -> GAMEPLAY */
 #ifdef SWOS_SDL_BUILD
 /* PlatformInitOptions + Settings_Save, for the OPTIONS -> GAMEPLAY row. Guarded
@@ -1854,6 +1855,10 @@ void SquadAfterDrawCommon(void *entryPtr)
         e->y = yPos;
     }
 
+#ifdef SWOS_SDL_BUILD
+    ModHooks_PlayerRowDrawn(0 /* MODROWS_SQUAD */, PACK_BE_U16(tf->countryNumber, tf->teamOrdinal),
+                            (uint8_t)d4_fileIdx, (int16_t)d7, 46, 18, pf);
+#endif
     /* Draw 18 entries starting from entry 46 */
     DrawMultipleItems(18, &_menuEntries[46]);
 }
@@ -6128,6 +6133,11 @@ void ViewSquadAfterDrawCommon(void *entryPtr)
     }
 
     uint16_t yCoord = a5->y;
+    {   /* (whose player: the mods' playerRowDrawn) */
+        extern void TransferRow_Identity(uint16_t team, uint16_t slot, int16_t row);
+        const TeamFileEx *sq = (const TeamFileEx *)_squadTeamPtr;
+        TransferRow_Identity(PACK_BE_U16(sq->team.countryNumber, sq->team.teamOrdinal), outPlayerIndex, (int16_t)d1);
+    }
     BuildTransferPlayerMenuEntry(&_menuEntries[23], player, yCoord,
                                    (int16_t)d6, style, 0);
     DrawMultipleItems(12, &_menuEntries[23]);
@@ -6914,6 +6924,11 @@ void SelectNationalTeamAfterDrawCommon(void *entryPtr)
         uint16_t slot, fileIdx;
         uint8_t *careerPlayer = GetPlayerInfoBreakPosition(
             &_careerTeam, d1, &slot, &fileIdx);
+        {   /* (whose player: the national squad's, the mods' playerRowDrawn) */
+            extern void TransferRow_Identity(uint16_t team, uint16_t slot, int16_t row);
+            extern uint16_t _selTeamNumber;
+            TransferRow_Identity(_selTeamNumber, fileIdx, (int16_t)relIdx);
+        }
         a6_player = careerPlayer;
 
         /* Default color based on position type */

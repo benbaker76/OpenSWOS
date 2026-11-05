@@ -155,6 +155,13 @@ void ModHooks_PlayerCreated(uint16_t team, uint8_t slot, uint8_t kind, PlayerFil
     EACH(playerCreated) (*m_)->playerCreated(&c);
 }
 
+void ModHooks_PlayerRowDrawn(uint8_t screen, uint16_t team, uint8_t slot, int16_t row, int16_t firstCell,
+                             int16_t cells, const PlayerFile *player)
+{
+    const ModPlayerRow r = { screen, slot, team, row, firstCell, cells, player };
+    EACH(playerRowDrawn) (*m_)->playerRowDrawn(&r);
+}
+
 /* careerSave's writer: a growing buffer */
 struct ModJsonWriter {
     char   *buf;

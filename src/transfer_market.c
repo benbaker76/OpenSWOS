@@ -2438,6 +2438,18 @@ extern void SetSquadMenuEntryStatusSprite_AfterSim(MenuEntry *entry, PlayerFile 
 extern void InitPlayerValueDisplayStruct(uint8_t *playerEntry, uint8_t *dst);
 extern void FormatPlayerValueOrStatusText(uint8_t *base, uint8_t *dst);
 
+/* The player the next BuildTransferPlayerMenuEntry row shows, when its caller knows it (for the
+ * mods' playerRowDrawn); taken by that call. */
+static uint16_t s_rowTeam = 0xFFFF;
+static uint8_t  s_rowSlot = 0xFF;
+static int16_t  s_rowIndex = -1;
+void TransferRow_Identity(uint16_t team, uint16_t slot, int16_t row)
+{
+    s_rowTeam = team;
+    s_rowSlot = (uint8_t)slot;
+    s_rowIndex = row;
+}
+
 /* ================================================================
  * BuildTransferPlayerMenuEntry  (SWOS2.s line 70078)
  *
@@ -2472,6 +2484,7 @@ void BuildTransferPlayerMenuEntry(void *itemPtr, uint8_t *player,
             a0->y = y;
             a0++;
         } while (--count >= 0);
+        s_rowTeam = 0xFFFF; s_rowSlot = 0xFF; s_rowIndex = -1;     /* (an empty row: no one's) */
         return;
     }
 
@@ -2616,6 +2629,11 @@ void BuildTransferPlayerMenuEntry(void *itemPtr, uint8_t *player,
         flags = (flags & 0xFFF0) | colorBits;
         a0->stringFlags = flags;
     }
+#ifdef SWOS_SDL_BUILD
+    ModHooks_PlayerRowDrawn(2 /* MODROWS_MARKET */, s_rowTeam, s_rowSlot, s_rowIndex,
+                            (int16_t)((MenuEntry *)itemPtr - _menuEntries), 12, pf);
+#endif
+    s_rowTeam = 0xFFFF; s_rowSlot = 0xFF; s_rowIndex = -1;
 }
 
 /* ================================================================
@@ -2651,6 +2669,7 @@ void TransferMarketAfterDrawCommon(void *entryPtr)
         d6++;   /* 1-based index for display */
 
         uint16_t yCoord = entry->y;
+        TransferRow_Identity(_selTeamNumber, playerOrd, (int16_t)(d6 - 1));  /* (your transfer list) */
         BuildTransferPlayerMenuEntry(&_menuEntries[14], player, yCoord,
                                        (int16_t)d6, style, 0);
         /* Draw 12 entries starting from menuEntries[14] */
@@ -2885,6 +2904,7 @@ void PlayerMarketItemBeforeDraw(MenuEntry *entry)
         player = 0;
     } else {
         uint8_t *item = (uint8_t *)_playerMarketVisibleItems[relIdx];
+        TransferRow_Identity(PACK_BE_U16(item[0], item[1]), item[2], (int16_t)relIdx);   /* (a market's player) */
 
         if (_showDomesticPlayerMarket) {
             /* Domestic player */
@@ -2985,6 +3005,8 @@ void BuyOtherPlayersAfterDrawCommon(void *entryPtr)
                                                     d1, &outSlot, &outPlayerIndex);
 
     uint16_t yCoord = a5->y;
+    TransferRow_Identity(PACK_BE_U16(_buyOtherPlayersTeamPtr->team.countryNumber, _buyOtherPlayersTeamPtr->team.teamOrdinal),
+                  outPlayerIndex, (int16_t)(d6 - 1));     /* (another club's squad) */
     BuildTransferPlayerMenuEntry(&_menuEntries[19], player, yCoord,
                                    (int16_t)d6, 0, 0);
     DrawMultipleItems(12, &_menuEntries[19]);
@@ -3089,6 +3111,8 @@ static void offerAfterDrawCommonShared(MenuEntry *a5,
 
     uint16_t yCoord = a5->y;
     MenuEntry *targetEntry = &_menuEntries[targetEntryIdx];
+    if (playerOrd >= 0)
+        TransferRow_Identity(teamId, (uint16_t)playerOrd, -1);    /* (an offer's player) */
     BuildTransferPlayerMenuEntry(targetEntry, playerData, yCoord,
                                    (int16_t)0xFFFF, 0xD, (uint8_t *)0);
     DrawMultipleItems(12, targetEntry);

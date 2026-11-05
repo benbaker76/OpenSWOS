@@ -16,6 +16,7 @@
  * TogglePlayerCoach, GetPlayerPosition.
  */
 
+#include "mod_hooks.h"        /* playerRowDrawn (SDL) */
 #include "play_match_menu.h"
 #include "endian_helpers.h"
 #include "menu_system.h"
@@ -1365,6 +1366,10 @@ void DrawPlayerEntries(MenuEntry *a5) {
         valE->isInvisible = 0;
     }
 
+#ifdef SWOS_SDL_BUILD
+    ModHooks_PlayerRowDrawn(1 /* MODROWS_PLAY_MATCH */, PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal),
+                            (uint8_t)fIdx, d7, 31, 6, (const PlayerFile *)(player + sizeof(TeamFile)));
+#endif
     DrawMultipleItems(6, &_menuEntries[31]);
 }
 

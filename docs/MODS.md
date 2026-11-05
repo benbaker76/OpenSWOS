@@ -858,3 +858,17 @@ while a mod that is on has an entry there -- with the entry's label, or MORE (th
 
 Each is the menu's last entry, so every original entry keeps its number, and the screen's own
 init lays it out (`ModRow_Show`, include/menus.h): without an entry the screen is the original's.
+
+---
+
+## 29. A player's row in a list (`playerRowDrawn`; Career+'s §3.5)
+
+`ModDef.playerRowDrawn(row)` runs when a player's row has been filled and before it is drawn, in
+three fills: a squad (`SquadAfterDrawCommon`, MODROWS_SQUAD: cells 46-63), PLAY MATCH's line-up
+(`DrawPlayerEntries`, MODROWS_PLAY_MATCH: cells 31-36) and every transfer screen's player row
+(`BuildTransferPlayerMenuEntry`, MODROWS_MARKET: 12 cells from the row's first) -- your transfer
+list, the domestic and foreign markets, another club's squad (BUY OTHER PLAYERS), an offer's
+players, VIEW SQUAD and a national squad. `row` says the team, the player's slot in its file (where
+the screen knows them: every one of these does except a market row with no player behind it) and
+the row; the hook rewrites cells with ModApi_MenuText (text it keeps) and may show, hide or move
+them. Display only: it changes no game state (Career+'s ratings, totals, ages and nationalities).

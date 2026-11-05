@@ -71,6 +71,11 @@ void ModHooks_PlayerCreated(uint16_t team, uint8_t slot, uint8_t kind, struct Pl
  * last member -- `,\n  "mods":{"<slug>":{...},...}` -- malloc'd, or NULL when no mod that is on
  * wrote one (the save is then the one it always was); and a loaded career's JSON, each mod that
  * is on told its object (or that there is none). */
+/* A player's row filled (src/menus.c SquadAfterDrawCommon, src/play_match_menu.c DrawPlayerEntries,
+ * src/transfer_market.c BuildTransferPlayerMenuEntry), before it is drawn: screen ModRowScreen. */
+void ModHooks_PlayerRowDrawn(uint8_t screen, uint16_t team, uint8_t slot, int16_t row, int16_t firstCell,
+                             int16_t cells, const struct PlayerFile *player);
+
 char *ModHooks_CareerSaveSection(void);
 void  ModHooks_CareerLoadSection(const char *json, int32_t len);
 #endif

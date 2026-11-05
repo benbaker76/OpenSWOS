@@ -38,6 +38,7 @@ typedef struct ModCompetitionResult ModCompetitionResult;
 typedef struct ModPlayerMove ModPlayerMove;
 typedef struct ModPlayerCreated ModPlayerCreated;
 typedef struct ModJsonWriter ModJsonWriter;
+typedef struct ModPlayerRow ModPlayerRow;
 
 typedef struct ModDef {
     const char *slug;                   /* its folder: bin/mods/<slug> (canonical) */
@@ -84,7 +85,29 @@ typedef struct ModDef {
      * the mod's records empty). A new career is careerNew, never careerLoad. -- */
     void (*careerSave)(ModJsonWriter *out);
     void (*careerLoad)(const char *json, int32_t len);
+
+    /* -- a player's row in a list screen, filled and not yet drawn (docs/MODS.md §29): the
+     * hook may rewrite its cells' text (ModApi_MenuText, the text kept by the mod), show or hide
+     * them, move them (ModApi_SetMenuEntryRect). Display only: no game state. -- */
+    void (*playerRowDrawn)(const ModPlayerRow *row);
 } ModDef;
+
+/* playerRowDrawn's argument */
+typedef enum {
+    MODROWS_SQUAD,          /* a squad (VIEW SQUAD, the career's squads; SquadAfterDrawCommon) */
+    MODROWS_PLAY_MATCH,     /* PLAY MATCH's line-up (DrawPlayerEntries) */
+    MODROWS_MARKET          /* a transfer screen's player row (BuildTransferPlayerMenuEntry): your
+                             * transfer list, the markets, another club's squad, an offer */
+} ModRowScreen;
+struct ModPlayerRow {
+    uint8_t  screen;        /* ModRowScreen */
+    uint8_t  slot;          /* his slot in the team's file; 0xFF when the screen does not say */
+    uint16_t team;          /* the team, file << 8 | ordinal; 0xFFFF when the screen does not say */
+    int16_t  row;           /* the row on the screen, 0 the first (-1 none: an offer's) */
+    int16_t  firstCell;     /* the menu entry of the row's first cell (ModApi_MenuText's entry) */
+    int16_t  cells;         /* how many cells the row has */
+    const struct PlayerFile *player;
+};
 
 /* ---- the career hooks' arguments (ModDef's career hooks) ---- */
 typedef enum {
