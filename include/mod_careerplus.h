@@ -26,4 +26,8 @@ void CP_Winners_Load(const char *json, int32_t len);   /* (json NULL: none) */
 struct ModPlayerRow;
 void CP_Rows_Drawn(const struct ModPlayerRow *row);
 
+/* the trialists (mod_careerplus_trialists.c) */
+struct ModPlayerCreated;
+void CP_Trialists_Created(const struct ModPlayerCreated *created);
+
 #endif

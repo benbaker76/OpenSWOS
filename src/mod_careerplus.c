@@ -103,6 +103,7 @@ const ModDef ModDef_careerplus = {
     .matchStart = cp_matchStart,
     .careerNew = cp_careerNew,
     .competitionFinished = cp_competitionFinished,
+    .playerCreated = CP_Trialists_Created,
     .playerRowDrawn = CP_Rows_Drawn,
     .careerSave = cp_careerSave,
     .careerLoad = cp_careerLoad,
