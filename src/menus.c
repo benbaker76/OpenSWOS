@@ -2716,6 +2716,7 @@ void CommonMenuExit(void)
         const int32_t modes = ModEntries_Count(0 /* MODPOINT_MODES */) > 0;
         _menuEntries[16].isInvisible = !modes;
         _menuEntries[15].upEntry = (int8_t)(modes ? 16 : 13);   /* CREDITS up: MODES or LOAD OLD */
+        _menuEntries[13].downEntry = (int8_t)(modes ? 16 : 15); /* LOAD OLD down: MODES or CREDITS */
     }
 #ifndef SWOS_NETPLAY
     /* OpenSWOS's MULTIPLAYER button (entry 14) plays over the network, so it is only
