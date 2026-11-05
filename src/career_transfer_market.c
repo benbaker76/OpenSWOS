@@ -46,7 +46,7 @@ extern uint8_t _homeMarketPlayers[100];
 extern uint8_t _transferOfferTable[70];
 extern uint8_t _newJobOffers[520];
 extern uint8_t _jobOffers[520];
-extern uint8_t _playersOnTransferMarket[20];
+extern uint16_t _playersOnTransferMarket[10];
 _Static_assert(sizeof(_foreignMarketPlayers)==180 && sizeof(_homeMarketPlayers)==100
             && sizeof(_transferOfferTable)==70 && sizeof(_newJobOffers)==520
             && sizeof(_jobOffers)==520 && sizeof(_playersOnTransferMarket)==20,
@@ -65,7 +65,7 @@ uint16_t _numJobOffers;
 uint8_t  _jobOffers[520]              __attribute__((aligned(4)));   /* JobOffer[20] */
 uint16_t _timeToNegotiate;
 uint16_t _numPlayersOnTransferMarket;
-uint8_t  _playersOnTransferMarket[20] __attribute__((aligned(2)));
+uint16_t _playersOnTransferMarket[10];    /* the players listed: ids, host-order words (Career+: 10) */
 uint16_t _lastOfferPrimaryPlayerOrdinal, _lastOfferExtraPlayersWanted,
          _lastOfferSwapPlayerOrdinal, _lastOfferExtraPlayerOrdinal,
          _offerNegotiationAttemptCount, _transferMarketRandOffset0,

@@ -5,6 +5,8 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
+#include "career_params.h"   /* num_seasons: the career's last season */
 #include "statistics.h"
 #include "translations.h"
 #include "comp_identity.h"
@@ -1098,9 +1100,7 @@ void CompetitionTopGoalScorersInit(void)
             {
                 uint8_t *d = dest;
                 d = StringCopy(_aLparen, d);
-                uint8_t safeTeamName[18];
-                SWOS_CopyTeamName18(safeTeamName, teamName);
-                d = StringCopy(safeTeamName, d);
+                d = SWOS_TeamNameCopy(teamName, d);
                 d = StringCopy(_aRparen, d);
                 *d = 0;
             }
@@ -1252,9 +1252,7 @@ void TopGoalScorersBeforeDrawCommon(MenuEntry *entry)
         {
             uint8_t *d = dest;
             d = StringCopy(_aLparen, d);
-            uint8_t safeTeamName[18];
-                SWOS_CopyTeamName18(safeTeamName, teamName);
-                d = StringCopy(safeTeamName, d);
+            d = SWOS_TeamNameCopy(teamName, d);
             d = StringCopy(_aRparen, d);
             *d = 0;
         }

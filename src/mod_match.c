@@ -61,7 +61,8 @@ static struct {
     char          slug[40];
     ModMatchSetup setup;
     char          name[32];
-    uint8_t       ended;                /* ModApi_EndMatch */
+    uint8_t       ended;                /* ModApi_EndMatch / FinalWhistle */
+    uint8_t       whistled;             /* ModApi_FinalWhistle (once) */
     uint8_t       shootoutDone;
 } s_mm;
 
@@ -70,6 +71,7 @@ static int32_t    s_chosenHave;
 static uint32_t s_frames;               /* from kick-off, every match */
 static uint8_t  s_kickedOff;
 static uint8_t  s_endTold;              /* this kick-off's end told the mods */
+static int32_t  s_testHooks;            /* SWOS_MOD_MATCH_TEST=hooks: PR #3's H1-H7, G6 */
 static int32_t  s_testTraining;         /* SWOS_MOD_MATCH_TEST=training (ModMatch_SelfTest) */
 static const Sprite *s_headerBy;        /* the last header: who (ModMatch_Header), when */
 static uint32_t      s_headerAt;
@@ -89,6 +91,8 @@ void ModApi_DefaultSetup(ModMatchSetup *setup)
     setup->stadium = 1;
     setup->replayMenu = 1;
     setup->playingUp = setup->kickOff = -1;
+    for (int32_t i = 0; i < 8; i++)
+        setup->scorers[i].team = -1;
 }
 
 /* the team of that id (file << 8 | ordinal) into _selectedTeams[slot] */
@@ -148,6 +152,13 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
             if (load_team(setup->team[t], t, setup->side[t] == MODSIDE_CPU ? TEAM_COMPUTER : TEAM_PLAYER_COACH) != 0)
                 return -1;
         _numSelectedTeams = 2;
+        if (getenv("SWOS_MOD_MATCH_TEAMS")) {   /* (the test: would the online rule take them?) */
+            extern int32_t CustomTeam_Allowed(const TeamFileEx *team);
+            for (int32_t t = 0; t < 2; t++)
+                fprintf(stderr, "[mods] team %04x %.16s: online rule %s\n", (unsigned)setup->team[t],
+                        (const char *)_selectedTeams[t].team.teamName,
+                        CustomTeam_Allowed(&_selectedTeams[t]) ? "accepts it" : "REFUSES it");
+        }
     }
 
     /* the friendly's own settings, kept to be put back: the mod's match is not the player's */
@@ -202,7 +213,44 @@ int32_t ModApi_ChooseTeams(void)
                                   uint16_t showNational, uint16_t showOrigCustom);
     extern uint16_t _chooseTeamsResult;
     extern uint8_t _aFriendly_1[], _aPlayFriendly[];
+    {
+        /* SWOS_MOD_CHOOSE_TEAMS=<hex id>,<hex id>[,<0|1: the player's>] answers the team screen, for
+         * driving a mod's flow in a test (the screen itself is the friendly's, tested as that). */
+        const char *t = getenv("SWOS_MOD_CHOOSE_TEAMS");
+        if (t && strchr(t, ',')) {
+            const char *b = strchr(t, ',') + 1, *c = strchr(b, ',');
+            const int32_t yours = c ? atoi(c + 1) : 0;
+            _numSelectedTeams = 0;
+            if (load_team((uint16_t)strtoul(t, NULL, 16), 0, (uint8_t)(yours == 0 ? TEAM_PLAYER_COACH : TEAM_COMPUTER)) ||
+                load_team((uint16_t)strtoul(b, NULL, 16), 1, (uint8_t)(yours == 1 ? TEAM_PLAYER_COACH : TEAM_COMPUTER)))
+                return 0;
+            _numSelectedTeams = 2;
+            return 1;
+        }
+    }
     GoGetTeamsForPlay(_aFriendly_1, _aPlayFriendly, 2, 1, 1, 1);
+    return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
+}
+
+int32_t ModApi_PackCount(void)
+{
+    extern int32_t TeamPacks_Count(void);
+    return TeamPacks_Count();
+}
+
+int32_t ModApi_PackInfo(int32_t i, int32_t *number, const char **name, const char **description)
+{
+    extern int32_t TeamPacks_Info(int32_t i, int32_t *number, const char **name, const char **description,
+                                  int32_t *teams);
+    return TeamPacks_Info(i, number, name, description, NULL);
+}
+
+int32_t ModApi_ChooseFromPack(int32_t number)
+{
+    extern void GoGetTeamsFromPack(uint8_t *gameType, uint8_t *playWhat, uint16_t numTeams, int32_t pack);
+    extern uint16_t _chooseTeamsResult;
+    extern uint8_t _aFriendly_1[], _aPlayFriendly[];
+    GoGetTeamsFromPack(_aFriendly_1, _aPlayFriendly, 2, number);
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
 }
 
@@ -212,12 +260,56 @@ uint16_t ModApi_TeamByUuid(const char *uuid)
     return e ? (uint16_t)(e->team.team.countryNumber << 8 | e->team.team.teamOrdinal) : 0;
 }
 
+static int32_t team_player(const TeamFileEx *t, int32_t slot, ModTeamPlayer *out)
+{
+    if (!t || !out || slot < 0 || slot >= 16 || t->team.playerNumbers[slot] >= 16)
+        return 0;
+    const PlayerFile *p = &t->players[t->team.playerNumbers[slot]];
+    memset(out, 0, sizeof *out);
+    memcpy(out->name, p->playerName, sizeof p->playerName < sizeof out->name - 1 ? sizeof p->playerName
+                                                                                 : sizeof out->name - 1);
+    out->position = (uint8_t)((p->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT);
+    out->shirt = (uint8_t)p->shirtNumber;
+    out->passing = (uint8_t)(p->passing & 0x0F);
+    out->shooting = (uint8_t)((uint8_t)p->velocityHeading >> 4);
+    out->heading = (uint8_t)(p->velocityHeading & 0x0F);
+    out->tackling = (uint8_t)((uint8_t)p->tacklingControl >> 4);
+    out->control = (uint8_t)(p->tacklingControl & 0x0F);
+    out->speed = (uint8_t)((uint8_t)p->speedFinishing >> 4);
+    out->finishing = (uint8_t)(p->speedFinishing & 0x0F);
+    return 1;
+}
+
+int32_t ModApi_TeamPlayer(uint16_t teamId, int32_t slot, ModTeamPlayer *out)
+{
+    const TeamDbEntry *e = TeamDb_Team(teamId >> 8, teamId & 0xFF);
+    return e ? team_player(&e->team, slot, out) : 0;
+}
+
+int32_t ModApi_ChosenTeamPlayer(int32_t team, int32_t slot, ModTeamPlayer *out)
+{
+    if (team < 0 || team > 1 || _numSelectedTeams < 2)
+        return 0;
+    return team_player(&_selectedTeams[team], slot, out);
+}
+
 /* After ModApi_ChooseTeams: whether a chosen team is a player's (1) or the CPU's (0). */
 int32_t ModMatch_ChosenSide(int32_t team)
 {
     return team >= 0 && team < 2 && _numSelectedTeams >= 2 && _selectedTeams[team].team.teamControls != TEAM_COMPUTER;
 }
 int32_t ModApi_ChosenIsPlayer(int32_t team) { return ModMatch_ChosenSide(team); }
+
+int32_t ModApi_ChosenTeamUuid(int32_t team, char *out, int32_t cap)
+{
+    if (!out || cap <= 0 || team < 0 || team > 1 || _numSelectedTeams < 2)
+        return 0;
+    const TeamDbEntry *e = TeamDb_Team(_selectedTeams[team].team.countryNumber, _selectedTeams[team].team.teamOrdinal);
+    if (!e || !e->ids.uuid[0])
+        return 0;
+    snprintf(out, (size_t)cap, "%s", e->ids.uuid);
+    return 1;
+}
 
 const char *ModApi_ChosenName(int32_t team)
 {
@@ -272,6 +364,21 @@ void ModApi_EndMatch(void)
     _playGame = 0;
 }
 
+void ModApi_FinalWhistle(int32_t winner)
+{
+    extern TeamGame *_winningTeamPtr;
+    extern TeamGame _topTeamInGame, _bottomTeamInGame;
+    extern void EndOfGame(void);
+    if (!_playGame || !s_mm.active || s_mm.whistled)
+        return;
+    if (winner != 0 && winner != 1)
+        winner = _team2TotalGoals > _team1TotalGoals ? 1 : 0;
+    s_mm.whistled = 1;
+    s_mm.ended = 1;
+    _winningTeamPtr = winner == 0 ? &_topTeamInGame : &_bottomTeamInGame;
+    EndOfGame();
+}
+
 void ModApi_StartShootout(void)
 {
     if (_playGame && !_playingPenalties)
@@ -291,8 +398,8 @@ uint32_t ModApi_MatchFrames(void) { return s_frames; }
 /* SetupPlayers: the sides, as the arcade cabinet sets them -- no prompts. 1 when it did. */
 int32_t ModMatch_SetupPlayers(TeamFileEx *team1, TeamFileEx *team2)
 {
-    if (!s_mm.active)
-        return 0;
+    if (!s_mm.active || s_mm.setup.playMatchScreen)
+        return 0;           /* (the friendly's own: its PLAY MATCH screen, by the teams' controls) */
     const uint8_t a = s_mm.setup.side[0], b = s_mm.setup.side[1];
     _isCareer = 0;
     _exitGameFlag = 0;
@@ -326,6 +433,10 @@ void ModMatch_TieRules(void)
 int32_t ModMatch_SkipStadium(void) { return s_mm.active && !s_mm.setup.stadium; }
 int32_t ModMatch_SkipReplayMenu(void) { return s_mm.active && !s_mm.setup.replayMenu; }
 
+static int32_t s_restartDone;   /* (the restart, H6: once a match) */
+static int32_t s_quietGoals;    /* (preloaded scorers, H7: no goal events) */
+static void preload_scorers(void);
+
 /* InitGameRestoreTeams' end (and again for a REPLAY): the score and the clock at kick-off. */
 void ModMatch_KickOff(void)
 {
@@ -357,6 +468,8 @@ void ModMatch_KickOff(void)
         t[2] = (uint8_t)(m / 10 % 10);
         t[3] = (uint8_t)(m % 10);
         _gameSeconds = 0;
+        s_restartDone = 0;
+        preload_scorers();
     }
     ModHooks_MatchStart();
 }
@@ -411,6 +524,215 @@ void ModMatch_PlayersEntered(void)
 
 int32_t ModMatch_NoInjuries(void) { return s_mm.active && s_mm.setup.noInjuries; }
 
+/* kickOffAlways (H1): the team number (1, 2) that takes every kick-off, 0 the game's own. Asked by
+ * PrepareForInitialKick (each period) and the restart after a goal (game_timers.c). */
+int16_t ModMatch_KickOffTeam(void)
+{
+    if (!s_mm.active || !s_mm.setup.kickOffAlways || (s_mm.setup.kickOff != 0 && s_mm.setup.kickOff != 1))
+        return 0;
+    return (int16_t)(s_mm.setup.kickOff + 1);
+}
+
+/* shootoutOrder (H5): the line-up slot of `teamNumber`'s (1, 2) next penalty taker, its
+ * `attempt`-th (0..) -- or 0, the game's own order. Asked by NextPenalty. */
+int16_t ModMatch_ShootoutSlot(int16_t teamNumber, int16_t attempt)
+{
+    if (!s_mm.active || (teamNumber != 1 && teamNumber != 2) || attempt < 0)
+        return 0;
+    const uint8_t *order = s_mm.setup.shootoutOrder[teamNumber - 1];
+    for (int32_t i = 0; i < 10; i++)
+        if (order[i] < 1 || order[i] > 10)
+            return 0;
+    if (getenv("SWOS_MOD_EVENT_LOG") || getenv("SWOS_MOD_MATCH_TEST"))
+        fprintf(stderr, "[mods] shoot-out: team %d kick %d by slot %u\n", (int)teamNumber, (int)attempt + 1,
+                (unsigned)order[attempt % 10]);
+    return order[attempt % 10];
+}
+
+/* manualKeeper (H4; the5ar's ManualKeeper_DiveInput, 6f423e3b): at a penalty, what the
+ * defending player's goalkeeper of `team` does -- -1 the game decides, 0 he stands, else the
+ * direction held (2 E, 3 SE, 5 SW, 6 W: a dive). Asked by UpdatePlayers' goalkeeper. */
+int16_t ModMatch_ManualKeeper(const TeamGeneralInfo *team)
+{
+    extern int16_t _penalty;          /* (_playingPenalties: uint16_t, above) */
+    extern Sprite *_penaltyShooterSprite;
+    extern TeamGeneralInfo *_lastTeamPlayed;
+    if (!s_mm.active || !s_mm.setup.manualKeeper || !team || team->playerNumber == 0)
+        return -1;                      /* (the CPU's side keeps the game's keeper) */
+    if (_playingPenalties) {
+        /* only the DEFENDING keeper: the shooting side's runs the same update, far away */
+        if (_penaltyShooterSprite && _penaltyShooterSprite->teamNumber == team->teamNumber)
+            return -1;
+    } else if (_penalty) {
+        if (_lastTeamPlayed == team)    /* (the kicker's side: set beside _penalty at the strike) */
+            return -1;
+    } else {
+        return -1;                      /* open play: the game's, as ever */
+    }
+    switch (team->direction) {
+    case 2: case 3: case 5: case 6:
+        return team->direction;
+    default:
+        return s_mm.setup.manualKeeper == 2 ? 0 : -1;
+    }
+}
+
+/* pitchNumber (H7): SetPitchTypeAndNumber's end, after its random numbers -- the pitch number
+ * to use (1..6), 0 the one drawn. */
+int16_t ModMatch_PitchNumber(void)
+{
+    return s_mm.active && s_mm.setup.pitchNumber >= 1 && s_mm.setup.pitchNumber <= 6
+               ? s_mm.setup.pitchNumber : 0;
+}
+
+int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int16_t y)
+{
+    extern void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16_t x, int16_t y);
+    if (!s_mm.active || _gameStatePl != ST_GAME_IN_PROGRESS || (team != 0 && team != 1) ||
+        kind < MODRESTART_CORNER || kind > MODRESTART_PENALTY)
+        return -1;
+    GameTimers_ModRestart(kind, team + 1, wing, x, y);
+    return 0;
+}
+
+/* restart (H6): PrepareForInitialKick's end, the FIRST kick-off only -- the break the match
+ * starts in instead (game_timers.c GameTimers_ModRestart). */
+void ModMatch_InitialKick(void)
+{
+    extern void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16_t x, int16_t y);
+    if (!s_mm.active || s_restartDone || s_mm.setup.restart.kind == MODRESTART_KICK_OFF)
+        return;
+    s_restartDone = 1;
+    GameTimers_ModRestart(s_mm.setup.restart.kind, s_mm.setup.restart.team + 1, s_mm.setup.restart.wing,
+                          s_mm.setup.restart.x, s_mm.setup.restart.y);
+}
+
+/* scorers (H7): written into the scorer lists as GoalScored writes a goal, at the minute given,
+ * then every flag a goal raises put back -- the score is setup.score's, set already. */
+static void preload_scorers(void)
+{
+    extern void GoalScored(int16_t scoringTeam, Sprite *scorerSprite);
+    extern Sprite **_team1SpritesTable, **_team2SpritesTable;
+    extern TeamGame *_topTeamPtr, *_bottomTeamPtr;
+    extern uint16_t _goalScored, _runSlower, _lastTeamScoredNumber;   /* (uint16_t[1] storage) */
+    extern Sprite *_lastPlayerScored;
+    extern uintptr_t _currentScorer;
+    extern int16_t _penalty;
+    extern TeamGeneralInfo *_lastTeamScored;
+    const uint16_t goalScored = _goalScored, runSlower = _runSlower, lastNum = _lastTeamScoredNumber;
+    Sprite *const lastScorer = _lastPlayerScored;
+    const uintptr_t current = _currentScorer;
+    TeamGeneralInfo *const lastTeam = _lastTeamScored;
+    const int16_t penalty = _penalty;
+    uint8_t keepTime[4];
+    memcpy(keepTime, &_gameTime, 4);
+
+    s_quietGoals = 1;                       /* (no MODEVENT_GOAL for these) */
+    for (int32_t g = 0; g < 8; g++) {
+        const int32_t t = s_mm.setup.scorers[g].team;
+        if (t != 0 && t != 1)
+            continue;
+        Sprite **tab = t == 0 ? _team1SpritesTable : _team2SpritesTable;
+        const TeamGame *team = t == 0 ? _topTeamPtr : _bottomTeamPtr;
+        Sprite *scorer = NULL;
+        for (int32_t i = 0; tab && team && i < 11 && !scorer; i++)
+            if (tab[i] && team->players[tab[i]->playerOrdinal - 1].shirtNumber == s_mm.setup.scorers[g].shirt)
+                scorer = tab[i];
+        if (!scorer) {
+            fprintf(stderr, "[mods] scorer: team %d has no shirt %u on the pitch\n", (int)t,
+                    (unsigned)s_mm.setup.scorers[g].shirt);
+            continue;
+        }
+        const int32_t m = s_mm.setup.scorers[g].minute > 120 ? 120 : s_mm.setup.scorers[g].minute;
+        uint8_t *tm = (uint8_t *)&_gameTime;
+        tm[0] = 0;
+        tm[1] = (uint8_t)(m / 100);
+        tm[2] = (uint8_t)(m / 10 % 10);
+        tm[3] = (uint8_t)(m % 10);
+        _penalty = s_mm.setup.scorers[g].penalty ? 1 : 0;
+        GoalScored((int16_t)scorer->teamNumber, scorer);
+    }
+    s_quietGoals = 0;
+    if (getenv("SWOS_MOD_MATCH_TEST") || getenv("SWOS_MOD_EVENT_LOG")) {
+        extern ScorerInfo _team1Scorers[], _team2Scorers[];
+        for (int32_t t = 0; t < 2; t++)
+            for (int32_t i = 0; i < 8; i++) {
+                const ScorerInfo *si = &(t ? _team2Scorers : _team1Scorers)[i];
+                if (si->shirtNum)
+                    fprintf(stderr, "[mods] scorer list %d: shirt %d, %d goal(s), first at %c%c%c\n", (int)t + 1,
+                            (int)si->shirtNum, (int)si->numGoals, si->goals[0].time[1], si->goals[0].time[2],
+                            si->goals[0].time[3]);
+            }
+    }
+    memcpy(&_gameTime, keepTime, 4);
+    _goalScored = goalScored;
+    _runSlower = runSlower;
+    _lastTeamScoredNumber = lastNum;
+    _lastPlayerScored = lastScorer;
+    _currentScorer = current;
+    _lastTeamScored = lastTeam;
+    _penalty = penalty;
+}
+
+/* G9's rules, asked where the engine decides them. */
+int32_t ModMatch_QuickRestarts(void) { return s_mm.active && s_mm.setup.quickRestarts; }
+int32_t ModMatch_StraightReds(void) { return s_mm.active && s_mm.setup.straightReds; }
+int32_t ModMatch_NoTackles(void) { return s_mm.active && s_mm.setup.noTackles; }
+
+/* hideHud, ghosts (G13, G5): DrawQueuedSprites skips the sprite -- the picture only, nothing the
+ * match reads (its sprites stay as the match set them). */
+int32_t ModMatch_SpriteHidden(const Sprite *spr)
+{
+    if (!s_mm.active || !(s_mm.setup.hideHud | s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1]))
+        return 0;
+    if (s_mm.setup.hideHud & MODHUD_RESULT) {
+        extern Sprite _dashSprite, _gridBottomRowLeftSprite, _gridBottomRowRightSprite,
+            _gridMiddleRowLeftSprite, _gridMiddleRowRightSprite, _gridUpperRowLeftSprite,
+            _gridUpperRowRightSprite, _resultAfterTheGameSprite, _resultOnHalftimeSprite,
+            _team1GoalsDigit1Sprite, _team1GoalsDigit2Sprite, _team1NameSprite,
+            _team1TotalGoalsDigit1Sprite, _team1TotalGoalsDigit2Sprite, _team2GoalsDigit1Sprite,
+            _team2GoalsDigit2Sprite, _team2NameSprite, _team2TotalGoalsDigit1Sprite,
+            _team2TotalGoalsDigit2Sprite;
+        const Sprite *const kResult[] = {
+            &_dashSprite, &_gridBottomRowLeftSprite, &_gridBottomRowRightSprite, &_gridMiddleRowLeftSprite,
+            &_gridMiddleRowRightSprite, &_gridUpperRowLeftSprite, &_gridUpperRowRightSprite,
+            &_resultAfterTheGameSprite, &_resultOnHalftimeSprite, &_team1GoalsDigit1Sprite,
+            &_team1GoalsDigit2Sprite, &_team1NameSprite, &_team1TotalGoalsDigit1Sprite,
+            &_team1TotalGoalsDigit2Sprite, &_team2GoalsDigit1Sprite, &_team2GoalsDigit2Sprite,
+            &_team2NameSprite, &_team2TotalGoalsDigit1Sprite, &_team2TotalGoalsDigit2Sprite,
+        };
+        for (size_t i = 0; i < sizeof kResult / sizeof kResult[0]; i++)
+            if (spr == kResult[i])
+                return 1;
+        /* ... the wide screen's third column of the banner's grid, and the scorer lines under it */
+        extern Sprite _gridUpperRowExtraSprite, _gridMiddleRowExtraSprite, _gridBottomRowExtraSprite;
+        extern Sprite _team1ScorerSprite[], _team2ScorerSprite[];
+        if (spr == &_gridUpperRowExtraSprite || spr == &_gridMiddleRowExtraSprite ||
+            spr == &_gridBottomRowExtraSprite)
+            return 1;
+        for (int32_t i = 0; i < 8; i++)
+            if (spr == &_team1ScorerSprite[i] || spr == &_team2ScorerSprite[i])
+                return 1;
+    }
+    if (s_mm.setup.hideHud & MODHUD_PLAYER_NAME) {
+        extern Sprite _currentPlayerNameSprite;
+        if (spr == &_currentPlayerNameSprite)
+            return 1;
+    }
+    if ((s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1]) && (spr->teamNumber == 1 || spr->teamNumber == 2)) {
+        extern Sprite **_team1SpritesTable, **_team2SpritesTable;
+        Sprite **tab = spr->teamNumber == 1 ? _team1SpritesTable : _team2SpritesTable;
+        const uint16_t bits = s_mm.setup.ghosts[spr->teamNumber - 1];
+        for (int32_t i = 0; bits && tab && i < 11; i++)
+            if (tab[i] == spr)
+                return bits >> i & 1;
+    }
+    return 0;
+}
+
+/* hideClock (H2): UpdateTime shows no clock. */
+int32_t ModMatch_HideClock(void) { return s_mm.active && s_mm.setup.hideClock; }
+
 /* A re-simulated frame (netplay): the match hooks are told only frames as first played. */
 int32_t ModMatch_Quiet(void) { return NetplayMatch_Resimulating(); }
 
@@ -434,6 +756,18 @@ void ModMatch_Frame(void)
         s_mm.shootoutDone = 1;
         ModApi_StartShootout();
     }
+    {
+        static int32_t given;
+        if (s_testHooks && s_mm.active && s_frames < 1500)
+            given = 0;
+        if (s_testHooks && s_mm.active && s_frames >= 1500 && !given &&
+            ModApi_Restart(MODRESTART_FREE_KICK, 0, 0, 300, 640) == 0) {
+            given = 1;
+            fprintf(stderr, "[mods] hooks test: a free kick at frame %u\n", (unsigned)s_frames);
+        }
+    }
+    if (s_testHooks && s_mm.active && s_frames == 3000)
+        ModApi_FinalWhistle(-1);
     if (s_testTraining && s_mm.active && s_frames >= 3000)
         ModApi_EndMatch();                  /* (the training test: a minute of play, then ended) */
     ModHooks_MatchFrame();
@@ -445,6 +779,8 @@ void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg)
 {
     ModMatchEvent e;
     static int logEvents = -1;
+    if (s_quietGoals && kind <= 2)      /* (a preloaded scorer, H7: not a goal of this match) */
+        return;
     if (logEvents < 0)
         logEvents = getenv("SWOS_MOD_EVENT_LOG") || getenv("SWOS_MOD_MATCH_TEST");
     e.kind = (uint8_t)kind;
@@ -553,13 +889,23 @@ void ModMatch_SelfTest(void)
         ModSpeedrun_Test(atoi(how + 9));
         return;
     }
+    if (strcmp(how, "live") == 0) {           /* (LIVE CAST from a menu: src/live_cast.c) */
+        ModLiveMatch m[8];
+        const int32_t n = ModApi_LiveList(m, 8);
+        const int32_t rc = n > 0 ? ModApi_LiveWatch(m[0].id) : -1;
+        fprintf(stdout, "LIVE TEST: %d live, watched %016llx: rc %d (back in the menu)\n", (int)n,
+                n > 0 ? (unsigned long long)m[0].id : 0ull, (int)rc);
+        fflush(stdout);
+        exit(rc == 0 ? 0 : 1);
+    }
     if (strcmp(how, "entry") == 0) {
         /* (=entry: a MODES entry that plays it, for trying the hooks by hand) */
         ModApi_AddEntry(MODPOINT_MODES, "selftest", "mod match test", test_entry);
         return;
     }
-    s_testShootout = strcmp(how, "shootout") == 0;
+    s_testShootout = strcmp(how, "shootout") == 0 || strcmp(how, "order") == 0;
     s_testTraining = strcmp(how, "training") == 0;
+    s_testHooks = strcmp(how, "hooks") == 0;
     play_test_match(1);
 }
 
@@ -570,6 +916,13 @@ static void play_test_match(int32_t thenQuit)
     ModApi_DefaultSetup(&setup);
     setup.team[0] = 0x5020;                 /* Norway */
     setup.team[1] = 0x5502;                 /* New Zealand */
+    {   /* (SWOS_MOD_MATCH_TEAMS=<hex id>,<hex id>: others -- a team pack's, say) */
+        const char *t = getenv("SWOS_MOD_MATCH_TEAMS");
+        if (t && strchr(t, ',')) {
+            setup.team[0] = (uint16_t)strtoul(t, NULL, 16);
+            setup.team[1] = (uint16_t)strtoul(strchr(t, ',') + 1, NULL, 16);
+        }
+    }
     setup.score[0] = 2;
     setup.score[1] = 1;
     setup.minute = 40;
@@ -586,6 +939,24 @@ static void play_test_match(int32_t thenQuit)
         setup.playingUp = 0;
         setup.kickOff = 1;
     }
+    if (s_testHooks) {                      /* a challenge's moment: H1, H2, H5-H7 (shootout too) */
+        setup.kickOffAlways = 1;
+        setup.kickOff = 0;
+        setup.hideClock = 1;
+        setup.pitchNumber = 3;
+        setup.restart.kind = MODRESTART_CORNER;
+        setup.restart.team = 1;
+        setup.restart.wing = 1;
+        setup.scorers[0].team = 0; setup.scorers[0].shirt = 9;  setup.scorers[0].minute = 12;
+        setup.scorers[1].team = 1; setup.scorers[1].shirt = 10; setup.scorers[1].minute = 30;
+        setup.scorers[2].team = 0; setup.scorers[2].shirt = 7;  setup.scorers[2].minute = 35;
+        setup.scorers[2].penalty = 1;
+        setup.hideHud = MODHUD_RESULT | MODHUD_PLAYER_NAME;
+        setup.ghosts[0] = (1u << 2) | (1u << 3);    /* (two of team 1's play, not drawn) */
+    }
+    if (strcmp(getenv("SWOS_MOD_MATCH_TEST"), "order") == 0)   /* takers 1..10 (the game's: 10, 9, ...) */
+        for (int32_t i = 0; i < 10; i++)
+            setup.shootoutOrder[0][i] = setup.shootoutOrder[1][i] = (uint8_t)(i + 1);
     if (s_testShootout) {                   /* straight to penalties: a shoot-out's result */
         setup.shootoutOnly = 1;
         setup.score[0] = setup.score[1] = 0;
@@ -599,7 +970,9 @@ static void play_test_match(int32_t thenQuit)
         return;
     const int32_t ok = rc == 0 && r.frames > 0 &&
                        (s_testShootout ? r.penaltyGoals[0] != r.penaltyGoals[1]
-                        : s_testTraining ? r.minute == 0 && r.endedByMod && r.frames >= 3000 : r.minute >= 90);
+                        : s_testTraining ? r.minute == 0 && r.endedByMod && r.frames >= 3000
+                        : s_testHooks ? r.endedByMod && r.frames >= 3000 && r.frames < 4500 && r.minute < 90
+                        : r.minute >= 90);
     fprintf(stdout, "MOD MATCH TEST %s%s\n", s_testShootout ? "(shootout) " : s_testTraining ? "(training) " : "",
             ok ? "PASS" : "FAIL");
     fflush(stdout);

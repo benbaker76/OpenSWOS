@@ -96,6 +96,22 @@ lobby's switches (SHORT PRESSES, CARDS/INJURIES: `include/netplay_match.h`), the
 the host's, the recorder and `.SRP` record it, and adding one raises `NETPLAY_COMPAT`. The
 golden careers and the replay corpus run with every tweak off, so they keep proving the original.
 
+**A mod may switch a tweak ON -- the owner, 2026-11-04, for Career+'s "more fouls" and "the
+AI substitutes its injured players".** The rules:
+
+1. **The tweak is the game's, not the mod's.** It is an ordinary `[tweaks]` key, built in, off
+   by default. A mod cannot add one or change what one does; it can only switch on one that
+   is marked OFFLINE-ONLY, through one call, `ModApi_SetTweak(slug, "cpu_cards", 1)` (`src/tweaks.c`
+   keeps a mod's switches apart from the player's, and which mod made each; callable from
+   `init`). A tweak that is match rules online is never a mod's to switch (`byMod` 0).
+2. **Online always wins.** A match against another player plays without it, whatever a mod or
+   SWOS.ini says; so do the rigs and the golden careers. The mod stays a `career` (or `modes`)
+   mod: it never has to be alike in both games.
+3. **The player can see it.** The tweak's row in OPTIONS shows who switched it ("ON
+   (CAREER+)"); turning the mod off puts the tweak back to the player's own setting.
+4. **Replays keep it.** A recording stores the tweaks in force, so a replay or `--srp-resim`
+   plays the same match.
+
 ---
 
 ## 5. The original, always buildable
@@ -277,6 +293,8 @@ Mods are hosted by their authors (content with other people's rights stays their
 | `cpu_cards` | `TryBookingThePlayer` / `TrySendingOffThePlayer` give no card to a side with no human (SWOS2.s:26026) | `src/tackle_foul.c`: every side by the same rolls |
 | `tackle_controlled_player` | whichever of the controlled player and the pass receiver is nearer the ball slides (SWOS2.s:30408-30431 and 31116-31146) | `src/update_players.c`: on a human's team only the controlled player slides |
 | `no_teammate_tackles` | the receiver runs onto the ball (`passingBall`), may slide on your fire press and is handed control on reaching it (SWOS2.s:31146-31215) | while a human's controlled player has the ball (within 72), the receiver comes to support distance only: no slide, no hand-over |
+| `more_fouls` | `PlayerTacklingTestFoul` waves on every tackle not from behind (direction more than 1 apart) | one in 16 of those is a foul -- its roll (`Rand`) taken only with the tweak on (benefactorr's Career+) |
+| `ai_injury_subs` | the computer never substitutes: `BenchCheckControls` answers only a player calling the bench | at a stoppage, the computer replaces an injured player with the bench player nearest his position (the keeper by the reserve keeper), within its substitutes; never the managed career club (benefactorr's Career+) |
 
 Checked: with every tweak off, `rollback_test.sh --all`, `replay_v2_test.sh --all` and
 `netplay_test.sh --all` pass; both targets build. **Not yet played with the tweaks on.**
@@ -632,3 +650,156 @@ New in the engine for it: a start in the SECOND half (the map's G2: minute 46-89
 list (its locks) and a challenge's screen drawn; check_netplay_compat.sh unchanged. Not yet: golden
 and silver goal, a starting event (G6), extra-time minutes, SWOS 2020's own challenges as a DLC pack.
 
+## 19. Team packs (2026-11-04)
+
+Teams a mod brings: `data_json/teampacks/*.json` in the database's team format, numbers 210-249,
+made with `scripts/make_team_pack.py` (docs/TEAM_IDS.md §6). Engine, not a mod ("able to do
+more"): one lookup in the country-file search (`src/team_packs.c`), after which the team database,
+the matches and the online rule take them as the database's. A pack mod is `"changes": "data"`.
+SWOS United's fun cup is the first user.
+
+
+---
+
+## 20. Competitions from mods; HISTORIC TOURNAMENTS (2026-11-04)
+
+petarku's PR #11 (HISTORIC TOURNAMENTS, by the5ar) as a canonical mod, `classics`
+(`src/mod_classics.c`, `bin/mods/classics`), on the engine pieces of §3's split.
+
+- **The row is the game's** (`src/mod_comps.c`, MODPOINT_COMPETITIONS): ONE row above WORLD CUP
+  in PRESET COMPETITION's world list (`teams.c` SelectTeamsFinalMenu; its tables hold 10 rows,
+  so mods never get more than one). It carries the entry's label when one mod has an entry, MORE
+  COMPETITIONS (a list) when more do. A marker in `_leaguesPtrTable` stands for it; the selection
+  catches it before anything reads it as a competition.
+- **The flow** (include/mod_api.h, "competitions from mods"): the entry's select shows the mod's
+  screens; one loads a file (`ModApi_LoadCompetition`: our JSON .DIY or the PC game's / SWOS
+  2020's, in any world, the player's options and USER tactics kept, every team COMPUTER, SAVE
+  offering the file's name), may show its teams (`ModApi_CompTeam*`, MODCONTROL_*), and on PLAY
+  calls `ModApi_StartCompetition`: the screens are left, the chooser closes, and
+  PresetCompetitionMenu starts it as LOAD OLD COMPETITION's is (StartContest). Backing out:
+  `ModApi_UnloadCompetition`.
+- **Helpers it needed, for any mod:** `ModApi_MenuCurrentEntry`, `ModApi_MenuEntryRect` /
+  `SetMenuEntryRect`, `ModApi_MenuNav4`, `ModApi_MenuColour`, `ModApi_MenuDisabled`,
+  `ModApi_MenuRedraw`, `ModApi_ShowError`, `ModApi_ListFiles`, `ModApi_AssetsDir`,
+  `ModApi_CompetitionFileName`, `ModApi_EntryLabel`.
+- **The cups are never in the repo.** The mod reads `classic/{uefa,worldcup,club}/*.DIY` from the
+  player's assets folder first, then its own folder (`mods/classics/classic/`, .gitignored). With
+  none, it adds no row. Its menus are the fork's, as the mod's JSON (`classics.<name>` handlers,
+  literals for the fork's strings).
+- **SDL only for now.** The mod API is SDL's; on the Amiga the fork's compiled menus are not
+  taken. The engine pieces the Amiga needs are in (the JSON .DIY reader, `Resload_ListDir` over
+  the mods, `fix_filename`); a mod API on the Amiga is its own step.
+- Checked through the real menus (key script + captures): the row, CLUB's list, a SWOS 2020 cup's
+  teams, a toggle (COMPUTER -> PLAYER-COACH), PLAY starting the league; the PC game's 14-team
+  CANADA ROGERS CUP in three columns.
+
+---
+
+## 21. petarku's game modes: the match hooks (PR #3, 2026-11-04)
+
+What petarku's (the5ar's) modes needed from the engine, as ModMatchSetup fields (include/mod_api.h)
+and fixed points in the match code, each a no-op unless a mod's match is being played: no online
+match, rig or recording meets them (check_netplay_compat.sh: 30 unchanged at NETPLAY_COMPAT 10).
+
+| Field | What | Where it acts |
+|---|---|---|
+| `kickOffAlways` (H1) | kickOff's team takes every kick-off, after goals and each period | `PrepareForInitialKick`, `handleGoalScored` (game_timers.c) |
+| `hideClock` (H2) | no clock on the screen | `UpdateTime` |
+| `playMatchScreen` (H3) | the friendly's PLAY MATCH screen before kick-off | `ModMatch_SetupPlayers` steps aside |
+| `manualKeeper` (H4) | at a penalty, a player's keeper dives where the stick is held (1: neutral = the game's, 2: neutral stands) | `UpdatePlayers` shot_at_goal, `GoalkeeperForceDiveAnim` |
+| `shootoutOrder[2][10]` (H5) | the takers by line-up slot | `NextPenalty` |
+| `restart` (H6) | the first kick-off is a corner, free kick or penalty instead | `PrepareForInitialKick` -> `GameTimers_ModRestart` |
+| `pitchNumber` (H7) | the pitch's art 1..6, after its random numbers | `SetPitchTypeAndNumber` |
+| `scorers[8]` (H7) | goals already in the scorer lists at kick-off (with `score`) | `ModMatch_KickOff`, through `GoalScored` |
+
+Plus `ModApi_TeamPlayer` / `ModApi_ChosenTeamPlayer` (a squad by line-up slot: name, position,
+shirt, skills) for a mod's own squad screen. The restart is the engine's own: a corner as
+`CheckIfBallOutOfPlay` sets one, a free kick in `tackle_foul.c`'s bands and quadrants, so it then
+plays as in any match.
+
+`manualKeeper` in every match (petarku's fork has it at any penalty a human defends, online
+too) would be a TWEAK -- match rules online, a NETPLAY_COMPAT raise -- and is checked against
+SWOS2.s first (§4); not done.
+
+Self-tests: `SWOS_MOD_MATCH_TEST=hooks` (2-1 at 40', a corner start, no clock, three preloaded
+scorers, pitch 3; seen on screen: the corner, the lists `[mods] scorer list`) and `=order` (a
+shoot-out by slots 1..10, logged per kick).
+
+The challenges format (`openswos-challenges`, §18) reads them, each optional: `"pitch_type"` 0..6,
+`"pitch_number"` 1..6, `"restart": {"kind": "kick_off"|"corner"|"free_kick"|"penalty", "team",
+"wing", "x", "y"}` and `"scorers": [{"team", "shirt", "minute", "penalty"}]` (up to 8). Checked
+with openswos-78's collection pack: hold-your-nerve starts on Malta's corner at 80' with Italy's
+#9 in the scorer list (35').
+
+---
+
+## 22. Europe's league phases in 96/97 (PR #3's H8, 2026-11-04)
+
+petarku's CHAMPIONS / EUROPA / CONFERENCE LEAGUE for 96/97 is a mod's data on the engine World
+2026-27 already plays them with (`src/league_phase.c`: pots, country rules, tie-breaks).
+
+- **The gate is the cups, not the world:** the league phase plays when `LeaguePhase_InstallCups`
+  installed records (a world's in `World_InstallBaked`, or a mod's), where it used to be "the
+  world is not 96/97". Without a mod, 96/97 installs none and plays its own cups, as before.
+- **`ModApi_SetLeaguePhases(slug, cups[3], places, count, seeds)`** from the mod's init (the
+  world is set later): the three records (`CompetitionLeaguePhase`), each country's places from
+  the second season (`{team file, CL, EL, UECL}`) and the UEFA seeds of the qualifying rounds
+  (`WorldUefaSeeds`, uefa_coef.h; NULL for none). Kept by `LeaguePhase_SetModEurope`; when the
+  world is 96/97, `World_InstallBaked` installs them and `World_LeaguePhaseCups` /
+  `World_UefaSeeds` answer with them (a world's own always win).
+- A career qualifies through the UEFA qualifying rounds when there are league phases, so a career
+  needs the seeds; PRESET needs only the records, shown through the mod's own
+  MODPOINT_COMPETITIONS entry. The data -- the 36-club tiers -- is the mod's (openswos-78's
+  `euro36`), not the engine's.
+
+---
+
+## 23. SWOS 2020's modes: the rest of the match hooks (G5, G6, G9, G10, G13; 3.2)
+
+| What | API | Where |
+|---|---|---|
+| a break now, mid-match (G6: training's drills) | `ModApi_Restart(kind, team, wing, x, y)` from matchFrame | `GameTimers_ModRestart` |
+| the final whistle with a winner (G10: golden / silver goal, a speedrun's target) | `ModApi_FinalWhistle(winner)` | `_winningTeamPtr` + `EndOfGame`, as a shoot-out ends |
+| quick restarts, every carded foul a red, no slide tackles (G9) | `quickRestarts`, `straightReds`, `noTackles` | game_timers.c (both timers), tackle_foul.c, `PlayerBeginTackling` |
+| the result banner or the player's name not drawn (G13) | `hideHud` (`MODHUD_RESULT`, `MODHUD_PLAYER_NAME`) | `DrawQueuedSprites` (picture only) |
+| players who play but are not drawn (G5) | `ghosts[2]` (a bit per line-up slot) | `DrawQueuedSprites` (picture only) |
+
+The custom-challenge editor (map 3.2) is the challenges mod's: NEW CHALLENGE on its list (now in
+pages of six) chooses two teams on the friendly's screen, then the score, the minute, what
+winning is and who you are on the info screen's rows; SAVE AND PLAY writes it to the player's
+`save/mods/challenges/custom.json` in the challenges format (ids by `ModApi_ChosenTeamUuid`) and
+plays it. A player's own challenges never lock or are locked.
+
+---
+
+## 24. The news ticker -- SWOS United's, not OpenSWOS's (2026-11-05)
+
+SWOS 2020's ticker is a mod of SWOS United's (its menus2020 has the ticker row; OpenSWOS's own
+menus have none), moved there on the owner's word: SWOS 2020's look and service belong to United,
+OpenSWOS keeps what any mod can use. What stays here are the pieces it is made of: a menu's
+`"ticker_entry"` (docs/MENUS.md §13), `ModApi_MenuTickerEntry`, `ModApi_DrawText` /
+`ModApi_TextWidth` and `ModApi_RestoreMenuBackground`. The mod as it was written here is in
+commit 0d924c1d (`src/mod_ticker.c`, `bin/mods/ticker`).
+
+---
+
+## 25. The online provider (H9)
+
+The hook §13 asked for: a mod runs a project's online service at run time, where a fork used to
+compile its own `online_account.c` (`PROJECT_ACCOUNTS`, which still works and turns this off).
+`ModApi_SetOnlineProvider(slug, &provider)` from the mod's init: `name`, `mmHost` / `mmPort`
+(its matchmaker) and any of the account functions of include/online_account.h -- the log-in
+check, the web pages, RANKINGS / LEAGUES / MATCH LOGS / RANKED, OPEN's mode, the lobby's calls,
+`matchPlayed`. A field left NULL keeps OpenSWOS's answer (no accounts). The server the player
+typed on the log-in screen still wins over `mmHost` (and a test's `SWOS_MM_HOST` over both).
+
+---
+
+## 26. The rigs play without gameplay mods
+
+The rigs prove the original game, as they do with every tweak off (§4): under `--replay-test`
+(the replay corpus, the rollback and netplay rigs, `check_netplay_compat.sh`), `--srp-resim` and
+`--career-golden`, a canonical mod that is on by default is on only if its `"changes"` is
+`cosmetic` (`Mods_SetRig`, src/mods.c). A mod the run names itself (`--mods=weather`) is still on:
+that is a test asking for it. So a default-on `career` mod (openswos-78's euro36) leaves the
+golden careers as they are.

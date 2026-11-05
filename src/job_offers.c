@@ -10,6 +10,8 @@
  * Chunk 99: 8 job offer menu functions from SWOS2.s lines 82566-82903.
  */
 
+#include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
+#include "career_params.h"   /* num_seasons: the career's last season */
 #include "job_offers.h"
 #include "career_params.h"
 #include "translations.h"  /* tr_fmt — localize the offer-letter text */
@@ -380,7 +382,7 @@ void JobOffers_FillMissingNewOfferTeamNames(void)
 
         /* Look up team pointer and copy name */
         TeamFileEx *teamPtr = GetTeamPointer(offer->teamNo);
-        StringCopy((uint8_t *)teamPtr->team.teamName, (uint8_t *)offer->teamName);
+        SWOS_TeamNameCopy((uint8_t *)teamPtr->team.teamName, (uint8_t *)offer->teamName);
     }
 }
 
@@ -1486,14 +1488,7 @@ searchNational:
                 /* teamId is compared against selTeamNumber (BE-packed)
                  * below — compose the same form via PACK_BE_U16. */
                 uint16_t teamId = PACK_BE_U16(rec->countryNumber, rec->teamOrdinal);
-                /* NationalTeamRecord.skillOrPrice is serialized in big-
-                 * endian order (e.g. 00 13 = 19). Directly dereferencing
-                 * its uint16_t field on Windows reads 0x1300 = 4864,
-                 * excluding virtually every national team from the
-                 * club-reputation window. Decode from raw bytes. */
-                const uint8_t *recordBytes = (const uint8_t *)rec;
-                uint16_t skill = (uint16_t)(((uint16_t)recordBytes[4] << 8) |
-                                            (uint16_t)recordBytes[5]);
+                uint16_t skill = BE_READ_U16(&rec->skillOrPrice);   /* (big-endian, as the table holds it) */
 
                 /* Yugoslavia uses its historically recovered rating (30), so the
                  * ordinary lower reputation bound can permanently exclude

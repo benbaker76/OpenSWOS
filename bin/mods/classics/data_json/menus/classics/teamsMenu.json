@@ -1,0 +1,2168 @@
+{
+ "name": "teamsMenu",
+ "comment": "HISTORIC TOURNAMENTS' teamsMenu (bin/mods/classics, src/mod_classics.c; from petarku's classicTeamsMenu): its handlers are classics.<name>.",
+ "onInit": "classics.teamsInit",
+ "onReturn": null,
+ "onDraw": null,
+ "defaultEntry": 2,
+ "items": [
+  {
+   "kind": "coords_mode",
+   "wide": false
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 35,
+    "y": 0,
+    "w": -6,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 35,
+    "y": 17,
+    "w": -6,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 0
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "CLICK A TEAM TO CHANGE WHO CONTROLS IT"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 29,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 18,
+     "up": -1,
+     "down": 3
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 38,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 19,
+     "up": 2,
+     "down": 4
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 47,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 20,
+     "up": 3,
+     "down": 5
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 56,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 21,
+     "up": 4,
+     "down": 6
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 65,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 22,
+     "up": 5,
+     "down": 7
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 74,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 23,
+     "up": 6,
+     "down": 8
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 83,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 24,
+     "up": 7,
+     "down": 9
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 92,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 25,
+     "up": 8,
+     "down": 10
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 101,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 26,
+     "up": 9,
+     "down": 11
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 110,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 27,
+     "up": 10,
+     "down": 12
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": 119,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 28,
+     "up": 11,
+     "down": 13
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": -128,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 29,
+     "up": 12,
+     "down": 14
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": -119,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 30,
+     "up": 13,
+     "down": 15
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": -110,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 31,
+     "up": 14,
+     "down": 16
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": -101,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 32,
+     "up": 15,
+     "down": 17
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 4,
+    "y": -92,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 33,
+     "up": 16,
+     "down": 66
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 29,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": 34,
+     "up": -1,
+     "down": 19
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 38,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 3,
+     "right": 35,
+     "up": 18,
+     "down": 20
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 47,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 4,
+     "right": 36,
+     "up": 19,
+     "down": 21
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 56,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 5,
+     "right": 37,
+     "up": 20,
+     "down": 22
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 65,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 6,
+     "right": 38,
+     "up": 21,
+     "down": 23
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 74,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 7,
+     "right": 39,
+     "up": 22,
+     "down": 24
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 83,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 8,
+     "right": 40,
+     "up": 23,
+     "down": 25
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 92,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 9,
+     "right": 41,
+     "up": 24,
+     "down": 26
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 101,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 10,
+     "right": 42,
+     "up": 25,
+     "down": 27
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 110,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 11,
+     "right": 43,
+     "up": 26,
+     "down": 28
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": 119,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 12,
+     "right": 44,
+     "up": 27,
+     "down": 29
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": -128,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 13,
+     "right": 45,
+     "up": 28,
+     "down": 30
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": -119,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 14,
+     "right": 46,
+     "up": 29,
+     "down": 31
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": -110,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 15,
+     "right": 47,
+     "up": 30,
+     "down": 32
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": -101,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 16,
+     "right": 48,
+     "up": 31,
+     "down": 33
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 83,
+    "y": -92,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 17,
+     "right": 49,
+     "up": 32,
+     "down": 66
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 29,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 18,
+     "right": 50,
+     "up": -1,
+     "down": 35
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 38,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 19,
+     "right": 51,
+     "up": 34,
+     "down": 36
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 47,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 20,
+     "right": 52,
+     "up": 35,
+     "down": 37
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 56,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 21,
+     "right": 53,
+     "up": 36,
+     "down": 38
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 65,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 22,
+     "right": 54,
+     "up": 37,
+     "down": 39
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 74,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 23,
+     "right": 55,
+     "up": 38,
+     "down": 40
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 83,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 24,
+     "right": 56,
+     "up": 39,
+     "down": 41
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 92,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 25,
+     "right": 57,
+     "up": 40,
+     "down": 42
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 101,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 26,
+     "right": 58,
+     "up": 41,
+     "down": 43
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 110,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 27,
+     "right": 59,
+     "up": 42,
+     "down": 44
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": 119,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 28,
+     "right": 60,
+     "up": 43,
+     "down": 45
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": -128,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 29,
+     "right": 61,
+     "up": 44,
+     "down": 46
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": -119,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 30,
+     "right": 62,
+     "up": 45,
+     "down": 47
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": -110,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 31,
+     "right": 63,
+     "up": 46,
+     "down": 48
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": -101,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 32,
+     "right": 64,
+     "up": 47,
+     "down": 49
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -94,
+    "y": -92,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 33,
+     "right": 65,
+     "up": 48,
+     "down": 66
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 29,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 34,
+     "right": -1,
+     "up": -1,
+     "down": 51
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 38,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 35,
+     "right": -1,
+     "up": 50,
+     "down": 52
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 47,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 36,
+     "right": -1,
+     "up": 51,
+     "down": 53
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 56,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 37,
+     "right": -1,
+     "up": 52,
+     "down": 54
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 65,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 38,
+     "right": -1,
+     "up": 53,
+     "down": 55
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 74,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 39,
+     "right": -1,
+     "up": 54,
+     "down": 56
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 83,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 40,
+     "right": -1,
+     "up": 55,
+     "down": 57
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 92,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 41,
+     "right": -1,
+     "up": 56,
+     "down": 58
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 101,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 42,
+     "right": -1,
+     "up": 57,
+     "down": 59
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 110,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 43,
+     "right": -1,
+     "up": 58,
+     "down": 60
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": 119,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 44,
+     "right": -1,
+     "up": 59,
+     "down": 61
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": -128,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 45,
+     "right": -1,
+     "up": 60,
+     "down": 62
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": -119,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 46,
+     "right": -1,
+     "up": 61,
+     "down": 63
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": -110,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 47,
+     "right": -1,
+     "up": 62,
+     "down": 64
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": -101,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 48,
+     "right": -1,
+     "up": 63,
+     "down": 65
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -15,
+    "y": -92,
+    "w": 76,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 49,
+     "right": -1,
+     "up": 64,
+     "down": 66
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 10
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.toggleTeam"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 60,
+    "y": -71,
+    "w": 96,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 67,
+     "up": 17,
+     "down": -1
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "PLAY"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.play"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": -71,
+    "w": 96,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 66,
+     "right": -1,
+     "up": 17,
+     "down": -1
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "str": "_aExit"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "SetExitMenuFlag"
+    }
+   ]
+  }
+ ]
+}

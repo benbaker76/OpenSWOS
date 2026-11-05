@@ -375,8 +375,20 @@ skip_title_screens: ;
                 SrpResim_Run();       /* plays a recorded match again, then exits */
         }
         {
+            /* --convert-diy: the save writer wants the game's data as a match does. */
+            extern int32_t DiyConvert_Armed(void);
+            extern void    DiyConvert_Run(void);
+            if (DiyConvert_Armed())
+                DiyConvert_Run();     /* writes the JSON .DIY, then exits */
+        }
+        {
             extern int32_t ReplayV2_ViewTestArmed(void);
             extern void    ReplayV2_ViewTestRun(void);
+            extern int32_t LiveCast_Armed(void);
+            extern int32_t LiveCast_Run(char *viewPath, uint32_t cap);
+            static char livePath[64];
+            if (LiveCast_Armed() && LiveCast_Run(livePath, sizeof livePath) != 0)
+                exit(1);            /* (LIVE CAST: nothing to watch -- said why) */
             if (ReplayV2_ViewTestArmed())
                 ReplayV2_ViewTestRun();   /* plays a .SRP, then exits */
         }

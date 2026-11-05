@@ -17,6 +17,7 @@
 #ifdef SWOS_SDL_BUILD
 
 #include "swos_types.h"
+#include "srp_writer.h"      /* SrpAudioEvent (ReplayV2_LiveAppend) */
 
 #define REPLAY_V2_EXT          0x2E535250u      /* '.SRP', as the file menus pack it */
 #define REPLAY_V2_LATEST       "LATEST.SRP"
@@ -107,6 +108,9 @@ int32_t ReplayV2_LoadPrediction(const char *name, uint32_t frames, uint8_t **pre
 int32_t ReplayV2_Load(const uint8_t *name);
 void    ReplayV2_Unload(void);
 int32_t ReplayV2_Loaded(void);
+/* LIVE CAST (src/live_cast.c): frames to play after those loaded; 0 when appended. */
+int32_t ReplayV2_LiveAppend(const uint8_t *frms, uint32_t len, uint32_t count,
+                            const SrpAudioEvent *audio, uint32_t audioCount);
 /* The recording carries its own sounds (so the viewer must not add random crowd chants). */
 int32_t ReplayV2_HasAudio(void);
 

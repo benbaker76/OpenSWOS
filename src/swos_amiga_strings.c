@@ -480,6 +480,7 @@ char _a2020Style[] = "2020";
  * (the SDL build writes how many are on over it, OptionsMenuBeforeDraw). */
 char _aModsOption[] = "MODS";
 char _aModes[] = "MODES";
+char _aTeamPacks[] = "TEAM PACKS";
 char _aModsNone[] = "NONE";
 char _aGoals[] = "GOALS";
 char _aForm[] = "FORM";

@@ -135,7 +135,7 @@ extern uint16_t _removedOfferPlayersFromOtherTeamsCount;
 /* ---- Additional externs for Chunk 75 ---- */
 extern uint16_t _numPlayersOnTransferMarket;
 /* Actual storage is a byte array in career_transfer_market.c. */
-extern uint8_t _playersOnTransferMarket[20];
+extern uint16_t _playersOnTransferMarket[];
 extern uint16_t _financeTotalsNeedResetFlag;
 extern int32_t  _newBalance;
 extern int32_t  _old_balance;
@@ -1352,7 +1352,7 @@ __attribute__((used, externally_visible))
 int16_t FindPlayerOnTransferMarket(uint16_t playerId)
 {
     uint16_t count = _numPlayersOnTransferMarket;
-    const uint8_t *p;
+    const uint16_t *p;
     uint16_t i;
 
     if (count == 0)
@@ -1381,7 +1381,7 @@ void AddPlayerToTransferMarket(uint16_t playerId)
 {
     uint16_t count;
 
-    /* Entries are byte-sized physical player slots (0..31), NOT words.
+    /* Entries are physical player slots (0..31), host-order words.
      * Guard against duplicates and invalid indices, including repeated
      * selections after selling or moving players. */
     if (_numPlayersOnTransferMarket >= 10 || playerId >= 32)
@@ -1390,7 +1390,7 @@ void AddPlayerToTransferMarket(uint16_t playerId)
         return;
 
     count = _numPlayersOnTransferMarket;
-    _playersOnTransferMarket[count] = (uint8_t)playerId;
+    _playersOnTransferMarket[count] = playerId;
     _numPlayersOnTransferMarket = count + 1;
 }
 
@@ -1407,7 +1407,7 @@ __attribute__((used, externally_visible))
 void RemovePlayerFromTransferMarket(uint16_t playerId)
 {
     uint16_t count = _numPlayersOnTransferMarket;
-    uint8_t *p = _playersOnTransferMarket;
+    uint16_t *p = _playersOnTransferMarket;
     uint16_t i;
     int16_t foundIdx = -1;
 
@@ -1423,7 +1423,7 @@ void RemovePlayerFromTransferMarket(uint16_t playerId)
     if (foundIdx < 0)
         return;
 
-    /* Compact byte entries, and clear the old final slot so a reload
+    /* Compact the entries, and clear the old final slot so a reload
      * cannot expose a stale player ordinal. */
     {
         uint16_t j;
@@ -1434,10 +1434,9 @@ void RemovePlayerFromTransferMarket(uint16_t playerId)
     _numPlayersOnTransferMarket = count - 1;
 }
 
-/* Correct old transfer lists after loading an affected save. Older builds
- * treated this byte array as uint16_t[], leaving duplicate zero entries.
- * Preserve a single 0 entry because goalkeeper slot 0 is a legitimate
- * player selection. No changes to the roster or transfer offers. */
+/* Tidy a loaded transfer list: drop duplicates and out-of-range slots. Preserve a single 0
+ * entry because goalkeeper slot 0 is a legitimate player selection. No changes to the roster
+ * or transfer offers. */
 static void SWOS_RepairTransferList(void)
 {
     uint16_t count = _numPlayersOnTransferMarket;
@@ -1446,7 +1445,7 @@ static void SWOS_RepairTransferList(void)
     if (count > 10)
         count = 10;
     for (i = 0; i < count; ++i) {
-        uint8_t slot = _playersOnTransferMarket[i];
+        uint16_t slot = _playersOnTransferMarket[i];
         uint16_t j;
         int seen = 0;
         if (slot >= 32)
@@ -5155,10 +5154,12 @@ void TrainingMatch_AddTrialPlayerToSelectedTeam(uint16_t role)
  * Adjusts the selected team roster for training match by removing
  * excess goalkeepers/subs and adding trial players to fill gaps.
  *
- * in: d0 = team number, d1 = base count, a0 = team pointer
+ * in: d0 = the availability flag (playMatchExcludeFlags; each GetNumberOfAvailable* gets it,
+ *     SWOS2.s `move.w d4,d0` -- it was passed as 0, counting suspended players: Career+'s
+ *     §3.1), d1 = base count, a0 = team pointer
  * ================================================================ */
 __attribute__((used, externally_visible))
-void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16_t baseCount, TeamFileEx *teamPtr)
+void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, uint16_t baseCount, TeamFileEx *teamPtr)
 {
     if (_isNationalSelector != 0)
         return;
@@ -5173,7 +5174,7 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16
     if (_trainingGame != 0)
         baseCount <<= 1;  /* lsl.w #1,d1 */
 
-    uint16_t d4 = teamNum;
+    uint16_t d4 = excludeFlags;   /* (the availability flag, not a team: `move.w d4,d0` before each count) */
     uint16_t d5 = baseCount;
 
     if (_trainingGame == 0) {

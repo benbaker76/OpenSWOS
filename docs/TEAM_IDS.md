@@ -115,7 +115,40 @@ match it plays. `HOST_ENV="SWOS_TEAMCHECK_CORRUPT=1" TEAMCHECK_REFUSE=1 scripts/
 asks about the other player's team with a checksum that is not its data's, and requires the
 refusal, and that no match is played.
 
-## 6. Still a plan: downloadable teams
+## 6. Team packs: teams a mod brings (built 2026-11-04)
+
+A **team pack** is a mod's `data_json/teampacks/<name>.json` in the database's own team format
+(the header of `bin/data_json/teams/<COUNTRY>.json`: `"type": "team"`, `"country"`, `"teams"`),
+with a country number of its own, **210-249** (`TEAMPACK_FIRST..LAST`, include/team_packs.h) --
+outside every country's and every world file's (countries go to 85, second files to 197,
+`kOwnCustoms` is 100). `src/team_packs.c` finds them in the mods that are on, and
+`dj_slurp_country_teams` hands a pack's file to the game for its number when neither
+`countries.json` nor the world has one. So the team database, match loading (`LoadTeamFile`) and
+the online rule (`CustomTeam_Allowed`) take a pack's teams exactly as the database's. A number
+outside the range, or one an earlier pack took, is refused in the log.
+
+`scripts/make_team_pack.py PACK.json --number 210 [--name ...] [--from <database file> --teams
+"A,B"]` makes one: the number on the pack and its teams (ordinals in order), a **new uuid** (uuid4)
+for every team and player without one -- a pack's team is not the database's, even when it starts
+as a copy -- the checksum as the game computes it, and `PACK.registry.inc` beside it: the
+matchmaking server's lines for those teams. A mod of packs is `"changes": "data"`: online, both
+players need it alike (the mods' signature), and a server that is to verify its teams compiles its
+lines in (SWOS United's server keeps its own). Checked: a pack of two teams copied from England's
+file (number 210) -- CHELSEA, from the pack, plays a full match (`SWOS_MOD_MATCH_TEAMS=d201,5502
+SWOS_MOD_MATCH_TEST=1`) and the online rule accepts it. SWOS United's fun cup is built on it.
+
+**Choosing a pack's teams** (H11): CHOOSE TEAMS has a **TEAM PACKS** row (entry 5, the title
+moved to 6) while a mod that is on has a pack -- never on the Amiga. One pack: its teams; more: a
+list of them (`openswos/teamPacksMenu`, each its `country_name`, the cursor's its `description`).
+The teams then list as ORIGINAL CUSTOM TEAMS do, through the game's own team list: at start-up each
+pack gets a country name and a league of its own at its number (`TeamPacks_Install`: a copy of the
+customs league, its team file the pack's), and `SelectTeamsFinalMenu` takes the pack's number for
+the new team type `TEAM_PACK_TEAMS` (4) where it takes 72 for the custom teams. A mod goes there
+straight with `ModApi_ChooseFromPack(number)`; `ModApi_PackCount / PackInfo` list them. Checked:
+the row with a pack and without one, and a pack's two teams in the team list (CPU / player as for
+any team).
+
+## 7. Still a plan: downloadable teams
 
 - **Downloadable teams** (the DLC manager, SWOS-Launcher) arrive as team JSON with their ids
   and checksums; the server's list is what a download is verified against, and what tells a

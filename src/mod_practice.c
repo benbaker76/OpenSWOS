@@ -4,8 +4,10 @@
  *
  * MODES -> PRACTICE opens its menu (bin/mods/practice/data_json/menus/practice/practiceMenu.json,
  * its handlers practice.<name>):
- *   PENALTY SHOOTOUT  the friendly's team screen (who plays each side), then straight to a shoot-out
- *                     (SWOS 2020: challengeGame2Practice_OnSelect, minute 120 with penalties)
+ *   PENALTY SHOOTOUT  the friendly's team screen (who plays each side), each player's side's SHOOTING
+ *                     ORDER (shootoutOrderMenu.json; petarku's), then straight to a shoot-out with a
+ *                     player's keeper his to dive (SWOS 2020: challengeGame2Practice_OnSelect, minute
+ *                     120 with penalties)
  *   DEMO GAME         two random national teams, CPU v CPU (demoGamePractice_OnSelect)
  *   TEAM TRAINING     its settings (trainingMenu.json; SWOS 2020's practiceSetting.mnu): each line,
  *                     yours and the CPU's, on or off, the goal you attack; START, the team screen,
@@ -21,8 +23,108 @@
 #ifdef SWOS_SDL_BUILD
 
 #include <stdio.h>
+#include <stdlib.h>
 
 extern void SetExitMenuFlag(void);
+
+/* ---- the shoot-out's SHOOTING ORDER (petarku's, the5ar: his fork's penalty_shootout.c) ----
+ * For each side a player plays, its ten outfielders as the queue (shootoutOrderMenu.json): 1-5 the
+ * best-of-five takers, 6-10 after them. Fire on one, then on another, and the two swap. It starts
+ * as the game's own order (NextPenalty walks line-up slots 10, 9 .. 1), so START SHOOTOUT at once
+ * changes nothing. */
+enum { Or_header, Or_subTitle, Or_row0, Or_note = Or_row0 + 10, Or_start, Or_exit };
+enum { kRowColour = 13, kPickedColour = 14 };
+
+static uint8_t s_order[10];             /* the side on the screen: line-up slots, shooting order */
+static int32_t s_orderTeam;             /* 0 / 1: that side */
+static int32_t s_picked = -1;           /* the row picked first, -1 none */
+static int32_t s_orderGo;               /* START SHOOTOUT pressed */
+static char    s_orderText[10][40];
+static char    s_orderTitle[40];
+
+static void order_refresh(void)
+{
+    static const char *const kPos[8] = { "GK", "RB", "LB", "D", "RW", "LW", "M", "A" };
+    ModTeamPlayer p;
+
+    snprintf(s_orderTitle, sizeof s_orderTitle, "%s", ModApi_ChosenName(s_orderTeam));
+    ModApi_MenuText(Or_subTitle, s_orderTitle);
+    for (int32_t i = 0; i < 10; i++) {
+        if (ModApi_ChosenTeamPlayer(s_orderTeam, s_order[i], &p))
+            snprintf(s_orderText[i], sizeof s_orderText[i], "%2d  %-18.18s %s", (int)i + 1, p.name,
+                     kPos[p.position & 7]);
+        else
+            snprintf(s_orderText[i], sizeof s_orderText[i], "%2d", (int)i + 1);
+        ModApi_MenuText(Or_row0 + i, s_orderText[i]);
+        ModApi_MenuColour(Or_row0 + i, i == s_picked ? kPickedColour : kRowColour);
+    }
+    ModApi_MenuText(Or_note, s_picked < 0 ? "PICK A PLAYER, THEN ANOTHER: THEY SWAP" : "NOW THE ONE TO SWAP WITH");
+}
+
+static void order_init(void)
+{
+    for (int32_t i = 0; i < 10; i++)
+        ModApi_MenuNav4(Or_row0 + i, -1, -1, i ? Or_row0 + i - 1 : -1, i < 9 ? Or_row0 + i + 1 : Or_start);
+    ModApi_MenuNav4(Or_start, -1, Or_exit, Or_row0 + 9, -1);
+    ModApi_MenuNav4(Or_exit, Or_start, -1, Or_row0 + 9, -1);
+    order_refresh();
+}
+
+static void order_draw(void) { order_refresh(); }
+
+static void order_row(int32_t i)
+{
+    if (getenv("SWOS_MOD_EVENT_LOG"))
+        fprintf(stderr, "[practice] row %d fire at %u (picked %d)\n", (int)i + 1, (unsigned)ModApi_Ticks(),
+                (int)s_picked + 1);
+    if (s_picked < 0) {
+        s_picked = i;
+    } else {
+        uint8_t t = s_order[i];
+        s_order[i] = s_order[s_picked];
+        s_order[s_picked] = t;
+        fprintf(stderr, "[practice] shooting order: %d <-> %d\n", (int)s_picked + 1, (int)i + 1);
+        s_picked = -1;
+    }
+    order_refresh();
+    for (int32_t r = 0; r < 10; r++)
+        ModApi_MenuRedraw(Or_row0 + r);
+    ModApi_MenuRedraw(Or_note);
+}
+
+static void orow0(void) { order_row(0); }
+static void orow1(void) { order_row(1); }
+static void orow2(void) { order_row(2); }
+static void orow3(void) { order_row(3); }
+static void orow4(void) { order_row(4); }
+static void orow5(void) { order_row(5); }
+static void orow6(void) { order_row(6); }
+static void orow7(void) { order_row(7); }
+static void orow8(void) { order_row(8); }
+static void orow9(void) { order_row(9); }
+static void order_start(void) { s_orderGo = 1; SetExitMenuFlag(); }
+static void order_exit(void)  { s_orderGo = 0; SetExitMenuFlag(); }
+
+/* The order of each side a player plays, chosen on the screen; a CPU side shoots as the game
+ * picks. 0 when the player left. */
+static int32_t choose_orders(ModMatchSetup *setup)
+{
+    for (int32_t t = 0; t < 2; t++) {
+        if (!ModApi_ChosenIsPlayer(t))
+            continue;
+        for (int32_t i = 0; i < 10; i++)
+            s_order[i] = (uint8_t)(10 - i);
+        s_orderTeam = t;
+        s_picked = -1;
+        s_orderGo = 0;
+        ModApi_ShowMenu("practice/shootoutOrderMenu");
+        if (!s_orderGo)
+            return 0;
+        for (int32_t i = 0; i < 10; i++)
+            setup->shootoutOrder[t][i] = s_order[i];
+    }
+    return 1;
+}
 
 static void practice_shootout(void)
 {
@@ -31,8 +133,11 @@ static void practice_shootout(void)
     if (!ModApi_ChooseTeams())
         return;
     ModApi_DefaultSetup(&setup);
+    if (!choose_orders(&setup))
+        return;
     setup.chosen = 1;
     setup.shootoutOnly = 1;
+    setup.manualKeeper = 1;                 /* a player's keeper dives where he holds (petarku's) */
     setup.autoReplays = 0;
     setup.replayMenu = 0;
     setup.name = "shootout";
@@ -157,6 +262,10 @@ static void practice_init(void)
 {
     static const ModHandler kHandlers[] = {
         { "shootout", practice_shootout },
+        { "orderInit", order_init }, { "orderDraw", order_draw },
+        { "orow0", orow0 }, { "orow1", orow1 }, { "orow2", orow2 }, { "orow3", orow3 }, { "orow4", orow4 },
+        { "orow5", orow5 }, { "orow6", orow6 }, { "orow7", orow7 }, { "orow8", orow8 }, { "orow9", orow9 },
+        { "orderStart", order_start }, { "orderExit", order_exit },
         { "demo", practice_demo },
         { "training", practice_training },
         { "trainingInit", training_init },

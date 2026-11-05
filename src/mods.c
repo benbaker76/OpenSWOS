@@ -250,7 +250,13 @@ static int uuid_ok(const char *u)
 }
 
 /* The canonical mods: those in the game's own mods/ folder (include/mods.h). */
-static struct { char id[MODS_ID_MAX]; char uuid[40]; uint8_t byDefault; } s_canon[MODS_MAX];
+static struct { char id[MODS_ID_MAX]; char uuid[40]; uint8_t byDefault, cosmetic; } s_canon[MODS_MAX];
+
+/* A rig is running (--replay-test, --srp-resim, --career-golden): it proves the original game, so
+ * a canonical mod that is on by default is on only if it changes nothing but the picture; one
+ * the run names itself (--mods) is still on (docs/MODS.md §26). */
+static int32_t s_rig;
+void Mods_SetRig(int32_t on) { s_rig = on; }
 static int32_t s_canonCount;
 
 static int in_list(const char *list, const char *id)
@@ -404,6 +410,11 @@ void Mods_Init(const char *enabled, const char *disabled)
             if (mjson_get_string(json, len, "$.uuid", s_canon[s_canonCount].uuid, (int)sizeof s_canon[0].uuid) < 0)
                 s_canon[s_canonCount].uuid[0] = '\0';
             s_canon[s_canonCount].byDefault = mjson_get_bool(json, len, "$.default", &b) && b;
+            {
+                char changes[24] = "";
+                mjson_get_string(json, len, "$.changes", changes, (int)sizeof changes);
+                s_canon[s_canonCount].cosmetic = strcmp(changes, "cosmetic") == 0;
+            }
             free(json);
             s_canonCount++;
         }
@@ -434,7 +445,8 @@ void Mods_Init(const char *enabled, const char *disabled)
         }
     }
     for (int32_t c = 0; c < s_canonCount; c++)
-        if (s_canon[c].byDefault && !known(s_canon[c].id) && !in_list(disabled, s_canon[c].id)) {
+        if (s_canon[c].byDefault && !known(s_canon[c].id) && !in_list(disabled, s_canon[c].id) &&
+            (!s_rig || s_canon[c].cosmetic)) {
             snprintf(dir, sizeof dir, "%s/%s", MODS_CANONICAL_DIR, s_canon[c].id);
             load_one(s_canon[c].id, dir, 1);
         }

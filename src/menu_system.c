@@ -1625,6 +1625,9 @@ void DrawMenu(void)
     if (onDrawPtr != 0) {
         CallMenuCallback((void *)onDrawPtr);
     }
+#ifdef SWOS_SDL_BUILD
+    { extern void MenuExtras_BeforeDraw(void); MenuExtras_BeforeDraw(); }   /* (a JSON menu's description line) */
+#endif
 
     /* Draw all entries (centered via the persistent _menu_draw_x_offset). */
 #ifdef SWOS_SDL_BUILD
@@ -1668,6 +1671,7 @@ void DrawMenu(void)
                      (uint8_t *)_charTables[0]);   /* [0] = the small font */
 
 #ifdef SWOS_SDL_BUILD
+    { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }       /* (a JSON menu's images) */
     { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
 #endif
     WaitForVSync();
@@ -1933,6 +1937,7 @@ void MenuProc(void)
         if (_menuStatus == 0) {
             DrawSelectedMenuItemFrame();
 #ifdef SWOS_SDL_BUILD
+            { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }       /* (its images, every frame) */
             { extern void ModHooks_MenuDrawn(void); ModHooks_MenuDrawn(); }   /* (a mod's menu overlay) */
 #endif
             WaitForVSync();

@@ -1,0 +1,1091 @@
+{
+ "name": "listMenu",
+ "comment": "HISTORIC TOURNAMENTS' listMenu (bin/mods/classics, src/mod_classics.c; from petarku's classicListMenu): its handlers are classics.<name>.",
+ "onInit": "classics.listInit",
+ "onReturn": null,
+ "onDraw": null,
+ "defaultEntry": 1,
+ "items": [
+  {
+   "kind": "coords_mode",
+   "wide": false
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 60,
+    "y": 0,
+    "w": -56,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "HISTORIC TOURNAMENTS"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 20,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 17,
+     "up": -1,
+     "down": 2
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 30,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 18,
+     "up": 1,
+     "down": 3
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 40,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 19,
+     "up": 2,
+     "down": 4
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 50,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 20,
+     "up": 3,
+     "down": 5
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 60,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 21,
+     "up": 4,
+     "down": 6
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 70,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 22,
+     "up": 5,
+     "down": 7
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 80,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 23,
+     "up": 6,
+     "down": 8
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 90,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 24,
+     "up": 7,
+     "down": 9
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 100,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 25,
+     "up": 8,
+     "down": 10
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 110,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 26,
+     "up": 9,
+     "down": 11
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": 120,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 27,
+     "up": 10,
+     "down": 12
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": -126,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 28,
+     "up": 11,
+     "down": 13
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": -116,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 29,
+     "up": 12,
+     "down": 14
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": -106,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 30,
+     "up": 13,
+     "down": 15
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": -96,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 31,
+     "up": 14,
+     "down": 16
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 8,
+    "y": -86,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 32,
+     "up": 15,
+     "down": 33
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 20,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 1,
+     "right": -1,
+     "up": -1,
+     "down": 18
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 30,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 2,
+     "right": -1,
+     "up": 17,
+     "down": 19
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 40,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 3,
+     "right": -1,
+     "up": 18,
+     "down": 20
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 50,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 4,
+     "right": -1,
+     "up": 19,
+     "down": 21
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 60,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 5,
+     "right": -1,
+     "up": 20,
+     "down": 22
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 70,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 6,
+     "right": -1,
+     "up": 21,
+     "down": 23
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 80,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 7,
+     "right": -1,
+     "up": 22,
+     "down": 24
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 90,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 8,
+     "right": -1,
+     "up": 23,
+     "down": 25
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 100,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 9,
+     "right": -1,
+     "up": 24,
+     "down": 26
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 110,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 10,
+     "right": -1,
+     "up": 25,
+     "down": 27
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": 120,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 11,
+     "right": -1,
+     "up": 26,
+     "down": 28
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": -126,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 12,
+     "right": -1,
+     "up": 27,
+     "down": 29
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": -116,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 13,
+     "right": -1,
+     "up": 28,
+     "down": 30
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": -106,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 14,
+     "right": -1,
+     "up": 29,
+     "down": 31
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": -96,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 15,
+     "right": -1,
+     "up": 30,
+     "down": 32
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -92,
+    "y": -86,
+    "w": -108,
+    "h": 9
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": 16,
+     "right": -1,
+     "up": 31,
+     "down": 33
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "-"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickCompetition"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 92,
+    "y": -71,
+    "w": -120,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 16,
+     "down": -1
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "str": "_aExit"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "SetExitMenuFlag"
+    }
+   ]
+  }
+ ]
+}

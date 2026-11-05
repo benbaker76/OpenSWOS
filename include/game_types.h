@@ -1409,17 +1409,18 @@ extern EuroCupQualSeedBucketBlock _euroCupQualSeedBucketBlock;
  * the packed id against selTeamNumber via PACK_BE_U16, *not* a host
  * uint16 read.
  *
- * skillOrPrice is read host-native (`*(uint16_t *)(entry+4)`) by the
- * random-pick filters — see _PickRandomNationalTeamId / job_offers
- * searchNational. Keep that behaviour unchanged here; if it turns out
- * to be a latent endian bug, fix it separately and document.
+ * skillOrPrice is BIG-ENDIAN, as the table's bytes hold it (0x00 0x13 = 19):
+ * read it with BE_READ_U16. Read host-native it was 0x1300 on SDL, past every
+ * reputation window, so no national job offer was ever made and the career's
+ * friendly-cup / tour pick of national teams never filtered by it (Career+'s
+ * §3.1, 2026-11-05; the Amiga, big-endian, always read it right).
  * ================================================================== */
 typedef struct __attribute__((packed)) NationalTeamRecord {
     uint8_t  countryNumber;      /* 0 */
     uint8_t  teamOrdinal;        /* 1 */
     uint8_t  nationalityCode;    /* 2 */
     uint8_t  teamFileId;          /* 3 */
-    uint16_t skillOrPrice;        /* 4..5 — host-native, see note above */
+    uint16_t skillOrPrice;        /* 4..5 — big-endian: BE_READ_U16 (see above) */
 } NationalTeamRecord;
 
 typedef char _nationalteamrecord_size_check[(sizeof(NationalTeamRecord) == 6) ? 1 : -1];
@@ -1439,11 +1440,19 @@ typedef char _nationalteamrecord_size_check[(sizeof(NationalTeamRecord) == 6) ? 
  * helper `TeamSelectionKeyCache_GetCurrentMatchSlot()` returns the
  * properly-aligned `TeamSelectionKeyCacheMatchSlot *`.
  *
+ * An entry's stride is 10 + min(numTeams / 2, 24) * 12 (the builder caps a round at 24 matches),
+ * so it runs from 10 to 298: the walkers' corruption guards use these two bounds. 256 was used
+ * until 2026-11 and hid every fixture past a big cup round's entry (the English League Cup's
+ * second round: "the season shows only 6 games"; the5ar, b901477f).
+ *
  * Layout reverse-engineered from SWOS2.s lines 59549-59656 (entry
  * build), 60046-60054 (match-result write), 60723-60738
  * (GetCurrentSelectedElementPtr), and slot-build reads at
  * diy_competition.c:2776+ (compId/roundIdx lookup).
  * ================================================================== */
+#define KEYCACHE_STRIDE_MIN 10u
+#define KEYCACHE_STRIDE_MAX 298u
+
 typedef struct __attribute__((packed)) TeamSelectionKeyCacheMatchSlot {
     uint8_t  pairType;          /* +0  (elem[0x0A]) — 0/1/2 fixture type */
     uint8_t  matchFlags;        /* +1  (elem[0x0B]) — written post-match */

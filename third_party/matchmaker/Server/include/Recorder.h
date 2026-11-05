@@ -49,6 +49,7 @@ private:
         std::string address;
         std::string build, platform, name, peer, team1, team2;
         int gameplay = 0, mode = 0, delay = 0, simWidth = 0;
+        bool noWatch = false;       // LIVE CAST: its player keeps the match from viewers
         uint64_t relayToken = 0;
         std::vector<uint64_t> hashes;   // [frame]
         int outcome = -1;
@@ -104,9 +105,24 @@ private:
         std::vector<uint8_t> in;
         Match* match = nullptr;
         int player = 0;             // 1 or 2 once its HELLO has arrived
+
+        // A VIEWER (LIVE CAST, record_proto.h RECORD_WATCH): what it has been sent of the
+        // match it watches -- by id, so a match that finishes meanwhile is simply gone.
+        bool viewer = false;
+        bool closing = false;       // close once `out` has gone
+        uint64_t watchId = 0;
+        int watchSide = -1;         // the side whose stream it is sent
+        bool metaSent = false;
+        uint32_t sentFrames = 0, sentAudio = 0, sentChapters = 0;
+        std::vector<uint8_t> out;
     };
 
     bool Read(Connection& c);                       // false = close it
+    bool OnWatch(Connection& c, uint8_t type, const uint8_t* p, uint32_t len);
+    void ServeViewer(Connection& c);
+    static const Side* WatchedSide(const Match& m, int* which);
+    static void Queue(Connection& c, uint8_t type, const std::vector<uint8_t>& payload);
+    static bool Flush(Connection& c);               // false = the viewer has gone
     bool Handle(Connection& c, uint8_t type, const uint8_t* p, uint32_t len);
     bool OnHello(Connection& c, const uint8_t* p, uint32_t len);
     void OnFrames(Connection& c, const uint8_t* p, uint32_t len);

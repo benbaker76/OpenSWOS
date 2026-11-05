@@ -21,6 +21,10 @@
  * BenchCheckControls is called from GameLoop each frame.
  */
 
+#include "tweaks.h"
+#ifdef SWOS_SDL_BUILD
+#include <stdio.h>
+#endif      /* ai_injury_subs */
 #include "bench_subs.h"
 #include "dos_sound.h"
 #include "game_types.h"
@@ -248,7 +252,8 @@ static void drawFormationMenuEntry(uint8_t *charsTable, uint16_t y, uint16_t ent
 uint8_t _aiInjurySubsTeam1Allowed = 0;
 uint8_t _aiInjurySubsTeam2Allowed = 0;
 
-/* AI injury substitutions, at a match stoppage only.  No bench menu is
+/* AI injury substitutions (benefactorr's Career+; the ai_injury_subs tweak), at a match
+ * stoppage only.  No bench menu is
  * activated for a computer team, so we apply the same 61-byte roster swap
  * and refresh the team's tactics without altering the human menu state. */
 static int aiSubPositionCost(int oldPos, int newPos)
@@ -333,11 +338,19 @@ static void aiReplaceInjuredPlayer(TeamGeneralInfo *team, TeamGame *tg,
     _benchTeam = oldBenchTeam;
     _benchTeamGame = oldBenchGame;
     DOS_SOUND(DOS_EV_SUBSTITUTION, 0);
+#ifdef SWOS_SDL_BUILD
+    fprintf(stderr, "[tweaks] ai_injury_subs: the %s team's slot %d off injured, bench %d on\n",
+            isTopTeam ? "top" : "bottom", leaving, entering);
+#endif
 }
 
 static void aiCheckInjuredSubs(void)
 {
-    /* This is called from the existing stoppage-only bench check. */
+    /* This is called from the existing stoppage-only bench check -- only with the
+     * ai_injury_subs tweak on (include/tweaks.h): the original's computer never
+     * substitutes (BenchCheckControls answers only a player calling the bench). */
+    if (!Tweaks_On(TWEAK_AI_INJURY_SUBS))
+        return;
     if (_trainingGame || _inSubstitutesMenu || _substituteInProgress ||
         _waitForPlayerToGoInTimer || _cameraLeavingSubsTimer ||
         _refState || _injuriesForever || _statsTimer ||

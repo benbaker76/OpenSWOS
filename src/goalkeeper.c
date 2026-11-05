@@ -407,6 +407,18 @@ setup_next:
     (*shooterIdx)--;
     if (*shooterIdx == 0)
         *shooterIdx = 10;
+#ifdef SWOS_SDL_BUILD
+    {
+        /* A mod's match with its own order of takers (mod_match.c, H5; the5ar's SHOOTING
+         * ORDER, 920e9123): written through the same variable, so all below sees nothing new. */
+        extern int16_t ModMatch_ShootoutSlot(int16_t teamNumber, int16_t attempt);
+        const int16_t slot = ModMatch_ShootoutSlot(_bottomTeamData.teamNumber,
+                                                   _bottomTeamData.teamNumber == 1 ? _team1PenaltyAttempts
+                                                                                  : _team2PenaltyAttempts);
+        if (slot)
+            *shooterIdx = slot;
+    }
+#endif
 
     /* Load penalty shooter sprite pointer */
     {
@@ -618,4 +630,25 @@ GoalkeeperJumping(int16_t diveDir, int16_t speedVariant, int16_t destDir,
     int16_t destIdx = destDir * 2;
     keeper->destX = keeper->x.s.i + _kDefaultDestinations[destIdx];
     keeper->destY = keeper->y.s.i + _kDefaultDestinations[destIdx + 1];
+}
+
+
+/* ==================================================================
+ * GoalkeeperForceDiveAnim -- OpenSWOS, for a mod's manual penalty keeper (the5ar)
+ *
+ * GoalkeeperJumping picks the high or low dive from the ball's height -- the AI knows where
+ * the ball is. A player's keeper guesses the height with the side (down held = low), so after
+ * GoalkeeperJumping set the rest up, this re-picks the state and animation from that choice.
+ * ================================================================== */
+void GoalkeeperForceDiveAnim(Sprite *keeper, TeamGeneralInfo *team, int16_t low)
+{
+    if (low) {
+        keeper->playerState = (uint8_t)PL_GOALIE_DIVING_LOW;
+        SetPlayerAnimationTable(team == &_bottomTeamData ? &_rightGoalieJumpingLowAnimTable
+                                                         : &_leftGoalieJumpingLowAnimTable, keeper);
+    } else {
+        keeper->playerState = (uint8_t)PL_GOALIE_DIVING_HIGH;
+        SetPlayerAnimationTable(team == &_bottomTeamData ? &_rightGoalieJumpingHighAnimTable
+                                                         : &_leftGoalieJumpingHighAnimTable, keeper);
+    }
 }

@@ -13,6 +13,7 @@
 #include "swos_identity_runtime.h"
 #include "swos_identity_seed.h"
 #include "ai_career_pool_capacity.h"
+#include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "game_types.h"
 #include "league_playoffs.h"
 #include "uefa_coef.h"
@@ -4014,12 +4015,7 @@ void InitializeNewSeason(void)
     si->managerStatus     = 0;
 
     /* Copy team name to season info CLUBNAME */
-    /* TeamFile.teamName is fixed-width (17 bytes), followed by the live
-     * writesZeroHere/own-goal field. Never let a season-history copy read
-     * that field or overrun SeasonInformations.clubName[18]. */
-    memcpy(si->clubName, _careerTeam.team.teamName,
-           sizeof(_careerTeam.team.teamName));
-    si->clubName[sizeof(_careerTeam.team.teamName)] = 0;
+    SWOS_TeamNameCopy((uint8_t *)_careerTeam.team.teamName, (uint8_t *)si->clubName);
 
     /* Verify team loaded and get current division index */
     TeamFileEx *teamFile = VerifyTeamLoaded(_selTeamNumber);

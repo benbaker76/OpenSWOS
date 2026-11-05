@@ -115,6 +115,16 @@ an original-sized one):
 | your transfer list | 5 | 10 (+ five TRANSFER MARKET rows) |
 | job offer queues `new_job_offers` / `job_offers` | 5 | 20 (+ NEXT PAGE) |
 
+The transfer list's save key `players_on_transfer_market_ids` is sized in BYTES (`FA`, 2 per
+entry): the capacity scales its storage and its length together, with a static assert that they
+match. (Until then this branch writes 20.)
+
+With these, one rule param: `trialist_count_mode` -- 0 = the caller's availability flag, as
+SWOS2.s (`d4 -> d0` before each `GetNumberOfAvailable*`); 1 = Career+'s (injured AND suspended in
+every non-training match, so an injury plus a suspension still brings a trialist).
+`TrainingMatch_AdjustSelectedTeamRosterForTrialists`, transfer_market.c. Not a base fix: main is
+the original. This branch keeps the fork's code until the param lands.
+
 ### 3.3 National teams and nationalities from data
 
 `_nationalTeams` (63 records), `_numNationalTeams` and `_nationalityOrdinalsArray` (64) are

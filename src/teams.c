@@ -31,6 +31,7 @@
 #define GAME_TYPE_CAREER            4
 #define ORIGINAL_CUSTOM_TEAMS   2
 #define EDITED_CUSTOM_TEAMS     3
+#define TEAM_PACK_TEAMS         4       /* a mod's team pack (include/team_packs.h): its own number */
 #define CN_EUROPE           80
 #define CN_AFRICA           81
 #define CN_SOUTH_AMERICA    82
@@ -3001,8 +3002,23 @@ void ChooseTeamsInit(void)
         return;
     }
 
-    /* entry 5 = (menuEntries+MENUENTRY_ALREADYDRAWN+$118) = entry at offset 0x118/56 = 5 */
-    MenuEntry *headerEntry = &_menuEntries[5];
+    /* TEAM PACKS (entry 5, OpenSWOS): shown while a mod that is on has a team pack
+     * (include/team_packs.h); never on the Amiga. Hidden, EDITED CUSTOM and EXIT are each
+     * other's neighbours again. */
+    {
+#ifdef SWOS_SDL_BUILD
+        extern int32_t TeamPacks_Count(void);
+        const int32_t packs = TeamPacks_Count() > 0;
+#else
+        const int32_t packs = 0;
+#endif
+        _menuEntries[5].isInvisible = !packs;
+        _menuEntries[3].downEntry = (int8_t)(packs ? 5 : 4);
+        _menuEntries[4].upEntry = (int8_t)(packs ? 5 : 3);
+    }
+
+    /* the title: entry 6 since OpenSWOS added TEAM PACKS as entry 5 (it was the 0x118/56 = 5) */
+    MenuEntry *headerEntry = &_menuEntries[6];
     char *dst = (char *)headerEntry->fg;
     char *src = (char *)_chooseTeamsHeader1stPart;
     if (src != 0) {
@@ -3074,6 +3090,12 @@ static uint16_t groupedLeagueRows(const LeagueGroups *lg, uint8_t *compEntry,
     }
     return rows;
 }
+
+#ifdef SWOS_SDL_BUILD
+extern const char *ModComps_RowLabel(void);     /* (src/mod_comps.c) */
+extern int32_t     ModComps_Choose(void);
+static uint8_t     k_modCompsMarker;
+#endif
 
 __attribute__((used, externally_visible))
 void SelectTeamsFinalMenu(uint16_t mode)
@@ -3153,6 +3175,12 @@ void SelectTeamsFinalMenu(uint16_t mode)
     } else if (_teamsType == ORIGINAL_CUSTOM_TEAMS) {
         d6 = 72;
     }
+#ifdef SWOS_SDL_BUILD
+    else if (_teamsType == TEAM_PACK_TEAMS) {   /* (as the custom teams, at the pack's number) */
+        extern int32_t TeamPacks_Chosen(void);
+        d6 = (uint16_t)TeamPacks_Chosen();
+    }
+#endif
 
     /* loc_13DFF6: */
     d7 = (uint8_t)d6;
@@ -3188,6 +3216,17 @@ loc_E012:
     leagueNumsOut = _leagueNumbersTable;
     d1 = 0;
     a5 = compList;
+#ifdef SWOS_SDL_BUILD
+    /* Competitions from mods (src/mod_comps.c, MODPOINT_COMPETITIONS): one row above WORLD CUP
+     * in PRESET COMPETITION's world list. It is no competition: its slot in leaguesPtrTable
+     * holds a marker, which the selection below catches before anything reads it as one. */
+    if ((uint8_t)d7 == 254 && _choosingPreset != 0 && ModComps_RowLabel() != NULL) {
+        *teamNamesPtr++ = (void *)ModComps_RowLabel();
+        *leaguesPtrOut++ = (void *)&k_modCompsMarker;
+        *leagueNumsOut++ = 0xFFFF;
+        d1++;
+    }
+#endif
 
     /* loc_13E086: iterate through competition entries */
 loc_E086:
@@ -3295,6 +3334,7 @@ skip_continental_check:
     if (_showCupsAndOther == 0 &&
         _teamsType != ORIGINAL_CUSTOM_TEAMS &&
         _teamsType != EDITED_CUSTOM_TEAMS &&
+        _teamsType != TEAM_PACK_TEAMS &&
         _teamDepthLevel != COUNTRY_DEPTH) {
         goto loc_E086;
     }
@@ -3444,6 +3484,17 @@ loc_E2D0:
 
     if (_viewSelectedTeams != 0)
         goto loc_E73A;
+
+#ifdef SWOS_SDL_BUILD
+    /* The mods' competitions row: their screens; leave as if backed out when one is to start
+     * (PresetCompetitionMenu starts it), else back to the world list. */
+    if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
+        _leaguesPtrTable[_selectedLeagueIndex] == (void *)&k_modCompsMarker) {
+        if (ModComps_Choose())
+            goto exit_clear;
+        goto loc_E012;
+    }
+#endif
 
     /* Check selectedTeamIndex */
     d7 = (uint16_t)_selectedTeamIndex;

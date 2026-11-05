@@ -1493,7 +1493,7 @@ void FormTopSkillsString(uint8_t *dst, PlayerFile *playerFile)
 
 extern uint16_t _inEditTactics;
 extern uint8_t _playMatchMenu[];
-extern void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t teamNum, uint16_t baseCount, TeamFileEx *teamPtr);
+extern void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, uint16_t baseCount, TeamFileEx *teamPtr);
 
 /* National career match roster copies can acquire a transient status bucket
  * while processing other fixtures, without that status being reflected in the

@@ -58,6 +58,7 @@
 #include "jag_graphics.h"       /* --jag-graphics */
 #include "kit_art.h"            /* --kit-art */
 #include "custom_team.h"        /* --custom-team-selftest */
+#include "diy_import_dos.h"     /* --convert-diy */
 #include "dos_sound.h"          /* --sound-style, --dos-sound-selftest */
 #include "dos_music.h"          /* --music, --dos-music-selftest */
 #include "pitch_map.h"          /* --pitch-maps */
@@ -300,6 +301,8 @@ static void print_usage(const char *argv0)
         "                            and report what it found. Exits.\n"
         "  --dos-sound-selftest      Check that every PC sound file is in sound_dos/\n"
         "                            and every table names one. Exits.\n"
+        "  --convert-diy=<in>,<out>  Rewrite a PC/SWOS 2020 .DIY as this game's JSON\n"
+        "                            .DIY, which the Amiga loads. Exits.\n"
         "  --custom-team-selftest    Check every database team against the custom team\n"
         "                            rule (names, faces, kits and line-up only) and\n"
         "                            through the team file's text. Exits.\n"
@@ -452,6 +455,8 @@ int Video_ApplyDisplayChange(void)
 static char s_modsArg[256];          /* --mods=, for this run only */
 static int  s_modsArgSet;
 
+static int32_t s_rigRun;      /* --replay-test, --srp-resim, --career-golden (Mods_SetRig) */
+
 int main(int argc, char **argv)
 {
     /* Line-buffer stdout. Every self-test and harness in here reports progress
@@ -561,6 +566,7 @@ int main(int argc, char **argv)
     memset(opts.key_bind, 0, sizeof opts.key_bind);   /* no keys of the player's own */
     opts.fire_hold_lockout = 0;   /* default: the original's fire-hold bug is FIXED */
     opts.contest_own_ratings = 0; /* default: the original's roll, team-mate's rating and all */
+    opts.live_cast = 1;           /* (LIVE CAST: viewers may watch, as SWOS 2020's ON) */
     opts.replay_auto_save = 0;    /* default: LATEST.SRP only, no dated copy per match */
     opts.netplay_name[0] = '\0';
     opts.netplay_remember = 1;    /* REMEMBER LOGIN INFO: on, as the login screen shows it */
@@ -741,6 +747,7 @@ int main(int argc, char **argv)
             snprintf(opts.dos_dir, sizeof opts.dos_dir, "%s", v);
         } else if ((v = match_kv(a, "replay-test")) != NULL) {
             replay_file = v;
+            s_rigRun = 1;
         } else if ((v = match_kv(a, "replay-level")) != NULL) {
             replay_level = v;
         } else if ((v = match_kv(a, "replay-width")) != NULL) {
@@ -766,6 +773,18 @@ int main(int argc, char **argv)
 #endif
             /* Straight to the recording: paced, the intro would play first, a minute of it. */
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+        } else if ((v = match_kv(a, "watch")) != NULL || (v = match_kv(a, "watch-list")) != NULL) {
+            /* LIVE CAST (src/live_cast.c): a live match from the recorder, in the player. */
+            extern int32_t LiveCast_Request(const char *spec, int32_t list);
+            if (LiveCast_Request(v, strncmp(a, "--watch-list", 12) == 0) != 0) {
+                fprintf(stderr, "--watch needs <host[:port]>[,<match id>]\n");
+                return 1;
+            }
+            view_replay = "LIVE.SRP";
+            replay_window = 1;
+            replay_paced = 1;
+            ReplayV2_PlayerMode(1);
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if ((v = match_kv(a, "contest-log")) != NULL) {
             if (ContestLog_Open(v) != 0) {
                 fprintf(stderr, "--contest-log: cannot write %s\n", v);
@@ -777,6 +796,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "--srp-resim needs a .SRP file\n");
                 return 1;
             }
+            s_rigRun = 1;
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if (strcmp(a, "--replay-window") == 0) {
             replay_window = 1;
@@ -921,6 +941,26 @@ int main(int argc, char **argv)
             if (!getenv("SDL_VIDEODRIVER")) setenv("SDL_VIDEODRIVER", "dummy", 1);
             if (!getenv("SDL_AUDIODRIVER")) setenv("SDL_AUDIODRIVER", "dummy", 1);
 #endif
+        } else if ((v = match_kv(a, "convert-diy")) != NULL) {
+            /* A PC/SWOS 2020 .DIY as this game's JSON .DIY, for the Amiga
+             * (src/diy_import_dos.c, docs/SAVE_DATA.md). Run after
+             * Phase 9, once the data is loaded; headless, as --team-audit is. */
+            if (DiyConvert_Request(v) != 0) {
+                fprintf(stderr, "--convert-diy needs <in.DIY>,<out.DIY>\n");
+                return 1;
+            }
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+#ifdef _WIN32
+            _putenv("SWOS_HARNESS_TURBO=1");
+            _putenv("SWOS_NO_LOG=1");
+            if (!getenv("SDL_VIDEODRIVER")) _putenv("SDL_VIDEODRIVER=dummy");
+            if (!getenv("SDL_AUDIODRIVER")) _putenv("SDL_AUDIODRIVER=dummy");
+#else
+            setenv("SWOS_HARNESS_TURBO", "1", 1);
+            setenv("SWOS_NO_LOG", "1", 1);
+            if (!getenv("SDL_VIDEODRIVER")) setenv("SDL_VIDEODRIVER", "dummy", 1);
+            if (!getenv("SDL_AUDIODRIVER")) setenv("SDL_AUDIODRIVER", "dummy", 1);
+#endif
         } else if ((v = match_kv(a, "netplay-state-stream-diff")) != NULL) {
             return NetplayLiveTest_StreamDiff(v);
         } else if ((v = match_kv(a, "netplay-live-pair")) != NULL) {
@@ -977,6 +1017,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Invalid argument: %s\n", a);
                 return 1;
             }
+            s_rigRun = 1;
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if (strncmp(a, "--rollback", 10) == 0) {
             if (Rollback_ParseArg(a) != 1) {
@@ -1176,6 +1217,7 @@ int main(int argc, char **argv)
         snprintf(opts.record, sizeof opts.record, "server");
 #endif
     MatchRecord_SetConfigured(opts.record);
+    MatchRecord_SetLiveCast(opts.live_cast);
     /* And whether a match report leaves this machine (include/match_report.h). */
     MatchReport_SetEnabled(opts.reports);
     { extern void ReplayRec_SetPredictionKept(int32_t on); ReplayRec_SetPredictionKept(opts.prediction); }
@@ -1309,11 +1351,13 @@ int main(int argc, char **argv)
      * Before anything reads the game's data -- translations included, which a mod may carry. */
     {
         const char *env = getenv("SWOS_MODS_ENABLED");
+        Mods_SetRig(s_rigRun);      /* (a rig proves the original: the gameplay mods stay off) */
         Mods_Init(s_modsArgSet ? s_modsArg : env ? env : opts.mods, opts.mods_disabled);
     }
     /* The built-in mods that are on, set up (include/mod_api.h ModDef.init): their entries and
      * their menus' handlers -- before the menus are built from JSON, which name them. */
     { extern void ModHooks_Init(void); ModHooks_Init(); }
+    { extern void TeamPacks_Install(void); TeamPacks_Install(); }   /* (the mods' team packs: include/team_packs.h) */
     {   /* A sprite set as a mod ("sprites": "jaguar", docs/JAGUAR.md): the Jaguar tier draws its
          * grafs_jag/, with the four shading settings its own (its page; [graphics]'s otherwise). */
         const char *set = Mods_JaguarSprites();

@@ -29,7 +29,7 @@ typedef struct {
     uint8_t  country, ordinal;
     uint16_t units;                     /* a season's (the coefficient * 8 / 5) */
 } WorldUefaClub;
-typedef struct {
+typedef struct WorldUefaSeeds {
     const WorldUefaCountry *countries;  /* the world's UEFA associations, pack order */
     int32_t nCountries;
     const WorldUefaClub *clubs;

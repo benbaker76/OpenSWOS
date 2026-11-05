@@ -563,10 +563,9 @@ PlayerTacklingTestFoul(Sprite *player, TeamGeneralInfo *team)
         /* Check direction difference: within +/-1 means from the side = no foul */
         dirDiff = player->direction - victim->direction;
         if (dirDiff < -1 || dirDiff > 1) {
-            /* Small, symmetric increase in foul calls for borderline contact.
-             * Previously all these directional cases were waved on; now
-             * 1/16 are given as fouls. Clean tackles are still exempt. */
-            if ((Rand() & 0xFF) >= 16)
+            /* The more_fouls tweak (include/tweaks.h; benefactorr's Career+): one of these
+             * borderline tackles in 16 is a foul. Its roll is taken only with the tweak on. */
+            if (!Tweaks_On(TWEAK_MORE_FOULS) || (Rand() & 0xFF) >= 16)
                 return;
         }
     }
@@ -579,6 +578,13 @@ PlayerTacklingTestFoul(Sprite *player, TeamGeneralInfo *team)
     /* Check if cards are allowed */
     if (_cardsDisallowed != 0 || _trainingGame != 0)
         goto foul_no_card;
+#ifdef SWOS_SDL_BUILD
+    {   /* a mod's match where every carded foul is a red (mod_match.c, G9) */
+        extern int32_t ModMatch_StraightReds(void);
+        if (ModMatch_StraightReds())
+            goto try_red;
+    }
+#endif
 
     /* Discipline zone check: victim inside main playing area? */
     {
@@ -910,6 +916,13 @@ apply_break:
 void __attribute__((used, externally_visible))
 PlayerBeginTackling(int16_t pressedDir, Sprite *player, TeamGeneralInfo *team)
 {
+#ifdef SWOS_SDL_BUILD
+    {   /* a mod's match with no tackles (mod_match.c, G9) */
+        extern int32_t ModMatch_NoTackles(void);
+        if (ModMatch_NoTackles())
+            return;
+    }
+#endif
     player->tackleState = 0;
     team->controlledPlDirection = pressedDir;
     player->direction = pressedDir;

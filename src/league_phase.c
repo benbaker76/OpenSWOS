@@ -477,9 +477,13 @@ static const uint8_t kPlayoffTies[16] = {       /* the Mod's playoff_slots(): pl
 };
 static const uint8_t kR16Seeds[8] = { 0, 7, 2, 4, 1, 6, 3, 5 };     /* (lp36 R16_SEEDS) */
 
+/* The cups LeaguePhase_InstallCups put in the career contest table (a world's, or a mod's while
+ * 96/97 is the world): the league phase plays only then. */
+static const CompetitionLeaguePhase *s_installed;
+
 static int32_t ours_id(uint8_t compId)
 {
-    return SWOS_WORLDS && World_Current() != WORLD_9697 && compId <= CONFERENCE;
+    return SWOS_WORLDS && s_installed && compId <= CONFERENCE;
 }
 
 int32_t LeaguePhase_StageDays(uint8_t compId, uint16_t groups, uint16_t perGroup)
@@ -771,6 +775,7 @@ extern CompetitionCareer _careerContests[];
 
 void LeaguePhase_InstallCups(CompetitionLeaguePhase *cups)
 {
+    s_installed = cups;
     const Competition *was[3] = { (const Competition *)&_euroCup, (const Competition *)&_cupWinnersCup,
                                   (const Competition *)&_uefaCup };
     for (int32_t k = 0; k < 3; k++) {           /* (the contest table's first three: the euro cups) */
@@ -784,4 +789,38 @@ void LeaguePhase_InstallCups(CompetitionLeaguePhase *cups)
             if (_europeTable.compCup[i] == was[k])
                 _europeTable.compCup[i] = (Competition *)&cups[k];
     }
+}
+
+
+/* ---- a mod's European cups for 96/97 (ModApi_SetLeaguePhases; docs/MODS.md §22) ---- */
+
+static CompetitionLeaguePhase *s_modCups;
+static const uint8_t (*s_modPlaces)[4];
+static int32_t s_modCount;
+static const WorldUefaSeeds *s_modSeeds;
+
+void LeaguePhase_SetModEurope(CompetitionLeaguePhase *cups, const uint8_t (*places)[4], int32_t count,
+                              const WorldUefaSeeds *seeds)
+{
+    s_modCups = cups;
+    s_modPlaces = places;
+    s_modCount = count;
+    s_modSeeds = seeds;
+}
+
+CompetitionLeaguePhase *LeaguePhase_ModCups(const uint8_t (**places)[4], int32_t *count)
+{
+    if (World_Current() != WORLD_9697 || !s_modCups) {
+        *places = 0;
+        *count = 0;
+        return 0;
+    }
+    *places = s_modPlaces;
+    *count = s_modCount;
+    return s_modCups;
+}
+
+const WorldUefaSeeds *LeaguePhase_ModSeeds(void)
+{
+    return World_Current() == WORLD_9697 && s_modCups ? s_modSeeds : 0;
 }

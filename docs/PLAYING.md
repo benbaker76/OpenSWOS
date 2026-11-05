@@ -19,20 +19,21 @@ The keys and gamepad buttons, and the arcade (coin-op) mode. New to OpenSWOS? St
 |--------------|--------------------|----------------------|
 | Move         | Arrow keys         | D-pad / left stick   |
 | Kick / shoot / pass / tackle | Right Ctrl / Space / Left Ctrl / Enter | A or B |
-| Pause / unpause | `P`             | **+ / Start**        |
+| Pause / unpause | `P`             | **+ / Start** (tap)  |
 | Statistics   | `S`                | **− / Back**         |
 | Instant replay | `R`              | **Y**                |
 | Replay after the match | `H`      | **X**                |
-| Substitutions, bottom team | Triple-tap any direction | **L** |
-| Substitutions, top team    | Triple-tap any direction | **R** |
-| Quit the match | `Esc`            | **Right-stick click** |
+| Substitutions | Triple-tap left or right, ball out of play | the same (L / R do nothing yet) |
+| Quit the match | `Esc`            | **Hold + / Start** or **hold the right-stick click** (0.7 s) |
 
 Play itself only ever uses **two** pad buttons — A and B for fire, B doubling
 as skip — so the rest are free, and everything the match understands beyond
 fire and direction is a KEY. The pad bindings above inject those keys, which
 is what makes them reachable on a console (no keyboard) and without reaching
-for one on a desktop. Quit is on a stick click deliberately: it ends the match,
-and a click is not something you hit by accident the way a face button is.
+for one on a desktop. Quit is a HOLD deliberately: it ends the match, and a
+0.7 s hold is not something you do by accident -- not even with a handheld's grip
+on the right stick (the5ar, for the Retroid, which has no keyboard). Start pauses
+on its RELEASE, and only when the hold did not fire.
 HOME / Guide is left alone — it belongs to the system on a Switch.
 
 > Older versions of this table listed `Q` and `W` for the substitution menus.
