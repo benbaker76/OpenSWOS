@@ -216,6 +216,15 @@ int Render_ScrollSubpixel(uint16_t *fx, uint16_t *fy)
     *fx = s_scroll_frac_x; *fy = s_scroll_frac_y;
     return 1;
 }
+
+/* Paused, the same frame is shown again and nothing publishes: keep its fraction, or the
+ * picture would step by part of a pixel 100 ms after P (Platform_KeepFrameFresh). */
+void Render_KeepScrollSubpixel(void)
+{
+    extern uint64_t Platform_NowMs(void);
+    if (s_scroll_frac_ms)
+        s_scroll_frac_ms = Platform_NowMs();
+}
 #endif
 
 /* ================================================================

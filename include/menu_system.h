@@ -193,6 +193,8 @@ uint16_t GetKey(void);
 void BlitterCopyOverlayToScreen(void);
 void Int2Ascii(uint16_t value, uint8_t *out);
 void SetCurrentEntry(uint16_t index);
+/* The main menu is the one being shown (its buffer: a mod's replacement of it too). */
+int32_t Menu_IsMainMenu(void);
 void BlitMaskedRectAltToFront(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 void DrawMenuItemsFromList(const int16_t *list);
 void DrawMultipleItems(uint16_t maxItems, MenuEntry *firstEntry);

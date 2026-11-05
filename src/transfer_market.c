@@ -50,6 +50,7 @@ static unsigned AgeListLookup(const PlayerFile *pf)
 /* Club names are fixed at 17 bytes. PrintFormatted and menu entries require
  * a terminated string; never read into the neighbouring own-goals byte. */
 #define SWOS_TM_CopyClubName SWOS_CopyTeamName18
+#include "world.h"
 
 /* Offset from GetPlayer() return value to actual PlayerFile data */
 #define PF_OFF              76  /* sizeof(TeamFile) */
@@ -758,8 +759,9 @@ retry:
     /* Pick a random team from selected teams */
     rand = Rand2();
     teamIdx = (uint16_t)(((uint32_t)rand * _numSelectedTeams) >> 8);  /* mulu+lsr */
-    teamIdx = (uint16_t)((uint32_t)teamIdx * sizeof(TeamFileEx));
-    teamEntry = &_selTeamsPtr + teamIdx;
+    /* mulu.w #684 gives a 32-bit offset (adda.l): kept as 32 bits. In 16 it wrapped for
+     * team 96 on (96 * 684 = 65664) and picked the wrong team. */
+    teamEntry = &_selTeamsPtr + (uint32_t)teamIdx * sizeof(TeamFileEx);
 
     /* Must be same country but different team. teamEntry points at
      * a TeamFile so byte[0]=country, byte[1]=ordinal. Read teamNum
@@ -769,7 +771,8 @@ retry:
      * format mismatch — both with the selTeamNumber check here AND
      * with downstream consumers via AddPlayerToCareerContest →
      * homeMarketPlayers → PlayerMarketBuildVisiblePlayerList. */
-    if (*teamEntry != homeCountry)                          /* cmp.b (a0),d3 */
+    if (World_FileCountry(*teamEntry) != World_FileCountry(homeCountry))  /* cmp.b (a0),d3 (a second
+                                                             * team file's clubs: their country's, include/world.h) */
         goto retry;
     teamNum = PACK_BE_U16(teamEntry[0], teamEntry[1]);
     if (teamNum == _selTeamNumber)                            /* cmp.w (selTeamNumber).l,d1 */
@@ -1165,8 +1168,8 @@ int16_t IsTeamEligibleForOfferByRefSkill(TeamFileEx *team, uint16_t refSkill)
     if (teamNum == _selTeamNumber)
         return 1;
 
-    /* League type 4 → not eligible */
-    if (tfx->team.league == 4)
+    /* Outside its country's league → not eligible (was league == 4) */
+    if (Team_IsOutsideLeague(&tfx->team))
         return 1;
 
     flags = 0;
@@ -4040,6 +4043,8 @@ extern void Career_RemovePlayerFromTeamInternal(uint16_t teamNumber, uint16_t pl
 extern void AddCareerPoolPlayer(uint16_t teamNumber, uint16_t playerOrdinal, PlayerFile *playerFile);
 extern void Career_RemovePlayerFromSelectedTeamRoster(uint16_t playerIndex);
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
+extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern void SquadNumbers_Free(uint16_t slot);
 extern void TrainingMatch_SaveSelectedPlayerId(uint16_t value);
 extern void Career_UpdatePlayerWeeklyWageCache(uint16_t playerIndex);
 extern int16_t SearchTeamInTmdFile(uint16_t teamNumber);
@@ -4481,6 +4486,7 @@ void Career_RemovePlayerAndAddAsTrialist(uint16_t sourceTeam, uint16_t playerOrd
     SetBenchPlayersNumbers(&_careerTeam);
 
     _careerNumPlayers++;
+    SquadNumbers_Free(freeSlot);        /* (real squad numbers: his own, or a free one; teams.c) */
     Career_UpdatePlayerWeeklyWageCache(freeSlot);
 
     /* Convert player to trialist using source name */
@@ -4535,7 +4541,7 @@ static uint8_t *pickRandomTeamRecordAvoidingTeam(uint16_t avoidTeamWord, uint8_t
             uint16_t candTeamId = PACK_BE_U16(result->team.countryNumber,
                                               result->team.teamOrdinal);
             if (candTeamId != avoidTeamWord) {
-                if (result->team.countryNumber == countryByte)
+                if (World_FileCountry(result->team.countryNumber) == World_FileCountry(countryByte))
                     return (uint8_t *)result;
             }
             if (retries == 0)
@@ -4551,7 +4557,7 @@ static uint8_t *pickRandomTeamRecordAvoidingTeam(uint16_t avoidTeamWord, uint8_t
         uint16_t candTeamId2 = PACK_BE_U16(result->team.countryNumber,
                                            result->team.teamOrdinal);
         if (candTeamId2 != avoidTeamWord) {
-            if (result->team.countryNumber == countryByte)
+            if (World_FileCountry(result->team.countryNumber) == World_FileCountry(countryByte))
                 return (uint8_t *)result;
         }
         if (retries == 0)
@@ -5127,6 +5133,8 @@ void TrainingMatch_AddTrialPlayerToSelectedTeam(uint16_t role)
     PlayerFile *pf = (PlayerFile *)(base + PF_OFF);
     pf->positionAndFace |= PF_TRIALIST;  /* bset #2 — mark as trialist */
     pf->shirtNumber = 0x10;       /* shirt number 16 */
+    if (_selTeamNumber == BE_READ_U16(&_careerTeam))
+        SquadNumbers_Free(freeSlot);    /* (real squad numbers: a free one, teams.c) */
 
     /* Set position/role: lsl.w #5,d7; move.b d7,$66(a3) */
     pf->positionAndFace = (uint8_t)(role << 5);  /* this overwrites — matches asm: move.b d7,$66 */

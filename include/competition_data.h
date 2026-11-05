@@ -347,7 +347,7 @@ extern Competition *_hungaryTable[4];
 extern Competition *_icelandTable[4];
 extern Competition *_republicIrelandTable[4];
 extern Competition *_israelTable[4];
-extern Competition *_italyTable[4];
+extern Competition *_italyTable[5];
 extern Competition *_latviaTable[4];
 extern Competition *_lithuaniaTable[4];
 extern Competition *_luxembourgTable[4];

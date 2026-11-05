@@ -4,9 +4,11 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "menu_data.h"
+#include "project_identity.h"
 
 extern void MultiplayerMenuSelected(void);
 extern void CreditsMenuSelected(void);
+extern void ModesMenuSelected(void);
 extern void SetExitMenuFlag(void);
 extern void TopGoalScorersMenu_0(void);
 extern void SetupDIYCompetitionStatsMenu(void);
@@ -57,7 +59,9 @@ extern void ChangeAutoSaveHighlights(void);
 extern void ChangeGameLength(void);
 extern void ChangeMenuMusic(void);
 extern void ChangeGameplayStyle(void);
+extern void ChangeWorld(void);
 extern void ShowControlsMenu(void);
+extern void ShowModsMenu(void);
 extern void ChangePitchStyle(void);
 extern void ChangeNationality(void);
 extern void ChangePitchType(void);
@@ -79,6 +83,8 @@ extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
+extern void CompetitionStatsInit(void);
+extern void CompetitionStatsWinners(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
 extern void ConsiderJobOffer(void);
@@ -498,6 +504,10 @@ extern char _aMatch[];
 extern char _aMemoFromTheClu[];
 extern char _aMenuMusic[];
 extern char _aGameplay[];
+extern char _aWorldOption[];
+extern char _aModsOption[];
+extern char _aModes[];
+extern char _aModsNone[];
 extern char _aControls[];
 extern char _aRedefineKeys[];
 extern char _aPitches[];
@@ -582,6 +592,7 @@ extern char _aViewResult[];
 extern char _aViewSelectedTe[];
 extern char _aViewSquad[];
 extern char _aViewSquads[];
+extern char _aWinners[];
 extern char _aViewTeam[];
 extern char _aViewWorld[];
 extern char _aW[];
@@ -661,6 +672,7 @@ extern char* _friendlyPitchTypeTable[];
 extern char* _gameLengthStrTable[];
 extern char* _menuMusicStrTable[];
 extern char* _gameplayStyleStrTable[];
+extern char* _worldStrTable[];
 extern char* _pitchStyleStrTable[];
 extern char* _pitchTypeOrSeasonTable[];
 extern char* _pitchTypeStrTable[];
@@ -2791,7 +2803,7 @@ Menu_DIYCup _diyCupMenu = {
     MENU_MARK_END_MENU
 };
 Menu_Options _optionsMenu = {
-    { OptionsMenuBeforeDraw, 0, 0, 19 },
+    { OptionsMenuBeforeDraw, OptionsMenuBeforeDraw, 0, 19 },
     MENU_MARK_BYTE_COORDS,
     {
         { 92, 0, 120, 15 },
@@ -2906,7 +2918,7 @@ Menu_Options _optionsMenu = {
     },
     {
         { -102, 148, -116, 11 },
-        { MENU_CMD_NAV, -1, -1, 14, 19 },
+        { MENU_CMD_NAV, -1, -1, 14, 22 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aRedefineKeys },
         { MENU_CMD_ONSELECT_FIRE, ShowControlsMenu },
@@ -2928,7 +2940,7 @@ Menu_Options _optionsMenu = {
     },
     { MENU_MARK_START_MENU, 0, 0 },
     { 102, -71, 100, 15 },
-    { MENU_CMD_NAV, -1, -1, 16, -1 },
+    { MENU_CMD_NAV, -1, -1, 24, -1 },
     { MENU_CMD_COLORS, 0xC },
     { MENU_CMD_TEXT_PTR, 0x0, _aExit },
     { MENU_CMD_INPUT_FUNC, 0x30, ExitOptions },
@@ -2937,6 +2949,34 @@ Menu_Options _optionsMenu = {
     { MENU_CMD_INVISIBLE },
     { MENU_CMD_TEXT_PTR, 0x0, _aSwosVersion152 },
     MENU_CMD_END,
+    {
+        { 10, 160, -116, 11 },
+        { MENU_CMD_COLORS, 0x9 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aWorldOption },
+        MENU_CMD_END
+    },
+    {
+        { -102, 160, -116, 11 },
+        { MENU_CMD_NAV, -1, -1, 16, 24 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_STRING_TABLE, 0x0, _worldStrTable },
+        { MENU_CMD_ONSELECT_FIRE, ChangeWorld },
+        MENU_CMD_END
+    },
+    {
+        { 10, 172, -116, 11 },
+        { MENU_CMD_COLORS, 0x9 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aModsOption },
+        MENU_CMD_END
+    },
+    {
+        { -102, 172, -116, 11 },
+        { MENU_CMD_NAV, -1, -1, 22, 19 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_TEXT_PTR, 0x0, _aModsNone },
+        { MENU_CMD_ONSELECT_FIRE, ShowModsMenu },
+        MENU_CMD_END
+    },
     MENU_MARK_END_MENU
 };
 Menu_DesignDiyTournament _designDiyTournamentMenu = {
@@ -5074,7 +5114,7 @@ Menu_PastWinners _pastWinnersMenu = {
     MENU_MARK_END_MENU
 };
 Menu_CompetitionStats _competitionStatsMenu = {
-    { 0, 0, 0, 1 },
+    { CompetitionStatsInit, CompetitionStatsInit, 0, 1 },
     MENU_MARK_BYTE_COORDS,
     {
         { 92, 0, 120, 15 },
@@ -5100,26 +5140,34 @@ Menu_CompetitionStats _competitionStatsMenu = {
     },
     {
         { 92, 90, 120, 15 },
-        { MENU_CMD_NAV, -1, -1, 2, 4 },
+        { MENU_CMD_NAV, -1, -1, 2, 5 },
         { MENU_CMD_COLORS, 0xE },
         { MENU_CMD_TEXT_PTR, 0x0, _aViewSquads },
         { MENU_CMD_ONSELECT_FIRE, StatsViewSquads },
         MENU_CMD_END
     },
     {
-        { 92, 115, 120, 15 },
-        { MENU_CMD_NAV, -1, -1, 3, 5 },
-        { MENU_CMD_COLORS, 0xE },
-        { MENU_CMD_TEXT_PTR, 0x0, _pastWinnersLabel },
-        { MENU_CMD_ONSELECT_FIRE, PastWinnersOpen },
-        MENU_CMD_END
-    },
-    {
         { 102, -71, 100, 15 },
-        { MENU_CMD_NAV, -1, -1, 4, -1 },
+        { MENU_CMD_NAV, -1, -1, 5, -1 },
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, StatsExit },
+        MENU_CMD_END
+    },
+    {
+        { 92, 115, 120, 15 },
+        { MENU_CMD_NAV, -1, -1, 3, 4 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _aWinners },
+        { MENU_CMD_ONSELECT_FIRE, CompetitionStatsWinners },
+        MENU_CMD_END
+    },
+    {
+        { 92, 115, 120, 15 },
+        { MENU_CMD_NAV, -1, -1, 3, 4 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, _pastWinnersLabel },
+        { MENU_CMD_ONSELECT_FIRE, PastWinnersOpen },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU
@@ -6922,7 +6970,7 @@ Menu_ContinueAbort _continueAbortMenu = {
  * so the last credits line (three lines of testers since 2026-10-21) clears it. */
 extern void CreditsAgaInit(void);
 extern void CreditsAgaDraw(void);
-char _aCreditsAgaHeader[] = "OPENSWOS - CREDITS";
+char _aCreditsAgaHeader[] = PROJECT_NAME_UPPER " - CREDITS";
 char _aCreditsAgaExit[]   = "AMIGA FOREVER!";
 Menu_CreditsAga _creditsAgaMenu = {
     { CreditsAgaInit, 0, CreditsAgaDraw, 1 },
@@ -6944,6 +6992,11 @@ Menu_CreditsAga _creditsAgaMenu = {
     MENU_MARK_END_MENU
 };
 #endif
+
+/* The main menu's address (src/menu_system.c Menu_IsMainMenu): this file alone knows its type. */
+const void *MenuData_MainMenu(void);
+Menu_SWOSMainMenu _swosMainMenu;
+const void *MenuData_MainMenu(void) { return &_swosMainMenu; }
 
 Menu_SWOSMainMenu _swosMainMenu = {
     { SWOSMainMenuInit, GlobalRetn, 0, 6 },
@@ -7069,6 +7122,14 @@ Menu_SWOSMainMenu _swosMainMenu = {
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aCredits },
         { MENU_CMD_ONSELECT_FIRE, CreditsMenuSelected },
+        MENU_CMD_END
+    },
+    {
+        { -12, -52, 60, 14 },
+        { MENU_CMD_NAV, -1, -1, 13, 15 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_TEXT_PTR, 0x0, _aModes },
+        { MENU_CMD_ONSELECT_FIRE, ModesMenuSelected },
         MENU_CMD_END
     },
     { MENU_MARK_START_MENU, 0, 0 },

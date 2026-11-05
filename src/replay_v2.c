@@ -18,6 +18,7 @@
 #ifdef SWOS_SDL_BUILD
 
 #include "replay_v2.h"
+#include "mod_hooks.h"
 #include <SDL.h>            /* the checkpoint's thread */
 #include "dos_sound.h"
 #include "audio_sfx_filter.h"
@@ -25,6 +26,7 @@
 #include "display.h"
 #include "endian_helpers.h"
 #include "game_types.h"
+#include "sprites.h"            /* Sprite_WalkedOff */
 #include "miniz_swos.h"
 #include "srp_writer.h"     /* the file's layout, shared with the recorder */
 #include "swos_io.h"
@@ -309,6 +311,7 @@ static struct {
     uint32_t  kickoffLen;
     uint64_t  layout;
     uint8_t   rules;
+    uint8_t   style;            /* GAMEPLAY_*: the rules byte cannot say XBOX */
     uint16_t  simWidth;
     uint8_t  *inputs;           /* SRP_INPUT_BYTES a frame */
     uint32_t *hashes;
@@ -346,6 +349,7 @@ void ReplayRec_SetKickoff(const uint8_t *packet, uint32_t len, uint64_t layout, 
         memcpy(s_resume.kickoff, packet, len);
     s_resume.layout = layout;
     s_resume.rules = rules;
+    s_resume.style = (uint8_t)_gGameplayStyle;
     s_resume.simWidth = simWidth;
 }
 
@@ -528,6 +532,8 @@ void ReplayRec_CaptureSprites(void)
         if (!s || s->imageIndex < 0 || s->z.s.i >= HUD_Z_MIN)
             continue;
         g = graphics((uint16_t)s->imageIndex);
+        if (Sprite_WalkedOff(s, g))
+            continue;               /* (walked off into the tunnel: not drawn either) */
         p = s_rec.frms + s_rec.frmsLen;
         BE_WRITE_U16(p, (uint16_t)s->imageIndex);
         BE_WRITE_U16(p + 2, (uint16_t)(s->x.s.i - g->centerX));
@@ -622,9 +628,11 @@ static uint8_t *build_meta(void)
     BE_WRITE_U16(q, 1);                                           q += 2;  /* meta version */
     BE_WRITE_U16(q, (uint16_t)_screen_width);                     q += 2;
     /* 8 the DOS view (320x200), 16 "the view is recorded" -- a recording made before the
-     * view was kept says neither, and the player works it out (recorded_view). */
+     * view was kept says neither, and the player works it out (recorded_view); 32 the
+     * XBOX gameplay style (1 is DOS's; neither, the Amiga's). */
     BE_WRITE_U16(q, (uint16_t)((_gDosGameplay ? 1 : 0) | (_gDosGraphics ? 2 : 0) |
-                               (_gArcadeMode ? 4 : 0) | (_gDosView ? 8 : 0) | 16));   q += 2;
+                               (_gArcadeMode ? 4 : 0) | (_gDosView ? 8 : 0) | 16 |
+                               (_gGameplayStyle == GAMEPLAY_XBOX ? 32 : 0)));   q += 2;
     /* The height the match was SIMULATED in (display.h _sim_view_height): 200 in the DOS
      * view, 272 in the Amiga's, whatever the picture. Playback maps the recorded camera
      * onto its own picture from it, exactly as the live match did (camera.c
@@ -708,6 +716,7 @@ static void content(SrpContent *c)
         c->hashes     = s_resume.hashes;
         c->layout     = s_resume.layout;
         c->rules      = s_resume.rules;
+        c->style      = s_resume.style;
         c->simWidth   = s_resume.simWidth;
     }
 }
@@ -1081,6 +1090,7 @@ static struct {
     int32_t     dosView;        /* the view it was played in: 1 DOS, 0 Amiga, -1 not known */
     char        names[2][64];   /* PLYR: who played, "" when the file does not say */
     uint16_t    simHeight;      /* META: the view height it was simulated in, 0 not known */
+    char        file[256];      /* the file it was loaded from (ReplayV2_SaveCopy) */
 } s_play;
 
 /* Worked out on load, never in a file: this frame was DRAWN wrong for that player -- one
@@ -1091,6 +1101,11 @@ static struct {
 
 void ReplayV2_Unload(void)
 {
+    if (s_play.loaded) {                /* (the HIL header it wrote: no highlights behind it) */
+        extern volatile uint16_t _numScenesInHilFile;
+        _hilNumGoals = 0;
+        _numScenesInHilFile = 0;
+    }
     Audio_SetSfxObserver(NULL);         /* the playback trace's, if it was watching */
     free(s_play.frms);
     free(s_play.offsets);
@@ -1103,6 +1118,21 @@ void ReplayV2_Unload(void)
 }
 
 int32_t ReplayV2_Loaded(void)   { return s_play.loaded; }
+
+/* SAVE HIGHLIGHTS with a whole-match replay loaded: the recording kept under another name (it
+ * has no highlight scenes to save -- saving the HIL buffer then wrote a header and a junk scene,
+ * a file that showed the line-ups and went back to the menu: a tester, 2026-10-31). */
+int32_t ReplayV2_SaveCopy(const uint8_t *name)
+{
+    uint32_t len = 0;
+    uint8_t *file;
+    int32_t rc;
+    if (!s_play.loaded || !s_play.file[0] || !(file = read_file(s_play.file, &len)))
+        return 1;
+    rc = strcmp(s_play.file, (const char *)name) == 0 ? 0 : write_file((const char *)name, file, len);
+    free(file);
+    return rc;
+}
 int32_t ReplayV2_HasAudio(void) { return s_play.loaded && (s_play.flags & SWRP_FLAG_AUDIO); }
 
 static uint8_t *read_file(const char *name, uint32_t *len)
@@ -1190,6 +1220,7 @@ int32_t ReplayV2_LoadResume(const char *name, ReplayResume *out)
         rc = 3;
     } else {
         out->rules = simv[2];
+        out->style = simv[3];
         out->layout = ((uint64_t)BE_READ_U32(simv + 4) << 32) | BE_READ_U32(simv + 8);
         out->simWidth = BE_READ_U16(simv + 12);
         out->hashes = (uint32_t *)malloc((size_t)out->frames * sizeof(uint32_t) + 1);
@@ -1502,6 +1533,7 @@ int32_t ReplayV2_Load(const uint8_t *name)
     }
 
     DosReplay_ClearRpl();
+    snprintf(s_play.file, sizeof s_play.file, "%s", (const char *)name);   /* (ReplayV2_SaveCopy) */
     apply_meta(meta);
     free(meta);
     free(file);
@@ -1854,6 +1886,8 @@ static uint32_t shown_camera_y(uint32_t cy)
     return cy;
 }
 
+static uint32_t s_modLastCursor = 0xFFFFFFF0u;     /* the frame the mods were last told of */
+
 void ReplayV2_DrawFrame(void)
 {
     const uint8_t *h, *sp;
@@ -1899,6 +1933,9 @@ void ReplayV2_DrawFrame(void)
     }
     h = s_play.frms + s_play.offsets[s_play.cursor];
 
+    /* (the replay's start, or a jump: the mods' trail starts again; a held frame is the same one) */
+    const int32_t modFirst = _replayState == 1 ||
+                             (s_play.cursor != s_modLastCursor + 1 && s_play.cursor != s_modLastCursor);
     if (_replayState == 1) {
         /* The first frame: the camera straight to where the match had it, both buffers. */
         int16_t x = (int16_t)(BE_READ_U32(h + 2) >> 16), y = (int16_t)(shown_camera_y(BE_READ_U32(h + 6)) >> 16);
@@ -1930,6 +1967,8 @@ void ReplayV2_DrawFrame(void)
     _hilRightTeamGoals = BE_READ_U16(h + 12);
     _animPatternsState = BE_READ_U16(h + 14);
     DrawAnimatedPatterns();
+    ModHooks_ReplayFrameBegin(modFirst, fresh);     /* (under the sprites: the weather mod's mud) */
+    s_modLastCursor = s_play.cursor;
 
     origin = Render_CameraX();
     camY = Render_CameraY();
@@ -1944,6 +1983,7 @@ void ReplayV2_DrawFrame(void)
     for (i = 0; i < sprites; i++, sp += SPRITE_BYTES) {
         extern int _menu_draw_x_offset;
         uint16_t image = BE_READ_U16(sp);
+        ModHooks_ReplaySprite(image, (int16_t)BE_READ_U16(sp + 2), (int16_t)BE_READ_U16(sp + 4));
         /* Where it lands on screen: the world position through the playback camera, as
          * live drawing does -- moved to where a player's screen had it, when that is
          * the screen being shown. */
@@ -2024,6 +2064,33 @@ void ReplayV2_ViewTestRun(void)
             extern void    CopyTeamsAndHeader(void);
             if (LoadHilFile((uint8_t *)s_viewPath) != 0)
                 exit(1);
+            {   /* SWOS_TEST_HIL_RESAVE=NAME: saved as SAVE HIGHLIGHTS saves (DoSaveHighlights),
+                 * loaded back, every byte of the highlights compared, then played from it */
+                const char *re = getenv("SWOS_TEST_HIL_RESAVE");
+                if (re && *re) {
+                    extern int16_t DoSaveHighlights(uint8_t *filename);
+                    extern uint16_t _hilNumGoals;
+                    const uint32_t n = 2254u + (uint32_t)_hilNumGoals * 19000u;
+                    uint8_t *before = (uint8_t *)malloc(n);
+                    uint32_t diff = 0, first = 0;
+                    memcpy(before, _hilFileBuffer, n);
+                    if (DoSaveHighlights((uint8_t *)re) != 0 || LoadHilFile((uint8_t *)re) != 0)
+                        exit(1);
+                    for (uint32_t i = 0; i < n; i++)
+                        if (before[i] != _hilFileBuffer[i]) {
+                            if (!diff++)
+                                first = i;
+                            if (getenv("SWOS_TEST_HIL_DIFFS"))
+                                fprintf(stderr, "[replay] byte %u: %02X -> %02X\n", (unsigned)i, before[i], _hilFileBuffer[i]);
+                        }
+                    fprintf(stderr, "[replay] %s saved as %s and loaded back: %u goals, %u of %u bytes differ%s",
+                            s_viewPath, re, (unsigned)_hilNumGoals, (unsigned)diff, (unsigned)n,
+                            diff ? "" : "\n");
+                    if (diff)
+                        fprintf(stderr, " (the first at %u)\n", (unsigned)first);
+                    free(before);
+                }
+            }
             _hilStarted = 1;
             _gameMaxSubstitutes = _hilMaxSubstitutes;
             _teamsLoaded = 0;
@@ -2037,6 +2104,15 @@ void ReplayV2_ViewTestRun(void)
     }
     if (ReplayV2_Load((const uint8_t *)s_viewPath) != 0)
         exit(1);
+    {   /* SWOS_TEST_SRP_SAVECOPY=NAME: kept under NAME as SAVE HIGHLIGHTS keeps a loaded .SRP */
+        const char *cp = getenv("SWOS_TEST_SRP_SAVECOPY");
+        if (cp && *cp) {
+            const int32_t r = ReplayV2_SaveCopy((const uint8_t *)cp);
+            fprintf(stderr, "[replay] %s saved as %s: %s\n", s_viewPath, cp, r ? "FAILED" : "ok");
+            if (r)
+                exit(1);
+        }
+    }
     _hilStarted = 1;
     _gameMaxSubstitutes = _hilMaxSubstitutes;
     _teamsLoaded = 0;

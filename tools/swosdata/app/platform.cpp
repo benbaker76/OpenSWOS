@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <functional>
 #include <vector>
 
 #ifdef _WIN32
@@ -16,6 +17,8 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <ole2.h>
+#include <io.h>
 #else
 #include <cerrno>
 #include <climits>
@@ -161,10 +164,10 @@ bool Launch(const std::string& exe, const std::string& cwd) {
 #endif
 }
 
-bool ApplyNativeWindowIcon() {
 #ifdef _WIN32
-  // Slint exposes no HWND. The largest visible unowned top-level window on this
-  // thread is ours (winit also keeps a tiny helper window, hence the floor).
+// Slint exposes no HWND. The largest visible unowned top-level window on this
+// thread is ours (winit also keeps a tiny helper window, hence the floor).
+static HWND MainWindow() {
   struct Candidate {
     HWND window = nullptr;
     long long area = 0;
@@ -186,6 +189,13 @@ bool ApplyNativeWindowIcon() {
         return TRUE;
       },
       reinterpret_cast<LPARAM>(&best));
+  return best.window;
+}
+#endif
+
+bool ApplyNativeWindowIcon() {
+#ifdef _WIN32
+  struct { HWND window; } best{MainWindow()};
   if (!best.window) return false;
   const HINSTANCE self = GetModuleHandleW(nullptr);
   const auto icon_of = [self](int metric) {
@@ -198,6 +208,106 @@ bool ApplyNativeWindowIcon() {
   if (const HICON b = icon_of(SM_CXICON))
     SendMessageW(best.window, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(b));
   return true;
+#else
+  return true;
+#endif
+}
+
+// ------------------------------------------------------------ dropped files ---
+static std::function<void(std::vector<std::string>)> s_onDrop;
+static std::function<void(bool)> s_onHover;
+
+#ifdef _WIN32
+// An OLE drop target for files from Explorer (CF_HDROP). winit registers its own, which
+// Slint never hears from, so ours replaces it.
+class FileDropTarget : public IDropTarget {
+  LONG refs_ = 1;
+  bool files_ = false;
+ public:
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** out) override {
+    if (riid == IID_IUnknown || riid == IID_IDropTarget) {
+      *out = static_cast<IDropTarget*>(this);
+      AddRef();
+      return S_OK;
+    }
+    *out = nullptr;
+    return E_NOINTERFACE;
+  }
+  ULONG STDMETHODCALLTYPE AddRef() override { return ULONG(InterlockedIncrement(&refs_)); }
+  ULONG STDMETHODCALLTYPE Release() override {
+    const LONG n = InterlockedDecrement(&refs_);
+    if (n == 0) delete this;
+    return ULONG(n);
+  }
+  HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* data, DWORD, POINTL, DWORD* effect) override {
+    FORMATETC f{CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
+    files_ = data && data->QueryGetData(&f) == S_OK;
+    *effect = files_ ? DROPEFFECT_COPY : DROPEFFECT_NONE;
+    if (files_ && s_onHover) s_onHover(true);
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE DragOver(DWORD, POINTL, DWORD* effect) override {
+    *effect = files_ ? DROPEFFECT_COPY : DROPEFFECT_NONE;
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE DragLeave() override {
+    if (files_ && s_onHover) s_onHover(false);
+    files_ = false;
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE Drop(IDataObject* data, DWORD, POINTL, DWORD* effect) override {
+    std::vector<std::string> paths;
+    FORMATETC f{CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
+    STGMEDIUM m{};
+    if (data && data->GetData(&f, &m) == S_OK) {
+      HDROP drop = static_cast<HDROP>(GlobalLock(m.hGlobal));
+      if (drop) {
+        const UINT n = DragQueryFileW(drop, 0xFFFFFFFF, nullptr, 0);
+        for (UINT i = 0; i < n; i++) {
+          const UINT len = DragQueryFileW(drop, i, nullptr, 0);
+          std::wstring w(len + 1, L'\0');
+          DragQueryFileW(drop, i, w.data(), len + 1);
+          w.resize(len);
+          paths.push_back(Narrow(w));
+        }
+        GlobalUnlock(m.hGlobal);
+      }
+      ReleaseStgMedium(&m);
+    }
+    *effect = paths.empty() ? DROPEFFECT_NONE : DROPEFFECT_COPY;
+    if (s_onHover) s_onHover(false);
+    files_ = false;
+    if (!paths.empty() && s_onDrop) s_onDrop(paths);
+    return S_OK;
+  }
+};
+#endif
+
+bool EnableFileDrop(std::function<void(std::vector<std::string>)> onDrop, std::function<void(bool)> onHover) {
+#ifdef _WIN32
+  s_onDrop = std::move(onDrop);
+  s_onHover = std::move(onHover);
+  return true;
+#else
+  (void)onDrop;
+  (void)onHover;
+  return false;
+#endif
+}
+
+bool AttachFileDrop() {
+#ifdef _WIN32
+  const HWND window = MainWindow();
+  if (!window) return false;
+  RevokeDragDrop(window);   // winit's
+  FileDropTarget* target = new FileDropTarget;
+  HRESULT hr = RegisterDragDrop(window, target);
+  if (hr == CO_E_NOTINITIALIZED || hr == E_OUTOFMEMORY) {
+    OleInitialize(nullptr);
+    hr = RegisterDragDrop(window, target);
+  }
+  target->Release();        // OLE holds its own reference
+  return SUCCEEDED(hr);
 #else
   return true;
 #endif
@@ -222,6 +332,112 @@ static fs::path U8Path(const std::string& s) {
 static std::string PathU8(const fs::path& p) {
   const std::u8string u = p.u8string();
   return std::string(u.begin(), u.end());
+}
+
+FILE* OpenFile(const std::string& path, const char* mode) {
+#ifdef _WIN32
+  return _wfopen(Widen(path).c_str(), Widen(mode).c_str());
+#else
+  return std::fopen(path.c_str(), mode);
+#endif
+}
+
+bool MakeDirs(const std::string& path) {
+  std::error_code ec;
+  fs::create_directories(U8Path(path), ec);
+  return !ec;
+}
+
+bool RemoveTree(const std::string& path) {
+  std::error_code ec;
+  fs::remove_all(U8Path(path), ec);
+  return !ec;
+}
+
+bool RenamePath(const std::string& from, const std::string& to) {
+  std::error_code ec;
+  fs::rename(U8Path(from), U8Path(to), ec);
+  return !ec;
+}
+
+uint64_t TreeSize(const std::string& dir, const std::string& skipTop) {
+  std::error_code ec;
+  uint64_t n = 0;
+  const fs::path root = U8Path(dir);
+  for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end;
+       it.increment(ec)) {
+    if (!skipTop.empty() && it.depth() == 0 && it->is_directory() && PathU8(it->path().filename()) == skipTop) {
+      it.disable_recursion_pending();
+      continue;
+    }
+    if (it->is_regular_file(ec)) n += it->file_size(ec);
+  }
+  return n;
+}
+
+bool CopyTree(const std::string& from, const std::string& to, const std::string& skipTop,
+              const std::function<void(uint64_t)>& copied, std::string* error) {
+  std::error_code ec;
+  const fs::path root = U8Path(from), dest = U8Path(to);
+  fs::create_directories(dest, ec);
+  std::vector<char> buf(1 << 20);
+  for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end;
+       it.increment(ec)) {
+    if (!skipTop.empty() && it.depth() == 0 && it->is_directory() && PathU8(it->path().filename()) == skipTop) {
+      it.disable_recursion_pending();
+      continue;
+    }
+    const fs::path out = dest / fs::relative(it->path(), root, ec);
+    if (it->is_directory()) {
+      fs::create_directories(out, ec);
+      continue;
+    }
+    FILE* in = OpenFile(PathU8(it->path()), "rb");
+    FILE* o = OpenFile(PathU8(out), "wb");
+    bool ok = in && o;
+    size_t n;
+    while (ok && (n = fread(buf.data(), 1, buf.size(), in)) > 0) {
+      ok = fwrite(buf.data(), 1, n, o) == n;
+      if (ok && copied) copied(n);
+    }
+    if (in) fclose(in);
+    if (o && fclose(o) != 0) ok = false;
+    if (!ok) {
+      if (error) *error = "could not copy " + PathU8(it->path()) + " to " + PathU8(out);
+      return false;
+    }
+  }
+  if (ec) {
+    if (error) *error = ec.message();
+    return false;
+  }
+  return true;
+}
+
+std::vector<std::string> VolumeRoots() {
+  std::vector<std::string> out;
+#ifdef _WIN32
+  const DWORD mask = GetLogicalDrives();
+  for (int i = 2; i < 26; i++)       // C: on: A: and B: are floppies
+    if (mask & (1u << i)) out.push_back(std::string(1, char('A' + i)) + ":/");
+#else
+  std::vector<std::string> parents;
+#ifdef __APPLE__
+  parents.push_back("/Volumes");
+#else
+  const char* user = std::getenv("USER");
+  if (user) {
+    parents.push_back(std::string("/media/") + user);
+    parents.push_back(std::string("/run/media/") + user);
+  }
+  parents.push_back("/media");
+  parents.push_back("/mnt");
+#endif
+  for (const std::string& p : parents)
+    for (const DirEntry& e : ListDir(p))
+      if (e.dir) out.push_back(e.path);
+#endif
+  return out;
 }
 
 std::string DownloadsDir() {
@@ -314,6 +530,32 @@ std::vector<std::string> GogInstallDirs() {
       if (d.dir && d.path.find("Sensible") != std::string::npos) out.push_back(d.path);
   }
   return out;
+}
+
+void SetEnvDefault(const char* name, const char* value) {
+#ifdef _WIN32
+  // Both the C runtime's copy and the process's own block, which Rust code reads.
+  if (GetEnvironmentVariableA(name, nullptr, 0) != 0) return;
+  _putenv_s(name, value);
+  SetEnvironmentVariableA(name, value);
+#else
+  setenv(name, value, 0);
+#endif
+}
+
+FILE* OpenLog(const std::string& path) {
+  std::error_code ec;
+  fs::create_directories(U8Path(ParentDir(path)), ec);
+#ifdef _WIN32
+  FILE* f = _wfopen(Widen(path).c_str(), L"w");
+  if (!f) return nullptr;
+  const HANDLE err = GetStdHandle(STD_ERROR_HANDLE);
+  if (err == nullptr || err == INVALID_HANDLE_VALUE)
+    SetStdHandle(STD_ERROR_HANDLE, reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(f))));
+  return f;
+#else
+  return std::fopen(path.c_str(), "w");
+#endif
 }
 
 }  // namespace sd

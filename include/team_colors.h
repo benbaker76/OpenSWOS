@@ -35,4 +35,13 @@ void     SetInGameTeamsFirstKits(TeamFile *team1File, TeamFile *team2File);   /*
 #endif
 uint16_t __attribute__((used, externally_visible)) ConvertPlayerDressColor(uint16_t color);
 
+/* Purple, the 11th kit colour (team_colors.c): the menu entry at start-up, the match's palette
+ * entry 12 before its sprites are coloured, a side's kit colours as last given (type, stripes,
+ * basic, shorts, socks; 0 for another TeamGame). */
+#define KIT_COLOURS 11
+void TeamColors_Init(void);
+void TeamColors_MatchPalette(TeamGame *team1);
+int32_t TeamColors_PurpleInMatch(void);   /* a side wears purple and neither maroon */
+const uint8_t *TeamColors_Worn(const TeamGame *team);
+
 #endif

@@ -13,7 +13,8 @@
 #   HOST_RES=1024x768 JOIN_RES=320x200 ...    # a [video] resolution each: two display
 #                                             # widths (362 and 336), as a Mac and a PC had
 #   GAMEPLAY=dos RECORD=1 ...                 # DOS gameplay on both (a resim must take it
-#                                             # from the file, not from its own SWOS.ini)
+#                                             # from the file, not from its own SWOS.ini);
+#                                             # GAMEPLAY=xbox the same, at 60 fps
 #   MM_HOST=us.swos.eu scripts/relay_test.sh  # through an EXISTING server, not one of ours
 #   REPORTS=1 RELAY=0 scripts/relay_test.sh   # the match reports (include/match_report.h):
 #                                             # each player zips both logs and sends it here
@@ -23,6 +24,8 @@
 #                                             # the server's fallback session (RELAYFB:,
 #                                             # p2p_link.c relay_fallback); BLOCK=join or host:
 #                                             # one side only, a link that works one way
+#   HOST_NAME=A JOIN_NAME=B ...               # the players' names (default RELAYHOST /
+#                                             # RELAYJOIN): a fork's test accounts
 #
 # MM_HOST=<name> [MM_PORT=19602] plays through a server someone else runs, so it tests a
 # DEPLOYMENT: the round trip to it and its relay. No server is started. What cannot be
@@ -68,6 +71,7 @@
 # Each side's input comes from its own generator (SWOS_LIVE_RANDOM_INPUT), so both
 # predict wrong and roll back, and the relay carries real rollback traffic.
 set -uo pipefail
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 BIN="${BIN:-SWOS.x86_64}"
@@ -83,13 +87,13 @@ REPORTS="${REPORTS:-0}"
 RECORD_MODE="${RECORD_MODE:-full}"
 DESYNC_FRAME="${DESYNC_FRAME:-}"
 SERVER="${SERVER:-build/matchmaker/swos-matchmaker}"
-GAMEPLAY="${GAMEPLAY:-}"                # dos | amiga: both players, whatever SWOS.ini says
+GAMEPLAY="${GAMEPLAY:-}"                # amiga | dos | xbox: both players, whatever SWOS.ini says
 MM_HOST="${MM_HOST:-}"                  # an existing server to play through instead of our own
 MM_PORT="${MM_PORT:-19602}"
 REMOTE=0; [ -n "$MM_HOST" ] && REMOTE=1
 case "$GAMEPLAY" in
-    ''|amiga|dos) ;;
-    *) echo "relay-test: GAMEPLAY must be amiga or dos" >&2; exit 1 ;;
+    ''|amiga|dos|xbox) ;;
+    *) echo "relay-test: GAMEPLAY must be amiga, dos or xbox" >&2; exit 1 ;;
 esac
 mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)"   # the game chdirs to bin/
 [ -n "$DESYNC_FRAME" ] && [ "$RECORD" != 1 ] && { echo "relay-test: DESYNC_FRAME needs RECORD=1" >&2; exit 1; }
@@ -97,19 +101,22 @@ mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)"   # the game chdirs to bin/
 [ -n "$DESYNC_FRAME" ] && [ "$REMOTE" = 1 ] && { echo "relay-test: DESYNC_FRAME needs a server of our own (its ledger names the frame)" >&2; exit 1; }
 [ -n "$DESYNC_FRAME" ] && MATCHES=1     # the match ends at the desync; one is the test
 [ -x "bin/$BIN" ] || { echo "relay-test: bin/$BIN not built" >&2; exit 1; }
-HNAME=RELAYHOST; JNAME=RELAYJOIN
+# HOST_NAME / JOIN_NAME: the players' names (a fork's accounts: SWOS United's test logins)
+NAMED_HOST="${HOST_NAME:-}"; NAMED_JOIN="${JOIN_NAME:-}"
+HNAME="${NAMED_HOST:-RELAYHOST}"; JNAME="${NAMED_JOIN:-RELAYJOIN}"
 if [ "$REMOTE" = 1 ]; then
     # Theirs: resolve it, because a relayed match's peer is the server by ADDRESS.
     MM_IP=$(getent ahostsv4 "$MM_HOST" 2>/dev/null | awk 'NR == 1 { print $1 }')
     [ -n "$MM_IP" ] || { echo "relay-test: cannot resolve $MM_HOST" >&2; exit 1; }
     PLAY_HOST=$MM_HOST; PLAY_PORT=$MM_PORT; RELAY_PEER="$MM_IP:$MM_PORT"
-    n=$(( $$ % 10000 )); HNAME="UHOST$n"; JNAME="UJOIN$n"   # never two runs' players mixed
+    n=$(( $$ % 10000 )); HNAME="${NAMED_HOST:-UHOST$n}"; JNAME="${NAMED_JOIN:-UJOIN$n}"   # never two runs' players mixed
     [ -n "${NETEM:-}" ] && echo "relay-test: NETEM is the server's to choose; ignored for $MM_HOST" >&2
     echo "relay-test: through $MM_HOST ($RELAY_PEER) as $HNAME and $JNAME"
     SERVER_PID=
 else
     PLAY_HOST=127.0.0.1; PLAY_PORT=$PORT; RELAY_PEER="127.0.0.1:$PORT"
-    [ -x "$SERVER" ] || scripts/run_matchmaker.sh --build-only >/dev/null 2>&1
+    # (the build here: up to date every run -- its team list above all; another SERVER as it is)
+    [ "$SERVER" = build/matchmaker/swos-matchmaker ] && scripts/run_matchmaker.sh --build-only >/dev/null 2>&1
     [ -x "$SERVER" ] || { echo "relay-test: $SERVER not built" >&2; exit 1; }
     if command -v ss >/dev/null && ss -ulnp 2>/dev/null | grep -q ":$PORT "; then
         echo "relay-test: UDP $PORT is taken; set PORT=" >&2
@@ -166,17 +173,19 @@ run() {   # name, auto, team, extra env...
         SWOS_LOBBY_TEAM="$team" SWOS_LOBBY_READY=1 SWOS_LOBBY_MATCHES="$MATCHES" \
         SWOS_LIVE_FRAMES="$FRAMES" $RECORD_ENV "$@" \
         timeout -s KILL "$WAIT" ./"$BIN" --matchmaker-menu="$name" \
-        ${GAMEPLAY:+--dos-gameplay=$([ "$GAMEPLAY" = dos ] && echo on || echo off)}
+        ${GAMEPLAY:+--gameplay=$GAMEPLAY}
 }
 # <side>.log is the raw output; <side>.ts the same lines with the time each arrived,
 # to line up against the server's timed [relay] and [record] lines.
 stamp() { gawk '{ print strftime("%H:%M:%S"), $0; fflush() }'; }
-( run "$HNAME" host "${HOST_TEAM:-50:0B}" SWOS_MM_AUTO_PEER="$JNAME" ${HOST_START_ENV} SWOS_LIVE_RANDOM_INPUT=0xA5A5F00D HOME="$OUT/home-host" ${HOST_ENV:-} \
+# The lobby chat (netplay_lobby.c): each side says a line as the lobby opens; each must have
+# the other's exactly once -- the window is sent again after a rematch's reconnect.
+( run "$HNAME" host "${HOST_TEAM:-50:0B}" SWOS_MM_AUTO_PEER="$JNAME" ${HOST_START_ENV} SWOS_LIVE_RANDOM_INPUT=0xA5A5F00D HOME="$OUT/home-host" SWOS_LOBBY_SAY="HELLO FROM THE HOST" ${HOST_ENV:-} \
     2>&1 | tee "$OUT/host.log" | stamp > "$OUT/host.ts"
   echo "[relay-test] exit ${PIPESTATUS[0]}" >> "$OUT/host.log" ) &
 HOST_PID=$!
 sleep 3
-( run "$JNAME" join "${JOIN_TEAM:-52:02}" SWOS_MM_AUTO_PEER="$HNAME" SWOS_LIVE_RANDOM_INPUT=0x5A5A0FF0 HOME="$OUT/home-join" ${JOIN_ENV:-} \
+( run "$JNAME" join "${JOIN_TEAM:-52:02}" SWOS_MM_AUTO_PEER="$HNAME" SWOS_LIVE_RANDOM_INPUT=0x5A5A0FF0 HOME="$OUT/home-join" SWOS_LOBBY_SAY="HELLO FROM THE JOINER" ${JOIN_ENV:-} \
     2>&1 | tee "$OUT/join.log" | stamp > "$OUT/join.ts"
   echo "[relay-test] exit ${PIPESTATUS[0]}" >> "$OUT/join.log" ) &
 JOIN_PID=$!
@@ -218,6 +227,9 @@ for side in host join; do
     grep -E "^\[p2p\] (relay|direct connection|link (failed|closed))|^\[netplay\] (p2p match|live match|desync|the peer|network)|^\[live\] final sim|^\[record\]|^\[relay-test\]" \
         "$OUT/$side.log"
     grep -q '^\[relay-test\] exit 0$' "$OUT/$side.log" || { echo "!! $side did not exit 0"; fail=1; }
+    other=JOINER; [ "$side" = join ] && other=HOST
+    n=$(grep -c "^\[chat\] them: HELLO FROM THE $other\$" "$OUT/$side.log")
+    [ "$n" = 1 ] || { echo "!! $side: the other player's chat line arrived $n times, not once"; fail=1; }
     # The team check (include/team_proto.h): each game asked the server about both
     # teams, and both are on its list. Only where the server is ours to know.
     if [ "$REMOTE" != 1 ]; then

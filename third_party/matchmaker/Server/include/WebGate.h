@@ -57,6 +57,8 @@ public:
 
     // Once per main-loop pass: read and write every connection and tunnel.
     void Update();
+    // A browser is connected: its datagrams arrive over TCP, which the server polls.
+    bool Busy() const { return !m_connections.empty(); }
 
 private:
     struct Connection;
@@ -118,6 +120,8 @@ public:
     ~TcpGate();
 
     void Update();
+    // A connection is waiting to say what it is: the server polls TCP every millisecond.
+    bool Busy() const { return !m_pending.empty(); }
 
 private:
     struct Pending

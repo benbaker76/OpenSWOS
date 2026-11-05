@@ -48,9 +48,18 @@
  * Kept raw-byte (no competition-type include) to avoid the include conflict. */
 #define CC64 (UINTPTR_MAX != 0xFFFFFFFFu ? 8 : 0)
 
-uint8_t _euroCupCopy                          [112 + CC64] __attribute__((aligned(4)));
-uint8_t _cupWinnersCupCopy                    [92 + CC64] __attribute__((aligned(4)));
-uint8_t _uefaCupCopy                          [92 + CC64] __attribute__((aligned(4)));
+/* The three European cups: a world plays them as 36-club league phases (CompetitionLeaguePhase,
+ * 120 bytes + CC64: src/league_phase.c), so with the worlds compiled in their copies hold one. A
+ * copy's saved list runs to its template's size (the contest table's), so 96/97's saves are as
+ * they were. */
+#if SWOS_WORLDS
+#define EURO_COPY(n) 120
+#else
+#define EURO_COPY(n) (n)
+#endif
+uint8_t _euroCupCopy                          [EURO_COPY(112) + CC64] __attribute__((aligned(4)));
+uint8_t _cupWinnersCupCopy                    [EURO_COPY(92) + CC64] __attribute__((aligned(4)));
+uint8_t _uefaCupCopy                          [EURO_COPY(92) + CC64] __attribute__((aligned(4)));
 uint8_t _invitationTournamentCopy             [92 + CC64] __attribute__((aligned(4)));
 uint8_t _tourCopy                             [92 + CC64] __attribute__((aligned(4)));
 uint8_t _friendlyCopy                         [92 + CC64] __attribute__((aligned(4)));

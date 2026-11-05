@@ -1,0 +1,34 @@
+# The game reads the pad itself: start pause, select statistics, A/B fire,
+# Y instant replay, X replay after the match, the d-pad and the left stick to
+# move. Mapping those here would fire them twice. Its only pad binding for ESC
+# is R3, which these devices lack: L2 sends it.
+#
+# Every other binding is switched off (`= \"`): some gptokeyb versions (ArkOS's,
+# on an R36S) keep their defaults for whatever a file leaves out -- the left
+# stick as W/A/S/D, so pushing it down sent S and opened the statistics.
+l2 = esc
+
+back = \"
+start = \"
+guide = \"
+a = \"
+b = \"
+x = \"
+y = \"
+l1 = \"
+l3 = \"
+r1 = \"
+r2 = \"
+r3 = \"
+up = \"
+down = \"
+left = \"
+right = \"
+left_analog_up = \"
+left_analog_down = \"
+left_analog_left = \"
+left_analog_right = \"
+right_analog_up = \"
+right_analog_down = \"
+right_analog_left = \"
+right_analog_right = \"

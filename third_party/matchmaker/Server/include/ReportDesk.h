@@ -32,6 +32,7 @@ public:
 
     // Once per main-loop pass: read what arrived, keep what is whole, answer, close.
     void Update();
+    bool Busy() const { return !m_connections.empty(); }    // an upload under way (TCP)
 
 private:
     struct Connection

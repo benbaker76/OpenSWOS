@@ -28,6 +28,15 @@ drew for its kit screen. They are not in the Amiga layout at all (the Amiga keep
 its kit art in the MENUS bank), so they are cut from CJCGRAFS_JAGSHEET.bmp by the
 boxes in KIT_BOXES and stored chunky, with the sheet's palette: src/kit_art.c
 draws them in the menus when [graphics] kit_art = jaguar.
+
+A SPRITE SET AS A MOD (docs/JAGUAR.md, "Sprite sets as mods"): your own sheets, drawn to the
+Jaguar tier's colour roles, made into a mod folder the game draws instead of the Amiga art:
+
+    scripts/make_jag_graphics.py MY_SHEETS --mod mods/mysprites [--name "My sprites"]
+
+writes mods/mysprites/grafs_jag/ (the banks you have; the rest come from the player's own
+Jaguar data, or the Amiga's) and, when there is none yet, a mod.json saying "sprites":
+"jaguar", with the four shading settings as the mod's own (its page in OPTIONS -> MODS).
 """
 import argparse
 import os
@@ -97,7 +106,12 @@ def main():
     ap.add_argument("src", nargs="?", default=DEFAULT_SRC,
                     help="SwosGfx's Jaguar output directory (default: %(default)s)")
     ap.add_argument("-o", "--out", default="bin/grafs_jag", help="where the banks go")
+    ap.add_argument("--mod", metavar="DIR",
+                    help="make a sprite-set mod there instead: DIR/grafs_jag/ and DIR/mod.json")
+    ap.add_argument("--name", default=None, help="the mod's name (with --mod)")
     args = ap.parse_args()
+    if args.mod:
+        args.out = os.path.join(args.mod, "grafs_jag")
 
     try:
         from PIL import Image
@@ -149,6 +163,42 @@ def main():
     print("  palette   -> JAG.PAL   (256 RGB triplets, %d of them used)" % sum(used))
     write_kits(args.src, args.out, Image)
     print("%d bank(s) written to %s" % (written, args.out))
+    if args.mod:
+        write_mod_manifest(args.mod, args.name)
+
+
+def write_mod_manifest(mod_dir, name):
+    """A sprite set's mod.json, unless the mod has one: "sprites": "jaguar" makes the game draw
+    its grafs_jag/ with the Jaguar tier; the four shading settings are its own."""
+    import json, re, uuid
+    path = os.path.join(mod_dir, "mod.json")
+    if os.path.exists(path):
+        print("  mod.json  kept (%s)" % path)
+        return
+    slug = re.sub(r"[^A-Za-z0-9_-]", "_", os.path.basename(os.path.normpath(mod_dir)))[:31]
+    onoff = ["on", "off"]
+    manifest = {
+        "uuid": str(uuid.uuid4()),          # its own, for ever (docs/MODS.md §14)
+        "id": slug,
+        "name": name or slug,
+        "version": "1.0",
+        "author": "",
+        "about": "Players drawn with more colours, by the Jaguar sprite tier.",
+        "targets": ["sdl"],
+        "changes": "cosmetic",
+        "default": False,
+        "sprites": "jaguar",
+        "settings": [
+            {"key": "outfit_shading", "label": "Kit shading", "choices": onoff, "default": "on"},
+            {"key": "shadow_shading", "label": "Shadow shading", "choices": onoff, "default": "on"},
+            {"key": "hair_shading", "label": "Hair shading", "choices": onoff, "default": "on"},
+            {"key": "shade_step", "label": "Shade step", "choices": ["1", "2", "3", "4", "5"], "default": "2"},
+        ],
+    }
+    with open(path, "w") as f:
+        json.dump(manifest, f, indent=1)
+        f.write("\n")
+    print("  mod.json  -> %s (uuid %s)" % (path, manifest["uuid"]))
 
 
 if __name__ == "__main__":

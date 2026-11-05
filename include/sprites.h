@@ -32,6 +32,9 @@ void DrawSprites(void);
  * this rather than on Sprite.onScreen, which is the simulation view — see
  * BuildSpriteBandAndGeneralRenderStacks in sprites.c. */
 int Sprite_AnimVisible(const Sprite *s);
+/* While the players walk off (half time, the end): a player who has reached his team's exit point
+ * beyond the right touchline, gone into the tunnel -- neither drawn nor recorded (sprites.c). */
+int Sprite_WalkedOff(const Sprite *s, const SpriteGraphics *g);
 
 /* Sprites outside the simulation view that still animate because a wider render draws
  * them (BuildSpriteBandAndGeneralRenderStacks; read by Sprite_AnimVisible). */

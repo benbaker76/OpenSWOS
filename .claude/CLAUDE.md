@@ -9,6 +9,8 @@ original `SWOS2.s`. **One** source tree builds **both** targets:
 |---|---|---|---|
 | SDL (Linux/Windows/macOS/WASM/ARM) | `make` | `bin/SWOS*` | the day-to-day dev target |
 | Amiga m68k (A1200/AGA) | `make -f Makefile.amiga` | `bin/SWOS2` | runs under FS-UAE/WinUAE or real hardware |
+| Android (arm64, x86_64) | `scripts/build_android.sh` | `dist/OpenSWOS-Android.apk` | a flavour of the SDL build: Gradle + `packaging/mobile/CMakeLists.txt` (mirrors the Makefile -- keep in step); signed with the key in `~/.openswos-keys` (never lose it). See `docs/MOBILE.md` |
+| iOS (arm64) | `scripts/build_ios.sh` | `dist/OpenSWOS-iOS.ipa` | built on the Mac mini over ssh; unsigned, for sideloading (AltStore/Sideloadly). See `docs/MOBILE.md` |
 | Nintendo Switch (NX-NXFP2-a64) | `scripts/build_switch.sh` | `bin/SWOS.nss` | a flavour of the SDL build; needs the NDA SDK + SDL fork, neither in this tree. **Not yet linked or run** — see `docs/SWITCH.md` |
 
 `src/` and `include/` are **shared**. Platform divergence is expressed with
@@ -24,9 +26,15 @@ see `SDL_ONLY_SRCS` in `Makefile.amiga`.
 > the merge; fix it when you touch it.
 >
 > **OpenSWOS** (github.com/benbaker76/OpenSWOS) is the open-source release. Its wire/file
-> identifiers are its own (`VERSION:OPENSWOS`, GGPO session `openswos`, custom-team format
+> identifiers are its own (`VERSION:OPENSWOS/<NETPLAY_COMPAT>`, GGPO session `openswos`, custom-team format
 > `openswos-team`, ggpo-x branch `openswos`): a build of another fork with different ones
 > does not meet it online.
+
+**Forks:** SWOS United (github.com/SWOS-United) is a fork of OpenSWOS, its own project: it takes
+OpenSWOS's changes when ITS team chooses, and its online play is its own (servers, log-in). The
+project's name, online identifiers, servers and player folder are ALL in
+`include/project_identity.h` -- never write them anywhere else (docs/FORKING.md), so a fork that
+does merge changes nothing else for them.
 
 **Docs map:** `docs/INDEX.md` lists every doc in `docs/` (what it is, whether it is current,
 when to read it) and every path the project uses — repos, tools, servers, save folders.
@@ -94,7 +102,12 @@ connect through `src/p2p_link.c` (docs/NETPLAY.md §6): a UDP handshake that ref
 or rules would desync the match (not the gameplay STYLE: a game plays its host's, picked at OPEN, and
 the joiner borrows it until they leave -- `GameplayStyle_Borrow`; and not the screen width: the two
 agree one simulation width), and shows the ping. `--netplay-selftest` runs it over
-loopback. A live match through the lobby, and a rematch after it, is `scripts/netplay_lobby_test.sh`
+loopback. **"Build" means `NETPLAY_COMPAT`** (`include/netplay_compat.h`, since 2026-10-25), not the
+commit: two commits with the same number play each other, and the server lists a game only to its
+number. **Raise it with any change to how a match plays, or to what the games say to each other**;
+`scripts/check_netplay_compat.sh` (the corpus's SIM hashes vs `tests/netplay_compat.txt`) fails when
+a raise is missing, `--update` after raising -- run it after touching the match. It cannot see a
+booking, a shoot-out, the lobby or the wire: those raises are yours to remember. A live match through the lobby, and a rematch after it, is `scripts/netplay_lobby_test.sh`
 (two instances through the real menus); run it after touching the lobby, the link, or how a live
 match starts or ends. A live match must never `exit()` or leave the frame loop: it ends through
 `liveEnd` and goes back to the lobby. Closing the window is one of the ways it ends ("YOU CLOSED THE
@@ -127,12 +140,10 @@ estimate alone, which is what the pacing in `src/netplay_match.c` was tuned agai
 2026-10-06 by accident (the fork's `min()` returned a dangling reference, so the figure a peer
 sent was noise; that noise tipped matches into one player predicting 2+ frames deeper). Do not
 switch the true figure on without retuning the pacing: the peers swing five frames apart. The
-balance itself is in the fork (`lib/ggpo/prediction_balance.h`, `GGPO_PREDICTION_BALANCE`): the
-peers exchange their average prediction depth in the quality report and the one 1.5 frames or
-more deeper is told to wait a quarter of the gap (`NETPLAY_EVENT_BALANCE`) -- never a gap of
-one frame, which cannot be closed without adding prediction. `[netplay] balance = true`, OFF by
-default, both players; `SWOS_LIVE_BALANCE=1` for a test. A change to either: several runs a
-link of the doc's matrix, never one.
+prediction balance (and the CATCH UP switch) were REMOVED from the game 2026-10-30 -- they
+caused netplay problems (Playa); the balance's code stays in the fork, unused. The input delay
+is Playa's ping table (`propose_delay`, docs/NETPLAY.md: DOS 1-5, Amiga 1-4, never 0). A change
+to the pacing: several runs a link of NETPLAY_BALANCE.md's matrix, never one.
 "Ghosting" (players running through each other online) has its own doc, docs/NETPLAY_GHOSTING.md:
 every match records each frame as drawn and as played (`src/netplay_ghost.c`), logs `[ghost]`
 lines, keeps windows around the worst detected events for the report zip, and
@@ -176,6 +187,57 @@ proves a refusal. A raw
 684-byte `.TEAM` (SWOS 2020, editors) in a slot is converted to the JSON, its base team found BY ITS
 PLAYERS -- SWOS 2020 renumbers custom teams. `--custom-team-selftest` runs all 1,631 database
 teams through the rule and the file; run it after touching either.
+
+**`SWOS_WORLDS`** (default 1; `make SWOS_WORLDS=0`, the same on `Makefile.amiga`): the football worlds
+beyond 96/97 -- World 2026-27 and all it brought (docs/WORLD_2026_27.md: its countries, leagues,
+splits, play-offs, cups, pools, the Coppa D, Europe's league phases). At 0 the game is 96/97 alone, as
+before them: `World_Current()` is the constant 96/97, `World_Set` takes no other, the generated
+world data (`src/world_data.c`) compiles out, so every world hook finds nothing and does nothing,
+and the global team numbers are 96/97's 2000. New world code must keep that true: gate on the world's
+data or `World_Current()`, never act for 96/97. **A club's file number is not always its country**: a
+world's country can be over two team files (the v4 delta's Italy: 262 clubs, its second file 197; 4.0.5's is one again),
+so world code reads a club's country through `World_FileCountry` and indexes clubs by SLOT
+(`World_Slot`, `WORLD_SLOTS`; include/world.h, docs/WORLD_2026_27.md phase 4). Proved: the 96/97 golden careers on a
+`SWOS_WORLDS=0` build equal the record made with the worlds on (a save writes the league offsets at
+2000 when nothing past them is used, so it is the same from either build).
+**World 2026-27's data is NEVER in OpenSWOS** (its squads are its authors'; the owner, 2026-10-30):
+`bin/data_json/worlds/` stays .gitignored. It is a package hosted apart (`scripts/make_world_package.sh`
+-> `dist/OpenSWOS-World-2627.zip`, made after every import whose output changed: its WORLD.ini
+fingerprint must be the one `world_import.py` baked into `src/world_data.c`), which OpenSWOS Setup
+installs as a DLC **mod**, `mods/world2627/` (docs/MODS.md §17: `data_json/worlds/2627/` for the PC,
+`amiga/data/` for the Amiga; uuid `15ea9117-...` for ever). 96/97 is the default
+world: a run plays `--world`, else `SWOS_WORLD`, else SWOS.ini's `[general] world`, else 96/97 (a
+world without its WORLD.ini installed -- the mod off -- falls back to 96/97, said in `[world]` lines);
+the Amiga plays the world's mod's `data/WORLD`, in a drawer only when the player ticks the world on the
+Amiga tab. **Online, mods whose `"changes"` is `gameplay` or `data` must be alike in both games**
+(uuid, version, files: `Mods_OnlineSignature`, the handshake's `P2P_FAIL_MODS`). The
+matchmaking server's team list carries the world's teams (`TeamRegistry.inc`, refreshed by the package
+script: commit it and redeploy the server with each package). Test rigs
+whose corpus or careers are 96/97's export `SWOS_WORLD=9697` -- a new one must too.
+
+**The golden career test** (`scripts/career_golden_test.sh`, docs/WORLD_2026_27.md phase 0): the
+game's career autopilot (`--career-golden=new:<continent>/<country>/<division>/<club>` or a save;
+`src/career_autopilot.c`) plays seven new careers -- England's two top divisions, Italy, Germany,
+Spain, Scotland, Brazil (`tests/career_golden_careers.txt`) -- and any local saves in `tests/career`
+for five seasons, deterministically, and compares every season-end JSON save with
+`tests/career_golden.txt`. **Run it after touching the season engine, competitions, finances,
+transfers or saves**; `--update` records a deliberate change, `--twice` re-proves the runs repeat,
+`scripts/career_golden_diff.py A B` names what changed. A save must hold no address -- the test
+found two (`namePtr` in the competition blobs, now written as a set/unset marker).
+
+**The season-end and cup rules are a library shared with the SWOS 96/97 Mod** (docs/RULES_LIBRARY.md):
+`third_party/swos-competition-engine` (submodule, Davide Lorigliola's repo), its `rules/` built as
+`src/swos_rules_*.c` on every target -- the Italian play-offs, every pack's knockouts, the career
+club's play-off contests, B teams and the season's moves, the cups' clubs, the Coppa D's later
+seasons, the parallel groups (`sr_pg_season`; `league_groups.c` the game's side) -- at the tag **v1**
+(87b6527, 2026-11-02: the Mod 4.0.5's rules, 4.0.6's pg_a2 guard; docs/RULES_LIBRARY.md §10-11).
+**v1 is frozen**: struct layouts, signatures and results stay; additions are 1.x, a change to what
+exists is a v2 agreed with Davide. `league_playoffs.c`,
+`world_cups.c` and `world_cupd.c` are the game's side of them; it gives the library each spec's length
+(`spec_len`, required) and the B teams' `b_in_ko` / `base` / `levels`. A rule
+change goes there as a pull request with its comparison against the Mod's C (`make rules-check
+MOD=...` there); `scripts/league_playoffs_check.sh` here runs ours through it (MOD= a 4.0.5 checkout). Freestanding C99, no
+libc, one caller-owned state (`sr_state`): the Mod links the same code into the DOS exe.
 
 **Whole-match replays** (`.SRP`, `src/replay_v2.c`, docs/REPLAY_FORMAT_V2.md) are SDL-only and
 recorded from every match that is not training, the arcade cabinet or the rig: `LATEST.SRP` in the
@@ -242,6 +304,7 @@ beside it.
 | `dist/SWOS-Amiga.zip` | 2 MB | a SWOS drawer + icon: `SWOS2`, its Workbench script and icon, only the trees the m68k binary opens, `c`/`s`, an empty `save/` |
 | `dist/SWOS-Setup.exe` | 14 MB | Inno Setup installer — the Windows half of the full zip, for a tester who'd rather double-click |
 | `dist/SWOS.nsp` | 84 MB | the Switch package (`scripts/build_switch.sh`) |
+| `dist/portmaster/swos.zip` | 5 MB | the PortMaster port (its own folder: on a Windows drive `dist/swos.zip` is `dist/SWOS.zip`, which overwrote it until 2026-11-04 -- every packer now checks it holds the launcher) (target `portmaster`: `scripts/build_portmaster.sh --no-build` on the drop's `bin/SWOS.aarch64`); also `portmaster/swos.zip` in SWOS-portable.zip, OpenSWOS-Setup.zip, SWOS-Setup.exe and SWOS-macOS-app.zip (sent to the Mac by `build_macos.sh`, so build the port first), where the setup's Handheld screen finds it to put on the card; itch.io channel `portmaster` |
 | `dist/SWOS-macOS*.zip` | 19 / 1.4 MB | from `scripts/build_macos.sh` — see below |
 | `dist/OpenSWOS-Setup.zip` | ~30 MB | the data setup ALONE for Windows, macOS and Linux (`scripts/build_setup_zip.sh`, after `build_macos.sh`, which brings back the Mac's part): how an Amiga player gets it -- the setup cannot run on the Amiga, it fills the drawer on a PC or Mac. Its programs find `setup/` and `data/` in the folder ABOVE them. The Mac window is UNIVERSAL like the game: a static Slint built for both slices by `tools/swosdata/build_slint_macos.sh` (once per Mac; the published Slint SDK is arm64-only) |
 
@@ -404,7 +467,7 @@ real rules whatever either file says -- unless the HOST switches CARDS/INJURIES 
 lobby (the host's switches, below) -- and so do the rigs (replay corpus, rollback, netplay
 tests); `--srp-resim` plays a recording by the rule it was recorded under.
 **The host's switches** (`include/netplay_match.h`, report 0042, docs/NETPLAY.md "The lobby"):
-SHORT PRESSES, CATCH UP, KICK-OFF SYNC, BALANCE and CARDS/INJURIES, ON/OFF on the left of
+SHORT PRESSES, KICK-OFF SYNC and CARDS/INJURIES, ON/OFF on the left of
 the lobby -- each a netplay change since 7d9d6d9 -- decided by the host ALONE and played by
 both (they travel in the host's rules; `NetplayLobby_ApplyMatch` puts them in force,
 `NetplayLobby_RestoreTactics` takes them back). The rows are entries OpenSWOS adds to SWOS

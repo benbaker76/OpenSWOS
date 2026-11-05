@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "teams.h"
+#include "world.h"
 #include "career_teams.h"
 #include "comp_identity.h"
 #include "swos_platform.h"   /* HLOG — force-included by the SDL Makefile, not the
@@ -19,6 +20,9 @@
 #include "career_status.h"
 #include "play_match_menu.h"
 #include "career_init.h"
+#include "league_groups.h"
+#include "team_pool.h"
+#include "swos_io.h"
 #ifdef SWOS_SDL_BUILD
 #include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in */
 #endif
@@ -188,12 +192,11 @@ void SetTeamGlobalNumbers(uint16_t numTeams, uint8_t *firstTeam)
 
     team = (TeamFileEx *)firstTeam;
     for (i = numTeams; i > 0; i--) {
-        uint16_t countryNum = team->team.countryNumber & 0xFF;
         uint16_t localNum;
         uint16_t globalNum;
 
-        countryNum = countryNum << 1;   /* word index */
-        globalNum = *((uint16_t *)((uint8_t *)_teamsCountryNumbers + countryNum));
+        /* (a country's second team file runs on from its first: include/world.h) */
+        globalNum = World_GlobalBase((uint8_t)team->team.countryNumber);
 
         localNum = team->team.teamOrdinal & 0xFF;
         globalNum += localNum;
@@ -211,9 +214,15 @@ void SetTeamGlobalNumbers(uint16_t numTeams, uint8_t *firstTeam)
  * and uses diyLeagueSeasonStateTable to add a league offset
  * to the team's league field.
  * ================================================================ */
+static void setLeagueNumbersOf(uint8_t *teamBuf);
+
 static void setLeagueNumbers(void)
 {
-    uint8_t *teamBuf = _teamFileBuffer;
+    setLeagueNumbersOf(_teamFileBuffer);
+}
+
+static void setLeagueNumbersOf(uint8_t *teamBuf)
+{
     uint16_t count = *((uint16_t *)teamBuf);
     TeamFileEx *team;
     uint16_t i;
@@ -307,6 +316,21 @@ void byteswap_team_file_to_disk(void)
 }
 #endif
 
+/* A club outside its country's league: past the league's last division. The original
+ * tested league == 4 -- what every 96/97 club outside a league has, its countries having at
+ * most 4 divisions (checked against the whole database); a world's league can have more
+ * (LEAGUE_MAX_DIVISIONS), whose division 4 is a division. A country without a league keeps
+ * the original test. */
+int32_t Team_IsOutsideLeague(const TeamFile *t)
+{
+    extern void *_competitionsTable[];
+    void **entry = (void **)_competitionsTable[t->countryNumber & 0xFF];
+    const Competition *primary = entry ? (const Competition *)entry[0] : NULL;
+    if (primary && (intptr_t)primary != -1 && primary->type == 0 && !comp_is_type0_cup(primary->compId))
+        return t->league >= (uint8_t)((const CompetitionLeague *)primary)->header.divisionsCount;
+    return t->league == 4;
+}
+
 __attribute__((used, externally_visible))
 int16_t LoadTeamFile(uint16_t extNumber)
 {
@@ -336,7 +360,7 @@ int16_t LoadTeamFile(uint16_t extNumber)
             _teamsLoaded = 0;
             return 1;
         }
-        if (fileSize > 64000u) {
+        if (fileSize > TEAM_FILE_BUFFER_SIZE) {   /* was 64000 (the 93-team buffer) */
             _panicReasonCode = 0x1939;
             PanicHaltLoop();
         }
@@ -357,8 +381,7 @@ int16_t LoadTeamFile(uint16_t extNumber)
         const char *djv = getenv("SWOS_DATA_JSON");
         if (!(djv && djv[0] == '0' && djv[1] == '\0')) {
             extern int DataJson_LoadTeamFileForCountry(int, uint8_t *, int);
-            /* teamFileBuffer is 0xFA0E bytes → (0xFA0E-2)/sizeof(TeamFileEx) ≈ 93 */
-            if (DataJson_LoadTeamFileForCountry((int)ext8, _teamFileBuffer, 93) > 0)
+            if (DataJson_LoadTeamFileForCountry((int)ext8, _teamFileBuffer, TEAM_FILE_MAX_TEAMS) > 0)
                 json_loaded = 1;
         }
 #endif
@@ -387,7 +410,7 @@ int16_t LoadTeamFile(uint16_t extNumber)
                 PanicHaltLoop();
                 /* never returns */
             }
-            if (fileSize > 64000u) {
+            if (fileSize > TEAM_FILE_BUFFER_SIZE) {   /* was 64000 (the 93-team buffer) */
                 _panicReasonCode = 0x1939;
                 PanicHaltLoop();
             }
@@ -398,6 +421,9 @@ int16_t LoadTeamFile(uint16_t extNumber)
 
         /* Shared post-load processing (binary OR json source). */
         setLoadedTeamsGlobalNumbers();
+
+        /* A world's pooled file in a career: its swapped slots' identities (team_pool.c). */
+        TeamPool_ApplyToFile(ext8, _teamFileBuffer);
 
         /* In career mode, also set league numbers */
         if (_gameType == GAME_TYPE_CAREER && _skipLeagueNumbers == 0) {
@@ -414,6 +440,44 @@ int16_t LoadTeamFile(uint16_t extNumber)
 
     return 0;
 }
+
+#if SWOS_WORLDS
+/* A country's second team file (include/world.h), read beside the loaded one -- for a list
+ * of a division's clubs (the team picker), whose records are pointed at, so never into
+ * _teamFileBuffer: its records as LoadTeamFile makes them (global numbers, a career's pool
+ * identities and divisions). 0: none, or it could not be read. */
+#define SECOND_FILE_MAX 16
+static uint8_t *s_secondFile;
+
+static uint8_t *loadSecondFile(uint8_t file)
+{
+    if (!s_secondFile)
+        s_secondFile = (uint8_t *)swos_io_alloc(2 + SECOND_FILE_MAX * sizeof(TeamFileEx));
+    if (!s_secondFile)
+        return 0;
+#ifdef SWOS_SDL_BUILD
+    extern int DataJson_LoadTeamFileForCountry(int, uint8_t *, int);
+    if (DataJson_LoadTeamFileForCountry(file, s_secondFile, SECOND_FILE_MAX) <= 0)
+        return 0;
+#else
+    {
+        uint8_t name[] = "data/TEAM.000";
+        uint32_t size = 0;
+        name[10] = (uint8_t)('0' + file / 100);
+        name[11] = (uint8_t)('0' + file / 10 % 10);
+        name[12] = (uint8_t)('0' + file % 10);
+        if (LoadFileEx(name, s_secondFile, &size) != 0 ||
+            size > 2 + SECOND_FILE_MAX * sizeof(TeamFileEx))
+            return 0;
+    }
+#endif
+    SetTeamGlobalNumbers(*(uint16_t *)s_secondFile, s_secondFile + 2);
+    TeamPool_ApplyToFile(file, s_secondFile);
+    if (_gameType == GAME_TYPE_CAREER && _skipLeagueNumbers == 0)
+        setLeagueNumbersOf(s_secondFile);
+    return s_secondFile;
+}
+#endif
 
 /* ================================================================
  * CheckIsTeamNational  (SWOS2.s line 29246)
@@ -806,7 +870,14 @@ void RotatePlayersLeft(TeamFileEx *team, uint16_t maxSubs)
 __attribute__((used, externally_visible, optimize("no-tree-loop-distribute-patterns")))
 TeamFileEx *AddTeamToBuffer(TeamFileEx *team)
 {
-    TeamFileEx *dest = _selectedTeams + _numSelectedTeams;
+    TeamFileEx *dest;
+    /* The original wrote the next record whatever the count: the 101st landed on what
+     * followed the cache. A full cache is a broken invariant -- say so. */
+    if (_numSelectedTeams >= SELECTED_TEAMS_MAX) {
+        _panicReasonCode = 0x8F01;
+        PanicHaltLoop();
+    }
+    dest = _selectedTeams + _numSelectedTeams;
     uint16_t *src16 = (uint16_t *)team;
     uint16_t *dst16 = (uint16_t *)dest;
     uint16_t i;
@@ -1179,11 +1250,56 @@ extern uint16_t _removedPlayerStatAccum;
  * to get the player record pointer, then writes (ordinal + 1) as the
  * shirt number at offset PF_SHIRTNUM from that raw pointer.
  * ================================================================ */
+/* ---- Real squad numbers (a world's 'squad_numbers': the SWOS 96/97 Mod's benchnum.py) ----
+ * The game binds numbers to line-up places and writes them into the player records: the
+ * bench's 11..15 get 12..16 (SetBenchPlayersNumbers), a starter swapped with a bench player
+ * swaps numbers with him. In a career of such a world none of that happens -- a real 23 on the
+ * bench stays 23 -- for the computer's sides too; a new player of the managed club (a purchase,
+ * the game's reserve or trial player) keeps his number when no one in the squad has it, else
+ * takes the lowest free of 2..99 (1 too for a keeper). */
+int32_t SquadNumbers_On(void)
+{
+    extern uint16_t _gameType;
+    return _gameType == 4 && World_SquadNumbers();
+}
+
+void SquadNumbers_Free(uint16_t slot)
+{
+    const uint16_t numPlayers = *(uint16_t *)_careerNumPlayers;   /* (a word: declared bytes here) */
+    uint8_t used[100];
+    const uint16_t team = BE_READ_U16(&_careerTeam);   /* (the managed club, as SetBenchPlayersNumbers reads it) */
+    if (!SquadNumbers_On() || slot >= 32)
+        return;
+    for (int32_t n = 0; n < 100; n++)
+        used[n] = 0;
+    for (uint16_t i = 0; i < numPlayers; i++) {
+        const uint8_t s = _currentMatchPlayers[i];
+        if (s == slot || s >= 32)
+            continue;
+        const uint8_t n = (uint8_t)((PlayerFile *)(GetPlayer(team, s) + 76))->shirtNumber;
+        if (n < 100)
+            used[n] = 1;
+    }
+    PlayerFile *pf = (PlayerFile *)(GetPlayer(team, slot) + 76);
+    const uint8_t own = (uint8_t)pf->shirtNumber;
+    const int32_t keeper = (pf->positionAndFace >> 5) == 0;
+    if (own != 0 && own < 100 && (own != 1 || keeper) && !used[own])
+        return;                                 /* (his own number, free) */
+    for (int32_t n = keeper ? 1 : 2; n < 100; n++)
+        if (!used[n]) {
+            pf->shirtNumber = (int8_t)n;
+            return;
+        }                                       /* (99 numbers taken: his own) */
+}
+
 __attribute__((used, externally_visible))
 void SetBenchPlayersNumbers(TeamFileEx *team)
 {
     uint16_t teamNum = BE_READ_U16(team);  /* first word: countryNumber + teamOrdinal */
     uint16_t d1;
+
+    if (SquadNumbers_On())              /* (real squad numbers: the players' own) */
+        return;
 
     for (d1 = 11; d1 < 16; d1++) {
         uint8_t *player = GetPlayerAtIndex(teamNum, d1);
@@ -1353,8 +1469,10 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
             PlayerFile *pf1 = (PlayerFile *)(a1 + 76);
             PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
             int8_t tmpShirt = pf2->shirtNumber;
-            pf2->shirtNumber = pf1->shirtNumber;
-            pf1->shirtNumber = tmpShirt;
+            if (!SquadNumbers_On()) {   /* (real squad numbers: not swapped) */
+                pf2->shirtNumber = pf1->shirtNumber;
+                pf1->shirtNumber = tmpShirt;
+            }
         }
 
         d1 = d2;  /* now d1 = bench slot to be removed */
@@ -1397,8 +1515,10 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
             PlayerFile *pf1 = (PlayerFile *)(a1 + 76);
             PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
             int8_t tmpShirt = pf2->shirtNumber;
-            pf2->shirtNumber = pf1->shirtNumber;
-            pf1->shirtNumber = tmpShirt;
+            if (!SquadNumbers_On()) {   /* (real squad numbers: not swapped) */
+                pf2->shirtNumber = pf1->shirtNumber;
+                pf1->shirtNumber = tmpShirt;
+            }
         }
 
         /* Asm reads d1 from the reserve slot (where the to-remove player
@@ -2160,8 +2280,7 @@ void ChooseTeamsFriendlyCommon2(MenuEntry *entry)
         return;
     }
 
-    uint8_t teamOrd = team->team.teamOrdinal;
-    uint8_t *tableEntry = &_teamsTable[teamOrd];
+    uint8_t *tableEntry = &_teamsTable[World_Slot(team->team.countryNumber, team->team.teamOrdinal)];
     uint8_t ctrl = *tableEntry;
 
     if (ctrl == 0) {
@@ -2457,8 +2576,20 @@ void ChooseTeamsFriendlyInitFinish(void)
     uint16_t selNum = _selTeamNumber;
     uint16_t i;
 
-    for (i = 0; i < numTeamsInFile; i++) {
-        if (teamRecord->team.league == league) {
+#if SWOS_WORLDS
+    /* A country over two team files (include/world.h): the division's clubs of the second too. */
+    uint8_t *second = _lastLoadedExtNumber != 100 && World_SecondFile(_lastLoadedExtNumber)
+                    ? loadSecondFile(World_SecondFile(_lastLoadedExtNumber)) : 0;
+    const uint16_t numSecond = second ? *(uint16_t *)second : 0;
+#else
+    const uint16_t numSecond = 0;
+#endif
+    for (i = 0; i < numTeamsInFile + numSecond; i++) {
+#if SWOS_WORLDS
+        if (i == numTeamsInFile)
+            teamRecord = (TeamFileEx *)(second + 2);
+#endif
+        if (teamRecord->team.league == league && count < 100) {    /* (_teamsPtrTable[100]) */
             /* selNum is BE-packed (country<<8 | ordinal); compare via
              * PACK_BE_U16 so the user's own team is correctly skipped
              * out of the friendly-menu list on LE hosts (a raw
@@ -2510,10 +2641,10 @@ void ChooseTeamsFriendlyInitFinish(void)
         } while (swapped);
     }
 
-    /* Clear teamsTable (100 bytes) — use volatile to prevent memset optimization */
+    /* Clear teamsTable (one byte per slot: include/world.h) — use volatile to prevent memset optimization */
     {
         volatile uint8_t *tt = (volatile uint8_t *)_teamsTable;
-        for (i = 0; i < 100; i++)
+        for (i = 0; i < WORLD_SLOTS; i++)
             tt[i] = 0;
     }
 
@@ -2526,9 +2657,8 @@ void ChooseTeamsFriendlyInitFinish(void)
 
         for (ns = 0; ns < _numSelectedTeams; ns++) {
             if (_lastLoadedExtNumber == 0x64 ||
-                (*(selTeam) == extNum && *(selTeam + 0x19) == lg)) {
-                uint8_t ordinal = *(selTeam + 1);
-                _teamsTable[ordinal] = *(selTeam + 4);
+                (World_FileCountry(*selTeam) == extNum && *(selTeam + 0x19) == lg)) {
+                _teamsTable[World_Slot(*selTeam, *(selTeam + 1))] = *(selTeam + 4);
             }
             selTeam += 684;
         }
@@ -2600,11 +2730,10 @@ outer:
 
     int8_t tidx = (int8_t)_teamsIndex[d5];
     TeamFileEx *team = (TeamFileEx *)_teamsPtrTable[(uint16_t)(int16_t)tidx];
-    uint8_t teamOrd = team->team.teamOrdinal;
     e->fg = (uintptr_t)team->team.teamName;
 
     uint16_t color = defaultColor;
-    uint8_t ctrl = _teamsTable[teamOrd];
+    uint8_t ctrl = _teamsTable[World_Slot(team->team.countryNumber, team->team.teamOrdinal)];
     if (ctrl != 0) {
         color = 10;
         if (ctrl != 1) {
@@ -2669,8 +2798,21 @@ void SetTeamsCoordinates(void)
     _headerYPlusHeight = topY;
     _exitY = _menuEntries[88].y; /* 0x1340/56=88 */
 
-    uint16_t totalHeight = d1 * 9;
-    int16_t space = (int16_t)(_exitY - _headerYPlusHeight) - (int16_t)totalHeight;
+    /* The original's rows are 9 px apart, with 2 px more before the teams. A list that
+     * does not fit between the header and EXIT -- World 2026-27's Europe: 55 countries
+     * (19 rows) under its 4 cups, 23 rows in 185 px -- has its rows 8 px apart, 7 tall
+     * (still a line between them; the text is 6) and no extra gap, rather than running
+     * under both (centred, the overflow went half over the header, half under EXIT).
+     * Every list that fits is as before. The height is set either way: the same entries
+     * hold the next list, after BACK. */
+    int16_t pitch = 9, gap = 2;
+    int16_t room = (int16_t)(_exitY - _headerYPlusHeight);
+    if ((int16_t)(d1 * pitch + gap) > room) {
+        pitch = 8;
+        gap = 0;
+    }
+    uint16_t totalHeight = d1 * pitch;
+    int16_t space = room - (int16_t)totalHeight;
     int16_t yPos = (space >> 1) + (int16_t)_headerYPlusHeight;
 
     /* Set league entry Y coordinates */
@@ -2681,14 +2823,15 @@ void SetTeamsCoordinates(void)
         int16_t j;
         for (j = 0; j <= n; j++) {
             e->y = (uint16_t)yPos;
-            yPos += 9;
+            e->dwHeight = (uint16_t)(pitch - 1);
+            yPos += pitch;
             e++;
         }
         /* Note: unreachable code at 55337-55348 in asm (after bra.s) — skipped */
     }
 
     /* Set team entry Y coordinates: 3 columns × 22 entries starting at entry 21 */
-    yPos += 2;
+    yPos += gap;
     MenuEntry *e = &_menuEntries[21]; /* 0x498/56=21 */
     int16_t col;
     for (col = 0; col < 3; col++) {
@@ -2696,7 +2839,8 @@ void SetTeamsCoordinates(void)
         int16_t row;
         for (row = 0; row < 22; row++) {
             e->y = (uint16_t)y;
-            y += 9;
+            e->dwHeight = (uint16_t)(pitch - 1);
+            y += pitch;
             e++;
         }
     }
@@ -2895,6 +3039,42 @@ void SelectTeamsInit(void)
  * Asm register convention:
  *   in:  d0.b = mode (0xFF=default, or a nationality/country number)
  * ================================================================ */
+/* A league with levels of groups (include/league_groups.h) lists one row per LEVEL --
+ * "SERIE C" for its three groups -- since the picker has 10 rows and its row number is
+ * the division (`_leagueNumber = d7`); picking a level of groups lists its groups, a
+ * level deeper on the picker's stack. -1: the country's rows. */
+static int16_t s_groupLevel = -1;
+#define LEVEL_ROW 0x8000        /* _leagueNumbersTable: a level of groups, not a division */
+/* The depth of a country's league rows: 2, a level's groups one deeper. */
+#define COUNTRY_DEPTH (2 + (s_groupLevel >= 0))
+
+/* The rows of a league with groups, written on through names, comps and nums; how many. */
+static uint16_t groupedLeagueRows(const LeagueGroups *lg, uint8_t *compEntry,
+                                  void ***names, void ***comps, uint16_t **nums)
+{
+    char **nameTbl = comp_name_table((Competition *)compEntry);
+    uint16_t rows = 0;
+    for (int32_t l = 0; l < lg->levels; l++) {
+        const LeagueLevel *L = &lg->level[l];
+        if (s_groupLevel >= 0 && l != s_groupLevel)
+            continue;
+        if (s_groupLevel < 0 && L->groups > 1) {
+            *(*names)++ = (void *)L->name;
+            *(*comps)++ = compEntry;
+            *(*nums)++ = (uint16_t)(LEVEL_ROW | l);
+            rows++;
+            continue;
+        }
+        for (uint16_t d = L->first; d < L->first + L->groups; d++) {
+            *(*names)++ = nameTbl ? (void *)nameTbl[d * 2] : (void *)_divisionStringTable[d];
+            *(*comps)++ = compEntry;
+            *(*nums)++ = d;
+            rows++;
+        }
+    }
+    return rows;
+}
+
 __attribute__((used, externally_visible))
 void SelectTeamsFinalMenu(uint16_t mode)
 {
@@ -2932,6 +3112,7 @@ void SelectTeamsFinalMenu(uint16_t mode)
     uint16_t countryByte;
 
     _leagueNumber = 0;
+    s_groupLevel = -1;
     HLOG("SelectTeamsFinalMenu enter mode=%u\n", (unsigned)mode);
 
     /* Initialize customsLeague: offset 9 = comp.divisionsCount, offset 0xD = divisions[0].teams */
@@ -2991,7 +3172,7 @@ loc_E012:
     GetCountryName(countryForName);
 
     _gotCountryName = 0;
-    if (_teamDepthLevel == 2 && _isCountryNumber == 0)
+    if (_teamDepthLevel == COUNTRY_DEPTH && _isCountryNumber == 0)
         _gotCountryName = 1;
 
     /* loc_13E046: enumerate competitions */
@@ -3114,7 +3295,7 @@ skip_continental_check:
     if (_showCupsAndOther == 0 &&
         _teamsType != ORIGINAL_CUSTOM_TEAMS &&
         _teamsType != EDITED_CUSTOM_TEAMS &&
-        _teamDepthLevel != 2) {
+        _teamDepthLevel != COUNTRY_DEPTH) {
         goto loc_E086;
     }
 
@@ -3145,6 +3326,18 @@ skip_continental_check:
          * char* is 8 bytes so the stride is 16 and we must read 8
          * bytes — use typed `char **` indexing so the layout is
          * pointer-width-correct on both targets. */
+        {
+            const LeagueGroups *lg = (void *)compEntry == compList[0]
+                                   ? LeagueGroups_ForCountry(d7) : 0;
+            if (lg) {
+                d1 += groupedLeagueRows(lg, compEntry, &teamNamesPtr, &leaguesPtrOut,
+                                        &leagueNumsOut);
+                _numberOfLeagues = (int8_t)league->divisionsCount;
+                if (s_groupLevel >= 0)
+                    goto loc_E2D0;      /* a level's groups: only they */
+                goto loc_E086;
+            }
+        }
         divIdx = 0;
 loc_E246:
         {
@@ -3209,6 +3402,8 @@ loc_E2D0:
          * stays pointed at countries[] so the `a5[index]` country lookups in the
          * selection handling below are correct too. See STRUCT_CONSOLIDATE.md §4d. */
         a5 = (void **)((QualifyingGroup *)compListAddr)->countries;
+        if (d7 != 254 && World_ContinentCountries((uint8_t)d7))    /* (a world's, its new countries in) */
+            a5 = (void **)World_ContinentCountries((uint8_t)d7);
         cPtr = (uint8_t *)a5;
         for (;;) {
             cByte = *cPtr++;
@@ -3262,11 +3457,21 @@ loc_E2D0:
         if (_teamDepthLevel == 0)
             goto exit_return;
         _isCountryNumber = 0;
+        s_groupLevel = -1;      /* from a level's groups back to the country's rows */
         d7 = PopContinent();
         goto loc_E012;
     }
 
     PushLastSelectedTeam();
+
+    if (_leagueNumbersTable[d7] != 0xFFFF && (_leagueNumbersTable[d7] & LEVEL_ROW)) {
+        /* A level of groups: list its groups, a level deeper. */
+        s_groupLevel = (int16_t)(_leagueNumbersTable[d7] & 0xFF);
+        PushContinent(d6);
+        SetSelectedTeamsStackTop();
+        d7 = d6;
+        goto loc_E012;
+    }
 
     if (_loadTeam != 0)
         goto loc_E6E4;
@@ -3430,8 +3635,8 @@ loc_E65A:
     goto loc_E73A;
 
 loc_E6E4:
-    /* Load team file for selected league */
-    _leagueNumber = d7;
+    /* Load team file for selected league (a group: its division, not its row) */
+    _leagueNumber = s_groupLevel >= 0 ? _leagueNumbersTable[d7] : d7;
     if (LoadTeamFile((uint8_t)d6) != 0)
         goto exit_clear;
 

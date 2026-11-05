@@ -8,7 +8,8 @@
 #   scripts/build_macos.sh --no-pull      # build the Mac's tree as-is
 #
 # Two archives come back, mirroring build_dist.sh's split:
-#   dist/SWOS-macOS-app.zip  the drag-installable .app, SDL2.framework bundled
+#   dist/SWOS-macOS-app.zip  the drag-installable .app, SDL2.framework bundled, beside the
+#                            setup and portmaster/swos.zip (this machine's dist/portmaster/swos.zip)
 #   dist/SWOS-macOS.zip      the universal binary alone — needs SDL2 installed
 #                            system-wide, since the framework ships in the .app
 #
@@ -103,6 +104,22 @@ if ! ssh -o BatchMode=yes -o ConnectTimeout=10 "$MAC_HOST" true 2>/dev/null; the
 fi
 echo "-- ssh OK"
 
+# The PortMaster port (built HERE: scripts/build_dist.sh's portmaster target, dist/portmaster/swos.zip)
+# goes into the app zip's OpenSWOS/portmaster/, where the setup's Handheld screen finds it
+# (it looks for portmaster/swos.zip in the folders above its own). Sent as
+# dist/portmaster-swos.zip on the Mac; with none here, the Mac's old one is removed, so a
+# stale port is never packed.
+if [ -f dist/portmaster/swos.zip ]; then
+    unzip -Z1 dist/portmaster/swos.zip | grep -xc "Sensible World of Soccer.sh" >/dev/null ||
+        { echo "-- FAIL: dist/portmaster/swos.zip is not the PortMaster port (no launcher)"; exit 1; }
+    ssh "$MAC_HOST" "mkdir -p $MAC_PATH/dist" && scp -q dist/portmaster/swos.zip "$MAC_HOST:$MAC_PATH/dist/portmaster-swos.zip" ||
+        { echo "-- FAIL: sending dist/portmaster/swos.zip to the Mac"; exit 1; }
+    echo "-- PortMaster port: dist/portmaster/swos.zip sent"
+else
+    ssh "$MAC_HOST" "rm -f $MAC_PATH/dist/portmaster-swos.zip"
+    echo "build_macos: NOTE no dist/portmaster/swos.zip (scripts/build_dist.sh --only portmaster): the app zip's setup will ask for it" >&2
+fi
+
 banner "build on $MAC_HOST:$MAC_PATH"
 # ssh does NOT preserve argv boundaries: it concatenates its arguments into a
 # single command string that the REMOTE shell re-splits. So "$MAKE_FLAGS" (two
@@ -177,6 +194,8 @@ mkdir -p "$STAGE" &&
     ditto bin/SWOS.app "$STAGE/SWOS.app" &&
     ditto "$SETUP_APP" "$STAGE/OpenSWOS Setup.app" &&
     cp tools/swosdata/build/swosdata-universal "$STAGE/swosdata" &&
+    { [ ! -f dist/portmaster-swos.zip ] ||
+      { mkdir -p "$STAGE/portmaster" && cp dist/portmaster-swos.zip "$STAGE/portmaster/swos.zip"; }; } &&
     ditto -c -k --sequesterRsrc --keepParent "$STAGE" "dist/$ZIP" ||
     { echo "!! ditto failed"; exit 1; }
 rm -rf "$(dirname "$STAGE")"

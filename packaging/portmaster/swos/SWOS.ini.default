@@ -1,0 +1,7 @@
+; The port's first-run settings. The game adds every other key with its comment.
+[video]
+fullscreen=desktop
+
+; DOS style paces at 70 Hz, which a 60 Hz handheld panel holds back to 60.
+[gameplay]
+style=amiga

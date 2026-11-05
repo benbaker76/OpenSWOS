@@ -69,10 +69,12 @@
  * &symbol-addressed and not byte-saved (the JSON save serialises a typed
  * selected_teams array by count + drops the scratch regions), so this is
  * format-neutral. */
-TeamFileEx _selectedTeams[100];
+TeamFileEx _selectedTeams[SELECTED_TEAMS_MAX];
 
-_Static_assert(sizeof(_selectedTeams) == 68400,
-               "selectedTeams union must stay 68400 bytes (100 * 684, overlay-exact)");
+_Static_assert(sizeof(_selectedTeams) == SELECTED_TEAMS_MAX * 684,
+               "selectedTeams is SELECTED_TEAMS_MAX records of 684 bytes");
+_Static_assert(SELECTED_TEAMS_MAX >= 100,
+               "the scratch overlays above sit inside the original's 100 records (68400 bytes)");
 _Static_assert(sizeof(TeamFileEx) == 684, "TeamFileEx stride must be 684");
 /* Lock the historical sub-label offsets the game_types.h macros encode: */
 _Static_assert(offsetof(TeamFileEx, team) == 0,                         "selTeamsPtr @ +0");

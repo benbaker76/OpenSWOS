@@ -898,6 +898,24 @@ void StopMusic(void)
 #endif
 }
 
+#ifdef SWOS_SDL_BUILD
+/* OPTIONS -> MENU MUSIC off: StopMusic's fade, run by the mixer (AudioSDL_FadeOutSong),
+ * so the menu does not stop for it -- StopMusic's loop held it ~2.6 s. 72 ticks, the
+ * Amiga's fade (0x23 steps of two frames). */
+void StopMusicInBackground(void)
+{
+    extern void AudioSDL_FadeOutSong(int ticks);
+
+    if (_audioActive == 0)
+        return;
+    _audioState.channelVolume[0] = _audioState.channelVolume[1] = 0;
+    _audioState.channelVolume[2] = _audioState.channelVolume[3] = 0;
+    AudioSDL_FadeOutSong(72);
+    _audioActive = 0;
+    _audioBankLoaded = 0;   /* next TryPlayMusic will re-load the song */
+}
+#endif
+
 /* ================================================================
  * CycleMenuMusic  (SWOS2.s line 69209)
  * ================================================================ */

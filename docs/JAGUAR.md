@@ -279,6 +279,41 @@ Two options each time:
 `-jag-dump-sheets` writes the raw unpacked Jaguar sheet, which is how you tell
 "the Jaguar has not got it" from "the Jaguar has it somewhere else".
 
+## Sprite sets as mods
+
+The Jaguar tier is also the format for **sprite sets a mod brings** (docs/MODS.md §16-17): players
+drawn with more colours than the Amiga's 16, by anyone. A mod whose `mod.json` says `"sprites":
+"jaguar"` switches the tier on while it is on (no `[graphics] sprites = jaguar` needed), and its
+`grafs_jag/` sheets go over the player's own Jaguar data through the overlay -- every sheet it
+has; the ones it does not have come from the player's Jaguar data, else the Amiga's. It is
+cosmetic, so it never matters online.
+
+**The colour roles** the sheets must keep to -- the same as the Jaguar's own art (above), so
+the game can still dress every team and every player:
+
+| index | means | at run time |
+|---|---|---|
+| 1-3 | greys | as the Amiga's |
+| 9, 12, 13 | hair | each player's (ConvertColorTableToSkinColor; the hair mod's too) |
+| 4, 5, 6 | skin | each player's |
+| 29-31, 220-223 | the shadow's shades | the grass-tinted shadow (`shadow_shading`) |
+| 240-243 / 244-247 / 248-251 / 252-255 | stripes / shirt / shorts / socks, four shades each (lightest first) | the team's kit (`outfit_shading`, `shade_step`) |
+| any other | the art's own colour, from its palette | fitted to the nearest free palette entry (`JAG.PAL`) |
+
+**Making one:** draw 8bpp sheets in the Amiga's bank layout (320x256, the same cells: SwosGfx's
+`Amiga_Images_256_Jag` output is the template), all with one palette, then
+
+    scripts/make_jag_graphics.py MY_SHEETS --mod mods/mysprites --name "My sprites"
+
+writes `mods/mysprites/grafs_jag/` (the planar banks and `JAG.PAL`) and, when there is none, a
+`mod.json` with a uuid of its own, `"sprites": "jaguar"` and **the four shading settings as the
+mod's own** -- `outfit_shading`, `shadow_shading`, `hair_shading`, `shade_step`, with the defaults
+its art wants. They show on its page (OPTIONS -> MODS, fire on its name) and are read at start-up
+while it is on; with no sprite mod on, `[graphics]`'s keys work as before (SWOS.ini always holds
+those, so they cannot be a mod's defaults). Checked: a mod of the Jaguar's own sheets, with the
+setting off -- `[mods] testsprites: its sprites, by the Jaguar tier (outfit 1, shadow 1, hair 1,
+step 2)`, then `[jag] Jaguar sprites: ...`; without it, the Amiga art.
+
 ## What is not done
 
 - **The Jaguar's own pitch, menus and HUD.** The Jaguar CLUTs include a pitch

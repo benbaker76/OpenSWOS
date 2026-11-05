@@ -1,0 +1,542 @@
+// The wizard's pieces (app.slint lays out its screens): the steps, the big tiles of the first
+// screen, the extras' rows, the drop zone of a source's screen, the dots that say how far along
+// the player is. The steps themselves are worked out in main.cpp (RefreshWizard) from what was
+// ticked; their numbers are these.
+import { Theme, TextButton, Link } from "theme.slint";
+
+export global Step {
+    out property <int> targets: 0;      // where you will play, and the extras
+    out property <int> copy: 1;         // which copy of the game you have (a computer or phone only)
+    out property <int> pc: 2;           // get the PC game
+    out property <int> amiga: 3;        // get the Amiga version
+    out property <int> world: 4;        // World 2026-27 (optional)
+    out property <int> s2020: 5;        // SWOS 2020's pitches (optional)
+    out property <int> jaguar: 6;       // the Jaguar's players (optional)
+    out property <int> install: 7;      // install the data (a computer or phone)
+    out property <int> phone: 8;        // copy it to the phone
+    out property <int> drawer: 9;       // make the Amiga drawer
+    out property <int> whdload: 10;     // make the WHDLoad package
+    out property <int> done: 11;
+    out property <int> options: 12;     // the game's options, before it is first started
+    out property <int> handheld: 13;    // the PortMaster port on a handheld's SD card
+    out property <int> mods: 14;        // mods: install a mod's zip, turn mods on or off (optional)
+}
+
+// One of the GAME OPTIONS: its choices side by side, the chosen one lit.
+export component OptionLine inherits Rectangle {
+    in property <string> label;
+    in property <string> about;
+    in property <string> tag;           // "phone", "this computer": when both are ticked
+    in property <[string]> choices;
+    in property <int> selected;
+    in property <bool> enabled: true;
+    callback chosen(int);
+    border-radius: 8px;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    HorizontalLayout {
+        padding: 10px;
+        padding-left: 14px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            min-width: 190px;
+            horizontal-stretch: 1;
+            HorizontalLayout {
+                spacing: 8px;
+                Text { text: root.label; font-size: 14px; font-weight: 700; color: Theme.text; }
+                if root.tag != "": Rectangle {
+                    height: 18px;
+                    width: tagText.preferred-width + 12px;
+                    border-radius: 9px;
+                    background: Theme.sunken.with-alpha(0.5);
+                    tagText := Text { text: root.tag; font-size: 11px; color: Theme.text-dim; }
+                }
+            }
+            Text { text: root.about; font-size: 12px; color: Theme.text-dim; wrap: word-wrap; }
+        }
+        HorizontalLayout {
+            alignment: end;
+            spacing: 6px;
+            for c[i] in root.choices: Rectangle {
+                y: (parent.height - self.height) / 2;
+                height: 30px;
+                width: chip.preferred-width + 24px;
+                border-radius: 15px;
+                border-width: 1px;
+                border-color: i == root.selected ? Theme.accent : ta.has-hover ? Theme.sunken : Theme.line;
+                background: i == root.selected ? Theme.accent : ta.has-hover ? Theme.hover : Theme.field;
+                accessible-role: radio-button;
+                accessible-checked: i == root.selected;
+                accessible-label: c;
+                chip := Text {
+                    text: c;
+                    font-size: 13px;
+                    font-weight: i == root.selected ? 700 : 400;
+                    color: i == root.selected ? #ffffff : Theme.text;
+                }
+                ta := TouchArea {
+                    enabled: root.enabled;
+                    mouse-cursor: pointer;
+                    clicked => { root.chosen(i); }
+                }
+            }
+        }
+    }
+}
+
+// A big choice with a picture, ticked or not (several may be).
+export component BigTile inherits Rectangle {
+    in property <image> icon;
+    in property <bool> colorize-icon: true;     // a one-colour icon, tinted; a picture is drawn as it is
+    in property <length> icon-size: 56px;
+    in property <string> title;
+    in property <string> text;
+    in property <bool> selected;
+    in property <bool> radio;                   // one of a group (no tick box: the border says it)
+    callback clicked();
+    horizontal-stretch: 1;
+    // The same width each, whatever their text (it wraps): the layout shares the row out by stretch.
+    preferred-width: 120px;
+    min-width: 120px;
+    height: 176px;
+    border-radius: 10px;
+    border-width: root.selected ? 2px : 1px;
+    border-color: root.selected ? Theme.accent : ta.has-hover ? Theme.sunken : Theme.line;
+    background: root.selected ? Theme.accent.with-alpha(0.12) : ta.has-hover ? Theme.hover : Theme.panel;
+    accessible-role: checkbox;
+    accessible-checked: root.selected;
+    accessible-label: root.title;
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    VerticalLayout {
+        padding: 14px;
+        spacing: 8px;
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: root.icon-size;
+                height: root.icon-size;
+                image-fit: contain;
+                colorize: root.colorize-icon ? (root.selected ? Theme.link : Theme.text) : transparent;
+            }
+        }
+        Text {
+            text: root.title;
+            font-size: 15px;
+            font-weight: 700;
+            color: Theme.text;
+            horizontal-alignment: center;
+            wrap: word-wrap;            // (a longer language's "This computer" takes two lines)
+        }
+        Text {
+            text: root.text;
+            font-size: 12px;
+            color: Theme.text-dim;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+    // The tick, top right.
+    if !root.radio: Rectangle {
+        x: parent.width - self.width - 10px;
+        y: 10px;
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        border-width: root.selected ? 0px : 2px;
+        border-color: Theme.sunken;
+        background: root.selected ? Theme.accent : transparent;
+        if root.selected: Image {
+            source: @image-url("icons/check.svg");
+            width: 14px;
+            height: 14px;
+            colorize: #ffffff;
+        }
+    }
+}
+
+// An optional extra: a row to tick.
+export component ExtraRow inherits Rectangle {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> text;
+    in property <bool> selected;
+    callback clicked();
+    height: 52px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.selected ? Theme.accent : Theme.line;
+    background: root.selected ? Theme.accent.with-alpha(0.10) : ta.has-hover ? Theme.hover : Theme.panel;
+    accessible-role: checkbox;
+    accessible-checked: root.selected;
+    accessible-label: root.title;
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                border-width: root.selected ? 0px : 2px;
+                border-color: Theme.sunken;
+                background: root.selected ? Theme.accent : transparent;
+                if root.selected: Image {
+                    source: @image-url("icons/check.svg");
+                    width: 14px;
+                    height: 14px;
+                    colorize: #ffffff;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: 24px;
+                height: 24px;
+                colorize: root.selected ? Theme.link : Theme.text-dim;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            Text {
+                text: root.title;
+                font-size: 14px;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            Text {
+                text: root.text;
+                font-size: 12px;
+                color: Theme.text-dim;
+                overflow: elide;
+            }
+        }
+    }
+}
+
+// Where a download goes: dropped on the window (Windows), chosen with Browse, or found in the
+// Downloads folder by itself. `state` is the source's: 0 not yet, 1 found, 2 not usable.
+export component DropZone inherits Rectangle {
+    in property <int> state;
+    in property <string> found;         // the path, as shown
+    in property <string> detail;        // what was found ("the 96/97 release"), or why it will not do
+    in property <bool> detail-warn;
+    in property <bool> hover;           // something is being dragged over the window
+    in property <bool> can-drop;        // this platform takes files dropped on the window
+    in property <string> watching;      // "Watching ...\Downloads: ..."
+    in property <bool> enabled: true;
+    in property <bool> can-pick: true;
+    callback browse();
+    callback search();
+    height: 190px;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: root.hover ? Theme.accent
+                : root.state == 1 ? Theme.ok.with-alpha(0.7)
+                : root.state == 2 ? Theme.danger.with-alpha(0.7) : Theme.sunken;
+    background: root.hover ? Theme.accent.with-alpha(0.15)
+              : root.state == 1 ? Theme.ok.with-alpha(0.08) : Theme.field;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 8px;
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            Image {
+                width: 48px;
+                height: 48px;
+                source: root.state == 1 ? @image-url("icons/circle-check.svg")
+                      : root.state == 2 ? @image-url("icons/alert-circle.svg")
+                      : root.can-drop ? @image-url("icons/drag-drop.svg") : @image-url("icons/download.svg");
+                colorize: root.hover ? Theme.link : root.state == 1 ? Theme.ok
+                        : root.state == 2 ? Theme.danger : Theme.text-dim;
+            }
+        }
+        Text {
+            horizontal-alignment: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: root.state == 1 ? Theme.ok : root.state == 2 ? Theme.danger : Theme.text;
+            text: root.hover ? @tr("Drop it here")
+                : root.state == 1 ? @tr("Found it")
+                : root.state == 2 ? @tr("This one will not do")
+                : root.can-drop ? @tr("Drag the download or its folder here") : @tr("Choose the download or its folder");
+        }
+        if root.state != 0 && root.found != "": Text {
+            horizontal-alignment: center;
+            text: root.found;
+            font-size: 12px;
+            color: Theme.text-dim;
+            overflow: elide;
+        }
+        if root.detail != "": Text {
+            horizontal-alignment: center;
+            text: root.detail;
+            font-size: 12px;
+            wrap: word-wrap;
+            color: root.detail-warn ? Theme.warn : Theme.ok;
+        }
+        if root.state != 1 && root.watching != "": Text {
+            horizontal-alignment: center;
+            text: root.watching;
+            font-size: 12px;
+            wrap: word-wrap;
+            color: Theme.text-dim;
+        }
+        HorizontalLayout {
+            alignment: center;
+            spacing: 10px;
+            TextButton {
+                label: root.state == 1 ? @tr("Choose another…") : @tr("Browse…");
+                icon: @image-url("icons/folder-open.svg");
+                enabled: root.enabled && root.can-pick;
+                clicked => { root.browse(); }
+            }
+            TextButton {
+                label: @tr("Search a folder…");
+                icon: @image-url("icons/folder-search.svg");
+                enabled: root.enabled && root.can-pick;
+                clicked => { root.search(); }
+            }
+        }
+    }
+}
+
+// How far along: one dot a step, the current one long.
+export component StepDots inherits HorizontalLayout {
+    in property <int> count;
+    in property <int> current;
+    spacing: 6px;
+    alignment: center;
+    for i in root.count: Rectangle {
+        y: (parent.height - self.height) / 2;
+        width: i == root.current ? 22px : 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: i == root.current ? Theme.accent : i < root.current ? Theme.accent.with-alpha(0.5) : Theme.sunken;
+        animate width { duration: 150ms; }
+    }
+}
+
+// The wizard's own bigger button.
+export component BigButton inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <image> icon-after;     // a "Next ->" arrow, after the label
+    in property <bool> primary;
+    in property <bool> enabled: true;
+    callback clicked();
+    height: 40px;
+    min-width: max(120px, row.preferred-width + 32px);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.primary && root.enabled ? Theme.accent : Theme.sunken;
+    background: !root.enabled ? Theme.panel
+        : root.primary ? (ta.pressed ? Theme.accent.darker(0.25) : ta.has-hover ? Theme.accent.brighter(0.15) : Theme.accent)
+        : ta.pressed ? Theme.line : ta.has-hover ? Theme.hover : Theme.panel;
+    accessible-role: button;
+    accessible-label: root.label;
+    row := HorizontalLayout {
+        alignment: center;
+        spacing: 8px;
+        if root.icon.width > 0: Image {
+            source: root.icon;
+            width: 18px;
+            height: 18px;
+            y: (parent.height - self.height) / 2;
+            colorize: !root.enabled ? Theme.sunken : root.primary ? #ffffff : Theme.text;
+        }
+        Text {
+            text: root.label;
+            font-size: 15px;
+            font-weight: 700;
+            color: !root.enabled ? Theme.sunken : root.primary ? #ffffff : Theme.text;
+            vertical-alignment: center;
+        }
+        if root.icon-after.width > 0: Image {
+            source: root.icon-after;
+            width: 18px;
+            height: 18px;
+            y: (parent.height - self.height) / 2;
+            colorize: !root.enabled ? Theme.sunken : root.primary ? #ffffff : Theme.text;
+        }
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => { root.clicked(); }
+    }
+}
+
+// A link as a button: "GOG ↗".
+export component LinkButton inherits Rectangle {
+    in property <string> text;
+    in property <string> url;
+    in property <bool> download: true;  // a file (the download arrow), else a page (the outward one)
+    callback open(string);
+    height: 34px;
+    width: label.preferred-width + 44px;
+    border-radius: 17px;
+    border-width: 1px;
+    border-color: ta.has-hover ? Theme.link : Theme.sunken;
+    background: ta.has-hover ? Theme.hover : Theme.panel;
+    accessible-role: button;
+    accessible-label: root.text;
+    HorizontalLayout {
+        alignment: center;
+        spacing: 6px;
+        Image {
+            source: root.download ? @image-url("icons/download.svg") : @image-url("icons/external-link.svg");
+            width: 16px;
+            height: 16px;
+            y: (parent.height - self.height) / 2;
+            colorize: Theme.link;
+        }
+        label := Text {
+            text: root.text;
+            color: Theme.link;
+            font-size: 13px;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.open(root.url); }
+    }
+}
+
+// One numbered instruction.
+export component Instruction inherits HorizontalLayout {
+    in property <int> number;
+    in property <string> text;
+    spacing: 10px;
+    VerticalLayout {
+        alignment: start;
+        Rectangle {
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            background: Theme.accent.with-alpha(0.25);
+            Text {
+                text: root.number;
+                font-size: 13px;
+                font-weight: 700;
+                color: Theme.link;
+            }
+        }
+    }
+    Text {
+        text: root.text;
+        wrap: word-wrap;
+        font-size: 14px;
+        color: Theme.text;
+        vertical-alignment: center;
+        horizontal-stretch: 1;
+    }
+}
+
+// The setup's languages (app/tr.hpp, app/lang): a flag that opens the list of them.
+export struct LangItem {
+    code: string,
+    name: string,
+}
+
+export component LangFlag inherits Image {
+    in property <string> code;
+    width: 24px;
+    height: 16px;
+    image-rendering: pixelated;
+    source: root.code == "de" ? @image-url("flags/de.svg")
+          : root.code == "fr" ? @image-url("flags/fr.svg")
+          : root.code == "es" ? @image-url("flags/es.svg")
+          : root.code == "it" ? @image-url("flags/it.svg")
+          : root.code == "nl" ? @image-url("flags/nl.svg")
+          : @image-url("flags/en.svg");
+}
+
+export component LanguageButton inherits Rectangle {
+    in property <string> language;
+    in property <bool> enabled: true;
+    callback chosen(string);
+    // (each in its own words: whoever cannot read the current one finds theirs)
+    property <[LangItem]> langs: [
+        { code: "en", name: "English" }, { code: "de", name: "Deutsch" }, { code: "fr", name: "Français" },
+        { code: "es", name: "Español" }, { code: "it", name: "Italiano" }, { code: "nl", name: "Nederlands" },
+    ];
+    width: 46px;
+    height: 30px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.line;
+    background: ta.has-hover ? Theme.hover : transparent;
+    accessible-role: button;
+    accessible-label: "Language";
+    LangFlag {
+        code: root.language;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { popup.show(); }
+    }
+    popup := PopupWindow {
+        x: root.width - 190px;
+        y: root.height + 4px;
+        width: 190px;
+        Rectangle {
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.line;
+            border-radius: 8px;
+            drop-shadow-blur: 12px;
+            drop-shadow-color: #00000080;
+            VerticalLayout {
+                padding: 6px;
+                spacing: 2px;
+                for l in root.langs: Rectangle {
+                    height: 34px;
+                    border-radius: 6px;
+                    background: l.code == root.language ? Theme.accent.with-alpha(0.25) : lta.has-hover ? Theme.hover : transparent;
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        spacing: 10px;
+                        VerticalLayout {
+                            alignment: center;
+                            LangFlag { code: l.code; }
+                        }
+                        Text {
+                            text: l.name;
+                            font-size: 14px;
+                            font-weight: l.code == root.language ? 700 : 400;
+                            color: Theme.text;
+                            vertical-alignment: center;
+                        }
+                    }
+                    lta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.chosen(l.code); }
+                    }
+                }
+            }
+        }
+    }
+}

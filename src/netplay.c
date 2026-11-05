@@ -2,6 +2,7 @@
  * netplay.c -- rollback netplay on GGPO-X. See include/netplay.h and docs/NETPLAY.md.
  */
 #include "netplay.h"
+#include "project_identity.h"   /* PROJECT_GGPO_GAME: the session's name */
 #include "netplay_netem.h"
 
 #include <stdio.h>
@@ -161,7 +162,7 @@ int32_t Netplay_StartP2P(NetplaySession **out, const NetplayConfig *cfg, const N
     if (!s)
         return GGPO_ERRORCODE_GENERAL_FAILURE;
 
-    GGPOErrorCode rc = ggpo_start_session(&s->ggpo, &s->ggpoCallbacks, "openswos",
+    GGPOErrorCode rc = ggpo_start_session(&s->ggpo, &s->ggpoCallbacks, PROJECT_GGPO_GAME,
                                           NETPLAY_MAX_PLAYERS, cfg->inputSize,
                                           cfg->localPort, cfg->maxPrediction,
                                           cfg->fps > 0 ? (float)cfg->fps : 60.0f);
@@ -211,7 +212,7 @@ int32_t Netplay_StartSyncTest(NetplaySession **out, int32_t inputSize, int32_t c
     if (!s)
         return GGPO_ERRORCODE_GENERAL_FAILURE;
 
-    char game[] = "openswos";
+    char game[] = PROJECT_GGPO_GAME;
     GGPOErrorCode rc = ggpo_start_synctest(&s->ggpo, &s->ggpoCallbacks, game,
                                            NETPLAY_MAX_PLAYERS, inputSize, checkDistance);
     if (!GGPO_SUCCEEDED(rc)) {
@@ -296,13 +297,6 @@ int32_t Netplay_UnackedInputs(NetplaySession *s, int32_t remotePlayer, int32_t *
     if (GGPO_SUCCEEDED(rc))
         *count = stats.network.send_queue_len;
     return rc;
-}
-
-int32_t Netplay_SetBalance(NetplaySession *s, int32_t on)
-{
-    if (!s || !s->ggpo)
-        return NETPLAY_ERR_UNAVAILABLE;
-    return (int32_t)ggpo_set_prediction_balance(s->ggpo, on);
 }
 
 int32_t Netplay_SetKickoffPrediction(NetplaySession *s, int32_t on)
@@ -752,7 +746,6 @@ int32_t Netplay_UnackedInputs(NetplaySession *s, int32_t remotePlayer, int32_t *
     return NETPLAY_ERR_UNAVAILABLE;
 }
 
-int32_t Netplay_SetBalance(NetplaySession *s, int32_t on) { (void)s; (void)on; return NETPLAY_ERR_UNAVAILABLE; }
 int32_t Netplay_SetKickoffPrediction(NetplaySession *s, int32_t on) { (void)s; (void)on; return NETPLAY_ERR_UNAVAILABLE; }
 
 int32_t Netplay_NetStats(NetplaySession *s, int32_t remotePlayer, int32_t *pingMs,

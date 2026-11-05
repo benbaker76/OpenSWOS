@@ -18,6 +18,7 @@
  * no libc.
  */
 #include "build_info.h"
+#include "project_identity.h"
 #include "swos_build.h"
 
 /* ---- which platform is this binary for? ----------------------------------
@@ -37,8 +38,12 @@
 #else
 #  if   defined(__CYGWIN__) || defined(_WIN32)
 #    define SWOS_PLATFORM_OS "windows"
+#  elif defined(SWOS_IOS_BUILD)
+#    define SWOS_PLATFORM_OS "ios"
 #  elif defined(__APPLE__)
 #    define SWOS_PLATFORM_OS "macos"
+#  elif defined(SWOS_ANDROID_BUILD)
+#    define SWOS_PLATFORM_OS "android"
 #  elif defined(__linux__)
 #    define SWOS_PLATFORM_OS "linux"
 #  else
@@ -86,7 +91,7 @@ const char *Build_Platform(void)
 
 const char *Build_Version(void)
 {
-    return "OpenSWOS " SWOS_BUILD_ID " (" SWOS_BUILD_DATE ", " SWOS_PLATFORM SWOS_BUILD_RULES ")";
+    return PROJECT_NAME " " SWOS_BUILD_ID " (" SWOS_BUILD_DATE ", " SWOS_PLATFORM SWOS_BUILD_RULES ")";
 }
 
 /* ---- the on-screen form ---------------------------------------------------

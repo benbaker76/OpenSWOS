@@ -15,10 +15,12 @@
 #include "translations.h"  /* tr_fmt — localize the offer-letter text */
 #include "endian_helpers.h"
 #include "game_types.h"
+#include "teams.h"           /* Team_IsOutsideLeague */
 #include "menu_system.h"
 #include "random.h"
 #include <stdio.h>  /* diagnostic output for Yugoslavia appointment attempts */
 #include "string_utils.h"
+#include "world.h"
 
 /* Prevent GCC from converting byte loops to memcpy/memset (no libc) */
 #pragma GCC optimize("no-tree-loop-distribute-patterns")
@@ -1293,7 +1295,7 @@ searchDomestic:
 
             /* Skip custom teams (type 4) */
             TeamFile *a0tf = (TeamFile *)a0;
-            if (a0tf->league == 4)
+            if (Team_IsOutsideLeague(a0tf))     /* was league == 4 */
                 continue;
 
             /* Must be same division (country). selTeamNumber MSB = country.
@@ -1302,7 +1304,8 @@ searchDomestic:
              * home-country job-offer search effectively never found a
              * candidate, and offers only ever showed up via the
              * `searchForeign` fallback that triggers when youreSacked. */
-            if ((uint8_t)(_selTeamNumber >> 8) != a0tf->countryNumber)
+            if (World_FileCountry((uint8_t)(_selTeamNumber >> 8)) !=
+                World_FileCountry(a0tf->countryNumber))     /* (a second team file: include/world.h) */
                 continue;
 
             /* Asm: move.w (a0),d3 — reads packed team number at offset 0 */
@@ -1357,7 +1360,7 @@ searchForeign:
             uint8_t *a0 = base + (uint32_t)idx * 0x2AC;
 
             TeamFile *a0tf = (TeamFile *)a0;
-            if (a0tf->league == 4)
+            if (Team_IsOutsideLeague(a0tf))     /* was league == 4 */
                 continue;
             /* Foreign job-offer search — skip teams from the user's own
              * country. MSB of selTeamNumber is the country byte; the LE
@@ -1367,7 +1370,8 @@ searchForeign:
             /* Club managers skip their current country's clubs, but a
              * national selector has no current club-country restriction. */
             if (_isNationalSelector == 0 &&
-                (uint8_t)(_selTeamNumber >> 8) == a0tf->countryNumber)
+                World_FileCountry((uint8_t)(_selTeamNumber >> 8)) ==
+                World_FileCountry(a0tf->countryNumber))
                 continue;
 
             /* Asm: move.w (a0),d3 — reads packed team number at offset 0 */
@@ -1544,7 +1548,7 @@ searchSacked:
             uint8_t *a0 = (&_teamFileBuffer + 2) + (uint32_t)idx * 0x2AC;
 
             TeamFile *a0tf2 = (TeamFile *)a0;
-            if (a0tf2->league == 4)
+            if (Team_IsOutsideLeague(a0tf2))    /* was league == 4 */
                 continue;
 
             /* Asm: move.w (a0),d3 — reads packed team number at offset 0 */

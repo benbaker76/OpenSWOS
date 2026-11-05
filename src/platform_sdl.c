@@ -11,7 +11,9 @@
  */
 
 #include <stdint.h>
+#include "project_identity.h"
 #include "platform_sdl.h"
+#include "mod_hooks.h"      /* ModHooks_FrameDrawn: the built-in mods' drawing */
 #include "crt_effects.h"   /* CRT mask / vignette / curved corners */
 #include "display.h"
 #include "dos_mode.h"        /* gDosGraphics */
@@ -94,6 +96,7 @@ void InputSDL_ClearKeyState(void);
  * the buffer the game last drew into. */
 extern volatile uintptr_t _frontbufferBasePtr;
 extern volatile uintptr_t _frontbufferBaseAltPtr;
+extern volatile uint16_t _gTextInputActive;   /* input_text.c: a name is being typed */
 extern uint8_t  _frontbufferBase[];
 extern uint8_t  _frontbufferBaseAlt[];
 extern uint8_t  _frontbufferMaskBuffer[];
@@ -127,7 +130,7 @@ static SDL_Renderer *s_renderer;
  * Worst case the HUD covers the whole screen (the result/scoreboard overlay),
  * hence a full second screen's worth. */
 #define PLATFORM_TEX_H  (PLATFORM_SCREEN_H * 2)
-static SDL_Texture  *s_textures[PLATFORM_TEX_RING];  /* RGBA8888 streaming, _screen_width x 272 */
+static SDL_Texture  *s_textures[PLATFORM_TEX_RING];  /* RGBA8888 streaming, the widest picture x PLATFORM_TEX_H; used at _screen_width */
 static int           s_tex_idx;
 /* Cached-RAM staging buffer: ALL per-pixel work (8bpp→RGBA, overlay blend) happens
  * here, then one SDL_UpdateTexture uploads it. Writing/reading SDL_LockTexture's
@@ -209,6 +212,19 @@ void Platform_HudLayerMark(int x, int y, int w, int h)
     s_hud_stamp = Platform_NowMs();
 }
 
+/* The match is paused: the frame on screen is shown again and again and nothing draws, so
+ * both 100 ms freshness rules below would take its HUD (the clock, the team names, the
+ * score) and its sub-pixel scroll away a moment after P (report 0043). The pause loop
+ * (pauseSpinWaitOneTick) calls this before each present to keep them, as drawn. Menus
+ * never pause, so they still decay out there. */
+void Platform_KeepFrameFresh(void)
+{
+    extern void Render_KeepScrollSubpixel(void);
+    if (s_hud_stamp)
+        s_hud_stamp = Platform_NowMs();
+    Render_KeepScrollSubpixel();
+}
+
 /* Is there a HUD layer worth presenting this frame? Same 100 ms freshness rule
  * as the scroll residual: menus never draw these sprites, so they decay out
  * instead of leaving a stale clock floating over the frontend. */
@@ -257,8 +273,11 @@ static SDL_mutex    *s_render_mtx;       /* serializes Platform_RenderFrame call
 static Uint64        s_perf_freq;
 static Uint64        s_next_frame_perf;  /* high-res counter for 50 Hz pacing */
 /* How many frames late the limiter will still catch up on, by running frames back to
- * back, before it drops the rest (Platform_SetCatchUpFrames). */
-static int           s_catchup_frames = 1;
+ * back, before it drops the rest: one -- a burst of frames after a hitch only looks
+ * worse. (A live match caught up on its whole prediction window, the host's CATCH UP
+ * switch, fd911618; removed 2026-10-30: it caused netplay problems.) */
+static const int     s_catchup_frames = 1;
+static int           s_display_index = -1;    /* the display the window is on (check_display) */
 static int           s_display_hz;       /* monitor refresh, 0 = unknown. See the pacing note in Platform_VBlank. */
 static double        k_frame_secs = 1.0 / 50.0;  /* refreshed per frame from the
                                                   * active game style (DOS 70 / Amiga 50) */
@@ -285,6 +304,13 @@ static volatile Uint32 s_last_main_render_ms;
  * In all cases the request is processed inside Platform_RenderFrame while
  * the render mutex is held, so the captured ARGB buffer is consistent. */
 static volatile int s_screenshot_request;
+
+/* A screenshot at the next full render, as F12 takes one (the career autopilot's test
+ * switch SWOS_GOLDEN_SHOT_COMP, career_autopilot.c). */
+void Platform_RequestScreenshot(void)
+{
+    s_screenshot_request = 1;
+}
 static int          s_screenshot_index;
 static int          s_screenshot_interval;   /* 0 = disabled, N>0 = every N frames */
 static int          s_present_capture;       /* 0 = disabled, N>0 = every N frames (see capture_presented_frame) */
@@ -387,6 +413,14 @@ static int           s_frame_count;
  * hardware (D3D / GL / Metal) contexts are thread-bound. */
 static int           s_renderer_is_hw;
 static int           s_vsync_enabled;
+/* SWOS_FRAME_SKIP=1: for a screen that holds every present to its own refresh, whatever
+ * vsync says (the PortMaster handhelds' 60 Hz panels). DOS gameplay paces at 70 Hz, so
+ * there the presents held the whole game to 60 and it played 14% slow. A frame that
+ * starts past its deadline runs in full and only isn't shown, so the match keeps its
+ * rate, never two in a row. Nothing here touches the simulation. */
+static int           s_frame_skip;
+static int           s_frame_skip_now;   /* this frame is not shown */
+static int           s_frames_skipped;   /* for SWOS_PRESENT_STATS */
 
 /* Harness TURBO (env SWOS_HARNESS_TURBO, read once in Platform_Init): when
  * set, the inferior runs frames CPU-bound instead of paced to a 50 Hz wall
@@ -640,6 +674,10 @@ int Platform_Init(const PlatformInitOptions *opts)
         }
     }
 #endif
+#ifdef SWOS_MOBILE_BUILD
+    /* Phones: the whole screen, always (docs/MOBILE.md). */
+    fs_mode = PLATFORM_FULLSCREEN_DESKTOP;
+#endif
 #ifdef SWOS_WASM_BUILD
     /* Web: fullscreen is browser-managed (F11) — SDL desktop-fullscreen at boot
      * is user-gesture-gated and would stretch the canvas — so force windowed
@@ -674,6 +712,9 @@ int Platform_Init(const PlatformInitOptions *opts)
 #ifndef SWOS_WASM_BUILD
     wflags |= SDL_WINDOW_RESIZABLE;
 #endif
+#ifdef SWOS_MOBILE_BUILD
+    wflags |= SDL_WINDOW_ALLOW_HIGHDPI;     /* (the screen's own pixels, not iOS's points) */
+#endif
     if (fs_mode == PLATFORM_FULLSCREEN_DESKTOP) {
         /* Borderless window sized to the desktop, no display-mode
          * change. SDL_RenderSetLogicalSize letterboxes 336x272 inside
@@ -693,7 +734,7 @@ int Platform_Init(const PlatformInitOptions *opts)
     /* The build goes in the title bar as well as on the main menu: a windowed
      * screenshot then carries it even when the shot crops to the game area. */
     static char s_title[96];
-    snprintf(s_title, sizeof s_title, "OpenSWOS %s (%s)", Build_Id(), Build_Platform());
+    snprintf(s_title, sizeof s_title, PROJECT_NAME " %s (%s)", Build_Id(), Build_Platform());
 
     /* [video] resolution=WxH IS THE CLIENT AREA, when one is named.
      *
@@ -769,6 +810,7 @@ int Platform_Init(const PlatformInitOptions *opts)
 #endif
 
 #ifndef SWOS_WASM_BUILD
+    s_display_index = SDL_GetWindowDisplayIndex(s_window);  /* (the one it opened on: check_display) */
     /* Post-creation window fit (windowed only). The pre-creation scale clamp
      * uses SDL_GetDisplayUsableBounds, which can under-shrink (DPI virtualization
      * on Windows, work-area quirks) and CANNOT account for the title bar — that's
@@ -983,7 +1025,10 @@ int Platform_Init(const PlatformInitOptions *opts)
     /* HUD layer + its conversion scratch. Allocation failure is not fatal:
      * Platform_HudLayerBuffer() then returns NULL and the HUD simply stays in
      * the main framebuffer, i.e. today's behaviour with a wobble. */
-    s_hud_layer = (uint8_t *)SDL_calloc(1, (size_t)_screen_width * PLATFORM_SCREEN_H);
+    /* (At the widest picture, as the textures and s_frame_rgba below: the width can grow
+     * after start-up -- the window moved to a wider display (main.c Video_DisplayChanged).
+     * Each is used at the current width, its strides and upload rects _screen_width.) */
+    s_hud_layer = (uint8_t *)SDL_calloc(1, (size_t)PITCH_VIEW_MAX_WIDTH * PLATFORM_SCREEN_H);
     if (!s_hud_layer)
         fprintf(stderr, "[render] HUD layer alloc failed — the HUD will ride the "
                         "sub-pixel shift (harmless, slightly jittery)\n");
@@ -1006,14 +1051,14 @@ int Platform_Init(const PlatformInitOptions *opts)
             s_renderer,
             SDL_PIXELFORMAT_ARGB8888,
             SDL_TEXTUREACCESS_STREAMING,
-            _screen_width, PLATFORM_TEX_H);
+            PITCH_VIEW_MAX_WIDTH, PLATFORM_TEX_H);
         if (!s_textures[ti]) {
             fprintf(stderr, "SDL_CreateTexture[%d]: %s\n", ti, SDL_GetError());
             return -1;
         }
         (void)0;
     }
-    s_frame_rgba = (uint32_t *)SDL_malloc((size_t)_screen_width * PLATFORM_TEX_H * 4);
+    s_frame_rgba = (uint32_t *)SDL_malloc((size_t)PITCH_VIEW_MAX_WIDTH * PLATFORM_TEX_H * 4);
     if (!s_frame_rgba) {
         fprintf(stderr, "frame buffer alloc failed (%d x %d)\n", _screen_width, PLATFORM_SCREEN_H);
         return -1;
@@ -1064,6 +1109,7 @@ int Platform_Init(const PlatformInitOptions *opts)
         }
     }
     s_present_stats = (getenv("SWOS_PRESENT_STATS") != NULL);
+    s_frame_skip    = (getenv("SWOS_FRAME_SKIP") != NULL);
     {
         const char *pc = getenv("SWOS_PRESENT_CAPTURE");
         const char *from = getenv("SWOS_PRESENT_CAPTURE_FROM");
@@ -1112,6 +1158,56 @@ void Platform_Shutdown(void)
     if (s_hud_layer)  { SDL_free(s_hud_layer);  s_hud_layer  = NULL; }
     if (s_renderer) { SDL_DestroyRenderer(s_renderer); s_renderer = NULL; }
     if (s_window)   { SDL_DestroyWindow(s_window);     s_window = NULL; }
+}
+
+/* Which display the window is on. It decides the picture's width and the refresh the pacing
+ * keys on, both taken at start-up -- a window moved to another monitor kept its first one's
+ * (a 16:10 laptop's picture on a 21:9 monitor, even fullscreen: a tester, macOS, 2026-10-31).
+ * Checked on every window event: SDL_WINDOWEVENT_DISPLAY_CHANGED where SDL has it (2.0.18+),
+ * a move or resize anywhere. */
+static void check_display(void)
+{
+#ifndef SWOS_WASM_BUILD
+    if (!s_window)
+        return;
+    const int d = SDL_GetWindowDisplayIndex(s_window);
+    if (d < 0 || d == s_display_index)
+        return;
+    const int first = s_display_index < 0;
+    s_display_index = d;
+    SDL_DisplayMode dm;
+    if (first || SDL_GetDesktopDisplayMode(d, &dm) != 0)
+        return;
+    fprintf(stderr, "[video] the window is on display %d now: %dx%d @%dHz\n", d, dm.w, dm.h, dm.refresh_rate);
+    if (dm.refresh_rate > 0)
+        s_display_hz = dm.refresh_rate;
+    {
+        extern void Video_DisplayChanged(int dw, int dh);
+        Video_DisplayChanged(dm.w, dm.h);
+    }
+#endif
+}
+
+/* Fullscreen, by SDL's flags or by the window covering its display. macOS's green button puts the
+ * window in a fullscreen Space without setting SDL's flags (SDL 2.30: only SDL_SetWindowFullscreen
+ * sets them), so a resize there "for the windowed size" shrank the window inside the Space: the
+ * picture top-left at its windowed size, black around it -- the first fullscreen after moving to
+ * another monitor, whose display change is seen as the Space opens (issue #5). */
+static int window_is_fullscreen(void)
+{
+    if (SDL_GetWindowFlags(s_window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP))
+        return 1;
+#ifndef SWOS_WASM_BUILD
+    {
+        SDL_Rect b;
+        int w = 0, h = 0;
+        const int d = SDL_GetWindowDisplayIndex(s_window);
+        SDL_GetWindowSize(s_window, &w, &h);
+        if (d >= 0 && SDL_GetDisplayBounds(d, &b) == 0 && b.w > 0 && w >= b.w && h >= b.h)
+            return 1;
+    }
+#endif
+    return 0;
 }
 
 void Platform_ToggleFullscreen(void)
@@ -1182,14 +1278,10 @@ void Platform_ViewChanged(void)
      *
      * Not when fullscreen (SDL letterboxes, which is right), and not when
      * [video] resolution pinned a client area -- that was asked for by name. */
-    if (!s_window || s_pinned_w > 0) return;
-    {
-        Uint32 flags = SDL_GetWindowFlags(s_window);
-        if (flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) return;
-        SDL_SetWindowSize(s_window,
-                          _screen_width  * s_win_scale_current,
-                          _screen_height * s_win_scale_current);
-    }
+    if (!s_window || s_pinned_w > 0 || window_is_fullscreen()) return;
+    SDL_SetWindowSize(s_window,
+                      _screen_width  * s_win_scale_current,
+                      _screen_height * s_win_scale_current);
 }
 
 void Platform_SetWindowScale(int scale)
@@ -1204,8 +1296,7 @@ void Platform_SetWindowScale(int scale)
     s_pinned_w = s_pinned_h = 0;
     /* Only resize when actually windowed — fullscreen ignores the size
      * (SDL_RenderSetLogicalSize handles letterboxing for us). */
-    Uint32 flags = SDL_GetWindowFlags(s_window);
-    if ((flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_FULLSCREEN_DESKTOP)) == 0) {
+    if (!window_is_fullscreen()) {
         SDL_SetWindowSize(s_window,
             _screen_width * scale,
             _screen_height * scale);
@@ -1236,6 +1327,13 @@ uint8_t Platform_NearestColour(uint8_t r, uint8_t g, uint8_t b)
         }
     }
     return (uint8_t)best;
+}
+
+void Platform_PaletteColour(uint8_t index, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    *r = s_palette[index].r;
+    *g = s_palette[index].g;
+    *b = s_palette[index].b;
 }
 
 static void refresh_palette_from_copper(void)
@@ -1528,11 +1626,33 @@ static void maybe_dump_frame(const uint32_t *argb)
  * call from multiple threads: the queue is internally locked, events
  * are consumed by whichever pump grabs them first, and Platform_RequestQuit
  * is safe from any thread. */
+#ifdef SWOS_MOBILE_BUILD
+/* The phones' on-screen controls (src/touch_controls.c): an event, with the output's size. */
+extern void TouchControls_HandleEvent(const SDL_Event *e, int w, int h);
+extern void TouchControls_Draw(SDL_Renderer *r);
+static void touch_event(const SDL_Event *e)
+{
+    int w = 0, h = 0;
+    if (s_renderer)
+        SDL_GetRendererOutputSize(s_renderer, &w, &h);
+    TouchControls_HandleEvent(e, w, h);
+}
+#endif
+
 static void pump_events_any_thread(void)
 {
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
         switch (ev.type) {
+        case SDL_DROPFILE:
+#ifdef SWOS_IOS_BUILD
+            /* iOS hands a URL the app was opened with (OpenSWOS Setup's Wi-Fi copy) over as a
+             * dropped file, whenever its run loop gets to it -- often before the start-up's
+             * data check looks: kept here, or this pump threw it away (src/mobile.c). */
+            { extern void Mobile_LinkDropped(const char *link); Mobile_LinkDropped(ev.drop.file); }
+#endif
+            SDL_free(ev.drop.file);
+            break;
         case SDL_QUIT:
             Platform_RequestQuit();
             /* Hide the window immediately so the main-menu unwind
@@ -1548,6 +1668,7 @@ static void pump_events_any_thread(void)
             AudioSDL_PauseAndClear();
             break;
         case SDL_WINDOWEVENT:
+            check_display();                /* (another monitor: its shape, its refresh) */
             if (ev.window.event == SDL_WINDOWEVENT_CLOSE) {
                 Platform_RequestQuit();
                 if (s_window) SDL_HideWindow(s_window);
@@ -1562,6 +1683,10 @@ static void pump_events_any_thread(void)
                  * highlighted menu entry. Drop everything; new presses
                  * after focus returns will repopulate via KEYDOWN. */
                 InputSDL_ClearKeyState();
+#ifdef SWOS_MOBILE_BUILD
+                /* (and a finger whose lift went to a message box or the system) */
+                { extern void TouchControls_ReleaseAll(void); TouchControls_ReleaseAll(); }
+#endif
             } else if (ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
                 /* Defence-in-depth: also clear on regain in case any
                  * KEYDOWN slipped in between FOCUS_LOST and the actual
@@ -1605,15 +1730,16 @@ static void pump_events_any_thread(void)
              * same physical key as SDLK_PLUS on most layouts (US),
              * so we accept either. Swallowed so they don't reach the
              * menu/game layer. No-op while fullscreen (the runtime
-             * scaler ignores the size change). */
-            if (ev.key.repeat == 0 &&
+             * scaler ignores the size change). Not while a name is being
+             * typed: '-' is a letter there. */
+            if (ev.key.repeat == 0 && !_gTextInputActive &&
                 (ev.key.keysym.sym == SDLK_EQUALS ||
                  ev.key.keysym.sym == SDLK_PLUS   ||
                  ev.key.keysym.sym == SDLK_KP_PLUS)) {
                 Platform_SetWindowScale(s_win_scale_current + 1);
                 continue;
             }
-            if (ev.key.repeat == 0 &&
+            if (ev.key.repeat == 0 && !_gTextInputActive &&
                 (ev.key.keysym.sym == SDLK_MINUS ||
                  ev.key.keysym.sym == SDLK_KP_MINUS)) {
                 Platform_SetWindowScale(s_win_scale_current - 1);
@@ -1635,6 +1761,7 @@ static void pump_events_any_thread(void)
             }
             /* fallthrough */
         case SDL_KEYUP:
+        case SDL_TEXTINPUT:             /* (a password's characters: InputSDL_RawText) */
         case SDL_CONTROLLERBUTTONDOWN:
         case SDL_CONTROLLERBUTTONUP:
         case SDL_CONTROLLERAXISMOTION:
@@ -1642,8 +1769,22 @@ static void pump_events_any_thread(void)
         case SDL_CONTROLLERDEVICEREMOVED:
         case SDL_JOYDEVICEADDED:
         case SDL_JOYDEVICEREMOVED:
+#ifdef SWOS_MOBILE_BUILD
+            if (ev.type == SDL_CONTROLLERBUTTONDOWN)
+                touch_event(&ev);           /* (a controller played: the on-screen controls go) */
+#endif
             InputSDL_HandleEvent(&ev);
             break;
+#ifdef SWOS_MOBILE_BUILD
+        case SDL_FINGERDOWN:
+        case SDL_FINGERMOTION:
+        case SDL_FINGERUP:
+            touch_event(&ev);
+            break;
+        case SDL_APP_WILLENTERBACKGROUND:   /* (the app sent away: no lift comes for a held finger) */
+            { extern void TouchControls_ReleaseAll(void); TouchControls_ReleaseAll(); }
+            break;
+#endif
         default:
             break;
         }
@@ -2000,6 +2141,7 @@ static void render_frame_impl(int pump_full)
 #endif
 
     if (!s_renderer || !s_textures[0]) return;
+    if (pump_full && s_frame_skip_now) return;
 
     SDL_LockMutex(s_render_mtx);
 
@@ -2107,9 +2249,15 @@ shots_done:
     } else {
         present_frame_copy(tex);
     }
+    /* The built-in mods' drawing over the frame (src/mod_hooks.c: the weather), before the
+     * CRT effects so the grille and the glass sit on top of it too. */
+    ModHooks_FrameDrawn(s_renderer);
     /* CRT effects go on LAST, over the finished frame and its HUD, so the
      * grille and the glass edge sit on the picture rather than under it. */
     CrtEffects_Apply(s_renderer);
+#ifdef SWOS_MOBILE_BUILD
+    TouchControls_Draw(s_renderer);  /* (the phones' on-screen controls, over everything) */
+#endif
     capture_presented_frame();     /* after every draw, before the swap */
     SDL_RenderPresent(s_renderer);
 
@@ -2210,18 +2358,6 @@ int Platform_VBlank(void)
 static double s_wasm_extra_ms;
 #endif
 
-/* Catch-up after a stall. Offline the limiter drops a backlog of more than one frame:
- * a burst of frames after a hitch only looks worse. A LIVE match sets it to its
- * prediction window (netplay_match.c) and back to 1 when it ends, on thd79's
- * advice: there a game that stalled and then dropped the frames comes back BEHIND,
- * and it is the OTHER player who pays -- held at the prediction limit through the
- * stall, then slowed by time sync until the two are level. Catching up on as many
- * frames as the other game can be ahead puts the cost on the player who stalled. */
-void Platform_SetCatchUpFrames(int frames)
-{
-    s_catchup_frames = frames < 1 ? 1 : frames;
-}
-
 void Platform_DelayNextFrame(uint32_t us)
 {
 #ifdef SWOS_WASM_BUILD
@@ -2267,10 +2403,22 @@ static void present_interval_stats(void)
                             "(%d Hz): %d long (>1.5x), %d short (<0.5x) of %d\n",
                     (double)s_sum / s_n * ms, (double)s_min * ms, (double)s_max * ms,
                     period * ms, Platform_ActivePacingFps(), s_long, s_short, s_n);
+            if (s_frame_skip)
+                fprintf(stderr, "[present] frame skip: %d of %d not shown\n",
+                        s_frames_skipped, s_n);
+            s_frames_skipped = 0;
             s_sum = s_max = 0; s_n = s_long = s_short = 0;
         }
     }
     s_last = now;
+}
+
+/* Has this frame already missed its deadline? s_next_frame_perf is still the last
+ * frame's, so the frame's own is one period on. */
+static int frame_is_late(void)
+{
+    Uint64 period = (Uint64)s_perf_freq / (Uint64)Platform_ActivePacingFps();
+    return s_next_frame_perf && SDL_GetPerformanceCounter() > s_next_frame_perf + period;
 }
 
 int Platform_Present(void)
@@ -2285,6 +2433,8 @@ int Platform_Present(void)
     key_script_tick();
     if (s_present_stats)
         present_interval_stats();
+    s_frame_skip_now = s_frame_skip && !s_frame_skip_now && frame_is_late();
+    s_frames_skipped += s_frame_skip_now;
     Platform_RenderFrame();
 
 #ifdef SWOS_WASM_BUILD
@@ -2312,8 +2462,7 @@ int Platform_Present(void)
         double sleep_ms = s_frame_deadline - now;
         if (sleep_ms < 1.0) {                 /* work overran the frame budget */
             sleep_ms = 1.0;                   /* still yield so the browser paints + polls input */
-            /* Drop the backlog -- beyond a live match's catch-up (Platform_SetCatchUpFrames),
-             * which runs back to back, as the native limiter does. */
+            /* Drop the backlog past one frame (s_catchup_frames), as the native limiter does. */
             if (now - s_frame_deadline > period * (s_catchup_frames - 1))
                 s_frame_deadline = now + period - period * (s_catchup_frames - 1);
         } else if (sleep_ms > period) {       /* first frame / clock jumped back */
@@ -2384,6 +2533,7 @@ int Platform_Present(void)
     if (s_vsync_enabled && s_display_hz > 0 &&
         s_display_hz == Platform_ActivePacingFps()) {
         s_next_frame_perf = SDL_GetPerformanceCounter();
+        pump_events_any_thread();       /* (after the present's own wait: see below) */
         return _quitToDos ? 1 : 0;
     }
 
@@ -2395,10 +2545,10 @@ int Platform_Present(void)
 
     {
     const Sint64 frame_perf = (Sint64)((double)s_perf_freq * k_frame_secs);
-    if ((Sint64)(now - s_next_frame_perf) > frame_perf * s_catchup_frames) {
-        /* Further behind than we catch up on (one frame, or a live match's prediction
-         * window: Platform_SetCatchUpFrames) — drop the rest, and run what is left
-         * back to back. */
+    /* Skipping is how the frames catch up, so they must be allowed to fall behind. */
+    if ((Sint64)(now - s_next_frame_perf) > frame_perf * (s_frame_skip ? 3 : s_catchup_frames)) {
+        /* Further behind than we catch up on (s_catchup_frames: one frame) — drop the
+         * rest, and run what is left back to back. */
         s_next_frame_perf = now - (Uint64)(frame_perf * (s_catchup_frames - 1));
     } else {
         /* Sleep almost-to-deadline, leaving a 2 ms margin for the spin. */
@@ -2417,10 +2567,42 @@ int Platform_Present(void)
     }
     }
 
+    /* The controls read as late as they can be: the frame's own pump ran before the
+     * present and the wait above (most of the 20 ms), so a press during the wait was
+     * seen only after the NEXT frame -- a frame of input lag the Amiga never had: it reads
+     * the joystick's register (JOY0DAT/JOY1DAT, Player1/2StatusProc) when the frame runs,
+     * after its VBlank wait, so a frame sees the stick as it is then (ReportBot 0051:
+     * ~40 ms more than a plain SDL game, by a 240 fps camera). Pumped again here, the
+     * frame about to run reads what was pressed up to now. */
+    pump_events_any_thread();
     return _quitToDos ? 1 : 0;
 }
 
 Uint64 Platform_NowMs(void)
 {
     return SDL_GetTicks64();
+}
+
+/* A bar across the screen, `permille`/1000 full: the phones' Wi-Fi copy of the game's data
+ * (src/mobile.c, src/phone_fetch.c), drawn before there are any of the game's graphics. */
+void Platform_ShowProgress(int permille)
+{
+    if (!s_renderer)
+        return;
+    SDL_PumpEvents();
+    int w = 0, h = 0;
+    SDL_RenderGetLogicalSize(s_renderer, &w, &h);
+    if (w <= 0 || h <= 0)
+        SDL_GetRendererOutputSize(s_renderer, &w, &h);
+    SDL_SetRenderTarget(s_renderer, NULL);
+    SDL_SetRenderDrawColor(s_renderer, 13, 17, 23, 255);
+    SDL_RenderClear(s_renderer);
+    SDL_Rect frame = { w / 8, h / 2 - h / 32, w * 3 / 4, h / 16 };
+    if (frame.h < 4) frame.h = 4;
+    SDL_SetRenderDrawColor(s_renderer, 48, 54, 61, 255);
+    SDL_RenderFillRect(s_renderer, &frame);
+    SDL_Rect bar = { frame.x, frame.y, (int)((int64_t)frame.w * (permille < 0 ? 0 : permille > 1000 ? 1000 : permille) / 1000), frame.h };
+    SDL_SetRenderDrawColor(s_renderer, 59, 130, 246, 255);
+    SDL_RenderFillRect(s_renderer, &bar);
+    SDL_RenderPresent(s_renderer);
 }

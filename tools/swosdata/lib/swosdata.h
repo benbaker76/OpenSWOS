@@ -19,6 +19,8 @@
 typedef struct {
     SdSources   src;
     char        outDir[1024];   /* the assets folder */
+    char        modsDir[1024];  /* the player's mods folder: a world is installed there as a mod
+                                 * (SwosData_InstallWorldMod); "" for the assets folder, as before */
     char        resDir[1024];   /* the game's own files, laid out as bin/ is:
                                  * data/credits_icons.bmp, setup/glyphs.txt, ... */
     /* Called for every line worth showing, and for progress. Either may be NULL. */
@@ -35,6 +37,7 @@ typedef enum {
     SD_STEP_TEAMS,          /* data_json/teams/ (and data/ without the Amiga disks) */
     SD_STEP_JAGUAR,         /* grafs_jag/: the Jaguar's sprites, gaps from the PC game */
     SD_STEP_SWOS2020,       /* grafs_2020/ and grafs_aga/P2020_n.MAP: SWOS 2020's pitches */
+    SD_STEP_WORLD,          /* data_json/worlds/<tag>/: a world's package (World 2026-27) */
     SD_STEP_COUNT
 } SdStep;
 
@@ -89,7 +92,7 @@ int32_t SwosData_Run(SdJob *job, char *err);
  * drawer unpacked from SWOS-Amiga.zip, which ships the program but no game
  * data. The drawer is recognised by its SWOS2 program. Needs the Amiga disks'
  * files in the assets folder (grafs/, sound/). 0 on success. */
-int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
+int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir, int32_t withWorld,
                                  void (*log)(void *user, const char *line), void *user,
                                  char *err);
 
@@ -97,16 +100,47 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir,
  * SWOS-Amiga.zip was unpacked; the setup carries one in amiga/), then filled as
  * SwosData_FillAmigaDrawer does. 0 on success. */
 int32_t SwosData_MakeAmigaDrawer(const char *assetsDir, const char *programDir, const char *destDir,
-                                 void (*log)(void *user, const char *line), void *user, char *err);
+                                 int32_t withWorld, void (*log)(void *user, const char *line), void *user,
+                                 char *err);
 
 /* The WHDLoad package, OpenSWOSAGA-WHDL.lha at `outPath`: OpenSWOS's own Slave
  * (OpenSWOS.slave, from the SWOS drawer `drawerDir` -- unpacked SWOS-Amiga.zip, built
  * with its SWOS2) and the icons in resDir/setup/whdload, the program in the package's
  * data/ (the Slave's folder) with the Amiga game data from the assets folder, as
  * SwosData_FillAmigaDrawer puts it in a drawer. No Kickstart image, no AmigaOS files:
- * the Slave starts SWOS2 directly. 0 on success. */
+ * the Slave starts SWOS2 directly. `modsDir` (NULL: none): a folder whose mods/ and data/MODS
+ * go into the package's data/ as they go into a drawer (the mods that are on, docs/MODS.md).
+ * 0 on success. */
 int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const char *resDir,
-                             const char *outPath, void (*log)(void *user, const char *line),
-                             void *user, char *err);
+                             const char *outPath, int32_t withWorld, const char *modsDir,
+                             void (*log)(void *user, const char *line), void *user, char *err);
+
+/* The world the Amiga plays when asked (withWorld above: World 2026-27, installed from its
+ * package), and where its Amiga files are in an assets folder. */
+#define SD_AMIGA_WORLD     "2627"
+#define SD_WORLD_AMIGA_DIR "data_json/worlds/" SD_AMIGA_WORLD "/amiga"
+/* Whether the assets folder has that world's Amiga files (the drawer's choice is offered). */
+int32_t SwosData_HaveAmigaWorld(const char *assetsDir);
+
+/* A world as a mod (docs/MODS.md §17): its package into `modsDir`/world<tag>/ --
+ *   mod.json                          the package's, else made: World 2026-27's uuid, "data"
+ *   data_json/worlds/<tag>/           WORLD.ini, teams/, competitions/ (the PC game's)
+ *   amiga/data/                       the Amiga's team files and WORLD (a drawer's mods/ gets
+ *                                     amiga/'s contents: the Amiga's files only)
+ * and the world's old copy in `assetsDir` (an earlier setup's) taken away, so the mod's being on
+ * or off is what decides. `slugOut` gets the mod's folder name. */
+int32_t SwosData_InstallWorldMod(const char *worldDir, const char *tag, const char *name,
+                                 const char *version, const char *modsDir, const char *assetsDir,
+                                 char *slugOut, uint32_t slugCap,
+                                 void (*log)(void *user, const char *line), void *user, char *err);
+
+/* A world's built files (`worldDir`: a world package unpacked -- WORLD.ini, teams/,
+ * competitions/, data/; scripts/make_world_package.sh) into the assets folder's
+ * data_json/worlds/<tag>/: WORLD.ini, teams/ and competitions/ where the PC game reads them,
+ * amiga/data/ (the team files and WORLD) for the Amiga's drawer and WHDLoad package when the
+ * player asks for the world there; given a SWOS drawer, into it at once. 0 on success. */
+int32_t SwosData_InstallWorld(const char *worldDir, const char *tag, const char *assetsDir,
+                              const char *drawerDir, void (*log)(void *user, const char *line),
+                              void *user, char *err);
 
 #endif

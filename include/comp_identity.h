@@ -84,13 +84,29 @@ enum CompId {
      * 120/121). */
     COMPID_englishCup                        = 118,
     COMPID_englishLeagueCup                  = 119,
-    /* Dynamic / data-only competitions start at 128 — the original SWOS comp ids
-     * fill 0..127 exactly, so a brand-new competition (added as pure data in
-     * tournaments.json with no compiled record) must use a byte >= 128. The
-     * field is int8_t but every identity read casts (uint8_t), so 128 is read
-     * back as 128 (see comp_id() below and docs/COMPETITION_DYNAMIC_REFACTOR.md
-     * §8d). Widen Competition.compId to uint8_t before the Amiga bake. */
-    COMPID_copaLibertadores                  = 128,
+    /* Dynamic / data-only competitions. NB the original's ids do NOT stop at 127:
+     * its cups are stored negative (-128 = 128 the Hungarian cup, -127 = 129 the
+     * Icelandic cup ...) and the ids run to 161 -- 162..255 are free. The Copa
+     * takes the first of them (it was 128 until 2026-10-27, the Hungarian cup's
+     * too: a save from then holding 128 in the European-cup slot is translated on
+     * load, save_format_json.c); a world's play-off uses 200 (world_playoff.c). */
+    COMPID_copaLibertadores                  = 162,
+    /* A world's own contests (fixed: saves hold them; scripts/world_import.py's NEW_COMP_IDS
+     * and NEW_LEAGUE_IDS take the rest -- 164..238 -- and refuse these): the world play-off
+     * 200 (world_playoff.c), the Coppa Serie D's ties 201 / 202 (world_cupd.c); the UEFA
+     * qualifying ties (uefa_coef.c), the other confederations' tie and main round
+     * (conti_season.c: one id, its cup saved beside it), the state championship (states.c).
+     * 244..246 are the USA's, Argentina's and Brazil's cups; 248 a world's group contest
+     * (world_playoff.c, the Poule Scudetto); 249..255 are left. */
+    COMPID_uefaTieChampionsLeague            = 239,
+    COMPID_uefaTieEuropaLeague               = 240,
+    COMPID_uefaTieConferenceLeague           = 241,
+    COMPID_contiTie                          = 242,
+    COMPID_contiMain                         = 243,
+    COMPID_stateContest                      = 247,     /* (a world's state championship the career club
+                                                         * plays: states.c; one id, its state saved beside) */
+    COMPID_worldGroups                       = 248,     /* (a world's group contest the career club plays
+                                                         * in slot 3: world_playoff.c) */
 };
 
 /* Read a competition's id (compId = byte 0 of the record). Endian-neutral

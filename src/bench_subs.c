@@ -1679,6 +1679,13 @@ static void draw_bench_occupants_only(void)
     if ((uint8_t)_topTeamInGame.teamName[0] & 2) {
         uint16_t t = topY; topY = botY; botY = t;
     }
+    /* ... and the block's second swap: the bench team (here _topTeamPtr's) seated as the
+     * menu seats it. Without it, whenever _topTeamPtr is not _topTeamInGame the menu put
+     * each team on one bench and play on the other: the benches swapped as the substitute
+     * came on (ReportBot 0049). */
+    if (_topTeamPtr != &_topTeamInGame) {
+        uint16_t t = topY; topY = botY; botY = t;
+    }
 
     uint16_t savedLimit = _benchXLimit, savedBenchY = _benchY;
     uint16_t savedOppY  = _opponentBenchY, savedState = _subsState;
@@ -2274,9 +2281,9 @@ static void drawSubstitutesMenuEntry(uint16_t y, uint16_t baseColor, int16_t sel
             uint8_t numStr[4];
             uint8_t *p = numStr;
             uint8_t num = (uint8_t)d5;
-            if (num >= 10) {
-                *p++ = '1';
-                num -= 10;
+            if (num >= 10) {                /* (0..99: the game wrote 10..19 only, 23 as "1=") */
+                *p++ = (uint8_t)('0' + num / 10 % 10);
+                num %= 10;
             }
             *p = num + '0';
             p++;

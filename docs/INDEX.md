@@ -59,7 +59,8 @@ docs drift: search by function name.
 | [NETPLAY.md](NETPLAY.md) | The design of rollback netplay: GGPO-X, the frame step, netem, the handshake and lobby, matchmaking, the relay and recorder, the browser gate, measured results. | current | the netplay step, `p2p_link`, the lobby, matchmaker/relay/recorder, WASM netplay |
 | [NETPLAY_SETUP.md](NETPLAY_SETUP.md) | Operator's runbook: build/run the matchmaker, the systemd unit, ports, certificates and `wss://`, pointing games at a server, troubleshooting, reading logs. | current | deploying or updating the server, a match that will not connect |
 | [NETPLAY_ADMIN.md](NETPLAY_ADMIN.md) | Updating the server from the admin panel (`/cc/`): every button, what to press after which kind of change, what still needs ssh, troubleshooting. | current | deploying a server, player or admin-page change |
-| [NETPLAY_BALANCE.md](NETPLAY_BALANCE.md) | Why one player guesses on every frame for minutes while the other never does (GGPO's time sync assumes both directions take equally long), a prototype that shares the guessing, its test results, and what to try next. | parked (rolled back; code sketch inside) | picking up netplay pacing, or talking time sync with the GGPO-X side |
+| [FORKING.md](FORKING.md) | Forking OpenSWOS (SWOS United is a fork, its own project): taking OpenSWOS's changes by merge if a fork wants them, `include/project_identity.h` (name, online identifiers, servers, player folder), generated files and docs that must not be hand-merged. | current | forking, merging OpenSWOS into a fork, changing the project's name or online identity |
+| [NETPLAY_BALANCE.md](NETPLAY_BALANCE.md) | Why one player guesses on every frame for minutes while the other never does (GGPO's time sync assumes both directions take equally long), a prototype that shares the guessing, its test results, and what to try next. | removed from the game 2026-10-30 (history) | picking up netplay pacing, or talking time sync with the GGPO-X side |
 | [BALL_CONTEST.md](BALL_CONTEST.md) | Why "ghosting", dead balls and "magnet" tackles are the original game's own rules (the contested-ball roll and its team lock-out, the fast-ball trap, the slide tackle, the over-turn), whose ratings the roll really uses, the proof from both disassemblies and the original PC recordings, and the measurements over 37 online matches. | current | the GGPO-or-SWOS question; a tester reports a walk-through, a dead ball or a ball pulled to an opponent |
 | [CONTEST_LOG.md](CONTEST_LOG.md) | `--srp-resim --contest-log` and `scripts/contest_report.py`: every ball contest a recorded match rolled for, every contact it did not and why, slide tackles, over-turns and traps; the first result over 37 matches. | current | a tester reports ghosting, a dead ball or a magnet tackle with a recording and frames |
 | [NETPLAY_GHOSTING.md](NETPLAY_GHOSTING.md) | "Players run through each other online": the two candidate causes (not rollback — shown), what every match records, reproducing it without testers. | current | a ghosting or walk-through report |
@@ -87,6 +88,8 @@ docs drift: search by function name.
 | doc | what it is | status | read when |
 |---|---|---|---|
 | [COMPETITION_DYNAMIC_REFACTOR.md](COMPETITION_DYNAMIC_REFACTOR.md) | Making competitions id-based and data-addable; how Copa Libertadores was built on it. | historical | adding a data-only competition, `Comp_ById`, `_careerContests` |
+| [WORLD_2026_27.md](WORLD_2026_27.md) | Worlds (data sets), and porting the SWOS 96/97 Mod's World 2026-27 (its season-end C, generators and limits) onto our season end, for both targets. | plan | a second world, the Mod's modules, raising team/league limits |
+| [RULES_LIBRARY.md](RULES_LIBRARY.md) | The shared rules library with the SWOS 96/97 Mod: what moved in (its season-end, cup and Coppa D rules, each checked against the Mod's C), the interface, the DOS build's limits, the bugs found on the way, what is not in yet. | current | before touching league_playoffs.c, world_cups.c, world_cupd.c's rules |
 | [COPA_LIBERTADORES.md](COPA_LIBERTADORES.md) | The original design of the Copa Libertadores (format, 1996 field, draw, qualification) — built differently in places. | historical | changing Copa rules or CONMEBOL qualification |
 | [FEATURES.md](FEATURES.md) | Sketches of three enhancements: Copa (done), career length (done, `num_seasons`), easy data add/remove (partly). | historical / plan | extending competitions, career length, data-driven content |
 | [COMPETITION_SLOT_ALIAS_UNTANGLE.md](COMPETITION_SLOT_ALIAS_UNTANGLE.md) | Retiring the 46 comp-slot `.equ` aliases and the careerFileBuffer overlay. | historical | the 5 career competition slot buffers or their save descriptors |
@@ -126,6 +129,7 @@ docs drift: search by function name.
 | [TEAM_IDS.md](TEAM_IDS.md) | Canonical ids for the team database: a `uuid` per team and player, a `checksum` per team (positions, skills, values); how the 96/97 ids are derived; what the game checks; the matchmaking server's team check before an online match; downloadable teams (plan). | current / plan (§6) | team data identity, `src/team_db.c`, `scripts/assign_team_uuids.py`, DLC teams |
 | [DOS_SOUND.md](DOS_SOUND.md) | The PC game's sounds as a second sound style (`[audio] style = pc`): its sampled effects, crowd, chants and commentary from `bin/sound_dos/`. Events through the sound gate, so rollbacks and recordings handle them; where each event is sent from; what is and is not the PC game's. | current | PC sound or commentary, `src/dos_sound.c`, a `DOS_SOUND(...)` hook, `scripts/gen_dos_sound_tables.py` |
 | [CUSTOM_TEAMS.md](CUSTOM_TEAMS.md) | MY CUSTOM TEAM: three slots, `CUSTOMn.TEAM` (JSON), the editor (EDIT TEAM with IMPORT and LINEUP), and the rule that only names, faces, kits and line-up may differ from the database team — in the file, the editor and on receipt. | current | custom teams, `src/custom_team.c`, a team the lobby refuses |
+| [MODS.md](MODS.md) | Mods, tweaks and the base engine: the decisions (2026-11-04), the fork survey, `[tweaks]`, `SWOS_ORIGINAL`, the OCS/ECS target, pitches as base, the overlay, registries, ruleset, online contract, source mods + Lua, the order of work. | plan (nothing built) | a mod, a tweak, a fork's feature, what goes in the base |
 | [PITCH_MAPS.md](PITCH_MAPS.md) | `[graphics] pitch_maps`: a DOS pitch's picture from a Tile Agent map (`bin/grafs_dos/pitch.tmj`), stage 1 — the ground; why the match is still played on the game's own files; the tile-for-tile check. | current | `pitch_maps`, `src/pitch_map.c`, the Tile Agent runtime |
 | [PITCH_FORMAT_V2.md](PITCH_FORMAT_V2.md) | A layered, animated pitch format on Tiled `.tmj` maps. | plan; §2–§5 superseded by Tile Agent's format (PITCH_MAPS.md), the engine-side sections stand | pitch layers or animation |
 | [CROWD_ANIMATION.md](CROWD_ANIMATION.md) | How the fans animate: tile toggles, the 8-slot pump, the state machine, `Rand()` use, the widescreen mirror, replays and rollback. | current | `animated_patterns.c`, celebrations, the `Rand()` stream |
@@ -135,6 +139,7 @@ docs drift: search by function name.
 | [WASM.md](WASM.md) | The Emscripten/ASYNCIFY web target's design, and the asm-storage-to-C log. Now live, online, plus the player build. | historical | the web build's pacing, threading, IDBFS saves, preload list |
 | [MACOS_BUILD.md](MACOS_BUILD.md) | Building on a Mac: universal binary, `make macos-app`, Gatekeeper; releases go through `scripts/build_macos.sh`. | current | building on the Mac itself |
 | [SWITCH.md](SWITCH.md) | Building, packaging and debugging the Switch flavour; the filesystem/logging differences. No SDK content (NDA). | current — but it says "builds, links and packages" where CLAUDE.md says "not yet linked or run": the owner knows which | `Makefile.switch`, `scripts/build_switch.*` |
+| [MOBILE.md](MOBILE.md) | Android and iOS: building (Gradle / the Mac), the signing key, sideloading, and what differs on a phone (folders, the game data copied from a PC, touch controls). | current | `packaging/mobile`, `packaging/android`, `packaging/ios`, `scripts/build_android.sh`, `scripts/build_ios.sh` |
 
 ## The Amiga target (AGA resumed 2026-10-10: a whole match plays)
 
@@ -206,7 +211,7 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `SWOS.svg` | the master icon (`scripts/generate_icons.py`) |
 | `docs/images/openswos-logo.png` | the OpenSWOS logo (README, the itch.io cover) |
 | `docs/images/screenshots/` | the README's screenshots (the same as the itch.io page's) |
-| `docs/images/setup/` | OpenSWOS Setup on Windows (start, found, done) for INSTALL.md: retaken with the setup's `--snapshot` from neutral copies of the sources (never the disk images' own names) and its default assets folder |
+| `docs/images/setup/` | OpenSWOS Setup's wizard on Windows, a screen each (`wizard-*.png`), for INSTALL.md and openswos.net/install (copied beside it): taken with `--wizard=... --wizard-step=N --snapshot`, `--language=en`, from neutral copies of the sources (`--scan`, `--no-gog`, Public Documents/Downloads: never the disk images' own names or a user's folders) |
 
 ## On the owner's PC
 
@@ -217,6 +222,7 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `C:\Projects\GitHub\swos-2020` | SWOS 2020, which OpenSWOS continues: its online menus and netplay are the references |
 | `C:\Projects\GitHub\swos-port` | the DOS port whose recordings (`tests/data/`) seeded the replay rig |
 | `C:\Projects\AI\SWOS\swos-port-c` | partial C++ port with the Amiga game loop working; the verified game-loop reference |
+| `third_party/swos-competition-engine` | the rules library (submodule; github.com/aminta/swos-competition-engine, Davide Lorigliola's): `rules/` built here as `src/swos_rules_*.c`; its `make rules-check MOD=<the Mod's checkout>` compares it with the Mod's C |
 | `C:\Projects\AI\SWOS\swosgfx` | swosgfx (github.com/benbaker76/swosgfx): the C99/C++ rewrite of SwosGfx, byte-identical to it; the converters `tools/swosdata` uses (submodule `third_party/swosgfx`). Converter changes go here |
 | `C:\Projects\GitHub\SwosGfx` | the C# SwosGfx (now github.com/benbaker76/SwosGfx-CSharp); `SwosGfx\AmigaTools.cs` is the authority for Amiga SPRITE/PITCH/PALETTE parsing; `bin\Debug\net8.0\Amiga_Images_16` the extracted graphics |
 | `C:\msys64\home\headk\rjp1player` | the RJP1 player for the music modules and SFX extraction |
@@ -235,6 +241,8 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `C:\Projects\AI\SWOS\SWOS_C`, `SWOS_C_SDL` | the two pre-merge trees — **not here**, gone since 2026-08-12 |
 | `D:\Projects\SWOS\OpenSWOS\...` (Arcade, Copa Libertadores notes) | design notes some docs cite — **not here** on this PC |
 | the Switch SDK and SDL fork | outside the repo, under NDA — never committed ([SWITCH.md](SWITCH.md)) |
+| the Android release key | `~/.openswos-keys` (WSL): `openswos-release.jks` + `android.env` -- outside the repo, never lost ([MOBILE.md](MOBILE.md)) |
+| the Android SDK, JDK | `~/Android/Sdk`, `~/opt/jdk-17*` (WSL) |
 
 ## Other machines and servers
 
@@ -245,6 +253,7 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `https://online.openswos.net/playback/`, `/recordings/`, `/reports/`, `/cc/` | the recordings player, the recordings and reports, the admin page -- ALL behind the admin login (internal); `scripts/fetch_recordings.py` / `fetch_reports.py` send it and delete what they fetch |
 | `online.openswos.net:19602` (UDP, and TCP for the recorder and the `wss://` gate) | the matchmaker the game logs in to |
 | `https://openswos.net` | the public landing page (`packaging/web/site`): the logo, the itch.io link, and `/install/`, the web version of INSTALL.md (change both together) |
+| `https://openswos.net/get/` | the page the setup's Wi-Fi-copy QR code opens (`packaging/web/site/get`), with `/.well-known/assetlinks.json` making it an Android App Link -- copied to `/var/www/openswos.net/` by hand (docs/MOBILE.md, "Copying over Wi-Fi") |
 | `us.swos.eu` (Redhair's server, the default until 2026-10-20) | repo at `/home/redhair/git/OpenSWOS`; deployed to `/srv/swos-matchmaker/` (`bin/`, `recordings/`, `reports/`, `playback/`, `tls/`, `matches.jsonl`, `admin/`); systemd unit `swos-matchmaker`. Builds before the switch still log in here |
 | `https://baker76.itch.io/openswos` | where releases go (`scripts/upload_itch.sh`, butler; [TRIAGE.md](TRIAGE.md) §6), and the one link to give testers. Until 2026-10-20 drops went to baker76.com over FTP; nothing is published there any more |
 | GitHub `benbaker76/OpenSWOS`, `benbaker76/SWOS-RE`, `benbaker76/AmigaScope`, `benbaker76/ggpo-x`, `benbaker76/vscode-amiga-debug` | this repo, the RE project, the submodules, the required toolchain fork |

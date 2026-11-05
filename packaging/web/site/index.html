@@ -22,7 +22,8 @@
     --button-text: #ffffff;
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
+  html { height: 100%; }
+  body { min-height: 100%; margin: 0; }
   body {
     background: var(--bg-edge) url(background.png) center top no-repeat;
     color: var(--text);
@@ -81,6 +82,25 @@
     color: var(--muted);
     font-size: 0.9rem;
   }
+  /* What's new: changelog.html (every drop, newest first) in a frame that scrolls on its own. */
+  section.news {
+    width: min(720px, 100%);
+    margin-top: 40px;
+    text-align: left;
+  }
+  section.news h2 { margin: 0 0 4px; font-size: 1.3rem; }
+  section.news h2, section.news p { text-shadow: 0 1px 3px #000, 0 0 8px #000; }
+  section.news p { margin: 0 0 12px; }
+  iframe.changelog {
+    display: block;
+    width: 100%;
+    height: 24rem;
+    border: 1px solid #2f3a27;
+    border-radius: 8px;
+    background: #12160f;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  section.news a { color: var(--text); text-underline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -91,6 +111,14 @@
   </div>
   <a class="guide" href="/game/">Play in your browser</a>
   <a class="guide" href="/install/">How to install</a>
+  <a class="guide" href="https://github.com/benbaker76/OpenSWOS/issues">Found a bug? Report it</a>
   <p>Sensible World of Soccer, rebuilt from the original Amiga game.</p>
+  <section class="news">
+    <h2>What's new</h2>
+    <p>Every build fixes and adds something, and online you can only play someone on a
+      compatible build &mdash; so keep yours up to date.</p>
+    <iframe class="changelog" src="/changelog.html" title="OpenSWOS changelog" loading="lazy"></iframe>
+    <p style="margin-top: 8px"><a href="/changelog.html">Open the changelog on its own</a></p>
+  </section>
 </body>
 </html>

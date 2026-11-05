@@ -116,9 +116,6 @@ int32_t     Netplay_ConfirmedFrame(NetplaySession *s, int32_t *frame);
 int32_t     Netplay_UnackedInputs(NetplaySession *s, int32_t remotePlayer, int32_t *count);
 /* GGPO's view of the link to `remotePlayer`: its round-trip ping in ms, and how many
  * frames this peer is ahead of the other, in tenths (negative = behind). For the log. */
-/* GGPO-X's prediction balance (docs/NETPLAY_BALANCE.md) off or on for this session;
- * on by default. Off here is off for both peers. */
-int32_t     Netplay_SetBalance(NetplaySession *s, int32_t on);
 /* GGPO-X predicting 1 frame until the other player's first input is confirmed (the
  * kick-off fix, ggpo_set_kickoff_prediction); on by default. Before the first input,
  * and the same on both peers. */

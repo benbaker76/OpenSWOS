@@ -24,6 +24,7 @@
                            translation file loaded" (compiled English strings)
                            until that bake step exists. */
 #include "mjson.h"
+#include "mods.h"       /* the enabled mods' strings, merged over the game's */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -148,6 +149,47 @@ const void *Translations_SymbolAddr(const char *name)
     return name ? sym_addr(name) : NULL;
 }
 
+/* A mod's translations (include/mods.h): data_json/translations/<lang>.json in its folder, the
+ * same shape as the game's, holding only the strings it adds or changes. Merged over the game's
+ * -- each key it has replaces or joins the table -- so two mods can each add their own. */
+static void merge_mod_strings(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f) return;
+    fseek(f, 0, SEEK_END);
+    long n = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char *buf = n > 0 ? (char *)malloc((size_t)n) : NULL;
+    if (!buf || fread(buf, 1, (size_t)n, f) != (size_t)n) { fclose(f); free(buf); return; }
+    fclose(f);
+    const char *strs; int sl, o = 0, ko, kl, vo, vl, vt, added = 0, changed = 0;
+    if (mjson_find(buf, (int)n, "$.strings", &strs, &sl) == MJSON_TOK_OBJECT) {
+        while ((o = mjson_next(strs, sl, o, &ko, &kl, &vo, &vl, &vt)) != 0) {
+            if (vt != MJSON_TOK_STRING) continue;
+            char *sym = tr_dup(strs + ko, kl), *text = tr_dup(strs + vo, vl);
+            if (!sym || !text) { free(sym); free(text); continue; }
+            TrEntry key = { sym, NULL };
+            TrEntry *hit = s_trCount ? (TrEntry *)bsearch(&key, s_tr, (size_t)s_trCount, sizeof *s_tr, tr_cmp) : NULL;
+            if (hit) {                                  /* (the old text stays: tr_ptr may hold it) */
+                hit->text = text;
+                free(sym);
+                changed++;
+            } else {
+                TrEntry *grown = (TrEntry *)realloc(s_tr, (size_t)(s_trCount + 1) * sizeof *s_tr);
+                if (!grown) { free(sym); free(text); continue; }
+                s_tr = grown;
+                s_tr[s_trCount].sym = sym;
+                s_tr[s_trCount].text = text;
+                s_trCount++;
+                qsort(s_tr, (size_t)s_trCount, sizeof *s_tr, tr_cmp);
+                added++;
+            }
+        }
+    }
+    free(buf);
+    fprintf(stderr, "[i18n] %s: %d strings changed, %d added\n", path, changed, added);
+}
+
 void Translations_Load(const char *lang)
 {
     s_tr = NULL; s_trCount = 0;
@@ -156,7 +198,8 @@ void Translations_Load(const char *lang)
     char path[160];
     snprintf(path, sizeof path, "data_json/translations/%s.json", lang);
     char anchored[224];
-    FILE *f = fopen(swos_data_path(path, anchored, (uint32_t)sizeof anchored), "rb");
+    /* The game's own file (not a mod's: theirs are merged over it below). */
+    FILE *f = fopen(swos_data_path_base(path, anchored, (uint32_t)sizeof anchored), "rb");
     if (!f) {
         fprintf(stderr, "[i18n] %s not found — using compiled strings\n", path);
         fflush(stderr);
@@ -195,6 +238,13 @@ void Translations_Load(const char *lang)
     }
     s_trCount = k;
     qsort(s_tr, (size_t)s_trCount, sizeof *s_tr, tr_cmp);
+
+    /* The enabled mods' strings, the last mod first so the first one's win (as its files do). */
+    for (int32_t m = Mods_Count() - 1; m >= 0; m--) {
+        char mp[1300];
+        snprintf(mp, sizeof mp, "%s/%s", Mods_Dir(m), path);
+        merge_mod_strings(mp);
+    }
 
     /* Build the address → text map: each compiled string symbol's &address →
      * its localized text. Lets the renderer localize by pointer (tr_ptr). */

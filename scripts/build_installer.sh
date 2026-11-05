@@ -67,7 +67,7 @@ VERSION=""
 STAGE_ONLY=0
 
 # Mirrors FULL_DATA_DIRS in scripts/build_dist.sh. See "WHAT SHIPS" above.
-DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup"
+DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup mods"
 # The data setup's window (tools/swosdata/build.bat static): the installer runs
 # it when it finishes, because the game cannot start without the player's data.
 SETUP_EXE="${SETUP_EXE:-tools/swosdata/build_win_static/bin/Release/openswos-setup.exe}"
@@ -173,6 +173,16 @@ if [ -f "$SETUP_EXE" ]; then
     cp "$SETUP_EXE" "$STAGE_DIR/" || die "cannot stage $SETUP_EXE"
 else
     die "no $SETUP_EXE: build it with tools/swosdata/build.bat static (the installer runs it)"
+fi
+# The PortMaster port, for the setup's Handheld screen: it looks for portmaster/swos.zip in
+# the folders above its own (build_dist.sh's portmaster target builds it before this).
+if [ -f dist/portmaster/swos.zip ]; then
+    unzip -Z1 dist/portmaster/swos.zip | grep -xc "Sensible World of Soccer.sh" >/dev/null ||
+        die "dist/portmaster/swos.zip is not the PortMaster port (no launcher)"
+    mkdir -p "$STAGE_DIR/portmaster" && cp dist/portmaster/swos.zip "$STAGE_DIR/portmaster/" ||
+        die "cannot stage dist/portmaster/swos.zip"
+else
+    echo "build_installer: NOTE no dist/portmaster/swos.zip (scripts/build_portmaster.sh): the setup's Handheld screen will ask for it" >&2
 fi
 find "$STAGE_DIR" -name .DS_Store -delete 2>/dev/null
 find "$STAGE_DIR" -name '*.uaem' -delete 2>/dev/null

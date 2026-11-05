@@ -514,6 +514,38 @@
       ]
     },
     {
+      "kind": "entry",
+      "coords": {
+        "x": -12,
+        "y": -52,
+        "w": 60,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 13,
+          "down": 15
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aModes"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ModesMenuSelected"
+        }
+      ]
+    },
+    {
       "kind": "set_origin",
       "x": 0,
       "y": 0

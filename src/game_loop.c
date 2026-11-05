@@ -255,11 +255,15 @@ static void waitVBlankSync(uint32_t xorMagic, uint32_t expected)
  * the paused frame stays on screen. */
 #ifdef SWOS_SDL_BUILD
 extern int Platform_VBlank(void);
+extern void Platform_KeepFrameFresh(void);
 #endif
 
 static void pauseSpinWaitOneTick(void)
 {
 #ifdef SWOS_SDL_BUILD
+    /* The paused frame keeps its HUD and sub-pixel scroll, which otherwise expire
+     * when nothing draws (report 0043: the clock and names vanished on P). */
+    Platform_KeepFrameFresh();
     Platform_VBlank();
 #else
     uint16_t d0;
@@ -401,6 +405,18 @@ MainKeysCheck(uint16_t key)
             return;
         if (_playGame == 0)
             goto stop_highlight_playback;
+#ifdef SWOS_SDL_BUILD
+        /* Asked first: QUIT THE MATCH? RESUME / QUIT (src/esc_confirm.c) -- a handheld's
+         * trigger is ESC, and easily pressed. Offline only, never under a rig. */
+        {
+            extern int EscConfirm_Wanted(void);
+            extern int EscConfirm_Ask(void);
+            const int ends = _gameStatePl == ST_GAME_IN_PROGRESS ||
+                             (_gameState != ST_PLAYERS_GOING_TO_SHOWER && _gameState != ST_RESULT_AFTER_THE_GAME);
+            if (ends && EscConfirm_Wanted() && !EscConfirm_Ask())
+                return;
+        }
+#endif
 
         _playGame = 0;
         _overlayActiveFlag = 0;
@@ -727,6 +743,9 @@ GameFrameResult GameLoop_Frame(void)
     _cameraCoordinatesValid = (uint16_t)(_cameraX.s.i == _oldCameraX && _cameraY.s.i == _oldCameraY);
 #else
     ScrollToCurrent();
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_PitchDrawn(void); ModHooks_PitchDrawn(); }  /* (under the sprites: the mud) */
+#endif
 #endif
     /* Record the camera in the SAME space the per-sprite coordinates are written
      * in. Those come off the draw path (sprites.c), which measures from
@@ -765,6 +784,7 @@ GameFrameResult GameLoop_Frame(void)
     /* Arcade in-match rules (deterministic frame count): golden goal / time limit /
      * penalties. No-op unless _gArcadeMode (checked inside). */
     { extern void Arcade_MatchTick(void); Arcade_MatchTick(); }
+    { extern void ModMatch_Frame(void); ModMatch_Frame(); }   /* (the mods: include/mod_api.h) */
 #endif
     /* nullsub_8 — no-op */
     RASTER(RASTER_SIM);
@@ -897,8 +917,22 @@ static GameFrameResult runFrame(void)
 /* ====================================================================
  * GameLoop — main per-frame game loop
  * ==================================================================== */
+static void game_loop_body(void);
+static int32_t s_gameLoopDepth;
+
+/* A match (or a replay) is on screen: the menus it shows keep the view it has
+ * (Video_ApplyDisplayChange waits for the menus after it). */
+int32_t GameLoop_Active(void) { return s_gameLoopDepth > 0; }
+
 void __attribute__((used, externally_visible))
 GameLoop(void)
+{
+    s_gameLoopDepth++;
+    game_loop_body();
+    s_gameLoopDepth--;
+}
+
+static void game_loop_body(void)
 {
     int16_t d1, d2;
 
@@ -954,6 +988,7 @@ GameLoop(void)
 end_of_match_flow:
 #ifdef SWOS_SDL_BUILD
     { extern void ReplayRec_MatchEnd(void); ReplayRec_MatchEnd(); }
+    { extern void ModMatch_Ended(void); ModMatch_Ended(); }   /* the mods are told, before any menu */
 #endif
     FadeOutToBlack();
     /* nullsub_3 — no-op */
@@ -974,6 +1009,8 @@ end_of_match_flow:
         if (NetplayMatch_LiveOutcome(NULL) != 0)
             arcadeNoReplayMenu = 1;
     }
+    /* A mod's match that asked for none (include/mod_api.h ModMatchSetup.replayMenu). */
+    { extern int32_t ModMatch_SkipReplayMenu(void); if (ModMatch_SkipReplayMenu()) arcadeNoReplayMenu = 1; }
 #endif
     if (_isGameFriendly != 0 && _trainingGame == 0 && !arcadeNoReplayMenu) {
         ReplayExitMenuAfterFriendly();
@@ -988,10 +1025,21 @@ end_of_match_flow:
             return;
         }
     }
+#ifdef SWOS_SDL_BUILD
+    /* A friendly the player played (not a mod's, the cabinet's or an online one): the mods'
+     * AFTER THE MATCH entries, when one has any (include/mod_api.h, src/mod_entries.c). */
+    {
+        extern void ModEntries_AfterMatch(void);
+        extern int32_t ModMatch_Active(void);
+        if (_isGameFriendly != 0 && _trainingGame == 0 && !arcadeNoReplayMenu && !ModMatch_Active())
+            ModEntries_AfterMatch();
+    }
+#endif
 
 cleanup_and_return:
 #ifdef SWOS_SDL_BUILD
     { extern void ReplayRec_MatchEnd(void); ReplayRec_MatchEnd(); }   /* quit mid-match: keep it */
+    { extern void ModMatch_Ended(void); ModMatch_Ended(); }           /* (a quit: told here, once) */
 #endif
     StopAudioAndClearFlags();
     return;

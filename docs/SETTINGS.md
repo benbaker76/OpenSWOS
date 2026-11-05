@@ -74,11 +74,21 @@ mode=mono             ; mono | stereo
 [general]
 language=en           ; en | de | fr | es | it | nl
 currency=pound        ; pound | dollar | euro
+world=9697            ; the football world: 9697 (Sensible World of Soccer 96/97) | 2627
+                      ; (World 2026-27, if installed); OPTIONS -> WORLD sets it, from the
+                      ; next start; a save and an online match are played in the world
+                      ; they were made in
+
+[gameplay]
+style=amiga           ; amiga | dos | xbox — the Amiga release (50 FPS); the DOS release
+                      ; (70 FPS physics, timers, formations and its 320x200 view); or
+                      ; SWOS 2020's XBOX (60 FPS, the Amiga's ball physics and view, the
+                      ; DOS goalkeepers; docs/DOS_GAMEPLAY.md section 9). OPTIONS ->
+                      ; GAMEPLAY sets it; online, a match plays the host's
 
 [dos]                 ; PC-only extras (Amiga is the definitive version)
 directory=grafs_dos   ; folder under bin/ to load the DOS assets from
 graphics=false        ; true | false — render the DOS-version graphics
-gameplay=false        ; true | false — DOS 70 FPS physics/timer tuning
 
 [arcade]              ; coin-op mode (PC-only). See docs/ARCADE.md
 enabled=false         ; true | false — boot straight to attract mode, no menu
@@ -99,6 +109,24 @@ key_service=F2
 
 Everything in `[arcade]` except `enabled` is also editable in-game from
 the F2 service menu, which writes changes straight back to `SWOS.ini`.
+
+#### `[mods]` and `[tweaks]` (docs/MODS.md)
+
+```ini
+[mods]
+enabled=classics, hall   ; mods to play with, by folder name, first first (a file two have
+                         ; comes from the first). DLC: folders in mods/ beside SWOS.ini
+disabled=                ; the game's own (canonical) mods to turn off; they are on by default
+
+[tweaks]                 ; changes to the original's behaviour, off by default, off line only
+cpu_cards=false          ; the computer's players are booked and sent off too
+no_teammate_tackles=false       ; a team-mate leaves your player on the ball alone
+tackle_controlled_player=false  ; fire slides the player you control, not a nearer team-mate
+```
+
+OPTIONS -> MODS turns each mod on or off (from the next start) and writes `[mods]`.
+`--mods=a,b` sets the mods for one run without saving them. A DLC mod that is not cosmetic
+keeps MULTIPLAYER off. Every tweak is off online and in the test rigs.
 
 ### Command-line options
 
@@ -156,8 +184,9 @@ the F2 service menu, which writes changes straight back to `SWOS.ini`.
 --dos-graphics=<on|off>   Render the DOS-version graphics (from bin/grafs_dos)
                           instead of the Amiga graphics. Default: off.
                           PC-only extra; the Amiga look is the default.
+--gameplay=<amiga|dos|xbox>  The gameplay style, as [gameplay] style.
 --dos-gameplay=<on|off>   DOS gameplay tuning — 70 FPS physics/timer rates
-                          instead of the Amiga's 50. Default: off.
+                          instead of the Amiga's 50. Default: off. (--gameplay=dos)
 --dos-dir=<folder>        Folder under bin/ to load the DOS assets from.
                           Default: grafs_dos.
 -h, --help                Show usage and exit.

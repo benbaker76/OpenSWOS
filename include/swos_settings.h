@@ -38,4 +38,8 @@ void Settings_Save(const PlatformInitOptions *opts, const char *path);
  * This is the startup/shutdown path so hand-edited SWOS.ini files survive. */
 void Settings_AppendMissing(const PlatformInitOptions *opts, const char *path);
 
+/* --game-options-selftest: OpenSWOS Setup's settings (include/game_options.h) through the game's
+ * reader and writer; 0 when every value comes back. */
+int Settings_GameOptionsSelfTest(void);
+
 #endif /* SWOS_SETTINGS_H */

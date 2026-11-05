@@ -1,7 +1,10 @@
 # NETPLAY_BALANCE.md — keeping one player from doing all the predicting
 
-> **Status (2026-10-06): built, OFF by default; `[netplay] balance = true` turns it on, and
-> both players must have it on.** It is in our GGPO-X fork (`third_party/ggpo-x`,
+> **Status (2026-10-30): REMOVED from the game** -- the host's BALANCE switch, `[netplay]
+> balance` and `SWOS_LIVE_BALANCE` are gone (Playa's tests found it causing netplay problems;
+> `NETPLAY_COMPAT` 5). The library code stays in our GGPO-X fork, unused. What follows is the
+> history. (2026-10-06: built, OFF by default; `[netplay] balance = true` turned it on, and
+> both players had to have it on.) It is in our GGPO-X fork (`third_party/ggpo-x`,
 > `lib/ggpo/prediction_balance.h`, `GGPO_PREDICTION_BALANCE`), not in the game: the game
 > only waits when the library asks. The same work found that the time sync had been
 > steering on noise ("The bug underneath", below); that fix is in every match, balance or

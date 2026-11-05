@@ -46,6 +46,8 @@ int  swos_io_save(const uint8_t *name, const uint8_t *buf, uint32_t _size);
  * swos_save_dir_init(). Both the save reader and writer consult this so they
  * always agree. Returns a stable, NUL-terminated string (no trailing slash). */
 const char *swos_save_dir(void);
+/* Point the save folder elsewhere (the golden career test, src/career_autopilot.c). */
+void swos_set_save_dir(const char *dir);
 
 /* The user's game folder — the PARENT of swos_save_dir() (so SWOS.ini can sit
  * beside the save/ folder in one per-user location). "." until
@@ -81,6 +83,10 @@ void swos_save_dir_init(void);
  * The returned pointer is either `rel` or `buf`; it is valid for as long as
  * whichever of those the caller owns. */
 const char *swos_data_path(const char *rel, char *buf, uint32_t buf_sz);
+
+/* swos_data_path without the mods (include/mods.h): for a WRITE or a delete, which must land
+ * in the game's own folders, never in a mod's. swos_data_path looks in each enabled mod first. */
+const char *swos_data_path_base(const char *rel, char *buf, uint32_t buf_sz);
 
 /* The other way: the part of an anchored data path below its root ("grafs/X"
  * for ".../assets/grafs/X" or "rom:/grafs/X"), or `path` itself when it has

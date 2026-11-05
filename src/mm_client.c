@@ -19,6 +19,9 @@
  * and refusing to draw 64 users because a 65th appeared would be worse.
  */
 #include "mm_client.h"
+#include "netplay_compat.h"   /* NETPLAY_COMPAT: in the VERSION: tag */
+#include "project_identity.h" /* PROJECT_NETPLAY_TAG: its name */
+#include "world.h"            /* and the football world, if not 96/97 */
 
 #ifdef SWOS_SDL_BUILD
 
@@ -100,15 +103,20 @@ uint16_t MmClient_DefaultPort(void)
 #  define MM_HAVE_IFADDRS 1
 #endif
 
-/* The compatibility tag sent as VERSION:. The server refuses a client whose tag
- * differs, which is what keeps a protocol change from meeting an old build. */
+/* The compatibility tag sent as VERSION:, <PROJECT_NETPLAY_TAG>/<NETPLAY_COMPAT> (OPENSWOS/5,
+ * project_identity.h): the server lists
+ * a game only to players whose number is the same (Connections.cpp, PlayKey), so a
+ * player never joins one the handshake would refuse (include/netplay_compat.h). A world
+ * other than 96/97 adds -<world> (MmClient_Connect). */
+#define MM_STR_(x) #x
+#define MM_STR(x)  MM_STR_(x)
 #ifdef SWOS_WASM_BUILD
 /* The browser build says so: it can only play through the server, so the server
  * relays any match it is in (Connections.cpp). Still OPENSWOS to everything that
  * compares the prefix. */
-#define MM_GAME_ID_DEFAULT "OPENSWOS-WEB"
+#define MM_GAME_ID_DEFAULT PROJECT_NETPLAY_TAG "-WEB/" MM_STR(NETPLAY_COMPAT)
 #else
-#define MM_GAME_ID_DEFAULT "OPENSWOS"
+#define MM_GAME_ID_DEFAULT PROJECT_NETPLAY_TAG "/" MM_STR(NETPLAY_COMPAT)
 #endif
 
 /* ---- message headers, exactly as common/Message.cpp spells them ---- */
@@ -651,8 +659,17 @@ int32_t MmClient_Connect(const char *host, uint16_t port,
 
     copy_str(s_mm.userName, sizeof s_mm.userName,
              userName && userName[0] ? userName : "PLAYER", MM_NAME_MAX - 1);
-    copy_str(s_mm.gameId, sizeof s_mm.gameId,
-             gameId && gameId[0] ? gameId : MM_GAME_ID_DEFAULT, MM_NAME_MAX - 1);
+    if (gameId && gameId[0]) {
+        copy_str(s_mm.gameId, sizeof s_mm.gameId, gameId, MM_NAME_MAX - 1);
+    } else if (World_Current() == WORLD_9697) {
+        copy_str(s_mm.gameId, sizeof s_mm.gameId, MM_GAME_ID_DEFAULT, MM_NAME_MAX - 1);
+    } else {
+        /* Another football world plays only its own: OPENSWOS/<n>-<world>, which the
+         * server's PlayKey (everything after the '/') keeps apart from 96/97's. */
+        char id[MM_NAME_MAX];
+        snprintf(id, sizeof id, "%s-%s", MM_GAME_ID_DEFAULT, World_Tag());
+        copy_str(s_mm.gameId, sizeof s_mm.gameId, id, MM_NAME_MAX - 1);
+    }
 
     if (enet_address_set_host(&addr, host && host[0] ? host : MM_DEFAULT_HOST) != 0) {
         s_mm.state = MM_FAILED;

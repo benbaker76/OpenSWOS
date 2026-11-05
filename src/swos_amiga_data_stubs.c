@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include "swos_sections.h"
 #include "intro_chip_ram.h"
+#include "game_types.h"     /* TEAM_FILE_BUFFER_SIZE */
 
 /* AI_maxStoppageTime: real data in swos_amiga_data_imports.c */
 /* LoaderBootstrapBlobPI: real data in swos_data_bulk_imports.c */
@@ -1607,11 +1608,12 @@ SWOS_CHIP_BSS IntroChipRam g_introChipRam;
  * slots (the DOS overlay fills 227..1219) + 84 font-extension slots at 1220..1303
  * (accented capitals incl. Spanish Á Ú Ñ + ¿ ¡ and French Œ Ÿ, full ASCII, $),
  * which the DOS sprite build never touches, so the glyphs survive in DOS-graphics
- * mode as well as Amiga. */
+ * mode as well as Amiga. Then 1310..1480, the shirt numbers: a match's 17..99, the menus' 12..99 (shirt_numbers.c);
+ * 1481..1683 face 3's two sets and its menu icon (player_face3.c). */
 #if UINTPTR_MAX == 0xFFFFFFFFu
-SWOS_CHIP_BSS char _spriteGraphics[1310 * 4];          /* 1310 ptrs × 4 B = 5240 (32-bit) */
+SWOS_CHIP_BSS char _spriteGraphics[1684 * 4];          /* 1684 ptrs × 4 B (32-bit) */
 #else
-SWOS_CHIP_BSS char _spriteGraphics[1310 * 8];          /* 1310 ptrs × 8 B = 10480 */
+SWOS_CHIP_BSS char _spriteGraphics[1684 * 8];          /* 1684 ptrs × 8 B */
 #endif
 /* spriteGraphicsPtr: real data in swos_amiga_data_imports.c */
 /* squadChangesAllowed: real data in swos_amiga_data_imports.c */
@@ -1726,7 +1728,7 @@ SWOS_CHIP_BSS char _spriteGraphics[1310 * 8];          /* 1310 ptrs × 8 B = 104
 /* teamBName: real data in swos_data_bulk_imports.c */
 /* teamBudgetRankTable: typed definition in swos_data_typed_stubs.c */
 /* teamDepthLevel: real data in swos_amiga_data_imports.c */
-char _teamFileBuffer[0xFA0E];
+char _teamFileBuffer[TEAM_FILE_BUFFER_SIZE];   /* was 0xFA0E (93 teams): game_types.h */
 /* teamFileDataSize: typed definition in swos_data_typed_stubs.c */
 /* teamFileTeamCount: typed definition in swos_data_typed_stubs.c */
 /* teamFilenameBuffer: real data in swos_data_bulk_imports.c */

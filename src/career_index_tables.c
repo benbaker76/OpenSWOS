@@ -11,13 +11,13 @@
  * descriptors keep working unchanged. See project_career_overlay_extraction_recipe.
  *
  *   teamBudgetRankTable                  128 B  (uint8; diy_competition rank-by-budget)
- *   careerLastMatchIndexByCompetitionSlot 162 B (uint8; 0xFF-filled per-slot index)
+ *   careerLastMatchIndexByCompetitionSlot 256 B (uint8; 0xFF-filled, one per compId)
  *   seasonSquadTeamNumbers                48 B  (uint16[24]; squad team numbers)
  *
  * Audited (no consumer edits, all &symbol-addressed FA blobs → format unchanged):
  *  - teamBudgetRankTable[idx] (idx < team count) — within 128 B.
- *  - careerLastMatchIndexByCompetitionSlot — base ptr, 162-byte 0xFF fill, indexed
- *    by slot — within 162 B.
+ *  - careerLastMatchIndexByCompetitionSlot — base ptr, 0xFF fill, indexed
+ *    by compId (the original had 162: its ids).
  *  - seasonSquadTeamNumbers — uint16 walked up to seasonNumberOfSquads (<= 24) —
  *    within 48 B. In SWOS2.s its ds.b $30 (48) is followed by
  *    careerCompetitionSlotPtrTable (ds.b $14 = 20), which the overlay folded into
@@ -37,10 +37,13 @@
 #include "swos_platform.h"
 
 uint8_t  _teamBudgetRankTable[128];
-uint8_t  _careerLastMatchIndexByCompetitionSlot[162];
+uint8_t  _careerLastMatchIndexByCompetitionSlot[256];   /* one per compId (was 162: see below) */
 uint16_t _seasonSquadTeamNumbers[24];
 
 _Static_assert(sizeof(_teamBudgetRankTable) == 128, "teamBudgetRankTable 128 B");
-_Static_assert(sizeof(_careerLastMatchIndexByCompetitionSlot) == 162,
-               "careerLastMatchIndexByCompetitionSlot 162 B");
+/* The original's 162 bytes covered its compIds 0..161; a data-only competition
+ * (the Copa, 162) or a world's play-off (200) indexes it by its own id, which ran
+ * past the end into _teamBudgetRankTable until 2026-10-27. */
+_Static_assert(sizeof(_careerLastMatchIndexByCompetitionSlot) == 256,
+               "careerLastMatchIndexByCompetitionSlot: one byte per compId");
 _Static_assert(sizeof(_seasonSquadTeamNumbers) == 48, "seasonSquadTeamNumbers 48 B");

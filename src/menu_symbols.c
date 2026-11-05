@@ -38,13 +38,13 @@ extern void ChangeAutoReplays(void);
 extern void ChangeAutoSaveHighlights(void);
 extern void ChangeGameLength(void);
 extern void ChangeGameplayStyle(void);
-extern void ShowControlsMenu(void);
-extern void ChangePitchStyle(void);
 extern void ChangeMenuMusic(void);
 extern void ChangeNationality(void);
+extern void ChangePitchStyle(void);
 extern void ChangePitchType(void);
 extern void ChangeSex(void);
 extern void ChangeTeams(void);
+extern void ChangeWorld(void);
 extern void ChooseTacticsInit(void);
 extern void ChooseTeamAndStartCareer(void);
 extern void ChooseTeamsFriendlyCommon(void);
@@ -61,6 +61,8 @@ extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
+extern void CompetitionStatsInit(void);
+extern void CompetitionStatsWinners(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
 extern void ConsiderJobOffer(void);
@@ -236,6 +238,7 @@ extern void ManagementRecordInit(void);
 extern void ManagementRecordMenu(void);
 extern void MaxSubstitutes(void);
 extern void MinSubstitutes(void);
+extern void ModesMenuSelected(void);
 extern void MultiplayerMenuSelected(void);
 extern void NationalTeamAddPlayer(void);
 extern void NationalTeamAddPlayerAbroadOnSelect(void);
@@ -318,6 +321,8 @@ extern void SelectTraining(void);
 extern void SetExitMenuFlag(void);
 extern void SetName(void);
 extern void SetSurname(void);
+extern void ShowControlsMenu(void);
+extern void ShowModsMenu(void);
 extern void ShowPlayerMarket(void);
 extern void ShowPlayerMarketInit(void);
 extern void ShowStadiumInit(void);
@@ -431,6 +436,7 @@ extern char _aConfirmOffer[];
 extern char _aConsider[];
 extern char _aContinue[];
 extern char _aContinueCareer[];
+extern char _aControls[];
 extern char _aCopy[];
 extern char _aCredits[];
 extern char _aCriteria[];
@@ -460,9 +466,6 @@ extern char _aFriendlyDiyGam[];
 extern char _aFriendly_1[];
 extern char _aFrom[];
 extern char _aGameplay[];
-extern char _aControls[];
-extern char _aRedefineKeys[];
-extern char _aPitches[];
 extern char _aGateReceipts[];
 extern char _aGeneralRunning[];
 extern char _aGiveFreeTransf[];
@@ -491,6 +494,9 @@ extern char _aManagementReco_0[];
 extern char _aMatch[];
 extern char _aMemoFromTheClu[];
 extern char _aMenuMusic[];
+extern char _aModes[];
+extern char _aModsNone[];
+extern char _aModsOption[];
 extern char _aMultiplayer[];
 extern char _aName[];
 extern char _aNat[];
@@ -505,6 +511,7 @@ extern char _aOldBalance[];
 extern char _aOptions[];
 extern char _aOriginalCustom[];
 extern char _aOwnGoals[];
+extern char _aPitches[];
 extern char _aPl[];
 extern char _aPlayEachTeam[];
 extern char _aPlayMatch[];
@@ -518,6 +525,7 @@ extern char _aPointsForAWin[];
 extern char _aPresetCompetit_0[];
 extern char _aPts[];
 extern char _aPutPlayerOnTra_0[];
+extern char _aRedefineKeys[];
 extern char _aReject[];
 extern char _aRejectOffer[];
 extern char _aRemovePlayers[];
@@ -574,6 +582,8 @@ extern char _aViewSquads[];
 extern char _aViewTeam[];
 extern char _aViewWorld[];
 extern char _aW[];
+extern char _aWinners[];
+extern char _aWorldOption[];
 extern char _aYourCareerIsOv[];
 extern char _aYourChairman[];
 extern char* _allPlTeamsEqualStrTable[];
@@ -655,12 +665,12 @@ extern char* _flipStrTable[];
 extern char* _friendlyPitchTypeTable[];
 extern char* _gameLengthStrTable[];
 extern char* _gameplayStyleStrTable[];
-extern char* _pitchStyleStrTable[];
 extern char _managerNameBuffer[];
 extern char _managerSexBuffer[];
 extern char _managerSurnameBuffer[];
 extern char* _menuMusicStrTable[];
 extern char _offsetCoachOrPlayer[];
+extern char* _pitchStyleStrTable[];
 extern char* _pitchTypeOrSeasonTable[];
 extern char* _pitchTypeStrTable[];
 extern char* _positionFilterStringTable[];
@@ -673,6 +683,7 @@ extern char _teamTacticsUSERC[];
 extern char _teamTacticsUSERD[];
 extern char _teamTacticsUSERE[];
 extern char _teamTacticsUSERF[];
+extern char* _worldStrTable[];
 
 const MenuSymbol _menuSymbols[] = {
     { "AbortChooseTeamsFriendly", (void*)AbortChooseTeamsFriendly, SYM_FUNC },
@@ -712,6 +723,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ChangePitchType", (void*)ChangePitchType, SYM_FUNC },
     { "ChangeSex", (void*)ChangeSex, SYM_FUNC },
     { "ChangeTeams", (void*)ChangeTeams, SYM_FUNC },
+    { "ChangeWorld", (void*)ChangeWorld, SYM_FUNC },
     { "ChooseTacticsInit", (void*)ChooseTacticsInit, SYM_FUNC },
     { "ChooseTeamAndStartCareer", (void*)ChooseTeamAndStartCareer, SYM_FUNC },
     { "ChooseTeamsFriendlyCommon", (void*)ChooseTeamsFriendlyCommon, SYM_FUNC },
@@ -728,6 +740,8 @@ const MenuSymbol _menuSymbols[] = {
     { "ClubTeams", (void*)ClubTeams, SYM_FUNC },
     { "CoachOrPlayerCoach", (void*)CoachOrPlayerCoach, SYM_FUNC },
     { "CompetitionInfo", (void*)CompetitionInfo, SYM_FUNC },
+    { "CompetitionStatsInit", (void*)CompetitionStatsInit, SYM_FUNC },
+    { "CompetitionStatsWinners", (void*)CompetitionStatsWinners, SYM_FUNC },
     { "CompetitionTopGoalScorersExit", (void*)CompetitionTopGoalScorersExit, SYM_FUNC },
     { "CompetitionTopGoalScorersInit", (void*)CompetitionTopGoalScorersInit, SYM_FUNC },
     { "ConsiderJobOffer", (void*)ConsiderJobOffer, SYM_FUNC },
@@ -903,6 +917,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ManagementRecordMenu", (void*)ManagementRecordMenu, SYM_FUNC },
     { "MaxSubstitutes", (void*)MaxSubstitutes, SYM_FUNC },
     { "MinSubstitutes", (void*)MinSubstitutes, SYM_FUNC },
+    { "ModesMenuSelected", (void*)ModesMenuSelected, SYM_FUNC },
     { "MultiplayerMenuSelected", (void*)MultiplayerMenuSelected, SYM_FUNC },
     { "NationalTeamAddPlayer", (void*)NationalTeamAddPlayer, SYM_FUNC },
     { "NationalTeamAddPlayerAbroadOnSelect", (void*)NationalTeamAddPlayerAbroadOnSelect, SYM_FUNC },
@@ -986,6 +1001,7 @@ const MenuSymbol _menuSymbols[] = {
     { "SetName", (void*)SetName, SYM_FUNC },
     { "SetSurname", (void*)SetSurname, SYM_FUNC },
     { "ShowControlsMenu", (void*)ShowControlsMenu, SYM_FUNC },
+    { "ShowModsMenu", (void*)ShowModsMenu, SYM_FUNC },
     { "ShowPlayerMarket", (void*)ShowPlayerMarket, SYM_FUNC },
     { "ShowPlayerMarketInit", (void*)ShowPlayerMarketInit, SYM_FUNC },
     { "ShowStadiumInit", (void*)ShowStadiumInit, SYM_FUNC },
@@ -1154,6 +1170,9 @@ const MenuSymbol _menuSymbols[] = {
     { "_aMatch", (void*)_aMatch, SYM_STRING },
     { "_aMemoFromTheClu", (void*)_aMemoFromTheClu, SYM_STRING },
     { "_aMenuMusic", (void*)_aMenuMusic, SYM_STRING },
+    { "_aModes", (void*)_aModes, SYM_STRING },
+    { "_aModsNone", (void*)_aModsNone, SYM_STRING },
+    { "_aModsOption", (void*)_aModsOption, SYM_STRING },
     { "_aMultiplayer", (void*)_aMultiplayer, SYM_STRING },
     { "_aName", (void*)_aName, SYM_STRING },
     { "_aNat", (void*)_aNat, SYM_STRING },
@@ -1239,6 +1258,8 @@ const MenuSymbol _menuSymbols[] = {
     { "_aViewTeam", (void*)_aViewTeam, SYM_STRING },
     { "_aViewWorld", (void*)_aViewWorld, SYM_STRING },
     { "_aW", (void*)_aW, SYM_STRING },
+    { "_aWinners", (void*)_aWinners, SYM_STRING },
+    { "_aWorldOption", (void*)_aWorldOption, SYM_STRING },
     { "_aYourCareerIsOv", (void*)_aYourCareerIsOv, SYM_STRING },
     { "_aYourChairman", (void*)_aYourChairman, SYM_STRING },
     { "_allPlTeamsEqualStrTable", (void*)_allPlTeamsEqualStrTable, SYM_TABLE },
@@ -1338,6 +1359,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_teamTacticsUSERD", (void*)_teamTacticsUSERD, SYM_BUFFER },
     { "_teamTacticsUSERE", (void*)_teamTacticsUSERE, SYM_BUFFER },
     { "_teamTacticsUSERF", (void*)_teamTacticsUSERF, SYM_BUFFER },
+    { "_worldStrTable", (void*)_worldStrTable, SYM_TABLE },
     { "locret_139AE2", (void*)locret_139AE2, SYM_FUNC },
 };
 const int _menuSymbolsCount =

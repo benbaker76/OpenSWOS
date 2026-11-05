@@ -115,6 +115,7 @@ static uint8_t *build_simv(const SrpContent *c)
         return NULL;
     BE_WRITE_U16(v, SRP_SIMV_VERSION);
     v[2] = c->rules;
+    v[3] = c->style;
     BE_WRITE_U32(v + 4, (uint32_t)(c->layout >> 32));
     BE_WRITE_U32(v + 8, (uint32_t)c->layout);
     BE_WRITE_U16(v + 12, c->simWidth);

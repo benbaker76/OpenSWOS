@@ -13,6 +13,10 @@
 #include "career_season.h"
 #include <stdio.h>
 #include <string.h>  /* managed retirement-news name snapshots */
+#include "world_playoff.h"
+#include "player_face3.h"
+#include "menus.h"
+#include "dos_mode.h"         /* GAMEPLAY_*, Gameplay_SetStyle: OPTIONS -> GAMEPLAY */
 #ifdef SWOS_SDL_BUILD
 /* PlatformInitOptions + Settings_Save, for the OPTIONS -> GAMEPLAY row. Guarded
  * because this header reaches platform_sdl.h and therefore SDL.h, which the
@@ -27,15 +31,23 @@
 #endif
 #include "game_utils.h"
 #include "game_types.h"
+#include "world.h"
+#ifdef SWOS_SDL_BUILD
+#include <SDL.h>              /* OPTIONS -> WORLD: its messages */
+#include "project_identity.h"
+#include "swos_io.h"            /* swos_data_path */
+#endif
 #include "frontend.h"
 #include "test_rules.h"
 #include "display.h"            /* AGA: which Amiga display this build is */
 #include "menu_system.h"
-#include "online_menus.h"   /* MULTIPLAYER opens SWOS 2020's online flow */
+#include "online_menus.h"
+#include "mods.h"          /* Mods_OnlineSignature: MULTIPLAYER logs the mods it plays with */   /* MULTIPLAYER opens SWOS 2020's online flow */
 #include "credits_menu.h"   /* CREDITS (SDL) */
 #include "deterministic.h"
 #include "string_utils.h"
 #include "text_render.h"
+#include "cal_label.h"   /* CareerGameListCommon: a long competition name fitted */
 #include "edit_tactics.h"
 #include "teams.h"
 #include "audio.h"
@@ -201,6 +213,45 @@ void ZeroOutStars(void)
  *
  * Initializes game options to default values.
  * ================================================================ */
+#ifdef SWOS_SDL_BUILD
+/* The OPTIONS screen between runs: SWOS.ini's [options] (include/platform_sdl.h), over the
+ * defaults below, and written back at every change on the screen. The original kept them in
+ * memory and in a career only, so they were the defaults again at every start. */
+static void options_apply_saved(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    const PlatformInitOptions *o = g_arcadeOpts;
+    if (!o)
+        return;
+    if (o->opt_game_length != OPTION_UNSET)          _gameLength = (uint16_t)o->opt_game_length;
+    if (o->opt_pitch_type != OPTION_UNSET)           _pitchType = (uint16_t)(int16_t)o->opt_pitch_type;
+    if (o->opt_auto_replays != OPTION_UNSET)         _autoReplays = (uint16_t)o->opt_auto_replays;
+    if (o->opt_all_teams_equal != OPTION_UNSET)      _allPlayerTeamsEqual = (uint16_t)o->opt_all_teams_equal;
+    if (o->opt_auto_save_highlights != OPTION_UNSET) _autoSaveHighlights = (uint16_t)o->opt_auto_save_highlights;
+    if (o->opt_menu_music != OPTION_UNSET)           _menuMusic = (uint16_t)o->opt_menu_music;
+}
+
+static void options_keep(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    PlatformInitOptions *o = g_arcadeOpts;
+    if (!o)
+        return;
+    o->opt_game_length = _gameLength;
+    o->opt_pitch_type = (int16_t)_pitchType;
+    o->opt_auto_replays = _autoReplays;
+    o->opt_all_teams_equal = _allPlayerTeamsEqual;
+    o->opt_auto_save_highlights = _autoSaveHighlights;
+    o->opt_menu_music = _menuMusic;
+    if (g_arcadeIniPath)
+        Settings_Save(o, g_arcadeIniPath);
+}
+#define OPTIONS_KEEP() options_keep()
+#else
+#define OPTIONS_KEEP() ((void)0)
+#endif
+
 __attribute__((used, externally_visible))
 void SetDefaultOptions(void)
 {
@@ -210,6 +261,9 @@ void SetDefaultOptions(void)
     _autoSaveHighlights = 1;
     _pitchType = SEASONAL;
     _allPlayerTeamsEqual = 0;
+#ifdef SWOS_SDL_BUILD
+    options_apply_saved();
+#endif
 }
 
 /* ================================================================
@@ -1079,6 +1133,8 @@ extern uint8_t  _currentMatchPlayers[];
 extern uint16_t _careerNumPlayers;
 extern void CallDrawMenuItem(MenuEntry *entry);
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
+extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern void SquadNumbers_Free(uint16_t slot);
 extern uint8_t *GetPlayerAtIndex(uint16_t teamNumber, uint16_t ordinal);
 extern uint16_t _cGetPlayerAtIndexFileIdx;
 
@@ -1173,8 +1229,10 @@ static void squadSwapPlayersAtIndices(uint16_t prevFileIdx, uint16_t currFileIdx
         PlayerFile *prevPf = (PlayerFile *)(prevBlockPtr + 76);
         PlayerFile *currPf = (PlayerFile *)(currBlockPtr + 76);
         int8_t tmpShirt = currPf->shirtNumber;
-        currPf->shirtNumber = prevPf->shirtNumber;
-        prevPf->shirtNumber = tmpShirt;
+        if (!SquadNumbers_On()) {       /* (real squad numbers: not swapped, teams.c) */
+            currPf->shirtNumber = prevPf->shirtNumber;
+            prevPf->shirtNumber = tmpShirt;
+        }
     }
 
     /* Always swap player number array entries at break positions */
@@ -2435,7 +2493,8 @@ void SquadInit(void)
 
 extern uint16_t _showPrereleaseCounter;
 
-/* OptionsMenuBeforeDraw: clears prerelease counter on menu entry */
+/* OptionsMenuBeforeDraw: clears prerelease counter on menu entry. Also the onReturn:
+ * coming back from CONTROLS unpacks the menu again, rows 17/18 visible. */
 __attribute__((used, externally_visible))
 void OptionsMenuBeforeDraw(void)
 {
@@ -2447,7 +2506,28 @@ void OptionsMenuBeforeDraw(void)
 #ifdef SWOS_SDL_BUILD
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
+#if !SWOS_WORLDS
+    /* (no worlds in this build: no WORLD row; CONTROLS and MODS step to each other) */
+    _menuEntries[21].isInvisible = 1;
+    _menuEntries[22].isInvisible = 1;
+    _menuEntries[16].downEntry = 24;
+    _menuEntries[24].upEntry = 16;
+#endif
+    {   /* MODS (23/24, src/mods_menu.c): how many are on */
+        static char modsOn[16];
+        if (Mods_Count())
+            snprintf(modsOn, sizeof modsOn, "%d ON", (int)Mods_Count());
+        else
+            snprintf(modsOn, sizeof modsOn, "NONE");
+        _menuEntries[24].fg = (uintptr_t)modsOn;
+    }
 #else
+    /* WORLD (21/22) and MODS (23/24) are SDL only: the Amiga's world and mods are its
+     * drawer's (OpenSWOS Setup writes data/WORLD and data/MODS). */
+    _menuEntries[21].isInvisible = 1;
+    _menuEntries[22].isInvisible = 1;
+    _menuEntries[23].isInvisible = 1;
+    _menuEntries[24].isInvisible = 1;
     _menuEntries[15].isInvisible = 1;
     _menuEntries[16].isInvisible = 1;
 #ifdef AGA
@@ -2472,6 +2552,59 @@ void ChangePitchStyle(MenuEntry *entry)
     CallDrawMenuItem(entry);
 }
 
+/* OPTIONS -> WORLD: 96/97 / 2026-27 -- [general] world in SWOS.ini (include/world.h). A world
+ * goes over 96/97's tables when the menus start (World_InstallBaked), and nothing keeps 96/97's
+ * to go back to, so the choice is played from the NEXT start: the row shows it, SWOS.ini keeps it,
+ * and a message says so. 2026-27 only once its data is installed (OpenSWOS Setup: its package,
+ * data_json/worlds/2627/WORLD.ini) -- else the row stays and the message says where to get it. */
+__attribute__((used, externally_visible))
+void ChangeWorld(MenuEntry *entry)
+{
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    extern uint16_t _worldOption;
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    const int want = !_worldOption;                 /* 1: 2026-27 */
+    if (want) {
+        char path[1024];
+        FILE *f = fopen(swos_data_path("data_json/worlds/2627/WORLD.ini", path, (uint32_t)sizeof path), "rb");
+        if (!f) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME ": World 2026-27",
+                "World 2026-27 is not installed.\n\nOpen " PROJECT_SETUP_NAME ": its row \"World 2026-27\" "
+                "has the link to download it, then click Install. (On a phone: do that on your "
+                "computer, then copy the assets folder over again.)", NULL);
+            return;
+        }
+        fclose(f);
+    }
+    _worldOption = (uint16_t)want;
+    if (g_arcadeOpts) {
+        snprintf(g_arcadeOpts->world, sizeof g_arcadeOpts->world, "%s", want ? "2627" : "9697");
+        if (g_arcadeIniPath)
+            Settings_Save(g_arcadeOpts, g_arcadeIniPath);
+    }
+    CallDrawMenuItem(entry);
+    if ((int)World_Current() != (want ? (int)WORLD_2627 : (int)WORLD_9697))
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME ": World",
+            want ? "World 2026-27 is played from the next time " PROJECT_NAME " starts.\n\n"
+                   "Close it and start it again. Saves stay in the world they were made in."
+                 : "96/97 is played from the next time " PROJECT_NAME " starts.\n\n"
+                   "Close it and start it again. Saves stay in the world they were made in.", NULL);
+#else
+    (void)entry;
+#endif
+}
+
+/* OPTIONS -> MODS: the mods on disk, each turned on or off from the next start (src/mods_menu.c). */
+__attribute__((used, externally_visible))
+void ShowModsMenu(void)
+{
+#ifdef SWOS_SDL_BUILD
+    extern void ModsMenu_Show(void);
+    ModsMenu_Show();
+#endif
+}
+
 /* OPTIONS -> CONTROLS: the player's own keys and the press latch (src/controls_menu.c). */
 __attribute__((used, externally_visible))
 void ShowControlsMenu(void)
@@ -2490,6 +2623,7 @@ void ChangePitchType(MenuEntry *entry)
     if (_pitchType == 7)
         _pitchType = 0xFFFE; /* RANDOM */
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeGameLength: cycle gameLength 0→1→2→3→0→... */
@@ -2500,6 +2634,7 @@ void ChangeGameLength(MenuEntry *entry)
     if (_gameLength == 4)
         _gameLength = 0;
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeAutoReplays: toggle autoReplays */
@@ -2508,6 +2643,7 @@ void ChangeAutoReplays(MenuEntry *entry)
 {
     _autoReplays ^= 1;
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeAllPlTeamsEqual: toggle allPlayerTeamsEqual */
@@ -2516,6 +2652,7 @@ void ChangeAllPlTeamsEqual(MenuEntry *entry)
 {
     _allPlayerTeamsEqual ^= 1;
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeAutoSaveHighlights: toggle autoSaveHighlights */
@@ -2524,6 +2661,7 @@ void ChangeAutoSaveHighlights(MenuEntry *entry)
 {
     _autoSaveHighlights ^= 1;
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ChangeMenuMusic: toggle menuMusic, restart music, redraw */
@@ -2531,16 +2669,24 @@ __attribute__((used, externally_visible))
 void ChangeMenuMusic(MenuEntry *entry)
 {
     _menuMusic ^= 1;
+#ifdef SWOS_SDL_BUILD
+    if (_menuMusic == 0) {
+        extern void StopMusicInBackground(void);
+        StopMusicInBackground();    /* fades while the menu goes on */
+    } else
+#endif
     TryRestartingMusic();
     CallDrawMenuItem(entry);
+    OPTIONS_KEEP();
 }
 
 /* ================================================================
  * ChangeGameplayStyle — the OPTIONS menu's "GAMEPLAY" row
  *
- * Toggles AMIGA <-> DOS, which is the same switch as `--dos-gameplay` and
- * [dos] gameplay in SWOS.ini: the DOS release's 70fps physics, its timer
- * reloads and its formation set, against the Amiga's.
+ * Steps AMIGA -> DOS -> XBOX (SDL; the Amiga build, AMIGA <-> DOS), the same
+ * switch as `--gameplay` and [gameplay] style in SWOS.ini: the DOS release's
+ * 70fps physics, its timer reloads and its formation set, or SWOS 2020's XBOX
+ * (60fps, the Amiga's ball, the DOS keepers), against the Amiga's.
  *
  * Three things have to happen together, and the order matters:
  *
@@ -2559,17 +2705,15 @@ void ChangeMenuMusic(MenuEntry *entry)
 #ifdef SWOS_SDL_BUILD
 /* The switch itself, for this menu row and for the online lobby (GameplayStyle_Borrow).
  * `persist` writes it to SWOS.ini, as the OPTIONS row does; a borrowed style does not. */
-void GameplayStyle_Set(int dos, int persist)
+void GameplayStyle_Set(int style, int persist)
 {
     extern int _gDosGameplay;
-    extern uint16_t _gameplayStyleOption;
     extern void ApplyGameStyle(void);
     extern int _gDosView;
     extern PlatformInitOptions *g_arcadeOpts;
     extern const char *g_arcadeIniPath;
 
-    _gameplayStyleOption = (uint16_t)(dos ? 1 : 0);
-    _gDosGameplay = dos ? 1 : 0;
+    Gameplay_SetStyle(style);   /* the style, its flags, the row's mirror (dos_gameplay.c) */
 
     ApplyGameStyle();
 
@@ -2597,7 +2741,7 @@ void GameplayStyle_Set(int dos, int persist)
         _gDosView = (g_arcadeOpts->view_style == VIEW_STYLE_DOS) ||
                     (g_arcadeOpts->view_style == VIEW_STYLE_AUTO && _gDosGameplay);
         if (persist) {
-            g_arcadeOpts->dos_gameplay = _gDosGameplay;
+            g_arcadeOpts->dos_gameplay = _gGameplayStyle;
             if (g_arcadeIniPath)
                 Settings_Save(g_arcadeOpts, g_arcadeIniPath);
         }
@@ -2610,12 +2754,11 @@ void GameplayStyle_Set(int dos, int persist)
  * OPTIONS. Borrowing twice keeps the first style to give back. */
 static int s_ownStyle = -1;
 
-void GameplayStyle_Borrow(int dos)
+void GameplayStyle_Borrow(int style)
 {
-    extern int _gDosGameplay;
     if (s_ownStyle < 0)
-        s_ownStyle = _gDosGameplay;
-    GameplayStyle_Set(dos, 0);
+        s_ownStyle = _gGameplayStyle;
+    GameplayStyle_Set(style, 0);
 }
 
 void GameplayStyle_GiveBack(void)
@@ -2623,7 +2766,7 @@ void GameplayStyle_GiveBack(void)
     if (s_ownStyle < 0)
         return;
     GameplayStyle_Set(s_ownStyle, 0);
-    fprintf(stderr, "[p2p] back to this player's own style (%s)\n", s_ownStyle ? "DOS" : "AMIGA");
+    fprintf(stderr, "[p2p] back to this player's own style (%s)\n", Gameplay_StyleName(s_ownStyle));
     s_ownStyle = -1;
 }
 #endif
@@ -2632,16 +2775,12 @@ void ChangeGameplayStyle(MenuEntry *entry)
 {
 #ifdef SWOS_SDL_BUILD
     /* The switch, the view and SWOS.ini: GameplayStyle_Set. */
-    extern int _gDosGameplay;
-    GameplayStyle_Set(!_gDosGameplay, 1);
+    GameplayStyle_Set((_gGameplayStyle + 1) % GAMEPLAY_STYLES, 1);
 #else
-    extern int _gDosGameplay;
-    extern uint16_t _gameplayStyleOption;
     extern void ApplyGameStyle(void);
 
-    _gameplayStyleOption ^= 1;
-    _gDosGameplay = (int)_gameplayStyleOption;
-
+    /* No XBOX on the Amiga: no 60 Hz tick. */
+    Gameplay_SetStyle(_gGameplayStyle == GAMEPLAY_DOS ? GAMEPLAY_AMIGA : GAMEPLAY_DOS);
     ApplyGameStyle();
 #endif
 
@@ -2787,8 +2926,23 @@ extern uint8_t _viewCompetitionsMenu[];
 
 /* SWOSMainMenuInit — calls CommonMenuExit on main menu init (SWOS2.s line 68835) */
 __attribute__((used, externally_visible))
+/* ModesMenuSelected -- OpenSWOS's MODES button (main menu entry 16): the mods' entries, the
+ * MODES screen (src/mod_entries.c). */
+__attribute__((used, externally_visible))
+void ModesMenuSelected(void)
+{
+#ifdef SWOS_SDL_BUILD
+    extern void ModEntries_Show(int32_t point);
+    ModEntries_Show(0 /* MODPOINT_MODES */);
+#endif
+    CommonMenuExit();
+}
+
 void SWOSMainMenuInit(void)
 {
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_SelfTest(void); ModMatch_SelfTest(); }   /* (SWOS_MOD_MATCH_TEST) */
+#endif
     CommonMenuExit();
 }
 
@@ -2804,6 +2958,12 @@ __attribute__((used, externally_visible))
 void MultiplayerMenuSelected(void)
 {
 #ifdef SWOS_NETPLAY
+    {   /* Mods that change the game play online against a player with the same ones: the
+         * handshake compares their signature (Mods_OnlineSignature, src/p2p_link.c). */
+        char mods[160];
+        if (Mods_OnlineSignature(mods, sizeof mods))
+            fprintf(stderr, "[mods] online with %s: only against the same mods\n", mods);
+    }
     OnlineMenus_Init();
     OnlineMenus_Show("swos2020/logInMenu");
     /* Coming back re-unpacks the main menu from its packed bytes, where the CONTINUE and
@@ -2922,6 +3082,7 @@ void ManagementRecordMenu(void)
 {
     if (_youreSacked == 0) {
         Career_FillCurrentSeasonInfo();
+        WorldPlayoff_RecordLines();     /* (a world's titles: their lines again, world_playoff.c) */
     }
     ShowMenu(_managementRecordMenu);
 }
@@ -2971,6 +3132,18 @@ void CommonMenuExit(void)
     /* CREDITS (entry 15): a JSON menu on SDL, a 256-colour picture on the AGA Amiga.
      * The OCS Amiga has neither. */
     _menuEntries[15].isInvisible = 1;
+#endif
+    /* MODES (entry 16): the mods' entries (include/mod_api.h MODPOINT_MODES) -- shown only
+     * while a mod that is on has one; never on the Amiga (no built-in mods there). */
+#ifdef SWOS_SDL_BUILD
+    {
+        extern int32_t ModEntries_Count(int32_t point);
+        const int32_t modes = ModEntries_Count(0 /* MODPOINT_MODES */) > 0;
+        _menuEntries[16].isInvisible = !modes;
+        _menuEntries[15].upEntry = (int8_t)(modes ? 16 : 13);   /* CREDITS up: MODES or LOAD OLD */
+    }
+#else
+    _menuEntries[16].isInvisible = 1;
 #endif
 #ifndef SWOS_NETPLAY
     /* OpenSWOS's MULTIPLAYER button (entry 14) plays over the network, so it is only
@@ -3668,14 +3841,8 @@ void PrintNameAndSeason(void)
 
     /* Set season year in entry 2 */
     uint8_t *entry2Str = (uint8_t *)_menuEntries[2].fg;
-    uint16_t year = (uint16_t)(_seasonPlaying & 0xFF);
-    uint16_t d1 = year;
-    year += 1900;
-    if (year < 1996)
-        year += 100;
-    d1 += 1;
-    if (d1 >= 100)
-        d1 -= 100;
+    uint16_t year = World_SeasonYear(_seasonPlaying);     /* (the world's years: world.h) */
+    uint16_t d1 = (uint16_t)((year + 1) % 100);
     uint8_t *fmt;
     if (d1 >= 10)
         fmt = _a01Season;    /* "%0/%1 SEASON" */
@@ -4047,6 +4214,7 @@ void SeasonFinished(void)
     }
 
     /* loc_13BD4C */
+    WorldPlayoff_RecordLines();         /* (a world's titles into the season record: world_playoff.c) */
     Career_HandleRetirement();
     ActivateMenu(_contestMenu);
 }
@@ -5055,10 +5223,7 @@ void CareerOverFinish(void)
     {
         MenuEntry *e2 = &_menuEntries[2];
         dest = (uint8_t *)e2->fg;
-        uint16_t year = (uint16_t)_seasonPlaying + 1900;
-        if (year < 1996)
-            year += 100;
-        year += 1;
+        uint16_t year = (uint16_t)(World_SeasonYear(_seasonPlaying) + 1);   /* (the world's years) */
         src = _a0EndSeason;
         PrintFormatted(src, dest, year, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
@@ -5363,6 +5528,23 @@ extern CompetitionSlotBuffer _euroCupsCompetitionContextBuf;   /* slot-3 untangl
 extern uint8_t  _plNationality;
 extern uint8_t  _nationalityOrdinal;
 extern uint8_t  _nationalityOrdinalsArray[];
+
+/* The career menu's nationalities: the game's 63 and OTHER (0xFF); a world's own adds the SWOS 96/97
+ * Mod's four before OTHER (careerworld.py MENU_NATS: East Germany 153, the USSR 154, West Germany
+ * 155, Yugoslavia 37 -- a coach can be one). */
+static const uint8_t *career_nationalities(int32_t *count)
+{
+    static uint8_t world[68];
+    if (World_Current() == WORLD_9697) {
+        *count = 66;    /* Career+: two more nationalities (swos_data_bulk_imports.c) */
+        return _nationalityOrdinalsArray;
+    }
+    for (int32_t i = 0; i < 63; i++)
+        world[i] = _nationalityOrdinalsArray[i];
+    world[63] = 153; world[64] = 154; world[65] = 155; world[66] = 37; world[67] = 0xFF;
+    *count = 68;
+    return world;
+}
 extern uint8_t  _shortCountryNames[];
 extern uint8_t  _aOther[];               /* "OTHER" */
 extern uint16_t _controlMask;
@@ -5518,11 +5700,13 @@ void CareerMenuFinish(void)
     CheckSex();
     SetPlayerCoachFieldColor();
 
-    /* Find nationalityOrdinal for the current plNationality */
+    /* Find nationalityOrdinal for the current plNationality (one the world's list has not:
+     * OTHER, the last) */
+    int32_t count;
     nat = _plNationality;
-    table = _nationalityOrdinalsArray;
+    table = (uint8_t *)career_nationalities(&count);
     idx = 0;
-    while (idx < 66 && *table != nat)
+    while (idx < count - 1 && *table != nat)
     {
         table++;
         idx++;
@@ -5560,13 +5744,15 @@ void ChangeNationality(MenuEntry *entry)
 {
     uint16_t ctrl = _controlMask;
     int8_t ord;
+    int32_t count;
+    const uint8_t *table = career_nationalities(&count);
 
     /* Right or Down → increment */
     if (ctrl == 0x81 || ctrl == 0x101)
     {
         ord = (int8_t)_nationalityOrdinal;
         ord++;
-        if (ord == 66)
+        if (ord >= count)
             ord = 0;
     }
     /* Left or Up → decrement */
@@ -5575,7 +5761,7 @@ void ChangeNationality(MenuEntry *entry)
         ord = (int8_t)_nationalityOrdinal;
         ord--;
         if (ord < 0)
-            ord = 65;
+            ord = (int8_t)(count - 1);
     }
     else
     {
@@ -5585,7 +5771,7 @@ void ChangeNationality(MenuEntry *entry)
     _nationalityOrdinal = (uint8_t)ord;
     {
         int16_t idx = (int16_t)(int8_t)ord;  /* ext.w d0 */
-        _plNationality = _nationalityOrdinalsArray[idx];
+        _plNationality = table[idx];
     }
     SetNationalityField();
     CallDrawMenuItem(entry);
@@ -5938,8 +6124,7 @@ void SetMenuEntryPlayerFace(MenuEntry *entry, PlayerFile *playerFile) {
     uint16_t d0 = playerFile[2].positionAndFace;
     d0 &= 0x18;
     d0 >>= 3;
-    d0 += SPR_PL_FACE_WHITE_GUY;
-    entry->fgWord = d0;
+    entry->fgWord = (uint16_t)Face_MenuIcon(d0);     /* (face 3: player_face3.c) */
 }
 
 /* ---- Chunk 142: SaveCareer ---- */
@@ -6007,7 +6192,7 @@ void SetSquadMenuEntryStatusSprite(MenuEntry *entry, PlayerFile *playerFile, uin
 
         if (d2 == 0) {
             if (d3 == 0) {
-                entry->fgWord = d1 + 0xBA;
+                entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
                 return;
             }
             if (d3 == 0x20) {
@@ -6052,7 +6237,7 @@ void SetSquadMenuEntryStatusSprite(MenuEntry *entry, PlayerFile *playerFile, uin
 
     if (d2 == 0) {
         if (d3 == 0) {
-            entry->fgWord = d1 + 0xBA;
+            entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
             return;
         }
         if (d3 == 0x20) {
@@ -6116,7 +6301,7 @@ void SetSquadMenuEntryStatusSprite_AfterSim(MenuEntry *entry, PlayerFile *player
     uint16_t d3 = playerFile->cardsInjuries & 0xE0;
 
     if (d3 == 0) {
-        entry->fgWord = d1 + 0xBA;
+        entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
         return;
     }
     if (d3 == 0x20) {
@@ -7530,6 +7715,10 @@ static char careerFixtureBottomName[18];
 
 
 __attribute__((used, externally_visible))
+/* Each row's fitted competition name, when it needed one (cal_label.c): the 14 rows of
+ * _gameListArray. */
+static uint8_t s_calLabel[14][32];
+
 void CareerGameListCommon(MenuEntry *item)
 {
     MenuEntry *a5 = item;
@@ -7769,23 +7958,21 @@ pastTeamLoad:
             d4 += 8;
 
             /* Get division/competition name string */
-            uint8_t strTableOff = compInfo[5];
-            if (strTableOff == 0) {
+            /* Embedded char *[] name table — 2 entries per division (full
+             * name + abbreviation): the abbreviation is divIdx * 2 + 1. Found
+             * by the record's type (comp_name_table), not the Amiga's
+             * self-offset byte (compInfo[5]): a league's table moved when
+             * divisions[] grew to LEAGUE_MAX_DIVISIONS, and the byte's offset
+             * then lands inside divisions[] -- garbage once a world's league
+             * fills them (World 2026-27's Italy, 14 divisions). */
+            char **nameTbl = comp_name_table((Competition *)compInfo);
+            if (!nameTbl) {
                 namePtr = (uint8_t *)_divStringTable[_currentDivisionIndex];
             } else {
-                /* Embedded char *[] name table — 2 entries per
-                 * division (full name + abbreviation). Amiga stride
-                 * was divIdx * 8 (= 2 × 4-byte slots), reading the
-                 * second slot via base+4. On 64-bit each entry is 8
-                 * bytes, so use typed `char **` indexing with
-                 * `divIdx * 2 + 1` to get the abbreviation. Same fix
-                 * as in SelectTeamsFinalMenu (teams.c). */
-                int16_t off = (int8_t)strTableOff;
-                char **nameTbl = (char **)(compInfo + 5 + off);
                 namePtr = (uint8_t *)nameTbl[_currentDivisionIndex * 2 + 1];
             }
 
-            a5->fg = (uintptr_t)namePtr;
+            a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
             a5->isInvisible = 0;
             a5++; /* next entry */
 
@@ -7795,16 +7982,12 @@ pastTeamLoad:
             a5++; /* next entry */
         } else if (slotVal == 1) {
             /* --- Cup-style header (single line comp name + round info) --- */
-            uint8_t strTableOff = compInfo[5];
-            if (strTableOff != 0) {
-                /* Typed `char **` access — slot 1 is the abbreviation
-                 * (full name + abbreviation pair per div). */
-                int16_t off = (int8_t)strTableOff;
-                char **nameTbl = (char **)(compInfo + 5 + off);
+            /* Slot 1 is the abbreviation (full name + abbreviation pair). */
+            char **nameTbl = comp_name_table((Competition *)compInfo);
+            if (nameTbl)
                 namePtr = (uint8_t *)nameTbl[1];
-            }
 
-            a5->fg = (uintptr_t)namePtr;
+            a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
 
             /* Height check depends on whether a4 == a6 */
             if (a4 == a6) {
@@ -7873,14 +8056,12 @@ pastTeamLoad:
             }
         } else {
             /* --- Default (slotVal >= 2) header: same as cup but different path --- */
-            uint8_t strTableOff = compInfo[5];
-            if (strTableOff != 0) {
-                int16_t off = (int8_t)strTableOff;
-                char **nameTbl = (char **)(compInfo + 5 + off);
+            /* Slot 1 is the abbreviation (full name + abbreviation pair). */
+            char **nameTbl = comp_name_table((Competition *)compInfo);
+            if (nameTbl)
                 namePtr = (uint8_t *)nameTbl[1];
-            }
 
-            a5->fg = (uintptr_t)namePtr;
+            a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
 
             /* Height check */
             if (a4 == a6) {

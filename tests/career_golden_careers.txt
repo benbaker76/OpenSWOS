@@ -1,0 +1,97 @@
+# The golden career test's careers (scripts/career_golden_test.sh): <name> <picker path>.
+# Each is a NEW career, its club chosen through CAREER -> CHOOSE TEAM AND START CAREER by the
+# rows' labels (src/career_autopilot.c), so the test needs no saves. Chosen to cover what the
+# World 2026-27 work touches (docs/WORLD_2026_27.md): leagues, the English play-offs (Division
+# One), the European cups, the Copa Libertadores.
+ENG-ARSENAL   EUROPE/ENGLAND/PREMIER LEAGUE/ARSENAL
+ENG1-WOLVES   EUROPE/ENGLAND/DIVISION ONE/WOLVERHAMPTON W.
+ITA-JUVENTUS  EUROPE/ITALY/SERIE A/JUVENTUS
+GER-BAYERN    EUROPE/GERMANY/1. LIGA/BAYERN
+ESP-BARCELONA EUROPE/SPAIN/PRIMERA DIVISION/BARCELONA
+SCO-CELTIC    EUROPE/SCOTLAND/PREMIER DIVISION/CELTIC
+BRA-FLAMENGO  SOUTH AMERICA/BRAZIL/FLAMENGO
+# A world other than 96/97: @<tag> before the path (include/world.h). Played only where that
+# world's data is (bin/data_json/worlds/<tag>/, not in git yet); skipped elsewhere.
+# NAME=VALUE words first: that career's environment (a test switch).
+ITA2627-NAPOLI @2627 EUROPE/ITALY/SERIE A/NAPOLI
+ITA2627-RAVENNA @2627 EUROPE/ITALY/SERIE C/SERIE C GIRONE B/RAVENNA
+ITA2627-LIGORNA @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LIGORNA
+# A club of Italy's second team file (include/world.h: Serie D's 162, a file holds 256) -- the v4
+# delta's; the Mod 4.0.5's Italy is one file again (Lascaris in the pool): back with its 4.1.
+#ITA2627-LASCARIS @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LASCARIS
+# The career club rests on the last match day (an odd league -- Gibraltar's 11, since Serie D's
+# groups are all 18: SWOS_TEST_REST_LAST).
+GIB2627-LINCOLN-REST SWOS_TEST_REST_LAST=1 @2627 EUROPE/GIBRALTAR/LINCOLN RED IMPS
+# The career club plays Serie B's play-out (forced 17th at each league end: SWOS_TEST_PLAYOFF_PLACE).
+ITA2627-PALERMO-PLAYOUT SWOS_TEST_PLAYOFF_PLACE=17 @2627 EUROPE/ITALY/SERIE B/PALERMO
+# ... and Serie B's play-off: from the preliminary round (5th), and with a bye (3rd).
+ITA2627-PALERMO-PLAYOFF5 SWOS_TEST_PLAYOFF_PLACE=5 @2627 EUROPE/ITALY/SERIE B/PALERMO
+ITA2627-PALERMO-PLAYOFF3 SWOS_TEST_PLAYOFF_PLACE=3 @2627 EUROPE/ITALY/SERIE B/PALERMO
+# ... and a group's play-out: Serie C (two legs) and Serie D (single, extra time).
+ITA2627-RAVENNA-PLAYOUT SWOS_TEST_PLAYOFF_PLACE=17 @2627 EUROPE/ITALY/SERIE C/SERIE C GIRONE B/RAVENNA
+ITA2627-LIGORNA-PLAYOUT SWOS_TEST_PLAYOFF_PLACE=14 @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LIGORNA
+# ... and Serie C's national play-off (28 clubs; the other groups simulated early): from the
+# group rounds (5th) and waiting until the national rounds (2nd).
+ITA2627-RAVENNA-PLAYOFF5 SWOS_TEST_PLAYOFF_PLACE=5 @2627 EUROPE/ITALY/SERIE C/SERIE C GIRONE B/RAVENNA
+ITA2627-RAVENNA-PLAYOFF2 SWOS_TEST_PLAYOFF_PLACE=2 @2627 EUROPE/ITALY/SERIE C/SERIE C GIRONE B/RAVENNA
+# ... and a Serie D group's placement play-off (3rd: it moves no club).
+ITA2627-LIGORNA-PLACEMENT SWOS_TEST_PLAYOFF_PLACE=3 @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LIGORNA
+# World 2026-27, the other countries (phase 8): England (four divisions, the play-offs),
+# Scotland, France, Japan (Asia).
+ENG2627-ARSENAL @2627 EUROPE/ENGLAND/PREMIER LEAGUE/ARSENAL
+SCO2627-HEARTS @2627 EUROPE/SCOTLAND/SCOTTISH PREMIERSHIP/HEARTS
+FRA2627-LENS @2627 EUROPE/FRANCE/LIGUE 1/LENS
+JPN2627-KASHIWA @2627 ASIA/JAPAN/J1 LEAGUE/KASHIWA REYSOL
+# ... B teams and the pools below the lowest division: Spain (Real Sociedad relegated every
+# season: Real Sociedad B forced out of the Segunda, into the pool), Germany, the Netherlands,
+# Portugal; New Zealand's three regional leagues.
+ESP2627-REALSOCIEDAD-DOWN SWOS_TEST_PLAYOFF_PLACE=20 @2627 EUROPE/SPAIN/LALIGA/REAL SOCIEDAD
+GER2627-STUTTGART @2627 EUROPE/GERMANY/BUNDESLIGA/STUTTGART
+NED2627-AJAX @2627 EUROPE/HOLLAND/EREDIVISIE/AJAX AMSTERDAM
+POR2627-PORTO @2627 EUROPE/PORTUGAL/LIGA PORTUGAL/PORTO
+NZL2627-AUCKLAND @2627 OCEANIA/NEW ZEALAND/NORTHERN LEAGUE/AUCKLAND CITY
+# ... the countries new to the game: Morocco (Africa), Kosovo (Europe: a European place for
+# the career's country, in none of 96/97's lists), Liechtenstein (6 clubs), Costa Rica
+# (Apertura / Clausura, as one league yet), South Korea (a split, as one league yet).
+MAR2627-RAJA @2627 AFRICA/MOROCCO/RAJA
+KOS2627-DRITA @2627 EUROPE/KOSOVO/DRITA
+LIE2627-VADUZ @2627 EUROPE/LIECHTENSTEIN/VADUZ
+CRC2627-SAPRISSA @2627 NORTH AMERICA/COSTA RICA/SAPRISSA
+KOR2627-JEONBUK @2627 ASIA/SOUTH KOREA/JEONBUK HYUNDAI
+# ... the mid-season splits (src/league_split.c): Cyprus from its bottom group (days without a
+# match after the split), Gibraltar (an odd group), Moldova (head-to-head points halved, the
+# career league's), Romania (points halved, rounded up).
+CYP2627-KARMIOTISSA @2627 EUROPE/CYPRUS/KARMIOTISSA
+GIB2627-LINCOLN @2627 EUROPE/GIBRALTAR/LINCOLN RED IMPS
+MDA2627-PETROCUB @2627 EUROPE/MOLDOVA/PETROCUB
+ROU2627-CRAIOVA @2627 EUROPE/ROMANIA/UNIV. CRAIOVA
+# ... fixture stages (the titles of the Apertura and Clausura not played yet): Mexico (two
+# divisions), Uruguay (Apertura, a snake Intermedio, Clausura), Malta (three stages), Panama
+# (two zones).
+MEX2627-CHIVAS @2627 NORTH AMERICA/MEXICO/LIGA MX/CHIVAS
+URU2627-NACIONAL @2627 SOUTH AMERICA/URUGUAY/CAMPEONATO URUGUAYO/NACIONAL
+MLT2627-FLORIANA @2627 EUROPE/MALTA/FLORIANA
+PAN2627-PLAZA @2627 NORTH AMERICA/PANAMA/PLAZA AMADOR
+# ... levels of groups side by side beyond Italy (src/league_groups.c): El Salvador (the
+# Segunda's and the Tercera's two regional groups), Australia (three state leagues).
+SLV2627-FAS @2627 NORTH AMERICA/EL SALVADOR/PRIMERA DIVISION/FAS
+AUS2627-NEWCASTLE @2627 OCEANIA/AUSTRALIA/A-LEAGUE MEN/NEWCASTLE
+# ... 30 clubs, a fixture list's season (src/league_split.c, its zones as the table's pages): the
+# MLS's two conferences; Argentina's Apertura and Clausura, their knockouts, the promedio.
+USA2627-LAGALAXY @2627 NORTH AMERICA/U.S.A./LA GALAXY
+ARG2627-BOCA @2627 SOUTH AMERICA/ARGENTINA/LIGA PROFESIONAL DE FUTBOL/BOCA JUNIORS
+# ... Brazil: its league, the 13 state championships simulated at the season end and their pools
+# (src/state_sim.c, src/state_pool.c: the state-only clubs swap identities with the pool's).
+BRA2627-FLAMENGO @2627 SOUTH AMERICA/BRAZIL/CAMPEONATO BRASILEIRO SERIE A/FLAMENGO
+# ... the career club's own play-off of the pack's at its league's end (the Mod's gp_need): a
+# promotion play-off (England's, the 4th waiting a round), a barrage with the division above or
+# below simulated early (France's: Ligue 2's 3rd v Ligue 1's 16th; Germany's relegation play-off).
+ENG2627-MILLWALL-PLAYOFF SWOS_TEST_PLAYOFF_PLACE=4 @2627 EUROPE/ENGLAND/EFL CHAMPIONSHIP/MILLWALL
+FRA2627-DUNKERQUE-BARRAGE SWOS_TEST_PLAYOFF_PLACE=3 @2627 EUROPE/FRANCE/LIGUE 2/USL DUNKERQUE
+GER2627-BAYERN-PLAYOFF SWOS_TEST_PLAYOFF_PLACE=16 @2627 EUROPE/GERMANY/BUNDESLIGA/BAYERN
+# ... a group contest played (the Mod's ko_t2): Serie D's champions' Poule Scudetto, its clubs from the
+# nine groups (eight simulated early), in slot 3 as the game's type-2 contest.
+ITA2627-LIGORNA-POULE SWOS_TEST_PLAYOFF_PLACE=1 @2627 EUROPE/ITALY/SERIE D/SERIE D GIRONE A/LIGORNA
+# ... a play-off of more rounds than the engine's six, in parts: the MLS's wild card club (seven game
+# rounds: the wild card, then round one's best-of-three to the MLS Cup).
+USA2627-LAGALAXY-WILDCARD SWOS_TEST_PLAYOFF_PLACE=23 @2627 NORTH AMERICA/U.S.A./LA GALAXY

@@ -10,7 +10,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Installing OpenSWOS</title>
-<meta name="description" content="How to install OpenSWOS on Windows, Mac, Linux and the Amiga, step by step, with pictures.">
+<meta name="description" content="How to install OpenSWOS on Windows, Mac, Linux, phones, handhelds and the Amiga, step by step, with pictures.">
 <link rel="icon" type="image/png" href="/openswos-logo.png">
 <style>
   :root {
@@ -113,14 +113,14 @@
 
 <div class="summary">
   <strong>In short:</strong> download OpenSWOS, then run <strong>OpenSWOS Setup</strong> once. It
-  shows you where to get the game, finds what you download, and makes the game's data from it.
-  That's it.
+  asks where you want to play, shows you where to get the game, finds what you download, and
+  makes the game's data from it. For a phone, a handheld or an Amiga it copies the game there too.
   <nav class="toc" aria-label="Contents">
     <ol>
       <li><a href="#need">What you need</a></li>
       <li><a href="#download">Download</a></li>
-      <li><a href="#install">Install the game</a>: <a href="#windows">Windows</a> · <a href="#macos">Mac</a> · <a href="#linux">Linux</a> · <a href="#amiga">Amiga</a></li>
-      <li><a href="#setup">Run OpenSWOS Setup</a></li>
+      <li><a href="#install">Install OpenSWOS on your computer</a>: <a href="#windows">Windows</a> · <a href="#macos">Mac</a> · <a href="#linux">Linux</a></li>
+      <li><a href="#setup">Run OpenSWOS Setup</a>: <a href="#phone">phone or tablet</a> · <a href="#handheld">handheld</a> · <a href="#amiga">Amiga</a> (and <a href="#world">World 2026-27</a>, optional)</li>
       <li><a href="#play">Play</a></li>
     </ol>
     <p style="margin:6px 0 0"><a href="#help">If something goes wrong</a></p>
@@ -137,35 +137,45 @@ so they can't come with OpenSWOS. The setup makes them from your copy instead.</
   <tr><td><strong>The Amiga version</strong></td><td>Any of: the two SWOS 96/97 floppies as disk images (<code>.adf</code>); a hard disk image with the game on it (<code>.hdf</code>, e.g. ASWOS's <code>swos.hdf</code>); a WHDLoad install (<code>.lha</code>); or a <code>.zip</code> of any of these. sensiblesoccer.de's <a href="https://www.sensiblesoccer.de/index.php?&amp;view=newsdetails&amp;id=206">24/25 season</a> (<code>swos2425.hdf</code> or the WHDLoad <code>.lha</code>) works too.</td></tr>
 </table></div>
 <ul>
-  <li><strong>For the PC, Mac and Linux game,</strong> one of the two is enough. With both, you get
-    the Amiga's music, sound and loading screens as well.</li>
+  <li><strong>For the game on a computer, a phone or a handheld,</strong> one of the two is
+    enough. With both, you get the Amiga's music, sound and loading screens as well.</li>
   <li><strong>For the Amiga version of OpenSWOS,</strong> you need both: the Amiga version for the
     game's own files, the PC version for its AGA pitches and pictures.</li>
 </ul>
-<p>You don't have to remember any of this: the setup lists what you need, with the links, and
-says what each one gives.</p>
-<p class="note">Two extras are optional, for players who have them: the <strong>Atari Jaguar</strong>
-cartridge image (for the Jaguar's sprites) and a <strong>SWOS 2020</strong> install (for its pitches).</p>
+<p>You don't have to remember any of this: the setup asks, gives you the links, and finds what
+you download.</p>
+<p><strong>You also need a Windows PC, a Mac or a Linux PC to run the setup on,</strong> even if
+you play on a phone, a handheld or an Amiga: it makes the game's data there, then copies it over.</p>
+<p class="note">Three extras are optional: <strong>World 2026-27</strong> (today's clubs and
+players, <a href="#world">below</a>), the <strong>Atari Jaguar</strong> cartridge image (for the
+Jaguar's players) and a <strong>SWOS 2020</strong> install (for its pitches).</p>
 
 <h2 id="download"><span class="n">2</span>Download</h2>
 <p>Get OpenSWOS from <strong><a href="https://baker76.itch.io/openswos">baker76.itch.io/openswos</a></strong>.
 That page and <strong>openswos.net</strong> are the only official places to get it: OpenSWOS is
-free, and never asks you to pay or sign up anywhere else. Pick the file for your computer:</p>
+free, and never asks you to pay or sign up anywhere else.</p>
+<p>First, the game and the setup for the computer you run the setup on:</p>
 <div class="tablewrap"><table>
   <tr><th>Your computer</th><th>Download</th></tr>
   <tr><td><strong>Windows</strong> (10 or later)</td><td><code>SWOS-Setup.exe</code>, the installer</td></tr>
   <tr><td><strong>Mac</strong> (Apple silicon or Intel)</td><td><code>SWOS-macOS-app.zip</code></td></tr>
-  <tr><td><strong>Linux</strong> (PC or Raspberry Pi)</td><td><code>SWOS-portable.zip</code>, and <code>OpenSWOS-Setup.zip</code> for the setup window</td></tr>
-  <tr><td><strong>Amiga</strong> (A1200/A4000 or an emulator)</td><td><code>OpenSWOS-Setup.zip</code>, to run on a PC or Mac: it has the Amiga program in it</td></tr>
+  <tr><td><strong>Linux</strong> (PC or Raspberry Pi)</td><td><code>SWOS-portable.zip</code>, and <code>OpenSWOS-Setup.zip</code> for the setup</td></tr>
+</table></div>
+<p>Then, if you play somewhere else as well:</p>
+<div class="tablewrap"><table>
+  <tr><th>You play on</th><th>Also download</th></tr>
+  <tr><td><strong>Android</strong> (8.0 or later)</td><td><code>OpenSWOS-Android.apk</code>, on the phone</td></tr>
+  <tr><td><strong>iPhone or iPad</strong> (iOS 15 or later)</td><td><code>OpenSWOS-iOS.ipa</code></td></tr>
+  <tr><td><strong>A handheld with PortMaster</strong> (R36S, Anbernic, TrimUI, ...)</td><td>nothing: the setup has OpenSWOS for PortMaster in it</td></tr>
+  <tr><td><strong>Amiga</strong> (A1200/A4000 or an emulator)</td><td><code>OpenSWOS-Setup.zip</code>: it has the Amiga program in it. Run the setup from there.</td></tr>
 </table></div>
 <p class="center"><a class="button" href="https://baker76.itch.io/openswos">Go to the downloads</a></p>
 
-<h2 id="install"><span class="n">3</span>Install the game</h2>
+<h2 id="install"><span class="n">3</span>Install OpenSWOS on your computer</h2>
 <div class="platforms">
   <a href="#windows"><b>Windows</b><span>the installer</span></a>
   <a href="#macos"><b>Mac</b><span>Apple silicon or Intel</span></a>
   <a href="#linux"><b>Linux</b><span>PC or Raspberry Pi</span></a>
-  <a href="#amiga"><b>Amiga</b><span>A1200 / A4000</span></a>
 </div>
 
 <h3 id="windows">Windows</h3>
@@ -202,84 +212,186 @@ free, and never asks you to pay or sign up anywhere else. Pick the file for your
 <strong><code>SWOS.aarch64</code></strong> on a 64-bit Raspberry Pi (Pi 4/5),
 <strong><code>SWOS.armhf</code></strong> on a 32-bit Pi. You need a Linux from 2021 or newer
 (Ubuntu 21.10, Debian 12, Fedora 35 or later).</p>
-
-<h3 id="amiga">Amiga</h3>
-<p>The setup can't run on the Amiga itself, so you do this part on a PC or a Mac:</p>
-<ol>
-  <li>Unzip <strong><code>OpenSWOS-Setup.zip</code></strong> and run the setup for your computer:
-    <code>Windows\openswos-setup.exe</code>, <code>macOS/OpenSWOS Setup.app</code> or
-    <code>Linux/openswos-setup</code>.</li>
-  <li>Click the <strong>Amiga</strong> tab, and do <a href="#setup">step 4</a> there.</li>
-</ol>
-<p class="note">You need an AGA Amiga with a 68020 or better (an A1200 or A4000, or an emulator
-set up as one), with a hard drive, Workbench and 8 MB of fast memory.</p>
+<p><strong>For an Amiga,</strong> unzip <strong><code>OpenSWOS-Setup.zip</code></strong> and run the
+setup for your computer from it: <code>Windows\openswos-setup.exe</code>,
+<code>macOS/OpenSWOS Setup.app</code> or <code>Linux/openswos-setup</code>.</p>
 
 <h2 id="setup"><span class="n">4</span>Run OpenSWOS Setup</h2>
-<p>This is the one step that matters. The setup has two tabs: <strong>PC · Mac · Linux</strong> for
-the game on your computer, <strong>Amiga</strong> for an Amiga. When it opens, it looks like this:</p>
+<p>The setup goes one screen at a time. <strong>Next</strong> goes on, <strong>Back</strong> goes
+back, <strong>Home</strong> returns to the first screen, and the dots at the bottom show how far
+you are. The flag at the top changes the setup's language (English, Deutsch, Français, Español,
+Italiano, Nederlands).</p>
+<p><strong>Where do you want to play?</strong> Tick everywhere you'll play: <strong>This
+computer</strong>, a <strong>Phone or tablet</strong>, a <strong>Handheld</strong>, an
+<strong>Amiga</strong> (a SWOS drawer) or an <strong>Amiga with WHDLoad</strong>. Tick the extras
+you want too. The screens that follow are only the ones you need.</p>
 <figure>
-  <img src="setup-1-start.png" alt="OpenSWOS Setup when it opens: a row for each part of the game, with links to get it" width="860" height="860" loading="lazy">
-  <figcaption>OpenSWOS Setup when it opens</figcaption>
+  <img src="wizard-1-where.png" alt="OpenSWOS Setup's first screen: where do you want to play, with a tile for each place and the extras below" width="860" height="860" loading="lazy">
+  <figcaption>Where do you want to play?</figcaption>
 </figure>
-<p><strong>1. Get the game.</strong> Each thing the game can use has a row: what it is, whether
-it's <strong>needed</strong> or <strong>optional</strong>, what it gives, and on the right the
-<strong>links to get it</strong>. You don't have to find the files afterwards:</p>
+<p><strong>Which copy of the game do you have?</strong> The PC game, the Amiga version, or both.
+Not sure? Pick the PC game: it's the one you can buy today. (For an Amiga you need both, so this
+screen is skipped.)</p>
+<figure>
+  <img src="wizard-2-which-copy.png" alt="Which copy of the game do you have: the PC game, the Amiga version or both" width="860" height="860" loading="lazy">
+  <figcaption>Which copy of the game do you have?</figcaption>
+</figure>
+<p><strong>Get the game.</strong> Each part has a screen with the links to get it. You don't have
+to look for the files afterwards:</p>
 <ul>
   <li><strong>What you download is found by itself.</strong> The setup watches your
     <strong>Downloads</strong> folder: a disk image, hard disk image, WHDLoad <code>.lha</code> or
-    <code>.zip</code> you download from those links turns up in its row a moment after the
-    download finishes.</li>
-  <li><strong>The GOG game is found by itself</strong> once it's installed. If GOG's installer is
-    still in your Downloads, the setup reminds you to run it.</li>
-  <li><strong>Already have the game somewhere?</strong> Click <strong>Search a folder…</strong> and
-    pick a folder it's in. The setup looks through that folder <strong>and every folder inside
-    it</strong>. Or click the <strong>…</strong> beside a row and pick the file or folder yourself,
-    or paste its path into the box.</li>
+    <code>.zip</code> you download turns up a moment after the download finishes.</li>
+  <li><strong>The GOG game is found by itself</strong> once it's installed with GOG's installer or
+    GOG Galaxy.</li>
+  <li><strong>Already have it somewhere?</strong> Drag the file or folder onto the window, or click
+    <strong>Search a folder…</strong> and pick a folder it's in: the setup looks through that folder
+    <strong>and every folder inside it</strong>. <strong>Choose another…</strong> picks a file or
+    folder by hand. <strong>Start over</strong> forgets every copy the setup has found.</li>
 </ul>
-<p>Each part it finds gets a green tick. Here it found the PC version and the Amiga floppies:</p>
+<p>When it has it, the screen turns green and says <strong>Found it</strong>:</p>
 <figure>
-  <img src="setup-2-found.png" alt="OpenSWOS Setup after finding the PC game and the Amiga floppies, each with a green tick" width="860" height="860" loading="lazy">
-  <figcaption>Everything found is ticked</figcaption>
+  <img src="wizard-3-get-pc.png" alt="Get the PC game: the GOG and PC CD links, and Found it in green" width="860" height="860" loading="lazy">
+  <figcaption>The PC game, found</figcaption>
 </figure>
-<p>Under the Amiga row it says which <strong>season</strong> your copy is. The 96/97 release is the
-one the game was made from; a later season (like sensiblesoccer.de's 24/25) works too, but online
-OpenSWOS plays 96/97's teams, so with the PC game there those come from it. A copy that can't be
-used (a damaged download, or a different release) gets a red mark and says why.</p>
-<p><strong>2. Install.</strong> On the <strong>PC · Mac · Linux</strong> tab, click
-<strong>Install</strong>. It takes a few seconds. When it says <strong>Done</strong>, you're
-finished:</p>
+<p>For the Amiga version it also says which <strong>season</strong> your copy is. The 96/97
+release is the one the game was made from; a later season (like sensiblesoccer.de's 24/25) works
+too, but online OpenSWOS plays 96/97's teams, so with the PC game those come from it. A copy that
+can't be used (a damaged download, or a different release) gets a red mark and says why.</p>
 <figure>
-  <img src="setup-3-done.png" alt="OpenSWOS Setup after installing: Done, with what was made and the log" width="860" height="972" loading="lazy">
-  <figcaption>Done: the game's data is installed</figcaption>
+  <img src="wizard-3-get-amiga.png" alt="Get the Amiga version: download links, and Found it with the 96/97 release" width="860" height="860" loading="lazy">
+  <figcaption>The Amiga version, found</figcaption>
+</figure>
+<p><strong>Game options.</strong> How the game looks and plays the first time you start it: the
+gameplay, graphics, sound, music, screen, language and more. Not sure? Leave them: you can change
+any of them in the game's <strong>OPTIONS</strong> later.</p>
+<figure>
+  <img src="wizard-4-options.png" alt="Game options: a row for each setting with its choices" width="860" height="860" loading="lazy">
+  <figcaption>Game options</figcaption>
+</figure>
+<p><strong>Install the game's data.</strong> Click <strong>Install</strong>. It takes a few
+seconds. The folder at the top is where the game reads its data from: leave it as it is.
+<strong>Details</strong> below it shows what will be made (parts you have nothing for are marked
+<em>skipped</em>: the game plays without them) and the log.</p>
+<figure>
+  <img src="wizard-5-install.png" alt="Install the game's data: the folder and the Install button" width="860" height="860" loading="lazy">
+  <figcaption>Install the game's data</figcaption>
+</figure>
+<p>Then, for each other place you ticked:</p>
+
+<h3 id="phone">Phone or tablet</h3>
+<figure>
+  <img src="wizard-6-phone.png" alt="Copy it to your phone or tablet: a QR code for the Wi-Fi copy, and the cable instructions" width="860" height="860" loading="lazy">
+  <figcaption>Copy it to your phone or tablet</figcaption>
+</figure>
+<ol>
+  <li><strong>Install the app on the phone.</strong>
+    <ul>
+      <li><strong>Android:</strong> open <strong><code>OpenSWOS-Android.apk</code></strong> on the
+        phone (download it there, or copy it over) and allow installing it when Android asks: it
+        isn't from the Play Store.</li>
+      <li><strong>iPhone or iPad:</strong> iOS installs apps only from the App Store, so
+        <code>OpenSWOS-iOS.ipa</code> goes on with a sideloading tool,
+        <a href="https://altstore.io">AltStore</a> or <a href="https://sideloadly.io">Sideloadly</a>,
+        which signs it with your own Apple ID (with a free Apple ID it has to be refreshed every 7
+        days; the tool does that for you).</li>
+    </ul></li>
+  <li><strong>Start OpenSWOS on the phone once.</strong> It says the game's data comes from
+    OpenSWOS Setup.</li>
+  <li><strong>Scan the QR code</strong> on the setup's screen with the phone's camera and open its
+    link. OpenSWOS starts and copies everything over Wi-Fi, with the game options you chose. If a
+    web page opens instead, tap <strong>Open in OpenSWOS</strong> on it. The phone and the computer
+    must be on the same network.
+    <ul>
+      <li>On Android you can skip the code: tap <strong>Copy from my computer</strong> in OpenSWOS,
+        and it finds the setup by itself.</li>
+      <li>Windows may ask whether OpenSWOS Setup may use the network: allow it on private networks.
+        An iPhone asks whether OpenSWOS may find devices on your local network: tap
+        <strong>OK</strong>.</li>
+    </ul></li>
+</ol>
+<p><strong>Or by cable:</strong> copy the <strong><code>assets</code></strong> folder
+(<strong>Show the assets folder</strong> opens it) to the phone. Android: by USB (File transfer)
+into <code>Android/data/net.openswos.game/files</code>. iPhone or iPad: into the Files app,
+<strong>On My iPhone → OpenSWOS</strong> (Finder on a Mac, iCloud Drive, AirDrop or a USB stick).</p>
+
+<h3 id="handheld">Handheld</h3>
+<p>For a Linux handheld with <a href="https://portmaster.games">PortMaster</a> (most firmwares have
+it: ArkOS, ROCKNIX, Knulli, AmberELEC, muOS). No PortMaster yet? Install it on the handheld first.</p>
+<figure>
+  <img src="wizard-7-handheld.png" alt="Copy it to your handheld: the SD card it found and the Copy to the card button" width="860" height="860" loading="lazy">
+  <figcaption>Copy it to your handheld</figcaption>
+</figure>
+<ol>
+  <li>Put the handheld's SD card in the computer (on an R36S, the card with its games, EASYROMS).
+    The setup finds it; if it doesn't, click <strong>Change…</strong> and pick its
+    <strong>ports</strong> folder.</li>
+  <li>Click <strong>Copy to the card</strong>. OpenSWOS goes into PortMaster's ports folder, with
+    the game's data and the options you chose.</li>
+</ol>
+<p class="note">The port is also on the downloads page as <strong><code>swos.zip</code></strong>,
+for PortMaster on its own.</p>
+
+<h3 id="amiga">Amiga</h3>
+<p>You need an AGA Amiga with a 68020 or better (an A1200 or A4000, or an emulator set up as one),
+with a hard drive, Workbench and 8 MB of fast memory.</p>
+<figure>
+  <img src="wizard-amiga-drawer.png" alt="Make the SWOS drawer: where it goes and the Make the drawer button" width="860" height="860" loading="lazy">
+  <figcaption>Make the SWOS drawer</figcaption>
 </figure>
 <ul>
-  <li><strong>Into</strong> is where the game reads its data from. Leave it as it is.</li>
-  <li><strong>Details</strong> shows what will be made, and the log. Parts marked
-    <strong>skipped</strong> need something you don't have; that's fine, the game plays without them.</li>
+  <li><strong>SWOS drawer:</strong> click <strong>Make the drawer</strong>. Copy the drawer to your
+    Amiga's hard drive (or use it as a folder WinUAE or FS-UAE treats as a hard drive).
+    Double-click <strong>SWOS</strong> in it to play.</li>
+  <li><strong>WHDLoad package:</strong> click <strong>Make the package</strong>. You get
+    <code>OpenSWOSAGA-WHDL.lha</code>, for an Amiga with <a href="https://whdload.de/">WHDLoad</a>
+    installed. Unpack it on the Amiga, open the <strong>OpenSWOSAGA-NE</strong> drawer and
+    double-click <strong>OpenSWOS</strong>. No Kickstart image is needed.</li>
 </ul>
-<p><strong>On the Amiga tab,</strong> choose what to make for your Amiga, then click the button below:</p>
 <figure>
-  <img src="setup-4-amiga.png" alt="OpenSWOS Setup's Amiga tab: the SWOS drawer or the WHDLoad package" width="860" height="860" loading="lazy">
-  <figcaption>The Amiga tab</figcaption>
+  <img src="wizard-amiga-whdload.png" alt="Make the WHDLoad package: where it is saved and the Make the package button" width="860" height="860" loading="lazy">
+  <figcaption>Make the WHDLoad package</figcaption>
 </figure>
-<ul>
-  <li><strong>SWOS drawer:</strong> a drawer to copy to your Amiga's hard drive (or to a folder
-    FS-UAE or WinUAE uses as a hard drive). Double-click <strong>SWOS</strong> in it to play.</li>
-  <li><strong>WHDLoad package:</strong> <code>OpenSWOSAGA-WHDL.lha</code>, for an Amiga with
-    <a href="https://whdload.de/">WHDLoad</a> installed. Unpack it on the Amiga, open the
-    <strong>OpenSWOSAGA-NE</strong> drawer and double-click <strong>OpenSWOS</strong>. No
-    Kickstart image is needed.</li>
-</ul>
-<p>Both go to your <strong>Downloads</strong> folder unless you click <strong>Change…</strong>.
-<strong>Show it</strong> opens the folder when it's done:</p>
+<p>Both go to your <strong>Downloads</strong> folder unless you click <strong>Change…</strong>. If
+the button stays grey, the line under it says what's missing: usually the PC version (the Amiga
+version of OpenSWOS needs both), or the Amiga program, if you're not running the setup from
+<code>OpenSWOS-Setup.zip</code>.</p>
+
+<p><strong>All done.</strong> The last screen says where to start the game. <strong>Play
+OpenSWOS</strong> starts it on this computer.</p>
 <figure>
-  <img src="setup-5-whdload.png" alt="OpenSWOS Setup after making the WHDLoad package: Done" width="860" height="860" loading="lazy">
-  <figcaption>The WHDLoad package, made</figcaption>
+  <img src="wizard-8-done.png" alt="All done: where to start the game" width="860" height="860" loading="lazy">
+  <figcaption>All done</figcaption>
 </figure>
-<p>You only need to do this once. OpenSWOS Setup remembers where your copy of the game is. If a
-new version of OpenSWOS makes some of the data differently, the game tells you when it starts: open
-OpenSWOS Setup, where those parts say <strong>update needed</strong>, and click <strong>Update</strong>.</p>
+<p>You only need to do this once: OpenSWOS Setup remembers where your copy of the game is. If a
+new version of OpenSWOS makes some of the data differently, the game tells you when it starts:
+open OpenSWOS Setup, and on its install screen click <strong>Update</strong>.</p>
 <p class="note">The screenshots are from Windows; the setup looks the same on a Mac and on Linux.</p>
+
+<h3 id="world">World 2026-27 (optional)</h3>
+<p><strong>World 2026-27</strong> is today's football: the clubs, players and competitions of the
+2026-27 season, from the <a href="https://github.com/aminta/swos-9697-mod">SWOS 96/97 Mod</a> by
+Davide Lorigliola. It's a download of its own, and the game plays 96/97 unless you ask for it.</p>
+<ol>
+  <li><strong>Get it.</strong> Tick <strong>World 2026-27</strong> under <strong>Extras</strong> on
+    the setup's first screen. Its screen has the link, <strong>OpenSWOS-World-2627.zip</strong>:
+    download it, and the setup finds it by itself (or drag it onto the window).</li>
+  <li><strong>Install it.</strong> It goes in with the rest when you click <strong>Install</strong>
+    (or <strong>Update</strong>).</li>
+  <li><strong>Turn it on.</strong> In the setup's <strong>Game options</strong>, set
+    <strong>World</strong> to <strong>2026-27</strong>. Or later, in the game:
+    <strong>OPTIONS</strong> on the main menu, then <strong>WORLD</strong>. The game plays the new
+    world from the next time it starts, so close it and start it again. (It's
+    <code>world=2627</code> under <code>[general]</code> in <code>SWOS.ini</code>, if you'd rather
+    set it there.) A career or competition you saved is always played in the world it was started in.</li>
+</ol>
+<ul>
+  <li><strong>On an Amiga,</strong> tick <strong>Play World 2026-27 (its clubs and players) instead of
+    96/97</strong> on the drawer's or the package's screen before making it.</li>
+  <li><strong>On a phone or a handheld,</strong> copy the game over again after installing the
+    world (it's in the game's data), and choose it in <strong>OPTIONS → WORLD</strong>.</li>
+  <li>The world's data is its authors' (<a href="https://worldofswos.com/static/openswos/README.txt">credits</a>).</li>
+</ul>
 
 <h2 id="play"><span class="n">5</span>Play</h2>
 <ul>
@@ -287,6 +399,9 @@ OpenSWOS Setup, where those parts say <strong>update needed</strong>, and click 
     desktop, if you ticked that in the installer).</li>
   <li><strong>Mac:</strong> open <strong>SWOS.app</strong> (right-click → <strong>Open</strong> the first time).</li>
   <li><strong>Linux:</strong> run <code>SWOS.x86_64</code> (or the one for your Pi) from the folder you unzipped.</li>
+  <li><strong>Android, iPhone and iPad:</strong> tap <strong>OpenSWOS</strong>. The stick (left) and
+    FIRE (right) are on the screen, with PAUSE and ESC above FIRE; a Bluetooth controller works too.</li>
+  <li><strong>Handheld:</strong> start <strong>Sensible World of Soccer</strong> from <strong>Ports</strong>.</li>
   <li><strong>Amiga:</strong> double-click <strong>SWOS</strong> in its drawer, or with WHDLoad,
     <strong>OpenSWOS</strong> in the <strong>OpenSWOSAGA-NE</strong> drawer. Under WHDLoad,
     <strong>Del</strong> quits back to Workbench.</li>
@@ -301,8 +416,8 @@ players need the same version of OpenSWOS.</p>
 <h2 id="help">If something goes wrong</h2>
 <div class="faq">
   <h3>The setup doesn't find my game.</h3>
-  <p>Click <strong>Search a folder…</strong> and pick the folder it's in, or click the
-  <strong>…</strong> beside the missing part and pick it by hand:</p>
+  <p>Drag it onto the window, or click <strong>Search a folder…</strong> and pick the folder it's
+  in, or <strong>Choose another…</strong> and pick it by hand:</p>
   <ul>
     <li><em>PC game</em>: the folder with <code>SPRITE.DAT</code> and a <code>DATA</code>
       folder in it. GOG puts it where you chose when installing, usually under
@@ -312,20 +427,26 @@ players need the same version of OpenSWOS.</p>
       what's on them, not by their names.</li>
   </ul>
 
-  <h3>The Amiga row has a red mark.</h3>
+  <h3>The Amiga version has a red mark.</h3>
   <p>It says why. <em>"…its blocks on the disk are damaged"</em>: that download is broken, try
   another (sensiblesoccer.de's <code>swos2425.hdf</code> and WHDLoad <code>.lha</code> are both
   good). <em>"…is not the 96/97 release or an update of it"</em>: it's an older SWOS (for example
   the original 1994 floppies), which OpenSWOS can't use.</p>
 
-  <h3>"Make the drawer" / "Make the package" stays grey.</h3>
-  <p>The line under it says what's missing: usually the PC version (the Amiga version of OpenSWOS
-  needs both), or the Amiga program, <code>SWOS-Amiga.zip</code>, if you're not running the setup
-  from <code>OpenSWOS-Setup.zip</code>. Click <strong>Choose…</strong> and pick that zip.</p>
+  <h3>The phone doesn't copy anything after scanning the code.</h3>
+  <p>Check the phone and the computer are on the same Wi-Fi (not a guest network), and that
+  Windows was allowed to let OpenSWOS Setup use private networks. On an iPhone, check
+  <strong>Settings → OpenSWOS → Local Network</strong> is on. Close OpenSWOS on the phone (swipe
+  it away) and scan again. Or copy the <code>assets</code> folder by cable, as above.</p>
+
+  <h3>The handheld card isn't found.</h3>
+  <p>Click <strong>Look again</strong> once the card is in, or <strong>Change…</strong> and pick
+  the card's <code>ports</code> folder yourself.</p>
 
   <h3>The game won't start, or starts without graphics or sound.</h3>
-  <p>The game data usually isn't installed. Run OpenSWOS Setup again and check it says
-  <strong>Done</strong>. The game writes what happened to <code>SWOS.log</code>, in the folder below.</p>
+  <p>The game data usually isn't installed. Run OpenSWOS Setup again and check its install screen
+  says <strong>The game's data is installed</strong>. The game writes what happened to
+  <code>SWOS.log</code>, in the folder below.</p>
 
   <h3>Windows or the Mac won't let me open it.</h3>
   <p>OpenSWOS isn't signed. On Windows click <strong>More info → Run anyway</strong>; on a Mac
@@ -347,14 +468,16 @@ players need the same version of OpenSWOS.</p>
   the game data from the setup in <code>assets</code>. Reinstalling or updating OpenSWOS never
   touches them.</p>
 
-  <h3>Still stuck?</h3>
-  <p>Ask on the <a href="https://baker76.itch.io/openswos">OpenSWOS page on itch.io</a>, and
-  include what your <code>SWOS.log</code> says.</p>
+  <h3>Still stuck, or found a bug?</h3>
+  <p>Please report it on <a href="https://github.com/benbaker76/OpenSWOS/issues">github.com/benbaker76/OpenSWOS/issues</a>:
+  say which version you have (the bottom line of the main menu) and what happened, and attach
+  your <code>SWOS.log</code>.</p>
 </div>
 
 <footer>
   <p><a href="/">openswos.net</a> · <a href="https://baker76.itch.io/openswos">Downloads</a> ·
-  <a href="https://github.com/benbaker76/OpenSWOS">Source code</a></p>
+  <a href="https://github.com/benbaker76/OpenSWOS">Source code</a> ·
+  <a href="https://github.com/benbaker76/OpenSWOS/issues">Report a bug</a></p>
   <p>"Sensible World of Soccer" © 1994-97 Sensible Software. OpenSWOS is a fan project and is
   not affiliated with Sensible Software or its current rights holders.</p>
 </footer>

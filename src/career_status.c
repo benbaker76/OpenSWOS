@@ -31,6 +31,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "career_status.h"
+#include "teams.h"
+#include "league_phase.h"
+#include "uefa_coef.h"
+#include "conti_season.h"
 #include "test_rules.h"
 #include "comp_identity.h"
 #include "diy_competition.h"
@@ -136,10 +140,7 @@ extern uint16_t   _removedOfferPlayersFromSelectedTeamCount;
 
 /* Board confidence */
 extern int16_t    _boardConfidenceScore;
-extern int16_t    _boardConfidenceHistory0;
-extern int16_t    _boardConfidenceHistory1;
-extern int16_t    _boardConfidenceHistory2;
-extern int16_t    _boardConfidenceHistory3;
+extern uint16_t   _boardConfidenceHistory[4];     /* (newest first; read signed) */
 
 /* Trophy/win flags */
 extern uint16_t   _wonWorldCup;
@@ -1111,7 +1112,7 @@ static uint16_t calcCupMatchGateReceiptsFactor(TeamFileEx *team1, TeamFileEx *te
  * Complex dispatcher that calculates gate receipts based on competition type.
  */
 __attribute__((used, externally_visible))
-void UpdateCareerFinancesAfterMatch(DIYCompetitionEx *comp, TeamFileEx *team) {
+void UpdateCareerFinancesAfterMatch(DIYCompetitionEx *comp, TeamFileEx *team, TeamFileEx *opponent) {
     if (_isNationalSelector != 0)
         return;
 
@@ -1146,6 +1147,8 @@ void UpdateCareerFinancesAfterMatch(DIYCompetitionEx *comp, TeamFileEx *team) {
         goto league_match;
     } else if (compType == 4) {
         goto cup_match_type4;
+    } else if (compType == 2 && comp->base.hasGroups) {
+        goto diy_comp_match;            /* (a world's state championship in slot 2: states.c) */
     } else if (compType == 1 || compType == 2) {
         goto cup_match_type1or2;
     } else if (compType == 3) {
@@ -1158,10 +1161,9 @@ void UpdateCareerFinancesAfterMatch(DIYCompetitionEx *comp, TeamFileEx *team) {
     }
 
 league_match:
-    d7 = calcLeagueMatchGateReceiptsFactor(team, team /* a2 not used directly, see asm */);
-    /* Actually, asm passes a1=team, a2=team2 separately. For the C version,
-       the league path doesn't use the factor from the cup table;
-       instead it computes a full gate receipt factor from team rank. */
+    /* a1 = the home side, a2 = the opponent (SWOS2.s: CalcLeagueMatchGateReceiptsFactor
+     * weighs both clubs; the C used to pass the home team twice). */
+    d7 = calcLeagueMatchGateReceiptsFactor(team, opponent);
     {
         int16_t isDiy = comp->base.hasGroups;  /* 0x48 */
         if (isDiy != 0) {
@@ -1218,51 +1220,35 @@ league_match:
         int16_t receiptIndex = d3 + (int16_t)factorFromRange;
         _ballSpeed = (uint16_t)receiptIndex;
 
-        /* Multiply by crowd factor from avgSkill (0x30), divide by avg player price */
+        /* Multiply by crowd factor from avgSkill (0x30), divide by avg player price.
+         *
+         * The divisor is GetAveragePlayerPrice(careerTeam) itself (SWOS2.s: `lea careerTeam,a0;
+         * jsr GetAveragePlayerPrice; divu.w d0,d1`), the squad's average price INDEX -- not
+         * the team value CalcGateReceiptsBaseFromTeamValue makes of it, which only the two
+         * factor helpers use. Dividing by that value (thousands, not tens) left nothing:
+         * league home games paid no gate at all, while cup games did (reports: "no gate
+         * receipts for league games, only for cups"; fired for losing money). */
         int8_t crowdFactor = (int8_t)comp->base.avgSkill;  /* 0x30 */
         uint32_t product = (uint32_t)(uint16_t)receiptIndex * (uint16_t)(int16_t)crowdFactor;
-        uint16_t avgPrice = getTeamValueForGateReceipts(&_careerTeam);
+        uint16_t avgPrice = GetAveragePlayerPrice(&_careerTeam);
         if (avgPrice == 0) avgPrice = 1; /* safety */
-        /* The previous port truncated product / avgPrice to an integer
-         * BEFORE applying d7.  For many normal league strengths this
-         * quotient is zero, so home league matches earned nothing.
-         * Keep the fraction until the final division; use 64-bit math
-         * to avoid overflow in the intermediate multiplication. */
-        uint32_t baseReceipts = d7;
-        uint64_t numerator = (uint64_t)baseReceipts * (uint64_t)product;
-        uint64_t denominator = (uint64_t)avgPrice * 100u;
-        uint32_t adjusted = (uint32_t)(numerator / denominator);
-        if (adjusted > 0xffffu)
-            adjusted = 0xffffu;
-        _gateReceiptsFactor = (int16_t)(uint16_t)adjusted;
-        d7 = adjusted;
-        /* Legacy home-match path credits adjusted * 2 * 16. */
-        leagueCreditScaled = (uint64_t)adjusted * 32u * leagueGateMultiplier;
-
-        /* Debug only this branch: the post-match finance display can
-         * otherwise conceal zero gate income behind other movements. */
-        {
-            FILE *log = fopen("swos_finance_debug.log", "a");
-            if (log) {
-                fprintf(log,
-                    "[SWOS FINANCE] LEAGUE home=%d base=%lu rank=%d "
-                    "crowd=%d teamValue=%u amountPreScale=%lu "
-                    "multiplier=%u credit=%lu\n",
-                    team == &_careerTeam,
-                    (unsigned long)baseReceipts, (int)receiptIndex,
-                    (int)crowdFactor, (unsigned)avgPrice,
-                    (unsigned long)adjusted, leagueGateMultiplier,
-                    (unsigned long)(team == &_careerTeam ? leagueCreditScaled : 0u));
-                fclose(log);
-            }
-        }
+        uint16_t priceRatio = (uint16_t)(product / (uint32_t)avgPrice);
+        /* muls.w d1,d7 is a 32-bit product, divs.w #100 then divides it: the product must not
+         * be cut to 16 bits first, as it was. */
+        int32_t gateProduct = (int32_t)(int16_t)d7 * (int32_t)(int16_t)priceRatio;
+        int16_t gateFactorResult = (int16_t)(gateProduct / 100);
+        _gateReceiptsFactor = gateFactorResult;
+        d7 = (uint32_t)(uint16_t)gateFactorResult;
+        /* Career+: league home receipts credited at leagueGateMultiplier times the
+         * original's d7 * 2 * 16 (cups unchanged; final_update below). */
+        leagueCreditScaled = (uint64_t)d7 * 32u * leagueGateMultiplier;
         goto compute_receipts;
     }
 
 cup_match_type4:
     /* compType 4 falls through to cupMatchType1or2 */
 cup_match_type1or2:
-    d7 = calcCupMatchGateReceiptsFactor(team, team);
+    d7 = calcCupMatchGateReceiptsFactor(team, opponent);
     {
         if (compType != 4) {
             /* compType 1 or 2: cup match */
@@ -1284,7 +1270,7 @@ cup_match_type1or2:
     }
 
 diy_comp_match:
-    d7 = calcCupMatchGateReceiptsFactor(team, team);
+    d7 = calcCupMatchGateReceiptsFactor(team, opponent);
     {
         int16_t isDiy = comp->base.hasGroups;  /* 0x48 */
         if (isDiy == 0) {
@@ -1875,7 +1861,7 @@ void InitializeCareerSeasonFinancials(void) {
 static int16_t calcBoardConfidenceDeltaPercent(void) {
     if (_isNationalSelector != 0) {
         if (_seasonFinished == 0)
-            return _boardConfidenceHistory3;
+            return (int16_t)_boardConfidenceHistory[3];
         return seasonReviewConfidenceDeltaTable[_seasonReview];
     }
 
@@ -1891,9 +1877,9 @@ static int16_t calcBoardConfidenceDeltaPercent(void) {
 __attribute__((used, externally_visible))
 int16_t GetBoardConfidenceScore(void) {
     int16_t d0 = calcBoardConfidenceDeltaPercent();
-    d0 += _boardConfidenceHistory0;
-    d0 += _boardConfidenceHistory1;
-    d0 += _boardConfidenceHistory2;
+    d0 += (int16_t)_boardConfidenceHistory[0];
+    d0 += (int16_t)_boardConfidenceHistory[1];
+    d0 += (int16_t)_boardConfidenceHistory[2];
     d0 += _boardConfidenceScore;
     return d0;
 }
@@ -1928,11 +1914,11 @@ int16_t UpdateBoardConfidenceScore(void) {
 /* PushBoardConfidenceHistory */
 __attribute__((used, externally_visible))
 int16_t PushBoardConfidenceHistory(void) {
-    _boardConfidenceHistory3 = _boardConfidenceHistory2;
-    _boardConfidenceHistory2 = _boardConfidenceHistory1;
-    _boardConfidenceHistory1 = _boardConfidenceHistory0;
+    _boardConfidenceHistory[3] = _boardConfidenceHistory[2];
+    _boardConfidenceHistory[2] = _boardConfidenceHistory[1];
+    _boardConfidenceHistory[1] = _boardConfidenceHistory[0];
     int16_t d0 = calcBoardConfidenceDeltaPercent();
-    _boardConfidenceHistory0 = d0;
+    _boardConfidenceHistory[0] = (uint16_t)d0;
     return d0;
 }
 
@@ -2111,11 +2097,17 @@ check_tertiary_winner:
     if (_selTeamNumber != _euroCupsCompetitionContextBuf.tourn.header.winnerTeam)
         return;
 
-    if (_euroCupSlotIndex == 0 || _euroCupSlotIndex == 3) {
+    if ((_euroCupSlotIndex == 7 || _euroCupSlotIndex == 8) && Conti_TrophyTier() < 0)
+        return;                         /* (another confederation's tie: a trophy only as its cup's final) */
+    if (_euroCupSlotIndex == 9)
+        return;                         /* (a world's group contest: a title, not a cup) */
+    const uint16_t euroIdx = _euroCupSlotIndex == 7 || _euroCupSlotIndex == 8 ? (uint16_t)Conti_TrophyTier()
+                           : _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
+    if (euroIdx == 0 || euroIdx == 3) {  /* (4..6: a world's qualifying tie, its cup's tier) */
         /* European Cup (0) or Copa Libertadores (3): the premier continental club
          * cup -> major trophy bonus. */
         _majorTrophyBonusActive = 1;
-    } else if (_euroCupSlotIndex == 2) {
+    } else if (euroIdx == 2) {
         _cupBonus2Active = 1;
     } else {
         _cupBonus1Active = 1;
@@ -2716,6 +2708,8 @@ uint8_t *TrainingMatch_AddTrialPlayerAtPosition(uint16_t position)
 
     /* Set shirtNumber as a flag (used as a marker here) */
     pf->shirtNumber = 0x10;
+    if (_selTeamNumber == BE_READ_U16(&_careerTeam))
+        SquadNumbers_Free(freeSlot);    /* (real squad numbers: a free one, teams.c) */
 
     /* Store position into positionAndFace (position << 5) */
     pf->positionAndFace = (uint8_t)(position << PF_POSITION_SHIFT);
@@ -3170,9 +3164,13 @@ void Career_InitializeNewSeasonFinances(void)
         int16_t bonus = (int8_t)_euroCupsCompetitionContextBuf.tourn.header.trophyBonusValue;
         uint32_t d0;
 
-        if (_euroCupSlotIndex == 1) {
+        const uint16_t euroIdx = _euroCupSlotIndex == 7 ? 1     /* (another confederation's cups) */
+                               : _euroCupSlotIndex == 9 ? 2     /* (a world's group contest) */
+                               : _euroCupSlotIndex == 8 ? (uint16_t)(Conti_TrophyTier() < 0 ? 1 : Conti_TrophyTier())
+                               : _euroCupSlotIndex >= 4 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
+        if (euroIdx == 1) {             /* (4..6: a world's qualifying tie, its cup's tier) */
             d0 = (uint32_t)((uint16_t)bonus) * 62644;
-        } else if (_euroCupSlotIndex == 2) {
+        } else if (euroIdx == 2) {
             d0 = (uint32_t)((uint16_t)bonus) * 41668;
             d0 <<= 1;
         } else {
@@ -3422,7 +3420,7 @@ void Career_AutoAdvanceCompetitionAndPersistSlotState(uint8_t *compPtr)
         const char *bailReason = 0;
         uint32_t bailTeamSelPtr = 0;
 
-        if (numTeams <= 0 || numTeams > 32) {
+        if (numTeams <= 0 || numTeams > LEAGUE_PHASE_CLUBS) {   /* (a world's league phase: 36) */
             bail = 1;
             bailReason = "numTeams out of range";
         } else if (totalInRound <= 0 || totalInRound > 32) {
@@ -4611,6 +4609,8 @@ void Career_SetCurrentCompetitionSlot(uint8_t *comp, uint16_t slot, uint16_t div
             if (compType == 0 || compType == 2)
                 goto validated;
         }
+        if (compType == 2 && slot == 2 && (uint8_t)compHdr->compId == COMPID_stateContest)
+            goto validated;                     /* (a world's state championship: states.c) */
         /* Default: compType must be 1 */
         if (compType != 1)
             goto panic_mismatch;

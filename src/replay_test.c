@@ -146,7 +146,7 @@ static struct {
  * Globals the rig drives
  * =================================================================== */
 
-extern TeamFileEx        _selectedTeams[100];
+extern TeamFileEx        _selectedTeams[SELECTED_TEAMS_MAX];
 extern uint16_t          _numSelectedTeams;
 extern TeamGame          _topTeamInGame, _bottomTeamInGame;
 extern TeamGeneralInfo   _topTeamData, _bottomTeamData;
@@ -338,7 +338,7 @@ static const char * const k_infoMemberNames[] = {
 static const MemberDesc k_playerMembers[] = {
     P(skip, RT_S8), P(playerIndex, RT_S8), P(goalsScored, RT_S8),
     P(shirtNumber, RT_S8), P(position, RT_S8), P(face, RT_S8),
-    P(isInjured, RT_S8), P(field_7, RT_S8), P(field_8, RT_S8),
+    P(isInjured, RT_S8), { "field_7", RT_S8, (uint16_t)offsetof(PlayerInfo, blond) },   /* (blond: the recordings' name) */ P(field_8, RT_S8),
     P(previousCards, RT_S8), P(numYellowCards, RT_S8), P(field_B, RT_S8),
     P(passing, RT_S8), P(shooting, RT_S8), P(heading, RT_S8),
     P(tackling, RT_S8), P(ballControl, RT_S8), P(speed, RT_S8),
@@ -1171,9 +1171,9 @@ static void applySetup(void)
      * must NOT pin the RNG -- a Rand() that returns a constant would hide every RNG
      * variable the rollback registry is missing. */
     if (!Rollback_Enabled()) {
-        if (!_gDosGameplay) {
-            fprintf(stderr, "[replay] forcing --dos-gameplay=on (the corpus is DOS)\n");
-            _gDosGameplay = 1;
+        if (_gGameplayStyle != GAMEPLAY_DOS) {
+            fprintf(stderr, "[replay] forcing --gameplay=dos (the corpus is DOS)\n");
+            Gameplay_SetStyle(GAMEPLAY_DOS);
         }
         _replayFixedRandom = s_setup.fixedRandomValue;
     }

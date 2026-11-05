@@ -3,7 +3,7 @@
   "source": {
     "project": "swos-2020",
     "file": "src/menus/hostGameMessage.mnu",
-    "commit": "ebf1cc4"
+    "commit": "df38d20"
   },
   "menu_flags": {
     "dos_redraw": true
@@ -226,6 +226,31 @@
         {
           "op": "onselect_fire",
           "func": "hostGameMessageMenu_exit_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "button3",
+      "coords": {
+        "x": 52,
+        "y": 169,
+        "w": 200,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "onselect_fire",
+          "func": "hostGameMessageMenu_button3_OnSelect"
         }
       ]
     }

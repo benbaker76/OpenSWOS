@@ -26,10 +26,13 @@ extern uint16_t _bigNumbersColorConversionTable[];
  * _bigNumbersColorConversionTable int16 array — i.e. int16 indices
  * 48/61/74. Without this FillSkinColorConversionTable reads NULL
  * and segfaults. */
-void *_skinAndHairColorConversionTable[3] = {
+/* face 3 (the SWOS 96/97 Mod's blond.py): black skin, the hair yellow (15) and orange (6) */
+static int16_t kSkinAndHairBlond[13] = { 6, 4, 5, 4, 4, 3, 13, 15, 9, 15, 12, 6, -1 };
+void *_skinAndHairColorConversionTable[4] = {
     (_bigNumbersColorConversionTable + 48),
     (_bigNumbersColorConversionTable + 61),
     (_bigNumbersColorConversionTable + 74),
+    kSkinAndHairBlond,
 };
 
 extern const char _aTspvhcfstpvhcf[];
@@ -187,6 +190,26 @@ extern char _aPremDiv[];
 extern char _aPremierDivisio[];
 extern char _aQF[];
 extern char _aQFinal[];
+extern char _aLast16[];
+extern char _aRoundOf16[];
+extern char _aRoundOf32[];
+extern char _aRoundOf64[];
+extern char _aPrelimRound[];
+extern char _aLast32[];
+extern char _aLast64[];
+extern char _aPrelim[];
+extern char _aWildCard[];
+extern char _aRoundOneGame1[];
+extern char _aRoundOneGame2[];
+extern char _aRoundOneGame3[];
+extern char _aConfSemiFinals[];
+extern char _aConfFinal[];
+extern char _aMlsCup[];
+extern char _aR1Game1[];
+extern char _aR1Game2[];
+extern char _aR1Game3[];
+extern char _aConfSemis[];
+extern char _aConfFinal_0[];
 extern char _aQuarterFinal[];
 extern char _aRb[];
 extern char _aRememberUnless[];
@@ -850,16 +873,16 @@ ON_OFF_TABLE(_allPlTeamsEqualStrTable, _allPlayerTeamsEqual);
 ON_OFF_TABLE(_autoSaveHlStrTable,      _autoSaveHighlights);
 ON_OFF_TABLE(_menuMusicStrTable,       _menuMusic);
 
-/* OPTIONS -> GAMEPLAY: AMIGA / DOS, indexed by _gameplayStyleOption
- * (dos_gameplay.c). Same shape as the ON/OFF tables above; spelled out because
- * the entries are not _aOff/_aOn. */
-extern char _aAmigaStyle[], _aDosStyle[];
+/* OPTIONS -> GAMEPLAY: AMIGA / DOS / XBOX, indexed by _gameplayStyleOption
+ * (dos_gameplay.c, GAMEPLAY_*; the Amiga build never reaches XBOX). Same shape as
+ * the ON/OFF tables above; spelled out because the entries are not _aOff/_aOn. */
+extern char _aAmigaStyle[], _aDosStyle[], _aXboxStyle[];
 extern uint16_t _gameplayStyleOption;
 struct __attribute__((packed)) {
-    void    *indexPtr; uint16_t base; void    *entries[2];
+    void    *indexPtr; uint16_t base; void    *entries[3];
 } _gameplayStyleStrTable = {
     (&_gameplayStyleOption), 0,
-    { (void *)_aAmigaStyle, (void *)_aDosStyle }
+    { (void *)_aAmigaStyle, (void *)_aDosStyle, (void *)_aXboxStyle }
 };
 
 /* OPTIONS -> PITCHES: DOS / 2020, indexed by _pitchStyleOption (pitch.c). */
@@ -870,6 +893,17 @@ struct __attribute__((packed)) {
 } _pitchStyleStrTable = {
     (&_pitchStyleOption), 0,
     { (void *)_aDosStyle, (void *)_a2020Style }
+};
+
+/* OPTIONS -> WORLD: 96/97 / 2026-27, indexed by _worldOption (world.c): the world
+ * SWOS.ini names, which the game plays from its next start (menus.c ChangeWorld). */
+extern char _aWorld9697[], _aWorld2627[];
+extern uint16_t _worldOption;
+struct __attribute__((packed)) {
+    void    *indexPtr; uint16_t base; void    *entries[2];
+} _worldStrTable = {
+    (&_worldOption), 0,
+    { (void *)_aWorld9697, (void *)_aWorld2627 }
 };
 
 #undef ON_OFF_TABLE
@@ -976,6 +1010,13 @@ _diyStage##N##PlayCountStrTab = { STAGE_PTR((N) - 1, 8), 1, { PLAYCOUNT_4 } }
 DEFINE_PLAY(1); DEFINE_PLAY(2); DEFINE_PLAY(3);
 DEFINE_PLAY(4); DEFINE_PLAY(5); DEFINE_PLAY(6);
 #undef DEFINE_PLAY
+
+/* The first stage's "PLAY EACH TEAM X 1" in another text while a contest that needs it is shown
+ * (a world's league phase: "8 OPPONENTS, ONCE"), 0 = the game's own (diy_competition.c). */
+void DIY_SetFirstStagePlayOnceText(const char *text)
+{
+    _diyStage1PlayCountStrTab.entries[0] = text ? (void *)text : (void *)_aPlayEachTeamX1;
+}
 
 #undef STAGE_PTR
 #undef MONTHS
@@ -1400,7 +1441,7 @@ void *_divStringTable[4] = {
     _aDiv2,
     _aDiv3,
 };
-void *_cupRoundStringTable[12] = {
+void *_cupRoundStringTable[23] = {
     _aFirstRound,
     _aSecondRound,
     _aThirdRound,
@@ -1413,8 +1454,19 @@ void *_cupRoundStringTable[12] = {
     _aFinalGroup,
     _aThirdPlacePlay,
     _aFinalGroups,
+    _aRoundOf16,             /* 12: a world cup's round of 16 (world_cups.c) */
+    _aRoundOf32,             /* 13: the Coppa Italia Serie D's (world_cupd.c) */
+    _aRoundOf64,             /* 14 */
+    _aPrelimRound,           /* 15 */
+    _aWildCard,              /* 16: a world's MLS play-off (world_playoff.c) */
+    _aRoundOneGame1,         /* 17 */
+    _aRoundOneGame2,         /* 18 */
+    _aRoundOneGame3,         /* 19 */
+    _aConfSemiFinals,        /* 20 */
+    _aConfFinal,             /* 21 */
+    _aMlsCup,                /* 22 */
 };
-void *_roundStringTable[12] = {
+void *_roundStringTable[23] = {
     _aRound1,
     _aRound2,
     _aRound3,
@@ -1427,6 +1479,17 @@ void *_roundStringTable[12] = {
     _aFinalGroup_0,
     _a3rdPlayOff,
     _aFinalGroups_0,
+    _aLast16,                /* 12 */
+    _aLast32,                /* 13 */
+    _aLast64,                /* 14 */
+    _aPrelim,                /* 15 */
+    _aWildCard,              /* 16 */
+    _aR1Game1,               /* 17 */
+    _aR1Game2,               /* 18 */
+    _aR1Game3,               /* 19 */
+    _aConfSemis,             /* 20 */
+    _aConfFinal_0,           /* 21 */
+    _aMlsCup,                /* 22 */
 };
 void *_rndStringTable[15] = {
     _aRnd1,

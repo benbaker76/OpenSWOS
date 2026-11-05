@@ -377,7 +377,7 @@
       "name": "note",
       "coords": {
         "x": 12,
-        "y": 136,
+        "y": 150,
         "w": 296,
         "h": 12
       },
@@ -401,7 +401,7 @@
         {
           "op": "text",
           "flags": "0x0",
-          "literal": "NO OWN KEYS"
+          "literal": "DEFAULT KEYS"
         },
         {
           "op": "colors",
@@ -451,6 +451,60 @@
         {
           "op": "onselect_fire",
           "func": "controlsMenu_exit_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "touchLabel",
+      "coords": {
+        "x": 32,
+        "y": 134,
+        "w": 92,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "ON-SCREEN"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "touch",
+      "coords": {
+        "x": 132,
+        "y": 134,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 13,
+          "down": 15
+        },
+        {
+          "op": "onselect_fire",
+          "func": "controlsMenu_touch_OnSelect"
         }
       ]
     }

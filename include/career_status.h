@@ -33,7 +33,7 @@ int16_t GetAgeAdjustedPlayerFormFactor(uint8_t *playerBase);
 /* --- Financial management --- */
 void ClampNewBalanceAndUpdateClubStatus(void);
 void ClearOverdraftStateIfRecovered(void);
-void UpdateCareerFinancesAfterMatch(DIYCompetitionEx *comp, TeamFileEx *team);
+void UpdateCareerFinancesAfterMatch(DIYCompetitionEx *comp, TeamFileEx *team, TeamFileEx *opponent);
 void ApplyWeeklyFinancialDeductions(void);
 void InitializeCareerSeasonFinancials(void);
 

@@ -465,12 +465,22 @@ char _aMenuMusic[] = "MENU MUSIC";
 char _aGameplay[] = "GAMEPLAY";
 char _aAmigaStyle[] = "AMIGA";
 char _aDosStyle[] = "DOS";
+char _aXboxStyle[] = "XBOX";
 /* OPTIONS -> CONTROLS: the player's own keys (SDL; src/controls_menu.c). */
 char _aControls[] = "CONTROLS";
 char _aRedefineKeys[] = "REDEFINE KEYS";
 /* OPTIONS -> PITCHES: DOS / 2020, which pitches the AGA Amiga draws (pitch.c). */
 char _aPitches[] = "PITCHES";
+/* OPTIONS -> WORLD (menus.c ChangeWorld): its label and its two values. */
+char _aWorldOption[] = "WORLD";
+char _aWorld9697[] = "96/97";
+char _aWorld2627[] = "2026-27";
 char _a2020Style[] = "2020";
+/* OPTIONS -> MODS (menus.c ShowModsMenu, src/mods_menu.c): its label, and its value with none on
+ * (the SDL build writes how many are on over it, OptionsMenuBeforeDraw). */
+char _aModsOption[] = "MODS";
+char _aModes[] = "MODES";
+char _aModsNone[] = "NONE";
 char _aGoals[] = "GOALS";
 char _aForm[] = "FORM";
 char _aLge[] = "LGE";

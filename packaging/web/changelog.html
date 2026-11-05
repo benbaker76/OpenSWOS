@@ -2,7 +2,9 @@
 <!--
   The changelog: the record of every drop. Releases are on itch.io
   (https://baker76.itch.io/openswos); each drop's entry also goes in its devlog post there.
-  (Until 2026-10-20 this page was published on baker76.com; it no longer is.)
+  Published at openswos.net/changelog.html and shown on the front page (packaging/web/site/
+  index.html) in a frame: after a drop, copy it to /var/www/openswos.net/ on the server.
+  Always dark, like the page it sits in. (Until 2026-10-20 it was on baker76.com.)
 
   ADDING A RELEASE: copy the first <article>, put the new build (the short hash the main
   menu shows) and its build time in it -- the commit and the "done" time in
@@ -15,6 +17,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpenSWOS changelog</title>
+<meta name="color-scheme" content="dark">
+<base target="_top">
 <style>
   :root {
     --bg: #12160f;
@@ -23,16 +27,6 @@
     --text: #e8ece3;
     --muted: #9aa78e;
     --accent: #7fd34e;
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #f4f6f1;
-      --panel: #ffffff;
-      --line: #d8ded0;
-      --text: #1a1f16;
-      --muted: #5d6a52;
-      --accent: #3d7a1c;
-    }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
@@ -55,6 +49,152 @@
 </style>
 </head>
 <body>
+
+<article>
+  <header><code>c07f39fc</code><time datetime="2026-11-04T19:14Z">2026-11-04 19:14 UTC</time></header>
+  <ul>
+    <li>Handhelds: the PortMaster download (swos.zip) and the copy of it inside OpenSWOS Setup were the wrong file -- PortMaster's autoinstall failed, and the setup's Handheld screen found no port to put on the card. Both are the real port now: download again, then autoinstall swos.zip or run the setup's Handheld screen.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>f1b83478</code><time datetime="2026-11-04T18:02Z">2026-11-04 18:02 UTC</time></header>
+  <ul>
+    <li>World 2026-27: Serbia is Serbia -- its league, clubs and players were named Yugoslavia (YUGOSLAVIAN LEAGUE, players YUG). 96/97 is unchanged. The World 2026-27 download stays the same.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>db78488c</code><time datetime="2026-11-04T05:55Z">2026-11-04 05:55 UTC</time></header>
+  <ul>
+    <li>OpenSWOS Setup: the step-by-step guide is now the whole setup -- Advanced mode is gone. What it had moved in: Details (what will be made, and the log) on the install screen, and Stop and Start over on the screens where you get the game.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>be4cd8ca</code><time datetime="2026-11-04T05:06Z">2026-11-04 05:06 UTC</time></header>
+  <ul>
+    <li>OpenSWOS Setup is now a step-by-step guide: tick where you will play (this computer, a phone or tablet, a handheld, an Amiga), and it shows one screen at a time for only what that needs -- getting the game, the game's options before you first start it, installing, and copying it over. In English, Deutsch, Français, Español, Italiano and Nederlands (the flag at the top). Advanced mode keeps the old single screen. The install guide (INSTALL.md, openswos.net/install) is rewritten around it.</li>
+    <li>Phones and tablets: the game's data is copied over Wi-Fi -- scan the QR code on the setup's phone screen, or on Android tap Copy from my computer. No cable needed.</li>
+    <li>Handhelds: OpenSWOS for PortMaster (R36S, Anbernic, TrimUI and more), with online play -- thanks to John Hobson (jhob101). The setup puts it on the handheld's SD card with the game's data and your options.</li>
+    <li>A third gameplay style, XBOX: SWOS 2020's -- 60 fps, the Amiga's ball, the PC game's goalkeepers. OPTIONS &rarr; GAMEPLAY.</li>
+    <li>ESC in a match now asks QUIT THE MATCH? first -- RESUME or QUIT -- so a stray key or trigger no longer ends it (not online).</li>
+    <li>A frame less input lag: the controls are read again just before each frame.</li>
+    <li>The benches no longer swap sides when a substitute comes on.</li>
+    <li>Career: the Copa Libertadores now comes round in the season -- it never did.</li>
+    <li>Career: (H)/(A) is shown on two-legged cup ties and on a world's league phase.</li>
+    <li>World 2026-27: VIEW WORLD lists the world's European cups; viewing one after the first season stopped the game.</li>
+    <li>Online: both players need this version to play each other.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>4708b6ab</code><time datetime="2026-11-03T05:16Z">2026-11-03 05:16 UTC</time></header>
+  <ul>
+    <li>World 2026-27: VIEW WORLD's Europe no longer runs its cups over the screen's title and its last countries under EXIT -- a list too long for the screen is drawn a little tighter.</li>
+    <li>World 2026-27: long competition names in a career's fixture list no longer run into the (H)/(A) beside them. They are shortened as the SWOS 96/97 Mod shortens them (GHANA PREM., SERIE D GIR. A).</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>f00c9b54</code><time datetime="2026-11-02T23:31Z">2026-11-02 23:31 UTC</time></header>
+  <ul>
+    <li>CREDITS: a big thanks to Aminta, for World 2026-27 and its competition rules.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>42700097</code><time datetime="2026-11-02T21:33Z">2026-11-02 21:33 UTC</time></header>
+  <ul>
+    <li>OpenSWOS on Android and iPhone/iPad: the same game, with on-screen controls (a stick and FIRE) or a Bluetooth controller. Run OpenSWOS Setup on a PC or Mac and copy its assets folder to the phone (INSTALL: Android, iPhone/iPad). The iPhone version is for sideloading (AltStore, Sideloadly).</li>
+    <li>OPTIONS &rarr; WORLD chooses 96/97 or World 2026-27, played from the next time the game starts. A save is always played in the world it was made in.</li>
+    <li>World 2026-27 is now the SWOS 96/97 Mod 4.0.5's: its clubs, players, play-offs, cups and parallel groups, by the Mod's own rules. Get it from the link on the World 2026-27 row of OpenSWOS Setup, then Install.</li>
+    <li>macOS: going fullscreen on a second screen no longer leaves the picture the wrong size (GitHub issue #5).</li>
+    <li>Players walking off at half time and full time now disappear where they gather at the exit, instead of at the touchline.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>bc48180a</code><time datetime="2026-11-01T22:47Z">2026-11-01 22:47 UTC</time></header>
+  <ul>
+    <li>Online: two players with different pitch graphics (the SWOS 2020 pitches against the Amiga's, or game data from a different release) went out of step at kick-off -- THE TWO GAMES WENT OUT OF STEP. They now play the host's crowd, each seeing its own.</li>
+    <li>Online: both players need this version to play each other.</li>
+    <li>On a wide screen the players no longer vanish in mid-picture as they walk off at half time and full time: they go as they cross the touchline.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>78b6ea51</code><time datetime="2026-11-01T16:44Z">2026-11-01 16:44 UTC</time></header>
+  <ul>
+    <li>OPTIONS are kept between runs: game length, pitch type, auto replays, all player teams equal, auto save highlights and menu music now stay as you left them (SWOS.ini, [options]). A loaded career still plays its own.</li>
+    <li>Online: SWOS 2020's menu entries for things OpenSWOS does not have are gone -- NEWS on the log-in, and the chat, commentary, Discord and help rows of MULTIPLAYER SETTINGS. Its MY CUSTOM TEAM now opens your custom teams.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>cf52ebca</code><time datetime="2026-11-01T08:31Z">2026-11-01 08:31 UTC</time></header>
+  <ul>
+    <li>Career: a career loaded at the end of the league season played its division's play-offs with the player's own club in every place ("me v me"), then froze on VIEW RESULT or stopped at the season end. A loaded career now finds its play-offs, and its promoted and relegated clubs, as one played straight through does.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>ac11f9f9</code><time datetime="2026-11-01T03:51Z">2026-11-01 03:51 UTC</time></header>
+  <ul>
+    <li>Online: a chat in the lobby -- type to the other player while you pick teams and tactics; the bot says when they connect and gives the score at full time.</li>
+    <li>Online: FRAME DELAY in the lobby adds up to 4 frames to the automatic input delay, for a link that stutters. The match plays the larger of the two players' choices.</li>
+    <li>Online: both players need this version to play each other.</li>
+    <li>Two screens: moving the window to a screen of another shape (a laptop to an ultrawide) now fills that screen, fullscreen or not -- the picture used to keep the shape of the screen the game opened on.</li>
+    <li>Highlights: SAVE HIGHLIGHTS after loading a whole-match replay (LATEST or a dated one) now keeps a copy of that replay; it used to save an empty highlights file that went straight back to the menu.</li>
+    <li>The browser version: a new Export button (under Import) downloads your saves, settings and the game's log as one zip -- a backup, and what we need with a bug report.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>3881f54b</code><time datetime="2026-10-31T05:25Z">2026-10-31 05:25 UTC</time></header>
+  <ul>
+    <li>Online: the input delay now follows the ping in a fixed table (DOS: 1 frame up to 35 ms, 2 to 70, 3 to 140, 4 to 210, then 5; Amiga: 1 up to 50 ms, 2 to 99, 3 to 175, then 4), and is never 0.</li>
+    <li>Online: the host's CATCH UP and BALANCE switches are gone; testing found them causing problems. Both players need this version to play each other.</li>
+    <li>The browser version on a phone or tablet: typing a name (a save file, a team, your online name) brings up the on-screen keyboard.</li>
+    <li>The menus have the original Amiga game's colours again: TRANSFERS and CLUB BUSINESS in the career are dark blue, not grey.</li>
+    <li>On a wide screen the players walk off the pitch at half time and full time, instead of standing in a row at the edge of the screen.</li>
+    <li>OPTIONS &rarr; CONTROLS shows the keys each control really uses (CURSOR UP &hellip; CTRL, or yours and it) instead of NOT SET; its button is DEFAULT KEYS.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>824aff0f</code><time datetime="2026-10-25T19:17Z">2026-10-25 19:17 UTC</time></header>
+  <ul>
+    <li>OpenSWOS Setup has an About window: the info button at its top right.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>1b9f6517</code><time datetime="2026-10-25T13:21Z">2026-10-25 13:21 UTC</time></header>
+  <ul>
+    <li>Online: you no longer need exactly the same build as the other player. Builds that play a match the same way can play each other, and the game list only shows games you can join. This build cannot play older ones, so both players need to update once.</li>
+    <li>The setup on macOS carries its own files, so it no longer fails with "cannot open setup/glyphs.txt" when macOS runs it from a hidden copy. When that happens it says how to fix it.</li>
+    <li>Coming back from REDEFINE KEYS, the OPTIONS menu no longer shows PITCHES / DOS in place of CONTROLS.</li>
+    <li>A name can have a "-" in it: the key no longer shrinks the window while you type.</li>
+    <li>Turning MENU MUSIC off no longer freezes the menu while the music fades out.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>0b040d9a</code><time datetime="2026-10-24T22:59Z">2026-10-24 22:59 UTC</time></header>
+  <ul>
+    <li>Career: league home games pay their gate receipts again. Only cup games used to, so clubs lost money all season and managers were sacked for it.</li>
+    <li>When the game is paused, the clock and the team names stay on screen instead of disappearing after a moment.</li>
+    <li>OpenSWOS Setup starts on PCs without working OpenGL, where it used to close straight away. It now keeps a setup.log beside the game's assets folder.</li>
+  </ul>
+</article>
+
+<article>
+  <header><code>df950cec</code><time datetime="2026-10-23T02:39Z">2026-10-23 02:39 UTC</time></header>
+  <ul>
+    <li>OpenSWOS Setup's Amiga tab shows a Workbench drawer for the SWOS drawer: open when it is the one you have chosen.</li>
+  </ul>
+</article>
 
 <article>
   <header><code>e17604f7</code><time datetime="2026-10-23T01:39Z">2026-10-23 01:39 UTC</time></header>

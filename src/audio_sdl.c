@@ -54,6 +54,9 @@ static int          sfx_act(void)        { return s_sfx_use_second ? s_sfx_activ
 static void         sfx_set_act(int v)   { if (s_sfx_use_second) s_sfx_active = v; else s_player_active = v; }
 
 static int               s_master_volume;   /* 0..64, scales final output */
+static int               s_fade_ticks, s_fade_left, s_fade_from;   /* AudioSDL_FadeOutSong */
+static void fade_finish_locked(void);
+static void stop_song_locked(void);
 /* Down-mix flag. The Amiga's 4 channels are hard-panned (1,2 → left ;
  * 0,3 → right) by Paula and so by the cyxx player ported to rjp1.c. On
  * speakers without strong stereo separation that hard pan sounds
@@ -272,6 +275,13 @@ void AudioSDL_Tick(void)
         return;
     }
 
+    if (s_fade_left > 0) {
+        s_fade_left--;
+        s_master_volume = s_fade_from * s_fade_left / s_fade_ticks;
+        if (s_fade_left == 0)
+            stop_song_locked();
+    }
+
     if (s_player_active) {
         SDL_memset(s_mix_buf, 0, (size_t)samples_per_tick);
         RJP1_HandleTick(&s_player);
@@ -443,6 +453,7 @@ int AudioSDL_StartSong(const uint8_t *song_data, int song_size,
     return 0;
 #endif
     SDL_LockMutex(s_mtx);
+    fade_finish_locked();
     DosMusic_Stop();
     MusicStream_Stop();
 
@@ -477,19 +488,50 @@ int AudioSDL_StartSong(const uint8_t *song_data, int song_size,
     return 0;
 }
 
-void AudioSDL_StopSong(void)
+static void stop_song_locked(void)
 {
-#if SWOS_AUDIO_DISABLED
-    return;
-#endif
-    SDL_LockMutex(s_mtx);
     DosMusic_Stop();
     MusicStream_Stop();
     if (s_player_active)
         RJP1_StopAll(&s_player);
     s_player_active = 0;
     s_loop_song = 0;
+}
+
+void AudioSDL_StopSong(void)
+{
+#if SWOS_AUDIO_DISABLED
+    return;
+#endif
+    SDL_LockMutex(s_mtx);
+    s_fade_left = 0;
+    stop_song_locked();
     SDL_UnlockMutex(s_mtx);
+}
+
+/* Fade the song out over `ticks` mixer ticks (50 a second), then stop it: StopMusic's
+ * fade, run by the mixer so the caller does not wait (OPTIONS -> MENU MUSIC off). */
+void AudioSDL_FadeOutSong(int ticks)
+{
+#if SWOS_AUDIO_DISABLED
+    (void)ticks;
+    return;
+#endif
+    SDL_LockMutex(s_mtx);
+    s_fade_from = s_master_volume;
+    s_fade_ticks = s_fade_left = ticks > 0 ? ticks : 1;
+    SDL_UnlockMutex(s_mtx);
+}
+
+/* Anything else that plays or sets the volume ends a fade at once: the song it was
+ * fading is stopped (never left playing at the new volume), and the fade's last tick
+ * cannot stop what is started after it (a match's effects share the player). */
+static void fade_finish_locked(void)
+{
+    if (s_fade_left > 0) {
+        s_fade_left = 0;
+        stop_song_locked();
+    }
 }
 
 /* Start sound_dos/<name>.mp3 in place of an Amiga song. Returns 0 when it is playing,
@@ -504,6 +546,7 @@ int AudioSDL_StreamStart(const char *name, int loop)
     if (!s_audio_dev || !s_mtx)
         return -1;
     SDL_LockMutex(s_mtx);
+    fade_finish_locked();
     DosMusic_Stop();
     ok = MusicStream_Start(name, loop);
     if (ok) {
@@ -527,6 +570,7 @@ int AudioSDL_PcMusicStart(void)
     if (!s_audio_dev || !s_mtx || !DosMusic_Load())
         return -1;
     SDL_LockMutex(s_mtx);
+    fade_finish_locked();
     if (s_player_active)
         RJP1_StopAll(&s_player);
     s_player_active = 0;
@@ -741,6 +785,7 @@ int AudioSDL_LoadSfxBank(const uint8_t *song_data, int song_size,
     return 0;
 #endif
     SDL_LockMutex(s_mtx);
+    fade_finish_locked();
 
     if (!s_sfx_use_second)
         MusicStream_Stop();
@@ -860,6 +905,11 @@ void AudioSDL_SetMasterVolume(int vol_0_64)
 {
     if (vol_0_64 < 0) vol_0_64 = 0;
     if (vol_0_64 > 64) vol_0_64 = 64;
+    if (s_fade_left > 0 && s_mtx) {
+        SDL_LockMutex(s_mtx);
+        fade_finish_locked();
+        SDL_UnlockMutex(s_mtx);
+    }
     /* int write is atomic enough for a volume gate — no need to lock. */
     s_master_volume = vol_0_64;
 }

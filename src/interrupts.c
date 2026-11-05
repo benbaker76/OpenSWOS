@@ -242,8 +242,11 @@ void _Int3TimerHandler(void)
      * rig takes both over and advances them itself, once per frame. */
     /* ...and a netplay match's frame step, which advances them itself and then runs
      * this (NetplayMatch_OwnsClock: until 2026-09-29 an online match counted two). */
+    /* ...and the career autopilot (--career-golden), which advances it once per menu pass. */
     { extern int ReplayTest_OwnsGameTick(void); extern int32_t NetplayMatch_OwnsClock(void);
-      if (!ReplayTest_OwnsGameTick() && !NetplayMatch_OwnsClock()) _currentTick++; }
+      extern int32_t CareerAutopilot_OwnsClock(void);
+      if (!ReplayTest_OwnsGameTick() && !NetplayMatch_OwnsClock() && !CareerAutopilot_OwnsClock())
+          _currentTick++; }
 #else
     _currentTick++;
 #endif

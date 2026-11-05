@@ -82,14 +82,16 @@ command -v cmake >/dev/null || { echo "run_matchmaker: cmake not found" >&2; exi
 
 [ "$REBUILD" = 1 ] && rm -rf "$BUILD_DIR"
 
-if [ ! -x "$BIN" ] || [ "$REBUILD" = 1 ]; then
-    echo "== building $BIN"
+if [ ! -f "$BUILD_DIR/CMakeCache.txt" ] || [ "$REBUILD" = 1 ]; then
     cmake -S "$SRC_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release >/dev/null ||
         { echo "run_matchmaker: cmake configure failed" >&2; exit 1; }
-    cmake --build "$BUILD_DIR" -j"$(nproc 2>/dev/null || echo 4)" >/dev/null ||
-        { echo "run_matchmaker: build failed" >&2; exit 1; }
-    echo "-- built $(ls -lh "$BIN" | awk '{print $5}')"
 fi
+# Every time, incrementally (nothing to do: a moment): a server built before its sources
+# changed -- the team list (TeamRegistry.inc) above all -- answered with the old ones.
+before=$(stat -c %Y "$BIN" 2>/dev/null || echo 0)
+cmake --build "$BUILD_DIR" -j"$(nproc 2>/dev/null || echo 4)" >/dev/null ||
+    { echo "run_matchmaker: build failed" >&2; exit 1; }
+[ "$(stat -c %Y "$BIN" 2>/dev/null || echo 0)" != "$before" ] && echo "-- built $BIN ($(ls -lh "$BIN" | awk '{print $5}'))"
 
 if [ "$WITH_PLAYBACK" = 1 ]; then
     scripts/build_playback.sh

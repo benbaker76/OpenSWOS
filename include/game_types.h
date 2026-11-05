@@ -251,7 +251,7 @@ struct PlayerInfo {
     int8_t  position;           /* 4 */
     int8_t  face;               /* 5 */
     int8_t  isInjured;          /* 6 */
-    int8_t  field_7;            /* 7 */
+    int8_t  blond;              /* 7: face 3 (black, blond hair), its face 2 (player_face3.c) */
     int8_t  field_8;            /* 8 */
     int8_t  previousCards;      /* 9 */
     int8_t  numYellowCards;     /* 10 */
@@ -658,13 +658,24 @@ typedef struct __attribute__((packed, aligned(2))) TeamFileEx {
 
 typedef char _teamfileex_size_check[(sizeof(TeamFileEx) == 684) ? 1 : -1];
 
+/* _teamFileBuffer: a team file as LoadTeamFile reads it -- a count word, then the
+ * records. The original's held 93 (0xFA0E bytes); a world's file holds up to 256, all an
+ * ordinal byte can number (the World 2026-27's Italy: docs/WORLD_2026_27.md, phase 2). */
+#define TEAM_FILE_MAX_TEAMS    256
+#define TEAM_FILE_BUFFER_SIZE  (2 + TEAM_FILE_MAX_TEAMS * 684)
+
 /* The selected-teams roster (career "SELECT TEAMS" list), max 32. Typed alias
  * for the relocated carrier in selected_teams.c — same address as the legacy
  * `selTeamsPtr` overlay base (both labels sit at +0). Prefer `selectedTeams[i]`
  * over the historical `(TeamFileEx *)&selTeamsPtr` cast (STRUCT_CONSOLIDATE /
  * SELECTED_TEAMS_UNTANGLE phase 3). The raw `(uint8_t*)&selTeamsPtr + offset`
  * identity-resolve sites stay as-is (teamSelOffset is a byte-offset identity). */
-extern TeamFileEx _selectedTeams[100];
+/* The team cache: the career's (or competition's) teams in play. The original held 100;
+ * a big world needs more (the SWOS 96/97 Mod's World 2026-27 raised it to 160,
+ * docs/WORLD_2026_27.md phase 2). AddTeamToBuffer panics (0x8F01) rather than write a
+ * team past the end. */
+#define SELECTED_TEAMS_MAX 160
+extern TeamFileEx _selectedTeams[SELECTED_TEAMS_MAX];
 
 /* The historical sub-labels of the selected-teams overlay, now pure-C offset
  * macros into the one backing symbol (was asm .skip labels in selected_teams.c;
@@ -987,10 +998,21 @@ typedef struct __attribute__((packed, aligned(2))) DIYCompetitionEx_LeagueView {
     uint16_t hasGroupsDiy;              /* 0x04 (parent 0x68) */
     uint16_t totalMatchesPerSection;     /* 0x06 (parent 0x6A): BSS_00_2DF5E reset value */
     uint16_t totalMatchesPerSectionLive; /* 0x08 (parent 0x6C): BSS_00_2DF5E live counter, decrements per match */
-    uint16_t teamEntryOffsets[14];      /* 0x0A (parent 0x6E): aliases diyTeamEntryOffsetsByIndex; sorted by standings, value/18 = team index */
-    uint8_t  cupRoundResults[100];      /* 0x26 (parent 0x8A): same memory as cup view */
+    /* 0x0A..0x8A (parent 0x6E): aliases diyTeamEntryOffsetsByIndex; sorted by standings,
+     * value/18 = team index -- one per place of the league, 24 in 96/97's largest and more in
+     * a world's. It was declared [14] with the cup view's cupRoundResults[100] after it, and
+     * a league's places past the 14th ran on into that memory, as in the original: undefined
+     * in C, and GCC took the bound at its word -- a loop over a 20-club table "proved" the
+     * table had at most 14 places and folded `n >= 17` to false (world_playoff.c, 2026-10-27).
+     * Declared whole now: the same bytes, every later offset unchanged; the league view never
+     * used cupRoundResults. */
+    uint16_t teamEntryOffsets[64];
     uint8_t  shuffleAndPad[64];         /* 0x8A (parent 0xEE): diyTeamShuffleIndices(2) + BSS_00_2E01E(62) */
-    uint16_t leagueTeamIds[14];         /* 0xCA (parent 0x12E): aliases diyLeagueTeamIds */
+    uint16_t leagueTeamIds[14];         /* 0xCA (parent 0x12E): aliases diyLeagueTeamIds. NB: a
+                                         * league of more than 14 runs on past this array (into
+                                         * competitionFormat and past the match data), as the
+                                         * original's overlay did -- index it through a pointer
+                                         * only; the same GCC hazard as teamEntryOffsets above. */
     uint16_t competitionFormat;         /* 0xE6 (parent 0x14A): was SWOS2.s diyCompetitionFormat (global alias removed) */
     uint16_t roundFormat;               /* 0xE8 (parent 0x14C): was SWOS2.s diyRoundFormat (global alias removed) */
 } DIYCompetitionEx_LeagueView;
@@ -1016,12 +1038,47 @@ typedef char _diymatchdata_size_check[(sizeof(DIYCompetitionEx_MatchData) == 0xE
  * phase-start-month table used by the league progression path in
  * DIY_RecomputeCompetitionDerivedFields and friends.
  * ================================================================== */
+/* A world league division's mid-season split (src/league_split.c), while it runs: its days'
+ * weeks in the match days' table (a split league has at most LEAGUE_SPLIT_MAX_DAYS days), its
+ * state in the table's rows a league of LEAGUE_SPLIT_MAX_CLUBS leaves unused (DIYCompetitionEx
+ * leagueSplit), so it is copied with the league, as the SWOS 96/97 Mod keeps its own (split.py's
+ * state, 30 rows since its 4.1: Argentina's and the MLS's 30 clubs); saved by name
+ * (save_format_json.c "league_split"). Every league init clears its mark. */
+#define LEAGUE_SPLIT_MAX_DAYS  48
+#define LEAGUE_SPLIT_MAX_CLUBS 32
+#define LEAGUE_SPLIT_MAGIC     0x50FE   /* (FEh: never a week) */
+typedef struct __attribute__((packed)) LeagueSplitState {
+    uint16_t magic;                     /* LEAGUE_SPLIT_MAGIC: a split league */
+    uint8_t  entry;                     /* its table: World_LeagueSplits()'s index + 1 */
+    uint8_t  frozen;                    /* the stage (+ 1) whose groups are set; 0: before the split */
+    uint8_t  n;                         /* its clubs */
+    uint8_t  compId;                    /* its league's (the struct holds another competition
+                                         * after it -- a European group stage -- whose init
+                                         * leaves these bytes: the mark alone is not enough) */
+    uint8_t  placeRow[LEAGUE_SPLIT_MAX_CLUBS];  /* the table at the split: place -> row */
+    uint8_t  group[LEAGUE_SPLIT_MAX_CLUBS];     /* row -> its group */
+    uint8_t  pre[LEAGUE_SPLIT_MAX_CLUBS];       /* row -> its points before rounding (a tie-break) */
+} LeagueSplitState;
+
+/* A world's 36-club league phase while it runs (src/league_phase.c; include/league_phase.h):
+ * the draw's matches (home row, away row) matchday by matchday, each row's away goals and away
+ * wins and disciplinary points (the table's tie-breaks). In the league table's rows 36.. */
+typedef struct __attribute__((packed)) LeaguePhaseState {
+    uint8_t cal[144][2];
+    uint8_t awayGoals[36];
+    uint8_t awayWins[36];
+    uint8_t discipline[36];
+} LeaguePhaseState;
+
 typedef struct __attribute__((packed, aligned(2))) DIYCompetitionEx_LeagueSectionState {
     uint16_t halfGroupCount;            /* 0x00 (parent 0x1C6) */
     uint16_t matchesPerHalf;            /* 0x02 (parent 0x1C8) */
     uint16_t halfGroupsCounter;         /* 0x04 (parent 0x1CA): == matchesPerHalf triggers boundary */
     uint16_t sectionMatchesProgress;    /* 0x06 (parent 0x1CC) */
-    uint8_t  phaseStartMonths[128];     /* 0x08 (parent 0x1CE..0x24D): viewRandomPhase[phaseIdx] source */
+    union __attribute__((packed)) {
+        uint8_t  phaseStartMonths[128]; /* 0x08 (parent 0x1CE..0x24D): viewRandomPhase[phaseIdx] source */
+        uint8_t  splitWeeks[LEAGUE_SPLIT_MAX_DAYS]; /* (a split league's days, its state in the rows) */
+    };
 } DIYCompetitionEx_LeagueSectionState;
 
 typedef char _diysecstate_size_check[
@@ -1116,8 +1173,28 @@ typedef struct __attribute__((packed, aligned(2))) DIYCompetitionEx {
      *     clobbers a cup (sub-)slot's teamGridPairings / teamOffsetTable.
      *     Reached via DIY_STANDINGS_OFFSET / diy_standings_row (offsetof-based,
      *     so the 32/64-bit struct growth tracks automatically). --- */
-    DIYTeamStats leagueStandings[64];   /* 0x5C8 / 0x5D0 .. +0x480 */
+    union __attribute__((packed)) {
+        DIYTeamStats leagueStandings[64];   /* 0x5C8 / 0x5D0 .. +0x480 */
+        struct __attribute__((packed)) {    /* a world's 36-club league phase (src/league_phase.c):
+                                             * its own figures in the rows a stage of 36 leaves
+                                             * unused, copied and saved with the contest, as the
+                                             * SWOS 96/97 Mod keeps them (lp36.py: rows 36+) */
+            DIYTeamStats     leaguePhaseRows[36];
+            LeaguePhaseState leaguePhase;
+        };
+        struct __attribute__((packed)) {    /* a world league's split (src/league_split.c): its
+                                             * state in the rows a league of 32 leaves unused */
+            DIYTeamStats     leagueSplitRows[LEAGUE_SPLIT_MAX_CLUBS];
+            LeagueSplitState leagueSplit;
+        };
+    };
 } DIYCompetitionEx;
+
+typedef char _leaguesplit_fits_check[(LEAGUE_SPLIT_MAX_CLUBS * sizeof(DIYTeamStats) + sizeof(LeagueSplitState) <=
+                                      64 * sizeof(DIYTeamStats)) ? 1 : -1];
+
+typedef char _leaguephase_fits_check[(36 * sizeof(DIYTeamStats) + sizeof(LeaguePhaseState) <=
+                                      64 * sizeof(DIYTeamStats)) ? 1 : -1];
 
 /* DIYCompetitionEx embeds DIYCompetition (which has 1 pointer);
  * +4 on 64-bit via that. The DIYCompetitionEx_* view variants are
@@ -1756,11 +1833,15 @@ typedef struct __attribute__((packed)) {
  * variants whose trailing arrays sat before the playoff pointers need reordering.
  * ================================================================== */
 
+/* A league's divisions: 96/97 has at most 4; a world more (the World 2026-27's Italy 14,
+ * its Serie C and D groups: docs/WORLD_2026_27.md phase 4). Two name strings each. */
+#define LEAGUE_MAX_DIVISIONS 16
+
 typedef struct __attribute__((packed)) {
     CompLeagueHeader header;              /* 13 B (was the CompetitionLeague header struct) */
-    Division         divisions[4];         /* divisionsCount says how many used */
+    Division         divisions[LEAGUE_MAX_DIVISIONS];  /* divisionsCount says how many used (96/97: <= 4) */
     uint8_t          reserved1;            /* was the per-variant trailing `unk1` byte */
-    char            *name[10];             /* division name strings (was text[N], N<=10) */
+    char            *name[2 * LEAGUE_MAX_DIVISIONS];   /* division name strings, two each (was text[N], N<=10) */
     char            *playoffLinkPtrs[2];   /* was the char* unk2[2] in _*_2_* variants (→ Playoffs/Leagues) */
     uint8_t          promotionLinkData[24];/* was the int8 unk2[24]/unk3[24]/unk2[8] qualifier-index bytes */
 } CompetitionLeague;
@@ -1861,6 +1942,19 @@ typedef struct __attribute__((packed)) {
     char    *name[2];              /* tournament name strings (was text[2]) */
     TeamId   teamSeedList[32];     /* embedded competition draw: {country,ordinal} pairs */
 } CompetitionTournament;
+
+/* A world's European cup with a 36-club league phase (src/league_phase.c; the SWOS 96/97 Mod's
+ * careerworld.lp_struct): CompetitionTournament's layout, its list 36 long -- type 2, six stages
+ * (36 in 2 groups of 18, the play-offs 16, the round of 16, 8, 4, 2). */
+typedef struct __attribute__((packed)) {
+    CompTournamentHeader header;
+    int8_t   roundRuleFlags[6];
+    char    *name[2];
+    TeamId   teamSeedList[36];
+} CompetitionLeaguePhase;
+
+_Static_assert(offsetof(CompetitionLeaguePhase, teamSeedList) == offsetof(CompetitionTournament, teamSeedList),
+               "a league-phase cup is a tournament record with a longer list");
 
 /* Self-offset bytes for the merged layout (Competition byte 5 / byte 7). Both are
  * layout-derived constants; the *_TEAMLIST one subtracts the 64-bit name[2]

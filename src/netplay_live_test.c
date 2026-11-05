@@ -53,7 +53,7 @@
 #include "teams.h"          /* LoadTeamFile */
 #include "game_loop.h"      /* _gFrameStepInput */
 
-extern TeamFileEx _selectedTeams[100];
+extern TeamFileEx _selectedTeams[SELECTED_TEAMS_MAX];
 extern uint8_t    _teamFileBuffer[];
 extern uint8_t    _teamTacticsUSERB[], _teamTacticsUSERC[];
 extern uint16_t   _gameLength, _friendlyPitchType, _minSubstitutes, _maxSubstitutes;
@@ -294,6 +294,7 @@ void NetplayLiveTest_Run(void)
         uint16_t theirPort = s_isHost ? (uint16_t)(LIVE_TEST_PORT + 1) : LIVE_TEST_PORT;
         snprintf(peerAddr, sizeof peerAddr, "127.0.0.1:%u", (unsigned)theirPort);
         list[0] = peerAddr;
+        P2PLink_SetPlayer(s_isHost ? 1 : 2);     /* as a matchmaker's game is told */
         if (P2PLink_Punch(list, 1, myPort) != 0) {
             SAY("  FAIL could not start punching: %d\n", (int)P2PLink_Failure());
             exit(1);

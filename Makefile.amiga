@@ -48,12 +48,17 @@ VPATH     = $(SRC_DIRS) support asm
 SDL_ONLY_SRCS := \
     arcade.c              \
     assets_check.c        \
+    mobile.c              \
+    esc_confirm.c         \
+    phone_fetch.c         \
+    touch_controls.c      \
     contest_log.c         \
     audio_sdl.c           \
     crt_effects.c         \
     ini.c                 \
     input_sdl.c           \
     custom_team.c         \
+    career_autopilot.c    \
     dos_sound.c           \
     dos_music.c           \
     dos_music_impl.c      \
@@ -164,6 +169,9 @@ DUMP_ASM ?= 1
 ifeq ($(DUMP_ASM),1)
 CCFLAGS   += -save-temps=obj -fverbose-asm
 endif
+# The football worlds beyond 96/97 (include/swos_types.h): `SWOS_WORLDS=0` compiles them out.
+SWOS_WORLDS ?= 1
+CCFLAGS   += -DSWOS_WORLDS=$(SWOS_WORLDS)
 # Escape hatch for one-off defines, e.g. make EXTRA_CFLAGS=-DPITCH_SCROLL_TEST
 CCFLAGS   += $(EXTRA_CFLAGS)
 CPPFLAGS  = $(CCFLAGS) -fno-rtti -fcoroutines -fno-use-cxa-atexit

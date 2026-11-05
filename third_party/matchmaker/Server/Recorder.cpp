@@ -446,6 +446,7 @@ void Recorder::OnReplayResume(Connection& c, const uint8_t* p, uint32_t len)
         return;
     s.layout = Record_Get64(p);
     s.rules = p[8];
+    s.style = p[9];
     s.resumeSimWidth = (uint16_t)Record_Get16(p + 10);
     s.setup.assign(p + 16, p + 16 + setupLen);
     s.kickoff.assign(p + 16 + setupLen, p + len);
@@ -605,6 +606,7 @@ void Recorder::WriteReplay(Match& m, bool last)
         c.hashes = hashes.data();
         c.layout = s->layout;
         c.rules = s->rules;
+        c.style = s->style;
         c.simWidth = s->resumeSimWidth;
     }
     // Who played (PLYR), as the players' games write it: player 1 (the host) first, each

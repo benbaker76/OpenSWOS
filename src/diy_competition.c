@@ -9,12 +9,17 @@
  * Chunk 60: 16 functions ported from SWOS2.s.
  */
 
+#include "world.h"
 #include "diy_competition.h"
 #include "comp_identity.h"
 #include "translations.h"
 #include "auto_skip_debug.h"
 #include "endian_helpers.h"
 #include "game_types.h"
+#include "fixture_rounds.h"
+#include "world_playoff.h"
+#include "world_cups.h"
+#include "world_cupd.h"
 #include "string_utils.h"
 #include "random.h"
 #include "deterministic.h"
@@ -26,6 +31,11 @@
 #include "career_status.h"
 #include "career_season.h"
 #include "game_init.h"
+#include "league_split.h"
+#include "league_phase.h"
+#include "uefa_coef.h"
+#include "conti_season.h"
+#include "states.h"
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
 #include <stdio.h>
 
@@ -472,6 +482,36 @@ void DIY_ShuffleLeagueTeamOrder(void)
         teamOffsets[i] = teamOffsets[j];
         teamOffsets[j] = tmpOff;
     }
+#ifdef SWOS_SDL_BUILD
+    /* Test (SWOS_TEST_REST_LAST=1): in a league of an odd number of clubs played in rounds
+     * (fixture_rounds.h), the career club takes the place that rests on the last match day
+     * -- the case the SWOS 96/97 Mod's 4.0.1 met (docs/WORLD_2026_27.md, phase 4). */
+    {
+        const char *t = getenv("SWOS_TEST_REST_LAST");
+        if (t && t[0] == '1' && (count & 1) && count >= 5 && FixtureRounds_Real(count)) {
+            const uint8_t *sched = _fixtureSchedulePtrTable[count - 2];
+            const uint16_t pairs = (uint16_t)(count * (count - 1) / 2), day = (uint16_t)((count - 1) / 2);
+            uint8_t plays[32] = { 0 };
+            int16_t rest = -1, mine = -1;
+            for (uint16_t k = (uint16_t)(pairs - day); k < pairs; k++)
+                plays[sched[2 * k]] = plays[sched[2 * k + 1]] = 1;
+            for (uint16_t p = 0; p < count; p++) {
+                const DIYTeamStats *st = (const DIYTeamStats *)((uint8_t *)&comp->base +
+                                         shuffleIdx[p] * 18u + DIY_STANDINGS_OFFSET);
+                if (!plays[p])
+                    rest = (int16_t)p;
+                if (st->teamSelOffset == -1)
+                    mine = (int16_t)p;
+            }
+            if (rest >= 0 && mine >= 0 && rest != mine) {
+                uint8_t x = shuffleIdx[rest];
+                shuffleIdx[rest] = shuffleIdx[mine];
+                shuffleIdx[mine] = x;
+                fprintf(stderr, "[test] the career club rests on the last match day (place %d)\n", rest);
+            }
+        }
+    }
+#endif
 }
 
 /* ================================================================
@@ -679,6 +719,8 @@ void DIY_CacheSelectedTeamPointers(void)
 __attribute__((used, externally_visible))
 void DIY_SortLeagueTableByStandings(void)
 {
+    if (LeaguePhase_Sort())     /* (a world's league phase: one table of 36, include/league_phase.h) */
+        return;
     DIYCompetitionEx *comp = &_diyCompetitionStart;
     DIYCompetition *a4s = &comp->base;
     uint8_t *a4 = (uint8_t *)a4s;
@@ -739,6 +781,7 @@ void DIY_SortLeagueTableByStandings(void)
         }
         entryBase += teamsPerGroup;
     }
+    LeagueSplit_Sort();         /* (a world league's split: its groups, include/league_split.h) */
 }
 
 /* ================================================================
@@ -995,6 +1038,15 @@ void DIYTournament_RecalculateMatchesPerTeam(void)
             total = total / halfTeams;
             total *= slot->playEachTeam;
             slot->matchesPerSlot = (uint16_t)total;
+            /* (a world's 36-club league phase: its matchdays, include/league_phase.h) */
+            const int32_t lp = LeaguePhase_StageDays((uint8_t)_diyFileBufferCopy.header.field_2E,
+                                                     slot->groups, slot->teamsPerGroup);
+            if (lp)
+                slot->matchesPerSlot = (uint16_t)lp;
+            const int32_t sd = States_StageDays((uint8_t)_diyFileBufferCopy.header.field_2E,     /* (a state's */
+                                                slot->groups, slot->teamsPerGroup);              /*  calendar) */
+            if (sd)
+                slot->matchesPerSlot = (uint16_t)sd;
         } else {
             /* League: default 2 matches */
             slot->matchesPerSlot = 2;
@@ -1048,7 +1100,11 @@ uint16_t GetNextCupRoundStringIndex(uint16_t cur, uint16_t n, uint16_t add)
 __attribute__((used, externally_visible))
 const char *GetNextCupRoundString(uint16_t cur, uint16_t n, uint16_t add)
 {
-    uint16_t idx = GetNextCupRoundStringIndex(cur, n, add);
+    const char *own = WorldPlayoff_RoundName(cur, n);   /* (a world's play-off: world_playoff.c) */
+    if (own)
+        return own;
+    const int32_t world = WorldCups_RoundStringIndex((uint8_t)_diyCompetitionStart.base.field_2E, cur, n);
+    uint16_t idx = world >= 0 ? (uint16_t)world : GetNextCupRoundStringIndex(cur, n, add);
     return (const char *)_cupRoundStringTable[idx];
 }
 
@@ -1120,7 +1176,7 @@ const char *GetCupRoundString(uint16_t cur, uint16_t flag, uint16_t idx,
 /* ================================================================
  * DIY_LoadLeagueScratchFromTable  (SWOS2.s line 35209)
  *
- * Copies 2000 bytes from diyLeagueSeasonStateTable to
+ * Copies the table (GLOBAL_TEAM_NUMBERS bytes; the original's 2000) from diyLeagueSeasonStateTable to
  * diyLeagueScratchBuffer. Uses volatile to prevent GCC from
  * optimizing the copy loop into a memcpy call (no libc available).
  * ================================================================ */
@@ -1130,14 +1186,14 @@ void DIY_LoadLeagueScratchFromTable(void)
     const volatile uint8_t *src = (const volatile uint8_t *)_diyLeagueSeasonStateTable;
     volatile uint8_t *dst = (volatile uint8_t *)_diyLeagueScratchBuffer;
     int16_t i;
-    for (i = 0x7CF; i >= 0; i--)
+    for (i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--)
         *dst++ = *src++;
 }
 
 /* ================================================================
  * DIY_SaveLeagueScratchToTable  (SWOS2.s line 35220)
  *
- * Copies 2000 bytes from diyLeagueScratchBuffer back to
+ * Copies GLOBAL_TEAM_NUMBERS bytes from diyLeagueScratchBuffer back to
  * diyLeagueSeasonStateTable.
  * ================================================================ */
 __attribute__((used, externally_visible))
@@ -1146,7 +1202,7 @@ void DIY_SaveLeagueScratchToTable(void)
     volatile uint8_t *dst = (volatile uint8_t *)_diyLeagueSeasonStateTable;
     const volatile uint8_t *src = (const volatile uint8_t *)_diyLeagueScratchBuffer;
     int16_t i;
-    for (i = 0x7CF; i >= 0; i--)
+    for (i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--)
         *dst++ = *src++;
 }
 
@@ -1494,11 +1550,11 @@ void DIY_ValidateLeagueScratchBuffer(void)
     /* Validation checkpoints: preserve original checksum and panic behaviour. */
     { FILE *f = fopen("swos_division_debug.log", "a");
       if (f) { fprintf(f, "VALIDTRACE ENTER teamsLoaded=%u\n", (unsigned)_teamsLoaded); fclose(f); } }
-    /* Part 1: checksum entire 2000-byte scratch buffer.
+    /* Part 1: checksum the entire scratch buffer (GLOBAL_TEAM_NUMBERS bytes).
      * Use volatile to prevent LTO from optimizing the checksum loop. */
     uint8_t checksum = 0;
     volatile uint8_t *p = _diyLeagueScratchBuffer;
-    for (int16_t i = 0x7CF; i >= 0; i--) {
+    for (int16_t i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--) {
         checksum += *p++;
     }
     { FILE *f = fopen("swos_division_debug.log", "a");
@@ -1520,6 +1576,18 @@ void DIY_ValidateLeagueScratchBuffer(void)
     uint16_t offset = tfb[2];  /* word at offset 4 = index 2 */
     { FILE *f = fopen("swos_division_debug.log", "a");
       if (f) { fprintf(f, "VALIDTRACE PART2_BEGIN count=%u offset=%u end=%u\n", (unsigned)count, (unsigned)offset, (unsigned)count + (unsigned)offset); fclose(f); } }
+#if SWOS_WORLDS
+    /* A country over two team files (include/world.h): its moves balance over both -- a club
+     * up from the second, one down from the first --, its whole range of global numbers. */
+    {
+        extern uint16_t _teamsCountryNumbers[256];
+        const uint8_t c = World_FileCountry(_teamFileBuffer[2]);
+        if (count && World_SecondFile(c)) {
+            offset = _teamsCountryNumbers[c];
+            count = (uint16_t)(_teamsCountryNumbers[c + 1] - offset);
+        }
+    }
+#endif
     volatile uint8_t *teamData = _diyLeagueScratchBuffer + offset;
 
     checksum = 0;
@@ -1967,6 +2035,12 @@ void DIY_RecomputeCompetitionDerivedFields(void)
  * ================================================================ */
 static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
 {
+    if (LeagueSplit_Pair(team1Out, team2Out))   /* (after a world league's split: its days) */
+        return;
+    if (LeaguePhase_Pair(team1Out, team2Out))   /* (a world's league phase: its draw) */
+        return;
+    if (States_Pair(team1Out, team2Out))        /* (a world's state championship: its calendar, states.c) */
+        return;
     DIYCompetitionEx *compEx = &_diyCompetitionStart;
     DIYCompetition *a0s = &compEx->base;
     uint8_t *a0 = (uint8_t *)a0s;
@@ -2032,7 +2106,7 @@ static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
                             "matchesInRound=%d sectionProg=%u "
                             "d5(grid stride)=%u "
                             "fxPositionsOff=0x%lx "
-                            "schedule[0..3]=%02X %02X %02X %02X "
+                            "schedule[0..1]=%02X %02X "
                             "posA=%u posB=%u gridA=%d gridB=%d "
                             "swap=%u\n",
                             s_gfCalls,
@@ -2041,8 +2115,8 @@ static void getCurrentFixtureTeamPtrs(uint8_t **team1Out, uint8_t **team2Out)
                             (unsigned)roundIdx,
                             (unsigned)d5,
                             (unsigned long)(fixturePositions - a0),
-                            (unsigned)schedule[0], (unsigned)schedule[1],
-                            (unsigned)schedule[2], (unsigned)schedule[3],
+                            (unsigned)schedule[0], (unsigned)schedule[1],   /* (not [2..3]: past
+                                                                             * the table at its last pair) */
                             (unsigned)posA, (unsigned)posB,
                             (int)gridIdxA, (int)gridIdxB,
                             (unsigned)swapFlag);
@@ -2120,6 +2194,8 @@ void DIY_AdvanceLeagueProgressAfterMatch(uint8_t *team1, uint8_t *team2)
     /* Increment matches played for both teams */
     row1->gamesPlayed += 1;
     row2->gamesPlayed += 1;
+    if (LeagueSplit_Count())    /* (after a world league's split: its days) */
+        return;
 
     /* Reset match counter if phase-change flag set */
     if (comp->leagueCurrentSlot) {
@@ -2307,9 +2383,15 @@ void DIY_SyncCompetitionTeamGridOrBuildBracket(void)
                   (unsigned)a3Slot->divisionFactor);
     if (a3Slot->isLeagueFormat != 0) {
         EuroQualTrace("SYNC_SEEDED", offset, 0, 0, 0, 0);
+        LeaguePhase_GroupsEnd(a2, 0);       /* (a world's league phase: the play-off ties) */
+        Conti_GroupsEnd(a2, 0);             /* (another confederation's main round: conti_season.c) */
         DIY_BuildSeededBracketAndUpdateScores(a2, a3, a4, a5);
+        LeaguePhase_GroupsEnd(a2, 1);
+        Conti_GroupsEnd(a2, 1);
+        States_GroupsEnd(a2, 1);            /* (a world's state championship: its merit order, states.c) */
     } else {
         EuroQualTrace("SYNC_COPY", offset, 0, 0, 0, 0);
+        States_KnockoutEnd();               /* (its ties' winners: a later stage's pairs, states.c) */
         DIY_CopyTeamGridFromCompToDIY(a2, a3, a4, a5);
     }
 }
@@ -2932,6 +3014,10 @@ void DIY_UpdateCompetitionProgress(void)
 
     /* Reorder team grid by order list */
     DIY_ReorderTeamGridByOrderList();
+    /* A world's play-off: the next round its rules' ties, not the draw (world_playoff.c). */
+    WorldPlayoff_ArrangeNextRound();
+    WorldCups_ArrangeNextRound();   /* a world cup's first season: the real bracket (world_cups.c) */
+    CupD_ArrangeNextRound();        /* the Coppa Italia Serie D's slot-2 cup: by its table (world_cupd.c) */
 
     {
         uint8_t *grid = comp->teamGridPairings;
@@ -2960,6 +3046,7 @@ void DIY_UpdateCompetitionProgress(void)
         int16_t half = (int16_t)((uint16_t)a0s->matchPairsPerRound >> 1);
         a0s->matchPairsPerRound = half;
         a0s->totalMatchesInRound = half;
+        WorldPlayoff_RoundSize();   /* a world's play-off: only the round's real ties (world_playoff.c) */
         SWOS_DBG("[bug23-cup] HALVED: new mppr=%d new round=%d\n",
                 (int)half, (int)a0s->currentRoundIndex);
     }
@@ -3236,36 +3323,19 @@ process_fixtures:
             team2 = tmpP;
         }
 
-        /* Check if team1 is human-controlled (category == 1) */
+        /* The home/away marker (SWOS2.s loc_12D424): set whenever the round has one
+         * (`tst.w $14C(a2)`, its format), 2 when the human team is listed first, 1
+         * otherwise. The original tests nothing else -- the FRIENDLY / playEachTeam test
+         * the translation added here is the LEAGUE writer's (loc_12D314), and cleared the
+         * marker of every two-legged tie: the European cups' qualifying rounds showed no
+         * (H) / (A) (ReportBot 0047). */
         if (team1[4] == 1) {
             /* team2 must also be human for pair to be skipped */
             if (team2[4] == 1)
                 goto next_fixture;
-
-            /* Check competition name for FRIENDLY or playEachTeam */
-            if (comp->matchData.cup.roundFormat == 0) {
-                a5[0x0A] = 0;
-            } else {
-                if (a2s->namePtr == _aFriendly ||
-                    a2s->playEachTeam == 1) {
-                    /* FRIENDLY or playEachTeam == 1 */
-                    a5[0x0A] = 2;
-                } else {
-                    a5[0x0A] = 0;
-                }
-            }
+            a5[0x0A] = comp->matchData.cup.roundFormat != 0 ? 2 : 0;
         } else {
-            /* Non-human team1 */
-            if (comp->matchData.cup.roundFormat == 0) {
-                a5[0x0A] = 0;
-            } else {
-                if (a2s->namePtr == _aFriendly ||
-                    a2s->playEachTeam == 1) {
-                    a5[0x0A] = 1;
-                } else {
-                    a5[0x0A] = 0;
-                }
-            }
+            a5[0x0A] = comp->matchData.cup.roundFormat != 0 ? 1 : 0;
         }
 
         ((TeamSelectionKeyCacheEntry *)cacheEntry)->totalElements++;
@@ -3391,8 +3461,17 @@ void DIY_UpdateCompetitionProgressOrAdvanceSlot(uint8_t *blk)
  * Processes recorded league fixture results via team selection key cache.
  * Advances league progress after each match.
  * ================================================================ */
+static void recordLeagueFixtures(void);
+
 __attribute__((used, externally_visible))
 void DIY_RecordLeagueFixtureResultAndAdvanceProgress(void)
+{
+    LeagueSplit_Walking(1);     /* (a split is not played in the calendar's walk) */
+    recordLeagueFixtures();
+    LeagueSplit_Walking(0);
+}
+
+static void recordLeagueFixtures(void)
 {
     DIYCompetitionEx *a6Ex = &_diyCompetitionStart;
     DIYCompetition *a6s = &a6Ex->base;
@@ -3540,18 +3619,22 @@ process_next:
 #endif
             goto check_continue;
         }
-        if (a6s->namePtr == _aFriendly || a6s->playEachTeam != 1) {
+        if (a6s->namePtr == _aFriendly || a6s->playEachTeam != 1 || LeaguePhase_Showing()) {
             resultPtr[0x0A] = 2;
         } else {
             resultPtr[0x0A] = 0;
         }
     } else {
-        if (a6s->namePtr == _aFriendly || a6s->playEachTeam != 1) {
+        if (a6s->namePtr == _aFriendly || a6s->playEachTeam != 1 || LeaguePhase_Showing()) {
             resultPtr[0x0A] = 1;
         } else {
             resultPtr[0x0A] = 0;
         }
     }
+    /* (A world's league phase plays each opponent once, as the original's one-leg leagues
+     * do, whose rows have no marker -- but its draw decides who hosts each match, so its
+     * rows show (H) / (A) as a two-leg league's do: ReportBot 0047. LeaguePhase_Showing is
+     * 0 for every other contest, and in 96/97.) */
 
     ((TeamSelectionKeyCacheEntry *)cache)->totalElements++;
     ((TeamSelectionKeyCacheEntry *)cache)->remainingElements++;
@@ -4577,6 +4660,10 @@ void DIY_ShuffleTeamsAndBuildCompTeamList(uint8_t *diy, uint8_t *slot,
         goto copy_to_comp;
     }
 
+    /* A world's league phase: its knockouts keep their order (include/league_phase.h) */
+    if (LeaguePhase_KnockoutDraw(diy, s->numTeams))
+        goto build_comp_list;
+
     /* Standard shuffle path */
     {
         uint16_t field54 = (uint16_t)diyS->roundComplete;
@@ -4787,6 +4874,8 @@ void DIY_LoadCurrentCompetitionSlot(void)
 
         a5s->field_2E = a2s->field_2E;  /* 0x2E */
         a5s->numTeamsInStage = a2s->numTeams;  /* 0x4E = numTeams from a2 */
+        LeaguePhase_StageStart();       /* (a world's league phase: its draw, include/league_phase.h) */
+        States_StageStart();            /* (a world's state championship: its calendar, states.c) */
     } else {
         /* Cup path — init DIY cup, then fill from file buffer */
         InitDIYCup();
@@ -4824,6 +4913,7 @@ void DIY_LoadCurrentCompetitionSlot(void)
 
         /* Shuffle teams and build comp team list */
         DIY_ShuffleTeamsAndBuildCompTeamList(a2, a3, a4, a5);
+        States_KnockoutStart();         /* (a world's state championship: its fixed draw, states.c) */
 
         /* Start month */
         a4s->startMonth = (int8_t)s->progressionTable[0];
@@ -6287,6 +6377,13 @@ void DesignDIYTournamentOnDraw(void)
     slot = _diyFileBufferCopy.slots;
     int16_t d7 = 0;
 
+    /* A world's league phase (include/league_phase.h): its first stage is one table of 36
+     * (the Mod's lp36 INFO strings), each club meeting 8 opponents (the Conference League 6). */
+    extern void DIY_SetFirstStagePlayOnceText(const char *text);
+    const int32_t lpDays = LeaguePhase_StageDays((uint8_t)_diyFileBufferCopy.header.field_2E,
+                                                 slot->groups, slot->teamsPerGroup);
+    DIY_SetFirstStagePlayOnceText(lpDays == 8 ? "8 OPPONENTS, ONCE" : lpDays ? "6 OPPONENTS, ONCE" : 0);
+
     for (d7 = 0; d7 < 6; d7++) {
         /* Check if this slot is past the last active stage */
         if (d7 == (int16_t)numStages) {
@@ -6346,6 +6443,10 @@ void DesignDIYTournamentOnDraw(void)
                 uint16_t numGrp = slot->groups;
                 uint16_t grpSize = slot->teamsPerGroup;
                 const uint8_t *fmt;
+                if (d7 == 0 && lpDays) {        /* (the league phase: one table) */
+                    numGrp = 1;
+                    grpSize = (uint16_t)(slot->groups * slot->teamsPerGroup);
+                }
                 if (numGrp == 1) {
                     fmt = _a1GroupOf1; /* "1 GROUP OF %1" */
                 } else {
@@ -6390,6 +6491,10 @@ void DesignDIYTournamentOnDraw(void)
                 uint16_t d0 = slot->divisionFactor;
                 const uint8_t *fmt;
 
+                if (d7 == 0 && lpDays) {
+                    StringCopy((const uint8_t *)"(TOP 8 TO THE LAST 16, 9-24 PLAY-OFFS)", dst);
+                    goto after_qual_text;
+                }
                 if (d0 == 1) {
                     StringCopy(_aGroupWinnerWin, dst); /* "(GROUP WINNER WINS TOURNAMENT)" */
                     goto after_qual_text;
@@ -7247,6 +7352,8 @@ void DesignDIYCup_BuildMenuTitleString(void)
         uint16_t d2 = (uint16_t)a2s->subRoundCounter;  /* 0x5C */
         const char *roundStr = GetNextCupRoundString(d0, d1, d2);
         dst = StringCopy((const uint8_t *)roundStr, dst);
+        if (!roundStr[0])
+            dst--;              /* (no round name -- a world's single-round play-off: no space) */
         /* Fall through to replay/leg check */
     }
 
@@ -7651,6 +7758,20 @@ extern uint16_t _highlightedLeagueTeamId;
 
 /* DIYLeagueTournamentOnRestore — menu onReturn callback for DIY league/tournament menu */
 /* Rebuilds title string, adjusts entry heights for >22 teams, computes fixture row count */
+/* The table screen's shape: the league's groups and clubs a group, or a split league's pages
+ * (more than 22 clubs: its zones, league_split.c). */
+static uint16_t table_groups(void)
+{
+    uint16_t g, n;
+    return LeagueSplit_Pages(&g, &n) ? g : (uint16_t)_diyCompetitionStart.base.matchPairsPerRound;
+}
+
+static uint16_t table_per_group(void)
+{
+    uint16_t g, n;
+    return LeagueSplit_Pages(&g, &n) ? n : (uint16_t)_diyCompetitionStart.base.totalMatchesInRound;
+}
+
 __attribute__((used, externally_visible))
 void DIYLeagueTournamentOnRestore(void)
 {
@@ -7658,7 +7779,7 @@ void DIYLeagueTournamentOnRestore(void)
     uint8_t *comp = (uint8_t *)&_diyCompetitionStart;  /* raw pointer for name data access */
 
     /* If halfTeams == 1, adjust bg color of entry 16 */
-    if (compS->matchPairsPerRound == 1) {
+    if (table_groups() == 1) {
         MenuEntry *a0 = &_menuEntries[16];
         a0->bgColor = (a0->bgColor & 0xFFF0) | 0; /* PINK_TO_BROWN_0 = 0 */
     }
@@ -7710,7 +7831,7 @@ void DIYLeagueTournamentOnRestore(void)
     _diyLeagueTournament_fixtureRowHeight = 6;
     _diyLeagueTournament_fixtureRowYStep = 7;
 
-    uint16_t numTeamsPerGroup = (uint16_t)compS->totalMatchesInRound;
+    uint16_t numTeamsPerGroup = table_per_group();
 
     /* If numTeamsPerGroup > 22, adjust menu entry dimensions */
     if (numTeamsPerGroup > 22) {
@@ -7775,8 +7896,8 @@ void DIYLeagueTournamentOnRestore(void)
         d3 += _menuEntries[16].dwHeight + 1;
 
         uint16_t d0 = (uint16_t)((uint32_t)(uint16_t)d1 / d3);
-        if (d0 > (uint16_t)compS->matchPairsPerRound)
-            d0 = (uint16_t)compS->matchPairsPerRound;
+        if (d0 > table_groups())
+            d0 = table_groups();
         _numDiyResults = d0;
 
         uint16_t d4 = d3 * _numDiyResults;
@@ -7795,7 +7916,7 @@ void DIYLeagueTournamentOnRestore(void)
         }
 
         /* If halfTeams == numDiyResults, hide scroll buttons */
-        if ((uint16_t)compS->matchPairsPerRound == _numDiyResults) {
+        if (table_groups() == _numDiyResults) {
             _menuEntries[40].isInvisible = 1;
             _menuEntries[41].isInvisible = 1;
         }
@@ -7850,12 +7971,15 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
     DIYCompetition *compS = &_diyCompetitionStart.base;
     uint8_t *comp = (uint8_t *)&_diyCompetitionStart;  /* raw pointer for extended buffer access */
     int16_t d7 = entry->ordinal - 16 + _currentDiyLine;
-    uint16_t numTeamsPerGroup = (uint16_t)compS->totalMatchesInRound;
+    uint16_t numTeamsPerGroup = table_per_group();
 
     /* Set group string if halfTeams != 1 */
-    if (compS->matchPairsPerRound != 1) {
+    if (table_groups() != 1) {
         entry->fg = (uintptr_t)_groupStringTable[d7];
     }
+    const int32_t lpTable = LeaguePhase_Showing();     /* (a world's league phase: one table of 36) */
+    if (lpTable)
+        entry->fg = (uintptr_t)LeaguePhase_PageHeader(d7);
 
     int16_t d2 = entry->y;
 
@@ -7897,7 +8021,7 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
 
         /* Entry for team number */
         a5->y = d2;
-        a5->fgWord = d5; /* ENTRYTYPE2UNION_NUMBER */
+        a5->fgWord = lpTable ? (uint16_t)(d5 + d7 * numTeamsPerGroup) : d5; /* ENTRYTYPE2UNION_NUMBER */
         a5++;
 
         /* Entry for team name */
@@ -8006,6 +8130,12 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
             d3 = 7;
             if (d5 & 1)
                 d3 = 9;
+        }
+        if (lpTable) {                  /* (its zones; a computer club's name in the zone's colour) */
+            const uint16_t zone = LeaguePhase_RowColour(d5 + d7 * numTeamsPerGroup);
+            d3 = zone ? zone : 7;
+            if (teamPtr->team.teamControls == 1)
+                a5->bgColor = zone ? zone : 10;
         }
         /* Highlight player's team */
         if (_highlightedLeagueTeamId == BE_READ_U16(teamPtr))
@@ -9191,7 +9321,7 @@ void DIYLeagueTournamentScrollDown(void)
     { FILE *swos_trace_f = fopen("swos_division_debug.log", "a"); if (swos_trace_f) { fprintf(swos_trace_f, "MENUTRACE %s DIYLeagueTournamentScrollDown slot=%u progress=%u view=%u\n", "ENTER", (unsigned)_diyCompetitionStart.leagueCurrentSlot, (unsigned)_diyCompetitionStart.leagueMatchProgress, (unsigned)_diyTournamentViewOnly); fclose(swos_trace_f); } }
     uint16_t bottom = _currentDiyLine + _numDiyResults;
     /* field_3A + $16 = offset 0x50 = halfTeams (total fixture lines) */
-    if (bottom >= (uint16_t)(&_diyCompetitionStart.base)->matchPairsPerRound)
+    if (bottom >= table_groups())
         return;
     _currentDiyLine++;
     /* nullsub_15 omitted (no-op) */
@@ -9449,6 +9579,28 @@ static uint8_t *prependCountryNameIfClub(uint8_t *record, uint8_t *dst)
     return dst;
 }
 
+/* The competition's name into its 36-byte field (the country first for a club competition),
+ * at most 35 characters: a longer one (a world's "EL SALVADOR SEGUNDA DIVISION ORIENTE", 36)
+ * ran into namePtr after the field -- the season record's league name was then another
+ * string's tail, and which one depended on the build's layout (2026-10-29). 96/97's names all
+ * fit, unchanged. */
+static void copyCompetitionName(uint8_t *record, uint8_t *field, const uint8_t *name)
+{
+    uint8_t tmp[96];
+    uint8_t *t = prependCountryNameIfClub(record, tmp);
+    uint32_t n = 0, room = (uint32_t)(sizeof tmp - (uint32_t)(t - tmp)) - 1;
+    while (name && name[n] && n < room) {
+        t[n] = name[n];
+        n++;
+    }
+    t[n] = 0;
+    const uint32_t cap = (uint32_t)sizeof(((DIYCompetition *)0)->competitionName) - 1;
+    uint32_t i = 0;
+    for (; i < cap && tmp[i]; i++)
+        field[i] = tmp[i];
+    field[i] = 0;
+}
+
 /* Helper: set pitch type fields at offsets 0x34/0x36 in competition buffer. */
 static void setPitchTypeFields(uint8_t *comp)
 {
@@ -9474,7 +9626,10 @@ void InitDIYCompetitionFromTableEntry(uint16_t idx, uint8_t *table)
      * (idx*6 + 13) = divisions[idx].teams (field at Division
      * offset 0). */
     Division *divisions = (Division *)(table + 13);
-    if (divisions[idx].teams & 1) {
+    /* An odd division only where its pair table is real rounds (a world's,
+     * include/fixture_rounds.h): the original's odd tables give the career
+     * club two matches on some days, which its calendar cannot hold. */
+    if (!FixtureRounds_Real(divisions[idx].teams)) {
         _panicReasonCode = 0x1313;
         PanicHaltLoop();
     }
@@ -9533,7 +9688,6 @@ void InitDIYCompetitionFromTableEntry(uint16_t idx, uint8_t *table)
 
     /* Build competition name at offset 4 */
     uint8_t *a1 = a6 + 4;
-    a1 = prependCountryNameIfClub(table, a1);
 
     /* Division/competition name.
      *
@@ -9554,7 +9708,7 @@ void InitDIYCompetitionFromTableEntry(uint16_t idx, uint8_t *table)
                              : (uint8_t *)_divisionStringTable[d7];
     }
     a6s->namePtr = nameSource;  /* 0x28 */
-    a1 = StringCopy(nameSource, a1);
+    copyCompetitionName(table, a1, nameSource);   /* (bounded: the field holds 35) */
 
     ((DIYCompetitionEx *)a6)->pointsForAWin = (int16_t)league->pointsForWin;
 
@@ -9567,7 +9721,10 @@ void InitDIYCompetitionFromTableEntry(uint16_t idx, uint8_t *table)
     ((DIYCompetitionEx *)a6)->matchData.league.leagueMinSubstitutes = (c & 0xF0) >> 4;
     ((DIYCompetitionEx *)a6)->matchData.league.leagueMaxSubstitutes = c & 0x0F;
 
+    /* A world division's own meetings and mid-season split (include/league_split.h). */
+    LeagueSplit_Init((uint8_t)compHdr->teamNumber, d7, 0);
     DIY_RecomputeCompetitionDerivedFields();
+    LeagueSplit_Init((uint8_t)compHdr->teamNumber, d7, 1);
     DIY_ShuffleLeagueTeamOrder();
 }
 
@@ -9600,7 +9757,6 @@ void InitDIYCupFromRecord(uint8_t *cupRec)
 
     /* Build competition name at offset 4 */
     uint8_t *a1 = a6 + 4;
-    a1 = prependCountryNameIfClub(cupRec, a1);
 
     /* Cup name */
     uint8_t *nameSource = (uint8_t *)_aCup_0; /* "CUP" default */
@@ -9609,7 +9765,7 @@ void InitDIYCupFromRecord(uint8_t *cupRec)
         if (nameTbl) nameSource = (uint8_t *)nameTbl[0];
     }
     a6s->namePtr = nameSource;  /* 0x28 */
-    a1 = StringCopy(nameSource, a1);
+    copyCompetitionName(cupRec, a1, nameSource);   /* (bounded: the field holds 35) */
 
     a6s->playEachTeam = (int8_t)cup->awayGoalsMode;  /* 0x5E */
 
@@ -9654,6 +9810,7 @@ void InitDIYCupFromRecord(uint8_t *cupRec)
     /* Competition.seedReorderFlag == 0 → shuffle. */
     if (compHdr->seedReorderFlag == 0)
         DIY_ShuffleTeamGridPairs();
+    WorldCups_CupMade(cupRec);   /* a world cup: its byes, a later season's draw (world_cups.c) */
 }
 
 __attribute__((used, externally_visible))
@@ -9747,7 +9904,6 @@ void InitDIYLeagueFromRecord(uint8_t *leagueRec)
 
     /* Build competition name at offset 4 */
     uint8_t *a1 = a6 + 4;
-    a1 = prependCountryNameIfClub(a5, a1);
 
     /* League name */
     uint8_t *nameSource = (uint8_t *)_aLeague_1; /* "LEAGUE" default */
@@ -9756,7 +9912,7 @@ void InitDIYLeagueFromRecord(uint8_t *leagueRec)
         if (nameTbl) nameSource = (uint8_t *)nameTbl[0];
     }
     a6s->namePtr = nameSource;  /* 0x28 */
-    a1 = StringCopy(nameSource, a1);
+    copyCompetitionName(a5, a1, nameSource);   /* (bounded: the field holds 35) */
 
     a6s->menuState = (int8_t)a5[0xA];              /* 0x4A */
 
@@ -9809,8 +9965,10 @@ void InitDIYLeagueFromRecord(uint8_t *leagueRec)
         uint8_t groupCount = *stageRec++;
         slot->teamsPerGroup = groupCount;
 
-        /* Validate: if cup mode and group count is odd, panic */
-        if (slot->isLeagueFormat != 0) {
+        /* Validate: if cup mode and group count is odd, panic -- not in a world: the SWOS 96/97
+         * Mod's exe allows odd groups (historic.py odd_groups: the groups are DIY leagues, which
+         * rest a club each day; the Poule Scudetto's groups of 3) */
+        if (slot->isLeagueFormat != 0 && World_Current() == WORLD_9697) {
             if (groupCount & 1) {
                 _panicReasonCode = 0x1313;
                 PanicHaltLoop();
@@ -10616,6 +10774,109 @@ void DIY_RecomputeCompetitionDerivedProgressionTable(void)
     }
 }
 
+/* The active league's sorted table -> its winner (resultCode) and the promoted and relegated
+ * clubs' ids (qualifiedTeamsByDivision), as after every league result
+ * (ProcessDIYLeagueMatchResultAndCareerUpdates). Not saved: rebuilt by the next result -- or by
+ * a caller that needs it without one. */
+void DIY_UpdateLeagueQualifiers(void)
+{
+    DIY_SortLeagueTableByStandings();
+
+    DIYCompetitionEx *compEx = &_diyCompetitionStart;
+    DIYCompetition *a5s = &compEx->base;
+    uint16_t *standingsLookup = compEx->matchData.league.leagueTeamIds;
+    /* Promotions/relegations output buffer: byte offset 0x60 into
+     * _bss_2E0AE (parent struct offset 0x1AE on 32-bit, 0x1B2 on
+     * 64-bit due to namePtr growth). Typed field access keeps the
+     * 64-bit shift correct — was `a5 + 0x1AE` previously, which
+     * underflowed 4 bytes on 64-bit. */
+    uint16_t *promRelOutput = compEx->qualifiedTeamsByDivision;
+    int16_t *rankings = (int16_t *)compEx->matchData.league.teamEntryOffsets;
+
+    /* Determine winner */
+    int16_t doWinner = 1;
+    if (a5s->hasGroups != 0) {  /* 0x48 */
+        /* Has groups — only determine winner if all group rounds done */
+        DIYCompetition *bufCopyS3 = &_diyFileBufferCopy.header;
+        uint16_t bufCopyCurRound = (uint16_t)bufCopyS3->roundComplete;   /* 0x54 */
+        if (bufCopyCurRound + 1 != (uint16_t)bufCopyS3->totalMatchesInRound)    /* 0x52 */
+            doWinner = 0;
+    }
+    if (doWinner) {
+        int16_t ranking = rankings[0];
+        uint16_t idx = (uint16_t)((uint32_t)(uint16_t)ranking / 18);
+        /* standingsLookup (leagueTeamIds) is BE-packed per 295c9f3.
+         * resultCode is compared host-native elsewhere (e.g. cup
+         * result-flip detection) so unpack into the host-native
+         * packed value here. */
+        a5s->resultCode = (int16_t)BE_READ_U16(&standingsLookup[idx]);  /* 0x3A */
+    }
+
+    /* Process promotions */
+    {
+        uint16_t numPromotions = (uint16_t)a5s->competitionFinished;  /* 0x56 */
+        if (numPromotions != 0) {
+            uint16_t promOffset = (uint16_t)a5s->roundComplete;  /* 0x54 */
+            int16_t *src = rankings + promOffset;
+            for (uint16_t i = 0; i < numPromotions; i++) {
+                int16_t rank = *src++;
+                uint16_t lookupIdx = (uint16_t)((uint32_t)(uint16_t)rank / 18);
+                /* Preserve BE byte order from standingsLookup into the
+                 * promotion output region. diyQualifiedTeamIndices —
+                 * the eventual consumer via
+                 * DIY_CopyCompetitionTeamIndexTable — expects BE
+                 * bytes per 295c9f3. */
+                uint16_t teamId = BE_READ_U16(&standingsLookup[lookupIdx]);
+                BE_WRITE_U16(promRelOutput, teamId);
+                promRelOutput++;
+            }
+        }
+    }
+
+    /* Process relegations */
+    {
+        uint16_t numRelegations = (uint16_t)a5s->numRounds;  /* 0x5A */
+        if (numRelegations != 0) {
+            uint16_t totalEntries = (uint16_t)a5s->numTeams;  /* 0x32 */
+            uint16_t field58 = (uint16_t)a5s->currentRoundIndex;  /* 0x58 */
+            uint16_t relOffset = totalEntries - field58 - numRelegations;
+            int16_t *src = rankings + relOffset;
+            for (uint16_t i = 0; i < numRelegations; i++) {
+                int16_t rank = *src++;
+                uint16_t lookupIdx = (uint16_t)((uint32_t)(uint16_t)rank / 18);
+                /* BE-preserving copy — see promotion loop above. */
+                uint16_t teamId = BE_READ_U16(&standingsLookup[lookupIdx]);
+                BE_WRITE_U16(promRelOutput, teamId);
+                promRelOutput++;
+            }
+        }
+    }
+}
+
+/* After a career load: the primary league's qualifiers, which the save does not hold, from the
+ * table it does -- or a career saved after its last league match finds its play-offs and its
+ * promotions empty (a play-off of the champions against themselves, then a division of 25).
+ * Only once the league has a result: before one, nothing reads them and a play wrote none. The
+ * table is in sort order already, and the sort is a total order, so this is what the session
+ * that saved had in memory. Expects the primary slot in diyCompetitionStart; 1 when it wrote
+ * them (the caller stores the slot back). */
+int16_t DIY_RestoreLeagueQualifiersAfterLoad(void)
+{
+    DIYCompetitionEx *compEx = &_diyCompetitionStart;
+    uint8_t *base = (uint8_t *)&compEx->base;
+    if (compEx->base.competitionType != 0 || compEx->minSubstitutes != 0)
+        return 0;
+    for (uint16_t i = 0; i < (uint16_t)compEx->base.numTeams; i++) {
+        DIYTeamStats *row = (DIYTeamStats *)(base + compEx->matchData.league.teamEntryOffsets[i]
+                                             + DIY_STANDINGS_OFFSET);
+        if (row->gamesPlayed != 0) {
+            DIY_UpdateLeagueQualifiers();
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /* ===================================================================
  * Chunk 190: GetCachedOrCalculateViewResult,
  *            GetCachedOrCalculateExtraTimeResult,
@@ -10688,8 +10949,8 @@ static void updateCareerAfterResult(TeamFileEx *team1, TeamFileEx *team2,
     /* Update player form: a0=diyCompetitionStart, a1=team1, a2=team2, d1=goals1, d2=goals2 */
     UpdateCareerPlayersFormAfterMatch(&_diyCompetitionStart, team1, team2, d1, d2);
 
-    /* Begin contract negotiation: a0=diyCompetitionStart, a1=team1 */
-    BeginContractNegotiationSequence(&_diyCompetitionStart, team1);
+    /* Begin contract negotiation: a0=diyCompetitionStart, a1=team1, a2=team2 */
+    BeginContractNegotiationSequence(&_diyCompetitionStart, team1, team2);
 
     _careerTeamLostMatch = 0;
 
@@ -10897,8 +11158,15 @@ singleExtraTime:
 
 checkPenalties:
     /* roundPenalties[slotIdx] */
-    if (compEx->matchData.cup.roundPenalties[slotIdx] == 0)
+    if (compEx->matchData.cup.roundPenalties[slotIdx] == 0) {
+        /* A world's play-off: level, no replay -- its rule's club (world_playoff.c). */
+        const int32_t lw = WorldPlayoff_LevelWinner(
+            PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+            PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal));
+        if (lw == 1) goto team1WinsFinal;
+        if (lw == 2) goto team2WinsFinal;
         goto drawResult;
+    }
     if (compEx->matchData.cup.roundPenalties[slotIdx] == 1)
         goto doPenalties;
     if (compEx->bracketScratch.groupSectionFlag == 0)
@@ -10919,8 +11187,14 @@ doPenalties:
 
 returnLegCheckPenalties:
     /* roundPenalties[slotIdx] */
-    if (compEx->matchData.cup.roundPenalties[slotIdx] == 0)
+    if (compEx->matchData.cup.roundPenalties[slotIdx] == 0) {
+        const int32_t lw = WorldPlayoff_LevelWinner(
+            PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+            PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal));
+        if (lw == 1) goto team1WinsReturnLeg;
+        if (lw == 2) goto team2WinsReturnLeg;
         goto drawResult;
+    }
     if (compEx->matchData.cup.roundPenalties[slotIdx] == 1)
         goto doPenaltiesReturnLeg;
     if (compEx->bracketScratch.groupSectionFlag == 0)
@@ -10954,6 +11228,25 @@ team2WinsFinal:
     d7 |= 1;
 setDecisive:
     d7 |= 0x82;
+    /* (a two-legged tie is decided by its return leg, not its first) */
+    if (compEx->matchData.cup.roundFormat != 2 || compEx->matchData.cup.competitionFormat != 0)
+    {
+        WorldPlayoff_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                                PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                                d7 & 1);
+        WorldCups_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                             PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                             d7 & 1);
+        CupD_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                        PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                        d7 & 1);
+        UefaQual_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                            PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                            d7 & 1);
+        Conti_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                         PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                         d7 & 1);
+    }
 
 careerUpdate:
     updateCareerAfterResult(team1, team2, d1, d2, d7);
@@ -12020,81 +12313,12 @@ uint16_t DIY_PlayOrSimulateLeagueFixture(int16_t allowSquadChanges, int16_t sele
     r1->goalsAgainst += d2;
     r2->goalsFor     += d2;
     r2->goalsAgainst += d1;
+    LeagueSplit_AfterResult(compPtr1, compPtr2, d1, d2);   /* (a world league's split) */
+    LeaguePhase_Result(compPtr1, compPtr2, d1, d2);       /* (a world's league phase) */
 
     /* Sort standings and process promotions/relegations if diyCompetitionStart.minSubstitutes == 0 */
-    if (_diyCompetitionStart.minSubstitutes == 0) {
-        DIY_SortLeagueTableByStandings();
-
-        DIYCompetitionEx *compEx = &_diyCompetitionStart;
-        DIYCompetition *a5s = &compEx->base;
-        uint16_t *standingsLookup = compEx->matchData.league.leagueTeamIds;
-        /* Promotions/relegations output buffer: byte offset 0x60 into
-         * _bss_2E0AE (parent struct offset 0x1AE on 32-bit, 0x1B2 on
-         * 64-bit due to namePtr growth). Typed field access keeps the
-         * 64-bit shift correct — was `a5 + 0x1AE` previously, which
-         * underflowed 4 bytes on 64-bit. */
-        uint16_t *promRelOutput = compEx->qualifiedTeamsByDivision;
-        int16_t *rankings = (int16_t *)compEx->matchData.league.teamEntryOffsets;
-
-        /* Determine winner */
-        int16_t doWinner = 1;
-        if (a5s->hasGroups != 0) {  /* 0x48 */
-            /* Has groups — only determine winner if all group rounds done */
-            DIYCompetition *bufCopyS3 = &_diyFileBufferCopy.header;
-            uint16_t bufCopyCurRound = (uint16_t)bufCopyS3->roundComplete;   /* 0x54 */
-            if (bufCopyCurRound + 1 != (uint16_t)bufCopyS3->totalMatchesInRound)    /* 0x52 */
-                doWinner = 0;
-        }
-        if (doWinner) {
-            int16_t ranking = rankings[0];
-            uint16_t idx = (uint16_t)((uint32_t)(uint16_t)ranking / 18);
-            /* standingsLookup (leagueTeamIds) is BE-packed per 295c9f3.
-             * resultCode is compared host-native elsewhere (e.g. cup
-             * result-flip detection) so unpack into the host-native
-             * packed value here. */
-            a5s->resultCode = (int16_t)BE_READ_U16(&standingsLookup[idx]);  /* 0x3A */
-        }
-
-        /* Process promotions */
-        {
-            uint16_t numPromotions = (uint16_t)a5s->competitionFinished;  /* 0x56 */
-            if (numPromotions != 0) {
-                uint16_t promOffset = (uint16_t)a5s->roundComplete;  /* 0x54 */
-                int16_t *src = rankings + promOffset;
-                for (uint16_t i = 0; i < numPromotions; i++) {
-                    int16_t rank = *src++;
-                    uint16_t lookupIdx = (uint16_t)((uint32_t)(uint16_t)rank / 18);
-                    /* Preserve BE byte order from standingsLookup into the
-                     * promotion output region. diyQualifiedTeamIndices —
-                     * the eventual consumer via
-                     * DIY_CopyCompetitionTeamIndexTable — expects BE
-                     * bytes per 295c9f3. */
-                    uint16_t teamId = BE_READ_U16(&standingsLookup[lookupIdx]);
-                    BE_WRITE_U16(promRelOutput, teamId);
-                    promRelOutput++;
-                }
-            }
-        }
-
-        /* Process relegations */
-        {
-            uint16_t numRelegations = (uint16_t)a5s->numRounds;  /* 0x5A */
-            if (numRelegations != 0) {
-                uint16_t totalEntries = (uint16_t)a5s->numTeams;  /* 0x32 */
-                uint16_t field58 = (uint16_t)a5s->currentRoundIndex;  /* 0x58 */
-                uint16_t relOffset = totalEntries - field58 - numRelegations;
-                int16_t *src = rankings + relOffset;
-                for (uint16_t i = 0; i < numRelegations; i++) {
-                    int16_t rank = *src++;
-                    uint16_t lookupIdx = (uint16_t)((uint32_t)(uint16_t)rank / 18);
-                    /* BE-preserving copy — see promotion loop above. */
-                    uint16_t teamId = BE_READ_U16(&standingsLookup[lookupIdx]);
-                    BE_WRITE_U16(promRelOutput, teamId);
-                    promRelOutput++;
-                }
-            }
-        }
-    }
+    if (_diyCompetitionStart.minSubstitutes == 0)
+        DIY_UpdateLeagueQualifiers();
 
     /* Store team pointers and results for DIYSetTeamNamesAndResults.
      * In asm, a1/a2/d1/d2 survive as register outputs and are stored

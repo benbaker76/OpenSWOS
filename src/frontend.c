@@ -7,6 +7,8 @@
 #include "game_utils.h"
 #include "audio.h"
 #include "menus.h"
+#include "world.h"           /* the football world, before the competition tables */
+#include "world_cups.h"      /* its cups into the country tables */
 #include "display.h"
 #include <string.h>   /* memcpy/memset — used by both the SDL decode and the Amiga overlay re-stride */
 
@@ -108,11 +110,21 @@ void LoadOverlayToFrontbuffer(const uint8_t *path)
 __attribute__((used, externally_visible, noinline))
 void FrontEndPreLoopSetup(void)
 {
+    /* The football world (include/world.h): the Amiga's drawer names it in data/WORLD;
+     * its baked competition records go over 96/97's on both targets, before the JSON. */
+#ifndef SWOS_SDL_BUILD
+    World_ReadFromData();
+#endif
+    World_InstallBaked();
+#ifndef SWOS_SDL_BUILD
+    WorldCups_Install();        /* its cups into the country tables (the SDL: after the JSON's) */
+#endif
 #ifdef SWOS_SDL_BUILD
     /* SWOS_DATA_JSON: rebuild normal-country competition tables from data_json/
        before any menu reads competitionsTable[]. No-op unless the env var is set. */
     extern void DataJson_InstallCompetitionGraph(void);
     DataJson_InstallCompetitionGraph();
+    WorldCups_Install();
     /* career_params.json: override the compiled career-mode balance knobs (starting
        balance, gate receipts, wages, board expectations) so testers can tune them
        without a rebuild. Absent file -> compiled defaults. */
@@ -184,8 +196,13 @@ void FrontEndMainLoop(void)
      * does (CommonMenuExit). Without it CONTINUE and SAVE came back as two blank, live
      * rows under MULTIPLAYER. */
     extern int32_t OnlineMenus_ShowStartMenu(void);
-    if (OnlineMenus_ShowStartMenu())
-        CommonMenuExit();
+    extern int32_t OnlineMenus_QuitAfterStartMenu(void);
+    if (OnlineMenus_ShowStartMenu()) {
+        if (OnlineMenus_QuitAfterStartMenu())
+            _quitToDos = 1;             /* the online client: leaving the log-in is leaving */
+        else
+            CommonMenuExit();
+    }
 #endif
 
     do

@@ -12,6 +12,8 @@
 #   HOST_WIDTH=336 JOIN_WIDTH=484 ...             # a 4:3 and a 16:9 player: each side gets
 #                                                 # a HOME of its own whose SWOS.ini sets
 #                                                 # [video] resolution=<W>x272
+#   HOST_STYLE=xbox [JOIN_STYLE=amiga] ...        # a side's [gameplay] style (amiga|dos|xbox):
+#                                                 # the joiner plays the host's either way
 #
 # netplay_live_test.sh drives the lobby through its API and skips the front end. This
 # one goes through what a player goes through: --netplay-lobby opens the real lobby
@@ -26,6 +28,7 @@
 # Passes when both peers played MATCHES matches, every one ended normally, and each
 # match ended on the same SIM-tier state hash on both sides.
 set -uo pipefail
+export SWOS_WORLD="${SWOS_WORLD:-9697}"   # (its corpus / careers are 96/97's, whatever SWOS.ini says)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
@@ -53,21 +56,27 @@ run() {   # role, team, extra env...
 
 # A screen width per side: a copy of this user's SWOS.ini (or none) with the resolution
 # replaced, in a HOME of the side's own. Saves and settings then land there too.
-side_home() {   # role width -> prints "HOME=<dir>", or nothing for the user's own
+side_home() {   # role width style -> prints "HOME=<dir>", or nothing for the user's own
     local dir=$OUT/home-$1
-    [ -n "$2" ] || return 0
+    [ -n "$2" ] || [ -n "$3" ] || return 0
     mkdir -p "$dir/.swos"
     if [ -f "$HOME/.swos/SWOS.ini" ]; then
-        sed "s/^resolution=.*/resolution=$2x272/" "$HOME/.swos/SWOS.ini" > "$dir/.swos/SWOS.ini"
+        cp "$HOME/.swos/SWOS.ini" "$dir/.swos/SWOS.ini"
     else
-        printf '[video]\nresolution=%sx272\n' "$2" > "$dir/.swos/SWOS.ini"
+        : > "$dir/.swos/SWOS.ini"
     fi
-    grep -q "^resolution=$2x272" "$dir/.swos/SWOS.ini" ||
-        printf '[video]\nresolution=%sx272\n' "$2" >> "$dir/.swos/SWOS.ini"
+    if [ -n "$2" ]; then
+        sed -i "s/^resolution=.*/resolution=$2x272/" "$dir/.swos/SWOS.ini"
+        grep -q "^resolution=$2x272" "$dir/.swos/SWOS.ini" ||
+            printf '[video]\nresolution=%sx272\n' "$2" >> "$dir/.swos/SWOS.ini"
+    fi
+    if [ -n "$3" ]; then        # (the section's other keys stay; a later style= wins)
+        printf '[gameplay]\nstyle=%s\n' "$3" >> "$dir/.swos/SWOS.ini"
+    fi
     echo "HOME=$dir"
 }
-HOST_HOME=$(side_home host "${HOST_WIDTH:-}")
-JOIN_HOME=$(side_home join "${JOIN_WIDTH:-}")
+HOST_HOME=$(side_home host "${HOST_WIDTH:-}" "${HOST_STYLE:-}")
+JOIN_HOME=$(side_home join "${JOIN_WIDTH:-}" "${JOIN_STYLE:-}")
 
 rm -f bin/swos_present*.png
 ( run host 50:0B SWOS_LOBBY_START=1 SWOS_NETEM_SEED=11 SWOS_LIVE_RANDOM_INPUT=0xA5A5F00D \

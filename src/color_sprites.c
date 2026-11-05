@@ -3,6 +3,8 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "player_face3.h"
+#include "shirt_numbers.h"
 #include "color_sprites.h"
 #include "team_colors.h"   /* SHIRT_* kit-pattern constants */
 #include "game_types.h"
@@ -294,6 +296,17 @@ static void convertSpriteRange(uint16_t start, uint16_t end, uint16_t *colorTabl
     }
 }
 
+/* A team's face 3 copy recoloured as its sets are (player_face3.c), the table left face 2's. */
+static void convert_face3(int32_t team, uint16_t *colorTable)
+{
+    const int16_t first = Face3_Set(team);
+    if (first < 0)
+        return;
+    ConvertColorTableToSkinColor(3, colorTable);
+    convertSpriteRange((uint16_t)first, (uint16_t)(first + 101), colorTable);
+    ConvertColorTableToSkinColor(2, colorTable);
+}
+
 /* ---- Helper: find most frequent face and apply skin/hair LUT ---- */
 static uint16_t findMostFrequentFaceAndApplyLUT(TeamGame *team, uint16_t *colorTable)
 {
@@ -340,6 +353,7 @@ static uint16_t findMostFrequentFaceAndApplyLUT(TeamGame *team, uint16_t *colorT
 __attribute__((used, externally_visible))
 void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
 {
+    TeamColors_MatchPalette(team1);      /* purple: maroon's entry 12 for this match (team_colors.c) */
     JagGfx_NewMatch();      /* these two teams' kit ramps, not the last pair's */
     uint16_t d0;
     uint16_t totalWidth;
@@ -444,6 +458,18 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
         _team1PlayersColorTable[15] = (uint16_t)team1->prSocksCol;
     }
 
+#ifdef SWOS_SDL_BUILD
+    /* SWOS_DUMP_HEADS=<folder> (a tool, for the hair work: docs/MODS.md): team 1's raw set, its
+     * hair pixels found, before anything recolours it. */
+    { extern void HeadDump_Raw(void); HeadDump_Raw(); }
+    { extern void ModHooks_PlayerSetsRaw(void); ModHooks_PlayerSetsRaw(); }   /* (the hair mod) */
+#endif
+
+    /* Face 3 (black, blond hair): each team's raw first set copied before it is recoloured
+     * (player_face3.c, the Mod's copy_sets) */
+    if (_useIndividualPlayerSkinColor != 0)
+        Face3_CopySets();
+
     /* Team 1 skin 0: convert sprites 227-327 */
     if (_useIndividualPlayerSkinColor != 0)
         ConvertColorTableToSkinColor(0, _team1PlayersColorTable);
@@ -459,6 +485,7 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
     if (_useIndividualPlayerSkinColor != 0) {
         ConvertColorTableToSkinColor(2, _team1PlayersColorTable);
         convertSpriteRange(429, 530, _team1PlayersColorTable);
+        convert_face3(0, _team1PlayersColorTable);      /* (its face 3 copy) */
     }
 
     /* Team 1 goalkeeper: convert sprites 833-890.
@@ -515,6 +542,7 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
     if (_useIndividualPlayerSkinColor != 0) {
         ConvertColorTableToSkinColor(2, _team2PlayersColorTable);
         convertSpriteRange(0x2DC, 833, _team2PlayersColorTable);
+        convert_face3(1, _team2PlayersColorTable);
     }
 
     /* Team 2 goalkeeper: convert sprites 949-1006.
@@ -535,4 +563,6 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
             convertSpriteRange(1007, 1065, _team2PlayersColorTable);
         }
     }
+
+    ShirtNumbers_Build();   /* the shirt numbers 17..99 from this match's digits (shirt_numbers.c) */
 }

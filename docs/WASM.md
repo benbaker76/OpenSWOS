@@ -173,6 +173,15 @@ the game's own LOAD dialog. Two constraints it has to respect:
   uppercases and sanitises to 8.3.
 - **The selector caps at 45 files** (`SelectFilesInputSaveFilenameOnSelect`).
 
+**Exporting saves, settings and the log (2026-10-31).** Under the import button, the ⬇ export
+button downloads `OpenSWOS-saves-<date>.zip`: every file in `/save`, `SWOS.ini` (localStorage)
+and the game's log -- the web build has no SWOS.log file, so the page keeps the last 3,000 lines
+of `print`/`printErr` and writes them to localStorage at most once a second; at start the last
+session's moves to `SWOS-previous.log`, so after a game that froze (which stops the page's
+JavaScript too) and a reload, the export still has that session's log. A stored zip written in
+the page (no library). It is how a web player sends a save with a bug report (a tester's season
+froze after a match, 2026-10-31: before this there was no way to get the save out).
+
 **The write-side hook landed (2026-09-12).** `rob_save` / `rob_delete`
 (`resload.c`) now call `FS.syncfs(false, …)` via `EM_ASM` after a successful
 write, so a career saved IN THE BROWSER survives a reload. That single pair of
@@ -401,6 +410,22 @@ swos_globals.c:22         career_board_confidence.c:19
 
 **Order:** single-global files first (volume, low risk), then the struct-aliased
 ones. Track the 28 files as a checklist.
+
+## Phones: on-screen controls and the keyboard
+
+On a touch screen the page (`wasm/shell.html`) draws a stick, FIRE, PAUSE and ESC
+(`InputSDL_TouchControls` / `InputSDL_TouchKey`, src/input_sdl.c). **Text fields** -- a file
+name, a team's name, the online user name: whatever goes through `InputText`
+(src/input_text.c) -- put up the phone's own keyboard (2026-10-30, players' request):
+`InputText` calls `Module.swosTextInput(1)` / `(0)` around the field, and the page focuses a
+hidden `<input id="textKbd">` meanwhile (a phone shows its keyboard only for a focused text
+field). What is typed into it goes to the game a character at a time (`InputSDL_WebChar`:
+printable ASCII, 8 BACKSPACE, 13 ENTER, 27 ESC, into the key FIFO as a key press), and the
+field is emptied again; its key events stop there, so a tablet's own keyboard does not type
+twice. Only on a touch screen: a computer's keyboard reaches the game as before. iOS Safari
+opens a keyboard only from a tap, so any tap while a field is open and the keyboard is down
+gives it the focus. Checked in headless Chrome as a phone: "Ab1", BACKSPACE, ENTER reached the
+game as 65 98 49 8 13, once each; as a desktop the field never takes the focus.
 
 ## 5. Why not `set_main_loop` (kept for the record)
 

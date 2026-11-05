@@ -82,6 +82,14 @@
    swosdata --whdload OUT.lha --drawer SWOS --assets ASSETS
                                           the WHDLoad package
 
+ PROBLEMS
+ --------
+
+ Found a bug? Please report it at github.com/benbaker76/OpenSWOS/issues
+ with what happened. The setup writes setup.log beside the folder it
+ installs to: attach it too.
+
+
  "Sensible World of Soccer" (C) 1994-97 Sensible Software. OpenSWOS is a
  fan project and is not affiliated with Sensible Software or its current
  rights holders.

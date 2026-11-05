@@ -19,7 +19,7 @@
 extern uint8_t _trainingMatchSavedPlayers[];     /* 32 bytes — player file indices */
 extern uint16_t _trainingMatchSavedPlayerPos;
 extern uint8_t _trainingMatchSavedShirtNums[];   /* 32 bytes */
-extern uint8_t _trainingMatchSavedTactics;
+extern uint8_t _trainingMatchSavedTactics[2];   /* (its byte, then the original's pad) */
 extern uint8_t _lastMatchSavedShirtNums[];       /* 32 bytes */
 extern uint8_t _lastMatchPlayers[];              /* 32 bytes */
 extern uint8_t _currentMatchPlayers[];           /* 32 bytes */
@@ -202,7 +202,7 @@ void TrainingMatch_RestoreSavedTeamSelectionState(void)
     }
 
     /* Restore tactics and player position */
-    _careerTeam.team.tactics = _trainingMatchSavedTactics;
+    _careerTeam.team.tactics = _trainingMatchSavedTactics[0];
     _selTeamSelectedPlayerPosition = _trainingMatchSavedPlayerPos;
 
     /* Restore shirt numbers via GetPlayer for all 32 indices */
@@ -226,7 +226,7 @@ void TrainingMatch_SaveTeamSelectionState(void)
     }
 
     /* Save tactics and player position */
-    _trainingMatchSavedTactics = _careerTeam.team.tactics;
+    _trainingMatchSavedTactics[0] = _careerTeam.team.tactics;
     _trainingMatchSavedPlayerPos = _selTeamSelectedPlayerPosition;
 
     /* Save shirt numbers via GetPlayer for all 32 indices */

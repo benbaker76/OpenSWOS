@@ -117,7 +117,7 @@ typedef struct {
     int                    menu_recording;   /* with music_style 1: 1 = play sound_dos/menu.mp3, 0 = menu.xmi on the emulated chip */
     int                    music_style;      /* the menus' music: 0 = the Amiga's, 1 = the PC game's menu.xmi (dos_music.h) */
     int                    commentary;       /* the PC game's commentary: 0 off, 1 on (over the Amiga's sounds too), 2 auto = with sound_style 1 */
-    int                    dos_gameplay;     /* 1 = DOS gameplay tweaks (framerate etc.). PC-only; reserved */
+    int                    dos_gameplay;     /* the gameplay style, GAMEPLAY_* (dos_mode.h): 0 AMIGA, 1 DOS, 2 XBOX */
     int                    contest_own_ratings; /* 1 = a contested ball's dice rates each side by the man at the
                                               * ball; 0 (default) = the original's squad-slot lookup
                                               * (ball_possession.c, _gContestOwnRatings). Offline only. */
@@ -135,6 +135,8 @@ typedef struct {
                                               * Empty = none (input_sdl.c) */
     int                    latch_presses;    /* [input] latch_presses: a fire press that came and went
                                               * between two reads still counts (default on) */
+    int                    touch_controls;   /* [input] touch_controls: TOUCH_CONTROLS_* -- the phones'
+                                              * on-screen controls, auto (0) | always | never */
     char                   netplay_name[33]; /* [netplay] name: the name typed on the MULTIPLAYER login
                                               * screen, kept while REMEMBER LOGIN INFO is on */
     int                    netplay_remember; /* [netplay] remember_login: that switch (default on) */
@@ -143,7 +145,6 @@ typedef struct {
                                               * or empty/"off". include/match_record.h */
     int                    prediction;       /* [netplay] prediction: PRED/SEEN in a live match's .SRP */
     int                    no_injuries_cards; /* [testing] no_injuries_cards: offline only (test_rules.h) */
-    int                    netplay_balance;  /* [netplay] balance: the two players share the guessing (docs/NETPLAY_BALANCE.md) */
     int                    reports;          /* [netplay] reports: SEND MATCH REPORTS -- both players'
                                               * logs and ratings to the server after an online
                                               * match. include/match_report.h */
@@ -165,6 +166,20 @@ typedef struct {
     char                   assets_reminder_off[64]; /* [general] assets_reminder_off: the data versions whose "update your
                                                      * game data" reminder was dismissed (src/assets_check.c), "" none */
     char                   currency[8];      /* "pound" (default) or "dollar" — money symbol */
+    char                   world[8];         /* [general] world: the football world (include/world.h), "" = 9697 */
+    char                   mods[256];        /* [mods] enabled: the mods to play with (include/mods.h), "" = none */
+    char                   mods_disabled[256];   /* [mods] disabled: canonical mods turned off, "" = none */
+    uint32_t               tweaks;           /* [tweaks]: TWEAK_* bits switched on (include/tweaks.h), 0 = none */
+    /* [options]: the game's OPTIONS screen (game length, pitch type, auto replays, all player teams
+     * equal, auto save highlights, menu music), kept between runs -- the original kept them only in
+     * memory and in a career. OPTION_UNSET: not in SWOS.ini, the game's own default. */
+#define OPTION_UNSET (-100)
+    int                    opt_game_length;      /* _gameLength: 0..3 = 3, 5, 7, 10 minutes */
+    int                    opt_pitch_type;       /* _pitchType: -2 seasonal, -1 random, 0..6 frozen..hard */
+    int                    opt_auto_replays;
+    int                    opt_all_teams_equal;
+    int                    opt_auto_save_highlights;
+    int                    opt_menu_music;
 } PlatformInitOptions;
 
 int  Platform_Init(const PlatformInitOptions *opts);
@@ -202,15 +217,14 @@ int  Platform_VBlank(void);
 int  Platform_Present(void);
 /* The entry of the palette last shown nearest an RGB colour (not entry 0). */
 uint8_t Platform_NearestColour(uint8_t r, uint8_t g, uint8_t b);
+/* The colour of a palette entry, as last shown. */
+void Platform_PaletteColour(uint8_t index, uint8_t *r, uint8_t *g, uint8_t *b);
 /* Make the next frame `us` microseconds longer than the frame rate says -- netplay's frame
  * pacing (src/netplay_match.c). The limiter keeps deadlines, so a plain sleep between
  * frames is taken back out of the next one and changes nothing; this moves the deadline.
  * When the display itself paces (vsync at the game's rate) there is no deadline to move,
  * and it sleeps instead. */
 void Platform_DelayNextFrame(uint32_t us);
-/* How many frames late the frame limiter still catches up on (1 = drop any backlog
- * past one frame, the default). A live match sets its prediction window. */
-void Platform_SetCatchUpFrames(int frames);
 
 /* A function Platform_VBlank calls every frame, whatever is on screen -- or NULL.
  * For a connection that must not go quiet while a modal menu owns the loop: the
@@ -222,6 +236,8 @@ void Platform_SetFrameHook(void (*hook)(void));
 /* Just pump SDL events, render bitplanes, and present. No pacing.
  * Safe to call from the SDL_AddTimer thread. */
 void Platform_RenderFrame(void);
+/* A progress bar alone on the screen (the phones' Wi-Fi copy, before the game's data). */
+void Platform_ShowProgress(int permille);
 
 /* Run the Amiga Level-3 VBlank ISR body, throttled to ~50 Hz max and
  * mutex-guarded so concurrent calls from the timer thread and the main

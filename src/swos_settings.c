@@ -33,9 +33,13 @@
  * keys (";resolution=...") and unknown keys are preserved verbatim and in place.
  */
 
+#include "tweaks.h"   /* [tweaks] */
 #include "swos_settings.h"
+#include "project_identity.h"
 #include "swos_io.h"   /* swos_save_commit — Switch save durability */
 #include "ini.h"
+#include "dos_mode.h"   /* GAMEPLAY_*: [gameplay] style */
+#include "touch_controls.h" /* TOUCH_CONTROLS_*: [input] touch_controls */
 
 #include <ctype.h>
 #include <errno.h>
@@ -157,8 +161,9 @@ static int handler(void *user, const char *section,
         else if (eqi(name, "contest_own_ratings") && parse_bool(value, &b))
             opts->contest_own_ratings = b;
         else if (eqi(name, "style")) {
-            if      (eqi(value, "amiga")) opts->dos_gameplay = 0;
-            else if (eqi(value, "dos"))   opts->dos_gameplay = 1;
+            if      (eqi(value, "amiga")) opts->dos_gameplay = GAMEPLAY_AMIGA;
+            else if (eqi(value, "dos"))   opts->dos_gameplay = GAMEPLAY_DOS;
+            else if (eqi(value, "xbox"))  opts->dos_gameplay = GAMEPLAY_XBOX;
         }
         /* `view` is gone (2026-09-29): the view is part of the style, one setting.
          * An old line is ignored rather than honoured -- a view that differs from the
@@ -172,6 +177,10 @@ static int handler(void *user, const char *section,
         } else if (eqi(name, "latch_presses")) {
             int b;
             if (parse_bool(value, &b)) opts->latch_presses = b;
+        } else if (eqi(name, "touch_controls")) {
+            if      (eqi(value, "auto"))   opts->touch_controls = TOUCH_CONTROLS_AUTO;
+            else if (eqi(value, "always")) opts->touch_controls = TOUCH_CONTROLS_ALWAYS;
+            else if (eqi(value, "never"))  opts->touch_controls = TOUCH_CONTROLS_NEVER;
         } else {
             static const char *const keys[5] = { "key_up", "key_down", "key_left", "key_right", "key_fire" };
             int i;
@@ -198,10 +207,6 @@ static int handler(void *user, const char *section,
             int b;
             if (parse_bool(value, &b))
                 opts->reports = b;
-        } else if (eqi(name, "balance")) {
-            int b;
-            if (parse_bool(value, &b))
-                opts->netplay_balance = b;
         } else if (eqi(name, "prediction")) {
             int b;
             if (parse_bool(value, &b))
@@ -275,6 +280,25 @@ static int handler(void *user, const char *section,
         int b;
         if (eqi(name, "no_injuries_cards") && parse_bool(value, &b))
             opts->no_injuries_cards = b;
+    } else if (eqi(section, "options")) {
+        static const char *const kLength[] = { "3", "5", "7", "10" };
+        static const char *const kPitch[]  = { "seasonal", "random", "frozen", "muddy", "wet",
+                                               "soft", "normal", "dry", "hard" };
+        int b, i;
+        if (eqi(name, "game_length")) {
+            for (i = 0; i < 4; i++)
+                if (value && eqi(value, kLength[i])) opts->opt_game_length = i;
+        } else if (eqi(name, "pitch_type")) {
+            for (i = 0; i < 9; i++)
+                if (value && eqi(value, kPitch[i])) opts->opt_pitch_type = i - 2;
+        } else if (eqi(name, "auto_replays") && parse_bool(value, &b))
+            opts->opt_auto_replays = b;
+        else if (eqi(name, "all_teams_equal") && parse_bool(value, &b))
+            opts->opt_all_teams_equal = b;
+        else if (eqi(name, "auto_save_highlights") && parse_bool(value, &b))
+            opts->opt_auto_save_highlights = b;
+        else if (eqi(name, "menu_music") && parse_bool(value, &b))
+            opts->opt_menu_music = b;
     } else if (eqi(section, "general")) {
         if (eqi(name, "language") && value && value[0])
             snprintf(opts->language, sizeof opts->language, "%s", value);
@@ -282,6 +306,22 @@ static int handler(void *user, const char *section,
             snprintf(opts->currency, sizeof opts->currency, "%s", value);
         else if (eqi(name, "assets_reminder_off"))
             snprintf(opts->assets_reminder_off, sizeof opts->assets_reminder_off, "%s", value ? value : "");
+        else if (eqi(name, "world") && value && value[0])
+            snprintf(opts->world, sizeof opts->world, "%s", value);
+    } else if (eqi(section, "mods")) {
+        if (eqi(name, "enabled"))
+            snprintf(opts->mods, sizeof opts->mods, "%s", value ? value : "");
+        else if (eqi(name, "disabled"))
+            snprintf(opts->mods_disabled, sizeof opts->mods_disabled, "%s", value ? value : "");
+    } else if (eqi(section, "tweaks")) {
+        static const struct { const char *key; uint32_t bit; } kTweaks[] = {
+            { "cpu_cards", TWEAK_CPU_CARDS }, { "no_teammate_tackles", TWEAK_NO_TEAMMATE_TACKLES },
+            { "tackle_controlled_player", TWEAK_TACKLE_CONTROLLED_PLAYER },
+        };
+        int b;
+        for (uint32_t i = 0; i < sizeof kTweaks / sizeof kTweaks[0]; i++)
+            if (eqi(name, kTweaks[i].key) && parse_bool(value, &b))
+                opts->tweaks = b ? (opts->tweaks | kTweaks[i].bit) : (opts->tweaks & ~kTweaks[i].bit);
     }
     /* Return nonzero on success, even for ignored keys — we don't want
      * inih to flag unknown sections as parse errors. */
@@ -438,6 +478,13 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; still counts as pressed for one frame, so a very short tap is never lost.\n"
         "; false: only what is held at the moment of the read counts, as before.",
         opts->latch_presses ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "input", "touch_controls",
+        "; touch_controls: auto | always | never -- a phone's on-screen stick and buttons.\n"
+        "; auto (the default): hidden while a game controller is played, back on a touch;\n"
+        "; always: always on screen; never: never (a handheld with controls of its own).\n"
+        "; OPTIONS -> CONTROLS sets it. The desktops have none.",
+        opts->touch_controls == TOUCH_CONTROLS_NEVER ? "never"
+        : opts->touch_controls == TOUCH_CONTROLS_ALWAYS ? "always" : "auto" };
     SETTING(n) = (IniEntry){ "input", "key_up",
         "; key_up, key_down, key_left, key_right, key_fire: your own keys, BESIDE the\n"
         "; built-in ones (the cursor keys; either CTRL or ENTER to fire), which keep\n"
@@ -470,12 +517,13 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
 
 
     SETTING(n) = (IniEntry){ "gameplay", "style",
-        "; style: amiga | dos. The Amiga release is the definitive one and what this\n"
-        "; port is reverse engineered from; dos is the PC release's 70 FPS physics,\n"
+        "; style: amiga | dos | xbox. The Amiga release is the definitive one and what\n"
+        "; this port is reverse engineered from; dos is the PC release's 70 FPS physics,\n"
         "; timers and formations, and its 320x200 view -- the view is part of how it\n"
         "; plays (what is on screen decides which players the game picks), so the\n"
-        "; style sets both. Online, the game plays the HOST's style.\n",
-        opts->dos_gameplay ? "dos" : "amiga" };
+        "; style sets both; xbox is SWOS 2020's XBOX style: 60 FPS, the Amiga's ball\n"
+        "; physics and view, the DOS goalkeepers. Online, the game plays the HOST's style.\n",
+        opts->dos_gameplay == GAMEPLAY_DOS ? "dos" : opts->dos_gameplay == GAMEPLAY_XBOX ? "xbox" : "amiga" };
     SETTING(n) = (IniEntry){ "replays", "auto_save",
         "; auto_save: true | false — every match is recorded to LATEST.SRP in the save\n"
         "; folder and can be watched from HIGHLIGHTS -> LOAD. true also keeps a dated\n"
@@ -483,7 +531,7 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         opts->replay_auto_save ? "true" : "false" };
     SETTING(n) = (IniEntry){ "netplay", "matchmaker",
         "; matchmaker: the server MULTIPLAYER logs in to, as \"host\" or \"host:port\"\n"
-        "; (default port 19602). Empty means the public server, online.openswos.net. You can type it\n"
+        "; (default port 19602). Empty means the public server, " PROJECT_MM_HOST ". You can type it\n"
         "; on the login screen instead -- it is saved back here.",
         opts->matchmaker };
     SETTING(n) = (IniEntry){ "netplay", "name",
@@ -504,12 +552,6 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; HOW WAS THE MATCH? to the other player and the server, zipped (a copy is kept in\n"
         "; save/netplay either way). false: nothing leaves this machine.",
         opts->reports ? "true" : "false" };
-    SETTING(n) = (IniEntry){ "netplay", "balance",
-        "; balance: true | false -- online, when one player is predicting the other's input two\n"
-        "; frames or more deeper than the other is, that player waits a little. Timing only,\n"
-        "; never the match. It works only when BOTH players have it on\n"
-        "; (docs/NETPLAY_BALANCE.md).\n",
-        opts->netplay_balance ? "true" : "false" };
     SETTING(n) = (IniEntry){ "netplay", "prediction",
         "; prediction: true | false -- keep what each player SAW of an online match in its\n"
         "; replay: how many of the other player's inputs were guesses on each frame, the\n"
@@ -599,8 +641,55 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "general","currency",   "; currency: pound | dollar | euro", opts->currency[0] ? opts->currency : "pound" };
     SETTING(n) = (IniEntry){ "general","assets_reminder_off",
         "; assets_reminder_off: set by \"Don't remind me\" on the reminder that your game data was made by\n"
-        "; an older OpenSWOS Setup -- the data versions it was about. Empty: remind (src/assets_check.c).",
+        "; an older " PROJECT_SETUP_NAME " -- the data versions it was about. Empty: remind (src/assets_check.c).",
         opts->assets_reminder_off };
+    SETTING(n) = (IniEntry){ "general","world",
+        "; world: 9697 | 2627 -- the football world: its countries, clubs and competitions\n"
+        "; (docs/WORLD_2026_27.md): SWOS 96/97, or World 2026-27 once " PROJECT_SETUP_NAME " has\n"
+        "; imported its data. A save is played in the world it was made in.",
+        opts->world[0] ? opts->world : "9697" };
+    SETTING(n) = (IniEntry){ "mods",   "enabled",
+        "; enabled: the mods to play with, by their folder's name in the mods folder beside this file,\n"
+        "; in that order: a file two of them have comes from the first, e.g. enabled = classics, hall.\n"
+        "; Empty: none (docs/MODS.md). A downloaded (DLC) mod that is not cosmetic keeps the game off line.",
+        opts->mods };
+    SETTING(n) = (IniEntry){ "mods",   "disabled",
+        "; disabled: the game's own (canonical) mods to turn off, by name; they are on by default.",
+        opts->mods_disabled };
+    SETTING(n) = (IniEntry){ "tweaks", "cpu_cards",
+        "; [tweaks]: small changes to the original's behaviour, each off by default and only off line\n"
+        "; (online, and in the test rigs, the original plays): docs/MODS.md.\n"
+        "; cpu_cards: true | false -- the computer's players are booked and sent off too\n"
+        "; (the original cards only a side a human controls).",
+        (opts->tweaks & TWEAK_CPU_CARDS) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "no_teammate_tackles",
+        "; no_teammate_tackles: true | false -- a team-mate leaves your player on the ball alone\n"
+        "; (in the original the nearest team-mate runs onto the ball and can slide or take it off you).",
+        (opts->tweaks & TWEAK_NO_TEAMMATE_TACKLES) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "tackle_controlled_player",
+        "; tackle_controlled_player: true | false -- fire slides the player you control\n"
+        "; (in the original a nearer team-mate may slide instead).",
+        (opts->tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? "true" : "false" };
+    {   /* [options]: unset = the game's defaults (SetDefaultOptions) */
+        static const char *const kLength[] = { "3", "5", "7", "10" };
+        static const char *const kPitch[]  = { "seasonal", "random", "frozen", "muddy", "wet",
+                                               "soft", "normal", "dry", "hard" };
+        int len = opts->opt_game_length, pitch = opts->opt_pitch_type;
+#define OPT_BOOL(v, def) ((v) == OPTION_UNSET ? (def) : (v)) ? "true" : "false"
+        SETTING(n) = (IniEntry){ "options", "game_length",
+            "; The OPTIONS screen, as it was left (a loaded career plays its own).\n"
+            "; game_length: 3 | 5 | 7 | 10 (minutes)",
+            kLength[len >= 0 && len < 4 ? len : 0] };
+        SETTING(n) = (IniEntry){ "options", "pitch_type",
+            "; pitch_type: seasonal | random | frozen | muddy | wet | soft | normal | dry | hard",
+            kPitch[pitch >= -2 && pitch <= 6 ? pitch + 2 : 0] };
+        SETTING(n) = (IniEntry){ "options", "auto_replays", "; auto_replays, all_teams_equal, auto_save_highlights, menu_music: true | false",
+            OPT_BOOL(opts->opt_auto_replays, 1) };
+        SETTING(n) = (IniEntry){ "options", "all_teams_equal", NULL, OPT_BOOL(opts->opt_all_teams_equal, 0) };
+        SETTING(n) = (IniEntry){ "options", "auto_save_highlights", NULL, OPT_BOOL(opts->opt_auto_save_highlights, 1) };
+        SETTING(n) = (IniEntry){ "options", "menu_music", NULL, OPT_BOOL(opts->opt_menu_music, 1) };
+#undef OPT_BOOL
+    }
     if (n >= SETTINGS_MAX)
         fprintf(stderr, "[settings] the settings table is full (%d): raise SETTINGS_MAX\n", n);
     return n;
@@ -823,4 +912,61 @@ void Settings_Save(const PlatformInitOptions *opts, const char *path)
 void Settings_AppendMissing(const PlatformInitOptions *opts, const char *path)
 {
     Settings_Save(opts, path);
+}
+
+/* --game-options-selftest: every value OpenSWOS Setup may write (include/game_options.h) read
+ * by this file's reader and written back by its writer, unchanged. Fails when the game renames
+ * a key or a value the setup still writes. 0 when every one comes back. */
+#include "game_options.h"
+int Settings_GameOptionsSelfTest(void)
+{
+    char in[512], out[512], line[512];
+    const char *tmp = getenv("TMPDIR");
+    int32_t i, k, bad = 0, checked = 0;
+
+    snprintf(in, sizeof in, "%s/swos-game-options-in.ini", tmp && *tmp ? tmp : "/tmp");
+    snprintf(out, sizeof out, "%s/swos-game-options-out.ini", tmp && *tmp ? tmp : "/tmp");
+    for (i = 0; i < GAME_OPTION_COUNT(kGameOptions); i++) {
+        const GameOption *o = &kGameOptions[i];
+        for (k = 0; k < o->count; k++) {
+            PlatformInitOptions opts;
+            FILE *f = fopen(in, "w");
+            char got[64] = "";
+            int32_t inSection = 0;
+            if (!f) { fprintf(stderr, "game-options: cannot write %s\n", in); return 1; }
+            fprintf(f, "[%s]\n%s=%s\n", o->section, o->key, o->values[k].value);
+            fclose(f);
+            memset(&opts, 0, sizeof opts);
+            Settings_Load(&opts, in);
+            if (!strcmp(o->section, "video") && !strcmp(o->key, "fullscreen")) {
+                /* (written from the window's own state, not the setting: read it as loaded) */
+                snprintf(got, sizeof got, "%s", opts.fullscreen == PLATFORM_FULLSCREEN_DESKTOP ? "desktop"
+                                                : opts.fullscreen == PLATFORM_FULLSCREEN_EXCLUSIVE ? "exclusive" : "off");
+            } else {
+                Settings_Save(&opts, out);
+                if (!(f = fopen(out, "r"))) { fprintf(stderr, "game-options: cannot read %s\n", out); return 1; }
+                while (fgets(line, sizeof line, f)) {
+                    size_t n = strlen(o->key);
+                    if (line[0] == '[')
+                        inSection = !strncmp(line + 1, o->section, strlen(o->section)) && line[1 + strlen(o->section)] == ']';
+                    else if (inSection && !strncmp(line, o->key, n) && line[n] == '=') {
+                        sscanf(line + n + 1, "%63[^ \t\r\n;]", got);
+                        break;
+                    }
+                }
+                fclose(f);
+            }
+            checked++;
+            if (strcmp(got, o->values[k].value)) {
+                fprintf(stderr, "game-options: [%s] %s=%s came back as '%s'\n", o->section, o->key,
+                        o->values[k].value, got);
+                bad++;
+            }
+        }
+    }
+    remove(in);
+    remove(out);
+    printf("game-options self-test: %d of %d values come back%s\n", (int)(checked - bad), (int)checked,
+           bad ? " -- FAILED" : "");
+    return bad ? 1 : 0;
 }

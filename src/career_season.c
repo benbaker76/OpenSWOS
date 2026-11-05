@@ -11,6 +11,9 @@
 #include <stdio.h>
 #define SEASON_STEP(...) do { FILE *sf = fopen("swos_division_debug.log", "a"); if (sf) { fputs("NEXTTRACE ", sf); fprintf(sf, __VA_ARGS__); fputc('\n', sf); fclose(sf); } } while (0)
 #include "career_season.h"
+#include "uefa_coef.h"
+#include "world_conti.h"
+#include "world.h"
 #include "career_eurocups.h"
 #include "career_init.h"
 #include "career_status.h"
@@ -23,13 +26,22 @@
                                Amiga Makefile doesn't, so include it explicitly */
 #include "job_offers.h"
 #include "panic.h"
+#include "league_phase.h"
 #include "random.h"
 #include "statistics.h"
 #include "transfer_market.h"
+#include "league_playoffs.h"
+#include "world_playoff.h"
+#include "world_winners.h"
+#include "world_cups.h"
+#include "states.h"
+
+extern uint8_t _diyLeagueSeasonStateTable[];
+extern uint8_t _diyLeagueScratchBuffer[];
 
 /* Diagnostic-only audit: checksum contribution from the 16 league-balance slots.
  * Does not mutate scratch data or relax original validation. */
-extern volatile uint8_t _diyLeagueScratchBuffer[];
+/* (declared above, without volatile: the merge with upstream) */
 static void trace_league_balance(const char *stage, unsigned comp, unsigned div)
 {
     FILE *f = fopen("swos_division_debug.log", "a");
@@ -195,7 +207,7 @@ void Career_FillRandomTeamListExcludingSelected(uint16_t excludeCount,
                                                   uint8_t *table, uint8_t *compIndexs)
 {
     /* move.b (selTeamNumber).l,d0 — reads MSB on big-endian 68k */
-    uint8_t selTeam = (uint8_t)(_selTeamNumber >> 8);
+    uint8_t selTeam = World_FileCountry((uint8_t)(_selTeamNumber >> 8));     /* (a second team file: its country, include/world.h) */
     int16_t d7 = (int16_t)excludeCount;
     uint8_t *out = compIndexs;
 
@@ -369,7 +381,7 @@ void Career_PrepareEuropeanCupQualificationState(void)
         uint8_t *bucketData = *(uint8_t **)_euroCupQualGroupSeedBuckets_15_18_22;
         uint16_t excludeCount = 0;
         if (_isNationalSelector == 0) {
-            uint8_t teamByte = (uint8_t)(_selTeamNumber >> 8);
+            uint8_t teamByte = World_FileCountry((uint8_t)(_selTeamNumber >> 8));
             while (*bucketData != 0xFF) {
                 if (*bucketData == teamByte) {
                     excludeCount++;
@@ -379,6 +391,24 @@ void Career_PrepareEuropeanCupQualificationState(void)
         }
         Career_FillRandomTeamListExcludingSelected(excludeCount,
             _euroCupQualGroupSeedBuckets_15_18_22, _uefaCupEligibleCompetitionIds);
+    }
+
+    /* A world's league phases: each country's own places (include/league_phase.h), not 96/97's
+     * drawn ones -- the eligible lists one country a place, in the world's order. */
+    {
+        const uint8_t (*places)[4];
+        int32_t n;
+        if (World_LeaguePhaseCups(&places, &n)) {
+            uint8_t *lists[3] = { _euroCupEligibleCompetitionIds, _cupWinnersCupEligibleCompetitionIds,
+                                  _uefaCupEligibleCompetitionIds };
+            for (int32_t c = 0; c < 3; c++) {
+                int32_t k = 0;
+                for (int32_t i = 0; i < n; i++)
+                    for (int32_t j = 0; j < places[i][1 + c] && k < 39; j++)
+                        lists[c][k++] = places[i][0];
+                lists[c][k] = 0xFF;
+            }
+        }
     }
 
     /* Restore state — asm: move.w (sp)+,(isNationalSelector); move.w (sp)+,(selTeamNumber) */
@@ -514,7 +544,7 @@ uint16_t Career_UpdateLastNationalityCall(void)
 
     /* move.b (selTeamNumber).l,d0 — reads high byte on big-endian 68k.
      * This extracts the team file ID (country file index) from selTeamNumber. */
-    d0 = GetNationalTeamNumberFromTeamFileId(_selTeamNumber >> 8);
+    d0 = GetNationalTeamNumberFromTeamFileId(World_FileCountry((uint8_t)(_selTeamNumber >> 8)));
 
 check_self:
     /* If the national team IS the selected team, set to 0xFFFF (no call-up) */
@@ -811,9 +841,11 @@ extern void Career_MaybeGenerateJobOffer(void);
  * Called after a career match to begin contract negotiation phase.
  * Sets up negotiation globals, commits finances, processes offer expiry,
  * and potentially generates a new job offer.
- * a0=comp (diyCompetitionStart), a1=team ptr passed through to UpdateCareerFinancesAfterMatch. */
+ * a0=comp (diyCompetitionStart), a1=team (the home side), a2=opponent: both passed through to
+ * UpdateCareerFinancesAfterMatch, whose gate factors weigh the two clubs (the original keeps
+ * a2 from the result code; the C used to pass the home team twice). */
 __attribute__((used, externally_visible))
-void BeginContractNegotiationSequence(DIYCompetitionEx *comp, TeamFileEx *team)
+void BeginContractNegotiationSequence(DIYCompetitionEx *comp, TeamFileEx *team, TeamFileEx *opponent)
 {
     _contractNegotiationActive = 1;
     _timeToNegotiate = 2;
@@ -821,7 +853,7 @@ void BeginContractNegotiationSequence(DIYCompetitionEx *comp, TeamFileEx *team)
     _offerNegotiationAttemptCount = 0;
     Career_CommitNewBalanceAndResetFinanceTotals();
     _financeTotalsNeedResetFlag = 1;
-    UpdateCareerFinancesAfterMatch(comp, team);
+    UpdateCareerFinancesAfterMatch(comp, team, opponent);
     ProcessOfferExpiryCountdown();
     JobOffers_MaybeExpireSomeNewOffers();
     Career_MaybeGenerateJobOffer();
@@ -911,6 +943,9 @@ void Career_ProcessTertiaryCompetitionForNextSeason(uint8_t *competition)
         DIY_CacheTertiaryQualifiedTeamGrid();
         recordFinishedWinner(competition, 3, 0);
     }
+    /* a world's league cup with no European place (world_cups.c): its winner takes none */
+    if (!WorldCups_LeagueCupEurope(competition))
+        _cachedTertiaryQualifiedTeamId = 0xFFFF;
 }
 
 /* Career_ProcessCompetitionForNextSeason (SWOS2.s line 31908)
@@ -956,6 +991,13 @@ void Career_ProcessCompetitionForNextSeason(uint16_t compIndex)
     trace_league_balance("VALIDATE_BEGIN", (unsigned)compIndex, 0);
     DIY_ValidateLeagueScratchBuffer();
     SEASON_STEP("COMP id=%u END", (unsigned)compIndex);
+
+    /* A world's play-offs and play-outs: after the original's moves are checked, the
+     * places they decide (one-level moves, placed by InitializeNewSeason's groups pass). */
+    LeaguePlayoffs_Decide(compIndex & 0xFF, (const int8_t *)_diyLeagueSeasonStateTable,
+                          (int8_t *)_diyLeagueScratchBuffer);
+    WorldWinners_SeasonDecided();          /* (the SEASON WINNERS page's last season: world_winners.c) */
+    States_SeasonEnd((uint8_t)compIndex);  /* (a world's state championships, Brazil's: states.c) */
 }
 
 /* ================================================================
@@ -1790,6 +1832,8 @@ static void processPrimaryCompetitionForNextSeason(uint8_t *competition)
     uint16_t d7;
     uint8_t *qualCursor = (uint8_t *)_diyQualifiedTeamIndices;
 
+    LeaguePlayoffs_Begin();     /* a world's play-offs: the final tables (league_playoffs.c) */
+
     for (d7 = 0; d7 < numDivisions; d7++) {
         SEASON_STEP("DIV id=%u division=%u/%u BEGIN", (unsigned)_currentCompetitionIndex, (unsigned)d7, (unsigned)numDivisions);
         if (competition == _currentCompetitionPtr &&
@@ -1806,6 +1850,8 @@ static void processPrimaryCompetitionForNextSeason(uint8_t *competition)
             SEASON_STEP("DIV id=%u division=%u SIM BEGIN", (unsigned)_currentCompetitionIndex, (unsigned)d7);
             Career_AutoAdvanceInternationalCompetitionFixtures(competition, d7);
             SEASON_STEP("DIV id=%u division=%u SIM END", (unsigned)_currentCompetitionIndex, (unsigned)d7);
+            if (competition == _currentCompetitionPtr)   /* (the career's league, not one the */
+                WorldPlayoff_RestoreEarlyTable(d7);      /* European places simulate: world_playoff.c) */
             if (d7 == 0)
                 DIY_CachePrimaryQualifiedTeamsGrid();
         }
@@ -1818,6 +1864,7 @@ static void processPrimaryCompetitionForNextSeason(uint8_t *competition)
         SEASON_STEP("DIV id=%u division=%u SCRATCH END", (unsigned)_currentCompetitionIndex, (unsigned)d7);
         BAL("SCRATCH_END", d7);
         SEASON_STEP("DIV id=%u division=%u COPY BEGIN", (unsigned)_currentCompetitionIndex, (unsigned)d7);
+        LeaguePlayoffs_KeepTable(competition, d7);
         qualCursor = DIY_CopyCompetitionTeamIndexTable(qualCursor);
         SEASON_STEP("DIV id=%u division=%u COPY END", (unsigned)_currentCompetitionIndex, (unsigned)d7);
         BAL("COPY_END", d7);
@@ -1910,19 +1957,20 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
     _careerFileBuffer = 0;
 
     if (!_isNationalSelector) {
-        uint16_t compIndex = (uint8_t)(_selTeamNumber >> 8);
+        uint16_t compIndex = World_FileCountry((uint8_t)(_selTeamNumber >> 8));   /* (include/world.h) */
         Career_ProcessCompetitionForNextSeason(compIndex);
         Career_ProcessCompetitionForEuropeanCupQualification();
         Career_ProcessCompetitionForCopaLibertadoresQualification();   /* Inc3 */
     }
 
     /* Loop through all competition IDs in the remap table */
-    uint8_t *remapPtr = _careerCompetitionIdRemapTable;
+    const uint8_t *remapPtr = World_SeasonCountries() ? World_SeasonCountries()    /* (a world's: */
+                                                      : _careerCompetitionIdRemapTable; /* its new ones too) */
     for (;;) {
         uint8_t compByte = *remapPtr++;
         if (compByte == 0xFF)
             break;
-        if (!_isNationalSelector && compByte == (uint8_t)(_selTeamNumber >> 8))
+        if (!_isNationalSelector && compByte == World_FileCountry((uint8_t)(_selTeamNumber >> 8)))
             continue;
         SEASON_STEP("REMAP id=%u BEGIN", (unsigned)compByte);
         Career_ProcessCompetitionForNextSeason((uint16_t)compByte);
@@ -1937,7 +1985,15 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
      * so the expected total is 0x50 + the Copa count (0 on a build without the
      * Copa data). Without this the gate would miss (e.g. 100 != 0x50) and fall
      * through to panic 0x8999. */
-    if (_careerFileBuffer == 0x50 + Career_CopaLibertadoresQualifiedTeamCount()) {
+    /* (a world's league phases: the qualifying rounds' clubs before the holders, 36 each after) */
+    const uint8_t (*lpPlaces)[4];
+    int32_t lpN;
+    const int32_t lp = World_LeaguePhaseCups(&lpPlaces, &lpN) != 0;
+    if (lp)
+        UefaQual_Fill();
+    Conti_SeasonEnd();      /* (a world's other confederations' cups: the next editions) */
+    const uint16_t euroBefore = lp ? UefaQual_Listed() : 0x50, euroAfter = lp ? 108 : 0x50;
+    if (_careerFileBuffer == euroBefore + Career_CopaLibertadoresQualifiedTeamCount()) {
         SEASON_STEP("EURO CLUB CUP DRAW BEGIN field=%u champs=%u cwc=%u uefa=%u", (unsigned)_careerFileBuffer,
                     (unsigned)_euroCupQualifiedTeamCount, (unsigned)_cupWinnersCupQualifiedTeamCount,
                     (unsigned)_uefaCupQualifiedTeamCount);
@@ -1946,12 +2002,15 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
         _seasonUpdateInProgress = 0;
         RestoreSelectedTeams();
 
-        if (_euroCupQualifiedTeamCount == 16 &&
-            _cupWinnersCupQualifiedTeamCount == 32 &&
-            _uefaCupQualifiedTeamCount == 32 &&
+        if (_euroCupQualifiedTeamCount == (lp ? 36 : 16) &&
+            _cupWinnersCupQualifiedTeamCount == (lp ? 36 : 32) &&
+            _uefaCupQualifiedTeamCount == (lp ? 36 : 32) &&
             Career_CopaLibertadoresQualifiedTeamCount() == Career_CopaLibertadoresExpectedTeamCount() &&
-            _careerFileBuffer == 0x50 + Career_CopaLibertadoresQualifiedTeamCount()) {
+            _careerFileBuffer == euroAfter + Career_CopaLibertadoresQualifiedTeamCount()) {
             Career_StorePromotionRelegationInSeasonInfo();
+            WorldCups_SeasonEnded();    /* (the next season plays its cups' own draw) */
+            if (lp)
+                UefaQual_Post();        /* (the career club's qualifying opponents' records) */
             return;
         }
         _panicReasonCode = 0x8998;

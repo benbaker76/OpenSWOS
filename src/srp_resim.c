@@ -16,6 +16,11 @@
  *   -> [resim] ... 2000 frames, every one as recorded          exit 0
  *   -> [resim] ... parts at frame 812 (here 1a2b3c4d, then ...)  exit 2
  *
+ * SWOS_SRP_DIFF_KICKOFF=<other.SRP> compares the two recordings' kick-off states instead and
+ * names every match field they disagree on -- the other player's own copy of a match that
+ * went out of step at frame 0 (a LATEST.SRP from the joiner, beside the recorder's copy),
+ * the joiner having built a different match from the same setup.
+ *
  * Refused (exit 1) when the recording's registry layout or build rules are not this
  * build's: such a recording is not the same match here, and a difference would prove
  * nothing. The gameplay style and the fire-hold lockout are taken from the recording.
@@ -39,10 +44,12 @@
 #include "p2p_link.h"           /* P2PLink_GameplayFlags, P2P_RULE_* */
 #include "replay_v2.h"
 #include "sim_state.h"
+#include "state_wire.h"         /* StateWire_Peek: SWOS_SRP_DIFF_KICKOFF */
+#include "miniz_swos.h"         /* tinfl_decompress_mem_to_mem */
 #include "game_loop.h"          /* _gFrameStepInput */
 #include "dos_mode.h"           /* _gDosView: the view it was replayed with */
 
-extern TeamFileEx _selectedTeams[100];
+extern TeamFileEx _selectedTeams[SELECTED_TEAMS_MAX];
 extern uint16_t   _numSelectedTeams;
 extern uint16_t   _menuBGImageCmdStream[];
 extern uint8_t   *_menuImageStreamBaseEnd;
@@ -79,7 +86,8 @@ int32_t SrpResim_Rules(int *dosGameplay, int *fireHoldLockout, int *dosView)
         }
         s_loaded = 1;
     }
-    *dosGameplay = (s_rec.rules & P2P_RULE_DOS) != 0;
+    /* The style (GAMEPLAY_*): SIMV's own byte, or, before XBOX, the rules byte's DOS bit. */
+    *dosGameplay = s_rec.style ? s_rec.style : (s_rec.rules & P2P_RULE_DOS) ? GAMEPLAY_DOS : GAMEPLAY_AMIGA;
     *fireHoldLockout = (s_rec.rules & P2P_RULE_FIRE_LOCKOUT) != 0;
     /* The view is a rule too (P2PLink_GameplayFlags). A recording from before it said
      * so plays by this machine's own -- see the hint if it parts at frame 1. */
@@ -121,9 +129,78 @@ static void resim_finished(void)
     exit(2);
 }
 
+/* A kick-off state (STAT) inflated to its portable buffer; NULL if it is not one. */
+static uint8_t *kickoff_buffer(const uint8_t *packet, uint32_t len, uint32_t *size)
+{
+    StateWireInfo h;
+    uint8_t *buf;
+    if (StateWire_Peek(packet, len, &h) != STATE_WIRE_OK || (h.flags & STATE_WIRE_DELTA) ||
+        h.layout != SimState_LayoutHash() || h.rawBytes != SimState_PortableSize(h.tiers))
+        return NULL;
+    buf = (uint8_t *)malloc(h.rawBytes ? h.rawBytes : 1);
+    if (buf && tinfl_decompress_mem_to_mem(buf, h.rawBytes, packet + STATE_WIRE_HEADER_BYTES,
+                                           h.packedBytes, 0) != h.rawBytes) {
+        free(buf);
+        buf = NULL;
+    }
+    *size = h.rawBytes;
+    return buf;
+}
+
+/* SWOS_SRP_DIFF_KICKOFF: the match fields two recordings' kick-off states disagree on. The
+ * SIM tier's LOCAL fields (one display's, zero in the hash the peers compare) are left out. */
+static void diff_kickoff(const char *otherPath)
+{
+    ReplayResume other;
+    uint8_t *a, *b, *mask;
+    uint32_t sa = 0, sb = 0, offset = 0, shown = 0, fields = 0;
+    int32_t i;
+
+    if (ReplayV2_LoadResume(otherPath, &other) != 0) {
+        printf("[resim] %s: no kick-off state to compare\n", otherPath);
+        exit(1);
+    }
+    a = kickoff_buffer(s_rec.kickoff, s_rec.kickoffLen, &sa);
+    b = kickoff_buffer(other.kickoff, other.kickoffLen, &sb);
+    if (!a || !b || sa != sb) {
+        printf("[resim] the two kick-off states cannot be compared (another build's, or not states)\n");
+        exit(1);
+    }
+    printf("[resim] kick-off states: %s against %s\n", s_path, otherPath);
+    for (i = 0; i < g_simStateRegionCount; i++) {
+        const uint32_t size = SimState_RegionActive(i, SIM_TIER_ALL) ? SimState_RegionPortableSize(i) : 0;
+        const int32_t sim = SimState_RegionActive(i, SIM_TIER_SIM);
+        uint32_t k;
+        if (!size)
+            continue;
+        mask = (uint8_t *)calloc(size, 1);
+        if (mask && sim)
+            SimState_PortableLocalMask(i, mask);
+        for (k = 0; k < size; k++) {
+            char where[96];
+            if (a[offset + k] == b[offset + k] || (mask && mask[k]))
+                continue;
+            fields++;
+            if (shown++ < 200) {
+                SimState_DescribePortableByte(i, k, where, sizeof where);
+                printf("  %-4s %-36s %-26s %02X vs %02X\n", sim ? "SIM" : "view",
+                       g_simStateRegions[i].name, where, a[offset + k], b[offset + k]);
+            }
+        }
+        free(mask);
+        offset += size;
+    }
+    printf("[resim] %u differing byte%s\n", (unsigned)fields, fields == 1 ? "" : "s");
+    fflush(stdout);
+    exit(fields ? 2 : 0);
+}
+
 void SrpResim_Run(void)
 {
     uint8_t here = P2PLink_GameplayFlags();
+
+    if (getenv("SWOS_SRP_DIFF_KICKOFF"))
+        diff_kickoff(getenv("SWOS_SRP_DIFF_KICKOFF"));
 
     printf("[resim] %s: %u frames, recorded by build layout %016llx, rules 0x%02X, sim width %u\n",
            s_path, (unsigned)s_rec.frames, (unsigned long long)s_rec.layout, (unsigned)s_rec.rules,

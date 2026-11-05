@@ -59,11 +59,13 @@ static int32_t usage(void)
 {
     fprintf(stderr,
             "usage: swosdata [--scan DIR]... [--adf FILE]... [--dos DIR] [--jag FILE]\n"
-            "                [--swos2020 DIR]\n"
+            "                [--swos2020 DIR] [--world PACKAGE]   (OpenSWOS-World-<tag>.zip, or unpacked)\n"
+            "                [--mods-dir DIR]     (with --world: install it there as a mod, world<tag>)\n"
             "                [--out DIR [--res DIR]]   (no --out: report what was found;\n"
             "                                           no sources: the last install's, from --out's ASSETS.ini)\n"
             "       swosdata --compare OUT REF\n"
             "       swosdata --whdload OUT.lha --drawer SWOSDRAWER --assets ASSETSDIR [--res DIR]\n"
+            "                [--with-world]   (World 2026-27 on the Amiga: its package installed)\n"
             "       swosdata --installed ASSETSDIR\n"
             "       swosdata --list-parts ASSETSDIR   (part, data version, file: check_data_versions.py)\n");
     return 2;
@@ -213,7 +215,10 @@ int main(int argc, char **argv)
     if (argc >= 2 && strcmp(argv[1], "--whdload") == 0) {
         const char *out = argc > 2 ? argv[2] : NULL, *drawer = NULL, *assets = NULL;
         char res[1024] = "";
-        for (int i = 3; i + 1 < argc; i += 2) {
+        int32_t withWorld = 0;
+        for (int i = 3; i < argc; i += 2) {
+            if (strcmp(argv[i], "--with-world") == 0) { withWorld = 1; i--; continue; }
+            if (i + 1 >= argc) return usage();
             if (strcmp(argv[i], "--drawer") == 0) drawer = argv[i + 1];
             else if (strcmp(argv[i], "--assets") == 0) assets = argv[i + 1];
             else if (strcmp(argv[i], "--res") == 0) snprintf(res, sizeof res, "%s", argv[i + 1]);
@@ -223,7 +228,11 @@ int main(int argc, char **argv)
             return usage();
         if (!res[0])
             find_res_dir(argv[0], res, sizeof res);
-        if (SwosData_MakeWhdload(assets, drawer, res, out, on_log, NULL, err) != 0) {
+        if (withWorld && !SwosData_HaveAmigaWorld(assets)) {
+            fprintf(stderr, "--with-world: no world in %s -- install its package first (--world)\n", assets);
+            return 1;
+        }
+        if (SwosData_MakeWhdload(assets, drawer, res, out, withWorld, NULL, on_log, NULL, err) != 0) {
             fprintf(stderr, "failed: %s\n", err);
             return 1;
         }
@@ -263,8 +272,15 @@ int main(int argc, char **argv)
                 fprintf(stderr, "not a SWOS 2020 install: %s\n", v);
                 return 1;
             }
+        } else if (strcmp(a, "--world") == 0) {
+            if (SdSources_AddFile(&job.src, v) != 0 || !SdSources_HaveWorld(&job.src)) {
+                fprintf(stderr, "not a world package (OpenSWOS-World-<tag>.zip): %s\n", v);
+                return 1;
+            }
         } else if (strcmp(a, "--out") == 0)
             snprintf(job.outDir, sizeof job.outDir, "%s", v);
+        else if (strcmp(a, "--mods-dir") == 0)      /* a world as a mod, into this mods folder */
+            snprintf(job.modsDir, sizeof job.modsDir, "%s", v);
         else if (strcmp(a, "--res") == 0)
             snprintf(job.resDir, sizeof job.resDir, "%s", v);
         else
@@ -277,7 +293,8 @@ int main(int argc, char **argv)
     /* Nothing named on the command line: what the last install used (ASSETS.ini in --out). */
     if (job.outDir[0] && !job.src.adf1[0] && !job.src.adf2[0] && !job.src.hdf[0] && !job.src.lha[0] &&
         !job.src.dosDir[0] &&
-        !job.src.jagRom[0] && !job.src.s2020Dir[0] && SwosData_LoadSources(job.outDir, &job.src) > 0)
+        !job.src.jagRom[0] && !job.src.s2020Dir[0] && !job.src.world[0] &&
+        SwosData_LoadSources(job.outDir, &job.src) > 0)
         printf("Sources: from %s/%s, the last install's\n", job.outDir, "ASSETS.ini");
     printf("Amiga disk 1: %s\n", job.src.adf1[0] ? job.src.adf1 : "(not found)");
     printf("Amiga disk 2: %s\n", job.src.adf2[0] ? job.src.adf2 : "(not found)");
@@ -294,6 +311,7 @@ int main(int argc, char **argv)
     printf("PC game:      %s\n", job.src.dosDir[0] ? job.src.dosDir : "(not found)");
     printf("Jaguar:       %s\n", job.src.jagRom[0] ? job.src.jagRom : "(not found)");
     printf("SWOS 2020:    %s\n", job.src.s2020Dir[0] ? job.src.s2020Dir : "(not found)");
+    printf("World:        %s\n", job.src.world[0] ? job.src.world : "(not found)");
     if (!job.outDir[0])
         return 0;       /* no --out: only say what was found */
     if (!job.resDir[0])

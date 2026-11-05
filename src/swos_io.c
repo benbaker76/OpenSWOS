@@ -5,6 +5,7 @@
  */
 /* swos_io.c — portable I/O + heap shim. See swos_io.h. */
 #include "swos_io.h"
+#include "project_identity.h"   /* PROJECT_USER_DIR: the player\'s folder */
 #if defined(SWOS_SDL_BUILD) && !defined(_WIN32)
 /* SDL_GetPrefPath / SDL_free — the Switch mounts save:/ through them, and
  * macOS uses SDL_GetPrefPath when a .app launch leaves HOME unset. On the
@@ -14,6 +15,7 @@
 #endif
 #include <stdarg.h>
 #include <string.h>
+#include "mods.h"
 
 /* ============================================================
  * Minimal libc fallbacks for Amiga.
@@ -189,6 +191,11 @@ const char *swos_save_dir(void)
     return s_save_dir;
 }
 
+void swos_set_save_dir(const char *dir)
+{
+    snprintf(s_save_dir, sizeof s_save_dir, "%s", dir);
+}
+
 const char *swos_user_dir(void)
 {
     return s_user_dir;
@@ -279,7 +286,7 @@ void swos_save_dir_init(void)
      * The mount is flat and small, so unlike the desktops there is no separate
      * user/ and user/save split: SWOS.ini and the .CAR files share it. */
     {
-        char *pref = SDL_GetPrefPath(NULL, "SWOS");
+        char *pref = SDL_GetPrefPath(NULL, PROJECT_USER_DIR);
         if (pref && *pref) {
             size_t n = strlen(pref);
             /* SDL returns a trailing separator; the rest of this file composes
@@ -307,13 +314,35 @@ void swos_save_dir_init(void)
      * truncation (a home path this long can't happen in practice). */
     char user[512];
 
-# if defined(_WIN32) || defined(__CYGWIN__)
+# if defined(SWOS_ANDROID_BUILD)
+    /* Android: the app's own folder on shared storage, Android/data/<app id>/files -- a PC
+     * reaches it over USB, so it is where the player copies the assets folder OpenSWOS Setup
+     * made (docs/MOBILE.md), and finds SWOS.ini, SWOS.log and save/. No permission is needed
+     * for an app's own folder. Without shared storage (none mounted): the internal one. */
+    const char *base = SDL_AndroidGetExternalStoragePath();
+    if (!base || !*base)
+        base = SDL_AndroidGetInternalStoragePath();
+    if (!base || !*base) {
+        fprintf(stderr, "[settings] no storage for the app (%s) -- SWOS.ini and saves fall back "
+                        "to the CWD\n", SDL_GetError());
+        return;
+    }
+    snprintf(user, sizeof user, "%s", base);
+# elif defined(SWOS_IOS_BUILD)
+    /* iOS: the app's Documents, which the Files app shows (UIFileSharingEnabled): the player
+     * copies the assets folder OpenSWOS Setup made into it (docs/MOBILE.md), and finds SWOS.ini,
+     * SWOS.log and save/ there. HOME is the app's sandbox. */
+    const char *home = getenv("HOME");
+    if (!home || !*home)
+        return;
+    snprintf(user, sizeof user, "%s/Documents", home);
+# elif defined(_WIN32) || defined(__CYGWIN__)
     /* Windows: %USERPROFILE%\Documents\SWOS. Forward slashes are accepted by
      * both the native CRT and Cygwin's path layer. */
     const char *profile = getenv("USERPROFILE");
     if (!profile || !*profile)
         return;                                  /* fall back to "save" / "." */
-    snprintf(user, sizeof user, "%s/Documents/SWOS", profile);
+    snprintf(user, sizeof user, "%s/Documents/" PROJECT_USER_DIR, profile);
     for (char *p = user; *p; p++)
         if (*p == '\\') *p = '/';
 # elif defined(__APPLE__)
@@ -331,9 +360,9 @@ void swos_save_dir_init(void)
      * tried first: it is what the docs say and what a terminal launch uses. */
     const char *home = getenv("HOME");
     if (home && *home) {
-        snprintf(user, sizeof user, "%s/Library/Application Support/SWOS", home);
+        snprintf(user, sizeof user, "%s/Library/Application Support/" PROJECT_USER_DIR, home);
     } else {
-        char *pref = SDL_GetPrefPath(NULL, "SWOS");
+        char *pref = SDL_GetPrefPath(NULL, PROJECT_USER_DIR);
         if (!pref || !*pref) {
             fprintf(stderr, "[settings] no HOME and SDL_GetPrefPath failed (%s) "
                             "— SWOS.ini and saves fall back to the CWD\n",
@@ -356,9 +385,9 @@ void swos_save_dir_init(void)
      * silent "." fallback is the worst of the options. */
     const char *home = getenv("HOME");
     if (home && *home) {
-        snprintf(user, sizeof user, "%s/.swos", home);
+        snprintf(user, sizeof user, "%s/" PROJECT_USER_DOT_DIR, home);
     } else {
-        char *pref = SDL_GetPrefPath(NULL, "SWOS");
+        char *pref = SDL_GetPrefPath(NULL, PROJECT_USER_DIR);
         if (!pref || !*pref) {
             fprintf(stderr, "[settings] no HOME and SDL_GetPrefPath failed (%s) "
                             "— SWOS.ini and saves fall back to the CWD\n",
@@ -507,6 +536,19 @@ static int find_nocase(const char *root, const char *rel, char *out, uint32_t ca
 
 const char *swos_data_path(const char *rel, char *buf, uint32_t buf_sz)
 {
+#if !defined(SWOS_SWITCH_BUILD) && !defined(SWOS_WASM_BUILD)
+    /* The enabled mods first, in their order (include/mods.h): a file a mod has is read
+     * from it. Writes go through swos_data_path_base, which never looks there. */
+    if (rel && buf && buf_sz && rel[0] != '/' && rel[0] != '\\' && !strchr(rel, ':'))
+        for (int32_t i = 0; i < Mods_Count(); i++)
+            if (find_nocase(Mods_Dir(i), rel, buf, buf_sz) == 0)
+                return buf;
+#endif
+    return swos_data_path_base(rel, buf, buf_sz);
+}
+
+const char *swos_data_path_base(const char *rel, char *buf, uint32_t buf_sz)
+{
 #ifdef SWOS_SWITCH_BUILD
     /* The content is mounted read-only at rom:/ and there is no chdir, so the
      * relative paths the rest of the game uses have to be anchored here. */
@@ -529,8 +571,11 @@ const char *swos_data_path(const char *rel, char *buf, uint32_t buf_sz)
 
 const char *swos_data_relative(const char *path)
 {
-    const char *roots[2] = { swos_data_root(), swos_assets_dir() };
-    for (int i = 0; i < 2; i++) {
+    const char *roots[2 + MODS_MAX] = { swos_data_root(), swos_assets_dir() };
+    int count = 2;
+    for (int32_t m = 0; m < Mods_Count() && count < 2 + MODS_MAX; m++)
+        roots[count++] = Mods_Dir(m);       /* (a path swos_data_path found in a mod) */
+    for (int i = 0; i < count; i++) {
         size_t n = strlen(roots[i]);
         if (n && strncmp(path, roots[i], n) == 0 && (path[n] == '/' || path[n] == '\\')) {
             path += n;

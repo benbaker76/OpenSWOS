@@ -1136,6 +1136,16 @@ typedef struct Menu_Options
   MenuCmd_Invisible versionText_invisible;
   MenuCmd_TextPtr versionText_text;
   MenuCommand versionText_end;
+  /* WORLD: 96/97 / 2026-27 -- [general] world in SWOS.ini, played from the next start
+   * (ChangeWorld). SDL only -- the Amiga's world is its drawer's (OpenSWOS Setup); appended
+   * last so no entry's number moves (entries 21, 22). */
+  MenuEntry_Byte_Colors_TextPtr labelWorld;
+  MenuEntry_Byte_Nav_Colors_StringTable_OnSelect world;
+  /* MODS: opens the MODS screen (src/mods_menu.c); its value says how many are on. SDL only --
+   * the Amiga's mods are its drawer's (data/MODS, OpenSWOS Setup); appended last so no entry's
+   * number moves (entries 23, 24). */
+  MenuEntry_Byte_Colors_TextPtr labelMods;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect mods;
   MenuMark markEndMenu;
 } Menu_Options;
 #pragma pack(pop)
@@ -1187,7 +1197,8 @@ typedef struct Menu_CompetitionStats
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry2;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry3;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;
-  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;    /* WINNERS (a world's; world_winners.c) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;    /* PAST WINNERS (Career+; menus.c), when WINNERS is not shown */
   MenuMark markEndMenu;
 } Menu_CompetitionStats;
 #pragma pack(pop)
@@ -1385,6 +1396,7 @@ typedef struct Menu_SWOSMainMenu
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry13;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry14;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry15;   /* CREDITS (SDL only) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry16;   /* MODES (SDL only, while a mod has an entry) */
   MenuMark_StartMenu menu3Start;
   MenuMark markEndMenu;
 } Menu_SWOSMainMenu;

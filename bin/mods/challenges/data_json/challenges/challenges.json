@@ -1,0 +1,155 @@
+{
+ "format": "openswos-challenges",
+ "version": 1,
+ "category": "CLASSICS",
+ "challenges": [
+  {
+   "id": "hold-on",
+   "name": "HOLD ON",
+   "difficulty": 1,
+   "about": "1-0 UP WITH 20 MINUTES TO GO. DON'T LOSE IT.",
+   "teams": [
+    {
+     "uuid": "8250fcaa-bcdf-5f40-836a-87614846de84",
+     "name": "ITALY"
+    },
+    {
+     "uuid": "30e26617-4001-56c3-a068-8d88849c8398",
+     "name": "BRAZIL"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    1,
+    0
+   ],
+   "minute": 70,
+   "win": "draw"
+  },
+  {
+   "id": "last-minutes",
+   "name": "LAST MINUTES",
+   "difficulty": 2,
+   "about": "0-0, FIVE MINUTES LEFT. WIN IT.",
+   "teams": [
+    {
+     "uuid": "fad1a2cf-b275-5972-a3fa-35bda74afa6f",
+     "name": "ENGLAND"
+    },
+    {
+     "uuid": "2bb28358-8981-5501-bee3-0916d4b736cc",
+     "name": "GERMANY"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    0,
+    0
+   ],
+   "minute": 85,
+   "win": "win"
+  },
+  {
+   "id": "derby-day",
+   "name": "DERBY DAY",
+   "difficulty": 2,
+   "about": "THE WHOLE MATCH AHEAD. WIN IT.",
+   "teams": [
+    {
+     "uuid": "9a7ad1b1-ab77-57c1-824c-8596a8b9eadf",
+     "name": "BARCELONA"
+    },
+    {
+     "uuid": "09778597-b10b-5814-a802-8d8dc6da8173",
+     "name": "REAL MADRID"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    0,
+    0
+   ],
+   "minute": 0,
+   "win": "win"
+  },
+  {
+   "id": "ten-men",
+   "name": "TEN MEN",
+   "difficulty": 3,
+   "about": "1-1 AND YOUR NUMBER 5 SENT OFF. WIN WITH TEN.",
+   "teams": [
+    {
+     "uuid": "e05db570-919c-5bbb-9578-046f4cf3f7f9",
+     "name": "MANCHESTER UTD"
+    },
+    {
+     "uuid": "0eaf2533-c243-5311-b452-fc8f8d53946e",
+     "name": "LIVERPOOL"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    1,
+    1
+   ],
+   "minute": 60,
+   "win": "win",
+   "sent_off": [
+    [
+     5
+    ],
+    []
+   ]
+  },
+  {
+   "id": "two-all",
+   "name": "TWO ALL",
+   "difficulty": 4,
+   "about": "0-2 DOWN. FINISH IT EXACTLY 2-2.",
+   "teams": [
+    {
+     "uuid": "1038aa79-ea25-56de-b729-559f21fbca47",
+     "name": "HOLLAND"
+    },
+    {
+     "uuid": "203075df-1393-56ba-aa82-a6dc212e7219",
+     "name": "FRANCE"
+    }
+   ],
+   "yours": 0,
+   "score": [
+    0,
+    2
+   ],
+   "minute": 50,
+   "win": "exact",
+   "win_score": [
+    2,
+    2
+   ]
+  },
+  {
+   "id": "the-comeback",
+   "name": "THE COMEBACK",
+   "difficulty": 5,
+   "about": "3-0 DOWN AFTER HALF TIME. WIN IT.",
+   "teams": [
+    {
+     "uuid": "e623d8c0-2867-521d-a89c-cfc352c02f1d",
+     "name": "AC MILAN"
+    },
+    {
+     "uuid": "0eaf2533-c243-5311-b452-fc8f8d53946e",
+     "name": "LIVERPOOL"
+    }
+   ],
+   "yours": 1,
+   "score": [
+    3,
+    0
+   ],
+   "minute": 46,
+   "win": "win"
+  }
+ ]
+}

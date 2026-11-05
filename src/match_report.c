@@ -8,6 +8,7 @@
  * is uploaded by a thread of its own, so a slow or absent server costs nobody a frame.
  */
 #include "match_report.h"
+#include "project_identity.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -424,7 +425,7 @@ static uint32_t summary(char *out, size_t cap)
     if (!tm || !strftime(when, sizeof when, "%Y-%m-%d %H:%M", tm))
         copy_text(when, sizeof when, "?");
     n = (size_t)snprintf(out, cap,
-        "OpenSWOS -- netplay match report\r\n"
+        PROJECT_NAME " -- netplay match report\r\n"
         "\r\n"
         "match id     %016llx\r\n"
         "kick-off     %s (this machine's clock)\r\n"

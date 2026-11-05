@@ -39,7 +39,7 @@ extern int     DataJson_LoadTeamIdsForCountry(int countryNum, struct TeamDbIds *
 
 enum {
     kTeamRecord = 684,
-    kMaxTeamsInFile = 93,           /* what the game's own team buffer holds (teams.c) */
+    kMaxTeamsInFile = TEAM_FILE_MAX_TEAMS,  /* what the game's own team buffer holds (game_types.h) */
     kCountries = 256,
     kOwnCustoms = 100,              /* CUSTOMS.EDT, the player's own edited teams: not the database */
 };

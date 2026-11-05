@@ -53,7 +53,7 @@ extern "C" {
 #define SEEK_INTERVAL       50
 #define SRP_INPUT_BYTES     4       /* a frame's input: two players x (controls, key) */
 #define SRP_HASH_BYTES      4       /* the low half of the frame's 64-bit SIM hash */
-#define SRP_SIMV_BYTES      16      /* version, rules, pad, layout hash, sim width, pad */
+#define SRP_SIMV_BYTES      16      /* version, rules, style, layout hash, sim width, pad */
 #define SRP_SIMV_VERSION    1
 
 /* PRED: a byte per player per frame. The low four bits are the LAG -- how many of the
@@ -152,6 +152,8 @@ typedef struct SrpContent {
     const uint32_t      *hashes;        /* one a frame, for frames 0..frameCount-1 */
     uint64_t             layout;        /* SimState_LayoutHash of the recording build */
     uint8_t              rules;         /* P2P_RULE_*: what it was played by */
+    uint8_t              style;         /* the gameplay style, GAMEPLAY_* (SIMV byte 3; 0 in a
+                                         * file from before XBOX: the rules byte's DOS bit says) */
     uint16_t             simWidth;      /* the simulation draw width it was played at */
 
     /* Who played an online match (PLYR): player 1's (the host's) name and player 2's, as

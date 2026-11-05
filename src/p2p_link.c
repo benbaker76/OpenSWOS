@@ -30,7 +30,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "build_info.h"      /* Build_Id: the handshake compares builds */
+#include "build_info.h"      /* Build_Id: the handshake logs builds */
+#include "netplay_compat.h"  /* NETPLAY_COMPAT: and compares this */
+#include "world.h"           /* and the football world */
+#include "mods.h"            /* and the mods that change the match */
+#include "dos_mode.h"        /* and the gameplay style (GAMEPLAY_*) */
+#include "dos_gameplay.h"    /* DosGameplay_TargetFps: its frame rate */
 
 #ifdef SWOS_NETPLAY
 
@@ -56,7 +61,9 @@
  * generation, so a peer can replace what it sent (the lobby's selections). 3: every
  * packet ends in a checksum (wire_send), and the match's GGPO packets carry a keyed one
  * whose key the lobby's START hands over. */
-enum { kProtocol = 4 };      /* 4: the setup carries the build (2026-09-27) */
+enum { kProtocol = 6 };      /* 4: the setup carries the build (2026-09-27); 5: and
+                              * NETPLAY_COMPAT, compared in its place (2026-10-25); 6: and
+                              * the mods that must be alike (2026-11-04) */
 
 enum {
     PKT_HELLO = 1, PKT_WELCOME = 2, PKT_REFUSE = 3,
@@ -68,7 +75,7 @@ enum {
 
 enum {
     kHeaderLen  = 8,
-    kSetupLen   = 28,   /* header + the setup fields + the build id */
+    kSetupLen   = 36,   /* header + the setup fields + the build id + compat, flags, mods */
     kRefuseLen  = 9,
     kPingLen    = 12,
     kDelayLen   = 9,
@@ -119,8 +126,26 @@ typedef struct {
     uint32_t stateHi, stateLo;
     uint16_t screenWidth;
     uint8_t  gameplay;          /* bit 0 DOS gameplay, 1 arcade, 2 the original fire-hold lockout */
-    char     build[9];          /* Build_Id()'s first 8: the commit, and '-' if it was dirty */
+    char     build[9];          /* Build_Id()'s first 8: the commit, for the log */
+    uint16_t compat;            /* NETPLAY_COMPAT: what is compared */
+    uint8_t  dirty;             /* built from uncommitted changes: plays only its commit */
+    uint8_t  world;             /* the football world (include/world.h); 0 = 96/97, which
+                                 * is what the byte always held before worlds */
+    uint8_t  style;             /* the gameplay style, GAMEPLAY_* (dos_mode.h); the packet's
+                                 * byte 19, 0 before XBOX -- setup_style reads such a peer's
+                                 * from its rules byte */
+    uint32_t mods;              /* Mods_OnlineSignature: the mods that change the match, alike
+                                 * or no match (0: none) */
 } Setup;
+
+/* A setup's gameplay style: its own byte, or (0, from a build before the byte said it)
+ * the rules byte's DOS bit. */
+static int setup_style(const Setup *s)
+{
+    if (s->style)
+        return s->style;
+    return (s->gameplay & P2P_RULE_DOS) ? GAMEPLAY_DOS : GAMEPLAY_AMIGA;
+}
 
 /* The message being sent on one channel. Sending again replaces it: the new one
  * gets the next generation and whatever of the old one was still unacked is
@@ -261,20 +286,47 @@ static void setup_local(Setup *s)
     s->gameplay    = P2PLink_GameplayFlags();
     memset(s->build, 0, sizeof s->build);
     strncpy(s->build, Build_Id(), 8);
+    s->compat = NETPLAY_COMPAT;
+    s->dirty  = strstr(Build_Id(), "-dirty") != NULL;
+    s->world  = (uint8_t)World_Current();
+    s->style  = (uint8_t)_gGameplayStyle;
+    s->mods   = Mods_OnlineSignature(NULL, 0);
 }
 
 static P2PLinkFailure setup_mismatch(const Setup *mine, const Setup *theirs)
 {
-    /* The SAME BUILD, before anything finer. The state layout below catches a build
-     * whose match state has a different shape, but two builds with the same shape and
-     * different behaviour played each other and went out of step in the middle of a
-     * match -- and a tester on last week's game got bug reports filed against this
-     * week's (2026-09-27: c1f49c0 against 31f8aef). The commit, with '-' for a build
-     * made from uncommitted changes, which is not the commit it says. */
-    if (memcmp(mine->build, theirs->build, 8) != 0) {
-        fprintf(stderr, "[p2p] the other player runs build %.8s, this is %.8s: refused\n",
-                theirs->build, mine->build);
+    /* A COMPATIBLE BUILD, before anything finer (include/netplay_compat.h). The state
+     * layout below catches a build whose match state has a different shape, but two
+     * builds with the same shape and different behaviour played each other and went
+     * out of step in the middle of a match (2026-09-27: c1f49c0 against 31f8aef). Until
+     * 2026-10-25 the commit itself had to match; now the number does, raised by
+     * whoever changes how a match plays. A build with uncommitted changes is not the
+     * commit it says, so its number vouches for nothing: it plays only its own commit. */
+    const int32_t sameCommit = memcmp(mine->build, theirs->build, 8) == 0;
+    if (mine->compat != theirs->compat || ((mine->dirty || theirs->dirty) && !sameCommit)) {
+        fprintf(stderr, "[p2p] the other player runs build %.8s (netplay %u%s), this is %.8s "
+                "(netplay %u%s): refused\n", theirs->build, (unsigned)theirs->compat,
+                theirs->dirty ? ", uncommitted changes" : "", mine->build, (unsigned)mine->compat,
+                mine->dirty ? ", uncommitted changes" : "");
         return P2P_FAIL_VERSION;
+    }
+    if (!sameCommit)
+        fprintf(stderr, "[p2p] the other player runs build %.8s, this is %.8s: both netplay %u\n",
+                theirs->build, mine->build, (unsigned)mine->compat);
+    /* The same football world: another world's clubs and competitions are another game. */
+    if (mine->world != theirs->world) {
+        fprintf(stderr, "[p2p] the other player plays world %u, this is %u: refused\n",
+                (unsigned)theirs->world, (unsigned)mine->world);
+        return P2P_FAIL_WORLD;
+    }
+    /* The same mods, where a mod changes the match (include/mods.h): each by its uuid, its
+     * version and its files. */
+    if (mine->mods != theirs->mods) {
+        char names[160];
+        Mods_OnlineSignature(names, sizeof names);
+        fprintf(stderr, "[p2p] the other player's mods differ (%08x, this is %08x: %s): refused\n",
+                (unsigned)theirs->mods, (unsigned)mine->mods, names[0] ? names : "none");
+        return P2P_FAIL_MODS;
     }
     if (mine->stateHi != theirs->stateHi || mine->stateLo != theirs->stateLo)
         return P2P_FAIL_STATE;
@@ -316,8 +368,12 @@ static void pkt_write_setup(uint8_t *p, const Setup *s)
     BE_WRITE_U32(p + 12, s->stateLo);
     BE_WRITE_U16(p + 16, s->screenWidth);
     p[18] = s->gameplay;
-    p[19] = 0;
+    p[19] = s->style;
     memcpy(p + 20, s->build, 8);
+    BE_WRITE_U16(p + 28, s->compat);
+    p[30] = s->dirty;
+    p[31] = s->world;
+    BE_WRITE_U32(p + 32, s->mods);
 }
 
 static void pkt_read_setup(const uint8_t *p, Setup *s)
@@ -326,8 +382,13 @@ static void pkt_read_setup(const uint8_t *p, Setup *s)
     s->stateLo     = BE_READ_U32(p + 12);
     s->screenWidth = BE_READ_U16(p + 16);
     s->gameplay    = p[18];
+    s->style       = p[19];
     memcpy(s->build, p + 20, 8);
     s->build[8] = '\0';
+    s->compat      = BE_READ_U16(p + 28);
+    s->dirty       = p[30];
+    s->world       = p[31];
+    s->mods        = BE_READ_U32(p + 32);
 }
 
 /* The self-test's lossy wire: drop every Nth datagram a link sends, and flip a bit in
@@ -623,40 +684,40 @@ static int32_t s_proposedPing = -1, s_proposedJitter = -1;
 
 static int32_t propose_delay(int32_t pingMs, int32_t jitterMs)
 {
-    extern int _gDosGameplay;               /* dos_mode.h */
     /* The frame rate comes from the GAMEPLAY MODE, not from anything this
      * machine measures. That matters: setup_mismatch already refuses a peer
      * whose gameplay flags differ, so both sides are certain to use the same
      * number here. Taking it from the actual pacing would let a machine that is
      * running slow propose a different delay from its opponent -- which is
      * precisely the asymmetry this routine exists to avoid. */
-    const int32_t fps = _gDosGameplay ? 70 : 50;
-    int32_t rtt, d, cap;
+    const int32_t fps = DosGameplay_TargetFps();
 
-    /* SWOS 2020's AUTO, exactly (MPGame::getAutoFrameDelay, mpgame.cpp):
+    /* Playa's table (2026-10-30), from the ping the lobby shows: never 0 (no buffer
+     * at all), and capped; each gameplay mode has its own (its frame time):
      *
-     *  - 33 ms off the measured ping first: "the extra added by the delay of the
-     *    menu loop". Ours is measured the same way -- stamped and answered from
-     *    the per-frame poll -- so each end adds up to a frame too.
-     *  - 0 frames only on a genuinely clean link: under 15 ms AND jitter under one
-     *    frame, since 0 leaves no buffer for the next spike.
-     *  - otherwise ceil(rtt / (3 * frameTime)), at least 1,
-     *  - capped at 3 frames at 50 fps (AMIGA) and 4 at 70 (DOS): more than that
-     *    is more input lag than a player accepts without choosing it.
+     *      DOS (70 fps)              AMIGA (50 fps)
+     *      1   up to 35 ms           1   up to 50 ms
+     *      2   36 - 70 ms            2   51 - 99 ms
+     *      3   71 - 140 ms           3   100 - 175 ms
+     *      4   141 - 210 ms          4   over 175 ms (the cap)
+     *      5   over 210 ms (the cap)
      *
-     * We had ported the formula alone -- no 33 ms, no cap -- and so picked more
-     * than SWOS 2020 at the same ping: 5 frames at 190 ms in DOS where it picks 4,
-     * and climbing with no ceiling (a tester's "HUGE delay", 2026-09-25). */
-    rtt = (pingMs > 33 ? pingMs : 33) - 33;
-    if (rtt < 15 && jitterMs * fps < 1000)
-        return 0;
-    /* ceil(rtt / (3 * 1000/fps)), in integers */
-    d = (rtt * fps + 2999) / 3000;
-    if (d < 1)
-        d = 1;
-    cap = fps <= 50 ? 3 : 4;
-    if (d > cap)
-        d = cap;
+     * It replaced SWOS 2020's AUTO (MPGame::getAutoFrameDelay: 33 ms off the ping, 0 frames
+     * on a clean link, ceil(rtt / (3 * frame time)), capped at 3 / 4). Jitter no longer
+     * counts: only the ping does. */
+    static const int16_t kDos[]   = { 35, 70, 140, 210 };   /* each delay's top, ms */
+    static const int16_t kAmiga[] = { 50, 99, 175 };
+    /* XBOX (60 fps) has no table of Playa's: the Amiga's, scaled to its frame time
+     * (x50/60), capped the same -- 1 to 42 ms, 2 to 83, 3 to 146, then 4. */
+    static const int16_t kXbox[]  = { 42, 83, 146 };
+    const int16_t *top = fps > 60 ? kDos : fps > 50 ? kXbox : kAmiga;
+    const int32_t n = fps > 60 ? (int32_t)(sizeof kDos / sizeof kDos[0])
+                    : fps > 50 ? (int32_t)(sizeof kXbox / sizeof kXbox[0])
+                               : (int32_t)(sizeof kAmiga / sizeof kAmiga[0]);
+    int32_t d = 1;
+    (void)jitterMs;
+    while (d <= n && pingMs > top[d - 1])
+        d++;
     return d;
 }
 
@@ -995,14 +1056,15 @@ static void link_connected(P2PLink *l, const struct sockaddr_in *from, const Set
      * it (GameplayStyle_GiveBack). Before any of the link's state changes, so what
      * is compared from here on is the style actually played. */
     {
-        extern void GameplayStyle_Borrow(int dos);
+        extern void GameplayStyle_Borrow(int style);
         int follower = l->punchPlayer ? l->punchPlayer == 2 : l->state == P2P_JOINING;
-        if (follower && ((theirs->gameplay ^ l->local.gameplay) & P2P_RULE_DOS)) {
-            int dos = (theirs->gameplay & P2P_RULE_DOS) != 0;
-            GameplayStyle_Borrow(dos);
+        if (follower && setup_style(theirs) != setup_style(&l->local)) {
+            int style = setup_style(theirs);
+            GameplayStyle_Borrow(style);
             l->local.gameplay = P2PLink_GameplayFlags();
+            l->local.style = (uint8_t)_gGameplayStyle;
             fprintf(stderr, "[p2p] the host plays %s: this game is played that way\n",
-                    dos ? "DOS" : "AMIGA");
+                    Gameplay_StyleName(style));
         }
     }
     blob_free(l);   /* nothing carries over from a previous peer */
@@ -1035,6 +1097,8 @@ static P2PLinkFailure refuse_reason(uint8_t byte)
     case P2P_FAIL_BUILD:
     case P2P_FAIL_VERSION:
     case P2P_FAIL_VIEW:
+    case P2P_FAIL_WORLD:
+    case P2P_FAIL_MODS:
         return (P2PLinkFailure)byte;
     default:
         return P2P_FAIL_PROTOCOL;   /* a reason this version does not know */
@@ -1541,6 +1605,11 @@ void P2PLink_SetRelay(uint64_t token, int32_t player)
     s_link.punchPlayer = player;        /* direct too: which side settles the path */
 }
 
+void P2PLink_SetPlayer(int32_t player)
+{
+    s_link.punchPlayer = player;
+}
+
 uint64_t P2PLink_RelayToken(void) { return s_link.relayToken; }
 
 void P2PLink_SetRelayFallback(uint64_t token, int32_t player, const char *server)
@@ -2009,6 +2078,7 @@ int32_t P2PLink_SelfTest(void)
         int before = _gDosGameplay;
         setup_local(&theirs);
         theirs.gameplay ^= P2P_RULE_DOS | P2P_RULE_DOS_VIEW;   /* the other style, view with it */
+        theirs.style = (theirs.gameplay & P2P_RULE_DOS) ? GAMEPLAY_DOS : GAMEPLAY_AMIGA;
         memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
         mismatched.joinTimeoutMs = 1000;
         check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "a player on the other style joins");
@@ -2017,6 +2087,26 @@ int32_t P2PLink_SelfTest(void)
         check(mismatched.state == P2P_CONNECTED, "it is let in");
         check(_gDosGameplay == before && (mismatched.local.gameplay & P2P_RULE_DOS) == (host.local.gameplay & P2P_RULE_DOS),
               "and plays the host's style");
+        link_close(&mismatched);
+        pump(two, 1, 1500, host_waiting_again, &host);
+        GameplayStyle_GiveBack();
+    }
+    /* 4d. XBOX, which the rules byte cannot say (its DOS bit is clear): the style byte. */
+    {
+        extern void GameplayStyle_GiveBack(void);
+        Setup theirs;
+        int before = _gGameplayStyle;
+        setup_local(&theirs);
+        theirs.style = before == GAMEPLAY_XBOX ? GAMEPLAY_AMIGA : GAMEPLAY_XBOX;
+        theirs.gameplay &= (uint8_t)~(P2P_RULE_DOS | P2P_RULE_DOS_VIEW);
+        memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
+        mismatched.joinTimeoutMs = 1000;
+        check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "a player on XBOX joins");
+        P2PLink *two[2] = { &host, &mismatched };
+        pump(two, 2, 1500, link_settled, &mismatched);
+        check(mismatched.state == P2P_CONNECTED, "it is let in");
+        check(_gGameplayStyle == before && mismatched.local.style == host.local.style,
+              "and plays the host's style, XBOX or not");
         link_close(&mismatched);
         pump(two, 1, 1500, host_waiting_again, &host);
         GameplayStyle_GiveBack();
@@ -2036,12 +2126,11 @@ int32_t P2PLink_SelfTest(void)
         check(host.state == P2P_HOSTING && host.notice == P2P_FAIL_VIEW, "the host says which view");
         link_close(&mismatched);
     }
-    /* 4b. Another build -- another commit, or the same one with uncommitted changes --
-     * is refused before anything else is compared. */
+    /* 4b. Another netplay number is refused before anything else is compared. */
     {
         Setup theirs;
         setup_local(&theirs);
-        theirs.build[7] = theirs.build[7] == '0' ? '1' : '0';   /* one digit of the commit */
+        theirs.compat++;
         memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
         mismatched.joinTimeoutMs = 1000;
         check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "another build joins");
@@ -2051,6 +2140,60 @@ int32_t P2PLink_SelfTest(void)
               "it is refused: a different build");
         check(host.state == P2P_HOSTING && host.notice == P2P_FAIL_VERSION, "the host says which build");
         link_close(&mismatched);
+    }
+    /* 4e. Another football world is refused. */
+    {
+        Setup theirs;
+        setup_local(&theirs);
+        theirs.world ^= 1;
+        memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
+        mismatched.joinTimeoutMs = 1000;
+        check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "a player of another world joins");
+        P2PLink *two[2] = { &host, &mismatched };
+        pump(two, 2, 1500, link_settled, &mismatched);
+        check(mismatched.state == P2P_FAILED && mismatched.failure == P2P_FAIL_WORLD,
+              "it is refused: another world");
+        check(host.state == P2P_HOSTING && host.notice == P2P_FAIL_WORLD, "the host says which world");
+        link_close(&mismatched);
+    }
+    /* 4f. Other mods (or the same mods' other versions or files) are refused. */
+    {
+        Setup theirs;
+        setup_local(&theirs);
+        theirs.mods ^= 0x5a5a5a5au;
+        memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
+        mismatched.joinTimeoutMs = 1000;
+        check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "a player with other mods joins");
+        P2PLink *two[2] = { &host, &mismatched };
+        pump(two, 2, 1500, link_settled, &mismatched);
+        check(mismatched.state == P2P_FAILED && mismatched.failure == P2P_FAIL_MODS,
+              "it is refused: other mods");
+        check(host.state == P2P_HOSTING && host.notice == P2P_FAIL_MODS, "the host says the mods differ");
+        link_close(&mismatched);
+    }
+    /* 4d. Another commit with the same number plays -- unless either side has
+     * uncommitted changes. */
+    for (int32_t dirty = 0; dirty <= 1; dirty++) {
+        Setup theirs;
+        const uint8_t hostDirty = host.local.dirty;
+        setup_local(&theirs);
+        theirs.build[7] = theirs.build[7] == '0' ? '1' : '0';   /* one digit of the commit */
+        theirs.dirty = (uint8_t)dirty;
+        host.local.dirty = 0;           /* whatever tree this test was built from */
+        memset(&mismatched, 0, sizeof mismatched); mismatched.sock = -1; mismatched.pingMs = -1;
+        mismatched.joinTimeoutMs = 1000;
+        check(link_join(&mismatched, "127.0.0.1", host.localPort, &theirs) == 0, "another commit joins");
+        P2PLink *two[2] = { &host, &mismatched };
+        pump(two, 2, 1500, link_settled, &mismatched);
+        if (dirty)
+            check(mismatched.state == P2P_FAILED && mismatched.failure == P2P_FAIL_VERSION,
+                  "with uncommitted changes it is refused");
+        else
+            check(mismatched.state == P2P_CONNECTED, "with the same netplay number it is let in");
+        link_close(&mismatched);
+        if (!dirty)     /* the host takes its next player once it has heard this one go */
+            pump(two, 1, 1500, host_waiting_again, &host);
+        host.local.dirty = hostDirty;
     }
 
     /* 5. Nobody there: the join gives up rather than hanging.
@@ -2111,6 +2254,7 @@ int32_t P2PLink_Punch(const char *const *addresses, int32_t count, uint16_t loca
     return 1;
 }
 void           P2PLink_SetRelay(uint64_t token, int32_t player) { (void)token; (void)player; }
+void           P2PLink_SetPlayer(int32_t player) { (void)player; }
 uint64_t       P2PLink_RelayToken(void) { return 0; }
 void           P2PLink_SetRelayFallback(uint64_t token, int32_t player, const char *server)
                { (void)token; (void)player; (void)server; }
@@ -2176,7 +2320,7 @@ void P2PLink_FailureText(P2PLinkFailure failure, const char **line1, const char 
     case P2P_FAIL_PROTOCOL:
     case P2P_FAIL_STATE:
     case P2P_FAIL_VERSION:
-        *line1 = "THE OTHER PLAYER HAS ANOTHER VERSION"; *line2 = "BOTH OF YOU NEED THE SAME BUILD"; break;
+        *line1 = "THE OTHER PLAYER HAS ANOTHER VERSION"; *line2 = "ONE OF YOU NEEDS TO UPDATE"; break;
     case P2P_FAIL_GAMEPLAY:
         /* Not the style any more -- the joiner plays the host's -- but arcade mode or
          * the original's fire-hold lockout ([gameplay] fire_hold_lockout). */
@@ -2190,6 +2334,10 @@ void P2PLink_FailureText(P2PLinkFailure failure, const char **line1, const char 
         *line1 = "THE SERVER'S RELAY HAS CLOSED"; *line2 = "FIND EACH OTHER AGAIN"; break;
     case P2P_FAIL_BUILD:
         *line1 = "YOUR BUILDS PLAY BY DIFFERENT RULES"; *line2 = "ONE OF YOU HAS A TEST BUILD"; break;
+    case P2P_FAIL_WORLD:
+        *line1 = "YOU PLAY DIFFERENT WORLDS"; *line2 = "PICK THE SAME WORLD IN SWOS.INI"; break;
+    case P2P_FAIL_MODS:
+        *line1 = "YOUR MODS ARE DIFFERENT"; *line2 = "BOTH NEED THE SAME MODS: OPTIONS, MODS"; break;
     default:
         *line1 = ""; *line2 = ""; break;
     }

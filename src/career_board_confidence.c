@@ -52,8 +52,12 @@ _Static_assert(offsetof(BoardConfidenceState, boardConfidenceMod9)      == 34, "
  * member labels' names/types/sizes; the typed base + overlay pads were unused
  * scaffolding and are dropped. Each member is &symbol-addressed in the save,
  * so the format is unchanged. */
-uint16_t _boardConfidenceHistory0, _boardConfidenceHistory1, _boardConfidenceHistory2,
-         _boardConfidenceHistory3, _boardConfidenceScore, _previousBoardConfidence,
+/* The last four seasons' confidence deltas, newest first: ONE array -- the save writes them as
+ * one (board_confidence_history), and four separate globals were not adjacent (the save read
+ * and its load wrote whatever the linker put after the first: a career's play then depended on
+ * the build's layout -- found by AddressSanitizer, 2026-10-29). Read signed (int16_t). */
+uint16_t _boardConfidenceHistory[4];
+uint16_t _boardConfidenceScore, _previousBoardConfidence,
          _boardConfidenceMod0, _boardConfidenceMod1, _boardConfidenceMod2,
          _boardConfidenceMod3, _boardConfidenceValue0, _boardConfidenceValue1,
          _boardConfidenceMod4, _boardConfidenceMod5, _boardConfidenceMod6,

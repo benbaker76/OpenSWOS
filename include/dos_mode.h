@@ -19,6 +19,19 @@
 #ifndef SWOS_DOS_MODE_H
 #define SWOS_DOS_MODE_H
 
+/* The gameplay style ([gameplay] style, OPTIONS -> GAMEPLAY): the tuning a match is played
+ * by. AMIGA and DOS are the two releases; XBOX is SWOS 2020's (its style 4, docs/
+ * DOS_GAMEPLAY.md section 9): 60 fps, the Amiga's ball physics, the DOS goalkeepers.
+ * _gDosGameplay is (style == DOS) -- the DOS release's code paths, most of them nothing
+ * to do with keepers; _gDosKeepers is the DOS goalkeeper's code (DOS and XBOX). All
+ * three are set together by Gameplay_SetStyle (dos_gameplay.c). The Amiga build plays
+ * AMIGA and DOS only: it has no 60 Hz tick. */
+enum { GAMEPLAY_AMIGA = 0, GAMEPLAY_DOS = 1, GAMEPLAY_XBOX = 2, GAMEPLAY_STYLES = 3 };
+extern int _gGameplayStyle;
+extern int _gDosKeepers;
+void Gameplay_SetStyle(int style);
+const char *Gameplay_StyleName(int style);    /* "AMIGA", "DOS", "XBOX" */
+
 extern int _gDosGraphics;
 extern int _gDosGameplay;
 extern int _gDosView;      /* 1 = 320x200 DOS-shaped match view; 0 on Amiga */

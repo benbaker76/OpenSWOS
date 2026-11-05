@@ -36,8 +36,10 @@
 #include <strings.h>
 
 #include "custom_team.h"
+#include "project_identity.h"   /* PROJECT_TEAM_FORMAT */
 #include "endian_helpers.h"
 #include "kit_art.h"
+#include "team_colors.h"
 #include "menu_load_json.h"
 #include "menu_symbols.h"
 #include "menu_system.h"
@@ -49,7 +51,7 @@
 #include "team_proto.h"
 #include "teams.h"
 
-extern TeamFileEx  _selectedTeams[100];
+extern TeamFileEx  _selectedTeams[SELECTED_TEAMS_MAX];
 extern TeamFileEx *_selectedTeamPtr;
 extern uint16_t    _selectedTeamCountryNumber;
 extern uint16_t    _numSelectedTeams, _currentTeamNumber, _selTeamNumber;
@@ -70,9 +72,9 @@ extern void    SetExitMenuFlag(void);
 enum {
     kPlayers = TEAM_PLAYERS,
     kTeamRecord = 684,
-    kFaces = 3,                     /* EditTeamsChangePlayerFace: white, ginger, black */
+    kFaces = 4,                     /* EditTeamsChangePlayerFace: white, ginger, black, black with blond hair */
     kFormatVersion = 3,             /* 3: links to the database by id; no player data */
-    kNationalities = 155,           /* the three-letter names a nationality indexes (_shortCountryNames) */
+    kNationalities = 214,           /* the three-letter names a nationality indexes (_shortCountryNames) */
     kMaxShirtNumber = 99,
     kCountries = 256,
     kJsonMax = 8192,
@@ -432,7 +434,7 @@ static int32_t write_json(const CustomTeam *custom, char *json, size_t size)
     Text t = { json, size, 0 };
     int32_t i, j;
 
-    put(&t, "{\n  \"format\": \"openswos-team\",\n  \"version\": %d,\n", kFormatVersion);
+    put(&t, "{\n  \"format\": \"" PROJECT_TEAM_FORMAT "\",\n  \"version\": %d,\n", kFormatVersion);
     put(&t, "  \"made_from\": { \"uuid\": \"%s\", \"checksum\": \"%s\", \"name\": ", custom->madeFrom,
         custom->checksum);
     if (base) put_string(&t, base->team.team.teamName, sizeof base->team.team.teamName);
@@ -509,7 +511,7 @@ static void json_kit(const char *json, int32_t length, const char *which, KitLoo
 
     for (i = 0; i < 5; i++) {
         snprintf(path, sizeof path, "$.team.%s_%s", which, k_fields[i]);
-        *value[i] = (uint8_t)json_int(json, length, path, 0, i == 0 ? 3 : 9, *value[i]);
+        *value[i] = (uint8_t)json_int(json, length, path, 0, i == 0 ? 3 : KIT_COLOURS - 1, *value[i]);
     }
 }
 

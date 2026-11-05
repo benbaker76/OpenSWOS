@@ -4,7 +4,11 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#ifdef SWOS_SDL_BUILD
+#include <stdlib.h>
+#endif
 #include "game_init.h"
+#include "league_phase.h"
 #include "dos_gameplay.h"   /* ApplyGameStyle — DOS/Amiga match tuning */
 #include "endian_helpers.h"
 #include "game_types.h"
@@ -266,6 +270,15 @@ void InitGameSaveTeams(TeamGame *leftTeam, TeamGame *rightTeam)
     /* Load pitch map (high byte of pitchNumberAndType is the index) */
     LoadPitchMap(_pitchNumberAndType >> 8);
     FixupAndColorPitchFile();
+#ifdef SWOS_SDL_BUILD
+    {   /* A live match: the host's crowd over this pitch's own (include/pitch.h). */
+        extern const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex);
+        extern void Pitch_ApplyCrowdLayout(const uint16_t *in);
+        const uint16_t *crowd = NetplaySetup_TakeCrowd((uint16_t)(_pitchNumberAndType >> 8));
+        if (crowd)
+            Pitch_ApplyCrowdLayout(crowd);
+    }
+#endif
     ConvertColorsAndTextSprites(leftTeam, rightTeam);
 
     /* Wait for both fire buttons released.
@@ -432,7 +445,12 @@ void InitInGamePlayer(uint16_t playerIndex, uint16_t playerSlot,
 
     /* Face from positionAndFace: bits 3-4 → 0-3 */
     uint16_t face = (uint16_t)(pf->positionAndFace & PF_FACE_MASK) >> 3;
-    pi->face = (int8_t)face;
+#ifdef SWOS_SDL_BUILD
+    if (getenv("SWOS_TEST_FACE3"))      /* test: every player face 3 -- to look at it */
+        face = 3;
+#endif
+    pi->blond = face == 3;              /* (face 3: a black player, blond: player_face3.c) */
+    pi->face = (int8_t)(face == 3 ? 2 : face);
 
     /* Position: bits 5-7 of positionAndFace */
     uint16_t pos = (uint16_t)(pf->positionAndFace & PF_POSITION_MASK) >> 5;
@@ -820,6 +838,14 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
         }
     }
     {
+        /* A mod's match (include/mod_api.h ModApi_PlayMatch): its sides, no prompts. */
+        extern int32_t ModMatch_SetupPlayers(TeamFileEx *t1, TeamFileEx *t2);
+        if (ModMatch_SetupPlayers(team1, team2)) {
+            (void)maxSubs; (void)excludeFlags; (void)allowSquadChanges; (void)mode; (void)d0;
+            return;
+        }
+    }
+    {
         extern int _gArcadeMode;
         if (_gArcadeMode) {
             /* Arcade: no pre-match squad/tactics menu — and the front-end menu
@@ -981,7 +1007,10 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
 #ifdef SWOS_SDL_BUILD
         extern int _gArcadeMode;
         extern uint8_t _aArcadeMatchName[];   /* "GOLDEN GOAL" (arcade.c) */
-        if (_gArcadeMode)
+        extern const char *ModMatch_Name(void);  /* a mod's match's own (mod_match.c) */
+        if (ModMatch_Name())
+            StringCopy((uint8_t *)ModMatch_Name(), _gameName);
+        else if (_gArcadeMode)
             StringCopy(_aArcadeMatchName, _gameName);
         else
 #endif
@@ -1005,6 +1034,8 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
         /* An online match's cup rules (the lobby's), put back after the clear. */
         extern void NetplaySetup_TakeTieRules(void);
         NetplaySetup_TakeTieRules();
+        extern void ModMatch_TieRules(void);    /* a mod's match's (mod_match.c) */
+        ModMatch_TieRules();
     }
 #endif
 
@@ -1107,6 +1138,7 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
     _plgD3Param = (uint16_t)paramD3;
     _gameTeam1 = team1;
     _gameTeam2 = team2;
+    LeaguePhase_GameStarting(team1, team2);     /* (a world's league phase: its cards, league_phase.c) */
 
     /* Compute old player skill for view result (for both teams) */
     ComputeOldPlayerSkillForViewResult((TeamFileEx *)team1, (uint16_t)maxSubs);
@@ -1247,7 +1279,12 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
      * events / audio. */
     {
         int16_t i;
+#ifdef SWOS_SDL_BUILD
+        extern int32_t ModMatch_SkipStadium(void);  /* a mod's match that wants none (mod_match.c) */
+        for (i = ModMatch_SkipStadium() ? -1 : 0x95; i >= 0; i--) {
+#else
         for (i = 0x95; i >= 0; i--) {
+#endif
             WaitForVSync();
         }
     }

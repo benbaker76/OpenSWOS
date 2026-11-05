@@ -17,6 +17,7 @@
 
 
 #include <SDL.h>
+#include "project_identity.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,9 +34,13 @@
 #include "test_rules.h"
 #include "platform_sdl.h"
 #include "swos_settings.h"
+#include "assets_check.h"
 #include "swos_io.h"            /* swos_save_dir_init() — macOS-writable save dir */
+#include "mods.h"               /* Mods_Init: the enabled mods, before any data */
+#include "tweaks.h"             /* Tweaks_Set: [tweaks] */
 #include "save_format_json.h"   /* DataJson_SelfTest */
 #include "dos_mode.h"   /* gDosGraphics/gDosGameplay — defined in dos_graphics.c */
+#include "touch_controls.h"   /* TouchControls_SetMode: [input] touch_controls */
 #include "display.h"    /* _screen_width, WIDESCREEN_WIDTH, SCREEN_WIDTH */
 #include "replay_test.h"        /* --replay-test: recorded-game regression rig */
 #include "replay_v2.h"          /* --record-replay, --view-replay: whole-match .SRP replays */
@@ -58,6 +63,8 @@
 #include "pitch_map.h"          /* --pitch-maps */
 #include "netplay_match.h"      /* --netplay-match */
 #include "rollback_rig.h"       /* --rollback */
+#include "world.h"              /* [general] world */
+#include "phone_fetch.h"        /* --phone-fetch */
 
 #define WIN_SCALE 3
 
@@ -82,11 +89,20 @@ static void chdir_to_binary(const char *argv0)
         got_path = 1;
     }
 #else
-    /* Linux: /proc/self/exe is a symlink to the running binary. */
+    /* Linux: /proc/self/exe is a symlink to the running binary -- unless a dynamic loader
+     * was started with the game as its argument (the PortMaster launcher does that with the
+     * glibc it brings, on a firmware whose own is too old: stock ArkOS on an R36S). Then it is
+     * the LOADER, in libs.aarch64/glibc, and every file of the game's own beside the binary
+     * (the JSON menus: CREDITS, MULTIPLAYER) was looked for there and not found, while what
+     * SWOS_ASSETS points at still loaded (2026-11-03). The loader passes the game's path on
+     * as argv[0], so that is the one to use. */
     ssize_t n = readlink("/proc/self/exe", path, sizeof(path) - 1);
     if (n > 0) {
+        const char *base;
         path[n] = 0;
-        got_path = 1;
+        base = strrchr(path, '/');
+        base = base ? base + 1 : path;
+        got_path = strncmp(base, "ld-linux", 8) != 0 && strncmp(base, "ld.so", 5) != 0;
     }
 #endif
 
@@ -189,6 +205,10 @@ static void print_usage(const char *argv0)
         "  --dos-graphics=<on|off>   Render the DOS-version graphics (bin/grafs_dos)\n"
         "                            instead of the Amiga graphics. Default: off.\n"
         "                            PC-only extra; the Amiga look is the default.\n"
+        "  --gameplay=<amiga|dos|xbox>  The gameplay style ([gameplay] style): the\n"
+        "                            Amiga's (50 Hz), the DOS version's (70 Hz), or\n"
+        "                            SWOS 2020's XBOX (60 Hz, the Amiga's ball physics,\n"
+        "                            the DOS goalkeepers).\n"
         "  --dos-gameplay=<on|off>   Use the DOS version's gameplay tuning: a 70 Hz\n"
         "                            game tick (movement scaled 41/64 so it doesn't\n"
         "                            play faster), plus the DOS goalkeeper reach and\n"
@@ -344,6 +364,94 @@ static const char *match_kv(const char *arg, const char *key)
     return arg + 2 + klen + 1;
 }
 
+/* ---- The render width: the display's shape, at 272 lines ---- */
+
+/* The widescreen width for a display of dw x dh (resolution=auto: its desktop mode). *aspect
+ * (optional): the width before the display's own cap. */
+int Video_WideWidth(int dw, int dh, int *aspect)
+{
+    int w = (int)((long)SCREEN_HEIGHT * dw / (dh > 0 ? dh : 1));
+    w = (w + 1) & ~1;                          /* round up to even */
+    if (aspect)
+        *aspect = w;
+    /* NEVER WIDER THAN THE DISPLAY IT IS FILLING. The width above is "how much game
+     * fits this shape at 272 lines", which is the point on a 2560x1080 monitor -- but
+     * a small resolution means a small screen, not a wide one. `resolution=320x200`
+     * (someone comparing against DOS, which really is 320x200) has an aspect of
+     * 1.60:1, and 272 * 1.60 = 436, so the game came up 436x272: WIDER than either
+     * original, showing more pitch than the thing being compared against. Reported by
+     * a tester 2026-09-18, and reproduced exactly. */
+    if (w > dw) w = dw & ~1;
+    if (w < SCREEN_WIDTH)          w = SCREEN_WIDTH;
+    if (w > PITCH_VIEW_MAX_WIDTH)  w = PITCH_VIEW_MAX_WIDTH;
+    return w;
+}
+
+/* The window went to another display (platform_sdl.c): with widescreen on and the resolution
+ * 'auto', the picture takes THAT display's shape -- the width was taken once, from the display
+ * the game opened on, so a window opened on a 16:10 laptop and moved to a 21:9 monitor stayed
+ * 16:10 there, even fullscreen (a tester, macOS, 2026-10-31). Applied by the next menu frame
+ * (Video_ApplyDisplayChange): a match or replay on screen keeps the width it started with. */
+static int s_videoFollows;              /* widescreen + resolution=auto */
+static int s_videoPending;
+
+void Video_DisplayChanged(int dw, int dh)
+{
+    if (!s_videoFollows || dw <= 0 || dh <= 0)
+        return;
+    s_videoPending = Video_WideWidth(dw, dh, 0);
+    if (s_videoPending == _screen_width)
+        s_videoPending = 0;
+}
+
+int Video_ApplyDisplayChange(void)
+{
+    {   /* SWOS_TEST_DISPLAY=WxH: as if the window had gone to such a display (a test with one) */
+        static int tested;
+        const char *t = getenv("SWOS_TEST_DISPLAY");
+        int tw, th;
+        if (!tested && t && sscanf(t, "%dx%d", &tw, &th) == 2) {
+            tested = 1;
+            Video_DisplayChanged(tw, th);
+        }
+    }
+    extern int32_t GameLoop_Active(void);
+    extern void Platform_ViewChanged(void);
+    extern int _dos_view_width, _dos_view_height;
+    const int w = s_videoPending;
+    if (!w || GameLoop_Active())
+        return 0;
+    s_videoPending = 0;
+    extern uint8_t _frontbufferMaskBuffer[];
+    const int ow = _screen_width;
+    fprintf(stderr, "[video] another display: render %dx%d (was %d wide)\n", w, _screen_height, ow);
+    {   /* The menu's backdrop (the panel DrawMenu copies) is laid out at the old stride: each
+         * row's centred picture to the new one, the margins cleared. Rows in the order that
+         * never overwrites one not yet read (wider: from the bottom). */
+        const int keep = w < ow ? w : ow, from = (ow - keep) / 2, to = (w - keep) / 2;
+        uint8_t row[PITCH_VIEW_MAX_WIDTH];
+        for (int i = 0; i < SCREEN_HEIGHT; i++) {
+            const int y = w > ow ? SCREEN_HEIGHT - 1 - i : i;
+            uint8_t *src = _frontbufferMaskBuffer + (size_t)y * ow, *dst = _frontbufferMaskBuffer + (size_t)y * w;
+            memcpy(row, src + from, (size_t)keep);
+            memset(dst, 0, (size_t)w);
+            memcpy(dst + to, row, (size_t)keep);
+        }
+    }
+    if (_sim_draw_width == _screen_width)   /* (offline: this display's; online the agreed one stays) */
+        _sim_draw_width = w;
+    _screen_width = w;
+    _dos_view_width = w;                    /* (widescreen: the DOS view is the same picture) */
+    _dos_view_height = SCREEN_HEIGHT;
+    _menu_draw_x_offset = WIDE_MARGIN;
+    Platform_ViewChanged();
+    return 1;
+}
+
+/* --mods=a,b: the mods for this run, over SWOS.ini (include/mods.h); never saved. */
+static char s_modsArg[256];          /* --mods=, for this run only */
+static int  s_modsArgSet;
+
 int main(int argc, char **argv)
 {
     /* Line-buffer stdout. Every self-test and harness in here reports progress
@@ -381,7 +489,18 @@ int main(int argc, char **argv)
      * /data, /grafs, … and cwd is already "/", so skip the chdir.
      * Switch: the content is a read-only mount at rom:/ and there is no chdir
      * to make; swos_data_path() (swos_io.h) anchors the data reads instead. */
-#if !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
+#if defined(SWOS_MOBILE_BUILD)
+    /* Phones: the project's own data is unpacked from the APK (Android) or in the app bundle
+     * (iOS) -- src/mobile.c, docs/MOBILE.md. */
+    {
+        extern void Mobile_SetHints(void);
+        extern const char *Mobile_DataDir(void);
+        Mobile_SetHints();
+        const char *dir = Mobile_DataDir();
+        if (!dir || chdir(dir) != 0)
+            fprintf(stderr, "warning: no game data folder (%s)\n", dir ? dir : "none");
+    }
+#elif !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
     chdir_to_binary(argv ? argv[0] : NULL);
 #endif
 
@@ -446,9 +565,11 @@ int main(int argc, char **argv)
     opts.netplay_name[0] = '\0';
     opts.netplay_remember = 1;    /* REMEMBER LOGIN INFO: on, as the login screen shows it */
     opts.assets_reminder_off[0] = '\0';  /* remind about older game data (src/assets_check.c) */
+    opts.world[0] = '\0';                /* [general] world: 96/97 (include/world.h) */
+    opts.opt_game_length = opts.opt_pitch_type = opts.opt_auto_replays = OPTION_UNSET;   /* [options]: */
+    opts.opt_all_teams_equal = opts.opt_auto_save_highlights = opts.opt_menu_music = OPTION_UNSET;  /* the game's */
     opts.matchmaker[0] = '\0';    /* default: a matchmaking server on this machine */
     opts.record[0] = '\0';        /* default: "server" once SWOS.ini is read (below) */
-    opts.netplay_balance = 0;     /* [netplay] balance: off unless asked for (docs/NETPLAY_BALANCE.md) */
     opts.prediction = 1;          /* default: a live match's replay keeps what each player saw */
     opts.no_injuries_cards = 0;   /* [testing] no_injuries_cards: the real rules unless asked (test_rules.h) */
 #ifdef SWOS_TEST_RULES
@@ -512,6 +633,12 @@ int main(int argc, char **argv)
       g_arcadeOpts = &opts; g_arcadeIniPath = ini_path; }
 
     /* 3) CLI overrides INI (highest precedence — explicit user intent). */
+#if SWOS_ONLINE_CLIENT
+    /* The online client starts at the multiplayer log-in, and leaving it quits (an option
+     * below that opens a menu of its own still wins: the last start menu set is shown). */
+    OnlineMenus_StartOnline(1);
+    { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+#endif
     for (int i = 1; i < argc; ++i) {
         const char *a = argv[i];
         const char *v;
@@ -591,9 +718,17 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Invalid --jag-graphics value '%s' (expected on|off)\n", v);
                 return 1;
             }
+        } else if ((v = match_kv(a, "gameplay")) != NULL) {
+            if      (strcmp(v, "amiga") == 0) opts.dos_gameplay = GAMEPLAY_AMIGA;
+            else if (strcmp(v, "dos") == 0)   opts.dos_gameplay = GAMEPLAY_DOS;
+            else if (strcmp(v, "xbox") == 0)  opts.dos_gameplay = GAMEPLAY_XBOX;
+            else {
+                fprintf(stderr, "Invalid --gameplay value '%s' (expected amiga|dos|xbox)\n", v);
+                return 1;
+            }
         } else if ((v = match_kv(a, "dos-gameplay")) != NULL) {
-            if (strcmp(v, "on") == 0 || strcmp(v, "1") == 0)       opts.dos_gameplay = 1;
-            else if (strcmp(v, "off") == 0 || strcmp(v, "0") == 0) opts.dos_gameplay = 0;
+            if (strcmp(v, "on") == 0 || strcmp(v, "1") == 0)       opts.dos_gameplay = GAMEPLAY_DOS;
+            else if (strcmp(v, "off") == 0 || strcmp(v, "0") == 0) opts.dos_gameplay = GAMEPLAY_AMIGA;
             else {
                 fprintf(stderr, "Invalid --dos-gameplay value '%s' (expected on|off)\n", v);
                 return 1;
@@ -676,11 +811,20 @@ int main(int argc, char **argv)
             if      (strcmp(v, "amiga") == 0)  opts.kit_art = 0;
             else if (strcmp(v, "jaguar") == 0) opts.kit_art = 1;
             else { fprintf(stderr, "--kit-art must be amiga or jaguar (got %s)\n", v); return 1; }
+        } else if (strcmp(a, "--online") == 0) {
+            /* Straight to the multiplayer log-in; leaving it, the main menu. */
+            OnlineMenus_StartOnline(0);
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if ((v = match_kv(a, "menu")) != NULL) {
             OnlineMenus_SetStartMenu(v);
             /* Same reason as --matchmaker-menu: this flag exists to reach a menu,
              * and the loader intro plays in front of it in real time. */
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+        } else if ((v = match_kv(a, "phone-fetch")) != NULL) {
+            /* The phones' Wi-Fi copy, from a desktop (src/phone_fetch.c): a link, or "find". */
+            return PhoneFetch_Cli(v, ini_path);
+        } else if (strcmp(a, "--game-options-selftest") == 0) {
+            return Settings_GameOptionsSelfTest();
         } else if (strcmp(a, "--menu-selftest") == 0) {
             return OnlineMenus_SelfTest();
         } else if ((v = match_kv(a, "convert-teams")) != NULL) {
@@ -815,6 +959,25 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Invalid --replay-max-errors value '%s' (expected >= 1)\n", v);
                 return 1;
             }
+        } else if ((v = match_kv(a, "mods")) != NULL) {
+            /* The mods for this run, over SWOS.ini's [mods] enabled (include/mods.h); not saved. */
+            snprintf(s_modsArg, sizeof s_modsArg, "%s", v);
+            s_modsArgSet = 1;
+        } else if ((v = match_kv(a, "world")) != NULL) {
+            /* The football world for this run, over SWOS.ini's (include/world.h). */
+            if (World_FromTag(v) < 0) {
+                fprintf(stderr, "--world: no world '%s'\n", v);
+                return 1;
+            }
+            snprintf(opts.world, sizeof opts.world, "%s", v);
+        } else if (strncmp(a, "--career-golden", 15) == 0 || strncmp(a, "--golden-", 9) == 0) {
+            /* The golden career test (src/career_autopilot.c, scripts/career_golden_test.sh). */
+            extern int32_t CareerAutopilot_ParseArg(const char *a);
+            if (CareerAutopilot_ParseArg(a) != 1) {
+                fprintf(stderr, "Invalid argument: %s\n", a);
+                return 1;
+            }
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if (strncmp(a, "--rollback", 10) == 0) {
             if (Rollback_ParseArg(a) != 1) {
                 fprintf(stderr, "Invalid argument: %s\n", a);
@@ -898,7 +1061,7 @@ int main(int argc, char **argv)
         if (Rollback_Enabled() || NetplayMatch_Enabled())
             SDL_setenv("SWOS_AUDIO_OFF", "1", 1);
         if (!Rollback_Enabled())
-        opts.dos_gameplay = 1;   /* the corpus is DOS gameplay (docs/TESTS.md 5c) */
+        opts.dos_gameplay = GAMEPLAY_DOS;   /* the corpus is DOS gameplay (docs/TESTS.md 5c) */
         /* The recordings were made against a reference implementation of the
          * ORIGINAL, so a replay has to PLAY the original — including its
          * fire-hold lockout bug. Without this the rig diverges on quick_fire /
@@ -1016,7 +1179,6 @@ int main(int argc, char **argv)
     /* And whether a match report leaves this machine (include/match_report.h). */
     MatchReport_SetEnabled(opts.reports);
     { extern void ReplayRec_SetPredictionKept(int32_t on); ReplayRec_SetPredictionKept(opts.prediction); }
-    { extern void NetplayMatch_SetBalance(int32_t on); NetplayMatch_SetBalance(opts.netplay_balance); }
     /* The testers' rule, for offline play (include/test_rules.h). Said in the log: a
      * report from a career played without injuries is read differently. */
     TestRules_SetSetting(opts.no_injuries_cards);
@@ -1041,6 +1203,7 @@ int main(int argc, char **argv)
         extern int InputSDL_SetKeyBinding(int which, const char *name);
         int i;
         InputSDL_SetPressLatch(opts.latch_presses);
+        TouchControls_SetMode(opts.touch_controls);     /* the phones' on-screen controls */
         for (i = 0; i < 5; i++)
             InputSDL_SetKeyBinding(i, opts.key_bind[i]);
     }
@@ -1080,22 +1243,17 @@ int main(int argc, char **argv)
     DosMusic_SetMenuRecording(opts.menu_recording);
     DosSound_SetCommentary(opts.commentary);
     { extern int _gArcadeMode; _gArcadeMode = opts.arcade; }
-    _gDosGameplay = opts.dos_gameplay;
+    Gameplay_SetStyle(opts.dos_gameplay);      /* the style, its flags and the OPTIONS row */
     { extern int _gOriginalFireHoldLockout;
       _gOriginalFireHoldLockout = opts.fire_hold_lockout; }
     { extern int _gContestOwnRatings;
       _gContestOwnRatings = opts.contest_own_ratings; }
-    /* The OPTIONS menu draws its GAMEPLAY row from a uint16_t mirror (the
-     * string-table header reads its index as one). Seed it here so the row
-     * shows what SWOS.ini / --dos-gameplay actually selected; the toggle
-     * itself keeps the two in step (ChangeGameplayStyle in menus.c). */
-    { extern uint16_t _gameplayStyleOption;
-      _gameplayStyleOption = (uint16_t)(opts.dos_gameplay != 0); }
-
     /* And say which style is actually in force, so "it ran in Amiga mode" is
      * something a tester can read off rather than infer from feel. */
-    fprintf(stderr, "[gameplay] %s\n", _gDosGameplay
+    fprintf(stderr, "[gameplay] %s\n", _gGameplayStyle == GAMEPLAY_DOS
             ? "DOS (70fps physics and timers, DOS formations)"
+            : _gGameplayStyle == GAMEPLAY_XBOX
+            ? "XBOX (SWOS 2020's: 60fps, Amiga ball physics, DOS goalkeepers)"
             : "AMIGA (the shipped default)");
     /* Say it out loud — this one is a deliberate departure from the original,
      * so a tester comparing against real SWOS can see which half he is on. */
@@ -1147,6 +1305,43 @@ int main(int argc, char **argv)
      * answer "which build is this?" on its own. */
     fprintf(stderr, "[build] %s\n", Build_Version());
 
+    /* The mods (include/mods.h): --mods, else SWOS_MODS_ENABLED, else SWOS.ini's [mods] enabled.
+     * Before anything reads the game's data -- translations included, which a mod may carry. */
+    {
+        const char *env = getenv("SWOS_MODS_ENABLED");
+        Mods_Init(s_modsArgSet ? s_modsArg : env ? env : opts.mods, opts.mods_disabled);
+    }
+    /* The built-in mods that are on, set up (include/mod_api.h ModDef.init): their entries and
+     * their menus' handlers -- before the menus are built from JSON, which name them. */
+    { extern void ModHooks_Init(void); ModHooks_Init(); }
+    {   /* A sprite set as a mod ("sprites": "jaguar", docs/JAGUAR.md): the Jaguar tier draws its
+         * grafs_jag/, with the four shading settings its own (its page; [graphics]'s otherwise). */
+        const char *set = Mods_JaguarSprites();
+        if (set) {
+            extern int32_t ModApi_SettingInt(const char *slug, const char *key, int32_t fallback);
+            const int32_t o = ModApi_SettingInt(set, "outfit_shading", opts.outfit_shading);
+            const int32_t sh = ModApi_SettingInt(set, "shadow_shading", opts.shadow_shading);
+            const int32_t h = ModApi_SettingInt(set, "hair_shading", opts.hair_shading);
+            int32_t st = ModApi_SettingInt(set, "shade_step", opts.shade_step);
+            if (st < 1 || st > 5) st = opts.shade_step;
+            JagGfx_SetEnabled(1);
+            JagGfx_SetShading(o, sh, h, st);
+            fprintf(stderr, "[mods] %s: its sprites, by the Jaguar tier (outfit %d, shadow %d, hair %d, step %d)\n",
+                    set, (int)o, (int)sh, (int)h, (int)st);
+        }
+    }
+    { extern void ModMatch_SelfTest(void);    /* (SWOS_MOD_MATCH_TEST=entry: its MODES entry, now) */
+      if (getenv("SWOS_MOD_MATCH_TEST") && strcmp(getenv("SWOS_MOD_MATCH_TEST"), "entry") == 0) ModMatch_SelfTest(); }
+    /* (SWOS_SKIP_INTRO=1: straight to the menus -- a test's; src/mod_match.c ModMatch_SelfTest too) */
+    if ((getenv("SWOS_MOD_MATCH_TEST") && strcmp(getenv("SWOS_MOD_MATCH_TEST"), "entry") != 0) ||
+        getenv("SWOS_SKIP_INTRO"))
+    { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+    Tweaks_Set(opts.tweaks);    /* [tweaks] (include/tweaks.h): off line only, off in the rigs */
+    if (opts.tweaks)
+        fprintf(stderr, "[tweaks] on:%s%s%s (off line only)\n",
+                (opts.tweaks & TWEAK_CPU_CARDS) ? " cpu_cards" : "",
+                (opts.tweaks & TWEAK_NO_TEAMMATE_TACKLES) ? " no_teammate_tackles" : "",
+                (opts.tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? " tackle_controlled_player" : "");
     /* Load the UI translation table for the selected language
      * (data_json/translations/<lang>.json) now that the CWD is the binary dir
      * and stderr is the log. tr(symbol) resolves menu/UI text through it; a
@@ -1160,6 +1355,39 @@ int main(int argc, char **argv)
         Countries_Localize();
         Currency_Set(opts.currency);   /* pound (stock £) | dollar ($) | euro (€) */
     }
+    /* The football world (include/world.h): --world, else SWOS_WORLD, else SWOS.ini's, else
+     * 96/97 -- World 2026-27's data is the player's to add (OpenSWOS Setup imports it). */
+    if (!opts.world[0] && getenv("SWOS_WORLD") && getenv("SWOS_WORLD")[0])
+        snprintf(opts.world, sizeof opts.world, "%s", getenv("SWOS_WORLD"));
+    if (opts.world[0] && World_Set(opts.world) != 0)
+        fprintf(stderr, "[world] unknown world '%s' in SWOS.ini: playing %s\n", opts.world, World_Tag());
+    if (World_Current() != WORLD_9697) {
+        /* Its data (OpenSWOS Setup installs its package: data_json/worlds/<tag>/WORLD.ini): none,
+         * 96/97; another than this build's, played but said. */
+        char rel[64], path[1024], line[160], fp[40] = "";
+        snprintf(rel, sizeof rel, "data_json/worlds/%s/WORLD.ini", World_Tag());
+        FILE *f = fopen(swos_data_path(rel, path, (uint32_t)sizeof path), "rb");
+        if (!f) {
+            fprintf(stderr, "[world] %s: its data is not installed (" PROJECT_SETUP_NAME ": its package) -- playing 9697\n",
+                    World_Tag());
+            AssetsCheck_SetWorld(1, World_Tag(), "", "");
+            World_Set("9697");
+        } else {
+            while (fgets(line, sizeof line, f))
+                if (sscanf(line, " fingerprint = %39s", fp) == 1)
+                    break;
+            fclose(f);
+            if (World_DataFingerprint()[0] && strcmp(fp, World_DataFingerprint()) != 0) {
+                fprintf(stderr, "[world] %s: its installed data is %s, this build's is %s -- install the package "
+                        "made for this version\n", World_Tag(), fp[0] ? fp : "unknown", World_DataFingerprint());
+                AssetsCheck_SetWorld(2, World_Tag(), fp, World_DataFingerprint());
+            }
+        }
+    }
+    fprintf(stderr, "[world] %s\n", World_Tag());
+    /* OPTIONS -> WORLD draws the world SWOS.ini names (menus.c ChangeWorld). */
+    { extern uint16_t _worldOption;
+      _worldOption = (uint16_t)(World_FromTag(opts.world[0] ? opts.world : "9697") == (int32_t)WORLD_2627); }
 
     if (_gDosGraphics)
         fprintf(stderr, "[dos] DOS graphics mode ON (bin/%s)\n", _gDosGraphicsDir);
@@ -1217,7 +1445,7 @@ int main(int argc, char **argv)
     int dosView;
     {
         dosView = (opts.view_style == VIEW_STYLE_DOS) ||
-                      (opts.view_style == VIEW_STYLE_AUTO && opts.dos_gameplay);
+                      (opts.view_style == VIEW_STYLE_AUTO && opts.dos_gameplay == GAMEPLAY_DOS);
         /* Remembered, not applied: the MENUS are 272 lines tall (Amiga artwork),
          * so switching the whole game to 200 cuts their bottom rows off -- which
          * is exactly what it did when this was set at startup. The view changes
@@ -1225,10 +1453,10 @@ int main(int argc, char **argv)
         { extern int _gDosView; _gDosView = dosView; }
         if (dosView)
             ;   /* reported below, once the display shape is known */
-        if (opts.view_style == VIEW_STYLE_AMIGA && opts.dos_gameplay)
+        if (opts.view_style == VIEW_STYLE_AMIGA && opts.dos_gameplay == GAMEPLAY_DOS)
             fprintf(stderr, "[video] DOS gameplay with the Amiga view (--view): a mix that "
                             "matches neither original -- without --view the style sets both\n");
-        if (opts.view_style == VIEW_STYLE_DOS && !opts.dos_gameplay)
+        if (opts.view_style == VIEW_STYLE_DOS && opts.dos_gameplay != GAMEPLAY_DOS)
             fprintf(stderr, "[video] the DOS view with Amiga gameplay (--view): a mix that "
                             "matches neither original -- without --view the style sets both\n");
     }
@@ -1269,21 +1497,10 @@ int main(int argc, char **argv)
             if (opts.widescreen != 1) dosw = DOS_VIEW_WIDTH;   /* the PC release's own (stretched or not) */
             _dos_view_width = dosw;
         }
-        int w = (int)((long)SCREEN_HEIGHT * dw / dh);
         int aspectW;
-        w = (w + 1) & ~1;                          /* round up to even */
-        aspectW = w;
-        /* NEVER WIDER THAN THE DISPLAY IT IS FILLING. The width above is "how much game
-         * fits this shape at 272 lines", which is the point on a 2560x1080 monitor -- but
-         * a small resolution means a small screen, not a wide one. `resolution=320x200`
-         * (someone comparing against DOS, which really is 320x200) has an aspect of
-         * 1.60:1, and 272 * 1.60 = 436, so the game came up 436x272: WIDER than either
-         * original, showing more pitch than the thing being compared against. Reported by
-         * a tester 2026-09-18, and reproduced exactly. */
-        if (w > dw) w = dw & ~1;
-        if (w < SCREEN_WIDTH)          w = SCREEN_WIDTH;
-        if (w > PITCH_VIEW_MAX_WIDTH)  w = PITCH_VIEW_MAX_WIDTH;
+        int w = Video_WideWidth(dw, dh, &aspectW);
         if (opts.widescreen != 1)      w = SCREEN_WIDTH;   /* the Amiga's own width (stretched or not) */
+        s_videoFollows = opts.widescreen == 1 && !(opts.res_w > 0 && opts.res_h > 0);
         _screen_width = w;
         /* WIDESCREEN IN THE DOS VIEW means the widescreen PICTURE: the same w x 272 as the
          * Amiga view's, showing more pitch in both directions -- not the 200-line DOS
@@ -1360,9 +1577,16 @@ int main(int argc, char **argv)
         return 1;
     }
 
+#ifdef SWOS_MOBILE_BUILD
+    /* A phone has no setup: the game's data comes from a PC's, over Wi-Fi or by hand (src/mobile.c). */
+    { extern int Mobile_CheckGameData(PlatformInitOptions *opts, const char *iniPath);
+      if (!Mobile_CheckGameData(&opts, ini_path)) { SDL_Quit(); return 1; } }
+#endif
     /* Game data an older OpenSWOS Setup made (ASSETS.ini): say so, once. */
     { extern void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath);
       AssetsCheck_Run(&opts, ini_path); }
+    /* The world asked for: its package not installed, or of other data than this build's. */
+    AssetsCheck_World(&opts);
 
     /* Hand off to the (ported) Amiga bootstrap. startShim runs _start()
      * (hardware init -- now no-ops via stubs) then mainC() which is the

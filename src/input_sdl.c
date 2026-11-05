@@ -149,6 +149,7 @@ static int sdl_to_amiga(SDL_Keycode k)
 
     switch (k) {
     case SDLK_ESCAPE:       return AKEY_ESC;
+    case SDLK_AC_BACK:      return AKEY_ESC;    /* (Android's back button: ESC) */
     case SDLK_RETURN:       return AKEY_ENTER;
     case SDLK_KP_ENTER:     return AKEY_ENTER;
     case SDLK_SPACE:        return AKEY_SPACE;
@@ -463,6 +464,69 @@ EMSCRIPTEN_KEEPALIVE void InputSDL_TouchKey(int32_t akey)
         push_amiga_key((uint8_t)akey);
 }
 
+/* RAW TEXT (InputText's, for a password): the characters themselves, as typed -- small
+ * letters, symbols -- from SDL's text input, where the game's keys only give capitals and
+ * digits. A queue the editor empties each frame. */
+static uint8_t s_rawq[64];
+static int     s_rawHead, s_rawTail, s_rawOn;
+
+void InputSDL_RawText(int on)
+{
+    s_rawHead = s_rawTail = 0;
+    s_rawOn = on;
+#ifndef SWOS_WASM_BUILD
+    if (on)
+        SDL_StartTextInput();
+#endif
+}
+
+static void raw_push(int ch)
+{
+    if (ch < 0x20 || ch > 0x7E || ((s_rawTail + 1) & 63) == s_rawHead)
+        return;
+    s_rawq[s_rawTail] = (uint8_t)ch;
+    s_rawTail = (s_rawTail + 1) & 63;
+}
+
+int InputSDL_RawChar(void)
+{
+    int ch;
+    if (s_rawHead == s_rawTail)
+        return -1;
+    ch = s_rawq[s_rawHead];
+    s_rawHead = (s_rawHead + 1) & 63;
+    return ch;
+}
+
+/* A character the page's hidden text field got from a phone's on-screen keyboard
+ * (wasm/shell.html), while the game asks for text (InputText): the key that types it
+ * into the FIFO, as a key press does. `ch`: a printable ASCII character, or 8 BACKSPACE,
+ * 13 ENTER, 27 ESC. A character no key types is dropped. */
+EMSCRIPTEN_KEEPALIVE void InputSDL_WebChar(int32_t ch)
+{
+    int a;
+    if (s_rawOn && ch >= 0x20 && ch <= 0x7E) {     /* a password: the character itself */
+        raw_push(ch);
+        return;
+    }
+    if (ch == 8)
+        a = sdl_to_amiga(SDLK_BACKSPACE);
+    else if (ch == 13)
+        a = sdl_to_amiga(SDLK_RETURN);
+    else if (ch == 27)
+        a = sdl_to_amiga(SDLK_ESCAPE);
+    else if (ch >= 'A' && ch <= 'Z')
+        a = sdl_to_amiga((SDL_Keycode)(ch - 'A' + 'a'));    /* (the field is capitals anyway) */
+    else if (ch > ' ' && ch < 0x7F)
+        a = sdl_to_amiga((SDL_Keycode)ch);
+    else if (ch == ' ')
+        a = sdl_to_amiga(SDLK_SPACE);
+    else
+        a = -1;
+    if (a >= 0)
+        push_amiga_key((uint8_t)a);
+}
+
 static void touch_controls(int *_up, int *_down, int *left, int *right, int *_fire)
 {
     if (s_touch_dirs & 1) *_up    = 1;
@@ -644,6 +708,13 @@ void InputSDL_Shutdown(void)
 void InputSDL_HandleEvent(const SDL_Event *e)
 {
     switch (e->type) {
+    case SDL_TEXTINPUT:
+        if (s_rawOn) {
+            const char *t;
+            for (t = e->text.text; *t; t++)
+                raw_push((uint8_t)*t);
+        }
+        break;
     case SDL_KEYDOWN: {
         /* The CONTROLS menu is waiting for a key: this is it. */
         if (s_capture) {
@@ -706,7 +777,7 @@ void InputSDL_HandleEvent(const SDL_Event *e)
         extern int32_t NetplayMatch_Enabled(void);
         extern void    NetplayMatch_RequestLeave(void);
         int in_match = NetplayMatch_Enabled();
-        if (in_match && e->key.keysym.sym == SDLK_ESCAPE && e->key.repeat == 0)
+        if (in_match && (e->key.keysym.sym == SDLK_ESCAPE || e->key.keysym.sym == SDLK_AC_BACK) && e->key.repeat == 0)
             NetplayMatch_RequestLeave();
         if (is_alt || in_match) {
             /* Don't record keyState, don't push to keyBuffer, don't

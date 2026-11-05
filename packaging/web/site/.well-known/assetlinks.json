@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "net.openswos.game",
+      "sha256_cert_fingerprints": ["59:BE:DC:59:32:1C:30:CF:58:8C:C9:03:CC:61:43:B6:D4:7E:E4:8F:39:C2:1D:E0:1C:07:19:21:EB:C8:02:CD"]
+    }
+  }
+]

@@ -12,6 +12,8 @@ RUN_USER="${RUN_USER:-$(stat -c %U "$REPO_DIR")}"
 BUILT_BINARY="${REPO_DIR}/build/matchmaker/swos-matchmaker"
 DEPLOY_DIR="/srv/swos-matchmaker"
 BINARY="${DEPLOY_DIR}/bin/swos-matchmaker"
+# The group nginx runs as: it serves recordings/, reports/ and playback/, and nothing else.
+WEB_GROUP="${WEB_GROUP:-www-data}"
 PORT=19602
 
 usage() {
@@ -25,6 +27,27 @@ ensure_srv_layout() {
                   "${DEPLOY_DIR}/playback"
     sudo touch "${DEPLOY_DIR}/matches.jsonl"
     sudo chown -R "${RUN_USER}:${RUN_USER}" "${DEPLOY_DIR}"
+    srv_permissions
+}
+
+# Who may read what (after any chown -R, which resets the groups). The folders are
+# the gate, the files keep their modes: the top one can be passed through but not
+# listed; the TLS key, the admin queue, the binary and the ledger (players'
+# addresses) are the service user's alone; nginx gets the three folders it serves
+# through its group, setgid so what the server writes there later gets it too.
+srv_permissions() {
+    sudo chmod 711 "${DEPLOY_DIR}"
+    for d in tls bin admin; do
+        [ -d "${DEPLOY_DIR}/$d" ] && sudo chmod 700 "${DEPLOY_DIR}/$d"
+    done
+    for f in matches.jsonl prune.log tls/privkey.pem; do
+        [ -f "${DEPLOY_DIR}/$f" ] && sudo chmod 600 "${DEPLOY_DIR}/$f"
+    done
+    for d in recordings reports playback; do
+        [ -d "${DEPLOY_DIR}/$d" ] || continue
+        sudo chgrp -R "$WEB_GROUP" "${DEPLOY_DIR}/$d"
+        sudo find "${DEPLOY_DIR}/$d" -type d -exec chmod 2750 {} +
+    done
 }
 
 deploy_binary() {
@@ -58,6 +81,7 @@ deploy_playback() {
     sudo cp -f "${built}"/index.html "${built}"/SWOS.html "${built}"/SWOS.js "${built}"/SWOS.wasm \
                "${built}"/SWOS.data "${DEPLOY_DIR}/playback/"
     sudo chown -R "${RUN_USER}:${RUN_USER}" "${DEPLOY_DIR}/playback"
+    srv_permissions
     # Who played whom, for the page's list: cards for recordings made before the
     # recorder wrote them (scripts/recordings_index.py), as the service's own user.
     sudo -u "${RUN_USER}" python3 "${REPO_DIR}/scripts/recordings_index.py" \

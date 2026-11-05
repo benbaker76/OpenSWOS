@@ -1,4 +1,60 @@
 {
+"LAST 16": {
+"de": "ACHTELF.",
+"es": "OCTAVOS",
+"fr": "8ES",
+"it": "OTTAVI",
+"nl": "8STE FIN."
+},
+"LAST 32": {
+"de": "1/16-FIN.",
+"es": "1/16",
+"fr": "1/16",
+"it": "1/16",
+"nl": "1/16"
+},
+"LAST 64": {
+"de": "1/32-FIN.",
+"es": "1/32",
+"fr": "1/32",
+"it": "1/32",
+"nl": "1/32"
+},
+"PRELIM.": {
+"de": "VORR.",
+"es": "PRELIM.",
+"fr": "T. PREL.",
+"it": "T. PRELIM.",
+"nl": "VOORR."
+},
+"PRELIMINARY ROUND": {
+"de": "VORRUNDE",
+"es": "RONDA PRELIMINAR",
+"fr": "TOUR PRÉLIMINAIRE",
+"it": "TURNO PRELIMINARE",
+"nl": "VOORRONDE"
+},
+"ROUND OF 16": {
+"de": "ACHTELFINALE",
+"es": "OCTAVOS DE FINAL",
+"fr": "HUITIÈMES DE FINALE",
+"it": "OTTAVI DI FINALE",
+"nl": "ACHTSTE FINALES"
+},
+"ROUND OF 32": {
+"de": "1/16-FINALE",
+"es": "DIECISEISAVOS",
+"fr": "SEIZIÈMES DE FINALE",
+"it": "SEDICESIMI DI FINALE",
+"nl": "1/16 FINALES"
+},
+"ROUND OF 64": {
+"de": "1/32-FINALE",
+"es": "TREINTAIDOSAVOS",
+"fr": "TRENTE-DEUXIÈMES",
+"it": "TRENTADUESIMI DI FINALE",
+"nl": "1/32 FINALES"
+},
 "\u0000WE HERE AT %a WOULD LIKE TO OFFER YOU THE": {
 "de": "\u0000WIR HIER BEI %a MÖCHTEN IHNEN DEN",
 "es": "\u0000AQUÍ EN %a NOS GUSTARÍA OFRECERLE EL",

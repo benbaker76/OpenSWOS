@@ -1,0 +1,13 @@
+{
+ "uuid": "ca0cb256-e65f-5b14-90f0-d1c3dac245cb",
+ "id": "challenges",
+ "name": "Challenges",
+ "version": "1.0",
+ "author": "OpenSWOS (SWOS 2020's challenges)",
+ "about": "Win from where the match stands: the score, the minute, the men you have left.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "modes",
+ "default": true
+}

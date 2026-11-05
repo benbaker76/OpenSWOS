@@ -1,0 +1,11 @@
+{
+ "uuid": "456da67a-40dd-5064-9ce0-b63a4df516d4",
+ "id": "hair",
+ "name": "Hair",
+ "version": "1.0",
+ "author": "OpenSWOS (the receding look: the SWOS 96/97 Mod's)",
+ "about": "Players with more than one head of hair: blonde, black, receding, shaved and ponytails, each player always his own.",
+ "targets": ["sdl"],
+ "changes": "cosmetic",
+ "default": false
+}

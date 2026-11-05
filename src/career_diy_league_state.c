@@ -42,6 +42,6 @@
  * symbols — see docs/WASM.md §4b). Independent globals; the old 1-byte overlay
  * pad between them is not relied on (both are &symbol-addressed in the save). */
 uint8_t _lastFinancialWeekIndex;
-uint8_t _diyLeagueSeasonStateTable[2000];
-_Static_assert(sizeof(_diyLeagueSeasonStateTable) == 2000,
-               "diyLeagueSeasonStateTable must stay 2000 bytes");
+uint8_t _diyLeagueSeasonStateTable[GLOBAL_TEAM_NUMBERS];   /* (the original's 2000: game_types.h) */
+_Static_assert(sizeof(_diyLeagueSeasonStateTable) == GLOBAL_TEAM_NUMBERS,
+               "diyLeagueSeasonStateTable: one byte per global team number");

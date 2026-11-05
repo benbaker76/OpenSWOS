@@ -176,7 +176,13 @@ int main(int argc, char** argv)
         web.Update();
         recorder.Update();
         reports.Update();
-        while (enet_host_service(connections.Host(), &event, 1) > 0)
+        // UDP -- the game's messages and every relayed packet -- wakes the wait at once; TCP
+        // (browsers, recording streams, reports) is polled by the Updates above. So the wait
+        // is a millisecond only while a TCP connection is open, and otherwise 20: an idle
+        // server going round a thousand times a second cost two thirds of a core on an Atom
+        // N2800 (online.swos.eu, 2026-10-31), where 50 times a second costs next to nothing.
+        const int wait = tcp.Busy() || web.Busy() || recorder.Busy() || reports.Busy() ? 1 : 20;
+        while (enet_host_service(connections.Host(), &event, (enet_uint32)wait) > 0)
         {
             switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT:

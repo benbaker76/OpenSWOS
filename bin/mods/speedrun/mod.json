@@ -1,0 +1,13 @@
+{
+ "uuid": "9eb2e1b1-f3a6-568e-8f09-71510c57220a",
+ "id": "speedrun",
+ "name": "Speedrun",
+ "version": "1.0",
+ "author": "OpenSWOS (SWOS 2020's speedruns)",
+ "about": "Race the clock: a goal, a header, a tackle, a card, a win -- your best times kept.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "modes",
+ "default": true
+}

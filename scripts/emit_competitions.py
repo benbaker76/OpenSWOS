@@ -51,7 +51,8 @@ def _names(names):
 def _seed_list(seeds):
     if not seeds:
         return "{ }"
-    rows = ["        { %s, %d /* %s */ }," % (s["country"], s["ordinal"], s.get("team", ""))
+    rows = ["        { %s, %d%s }," % (s["country"], s["ordinal"],
+                                      " /* %s */" % s["team"] if s.get("team") else "")
             for s in seeds]
     return "{\n" + "\n".join(rows) + "\n    }"
 
@@ -146,12 +147,19 @@ def emit_career(rec):
     return "CompetitionCareer _careerContests[35] = {\n" + "\n".join(rows) + "\n};"
 
 
+# Tables with a spare slot after their end: a world's league cup goes there (src/world_cups.c),
+# and include/competition_data.h declares them that size.
+WORLD_CUP_ROOM = {"_italyTable"}
+
+
 def emit_country_table(c):
     """Competition *<table>[N] = { &league(s), -2, &cup(s), -1 }."""
     elems = ["(Competition *)&%s" % lg for lg in c["leagues"]]
     elems.append("(Competition *)-2")
     elems += ["(Competition *)&%s" % cp for cp in c.get("cups", []) or []]
     elems.append("(Competition *)-1")
+    if c["table"] in WORLD_CUP_ROOM:
+        elems.append("(Competition *)-1")
     return "Competition *%s[%d] = { %s };" % (c["table"], len(elems), ", ".join(elems))
 
 

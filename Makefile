@@ -34,6 +34,7 @@ CC := gcc
 PKGCONF := pkg-config
 else
 CC := aarch64-linux-gnu-gcc
+CXX := aarch64-linux-gnu-g++   # (NETPLAY=1: GGPO-X is C++ -- the PortMaster port's online play)
 PKGCONF := PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig pkg-config
 endif
 else ifdef ARM
@@ -410,6 +411,17 @@ ifeq ($(SWOS_TEST_RULES),1)
 DEBUG_FLAGS += -DSWOS_TEST_RULES=1
 endif
 
+# The football worlds beyond 96/97 (World 2026-27 and all it brought: include/swos_types.h,
+# docs/WORLD_2026_27.md). `make SWOS_WORLDS=0` compiles them out: 96/97 alone, as before them.
+SWOS_WORLDS ?= 1
+DEBUG_FLAGS += -DSWOS_WORLDS=$(SWOS_WORLDS)
+
+# The online client (`make ONLINE_CLIENT=1`, SDL with netplay): the game starts at the
+# multiplayer log-in, and leaving it quits -- a build for playing online and nothing else
+# (SWOS United's). `--online` starts any build there, leaving it for the main menu.
+ONLINE_CLIENT ?= 0
+DEBUG_FLAGS += -DSWOS_ONLINE_CLIENT=$(ONLINE_CLIENT)
+
 # Build with the PRISTINE Amiga data for the four formations this port
 # deliberately corrected — 4-4-2, 4-3-3, 3-4-3, Sweep (commit 1828528, whose
 # tester-supplied fix un-swaps central defenders that crossed sides instead of
@@ -568,7 +580,7 @@ endif
 ifeq ($(origin SWOS_ASSETS),undefined)
 SWOS_ASSETS := $(HOME)/.swos/assets
 endif
-WASM_DATA_DIRS := data grafs grafs_aga grafs_jag sound data_json
+WASM_DATA_DIRS := data grafs grafs_aga grafs_jag sound data_json mods
 
 # Emscripten link flags. ASYNCIFY lets the blocking game loop yield to the
 # browser at the one Platform_VBlank choke-point (emscripten_sleep — docs/WASM.md
@@ -598,7 +610,11 @@ LDFLAGS += -sASYNCIFY -sASYNCIFY_STACK_SIZE=65536 \
            -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,FS -lidbfs.js \
            --pre-js wasm/pre.js --shell-file $(WASM_SHELL) \
            $(foreach d,$(WASM_DATA_DIRS),$(foreach r,bin $(SWOS_ASSETS),\
-               $(if $(wildcard $(r)/$(d)),--preload-file $(r)/$(d)@/$(d))))
+               $(if $(wildcard $(r)/$(d)),--preload-file $(r)/$(d)@/$(d)))) \
+           --exclude-file '*data_json/worlds*'
+# (Never a world's data: World 2026-27's is its authors' and never goes out with OpenSWOS --
+# a player installs its package with OpenSWOS Setup. A developer's bin/ has it, gitignored, and
+# until 2026-11-01 this took its teams and competitions into SWOS.data: caught before a deploy.)
 # Re-link when the pre-js or shell HTML changes (both embedded at link time).
 WASM_LINK_DEPS := wasm/pre.js $(WASM_SHELL)
 # The --preload-file dirs are baked into SWOS.data AT LINK TIME, but nothing above
@@ -731,6 +747,13 @@ endif
 endif
 endif
 
+# ---- A fork's own build additions ----
+# A fork of OpenSWOS (docs/FORKING.md) puts what only it builds in fork.mk beside this file --
+# a library of its own (OBJECTS += its objects, with their rules), flags, libraries to link
+# (FORK_CFLAGS counts in the build-flags stamp below) -- so it never edits this Makefile, and
+# merging OpenSWOS's never conflicts here. OpenSWOS has none.
+-include fork.mk
+
 # ---- A changed flag rebuilds everything ----
 # make compares TIMESTAMPS, not flags. Toggling a -D (SWOS_TEST_NO_INJURIES_CARDS,
 # say) used to relink the old objects, and hand back a binary with the old flag in
@@ -743,7 +766,7 @@ endif
 # they change, and every object depends on it. $(shell), not $(file): macOS still
 # ships GNU make 3.81.
 BUILD_FLAGS_STAMP := $(OBJDIR)/.build-flags
-BUILD_FLAGS_NOW   := $(strip $(CC) $(CFLAGS) :: $(CXX) $(GGPO_CXXFLAGS) :: $(ENET_CFLAGS))
+BUILD_FLAGS_NOW   := $(strip $(CC) $(CFLAGS) :: $(CXX) $(GGPO_CXXFLAGS) :: $(ENET_CFLAGS) :: $(FORK_CFLAGS))
 ifneq ($(BUILD_FLAGS_NOW),$(strip $(shell cat $(BUILD_FLAGS_STAMP) 2>/dev/null)))
 $(shell mkdir -p $(OBJDIR) && printf '%s\n' '$(BUILD_FLAGS_NOW)' > $(BUILD_FLAGS_STAMP))
 endif
@@ -779,6 +802,10 @@ $(OUTDIR):
 # Compile each src/*.c into build/<os>/<arch>/*.o (mirrors src/ subdirs, e.g.
 # src/generated/x.c -> $(OBJDIR)/generated/x.o). The mkdir creates the
 # per-target object tree on first build.
+# A fork's mods (src/fork_mods.inc, include/mod_api.h): __has_include finds it, but make would not
+# rebuild mods_builtin.o the first time it appears -- the fork's mods silently missing.
+$(OBJDIR)/mods_builtin.o: $(wildcard $(SRCDIR)/fork_mods.inc)
+
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(BUILD_FLAGS_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -931,7 +958,7 @@ macos-app: macos-universal
 	    echo "    WARNING: SDL2.framework not found — user will need to install it system-wide" >&2; \
 	  fi; \
 	  echo "    copying $$(scripts/stage_runtime.sh $$APP/Contents/MacOS \
-	        data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup)"; \
+	        data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup mods)"; \
 	  if   [ -f SWOS.icns ];           then cp SWOS.icns           $$APP/Contents/Resources/; \
 	  elif [ -f $(BINDIR)/SWOS.icns ]; then cp $(BINDIR)/SWOS.icns $$APP/Contents/Resources/; \
 	  else echo "    (no SWOS.icns — Finder will use the default app icon)"; fi; \

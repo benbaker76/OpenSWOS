@@ -10,6 +10,7 @@
 #ifdef SWOS_SDL_BUILD
 
 #include <stdint.h>
+#include "project_identity.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +18,7 @@
 #include <sys/stat.h>
 
 #include "arcade.h"
+#include "dos_mode.h"         /* Gameplay_SetStyle: the cabinet plays AMIGA or DOS */
 #include "swos_io.h"   /* swos_save_commit — Switch save durability */
 #include "text_render.h"    /* DrawMenuText, DrawMenuTextRightAligned */
 #include "display.h"        /* _screen_width, SCREEN_HEIGHT */
@@ -313,7 +315,7 @@ static int arc_load_256(const char *rel, uint8_t *out8, int out_cap,
     FILE *f = fopen(swos_data_path(rel, buf, (uint32_t)sizeof buf), "rb");
     int rc = 1;
     if (!f) {
-        fprintf(stderr, "[arcade] %s not found (it comes from the PC game: run OpenSWOS Setup)\n", rel);
+        fprintf(stderr, "[arcade] %s not found (it comes from the PC game: run " PROJECT_SETUP_NAME ")\n", rel);
         return 1;
     }
     if (out_cap >= ARC_256_W * ARC_256_H &&
@@ -1406,7 +1408,7 @@ static void arc_service_menu(void)
 
         /* title (green) + subtitle (yellow), enclosed in a yellow box */
         const char *title = "SERVICE MENU";
-        const char *sub   = "OPENSWOS ARCADE - VER L1.0 6/26/26";
+        const char *sub   = PROJECT_NAME_UPPER " ARCADE - VER L1.0 6/26/26";
         int tw = arc_svc_textw(title, TROGF15_glyphs, TROGF15_COUNT);
         int sw = arc_svc_textw(sub,   TROGF7_glyphs,  TROGF7_COUNT);
         int boxW = (tw > sw ? tw : sw) + 28;
@@ -1502,7 +1504,7 @@ static int arc_load_pitch(int type)
         if (fb) fclose(fb);
         if (fd) fclose(fd);
         if (state < 0)
-            fprintf(stderr, "[arcade] no PC pitch for the preview (grafs_dos/PITCH1: run OpenSWOS Setup)\n");
+            fprintf(stderr, "[arcade] no PC pitch for the preview (grafs_dos/PITCH1: run " PROJECT_SETUP_NAME ")\n");
         else {
             for (int slot = 0; slot < TILES_MAX; slot++) {
                 uint8_t *dst = s_pitchSheet + (size_t)(slot / COLS) * TILE * W + (size_t)(slot % COLS) * TILE;
@@ -1763,7 +1765,7 @@ static void arc_hs_save(void)
         fprintf(stderr, "[arcade] cannot write high-score file %s\n", arc_hs_path());
         return;
     }
-    fprintf(f, "# OpenSWOS Arcade high scores\n");
+    fprintf(f, "# " PROJECT_NAME " Arcade high scores\n");
     fprintf(f, "# <name> <wins> <time-seconds> <flag>   ('_' = space in name; flag = FLAGS cell, 255 = none)\n");
     int modes = Arcade_ModeCount();
     for (int m = 0; m < modes && m < ARC_HS_MAX_MODES; m++) {
@@ -2389,9 +2391,10 @@ void ArcadeMainLoop(void)
      * work. The DOS palette only applies during a match/reel (refresh_palette_from_copper
      * gates it on _playGame/_playHighlightFlag), so the menus/selectors/line-up keep
      * their normal palettes. Gameplay feel (dos_gameplay) is a separate setting. */
-    { extern int _gDosGraphics, _gDosGameplay;
+    { extern int _gDosGraphics;
       _gDosGraphics = 1;
-      if (g_arcadeOpts) _gDosGameplay = g_arcadeOpts->arcade_gameplay; }
+      /* The cabinet plays AMIGA or DOS (its reels are by mode); never XBOX. */
+      if (g_arcadeOpts) Gameplay_SetStyle(g_arcadeOpts->arcade_gameplay ? GAMEPLAY_DOS : GAMEPLAY_AMIGA); }
 
     /* No animated advertising hoardings in the arcade — the themed pitches carry
      * their own static perimeter art, and the sliding ad sprites would draw over it.
@@ -2428,7 +2431,8 @@ void ArcadeMainLoop(void)
             s_serviceReq = 0;
             arc_service_menu();
             /* GAMEPLAY may have changed: re-apply it and re-pick the reel subdir. */
-            { extern int _gDosGameplay; if (g_arcadeOpts) _gDosGameplay = g_arcadeOpts->arcade_gameplay; }
+            if (g_arcadeOpts)
+                Gameplay_SetStyle(g_arcadeOpts->arcade_gameplay ? GAMEPLAY_DOS : GAMEPLAY_AMIGA);
             arc_scan_reels();
             arc_music_attract();         /* re-apply ATTRACT AUDIO (may have changed) */
             continue;

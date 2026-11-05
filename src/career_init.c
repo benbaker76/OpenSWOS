@@ -14,6 +14,10 @@
 #include "swos_identity_seed.h"
 #include "ai_career_pool_capacity.h"
 #include "game_types.h"
+#include "league_playoffs.h"
+#include "uefa_coef.h"
+#include "world_conti.h"
+#include "states.h"
 #include "comp_identity.h"
 #include <string.h>   /* memcpy in Rebuild_CupRecordNameSourcePointers */
 #include <stdlib.h>   /* getenv: optional AI swap smoke test */
@@ -48,6 +52,12 @@ extern uint16_t _lastOfferPrimaryPlayerOrdinal;
 extern uint16_t _offerNegotiationAttemptCount;
 extern uint16_t _careerSeasonsCompleted;
 #include "career_params.h"
+#include "league_groups.h"
+#include "team_pool.h"
+#include "world_playoff.h"
+#include "world_winners.h"
+#include "world_cups.h"
+#include "world_cupd.h"
 extern uint16_t _currentSeasonShowing;
 extern uint16_t _seasonTransferQuota;
 extern uint16_t _pendingForeignPlayerCount;
@@ -266,6 +276,18 @@ void SelectTeamToManage(void);
 __attribute__((used, externally_visible))
 void ChooseTeamAndStartCareer(void)
 {
+    /* A new career: a world's pooled files as shipped (team_pool.c), also in the picker;
+     * its cups' first season (world_cups.c). */
+    TeamPool_Reset();
+    WorldCups_Reset();
+    CupD_Reset();
+    UefaCoef_Reset();
+    LeaguePlayoffs_ResetStages();
+    WorldPlayoff_ResetStageTitles();
+    WorldWinners_Reset();
+    Conti_Reset();
+    States_Reset();
+    _teamsLoaded = 0;
     SelectTeamToManage();
     if (_selectedTeamPtr == 0) {
         SetExitMenuFlag();
@@ -479,11 +501,9 @@ void Career_ContinueToNextSeasonInitTeamAndFunds(uint16_t teamNumber, uint32_t b
 /* --- External globals (Chunk 197) --- */
 extern uint16_t _worldCupHostTeam;
 extern uint8_t  _diyLeagueSeasonStateTable[];
+extern uint8_t  _diyLeagueScratchBuffer[];
 extern uint16_t _sameNationalCallFlag;
-extern uint16_t _boardConfidenceHistory0;
-extern uint16_t _boardConfidenceHistory1;
-extern uint16_t _boardConfidenceHistory2;
-extern uint16_t _boardConfidenceHistory3;
+extern uint16_t _boardConfidenceHistory[4];
 extern uint16_t _boardConfidenceScore;
 extern uint16_t _gamesPlayed;
 extern uint16_t _numWins;
@@ -3483,18 +3503,25 @@ void InitCareer(uint16_t teamNo)
     /* Clear 2000 bytes of diyLeagueSeasonStateTable (volatile to prevent memset optimization) */
     {
         volatile uint8_t *p = _diyLeagueSeasonStateTable;
-        for (int16_t i = 1999; i >= 0; i--)
+        for (int16_t i = GLOBAL_TEAM_NUMBERS - 1; i >= 0; i--)
             *p++ = 0;
     }
+    TeamPool_Reset();
+    WorldCups_Reset();
+    CupD_Reset();
+    UefaCoef_Reset();
+    LeaguePlayoffs_ResetStages();
+    WorldPlayoff_ResetStageTitles();
+    WorldWinners_Reset();
+    Conti_Reset();
+    States_Reset();
 
     DIY_LoadLeagueScratchFromTable();
 
     _sameNationalCallFlag = 0;
     _careerSeasonsCompleted = 0;
-    _boardConfidenceHistory0 = 0;
-    _boardConfidenceHistory1 = 0;
-    _boardConfidenceHistory2 = 0;
-    _boardConfidenceHistory3 = 0;
+    for (int i = 0; i < 4; i++)
+        _boardConfidenceHistory[i] = 0;
     _boardConfidenceScore = 0;
     _gamesPlayed = 0;
     _numWins = 0;
@@ -3848,12 +3875,15 @@ uint16_t Career_SelectCopaLibertadoresSlotIfTeamParticipates(void)
 extern CompetitionLeague _englishLeague;
 extern Leagues _englishLeagues1, _englishLeagues2, _englishLeagues3;
 
-__attribute__((used, externally_visible))
-void DIY_SelectCompetitionSlot4FromCurrentDivision(void)
+/* The current division's play-off link: its play-off competition and the table it feeds (the
+ * pair the Amiga reached by a self-relative byte walk; see below). 0: none. Used in play
+ * (DIY_SelectCompetitionSlot4FromCurrentDivision) and after a career is loaded
+ * (RebuildPointersAfterLoad), which must find the same pair. */
+static int32_t slot4_link(uint8_t **diyCompOut, void **diyTableOut)
 {
     uint8_t *comp = (uint8_t *)_currentCompetitionPtr;
-    if (((Competition *)comp)->type != 0)   /* type at offset 1; 0 == league */
-        return;
+    if (!comp || ((Competition *)comp)->type != 0)   /* type at offset 1; 0 == league */
+        return 0;
 
     /* The original asm followed divisions[currentDivisionIndex].qualifierLinkOffset
      * (was unk1) as a SELF-RELATIVE byte offset (from that byte) to a {diyComp,
@@ -3872,29 +3902,35 @@ void DIY_SelectCompetitionSlot4FromCurrentDivision(void)
      *   div 3: _div2.playoffs/nextGroup     = {&div3Playoffs, &_div3} */
     CompetitionLeague *league = (CompetitionLeague *)comp;
     if (league->divisions[(uint16_t)_currentDivisionIndex].qualifierLinkOffset == 0)
-        return;
-    if (comp_id(comp) != COMPID_englishLeague)   /* comp non-NULL: deref'd at type check above */
-        return;  /* only the English leagues carry these per-division links */
+        return 0;
+    if (comp_id(comp) != COMPID_englishLeague)
+        return 0;  /* only the English leagues carry these per-division links */
 
-    uint8_t *diyComp;
-    void    *diyTable;
     switch ((uint16_t)_currentDivisionIndex) {
     case 1:
-        diyComp  = (uint8_t *)_englishLeague.playoffLinkPtrs[0];
-        diyTable = _englishLeague.playoffLinkPtrs[1];
-        break;
+        *diyCompOut  = (uint8_t *)_englishLeague.playoffLinkPtrs[0];
+        *diyTableOut = _englishLeague.playoffLinkPtrs[1];
+        return 1;
     case 2:
-        diyComp  = (uint8_t *)_englishLeagues1.playoffs;
-        diyTable = _englishLeagues1.nextGroup;
-        break;
+        *diyCompOut  = (uint8_t *)_englishLeagues1.playoffs;
+        *diyTableOut = _englishLeagues1.nextGroup;
+        return 1;
     case 3:
-        diyComp  = (uint8_t *)_englishLeagues2.playoffs;
-        diyTable = _englishLeagues2.nextGroup;
-        break;
+        *diyCompOut  = (uint8_t *)_englishLeagues2.playoffs;
+        *diyTableOut = _englishLeagues2.nextGroup;
+        return 1;
     default:
-        return;
+        return 0;
     }
+}
 
+__attribute__((used, externally_visible))
+void DIY_SelectCompetitionSlot4FromCurrentDivision(void)
+{
+    uint8_t *diyComp;
+    void    *diyTable;
+    if (!slot4_link(&diyComp, &diyTable))
+        return;
     _diyCompetitionTablePtr = (uint32_t *)diyTable;
     Career_SetCurrentCompetitionSlot(diyComp, 4, 0, 0);
 }
@@ -3944,6 +3980,10 @@ void InitializeNewSeason(void)
     if (_seasonPlaying == 100)
         _seasonPlaying = 0;
 
+    /* A league with groups side by side: the season's one-division moves
+     * become one-level moves (src/league_groups.c). None in 96/97. */
+    LeagueGroups_Apply((const int8_t *)_diyLeagueSeasonStateTable,
+                       (int8_t *)_diyLeagueScratchBuffer);
     DIY_SaveLeagueScratchToTable();
 
     _boardConfidenceMod0 = 0;
@@ -4001,10 +4041,10 @@ void InitializeNewSeason(void)
     _careerTeamLostMatch = 0;
     _currentMessage = 0;
 
-    /* Fill careerLastMatchIndexByCompetitionSlot with 0xFF (162 bytes, volatile to avoid memset) */
+    /* Fill careerLastMatchIndexByCompetitionSlot with 0xFF (one per compId, volatile to avoid memset) */
     {
         volatile uint8_t *dst = _careerLastMatchIndexByCompetitionSlot;
-        for (int16_t i = 161; i >= 0; i--)
+        for (int16_t i = 255; i >= 0; i--)
             *dst++ = 0xFF;
     }
 
@@ -4021,6 +4061,7 @@ void InitializeNewSeason(void)
     _tertiaryCompetitionPtr = 0;
     _quaternaryCompetitionPtr = 0;
     _diyCompetitionPtr = 0;
+    WorldPlayoff_Reset();       /* (last season's play-off: decided, gone) */
 
     _numSelectedTeams = 1;
     _teamSelectionKeyCacheCount = 0;
@@ -4100,7 +4141,7 @@ void InitializeNewSeason(void)
         compTablePtr = (void **)&_careerCupPickList;
     } else {
         /* Club team */
-        _nationalTeamFileCode = (uint8_t)(_selTeamNumber >> 8);  /* move.b — high byte */
+        _nationalTeamFileCode = World_FileCountry((uint8_t)(_selTeamNumber >> 8));  /* move.b — high byte (a second team file: its country's, include/world.h) */
 
         uint16_t tableIdx = _selTeamNumber >> 8;
         compTablePtr = (void **)_competitionsTable[tableIdx];
@@ -4143,12 +4184,15 @@ void InitializeNewSeason(void)
 
         uint8_t *comp = (uint8_t *)*compTablePtr;
         compTablePtr++;
-        Career_SetCurrentCompetitionSlot(comp, 1, 0, 0);
+        /* a world's cup only if the club is in it (world_cups.c) */
+        if (WorldCups_Plays(comp)) {
+            Career_SetCurrentCompetitionSlot(comp, 1, 0, 0);
 
-        /* secondaryCompStringOffset == competitionContextBuf+0x28 namePtr on
-         * Amiga (slot 1); read the buffer namePtr directly. */
-        ((SeasonInformations *)GetCurrentSeasonPointer())->strPtr1 =
-            ((DIYCompetition *)_careerCompetitionSlotPtrTable[1])->namePtr;
+            /* secondaryCompStringOffset == competitionContextBuf+0x28 namePtr on
+             * Amiga (slot 1); read the buffer namePtr directly. */
+            ((SeasonInformations *)GetCurrentSeasonPointer())->strPtr1 =
+                ((DIYCompetition *)_careerCompetitionSlotPtrTable[1])->namePtr;
+        }
 
         _competitionContextBuf.tourn.header.slotStateC = savedC;
         _competitionContextBuf.tourn.header.slotStateB = savedB;
@@ -4161,13 +4205,32 @@ void InitializeNewSeason(void)
             uint16_t savedC2 = _tertiaryCompetitionContextBuf.tourn.header.slotStateC;
 
             comp = (uint8_t *)*compTablePtr;
-            Career_SetCurrentCompetitionSlot(comp, 2, 0, 0);
+            if (WorldCups_Plays(comp)) {
+                Career_SetCurrentCompetitionSlot(comp, 2, 0, 0);
 
-            /* tertiaryCompStringOffset == tertiaryCompetitionContextBuf+0x28
-             * namePtr on Amiga (slot 2). */
+                /* tertiaryCompStringOffset == tertiaryCompetitionContextBuf+0x28
+                 * namePtr on Amiga (slot 2). */
+                ((SeasonInformations *)GetCurrentSeasonPointer())->strPtr2 =
+                    ((DIYCompetition *)_careerCompetitionSlotPtrTable[2])->namePtr;
+            }
+
+            _tertiaryCompetitionContextBuf.tourn.header.slotStateC = savedC2;
+            _tertiaryCompetitionContextBuf.tourn.header.slotStateB = savedB2;
+            _tertiaryCompetitionContextBuf.tourn.header.slotStateA = savedA2;
+        }
+    }
+
+    /* A world's state championship (states.c): the career club's own state in slot 2 when its
+     * country's table has nothing there (Brazil: its league cup's slot). */
+    if (_tertiaryCompetitionPtr == 0) {
+        uint8_t *st = States_SlotContest();
+        if (st) {
+            uint16_t savedA2 = _tertiaryCompetitionContextBuf.tourn.header.slotStateA;
+            uint16_t savedB2 = _tertiaryCompetitionContextBuf.tourn.header.slotStateB;
+            uint16_t savedC2 = _tertiaryCompetitionContextBuf.tourn.header.slotStateC;
+            Career_SetCurrentCompetitionSlot(st, 2, 0, 0);
             ((SeasonInformations *)GetCurrentSeasonPointer())->strPtr2 =
                 ((DIYCompetition *)_careerCompetitionSlotPtrTable[2])->namePtr;
-
             _tertiaryCompetitionContextBuf.tourn.header.slotStateC = savedC2;
             _tertiaryCompetitionContextBuf.tourn.header.slotStateB = savedB2;
             _tertiaryCompetitionContextBuf.tourn.header.slotStateA = savedA2;
@@ -4179,6 +4242,11 @@ void InitializeNewSeason(void)
      * player's ONE continental cup — euro and Copa are mutually exclusive, so this
      * cascade naturally routes a CONMEBOL club to Copa and everyone else to a euro
      * cup (or leaves slot 3 inactive). */
+    uint16_t tieIndex = 0;
+    uint8_t *tie = UefaQual_SeasonTie(&tieIndex);  /* (a world's: the career club's qualifying tie first) */
+    if (!tie)
+        tie = Conti_SeasonTie(&tieIndex);           /* (or its tie in another confederation's cup) */
+    if (!tie || Career_SelectEuroCupSlotIfTeamParticipates(tie, tieIndex) != 0)
     if (Career_SelectEuroCupSlotIfTeamParticipates(_euroCupCopy, 0) != 0) {
         if (Career_SelectEuroCupSlotIfTeamParticipates(_cupWinnersCupCopy, 1) != 0) {
             if (Career_SelectEuroCupSlotIfTeamParticipates(_uefaCupCopy, 2) != 0) {
@@ -4260,6 +4328,7 @@ void InitializeNewSeason(void)
     FillCareerTeamPlayers();
     Career_InitializeNewSeasonFinances();
     InitializeCareerSeasonFinancials();
+    CupD_SeasonStart();     /* the Coppa Italia Serie D's rounds before the first match (world_cupd.c) */
 
     /* Show appropriate chairman message */
     if (_stayingInOldClub != 0) {
@@ -4314,6 +4383,7 @@ void InitNewSeason(uint8_t *src, uint16_t divisionIndex)
     _tertiaryCompetitionPtr = 0;
     _quaternaryCompetitionPtr = 0;
     _diyCompetitionPtr = 0;
+    WorldPlayoff_Reset();
 
     _teamSelectionKeyCacheCount = 0;
     _teamSelectionKeyCacheIndex = 0;
@@ -4334,16 +4404,19 @@ void InitNewSeason(uint8_t *src, uint16_t divisionIndex)
     /* Skip the per-primary divisionIndex slot (one pointer entry, -2 = "none"). */
     compTable++;
 
-    /* Slot 1: secondary competition (if present) */
+    /* Slot 1: secondary competition (if present) -- a world's cup only if the club is
+     * in it (world_cups.c) */
     if ((uintptr_t)*compTable != (uintptr_t)-1) {
         comp = (uint8_t *)*compTable;
         compTable++;
-        Career_SetCurrentCompetitionSlot(comp, 1, 0, 0);
+        if (WorldCups_Plays(comp))
+            Career_SetCurrentCompetitionSlot(comp, 1, 0, 0);
 
         /* Slot 2: tertiary competition (if present) */
         if ((uintptr_t)*compTable != (uintptr_t)-1) {
             comp = (uint8_t *)*compTable;
-            Career_SetCurrentCompetitionSlot(comp, 2, 0, 0);
+            if (WorldCups_Plays(comp))
+                Career_SetCurrentCompetitionSlot(comp, 2, 0, 0);
         }
     }
 
@@ -4429,6 +4502,8 @@ void InitNewSeason(uint8_t *src, uint16_t divisionIndex)
  * same rebuild.
  * ================================================================ */
 extern void Career_LoadCompetitionSlotStateFromBuffer(uint8_t *src);
+extern void Career_StoreCompetitionSlotStateToBuffer(uint8_t *dst);
+extern int16_t DIY_RestoreLeagueQualifiersAfterLoad(void);
 /* declared at top of file (line 615) — uint16_t *teamList */
 
 /* Step 3 helper: walk careerContests and re-derive each *Copy
@@ -4518,27 +4593,32 @@ static void Rebuild_CompetitionSlotPointers(void)
         _secondaryCompetitionPtr = 0;
         _tertiaryCompetitionPtr = 0;
     }
+    if (!WorldCups_Plays(_secondaryCompetitionPtr))     /* (as InitNewSeason: world_cups.c) */
+        _secondaryCompetitionPtr = 0;
+    if (!WorldCups_Plays(_tertiaryCompetitionPtr))
+        _tertiaryCompetitionPtr = 0;
+    if (!_tertiaryCompetitionPtr &&             /* (a world's state championship in slot 2: states.c) */
+        (uint8_t)((DIYCompetition *)&_tertiaryCompetitionContextBuf)->field_2E == COMPID_stateContest)
+        _tertiaryCompetitionPtr = States_RestoreContest();
 
-    /* Slot 4 (DIY) — derive from primary comp's DIY link. Mirrors
-     * `DIY_SelectCompetitionSlot4FromCurrentDivision`. The diyEntry
-     * payload is two pointers (diy comp ptr + diy table ptr) — 8 B
-     * stride on 64-bit. Use `void **` read instead of the old
-     * `*(uint32_t *)` which truncated. */
+    /* Slot 4 (the division's play-offs): the same link DIY_SelectCompetitionSlot4FromCurrentDivision
+     * follows in play (slot4_link). Until 2026-11-01 this still did the Amiga's self-relative
+     * byte walk, which since the structs widened lands in the division's name: a career saved
+     * with its play-offs to come loaded with slot 4 NULL -- the season screen crashed drawing
+     * the play-off game (desktop), or showed the club against itself and froze at VIEW RESULT
+     * (the web build, where address 0 reads), a tester's Hartlepool, Division Three. */
     _diyCompetitionPtr = 0;
     _diyCompetitionTablePtr = (uint32_t *)0;
-    if (_currentCompetitionPtr != 0) {
-        uint8_t *primary = (uint8_t *)_currentCompetitionPtr;
-        if (((Competition *)primary)->type == 0) {
-            uint16_t off = _currentDivisionIndex * 6;
-            uint8_t *entry = primary + off;
-            uint8_t diyOffset = entry[0x12];
-            if (diyOffset != 0) {
-                void **diyEntry = (void **)(entry + 0x12 + diyOffset);
-                _diyCompetitionPtr = (uint8_t *)diyEntry[0];
-                _diyCompetitionTablePtr = (uint32_t *)diyEntry[1];
-            }
+    {
+        uint8_t *diyComp;
+        void    *diyTable;
+        if (slot4_link(&diyComp, &diyTable)) {
+            _diyCompetitionPtr = diyComp;
+            _diyCompetitionTablePtr = (uint32_t *)diyTable;
         }
     }
+    WorldPlayoff_RestoreSlot();     /* a world's play-off under way (world_playoff.c) */
+    CupD_RestoreSlot();             /* a Coppa Italia Serie D tie under way (world_cupd.c) */
 
     /* Slot 3 (quaternary, euro cups) — re-derive from the SAVED euro-cup
      * slot CONTEXT, not from quaternaryCompetitionPtr.
@@ -4574,6 +4654,12 @@ static void Rebuild_CompetitionSlotPointers(void)
             extern Competition *Career_CopaWorkingCopy(void);
             euroCup3 = (uint8_t *)Career_CopaWorkingCopy();
         }
+        else if (_euroCupSlotIndex >= 4 && _euroCupSlotIndex <= 6)    /* (a world's qualifying tie) */
+            euroCup3 = UefaQual_RestoreTie(_euroCupSlotIndex);
+        else if (_euroCupSlotIndex == 7 || _euroCupSlotIndex == 8)    /* (another confederation's cups) */
+            euroCup3 = Conti_RestoreTie(_euroCupSlotIndex);
+        else if (_euroCupSlotIndex == 9)                               /* (a world's group contest) */
+            euroCup3 = WorldPlayoff_GroupsRecord();
 
         DIYCompetition *q3 = (DIYCompetition *)_careerCompetitionSlotPtrTable[3];
         /* Participation gate: euroCupSlotIndex is only written on qualification
@@ -4681,6 +4767,20 @@ void RebuildPointersAfterLoad(void)
         DIYCompetition *c = (DIYCompetition *)_careerCompetitionSlotPtrTable[_slot];
         if (c != NULL && c->namePtr != NULL)
             c->namePtr = (uint8_t *)c->competitionName;
+        /* The slot's stage snapshot -- a whole diyCompetitionStart image, copied back
+         * into the live competition at a stage change (and by Step 2 below) -- carries
+         * a namePtr of its own: re-point it the same way, at the slot's name (stable,
+         * unlike the snapshot's own bytes). It used to come back as the saving run's
+         * address, so a loaded European-cup career put a stale pointer live. */
+        if (c != NULL) {
+            uint8_t *snap = ((CompetitionSlotBuffer *)c)->stageSnapshot + offsetof(DIYCompetition, namePtr);
+            uint8_t *name;
+            memcpy(&name, snap, sizeof name);
+            if (name != NULL) {
+                name = (uint8_t *)c->competitionName;
+                memcpy(snap, &name, sizeof name);
+            }
+        }
     }
 
     /* Step 2: repopulate diyCompetitionStart (the runtime working
@@ -4698,6 +4798,12 @@ void RebuildPointersAfterLoad(void)
      * The Play Match / Next Match menus skip that helper, so we
      * have to populate diyCompetitionStart up-front at load time. */
     Career_LoadCompetitionSlotStateFromBuffer((uint8_t *)&_primaryCompetitionBuf);
+
+    /* Step 2b: the league's promoted, relegated and play-off clubs, which the save does not
+     * hold -- a career saved after its last league match otherwise ends its season with
+     * none (tester, 2026-11-01: Hartlepool in a play-off against themselves). */
+    if (DIY_RestoreLeagueQualifiersAfterLoad())
+        Career_StoreCompetitionSlotStateToBuffer((uint8_t *)&_primaryCompetitionBuf);
 
     /* Step 3: walk careerContests and rewrite each *Copy record's
      * embedded nameSource pointer at (record + 5 + nameOffset).

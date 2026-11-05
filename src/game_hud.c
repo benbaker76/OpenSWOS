@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "shirt_numbers.h"
 #include "game_hud.h"
 #include "game_types.h"
 #include "display.h"    /* _screen_width, WIDE_MARGIN — center the controlled-player name in widescreen */
@@ -95,7 +96,7 @@ void UpdateControlledPlayerNumbers(void)
                 /* Place the number sprite */
                 {
                     int8_t shirtNum = teamGame->players[ordinal].shirtNumber;
-                    int16_t d0 = SPR_CORNER_FLAG_FRAME_3 + (int16_t)shirtNum;
+                    int16_t d0 = ShirtNumber_Sprite(shirtNum);  /* (1..99: shirt_numbers.c) */
 
                     sprPtr->imageIndex = d0;
                     sprPtr->x.s.i     = controlledPlayer->x.s.i;

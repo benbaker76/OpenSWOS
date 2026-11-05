@@ -39,6 +39,9 @@ CHANNELS=(
     "SWOS-macOS-app.zip:mac-app"
     "SWOS-Amiga.zip:amiga"
     "OpenSWOS-Setup.zip:setup-windows-mac-linux"
+    "OpenSWOS-Android.apk:android"
+    "OpenSWOS-iOS.ipa:ios"
+    "portmaster/swos.zip:portmaster"
 )
 # The developer downloads -- the game programs alone, and the Mac program without its app
 # (it needs SDL2 installed) -- are no use to a player, so the page does not offer them
@@ -84,6 +87,12 @@ git diff --quiet "$DROP" HEAD -- . "${NOT_SHIPPED[@]}" ||
 MAC=$(cat dist/OpenSWOS-Setup-macOS.commit 2>/dev/null) || fail "no macOS part -- run scripts/build_macos.sh"
 [ "$(git rev-parse "$MAC^{commit}" 2>/dev/null)" = "$(git rev-parse "$DROP^{commit}")" ] ||
     fail "the macOS archives are $MAC, the drop is $DROP -- rerun scripts/build_macos.sh"
+# The phones' (scripts/build_android.sh, build_ios.sh), built after the drop: of its commit.
+for p in Android iOS; do
+    PC=$(cat "dist/OpenSWOS-$p.commit" 2>/dev/null) || fail "no $p build -- run scripts/build_$(tr A-Z a-z <<<"$p").sh"
+    [ "$(git rev-parse "$PC^{commit}" 2>/dev/null)" = "$(git rev-parse "$DROP^{commit}")" ] ||
+        fail "the $p build is $PC, the drop is $DROP -- rerun scripts/build_$(tr A-Z a-z <<<"$p").sh"
+done
 grep -q "<code>$DROP</code>" packaging/web/changelog.html ||
     echo "upload_itch: WARNING: no changelog.html entry for $DROP" >&2
 
@@ -93,8 +102,13 @@ for c in "${CHANNELS[@]}"; do
     [ -f "$f" ] || fail "missing $f"
     [ "$f" -nt dist/.build-status ] && [ "${c%%:*}" != OpenSWOS-Setup.zip ] && \
         [ "${c%%:*}" != SWOS-macOS-app.zip ] && [ "${c%%:*}" != SWOS-macOS.zip ] && \
+        [ "${c%%:*}" != OpenSWOS-Android.apk ] && [ "${c%%:*}" != OpenSWOS-iOS.ipa ] && \
         fail "$f is newer than the drop -- rebuild it"
 done
+# The port really is the port (until 2026-11-04 dist/swos.zip WAS dist/SWOS.zip on a Windows
+# drive, and the binaries went up as the PortMaster download).
+unzip -Z1 dist/portmaster/swos.zip | grep -xc "Sensible World of Soccer.sh" >/dev/null ||
+    fail "dist/portmaster/swos.zip is not the PortMaster port (no launcher)"
 [ "dist/OpenSWOS-Setup.zip" -nt "dist/OpenSWOS-Setup-macOS.zip" ] ||
     fail "dist/OpenSWOS-Setup.zip is older than the macOS part -- rerun scripts/build_setup_zip.sh"
 

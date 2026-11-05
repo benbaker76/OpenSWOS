@@ -242,7 +242,7 @@ ShouldGoalkeeperDive(Sprite *keeper, Sprite *ball, TeamGeneralInfo *team)
      * zkz-10140228 frame 1108 has the keeper diving in the recording and
      * standing here, and the DOS expression is what makes him dive.
      * The Amiga path is untouched — see docs/DOS_GAMEPLAY.md. */
-    if (_gDosGameplay) {
+    if (_gDosKeepers) {         /* the DOS keeper: DOS, and XBOX (dos_mode.h) */
         skillIndex = shotTable->index[(uint16_t)_currentGameTick & 0xF];
         skillIndex--;
         if (skillIndex < 0)
@@ -345,6 +345,9 @@ NextPenalty(void)
 {
     int16_t totalAttempts;
     int16_t *shooterIdx;
+#ifdef SWOS_SDL_BUILD
+    { extern void ModMatch_ShootoutKick(void); ModMatch_ShootoutKick(); }  /* the mods' event (mod_match.c) */
+#endif
 
     totalAttempts = _team1PenaltyAttempts + _team2PenaltyAttempts;
 

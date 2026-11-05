@@ -167,7 +167,7 @@ static int s_menu_verify_raw = 0;
  * is absent / JSON null / unresolved (a missing symbol is logged, not fatal). */
 /* Symbol tables registered at run time by modules whose menus exist only as JSON
  * (MenuJson_RegisterSymbols), searched after the generated registry. */
-#define MAX_EXTRA_SYMBOL_TABLES 8
+#define MAX_EXTRA_SYMBOL_TABLES 32     /* (each built-in mod may register one: ModApi_RegisterHandlers) */
 static struct { const MenuSymbol *syms; int count; } s_extraSymbols[MAX_EXTRA_SYMBOL_TABLES];
 static int s_numExtraSymbolTables;
 

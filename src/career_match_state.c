@@ -81,7 +81,9 @@ uint16_t _numPlayers, _currentTeamNumber, _currentTeamSelectedPlayerPosition,
          _trainingMatchSavedPlayerPos;
 uint8_t  _trainingMatchSavedPlayers[32];
 uint8_t  _trainingMatchSavedShirtNums[32];
-uint8_t  _trainingMatchSavedTactics;
+uint8_t  _trainingMatchSavedTactics[2];        /* the tactics byte, then the original's pad
+                                                 * (SWOS2.s pad_166A27): the save writes both;
+                                                 * one byte read its neighbour's (ASan, 2026-10-29) */
 uint16_t _lastMatchSavedPlayerPos, _lastMatchSavedCoachOrPlayer;
 uint8_t  _lastMatchPlayers[32];
 uint8_t  _lastMatchSavedShirtNums[32];

@@ -132,6 +132,13 @@ and `latest.log` - the page polls `latest.log` regardless of which tier ran.
 Afterwards, `https://us.swos.eu/cc/` asks for the password and shows the
 button page.
 
+**A team login** (online.openswos.net, since 2026-10-26): the team watches the
+recordings (`/recordings/`, `/playback/`) with their own logins, kept in
+`/etc/nginx/.htpasswd-openswos-team`; the reports and this page stay on the admin's
+file. The whole site is `packaging/server/nginx/online.openswos.net.conf`, which says
+how to add (`htpasswd -B`) and remove (`htpasswd -D`) a member. nginx reads one file per
+location, so the admin's line is in the team file too: a new admin password goes in both.
+
 ## Files
 
 - `main.py` - the gateway (stdlib only, no dependencies to install - run

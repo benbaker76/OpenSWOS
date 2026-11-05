@@ -3,6 +3,7 @@
  * include/netplay_ghost.h has why.
  */
 #include "netplay_ghost.h"
+#include "project_identity.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -621,7 +622,7 @@ static void buildClips(int32_t lastFrame, int32_t fps, const GhostEvent *longest
     }
     n = j;
 
-    clipPrintf("# OpenSWOS ghost windows (src/netplay_ghost.c): player %d, %d frames a second.\n"
+    clipPrintf("# " PROJECT_NAME " ghost windows (src/netplay_ghost.c): player %d, %d frames a second.\n"
                "# Every frame as finally played ('final'), and as this player drew it ('drawn') "
                "where that differed.\n# Players 1-11 are team 1, 12-22 team 2; positions in "
                "pitch pixels. scripts/ghost_view.py draws it.\n",

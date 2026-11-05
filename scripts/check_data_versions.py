@@ -91,6 +91,8 @@ def main():
     rec = read_record()
     bad = 0
     for part in sorted(set(rec) | set(now)):
+        if part == "world":     # (a world's package is copied as it is: its files are the package's)
+            continue
         if part not in now:
             print(f"  {part:12} not made here (no source on this machine): not checked")
             continue

@@ -45,6 +45,7 @@
  * blanket "it is all bytes" would be wrong the first time a field grows.
  */
 #include "netplay_setup.h"
+#include "pitch.h"            /* the crowd (version 4) */
 
 #ifdef SWOS_SDL_BUILD
 
@@ -58,7 +59,7 @@
 #ifdef SWOS_NETPLAY
 
 /* ---- the globals a match is started from ---- */
-extern TeamFileEx _selectedTeams[100];
+extern TeamFileEx _selectedTeams[SELECTED_TEAMS_MAX];
 extern uint16_t   _numSelectedTeams;
 
 extern uint8_t _teamTacticsUSERA[], _teamTacticsUSERB[], _teamTacticsUSERC[];
@@ -105,7 +106,8 @@ extern uint16_t _team1GoalsFirstLeg, _team2GoalsFirstLeg;
 #define NUM_TACTICS   6
 
 #define SETUP_MAGIC   0x53555020u    /* "SUP " */
-#define SETUP_VERSION 3     /* 2: the match-init seeds (_randomSeed and friends); 3: the tie rules */
+#define SETUP_VERSION 4     /* 2: the match-init seeds (_randomSeed and friends); 3: the tie rules;
+                             * 4: the host's crowd (include/pitch.h) */
 
 /* magic, version, then the scalars, then (version 3) the tie rules, then the teams,
  * then the tactics. A version-2 setup -- a recording made before the cup rules --
@@ -116,11 +118,25 @@ extern uint16_t _team1GoalsFirstLeg, _team2GoalsFirstLeg;
 #define SCALAR_BYTES  (SCALAR_COUNT * 2 + TIE_WORDS * 2)
 #define TEAM_BYTES    ((uint32_t)sizeof(TeamFileEx) * 2)
 #define TACTIC_TOTAL  (TACTIC_BYTES * NUM_TACTICS)
+/* (version 4) the count of pitch files, then each one's crowd cells as the host's game
+ * loads them: what both games play the crowd animation on (include/pitch.h). */
+#define CROWD_BYTES   (2u + PITCH_CROWD_FILES * PITCH_CROWD_CELLS * 2u)
 
 uint32_t NetplaySetup_MaxBytes(void)
 {
-    return HEADER_BYTES + SCALAR_BYTES + TEAM_BYTES + TACTIC_TOTAL + 8;
+    return HEADER_BYTES + SCALAR_BYTES + TEAM_BYTES + TACTIC_TOTAL + CROWD_BYTES + 8;
 }
+
+/* The bytes a setup of `version` holds. */
+static uint32_t setup_bytes(uint16_t version)
+{
+    return HEADER_BYTES + SCALAR_COUNT * 2u + (version >= 3 ? TIE_WORDS * 2u : 0u) +
+           TEAM_BYTES + TACTIC_TOTAL + (version >= 4 ? CROWD_BYTES : 0u);
+}
+
+/* The crowd of the last setup applied, and whether the next pitch loaded takes it. */
+static uint16_t s_crowd[PITCH_CROWD_FILES][PITCH_CROWD_CELLS];
+static int32_t  s_haveCrowd, s_crowdArmed;
 
 /* TeamFileEx is packed and size-asserted at 684 bytes with no pointer fields, so a
  * 32-bit peer and a 64-bit one lay it out identically and it can go across as bytes.
@@ -220,6 +236,17 @@ int32_t NetplaySetup_Encode(uint8_t *out, uint32_t cap)
         p += TACTIC_BYTES;
     }
 
+    /* The crowd: this game's, for every pitch file the match might be played on (which one
+     * is chosen at the match's init, from its seeds). A file this game cannot read leaves
+     * its cells KEEP: each game plays its own there, as before. */
+    BE_WRITE_U16(p, PITCH_CROWD_FILES); p += 2;
+    for (i = 0; i < PITCH_CROWD_FILES; i++) {
+        uint16_t cells[PITCH_CROWD_CELLS];
+        int32_t c, ok = Pitch_CrowdLayout((uint16_t)i, cells);
+        for (c = 0; c < PITCH_CROWD_CELLS; c++, p += 2)
+            BE_WRITE_U16(p, ok ? cells[c] : (uint16_t)PITCH_CROWD_KEEP);
+    }
+
     return (int32_t)(p - out);
 }
 
@@ -240,6 +267,15 @@ static void put_tie_rules(void)
 void NetplaySetup_ArmTieRules(int32_t armed)
 {
     s_tieArmed = armed != 0;
+    s_crowdArmed = armed != 0 && s_haveCrowd;   /* (the crowd goes with them: one match) */
+}
+
+const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex)
+{
+    if (!s_crowdArmed || mapIndex >= PITCH_CROWD_FILES)
+        return NULL;
+    s_crowdArmed = 0;
+    return s_crowd[mapIndex];
 }
 
 void NetplaySetup_TakeTieRules(void)
@@ -269,9 +305,9 @@ int32_t NetplaySetup_Apply(const uint8_t *in, uint32_t len)
     p += 4;
     version = BE_READ_U16(p); p += 2;
     scalars = BE_READ_U16(p); p += 2;
-    if ((version != SETUP_VERSION && version != 2) || scalars != SCALAR_COUNT)
+    if (version < 2 || version > SETUP_VERSION || scalars != SCALAR_COUNT)
         return 1;
-    if (len < NetplaySetup_MaxBytes() - 8 - (version == 2 ? TIE_WORDS * 2 : 0))
+    if (len < setup_bytes(version))
         return 1;
 
 #define GET() (p += 2, BE_READ_U16(p - 2))
@@ -329,6 +365,17 @@ int32_t NetplaySetup_Apply(const uint8_t *in, uint32_t len)
     for (i = 0; i < NUM_TACTICS; i++) {
         memcpy(tactic_slot(i), p, TACTIC_BYTES);
         p += TACTIC_BYTES;
+    }
+
+    /* (version 4) the host's crowd; before it, each game played its own. */
+    s_haveCrowd = 0;
+    if (version >= 4 && BE_READ_U16(p) == PITCH_CROWD_FILES) {
+        int32_t f, c;
+        p += 2;
+        for (f = 0; f < PITCH_CROWD_FILES; f++)
+            for (c = 0; c < PITCH_CROWD_CELLS; c++, p += 2)
+                s_crowd[f][c] = BE_READ_U16(p);
+        s_haveCrowd = 1;
     }
 
     /* Not sent, because they are the same on both sides by definition. */
@@ -435,6 +482,7 @@ int32_t  NetplaySetup_Apply(const uint8_t *in, uint32_t len) { (void)in; (void)l
 int32_t  NetplaySetup_SelfTest(void) { return 0; }
 void     NetplaySetup_ArmTieRules(int32_t armed) { (void)armed; }
 void     NetplaySetup_TakeTieRules(void) {}
+const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex) { (void)mapIndex; return NULL; }
 
 #endif /* SWOS_NETPLAY */
 #endif /* SWOS_SDL_BUILD */

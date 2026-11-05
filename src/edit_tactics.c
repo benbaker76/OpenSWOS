@@ -41,6 +41,8 @@
  * Chunk 89: LoadTactics
  */
 
+#include "player_face3.h"
+#include "shirt_numbers.h"
 #include "edit_tactics.h"
 #include "endian_helpers.h"
 #include "menu_system.h"
@@ -168,6 +170,8 @@ extern uint8_t _editTacticsMenu[];
 
 /* ---- C-callable bridges for asm functions (defined in swos2_unit.s) ---- */
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
+extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern void SquadNumbers_Free(uint16_t slot);
 extern void EditTactics_CommitPlayerPositionsAndRecalcSkill(void);
 extern void EditTacticsMenuSavePlayerPositions(void);
 extern void InitLittlePlayerSprites(void);
@@ -1486,6 +1490,7 @@ void DrawLittlePlayersAndBall(void)
         /* Determine skin color sprite */
         uint8_t posAndFace = teamEx->players[playerNum].positionAndFace;
         uint16_t skinIdx = (posAndFace & PF_FACE_MASK) >> 3;   /* 0..3 */
+        if (skinIdx > 2) skinIdx = 2;   /* (face 3's little player: the black one) */
         uint16_t playerSprite = SPR_SMALL_PL_WHITE + skinIdx;
         DrawSpriteCentered(playerSprite, px, py);
 
@@ -1497,8 +1502,9 @@ void DrawLittlePlayersAndBall(void)
 
         /* Draw shirt number above player */
         int8_t shirtNum = teamEx->players[playerNum].shirtNumber;
-        uint16_t numSprite = SPR_SHIRT_NUMBER_BASE + (uint16_t)(int16_t)shirtNum;
-        DrawSpriteCentered(numSprite, px, py - 9);
+        int16_t numSprite = ShirtNumber_MenuSprite(shirtNum);  /* (1..99: shirt_numbers.c) */
+        if (numSprite >= 0)
+            DrawSpriteCentered((uint16_t)numSprite, px, py - 9);
 
 nextIter:
         ;
@@ -1508,6 +1514,7 @@ nextIter:
     int8_t gkNum = (int8_t)playerNums[0];
     uint8_t gkPosAndFace = teamEx->players[gkNum].positionAndFace;
     uint16_t gkSkinIdx = (gkPosAndFace & PF_FACE_MASK) >> 3;
+    if (gkSkinIdx > 2) gkSkinIdx = 2;
     uint16_t gkSprite = SPR_SMALL_GK_WHITE + gkSkinIdx;
     DrawSpriteCentered(gkSprite, 87, 234);
 }
@@ -1541,11 +1548,12 @@ void DrawEditTacticsHighlightedPlayerRoute(void)
     /* Determine skin color sprite for the player */
     uint8_t posAndFace = teamEx->players[markedNum].positionAndFace;
     uint16_t skinIdx = (posAndFace & PF_FACE_MASK) >> 3;
+    if (skinIdx > 2) skinIdx = 2;
     uint16_t playerSprite = SPR_SMALL_PL_WHITE + skinIdx;
 
     /* Determine shirt number sprite */
     int8_t shirtNum = teamEx->players[markedNum].shirtNumber;
-    uint16_t numSprite = SPR_SHIRT_NUMBER_BASE + (uint16_t)(int16_t)shirtNum;
+    int16_t numSprite = ShirtNumber_MenuSprite(shirtNum);  /* (1..99: shirt_numbers.c) */
 
     /* Loop over all 35 ball areas */
     for (int16_t i = 34; i >= 0; i--) {
@@ -1566,7 +1574,8 @@ void DrawEditTacticsHighlightedPlayerRoute(void)
         }
 
         /* Draw shirt number above player */
-        DrawSpriteCentered(numSprite, px, py - 9);
+        if (numSprite >= 0)
+            DrawSpriteCentered((uint16_t)numSprite, px, py - 9);
     }
 }
 
@@ -2159,8 +2168,10 @@ void EditTactics_SwapPlayersInSlots(uint16_t slot1, uint16_t slot2)
 
         /* Swap shirt numbers between players */
         int8_t tmp2 = pf2->shirtNumber;
-        pf2->shirtNumber = pf1->shirtNumber;
-        pf1->shirtNumber = tmp2;
+        if (!SquadNumbers_On()) {       /* (real squad numbers: not swapped, teams.c) */
+            pf2->shirtNumber = pf1->shirtNumber;
+            pf1->shirtNumber = tmp2;
+        }
     }
 
     /* Swap entries in the player number mapping array */
@@ -2362,7 +2373,7 @@ extern uint8_t *_editTeamsSelectedTeam;   /* pointer to source team data */
 extern uint16_t _saveCustomTeams;
 extern uint16_t _teamIsImported;
 extern uint16_t _controlMask;
-extern uint16_t _kTeamColorsTable[];      /* 10 word entries */
+extern uint16_t _kTeamColorsTable[];      /* KIT_COLOURS word entries (purple the 11th) */
 /* edit-teams kit sprite-copy descriptors; .colTable[16] is the palette remap
  * (was the editTeams*ColTable .equ aliases at descriptor +4). */
 extern EditTeamsSpriteCopy _editTeamsPrimaryShirts;
@@ -2540,30 +2551,30 @@ void EditTeamsChangeShirtsPrimary(void)
 
     if (_controlMask == 0x41) {          /* left+fire */
         d0 = tf->prStripesColor;
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
         tf->prStripesColor = d0;
     } else if (_controlMask == 0x81) {   /* right+fire */
         d0 = tf->prStripesColor;
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
         tf->prStripesColor = d0;
     } else if (_controlMask == 0x101) {  /* up+fire */
         if (tf->prShirtType == 0) {  /* SHIRT_ORDINARY */
             d0 = tf->prStripesColor;
-            d0 = (d0 == 0) ? 9 : d0 - 1;
+            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
             tf->prStripesColor = d0;
         } else {
             d0 = tf->prBasicColor;
-            d0 = (d0 == 0) ? 9 : d0 - 1;
+            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
             tf->prBasicColor = d0;
         }
     } else if (_controlMask == 0x201) {  /* down+fire */
         if (tf->prShirtType == 0) {  /* SHIRT_ORDINARY */
             d0 = tf->prStripesColor;
-            d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
             tf->prStripesColor = d0;
         } else {
             d0 = tf->prBasicColor;
-            d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
             tf->prBasicColor = d0;
         }
     } else {
@@ -2584,30 +2595,30 @@ void EditTeamsChangeShirtsSecondary(void)
 
     if (_controlMask == 0x41) {          /* left+fire */
         d0 = tf->secStripesColor;
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
         tf->secStripesColor = d0;
     } else if (_controlMask == 0x81) {   /* right+fire */
         d0 = tf->secStripesColor;
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
         tf->secStripesColor = d0;
     } else if (_controlMask == 0x101) {  /* up+fire */
         if (tf->secShirtType == 0) {
             d0 = tf->secStripesColor;
-            d0 = (d0 == 0) ? 9 : d0 - 1;
+            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
             tf->secStripesColor = d0;
         } else {
             d0 = tf->secBasicColor;
-            d0 = (d0 == 0) ? 9 : d0 - 1;
+            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
             tf->secBasicColor = d0;
         }
     } else if (_controlMask == 0x201) {  /* down+fire */
         if (tf->secShirtType == 0) {
             d0 = tf->secStripesColor;
-            d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
             tf->secStripesColor = d0;
         } else {
             d0 = tf->secBasicColor;
-            d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
             tf->secBasicColor = d0;
         }
     } else {
@@ -2627,9 +2638,9 @@ void EditTeamsChangeShortsPrimary(void)
     uint8_t d0 = tf->prShortsColor;
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
     } else {
         return;
     }
@@ -2648,9 +2659,9 @@ void EditTeamsChangeShortsSecondary(void)
     uint8_t d0 = tf->secShortsColor;
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
     } else {
         return;
     }
@@ -2669,9 +2680,9 @@ void EditTeamsChangeSocksPrimary(void)
     uint8_t d0 = tf->prSocksColor;
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
     } else {
         return;
     }
@@ -2689,9 +2700,9 @@ void EditTeamsChangeSocksSecondary(void)
     uint8_t d0 = tf->secSocksColor;
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? 9 : d0 - 1;
+        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == 10) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
     } else {
         return;
     }
@@ -2757,13 +2768,13 @@ void EditTeamsChangePlayerFace(MenuEntry *entry)
     uint16_t faceIdx = (posAndFace & PF_FACE_MASK) >> 3;
 
     faceIdx++;
-    if (faceIdx == 3)
+    if (faceIdx == 4)                   /* (0..3: face 3 black with blond hair, player_face3.c) */
         faceIdx = 0;
 
     pf->positionAndFace = (posAndFace & (uint8_t)~PF_FACE_MASK) | (uint8_t)(faceIdx << PF_FACE_SHIFT);
 
     /* Update menu entry sprite to show new face */
-    entry->fgWord = (uint16_t)(faceIdx + 186);  /* SPR_PL_FACE_WHITE_GUY */
+    entry->fgWord = (uint16_t)Face_MenuIcon(faceIdx);
     CallDrawMenuItem(entry);
 }
 
@@ -2805,7 +2816,7 @@ void InitEditTeamsMenu(void)
         PlayerFile *pf = &teamEx->players[15 - i];
         uint8_t posAndFace = pf->positionAndFace;
         uint16_t faceIdx = (posAndFace & PF_FACE_MASK) >> 3;
-        faceEntry->fgWord = (uint16_t)(faceIdx + 186);  /* SPR_PL_FACE_WHITE_GUY */
+        faceEntry->fgWord = (uint16_t)Face_MenuIcon(faceIdx);
         faceEntry = (MenuEntry *)((uint8_t *)faceEntry + MENUENTRY_STRIDE);
 
         nameEntry->fg = (uintptr_t)(uint8_t *)pf->playerName;

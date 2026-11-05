@@ -26,7 +26,7 @@
 #include "team_colors.h"
 
 extern uint16_t  _menuPalette[256];
-extern uint16_t  _kTeamColorsTable[10];
+extern uint16_t  _kTeamColorsTable[KIT_COLOURS];
 extern uint16_t  _shirtTypesTable[32];
 extern uint16_t  _shirtsIndexTable[8];
 extern uint16_t  _littlePlayersSpriteTable[4];
@@ -37,8 +37,8 @@ extern void      FillSkinColorConversionTable(uint16_t skinColor, uint16_t *conv
 enum {
     kSprShirt = 190, kSprShorts = 191, kSprSocks = 192, kSprIcon0 = 199,
     kShadow = 8,                    /* SWOS's shadow colour, in both sets of art */
-    kTeamColours = 10,
-    kLendFirst = 192,               /* 10 colours x 4 shades ... */
+    kTeamColours = KIT_COLOURS,
+    kLendFirst = 192,               /* 11 colours x 4 shades ... */
     kGreyFirst = kLendFirst + kTeamColours * JAG_KIT_SHADES,   /* ... then the icons' greys */
     kJagGreyFirst = 97, kJagGreys = 16,
     kLent = kTeamColours * JAG_KIT_SHADES + kJagGreys,

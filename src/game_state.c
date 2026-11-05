@@ -870,6 +870,10 @@ check_game_end:
             goto last_cycle;
         _gameSeconds = 0;
         PlayEndGameWhistleSample();
+#ifdef SWOS_SDL_BUILD
+        { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+          ModMatch_Event(11 /* MODEVENT_FULL_TIME */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
+#endif
         BumpPlayersLastPlayedHalfAtHalfEnd();
         _statsTeam1GoalsCopy = _statsTeam1Goals;
         _statsTeam2GoalsCopy = _statsTeam2Goals;

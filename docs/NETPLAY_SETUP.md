@@ -425,9 +425,11 @@ buttons under them — are SWOS 2020's and do nothing in OpenSWOS yet.
 **The handshake refuses to start a match the two games would play differently** — and
 this is the most common reason a match will not start. Both players need:
 
-- **the same build** — same commit, and the game checks it (since 2026-09-27): a different
-  one is refused with THE OTHER PLAYER HAS ANOTHER VERSION, and `SWOS.log` names both. The
-  version is on the main menu's bottom line, the window title and `--version`;
+- **a compatible build** — the same netplay number (`NETPLAY_COMPAT`, since 2026-10-25;
+  before that the same commit): a different one is refused with THE OTHER PLAYER HAS
+  ANOTHER VERSION, and `SWOS.log` names both builds and numbers. The server only lists games
+  of the same number. The version is on the main menu's bottom line, the window title and
+  `--version`;
 - **the same rules** — since 2026-10-11 every build plays the real rules online (no
   injuries / no cards is an offline setting, `[testing] no_injuries_cards`). An OLDER tester
   build ("test build: no injuries or cards" on its version line) cannot play a newer one;
@@ -628,7 +630,8 @@ accepted for that key only (§13).
 | **SERVER NOT CONNECTED** (matchmaking screen) | the server was not reached | check the **SERVER** row (§7); the server's firewall and router forward (§5) |
 | stuck on **CONNECTING TO SERVER** | nothing answering at that address | wrong address or port in **SERVER**, or UDP 19602 blocked (§5) |
 | **THE HOST DID NOT ANSWER** / CHECK THE ADDRESS, PORT AND FIREWALL | the other player was never reached | usually NATs that will not punch -- one player forwarding UDP 19602 on their router often fixes it; a private server with `--relay` always does, at the cost of latency (§4). Otherwise the firewall and forward (§5) |
-| **THE OTHER PLAYER HAS ANOTHER VERSION** / BOTH OF YOU NEED THE SAME BUILD | different commits | both download the same build; compare the version line |
+| **THE OTHER PLAYER HAS ANOTHER VERSION** / ONE OF YOU NEEDS TO UPDATE | different netplay numbers (`SWOS.log` names them), or a build with uncommitted changes | both download the latest build |
+| **YOU PLAY DIFFERENT WORLDS** / PICK THE SAME WORLD IN SWOS.INI | `[general] world` differs (the server lists only same-world games, so this is a direct-IP match) | both set the same `world` |
 | **YOUR BUILDS PLAY BY DIFFERENT RULES** / ONE OF YOU HAS A TEST BUILD | one build is an old tester build (before 2026-10-11) | both update (§8) |
 | **YOU PLAY BY DIFFERENT RULES** / CHECK FIRE_HOLD_LOCKOUT IN SWOS.INI | one has the original's fire-hold lockout on | `[gameplay] fire_hold_lockout`, the same on both. (AMIGA v DOS is NOT refused: the joiner plays the host's style) |
 | **ONE OF YOU PINNED THE VIEW** / RUN WITHOUT --VIEW | the same style, but one side started with `--view=` pinning the other view | run without `--view` (SWOS.ini has no view setting any more: `[gameplay] style` sets it) |
