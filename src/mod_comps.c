@@ -235,9 +235,38 @@ void ModApi_SetCompTeamControls(int32_t i, int32_t controls)
       : controls == MODCONTROL_COACH        ? TEAM_COACH : TEAM_COMPUTER;
 }
 
+/* ---- Europe's league phases in 96/97 (H8) ---- */
+
+int32_t ModApi_SetLeaguePhases(const char *slug, void *cups, const uint8_t (*places)[4], int32_t count,
+                               const struct WorldUefaSeeds *seeds)
+{
+    extern void LeaguePhase_SetModEurope(CompetitionLeaguePhase *cups, const uint8_t (*places)[4],
+                                         int32_t count, const struct WorldUefaSeeds *seeds);
+    if (!cups || !places || count <= 0)
+        return 1;
+    LeaguePhase_SetModEurope((CompetitionLeaguePhase *)cups, places, count, seeds);
+    fprintf(stderr, "[mods] %s: Europe's cups as league phases, %d countries' places%s\n",
+            slug ? slug : "?", (int)count, seeds ? ", UEFA seeds" : "");
+    return 0;
+}
+
 /* ---- files ---- */
 
 const char *ModApi_AssetsDir(void) { return swos_assets_dir(); }
+
+int32_t ModApi_LatestReplay(char *out, int32_t cap)
+{
+    extern void ReplayV2_LatestPath(char *out, size_t cap);
+    FILE *f;
+    if (!out || cap <= 0)
+        return 0;
+    ReplayV2_LatestPath(out, (size_t)cap);
+    f = fopen(out, "rb");
+    if (!f)
+        return 0;
+    fclose(f);
+    return 1;
+}
 
 int32_t ModApi_ListFiles(const char *dir, int32_t (*each)(const char *name, void *ctx), void *ctx)
 {
@@ -262,6 +291,48 @@ void ModApi_ShowError(const char *text)
     static char kept[80];
     snprintf(kept, sizeof kept, "%s", text ? text : "");
     ShowErrorMenu((uint8_t *)kept);
+}
+
+/* ---- text on the menu frame ---- */
+
+#include "display.h"
+#include "text_render.h"
+extern void *_charTables[];
+
+void ModApi_DrawText(int32_t x, int32_t y, int32_t colour, const char *text, int32_t small)
+{
+    if (text && x >= 0 && y >= 0)
+        DrawMenuText((uint16_t)x, (uint16_t)y, (uint16_t)colour, (uint8_t *)text,
+                     (uint8_t *)_charTables[small ? 0 : 1]);
+}
+
+int32_t ModApi_TextWidth(const char *text, int32_t small)
+{
+    return text ? GetTextWidth((uint8_t *)text, (uint8_t *)_charTables[small ? 0 : 1]) : 0;
+}
+
+int32_t ModApi_MenuTickerEntry(void)
+{
+    extern int32_t MenuExtras_TickerEntry(void);
+    return MenuExtras_TickerEntry();
+}
+
+void ModApi_RestoreMenuBackground(int32_t x, int32_t y, int32_t w, int32_t h)
+{
+    extern volatile uintptr_t _frontbufferBasePtr;
+    extern uint8_t _frontbufferMaskBuffer[];
+    uint8_t *dst = (uint8_t *)(uintptr_t)_frontbufferBasePtr;
+    x += _menu_draw_x_offset;
+    if (!dst || w <= 0 || h <= 0)
+        return;
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    if (x + w > _screen_width) w = _screen_width - x;
+    if (y + h > _screen_height) h = _screen_height - y;
+    for (int32_t r = 0; r < h && w > 0; r++) {
+        const size_t off = (size_t)(y + r) * FRONTBUFFER_ROW_STRIDE_BYTES + (size_t)x;
+        memcpy(dst + off, _frontbufferMaskBuffer + off, (size_t)w);
+    }
 }
 
 /* ---- the menu being shown ---- */

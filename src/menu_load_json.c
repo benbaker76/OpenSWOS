@@ -462,6 +462,19 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
 {
     MWriter w = { out, out + outcap, 0 };
     char menuName[64];
+#ifdef SWOS_SDL_BUILD
+    extern void MenuExtras_Begin(void);
+    extern void MenuExtras_DescriptionEntry(int32_t entry);
+    extern void MenuExtras_Entry(int32_t ordinal, const char *description, const char *image);
+    int32_t extrasOrdinal = 0;
+    MenuExtras_Begin();
+    if (mj_long_def(j, jl, "$.description_entry", -1) >= 0)
+        MenuExtras_DescriptionEntry((int32_t)mj_long_def(j, jl, "$.description_entry", -1));
+    if (mj_long_def(j, jl, "$.ticker_entry", -1) >= 0) {
+        extern void MenuExtras_TickerEntryIs(int32_t entry);
+        MenuExtras_TickerEntryIs((int32_t)mj_long_def(j, jl, "$.ticker_entry", -1));
+    }
+#endif
     if (mjson_get_string(j, jl, "$.name", menuName, (int)sizeof menuName) <= 0)
         menuName[0] = '\0';
 
@@ -493,6 +506,14 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
         if (mjson_get_string(it, itl, "$.kind", kind, (int)sizeof kind) <= 0) continue;
 
         if (!strcmp(kind, "entry")) {
+#ifdef SWOS_SDL_BUILD
+            {   /* (docs/MENUS.md §13: what the packed format has no room for) */
+                char desc[160] = "", image[160] = "";
+                mjson_get_string(it, itl, "$.description", desc, (int)sizeof desc);
+                mjson_get_string(it, itl, "$.image", image, (int)sizeof image);
+                MenuExtras_Entry(extrasOrdinal++, desc, image);
+            }
+#endif
             emit_entry(&w, it, itl, byteMode, menuName);
         } else if (!strcmp(kind, "set_origin")) {
             w16(&w, MK_SET_ORIGIN);
@@ -714,6 +735,7 @@ int MenuJson_InstallAll(void)
         free(j);
         int diff = (rawlen < 0) || (rawlen != cap) || memcmp(rawpacked, dst, (size_t)rawlen) != 0;
         memcpy(dst, packed, (size_t)len);   /* JSON is now authoritative for this menu */
+        { extern void MenuExtras_Commit(const uint8_t *menu); MenuExtras_Commit(dst); }
         installed++;
         if (diff) {
             changed++;
@@ -779,6 +801,7 @@ uint8_t *MenuJson_Load(const char *name)
         return NULL;
     }
     memcpy(copy, packed, (size_t)len);
+    { extern void MenuExtras_Commit(const uint8_t *menu); MenuExtras_Commit(copy); }
     snprintf(s_dynamicMenus[s_numDynamicMenus].name, sizeof s_dynamicMenus[0].name, "%s", name);
     s_dynamicMenus[s_numDynamicMenus].packed = copy;
     s_numDynamicMenus++;

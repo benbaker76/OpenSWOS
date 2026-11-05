@@ -2122,6 +2122,14 @@ void DrawQueuedSprites(void)
         }
 #endif
 
+#ifdef SWOS_SDL_BUILD
+        {   /* a mod's match that does not draw this one (mod_match.c, G13 / G5) */
+            extern int32_t ModMatch_SpriteHidden(const Sprite *spr);
+            if (ModMatch_SpriteHidden(a4))
+                continue;
+        }
+#endif
+
         /* Check if a4 is a player sprite (teamNumber 1 or 2).
          * Original asm used address range check (goalie1Sprite..bottomCornerLeftPositions),
          * but sprites moved from asm to C data sections so addresses are no longer contiguous. */

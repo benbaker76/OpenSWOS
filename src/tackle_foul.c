@@ -577,6 +577,13 @@ PlayerTacklingTestFoul(Sprite *player, TeamGeneralInfo *team)
     /* Check if cards are allowed */
     if (_cardsDisallowed != 0 || _trainingGame != 0)
         goto foul_no_card;
+#ifdef SWOS_SDL_BUILD
+    {   /* a mod's match where every carded foul is a red (mod_match.c, G9) */
+        extern int32_t ModMatch_StraightReds(void);
+        if (ModMatch_StraightReds())
+            goto try_red;
+    }
+#endif
 
     /* Discipline zone check: victim inside main playing area? */
     {
@@ -908,6 +915,13 @@ apply_break:
 void __attribute__((used, externally_visible))
 PlayerBeginTackling(int16_t pressedDir, Sprite *player, TeamGeneralInfo *team)
 {
+#ifdef SWOS_SDL_BUILD
+    {   /* a mod's match with no tackles (mod_match.c, G9) */
+        extern int32_t ModMatch_NoTackles(void);
+        if (ModMatch_NoTackles())
+            return;
+    }
+#endif
     player->tackleState = 0;
     team->controlledPlDirection = pressedDir;
     player->direction = pressedDir;

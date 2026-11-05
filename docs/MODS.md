@@ -728,3 +728,42 @@ The challenges format (`openswos-challenges`, §18) reads them, each optional: `
 "wing", "x", "y"}` and `"scorers": [{"team", "shirt", "minute", "penalty"}]` (up to 8). Checked
 with openswos-78's collection pack: hold-your-nerve starts on Malta's corner at 80' with Italy's
 #9 in the scorer list (35').
+
+---
+
+## 22. Europe's league phases in 96/97 (PR #3's H8, 2026-11-04)
+
+petarku's CHAMPIONS / EUROPA / CONFERENCE LEAGUE for 96/97 is a mod's data on the engine World
+2026-27 already plays them with (`src/league_phase.c`: pots, country rules, tie-breaks).
+
+- **The gate is the cups, not the world:** the league phase plays when `LeaguePhase_InstallCups`
+  installed records (a world's in `World_InstallBaked`, or a mod's), where it used to be "the
+  world is not 96/97". Without a mod, 96/97 installs none and plays its own cups, as before.
+- **`ModApi_SetLeaguePhases(slug, cups[3], places, count, seeds)`** from the mod's init (the
+  world is set later): the three records (`CompetitionLeaguePhase`), each country's places from
+  the second season (`{team file, CL, EL, UECL}`) and the UEFA seeds of the qualifying rounds
+  (`WorldUefaSeeds`, uefa_coef.h; NULL for none). Kept by `LeaguePhase_SetModEurope`; when the
+  world is 96/97, `World_InstallBaked` installs them and `World_LeaguePhaseCups` /
+  `World_UefaSeeds` answer with them (a world's own always win).
+- A career qualifies through the UEFA qualifying rounds when there are league phases, so a career
+  needs the seeds; PRESET needs only the records, shown through the mod's own
+  MODPOINT_COMPETITIONS entry. The data -- the 36-club tiers -- is the mod's (openswos-78's
+  `euro36`), not the engine's.
+
+---
+
+## 23. SWOS 2020's modes: the rest of the match hooks (G5, G6, G9, G10, G13; 3.2)
+
+| What | API | Where |
+|---|---|---|
+| a break now, mid-match (G6: training's drills) | `ModApi_Restart(kind, team, wing, x, y)` from matchFrame | `GameTimers_ModRestart` |
+| the final whistle with a winner (G10: golden / silver goal, a speedrun's target) | `ModApi_FinalWhistle(winner)` | `_winningTeamPtr` + `EndOfGame`, as a shoot-out ends |
+| quick restarts, every carded foul a red, no slide tackles (G9) | `quickRestarts`, `straightReds`, `noTackles` | game_timers.c (both timers), tackle_foul.c, `PlayerBeginTackling` |
+| the result banner or the player's name not drawn (G13) | `hideHud` (`MODHUD_RESULT`, `MODHUD_PLAYER_NAME`) | `DrawQueuedSprites` (picture only) |
+| players who play but are not drawn (G5) | `ghosts[2]` (a bit per line-up slot) | `DrawQueuedSprites` (picture only) |
+
+The custom-challenge editor (map 3.2) is the challenges mod's: NEW CHALLENGE on its list (now in
+pages of six) chooses two teams on the friendly's screen, then the score, the minute, what
+winning is and who you are on the info screen's rows; SAVE AND PLAY writes it to the player's
+`save/mods/challenges/custom.json` in the challenges format (ids by `ModApi_ChosenTeamUuid`) and
+plays it. A player's own challenges never lock or are locked.

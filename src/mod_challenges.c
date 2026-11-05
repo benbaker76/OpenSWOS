@@ -58,6 +58,7 @@ typedef struct {
     uint8_t  restartKind, restartTeam, restartWing;
     int16_t  restartX, restartY;
     struct { int8_t team; uint8_t shirt, minute, penalty; } scorers[8];
+    uint8_t  custom;                    /* the player's own (custom.json, the editor) */
     /* progress */
     uint8_t  completed;
     uint32_t attempts;
@@ -81,6 +82,8 @@ static int32_t number(const char *json, int len, const char *path, int32_t fallb
     return mjson_get_number(json, len, path, &v) ? (int32_t)v : fallback;
 }
 
+static void read_text(char *json, int len, const char *path, int32_t custom);
+
 static void read_file(const char *path)
 {
     FILE *f = fopen(path, "rb");
@@ -97,7 +100,12 @@ static void read_file(const char *path)
     }
     fclose(f);
     json[n] = '\0';
-    const int len = (int)n;
+    read_text(json, (int)n, path, 0);
+}
+
+/* A challenges file's text (freed here): its challenges after those loaded. */
+static void read_text(char *json, int len, const char *path, int32_t custom)
+{
     char fmt[40] = "";
     mjson_get_string(json, len, "$.format", fmt, (int)sizeof fmt);
     if (strcmp(fmt, "openswos-challenges") != 0) {
@@ -182,6 +190,7 @@ static void read_file(const char *path)
         c->win = !strcmp(w, "draw") ? W_DRAW : !strcmp(w, "exact") ? W_EXACT : W_WIN;
 #undef STR
 #undef NUM
+        c->custom = (uint8_t)custom;
         s_count++;                          /* (its teams are looked up at PLAY: a uuid search walks
                                              * the whole database, too slow for drawing the list) */
     }
@@ -252,6 +261,12 @@ static void load(void)
         closedir(d);
     }
     qsort(s_ch, (size_t)s_count, sizeof s_ch[0], by_difficulty);
+    {   /* the player's own, after the packs' (the editor writes them: custom.json) */
+        uint32_t size = 0;
+        char *json = (char *)ModApi_LoadFile("challenges", "custom.json", &size);
+        if (json)
+            read_text(json, (int)size, "custom.json", 1);
+    }
     read_progress();
     fprintf(stderr, "[challenges] %d challenges\n", (int)s_count);
 }
@@ -259,8 +274,10 @@ static void load(void)
 /* locked while an easier one is not done (SWOS 2020's setScenariosLocked) */
 static int32_t locked(int32_t i)
 {
+    if (s_ch[i].custom)
+        return 0;
     for (int32_t k = 0; k < s_count; k++)
-        if (s_ch[k].difficulty < s_ch[i].difficulty && !s_ch[k].completed)
+        if (!s_ch[k].custom && s_ch[k].difficulty < s_ch[i].difficulty && !s_ch[k].completed)
             return 1;
     return 0;
 }
@@ -375,40 +392,197 @@ static void nav_rows(int32_t n)
     ModApi_MenuNav(M_exit, n ? M_label0 + 2 * n - 1 : -1, -1);
 }
 
+/* The list's pages: six challenges a page, then NEW CHALLENGE, then MORE when there are more. */
+enum { kPerPage = kRows - 2 };
+static int32_t s_page;
+static int32_t page_count(void) { return s_count ? (s_count + kPerPage - 1) / kPerPage : 1; }
+static int32_t page_rows(void)
+{
+    const int32_t left = s_count - s_page * kPerPage;
+    return left < kPerPage ? (left < 0 ? 0 : left) : kPerPage;
+}
+
 static void list_draw(void)
 {
     static const char *const kStars[6] = { "", "*", "**", "***", "****", "*****" };
+    static char more[24];
     load();
     ModApi_MenuText(M_header, "CHALLENGES");
     ModApi_MenuText(M_subTitle, "WIN FROM WHERE THE MATCH STANDS");
-    const int32_t n = s_count < kRows ? s_count : kRows;
-    for (int32_t i = 0; i < n; i++) {
+    const int32_t n = page_rows();
+    for (int32_t r = 0; r < n; r++) {
+        const int32_t i = s_page * kPerPage + r;
         char label[40];
         snprintf(label, sizeof label, "%s %s", s_ch[i].name,
-                 kStars[s_ch[i].difficulty < 0 ? 0 : s_ch[i].difficulty > 5 ? 5 : s_ch[i].difficulty]);
-        row(i, label, s_ch[i].completed ? "DONE" : locked(i) ? "LOCKED" : "OPEN", 1);
+                 s_ch[i].custom ? "(YOURS)"
+                 : kStars[s_ch[i].difficulty < 0 ? 0 : s_ch[i].difficulty > 5 ? 5 : s_ch[i].difficulty]);
+        row(r, label, s_ch[i].completed ? "DONE" : locked(i) ? "LOCKED" : "OPEN", 1);
     }
-    hide_from(n);
+    row(n, "", "NEW CHALLENGE", 0);
+    if (page_count() > 1) {
+        snprintf(more, sizeof more, "MORE (%d/%d)", (int)s_page + 1, (int)page_count());
+        row(n + 1, "", more, 0);
+        hide_from(n + 2);
+    } else {
+        hide_from(n + 1);
+    }
     ModApi_MenuText(M_note, s_count ? "THE EASIER ONES OPEN THE HARDER" : "NONE: A CHALLENGE PACK IS A MOD");
 }
 
 static void list_init(void)
 {
     load();
-    nav_rows(s_count < kRows ? s_count : kRows);
+    if (s_page >= page_count())
+        s_page = 0;
+    nav_rows(page_rows() + 1 + (page_count() > 1));
     list_draw();
 }
 
-static void pick(int32_t i)
+static void edit_new(void);
+
+static void pick(int32_t r)
 {
-    if (i >= s_count || locked(i))
+    const int32_t n = page_rows();
+    if (r == n) {                           /* NEW CHALLENGE */
+        edit_new();
+        return;
+    }
+    if (r == n + 1 && page_count() > 1) {   /* MORE */
+        s_page = (s_page + 1) % page_count();
+        list_init();
+        return;
+    }
+    const int32_t i = s_page * kPerPage + r;
+    if (r > n || i >= s_count || locked(i))
         return;
     s_cur = i;
     ModApi_ShowMenu("challenges/challengeInfo");
 }
 
+/* ---- the editor (SWOS 2020's custom challenge, map 3.2): two teams chosen on the friendly's
+ * screen, then the score, the minute and what winning is, on the info screen's rows; SAVE AND
+ * PLAY writes it to the player's custom.json (the challenges format) and plays it. ---- */
+
+static int32_t s_editing;
+static Challenge s_edit;
+
+static void edit_new(void)
+{
+    if (!ModApi_ChooseTeams())
+        return;
+    memset(&s_edit, 0, sizeof s_edit);
+    for (int32_t t = 0; t < 2; t++) {
+        snprintf(s_edit.teamName[t], sizeof s_edit.teamName[t], "%s", ModApi_ChosenName(t));
+        if (!ModApi_ChosenTeamUuid(t, s_edit.teamUuid[t], (int32_t)sizeof s_edit.teamUuid[t])) {
+            ModApi_ShowError("THAT TEAM HAS NO ID: CHOOSE ANOTHER");
+            return;
+        }
+        s_edit.scorers[t].team = -1;
+    }
+    for (int32_t k = 0; k < 8; k++)
+        s_edit.scorers[k].team = -1;
+    s_edit.yours = (int8_t)(ModApi_ChosenIsPlayer(1) && !ModApi_ChosenIsPlayer(0) ? 1 : 0);
+    s_edit.score[s_edit.yours] = 0;
+    s_edit.score[!s_edit.yours] = 1;        /* (a challenge: you start behind) */
+    s_edit.minute = 70;
+    s_edit.pitchType = -1;
+    s_edit.win = W_WIN;
+    s_edit.custom = 1;
+    snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE");
+    s_editing = 1;
+    ModApi_ShowMenu("challenges/challengeInfo");
+    s_editing = 0;
+}
+
+static void edit_draw(void)
+{
+    static const char *const kWin[3] = { "WIN IT", "DON'T LOSE IT", "" };
+    static char score[2][8], minute[8];
+    ModApi_MenuText(M_header, "NEW CHALLENGE");
+    ModApi_MenuText(M_subTitle, "FIRE CHANGES A ROW");
+    snprintf(score[0], sizeof score[0], "%d", (int)s_edit.score[0]);
+    snprintf(score[1], sizeof score[1], "%d", (int)s_edit.score[1]);
+    snprintf(minute, sizeof minute, "%d", (int)s_edit.minute);
+    char a[40], b[40];
+    snprintf(a, sizeof a, "%s: %s", s_edit.teamName[0], s_edit.yours == 0 ? "YOU" : "CPU");
+    snprintf(b, sizeof b, "%s: %s", s_edit.teamName[1], s_edit.yours == 1 ? "YOU" : "CPU");
+    row(0, a, score[0], 1);
+    row(1, b, score[1], 1);
+    row(2, "THE MINUTE", minute, 1);
+    row(3, "TO WIN", kWin[s_edit.win == W_DRAW ? 1 : 0], 1);
+    row(4, "WHO YOU ARE", "SWAP", 1);
+    row(5, "", "SAVE AND PLAY", 0);
+    hide_from(6);
+    ModApi_MenuText(M_note, "IT GOES IN YOUR CHALLENGES");
+}
+
+static void save_custom(void)
+{
+    char buf[16384];
+    int n = snprintf(buf, sizeof buf, "{\n \"format\": \"openswos-challenges\",\n \"version\": 1,\n \"challenges\": [\n");
+    int32_t count = 0, number = 1;
+    for (int32_t i = 0; i < s_count; i++)
+        if (s_ch[i].custom)
+            number++;
+    snprintf(s_edit.id, sizeof s_edit.id, "custom-%d-%u", (int)number, (unsigned)ModApi_Ticks());
+    snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE %d", (int)number);
+    for (int32_t i = 0; i <= s_count && n < (int)sizeof buf - 600; i++) {
+        const Challenge *c = i < s_count ? &s_ch[i] : &s_edit;
+        if (!c->custom)
+            continue;
+        n += snprintf(buf + n, sizeof buf - (size_t)n,
+                      "%s  { \"id\": \"%s\", \"name\": \"%s\", \"about\": \"%s\", \"difficulty\": 0,\n"
+                      "    \"teams\": [ { \"uuid\": \"%s\", \"name\": \"%s\" }, { \"uuid\": \"%s\", \"name\": \"%s\" } ],\n"
+                      "    \"yours\": %d, \"score\": [ %d, %d ], \"minute\": %d, \"win\": \"%s\" }",
+                      count ? ",\n" : "", c->id, c->name, "YOUR OWN CHALLENGE", c->teamUuid[0], c->teamName[0],
+                      c->teamUuid[1], c->teamName[1], (int)c->yours, (int)c->score[0], (int)c->score[1],
+                      (int)c->minute, c->win == W_DRAW ? "draw" : "win");
+        count++;
+    }
+    n += snprintf(buf + n, sizeof buf - (size_t)n, "\n ]\n}\n");
+    ModApi_SaveFile("challenges", "custom.json", buf, (uint32_t)n);
+}
+
+static void edit_row(int32_t r)
+{
+    switch (r) {
+    case 0: s_edit.score[0] = (int8_t)((s_edit.score[0] + 1) % 10); break;
+    case 1: s_edit.score[1] = (int8_t)((s_edit.score[1] + 1) % 10); break;
+    case 2: s_edit.minute = (int16_t)(s_edit.minute >= 85 ? 5 : s_edit.minute + 5); break;
+    case 3: s_edit.win = s_edit.win == W_WIN ? W_DRAW : W_WIN; break;
+    case 4: s_edit.yours = (int8_t)!s_edit.yours; break;
+    case 5: {
+        if (s_count >= kMax) {
+            ModApi_ShowError("NO ROOM FOR ANOTHER CHALLENGE");
+            return;
+        }
+        save_custom();
+        s_loaded = 0;                       /* (read again: the new one in its place) */
+        s_count = 0;
+        load();
+        for (int32_t i = s_count - 1; i >= 0; i--)
+            if (s_ch[i].custom) {
+                s_cur = i;
+                break;
+            }
+        s_editing = 0;
+        play(s_cur);
+        SetExitMenuFlag();
+        return;
+    }
+    default: return;
+    }
+    edit_draw();
+    for (int32_t i = 0; i < 6; i++)
+        ModApi_MenuRedraw(M_label0 + 2 * i + 1);
+}
+
 static void info_draw(void)
 {
+    if (s_editing) {
+        edit_draw();
+        return;
+    }
     const Challenge *c = &s_ch[s_cur];
     static const char *const kWin[3] = { "WIN IT", "DON'T LOSE IT", "" };
     char score[16], minute[16], win[24];
@@ -435,6 +609,12 @@ static void info_draw(void)
 
 static void info_init(void)
 {
+    if (s_editing) {
+        nav_rows(6);
+        ModApi_MenuSelect(M_label0 + 1);
+        edit_draw();
+        return;
+    }
     const int32_t playRow = M_label0 + 2 * 5 + 1;
     ModApi_MenuNav(playRow, -1, M_exit);
     ModApi_MenuNav(M_exit, playRow, -1);
@@ -442,8 +622,18 @@ static void info_init(void)
     info_draw();
 }
 
+static void info_edit0(void) { if (s_editing) edit_row(0); }
+static void info_edit1(void) { if (s_editing) edit_row(1); }
+static void info_edit2(void) { if (s_editing) edit_row(2); }
+static void info_edit3(void) { if (s_editing) edit_row(3); }
+static void info_edit4(void) { if (s_editing) edit_row(4); }
+
 static void info_play(void)
 {
+    if (s_editing) {
+        edit_row(5);
+        return;
+    }
     play(s_cur);
     SetExitMenuFlag();                      /* (back to the list, its states new) */
 }
@@ -511,8 +701,8 @@ static void ch_init(void)
         { "pick0", pick0 }, { "pick1", pick1 }, { "pick2", pick2 }, { "pick3", pick3 },
         { "pick4", pick4 }, { "pick5", pick5 }, { "pick6", pick6 }, { "pick7", pick7 },
         { "infoInit", info_init }, { "infoDraw", info_draw },
-        { "info0", none }, { "info1", none }, { "info2", none }, { "info3", none },
-        { "info4", none }, { "info5", info_play }, { "info6", none }, { "info7", none },
+        { "info0", info_edit0 }, { "info1", info_edit1 }, { "info2", info_edit2 }, { "info3", info_edit3 },
+        { "info4", info_edit4 }, { "info5", info_play }, { "info6", none }, { "info7", none },
         { "resultInit", result_init }, { "resultDraw", result_draw },
         { "result0", none }, { "result1", result_retry }, { "result2", none }, { "result3", none },
         { "result4", none }, { "result5", none }, { "result6", none }, { "result7", none },

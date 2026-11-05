@@ -661,6 +661,14 @@ static void file_path(const char *name, char *out, size_t cap)
         snprintf(out, cap, "%s/%s", swos_save_dir(), name);
 }
 
+static void file_path(const char *name, char *out, size_t cap);
+
+/* Where the last match's recording is (ModApi_LatestReplay, a mod's after-match screen). */
+void ReplayV2_LatestPath(char *out, size_t cap)
+{
+    file_path(s_rec.path ? s_rec.path : REPLAY_V2_LATEST, out, cap);
+}
+
 static int32_t write_file(const char *name, const uint8_t *buf, uint32_t len)
 {
     char path[1024];

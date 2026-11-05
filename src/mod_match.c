@@ -61,7 +61,8 @@ static struct {
     char          slug[40];
     ModMatchSetup setup;
     char          name[32];
-    uint8_t       ended;                /* ModApi_EndMatch */
+    uint8_t       ended;                /* ModApi_EndMatch / FinalWhistle */
+    uint8_t       whistled;             /* ModApi_FinalWhistle (once) */
     uint8_t       shootoutDone;
 } s_mm;
 
@@ -70,6 +71,7 @@ static int32_t    s_chosenHave;
 static uint32_t s_frames;               /* from kick-off, every match */
 static uint8_t  s_kickedOff;
 static uint8_t  s_endTold;              /* this kick-off's end told the mods */
+static int32_t  s_testHooks;            /* SWOS_MOD_MATCH_TEST=hooks: PR #3's H1-H7, G6 */
 static int32_t  s_testTraining;         /* SWOS_MOD_MATCH_TEST=training (ModMatch_SelfTest) */
 static const Sprite *s_headerBy;        /* the last header: who (ModMatch_Header), when */
 static uint32_t      s_headerAt;
@@ -211,6 +213,21 @@ int32_t ModApi_ChooseTeams(void)
                                   uint16_t showNational, uint16_t showOrigCustom);
     extern uint16_t _chooseTeamsResult;
     extern uint8_t _aFriendly_1[], _aPlayFriendly[];
+    {
+        /* SWOS_MOD_CHOOSE_TEAMS=<hex id>,<hex id>[,<0|1: the player's>] answers the team screen, for
+         * driving a mod's flow in a test (the screen itself is the friendly's, tested as that). */
+        const char *t = getenv("SWOS_MOD_CHOOSE_TEAMS");
+        if (t && strchr(t, ',')) {
+            const char *b = strchr(t, ',') + 1, *c = strchr(b, ',');
+            const int32_t yours = c ? atoi(c + 1) : 0;
+            _numSelectedTeams = 0;
+            if (load_team((uint16_t)strtoul(t, NULL, 16), 0, (uint8_t)(yours == 0 ? TEAM_PLAYER_COACH : TEAM_COMPUTER)) ||
+                load_team((uint16_t)strtoul(b, NULL, 16), 1, (uint8_t)(yours == 1 ? TEAM_PLAYER_COACH : TEAM_COMPUTER)))
+                return 0;
+            _numSelectedTeams = 2;
+            return 1;
+        }
+    }
     GoGetTeamsForPlay(_aFriendly_1, _aPlayFriendly, 2, 1, 1, 1);
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
 }
@@ -283,6 +300,17 @@ int32_t ModMatch_ChosenSide(int32_t team)
 }
 int32_t ModApi_ChosenIsPlayer(int32_t team) { return ModMatch_ChosenSide(team); }
 
+int32_t ModApi_ChosenTeamUuid(int32_t team, char *out, int32_t cap)
+{
+    if (!out || cap <= 0 || team < 0 || team > 1 || _numSelectedTeams < 2)
+        return 0;
+    const TeamDbEntry *e = TeamDb_Team(_selectedTeams[team].team.countryNumber, _selectedTeams[team].team.teamOrdinal);
+    if (!e || !e->ids.uuid[0])
+        return 0;
+    snprintf(out, (size_t)cap, "%s", e->ids.uuid);
+    return 1;
+}
+
 const char *ModApi_ChosenName(int32_t team)
 {
     return team >= 0 && team < 2 && _numSelectedTeams >= 2 ? (const char *)_selectedTeams[team].team.teamName : "";
@@ -334,6 +362,21 @@ void ModApi_EndMatch(void)
         return;
     s_mm.ended = 1;
     _playGame = 0;
+}
+
+void ModApi_FinalWhistle(int32_t winner)
+{
+    extern TeamGame *_winningTeamPtr;
+    extern TeamGame _topTeamInGame, _bottomTeamInGame;
+    extern void EndOfGame(void);
+    if (!_playGame || !s_mm.active || s_mm.whistled)
+        return;
+    if (winner != 0 && winner != 1)
+        winner = _team2TotalGoals > _team1TotalGoals ? 1 : 0;
+    s_mm.whistled = 1;
+    s_mm.ended = 1;
+    _winningTeamPtr = winner == 0 ? &_topTeamInGame : &_bottomTeamInGame;
+    EndOfGame();
 }
 
 void ModApi_StartShootout(void)
@@ -542,6 +585,16 @@ int16_t ModMatch_PitchNumber(void)
                ? s_mm.setup.pitchNumber : 0;
 }
 
+int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int16_t y)
+{
+    extern void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16_t x, int16_t y);
+    if (!s_mm.active || _gameStatePl != ST_GAME_IN_PROGRESS || (team != 0 && team != 1) ||
+        kind < MODRESTART_CORNER || kind > MODRESTART_PENALTY)
+        return -1;
+    GameTimers_ModRestart(kind, team + 1, wing, x, y);
+    return 0;
+}
+
 /* restart (H6): PrepareForInitialKick's end, the FIRST kick-off only -- the break the match
  * starts in instead (game_timers.c GameTimers_ModRestart). */
 void ModMatch_InitialKick(void)
@@ -621,6 +674,62 @@ static void preload_scorers(void)
     _penalty = penalty;
 }
 
+/* G9's rules, asked where the engine decides them. */
+int32_t ModMatch_QuickRestarts(void) { return s_mm.active && s_mm.setup.quickRestarts; }
+int32_t ModMatch_StraightReds(void) { return s_mm.active && s_mm.setup.straightReds; }
+int32_t ModMatch_NoTackles(void) { return s_mm.active && s_mm.setup.noTackles; }
+
+/* hideHud, ghosts (G13, G5): DrawQueuedSprites skips the sprite -- the picture only, nothing the
+ * match reads (its sprites stay as the match set them). */
+int32_t ModMatch_SpriteHidden(const Sprite *spr)
+{
+    if (!s_mm.active || !(s_mm.setup.hideHud | s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1]))
+        return 0;
+    if (s_mm.setup.hideHud & MODHUD_RESULT) {
+        extern Sprite _dashSprite, _gridBottomRowLeftSprite, _gridBottomRowRightSprite,
+            _gridMiddleRowLeftSprite, _gridMiddleRowRightSprite, _gridUpperRowLeftSprite,
+            _gridUpperRowRightSprite, _resultAfterTheGameSprite, _resultOnHalftimeSprite,
+            _team1GoalsDigit1Sprite, _team1GoalsDigit2Sprite, _team1NameSprite,
+            _team1TotalGoalsDigit1Sprite, _team1TotalGoalsDigit2Sprite, _team2GoalsDigit1Sprite,
+            _team2GoalsDigit2Sprite, _team2NameSprite, _team2TotalGoalsDigit1Sprite,
+            _team2TotalGoalsDigit2Sprite;
+        const Sprite *const kResult[] = {
+            &_dashSprite, &_gridBottomRowLeftSprite, &_gridBottomRowRightSprite, &_gridMiddleRowLeftSprite,
+            &_gridMiddleRowRightSprite, &_gridUpperRowLeftSprite, &_gridUpperRowRightSprite,
+            &_resultAfterTheGameSprite, &_resultOnHalftimeSprite, &_team1GoalsDigit1Sprite,
+            &_team1GoalsDigit2Sprite, &_team1NameSprite, &_team1TotalGoalsDigit1Sprite,
+            &_team1TotalGoalsDigit2Sprite, &_team2GoalsDigit1Sprite, &_team2GoalsDigit2Sprite,
+            &_team2NameSprite, &_team2TotalGoalsDigit1Sprite, &_team2TotalGoalsDigit2Sprite,
+        };
+        for (size_t i = 0; i < sizeof kResult / sizeof kResult[0]; i++)
+            if (spr == kResult[i])
+                return 1;
+        /* ... the wide screen's third column of the banner's grid, and the scorer lines under it */
+        extern Sprite _gridUpperRowExtraSprite, _gridMiddleRowExtraSprite, _gridBottomRowExtraSprite;
+        extern Sprite _team1ScorerSprite[], _team2ScorerSprite[];
+        if (spr == &_gridUpperRowExtraSprite || spr == &_gridMiddleRowExtraSprite ||
+            spr == &_gridBottomRowExtraSprite)
+            return 1;
+        for (int32_t i = 0; i < 8; i++)
+            if (spr == &_team1ScorerSprite[i] || spr == &_team2ScorerSprite[i])
+                return 1;
+    }
+    if (s_mm.setup.hideHud & MODHUD_PLAYER_NAME) {
+        extern Sprite _currentPlayerNameSprite;
+        if (spr == &_currentPlayerNameSprite)
+            return 1;
+    }
+    if ((s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1]) && (spr->teamNumber == 1 || spr->teamNumber == 2)) {
+        extern Sprite **_team1SpritesTable, **_team2SpritesTable;
+        Sprite **tab = spr->teamNumber == 1 ? _team1SpritesTable : _team2SpritesTable;
+        const uint16_t bits = s_mm.setup.ghosts[spr->teamNumber - 1];
+        for (int32_t i = 0; bits && tab && i < 11; i++)
+            if (tab[i] == spr)
+                return bits >> i & 1;
+    }
+    return 0;
+}
+
 /* hideClock (H2): UpdateTime shows no clock. */
 int32_t ModMatch_HideClock(void) { return s_mm.active && s_mm.setup.hideClock; }
 
@@ -647,6 +756,18 @@ void ModMatch_Frame(void)
         s_mm.shootoutDone = 1;
         ModApi_StartShootout();
     }
+    {
+        static int32_t given;
+        if (s_testHooks && s_mm.active && s_frames < 1500)
+            given = 0;
+        if (s_testHooks && s_mm.active && s_frames >= 1500 && !given &&
+            ModApi_Restart(MODRESTART_FREE_KICK, 0, 0, 300, 640) == 0) {
+            given = 1;
+            fprintf(stderr, "[mods] hooks test: a free kick at frame %u\n", (unsigned)s_frames);
+        }
+    }
+    if (s_testHooks && s_mm.active && s_frames == 3000)
+        ModApi_FinalWhistle(-1);
     if (s_testTraining && s_mm.active && s_frames >= 3000)
         ModApi_EndMatch();                  /* (the training test: a minute of play, then ended) */
     ModHooks_MatchFrame();
@@ -748,7 +869,6 @@ void ModMatch_Ended(void)
  * mod (with SWOS_HARNESS_TURBO it runs as fast as it can). */
 static void play_test_match(int32_t thenQuit);
 static int32_t s_testShootout;          /* SWOS_MOD_MATCH_TEST=shootout */
-static int32_t s_testHooks;             /* SWOS_MOD_MATCH_TEST=hooks: PR #3's H1-H7 */
 
 static void test_entry(void) { play_test_match(0); }
 
@@ -822,6 +942,8 @@ static void play_test_match(int32_t thenQuit)
         setup.scorers[1].team = 1; setup.scorers[1].shirt = 10; setup.scorers[1].minute = 30;
         setup.scorers[2].team = 0; setup.scorers[2].shirt = 7;  setup.scorers[2].minute = 35;
         setup.scorers[2].penalty = 1;
+        setup.hideHud = MODHUD_RESULT | MODHUD_PLAYER_NAME;
+        setup.ghosts[0] = (1u << 2) | (1u << 3);    /* (two of team 1's play, not drawn) */
     }
     if (strcmp(getenv("SWOS_MOD_MATCH_TEST"), "order") == 0)   /* takers 1..10 (the game's: 10, 9, ...) */
         for (int32_t i = 0; i < 10; i++)
@@ -839,7 +961,9 @@ static void play_test_match(int32_t thenQuit)
         return;
     const int32_t ok = rc == 0 && r.frames > 0 &&
                        (s_testShootout ? r.penaltyGoals[0] != r.penaltyGoals[1]
-                        : s_testTraining ? r.minute == 0 && r.endedByMod && r.frames >= 3000 : r.minute >= 90);
+                        : s_testTraining ? r.minute == 0 && r.endedByMod && r.frames >= 3000
+                        : s_testHooks ? r.endedByMod && r.frames >= 3000 && r.frames < 4500 && r.minute < 90
+                        : r.minute >= 90);
     fprintf(stdout, "MOD MATCH TEST %s%s\n", s_testShootout ? "(shootout) " : s_testTraining ? "(training) " : "",
             ok ? "PASS" : "FAIL");
     fflush(stdout);

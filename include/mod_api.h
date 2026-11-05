@@ -117,6 +117,10 @@ void    ModApi_ShowError(const char *text);
 /* The player's assets folder (where the setup put the game's data from their own copy): a mod
  * that plays files the player brings looks there, as HISTORIC TOURNAMENTS does. */
 const char *ModApi_AssetsDir(void);
+/* The last match's whole recording (a .SRP, docs/REPLAY_FORMAT_V2.md): its path, for an after-
+ * the-match screen (SHARE THIS MATCH, SAVE REPLAY). Written at the final whistle, so read at
+ * MODPOINT_AFTER_MATCH or later. 1 when there is one. */
+int32_t ModApi_LatestReplay(char *out, int32_t cap);
 int32_t ModApi_ListFiles(const char *dir, int32_t (*each)(const char *name, void *ctx), void *ctx);
 
 /* ---- competitions from mods (MODPOINT_COMPETITIONS; docs/MODS.md §20) ----
@@ -142,6 +146,19 @@ int32_t     ModApi_CompTeamCount(void);
 const char *ModApi_CompTeamName(int32_t team);          /* (until the next call) */
 int32_t     ModApi_CompTeamControls(int32_t team);      /* MODCONTROL_* */
 void        ModApi_SetCompTeamControls(int32_t team, int32_t controls);
+
+/* ---- Europe's cups as 36-club league phases in 96/97 (H8; docs/MODS.md §22) ----
+ * A mod's three records (the Champions League, the Europa League, the Conference League -- the
+ * engine's Champions Cup, Cup Winners' Cup and UEFA Cup slots; game_types.h
+ * CompetitionLeaguePhase: six stages, 36 in 2 groups of 18, the play-offs 16, then 16, 8, 4, 2),
+ * each country's places from the second season ({team file, CL, EL, UECL}, `count` rows) and the
+ * UEFA seeds the qualifying rounds draw on (uefa_coef.h; NULL none). From the mod's init, before
+ * the world is known: played only when 96/97 is the world (a world's own cups win), in PRESET
+ * (an entry of the mod's, MODPOINT_COMPETITIONS), SEASON and CAREER. The arrays must outlive the
+ * run (static). 0 = kept. */
+struct WorldUefaSeeds;
+int32_t ModApi_SetLeaguePhases(const char *slug, void *cups /* CompetitionLeaguePhase[3] */,
+                               const uint8_t (*places)[4], int32_t count, const struct WorldUefaSeeds *seeds);
 
 /* ---- a match a mod plays (H2, H4) ---- */
 typedef enum { MODSIDE_CPU, MODSIDE_PLAYER1, MODSIDE_PLAYER2 } ModSide;
@@ -200,8 +217,17 @@ typedef struct {
         uint8_t penalty;    /* scored from a penalty */
     } scorers[8];           /* goals already in the scorer lists at kick-off -- with score[], which
                              * is the score; a challenge's "2-1, 70th minute" names who scored */
+    /* the match's own rules (G9: SWOS 2020's training and challenges) */
+    uint8_t  quickRestarts; /* a break restarts at once: no wait for the ball, the CPU never waits */
+    uint8_t  straightReds;  /* every foul that is carded is a red (noCards still wins) */
+    uint8_t  noTackles;     /* nobody slides in */
+    /* what is not drawn (G13, G5): only the picture, the match plays as ever */
+    uint8_t  hideHud;       /* MODHUD_* bits */
+    uint16_t ghosts[2];     /* per team, bit n: line-up slot n plays but is never drawn (training) */
 } ModMatchSetup;
 enum { MODRESTART_KICK_OFF, MODRESTART_CORNER, MODRESTART_FREE_KICK, MODRESTART_PENALTY };
+enum { MODHUD_RESULT = 1,       /* the score / result banner (a goal's, half and full time) */
+       MODHUD_PLAYER_NAME = 2   /* the name of the player on the ball */ };
 
 enum { MODLINE_DEFENCE = 1, MODLINE_MIDFIELD = 2, MODLINE_ATTACK = 4 };   /* (backs and defenders;
                                                                            * wings and midfielders; attackers) */
@@ -237,6 +263,9 @@ int32_t ModApi_ChosenAgain(void);
 /* After ModApi_ChooseTeams: whether a chosen team (0 / 1) is a player's (1) or the CPU's (0),
  * and its name. */
 int32_t     ModApi_ChosenIsPlayer(int32_t team);
+/* A chosen team's uuid (docs/TEAM_IDS.md), for a mod that writes the choice down (a custom
+ * challenge): 1 when it has one. */
+int32_t     ModApi_ChosenTeamUuid(int32_t team, char *out, int32_t cap);
 const char *ModApi_ChosenName(int32_t team);
 /* The match's frames a second, by the gameplay style (Amiga 50, DOS 70, XBOX 60): a frame count
  * in seconds. */
@@ -262,6 +291,14 @@ struct ModMatchResult {
 int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchResult *result);
 int32_t ModApi_ModMatch(const char *slug);      /* this mod's match is the one being played */
 void    ModApi_EndMatch(void);                  /* the final whistle now, on the score as it is */
+/* The referee's final whistle now (G10: a golden or silver goal, a speedrun's target): the match
+ * ends as a shoot-out's does -- `winner` (0 / 1; -1 by the score, a level one the top team's)
+ * celebrates, the other team mourns -- then the players leave and the result is told as ever. */
+void    ModApi_FinalWhistle(int32_t winner);
+/* A break now, as the referee would give it (G6: a training drill's corner, a free kick where a
+ * drill wants one): MODRESTART_* for `team` (0 / 1) -- a corner's wing as the taker attacks, a
+ * free kick's foul at x, y (world). From matchFrame, the ball in play; 0 when given. */
+int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int16_t y);
 void    ModApi_StartShootout(void);             /* to penalties now */
 void    ModApi_Score(int16_t goals[2]);         /* the score now */
 uint32_t ModApi_MatchFrames(void);              /* frames played from kick-off */
@@ -331,6 +368,17 @@ void     ModApi_Camera(int16_t *x, int16_t *y);     /* the world point at screen
 void     ModApi_ScreenSize(int32_t *w, int32_t *h);
 /* The 8bpp frame being drawn and its row stride; only at a hook that says it may be drawn into. */
 uint8_t *ModApi_Frame(int32_t *stride);
+
+/* ---- text on the menu frame (from menuDrawn) ----
+ * The game's menu fonts: small (the build line's) or big (the entries'). x, y on the menu as its
+ * entries are placed (the wide screen's margin added here); colour a palette index. Width in
+ * pixels. The current menu's ticker box (its JSON's "ticker_entry", docs/MENUS.md §13), -1 none;
+ * and a box of the menu's background painted back (a classic menu is not redrawn each frame, so
+ * what moves paints its old place back first). */
+void     ModApi_DrawText(int32_t x, int32_t y, int32_t colour, const char *text, int32_t small);
+int32_t  ModApi_TextWidth(const char *text, int32_t small);
+int32_t  ModApi_MenuTickerEntry(void);
+void     ModApi_RestoreMenuBackground(int32_t x, int32_t y, int32_t w, int32_t h);
 
 /* ---- colours ---- */
 void     ModApi_PaletteColour(uint8_t index, uint8_t *r, uint8_t *g, uint8_t *b);  /* as last shown */

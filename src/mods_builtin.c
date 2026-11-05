@@ -17,6 +17,7 @@ extern const ModDef ModDef_practice;    /* src/mod_practice.c */
 extern const ModDef ModDef_speedrun;    /* src/mod_speedrun.c */
 extern const ModDef ModDef_challenges;  /* src/mod_challenges.c */
 extern const ModDef ModDef_classics;    /* src/mod_classics.c */
+extern const ModDef ModDef_ticker;      /* src/mod_ticker.c */
 
 #if defined(__has_include)
 #if __has_include("fork_mods.inc")
@@ -33,6 +34,7 @@ const ModDef *const g_builtinMods[] = {
     &ModDef_speedrun,
     &ModDef_challenges,
     &ModDef_classics,
+    &ModDef_ticker,
 #ifdef FORK_MODS
     FORK_MOD_LIST                       /* "&ModDef_<slug>," a fork's mods */
 #endif

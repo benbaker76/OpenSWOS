@@ -931,3 +931,26 @@ Fixed so far:
 
 After both, a season in each of the world's 91 career countries and VIEW WORLD on every
 continent report nothing (2026-11-02).
+
+---
+
+## 13. Descriptions and images (SDL; `src/menu_extras.c`, 2026-11-04)
+
+Two things a JSON menu may say that the packed format has no room for, for SWOS 2020's menus
+(SWOS United's menus2020) and any mod's:
+
+```json
+{ "name": "...", "description_entry": 14, "items": [
+    { "kind": "entry", "description": "PLAY A MATCH AGAINST A FRIEND OR THE COMPUTER", ... },
+    { "kind": "entry", "image": "grafs_2020/menu/tv.bmp", ... } ] }
+```
+
+- `description_entry` (the menu): its text entry N shows the selected entry's `description` (an
+  entry's one line, empty for one without), set before each draw.
+- `image` (an entry): a `.bmp` under the data folder -- a mod's overlay first, as every read --
+  drawn centred in the entry's box after the entries, each colour the nearest in the menu
+  palette, black and magenta (255, 0, 255) transparent. Loaded at its first draw.
+
+The loader gives them to `menu_extras.c` as it builds a menu, and they are filed under the menu's
+final packed bytes (the pointer ShowMenu gets, `_currentMenuPtr`): a JSON-installed engine menu
+and a dynamic (JSON-only) one alike. Only the picture; the Amiga has neither.

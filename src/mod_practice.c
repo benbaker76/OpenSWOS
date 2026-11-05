@@ -23,6 +23,7 @@
 #ifdef SWOS_SDL_BUILD
 
 #include <stdio.h>
+#include <stdlib.h>
 
 extern void SetExitMenuFlag(void);
 
@@ -73,12 +74,16 @@ static void order_draw(void) { order_refresh(); }
 
 static void order_row(int32_t i)
 {
+    if (getenv("SWOS_MOD_EVENT_LOG"))
+        fprintf(stderr, "[practice] row %d fire at %u (picked %d)\n", (int)i + 1, (unsigned)ModApi_Ticks(),
+                (int)s_picked + 1);
     if (s_picked < 0) {
         s_picked = i;
     } else {
         uint8_t t = s_order[i];
         s_order[i] = s_order[s_picked];
         s_order[s_picked] = t;
+        fprintf(stderr, "[practice] shooting order: %d <-> %d\n", (int)s_picked + 1, (int)i + 1);
         s_picked = -1;
     }
     order_refresh();
