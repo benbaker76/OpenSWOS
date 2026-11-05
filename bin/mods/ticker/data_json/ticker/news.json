@@ -1,9 +1,0 @@
-{
- "format": "openswos-news",
- "version": 1,
- "items": [
-  { "text": "OpenSWOS: Sensible World of Soccer on every machine, the Amiga included", "link": "https://openswos.net/" },
-  { "text": "Play online: MULTIPLAYER on the main menu finds you a match", "link": "https://openswos.net/" },
-  { "text": "Mods: OPTIONS -> MODS turns each one on or off", "link": "https://openswos.net/" }
- ]
-}
