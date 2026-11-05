@@ -1701,7 +1701,14 @@ static void pump_events_any_thread(void)
             if (ev.key.repeat == 0 && ev.key.keysym.sym == SDLK_ESCAPE) {
                 extern volatile uintptr_t _currentMenuPtr;
                 extern uint8_t _swosMainMenu[];
-                if (_currentMenuPtr == (uintptr_t)_swosMainMenu) {
+                extern volatile uint16_t _playGame, _playHighlightFlag;
+                extern int32_t GameLoop_Active(void);
+                /* A match a mod plays from a main-menu entry (MODES, a challenge, the
+                 * practice) runs inside the menu's callback, so the pointer still names
+                 * the main menu all through it: ESC must reach the match (and its
+                 * loading and exit) there (the5ar, af534dca). */
+                if (_currentMenuPtr == (uintptr_t)_swosMainMenu &&
+                    !_playGame && !_playHighlightFlag && !GameLoop_Active()) {
                     Platform_RequestQuit();
                     if (s_window) SDL_HideWindow(s_window);
                     AudioSDL_PauseAndClear();
