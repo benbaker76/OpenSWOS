@@ -5,7 +5,7 @@
   "dos_redraw": true
  },
  "onInit": "teamPacksMenu_OnInit",
- "onReturn": null,
+ "onReturn": "teamPacksMenu_OnInit",
  "onDraw": "teamPacksMenu_OnDraw",
  "defaultEntry": 2,
  "items": [

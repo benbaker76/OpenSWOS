@@ -5,7 +5,7 @@
   "dos_redraw": true
  },
  "onInit": "modPageMenu_OnInit",
- "onReturn": null,
+ "onReturn": "modPageMenu_OnInit",
  "onDraw": "modPageMenu_OnDraw",
  "defaultEntry": 3,
  "items": [

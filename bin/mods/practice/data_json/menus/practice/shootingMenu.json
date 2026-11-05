@@ -5,7 +5,7 @@
   "dos_redraw": true
  },
  "onInit": "practice.shootingInit",
- "onReturn": null,
+ "onReturn": "practice.shootingInit",
  "onDraw": "practice.shootingDraw",
  "defaultEntry": 3,
  "items": [

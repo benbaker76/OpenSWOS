@@ -5,7 +5,7 @@
   "dos_redraw": true
  },
  "onInit": "speedrun.resultInit",
- "onReturn": null,
+ "onReturn": "speedrun.resultInit",
  "onDraw": "speedrun.resultDraw",
  "defaultEntry": 3,
  "items": [
