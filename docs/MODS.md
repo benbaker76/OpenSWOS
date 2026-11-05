@@ -790,3 +790,14 @@ compile its own `online_account.c` (`PROJECT_ACCOUNTS`, which still works and tu
 check, the web pages, RANKINGS / LEAGUES / MATCH LOGS / RANKED, OPEN's mode, the lobby's calls,
 `matchPlayed`. A field left NULL keeps OpenSWOS's answer (no accounts). The server the player
 typed on the log-in screen still wins over `mmHost` (and a test's `SWOS_MM_HOST` over both).
+
+---
+
+## 26. The rigs play without gameplay mods
+
+The rigs prove the original game, as they do with every tweak off (§4): under `--replay-test`
+(the replay corpus, the rollback and netplay rigs, `check_netplay_compat.sh`), `--srp-resim` and
+`--career-golden`, a canonical mod that is on by default is on only if its `"changes"` is
+`cosmetic` (`Mods_SetRig`, src/mods.c). A mod the run names itself (`--mods=weather`) is still on:
+that is a test asking for it. So a default-on `career` mod (openswos-78's euro36) leaves the
+golden careers as they are.

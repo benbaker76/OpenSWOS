@@ -455,6 +455,8 @@ int Video_ApplyDisplayChange(void)
 static char s_modsArg[256];          /* --mods=, for this run only */
 static int  s_modsArgSet;
 
+static int32_t s_rigRun;      /* --replay-test, --srp-resim, --career-golden (Mods_SetRig) */
+
 int main(int argc, char **argv)
 {
     /* Line-buffer stdout. Every self-test and harness in here reports progress
@@ -744,6 +746,7 @@ int main(int argc, char **argv)
             snprintf(opts.dos_dir, sizeof opts.dos_dir, "%s", v);
         } else if ((v = match_kv(a, "replay-test")) != NULL) {
             replay_file = v;
+            s_rigRun = 1;
         } else if ((v = match_kv(a, "replay-level")) != NULL) {
             replay_level = v;
         } else if ((v = match_kv(a, "replay-width")) != NULL) {
@@ -780,6 +783,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "--srp-resim needs a .SRP file\n");
                 return 1;
             }
+            s_rigRun = 1;
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if (strcmp(a, "--replay-window") == 0) {
             replay_window = 1;
@@ -1000,6 +1004,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Invalid argument: %s\n", a);
                 return 1;
             }
+            s_rigRun = 1;
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if (strncmp(a, "--rollback", 10) == 0) {
             if (Rollback_ParseArg(a) != 1) {
@@ -1332,6 +1337,7 @@ int main(int argc, char **argv)
      * Before anything reads the game's data -- translations included, which a mod may carry. */
     {
         const char *env = getenv("SWOS_MODS_ENABLED");
+        Mods_SetRig(s_rigRun);      /* (a rig proves the original: the gameplay mods stay off) */
         Mods_Init(s_modsArgSet ? s_modsArg : env ? env : opts.mods, opts.mods_disabled);
     }
     /* The built-in mods that are on, set up (include/mod_api.h ModDef.init): their entries and
