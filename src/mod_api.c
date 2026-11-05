@@ -3,6 +3,7 @@
  * place a mod's questions meet the game's globals.
  */
 #include "mod_api.h"
+#include "tweaks.h"      /* ModApi_SetTweak */
 
 #ifdef SWOS_SDL_BUILD
 
@@ -215,6 +216,12 @@ int32_t ModApi_SettingInt(const char *slug, const char *key, int32_t fallback)
     if (SDL_strcasecmp(st->value, "false") == 0 || SDL_strcasecmp(st->value, "off") == 0)
         return 0;
     return (int32_t)strtol(st->value, NULL, 10);
+}
+
+int32_t ModApi_SetTweak(const char *slug, const char *key, int32_t on)
+{
+    const uint32_t bit = Tweaks_Bit(key);
+    return bit ? Tweaks_SetByMod(bit, on, slug) : 1;
 }
 
 /* SWOS.ini rewritten with the key's line in the mod's section (added when it has none). */

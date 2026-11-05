@@ -314,14 +314,10 @@ static int handler(void *user, const char *section,
         else if (eqi(name, "disabled"))
             snprintf(opts->mods_disabled, sizeof opts->mods_disabled, "%s", value ? value : "");
     } else if (eqi(section, "tweaks")) {
-        static const struct { const char *key; uint32_t bit; } kTweaks[] = {
-            { "cpu_cards", TWEAK_CPU_CARDS }, { "no_teammate_tackles", TWEAK_NO_TEAMMATE_TACKLES },
-            { "tackle_controlled_player", TWEAK_TACKLE_CONTROLLED_PLAYER },
-        };
+        const uint32_t bit = Tweaks_Bit(name);
         int b;
-        for (uint32_t i = 0; i < sizeof kTweaks / sizeof kTweaks[0]; i++)
-            if (eqi(name, kTweaks[i].key) && parse_bool(value, &b))
-                opts->tweaks = b ? (opts->tweaks | kTweaks[i].bit) : (opts->tweaks & ~kTweaks[i].bit);
+        if (bit && parse_bool(value, &b))
+            opts->tweaks = b ? (opts->tweaks | bit) : (opts->tweaks & ~bit);
     }
     /* Return nonzero on success, even for ignored keys — we don't want
      * inih to flag unknown sections as parse errors. */

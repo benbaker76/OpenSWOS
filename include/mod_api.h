@@ -259,6 +259,15 @@ const char *ModApi_Setting(const char *slug, const char *key, const char *fallba
 int32_t     ModApi_SettingInt(const char *slug, const char *key, int32_t fallback);  /* (on/true 1, off/false 0) */
 int32_t     ModApi_SetSetting(const char *slug, const char *key, const char *value);
 
+/* ---- switching a tweak: [tweaks] keys (docs/MODS.md §4) ----
+ * Switches the game's own tweak `key` ("cpu_cards", ...) on or off for as long as the game
+ * runs; never written to SWOS.ini, so the player's own setting is back when the mod is off.
+ * Only an offline-only tweak: online, and under the rigs, it is off whatever a mod says. Call
+ * it from init (before the menus) and again whenever the mod's own setting for it changes
+ * -- matchStart is a good place, as a setting is seen at once. 0 = done, 1 = no such tweak
+ * or not a mod's to switch. */
+int32_t     ModApi_SetTweak(const char *slug, const char *key, int32_t on);
+
 /* ---- its save data: the save folder's mods/<slug>/<name> ----
  * A mod's records (a challenge's stars, a speedrun's times): named fields -- JSON or text --
  * never memory dumps (CLAUDE.md). Saved as the game saves (durable on the web and the Switch).

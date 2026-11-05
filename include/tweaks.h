@@ -28,8 +28,20 @@ enum {
 void    Tweaks_Set(uint32_t mask);
 uint32_t Tweaks_Mask(void);
 
+/* A tweak by its [tweaks] key ("cpu_cards"), or 0 when there is none of that name. */
+uint32_t Tweaks_Bit(const char *key);
+
+/* A tweak a MOD switched on or off (ModApi_SetTweak; docs/MODS.md §4): kept apart from the
+ * player's own, so the mod being off leaves the player's setting as it was. Only an
+ * OFFLINE-ONLY tweak may be switched by a mod -- today every tweak is (Tweaks_On is 0 online).
+ * `who` names the mod for the OPTIONS row and the log. 0 = done, 1 = no such tweak / not a
+ * mod's to switch. */
+int32_t Tweaks_SetByMod(uint32_t tweak, int32_t on, const char *who);
+/* The mod that switched `tweak` on, or NULL (the player's, or off). */
+const char *Tweaks_ByMod(uint32_t tweak);
+
 #if SWOS_TWEAKS
-/* Whether `tweak` is on now: set in SWOS.ini, and not online or under a rig. */
+/* Whether `tweak` is on now: set in SWOS.ini or by a mod, and not online or under a rig. */
 int32_t Tweaks_On(uint32_t tweak);
 #else
 #define Tweaks_On(tweak) 0

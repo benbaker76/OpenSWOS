@@ -101,8 +101,9 @@ AI substitutes its injured players".** The rules:
 
 1. **The tweak is the game's, not the mod's.** It is an ordinary `[tweaks]` key, built in, off
    by default. A mod cannot add one or change what one does; it can only switch on one that
-   is marked OFFLINE-ONLY, through one call (`ModApi_SetTweak`, to be written with the first
-   two). A tweak that is match rules online is never a mod's to switch.
+   is marked OFFLINE-ONLY, through one call, `ModApi_SetTweak(slug, "cpu_cards", 1)` (`src/tweaks.c`
+   keeps a mod's switches apart from the player's, and which mod made each; callable from
+   `init`). A tweak that is match rules online is never a mod's to switch (`byMod` 0).
 2. **Online always wins.** A match against another player plays without it, whatever a mod or
    SWOS.ini says; so do the rigs and the golden careers. The mod stays a `career` (or `modes`)
    mod: it never has to be alike in both games.
