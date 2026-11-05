@@ -632,3 +632,11 @@ New in the engine for it: a start in the SECOND half (the map's G2: minute 46-89
 list (its locks) and a challenge's screen drawn; check_netplay_compat.sh unchanged. Not yet: golden
 and silver goal, a starting event (G6), extra-time minutes, SWOS 2020's own challenges as a DLC pack.
 
+## 19. Team packs (2026-11-04)
+
+Teams a mod brings: `data_json/teampacks/*.json` in the database's team format, numbers 210-249,
+made with `scripts/make_team_pack.py` (docs/TEAM_IDS.md §6). Engine, not a mod ("able to do
+more"): one lookup in the country-file search (`src/team_packs.c`), after which the team database,
+the matches and the online rule take them as the database's. A pack mod is `"changes": "data"`.
+SWOS United's fun cup is the first user.
+

@@ -3096,8 +3096,16 @@ static char *dj_slurp_country_teams(int countryNum, char *team_file, int team_fi
         snprintf(wpath, sizeof wpath, "data_json/worlds/%s/%s", World_Tag(), team_file);
         return dj_slurp(wpath, out_len);
     }
-    if (!team_file[0])
+    if (!team_file[0]) {
+        /* A team pack's number (include/team_packs.h): a mod's teams, in their own file. */
+        extern const char *TeamPacks_File(int country);
+        const char *pack = TeamPacks_File(countryNum);
+        if (pack) {
+            snprintf(team_file, team_file_size, "%s", pack + 10);   /* (past "data_json/", as the others) */
+            return dj_slurp(pack, out_len);
+        }
         return NULL;   /* country not represented in the JSON corpus */
+    }
 
     char path[256], wpath[256];
     snprintf(path, sizeof path, "data_json/%s", team_file);

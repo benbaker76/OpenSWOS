@@ -148,6 +148,13 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
             if (load_team(setup->team[t], t, setup->side[t] == MODSIDE_CPU ? TEAM_COMPUTER : TEAM_PLAYER_COACH) != 0)
                 return -1;
         _numSelectedTeams = 2;
+        if (getenv("SWOS_MOD_MATCH_TEAMS")) {   /* (the test: would the online rule take them?) */
+            extern int32_t CustomTeam_Allowed(const TeamFileEx *team);
+            for (int32_t t = 0; t < 2; t++)
+                fprintf(stderr, "[mods] team %04x %.16s: online rule %s\n", (unsigned)setup->team[t],
+                        (const char *)_selectedTeams[t].team.teamName,
+                        CustomTeam_Allowed(&_selectedTeams[t]) ? "accepts it" : "REFUSES it");
+        }
     }
 
     /* the friendly's own settings, kept to be put back: the mod's match is not the player's */
@@ -570,6 +577,13 @@ static void play_test_match(int32_t thenQuit)
     ModApi_DefaultSetup(&setup);
     setup.team[0] = 0x5020;                 /* Norway */
     setup.team[1] = 0x5502;                 /* New Zealand */
+    {   /* (SWOS_MOD_MATCH_TEAMS=<hex id>,<hex id>: others -- a team pack's, say) */
+        const char *t = getenv("SWOS_MOD_MATCH_TEAMS");
+        if (t && strchr(t, ',')) {
+            setup.team[0] = (uint16_t)strtoul(t, NULL, 16);
+            setup.team[1] = (uint16_t)strtoul(strchr(t, ',') + 1, NULL, 16);
+        }
+    }
     setup.score[0] = 2;
     setup.score[1] = 1;
     setup.minute = 40;
