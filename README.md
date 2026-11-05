@@ -1,3 +1,16 @@
+# Career+ is now an OpenSWOS mod
+
+Career+ no longer changes the game itself: it is one mod, **Career+** (`bin/mods/careerplus`,
+`src/mod_careerplus*.c`), on OpenSWOS's mod hooks. With it off, this is OpenSWOS exactly; with
+it on, every feature below is there.
+
+- **To play it:** OPTIONS → MODS → Career+ on (or `enabled = careerplus` under `[mods]` in
+  SWOS.ini), then start a new career. A career started with Career+ needs it on to load.
+- **Its settings** (on its page in MODS): computer players sent off, more fouls, the computer
+  replacing injured players, retirements, and AI clubs trading players -- all on by default.
+  Online matches always play the standard rules.
+- How it was converted, and where it differs from the fork: `docs/mods/CAREER_PLUS.md`.
+
 # Version 2
 
 - **Player age and aging:** All players now have age, and they age as the career progresses. I have tried to find accurate age for the majority of players in the database!
