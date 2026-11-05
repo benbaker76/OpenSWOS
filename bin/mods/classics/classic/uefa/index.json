@@ -1,0 +1,78 @@
+{
+ "format": "openswos-classics-index",
+ "version": 1,
+ "competitions": [
+  {
+   "file": "EC1960.DIY",
+   "name": "UEFA EURO 1960"
+  },
+  {
+   "file": "EC1964.DIY",
+   "name": "UEFA EURO 1964"
+  },
+  {
+   "file": "EC1968.DIY",
+   "name": "UEFA EURO 1968"
+  },
+  {
+   "file": "EC1972.DIY",
+   "name": "UEFA EURO 1972"
+  },
+  {
+   "file": "EC1976.DIY",
+   "name": "UEFA EURO 1976"
+  },
+  {
+   "file": "EC1980.DIY",
+   "name": "UEFA EURO 1980"
+  },
+  {
+   "file": "EC1984.DIY",
+   "name": "UEFA EURO 1984"
+  },
+  {
+   "file": "EC1988.DIY",
+   "name": "UEFA EURO 1988"
+  },
+  {
+   "file": "EC1992.DIY",
+   "name": "UEFA EURO 1992"
+  },
+  {
+   "file": "EC1996.DIY",
+   "name": "UEFA EURO 1996"
+  },
+  {
+   "file": "EC2000.DIY",
+   "name": "UEFA EURO 2000"
+  },
+  {
+   "file": "EC2004.DIY",
+   "name": "UEFA EURO 2004"
+  },
+  {
+   "file": "EC2008.DIY",
+   "name": "UEFA EURO 2008"
+  },
+  {
+   "file": "EC2012.DIY",
+   "name": "UEFA EURO 2012"
+  },
+  {
+   "file": "EC2016.DIY",
+   "name": "UEFA EURO 2016"
+  },
+  {
+   "file": "EC2020.DIY",
+   "name": "UEFA EURO 2020"
+  },
+  {
+   "file": "EC2024.DIY",
+   "name": "UEFA EURO 2024"
+  },
+  {
+   "file": "WE2022.DIY",
+   "name": "UEFA EURO 2022"
+  }
+ ]
+}

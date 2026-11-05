@@ -1,0 +1,94 @@
+{
+ "format": "openswos-classics-index",
+ "version": 1,
+ "competitions": [
+  {
+   "file": "WC1930.DIY",
+   "name": "1930 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1934.DIY",
+   "name": "1934 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1938.DIY",
+   "name": "1938 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1950.DIY",
+   "name": "1950 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1954.DIY",
+   "name": "1954 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1958.DIY",
+   "name": "1958 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1962.DIY",
+   "name": "1962 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1966.DIY",
+   "name": "1966 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1970.DIY",
+   "name": "1970 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1974.DIY",
+   "name": "1974 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1978.DIY",
+   "name": "1978 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1982.DIY",
+   "name": "1982 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1986.DIY",
+   "name": "1986 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1990.DIY",
+   "name": "1990 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1994.DIY",
+   "name": "1994 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC1998.DIY",
+   "name": "1998 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC2002.DIY",
+   "name": "2002 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC2006.DIY",
+   "name": "2006 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC2010.DIY",
+   "name": "2010 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC2014.DIY",
+   "name": "2014 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC2018.DIY",
+   "name": "2018 FIFA WORLD CUP"
+  },
+  {
+   "file": "WC2026.DIY",
+   "name": "2026 FIFA WORLD CUP"
+  }
+ ]
+}

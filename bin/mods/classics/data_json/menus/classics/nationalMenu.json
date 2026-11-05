@@ -77,7 +77,7 @@
      "left": -1,
      "right": -1,
      "up": 1,
-     "down": 3
+     "down": 4
     },
     {
      "op": "colors",
@@ -108,7 +108,7 @@
      "op": "nav",
      "left": -1,
      "right": -1,
-     "up": 2,
+     "up": 4,
      "down": -1
     },
     {
@@ -124,6 +124,38 @@
     {
      "op": "onselect_fire",
      "func": "SetExitMenuFlag"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 76,
+    "y": 108,
+    "w": -88,
+    "h": 16
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 2,
+     "down": 3
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 11
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "CONTINENTAL CUPS"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "classics.pickContinental"
     }
    ]
   }

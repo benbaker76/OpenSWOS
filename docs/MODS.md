@@ -690,13 +690,18 @@ petarku's PR #11 (HISTORIC TOURNAMENTS, by the5ar) as a canonical mod, `classics
   `SetMenuEntryRect`, `ModApi_MenuNav4`, `ModApi_MenuColour`, `ModApi_MenuDisabled`,
   `ModApi_MenuRedraw`, `ModApi_ShowError`, `ModApi_ListFiles`, `ModApi_AssetsDir`,
   `ModApi_CompetitionFileName`, `ModApi_EntryLabel`.
-- **The cups are never in the repo.** The mod reads `classic/{uefa,worldcup,club}/*.DIY` from the
-  player's assets folder first, then its own folder (`mods/classics/classic/`, .gitignored). With
-  none, it adds no row. Its menus are the fork's, as the mod's JSON (`classics.<name>` handlers,
+- **The cups (2026-11-05: in the mod).** Insane's SWOS 2020 tournaments, with permission: every
+  World Cup (1930-2026) and Euro (1960-2024, and the 2022 Women's Euro), the 2021 Africa Cup of
+  Nations, Gold Cup and Copa America, and the 1991-96 European Cups and Champions Leagues. They
+  are JSON .DIY (`--convert-diy` of the SWOS 2020 files), in `mods/classics/classic/{uefa,
+  worldcup,continental,club}/`, each group with an `index.json` of names
+  (`scripts/make_classics_index.py`, `--check`) so a list is shown without reading every file.
+  The player's assets folder (`classic/`) is still read first; a file of the same name there
+  wins. CONTINENTAL CUPS is a fourth button under NATIONAL. With no cups at all, no row. Its menus are the fork's, as the mod's JSON (`classics.<name>` handlers,
   literals for the fork's strings).
-- **SDL only for now.** The mod API is SDL's; on the Amiga the fork's compiled menus are not
-  taken. The engine pieces the Amiga needs are in (the JSON .DIY reader, `Resload_ListDir` over
-  the mods, `fix_filename`); a mod API on the Amiga is its own step.
+- **On the Amiga too** (§30): the same JSON .DIY, read by the save format's reader, so the PC
+  game's binary .DIY reader never runs there. Loading one takes about 2 s (16 teams) to 5 s (48)
+  on an A1200.
 - Checked through the real menus (key script + captures): the row, CLUB's list, a SWOS 2020 cup's
   teams, a toggle (COMPUTER -> PLAYER-COACH), PLAY starting the league; the PC game's 14-team
   CANADA ROGERS CUP in three columns.
@@ -930,12 +935,9 @@ both targets. Run-time loading of mod code (LoadSeg, a script language) is still
 and `MOD_SDL` until then; its `mod.json` `"targets"` then includes `"amiga"`, which OpenSWOS Setup
 reads to copy it into an Amiga drawer and list it in `data/MODS`. Ported: **practice**, **euro36**,
 **speedrun**, **challenges** (and the data mod **challenge-collection**: its files carry each team's
-number, `"team": "5017"`, beside the uuid, and the editor writes it too). Not yet, each for a reason
+number, `"team": "5017"`, beside the uuid, and the editor writes it too), **classics** (its cups as
+JSON .DIY in the mod, checked below). Not yet, each for a reason
 of its own:
-- **classics**: three of its four `.DIY` files are the PC game's binary format, which only the SDL
-  build reads (`src/diy_import_dos.c`), and the SWOS 2020 ones come from the assets folder, which an
-  Amiga drawer has none of. Its biggest menu (30 KB of JSON) would also take about four seconds to
-  build there.
 - **hair** and **weather**: they draw pixels, and `ModApi_Frame` is the SDL build's chunky frame
   (a byte a pixel). The Amiga's screen is bitplanes, so a mod that draws needs a drawing API that
   knows them (and `ModApi_PaletteColour` from the copper list) -- its own piece of design. The rain
@@ -950,7 +952,12 @@ Checked (FS-UAE, A1200, `data/MODS` = practice): MODES on the main menu, its scr
 menu from the mod's folder, a DEMO GAME (a mod's match, CPU against CPU) played to its end and
 back to the practice menu, and TEAM TRAINING's menu; SPEEDRUN's screen and its records saved and read
 back; CHALLENGES' list from both mods' folders, HOLD ON's page, and its match kicking off at 70
-minutes, Italy 1-0 Brazil. On SDL the mod tests are unchanged
+minutes, Italy 1-0 Brazil; HISTORIC TOURNAMENTS from PRESET COMPETITION, its WORLD CUP list (22, from
+the index), the 1966 World Cup's 16 teams and its four groups as they were. **The data checked in
+memory:** the 1966 and 2026 World Cups loaded on the Amiga (ModApi_LoadCompetition from gdb) and
+written back with SaveJson_WriteDIY equal the same done on SDL in every named field; the only
+differences are the raw blobs' host byte order (the named fields correct them on load) and
+`major_trophy_bonus_value`, two bytes read as one host word (the same bytes on both). On SDL the mod tests are unchanged
 (`SWOS_MOD_MATCH_TEST=1`, `shootout`, `speedrun:0/3`, `SWOS_SHOOTING_TEST`), and so are the golden
 careers and `check_netplay_compat.sh`.
 

@@ -1,11 +1,15 @@
 /*
  * mod_classics.c -- HISTORIC TOURNAMENTS: famous tournaments, played like a preset competition
- * (bin/mods/classics; by petarku / the5ar, PR #11, made a mod: docs/MODS.md §20). SDL builds.
+ * (bin/mods/classics; by petarku / the5ar, PR #11, made a mod: docs/MODS.md §20). Both targets.
  *
  * Each one is a .DIY kept by group in a classic/ folder -- the player's assets folder first
  * (<assets>/classic/{uefa,worldcup,club}/: SWOS 2020's own cups, which the player copies from
  * their install), then the mod's own folder (mods/classics/classic/...). A file is the PC
- * game's or SWOS 2020's .DIY, or this game's JSON .DIY. None is in this repository.
+ * game's or SWOS 2020's .DIY, or this game's JSON .DIY. The mod's own are Insane's SWOS 2020
+ * tournaments (every World Cup and Euro, three continental cups, the 1990s European Cups), as
+ * JSON .DIY (made with --convert-diy), with each group's names in an index.json
+ * (scripts/make_classics_index.py), so a list is shown without reading every file -- on the
+ * Amiga that is seconds a list. The Amiga has no assets folder: it plays the mod's.
  *
  * The row is the game's: MODPOINT_COMPETITIONS, above WORLD CUP in PRESET COMPETITION's world
  * list (src/mod_comps.c). From it: NATIONAL (EURO, WORLD CUP) or CLUB, a group's list by year,
@@ -14,9 +18,10 @@
  */
 #include "mod_api.h"
 
-#ifdef SWOS_SDL_BUILD
+#include "mjson.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define SLUG "classics"
@@ -31,9 +36,9 @@ enum { Teams_header, Teams_hint, Teams_first, kTeamSlots = 64,
 enum { kComputerColour = 10, kPlayerCoachColour = 11, kCoachColour = 13 };   /* the friendly list's */
 enum { kNameLen = 36, kFileLen = 64, kRoots = 2 };
 
-enum { kGroupUefa, kGroupWorldCup, kGroupClub, kGroups };
-static const char *const k_groupDirs[kGroups]   = { "uefa", "worldcup", "club" };
-static const char *const k_groupTitles[kGroups] = { "EURO", "WORLD CUP", "CLUB" };
+enum { kGroupUefa, kGroupWorldCup, kGroupClub, kGroupContinental, kGroups };
+static const char *const k_groupDirs[kGroups]   = { "uefa", "worldcup", "club", "continental" };
+static const char *const k_groupTitles[kGroups] = { "EURO", "WORLD CUP", "CLUB", "CONTINENTAL CUPS" };
 
 static struct {
     int32_t kind;                       /* 0 NATIONAL, 1 CLUB, -1 EXIT */
@@ -118,12 +123,45 @@ static int32_t add_file(const char *file, void *vctx)
     return 0;
 }
 
+/* A folder's index.json (scripts/make_classics_index.py): its competitions, named, without
+ * opening them. 1 when there was one. */
+static int32_t add_from_index(int32_t root, int32_t group)
+{
+    char path[1280], q[48], file[kFileLen];
+    uint32_t size = 0;
+    if (!classic_path(path, sizeof path, root, group, "index.json"))
+        return 0;
+    char *json = (char *)ModApi_ReadFile(path, &size);
+    if (!json)
+        return 0;
+    for (int32_t i = 0; s.count < kListRows; i++) {
+        snprintf(q, sizeof q, "$.competitions[%d].file", (int)i);
+        if (mjson_get_string(json, (int)size, q, file, (int)sizeof file) <= 0)
+            break;
+        int32_t dup = 0;
+        for (int32_t k = 0; k < s.count && !dup; k++)   /* (the same file in an earlier root wins) */
+            dup = same_name_nocase(s.file[k], file);
+        if (dup || !has_diy_extension(file))
+            continue;
+        snprintf(q, sizeof q, "$.competitions[%d].name", (int)i);
+        if (mjson_get_string(json, (int)size, q, s.name[s.count], kNameLen) <= 0)
+            continue;
+        snprintf(s.file[s.count], kFileLen, "%s", file);
+        s.root[s.count] = (int8_t)root;
+        s.count++;
+    }
+    free(json);
+    return 1;
+}
+
 static int32_t scan_group(int32_t group)
 {
     char dir[1280];
     s.count = 0;
     for (int32_t root = 0; root < kRoots; root++) {
         ScanCtx ctx = { root, group };
+        if (add_from_index(root, group))
+            continue;
         if (classic_path(dir, sizeof dir, root, group, NULL))
             ModApi_ListFiles(dir, add_file, &ctx);
     }
@@ -148,6 +186,7 @@ static void pickNational(void) { s.kind = 0; SetExitMenuFlag(); }
 static void pickClub(void)     { s.kind = 1; SetExitMenuFlag(); }
 static void pickUefa(void)     { s.group = kGroupUefa; SetExitMenuFlag(); }
 static void pickWorldCup(void) { s.group = kGroupWorldCup; SetExitMenuFlag(); }
+static void pickContinental(void) { s.group = kGroupContinental; SetExitMenuFlag(); }
 
 /* The list's buttons are a column at a time, 16 and 16. A list that needs both columns fills
  * them a row at a time, left then right, so the two end level; one that fits the first keeps it. */
@@ -350,19 +389,36 @@ static void open_classics(void)
 static const ModHandler kHandlers[] = {
     { "pickNational", pickNational }, { "pickClub", pickClub },
     { "pickUefa", pickUefa },         { "pickWorldCup", pickWorldCup },
+    { "pickContinental", pickContinental },
     { "listInit", listInit },         { "pickCompetition", pickCompetition },
     { "teamsInit", teamsInit },       { "toggleTeam", toggleTeam },
     { "play", play },
 };
 
+/* (ModApi_ListFiles' callback: whether a .DIY is there -- nothing is read; it stops at the first) */
+static int32_t any_diy_count(const char *file, void *ctx)
+{
+    if (!has_diy_extension(file))
+        return 0;
+    *(int32_t *)ctx = 1;
+    return 1;
+}
+
 static void classics_init(void)
 {
     int32_t any = 0;
     for (int32_t g = 0; g < kGroups && !any; g++)
-        any = scan_group(g) > 0;
+        for (int32_t root = 0; root < kRoots && !any; root++) {
+            char dir[1280];
+            int32_t found = 0;
+            if (classic_path(dir, sizeof dir, root, g, NULL)) {
+                ModApi_ListFiles(dir, any_diy_count, &found);
+                any = found;
+            }
+        }
     s.count = 0;
     ModApi_RegisterHandlers(SLUG, kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
-    /* The row only when there is something to play: none of the files is in this repository. */
+    /* The row only when there is something to play (a fork may ship the mod without the cups). */
     if (any)
         ModApi_AddEntry(MODPOINT_COMPETITIONS, SLUG, "historic tournaments", open_classics);
     else
@@ -373,5 +429,3 @@ const ModDef ModDef_classics = {
     .slug = SLUG,
     .init = classics_init,
 };
-
-#endif /* SWOS_SDL_BUILD */

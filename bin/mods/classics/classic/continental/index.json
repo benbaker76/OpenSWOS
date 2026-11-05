@@ -1,0 +1,18 @@
+{
+ "format": "openswos-classics-index",
+ "version": 1,
+ "competitions": [
+  {
+   "file": "AC2021.DIY",
+   "name": "CAF AFCON 2021"
+  },
+  {
+   "file": "CA2021.DIY",
+   "name": "2021 COPA AMERICA"
+  },
+  {
+   "file": "GC2021.DIY",
+   "name": "2021 CONCACAF GOLD CUP"
+  }
+ ]
+}

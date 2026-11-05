@@ -1,0 +1,30 @@
+{
+ "format": "openswos-classics-index",
+ "version": 1,
+ "competitions": [
+  {
+   "file": "CL1992.DIY",
+   "name": "CHAMPIONS LEAGUE 1992 93"
+  },
+  {
+   "file": "CL1993.DIY",
+   "name": "CHAMPIONS LEAGUE 1993 94"
+  },
+  {
+   "file": "CL1994.DIY",
+   "name": "CHAMPIONS LEAGUE 1994 95"
+  },
+  {
+   "file": "CL1995.DIY",
+   "name": "CHAMPIONS LEAGUE 1995 96"
+  },
+  {
+   "file": "FIFA95.DIY",
+   "name": "FIFA SOCCER 95"
+  },
+  {
+   "file": "UC1991.DIY",
+   "name": "EUROPEAN CUP 1991 92"
+  }
+ ]
+}

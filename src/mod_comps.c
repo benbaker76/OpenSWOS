@@ -114,6 +114,19 @@ static int32_t read_file(const char *path, uint8_t **data, uint32_t *size)
 }
 #endif
 
+void *ModApi_ReadFile(const char *path, uint32_t *size)
+{
+    uint8_t *data = NULL;
+    uint32_t n = 0;
+    if (size)
+        *size = 0;
+    if (!path || read_file(path, &data, &n) != 0)
+        return NULL;
+    if (size)
+        *size = n;
+    return data;
+}
+
 int32_t ModApi_CompetitionFileName(const char *path, char *out, int32_t cap)
 {
     uint8_t *data = NULL;

@@ -274,6 +274,9 @@ const char *ModApi_AssetsDir(void);
  * MODPOINT_AFTER_MATCH or later. 1 when there is one. */
 int32_t ModApi_LatestReplay(char *out, int32_t cap);
 int32_t ModApi_ListFiles(const char *dir, int32_t (*each)(const char *name, void *ctx), void *ctx);
+/* A whole file by its path (as ModApi_ListFiles' folders are named), NUL-terminated; free() it.
+ * NULL when it cannot be read. */
+void *ModApi_ReadFile(const char *path, uint32_t *size);
 
 /* ---- competitions from mods (MODPOINT_COMPETITIONS; docs/MODS.md §20) ----
  * A .DIY a mod brings, played as a preset competition: STARTED, not resumed. The flow: the
