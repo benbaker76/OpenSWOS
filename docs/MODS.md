@@ -722,3 +722,9 @@ SWOS2.s first (§4); not done.
 Self-tests: `SWOS_MOD_MATCH_TEST=hooks` (2-1 at 40', a corner start, no clock, three preloaded
 scorers, pitch 3; seen on screen: the corner, the lists `[mods] scorer list`) and `=order` (a
 shoot-out by slots 1..10, logged per kick).
+
+The challenges format (`openswos-challenges`, §18) reads them, each optional: `"pitch_type"` 0..6,
+`"pitch_number"` 1..6, `"restart": {"kind": "kick_off"|"corner"|"free_kick"|"penalty", "team",
+"wing", "x", "y"}` and `"scorers": [{"team", "shirt", "minute", "penalty"}]` (up to 8). Checked
+with openswos-78's collection pack: hold-your-nerve starts on Malta's corner at 80' with Italy's
+#9 in the scorer list (35').

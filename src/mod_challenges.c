@@ -53,6 +53,11 @@ typedef struct {
     uint8_t  win, extraTime, penalties, length;
     int16_t  minute;
     uint32_t sentOff[2];
+    int8_t   pitchType;                 /* -1 the game's */
+    uint8_t  pitchNumber;               /* 0 the game's */
+    uint8_t  restartKind, restartTeam, restartWing;
+    int16_t  restartX, restartY;
+    struct { int8_t team; uint8_t shirt, minute, penalty; } scorers[8];
     /* progress */
     uint8_t  completed;
     uint32_t attempts;
@@ -143,6 +148,35 @@ static void read_file(const char *path)
         b = 0;
         snprintf(q, sizeof q, "$.challenges[%d].penalties", (int)i);
         c->penalties = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        /* where it starts (H6, H7): the pitch, the break, who has scored */
+        c->pitchType = (int8_t)NUM("pitch_type", -1);
+        c->pitchNumber = (uint8_t)NUM("pitch_number", 0);
+        {
+            char kind[16] = "";
+            snprintf(q, sizeof q, "$.challenges[%d].restart.kind", (int)i);
+            mjson_get_string(json, len, q, kind, (int)sizeof kind);
+            c->restartKind = !strcmp(kind, "corner") ? MODRESTART_CORNER
+                           : !strcmp(kind, "free_kick") ? MODRESTART_FREE_KICK
+                           : !strcmp(kind, "penalty") ? MODRESTART_PENALTY : MODRESTART_KICK_OFF;
+            c->restartTeam = (uint8_t)(NUM("restart.team", 0) ? 1 : 0);
+            c->restartWing = (uint8_t)(NUM("restart.wing", 0) ? 1 : 0);
+            c->restartX = (int16_t)NUM("restart.x", 336);
+            c->restartY = (int16_t)NUM("restart.y", 449);
+        }
+        for (int32_t k = 0; k < 8; k++) {
+            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].team", (int)i, (int)k);
+            const int32_t team = number(json, len, q, -1);
+            c->scorers[k].team = (int8_t)(team == 0 || team == 1 ? team : -1);
+            if (c->scorers[k].team < 0)
+                continue;
+            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].shirt", (int)i, (int)k);
+            c->scorers[k].shirt = (uint8_t)number(json, len, q, 0);
+            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].minute", (int)i, (int)k);
+            c->scorers[k].minute = (uint8_t)number(json, len, q, 0);
+            b = 0;
+            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].penalty", (int)i, (int)k);
+            c->scorers[k].penalty = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        }
         snprintf(q, sizeof q, "$.challenges[%d].win", (int)i);
         mjson_get_string(json, len, q, w, (int)sizeof w);
         c->win = !strcmp(w, "draw") ? W_DRAW : !strcmp(w, "exact") ? W_EXACT : W_WIN;
@@ -274,6 +308,19 @@ static void play(int32_t i)
         setup.replayMenu = 0;
         setup.stadium = !s_test;
         setup.name = "challenge";
+        setup.pitchType = c->pitchType;
+        setup.pitchNumber = c->pitchNumber;
+        setup.restart.kind = c->restartKind;
+        setup.restart.team = c->restartTeam;
+        setup.restart.wing = c->restartWing;
+        setup.restart.x = c->restartX;
+        setup.restart.y = c->restartY;
+        for (int32_t k = 0; k < 8; k++) {
+            setup.scorers[k].team = c->scorers[k].team;
+            setup.scorers[k].shirt = c->scorers[k].shirt;
+            setup.scorers[k].minute = c->scorers[k].minute;
+            setup.scorers[k].penalty = c->scorers[k].penalty;
+        }
         if (ModApi_PlayMatch("challenges", &setup, &r) != 0)
             return;
         c->attempts++;
