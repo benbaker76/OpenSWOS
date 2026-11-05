@@ -37,6 +37,24 @@
     "off"
    ],
    "default": "on"
+  },
+  {
+   "key": "retirements",
+   "label": "Players retire (35 and over)",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "ai_transfers",
+   "label": "Computer clubs trade players",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
   }
  ]
 }

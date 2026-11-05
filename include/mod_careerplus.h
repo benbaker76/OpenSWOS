@@ -65,6 +65,7 @@ void     CP_Ages_Created(const struct ModPlayerCreated *created);
 void     CP_Ages_SeasonEnd(void);           /* everyone a year older */
 void     CP_Ages_Retire(uint16_t season);   /* the CP_World clubs read already */
 int32_t  CP_News_Count(void);
+void     CP_News_Clear(void);
 int32_t  CP_News_Season(void);
 const char *CP_News_Line(int32_t i, uint8_t *age, uint8_t *position);
 

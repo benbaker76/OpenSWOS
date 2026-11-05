@@ -133,8 +133,12 @@ static void cp_careerSeasonEnd(uint16_t season)
     if (CP_World_Read() < 0)
         return;
     CP_Ages_SeasonEnd();
-    CP_Ages_Retire(season);
-    CP_AI_Batch();
+    if (ModApi_SettingInt(CP_SLUG, "retirements", 1))
+        CP_Ages_Retire(season);
+    else
+        CP_News_Clear();            /* (no news from a season before) */
+    if (ModApi_SettingInt(CP_SLUG, "ai_transfers", 1))
+        CP_AI_Batch();
     CP_Search_Fresh();      /* (CP_World changed as the career did) */
 }
 

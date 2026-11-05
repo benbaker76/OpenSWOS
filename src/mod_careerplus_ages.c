@@ -227,6 +227,7 @@ static News s_news[kNewsMax];
 static int32_t s_newsCount, s_newsSeason;
 
 int32_t CP_News_Count(void) { return s_newsCount; }
+void CP_News_Clear(void) { s_newsCount = 0; }
 int32_t CP_News_Season(void) { return s_newsSeason; }
 const char *CP_News_Line(int32_t i, uint8_t *age, uint8_t *position)
 {
