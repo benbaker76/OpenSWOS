@@ -36,6 +36,7 @@
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
 #include "translations.h"   /* tr() — localize competition name symbols */
 #include "career_capacity.h"   /* the career lists' original and compiled sizes */
+#include "career_teams.h"      /* the parked selection: "selected_teams_parked" */
 #include "mod_hooks.h"         /* "mods": the career mods' sections (docs/MODS.md §27), SDL builds */
 
 extern uint8_t *_currentCompetitionPtr;
@@ -6592,6 +6593,24 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
     }
     mjson_printf(json_out_emit, &out, "%s", "]");
 
+    /* The selection SaveSelectedTeams parked (RestoreSelectedTeams brings it back): at a season's
+     * hub, the career club's league and the clubs of the European cup it plays in -- which the
+     * season change restores before that cup's update (Career_UpdateEuroCupCompetitionSlot), so a
+     * loaded career without them panicked (VerifyTeamLoaded on the cup's first foreign club). Only
+     * when something is parked: a save without has no field. */
+    {
+        uint16_t parked = 0;
+        const TeamFileEx *p = Career_ParkedTeams(&parked);
+        if (parked) {
+            mjson_printf(json_out_emit, &out, ",\n  %Q:[", "selected_teams_parked");
+            for (uint16_t i = 0; i < parked; i++) {
+                if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+                emit_team_file_ex_body(json_out_emit, &out, (uint8_t *)(p + i));
+            }
+            mjson_printf(json_out_emit, &out, "%s", "]");
+        }
+    }
+
     /* TMD team pool — emit only the populated count (= tmd_team_count
      * scalar = uint16 at &careerFileBuffer + 0). Empty trailing slots
      * are reconstructed by careerFileBufferBuf memset on load. */
@@ -7343,6 +7362,24 @@ static void apply_semantic_load(const char *src, int src_size)
                                     (uint8_t *)(_selectedTeams + i));
             i++;
         }
+    }
+    /* The parked selection (the writer's "selected_teams_parked"); a save without it leaves
+     * the parked buffer as it is. */
+    if (mjson_find(src, src_size, "$.selected_teams_parked",
+                   &teams_arr, &teams_arr_len) == MJSON_TOK_ARRAY) {
+        uint16_t room = 0;
+        TeamFileEx *parked = Career_ParkedTeams(&room);
+        int pos = 0, voff, vlen, vt;
+        uint16_t i = 0;
+        while (i < SELECTED_TEAMS_MAX &&
+               (pos = fast_array_next(teams_arr, teams_arr_len, pos, &voff, &vlen, &vt)) != 0) {
+            if (vt != MJSON_TOK_OBJECT)
+                continue;
+            memset(parked + i, 0, sizeof *parked);
+            load_team_file_ex_slice(teams_arr + voff, vlen, (uint8_t *)(parked + i));
+            i++;
+        }
+        Career_SetParkedTeamCount(i);
     }
     PROF_END(selected_teams, "career-load");
 

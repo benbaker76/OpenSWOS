@@ -406,6 +406,13 @@ TeamFileEx *Career_ParkedTeams(uint16_t *count)
     return (TeamFileEx *)(savedTeamsBackupBuffer + 2);
 }
 
+/* How many records are parked (a loaded career's: its "selected_teams_parked", whose records the
+ * loader wrote at Career_ParkedTeams). */
+void Career_SetParkedTeamCount(uint16_t count)
+{
+    *(uint16_t *)savedTeamsBackupBuffer = count <= SELECTED_TEAMS_MAX ? count : 0;
+}
+
 __attribute__((used, externally_visible, optimize("no-tree-loop-distribute-patterns")))
 void RestoreSelectedTeams(void)
 {
