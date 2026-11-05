@@ -594,3 +594,22 @@ Checked: the menus draw from the mod's JSON; DEMO GAME plays two random teams;
 `SWOS_MOD_MATCH_TEST=training` plays 3000 frames with lines out (seen: one team's midfield alone)
 and the clock still at 0, ended by the mod -- PASS; check_netplay_compat.sh unchanged.
 
+**`speedrun`** (`src/mod_speedrun.c`, `bin/mods/speedrun`: canonical, `"modes"`, on by default;
+SWOS 2020's challengeGame0Extras / checkSpeedrunWinningCondition): MODES -> SPEEDRUN, eight
+targets with their best times -- 1 GOAL, HEADER, 3 GOALS, TACKLE, 10 GOALS, YELLOW CARD, MATCH,
+RED CARD. A target, the team screen (yours is the one you play), a 3-minute match on a normal pitch,
+your team kicking off; the clock is the match's FRAMES from kick-off (SWOS 2020 kept wall-clock
+seconds), shown in seconds at the style's rate (`ModApi_FrameRate`: Amiga 50, DOS 70, XBOX 60). The
+target met ends the match (`ModApi_EndMatch`); the final whistle without it fails (MATCH: win it).
+Then YOUR TIME, YOUR BEST, PLAYED and TRY AGAIN (`ModApi_ChosenAgain`: the same two teams) or EXIT.
+The records are JSON of named fields (the owner: JSON is our format for data),
+`save/mods/speedrun/records.json` (`"format": "openswos-speedrun"`, per target `played`,
+`best_frames`, `last_frames`, `best_teams`). No leaderboard (a server's). The engine's new events
+for it (the map's G11, classified, not from the commentary): a goal's `arg` `MODGOAL_HEADER` (its
+scorer headed the ball within 75 frames: `headers.c` tells `ModMatch_Header`) and
+`MODEVENT_TACKLE` (a good tackle, `tackle_foul.c`). TACKLE is "win the ball with a good tackle"
+(SWOS 2020's reading of its last commentary line is not clear on whether a goal had to follow).
+Checked: `SWOS_MOD_MATCH_TEST=speedrun:<n>` (fixed teams, team 0 counted as yours) -- TACKLE in 1236
+frames and 1 GOAL in 1219, PASS, records.json written; header goals found across the replay corpus
+(15 of 178 goals, in the matches with headed goals); check_netplay_compat.sh unchanged.
+

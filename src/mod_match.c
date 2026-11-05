@@ -64,10 +64,14 @@ static struct {
     uint8_t       shootoutDone;
 } s_mm;
 
+static TeamFileEx s_chosenKept[2];      /* the last chosen pair, as chosen (ModApi_ChosenAgain) */
+static int32_t    s_chosenHave;
 static uint32_t s_frames;               /* from kick-off, every match */
 static uint8_t  s_kickedOff;
 static uint8_t  s_endTold;              /* this kick-off's end told the mods */
 static int32_t  s_testTraining;         /* SWOS_MOD_MATCH_TEST=training (ModMatch_SelfTest) */
+static const Sprite *s_headerBy;        /* the last header: who (ModMatch_Header), when */
+static uint32_t      s_headerAt;
 
 int32_t ModMatch_Active(void) { return s_mm.active; }
 
@@ -129,6 +133,8 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
         /* the team screen's: who plays each as the player set it there */
         if (_numSelectedTeams < 2)
             return -1;
+        memcpy(s_chosenKept, &_selectedTeams[0], sizeof s_chosenKept);   /* (for ModApi_ChosenAgain) */
+        s_chosenHave = 1;
         int32_t players = 0;
         for (int32_t t = 0; t < 2; t++) {
             const int32_t cpu = _selectedTeams[t].team.teamControls == TEAM_COMPUTER;
@@ -203,6 +209,27 @@ int32_t ModApi_ChooseTeams(void)
 int32_t ModMatch_ChosenSide(int32_t team)
 {
     return team >= 0 && team < 2 && _numSelectedTeams >= 2 && _selectedTeams[team].team.teamControls != TEAM_COMPUTER;
+}
+int32_t ModApi_ChosenIsPlayer(int32_t team) { return ModMatch_ChosenSide(team); }
+
+const char *ModApi_ChosenName(int32_t team)
+{
+    return team >= 0 && team < 2 && _numSelectedTeams >= 2 ? (const char *)_selectedTeams[team].team.teamName : "";
+}
+
+int32_t ModApi_ChosenAgain(void)
+{
+    if (!s_chosenHave)
+        return 0;
+    memcpy(&_selectedTeams[0], &s_chosenKept[0], sizeof s_chosenKept);
+    _numSelectedTeams = 2;
+    return 1;
+}
+
+int32_t ModApi_FrameRate(void)
+{
+    extern int _gGameplayStyle;
+    return _gGameplayStyle == 1 ? 70 : _gGameplayStyle == 2 ? 60 : 50;   /* (GAMEPLAY_DOS, _XBOX, _AMIGA) */
 }
 
 uint16_t ModApi_RandomTeam(void)
@@ -295,6 +322,7 @@ int32_t ModMatch_SkipReplayMenu(void) { return s_mm.active && !s_mm.setup.replay
 /* InitGameRestoreTeams' end (and again for a REPLAY): the score and the clock at kick-off. */
 void ModMatch_KickOff(void)
 {
+    s_headerBy = NULL;
     s_frames = 0;
     s_kickedOff = 0;
     s_endTold = 0;
@@ -432,6 +460,21 @@ void ModMatch_ShootoutKick(void)
         ModMatch_Event(MODEVENT_SHOOTOUT_KICK, team, -1, in);
 }
 
+/* A header (headers.c): who, when -- a goal of his soon after is a header (MODGOAL_HEADER). */
+int32_t ModMatch_PlayerIndex(const Sprite *s);
+void ModMatch_Header(const Sprite *s)
+{
+    if (getenv("SWOS_MOD_EVENT_LOG"))
+        fprintf(stderr, "[mods] header by player %d frame %u\n", (int)ModMatch_PlayerIndex(s), (unsigned)s_frames);
+    s_headerBy = s;
+    s_headerAt = s_frames;
+}
+
+int32_t ModMatch_WasHeader(const Sprite *s)
+{
+    return s && s == s_headerBy && s_frames - s_headerAt <= 75 ? MODGOAL_HEADER : 0;
+}
+
 /* The index of a player's sprite in its team's table, or -1. */
 int32_t ModMatch_PlayerIndex(const Sprite *s)
 {
@@ -483,6 +526,11 @@ void ModMatch_SelfTest(void)
     if (done || !how)
         return;
     done = 1;
+    if (strncmp(how, "speedrun:", 9) == 0) {    /* (the speedrun mod's run, src/mod_speedrun.c) */
+        extern void ModSpeedrun_Test(int32_t target);
+        ModSpeedrun_Test(atoi(how + 9));
+        return;
+    }
     if (strcmp(how, "entry") == 0) {
         /* (=entry: a MODES entry that plays it, for trying the hooks by hand) */
         ModApi_AddEntry(MODPOINT_MODES, "selftest", "mod match test", test_entry);

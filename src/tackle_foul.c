@@ -163,6 +163,7 @@ PlayerTackledTheBallWeak(Sprite *player, TeamGeneralInfo *team)
             int32_t distSq = (int32_t)dxp * dxp + (int32_t)dyp * dyp;
             if (distSq > 32) {
                 player->tackleState = (int16_t)TS_GOOD_TACKLE;
+                MOD_EVENT(15 /* MODEVENT_TACKLE */, team, player);
             }
         }
     }
@@ -773,6 +774,7 @@ PlayerTackledTheBallStrong(Sprite *player, TeamGeneralInfo *team)
             if (distSq > 32) {
                 DOS_SOUND(DOS_EV_GOOD_TACKLE, 0);
                 player->tackleState = (int16_t)TS_GOOD_TACKLE;
+                MOD_EVENT(15 /* MODEVENT_TACKLE */, team, player);
             }
         }
     }

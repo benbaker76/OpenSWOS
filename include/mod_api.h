@@ -130,6 +130,16 @@ enum { MODLINE_DEFENCE = 1, MODLINE_MIDFIELD = 2, MODLINE_ATTACK = 4 };   /* (ba
 int32_t ModApi_ChooseTeams(void);
 /* A random national team's id (its own random numbers: the match's are not taken), or 0. */
 uint16_t ModApi_RandomTeam(void);
+/* The last chosen teams again (a retry: the ones the last ModMatchSetup.chosen match played,
+ * as they were chosen). 1 when there are some. */
+int32_t ModApi_ChosenAgain(void);
+/* After ModApi_ChooseTeams: whether a chosen team (0 / 1) is a player's (1) or the CPU's (0),
+ * and its name. */
+int32_t     ModApi_ChosenIsPlayer(int32_t team);
+const char *ModApi_ChosenName(int32_t team);
+/* The match's frames a second, by the gameplay style (Amiga 50, DOS 70, XBOX 60): a frame count
+ * in seconds. */
+int32_t ModApi_FrameRate(void);
 
 /* A setup with the friendly's defaults: CPU v CPU, random pitch, length 0, 2 from 5 subs, no
  * extra time or penalties, replays on, the stadium and the replay menu shown, 0-0 at 0. */
@@ -172,7 +182,11 @@ typedef enum {
     MODEVENT_EXTRA_TIME,
     MODEVENT_SHOOTOUT,          /* the shoot-out starts */
     MODEVENT_FINAL_WHISTLE,     /* the match is over */
+    MODEVENT_TACKLE,            /* team's player won the ball with a good tackle */
 } ModEventKind;
+/* A goal's arg (MODEVENT_GOAL / OWN_GOAL / PENALTY_GOAL): MODGOAL_HEADER when its scorer headed
+ * it in (he headed the ball within the last 75 frames). */
+enum { MODGOAL_HEADER = 1 };
 
 struct ModMatchEvent {
     uint8_t  kind;              /* ModEventKind */
