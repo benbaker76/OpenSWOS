@@ -772,6 +772,18 @@ int main(int argc, char **argv)
 #endif
             /* Straight to the recording: paced, the intro would play first, a minute of it. */
             { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+        } else if ((v = match_kv(a, "watch")) != NULL || (v = match_kv(a, "watch-list")) != NULL) {
+            /* LIVE CAST (src/live_cast.c): a live match from the recorder, in the player. */
+            extern int32_t LiveCast_Request(const char *spec, int32_t list);
+            if (LiveCast_Request(v, strncmp(a, "--watch-list", 12) == 0) != 0) {
+                fprintf(stderr, "--watch needs <host[:port]>[,<match id>]\n");
+                return 1;
+            }
+            view_replay = "LIVE.SRP";
+            replay_window = 1;
+            replay_paced = 1;
+            ReplayV2_PlayerMode(1);
+            { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
         } else if ((v = match_kv(a, "contest-log")) != NULL) {
             if (ContestLog_Open(v) != 0) {
                 fprintf(stderr, "--contest-log: cannot write %s\n", v);

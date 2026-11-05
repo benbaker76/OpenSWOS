@@ -1523,6 +1523,30 @@ each player's and the recorder's -- must `--srp-resim` with every frame as recor
 whole match is `FRAMES=0 WAIT=600` (the test then complains about the match clock's five
 extra ticks at a natural end, which is older than this and not about recordings).
 
+### Watching a match live (LIVE CAST, `src/live_cast.c`)
+
+SWOS 2020's "watch live matches". The recorder already has a live match the way a player's game
+streams it -- what was DRAWN, frame by frame, with its sounds and chapters (the `.SRP` it keeps) --
+so a viewer is sent that, and plays it in the replay viewer as it arrives. Nothing is simulated:
+the viewer's build, platform and screen width need not be the players' (a recording plays the
+same anywhere), and it never touches the players or the match.
+
+- `--watch-list=<host[:port]>` prints the live matches (id, players, teams, frames so far).
+- `--watch=<host[:port]>[,<id>]` watches one -- the one recorded the longest without an id: the
+  match so far, then each batch as it arrives, about three seconds behind the players (a viewer
+  that joins late is put near the live edge, and can scrub back).
+- The protocol is in `include/record_proto.h` (`RECORD_WATCH_LIST`, `RECORD_WATCH`): a viewer's
+  first message says `SWRV`; the answer is the ordinary `RECORD_REPLAY_META` /
+  `RECORD_REPLAY_FRAMES` / `RECORD_REPLAY_SCORE` / `RECORD_END` a player sends, built from what the
+  recorder keeps (`Recorder::ServeViewer`), so a viewer joining late gets everything from frame 0.
+  The recorder rebuilds a viewer's batches from its own copy, at most ~1 MB waiting per viewer.
+- The client appends what arrives to the loaded recording (`ReplayV2_LiveAppend`), so the player
+  plays on where it would have held the last frame.
+- **The server must be rebuilt and redeployed** for viewers (an older one closes a viewer's
+  connection). Checked: `RECORD=1 FRAMES=4000 scripts/relay_test.sh` with a viewer attached
+  mid-match -- the viewer played on for 40 s, and the recorder's copy was still the host's
+  `LATEST.SRP` byte for byte, every resim as recorded.
+
 ### Status
 
 Working and tested end to end against a local server:

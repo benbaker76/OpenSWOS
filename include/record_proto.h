@@ -129,6 +129,25 @@
 #define RECORD_REPLAY_PRED   8
 #define RECORD_REPLAY_READ   9
 
+/* LIVE CAST (SWOS 2020's "watch live matches"; docs/NETPLAY.md §7 "Watching a match live"): a
+ * VIEWER connects to the recorder's port and asks, the first message it sends --
+ *
+ * RECORD_WATCH_LIST: "SWRV", RECORD_PROTOCOL. The answer, RECORD_WATCH_MATCHES:
+ *   0  2  count, then each: match id (8), frames recorded so far (4), then strings (a length
+ *         byte, the bytes): player 1, player 2, team 1, team 2
+ * and the recorder closes the connection.
+ *
+ * RECORD_WATCH: "SWRV", RECORD_PROTOCOL, the match id (8; 0 = the one recorded the longest).
+ * The answer is the match as a player streams it -- RECORD_REPLAY_META, then
+ * RECORD_REPLAY_FRAMES (frames, sounds, chapters; no inputs) from frame 0, then each new batch
+ * as it arrives, RECORD_REPLAY_SCORE and RECORD_END at the end -- or RECORD_END at once
+ * (outcome 2: no such match). A viewer sends nothing more; the stream is the recorder's copy,
+ * so it never touches the players or the match. */
+#define RECORD_WATCH_LIST    10
+#define RECORD_WATCH_MATCHES 11
+#define RECORD_WATCH         12
+#define RECORD_VIEWER_MAGIC  "SWRV"
+
 #define RECORD_MODE_HASHES   0     /* the frames' hashes: enough to find a desync */
 #define RECORD_MODE_FULL     1     /* ... and the match itself, as a .SRP */
 

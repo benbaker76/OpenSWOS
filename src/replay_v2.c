@@ -1127,6 +1127,50 @@ void ReplayV2_Unload(void)
 
 int32_t ReplayV2_Loaded(void)   { return s_play.loaded; }
 
+/* LIVE CAST (src/live_cast.c): frames that arrived after the recording was loaded, appended --
+ * the player then plays on into them where it would have held the last frame. `frms` is
+ * `count` frames as FRMS lays them out; the sounds those frames play, after the ones held. */
+int32_t ReplayV2_LiveAppend(const uint8_t *frms, uint32_t len, uint32_t count, const SrpAudioEvent *audio,
+                            uint32_t audioCount)
+{
+    uint8_t *nf;
+    uint32_t *no;
+    uint32_t off = 0, i;
+    if (!s_play.loaded || !count)
+        return 1;
+    nf = (uint8_t *)realloc(s_play.frms, (size_t)s_play.frmsLen + len);
+    if (!nf)
+        return 1;
+    s_play.frms = nf;
+    no = (uint32_t *)realloc(s_play.offsets, ((size_t)s_play.frameCount + count) * sizeof *no);
+    if (!no)
+        return 1;
+    s_play.offsets = no;
+    memcpy(s_play.frms + s_play.frmsLen, frms, len);
+    for (i = 0; i < count; i++) {
+        uint16_t sprites;
+        if (off + FRAME_HEAD_BYTES > len)
+            break;
+        sprites = BE_READ_U16(frms + off);
+        if (sprites > MAX_FRAME_SPRITES || off + FRAME_HEAD_BYTES + (uint32_t)sprites * SPRITE_BYTES > len)
+            break;
+        s_play.offsets[s_play.frameCount + i] = s_play.frmsLen + off;
+        off += FRAME_HEAD_BYTES + (uint32_t)sprites * SPRITE_BYTES;
+    }
+    s_play.frmsLen += off;
+    s_play.frameCount += i;
+    if (audioCount) {
+        AudioEvent *na = (AudioEvent *)realloc(s_play.audio, ((size_t)s_play.audioCount + audioCount) * sizeof *na + 1);
+        if (na) {
+            s_play.audio = na;
+            memcpy(s_play.audio + s_play.audioCount, audio, (size_t)audioCount * sizeof *na);
+            s_play.audioCount += audioCount;
+            s_play.flags |= SWRP_FLAG_AUDIO;
+        }
+    }
+    return i == count ? 0 : 1;
+}
+
 /* SAVE HIGHLIGHTS with a whole-match replay loaded: the recording kept under another name (it
  * has no highlight scenes to save -- saving the HIL buffer then wrote a header and a junk scene,
  * a file that showed the line-ups and went back to the menu: a tester, 2026-10-31). */
@@ -1908,6 +1952,7 @@ void ReplayV2_DrawFrame(void)
 
     if (!s_play.loaded)
         return;
+    { extern void LiveCast_Pump(void); LiveCast_Pump(); }   /* (a live match's new frames: src/live_cast.c) */
     if (s_player.on) {
         /* No sound carries across a jump or a pause: a seek skips what would have
          * ended a looping effect, which then played on regardless of where the

@@ -121,6 +121,18 @@ void Recorder::Update()
     for (auto& c : m_connections)
         if (c->fd >= 0 && !Read(*c) && c->fd >= 0)
             CloseConnection(*c, "closed");
+    for (auto& c : m_connections)                   // LIVE CAST: what the viewers have not had
+    {
+        if (c->fd < 0 || !c->viewer)
+            continue;
+        if (!c->closing)
+            ServeViewer(*c);
+        if (!Flush(*c) || (c->closing && c->out.empty()))
+        {
+            close(c->fd);
+            c->fd = -1;
+        }
+    }
     for (size_t i = 0; i < m_connections.size();)
     {
         if (m_connections[i]->fd < 0)
@@ -191,6 +203,10 @@ bool Recorder::Read(Connection& c)
 
 bool Recorder::Handle(Connection& c, uint8_t type, const uint8_t* p, uint32_t len)
 {
+    if (c.player == 0 && !c.viewer && (type == RECORD_WATCH_LIST || type == RECORD_WATCH))
+        return OnWatch(c, type, p, len);
+    if (c.viewer)
+        return true;                                // a viewer says nothing more
     if (type == RECORD_HELLO)
         return c.player == 0 && OnHello(c, p, len);
     if (c.player == 0 || !c.match)
@@ -847,4 +863,206 @@ void Recorder::WriteIndex()
         remove(tmp.c_str());
 }
 
+// ---- LIVE CAST: viewers (record_proto.h RECORD_WATCH_LIST, RECORD_WATCH) ----
+
+namespace {
+void PutString(std::vector<uint8_t>& v, const std::string& str)
+{
+    size_t n = str.size() > 255 ? 255 : str.size();
+    v.push_back((uint8_t)n);
+    v.insert(v.end(), str.begin(), str.begin() + n);
+}
+}
+
+const Recorder::Side* Recorder::WatchedSide(const Match& m, int* which)
+{
+    for (int i = 0; i < 2; i++)                     // the host's stream when it has one
+        if (m.side[i].replay && !m.side[i].offsets.empty())
+        {
+            *which = i;
+            return &m.side[i];
+        }
+    return nullptr;
+}
+
+void Recorder::Queue(Connection& c, uint8_t type, const std::vector<uint8_t>& payload)
+{
+    uint8_t h[RECORD_HEADER_LEN];
+    Record_PutHeader(h, type, (uint32_t)payload.size());
+    c.out.insert(c.out.end(), h, h + RECORD_HEADER_LEN);
+    c.out.insert(c.out.end(), payload.begin(), payload.end());
+}
+
+bool Recorder::Flush(Connection& c)
+{
+    while (!c.out.empty())
+    {
+        ssize_t n = send(c.fd, c.out.data(), c.out.size(), MSG_NOSIGNAL);
+        if (n > 0)
+        {
+            c.out.erase(c.out.begin(), c.out.begin() + n);
+            continue;
+        }
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
+            return true;                            // the rest at the next pass
+        return false;
+    }
+    return true;
+}
+
+bool Recorder::OnWatch(Connection& c, uint8_t type, const uint8_t* p, uint32_t len)
+{
+    if (len < 5 || memcmp(p, RECORD_VIEWER_MAGIC, 4) != 0)
+        return false;
+    c.viewer = true;
+    if (type == RECORD_WATCH_LIST)
+    {
+        std::vector<uint8_t> v(2, 0);
+        uint32_t count = 0;
+        for (auto& entry : m_matches)
+        {
+            const Match& m = *entry.second;
+            int which = 0;
+            const Side* s = WatchedSide(m, &which);
+            if (!s || s->ended || count == 255)
+                continue;
+            uint8_t b[12];
+            Record_Put64(b, m.id);
+            Record_Put32(b + 8, (uint32_t)s->offsets.size());
+            v.insert(v.end(), b, b + 12);
+            PutString(v, m.side[0].present ? m.side[0].name : m.side[1].peer);
+            PutString(v, m.side[1].present ? m.side[1].name : m.side[0].peer);
+            PutString(v, s->team1);
+            PutString(v, s->team2);
+            count++;
+        }
+        Record_Put16(v.data(), count);
+        Queue(c, RECORD_WATCH_MATCHES, v);
+        c.closing = true;
+        std::cout << Tag() << "a viewer (" << c.address << ") listed " << count << " live match(es)\n";
+        return true;
+    }
+    if (len < 13)
+        return false;
+    c.watchId = Record_Get64(p + 5);
+    if (c.watchId == 0)                             // the one recorded the longest
+    {
+        size_t best = 0;
+        for (auto& entry : m_matches)
+        {
+            int which = 0;
+            const Side* s = WatchedSide(*entry.second, &which);
+            if (s && !s->ended && s->offsets.size() > best)
+            {
+                best = s->offsets.size();
+                c.watchId = entry.first;
+            }
+        }
+    }
+    std::cout << Tag() << "a viewer (" << c.address << ") watches " << Hex64(c.watchId) << "\n";
+    return true;
+}
+
+void Recorder::ServeViewer(Connection& c)
+{
+    auto it = c.watchId ? m_matches.find(c.watchId) : m_matches.end();
+    const Side* s = nullptr;
+    if (it != m_matches.end())
+    {
+        int which = -1;
+        if (c.watchSide >= 0)
+        {
+            if (it->second->side[c.watchSide].replay)
+                s = &it->second->side[c.watchSide];
+        }
+        else if ((s = WatchedSide(*it->second, &which)) != nullptr)
+            c.watchSide = which;
+    }
+    if (it == m_matches.end() || (!s && c.metaSent))
+    {
+        std::vector<uint8_t> end(13, 0);
+        end[0] = c.metaSent ? 0 : 2;                // 2: no such match (or none is live)
+        Record_Put32(end.data() + 1, c.sentFrames);
+        Queue(c, RECORD_END, end);
+        c.closing = true;
+        return;
+    }
+    if (!s)
+        return;                                     // its stream has not begun: wait
+    if (!c.metaSent)
+    {
+        std::vector<uint8_t> v(4);
+        Record_Put16(v.data(), s->tickRate);
+        Record_Put16(v.data() + 2, s->quirks);
+        v.insert(v.end(), s->meta.begin(), s->meta.end());
+        Queue(c, RECORD_REPLAY_META, v);
+        c.metaSent = true;
+    }
+    // The frames since the last pass, a batch at most kViewerBatch -- with the sounds and the
+    // chapters they played -- while the viewer keeps up (no more than ~1 MB waiting).
+    const uint32_t kViewerBatch = 256;
+    while (c.sentFrames < s->offsets.size() && c.out.size() < (1u << 20))
+    {
+        uint32_t first = c.sentFrames;
+        uint32_t upto = (uint32_t)s->offsets.size();
+        if (upto - first > kViewerBatch)
+            upto = first + kViewerBatch;
+        uint32_t from = s->offsets[first];
+        uint32_t to = upto < s->offsets.size() ? s->offsets[upto] : (uint32_t)s->frms.size();
+        std::vector<uint8_t> v(6);
+        Record_Put32(v.data(), first);
+        Record_Put16(v.data() + 4, upto - first);
+        v.insert(v.end(), s->frms.begin() + from, s->frms.begin() + to);
+        uint32_t a0 = c.sentAudio, a1 = a0;
+        while (a1 < s->audio.size() && s->audio[a1].frame < upto)
+            a1++;
+        uint8_t b[8];
+        Record_Put16(b, a1 - a0);
+        v.insert(v.end(), b, b + 2);
+        for (uint32_t k = a0; k < a1; k++)
+        {
+            Record_Put32(b, s->audio[k].frame);
+            b[4] = s->audio[k].kind;
+            b[5] = s->audio[k].channel;
+            Record_Put16(b + 6, s->audio[k].id);
+            v.insert(v.end(), b, b + 8);
+        }
+        uint32_t c0 = c.sentChapters, c1 = c0;
+        while (c1 < s->chapters.size() && s->chapters[c1].frame < upto)
+            c1++;
+        Record_Put16(b, c1 - c0);
+        v.insert(v.end(), b, b + 2);
+        for (uint32_t k = c0; k < c1; k++)
+        {
+            Record_Put32(b, s->chapters[k].frame);
+            b[4] = s->chapters[k].kind;
+            b[5] = s->chapters[k].team;
+            Record_Put16(b + 6, s->chapters[k].value);
+            v.insert(v.end(), b, b + 8);
+        }
+        Record_Put16(b, 0);                         // (no inputs: a viewer only watches)
+        v.insert(v.end(), b, b + 2);
+        Queue(c, RECORD_REPLAY_FRAMES, v);
+        c.sentFrames = upto;
+        c.sentAudio = a1;
+        c.sentChapters = c1;
+    }
+    if (s->ended && c.sentFrames == s->offsets.size())
+    {
+        if (s->haveScore)
+        {
+            std::vector<uint8_t> v(4);
+            Record_Put16(v.data(), s->score[0]);
+            Record_Put16(v.data() + 2, s->score[1]);
+            Queue(c, RECORD_REPLAY_SCORE, v);
+        }
+        std::vector<uint8_t> end(13, 0);
+        end[0] = (uint8_t)(s->outcome < 0 ? 1 : s->outcome);
+        Record_Put32(end.data() + 1, c.sentFrames);
+        Queue(c, RECORD_END, end);
+        c.closing = true;
+    }
+}
+
 #endif
+

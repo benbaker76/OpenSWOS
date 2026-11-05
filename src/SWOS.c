@@ -384,6 +384,11 @@ skip_title_screens: ;
         {
             extern int32_t ReplayV2_ViewTestArmed(void);
             extern void    ReplayV2_ViewTestRun(void);
+            extern int32_t LiveCast_Armed(void);
+            extern int32_t LiveCast_Run(char *viewPath, uint32_t cap);
+            static char livePath[64];
+            if (LiveCast_Armed() && LiveCast_Run(livePath, sizeof livePath) != 0)
+                exit(1);            /* (LIVE CAST: nothing to watch -- said why) */
             if (ReplayV2_ViewTestArmed())
                 ReplayV2_ViewTestRun();   /* plays a .SRP, then exits */
         }

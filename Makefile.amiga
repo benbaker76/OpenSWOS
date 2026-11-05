@@ -60,6 +60,7 @@ SDL_ONLY_SRCS := \
     custom_team.c         \
     career_autopilot.c    \
     diy_import_dos.c      \
+    live_cast.c           \
     dos_sound.c           \
     dos_music.c           \
     dos_music_impl.c      \
