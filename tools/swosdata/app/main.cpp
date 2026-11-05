@@ -1061,8 +1061,17 @@ struct App {
 
     const std::string program = amigaProgram, dest = kindDrawer ? drawerTo : whdloadTo,
                       assets = outDir, res = resDir;
+    // The WHDLoad package's mods (docs/MODS.md): staged here, on this thread, as a drawer gets
+    // them; the package takes the folder's mods/ and data/MODS.
+    std::string modsStage;
+    if (!kindDrawer) {
+      modsStage = Join(UserDir(), ".whdload-mods");
+      sd::RemoveTree(modsStage);
+      sd::MakeDirs(Join(modsStage, "data"));
+      ModsToDrawer(modsStage);
+    }
     const int32_t withWorld = w().get_amiga_world() ? 1 : 0;
-    worker = std::thread([this, job, any, kindDrawer, program, dest, assets, res, withWorld] {
+    worker = std::thread([this, job, any, kindDrawer, program, dest, assets, res, withWorld, modsStage] {
       char err[256] = {0};
       int32_t rc = any ? SwosData_Run(job.get(), err) : 0;
       SdSources_Close(&job->src);
@@ -1072,11 +1081,12 @@ struct App {
                  ? SwosData_MakeAmigaDrawer(assets.c_str(), program.c_str(), dest.c_str(), withWorld, PipeLog,
                                             &pipe, err)
                  : SwosData_MakeWhdload(assets.c_str(), Join(program, "SWOS").c_str(), res.c_str(), dest.c_str(),
-                                        withWorld, PipeLog, &pipe, err);
+                                        withWorld, modsStage.c_str(), PipeLog, &pipe, err);
       }
       const std::string msg(err);
       slint::invoke_from_event_loop([this, rc, msg, kindDrawer, dest] {
         Flush();
+        if (!kindDrawer) sd::RemoveTree(Join(UserDir(), ".whdload-mods"));   // (the package has them)
         amigaRun = false;
         SetBusy(false);
         SwosData_Installed(outDir.c_str(), installed);
@@ -1463,6 +1473,7 @@ struct App {
     w().set_hh_state(2);
     w().set_hh_progress(0.0f);
     const std::string ports = hhPorts, zip = hhZip, assets = outDir, sent = IniPath(kHandheld);
+    const ModsForCopy mods = ModsForSdlCopy();     // (docs/MODS.md: the mods that are on)
     hhTotal = sd::TreeSize(assets, "amiga");
     hhDone = 0;
     w().set_hh_status(Str(T("Copying to the card...")));
@@ -1470,7 +1481,7 @@ struct App {
     hhTimer.start(slint::TimerMode::Repeated, std::chrono::milliseconds(200), [this] {
       w().set_hh_progress(hhTotal ? float(double(hhDone) / double(hhTotal)) : 0.0f);
     });
-    worker = std::thread([this, ports, zip, assets, sent] {
+    worker = std::thread([this, ports, zip, assets, sent, mods] {
       std::string err;
       const std::string game = Join(ports, "swos");
       // 1. The port: unpacked beside this setup, then its launcher and its folder onto the card
@@ -1526,6 +1537,11 @@ struct App {
           text = IniSet(text, o.section, o.key, v.c_str());
           set++;
         }
+        // 4. The mods that are on, into the port's player folder (its HOME is conf/), and their
+        //    [mods] lines into the same SWOS.ini.
+        std::string modErr;
+        if (!CopyModsTo(mods, Join(game, "conf/.swos/mods"), text, &modErr))
+          err = Tf("could not copy the mods: {0}", modErr);
         sd::MakeDirs(Join(game, "conf/.swos/save"));
         if (FILE* f = sd::OpenFile(ini, "wb")) {
           std::fwrite(text.data(), 1, text.size(), f);
@@ -1682,8 +1698,9 @@ struct App {
     FileLog("mods: " + m.slug + (on ? " on" : " off") + " ([mods] enabled = " + JoinList(en) + "; disabled = " + JoinList(dis) + ")");
   }
 
-  // Every mod on disk: the canonical ones, then the DLC; and the mod zips in Downloads.
-  void ModsRefresh() {
+  // Every mod on disk: the canonical ones, then the DLC; and the mod zips in Downloads. (Disk
+  // only: ModsRefresh shows it.)
+  void ModsScan() {
     modList.clear();
     for (int pass = 0; pass < 2; pass++) {
       const std::string root = pass == 0 ? CanonicalModsDir() : ModsDir();
@@ -1710,6 +1727,10 @@ struct App {
             if (stem == Lower(m.slug) + ".zip") have = true;
           if (!have) modZipsFound.push_back(e.path);
         }
+  }
+
+  void ModsRefresh() {
+    ModsScan();
     auto rows = std::make_shared<slint::VectorModel<ModRow>>();
     for (const ModFile& m : modList) {
       ModRow r;
@@ -1804,11 +1825,37 @@ struct App {
     w().set_mods_status_error(false);
   }
 
+  // The downloaded mods that are on and made for an SDL target (a phone, a handheld): theirs to
+  // copy, with the [mods] lines that game needs -- this computer's lists (a canonical mod is in
+  // the game it plays already; a slug the other game does not have is skipped there, and said).
+  struct ModsForCopy { std::vector<ModFile> copy; std::string enabled, disabled; };
+  ModsForCopy ModsForSdlCopy() {
+    ModsScan();
+    ModsForCopy out;
+    for (const ModFile& m : modList)
+      if (!m.canonical && m.sdl && m.problem.empty() && ModOn(m)) out.copy.push_back(m);
+    const std::string ini = ReadFile(IniPath(kComputer));
+    out.enabled = IniValue(ini, "mods", "enabled");
+    out.disabled = IniValue(ini, "mods", "disabled");
+    return out;
+  }
+  // Copy them into `modsRoot` (replacing what an earlier copy left there) and set the lines in
+  // `iniText`. Worker-safe: disk and strings only. False and why on a failure.
+  static bool CopyModsTo(const ModsForCopy& mods, const std::string& modsRoot, std::string& iniText,
+                         std::string* err) {
+    sd::RemoveTree(modsRoot);
+    for (const ModFile& m : mods.copy)
+      if (!sd::CopyTree(m.dir, Join(modsRoot, m.slug), "", nullptr, err)) return false;
+    iniText = IniSet(iniText, "mods", "enabled", mods.enabled.c_str());
+    iniText = IniSet(iniText, "mods", "disabled", mods.disabled.c_str());
+    return true;
+  }
+
   // An Amiga drawer made in `drawerGame` (its SWOS folder): the mods that are on and made for the
   // Amiga into its mods/, and data/MODS listing them (an id with '*': not cosmetic) -- or no
   // data/MODS when none is, so an earlier one does not stay.
   void ModsToDrawer(const std::string& drawerGame) {
-    ModsRefresh();
+    ModsScan();
     std::string list;
     const std::string data = Join(drawerGame, "data/MODS");
     sd::RemoveTree(Join(drawerGame, "mods"));
@@ -1894,7 +1941,23 @@ struct App {
   // The phone screen: the assets folder served on the network, its QR code shown. Kept up
   // until the setup closes (a phone half way through a copy is not cut off by Back).
   void PhoneStart() {
-    if (!sd::PhoneServerStart(outDir, IniPath(kPhone))) {
+    // The mods that are on (docs/MODS.md): served beside the assets, their [mods] lines in the
+    // phone's SWOS.ini.
+    const ModsForCopy mods = ModsForSdlCopy();
+    std::vector<std::pair<std::string, std::string>> modDirs;
+    for (const ModFile& m : mods.copy) modDirs.push_back({m.slug, m.dir});
+    {
+      const std::string path = IniPath(kPhone);
+      std::string ini = ReadFile(path);
+      ini = IniSet(ini, "mods", "enabled", mods.enabled.c_str());
+      ini = IniSet(ini, "mods", "disabled", mods.disabled.c_str());
+      sd::MakeDirs(sd::ParentDir(path));
+      if (FILE* f = sd::OpenFile(path, "wb")) {
+        std::fwrite(ini.data(), 1, ini.size(), f);
+        std::fclose(f);
+      }
+    }
+    if (!sd::PhoneServerStart(outDir, IniPath(kPhone), modDirs)) {
       const std::string err = sd::PhoneServerStatus().error;
       w().set_phone_status(Str(err));
       FileLog("phone copy: " + err);

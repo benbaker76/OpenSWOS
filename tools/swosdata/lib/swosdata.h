@@ -106,10 +106,12 @@ int32_t SwosData_MakeAmigaDrawer(const char *assetsDir, const char *programDir, 
  * with its SWOS2) and the icons in resDir/setup/whdload, the program in the package's
  * data/ (the Slave's folder) with the Amiga game data from the assets folder, as
  * SwosData_FillAmigaDrawer puts it in a drawer. No Kickstart image, no AmigaOS files:
- * the Slave starts SWOS2 directly. 0 on success. */
+ * the Slave starts SWOS2 directly. `modsDir` (NULL: none): a folder whose mods/ and data/MODS
+ * go into the package's data/ as they go into a drawer (the mods that are on, docs/MODS.md).
+ * 0 on success. */
 int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const char *resDir,
-                             const char *outPath, int32_t withWorld, void (*log)(void *user, const char *line),
-                             void *user, char *err);
+                             const char *outPath, int32_t withWorld, const char *modsDir,
+                             void (*log)(void *user, const char *line), void *user, char *err);
 
 /* The world the Amiga plays when asked (withWorld above: World 2026-27, installed from its
  * package), and where its Amiga files are in an assets folder. */

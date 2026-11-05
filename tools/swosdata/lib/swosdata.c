@@ -1065,7 +1065,8 @@ static int32_t pkg_tree(Pkg *p, const char *src, const char *rel, const char *pr
 #define WHD_TOP   "OpenSWOSAGA-NE"
 
 int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const char *resDir,
-                             const char *outPath, int32_t withWorld, void (*log)(void *user, const char *line),
+                             const char *outPath, int32_t withWorld, const char *modsDir,
+                             void (*log)(void *user, const char *line),
                              void *user, char *err)
 {
     static const char *const kTrees[] = { "data", "grafs", "grafs_aga", "sound" };
@@ -1137,6 +1138,14 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
         Sg_PathJoin(world, sizeof world, assetsDir, SD_WORLD_AMIGA_DIR);
         if (Sg_FindNoCase(world, "data/WORLD", probe, sizeof probe) == 0)
             pkg_tree(&pkg, world, "data", WHD_TOP "/");
+    }
+    if (modsDir && modsDir[0]) {   /* The mods that are on: mods/<id>/ and data/MODS, as in a drawer. */
+        int32_t n = pkg_tree(&pkg, modsDir, "mods", WHD_TOP "/data/");
+        pkg_tree(&pkg, modsDir, "data", WHD_TOP "/data/");
+        if (log && n > 0) {
+            snprintf(line, sizeof line, "WHDLoad package: mods/ (%d files)", n);
+            log(user, line);
+        }
     }
 
     {

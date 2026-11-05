@@ -99,7 +99,7 @@ msgstr ""
 msgid "Extras (optional)"
 msgstr ""
 
-#: app/ui/app.slint:417 app/main.cpp:440 app/main.cpp:2043 lib/swosdata.c:90
+#: app/ui/app.slint:417 app/main.cpp:440 app/main.cpp:2106 lib/swosdata.c:90
 msgid "World 2026-27"
 msgstr ""
 
@@ -655,7 +655,7 @@ msgstr ""
 msgid "Data {0}."
 msgstr ""
 
-#: app/main.cpp:456 app/main.cpp:2042 include/game_options.h:60
+#: app/main.cpp:456 app/main.cpp:2105 include/game_options.h:60
 msgid "SWOS 2020"
 msgstr ""
 
@@ -767,7 +767,7 @@ msgstr ""
 msgid "Searching {0} ..."
 msgstr ""
 
-#: app/main.cpp:807 app/main.cpp:1975 app/main.cpp:2076
+#: app/main.cpp:807 app/main.cpp:2038 app/main.cpp:2139
 msgid "Found {0} in {1}."
 msgstr ""
 
@@ -787,7 +787,7 @@ msgstr ""
 msgid "Done. The game's data is in {0}."
 msgstr ""
 
-#: app/main.cpp:886 app/main.cpp:1092
+#: app/main.cpp:886 app/main.cpp:1102
 msgid "Failed: {0}"
 msgstr ""
 
@@ -799,223 +799,227 @@ msgstr ""
 msgid "Installing the game's data to {0} ..."
 msgstr ""
 
-#: app/main.cpp:1089
+#: app/main.cpp:1099
 msgid "Done: the SWOS drawer is in {0}. Copy it, with SWOS.info, to your Amiga and double-click SWOS."
 msgstr ""
 
-#: app/main.cpp:1090
+#: app/main.cpp:1100
 msgid "Done: {0}. Unpack it on your Amiga (lha x OpenSWOSAGA-WHDL.lha), open the OpenSWOSAGA-NE drawer and double-click OpenSWOS."
 msgstr ""
 
-#: app/main.cpp:1267
+#: app/main.cpp:1277
 msgid "this computer"
 msgstr ""
 
-#: app/main.cpp:1267
+#: app/main.cpp:1277
 msgid "phone"
 msgstr ""
 
-#: app/main.cpp:1267
+#: app/main.cpp:1277
 msgid "handheld"
 msgstr ""
 
-#: app/main.cpp:1301
+#: app/main.cpp:1311
 msgid "Could not write {0}."
 msgstr ""
 
-#: app/main.cpp:1429
+#: app/main.cpp:1439
 msgid "No handheld card found. Put its SD card in this computer, or choose its ports folder."
 msgstr ""
 
-#: app/main.cpp:1432
+#: app/main.cpp:1442
 msgid "{0} for PortMaster is not on this card, and this setup has no copy of it: download swos.zip ({0} for PortMaster) and drop it on this window."
 msgstr ""
 
-#: app/main.cpp:1436
+#: app/main.cpp:1446
 msgid "Ready to copy the game's data to the card."
 msgstr ""
 
-#: app/main.cpp:1437
+#: app/main.cpp:1447
 msgid "Ready: the game on the card is updated from {0}, and its data copied."
 msgstr ""
 
-#: app/main.cpp:1438
+#: app/main.cpp:1448
 msgid "Ready: {0} is installed on the card from {1}, with the game's data."
 msgstr ""
 
-#: app/main.cpp:1451
+#: app/main.cpp:1461
 msgid "No ports folder in {0}: choose the card itself, or its ports folder."
 msgstr ""
 
-#: app/main.cpp:1468
+#: app/main.cpp:1479
 msgid "Copying to the card..."
 msgstr ""
 
-#: app/main.cpp:1483 app/main.cpp:1745
+#: app/main.cpp:1494 app/main.cpp:1766
 msgid "could not unpack {0}"
 msgstr ""
 
-#: app/main.cpp:1484
+#: app/main.cpp:1495
 msgid "could not copy the port: {0}"
 msgstr ""
 
-#: app/main.cpp:1490
+#: app/main.cpp:1501
 msgid "could not write {0} on the card"
 msgstr ""
 
-#: app/main.cpp:1495
+#: app/main.cpp:1506
 msgid "{0} for PortMaster is not on the card"
 msgstr ""
 
-#: app/main.cpp:1513
+#: app/main.cpp:1524
 msgid "could not put the game's data in place on the card"
 msgstr ""
 
-#: app/main.cpp:1534
+#: app/main.cpp:1544
+msgid "could not copy the mods: {0}"
+msgstr ""
+
+#: app/main.cpp:1550
 msgid "could not write the game's settings on the card"
 msgstr ""
 
-#: app/main.cpp:1542
+#: app/main.cpp:1558
 msgid "Copied. Eject the card safely, put it back in the handheld, and start Sensible World of Soccer from Ports (refresh the games list if it is not there)."
 msgstr ""
 
-#: app/main.cpp:1547
+#: app/main.cpp:1563
 msgid "The copy did not work: {0}."
 msgstr ""
 
-#: app/main.cpp:1571
+#: app/main.cpp:1587
 msgid "cosmetic"
 msgstr ""
 
-#: app/main.cpp:1571
+#: app/main.cpp:1587
 msgid "gameplay"
 msgstr ""
 
-#: app/main.cpp:1571
+#: app/main.cpp:1587
 msgid "career"
 msgstr ""
 
-#: app/main.cpp:1627
+#: app/main.cpp:1643
 msgid "no mod.json in its folder"
 msgstr ""
 
-#: app/main.cpp:1638
+#: app/main.cpp:1654
 msgid "its mod.json has no uuid"
 msgstr ""
 
-#: app/main.cpp:1639
+#: app/main.cpp:1655
 msgid "not made for this game (no \"sdl\" or \"amiga\" in its targets)"
 msgstr ""
 
-#: app/main.cpp:1701 app/main.cpp:1756
+#: app/main.cpp:1718 app/main.cpp:1777
 msgid "its uuid is the game's own mod's"
 msgstr ""
 
-#: app/main.cpp:1717
+#: app/main.cpp:1738
 msgid "{0}, {1}{2}"
 msgstr ""
 
-#: app/main.cpp:1717
+#: app/main.cpp:1738
 msgid "part of the game"
 msgstr ""
 
-#: app/main.cpp:1717
+#: app/main.cpp:1738
 msgid "downloaded"
 msgstr ""
 
-#: app/main.cpp:1718
+#: app/main.cpp:1739
 msgid ", also on the Amiga"
 msgstr ""
 
-#: app/main.cpp:1718
+#: app/main.cpp:1739
 msgid ", Amiga only"
 msgstr ""
 
-#: app/main.cpp:1742
+#: app/main.cpp:1763
 msgid "{0} is not a mod (no mod.json in it)"
 msgstr ""
 
-#: app/main.cpp:1765
+#: app/main.cpp:1786
 msgid "could not install it: {0}"
 msgstr ""
 
-#: app/main.cpp:1776
+#: app/main.cpp:1797
 msgid "Installed {0}: it is on from the next time the game starts."
 msgstr ""
 
-#: app/main.cpp:1777
+#: app/main.cpp:1798
 msgid "Not installed: {0}."
 msgstr ""
 
-#: app/main.cpp:1792
+#: app/main.cpp:1813
 msgid "{0} is on from the next time the game starts."
 msgstr ""
 
-#: app/main.cpp:1793
+#: app/main.cpp:1814
 msgid "{0} is off from the next time the game starts."
 msgstr ""
 
-#: app/main.cpp:1803
+#: app/main.cpp:1824
 msgid "Removed {0}."
 msgstr ""
 
-#: app/main.cpp:1934
+#: app/main.cpp:1997
 msgid "Copied to the phone ({0} files). {1} on it is ready to play."
 msgstr ""
 
-#: app/main.cpp:1938
+#: app/main.cpp:2001
 msgid "Copying to the phone: {0}% ({1} of {2} files)"
 msgstr ""
 
-#: app/main.cpp:1941
+#: app/main.cpp:2004
 msgid "The phone found this computer ({0}). Tap Open in {1} on it."
 msgstr ""
 
-#: app/main.cpp:1943
+#: app/main.cpp:2006
 msgid "Waiting for the phone..."
 msgstr ""
 
-#: app/main.cpp:1964
+#: app/main.cpp:2027
 msgid "Found {0} for PortMaster in {1}."
 msgstr ""
 
-#: app/main.cpp:1970 app/main.cpp:2098
+#: app/main.cpp:2033 app/main.cpp:2161
 msgid "Found the Amiga program in {0}."
 msgstr ""
 
-#: app/main.cpp:1982
+#: app/main.cpp:2045
 msgid "{0} is not one of the game's files."
 msgstr ""
 
-#: app/main.cpp:2040 lib/swosdata.c:67 lib/swosdata.c:71
+#: app/main.cpp:2103 lib/swosdata.c:67 lib/swosdata.c:71
 msgid "the PC game"
 msgstr ""
 
-#: app/main.cpp:2041
+#: app/main.cpp:2104
 msgid "the Jaguar cartridge"
 msgstr ""
 
-#: app/main.cpp:2063
+#: app/main.cpp:2126
 msgid "a copy of the Amiga version that cannot be used ({0})"
 msgstr ""
 
-#: app/main.cpp:2066
+#: app/main.cpp:2129
 msgid "the Amiga version"
 msgstr ""
 
-#: app/main.cpp:2125
+#: app/main.cpp:2188
 msgid "What you download is not looked for (no Downloads folder): search the folder you saved it in."
 msgstr ""
 
-#: app/main.cpp:2126
+#: app/main.cpp:2189
 msgid "Watching {0}: what you download from the links above is found by itself."
 msgstr ""
 
-#: app/main.cpp:2352
+#: app/main.cpp:2415
 msgid "The game's own files (setup/glyphs.txt) were not found beside this program. Start it with --res DIR, or install the game first."
 msgstr ""
 
-#: app/main.cpp:2357
+#: app/main.cpp:2420
 msgid "This build has no folder picker (built without dbus); start it with --scan DIR."
 msgstr ""
 

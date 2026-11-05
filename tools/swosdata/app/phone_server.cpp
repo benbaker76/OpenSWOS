@@ -50,6 +50,8 @@ struct Server {
   std::string assets, ini, key, host;
   int port = 0;
   std::map<std::string, uint64_t> files;     // the last list: path -> size
+  std::vector<std::pair<std::string, std::string>> mods;   // {slug, folder}: listed as mods/<slug>/
+  std::map<std::string, std::string> modFiles;            // a listed mods/ path -> its file
   std::map<std::string, bool> sent;
   sock_t tcp = SOCK_BAD, udp = SOCK_BAD;
   std::atomic<bool> stop{false};
@@ -256,7 +258,17 @@ void Serve(sock_t s, std::string peer) {
     g->sent.clear();
     ListFiles(g->assets, "", g->files);
     for (auto it = g->files.begin(); it != g->files.end();)   // the Amiga drawer's, not a phone's
-      it = it->first.compare(0, 6, "amiga/") == 0 ? g->files.erase(it) : std::next(it);
+      it = it->first.compare(0, 6, "amiga/") == 0 || it->first.compare(0, 5, "mods/") == 0 ? g->files.erase(it) : std::next(it);
+    g->modFiles.clear();
+    for (const auto& m : g->mods) {            // the mods that are on (docs/MODS.md)
+      std::map<std::string, uint64_t> mf;
+      ListFiles(m.second, "", mf);
+      for (const auto& f : mf) {
+        const std::string rel = "mods/" + m.first + "/" + f.first;
+        g->files[rel] = f.second;
+        g->modFiles[rel] = m.second + "/" + f.first;
+      }
+    }
     std::string body = PHONE_COPY_LIST "\n";
     uint64_t total = 0;
     for (auto& f : g->files) {
@@ -290,7 +302,8 @@ void Serve(sock_t s, std::string peer) {
       lk.unlock();
       Reply(s, 404, "text/plain", "No such file.\n");
     } else {
-      const std::string full = g->assets + "/" + rel;
+      const auto mod = g->modFiles.find(rel);
+      const std::string full = mod != g->modFiles.end() ? mod->second : g->assets + "/" + rel;
       lk.unlock();
       FILE* f = OpenFile(full, "rb");
       if (!f) {
@@ -369,17 +382,20 @@ void Loop() {
 
 }  // namespace
 
-bool PhoneServerStart(const std::string& assetsDir, const std::string& phoneIni) {
+bool PhoneServerStart(const std::string& assetsDir, const std::string& phoneIni,
+                      const std::vector<std::pair<std::string, std::string>>& mods) {
   if (g) {           // already serving: the folder may be another one now
     std::lock_guard<std::mutex> lk(g->lock);
     g->assets = assetsDir;
     g->ini = phoneIni;
+    g->mods = mods;
     return g->state.running;
   }
   SockInit();
   g = new Server;
   g->assets = assetsDir;
   g->ini = phoneIni;
+  g->mods = mods;
   g->key = MakeKey();
   g->host = LocalAddress();
   int why = 0;

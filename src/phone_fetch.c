@@ -28,6 +28,7 @@
 #include "game_options.h"
 #include "phone_copy.h"
 #include "swos_io.h"
+#include "mods.h"           /* Mods_Root: the mods the setup sends go there (docs/MODS.md) */
 
 /* ---- files --------------------------------------------------------------------------- */
 
@@ -412,6 +413,16 @@ static int take_options(const char *sent, const char *iniPath)
                 break;
             }
     }
+    /* The mods that are on, on the computer (docs/MODS.md): [mods] as the setup sent it. */
+    static const char *const kModKeys[] = { "enabled", "disabled" };
+    for (int i = 0; i < 2; i++) {
+        char v[256];
+        if (ini_value(sent, "mods", kModKeys[i], v, sizeof v)) {
+            text = ini_set(text, "mods", kModKeys[i], v);
+            fprintf(stderr, "[phone copy] SWOS.ini: [mods] %s=%s\n", kModKeys[i], v);
+            n++;
+        }
+    }
     if (n) {
         make_dirs(iniPath);
         FILE *f = fopen(iniPath, "wb");
@@ -546,7 +557,17 @@ int PhoneFetch_Copy(const PhoneFetchSetup *from, const char *assetsDir, const ch
     snprintf(old, sizeof old, "%s.old", assetsDir);
     remove_tree(part);
     mkdir(part, 0755);
-    int ok = 1, copied = 0;
+    /* The mods the setup sends (listed as mods/<slug>/...): into the player's mods folder, not
+     * the assets -- staged beside it, put in place once everything came. */
+    char modsDir[1100], modsPart[1200], modsOld[1200];
+    if (Mods_Root()[0])
+        snprintf(modsDir, sizeof modsDir, "%s", Mods_Root());
+    else
+        snprintf(modsDir, sizeof modsDir, "%s/mods", swos_user_dir());
+    snprintf(modsPart, sizeof modsPart, "%s.part", modsDir);
+    snprintf(modsOld, sizeof modsOld, "%s.old", modsDir);
+    remove_tree(modsPart);
+    int ok = 1, copied = 0, mods = 0;
     for (char *l = strchr(list, '\n') + 1; ok && l && *l;) {
         char *end = strchr(l, '\n');
         if (end) *end = 0;
@@ -562,7 +583,11 @@ int PhoneFetch_Copy(const PhoneFetchSetup *from, const char *assetsDir, const ch
             char enc[1024], dest[1600];
             encode_path(rel, enc, sizeof enc);
             snprintf(path, sizeof path, "/%s/f/%s", from->key, enc);
-            snprintf(dest, sizeof dest, "%s/%s", part, rel);
+            if (strncmp(rel, "mods/", 5) == 0) {
+                snprintf(dest, sizeof dest, "%s/%s", modsPart, rel + 5);
+                mods++;
+            } else
+                snprintf(dest, sizeof dest, "%s/%s", part, rel);
             make_dirs(dest);
             FILE *f = fopen(dest, "wb");
             if (!f) {
@@ -584,6 +609,7 @@ int PhoneFetch_Copy(const PhoneFetchSetup *from, const char *assetsDir, const ch
     free(list);
     if (!ok) {
         remove_tree(part);
+        remove_tree(modsPart);
         fprintf(stderr, "[phone copy] failed: %s\n", err);
         return 0;
     }
@@ -602,6 +628,15 @@ int PhoneFetch_Copy(const PhoneFetchSetup *from, const char *assetsDir, const ch
     }
     keep_worlds(old, assetsDir);
     remove_tree(old);
+    if (mods) {             /* (a setup that sent no mods leaves the phone's as they are) */
+        remove_tree(modsOld);
+        if (stat(modsDir, &sb) == 0 && rename(modsDir, modsOld) != 0)
+            fprintf(stderr, "[phone copy] could not replace the mods (%s)\n", strerror(errno));
+        else if (rename(modsPart, modsDir) != 0)
+            rename(modsOld, modsDir);
+        remove_tree(modsOld);
+        fprintf(stderr, "[phone copy] %d files of mods into %s\n", mods, modsDir);
+    }
     fprintf(stderr, "[phone copy] %d files, %lld bytes\n", copied, (long long)s_total);
 
     /* The options chosen for the phone, if any. */

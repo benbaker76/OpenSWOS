@@ -1259,3 +1259,6 @@ msgstr "{0} sarà disattivata dal prossimo avvio del gioco."
 
 msgid "Removed {0}."
 msgstr "{0} rimossa."
+
+msgid "could not copy the mods: {0}"
+msgstr "impossibile copiare le mod: {0}"

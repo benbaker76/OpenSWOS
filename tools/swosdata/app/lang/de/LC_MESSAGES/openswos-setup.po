@@ -1259,3 +1259,6 @@ msgstr "{0} ist ab dem nächsten Spielstart aus."
 
 msgid "Removed {0}."
 msgstr "{0} entfernt."
+
+msgid "could not copy the mods: {0}"
+msgstr "konnte die Mods nicht kopieren: {0}"

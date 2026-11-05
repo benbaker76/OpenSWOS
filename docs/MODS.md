@@ -255,8 +255,19 @@ Mods are hosted by their authors (content with other people's rights stays their
   Amiga drawer copies the mods that are on and made for the Amiga into its `mods/`, and writes
   `data/MODS` (no `data/MODS` when none is). Checked: an install, a refusal (no uuid), the
   screen with a mod in Downloads, a drawer with `data/MODS = indoor-hall*`, the German screen.
-  **Not yet:** mods in the WHDLoad package, on a phone (the Wi-Fi copy sends the assets folder),
-  on a handheld's card.
+  **Everywhere the setup puts the game, the mods that are on go too**:
+  - the **WHDLoad package**: staged as a drawer gets them, its `mods/` and `data/MODS` in the
+    package's `data/` (`SwosData_MakeWhdload`'s `modsDir`);
+  - a **phone**, over the Wi-Fi copy: the setup lists each mod's files as `mods/<slug>/...`
+    beside the assets and sends `[mods]` in the phone's SWOS.ini; the phone (`src/phone_fetch.c`)
+    puts them in its own mods folder, replaced whole once everything came (a setup that sends
+    no mods leaves the phone's as they are);
+  - a **handheld's card**: into the port's player folder, `swos/conf/.swos/mods/`, with
+    `[mods]` in its SWOS.ini.
+  Checked: the phone copy end to end (a Windows setup, the Linux game's `--phone-fetch`: the
+  mod in its mods folder, `[mods] enabled` in its SWOS.ini); the handheld copy
+  (`--handheld-copy`); a WHDLoad package (its log: 2 mod files; the names in the archive).
+  Not yet run on a phone, a handheld or under WHDLoad itself.
 
 **The first tweaks (§4)** (`include/tweaks.h`, `src/tweaks.c`): `[tweaks]` in SWOS.ini, each
 `true | false`, off by default; off online and under every rig (`Tweaks_On`); the Amiga has none.

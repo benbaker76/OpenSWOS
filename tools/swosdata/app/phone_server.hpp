@@ -20,9 +20,12 @@ struct PhoneServerState {
   bool finished = false;    // a phone asked for every file of the last list
 };
 
-// Serves `assetsDir` (and `phoneIni`, the phone's GAME OPTIONS, when it exists) until Stop.
+// Serves `assetsDir` (and `phoneIni`, the phone's GAME OPTIONS, when it exists) until Stop, and
+// each of `mods` ({slug, folder}: the mods that are on, docs/MODS.md) as files listed under
+// mods/<slug>/, which the phone puts in its own mods folder, not its assets.
 // False, and why in PhoneServerStatus().error, when no port could be opened.
-bool PhoneServerStart(const std::string& assetsDir, const std::string& phoneIni);
+bool PhoneServerStart(const std::string& assetsDir, const std::string& phoneIni,
+                      const std::vector<std::pair<std::string, std::string>>& mods = {});
 void PhoneServerStop();
 PhoneServerState PhoneServerStatus();
 

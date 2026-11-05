@@ -231,7 +231,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "--with-world: no world in %s -- install its package first (--world)\n", assets);
             return 1;
         }
-        if (SwosData_MakeWhdload(assets, drawer, res, out, withWorld, on_log, NULL, err) != 0) {
+        if (SwosData_MakeWhdload(assets, drawer, res, out, withWorld, NULL, on_log, NULL, err) != 0) {
             fprintf(stderr, "failed: %s\n", err);
             return 1;
         }
