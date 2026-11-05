@@ -739,6 +739,28 @@ extern uint8_t  _aFriendly_1[];
 extern uint16_t ShouldSetupPlayers(void);
 extern void InitPlayerRemapTableForTeam(TeamFileEx *team, uint8_t *remapTable);
 
+/* The ai_injury_subs tweak (bench_subs.c): which sides are the computer's. The managed career
+ * club never is, even when its controls are zero (a coach-only career match), and some cup
+ * fixtures use a COPY of _careerTeam: its id is checked as well as the pointer. */
+static int aiInjurySubsIsManagedCareerTeam(const TeamFileEx *team)
+{
+    extern uint16_t _selTeamNumber;
+    return _gameType == GAME_TYPE_CAREER &&
+           (team == &_careerTeam ||
+            PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal) == _selTeamNumber);
+}
+
+static void aiInjurySubsSetEligibility(const TeamFileEx *top, const TeamFileEx *bottom)
+{
+    extern uint8_t _aiInjurySubsTeam1Allowed, _aiInjurySubsTeam2Allowed;
+    _aiInjurySubsTeam1Allowed = top->team.teamControls == TEAM_COMPUTER &&
+                                !aiInjurySubsIsManagedCareerTeam(top) &&
+                                _topTeamPlayerNo == 0 && _topTeamCoachNo == 0;
+    _aiInjurySubsTeam2Allowed = bottom->team.teamControls == TEAM_COMPUTER &&
+                                !aiInjurySubsIsManagedCareerTeam(bottom) &&
+                                _bottomTeamPlayerNo == 0 && _bottomTeamCoachNo == 0;
+}
+
 /* SetupPlayers
  *
  * Shows play match menu for one or both human players before a match.
@@ -756,6 +778,10 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
                    int16_t excludeFlags, int16_t allowSquadChanges, int16_t mode) {
     uint16_t d0 = 0;
 
+    {   /* (the ai_injury_subs tweak: decided below, when the sides are) */
+        extern uint8_t _aiInjurySubsTeam1Allowed, _aiInjurySubsTeam2Allowed;
+        _aiInjurySubsTeam1Allowed = _aiInjurySubsTeam2Allowed = 0;
+    }
     _careerTeamCoachOnly = 0;
 
 #ifdef SWOS_SDL_BUILD
@@ -801,6 +827,7 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
             _bottomTeamCoachNo  = 0;
             _pl1Tactics = (int16_t)(int8_t)team1->team.tactics;
             _pl2Tactics = (int16_t)(int8_t)team2->team.tactics;
+            aiInjurySubsSetEligibility(team1, team2);
             (void)maxSubs; (void)excludeFlags; (void)allowSquadChanges; (void)mode; (void)d0;
             return;
         }
@@ -809,6 +836,7 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
         /* A mod's match (include/mod_api.h ModApi_PlayMatch): its sides, no prompts. */
         extern int32_t ModMatch_SetupPlayers(TeamFileEx *t1, TeamFileEx *t2);
         if (ModMatch_SetupPlayers(team1, team2)) {
+            aiInjurySubsSetEligibility(team1, team2);
             (void)maxSubs; (void)excludeFlags; (void)allowSquadChanges; (void)mode; (void)d0;
             return;
         }
@@ -836,6 +864,7 @@ void SetupPlayers(TeamFileEx *team1, TeamFileEx *team2, int16_t maxSubs,
             _bottomTeamCoachNo  = 0;
             _pl1Tactics = (int16_t)(int8_t)team1->team.tactics;
             _pl2Tactics = (int16_t)(int8_t)team2->team.tactics;
+            aiInjurySubsSetEligibility(team1, team2);
             (void)maxSubs; (void)excludeFlags; (void)allowSquadChanges; (void)mode; (void)d0;
             return;
         }
@@ -933,12 +962,14 @@ skip_second_menu:
 set_tactics:
     _pl1Tactics = (int16_t)(int8_t)team1->team.tactics;
     _pl2Tactics = (int16_t)(int8_t)team2->team.tactics;
+    aiInjurySubsSetEligibility(team1, team2);
     return;
 
 set_tactics_swapped:
     /* When mode != 0, teams stay swapped (exg a1,a2 not undone) */
     _pl1Tactics = (int16_t)(int8_t)team2->team.tactics;
     _pl2Tactics = (int16_t)(int8_t)team1->team.tactics;
+    aiInjurySubsSetEligibility(team2, team1);
     return;
 
 cancelled:

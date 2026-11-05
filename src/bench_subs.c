@@ -21,6 +21,10 @@
  * BenchCheckControls is called from GameLoop each frame.
  */
 
+#include "tweaks.h"
+#ifdef SWOS_SDL_BUILD
+#include <stdio.h>
+#endif      /* ai_injury_subs */
 #include "bench_subs.h"
 #include "dos_sound.h"
 #include "game_types.h"
@@ -242,6 +246,124 @@ static void drawSubstitutesMenuEntry(uint16_t y, uint16_t baseColor, int16_t sel
 static void drawFormationMenu(void);
 static void drawFormationMenuEntry(uint8_t *charsTable, uint16_t y, uint16_t entryColor, uint16_t entryIndex);
 
+/* Set by SetupPlayers from the original selected teams.  In career coach-only
+ * matches the manager's club can have both in-game control numbers equal to
+ * zero, so those numbers alone must NOT be used to identify an AI club. */
+uint8_t _aiInjurySubsTeam1Allowed = 0;
+uint8_t _aiInjurySubsTeam2Allowed = 0;
+
+/* AI injury substitutions (benefactorr's Career+; the ai_injury_subs tweak), at a match
+ * stoppage only.  No bench menu is
+ * activated for a computer team, so we apply the same 61-byte roster swap
+ * and refresh the team's tactics without altering the human menu state. */
+static int aiSubPositionCost(int oldPos, int newPos)
+{
+    if (oldPos == newPos) return 0;
+    if (oldPos == POS_GOALKEEPER || newPos == POS_GOALKEEPER) return 1000;
+    if ((oldPos == POS_RIGHT_BACK && newPos == POS_LEFT_BACK) ||
+        (oldPos == POS_LEFT_BACK && newPos == POS_RIGHT_BACK) ||
+        (oldPos == POS_RIGHT_WING && newPos == POS_LEFT_WING) ||
+        (oldPos == POS_LEFT_WING && newPos == POS_RIGHT_WING)) return 10;
+    if (oldPos <= POS_DEFENDER && newPos <= POS_DEFENDER) return 15;
+    if (oldPos >= POS_RIGHT_WING && oldPos <= POS_MIDFIELDER &&
+        newPos >= POS_RIGHT_WING && newPos <= POS_MIDFIELDER) return 15;
+    if ((oldPos == POS_ATTACKER && newPos >= POS_RIGHT_WING) ||
+        (newPos == POS_ATTACKER && oldPos >= POS_RIGHT_WING)) return 30;
+    return 100;
+}
+
+static void aiReplaceInjuredPlayer(TeamGeneralInfo *team, TeamGame *tg,
+                                   int isTopTeam, int isAllowed)
+{
+    uint16_t *used = isTopTeam ? &_team1NumSubs : &_team2NumSubs;
+    int leaving = -1, entering = -1, best = 100000;
+    int i, j;
+    uintptr_t oldBenchTeam, oldBenchGame;
+    /* The match setup authorises only genuine AI opponents.  This also
+     * protects the managed career club when its on-field controls are zero. */
+    if (!isAllowed ||
+        team->playerNumber != 0 || team->playerCoachNumber != 0 ||
+        *used >= _maxSubsPerTeam || _maxSubsPerTeam == 0) return;
+
+    for (i = 0; i < 11; ++i) {
+        PlayerInfo *hurt = &tg->players[i];
+        int oldPos;
+        if (!hurt->isInjured || hurt->skip || hurt->position < 0) continue;
+        oldPos = (uint8_t)hurt->position;
+        for (j = 11; j < 16; ++j) {
+            PlayerInfo *candidate = &tg->players[j];
+            int score;
+            if (candidate->skip || candidate->position < 0 ||
+                candidate->isInjured || (uint8_t)candidate->numYellowCards >= 2)
+                continue;
+            /* Reserve keeper belongs in the keeper position only. */
+            if ((i == 0) != (j == 11)) continue;
+            score = aiSubPositionCost(oldPos, (uint8_t)candidate->position) * 100;
+            score -= candidate->passing + candidate->shooting + candidate->tackling +
+                     candidate->ballControl + candidate->speed + candidate->goalieSkill;
+            if (score < best) { best = score; leaving = i; entering = j; }
+        }
+    }
+    if (leaving < 0) return;
+    /* Keep the on-field slot and its tactical position; exchange identities
+     * exactly as the normal substitution routine does. */
+    oldBenchTeam = _benchTeam;
+    oldBenchGame = _benchTeamGame;
+    _benchTeam = (uintptr_t)team;
+    _benchTeamGame = (uintptr_t)tg;
+    SwapPlayerNameData((uint16_t)entering, (uint16_t)leaving);
+    {
+        PlayerInfo tmp = tg->players[entering];
+        tg->players[leaving].position = -1;
+        tg->players[entering] = tg->players[leaving];
+        tg->players[leaving] = tmp;
+        /* Never carry the injured outgoing player's status onto the
+         * replacement occupying the on-field slot. */
+        tg->players[leaving].isInjured = 0;
+    }
+    if (tg->markedPlayer == leaving || tg->markedPlayer == entering)
+        tg->markedPlayer = -1;
+    if (team->spritesTable[leaving]) {
+        team->spritesTable[leaving]->injuryLevel = 0;
+        team->spritesTable[leaving]->sentAway = 0;
+        team->spritesTable[leaving]->cards = 0;
+    }
+    ++*used;
+    if (entering == 11) {
+        if (isTopTeam) ++_team1GoalkeeperReplaced;
+        else ++_team2GoalkeeperReplaced;
+    }
+    InitializePlayerSpriteFrameIndices();
+    ApplyTeamTactics(tg);
+    _benchTeam = oldBenchTeam;
+    _benchTeamGame = oldBenchGame;
+    DOS_SOUND(DOS_EV_SUBSTITUTION, 0);
+#ifdef SWOS_SDL_BUILD
+    fprintf(stderr, "[tweaks] ai_injury_subs: the %s team's slot %d off injured, bench %d on\n",
+            isTopTeam ? "top" : "bottom", leaving, entering);
+#endif
+}
+
+static void aiCheckInjuredSubs(void)
+{
+    /* This is called from the existing stoppage-only bench check -- only with the
+     * ai_injury_subs tweak on (include/tweaks.h): the original's computer never
+     * substitutes (BenchCheckControls answers only a player calling the bench). */
+    if (!Tweaks_On(TWEAK_AI_INJURY_SUBS))
+        return;
+    if (_trainingGame || _inSubstitutesMenu || _substituteInProgress ||
+        _waitForPlayerToGoInTimer || _cameraLeavingSubsTimer ||
+        _refState || _injuriesForever || _statsTimer ||
+        _gameStatePl == ST_GAME_IN_PROGRESS || _whichCard || _playingPenalties ||
+        (_gameState >= ST_STARTING_GAME && _gameState <= ST_GAME_ENDED)) return;
+    if (_topTeamPtr)
+        aiReplaceInjuredPlayer(&_topTeamData, _topTeamPtr, 1,
+                               _aiInjurySubsTeam1Allowed);
+    if (_bottomTeamPtr)
+        aiReplaceInjuredPlayer(&_bottomTeamData, _bottomTeamPtr, 0,
+                               _aiInjurySubsTeam2Allowed);
+}
+
 /* ================================================================
  * BenchCheckControls
  * (SWOS2.s line 12131)
@@ -318,6 +440,8 @@ BenchCheckControls(void)
 
     if (_gameState >= ST_STARTING_GAME && _gameState <= ST_GAME_ENDED)
         goto reset_bench_tap_state;
+
+    aiCheckInjuredSubs();
 
     /* check if either player has called the bench */
     a6 = &_topTeamData;

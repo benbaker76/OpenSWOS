@@ -293,6 +293,8 @@ Mods are hosted by their authors (content with other people's rights stays their
 | `cpu_cards` | `TryBookingThePlayer` / `TrySendingOffThePlayer` give no card to a side with no human (SWOS2.s:26026) | `src/tackle_foul.c`: every side by the same rolls |
 | `tackle_controlled_player` | whichever of the controlled player and the pass receiver is nearer the ball slides (SWOS2.s:30408-30431 and 31116-31146) | `src/update_players.c`: on a human's team only the controlled player slides |
 | `no_teammate_tackles` | the receiver runs onto the ball (`passingBall`), may slide on your fire press and is handed control on reaching it (SWOS2.s:31146-31215) | while a human's controlled player has the ball (within 72), the receiver comes to support distance only: no slide, no hand-over |
+| `more_fouls` | `PlayerTacklingTestFoul` waves on every tackle not from behind (direction more than 1 apart) | one in 16 of those is a foul -- its roll (`Rand`) taken only with the tweak on (benefactorr's Career+) |
+| `ai_injury_subs` | the computer never substitutes: `BenchCheckControls` answers only a player calling the bench | at a stoppage, the computer replaces an injured player with the bench player nearest his position (the keeper by the reserve keeper), within its substitutes; never the managed career club (benefactorr's Career+) |
 
 Checked: with every tweak off, `rollback_test.sh --all`, `replay_v2_test.sh --all` and
 `netplay_test.sh --all` pass; both targets build. **Not yet played with the tweaks on.**

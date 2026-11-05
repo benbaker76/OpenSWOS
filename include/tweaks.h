@@ -22,6 +22,8 @@ enum {
     TWEAK_CPU_CARDS                = 1u << 0,   /* the computer's players are booked and sent off too */
     TWEAK_NO_TEAMMATE_TACKLES      = 1u << 1,   /* a team-mate leaves your player on the ball alone */
     TWEAK_TACKLE_CONTROLLED_PLAYER = 1u << 2,   /* the slide is made by the player you control */
+    TWEAK_MORE_FOULS               = 1u << 3,   /* one borderline (sideways) tackle in 16 is a foul */
+    TWEAK_AI_INJURY_SUBS           = 1u << 4,   /* the computer replaces its injured players */
 };
 
 /* The tweaks SWOS.ini switched on (main.c, after the settings). */

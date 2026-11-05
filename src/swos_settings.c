@@ -666,6 +666,14 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; tackle_controlled_player: true | false -- fire slides the player you control\n"
         "; (in the original a nearer team-mate may slide instead).",
         (opts->tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "more_fouls",
+        "; more_fouls: true | false -- one borderline tackle in 16, from the side, is a foul\n"
+        "; (the original gives a foul only from behind; benefactorr's Career+).",
+        (opts->tweaks & TWEAK_MORE_FOULS) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "ai_injury_subs",
+        "; ai_injury_subs: true | false -- the computer replaces an injured player at a stoppage\n"
+        "; (the original's computer never substitutes; benefactorr's Career+).",
+        (opts->tweaks & TWEAK_AI_INJURY_SUBS) ? "true" : "false" };
     {   /* [options]: unset = the game's defaults (SetDefaultOptions) */
         static const char *const kLength[] = { "3", "5", "7", "10" };
         static const char *const kPitch[]  = { "seasonal", "random", "frozen", "muddy", "wet",

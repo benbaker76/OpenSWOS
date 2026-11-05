@@ -565,8 +565,12 @@ PlayerTacklingTestFoul(Sprite *player, TeamGeneralInfo *team)
 
         /* Check direction difference: within +/-1 means from the side = no foul */
         dirDiff = player->direction - victim->direction;
-        if (dirDiff < -1 || dirDiff > 1)
-            return;
+        if (dirDiff < -1 || dirDiff > 1) {
+            /* The more_fouls tweak (include/tweaks.h; benefactorr's Career+): one of these
+             * borderline tackles in 16 is a foul. Its roll is taken only with the tweak on. */
+            if (!Tweaks_On(TWEAK_MORE_FOULS) || (Rand() & 0xFF) >= 16)
+                return;
+        }
     }
 
     /* It's a foul! Increment fouls counter */
