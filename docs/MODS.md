@@ -96,6 +96,21 @@ lobby's switches (SHORT PRESSES, CARDS/INJURIES: `include/netplay_match.h`), the
 the host's, the recorder and `.SRP` record it, and adding one raises `NETPLAY_COMPAT`. The
 golden careers and the replay corpus run with every tweak off, so they keep proving the original.
 
+**A mod may switch a tweak ON -- the owner, 2026-11-04, for Career+'s "more fouls" and "the
+AI substitutes its injured players".** The rules:
+
+1. **The tweak is the game's, not the mod's.** It is an ordinary `[tweaks]` key, built in, off
+   by default. A mod cannot add one or change what one does; it can only switch on one that
+   is marked OFFLINE-ONLY, through one call (`ModApi_SetTweak`, to be written with the first
+   two). A tweak that is match rules online is never a mod's to switch.
+2. **Online always wins.** A match against another player plays without it, whatever a mod or
+   SWOS.ini says; so do the rigs and the golden careers. The mod stays a `career` (or `modes`)
+   mod: it never has to be alike in both games.
+3. **The player can see it.** The tweak's row in OPTIONS shows who switched it ("ON
+   (CAREER+)"); turning the mod off puts the tweak back to the player's own setting.
+4. **Replays keep it.** A recording stores the tweaks in force, so a replay or `--srp-resim`
+   plays the same match.
+
 ---
 
 ## 5. The original, always buildable
