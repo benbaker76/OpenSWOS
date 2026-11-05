@@ -3231,6 +3231,84 @@ void DataJson_LoadCareerParams(void)
     fprintf(stderr, "[data-json] career params loaded from data_json/career_params.json\n");
 }
 
+#include "national_teams.h"
+/* data_json/national_teams.json (a mod's, through the overlay; OpenSWOS ships none): the national
+ * teams' records and the career manager's nationalities, in place of the compiled ones --
+ * include/national_teams.h. Each record a named object; the counts are the arrays' lengths. A
+ * missing file leaves the compiled tables as they are (the original's, byte for byte). A record
+ * that does not parse, a table past the maxima, or none at all is refused whole: the game keeps
+ * the original's, and says why. */
+void DataJson_LoadNationalTeams(void)
+{
+    extern uint8_t  _nationalTeams[];
+    extern uint16_t _numNationalTeams;
+    extern uint8_t  _nationalityOrdinalsArray[];
+    extern uint16_t _nat_teams_rand_limit1;
+    int len;
+    char *j = dj_slurp("data_json/national_teams.json", &len);
+    if (!j)
+        return;
+    static uint8_t rec[NATIONAL_TEAMS_MAX * 6], nats[NATIONALITIES_MAX];
+    uint32_t nRec = 0, nNat = 0;
+    const char *why = NULL;
+    const char *arr = NULL;
+    int arrLen = 0;
+    double v;
+    if (mjson_find(j, len, "$.records", &arr, &arrLen) != MJSON_TOK_ARRAY) {
+        why = "no \"records\" array";
+    } else {
+        int off = 0, ko, kl, vo, vl, vt;
+        while (!why && (off = mjson_next(arr, arrLen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
+            static const char *const keys[5] = { "$.country", "$.ordinal", "$.nationality", "$.team_file", "$.skill" };
+            uint32_t f[5];
+            if (nRec >= NATIONAL_TEAMS_MAX) { why = "more records than NATIONAL_TEAMS_MAX"; break; }
+            if (vt != MJSON_TOK_OBJECT) { why = "a record that is not an object"; break; }
+            for (int k = 0; k < 5; k++) {
+                if (mjson_get_number(arr + vo, vl, keys[k], &v) == 0 || v < 0 || v > (k == 4 ? 65535 : 255)) {
+                    why = "a record without a valid country/ordinal/nationality/team_file/skill";
+                    break;
+                }
+                f[k] = (uint32_t)v;
+            }
+            if (why) break;
+            uint8_t *r = rec + nRec * 6;
+            r[0] = (uint8_t)f[0]; r[1] = (uint8_t)f[1]; r[2] = (uint8_t)f[2]; r[3] = (uint8_t)f[3];
+            r[4] = (uint8_t)(f[4] >> 8); r[5] = (uint8_t)f[4];      /* (skillOrPrice: big-endian) */
+            nRec++;
+        }
+        if (!why && nRec == 0)
+            why = "no records";
+    }
+    if (!why && mjson_find(j, len, "$.nationalities", &arr, &arrLen) == MJSON_TOK_ARRAY) {
+        int off = 0, ko, kl, vo, vl, vt;
+        while ((off = mjson_next(arr, arrLen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
+            if (nNat >= NATIONALITIES_MAX - 1) { why = "more nationalities than NATIONALITIES_MAX"; break; }
+            if (vt != MJSON_TOK_NUMBER || mjson_get_number(arr + vo, vl, "$", &v) == 0 || v < 0 || v > 254) {
+                why = "a nationality that is not 0..254 (OTHER, 255, is added)";
+                break;
+            }
+            nats[nNat++] = (uint8_t)v;
+        }
+    }
+    if (why) {
+        fprintf(stderr, "[data-json] data_json/national_teams.json refused (%s): the original's national teams\n", why);
+        free(j);
+        return;
+    }
+    memset(_nationalTeams, 0, NATIONAL_TEAMS_MAX * 6);
+    memcpy(_nationalTeams, rec, nRec * 6);
+    _numNationalTeams = (uint16_t)nRec;
+    if (nNat) {     /* (none given: the compiled ones) */
+        memcpy(_nationalityOrdinalsArray, nats, nNat);
+        _nationalityOrdinalsArray[nNat] = 0xFF;     /* OTHER */
+    }
+    if (mjson_get_number(j, len, "$.job_offer_pick", &v) && v >= 1 && v <= 256)
+        _nat_teams_rand_limit1 = (uint16_t)v;   /* (the first records a random national job is drawn from) */
+    free(j);
+    fprintf(stderr, "[data-json] national teams from data_json/national_teams.json: %u records, %u nationalities\n",
+            (unsigned)nRec, (unsigned)(nNat ? nNat + 1 : 0));
+}
+
 /* Slurp `path`, find the record whose "$.id" == id inside the array at
    "$.<arrkey>", and return its object slice. On success returns 1, sets
    *filebuf to the malloc'd file (caller must free it once done with the slice)

@@ -155,6 +155,25 @@ python3 scripts/emit_teams.py --write    # regenerate the RNC-compressed bin/dat
 Commit the JSON and the regenerated binaries together. Refresh the JSON from the binaries with
 `python3 scripts/decode_data.py --dump-json bin/data_json/teams`.
 
+### National teams (`national_teams.json`, a mod's)
+
+The national teams' records and the career manager's nationalities are compiled (the original's
+63 records -- of the 144 its table holds, the rest without nationality or team file -- and 63
+nationalities + OTHER; include/national_teams.h). A mod may bring
+`data_json/national_teams.json` through the overlay (SDL; OpenSWOS ships none):
+
+```json
+{ "records": [ { "country": 80, "ordinal": 0, "nationality": 0, "team_file": 0, "skill": 19 }, ... ],
+  "nationalities": [ 8, 31, ... ],      // the manager's choices; OTHER (255) is added last
+  "job_offer_pick": 41 }                // the first records a random national job is drawn from
+```
+
+The counts are the arrays' lengths (at most 256 records, 127 nationalities on SDL; the Amiga
+keeps the original's). `team_file` 255 means no club league in the game: that national
+selector's ADD PLAYER has no HOME, only ABROAD. A file that does not parse is refused whole,
+said in `[data-json]`, and the original's tables stay. Order matters where the original's does:
+a nationality's national team is the first record with it (`GetNationalTeamNumber`).
+
 ### Career-mode balance knobs (`career_params.json`)
 
 `bin/data_json/career_params.json` exposes career-mode economy + board-expectation

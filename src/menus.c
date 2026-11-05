@@ -4959,21 +4959,35 @@ extern CompetitionSlotBuffer _euroCupsCompetitionContextBuf;   /* slot-3 untangl
 extern uint8_t  _plNationality;
 extern uint8_t  _nationalityOrdinal;
 extern uint8_t  _nationalityOrdinalsArray[];
+#include "national_teams.h"     /* NATIONALITIES_MAX, NATIONAL_TEAM_NO_FILE */
 
-/* The career menu's nationalities: the game's 63 and OTHER (0xFF); a world's own adds the SWOS 96/97
- * Mod's four before OTHER (careerworld.py MENU_NATS: East Germany 153, the USSR 154, West Germany
- * 155, Yugoslavia 37 -- a coach can be one). */
+/* The career menu's nationalities: the game's 63 and OTHER (0xFF) -- or a mod's list
+ * (include/national_teams.h), OTHER still last; a world's own adds the SWOS 96/97 Mod's four
+ * before OTHER (careerworld.py MENU_NATS: East Germany 153, the USSR 154, West Germany 155,
+ * Yugoslavia 37 -- a coach can be one), each once. */
 static const uint8_t *career_nationalities(int32_t *count)
 {
-    static uint8_t world[68];
+    static uint8_t world[NATIONALITIES_MAX + 4];
+    int32_t n = 0;
+    while (n < (int32_t)NATIONALITIES_MAX - 1 && _nationalityOrdinalsArray[n] != 0xFF)
+        n++;                                    /* (the nationalities before OTHER: 63 the original's) */
     if (World_Current() == WORLD_9697) {
-        *count = 64;
+        *count = n + 1;
         return _nationalityOrdinalsArray;
     }
-    for (int32_t i = 0; i < 63; i++)
-        world[i] = _nationalityOrdinalsArray[i];
-    world[63] = 153; world[64] = 154; world[65] = 155; world[66] = 37; world[67] = 0xFF;
-    *count = 68;
+    static const uint8_t modNats[4] = { 153, 154, 155, 37 };
+    int32_t w = 0;
+    for (int32_t i = 0; i < n; i++)
+        world[w++] = _nationalityOrdinalsArray[i];
+    for (int32_t k = 0; k < 4; k++) {
+        int32_t dup = 0;
+        for (int32_t i = 0; i < n; i++)
+            dup |= _nationalityOrdinalsArray[i] == modNats[k];
+        if (!dup)
+            world[w++] = modNats[k];
+    }
+    world[w++] = 0xFF;
+    *count = w;
     return world;
 }
 extern uint8_t  _shortCountryNames[];
@@ -6674,6 +6688,20 @@ void Career_RebuildInternationalPlayerSelectionMasks(void)
  * select a player. If player selected but no room in career team (result==1),
  * copies player data for pending addition. */
 __attribute__((used, externally_visible))
+/* NATIONAL TEAM -> ADD PLAYER's init (the original's is empty): a nation with no club league in
+ * the game (its record's team file NATIONAL_TEAM_NO_FILE, a mod's national teams) has no HOME --
+ * only ABROAD, which lists every club. */
+__attribute__((used, externally_visible))
+void NationalTeamAddPlayerInit(void)
+{
+    extern uint8_t _nationalTeamFileId;
+    if (_nationalTeamFileId != NATIONAL_TEAM_NO_FILE)
+        return;
+    _menuEntries[1].isInvisible = 1;
+    _menuEntries[2].upEntry = -1;
+    SetCurrentEntry(2);
+}
+
 void NationalTeamAddPlayer(void)
 {
     _careerIntlPlayersRemoveMask = 0;

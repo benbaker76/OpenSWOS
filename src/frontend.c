@@ -130,6 +130,8 @@ void FrontEndPreLoopSetup(void)
        without a rebuild. Absent file -> compiled defaults. */
     extern void DataJson_LoadCareerParams(void);
     DataJson_LoadCareerParams();
+    extern void DataJson_LoadNationalTeams(void);
+    DataJson_LoadNationalTeams();       /* (a mod's national teams: include/national_teams.h) */
     /* SWOS_MENU_JSON: load every menu from bin/data_json/menus/*.json and overwrite
        the compiled static menu bytes IN PLACE (docs/MENUS.md §2d), so editing the
        JSON changes the running game. Bounded by each menu's compiled size; a menu

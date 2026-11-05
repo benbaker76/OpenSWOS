@@ -17,7 +17,7 @@ extern DIYTournamentState _diyFileBufferCopy;  /* header field was the diyTourna
 
 /* ---- Stub functions (trivial wrappers removed from SWOS2.s) ---- */
 void GlobalRetn(void) { }
-void NationalTeamAddPlayerInit(void) { }
+extern void NationalTeamAddPlayerInit(void);   /* (src/menus.c: no HOME for a nation without clubs) */
 void locret_139AE2(void) { }
 void ExitPlayerMarketMenu(void) { SetExitMenuFlag(); }
 void DesignDIYTournamentOnSelect91(void) { SetExitMenuFlag(); }
