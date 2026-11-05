@@ -6,7 +6,7 @@
 
 - **AI Squad Improvement!:** As AI buys players, now it also checks whether reserves are better than the first team players, and swaps them!
 
-![Age of players!](docs/images/screenshots/swos_age_screenshot.png) |
+![Age of players!](docs/images/screenshots/swos_age_screenshot.png) | ![Age of players!](docs/images/screenshots/Screenshot 2026-11-04 184242.png) | ![Retirements!](docs/images/screenshots/Screenshot 2026-11-04 184658.png) |
 
 # Version 1
 
