@@ -67,6 +67,16 @@ CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32
  * career contest table's templates; the copies hold them). */
 void LeaguePhase_InstallCups(CompetitionLeaguePhase *cups);
 
+/* A mod's European cups while 96/97 is the world (ModApi_SetLeaguePhases): its three records,
+ * each country's places (as World_LeaguePhaseCups'), and the UEFA seeds the qualifying rounds
+ * draw on (NULL: none). Kept from a mod's init; installed by World_InstallBaked when the world
+ * is 96/97, and answered by World_LeaguePhaseCups / World_UefaSeeds then. */
+struct WorldUefaSeeds;
+void LeaguePhase_SetModEurope(CompetitionLeaguePhase *cups, const uint8_t (*places)[4], int32_t count,
+                              const struct WorldUefaSeeds *seeds);
+CompetitionLeaguePhase *LeaguePhase_ModCups(const uint8_t (**places)[4], int32_t *count);
+const struct WorldUefaSeeds *LeaguePhase_ModSeeds(void);
+
 /* ---- the league phase in the engine (a world's European cups: type-2 contests whose first
  * stage is 2 groups of 18, the Mod's careerworld LP_STAGES) ---- */
 
