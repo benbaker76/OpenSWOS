@@ -122,6 +122,8 @@ void FrontEndPreLoopSetup(void)
 #ifdef SWOS_SDL_BUILD
     /* SWOS_DATA_JSON: rebuild normal-country competition tables from data_json/
        before any menu reads competitionsTable[]. No-op unless the env var is set. */
+    extern void DataJson_FitModTeamFiles(void);
+    DataJson_FitModTeamFiles();         /* (a mod's bigger team file: its country's team numbers) */
     extern void DataJson_InstallCompetitionGraph(void);
     DataJson_InstallCompetitionGraph();
     WorldCups_Install();

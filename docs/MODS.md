@@ -390,6 +390,12 @@ refused; a canonical mod on by default and off with `disabled`. Both targets bui
   skipped and logged) -- growing one needs MENUS.md §1e's call-site repoint.
 - **Replace formations** (`data_json/tactics`, on by default) and the career parameters
   (`career_params.json`).
+- **Replace a country's clubs** (`data_json/teams/<COUNTRY>.json`, the database's format with ids
+  of the mod's own: docs/TEAM_IDS.md), with its leagues (`competitions/leagues.json`). A country's
+  clubs have a range of global team numbers sized to 96/97's; a mod's file with more clubs grows
+  it at start-up and moves every later country's (`DataJson_FitModTeamFiles`, as a world's do),
+  so the league tables keep them apart. Career+'s Yugoslavia is the case: 24 clubs where 96/97 had
+  10, which ran into Algeria's and Argentina's numbers (panic 0x5555 in its first season).
 
 **Built: strings** (`src/translations.c`). A mod's `data_json/translations/<lang>.json` holds
 only the strings it adds or changes, and is **merged** over the game's: each key it has

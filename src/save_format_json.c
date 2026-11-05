@@ -3231,6 +3231,79 @@ void DataJson_LoadCareerParams(void)
     fprintf(stderr, "[data-json] career params loaded from data_json/career_params.json\n");
 }
 
+#include "mods.h"
+/* A mod's team file for a 96/97 country (data_json/teams/, through the overlay): a country's
+ * global team numbers (base + ordinal, _teamsCountryNumbers) are a range sized to 96/97's clubs,
+ * and a file with more would run on into the next countries' numbers -- Career+'s Yugoslavia,
+ * 24 clubs where 96/97 had 10, into 42's and 43's: the league tables indexed by them then mixed
+ * the countries' clubs (a standings row named garbage, panic 0xCCxx). So each such country's
+ * range grows to its clubs and every later base moves by the difference, as a world's do
+ * (world_data.c, resize_country). Never shrunk; the game's own files, and a world's, are not
+ * looked at, so without such a mod the numbers are 96/97's. */
+void DataJson_FitModTeamFiles(void)
+{
+    extern uint16_t _teamsCountryNumbers[256];
+    extern volatile uint16_t _panicReasonCode;
+    extern void PanicHaltLoop(void);
+    if (World_Current() != WORLD_9697 || Mods_Count() == 0)
+        return;
+    int clen = 0;
+    char *cj = dj_slurp("data_json/competitions/countries.json", &clen);
+    if (!cj)
+        return;
+    const char *arr;
+    int arr_len;
+    if (mjson_find(cj, clen, "$.countries", &arr, &arr_len) == MJSON_TOK_ARRAY) {
+        int pos = 0, voff, vlen, vt;
+        while ((pos = fast_array_next(arr, arr_len, pos, &voff, &vlen, &vt)) != 0) {
+            double num = -1;
+            char team_file[128] = "";
+            if (vt != MJSON_TOK_OBJECT || !mjson_get_number(arr + voff, vlen, "$.number", &num) ||
+                num < 0 || num > 254 ||
+                mjson_get_string(arr + voff, vlen, "$.team_file", team_file, (int)sizeof team_file) <= 0)
+                continue;
+            for (int32_t m = 0; m < Mods_Count(); m++) {
+                char path[512];
+                snprintf(path, sizeof path, "%s/data_json/%s", Mods_Dir(m), team_file);
+                FILE *f = fopen(path, "rb");
+                if (!f)
+                    continue;
+                fseek(f, 0, SEEK_END);
+                long n = ftell(f);
+                fseek(f, 0, SEEK_SET);
+                char *tj = n > 0 ? (char *)malloc((size_t)n + 1) : NULL;
+                if (tj && fread(tj, 1, (size_t)n, f) != (size_t)n) {
+                    free(tj);
+                    tj = NULL;
+                }
+                fclose(f);
+                if (!tj)
+                    break;
+                const char *teams;
+                int teams_len, tp = 0, to, tl, tt, clubs = 0;
+                if (mjson_find(tj, (int)n, "$.teams", &teams, &teams_len) == MJSON_TOK_ARRAY)
+                    while ((tp = fast_array_next(teams, teams_len, tp, &to, &tl, &tt)) != 0)
+                        clubs++;
+                free(tj);
+                const int c = (int)num;
+                const int range = _teamsCountryNumbers[c + 1] - _teamsCountryNumbers[c];
+                if (clubs > range) {
+                    for (int i = c + 1; i < 256; i++)
+                        _teamsCountryNumbers[i] = (uint16_t)(_teamsCountryNumbers[i] + (clubs - range));
+                    fprintf(stderr, "[data-json] %s: %d clubs for country %d (96/97: %d), later countries' "
+                            "team numbers moved by %d\n", path, clubs, c, range, clubs - range);
+                    if (_teamsCountryNumbers[255] > GLOBAL_TEAM_NUMBERS) {
+                        _panicReasonCode = 0x8F02;  /* (past the league tables: world_data.c's panic) */
+                        PanicHaltLoop();
+                    }
+                }
+                break;                      /* (the first mod with the file is the one read) */
+            }
+        }
+    }
+    free(cj);
+}
+
 #include "national_teams.h"
 /* data_json/national_teams.json (a mod's, through the overlay; OpenSWOS ships none): the national
  * teams' records and the career manager's nationalities, in place of the compiled ones --
