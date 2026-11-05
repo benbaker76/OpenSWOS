@@ -56,6 +56,52 @@ int32_t ModApi_ViewedCompetition(uint8_t *competitionId, int32_t *league, uint8_
     return WorldWinners_Viewed(competitionId, league, division);
 }
 
+typedef struct { int32_t (*each)(const ModCareerClub *club, void *ctx); void *ctx; } ClubWalk;
+
+static int32_t club_visited(const TeamFileEx *t, void *ctx)
+{
+    const ClubWalk *w = (const ClubWalk *)ctx;
+    ModCareerClub club;
+    club.team = PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal);
+    club.league = t->team.league;
+    int32_t n = 0;
+    while (n < 16 && t->team.teamName[n])
+        club.name[n] = (char)t->team.teamName[n], n++;
+    club.name[n] = 0;
+    for (int32_t i = 0; i < 16; i++)
+        club.order[i] = t->team.playerNumbers[i];
+    club.players = t->players;
+    return w->each(&club, w->ctx);
+}
+
+int32_t ModApi_CareerClubs(int32_t (*each)(const ModCareerClub *club, void *ctx), void *ctx)
+{
+    extern int32_t Career_ForEachClub(int32_t (*each)(const TeamFileEx *club, void *ctx), void *ctx);
+    ClubWalk w = { each, ctx };
+    if (!in_career() || !each)
+        return -1;
+    return Career_ForEachClub(club_visited, &w);
+}
+
+int32_t ModApi_PlayerValue(const struct PlayerFile *player)
+{
+    extern uint16_t _avgTeamValueBases[];   /* (92: the value in thousands by band) */
+    extern int8_t _avgTeamValues[];         /* (the band by price index) */
+    if (!player || !player->playerName[0] || (uint8_t)player->playerName[0] == 0xFF ||
+        (uint8_t)player->price > 49)
+        return -1;
+    const int32_t band = (uint8_t)_avgTeamValues[(uint8_t)player->price];
+    return band >= 1 && band <= 91 ? _avgTeamValueBases[band] : -1;
+}
+
+int32_t ModApi_SetOwnPlayer(uint16_t slot, const struct PlayerFile *player)
+{
+    extern int32_t Career_WriteOwnPlayer(uint16_t slot, const PlayerFile *player);
+    if (!in_career())
+        return -1;
+    return Career_WriteOwnPlayer(slot, player);
+}
+
 int32_t ModApi_SetCareerPlayer(uint16_t team, uint16_t slot, const struct PlayerFile *player)
 {
     TeamFileEx t;

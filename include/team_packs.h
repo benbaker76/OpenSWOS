@@ -13,6 +13,8 @@
 #ifndef TEAM_PACKS_H
 #define TEAM_PACKS_H
 
+#include <stdint.h>
+
 #define TEAMPACK_FIRST 210
 #define TEAMPACK_LAST  249
 

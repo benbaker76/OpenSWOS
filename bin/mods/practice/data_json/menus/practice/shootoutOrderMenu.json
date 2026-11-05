@@ -5,7 +5,7 @@
   "dos_redraw": true
  },
  "onInit": "practice.orderInit",
- "onReturn": null,
+ "onReturn": "practice.orderInit",
  "onDraw": "practice.orderDraw",
  "defaultEntry": 2,
  "items": [

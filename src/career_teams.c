@@ -12,6 +12,8 @@
 
 #include "career_teams.h"
 #include <stdio.h>    /* (Career_PeekTeam) */
+#include <stdlib.h>   /* (Career_ForEachClub) */
+#include <string.h>
 #include "uefa_coef.h"
 #include "conti_season.h"
 #include "states.h"
@@ -266,6 +268,63 @@ int32_t Career_PeekTeam(uint16_t teamId, TeamFileEx *out)
     if (other)
         TeamFile_PutBack(aside);
     return found;
+}
+
+/* ================================================================
+ * Career_ForEachClub -- every club of the career's countries, as the career has it (for the
+ * mods' ModApi_CareerClubs): each country with a league (_competitionsTable: not the national
+ * teams' files, not the joke teams'), each club of its team file -- the live copy where there
+ * is one (the career club, the current team, the selected teams, the TMD pool), else its
+ * record with the career pool's changes on it, as GetTeamPointer would give. Each file is read
+ * once and copied, so `each` may call anything (Career_PeekTeam, Career_WriteTeamPlayer); the
+ * team-file buffer is put back as it was. `each` returns nonzero to stop. The clubs visited,
+ * -1 when there is no memory.
+ * ================================================================ */
+int32_t Career_ForEachClub(int32_t (*each)(const TeamFileEx *club, void *ctx), void *ctx)
+{
+    extern void *_competitionsTable[];
+    extern uint8_t _currentTeam[];
+    extern uint16_t _currentTeamNumber;
+    uint8_t *copy = (uint8_t *)malloc(TEAM_FILE_BUFFER_SIZE);
+    void *aside = TeamFile_PutAside();
+    int32_t visited = 0, stop = 0;
+    if (!copy || !aside) {
+        free(copy);
+        if (aside)
+            TeamFile_PutBack(aside);
+        return -1;
+    }
+    for (int32_t file = 0; file < CN_EUROPE && !stop; file++) {
+        void **entry = (void **)_competitionsTable[file];
+        if (!entry || (intptr_t)entry == -1 || !entry[0] || (intptr_t)entry[0] == -1 ||
+            !teamFileExists((uint8_t)file) || LoadTeamFile((uint16_t)file) != 0)
+            continue;
+        memcpy(copy, &_teamFileBuffer, TEAM_FILE_BUFFER_SIZE);
+        const uint16_t count = *(const uint16_t *)copy;
+        for (uint16_t i = 0; i < count && i < TEAM_FILE_MAX_TEAMS && !stop; i++) {
+            TeamFileEx club = ((const TeamFileEx *)(copy + 2))[i];
+            const uint16_t id = PACK_BE_U16(club.team.countryNumber, club.team.teamOrdinal);
+            TeamFileEx *live;
+            uint16_t idx;
+            if (club.team.countryNumber != (uint8_t)file)
+                continue;               /* (a club of another country's in this file) */
+            if (id == _selTeamNumber)
+                club = _careerTeam;
+            else if (id == _currentTeamNumber &&
+                     PACK_BE_U16(((TeamFileEx *)_currentTeam)->team.countryNumber,
+                                 ((TeamFileEx *)_currentTeam)->team.teamOrdinal) == id)
+                club = *(TeamFileEx *)_currentTeam;
+            else if (findTeamInCache(id, &live, &idx) == 0 || (live = findTeamInTmdBuffer(id)) != NULL)
+                club = *live;
+            else
+                Career_PatchTeamWithForeignMarketPlayers(&club);
+            visited++;
+            stop = each(&club, ctx);
+        }
+    }
+    free(copy);
+    TeamFile_PutBack(aside);
+    return visited;
 }
 
 /* ================================================================

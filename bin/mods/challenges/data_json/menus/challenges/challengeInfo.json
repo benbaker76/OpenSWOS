@@ -5,7 +5,7 @@
   "dos_redraw": true
  },
  "onInit": "challenges.infoInit",
- "onReturn": null,
+ "onReturn": "challenges.infoInit",
  "onDraw": "challenges.infoDraw",
  "defaultEntry": 3,
  "items": [

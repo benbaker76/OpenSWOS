@@ -1540,6 +1540,36 @@ int32_t Career_WriteTeamPlayer(uint16_t teamId, uint16_t slot, const PlayerFile 
 }
 
 /* ================================================================
+ * Career_WriteOwnPlayer -- the career club's player at `slot` (0..31: the squad and the reserves)
+ * becomes `player`: a new man in his place (ModApi_SetOwnPlayer; Career+'s retirements). Into the
+ * career squad and every live copy of it -- the current team, the selected teams (their 16) --
+ * with the squad's values marked to be worked out again. 0 written, -1 not (no player, a slot
+ * past 31, a national selector's team).
+ * ================================================================ */
+int32_t Career_WriteOwnPlayer(uint16_t slot, const PlayerFile *player)
+{
+    extern uint16_t _currentTeamNumber, _isNationalSelector;
+    extern uint8_t  _currentTeam[];
+    extern TeamFileEx _careerTeam;
+    if (slot >= 32 || !player || _isNationalSelector)
+        return -1;
+    /* (the squad's 16 and then its 16 reserves, one run of PlayerFiles after the header) */
+    *(PlayerFile *)((uint8_t *)&_careerTeam + sizeof(TeamFile) + slot * sizeof(PlayerFile)) = *player;
+    if (_currentTeamNumber == _selTeamNumber) {
+        *(PlayerFile *)(_currentTeam + sizeof(TeamFile) + slot * sizeof(PlayerFile)) = *player;
+        ((TeamFileEx *)_currentTeam)->team.playerValuesDirty = TEAM_VALUES_DIRTY;
+    }
+    _careerTeam.team.playerValuesDirty = TEAM_VALUES_DIRTY;
+    if (slot < 16)
+        for (uint16_t i = 0; i < _numSelectedTeams; i++)
+            if (PACK_BE_U16(_selectedTeams[i].team.countryNumber, _selectedTeams[i].team.teamOrdinal) == _selTeamNumber) {
+                _selectedTeams[i].players[slot] = *player;
+                _selectedTeams[i].team.playerValuesDirty = TEAM_VALUES_DIRTY;
+            }
+    return 0;
+}
+
+/* ================================================================
  * Career_PatchTeamWithForeignMarketPlayers  (SWOS2.s line 71515)
  *
  * Iterates careerForeignMarketPlayers pool; for each entry whose

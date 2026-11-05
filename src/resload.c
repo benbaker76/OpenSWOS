@@ -866,6 +866,22 @@ static inline void os_GfxLoadView(void *gfxBase, void *view)
     );
 }
 
+/* --- Intuition library calls (a6=intuitionBase) --- */
+
+/* RemakeDisplay: rebuilds every screen's display from scratch -- including the
+ * beam (PAL/NTSC/DblPAL...) of the Workbench screen's monitor, which LoadView
+ * of a saved View alone does not reliably put back once BEAMCON0 was changed. */
+static inline void os_IntuiRemakeDisplay(void *intuiBase)
+{
+    register void *_a6 __asm("a6") = intuiBase;
+    __asm volatile (
+        "jsr -384(%%a6)"
+        :
+        : "r"(_a6)
+        : "d0", "d1", "a0", "a1", "cc", "memory"
+    );
+}
+
 /* WaitTOF */
 static inline void os_GfxWaitTOF(void *gfxBase)
 {
@@ -1284,13 +1300,34 @@ void SafeStart(void)
 /* ================================================================
  * DetachOSDisplay
  * ================================================================ */
+/* The game's display is PAL: a 272-line window from line 36 to 308 (display.c's
+ * copper list, the same DIWSTRT/DIWSTOP as SWOS2.s) and 50 Hz game timing. The
+ * original never had to say so -- it booted from its own disk, and WHDLoad sets
+ * the beam itself. Started from a Workbench in NTSC (or DblPAL, Multiscan...),
+ * the chipset keeps THAT beam after LoadView(NULL): an NTSC frame is 262 lines,
+ * so the picture stopped at game line ~226, under LOAD OLD COMPETITION, and an
+ * LCD stretched what was left; menus and matches also ran at 60 Hz. Reported on
+ * a real A1200 + BenQ, Workbench "NTSC: High Res", 2026-11-01. BEAMCON0 = PAL
+ * with every programmable-beam bit clear is the plain PAL beam; ExitToDos
+ * gives Workbench its own back. */
+#define BEAMCON0_PAL 0x0020u
+static uint8_t S_BeamForced;
+
+static void force_pal_beam(void)
+{
+    /* $DFF1DC; the project's struct Custom stops short of it (cf. FixSnoopBug) */
+    *(volatile uint16_t *)(CUSTOM_BASE + 0x1DCu) = BEAMCON0_PAL;
+    S_BeamForced = 1;
+}
+
 __attribute__((used, externally_visible))
 void DetachOSDisplay(void)
 {
-    if (S_FromWB == 0) return;
-
     void *gfxBase = (void *)S_GfxBase;
-    if (!gfxBase) return;
+    if (S_FromWB == 0 || !gfxBase) {
+        force_pal_beam();
+        return;
+    }
 
     /* Save current View from gfxbase */
     S_SavedView = *(uint32_t *)((uint8_t *)gfxBase + GFX_ACTIVIEW);
@@ -1311,6 +1348,8 @@ void DetachOSDisplay(void)
     /* Disable all DMA and interrupts */
     _custom->dmacon = 0x01FFu;
     _custom->intena = 0x3FFFu;
+
+    force_pal_beam();
 }
 
 
@@ -1401,6 +1440,17 @@ void ExitToDos(void)
         gfxBase = (void *)S_GfxBase; /* reload after call */
         os_GfxWaitTOF(gfxBase);
         os_GfxWaitTOF(gfxBase);
+    }
+
+    /* Put Workbench's own beam back (force_pal_beam). The OS is whole again by
+     * now -- vectors, DMA, interrupts, the View -- so Intuition can rebuild. */
+    if (S_BeamForced) {
+        void *intuiBase = os_OldOpenLibrary("intuition.library", 0);
+        if (intuiBase) {
+            os_IntuiRemakeDisplay(intuiBase);
+            os_CloseLibrary(intuiBase);
+        }
+        S_BeamForced = 0;
     }
 
     if (S_FromWB == 0) return;

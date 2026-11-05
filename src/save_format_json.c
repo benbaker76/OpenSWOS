@@ -56,9 +56,7 @@ uint8_t SaveJson_GetLoadedPrimaryCountryCode(void)
 
 #include <string.h>
 #include <stdlib.h>  /* atoi; free (the mods' career sections) -- include/amiga_libc's on the Amiga */
-#ifdef SWOS_SDL_BUILD
-#include <stdio.h>   /* DataJson self-test */
-#endif
+#include <stdio.h>   /* DataJson self-test; the team reader's notes -- include/amiga_libc's on the Amiga */
 #ifdef SWOS_SAVE_FORMAT_JSON_PROFILE
 /* clock() — only the PROFILE macros need this. The Amiga toolchain
  * has no <time.h>, so this also keeps that include off-path unless
@@ -3098,6 +3096,15 @@ int DataJson_LoadTeamArray(const char *json, int len, struct TeamFileEx *out, in
             continue;
         memset(&out[i], 0, sizeof(TeamFileEx));
         load_team_file_ex_slice(arr + voff, vlen, (uint8_t *)&out[i]);
+        /* A team name is 16 letters and its NUL (teamName[17]: the byte after it is the
+         * team's goal count, writesZeroHere). A longer one is out of the format -- none of
+         * 96/97's is -- so it is cut to 16, and said. */
+        if (out[i].team.teamName[16] != 0) {
+            fprintf(stderr, "[data-json] team %u/%u: the name \"%.17s\" is over 16 letters, cut to 16\n",
+                    (unsigned)out[i].team.countryNumber, (unsigned)out[i].team.teamOrdinal,
+                    (const char *)out[i].team.teamName);
+            out[i].team.teamName[16] = 0;
+        }
         i++;
     }
     return i;
