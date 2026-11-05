@@ -273,7 +273,7 @@ int32_t Career_PeekTeam(uint16_t teamId, TeamFileEx *out)
 /* ================================================================
  * Career_ForEachClub -- every club of the career's countries, as the career has it (for the
  * mods' ModApi_CareerClubs): each country with a league (_competitionsTable: not the national
- * teams' files, not the joke teams'), each club of its team file -- the live copy where there
+ * teams' files, nor CN_CUSTOM's joke teams, whose entry is their own table), each club of its team file -- the live copy where there
  * is one (the career club, the current team, the selected teams, the TMD pool), else its
  * record with the career pool's changes on it, as GetTeamPointer would give. Each file is read
  * once and copied, so `each` may call anything (Career_PeekTeam, Career_WriteTeamPlayer); the
@@ -296,6 +296,8 @@ int32_t Career_ForEachClub(int32_t (*each)(const TeamFileEx *club, void *ctx), v
     }
     for (int32_t file = 0; file < CN_EUROPE && !stop; file++) {
         void **entry = (void **)_competitionsTable[file];
+        if (file == CN_CUSTOM)          /* (its entry is the custom teams' table, not a league) */
+            continue;
         if (!entry || (intptr_t)entry == -1 || !entry[0] || (intptr_t)entry[0] == -1 ||
             !teamFileExists((uint8_t)file) || LoadTeamFile((uint16_t)file) != 0)
             continue;
