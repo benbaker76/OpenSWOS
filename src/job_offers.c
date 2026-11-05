@@ -11,7 +11,7 @@
  */
 
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
-#include "career_params.h"   /* num_seasons: the career's last season */
+#include "career_params.h"   /* num_seasons: the career's last season; job_offers_capacity */
 #include "job_offers.h"
 #include "translations.h"  /* tr_fmt — localize the offer-letter text */
 #include "endian_helpers.h"
@@ -27,9 +27,9 @@
 
 /* ---- ASM externs ---- */
 extern uint16_t _numJobOffers;
-extern JobOffer _jobOffers[];         /* 5-entry job offers queue (in SWOS2.s BSS) */
+extern JobOffer _jobOffers[];         /* job offers queue: 5 entries, job_offers_capacity (SWOS2.s BSS) */
 extern uint16_t _numNewJobOffers;
-extern JobOffer _newJobOffers[];      /* 5-entry new job offers queue (in SWOS2.s BSS) */
+extern JobOffer _newJobOffers[];      /* new job offers queue: 5, job_offers_capacity (SWOS2.s BSS) */
 extern uint8_t _fundsBuffer[];        /* temporary buffer for team name during offer conversion */
 extern MenuEntry _menuEntries[];
 extern uint16_t _teamNoOfferAccepted;
@@ -187,12 +187,13 @@ JobOffer *GetJobOfferPtr(uint16_t index)
  * AddJobOffer  (SWOS2.s line 84244)
  *
  * Adds a new job offer to the front of the newJobOffers queue.
- * Shifts existing entries right by one position. Max 5 offers.
+ * Shifts existing entries right by one position. Max job_offers_capacity offers (5, the
+ * original's, by default).
  * ================================================================ */
 __attribute__((used, externally_visible, optimize("no-tree-loop-distribute-patterns")))
 void AddJobOffer(uint16_t teamNumber, uint32_t initialFunds)
 {
-    if (_numNewJobOffers >= 5)
+    if (_numNewJobOffers >= _careerParams.job_offers_capacity)
         return;
 
     uint16_t count = _numNewJobOffers;
@@ -392,8 +393,8 @@ void JobOffers_ConvertNewOfferToOffer(uint16_t teamNumber, uint32_t initialFunds
     /* Remove from new offers */
     RemoveJobOffer(teamNumber);
 
-    /* Add to old offers (max 5) */
-    if (_numJobOffers >= 5)
+    /* Add to old offers (max job_offers_capacity: 5) */
+    if (_numJobOffers >= _careerParams.job_offers_capacity)
         return;
 
     JobOffer *dest = &_jobOffers[_numJobOffers];
@@ -1010,7 +1011,7 @@ void Career_MaybeGenerateJobOffer(void)
     if (_careerSeasonsCompleted == 7)
         return;
 
-    int16_t maxNewOffers = 5 - (int16_t)_numJobOffers;
+    int16_t maxNewOffers = (int16_t)_careerParams.job_offers_capacity - (int16_t)_numJobOffers;
     if (maxNewOffers == 0)
         return;
     if ((int16_t)_numNewJobOffers >= maxNewOffers)

@@ -14,6 +14,7 @@
 #include "teams.h"
 #include "auto_skip_debug.h"
 #include "world.h"
+#include "career_params.h"   /* the list capacities (include/career_capacity.h), trialist_count_mode */
 
 /* Offset from GetPlayer() return value to actual PlayerFile data */
 #define PF_OFF              76  /* sizeof(TeamFile) */
@@ -23,7 +24,9 @@
 /* Home market player entry: 4 bytes (word teamNum + byte playerOrd + pad) */
 #define MARKET_ENTRY_SIZE   4
 #define HOME_MARKET_MAX     25
-#define FOREIGN_MARKET_MAX  15
+/* The foreign listing's size is a career param (foreign_listing_capacity: 15, the original's,
+ * by default; include/career_capacity.h). */
+#define FOREIGN_MARKET_MAX  (_careerParams.foreign_listing_capacity)
 
 #define POOLPLAYER_COUNT        900
 
@@ -144,6 +147,11 @@ uint16_t GetRemainingTransferPoolSlots(void)
 __attribute__((used, externally_visible))
 uint16_t GetRemainingOfferSwapSlots(void)
 {
+    /* The original's subtraction (SWOS2.s `sub.w`), which its quota never lets underflow. A
+     * bigger list (a capacity param above the original's) can use more slots than the season's
+     * limit: then none are left, not 65535. */
+    if (CareerParams_CapacitiesRaised() && _offerSwapSlotsUsed > _offerSwapSlotLimit)
+        return 0;
     return _offerSwapSlotLimit - _offerSwapSlotsUsed;
 }
 
@@ -1300,7 +1308,8 @@ int16_t FindPlayerOnTransferMarket(uint16_t playerId)
 /* ================================================================
  * AddPlayerToTransferMarket  (SWOS2.s line 72992)
  *
- * Appends a playerId to the transfer market list (max 5 entries).
+ * Appends a playerId to the transfer market list (max transfer_list_capacity entries: 5, the
+ * original's, by default).
  *
  * Asm register convention:
  *   in:  d0.w = playerId
@@ -1310,7 +1319,7 @@ void AddPlayerToTransferMarket(uint16_t playerId)
 {
     uint16_t count;
 
-    if (_numPlayersOnTransferMarket >= 5)
+    if (_numPlayersOnTransferMarket >= _careerParams.transfer_list_capacity)
         return;
 
     count = _numPlayersOnTransferMarket;
@@ -2145,12 +2154,12 @@ extern void ShowChairmanMessage(void);
 /* ================================================================
  * CheckNumPlayersOnTransferMarket  (SWOS2.s line 70068)
  *
- * If 5 players on market, hide "put on market" entry (4).
+ * If the list is full (5 players, transfer_list_capacity), hide "put on market" entry (4).
  * If 0 players, hide "take off market" entry (8).
  * ================================================================ */
 static void checkNumPlayersOnTransferMarket(void)
 {
-    if (_numPlayersOnTransferMarket >= 5) {
+    if (_numPlayersOnTransferMarket >= _careerParams.transfer_list_capacity) {
         _menuEntries[4].isInvisible = 1;
     } else {
         _menuEntries[4].isInvisible = 0;
@@ -4831,10 +4840,15 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, u
 
     uint16_t d4 = excludeFlags;   /* (the availability flag, not a team: `move.w d4,d0` before each count) */
     uint16_t d5 = baseCount;
+    /* trialist_count_mode 1 (Career+): every non-training match counts injured AND suspended
+     * players out (-1), so an injury and a suspension together still bring a trialist in; a
+     * training match counts everyone (0). 0 = the caller's flag, as the original. */
+    const int16_t availability = _careerParams.trialist_count_mode == 1 ? (_trainingGame ? 0 : -1)
+                                                                        : (int16_t)excludeFlags;
 
     if (_trainingGame == 0) {
         /* Non-training: remove excess goalkeepers if more than 2 subs */
-        uint32_t subsResult = GetNumberOfAvailableSubstitutes(teamPtr, (int16_t)excludeFlags);
+        uint32_t subsResult = GetNumberOfAvailableSubstitutes(teamPtr, availability);
         uint16_t subs = (uint16_t)(subsResult & 0xFFFF);
         if (subs > 2) {
             int16_t d2 = (int16_t)_careerNumPlayers - 1;
@@ -4857,7 +4871,7 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, u
         }
 
         /* Remove excess starting players if more than 16 */
-        uint32_t startResult = GetNumberOfAvailableStartingPlayers(teamPtr, (int16_t)excludeFlags);
+        uint32_t startResult = GetNumberOfAvailableStartingPlayers(teamPtr, availability);
         uint16_t starters = (uint16_t)(startResult & 0xFFFF);
         if (starters > 16) {
             int16_t d2 = (int16_t)_careerNumPlayers - 1;
@@ -4884,7 +4898,7 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, u
 
     /* Add trial GK if needed: ensure at least 2 goalkeeper subs */
     while (_careerNumPlayers < 30) {
-        uint32_t subsResult = GetNumberOfAvailableSubstitutes(teamPtr, (int16_t)excludeFlags);
+        uint32_t subsResult = GetNumberOfAvailableSubstitutes(teamPtr, availability);
         uint16_t subs = (uint16_t)(subsResult & 0xFFFF);
         if (subs >= 2)
             break;
@@ -4901,7 +4915,7 @@ void TrainingMatch_AdjustSelectedTeamRosterForTrialists(uint16_t excludeFlags, u
 
     /* Add trial field players if needed: fill to required starter count */
     while (_careerNumPlayers < 30) {
-        uint32_t startResult = GetNumberOfAvailableStartingPlayers(teamPtr, (int16_t)excludeFlags);
+        uint32_t startResult = GetNumberOfAvailableStartingPlayers(teamPtr, availability);
         uint16_t starters = (uint16_t)(startResult & 0xFFFF);
 
         uint16_t required = 11;
@@ -4976,14 +4990,14 @@ void PutPlayerOnMarketMenu(void)
         } else {
             /* Not on market — add */
             AddPlayerToTransferMarket(playerIdx);
-            if (_numPlayersOnTransferMarket == 5)
+            if (_numPlayersOnTransferMarket >= _careerParams.transfer_list_capacity)
                 break;
         }
     }
 
     /* Update transfer market UI state */
     CheckNumPlayersOnTransferMarket();
-    if (_numPlayersOnTransferMarket == 5)
+    if (_numPlayersOnTransferMarket >= _careerParams.transfer_list_capacity)
         SetCurrentEntry(6);
 }
 

@@ -4,6 +4,7 @@
 /* swos_types.h, NOT <stdint.h>: the Amiga toolchain has no libc <stdint.h> (it provides the
  * int*_t types itself). Including <stdint.h> here breaks the Amiga build. */
 #include "swos_types.h"
+#include "career_capacity.h"   /* CAREER_ORIG_* / CAREER_MAX_*: the list capacities below */
 
 /* Hard ceiling on career length = the compile-time size of seasonInformationsArray.
  * num_seasons (below) must be <= this. */
@@ -53,8 +54,31 @@ typedef struct {
     /* ---- Career length ---- */
     uint16_t num_seasons;                /* 20 (default) or up to CAREER_MAX_SEASONS (35) — the
                                           * career retires after this many seasons */
+
+    /* ---- List capacities (include/career_capacity.h): default = the original's, at most
+     * CAREER_MAX_* (the original's on the Amiga). Bounds read these, never the array size. ---- */
+    uint16_t foreign_pool_capacity;      /* 432  the career's foreign-market player pool */
+    uint16_t foreign_listing_capacity;   /* 15   foreign players listed in the market at once */
+    uint16_t transfer_list_capacity;     /* 5    your players on the transfer list */
+    uint16_t job_offers_capacity;        /* 5    job offers queued, new + old together */
+
+    /* ---- Trialists (TrainingMatch_AdjustSelectedTeamRosterForTrialists) ---- */
+    uint16_t trialist_count_mode;        /* 0    count available players by the caller's flag, as
+                                          *      SWOS2.s; 1 = injured AND suspended out in every
+                                          *      non-training match (Career+) */
 } CareerParams;
 
 extern CareerParams _careerParams;
+
+/* 1 when any list capacity is above the original's: the code that only a bigger list can reach
+ * (GetRemainingOfferSwapSlots' underflow, the extra screen rows) checks this, so stock play is
+ * the original's exactly. */
+static inline int32_t CareerParams_CapacitiesRaised(void)
+{
+    return _careerParams.foreign_pool_capacity    > CAREER_ORIG_FOREIGN_POOL
+        || _careerParams.foreign_listing_capacity > CAREER_ORIG_FOREIGN_LISTING
+        || _careerParams.transfer_list_capacity   > CAREER_ORIG_TRANSFER_LIST
+        || _careerParams.job_offers_capacity      > CAREER_ORIG_JOB_OFFERS;
+}
 
 #endif /* CAREER_PARAMS_H */

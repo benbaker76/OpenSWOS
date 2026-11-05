@@ -30,14 +30,20 @@
 #include "swos_types.h"
 #include "swos_platform.h"
 #include "game_types.h"     /* MarketPlayer */
+#include "career_capacity.h"   /* CAREER_MAX_FOREIGN_POOL */
 
 /* Standalone zero-init BSS storage — pure C (was an __asm__ .skip block;
  * converted for the WASM target, which rejects asm-defined data symbols —
  * docs/WASM.md §4b). &symbol-addressed everywhere, so byte-neutral; the typed
  * MarketPlayer[] array gives the same 2-byte alignment the old .p2align 1 did. */
-MarketPlayer _careerForeignMarketPlayers[432];
+MarketPlayer _careerForeignMarketPlayers[CAREER_MAX_FOREIGN_POOL];   /* (432 on the Amiga; the SDL
+                                       * build's maximum, used up to foreign_pool_capacity) */
 
 _Static_assert(sizeof(MarketPlayer) == 42, "MarketPlayer must stay 42 bytes");
+_Static_assert(CAREER_MAX_FOREIGN_POOL >= CAREER_ORIG_FOREIGN_POOL && CAREER_MAX_FOREIGN_POOL < 65536u,
+               "the pool holds the original's 432 at least (named 352 + unnamed 80-entry tail, "
+               "one pool), and its count is a uint16_t");
+#ifndef SWOS_SDL_BUILD
 _Static_assert(sizeof(_careerForeignMarketPlayers) == 18144,
-               "careerForeignMarketPlayers must stay 432*42 = 18144 bytes "
-               "(named 352 + unnamed 80-entry tail, one pool)");
+               "careerForeignMarketPlayers stays 432*42 = 18144 bytes on the Amiga");
+#endif

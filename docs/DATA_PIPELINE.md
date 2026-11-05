@@ -170,6 +170,18 @@ what each knob does.
 > Season **count** (20) is *not* a knob here — it's a compile-time array size tied to the
 > save-file layout, so changing it needs a code + save-format change, not a JSON edit.
 
+**List capacities** (`foreign_pool_capacity` 432, `foreign_listing_capacity` 15,
+`transfer_list_capacity` 5, `job_offers_capacity` 5 -- the original's; `include/career_capacity.h`):
+how much of a career list a career uses. The arrays are compiled at the SDL build's maximum
+(50,000 / 45 / 10 / 20) and the Amiga's at the original's, and the loader clamps a value to
+[original, maximum]. Every bound reads the param. The save writes what a list HOLDS, not its
+capacity: a list's storage past the original's size is written only when something is in it
+(`emitted_len`, the pool's and job offers' emitters), so a default career's save is the one it
+always was -- the golden careers prove it. A save holding a longer list loads whole (up to the
+maximum) whatever the param; the param only decides how far a list may grow.
+`trialist_count_mode` (0, the original's): 1 counts injured AND suspended players out in every
+non-training match when deciding on trialists (benefactorr's Career+).
+
 ---
 
 ## Verification

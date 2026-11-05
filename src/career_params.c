@@ -36,4 +36,13 @@ CareerParams _careerParams = {
 
     /* career length */
     .num_seasons = 20,
+
+    /* list capacities: the original's (include/career_capacity.h) */
+    .foreign_pool_capacity    = CAREER_ORIG_FOREIGN_POOL,
+    .foreign_listing_capacity = CAREER_ORIG_FOREIGN_LISTING,
+    .transfer_list_capacity   = CAREER_ORIG_TRANSFER_LIST,
+    .job_offers_capacity      = CAREER_ORIG_JOB_OFFERS,
+
+    /* trialists: the caller's availability flag, as the original */
+    .trialist_count_mode = 0,
 };

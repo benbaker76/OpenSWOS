@@ -40,32 +40,40 @@
  */
 #include "swos_types.h"
 #include "swos_platform.h"
+#include "career_capacity.h"   /* CAREER_MAX_*: the lists' compiled sizes (the original's on the Amiga) */
 
-extern uint8_t _foreignMarketPlayers[60];
+#define JOB_OFFER_BYTES 26u    /* sizeof(JobOffer), game_types.h */
+extern uint8_t _foreignMarketPlayers[CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE];
 extern uint8_t _homeMarketPlayers[100];
 extern uint8_t _transferOfferTable[70];
-extern uint8_t _newJobOffers[130];
-extern uint8_t _jobOffers[130];
-extern uint16_t _playersOnTransferMarket[5];
-_Static_assert(sizeof(_foreignMarketPlayers)==60 && sizeof(_homeMarketPlayers)==100
-            && sizeof(_transferOfferTable)==70 && sizeof(_newJobOffers)==130
-            && sizeof(_jobOffers)==130 && sizeof(_playersOnTransferMarket)==10,
+extern uint8_t _newJobOffers[CAREER_MAX_JOB_OFFERS * JOB_OFFER_BYTES];
+extern uint8_t _jobOffers[CAREER_MAX_JOB_OFFERS * JOB_OFFER_BYTES];
+extern uint16_t _playersOnTransferMarket[CAREER_MAX_TRANSFER_LIST];
+_Static_assert(sizeof(_homeMarketPlayers)==100 && sizeof(_transferOfferTable)==70,
                "transfer-market array sizes must match the overlay reservation");
+_Static_assert(sizeof(_foreignMarketPlayers) >= 60 && sizeof(_newJobOffers) >= 130
+            && sizeof(_jobOffers) >= 130 && sizeof(_playersOnTransferMarket) >= 10,
+               "the lists hold the original's sizes at least (include/career_capacity.h)");
+#ifndef SWOS_SDL_BUILD
+_Static_assert(sizeof(_foreignMarketPlayers)==60 && sizeof(_newJobOffers)==130
+            && sizeof(_jobOffers)==130 && sizeof(_playersOnTransferMarket)==10,
+               "the Amiga keeps the original's sizes");
+#endif
 
 /* Standalone zero-init BSS storage — pure C (was an __asm__ .skip block;
  * converted for the WASM target — docs/WASM.md §4b). The arrays match their
  * in-file externs above (kept) with aligned() preserving the old .p2align 2;
  * newJobOffers/jobOffers are JobOffer[5] raw blobs (fixed-size &symbol save). */
-uint8_t  _foreignMarketPlayers[60]    __attribute__((aligned(4)));
+uint8_t  _foreignMarketPlayers[CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE] __attribute__((aligned(4)));
 uint8_t  _homeMarketPlayers[100]      __attribute__((aligned(4)));
 uint8_t  _transferOfferTable[70]      __attribute__((aligned(4)));
 uint16_t _numNewJobOffers;
-uint8_t  _newJobOffers[130]           __attribute__((aligned(4)));   /* JobOffer[5] */
+uint8_t  _newJobOffers[CAREER_MAX_JOB_OFFERS * JOB_OFFER_BYTES] __attribute__((aligned(4)));   /* JobOffer[] */
 uint16_t _numJobOffers;
-uint8_t  _jobOffers[130]              __attribute__((aligned(4)));   /* JobOffer[5] */
+uint8_t  _jobOffers[CAREER_MAX_JOB_OFFERS * JOB_OFFER_BYTES]    __attribute__((aligned(4)));   /* JobOffer[] */
 uint16_t _timeToNegotiate;
 uint16_t _numPlayersOnTransferMarket;
-uint16_t _playersOnTransferMarket[5];     /* the players listed: ids, host-order words */
+uint16_t _playersOnTransferMarket[CAREER_MAX_TRANSFER_LIST];   /* the players listed: ids, host-order words */
 uint16_t _lastOfferPrimaryPlayerOrdinal, _lastOfferExtraPlayersWanted,
          _lastOfferSwapPlayerOrdinal, _lastOfferExtraPlayerOrdinal,
          _offerNegotiationAttemptCount, _transferMarketRandOffset0,

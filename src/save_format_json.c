@@ -35,6 +35,7 @@
 #include "world_cupd.h"        /* "world_cupd" in career saves */
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
 #include "translations.h"   /* tr() — localize competition name symbols */
+#include "career_capacity.h"   /* the career lists' original and compiled sizes */
 
 extern uint8_t *_currentCompetitionPtr;
 
@@ -782,14 +783,26 @@ typedef struct {
  * nothing past it is in use -- every 96/97 career -- so a save is the same from a build with the
  * worlds (GLOBAL_TEAM_NUMBERS 2560) and one without them (2000, SWOS_WORLDS=0); a world's
  * career writes them all. The load reads either length (the rest zero). */
+/* A field whose storage is bigger than the original's writes only the original's length when
+ * nothing past it is used, so the save is the one it always was: the worlds' global team
+ * numbers past 96/97's 2000, and the career lists past their original sizes when their capacity
+ * params (include/career_capacity.h) are the original's. */
 static uint32_t emitted_len(const FieldDesc *f, const uint8_t *p)
 {
-    if (f->size <= 2000 || strcmp(f->name, "diy_league_season_state_table") != 0)
-        return f->size;
-    for (uint32_t i = 2000; i < f->size; i++)
-        if (p[i])
-            return f->size;
-    return 2000;
+    static const struct { const char *name; uint32_t orig; } grown[] = {
+        { "diy_league_season_state_table",  2000 },
+        { "foreign_market_players",         CAREER_ORIG_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE },
+        { "players_on_transfer_market_ids", CAREER_ORIG_TRANSFER_LIST * 2 },
+    };
+    for (uint32_t g = 0; g < sizeof grown / sizeof grown[0]; g++) {
+        if (f->size <= grown[g].orig || strcmp(f->name, grown[g].name) != 0)
+            continue;
+        for (uint32_t i = grown[g].orig; i < f->size; i++)
+            if (p[i])
+                return f->size;
+        return grown[g].orig;
+    }
+    return f->size;
 }
 
 
@@ -1004,8 +1017,13 @@ extern uint8_t  _lastMatchPlayers[];
 extern uint8_t  _lastMatchSavedShirtNums[];
 extern uint8_t  _careerLastMatchIndexByCompetitionSlot[256];
 extern uint8_t  _teamBudgetRankTable[];
-extern uint16_t _playersOnTransferMarket[];
-extern uint8_t  _foreignMarketPlayers[];
+extern uint16_t _playersOnTransferMarket[CAREER_MAX_TRANSFER_LIST];
+extern uint8_t  _foreignMarketPlayers[CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE];
+/* The two lists' save lengths are their storage, 2 B an entry for the transfer list. */
+_Static_assert(sizeof(_playersOnTransferMarket) == CAREER_MAX_TRANSFER_LIST * 2,
+               "players_on_transfer_market_ids: its FA length is the storage's bytes");
+_Static_assert(sizeof(_foreignMarketPlayers) == CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE,
+               "foreign_market_players: its FA length is the storage's bytes");
 extern uint8_t  _homeMarketPlayers[];
 extern uint8_t  _transferOfferTable[];
 extern uint8_t  _newJobOffers[];
@@ -1390,12 +1408,14 @@ static const FieldDesc s_career_scalars[] = {
     FA("team_budget_rank_table",          _teamBudgetRankTable, 128,    FLD_BYTES),
     /* Typed words (Career+'s §3.1): it was FLD_BYTES of host-order words, not portable between
      * byte orders. A new key, so a save from before loads without its list (at most 5 marks). */
-    FA("players_on_transfer_market_ids",  _playersOnTransferMarket, 10, FLD_U16_ARRAY),
+    FA("players_on_transfer_market_ids",  _playersOnTransferMarket,
+       CAREER_MAX_TRANSFER_LIST * 2,                                         FLD_U16_ARRAY),  /* (2 B an entry; 10 written: emitted_len) */
 
     /* Market player slot tables — byte arrays of compact records. The
      * team-id fields are explicit BE byte pairs (id>>8 / id), so they are
      * endian-stable as raw bytes — safe as FLD_BYTES. */
-    FA("foreign_market_players",          _foreignMarketPlayers, 60,    FLD_BYTES),
+    FA("foreign_market_players",          _foreignMarketPlayers,
+       CAREER_MAX_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE,                FLD_BYTES),   /* (60 written: emitted_len) */
     FA("home_market_players",             _homeMarketPlayers, 100,      FLD_BYTES),
     /* transfer_offer_table / job_offers / new_job_offers were FLD_BYTES but
      * hold host-native multi-byte fields (uint16/uint32) that byte-swap on a
@@ -1582,7 +1602,7 @@ static void emit_scalar_table(mjson_print_fn_t fn, void *fnd,
             /* Emit each 16-bit word as a host-native-read decimal so the
              * on-disk value is byte-order-independent. */
             mjson_printf(fn, fnd, "%Q:[", f->name);
-            for (uint32_t i = 0; i + 1 < f->size; i += 2) {
+            for (uint32_t i = 0, len = emitted_len(f, p); i + 1 < len; i += 2) {
                 if (i > 0) mjson_printf(fn, fnd, "%s", ",");
                 mjson_printf(fn, fnd, "%u", (unsigned)*(uint16_t *)(p + i));
             }
@@ -3139,10 +3159,26 @@ void DataJson_LoadCareerParams(void)
     LDU("$.board_tertiary_top2_bonus",  board_tertiary_top2_bonus);
     LDU("$.board_euro_top2_bonus",      board_euro_top2_bonus);
     LDU("$.num_seasons",                num_seasons);
+    LDU("$.foreign_pool_capacity",      foreign_pool_capacity);
+    LDU("$.foreign_listing_capacity",   foreign_listing_capacity);
+    LDU("$.transfer_list_capacity",     transfer_list_capacity);
+    LDU("$.job_offers_capacity",        job_offers_capacity);
+    LDU("$.trialist_count_mode",        trialist_count_mode);
     #undef LDU
     #undef LDS
     if (_careerParams.num_seasons < 1) _careerParams.num_seasons = 1;
     if (_careerParams.num_seasons > CAREER_MAX_SEASONS) _careerParams.num_seasons = CAREER_MAX_SEASONS;
+    /* A capacity is the original's at least (the screens and the market's rules are laid out for
+     * it) and the compiled maximum at most (include/career_capacity.h). */
+    #define CLAMP_CAP(f, orig, max) do { \
+        if (_careerParams.f < (orig)) _careerParams.f = (uint16_t)(orig); \
+        if (_careerParams.f > (max))  _careerParams.f = (uint16_t)(max);  } while (0)
+    CLAMP_CAP(foreign_pool_capacity,    CAREER_ORIG_FOREIGN_POOL,    CAREER_MAX_FOREIGN_POOL);
+    CLAMP_CAP(foreign_listing_capacity, CAREER_ORIG_FOREIGN_LISTING, CAREER_MAX_FOREIGN_LISTING);
+    CLAMP_CAP(transfer_list_capacity,   CAREER_ORIG_TRANSFER_LIST,   CAREER_MAX_TRANSFER_LIST);
+    CLAMP_CAP(job_offers_capacity,      CAREER_ORIG_JOB_OFFERS,      CAREER_MAX_JOB_OFFERS);
+    #undef CLAMP_CAP
+    if (_careerParams.trialist_count_mode > 1) _careerParams.trialist_count_mode = 0;
     free(j);
     fprintf(stderr, "[data-json] career params loaded from data_json/career_params.json\n");
 }
@@ -6656,12 +6692,19 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
     }
 #endif
 
-    /* Foreign-market player pool — fixed-size MarketPlayer[432]. Emit
+    /* Foreign-market player pool — MarketPlayer[432], the original's. Emit
      * all 432 slots so unpopulated entries (teamId == 0) round-trip
-     * faithfully; the array is dense in practice for active careers. */
+     * faithfully; the array is dense in practice for active careers. A pool
+     * past 432 (foreign_pool_capacity, include/career_capacity.h) writes the
+     * entries it holds as well, so a default career's save is unchanged. */
     {
+        extern uint16_t _numForeignMarketPlayers2;
+        uint32_t poolLen = _numForeignMarketPlayers2 > CAREER_ORIG_FOREIGN_POOL
+                         ? _numForeignMarketPlayers2 : CAREER_ORIG_FOREIGN_POOL;
+        if (poolLen > CAREER_MAX_FOREIGN_POOL)
+            poolLen = CAREER_MAX_FOREIGN_POOL;
         mjson_printf(json_out_emit, &out, ",\n  %Q:[", "career_foreign_market_players");
-        for (uint32_t i = 0; i < 432; i++) {
+        for (uint32_t i = 0; i < poolLen; i++) {
             if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
             emit_market_player_body(json_out_emit, &out,
                                     _careerForeignMarketPlayers + i * sizeof(MarketPlayer));
@@ -6681,12 +6724,18 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
         mjson_printf(json_out_emit, &out, "%s", "]");
 
-        const struct { const char *key; const uint8_t *base; } jobTabs[2] = {
-            { "new_job_offers", _newJobOffers }, { "job_offers", _jobOffers },
+        /* The job-offer queues: the original's 5 records, and the ones past them a bigger
+         * queue holds (job_offers_capacity, include/career_capacity.h). */
+        const struct { const char *key; const uint8_t *base; uint16_t num; } jobTabs[2] = {
+            { "new_job_offers", _newJobOffers, _numNewJobOffers },
+            { "job_offers",     _jobOffers,    _numJobOffers },
         };
         for (int t = 0; t < 2; t++) {
+            uint32_t jobLen = jobTabs[t].num > CAREER_ORIG_JOB_OFFERS ? jobTabs[t].num : CAREER_ORIG_JOB_OFFERS;
+            if (jobLen > CAREER_MAX_JOB_OFFERS)
+                jobLen = CAREER_MAX_JOB_OFFERS;
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", jobTabs[t].key);
-            for (uint32_t i = 0; i < 5; i++) {
+            for (uint32_t i = 0; i < jobLen; i++) {
                 if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
                 emit_struct_object(json_out_emit, &out,
                                    jobTabs[t].base + i * sizeof(JobOffer),
@@ -6850,6 +6899,12 @@ static void apply_semantic_load(const char *src, int src_size)
      * fixup. */
     load_comp_copy_region(src, src_size);
     PROF_START(scalars);
+    /* The career lists' storage past their original sizes (include/career_capacity.h) holds
+     * only what this save writes there: nothing left from a career loaded before. */
+    memset((uint8_t *)_foreignMarketPlayers + CAREER_ORIG_FOREIGN_LISTING * CAREER_MARKET_ENTRY_SIZE, 0,
+           (CAREER_MAX_FOREIGN_LISTING - CAREER_ORIG_FOREIGN_LISTING) * CAREER_MARKET_ENTRY_SIZE);
+    memset(_playersOnTransferMarket + CAREER_ORIG_TRANSFER_LIST, 0,
+           (CAREER_MAX_TRANSFER_LIST - CAREER_ORIG_TRANSFER_LIST) * sizeof(uint16_t));
     load_scalar_table(src, src_size, "career_scalars", s_career_scalars);
     PROF_END(scalars, "career-load");
 
@@ -7462,16 +7517,17 @@ static void apply_semantic_load(const char *src, int src_size)
     }
 #endif
 
-    /* Foreign-market player pool — fixed-size MarketPlayer[432]. */
+    /* Foreign-market player pool — MarketPlayer[432], or the entries a bigger pool held
+     * (up to CAREER_MAX_FOREIGN_POOL); the storage past what the save holds is cleared. */
     PROF_START(market_players);
     {
         const char *mp_arr = NULL;
         int mp_arr_len = 0;
+        uint32_t i = 0;
         if (mjson_find(src, src_size, "$.career_foreign_market_players",
                        &mp_arr, &mp_arr_len) == MJSON_TOK_ARRAY) {
             int pos = 0, voff, vlen, vt;
-            uint32_t i = 0;
-            while (i < 432 &&
+            while (i < CAREER_MAX_FOREIGN_POOL &&
                    (pos = fast_array_next(mp_arr, mp_arr_len, pos,
                                           &voff, &vlen, &vt)) != 0) {
                 if (vt != MJSON_TOK_OBJECT) { i++; continue; }
@@ -7480,31 +7536,47 @@ static void apply_semantic_load(const char *src, int src_size)
                 i++;
             }
         }
+        /* (past the original's 432 only: there a save always wrote every slot) */
+        if (i < CAREER_ORIG_FOREIGN_POOL)
+            i = CAREER_ORIG_FOREIGN_POOL;
+        if (i < CAREER_MAX_FOREIGN_POOL)
+            memset(_careerForeignMarketPlayers + i * sizeof(MarketPlayer), 0,
+                   (CAREER_MAX_FOREIGN_POOL - i) * sizeof(MarketPlayer));
     }
     PROF_END(market_players, "career-load");
 
     /* Transfer-offer + job-offer tables — typed arrays-of-objects (mirror of
-     * the write side). Each table is a fixed 5 records. */
+     * the write side). The transfer-offer table is a fixed 5 records; a job-offer
+     * queue 5, or the records a bigger one held (job_offers_capacity), the storage
+     * past them cleared. */
     {
         const struct { const char *path; uint8_t *base; size_t stride;
-                       const StructFieldDesc *table; } offerTabs[3] = {
-            { "$.transfer_offer_table", _transferOfferTable, sizeof(TransferOfferEntry), s_transfer_offer_fields },
-            { "$.new_job_offers",       _newJobOffers,        sizeof(JobOffer),           s_job_offer_fields },
-            { "$.job_offers",           _jobOffers,           sizeof(JobOffer),           s_job_offer_fields },
+                       const StructFieldDesc *table; uint32_t orig, max; } offerTabs[3] = {
+            { "$.transfer_offer_table", _transferOfferTable, sizeof(TransferOfferEntry), s_transfer_offer_fields, 5, 5 },
+            { "$.new_job_offers",       _newJobOffers,        sizeof(JobOffer),           s_job_offer_fields,
+              CAREER_ORIG_JOB_OFFERS, CAREER_MAX_JOB_OFFERS },
+            { "$.job_offers",           _jobOffers,           sizeof(JobOffer),           s_job_offer_fields,
+              CAREER_ORIG_JOB_OFFERS, CAREER_MAX_JOB_OFFERS },
         };
         for (int t = 0; t < 3; t++) {
             const char *arr = NULL; int arr_len = 0;
-            if (mjson_find(src, src_size, offerTabs[t].path, &arr, &arr_len) != MJSON_TOK_ARRAY)
-                continue;
-            int pos = 0, voff, vlen, vt;
             uint32_t i = 0;
-            while (i < 5 && (pos = fast_array_next(arr, arr_len, pos, &voff, &vlen, &vt)) != 0) {
-                if (vt != MJSON_TOK_OBJECT) { i++; continue; }
-                load_struct_object(arr + voff, vlen,
-                                   offerTabs[t].base + i * offerTabs[t].stride,
-                                   offerTabs[t].table);
-                i++;
+            if (mjson_find(src, src_size, offerTabs[t].path, &arr, &arr_len) == MJSON_TOK_ARRAY) {
+                int pos = 0, voff, vlen, vt;
+                while (i < offerTabs[t].max &&
+                       (pos = fast_array_next(arr, arr_len, pos, &voff, &vlen, &vt)) != 0) {
+                    if (vt != MJSON_TOK_OBJECT) { i++; continue; }
+                    load_struct_object(arr + voff, vlen,
+                                       offerTabs[t].base + i * offerTabs[t].stride,
+                                       offerTabs[t].table);
+                    i++;
+                }
             }
+            if (i < offerTabs[t].orig)      /* (the original's records: as it always was) */
+                i = offerTabs[t].orig;
+            if (i < offerTabs[t].max)
+                memset(offerTabs[t].base + i * offerTabs[t].stride, 0,
+                       (offerTabs[t].max - i) * offerTabs[t].stride);
         }
     }
 
