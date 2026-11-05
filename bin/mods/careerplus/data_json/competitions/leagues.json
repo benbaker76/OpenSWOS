@@ -1,0 +1,2441 @@
+{
+  "type": "competition_leagues",
+  "count": 66,
+  "leagues": [
+    {
+      "id": "_customsLeague",
+      "comp": {
+        "comp_id": 36,
+        "type": 0,
+        "team_number": 72,
+        "begin_month": 64,
+        "end_month": 32,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 3,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 20,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 22,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 22,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_aDivision1",
+        "_aDivision1",
+        "_aDivision2",
+        "_aDivision2",
+        "_aDivision3",
+        "_aDivision3"
+      ]
+    },
+    {
+      "id": "_albanianLeague",
+      "comp": {
+        "comp_id": 37,
+        "type": 0,
+        "team_number": 0,
+        "begin_month": 64,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_austrianLeague",
+      "comp": {
+        "comp_id": 38,
+        "type": 0,
+        "team_number": 1,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_belarussiaLleague",
+      "comp": {
+        "comp_id": 39,
+        "type": 0,
+        "team_number": 76,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 4,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_belgianLeague",
+      "comp": {
+        "comp_id": 40,
+        "type": 0,
+        "team_number": 2,
+        "begin_month": 56,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_bulgarianLeague",
+      "comp": {
+        "comp_id": 41,
+        "type": 0,
+        "team_number": 3,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_croatianLeague",
+      "comp": {
+        "comp_id": 42,
+        "type": 0,
+        "team_number": 4,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_cypriotLeague",
+      "comp": {
+        "comp_id": 43,
+        "type": 0,
+        "team_number": 5,
+        "begin_month": 64,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 14,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_czechLeague",
+      "comp": {
+        "comp_id": 44,
+        "type": 0,
+        "team_number": 6,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_danishLeague",
+      "comp": {
+        "comp_id": 45,
+        "type": 0,
+        "team_number": 7,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_estonianLeague",
+      "comp": {
+        "comp_id": 50,
+        "type": 0,
+        "team_number": 10,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_faroeIslesLeague",
+      "comp": {
+        "comp_id": 51,
+        "type": 0,
+        "team_number": 11,
+        "begin_month": 24,
+        "end_month": 64,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_finnishLeague",
+      "comp": {
+        "comp_id": 52,
+        "type": 0,
+        "team_number": 12,
+        "begin_month": 24,
+        "end_month": 72,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_greekLeague",
+      "comp": {
+        "comp_id": 55,
+        "type": 0,
+        "team_number": 15,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_hungarianLeague",
+      "comp": {
+        "comp_id": 58,
+        "type": 0,
+        "team_number": 16,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_icelandicLeague",
+      "comp": {
+        "comp_id": 59,
+        "type": 0,
+        "team_number": 17,
+        "begin_month": 32,
+        "end_month": 64,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_israeliLeague",
+      "comp": {
+        "comp_id": 60,
+        "type": 0,
+        "team_number": 19,
+        "begin_month": 64,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 3,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_latvianLeague",
+      "comp": {
+        "comp_id": 62,
+        "type": 0,
+        "team_number": 21,
+        "begin_month": 32,
+        "end_month": 64,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_lithuanianLeague",
+      "comp": {
+        "comp_id": 63,
+        "type": 0,
+        "team_number": 22,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_luxembourgLeague",
+      "comp": {
+        "comp_id": 64,
+        "type": 0,
+        "team_number": 23,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_malteseLeague",
+      "comp": {
+        "comp_id": 65,
+        "type": 0,
+        "team_number": 24,
+        "begin_month": 64,
+        "end_month": 24,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_northernIrishLeague",
+      "comp": {
+        "comp_id": 66,
+        "type": 0,
+        "team_number": 26,
+        "begin_month": 64,
+        "end_month": 24,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_norwegianLeague",
+      "comp": {
+        "comp_id": 67,
+        "type": 0,
+        "team_number": 27,
+        "begin_month": 24,
+        "end_month": 72,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 14,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_polishLeague",
+      "comp": {
+        "comp_id": 68,
+        "type": 0,
+        "team_number": 28,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_portugeseLeague",
+      "comp": {
+        "comp_id": 69,
+        "type": 0,
+        "team_number": 29,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_irishLeague",
+      "comp": {
+        "comp_id": 70,
+        "type": 0,
+        "team_number": 18,
+        "begin_month": 56,
+        "end_month": 24,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_romanianLeague",
+      "comp": {
+        "comp_id": 71,
+        "type": 0,
+        "team_number": 30,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_russianLeague",
+      "comp": {
+        "comp_id": 72,
+        "type": 0,
+        "team_number": 31,
+        "begin_month": 16,
+        "end_month": 80,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_sanMarinoLeague",
+      "comp": {
+        "comp_id": 73,
+        "type": 0,
+        "team_number": 32,
+        "begin_month": 72,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_slovakianLeague",
+      "comp": {
+        "comp_id": 76,
+        "type": 0,
+        "team_number": 78,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 2,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_slovenianLeague",
+      "comp": {
+        "comp_id": 77,
+        "type": 0,
+        "team_number": 34,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 2,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_swedishLeague",
+      "comp": {
+        "comp_id": 80,
+        "type": 0,
+        "team_number": 36,
+        "begin_month": 24,
+        "end_month": 72,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 14,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_swissLeague",
+      "comp": {
+        "comp_id": 81,
+        "type": 0,
+        "team_number": 37,
+        "begin_month": 48,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_turkishLeague",
+      "comp": {
+        "comp_id": 82,
+        "type": 0,
+        "team_number": 38,
+        "begin_month": 56,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_ukrainianLeague",
+      "comp": {
+        "comp_id": 83,
+        "type": 0,
+        "team_number": 39,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_welshLeague",
+      "comp": {
+        "comp_id": 84,
+        "type": 0,
+        "team_number": 40,
+        "begin_month": 56,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 20,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_yugoslavianLeague",
+      "comp": {
+        "comp_id": 85,
+        "type": 0,
+        "team_number": 41,
+        "begin_month": 64,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 3,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 2,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 12,
+          "promoted": 2,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_algerianLeague",
+      "comp": {
+        "comp_id": 86,
+        "type": 0,
+        "team_number": 42,
+        "begin_month": 64,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_bolivianLeague",
+      "comp": {
+        "comp_id": 89,
+        "type": 0,
+        "team_number": 45,
+        "begin_month": 32,
+        "end_month": 88,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 2,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_brasilianLeague",
+      "comp": {
+        "comp_id": 90,
+        "type": 0,
+        "team_number": 46,
+        "begin_month": 0,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 2,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 24,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_chileanLeague",
+      "comp": {
+        "comp_id": 91,
+        "type": 0,
+        "team_number": 48,
+        "begin_month": 24,
+        "end_month": 88,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_colombianLeague",
+      "comp": {
+        "comp_id": 92,
+        "type": 0,
+        "team_number": 49,
+        "begin_month": 24,
+        "end_month": 88,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_ecuadorLeague",
+      "comp": {
+        "comp_id": 93,
+        "type": 0,
+        "team_number": 50,
+        "begin_month": 24,
+        "end_month": 88,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_indianLeague",
+      "comp": {
+        "comp_id": 95,
+        "type": 0,
+        "team_number": 75,
+        "begin_month": 0,
+        "end_month": 24,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 6,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_paraguayanLeague",
+      "comp": {
+        "comp_id": 99,
+        "type": 0,
+        "team_number": 64,
+        "begin_month": 64,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_peruvianLeague",
+      "comp": {
+        "comp_id": 100,
+        "type": 0,
+        "team_number": 65,
+        "begin_month": 24,
+        "end_month": 88,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_southAfricanLeague",
+      "comp": {
+        "comp_id": 101,
+        "type": 0,
+        "team_number": 69,
+        "begin_month": 0,
+        "end_month": 80,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 16,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_surinamLeague",
+      "comp": {
+        "comp_id": 102,
+        "type": 0,
+        "team_number": 66,
+        "begin_month": 24,
+        "end_month": 72,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_taiwaneseLeague",
+      "comp": {
+        "comp_id": 103,
+        "type": 0,
+        "team_number": 67,
+        "begin_month": 64,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_americanLeague",
+      "comp": {
+        "comp_id": 106,
+        "type": 0,
+        "team_number": 73,
+        "begin_month": 24,
+        "end_month": 72,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_venezuelanLeague",
+      "comp": {
+        "comp_id": 107,
+        "type": 0,
+        "team_number": 77,
+        "begin_month": 24,
+        "end_month": 88,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 22,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_ghanaLeague",
+      "comp": {
+        "comp_id": 108,
+        "type": 0,
+        "team_number": 79,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 1,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 8,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_frenchLeague",
+      "comp": {
+        "comp_id": 53,
+        "type": 0,
+        "team_number": 13,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 20,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 3,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 22,
+          "promoted": 3,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_aPremiereDivisi",
+        "_aPremiere",
+        "_aDeuxiemeDivisi",
+        "_aDeuxieme"
+      ]
+    },
+    {
+      "id": "_germanLeague",
+      "comp": {
+        "comp_id": 54,
+        "type": 0,
+        "team_number": 14,
+        "begin_month": 56,
+        "end_month": 40,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 3,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 18,
+          "promoted": 3,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_a1Liga",
+        "_a1Liga",
+        "_a2Liga",
+        "_a2Liga"
+      ]
+    },
+    {
+      "id": "_italianLeague",
+      "comp": {
+        "comp_id": 61,
+        "type": 0,
+        "team_number": 20,
+        "begin_month": 64,
+        "end_month": 32,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 4,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 20,
+          "promoted": 4,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_aSerieA",
+        "_aSerieA",
+        "_aSerieB",
+        "_aSerieB"
+      ]
+    },
+    {
+      "id": "_japaneseLeague",
+      "comp": {
+        "comp_id": 96,
+        "type": 0,
+        "team_number": 55,
+        "begin_month": 16,
+        "end_month": 80,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 14,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 14,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_aJLeague",
+        "_aJLeague_0",
+        "_aLeague_2",
+        "_aLeague_3"
+      ]
+    },
+    {
+      "id": "_argentinianLeague",
+      "comp": {
+        "comp_id": 87,
+        "type": 0,
+        "team_number": 43,
+        "begin_month": 64,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 20,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 2,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 20,
+          "promoted": 2,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_mexicanLeague",
+      "comp": {
+        "comp_id": 97,
+        "type": 0,
+        "team_number": 60,
+        "begin_month": 56,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 20,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 2,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 20,
+          "promoted": 2,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_elSalvadorLeague",
+      "comp": {
+        "comp_id": 94,
+        "type": 0,
+        "team_number": 51,
+        "begin_month": 56,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 4,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 1,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 12,
+          "promoted": 1,
+          "promoted_po": 0,
+          "relegated": 1,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 12,
+          "promoted": 1,
+          "promoted_po": 0,
+          "relegated": 1,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 12,
+          "promoted": 1,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": []
+    },
+    {
+      "id": "_australianLeague",
+      "comp": {
+        "comp_id": 88,
+        "type": 0,
+        "team_number": 44,
+        "begin_month": 16,
+        "end_month": 80,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 4,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 14,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_a1stDivision",
+        "_a1stDivision",
+        "_aSouthDivision",
+        "_aSouthDivision_0",
+        "_aNswDivision",
+        "_aNsw",
+        "_aQueenslandDivi",
+        "_aQueensland"
+      ]
+    },
+    {
+      "id": "_newZealandLeague",
+      "comp": {
+        "comp_id": 98,
+        "type": 0,
+        "team_number": 62,
+        "begin_month": 16,
+        "end_month": 72,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 3,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_aNorthernRegion",
+        "_aNorthern",
+        "_aCentralRegion",
+        "_aCentral",
+        "_aSouthernRegion",
+        "_aSouthern"
+      ]
+    },
+    {
+      "id": "_englishLeague",
+      "comp": {
+        "comp_id": 46,
+        "type": 0,
+        "team_number": 8,
+        "begin_month": 56,
+        "end_month": 32,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 4,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 3,
+      "divisions": [
+        {
+          "teams": 20,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 3,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 24,
+          "promoted": 2,
+          "promoted_po": 4,
+          "relegated": 4,
+          "relegated_po": 0,
+          "qualifier_link_offset": 46
+        },
+        {
+          "teams": 24,
+          "promoted": 3,
+          "promoted_po": 4,
+          "relegated": 4,
+          "relegated_po": 0,
+          "qualifier_link_offset": 120
+        },
+        {
+          "teams": 24,
+          "promoted": 3,
+          "promoted_po": 4,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": -62
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_aPremierLeague",
+        "_aPremier",
+        "_aDivisionOne",
+        "_aDivisionOne",
+        "_aDivisionTwo",
+        "_aDivisionTwo",
+        "_aDivisionThree",
+        "_aDivisionThree"
+      ],
+      "playoff_links": [
+        "_div1Playoffs",
+        "_englishLeagues1"
+      ],
+      "promotion_link_data": [
+        0,
+        0,
+        0,
+        3,
+        0,
+        1,
+        0,
+        2,
+        -1,
+        -1,
+        -1,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "_dutchLeague",
+      "comp": {
+        "comp_id": 56,
+        "type": 0,
+        "team_number": 25,
+        "begin_month": 56,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 18,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 1,
+          "relegated_po": 2,
+          "qualifier_link_offset": 8
+        },
+        {
+          "teams": 18,
+          "promoted": 1,
+          "promoted_po": 2,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 2
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        null
+      ],
+      "playoff_links": [
+        "_dutchPlayoffs",
+        "_dutchLeagues1"
+      ],
+      "promotion_link_data": [
+        0,
+        0,
+        0,
+        3,
+        0,
+        1,
+        0,
+        2,
+        0,
+        -1,
+        0,
+        -1,
+        0,
+        -1,
+        0,
+        -1,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "id": "_scottishLeague",
+      "comp": {
+        "comp_id": 74,
+        "type": 0,
+        "team_number": 33,
+        "begin_month": 56,
+        "end_month": 32,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 4,
+      "rounds": 4,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 3,
+      "divisions": [
+        {
+          "teams": 10,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 1,
+          "relegated_po": 1,
+          "qualifier_link_offset": 20
+        },
+        {
+          "teams": 10,
+          "promoted": 1,
+          "promoted_po": 1,
+          "relegated": 2,
+          "relegated_po": 0,
+          "qualifier_link_offset": 14
+        },
+        {
+          "teams": 10,
+          "promoted": 2,
+          "promoted_po": 0,
+          "relegated": 2,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        },
+        {
+          "teams": 10,
+          "promoted": 2,
+          "promoted_po": 0,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 0
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        null
+      ],
+      "playoff_links": [
+        "_scottishPlayoffs",
+        "_scottishLeague1"
+      ],
+      "promotion_link_data": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        -1,
+        1,
+        0
+      ]
+    },
+    {
+      "id": "_spanishLeague",
+      "comp": {
+        "comp_id": 78,
+        "type": 0,
+        "team_number": 35,
+        "begin_month": 64,
+        "end_month": 40,
+        "name_table_offset": 33,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 22,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 2,
+          "relegated_po": 2,
+          "qualifier_link_offset": 24
+        },
+        {
+          "teams": 20,
+          "promoted": 2,
+          "promoted_po": 2,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 18
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        "_aPrimeraDivisio",
+        "_aPrimera",
+        "_aSegundaDivisio",
+        "_aSegunda"
+      ],
+      "playoff_links": [
+        "_spanishPlayoffs",
+        "_spanishLeague1"
+      ],
+      "promotion_link_data": [
+        0,
+        0,
+        0,
+        3,
+        0,
+        1,
+        0,
+        2,
+        0,
+        -1,
+        0,
+        -1,
+        0,
+        -1,
+        0,
+        -1,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "id": "_uruguayanLeague",
+      "comp": {
+        "comp_id": 104,
+        "type": 0,
+        "team_number": 71,
+        "begin_month": 24,
+        "end_month": 88,
+        "name_table_offset": 0,
+        "reserved": 0,
+        "team_list_offset": 0,
+        "seed_reorder_flag": 0
+      },
+      "divisions_count": 2,
+      "rounds": 2,
+      "points_for_win": 3,
+      "substitutes": 3,
+      "max_subs": 5,
+      "divisions": [
+        {
+          "teams": 12,
+          "promoted": 0,
+          "promoted_po": 0,
+          "relegated": 1,
+          "relegated_po": 1,
+          "qualifier_link_offset": 8
+        },
+        {
+          "teams": 14,
+          "promoted": 1,
+          "promoted_po": 1,
+          "relegated": 0,
+          "relegated_po": 0,
+          "qualifier_link_offset": 2
+        }
+      ],
+      "reserved1": 0,
+      "name": [
+        null
+      ],
+      "playoff_links": [
+        "_uruguayanPlayoffs",
+        "_uruguayanLeague1"
+      ],
+      "promotion_link_data": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        -1,
+        1,
+        0
+      ]
+    }
+  ]
+}

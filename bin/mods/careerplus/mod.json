@@ -1,0 +1,13 @@
+{
+ "uuid": "c75c6023-b207-5111-a372-3482470c9e31",
+ "id": "careerplus",
+ "name": "Career+",
+ "version": "3.0",
+ "author": "benefactorr",
+ "about": "A deeper career: AI clubs trade players, players age and retire, every winner of a 35-season career is kept, world and national player searches, fuller squad screens, Career+'s finances, transfers and job offers, and Yugoslavia's two divisions with 1996/97's squads.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "career",
+ "default": false
+}

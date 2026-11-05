@@ -1,0 +1,1076 @@
+{
+ "_about": "Career+'s national teams (docs/mods/CAREER_PLUS.md \u00a73.3): the original's 63, its 79 further records with their squads' nationalities (checked against TEAM.080-085; Surinam's duplicate 53:0C left out), the USA and Yugoslavia. El Salvador keeps the original's 0x34 (SAL, its clubs' players; its national squad is ELS 0x42). team_file 255: no club league in the game.",
+ "records": [
+  {
+   "country": 80,
+   "ordinal": 0,
+   "nationality": 0,
+   "team_file": 0,
+   "skill": 19
+  },
+  {
+   "country": 80,
+   "ordinal": 2,
+   "nationality": 1,
+   "team_file": 1,
+   "skill": 24
+  },
+  {
+   "country": 80,
+   "ordinal": 4,
+   "nationality": 38,
+   "team_file": 76,
+   "skill": 18
+  },
+  {
+   "country": 80,
+   "ordinal": 6,
+   "nationality": 3,
+   "team_file": 3,
+   "skill": 28
+  },
+  {
+   "country": 80,
+   "ordinal": 8,
+   "nationality": 5,
+   "team_file": 5,
+   "skill": 16
+  },
+  {
+   "country": 80,
+   "ordinal": 12,
+   "nationality": 9,
+   "team_file": 10,
+   "skill": 14
+  },
+  {
+   "country": 80,
+   "ordinal": 13,
+   "nationality": 10,
+   "team_file": 11,
+   "skill": 11
+  },
+  {
+   "country": 80,
+   "ordinal": 14,
+   "nationality": 11,
+   "team_file": 12,
+   "skill": 21
+  },
+  {
+   "country": 80,
+   "ordinal": 18,
+   "nationality": 14,
+   "team_file": 15,
+   "skill": 24
+  },
+  {
+   "country": 80,
+   "ordinal": 21,
+   "nationality": 16,
+   "team_file": 17,
+   "skill": 17
+  },
+  {
+   "country": 80,
+   "ordinal": 22,
+   "nationality": 17,
+   "team_file": 19,
+   "skill": 18
+  },
+  {
+   "country": 80,
+   "ordinal": 24,
+   "nationality": 19,
+   "team_file": 21,
+   "skill": 14
+  },
+  {
+   "country": 80,
+   "ordinal": 26,
+   "nationality": 20,
+   "team_file": 22,
+   "skill": 18
+  },
+  {
+   "country": 80,
+   "ordinal": 27,
+   "nationality": 21,
+   "team_file": 23,
+   "skill": 14
+  },
+  {
+   "country": 80,
+   "ordinal": 29,
+   "nationality": 22,
+   "team_file": 24,
+   "skill": 15
+  },
+  {
+   "country": 80,
+   "ordinal": 31,
+   "nationality": 24,
+   "team_file": 26,
+   "skill": 20
+  },
+  {
+   "country": 80,
+   "ordinal": 32,
+   "nationality": 25,
+   "team_file": 27,
+   "skill": 24
+  },
+  {
+   "country": 80,
+   "ordinal": 35,
+   "nationality": 46,
+   "team_file": 18,
+   "skill": 30
+  },
+  {
+   "country": 80,
+   "ordinal": 38,
+   "nationality": 30,
+   "team_file": 32,
+   "skill": 12
+  },
+  {
+   "country": 80,
+   "ordinal": 40,
+   "nationality": 39,
+   "team_file": 78,
+   "skill": 23
+  },
+  {
+   "country": 80,
+   "ordinal": 41,
+   "nationality": 32,
+   "team_file": 34,
+   "skill": 19
+  },
+  {
+   "country": 80,
+   "ordinal": 44,
+   "nationality": 45,
+   "team_file": 37,
+   "skill": 28
+  },
+  {
+   "country": 80,
+   "ordinal": 45,
+   "nationality": 34,
+   "team_file": 38,
+   "skill": 23
+  },
+  {
+   "country": 80,
+   "ordinal": 47,
+   "nationality": 36,
+   "team_file": 40,
+   "skill": 28
+  },
+  {
+   "country": 83,
+   "ordinal": 3,
+   "nationality": 52,
+   "team_file": 51,
+   "skill": 11
+  },
+  {
+   "country": 83,
+   "ordinal": 8,
+   "nationality": 56,
+   "team_file": 60,
+   "skill": 19
+  },
+  {
+   "country": 82,
+   "ordinal": 1,
+   "nationality": 69,
+   "team_file": 45,
+   "skill": 24
+  },
+  {
+   "country": 82,
+   "ordinal": 3,
+   "nationality": 71,
+   "team_file": 48,
+   "skill": 23
+  },
+  {
+   "country": 82,
+   "ordinal": 5,
+   "nationality": 73,
+   "team_file": 50,
+   "skill": 17
+  },
+  {
+   "country": 82,
+   "ordinal": 6,
+   "nationality": 74,
+   "team_file": 64,
+   "skill": 16
+  },
+  {
+   "country": 82,
+   "ordinal": 7,
+   "nationality": 79,
+   "team_file": 65,
+   "skill": 17
+  },
+  {
+   "country": 83,
+   "ordinal": 12,
+   "nationality": 75,
+   "team_file": 66,
+   "skill": 3
+  },
+  {
+   "country": 82,
+   "ordinal": 9,
+   "nationality": 77,
+   "team_file": 77,
+   "skill": 10
+  },
+  {
+   "country": 81,
+   "ordinal": 0,
+   "nationality": 80,
+   "team_file": 42,
+   "skill": 9
+  },
+  {
+   "country": 81,
+   "ordinal": 11,
+   "nationality": 88,
+   "team_file": 79,
+   "skill": 17
+  },
+  {
+   "country": 81,
+   "ordinal": 25,
+   "nationality": 81,
+   "team_file": 69,
+   "skill": 17
+  },
+  {
+   "country": 84,
+   "ordinal": 5,
+   "nationality": 120,
+   "team_file": 75,
+   "skill": 9
+  },
+  {
+   "country": 84,
+   "ordinal": 9,
+   "nationality": 118,
+   "team_file": 55,
+   "skill": 12
+  },
+  {
+   "country": 84,
+   "ordinal": 27,
+   "nationality": 119,
+   "team_file": 67,
+   "skill": 9
+  },
+  {
+   "country": 85,
+   "ordinal": 0,
+   "nationality": 148,
+   "team_file": 44,
+   "skill": 19
+  },
+  {
+   "country": 85,
+   "ordinal": 2,
+   "nationality": 149,
+   "team_file": 62,
+   "skill": 14
+  },
+  {
+   "country": 80,
+   "ordinal": 5,
+   "nationality": 2,
+   "team_file": 2,
+   "skill": 30
+  },
+  {
+   "country": 80,
+   "ordinal": 9,
+   "nationality": 6,
+   "team_file": 6,
+   "skill": 26
+  },
+  {
+   "country": 80,
+   "ordinal": 7,
+   "nationality": 4,
+   "team_file": 4,
+   "skill": 29
+  },
+  {
+   "country": 80,
+   "ordinal": 10,
+   "nationality": 7,
+   "team_file": 7,
+   "skill": 28
+  },
+  {
+   "country": 80,
+   "ordinal": 11,
+   "nationality": 8,
+   "team_file": 8,
+   "skill": 34
+  },
+  {
+   "country": 80,
+   "ordinal": 15,
+   "nationality": 12,
+   "team_file": 13,
+   "skill": 32
+  },
+  {
+   "country": 80,
+   "ordinal": 17,
+   "nationality": 13,
+   "team_file": 14,
+   "skill": 35
+  },
+  {
+   "country": 80,
+   "ordinal": 19,
+   "nationality": 23,
+   "team_file": 25,
+   "skill": 33
+  },
+  {
+   "country": 80,
+   "ordinal": 20,
+   "nationality": 15,
+   "team_file": 16,
+   "skill": 22
+  },
+  {
+   "country": 80,
+   "ordinal": 23,
+   "nationality": 18,
+   "team_file": 20,
+   "skill": 37
+  },
+  {
+   "country": 80,
+   "ordinal": 33,
+   "nationality": 26,
+   "team_file": 28,
+   "skill": 24
+  },
+  {
+   "country": 80,
+   "ordinal": 34,
+   "nationality": 27,
+   "team_file": 29,
+   "skill": 32
+  },
+  {
+   "country": 80,
+   "ordinal": 36,
+   "nationality": 28,
+   "team_file": 30,
+   "skill": 31
+  },
+  {
+   "country": 80,
+   "ordinal": 37,
+   "nationality": 29,
+   "team_file": 31,
+   "skill": 30
+  },
+  {
+   "country": 80,
+   "ordinal": 39,
+   "nationality": 31,
+   "team_file": 33,
+   "skill": 29
+  },
+  {
+   "country": 80,
+   "ordinal": 42,
+   "nationality": 40,
+   "team_file": 35,
+   "skill": 33
+  },
+  {
+   "country": 80,
+   "ordinal": 43,
+   "nationality": 33,
+   "team_file": 36,
+   "skill": 30
+  },
+  {
+   "country": 80,
+   "ordinal": 46,
+   "nationality": 35,
+   "team_file": 39,
+   "skill": 20
+  },
+  {
+   "country": 82,
+   "ordinal": 0,
+   "nationality": 68,
+   "team_file": 43,
+   "skill": 32
+  },
+  {
+   "country": 82,
+   "ordinal": 2,
+   "nationality": 70,
+   "team_file": 46,
+   "skill": 36
+  },
+  {
+   "country": 82,
+   "ordinal": 4,
+   "nationality": 72,
+   "team_file": 49,
+   "skill": 28
+  },
+  {
+   "country": 82,
+   "ordinal": 8,
+   "nationality": 76,
+   "team_file": 71,
+   "skill": 28
+  },
+  {
+   "country": 80,
+   "ordinal": 1,
+   "nationality": 41,
+   "team_file": 255,
+   "skill": 14
+  },
+  {
+   "country": 80,
+   "ordinal": 3,
+   "nationality": 43,
+   "team_file": 255,
+   "skill": 14
+  },
+  {
+   "country": 80,
+   "ordinal": 16,
+   "nationality": 44,
+   "team_file": 255,
+   "skill": 19
+  },
+  {
+   "country": 80,
+   "ordinal": 25,
+   "nationality": 49,
+   "team_file": 255,
+   "skill": 11
+  },
+  {
+   "country": 80,
+   "ordinal": 28,
+   "nationality": 47,
+   "team_file": 255,
+   "skill": 20
+  },
+  {
+   "country": 80,
+   "ordinal": 30,
+   "nationality": 50,
+   "team_file": 255,
+   "skill": 17
+  },
+  {
+   "country": 83,
+   "ordinal": 0,
+   "nationality": 61,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 83,
+   "ordinal": 1,
+   "nationality": 64,
+   "team_file": 255,
+   "skill": 16
+  },
+  {
+   "country": 83,
+   "ordinal": 2,
+   "nationality": 51,
+   "team_file": 255,
+   "skill": 17
+  },
+  {
+   "country": 83,
+   "ordinal": 4,
+   "nationality": 53,
+   "team_file": 255,
+   "skill": 8
+  },
+  {
+   "country": 83,
+   "ordinal": 5,
+   "nationality": 78,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 83,
+   "ordinal": 6,
+   "nationality": 54,
+   "team_file": 255,
+   "skill": 3
+  },
+  {
+   "country": 83,
+   "ordinal": 7,
+   "nationality": 62,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 83,
+   "ordinal": 9,
+   "nationality": 60,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 83,
+   "ordinal": 10,
+   "nationality": 57,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 83,
+   "ordinal": 11,
+   "nationality": 67,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 83,
+   "ordinal": 13,
+   "nationality": 63,
+   "team_file": 255,
+   "skill": 20
+  },
+  {
+   "country": 81,
+   "ordinal": 1,
+   "nationality": 102,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 81,
+   "ordinal": 2,
+   "nationality": 111,
+   "team_file": 255,
+   "skill": 3
+  },
+  {
+   "country": 81,
+   "ordinal": 3,
+   "nationality": 82,
+   "team_file": 255,
+   "skill": 3
+  },
+  {
+   "country": 81,
+   "ordinal": 4,
+   "nationality": 83,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 81,
+   "ordinal": 5,
+   "nationality": 84,
+   "team_file": 255,
+   "skill": 11
+  },
+  {
+   "country": 81,
+   "ordinal": 6,
+   "nationality": 94,
+   "team_file": 255,
+   "skill": 17
+  },
+  {
+   "country": 81,
+   "ordinal": 7,
+   "nationality": 112,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 81,
+   "ordinal": 8,
+   "nationality": 105,
+   "team_file": 255,
+   "skill": 17
+  },
+  {
+   "country": 81,
+   "ordinal": 9,
+   "nationality": 108,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 81,
+   "ordinal": 10,
+   "nationality": 109,
+   "team_file": 255,
+   "skill": 14
+  },
+  {
+   "country": 81,
+   "ordinal": 12,
+   "nationality": 113,
+   "team_file": 255,
+   "skill": 14
+  },
+  {
+   "country": 81,
+   "ordinal": 13,
+   "nationality": 90,
+   "team_file": 255,
+   "skill": 19
+  },
+  {
+   "country": 81,
+   "ordinal": 14,
+   "nationality": 99,
+   "team_file": 255,
+   "skill": 8
+  },
+  {
+   "country": 81,
+   "ordinal": 15,
+   "nationality": 85,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 81,
+   "ordinal": 16,
+   "nationality": 97,
+   "team_file": 255,
+   "skill": 14
+  },
+  {
+   "country": 81,
+   "ordinal": 17,
+   "nationality": 117,
+   "team_file": 255,
+   "skill": 11
+  },
+  {
+   "country": 81,
+   "ordinal": 18,
+   "nationality": 92,
+   "team_file": 255,
+   "skill": 14
+  },
+  {
+   "country": 81,
+   "ordinal": 19,
+   "nationality": 115,
+   "team_file": 255,
+   "skill": 16
+  },
+  {
+   "country": 81,
+   "ordinal": 20,
+   "nationality": 98,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 81,
+   "ordinal": 21,
+   "nationality": 107,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 81,
+   "ordinal": 22,
+   "nationality": 107,
+   "team_file": 255,
+   "skill": 19
+  },
+  {
+   "country": 81,
+   "ordinal": 23,
+   "nationality": 89,
+   "team_file": 255,
+   "skill": 23
+  },
+  {
+   "country": 81,
+   "ordinal": 24,
+   "nationality": 110,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 81,
+   "ordinal": 26,
+   "nationality": 100,
+   "team_file": 255,
+   "skill": 11
+  },
+  {
+   "country": 81,
+   "ordinal": 27,
+   "nationality": 101,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 81,
+   "ordinal": 28,
+   "nationality": 106,
+   "team_file": 255,
+   "skill": 8
+  },
+  {
+   "country": 81,
+   "ordinal": 29,
+   "nationality": 103,
+   "team_file": 255,
+   "skill": 8
+  },
+  {
+   "country": 81,
+   "ordinal": 30,
+   "nationality": 91,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 81,
+   "ordinal": 31,
+   "nationality": 96,
+   "team_file": 255,
+   "skill": 7
+  },
+  {
+   "country": 81,
+   "ordinal": 32,
+   "nationality": 87,
+   "team_file": 255,
+   "skill": 19
+  },
+  {
+   "country": 81,
+   "ordinal": 33,
+   "nationality": 104,
+   "team_file": 255,
+   "skill": 11
+  },
+  {
+   "country": 84,
+   "ordinal": 0,
+   "nationality": 59,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 84,
+   "ordinal": 1,
+   "nationality": 121,
+   "team_file": 255,
+   "skill": 2
+  },
+  {
+   "country": 84,
+   "ordinal": 2,
+   "nationality": 122,
+   "team_file": 255,
+   "skill": 5
+  },
+  {
+   "country": 84,
+   "ordinal": 3,
+   "nationality": 139,
+   "team_file": 255,
+   "skill": 12
+  },
+  {
+   "country": 84,
+   "ordinal": 4,
+   "nationality": 54,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 84,
+   "ordinal": 6,
+   "nationality": 120,
+   "team_file": 255,
+   "skill": 8,
+   "_note": "Indonesia: its squad's nationality is India's IND (0x78); no club file"
+  },
+  {
+   "country": 84,
+   "ordinal": 7,
+   "nationality": 123,
+   "team_file": 255,
+   "skill": 11
+  },
+  {
+   "country": 84,
+   "ordinal": 8,
+   "nationality": 123,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 84,
+   "ordinal": 10,
+   "nationality": 124,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 84,
+   "ordinal": 11,
+   "nationality": 133,
+   "team_file": 255,
+   "skill": 14
+  },
+  {
+   "country": 84,
+   "ordinal": 12,
+   "nationality": 134,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 84,
+   "ordinal": 13,
+   "nationality": 130,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 84,
+   "ordinal": 14,
+   "nationality": 141,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 84,
+   "ordinal": 15,
+   "nationality": 142,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 84,
+   "ordinal": 16,
+   "nationality": 135,
+   "team_file": 255,
+   "skill": 8
+  },
+  {
+   "country": 84,
+   "ordinal": 17,
+   "nationality": 136,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 84,
+   "ordinal": 18,
+   "nationality": 137,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 84,
+   "ordinal": 19,
+   "nationality": 143,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 84,
+   "ordinal": 20,
+   "nationality": 138,
+   "team_file": 255,
+   "skill": 3
+  },
+  {
+   "country": 84,
+   "ordinal": 21,
+   "nationality": 146,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 84,
+   "ordinal": 22,
+   "nationality": 131,
+   "team_file": 255,
+   "skill": 15
+  },
+  {
+   "country": 84,
+   "ordinal": 23,
+   "nationality": 140,
+   "team_file": 255,
+   "skill": 9
+  },
+  {
+   "country": 84,
+   "ordinal": 24,
+   "nationality": 127,
+   "team_file": 255,
+   "skill": 17
+  },
+  {
+   "country": 84,
+   "ordinal": 25,
+   "nationality": 125,
+   "team_file": 255,
+   "skill": 3
+  },
+  {
+   "country": 84,
+   "ordinal": 26,
+   "nationality": 126,
+   "team_file": 255,
+   "skill": 11
+  },
+  {
+   "country": 84,
+   "ordinal": 28,
+   "nationality": 147,
+   "team_file": 255,
+   "skill": 14
+  },
+  {
+   "country": 84,
+   "ordinal": 29,
+   "nationality": 129,
+   "team_file": 255,
+   "skill": 6
+  },
+  {
+   "country": 84,
+   "ordinal": 30,
+   "nationality": 132,
+   "team_file": 255,
+   "skill": 5
+  },
+  {
+   "country": 85,
+   "ordinal": 1,
+   "nationality": 150,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 85,
+   "ordinal": 3,
+   "nationality": 151,
+   "team_file": 255,
+   "skill": 1
+  },
+  {
+   "country": 83,
+   "ordinal": 14,
+   "nationality": 58,
+   "team_file": 73,
+   "skill": 20,
+   "_note": "Career+: the USA (TEAM.083's 53:0E), clubs TEAM.073"
+  },
+  {
+   "country": 80,
+   "ordinal": 48,
+   "nationality": 37,
+   "team_file": 41,
+   "skill": 30,
+   "_note": "Career+: Yugoslavia (EUROPE's 50:30), clubs TEAM.041"
+  }
+ ],
+ "nationalities": [
+  8,
+  31,
+  36,
+  24,
+  46,
+  0,
+  1,
+  2,
+  38,
+  3,
+  4,
+  5,
+  7,
+  40,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  23,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  25,
+  26,
+  27,
+  28,
+  29,
+  32,
+  30,
+  45,
+  39,
+  33,
+  6,
+  34,
+  35,
+  56,
+  52,
+  68,
+  69,
+  70,
+  71,
+  72,
+  73,
+  74,
+  79,
+  75,
+  76,
+  77,
+  80,
+  88,
+  81,
+  120,
+  118,
+  119,
+  148,
+  149,
+  37,
+  64
+ ]
+}
