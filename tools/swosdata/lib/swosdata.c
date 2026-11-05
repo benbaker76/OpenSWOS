@@ -1136,8 +1136,19 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
     if (withWorld) {   /* Asked for: the world's team files and data/WORLD, as in the drawer. */
         char world[1100];
         Sg_PathJoin(world, sizeof world, assetsDir, SD_WORLD_AMIGA_DIR);
-        if (Sg_FindNoCase(world, "data/WORLD", probe, sizeof probe) == 0)
-            pkg_tree(&pkg, world, "data", WHD_TOP "/");
+        /* Into the program's folder (WHD_TOP/data/, the Slave's ws_CurrentDir) like every tree:
+         * its data/WORLD and team files at WHD_TOP/data/data/. Until 2026-11-04 they went one
+         * folder up, beside SWOS2, where the game never looks -- a WHDLoad A1200 played 96/97
+         * with the world ticked (a player's report). */
+        if (Sg_FindNoCase(world, "data/WORLD", probe, sizeof probe) == 0) {
+            const int32_t n = pkg_tree(&pkg, world, "data", WHD_TOP "/data/");
+            if (log) {
+                snprintf(line, sizeof line, "WHDLoad package: the world's data/ (%d files)", n);
+                log(user, line);
+            }
+        } else if (log) {
+            log(user, "WHDLoad package: no world installed in the assets folder -- the package plays 96/97");
+        }
     }
     if (modsDir && modsDir[0]) {   /* The mods that are on: mods/<id>/ and data/MODS, as in a drawer. */
         int32_t n = pkg_tree(&pkg, modsDir, "mods", WHD_TOP "/data/");
