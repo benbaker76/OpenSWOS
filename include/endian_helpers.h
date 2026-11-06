@@ -73,6 +73,17 @@ static inline void BE_WRITE_U32(void *p, uint32_t v) {
     b[3] = (uint8_t)v;
 }
 
+/* Little-endian reads, for files the PC (DOS) game wrote -- its career saves (src/car_rebuild.c). */
+static inline uint16_t LE_READ_U16(const void *p) {
+    const uint8_t *b = (const uint8_t *)p;
+    return (uint16_t)((uint16_t)b[1] << 8 | b[0]);
+}
+static inline uint32_t LE_READ_U32(const void *p) {
+    const uint8_t *b = (const uint8_t *)p;
+    return ((uint32_t)b[3] << 24) | ((uint32_t)b[2] << 16)
+         | ((uint32_t)b[1] <<  8) |  (uint32_t)b[0];
+}
+
 /* Build a uint16 from two adjacent single-byte fields the way an m68k
  * `move.w` (big-endian native) would read them. Use this wherever the
  * original asm/C did `*(uint16_t *)&struct.firstByte` and the following
