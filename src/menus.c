@@ -2691,6 +2691,37 @@ extern void PrintFormatted(const uint8_t *fmt, uint8_t *out,
                      uint16_t n4, uint16_t n5, uint16_t n6,
                      const uint8_t *strA, const uint8_t *strB, const uint8_t *strC);
 
+/* MODES and CREDITS (15, 16) sit at the bottom right. On a 320-wide screen (the Amiga, a 4:3
+ * PC) they can cover the right end of the wide buttons above them (a tester saw LOAD OLD
+ * COMPETITION under MODES on the Amiga, 2026-11-06). When one of the shown wide buttons --
+ * CONTINUE, SAVE, LOAD OLD COMPETITION, MULTIPLAYER (11-14), one column -- overlaps one, the
+ * column ends short of them, every button alike. Where none overlaps nothing changes. Run last,
+ * once the buttons are where they will be drawn. */
+static void main_menu_fit_lower_right(void)
+{
+    int32_t left = 0x7FFF, overlap = 0;
+    for (int32_t s = 15; s <= 16; s++) {
+        const MenuEntry *small = &_menuEntries[s];
+        if (small->isInvisible)
+            continue;
+        if (small->x < left)
+            left = small->x;
+        for (int32_t e = 11; e <= 14; e++) {
+            const MenuEntry *m = &_menuEntries[e];
+            if (!m->isInvisible && m->x < small->x + small->dwWidth && small->x < m->x + m->dwWidth &&
+                m->y < small->y + small->dwHeight && small->y < m->y + m->dwHeight)
+                overlap = 1;
+        }
+    }
+    if (!overlap)
+        return;
+    for (int32_t e = 11; e <= 14; e++) {
+        MenuEntry *m = &_menuEntries[e];
+        if (m->x < left && m->x + m->dwWidth > left - 4)
+            m->dwWidth = (uint16_t)(left - 4 - m->x);
+    }
+}
+
 /* CommonMenuExit — set CONTINUE/REPLAY/SAVE entries on main menu return (SWOS2.s line 68793) */
 __attribute__((used, externally_visible))
 void CommonMenuExit(void)
@@ -2724,7 +2755,6 @@ void CommonMenuExit(void)
      * on the Amiga, and never on the web, where a browser has no UDP to play over. */
     _menuEntries[14].isInvisible = 1;
 #endif
-
     if (_gameType == GAME_TYPE_DIY_COMPETITION) {
         nameStr = (uint8_t *)_primaryCompetitionBuf.tourn.header.competitionName;
         if (_primaryCompetitionBuf.tourn.header.competitionOver == 1)
@@ -2750,6 +2780,7 @@ void CommonMenuExit(void)
         _menuEntries[11].isInvisible = 1;
         _menuEntries[12].isInvisible = 1;
         _menuEntries[13].y = _menuEntries[11].y;
+        main_menu_fit_lower_right();
         return;
     }
 
@@ -2763,6 +2794,7 @@ void CommonMenuExit(void)
     /* Show both entries */
     _menuEntries[12].isInvisible = 0;
     _menuEntries[11].isInvisible = 0;
+    main_menu_fit_lower_right();
 }
 
 /* ================================================================
