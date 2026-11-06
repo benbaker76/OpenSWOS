@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include <string.h>
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
 #include "statistics.h"
@@ -1853,7 +1854,26 @@ extern uint8_t _aFriendly[];          /* "FRIENDLY" */
 extern uint8_t _aFriendlies[];        /* "FRIENDLIES" */
 extern uint8_t _aWon0Drawn1Lost[];    /* "WON %0  DRAWN %1  LOST %2" */
 extern uint8_t _aEuropeanTour[];      /* "EUROPEAN TOUR" */
+extern uint8_t _aAfricanTour[], _aSouthAmericanT[], _aNorthAmericanT[], _aAsianTour[];
 extern uint8_t _aOceaniaTour[];       /* "OCEANIA TOUR" */
+
+/* A career's pre-season tour, by its name: the six tours. The original asks whether the name's
+ * ADDRESS lies between EUROPEAN TOUR and OCEANIA TOUR, the six laid down one after another in
+ * its data. Ours are separate strings the compiler places where it likes -- on both targets
+ * OCEANIA TOUR lies BEFORE EUROPEAN TOUR, so that range held nothing: no tour was ever told
+ * (the history screen showed a tour as a cup, the board never counted a tour's results). And a
+ * loaded career's names are copies in the save's string pool. So by name. */
+int32_t Career_IsTourName(const uint8_t *name)
+{
+    const uint8_t *const tours[] = { _aEuropeanTour, _aAfricanTour, _aSouthAmericanT, _aNorthAmericanT,
+                                     _aAsianTour, _aOceaniaTour };
+    if (!name)
+        return 0;
+    for (uint32_t i = 0; i < sizeof tours / sizeof tours[0]; i++)
+        if (name == tours[i] || strcmp((const char *)name, (const char *)tours[i]) == 0)
+            return 1;
+    return 0;
+}
 extern uint8_t _aWinners[];           /* "WINNERS" */
 extern uint8_t _aRunnerUp[];          /* "RUNNER-UP" */
 extern uint8_t _aFinalist[];          /* "FINALIST" */
@@ -2021,7 +2041,7 @@ static void RenderCompLine_Internal(const uint8_t *compName, int8_t resultCodeBy
     }
 
     /* --- TOUR path (European Tour .. Oceania Tour) --- */
-    if (origCompName >= _aEuropeanTour && origCompName <= _aOceaniaTour)
+    if (Career_IsTourName(origCompName))
     {
         n0 = (uint16_t)(int16_t)(int8_t)si->tourWins;
         n1 = (uint16_t)(int16_t)(int8_t)si->tourDraws;

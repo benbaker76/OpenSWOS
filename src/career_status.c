@@ -3843,8 +3843,7 @@ extern uint16_t _numLost;
 extern uint16_t _goalsScored;
 extern uint16_t _goalsTaken;
 extern uint16_t _careerSlotProcessingInProgress;
-extern uint32_t _aEuropeanTour;  /* string label — used as address boundary */
-extern uint32_t _aOceaniaTour;   /* string label — used as address boundary */
+extern int32_t Career_IsTourName(const uint8_t *name);   /* (statistics.c: the six tours, by name) */
 
 extern uint16_t _seasonNumberOfSquads;
 extern uint16_t _seasonSquadTeamNumbers[];
@@ -3961,7 +3960,7 @@ void Career_UpdateStatsAfterMatch(TeamFileEx *team1, TeamFileEx *team2, uint16_t
         _numWins++;
         if (compType == 0) {
             uint8_t *tourPtr = _diyCompetitionStart.base.namePtr;
-            if (tourPtr >= (uint8_t *)&_aEuropeanTour && tourPtr <= (uint8_t *)&_aOceaniaTour) {
+            if (Career_IsTourName(tourPtr)) {
                 _boardConfidenceMod7++;
             } else if (_diyCompetitionStart.matchData.league.hasGroupsDiy) {
                 _boardConfidenceMod4++;
@@ -3973,7 +3972,7 @@ void Career_UpdateStatsAfterMatch(TeamFileEx *team1, TeamFileEx *team2, uint16_t
         _numLost++;
         if (compType == 0) {
             uint8_t *tourPtr = _diyCompetitionStart.base.namePtr;
-            if (tourPtr >= (uint8_t *)&_aEuropeanTour && tourPtr <= (uint8_t *)&_aOceaniaTour) {
+            if (Career_IsTourName(tourPtr)) {
                 _boardConfidenceMod9++;
             } else if (_diyCompetitionStart.matchData.league.hasGroupsDiy) {
                 _boardConfidenceMod6++;
@@ -3985,7 +3984,7 @@ void Career_UpdateStatsAfterMatch(TeamFileEx *team1, TeamFileEx *team2, uint16_t
         _numDrawn++;
         if (compType == 0) {
             uint8_t *tourPtr = _diyCompetitionStart.base.namePtr;
-            if (tourPtr >= (uint8_t *)&_aEuropeanTour && tourPtr <= (uint8_t *)&_aOceaniaTour) {
+            if (Career_IsTourName(tourPtr)) {
                 _boardConfidenceMod8++;
             } else if (_diyCompetitionStart.matchData.league.hasGroupsDiy) {
                 _boardConfidenceMod5++;

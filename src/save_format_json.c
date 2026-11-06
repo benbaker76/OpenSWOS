@@ -276,10 +276,13 @@ static uintptr_t string_pool_intern(const char *s)
      * the text in the pool rendered a friendly's W-D-L as a cup result -- often
      * "STILL IN COMPETITION". Those names are the game's own strings again. */
     {
-        extern uint8_t _aFriendly[], _aEuropeanTour[], _aOceaniaTour[];
-        if (strcmp(s, (const char *)_aFriendly) == 0) return (uintptr_t)_aFriendly;
-        if (strcmp(s, (const char *)_aEuropeanTour) == 0) return (uintptr_t)_aEuropeanTour;
-        if (strcmp(s, (const char *)_aOceaniaTour) == 0) return (uintptr_t)_aOceaniaTour;
+        extern uint8_t _aFriendly[], _aEuropeanTour[], _aAfricanTour[], _aSouthAmericanT[],
+                       _aNorthAmericanT[], _aAsianTour[], _aOceaniaTour[];
+        uint8_t *const own[] = { _aFriendly, _aEuropeanTour, _aAfricanTour, _aSouthAmericanT,
+                                 _aNorthAmericanT, _aAsianTour, _aOceaniaTour };
+        for (uint32_t i = 0; i < sizeof own / sizeof own[0]; i++)
+            if (strcmp(s, (const char *)own[i]) == 0)
+                return (uintptr_t)own[i];
     }
     uint32_t len = (uint32_t)strlen(s);
     if (s_string_pool_used + len + 1 > STRING_POOL_SIZE)
