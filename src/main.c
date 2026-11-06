@@ -526,6 +526,10 @@ int main(int argc, char **argv)
     /* 1) Hard-coded defaults — used when SWOS.ini doesn't exist yet
      * and no CLI flags override. */
     PlatformInitOptions opts;
+    /* Zeroed first: a field below without a default of its own -- [mods] enabled/disabled were
+     * two -- then reads as empty rather than as whatever the stack held, which a SWOS.ini
+     * without the key got written back as its value ("enabled=" and two junk bytes). */
+    memset(&opts, 0, sizeof opts);
     opts.win_scale  = WIN_SCALE;
     opts.fullscreen = PLATFORM_FULLSCREEN_NONE;
     opts.renderer   = PLATFORM_RENDERER_ACCEL;
