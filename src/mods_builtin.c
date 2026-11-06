@@ -23,7 +23,10 @@ extern const ModDef ModDef_flags;       /* src/mod_flags.c (SDL: it draws throug
 #if defined(__has_include)
 #if __has_include("fork_mods.inc")
 #define FORK_MODS 1
-/* its declarations: `extern const ModDef ModDef_<slug>;` lines, then FORK_MOD_LIST */
+/* its declarations: `extern const ModDef ModDef_<slug>;` lines, then FORK_MOD_LIST. The list is
+ * built on the Amiga too, so a mod only the SDL build has goes in it as MOD_SDL(ModDef_<slug>)
+ * (the macro is defined below, before the list expands FORK_MOD_LIST): SWOS United's
+ * `#define FORK_MOD_LIST MOD_SDL(ModDef_menus2020) MOD_SDL(ModDef_unitedTicker)`. */
 #include "fork_mods.inc"
 #endif
 #endif
