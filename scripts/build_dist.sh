@@ -293,10 +293,10 @@ LINUX_LIBDIR="${LINUX_LIBDIR:-/usr/lib}"
 # level s/ would replace that drive's own S:startup-sequence. Inside the drawer they
 # do nothing until the drawer itself is mounted as the boot volume, when
 # s/startup-sequence runs SYS:SWOS2 and then c/UAEquit.
-# data_json/menus/openswos: the MODES screen's menu (modEntriesMenu.json), which the mods' code
-# shows on the Amiga too (docs/MODS.md §30); the mods' own menus come in
-# their folders, mods/<slug>/, which OpenSWOS Setup copies into the drawer.
-AMIGA_DATA_DIRS="data grafs grafs_aga sound data_json/menus/openswos"
+# No data_json/: the Amiga parses no JSON (docs/DATA_BSON.md). The menus of the mods it runs --
+# the MODES screen's and their own -- are baked into SWOS2 (include/menu_baked.h), and OpenSWOS
+# Setup converts the rest of a mod's JSON when it copies the mod into the drawer (SwosData_AmigaMod).
+AMIGA_DATA_DIRS="data grafs grafs_aga sound"
 AMIGA_BOOT_DIRS="c s"
 AMIGA_PKG_DIR="packaging/amiga"
 CYGWIN_BIN="${CYGWIN_BIN:-/mnt/c/cygwin64/bin}"

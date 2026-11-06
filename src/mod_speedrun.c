@@ -21,6 +21,9 @@
  *   { "format": "openswos-speedrun", "version": 1,
  *     "records": [ { "target": "1 goal", "played": 3, "best_frames": 812, "last_frames": 940,
  *                    "best_teams": "ENGLAND v SCOTLAND" }, ... ] }
+ * The Amiga parses no JSON (docs/DATA_BSON.md): it keeps them as a fixed binary record, the
+ * save folder's mods/speedrun/RECORDS.BIN -- "OSWSPRN" + a version byte (1), a u16 count, then
+ * per target its key[16], played, best and last frames (u32) and best_teams[48], big-endian.
  * No leaderboard: that is a server's (SWOS 2020's was its own).
  *
  * "changes": "modes": its matches are its own -- never matters online.
@@ -59,6 +62,7 @@ static int    s_recRead;
 
 /* ---- the records ---- */
 
+#ifdef SWOS_SDL_BUILD
 static void records_read(void)
 {
     uint32_t size = 0;
@@ -116,6 +120,66 @@ static void records_save(void)
     if (ModApi_SaveFile("speedrun", "records.json", buf, (uint32_t)n) != 0)
         fprintf(stderr, "[speedrun] could not save the records\n");
 }
+#else
+enum { kRecSize = 16 + 12 + 48 };
+
+static uint32_t be32(const uint8_t *p)
+{
+    return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | p[3];
+}
+
+static void put32(uint8_t *p, uint32_t v)
+{
+    p[0] = (uint8_t)(v >> 24); p[1] = (uint8_t)(v >> 16); p[2] = (uint8_t)(v >> 8); p[3] = (uint8_t)v;
+}
+
+static void records_read(void)
+{
+    uint32_t size = 0;
+    const uint8_t *p = (const uint8_t *)ModApi_LoadFile("speedrun", "RECORDS.BIN", &size);
+    s_recRead = 1;
+    if (!p)
+        return;
+    if (size >= 10 && memcmp(p, "OSWSPRN", 7) == 0 && p[7] == 1) {
+        const uint32_t count = ((uint32_t)p[8] << 8) | p[9];
+        for (uint32_t i = 0; i < count && 10 + (i + 1) * kRecSize <= size; i++) {
+            const uint8_t *r = p + 10 + i * kRecSize;
+            char key[16];
+            memcpy(key, r, 16);
+            key[15] = 0;
+            for (int32_t t = 0; t < kTargets; t++) {
+                if (strcmp(key, kTarget[t].key) != 0)
+                    continue;
+                s_rec[t].played = be32(r + 16);
+                s_rec[t].best = be32(r + 20);
+                s_rec[t].last = be32(r + 24);
+                memcpy(s_rec[t].bestTeams, r + 28, 48);
+                s_rec[t].bestTeams[47] = 0;
+            }
+        }
+    }
+    free((void *)p);
+}
+
+static void records_save(void)
+{
+    static uint8_t buf[10 + kTargets * kRecSize];
+    memset(buf, 0, sizeof buf);
+    memcpy(buf, "OSWSPRN", 7);
+    buf[7] = 1;
+    buf[9] = kTargets;
+    for (int32_t t = 0; t < kTargets; t++) {
+        uint8_t *r = buf + 10 + t * kRecSize;
+        memcpy(r, kTarget[t].key, strlen(kTarget[t].key));
+        put32(r + 16, s_rec[t].played);
+        put32(r + 20, s_rec[t].best);
+        put32(r + 24, s_rec[t].last);
+        memcpy(r + 28, s_rec[t].bestTeams, 47);
+    }
+    if (ModApi_SaveFile("speedrun", "RECORDS.BIN", buf, (uint32_t)sizeof buf) != 0)
+        fprintf(stderr, "[speedrun] could not save the records\n");
+}
+#endif
 
 static void time_text(char *out, size_t cap, uint32_t frames)
 {

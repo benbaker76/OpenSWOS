@@ -16,6 +16,13 @@ TL;DR recommendation is in §6.
 > (RNC-packed). The Amiga parses no JSON, BSON or MessagePack at run time. See
 > `docs/DATA_PIPELINE.md`. The rest of this document is the analysis behind that
 > choice.
+>
+> **2026-11-06:** the mods follow it too (docs/MODS.md §30): their menus are baked into the
+> Amiga program at build time (`tools/menu_bake`), their data converted by OpenSWOS Setup, their
+> records fixed binary. **The one exception is saves** -- career, season and competition saves are
+> the save format's JSON (`src/save_format_json.c`) on both targets, which this decision never
+> covered. Measured on an emulated A1200 (68020 + 8 MB fast RAM): an 836 KB career loads in
+> 254 s and saves in 14 s. The owner: leave them as they are for now.
 
 ---
 

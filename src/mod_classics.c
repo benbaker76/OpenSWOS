@@ -18,6 +18,7 @@
  */
 #include "mod_api.h"
 
+#include "classics_index.h"
 #include "mjson.h"
 
 #include <stdio.h>
@@ -123,11 +124,26 @@ static int32_t add_file(const char *file, void *vctx)
     return 0;
 }
 
+/* (one competition of a folder's index: added unless an earlier root has its file) */
+static void add_indexed(int32_t root, const char *file, const char *name)
+{
+    for (int32_t k = 0; k < s.count; k++)       /* (the same file in an earlier root wins) */
+        if (same_name_nocase(s.file[k], file))
+            return;
+    if (!has_diy_extension(file) || !name[0] || s.count == kListRows)
+        return;
+    snprintf(s.name[s.count], kNameLen, "%s", name);
+    snprintf(s.file[s.count], kFileLen, "%s", file);
+    s.root[s.count] = (int8_t)root;
+    s.count++;
+}
+
+#ifdef SWOS_SDL_BUILD
 /* A folder's index.json (scripts/make_classics_index.py): its competitions, named, without
  * opening them. 1 when there was one. */
 static int32_t add_from_index(int32_t root, int32_t group)
 {
-    char path[1280], q[48], file[kFileLen];
+    char path[1280], q[48], file[kFileLen], name[kNameLen];
     uint32_t size = 0;
     if (!classic_path(path, sizeof path, root, group, "index.json"))
         return 0;
@@ -138,21 +154,45 @@ static int32_t add_from_index(int32_t root, int32_t group)
         snprintf(q, sizeof q, "$.competitions[%d].file", (int)i);
         if (mjson_get_string(json, (int)size, q, file, (int)sizeof file) <= 0)
             break;
-        int32_t dup = 0;
-        for (int32_t k = 0; k < s.count && !dup; k++)   /* (the same file in an earlier root wins) */
-            dup = same_name_nocase(s.file[k], file);
-        if (dup || !has_diy_extension(file))
-            continue;
         snprintf(q, sizeof q, "$.competitions[%d].name", (int)i);
-        if (mjson_get_string(json, (int)size, q, s.name[s.count], kNameLen) <= 0)
+        if (mjson_get_string(json, (int)size, q, name, (int)sizeof name) <= 0)
             continue;
-        snprintf(s.file[s.count], kFileLen, "%s", file);
-        s.root[s.count] = (int8_t)root;
-        s.count++;
+        add_indexed(root, file, name);
     }
     free(json);
     return 1;
 }
+#else
+/* The Amiga: the folder's INDEX.BIN, the setup's binary of its index.json (classics_index.h). */
+static int32_t add_from_index(int32_t root, int32_t group)
+{
+    char path[1280];
+    uint32_t size = 0;
+    if (!classic_path(path, sizeof path, root, group, CLASSICS_INDEX_FILE))
+        return 0;
+    uint8_t *p = (uint8_t *)ModApi_ReadFile(path, &size);
+    if (!p)
+        return 0;
+    const int32_t ok = size >= CLASSICS_INDEX_HEADER && memcmp(p, CLASSICS_INDEX_MAGIC, 7) == 0 &&
+                       p[7] == CLASSICS_INDEX_VERSION;
+    if (ok) {
+        const uint32_t count = ((uint32_t)p[8] << 8) | p[9];
+        for (uint32_t i = 0; i < count && CLASSICS_INDEX_HEADER + (i + 1) * CLASSICS_INDEX_RECORD <= size; i++) {
+            char file[CLASSICS_INDEX_FILELEN], name[CLASSICS_INDEX_NAMELEN];
+            const uint8_t *r = p + CLASSICS_INDEX_HEADER + i * CLASSICS_INDEX_RECORD;
+            memcpy(file, r, sizeof file);
+            file[sizeof file - 1] = 0;
+            memcpy(name, r + CLASSICS_INDEX_FILELEN, sizeof name);
+            name[sizeof name - 1] = 0;
+            add_indexed(root, file, name);
+        }
+    } else {
+        fprintf(stderr, "[classics] %s: not an index\n", path);
+    }
+    free(p);
+    return ok;
+}
+#endif
 
 static int32_t scan_group(int32_t group)
 {

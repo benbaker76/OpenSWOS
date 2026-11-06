@@ -17,13 +17,24 @@
  * authoritative, so the migration is incremental and reversible.
  *
  * Byte order is HOST-NATIVE here: UnpackMenu reads words natively and pointers
- * via memcpy of sizeof(uintptr_t), so the same writer serves the Amiga (BE,
- * 4-byte pointers), where it builds the menus of the mods (docs/MODS.md, "Mod
- * code on the Amiga"); the game's own Amiga menus are the Python emitter's
- * (docs/MENUS.md §3).
+ * via memcpy of sizeof(uintptr_t).
+ *
+ * The Amiga parses no JSON for its menus (docs/DATA_BSON.md: JSON is too slow on a
+ * 68k; the game's own Amiga menus are the Python emitter's, docs/MENUS.md §3). The
+ * menus of the mods it runs (docs/MODS.md §30) are BAKED: tools/menu_bake.c builds
+ * this file with MENU_BAKE, which runs the same builder below but writes big-endian
+ * words and 4-byte pointer slots, and records each pointer slot as a symbol name or a
+ * literal string (MenuBakedReloc) instead of an address. Makefile.amiga compiles what
+ * it emits (obj/menus_baked.c) into SWOS2, and MenuJson_Load there copies a baked
+ * menu and fills its pointers from the symbols the mods registered.
  * ====================================================================== */
 
+#if defined(SWOS_SDL_BUILD) || defined(MENU_BAKE)
+#define MENU_JSON_BUILD 1      /* (the JSON builder: the SDL game, and the Amiga's bake tool) */
+#endif
+
 #include "mjson.h"
+#include "menu_baked.h"
 #include "swos_io.h"   /* swos_data_path — rom:/ on the Switch */
 #include "menu_symbols.h"
 #include "menu_load_json.h"
@@ -42,10 +53,36 @@
 #define MK_COORDS_BYTE 0xFFFFu  /* compact coords */
 #define MK_COORDS_WIDE 0xFFFEu  /* word coords (default) */
 
+#ifdef MENU_JSON_BUILD
 /* ======================================================================
- * Byte writer — host-native little-endian on the SDL build.
+ * Byte writer — host-native little-endian on the SDL build; big-endian with
+ * 4-byte pointer slots when baking for the Amiga (MENU_BAKE).
  * ====================================================================== */
 typedef struct { uint8_t *p; uint8_t *end; int overflow; } MWriter;
+
+#ifdef MENU_BAKE
+/* A pointer slot's meaning while baking: what mj_sym / wfield_literal hand wptr. */
+typedef struct { uint8_t kind; char *text; } BakeTok;
+static uint8_t        *s_bakeBase;
+static MenuBakedReloc  s_bakeRelocs[1024];
+static int             s_bakeRelocCount, s_bakeOverflow;
+
+static void *bake_token(uint8_t kind, const char *text)
+{
+    BakeTok *t = (BakeTok *)malloc(sizeof *t);
+    const size_t n = strlen(text) + 1;
+    t->kind = kind;
+    t->text = (char *)malloc(n);
+    memcpy(t->text, text, n);
+    return t;
+}
+
+int MenuJson_BakeRelocs(const MenuBakedReloc **relocs)
+{
+    *relocs = s_bakeRelocs;
+    return s_bakeOverflow ? -1 : s_bakeRelocCount;
+}
+#endif
 
 static void w8(MWriter *w, unsigned v)
 {
@@ -55,22 +92,50 @@ static void w8(MWriter *w, unsigned v)
 static void w16(MWriter *w, unsigned v)
 {
     if (w->p + 2 > w->end) { w->overflow = 1; return; }
+#ifdef MENU_BAKE
+    w->p[0] = (uint8_t)(v >> 8);        /* the Amiga's order */
+    w->p[1] = (uint8_t)v;
+#else
     const uint16_t n = (uint16_t)v;     /* host order: UnpackMenu reads words natively */
     memcpy(w->p, &n, 2);
+#endif
     w->p += 2;
 }
 static void w32(MWriter *w, uint32_t v)
 {
     if (w->p + 4 > w->end) { w->overflow = 1; return; }
+#ifdef MENU_BAKE
+    w->p[0] = (uint8_t)(v >> 24);
+    w->p[1] = (uint8_t)(v >> 16);
+    w->p[2] = (uint8_t)(v >> 8);
+    w->p[3] = (uint8_t)v;
+#else
     memcpy(w->p, &v, 4);
+#endif
     w->p += 4;
 }
-/* Native pointer-width slot — UnpackMenu reads these via memcpy(sizeof(uintptr_t)). */
+/* Native pointer-width slot — UnpackMenu reads these via memcpy(sizeof(uintptr_t)).
+ * Baking: a 4-byte zero slot, its meaning recorded as a reloc. */
 static void wptr(MWriter *w, void *ptr)
 {
+#ifdef MENU_BAKE
+    if (ptr && w->p + 4 <= w->end) {
+        if (s_bakeRelocCount == (int)(sizeof s_bakeRelocs / sizeof s_bakeRelocs[0])) {
+            s_bakeOverflow = 1;
+        } else {
+            const BakeTok *t = (const BakeTok *)ptr;
+            s_bakeRelocs[s_bakeRelocCount].offset = (uint32_t)(w->p - s_bakeBase);
+            s_bakeRelocs[s_bakeRelocCount].kind = t->kind;
+            s_bakeRelocs[s_bakeRelocCount].text = t->text;
+            s_bakeRelocCount++;
+        }
+    }
+    w32(w, 0);
+#else
     if (w->p + sizeof(uintptr_t) > w->end) { w->overflow = 1; return; }
     memcpy(w->p, &ptr, sizeof(uintptr_t));
     w->p += sizeof(uintptr_t);
+#endif
 }
 
 /* ---- packed-stream reader: walk a compiled static menu to its end marker to
@@ -162,8 +227,8 @@ static void wfield_ptr(MWriter *w, const char *j, int jl, const char *path,
  * symbol name (reproducing the original menu_data.c regardless of translation). */
 static int s_menu_verify_raw = 0;
 
-/* Resolve a name field ("$.func"/"$.str"/…) to its address; NULL if the field
- * is absent / JSON null / unresolved (a missing symbol is logged, not fatal). */
+#endif /* MENU_JSON_BUILD */
+
 /* Symbol tables registered at run time by modules whose menus exist only as JSON
  * (MenuJson_RegisterSymbols), searched after the generated registry. */
 #define MAX_EXTRA_SYMBOL_TABLES 32     /* (each built-in mod may register one: ModApi_RegisterHandlers) */
@@ -243,6 +308,7 @@ static int first_unported_sighting(const char *name)
     return 1;
 }
 
+#ifdef MENU_JSON_BUILD
 /* Resolve a name field ("$.func"/"$.str"/…) to its address; NULL if the field
  * is absent / JSON null / unresolved (a missing symbol is logged, not fatal). */
 static void *mj_sym(const char *j, int jl, const char *path, const char *menuName, int isFunc)
@@ -253,6 +319,10 @@ static void *mj_sym(const char *j, int jl, const char *path, const char *menuNam
     char name[80];
     if (mjson_get_string(j, jl, path, name, (int)sizeof name) <= 0)
         return NULL;
+#ifdef MENU_BAKE
+    (void)menuName;
+    return bake_token(isFunc ? MENU_BAKED_FUNC : MENU_BAKED_DATA, name);
+#endif
     void *p = resolve_symbol(name);
     if (!p) {
         if (isFunc && s_dynamicBuild) {
@@ -273,6 +343,10 @@ static void wfield_ptr(MWriter *w, const char *j, int jl, const char *path,
     if (t == MJSON_TOK_NUMBER) {           /* literal deferred-string sentinel (e.g. 4) */
         long v = 0;
         mjson_get_long(j, jl, path, &v);
+#ifdef MENU_BAKE
+        w32(w, (uint32_t)v);
+        return;
+#endif
         if (w->p + sizeof(uintptr_t) > w->end) { w->overflow = 1; return; }
         uintptr_t pv = (uintptr_t)(intptr_t)v;
         memcpy(w->p, &pv, sizeof pv);
@@ -280,6 +354,7 @@ static void wfield_ptr(MWriter *w, const char *j, int jl, const char *path,
         return;
     }
     if (t == MJSON_TOK_STRING) {           /* symbol name */
+#ifndef MENU_BAKE   /* (baked: the symbol, as the Amiga's compiled menus are) */
         if (translate && !s_menu_verify_raw) {
             /* Display text: resolve the symbol's text for the active language
              * from translations/<lang>.json; fall back to the compiled string. */
@@ -289,6 +364,9 @@ static void wfield_ptr(MWriter *w, const char *j, int jl, const char *path,
                 if (txt) { wptr(w, (void *)txt); return; }
             }
         }
+#else
+        (void)translate;
+#endif
         wptr(w, mj_sym(j, jl, path, menuName, isFunc));   /* → compiled string/symbol address */
     } else {
         wptr(w, NULL);                     /* null / absent → NULL pointer */
@@ -311,7 +389,12 @@ static int wfield_literal(MWriter *w, const char *j, int jl)
         wptr(w, NULL);
         return 1;
     }
+#ifdef MENU_BAKE
+    wptr(w, bake_token(MENU_BAKED_LITERAL, text));
+    free(text);
+#else
     wptr(w, text);
+#endif
     return 1;
 }
 
@@ -484,6 +567,11 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
 {
     MWriter w = { out, out + outcap, 0 };
     char menuName[64];
+#ifdef MENU_BAKE
+    s_bakeBase = out;
+    s_bakeRelocCount = 0;
+    s_bakeOverflow = 0;
+#endif
 #ifdef SWOS_SDL_BUILD
     extern void MenuExtras_Begin(void);
     extern void MenuExtras_DescriptionEntry(int32_t entry);
@@ -565,6 +653,7 @@ int MenuJson_BuildPacked(const char *j, int jl, uint8_t *out, int outcap)
     if (w.overflow) return -1;
     return (int)(w.p - out);
 }
+#endif /* MENU_JSON_BUILD */
 
 #ifdef SWOS_SDL_BUILD
 static uint8_t *menu_slurp(const char *path, int *out_len)
@@ -597,18 +686,6 @@ static uint8_t *menu_slurp(const char *path, int *out_len)
     if (got != (size_t)n) { free(buf); return NULL; }
     *out_len = (int)n;
     return buf;
-}
-#else  /* the Amiga: through swos_io, so a mod's menu is read from its folder (the overlay) */
-static uint8_t *menu_slurp(const char *path, int *out_len)
-{
-    uint8_t *buf = NULL;
-    uint32_t n = 0;
-    if (swos_io_load_data_alloc(path, &buf, &n) != 0 || !buf || !n) {
-        if (buf) free(buf);
-        return NULL;
-    }
-    *out_len = (int)n;
-    return buf;         /* (free() is swos_io_free on the Amiga: include/amiga_libc) */
 }
 #endif
 
@@ -818,6 +895,53 @@ int MenuJson_InstallAll(void)
 static struct { char name[64]; uint8_t *packed; } s_dynamicMenus[MAX_DYNAMIC_MENUS];
 static int s_numDynamicMenus;
 
+#ifndef MENU_BAKE
+#ifndef SWOS_SDL_BUILD
+/* The Amiga: a baked menu (tools/menu_bake.c -> obj/menus_baked.c), copied and its pointer
+ * slots filled -- a handler or string by the name a mod registered (MenuJson_RegisterSymbols),
+ * a literal from the bake. No JSON is read. */
+uint8_t *MenuJson_Load(const char *name)
+{
+    for (int i = 0; i < s_numDynamicMenus; i++)
+        if (strcmp(s_dynamicMenus[i].name, name) == 0)
+            return s_dynamicMenus[i].packed;
+    if (s_numDynamicMenus == MAX_DYNAMIC_MENUS || strlen(name) >= sizeof s_dynamicMenus[0].name) {
+        fprintf(stderr, "[menu] Load %s: no slot\n", name);
+        return NULL;
+    }
+    const MenuBaked *m = NULL;
+    for (int32_t i = 0; i < g_bakedMenuCount && !m; i++)
+        if (strcmp(g_bakedMenus[i].name, name) == 0)
+            m = &g_bakedMenus[i];
+    if (!m) {
+        fprintf(stderr, "[menu] Load %s: not a baked menu (Makefile.amiga BAKED_MENUS)\n", name);
+        return NULL;
+    }
+    uint8_t *copy = (uint8_t *)malloc(m->size);
+    if (!copy) {
+        fprintf(stderr, "[menu] Load %s: out of memory (%u B)\n", name, (unsigned)m->size);
+        return NULL;
+    }
+    memcpy(copy, m->bytes, m->size);
+    for (uint32_t r = 0; r < m->relocCount; r++) {
+        const MenuBakedReloc *rel = &m->relocs[r];
+        void *p = rel->kind == MENU_BAKED_LITERAL ? (void *)rel->text : resolve_symbol(rel->text);
+        if (!p && rel->kind == MENU_BAKED_FUNC) {
+            if (first_unported_sighting(rel->text))
+                fprintf(stderr, "[menu] %s: handler '%s' not registered (no-op)\n", name, rel->text);
+            p = (void *)unported_handler;
+        } else if (!p) {
+            fprintf(stderr, "[menu] %s: unresolved symbol '%s'\n", name, rel->text);
+        }
+        memcpy(copy + rel->offset, &p, sizeof p);
+    }
+    snprintf(s_dynamicMenus[s_numDynamicMenus].name, sizeof s_dynamicMenus[0].name, "%s", name);
+    s_dynamicMenus[s_numDynamicMenus].packed = copy;
+    s_numDynamicMenus++;
+    fprintf(stderr, "[menu] loaded %s (%u B, baked)\n", name, (unsigned)m->size);
+    return copy;
+}
+#else
 /* `name` is the path under data_json/menus/ without ".json", e.g. "swos2020/logInMenu".
  * Returns the packed menu for ShowMenu, or NULL (logged) if it cannot be built. */
 uint8_t *MenuJson_Load(const char *name)
@@ -885,6 +1009,8 @@ uint8_t *MenuJson_Load(const char *name)
     fprintf(stderr, "[menu-json] loaded %s (%d B packed)\n", name, len);
     return copy;
 }
+#endif /* SWOS_SDL_BUILD */
+#endif /* !MENU_BAKE */
 
 /* Unpack a JSON-only menu into scratch memory -- never the live _currentMenu -- and
  * check what UnpackMenu made of it against the JSON it came from: the entry count,

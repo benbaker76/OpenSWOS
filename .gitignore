@@ -202,3 +202,7 @@ data/SWOS2.REL
 # openswos.net background: drawn from the game art, copied to the server, never committed
 /packaging/web/site/background.png
 
+
+# The Amiga's binary of the mods' JSON (swosdata --amiga-mod; the setup writes it in a drawer)
+bin/mods/*/challenges/
+bin/mods/*/classic/*/INDEX.BIN

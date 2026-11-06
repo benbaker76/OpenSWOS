@@ -17,6 +17,8 @@ CFLAGS  ?= -O2 -g
 # ARCHFLAGS: e.g. "-arch x86_64" for one slice of a macOS universal build.
 ARCHFLAGS ?=
 CFLAGS  += $(ARCHFLAGS) -std=c99 -Wall -Wextra -Wno-unused-parameter -Ilib -I$(SG)/lib -I$(MZ)
+# OpenSWOS's include/, after the setup's own: the game's JSON code in lib/sd_json.c
+CFLAGS  += -idirafter ../../include
 
 LIB_SRCS := $(wildcard lib/*.c) $(wildcard $(SG)/lib/*.c) $(MZ)/miniz.c
 LIB_OBJS := $(patsubst %.c,$(OUT)/obj/%.o,$(notdir $(LIB_SRCS)))

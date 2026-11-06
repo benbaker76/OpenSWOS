@@ -1895,9 +1895,19 @@ struct App {
       if (IsWorldMod(m) && !withWorld) continue;
       std::string err;
       const std::string from = sd::IsDir(Join(m.dir, "amiga")) ? Join(m.dir, "amiga") : m.dir;
-      if (!sd::CopyTree(from, Join(Join(drawerGame, "mods"), m.slug), "", nullptr, &err)) {
+      const std::string to = Join(Join(drawerGame, "mods"), m.slug);
+      if (!sd::CopyTree(from, to, "", nullptr, &err)) {
         FileLog("mods: could not copy " + m.slug + " to the drawer: " + err);
         continue;
+      }
+      if (from == m.dir) {
+        // The Amiga parses no JSON (docs/DATA_BSON.md): the mod's challenge packs and classics
+        // indexes as the binary it reads, the JSON taken out -- and its data_json/ menus, which
+        // the Amiga program has baked in (include/menu_baked.h).
+        char cerr[256] = "";
+        if (SwosData_AmigaMod(to.c_str(), 1, nullptr, nullptr, cerr) != 0)
+          FileLog("mods: " + m.slug + " for the Amiga: " + cerr);
+        sd::RemoveTree(Join(to, "data_json"));
       }
       list += m.slug + (m.changes == "cosmetic" || m.canonical ? "" : "*") + "\n";
     }

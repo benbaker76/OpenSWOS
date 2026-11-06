@@ -96,6 +96,13 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir, i
                                  void (*log)(void *user, const char *line), void *user,
                                  char *err);
 
+/* A mod made ready for the Amiga, in place (amiga_mod.c; docs/DATA_BSON.md: the Amiga parses no
+ * JSON): its challenge packs and classics indexes written as the binary the Amiga reads. With
+ * `removeJson`, the JSON they came from is deleted (a drawer's copy); the mod's data_json/ menus
+ * are the caller's to remove (the Amiga program has them baked in). 0 on success. */
+int32_t SwosData_AmigaMod(const char *modDir, int32_t removeJson, void (*log)(void *user, const char *line),
+                          void *user, char *err);
+
 /* A ready drawer in `destDir`: SWOS.info and SWOS/ copied from `programDir` (where
  * SWOS-Amiga.zip was unpacked; the setup carries one in amiga/), then filled as
  * SwosData_FillAmigaDrawer does. 0 on success. */

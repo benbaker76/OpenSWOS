@@ -172,9 +172,8 @@ expansion, or an emulator set up as one, is the likely floor, and the doc will s
    replaces a file, not memory: files already load on demand into their own buffers.
 2. **Registries instead of edits.** A mod adds menus and rows at named insertion points, strings
    with their translations, and settings with their OPTIONS rows. On the Amiga a mod ships its
-   menus already packed (the binary the JSON loader makes today), never as JSON. (2026-11-05: the
-   Amiga builds them from the JSON at their first show instead, about a second for a screen --
-   §30. Packing them is for when that is too slow.)
+   menus already packed (the binary the JSON loader makes today), never as JSON. (2026-11-06: so
+   it does -- baked into the program at build time, §30.)
 3. **The ruleset.** One structure the match reads instead of constants: players per side, the
    pitch's size and walls, match length, card and substitution rules, physics parameters, the
    tactics set. Much of Indoor becomes a ruleset plus art; what is left becomes generic features
@@ -905,13 +904,30 @@ both targets. Run-time loading of mod code (LoadSeg, a script language) is still
   calls, and `getenv` = NULL. `fprintf`/`printf` go to `_gAmigaLog`, a 4 KB ring in `.data` that
   the harness reads (`_gAmigaLogPos` bytes written so far). It has no file calls on purpose: a
   mod's file goes through swos_io/resload, so the mod overlay and WHDLoad apply.
-- **The JSON menu loader** (`src/menu_load_json.c`). A mod's screens are JSON menus, built at
-  their first show and then kept. The writer lays words down in host order. The game's own menus
-  stay compiled on the Amiga. A mod menu there resolves its own handlers (`ModApi_RegisterHandlers`)
-  and two of the game's symbols, `SetExitMenuFlag` and `_aExit` (the only two any mod menu names;
-  add one to `menu_resolve` in that file when a mod needs it). **It costs time:** TEAM TRAINING's
-  7.5 KB of JSON took 52 VBlanks (about a second) to build on an emulated A1200. That happens once
-  per menu per run, which is why §8.2's packed binary menus are not needed yet.
+- **No JSON on the Amiga** (2026-11-06; docs/DATA_BSON.md: JSON is too slow on a 68k -- the owner).
+  What a mod brings as JSON for the PC, the Amiga gets as binary, made before it ever runs:
+  - **Menus are baked into the program.** `tools/menu_bake` is a HOST program built from the same
+    `src/menu_load_json.c` the SDL game reads menus with (`MENU_BAKE`: big-endian words, 4-byte
+    pointer slots, and each slot recorded as a handler or string by name, or a literal's text).
+    `Makefile.amiga` bakes every menu of a mod whose `mod.json` names the Amiga, plus the MODES
+    list, into `obj/menus_baked.c` (include/menu_baked.h). `MenuJson_Load` there copies a baked
+    menu and fills its slots: a mod's own handlers (`ModApi_RegisterHandlers`) and two of the
+    game's symbols, `SetExitMenuFlag` and `_aExit` (add one to `menu_resolve` in that file when a
+    mod names another). A new mod menu needs only a rebuild. The JSON menu builder is not in SWOS2.
+  - **A mod's data is converted by OpenSWOS Setup** when it copies the mod into a drawer
+    (`SwosData_AmigaMod`, tools/swosdata/lib/amiga_mod.c, with the game's own readers through
+    `lib/sd_json.c`): `data_json/challenges/<name>.json` -> `challenges/<NAME>.BIN`
+    (include/challenge_pack.h: one JSON reader for game and setup, `src/challenge_pack.c`) and
+    `classic/<group>/index.json` -> `INDEX.BIN` (include/classics_index.h); the JSON and the mod's
+    `data_json/` are left out of the drawer. `swosdata --amiga-mod DIR...` does it by hand (the
+    harness: run it on `bin/mods/*` -- its output is gitignored).
+  - **A mod's own records are fixed binary records** there: speedrun's `RECORDS.BIN`, challenges'
+    `PROGRESS.BIN` and the editor's `CUSTOM.BIN` (a challenge pack) -- big-endian, versioned (each
+    file's layout is in its mod's header comment). The PC keeps their JSON.
+  - **Saves are the exception, for now:** career, season and competition saves (and so the
+    classics' tournaments, which are JSON .DIY) are the save format's JSON on both targets (the
+    owner, 2026-11-06: leave them, measure first). Measured on the harness's A1200 (68020, 8 MB
+    fast RAM): a career's 836 KB load takes **254 s**, its save 14 s.
 - **The hook sites** in the game are no longer SDL-only, except where the hook itself is: the
   renderer's `frameDrawn` (no renderer: `SDL_Renderer` is an opaque type, so a `ModDef` is the same
   struct on both targets), the replay viewer's `replayFrameBegin`/`replaySprite` (no `.SRP`),
@@ -941,9 +957,7 @@ of its own:
 - **hair** and **weather**: they draw pixels, and `ModApi_Frame` is the SDL build's chunky frame
   (a byte a pixel). The Amiga's screen is bitplanes, so a mod that draws needs a drawing API that
   knows them (and `ModApi_PaletteColour` from the copper list) -- its own piece of design. The rain
-  draws through the renderer too. The drawer carries
-`data_json/menus/openswos/` (the MODES screen's menu: `build_dist.sh`, and the setup's WHDLoad
-package).
+  draws through the renderer too. The drawer carries no `data_json/` (its menus are baked).
 
 **Memory:** against the build before it, 54 KB more code and 30 KB more BSS (the loader's scratch
 is allocated per menu on the Amiga; its tables are cut down there).

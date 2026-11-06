@@ -26,6 +26,11 @@
  * Progress: save/mods/challenges/progress.json, named fields:
  *   { "format": "openswos-challenges-progress", "version": 1,
  *     "challenges": [ { "id": "ten-men", "completed": true, "attempts": 4 } ] }
+ * The Amiga parses no JSON (docs/DATA_BSON.md): it reads each pack as the binary OpenSWOS Setup
+ * writes beside it, challenges/<name>.BIN (include/challenge_pack.h, one reader of the
+ * JSON for both), and keeps the player's own and the progress as binary records too:
+ * CUSTOM.BIN (a pack) and PROGRESS.BIN ("OSWCPRG" + version, u16 count, then id[40], completed
+ * u8, attempts u32 -- big-endian).
  * Not yet (docs/MODS.md §18): golden / silver goal, a starting event (a free kick, a corner),
  * minutes from extra time, SWOS 2020's own challenge files as a DLC pack (its teams are others').
  *
@@ -33,6 +38,7 @@
  */
 #include "mod_api.h"
 
+#include "challenge_pack.h"
 #include "mjson.h"
 #include "mods.h"
 #include "swos_io.h"        /* (the Amiga's file read) */
@@ -44,20 +50,18 @@
 extern void SetExitMenuFlag(void);
 
 enum { kMax = 32, kRows = 8 };
-enum { W_WIN, W_DRAW, W_EXACT };
+enum { W_WIN = CHALLENGE_WIN, W_DRAW = CHALLENGE_DRAW, W_EXACT = CHALLENGE_EXACT };
+_Static_assert((int)CHALLENGE_RESTART_KICK_OFF == (int)MODRESTART_KICK_OFF &&
+               (int)CHALLENGE_RESTART_CORNER == (int)MODRESTART_CORNER &&
+               (int)CHALLENGE_RESTART_FREE_KICK == (int)MODRESTART_FREE_KICK &&
+               (int)CHALLENGE_RESTART_PENALTY == (int)MODRESTART_PENALTY,
+               "challenge_pack.h's restart kinds are MODRESTART_*");
 
 typedef struct {
-    char     id[40], name[32], about[96], teamName[2][24], teamUuid[2][40];
-    uint16_t teamNumber[2];     /* "team": its number (hex), for the Amiga, which has no database */
-    int8_t   difficulty, yours, score[2], winScore[2];
-    uint8_t  win, extraTime, penalties, length;
-    int16_t  minute;
-    uint32_t sentOff[2];
-    int8_t   pitchType;                 /* -1 the game's */
-    uint8_t  pitchNumber;               /* 0 the game's */
-    uint8_t  restartKind, restartTeam, restartWing;
-    int16_t  restartX, restartY;
-    struct { int8_t team; uint8_t shirt, minute, penalty; } scorers[8];
+    union {                             /* (the pack's fields, by name or as one ChallengeDef) */
+        ChallengeDef def;
+        struct { CHALLENGE_DEF_FIELDS };
+    };
     uint8_t  custom;                    /* the player's own (custom.json, the editor) */
     /* progress */
     uint8_t  completed;
@@ -69,33 +73,37 @@ static int32_t   s_count, s_loaded;
 
 /* ---- reading ---- */
 
-static void upper(char *s)
+static void add_defs(const ChallengeDef *defs, int32_t n, int32_t custom)
 {
-    for (; *s; s++)
-        if (*s >= 'a' && *s <= 'z')
-            *s = (char)(*s - 32);
+    for (int32_t i = 0; i < n && s_count < kMax; i++) {
+        Challenge *c = &s_ch[s_count++];
+        memset(c, 0, sizeof *c);
+        c->def = defs[i];
+        c->custom = (uint8_t)custom;    /* (its teams are looked up at PLAY: a uuid search walks
+                                         * the whole database, too slow for drawing the list) */
+    }
 }
 
+static ChallengeDef s_defs[kMax];       /* (a file's, before they are added) */
+
+#ifdef SWOS_SDL_BUILD
 static int32_t number(const char *json, int len, const char *path, int32_t fallback)
 {
-    long v;     /* (whole numbers: mjson_get_long, which the Amiga has too -- no doubles there) */
+    long v;
     return mjson_get_long(json, len, path, &v) ? (int32_t)v : fallback;
 }
 
-static void read_text(char *json, int len, const char *path, int32_t custom);
-
-#ifndef SWOS_SDL_BUILD
-static void read_file(const char *path)
+/* A challenges file's text (freed here): its challenges after those loaded. */
+static void read_text(char *json, int len, const char *path, int32_t custom)
 {
-    uint8_t *json = NULL;
-    uint32_t n = 0;
-    if (swos_io_load_data_alloc(path, &json, &n) != 0 || !json || !n) {
-        free(json);
-        return;
-    }
-    read_text((char *)json, (int)n, path, 0);  /* (NUL-terminated by swos_io) */
+    const int32_t n = ChallengePack_FromJson(json, len, s_defs, kMax - s_count);
+    if (n < 0)
+        fprintf(stderr, "[challenges] %s: not an openswos-challenges file\n", path);
+    else
+        add_defs(s_defs, n, custom);
+    free(json);
 }
-#else
+
 static void read_file(const char *path)
 {
     FILE *f = fopen(path, "rb");
@@ -114,108 +122,31 @@ static void read_file(const char *path)
     json[n] = '\0';
     read_text(json, (int)n, path, 0);
 }
-#endif
-
-/* A challenges file's text (freed here): its challenges after those loaded. */
-static void read_text(char *json, int len, const char *path, int32_t custom)
+#else
+/* A pack's binary (data, freed here): its challenges after those loaded. */
+static void read_pack(uint8_t *data, uint32_t size, const char *path, int32_t custom)
 {
-    char fmt[40] = "";
-    mjson_get_string(json, len, "$.format", fmt, (int)sizeof fmt);
-    if (strcmp(fmt, "openswos-challenges") != 0) {
-        fprintf(stderr, "[challenges] %s: not an openswos-challenges file\n", path);
-        free(json);
-        return;
-    }
-    for (int32_t i = 0; s_count < kMax; i++) {
-        char q[80], w[16] = "";
-        Challenge *c = &s_ch[s_count];
-        memset(c, 0, sizeof *c);
-        snprintf(q, sizeof q, "$.challenges[%d].id", (int)i);
-        if (mjson_get_string(json, len, q, c->id, (int)sizeof c->id) < 0)
-            break;
-#define STR(field, key) snprintf(q, sizeof q, "$.challenges[%d]." key, (int)i), \
-                        mjson_get_string(json, len, q, c->field, (int)sizeof c->field)
-#define NUM(key, fb) (snprintf(q, sizeof q, "$.challenges[%d]." key, (int)i), number(json, len, q, fb))
-        STR(name, "name");
-        STR(about, "about");
-        upper(c->name);
-        upper(c->about);
-        c->difficulty = (int8_t)NUM("difficulty", 1);
-        c->yours = (int8_t)(NUM("yours", 0) ? 1 : 0);
-        c->score[0] = (int8_t)NUM("score[0]", 0);
-        c->score[1] = (int8_t)NUM("score[1]", 0);
-        c->minute = (int16_t)NUM("minute", 0);
-        c->length = (uint8_t)NUM("length", 0);
-        c->winScore[0] = (int8_t)NUM("win_score[0]", 0);
-        c->winScore[1] = (int8_t)NUM("win_score[1]", 0);
-        for (int32_t t = 0; t < 2; t++) {
-            snprintf(q, sizeof q, "$.challenges[%d].teams[%d].uuid", (int)i, (int)t);
-            mjson_get_string(json, len, q, c->teamUuid[t], (int)sizeof c->teamUuid[t]);
-            {
-                char hexNumber[8] = "";
-                snprintf(q, sizeof q, "$.challenges[%d].teams[%d].team", (int)i, (int)t);
-                if (mjson_get_string(json, len, q, hexNumber, (int)sizeof hexNumber) > 0)
-                    c->teamNumber[t] = (uint16_t)strtol(hexNumber, NULL, 16);
-            }
-            snprintf(q, sizeof q, "$.challenges[%d].teams[%d].name", (int)i, (int)t);
-            mjson_get_string(json, len, q, c->teamName[t], (int)sizeof c->teamName[t]);
-            upper(c->teamName[t]);
-            for (int32_t k = 0; k < 11; k++) {
-                snprintf(q, sizeof q, "$.challenges[%d].sent_off[%d][%d]", (int)i, (int)t, (int)k);
-                const int32_t shirt = number(json, len, q, 0);
-                if (shirt <= 0)
-                    break;
-                if (shirt < 32)
-                    c->sentOff[t] |= 1u << shirt;
-            }
-        }
-        int b = 0;
-        snprintf(q, sizeof q, "$.challenges[%d].extra_time", (int)i);
-        c->extraTime = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
-        b = 0;
-        snprintf(q, sizeof q, "$.challenges[%d].penalties", (int)i);
-        c->penalties = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
-        /* where it starts (H6, H7): the pitch, the break, who has scored */
-        c->pitchType = (int8_t)NUM("pitch_type", -1);
-        c->pitchNumber = (uint8_t)NUM("pitch_number", 0);
-        {
-            char kind[16] = "";
-            snprintf(q, sizeof q, "$.challenges[%d].restart.kind", (int)i);
-            mjson_get_string(json, len, q, kind, (int)sizeof kind);
-            c->restartKind = !strcmp(kind, "corner") ? MODRESTART_CORNER
-                           : !strcmp(kind, "free_kick") ? MODRESTART_FREE_KICK
-                           : !strcmp(kind, "penalty") ? MODRESTART_PENALTY : MODRESTART_KICK_OFF;
-            c->restartTeam = (uint8_t)(NUM("restart.team", 0) ? 1 : 0);
-            c->restartWing = (uint8_t)(NUM("restart.wing", 0) ? 1 : 0);
-            c->restartX = (int16_t)NUM("restart.x", 336);
-            c->restartY = (int16_t)NUM("restart.y", 449);
-        }
-        for (int32_t k = 0; k < 8; k++) {
-            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].team", (int)i, (int)k);
-            const int32_t team = number(json, len, q, -1);
-            c->scorers[k].team = (int8_t)(team == 0 || team == 1 ? team : -1);
-            if (c->scorers[k].team < 0)
-                continue;
-            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].shirt", (int)i, (int)k);
-            c->scorers[k].shirt = (uint8_t)number(json, len, q, 0);
-            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].minute", (int)i, (int)k);
-            c->scorers[k].minute = (uint8_t)number(json, len, q, 0);
-            b = 0;
-            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].penalty", (int)i, (int)k);
-            c->scorers[k].penalty = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
-        }
-        snprintf(q, sizeof q, "$.challenges[%d].win", (int)i);
-        mjson_get_string(json, len, q, w, (int)sizeof w);
-        c->win = !strcmp(w, "draw") ? W_DRAW : !strcmp(w, "exact") ? W_EXACT : W_WIN;
-#undef STR
-#undef NUM
-        c->custom = (uint8_t)custom;
-        s_count++;                          /* (its teams are looked up at PLAY: a uuid search walks
-                                             * the whole database, too slow for drawing the list) */
-    }
-    free(json);
+    const int32_t n = ChallengePack_Read(data, size, s_defs, kMax - s_count);
+    if (n < 0)
+        fprintf(stderr, "[challenges] %s: not a challenge pack\n", path);
+    else
+        add_defs(s_defs, n, custom);
+    free(data);
 }
 
+static void read_file(const char *path)
+{
+    uint8_t *data = NULL;
+    uint32_t n = 0;
+    if (swos_io_load_data_alloc(path, &data, &n) != 0 || !data || !n) {
+        free(data);
+        return;
+    }
+    read_pack(data, n, path, 0);
+}
+#endif
+
+#ifdef SWOS_SDL_BUILD
 static void read_progress(void)
 {
     uint32_t size = 0;
@@ -250,6 +181,50 @@ static void save_progress(void)
     n += snprintf(buf + n, sizeof buf - (size_t)n, " ]\n}\n");
     ModApi_SaveFile("challenges", "progress.json", buf, (uint32_t)n);
 }
+#else
+static void read_progress(void)
+{
+    uint32_t size = 0;
+    const uint8_t *p = (const uint8_t *)ModApi_LoadFile("challenges", "PROGRESS.BIN", &size);
+    if (!p)
+        return;
+    if (size >= 10 && memcmp(p, "OSWCPRG", 7) == 0 && p[7] == 1) {
+        const uint32_t count = ((uint32_t)p[8] << 8) | p[9];
+        for (uint32_t i = 0; i < count && 10 + (i + 1) * 45 <= size; i++) {
+            const uint8_t *r = p + 10 + i * 45;
+            char id[40];
+            memcpy(id, r, 40);
+            id[39] = 0;
+            for (int32_t k = 0; k < s_count; k++)
+                if (!strcmp(s_ch[k].id, id)) {
+                    s_ch[k].completed = r[40];
+                    s_ch[k].attempts = ((uint32_t)r[41] << 24) | ((uint32_t)r[42] << 16) | ((uint32_t)r[43] << 8) | r[44];
+                }
+        }
+    }
+    free((void *)p);
+}
+
+static void save_progress(void)
+{
+    static uint8_t buf[10 + kMax * 45];
+    memcpy(buf, "OSWCPRG", 7);
+    buf[7] = 1;
+    buf[8] = (uint8_t)(s_count >> 8);
+    buf[9] = (uint8_t)s_count;
+    for (int32_t i = 0; i < s_count; i++) {
+        uint8_t *r = buf + 10 + i * 45;
+        memset(r, 0, 40);
+        memcpy(r, s_ch[i].id, strlen(s_ch[i].id) < 39 ? strlen(s_ch[i].id) : 39);
+        r[40] = s_ch[i].completed;
+        r[41] = (uint8_t)(s_ch[i].attempts >> 24);
+        r[42] = (uint8_t)(s_ch[i].attempts >> 16);
+        r[43] = (uint8_t)(s_ch[i].attempts >> 8);
+        r[44] = (uint8_t)s_ch[i].attempts;
+    }
+    ModApi_SaveFile("challenges", "PROGRESS.BIN", buf, (uint32_t)(10 + s_count * 45));
+}
+#endif
 
 static int by_difficulty(const void *a, const void *b)
 {
@@ -260,7 +235,11 @@ static int by_difficulty(const void *a, const void *b)
 static int32_t each_file(const char *name, void *ctx)
 {
     const size_t l = strlen(name);
+#ifdef SWOS_SDL_BUILD
     if (l > 5 && !strcmp(name + l - 5, ".json")) {
+#else
+    if (l > 4 && (!strcmp(name + l - 4, ".BIN") || !strcmp(name + l - 4, ".bin"))) {
+#endif
         char path[1500];
         snprintf(path, sizeof path, "%s/%s", (const char *)ctx, name);
         read_file(path);
@@ -276,15 +255,25 @@ static void load(void)
     s_loaded = 1;
     for (int32_t m = 0; m < Mods_Count(); m++) {
         char dir[1200];
+#ifdef SWOS_SDL_BUILD
         snprintf(dir, sizeof dir, "%s/data_json/challenges", Mods_Dir(m));
+#else
+        snprintf(dir, sizeof dir, "%s/challenges", Mods_Dir(m));   /* (the setup's binary) */
+#endif
         ModApi_ListFiles(dir, each_file, dir);
     }
     qsort(s_ch, (size_t)s_count, sizeof s_ch[0], by_difficulty);
     {   /* the player's own, after the packs' (the editor writes them: custom.json) */
         uint32_t size = 0;
+#ifdef SWOS_SDL_BUILD
         char *json = (char *)ModApi_LoadFile("challenges", "custom.json", &size);
         if (json)
             read_text(json, (int)size, "custom.json", 1);
+#else
+        uint8_t *pack = (uint8_t *)ModApi_LoadFile("challenges", "CUSTOM.BIN", &size);
+        if (pack)
+            read_pack(pack, size, "CUSTOM.BIN", 1);
+#endif
     }
     read_progress();
     fprintf(stderr, "[challenges] %d challenges\n", (int)s_count);
@@ -539,6 +528,28 @@ static void edit_draw(void)
     ModApi_MenuText(M_note, "IT GOES IN YOUR CHALLENGES");
 }
 
+#ifndef SWOS_SDL_BUILD
+static void save_custom(void)   /* (the Amiga: CUSTOM.BIN, a pack) */
+{
+    static ChallengeDef defs[kMax];
+    static uint8_t buf[CHALLENGE_PACK_HEADER + kMax * CHALLENGE_PACK_RECORD];
+    int32_t count = 0, number = 1;
+    for (int32_t i = 0; i < s_count; i++)
+        if (s_ch[i].custom)
+            number++;
+    snprintf(s_edit.id, sizeof s_edit.id, "custom-%d-%u", (int)number, (unsigned)ModApi_Ticks());
+    snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE %d", (int)number);
+    snprintf(s_edit.about, sizeof s_edit.about, "YOUR OWN CHALLENGE");
+    for (int32_t i = 0; i <= s_count && count < kMax; i++) {
+        const Challenge *c = i < s_count ? &s_ch[i] : &s_edit;
+        if (c->custom)
+            defs[count++] = c->def;
+    }
+    const int32_t n = ChallengePack_Write(defs, count, buf, (uint32_t)sizeof buf);
+    if (n > 0)
+        ModApi_SaveFile("challenges", "CUSTOM.BIN", buf, (uint32_t)n);
+}
+#else
 static void save_custom(void)
 {
     char buf[16384];
@@ -567,6 +578,7 @@ static void save_custom(void)
     n += snprintf(buf + n, sizeof buf - (size_t)n, "\n ]\n}\n");
     ModApi_SaveFile("challenges", "custom.json", buf, (uint32_t)n);
 }
+#endif
 
 static void edit_row(int32_t r)
 {

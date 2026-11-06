@@ -66,6 +66,8 @@ target_include_directories(swosdata_lib PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/lib"
   "${SWOSGFX_DIR}/lib"
   "${OPENSWOS_ROOT}/third_party/miniz")
+# OpenSWOS's include/, after the setup's own folders: the game's JSON code (lib/sd_json.c).
+target_include_directories(swosdata_lib AFTER PRIVATE "${OPENSWOS_ROOT}/include")
 if(NOT MSVC)
   set_source_files_properties(${MINIZ_C} PROPERTIES COMPILE_OPTIONS "-w")
 endif()

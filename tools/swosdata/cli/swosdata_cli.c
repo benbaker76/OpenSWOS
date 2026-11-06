@@ -59,6 +59,7 @@ static int32_t usage(void)
 {
     fprintf(stderr,
             "usage: swosdata [--scan DIR]... [--adf FILE]... [--dos DIR] [--jag FILE]\n"
+            "       swosdata --amiga-mod MODDIR... [--remove-json]   (a mod's JSON as the Amiga's binary)\n"
             "                [--swos2020 DIR] [--world PACKAGE]   (OpenSWOS-World-<tag>.zip, or unpacked)\n"
             "                [--mods-dir DIR]     (with --world: install it there as a mod, world<tag>)\n"
             "                [--out DIR [--res DIR]]   (no --out: report what was found;\n"
@@ -202,6 +203,24 @@ int main(int argc, char **argv)
                               : "  installed";
             printf("%-36s %4d of %4d  data v%d (this setup: v%d)%s\n", info[s].name,
                    (int)inst[s].present, (int)inst[s].total, (int)inst[s].version, (int)want, state);
+        }
+        return 0;
+    }
+    /* --amiga-mod DIR... [--remove-json]: each mod folder made ready for the Amiga, in place
+     * (SwosData_AmigaMod: its challenge packs and classics indexes as binary). */
+    if (argc >= 3 && strcmp(argv[1], "--amiga-mod") == 0) {
+        int32_t removeJson = 0;
+        for (int i = 2; i < argc; i++)
+            if (strcmp(argv[i], "--remove-json") == 0)
+                removeJson = 1;
+        for (int i = 2; i < argc; i++) {
+            char err[256] = "";
+            if (strcmp(argv[i], "--remove-json") == 0)
+                continue;
+            if (SwosData_AmigaMod(argv[i], removeJson, on_log, NULL, err) != 0) {
+                fprintf(stderr, "swosdata: %s: %s\n", argv[i], err);
+                return 1;
+            }
         }
         return 0;
     }

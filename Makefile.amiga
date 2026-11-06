@@ -120,7 +120,20 @@ swos_asm_sources := asm/resload_unit.s
 swos_asm_objects := $(addprefix obj/,$(patsubst %.s,%.o,$(notdir $(swos_asm_sources))))
 vasm_sources := $(wildcard $(addsuffix /*.asm,$(SRC_DIRS)))
 vasm_objects := $(addprefix obj/, $(patsubst %.asm,%.o,$(notdir $(vasm_sources))))
-objects := $(cpp_objects) $(c_objects) $(s_objects) $(swos_asm_objects) $(vasm_objects)
+# The menus of the mods the Amiga runs, baked from their JSON at build time (include/menu_baked.h,
+# docs/DATA_BSON.md: the Amiga parses no JSON): tools/menu_bake, a HOST program built from the same
+# src/menu_load_json.c the SDL game reads them with, writes obj/menus_baked.c. Every menu of a mod
+# whose mod.json names the Amiga, plus OpenSWOS's MODES list. A menu's name is its path under
+# data_json/menus/ without .json -- what MenuJson_Load is asked for.
+HOSTCC ?= cc
+BAKED_MENU_MODS := $(patsubst %/mod.json,%,$(shell grep -l '"amiga"' bin/mods/*/mod.json 2>/dev/null))
+BAKED_MENU_JSON := bin/data_json/menus/openswos/modEntriesMenu.json \
+    $(foreach m,$(BAKED_MENU_MODS),$(wildcard $(m)/data_json/menus/*/*.json))
+MENU_BAKE_TOOL := obj/menu_bake_host
+MENU_BAKE_SRCS := tools/menu_bake/menu_bake.c src/menu_load_json.c src/mjson.c include/menu_baked.h \
+    include/menu_load_json.h include/mjson.h
+
+objects := $(cpp_objects) $(c_objects) $(s_objects) $(swos_asm_objects) $(vasm_objects) obj/menus_baked.o
 
 # Fail loudly if an SDL-only name no longer exists — otherwise the entry rots
 # silently and stops excluding anything the day the file is renamed.
@@ -304,6 +317,19 @@ endif
 $(c_objects) : obj/%.o : %.c
 	$(info Compiling $<)
 	@$(CC) $(if $(filter obj/diy_competition.o,$@),$(CCFLAGS_O2),$(if $(filter obj/game_timers.o obj/update_players.o obj/sprite_data.o obj/menu_data.o obj/competition_data.o obj/tactics_data.o obj/fixture_data.o obj/simulation_data.o obj/player_data.o obj/render_data.o obj/palette_data.o obj/strings_data.o obj/general_data.o,$@),$(CCFLAGS_NOLTO),$(CCFLAGS))) -c -o $@ $(CURDIR)/$<
+
+$(MENU_BAKE_TOOL): $(MENU_BAKE_SRCS)
+	$(info Building the menu baker (host))
+	@mkdir -p obj
+	@$(HOSTCC) -O1 -DMENU_BAKE -Iinclude -o $@ tools/menu_bake/menu_bake.c src/menu_load_json.c src/mjson.c
+
+obj/menus_baked.c: $(MENU_BAKE_TOOL) $(BAKED_MENU_JSON) Makefile.amiga
+	@$(MENU_BAKE_TOOL) $@ $(foreach f,$(BAKED_MENU_JSON),$(patsubst %.json,%,$(lastword $(subst data_json/menus/, ,$(f))))=$(f))
+	@touch $@
+
+obj/menus_baked.o: obj/menus_baked.c include/menu_baked.h
+	$(info Compiling $<)
+	@$(CC) $(CCFLAGS) -c -o $@ $(CURDIR)/$<
 
 $(s_objects): obj/%.o : %.s
 	$(info Assembling $<)
