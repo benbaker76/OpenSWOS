@@ -571,7 +571,20 @@ static uint8_t *menu_slurp(const char *path, int *out_len)
 {
     /* Anchored at the data root — rom:/ on the Switch (swos_io.h). */
     char anchored[1024];
-    FILE *f = fopen(swos_data_path(path, anchored, (uint32_t)sizeof anchored), "rb");
+    const char *where = swos_data_path(path, anchored, (uint32_t)sizeof anchored);
+    {   /* Never the assets folder's: it holds what the setup makes from the player's own game,
+         * and menus are the project's own (the setup writes none) -- so one there is a stale
+         * copy, and it took a beta's MODS row and MODES button (2026-11-05). A mod's menu
+         * (the overlay) and the game's own beside the binary are what a menu can come from. */
+        const char *assets = swos_assets_dir();
+        const size_t n = assets ? strlen(assets) : 0;
+        if (n && strncmp(where, assets, n) == 0 && (where[n] == '/' || where[n] == '\\')) {
+            fprintf(stderr, "[menu-json] %s: not read (a stale copy in the assets folder) -- the game's own\n",
+                    where);
+            where = path;
+        }
+    }
+    FILE *f = fopen(where, "rb");
     if (!f) return NULL;
     fseek(f, 0, SEEK_END);
     long n = ftell(f);
@@ -779,7 +792,12 @@ int MenuJson_InstallAll(void)
         installed++;
         if (diff) {
             changed++;
-            fprintf(stderr, "[menu-json]   %s: loaded from JSON (EDITED vs compiled)\n", name);
+            {   /* (which file: a stale copy in the assets folder or a mod's beats the game's own,
+                 *  and a tester's log must say where -- a beta's OPTIONS lost its MODS row to one) */
+                char where[1024];
+                fprintf(stderr, "[menu-json]   %s: loaded from JSON (EDITED vs compiled): %s\n", name,
+                        swos_data_path(path, where, (uint32_t)sizeof where));
+            }
         }
     }
     fprintf(stderr, "[menu-json] install: %d/%d menus loaded from JSON in place "
