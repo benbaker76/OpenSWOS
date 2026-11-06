@@ -271,6 +271,16 @@ static void string_pool_reset(void)
 
 static uintptr_t string_pool_intern(const char *s)
 {
+    /* The history screen tells FRIENDLY and the tours by ADDRESS (statistics.c,
+     * RenderCompLine_Internal: `compName == _aFriendly`, the tours' range): a copy of
+     * the text in the pool rendered a friendly's W-D-L as a cup result -- often
+     * "STILL IN COMPETITION". Those names are the game's own strings again. */
+    {
+        extern uint8_t _aFriendly[], _aEuropeanTour[], _aOceaniaTour[];
+        if (strcmp(s, (const char *)_aFriendly) == 0) return (uintptr_t)_aFriendly;
+        if (strcmp(s, (const char *)_aEuropeanTour) == 0) return (uintptr_t)_aEuropeanTour;
+        if (strcmp(s, (const char *)_aOceaniaTour) == 0) return (uintptr_t)_aOceaniaTour;
+    }
     uint32_t len = (uint32_t)strlen(s);
     if (s_string_pool_used + len + 1 > STRING_POOL_SIZE)
         return 0u;

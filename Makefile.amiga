@@ -59,6 +59,7 @@ SDL_ONLY_SRCS := \
     input_sdl.c           \
     custom_team.c         \
     career_autopilot.c    \
+    car_rebuild.c         \
     diy_import_dos.c      \
     live_cast.c           \
     dos_sound.c           \

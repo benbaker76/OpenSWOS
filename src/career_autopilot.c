@@ -182,6 +182,8 @@ static int32_t view_world(const Menu *menu)
  * uses one handler for every row, so only the label tells them apart). */
 #define NEW_PATH_MAX 8
 static char        s_pathBuf[256];
+static int32_t     s_rebuild;       /* rebuild:<original .CAR> (src/car_rebuild.c) */
+extern int32_t     CarRebuild_Start(const char *path);
 static const char *s_path[NEW_PATH_MAX];
 static int32_t     s_pathN, s_pathK;
 static int32_t     s_choosing;      /* still picking the club */
@@ -232,11 +234,17 @@ int32_t CareerAutopilot_ParseArg(const char *a)
             }
             return s_pathN > 0 ? 1 : -1;
         }
+        if (strncmp(s_save, "rebuild:", 8) == 0) {
+            /* An original Amiga .CAR, rebuilt (src/car_rebuild.c): written to REBUILT.CAR
+             * in --golden-out, then played for --golden-seasons (0: not played). */
+            s_rebuild = 1;
+            s_save += 8;
+        }
         return s_save[0] ? 1 : -1;
     }
     if (strncmp(a, "--golden-seasons=", 17) == 0) {
         s_seasons = atoi(a + 17);
-        return s_seasons >= 1 ? 1 : -1;
+        return s_seasons >= 0 ? 1 : -1;
     }
     if (strncmp(a, "--golden-out=", 13) == 0) {
         s_outDir = a + 13;
@@ -399,6 +407,22 @@ static void start(void)
             (void *)(uintptr_t)SWOSMainMenuInit);
         s_choosing = 1;         /* the main menu's passes now pick the club */
         return;
+    }
+    if (s_rebuild) {
+        if (CarRebuild_Start(s_save) != 0)
+            exit(2);
+        if (SaveJson_WriteCareer((uint8_t *)"REBUILT.CAR") != 0) {
+            say("[golden] cannot write %s/REBUILT.CAR\n", s_outDir);
+            exit(2);
+        }
+        say("[golden] wrote %s/REBUILT.CAR\n", s_outDir);
+        if (s_seasons == 0)
+            exit(0);
+        pin_random();
+        StartContest();
+        say("[golden] the career ended after %d of %d season(s)\n",
+            (int)(s_hubs > 0 ? s_hubs - 1 : 0), (int)s_seasons);
+        exit(3);
     }
     say("[golden] loading %s/%s, %d season(s) (SWOSMainMenuInit at %p)\n", s_outDir, s_save,
         (int)s_seasons, (void *)(uintptr_t)SWOSMainMenuInit);
@@ -627,8 +651,18 @@ void CareerAutopilot_Tick(void)
             say("[golden] sacked: took job offer %d\n", (int)++s_jobs);
         _shortFire = 1;
     }
-    else if (menu->onInit == PlayMatchMenuInit)
-        _pl1Fire = 1;
+    else if (menu->onInit == PlayMatchMenuInit) {
+        /* A national coach's screen is laid out differently and player 1's fire does not
+         * reach VIEW RESULT there: select it and fire the menu (a club's stays as it was). */
+        extern uint16_t _isNationalSelector;
+        extern void PlayMatchSelected(void);
+        int32_t i;
+        if (_isNationalSelector != 0 && (i = entry_with((MenuEntryFn)PlayMatchSelected)) >= 0) {
+            SetCurrentEntry((uint16_t)i);
+            _shortFire = 1;
+        } else
+            _pl1Fire = 1;
+    }
     else
         _shortFire = 1;
 }
