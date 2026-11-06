@@ -5,7 +5,8 @@
 #
 # Fills the template's @BUILD@, @STAMP@/@STAMP_ISO@ (now, UTC) and @ROWS@: one row per archive of
 # the list below that is in dist/, with its size -- so the page never offers a file that is not
-# being uploaded. The build is the commit's short hash (git), unless --build says otherwise; a
+# being uploaded. The build is the commit's short hash (git), unless --build says which commit the
+# archives are (the page then says that one, and an archive older than IT is left out); a
 # -dirty tree is refused (a drop must be the commit it says it is: CLAUDE.md, "Build stamp").
 # scripts/upload_beta.sh runs this.
 set -uo pipefail
@@ -41,7 +42,7 @@ human() {
 }
 
 # An archive older than the commit is an earlier drop's (dist/ keeps them): left out, and said.
-COMMIT_TIME=$(git log -1 --format=%ct HEAD)
+COMMIT_TIME=$(git log -1 --format=%ct "$BUILD")
 rows=""
 while IFS='|' read -r f plat what; do
     [ -f "dist/$f" ] || continue
