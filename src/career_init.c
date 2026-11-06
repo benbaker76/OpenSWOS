@@ -649,6 +649,11 @@ extern uint32_t GetNationalityAndTeamFile(uint16_t teamNo);
  * init, calculates starting balance, copies competition data, sets
  * slot states, then calls InitializeNewSeason.
  * ================================================================ */
+/* Set by src/car_rebuild.c around its InitCareer: the season (0-based, > 0) and year
+ * (0-99) the career starts in. -1: a new career, season 0 of the default year. */
+int32_t _careerStartSeason = -1;
+int32_t _careerStartYear = -1;
+
 __attribute__((used, externally_visible))
 void InitCareer(uint16_t teamNo)
 {
@@ -749,8 +754,16 @@ void InitCareer(uint16_t teamNo)
     _euroCupsCompetitionContextBuf.tourn.header.slotStateA = 3;
     _euroCupsCompetitionContextBuf.tourn.header.slotStateB = 2;
     _euroCupsCompetitionContextBuf.tourn.header.slotStateC = 8;
-    _currentSeasonShowing = 0xFFFF;
-    _seasonPlaying--;
+    if (_careerStartSeason > 0) {
+        /* A career rebuilt from an original save (src/car_rebuild.c): its season and its
+         * year, so InitializeNewSeason sets up the competitions of THAT year (a Euro or a
+         * World Cup year) and names that season's history row. */
+        _currentSeasonShowing = (uint16_t)(_careerStartSeason - 1);
+        _seasonPlaying = (uint8_t)((_careerStartYear + 99) % 100);
+    } else {
+        _currentSeasonShowing = 0xFFFF;
+        _seasonPlaying--;
+    }
     ModHooks_CareerNew();       /* (a career mod: the new career's clubs are set up) */
     InitializeNewSeason();
     _careerLoadedFlag = 0;
