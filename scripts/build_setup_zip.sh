@@ -10,6 +10,8 @@
 #
 #   OpenSWOS-Setup/
 #     ReadMe.txt              packaging/setup/ReadMe.txt
+#     mods/                   the game's own mods (bin/mods): listed by the setup's Mods screen,
+#                             and the Amiga's copied into a drawer or WHDLoad package
 #     setup/  data/           the setup's own files (bin/setup, credits_icons.bmp),
 #                             found ABOVE each program by both of them; setup/whdload
 #                             is the WHDLoad package's wrapper (SwosData_MakeWhdload)
@@ -74,9 +76,12 @@ cp "$SLINT_SO" "$STAGE/Linux/" &&
 readelf -d "$STAGE/Linux/openswos-setup" | grep -q 'path: \[\$ORIGIN\]' ||
     fail "the Linux openswos-setup does not look for its Slint beside itself (\$ORIGIN)"
 
-echo "== the setup's own files"
-# Tracked files only, keeping their folders (setup/whdload/...).
-scripts/stage_runtime.sh "$STAGE" setup >/dev/null || fail "copying bin/setup failed"
+echo "== the setup's own files, and the game's own mods"
+# Tracked files only, keeping their folders (setup/whdload/...). mods/ is the game's own mods
+# (practice, challenges, classics...): the setup lists them from the folder beside setup/
+# (CanonicalModsDir) and copies the Amiga's into a drawer and the WHDLoad package. Without it
+# the setup said "No mods installed yet" and an Amiga drawer went out with no mods at all.
+scripts/stage_runtime.sh "$STAGE" setup mods >/dev/null || fail "copying bin/setup and bin/mods failed"
 
 echo "== the Amiga program (dist/SWOS-Amiga.zip)"
 AMIGA_ZIP=dist/SWOS-Amiga.zip
