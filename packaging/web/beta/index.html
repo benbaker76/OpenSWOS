@@ -151,6 +151,12 @@ your Amiga disk images, as in a release. An install you already have keeps its d
     and challenge progress from an earlier beta start again.</li>
   <li><strong>Amiga careers load much faster</strong> (petarku's work): a big career took over four
     minutes to load on an A1200, now under twenty seconds. Saves are unchanged.</li>
+  <li><strong>Old careers come across</strong> (petarku's work, SWOS 2020 added): a career saved by the
+    original Amiga SWOS, the PC game or SWOS 2020 is rebuilt as an OpenSWOS career -- the squad, the
+    money, the manager, the record and the finished seasons; the season in progress starts again.
+    For now from the command line (the PC builds): <code>SWOS --career-golden=rebuild:OLD.CAR
+    --golden-seasons=0 --golden-out=FOLDER</code> writes <code>FOLDER/REBUILT.CAR</code>, which LOAD
+    opens. Please try your old careers and tell us what does not come across.</li>
   <li><strong>Fixed:</strong> a career that was in a European cup could crash at the next season
     change after it was loaded; ESC out of a mod's match no longer quits the game; the cursor no
     longer sticks on a mod's screen after you back out of a team screen; on the main menu, down from
@@ -162,7 +168,8 @@ your Amiga disk images, as in a release. An install you already have keeps its d
     again, so its Mods screen lists them; SWOS.ini no longer gets <code>enabled = ??</code> under
     <code>[mods]</code>; the MODS screen scrolls (the arrows on its right), so a ninth mod, WEATHER,
     is on it again; on the Amiga (and a 4:3 PC) MODES and CREDITS no longer cover LOAD OLD
-    COMPETITION when a career is loaded.</li>
+    COMPETITION when a career is loaded; a career's pre-season tours are told again -- the history
+    screen showed them as cups, and their results never counted with the board.</li>
 </ul>
 
 <h2>What's new in the releases</h2>
