@@ -7,15 +7,17 @@
  * Offline only, for now: in an online match, under the test rigs (replay, rollback, golden
  * careers, --srp-resim) every tweak is off, so they play -- and prove -- the original. (Carrying
  * them in the host's rules, as the lobby's switches travel, is MODS.md §4's next step.) The
- * Amiga reads no SWOS.ini: no tweaks there. SWOS_TWEAKS=0 compiles them out.
+ * Amiga reads no SWOS.ini: no tweaks there. SWOS_TWEAKS=0 (default: PROJECT_TWEAKS in
+ * include/project_identity.h) compiles them out: no [tweaks] in SWOS.ini, no tweak a mod can set.
  */
 #ifndef TWEAKS_H
 #define TWEAKS_H
 
 #include "swos_types.h"
+#include "project_identity.h"   /* PROJECT_TWEAKS */
 
 #ifndef SWOS_TWEAKS
-#define SWOS_TWEAKS 1
+#define SWOS_TWEAKS PROJECT_TWEAKS
 #endif
 
 enum {

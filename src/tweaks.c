@@ -33,6 +33,10 @@ static int32_t same(const char *a, const char *b)
 
 uint32_t Tweaks_Bit(const char *key)
 {
+#if !SWOS_TWEAKS
+    (void)key;
+    return 0;   /* built without them: no key names one (SWOS.ini's are ignored, a mod's refused) */
+#endif
     for (uint32_t i = 0; key && i < sizeof kTweaks / sizeof kTweaks[0]; i++)
         if (same(key, kTweaks[i].key))
             return kTweaks[i].bit;

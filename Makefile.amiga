@@ -173,6 +173,11 @@ endif
 # The football worlds beyond 96/97 (include/swos_types.h): `SWOS_WORLDS=0` compiles them out.
 SWOS_WORLDS ?= 1
 CCFLAGS   += -DSWOS_WORLDS=$(SWOS_WORLDS)
+# [tweaks] (include/tweaks.h): built when include/project_identity.h says (PROJECT_TWEAKS);
+# `make SWOS_TWEAKS=0|1` overrides it.
+ifdef SWOS_TWEAKS
+CCFLAGS   += -DSWOS_TWEAKS=$(SWOS_TWEAKS)
+endif
 # Escape hatch for one-off defines, e.g. make EXTRA_CFLAGS=-DPITCH_SCROLL_TEST
 CCFLAGS   += $(EXTRA_CFLAGS)
 CPPFLAGS  = $(CCFLAGS) -fno-rtti -fcoroutines -fno-use-cxa-atexit

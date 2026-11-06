@@ -318,12 +318,15 @@ static int handler(void *user, const char *section,
             snprintf(opts->mods, sizeof opts->mods, "%s", value ? value : "");
         else if (eqi(name, "disabled"))
             snprintf(opts->mods_disabled, sizeof opts->mods_disabled, "%s", value ? value : "");
-    } else if (eqi(section, "tweaks")) {
+    }
+#if SWOS_TWEAKS
+    else if (eqi(section, "tweaks")) {
         const uint32_t bit = Tweaks_Bit(name);
         int b;
         if (bit && parse_bool(value, &b))
             opts->tweaks = b ? (opts->tweaks | bit) : (opts->tweaks & ~bit);
     }
+#endif
     /* Return nonzero on success, even for ignored keys — we don't want
      * inih to flag unknown sections as parse errors. */
     return 1;
@@ -661,6 +664,7 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "mods",   "disabled",
         "; disabled: the game's own (canonical) mods to turn off, by name; they are on by default.",
         opts->mods_disabled };
+#if SWOS_TWEAKS   /* (PROJECT_TWEAKS 0: no [tweaks] section at all) */
     SETTING(n) = (IniEntry){ "tweaks", "cpu_cards",
         "; [tweaks]: small changes to the original's behaviour, each off by default and only off line\n"
         "; (online, and in the test rigs, the original plays): docs/MODS.md.\n"
@@ -683,6 +687,7 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; ai_injury_subs: true | false -- the computer replaces an injured player at a stoppage\n"
         "; (the original's computer never substitutes; benefactorr's Career+).",
         (opts->tweaks & TWEAK_AI_INJURY_SUBS) ? "true" : "false" };
+#endif
     {   /* [options]: unset = the game's defaults (SetDefaultOptions) */
         static const char *const kLength[] = { "3", "5", "7", "10" };
         static const char *const kPitch[]  = { "seasonal", "random", "frozen", "muddy", "wet",

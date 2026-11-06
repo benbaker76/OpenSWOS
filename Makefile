@@ -415,6 +415,11 @@ endif
 # docs/WORLD_2026_27.md). `make SWOS_WORLDS=0` compiles them out: 96/97 alone, as before them.
 SWOS_WORLDS ?= 1
 DEBUG_FLAGS += -DSWOS_WORLDS=$(SWOS_WORLDS)
+# [tweaks] (include/tweaks.h): built when include/project_identity.h says (PROJECT_TWEAKS);
+# `make SWOS_TWEAKS=0|1` overrides it.
+ifdef SWOS_TWEAKS
+DEBUG_FLAGS += -DSWOS_TWEAKS=$(SWOS_TWEAKS)
+endif
 
 # The online client (`make ONLINE_CLIENT=1`, SDL with netplay): the game starts at the
 # multiplayer log-in, and leaving it quits -- a build for playing online and nothing else
