@@ -920,24 +920,6 @@ int Platform_Init(const PlatformInitOptions *opts)
                 opts->render_driver);
     }
 
-#if defined(_WIN32) || defined(__CYGWIN__)
-    /* auto on Windows: OpenGL first. SDL's own default there is D3D11, whose presents stutter
-     * in matches too -- frames down to the high 30s, report 0057 -- where OpenGL holds 50.
-     * A machine whose OpenGL will not make a renderer gets SDL's default, as before. (The env
-     * var SDL_RENDER_DRIVER still wins: a hint set here is overridden by it.) */
-    if (renderer_mode == PLATFORM_RENDERER_ACCEL &&
-        (!opts || !opts->render_driver[0] || SDL_strcasecmp(opts->render_driver, "auto") == 0)) {
-        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
-        s_renderer = SDL_CreateRenderer(s_window, -1, rflags);
-        if (s_renderer)
-            fprintf(stderr, "[render] auto: opengl (Windows: D3D11 stutters, report 0057)\n");
-        else {
-            fprintf(stderr, "[render] auto: opengl would not start (%s) -- SDL's default\n", SDL_GetError());
-            SDL_ResetHint(SDL_HINT_RENDER_DRIVER);
-        }
-    }
-    if (!s_renderer)
-#endif
     s_renderer = SDL_CreateRenderer(s_window, -1, rflags);
     if (!s_renderer) {
         /* Fall back to software if the requested mode failed. */
