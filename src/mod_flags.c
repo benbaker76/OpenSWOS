@@ -3,9 +3,12 @@
  * its name on the result banner -- the score panel SWOS shows at kick-off, after a goal and at half
  * and full time. SDL builds (it draws through the renderer, frameDrawn).
  *
- * A team's flag (flags.json): names[its name] when SWOS spells the country unlike the flag's file
- * (HOLLAND, REPUBLIC IRELAND, WEST GERMANY...), else the file whose name has its name's letters
- * (GREECE: flags/Greece.bmp); a club with neither takes its country's, countries[its team file].
+ * A team's flag (flags.json): teams[its database id] (the national teams: one renamed, or a custom
+ * team made from one, keeps its flag), else names[its name] when SWOS spells the country unlike the
+ * flag's file (HOLLAND, REPUBLIC IRELAND, WEST GERMANY...), else the file whose name has its name's
+ * letters (GREECE: flags/Greece.bmp); a club with none of those takes the flag of the country it
+ * plays for, countries[] (World_FileCountry: a world's second file is its country's; World 2026-27's
+ * new countries have their numbers there too).
  * A team with none (SOVIET UNION, a club of a competition's own) gets no flag. The art is
  * GoSquared's 24-pixel set (MIT: LICENSE_Flags.txt), each flag the icon's 22 x 16 middle; a mod
  * that wants others puts its own BMP of the same name in its flags/ folder (the overlay).
@@ -93,6 +96,12 @@ static void flag_name(const ModMatchTeam *t, char *out, int cap)
     out[0] = 0;
     if (!s_json)
         return;
+    if (t->uuid[0]) {   /* teams[its database id]: a national team, however it is named now */
+        char q[64];
+        snprintf(q, sizeof q, "$.teams.%s", t->uuid);
+        if (mjson_get_string(s_json, (int)s_jsonLen, q, out, cap) > 0)
+            return;
+    }
     {   /* names[] (walked: a name may hold a '.', which a path cannot) */
         const char *obj;
         int olen;
@@ -119,9 +128,9 @@ static void flag_name(const ModMatchTeam *t, char *out, int cap)
                 return;
             }
     }
-    if ((t->team >> 8) < 80) {      /* a club: its country's */
+    if (t->country < 80 || t->country > 85) {   /* a club: the country it plays for */
         char q[40];
-        snprintf(q, sizeof q, "$.countries.%u", (unsigned)(t->team >> 8));
+        snprintf(q, sizeof q, "$.countries.%u", (unsigned)t->country);
         mjson_get_string(s_json, (int)s_jsonLen, q, out, cap);
     }
 }

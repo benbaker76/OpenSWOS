@@ -12,6 +12,10 @@
 #include "player_face3.h"
 
 #include "swos_io.h"
+#include "world.h"
+#ifdef SWOS_SDL_BUILD
+#include "team_db.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,6 +90,14 @@ int32_t ModApi_MatchTeam(int32_t side, ModMatchTeam *out)
     for (uint32_t i = 0; i < sizeof t->teamName && i + 1 < sizeof out->name && t->teamName[i]; i++)
         out->name[i] = (char)t->teamName[i];
     out->team = (uint16_t)(t->countryNumber << 8 | t->teamOrdinal);
+    out->country = World_FileCountry(t->countryNumber);
+#ifdef SWOS_SDL_BUILD
+    {   /* (the database's entry for its number: a renamed or custom copy keeps its id) */
+        const TeamDbEntry *e = TeamDb_Team(t->countryNumber, t->teamOrdinal);
+        if (e && e->ids.uuid[0])
+            snprintf(out->uuid, sizeof out->uuid, "%s", e->ids.uuid);
+    }
+#endif
     return 1;
 }
 

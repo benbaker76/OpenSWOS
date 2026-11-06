@@ -994,10 +994,14 @@ Both targets: on the Amiga, `Career_PeekTeam` asks resload whether `data/team.NN
 team's flag beside its name on the result banner: kick-off, a goal, half and full time, as the
 owner's sketch had it.
 
-- **Which flag:** `flags.json`'s `names[]` when SWOS spells the country unlike the flag's file
+- **Which flag:** `flags.json`'s `teams[]` first, by the team's database id (the 143 national teams
+  of 96/97: one renamed, or a custom team made from one, keeps its flag); then `names[]` when SWOS
+  spells the country unlike the flag's file
   (HOLLAND -> Netherlands, REPUBLIC IRELAND -> Ireland, WEST GERMANY -> Germany, CZECHOSLOVAKIA -> the
   Czech flag, SERBIA-MONT. -> Yugoslavia...), else the file with the name's letters (GREECE ->
-  Greece), else, for a club, its country's (`countries[<team file>]`). Every 96/97 national team and
+  Greece), else, for a club, the flag of the country it plays for (`countries[]`, by
+  `World_FileCountry`: a world's second team file is its country's; World 2026-27's new countries --
+  Andorra, Kosovo, Qatar... -- are there by their numbers). Every 96/97 national team and
   club country has one, and so does every team of the historic tournaments: SOVIET UNION, EAST
   GERMANY, ZAIRE and C.I.S. are OpenSWOS's own drawings at the set's size (`scripts/draw_extra_flags.py`),
   DUTCH E. INDIES plays under the Dutch flag and GUADELOUPE under the French. A BMP of a name in a

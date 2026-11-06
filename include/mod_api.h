@@ -563,6 +563,10 @@ int32_t  ModApi_MatchMinute(void);      /* the clock's minute, 0.. (120 in extra
 typedef struct {
     char     name[18];
     uint16_t team;
+    uint8_t  country;   /* the country it plays for: its file's (World_FileCountry -- a world's second
+                         * file is its country's), 80-85 a national team's continent file */
+    char     uuid[37];  /* its database id (docs/TEAM_IDS.md), "" when it has none (a .DIY's own
+                         * teams; the Amiga, which has no team database) */
 } ModMatchTeam;
 int32_t  ModApi_MatchTeam(int32_t side, ModMatchTeam *out);
 
