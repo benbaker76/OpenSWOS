@@ -1037,6 +1037,11 @@ cleanup_and_return:
     { extern void ReplayRec_MatchEnd(void); ReplayRec_MatchEnd(); }   /* quit mid-match: keep it */
 #endif
     { extern void ModMatch_Ended(void); ModMatch_Ended(); }           /* (a quit: told here, once) */
+#ifdef SWOS_SDL_BUILD
+    /* (purple's maroon art put back, team_colors.c: here, the match left -- a REPLAY plays it
+     *  again with the art as it was coloured, and ends through here itself) */
+    { extern void TeamColors_MatchArtEnd(void); TeamColors_MatchArtEnd(); }
+#endif
     StopAudioAndClearFlags();
     return;
 }

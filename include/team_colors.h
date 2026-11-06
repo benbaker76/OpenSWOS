@@ -42,6 +42,12 @@ uint16_t __attribute__((used, externally_visible)) ConvertPlayerDressColor(uint1
 void TeamColors_Init(void);
 void TeamColors_MatchPalette(TeamGame *team1);
 int32_t TeamColors_PurpleInMatch(void);   /* a side wears purple and neither maroon */
+#ifdef SWOS_SDL_BUILD
+/* After a match's sprites are coloured: while purple has entry 12, the match's own maroon art
+ * (banners, corner flags, the red card ...) drawn with entry 4 instead (report 0056). */
+void TeamColors_MatchArt(void);
+void TeamColors_MatchArtEnd(void);   /* at the match's end: the art put back */
+#endif
 const uint8_t *TeamColors_Worn(const TeamGame *team);
 
 #endif

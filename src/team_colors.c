@@ -127,6 +127,61 @@ void TeamColors_MatchPalette(TeamGame *team1)
     _gamePalette[12] = TeamColors_PurpleInMatch() ? PURPLE_RGB12 : s_maroonGame;
 }
 
+#ifdef SWOS_SDL_BUILD
+/* ---- The game's own maroon, while purple has its entry (report 0056) ----
+ * Entry 12 is not only the maroon kit's: the match's own art draws with it too -- the HALF TIME
+ * and FULL TIME banners' shading, the corner flags, the red card, the bench's figures. While a
+ * purple kit has the entry, that art would be purple. So after a match's sprites are coloured
+ * (ConvertColorsAndTextSprites), every sprite outside the ones coloured by a team (the players,
+ * keepers and reserves) has its entry-12 pixels drawn with entry 4 -- the palette's dark red,
+ * the nearest to maroon of those no kit takes -- and put back when the match ends.
+ * The sprites are 8bpp chunky on SDL; the Amiga's are bitplanes (left as they were there). */
+enum { kMaroonArtMax = 4096, kSpritesScanned = 1310 /* to the shirt numbers (shirt_numbers.h) */ };
+static struct { uint16_t sprite, offset; } s_maroonArt[kMaroonArtMax];
+static int32_t s_maroonArtCount;
+
+static int32_t coloured_by_a_team(int32_t sprite)
+{
+    return (sprite >= 227 && sprite < 1065) ||      /* the players' and the keepers' sets */
+           (sprite >= 1196 && sprite < 1220);       /* the reserves */
+}
+
+/* At the match's end (game_loop.c, beside ModMatch_Ended): the art as it was. */
+void TeamColors_MatchArtEnd(void)
+{
+    extern uint8_t *_spriteGraphicsPtr;
+    SpriteGraphics **table = (SpriteGraphics **)_spriteGraphicsPtr;
+    for (int32_t i = 0; table && i < s_maroonArtCount; i++) {
+        SpriteGraphics *g = table[s_maroonArt[i].sprite];
+        if (g && g->sprData && g->sprData[s_maroonArt[i].offset] == 4)
+            g->sprData[s_maroonArt[i].offset] = 12;
+    }
+    s_maroonArtCount = 0;
+}
+
+void TeamColors_MatchArt(void)
+{
+    extern uint8_t *_spriteGraphicsPtr;
+    SpriteGraphics **table = (SpriteGraphics **)_spriteGraphicsPtr;
+    TeamColors_MatchArtEnd();       /* (a match left without its end: the art put back first) */
+    if (!table || !TeamColors_PurpleInMatch())
+        return;
+    for (int32_t s = 0; s < kSpritesScanned; s++) {
+        SpriteGraphics *g = table[s];
+        if (coloured_by_a_team(s) || !g || !g->sprData || g->nlines <= 0 || g->wquads <= 0)
+            continue;
+        const int32_t n = g->nlines * g->wquads * 16;
+        for (int32_t k = 0; k < n && k < 65536 && s_maroonArtCount < kMaroonArtMax; k++)
+            if (g->sprData[k] == 12) {
+                g->sprData[k] = 4;
+                s_maroonArt[s_maroonArtCount].sprite = (uint16_t)s;
+                s_maroonArt[s_maroonArtCount].offset = (uint16_t)k;
+                s_maroonArtCount++;
+            }
+    }
+}
+#endif
+
 int32_t TeamColors_PurpleInMatch(void)
 {
     const uint8_t worn = (uint8_t)(s_kitMarks[0] | s_kitMarks[1]);

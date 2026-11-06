@@ -565,4 +565,7 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
     }
 
     ShirtNumbers_Build();   /* the shirt numbers 17..99 from this match's digits (shirt_numbers.c) */
+#ifdef SWOS_SDL_BUILD
+    TeamColors_MatchArt();  /* purple's entry 12: the match's own maroon art kept maroon (team_colors.c) */
+#endif
 }
