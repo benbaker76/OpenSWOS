@@ -301,10 +301,141 @@ static int mjson_get_cb(int tok, const char *s, int off, int len, void *ud) {
   return 0;
 }
 
+static struct mjson_index *s_lookup_index;
+
+/* The index needs only the root object's keys and where each value starts and
+ * ends, so it is found by a scanner that follows quotes and bracket depth --
+ * no callbacks, no per-token work. On a 14 MHz 68020 the callback tokenizer
+ * took 11.3 s over a 1.1 MB career; this is a few cycles a byte. Inside a
+ * section it checks only that strings end and brackets match: the section is
+ * parsed by mjson when it is read. */
+static int idx_ws(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+
+static int idx_skip_str(const char *s, int i, int n) {   /* s[i] == '"' */
+  for (i++; i < n; i++) {
+    unsigned char c = (unsigned char) s[i];
+    if (c == '\\') { i++; continue; }
+    if (c == '"') return i + 1;
+    if (c < 0x20) return -1;
+  }
+  return -1;
+}
+
+static int idx_skip_value(const char *s, int i, int n, int *type) {
+  char c;
+  if (i >= n) return -1;
+  c = s[i];
+  if (c == '"') { *type = MJSON_TOK_STRING; return idx_skip_str(s, i, n); }
+  if (c == '{' || c == '[') {
+    char close[MJSON_MAX_DEPTH];
+    int d = 0;
+    *type = c == '{' ? MJSON_TOK_OBJECT : MJSON_TOK_ARRAY;
+    while (i < n) {
+      c = s[i];
+      if (c == '"') {
+        if ((i = idx_skip_str(s, i, n)) < 0) return -1;
+        continue;
+      }
+      if (c == '{' || c == '[') {
+        if (d >= MJSON_MAX_DEPTH) return -1;
+        close[d++] = c == '{' ? '}' : ']';
+      } else if (c == '}' || c == ']') {
+        if (d == 0 || close[d - 1] != c) return -1;
+        if (--d == 0) return i + 1;
+      }
+      i++;
+    }
+    return -1;
+  }
+  if (n - i >= 4 && memcmp(s + i, "true", 4) == 0) { *type = MJSON_TOK_TRUE; return i + 4; }
+  if (n - i >= 5 && memcmp(s + i, "false", 5) == 0) { *type = MJSON_TOK_FALSE; return i + 5; }
+  if (n - i >= 4 && memcmp(s + i, "null", 4) == 0) { *type = MJSON_TOK_NULL; return i + 4; }
+  if (c == '-' || (c >= '0' && c <= '9')) {
+    int j = i + 1;
+    while (j < n && ((s[j] >= '0' && s[j] <= '9') || s[j] == '.' || s[j] == 'e' ||
+                     s[j] == 'E' || s[j] == '+' || s[j] == '-')) j++;
+    *type = MJSON_TOK_NUMBER;
+    return j;
+  }
+  return -1;
+}
+
+int mjson_index_build(struct mjson_index *idx, const char *s, int n,
+                      struct mjson_index_entry *entries, int capacity) {
+  int i = 0;
+  idx->buf = NULL;
+  idx->len = n;
+  idx->count = 0;
+  idx->entries = entries;
+  while (i < n && idx_ws(s[i])) i++;
+  if (i == n || s[i] != '{' || capacity < 0) return -1;
+  for (i++; i < n && idx_ws(s[i]); i++) {}
+  if (i < n && s[i] == '}') {
+    i++;
+  } else {
+    for (;;) {
+      int k, kend, v, end, type = 0;
+      if (i >= n || s[i] != '"') return -1;
+      k = i;
+      if ((i = idx_skip_str(s, i, n)) < 0) return -1;
+      kend = i;
+      while (i < n && idx_ws(s[i])) i++;
+      if (i >= n || s[i] != ':') return -1;
+      for (i++; i < n && idx_ws(s[i]); i++) {}
+      v = i;
+      if ((end = idx_skip_value(s, i, n, &type)) < 0) return -1;
+      if (idx->count == capacity) return 0;
+      entries[idx->count].key_offset = k + 1;
+      entries[idx->count].key_len = kend - k - 2;   /* without the quotes */
+      entries[idx->count].value_offset = v;
+      entries[idx->count].value_len = end - v;
+      entries[idx->count].type = type;
+      idx->count++;
+      for (i = end; i < n && idx_ws(s[i]); i++) {}
+      if (i < n && s[i] == ',') {
+        for (i++; i < n && idx_ws(s[i]); i++) {}
+        continue;
+      }
+      if (i < n && s[i] == '}') { i++; break; }
+      return -1;
+    }
+  }
+  while (i < n && idx_ws(s[i])) i++;
+  if (i != n) return -1;
+  idx->buf = s;
+  return 1;
+}
+
+struct mjson_index *mjson_use_index(struct mjson_index *index) {
+  struct mjson_index *previous = s_lookup_index;
+  s_lookup_index = index;
+  return previous;
+}
+
 int mjson_find(const char *s, int n, const char *jp, const char **tp, int *tl) {
   struct msjon_get_data data = {jp, 1,  0,  0,  0,
                                 0,  -1, tp, tl, MJSON_TOK_INVALID};
   if (jp[0] != '$') return MJSON_TOK_INVALID;
+  if (s_lookup_index && s_lookup_index->buf == s &&
+      s_lookup_index->len == n && jp[1] == '.') {
+    int key_len = plen1(jp + 2), path_end = 2 + plen2(jp + 2);
+    int i;
+    for (i = 0; i < s_lookup_index->count; i++) {
+      const struct mjson_index_entry *e = &s_lookup_index->entries[i];
+      if (e->key_len != key_len || kcmp(s + e->key_offset, jp + 2, key_len)) continue;
+      if (!jp[path_end]) {
+        if (tp) *tp = s + e->value_offset;
+        if (tl) *tl = e->value_len;
+        return e->type;
+      }
+      /* Resolve the rest of the original path inside just this section. */
+      data.pos = path_end;
+      if (mjson(s + e->value_offset, e->value_len, mjson_get_cb, &data) < 0)
+        return MJSON_TOK_INVALID;
+      return data.tok;
+    }
+    return MJSON_TOK_INVALID;
+  }
   if (mjson(s, n, mjson_get_cb, &data) < 0) return MJSON_TOK_INVALID;
   return data.tok;
 }

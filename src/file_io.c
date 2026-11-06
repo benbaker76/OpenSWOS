@@ -389,8 +389,25 @@ int16_t LoadCareerFile(uint8_t *filename)
      * unsupported (graceful error). The JSON load path runs its own pointer
      * fixups (RebuildPointersAfterLoad inside SaveJson_LoadCareer). See docs/
      * SAVE_DATA.md "Format migration / read-support policy". */
+#if !defined(SWOS_SDL_BUILD) && defined(SWOS_AMIGA_LOAD_TIMING)
+    /* The career load timed on the Amiga -> save/T_<career>.TXT (save_format_json.c) */
+    extern volatile uint16_t _currentTick;
+    extern void SaveJson_TimingReset(void), SaveJson_TimingWrite(const uint8_t *career);
+    extern void SaveJson_TimingAdd(const char *name, uint16_t ticks);
+    SaveJson_TimingReset();
+    uint16_t t0 = _currentTick;
+    int16_t isJson = SaveJson_FileIsJson(filename);
+    SaveJson_TimingAdd("is_json_check", (uint16_t)(_currentTick - t0));
+    uint16_t t1 = _currentTick;
+    int16_t bad = isJson != 1 || SaveJson_LoadCareer(filename, NULL, 0) != 0;
+    SaveJson_TimingAdd("load_career_all", (uint16_t)(_currentTick - t1));
+    SaveJson_TimingAdd("whole_load", (uint16_t)(_currentTick - t0));
+    SaveJson_TimingWrite(filename);
+    if (bad) {
+#else
     if (SaveJson_FileIsJson(filename) != 1 ||
         SaveJson_LoadCareer(filename, NULL, 0) != 0) {
+#endif
         ShowErrorMenu(_aFileSavedByDif);
         RestoreOptions();
         InitUserTactics();
