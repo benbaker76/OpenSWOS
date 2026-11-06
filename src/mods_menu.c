@@ -33,13 +33,16 @@ enum {
     ModsMenu_name0,                     /* name<i> = name0 + 2 i, state<i> = name0 + 2 i + 1 */
     ModsMenu_note = ModsMenu_name0 + 2 * 8,
     ModsMenu_exit,
+    ModsMenu_scrollUp,                  /* SWOS's scroll arrows (sprites 183/184, as DIY's), shown */
+    ModsMenu_scrollDown,                /* only when there are more mods than rows */
 };
-enum { kRows = 8 };
+enum { kRows = 8, kMaxMods = 64 };
 
 extern void SetExitMenuFlag(void);
 
-static ModInfo s_mods[kRows];
+static ModInfo s_mods[kMaxMods];      /* every mod on disk ... */
 static int32_t s_count;
+static int32_t s_top;                  /* ... row 0 showing s_mods[s_top] */
 static char    s_nameText[kRows][40];
 static char    s_note[64];
 
@@ -100,17 +103,18 @@ static void refresh(void)
     int32_t i;
     for (i = 0; i < kRows; i++) {
         MenuEntry *name = entry_at(ModsMenu_name0 + 2 * i), *state = entry_at(ModsMenu_name0 + 2 * i + 1);
-        name->isInvisible = state->isInvisible = i >= s_count;
-        if (i >= s_count)
+        const ModInfo *m = &s_mods[s_top + i];
+        name->isInvisible = state->isInvisible = s_top + i >= s_count;
+        if (s_top + i >= s_count)
             continue;
         char text[64];
-        snprintf(text, sizeof text, "%s %s (%s)", s_mods[i].name, s_mods[i].version,
-                 s_mods[i].canonical ? "GAME'S" : "DLC");
+        snprintf(text, sizeof text, "%s %s (%s)", m->name, m->version, m->canonical ? "GAME'S" : "DLC");
         upper(s_nameText[i], sizeof s_nameText[i], text);
         name->fg = (uintptr_t)s_nameText[i];
-        state->fg = (uintptr_t)(s_mods[i].problem[0] ? "CANNOT"
-                                : g_arcadeOpts && set_on(g_arcadeOpts, &s_mods[i]) ? "ON" : "OFF");
+        state->fg = (uintptr_t)(m->problem[0] ? "CANNOT"
+                                : g_arcadeOpts && set_on(g_arcadeOpts, m) ? "ON" : "OFF");
     }
+    entry_at(ModsMenu_scrollUp)->isInvisible = entry_at(ModsMenu_scrollDown)->isInvisible = s_count <= kRows;
     entry_at(ModsMenu_note)->fg = (uintptr_t)s_note;
 }
 
@@ -137,15 +141,28 @@ static void nav_lr(int32_t ordinal, int32_t left, int32_t right)
 static void modsMenu_OnInit(void)
 {
     int32_t i;
-    s_count = Mods_Scan(s_mods, kRows);
-    for (i = 0; i < s_count; i++) {
+    s_count = Mods_Scan(s_mods, kMaxMods);
+    const int32_t rows = s_count < kRows ? s_count : kRows, scroll = s_count > kRows;
+    if (s_top > s_count - rows)         /* (back from a mod's page: the same place) */
+        s_top = s_count - rows;
+    if (s_top < 0)
+        s_top = 0;
+    for (i = 0; i < rows; i++) {
         const int32_t name = ModsMenu_name0 + 2 * i, state = name + 1;
-        nav(state, i ? state - 2 : -1, i + 1 < s_count ? state + 2 : ModsMenu_exit);
-        nav(name, i ? name - 2 : -1, i + 1 < s_count ? name + 2 : ModsMenu_exit);
+        nav(state, i ? state - 2 : -1, i + 1 < rows ? state + 2 : ModsMenu_exit);
+        nav(name, i ? name - 2 : -1, i + 1 < rows ? name + 2 : ModsMenu_exit);
         nav_lr(name, -1, state);
         nav_lr(state, name, -1);
     }
-    nav(ModsMenu_exit, s_count ? ModsMenu_name0 + 2 * s_count - 1 : -1, -1);
+    if (scroll) {   /* the arrows: right of the first and the last row's ON/OFF */
+        nav_lr(ModsMenu_name0 + 1, ModsMenu_name0, ModsMenu_scrollUp);
+        nav_lr(ModsMenu_name0 + 2 * (kRows - 1) + 1, ModsMenu_name0 + 2 * (kRows - 1), ModsMenu_scrollDown);
+        nav(ModsMenu_scrollUp, -1, ModsMenu_scrollDown);
+        nav_lr(ModsMenu_scrollUp, ModsMenu_name0 + 1, -1);
+        nav(ModsMenu_scrollDown, ModsMenu_scrollUp, ModsMenu_exit);
+        nav_lr(ModsMenu_scrollDown, ModsMenu_name0 + 2 * (kRows - 1) + 1, -1);
+    }
+    nav(ModsMenu_exit, rows ? ModsMenu_name0 + 2 * rows - 1 : -1, -1);
     if (s_count)
         note("TURNED ON OR OFF FROM THE NEXT START");
     else
@@ -162,6 +179,7 @@ static void toggle(int32_t i)
 {
     extern PlatformInitOptions *g_arcadeOpts;
     extern const char *g_arcadeIniPath;
+    i += s_top;
     if (i >= s_count || !g_arcadeOpts)
         return;
     ModInfo *m = &s_mods[i];
@@ -198,6 +216,16 @@ static void modsMenu_exit_OnSelect(void)
 {
     SetExitMenuFlag();
 }
+
+static void scroll(int32_t by)
+{
+    const int32_t top = s_top + by, last = s_count - kRows;
+    s_top = top < 0 ? 0 : top > last ? (last > 0 ? last : 0) : top;
+    refresh();
+}
+
+static void modsMenu_scrollUp_OnSelect(void) { scroll(-1); }
+static void modsMenu_scrollDown_OnSelect(void) { scroll(1); }
 
 /* ---- a mod's page: its settings ---- */
 
@@ -347,6 +375,7 @@ static void modPageMenu_exit_OnSelect(void) { SetExitMenuFlag(); }
 
 static void open_page(int32_t i)
 {
+    i += s_top;
     if (i >= s_count)
         return;
     s_page = s_mods[i];
@@ -385,6 +414,8 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(modsMenu_row6_OnSelect),
     HANDLER(modsMenu_row7_OnSelect),
     HANDLER(modsMenu_exit_OnSelect),
+    HANDLER(modsMenu_scrollUp_OnSelect),
+    HANDLER(modsMenu_scrollDown_OnSelect),
     HANDLER(modsMenu_page0_OnSelect),
     HANDLER(modsMenu_page1_OnSelect),
     HANDLER(modsMenu_page2_OnSelect),
@@ -423,6 +454,7 @@ void ModsMenu_Show(void)
     uint8_t *menu;
 
     ModsMenu_Init();
+    s_top = 0;
     menu = MenuJson_Load(MODS_MENU_NAME);
     if (!menu) {
         fprintf(stderr, "[mods-menu] cannot show %s\n", MODS_MENU_NAME);

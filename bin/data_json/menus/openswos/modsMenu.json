@@ -608,6 +608,70 @@
      "func": "modsMenu_exit_OnSelect"
     }
    ]
+  },
+  {
+   "kind": "entry",
+   "name": "scrollUp",
+   "coords": {
+    "x": 300,
+    "y": 35,
+    "w": 8,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 0
+    },
+    {
+     "op": "sprite_fg",
+     "index": 183
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_scrollUp_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "scrollDown",
+   "coords": {
+    "x": 300,
+    "y": 133,
+    "w": 8,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 0
+    },
+    {
+     "op": "sprite_fg",
+     "index": 184
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "modsMenu_scrollDown_OnSelect"
+    }
+   ]
   }
  ]
 }
