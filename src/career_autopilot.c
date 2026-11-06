@@ -402,6 +402,23 @@ static void start(void)
     }
     say("[golden] loading %s/%s, %d season(s) (SWOSMainMenuInit at %p)\n", s_outDir, s_save,
         (int)s_seasons, (void *)(uintptr_t)SWOSMainMenuInit);
+    {   /* SWOS_LOAD_BENCH=<n>: load the career n times, write it back as REWRITE.CAR and exit --
+         * per-phase load timings (make SWOS_SAVE_FORMAT_JSON_PROFILE=1), and a check that
+         * load + save gives the same file a decoder change must leave alone. */
+        const char *bench = getenv("SWOS_LOAD_BENCH");
+        if (bench && atoi(bench) > 0) {
+            for (int32_t k = 0; k < atoi(bench); k++)
+                if (SaveJson_LoadCareer((uint8_t *)s_save, NULL, 0) != 0) {
+                    say("[golden] bench: cannot load\n");
+                    exit(2);
+                }
+            say("[golden] bench: %d loads done\n", atoi(bench));
+            /* the career as loaded, written back: it must equal the file it came from */
+            if (SaveJson_WriteCareer((uint8_t *)"REWRITE.CAR") != 0)
+                say("[golden] bench: cannot write REWRITE.CAR\n");
+            exit(0);
+        }
+    }
     if (SaveJson_LoadCareer((uint8_t *)s_save, NULL, 0) != 0) {
         say("[golden] cannot load %s/%s\n", s_outDir, s_save);
         exit(2);

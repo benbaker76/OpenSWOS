@@ -98,6 +98,22 @@ typedef int (*mjson_cb_t)(int event, const char *buf, int offset, int len,
 int mjson(const char *buf, int len, mjson_cb_t cb, void *ud);
 int mjson_find(const char *buf, int len, const char *jp, const char **tp,
                int *tl);
+/* Optional index for repeated lookups in one immutable root object. Storage is
+ * caller-owned; no JSON bytes are copied. Build returns 1 on success, 0 if the
+ * capacity is insufficient, -1 for invalid JSON. An incomplete index is never
+ * used. use_index returns the previous index: restore it before freeing the
+ * source or index. This scoped optimization is for serial loading, not threads. */
+struct mjson_index_entry {
+  int key_offset, key_len, value_offset, value_len, type;
+};
+struct mjson_index {
+  const char *buf;
+  int len, count;
+  struct mjson_index_entry *entries;
+};
+int mjson_index_build(struct mjson_index *index, const char *buf, int len,
+                      struct mjson_index_entry *entries, int capacity);
+struct mjson_index *mjson_use_index(struct mjson_index *index);
 /* Integer-only number lookup; works on every target. SWOS save data
  * is all integers anyway, so this is the recommended API. */
 int mjson_get_long(const char *buf, int len, const char *path, long *v);
