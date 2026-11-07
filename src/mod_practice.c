@@ -381,6 +381,20 @@ static void shooting_test_frame(void)
         fprintf(stdout, "SHOOTING TEST: the clock moved (%d)\n", (int)ModApi_MatchMinute());
         s_shootFailed = 1;
     }
+    /* The keeper-only side's throw-ins (report 0058: its keeper went to take one, and the
+     * game crashed as he threw -- or never reached the touchline, and the drill stood there):
+     * one from each touchline, early, while the ball is in play. The other side takes them
+     * (game_timers.c), so the drill goes on and the goals keep coming. */
+    {
+        static int32_t throws;
+        if ((throws == 0 && s_shootFrames >= 100) || (throws == 1 && s_shootFrames >= 1500)) {
+            const int16_t x = throws == 0 ? 100 : 580;      /* (refused while the ball is dead) */
+            if (ModApi_Restart(MODRESTART_THROW_IN, 1, 0, x, 400) == 0) {
+                throws++;
+                fprintf(stdout, "SHOOTING TEST: a throw-in for the keeper's side, frame %d\n", (int)s_shootFrames);
+            }
+        }
+    }
     if (++s_shootFrames >= 6000)
         ModApi_EndMatch();
 }

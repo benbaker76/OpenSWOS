@@ -12,6 +12,7 @@
 #include "dos_sound.h"
 #include "game_types.h"
 #include "netplay_match.h"    /* NetplayMatch_IsLive: no goal replay online (SDL) */
+extern int32_t ModMatch_Active(void);   /* (mod_match.c: a mod's match is the one being played) */
 
 /* ---- Extern globals ---- */
 extern uint16_t _playingPenalties;
@@ -532,6 +533,19 @@ void UpdateGameTimersAndCameraBreakMode(void)
 }
 
 
+/* A player of the team's other than its goalkeeper on the pitch (spritesTable[0] is the keeper). */
+static int32_t team_has_outfielder(const TeamGeneralInfo *team)
+{
+    if (!team->spritesTable)
+        return 1;
+    for (int i = 1; i < 11; i++) {
+        const Sprite *p = team->spritesTable[i];
+        if (p && p->visible && !p->sentAway)
+            return 1;
+    }
+    return 0;
+}
+
 /* ---- Helper: write restart globals and stop players ---- */
 static void __attribute__((noinline)) writeRestartGlobalsAndStopPlayers(
     TeamGeneralInfo *team, int16_t d1, int16_t d2, int16_t d3, uint8_t d4)
@@ -582,7 +596,10 @@ void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16
 
     if (kind == 4) {                                    /* MODRESTART_THROW_IN */
         /* As CheckIfBallOutOfPlay gives one (the throw-in band, above): the touchline by x --
-         * the left under 336 -- at y, the zone by y as seen from the team taking it. */
+         * the left under 336 -- at y, the zone by y as seen from the team taking it. A side
+         * without outfielders cannot take one (report 0058): the other side does, as there. */
+        if (!team_has_outfielder(taker))
+            taker = taker->opponentsTeam;
         const int16_t ty = y < 129 ? 129 : y > 769 ? 769 : y;
         const int32_t takerIsTop = taker == &_topTeamData;
         if (x >= 336) {
@@ -924,6 +941,17 @@ void CheckIfBallOutOfPlay(void)
     {
         TeamGeneralInfo *throwTeam = _lastTeamPlayed;
         TeamGeneralInfo *opTeam = throwTeam->opponentsTeam;
+
+        /* A mod's match can field a side without outfielders (SHOOTING PRACTICE: the CPU's
+         * keeper alone). Its keeper was sent to take the throw-in, could not reach the
+         * touchline, and the match stood there for good -- or, reaching it, the game crashed as
+         * he threw (report 0058). The other side takes it. A real match never has a team with no
+         * outfielder (it is abandoned first), so its throw-ins are as they always were. */
+        if (ModMatch_Active() && !team_has_outfielder(opTeam)) {
+            TeamGeneralInfo *t = throwTeam;
+            throwTeam = opTeam;
+            opTeam = t;
+        }
 
         if (d1 >= 336) {
             /* Right side */
