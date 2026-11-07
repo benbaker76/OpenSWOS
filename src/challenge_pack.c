@@ -339,7 +339,9 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
 
 typedef struct { char *p; uint32_t left; int bad; } Js;
 
+#if defined(__GNUC__)          /* (MSVC builds this too: the setup's challenge files) */
 static void js(Js *o, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+#endif
 static void js(Js *o, const char *fmt, ...)
 {
     va_list ap;
