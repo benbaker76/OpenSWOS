@@ -1026,7 +1026,7 @@ static int32_t write_custom(const Challenge *extra, const char *skipId)
     int32_t count = 0, ok = 1;
     for (int32_t i = 0; i <= s_count && ok; i++) {
         const Challenge *c = i < s_count ? &s_ch[i] : extra;
-        if (!c || c->custom != 1 || (skipId && !strcmp(c->id, skipId)))
+        if (!c || c->custom != 1 || (i < s_count && skipId && !strcmp(c->id, skipId)))
             continue;
         if (count++)
             n += snprintf(buf + n, cap - (size_t)n, ",\n");
