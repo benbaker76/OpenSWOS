@@ -410,7 +410,14 @@ struct App {
                            {T("CD version (archive.org)"), kPcCdArchiveOrg},
                            {T("CD image (files.swos.eu)"), kPcCdSwosEu}});
         path = src.dosDir;
-        if (!src.dosDir[0] && gogInstaller) {
+        if (!src.dosDir[0] && (src.dosFloppy1[0] || src.dosFloppy2[0])) {
+          path = src.dosFloppy1[0] ? src.dosFloppy1 : src.dosFloppy2;
+          row.detail = Str(!src.dosFloppy2[0] ? T("Disk 1 of the floppies: add disk 2 too.")
+                           : !src.dosFloppy1[0] ? T("Disk 2 of the floppies: add disk 1 too.")
+                           : Tf("These floppies cannot be used: {0}. The CD version is complete: see the links.",
+                                SdSources_DosProblem()));
+          row.detail_warn = true;
+        } else if (!src.dosDir[0] && gogInstaller) {
           row.detail = Str(T("GOG's installer is in your Downloads: run it, and the game it installs is found here by itself."));
           row.detail_warn = true;
         }
@@ -503,7 +510,8 @@ struct App {
     row.value = Str(!unusable[r].empty() ? unusable[r] : !path.empty() ? Shown(path) : std::string());
     const bool bad = r == ROW_AMIGA && !path.empty() &&
                      (!amigaProblem.empty() || !SdSources_HaveAmiga(&src));
-    row.state = !unusable[r].empty() ? 2 : path.empty() ? 0 : bad ? 2 : 1;
+    const bool floppiesOnly = r == ROW_PC && !src.dosDir[0] && !path.empty();   // (not a game until both make one)
+    row.state = !unusable[r].empty() ? 2 : path.empty() ? 0 : bad || floppiesOnly ? 2 : 1;
     return row;
   }
 
@@ -569,6 +577,7 @@ struct App {
     if (path.empty()) {
       if (r == ROW_AMIGA) ClearAmiga();
       else RowPath(r)[0] = '\0';
+      if (r == ROW_PC) src.dosFloppy1[0] = src.dosFloppy2[0] = '\0';
       return N_("");
     }
     SdSources found{};
@@ -582,7 +591,16 @@ struct App {
         unusable[r] = path;
         return N_("Not the PC game's CD: it is the one with the SFX folder, and the commentary in SFX/PIERCE.");
       case ROW_PC:
-        if (found.dosDir[0]) { take(src.dosDir, found.dosDir); return N_(""); }
+        if (found.dosDir[0]) { take(src.dosDir, found.dosDir); src.dosFloppy1[0] = src.dosFloppy2[0] = '\0'; return N_(""); }
+        if (found.dosFloppy1[0] || found.dosFloppy2[0]) {     // a floppy: the pair makes the game
+          src.dosDir[0] = '\0';
+          if (found.dosFloppy1[0]) take(src.dosFloppy1, found.dosFloppy1);
+          if (found.dosFloppy2[0]) take(src.dosFloppy2, found.dosFloppy2);
+          if (SdSources_DosFloppies(&src) == 0) return N_("");
+          if (src.dosFloppy1[0] && src.dosFloppy2[0]) return N_("");   // (the row says why not)
+          return src.dosFloppy1[0] ? N_("That is disk 1 of the PC game's floppies: add disk 2 too.")
+                                   : N_("That is disk 2 of the PC game's floppies: add disk 1 too.");
+        }
         src.dosDir[0] = '\0';
         unusable[r] = path;
         return found.s2020Dir[0] ? N_("That is SWOS 2020, not the PC game: it goes in the SWOS 2020 row.")
@@ -800,7 +818,8 @@ struct App {
 
   static int32_t CountFound(const SdSources& s) {
     return (s.adf1[0] != 0) + (s.adf2[0] != 0) + (s.hdf[0] != 0) + (s.lha[0] != 0) + (s.dosDir[0] != 0) +
-           (s.dosCd[0] != 0) + (s.jagRom[0] != 0) + (s.s2020Dir[0] != 0) + (s.world[0] != 0);
+           (s.dosCd[0] != 0) + (s.dosFloppy1[0] != 0) + (s.dosFloppy2[0] != 0) + (s.jagRom[0] != 0) +
+           (s.s2020Dir[0] != 0) + (s.world[0] != 0);
   }
 
   struct ScanProgress {
@@ -2179,8 +2198,8 @@ struct App {
     // folder is full of other Amiga downloads, and a .zip is unpacked to be looked in.
     const bool named = name.find("sensible") != std::string::npos || name.find("swos") != std::string::npos;
     if (ext == "hdf" || ext == "lha" || ext == "zip") return named;
-    if (ext == "iso" || ext == "cue" || ext == "img" || (ext == "bin" && e.size > 8u * 1024 * 1024))
-      return named;                  // the PC game's CD: the commentary
+    if (ext == "iso" || ext == "cue" || ext == "img" || ext == "ima" || (ext == "bin" && e.size > 8u * 1024 * 1024))
+      return named;                  // the PC game's CD or floppies
     if (ext == "adf") return true;   // its volume name says what it is
     // The cartridge is 2 MB: a CD image named .bin is not read through.
     return (ext == "jag" || ext == "j64" || ext == "rom" || ext == "bin") && e.size <= 8u * 1024 * 1024;
@@ -2204,6 +2223,19 @@ struct App {
     auto take = [](char* to, const char* from) { std::snprintf(to, 1024, "%s", from); };
     std::string what;
     if (found.dosDir[0] && !src.dosDir[0]) { take(src.dosDir, found.dosDir); unusable[ROW_PC].clear(); what = N_("the PC game"); }
+    // One of the PC game's floppies: a pair makes the game (a disk found joins the other).
+    if ((found.dosFloppy1[0] || found.dosFloppy2[0]) && !found.dosDir[0] && !src.dosDir[0]) {
+      if (found.dosFloppy1[0] && !src.dosFloppy1[0]) take(src.dosFloppy1, found.dosFloppy1);
+      if (found.dosFloppy2[0] && !src.dosFloppy2[0]) take(src.dosFloppy2, found.dosFloppy2);
+      if (SdSources_DosFloppies(&src) == 0) {
+        unusable[ROW_PC].clear();
+        return N_("the PC game (its two floppies)");
+      }
+      if (src.dosFloppy1[0] && src.dosFloppy2[0])
+        return Tf("the PC game's floppies, which cannot be used: {0}", SdSources_DosProblem());
+      return src.dosFloppy1[0] ? N_("disk 1 of the PC game's floppies (add disk 2)")
+                               : N_("disk 2 of the PC game's floppies (add disk 1)");
+    }
     // A second PC copy, with the commentary the first has not: taken as the CD.
     if (found.dosDir[0] && !found.dosCd[0] && std::strcmp(found.dosDir, src.dosDir) != 0)
       SdSources_AddDosCd(&found, found.dosDir);

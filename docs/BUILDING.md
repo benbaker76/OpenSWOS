@@ -269,7 +269,11 @@ CD install's folder has no `SFX/`; the floppy version has none): its drive, a co
 `.iso` / `.img` / `.bin` / `.cue` image (`lib/cd_image.c`), or a `.zip` with one in it. A scan
 finds one too, and a disc in a CD drive is found without being named. An image of the full disc
 (it carries the game as well) is the whole PC game on its own: its files but `SFX/` and the
-videos are copied off it once, to the setup's temporary folder.
+videos are copied off it once, to the setup's temporary folder. The floppy release's two disk images (`.img`,
+FAT12; `lib/fat_image.c`) carry the game as one RNC archive split across them, `SWOS_1.RNC` +
+`SWOS_2.RNC` (`lib/rnc_archive.c`): `--dos` each, or their `.zip`. The 96/97 floppies that
+circulate are the UPGRADE, which goes over an installed SWOS -- five of the files the setup
+needs are not on them, and it says so rather than install half a game.
 
 Every file it writes is byte-for-byte the one the original game (or SWOS 2020) shipped (or,
 for the converted AGA and Jaguar graphics, the one this project's own

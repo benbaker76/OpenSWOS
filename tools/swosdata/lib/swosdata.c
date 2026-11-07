@@ -608,10 +608,11 @@ int32_t     SwosData_PartVersion(SdStep step) { return step < SD_STEP_COUNT ? kP
 const char *SwosData_PartKey(SdStep step)     { return step < SD_STEP_COUNT ? kPartKey[step] : ""; }
 
 /* The [sources] keys, beside the SdSources field each one is. */
-enum { SRC_ADF1, SRC_ADF2, SRC_HDF, SRC_LHA, SRC_DOS, SRC_JAG, SRC_2020, SRC_WORLD, SRC_DOSCD, SRC_COUNT };
+enum { SRC_ADF1, SRC_ADF2, SRC_HDF, SRC_LHA, SRC_DOS, SRC_JAG, SRC_2020, SRC_WORLD, SRC_DOSCD, SRC_DOSFL1, SRC_DOSFL2, SRC_COUNT };
 static const char *const kSourceKey[SRC_COUNT] = {
     ASSETS_SRC_AMIGA_DISK1, ASSETS_SRC_AMIGA_DISK2, ASSETS_SRC_AMIGA_HDF, ASSETS_SRC_AMIGA_LHA,
-    ASSETS_SRC_PC, ASSETS_SRC_JAGUAR, ASSETS_SRC_SWOS2020, ASSETS_SRC_WORLD, ASSETS_SRC_PC_CD
+    ASSETS_SRC_PC, ASSETS_SRC_JAGUAR, ASSETS_SRC_SWOS2020, ASSETS_SRC_WORLD, ASSETS_SRC_PC_CD,
+    ASSETS_SRC_PC_FLOPPY1, ASSETS_SRC_PC_FLOPPY2
 };
 static char *source_field(SdSources *s, int32_t i)
 {
@@ -624,6 +625,8 @@ static char *source_field(SdSources *s, int32_t i)
     case SRC_JAG:  return s->jagRom;
     case SRC_WORLD: return s->world;
     case SRC_DOSCD: return s->dosCd;
+    case SRC_DOSFL1: return s->dosFloppy1;
+    case SRC_DOSFL2: return s->dosFloppy2;
     default:       return s->s2020Dir;
     }
 }

@@ -1314,3 +1314,30 @@ msgstr "C'est tout : un jeu installé, un téléchargement ou le CD dans son lec
 
 msgid "the game's folder (the one with SPRITE.DAT in it), or its CD's image"
 msgstr "le dossier du jeu (celui qui contient SPRITE.DAT), ou l'image de son CD"
+
+msgid "Disk 1 of the floppies: add disk 2 too."
+msgstr "Disquette 1 des disquettes : ajoutez aussi la disquette 2."
+
+msgid "Disk 2 of the floppies: add disk 1 too."
+msgstr "Disquette 2 des disquettes : ajoutez aussi la disquette 1."
+
+msgid "That is disk 1 of the PC game's floppies: add disk 2 too."
+msgstr "C'est la disquette 1 du jeu PC : ajoutez aussi la disquette 2."
+
+msgid "That is disk 2 of the PC game's floppies: add disk 1 too."
+msgstr "C'est la disquette 2 du jeu PC : ajoutez aussi la disquette 1."
+
+msgid "These floppies cannot be used: {0}. The CD version is complete: see the links."
+msgstr "Ces disquettes ne sont pas utilisables : {0}. La version CD est complète : voir les liens."
+
+msgid "disk 1 of the PC game's floppies (add disk 2)"
+msgstr "la disquette 1 du jeu PC (ajoutez la disquette 2)"
+
+msgid "disk 2 of the PC game's floppies (add disk 1)"
+msgstr "la disquette 2 du jeu PC (ajoutez la disquette 1)"
+
+msgid "the PC game (its two floppies)"
+msgstr "le jeu PC (ses deux disquettes)"
+
+msgid "the PC game's floppies, which cannot be used: {0}"
+msgstr "les disquettes du jeu PC, qui ne sont pas utilisables : {0}"

@@ -39,6 +39,9 @@ typedef struct {
     char  lha[1024];        /* a WHDLoad install packed .lha with the game in it */
     char  lhaDir[256];      /* the game's folder in it ("SWOS2425/data/") */
     char  dosDir[1024];     /* the PC game folder */
+    char  dosFloppy1[1024]; /* the PC game's floppy release, disk 1 of 2 (.img: SWOS_1.RNC) */
+    char  dosFloppy2[1024]; /* ... and disk 2 (SWOS_2.RNC): with both, the game is unpacked off
+                             * them (one RNC archive split in two) and that folder is dosDir */
     char  dosCd[1024];      /* the PC game's CD, for the sounds an install leaves on it (SFX/):
                              * the drive, a copy of the disc, or its image (.iso, .bin, .cue) */
     char  jagRom[1024];     /* the Jaguar cartridge image */
@@ -73,6 +76,13 @@ int32_t SdSources_AddFile(SdSources *s, const char *path);
  * as well. 0 when it is one. */
 int32_t SdSources_AddDosCd(SdSources *s, const char *path);
 int32_t SdSources_HaveDosCd(const SdSources *s);
+/* With both of the PC floppies and no PC game folder: the game unpacked off them (once, to the
+ * setup's temporary folder) as dosDir. 0 when it is there. Done by SdSources_AddFile itself;
+ * for a caller putting the disks together from two lookups. */
+int32_t SdSources_DosFloppies(SdSources *s);
+/* Why the last SdSources_DosFloppies made no game folder ("these floppies are the 96/97 upgrade
+ * ..."), "" when it did. */
+const char *SdSources_DosProblem(void);
 /* The PC game's CD in one of the computer's drives (Windows: its CD drives, a mounted image too;
  * a Mac: /Volumes; Linux: /media, /run/media, /mnt/cdrom) -- each drive's top folder looked at,
  * nothing searched, so it can be called every few seconds. Taken as dosCd (and as the PC game

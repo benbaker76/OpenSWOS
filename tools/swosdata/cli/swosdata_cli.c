@@ -3,6 +3,7 @@
  * from the command line. The setup app does the same through the library.
  *
  *   swosdata [--scan DIR]... [--adf FILE]... [--dos DIR] [--dos-cd CD] [--jag FILE] [--swos2020 DIR]
+ *   --dos: the PC game's folder, its CD's image, or one of its two floppy images (give both)
  *   --dos-cd: the PC game's CD (its drive or a copy) or its image (.iso, .bin, .cue), for the
  *   commentary and effects an install leaves on it
  *            [--out DIR [--res DIR]]    (no --out: only report what was found)
@@ -285,7 +286,9 @@ int main(int argc, char **argv)
                 return 1;
             }
         } else if (strcmp(a, "--dos") == 0) {
-            if (SdSources_AddFile(&job.src, v) != 0 || !SdSources_HaveDos(&job.src)) {
+            /* (a floppy: the two make the game, whichever comes first) */
+            if (SdSources_AddFile(&job.src, v) != 0 ||
+                (!SdSources_HaveDos(&job.src) && !job.src.dosFloppy1[0] && !job.src.dosFloppy2[0])) {
                 fprintf(stderr, "not a PC Sensible World of Soccer folder: %s\n", v);
                 return 1;
             }
@@ -319,7 +322,7 @@ int main(int argc, char **argv)
         printf("Searched %d folders\n", (int)s_scanned);
     /* Nothing named on the command line: what the last install used (ASSETS.ini in --out). */
     if (job.outDir[0] && !job.src.adf1[0] && !job.src.adf2[0] && !job.src.hdf[0] && !job.src.lha[0] &&
-        !job.src.dosDir[0] && !job.src.dosCd[0] &&
+        !job.src.dosDir[0] && !job.src.dosCd[0] && !job.src.dosFloppy1[0] && !job.src.dosFloppy2[0] &&
         !job.src.jagRom[0] && !job.src.s2020Dir[0] && !job.src.world[0] &&
         SwosData_LoadSources(job.outDir, &job.src) > 0)
         printf("Sources: from %s/%s, the last install's\n", job.outDir, "ASSETS.ini");
@@ -341,6 +344,11 @@ int main(int argc, char **argv)
                job.src.hdf[0] && !(job.src.adf1[0] && job.src.adf2[0]) ? job.src.hdfDir : "");
     }
     printf("PC game:      %s\n", job.src.dosDir[0] ? job.src.dosDir : "(not found)");
+    if (job.src.dosFloppy1[0] || job.src.dosFloppy2[0])
+        printf("PC floppies:  %s, %s\n", job.src.dosFloppy1[0] ? job.src.dosFloppy1 : "(disk 1 not found)",
+               job.src.dosFloppy2[0] ? job.src.dosFloppy2 : "(disk 2 not found)");
+    if ((job.src.dosFloppy1[0] || job.src.dosFloppy2[0]) && !job.src.dosDir[0] && SdSources_DosProblem()[0])
+        printf("PC note:      %s\n", SdSources_DosProblem());
     printf("PC CD:        %s\n", job.src.dosCd[0] ? job.src.dosCd : "(not found)");
     printf("Jaguar:       %s\n", job.src.jagRom[0] ? job.src.jagRom : "(not found)");
     printf("SWOS 2020:    %s\n", job.src.s2020Dir[0] ? job.src.s2020Dir : "(not found)");

@@ -10,6 +10,8 @@
 #include "sd_manifest.h"
 #include "miniz.h"
 #include "sg_dir.h"
+#include "fat_image.h"
+#include "rnc_archive.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -423,8 +425,8 @@ static int32_t add_zip(SdSources *s, const char *path)
     char dosPrefix[512];
     const int32_t haveDos = zip_dos_prefix(&z, dosPrefix, sizeof dosPrefix) == 0;
     const size_t dosLen = haveDos ? strlen(dosPrefix) : 0;
-    char images[ZIP_MAX_IMAGES][2200];
-    int32_t nImages = 0, added = 0, dosOk = haveDos;
+    char images[ZIP_MAX_IMAGES][2200], floppies[4][2200];
+    int32_t nImages = 0, nFloppies = 0, added = 0, dosOk = haveDos;
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&z); i++) {
         mz_zip_archive_file_stat st;
         if (!mz_zip_reader_file_stat(&z, i, &st) || st.m_is_directory)
@@ -435,6 +437,15 @@ static int32_t add_zip(SdSources *s, const char *path)
         if (!zip_entry_ok(name, leaf))
             continue;
         char out[2200];
+        /* One of the PC game's floppies (added once all are out: they go in pairs). */
+        if ((ends_with_nocase(leaf, ".img") || ends_with_nocase(leaf, ".ima")) &&
+            st.m_uncomp_size <= 4u * 1024 * 1024 && nFloppies < 4 &&
+            !(haveDos && starts_with_nocase(name, dosPrefix))) {
+            snprintf(out, sizeof out, "%s/%s", dir, leaf);
+            if (zip_extract(&z, i, &st, out) == 0)
+                snprintf(floppies[nFloppies++], sizeof floppies[0], "%s", out);
+            continue;
+        }
         /* An image of the PC game's CD (a CloneCD .img, an .iso, a raw .bin; a .cue is not
          * needed: the track is found in the image itself). */
         if ((ends_with_nocase(leaf, ".iso") || ends_with_nocase(leaf, ".img") || ends_with_nocase(leaf, ".bin")) &&
@@ -466,6 +477,8 @@ static int32_t add_zip(SdSources *s, const char *path)
         snprintf(pc, sizeof pc, "%s/pc", dir);
         added += SdSources_AddFile(s, pc) == 0;
     }
+    for (int32_t i = 0; i < nFloppies; i++)
+        added += SdSources_AddFile(s, floppies[i]) == 0;
     for (int32_t i = 0; i < nImages; i++)
         added += SdSources_AddDosCd(s, images[i]) == 0;
     return added ? 0 : -1;
@@ -692,6 +705,121 @@ int32_t SdSources_ZipHas(const char *zip, const char *name)
 
 static int32_t has_commentary_dir(const char *dir);
 static int32_t is_cd_image_name(const char *path);
+static int32_t find_dos_at(const char *root, CdImage *cd, const char *rel, char *p, uint32_t cap);
+
+/* ---- the PC game's floppies ---------------------------------------------- */
+
+static int32_t is_floppy_name(const char *path)
+{
+    return ends_with_nocase(path, ".img") || ends_with_nocase(path, ".ima") || ends_with_nocase(path, ".vfd");
+}
+
+/* Which disk of the PC game's floppy release an image is: 1 (SWOS_1.RNC, the archive's start),
+ * 2 (SWOS_2.RNC), 0 neither. Told apart by what is on them, never by their names. */
+static int32_t dos_floppy_disk(const char *path)
+{
+    char err[256];
+    long n = file_size(path);
+    if (n <= 0 || n > 4 * 1024 * 1024)
+        return 0;
+    FatImage *f = FatImage_Open(path, err);
+    if (!f)
+        return 0;
+    int32_t disk = 0;
+    SgBuf b = { 0 };
+    if (FatImage_Has(f, "SWOS_1.RNC") && FatImage_Read(f, "SWOS_1.RNC", &b, err) == 0)
+        disk = RncArchive_Is(b.data, b.size) ? 1 : 0;
+    else if (FatImage_Has(f, "SWOS_2.RNC"))
+        disk = 2;
+    Sg_BufFree(&b);
+    FatImage_Close(f);
+    return disk;
+}
+
+/* The game off both disks into a folder of the setup's own under the system's temporary folder,
+ * once: that folder, a PC game folder, in `out`. */
+static int32_t floppy_game(const char *disk1, const char *disk2, char *out, uint32_t cap)
+{
+    char err[256], done[1200];
+    const char *base = disk1 + strlen(disk1);
+    while (base > disk1 && base[-1] != '/' && base[-1] != '\\')
+        base--;
+    snprintf(out, cap, "%s/" PROJECT_SETUP_PROGRAM "/%s.game", temp_root(), base);
+    snprintf(done, sizeof done, "%s/.copied", out);          /* (a copy cut short is made again) */
+    if (Sg_IsFile(done))
+        return is_dos_dir(out) ? 0 : -1;
+    FatImage *f1 = FatImage_Open(disk1, err), *f2 = f1 ? FatImage_Open(disk2, err) : NULL;
+    SgBuf a = { 0 }, b = { 0 };
+    int32_t rc = -1, files = 0;
+    if (f2 && FatImage_Read(f1, "SWOS_1.RNC", &a, err) == 0 && FatImage_Read(f2, "SWOS_2.RNC", &b, err) == 0) {
+        uint8_t *joined = malloc((size_t)a.size + b.size);
+        if (joined) {
+            memcpy(joined, a.data, a.size);
+            memcpy(joined + a.size, b.data, b.size);
+            rc = RncArchive_Extract(joined, a.size + b.size, out, &files, err) == 0 &&
+                 Sg_WriteFile(done, "", 0, err) == 0 && is_dos_dir(out) ? 0 : -1;
+            free(joined);
+        }
+    }
+    Sg_BufFree(&a);
+    Sg_BufFree(&b);
+    FatImage_Close(f1);
+    FatImage_Close(f2);
+    return rc;
+}
+
+static char s_dosProblem[256];
+const char *SdSources_DosProblem(void) { return s_dosProblem; }
+
+/* The files the setup cannot do without (sd_manifest.c's PC list less the sounds a release may
+ * not have) that `dir` has not: how many, the first in `first`. */
+static int32_t dos_missing(const char *dir, char *first, uint32_t cap)
+{
+    int32_t n = 0;
+    first[0] = '\0';
+    for (int32_t i = 0; g_sdDosCopy[i].dest; i++) {
+        const char *d = g_sdDosCopy[i].dest;
+        if (!strncmp(d, "sound_dos/fx/", 13) || !strncmp(d, "sound_dos/hard/", 15) || !strncmp(d, "sound_dos/pierce/", 17))
+            continue;
+        char p[1100];
+        if (find_dos_at(dir, NULL, g_sdDosCopy[i].src, p, sizeof p) == 0)
+            continue;
+        int32_t again = 0;                  /* (a file converted twice is one file) */
+        for (int32_t j = 0; j < i && !again; j++)
+            again = strcmp(g_sdDosCopy[j].src, g_sdDosCopy[i].src) == 0;
+        if (again)
+            continue;
+        if (!n++)
+            snprintf(first, cap, "%s", g_sdDosCopy[i].src);
+    }
+    return n;
+}
+
+int32_t SdSources_DosFloppies(SdSources *s)
+{
+    if (s->dosDir[0])
+        return 0;
+    if (!s->dosFloppy1[0] || !s->dosFloppy2[0])
+        return -1;
+    char pc[sizeof s->dosDir];
+    s_dosProblem[0] = '\0';
+    if (floppy_game(s->dosFloppy1, s->dosFloppy2, pc, sizeof pc) != 0) {
+        snprintf(s_dosProblem, sizeof s_dosProblem, "the game cannot be unpacked off the floppies (damaged disks?)");
+        return -1;
+    }
+    /* The 96/97 floppies are an UPGRADE: they go over an installed SWOS and leave out what it
+     * already has (its title, stadium and other pictures, the menu music). */
+    char first[300];
+    const int32_t missing = dos_missing(pc, first, sizeof first);
+    if (missing) {
+        snprintf(s_dosProblem, sizeof s_dosProblem,
+                 "these floppies are the 96/97 upgrade, which goes over an installed SWOS: %d of the game's "
+                 "files are not on them (%.60s ...)", (int)missing, first);
+        return -1;
+    }
+    snprintf(s->dosDir, sizeof s->dosDir, "%s", pc);
+    return 0;
+}
 
 int32_t SdSources_AddFile(SdSources *s, const char *path)
 {
@@ -771,6 +899,16 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
             snprintf(s->jagRom, sizeof s->jagRom, "%s", path);
         return 0;
     }
+    if (is_floppy_name(path) && !is_dir(path)) {
+        const int32_t disk = dos_floppy_disk(path);
+        if (disk) {
+            char *slot = disk == 1 ? s->dosFloppy1 : s->dosFloppy2;
+            if (!slot[0])
+                snprintf(slot, 1024, "%s", path);
+            SdSources_DosFloppies(s);
+            return 0;
+        }
+    }
     if (is_cd_image_name(path) && !is_dir(path))
         return SdSources_AddDosCd(s, path);
     if (is_dir(path)) {
@@ -830,7 +968,8 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
 static int32_t count_found(const SdSources *s)
 {
     return (s->adf1[0] != 0) + (s->adf2[0] != 0) + (s->hdf[0] != 0) + (s->lha[0] != 0) +
-           (s->dosDir[0] != 0) + (s->dosCd[0] != 0) + (s->jagRom[0] != 0) + (s->s2020Dir[0] != 0) +
+           (s->dosDir[0] != 0) + (s->dosCd[0] != 0) + (s->dosFloppy1[0] != 0) + (s->dosFloppy2[0] != 0) +
+           (s->jagRom[0] != 0) + (s->s2020Dir[0] != 0) +
            (s->world[0] != 0);
 }
 
@@ -892,9 +1031,10 @@ static void scan_file(SdSources *s, const char *path, const char *name)
         if (strcmp(vol, "SWOS") != 0 && strcmp(vol, "SWOS2") != 0 &&
             !contains_nocase(name, "swos") && !contains_nocase(name, "sensible"))
             return;
-    } else if (is_cd_image_name(name)) {
-        /* (a .bin is a cartridge or a CD's track) */
-        if (s->dosCd[0] && (s->jagRom[0] || !ends_with_nocase(name, ".bin")))
+    } else if (is_cd_image_name(name) || is_floppy_name(name)) {
+        /* (a .bin is a cartridge or a CD's track; an .img a CD's or a floppy's) */
+        if (s->dosCd[0] && (s->jagRom[0] || !ends_with_nocase(name, ".bin")) &&
+            (s->dosDir[0] || !is_floppy_name(name)))
             return;
     } else if (!(ends_with_nocase(name, ".jag") || ends_with_nocase(name, ".j64") ||
                  ends_with_nocase(name, ".rom")) || s->jagRom[0]) {
