@@ -675,6 +675,15 @@ SWOS United ships it). Checked: each restart kind and the extra-time, shoot-out,
 second-leg starts CPU v CPU (`SWOS_MOD_EVENT_LOG` logs where a restart put the ball), the 8 packs
 read back from the setup's binary field for field, the categories screen drawn, compat unchanged.
 
+**For a fork's screens** (2026-11-07): the mod offers the service `challenges` -- `categories`,
+`list` {category}, `info` {id} (every field, `<key>\t<value>` lines), `play` {id} (this mod's
+result screen, then `won`) -- and MODES -> CHALLENGES opens `challenges-screens` (`open`) when a mod
+offers it, its own screens otherwise. SWOS United's draws SWOS 2020's menus with it. Packs are
+read in file-name order ACROSS the mods (a pack's categories come where its file names put them:
+SWOS 2020's `01-...` before `challenges.json`). A shoot-out challenge gives the keeper to the
+player (`manualKeeper`, SWOS 2020's "MANUAL GK CONTROL"). Progress of a challenge whose pack is
+off is kept as read and written back (it was dropped by the next save).
+
 ## 19. Team packs (2026-11-04)
 
 Teams a mod brings: `data_json/teampacks/*.json` in the database's team format, numbers 210-249,

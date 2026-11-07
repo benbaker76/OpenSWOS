@@ -68,6 +68,7 @@
 #include "mods.h"
 #include "swos_io.h"        /* (the Amiga's file read) */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -202,6 +203,29 @@ static void read_file(const char *path)
 }
 #endif
 
+/* Progress of challenges not loaded now (a pack mod switched off): kept as it was read and
+ * written back, so playing one challenge never loses another pack's. */
+typedef struct { char id[40]; uint8_t completed; uint32_t attempts; } Kept;
+enum { kKept = 256 };
+static Kept   *s_kept;
+static int32_t s_numKept;
+static void keep(const char *id, uint8_t completed, uint32_t attempts)
+{
+    for (int32_t k = 0; k < s_count; k++)
+        if (!strcmp(s_ch[k].id, id))
+            return;
+    for (int32_t k = 0; k < s_numKept; k++)
+        if (!strcmp(s_kept[k].id, id))
+            return;
+    if (!s_kept && (s_kept = (Kept *)malloc(sizeof(Kept) * kKept)) == NULL)
+        return;
+    if (s_numKept == kKept)
+        return;
+    snprintf(s_kept[s_numKept].id, sizeof s_kept[0].id, "%s", id);
+    s_kept[s_numKept].completed = completed;
+    s_kept[s_numKept++].attempts = attempts;
+}
+
 #ifdef SWOS_SDL_BUILD
 static void read_progress(void)
 {
@@ -214,28 +238,43 @@ static void read_progress(void)
         snprintf(q, sizeof q, "$.challenges[%d].id", (int)i);
         if (mjson_get_string(json, (int)size, q, id, (int)sizeof id) < 0)
             break;
+        int b = 0;
+        snprintf(q, sizeof q, "$.challenges[%d].completed", (int)i);
+        const uint8_t completed = (uint8_t)(mjson_get_bool(json, (int)size, q, &b) && b);
+        snprintf(q, sizeof q, "$.challenges[%d].attempts", (int)i);
+        const uint32_t attempts = (uint32_t)number(json, (int)size, q, 0);
+        int32_t found = 0;
         for (int32_t k = 0; k < s_count; k++)
             if (!strcmp(s_ch[k].id, id)) {
-                int b = 0;
-                snprintf(q, sizeof q, "$.challenges[%d].completed", (int)i);
-                s_ch[k].completed = (uint8_t)(mjson_get_bool(json, (int)size, q, &b) && b);
-                snprintf(q, sizeof q, "$.challenges[%d].attempts", (int)i);
-                s_ch[k].attempts = (uint32_t)number(json, (int)size, q, 0);
+                s_ch[k].completed = completed;
+                s_ch[k].attempts = attempts;
+                found = 1;
             }
+        if (!found)
+            keep(id, completed, attempts);
     }
     free(json);
 }
 
 static void save_progress(void)
 {
-    char buf[8192];
-    int n = snprintf(buf, sizeof buf, "{\n \"format\": \"openswos-challenges-progress\",\n \"version\": 1,\n \"challenges\": [\n");
-    for (int32_t i = 0; i < s_count && n < (int)sizeof buf - 200; i++)
-        n += snprintf(buf + n, sizeof buf - (size_t)n, "  { \"id\": \"%s\", \"completed\": %s, \"attempts\": %u }%s\n",
-                      s_ch[i].id, s_ch[i].completed ? "true" : "false", (unsigned)s_ch[i].attempts,
-                      i + 1 < s_count ? "," : "");
-    n += snprintf(buf + n, sizeof buf - (size_t)n, " ]\n}\n");
+    const uint32_t cap = (uint32_t)(s_count + s_numKept) * 96 + 128;
+    char *buf = (char *)malloc(cap);
+    if (!buf)
+        return;
+    const int32_t total = s_count + s_numKept;
+    int n = snprintf(buf, cap, "{\n \"format\": \"openswos-challenges-progress\",\n \"version\": 1,\n \"challenges\": [\n");
+    for (int32_t i = 0; i < total && n < (int)cap - 120; i++) {
+        const int32_t kept = i >= s_count;
+        const char *id = kept ? s_kept[i - s_count].id : s_ch[i].id;
+        const int32_t completed = kept ? s_kept[i - s_count].completed : s_ch[i].completed;
+        const uint32_t attempts = kept ? s_kept[i - s_count].attempts : s_ch[i].attempts;
+        n += snprintf(buf + n, cap - (size_t)n, "  { \"id\": \"%s\", \"completed\": %s, \"attempts\": %u }%s\n",
+                      id, completed ? "true" : "false", (unsigned)attempts, i + 1 < total ? "," : "");
+    }
+    n += snprintf(buf + n, cap - (size_t)n, " ]\n}\n");
     ModApi_SaveFile("challenges", "progress.json", buf, (uint32_t)n);
+    free(buf);
 }
 #else
 static void read_progress(void)
@@ -251,11 +290,16 @@ static void read_progress(void)
             char id[40];
             memcpy(id, r, 40);
             id[39] = 0;
+            const uint32_t attempts = ((uint32_t)r[41] << 24) | ((uint32_t)r[42] << 16) | ((uint32_t)r[43] << 8) | r[44];
+            int32_t found = 0;
             for (int32_t k = 0; k < s_count; k++)
                 if (!strcmp(s_ch[k].id, id)) {
                     s_ch[k].completed = r[40];
-                    s_ch[k].attempts = ((uint32_t)r[41] << 24) | ((uint32_t)r[42] << 16) | ((uint32_t)r[43] << 8) | r[44];
+                    s_ch[k].attempts = attempts;
+                    found = 1;
                 }
+            if (!found)
+                keep(id, r[40], attempts);
         }
     }
     free((void *)p);
@@ -263,22 +307,29 @@ static void read_progress(void)
 
 static void save_progress(void)
 {
-    static uint8_t buf[10 + kMax * 45];
+    const int32_t total = s_count + s_numKept;
+    uint8_t *buf = (uint8_t *)malloc((size_t)(10 + total * 45));
+    if (!buf)
+        return;
     memcpy(buf, "OSWCPRG", 7);
     buf[7] = 1;
-    buf[8] = (uint8_t)(s_count >> 8);
-    buf[9] = (uint8_t)s_count;
-    for (int32_t i = 0; i < s_count; i++) {
+    buf[8] = (uint8_t)(total >> 8);
+    buf[9] = (uint8_t)total;
+    for (int32_t i = 0; i < total; i++) {
+        const int32_t kept = i >= s_count;
+        const char *id = kept ? s_kept[i - s_count].id : s_ch[i].id;
+        const uint32_t attempts = kept ? s_kept[i - s_count].attempts : s_ch[i].attempts;
         uint8_t *r = buf + 10 + i * 45;
         memset(r, 0, 40);
-        memcpy(r, s_ch[i].id, strlen(s_ch[i].id) < 39 ? strlen(s_ch[i].id) : 39);
-        r[40] = s_ch[i].completed;
-        r[41] = (uint8_t)(s_ch[i].attempts >> 24);
-        r[42] = (uint8_t)(s_ch[i].attempts >> 16);
-        r[43] = (uint8_t)(s_ch[i].attempts >> 8);
-        r[44] = (uint8_t)s_ch[i].attempts;
+        memcpy(r, id, strlen(id) < 39 ? strlen(id) : 39);
+        r[40] = kept ? s_kept[i - s_count].completed : s_ch[i].completed;
+        r[41] = (uint8_t)(attempts >> 24);
+        r[42] = (uint8_t)(attempts >> 16);
+        r[43] = (uint8_t)(attempts >> 8);
+        r[44] = (uint8_t)attempts;
     }
-    ModApi_SaveFile("challenges", "PROGRESS.BIN", buf, (uint32_t)(10 + s_count * 45));
+    ModApi_SaveFile("challenges", "PROGRESS.BIN", buf, (uint32_t)(10 + total * 45));
+    free(buf);
 }
 #endif
 
@@ -308,24 +359,44 @@ static int by_category_difficulty(const void *a, const void *b)
 }
 
 /* (ModApi_ListFiles' callback: one file of a mod's data_json/challenges/, kept to be read in
- * name order -- the order a listing gives is the file system's) */
-static char    s_names[64][64];
-static int32_t s_numNames;
+ * name order across ALL the mods -- the order a listing gives is the file system's, and the
+ * mods' is the folder's: so a pack's categories come where its file names put them, "01-..."
+ * before "challenges.json") */
+typedef struct { char name[64]; int16_t mod; } PackFile;
+enum { kMaxPacks = 64 };
+static PackFile *s_packs;               /* (kMaxPacks, from the heap while load() runs) */
+static int32_t   s_numPacks;
 static int32_t each_file(const char *name, void *ctx)
 {
     const size_t l = strlen(name);
-    (void)ctx;
 #ifdef SWOS_SDL_BUILD
-    if (l > 5 && !strcmp(name + l - 5, ".json") && l < sizeof s_names[0] && s_numNames < 64)
+    if (l > 5 && !strcmp(name + l - 5, ".json") && l < sizeof s_packs[0].name && s_numPacks < kMaxPacks)
 #else
-    if (l > 4 && (!strcmp(name + l - 4, ".BIN") || !strcmp(name + l - 4, ".bin")) && l < sizeof s_names[0] &&
-        s_numNames < 64)
+    if (l > 4 && (!strcmp(name + l - 4, ".BIN") || !strcmp(name + l - 4, ".bin")) && l < sizeof s_packs[0].name &&
+        s_numPacks < kMaxPacks)
 #endif
-        snprintf(s_names[s_numNames++], sizeof s_names[0], "%s", name);
+    {
+        snprintf(s_packs[s_numPacks].name, sizeof s_packs[0].name, "%s", name);
+        s_packs[s_numPacks++].mod = (int16_t)*(const int32_t *)ctx;
+    }
     return 0;
 }
 
-static int by_name(const void *a, const void *b) { return strcmp((const char *)a, (const char *)b); }
+static int by_name(const void *a, const void *b)
+{
+    const PackFile *x = (const PackFile *)a, *y = (const PackFile *)b;
+    const int c = strcmp(x->name, y->name);
+    return c ? c : x->mod - y->mod;
+}
+
+static void pack_dir(int32_t m, char *dir, uint32_t cap)
+{
+#ifdef SWOS_SDL_BUILD
+    snprintf(dir, cap, "%s/data_json/challenges", Mods_Dir(m));
+#else
+    snprintf(dir, cap, "%s/challenges", Mods_Dir(m));   /* (the setup's binary) */
+#endif
+}
 
 /* every mod that is on: its data_json/challenges/ */
 static void load(void)
@@ -337,23 +408,24 @@ static void load(void)
         fprintf(stderr, "[challenges] no memory for the list\n");
         return;
     }
-    for (int32_t m = 0; m < Mods_Count(); m++) {
+    s_packs = (PackFile *)malloc(sizeof(PackFile) * kMaxPacks);
+    s_numPacks = 0;
+    for (int32_t m = 0; m < Mods_Count() && s_packs; m++) {
         char dir[1200];
-#ifdef SWOS_SDL_BUILD
-        snprintf(dir, sizeof dir, "%s/data_json/challenges", Mods_Dir(m));
-#else
-        snprintf(dir, sizeof dir, "%s/challenges", Mods_Dir(m));   /* (the setup's binary) */
-#endif
-        s_loadingMod = m;
-        s_numNames = 0;
-        ModApi_ListFiles(dir, each_file, dir);
-        qsort(s_names, (size_t)s_numNames, sizeof s_names[0], by_name);
-        for (int32_t k = 0; k < s_numNames; k++) {
-            char path[1500];
-            snprintf(path, sizeof path, "%s/%s", dir, s_names[k]);
-            read_file(path);
-        }
+        pack_dir(m, dir, sizeof dir);
+        ModApi_ListFiles(dir, each_file, &m);
     }
+    if (s_packs)
+        qsort(s_packs, (size_t)s_numPacks, sizeof s_packs[0], by_name);
+    for (int32_t k = 0; k < s_numPacks; k++) {
+        char dir[1200], path[1300];
+        pack_dir(s_packs[k].mod, dir, sizeof dir);
+        snprintf(path, sizeof path, "%s/%s", dir, s_packs[k].name);
+        s_loadingMod = s_packs[k].mod;
+        read_file(path);
+    }
+    free(s_packs);
+    s_packs = NULL;
     s_loadingMod = -1;
     {   /* the player's own, after the packs' (the editor writes them: custom.json) */
         uint32_t size = 0;
@@ -512,6 +584,8 @@ static void play(int32_t i)
         }
         setup.extraTimeRule = c->extraTimeRule;
         setup.shootoutOnly = c->shootoutOnly;
+        if (c->shootoutOnly)
+            setup.manualKeeper = 1;         /* (SWOS 2020: "PENALTY SHOOTOUT, MANUAL GK CONTROL") */
         setup.secondLeg = c->secondLeg;
         setup.firstLeg[0] = c->firstLeg[0];
         setup.firstLeg[1] = c->firstLeg[1];
@@ -957,6 +1031,7 @@ static void edit_row(int32_t r)
         save_custom();
         s_loaded = 0;                       /* (read again: the new one in its place) */
         s_count = 0;
+        s_numKept = 0;                      /* (read again with the rest) */
         load();
         for (int32_t i = s_count - 1; i >= 0; i--)
             if (s_ch[i].custom) {
@@ -1094,7 +1169,123 @@ static void ch_open(void)
 {
     s_cat = -1;
     s_page = 0;
+    /* a fork's own screens for them (SWOS United's, SWOS 2020's), when a mod offers them: they
+     * read and play the challenges through the "challenges" service below */
+    if (ModApi_CallService("challenges-screens", "open", "{}", NULL, 0) == 0)
+        return;
     ModApi_ShowMenu("challenges/challengesMenu");
+}
+
+/* ---- the "challenges" service: the challenges for another mod's screens (docs/MODS.md §18) ----
+ *   categories {}                 "<name>\t<done>\t<all>\t<closed 0/1>" a line, in the list's order
+ *   list       {"category"}       "<id>\t<title or name>\t<difficulty>\t<0 open, 1 done, 2 locked>"
+ *   info       {"id"}             "<field>\t<value>" lines: the challenge's fields (below)
+ *   play       {"id"}             plays it (this mod's result screen, QUICK RETRY), then
+ *                                 "won\t<0/1>"; -1 when it is locked or unknown
+ * A challenge's category is "" for none; the player's own are "CUSTOM". */
+static int32_t find_id(const char *id)
+{
+    for (int32_t i = 0; i < s_count; i++)
+        if (!strcmp(s_ch[i].id, id))
+            return i;
+    return -1;
+}
+
+static void arg_str(const char *args, const char *key, char *out, int32_t cap)
+{
+    out[0] = 0;
+#ifdef SWOS_SDL_BUILD
+    char path[32];
+    snprintf(path, sizeof path, "$.%s", key);
+    if (mjson_get_string(args, (int)strlen(args), path, out, (int)cap) < 0)
+        out[0] = 0;
+#else
+    (void)args; (void)key; (void)cap;   /* (the Amiga: no JSON, and no fork's screens) */
+#endif
+}
+
+typedef struct { char *p; uint32_t left; } Out;
+static void put(Out *o, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+static void put(Out *o, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    const int n = vsnprintf(o->p, o->left, fmt, ap);
+    va_end(ap);
+    if (n > 0 && (uint32_t)n < o->left) {
+        o->p += n;
+        o->left -= (uint32_t)n;
+    } else if (o->left) {
+        o->p += o->left - 1;
+        o->left = 1;
+    }
+}
+
+static int32_t count_bits(uint32_t v) { int32_t n = 0; for (; v; v &= v - 1) n++; return n; }
+
+static int32_t service(const char *method, const char *args, char *out, uint32_t cap)
+{
+    Out o = { out, cap };
+    char key[64];
+    if (!out || !cap)
+        return -1;
+    out[0] = 0;
+    load();
+    if (!strcmp(method, "categories")) {
+        for (int32_t k = 0; k < s_numCats; k++) {
+            int32_t done, all;
+            category_counts(k, &done, &all);
+            put(&o, "%s\t%d\t%d\t%d\n", s_cats[k], (int)done, (int)all, (int)category_unavailable(s_cats[k]));
+        }
+        return 0;
+    }
+    if (!strcmp(method, "list")) {
+        arg_str(args, "category", key, sizeof key);
+        for (int32_t i = 0; i < s_count; i++)
+            if (!strcmp(s_ch[i].category, key))
+                put(&o, "%s\t%s\t%d\t%d\n", s_ch[i].id, s_ch[i].title[0] ? s_ch[i].title : s_ch[i].name,
+                    (int)s_ch[i].difficulty, s_ch[i].completed ? 1 : locked(i) ? 2 : 0);
+        return 0;
+    }
+    arg_str(args, "id", key, sizeof key);
+    const int32_t i = find_id(key);
+    if (i < 0)
+        return -1;
+    const Challenge *c = &s_ch[i];
+    if (!strcmp(method, "info")) {
+        int32_t injured[2] = { 0, 0 };
+        for (int32_t t = 0; t < 2; t++)
+            for (int32_t k = 0; k < 8; k++)
+                injured[t] += c->injured[t][k].shirt != 0;
+        put(&o, "id\t%s\nname\t%s\ntitle\t%s\ncategory\t%s\nabout\t%s\n", c->id, c->name, c->title,
+            c->category, c->about);
+        put(&o, "team0\t%s\nteam1\t%s\nyours\t%d\nscore0\t%d\nscore1\t%d\nminute\t%d\n", c->teamName[0],
+            c->teamName[1], (int)c->yours, (int)c->score[0], (int)c->score[1], (int)c->minute);
+        put(&o, "difficulty\t%d\nstate\t%d\nattempts\t%u\ncustom\t%d\n", (int)c->difficulty,
+            c->completed ? 1 : locked(i) ? 2 : 0, (unsigned)c->attempts, (int)c->custom);
+        put(&o, "extra_time\t%d\npenalties\t%d\nextra_time_rule\t%d\nshootout\t%d\n", (int)c->extraTime,
+            (int)c->penalties, (int)c->extraTimeRule, (int)c->shootoutOnly);
+        put(&o, "second_leg\t%d\nfirst_leg0\t%d\nfirst_leg1\t%d\n", (int)c->secondLeg, (int)c->firstLeg[0],
+            (int)c->firstLeg[1]);
+        put(&o, "subs_set\t%d\nsubs_min\t%d\nsubs_max\t%d\n", (int)c->subsSet, (int)c->subsMin, (int)c->subsMax);
+        put(&o, "restart\t%d\nrestart_team\t%d\nkick_off\t%d\nplaying_up\t%d\n", (int)c->restartKind,
+            (int)c->restartTeam, (int)c->kickOff, (int)c->playingUp);
+        put(&o, "win\t%d\nwin_score0\t%d\nwin_score1\t%d\nwin_message\t%s\n", (int)c->win,
+            (int)c->winScore[0], (int)c->winScore[1], c->winMessage);
+        for (int32_t k = 0; k < 5; k++)
+            put(&o, "description%d\t%s\n", (int)k + 1, c->lines[k]);
+        put(&o, "sent_off0\t%d\nsent_off1\t%d\ninjured0\t%d\ninjured1\t%d\n", (int)count_bits(c->sentOff[0]),
+            (int)count_bits(c->sentOff[1]), (int)injured[0], (int)injured[1]);
+        return 0;
+    }
+    if (!strcmp(method, "play")) {
+        if (locked(i))
+            return -1;
+        play(i);
+        put(&o, "won\t%d\n", (int)s_won);
+        return 0;
+    }
+    return -1;
 }
 
 static void pick0(void) { pick(0); }
@@ -1137,6 +1328,7 @@ static void ch_init(void)
         { "exit", ch_exit }, { "listExit", list_exit },
     };
     ModApi_RegisterHandlers("challenges", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
+    ModApi_RegisterService("challenges", "challenges", service);
     ModApi_AddEntry(MODPOINT_MODES, "challenges", "challenges", ch_open);
 }
 
