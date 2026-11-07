@@ -438,8 +438,13 @@ static void start(void)
                 }
             say("[golden] bench: %d loads done\n", atoi(bench));
             /* the career as loaded, written back: it must equal the file it came from */
-            if (SaveJson_WriteCareer((uint8_t *)"REWRITE.CAR") != 0)
-                say("[golden] bench: cannot write REWRITE.CAR\n");
+            {   /* SWOS_SAVE_BENCH=<n>: the write n times (the writer's timings) */
+                const char *sb = getenv("SWOS_SAVE_BENCH");
+                int32_t writes = (sb && atoi(sb) > 0) ? atoi(sb) : 1;
+                for (int32_t w = 0; w < writes; w++)
+                    if (SaveJson_WriteCareer((uint8_t *)"REWRITE.CAR") != 0)
+                        say("[golden] bench: cannot write REWRITE.CAR\n");
+            }
             exit(0);
         }
     }

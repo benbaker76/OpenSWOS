@@ -130,6 +130,33 @@ void SaveJson_TimingWrite(const uint8_t *career)
 }
 #endif
 
+/* SAVE_LAP("section"): the time since the previous lap of the career writer (NULL
+ * starts the clock) -- microseconds on the PC profiling build, VBlanks into
+ * save/T_SAVE_<career>.TXT with SWOS_AMIGA_LOAD_TIMING. Nothing otherwise. */
+#if defined(SWOS_SAVE_FORMAT_JSON_PROFILE)
+static void save_lap(const char *name)
+{
+    static double last;
+    double now = prof_now_us();
+    if (name)
+        SWOS_DBG("[json-prof-career-save] %s: %.0f us\n", name, now - last);
+    last = now;
+}
+#define SAVE_LAP(n) save_lap(n)
+#elif !defined(SWOS_SDL_BUILD) && defined(SWOS_AMIGA_LOAD_TIMING)
+static void save_lap(const char *name)
+{
+    static uint16_t last;
+    uint16_t now = _currentTick;
+    if (name)
+        SaveJson_TimingAdd(name, (uint16_t)(now - last));
+    last = now;
+}
+#define SAVE_LAP(n) save_lap(n)
+#else
+#define SAVE_LAP(n) ((void)0)
+#endif
+
 /* careerFileBuffer (TMD team-pool count) + numSelectedTeams are standalone
  * uint16 globals (the careerFileBufferBuf overlay was retired). careerFileBuffer
  * was historically declared uint8_t here (a "stub" for the old byte-memset);
@@ -566,8 +593,8 @@ static void emit_season_informations(mjson_print_fn_t fn, void *fnd)
     for (uint32_t i = 0; i < SAVE_SI_ENTRY_COUNT; i++) {
         const SeasonInformations *e = &arr[i];
 
-        if (i > 0) mjson_printf(fn, fnd, "%s", ",");
-        mjson_printf(fn, fnd, "%s", "{");
+        if (i > 0) fn(",", 1, fnd);
+        fn("{", 1, fnd);
 
         mjson_printf(fn, fnd, "%Q:%u,", "club_no", (unsigned)e->clubNo);
         emit_string_field(fn, fnd, "club_name",
@@ -577,11 +604,11 @@ static void emit_season_informations(mjson_print_fn_t fn, void *fnd)
 
         /* Four per-season comp-name strings. */
         emit_str_pool_field(fn, fnd, "league_str", e->leagueStrPtr);
-        mjson_printf(fn, fnd, "%s", ",");
+        fn(",", 1, fnd);
         emit_str_pool_field(fn, fnd, "str_1", e->strPtr1);
-        mjson_printf(fn, fnd, "%s", ",");
+        fn(",", 1, fnd);
         emit_str_pool_field(fn, fnd, "str_2", e->strPtr2);
-        mjson_printf(fn, fnd, "%s", ",");
+        fn(",", 1, fnd);
         emit_str_pool_field(fn, fnd, "str_3", e->strPtr3);
 
         mjson_printf(fn, fnd, ",%Q:%u,",
@@ -589,7 +616,7 @@ static void emit_season_informations(mjson_print_fn_t fn, void *fnd)
         emit_string_field(fn, fnd, "best_scorer_name",
                           (const uint8_t *)e->bestScorerName,
                           sizeof(e->bestScorerName));
-        mjson_printf(fn, fnd, "%s", ",");
+        fn(",", 1, fnd);
         emit_string_field(fn, fnd, "second_scorer_name",
                           (const uint8_t *)e->secondScorerName,
                           sizeof(e->secondScorerName));
@@ -620,7 +647,7 @@ static void emit_season_informations(mjson_print_fn_t fn, void *fnd)
             "tournament_status", (unsigned)e->tournamentStatus,
             "manager_status", (int)e->managerStatus);
     }
-    mjson_printf(fn, fnd, "%s", "]");
+    fn("]", 1, fnd);
 }
 
 static int fast_array_next(const char *slice, int slen, int pos,
@@ -1545,83 +1572,174 @@ static const FieldDesc s_career_scalars[] = {
 #undef FXS
 #undef FAS
 
+/* ---------- Record writers that build in a local buffer (2026-11-06) ----------
+ *
+ * A career save writes ~30,000 small values: each team's header and 16 players,
+ * the market's players. Written field by field, every number and every comma was
+ * its own call into the output, and a %Q string one call per CHARACTER (and a
+ * format parse each time) -- on a 14 MHz 68020 most of a 16 s save. These build a
+ * whole record in a local buffer and hand it over in one call. Same text as the
+ * field writers above: emit_key_ulong's numbers, emit_bytes_at's arrays, and
+ * mjson_print_str's escapes (\b \f \n \r \t \\ \" only, every other byte as it is). */
+typedef struct {
+    mjson_print_fn_t fn;
+    void *fnd;
+    int   n;
+    char  b[2048];
+} JB;
+
+static void jb_flush(JB *j)
+{
+    if (j->n) { j->fn(j->b, j->n, j->fnd); j->n = 0; }
+}
+
+static void jb_room(JB *j, int need)
+{
+    if (j->n + need > (int)sizeof j->b) jb_flush(j);
+}
+
+static void jb_c(JB *j, char c) { j->b[j->n++] = c; }
+
+static void jb_key(JB *j, const char *key)        /* "key": */
+{
+    j->b[j->n++] = '"';
+    while (*key) j->b[j->n++] = *key++;
+    j->b[j->n++] = '"';
+    j->b[j->n++] = ':';
+}
+
+static void jb_ulong(JB *j, uint32_t v)
+{
+    char t[12];
+    int k = 0;
+    do { t[k++] = (char)('0' + (v % 10u)); v /= 10u; } while (v);
+    while (k) j->b[j->n++] = t[--k];
+}
+
+static void jb_long(JB *j, int32_t v)
+{
+    if (v < 0) {
+        j->b[j->n++] = '-';
+        jb_ulong(j, (uint32_t)(-(v + 1)) + 1u);
+    } else
+        jb_ulong(j, (uint32_t)v);
+}
+
+static void jb_key_ulong(JB *j, const char *key, uint32_t v) { jb_key(j, key); jb_ulong(j, v); }
+static void jb_key_long(JB *j, const char *key, int32_t v)           { jb_key(j, key); jb_long(j, v); }
+
+/* "key":"text" -- the string of up to maxlen bytes at base+off, its bytes past the
+ * NUL zeroed (as emit_str_at does), escaped as mjson_print_str escapes. */
+static void jb_key_str(JB *j, const char *key, const uint8_t *base, uint32_t off, uint32_t maxlen)
+{
+    uint8_t *p = (uint8_t *)base + off;
+    uint32_t n = 0;
+    while (n < maxlen && p[n] != '\0') n++;
+    for (uint32_t i = n; i < maxlen; i++) p[i] = 0;
+    jb_key(j, key);
+    j->b[j->n++] = '"';
+    for (uint32_t i = 0; i < n; i++) {
+        char c = (char)p[i], e = 0;
+        switch (c) {
+            case '\b': e = 'b'; break;
+            case '\f': e = 'f'; break;
+            case '\n': e = 'n'; break;
+            case '\r': e = 'r'; break;
+            case '\t': e = 't'; break;
+            case '\\': e = '\\'; break;
+            case '"':  e = '"'; break;
+            default: break;
+        }
+        if (e) { j->b[j->n++] = '\\'; j->b[j->n++] = e; }
+        else   j->b[j->n++] = c;
+    }
+    j->b[j->n++] = '"';
+}
+
+/* "key":[a,b,...] of len bytes (emit_bytes_at's format); len is small here. */
+static void jb_key_bytes(JB *j, const char *key, const uint8_t *base, uint32_t off, uint32_t len)
+{
+    jb_key(j, key);
+    j->b[j->n++] = '[';
+    for (uint32_t i = 0; i < len; i++) {
+        if (i > 0) j->b[j->n++] = ',';
+        jb_ulong(j, (uint32_t)base[off + i]);
+    }
+    j->b[j->n++] = ']';
+}
+
 static void emit_scalar_table(mjson_print_fn_t fn, void *fnd,
                               const char *section_key,
                               const FieldDesc *table)
 {
-    mjson_printf(fn, fnd, "%Q:{", section_key);
+    /* Through the JB builder (above): the byte arrays here are KBs, and were a
+     * printf per element. Same text as the mjson_printf formats they replace --
+     * %u/%d decimals, %lu of a (long)(uint32_t) the unsigned 32-bit value, %ld the
+     * signed one, %.*Q mjson_print_str's escapes. */
+    JB j;
+    j.fn = fn; j.fnd = fnd; j.n = 0;
+    jb_room(&j, 64);
+    jb_key(&j, section_key);
+    jb_c(&j, '{');
     int first = 1;
     for (const FieldDesc *f = table; f->type != FLD_END; f++) {
-        if (!first) mjson_printf(fn, fnd, "%s", ",");
-        first = 0;
         const uint8_t *p = (const uint8_t *)f->addr;
+        jb_room(&j, 128);
+        if (!first) jb_c(&j, ',');
+        first = 0;
         switch (f->type) {
-        case FLD_U8:
-            mjson_printf(fn, fnd, "%Q:%u", f->name, (unsigned)*p);
+        case FLD_U8:  jb_key_ulong(&j, f->name, (uint32_t)*p); break;
+        case FLD_S8:  jb_key_long (&j, f->name, (int32_t)*(int8_t *)p); break;
+        case FLD_U16: jb_key_ulong(&j, f->name, (uint32_t)*(uint16_t *)p); break;
+        case FLD_S16: jb_key_long (&j, f->name, (int32_t)*(int16_t *)p); break;
+        case FLD_U32: jb_key_ulong(&j, f->name, (uint32_t)*(uint32_t *)p); break;
+        case FLD_S32: jb_key_long (&j, f->name, (int32_t)*(int32_t *)p); break;
+        case FLD_STR:
+            jb_room(&j, 64 + 2 * (int)f->size);
+            jb_key_str(&j, f->name, p, 0, f->size);
             break;
-        case FLD_S8:
-            mjson_printf(fn, fnd, "%Q:%d", f->name, (int)*(int8_t *)p);
-            break;
-        case FLD_U16:
-            mjson_printf(fn, fnd, "%Q:%u", f->name, (unsigned)*(uint16_t *)p);
-            break;
-        case FLD_S16:
-            mjson_printf(fn, fnd, "%Q:%d", f->name, (int)*(int16_t *)p);
-            break;
-        case FLD_U32:
-            mjson_printf(fn, fnd, "%Q:%lu", f->name, (long)(uint32_t)*(uint32_t *)p);
-            break;
-        case FLD_S32:
-            mjson_printf(fn, fnd, "%Q:%ld", f->name, (long)*(int32_t *)p);
-            break;
-        case FLD_STR: {
-            uint32_t n = 0;
-            while (n < f->size && p[n] != '\0') n++;
-            /* Zero post-NUL bytes so the save reflects what the
-             * loader will round-trip back. Without this, garbage
-             * left over from prior buffer use shows up as
-             * verify-time mismatches even though it has no game
-             * semantics. */
-            for (uint32_t i = n; i < f->size; i++)
-                ((uint8_t *)p)[i] = 0;
-            mjson_printf(fn, fnd, "%Q:%.*Q", f->name, (int)n, (const char *)p);
-            break;
-        }
         case FLD_BYTES: {
             const uint32_t len = emitted_len(f, p);
-            mjson_printf(fn, fnd, "%Q:[", f->name);
+            jb_key(&j, f->name);
+            jb_c(&j, '[');
             for (uint32_t i = 0; i < len; i++) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
-                mjson_printf(fn, fnd, "%u", (unsigned)p[i]);
+                jb_room(&j, 8);
+                if (i > 0) jb_c(&j, ',');
+                jb_ulong(&j, (uint32_t)p[i]);
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            jb_room(&j, 1);
+            jb_c(&j, ']');
             break;
         }
         case FLD_U16_ARRAY:
-            /* Emit each 16-bit word as a host-native-read decimal so the
-             * on-disk value is byte-order-independent. */
-            mjson_printf(fn, fnd, "%Q:[", f->name);
+            jb_key(&j, f->name);
+            jb_c(&j, '[');
             for (uint32_t i = 0, len = emitted_len(f, p); i + 1 < len; i += 2) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
-                mjson_printf(fn, fnd, "%u", (unsigned)*(uint16_t *)(p + i));
+                jb_room(&j, 12);
+                if (i > 0) jb_c(&j, ',');
+                jb_ulong(&j, (uint32_t)*(uint16_t *)(p + i));
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            jb_room(&j, 1);
+            jb_c(&j, ']');
             break;
         case FLD_U32_ARRAY:
-            /* Each 32-bit word as host-native-read decimal — endian-neutral
-             * on disk. See FLD_U32_ARRAY in the enum. */
-            mjson_printf(fn, fnd, "%Q:[", f->name);
+            jb_key(&j, f->name);
+            jb_c(&j, '[');
             for (uint32_t i = 0; i + 3 < f->size; i += 4) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
-                mjson_printf(fn, fnd, "%ld", (long)*(int32_t *)(p + i));
+                jb_room(&j, 16);
+                if (i > 0) jb_c(&j, ',');
+                jb_long(&j, (int32_t)*(int32_t *)(p + i));
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            jb_room(&j, 1);
+            jb_c(&j, ']');
             break;
         default:
             break;
         }
     }
-    mjson_printf(fn, fnd, "%s", "}");
+    jb_room(&j, 1);
+    jb_c(&j, '}');
+    jb_flush(&j);
 }
 
 /* ---------- Walk-once dispatch for scalar-table loads ----------
@@ -2539,60 +2657,45 @@ static void load_bytes_at(const char *buf, int buflen, const char *path,
 
 /* Emit a single PlayerFile (38 B) as a JSON object body. Used by the
  * TeamFileEx players[] loop and by typed market-player encoders. */
+
+static void jb_player(JB *j, const uint8_t *p)
+{
+    jb_room(j, 640);
+    jb_c(j, '{');
+    jb_key_long (j, "nationality",        (int32_t)(int8_t)p[offsetof(PlayerFile, nationality)]);       jb_c(j, ',');
+    jb_key_long (j, "cached_match_value", (int32_t)(int8_t)p[offsetof(PlayerFile, cachedMatchValue)]);  jb_c(j, ',');
+    jb_key_long (j, "shirt_number",       (int32_t)(int8_t)p[offsetof(PlayerFile, shirtNumber)]);       jb_c(j, ',');
+    jb_key_str  (j, "player_name", p, offsetof(PlayerFile, playerName), 23);                         jb_c(j, ',');
+    {
+        const uint8_t pf = p[offsetof(PlayerFile, positionAndFace)];
+        const uint8_t ci = p[offsetof(PlayerFile, cardsInjuries)];
+        jb_key_ulong(j, "position", (uint32_t)((pf & PF_POSITION_MASK) >> mask_shift(PF_POSITION_MASK))); jb_c(j, ',');
+        jb_key_ulong(j, "face",     (uint32_t)((pf & PF_FACE_MASK) >> mask_shift(PF_FACE_MASK)));         jb_c(j, ',');
+        jb_key_ulong(j, "flags",    (uint32_t)(pf & 0x07));                                              jb_c(j, ',');
+        jb_key_ulong(j, "cards",         (uint32_t)(ci & 0x03));                                         jb_c(j, ',');
+        jb_key_ulong(j, "injury",        (uint32_t)((ci & 0x1C) >> 2));                                  jb_c(j, ',');
+        jb_key_ulong(j, "status_bucket", (uint32_t)((ci & 0xE0) >> 5));                                  jb_c(j, ',');
+    }
+    jb_key_long (j, "passing", (int32_t)(int8_t)p[offsetof(PlayerFile, passing)]);                      jb_c(j, ',');
+    jb_key_ulong(j, "velocity",  (uint32_t)((p[offsetof(PlayerFile, velocityHeading)] >> 4) & 0x0F)); jb_c(j, ',');
+    jb_key_ulong(j, "heading",   (uint32_t)(p[offsetof(PlayerFile, velocityHeading)] & 0x0F));        jb_c(j, ',');
+    jb_key_ulong(j, "tackling",  (uint32_t)((p[offsetof(PlayerFile, tacklingControl)] >> 4) & 0x0F)); jb_c(j, ',');
+    jb_key_ulong(j, "control",   (uint32_t)(p[offsetof(PlayerFile, tacklingControl)] & 0x0F));        jb_c(j, ',');
+    jb_key_ulong(j, "speed",     (uint32_t)((p[offsetof(PlayerFile, speedFinishing)] >> 4) & 0x0F));  jb_c(j, ',');
+    jb_key_ulong(j, "finishing", (uint32_t)(p[offsetof(PlayerFile, speedFinishing)] & 0x0F));         jb_c(j, ',');
+    jb_key_long (j, "price", (int32_t)(int8_t)p[offsetof(PlayerFile, price)]);                          jb_c(j, ',');
+    jb_key_bytes(j, "goal_stats", p, offsetof(PlayerFile, goalStats), 4);                            jb_c(j, ',');
+    jb_key_long (j, "form", (int32_t)(int8_t)p[offsetof(PlayerFile, form)]);
+    jb_c(j, '}');
+}
+
 static void emit_player_file_body(mjson_print_fn_t fn, void *fnd,
                                   const uint8_t *p)
 {
-    mjson_printf(fn, fnd, "%s", "{");
-    emit_s8_at  (fn, fnd, "nationality",          p, offsetof(PlayerFile, nationality));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_s8_at  (fn, fnd, "cached_match_value",   p, offsetof(PlayerFile, cachedMatchValue));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_s8_at  (fn, fnd, "shirt_number",         p, offsetof(PlayerFile, shirtNumber));
-    mjson_printf(fn, fnd, "%s", ",");
-    /* player_name now 23 bytes: the 22-char name + its NUL terminator (the former
-     * separate "field_19" byte, folded into the name buffer 2026-06-19). */
-    emit_str_at (fn, fnd, "player_name",          p, offsetof(PlayerFile, playerName), 23);
-    mjson_printf(fn, fnd, "%s", ",");
-    /* positionAndFace byte split: position (bits 5-7), face (bits 3-4), flags (bits 0-2:
-     * inform/loan/trialist — runtime, 0 in static team data). 2026-06-22. */
-    emit_bits_at(fn, fnd, "position", p, offsetof(PlayerFile, positionAndFace), PF_POSITION_MASK);
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_bits_at(fn, fnd, "face",     p, offsetof(PlayerFile, positionAndFace), PF_FACE_MASK);
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_bits_at(fn, fnd, "flags",    p, offsetof(PlayerFile, positionAndFace), 0x07);
-    mjson_printf(fn, fnd, "%s", ",");
-    /* cardsInjuries byte split: cards (bits 0-1), injury (bits 2-4), status_bucket
-     * (bits 5-7) — all runtime career state, 0 in static team data. */
-    emit_bits_at(fn, fnd, "cards",         p, offsetof(PlayerFile, cardsInjuries), 0x03);
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_bits_at(fn, fnd, "injury",        p, offsetof(PlayerFile, cardsInjuries), 0x1C);
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_bits_at(fn, fnd, "status_bucket", p, offsetof(PlayerFile, cardsInjuries), 0xE0);
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_s8_at  (fn, fnd, "passing",              p, offsetof(PlayerFile, passing));
-    mjson_printf(fn, fnd, "%s", ",");
-    /* The three skill bytes are nibble pairs (hi=first label, lo=second — see the
-     * PlayerFile struct comments + match_sim.c skill-unpack). Split into six editable
-     * fields 2026-06-22; load recombines them. (Pre-split saves used the packed keys
-     * velocity_heading/tackling_control/speed_finishing — still read for back-compat.) */
-    emit_nibble_hi_at(fn, fnd, "velocity",  p, offsetof(PlayerFile, velocityHeading));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_nibble_lo_at(fn, fnd, "heading",   p, offsetof(PlayerFile, velocityHeading));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_nibble_hi_at(fn, fnd, "tackling",  p, offsetof(PlayerFile, tacklingControl));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_nibble_lo_at(fn, fnd, "control",   p, offsetof(PlayerFile, tacklingControl));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_nibble_hi_at(fn, fnd, "speed",     p, offsetof(PlayerFile, speedFinishing));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_nibble_lo_at(fn, fnd, "finishing", p, offsetof(PlayerFile, speedFinishing));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_s8_at  (fn, fnd, "price",                p, offsetof(PlayerFile, price));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_bytes_at(fn, fnd,"goal_stats",           p, offsetof(PlayerFile, goalStats), 4);
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_s8_at  (fn, fnd, "form",                 p, offsetof(PlayerFile, form));
-    mjson_printf(fn, fnd, "%s", "}");
+    JB j;
+    j.fn = fn; j.fnd = fnd; j.n = 0;
+    jb_player(&j, p);
+    jb_flush(&j);
 }
 
 /* ---------- Walk-once dispatch for struct-relative fields ----------
@@ -2963,10 +3066,10 @@ static void load_struct_object_walk(const char *slice, int slen, uint8_t *base,
 static void emit_struct_object(mjson_print_fn_t fn, void *fnd,
                                const uint8_t *base, const StructFieldDesc *table)
 {
-    mjson_printf(fn, fnd, "%s", "{");
+    fn("{", 1, fnd);
     int first = 1;
     for (const StructFieldDesc *f = table; f->name; f++) {
-        if (!first) mjson_printf(fn, fnd, "%s", ",");
+        if (!first) fn(",", 1, fnd);
         first = 0;
         switch (f->type) {
         case FLD_U8:    emit_u8_at   (fn, fnd, f->name, base, f->offset); break;
@@ -2983,7 +3086,7 @@ static void emit_struct_object(mjson_print_fn_t fn, void *fnd,
         default:        mjson_printf(fn, fnd, "%Q:0", f->name); break;
         }
     }
-    mjson_printf(fn, fnd, "%s", "}");
+    fn("}", 1, fnd);
 }
 
 /* PlayerFile field table — keys must match emit_player_file_body. */
@@ -3098,15 +3201,18 @@ static void load_player_file_body(const char *buf, int buflen, uint8_t *p)
 static void emit_market_player_body(mjson_print_fn_t fn, void *fnd,
                                     const uint8_t *base)
 {
-    mjson_printf(fn, fnd, "%s", "{");
-    emit_s16_at (fn, fnd, "team_id",        base, offsetof(MarketPlayer, teamId));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_s8_at  (fn, fnd, "player_ordinal", base, offsetof(MarketPlayer, playerOrdinal));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_s8_at  (fn, fnd, "padding",        base, offsetof(MarketPlayer, padding));
-    mjson_printf(fn, fnd, ",%Q:", "player");
-    emit_player_file_body(fn, fnd, base + offsetof(MarketPlayer, player));
-    mjson_printf(fn, fnd, "%s", "}");
+    JB j;
+    int16_t id;
+    j.fn = fn; j.fnd = fnd; j.n = 0;
+    memcpy(&id, base + offsetof(MarketPlayer, teamId), sizeof id);
+    jb_c(&j, '{');
+    jb_key_long(&j, "team_id",        (int32_t)id);                                                    jb_c(&j, ',');
+    jb_key_long(&j, "player_ordinal", (int32_t)(int8_t)base[offsetof(MarketPlayer, playerOrdinal)]);  jb_c(&j, ',');
+    jb_key_long(&j, "padding",        (int32_t)(int8_t)base[offsetof(MarketPlayer, padding)]);
+    jb_c(&j, ','); jb_key(&j, "player");
+    jb_player(&j, base + offsetof(MarketPlayer, player));
+    jb_c(&j, '}');
+    jb_flush(&j);
 }
 
 /* Load a MarketPlayer from a JSON object slice. Mirror of
@@ -3149,62 +3255,42 @@ static void emit_team_file_ex_body(mjson_print_fn_t fn, void *fnd,
                                    const uint8_t *base)
 {
     const uint8_t *team = base + offsetof(TeamFileEx, team);
-    mjson_printf(fn, fnd, "{%Q:{", "team");
-    emit_u8_at  (fn, fnd, "country_number",     team, offsetof(TeamFile, countryNumber));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at  (fn, fnd, "team_ordinal",       team, offsetof(TeamFile, teamOrdinal));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_s16_at (fn, fnd, "global_team_number", team, offsetof(TeamFile, globalTeamNumber));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at  (fn, fnd, "team_controls",      team, offsetof(TeamFile, teamControls));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_str_at (fn, fnd, "team_name",          team, offsetof(TeamFile, teamName), 17);
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at  (fn, fnd, "writes_zero_here",   team, offsetof(TeamFile, writesZeroHere));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at  (fn, fnd, "and_with_0xfe",      team, offsetof(TeamFile, andWith0xFE));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at  (fn, fnd, "tactics",            team, offsetof(TeamFile, tactics));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at  (fn, fnd, "league",             team, offsetof(TeamFile, league));
-    mjson_printf(fn, fnd, "%s", ",");
-    /* Kit colors as 10 named fields (primary + secondary, each: shirt_type, stripes,
-     * basic, shorts, socks) — clearer to edit than a flat 10-byte array. 2026-06-22. */
-    emit_u8_at(fn, fnd, "primary_shirt_type",      team, offsetof(TeamFile, prShirtType));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "primary_stripes_color",   team, offsetof(TeamFile, prStripesColor));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "primary_basic_color",     team, offsetof(TeamFile, prBasicColor));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "primary_shorts_color",    team, offsetof(TeamFile, prShortsColor));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "primary_socks_color",     team, offsetof(TeamFile, prSocksColor));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "secondary_shirt_type",    team, offsetof(TeamFile, secShirtType));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "secondary_stripes_color", team, offsetof(TeamFile, secStripesColor));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "secondary_basic_color",   team, offsetof(TeamFile, secBasicColor));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "secondary_shorts_color",  team, offsetof(TeamFile, secShortsColor));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at(fn, fnd, "secondary_socks_color",   team, offsetof(TeamFile, secSocksColor));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_str_at (fn, fnd, "coach_name",         team, offsetof(TeamFile, coachName), 23);
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_u8_at  (fn, fnd, "player_values_dirty",team, offsetof(TeamFile, playerValuesDirty));
-    mjson_printf(fn, fnd, "%s", ",");
-    emit_bytes_at(fn, fnd,"player_numbers",     team, offsetof(TeamFile, playerNumbers), 16);
-    mjson_printf(fn, fnd, "%s", "}");
-
-    mjson_printf(fn, fnd, ",%Q:[", "players");
+    JB j;
+    int16_t gtn;
+    j.fn = fn; j.fnd = fnd; j.n = 0;
+    memcpy(&gtn, team + offsetof(TeamFile, globalTeamNumber), sizeof gtn);
+    jb_c(&j, '{'); jb_key(&j, "team"); jb_c(&j, '{');
+    jb_key_ulong(&j, "country_number",     team[offsetof(TeamFile, countryNumber)]);  jb_c(&j, ',');
+    jb_key_ulong(&j, "team_ordinal",       team[offsetof(TeamFile, teamOrdinal)]);    jb_c(&j, ',');
+    jb_key_long (&j, "global_team_number", (int32_t)gtn);                                jb_c(&j, ',');
+    jb_key_ulong(&j, "team_controls",      team[offsetof(TeamFile, teamControls)]);   jb_c(&j, ',');
+    jb_key_str  (&j, "team_name", team, offsetof(TeamFile, teamName), 17);            jb_c(&j, ',');
+    jb_key_ulong(&j, "writes_zero_here",   team[offsetof(TeamFile, writesZeroHere)]); jb_c(&j, ',');
+    jb_key_ulong(&j, "and_with_0xfe",      team[offsetof(TeamFile, andWith0xFE)]);    jb_c(&j, ',');
+    jb_key_ulong(&j, "tactics",            team[offsetof(TeamFile, tactics)]);        jb_c(&j, ',');
+    jb_key_ulong(&j, "league",             team[offsetof(TeamFile, league)]);         jb_c(&j, ',');
+    jb_key_ulong(&j, "primary_shirt_type",      team[offsetof(TeamFile, prShirtType)]);     jb_c(&j, ',');
+    jb_key_ulong(&j, "primary_stripes_color",   team[offsetof(TeamFile, prStripesColor)]);  jb_c(&j, ',');
+    jb_key_ulong(&j, "primary_basic_color",     team[offsetof(TeamFile, prBasicColor)]);    jb_c(&j, ',');
+    jb_key_ulong(&j, "primary_shorts_color",    team[offsetof(TeamFile, prShortsColor)]);   jb_c(&j, ',');
+    jb_key_ulong(&j, "primary_socks_color",     team[offsetof(TeamFile, prSocksColor)]);    jb_c(&j, ',');
+    jb_key_ulong(&j, "secondary_shirt_type",    team[offsetof(TeamFile, secShirtType)]);    jb_c(&j, ',');
+    jb_key_ulong(&j, "secondary_stripes_color", team[offsetof(TeamFile, secStripesColor)]); jb_c(&j, ',');
+    jb_key_ulong(&j, "secondary_basic_color",   team[offsetof(TeamFile, secBasicColor)]);   jb_c(&j, ',');
+    jb_key_ulong(&j, "secondary_shorts_color",  team[offsetof(TeamFile, secShortsColor)]);  jb_c(&j, ',');
+    jb_key_ulong(&j, "secondary_socks_color",   team[offsetof(TeamFile, secSocksColor)]);   jb_c(&j, ',');
+    jb_key_str  (&j, "coach_name", team, offsetof(TeamFile, coachName), 23);                jb_c(&j, ',');
+    jb_key_ulong(&j, "player_values_dirty",     team[offsetof(TeamFile, playerValuesDirty)]); jb_c(&j, ',');
+    jb_key_bytes(&j, "player_numbers", team, offsetof(TeamFile, playerNumbers), 16);
+    jb_c(&j, '}');
+    jb_c(&j, ','); jb_key(&j, "players"); jb_c(&j, '[');
     for (int i = 0; i < 16; i++) {
-        const uint8_t *p = base + offsetof(TeamFileEx, players)
-                                + (size_t)i * sizeof(PlayerFile);
-        if (i > 0) mjson_printf(fn, fnd, "%s", ",");
-        emit_player_file_body(fn, fnd, p);
+        if (i > 0) { jb_room(&j, 1); jb_c(&j, ','); }
+        jb_player(&j, base + offsetof(TeamFileEx, players) + (uint32_t)i * sizeof(PlayerFile));
     }
-    mjson_printf(fn, fnd, "%s", "]}");
+    jb_room(&j, 2);
+    jb_c(&j, ']'); jb_c(&j, '}');
+    jb_flush(&j);
 }
 
 /* world_playoff's arrays in the career save: numbers by name (include/world_playoff.h). */
@@ -5361,21 +5447,21 @@ static void emit_comp_copy_teamlists(mjson_print_fn_t fn, void *fnd)
             ? (uint16_t)(5 + nameOffset + 2u * sizeof(char *)) : 7u;
         uint16_t off = (uint16_t)(7u + base[7]
                        + 2u * (sizeof(char *) - sizeof(uint32_t)));
-        if (!first) mjson_printf(fn, fnd, "%s", ",");
+        if (!first) fn(",", 1, fnd);
         first = 0;
         if (off < text_end || off >= e->templateSize) {
-            mjson_printf(fn, fnd, "%s", "[]");   /* no team list / unsafe */
+            fn("[]", 2, fnd);   /* no team list / unsafe */
             continue;
         }
         uint16_t len = (uint16_t)(e->templateSize - off);
-        mjson_printf(fn, fnd, "%s", "[");
+        fn("[", 1, fnd);
         for (uint16_t i = 0; i < len; i++) {
-            if (i) mjson_printf(fn, fnd, "%s", ",");
+            if (i) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%u", (unsigned)base[off + i]);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
     }
-    mjson_printf(fn, fnd, "%s", "]");
+    fn("]", 1, fnd);
 }
 
 /* Reconstruct the *Copy region: templates → *Copy, then re-apply the two
@@ -5464,12 +5550,12 @@ static void emit_cache_strides(mjson_print_fn_t fn, void *fnd)
     for (int i = 0; i < count; i++) {
         if (off + 4 > TSKC_SIZE) break;
         uint16_t stride = *(uint16_t *)(base + off + 2);
-        if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+        if (i > 0) fn(",", 1, fnd);
         mjson_printf(fn, fnd, "%u", (unsigned)stride);
         if (stride < KEYCACHE_STRIDE_MIN || stride > KEYCACHE_STRIDE_MAX) break;
         off += stride;
     }
-    mjson_printf(fn, fnd, "%s", "]");
+    fn("]", 1, fnd);
 
     /* Pass 2: per-game-record score fields (packed,agg,pen) in walk order. */
     mjson_printf(fn, fnd, ",%Q:[", "cache_scores");
@@ -5486,14 +5572,14 @@ static void emit_cache_strides(mjson_print_fn_t fn, void *fnd)
             uint16_t packed = *(uint16_t *)(base + rec + 6);
             uint16_t agg    = *(uint16_t *)(base + rec + 8);
             uint16_t pen    = *(uint16_t *)(base + rec + 10);
-            if (!first) mjson_printf(fn, fnd, "%s", ",");
+            if (!first) fn(",", 1, fnd);
             first = 0;
             mjson_printf(fn, fnd, "%u,%u,%u",
                          (unsigned)packed, (unsigned)agg, (unsigned)pen);
         }
         off += stride;
     }
-    mjson_printf(fn, fnd, "%s", "]");
+    fn("]", 1, fnd);
 }
 
 static void fixup_cache_strides_on_load(const char *buf, int buflen)
@@ -5710,7 +5796,7 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
                  (unsigned)*(const uint16_t *)&b->compSlot);
 
     /* competitionName[36] — char string. */
-    mjson_printf(fn, fnd, "%s", ",");
+    fn(",", 1, fnd);
     emit_string_field(fn, fnd, "name",
                       (const uint8_t *)b->competitionName,
                       sizeof(b->competitionName));
@@ -5744,11 +5830,11 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
         mjson_printf(fn, fnd, ",%Q:[", "team_ids");
         if (tids) {
             for (uint32_t i = 0; i < tlen; i++) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+                if (i > 0) fn(",", 1, fnd);
                 mjson_printf(fn, fnd, "%u", (unsigned)tids[i]);
             }
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
     }
 
     /* matchData union (0xEA bytes) — struct-anchored byte blob. This is the
@@ -5780,10 +5866,10 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
         const uint8_t *md = (const uint8_t *)&s->matchData;
         mjson_printf(fn, fnd, ",%Q:[", "matchdata_raw");
         for (uint32_t i = 0; i < (uint32_t)sizeof(s->matchData); i++) {
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%u", (unsigned)md[i]);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
     }
 
     /* LEAGUE teamEntryOffsets — standings-sorted positions (value/18 =
@@ -5801,10 +5887,10 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
         const uint16_t *eo = s->matchData.league.teamEntryOffsets;
         mjson_printf(fn, fnd, ",%Q:[", "team_entry_offsets");
         for (int16_t i = 0; i < nt; i++) {
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%u", (unsigned)eo[i]);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
     }
 
     /* LEAGUE progress run — DIYCompetitionEx 0x1BE..0x24D. NOT covered by the
@@ -5834,11 +5920,11 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
          * cross-target, so struct-anchor it here. */
         mjson_printf(fn, fnd, ",%Q:[", "phase_start_months");
         for (int i = 0; i < 128; i++) {
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%u",
                          (unsigned)s->leagueSectionState.phaseStartMonths[i]);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
 
         /* matchData.league host-native uint16 SCALARS (parent 0x64,0x66,0x68,
          * 0x6A,0x6C). Like teamEntryOffsets they ride the matchData byte blob,
@@ -5882,11 +5968,11 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
         const int32_t *ot = s->bracketScratch.teamOffsetTable;
         mjson_printf(fn, fnd, ",%Q:[", "team_offset_table");
         for (int i = 0; i < 64; i++) {
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%d",
                          (int)diy_teamseloffset_to_identity(ot[i]));
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
 
         /* CUP teamGridPairings[64] — uint8 grid-slot indices; the cup
          * bracket reads slot1/slot2 = teamGridPairings[currentMatchIndex*2
@@ -5901,10 +5987,10 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
         const uint8_t *gp = s->teamGridPairings;
         mjson_printf(fn, fnd, ",%Q:[", "team_grid_pairings");
         for (int i = 0; i < 64; i++) {
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%u", (unsigned)gp[i]);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
 
         /* CUP knockout score arrays — three parallel int16 arrays indexed
          * by match (diy_competition.c:2515-2517), HOST-NATIVE so they
@@ -5923,22 +6009,22 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
             const int16_t *pn = (const int16_t *)&s->leagueSectionState.phaseStartMonths[0];
             mjson_printf(fn, fnd, ",%Q:[", "cup_score_tab");
             for (int i = 0; i < 18; i++) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+                if (i > 0) fn(",", 1, fnd);
                 mjson_printf(fn, fnd, "%d", (int)st[i]);
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            fn("]", 1, fnd);
             mjson_printf(fn, fnd, ",%Q:[", "cup_score_agg");
             for (int i = 0; i < 18; i++) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+                if (i > 0) fn(",", 1, fnd);
                 mjson_printf(fn, fnd, "%d", (int)ag[i]);
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            fn("]", 1, fnd);
             mjson_printf(fn, fnd, ",%Q:[", "cup_score_pen");
             for (int i = 0; i < 18; i++) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+                if (i > 0) fn(",", 1, fnd);
                 mjson_printf(fn, fnd, "%d", (int)pn[i]);
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            fn("]", 1, fnd);
         }
 
         /* CUP round-config + bracket-state uint16s, plus the per-round config
@@ -5977,22 +6063,22 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
             "cup_cur_month_idx",       (unsigned)s->bracketScratch.curMonthIdx);
         mjson_printf(fn, fnd, ",%Q:[", "cup_round_legs");
         for (int i = 0; i < 6; i++) {
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%u", (unsigned)s->matchData.cup.roundLegs[i]);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
         mjson_printf(fn, fnd, ",%Q:[", "cup_round_extra_time");
         for (int i = 0; i < 6; i++) {
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%u", (unsigned)s->matchData.cup.roundExtraTime[i]);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
         mjson_printf(fn, fnd, ",%Q:[", "cup_round_penalties");
         for (int i = 0; i < 6; i++) {
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd, "%u", (unsigned)s->matchData.cup.roundPenalties[i]);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
     }
 
     /* TOURNAMENT (type 2) slot records — the 6-element DIYTournamentSlot
@@ -6025,7 +6111,7 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
         mjson_printf(fn, fnd, ",%Q:[", "tournament_slots");
         for (int si = 0; si < 6; si++) {
             const DIYTournamentSlot *sl = &slots[si];
-            if (si > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (si > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd,
                 "{%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,"
                 "%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u}",
@@ -6043,10 +6129,10 @@ static void emit_comp_slot(mjson_print_fn_t fn, void *fnd,
                 "format_172",       (unsigned)sl->formatFlag172,
                 "matches_per_slot", (unsigned)sl->matchesPerSlot);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
     }
 
-    mjson_printf(fn, fnd, "%s", "}");
+    fn("}", 1, fnd);
 }
 
 /* Load a comp slot emitted by emit_comp_slot over the struct at `s`
@@ -6365,7 +6451,7 @@ static void emit_competition_overrides(mjson_print_fn_t fn, void *fnd)
         mjson_printf(fn, fnd, ",%Q:[", "league_rows");
         for (int i = 0; i < DIY_OVR_LEAGUE_ROWS; i++) {
             DIYTeamStats *r = diy_ovr_row(comp, i);
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd,
                 "{%Q:%d,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u}",
                 "id",  (int)diy_teamseloffset_to_identity(r->teamSelOffset),
@@ -6377,7 +6463,7 @@ static void emit_competition_overrides(mjson_print_fn_t fn, void *fnd)
                 "ga",  (unsigned)r->goalsAgainst,
                 "pts", (unsigned)r->points);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
         /* A world league's split (league_split.c), by name: its state rides in the rows past
          * 32, which the rows above carry as numbers -- this restores it byte for byte after. */
         const LeagueSplitState *st = &comp->leagueSplit;
@@ -6390,12 +6476,12 @@ static void emit_competition_overrides(mjson_print_fn_t fn, void *fnd)
                 mjson_printf(fn, fnd, ",%Q:[", names[a]);
                 for (int i = 0; i < LEAGUE_SPLIT_MAX_CLUBS; i++)
                     mjson_printf(fn, fnd, i ? ",%d" : "%d", (int)arr[a][i]);
-                mjson_printf(fn, fnd, "%s", "]");
+                fn("]", 1, fnd);
             }
-            mjson_printf(fn, fnd, "%s", "}");
+            fn("}", 1, fnd);
         }
     }
-    mjson_printf(fn, fnd, "%s", "}");
+    fn("}", 1, fnd);
 }
 
 /* Apply the league standings override over whatever the raw blobs left in
@@ -6498,7 +6584,7 @@ static void emit_ctx_league_standings(mjson_print_fn_t fn, void *fnd,
     mjson_printf(fn, fnd, ",\n  %Q:[", sk);
     for (int i = 0; i < DIY_OVR_LEAGUE_ROWS; i++) {
         DIYTeamStats *r = diy_ovr_row((DIYCompetitionEx *)slot, i);
-        if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+        if (i > 0) fn(",", 1, fnd);
         mjson_printf(fn, fnd,
             "{%Q:%d,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u}",
             "id",  (int)diy_teamseloffset_to_identity(r->teamSelOffset),
@@ -6510,7 +6596,7 @@ static void emit_ctx_league_standings(mjson_print_fn_t fn, void *fnd,
             "ga",  (unsigned)r->goalsAgainst,
             "pts", (unsigned)r->points);
     }
-    mjson_printf(fn, fnd, "%s", "]");
+    fn("]", 1, fnd);
 }
 
 static void load_ctx_league_standings(const char *src, int src_size,
@@ -6607,10 +6693,10 @@ static void emit_stage_cupfull(mjson_print_fn_t fn, void *fnd, const char *stage
     const uint8_t *ct = (const uint8_t *)stage->cupTeamIds;
     mjson_printf(fn, fnd, ",%Q:[", fk);
     for (int i = 0; i < masterN * 2; i++) {
-        if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+        if (i > 0) fn(",", 1, fnd);
         mjson_printf(fn, fnd, "%u", (unsigned)ct[i]);
     }
-    mjson_printf(fn, fnd, "%s", "]");
+    fn("]", 1, fnd);
 }
 
 static void load_stage_cupfull(const char *src, int src_size, const char *stageKey,
@@ -6632,7 +6718,7 @@ static void emit_ctx_stage(mjson_print_fn_t fn, void *fnd, const char *key,
         return;
     const DIYCompetitionEx *stage = (const DIYCompetitionEx *)
         ((const uint8_t *)slot + offsetof(CompetitionSlotBuffer, stageSnapshot));
-    mjson_printf(fn, fnd, "%s", ",\n  ");
+    fn(",\n  ", 4, fnd);
     emit_comp_slot(fn, fnd, key, stage);
     emit_stage_cupfull(fn, fnd, key, stage, slot->base.numTeams);
     /* League/group active stage: standings rows. Mirrors the primary's
@@ -6652,7 +6738,7 @@ static void emit_ctx_stage(mjson_print_fn_t fn, void *fnd, const char *key,
         mjson_printf(fn, fnd, ",\n  %Q:[", sk);
         for (uint16_t i = 0; i < nrows; i++) {
             DIYTeamStats *r = diy_ovr_row((DIYCompetitionEx *)stage, i);
-            if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (i > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd,
                 "{%Q:%d,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u}",
                 "so",  (int)r->teamSelOffset,
@@ -6664,7 +6750,7 @@ static void emit_ctx_stage(mjson_print_fn_t fn, void *fnd, const char *key,
                 "ga",  (unsigned)r->goalsAgainst,
                 "pts", (unsigned)r->points);
         }
-        mjson_printf(fn, fnd, "%s", "]");
+        fn("]", 1, fnd);
     }
 }
 
@@ -6731,6 +6817,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
      * mirrors the load side so the same content interns at the same
      * pool offset, keeping save → load → save byte-
      * stable round-trip with the loader. */
+    SAVE_LAP(NULL);
     string_pool_reset();
 
     /* Top-level object. Every saved field is a typed semantic field
@@ -6749,7 +6836,8 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         "num_selected_teams", (int)_numSelectedTeams);
 
     emit_season_informations(json_out_emit, &out);
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    SAVE_LAP("season_info");
+    json_out_emit(",\n  ", 4, &out);
     /* careerCompetitionSlotPtrTable / *CompetitionPtr / *CompStringOffset /
      * careerCupPickList are all re-derivable from non-pointer state on
      * load — RebuildPointersAfterLoad() handles them. Not saved.
@@ -6805,7 +6893,8 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
      * emit_competition_overrides. Re-emits the layout/endian-sensitive
      * fields the raw blobs can't carry across a 32/64-bit + LE/BE boundary.
      * Sibling key of career_scalars. */
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    SAVE_LAP("scalars");
+    json_out_emit(",\n  ", 4, &out);
     emit_competition_overrides(json_out_emit, &out);
 
     /* The 34 *Copy competition records' STATIC parts are reconstructed from
@@ -6814,9 +6903,11 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
      * bytes (comp_copy_dynamic) AND the per-career team-list regions
      * (comp_copy_teamlists) are carried here so a loaded career's cup brackets
      * survive instead of reverting to template teams (the euro-cup 0x3443 dup). */
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    SAVE_LAP("overrides");
+    json_out_emit(",\n  ", 4, &out);
     emit_comp_copy_dynamic(json_out_emit, &out);
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    SAVE_LAP("comp_copy_dynamic");
+    json_out_emit(",\n  ", 4, &out);
     emit_comp_copy_teamlists(json_out_emit, &out);
 
     /* Unified typed competition slots — emit_comp_slot for all 5 slots
@@ -6826,24 +6917,25 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
      * during transition (VERIFY proves identical same-target bytes); the
      * blobs + primary_comp_* runs + the league_rows override get retired
      * once all slots are proven. */
+    SAVE_LAP("comp_copy_teamlists");
     mjson_printf(json_out_emit, &out, ",\n  %Q:{", "comp_slots");
     mjson_printf(json_out_emit, &out, "%Q:%d", "comp_slots_present", 1);
-    mjson_printf(json_out_emit, &out, "%s", ",");
+    json_out_emit(",", 1, &out);
     emit_comp_slot(json_out_emit, &out, "primary",
                    (const DIYCompetitionEx *)&_primaryCompetitionBuf);
-    mjson_printf(json_out_emit, &out, "%s", ",");
+    json_out_emit(",", 1, &out);
     emit_comp_slot(json_out_emit, &out, "secondary",
                    (const DIYCompetitionEx *)&_competitionContextBuf);
-    mjson_printf(json_out_emit, &out, "%s", ",");
+    json_out_emit(",", 1, &out);
     emit_comp_slot(json_out_emit, &out, "tertiary",
                    (const DIYCompetitionEx *)&_tertiaryCompetitionContextBuf);
-    mjson_printf(json_out_emit, &out, "%s", ",");
+    json_out_emit(",", 1, &out);
     emit_comp_slot(json_out_emit, &out, "diy",
                    (const DIYCompetitionEx *)&_diyCompetitionContextBuf);
-    mjson_printf(json_out_emit, &out, "%s", ",");
+    json_out_emit(",", 1, &out);
     emit_comp_slot(json_out_emit, &out, "euro",
                    (const DIYCompetitionEx *)&_euroCupsCompetitionContextBuf);
-    mjson_printf(json_out_emit, &out, "%s", "}");
+    json_out_emit("}", 1, &out);
 
     /* TYPE-2 tournament current-STAGE (cross-target) — mirrors the preset
      * write_competition_buf path. When the primary slot is a tournament
@@ -6858,6 +6950,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
      * is rebuilt careerTeam-aware via VerifyTeamLoaded (SaveJson_LoadCareer),
      * so a managed national team (careerTeam, negative selTeamsPtr offset)
      * resolves correctly cross-target. */
+    SAVE_LAP("comp_slots");
     if (((const DIYCompetitionEx *)&_primaryCompetitionBuf)
             ->base.competitionType == 2) {
         const DIYCompetitionEx *stage = (const DIYCompetitionEx *)
@@ -6871,7 +6964,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", "stage_standings");
             for (uint16_t i = 0; i < nrows; i++) {
                 DIYTeamStats *r = diy_ovr_row((DIYCompetitionEx *)stage, i);
-                if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+                if (i > 0) json_out_emit(",", 1, &out);
                 mjson_printf(json_out_emit, &out,
                     "{%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u}",
                     "gp",  (unsigned)r->gamesPlayed,
@@ -6882,7 +6975,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                     "ga",  (unsigned)r->goalsAgainst,
                     "pts", (unsigned)r->points);
             }
-            mjson_printf(json_out_emit, &out, "%s", "]");
+            json_out_emit("]", 1, &out);
         } else {
             const uint16_t *st = (const uint16_t *)&stage->matchData.cup.cupRoundResults[0x40];
             const uint16_t *ag = stage->cupAggregateScores;
@@ -6892,10 +6985,10 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             for (int a = 0; a < 3; a++) {
                 mjson_printf(json_out_emit, &out, ",\n  %Q:[", keys[a]);
                 for (int i = 0; i < 18; i++) {
-                    if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+                    if (i > 0) json_out_emit(",", 1, &out);
                     mjson_printf(json_out_emit, &out, "%u", (unsigned)arrs[a][i]);
                 }
-                mjson_printf(json_out_emit, &out, "%s", "]");
+                json_out_emit("]", 1, &out);
             }
         }
     }
@@ -6926,61 +7019,67 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
 
     /* teamSelectionKeyCache stride list (endian-neutral) — paired with the
      * raw cache blob; re-lays the host-native +2 strides on load. */
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    SAVE_LAP("stages");
+    json_out_emit(",\n  ", 4, &out);
     emit_cache_strides(json_out_emit, &out);
 
     /* Two top-level TeamFileEx records (careerTeam, currentTeam) and
      * the variable-length selTeamsPtr array following
      * numSelectedTeams in the save. */
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    SAVE_LAP("cache");
+    json_out_emit(",\n  ", 4, &out);
     emit_team_file_ex(json_out_emit, &out, "career_team",  &_careerTeam);
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    json_out_emit(",\n  ", 4, &out);
     emit_team_file_ex(json_out_emit, &out, "current_team", &_currentTeam);
 
+    SAVE_LAP("career_current_team");
     mjson_printf(json_out_emit, &out, ",\n  %Q:[", "selected_teams");
     for (uint16_t i = 0; i < _numSelectedTeams; i++) {
-        if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+        if (i > 0) json_out_emit(",", 1, &out);
         emit_team_file_ex_body(json_out_emit, &out,
                                (uint8_t *)(_selectedTeams + i));
     }
-    mjson_printf(json_out_emit, &out, "%s", "]");
+    json_out_emit("]", 1, &out);
 
     /* The selection SaveSelectedTeams parked (RestoreSelectedTeams brings it back): at a season's
      * hub, the career club's league and the clubs of the European cup it plays in -- which the
      * season change restores before that cup's update (Career_UpdateEuroCupCompetitionSlot), so a
      * loaded career without them panicked (VerifyTeamLoaded on the cup's first foreign club). Only
      * when something is parked: a save without has no field. */
+    SAVE_LAP("selected_teams");
     {
         uint16_t parked = 0;
         const TeamFileEx *p = Career_ParkedTeams(&parked);
         if (parked) {
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", "selected_teams_parked");
             for (uint16_t i = 0; i < parked; i++) {
-                if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+                if (i > 0) json_out_emit(",", 1, &out);
                 emit_team_file_ex_body(json_out_emit, &out, (uint8_t *)(p + i));
             }
-            mjson_printf(json_out_emit, &out, "%s", "]");
+            json_out_emit("]", 1, &out);
         }
     }
 
     /* TMD team pool — emit only the populated count (= tmd_team_count
      * scalar = uint16 at &careerFileBuffer + 0). Empty trailing slots
      * are reconstructed by careerFileBufferBuf memset on load. */
+    SAVE_LAP("parked");
     {
         uint16_t tmd_count = *(uint16_t *)&_careerFileBuffer;
         mjson_printf(json_out_emit, &out, ",\n  %Q:[", "tmd_teams");
         for (uint16_t i = 0; i < tmd_count; i++) {
-            if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+            if (i > 0) json_out_emit(",", 1, &out);
             emit_team_file_ex_body(json_out_emit, &out,
                                    (uint8_t *)((TeamFileEx *)_tmdFileBuffer + i));
         }
-        mjson_printf(json_out_emit, &out, "%s", "]");
+        json_out_emit("]", 1, &out);
     }
 
     /* A world's pools below the leagues (team_pool.c): per pooled country, which club each
      * swapped slot of its team files is now, and the queue below -- identities by number (a
      * slot of the country, TEAM_POOL_SLOTS + a club of the pool: "ids" 2; before it, 256 +),
      * never records. The map's trailing zeros are left out. */
+    SAVE_LAP("tmd_teams");
     int pools = 0;
     for (int k = 0; k < TEAM_POOL_FILES; k++) {
         const TeamPoolState *st = &g_teamPool[k];
@@ -6989,7 +7088,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         if (!pools++)
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", "team_pools");
         else
-            mjson_printf(json_out_emit, &out, "%s", ",");
+            json_out_emit(",", 1, &out);
         mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:%d,%Q:[", "country", (int)st->country, "ids", 2, "queue");
         for (int i = 0; i < st->queued; i++)
             mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)st->queue[i]);
@@ -6999,10 +7098,10 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             last--;
         for (int i = 0; i < last; i++)
             mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)st->map[i]);
-        mjson_printf(json_out_emit, &out, "%s", "]}");
+        json_out_emit("]}", 2, &out);
     }
     if (pools)
-        mjson_printf(json_out_emit, &out, "%s", "]");
+        json_out_emit("]", 1, &out);
 
     /* A world's cups (world_cups.c): the seasons the career has ended in the world, the
      * league cup's winner and its season. */
@@ -7018,7 +7117,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             last--;
         for (int i = 0; i < last; i++)
             mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)g_worldCups.place[i]);
-        mjson_printf(json_out_emit, &out, "%s", "]}");
+        json_out_emit("]}", 2, &out);
     }
 
     /* A world's Coppa Italia Serie D (world_cupd.c): the season, the round to come, the
@@ -7082,7 +7181,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             wp_emit_u8(&out, "round_ties", w->tieT, 16);
             wp_emit_u16(&out, "global_numbers", w->glob, w->n);
         }
-        mjson_printf(json_out_emit, &out, "%s", "}");
+        json_out_emit("}", 1, &out);
     }
 
     /* A world's stage titles decided mid-season (world_playoff.c): per stage the season,
@@ -7108,7 +7207,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                 }
                 wp_emit_u8(&out, "club_results", res, 3 * 2);   /* (the record lines: code, play-off + 1) */
             }
-            mjson_printf(json_out_emit, &out, "%s", "}");
+            json_out_emit("}", 1, &out);
         }
     }
 
@@ -7125,7 +7224,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:0,%Q:%d", "season_winners", "version", "season",
                      (int)g_leagueWinners.season);
         wp_emit_u16(&out, "titles", e, ne);
-        mjson_printf(json_out_emit, &out, "%s", "}");
+        json_out_emit("}", 1, &out);
     }
 
     /* A world's UEFA coefficients (uefa_coef.c): per association its clubs and points this
@@ -7158,7 +7257,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         wp_emit_u16(&out, "previous", prev, 3 * 16);
         wp_emit_u16(&out, "finals", fin, 6);
         wp_emit_u8(&out, "phase_ended", u->phaseEnded, 3);
-        mjson_printf(json_out_emit, &out, "%s", "}");
+        json_out_emit("}", 1, &out);
     }
 
     /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
@@ -7184,7 +7283,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         wp_emit_u8(&out, "list_counts", q->gn, 3);
         wp_emit_u16(&out, "lists", gl, 3 * 36);
         wp_emit_u16(&out, "bracket", br, nb);
-        mjson_printf(json_out_emit, &out, "%s", "}");
+        json_out_emit("}", 1, &out);
     }
 
     /* A world's stage tables (league_playoffs.c): per league (its country) the tables kept at
@@ -7198,7 +7297,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             if (!b->used)
                 continue;
             if (nb++)
-                mjson_printf(json_out_emit, &out, "%s", ",");
+                json_out_emit(",", 1, &out);
             else
                 mjson_printf(json_out_emit, &out, ",\n  %Q:[", "league_stages");
             mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:%d,%Q:%d", "country", (int)b->key, "fresh", (int)b->fresh,
@@ -7219,10 +7318,10 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                 rows[nr++] = x->gf; rows[nr++] = x->ga; rows[nr++] = x->pts;
             }
             wp_emit_u16(&out, "kept", rows, nr);
-            mjson_printf(json_out_emit, &out, "%s", "}");
+            json_out_emit("}", 1, &out);
         }
         if (nb)
-            mjson_printf(json_out_emit, &out, "%s", "]");
+            json_out_emit("]", 1, &out);
     }
     /* A world's state championships (states.c): the state pools (the Mod's RI_STATE: per file
      * its start, per pool its queue's length and its contest's overrides, the queues, the
@@ -7238,7 +7337,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         wp_emit_u16(&out, "champions", g_stateChampions, 13);
         mjson_printf(json_out_emit, &out, ",%Q:%d", "played_state", (int)g_stateCup);
         wp_emit_u8(&out, "played_ranking", g_stateRank0, (int)sizeof g_stateRank0);
-        mjson_printf(json_out_emit, &out, "%s", "}");
+        json_out_emit("}", 1, &out);
     }
 #endif
     /* Argentina's promedio history (league_playoffs.c): each club's global number, points and
@@ -7252,7 +7351,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
         mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d", "promedio", "clubs_count", (int)g_promedio.n);
         wp_emit_u16(&out, "clubs", pr, np);
-        mjson_printf(json_out_emit, &out, "%s", "}");
+        json_out_emit("}", 1, &out);
     }
 
     /* A world's other confederations' cups (world_conti.c): each cup's holder (team word as the
@@ -7270,7 +7369,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d", "conti_holders", "mark", (int)CT_ST.mark,
                      "season", (int)CT_ST.season);
         wp_emit_u32(&out, "holders", hold, CT_NCUP * 4);
-        mjson_printf(json_out_emit, &out, "%s", "}");
+        json_out_emit("}", 1, &out);
         int ne = 0;
         for (int i = 0; i < CT_ED.ne && i < CT_NED; i++) {
             ent[ne++] = (uint16_t)(CT_ED.e[i].id0 | CT_ED.e[i].id1 << 8);
@@ -7285,7 +7384,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "results_count", (int)CT_ED.nf, "main_cup", (int)g_contiMainCup);
         wp_emit_u16(&out, "entrants", ent, ne);
         wp_emit_u16(&out, "results", res, 16 * 3);
-        mjson_printf(json_out_emit, &out, "%s", "}");
+        json_out_emit("}", 1, &out);
     }
 #endif
 
@@ -7294,6 +7393,7 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
      * faithfully; the array is dense in practice for active careers. A pool
      * past 432 (foreign_pool_capacity, include/career_capacity.h) writes the
      * entries it holds as well, so a default career's save is unchanged. */
+    SAVE_LAP("pools_worlds_stages");
     {
         extern uint16_t _numForeignMarketPlayers2;
         uint32_t poolLen = _numForeignMarketPlayers2 > CAREER_ORIG_FOREIGN_POOL
@@ -7302,24 +7402,25 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             poolLen = CAREER_MAX_FOREIGN_POOL;
         mjson_printf(json_out_emit, &out, ",\n  %Q:[", "career_foreign_market_players");
         for (uint32_t i = 0; i < poolLen; i++) {
-            if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+            if (i > 0) json_out_emit(",", 1, &out);
             emit_market_player_body(json_out_emit, &out,
                                     _careerForeignMarketPlayers + i * sizeof(MarketPlayer));
         }
-        mjson_printf(json_out_emit, &out, "%s", "]");
+        json_out_emit("]", 1, &out);
     }
 
     /* Transfer-offer + job-offer tables — fixed-size arrays of typed objects
      * (cross-target-safe; replaces the host-native FLD_BYTES blobs). */
+    SAVE_LAP("market");
     {
         mjson_printf(json_out_emit, &out, ",\n  %Q:[", "transfer_offer_table");
         for (uint32_t i = 0; i < 5; i++) {
-            if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+            if (i > 0) json_out_emit(",", 1, &out);
             emit_struct_object(json_out_emit, &out,
                                _transferOfferTable + i * sizeof(TransferOfferEntry),
                                s_transfer_offer_fields);
         }
-        mjson_printf(json_out_emit, &out, "%s", "]");
+        json_out_emit("]", 1, &out);
 
         /* The job-offer queues: the original's 5 records, and the ones past them a bigger
          * queue holds (job_offers_capacity, include/career_capacity.h). */
@@ -7333,12 +7434,12 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                 jobLen = CAREER_MAX_JOB_OFFERS;
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", jobTabs[t].key);
             for (uint32_t i = 0; i < jobLen; i++) {
-                if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+                if (i > 0) json_out_emit(",", 1, &out);
                 emit_struct_object(json_out_emit, &out,
                                    jobTabs[t].base + i * sizeof(JobOffer),
                                    s_job_offer_fields);
             }
-            mjson_printf(json_out_emit, &out, "%s", "]");
+            json_out_emit("]", 1, &out);
         }
     }
 
@@ -7352,16 +7453,17 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         for (int t = 0; t < 2; t++) {
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", keys[t]);
             for (int i = 0; i < 16; i++) {
-                if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+                if (i > 0) json_out_emit(",", 1, &out);
                 emit_player_file_body(json_out_emit, &out,
                                       bases[t] + (size_t)i * sizeof(PlayerFile));
             }
-            mjson_printf(json_out_emit, &out, "%s", "]");
+            json_out_emit("]", 1, &out);
         }
     }
 
     /* The career mods' sections ("mods": {"<slug>": {...}}): only when a mod that is on wrote
      * one, so a career without them saves as it always did. */
+    SAVE_LAP("offers_reserves");
     {
         char *mods = ModHooks_CareerSaveSection();
         if (mods) {
@@ -7370,12 +7472,15 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
     }
 
-    mjson_printf(json_out_emit, &out, "%s", "\n}\n");
+    SAVE_LAP("mods");
+    json_out_emit("\n}\n", 3, &out);
 
     if (out.oom || !out.ptr)
         return json_out_fail_oom(&out);
 
+    SAVE_LAP("close");
     int16_t result = WriteFile(filename, (uint8_t *)out.ptr, (uint32_t)out.len);
+    SAVE_LAP("write_file");
     swos_io_free(out.ptr);
     if (result != 0) {
         ShowFsErrorByCode((uint16_t)result);
@@ -8468,7 +8573,7 @@ static void emit_scalar_table_comp(mjson_print_fn_t fn, void *fnd,
     int first = 1;
     for (const FieldDesc *f = table; f->type != FLD_END; f++) {
         if (!f->comp) continue;
-        if (!first) mjson_printf(fn, fnd, "%s", ",");
+        if (!first) fn(",", 1, fnd);
         first = 0;
         const uint8_t *p = (const uint8_t *)f->addr;
         switch (f->type) {
@@ -8500,10 +8605,10 @@ static void emit_scalar_table_comp(mjson_print_fn_t fn, void *fnd,
         case FLD_BYTES:
             mjson_printf(fn, fnd, "%Q:[", f->name);
             for (uint32_t i = 0; i < f->size; i++) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+                if (i > 0) fn(",", 1, fnd);
                 mjson_printf(fn, fnd, "%u", (unsigned)p[i]);
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            fn("]", 1, fnd);
             break;
         case FLD_U16_ARRAY:
             /* Endian-neutral decimal words — see emit_scalar_table. The
@@ -8512,24 +8617,24 @@ static void emit_scalar_table_comp(mjson_print_fn_t fn, void *fnd,
              * silently drop the comp header (zeroed on load → panic). */
             mjson_printf(fn, fnd, "%Q:[", f->name);
             for (uint32_t i = 0; i + 1 < f->size; i += 2) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+                if (i > 0) fn(",", 1, fnd);
                 mjson_printf(fn, fnd, "%u", (unsigned)*(uint16_t *)(p + i));
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            fn("]", 1, fnd);
             break;
         case FLD_U32_ARRAY:
             mjson_printf(fn, fnd, "%Q:[", f->name);
             for (uint32_t i = 0; i + 3 < f->size; i += 4) {
-                if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+                if (i > 0) fn(",", 1, fnd);
                 mjson_printf(fn, fnd, "%ld", (long)*(int32_t *)(p + i));
             }
-            mjson_printf(fn, fnd, "%s", "]");
+            fn("]", 1, fnd);
             break;
         default:
             break;
         }
     }
-    mjson_printf(fn, fnd, "%s", "}");
+    fn("}", 1, fnd);
 }
 
 static void load_scalar_table_comp_slice(const char *section, int section_len,
@@ -8758,7 +8863,7 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
      * wrong/blank team and the DIY league table is garbage cross-target (the
      * career path was immune only because it already emitted this override). For
      * non-league comps this emits just {type} (load is a no-op). */
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    json_out_emit(",\n  ", 4, &out);
     emit_competition_overrides(json_out_emit, &out);
 
     /* TYPE-2 tournament current-STAGE slot. A WORLD CUP / EUROPEAN
@@ -8813,7 +8918,7 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
             mjson_printf(json_out_emit, &out, ",\n  %Q:[", "stage_standings");
             for (uint16_t i = 0; i < nrows; i++) {
                 DIYTeamStats *r = diy_ovr_row((DIYCompetitionEx *)stage, i);
-                if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+                if (i > 0) json_out_emit(",", 1, &out);
                 mjson_printf(json_out_emit, &out,
                     "{%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u}",
                     "gp",  (unsigned)r->gamesPlayed,
@@ -8824,7 +8929,7 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
                     "ga",  (unsigned)r->goalsAgainst,
                     "pts", (unsigned)r->points);
             }
-            mjson_printf(json_out_emit, &out, "%s", "]");
+            json_out_emit("]", 1, &out);
         } else {
             /* CUP/knockout stage: three parallel host-native uint16 score
              * arrays (diy_competition.c:2529) — each entry is a packed score
@@ -8840,10 +8945,10 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
             for (int a = 0; a < 3; a++) {
                 mjson_printf(json_out_emit, &out, ",\n  %Q:[", keys[a]);
                 for (int i = 0; i < 18; i++) {
-                    if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+                    if (i > 0) json_out_emit(",", 1, &out);
                     mjson_printf(json_out_emit, &out, "%u", (unsigned)arrs[a][i]);
                 }
-                mjson_printf(json_out_emit, &out, "%s", "]");
+                json_out_emit("]", 1, &out);
             }
         }
     }
@@ -8852,11 +8957,11 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
      * &selTeamsPtr. Same record layout as the career selected_teams. */
     mjson_printf(json_out_emit, &out, ",\n  %Q:[", "diy_teams");
     for (uint16_t i = 0; i < _primaryCompetitionBuf.tourn.header.numTeams; i++) {
-        if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+        if (i > 0) json_out_emit(",", 1, &out);
         emit_team_file_ex_body(json_out_emit, &out,
                                (uint8_t *)(_selectedTeams + i));
     }
-    mjson_printf(json_out_emit, &out, "%s", "]\n}\n");
+    json_out_emit("]\n}\n", 4, &out);
 
     if (out.oom || !out.ptr)
         return json_out_fail_oom(&out);
@@ -9319,7 +9424,7 @@ static void emit_team_game(mjson_print_fn_t fn, void *fnd,
 
     mjson_printf(fn, fnd, ",%Q:[", "players");
     for (int i = 0; i < 16; i++) {
-        if (i > 0) mjson_printf(fn, fnd, "%s", ",");
+        if (i > 0) fn(",", 1, fnd);
         const uint8_t *p = tg + offsetof(TeamGame, players)
                               + (size_t)i * sizeof(struct PlayerInfo);
         mjson_printf(fn, fnd,
@@ -9355,9 +9460,9 @@ static void emit_team_game(mjson_print_fn_t fn, void *fnd,
             "face_2",        (int)(int8_t)p[offsetof(struct PlayerInfo, face2)]);
         emit_str_at(fn, fnd, "full_name", (uint8_t *)p,
                     offsetof(struct PlayerInfo, fullName), 23);
-        mjson_printf(fn, fnd, "%s", "}");
+        fn("}", 1, fnd);
     }
-    mjson_printf(fn, fnd, "%s", "]}");
+    fn("]}", 2, fnd);
 }
 
 /* Sliced variant — caller has already located the TeamGame's JSON
@@ -9500,7 +9605,7 @@ static void emit_scene(mjson_print_fn_t fn, void *fnd,
         if (entry & 0x80000000u) {
             /* Close previous frame */
             if (frame_open) {
-                mjson_printf(fn, fnd, "%s", "]}");
+                fn("]}", 2, fnd);
             }
 
             /* New frame: read 3 × u32. camera x|0x8000, camera y, goals u16+u16, anim u16+u16 (dup). */
@@ -9512,7 +9617,7 @@ static void emit_scene(mjson_print_fn_t fn, void *fnd,
             uint16_t team2_goals = (uint16_t)(goals & 0xFFFF);
             uint16_t anim_state  = (uint16_t)(anim >> 16);  /* low half duplicates high */
 
-            if (frames_emitted > 0) mjson_printf(fn, fnd, "%s", ",");
+            if (frames_emitted > 0) fn(",", 1, fnd);
             mjson_printf(fn, fnd,
                 "{%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:%u,%Q:[",
                 "cam_x", (unsigned)cam_x,
@@ -9534,7 +9639,7 @@ static void emit_scene(mjson_print_fn_t fn, void *fnd,
                 /* Sprite without a preceding frame — preserve as a
                  * leading-sprites array on a synthetic frame. Rare but
                  * possible if the scene starts mid-frame. */
-                if (frames_emitted > 0) mjson_printf(fn, fnd, "%s", ",");
+                if (frames_emitted > 0) fn(",", 1, fnd);
                 mjson_printf(fn, fnd, "%s",
                     "{\"cam_x\":0,\"cam_y\":0,\"team_1_goals\":0,"
                     "\"team_2_goals\":0,\"anim_patterns_state\":0,"
@@ -9543,7 +9648,7 @@ static void emit_scene(mjson_print_fn_t fn, void *fnd,
                 frame_first_sprite = 1;
                 frames_emitted++;
             }
-            if (!frame_first_sprite) mjson_printf(fn, fnd, "%s", ",");
+            if (!frame_first_sprite) fn(",", 1, fnd);
             frame_first_sprite = 0;
             mjson_printf(fn, fnd, "{%Q:%u,%Q:%u,%Q:%u}",
                          "index", (unsigned)idx,
@@ -9554,9 +9659,9 @@ static void emit_scene(mjson_print_fn_t fn, void *fnd,
     }
 
     if (frame_open) {
-        mjson_printf(fn, fnd, "%s", "]}");
+        fn("]}", 2, fnd);
     }
-    mjson_printf(fn, fnd, "%s", "]");
+    fn("]", 1, fnd);
 
     /* Trailing bytes: everything from eos_off..HIL_SCENE_SIZE (the
      * ring-buffer garbage past the active region). Emit as a byte
@@ -9564,10 +9669,10 @@ static void emit_scene(mjson_print_fn_t fn, void *fnd,
     mjson_printf(fn, fnd, ",%Q:%u,%Q:[",
                  "eos_offset", (unsigned)eos_off, "trailing");
     for (uint32_t i = eos_off; i < HIL_SCENE_SIZE; i++) {
-        if (i > eos_off) mjson_printf(fn, fnd, "%s", ",");
+        if (i > eos_off) fn(",", 1, fnd);
         mjson_printf(fn, fnd, "%u", (unsigned)scene[i]);
     }
-    mjson_printf(fn, fnd, "%s", "]}");
+    fn("]}", 2, fnd);
 }
 
 /* Forward decl — caller-provides slice variant. */
@@ -9718,16 +9823,16 @@ int16_t SaveJson_WriteHighlights(uint8_t *filename)
 
     emit_team_game(json_out_emit, &out, "top_team",
                    (uint8_t *)&hdr->top_team);
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    json_out_emit(",\n  ", 4, &out);
     emit_team_game(json_out_emit, &out, "bottom_team",
                    (uint8_t *)&hdr->bottom_team);
 
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    json_out_emit(",\n  ", 4, &out);
     emit_str_at(json_out_emit, &out, "game_name",
                 (uint8_t *)_hilFileBuffer,
                 offsetof(HilFileHeader, game_name),
                 sizeof(hdr->game_name));
-    mjson_printf(json_out_emit, &out, "%s", ",\n  ");
+    json_out_emit(",\n  ", 4, &out);
     emit_str_at(json_out_emit, &out, "game_round",
                 (uint8_t *)_hilFileBuffer,
                 offsetof(HilFileHeader, game_round),
@@ -9753,12 +9858,12 @@ int16_t SaveJson_WriteHighlights(uint8_t *filename)
     PROF_START(scenes);
     mjson_printf(json_out_emit, &out, ",\n  %Q:[", "scenes");
     for (uint16_t i = 0; i < num_goals; i++) {
-        if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+        if (i > 0) json_out_emit(",", 1, &out);
         emit_scene(json_out_emit, &out,
                    _hilFileBuffer + HIL_HEADER_SIZE
                                  + (uint32_t)i * HIL_SCENE_SIZE);
     }
-    mjson_printf(json_out_emit, &out, "%s", "]\n}\n");
+    json_out_emit("]\n}\n", 4, &out);
     PROF_END(scenes, "highlights-write");
 
     if (out.oom || !out.ptr)
@@ -9960,26 +10065,26 @@ static int16_t write_tactics_buf(uint8_t *filename, const uint8_t *src)
      * zone, which the editor / match sim know how to unpack. */
     mjson_printf(json_out_emit, &out, ",\n  %Q:[", "player_positions");
     for (int i = 0; i < 10; i++) {
-        if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+        if (i > 0) json_out_emit(",", 1, &out);
         const uint8_t *p = src + offsetof(TeamTactics, positions)
                               + (size_t)i * sizeof(PlayerPositions);
-        mjson_printf(json_out_emit, &out, "%s", "[");
+        json_out_emit("[", 1, &out);
         for (int j = 0; j < (int)sizeof(PlayerPositions); j++) {
-            if (j > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+            if (j > 0) json_out_emit(",", 1, &out);
             mjson_printf(json_out_emit, &out, "%u", (unsigned)p[j]);
         }
-        mjson_printf(json_out_emit, &out, "%s", "]");
+        json_out_emit("]", 1, &out);
     }
-    mjson_printf(json_out_emit, &out, "%s", "]");
+    json_out_emit("]", 1, &out);
 
     /* pairIds (10 bytes) + ball_out_of_play_tactics (1 byte). */
     mjson_printf(json_out_emit, &out, ",\n  %Q:[", "pair_ids");
     for (int i = 0; i < 10; i++) {
-        if (i > 0) mjson_printf(json_out_emit, &out, "%s", ",");
+        if (i > 0) json_out_emit(",", 1, &out);
         mjson_printf(json_out_emit, &out, "%u",
                      (unsigned)src[offsetof(TeamTactics, pairIds) + i]);
     }
-    mjson_printf(json_out_emit, &out, "%s", "],\n  ");
+    json_out_emit("],\n  ", 5, &out);
     mjson_printf(json_out_emit, &out, "%Q:%u\n}\n",
                  "ball_out_of_play_tactics",
                  (unsigned)src[offsetof(TeamTactics, ballOutOfPlayTactics)]);
