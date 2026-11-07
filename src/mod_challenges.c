@@ -1208,6 +1208,8 @@ static void ch_open(void)
  *   categories {}                 "<name>\t<done>\t<all>\t<closed 0/1>" a line, in the list's order
  *   list       {"category"}       "<id>\t<title or name>\t<difficulty>\t<0 open, 1 done, 2 locked>"
  *   info       {"id"}             "<field>\t<value>" lines: the challenge's fields (below)
+ *   new        {}                 this mod's NEW CHALLENGE editor (then plays it)
+ *   reload     {}                 reads every challenge again (another mod wrote shared.json)
  *   play       {"id"}             plays it (this mod's result screen, QUICK RETRY), then
  *                                 "won\t<0/1>"; -1 when it is locked or unknown
  * A challenge's category is "" for none; the player's own are "CUSTOM". */
@@ -1259,6 +1261,10 @@ static int32_t service(const char *method, const char *args, char *out, uint32_t
         return -1;
     out[0] = 0;
     load();
+    if (!strcmp(method, "new")) {             /* (the mod's own NEW CHALLENGE editor) */
+        edit_new();
+        return 0;
+    }
     if (!strcmp(method, "reload")) {          /* (another mod wrote shared.json) */
         s_loaded = 0;
         s_count = 0;
