@@ -288,7 +288,9 @@ Lorigliola. It's a download of its own, and the game plays 96/97 unless you ask 
 - **Amiga:** double-click **SWOS** in its drawer, or with WHDLoad, **OpenSWOS** in the
   **OpenSWOSAGA-NE** drawer. Under WHDLoad, **Del** quits back to Workbench.
 
-Menus use the **arrow keys** and **Enter** (or a gamepad). In a match, the arrow keys
+Menus use the **arrow keys** and **Enter** (or a gamepad), or the **mouse** on a computer:
+point at a button and click it, right-click to go back (the screen's EXIT), and the wheel steps
+up and down. In a match, the arrow keys
 move and **Ctrl**, **Space** or **Enter** kick. All the keys and the gamepad buttons are in
 [docs/PLAYING.md](docs/PLAYING.md).
 

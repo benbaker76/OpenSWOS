@@ -652,6 +652,9 @@ int32_t _gFrameStepInput = 0;
 GameFrameResult GameLoop_Frame(void)
 {
     ReadTimerDelta();
+#ifdef SWOS_SDL_BUILD
+    { extern void MenuMouse_InMatch(void); MenuMouse_InMatch(); }   /* no cursor over the pitch (UI only) */
+#endif
 
     /* Pause spin loop */
     while (_paused != 0) {

@@ -1943,6 +1943,7 @@ void MenuProc(void)
     MenuCheckControls();
     MenuInputInjectPoint();   /* stable harness input-injection anchor — break here by SYMBOL */
 #ifdef SWOS_SDL_BUILD
+    { extern void MenuMouse_Frame(void); MenuMouse_Frame(); }            /* the mouse (menu_mouse.c) */
     { extern void CareerAutopilot_Tick(void); CareerAutopilot_Tick(); }  /* --career-golden */
 #endif
 

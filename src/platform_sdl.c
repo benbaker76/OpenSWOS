@@ -1240,6 +1240,31 @@ void Platform_ToggleFullscreen(void)
     }
 }
 
+/* The picture's pixel under the window's point wx, wy (the letterbox and the scaling undone,
+ * as SDL draws the picture): 0 when it is on the picture (menu_mouse.c). */
+int Platform_MouseToPicture(int wx, int wy, int *x, int *y)
+{
+#if SDL_VERSION_ATLEAST(2, 0, 18)
+    float lx, ly;
+    if (!s_renderer)
+        return -1;
+    SDL_RenderWindowToLogical(s_renderer, wx, wy, &lx, &ly);
+    *x = (int)lx;
+    *y = (int)ly;
+    return lx >= 0 && ly >= 0 && *x < _screen_width && *y < _screen_height ? 0 : -1;
+#else
+    (void)wx; (void)wy; (void)x; (void)y;
+    return -1;
+#endif
+}
+
+/* The mouse cursor over the window: shown in a menu while the mouse is used (menu_mouse.c). */
+void Platform_ShowMouseCursor(int on)
+{
+    if ((SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE) != (on != 0))
+        SDL_ShowCursor(on ? SDL_ENABLE : SDL_DISABLE);
+}
+
 int Platform_GetWindowScale(void)
 {
     return s_win_scale_current;
@@ -1652,6 +1677,10 @@ static void pump_events_any_thread(void)
             { extern void Mobile_LinkDropped(const char *link); Mobile_LinkDropped(ev.drop.file); }
 #endif
             SDL_free(ev.drop.file);
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEWHEEL:
+            { extern void MenuMouse_Event(const SDL_Event *e); MenuMouse_Event(&ev); }
             break;
         case SDL_QUIT:
             Platform_RequestQuit();

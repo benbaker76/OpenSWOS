@@ -7,11 +7,15 @@ The keys and gamepad buttons, and the arcade (coin-op) mode. New to OpenSWOS? St
 
 ### Menus
 
-| Action       | Keyboard           | Gamepad (any pad)    |
-|--------------|--------------------|----------------------|
-| Navigate     | Arrow keys         | D-pad / left stick   |
-| Select       | Right Ctrl / Space / Left Ctrl / Enter | A or B button |
-| Quit         | Esc (only at the top-level main menu) or window close (✕) | — |
+| Action       | Keyboard           | Gamepad (any pad)    | Mouse (PC, Mac, Linux, web) |
+|--------------|--------------------|----------------------|-----------------------------|
+| Navigate     | Arrow keys         | D-pad / left stick   | point at a button, or the wheel |
+| Select       | Right Ctrl / Space / Left Ctrl / Enter | A or B button | left click |
+| Back         | the screen's EXIT  | the screen's EXIT    | right click (presses EXIT or ABORT) |
+| Quit         | Esc (only at the top-level main menu) or window close (✕) | — | — |
+
+The cursor shows when the mouse moves in a menu and goes after a few seconds, and in a match
+(`src/menu_mouse.c`; `SWOS_MOUSE_TEST=1` is its self-test).
 
 ### In-match (Player 1)
 

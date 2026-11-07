@@ -49,6 +49,7 @@ SDL_ONLY_SRCS := \
     arcade.c              \
     assets_check.c        \
     mobile.c              \
+    menu_mouse.c          \
     esc_confirm.c         \
     phone_fetch.c         \
     touch_controls.c      \
