@@ -376,9 +376,10 @@ void ModWeather_ReplaySprite(uint16_t image, int16_t left, int16_t top)
 /* ---- the weather ---- */
 
 #if SDL_VERSION_ATLEAST(2, 0, 18)
+#include "gfx.h"
 #include "../third_party/pitch_weather/pitch_weather.h"
 
-static void weather_draw(SDL_Renderer *renderer)
+static void weather_draw(void)
 {
     static int wasShowing, seed;
     const int showing = ModApi_InMatch() || ModApi_InReplay();
@@ -393,19 +394,17 @@ static void weather_draw(SDL_Renderer *renderer)
     s_rainKind = weather.kind == PITCH_WEATHER_SNOW ? 0 : ModApi_PitchType();
     s_rainIntensity = weather.intensity;
     SDL_Rect area = { 0, 0, 0, 0 };
-    SDL_RenderGetLogicalSize(renderer, &area.w, &area.h);
-    if (area.w <= 0 || area.h <= 0)
-        SDL_GetRendererOutputSize(renderer, &area.w, &area.h);
-    PitchWeather_Draw(renderer, &area, &weather, ModApi_Ticks() / 1000.0);
+    Gfx_SpaceSize(&area.w, &area.h);            /* (the picture's: gfx.h) */
+    PitchWeather_Draw(NULL, &area, &weather, ModApi_Ticks() / 1000.0);
 }
 #else
-static void weather_draw(SDL_Renderer *renderer) { (void)renderer; }    /* (an SDL without RenderGeometry) */
+static void weather_draw(void) {}    /* (an SDL without RenderGeometry) */
 #endif
 
-void ModWeather_FrameDrawn(SDL_Renderer *renderer)
+void ModWeather_FrameDrawn(void)
 {
     mud_update_live();
-    weather_draw(renderer);
+    weather_draw();
 }
 
 const ModDef ModDef_weather = {

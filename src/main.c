@@ -152,10 +152,12 @@ static void print_usage(const char *argv0)
         "                            XP fix). Slower toggle.\n"
         "  --scale=<1|2|3|4>         Windowed scale at startup. Default: 3.\n"
         "                            Adjust at runtime with + and - keys.\n"
-        "  --renderer=<software|accel>\n"
-        "                            Choose SDL renderer. Default: accel.\n"
-        "                            'accel' uses the platform's hardware backend\n"
-        "                            (D3D/OpenGL/Metal); 'software' is a CPU-only\n"
+        "  --renderer=<accel|sdl|software>\n"
+        "                            Choose the renderer. Default: accel.\n"
+        "                            'accel' is the GPU presenter (OpenGL), or\n"
+        "                            SDL's hardware renderer where it cannot start;\n"
+        "                            'sdl' is SDL's hardware renderer (D3D/OpenGL/\n"
+        "                            Metal); 'software' is a CPU-only\n"
         "                            fallback for hosts where the hardware path\n"
         "                            misbehaves.\n"
         "  --subpixel=<on|off>       Smooth sub-pixel scrolling (default on). The game\n"
@@ -671,9 +673,10 @@ int main(int argc, char **argv)
             opts.win_scale = n;
         } else if ((v = match_kv(a, "renderer")) != NULL) {
             if (strcmp(v, "software") == 0)      opts.renderer = PLATFORM_RENDERER_SOFTWARE;
-            else if (strcmp(v, "accel") == 0)    opts.renderer = PLATFORM_RENDERER_ACCEL;
+            else if (strcmp(v, "accel") == 0 || strcmp(v, "gpu") == 0) opts.renderer = PLATFORM_RENDERER_ACCEL;
+            else if (strcmp(v, "sdl") == 0)      opts.renderer = PLATFORM_RENDERER_SDL;
             else {
-                fprintf(stderr, "Invalid --renderer value '%s' (expected software|accel)\n", v);
+                fprintf(stderr, "Invalid --renderer value '%s' (expected accel|sdl|software)\n", v);
                 return 1;
             }
         } else if ((v = match_kv(a, "vsync")) != NULL) {

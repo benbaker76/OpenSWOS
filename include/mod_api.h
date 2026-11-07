@@ -53,7 +53,8 @@ typedef struct ModDef {
     void (*init)(void);
 
     /* -- drawing -- */
-    void (*frameDrawn)(SDL_Renderer *renderer);     /* the finished frame, before the swap */
+    void (*frameDrawn)(void);                       /* the finished frame, before the swap: draw
+                                                     * over it with gfx.h (either presenter) */
     void (*pitchDrawn)(void);                       /* a match's pitch in the frame, no sprites yet */
     void (*playerSetsRaw)(void);                    /* the match's raw player sprites (sets 227..) */
     void (*playerDrawn)(const struct Sprite *sprite, const struct SpriteGraphics *gfx,

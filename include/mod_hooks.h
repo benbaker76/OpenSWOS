@@ -16,9 +16,10 @@
 typedef struct SDL_Renderer SDL_Renderer;     /* (no renderer on the Amiga: FrameDrawn is never called) */
 #endif
 
-/* A frame of the game is on the renderer (world, sprites and HUD), in its logical size; before
- * the CRT effects, the touch controls and the swap. platform_sdl.c's present. */
-void ModHooks_FrameDrawn(SDL_Renderer *renderer);
+/* A frame of the game is drawn (world, sprites and HUD); before the CRT effects, the touch
+ * controls and the swap -- drawn over with gfx.h, in the picture's space (platform_sdl.c's
+ * present, on either presenter). */
+void ModHooks_FrameDrawn(void);
 
 /* A match frame's pitch is drawn into the frame being made (src/game_loop.c, after
  * ScrollToCurrent) and its sprites are not yet: what is drawn here is under the players. The

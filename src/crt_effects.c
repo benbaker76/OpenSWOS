@@ -17,12 +17,15 @@
 
 #ifdef SWOS_SDL_BUILD
 
+#include "gfx.h"
+
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 static CrtEffectsConfig s_cfg;          /* current settings */
 static CrtEffectsConfig s_builtCfg;     /* what s_tex was built from */
-static SDL_Texture     *s_tex;
+static GfxTexture      *s_tex;
 static int              s_builtW, s_builtH;
 static int              s_failed;       /* creation failed once — stop retrying */
 
@@ -39,7 +42,7 @@ int CrtEffects_Active(void)
 
 void CrtEffects_Shutdown(void)
 {
-    if (s_tex) { SDL_DestroyTexture(s_tex); s_tex = NULL; }
+    if (s_tex) { Gfx_DestroyTexture(s_tex); s_tex = NULL; }
     s_builtW = s_builtH = 0;
     s_failed = 0;
 }
@@ -91,28 +94,22 @@ static void mask_rgb(int x, int y, int dim, CrtMaskKind kind,
     }
 }
 
-/* Build the combined texture at the current output size. */
-static SDL_Texture *build(SDL_Renderer *renderer, int w, int h)
+/* Build the combined texture at the current output size (on whichever presenter: gfx.h). */
+static GfxTexture *build(int w, int h)
 {
     if (w <= 0 || h <= 0) return NULL;
 
-    SDL_Texture *t = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
-                                       SDL_TEXTUREACCESS_STREAMING, w, h);
-    if (!t) {
+    GfxTexture *t = Gfx_CreateTexture(w, h, 0);
+    uint8_t *px = (uint8_t *)malloc((size_t)w * h * 4);
+    if (!t || !px) {
         fprintf(stderr, "[crt] %dx%d overlay texture failed (%s) — effects off\n",
                 w, h, SDL_GetError());
+        Gfx_DestroyTexture(t);
+        free(px);
         s_failed = 1;
         return NULL;
     }
-    SDL_SetTextureBlendMode(t, SDL_BLENDMODE_MOD);
-
-    uint32_t *px = NULL;
-    int pitch = 0;
-    if (SDL_LockTexture(t, NULL, (void **)&px, &pitch) != 0) {
-        SDL_DestroyTexture(t);
-        s_failed = 1;
-        return NULL;
-    }
+    const int pitch = w * 4;
 
     /* Vignette geometry: measured from the centre, in units of the half-
      * diagonal, so it looks the same at any resolution or aspect. Nothing
@@ -134,7 +131,7 @@ static SDL_Texture *build(SDL_Renderer *renderer, int w, int h)
     const int dim = 255 - (s_cfg.mask_strength * 255) / 100;
 
     for (int y = 0; y < h; y++) {
-        uint32_t *row = (uint32_t *)((uint8_t *)px + (size_t)y * pitch);
+        uint8_t *row = px + (size_t)y * pitch;           /* R, G, B, A */
         for (int x = 0; x < w; x++) {
             uint8_t r, g, b;
             mask_rgb(x, y, dim, s_cfg.mask, &r, &g, &b);
@@ -171,23 +168,28 @@ static SDL_Texture *build(SDL_Renderer *renderer, int w, int h)
             r = (uint8_t)(r * shade);
             g = (uint8_t)(g * shade);
             b = (uint8_t)(b * shade);
-            row[x] = 0xFF000000u | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+            row[x * 4 + 0] = r;
+            row[x * 4 + 1] = g;
+            row[x * 4 + 2] = b;
+            row[x * 4 + 3] = 0xFF;
         }
     }
-    SDL_UnlockTexture(t);
+    Gfx_UpdateTexture(t, px, pitch);
+    free(px);
     return t;
 }
 
-void CrtEffects_Apply(SDL_Renderer *renderer)
+void CrtEffects_Apply(void)
 {
-    if (!renderer || !CrtEffects_Active()) return;
+    if (!CrtEffects_Active()) return;
 
     int outW = 0, outH = 0;
-    if (SDL_GetRendererOutputSize(renderer, &outW, &outH) != 0) return;
+    Gfx_OutputSize(&outW, &outH);
+    if (outW <= 0 || outH <= 0) return;
 
     if (!s_tex || outW != s_builtW || outH != s_builtH || !cfg_same(&s_cfg, &s_builtCfg)) {
-        if (s_tex) { SDL_DestroyTexture(s_tex); s_tex = NULL; }
-        s_tex = build(renderer, outW, outH);
+        if (s_tex) { Gfx_DestroyTexture(s_tex); s_tex = NULL; }
+        s_tex = build(outW, outH);
         if (!s_tex) return;
         s_builtW = outW; s_builtH = outH; s_builtCfg = s_cfg;
         fprintf(stderr, "[crt] overlay %dx%d: mask=%d strength=%d vignette=%d corners=%d\n",
@@ -195,17 +197,15 @@ void CrtEffects_Apply(SDL_Renderer *renderer)
                 s_cfg.vignette, s_cfg.corners);
     }
 
-    /* Draw in OUTPUT pixels. The renderer has a logical size set (letterboxing
-     * the 336x272 picture), and drawing through it would rescale the grille and
-     * alias it to mush — so drop the logical mapping for this one draw and put
-     * it straight back. SDL restores the viewport/scale with it. */
-    int logW = 0, logH = 0;
-    SDL_RenderGetLogicalSize(renderer, &logW, &logH);
-    if (logW || logH) SDL_RenderSetLogicalSize(renderer, 0, 0);
-
-    SDL_RenderCopy(renderer, s_tex, NULL, NULL);
-
-    if (logW || logH) SDL_RenderSetLogicalSize(renderer, logW, logH);
+    /* Draw in OUTPUT pixels: through the picture's letterboxed mapping the grille would be
+     * rescaled and alias to mush. */
+    const GfxSpace space = Gfx_Space();
+    const GfxBlend blend = Gfx_Blend();
+    Gfx_SetSpace(GFX_SPACE_OUTPUT);
+    Gfx_SetBlend(GFX_BLEND_MOD);
+    Gfx_DrawTexture(s_tex, NULL, NULL);
+    Gfx_SetBlend(blend);
+    Gfx_SetSpace(space);
 }
 
 #endif /* SWOS_SDL_BUILD */

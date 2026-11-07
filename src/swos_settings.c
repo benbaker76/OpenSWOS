@@ -4,7 +4,7 @@
  * Layout (SWOS.ini):
  *
  *   [video]
- *   renderer=accel        ; software | accel
+ *   renderer=accel        ; software | accel (the GPU presenter, else SDL's) | sdl
  *   vsync=false           ; true | false
  *   subpixel_scroll=true  ; true | false — smooth sub-pixel scrolling
  *   scaling=smooth        ; sharp | smooth — even pixels at a non-integer scale
@@ -81,6 +81,8 @@ static int handler(void *user, const char *section,
         if (eqi(name, "renderer")) {
             if      (eqi(value, "software")) opts->renderer = PLATFORM_RENDERER_SOFTWARE;
             else if (eqi(value, "accel"))    opts->renderer = PLATFORM_RENDERER_ACCEL;
+            else if (eqi(value, "gpu"))      opts->renderer = PLATFORM_RENDERER_ACCEL;
+            else if (eqi(value, "sdl"))      opts->renderer = PLATFORM_RENDERER_SDL;
         } else if (eqi(name, "vsync")) {
             int b;
             if (parse_bool(value, &b)) opts->vsync = b;
@@ -348,7 +350,7 @@ void Settings_Load(PlatformInitOptions *opts, const char *path)
 
 static const char *renderer_str(PlatformRendererMode m)
 {
-    return (m == PLATFORM_RENDERER_SOFTWARE) ? "software" : "accel";
+    return m == PLATFORM_RENDERER_SOFTWARE ? "software" : m == PLATFORM_RENDERER_SDL ? "sdl" : "accel";
 }
 
 static const char *fullscreen_str(PlatformFullscreenMode m)
@@ -422,7 +424,7 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
      * happily emits a longer line and the READER then reports "parse error at
      * line N" on our own generated file. Cost me one round-trip to notice. */
     int n = 0;
-    SETTING(n) = (IniEntry){ "video",  "renderer",   "; renderer: software | accel  (hardware-accelerated)", renderer_str(opts->renderer) };
+    SETTING(n) = (IniEntry){ "video",  "renderer",   "; renderer: accel (the GPU presenter, else SDL's) | sdl (SDL's renderer) | software", renderer_str(opts->renderer) };
     SETTING(n) = (IniEntry){ "video",  "vsync",      "; vsync: true | false  (accel renderer only)", opts->vsync ? "true" : "false" };
     SETTING(n) = (IniEntry){ "video",  "subpixel_scroll", "; subpixel_scroll: true | false. Smooths scrolling by shifting the frame by the camera's sub-pixel remainder. Never blurs. Off = compare", opts->subpixel_scroll ? "true" : "false" };
     SETTING(n) = (IniEntry){ "video",  "scaling",    "; scaling: sharp | smooth. A fullscreen scale is rarely a whole number (1080/272 = 3.97), so a plain nearest copy makes some pixels bigger than others. smooth evens them", opts->scaling_smooth ? "smooth" : "sharp" };

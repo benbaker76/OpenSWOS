@@ -25,7 +25,12 @@
  *   no effect on software renderers — frames are not synced to monitor
  *   refresh, so 50 Hz monitor users see a slow drift / beat pattern.
  *
- * Accelerated (PLATFORM_RENDERER_ACCEL):
+ * Accelerated (PLATFORM_RENDERER_ACCEL, the default):
+ *   the GPU presenter (src/gpu_present.c, sokol_gfx on OpenGL: docs/RENDERING.md), which
+ *   colours and scales the 8bpp frame in a shader; where it cannot start, SDL's renderer as
+ *   below. [video] renderer = sdl asks for SDL's renderer by name.
+ *
+ * SDL (PLATFORM_RENDERER_SDL):
  *   SDL_RENDERER_ACCELERATED, optionally with SDL_RENDERER_PRESENTVSYNC.
  *   Hardware contexts (D3D / OpenGL / Metal) are bound to the creating
  *   thread, so the cross-thread fallback render is suppressed; only
@@ -38,6 +43,7 @@
 typedef enum {
     PLATFORM_RENDERER_SOFTWARE = 0,
     PLATFORM_RENDERER_ACCEL    = 1,
+    PLATFORM_RENDERER_SDL      = 2,
 } PlatformRendererMode;
 
 /* Fullscreen mode selector.

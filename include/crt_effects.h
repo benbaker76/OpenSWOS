@@ -49,7 +49,7 @@ int  CrtEffects_Active(void);
 /* Multiply the effects over whatever has just been drawn. Call AFTER the frame
  * (and its HUD) and BEFORE SDL_RenderPresent. Draws in OUTPUT pixels, so it is
  * unaffected by the renderer's logical size. No-op when nothing is enabled. */
-void CrtEffects_Apply(SDL_Renderer *renderer);
+void CrtEffects_Apply(void);   /* over the finished frame, in output pixels (gfx.h) */
 
 /* Drop the cached texture (renderer teardown). */
 void CrtEffects_Shutdown(void);

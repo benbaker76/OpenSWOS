@@ -100,7 +100,7 @@ set_source_files_properties(${REPO}/src/netplay_netem_install.cpp PROPERTIES COM
     "-include;${REPO}/include/swos_platform.h")
 
 if(ANDROID)
-    target_link_libraries(${GAME} PRIVATE SDL2::SDL2 m log)
+    target_link_libraries(${GAME} PRIVATE SDL2::SDL2 m log GLESv3)   # (GLESv3: the GPU presenter, docs/RENDERING.md)
 else()
     target_link_libraries(${GAME} PRIVATE SDL2::SDL2main SDL2::SDL2-static)
     # The app: its Info.plist (packaging/ios), its icons, and the project's own data -- the

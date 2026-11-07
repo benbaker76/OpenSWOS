@@ -14,6 +14,8 @@
 #include "project_identity.h"
 #include "platform_sdl.h"
 #include "mod_hooks.h"      /* ModHooks_FrameDrawn: the built-in mods' drawing */
+#include "gfx.h"            /* the overlays' drawing, on either presenter */
+#include "gpu_present.h"    /* the GPU presenter ([video] renderer = gpu: docs/RENDERING.md) */
 #include "crt_effects.h"   /* CRT mask / vignette / curved corners */
 #include "display.h"
 #include "dos_mode.h"        /* gDosGraphics */
@@ -263,6 +265,7 @@ static int hud_layer_pending(void)
  * scale_pass_factor() returns 0 there and the old single copy runs unchanged,
  * which is every windowed scale. */
 static int           s_scaling_smooth = 1;  /* [video] scaling = smooth | sharp */
+static int           s_gpu;                 /* the GPU presenter is up: no SDL renderer (gpu_present.c) */
 static SDL_Texture  *s_scale_target;        /* NULL until a fractional scale needs it */
 static int           s_scale_n;             /* the N s_scale_target was built at */
 static int           s_scale_targets_ok = 1;/* cleared if the backend can't render to a texture */
@@ -729,6 +732,14 @@ int Platform_Init(const PlatformInitOptions *opts)
         wflags |= SDL_WINDOW_FULLSCREEN;
     }
 
+    /* The GPU presenter wants an OpenGL window, its context's attributes set first. If it
+     * cannot start on it after all, SDL's renderer takes the same window. */
+    int gpu_wanted = renderer_mode == PLATFORM_RENDERER_ACCEL && GpuPresent_Compiled();
+    if (gpu_wanted) {
+        GpuPresent_ConfigureWindow();
+        wflags |= GpuPresent_WindowFlags();
+    }
+
     /* Open (and, for fullscreen, cover) the requested monitor. CENTERED_DISPLAY
      * places the window on display `screen`; on WASM SDL only has display 0. */
     /* The build goes in the title bar as well as on the main menu: a windowed
@@ -793,6 +804,15 @@ int Platform_Init(const PlatformInitOptions *opts)
         SDL_WINDOWPOS_CENTERED_DISPLAY(screen),
         client_w, client_h,
         wflags);
+    if (!s_window && gpu_wanted) {
+        /* No OpenGL window here (SDL's dummy driver of the headless rigs, a driver without GL):
+         * a plain one, on SDL's renderer. */
+        fprintf(stderr, "[gpu] no OpenGL window (%s): SDL's renderer instead\n", SDL_GetError());
+        gpu_wanted = 0;
+        wflags &= ~GpuPresent_WindowFlags();
+        s_window = SDL_CreateWindow(s_title, SDL_WINDOWPOS_CENTERED_DISPLAY(screen),
+                                    SDL_WINDOWPOS_CENTERED_DISPLAY(screen), client_w, client_h, wflags);
+    }
     if (!s_window) {
         fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
         return -1;
@@ -895,6 +915,16 @@ int Platform_Init(const PlatformInitOptions *opts)
      * misbehaves; it permits cross-thread RenderFrame calls from the
      * SDL_AddTimer worker (used as a fallback during loader-intro
      * spins). */
+    if (gpu_wanted && GpuPresent_Init(s_window, vsync) == 0) {
+        s_gpu = 1;
+        s_renderer_is_hw = 1;
+        s_vsync_enabled = GpuPresent_Vsync();
+        s_scale_targets_ok = 1;
+    } else {
+    if (gpu_wanted)
+        fprintf(stderr, "[gpu] no GPU presenter on this machine: SDL's renderer instead\n");
+    if (renderer_mode == PLATFORM_RENDERER_SDL)
+        renderer_mode = PLATFORM_RENDERER_ACCEL;   /* (SDL's hardware renderer, by choice) */
     Uint32 rflags;
     if (renderer_mode == PLATFORM_RENDERER_SOFTWARE) {
         rflags = SDL_RENDERER_SOFTWARE;
@@ -936,6 +966,8 @@ int Platform_Init(const PlatformInitOptions *opts)
         fprintf(stderr, "SDL_CreateRenderer: %s\n", SDL_GetError());
         return -1;
     }
+    }   /* (SDL's renderer) */
+    Gfx_BindSdl(s_renderer);
 
     s_subpixel_scroll = opts ? opts->subpixel_scroll : 1;
     s_scaling_smooth  = opts ? opts->scaling_smooth  : 1;
@@ -962,7 +994,10 @@ int Platform_Init(const PlatformInitOptions *opts)
      * elsewhere — see present_frame_copy and docs/AMIGA_60.md. */
     {
         SDL_RendererInfo info;
-        if (SDL_GetRendererInfo(s_renderer, &info) == 0) {
+        if (s_gpu)
+            fprintf(stderr, "[render] driver=gpu (sokol) vsync: requested=%s actual=%s\n",
+                    vsync ? "on" : "off", s_vsync_enabled ? "on" : "off");
+        if (!s_gpu && SDL_GetRendererInfo(s_renderer, &info) == 0) {
             int got_vsync = (info.flags & SDL_RENDERER_PRESENTVSYNC) ? 1 : 0;
             /* Pass 1 renders into a texture. The software renderer and a few
              * exotic backends can't, so ask before relying on it rather than
@@ -1046,7 +1081,7 @@ int Platform_Init(const PlatformInitOptions *opts)
     SDL_EventState(SDL_MOUSEMOTION, SDL_DISABLE);
 
     s_tex_idx = 0;
-    for (int ti = 0; ti < PLATFORM_TEX_RING; ti++) {
+    for (int ti = 0; ti < PLATFORM_TEX_RING && !s_gpu; ti++) {
         s_textures[ti] = SDL_CreateTexture(
             s_renderer,
             SDL_PIXELFORMAT_ARGB8888,
@@ -1154,6 +1189,7 @@ void Platform_Shutdown(void)
         if (s_textures[ti]) { SDL_DestroyTexture(s_textures[ti]); s_textures[ti] = NULL; }
     if (s_scale_target) { SDL_DestroyTexture(s_scale_target); s_scale_target = NULL; s_scale_n = 0; }
     CrtEffects_Shutdown();
+    if (s_gpu) { GpuPresent_Shutdown(); s_gpu = 0; }
     if (s_frame_rgba) { SDL_free(s_frame_rgba); s_frame_rgba = NULL; }
     if (s_hud_layer)  { SDL_free(s_hud_layer);  s_hud_layer  = NULL; }
     if (s_renderer) { SDL_DestroyRenderer(s_renderer); s_renderer = NULL; }
@@ -1244,6 +1280,20 @@ void Platform_ToggleFullscreen(void)
  * as SDL draws the picture): 0 when it is on the picture (menu_mouse.c). */
 int Platform_MouseToPicture(int wx, int wy, int *x, int *y)
 {
+    if (s_gpu) {        /* the window's point -> the drawable's -> the picture's (gpu_present.c) */
+        int ww = 0, wh = 0, dw = 0, dh = 0;
+        float px, py, pw, ph;
+        SDL_GetWindowSize(s_window, &ww, &wh);
+        GpuPresent_OutputSize(&dw, &dh);
+        GpuPresent_PictureRect(&px, &py, &pw, &ph);
+        if (ww <= 0 || wh <= 0 || pw <= 0.0f || ph <= 0.0f)
+            return -1;
+        const float fx = ((float)wx * dw / ww - px) / pw * _screen_width;
+        const float fy = ((float)wy * dh / wh - py) / ph * _screen_height;
+        *x = (int)SDL_floorf(fx);
+        *y = (int)SDL_floorf(fy);
+        return fx >= 0.0f && fy >= 0.0f && *x < _screen_width && *y < _screen_height ? 0 : -1;
+    }
 #if SDL_VERSION_ATLEAST(2, 0, 18)
     float lx, ly;
     if (!s_renderer)
@@ -1291,7 +1341,7 @@ PlatformFullscreenMode Platform_GetFullscreenMode(void)
 
 void Platform_ViewChanged(void)
 {
-    if (!s_renderer) return;
+    if (!s_renderer && !s_gpu) return;
     apply_picture_scaling();
 
     /* And the WINDOW follows the view, so the picture keeps its whole-pixel
@@ -1462,11 +1512,23 @@ static void refresh_palette_from_copper(void)
 #endif
 }
 
+/* The frame to show (see chunky_to_rgba): the GPU presenter takes it as it is. */
+static const uint8_t *frame_source(void)
+{
+    if (_usePlaneOffsetFlag != 0)
+        return _frontbufferMaskBuffer;
+    if (_useAltBaseFlag != 0)
+        return (const uint8_t *)(uintptr_t)_frontbufferBasePtr;
+    return (const uint8_t *)(uintptr_t)_frontbufferBaseAltPtr;
+}
+
 /* ---- 8bpp chunky → RGBA ------------------------------------------- */
 /* The frontbuffer is now 1 byte per pixel (palette index). Each frame
  * we walk SCREEN_WIDTH x SCREEN_HEIGHT bytes and look each one up in
  * the current palette to write an ARGB8888 pixel into the streaming
  * SDL texture. Same shape as swos-port-c's `updateScreen`. */
+static const uint8_t *frame_source(void);
+
 static void chunky_to_rgba(uint32_t *dst, int dst_pitch_pixels)
 {
     /* Double-buffer semantics — read the *completed* frame, not the
@@ -1484,13 +1546,7 @@ static void chunky_to_rgba(uint32_t *dst, int dst_pitch_pixels)
      * pointer aliasing hid. `useAltBaseFlag` inverts this when the
      * game code wants to display the drawing target directly (used by
      * transient overlay paths). */
-    const uint8_t *fb;
-    if (_usePlaneOffsetFlag != 0)
-        fb = _frontbufferMaskBuffer;
-    else if (_useAltBaseFlag != 0)
-        fb = (const uint8_t *)(uintptr_t)_frontbufferBasePtr;
-    else
-        fb = (const uint8_t *)(uintptr_t)_frontbufferBaseAltPtr;
+    const uint8_t *fb = frame_source();
     if (!fb) return;
 
     /* Originally applied the Amiga copper Y offset:
@@ -1588,14 +1644,19 @@ static void capture_presented_frame(void)
     mod = 0;
 
     int ow = 0, oh = 0;
-    if (SDL_GetRendererOutputSize(s_renderer, &ow, &oh) != 0 || ow <= 0 || oh <= 0)
+    if (s_gpu)
+        GpuPresent_OutputSize(&ow, &oh);
+    else if (SDL_GetRendererOutputSize(s_renderer, &ow, &oh) != 0)
+        return;
+    if (ow <= 0 || oh <= 0)
         return;
 
     /* ABGR8888 is 0xAABBGGRR, i.e. R,G,B,A byte order on a little-endian host —
      * exactly what stb_image_write wants, so no conversion pass. */
     uint8_t *px = (uint8_t *)malloc((size_t)ow * oh * 4);
     if (!px) return;
-    if (SDL_RenderReadPixels(s_renderer, NULL, SDL_PIXELFORMAT_ABGR8888, px, ow * 4) == 0) {
+    if (s_gpu ? GpuPresent_ReadPixels(px, ow, oh) == 0
+              : SDL_RenderReadPixels(s_renderer, NULL, SDL_PIXELFORMAT_ABGR8888, px, ow * 4) == 0) {
         char path[64];
         snprintf(path, sizeof path, "swos_present%03d.png", count++);
         if (stbi_write_png(path, ow, oh, 4, px, ow * 4))
@@ -1654,12 +1715,11 @@ static void maybe_dump_frame(const uint32_t *argb)
 #ifdef SWOS_MOBILE_BUILD
 /* The phones' on-screen controls (src/touch_controls.c): an event, with the output's size. */
 extern void TouchControls_HandleEvent(const SDL_Event *e, int w, int h);
-extern void TouchControls_Draw(SDL_Renderer *r);
+extern void TouchControls_Draw(void);
 static void touch_event(const SDL_Event *e)
 {
     int w = 0, h = 0;
-    if (s_renderer)
-        SDL_GetRendererOutputSize(s_renderer, &w, &h);
+    Gfx_OutputSize(&w, &h);
     TouchControls_HandleEvent(e, w, h);
 }
 #endif
@@ -2152,6 +2212,135 @@ static void screenshot_frame_release(uint32_t *shot, uint32_t *fb)
     if (shot != fb) SDL_free(shot);
 }
 
+/* What goes over the picture, on either presenter (gfx.h). */
+static void draw_overlays(void)
+{
+    /* The built-in mods' drawing over the frame (src/mod_hooks.c: the weather), before the
+     * CRT effects so the grille and the glass sit on top of it too. */
+    ModHooks_FrameDrawn();
+    /* CRT effects go on LAST, over the finished frame and its HUD, so the
+     * grille and the glass edge sit on the picture rather than under it. */
+    CrtEffects_Apply();
+#ifdef SWOS_MOBILE_BUILD
+    TouchControls_Draw();            /* (the phones' on-screen controls, over everything) */
+#endif
+}
+
+static void frame_captures(uint32_t *fb, int pump_full);
+static int frame_captures_wanted(int pump_full);
+
+/* The GPU presenter's frame (gpu_present.c): the 8bpp frame and the HUD layer go up as they are,
+ * the shader colours and scales them. RGBA is made on the CPU only when something needs it: the
+ * arcade's screens and overlay, and the captures. */
+static void render_frame_gpu(int pump_full)
+{
+    SDL_LockMutex(s_render_mtx);
+    refresh_palette_from_copper();
+
+    GpuFrame f;
+    SDL_memset(&f, 0, sizeof f);
+    f.w = _screen_width;
+    f.h = _screen_height;
+    f.palette = s_palette;
+
+    extern int _gArcadeMode;
+    uint32_t *fb = NULL;
+    if (_gArcadeMode || frame_captures_wanted(pump_full)) {
+        fb = s_frame_rgba;
+        int arcade_full = 0;
+        if (_gArcadeMode) {
+            extern int Arcade_RenderFullScreen(uint32_t *, int, int, int);
+            arcade_full = Arcade_RenderFullScreen(fb, _screen_width, _screen_width, _screen_height);
+        }
+        if (!arcade_full) {
+            chunky_to_rgba(fb, _screen_width);
+            if (_gArcadeMode) {
+                extern void Arcade_CompositeOverlay(uint32_t *, int, int, int);
+                Arcade_CompositeOverlay(fb, _screen_width, _screen_width, _screen_height);
+            }
+        }
+        frame_captures(fb, pump_full);
+        if (_gArcadeMode)
+            f.argb = fb;
+    }
+    if (!f.argb) {
+        f.index = frame_source();
+        f.indexPitch = FRONTBUFFER_ROW_STRIDE_BYTES;
+    }
+    if (hud_layer_pending()) {
+        f.hud = s_hud_layer;
+        f.hudPitch = _screen_width;
+    }
+    if (!s_subpixel_scroll || !Render_ScrollSubpixel(&f.fracX, &f.fracY))
+        f.fracX = f.fracY = 0;
+    f.subpixel = s_subpixel_scroll;
+    f.smooth = s_scaling_smooth;
+    f.stretch = s_stretch;
+
+    if ((f.index || f.argb) && GpuPresent_Begin(&f, NULL)) {
+        Gfx_BeginFrame();
+        draw_overlays();
+        Gfx_EndFrame();
+        capture_presented_frame();
+        GpuPresent_End();
+    }
+    SDL_UnlockMutex(s_render_mtx);
+}
+
+/* The frame's screenshots and dumps (F12, SWOS_DUMP_FRAMES, SWOS_SCREENSHOT_INTERVAL), from the
+ * RGBA frame `fb`. Only the main-thread render (pump_full) writes the F12 shot; the timer-thread
+ * fallback would race the draw. */
+static int frame_captures_wanted(int pump_full)
+{
+    return s_dump_frames || (pump_full && s_screenshot_request) || s_screenshot_interval > 0;
+}
+
+static void frame_captures(uint32_t *fb, int pump_full)
+{
+    /* Screenshots read the packed RAM buffer directly (always the right stride now,
+     * so the old pitch-mismatch skip is gone). Only write the F12 shot from the
+     * main-thread render (pump_full); the timer-thread fallback would race the draw. */
+    if (s_dump_frames) {
+        uint32_t *shot = screenshot_frame_with_hud(fb);
+        maybe_dump_frame(shot);
+        screenshot_frame_release(shot, fb);
+    }
+    if (pump_full && s_screenshot_request) {
+        uint32_t *shot = screenshot_frame_with_hud(fb);
+        write_screenshot(shot);
+        screenshot_frame_release(shot, fb);
+        s_screenshot_request = 0;
+    }
+    if (s_screenshot_interval > 0) {
+        static int frame_mod, presented, from = -1, cap = 200;
+        /* SWOS_SCREENSHOT_FROM=N: start the interval shots at the N-th present, so the
+         * 200 of them can cover one moment of a long replay (docs/NETPLAY_GHOSTING.md).
+         * SWOS_SCREENSHOT_MAX=N raises the 200, e.g. to film a whole highlight. */
+        if (from < 0) {
+            const char *v = getenv("SWOS_SCREENSHOT_FROM");
+            from = (v && v[0]) ? atoi(v) : 0;
+            v = getenv("SWOS_SCREENSHOT_MAX");
+            if (v && atoi(v) > 0) cap = atoi(v);
+        }
+        if (++presented < from)
+            return;
+        if (++frame_mod >= s_screenshot_interval) {
+            frame_mod = 0;
+            if (s_screenshot_auto_count < cap) {
+                uint32_t *shot = screenshot_frame_with_hud(fb);
+                write_screenshot(shot);
+                screenshot_frame_release(shot, fb);
+                s_screenshot_auto_count++;
+            } else if (s_screenshot_auto_count == cap) {
+                fprintf(stderr,
+                    "[screenshot] interval mode hit the %d-shot cap; disabling\n", cap);
+                s_screenshot_interval = 0;
+                s_screenshot_auto_count++;
+            }
+        }
+    }
+}
+
 static void render_frame_impl(int pump_full)
 {
     /* SDL_PollEvent -> SDL_PumpEvents pulls from the OS window message queue, which on
@@ -2176,6 +2365,11 @@ static void render_frame_impl(int pump_full)
     AudioSDL_Tick();
 #endif
 
+    if (s_gpu) {
+        if (pump_full && s_frame_skip_now) return;
+        render_frame_gpu(pump_full);
+        return;
+    }
     if (!s_renderer || !s_textures[0]) return;
     if (pump_full && s_frame_skip_now) return;
 
@@ -2210,49 +2404,7 @@ static void render_frame_impl(int pump_full)
               Arcade_CompositeOverlay(fb, fbpx, _screen_width, _screen_height); }
     }
 
-    /* Screenshots read the packed RAM buffer directly (always the right stride now,
-     * so the old pitch-mismatch skip is gone). Only write the F12 shot from the
-     * main-thread render (pump_full); the timer-thread fallback would race the draw. */
-    if (s_dump_frames) {
-        uint32_t *shot = screenshot_frame_with_hud(fb);
-        maybe_dump_frame(shot);
-        screenshot_frame_release(shot, fb);
-    }
-    if (pump_full && s_screenshot_request) {
-        uint32_t *shot = screenshot_frame_with_hud(fb);
-        write_screenshot(shot);
-        screenshot_frame_release(shot, fb);
-        s_screenshot_request = 0;
-    }
-    if (s_screenshot_interval > 0) {
-        static int frame_mod, presented, from = -1, cap = 200;
-        /* SWOS_SCREENSHOT_FROM=N: start the interval shots at the N-th present, so the
-         * 200 of them can cover one moment of a long replay (docs/NETPLAY_GHOSTING.md).
-         * SWOS_SCREENSHOT_MAX=N raises the 200, e.g. to film a whole highlight. */
-        if (from < 0) {
-            const char *v = getenv("SWOS_SCREENSHOT_FROM");
-            from = (v && v[0]) ? atoi(v) : 0;
-            v = getenv("SWOS_SCREENSHOT_MAX");
-            if (v && atoi(v) > 0) cap = atoi(v);
-        }
-        if (++presented < from)
-            goto shots_done;
-        if (++frame_mod >= s_screenshot_interval) {
-            frame_mod = 0;
-            if (s_screenshot_auto_count < cap) {
-                uint32_t *shot = screenshot_frame_with_hud(fb);
-                write_screenshot(shot);
-                screenshot_frame_release(shot, fb);
-                s_screenshot_auto_count++;
-            } else if (s_screenshot_auto_count == cap) {
-                fprintf(stderr,
-                    "[screenshot] interval mode hit the %d-shot cap; disabling\n", cap);
-                s_screenshot_interval = 0;
-                s_screenshot_auto_count++;
-            }
-        }
-    }
-shots_done:
+    frame_captures(fb, pump_full);
 
     /* Compose the HUD overlay into the scratch strip of the SAME buffer, then
      * hand frame + overlay to the GPU in ONE bulk upload from cached RAM. The
@@ -2287,13 +2439,9 @@ shots_done:
     }
     /* The built-in mods' drawing over the frame (src/mod_hooks.c: the weather), before the
      * CRT effects so the grille and the glass sit on top of it too. */
-    ModHooks_FrameDrawn(s_renderer);
-    /* CRT effects go on LAST, over the finished frame and its HUD, so the
-     * grille and the glass edge sit on the picture rather than under it. */
-    CrtEffects_Apply(s_renderer);
-#ifdef SWOS_MOBILE_BUILD
-    TouchControls_Draw(s_renderer);  /* (the phones' on-screen controls, over everything) */
-#endif
+    Gfx_BeginFrame();
+    draw_overlays();
+    Gfx_EndFrame();
     capture_presented_frame();     /* after every draw, before the swap */
     SDL_RenderPresent(s_renderer);
 
@@ -2623,6 +2771,27 @@ Uint64 Platform_NowMs(void)
  * (src/mobile.c, src/phone_fetch.c), drawn before there are any of the game's graphics. */
 void Platform_ShowProgress(int permille)
 {
+    if (permille < 0) permille = 0;
+    if (permille > 1000) permille = 1000;
+    if (s_gpu) {
+        SDL_PumpEvents();
+        static const uint8_t bg[3] = { 13, 17, 23 };
+        if (!GpuPresent_Begin(NULL, bg))
+            return;
+        Gfx_BeginFrame();
+        Gfx_SetSpace(GFX_SPACE_OUTPUT);
+        int w = 0, h = 0;
+        Gfx_SpaceSize(&w, &h);
+        SDL_FRect frame = { (float)(w / 8), (float)(h / 2 - h / 32), (float)(w * 3 / 4), (float)(h / 16) };
+        if (frame.h < 4.0f) frame.h = 4.0f;
+        Gfx_FillRect(&frame, (SDL_Color){ 48, 54, 61, 255 });
+        SDL_FRect bar = frame;
+        bar.w = (float)((int64_t)(int)frame.w * permille / 1000);
+        Gfx_FillRect(&bar, (SDL_Color){ 59, 130, 246, 255 });
+        Gfx_EndFrame();
+        GpuPresent_End();
+        return;
+    }
     if (!s_renderer)
         return;
     SDL_PumpEvents();

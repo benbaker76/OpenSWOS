@@ -36,10 +36,10 @@ void ModHooks_Init(void)
     EACH(init) (*m_)->init();
 }
 
-void ModHooks_FrameDrawn(SDL_Renderer *renderer)
+void ModHooks_FrameDrawn(void)
 {
     ModApi_NotePresent();
-    EACH(frameDrawn) (*m_)->frameDrawn(renderer);
+    EACH(frameDrawn) (*m_)->frameDrawn();
 }
 
 void ModHooks_PitchDrawn(void)

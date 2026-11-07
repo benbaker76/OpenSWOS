@@ -50,7 +50,7 @@ values and comments are never rewritten or reordered.
 
 ```ini
 [video]
-renderer=accel        ; software | accel (hardware-accelerated)
+renderer=accel        ; accel (the GPU presenter, else SDL's) | sdl | software
 vsync=off             ; on | off — accel renderer only
 subpixel_scroll=on    ; on | off — smooth sub-pixel scrolling (see below)
 scaling=smooth        ; sharp | smooth — how the frame is scaled (see below)
@@ -146,10 +146,12 @@ keeps MULTIPLAYER off. Every tweak is off online and in the test rigs.
                           multi-monitor rigs.
 --scale=<1|2|3|4>         Windowed pixel scale at startup. Default: 3.
                           Adjust at runtime with the + and - keys.
---renderer=<software|accel>
-                          Choose the SDL renderer. Default: accel.
-                          'accel' uses the platform's hardware backend
-                          (D3D / OpenGL / Metal). 'software' is a CPU-only
+--renderer=<accel|sdl|software>
+                          Choose the renderer. Default: accel.
+                          'accel' is the GPU presenter (docs/RENDERING.md),
+                          or SDL's renderer where it cannot start; 'sdl' is
+                          SDL's hardware renderer (D3D / OpenGL / Metal),
+                          as before the GPU presenter. 'software' is a CPU-only
                           fallback for hosts where the hardware path
                           misbehaves.
 --subpixel=<on|off>       Smooth sub-pixel scrolling. Default: on.

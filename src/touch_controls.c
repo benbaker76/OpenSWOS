@@ -17,6 +17,7 @@
  * where the controls would be -- a phone with nothing else to steer by is not locked out of the menu
  * that would put them back.
  */
+#include "gfx.h"
 #include <SDL.h>
 #include <math.h>
 #include <string.h>
@@ -168,7 +169,7 @@ void TouchControls_HandleEvent(const SDL_Event *e, int w, int h)
 
 /* ---- drawing: in output pixels, over the finished frame ---- */
 
-static void disc(SDL_Renderer *r, float cx, float cy, float rad, SDL_Color c)
+static void disc(float cx, float cy, float rad, SDL_Color c)
 {
     enum { N = 40 };
     SDL_Vertex v[N + 1];
@@ -181,10 +182,10 @@ static void disc(SDL_Renderer *r, float cx, float cy, float rad, SDL_Color c)
         v[i + 1].color = c;
         idx[i * 3] = 0; idx[i * 3 + 1] = i + 1; idx[i * 3 + 2] = (i + 1) % N + 1;
     }
-    SDL_RenderGeometry(r, NULL, v, N + 1, idx, N * 3);
+    Gfx_Geometry(NULL, v, N + 1, idx, N * 3);
 }
 
-static void ring(SDL_Renderer *r, float cx, float cy, float rad, float width, SDL_Color c)
+static void ring(float cx, float cy, float rad, float width, SDL_Color c)
 {
     enum { N = 40 };
     SDL_Vertex v[N * 2];
@@ -198,76 +199,66 @@ static void ring(SDL_Renderer *r, float cx, float cy, float rad, float width, SD
         idx[i * 6] = i * 2; idx[i * 6 + 1] = i * 2 + 1; idx[i * 6 + 2] = j * 2;
         idx[i * 6 + 3] = j * 2; idx[i * 6 + 4] = i * 2 + 1; idx[i * 6 + 5] = j * 2 + 1;
     }
-    SDL_RenderGeometry(r, NULL, v, N * 2, idx, N * 6);
+    Gfx_Geometry(NULL, v, N * 2, idx, N * 6);
 }
 
-static void box(SDL_Renderer *r, const Box *b, int down, float u)
+static void box(const Box *b, int down, float u)
 {
     SDL_FRect f = { b->x, b->y, b->w, b->h };
-    SDL_SetRenderDrawColor(r, 255, 255, 255, down ? 102 : 31);
-    SDL_RenderFillRectF(r, &f);
-    SDL_SetRenderDrawColor(r, 255, 255, 255, 102);
+    Gfx_FillRect(&f, (SDL_Color){ 255, 255, 255, (Uint8)(down ? 102 : 31) });
     for (int i = 0; i < (int)(2 * u + 0.5f); i++) {
         SDL_FRect o = { f.x + i, f.y + i, f.w - 2 * i, f.h - 2 * i };
-        SDL_RenderDrawRectF(r, &o);
+        Gfx_DrawRect(&o, (SDL_Color){ 255, 255, 255, 102 });
     }
 }
 
-void TouchControls_Draw(SDL_Renderer *r)
+void TouchControls_Draw(void)
 {
-    int w, h;
+    int w = 0, h = 0;
     Circle stick, fire;
     Box pause, esc;
-    if (s_hidden || s_mode == TOUCH_CONTROLS_NEVER || SDL_GetRendererOutputSize(r, &w, &h) != 0 ||
-        w <= 0 || h <= 0)
+    Gfx_OutputSize(&w, &h);
+    if (s_hidden || s_mode == TOUCH_CONTROLS_NEVER || w <= 0 || h <= 0)
         return;
     layout(w, h, &stick, &fire, &pause, &esc);
     const float u = (float)h / 360.0f;
-    /* (in output pixels: the picture's logical size and scale put aside, then put back) */
-    int lw, lh;
-    float sx, sy;
-    SDL_Rect vp;
-    SDL_RenderGetLogicalSize(r, &lw, &lh);
-    SDL_RenderGetScale(r, &sx, &sy);
-    SDL_RenderGetViewport(r, &vp);
-    SDL_RenderSetLogicalSize(r, 0, 0);
-    SDL_RenderSetScale(r, 1.0f, 1.0f);
-    SDL_RenderSetViewport(r, NULL);
-    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    /* (in output pixels, on either presenter: gfx.h) */
+    const GfxSpace space = Gfx_Space();
+    const GfxBlend blend = Gfx_Blend();
+    Gfx_SetSpace(GFX_SPACE_OUTPUT);
+    Gfx_SetBlend(GFX_BLEND_ALPHA);
 
     const SDL_Color faint = { 255, 255, 255, 26 }, edge = { 255, 255, 255, 89 }, knob = { 255, 255, 255, 89 },
                     fireUp = { 255, 255, 255, 36 }, fireDown = { 255, 255, 255, 102 };
-    disc(r, stick.x, stick.y, stick.r, faint);
-    ring(r, stick.x, stick.y, stick.r, 2 * u, edge);
-    disc(r, stick.x + s_knobX, stick.y + s_knobY, 31 * u, knob);
-    ring(r, stick.x + s_knobX, stick.y + s_knobY, 31 * u, 2 * u, edge);
-    disc(r, fire.x, fire.y, fire.r, s_fire ? fireDown : fireUp);
-    ring(r, fire.x, fire.y, fire.r, 2 * u, edge);
-    box(r, &pause, s_keyDown[0], u);
-    box(r, &esc, s_keyDown[1], u);
+    disc(stick.x, stick.y, stick.r, faint);
+    ring(stick.x, stick.y, stick.r, 2 * u, edge);
+    disc(stick.x + s_knobX, stick.y + s_knobY, 31 * u, knob);
+    ring(stick.x + s_knobX, stick.y + s_knobY, 31 * u, 2 * u, edge);
+    disc(fire.x, fire.y, fire.r, s_fire ? fireDown : fireUp);
+    ring(fire.x, fire.y, fire.r, 2 * u, edge);
+    box(&pause, s_keyDown[0], u);
+    box(&esc, s_keyDown[1], u);
     /* their marks: PAUSE two bars, ESC a cross */
-    SDL_SetRenderDrawColor(r, 255, 255, 255, 191);
+    const SDL_Color mark = { 255, 255, 255, 191 };
     {
         const float bh = pause.h * 0.5f, bw = 4 * u, cx = pause.x + pause.w / 2, cy = pause.y + pause.h / 2;
         SDL_FRect b1 = { cx - 2 * bw, cy - bh / 2, bw, bh }, b2 = { cx + bw, cy - bh / 2, bw, bh };
-        SDL_RenderFillRectF(r, &b1);
-        SDL_RenderFillRectF(r, &b2);
+        Gfx_FillRect(&b1, mark);
+        Gfx_FillRect(&b2, mark);
     }
     {
         const float s = esc.h * 0.25f, cx = esc.x + esc.w / 2, cy = esc.y + esc.h / 2;
         for (float t = -1.5f * u; t <= 1.5f * u; t += 1.0f) {
-            SDL_RenderDrawLineF(r, cx - s + t, cy - s, cx + s + t, cy + s);
-            SDL_RenderDrawLineF(r, cx - s + t, cy + s, cx + s + t, cy - s);
+            Gfx_DrawLine(cx - s + t, cy - s, cx + s + t, cy + s, mark);
+            Gfx_DrawLine(cx - s + t, cy + s, cx + s + t, cy - s, mark);
         }
     }
     {   /* FIRE's: a ball's ring */
-        ring(r, fire.x, fire.y, fire.r * 0.32f, 3 * u, (SDL_Color){ 255, 255, 255, 170 });
+        ring(fire.x, fire.y, fire.r * 0.32f, 3 * u, (SDL_Color){ 255, 255, 255, 170 });
     }
 
-    SDL_RenderSetLogicalSize(r, lw, lh);
-    if (!lw)
-        SDL_RenderSetScale(r, sx, sy);
-    SDL_RenderSetViewport(r, lw ? NULL : &vp);
+    Gfx_SetBlend(blend);
+    Gfx_SetSpace(space);
 }
 
 #else   /* the desktops have no on-screen controls: the setting is kept, and does nothing */

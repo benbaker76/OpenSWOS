@@ -1,7 +1,7 @@
 /*
  * mod_flags.c -- the flags mod (canonical, bin/mods/flags; docs/MODS.md §32): each team's flag beside
  * its name on the result banner -- the score panel SWOS shows at kick-off, after a goal and at half
- * and full time. SDL builds (it draws through the renderer, frameDrawn).
+ * and full time. SDL builds (it draws over the frame with gfx.h, frameDrawn).
  *
  * A team's flag (flags.json): teams[its database id] (the national teams: one renamed, or a custom
  * team made from one, keeps its flag), else names[its name] when SWOS spells the country unlike the
@@ -22,6 +22,7 @@
 #include "mjson.h"
 
 #include <SDL.h>
+#include "gfx.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,9 +37,9 @@ static uint32_t s_jsonLen;
 static int32_t s_read;
 
 typedef struct {
-    uint16_t     team;              /* whose (0: none yet) */
-    SDL_Texture *tex;               /* NULL: no flag for him */
-    SDL_Renderer *renderer;         /* the renderer it was made on */
+    uint16_t    team;               /* whose (0: none yet) */
+    GfxTexture *tex;                /* NULL: no flag for him */
+    int32_t     gpu;                /* made on the GPU presenter (gfx.h) or SDL's renderer */
 } Cached;
 static Cached s_cache[2];
 
@@ -135,7 +136,7 @@ static void flag_name(const ModMatchTeam *t, char *out, int cap)
     }
 }
 
-static SDL_Texture *make_texture(SDL_Renderer *renderer, const char *name)
+static GfxTexture *make_texture(const char *name)
 {
     char path[1100];
     snprintf(path, sizeof path, "%s/flags/%s.bmp", ModApi_ModDir(SLUG), name);
@@ -145,34 +146,35 @@ static SDL_Texture *make_texture(SDL_Renderer *renderer, const char *name)
         return NULL;
     }
     SDL_Surface *flag = SDL_CreateRGBSurfaceWithFormat(0, kW, kH, 32, SDL_PIXELFORMAT_RGBA32);
-    SDL_Texture *tex = NULL;
+    GfxTexture *tex = NULL;
     if (flag) {
         SDL_Rect src = { kSrcX, kSrcY, kW, kH };
         SDL_BlitSurface(icon, &src, flag, NULL);
-        tex = SDL_CreateTextureFromSurface(renderer, flag);
+        if ((tex = Gfx_CreateTexture(kW, kH, 0)) != NULL)
+            Gfx_UpdateTexture(tex, flag->pixels, flag->pitch);
         SDL_FreeSurface(flag);
     }
     SDL_FreeSurface(icon);
     return tex;
 }
 
-static SDL_Texture *flag_for(SDL_Renderer *renderer, int32_t side, const ModMatchTeam *t)
+static GfxTexture *flag_for(int32_t side, const ModMatchTeam *t)
 {
     Cached *c = &s_cache[side];
-    if (c->team == t->team + 1 && c->renderer == renderer)
+    if (c->team == t->team + 1 && c->gpu == Gfx_IsGpu())
         return c->tex;
     if (c->tex)
-        SDL_DestroyTexture(c->tex);
+        Gfx_DestroyTexture(c->tex);
     char name[64];
     flag_name(t, name, (int)sizeof name);
-    c->tex = name[0] ? make_texture(renderer, name) : NULL;
+    c->tex = name[0] ? make_texture(name) : NULL;
     c->team = (uint16_t)(t->team + 1);
-    c->renderer = renderer;
+    c->gpu = Gfx_IsGpu();
     fprintf(stderr, "[flags] %s: %s\n", t->name, name[0] ? name : "no flag");
     return c->tex;
 }
 
-static void flags_frame(SDL_Renderer *renderer)
+static void flags_frame(void)
 {
     ModResultBanner b;
     if (ModApi_InReplay() || !ModApi_ResultBanner(&b))
@@ -184,11 +186,12 @@ static void flags_frame(SDL_Renderer *renderer)
         ModMatchTeam t;
         if (!ModApi_MatchTeam(side, &t))
             continue;
-        SDL_Texture *tex = flag_for(renderer, side, &t);
+        GfxTexture *tex = flag_for(side, &t);
         if (!tex)
             continue;
-        const SDL_Rect dst = { side == 0 ? b.left + kMargin : b.right - kMargin - kW, y, kW, kH };
-        SDL_RenderCopy(renderer, tex, NULL, &dst);
+        const SDL_FRect dst = { (float)(side == 0 ? b.left + kMargin : b.right - kMargin - kW), (float)y,
+                                (float)kW, (float)kH };
+        Gfx_DrawTexture(tex, NULL, &dst);
     }
 }
 

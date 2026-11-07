@@ -641,6 +641,16 @@ LDLIBS  := $(SDL2_LIBS) -lm
 ifeq ($(BUILD_OS),windows)
 LDLIBS  += -lwinmm
 endif
+# The GPU presenter (src/gpu_present.c, sokol_gfx; docs/RENDERING.md). Desktop Linux and Windows
+# load OpenGL through SDL (src/sokol_gl_loader.h), so link nothing; macOS links its OpenGL
+# framework, the web asks for WebGL 2 (GLES 3).
+ifndef WASM
+ifeq ($(UNAME_S),Darwin)
+LDLIBS  += -framework OpenGL
+endif
+else
+LDLIBS  += -sMAX_WEBGL_VERSION=2
+endif
 
 # ---- Netplay: GGPO-X rollback networking (docs/NETPLAY.md) ----
 # third_party/ggpo-x is C++; src/netplay.c reaches it through ggponet.h's C API.
