@@ -526,3 +526,56 @@ void *ModApi_LoadFile(const char *slug, const char *name, uint32_t *size)
     return buf;
 }
 #endif
+
+/* ---- services (include/mod_api.h; docs/MODS.md §33) ---- */
+
+enum { kServices = 16 };
+static struct { char name[32], slug[24]; ModServiceFn fn; } s_services[kServices];
+static int32_t s_numServices;
+
+int32_t ModApi_RegisterService(const char *slug, const char *name, ModServiceFn fn)
+{
+    if (!name || !fn)
+        return -1;
+    for (int32_t i = 0; i < s_numServices; i++)
+        if (strcmp(s_services[i].name, name) == 0) {
+            fprintf(stderr, "[mods] %s: the service %s is %s's already\n", slug ? slug : "?", name,
+                    s_services[i].slug);
+            return 1;
+        }
+    if (s_numServices == kServices)
+        return -1;
+    snprintf(s_services[s_numServices].name, sizeof s_services[0].name, "%s", name);
+    snprintf(s_services[s_numServices].slug, sizeof s_services[0].slug, "%s", slug ? slug : "");
+    s_services[s_numServices].fn = fn;
+    s_numServices++;
+    fprintf(stderr, "[mods] %s offers the service %s\n", slug ? slug : "?", name);
+    return 0;
+}
+
+int32_t ModApi_CallService(const char *name, const char *method, const char *args, char *out, uint32_t cap)
+{
+    if (out && cap)
+        out[0] = 0;
+    for (int32_t i = 0; i < s_numServices; i++)
+        if (strcmp(s_services[i].name, name) == 0)
+            return s_services[i].fn(method, args ? args : "{}", out, cap);
+    return -1;
+}
+
+char *ModApi_JsonEscape(const char *in, char *out, uint32_t cap)
+{
+    uint32_t n = 0;
+    if (!cap)
+        return out;
+    for (; in && *in && n + 2 < cap; in++) {
+        const unsigned char c = (unsigned char)*in;
+        if (c < 32)
+            continue;
+        if (c == '"' || c == '\\')
+            out[n++] = '\\';
+        out[n++] = (char)c;
+    }
+    out[n] = 0;
+    return out;
+}

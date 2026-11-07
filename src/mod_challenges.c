@@ -35,6 +35,14 @@
  * minutes from extra time, SWOS 2020's own challenge files as a DLC pack (its teams are others').
  *
  * "changes": "modes": its matches are its own -- never matters online.
+ *
+ * Online records (docs/MODS.md §33): when a mod offers the "online-records" service (SWOS
+ * United's, on its server), the challenges ask it -- never waiting on it -- for
+ *   challenges.completed  {}                           the player's: "<category>\t<name>" lines
+ *   challenges.stats      {"name","category"}          a line for the challenge's page
+ *   challenges.won        {"id","name","category"}     a challenge just beaten (sent, queued)
+ * A challenge is known online by its NAME and its pack's "category", as SWOS 2020's were. No
+ * such service: none of this, and nothing else changes.
  */
 #include "mod_api.h"
 
@@ -63,6 +71,7 @@ typedef struct {
         struct { CHALLENGE_DEF_FIELDS };
     };
     uint8_t  custom;                    /* the player's own (custom.json, the editor) */
+    char     category[32];              /* its pack's "category" (online records); "" none */
     /* progress */
     uint8_t  completed;
     uint32_t attempts;
@@ -85,6 +94,7 @@ static void add_defs(const ChallengeDef *defs, int32_t n, int32_t custom)
 }
 
 static ChallengeDef s_defs[kMax];       /* (a file's, before they are added) */
+static void online_args(const Challenge *c, char *out, uint32_t cap);
 
 #ifdef SWOS_SDL_BUILD
 static int32_t number(const char *json, int len, const char *path, int32_t fallback)
@@ -97,10 +107,18 @@ static int32_t number(const char *json, int len, const char *path, int32_t fallb
 static void read_text(char *json, int len, const char *path, int32_t custom)
 {
     const int32_t n = ChallengePack_FromJson(json, len, s_defs, kMax - s_count);
-    if (n < 0)
+    if (n < 0) {
         fprintf(stderr, "[challenges] %s: not an openswos-challenges file\n", path);
-    else
+    } else {
+        char category[32] = "";
+        const int32_t first = s_count;
+        mjson_get_string(json, len, "$.category", category, (int)sizeof category);
+        if (custom)
+            snprintf(category, sizeof category, "CUSTOM");
         add_defs(s_defs, n, custom);
+        for (int32_t i = first; i < s_count; i++)
+            snprintf(s_ch[i].category, sizeof s_ch[i].category, "%s", category);
+    }
     free(json);
 }
 
@@ -354,6 +372,11 @@ static void play(int32_t i)
         if (s_won)
             c->completed = 1;
         save_progress();
+        if (s_won) {                        /* (online: queued, sent in the background) */
+            char args[256];
+            online_args(c, args, sizeof args);
+            ModApi_CallService("online-records", "challenges.won", args, NULL, 0);
+        }
         fprintf(stderr, "[challenges] %s: %d-%d, %s\n", c->id, (int)r.goals[0], (int)r.goals[1], s_won ? "won" : "not won");
         if (s_test) {
             fprintf(stdout, "CHALLENGE TEST %s: %d-%d %s, attempts %u\n", c->id, (int)r.goals[0], (int)r.goals[1],
@@ -405,6 +428,54 @@ static void nav_rows(int32_t n)
 
 /* The list's pages: six challenges a page, then NEW CHALLENGE, then MORE when there are more. */
 enum { kPerPage = kRows - 2 };
+/* ---- online records (the "online-records" service, when a mod offers it) ---- */
+
+static int32_t s_onlineMerged;          /* the player's online completions merged this run */
+static char    s_onlineLine[48];
+
+static void online_args(const Challenge *c, char *out, uint32_t cap)
+{
+    char name[64], category[64], id[80];
+    snprintf(out, cap, "{\"id\":\"%s\",\"name\":\"%s\",\"category\":\"%s\"}",
+             ModApi_JsonEscape(c->id, id, sizeof id), ModApi_JsonEscape(c->name, name, sizeof name),
+             ModApi_JsonEscape(c->category, category, sizeof category));
+}
+
+/* Each frame the list is up, until the answer has come: the challenges the player has beaten on
+ * another machine (or before this one had them) marked done here too. */
+static void online_merge(void)
+{
+    static char lines[16384];
+    if (s_onlineMerged)
+        return;
+    const int32_t r = ModApi_CallService("online-records", "challenges.completed", "{}", lines, sizeof lines);
+    if (r == 1)
+        return;
+    s_onlineMerged = 1;
+    if (r != 0)
+        return;
+    int32_t marked = 0;
+    for (char *line = lines; line && *line;) {
+        char *next = strchr(line, '\n');
+        if (next)
+            *next++ = 0;
+        char *tab = strchr(line, '\t');
+        if (tab) {
+            *tab = 0;
+            for (int32_t i = 0; i < s_count; i++)
+                if (!s_ch[i].completed && !strcmp(s_ch[i].name, tab + 1) && !strcmp(s_ch[i].category, line)) {
+                    s_ch[i].completed = 1;
+                    marked++;
+                }
+        }
+        line = next;
+    }
+    if (marked) {
+        save_progress();
+        fprintf(stderr, "[challenges] %d done online, marked here\n", (int)marked);
+    }
+}
+
 static int32_t s_page;
 static int32_t page_count(void) { return s_count ? (s_count + kPerPage - 1) / kPerPage : 1; }
 static int32_t page_rows(void)
@@ -437,6 +508,7 @@ static void list_draw(void)
     } else {
         hide_from(n + 1);
     }
+    online_merge();
     ModApi_MenuText(M_note, s_count ? "THE EASIER ONES OPEN THE HARDER" : "NONE: A CHALLENGE PACK IS A MOD");
 }
 
@@ -640,7 +712,17 @@ static void info_draw(void)
     row(3, "THE MINUTE", minute, 1);
     row(4, "TO WIN", win, 1);
     row(5, "", "PLAY", 0);
-    hide_from(6);
+    {   /* online: what the service says of it ("BEATEN BY 12 PLAYERS"), when there is one */
+        char args[256];
+        online_args(c, args, sizeof args);
+        const int32_t r = ModApi_CallService("online-records", "challenges.stats", args, s_onlineLine,
+                                             sizeof s_onlineLine);
+        if (r == 0 && s_onlineLine[0])
+            row(6, "ONLINE", s_onlineLine, 1);
+        else if (r == 1)
+            row(6, "ONLINE", "...", 1);
+        hide_from(r == 0 && s_onlineLine[0] ? 7 : r == 1 ? 7 : 6);
+    }
     ModApi_MenuText(M_note, c->completed ? "DONE ALREADY: PLAY IT AGAIN" : "");
 }
 

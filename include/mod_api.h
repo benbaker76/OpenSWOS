@@ -347,6 +347,27 @@ typedef struct {
 } ModOnlineProvider;
 int32_t ModApi_SetOnlineProvider(const char *slug, const ModOnlineProvider *provider);   /* (kept) */
 
+/* ---- services: what one mod offers others (docs/MODS.md §33) ----
+ * A mod registers a service by name; any mod calls it by that name with a method and its
+ * arguments (JSON text) and gets the answer as text. A service a build has no mod for is
+ * simply absent (-1), so a mod that uses one works without it: a fork adds the service, the
+ * mod that calls it stays the same. SWOS United's online records are one ("online-records":
+ * the challenges' and speedruns' records on its server; the methods are in
+ * src/mod_challenges.c and src/mod_speedrun.c, where they are called).
+ *
+ * A call never waits on a network: a method that needs one answers 1 (pending) until its
+ * answer has come, and the caller asks again (each frame, as a menu draws); a result sent is
+ * queued and sent in the background. Never from inside a match frame. */
+typedef int32_t (*ModServiceFn)(const char *method, const char *args, char *out, uint32_t cap);
+/* 0 registered; 1 a service of that name is there already (the first stays). From init. */
+int32_t ModApi_RegisterService(const char *slug, const char *name, ModServiceFn fn);
+/* -1: no such service (or no such method: the service's answer); 0: done, out[] (cap) its text;
+ * 1: pending, ask again. out may be NULL with cap 0 when no answer is wanted. */
+int32_t ModApi_CallService(const char *name, const char *method, const char *args, char *out, uint32_t cap);
+/* A JSON string's text, quotes and backslashes escaped, control characters dropped -- for the
+ * args of a call. Returns out. */
+char   *ModApi_JsonEscape(const char *in, char *out, uint32_t cap);
+
 /* ---- LIVE CAST: the live online matches (src/live_cast.c; docs/NETPLAY.md §7) ----
  * On the server matchmaking uses (the provider's, the player's typed one, the default). */
 typedef struct {

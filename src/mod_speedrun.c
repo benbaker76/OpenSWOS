@@ -24,7 +24,13 @@
  * The Amiga parses no JSON (docs/DATA_BSON.md): it keeps them as a fixed binary record, the
  * save folder's mods/speedrun/RECORDS.BIN -- "OSWSPRN" + a version byte (1), a u16 count, then
  * per target its key[16], played, best and last frames (u32) and best_teams[48], big-endian.
- * No leaderboard: that is a server's (SWOS 2020's was its own).
+ * Online (docs/MODS.md §33): when a mod offers the "online-records" service (SWOS United's,
+ * SWOS 2020's leaderboards), each run is sent to it and the result screen shows its answer --
+ *   speedrun.finished  {"target","key","done","frames","ms","style","yours","theirs","teams"}
+ *                      (yours/theirs: each team's skill points, the sum of its sixteen
+ *                      players' seven skills -- SWOS 2020 sets a run's difficulty by them)
+ *   speedrun.line      {"target","style"}   a line for the result screen ("WORLD RANK 3")
+ * never waiting on it. No such service: the records stay the player's own.
  *
  * "changes": "modes": its matches are its own -- never matters online.
  */
@@ -238,6 +244,40 @@ static void sr_ended(const ModMatchResult *r)
 static char s_resultTeams[48];
 static int32_t s_test;                  /* SWOS_MOD_MATCH_TEST=speedrun:<n>: fixed teams, no screens */
 
+/* (each team's skill points, SWOS 2020's getTeamSkillPoints: its sixteen players' seven skills) */
+static int32_t skill_points(int32_t team)
+{
+    int32_t sum = 0;
+    for (int32_t slot = 0; slot < 16; slot++) {
+        ModTeamPlayer p;
+        if (ModApi_ChosenTeamPlayer(team, slot, &p))
+            sum += p.passing + p.shooting + p.heading + p.tackling + p.control + p.speed + p.finishing;
+    }
+    return sum;
+}
+
+static int32_t s_onlineAsked;           /* the result screen's line asked for since the run */
+static char    s_onlineLine[48];
+
+/* A run, to the online records (queued: the service sends it in the background). */
+static void online_finished(int32_t target)
+{
+    extern int _gGameplayStyle;
+    extern const char *Gameplay_StyleName(int style);
+    char args[320], teams[100];
+    const uint32_t fps = (uint32_t)ModApi_FrameRate();
+    snprintf(args, sizeof args,
+             "{\"target\":%d,\"key\":\"%s\",\"done\":%s,\"frames\":%u,\"ms\":%u,\"style\":\"%s\","
+             "\"yours\":%d,\"theirs\":%d,\"teams\":\"%s\"}",
+             (int)target, kTarget[target].key, s_done ? "true" : "false", (unsigned)(s_done ? s_doneAt : 0),
+             (unsigned)(s_done && fps ? s_doneAt / fps * 1000u + s_doneAt % fps * 1000u / fps : 0),
+             Gameplay_StyleName(_gGameplayStyle), (int)skill_points(s_you), (int)skill_points(1 - s_you),
+             ModApi_JsonEscape(s_resultTeams, teams, sizeof teams));
+    ModApi_CallService("online-records", "speedrun.finished", args, NULL, 0);
+    s_onlineAsked = 0;
+    s_onlineLine[0] = 0;
+}
+
 /* the run: the match, then the result screen, again while TRY AGAIN */
 static void run(int32_t target, int32_t again)
 {
@@ -283,6 +323,8 @@ static void run(int32_t target, int32_t again)
             snprintf(rec->bestTeams, sizeof rec->bestTeams, "%s", s_resultTeams);
         }
         records_save();
+        if (!s_test)
+            online_finished(target);
         if (s_test) {
             fprintf(stdout, "SPEEDRUN TEST %s: %s, %u frames, best %u, played %u\n", kTarget[target].key,
                     s_done ? "PASS" : "FAIL", (unsigned)s_doneAt, (unsigned)rec->best, (unsigned)rec->played);
@@ -361,7 +403,19 @@ static void result_refresh(void)
             ModApi_MenuText(M_label0 + 2 * i + 1, values[i]);
         }
     }
-    ModApi_MenuText(M_note, s_resultTeams);
+    if (!s_onlineAsked) {   /* the online line, once it has come (each frame until then) */
+        extern int _gGameplayStyle;
+        extern const char *Gameplay_StyleName(int style);
+        char args[96];
+        snprintf(args, sizeof args, "{\"target\":%d,\"style\":\"%s\"}", (int)s_target,
+                 Gameplay_StyleName(_gGameplayStyle));
+        const int32_t r = ModApi_CallService("online-records", "speedrun.line", args, s_onlineLine,
+                                             sizeof s_onlineLine);
+        s_onlineAsked = r != 1;
+        if (r != 0)
+            s_onlineLine[0] = 0;
+    }
+    ModApi_MenuText(M_note, s_onlineLine[0] ? s_onlineLine : s_resultTeams);
 }
 
 static void result_init(void)

@@ -1027,3 +1027,27 @@ owner's sketch had it.
 - Checked: `SWOS_MOD_MATCH_TEST=1 SWOS_MOD_MATCH_TEAMS=5012,5013` (Greece v Holland) with
   `SWOS_PRESENT_CAPTURE`: both flags at the banner's ends, level with the names.
 
+
+## 33. Services: what one mod offers others (2026-11-07)
+
+A mod registers a **service** by name (`ModApi_RegisterService`) and any mod calls it
+(`ModApi_CallService(name, method, args JSON, out, cap)`): -1 none, 0 done (out the answer), 1
+pending. A build without the mod has no service, so the mod that calls it works as before: a fork
+ADDS a service, the calling mod stays the one both projects share. A call never waits on a network
+-- a method that needs one answers 1 until its answer has come (the caller asks again as its menu
+draws), and a result sent is queued and sent in the background. Never from inside a match frame.
+
+**"online-records"** (offered by SWOS United's `online-records` mod, on SWOS 2020's servers --
+its SWOS-API): the online side of two mods both projects have.
+
+| caller | method | args | answer |
+|---|---|---|---|
+| challenges (list) | `challenges.completed` | `{}` | the player's beaten challenges, `<category>\t<name>` a line -- marked done here too |
+| challenges (a page) | `challenges.stats` | `{"id","name","category"}` | a line for the page's ONLINE row |
+| challenges (a win) | `challenges.won` | the same | -- (sent) |
+| speedrun (a run) | `speedrun.finished` | `{"target","key","done","frames","ms","style","yours","theirs","teams"}` | -- (sent) |
+| speedrun (the result) | `speedrun.line` | `{"target","style"}` | the result screen's bottom line |
+
+A challenge is known online by its name and its pack's `"category"` (SWOS 2020's were). A speedrun's
+`target` is SWOS 2020's game mode (the eight in the same order); `yours`/`theirs` are each team's
+skill points (its sixteen players' seven skills), by which SWOS 2020 sets a run's difficulty.
