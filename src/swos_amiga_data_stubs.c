@@ -14,6 +14,7 @@
  */
 
 #include <stddef.h>
+#include "goal_ring.h"
 #include "swos_sections.h"
 #include "intro_chip_ram.h"
 #include "game_types.h"     /* TEAM_FILE_BUFFER_SIZE */
@@ -863,7 +864,7 @@
 /* generalRunningCosts: typed definition in swos_data_typed_stubs.c */
 /* goIntoHighlightsLoop: real data in swos_amiga_data_imports.c */
 /* goToSubsTimer: real data in swos_amiga_data_imports.c */
-char _goalBase[0x4A38];
+char _goalBase[GOAL_RING_BYTES];   /* (goal_ring.h: the original's 19000, bigger on SDL) */
 /* goalBasePtr: real data in swos_amiga_data_imports.c */
 /* goalCameraMode: real data in swos_amiga_data_imports.c */
 /* goalCounter: real data in swos_amiga_data_imports.c */

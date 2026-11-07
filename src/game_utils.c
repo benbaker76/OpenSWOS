@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "game_utils.h"
+#include "goal_ring.h"
 #include "game_types.h"
 #include "deterministic.h"
 
@@ -79,7 +80,7 @@ void InitSkinAndDefaultPointers(void)
      * globals (e.g. renderStackBase) and producing bogus sprite pointers.
      * Match HandleInstantReplayStateSwitch (game_loop.c:1005) which uses
      * baseAddr+19000 explicitly. */
-    _nextGoalPtr = _goalBase + 19000;
+    _nextGoalPtr = _goalBase + GOAL_RING_BYTES;   /* (goal_ring.h) */
     _spriteGraphicsPtr = _spriteGraphics;
 }
 

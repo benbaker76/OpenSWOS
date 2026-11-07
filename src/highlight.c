@@ -9,6 +9,7 @@
  */
 
 #include "highlight.h"
+#include "goal_ring.h"
 #include "game_types.h"
 #include "deterministic.h"
 #include "panic.h"
@@ -640,6 +641,16 @@ void FadeAndSaveHighlightScene(void)
     FadeIn();
 }
 
+/* `p` moved `bytes` back in the ring (_goalBasePtr .. _nextGoalPtr). */
+static uint8_t *ring_back(uint8_t *p, uint32_t bytes)
+{
+    const uint32_t size = (uint32_t)(_nextGoalPtr - _goalBasePtr);
+    uint32_t off = (uint32_t)(p - _goalBasePtr) % size;
+    bytes %= size;
+    off = off >= bytes ? off - bytes : off + size - bytes;
+    return _goalBasePtr + off;
+}
+
 /* ============================================================
  * SaveHighlightScene
  * Saves current replay ring buffer segment to the hil goals buffer.
@@ -665,10 +676,12 @@ void SaveHighlightScene(void)
         _numScenesInHilFile--;
     }
 
-    /* Scan forward from currentHilPtr for a frame-start marker (bit 7 of first byte set).
-     * Scan at most 19000 bytes (4750 longs). */
+    /* Scan forward for a frame-start marker (bit 7 of first byte set), at most 19000 bytes
+     * (4750 longs) -- from a scene's length back from currentHilPtr, the newest frame: the
+     * whole ring on the Amiga, as the original, and the newest 19000 bytes of the SDL build's
+     * bigger one (goal_ring.h), so a scene is the .HIL's 19000 bytes either way. */
     uint32_t count = 0;
-    uint8_t *p = _currentHilPtr;
+    uint8_t *p = ring_back(_currentHilPtr, HIL_SCENE_BYTES);
 
     for (;;) {
         if (count == HIL_SCENE_BYTES)
@@ -1101,6 +1114,52 @@ void ReplayUpdateCameraAndSwapBuffers(int16_t targetX, int16_t targetY)
     MirrorFrontbuffer();
 }
 
+#ifdef SWOS_SDL_BUILD
+/* An instant replay's first frame, from the ring's oldest (`oldest`): as far back as a 4:3
+ * screen's 19000 bytes would have gone (goal_ring.h). Each frame costs what it would have cost
+ * there -- its marker's three longs, and a long for each sprite drawn in the middle 336 pixels
+ * (a 4:3 screen draws no other) -- and the oldest frames go until the rest fits. At 336 wide
+ * every sprite counts: the original's 19000 bytes exactly. */
+static uint8_t *replay_start_as_4_3(uint8_t *oldest)
+{
+    extern int _screen_width;
+    enum { kMaxFrames = GOAL_RING_BYTES / 12u + 1u };
+    static uint8_t *start[kMaxFrames];
+    static uint16_t cost[kMaxFrames];
+    const int32_t lo = (_screen_width - 336) / 2, hi = lo + 336;
+    const uint32_t ringLongs = (uint32_t)(_nextGoalPtr - _goalBasePtr) / 4u;
+    uint32_t n = 0, total = 0, i = 0;
+    int32_t skip = 0;
+    uint8_t *p = oldest;
+
+    for (uint32_t steps = 0; p != _currentHilPtr && steps < ringLongs; steps++) {
+        const uint32_t v = BE_READ_U32(p);
+        if (skip)
+            skip--;                     /* (the score and the animated patterns after a marker) */
+        else if ((v & 0x80000000u) && v != 0xFFFFFFFFu) {
+            if (n == kMaxFrames)
+                break;
+            start[n] = p;
+            cost[n++] = 12;
+            total += 12;
+            skip = 2;
+        } else if (n && !(v & 0x80000000u)) {
+            const int32_t x = (int32_t)((v >> 10) & 0x3FF);     /* (the sprite's left, on screen) */
+            if (x + 16 > lo && x < hi) {
+                cost[n - 1] += 4;
+                total += 4;
+            }
+        }
+        p += 4;
+        if (p == _nextGoalPtr)
+            p = _goalBasePtr;
+    }
+    while (i + 1 < n && total > GOAL_SCENE_BYTES)
+        total -= cost[i++];
+    return n ? start[i] : oldest;
+}
+#endif
+
 /* ============================================================
  * HandleInstantReplayStateSwitch
  * ============================================================ */
@@ -1116,9 +1175,10 @@ void HandleInstantReplayStateSwitch(void)
          * BE (Amiga) and LE (SDL) hosts. */
         uint32_t count = 0;
         uint8_t *p = _currentHilPtr;
+        const uint32_t ringBytes = (uint32_t)(_nextGoalPtr - _goalBasePtr);
 
         for (;;) {
-            if (count == HIL_SCENE_BYTES)
+            if (count == ringBytes)
                 return;  /* Not found */
             count += 4;
             p += 4;
@@ -1126,6 +1186,13 @@ void HandleInstantReplayStateSwitch(void)
                 p = _goalBasePtr;
             if (*p & 0x80) {
                 /* Found frame start */
+#ifdef SWOS_SDL_BUILD
+                {   /* the match's own ring (not a highlights scene): as long as at 4:3 */
+                    extern char _goalBase[];
+                    if (_goalBasePtr == (uint8_t *)_goalBase)
+                        p = replay_start_as_4_3(p);
+                }
+#endif
                 _currentGoalPtr = p;
                 _replayState = 1;
                 return;

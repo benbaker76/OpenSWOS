@@ -45,6 +45,7 @@
  */
 #ifdef SWOS_SDL_BUILD
 #include <stdio.h>      /* SimState_DescribePortableByte only; the m68k build has no stdio */
+#include "goal_ring.h"
 #endif
 #include "sim_state.h"
 #include "game_types.h"
@@ -224,7 +225,7 @@ extern Sprite  *_sortedSprites[78];
 extern uint16_t _numSpritesToRender;
 
 /* ---- VIEW: highlights ---- */
-extern char      _goalBase[0x4A38];
+extern char      _goalBase[GOAL_RING_BYTES];
 extern uint32_t *_currentHilPtr, *_currentGoalPtr;
 extern uintptr_t _goalBasePtr[1], _nextGoalPtr[1];
 extern uint16_t  _numScenesInHilFile[1], _hilSceneNumber[1];

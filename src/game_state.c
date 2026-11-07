@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "game_state.h"
+#include "goal_ring.h"
 #include "game_types.h"
 #include "endian_helpers.h"
 #include "display.h"    /* _screen_width, WIDE_MARGIN — center the in-match HUD in widescreen */
@@ -315,9 +316,11 @@ extern uint16_t _throwInDeadVar;
 __attribute__((used, externally_visible, optimize("no-tree-loop-distribute-patterns")))
 void InitCurrentGoalHighlight(void)
 {
+    extern char _goalBase[];
     uint32_t *p = (uint32_t *)_goalBasePtr;
-    int16_t i;
-    for (i = 4749; i >= 0; i--)
+    /* The match's ring whole (goal_ring.h: bigger than a scene on SDL); a scene its 19000. */
+    int32_t i = (int32_t)((_goalBasePtr == (uint8_t *)_goalBase ? GOAL_RING_BYTES : GOAL_SCENE_BYTES) / 4u) - 1;
+    for (; i >= 0; i--)
         *p++ = 0;
     _currentHilPtr = _goalBasePtr;
     _replayState = 0;
