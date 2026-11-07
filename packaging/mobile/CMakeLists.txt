@@ -57,6 +57,12 @@ set(ENET_DIR ${REPO}/third_party/enet)
 set(ENET_SOURCES ${ENET_DIR}/callbacks.c ${ENET_DIR}/compress.c ${ENET_DIR}/host.c ${ENET_DIR}/list.c
                  ${ENET_DIR}/packet.c ${ENET_DIR}/peer.c ${ENET_DIR}/protocol.c ${ENET_DIR}/unix.c)
 set(ALL_SOURCES ${GAME_SOURCES} ${GGPO_SOURCES} ${ENET_SOURCES} ${REPO}/src/netplay_netem_install.cpp)
+# A fork of OpenSWOS (docs/FORKING.md) puts what only it builds in fork.cmake beside the Makefile's
+# fork.mk: it may append to FORK_SOURCES and FORK_INCLUDES. OpenSWOS has none.
+set(FORK_SOURCES "")
+set(FORK_INCLUDES "")
+include(${REPO}/fork.cmake OPTIONAL)
+list(APPEND ALL_SOURCES ${FORK_SOURCES})
 
 if(ANDROID)
     add_library(main SHARED ${ALL_SOURCES})
@@ -66,7 +72,8 @@ else()
     set(GAME OpenSWOS)
 endif()
 
-target_include_directories(${GAME} PRIVATE ${REPO}/src ${REPO}/include ${GGPO_DIR}/include ${ENET_DIR}/include)
+target_include_directories(${GAME} PRIVATE ${REPO}/src ${REPO}/include ${GGPO_DIR}/include ${ENET_DIR}/include
+                           ${FORK_INCLUDES})
 # (GGPO-X's own folders for its C++ only, as the Makefile's GGPO_CXXFLAGS: in C, its poll.h would
 #  stand in for the system's)
 target_include_directories(${GAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GGPO_DIR}/lib/ggpo

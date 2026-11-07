@@ -67,7 +67,9 @@ fork's `project_identity.h`), and docs/NETPLAY_SETUP.md is the runbook. Then set
 **A fork's own code** goes in files OpenSWOS does not have, so a merge never touches them:
 sources in `src/` (the Makefile compiles every `src/*.c`), and what they need built besides --
 a vendored library, flags, link libraries -- in **`fork.mk`** beside the Makefile, which
-`-include`s it (OpenSWOS has none). Accounts on a fork's online service: set
+`-include`s it (OpenSWOS has none); for the phone builds, the same in **`fork.cmake`**, which
+`packaging/mobile/CMakeLists.txt` includes when it is there (it appends to `FORK_SOURCES` and
+`FORK_INCLUDES`). Accounts on a fork's online service: set
 `PROJECT_ACCOUNTS` in the identity header and supply `include/online_account.h` from a file of
 the fork's own (OpenSWOS's `src/online_account.c` then compiles to nothing).
 
