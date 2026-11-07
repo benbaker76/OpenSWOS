@@ -276,7 +276,8 @@ const char *ModApi_AssetsDir(void);
 int32_t ModApi_LatestReplay(char *out, int32_t cap);
 /* Highlights (a .HIL: SWOS's, the PC's or SWOS 2020's) in the save folder's mods/<slug>/<name>,
  * shown in the highlights viewer -- scene 1..n that one alone, 0 every scene. 0 shown, -1 not a
- * highlights file (said). SDL builds (SWOS Galore's charts). */
+ * highlights file (said). SDL builds (SWOS Galore's charts). Copied to the save folder as
+ * <SLUG>.HIL first (the highlights loaders take a bare name there). */
 int32_t ModApi_ViewHighlights(const char *slug, const char *name, int32_t scene);
 int32_t ModApi_ListFiles(const char *dir, int32_t (*each)(const char *name, void *ctx), void *ctx);
 /* A whole file by its path (as ModApi_ListFiles' folders are named), NUL-terminated; free() it.

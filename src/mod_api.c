@@ -507,11 +507,21 @@ int32_t ModApi_ViewHighlights(const char *slug, const char *name, int32_t scene)
     extern int16_t LoadHilFile(uint8_t *filename);
     extern void    ShowHighlights(void);
     extern int32_t _gHilOnlyScene;
-    char rel[256];
-    if (!slug || !name || !name[0] || strchr(name, '/') || strchr(name, '\\') || strstr(name, ".."))
+    extern int swos_io_save(const uint8_t *name, const uint8_t *buf, uint32_t size);
+    char bare[16];
+    uint32_t size = 0;
+    /* the highlights loaders take a bare name in the save folder (a .HIL with a folder in its
+     * name is looked for beside the game): the file copied there as <SLUG>.HIL */
+    uint8_t *data = (uint8_t *)ModApi_LoadFile(slug, name, &size);
+    if (!data)
         return -1;
-    snprintf(rel, sizeof rel, "mods/%s/%s", slug, name);    /* (the save folder's: LoadHilFile's) */
-    if (LoadHilFile((uint8_t *)rel) != 0)
+    snprintf(bare, sizeof bare, "%.8s.HIL", slug);
+    for (char *c = bare; *c; c++)
+        if (*c >= 'a' && *c <= 'z')
+            *c = (char)(*c - 32);
+    const int ok = swos_io_save((const uint8_t *)bare, data, size) == 0;
+    free(data);
+    if (!ok || LoadHilFile((uint8_t *)bare) != 0)
         return -1;
     _gHilOnlyScene = scene > 0 ? scene - 1 : -1;
     ShowHighlights();
