@@ -652,16 +652,20 @@ void CareerAutopilot_Tick(void)
         _shortFire = 1;
     }
     else if (menu->onInit == PlayMatchMenuInit) {
-        /* A national coach's screen is laid out differently and player 1's fire does not
-         * reach VIEW RESULT there: select it and fire the menu (a club's stays as it was). */
+        /* A national coach's screen is laid out differently: its VIEW RESULT (the entry
+         * PlayMatchSelected) is not the one selected at first, so select it and fire it now
+         * -- the menu's press (_shortFire) AND player 1's (_pl1Fire): PlayMatchSelected goes
+         * on only when it sees a player's fire, and this runs after the frame's controls
+         * were read (menu_system.c), so _shortFire alone left a national career on this
+         * screen for good (petarku's BRASIL, 2026-11-07). A club's stays as it was. */
         extern uint16_t _isNationalSelector;
         extern void PlayMatchSelected(void);
         int32_t i;
         if (_isNationalSelector != 0 && (i = entry_with((MenuEntryFn)PlayMatchSelected)) >= 0) {
             SetCurrentEntry((uint16_t)i);
             _shortFire = 1;
-        } else
-            _pl1Fire = 1;
+        }
+        _pl1Fire = 1;
     }
     else
         _shortFire = 1;
