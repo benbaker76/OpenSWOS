@@ -28,7 +28,7 @@ come with OpenSWOS. The setup makes them from your copy instead.
 
 | Your copy | Where to get it |
 |---|---|
-| **The PC version** (easiest) | Buy *Sensible World of Soccer 96/97* on [GOG](https://www.gog.com/en/game/sensible_world_of_soccer_9697) and install it. The [PC CD version](https://archive.org/details/msdos_Sensible_World_of_Soccer_96-97_1996) works too. |
+| **The PC version** (easiest) | Buy *Sensible World of Soccer 96/97* on [GOG](https://www.gog.com/en/game/sensible_world_of_soccer_9697) and install it. Or download the CD version: [archive.org's copy](https://archive.org/details/msdos_Sensible_World_of_Soccer_96-97_1996) or the [CD image from files.swos.eu](http://files.swos.eu/images/PC%20SWOS%2096-97%20full%20CD.zip) -- either one alone is the whole game. Your own CD (in its drive, or a copy or image of it) or an installed floppy version works too; the floppy version has no commentary. |
 | **The Amiga version** | Any of: the two SWOS 96/97 floppies as disk images (`.adf`); a hard disk image with the game on it (`.hdf`, e.g. ASWOS's `swos.hdf`); a WHDLoad install (`.lha`); or a `.zip` of any of these. sensiblesoccer.de's [24/25 season](https://www.sensiblesoccer.de/index.php?&view=newsdetails&id=206) (`swos2425.hdf` or the WHDLoad `.lha`) works too. |
 
 - **For the game on a computer, a phone or a handheld,** one of the two is enough. With both,
@@ -154,12 +154,12 @@ can't be used (a damaged download, or a different release) gets a red mark and s
 
 ![Get the Amiga version: found](docs/images/setup/wizard-3-get-amiga.png)
 
-**The PC game's commentary.** GOG's game has it. The **CD version** leaves its commentary and
-crowd sounds on the CD when it installs, and the **floppy version** has none, so with a copy
-like that the setup shows one more screen, *Add the PC game's commentary* (optional). Put the
-CD in and pick its drive with **Search a folder…**, or drag a copy of the CD or its image
-(`.iso`, `.bin` or `.cue`) onto the window. Skip it and the game plays without the PC
-commentary (the Amiga's sounds, or the PC game's other sounds, still play).
+**The PC game's commentary.** GOG's game has it, and so do both CD downloads. An **installed
+CD version** leaves its commentary and crowd sounds on the CD, and the **floppy version** has
+none, so with a copy like that the setup looks in your CD drives by itself, and if the CD isn't
+there it shows one more screen, *Add the PC game's commentary* (optional): put the CD in, or
+drag a copy of the CD or its image (`.iso`, `.img`, `.bin` or `.cue`) onto the window. Skip it
+and the game plays without the PC commentary (its other sounds, and the Amiga's, still play).
 
 **Game options.** How the game looks and plays the first time you start it: the gameplay,
 graphics, sound, music, screen, language and more. Not sure? Leave them: you can change any

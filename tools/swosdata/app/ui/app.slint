@@ -463,7 +463,7 @@ export component MainWindow inherits Window {
                     BigTile {
                         icon: @image-url("icons/disc.svg");
                         title: @tr("The PC game");
-                        text: @tr("Sensible World of Soccer 96/97, from GOG");
+                        text: @tr("Sensible World of Soccer 96/97: GOG's, the CD or the floppy version");
                         radio: true;
                         selected: root.have == 0;
                         clicked => { root.have = 0; root.wizard-changed(); }
@@ -530,8 +530,8 @@ export component MainWindow inherits Window {
                 }
                 if root.kind == Step.pc: VerticalLayout {
                     spacing: 8px;
-                    Instruction { number: 1; text: @tr("Buy Sensible World of Soccer 96/97 on GOG, and install it with GOG's installer or GOG Galaxy."); }
-                    Instruction { number: 2; text: @tr("That is all: an installed game is found by itself. Have it somewhere else? Drag its folder here."); }
+                    Instruction { number: 1; text: @tr("Buy Sensible World of Soccer 96/97 on GOG and install it -- or download the CD version below (archive.org's copy, or the CD image from files.swos.eu). Your own CD or floppy version works too."); }
+                    Instruction { number: 2; text: @tr("That is all: an installed game, a download or the CD in its drive is found by itself. Have it somewhere else? Drag its folder or file here."); }
                 }
                 if root.kind == Step.amiga: VerticalLayout {
                     spacing: 8px;
@@ -551,7 +551,7 @@ export component MainWindow inherits Window {
                 if root.kind == Step.pccd: VerticalLayout {
                     spacing: 8px;
                     Instruction { number: 1; text: @tr("Your copy of the PC game has no commentary: the CD version leaves it on the CD when it installs, and the floppy version has none."); }
-                    Instruction { number: 2; text: @tr("Put the CD in and choose its drive with Search a folder… -- or drag a copy of the CD, or its image (.iso, .bin or .cue), here."); }
+                    Instruction { number: 2; text: @tr("Put the CD in its drive: it is found by itself. No CD? Download its image below, or drag a copy of the CD, or its image (.iso, .img, .bin or .cue), here."); }
                 }
                 if root.kind == Step.jaguar: VerticalLayout {
                     spacing: 8px;

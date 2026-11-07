@@ -25,4 +25,8 @@ int32_t  CdImage_Has(CdImage *cd, const char *rel);
 /* Read a whole file off it. 0 on success. */
 int32_t  CdImage_Read(CdImage *cd, const char *rel, SgBuf *out, char *err);
 
+/* Copy every file on it to `dest` (its folders made, names as on the disc without ";1"), but the
+ * top-level folders named in `skip` (NULL-terminated, any case; may be NULL). 0 on success. */
+int32_t  CdImage_ExtractTree(CdImage *cd, const char *dest, const char *const *skip, char *err);
+
 #endif

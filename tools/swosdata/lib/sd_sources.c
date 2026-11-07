@@ -335,8 +335,10 @@ static int32_t amiga_take(SdSources *s, char kind, const char *path)
     return amiga_better(s, &t);
 }
 
-/* A .zip (a download of disk images): the .adf, .hdf and .lha files in it are unpacked to
- * a folder of our own under the system's temporary folder and added like any other. */
+/* A .zip (a download): what of the game is in it is unpacked to a folder of our own under the
+ * system's temporary folder and added like any other -- the Amiga's .adf, .hdf and .lha files, an
+ * installed PC game (archive.org's has one, beside the CD's image), and an image of the PC CD
+ * (.iso, .img, .bin: the commentary). */
 static const char *temp_root(void)
 {
     const char *t = getenv("TMPDIR");
@@ -346,6 +348,66 @@ static const char *temp_root(void)
 #endif
     return t && *t ? t : "/tmp";
 }
+
+static int32_t starts_with_nocase(const char *s, const char *prefix)
+{
+    for (; *prefix; s++, prefix++)
+        if (tolower((unsigned char)*s) != tolower((unsigned char)*prefix))
+            return 0;
+    return 1;
+}
+
+/* An entry that stays inside the folder it is unpacked to, and is not a Mac's own (__MACOSX/,
+ * the "._" files beside every file a Mac zips). */
+static int32_t zip_entry_ok(const char *name, const char *leaf)
+{
+    return name[0] != '/' && name[0] != '\\' && !strchr(name, ':') && !strstr(name, "..") &&
+           !starts_with_nocase(name, "__MACOSX/") && strncmp(leaf, "._", 2) != 0;
+}
+
+/* One entry to `out`, its folders made -- not again when it is there already, the same size
+ * (a CD's image is hundreds of MB, and a download is offered more than once). */
+static int32_t zip_extract(mz_zip_archive *z, mz_uint i, const mz_zip_archive_file_stat *st, const char *out)
+{
+    if ((uint64_t)file_size(out) == st->m_uncomp_size)
+        return 0;
+    char parent[2200];
+    snprintf(parent, sizeof parent, "%s", out);
+    char *slash = strrchr(parent, '/');
+    if (slash) {
+        *slash = '\0';
+        Sg_MakeDirs(parent);
+    }
+    return mz_zip_reader_extract_to_file(z, i, out, 0) ? 0 : -1;
+}
+
+/* The folder of a PC game installed in the zip: the one with SPRITE.DAT and DATA/TEAM.000 (and not
+ * SWOS 2020's, which has both). Its path in the zip ("SensiWs9/SOC/", "" for the top). */
+static int32_t zip_dos_prefix(mz_zip_archive *z, char *prefix, uint32_t cap)
+{
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(z); i++) {
+        mz_zip_archive_file_stat st;
+        if (!mz_zip_reader_file_stat(z, i, &st) || st.m_is_directory)
+            continue;
+        const char *name = st.m_filename, *leaf = name + strlen(name);
+        while (leaf > name && leaf[-1] != '/' && leaf[-1] != '\\')
+            leaf--;
+        if (!ends_with_nocase(leaf, "SPRITE.DAT") || strlen(leaf) != 10 || !zip_entry_ok(name, leaf))
+            continue;
+        char probe[600];
+        snprintf(probe, sizeof probe, "%.*sDATA/TEAM.000", (int)(leaf - name), name);
+        if (mz_zip_reader_locate_file(z, probe, NULL, 0) < 0)       /* (any case) */
+            continue;
+        snprintf(probe, sizeof probe, "%.*sswos-port-Release.exe", (int)(leaf - name), name);
+        if (mz_zip_reader_locate_file(z, probe, NULL, 0) >= 0)
+            continue;
+        snprintf(prefix, cap, "%.*s", (int)(leaf - name), name);
+        return 0;
+    }
+    return -1;
+}
+
+#define ZIP_MAX_IMAGES 8
 
 static int32_t add_zip(SdSources *s, const char *path)
 {
@@ -358,7 +420,11 @@ static int32_t add_zip(SdSources *s, const char *path)
         base--;
     char dir[1100];
     snprintf(dir, sizeof dir, "%s/" PROJECT_SETUP_PROGRAM "/%s", temp_root(), base);
-    int32_t added = 0;
+    char dosPrefix[512];
+    const int32_t haveDos = zip_dos_prefix(&z, dosPrefix, sizeof dosPrefix) == 0;
+    const size_t dosLen = haveDos ? strlen(dosPrefix) : 0;
+    char images[ZIP_MAX_IMAGES][2200];
+    int32_t nImages = 0, added = 0, dosOk = haveDos;
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&z); i++) {
         mz_zip_archive_file_stat st;
         if (!mz_zip_reader_file_stat(&z, i, &st) || st.m_is_directory)
@@ -366,16 +432,42 @@ static int32_t add_zip(SdSources *s, const char *path)
         const char *name = st.m_filename, *leaf = name + strlen(name);
         while (leaf > name && leaf[-1] != '/' && leaf[-1] != '\\')
             leaf--;
+        if (!zip_entry_ok(name, leaf))
+            continue;
+        char out[2200];
+        /* An image of the PC game's CD (a CloneCD .img, an .iso, a raw .bin; a .cue is not
+         * needed: the track is found in the image itself). */
+        if ((ends_with_nocase(leaf, ".iso") || ends_with_nocase(leaf, ".img") || ends_with_nocase(leaf, ".bin")) &&
+            st.m_uncomp_size > 8u * 1024 * 1024 && st.m_uncomp_size <= 1024u * 1024 * 1024 &&
+            nImages < ZIP_MAX_IMAGES) {
+            snprintf(out, sizeof out, "%s/cd/%s", dir, leaf);
+            if (zip_extract(&z, i, &st, out) == 0)
+                snprintf(images[nImages++], sizeof images[0], "%s", out);
+            continue;
+        }
+        /* The installed PC game: the whole of its folder. */
+        if (haveDos && starts_with_nocase(name, dosPrefix)) {
+            snprintf(out, sizeof out, "%s/pc/%s", dir, name + dosLen);
+            if (zip_extract(&z, i, &st, out) != 0)
+                dosOk = 0;
+            continue;
+        }
         if (!(ends_with_nocase(leaf, ".adf") || ends_with_nocase(leaf, ".hdf") ||
               ends_with_nocase(leaf, ".lha")) || st.m_uncomp_size > 512u * 1024 * 1024)
             continue;
-        char out[1400];
-        Sg_MakeDirs(dir);
         snprintf(out, sizeof out, "%s/%s", dir, leaf);
+        Sg_MakeDirs(dir);
         if (mz_zip_reader_extract_to_file(&z, i, out, 0) && SdSources_AddFile(s, out) == 0)
             added++;
     }
     mz_zip_reader_end(&z);
+    if (dosOk) {
+        char pc[1200];
+        snprintf(pc, sizeof pc, "%s/pc", dir);
+        added += SdSources_AddFile(s, pc) == 0;
+    }
+    for (int32_t i = 0; i < nImages; i++)
+        added += SdSources_AddDosCd(s, images[i]) == 0;
     return added ? 0 : -1;
 }
 
@@ -1101,8 +1193,46 @@ static int32_t is_dos_cd_image(const char *path)
     return ok;
 }
 
+/* The game's own files off an image of the CD into a folder of the setup's own under the system's
+ * temporary folder, once -- not SFX/ (read off the image as it is needed), nor the videos (ARC/),
+ * the boot disk or the sound card drivers: that folder, a PC game folder, in `out`. 0 when the
+ * image has the game on it. */
+static int32_t cd_image_game(const char *image, char *out, uint32_t cap)
+{
+    char err[256];
+    CdImage *cd = CdImage_Open(image, err);
+    if (!cd)
+        return -1;
+    int32_t rc = -1;
+    if (CdImage_Has(cd, "SPRITE.DAT") == 1 && CdImage_Has(cd, "DATA/TEAM.000") == 1) {
+        const char *base = image + strlen(image);
+        while (base > image && base[-1] != '/' && base[-1] != '\\')
+            base--;
+        char done[1200];
+        snprintf(out, cap, "%s/" PROJECT_SETUP_PROGRAM "/%s.game", temp_root(), base);
+        snprintf(done, sizeof done, "%s/.copied", out);         /* (a copy cut short is made again) */
+        static const char *const kSkip[] = { "SFX", "ARC", "BOOT", "ENSONIQ", NULL };   /* (ARC: the videos) */
+        if (Sg_IsFile(done) || (CdImage_ExtractTree(cd, out, kSkip, err) == 0 &&
+                                Sg_WriteFile(done, "", 0, err) == 0))
+            rc = is_dos_dir(out) ? 0 : -1;
+    }
+    CdImage_Close(cd);
+    return rc;
+}
+
 int32_t SdSources_AddDosCd(SdSources *s, const char *path)
 {
+    if (ends_with_nocase(path, ".zip")) {      /* a download of the CD: its image, unpacked */
+        SdSources t;
+        memset(&t, 0, sizeof t);
+        if (add_zip(&t, path) != 0 || !t.dosCd[0])
+            return -1;
+        if (!s->dosCd[0])
+            memcpy(s->dosCd, t.dosCd, sizeof s->dosCd);
+        if (!s->dosDir[0] && t.dosDir[0])
+            memcpy(s->dosDir, t.dosDir, sizeof s->dosDir);
+        return 0;
+    }
     char dir[1024];
     snprintf(dir, sizeof dir, "%s", path);
     if (!has_commentary_dir(dir) && !is_dos_cd_image(path)) {
@@ -1121,10 +1251,87 @@ int32_t SdSources_AddDosCd(SdSources *s, const char *path)
         CdImage_Close(s->cdImage);
         s->cdImage = NULL;
     }
+    /* The whole game is on the CD: with no PC game folder yet, the CD is that too. */
+    if (!s->dosDir[0]) {
+        if (is_dir(dir)) {
+            if (is_dos_dir(dir))
+                snprintf(s->dosDir, sizeof s->dosDir, "%s", dir);
+        } else {
+            char pc[sizeof s->dosDir];
+            if (cd_image_game(dir, pc, sizeof pc) == 0)
+                snprintf(s->dosDir, sizeof s->dosDir, "%s", pc);
+        }
+    }
     return 0;
 }
 
 int32_t SdSources_HaveDosCd(const SdSources *s) { return s->dosCd[0] != 0; }
+
+/* The CD in a drive: its drive's top folder only, never searched (this runs every few seconds
+ * while the setup watches). */
+static int32_t try_cd_root(SdSources *s, const char *root)
+{
+    return has_commentary_dir(root) && SdSources_AddDosCd(s, root) == 0 && s->dosCd[0];
+}
+
+int32_t SdSources_FindCdDrive(SdSources *s)
+{
+    if (s->dosCd[0])
+        return 0;
+#ifdef _WIN32
+    /* The CD drives with a disc in (a mounted .iso is one too); no "insert a disk" box for one
+     * without. */
+    UINT old = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
+    DWORD drives = GetLogicalDrives();
+    int32_t found = 0;
+    for (int32_t i = 0; i < 26 && !found; i++) {
+        char root[4] = { (char)('A' + i), ':', '\\', 0 };
+        if (!(drives & (1u << i)) || GetDriveTypeA(root) != DRIVE_CDROM ||
+            !GetVolumeInformationA(root, NULL, 0, NULL, NULL, NULL, NULL, 0))
+            continue;
+        char top[4] = { (char)('A' + i), ':', '/', 0 };
+        found = try_cd_root(s, top);
+    }
+    SetErrorMode(old);
+    return found ? 0 : -1;
+#else
+    /* Where a CD is mounted: /Volumes on a Mac; /media(/<user>), /run/media/<user> and
+     * /mnt/cdrom on Linux. */
+    static const char *const kMounts[] = { "/Volumes", "/media", "/run/media", NULL };
+    if (try_cd_root(s, "/mnt/cdrom") || try_cd_root(s, "/cdrom"))
+        return 0;
+    for (int32_t m = 0; kMounts[m]; m++) {
+        int32_t n;
+        Entry *list = list_dir(kMounts[m], &n);
+        for (int32_t i = 0; i < n; i++) {
+            if (!list[i].isDir || list[i].name[0] == '.')
+                continue;
+            char p[1100];
+            Sg_PathJoin(p, sizeof p, kMounts[m], list[i].name);
+            if (try_cd_root(s, p)) {
+                free(list);
+                return 0;
+            }
+            if (m == 0)
+                continue;
+            int32_t n2;                  /* (/media/<user>/<disc>) */
+            Entry *sub = list_dir(p, &n2);
+            for (int32_t j = 0; j < n2; j++) {
+                char q[1400];
+                Sg_PathJoin(q, sizeof q, p, sub[j].name);
+                if (sub[j].isDir && sub[j].name[0] != '.' && try_cd_root(s, q)) {
+                    free(sub);
+                    free(list);
+                    return 0;
+                }
+            }
+            free(sub);
+        }
+        free(list);
+    }
+    return -1;
+#endif
+}
 
 int32_t SdSources_HaveCommentary(const SdSources *s)
 {

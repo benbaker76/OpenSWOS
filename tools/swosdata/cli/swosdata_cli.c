@@ -323,6 +323,11 @@ int main(int argc, char **argv)
         !job.src.jagRom[0] && !job.src.s2020Dir[0] && !job.src.world[0] &&
         SwosData_LoadSources(job.outDir, &job.src) > 0)
         printf("Sources: from %s/%s, the last install's\n", job.outDir, "ASSETS.ini");
+    /* The PC game's CD in a drive, as the setup app looks for it: for a copy without the
+     * commentary (an installed CD, the floppy version), or as the PC game when there is none. */
+    if (!job.src.dosCd[0] && (!job.src.dosDir[0] || !SdSources_HaveCommentary(&job.src)) &&
+        SdSources_FindCdDrive(&job.src) == 0)
+        printf("Found the PC game's CD in a drive\n");
     printf("Amiga disk 1: %s\n", job.src.adf1[0] ? job.src.adf1 : "(not found)");
     printf("Amiga disk 2: %s\n", job.src.adf2[0] ? job.src.adf2 : "(not found)");
     printf("Amiga HDF:    %s\n", job.src.hdf[0] ? job.src.hdf : "(not found)");

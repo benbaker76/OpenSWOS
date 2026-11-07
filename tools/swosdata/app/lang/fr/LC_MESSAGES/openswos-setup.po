@@ -1269,8 +1269,6 @@ msgstr "Ajouter les commentaires du jeu PC"
 msgid "Your copy of the PC game has no commentary: the CD version leaves it on the CD when it installs, and the floppy version has none."
 msgstr "Votre copie du jeu PC n'a pas de commentaires : la version CD les laisse sur le CD à l'installation, et la version disquettes n'en a pas."
 
-msgid "Put the CD in and choose its drive with Search a folder… -- or drag a copy of the CD, or its image (.iso, .bin or .cue), here."
-msgstr "Insérez le CD et choisissez son lecteur avec Chercher dans un dossier… -- ou faites glisser ici une copie du CD, ou son image (.iso, .bin ou .cue)."
 
 msgid "PC game CD"
 msgstr "CD du jeu PC"
@@ -1292,3 +1290,27 @@ msgstr "Ce n'est pas le CD du jeu PC : c'est celui qui a le dossier SFX, et les 
 
 msgid "the PC game's CD"
 msgstr "le CD du jeu PC"
+
+msgid "Buy Sensible World of Soccer 96/97 on GOG and install it -- or download the CD version below (archive.org's copy, or the CD image from files.swos.eu). Your own CD or floppy version works too."
+msgstr "Achetez Sensible World of Soccer 96/97 sur GOG et installez-le -- ou téléchargez ci-dessous la version CD (la copie d'archive.org, ou l'image du CD de files.swos.eu). Votre propre version CD ou disquettes marche aussi."
+
+msgid "CD image (files.swos.eu)"
+msgstr "Image du CD (files.swos.eu)"
+
+msgid "CD version (archive.org)"
+msgstr "Version CD (archive.org)"
+
+msgid "Put the CD in its drive: it is found by itself. No CD? Download its image below, or drag a copy of the CD, or its image (.iso, .img, .bin or .cue), here."
+msgstr "Insérez le CD dans son lecteur : il est trouvé tout seul. Pas de CD ? Téléchargez son image ci-dessous, ou faites glisser ici une copie du CD, ou son image (.iso, .img, .bin ou .cue)."
+
+msgid "Sensible World of Soccer 96/97 for PC: GOG's, the CD version (the CD, a copy of it or its image) or the floppy version (installed; it has no commentary). GOG's is found by itself once installed, the CD in its drive, a download in your Downloads folder."
+msgstr "Sensible World of Soccer 96/97 pour PC : celui de GOG, la version CD (le CD, une copie ou son image) ou la version disquettes (installée ; elle n'a pas de commentaires). Celui de GOG est trouvé tout seul une fois installé, le CD dans son lecteur, un téléchargement dans votre dossier Téléchargements."
+
+msgid "Sensible World of Soccer 96/97: GOG's, the CD or the floppy version"
+msgstr "Sensible World of Soccer 96/97 : celui de GOG, la version CD ou disquettes"
+
+msgid "That is all: an installed game, a download or the CD in its drive is found by itself. Have it somewhere else? Drag its folder or file here."
+msgstr "C'est tout : un jeu installé, un téléchargement ou le CD dans son lecteur est trouvé tout seul. Il est ailleurs ? Faites glisser son dossier ou son fichier ici."
+
+msgid "the game's folder (the one with SPRITE.DAT in it), or its CD's image"
+msgstr "le dossier du jeu (celui qui contient SPRITE.DAT), ou l'image de son CD"

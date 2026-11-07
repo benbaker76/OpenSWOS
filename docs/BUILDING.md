@@ -266,7 +266,10 @@ tools/swosdata/build/swosdata --scan ~/Games/SWOS --scan ~/Amiga/ADF \
 
 `--dos-cd` is the PC game's CD, for the commentary and effects its installer leaves on it (a
 CD install's folder has no `SFX/`; the floppy version has none): its drive, a copy of it, or an
-`.iso` / `.bin` / `.cue` image (`lib/cd_image.c`). A scan finds one too.
+`.iso` / `.img` / `.bin` / `.cue` image (`lib/cd_image.c`), or a `.zip` with one in it. A scan
+finds one too, and a disc in a CD drive is found without being named. An image of the full disc
+(it carries the game as well) is the whole PC game on its own: its files but `SFX/` and the
+videos are copied off it once, to the setup's temporary folder.
 
 Every file it writes is byte-for-byte the one the original game (or SWOS 2020) shipped (or,
 for the converted AGA and Jaguar graphics, the one this project's own

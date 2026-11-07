@@ -252,3 +252,93 @@ int32_t CdImage_Read(CdImage *cd, const char *rel, SgBuf *out, char *err)
     out->size = e.size;
     return 0;
 }
+
+/* ---- the whole tree ---------------------------------------------------- */
+
+static int32_t write_file(CdImage *cd, const CdEntry *e, const char *out, char *err)
+{
+    if (e->size > CD_MAX_FILE) {
+        snprintf(err, 256, "%.200s on the CD: too big to be the game's", out);
+        return -1;
+    }
+    FILE *f = fopen(out, "wb");
+    if (!f) {
+        snprintf(err, 256, "cannot write %.200s", out);
+        return -1;
+    }
+    uint8_t buf[CD_DATA];
+    int32_t rc = 0;
+    for (uint32_t done = 0, s = 0; done < e->size && rc == 0; s++) {
+        uint32_t n = e->size - done < CD_DATA ? e->size - done : CD_DATA;
+        if (read_sector(cd, e->lba + s, buf) != 0 || fwrite(buf, 1, n, f) != n)
+            rc = -1;
+        done += n;
+    }
+    if (fclose(f) != 0)
+        rc = -1;
+    if (rc != 0)
+        snprintf(err, 256, "%.200s: cannot be copied off the CD", out);
+    return rc;
+}
+
+static int32_t skipped(const char *name, const char *const *skip)
+{
+    for (; skip && *skip; skip++) {
+        const char *a = name, *b = *skip;
+        while (*a && tolower((unsigned char)*a) == tolower((unsigned char)*b))
+            a++, b++;
+        if (!*a && !*b)
+            return 1;
+    }
+    return 0;
+}
+
+static int32_t extract_dir(CdImage *cd, const CdEntry *dir, const char *dest, const char *const *skip,
+                           int32_t depth, char *err)
+{
+    if (depth > 16 || Sg_MakeDirs(dest) != 0) {
+        snprintf(err, 256, "cannot make %.200s", dest);
+        return -1;
+    }
+    uint8_t buf[CD_DATA];
+    uint32_t sectors = (dir->size + CD_DATA - 1) / CD_DATA;
+    for (uint32_t s = 0; s < sectors; s++) {
+        if (read_sector(cd, dir->lba + s, buf) != 0) {
+            snprintf(err, 256, "the CD's folders cannot be read");
+            return -1;
+        }
+        for (uint32_t off = 0; off + 34 <= CD_DATA;) {
+            uint32_t len = buf[off];
+            if (!len || off + len > CD_DATA)
+                break;
+            uint32_t nameLen = buf[off + 32];
+            const uint8_t *nm = buf + off + 33;
+            if (33 + nameLen <= len && !(nameLen == 1 && nm[0] <= 1)) {
+                char name[256];
+                uint32_t n = 0;
+                for (; n < nameLen && n + 1 < sizeof name && nm[n] != ';'; n++)
+                    name[n] = (char)nm[n];
+                if (n && name[n - 1] == '.')
+                    n--;
+                name[n] = '\0';
+                CdEntry e = { le32(buf + off + 2), le32(buf + off + 10), (uint8_t)((buf[off + 25] & 2) != 0) };
+                /* (a name that would climb out of dest is not one the disc should have) */
+                if (n && !strchr(name, '/') && !strchr(name, '\\') && strcmp(name, "..") != 0 &&
+                    !(depth == 0 && skipped(name, skip))) {
+                    char out[1400];
+                    snprintf(out, sizeof out, "%s/%s", dest, name);
+                    if (e.isDir ? extract_dir(cd, &e, out, skip, depth + 1, err) : write_file(cd, &e, out, err))
+                        return -1;
+                }
+            }
+            off += len;
+        }
+    }
+    return 0;
+}
+
+int32_t CdImage_ExtractTree(CdImage *cd, const char *dest, const char *const *skip, char *err)
+{
+    CdEntry root = { cd->rootLba, cd->rootSize, 1 };
+    return extract_dir(cd, &root, dest, skip, 0, err);
+}

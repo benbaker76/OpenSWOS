@@ -73,6 +73,11 @@ int32_t SdSources_AddFile(SdSources *s, const char *path);
  * as well. 0 when it is one. */
 int32_t SdSources_AddDosCd(SdSources *s, const char *path);
 int32_t SdSources_HaveDosCd(const SdSources *s);
+/* The PC game's CD in one of the computer's drives (Windows: its CD drives, a mounted image too;
+ * a Mac: /Volumes; Linux: /media, /run/media, /mnt/cdrom) -- each drive's top folder looked at,
+ * nothing searched, so it can be called every few seconds. Taken as dosCd (and as the PC game
+ * when there is none). 0 when found. */
+int32_t SdSources_FindCdDrive(SdSources *s);
 /* Whether the PC sources have the commentary (SFX/PIERCE): the game folder (GOG's has it) or the CD. */
 int32_t SdSources_HaveCommentary(const SdSources *s);
 

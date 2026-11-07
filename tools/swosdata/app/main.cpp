@@ -61,6 +61,13 @@ extern "C" {
 // installs one, for testing). Its README beside it: the data's sources and credits.
 static const char kWorldUrl[] = "https://worldofswos.com/static/openswos/OpenSWOS-World-2627.zip";
 static const char kWorldCredits[] = "https://worldofswos.com/static/openswos/README.txt";
+// The PC game's CD version, two downloads: archive.org's (the game installed, and the whole CD as a
+// CloneCD image beside it) and files.swos.eu's image of the CD (an .iso in a .zip). Either alone is
+// the whole PC game, commentary and all (sd_sources.c: a .zip's game and CD images). files.swos.eu
+// over http: its certificate names swos.eu only, so https stops at a browser's warning.
+static const char kPcCdArchiveOrg[] =
+    "https://archive.org/download/msdos_Sensible_World_of_Soccer_96-97_1996/Sensible_World_of_Soccer_96-97_1996.zip";
+static const char kPcCdSwosEu[] = "http://files.swos.eu/images/PC%20SWOS%2096-97%20full%20CD.zip";
 
 namespace {
 
@@ -391,16 +398,17 @@ struct App {
     switch (r) {
       case ROW_PC:
         row.label = Str(T("PC game"));
-        row.placeholder = Str(T("the game's folder (the one with SPRITE.DAT in it)"));
+        row.placeholder = Str(T("the game's folder (the one with SPRITE.DAT in it), or its CD's image"));
         row.need_pc = Str(T("needed"));
         row.need_amiga = Str(T("needed"));
-        row.about_pc = Str(T("Sensible World of Soccer 96/97 for PC. Buy it on GOG and install it: its folder is "
-                       "found by itself. Or name any copy of the game's folder."));
+        row.about_pc = Str(T("Sensible World of Soccer 96/97 for PC: GOG's, the CD version (the CD, a copy of it or "
+                       "its image) or the floppy version (installed; it has no commentary). GOG's is found by "
+                       "itself once installed, the CD in its drive, a download in your Downloads folder."));
         row.about_amiga = Str(T("The AGA version takes its pitches, backdrops and pictures from the PC game. Buy it "
                           "on GOG and install it: its folder is found by itself."));
         row.links = Links({{"GOG", "https://www.gog.com/en/game/sensible_world_of_soccer_9697"},
-                           {"PC CD (archive.org)",
-                            "https://archive.org/details/msdos_Sensible_World_of_Soccer_96-97_1996"}});
+                           {T("CD version (archive.org)"), kPcCdArchiveOrg},
+                           {T("CD image (files.swos.eu)"), kPcCdSwosEu}});
         path = src.dosDir;
         if (!src.dosDir[0] && gogInstaller) {
           row.detail = Str(T("GOG's installer is in your Downloads: run it, and the game it installs is found here by itself."));
@@ -475,6 +483,8 @@ struct App {
         row.need_pc = Str(T("optional"));
         row.about_pc = Str(T("The PC game's commentary and crowd sounds. The CD version leaves them on the CD "
                        "when it installs (GOG's game has them already); the floppy version has none."));
+        row.links = Links({{T("CD version (archive.org)"), kPcCdArchiveOrg},
+                           {T("CD image (files.swos.eu)"), kPcCdSwosEu}});
         path = src.dosCd;
         if (src.dosCd[0])
           row.detail = Str(SdSources_HaveCommentary(&src) ? T("The commentary is on it.") : T("No commentary on it."));
@@ -1962,6 +1972,7 @@ struct App {
   // or a phone alone asks which copy you have (either will do), an Amiga needs both; then each
   // source, each extra, install, the phone's copy, the Amiga's outputs, done.
   std::vector<int> wizardSteps;
+  bool cdStepSeen = false;   // the CD's screen has been on show (it stays, its CD found or not)
   void RefreshWizard() {
     // (a computer, a phone and a handheld all play the SDL game: the same data, options, install)
     const bool compPhone = w().get_t_computer() || w().get_t_phone() || w().get_t_handheld();
@@ -1972,8 +1983,9 @@ struct App {
       const bool needPc = amigaT || have != 1, needAmiga = amigaT || have != 0;
       if (compPhone && !amigaT) steps.push_back(1);
       if (needPc) steps.push_back(2);
-      // The PC copy has no commentary (an installed CD, the floppy version): its CD, optional.
-      if (needPc && compPhone && PcLacksCommentary()) steps.push_back(15);
+      // The PC copy has no commentary (an installed CD, the floppy version): its CD, optional --
+      // not when the CD came with it (a download of the CD), but kept once it has been on show.
+      if (needPc && compPhone && PcLacksCommentary() && (!src.dosCd[0] || cdStepSeen)) steps.push_back(15);
       if (needAmiga) steps.push_back(3);
       if (kWorldUrl[0] && w().get_x_world()) steps.push_back(4);
       if (w().get_x_2020()) steps.push_back(5);
@@ -2002,6 +2014,7 @@ struct App {
   // A screen comes up: the Amiga's two make the drawer or the package (one setting between
   // them), with World 2026-27 when it was ticked.
   void StepShown(int kind) {
+    if (kind == 15) cdStepSeen = true;
     if (kind == 9 || kind == 10) {
       w().set_tab(1);
       w().set_amiga_kind(kind == 9 ? 0 : 1);
@@ -2241,6 +2254,20 @@ struct App {
         seen[key] = {0, 0};
         note(Offer(dir), dir);
       }
+    // The PC game's CD in a drive (a mounted image too): the commentary a copy without it lacks,
+    // or the whole PC game when there is none yet. Each drive's top folder only.
+    if (!src.dosCd[0] && (!src.dosDir[0] || PcLacksCommentary())) {
+      SdSources t{};
+      std::memcpy(t.dosDir, src.dosDir, sizeof t.dosDir);
+      if (SdSources_FindCdDrive(&t) == 0) {
+        const bool game = !src.dosDir[0] && t.dosDir[0];
+        std::memcpy(src.dosCd, t.dosCd, sizeof src.dosCd);
+        std::memcpy(src.dosDir, t.dosDir, sizeof src.dosDir);
+        unusable[ROW_PC].clear();
+        unusable[ROW_PCCD].clear();
+        note(game ? N_("the PC game") : N_("the PC game's CD"), t.dosCd);
+      }
+    }
     if (!downloads.empty()) {
       for (const sd::DirEntry& e : sd::ListDir(downloads)) {
         if (GogInstaller(e.path)) {
