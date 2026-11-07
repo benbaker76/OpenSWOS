@@ -76,6 +76,9 @@ int32_t ChallengePack_Read(const uint8_t *data, uint32_t size, ChallengeDef *def
 /* A pack's JSON (format "openswos-challenges") into defs[max]: the number read, or -1 when it is
  * not one. Names upper-cased, as the game shows them. */
 int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, int32_t max);
+/* One challenge as a JSON object of the pack's "challenges" (every field the reader reads, in its
+ * names), into out[cap]: its length, or -1 when it does not fit. */
+int32_t ChallengePack_ToJson(const ChallengeDef *c, char *out, uint32_t cap);
 #endif
 
 #endif /* CHALLENGE_PACK_H */

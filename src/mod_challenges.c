@@ -1013,33 +1013,47 @@ static void save_custom(void)   /* (the Amiga: CUSTOM.BIN, a pack) */
     free(buf);
 }
 #else
+/* custom.json: every challenge of the player's own (and `extra`, a new one), each whole
+ * (ChallengePack_ToJson) -- 1 written */
+static int32_t write_custom(const Challenge *extra, const char *skipId)
+{
+    const uint32_t cap = (uint32_t)(s_count + 1) * 4096 + 256;
+    char *buf = (char *)malloc(cap);
+    if (!buf)
+        return 0;
+    int n = snprintf(buf, cap, "{\n \"format\": \"openswos-challenges\",\n \"version\": 2,\n \"category\": \"CUSTOM\",\n"
+                                " \"challenges\": [\n");
+    int32_t count = 0, ok = 1;
+    for (int32_t i = 0; i <= s_count && ok; i++) {
+        const Challenge *c = i < s_count ? &s_ch[i] : extra;
+        if (!c || c->custom != 1 || (skipId && !strcmp(c->id, skipId)))
+            continue;
+        if (count++)
+            n += snprintf(buf + n, cap - (size_t)n, ",\n");
+        const int32_t w = ChallengePack_ToJson(&c->def, buf + n, cap - (uint32_t)n - 16);
+        if (w < 0)
+            ok = 0;
+        else
+            n += w;
+    }
+    n += snprintf(buf + n, cap - (size_t)n, "\n ]\n}\n");
+    if (ok)
+        ok = ModApi_SaveFile("challenges", "custom.json", buf, (uint32_t)n) == 0;
+    free(buf);
+    return ok;
+}
+
 static void save_custom(void)
 {
-    char buf[16384];
-    int n = snprintf(buf, sizeof buf, "{\n \"format\": \"openswos-challenges\",\n \"version\": 1,\n \"challenges\": [\n");
-    int32_t count = 0, number = 1;
+    int32_t number = 1;
     for (int32_t i = 0; i < s_count; i++)
         if (s_ch[i].custom == 1)
             number++;
     snprintf(s_edit.id, sizeof s_edit.id, "custom-%d-%u", (int)number, (unsigned)ModApi_Ticks());
     snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE %d", (int)number);
-    for (int32_t i = 0; i <= s_count && n < (int)sizeof buf - 600; i++) {
-        const Challenge *c = i < s_count ? &s_ch[i] : &s_edit;
-        if (c->custom != 1)
-            continue;
-        n += snprintf(buf + n, sizeof buf - (size_t)n,
-                      "%s  { \"id\": \"%s\", \"name\": \"%s\", \"about\": \"%s\", \"difficulty\": 0,\n"
-                      "    \"teams\": [ { \"uuid\": \"%s\", \"team\": \"%04x\", \"name\": \"%s\" },\n"
-                      "               { \"uuid\": \"%s\", \"team\": \"%04x\", \"name\": \"%s\" } ],\n"
-                      "    \"yours\": %d, \"score\": [ %d, %d ], \"minute\": %d, \"win\": \"%s\" }",
-                      count ? ",\n" : "", c->id, c->name, "YOUR OWN CHALLENGE", c->teamUuid[0],
-                      (unsigned)c->teamNumber[0], c->teamName[0], c->teamUuid[1], (unsigned)c->teamNumber[1],
-                      c->teamName[1], (int)c->yours, (int)c->score[0], (int)c->score[1],
-                      (int)c->minute, c->win == W_DRAW ? "draw" : "win");
-        count++;
-    }
-    n += snprintf(buf + n, sizeof buf - (size_t)n, "\n ]\n}\n");
-    ModApi_SaveFile("challenges", "custom.json", buf, (uint32_t)n);
+    snprintf(s_edit.about, sizeof s_edit.about, "YOUR OWN CHALLENGE");
+    snprintf(s_edit.category, sizeof s_edit.category, "CUSTOM");
+    write_custom(&s_edit, NULL);
 }
 #endif
 
@@ -1206,7 +1220,11 @@ static void ch_open(void)
 
 /* ---- the "challenges" service: the challenges for another mod's screens (docs/MODS.md §18) ----
  *   categories {}                 "<name>\t<done>\t<all>\t<closed 0/1>" a line, in the list's order
- *   list       {"category"}       "<id>\t<title or name>\t<difficulty>\t<0 open, 1 done, 2 locked>"
+ *   list       {"category"}       "<id>\t<title or name>\t<difficulty>\t<0 open, 1 done, 2 locked>
+ *                                 \t<0 a pack's, 1 the player's own, 2 fetched>"
+ *   save       {"challenge":{..}} one of the player's own, saved (its id; a new one without) -> "<id>"
+ *   try        {"challenge":{..}} played once, not saved (an editor's TEST)
+ *   delete     {"id"}             one of the player's own, gone
  *   info       {"id"}             "<field>\t<value>" lines: the challenge's fields (below)
  *   new        {}                 this mod's NEW CHALLENGE editor (then plays it)
  *   reload     {}                 reads every challenge again (another mod wrote shared.json)
@@ -1261,6 +1279,76 @@ static int32_t service(const char *method, const char *args, char *out, uint32_t
         return -1;
     out[0] = 0;
     load();
+#ifdef SWOS_SDL_BUILD
+    if (!strcmp(method, "save") || !strcmp(method, "try")) {
+        /* {"challenge": {...}}: one of the pack format's challenges -- saved as one of the
+         * player's own (replacing one of its id; a new id when it has none), or played once and
+         * forgotten (TEST) */
+        const char *obj;
+        int objLen;
+        if (mjson_find(args, (int)strlen(args), "$.challenge", &obj, &objLen) != MJSON_TOK_OBJECT)
+            return -1;
+        const uint32_t docCap = (uint32_t)objLen + 128;
+        char *doc = (char *)malloc(docCap);
+        ChallengeDef *def = (ChallengeDef *)calloc(1, sizeof *def);
+        int32_t n = -1;
+        if (doc && def) {
+            snprintf(doc, docCap, "{\"format\":\"openswos-challenges\",\"version\":2,\"challenges\":[%.*s]}", objLen, obj);
+            n = ChallengePack_FromJson(doc, (int)strlen(doc), def, 1);
+            if (n == 0) {   /* (no id yet: the reader skips it) -- a new one */
+                char with[64];
+                snprintf(with, sizeof with, "custom-%u", (unsigned)ModApi_Ticks());
+                snprintf(doc, docCap, "{\"format\":\"openswos-challenges\",\"version\":2,\"challenges\":[{\"id\":\"%s\",%.*s]}",
+                         with, objLen - 1, obj + 1);
+                n = ChallengePack_FromJson(doc, (int)strlen(doc), def, 1);
+            }
+        }
+        free(doc);
+        if (n == 1 && !def->id[0])              /* ("id": "": a new one too) */
+            snprintf(def->id, sizeof def->id, "custom-%u", (unsigned)ModApi_Ticks());
+        if (n != 1 || s_count >= kMax) {
+            free(def);
+            return -1;
+        }
+        Challenge *c = &s_ch[s_count];          /* (past the list: not one of it until saved) */
+        memset(c, 0, sizeof *c);
+        c->def = *def;
+        free(def);
+        c->custom = 1;
+        c->mod = -1;
+        snprintf(c->category, sizeof c->category, "CUSTOM");
+        if (!strcmp(method, "try")) {
+            const int32_t at = s_count++;       /* (in the list while it is played) */
+            s_test = 0;
+            play(at);
+            s_count--;
+            put(&o, "won\t%d\n", (int)s_won);
+            return 0;
+        }
+        const Challenge copy = *c;
+        if (!write_custom(&copy, copy.id))
+            return -1;
+        put(&o, "%s\n", copy.id);
+        s_loaded = 0;
+        s_count = 0;
+        s_numKept = 0;
+        load();
+        return 0;
+    }
+    if (!strcmp(method, "delete")) {
+        arg_str(args, "id", key, sizeof key);
+        const int32_t i = find_id(key);
+        if (i < 0 || s_ch[i].custom != 1)
+            return -1;
+        if (!write_custom(NULL, key))
+            return -1;
+        s_loaded = 0;
+        s_count = 0;
+        s_numKept = 0;
+        load();
+        return 0;
+    }
+#endif
     if (!strcmp(method, "new")) {             /* (the mod's own NEW CHALLENGE editor) */
         edit_new();
         return 0;
@@ -1285,8 +1373,8 @@ static int32_t service(const char *method, const char *args, char *out, uint32_t
         arg_str(args, "category", key, sizeof key);
         for (int32_t i = 0; i < s_count; i++)
             if (!strcmp(s_ch[i].category, key))
-                put(&o, "%s\t%s\t%d\t%d\n", s_ch[i].id, s_ch[i].title[0] ? s_ch[i].title : s_ch[i].name,
-                    (int)s_ch[i].difficulty, s_ch[i].completed ? 1 : locked(i) ? 2 : 0);
+                put(&o, "%s\t%s\t%d\t%d\t%d\n", s_ch[i].id, s_ch[i].title[0] ? s_ch[i].title : s_ch[i].name,
+                    (int)s_ch[i].difficulty, s_ch[i].completed ? 1 : locked(i) ? 2 : 0, (int)s_ch[i].custom);
         return 0;
     }
     arg_str(args, "id", key, sizeof key);

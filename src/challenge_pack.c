@@ -332,4 +332,155 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
     }
     return n;
 }
+
+/* ---- one challenge as JSON (the player's own: custom.json) ---- */
+
+#include <stdarg.h>
+
+typedef struct { char *p; uint32_t left; int bad; } Js;
+
+static void js(Js *o, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+static void js(Js *o, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    const int n = vsnprintf(o->p, o->left, fmt, ap);
+    va_end(ap);
+    if (n < 0 || (uint32_t)n >= o->left) {
+        o->bad = 1;
+        return;
+    }
+    o->p += n;
+    o->left -= (uint32_t)n;
+}
+
+static void js_str(Js *o, const char *key, const char *v)    /* "key": "v", escaped */
+{
+    js(o, "\"%s\": \"", key);
+    for (; *v && !o->bad; v++) {
+        if (*v == '"' || *v == '\\')
+            js(o, "\\%c", *v);
+        else if ((unsigned char)*v >= 32)
+            js(o, "%c", *v);
+    }
+    js(o, "\"");
+}
+
+int32_t ChallengePack_ToJson(const ChallengeDef *c, char *out, uint32_t cap)
+{
+    static const char *const kinds[6] = { "kick_off", "corner", "free_kick", "penalty", "throw_in", "goal_kick" };
+    Js o = { out, cap, 0 };
+    js(&o, "  { ");
+    js_str(&o, "id", c->id);
+    js(&o, ", ");
+    js_str(&o, "name", c->name);
+    if (c->recordName[0]) {
+        js(&o, ", ");
+        js_str(&o, "record_name", c->recordName);
+    }
+    if (c->category[0]) {
+        js(&o, ", ");
+        js_str(&o, "category", c->category);
+    }
+    js(&o, ",\n    ");
+    js_str(&o, "title", c->title);
+    js(&o, ", ");
+    js_str(&o, "about", c->about);
+    js(&o, ", ");
+    js_str(&o, "win_message", c->winMessage);
+    js(&o, ", \"difficulty\": %d,\n    \"description\": [", (int)c->difficulty);
+    for (int32_t k = 0; k < 5; k++) {
+        js(&o, "%s\"", k ? ", " : "");
+        for (const char *v = c->lines[k]; *v && !o.bad; v++)
+            if (*v == '"' || *v == '\\')
+                js(&o, "\\%c", *v);
+            else if ((unsigned char)*v >= 32)
+                js(&o, "%c", *v);
+        js(&o, "\"");
+    }
+    js(&o, "],\n    \"teams\": [");
+    for (int32_t t = 0; t < 2; t++) {
+        js(&o, "%s{ ", t ? ", " : "");
+        if (c->teamFile[t][0]) {
+            js_str(&o, "file", c->teamFile[t]);
+            js(&o, ", ");
+        } else {
+            js_str(&o, "uuid", c->teamUuid[t]);
+            js(&o, ", \"team\": \"%04x\", ", (unsigned)c->teamNumber[t]);
+        }
+        js_str(&o, "name", c->teamName[t]);
+        js(&o, " }");
+    }
+    js(&o, "],\n    \"yours\": %d, \"score\": [%d, %d], \"minute\": %d, \"length\": %d,", (int)c->yours, (int)c->score[0],
+       (int)c->score[1], (int)c->minute, (int)c->length);
+    js(&o, " \"extra_time\": %s, \"penalties\": %s,", c->extraTime ? "true" : "false", c->penalties ? "true" : "false");
+    if (c->extraTimeRule)
+        js(&o, " \"extra_time_rule\": \"%s\",", c->extraTimeRule == CHALLENGE_ET_GOLDEN_GOAL ? "golden_goal" : "silver_goal");
+    if (c->shootoutOnly)
+        js(&o, " \"shootout\": true,");
+    js(&o, "\n    \"playing_up\": %d, \"kick_off\": %d,", (int)c->playingUp, (int)c->kickOff);
+    if (c->subsSet)
+        js(&o, " \"subs\": [%d, %d],", (int)c->subsMin, (int)c->subsMax);
+    if (c->secondLeg)
+        js(&o, " \"first_leg\": [%d, %d],", (int)c->firstLeg[0], (int)c->firstLeg[1]);
+    if (c->pitchType >= 0)
+        js(&o, " \"pitch_type\": %d,", (int)c->pitchType);
+    if (c->pitchNumber)
+        js(&o, " \"pitch_number\": %d,", (int)c->pitchNumber);
+    if (c->unavailable)
+        js(&o, " \"locked\": true,");
+    js(&o, "\n    \"sent_off\": [");
+    for (int32_t t = 0; t < 2; t++) {
+        int32_t first = 1;
+        js(&o, "%s[", t ? ", " : "");
+        for (int32_t shirt = 1; shirt < 32; shirt++)
+            if (c->sentOff[t] & (1u << shirt)) {
+                js(&o, "%s%d", first ? "" : ", ", (int)shirt);
+                first = 0;
+            }
+        js(&o, "]");
+    }
+    js(&o, "], \"injured\": [");
+    for (int32_t t = 0; t < 2; t++) {
+        js(&o, "%s[", t ? ", " : "");
+        for (int32_t k = 0, first = 1; k < 8; k++)
+            if (c->injured[t][k].shirt) {
+                js(&o, "%s[%d, %d]", first ? "" : ", ", (int)c->injured[t][k].shirt, (int)c->injured[t][k].level);
+                first = 0;
+            }
+        js(&o, "]");
+    }
+    js(&o, "],");
+    if (c->restartKind != CHALLENGE_RESTART_KICK_OFF || c->restartTeam || c->restartWing || c->restartSpot ||
+        c->restartDeep) {
+        js(&o, "\n    \"restart\": { \"kind\": \"%s\", \"team\": %d, \"wing\": %d", kinds[c->restartKind < 6 ? c->restartKind : 0],
+           (int)c->restartTeam, (int)c->restartWing);
+        if (c->restartKind == CHALLENGE_RESTART_FREE_KICK || c->restartSpot)
+            js(&o, ", \"spot\": %d, \"x\": %d, \"y\": %d", (int)c->restartSpot, (int)c->restartX, (int)c->restartY);
+        if (c->restartDeep)
+            js(&o, ", \"deep\": true");
+        js(&o, " },");
+    }
+    {
+        int32_t scorers = 0;
+        for (int32_t k = 0; k < 8; k++)
+            scorers += c->scorers[k].team >= 0 && c->scorers[k].shirt;
+        if (scorers) {
+            js(&o, "\n    \"scorers\": [");
+            for (int32_t k = 0, first = 1; k < 8; k++)
+                if (c->scorers[k].team >= 0 && c->scorers[k].shirt) {
+                    js(&o, "%s{ \"team\": %d, \"shirt\": %d, \"minute\": %d, \"penalty\": %s }", first ? "" : ", ",
+                       (int)c->scorers[k].team, (int)c->scorers[k].shirt, (int)c->scorers[k].minute,
+                       c->scorers[k].penalty ? "true" : "false");
+                    first = 0;
+                }
+            js(&o, "],");
+        }
+    }
+    js(&o, "\n    \"win\": \"%s\"", c->win == CHALLENGE_DRAW ? "draw" : c->win == CHALLENGE_EXACT ? "exact" : "win");
+    if (c->win == CHALLENGE_EXACT)
+        js(&o, ", \"win_score\": [%d, %d]", (int)c->winScore[0], (int)c->winScore[1]);
+    js(&o, " }");
+    return o.bad ? -1 : (int32_t)(o.p - out);
+}
 #endif
