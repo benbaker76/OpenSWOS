@@ -34,6 +34,8 @@
  *       "shootout": true,                                              a shoot-out alone
  *       "first_leg": [0, 4],                                           the second leg of a tie
  *       "injured": [[[shirt, level 1-7], ...], [...]], "locked": true, its category closed
+ *       "record_name": "...",                                          its name online when longer
+ *                                                                      than "name"'s 31 letters
  *       "restart": { "kind": "corner" | "free_kick" | "penalty" | "throw_in" | "goal_kick",
  *                    "team": 0|1|-1, "wing": 0|1|-1 (his left / right as he attacks),
  *                    "spot": 1-7|-1 (SWOS 2020's free-kick spots; 0 "x","y"), "deep": true }
@@ -120,9 +122,10 @@ static void add_defs(const ChallengeDef *defs, int32_t n, int32_t custom)
         memset(c, 0, sizeof *c);
         c->def = defs[i];
         c->custom = (uint8_t)custom;    /* (its teams are looked up at PLAY: a uuid search walks
-                                         * the whole database, too slow for drawing the list) */
+                                         * the whole database, too slow for drawing the list)
+                                         * 1 the player's own, 2 fetched for the player */
         c->mod = (int16_t)(custom ? -1 : s_loadingMod);
-        if (custom)
+        if (custom == 1 || (custom && !c->category[0]))
             snprintf(c->category, sizeof c->category, "CUSTOM");
     }
 }
@@ -433,6 +436,12 @@ static void load(void)
         char *json = (char *)ModApi_LoadFile("challenges", "custom.json", &size);
         if (json)
             read_text(json, (int)size, "custom.json", 1);
+        /* challenges another mod fetched for the player (SWOS United: SWOS 2020's shared custom
+         * challenges), their teams' .EDT files beside it in the save folder: never locked, their
+         * pack's category kept */
+        json = (char *)ModApi_LoadFile("challenges", "shared.json", &size);
+        if (json)
+            read_text(json, (int)size, "shared.json", 2);
 #else
         uint8_t *pack = (uint8_t *)ModApi_LoadFile("challenges", "CUSTOM.BIN", &size);
         if (pack) {
@@ -486,11 +495,25 @@ static int32_t file_team(const Challenge *c, int32_t t, TeamFileEx *out)
     uint8_t *data = NULL;
     uint32_t size = 0;
     int32_t found = 0;
-    if (c->mod < 0 || !c->teamFile[t][0])
+    int32_t saved = 0;      /* (a fetched challenge's: in the save folder, malloc's) */
+    if (!c->teamFile[t][0])
         return 0;
-    snprintf(path, sizeof path, "%s/%s", Mods_Dir(c->mod), c->teamFile[t]);
-    if (swos_io_load_data_alloc(path, &data, &size) != 0 || !data || size < 2) {
-        swos_io_free(data);
+    if (c->mod < 0) {
+        data = (uint8_t *)ModApi_LoadFile("challenges", c->teamFile[t], &size);
+        saved = 1;
+        snprintf(path, sizeof path, "save: %s", c->teamFile[t]);
+    } else {
+        snprintf(path, sizeof path, "%s/%s", Mods_Dir(c->mod), c->teamFile[t]);
+        if (swos_io_load_data_alloc(path, &data, &size) != 0) {
+            swos_io_free(data);
+            data = NULL;
+        }
+    }
+    if (!data || size < 2) {
+        if (saved)
+            free(data);
+        else
+            swos_io_free(data);
         fprintf(stderr, "[challenges] %s: no team file %s\n", c->id, path);
         return 0;
     }
@@ -508,7 +531,10 @@ static int32_t file_team(const Challenge *c, int32_t t, TeamFileEx *out)
             found = 1;
         }
     }
-    swos_io_free(data);
+    if (saved)
+        free(data);
+    else
+        swos_io_free(data);
     if (!found)
         fprintf(stderr, "[challenges] %s: no %s in %s\n", c->id, c->teamName[t], path);
     return found;
@@ -691,9 +717,10 @@ static char    s_onlineLine[48];
 
 static void online_args(const Challenge *c, char *out, uint32_t cap)
 {
-    char name[64], category[64], id[80];
+    char name[140], category[64], id[80];
     snprintf(out, cap, "{\"id\":\"%s\",\"name\":\"%s\",\"category\":\"%s\"}",
-             ModApi_JsonEscape(c->id, id, sizeof id), ModApi_JsonEscape(c->name, name, sizeof name),
+             ModApi_JsonEscape(c->id, id, sizeof id),
+             ModApi_JsonEscape(c->recordName[0] ? c->recordName : c->name, name, sizeof name),
              ModApi_JsonEscape(c->category, category, sizeof category));
 }
 
@@ -723,7 +750,8 @@ static void online_merge(void)
         if (tab) {
             *tab = 0;
             for (int32_t i = 0; i < s_count; i++)
-                if (!s_ch[i].completed && !strcmp(s_ch[i].name, tab + 1) && !strcmp(s_ch[i].category, line)) {
+                if (!s_ch[i].completed && !strcmp(s_ch[i].recordName[0] ? s_ch[i].recordName : s_ch[i].name, tab + 1) &&
+                    !strcmp(s_ch[i].category, line)) {
                     s_ch[i].completed = 1;
                     marked++;
                 }
@@ -816,7 +844,7 @@ static void list_draw(void)
             const int32_t i = first + s_page * kPerPage + r;
             char label[48];
             snprintf(label, sizeof label, "%s %s", s_ch[i].title[0] ? s_ch[i].title : s_ch[i].name,
-                     s_ch[i].custom ? "(YOURS)"
+                     s_ch[i].custom == 1 ? "(YOURS)"
                      : kStars[s_ch[i].difficulty < 0 ? 0 : s_ch[i].difficulty > 5 ? 5 : s_ch[i].difficulty]);
             row(r, label, s_ch[i].completed ? "DONE" : locked(i) ? "LOCKED" : "OPEN", 1);
         }
@@ -968,14 +996,14 @@ static void save_custom(void)   /* (the Amiga: CUSTOM.BIN, a pack) */
         return;
     }
     for (int32_t i = 0; i < s_count; i++)
-        if (s_ch[i].custom)
+        if (s_ch[i].custom == 1)
             number++;
     snprintf(s_edit.id, sizeof s_edit.id, "custom-%d-%u", (int)number, (unsigned)ModApi_Ticks());
     snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE %d", (int)number);
     snprintf(s_edit.about, sizeof s_edit.about, "YOUR OWN CHALLENGE");
     for (int32_t i = 0; i <= s_count && count < kMax; i++) {
         const Challenge *c = i < s_count ? &s_ch[i] : &s_edit;
-        if (c->custom)
+        if (c->custom == 1)
             defs[count++] = c->def;
     }
     const int32_t n = ChallengePack_Write(defs, count, buf, cap);
@@ -991,13 +1019,13 @@ static void save_custom(void)
     int n = snprintf(buf, sizeof buf, "{\n \"format\": \"openswos-challenges\",\n \"version\": 1,\n \"challenges\": [\n");
     int32_t count = 0, number = 1;
     for (int32_t i = 0; i < s_count; i++)
-        if (s_ch[i].custom)
+        if (s_ch[i].custom == 1)
             number++;
     snprintf(s_edit.id, sizeof s_edit.id, "custom-%d-%u", (int)number, (unsigned)ModApi_Ticks());
     snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE %d", (int)number);
     for (int32_t i = 0; i <= s_count && n < (int)sizeof buf - 600; i++) {
         const Challenge *c = i < s_count ? &s_ch[i] : &s_edit;
-        if (!c->custom)
+        if (c->custom != 1)
             continue;
         n += snprintf(buf + n, sizeof buf - (size_t)n,
                       "%s  { \"id\": \"%s\", \"name\": \"%s\", \"about\": \"%s\", \"difficulty\": 0,\n"
@@ -1034,7 +1062,7 @@ static void edit_row(int32_t r)
         s_numKept = 0;                      /* (read again with the rest) */
         load();
         for (int32_t i = s_count - 1; i >= 0; i--)
-            if (s_ch[i].custom) {
+            if (s_ch[i].custom == 1) {
                 s_cur = i;
                 break;
             }
@@ -1231,6 +1259,14 @@ static int32_t service(const char *method, const char *args, char *out, uint32_t
         return -1;
     out[0] = 0;
     load();
+    if (!strcmp(method, "reload")) {          /* (another mod wrote shared.json) */
+        s_loaded = 0;
+        s_count = 0;
+        s_numKept = 0;
+        load();
+        put(&o, "%d\n", (int)s_count);
+        return 0;
+    }
     if (!strcmp(method, "categories")) {
         for (int32_t k = 0; k < s_numCats; k++) {
             int32_t done, all;
@@ -1257,7 +1293,8 @@ static int32_t service(const char *method, const char *args, char *out, uint32_t
         for (int32_t t = 0; t < 2; t++)
             for (int32_t k = 0; k < 8; k++)
                 injured[t] += c->injured[t][k].shirt != 0;
-        put(&o, "id\t%s\nname\t%s\ntitle\t%s\ncategory\t%s\nabout\t%s\n", c->id, c->name, c->title,
+        put(&o, "id\t%s\nname\t%s\ntitle\t%s\ncategory\t%s\nabout\t%s\n", c->id,
+            c->recordName[0] ? c->recordName : c->name, c->title,
             c->category, c->about);
         put(&o, "team0\t%s\nteam1\t%s\nyours\t%d\nscore0\t%d\nscore1\t%d\nminute\t%d\n", c->teamName[0],
             c->teamName[1], (int)c->yours, (int)c->score[0], (int)c->score[1], (int)c->minute);

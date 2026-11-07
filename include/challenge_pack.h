@@ -55,7 +55,9 @@ enum { CHALLENGE_ET_NORMAL, CHALLENGE_ET_GOLDEN_GOAL, CHALLENGE_ET_SILVER_GOAL }
     int8_t   restartSpot;               /* a free kick: 1..7 SWOS 2020's spots across the pitch,   \
                                          * 0 restartX/Y, -1 drawn */                               \
     uint8_t  restartDeep;               /* SWOS 2020's "HOME" free kicks: from further out */      \
-    struct { uint8_t shirt, level; } injured[2][8];  /* "injured": [[shirt, level], ...] a team */
+    struct { uint8_t shirt, level; } injured[2][8];  /* "injured": [[shirt, level], ...] a team */ \
+    char     recordName[64];            /* "record_name": its name online, when longer than name   \
+                                         * (SWOS 2020's shared custom challenges); "" the name */
 
 typedef struct { CHALLENGE_DEF_FIELDS } ChallengeDef;
 
@@ -63,7 +65,7 @@ typedef struct { CHALLENGE_DEF_FIELDS } ChallengeDef;
 #define CHALLENGE_PACK_VERSION   2
 #define CHALLENGE_PACK_HEADER    10         /* magic 7, version 1, count 2 */
 #define CHALLENGE_PACK_RECORD_V1 361        /* (the fields ChallengePack_Write lays down) */
-#define CHALLENGE_PACK_RECORD    (CHALLENGE_PACK_RECORD_V1 + 32 + 32 + 320 + 40 + 64 + 2 + 3 + 4 + 2 + 2 + 32)
+#define CHALLENGE_PACK_RECORD    (CHALLENGE_PACK_RECORD_V1 + 32 + 32 + 320 + 40 + 64 + 2 + 3 + 4 + 2 + 2 + 32 + 64)
 
 /* The binary: its size for `count`; written into `out` (cap at least that). Bytes, or -1. */
 int32_t ChallengePack_Write(const ChallengeDef *defs, int32_t count, uint8_t *out, uint32_t cap);

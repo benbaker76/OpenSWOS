@@ -97,6 +97,7 @@ int32_t ChallengePack_Write(const ChallengeDef *defs, int32_t count, uint8_t *ou
                 put8(&w, d->injured[t][k].shirt);
                 put8(&w, d->injured[t][k].level);
             }
+        put_str(&w, d->recordName, 64);
         if (!w.bad && w.p - start != CHALLENGE_PACK_RECORD)
             return -1;      /* (the record size in the header is wrong) */
     }
@@ -137,6 +138,7 @@ int32_t ChallengePack_Read(const uint8_t *data, uint32_t size, ChallengeDef *def
                     d->injured[t][k].shirt = (uint8_t)get8(&r);
                     d->injured[t][k].level = (uint8_t)get8(&r);
                 }
+            get_str(&r, d->recordName, 64);
         } else {                    /* (what version 1 meant by the fields it has not) */
             d->playingUp = d->kickOff = -1;
         }
@@ -249,6 +251,8 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
             mjson_get_string(json, len, "$.category", c->category, (int)sizeof c->category);
         upper(c->category);
         STR(title, "title");
+        STR(recordName, "record_name");
+        upper(c->recordName);
         STR(winMessage, "win_message");
         upper(c->title);
         upper(c->winMessage);
