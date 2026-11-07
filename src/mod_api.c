@@ -3,6 +3,7 @@
  * place a mod's questions meet the game's globals.
  */
 #include "mod_api.h"
+#include "endian_helpers.h"
 #include "tweaks.h"      /* ModApi_SetTweak */
 
 
@@ -515,6 +516,19 @@ int32_t ModApi_ViewHighlights(const char *slug, const char *name, int32_t scene)
     uint8_t *data = (uint8_t *)ModApi_LoadFile(slug, name, &size);
     if (!data)
         return -1;
+    {   /* a highlights file, or nothing: the PC's / SWOS 2020's (8, 0, 0, 0), SWOS's own (its
+         * signature) or ours (JSON) -- anything else would be read as SWOS's own, and one bigger
+         * than the screen stops the game (LoadFileEx's 0xE000) */
+        extern int DosReplay_IsDosHil(const uint8_t *buf, uint32_t size);
+        extern uint32_t _kHilFileSig;
+        const int isHil = DosReplay_IsDosHil(data, size) || (size >= 4 && BE_READ_U32(data) == _kHilFileSig) ||
+                          (size && data[0] == '{');
+        if (!isHil) {
+            free(data);
+            fprintf(stderr, "[mods] %s/%s: not a highlights file\n", slug, name);
+            return -1;
+        }
+    }
     snprintf(bare, sizeof bare, "%.8s.HIL", slug);
     for (char *c = bare; *c; c++)
         if (*c >= 'a' && *c <= 'z')
