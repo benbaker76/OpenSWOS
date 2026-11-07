@@ -196,7 +196,9 @@ static int32_t step_dos_files(SdJob *job, int32_t *done, int32_t total, char *er
     logf_(job, "PC: %d files", count_dos() - missing);
     if (missing)
         logf_(job, "PC: %d of its sounds are not in this copy%s -- the game plays without them", (int)missing,
-              commentary == 76 ? " (no commentary: the floppy version has none, the CD version keeps it on the CD)"
+              commentary == 76 ? (job->src.dosCd[0] ? " (no commentary: not on the CD given either)"
+                                  : " (no commentary: the floppy version has none, the CD version keeps it on"
+                                    " the CD -- give the setup the CD, or its image, for it)")
               : commentary ? " (some commentary)" : "");
     return 0;
 }
@@ -606,10 +608,10 @@ int32_t     SwosData_PartVersion(SdStep step) { return step < SD_STEP_COUNT ? kP
 const char *SwosData_PartKey(SdStep step)     { return step < SD_STEP_COUNT ? kPartKey[step] : ""; }
 
 /* The [sources] keys, beside the SdSources field each one is. */
-enum { SRC_ADF1, SRC_ADF2, SRC_HDF, SRC_LHA, SRC_DOS, SRC_JAG, SRC_2020, SRC_WORLD, SRC_COUNT };
+enum { SRC_ADF1, SRC_ADF2, SRC_HDF, SRC_LHA, SRC_DOS, SRC_JAG, SRC_2020, SRC_WORLD, SRC_DOSCD, SRC_COUNT };
 static const char *const kSourceKey[SRC_COUNT] = {
     ASSETS_SRC_AMIGA_DISK1, ASSETS_SRC_AMIGA_DISK2, ASSETS_SRC_AMIGA_HDF, ASSETS_SRC_AMIGA_LHA,
-    ASSETS_SRC_PC, ASSETS_SRC_JAGUAR, ASSETS_SRC_SWOS2020, ASSETS_SRC_WORLD
+    ASSETS_SRC_PC, ASSETS_SRC_JAGUAR, ASSETS_SRC_SWOS2020, ASSETS_SRC_WORLD, ASSETS_SRC_PC_CD
 };
 static char *source_field(SdSources *s, int32_t i)
 {
@@ -621,6 +623,7 @@ static char *source_field(SdSources *s, int32_t i)
     case SRC_DOS:  return s->dosDir;
     case SRC_JAG:  return s->jagRom;
     case SRC_WORLD: return s->world;
+    case SRC_DOSCD: return s->dosCd;
     default:       return s->s2020Dir;
     }
 }
@@ -746,6 +749,9 @@ int32_t SwosData_LoadSources(const char *assetsDir, SdSources *s)
             /* The PC game folder: recognised by its SPRITE.DAT, like the scan does. */
             if (Sg_FindNoCase(p, "SPRITE.DAT", probe, sizeof probe) == 0 &&
                 SdSources_AddFile(s, probe) == 0 && s->dosDir[0])
+                n++;
+        } else if (i == SRC_DOSCD) {
+            if (SdSources_AddDosCd(s, p) == 0)
                 n++;
         } else if (SdSources_AddFile(s, p) == 0 && source_field(s, i)[0]) {
             n++;

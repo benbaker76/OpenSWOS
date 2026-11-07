@@ -260,8 +260,13 @@ command-line half, `swosdata`:
 make -C tools/swosdata
 tools/swosdata/build/swosdata --scan ~/Games/SWOS --scan ~/Amiga/ADF \
                               [--swos2020 "$HOME/Games/SWOS 2020"] \
+                              [--dos-cd /media/cdrom] \
                               --res bin --out ~/.swos/assets
 ```
+
+`--dos-cd` is the PC game's CD, for the commentary and effects its installer leaves on it (a
+CD install's folder has no `SFX/`; the floppy version has none): its drive, a copy of it, or an
+`.iso` / `.bin` / `.cue` image (`lib/cd_image.c`). A scan finds one too.
 
 Every file it writes is byte-for-byte the one the original game (or SWOS 2020) shipped (or,
 for the converted AGA and Jaguar graphics, the one this project's own

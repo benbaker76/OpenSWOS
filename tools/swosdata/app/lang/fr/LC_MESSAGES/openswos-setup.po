@@ -1262,3 +1262,33 @@ msgstr "{0} supprimé."
 
 msgid "could not copy the mods: {0}"
 msgstr "impossible de copier les mods : {0}"
+
+msgid "Add the PC game's commentary"
+msgstr "Ajouter les commentaires du jeu PC"
+
+msgid "Your copy of the PC game has no commentary: the CD version leaves it on the CD when it installs, and the floppy version has none."
+msgstr "Votre copie du jeu PC n'a pas de commentaires : la version CD les laisse sur le CD à l'installation, et la version disquettes n'en a pas."
+
+msgid "Put the CD in and choose its drive with Search a folder… -- or drag a copy of the CD, or its image (.iso, .bin or .cue), here."
+msgstr "Insérez le CD et choisissez son lecteur avec Chercher dans un dossier… -- ou faites glisser ici une copie du CD, ou son image (.iso, .bin ou .cue)."
+
+msgid "PC game CD"
+msgstr "CD du jeu PC"
+
+msgid "the CD's drive, a copy of the CD, or its image (.iso, .bin or .cue)"
+msgstr "le lecteur du CD, une copie du CD, ou son image (.iso, .bin ou .cue)"
+
+msgid "The PC game's commentary and crowd sounds. The CD version leaves them on the CD when it installs (GOG's game has them already); the floppy version has none."
+msgstr "Les commentaires et les bruits de foule du jeu PC. La version CD les laisse sur le CD à l'installation (le jeu de GOG les a déjà) ; la version disquettes n'en a pas."
+
+msgid "The commentary is on it."
+msgstr "Les commentaires sont dessus."
+
+msgid "No commentary on it."
+msgstr "Pas de commentaires dessus."
+
+msgid "Not the PC game's CD: it is the one with the SFX folder, and the commentary in SFX/PIERCE."
+msgstr "Ce n'est pas le CD du jeu PC : c'est celui qui a le dossier SFX, et les commentaires dans SFX/PIERCE."
+
+msgid "the PC game's CD"
+msgstr "le CD du jeu PC"

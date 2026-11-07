@@ -1262,3 +1262,33 @@ msgstr "{0} verwijderd."
 
 msgid "could not copy the mods: {0}"
 msgstr "kon de mods niet kopiëren: {0}"
+
+msgid "Add the PC game's commentary"
+msgstr "Het commentaar van de pc-game toevoegen"
+
+msgid "Your copy of the PC game has no commentary: the CD version leaves it on the CD when it installs, and the floppy version has none."
+msgstr "Jouw kopie van de pc-game heeft geen commentaar: de cd-versie laat het bij de installatie op de cd staan, en de diskettesversie heeft het niet."
+
+msgid "Put the CD in and choose its drive with Search a folder… -- or drag a copy of the CD, or its image (.iso, .bin or .cue), here."
+msgstr "Plaats de cd en kies het station met Zoek in een map… -- of sleep hier een kopie van de cd, of de image ervan (.iso, .bin of .cue)."
+
+msgid "PC game CD"
+msgstr "Cd van de pc-game"
+
+msgid "the CD's drive, a copy of the CD, or its image (.iso, .bin or .cue)"
+msgstr "het station van de cd, een kopie van de cd, of de image ervan (.iso, .bin of .cue)"
+
+msgid "The PC game's commentary and crowd sounds. The CD version leaves them on the CD when it installs (GOG's game has them already); the floppy version has none."
+msgstr "Het commentaar en de geluiden van het publiek van de pc-game. De cd-versie laat ze bij de installatie op de cd staan (de game van GOG heeft ze al); de diskettesversie heeft ze niet."
+
+msgid "The commentary is on it."
+msgstr "Het commentaar staat erop."
+
+msgid "No commentary on it."
+msgstr "Er staat geen commentaar op."
+
+msgid "Not the PC game's CD: it is the one with the SFX folder, and the commentary in SFX/PIERCE."
+msgstr "Niet de cd van de pc-game: dat is die met de map SFX, en het commentaar in SFX/PIERCE."
+
+msgid "the PC game's CD"
+msgstr "de cd van de pc-game"

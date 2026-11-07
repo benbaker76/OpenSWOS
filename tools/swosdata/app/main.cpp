@@ -308,7 +308,8 @@ struct App {
   // floppies, a hard disk image, a WHDLoad .lha, or a .zip of any of them. A path
   // that is not the thing its row asks for stays in the box (so it can be
   // corrected), marked, and is not used.
-  enum Row { ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020, ROW_WORLD, ROW_COUNT };
+  // (ROW_PCCD last: app.slint's src-row numbers the rows as they are here.)
+  enum Row { ROW_PC, ROW_AMIGA, ROW_JAG, ROW_2020, ROW_WORLD, ROW_PCCD, ROW_COUNT };
   std::string unusable[ROW_COUNT];
   std::shared_ptr<slint::VectorModel<SourceRow>> rows;
   std::string amigaKey, amigaSeason, amigaProblem;   // the season, for this Amiga source
@@ -318,6 +319,7 @@ struct App {
       case ROW_PC: return src.dosDir;
       case ROW_JAG: return src.jagRom;
       case ROW_WORLD: return src.world;
+      case ROW_PCCD: return src.dosCd;
       default: return src.s2020Dir;
     }
   }
@@ -330,6 +332,21 @@ struct App {
     return src.adf2;
   }
   void ClearAmiga() { src.adf1[0] = src.adf2[0] = src.hdf[0] = src.lha[0] = '\0'; }
+
+  // Whether the PC game folder has the commentary itself (GOG's does; an installed CD's and
+  // the floppy version's do not): when it has not, the wizard asks for the CD. Looked up when
+  // the folder changes, not every refresh.
+  std::string commentaryKey;
+  bool commentaryInDir = true;
+  bool PcLacksCommentary() {
+    if (commentaryKey != src.dosDir) {
+      commentaryKey = src.dosDir;
+      SdSources t{};
+      std::snprintf(t.dosDir, sizeof t.dosDir, "%s", src.dosDir);
+      commentaryInDir = !src.dosDir[0] || SdSources_HaveCommentary(&t);
+    }
+    return !commentaryInDir;
+  }
 
   // The sources a plan or a run uses: an Amiga copy that cannot be used (damaged, or
   // another release) stays in its row, marked, and is left out of both.
@@ -452,6 +469,16 @@ struct App {
           row.detail = Str(Tf("Data {0}.", wi.fingerprint));
         break;
       }
+      case ROW_PCCD:
+        row.label = Str(T("PC game CD"));
+        row.placeholder = Str(T("the CD's drive, a copy of the CD, or its image (.iso, .bin or .cue)"));
+        row.need_pc = Str(T("optional"));
+        row.about_pc = Str(T("The PC game's commentary and crowd sounds. The CD version leaves them on the CD "
+                       "when it installs (GOG's game has them already); the floppy version has none."));
+        path = src.dosCd;
+        if (src.dosCd[0])
+          row.detail = Str(SdSources_HaveCommentary(&src) ? T("The commentary is on it.") : T("No commentary on it."));
+        break;
       default:
         row.label = Str(T("SWOS 2020"));
         row.placeholder = Str(T("the SWOS 2020 install folder"));
@@ -535,9 +562,15 @@ struct App {
       return N_("");
     }
     SdSources found{};
-    SdSources_AddFile(&found, path.c_str());
+    if (r == ROW_PCCD) SdSources_AddDosCd(&found, path.c_str());
+    else SdSources_AddFile(&found, path.c_str());
     auto take = [](char* to, const char* from) { std::snprintf(to, 1024, "%s", from); };
     switch (r) {
+      case ROW_PCCD:
+        if (found.dosCd[0]) { take(src.dosCd, found.dosCd); return N_(""); }
+        src.dosCd[0] = '\0';
+        unusable[r] = path;
+        return N_("Not the PC game's CD: it is the one with the SFX folder, and the commentary in SFX/PIERCE.");
       case ROW_PC:
         if (found.dosDir[0]) { take(src.dosDir, found.dosDir); return N_(""); }
         src.dosDir[0] = '\0';
@@ -572,8 +605,7 @@ struct App {
     if (r == ROW_AMIGA && CleanPath(text) == Shown(AmigaPath())) return;   // unchanged
     const std::string msg = SetRow(r, text);
     Notice(T(msg), !msg.empty() && msg.rfind("That is disk", 0) != 0);
-    RefreshRows();
-    RefreshPlan();
+    Refresh();
   }
 
   void BrowseRow(int r) {
@@ -584,6 +616,7 @@ struct App {
       case ROW_2020: picked = PickFolder(current[0] ? current : std::string()); break;
       case ROW_AMIGA: picked = PickFile("Amiga version", "adf,hdf,lha,zip"); break;
       case ROW_WORLD: picked = PickFile("World 2026-27 package", "zip"); break;
+      case ROW_PCCD: picked = PickFile("PC game CD image", "iso,bin,cue,img"); break;   // (a drive: Search)
       default: picked = PickFile("Jaguar cartridge", "jag,j64,rom,bin"); break;
     }
     if (picked.empty()) return;
@@ -593,6 +626,7 @@ struct App {
   void Refresh() {
     RefreshRows();
     RefreshPlan();
+    RefreshWizard();   // (a PC copy without the commentary adds the CD's screen)
   }
 
   // ------------------------------------------------------- installed ---
@@ -756,7 +790,7 @@ struct App {
 
   static int32_t CountFound(const SdSources& s) {
     return (s.adf1[0] != 0) + (s.adf2[0] != 0) + (s.hdf[0] != 0) + (s.lha[0] != 0) + (s.dosDir[0] != 0) +
-           (s.jagRom[0] != 0) + (s.s2020Dir[0] != 0) + (s.world[0] != 0);
+           (s.dosCd[0] != 0) + (s.jagRom[0] != 0) + (s.s2020Dir[0] != 0) + (s.world[0] != 0);
   }
 
   struct ScanProgress {
@@ -1927,6 +1961,7 @@ struct App {
   // The screens, from what was ticked (app.slint's Step): where you will play first; a computer
   // or a phone alone asks which copy you have (either will do), an Amiga needs both; then each
   // source, each extra, install, the phone's copy, the Amiga's outputs, done.
+  std::vector<int> wizardSteps;
   void RefreshWizard() {
     // (a computer, a phone and a handheld all play the SDL game: the same data, options, install)
     const bool compPhone = w().get_t_computer() || w().get_t_phone() || w().get_t_handheld();
@@ -1937,6 +1972,8 @@ struct App {
       const bool needPc = amigaT || have != 1, needAmiga = amigaT || have != 0;
       if (compPhone && !amigaT) steps.push_back(1);
       if (needPc) steps.push_back(2);
+      // The PC copy has no commentary (an installed CD, the floppy version): its CD, optional.
+      if (needPc && compPhone && PcLacksCommentary()) steps.push_back(15);
       if (needAmiga) steps.push_back(3);
       if (kWorldUrl[0] && w().get_x_world()) steps.push_back(4);
       if (w().get_x_2020()) steps.push_back(5);
@@ -1950,7 +1987,15 @@ struct App {
       if (w().get_t_whdload()) steps.push_back(10);
       steps.push_back(11);
     }
-    w().set_steps(std::make_shared<slint::VectorModel<int>>(steps));
+    if (steps != wizardSteps) {   // (else a source changed, the screens did not)
+      // The screen on show stays on show when one before it comes or goes.
+      const int at = w().get_step();
+      const int kind = at >= 0 && at < int(wizardSteps.size()) ? wizardSteps[at] : -1;
+      wizardSteps = steps;
+      w().set_steps(std::make_shared<slint::VectorModel<int>>(steps));
+      for (int i = 0; i < int(steps.size()); i++)
+        if (steps[i] == kind && i != at) w().set_step(i);
+    }
     if (w().get_step() >= int(steps.size())) w().set_step(int(steps.size()) - 1);
   }
 
@@ -2121,6 +2166,8 @@ struct App {
     // folder is full of other Amiga downloads, and a .zip is unpacked to be looked in.
     const bool named = name.find("sensible") != std::string::npos || name.find("swos") != std::string::npos;
     if (ext == "hdf" || ext == "lha" || ext == "zip") return named;
+    if (ext == "iso" || ext == "cue" || ext == "img" || (ext == "bin" && e.size > 8u * 1024 * 1024))
+      return named;                  // the PC game's CD: the commentary
     if (ext == "adf") return true;   // its volume name says what it is
     // The cartridge is 2 MB: a CD image named .bin is not read through.
     return (ext == "jag" || ext == "j64" || ext == "rom" || ext == "bin") && e.size <= 8u * 1024 * 1024;
@@ -2144,6 +2191,12 @@ struct App {
     auto take = [](char* to, const char* from) { std::snprintf(to, 1024, "%s", from); };
     std::string what;
     if (found.dosDir[0] && !src.dosDir[0]) { take(src.dosDir, found.dosDir); unusable[ROW_PC].clear(); what = N_("the PC game"); }
+    // A second PC copy, with the commentary the first has not: taken as the CD.
+    if (found.dosDir[0] && !found.dosCd[0] && std::strcmp(found.dosDir, src.dosDir) != 0)
+      SdSources_AddDosCd(&found, found.dosDir);
+    if (found.dosCd[0] && !src.dosCd[0] && (PcLacksCommentary() || !src.dosDir[0])) {
+      take(src.dosCd, found.dosCd); unusable[ROW_PCCD].clear(); what = N_("the PC game's CD");
+    }
     if (found.jagRom[0] && !src.jagRom[0]) { take(src.jagRom, found.jagRom); unusable[ROW_JAG].clear(); what = N_("the Jaguar cartridge"); }
     if (found.s2020Dir[0] && !src.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); unusable[ROW_2020].clear(); what = N_("SWOS 2020"); }
     if (kWorldUrl[0] && found.world[0] && !src.world[0]) { take(src.world, found.world); unusable[ROW_WORLD].clear(); what = N_("World 2026-27"); }

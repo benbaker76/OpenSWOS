@@ -267,8 +267,9 @@ export component MainWindow inherits Window {
     property <int> kind: root.step < root.steps.length ? root.steps[root.step] : Step.targets;
     // A source's screen: its row in `sources` (main.cpp Row), -1 for another screen.
     property <int> src-row: root.kind == Step.pc ? 0 : root.kind == Step.amiga ? 1 : root.kind == Step.jaguar ? 2
-                          : root.kind == Step.s2020 ? 3 : root.kind == Step.world ? 4 : -1;
-    property <bool> src-optional: root.kind == Step.world || root.kind == Step.s2020 || root.kind == Step.jaguar;
+                          : root.kind == Step.s2020 ? 3 : root.kind == Step.world ? 4 : root.kind == Step.pccd ? 5 : -1;
+    property <bool> src-optional: root.kind == Step.world || root.kind == Step.s2020 || root.kind == Step.jaguar
+                                  || root.kind == Step.pccd;
     property <bool> any-target: root.t-computer || root.t-phone || root.t-amiga || root.t-whdload || root.t-handheld;
     // Next: what this screen asks for is done.
     property <bool> next-ok: root.busy ? false
@@ -496,7 +497,7 @@ export component MainWindow inherits Window {
                     Image {
                         width: 44px;
                         height: 44px;
-                        source: root.kind == Step.pc ? @image-url("icons/disc.svg")
+                        source: root.kind == Step.pc || root.kind == Step.pccd ? @image-url("icons/disc.svg")
                               : root.kind == Step.amiga ? @image-url("images/amiga-check.svg")
                               : root.kind == Step.world ? @image-url("icons/world.svg")
                               : root.kind == Step.s2020 ? @image-url("icons/map-2.svg")
@@ -512,6 +513,7 @@ export component MainWindow inherits Window {
                                 : root.kind == Step.amiga ? @tr("Get the Amiga version")
                                 : root.kind == Step.world ? @tr("Get World 2026-27")
                                 : root.kind == Step.s2020 ? @tr("Add SWOS 2020's pitches")
+                                : root.kind == Step.pccd ? @tr("Add the PC game's commentary")
                                 : @tr("Add the Jaguar's players");
                             font-size: 24px;
                             font-weight: 700;
@@ -545,6 +547,11 @@ export component MainWindow inherits Window {
                     spacing: 8px;
                     Instruction { number: 1; text: @tr("Install SWOS 2020 and run its launcher once (it picks the pitches)."); }
                     Instruction { number: 2; text: @tr("Drag its folder here, or choose it with Browse."); }
+                }
+                if root.kind == Step.pccd: VerticalLayout {
+                    spacing: 8px;
+                    Instruction { number: 1; text: @tr("Your copy of the PC game has no commentary: the CD version leaves it on the CD when it installs, and the floppy version has none."); }
+                    Instruction { number: 2; text: @tr("Put the CD in and choose its drive with Search a folder… -- or drag a copy of the CD, or its image (.iso, .bin or .cue), here."); }
                 }
                 if root.kind == Step.jaguar: VerticalLayout {
                     spacing: 8px;

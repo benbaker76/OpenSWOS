@@ -154,6 +154,13 @@ can't be used (a damaged download, or a different release) gets a red mark and s
 
 ![Get the Amiga version: found](docs/images/setup/wizard-3-get-amiga.png)
 
+**The PC game's commentary.** GOG's game has it. The **CD version** leaves its commentary and
+crowd sounds on the CD when it installs, and the **floppy version** has none, so with a copy
+like that the setup shows one more screen, *Add the PC game's commentary* (optional). Put the
+CD in and pick its drive with **Search a folder…**, or drag a copy of the CD or its image
+(`.iso`, `.bin` or `.cue`) onto the window. Skip it and the game plays without the PC
+commentary (the Amiga's sounds, or the PC game's other sounds, still play).
+
 **Game options.** How the game looks and plays the first time you start it: the gameplay,
 graphics, sound, music, screen, language and more. Not sure? Leave them: you can change any
 of them in the game's **OPTIONS** later.
@@ -298,6 +305,8 @@ Drag it onto the window, or click **Search a folder…** and pick the folder it'
 - *PC game*: the folder with `SPRITE.DAT` and a `DATA` folder in it. GOG puts it where you
   chose when installing, usually under `C:\GOG Games` or under `GOG Galaxy\Games` in
   Program Files.
+- *PC game CD* (the commentary): the CD's drive or a copy of it (the folder with `SFX` in
+  it), or its image -- an `.iso`, or a `.bin` with its `.cue`.
 - *Amiga version*: the `.adf`, `.hdf`, `.lha` or `.zip` file itself. For floppies, add both
   disks: the setup tells them apart by what's on them, not by their names.
 

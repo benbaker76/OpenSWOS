@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include "adf.h"
 #include "lha.h"
+#include "cd_image.h"
 #include "sg_util.h"
 
 typedef struct {
@@ -38,12 +39,15 @@ typedef struct {
     char  lha[1024];        /* a WHDLoad install packed .lha with the game in it */
     char  lhaDir[256];      /* the game's folder in it ("SWOS2425/data/") */
     char  dosDir[1024];     /* the PC game folder */
+    char  dosCd[1024];      /* the PC game's CD, for the sounds an install leaves on it (SFX/):
+                             * the drive, a copy of the disc, or its image (.iso, .bin, .cue) */
     char  jagRom[1024];     /* the Jaguar cartridge image */
     char  s2020Dir[1024];   /* SWOS 2020's game folder: <install>/swos */
     char  world[1024];      /* a world's package (.zip) or the folder with its WORLD.ini */
     Adf  *disk1, *disk2;    /* open while SdSources_Open .. Close */
     Adf  *hdfDisk;
     LhaArchive *lhaArc;
+    CdImage *cdImage;       /* dosCd when it is an image, open while SdSources_Open .. Close */
 } SdSources;
 
 /* Look through `dir` and every folder inside it, however deep, for any of the
@@ -62,6 +66,15 @@ int32_t SdSources_ScanEx(SdSources *s, const char *dir, SdScanProgress progress,
  * inside the PC game folder (its folder is taken), or a SWOS 2020 install (its
  * folder, its swos/ folder or a file in either). 0 when recognised. */
 int32_t SdSources_AddFile(SdSources *s, const char *path);
+
+/* The PC game's CD, for its commentary and effects: a folder with SFX/PIERCE or SFX/FX (the
+ * drive, a copy of the disc, the SFX folder itself or a file in it), or an image of the disc
+ * (.iso, .img, .bin, .cue) with them on it. Taken as dosCd -- even when it is a PC game folder
+ * as well. 0 when it is one. */
+int32_t SdSources_AddDosCd(SdSources *s, const char *path);
+int32_t SdSources_HaveDosCd(const SdSources *s);
+/* Whether the PC sources have the commentary (SFX/PIERCE): the game folder (GOG's has it) or the CD. */
+int32_t SdSources_HaveCommentary(const SdSources *s);
 
 /* The Amiga program, SWOS-Amiga.zip, unpacked whole to a folder of the setup's own under
  * the system's temporary folder; that folder (the one with SWOS.info and the SWOS drawer)
@@ -101,7 +114,7 @@ void    SdSources_Close(SdSources *s);
  * disk 1 is tried first, then disk 2 -- or the hard disk image's game folder. */
 int32_t SdSources_ReadAmiga(SdSources *s, const char *rel, SgBuf *out, char *err);
 
-/* Read a file from the PC game folder, any case. */
+/* Read a file from the PC game folder, any case -- or, for a sound it does not have, off the CD. */
 int32_t SdSources_ReadDos(SdSources *s, const char *rel, SgBuf *out, char *err);
 
 #endif

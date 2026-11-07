@@ -598,6 +598,9 @@ int32_t SdSources_ZipHas(const char *zip, const char *name)
     return found;
 }
 
+static int32_t has_commentary_dir(const char *dir);
+static int32_t is_cd_image_name(const char *path);
+
 int32_t SdSources_AddFile(SdSources *s, const char *path)
 {
     char err[256];
@@ -676,6 +679,8 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
             snprintf(s->jagRom, sizeof s->jagRom, "%s", path);
         return 0;
     }
+    if (is_cd_image_name(path) && !is_dir(path))
+        return SdSources_AddDosCd(s, path);
     if (is_dir(path)) {
         if (is_dos_dir(path)) {
             if (!s->dosDir[0])
@@ -694,6 +699,8 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
                 snprintf(s->world, sizeof s->world, "%s", game);
             return 0;
         }
+        if (has_commentary_dir(path))       /* the PC game's CD, or its sounds */
+            return SdSources_AddDosCd(s, path);
         return -1;
     }
     /* A file inside the PC game folder or SWOS 2020's: take its folder. */
@@ -722,6 +729,8 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
                 snprintf(s->world, sizeof s->world, "%s", game);
             return 0;
         }
+        if (has_commentary_dir(dir))
+            return SdSources_AddDosCd(s, dir);
     }
     return -1;
 }
@@ -729,7 +738,8 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
 static int32_t count_found(const SdSources *s)
 {
     return (s->adf1[0] != 0) + (s->adf2[0] != 0) + (s->hdf[0] != 0) + (s->lha[0] != 0) +
-           (s->dosDir[0] != 0) + (s->jagRom[0] != 0) + (s->s2020Dir[0] != 0) + (s->world[0] != 0);
+           (s->dosDir[0] != 0) + (s->dosCd[0] != 0) + (s->jagRom[0] != 0) + (s->s2020Dir[0] != 0) +
+           (s->world[0] != 0);
 }
 
 /* ---- the folder search ---------------------------------------------------- */
@@ -790,8 +800,12 @@ static void scan_file(SdSources *s, const char *path, const char *name)
         if (strcmp(vol, "SWOS") != 0 && strcmp(vol, "SWOS2") != 0 &&
             !contains_nocase(name, "swos") && !contains_nocase(name, "sensible"))
             return;
+    } else if (is_cd_image_name(name)) {
+        /* (a .bin is a cartridge or a CD's track) */
+        if (s->dosCd[0] && (s->jagRom[0] || !ends_with_nocase(name, ".bin")))
+            return;
     } else if (!(ends_with_nocase(name, ".jag") || ends_with_nocase(name, ".j64") ||
-                 ends_with_nocase(name, ".rom") || ends_with_nocase(name, ".bin")) || s->jagRom[0]) {
+                 ends_with_nocase(name, ".rom")) || s->jagRom[0]) {
         return;
     }
     SdSources_AddFile(s, path);
@@ -891,6 +905,12 @@ static void scan_dir(SdSources *s, const char *dir, int32_t depth, ScanCtx *ctx)
     if (has_entry(list, n, "SPRITE.DAT", 0) && has_entry(list, n, "DATA", 1) && is_dos_dir(dir)) {
         if (!s->dosDir[0])
             snprintf(s->dosDir, sizeof s->dosDir, "%s", dir);
+        else if (!s->dosCd[0] && strcmp(s->dosDir, dir) != 0 && !has_commentary_dir(s->dosDir) &&
+                 has_commentary_dir(dir))
+            snprintf(s->dosCd, sizeof s->dosCd, "%s", dir);   /* (a copy with the sounds the first has not: the CD) */
+        gameDir = 1;
+    } else if (has_entry(list, n, "SFX", 1) && !s->dosCd[0] && has_commentary_dir(dir)) {
+        snprintf(s->dosCd, sizeof s->dosCd, "%s", dir);       /* the CD, or a copy of it */
         gameDir = 1;
     } else if (has_entry(list, n, "WORLD.ini", 0) && has_entry(list, n, "competitions", 1)) {
         SdWorldInfo w;               /* (an unpacked world package) */
@@ -976,8 +996,10 @@ void SdSources_Close(SdSources *s)
     Adf_Close(s->disk2);
     Adf_Close(s->hdfDisk);
     Lha_Free(s->lhaArc);
+    CdImage_Close(s->cdImage);
     s->disk1 = s->disk2 = s->hdfDisk = NULL;
     s->lhaArc = NULL;
+    s->cdImage = NULL;
 }
 
 int32_t SdSources_ReadAmiga(SdSources *s, const char *rel, SgBuf *out, char *err)
@@ -1031,29 +1053,110 @@ int32_t SdSources_ReadAmiga(SdSources *s, const char *rel, SgBuf *out, char *err
 
 /* A file of the PC game where a GOG install keeps it -- else by its name where the other
  * releases do: the floppy version keeps its sound effects in SFX/ itself (no FX/ or HARD/), and
- * a copy of an installed CD may hold them anywhere of these. 0 found (its path in p). */
-static int32_t find_dos(const SdSources *s, const char *rel, char *p, uint32_t cap)
+ * a copy of an installed CD, or of the CD, may hold them anywhere of these. `root` a folder, or
+ * NULL for the CD image `cd`. 0 found: its path in p (on the image for `cd`). */
+static int32_t find_dos_at(const char *root, CdImage *cd, const char *rel, char *p, uint32_t cap)
 {
     static const char *const kAlso[] = { "SFX", "SFX/FX", "SFX/PIERCE", "HARD", "FX", "PIERCE", "" };
-    if (Sg_FindNoCase(s->dosDir, rel, p, cap) == 0)
-        return 0;
     const char *name = strrchr(rel, '/');
     name = name ? name + 1 : rel;
-    for (uint32_t i = 0; i < sizeof kAlso / sizeof kAlso[0]; i++) {
+    for (int32_t i = -1; i < (int32_t)(sizeof kAlso / sizeof kAlso[0]); i++) {
         char alt[300];
-        snprintf(alt, sizeof alt, "%s%s%s", kAlso[i], kAlso[i][0] ? "/" : "", name);
-        if (Sg_FindNoCase(s->dosDir, alt, p, cap) == 0)
+        if (i < 0)
+            snprintf(alt, sizeof alt, "%s", rel);
+        else
+            snprintf(alt, sizeof alt, "%s%s%s", kAlso[i], kAlso[i][0] ? "/" : "", name);
+        if (root ? Sg_FindNoCase(root, alt, p, cap) == 0 : CdImage_Has(cd, alt) == 1) {
+            if (!root)
+                snprintf(p, cap, "%s", alt);
             return 0;
+        }
     }
     return -1;
+}
+
+/* The commentary's first line: what tells the CD (or a folder with its sounds) from one without. */
+#define DOS_COMMENTARY_PROBE "SFX/PIERCE/M10_D_.RAW"
+
+/* A folder with the PC commentary in it, where any release or copy keeps it. */
+static int32_t has_commentary_dir(const char *dir)
+{
+    char p[1024];
+    return is_dir(dir) && !is_s2020_game_dir(dir) && find_dos_at(dir, NULL, DOS_COMMENTARY_PROBE, p, sizeof p) == 0;
+}
+
+static int32_t is_cd_image_name(const char *path)
+{
+    return ends_with_nocase(path, ".iso") || ends_with_nocase(path, ".img") ||
+           ends_with_nocase(path, ".bin") || ends_with_nocase(path, ".cue");
+}
+
+/* An image of the PC game's CD: a data track with the commentary on it. */
+static int32_t is_dos_cd_image(const char *path)
+{
+    char err[256], p[300];
+    CdImage *cd = is_cd_image_name(path) ? CdImage_Open(path, err) : NULL;
+    int32_t ok = cd && find_dos_at(NULL, cd, DOS_COMMENTARY_PROBE, p, sizeof p) == 0;
+    CdImage_Close(cd);
+    return ok;
+}
+
+int32_t SdSources_AddDosCd(SdSources *s, const char *path)
+{
+    char dir[1024];
+    snprintf(dir, sizeof dir, "%s", path);
+    if (!has_commentary_dir(dir) && !is_dos_cd_image(path)) {
+        /* A file in the folder: its folder. */
+        char *slash = strrchr(dir, '/'), *bslash = strrchr(dir, '\\');
+        if (bslash && (!slash || bslash > slash))
+            slash = bslash;
+        if (!slash || is_dir(path))
+            return -1;
+        *slash = '\0';
+        if (!has_commentary_dir(dir))
+            return -1;
+    }
+    if (!s->dosCd[0]) {
+        snprintf(s->dosCd, sizeof s->dosCd, "%s", dir);
+        CdImage_Close(s->cdImage);
+        s->cdImage = NULL;
+    }
+    return 0;
+}
+
+int32_t SdSources_HaveDosCd(const SdSources *s) { return s->dosCd[0] != 0; }
+
+int32_t SdSources_HaveCommentary(const SdSources *s)
+{
+    /* The same look-up the conversion makes, on a copy that opens nothing of the caller's. */
+    SdSources t;
+    memset(&t, 0, sizeof t);
+    memcpy(t.dosDir, s->dosDir, sizeof t.dosDir);
+    memcpy(t.dosCd, s->dosCd, sizeof t.dosCd);
+    SgBuf b = { 0 };
+    char err[256];
+    int32_t ok = SdSources_ReadDos(&t, DOS_COMMENTARY_PROBE, &b, err) == 0;
+    Sg_BufFree(&b);
+    CdImage_Close(t.cdImage);
+    return ok;
 }
 
 int32_t SdSources_ReadDos(SdSources *s, const char *rel, SgBuf *out, char *err)
 {
     char p[1024];
-    if (!s->dosDir[0] || find_dos(s, rel, p, sizeof p) != 0) {
-        snprintf(err, 256, "%s is not in the PC game folder", rel);
-        return -1;
+    if (s->dosDir[0] && find_dos_at(s->dosDir, NULL, rel, p, sizeof p) == 0)
+        return Sg_ReadFile(p, out, err);
+    if (s->dosCd[0]) {
+        if (is_dir(s->dosCd)) {
+            if (find_dos_at(s->dosCd, NULL, rel, p, sizeof p) == 0)
+                return Sg_ReadFile(p, out, err);
+        } else {
+            if (!s->cdImage && !(s->cdImage = CdImage_Open(s->dosCd, err)))
+                return -1;
+            if (find_dos_at(NULL, s->cdImage, rel, p, sizeof p) == 0)
+                return CdImage_Read(s->cdImage, p, out, err);
+        }
     }
-    return Sg_ReadFile(p, out, err);
+    snprintf(err, 256, "%s is not in the PC game folder%s", rel, s->dosCd[0] ? " or on its CD" : "");
+    return -1;
 }

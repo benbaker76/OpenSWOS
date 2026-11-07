@@ -2,7 +2,9 @@
  * swosdata -- build OpenSWOS's game data from the player's own copy of the game,
  * from the command line. The setup app does the same through the library.
  *
- *   swosdata [--scan DIR]... [--adf FILE]... [--dos DIR] [--jag FILE] [--swos2020 DIR]
+ *   swosdata [--scan DIR]... [--adf FILE]... [--dos DIR] [--dos-cd CD] [--jag FILE] [--swos2020 DIR]
+ *   --dos-cd: the PC game's CD (its drive or a copy) or its image (.iso, .bin, .cue), for the
+ *   commentary and effects an install leaves on it
  *            [--out DIR [--res DIR]]    (no --out: only report what was found)
  *   --scan looks through DIR and every folder inside it
  *   swosdata --compare OUT REF     every file in OUT equals REF's (RNC unpacked)
@@ -59,6 +61,7 @@ static int32_t usage(void)
 {
     fprintf(stderr,
             "usage: swosdata [--scan DIR]... [--adf FILE]... [--dos DIR] [--jag FILE]\n"
+            "                [--dos-cd CD]   (the PC CD, its drive, a copy or .iso/.bin/.cue: the commentary)\n"
             "       swosdata --amiga-mod MODDIR... [--remove-json]   (a mod's JSON as the Amiga's binary)\n"
             "                [--swos2020 DIR] [--world PACKAGE]   (OpenSWOS-World-<tag>.zip, or unpacked)\n"
             "                [--mods-dir DIR]     (with --world: install it there as a mod, world<tag>)\n"
@@ -286,6 +289,11 @@ int main(int argc, char **argv)
                 fprintf(stderr, "not a PC Sensible World of Soccer folder: %s\n", v);
                 return 1;
             }
+        } else if (strcmp(a, "--dos-cd") == 0) {
+            if (SdSources_AddDosCd(&job.src, v) != 0) {
+                fprintf(stderr, "not the PC game's CD (no SFX/PIERCE on it): %s\n", v);
+                return 1;
+            }
         } else if (strcmp(a, "--swos2020") == 0) {
             if (SdSources_AddFile(&job.src, v) != 0 || !SdSources_HaveSwos2020(&job.src)) {
                 fprintf(stderr, "not a SWOS 2020 install: %s\n", v);
@@ -311,7 +319,7 @@ int main(int argc, char **argv)
         printf("Searched %d folders\n", (int)s_scanned);
     /* Nothing named on the command line: what the last install used (ASSETS.ini in --out). */
     if (job.outDir[0] && !job.src.adf1[0] && !job.src.adf2[0] && !job.src.hdf[0] && !job.src.lha[0] &&
-        !job.src.dosDir[0] &&
+        !job.src.dosDir[0] && !job.src.dosCd[0] &&
         !job.src.jagRom[0] && !job.src.s2020Dir[0] && !job.src.world[0] &&
         SwosData_LoadSources(job.outDir, &job.src) > 0)
         printf("Sources: from %s/%s, the last install's\n", job.outDir, "ASSETS.ini");
@@ -328,6 +336,7 @@ int main(int argc, char **argv)
                job.src.hdf[0] && !(job.src.adf1[0] && job.src.adf2[0]) ? job.src.hdfDir : "");
     }
     printf("PC game:      %s\n", job.src.dosDir[0] ? job.src.dosDir : "(not found)");
+    printf("PC CD:        %s\n", job.src.dosCd[0] ? job.src.dosCd : "(not found)");
     printf("Jaguar:       %s\n", job.src.jagRom[0] ? job.src.jagRom : "(not found)");
     printf("SWOS 2020:    %s\n", job.src.s2020Dir[0] ? job.src.s2020Dir : "(not found)");
     printf("World:        %s\n", job.src.world[0] ? job.src.world : "(not found)");

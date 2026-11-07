@@ -39,6 +39,7 @@
 #define ASSETS_SRC_AMIGA_HDF   "amiga_hdf"      /* a hard disk image with the game on it */
 #define ASSETS_SRC_AMIGA_LHA   "amiga_lha"      /* a WHDLoad install packed as .lha */
 #define ASSETS_SRC_PC          "pc"
+#define ASSETS_SRC_PC_CD       "pc_cd"          /* the PC game's CD (folder or image), for its commentary */
 #define ASSETS_SRC_JAGUAR      "jaguar"
 #define ASSETS_SRC_SWOS2020    "swos2020"
 #define ASSETS_SRC_WORLD       "world"          /* a world's package (OpenSWOS-World-<tag>.zip) */

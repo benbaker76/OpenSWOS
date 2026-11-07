@@ -1262,3 +1262,33 @@ msgstr "{0} rimossa."
 
 msgid "could not copy the mods: {0}"
 msgstr "impossibile copiare le mod: {0}"
+
+msgid "Add the PC game's commentary"
+msgstr "Aggiungi la telecronaca del gioco per PC"
+
+msgid "Your copy of the PC game has no commentary: the CD version leaves it on the CD when it installs, and the floppy version has none."
+msgstr "La tua copia del gioco per PC non ha la telecronaca: la versione su CD la lascia sul CD quando si installa, e la versione su dischetti non ce l'ha."
+
+msgid "Put the CD in and choose its drive with Search a folder… -- or drag a copy of the CD, or its image (.iso, .bin or .cue), here."
+msgstr "Inserisci il CD e scegli la sua unità con Cerca in una cartella… -- oppure trascina qui una copia del CD, o la sua immagine (.iso, .bin o .cue)."
+
+msgid "PC game CD"
+msgstr "CD del gioco per PC"
+
+msgid "the CD's drive, a copy of the CD, or its image (.iso, .bin or .cue)"
+msgstr "l'unità del CD, una copia del CD, o la sua immagine (.iso, .bin o .cue)"
+
+msgid "The PC game's commentary and crowd sounds. The CD version leaves them on the CD when it installs (GOG's game has them already); the floppy version has none."
+msgstr "La telecronaca e i suoni del pubblico del gioco per PC. La versione su CD li lascia sul CD quando si installa (il gioco di GOG li ha già); la versione su dischetti non li ha."
+
+msgid "The commentary is on it."
+msgstr "La telecronaca c'è."
+
+msgid "No commentary on it."
+msgstr "Non c'è la telecronaca."
+
+msgid "Not the PC game's CD: it is the one with the SFX folder, and the commentary in SFX/PIERCE."
+msgstr "Non è il CD del gioco per PC: è quello con la cartella SFX, e la telecronaca in SFX/PIERCE."
+
+msgid "the PC game's CD"
+msgstr "il CD del gioco per PC"
