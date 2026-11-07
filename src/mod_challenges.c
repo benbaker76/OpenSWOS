@@ -4,24 +4,39 @@
  * a JSON format of OpenSWOS's own (the owner: JSON is our format for data -- not challenges.ini,
  * not .SCN). Both targets.
  *
- * MODES -> CHALLENGES: the challenges, each OPEN, DONE or LOCKED (locked while an easier one is
- * not done, as SWOS 2020 locks them). One: where the match stands and what wins it, PLAY; then
+ * MODES -> CHALLENGES: the categories (with more than one: each pack's "category"), then a
+ * category's challenges, each OPEN, DONE or LOCKED (locked while an easier one of its category is
+ * not done, as SWOS 2020 locks them; a category with a "locked" challenge is closed whole). One: where the match stands and what wins it, PLAY; then
  * the match from there -- your team is player 1's, the other the CPU's -- and YOU BEAT THE
  * CHALLENGE or NOT THIS TIME, QUICK RETRY or EXIT.
  *
  * A challenge (data_json/challenges/<any>.json in this mod -- or in any mod that is on: a
  * challenge pack is a mod of such files):
- *   { "format": "openswos-challenges", "version": 1, "category": "CLASSICS",
+ *   { "format": "openswos-challenges", "version": 2, "category": "CLASSICS",
  *     "challenges": [ {
  *       "id": "ten-men", "name": "TEN MEN", "difficulty": 3,          1 (easiest) .. 5
  *       "about": "1-1 AND YOUR NUMBER 5 SENT OFF. WIN WITH TEN.",
  *       "teams": [ { "uuid": "...", "team": "0a12", "name": "MANCHESTER UTD" }, { ... } ],   database teams by uuid
  *                                                    (and number, hex: the Amiga's, which has no database)
  *       "yours": 0,                                                    which team you play
- *       "score": [1, 1], "minute": 60,                                 where it stands (minute 0-89)
+ *       "score": [1, 1], "minute": 60,                                 where it stands (minute 0-119:
+ *                                                                      from 90 extra time)
  *       "sent_off": [[5], []],                                         shirt numbers already off
  *       "extra_time": false, "penalties": false, "length": 0,          (optional)
  *       "win": "win" | "draw" (at least) | "exact", "win_score": [2, 2]   (exact: yours, theirs)
+ *     -- version 2, each optional (SWOS 2020's scenarios, scripts/convert_swos2020_challenges.py):
+ *       "category": "...",                                             its own, over the pack's
+ *       "title": "...", "description": ["5 lines"], "win_message": "..."
+ *       "teams": [ { "file": "teams/X.EDT", "name": "ENGLAND 1966" }, ... ]   a team from a .EDT in
+ *                                                    this mod, found by its name (not the database)
+ *       "playing_up": 0|1, "kick_off": 0|1,                            -1 / absent: drawn
+ *       "subs": [min, max], "extra_time_rule": "golden_goal" | "silver_goal",
+ *       "shootout": true,                                              a shoot-out alone
+ *       "first_leg": [0, 4],                                           the second leg of a tie
+ *       "injured": [[[shirt, level 1-7], ...], [...]], "locked": true, its category closed
+ *       "restart": { "kind": "corner" | "free_kick" | "penalty" | "throw_in" | "goal_kick",
+ *                    "team": 0|1|-1, "wing": 0|1|-1 (his left / right as he attacks),
+ *                    "spot": 1-7|-1 (SWOS 2020's free-kick spots; 0 "x","y"), "deep": true }
  *     } ] }
  * Progress: save/mods/challenges/progress.json, named fields:
  *   { "format": "openswos-challenges-progress", "version": 1,
@@ -31,8 +46,8 @@
  * JSON for both), and keeps the player's own and the progress as binary records too:
  * CUSTOM.BIN (a pack) and PROGRESS.BIN ("OSWCPRG" + version, u16 count, then id[40], completed
  * u8, attempts u32 -- big-endian).
- * Not yet (docs/MODS.md §18): golden / silver goal, a starting event (a free kick, a corner),
- * minutes from extra time, SWOS 2020's own challenge files as a DLC pack (its teams are others').
+ * SWOS 2020's own challenges (challenges.ini and its team files) convert to a pack mod with
+ * scripts/convert_swos2020_challenges.py -- never shipped in OpenSWOS: its teams are others'.
  *
  * "changes": "modes": its matches are its own -- never matters online.
  *
@@ -47,6 +62,8 @@
 #include "mod_api.h"
 
 #include "challenge_pack.h"
+#include "endian_helpers.h"
+#include "game_types.h"
 #include "mjson.h"
 #include "mods.h"
 #include "swos_io.h"        /* (the Amiga's file read) */
@@ -57,13 +74,22 @@
 
 extern void SetExitMenuFlag(void);
 
-enum { kMax = 32, kRows = 8 };
+#ifdef SWOS_SDL_BUILD
+enum { kMax = 192 };                    /* (SWOS 2020's pack alone is 92) */
+#else
+enum { kMax = 112 };                    /* (each ~1.1 KB, and a stock A1200 has 2 MB) */
+#endif
+enum { kRows = 8 };
 enum { W_WIN = CHALLENGE_WIN, W_DRAW = CHALLENGE_DRAW, W_EXACT = CHALLENGE_EXACT };
 _Static_assert((int)CHALLENGE_RESTART_KICK_OFF == (int)MODRESTART_KICK_OFF &&
                (int)CHALLENGE_RESTART_CORNER == (int)MODRESTART_CORNER &&
                (int)CHALLENGE_RESTART_FREE_KICK == (int)MODRESTART_FREE_KICK &&
-               (int)CHALLENGE_RESTART_PENALTY == (int)MODRESTART_PENALTY,
-               "challenge_pack.h's restart kinds are MODRESTART_*");
+               (int)CHALLENGE_RESTART_PENALTY == (int)MODRESTART_PENALTY &&
+               (int)CHALLENGE_RESTART_THROW_IN == (int)MODRESTART_THROW_IN &&
+               (int)CHALLENGE_RESTART_GOAL_KICK == (int)MODRESTART_GOAL_KICK &&
+               (int)CHALLENGE_ET_GOLDEN_GOAL == (int)MODET_GOLDEN_GOAL &&
+               (int)CHALLENGE_ET_SILVER_GOAL == (int)MODET_SILVER_GOAL,
+               "challenge_pack.h's restart kinds are MODRESTART_*, its extra-time rules MODET_*");
 
 typedef struct {
     union {                             /* (the pack's fields, by name or as one ChallengeDef) */
@@ -71,16 +97,20 @@ typedef struct {
         struct { CHALLENGE_DEF_FIELDS };
     };
     uint8_t  custom;                    /* the player's own (custom.json, the editor) */
-    char     category[32];              /* its pack's "category" (online records); "" none */
+    int16_t  mod;                       /* the mod it came from (its teams' files); -1 none */
+    int16_t  catIndex, seq;             /* (the list's order: its category's, then as read) */
     /* progress */
     uint8_t  completed;
     uint32_t attempts;
 } Challenge;
 
-static Challenge s_ch[kMax];
+static Challenge *s_ch;                 /* (kMax of them, from the heap when the list is first wanted:
+                                         *  ~100 KB the Amiga keeps only while it is used) */
 static int32_t   s_count, s_loaded;
 
 /* ---- reading ---- */
+
+static int32_t s_loadingMod = -1;       /* (the mod whose files load() is reading) */
 
 static void add_defs(const ChallengeDef *defs, int32_t n, int32_t custom)
 {
@@ -90,10 +120,19 @@ static void add_defs(const ChallengeDef *defs, int32_t n, int32_t custom)
         c->def = defs[i];
         c->custom = (uint8_t)custom;    /* (its teams are looked up at PLAY: a uuid search walks
                                          * the whole database, too slow for drawing the list) */
+        c->mod = (int16_t)(custom ? -1 : s_loadingMod);
+        if (custom)
+            snprintf(c->category, sizeof c->category, "CUSTOM");
     }
 }
 
-static ChallengeDef s_defs[kMax];       /* (a file's, before they are added) */
+static ChallengeDef *s_defs;            /* (a file's, before they are added: kMax of them) */
+static int32_t defs_ready(void)
+{
+    if (!s_defs)
+        s_defs = (ChallengeDef *)malloc(sizeof(ChallengeDef) * kMax);
+    return s_defs != NULL;
+}
 static void online_args(const Challenge *c, char *out, uint32_t cap);
 
 #ifdef SWOS_SDL_BUILD
@@ -106,18 +145,15 @@ static int32_t number(const char *json, int len, const char *path, int32_t fallb
 /* A challenges file's text (freed here): its challenges after those loaded. */
 static void read_text(char *json, int len, const char *path, int32_t custom)
 {
+    if (!defs_ready()) {
+        free(json);
+        return;
+    }
     const int32_t n = ChallengePack_FromJson(json, len, s_defs, kMax - s_count);
     if (n < 0) {
         fprintf(stderr, "[challenges] %s: not an openswos-challenges file\n", path);
     } else {
-        char category[32] = "";
-        const int32_t first = s_count;
-        mjson_get_string(json, len, "$.category", category, (int)sizeof category);
-        if (custom)
-            snprintf(category, sizeof category, "CUSTOM");
         add_defs(s_defs, n, custom);
-        for (int32_t i = first; i < s_count; i++)
-            snprintf(s_ch[i].category, sizeof s_ch[i].category, "%s", category);
     }
     free(json);
 }
@@ -141,15 +177,16 @@ static void read_file(const char *path)
     read_text(json, (int)n, path, 0);
 }
 #else
-/* A pack's binary (data, freed here): its challenges after those loaded. */
-static void read_pack(uint8_t *data, uint32_t size, const char *path, int32_t custom)
+/* A pack's binary (the caller frees it): its challenges after those loaded. */
+static void read_pack(const uint8_t *data, uint32_t size, const char *path, int32_t custom)
 {
+    if (!defs_ready())
+        return;
     const int32_t n = ChallengePack_Read(data, size, s_defs, kMax - s_count);
     if (n < 0)
         fprintf(stderr, "[challenges] %s: not a challenge pack\n", path);
     else
         add_defs(s_defs, n, custom);
-    free(data);
 }
 
 static void read_file(const char *path)
@@ -157,10 +194,11 @@ static void read_file(const char *path)
     uint8_t *data = NULL;
     uint32_t n = 0;
     if (swos_io_load_data_alloc(path, &data, &n) != 0 || !data || !n) {
-        free(data);
+        swos_io_free(data);
         return;
     }
     read_pack(data, n, path, 0);
+    swos_io_free(data);     /* (swos_io's heap, not malloc's) */
 }
 #endif
 
@@ -244,26 +282,50 @@ static void save_progress(void)
 }
 #endif
 
-static int by_difficulty(const void *a, const void *b)
+/* The list's order: the categories as they were first met (the packs' files in name order), and
+ * in each the easiest first, then as the pack has them. */
+static char    s_cats[24][32];
+static int32_t s_numCats;
+static int32_t category_of(const char *name)
 {
-    return ((const Challenge *)a)->difficulty - ((const Challenge *)b)->difficulty;
+    for (int32_t k = 0; k < s_numCats; k++)
+        if (!strcmp(s_cats[k], name))
+            return k;
+    if (s_numCats == 24)
+        return 23;
+    snprintf(s_cats[s_numCats], sizeof s_cats[0], "%s", name);
+    return s_numCats++;
 }
 
-/* (ModApi_ListFiles' callback: one file of a mod's data_json/challenges/) */
+static int by_category_difficulty(const void *a, const void *b)
+{
+    const Challenge *x = (const Challenge *)a, *y = (const Challenge *)b;
+    if (x->catIndex != y->catIndex)
+        return x->catIndex - y->catIndex;
+    if (x->difficulty != y->difficulty)
+        return x->difficulty - y->difficulty;
+    return x->seq - y->seq;
+}
+
+/* (ModApi_ListFiles' callback: one file of a mod's data_json/challenges/, kept to be read in
+ * name order -- the order a listing gives is the file system's) */
+static char    s_names[64][64];
+static int32_t s_numNames;
 static int32_t each_file(const char *name, void *ctx)
 {
     const size_t l = strlen(name);
+    (void)ctx;
 #ifdef SWOS_SDL_BUILD
-    if (l > 5 && !strcmp(name + l - 5, ".json")) {
+    if (l > 5 && !strcmp(name + l - 5, ".json") && l < sizeof s_names[0] && s_numNames < 64)
 #else
-    if (l > 4 && (!strcmp(name + l - 4, ".BIN") || !strcmp(name + l - 4, ".bin"))) {
+    if (l > 4 && (!strcmp(name + l - 4, ".BIN") || !strcmp(name + l - 4, ".bin")) && l < sizeof s_names[0] &&
+        s_numNames < 64)
 #endif
-        char path[1500];
-        snprintf(path, sizeof path, "%s/%s", (const char *)ctx, name);
-        read_file(path);
-    }
+        snprintf(s_names[s_numNames++], sizeof s_names[0], "%s", name);
     return 0;
 }
+
+static int by_name(const void *a, const void *b) { return strcmp((const char *)a, (const char *)b); }
 
 /* every mod that is on: its data_json/challenges/ */
 static void load(void)
@@ -271,6 +333,10 @@ static void load(void)
     if (s_loaded)
         return;
     s_loaded = 1;
+    if (!s_ch && (s_ch = (Challenge *)calloc(kMax, sizeof *s_ch)) == NULL) {
+        fprintf(stderr, "[challenges] no memory for the list\n");
+        return;
+    }
     for (int32_t m = 0; m < Mods_Count(); m++) {
         char dir[1200];
 #ifdef SWOS_SDL_BUILD
@@ -278,9 +344,17 @@ static void load(void)
 #else
         snprintf(dir, sizeof dir, "%s/challenges", Mods_Dir(m));   /* (the setup's binary) */
 #endif
+        s_loadingMod = m;
+        s_numNames = 0;
         ModApi_ListFiles(dir, each_file, dir);
+        qsort(s_names, (size_t)s_numNames, sizeof s_names[0], by_name);
+        for (int32_t k = 0; k < s_numNames; k++) {
+            char path[1500];
+            snprintf(path, sizeof path, "%s/%s", dir, s_names[k]);
+            read_file(path);
+        }
     }
-    qsort(s_ch, (size_t)s_count, sizeof s_ch[0], by_difficulty);
+    s_loadingMod = -1;
     {   /* the player's own, after the packs' (the editor writes them: custom.json) */
         uint32_t size = 0;
 #ifdef SWOS_SDL_BUILD
@@ -289,24 +363,89 @@ static void load(void)
             read_text(json, (int)size, "custom.json", 1);
 #else
         uint8_t *pack = (uint8_t *)ModApi_LoadFile("challenges", "CUSTOM.BIN", &size);
-        if (pack)
+        if (pack) {
             read_pack(pack, size, "CUSTOM.BIN", 1);
+            free(pack);     /* (ModApi_LoadFile's: malloc's) */
+        }
 #endif
     }
+    s_numCats = 0;
+    for (int32_t i = 0; i < s_count; i++) {
+        s_ch[i].seq = (int16_t)i;
+        s_ch[i].catIndex = (int16_t)category_of(s_ch[i].category);
+    }
+    qsort(s_ch, (size_t)s_count, sizeof s_ch[0], by_category_difficulty);
     read_progress();
+    free(s_defs);
+    s_defs = NULL;
     fprintf(stderr, "[challenges] %d challenges\n", (int)s_count);
 }
 
-/* locked while an easier one is not done (SWOS 2020's setScenariosLocked) */
+/* A category is out of reach while any of its challenges is "locked" (SWOS 2020's
+ * isCategoryLocked: its LOCKED scenarios close their category). */
+static int32_t category_unavailable(const char *category)
+{
+    for (int32_t k = 0; k < s_count; k++)
+        if (s_ch[k].unavailable && !strcmp(s_ch[k].category, category))
+            return 1;
+    return 0;
+}
+
+/* locked while an easier one of its category is not done (SWOS 2020's setScenariosLocked, over
+ * the category's scenarios), or its category is (category_unavailable) */
 static int32_t locked(int32_t i)
 {
     if (s_ch[i].custom)
         return 0;
+    if (category_unavailable(s_ch[i].category))
+        return 1;
     for (int32_t k = 0; k < s_count; k++)
-        if (!s_ch[k].custom && s_ch[k].difficulty < s_ch[i].difficulty && !s_ch[k].completed)
+        if (!s_ch[k].custom && !strcmp(s_ch[k].category, s_ch[i].category) &&
+            s_ch[k].difficulty < s_ch[i].difficulty && !s_ch[k].completed)
             return 1;
     return 0;
 }
+
+/* A team given in a .EDT of the challenge's mod (teams[t].file, SWOS 2020's teams): found there by
+ * its name, as SWOS 2020 found it. 1 when it was. */
+static int32_t file_team(const Challenge *c, int32_t t, TeamFileEx *out)
+{
+    char path[1300];
+    uint8_t *data = NULL;
+    uint32_t size = 0;
+    int32_t found = 0;
+    if (c->mod < 0 || !c->teamFile[t][0])
+        return 0;
+    snprintf(path, sizeof path, "%s/%s", Mods_Dir(c->mod), c->teamFile[t]);
+    if (swos_io_load_data_alloc(path, &data, &size) != 0 || !data || size < 2) {
+        swos_io_free(data);
+        fprintf(stderr, "[challenges] %s: no team file %s\n", c->id, path);
+        return 0;
+    }
+    const uint32_t count = ((uint32_t)data[0] << 8) | data[1];     /* (.EDT: big-endian) */
+    for (uint32_t k = 0; k < count && 2 + (k + 1) * sizeof(TeamFileEx) <= size && !found; k++) {
+        const uint8_t *rec = data + 2 + k * sizeof(TeamFileEx);
+        char name[18];
+        memcpy(name, ((const TeamFileEx *)(const void *)rec)->team.teamName, 17);
+        name[17] = 0;
+        for (char *e = name + strlen(name); e > name && e[-1] == ' ';)
+            *--e = 0;
+        if (!strcmp(name, c->teamName[t])) {
+            memcpy(out, rec, sizeof *out);
+            out->team.globalTeamNumber = (int16_t)BE16_TO_HOST((uint16_t)out->team.globalTeamNumber);
+            found = 1;
+        }
+    }
+    swos_io_free(data);
+    if (!found)
+        fprintf(stderr, "[challenges] %s: no %s in %s\n", c->id, c->teamName[t], path);
+    return found;
+}
+
+/* SWOS 2020's free-kick spots across the pitch (game.cpp setAutoFreeKickPos), 1..7 */
+static const int16_t kSpotX[8] = { 336, 148, 256, 304, 357, 405, 513, 548 };
+
+static int32_t draw2(void) { return (int32_t)(ModApi_Ticks() >> 3) & 1; }   /* (a coin: SWOS 2020's RANDOM) */
 
 /* ---- playing one ---- */
 
@@ -328,18 +467,29 @@ static int32_t won(const Challenge *c, const ModMatchResult *r)
 static void play(int32_t i)
 {
     Challenge *c = &s_ch[i];
+    static TeamFileEx given[2];             /* (teams from the mod's files: the match plays copies) */
+    int32_t fromFile[2];
     s_cur = i;
-    if (!ModApi_TeamByUuidNumber(c->teamUuid[0], c->teamNumber[0]) ||
-        !ModApi_TeamByUuidNumber(c->teamUuid[1], c->teamNumber[1])) {
-        fprintf(stderr, "[challenges] %s: a team is not in the database (or a pack that is on)\n", c->id);
-        return;
+    for (int32_t t = 0; t < 2; t++) {
+        fromFile[t] = c->teamFile[t][0] != 0;
+        if (fromFile[t] ? !file_team(c, t, &given[t]) : !ModApi_TeamByUuidNumber(c->teamUuid[t], c->teamNumber[t])) {
+            fprintf(stderr, "[challenges] %s: a team is not in the database (or a pack that is on)\n", c->id);
+            return;
+        }
     }
     for (;;) {
         ModMatchSetup setup;
         ModMatchResult r;
         ModApi_DefaultSetup(&setup);
         for (int32_t t = 0; t < 2; t++) {
-            setup.team[t] = ModApi_TeamByUuidNumber(c->teamUuid[t], c->teamNumber[t]);
+            if (fromFile[t])
+                setup.teamData[t] = &given[t];
+            else
+                setup.team[t] = ModApi_TeamByUuidNumber(c->teamUuid[t], c->teamNumber[t]);
+            for (int32_t k = 0; k < 8; k++) {
+                setup.injured[t][k].shirt = c->injured[t][k].shirt;
+                setup.injured[t][k].level = c->injured[t][k].level;
+            }
             setup.side[t] = (uint8_t)(t == c->yours && !s_test ? MODSIDE_PLAYER1 : MODSIDE_CPU);
             setup.score[t] = c->score[t];
             setup.sentOff[t] = c->sentOff[t];
@@ -354,11 +504,43 @@ static void play(int32_t i)
         setup.name = "challenge";
         setup.pitchType = c->pitchType;
         setup.pitchNumber = c->pitchNumber;
-        setup.restart.kind = c->restartKind;
-        setup.restart.team = c->restartTeam;
-        setup.restart.wing = c->restartWing;
-        setup.restart.x = c->restartX;
-        setup.restart.y = c->restartY;
+        setup.playingUp = c->playingUp;
+        setup.kickOff = c->kickOff;
+        if (c->subsSet) {
+            setup.subsMin = c->subsMin;
+            setup.subsMax = c->subsMax;
+        }
+        setup.extraTimeRule = c->extraTimeRule;
+        setup.shootoutOnly = c->shootoutOnly;
+        setup.secondLeg = c->secondLeg;
+        setup.firstLeg[0] = c->firstLeg[0];
+        setup.firstLeg[1] = c->firstLeg[1];
+        /* the start: what is drawn, drawn now (SWOS 2020's RANDOM), then where */
+        if (setup.playingUp < 0)
+            setup.playingUp = (int8_t)draw2();
+        {
+            const int32_t taker = c->restartTeam >= 0 ? c->restartTeam
+                                : c->kickOff >= 0 ? c->kickOff : draw2();
+            const int32_t wing = c->restartWing >= 0 ? c->restartWing : draw2();
+            const int32_t attacksTop = setup.playingUp == taker;
+            setup.restart.kind = c->restartKind;
+            setup.restart.team = (uint8_t)taker;
+            setup.restart.wing = (uint8_t)wing;
+            setup.restart.x = c->restartX;
+            setup.restart.y = c->restartY;
+            if (c->restartKind == CHALLENGE_RESTART_FREE_KICK && c->restartSpot) {
+                const int32_t spot = c->restartSpot > 0 ? c->restartSpot : 1 + (int32_t)(ModApi_Ticks() % 7);
+                setup.restart.x = kSpotX[spot];
+                setup.restart.y = (int16_t)(attacksTop ? (c->restartDeep ? 602 : 281) : (c->restartDeep ? 401 : 602));
+            } else if (c->restartKind == CHALLENGE_RESTART_THROW_IN) {
+                /* (SWOS 2020's: 160 short of the goal he attacks, wing as he attacks) */
+                const int32_t screenLeft = attacksTop ? !wing : wing;
+                setup.restart.x = (int16_t)(screenLeft ? 71 : 600);
+                setup.restart.y = (int16_t)(attacksTop ? 289 : 609);
+            }
+            if (c->restartKind != CHALLENGE_RESTART_KICK_OFF && setup.kickOff < 0)
+                setup.kickOff = (int8_t)taker;
+        }
         for (int32_t k = 0; k < 8; k++) {
             setup.scorers[k].team = c->scorers[k].team;
             setup.scorers[k].shirt = c->scorers[k].shirt;
@@ -445,7 +627,11 @@ static void online_args(const Challenge *c, char *out, uint32_t cap)
  * another machine (or before this one had them) marked done here too. */
 static void online_merge(void)
 {
+#ifdef SWOS_SDL_BUILD
     static char lines[16384];
+#else
+    static char lines[64];                  /* (the Amiga: no service, nothing to merge) */
+#endif
     if (s_onlineMerged)
         return;
     const int32_t r = ModApi_CallService("online-records", "challenges.completed", "{}", lines, sizeof lines);
@@ -476,40 +662,104 @@ static void online_merge(void)
     }
 }
 
-static int32_t s_page;
-static int32_t page_count(void) { return s_count ? (s_count + kPerPage - 1) / kPerPage : 1; }
+/* The list: with more than one category, the categories first (SWOS 2020's SELECT CATEGORY), a
+ * category's challenges on picking it; EXIT there goes back to them. */
+static int32_t s_page, s_cat = -1;
+
+static int32_t show_categories(void) { return s_numCats > 1 && s_cat < 0; }
+static int32_t cur_category(void) { return s_numCats > 1 ? s_cat : 0; }
+
+/* The items of the view: categories, or the challenges of one (their first index, their count:
+ * a category's are together, the list being sorted by it). */
+static int32_t item_count(int32_t *first)
+{
+    *first = 0;
+    if (show_categories())
+        return s_numCats;
+    if (s_numCats <= 1)
+        return s_count;
+    int32_t n = 0;
+    for (int32_t i = 0; i < s_count; i++)
+        if (s_ch[i].catIndex == cur_category()) {
+            if (!n)
+                *first = i;
+            n++;
+        }
+    return n;
+}
+
+static int32_t page_count(void)
+{
+    int32_t first;
+    const int32_t n = item_count(&first);
+    return n ? (n + kPerPage - 1) / kPerPage : 1;
+}
 static int32_t page_rows(void)
 {
-    const int32_t left = s_count - s_page * kPerPage;
+    int32_t first;
+    const int32_t left = item_count(&first) - s_page * kPerPage;
     return left < kPerPage ? (left < 0 ? 0 : left) : kPerPage;
+}
+
+static void category_counts(int32_t k, int32_t *done, int32_t *all)
+{
+    *done = *all = 0;
+    for (int32_t i = 0; i < s_count; i++)
+        if (s_ch[i].catIndex == k) {
+            (*all)++;
+            *done += s_ch[i].completed;
+        }
 }
 
 static void list_draw(void)
 {
     static const char *const kStars[6] = { "", "*", "**", "***", "****", "*****" };
-    static char more[24];
+    static char more[24], head[40];
+    int32_t first;
     load();
-    ModApi_MenuText(M_header, "CHALLENGES");
-    ModApi_MenuText(M_subTitle, "WIN FROM WHERE THE MATCH STANDS");
+    item_count(&first);
     const int32_t n = page_rows();
-    for (int32_t r = 0; r < n; r++) {
-        const int32_t i = s_page * kPerPage + r;
-        char label[40];
-        snprintf(label, sizeof label, "%s %s", s_ch[i].name,
-                 s_ch[i].custom ? "(YOURS)"
-                 : kStars[s_ch[i].difficulty < 0 ? 0 : s_ch[i].difficulty > 5 ? 5 : s_ch[i].difficulty]);
-        row(r, label, s_ch[i].completed ? "DONE" : locked(i) ? "LOCKED" : "OPEN", 1);
+    if (show_categories()) {
+        ModApi_MenuText(M_header, "CHALLENGES");
+        ModApi_MenuText(M_subTitle, "CHOOSE A CATEGORY");
+        for (int32_t r = 0; r < n; r++) {
+            const int32_t k = s_page * kPerPage + r;
+            int32_t done, all;
+            char value[16];
+            category_counts(k, &done, &all);
+            if (category_unavailable(s_cats[k]))
+                snprintf(value, sizeof value, "LOCKED");
+            else
+                snprintf(value, sizeof value, "%d/%d", (int)done, (int)all);
+            row(r, s_cats[k][0] ? s_cats[k] : "CHALLENGES", value, 1);
+        }
+    } else {
+        snprintf(head, sizeof head, "%s", s_numCats > 1 && s_cats[cur_category()][0] ? s_cats[cur_category()]
+                                                                                     : "CHALLENGES");
+        ModApi_MenuText(M_header, head);
+        ModApi_MenuText(M_subTitle, "WIN FROM WHERE THE MATCH STANDS");
+        for (int32_t r = 0; r < n; r++) {
+            const int32_t i = first + s_page * kPerPage + r;
+            char label[48];
+            snprintf(label, sizeof label, "%s %s", s_ch[i].title[0] ? s_ch[i].title : s_ch[i].name,
+                     s_ch[i].custom ? "(YOURS)"
+                     : kStars[s_ch[i].difficulty < 0 ? 0 : s_ch[i].difficulty > 5 ? 5 : s_ch[i].difficulty]);
+            row(r, label, s_ch[i].completed ? "DONE" : locked(i) ? "LOCKED" : "OPEN", 1);
+        }
     }
-    row(n, "", "NEW CHALLENGE", 0);
+    const int32_t withNew = show_categories() || s_numCats <= 1;
+    if (withNew)
+        row(n, "", "NEW CHALLENGE", 0);
     if (page_count() > 1) {
         snprintf(more, sizeof more, "MORE (%d/%d)", (int)s_page + 1, (int)page_count());
-        row(n + 1, "", more, 0);
-        hide_from(n + 2);
+        row(n + withNew, "", more, 0);
+        hide_from(n + withNew + 1);
     } else {
-        hide_from(n + 1);
+        hide_from(n + withNew);
     }
     online_merge();
-    ModApi_MenuText(M_note, s_count ? "THE EASIER ONES OPEN THE HARDER" : "NONE: A CHALLENGE PACK IS A MOD");
+    ModApi_MenuText(M_note, !s_count ? "NONE: A CHALLENGE PACK IS A MOD"
+                            : show_categories() ? "" : "THE EASIER ONES OPEN THE HARDER");
 }
 
 static void list_init(void)
@@ -517,7 +767,7 @@ static void list_init(void)
     load();
     if (s_page >= page_count())
         s_page = 0;
-    nav_rows(page_rows() + 1 + (page_count() > 1));
+    nav_rows(page_rows() + (show_categories() || s_numCats <= 1) + (page_count() > 1));
     list_draw();
 }
 
@@ -525,21 +775,50 @@ static void edit_new(void);
 
 static void pick(int32_t r)
 {
+    int32_t first;
+    item_count(&first);
     const int32_t n = page_rows();
-    if (r == n) {                           /* NEW CHALLENGE */
+    const int32_t withNew = show_categories() || s_numCats <= 1;
+    if (withNew && r == n) {                /* NEW CHALLENGE */
         edit_new();
         return;
     }
-    if (r == n + 1 && page_count() > 1) {   /* MORE */
+    if (r == n + withNew && page_count() > 1) {   /* MORE */
         s_page = (s_page + 1) % page_count();
         list_init();
+        ModApi_MenuSelect(M_label0 + 2 * r + 1);
         return;
     }
-    const int32_t i = s_page * kPerPage + r;
-    if (r > n || i >= s_count || locked(i))
+    if (r >= n)
+        return;
+    if (show_categories()) {
+        const int32_t k = s_page * kPerPage + r;
+        if (category_unavailable(s_cats[k])) {
+            ModApi_ShowError("NOT IN THIS VERSION YET");
+            return;
+        }
+        s_cat = k;
+        s_page = 0;
+        list_init();
+        ModApi_MenuSelect(M_label0 + 1);
+        return;
+    }
+    const int32_t i = first + s_page * kPerPage + r;
+    if (i >= s_count || locked(i))
         return;
     s_cur = i;
     ModApi_ShowMenu("challenges/challengeInfo");
+}
+
+static void list_exit(void)
+{
+    if (s_numCats > 1 && s_cat >= 0) {      /* (a category's list: back to the categories) */
+        s_page = s_cat / kPerPage;
+        s_cat = -1;
+        list_init();
+        return;
+    }
+    SetExitMenuFlag();
 }
 
 /* ---- the editor (SWOS 2020's custom challenge, map 3.2): two teams chosen on the friendly's
@@ -570,6 +849,7 @@ static void edit_new(void)
     s_edit.score[!s_edit.yours] = 1;        /* (a challenge: you start behind) */
     s_edit.minute = 70;
     s_edit.pitchType = -1;
+    s_edit.playingUp = s_edit.kickOff = -1;     /* (drawn, as a friendly's) */
     s_edit.win = W_WIN;
     s_edit.custom = 1;
     snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE");
@@ -603,9 +883,16 @@ static void edit_draw(void)
 #ifndef SWOS_SDL_BUILD
 static void save_custom(void)   /* (the Amiga: CUSTOM.BIN, a pack) */
 {
-    static ChallengeDef defs[kMax];
-    static uint8_t buf[CHALLENGE_PACK_HEADER + kMax * CHALLENGE_PACK_RECORD];
+    const uint32_t cap = CHALLENGE_PACK_HEADER + kMax * CHALLENGE_PACK_RECORD;
+    ChallengeDef *defs = (ChallengeDef *)malloc(sizeof(ChallengeDef) * kMax);
+    uint8_t *buf = (uint8_t *)malloc(cap);
     int32_t count = 0, number = 1;
+    if (!defs || !buf) {
+        free(defs);
+        free(buf);
+        ModApi_ShowError("NO MEMORY TO SAVE IT");
+        return;
+    }
     for (int32_t i = 0; i < s_count; i++)
         if (s_ch[i].custom)
             number++;
@@ -617,9 +904,11 @@ static void save_custom(void)   /* (the Amiga: CUSTOM.BIN, a pack) */
         if (c->custom)
             defs[count++] = c->def;
     }
-    const int32_t n = ChallengePack_Write(defs, count, buf, (uint32_t)sizeof buf);
+    const int32_t n = ChallengePack_Write(defs, count, buf, cap);
     if (n > 0)
         ModApi_SaveFile("challenges", "CUSTOM.BIN", buf, (uint32_t)n);
+    free(defs);
+    free(buf);
 }
 #else
 static void save_custom(void)
@@ -694,14 +983,27 @@ static void info_draw(void)
     }
     const Challenge *c = &s_ch[s_cur];
     static const char *const kWin[3] = { "WIN IT", "DON'T LOSE IT", "" };
-    char score[16], minute[16], win[24];
-    snprintf(s_head, sizeof s_head, "%s", c->name);
-    snprintf(s_sub, sizeof s_sub, "%s", c->about);
+    char score[24], minute[16], win[24];
+    snprintf(s_head, sizeof s_head, "%s", c->title[0] ? c->title : c->name);
+    snprintf(s_sub, sizeof s_sub, "%s", c->winMessage[0] ? c->winMessage : c->about);
     ModApi_MenuText(M_header, s_head);
     ModApi_MenuText(M_subTitle, s_sub);
-    snprintf(score, sizeof score, "%d-%d", (int)c->score[0], (int)c->score[1]);
-    snprintf(minute, sizeof minute, "%d", (int)c->minute);
-    if (c->win == W_EXACT)
+    if (c->secondLeg)       /* (the aggregate: this leg's start and the first's) */
+        snprintf(score, sizeof score, "%d-%d (%d-%d)", (int)c->score[0], (int)c->score[1],
+                 (int)(c->score[0] + c->firstLeg[0]), (int)(c->score[1] + c->firstLeg[1]));
+    else
+        snprintf(score, sizeof score, "%d-%d", (int)c->score[0], (int)c->score[1]);
+    if (c->shootoutOnly)
+        snprintf(minute, sizeof minute, "PENALTIES");
+    else if (c->minute >= 90)
+        snprintf(minute, sizeof minute, "%d (E.T.)", (int)c->minute);
+    else
+        snprintf(minute, sizeof minute, "%d", (int)c->minute);
+    if (c->extraTimeRule == CHALLENGE_ET_GOLDEN_GOAL)
+        snprintf(win, sizeof win, "GOLDEN GOAL");
+    else if (c->extraTimeRule == CHALLENGE_ET_SILVER_GOAL)
+        snprintf(win, sizeof win, "SILVER GOAL");
+    else if (c->win == W_EXACT)
         snprintf(win, sizeof win, "END IT %d-%d", (int)c->winScore[c->yours == 0 ? 0 : 1],
                  (int)c->winScore[c->yours == 0 ? 1 : 0]);
     else
@@ -760,7 +1062,7 @@ static void info_play(void)
 static void result_draw(void)
 {
     const Challenge *c = &s_ch[s_cur];
-    snprintf(s_head, sizeof s_head, "%s", c->name);
+    snprintf(s_head, sizeof s_head, "%s", c->title[0] ? c->title : c->name);
     ModApi_MenuText(M_header, s_head);
     ModApi_MenuText(M_subTitle, s_won ? "YOU BEAT THE CHALLENGE!" : "NOT THIS TIME");
     char tries[12];
@@ -788,7 +1090,12 @@ static void result_retry(void)
 
 static void none(void) {}
 static void ch_exit(void) { SetExitMenuFlag(); }
-static void ch_open(void) { ModApi_ShowMenu("challenges/challengesMenu"); }
+static void ch_open(void)
+{
+    s_cat = -1;
+    s_page = 0;
+    ModApi_ShowMenu("challenges/challengesMenu");
+}
 
 static void pick0(void) { pick(0); }
 static void pick1(void) { pick(1); }
@@ -827,7 +1134,7 @@ static void ch_init(void)
         { "resultInit", result_init }, { "resultDraw", result_draw },
         { "result0", none }, { "result1", result_retry }, { "result2", none }, { "result3", none },
         { "result4", none }, { "result5", none }, { "result6", none }, { "result7", none },
-        { "exit", ch_exit },
+        { "exit", ch_exit }, { "listExit", list_exit },
     };
     ModApi_RegisterHandlers("challenges", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     ModApi_AddEntry(MODPOINT_MODES, "challenges", "challenges", ch_open);

@@ -515,7 +515,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "challenges.exit"
+     "func": "challenges.listExit"
     }
    ]
   }

@@ -654,8 +654,26 @@ New in the engine for it: a start in the SECOND half (the map's G2: minute 46-89
 (`ModMatchSetup.sentOff`, G3: by shirt number, gone as a sent-off man), `ModApi_TeamByUuid`,
 `ModApi_MenuSelect`. Checked: `SWOS_MOD_MATCH_TEST=challenge:<id>` (CPU v CPU) -- THE COMEBACK from
 3-0 at 46 to the whistle without a half time (5-0), TEN MEN from 1-1 at 60, progress written; the
-list (its locks) and a challenge's screen drawn; check_netplay_compat.sh unchanged. Not yet: golden
-and silver goal, a starting event (G6), extra-time minutes, SWOS 2020's own challenges as a DLC pack.
+list (its locks) and a challenge's screen drawn; check_netplay_compat.sh unchanged.
+
+**Format version 2 (2026-11-07): SWOS 2020's scenarios.** Every field its `challenges.ini` has
+(the file's header comment lists them): a title, five description lines and a win message; teams
+from a `.EDT` in the challenge's own mod (`"teams": [{"file": "teams/X.EDT", "name": ...}]`,
+found by name as SWOS 2020 found them: `.DIY` teams are converted into one); who plays up and
+kicks off; the subs; a golden or silver goal; a shoot-out alone; the second leg of a tie
+(`first_leg`: UpdateTime's aggregate and away goals); players starting injured; `locked` (its
+whole category closed, as SWOS 2020's `isCategoryLocked`); and the start as a restart -- a corner,
+a free kick at one of SWOS 2020's seven spots (or `x`/`y`; `deep`: its "HOME" ones), a penalty, a
+throw-in or a GOAL KICK (new, `MODRESTART_GOAL_KICK`), its team and wing drawn at PLAY when -1
+(SWOS 2020's RANDOM). A minute from 90 starts IN extra time (its half by the minute, as
+StartFirstExtraTime leaves it); 120 with `shootout` shows 120. Locking is now per category, and
+with more than one category the list opens on the categories (`listExit` goes back to them).
+The binary is version 2 (version 1 still read); the Amiga keeps the list on the heap only while
+the challenges are open. `scripts/convert_swos2020_challenges.py <dir> <out>` writes SWOS 2020's
+92 as a pack mod (8 categories, one file each) -- never part of OpenSWOS (its teams are others';
+SWOS United ships it). Checked: each restart kind and the extra-time, shoot-out, silver-goal and
+second-leg starts CPU v CPU (`SWOS_MOD_EVENT_LOG` logs where a restart put the ball), the 8 packs
+read back from the setup's binary field for field, the categories screen drawn, compat unchanged.
 
 ## 19. Team packs (2026-11-04)
 

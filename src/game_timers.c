@@ -599,6 +599,26 @@ void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16
         return;
     }
 
+    if (kind == 5) {                                    /* MODRESTART_GOAL_KICK */
+        /* As CheckIfBallOutOfPlay gives one: from the taker's own six-yard box, wing as he
+         * attacks (attacking down the screen, his left is the screen's right). */
+        if (up) {   /* (his own goal the bottom one) */
+            if (!wing) { d1 = 276; _gameState = ST_GOAL_OUT_LEFT; }
+            else       { d1 = 396; _gameState = ST_GOAL_OUT_RIGHT; }
+            d2 = 744; d3 = 0; d4 = 0xC7;
+        } else {
+            if (!wing) { d1 = 396; _gameState = ST_GOAL_OUT_LEFT; }
+            else       { d1 = 276; _gameState = ST_GOAL_OUT_RIGHT; }
+            d2 = 154; d3 = 4; d4 = 0x7C;
+        }
+        _breakCameraMode = 0xFFFF;
+        if (taker->playerNumber == 0)
+            d4 &= 0xBB;
+        _goalOut = 1;
+        writeRestartGlobalsAndStopPlayers(taker, d1, d2, d3, d4);
+        return;
+    }
+
     /* A free kick or a penalty: as a foul by the other team (tackle_foul.c's bands and
      * quadrants, from the fouling team's side). */
     {

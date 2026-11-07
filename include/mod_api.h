@@ -403,8 +403,10 @@ typedef struct {
     uint8_t  stadium;       /* show the stadium screen before (0: straight to the pitch) */
     uint8_t  replayMenu;    /* show REPLAY / EXIT after (0: straight back to the mod) */
     int8_t   score[2];      /* the score at kick-off */
-    int16_t  minute;        /* the clock at kick-off, 0..89 (45 plays as 46: half time is its own
-                             * flow); from 46 the second half, playingUp then as it is played */
+    int16_t  minute;        /* the clock at kick-off, 0..119 (45 and 105 play as 46 and 106: half
+                             * time is its own flow); from 46 the second half, playingUp then as it
+                             * is played; from 90 extra time (extraTime on), from 106 its second
+                             * half; 120 only with shootoutOnly (the clock it shows) */
     const char *name;       /* the match's name on the screens ("PRACTICE"), NULL the friendly's */
     uint8_t  chosen;        /* the teams ModApi_ChooseTeams chose (team[] unused): the sides as
                              * the player set them there (a CPU team the CPU, the rest players) */
@@ -456,11 +458,18 @@ typedef struct {
                              * the database: played in place of team[t] (its id then unused). NULL:
                              * team[t]'s. The match plays a copy; the mod's stays as it is. */
     uint8_t  extraTimeRule; /* MODET_*: how extra time ends */
+    struct { uint8_t shirt, level; } injured[2][8];   /* per team, players who start injured: by
+                             * shirt number, level 1..7 (the player record's injury, bits 5-7, as
+                             * SWOS 2020's scenarios set it); shirt 0 an unused row */
+    uint8_t  secondLeg;     /* the second leg of a tie: firstLeg[] the first's (team[t]'s goals in
+                             * it), so the aggregate and away goals decide at 90 and 120 */
+    int8_t   firstLeg[2];
 } ModMatchSetup;
 enum { MODET_NORMAL, MODET_GOLDEN_GOAL,   /* the first goal of extra time ends the match */
        MODET_SILVER_GOAL };               /* extra time ends at its half when the score is not level */
 enum { MODRESTART_KICK_OFF, MODRESTART_CORNER, MODRESTART_FREE_KICK, MODRESTART_PENALTY,
-       MODRESTART_THROW_IN };   /* (a throw-in: x the touchline -- < 336 the left -- y where) */
+       MODRESTART_THROW_IN,     /* (a throw-in: x the touchline -- < 336 the left -- y where) */
+       MODRESTART_GOAL_KICK };  /* (wing as for a corner: 0 his left as he attacks) */
 enum { MODHUD_RESULT = 1,       /* the score / result banner (a goal's, half and full time) */
        MODHUD_PLAYER_NAME = 2   /* the name of the player on the ball */ };
 

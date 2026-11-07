@@ -161,6 +161,16 @@ int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchR
             }
         }
         _numSelectedTeams = 2;
+        for (int32_t t = 0; t < 2; t++)     /* (the injured, on the match's copies: SWOS 2020's
+                                             *  scenarios, cardsInjuries = level << 5) */
+            for (int32_t k = 0; k < 8; k++) {
+                const uint8_t shirt = setup->injured[t][k].shirt, level = setup->injured[t][k].level;
+                if (!shirt || !level)
+                    continue;
+                for (int32_t p = 0; p < 16; p++)
+                    if (_selectedTeams[t].players[p].shirtNumber == shirt)
+                        _selectedTeams[t].players[p].cardsInjuries = (uint8_t)((level > 7 ? 7 : level) << 5);
+            }
 #ifdef SWOS_SDL_BUILD
         if (getenv("SWOS_MOD_MATCH_TEAMS")) {   /* (the test: would the online rule take them?) */
             extern int32_t CustomTeam_Allowed(const TeamFileEx *team);
@@ -510,6 +520,13 @@ void ModMatch_TieRules(void)
         return;
     _extraTimeState = s_mm.setup.extraTime ? 1 : 0;
     _penaltiesState = (s_mm.setup.penalties || s_mm.setup.shootoutOnly) ? 1 : 0;
+    if (s_mm.setup.secondLeg) {             /* (UpdateTime's aggregate and away goals) */
+        extern uint16_t _secondLeg, _playing2ndGame, _team1GoalsFirstLeg, _team2GoalsFirstLeg;
+        _secondLeg = 1;
+        _playing2ndGame = 1;
+        _team1GoalsFirstLeg = (uint16_t)(s_mm.setup.firstLeg[0] > 0 ? s_mm.setup.firstLeg[0] : 0);
+        _team2GoalsFirstLeg = (uint16_t)(s_mm.setup.firstLeg[1] > 0 ? s_mm.setup.firstLeg[1] : 0);
+    }
 }
 
 int32_t ModMatch_SkipStadium(void) { return s_mm.active && !s_mm.setup.stadium; }
@@ -537,11 +554,19 @@ void ModMatch_KickOff(void)
         _team2GoalsDigit1 = (uint16_t)(g2 / 10);
         _team2GoalsDigit2 = (uint16_t)(g2 % 10);
         int16_t m = s_mm.setup.minute;
+        extern uint16_t _halfNumber;
         if (m < 0) m = 0;
-        if (m > 89) m = 89;                     /* (extra time is its own flow) */
-        if (m == 45) m = 46;                    /* (45 is half time's minute: UpdateTime tests it) */
-        if (m > 45) {                           /* the second half (G2): its minutes, its half */
-            extern uint16_t _halfNumber;
+        if (m > 120 || (m == 120 && !s_mm.setup.shootoutOnly)) m = 119;
+        if (m >= 90 && !s_mm.setup.extraTime && !s_mm.setup.shootoutOnly)
+            m = 89;                             /* (no extra time to play: the last minute) */
+        if (m == 45) m = 46;                    /* (45 and 105 are half time's minutes: UpdateTime */
+        if (m == 105) m = 106;                  /*  tests them) */
+        if (m >= 90) {                          /* extra time (SWOS 2020's minute-90 scenarios), as
+                                                 * StartFirstExtraTime left it: its halves */
+            _extraTimeState = (int16_t)0xFFFF;
+            _halfNumber = m > 105 ? 2 : 1;
+            s_mm.extraTime = 1;
+        } else if (m > 45) {                    /* the second half (G2): its minutes, its half */
             _halfNumber = 2;
         }
         uint8_t *t = (uint8_t *)&_gameTime;
@@ -671,7 +696,7 @@ int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int1
 {
     extern void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16_t x, int16_t y);
     if (!s_mm.active || _gameStatePl != ST_GAME_IN_PROGRESS || (team != 0 && team != 1) ||
-        kind < MODRESTART_CORNER || kind > MODRESTART_THROW_IN)
+        kind < MODRESTART_CORNER || kind > MODRESTART_GOAL_KICK)
         return -1;
     GameTimers_ModRestart(kind, team + 1, wing, x, y);
     return 0;
@@ -687,6 +712,15 @@ void ModMatch_InitialKick(void)
     s_restartDone = 1;
     GameTimers_ModRestart(s_mm.setup.restart.kind, s_mm.setup.restart.team + 1, s_mm.setup.restart.wing,
                           s_mm.setup.restart.x, s_mm.setup.restart.y);
+#ifdef SWOS_SDL_BUILD
+    if (getenv("SWOS_MOD_EVENT_LOG") || getenv("SWOS_MOD_MATCH_TEST")) {
+        extern uint16_t _foulXCoordinate, _foulYCoordinate, _gameState;
+        fprintf(stderr, "[mods] restart kind %d team %d wing %d at %d,%d: state %d, ball %d,%d\n",
+                (int)s_mm.setup.restart.kind, (int)s_mm.setup.restart.team, (int)s_mm.setup.restart.wing,
+                (int)s_mm.setup.restart.x, (int)s_mm.setup.restart.y, (int)_gameState,
+                (int)_foulXCoordinate, (int)_foulYCoordinate);
+    }
+#endif
 }
 
 /* scorers (H7): written into the scorer lists as GoalScored writes a goal, at the minute given,

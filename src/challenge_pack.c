@@ -63,6 +63,13 @@ static void get_str(Get *r, char *s, uint32_t field)
     U32(sentOff[0]) U32(sentOff[1])                                                \
     U8(pitchType) U8(pitchNumber) U8(restartKind) U8(restartTeam) U8(restartWing)  \
     U16(restartX) U16(restartY)
+#define FIELDS2(STR, U8)                                                           \
+    STR(category, 32) STR(title, 32) STR(lines[0], 64) STR(lines[1], 64) STR(lines[2], 64)           \
+    STR(lines[3], 64) STR(lines[4], 64) STR(winMessage, 40)                        \
+    STR(teamFile[0], 32) STR(teamFile[1], 32)                                      \
+    U8(playingUp) U8(kickOff) U8(subsSet) U8(subsMin) U8(subsMax)                  \
+    U8(extraTimeRule) U8(shootoutOnly) U8(unavailable) U8(secondLeg)               \
+    U8(firstLeg[0]) U8(firstLeg[1]) U8(restartSpot) U8(restartDeep)
 
 int32_t ChallengePack_Write(const ChallengeDef *defs, int32_t count, uint8_t *out, uint32_t cap)
 {
@@ -84,6 +91,12 @@ int32_t ChallengePack_Write(const ChallengeDef *defs, int32_t count, uint8_t *ou
             put8(&w, d->scorers[k].minute);
             put8(&w, d->scorers[k].penalty);
         }
+        FIELDS2(W_STR, W_U8)
+        for (int32_t t = 0; t < 2; t++)
+            for (int32_t k = 0; k < 8; k++) {
+                put8(&w, d->injured[t][k].shirt);
+                put8(&w, d->injured[t][k].level);
+            }
         if (!w.bad && w.p - start != CHALLENGE_PACK_RECORD)
             return -1;      /* (the record size in the header is wrong) */
     }
@@ -95,10 +108,12 @@ int32_t ChallengePack_Read(const uint8_t *data, uint32_t size, ChallengeDef *def
     Get r = { data, data + size, 0 };
     char magic[7];
     get_bytes(&r, magic, 7);
-    if (r.bad || memcmp(magic, CHALLENGE_PACK_MAGIC, 7) != 0 || get8(&r) != CHALLENGE_PACK_VERSION)
+    const uint32_t version = get8(&r);
+    if (r.bad || memcmp(magic, CHALLENGE_PACK_MAGIC, 7) != 0 || version < 1 || version > CHALLENGE_PACK_VERSION)
         return -1;
     const int32_t count = (int32_t)get16(&r);
-    if (r.bad || size < CHALLENGE_PACK_HEADER + (uint32_t)count * CHALLENGE_PACK_RECORD)
+    const uint32_t record = version == 1 ? CHALLENGE_PACK_RECORD_V1 : CHALLENGE_PACK_RECORD;
+    if (r.bad || size < CHALLENGE_PACK_HEADER + (uint32_t)count * record)
         return -1;
     int32_t n = 0;
     for (int32_t i = 0; i < count && n < max; i++, n++) {
@@ -114,6 +129,16 @@ int32_t ChallengePack_Read(const uint8_t *data, uint32_t size, ChallengeDef *def
             d->scorers[k].shirt = (uint8_t)get8(&r);
             d->scorers[k].minute = (uint8_t)get8(&r);
             d->scorers[k].penalty = (uint8_t)get8(&r);
+        }
+        if (version >= 2) {
+            FIELDS2(R_STR, R_U8)
+            for (int32_t t = 0; t < 2; t++)
+                for (int32_t k = 0; k < 8; k++) {
+                    d->injured[t][k].shirt = (uint8_t)get8(&r);
+                    d->injured[t][k].level = (uint8_t)get8(&r);
+                }
+        } else {                    /* (what version 1 meant by the fields it has not) */
+            d->playingUp = d->kickOff = -1;
         }
     }
     return r.bad ? -1 : n;
@@ -205,11 +230,80 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
             mjson_get_string(json, len, q, kind, (int)sizeof kind);
             c->restartKind = !strcmp(kind, "corner") ? CHALLENGE_RESTART_CORNER
                            : !strcmp(kind, "free_kick") ? CHALLENGE_RESTART_FREE_KICK
-                           : !strcmp(kind, "penalty") ? CHALLENGE_RESTART_PENALTY : CHALLENGE_RESTART_KICK_OFF;
-            c->restartTeam = (uint8_t)(NUM("restart.team", 0) ? 1 : 0);
-            c->restartWing = (uint8_t)(NUM("restart.wing", 0) ? 1 : 0);
+                           : !strcmp(kind, "penalty") ? CHALLENGE_RESTART_PENALTY
+                           : !strcmp(kind, "throw_in") ? CHALLENGE_RESTART_THROW_IN
+                           : !strcmp(kind, "goal_kick") ? CHALLENGE_RESTART_GOAL_KICK : CHALLENGE_RESTART_KICK_OFF;
+            const int32_t team = NUM("restart.team", 0), wing = NUM("restart.wing", 0);
+            c->restartTeam = (int8_t)(team < 0 ? -1 : team ? 1 : 0);
+            c->restartWing = (int8_t)(wing < 0 ? -1 : wing ? 1 : 0);
             c->restartX = (int16_t)NUM("restart.x", 336);
             c->restartY = (int16_t)NUM("restart.y", 449);
+            const int32_t spot = NUM("restart.spot", 0);
+            c->restartSpot = (int8_t)(spot < 0 ? -1 : spot > 7 ? 0 : spot);
+            b = 0;
+            snprintf(q, sizeof q, "$.challenges[%d].restart.deep", (int)i);
+            c->restartDeep = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        }
+        /* version 2: SWOS 2020's scenarios */
+        if (STR(category, "category") <= 0)
+            mjson_get_string(json, len, "$.category", c->category, (int)sizeof c->category);
+        upper(c->category);
+        STR(title, "title");
+        STR(winMessage, "win_message");
+        upper(c->title);
+        upper(c->winMessage);
+        for (int32_t k = 0; k < 5; k++) {
+            snprintf(q, sizeof q, "$.challenges[%d].description[%d]", (int)i, (int)k);
+            mjson_get_string(json, len, q, c->lines[k], (int)sizeof c->lines[k]);
+            upper(c->lines[k]);
+        }
+        {
+            const int32_t up = NUM("playing_up", -1), ko = NUM("kick_off", -1);
+            c->playingUp = (int8_t)(up == 0 || up == 1 ? up : -1);
+            c->kickOff = (int8_t)(ko == 0 || ko == 1 ? ko : -1);
+        }
+        {
+            const int32_t lo = NUM("subs[0]", -1), hi = NUM("subs[1]", -1);
+            if (lo >= 0 && hi >= lo && hi <= 5) {
+                c->subsSet = 1;
+                c->subsMin = (uint8_t)lo;
+                c->subsMax = (uint8_t)hi;
+            }
+        }
+        {
+            char et[16] = "";
+            snprintf(q, sizeof q, "$.challenges[%d].extra_time_rule", (int)i);
+            mjson_get_string(json, len, q, et, (int)sizeof et);
+            c->extraTimeRule = !strcmp(et, "golden_goal") ? CHALLENGE_ET_GOLDEN_GOAL
+                             : !strcmp(et, "silver_goal") ? CHALLENGE_ET_SILVER_GOAL : CHALLENGE_ET_NORMAL;
+        }
+        b = 0;
+        snprintf(q, sizeof q, "$.challenges[%d].shootout", (int)i);
+        c->shootoutOnly = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        b = 0;
+        snprintf(q, sizeof q, "$.challenges[%d].locked", (int)i);
+        c->unavailable = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        {
+            const int32_t a = NUM("first_leg[0]", -1), z = NUM("first_leg[1]", -1);
+            if (a >= 0 && z >= 0) {
+                c->secondLeg = 1;
+                c->firstLeg[0] = (int8_t)a;
+                c->firstLeg[1] = (int8_t)z;
+            }
+        }
+        for (int32_t t = 0; t < 2; t++) {
+            snprintf(q, sizeof q, "$.challenges[%d].teams[%d].file", (int)i, (int)t);
+            mjson_get_string(json, len, q, c->teamFile[t], (int)sizeof c->teamFile[t]);
+            for (int32_t k = 0; k < 8; k++) {
+                snprintf(q, sizeof q, "$.challenges[%d].injured[%d][%d][0]", (int)i, (int)t, (int)k);
+                const int32_t shirt = number(json, len, q, 0);
+                if (shirt <= 0)
+                    break;
+                snprintf(q, sizeof q, "$.challenges[%d].injured[%d][%d][1]", (int)i, (int)t, (int)k);
+                const int32_t level = number(json, len, q, 1);
+                c->injured[t][k].shirt = (uint8_t)shirt;
+                c->injured[t][k].level = (uint8_t)(level < 1 ? 1 : level > 7 ? 7 : level);
+            }
         }
         for (int32_t k = 0; k < 8; k++) {
             snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].team", (int)i, (int)k);
