@@ -1405,6 +1405,9 @@ static int32_t service(const char *method, const char *args, char *out, uint32_t
             (int)c->winScore[0], (int)c->winScore[1], c->winMessage);
         for (int32_t k = 0; k < 5; k++)
             put(&o, "description%d\t%s\n", (int)k + 1, c->lines[k]);
+        put(&o, "uuid0\t%s\nuuid1\t%s\nnumber0\t%u\nnumber1\t%u\npitch_type\t%d\nrestart_wing\t%d\nrestart_spot\t%d\n"
+                "restart_deep\t%d\n", c->teamUuid[0], c->teamUuid[1], (unsigned)c->teamNumber[0],
+            (unsigned)c->teamNumber[1], (int)c->pitchType, (int)c->restartWing, (int)c->restartSpot, (int)c->restartDeep);
         put(&o, "sent_off0\t%d\nsent_off1\t%d\ninjured0\t%d\ninjured1\t%d\n", (int)count_bits(c->sentOff[0]),
             (int)count_bits(c->sentOff[1]), (int)injured[0], (int)injured[1]);
         return 0;
