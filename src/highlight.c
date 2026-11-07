@@ -1016,6 +1016,11 @@ after_decode:
         uint8_t *hudLayer = Platform_HudLayerBuffer();
         const uintptr_t savedFbBase = _frontbufferBasePtr;
         if (hudLayer) {
+            /* Cleared first: the layer is reset by DrawSprites (sprites.c), which a replay
+             * never runs, so each frame's score was drawn over every one before it -- a whole
+             * match's 2-0 on top of its 1-0 and 0-0 (the recordings player, 2026-11-07). */
+            extern void Platform_HudLayerReset(void);
+            Platform_HudLayerReset();
             _frontbufferBasePtr = (uintptr_t)hudLayer;
             extern int _menu_draw_x_offset;
             Platform_HudLayerMark((int)bx + _menu_draw_x_offset, (int)by, 64, 32);
