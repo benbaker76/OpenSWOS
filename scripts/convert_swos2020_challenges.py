@@ -267,7 +267,7 @@ def convert(src, out, check):
         'id': 'swos2020-challenges',
         'name': 'SWOS 2020 Challenges',
         'version': '1.0',
-        'author': 'the SWOS 2020 team',
+        'author': 'SWOS 2020 (its challenge mode: github.com/starwindz/swos-2020)',
         'about': f'SWOS 2020\'s challenge mode: {len(sections)} scenarios in {len(categories)} categories, '
                  'from the 1966 World Cup final on. Converted from its challenges.ini.',
         'targets': ['sdl', 'amiga'],
