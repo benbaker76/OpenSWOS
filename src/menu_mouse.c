@@ -127,10 +127,15 @@ static void select_entry(int32_t i)
     if (old == e)
         return;
     SetCurrentEntry((uint16_t)i);
-    /* As the arrow keys move it (menu_system.c): an entry with no background drew its cursor
-     * as a frame around it, which only a whole redraw takes away. */
-    if (old && old->background == NO_BACKGROUND)
-        DrawMenu();
+    /* As the arrow keys move it (menu_system.c): the entry left is drawn again, which takes its
+     * highlight away -- the whole menu for one with no background (its cursor a frame around
+     * it), else the entry itself. */
+    if (old) {
+        if (old->background == NO_BACKGROUND)
+            DrawMenu();
+        else
+            CallDrawMenuItem(old);
+    }
 }
 
 /* SWOS_MOUSE_TEST=1 (with SWOS_SKIP_INTRO, SWOS_HARNESS_TURBO): at the main menu, the mouse is
@@ -184,6 +189,24 @@ static void test_step(void)
                 menu->selectedEntry == CalcMenuEntryAddress((uint16_t)i) ? "selected" : "NOT selected");
         if (menu->selectedEntry != CalcMenuEntryAddress((uint16_t)i))
             exit(1);
+        {   /* on to another: it is selected (and OPTIONS drawn again, its highlight gone) */
+            extern void EditTacticsMenu(void);
+            if (entry_with(EditTacticsMenu, &cx, &cy) >= 0) {
+                s_testX = cx; s_testY = cy;
+                s_testStep = 10; s_testWait = 3;
+                return;
+            }
+        }
+        /* fall through */
+    case 10:
+        if (s_testStep == 10) {
+            extern void EditTacticsMenu(void);
+            i = entry_with(EditTacticsMenu, &cx, &cy);
+            fprintf(stdout, "MOUSE TEST: then over EDIT TACTICS: %s\n",
+                    menu->selectedEntry == CalcMenuEntryAddress((uint16_t)i) ? "selected" : "NOT selected");
+            if (menu->selectedEntry != CalcMenuEntryAddress((uint16_t)i))
+                exit(1);
+        }
         if ((i = entry_with(PresetCompetitionMenu, &cx, &cy)) < 0) {
             fprintf(stdout, "MOUSE TEST FAIL: no PRESET COMPETITION entry\n");
             exit(1);
