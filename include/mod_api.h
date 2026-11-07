@@ -37,6 +37,7 @@ struct SpriteGraphics;
  * handshake, §8.6); "cosmetic", "modes" and "career" mods never matter there.
  * ====================================================================================== */
 typedef struct ModMatchEvent ModMatchEvent;
+struct TeamFileEx;                              /* (include/game_types.h: a team as its file has it) */
 typedef struct ModMatchResult ModMatchResult;
 typedef struct ModCompetitionResult ModCompetitionResult;
 typedef struct ModPlayerMove ModPlayerMove;
@@ -450,8 +451,16 @@ typedef struct {
     /* what is not drawn (G13, G5): only the picture, the match plays as ever */
     uint8_t  hideHud;       /* MODHUD_* bits */
     uint16_t ghosts[2];     /* per team, bit n: line-up slot n plays but is never drawn (training) */
+    /* a scenario's (SWOS 2020's challenges, docs/MODS.md §34) */
+    const struct TeamFileEx *teamData[2];   /* a team given whole -- one from an .EDT or a .DIY, not
+                             * the database: played in place of team[t] (its id then unused). NULL:
+                             * team[t]'s. The match plays a copy; the mod's stays as it is. */
+    uint8_t  extraTimeRule; /* MODET_*: how extra time ends */
 } ModMatchSetup;
-enum { MODRESTART_KICK_OFF, MODRESTART_CORNER, MODRESTART_FREE_KICK, MODRESTART_PENALTY };
+enum { MODET_NORMAL, MODET_GOLDEN_GOAL,   /* the first goal of extra time ends the match */
+       MODET_SILVER_GOAL };               /* extra time ends at its half when the score is not level */
+enum { MODRESTART_KICK_OFF, MODRESTART_CORNER, MODRESTART_FREE_KICK, MODRESTART_PENALTY,
+       MODRESTART_THROW_IN };   /* (a throw-in: x the touchline -- < 336 the left -- y where) */
 enum { MODHUD_RESULT = 1,       /* the score / result banner (a goal's, half and full time) */
        MODHUD_PLAYER_NAME = 2   /* the name of the player on the ball */ };
 
@@ -554,6 +563,7 @@ typedef enum {
     MODEVENT_SHOOTOUT,          /* the shoot-out starts */
     MODEVENT_FINAL_WHISTLE,     /* the match is over */
     MODEVENT_TACKLE,            /* team's player won the ball with a good tackle */
+    MODEVENT_EXTRA_TIME_HALF,   /* extra time's first half over */
 } ModEventKind;
 /* A goal's arg (MODEVENT_GOAL / OWN_GOAL / PENALTY_GOAL): MODGOAL_HEADER when its scorer headed
  * it in (he headed the ball within the last 75 frames). */

@@ -580,6 +580,25 @@ void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16
         return;
     }
 
+    if (kind == 4) {                                    /* MODRESTART_THROW_IN */
+        /* As CheckIfBallOutOfPlay gives one (the throw-in band, above): the touchline by x --
+         * the left under 336 -- at y, the zone by y as seen from the team taking it. */
+        const int16_t ty = y < 129 ? 129 : y > 769 ? 769 : y;
+        const int32_t takerIsTop = taker == &_topTeamData;
+        if (x >= 336) {
+            d1 = 590; d3 = 6; d4 = 0xF1;
+            if (!takerIsTop) _gameState = ty < 342 ? ST_THROW_IN_BACK_LEFT : ty < 556 ? ST_THROW_IN_CENTER_LEFT : ST_THROW_IN_FORWARD_LEFT;
+            else             _gameState = ty < 342 ? ST_THROW_IN_FORWARD_RIGHT : ty < 556 ? ST_THROW_IN_CENTER_RIGHT : ST_THROW_IN_BACK_RIGHT;
+        } else {
+            d1 = 81; d3 = 2; d4 = 0x1F;
+            if (!takerIsTop) _gameState = ty < 342 ? ST_THROW_IN_BACK_RIGHT : ty < 556 ? ST_THROW_IN_CENTER_RIGHT : ST_THROW_IN_FORWARD_RIGHT;
+            else             _gameState = ty < 342 ? ST_THROW_IN_FORWARD_LEFT : ty < 556 ? ST_THROW_IN_CENTER_LEFT : ST_THROW_IN_BACK_LEFT;
+        }
+        _breakCameraMode = 0xFFFF;
+        writeRestartGlobalsAndStopPlayers(taker, d1, ty, d3, d4);
+        return;
+    }
+
     /* A free kick or a penalty: as a foul by the other team (tackle_foul.c's bands and
      * quadrants, from the fouling team's side). */
     {

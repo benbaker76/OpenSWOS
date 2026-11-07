@@ -695,6 +695,8 @@ void StartFirstExtraTime(void)
 __attribute__((used, externally_visible))
 void EndFirstExtraTime(void)
 {
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(16 /* MODEVENT_EXTRA_TIME_HALF */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
     _halfNumber = 2;
     _teamPlayingUp = (uint16_t)(3 - _teamPlayingUp);
     _teamStarting = (uint16_t)(3 - _teamStarting);
