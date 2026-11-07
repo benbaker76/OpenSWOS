@@ -643,7 +643,8 @@ TEAM.072 clubs, not in this database; these are 96/97's, each pair's skill point
 band for it -- Brazil v San Marino, Italy v Wales, England v Germany, Scotland v Italy, Luxembourg
 v Germany), and the difficulty goes with the run online. `targets` and `style` give the screens
 the records and the rate; MODES -> SPEEDRUN opens `speedrun-screens` (`open`) when a mod offers it
-(SWOS United: SWOS 2020's menus).
+(SWOS United: SWOS 2020's menus). Checked: `SWOS_SPEEDRUN_TEST_DIFFICULTY=0..4` with
+`SWOS_MOD_MATCH_TEST=speedrun:<n>` plays a pair CPU v CPU (BEGINNER 1 GOAL in 2739 frames, MASTER 9458).
 Checked: `SWOS_MOD_MATCH_TEST=speedrun:<n>` (fixed teams, team 0 counted as yours) -- TACKLE in 1236
 frames and 1 GOAL in 1219, PASS, records.json written; header goals found across the replay corpus
 (15 of 178 goals, in the matches with headed goals); check_netplay_compat.sh unchanged.

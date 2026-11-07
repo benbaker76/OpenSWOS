@@ -335,17 +335,17 @@ static void run_at(int32_t target, int32_t again, int32_t difficulty)
         ModMatchResult r;
         ModApi_DefaultSetup(&setup);
         setup.chosen = !s_test && !preset;
-        if (preset && !s_test) {
+        if (preset) {
             for (int32_t t = 0; t < 2; t++) {
                 setup.team[t] = ModApi_TeamByUuidNumber(kPreset[difficulty].uuid[t], kPreset[difficulty].team[t]);
-                setup.side[t] = (uint8_t)(t == 0 ? MODSIDE_PLAYER1 : MODSIDE_CPU);
+                setup.side[t] = (uint8_t)(t == 0 && !s_test ? MODSIDE_PLAYER1 : MODSIDE_CPU);
             }
             if (!setup.team[0] || !setup.team[1]) {
                 fprintf(stderr, "[speedrun] a preset team is not in the database\n");
                 return;
             }
         }
-        if (s_test) {                       /* (the test: Norway, the CPU's but "yours", v New Zealand) */
+        if (s_test && !preset) {            /* (the test: Norway, the CPU's but "yours", v New Zealand) */
             setup.team[0] = 0x5020;
             setup.team[1] = 0x5502;
             snprintf(s_resultTeams, sizeof s_resultTeams, "TEST");
@@ -571,7 +571,10 @@ void ModSpeedrun_Test(int32_t target)
     if (target < 0 || target >= kTargets)
         exit(2);
     s_test = 1;
-    run(target, 0);
+    {   /* SWOS_SPEEDRUN_TEST_DIFFICULTY=0..4: a preconfigured pair's (both the CPU's) */
+        const char *d = getenv("SWOS_SPEEDRUN_TEST_DIFFICULTY");
+        run_at(target, 0, d && *d >= '0' && *d <= '4' ? *d - '0' : -1);
+    }
 }
 #endif
 
