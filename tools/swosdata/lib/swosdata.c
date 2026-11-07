@@ -161,12 +161,31 @@ static int32_t count_2020(void)
     return n;
 }
 
+/* The PC game's sound effects, crowd and commentary (sound_dos/fx, hard, pierce): not every
+ * release has them all -- the floppy version has no commentary and fewer effects, a copy of an
+ * installed CD leaves the CD's own (SFX/) behind. The game plays without a missing one; the
+ * graphics, the teams and the menu music are what the PC game must have. */
+static int32_t dos_optional(const char *dest)
+{
+    return !strncmp(dest, "sound_dos/fx/", 13) || !strncmp(dest, "sound_dos/hard/", 15) ||
+           !strncmp(dest, "sound_dos/pierce/", 17);
+}
+
 static int32_t step_dos_files(SdJob *job, int32_t *done, int32_t total, char *err)
 {
+    int32_t missing = 0, commentary = 0;
     for (int32_t i = 0; g_sdDosCopy[i].dest; i++) {
         SgBuf b;
-        if (SdSources_ReadDos(&job->src, g_sdDosCopy[i].src, &b, err) != 0)
-            return -1;
+        if (SdSources_ReadDos(&job->src, g_sdDosCopy[i].src, &b, err) != 0) {
+            if (!dos_optional(g_sdDosCopy[i].dest))
+                return -1;
+            missing++;
+            commentary += !strncmp(g_sdDosCopy[i].dest, "sound_dos/pierce/", 17);
+            err[0] = 0;
+            if (job->progress)
+                job->progress(job->user, ++*done, total);
+            continue;
+        }
         int32_t rc = write_out(job, g_sdDosCopy[i].dest, &b, err);
         Sg_BufFree(&b);
         if (rc != 0)
@@ -174,7 +193,11 @@ static int32_t step_dos_files(SdJob *job, int32_t *done, int32_t total, char *er
         if (job->progress)
             job->progress(job->user, ++*done, total);
     }
-    logf_(job, "PC: %d files", count_dos());
+    logf_(job, "PC: %d files", count_dos() - missing);
+    if (missing)
+        logf_(job, "PC: %d of its sounds are not in this copy%s -- the game plays without them", (int)missing,
+              commentary == 76 ? " (no commentary: the floppy version has none, the CD version keeps it on the CD)"
+              : commentary ? " (some commentary)" : "");
     return 0;
 }
 
@@ -755,6 +778,24 @@ static void count_file(const char *assetsDir, const char *rel, SdInstalled *n)
         s_listFile(s_listUser, (SdStep)(n - s_listBase), rel, n->present > before);
 }
 
+/* A file a step may write or not (a PC release's sounds, dos_optional): listed with the step's, its
+ * presence said, but not in the step's count -- the step is whole without it. */
+static void list_optional(const char *assetsDir, const char *rel, SdInstalled *n)
+{
+    char path[1100];
+    FILE *f;
+    int32_t present = 0;
+    Sg_PathJoin(path, sizeof path, assetsDir, rel);
+    if ((f = fopen(path, "rb")) != NULL) {
+        fclose(f);
+        present = 1;
+    } else {
+        present = Sg_FindNoCase(assetsDir, rel, path, sizeof path) == 0;
+    }
+    if (s_listFile)
+        s_listFile(s_listUser, (SdStep)(n - s_listBase), rel, present);
+}
+
 /* The files each step writes, from the same lists the steps use. */
 void SwosData_Installed(const char *assetsDir, SdInstalled out[SD_STEP_COUNT])
 {
@@ -771,8 +812,12 @@ void SwosData_Installed(const char *assetsDir, SdInstalled out[SD_STEP_COUNT])
             count_file(assetsDir, g_sdAmigaCopy[i], n);
 
     n = &out[SD_STEP_DOS_FILES];
-    for (int32_t i = 0; g_sdDosCopy[i].dest; i++)
-        count_file(assetsDir, g_sdDosCopy[i].dest, n);
+    for (int32_t i = 0; g_sdDosCopy[i].dest; i++) {   /* (the sounds a release may not have: not counted) */
+        if (dos_optional(g_sdDosCopy[i].dest))
+            list_optional(assetsDir, g_sdDosCopy[i].dest, n);
+        else
+            count_file(assetsDir, g_sdDosCopy[i].dest, n);
+    }
 
     n = &out[SD_STEP_AGA_PC];
     for (int32_t b = 0; b < SG_BANK_COUNT; b++) {

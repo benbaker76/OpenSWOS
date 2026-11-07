@@ -1029,10 +1029,29 @@ int32_t SdSources_ReadAmiga(SdSources *s, const char *rel, SgBuf *out, char *err
     return -1;
 }
 
+/* A file of the PC game where a GOG install keeps it -- else by its name where the other
+ * releases do: the floppy version keeps its sound effects in SFX/ itself (no FX/ or HARD/), and
+ * a copy of an installed CD may hold them anywhere of these. 0 found (its path in p). */
+static int32_t find_dos(const SdSources *s, const char *rel, char *p, uint32_t cap)
+{
+    static const char *const kAlso[] = { "SFX", "SFX/FX", "SFX/PIERCE", "HARD", "FX", "PIERCE", "" };
+    if (Sg_FindNoCase(s->dosDir, rel, p, cap) == 0)
+        return 0;
+    const char *name = strrchr(rel, '/');
+    name = name ? name + 1 : rel;
+    for (uint32_t i = 0; i < sizeof kAlso / sizeof kAlso[0]; i++) {
+        char alt[300];
+        snprintf(alt, sizeof alt, "%s%s%s", kAlso[i], kAlso[i][0] ? "/" : "", name);
+        if (Sg_FindNoCase(s->dosDir, alt, p, cap) == 0)
+            return 0;
+    }
+    return -1;
+}
+
 int32_t SdSources_ReadDos(SdSources *s, const char *rel, SgBuf *out, char *err)
 {
     char p[1024];
-    if (!s->dosDir[0] || Sg_FindNoCase(s->dosDir, rel, p, sizeof p) != 0) {
+    if (!s->dosDir[0] || find_dos(s, rel, p, sizeof p) != 0) {
         snprintf(err, 256, "%s is not in the PC game folder", rel);
         return -1;
     }
