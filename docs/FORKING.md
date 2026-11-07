@@ -69,7 +69,9 @@ sources in `src/` (the Makefile compiles every `src/*.c`), and what they need bu
 a vendored library, flags, link libraries -- in **`fork.mk`** beside the Makefile, which
 `-include`s it (OpenSWOS has none); for the phone builds, the same in **`fork.cmake`**, which
 `packaging/mobile/CMakeLists.txt` includes when it is there (it appends to `FORK_SOURCES` and
-`FORK_INCLUDES`). Accounts on a fork's online service: set
+`FORK_INCLUDES`). A fork's own submodules its build needs are listed in **`fork.submodules`**
+(a path a line), which `scripts/build_playback.sh` fetches -- a server's `git pull` fetches none.
+Accounts on a fork's online service: set
 `PROJECT_ACCOUNTS` in the identity header and supply `include/online_account.h` from a file of
 the fork's own (OpenSWOS's `src/online_account.c` then compiles to nothing).
 

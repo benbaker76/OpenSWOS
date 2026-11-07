@@ -29,6 +29,28 @@ fi
 # without this the player's build stopped at swosrules.h.
 git submodule update --init -q third_party/swos-competition-engine ||
     { echo "build_playback: could not fetch the rules library (third_party/swos-competition-engine)" >&2; exit 1; }
+# A fork's own submodules its build needs (docs/FORKING.md): fork.submodules, a path a line --
+# SWOS United's online API client, third_party/swos-api. (A server's `git pull` fetches none.)
+if [ -f fork.submodules ]; then
+    while read -r sub; do
+        case "$sub" in ''|'#'*) continue ;; esac
+        git submodule update --init -q "$sub" ||
+            { echo "build_playback: could not fetch $sub (fork.submodules)" >&2; exit 1; }
+    done < fork.submodules
+fi
+# The player plays the GAME's graphics and sounds, which are never in git (the data setup makes
+# them from the player's own copy, docs/ASSETS.md): built without them it hangs at its first
+# missing file -- a server's whose checkout had none did, asking for sound/sfx.in2 for ever
+# (2026-11-07). So no data, no build: put the data setup's assets folder on the server and
+# point SWOS_ASSETS at it (or copy its trees into bin/).
+ASSETS="${SWOS_ASSETS:-}"
+has_sound() { [ -f "$1/sound/SFX.SNG" ] || [ -n "$(ls -A "$1/sound_dos/fx" 2>/dev/null)" ]; }
+if ! has_sound bin && { [ -z "$ASSETS" ] || ! has_sound "$ASSETS"; }; then
+    echo "build_playback: no game data -- neither bin/ nor SWOS_ASSETS (${ASSETS:-unset}) has the" >&2
+    echo "  game's sound (sound/SFX.SNG or sound_dos/). Run the data setup (tools/swosdata) and set" >&2
+    echo "  SWOS_ASSETS to its assets folder. A player built without it hangs." >&2
+    exit 1
+fi
 
 echo "== building the recordings player (make WASM=1 PLAYER=1)"
 make WASM=1 PLAYER=1 -j"$(nproc 2>/dev/null || echo 4)" >build/playback-build.log 2>&1 || {
