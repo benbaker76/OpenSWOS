@@ -435,6 +435,22 @@ int16_t SaveCareerFile(uint8_t *filename)
      * SaveJson_WriteCareer surfaces WriteFile errors via
      * ShowFsErrorByCode internally, so we just propagate its 0/1
      * result here. */
+#if !defined(SWOS_SDL_BUILD) && defined(SWOS_AMIGA_LOAD_TIMING)
+    {   /* The career save timed on the Amiga -> save/T_SAVE_<career>.TXT (save_format_json.c) */
+        extern volatile uint16_t _currentTick;
+        extern void SaveJson_TimingReset(void), SaveJson_TimingWrite(const uint8_t *career);
+        extern void SaveJson_TimingAdd(const char *name, uint16_t ticks);
+        extern int swos_io_snprintf(char *buf, uint32_t bufsz, const char *fmt, ...);
+        char nm[48];
+        uint16_t t0 = _currentTick;
+        SaveJson_TimingReset();                 /* (the writer's laps go in first) */
+        int16_t r = SaveJson_WriteCareer(filename);
+        SaveJson_TimingAdd("whole_save", (uint16_t)(_currentTick - t0));
+        swos_io_snprintf(nm, sizeof nm, "SAVE_%s", (const char *)filename);
+        SaveJson_TimingWrite((const uint8_t *)nm);
+        return r;
+    }
+#endif
     return SaveJson_WriteCareer(filename);
 }
 
