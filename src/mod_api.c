@@ -502,6 +502,23 @@ int32_t ModApi_SaveFile(const char *slug, const char *name, const void *data, ui
     return Resload_SaveFileAt(path, (const uint8_t *)data, size);
 }
 
+int32_t ModApi_ViewHighlights(const char *slug, const char *name, int32_t scene)
+{
+    extern int16_t LoadHilFile(uint8_t *filename);
+    extern void    ShowHighlights(void);
+    extern int32_t _gHilOnlyScene;
+    char rel[256];
+    if (!slug || !name || !name[0] || strchr(name, '/') || strchr(name, '\\') || strstr(name, ".."))
+        return -1;
+    snprintf(rel, sizeof rel, "mods/%s/%s", slug, name);    /* (the save folder's: LoadHilFile's) */
+    if (LoadHilFile((uint8_t *)rel) != 0)
+        return -1;
+    _gHilOnlyScene = scene > 0 ? scene - 1 : -1;
+    ShowHighlights();
+    _gHilOnlyScene = -1;
+    return 0;
+}
+
 void *ModApi_LoadFile(const char *slug, const char *name, uint32_t *size)
 {
     char path[1024];

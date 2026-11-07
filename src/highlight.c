@@ -497,9 +497,14 @@ void SetPitchTypeAndNumber(void)
  * CopyTeamsAndHeader
  * ============================================================ */
 __attribute__((used, externally_visible, optimize("no-tree-loop-distribute-patterns")))
+/* One scene of the file alone (ModApi_ViewHighlights: SWOS Galore's "SCENE n OF m"), 0-based; -1 all */
+int32_t _gHilOnlyScene = -1;
+
 void CopyTeamsAndHeader(void)
 {
     _numScenesInHilFile = _hilNumGoals;
+    if (_gHilOnlyScene >= 0 && _gHilOnlyScene < (int32_t)_hilNumGoals)
+        _numScenesInHilFile = (uint16_t)(_gHilOnlyScene + 1);   /* (it stops after that one) */
     _pitchNumberAndType = _hilPitchNumber;
 #ifdef SWOS_SDL_BUILD
     {
@@ -606,6 +611,8 @@ void SaveHighlightsPointers(void)
     _savedCurrentGoalPtr = (uintptr_t)_currentGoalPtr;
     _goIntoHighlightsLoop = 1;
     _hilSceneNumber = 0xFFFF;
+    if (_gHilOnlyScene > 0 && _gHilOnlyScene < (int32_t)_numScenesInHilFile)
+        _hilSceneNumber = (uint16_t)(_gHilOnlyScene - 1);         /* (the next one is that one) */
 }
 
 /* ============================================================
