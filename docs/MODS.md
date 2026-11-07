@@ -632,8 +632,18 @@ The records are JSON of named fields (the owner: JSON is our format for data),
 `best_frames`, `last_frames`, `best_teams`). No leaderboard (a server's). The engine's new events
 for it (the map's G11, classified, not from the commentary): a goal's `arg` `MODGOAL_HEADER` (its
 scorer headed the ball within 75 frames: `headers.c` tells `ModMatch_Header`) and
-`MODEVENT_TACKLE` (a good tackle, `tackle_foul.c`). TACKLE is "win the ball with a good tackle"
-(SWOS 2020's reading of its last commentary line is not clear on whether a goal had to follow).
+`MODEVENT_TACKLE` (a good tackle, `tackle_foul.c`). TACKLE is SWOS 2020's (2026-11-07, from its
+checkSpeedrunWinningCondition: a goal while its last commentary line was a tackle's): your team
+SCORES with its tackle the last thing before the goal -- a tackle of theirs, a foul, a card, an
+injury, a goal or a break in between spoils it. (It was "win the ball with a good tackle", and
+both post to SWOS 2020's leaderboards.)
+**SWOS 2020's difficulties** (2026-11-07): `run` {target, difficulty} of the mod's `speedrun`
+service plays one of five preconfigured pairs (BEGINNER .. MASTER: SWOS 2020's were the PC game's
+TEAM.072 clubs, not in this database; these are 96/97's, each pair's skill points in SWOS 2020's
+band for it -- Brazil v San Marino, Italy v Wales, England v Germany, Scotland v Italy, Luxembourg
+v Germany), and the difficulty goes with the run online. `targets` and `style` give the screens
+the records and the rate; MODES -> SPEEDRUN opens `speedrun-screens` (`open`) when a mod offers it
+(SWOS United: SWOS 2020's menus).
 Checked: `SWOS_MOD_MATCH_TEST=speedrun:<n>` (fixed teams, team 0 counted as yours) -- TACKLE in 1236
 frames and 1 GOAL in 1219, PASS, records.json written; header goals found across the replay corpus
 (15 of 178 goals, in the matches with headed goals); check_netplay_compat.sh unchanged.

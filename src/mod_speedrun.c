@@ -9,7 +9,8 @@
  * ends the match, or the final whistle, which fails it (MATCH: win it):
  *   1 GOAL, 3 GOALS, 10 GOALS   your team scores that many
  *   HEADER                      your team scores a header
- *   TACKLE                      your team wins the ball with a good tackle
+ *   TACKLE                      your team scores, its last tackle the last thing before the goal
+ *                               (SWOS 2020's: a goal while the last commentary was a tackle's)
  *   YELLOW CARD, RED CARD       one of yours is booked / sent off
  *   MATCH                       your team wins the match
  * Then the time, the best, TRY AGAIN (the same teams) or EXIT.
@@ -201,7 +202,7 @@ static void time_text(char *out, size_t cap, uint32_t frames)
 /* ---- a run ---- */
 
 static int32_t  s_target = -1, s_you;
-static uint8_t  s_goals, s_done;
+static uint8_t  s_goals, s_done, s_tackled;
 static uint32_t s_doneAt;
 static int32_t  s_retry;
 
@@ -215,14 +216,21 @@ static void sr_event(const ModMatchEvent *e)
         if (e->kind == MODEVENT_GOAL || e->kind == MODEVENT_PENALTY_GOAL) {
             s_goals++;
             met = (kind == T_GOALS && s_goals >= kTarget[s_target].goals) ||
-                  (kind == T_HEADER && (e->arg & MODGOAL_HEADER));
+                  (kind == T_HEADER && (e->arg & MODGOAL_HEADER)) ||
+                  (kind == T_TACKLE && s_tackled && e->kind == MODEVENT_GOAL);
         }
-        met = met || (kind == T_TACKLE && e->kind == MODEVENT_TACKLE) ||
-              (kind == T_YELLOW && e->kind == MODEVENT_YELLOW_CARD) ||
+        met = met || (kind == T_YELLOW && e->kind == MODEVENT_YELLOW_CARD) ||
               (kind == T_RED && (e->kind == MODEVENT_RED_CARD || e->kind == MODEVENT_SECOND_YELLOW));
     } else if (e->kind == MODEVENT_OWN_GOAL && e->team == s_you) {
         s_goals++;
     }
+    /* TACKLE: your tackle stays the last thing that happened until something else does -- a
+     * tackle of theirs, a foul, a card, an injury, a goal, a break (SWOS 2020 looked at the last
+     * commentary line) */
+    if (e->kind == MODEVENT_TACKLE)
+        s_tackled = e->team == s_you;
+    else if (e->kind != MODEVENT_SHOOTOUT_KICK)
+        s_tackled = 0;
     if (met) {
         s_done = 1;
         s_doneAt = e->frame;
@@ -241,6 +249,24 @@ static void sr_ended(const ModMatchResult *r)
     }
 }
 
+/* SWOS 2020's preconfigured teams, a pair a difficulty (its selectSpeedrunDifficulty: BEGINNER ..
+ * MASTER). Its were the PC game's TEAM.072 clubs, which this database has not: these are 96/97's,
+ * each pair's skill points (yours - theirs, skill_points) in SWOS 2020's band for that difficulty
+ * (>= 375, 150..374, -149..149, -374..-150, <= -375). Yours first. */
+static const struct { uint16_t team[2]; const char *uuid[2]; const char *name[2]; } kPreset[5] = {
+    { { 0x5202, 0x5026 }, { "30e26617-4001-56c3-a068-8d88849c8398", "4f610b16-c3b0-5aca-8a20-8f8c34d1da9f" },
+      { "BRAZIL", "SAN MARINO" } },                                     /* BEGINNER  +479 */
+    { { 0x5017, 0x502f }, { "8250fcaa-bcdf-5f40-836a-87614846de84", "47a64604-70c3-54c2-a21b-8bf8a575adbb" },
+      { "ITALY", "WALES" } },                                           /* AMATEUR   +192 */
+    { { 0x500b, 0x5011 }, { "fad1a2cf-b275-5972-a3fa-35bda74afa6f", "2bb28358-8981-5501-bee3-0916d4b736cc" },
+      { "ENGLAND", "GERMANY" } },                                       /* ADVANCED    -4 */
+    { { 0x5027, 0x5017 }, { "ffcdd024-64c5-5134-a1dc-57df93f0f419", "8250fcaa-bcdf-5f40-836a-87614846de84" },
+      { "SCOTLAND", "ITALY" } },                                        /* PRO       -198 */
+    { { 0x501b, 0x5011 }, { "c5c60571-0563-5ada-8203-b847f2b79f84", "2bb28358-8981-5501-bee3-0916d4b736cc" },
+      { "LUXEMBOURG", "GERMANY" } },                                    /* MASTER    -451 */
+};
+static int32_t s_difficulty = -1;       /* the run's preset (0..4), -1 the teams chosen */
+
 static char s_resultTeams[48];
 static int32_t s_test;                  /* SWOS_MOD_MATCH_TEST=speedrun:<n>: fixed teams, no screens */
 
@@ -250,7 +276,11 @@ static int32_t skill_points(int32_t team)
     int32_t sum = 0;
     for (int32_t slot = 0; slot < 16; slot++) {
         ModTeamPlayer p;
-        if (ModApi_ChosenTeamPlayer(team, slot, &p))
+        const int32_t got = s_difficulty >= 0
+            ? ModApi_TeamPlayer(ModApi_TeamByUuidNumber(kPreset[s_difficulty].uuid[team],
+                                                        kPreset[s_difficulty].team[team]), slot, &p)
+            : ModApi_ChosenTeamPlayer(team, slot, &p);
+        if (got)
             sum += p.passing + p.shooting + p.heading + p.tackling + p.control + p.speed + p.finishing;
     }
     return sum;
@@ -268,34 +298,53 @@ static void online_finished(int32_t target)
     const uint32_t fps = (uint32_t)ModApi_FrameRate();
     snprintf(args, sizeof args,
              "{\"target\":%d,\"key\":\"%s\",\"done\":%s,\"frames\":%u,\"ms\":%u,\"style\":\"%s\","
-             "\"yours\":%d,\"theirs\":%d,\"teams\":\"%s\"}",
+             "\"yours\":%d,\"theirs\":%d,\"teams\":\"%s\",\"difficulty\":%d}",
              (int)target, kTarget[target].key, s_done ? "true" : "false", (unsigned)(s_done ? s_doneAt : 0),
              (unsigned)(s_done && fps ? s_doneAt / fps * 1000u + s_doneAt % fps * 1000u / fps : 0),
              Gameplay_StyleName(_gGameplayStyle), (int)skill_points(s_you), (int)skill_points(1 - s_you),
-             ModApi_JsonEscape(s_resultTeams, teams, sizeof teams));
+             ModApi_JsonEscape(s_resultTeams, teams, sizeof teams), (int)s_difficulty);
     ModApi_CallService("online-records", "speedrun.finished", args, NULL, 0);
     s_onlineAsked = 0;
     s_onlineLine[0] = 0;
 }
 
-/* the run: the match, then the result screen, again while TRY AGAIN */
-static void run(int32_t target, int32_t again)
+/* the run: the match, then the result screen, again while TRY AGAIN. difficulty: one of SWOS
+ * 2020's preconfigured pairs (0..4, yours the first), -1 the teams chosen on the friendly's
+ * screen. */
+static void run_at(int32_t target, int32_t again, int32_t difficulty)
 {
     s_target = target;
+    s_difficulty = difficulty;
     for (;;) {
-        if (!s_test && (again ? !ModApi_ChosenAgain() : !ModApi_ChooseTeams()))
+        const int32_t preset = difficulty >= 0 && difficulty < 5;
+        if (!s_test && !preset && (again ? !ModApi_ChosenAgain() : !ModApi_ChooseTeams()))
             return;
         again = 1;
-        s_you = s_test ? 0 : ModApi_ChosenIsPlayer(0) ? 0 : ModApi_ChosenIsPlayer(1) ? 1 : -1;
+        s_you = s_test || preset ? 0 : ModApi_ChosenIsPlayer(0) ? 0 : ModApi_ChosenIsPlayer(1) ? 1 : -1;
         if (s_you < 0) {
             fprintf(stderr, "[speedrun] no team is yours: pick one to play\n");
             return;
         }
-        snprintf(s_resultTeams, sizeof s_resultTeams, "%s v %s", ModApi_ChosenName(s_you), ModApi_ChosenName(1 - s_you));
+        if (preset)
+            snprintf(s_resultTeams, sizeof s_resultTeams, "%s v %s", kPreset[difficulty].name[0],
+                     kPreset[difficulty].name[1]);
+        else
+            snprintf(s_resultTeams, sizeof s_resultTeams, "%s v %s", ModApi_ChosenName(s_you),
+                     ModApi_ChosenName(1 - s_you));
         ModMatchSetup setup;
         ModMatchResult r;
         ModApi_DefaultSetup(&setup);
-        setup.chosen = !s_test;
+        setup.chosen = !s_test && !preset;
+        if (preset && !s_test) {
+            for (int32_t t = 0; t < 2; t++) {
+                setup.team[t] = ModApi_TeamByUuidNumber(kPreset[difficulty].uuid[t], kPreset[difficulty].team[t]);
+                setup.side[t] = (uint8_t)(t == 0 ? MODSIDE_PLAYER1 : MODSIDE_CPU);
+            }
+            if (!setup.team[0] || !setup.team[1]) {
+                fprintf(stderr, "[speedrun] a preset team is not in the database\n");
+                return;
+            }
+        }
         if (s_test) {                       /* (the test: Norway, the CPU's but "yours", v New Zealand) */
             setup.team[0] = 0x5020;
             setup.team[1] = 0x5502;
@@ -309,7 +358,7 @@ static void run(int32_t target, int32_t again)
         setup.replayMenu = 0;
         setup.kickOff = (int8_t)s_you;
         setup.name = "speedrun";
-        s_goals = s_done = 0;
+        s_goals = s_done = s_tackled = 0;
         s_doneAt = 0;
         if (ModApi_PlayMatch("speedrun", &setup, &r) != 0)
             return;
@@ -369,6 +418,8 @@ static void menu_init(void)
     ModApi_MenuNav(M_exit, M_label0 + 2 * kRows - 1, -1);
     menu_refresh();
 }
+
+static void run(int32_t target, int32_t again) { run_at(target, again, -1); }
 
 static void target0(void) { run(0, 0); }
 static void target1(void) { run(1, 0); }
@@ -435,7 +486,67 @@ static void result3(void)       /* TRY AGAIN */
 static void result_none(void) {}
 
 static void sr_exit(void) { SetExitMenuFlag(); }
-static void sr_open(void) { ModApi_ShowMenu("speedrun/speedrunMenu"); }
+static void sr_open(void)
+{
+    /* a fork's own screens for it (SWOS United's: SWOS 2020's), when a mod offers them */
+    if (ModApi_CallService("speedrun-screens", "open", "{}", NULL, 0) == 0)
+        return;
+    ModApi_ShowMenu("speedrun/speedrunMenu");
+}
+
+/* ---- the "speedrun" service: the targets for another mod's screens (docs/MODS.md §18) ----
+ *   targets {}                      "<n>\t<name>\t<played>\t<best frames>\t<best: 12.34>" a target
+ *   style   {}                      the gameplay style's name ("AMIGA", "DOS", "XBOX") and its
+ *                                   frame rate: "<name>\t<fps>"
+ *   run     {"target","difficulty"} plays it (difficulty 0..4 SWOS 2020's preconfigured teams,
+ *                                   -1 the friendly's team screen), this mod's result screen and
+ *                                   TRY AGAIN, then "done\t<0/1>\t<frames>" */
+static int32_t sr_number(const char *args, const char *key, int32_t fallback)
+{
+#ifdef SWOS_SDL_BUILD
+    char path[32];
+    double v;
+    snprintf(path, sizeof path, "$.%s", key);
+    return mjson_get_number(args, (int)strlen(args), path, &v) ? (int32_t)v : fallback;
+#else
+    (void)args; (void)key;
+    return fallback;
+#endif
+}
+
+static int32_t sr_service(const char *method, const char *args, char *out, uint32_t cap)
+{
+    if (!out || !cap)
+        return -1;
+    out[0] = 0;
+    if (!s_recRead)
+        records_read();
+    if (!strcmp(method, "targets")) {
+        size_t n = 0;
+        for (int32_t t = 0; t < kTargets && n < cap; t++) {
+            char best[16];
+            time_text(best, sizeof best, s_rec[t].best);
+            n += (size_t)snprintf(out + n, cap - n, "%d\t%s\t%u\t%u\t%s\n", (int)t, kTarget[t].name,
+                                  (unsigned)s_rec[t].played, (unsigned)s_rec[t].best, best);
+        }
+        return 0;
+    }
+    if (!strcmp(method, "style")) {
+        extern int _gGameplayStyle;
+        extern const char *Gameplay_StyleName(int style);
+        snprintf(out, cap, "%s\t%d\n", Gameplay_StyleName(_gGameplayStyle), (int)ModApi_FrameRate());
+        return 0;
+    }
+    if (!strcmp(method, "run")) {
+        const int32_t target = sr_number(args, "target", -1), difficulty = sr_number(args, "difficulty", -1);
+        if (target < 0 || target >= kTargets)
+            return -1;
+        run_at(target, 0, difficulty >= 0 && difficulty < 5 ? difficulty : -1);
+        snprintf(out, cap, "done\t%d\t%u\n", (int)s_done, (unsigned)s_doneAt);
+        return 0;
+    }
+    return -1;
+}
 
 static void sr_init(void)
 {
@@ -449,6 +560,7 @@ static void sr_init(void)
         { "exit", sr_exit },
     };
     ModApi_RegisterHandlers("speedrun", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
+    ModApi_RegisterService("speedrun", "speedrun", sr_service);
     ModApi_AddEntry(MODPOINT_MODES, "speedrun", "speedrun", sr_open);
 }
 
