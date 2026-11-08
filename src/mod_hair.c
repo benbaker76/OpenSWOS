@@ -1,7 +1,7 @@
 /*
  * mod_hair.c -- the hair mod (canonical, bin/mods/hair; docs/MODS.md §16): players with more than
  * one head of hair. Each outfield player gets a look -- his hair blonde or black, receding, shaved,
- * or a ponytail -- drawn over his sprite as it is drawn. SDL builds.
+ * or a ponytail -- drawn over his sprite as it is drawn. SDL builds. Inspired by crom1.
  *
  * The game draws every outfield player of a team from the same three sets of 101 frames (one per
  * face), recoloured per match from one raw set (player_face3.c says how). The raw set is read once

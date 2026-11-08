@@ -534,7 +534,7 @@ its own generator.
   each -- stamped under the players through a lightening palette table. Real time.
 - SDL only (`"targets": ["sdl"]`): neither hook exists on the Amiga.
 
-**`hair`** (off by default; `src/mod_hair.c`): players with more than one head of hair.
+**`hair`** (off by default; `src/mod_hair.c`; inspired by crom1): players with more than one head of hair.
 - At PlayerSetsRaw the raw frames are kept, with where each one's hair is (raw 9, 12, 13). At
   PlayerDrawn an outfield player's frame is made again for his look, in raw colours, and every
   pixel that changed is written through his face's colour table, only where the frame still
