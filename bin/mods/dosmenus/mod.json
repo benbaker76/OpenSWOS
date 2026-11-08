@@ -9,5 +9,5 @@
   "sdl"
  ],
  "changes": "cosmetic",
- "default": false
+ "default": true
 }

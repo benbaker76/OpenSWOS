@@ -1,5 +1,5 @@
 /*
- * mod_dosmenus.c -- the dosmenus mod (bin/mods/dosmenus; canonical, off by default): the menus'
+ * mod_dosmenus.c -- the dosmenus mod (bin/mods/dosmenus; canonical, on by default since 2026-11-08): the menus'
  * buttons shaded as the PC game shades them. SDL only. Needs the PC game's data (grafs_dos/
  * FILL.256, which the setup installs from the player's own copy); without it, nothing changes.
  *

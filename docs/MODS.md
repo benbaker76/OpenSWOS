@@ -908,8 +908,8 @@ the centre 1440 x 1080, which a 4:3 window keeps -- it is cropped to the window'
 
 ## 25c. PC menu shading (the dosmenus mod)
 
-The menus' buttons shaded as the PC game shades them (`src/mod_dosmenus.c`, canonical, off by
-default; needs the PC game's `grafs_dos/FILL.256`, which the setup installs). The PC game
+The menus' buttons shaded as the PC game shades them (`src/mod_dosmenus.c`, canonical, on by
+default since 2026-11-08 -- the owner, so F5 works out of the box; needs the PC game's `grafs_dos/FILL.256`, which the setup installs). The PC game
 (swos.asm `DrawEmptyMenuItem`) draws a box of menu colour c pixel by pixel as ramp
 `menuItemColorTable[c]` of its menu palette plus FILL.256's shade (0-31, a dithered gradient,
 dark bottom-left to bright top-right, 320 x 200) at that pixel; a 1-pixel line flat. Here the
