@@ -171,6 +171,17 @@ is built, and committed. It lives
 outside the paths the `-dirty` stamp covers, so committing it does not
 invalidate the drop.
 
+**The binaries ship stripped** (since 2026-11-08: SWOS.exe 38 -> 9 MB, the Linux ELFs about half):
+`build_dist.sh` keeps each one's debug info first, in `dist/symbols/<commit>/<name>.debug`
+(`--no-strip` ships them as built). **Keep that folder for every published drop** -- dist/ is
+gitignored, so it is the only copy -- and a tester's crash address reads back as a line:
+
+```bash
+gdb -batch -ex "symbol-file dist/symbols/<commit>/SWOS.x86_64.debug" -ex "info symbol 0x13afb0" bin/SWOS.x86_64
+```
+
+(or copy the `.debug` beside the binary: its debug link finds it there.)
+
 ### Knowing when a long step is finished
 
 The drop takes 40+ minutes and goes quiet for minutes at a time — a

@@ -312,6 +312,7 @@ AMIGA_ZIP_PATH="dist/SWOS-Amiga.zip"
 INSTALLER_PATH="dist/SWOS-Setup.exe"
 DO_FULL=1
 DO_INSTALLER=1
+DO_STRIP=1
 ONLY=""
 SKIP=""
 
@@ -331,6 +332,7 @@ Options:
       --no-zip        build but don't package (no zips, no installer)
       --no-full       skip SWOS-portable.zip (binaries-only SWOS.zip still written)
       --no-installer  skip dist/SWOS-Setup.exe
+      --no-strip      ship the binaries with their debug info (SWOS.exe ~40 MB, not ~10)
       --full-zip PATH full-dist output path (default: $FULL_ZIP_PATH)
       --amiga-zip PATH Amiga-dist output path (default: $AMIGA_ZIP_PATH)
       --installer PATH installer output path (default: $INSTALLER_PATH)
@@ -352,6 +354,7 @@ while [ $# -gt 0 ]; do
         --no-zip)    DO_ZIP=0; DO_FULL=0; DO_INSTALLER=0; shift ;;
         --no-full)   DO_FULL=0; shift ;;
         --no-installer) DO_INSTALLER=0; shift ;;
+        --no-strip)  DO_STRIP=0; shift ;;
         --installer) INSTALLER_PATH="$2"; shift 2 ;;
         --full-zip)  FULL_ZIP_PATH="$2"; shift 2 ;;
         --amiga-zip) AMIGA_ZIP_PATH="$2"; shift 2 ;;
@@ -633,6 +636,41 @@ if wanted switch; then
             record switch "FAIL"; echo "-- FAIL: switch"
         fi
     fi
+fi
+
+# ---- strip: the debug info out of what ships, kept in dist/symbols/<commit>/ ---
+# SWOS.exe is ~40 MB with its DWARF and ~10 MB without; the Linux ELFs likewise. Nothing in the
+# game reads its own symbols (no crash handler prints them), so the drop carries none -- but a
+# tester's crash address still has to be readable, so each binary's debug info is kept first,
+# with a debug link from the binary to it: gdb finds it copied beside the binary, or takes
+# `symbol-file dist/symbols/<commit>/<name>.debug` (docs/TRIAGE.md).
+# bin/ is stripped in place: the zips, the installer and the copies made from them ship it.
+# (The PortMaster port has packed its zip from bin/SWOS.aarch64 already; macOS is
+# build_macos.sh's; the Amiga's SWOS2 is a hunk file, left alone.)
+strip_one() {   # binary objcopy
+    local bin=$1 oc=$2 dbg="$SYM_DIR/$(basename "$1").debug" before after
+    before=$(stat -c %s "$bin")
+    "$oc" --only-keep-debug "$bin" "$dbg" &&
+        "$oc" --strip-debug --strip-unneeded --add-gnu-debuglink="$dbg" "$bin" || return 1
+    after=$(stat -c %s "$bin")
+    echo "-- $(basename "$bin"): $((before / 1048576)) MB -> $((after / 1048576)) MB (debug info: $dbg)"
+}
+if [ "$DO_STRIP" = 1 ] && [ "$DO_ZIP" = 1 ]; then
+    banner "strip -> dist/symbols/$BUILD_COMMIT/"
+    SYM_DIR="dist/symbols/$BUILD_COMMIT"
+    mkdir -p "$SYM_DIR"
+    for pair in "SWOS:objcopy" "SWOS.x86_64:x86_64-linux-gnu-objcopy" "SWOS.aarch64:aarch64-linux-gnu-objcopy" \
+                "SWOS.armhf:arm-linux-gnueabihf-objcopy" "SWOS.exe:$CYGWIN_BIN/objcopy.exe"; do
+        b="bin/${pair%%:*}"; oc="${pair#*:}"
+        [ -f "$b" ] || continue
+        command -v "$oc" >/dev/null 2>&1 || [ -x "$oc" ] || { echo "-- NOTE: $b left as built (no $oc)"; continue; }
+        # (a binary already stripped -- a rerun with --only -- has nothing left to keep)
+        if ! "$oc" --dump-section .debug_info=/dev/null "$b" >/dev/null 2>&1 &&
+           ! readelf -S "$b" 2>/dev/null | grep -q debug_info; then
+            echo "-- $(basename "$b"): already stripped"; continue
+        fi
+        strip_one "$b" "$oc" || echo "-- FAIL: stripping $b (shipping it as built)"
+    done
 fi
 
 # ---- package ----------------------------------------------------------------
