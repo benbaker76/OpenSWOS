@@ -50,7 +50,7 @@ edit its values, so the file never conflicts:
 | `PROJECT_USER_DIR`, `PROJECT_USER_DOT_DIR` | SWOS, .swos | the player's folder: saves, SWOS.ini, the assets (game and setup agree) |
 | `PROJECT_HIDE_SWOS2020_EXTRAS` | 1 | hides SWOS 2020's online-menu entries for features OpenSWOS will not have (NEWS, the chat and commentary rows, JOIN DISCORD, ...); 0 keeps them for a fork that builds them |
 | `PROJECT_STATIC_MODS` | "" (none) | canonical mods that are part of the fork's game: always on, never listed in OPTIONS -> MODS or the setup's Mods screen (docs/MODS.md §14). Slugs, comma- or space-separated |
-`PROJECT_DEFAULT_MODS` (same file) is the softer one: canonical mods a fork turns ON by default -- still listed, a player may turn them off (SWOS United: dosmenus).
+| `PROJECT_DEFAULT_MODS` | "" (none) | canonical mods a fork turns ON by default whatever their manifest says -- still listed, a player may turn them off (SWOS United: dosmenus) |
 
 **Online.** Two builds meet only when `PROJECT_NETPLAY_TAG`, `PROJECT_GGPO_GAME` and
 `NETPLAY_COMPAT` (include/netplay_compat.h) agree. A fork that keeps OpenSWOS's tags plays
