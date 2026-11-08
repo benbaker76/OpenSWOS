@@ -22,7 +22,7 @@
 
 #include "swos_types.h"   /* the fixed-width types (the Amiga build has no libc stdint.h) */
 
-#define MODS_MAX     16
+#define MODS_MAX     48     /* (16 until 2026-11-07: a fork with more lost the rest, unsaid) */
 #define MODS_ID_MAX  32
 
 /* Two kinds (docs/MODS.md §14). CANONICAL mods are part of OpenSWOS: in the game's own

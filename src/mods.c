@@ -421,7 +421,12 @@ void Mods_Init(const char *enabled, const char *disabled)
     DIR *d = opendir(MODS_CANONICAL_DIR);
     if (d) {
         struct dirent *e;
-        while ((e = readdir(d)) != NULL && s_canonCount < MODS_MAX) {
+        while ((e = readdir(d)) != NULL) {
+            if (s_canonCount == MODS_MAX) {
+                fprintf(stderr, "[mods] more than %d canonical mods in %s: the rest left out (MODS_MAX)\n",
+                        MODS_MAX, MODS_CANONICAL_DIR);
+                break;
+            }
             char path[1200], x[MODS_ID_MAX];
             int len = 0, star, b = 0;
             if (e->d_name[0] == '.' || !next_id(e->d_name, x, sizeof x, &star) || strcmp(x, e->d_name) != 0)
