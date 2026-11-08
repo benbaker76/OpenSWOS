@@ -69,6 +69,9 @@ typedef struct ModDef {
     int32_t (*spriteDraw)(const struct Sprite *sprite, const struct SpriteGraphics *gfx,
                           int16_t *x, int16_t *y);
     void (*frameKept)(void);            /* the match is paused: the frame shown again, as drawn */
+    /* Like frameDrawn, but every mod's frameUnder runs before any mod's frameDrawn: shading that
+     * belongs to the picture (a darkened band), so what the other mods draw goes over it. */
+    void (*frameUnder)(void);
 
     /* -- the match -- */
     void (*matchStart)(void);           /* kick-off: the teams on the pitch, the setup applied */

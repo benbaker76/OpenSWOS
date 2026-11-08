@@ -39,6 +39,7 @@ void ModHooks_Init(void)
 void ModHooks_FrameDrawn(void)
 {
     ModApi_NotePresent();
+    EACH(frameUnder) (*m_)->frameUnder();
     EACH(frameDrawn) (*m_)->frameDrawn();
 }
 
