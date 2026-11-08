@@ -342,6 +342,15 @@ static int handler(void *user, const char *section,
     return 1;
 }
 
+/* What SWOS.ini said when the game read it (Settings_Load): Settings_Save writes only what the
+ * player changed since -- every other setting is left as the file has it NOW, so OpenSWOS Setup's
+ * changes (a mod it turned on, a world it installed) and a hand edit made while the game runs are
+ * not put back by the game's next save. (2026-11-08: the Retro TV mod's [mods] line, put back by
+ * leaving OPTIONS -- the game wrote the list it had started with.) */
+static PlatformInitOptions s_baseline;
+static int                 s_haveBaseline;
+static char                s_baselinePath[1024];   /* (it is that file's: a save to another writes all) */
+
 void Settings_Load(PlatformInitOptions *opts, const char *path)
 {
     if (!opts || !path) return;
@@ -354,6 +363,9 @@ void Settings_Load(PlatformInitOptions *opts, const char *path)
         fprintf(stderr, "[settings] %s: parse error at line %d (continuing)\n",
                 path, rc);
     }
+    s_baseline = *opts;
+    s_haveBaseline = 1;
+    snprintf(s_baselinePath, sizeof s_baselinePath, "%s", path);
 }
 
 static const char *renderer_str(PlatformRendererMode m)
@@ -411,10 +423,12 @@ static const char *section_intro(const char *sec)
 /* Fill `items` with the canonical list and return the count. `vbuf` provides
  * scratch storage for the three non-constant values (resolution, scale,
  * game_seconds) and must outlive any use of `items`. */
-static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char vbuf[10][24])
+/* live: the window's scale and fullscreen as they are now (what a save writes); 0: opts' own (the
+ * file's, for Settings_Save's baseline). */
+static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char vbuf[10][24], int live)
 {
-    int scale_now = Platform_GetWindowScale();
-    PlatformFullscreenMode fs_now = Platform_GetFullscreenMode();
+    int scale_now = live ? Platform_GetWindowScale() : opts->win_scale;
+    PlatformFullscreenMode fs_now = live ? Platform_GetFullscreenMode() : opts->fullscreen;
     if (scale_now < 1 || scale_now > 4) scale_now = opts->win_scale;
 
     if (opts->res_w > 0 && opts->res_h > 0)
@@ -617,8 +631,8 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         opts->hair_shading ? "true" : "false" };
 
     {
-        static char stepBuf[8];
-        snprintf(stepBuf, sizeof stepBuf, "%d", opts->shade_step);
+        char *stepBuf = vbuf[8];        /* (not static: Settings_Save builds two tables at once) */
+        snprintf(stepBuf, 24, "%d", opts->shade_step);
         SETTING(n) = (IniEntry){ "graphics", "shade_step",
             "; shade_step: 1..5. How far apart the four kit shades are, in sixteenths:\n"
             "; 16, 16-N, 16-2N, 16-3N. The Jaguar's own artwork used about 3, which takes\n"
@@ -727,7 +741,7 @@ static void settings_write_full(const PlatformInitOptions *opts, const char *pat
 {
     IniEntry items[SETTINGS_MAX];
     char vbuf[10][24];
-    int n = settings_build(opts, items, vbuf);
+    int n = settings_build(opts, items, vbuf, 1);
 
     FILE *f = fopen(path, "w");
     if (!f) {
@@ -794,7 +808,20 @@ void Settings_Save(const PlatformInitOptions *opts, const char *path)
 
     IniEntry items[SETTINGS_MAX];
     char vbuf[10][24];
-    int n = settings_build(opts, items, vbuf);
+    int n = settings_build(opts, items, vbuf, 1);
+
+    /* The settings the player has NOT changed since the file was read: the file's value stands
+     * (s_baseline). Built from the same table, so entry k is the same key in both. */
+    unsigned char keep[SETTINGS_MAX];
+    memset(keep, 0, sizeof keep);
+    if (s_haveBaseline && strcmp(s_baselinePath, path) == 0) {
+        IniEntry was[SETTINGS_MAX];
+        char wbuf[10][24];
+        const int nw = settings_build(&s_baseline, was, wbuf, 0);
+        for (int k = 0; k < n && k < nw; k++)
+            keep[k] = eqi(was[k].section, items[k].section) && eqi(was[k].key, items[k].key) &&
+                      strcmp(was[k].value, items[k].value) == 0;
+    }
 
     /* Slurp the existing file. */
     static char lines[400][256];
@@ -840,7 +867,7 @@ void Settings_Save(const PlatformInitOptions *opts, const char *path)
                     seen[k] = 1;
                     char fileval[300];
                     copy_value(eq + 1, fileval, sizeof fileval);
-                    if (strcmp(fileval, items[k].value) != 0) dirty = 1;
+                    if (!keep[k] && strcmp(fileval, items[k].value) != 0) dirty = 1;
                     break;
                 }
             }
@@ -898,8 +925,8 @@ void Settings_Save(const PlatformInitOptions *opts, const char *path)
         seen[idx] = 1;
         char fileval[300];
         copy_value(eq + 1, fileval, sizeof fileval);
-        if (strcmp(fileval, items[idx].value) == 0) {
-            fputs(ln, out);                                /* unchanged -> verbatim */
+        if (keep[idx] || strcmp(fileval, items[idx].value) == 0) {
+            fputs(ln, out);                                /* unchanged (or not ours) -> verbatim */
         } else {
             size_t prefix = (size_t)(eq - ln) + 1;         /* keep "key=" verbatim */
             fwrite(ln, 1, prefix, out);
