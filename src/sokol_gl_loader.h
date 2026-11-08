@@ -13,7 +13,8 @@
  * The list is the gl* names sokol_gfx.h's GL backend uses (regenerate when sokol changes):
  *   sed -n '/>>opengl backend/,/>>[a-z0-9]* backend/p' third_party/sokol/sokol_gfx.h |
  *     grep -o '\bgl[A-Z][A-Za-z0-9]*\s*(' | sort -u
- * plus glReadPixels, glGetString and glFinish for the presenter's own use.
+ * plus glReadPixels, glGetString and glFinish for the presenter's own use, and the uniform blocks'
+ * (glGetUniformBlockIndex, glUniformBlockBinding) for the slang passes (src/gpu_slang.c).
  */
 #ifndef SWOS_SOKOL_GL_LOADER_H
 #define SWOS_SOKOL_GL_LOADER_H
@@ -28,6 +29,9 @@
     X(glBindBuffer, 1) \
     X(glBindBufferBase, 1) \
     X(glBindBufferRange, 1) \
+    X(glGetUniformBlockIndex, 1) \
+    X(glGenerateMipmap, 1) \
+    X(glUniformBlockBinding, 1) \
     X(glBindFramebuffer, 1) \
     X(glBindImageTexture, 0) \
     X(glBindRenderbuffer, 1) \
@@ -154,6 +158,9 @@ SWOS_GL_FUNCS
 #define glBindBuffer swos_glBindBuffer
 #define glBindBufferBase swos_glBindBufferBase
 #define glBindBufferRange swos_glBindBufferRange
+#define glGetUniformBlockIndex swos_glGetUniformBlockIndex
+#define glGenerateMipmap swos_glGenerateMipmap
+#define glUniformBlockBinding swos_glUniformBlockBinding
 #define glBindFramebuffer swos_glBindFramebuffer
 #define glBindImageTexture swos_glBindImageTexture
 #define glBindRenderbuffer swos_glBindRenderbuffer

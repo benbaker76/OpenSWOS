@@ -25,6 +25,7 @@
 
 #if SWOS_GPU
 #include "shaders/present.glsl.h"
+#include "gpu_slang.h"      /* a slang preset's passes (the toOff == 2 frames) */
 
 extern int  SokolGl_Load(void);                          /* sokol_impl.c */
 extern void SokolGl_ReadPixels(int w, int h, void *rgba);
@@ -76,6 +77,21 @@ static struct {
     uint32_t      backdropSerial;
     uint32_t      frames;
 } G;
+
+/* The slang preset to show (src/gpu_slang.c): loaded at the next frame -- the presenter may not
+ * be up yet when it is chosen. NULL / "" none. */
+static char s_preset[1024];
+static int  s_presetPending;
+
+void GpuPresent_SetShaderPreset(const char *path)
+{
+    snprintf(s_preset, sizeof s_preset, "%s", path ? path : "");
+    s_presetPending = 1;
+}
+
+/* (toOff: 1 the built-in CRT pass's image, 2 a slang chain's Original -- GL draws it first row
+ * on top, so upside down: s_flipDst) */
+static int s_flipDst;
 
 void GpuPresent_SetCrt(int curvature, int ntsc)
 {
@@ -266,6 +282,8 @@ int32_t GpuPresent_Init(SDL_Window *window, int vsync)
     G.white = GpuGfx_CreateTexture(1, 1, 0);
     G.batchBlend = GFX_BLEND_ALPHA;
     G.batchSpace = GFX_SPACE_PICTURE;
+    if (getenv("SWOS_SHADER"))          /* (a slang preset for this run) */
+        GpuPresent_SetShaderPreset(getenv("SWOS_SHADER"));
     fprintf(stderr, "[gpu] presenter up: %s, %s, vsync %s\n",
 #if defined(SOKOL_GLES3)
             "OpenGL ES 3 / WebGL2",
@@ -368,6 +386,10 @@ static void draw_picture(sg_pipeline pip, sg_view tex, const float src[4], float
     vs_present_params_t vp;
     fs_present_params_t fp;
     vp.dst[0] = -1.0f; vp.dst[1] = 1.0f; vp.dst[2] = 1.0f; vp.dst[3] = -1.0f;
+    if (s_flipDst) {
+        vp.dst[1] = -1.0f;
+        vp.dst[3] = 1.0f;
+    }
     memcpy(vp.src, src, sizeof vp.src);
     memset(&fp, 0, sizeof fp);
     fp.size[0] = (float)G.srcW;
@@ -442,12 +464,20 @@ static void batch_flush(void);
 
 /* The picture's space is done: onto the screen through the crt program, and from here every
  * draw is the screen's. */
+static void begin_screen_cleared(void) { begin_screen_pass(s_clear); }
+
 static void crt_resolve(void)
 {
     if (!G.toOff)
         return;
     batch_flush();
     sg_end_pass();
+    if (G.toOff == 2) {                 /* a slang chain: its passes, the last onto the screen */
+        G.toOff = 0;
+        s_flipDst = 0;
+        GpuSlang_Run(G.picX, G.picY, G.picW, G.picH, begin_screen_cleared);
+        return;
+    }
     G.toOff = 0;
     begin_screen_pass(s_clear);
     vs_crt_params_t vp;
@@ -515,9 +545,33 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
     s_clear[2] = clear ? clear[2] / 255.0f : 0.0f;
     picture_rect(f ? f->stretch : 0, f ? f->w : 0, f ? f->h : 0);
     G.frames++;
-    G.toOff = f && (G.crtCurve > 0.0f || G.crtNtsc > 0.0f) && G.picW >= 1.0f && G.picH >= 1.0f &&
-              ensure_offscreen((int)G.picW, (int)G.picH);
-    if (G.toOff) {                      /* the picture's space into `off` (crt_resolve) */
+    if (s_presetPending) {
+        s_presetPending = 0;
+        GpuSlang_Load(s_preset);
+    }
+    G.toOff = 0;
+    s_flipDst = 0;
+    if (f && !f->argb && GpuSlang_Active() && G.picW >= 1.0f && G.picH >= 1.0f) {
+        const sg_view att = GpuSlang_BeginOriginal(f->w, f->h);
+        if (att.id) {                   /* the picture's space into the chain's Original */
+            sg_pass pass;
+            memset(&pass, 0, sizeof pass);
+            pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+            pass.action.colors[0].clear_value.a = 1.0f;
+            pass.attachments.colors[0] = att;
+            sg_begin_pass(&pass);
+            G.toOff = 2;
+#if defined(SOKOL_GLCORE) || defined(SOKOL_GLES3)
+            s_flipDst = 1;
+#endif
+        }
+    }
+    if (!G.toOff)
+        G.toOff = f && (G.crtCurve > 0.0f || G.crtNtsc > 0.0f) && G.picW >= 1.0f && G.picH >= 1.0f &&
+                  ensure_offscreen((int)G.picW, (int)G.picH);
+    if (G.toOff == 2) {
+        /* (begun above) */
+    } else if (G.toOff) {               /* the picture's space into `off` (crt_resolve) */
         sg_pass pass;
         memset(&pass, 0, sizeof pass);
         pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
@@ -548,7 +602,9 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
         if (n > 8.0f) n = 8.0f;
     }
     float qx = 0.0f, qy = 0.0f;
-    if (f->subpixel && (f->fracX || f->fracY)) {
+    if (G.toOff == 2)
+        n = 0.0f;                       /* (Original is the picture at its own size: no scaling) */
+    if (G.toOff != 2 && f->subpixel && (f->fracX || f->fracY)) {
         const float fx = (float)f->fracX / 65536.0f, fy = (float)f->fracY / 65536.0f;
         if (n > 0.0f) {
             qx = floorf(fx * n + 0.5f) / n;
@@ -595,7 +651,9 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
             s_key = (float)f->backdropKey + 1.0f;
         }
     }
-    if (G.toOff)
+    if (G.toOff == 2)
+        sg_apply_viewport(0, 0, f->w, f->h, true);
+    else if (G.toOff)
         sg_apply_viewport(0, 0, (int)G.picW, (int)G.picH, true);
     else
         sg_apply_viewportf(G.picX, G.picY, G.picW, G.picH, true);
@@ -638,12 +696,15 @@ static void batch_flush(void)
         vp.view[0] = (float)G.outW;
         vp.view[1] = (float)G.outH;
     } else {
-        if (G.toOff)
+        if (G.toOff == 2)
+            sg_apply_viewport(0, 0, G.srcW, G.srcH, true);
+        else if (G.toOff)
             sg_apply_viewport(0, 0, (int)G.picW, (int)G.picH, true);
         else
             sg_apply_viewportf(G.picX, G.picY, G.picW, G.picH, true);
         vp.view[0] = (float)G.srcW;
         vp.view[1] = (float)G.srcH;
+        vp.view[2] = s_flipDst ? 1.0f : 0.0f;   /* (a slang chain's Original on GL: first row on top) */
     }
     GpuTex *t = G.batchTex ? G.batchTex : G.white;
     sg_bindings b;
@@ -793,6 +854,7 @@ int32_t GpuPresent_Vsync(void) { return 0; }
 int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3]) { (void)f; (void)clear; return 0; }
 void    GpuPresent_End(void) {}
 void    GpuPresent_EndPass(void) {}
+void    GpuPresent_SetShaderPreset(const char *path) { (void)path; }
 void    GpuPresent_SetCrt(int curvature, int ntsc) { (void)curvature; (void)ntsc; }
 void    GpuPresent_OutputSize(int *w, int *h) { *w = *h = 0; }
 void    GpuPresent_PictureRect(float *x, float *y, float *w, float *h) { *x = *y = *w = *h = 0; }

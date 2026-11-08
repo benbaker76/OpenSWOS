@@ -85,7 +85,8 @@ void main() {
 
 @vs vs_batch
 layout(binding=0) uniform vs_batch_params {
-    vec4 view;      // the target's width, height in pixels (y down)
+    vec4 view;      // the target's width, height in pixels (y down); z: 1 = the target's first row is
+                    // the picture's top (a slang chain's input on GL, src/gpu_slang.c): y flipped
 };
 in vec2 pos;
 in vec4 color0;
@@ -93,7 +94,8 @@ in vec2 texcoord0;
 out vec4 color;
 out vec2 tc;
 void main() {
-    gl_Position = vec4(pos.x / view.x * 2.0 - 1.0, 1.0 - pos.y / view.y * 2.0, 0.0, 1.0);
+    float y = 1.0 - pos.y / view.y * 2.0;
+    gl_Position = vec4(pos.x / view.x * 2.0 - 1.0, view.z > 0.5 ? -y : y, 0.0, 1.0);
     color = color0;
     tc = texcoord0;
 }
