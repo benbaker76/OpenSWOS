@@ -39,7 +39,8 @@ export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH
 cd $MAC_PATH
 if [ $DO_PULL = 1 ]; then
     git pull -q --ff-only
-    git submodule update --init -q third_party/ggpo-x third_party/swos-competition-engine
+    git submodule update --init -q third_party/ggpo-x third_party/swos-competition-engine \\
+        third_party/glslang third_party/SPIRV-Cross
 fi
 echo "built from commit  : \$(git rev-parse --short=8 HEAD)\$(git diff --quiet HEAD || echo ' (dirty)')"
 rm -rf $DIR

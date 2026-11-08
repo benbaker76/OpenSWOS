@@ -26,7 +26,9 @@ SDL build, the same sources as every other target (`SWOS_MOBILE_BUILD`, with `SW
   SDL2's Java activity (`org/libsdl/app`, from the same release -- they must match) and
   `net.openswos.game.OpenSWOSActivity`. arm64-v8a and x86_64 (the emulator). Needs a JDK 17
   (`~/opt/jdk-17*`) and the SDK at `~/Android/Sdk` with platform 36, NDK 30.0.16248370, CMake 4.1.2.
-- **iOS**: arm64, iOS 15 and later; the app bundle is the game's working folder. The packed structs
+- **iOS**: arm64, iOS 15 and later; drawn by the GPU presenter on Metal (as macOS; slang shaders
+  too, docs/RENDERING.md -- `SIMCTL_CHILD_SWOS_SHADER=<preset> xcrun simctl launch ...` tries one
+  in the simulator); the app bundle is the game's working folder. The packed structs
   hold pointers at unaligned offsets, which iOS 15's chained fixups cannot express: the link uses
   `-Wl,-no_fixup_chains` (the classic linker the macOS build uses is gone from current Xcode).
 - **The identity** -- the Android application id, the iOS bundle id -- is `PROJECT_APP_ID` in

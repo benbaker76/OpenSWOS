@@ -29,6 +29,11 @@ without changing anything.
 | macOS | Metal (`src/sokol_impl_metal.m`, Objective-C with ARC; `-framework Metal QuartzCore Foundation`); `make MACOS_GL=1` keeps OpenGL 4.1 core |
 | web | WebGL 2 (`-sMAX_WEBGL_VERSION=2`) |
 | Android | GLES 3 (`GLESv3` in `packaging/mobile/CMakeLists.txt`) |
+| iOS | Metal, as macOS (`src/sokol_impl_metal.m` in `packaging/mobile/CMakeLists.txt`; until 2026-11-08 SDL's renderer) |
+| Switch | none yet: SDL's renderer |
+
+The phone builds compile the shader compiler too: `packaging/mobile/CMakeLists.txt` reads the
+Makefile's `SHADERCC_SRCS` list out of the Makefile itself, so the two cannot drift.
 
 `src/sokol_impl.c` compiles sokol's implementation for GL; `src/sokol_impl_metal.m` for Metal,
 with what the presenter needs of Metal around it: the device, SDL's Metal view and its

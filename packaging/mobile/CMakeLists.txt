@@ -56,7 +56,18 @@ list(FILTER GGPO_SOURCES EXCLUDE REGEX "platform_windows\\.cpp$")
 set(ENET_DIR ${REPO}/third_party/enet)
 set(ENET_SOURCES ${ENET_DIR}/callbacks.c ${ENET_DIR}/compress.c ${ENET_DIR}/host.c ${ENET_DIR}/list.c
                  ${ENET_DIR}/packet.c ${ENET_DIR}/peer.c ${ENET_DIR}/protocol.c ${ENET_DIR}/unix.c)
-set(ALL_SOURCES ${GAME_SOURCES} ${GGPO_SOURCES} ${ENET_SOURCES} ${REPO}/src/netplay_netem_install.cpp)
+# The shader compiler (the Makefile's SHADERCC: glslang + SPIRV-Cross, docs/RENDERING.md "Shaders"):
+# its list of sources is read out of the Makefile, so the two builds cannot drift apart.
+file(READ ${REPO}/Makefile MAKEFILE_TEXT)
+string(REGEX MATCHALL "\\$\\(SHADERCC_(GLSLANG|SPVC)\\)/[A-Za-z0-9_/]+\\.cpp" SHADERCC_SOURCES "${MAKEFILE_TEXT}")
+list(TRANSFORM SHADERCC_SOURCES REPLACE "^\\$\\(SHADERCC_GLSLANG\\)" "${REPO}/third_party/glslang")
+list(TRANSFORM SHADERCC_SOURCES REPLACE "^\\$\\(SHADERCC_SPVC\\)" "${REPO}/third_party/SPIRV-Cross")
+list(REMOVE_DUPLICATES SHADERCC_SOURCES)
+list(LENGTH SHADERCC_SOURCES SHADERCC_COUNT)
+if(SHADERCC_COUNT LESS 40)
+    message(FATAL_ERROR "read ${SHADERCC_COUNT} shader-compiler sources out of the Makefile: has its SHADERCC list moved?")
+endif()
+set(ALL_SOURCES ${GAME_SOURCES} ${GGPO_SOURCES} ${ENET_SOURCES} ${SHADERCC_SOURCES} ${REPO}/src/netplay_netem_install.cpp)
 # A fork of OpenSWOS (docs/FORKING.md) puts what only it builds in fork.cmake beside the Makefile's
 # fork.mk: it may append to FORK_SOURCES and FORK_INCLUDES. OpenSWOS has none.
 set(FORK_SOURCES "")
@@ -82,7 +93,9 @@ target_compile_definitions(${GAME} PRIVATE
     COMPETITION_DATA_C=1 TACTICS_DATA_C=1 FIXTURE_DATA_C=1 SIMULATION_DATA_C=1 PLAYER_DATA_C=1
     RENDER_DATA_C=1 PALETTE_DATA_C=1 STRINGS_DATA_C=1 GENERAL_DATA_C=1
     SWOS_WORLDS=1 SWOS_ONLINE_CLIENT=0 SWOS_SAVE_FORMAT_JSON=1 SWOS_NETPLAY=1
-    $<$<BOOL:${SWOS_TEST_RULES}>:SWOS_TEST_RULES=1>)
+    $<$<BOOL:${SWOS_TEST_RULES}>:SWOS_TEST_RULES=1>
+    $<$<COMPILE_LANGUAGE:C,OBJC>:SWOS_SHADERCC=1>)
+target_include_directories(${GAME} PRIVATE ${REPO}/third_party/glslang ${REPO}/third_party/SPIRV-Cross)
 set(C_FLAGS -O2 -g -std=gnu11 -fno-strict-aliasing -fno-builtin
     -include ${REPO}/include/swos_platform.h
     -Wall -Wno-unknown-warning-option -Wno-unused-function -Wno-unused-variable
@@ -98,18 +111,26 @@ target_compile_options(${GAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-O2 -g -std=gnu
 # (the one C++ file of ours: the game's platform header too, as the Makefile's rule for it)
 set_source_files_properties(${REPO}/src/netplay_netem_install.cpp PROPERTIES COMPILE_OPTIONS
     "-include;${REPO}/include/swos_platform.h")
+# (the shader compiler: as upstream ships it, with its CMake build's defines -- the Makefile's
+#  SHADERCC_CXXFLAGS)
+set_source_files_properties(${SHADERCC_SOURCES} PROPERTIES
+    COMPILE_OPTIONS "-DNDEBUG;-DENABLE_OPT=0;-DENABLE_SPIRV;-DGLSLANG_OSINCLUDE_UNIX;-DSPIRV_CROSS_C_API_GLSL=1;-DSPIRV_CROSS_C_API_HLSL=1;-DSPIRV_CROSS_C_API_MSL=1;-DSPIRV_CROSS_C_API_REFLECT=1;-I${REPO}/src/shadercc")
 
 if(ANDROID)
     target_link_libraries(${GAME} PRIVATE SDL2::SDL2 m log GLESv3)   # (GLESv3: the GPU presenter, docs/RENDERING.md)
 else()
-    target_link_libraries(${GAME} PRIVATE SDL2::SDL2main SDL2::SDL2-static)
+    target_link_libraries(${GAME} PRIVATE SDL2::SDL2main SDL2::SDL2-static
+                          "-framework Metal" "-framework QuartzCore" "-framework Foundation")
     # The app: its Info.plist (packaging/ios), its icons, and the project's own data -- the
     # tracked files of bin/ every drop ships (scripts/stage_runtime.sh) -- in the bundle, which
     # is the game's working folder (src/mobile.c). Never the original game's data.
     execute_process(COMMAND git rev-list --count HEAD WORKING_DIRECTORY ${REPO}
                     OUTPUT_VARIABLE APP_BUILD OUTPUT_STRIP_TRAILING_WHITESPACE)
     file(GLOB IOS_ICONS ${REPO}/packaging/ios/icons/*.png)
-    target_sources(${GAME} PRIVATE ${IOS_ICONS} ${REPO}/packaging/ios/app_delegate.m)
+    target_sources(${GAME} PRIVATE ${IOS_ICONS} ${REPO}/packaging/ios/app_delegate.m
+                   ${REPO}/src/sokol_impl_metal.m)        # (the GPU presenter: Metal, docs/RENDERING.md)
+    set_source_files_properties(${REPO}/src/sokol_impl_metal.m PROPERTIES COMPILE_OPTIONS
+        "-fobjc-arc;-std=gnu11;-include;${REPO}/include/swos_platform.h")
     set_source_files_properties(${IOS_ICONS} PROPERTIES MACOSX_PACKAGE_LOCATION .)
     set_target_properties(${GAME} PROPERTIES
         MACOSX_BUNDLE_INFO_PLIST ${REPO}/packaging/ios/Info.plist.in
