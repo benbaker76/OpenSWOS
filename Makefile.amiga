@@ -87,6 +87,7 @@ SDL_ONLY_SRCS := \
     mod_dosmenus.c        \
     slang.c               \
     gpu_slang.c           \
+    mod_retrotv.c         \
     stb_image_impl.c      \
     tileagent_impl.c      \
     mm_client.c           \

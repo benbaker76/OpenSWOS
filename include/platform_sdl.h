@@ -89,8 +89,6 @@ typedef struct {
     int                    crt_mask_strength;/* 0..100 — how dark the grille's off-phase is */
     int                    crt_vignette;     /* 0..100 — corner darkening, 0 = off */
     int                    crt_corners;      /* 0..100 — rounded-glass corner size, 0 = square */
-    int                    crt_curvature;    /* 0..100 — the glass bends the picture (GPU presenter) */
-    int                    crt_ntsc;         /* 0..100 — a composite signal's colour bleed (GPU presenter) */
     char                   render_driver[16];/* accel backend override: "" / "auto" = SDL default (D3D11 on Windows);
                                               * "opengl" / "direct3d11" / "direct3d" / "metal" force one. Windows D3D11
                                               * serialises presents on CPU-idle frames (replays crawl); "opengl" avoids it. */

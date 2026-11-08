@@ -71,6 +71,13 @@ typedef struct {
     uint8_t       uboData[4096], pushData[4096];
 } Pass;
 
+/* Parameter values a mod set (GpuSlang_SetParameter), kept across loads: applied over the
+ * preset's own when one is loaded, and at once to the one loaded. */
+static struct { char name[64]; float value; } s_over[32];
+static int s_nover;
+
+static void apply_overrides(void);
+
 static struct {
     int         on;
     SlangPreset preset;
@@ -411,12 +418,40 @@ int32_t GpuSlang_Load(const char *path)
         S.quad = sg_make_buffer(&b);
     }
     S.on = 1;
+    apply_overrides();
     fprintf(stderr, "[shaders] %s: %d passes, %d textures, %d parameters -- on\n", path, (int)S.npasses,
             (int)S.preset.nluts, (int)S.preset.nparams);
     return 1;
 }
 
 int32_t GpuSlang_Active(void) { return S.on; }
+
+static void apply_overrides(void)
+{
+    for (int i = 0; i < s_nover; i++)
+        for (int p = 0; p < S.preset.nparams; p++)
+            if (!strcmp(S.preset.param[p].name, s_over[i].name)) {
+                float v = s_over[i].value;
+                v = v < S.preset.param[p].min ? S.preset.param[p].min : v > S.preset.param[p].max ? S.preset.param[p].max : v;
+                S.preset.param[p].value = v;
+            }
+}
+
+void GpuSlang_SetParameter(const char *name, float value)
+{
+    int i;
+    for (i = 0; i < s_nover; i++)
+        if (!strcmp(s_over[i].name, name))
+            break;
+    if (i == s_nover) {
+        if (s_nover == (int)(sizeof s_over / sizeof s_over[0]))
+            return;
+        s_nover++;
+    }
+    snprintf(s_over[i].name, sizeof s_over[i].name, "%s", name);
+    s_over[i].value = value;
+    apply_overrides();
+}
 
 sg_view GpuSlang_BeginOriginal(int w, int h)
 {
@@ -686,6 +721,7 @@ void GpuSlang_Run(float vx, float vy, float vw, float vh, void (*beginScreen)(vo
 #else   /* no slang on this build */
 
 int32_t GpuSlang_Load(const char *path) { (void)path; return 0; }
+void    GpuSlang_SetParameter(const char *name, float value) { (void)name; (void)value; }
 void    GpuSlang_Unload(void) {}
 int32_t GpuSlang_Active(void) { return 0; }
 

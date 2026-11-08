@@ -1,0 +1,45 @@
+{
+ "uuid": "561650c4-be78-5b59-bc2e-1e7013b8ecf4",
+ "id": "retrotv",
+ "name": "Retro TV",
+ "version": "1.0",
+ "author": "OpenSWOS (RetroArch's slang shader format)",
+ "about": "The picture as a TV shows it: OpenSWOS's own, or any RetroArch slang preset in Documents/SWOS/shaders.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": false,
+ "settings": [
+  {
+   "key": "preset",
+   "label": "Shader",
+   "choices_from": "shaders",
+   "user_folder": "shaders",
+   "choices_ext": ".slangp",
+   "default": "openswos-tv.slangp"
+  },
+  {
+   "key": "curvature",
+   "label": "Curvature",
+   "choices": [
+    "off",
+    "low",
+    "medium",
+    "high"
+   ],
+   "default": "medium"
+  },
+  {
+   "key": "ntsc",
+   "label": "TV signal",
+   "choices": [
+    "off",
+    "low",
+    "medium",
+    "full"
+   ],
+   "default": "full"
+  }
+ ]
+}

@@ -640,3 +640,24 @@ char *ModApi_JsonEscape(const char *in, char *out, uint32_t cap)
     out[n] = 0;
     return out;
 }
+
+#ifdef SWOS_SDL_BUILD
+#include "gpu_present.h"
+#include "gpu_slang.h"
+int32_t ModApi_SetShaderPreset(const char *path)
+{
+#ifdef SWOS_SHADERCC
+    GpuPresent_SetShaderPreset(path);
+    return 1;
+#else
+    (void)path;
+    return 0;
+#endif
+}
+
+void ModApi_SetShaderParameter(const char *name, float value)
+{
+    if (name)
+        GpuSlang_SetParameter(name, value);
+}
+#endif

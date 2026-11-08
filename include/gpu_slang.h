@@ -12,6 +12,9 @@
 int32_t GpuSlang_Load(const char *preset);
 void    GpuSlang_Unload(void);
 int32_t GpuSlang_Active(void);
+/* A preset parameter's value (its #pragma parameter name), over the preset's own: kept for presets
+ * loaded later, clamped to the parameter's range; a name the preset lacks is left alone. */
+void    GpuSlang_SetParameter(const char *name, float value);
 
 #if defined(SWOS_SDL_BUILD) && defined(SWOS_SHADERCC)
 #include "sokol_config.h"

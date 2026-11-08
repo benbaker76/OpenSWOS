@@ -72,25 +72,34 @@ On SDL it maps onto SDL_Renderer; on the GPU presenter onto one streamed vertex 
 (`GpuGfx_*`). New overlay drawing goes through `gfx.h`, never straight to SDL_Renderer, or it will
 not show on the GPU presenter.
 
-## The CRT pass (`[video] crt_curvature`, `crt_ntsc`)
+## Shaders from files: RetroArch's slang (the Retro TV mod)
 
-Two TV effects only the GPU presenter has (SDL's renderer has no shader stage: there they are
-off), each 0-100, both 0 by default (`--crt-curvature=`, `--crt-ntsc=` for a run). With both at
-0 nothing changes and nothing is spent. With either on, `GpuPresent_Begin` draws the picture's
-space -- the frame, the HUD and every overlay in `GFX_SPACE_PICTURE` (the flags, display2020,
-the weather) -- into an offscreen image the picture's size on screen, and the first
-`GFX_SPACE_OUTPUT` draw (or the end of the pass) resolves it through the `crt` program onto the
-screen (`crt_resolve`); what is drawn in the window's space after that (the chat, the touch
-controls, the CRT mask / vignette / corners overlay) stays flat on the glass.
+The picture can go through a RetroArch **slang** preset (`.slangp`) -- OpenSWOS's own, or any of
+libretro's -- on the GPU presenter (SDL's renderer has no shader stage: none there). RetroArch's
+way, one file for every backend: `src/slang.c` reads the preset and its passes (`.slang`, Vulkan
+GLSL with `#pragma stage` sections), **glslang** compiles each to SPIR-V on the player's machine,
+and **SPIRV-Cross** reflects its uniforms and textures and translates it for the backend: GLSL
+410, GLSL ES 300, Metal or HLSL (both libraries are submodules built by the Makefile: `SHADERCC`).
+`src/gpu_slang.c` runs the passes: the game's picture, its HUD and the mods' picture-space
+overlays drawn at the game's own size into `Original`; each pass into its own image (its scale
+type, its format; mipmaps when the next asks), the last onto the screen in the picture's place,
+then the window's overlays. Each pass gets what it reads -- Original, Source, earlier passes'
+output, feedback, history, the preset's textures -- and its uniforms by meaning (MVP, the sizes,
+FrameCount, the parameters).
 
-- **Curvature**: a barrel -- each point pushed out by the square of its distance along the other
-  axis; outside the bent picture, black.
-- **NTSC**: our own model of a composite signal, written for this from how one works (no filter's
-  code -- Blargg's snes_ntsc is LGPL, docs and memory: parked for that). The picture is ENCODED
-  as Y plus I and Q on a subcarrier running a cycle each two source pixels, half a cycle further
-  each line and each frame, then DECODED with box filters of whole cycles -- Y one, I two, Q
-  three -- so a flat colour comes back as it was and only edges and detail bleed and fringe
-  (and crawl). 25 taps a pixel, a quarter of a source pixel apart, of the offscreen image.
+Traps, each met: GL keeps render targets bottom up and slang takes the first row as the top, so
+on GL every pass into an image (and Original) is drawn upside down; GL's blocks are real uniform
+blocks bound to our own buffers (`SokolGl_*`), since sokol's GL uniforms take one type a block and
+no `uint`; sRGB passes need `GL_FRAMEBUFFER_SRGB`; a preset value may carry a `#` comment.
+
+Choosing one: the **retrotv** mod (`src/mod_retrotv.c`, off by default) -- `[mod.retrotv] preset`
+from its `shaders/` or the player's `Documents\SWOS\shaders` (a preset with its `.slang` files and
+textures beside it, as RetroArch keeps them), `curvature` / `ntsc` setting the parameters of those
+names. Its default, `openswos-tv.slangp`, is the tube's glass and our own composite-signal model
+(no filter's code). For a run: `SWOS_SHADER=<preset>`; `SWOS_SHADER_PASSES=k` stops the chain at
+pass k; `--slang-selftest=<preset>` compiles one for every backend. Until 2026-11-08 the curvature
+and signal were a built-in pass (`[video] crt_curvature`, `crt_ntsc`): gone, the mod is it. The
+mask / vignette / corners overlay (`[video] crt_mask` ...) is unchanged and works on both renderers.
 
 ## Captures
 

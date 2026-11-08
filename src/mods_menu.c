@@ -252,16 +252,19 @@ static char        s_pageName[48], s_pageAbout[64], s_pageLabels[kRows][40], s_p
 /* "choices_from": "<folder>": "off", then the image files (.png .bmp .jpg) in that folder of the
  * mod and of the player's game folder (swos_user_dir(); "user_folder" when its name is another),
  * each once, up to the page's 8. */
-typedef struct { PageSetting *ps; } ChoicesCtx;
+typedef struct { PageSetting *ps; const char *ext; } ChoicesCtx;
 static int32_t choices_add(const char *name, void *ctx)
 {
     PageSetting *ps = ((ChoicesCtx *)ctx)->ps;
     const char *dot = strrchr(name, '.');
     if (ps->choiceCount >= 8)
         return 1;
-    if (!dot || !(SDL_strcasecmp(dot, ".png") == 0 || SDL_strcasecmp(dot, ".bmp") == 0 ||
-                  SDL_strcasecmp(dot, ".jpg") == 0 || SDL_strcasecmp(dot, ".jpeg") == 0) ||
-        strlen(name) >= sizeof ps->choices[0])
+    const char *ext = ((ChoicesCtx *)ctx)->ext;
+    if (!dot || strlen(name) >= sizeof ps->choices[0])
+        return 0;
+    if (ext[0] ? SDL_strcasecmp(dot, ext) != 0 :
+        !(SDL_strcasecmp(dot, ".png") == 0 || SDL_strcasecmp(dot, ".bmp") == 0 ||
+          SDL_strcasecmp(dot, ".jpg") == 0 || SDL_strcasecmp(dot, ".jpeg") == 0))
         return 0;
     for (int32_t c = 0; c < ps->choiceCount; c++)
         if (SDL_strcasecmp(ps->choices[c], name) == 0)
@@ -270,10 +273,11 @@ static int32_t choices_add(const char *name, void *ctx)
     return 0;
 }
 
-static void choices_from_files(const ModInfo *m, const char *folder, const char *userFolder, PageSetting *ps)
+static void choices_from_files(const ModInfo *m, const char *folder, const char *userFolder, const char *ext,
+                               PageSetting *ps)
 {
     char dir[1100];
-    ChoicesCtx ctx = { ps };
+    ChoicesCtx ctx = { ps, ext };
     snprintf(ps->choices[0], sizeof ps->choices[0], "off");
     ps->choiceCount = 1;
     snprintf(dir, sizeof dir, "%s/%s", ModApi_ModDir(m->slug), folder);
@@ -330,10 +334,12 @@ static void read_page_settings(const ModInfo *m)
         }
         snprintf(q, sizeof q, "$.settings[%d].choices_from", (int)i);
         if (!ps->choiceCount && mjson_get_string(json, len, q, t, (int)sizeof t) > 0) {
-            char user[64] = "";             /* (the player's folder's name, when not the same) */
+            char user[64] = "", ext[16] = "";   /* (the player's folder's name, when not the same) */
             snprintf(q, sizeof q, "$.settings[%d].user_folder", (int)i);
             mjson_get_string(json, len, q, user, (int)sizeof user);
-            choices_from_files(m, t, user, ps); /* "off" and the image files of a folder */
+            snprintf(q, sizeof q, "$.settings[%d].choices_ext", (int)i);   /* (".slangp"; none: images) */
+            mjson_get_string(json, len, q, ext, (int)sizeof ext);
+            choices_from_files(m, t, user, ext, ps);    /* "off" and the files of a folder */
         }
         if (!ps->choiceCount) {
             snprintf(ps->choices[0], sizeof ps->choices[0], "off");

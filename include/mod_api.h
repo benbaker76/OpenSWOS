@@ -741,6 +741,13 @@ void     ModApi_RestoreMenuBackground(int32_t x, int32_t y, int32_t w, int32_t h
 int32_t  ModApi_TextImage(const char *text, int32_t small, int32_t colour, uint8_t *rgba, int32_t cap,
                           int32_t *w, int32_t *h);
 
+/* ---- the picture through a RetroArch slang preset (the GPU presenter; src/gpu_slang.c) ----
+ * A preset (.slangp) to draw the picture through, from the next frame; NULL / "" none. A preset
+ * parameter's value (its #pragma parameter name) over the preset's own. 0 when this build cannot
+ * (SDL's renderer, or no shader compiler: SHADERCC=0). */
+int32_t  ModApi_SetShaderPreset(const char *path);
+void     ModApi_SetShaderParameter(const char *name, float value);
+
 /* ---- colours ---- */
 void     ModApi_PaletteColour(uint8_t index, uint8_t *r, uint8_t *g, uint8_t *b);  /* as last shown */
 uint8_t  ModApi_NearestColour(uint8_t r, uint8_t g, uint8_t b);                    /* (not entry 0) */

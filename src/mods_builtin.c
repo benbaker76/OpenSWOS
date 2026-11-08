@@ -22,6 +22,7 @@ extern const ModDef ModDef_flags;       /* src/mod_flags.c (SDL: it draws throug
 extern const ModDef ModDef_pitchmaps;   /* src/mod_pitchmaps.c (SDL: Tile Agent pitch maps) */
 extern const ModDef ModDef_backgrounds; /* src/mod_backgrounds.c (SDL: the menus' true-colour backdrop) */
 extern const ModDef ModDef_dosmenus;    /* src/mod_dosmenus.c (SDL: the PC game's menu shading) */
+extern const ModDef ModDef_retrotv;     /* src/mod_retrotv.c (SDL: the picture through a slang preset) */
 
 #if defined(__has_include)
 #if __has_include("fork_mods.inc")
@@ -54,6 +55,7 @@ const ModDef *const g_builtinMods[] = {
     MOD_SDL(ModDef_pitchmaps)
     MOD_SDL(ModDef_backgrounds)
     MOD_SDL(ModDef_dosmenus)
+    MOD_SDL(ModDef_retrotv)
 #ifdef FORK_MODS
     FORK_MOD_LIST                       /* "&ModDef_<slug>," a fork's mods */
 #endif

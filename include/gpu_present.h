@@ -72,8 +72,6 @@ GpuTex *GpuGfx_CreateTexture(int w, int h, int linear);
 void    GpuGfx_UpdateTexture(GpuTex *t, const void *rgba, int pitch);
 void    GpuGfx_DestroyTexture(GpuTex *t);
 void    GpuPresent_EndPass(void);                        /* (before a read of the pixels) */
-/* The CRT pass ([video] crt_curvature, crt_ntsc, each 0..100; 0 and 0: none, no cost). */
-void    GpuPresent_SetCrt(int curvature, int ntsc);
 /* A RetroArch slang preset (.slangp) to draw the picture through (src/gpu_slang.c), loaded at the
  * next frame; NULL / "" none. SWOS_SHADER=<preset> sets one for a run. */
 void    GpuPresent_SetShaderPreset(const char *path);

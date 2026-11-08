@@ -980,7 +980,6 @@ int Platform_Init(const PlatformInitOptions *opts)
         cfx.vignette      = opts ? opts->crt_vignette : 0;
         cfx.corners       = opts ? opts->crt_corners : 0;
         CrtEffects_Configure(&cfx);
-        GpuPresent_SetCrt(opts ? opts->crt_curvature : 0, opts ? opts->crt_ntsc : 0);
     }
 
     /* Report what we actually GOT, not what we asked for. Ruff n Tumble's loop

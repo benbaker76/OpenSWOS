@@ -1,0 +1,5 @@
+# OpenSWOS TV: the tube's glass and a composite signal (openswos-tv.slang). The retrotv mod's default.
+shaders = 1
+shader0 = openswos-tv.slang
+filter_linear0 = true
+scale_type0 = viewport

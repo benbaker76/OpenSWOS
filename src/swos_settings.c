@@ -11,8 +11,6 @@
  *   crt_mask=off          ; off | aperture | slot | scanlines
  *   crt_mask_strength=45  ; 0-100
  *   crt_vignette=0        ; 0-100
- *   crt_curvature=0       ; 0-100 (the GPU presenter's CRT pass)
- *   crt_ntsc=0            ; 0-100 (the GPU presenter's CRT pass)
  *   crt_corners=0         ; 0-100
  *   fullscreen=off        ; off | desktop | exclusive
  *   scale=3               ; 1..4 (windowed only)
@@ -103,10 +101,6 @@ static int handler(void *user, const char *section,
             else if (eqi(value, "scanlines")) opts->crt_mask = 3;
         } else if (eqi(name, "crt_mask_strength")) {
             int n = atoi(value); if (n >= 0 && n <= 100) opts->crt_mask_strength = n;
-        } else if (eqi(name, "crt_curvature")) {
-            int n = atoi(value); if (n >= 0 && n <= 100) opts->crt_curvature = n;
-        } else if (eqi(name, "crt_ntsc")) {
-            int n = atoi(value); if (n >= 0 && n <= 100) opts->crt_ntsc = n;
         } else if (eqi(name, "crt_vignette")) {
             int n = atoi(value); if (n >= 0 && n <= 100) opts->crt_vignette = n;
         } else if (eqi(name, "crt_corners")) {
@@ -433,8 +427,6 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     snprintf(vbuf[4], 24, "%d", opts->crt_mask_strength);
     snprintf(vbuf[5], 24, "%d", opts->crt_vignette);
     snprintf(vbuf[6], 24, "%d", opts->crt_corners);
-    snprintf(vbuf[7], 24, "%d", opts->crt_curvature);
-    snprintf(vbuf[8], 24, "%d", opts->crt_ntsc);
 
     /* Keep every comment below INI_MAX_LINE (200, include/ini.h): the writer
      * happily emits a longer line and the READER then reports "parse error at
@@ -448,8 +440,6 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "video",  "crt_mask_strength", "; crt_mask_strength: 0-100. How dark the grille's off-phase gets. 0 = invisible, 100 = black between phosphors", vbuf[4] };
     SETTING(n) = (IniEntry){ "video",  "crt_vignette", "; crt_vignette: 0-100. Darkens towards the corners like a tube's edges. 0 = off", vbuf[5] };
     SETTING(n) = (IniEntry){ "video",  "crt_corners", "; crt_corners: 0-100. Rounded-glass corner size. 0 = square screen", vbuf[6] };
-    SETTING(n) = (IniEntry){ "video",  "crt_curvature", "; crt_curvature: 0-100. The tube's glass bends the picture (accel renderer). 0 = flat", vbuf[7] };
-    SETTING(n) = (IniEntry){ "video",  "crt_ntsc", "; crt_ntsc: 0-100. A composite TV signal: colour bleed, fringes, dot crawl (accel renderer). 0 = off", vbuf[8] };
     SETTING(n) = (IniEntry){ "video",  "render_driver", "; render_driver: auto | opengl | direct3d11 | direct3d | software-backend. auto = SDL default (D3D11 on Windows). Use opengl if replays/attract run in slow motion on Windows", opts->render_driver[0] ? opts->render_driver : "auto" };
     SETTING(n) = (IniEntry){ "video",  "fullscreen", "; fullscreen: off | desktop | exclusive", fullscreen_str(fs_now) };
     SETTING(n) = (IniEntry){ "video",  "scale",      "; scale: window scale 1-4 (windowed only)", vbuf[1] };
