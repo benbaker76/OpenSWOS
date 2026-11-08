@@ -13,6 +13,8 @@
 extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);   /* src/mod_match.c */
 extern int32_t ModMatch_PlayerIndex(const Sprite *s);
 #define MOD_EVENT(kind, team, sprite) ModMatch_Event((kind), (team)->teamNumber, ModMatch_PlayerIndex(sprite), 0)
+#define MOD_EVENT_ARG(kind, team, sprite, arg) \
+    ModMatch_Event((kind), (team)->teamNumber, ModMatch_PlayerIndex(sprite), (arg))
 
 
 extern int16_t  _gsPlayerDownTimer;   /* Amiga 50 / DOS 55 — dos_gameplay.c */
@@ -272,7 +274,7 @@ PlayerTackled(Sprite *player, TeamGeneralInfo *team)
 
 apply_injury:
     pi->isInjured = 1;
-    MOD_EVENT(8 /* MODEVENT_INJURY */, team, player);
+    MOD_EVENT_ARG(8 /* MODEVENT_INJURY */, team, player, (uint8_t)severity >> 5);   /* (arg: 1..7) */
     DOS_SOUND(DOS_EV_INJURY, team->playerNumber != 0);
 
     /* Only upgrade injury severity, never downgrade */

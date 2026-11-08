@@ -1169,6 +1169,10 @@ substitutePlayer(void)
     _waitForPlayerToGoInTimer = 100;
     _subsBlockFire = 1;
     DOS_SOUND(DOS_EV_SUBSTITUTION, 0);
+    /* the mods: off7's slot (d7) now holds the man coming on, off6's (d6) the man going off */
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(17 /* MODEVENT_SUBSTITUTION */, ((TeamGeneralInfo *)_benchTeam)->teamNumber,
+                     (int32_t)d7, (int32_t)d6); }
 
     leaveSubsMenu();
 }
@@ -3149,6 +3153,10 @@ void SubstitutePlayer(void)
     _waitForPlayerToGoInTimer = 100;
     _subsBlockFire = 1;
     DOS_SOUND(DOS_EV_SUBSTITUTION, 0);
+    /* the mods: the leaving slot now holds the man coming on, the bench's the man going off */
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(17 /* MODEVENT_SUBSTITUTION */, ((TeamGeneralInfo *)_benchTeam)->teamNumber,
+                     (int32_t)leaving, (int32_t)entering); }
     LeaveSubsMenu();
 }
 

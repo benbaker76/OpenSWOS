@@ -110,6 +110,26 @@ void ModHooks_MatchEvent(const ModMatchEvent *event)
     EACH(matchEvent) (*m_)->matchEvent(event);
 }
 
+void ModHooks_MatchMoment(const ModMatchEvent *event)
+{
+    EACH(matchMoment) (*m_)->matchMoment(event);
+}
+
+void ModHooks_SoundEvent(uint8_t event, uint16_t arg)
+{
+    EACH(soundEvent) (*m_)->soundEvent(event, arg);
+}
+
+void ModHooks_NetFrame(int32_t frame)
+{
+    EACH(netFrame) (*m_)->netFrame(frame);
+}
+
+void ModHooks_NetConfirmed(int32_t frame)
+{
+    EACH(netConfirmed) (*m_)->netConfirmed(frame);
+}
+
 void ModHooks_MatchEnded(const ModMatchResult *result)
 {
     EACH(matchEnded) (*m_)->matchEnded(result);

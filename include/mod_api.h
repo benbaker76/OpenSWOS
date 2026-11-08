@@ -79,6 +79,20 @@ typedef struct ModDef {
     void (*matchEvent)(const ModMatchEvent *event);
     void (*matchEnded)(const ModMatchResult *result);   /* any match's final whistle */
 
+    /* -- an online match as it is played, re-simulations included (docs/MODS.md §16) --
+     * GGPO plays frames again after a rollback, so matchFrame / matchEvent see each frame's first
+     * run only, and what they hear can be taken back (a goal a rollback undoes). A mod that must
+     * tell only what FINALLY happened (a post to a server) uses these instead: netFrame(frame)
+     * before each frame is played -- again after a rollback, when what frames >= frame said is
+     * void --, matchMoment with every event of every run (matchEvent's), soundEvent with the
+     * PC sound events (dos_sound.h: the woodwork, a corner, a save ...; every run, offline too),
+     * and netConfirmed(frame) once every frame <= frame is final. netFrame and netConfirmed are
+     * an online match's only. Nothing here may change the match. */
+    void (*netFrame)(int32_t frame);
+    void (*netConfirmed)(int32_t frame);
+    void (*matchMoment)(const ModMatchEvent *event);
+    void (*soundEvent)(uint8_t event, uint16_t arg);
+
     /* -- the career (docs/MODS.md §27): a "career" mod's hooks. Unlike the rest, a career
      * hook may change the career -- its squads, its players -- through the game's career
      * code; never a match. None runs in a match, nor online. -- */
@@ -589,6 +603,8 @@ typedef enum {
     MODEVENT_FINAL_WHISTLE,     /* the match is over */
     MODEVENT_TACKLE,            /* team's player won the ball with a good tackle */
     MODEVENT_EXTRA_TIME_HALF,   /* extra time's first half over */
+    MODEVENT_SUBSTITUTION,      /* team's: player the slot of the man coming on, arg the bench slot
+                                 * of the man going off (ModApi_MatchPlayerName, after the swap) */
 } ModEventKind;
 /* A goal's arg (MODEVENT_GOAL / OWN_GOAL / PENALTY_GOAL): MODGOAL_HEADER when its scorer headed
  * it in (he headed the ball within the last 75 frames). */
@@ -625,6 +641,9 @@ typedef struct {
                          * teams; the Amiga, which has no team database) */
 } ModMatchTeam;
 int32_t  ModApi_MatchTeam(int32_t side, ModMatchTeam *out);
+/* A player of a side (0 top, 1 bottom) in a match, by slot -- 0..10 on the pitch, 11.. the bench,
+ * a matchEvent's `player` -- as the game shows him (his short name); 0 when there is none. */
+int32_t  ModApi_MatchPlayerName(int32_t side, int32_t slot, char *out, int32_t cap);
 
 /* The result banner (the score panel at kick-off, after a goal, at half and full time), in screen
  * pixels when it is up: its box's left and right, and the top and height of the team names' row

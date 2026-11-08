@@ -81,6 +81,23 @@ int32_t ModApi_MatchMinute(void)
     return t[1] * 100 + t[2] * 10 + t[3];
 }
 
+int32_t ModApi_MatchPlayerName(int32_t side, int32_t slot, char *out, int32_t cap)
+{
+    extern TeamGame _topTeamInGame, _bottomTeamInGame;      /* (team 1 the top team) */
+    const TeamGame *t = side == 0 ? &_topTeamInGame : side == 1 ? &_bottomTeamInGame : NULL;
+    int32_t n = 0;
+    if (!out || cap < 1)
+        return 0;
+    out[0] = '\0';
+    if (!t || slot < 0 || slot >= 16 || !ModApi_InMatch())
+        return 0;
+    for (const int8_t *s = t->players[slot].shortName;
+         n < (int32_t)sizeof t->players[slot].shortName && n + 1 < cap && s[n]; n++)
+        out[n] = (char)s[n];
+    out[n] = '\0';
+    return n > 0;
+}
+
 int32_t ModApi_MatchTeam(int32_t side, ModMatchTeam *out)
 {
     extern TeamFile *_gameTeam1, *_gameTeam2;

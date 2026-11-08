@@ -928,6 +928,7 @@ void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg)
     if (logEvents && !ModMatch_Quiet())
         fprintf(stderr, "[mods] event %d team %d player %d arg %d minute %d frame %u\n", (int)e.kind, (int)e.team,
                 (int)e.player, (int)e.arg, (int)e.minute, (unsigned)e.frame);
+    ModHooks_MatchMoment(&e);               /* (every run: a re-simulated frame's too) */
     ModHooks_MatchEvent(&e);
 }
 

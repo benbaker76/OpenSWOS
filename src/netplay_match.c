@@ -11,6 +11,7 @@
 
 #include <SDL.h>        /* SDL_GetTicks, SDL_Delay */
 
+#include "mod_hooks.h"    /* the mods' hooks */
 #include "netplay_match.h"
 #include "audio_sfx_filter.h"
 #include "dos_gameplay.h"   /* DosGameplay_TargetFps: the match's frame rate */
@@ -591,6 +592,8 @@ static void soundFrameBegin(int32_t frame, int32_t again)
     /* The replay recorder numbers frames the same way, so a re-simulated frame replaces
      * what was recorded for it (src/replay_v2.c). */
     { extern void ReplayRec_SetFrame(uint32_t frame); ReplayRec_SetFrame((uint32_t)frame); }
+    if (s_np.live)
+        ModHooks_NetFrame(frame);       /* (the mods: a frame played again voids what it said) */
     SoundFrame *f = &s_sound[(uint32_t)frame & (SOUND_FRAMES - 1)];
     if (f->frame != frame) {
         f->frame = frame;
@@ -1032,8 +1035,10 @@ static void recordConfirmed(int32_t confirmed)
         MatchRecord_Frame(s_np.recordNext, s_np.traceSim[s_np.recordNext]);
         s_np.recordNext++;
     }
-    if (confirmed >= 0)
+    if (confirmed >= 0) {
         MatchRecord_Replay((uint32_t)confirmed);
+        ModHooks_NetConfirmed(confirmed);
+    }
     MatchRecord_Pump();
 }
 
