@@ -906,6 +906,18 @@ struct __attribute__((packed)) {
     { (void *)_aWorld9697, (void *)_aWorld2627 }
 };
 
+/* OPTIONS -> LANGUAGE: indexed by _languageOption, in kLanguageCodes' order (menus.c
+ * ChangeLanguage): [general] language in SWOS.ini, played from the next start. SDL only. */
+extern char _aLangEnglish[], _aLangGerman[], _aLangFrench[], _aLangSpanish[], _aLangItalian[], _aLangDutch[];
+uint16_t _languageOption;
+struct __attribute__((packed)) {
+    void    *indexPtr; uint16_t base; void    *entries[6];
+} _languageStrTable = {
+    (&_languageOption), 0,
+    { (void *)_aLangEnglish, (void *)_aLangGerman, (void *)_aLangFrench,
+      (void *)_aLangSpanish, (void *)_aLangItalian, (void *)_aLangDutch }
+};
+
 #undef ON_OFF_TABLE
 #undef MONTHS
 /* ---- DIY Tournament string tables (SWOS2.s lines 75323..75554) ----

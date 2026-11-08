@@ -1445,6 +1445,9 @@ int main(int argc, char **argv)
     }
     fprintf(stderr, "[world] %s\n", World_Tag());
     /* OPTIONS -> WORLD draws the world SWOS.ini names (menus.c ChangeWorld). */
+    { extern uint16_t _languageOption;       /* OPTIONS -> LANGUAGE (menus.c ChangeLanguage) */
+      extern int32_t Language_OptionFor(const char *code);
+      _languageOption = (uint16_t)Language_OptionFor(opts.language); }
     { extern uint16_t _worldOption;
       _worldOption = (uint16_t)(World_FromTag(opts.world[0] ? opts.world : "9697") == (int32_t)WORLD_2627); }
 

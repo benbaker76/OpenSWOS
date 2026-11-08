@@ -4,6 +4,7 @@
   "_aUniform": "TENUE",
  "language": "nl",
  "strings": {
+  "_aLanguageOption": "TAAL",
   "_aModsNone": "GEEN",
   "_aModsOption": "MODS",
   "_a001Season": "SEIZOEN %0/0%1",
@@ -171,7 +172,7 @@
   "_aAttacker": "AANVALLER",
   "_aAug": "AUG",
   "_aAutoReplays": "AUTO REPLAYS",
-  "_aAutoSaveHighli": "AUTO SAMENVATTINGEN OPSLAAN",
+  "_aAutoSaveHighli": "AUTO SAMENV. OPSLAAN",
   "_aAwayGoals": "UITDOELPUNTEN",
   "_aB": "%b",
   "_aBAndC": "%b EN %c",

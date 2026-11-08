@@ -484,6 +484,16 @@ char _aTeamPacks[] = "TEAM PACKS";
 char _aModRow[] = "";      /* a mod's row (MODPOINT): its label set when shown, mod_entries.c */
 char _aNextPage[] = "NEXT PAGE";   /* JOB OFFERS with more than one page (job_offers_capacity) */
 char _aModsNone[] = "NONE";
+/* OPTIONS -> LANGUAGE (menus.c ChangeLanguage): its label, and each language in its own words --
+ * so a player finds theirs whatever the menus are in -- without accents, which the game's font
+ * lacks. */
+char _aLanguageOption[] = "LANGUAGE";
+char _aLangEnglish[] = "ENGLISH";
+char _aLangGerman[] = "DEUTSCH";
+char _aLangFrench[] = "FRANCAIS";
+char _aLangSpanish[] = "ESPANOL";
+char _aLangItalian[] = "ITALIANO";
+char _aLangDutch[] = "NEDERLANDS";
 char _aGoals[] = "GOALS";
 char _aForm[] = "FORM";
 char _aLge[] = "LGE";

@@ -15,6 +15,7 @@
  * because this header reaches platform_sdl.h and therefore SDL.h, which the
  * m68k build has no idea about — and there is no SWOS.ini on the Amiga. */
 #include "swos_settings.h"
+#include <string.h>
 #endif
 #include "translations.h"
 #include "comp_identity.h"
@@ -2100,12 +2101,16 @@ void OptionsMenuBeforeDraw(void)
         _menuEntries[24].fg = (uintptr_t)modsOn;
     }
 #else
-    /* WORLD (21/22) and MODS (23/24) are SDL only: the Amiga's world and mods are its
-     * drawer's (OpenSWOS Setup writes data/WORLD and data/MODS). */
+    /* WORLD (21/22), MODS (23/24) and LANGUAGE (25/26) are SDL only: the Amiga's world and mods
+     * are its drawer's (OpenSWOS Setup writes data/WORLD and data/MODS), and it has no
+     * translations. */
     _menuEntries[21].isInvisible = 1;
     _menuEntries[22].isInvisible = 1;
     _menuEntries[23].isInvisible = 1;
     _menuEntries[24].isInvisible = 1;
+    _menuEntries[25].isInvisible = 1;        /* LANGUAGE (25/26): no translations on the Amiga */
+    _menuEntries[26].isInvisible = 1;
+    _menuEntries[2].upEntry = -1;            /* (FRIENDLY/DIY GAME LENGTH is the top row there) */
     _menuEntries[15].isInvisible = 1;
     _menuEntries[16].isInvisible = 1;
 #ifdef AGA
@@ -2168,6 +2173,49 @@ void ChangeWorld(MenuEntry *entry)
                    "Close it and start it again. Saves stay in the world they were made in."
                  : "96/97 is played from the next time " PROJECT_NAME " starts.\n\n"
                    "Close it and start it again. Saves stay in the world they were made in.", NULL);
+#else
+    (void)entry;
+#endif
+}
+
+/* OPTIONS -> LANGUAGE: the menus' language -- [general] language in SWOS.ini
+ * (data_json/translations/<code>.json). The menus take their text when they are installed at
+ * start-up (menu_load_json.c), so the choice is played from the NEXT start, as WORLD's is: the
+ * row shows it, SWOS.ini keeps it, and the first change in a session says so. */
+#ifdef SWOS_SDL_BUILD
+static const char *const kLanguageCodes[] = { "en", "de", "fr", "es", "it", "nl" };
+
+int32_t Language_OptionFor(const char *code)
+{
+    for (int32_t i = 0; i < (int32_t)(sizeof kLanguageCodes / sizeof kLanguageCodes[0]); i++)
+        if (code && strcmp(code, kLanguageCodes[i]) == 0)
+            return i;
+    return 0;
+}
+#endif
+
+__attribute__((used, externally_visible))
+void ChangeLanguage(MenuEntry *entry)
+{
+#ifdef SWOS_SDL_BUILD
+    extern uint16_t _languageOption;
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    static int told;
+    const int32_t n = (int32_t)(sizeof kLanguageCodes / sizeof kLanguageCodes[0]);
+    _languageOption = (uint16_t)((_languageOption + 1) % n);
+    if (g_arcadeOpts) {
+        snprintf(g_arcadeOpts->language, sizeof g_arcadeOpts->language, "%s", kLanguageCodes[_languageOption]);
+        if (g_arcadeIniPath)
+            Settings_Save(g_arcadeOpts, g_arcadeIniPath);
+    }
+    CallDrawMenuItem(entry);
+    if (!told) {
+        told = 1;
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME ": Language",
+            "The new language is used from the next time " PROJECT_NAME " starts.\n\n"
+            "Close it and start it again.", NULL);
+    }
 #else
     (void)entry;
 #endif

@@ -72,7 +72,7 @@ screen=0              ; monitor index to open on, 0 = primary. Auto-clamped.
 mode=mono             ; mono | stereo
 
 [general]
-language=en           ; en | de | fr | es | it | nl
+language=en           ; en | de | fr | es | it | nl -- also OPTIONS -> LANGUAGE (from the next start)
 currency=pound        ; pound | dollar | euro
 world=9697            ; the football world: 9697 (Sensible World of Soccer 96/97) | 2627
                       ; (World 2026-27, if installed); OPTIONS -> WORLD sets it, from the

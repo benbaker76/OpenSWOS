@@ -4,6 +4,7 @@
   "_aUniform": "TRIKOT",
  "language": "de",
  "strings": {
+  "_aLanguageOption": "SPRACHE",
   "_aModsNone": "KEINE",
   "_aModsOption": "MODS",
   "_a001Season": "SAISON %0/0%1",
@@ -424,7 +425,7 @@
   "_aFrench": "FRANZÖSISCH",
   "_aFriendlies": "FREUNDSCHAFTSSPIELE",
   "_aFriendly": "FREUNDSCHAFT",
-  "_aFriendlyDiyGam": "SPIELDAUER FREUNDSCHAFT/EIGEN",
+  "_aFriendlyDiyGam": "SPIELDAUER FREUNDSCH./DIY",
   "_aFriendly_0": "FREUNDSCHAFT",
   "_aFriendly_1": "FREUNDSCHAFT",
   "_aFrom": "FROM",

@@ -62,6 +62,7 @@ extern void ChangeGameLength(void);
 extern void ChangeMenuMusic(void);
 extern void ChangeGameplayStyle(void);
 extern void ChangeWorld(void);
+extern void ChangeLanguage(void);
 extern void ShowControlsMenu(void);
 extern void ShowModsMenu(void);
 extern void ChangePitchStyle(void);
@@ -510,6 +511,7 @@ extern char _aMemoFromTheClu[];
 extern char _aMenuMusic[];
 extern char _aGameplay[];
 extern char _aWorldOption[];
+extern char _aLanguageOption[];
 extern char _aModsOption[];
 extern char _aModes[];
 extern char _aTeamPacks[];
@@ -679,6 +681,7 @@ extern char* _gameLengthStrTable[];
 extern char* _menuMusicStrTable[];
 extern char* _gameplayStyleStrTable[];
 extern char* _worldStrTable[];
+extern char* _languageStrTable[];
 extern char* _pitchStyleStrTable[];
 extern char* _pitchTypeOrSeasonTable[];
 extern char* _pitchTypeStrTable[];
@@ -2819,27 +2822,27 @@ Menu_Options _optionsMenu = {
     },
     { MENU_MARK_START_MENU, 0, 0 },
     {
-        { 10, 64, -116, 11 },
+        { 10, 32, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aFriendlyDiyGam },
         MENU_CMD_END
     },
     {
-        { -102, 64, -116, 11 },
-        { MENU_CMD_NAV, -1, -1, -1, 4 },
+        { -102, 32, -116, 11 },
+        { MENU_CMD_NAV, -1, -1, 26, 4 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _gameLengthStrTable },
         { MENU_CMD_ONSELECT_FIRE, ChangeGameLength },
         MENU_CMD_END
     },
     {
-        { 10, 76, -116, 11 },
+        { 10, 44, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aFixPitchType },
         MENU_CMD_END
     },
     {
-        { -102, 76, -116, 11 },
+        { -102, 44, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 2, 6 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _pitchTypeStrTable },
@@ -2847,13 +2850,13 @@ Menu_Options _optionsMenu = {
         MENU_CMD_END
     },
     {
-        { 10, 88, -116, 11 },
+        { 10, 56, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aAutoReplays },
         MENU_CMD_END
     },
     {
-        { -102, 88, -116, 11 },
+        { -102, 56, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 4, 8 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _autoReplaysStrTable },
@@ -2861,13 +2864,13 @@ Menu_Options _optionsMenu = {
         MENU_CMD_END
     },
     {
-        { 10, 100, -116, 11 },
+        { 10, 68, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aAllPlayerTeams },
         MENU_CMD_END
     },
     {
-        { -102, 100, -116, 11 },
+        { -102, 68, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 6, 10 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _allPlTeamsEqualStrTable },
@@ -2875,13 +2878,13 @@ Menu_Options _optionsMenu = {
         MENU_CMD_END
     },
     {
-        { 10, 112, -116, 11 },
+        { 10, 80, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aAutoSaveHighli },
         MENU_CMD_END
     },
     {
-        { -102, 112, -116, 11 },
+        { -102, 80, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 8, 12 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _autoSaveHlStrTable },
@@ -2889,13 +2892,13 @@ Menu_Options _optionsMenu = {
         MENU_CMD_END
     },
     {
-        { 10, 124, -116, 11 },
+        { 10, 92, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aMenuMusic },
         MENU_CMD_END
     },
     {
-        { -102, 124, -116, 11 },
+        { -102, 92, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 10, 14 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _menuMusicStrTable },
@@ -2903,13 +2906,13 @@ Menu_Options _optionsMenu = {
         MENU_CMD_END
     },
     {
-        { 10, 136, -116, 11 },
+        { 10, 104, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aGameplay },
         MENU_CMD_END
     },
     {
-        { -102, 136, -116, 11 },
+        { -102, 104, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 12, 16 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _gameplayStyleStrTable },
@@ -2917,13 +2920,13 @@ Menu_Options _optionsMenu = {
         MENU_CMD_END
     },
     {
-        { 10, 148, -116, 11 },
+        { 10, 116, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aControls },
         MENU_CMD_END
     },
     {
-        { -102, 148, -116, 11 },
+        { -102, 116, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 14, 22 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aRedefineKeys },
@@ -2931,13 +2934,13 @@ Menu_Options _optionsMenu = {
         MENU_CMD_END
     },
     {
-        { 10, 148, -116, 11 },
+        { 10, 116, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aPitches },
         MENU_CMD_END
     },
     {
-        { -102, 148, -116, 11 },
+        { -102, 116, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 14, 19 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _pitchStyleStrTable },
@@ -2956,13 +2959,13 @@ Menu_Options _optionsMenu = {
     { MENU_CMD_TEXT_PTR, 0x0, _aSwosVersion152 },
     MENU_CMD_END,
     {
-        { 10, 160, -116, 11 },
+        { 10, 128, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aWorldOption },
         MENU_CMD_END
     },
     {
-        { -102, 160, -116, 11 },
+        { -102, 128, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 16, 24 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _worldStrTable },
@@ -2970,17 +2973,31 @@ Menu_Options _optionsMenu = {
         MENU_CMD_END
     },
     {
-        { 10, 172, -116, 11 },
+        { 10, 140, -116, 11 },
         { MENU_CMD_COLORS, 0x9 },
         { MENU_CMD_TEXT_PTR, 0x0, _aModsOption },
         MENU_CMD_END
     },
     {
-        { -102, 172, -116, 11 },
+        { -102, 140, -116, 11 },
         { MENU_CMD_NAV, -1, -1, 22, 19 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aModsNone },
         { MENU_CMD_ONSELECT_FIRE, ShowModsMenu },
+        MENU_CMD_END
+    },
+    {
+        { 10, 20, -116, 11 },
+        { MENU_CMD_COLORS, 0x9 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aLanguageOption },
+        MENU_CMD_END
+    },
+    {
+        { -102, 20, -116, 11 },
+        { MENU_CMD_NAV, -1, -1, -1, 2 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_STRING_TABLE, 0x0, _languageStrTable },
+        { MENU_CMD_ONSELECT_FIRE, ChangeLanguage },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU
