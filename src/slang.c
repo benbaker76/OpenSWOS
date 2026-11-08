@@ -472,7 +472,9 @@ static int texture_of(const SlangPreset *pr, int pass, const char *name, uint8_t
     if (!strcmp(name, "Source"))   { *kind = SLANG_TEX_SOURCE; *index = 0; return 1; }
     if (!strncmp(name, "OriginalHistory", 15) && isdigit((unsigned char)name[15])) {
         *kind = SLANG_TEX_ORIGINAL_HISTORY; *index = (int16_t)atoi(name + 15);
-        return *index > 0 && *index < SLANG_MAX_HISTORY;
+        if (*index == 0)                /* (slang's spec: OriginalHistory0 is Original) */
+            *kind = SLANG_TEX_ORIGINAL;
+        return *index >= 0 && *index < SLANG_MAX_HISTORY;
     }
     if (!strncmp(name, "PassOutput", 10) && isdigit((unsigned char)name[10])) {
         *kind = SLANG_TEX_PASS_OUTPUT; *index = (int16_t)atoi(name + 10);
@@ -696,10 +698,11 @@ static char *translate(Cross *x, SlangTarget target, SlangPassCode *code, uint8_
         b.msl_buffer = stage == 1 ? SLANG_SLOT_PUSH_VS : SLANG_SLOT_PUSH_FS;
         spvc_compiler_msl_add_resource_binding(x->comp, &b);
         list(x, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, &r, &n);
-        for (size_t i = 0; i < n; i++) {
-            const int slot = tex_slot(code, spvc_compiler_get_name(x->comp, r[i].id));
-            if (slot < 0)
-                continue;
+        for (size_t i = 0, unknown = 0; i < n; i++) {
+            int slot = tex_slot(code, spvc_compiler_get_name(x->comp, r[i].id));
+            if (slot < 0)                   /* (one we do not feed: left unbound, but at a slot of its own --
+                                             * SPIRV-Cross's default would be 0, which a texture we feed has) */
+                slot = SLANG_MAX_TEXTURES + (int)unknown++;
             spvc_msl_resource_binding_init(&b);
             b.stage = model;
             b.desc_set = spvc_compiler_get_decoration(x->comp, r[i].id, SpvDecorationDescriptorSet);
@@ -726,10 +729,10 @@ static char *translate(Cross *x, SlangTarget target, SlangPassCode *code, uint8_
         b.cbv.register_binding = stage == 1 ? SLANG_SLOT_PUSH_VS : SLANG_SLOT_PUSH_FS;
         spvc_compiler_hlsl_add_resource_binding(x->comp, &b);
         list(x, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, &r, &n);
-        for (size_t i = 0; i < n; i++) {
-            const int slot = tex_slot(code, spvc_compiler_get_name(x->comp, r[i].id));
-            if (slot < 0)
-                continue;
+        for (size_t i = 0, unknown = 0; i < n; i++) {
+            int slot = tex_slot(code, spvc_compiler_get_name(x->comp, r[i].id));
+            if (slot < 0)                   /* (as for Metal) */
+                slot = SLANG_MAX_TEXTURES + (int)unknown++;
             spvc_hlsl_resource_binding_init(&b);
             b.stage = model;
             b.desc_set = spvc_compiler_get_decoration(x->comp, r[i].id, SpvDecorationDescriptorSet);

@@ -3,7 +3,7 @@
  * includes sokol agrees (src/sokol_impl.c, src/gpu_present.c; docs/RENDERING.md).
  *
  *   Windows (Cygwin), Linux   OpenGL 4.1 core, entry points loaded through SDL (sokol_gl_loader.h)
- *   macOS                     OpenGL 4.1 core, sokol's own <OpenGL/gl3.h> (Metal is the next step)
+ *   macOS                     Metal (src/sokol_impl_metal.m); `make MACOS_GL=1` keeps OpenGL 4.1 core
  *   web, Android              OpenGL ES 3.0 / WebGL2, the toolchain's headers
  *   iOS, Switch               none yet (SWOS_GPU 0): SDL's renderer, as before
  *
@@ -18,6 +18,9 @@
 #elif defined(SWOS_WASM_BUILD) || defined(__EMSCRIPTEN__) || defined(SWOS_ANDROID_BUILD) || defined(__ANDROID__)
 #define SWOS_GPU 1
 #define SOKOL_GLES3
+#elif defined(__APPLE__) && !defined(SWOS_MACOS_GL)
+#define SWOS_GPU 1
+#define SOKOL_METAL
 #elif defined(__APPLE__)
 #define SWOS_GPU 1
 #define SOKOL_GLCORE

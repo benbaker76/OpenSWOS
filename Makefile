@@ -649,9 +649,17 @@ endif
 # The GPU presenter (src/gpu_present.c, sokol_gfx; docs/RENDERING.md). Desktop Linux and Windows
 # load OpenGL through SDL (src/sokol_gl_loader.h), so link nothing; macOS links its OpenGL
 # framework, the web asks for WebGL 2 (GLES 3).
+# macOS draws with Metal (src/sokol_impl_metal.m, Objective-C) unless MACOS_GL=1 keeps OpenGL.
 ifndef WASM
 ifeq ($(UNAME_S),Darwin)
+ifeq ($(MACOS_GL),1)
+CFLAGS  += -DSWOS_MACOS_GL=1
 LDLIBS  += -framework OpenGL
+else
+OBJECTS += $(OBJDIR)/sokol_impl_metal.o
+DEPS    += $(OBJDIR)/sokol_impl_metal.d
+LDLIBS  += -framework Metal -framework QuartzCore -framework Foundation
+endif
 endif
 else
 LDLIBS  += -sMAX_WEBGL_VERSION=2
@@ -926,6 +934,10 @@ $(OBJDIR)/mods_builtin.o: $(wildcard $(SRCDIR)/fork_mods.inc)
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(BUILD_FLAGS_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.m $(BUILD_FLAGS_STAMP)
+	@mkdir -p $(dir $@)
+	$(CC) -x objective-c -fobjc-arc $(CFLAGS) -c $< -o $@
 
 ifeq ($(SHADERCC),1)
 $(OBJDIR)/shadercc/%.o: third_party/%.cpp $(BUILD_FLAGS_STAMP)

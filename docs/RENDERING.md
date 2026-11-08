@@ -26,12 +26,18 @@ without changing anything.
 | target | backend |
 |---|---|
 | Windows (Cygwin), Linux | OpenGL 4.1 core; entry points loaded through `SDL_GL_GetProcAddress` (`src/sokol_gl_loader.h`), so no GL library is linked |
-| macOS | OpenGL 4.1 core (`-framework OpenGL`); Metal is the planned next step |
+| macOS | Metal (`src/sokol_impl_metal.m`, Objective-C with ARC; `-framework Metal QuartzCore Foundation`); `make MACOS_GL=1` keeps OpenGL 4.1 core |
 | web | WebGL 2 (`-sMAX_WEBGL_VERSION=2`) |
 | Android | GLES 3 (`GLESv3` in `packaging/mobile/CMakeLists.txt`) |
 
-`src/sokol_impl.c` is the one file that compiles sokol's implementation. sokol itself is
-vendored in `third_party/sokol` (see its `OPENSWOS.md`).
+`src/sokol_impl.c` compiles sokol's implementation for GL; `src/sokol_impl_metal.m` for Metal,
+with what the presenter needs of Metal around it: the device, SDL's Metal view and its
+`CAMetalLayer` (BGRA8, so the presenter's default colour format is BGRA8 there; vsync is the
+layer's `displaySyncEnabled`), an autorelease pool a frame, the drawable for the screen pass
+(sokol presents it at the pass's end and commits at `sg_commit`), and a capture: the drawable
+blitted into a shared buffer on the frame's own command buffer before the pass ends, read after the
+commit completes. sokol itself is vendored in `third_party/sokol` (see its `OPENSWOS.md`: one
+change, a double release when a Metal shader fails to compile).
 
 ## Shaders
 
@@ -90,7 +96,12 @@ FrameCount, the parameters).
 Traps, each met: GL keeps render targets bottom up and slang takes the first row as the top, so
 on GL every pass into an image (and Original) is drawn upside down; GL's blocks are real uniform
 blocks bound to our own buffers (`SokolGl_*`), since sokol's GL uniforms take one type a block and
-no `uint`; sRGB passes need `GL_FRAMEBUFFER_SRGB`; a preset value may carry a `#` comment.
+no `uint`; sRGB passes need `GL_FRAMEBUFFER_SRGB`; a preset value may carry a `#` comment. Metal
+and HLSL bind by slot, not name, so every texture a pass declares needs one: a texture we do not
+feed gets a slot past ours (`SLANG_MAX_TEXTURES` on), or SPIRV-Cross puts it at 0 over the one
+that is there -- crt-guest-advanced's `OriginalHistory0` did (which is Original, slang's spec says;
+now fed). On Metal, Original is drawn in the presenter's format (BGRA8), not RGBA8. Metal and GL
+draw crt-royale's 12 passes the same, to 1 in 255 (2026-11-08, Apple M4 Pro).
 
 Choosing one: the **retrotv** mod (`src/mod_retrotv.c`, off by default) -- `[mod.retrotv] preset`
 from its `shaders/` or the player's `Documents\SWOS\shaders` (a preset with its `.slang` files and
@@ -105,4 +116,4 @@ mask / vignette / corners overlay (`[video] crt_mask` ...) is unchanged and work
 
 With the GPU presenter, F12, `SWOS_SCREENSHOT_INTERVAL` and `SWOS_DUMP_FRAMES` still convert the
 frame on the CPU, only on the frames they capture. `SWOS_PRESENT_CAPTURE` reads the drawable back
-(`glReadPixels`).
+(`glReadPixels`; on Metal, the copy described above).

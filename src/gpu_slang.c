@@ -29,6 +29,9 @@
 
 #include "slang.h"
 #include "../third_party/stb_image/stb_image.h"
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
 
 #if defined(SOKOL_GLCORE) || defined(SOKOL_GLES3)
 #define SLANG_GL 1
@@ -458,7 +461,8 @@ sg_view GpuSlang_BeginOriginal(int w, int h)
     Rt *r = &S.orig[S.frame % (uint32_t)S.history];
     S.origW = w;
     S.origH = h;
-    if (!rt_ensure(r, w, h, SG_PIXELFORMAT_RGBA8, S.preset.pass[0].mipmap))
+    /* (the presenter's pipelines draw it: the swapchain's format -- BGRA8 on Metal) */
+    if (!rt_ensure(r, w, h, sg_query_desc().environment.defaults.color_format, S.preset.pass[0].mipmap))
         return (sg_view){ 0 };
     return r->att;
 }

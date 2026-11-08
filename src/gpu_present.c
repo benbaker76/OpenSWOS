@@ -91,6 +91,10 @@ static void sokol_log(const char *tag, uint32_t level, uint32_t item, const char
                       const char *file, void *user)
 {
     (void)tag; (void)file; (void)user;
+    if (item == SG_LOGITEM_METAL_SHADER_COMPILATION_OUTPUT || item == SG_LOGITEM_D3D11_SHADER_COMPILATION_OUTPUT) {
+        fprintf(stderr, "[gpu] the shader compiler says: %s\n", msg ? msg : "");   /* (an info item) */
+        return;
+    }
     if (level <= 2)                                    /* panic, error, warning */
         fprintf(stderr, "[gpu] sokol %s %u: %s (line %u)\n", level <= 1 ? "error" : "warning",
                 (unsigned)item, msg ? msg : "", (unsigned)line);
@@ -100,9 +104,29 @@ int32_t GpuPresent_Compiled(void) { return 1; }
 int32_t GpuPresent_Active(void) { return G.up; }
 int32_t GpuPresent_Vsync(void) { return G.vsync; }
 
+#if defined(SOKOL_METAL)
+#include <SDL_metal.h>
+/* src/sokol_impl_metal.m */
+extern const void *Mtl_Init(SDL_Window *window, int vsync, int *vsyncOut);
+extern void        Mtl_Shutdown(void);
+extern void        Mtl_FrameBegin(void);
+extern const void *Mtl_NextDrawable(void);
+extern void        Mtl_FrameEnd(void);
+extern int         Mtl_ReadBeforeEndPass(int w, int h);
+extern void        Mtl_ReadAfterCommit(uint8_t *rgba);
+extern const char *Mtl_Renderer(void);
+#define SokolGl_Renderer Mtl_Renderer
+#define SWAP_FORMAT SG_PIXELFORMAT_BGRA8
+#else
+#define SWAP_FORMAT SG_PIXELFORMAT_RGBA8
+#endif
+static int s_committed;     /* (Metal: a capture committed the frame already) */
+
 void GpuPresent_ConfigureWindow(void)
 {
-#if defined(SOKOL_GLES3)
+#if defined(SOKOL_METAL)
+    return;                             /* (no GL context: the window gets a Metal view) */
+#elif defined(SOKOL_GLES3)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -117,7 +141,11 @@ void GpuPresent_ConfigureWindow(void)
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
 }
 
+#if defined(SOKOL_METAL)
+uint32_t GpuPresent_WindowFlags(void) { return SDL_WINDOW_METAL; }
+#else
 uint32_t GpuPresent_WindowFlags(void) { return SDL_WINDOW_OPENGL; }
+#endif
 
 static sg_pipeline make_pipeline(sg_shader shd, int strip, GfxBlend blend, int premultiplied, int vertices,
                                  const char *label)
@@ -188,6 +216,13 @@ int32_t GpuPresent_Init(SDL_Window *window, int vsync)
 {
     memset(&G, 0, sizeof G);
     G.window = window;
+#if defined(SOKOL_METAL)
+    const void *mtlDevice = Mtl_Init(window, vsync, &G.vsync);
+    if (!mtlDevice) {
+        fprintf(stderr, "[gpu] no Metal device or view: SDL's renderer instead\n");
+        return -1;
+    }
+#else
     G.ctx = SDL_GL_CreateContext(window);
     if (!G.ctx) {
         fprintf(stderr, "[gpu] no OpenGL context (%s): SDL's renderer instead\n", SDL_GetError());
@@ -207,11 +242,15 @@ int32_t GpuPresent_Init(SDL_Window *window, int vsync)
         SDL_GL_SetSwapInterval(0);
     }
     G.vsync = SDL_GL_GetSwapInterval() != 0;
+#endif
 
     sg_desc desc;
     memset(&desc, 0, sizeof desc);
     desc.logger.func = sokol_log;
-    desc.environment.defaults.color_format = SG_PIXELFORMAT_RGBA8;
+#if defined(SOKOL_METAL)
+    desc.environment.metal.device = mtlDevice;
+#endif
+    desc.environment.defaults.color_format = SWAP_FORMAT;
     desc.environment.defaults.depth_format = SG_PIXELFORMAT_NONE;
     desc.environment.defaults.sample_count = 1;
     desc.buffer_pool_size = 16;
@@ -220,8 +259,12 @@ int32_t GpuPresent_Init(SDL_Window *window, int vsync)
     sg_setup(&desc);
     if (!sg_isvalid()) {
         fprintf(stderr, "[gpu] sokol did not start: SDL's renderer instead\n");
+#if defined(SOKOL_METAL)
+        Mtl_Shutdown();
+#else
         SDL_GL_DeleteContext(G.ctx);
         G.ctx = NULL;
+#endif
         return -1;
     }
 
@@ -260,8 +303,12 @@ int32_t GpuPresent_Init(SDL_Window *window, int vsync)
     if (!ok) {
         fprintf(stderr, "[gpu] the presenter's shaders did not build: SDL's renderer instead\n");
         sg_shutdown();
+#if defined(SOKOL_METAL)
+        Mtl_Shutdown();
+#else
         SDL_GL_DeleteContext(G.ctx);
         G.ctx = NULL;
+#endif
         return -1;
     }
     G.up = 1;
@@ -272,7 +319,9 @@ int32_t GpuPresent_Init(SDL_Window *window, int vsync)
     if (getenv("SWOS_SHADER"))          /* (a slang preset for this run) */
         GpuPresent_SetShaderPreset(getenv("SWOS_SHADER"));
     fprintf(stderr, "[gpu] presenter up: %s, %s, vsync %s\n",
-#if defined(SOKOL_GLES3)
+#if defined(SOKOL_METAL)
+            "Metal",
+#elif defined(SOKOL_GLES3)
             "OpenGL ES 3 / WebGL2",
 #else
             "OpenGL 4.1 core",
@@ -287,8 +336,12 @@ void GpuPresent_Shutdown(void)
     if (!G.up)
         return;
     sg_shutdown();
+#if defined(SOKOL_METAL)
+    Mtl_Shutdown();
+#else
     if (G.ctx)
         SDL_GL_DeleteContext(G.ctx);
+#endif
     free(G.stage);
     free(G.palStage);
     G.up = 0;
@@ -296,7 +349,11 @@ void GpuPresent_Shutdown(void)
 
 void GpuPresent_OutputSize(int *w, int *h)
 {
+#if defined(SOKOL_METAL)
+    SDL_Metal_GetDrawableSize(G.window, w, h);
+#else
     SDL_GL_GetDrawableSize(G.window, w, h);
+#endif
 }
 
 void GpuPresent_PictureRect(float *x, float *y, float *w, float *h)
@@ -410,9 +467,13 @@ static void begin_screen_pass(const float clear[3])
     pass.swapchain.width = G.outW;
     pass.swapchain.height = G.outH;
     pass.swapchain.sample_count = 1;
-    pass.swapchain.color_format = SG_PIXELFORMAT_RGBA8;
+    pass.swapchain.color_format = SWAP_FORMAT;
     pass.swapchain.depth_format = SG_PIXELFORMAT_NONE;
+#if defined(SOKOL_METAL)
+    pass.swapchain.metal.current_drawable = Mtl_NextDrawable();
+#else
     pass.swapchain.gl.framebuffer = 0;
+#endif
     sg_begin_pass(&pass);
 }
 
@@ -477,6 +538,9 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
     s_clear[2] = clear ? clear[2] / 255.0f : 0.0f;
     picture_rect(f ? f->stretch : 0, f ? f->w : 0, f ? f->h : 0);
     G.frames++;
+#if defined(SOKOL_METAL)
+    Mtl_FrameBegin();                   /* (Mtl_FrameEnd in GpuPresent_End) */
+#endif
     if (s_presetPending) {
         s_presetPending = 0;
         GpuSlang_Load(s_preset);
@@ -747,8 +811,27 @@ int32_t GpuPresent_ReadPixels(uint8_t *rgba, int w, int h)
 {
     if (!G.up || w != G.outW || h != G.outH)
         return -1;
+#if defined(SOKOL_METAL)
+    /* the drawable copied out before its pass ends (and presents it); read once the frame is done */
+    if (!G.inPass)
+        return -1;
+    batch_flush();
+    crt_resolve();
+    batch_flush();
+    {
+        const int reading = Mtl_ReadBeforeEndPass(w, h);
+        sg_end_pass();
+        G.inPass = 0;
+        sg_commit();
+        s_committed = 1;
+        if (!reading)
+            return -1;
+        Mtl_ReadAfterCommit(rgba);
+    }
+#else
     GpuPresent_EndPass();
     SokolGl_ReadPixels(w, h, rgba);
+#endif
     return 0;
 }
 
@@ -757,8 +840,15 @@ void GpuPresent_End(void)
     if (!G.up)
         return;
     GpuPresent_EndPass();
+#if defined(SOKOL_METAL)
+    if (!s_committed)
+        sg_commit();                    /* (sokol presents the drawable with the frame) */
+    s_committed = 0;
+    Mtl_FrameEnd();
+#else
     sg_commit();
     SDL_GL_SwapWindow(G.window);
+#endif
 }
 
 #else /* !SWOS_GPU */

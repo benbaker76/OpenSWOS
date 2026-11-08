@@ -16550,6 +16550,10 @@ _SOKOL_PRIVATE sg_resource_state _sg_mtl_create_shader(_sg_shader_t* shd, const 
         _sg_mtl_discard_shader_func(&shd->mtl.vertex_func);
         _sg_mtl_discard_shader_func(&shd->mtl.fragment_func);
         _sg_mtl_discard_shader_func(&shd->mtl.compute_func);
+        // OPENSWOS: forget them, or sg_destroy_shader releases them again (third_party/sokol/OPENSWOS.md)
+        memset(&shd->mtl.vertex_func, 0, sizeof shd->mtl.vertex_func);
+        memset(&shd->mtl.fragment_func, 0, sizeof shd->mtl.fragment_func);
+        memset(&shd->mtl.compute_func, 0, sizeof shd->mtl.compute_func);
     }
     return shd_valid ? SG_RESOURCESTATE_VALID : SG_RESOURCESTATE_FAILED;
 }
