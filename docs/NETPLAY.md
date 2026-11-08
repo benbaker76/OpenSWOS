@@ -1060,6 +1060,9 @@ the lobby's lines are, so the match report has the match's chat.
 **Testing:**
 - `--chat-selftest` checks the cleaning, UTF-8, repeats and every glyph, and writes the glyph
   sheet to `chat_selftest.png`.
+- `SWOS_CHAT_DEMO=1` runs the chat in any match, offline too. A pretend other player sends a
+  line every 2.5 s, and what you type is shown but not sent. Use it to look at the chat, or
+  screenshot it, without a second game. It is never active in a live match.
 - In a real match: `SWOS_KEY_SCRIPT` types text with `<frame>:text=Hello_there` (`_` is a space),
   so `HOST_ENV="SDL_VIDEODRIVER=x11 SWOS_KEY_SCRIPT=600:Tab,610:text=Hi,620:Return"
   CAPTURE=50 scripts/netplay_lobby_test.sh` shows the box in the host's captures.

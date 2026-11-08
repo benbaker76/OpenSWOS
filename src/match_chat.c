@@ -21,6 +21,29 @@
 #include <string.h>
 
 extern void InputSDL_ClearKeyState(void);       /* input_sdl.c */
+extern int32_t GameLoop_Active(void);           /* game_loop.c: a match is on screen */
+
+/* SWOS_CHAT_DEMO=1: the chat in ANY match, offline too, with a few lines from a pretend other
+ * player and what is typed shown, not sent -- to see it (and screenshot it) without a second
+ * game. Never in a live match: there the real chat is. */
+static int32_t s_demo = -1;
+static uint32_t s_demoAt;
+static int32_t s_demoNext;
+
+static int32_t demo_on(void)
+{
+    if (s_demo < 0) {
+        const char *v = getenv("SWOS_CHAT_DEMO");
+        s_demo = v && v[0] && v[0] != '0';
+    }
+    return s_demo;
+}
+
+/* The chat is up: a live match, or the demo's match. */
+static int32_t chat_live(void)
+{
+    return NetplayMatch_IsLive() || (demo_on() && GameLoop_Active());
+}
 
 enum {
     KEEP_LINES     = 64,        /* lines kept */
@@ -218,7 +241,8 @@ void MatchChat_Tick(void)
             continue;
         if (now - C.pending[p].at < kRepeatMs[C.pending[p].sent])
             continue;
-        NetplayMatch_SendChat(C.pending[p].wire);
+        if (!demo_on() || NetplayMatch_IsLive())
+            NetplayMatch_SendChat(C.pending[p].wire);
         C.pending[p].sent++;
     }
 }
@@ -294,23 +318,30 @@ static void open_input(void)
     SDL_StartTextInput();
 }
 
+static void input_space(void)
+{
+    if (C.inputLen > 0 && C.inputLen < MATCHCHAT_TEXT_MAX && C.input[C.inputLen - 1] != ' ') {
+        C.input[C.inputLen++] = ' ';
+        C.input[C.inputLen] = '\0';
+    }
+}
+
+/* Typed text: a key's character, or several at once (a paste, an input method). Cleaned as a
+ * line is, except that its spaces at either end are kept -- the line is still being typed. */
 static void input_append(const char *utf8)
 {
     char clean[MATCHCHAT_TEXT_MAX + 1];
+    const size_t len = strlen(utf8);
+    if (len && (utf8[0] == ' ' || utf8[0] == '\t'))
+        input_space();
     const int32_t k = MatchChat_Clean(utf8, clean, sizeof clean);
-    /* (a typed space would be trimmed as the end of a line: keep it while typing) */
-    if (k == 0 && utf8[0] == ' ' && utf8[1] == '\0') {
-        if (C.inputLen > 0 && C.inputLen < MATCHCHAT_TEXT_MAX && C.input[C.inputLen - 1] != ' ') {
-            C.input[C.inputLen++] = ' ';
-            C.input[C.inputLen] = '\0';
-        }
-        return;
+    if (k > 0 && C.inputLen + k <= MATCHCHAT_TEXT_MAX) {
+        memcpy(C.input + C.inputLen, clean, (size_t)k);
+        C.inputLen += k;
+        C.input[C.inputLen] = '\0';
     }
-    if (C.inputLen + k > MATCHCHAT_TEXT_MAX)
-        return;
-    memcpy(C.input + C.inputLen, clean, (size_t)k);
-    C.inputLen += k;
-    C.input[C.inputLen] = '\0';
+    if (k > 0 && len > 1 && (utf8[len - 1] == ' ' || utf8[len - 1] == '\t'))
+        input_space();
 }
 
 static void input_backspace(void)
@@ -325,7 +356,7 @@ static void input_backspace(void)
 
 int32_t MatchChat_Event(const SDL_Event *e)
 {
-    if (!C.active || !NetplayMatch_IsLive()) {
+    if (!C.active || !chat_live()) {
         if (C.typing)
             close_input();
         return 0;
@@ -413,11 +444,38 @@ static int32_t fit(const char *s, int32_t len, float width)
 
 typedef struct { const Line *line; int32_t first; int32_t from, to; } Row;
 
+static void demo_tick(void)
+{
+    static const char *const kLines[] = {
+        "gl hf!", "Nice pass... but that keeper \xE2\x80\x93 wow", "Ça va? Ready for the second half?",
+        "Unlucky! That was so close", "Ha, the ref didn't see that one \xF0\x9F\x98\x80",
+    };
+    if (!demo_on() || NetplayMatch_IsLive())
+        return;
+    if (!GameLoop_Active()) {
+        if (C.active)
+            MatchChat_End();
+        s_demoNext = 0;
+        return;
+    }
+    if (!C.active) {
+        MatchChat_Begin("You", "Rival");
+        s_demoAt = SDL_GetTicks();
+        s_demoNext = 0;
+    }
+    const uint32_t now = SDL_GetTicks();
+    if (s_demoNext < (int32_t)(sizeof kLines / sizeof kLines[0]) && now - s_demoAt >= 2500u) {
+        MatchChat_Received(kLines[s_demoNext++]);
+        s_demoAt = now;
+    }
+}
+
 void MatchChat_Draw(void)
 {
+    demo_tick();
     if (!C.active || !Gfx_InFrame())
         return;
-    if (!NetplayMatch_IsLive()) {
+    if (!chat_live()) {
         close_input();
         return;
     }
