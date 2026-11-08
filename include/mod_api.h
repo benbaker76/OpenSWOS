@@ -93,6 +93,13 @@ typedef struct ModDef {
     void (*matchMoment)(const ModMatchEvent *event);
     void (*soundEvent)(uint8_t event, uint16_t arg);
 
+    /* -- the online lobby (src/netplay_lobby.c) --
+     * The other player's side changed (team, tactic, line-up): the lobby takes this player's GO
+     * down so they see it before a start. Return 1 to leave it as it is (SWOS 2020's: a confirmed
+     * line-up stays confirmed). Safe either way: the other player's own GO goes down with their
+     * change, so a match starts only on sides both games have. */
+    int32_t (*lobbyKeepsReady)(void);
+
     /* -- the career (docs/MODS.md §27): a "career" mod's hooks. Unlike the rest, a career
      * hook may change the career -- its squads, its players -- through the game's career
      * code; never a match. None runs in a match, nor online. -- */

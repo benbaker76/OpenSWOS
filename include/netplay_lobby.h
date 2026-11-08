@@ -193,6 +193,7 @@ typedef enum { LOBBY_CHAT_ME, LOBBY_CHAT_THEM, LOBBY_CHAT_BOT } LobbyChatWho;
 
 typedef struct {
     int32_t who;                    /* LobbyChatWho */
+    int32_t cont;                   /* the rest of the line before (a bot line wrapped): no name again */
     char    text[LOBBY_CHAT_TEXT + 1];
 } LobbyChatLine;
 

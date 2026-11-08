@@ -434,8 +434,8 @@ static void logInMenuAbout_OnSelect(void)
 static void open_account_page(AccountLink link)
 {
     const char *url = Account_Url(link);
-    if (url && SDL_OpenURL(url) != 0)
-        fprintf(stderr, "[online] could not open %s: %s\n", url, SDL_GetError());
+    if (url)
+        Platform_OpenUrl(url);          /* (says so in the log when it cannot) */
 }
 static void registerUserMenuNews_OnSelect(void)  { open_account_page(ACCOUNT_LINK_REGISTER); }
 static void registerUserMenuNews2_OnSelect(void) { open_account_page(ACCOUNT_LINK_PASSWORD); }

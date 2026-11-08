@@ -80,8 +80,16 @@ int32_t     Account_ChooseMode(void)           { return 0; }
 void        Account_LobbyOpened(int32_t host)  { (void)host; }
 void        Account_LobbyPeer(const char *name) { (void)name; }
 void        Account_LobbyPoll(void)            {}
+int32_t     Account_ChosenStyle(void)          { return -1; }
+int32_t     Account_JoinAllowed(const char *name) { (void)name; return 1; }
+int32_t     Account_PlayerInfo(const char *name, char *country, uint32_t cap, int32_t *srn)
+{ (void)name; (void)country; (void)cap; (void)srn; return 0; }
+int32_t     Account_CupLocked(void)            { return 0; }
+void        Account_LobbyClosed(void)          {}
 int32_t     Account_LobbyCanStart(void)        { return 1; }
 const char *Account_MatchText(void)            { return 0; }
+const char *Account_MatchTournament(void)      { return 0; }
+void        Account_ShowPlayer(const char *name) { (void)name; }
 void        Account_SelectMatch(void)          {}
 void        Account_UserSelected(const char *name) { (void)name; }
 void        Account_MatchPlayed(const AccountResult *result) { (void)result; }

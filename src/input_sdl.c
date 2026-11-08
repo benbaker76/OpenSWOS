@@ -420,6 +420,14 @@ static const char *dev_name(int d)
     return nm ? nm : "controller";
 }
 
+/* Player 1's controller by name (SWOS 2020's getControllerName, the lobby's "USING ..."), or NULL
+ * when no pad is player 1's: the keyboard. */
+const char *InputSDL_Player1DeviceName(void)
+{
+    const int d = s_player_dev[0];
+    return d >= 0 && d < INPUTSDL_MAX_DEVICES && dev_open(d) ? dev_name(d) : NULL;
+}
+
 /* A device nobody plays gets the lowest free player. -1 if both are taken. */
 static int dev_assign(int d)
 {

@@ -35,6 +35,7 @@ typedef enum {
     ACCOUNT_HAS_LEAGUES,
     ACCOUNT_HAS_MATCH_LOGS,
     ACCOUNT_HAS_RANKED,         /* OPEN offers FRIENDLY, RANKED MATCH and LEAGUE / CUP */
+    ACCOUNT_HAS_TEAM_IMPORT,    /* MY CUSTOM TEAMS offers IMPORT FROM SWOS 2020 */
     ACCOUNT_FEATURES
 } AccountFeature;
 
@@ -64,19 +65,49 @@ const char *Account_Error(void);
  * the players' ratings do not allow played as a friendly, a league match selected). Its lines
  * go into the chat (NetplayLobby_ChatNotice). */
 int32_t     Account_ChooseMode(void);
+/* After Account_ChooseMode: the gameplay style the chosen match is played in (0 the Amiga's, 1
+ * the PC's -- a league or cup match's ranking), so OPEN does not ask; -1 OPEN asks the player. */
+int32_t     Account_ChosenStyle(void);
+/* May this player join the game this player is hosting? 0: the host's game refuses them (a
+ * league or cup match picked before opening is for its opponent alone -- SWOS 2020's "YOU ARE
+ * NOT ALLOWED TO JOIN"). */
+int32_t     Account_JoinAllowed(const char *name);
+/* What the service knows of a lobby player, for the lobby's LOCATIONS and stars: 1 known --
+ * country (an ISO2 code such as "DE" or "GB-ENG", or a country's name) and their SRN in the game's
+ * style (-5000 unranked); 0 not (yet). */
+int32_t     Account_PlayerInfo(const char *name, char *country, uint32_t cap, int32_t *srn);
+/* 1: the selected match is a league (group) match, so the lobby's CUP stays OFF and greyed. */
+int32_t     Account_CupLocked(void);
 void        Account_LobbyOpened(int32_t host);
 void        Account_LobbyPeer(const char *name);    /* the other player's name has arrived */
 void        Account_LobbyPoll(void);                /* each frame the lobby is up */
+void        Account_LobbyClosed(void);              /* the player has left the lobby (blocks briefly) */
 /* 0 holds the host's START (greyed): the service is still deciding what the match is -- a
  * ranked match's ratings not in yet, a league match not selected. */
 int32_t     Account_LobbyCanStart(void);
 /* The lobby's MATCH row: what this match is for ("(NO MATCH INFO)"), NULL hides the row and
  * its SELECT MATCH button. */
 const char *Account_MatchText(void);
+/* A league or cup match's tournament, its whole name (a fork's Discord posts: SWOS United's discord2020 mod); 0 when
+ * the match is not one, or none is picked yet. */
+const char *Account_MatchTournament(void);
 void        Account_SelectMatch(void);              /* SELECT MATCH */
 /* A player's row chosen in the matchmaking list (SWOS 2020 opens MATCH INFO / PLAYER INFO
  * there): the service shows what it has about them, or nothing. */
 void        Account_UserSelected(const char *name);
+
+/* MATCH INFO for a player, by name: a click on a name (the online list, the lobby, RANKINGS).
+ * Returns when the player leaves it; nothing where the service has no such thing. */
+void        Account_ShowPlayer(const char *name);
+
+/* IMPORT FROM SWOS 2020 (MY CUSTOM TEAMS, src/custom_team.c). Start asks for the logged-in player's
+ * teams; Poll, each draw, says how it stands, the two lines to show and whether the slots changed;
+ * Answer is YES (1) or NO (0) to overwriting; Reset forgets what was last said. */
+enum { TEAM_IMPORT_IDLE, TEAM_IMPORT_BUSY, TEAM_IMPORT_ASKING, TEAM_IMPORT_MAX = 3 };
+void        Account_TeamImportStart(void);
+int32_t     Account_TeamImportPoll(const char **line1, const char **line2, int32_t *changed);
+void        Account_TeamImportAnswer(int32_t yes);
+void        Account_TeamImportReset(void);
 
 /* After every match, on both machines: how it ended, from THIS player's side -- goals in the
  * ninety minutes, in extra time, in the shoot-out -- and whether it was played to the end. */

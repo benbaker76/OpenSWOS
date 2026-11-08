@@ -69,6 +69,7 @@ void ModHooks_MatchMoment(const struct ModMatchEvent *event);   /* every run (re
 void ModHooks_SoundEvent(uint8_t event, uint16_t arg);
 void ModHooks_NetFrame(int32_t frame);
 void ModHooks_NetConfirmed(int32_t frame);
+int32_t ModHooks_LobbyKeepsReady(void);        /* 1: a mod keeps this player's GO (lobbyKeepsReady) */
 void ModHooks_MatchEnded(const struct ModMatchResult *result);
 
 /* The career's (docs/MODS.md §27), each named for its ModDef hook: CareerNew (src/career_init.c

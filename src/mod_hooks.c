@@ -130,6 +130,13 @@ void ModHooks_NetConfirmed(int32_t frame)
     EACH(netConfirmed) (*m_)->netConfirmed(frame);
 }
 
+int32_t ModHooks_LobbyKeepsReady(void)
+{
+    int32_t keep = 0;
+    EACH(lobbyKeepsReady) keep |= (*m_)->lobbyKeepsReady();
+    return keep;
+}
+
 void ModHooks_MatchEnded(const ModMatchResult *result)
 {
     EACH(matchEnded) (*m_)->matchEnded(result);

@@ -42,6 +42,7 @@
  * their six slots from before the match and put it back afterwards
  * (NetplayLobby_RestoreTactics): playing online never changes a player's library.
  */
+#include "mod_hooks.h"    /* lobbyKeepsReady */
 #include "netplay_lobby.h"
 
 #ifdef SWOS_SDL_BUILD
@@ -211,7 +212,9 @@ static void chat_clean(char *out, const char *in, uint32_t len)
 }
 #endif
 
-static void chat_add(int32_t who, const char *text)
+static void chat_add_cont(int32_t who, const char *text, int32_t cont);
+static void chat_add(int32_t who, const char *text) { chat_add_cont(who, text, 0); }
+static void chat_add_cont(int32_t who, const char *text, int32_t cont)
 {
     LobbyChatLine *l;
     if (s_lobby.chatCount == LOBBY_CHAT_KEEP) {
@@ -220,6 +223,7 @@ static void chat_add(int32_t who, const char *text)
     }
     l = &s_lobby.chat[s_lobby.chatCount++];
     l->who = who;
+    l->cont = cont;
     snprintf(l->text, sizeof l->text, "%s", text);
     s_lobby.chatSerial++;
     fprintf(stderr, "[chat] %s: %s\n", who == LOBBY_CHAT_ME ? "me" : who == LOBBY_CHAT_THEM ? "them" : "bot",
@@ -298,6 +302,7 @@ int32_t NetplayLobby_Say(const char *text)
 void NetplayLobby_ChatNotice(const char *text)
 {
     const char *p = text ? text : "";
+    int32_t first = 1;
     while (*p) {
         char line[LOBBY_CHAT_TEXT + 1];
         uint32_t n = (uint32_t)strlen(p), cut = n;
@@ -309,8 +314,10 @@ void NetplayLobby_ChatNotice(const char *text)
                 cut = LOBBY_CHAT_TEXT;
         }
         chat_clean(line, p, cut);
-        if (line[0])
-            chat_add(LOBBY_CHAT_BOT, line);
+        if (line[0]) {
+            chat_add_cont(LOBBY_CHAT_BOT, line, !first);
+            first = 0;
+        }
         p += cut;
         while (*p == ' ')
             p++;
@@ -533,7 +540,7 @@ static void read_peer_state(void)
         got.refused = 1;
     }
 
-    if (theirs()->known && side_differs(theirs(), &got))
+    if (theirs()->known && side_differs(theirs(), &got) && !ModHooks_LobbyKeepsReady())
         drop_my_ready();
     got.verified = theirs()->verified;      /* the server's word stands until the team changes (team_check) */
     *theirs() = got;
