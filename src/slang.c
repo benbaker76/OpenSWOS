@@ -99,9 +99,20 @@ static int starts(const char *s, const char *word)
 
 /* ---- the preset ---- */
 
+/* A value: a quoted one up to its closing quote, else up to a comment ("0.0625" # why, 2 # why). */
 static void unquote(char *v)
 {
-    size_t n = strlen(v);
+    size_t n;
+    if (v[0] == '"') {
+        char *close = strchr(v + 1, '"');
+        if (close)
+            close[1] = '\0';
+    } else {
+        char *hash = strchr(v, '#');
+        if (hash)
+            *hash = '\0';
+    }
+    n = strlen(v);
     while (n && (v[n - 1] == ' ' || v[n - 1] == '\t' || v[n - 1] == '\r'))
         v[--n] = '\0';
     if (n >= 2 && v[0] == '"' && v[n - 1] == '"') {

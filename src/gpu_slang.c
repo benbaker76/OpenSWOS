@@ -625,9 +625,13 @@ void GpuSlang_Run(float vx, float vy, float vw, float vh, void (*beginScreen)(vo
             SokolGl_GenerateMipmaps(sg_gl_query_image_info(o->img).tex[0]);
     }
 #endif
-    for (int i = 0; i < S.npasses; i++) {
+    /* (SWOS_SHADER_PASSES=k: the chain stops at pass k, drawn onto the screen -- to look at a
+     * preset's passes one at a time) */
+    const char *stop = getenv("SWOS_SHADER_PASSES");
+    const int n = stop && atoi(stop) > 0 && atoi(stop) < S.npasses ? atoi(stop) : S.npasses;
+    for (int i = 0; i < n; i++) {
         const SlangPassDesc *d = &S.preset.pass[i];
-        const int last = i == S.npasses - 1;
+        const int last = i == n - 1;
         if (last) {
             beginScreen();
             sg_apply_viewportf(vx, vy, vw, vh, true);
