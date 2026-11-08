@@ -14,7 +14,7 @@
  *
  * A player's look comes from looks.csv in the mod's folder when it names him (the SWOS 96/97 Mod's
  * bald-looks format: country,club,name,look[,face]; the looks natural, blonde, black, receding,
- * shaved, ponytail), else from his name: the same player always looks the same. Shaved heads are
+ * shaved -- also "bald": all bald, the owner's choice 2026-11-08 -- ponytail), else from his name: the same player always looks the same. Shaved heads are
  * drawn from shavedart.json in the mod's folder when it is there (the Mod's art, per frame), else
  * the hair simply becomes the skull's colour.
  *
@@ -159,7 +159,7 @@ static int parse_look(const char *w, Look *out)
     static const struct { const char *word; uint8_t colour, shape; } k[] = {
         { "natural", HAIR_NATURAL, SHAPE_FULL }, { "blonde", HAIR_BLONDE, SHAPE_FULL },
         { "blond", HAIR_BLONDE, SHAPE_FULL },    { "black", HAIR_BLACK, SHAPE_FULL },
-        { "receding", HAIR_NATURAL, SHAPE_RECEDING }, { "bald", HAIR_NATURAL, SHAPE_RECEDING },
+        { "receding", HAIR_NATURAL, SHAPE_RECEDING }, { "bald", HAIR_NATURAL, SHAPE_SHAVED },
         { "shaved", HAIR_NATURAL, SHAPE_SHAVED }, { "ponytail", HAIR_NATURAL, SHAPE_PONYTAIL },
     };
     for (size_t i = 0; i < sizeof k / sizeof k[0]; i++)

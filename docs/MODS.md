@@ -545,7 +545,8 @@ its own generator.
   hair colour 9: as drawn facing left, mirrored facing right, down the back facing away, unseen
   from the front; upright frames only). Goalkeepers keep theirs.
 - **Who looks how**: `looks.csv` in the mod's folder (the Mod's `bald-looks` format:
-  `country,club,name,look[,face]`, matched by full name and club), else a hash of his name (7%
+  `country,club,name,look[,face]`, matched by full name and club; `bald` is shaved, all bald -- the
+  owner's choice, 2026-11-08), else a hash of his name (7%
   receding, 6% shaved, 4% ponytail; white 14% blonde, 10% black; ginger 30% black), so a player
   always looks the same. `SWOS_HAIR_LOOK=<look>` gives everyone one (a test's).
 - **Marco's shaved art** (the Mod's `tools/shavedart.json`, per frame per skin) is used when it is
