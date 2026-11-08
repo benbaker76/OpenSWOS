@@ -904,6 +904,19 @@ renderer puts its colours into the key's pixels at the game's own size. In a mat
 the key is any colour: never shown there. Best made 1920 x 1080 (16:9) with what matters inside
 the centre 1440 x 1080, which a 4:3 window keeps -- it is cropped to the window's aspect, centred.
 
+## 25c. PC menu shading (the dosmenus mod)
+
+The menus' buttons shaded as the PC game shades them (`src/mod_dosmenus.c`, canonical, off by
+default; needs the PC game's `grafs_dos/FILL.256`, which the setup installs). The PC game
+(swos.asm `DrawEmptyMenuItem`) draws a box of menu colour c pixel by pixel as ramp
+`menuItemColorTable[c]` of its menu palette plus FILL.256's shade (0-31, a dithered gradient,
+dark bottom-left to bright top-right, 320 x 200) at that pixel; a 1-pixel line flat. Here the
+engine says which boxes it fills (`ModDef menuFill`, `menuDrawBegin` when the whole menu is drawn
+again: menu_system.c), and the mod paints, under the other mods (`frameUnder`), every pixel of
+those boxes that still has the box's colour in the PC game's colour for that place -- the
+336 x 256 menu mapped onto the map. Text and pictures on a button have other colours: untouched.
+The palette's fades do not reach it (a fade-in shows the buttons at full colour).
+
 ## 26. The rigs play without gameplay mods
 
 The rigs prove the original game, as they do with every tweak off (§4): under `--replay-test`

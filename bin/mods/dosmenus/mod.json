@@ -1,0 +1,13 @@
+{
+ "uuid": "4557372a-8e3c-55c5-a366-bea1de501a07",
+ "id": "dosmenus",
+ "name": "PC menu shading",
+ "version": "1.0",
+ "author": "OpenSWOS (the PC game's FILL.256, from the player's copy)",
+ "about": "The menus' buttons shaded as the PC game shades them: a gradient across the screen. Needs the PC game's data.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": false
+}

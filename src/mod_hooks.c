@@ -174,6 +174,16 @@ int32_t ModHooks_MenuBackdrop(const uint8_t **rgba, int32_t *w, int32_t *h)
     return 0;
 }
 
+void ModHooks_MenuDrawBegin(void)
+{
+    EACH(menuDrawBegin) (*m_)->menuDrawBegin();
+}
+
+void ModHooks_MenuFill(int32_t colour, int32_t x, int32_t y, int32_t w, int32_t h)
+{
+    EACH(menuFill) (*m_)->menuFill(colour, x, y, w, h);
+}
+
 int32_t ModHooks_LobbyKeepsReady(void)
 {
     int32_t keep = 0;

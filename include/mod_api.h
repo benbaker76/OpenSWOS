@@ -89,6 +89,13 @@ typedef struct ModDef {
      * kept by the mod until the next call) -- the backdrop is then that image behind every menu,
      * filling the window; 0 the game's own. Drawing only. */
     int32_t (*menuBackdrop)(const uint8_t **rgba, int32_t *w, int32_t *h);
+    /* A menu's entries drawn (SDL; the PC menu shading mod): menuDrawBegin when the whole menu is
+     * drawn again (forget the boxes before), menuFill with each entry's box -- its colour (0-15)
+     * and place in the frame's pixels -- as the game fills it (not a frame's 1-pixel lines). Drawing
+     * only: what a mod paints goes over the picture (frameDrawn), where the box still has its
+     * colour (text and pictures on it have others). */
+    void (*menuDrawBegin)(void);
+    void (*menuFill)(int32_t colour, int32_t x, int32_t y, int32_t w, int32_t h);
     /* Like frameDrawn, but every mod's frameUnder runs before any mod's frameDrawn: shading that
      * belongs to the picture (a darkened band), so what the other mods draw goes over it. */
     void (*frameUnder)(void);

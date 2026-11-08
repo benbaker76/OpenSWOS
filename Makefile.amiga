@@ -84,6 +84,7 @@ SDL_ONLY_SRCS := \
     miniz_impl.c          \
     mod_pitchmaps.c       \
     mod_backgrounds.c     \
+    mod_dosmenus.c        \
     stb_image_impl.c      \
     tileagent_impl.c      \
     mm_client.c           \

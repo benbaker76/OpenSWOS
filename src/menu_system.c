@@ -469,6 +469,14 @@ __attribute__((used, externally_visible))
 void DrawMenuItemBackground(uint16_t color, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
     FillRectangle(x, y, w, h, color);
+#ifdef SWOS_SDL_BUILD
+    /* An entry's box (not a frame's 1-pixel line, which the PC game draws flat too): a mod may
+     * shade it (ModDef menuFill -- the PC game's menu shading). Frame pixels: the offset added. */
+    if (w > 1 && h > 1) {
+        extern void ModHooks_MenuFill(int32_t colour, int32_t x, int32_t y, int32_t w, int32_t h);
+        ModHooks_MenuFill((int32_t)color, (int32_t)x + _menu_draw_x_offset, (int32_t)y, (int32_t)w, (int32_t)h);
+    }
+#endif
 }
 
 /* ================================================================
@@ -1703,6 +1711,9 @@ void DrawMenu(void)
     s_ovCollect = menu_overlap_on();
     if (s_ovCollect)
         menu_overlap_widths();
+#endif
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_MenuDrawBegin(void); ModHooks_MenuDrawBegin(); }  /* (the whole menu again) */
 #endif
     entry = (MenuEntry *)_menuEntries;
     count = (int16_t)menu->numEntries;
