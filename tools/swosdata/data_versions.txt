@@ -3,7 +3,7 @@
 # Written by scripts/check_data_versions.py --update; it fails when a part's
 # files change and include/assets_ini.h does not raise its version.
 aga_amiga 1 60da9ab5ab2b6371c4db25c853cfac82e86622f0 16
-aga_pc 1 c2a3746b5241c2a0cefbe0e3d4e2da244e558434 21
+aga_pc 2 3bff38822a09e5be30f1bedbb8baa96a27e0b815 21
 amiga_files 1 9e7cd40963f81981d37c91609042c86544bfe89d 40
 dos_files 1 b293dccea240277bc87da41f68021ee9eddea498 188
 jaguar 1 46212074126b4b6d18c6b871f1c203517aca35fe 8

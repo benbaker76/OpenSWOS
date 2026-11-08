@@ -11,9 +11,9 @@
 #define CA_W        352     /* a full-screen overlay */
 #define CA_H        272
 #define CA_PHOTO    40      /* px, square */
-#define CA_STEP     60      /* photo + 20 px: room for a name under each */
+#define CA_STEP     54      /* photo + 14 px: six across the picture */
 #define CA_STRIP    7       /* photos in credits_icons.bmp */
-#define CA_COUNT    4
+#define CA_COUNT    6
 #define CA_PHOTO_X  (176 - ((CA_COUNT - 1) * CA_STEP + CA_PHOTO) / 2)  /* centred on text x 176 */
 #define CA_PHOTO_Y  129
 #define CA_FG_SHIFT 16      /* menu x -> picture x on AGA */
@@ -21,8 +21,8 @@
 #define CA_SHADOW   3       /* the menu palette's black */
 
 /* The photos shown, in the order drawn, by their place in the strip:
- * BENBAKER76, ZKZ, PLAYAVELI, THD79 (menus.c k_creditsAgaNames). */
-static const int32_t k_photos[CA_COUNT] = { 1, 3, 0, 4 };
+ * BENBAKER76, ZKZ, PLAYAVELI, STARWINDZ, THD79, REDHAIR (menus.c k_creditsAgaNames). */
+static const int32_t k_photos[CA_COUNT] = { 1, 3, 0, 2, 4, 5 };
 
 int32_t Sd_MakeCreditsAga(const SgImage *bg, const SgImage *strip, SgBuf *outRaw, char *err)
 {

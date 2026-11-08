@@ -4,7 +4,7 @@
 The SDL builds draw the developer photos over the menu backdrop at run time
 (src/credits_menu.c, from bin/data/credits_icons.bmp). The Amiga has no chunky frame buffer
 to draw them into, so its screen is ONE 8-plane picture made here: the AGA menu backdrop
-(SwosGfx's Amiga_Images_256/MENUBG.bmp) with four of the strip's photos set into it
+(SwosGfx's Amiga_Images_256/MENUBG.bmp) with six of the strip's photos set into it
 (PHOTOS), packed to an RNC'd interleaved RAW by SwosGfx like every other full-screen image.
 
 The photos keep the palette indices they have in credits_icons.bmp, 128..255 -- a block
@@ -33,11 +33,11 @@ from PIL import Image
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 W, H = 352, 272         # a full-screen overlay: 44 bytes a plane row, SCREEN_HEIGHT rows
 PHOTO = 40              # px, square
-STEP = 60               # photo + 20 px: room for a name under each
+STEP = 54               # photo + 14 px: six across the 352 px picture, the last shadow inside it
 STRIP = 7               # photos in credits_icons.bmp (credits_text.h CREDITS_STRIP_*)
 # The photos shown, in the order drawn, by their place in the strip -- the order of
-# menus.c k_creditsAgaNames: BENBAKER76, ZKZ, PLAYAVELI, THD79.
-PHOTOS = [1, 3, 0, 4]
+# menus.c k_creditsAgaNames: BENBAKER76, ZKZ, PLAYAVELI, STARWINDZ, THD79, REDHAIR.
+PHOTOS = [1, 3, 0, 2, 4, 5]
 COUNT = len(PHOTOS)
 # Where the first photo is, in the coordinates menu TEXT is drawn at (DrawMenuText*).
 # Those are 24 px left and 36 px above the coordinates of menu ENTRIES, which the menu

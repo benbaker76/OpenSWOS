@@ -2627,7 +2627,7 @@ enum {
 
 /* In the order make_credits_aga.py set the photos into the backdrop (its PHOTOS). */
 static const char *const k_creditsAgaNames[CREDITS_AGA_PHOTOS] = {
-    "BENBAKER76", "ZKZ", "PLAYAVELI", "THD79",
+    "BENBAKER76", "ZKZ", "PLAYAVELI", "STARWINDZ", "THD79", "REDHAIR",
 };
 
 /* onInit: the screen's own backdrop, as the stadium screen loads its own. */

@@ -4,10 +4,10 @@
 #ifndef CREDITS_AGA_PALETTE_H
 #define CREDITS_AGA_PALETTE_H
 
-#define CREDITS_AGA_PHOTOS    4
+#define CREDITS_AGA_PHOTOS    6
 #define CREDITS_AGA_PHOTO     40
-#define CREDITS_AGA_STEP      60
-#define CREDITS_AGA_X         66
+#define CREDITS_AGA_STEP      54
+#define CREDITS_AGA_X         21
 #define CREDITS_AGA_Y         129
 #define CREDITS_AGA_PAL_BASE  128
 

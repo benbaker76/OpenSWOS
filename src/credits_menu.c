@@ -43,7 +43,7 @@ extern void     SetExitMenuFlag(void);
 
 enum {
     kCreditPhoto    = 40,          /* px, square */
-    kCreditStep     = 60,          /* photo + 20 px: room for a name under each */
+    kCreditStep     = 56,          /* photo + 16 px: six across the 336 px menu (the names stagger) */
     kCreditTextY    = 20,          /* the first line, under the header */
     kCreditPalBase  = 128,         /* the lent block: 128..255 */
     kCreditShadow   = 3,           /* the menu palette's black, for the 1 px drop shadow */
@@ -54,6 +54,7 @@ static const struct { uint8_t strip; const char *name; } k_creditPhotos[] = {
     { CREDITS_STRIP_BENBAKER76, "BENBAKER76" },
     { CREDITS_STRIP_ZKZ,        "ZKZ"        },
     { CREDITS_STRIP_PLAYAVELI,  "PLAYAVELI"  },
+    { CREDITS_STRIP_STARWINDZ,  "STARWINDZ"  },
     { CREDITS_STRIP_THD79,      "THD79"      },
     { CREDITS_STRIP_REDHAIR,    "REDHAIR"    },
 };

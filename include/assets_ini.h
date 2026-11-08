@@ -26,7 +26,7 @@
 #define ASSETS_PARTS(X)                                                                 \
     X(AMIGA_FILES, "amiga_files", 1)  /* data/, grafs/, sound/ from the Amiga disks */  \
     X(DOS_FILES,   "dos_files",   1)  /* grafs_dos/, sound_dos/ from the PC game */     \
-    X(AGA_PC,      "aga_pc",      1)  /* grafs_aga/ backdrops, banks, pitches, credits */\
+    X(AGA_PC,      "aga_pc",      2)  /* grafs_aga/ backdrops, banks, pitches, credits */\
     X(AGA_AMIGA,   "aga_amiga",   1)  /* grafs_aga/ loading and disk screens */         \
     X(TEAMS,       "teams",       1)  /* data_json/teams/ (and data/ teams) */          \
     X(JAGUAR,      "jaguar",      1)  /* grafs_jag/ */                                  \
