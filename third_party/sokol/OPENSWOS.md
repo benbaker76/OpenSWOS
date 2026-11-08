@@ -10,10 +10,11 @@ Used by the GPU presenter (`src/gpu_present.c`, `src/sokol_impl.c`, docs/RENDERI
 game's 8bpp frame and its palette go to the GPU, which colours, scales and composites them.
 How they are built (one change, below):
 
-- Desktop OpenGL (Windows, Linux): `SOKOL_GLCORE` with `SOKOL_EXTERNAL_GL_LOADER` -- the GL
+- Desktop OpenGL (Linux; Windows with `WIN_GL=1`): `SOKOL_GLCORE` with `SOKOL_EXTERNAL_GL_LOADER` -- the GL
   entry points are loaded through SDL (`SDL_GL_GetProcAddress`, src/sokol_gl_loader.h), so no GL
   header of the system and no GL library is linked (Cygwin has neither the Windows one sokol's
   own loader wants nor a native one).
+- Windows (Cygwin): `SOKOL_D3D11` (`src/sokol_impl_d3d11.c`); `make WIN_GL=1` keeps OpenGL.
 - macOS: `SOKOL_METAL` (`src/sokol_impl_metal.m`, Objective-C with ARC); `make MACOS_GL=1` keeps
   `SOKOL_GLCORE`, sokol's own `<OpenGL/gl3.h>` path.
 - Web, Android: `SOKOL_GLES3` (WebGL2 / OpenGL ES 3.0), the toolchain's headers.

@@ -2,7 +2,8 @@
  * sokol_config.h -- which sokol_gfx backend each SDL build uses, in one place so every file that
  * includes sokol agrees (src/sokol_impl.c, src/gpu_present.c; docs/RENDERING.md).
  *
- *   Windows (Cygwin), Linux   OpenGL 4.1 core, entry points loaded through SDL (sokol_gl_loader.h)
+ *   Windows (Cygwin)          Direct3D 11 (src/sokol_impl_d3d11.c); `make WIN_GL=1` keeps OpenGL 4.1 core
+ *   Linux                     OpenGL 4.1 core, entry points loaded through SDL (sokol_gl_loader.h)
  *   macOS                     Metal (src/sokol_impl_metal.m); `make MACOS_GL=1` keeps OpenGL 4.1 core
  *   iOS                       Metal (the same file; packaging/mobile/CMakeLists.txt)
  *   web, Android              OpenGL ES 3.0 / WebGL2, the toolchain's headers
@@ -28,6 +29,9 @@
 #elif defined(__APPLE__)
 #define SWOS_GPU 1
 #define SOKOL_GLCORE
+#elif defined(__CYGWIN__) && !defined(SWOS_WIN_GL)
+#define SWOS_GPU 1
+#define SOKOL_D3D11
 #else
 #define SWOS_GPU 1
 #define SOKOL_GLCORE

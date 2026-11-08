@@ -5,7 +5,7 @@
 #ifdef SWOS_SDL_BUILD
 #include "sokol_config.h"
 
-#if SWOS_GPU && !defined(SOKOL_METAL)       /* (Metal: src/sokol_impl_metal.m) */
+#if SWOS_GPU && (defined(SOKOL_GLCORE) || defined(SOKOL_GLES3))   /* (Metal, D3D11: src/gpu_native.h) */
 #include <SDL.h>
 #include <stdio.h>
 

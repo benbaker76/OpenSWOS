@@ -43,6 +43,7 @@ extern void     SokolGl_FramebufferSrgb(int on);
 extern void     SokolGl_GenerateMipmaps(uint32_t tex);
 #else
 #define SLANG_GL 0
+#include "gpu_native.h"         /* (GpuNative_GenerateMipmaps) */
 #endif
 
 typedef struct {
@@ -654,16 +655,22 @@ static void draw_pass(int i, int outW, int outH, float vw, float vh, int screen)
     sg_draw(0, 4, 1);
 }
 
+/* An image's mip levels from its level 0, outside any pass (a pass that reads it mipmapped). */
+static void gen_mips(const Rt *r)
+{
+    if (r->mips <= 1)
+        return;
+#if SLANG_GL
+    SokolGl_GenerateMipmaps(sg_gl_query_image_info(r->img).tex[0]);
+#else
+    GpuNative_GenerateMipmaps(r->img);
+#endif
+}
+
 void GpuSlang_Run(float vx, float vy, float vw, float vh, void (*beginScreen)(void))
 {
     int srcW = S.origW, srcH = S.origH;
-#if SLANG_GL
-    {
-        const Rt *o = &S.orig[S.frame % (uint32_t)S.history];
-        if (o->mips > 1)
-            SokolGl_GenerateMipmaps(sg_gl_query_image_info(o->img).tex[0]);
-    }
-#endif
+    gen_mips(&S.orig[S.frame % (uint32_t)S.history]);
     /* (SWOS_SHADER_PASSES=k: the chain stops at pass k, drawn onto the screen -- to look at a
      * preset's passes one at a time) */
     const char *stop = getenv("SWOS_SHADER_PASSES");
@@ -711,10 +718,7 @@ void GpuSlang_Run(float vx, float vy, float vw, float vh, void (*beginScreen)(vo
             SokolGl_FramebufferSrgb(0);
 #endif
             sg_end_pass();
-#if SLANG_GL
-            if (r->mips > 1)
-                SokolGl_GenerateMipmaps(sg_gl_query_image_info(r->img).tex[0]);
-#endif
+            gen_mips(r);
             srcW = w;
             srcH = h;
         }

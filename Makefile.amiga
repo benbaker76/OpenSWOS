@@ -53,6 +53,7 @@ SDL_ONLY_SRCS := \
     match_chat.c          \
     gpu_present.c         \
     sokol_impl.c          \
+    sokol_impl_d3d11.c    \
     assets_check.c        \
     mobile.c              \
     menu_mouse.c          \

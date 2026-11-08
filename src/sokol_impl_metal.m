@@ -1,16 +1,18 @@
 /*
- * sokol_impl_metal.m -- sokol_gfx's implementation for the Metal backend (macOS, iOS), and what the
- * GPU presenter needs of Metal around it (src/gpu_present.c; docs/RENDERING.md). Objective-C with
- * ARC, as sokol's Metal backend wants; the other backends compile sokol in src/sokol_impl.c.
+ * sokol_impl_metal.m -- sokol_gfx's implementation for the Metal backend (macOS, iOS), and the GPU
+ * presenter's native interface for it (src/gpu_native.h; docs/RENDERING.md). Objective-C with
+ * ARC, as sokol's Metal backend wants; OpenGL compiles sokol in src/sokol_impl.c, Direct3D 11 in
+ * src/sokol_impl_d3d11.c.
  *
- *   Mtl_Init            the device, and SDL's Metal view and layer on the window (BGRA8; vsync
+ *   Init                the device, and SDL's Metal view and layer on the window (BGRA8; vsync
  *                       is the layer's displaySyncEnabled on macOS -- iOS always syncs)
- *   Mtl_FrameBegin/End  an autorelease pool around a frame (the drawable and sokol's encoders are
- *                       autoreleased objects)
- *   Mtl_NextDrawable    the layer's next drawable, for the screen pass
- *   Mtl_Read*           the frame's pixels for a capture: the drawable copied into a buffer on the
- *                       frame's own command buffer before its pass ends (and presents it), read
- *                       when the frame is done
+ *   FrameBegin/End      an autorelease pool around a frame (the drawable and sokol's encoders are
+ *                       autoreleased objects); sokol presents the drawable at the screen pass's end
+ *                       and commits at sg_commit
+ *   Swapchain           the layer's next drawable, for the screen pass
+ *   Read*               a capture: the drawable copied into a buffer on the frame's own command
+ *                       buffer before its pass ends (and presents it), read when the frame is done
+ *   GenerateMipmaps     a blit encoder's generateMipmaps on the frame's command buffer
  */
 #include "sokol_config.h"
 
@@ -28,9 +30,12 @@
 #define SOKOL_SHDC_IMPL
 #include "shaders/present.glsl.h"
 
+#include "gpu_native.h"
+
 extern void *objc_autoreleasePoolPush(void);
 extern void  objc_autoreleasePoolPop(void *pool);
 
+static SDL_Window           *s_window;
 static SDL_MetalView         s_view;
 static CAMetalLayer         *s_layer;
 static id<MTLDevice>         s_device;
@@ -40,15 +45,16 @@ static id<MTLBuffer>         s_readBuf;
 static id<MTLCommandBuffer>  s_readCb;
 static int                   s_readW, s_readH;
 
-const void *Mtl_Init(SDL_Window *window, int vsync, int *vsyncOut)
+int32_t GpuNative_Init(SDL_Window *window, int32_t vsync, int32_t *vsyncOut, sg_environment *env)
 {
+    s_window = window;
     s_device = MTLCreateSystemDefaultDevice();
     if (!s_device)
-        return NULL;
+        return -1;
     s_view = SDL_Metal_CreateView(window);
     if (!s_view) {
         s_device = nil;
-        return NULL;
+        return -1;
     }
     s_layer = (__bridge CAMetalLayer *)SDL_Metal_GetLayer(s_view);
     s_layer.device = s_device;
@@ -61,15 +67,23 @@ const void *Mtl_Init(SDL_Window *window, int vsync, int *vsyncOut)
     (void)vsync;
     *vsyncOut = 1;
 #endif
-    return (__bridge const void *)s_device;
+    env->metal.device = (__bridge const void *)s_device;
+    return 0;
 }
 
-const char *Mtl_Renderer(void)
+const char *GpuNative_Renderer(void)
 {
     return s_device ? s_device.name.UTF8String : "";
 }
 
-void Mtl_Shutdown(void)
+sg_pixel_format GpuNative_SwapFormat(void) { return SG_PIXELFORMAT_BGRA8; }
+
+void GpuNative_DrawableSize(int *w, int *h)
+{
+    SDL_Metal_GetDrawableSize(s_window, w, h);
+}
+
+void GpuNative_Shutdown(void)
 {
     s_drawable = nil;
     s_readBuf = nil;
@@ -81,18 +95,18 @@ void Mtl_Shutdown(void)
     s_device = nil;
 }
 
-void Mtl_FrameBegin(void)
+void GpuNative_FrameBegin(void)
 {
     s_pool = objc_autoreleasePoolPush();
 }
 
-const void *Mtl_NextDrawable(void)
+void GpuNative_Swapchain(sg_swapchain *sc)
 {
     s_drawable = [s_layer nextDrawable];
-    return (__bridge const void *)s_drawable;
+    sc->metal.current_drawable = (__bridge const void *)s_drawable;
 }
 
-void Mtl_FrameEnd(void)
+void GpuNative_FrameEnd(void)
 {
     s_drawable = nil;
     if (s_pool)
@@ -102,7 +116,7 @@ void Mtl_FrameEnd(void)
 
 /* Before the screen pass ends: its encoder closed here (sokol's end_pass then only presents),
  * and the drawable copied into a buffer the CPU can read. 0 when there is nothing to read. */
-int Mtl_ReadBeforeEndPass(int w, int h)
+int32_t GpuNative_ReadBeforeEndPass(int w, int h)
 {
     id<MTLBlitCommandEncoder> blit;
     if (!s_drawable || !_sg.mtl.cmd_buffer || !_sg.mtl.render_cmd_encoder ||
@@ -125,7 +139,7 @@ int Mtl_ReadBeforeEndPass(int w, int h)
 }
 
 /* After sg_commit: the frame done, its pixels as RGBA, top row first. */
-void Mtl_ReadAfterCommit(uint8_t *rgba)
+void GpuNative_ReadAfterCommit(uint8_t *rgba)
 {
     const uint8_t *src;
     if (!s_readCb || !s_readBuf)
@@ -139,6 +153,19 @@ void Mtl_ReadAfterCommit(uint8_t *rgba)
         rgba[i * 4 + 3] = src[i * 4 + 3];
     }
     s_readCb = nil;
+}
+
+/* Between passes: the frame's command buffer has no encoder open (sokol's end_pass closed it). */
+void GpuNative_GenerateMipmaps(sg_image img)
+{
+    const sg_mtl_image_info info = sg_mtl_query_image_info(img);
+    id<MTLTexture> tex = (__bridge id<MTLTexture>)info.tex[info.active_slot];
+    id<MTLBlitCommandEncoder> blit;
+    if (!tex || tex.mipmapLevelCount < 2 || !_sg.mtl.cmd_buffer || _sg.mtl.render_cmd_encoder)
+        return;
+    blit = [_sg.mtl.cmd_buffer blitCommandEncoder];
+    [blit generateMipmapsForTexture:tex];
+    [blit endEncoding];
 }
 
 #endif

@@ -25,7 +25,8 @@ without changing anything.
 
 | target | backend |
 |---|---|
-| Windows (Cygwin), Linux | OpenGL 4.1 core; entry points loaded through `SDL_GL_GetProcAddress` (`src/sokol_gl_loader.h`), so no GL library is linked |
+| Windows (Cygwin) | Direct3D 11 (`src/sokol_impl_d3d11.c`; `-ld3d11 -ldxgi -ldxguid`, Windows 10's own DLLs, HLSL compiled by its `d3dcompiler_47.dll`); `make WIN_GL=1` keeps OpenGL 4.1 core |
+| Linux | OpenGL 4.1 core; entry points loaded through `SDL_GL_GetProcAddress` (`src/sokol_gl_loader.h`), so no GL library is linked |
 | macOS | Metal (`src/sokol_impl_metal.m`, Objective-C with ARC; `-framework Metal QuartzCore Foundation`); `make MACOS_GL=1` keeps OpenGL 4.1 core |
 | web | WebGL 2 (`-sMAX_WEBGL_VERSION=2`) |
 | Android | GLES 3 (`GLESv3` in `packaging/mobile/CMakeLists.txt`) |
@@ -35,13 +36,19 @@ without changing anything.
 The phone builds compile the shader compiler too: `packaging/mobile/CMakeLists.txt` reads the
 Makefile's `SHADERCC_SRCS` list out of the Makefile itself, so the two cannot drift.
 
-`src/sokol_impl.c` compiles sokol's implementation for GL; `src/sokol_impl_metal.m` for Metal,
-with what the presenter needs of Metal around it: the device, SDL's Metal view and its
+`src/sokol_impl.c` compiles sokol's implementation for GL. Metal and Direct3D 11 each have a file
+that compiles it for their backend and gives the presenter one native interface
+(`src/gpu_native.h`: the device, the window's swapchain, the frame's target, a capture, mipmaps).
+`src/sokol_impl_d3d11.c`: a feature level 11.1 (else 11.0) device, a flip-model swapchain on
+SDL's window (RGBA8, resized when the window is), `Present` at the frame's end, a capture through
+a staging texture, and mipmaps through a helper texture (sokol's images cannot take
+`GENERATE_MIPS`). Cygwin's SDL headers are its Unix ones, so the window's `HWND` is read from
+`SDL_SysWMinfo`'s union by SDL's ABI. `src/sokol_impl_metal.m`, for Metal: the device, SDL's Metal view and its
 `CAMetalLayer` (BGRA8, so the presenter's default colour format is BGRA8 there; vsync is the
 layer's `displaySyncEnabled`), an autorelease pool a frame, the drawable for the screen pass
 (sokol presents it at the pass's end and commits at `sg_commit`), and a capture: the drawable
 blitted into a shared buffer on the frame's own command buffer before the pass ends, read after the
-commit completes. sokol itself is vendored in `third_party/sokol` (see its `OPENSWOS.md`: one
+commit completes; mipmaps with a blit encoder. sokol itself is vendored in `third_party/sokol` (see its `OPENSWOS.md`: one
 change, a double release when a Metal shader fails to compile).
 
 ## Shaders
@@ -106,7 +113,10 @@ and HLSL bind by slot, not name, so every texture a pass declares needs one: a t
 feed gets a slot past ours (`SLANG_MAX_TEXTURES` on), or SPIRV-Cross puts it at 0 over the one
 that is there -- crt-guest-advanced's `OriginalHistory0` did (which is Original, slang's spec says;
 now fed). On Metal, Original is drawn in the presenter's format (BGRA8), not RGBA8. Metal and GL
-draw crt-royale's 12 passes the same, to 1 in 255 (2026-11-08, Apple M4 Pro).
+draw crt-royale's 12 passes the same, to 1 in 255 (2026-11-08, Apple M4 Pro); Direct3D 11 and GL
+on one Windows machine (AMD 890M) crt-guest-advanced and the Retro TV preset to 1 in 255, royale
+but for 8 pixels in 1.6 million (6 in 255: float rounding). A Metal or D3D compiler's warnings are
+not logged, its errors are.
 
 Choosing one: the **retrotv** mod (`src/mod_retrotv.c`, off by default) -- `[mod.retrotv] preset`
 from its `shaders/` or the player's `Documents\SWOS\shaders` (a preset with its `.slang` files and
@@ -121,4 +131,4 @@ mask / vignette / corners overlay (`[video] crt_mask` ...) is unchanged and work
 
 With the GPU presenter, F12, `SWOS_SCREENSHOT_INTERVAL` and `SWOS_DUMP_FRAMES` still convert the
 frame on the CPU, only on the frames they capture. `SWOS_PRESENT_CAPTURE` reads the drawable back
-(`glReadPixels`; on Metal, the copy described above).
+(`glReadPixels`; on Metal and Direct3D 11, the copies described above).

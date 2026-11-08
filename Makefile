@@ -646,6 +646,15 @@ LDLIBS  := $(SDL2_LIBS) -lm
 ifeq ($(BUILD_OS),windows)
 LDLIBS  += -lwinmm
 endif
+# Windows draws with Direct3D 11 (src/sokol_impl_d3d11.c) unless WIN_GL=1 keeps OpenGL. The DLLs it
+# loads (d3d11, dxgi, d3dcompiler_47) are Windows 10's own: the shipped DLL list does not change.
+ifeq ($(BUILD_OS),windows)
+ifeq ($(WIN_GL),1)
+CFLAGS  += -DSWOS_WIN_GL=1
+else
+LDLIBS  += -ld3d11 -ldxgi -ldxguid
+endif
+endif
 # The GPU presenter (src/gpu_present.c, sokol_gfx; docs/RENDERING.md). Desktop Linux and Windows
 # load OpenGL through SDL (src/sokol_gl_loader.h), so link nothing; macOS links its OpenGL
 # framework, the web asks for WebGL 2 (GLES 3).
