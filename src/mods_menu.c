@@ -109,7 +109,8 @@ static void refresh(void)
         if (s_top + i >= s_count)
             continue;
         char text[64];
-        snprintf(text, sizeof text, "%s %s (%s)", m->name, m->version, m->canonical ? "GAME'S" : "DLC");
+        /* (a downloaded mod says so; the game's own -- most of the list -- need not) */
+        snprintf(text, sizeof text, "%s %s%s", m->name, m->version, m->canonical ? "" : " (DLC)");
         upper(s_nameText[i], sizeof s_nameText[i], text);
         name->fg = (uintptr_t)s_nameText[i];
         state->fg = (uintptr_t)(m->problem[0] ? "CANNOT"
