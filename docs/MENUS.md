@@ -908,6 +908,21 @@ finding once to `SWOS.log` as an `[overlap]` line, naming the menu by its init f
 `SWOS_MENU_OVERLAP_WIDTHS=<file>` also measures each line of the file in the small and the
 big font, once (`[widths] <small> <big> <text>`): for names no test run puts on screen.
 
+`SWOS_TEXT_FIT=1` checks that every built-in menu's labels fit their own boxes, in one
+language (`--language=xx`, else SWOS.ini's):
+- At the first menu drawn, each of the 47 menus is unpacked into a scratch copy, so the
+  screen is left alone.
+- Each label is measured in its own font against its box less 2 px a side. For an option row,
+  every value of its string table is measured, not only the one showing.
+- Each label that doesn't fit is a `[textfit]` line, then the game quits (exit 1 if any).
+- Labels set by code at run time (names, numbers) are the overlap check's job.
+- Grep the log with `grep -a`: the translations' accents are Latin-1 bytes.
+- English, the original layout, gives only DIY's six "*" markers in their 4 px boxes, which
+  is how the game drew them.
+
+      SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy SWOS_SKIP_INTRO=1 SWOS_TEXT_FIT=1 \
+          bin/SWOS.x86_64 --language=de; grep -a textfit ~/.swos/SWOS.log
+
 To sweep a world: a one-season career for a club of every country (`--career-golden=new:...
 --golden-seasons=1`), and `SWOS_GOLDEN_VIEW_WORLD=<continent>` (`src/career_autopilot.c`)
 for VIEW WORLD's continent screen, its competitions above its countries. 96/97 gives none.

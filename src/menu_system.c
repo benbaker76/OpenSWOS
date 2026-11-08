@@ -784,6 +784,87 @@ static void menu_overlap_widths(void)
     fclose(f);
 }
 
+/* SWOS_TEXT_FIT=1: every built-in menu unpacked into a scratch copy (the one on screen is left
+ * alone) and each label measured in its own font against its own box -- a string table's every
+ * value, not only the one showing -- in the language this run loaded (--language=xx). Each that
+ * does not fit is a "[textfit]" line in SWOS.log; then the game quits. Labels set by code at run
+ * time (names, numbers) are not seen: those are the overlap check's (SWOS_MENU_OVERLAP). */
+static int32_t is_ui_string(const void *p)
+{
+    extern const struct { const char *name; void *addr; } _stringSymbols[];
+    extern const int _stringSymbolsCount;
+    for (int32_t i = 0; i < _stringSymbolsCount; i++)
+        if (_stringSymbols[i].addr == p)
+            return 1;
+    return 0;
+}
+
+static int32_t fit_check(const char *menu, const MenuEntry *e, int32_t ordinal, const uint8_t *text,
+                         uint8_t *charTable)
+{
+    extern const char *tr_ptr(const void *);
+    const char *t = tr_ptr(text);
+    const uint8_t *s = t ? (const uint8_t *)t : text;
+    int32_t len = (int32_t)strlen((const char *)s), a = 0, b = len, w, room;
+    while (a < len && s[a] == ' ')
+        a++;
+    while (b > a && s[b - 1] == ' ')
+        b--;
+    if (a == b)
+        return 0;
+    w = text_width_n(s + a, b - a, charTable);
+    room = (int32_t)e->dwWidth - (e->background != NO_BACKGROUND ? 4 : 0);   /* (2 px each side) */
+    if (room <= 0 || w <= room)
+        return 0;
+    fprintf(stderr, "[textfit] %s entry %d: \"%.*s\" is %d px, its box has %d\n", menu, (int)ordinal,
+            (int)(b - a), (const char *)s + a, (int)w, (int)room);
+    return 1;
+}
+
+void MenuTextFit_Sweep(void)
+{
+    extern int MenuJson_StaticCount(void);
+    extern const char *MenuJson_StaticName(int i);
+    extern uint8_t *MenuJson_StaticMenu(int i);
+    static uint8_t scratch[8 * 1024 + 80 * 1024] __attribute__((aligned(8)));
+    static int32_t done;
+    const ptrdiff_t entOff = (uint8_t *)_menuEntries - (uint8_t *)_currentMenu;
+    int32_t menus = 0, labels = 0, over = 0;
+    if (done || !getenv("SWOS_TEXT_FIT") || !_charTables[0] || !_charTables[1])
+        return;
+    done = 1;
+    for (int32_t m = 0; m < MenuJson_StaticCount(); m++) {
+        uint8_t *packed = MenuJson_StaticMenu(m);
+        if (!packed)
+            continue;
+        UnpackMenu(packed, scratch);
+        menus++;
+        const Menu *menu = (const Menu *)scratch;
+        for (int32_t i = 0; i < (int32_t)menu->numEntries; i++) {
+            const MenuEntry *e = (const MenuEntry *)(scratch + entOff + i * MENUENTRY_STRIDE);
+            uint8_t *charTable = (uint8_t *)_charTables[((e->stringFlags & STR_FLAGS_MASK) >> 2) / 4];
+            if (e->dwWidth <= 0 || !charTable || !e->fg)
+                continue;
+            if (e->content == ENTRY_STRING) {
+                labels++;
+                over += fit_check(MenuJson_StaticName(m), e, i, (const uint8_t *)e->fg, charTable);
+            } else if (e->content == ENTRY_STRING_TABLE) {
+                struct __attribute__((packed)) { void *indexPtr; uint16_t base; } *hdr = (void *)e->fg;
+                void **values = (void **)((uint8_t *)hdr + sizeof *hdr);
+                /* (a table does not say how long it is: its values while each is a UI string) */
+                for (int32_t k = 0; k < 16 && values[k] && is_ui_string(values[k]); k++) {
+                    labels++;
+                    over += fit_check(MenuJson_StaticName(m), e, i, (const uint8_t *)values[k], charTable);
+                }
+            }
+        }
+    }
+    fprintf(stderr, "[textfit] %d menus, %d labels: %d too wide for their box\n", (int)menus, (int)labels,
+            (int)over);
+    fflush(stderr);
+    exit(over ? 1 : 0);
+}
+
 /* After a full redraw: boxes that cross without one holding the other; texts that
  * cross each other; a text that crosses the edge of another entry's box. */
 static void menu_overlap_check(void)
@@ -1616,6 +1697,7 @@ void DrawMenu(void)
 
     /* Draw all entries (centered via the persistent _menu_draw_x_offset). */
 #ifdef SWOS_SDL_BUILD
+    MenuTextFit_Sweep();                /* (SWOS_TEXT_FIT=1 only: measures, then quits) */
     s_ovTexts = 0;
     s_ovCollect = menu_overlap_on();
     if (s_ovCollect)

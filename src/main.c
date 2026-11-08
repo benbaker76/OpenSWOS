@@ -301,6 +301,7 @@ static void print_usage(const char *argv0)
         "                            sound_dos/menu.mp3 ([audio] menu_music).\n"
         "  --input-selftest          Check the redefined keys and the press latch\n"
         "  --chat-selftest           Check the match chat's text rules and its font\n"
+        "  --language=<code>         The menus' language for this run: en de fr es it nl\n"
         "  --dos-music-selftest      Play the PC menu music through once without sound\n"
         "                            and report what it found. Exits.\n"
         "  --dos-sound-selftest      Check that every PC sound file is in sound_dos/\n"
@@ -675,6 +676,8 @@ int main(int argc, char **argv)
                 return 1;
             }
             opts.win_scale = n;
+        } else if ((v = match_kv(a, "language")) != NULL) {
+            snprintf(opts.language, sizeof opts.language, "%s", v);    /* en de fr es it nl */
         } else if ((v = match_kv(a, "renderer")) != NULL) {
             if (strcmp(v, "software") == 0)      opts.renderer = PLATFORM_RENDERER_SOFTWARE;
             else if (strcmp(v, "accel") == 0 || strcmp(v, "gpu") == 0) opts.renderer = PLATFORM_RENDERER_ACCEL;

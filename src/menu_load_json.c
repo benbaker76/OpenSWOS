@@ -766,6 +766,11 @@ static const struct { const char *name; uint8_t *menu; } s_staticMenus[] = {
 };
 #define NUM_STATIC_MENUS ((int)(sizeof s_staticMenus / sizeof s_staticMenus[0]))
 
+/* The built-in menus, by name (SWOS_TEXT_FIT's sweep: menu_system.c). */
+int MenuJson_StaticCount(void) { return NUM_STATIC_MENUS; }
+const char *MenuJson_StaticName(int i) { return i >= 0 && i < NUM_STATIC_MENUS ? s_staticMenus[i].name : NULL; }
+uint8_t *MenuJson_StaticMenu(int i) { return i >= 0 && i < NUM_STATIC_MENUS ? s_staticMenus[i].menu : NULL; }
+
 
 /* Build menu `name` from JSON and memcmp vs its compiled static bytes.
  * Returns 0 = identical, 1 = differs, -1 = error. */
