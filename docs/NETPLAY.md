@@ -1014,6 +1014,17 @@ down, so a GO pressed before the host's new rules arrive stands. Test knob:
 HOST_ENV=SWOS_LOBBY_CUP=2:2 RELAY=0 REPORTS=1 scripts/relay_test.sh` plays a tie and the
 first leg of the next.
 
+**What the first leg leaves on the second** (from SWOS United, as SWOS 2020's
+`updateCardsInjuriesAndEtc`; NETPLAY_COMPAT 12). Each game reads it off the match it has just
+played -- the two played the same match, so nothing is sent (`leg_carry`): a player injured
+carries his injury, one sent off two cards, into his `cardsInjuries` for the second leg, found
+through `playerIndex` (a substitution moves him in the match's order, not the team's). The team
+stays for the second leg (`YOUR TEAM STAYS FOR THE SECOND LEG`), and an eleven with a player
+sent off or injured worse than a knock cannot be confirmed (PLAY MATCH's CONFIRM is not there:
+`g_playMatchStartRefused`), nor ready up (`REPLACE YOUR INJURED OR SENT OFF PLAYERS`), nor start
+(`NetplayLobby_LegBlocked`). Cleared after the second leg. Test knob, on BOTH games:
+`SWOS_LOBBY_TEST_LEG=<side 1|2>:<player file index>:<status>,...` after the first leg.
+
 ### Chat in a match (`src/match_chat.c`, `src/chat_font.c`)
 
 **The lobby's chat is in the same font** (since 2026-11-07):

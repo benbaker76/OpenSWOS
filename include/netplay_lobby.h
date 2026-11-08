@@ -107,6 +107,12 @@ const char        *NetplayLobby_Notice(void);
 void               NetplayLobby_SetTeam(const TeamFileEx *team);
 void               NetplayLobby_SetTactic(int32_t tactic);
 void               NetplayLobby_SetReady(int32_t ready);
+/* The second leg of a two-legged tie is next (or being played): each player's team stands, and
+ * what the first did to it comes along -- a player sent off, an injury (netplay_lobby.c). */
+int32_t            NetplayLobby_SecondLeg(void);
+/* Whether a side's eleven has a player who cannot play the second leg: SWOS 2020's
+ * checkPlayMatchButtonVisible -- sent off, or injured worse than a knock. */
+int32_t            NetplayLobby_LegBlocked(const TeamFileEx *team);
 void               NetplayLobby_SetActivity(int32_t activity);
 
 /* The host's. Changing the number of legs or the tie-break starts a new tie. A change takes the joiner's ready flag down on the joiner's side, so

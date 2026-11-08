@@ -284,8 +284,29 @@ void ShowUseMatchTeamIfTraining(void) {
  *   loc_14876E  → hidePlayBtnPath
  *   loc_148780  → hidePlayBtn (set entry $1F8 invisible=1)
  * ================================================================ */
+#ifdef SWOS_SDL_BUILD
+/* The online lobby's second leg (src/online_menus.c): CONFIRM is not there while this says the
+ * eleven cannot play, as in SWOS 2020's PlayMatchMenu. */
+int32_t (*g_playMatchStartRefused)(const TeamFileEx *team);
+#endif
+
+static void showOrHidePlayMatchButton(void);
+
 __attribute__((used, externally_visible))
 void ShowOrHidePlayMatchButton(void) {
+    showOrHidePlayMatchButton();
+#ifdef SWOS_SDL_BUILD
+    if (g_playMatchStartRefused && !_viewingOpponentTeam && g_playMatchStartRefused(_playMatchTeam1Ptr)) {
+        extern uint8_t _currentMenu[];
+        Menu *menu = (Menu *)_currentMenu;
+        _menuEntries[9].isInvisible = 1;
+        if (menu->selectedEntry == &_menuEntries[9])    /* (SWOS 2020's: over to EXIT, entry 8) */
+            menu->selectedEntry = &_menuEntries[8];
+    }
+#endif
+}
+
+static void showOrHidePlayMatchButton(void) {
     _menuEntries[8].isInvisible = 1;
 
     if (_viewingOpponentTeam) {

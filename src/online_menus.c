@@ -1869,6 +1869,11 @@ static void mpGameSetup_teams_onSelect(void)
 
     if (!on_my_row(MpGameSetupMenu_teams_00))
         return;
+    /* The tie is one team's: another now would leave the first leg's injuries behind it. */
+    if (NetplayLobby_SecondLeg()) {
+        NetplayLobby_ChatNotice("YOUR TEAM STAYS FOR THE SECOND LEG");
+        return;
+    }
 
     /* Tell the other player first -- and take ready down, so a start cannot be
      * offered while this player is away in the list. */
@@ -2043,6 +2048,7 @@ static void lineup_screen(void)
                                      int16_t isFirstPlayer, int16_t squadChanges,
                                      TeamFileEx *team1, TeamFileEx *team2);
     extern const char *g_playMatchStartLabel;
+    extern int32_t (*g_playMatchStartRefused)(const TeamFileEx *team);
     extern TeamFileEx _selectedTeams[SELECTED_TEAMS_MAX];
     extern uint16_t   _exitGameFlag;
     static char confirm[] = "CONFIRM";
@@ -2054,9 +2060,12 @@ static void lineup_screen(void)
     lineup_begin();
     _exitGameFlag = 0;
     g_playMatchStartLabel = confirm;
+    g_playMatchStartRefused = NetplayLobby_LegBlocked;     /* (a second leg: no CONFIRM while the
+                                                             * first's injured or sent off play) */
     ShowPlayMatchMenu(1, (int16_t)NetplayLobby_Rules()->maxSubs, 0, 1, 1,
                       &_selectedTeams[0], &_selectedTeams[1]);
     g_playMatchStartLabel = NULL;
+    g_playMatchStartRefused = NULL;
     confirmed = _exitGameFlag == 0;     /* EXIT sets it; CONFIRM (the PLAY button) does not */
     _exitGameFlag = 0;
     lineup_end();
