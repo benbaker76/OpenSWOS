@@ -667,6 +667,43 @@ static void gen_mips(const Rt *r)
 #endif
 }
 
+/* Pass i into its own image, w x h (its output this frame); 0 when the image could not be made. */
+static int draw_offscreen(int i, int w, int h, float vw, float vh)
+{
+    Rt *r = pass_out(i, 0);
+    sg_pass ps;
+    const int mipped = i + 1 < S.npasses && S.preset.pass[i + 1].mipmap;  /* (the next reads it so) */
+    if (!rt_ensure(r, w, h, S.pass[i].fmt, mipped))
+        return 0;
+    if (S.pass[i].feedback) {           /* last frame's: there, and black the first time */
+        Rt *o = pass_out(i, 1);
+        if (!o->img.id || o->w != w || o->h != h || o->fmt != S.pass[i].fmt) {
+            rt_ensure(o, w, h, S.pass[i].fmt, mipped);
+            memset(&ps, 0, sizeof ps);
+            ps.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+            ps.attachments.colors[0] = o->att;
+            sg_begin_pass(&ps);
+            sg_end_pass();
+        }
+    }
+    memset(&ps, 0, sizeof ps);
+    ps.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+    ps.action.colors[0].clear_value.a = 1.0f;
+    ps.attachments.colors[0] = r->att;
+    sg_begin_pass(&ps);
+#if SLANG_GL
+    SokolGl_FramebufferSrgb(S.pass[i].fmt == SG_PIXELFORMAT_SRGB8A8);
+#endif
+    sg_apply_viewport(0, 0, w, h, true);
+    draw_pass(i, w, h, vw, vh, 0);
+#if SLANG_GL
+    SokolGl_FramebufferSrgb(0);
+#endif
+    sg_end_pass();
+    gen_mips(r);
+    return 1;
+}
+
 void GpuSlang_Run(float vx, float vy, float vw, float vh, void (*beginScreen)(void))
 {
     int srcW = S.origW, srcH = S.origH;
@@ -677,8 +714,12 @@ void GpuSlang_Run(float vx, float vy, float vw, float vh, void (*beginScreen)(vo
     const int n = stop && atoi(stop) > 0 && atoi(stop) < S.npasses ? atoi(stop) : S.npasses;
     for (int i = 0; i < n; i++) {
         const SlangPassDesc *d = &S.preset.pass[i];
-        const int last = i == n - 1;
-        if (last) {
+        if (i == n - 1) {
+            /* The last onto the screen. A pass that reads its last frame (PassFeedback of the
+             * last pass) gets one: the pass is drawn into its image too, the picture's size --
+             * the same shader and inputs, so the same pixels as the screen's. */
+            if (S.pass[i].feedback)
+                draw_offscreen(i, (int)vw, (int)vh, vw, vh);
             beginScreen();
             sg_apply_viewportf(vx, vy, vw, vh, true);
             draw_pass(i, (int)vw, (int)vh, vw, vh, 1);
@@ -688,37 +729,8 @@ void GpuSlang_Run(float vx, float vy, float vw, float vh, void (*beginScreen)(vo
             const uint8_t tx = d->scaleTypeX ? d->scaleTypeX : SLANG_SCALE_SOURCE;
             const uint8_t ty = d->scaleTypeY ? d->scaleTypeY : SLANG_SCALE_SOURCE;
             const int w = scaled(tx, d->scaleX, srcW, vw), h = scaled(ty, d->scaleY, srcH, vh);
-            Rt *r = pass_out(i, 0);
-            sg_pass ps;
-            const int mipped = i + 1 < S.npasses && S.preset.pass[i + 1].mipmap;  /* (the next reads it so) */
-            if (!rt_ensure(r, w, h, S.pass[i].fmt, mipped))
+            if (!draw_offscreen(i, w, h, vw, vh))
                 continue;
-            if (S.pass[i].feedback) {       /* last frame's: there, and black the first time */
-                Rt *o = pass_out(i, 1);
-                if (!o->img.id || o->w != w || o->h != h || o->fmt != S.pass[i].fmt) {
-                    rt_ensure(o, w, h, S.pass[i].fmt, mipped);
-                    memset(&ps, 0, sizeof ps);
-                    ps.action.colors[0].load_action = SG_LOADACTION_CLEAR;
-                    ps.attachments.colors[0] = o->att;
-                    sg_begin_pass(&ps);
-                    sg_end_pass();
-                }
-            }
-            memset(&ps, 0, sizeof ps);
-            ps.action.colors[0].load_action = SG_LOADACTION_CLEAR;
-            ps.action.colors[0].clear_value.a = 1.0f;
-            ps.attachments.colors[0] = r->att;
-            sg_begin_pass(&ps);
-#if SLANG_GL
-            SokolGl_FramebufferSrgb(S.pass[i].fmt == SG_PIXELFORMAT_SRGB8A8);
-#endif
-            sg_apply_viewport(0, 0, w, h, true);
-            draw_pass(i, w, h, vw, vh, 0);
-#if SLANG_GL
-            SokolGl_FramebufferSrgb(0);
-#endif
-            sg_end_pass();
-            gen_mips(r);
             srcW = w;
             srcH = h;
         }

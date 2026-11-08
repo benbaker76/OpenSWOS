@@ -109,7 +109,9 @@ overlays drawn at the game's own size into `Original`; each pass into its own im
 type, its format; mipmaps when the next asks), the last onto the screen in the picture's place,
 then the window's overlays. Each pass gets what it reads -- Original, Source, earlier passes'
 output, feedback, history, the preset's textures -- and its uniforms by meaning (MVP, the sizes,
-FrameCount, the parameters).
+FrameCount, the parameters). A last pass that reads its own last frame (its `PassFeedback`) is
+drawn twice: into its image, the picture's size, for the next frame, and onto the screen -- the
+same shader and inputs, so the same pixels.
 
 Traps, each met: GL keeps render targets bottom up and slang takes the first row as the top, so
 on GL every pass into an image (and Original) is drawn upside down; GL's blocks are real uniform
