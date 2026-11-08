@@ -83,8 +83,11 @@ int32_t ModApi_MatchMinute(void)
 
 int32_t ModApi_MatchPlayerName(int32_t side, int32_t slot, char *out, int32_t cap)
 {
-    extern TeamGame _topTeamInGame, _bottomTeamInGame;      /* (team 1 the top team) */
-    const TeamGame *t = side == 0 ? &_topTeamInGame : side == 1 ? &_bottomTeamInGame : NULL;
+    /* (by the team's number, as the match numbers them: the two swap ends at half time) */
+    extern TeamGeneralInfo _topTeamData, _bottomTeamData;
+    const TeamGeneralInfo *g = _topTeamData.teamNumber == side + 1 ? &_topTeamData :
+                               _bottomTeamData.teamNumber == side + 1 ? &_bottomTeamData : NULL;
+    const TeamGame *t = g ? (const TeamGame *)g->inGameTeamPtr : NULL;
     int32_t n = 0;
     if (!out || cap < 1)
         return 0;
