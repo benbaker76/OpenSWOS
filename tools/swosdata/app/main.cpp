@@ -1652,8 +1652,10 @@ struct App {
   struct ModFile {
     std::string slug, dir, name, version, uuid, changes, problem;
     bool canonical = false, byDefault = false, sdl = false, amiga = false;
+    bool isStatic = false;   // PROJECT_STATIC_MODS: part of the game -- on for good, never listed
   };
   std::vector<ModFile> modList;
+  std::vector<int> modRows;          // the Mods screen's rows -> modList (a static mod has no row)
   static constexpr const char* kModChanges[] = { N_("cosmetic"), N_("gameplay"), N_("career"), N_("data"),
                                                  N_("modes") };   // (shown translated)
 
@@ -1763,7 +1765,14 @@ struct App {
     for (const std::string& s : l) out += (out.empty() ? "" : ", ") + s;
     return out;
   }
+  // A canonical mod PROJECT_STATIC_MODS names (include/project_identity.h): the game's own, on for
+  // good -- not on the Mods screen, always in an Amiga drawer's data/MODS (as src/mods.c has it).
+  static bool StaticSlug(const std::string& slug) {
+    const std::vector<std::string> l = SplitList(PROJECT_STATIC_MODS);
+    return std::find(l.begin(), l.end(), slug) != l.end();
+  }
   bool ModOn(const ModFile& m) const {
+    if (m.isStatic) return true;
     const std::string ini = ReadFile(IniPath(kComputer));
     const auto has = [](const std::vector<std::string>& l, const std::string& s) {
       return std::find(l.begin(), l.end(), s) != l.end();
@@ -1801,6 +1810,7 @@ struct App {
         if (!e.dir) continue;
         ModFile m = ReadMod(e.path, pass == 0);
         if (!SlugOk(m.slug)) continue;
+        m.isStatic = m.canonical && StaticSlug(m.slug);
         modList.push_back(m);
       }
     }
@@ -1824,7 +1834,11 @@ struct App {
   void ModsRefresh() {
     ModsScan();
     auto rows = std::make_shared<slint::VectorModel<ModRow>>();
-    for (const ModFile& m : modList) {
+    modRows.clear();
+    for (int k = 0; k < int(modList.size()); k++) {
+      const ModFile& m = modList[k];
+      if (m.isStatic) continue;      // (part of the game: not a choice, not listed)
+      modRows.push_back(k);
       ModRow r;
       r.name = Str(m.name + (m.version.empty() ? "" : " " + m.version));
       r.info = Str(Tf("{0}, {1}{2}", m.canonical ? T("part of the game") : T("downloaded"), T(m.changes),
@@ -1897,18 +1911,26 @@ struct App {
   void ModsInstallFound(int i) {
     if (i >= 0 && i < int(modZipsFound.size())) ModsInstallFrom(modZipsFound[i]);
   }
+  // A row of the Mods screen as its mod (modRows), or nullptr.
+  const ModFile* RowMod(int row) const {
+    if (row < 0 || row >= int(modRows.size()) || modRows[row] >= int(modList.size())) return nullptr;
+    return &modList[modRows[row]];
+  }
   void ModsToggle(int i) {
-    if (i < 0 || i >= int(modList.size()) || !modList[i].problem.empty()) return;
-    const bool on = !ModOn(modList[i]);
-    SetModOn(modList[i], on);
+    const ModFile* p = RowMod(i);
+    if (!p || !p->problem.empty() || p->isStatic) return;
+    const ModFile m = *p;            // (ModsRefresh rescans the list)
+    const bool on = !ModOn(m);
+    SetModOn(m, on);
     ModsRefresh();
     w().set_mods_status(Str(Tf(on ? T("{0} is on from the next time the game starts.").c_str()
-                                  : T("{0} is off from the next time the game starts.").c_str(), modList[i].name)));
+                                  : T("{0} is off from the next time the game starts.").c_str(), m.name)));
     w().set_mods_status_error(false);
   }
   void ModsRemove(int i) {
-    if (i < 0 || i >= int(modList.size()) || modList[i].canonical) return;
-    const ModFile m = modList[i];
+    const ModFile* p = RowMod(i);
+    if (!p || p->canonical) return;
+    const ModFile m = *p;
     SetModOn(m, false);
     sd::RemoveTree(m.dir);
     FileLog("mods: removed " + m.slug);

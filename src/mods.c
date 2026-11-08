@@ -10,6 +10,7 @@
  * a '*' after it is not cosmetic.
  */
 #include "mods.h"
+#include "project_identity.h"   /* PROJECT_STATIC_MODS */
 
 #include <string.h>
 
@@ -25,6 +26,7 @@ static char    s_ids[MODS_MAX][MODS_ID_MAX];
 static char    s_names[MODS_MAX][48];
 static char    s_uuids[MODS_MAX][40];
 static uint8_t s_canonical[MODS_MAX];
+static uint8_t s_static[MODS_MAX];          /* PROJECT_STATIC_MODS: on for good, not listed */
 static uint8_t s_cosmetic[MODS_MAX];
 static uint8_t s_online[MODS_MAX];          /* must be alike online: "gameplay" or "data" */
 static char    s_versions[MODS_MAX][24];
@@ -36,6 +38,14 @@ int32_t Mods_Count(void) { return s_count; }
 const char *Mods_Id(int32_t i) { return i >= 0 && i < s_count ? s_ids[i] : ""; }
 const char *Mods_Uuid(int32_t i) { return i >= 0 && i < s_count ? s_uuids[i] : ""; }
 int32_t Mods_IsCanonical(int32_t i) { return i >= 0 && i < s_count && s_canonical[i]; }
+int32_t Mods_IsStatic(int32_t i) { return i >= 0 && i < s_count && s_static[i]; }
+int32_t Mods_CountListed(void)
+{
+    int32_t n = 0;
+    for (int32_t i = 0; i < s_count; i++)
+        n += !s_static[i];
+    return n;
+}
 int32_t Mods_IsOn(const char *slug)
 {
     for (int32_t i = 0; i < s_count; i++)
@@ -174,6 +184,17 @@ static const char *next_id(const char *p, char *out, uint32_t cap, int *star)
         if (ok && n)
             return p;
     }
+}
+
+/* A slug PROJECT_STATIC_MODS names: part of this game, on for good, not listed. */
+int32_t Mods_SlugIsStatic(const char *slug)
+{
+    char x[MODS_ID_MAX];
+    int star;
+    for (const char *p = PROJECT_STATIC_MODS; (p = next_id(p, x, sizeof x, &star)) != NULL;)
+        if (strcmp(x, slug) == 0)
+            return 1;
+    return 0;
 }
 
 static int known(const char *id)
@@ -345,12 +366,13 @@ static void load_one(const char *id, const char *dir, int canonical)
     snprintf(s_versions[s_count], sizeof s_versions[0], "%s", info.version);
     s_fileHash[s_count] = s_online[s_count] ? hash_tree(dir, "", 2166136261u) : 0;
     s_canonical[s_count] = (uint8_t)canonical;
+    s_static[s_count] = (uint8_t)(canonical && Mods_SlugIsStatic(id));
     snprintf(s_names[s_count], sizeof s_names[0], "%s", info.name);
     snprintf(s_ids[s_count], sizeof s_ids[0], "%s", id);
     snprintf(s_uuids[s_count], sizeof s_uuids[0], "%s", info.uuid);
     snprintf(s_dirs[s_count], sizeof s_dirs[0], "%s", dir);
     fprintf(stderr, "[mods] on: %s (%s %s, %s, %s %s) from %s\n", id, info.name, info.version, info.changes,
-            canonical ? "canonical" : "dlc", info.uuid, dir);
+            s_static[s_count] ? "static" : canonical ? "canonical" : "dlc", info.uuid, dir);
     s_count++;
 }
 
@@ -367,6 +389,8 @@ int32_t Mods_Scan(ModInfo *out, int32_t max)
             int star;
             if (e->d_name[0] == '.' || !next_id(e->d_name, x, sizeof x, &star) || strcmp(x, e->d_name) != 0)
                 continue;
+            if (pass == 0 && Mods_SlugIsStatic(e->d_name))
+                continue;                           /* (part of the game: never listed) */
             snprintf(dir, sizeof dir, "%s/%s", pass == 0 ? MODS_CANONICAL_DIR : s_root, e->d_name);
             memset(&out[n], 0, sizeof out[n]);
             snprintf(out[n].slug, sizeof out[n].slug, "%s", e->d_name);
@@ -444,12 +468,23 @@ void Mods_Init(const char *enabled, const char *disabled)
             fprintf(stderr, "[mods] %s: left out -- no folder %s/%s and no canonical mod of that name\n", id, s_root, id);
         }
     }
+    /* (a static one -- PROJECT_STATIC_MODS -- whatever its "default" and [mods] disabled say: it is
+     * part of this game; a rig still takes only what changes the picture, as for the defaults) */
     for (int32_t c = 0; c < s_canonCount; c++)
-        if (s_canon[c].byDefault && !known(s_canon[c].id) && !in_list(disabled, s_canon[c].id) &&
-            (!s_rig || s_canon[c].cosmetic)) {
+        if (!known(s_canon[c].id) && (!s_rig || s_canon[c].cosmetic) &&
+            (Mods_SlugIsStatic(s_canon[c].id) ||
+             (s_canon[c].byDefault && !in_list(disabled, s_canon[c].id)))) {
             snprintf(dir, sizeof dir, "%s/%s", MODS_CANONICAL_DIR, s_canon[c].id);
             load_one(s_canon[c].id, dir, 1);
         }
+    {
+        char x[MODS_ID_MAX];
+        int st;
+        for (const char *p = PROJECT_STATIC_MODS; (p = next_id(p, x, sizeof x, &st)) != NULL;)
+            if (!known(x))
+                fprintf(stderr, "[mods] %s: static (PROJECT_STATIC_MODS) but not on -- no canonical mod of "
+                                "that name in %s%s\n", x, MODS_CANONICAL_DIR, s_rig ? ", or a rig left it out" : "");
+    }
     if (!s_count)
         fprintf(stderr, "[mods] none on ([mods] enabled in SWOS.ini; DLC mods are folders in %s, canonical ones in %s)\n",
                 s_root, MODS_CANONICAL_DIR);

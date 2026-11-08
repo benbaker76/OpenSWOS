@@ -66,4 +66,11 @@
  * a build without them still plays one with them. */
 #define PROJECT_TWEAKS          1
 
+/* STATIC MODS (docs/MODS.md §14): canonical mods -- folders in the game's own mods/ -- that are
+ * part of this game rather than a choice: always on, whatever [mods] disabled says, and never
+ * listed, neither on OPTIONS -> MODS (nor in its "N ON") nor on the setup's Mods screen. Slugs,
+ * separated by commas or spaces. OpenSWOS: none -- every one of its mods can be turned off. A
+ * fork lists the mods its game is built on. A downloaded (DLC) mod is never static. */
+#define PROJECT_STATIC_MODS     ""
+
 #endif /* PROJECT_IDENTITY_H */

@@ -49,6 +49,9 @@ int32_t     Mods_Count(void);
 const char *Mods_Id(int32_t i);
 const char *Mods_Uuid(int32_t i);           /* "" on the Amiga (it reads no manifest) */
 int32_t     Mods_IsCanonical(int32_t i);
+int32_t     Mods_IsStatic(int32_t i);           /* a static mod (PROJECT_STATIC_MODS): not listed */
+int32_t     Mods_CountListed(void);             /* the mods on that a player can see: not static */
+int32_t     Mods_SlugIsStatic(const char *slug);
 /* Whether the mod of that slug is on in this run (a built-in mod's code asks: src/mod_hooks.c). */
 int32_t     Mods_IsOn(const char *slug);
 /* The mod's folder, no trailing slash: SDL "<Mods_Root()>/<id>", Amiga "mods/<id>". */

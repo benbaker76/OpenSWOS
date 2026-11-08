@@ -368,6 +368,21 @@ mod records its uuid and version), the handshake, recordings, the index, and dep
 else the canonical mod of that slug), then the canonical mods on by default. A file two mods
 have comes from the first.
 
+**Static mods** (2026-11-07, Playa's request for SWOS United) are canonical mods that are part of
+the game rather than a choice. `PROJECT_STATIC_MODS` in `include/project_identity.h` names them
+by slug.
+- **Always on**, in the place a default mod takes, whatever their `"default"` and
+  `[mods] disabled` say. A rig still takes only the cosmetic ones (§26), as for the defaults.
+- **Never listed:** not on OPTIONS -> MODS, not in its "N ON" (`Mods_CountListed`), and not on
+  OpenSWOS Setup's Mods screen.
+- **The Amiga:** the setup always writes them into a drawer's `data/MODS`.
+- **The log** marks them `static` in its `[mods] on:` line, and names a listed slug that isn't
+  there.
+- **Online:** they count as any canonical mod does (§17).
+- **Only canonical mods:** a DLC is never static.
+- **OpenSWOS lists none**, so every one of its mods can be turned off. A fork lists the mods its
+  game is built on, its own or OpenSWOS's, without editing their `mod.json`.
+
 When the first canonical mod lands, add `mods` to the trees every drop stages
 (`build_dist.sh` FULL_DATA_DIRS, `build_installer.sh` DATA_DIRS, `make macos-app`,
 `packaging/mobile/CMakeLists.txt`, `build_portmaster.sh`, the Amiga drawer), as the other

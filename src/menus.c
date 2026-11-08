@@ -2094,8 +2094,8 @@ void OptionsMenuBeforeDraw(void)
 #endif
     {   /* MODS (23/24, src/mods_menu.c): how many are on */
         static char modsOn[16];
-        if (Mods_Count())
-            snprintf(modsOn, sizeof modsOn, "%d ON", (int)Mods_Count());
+        if (Mods_CountListed())        /* (a static mod is the game's own: not counted) */
+            snprintf(modsOn, sizeof modsOn, "%d ON", (int)Mods_CountListed());
         else
             snprintf(modsOn, sizeof modsOn, "NONE");
         _menuEntries[24].fg = (uintptr_t)modsOn;
