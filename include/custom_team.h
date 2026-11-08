@@ -68,6 +68,13 @@ void CustomTeam_Claim(const TeamFileEx *team, uint8_t uuid[16], uint8_t checksum
 /* MY CUSTOM TEAMS, from the matchmaking menu: the three slots; choosing one edits it
  * (an empty one first asks for a team of the database to start from). */
 void CustomTeam_Manage(void);
+/* For a fork's own MY CUSTOM TEAMS (its mod's overlay of swos2020/selectMyCustomTeams, whose
+ * onDraw is the mod's and calls CustomTeam_SlotsDraw first -- SWOS United's IMPORT FROM SWOS
+ * 2020): the slots screen's drawing, whether it is the pick for a match (not the editor), and
+ * reading the slots again after the mod wrote one. */
+void    CustomTeam_SlotsDraw(void);
+int32_t CustomTeam_SlotsPicking(void);
+void    CustomTeam_SlotsReload(void);
 
 /* The same three slots as a way to pick a team for a match. 1 = a custom team was
  * picked and is in *out; 0 = the player asked for the ordinary team list instead;

@@ -812,7 +812,7 @@ static void read_slots(void)
 
 static void selectMyCustomTeamsMenu_OnInit(void) {}
 
-static void selectMyCustomTeamsMenu_OnDraw(void)
+void CustomTeam_SlotsDraw(void)
 {
     static char pickHeader[] = "CHOOSE YOUR TEAM", pickExit[] = "OTHER TEAMS";
     int32_t slot;
@@ -828,6 +828,11 @@ static void selectMyCustomTeamsMenu_OnDraw(void)
         CalcMenuEntryAddress(SelectMyCustomTeams_exit)->fg = (uintptr_t)pickExit;
     }
 }
+
+static void selectMyCustomTeamsMenu_OnDraw(void) { CustomTeam_SlotsDraw(); }
+
+int32_t CustomTeam_SlotsPicking(void) { return s_slots.picking; }
+void    CustomTeam_SlotsReload(void)  { read_slots(); }
 
 static void select_slot(int32_t slot)
 {
