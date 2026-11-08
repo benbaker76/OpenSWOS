@@ -376,6 +376,72 @@ int32_t ModApi_MenuTickerEntry(void)
 #endif
 }
 
+/* The game's own text routine draws into the frame: pointed at a scratch frame for the while,
+ * a piece of the line at a time (a row of it is the frame's width), then read back as RGBA --
+ * index 0 clear, the rest the palette's colours as last shown. */
+#ifdef SWOS_SDL_BUILD
+int32_t ModApi_TextImage(const char *text, int32_t small, int32_t colour, uint8_t *rgba, int32_t cap,
+                         int32_t *w, int32_t *h)
+{
+    enum { kRows = 12, kTop = 2 };
+    static uint8_t *scratch;            /* (a frame's rows: their stride is the window's on SDL) */
+    static size_t   scratchSize;
+    extern volatile uintptr_t _frontbufferBasePtr;
+    const int32_t total = text ? ModApi_TextWidth(text, small) : 0;
+    const int32_t room = FRONTBUFFER_ROW_STRIDE_BYTES - _menu_draw_x_offset - 16;
+    uintptr_t keep;
+    int32_t done = 0;
+    *w = total;
+    *h = kRows;
+    if (!text || total <= 0 || (int64_t)total * kRows * 4 > cap || room <= 16)
+        return 0;
+    if (scratchSize < (size_t)FRONTBUFFER_ROW_STRIDE_BYTES * kRows) {
+        free(scratch);
+        scratchSize = (size_t)FRONTBUFFER_ROW_STRIDE_BYTES * kRows;
+        scratch = (uint8_t *)malloc(scratchSize);
+        if (!scratch) {
+            scratchSize = 0;
+            return 0;
+        }
+    }
+    memset(rgba, 0, (size_t)total * kRows * 4);
+    keep = _frontbufferBasePtr;
+    _frontbufferBasePtr = (uintptr_t)(scratch - _menu_draw_x_offset);
+    for (const char *c = text; *c;) {
+        /* a piece: as many characters as the scratch row holds */
+        char piece[256];
+        int32_t n = 0, pw = 0;
+        while (c[n] && n < (int32_t)sizeof piece - 1) {
+            char one[2] = { c[n], 0 };
+            const int32_t cw = ModApi_TextWidth(one, small);
+            if (pw + cw > room)
+                break;
+            piece[n] = c[n];
+            pw += cw;
+            n++;
+        }
+        if (!n)
+            break;
+        piece[n] = 0;
+        memset(scratch, 0, scratchSize);
+        DrawMenuText(0, kTop, (uint16_t)colour, (uint8_t *)piece, (uint8_t *)_charTables[small ? 0 : 1]);
+        for (int32_t y = 0; y < kRows; y++)
+            for (int32_t x = 0; x < pw && done + x < total; x++) {
+                const uint8_t idx = scratch[(size_t)y * FRONTBUFFER_ROW_STRIDE_BYTES + x];
+                uint8_t *o = rgba + ((size_t)y * total + done + x) * 4;
+                if (!idx)
+                    continue;
+                ModApi_PaletteColour(idx, &o[0], &o[1], &o[2]);
+                o[3] = 255;
+            }
+        done += pw;
+        c += n;
+    }
+    _frontbufferBasePtr = keep;
+    return 1;
+}
+#endif
+
 void ModApi_RestoreMenuBackground(int32_t x, int32_t y, int32_t w, int32_t h)
 {
     extern volatile uintptr_t _frontbufferBasePtr;

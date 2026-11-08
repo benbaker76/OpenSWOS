@@ -727,6 +727,12 @@ void     ModApi_DrawText(int32_t x, int32_t y, int32_t colour, const char *text,
 int32_t  ModApi_TextWidth(const char *text, int32_t small);
 int32_t  ModApi_MenuTickerEntry(void);
 void     ModApi_RestoreMenuBackground(int32_t x, int32_t y, int32_t w, int32_t h);
+/* The game's text as a picture (to draw with gfx.h -- a ticker that glides at the window's
+ * resolution): R, G, B, A bytes, clear where the text is not, *w its width x *h 12 rows, the
+ * text's top at row 2 (where ModApi_DrawText's y would be). 0 when it does not fit `cap` bytes.
+ * From menuDrawn (it draws through the frame's text routine, on a scratch frame). */
+int32_t  ModApi_TextImage(const char *text, int32_t small, int32_t colour, uint8_t *rgba, int32_t cap,
+                          int32_t *w, int32_t *h);
 
 /* ---- colours ---- */
 void     ModApi_PaletteColour(uint8_t index, uint8_t *r, uint8_t *g, uint8_t *b);  /* as last shown */
