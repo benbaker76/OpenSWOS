@@ -187,6 +187,9 @@ static void print_usage(const char *argv0)
         "                            'stereo' restores the original Amiga panning.\n"
         "  --jag-graphics=<on|off>   Render the Atari Jaguar's gameplay sprites\n"
         "                            (bin/grafs_jag; scripts/make_jag_graphics.py)\n"
+        "  --slang-selftest=<preset> Compile a RetroArch slang preset's passes for\n"
+        "                            every backend (GL, GLES, Metal, HLSL) and say\n"
+        "                            what each reads. Exit 0 when all compiled.\n"
         "  --crt-curvature=<0-100>   The tube's glass bends the picture ([video]\n"
         "                            crt_curvature; the accel renderer). 0 = flat\n"
         "  --crt-ntsc=<0-100>        A composite TV signal: colour bleed, fringes,\n"
@@ -903,6 +906,9 @@ int main(int argc, char **argv)
             return DosMusic_SelfTest() ? 1 : 0;
         } else if (strcmp(a, "--dos-sound-selftest") == 0) {
             return DosSound_SelfTest() ? 1 : 0;
+        } else if ((v = match_kv(a, "slang-selftest")) != NULL) {
+            extern int32_t Slang_SelfTest(const char *preset);
+            return Slang_SelfTest(v) ? 0 : 1;      /* (src/slang.c: a preset for every backend) */
         } else if (strcmp(a, "--custom-team-selftest") == 0) {
             if (getenv("SWOS_WORLD"))
                 World_Set(getenv("SWOS_WORLD"));

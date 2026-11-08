@@ -767,6 +767,103 @@ endif
 endif
 endif
 
+# ---- The shader compiler: glslang + SPIRV-Cross (docs/RENDERING.md, "Shaders from files") ----
+# RetroArch's way: a .slang shader (Vulkan GLSL) is compiled on the player's machine by glslang
+# to SPIR-V, and SPIRV-Cross turns that into the running backend's language (GLSL, GLSL ES,
+# Metal, HLSL) -- one file for every backend. Both are submodules pinned to one Vulkan SDK
+# release (third_party/glslang, third_party/SPIRV-Cross), compiled here from their sources as
+# GGPO-X is, so every target -- the cross-compilers and the web build too -- builds them the
+# same way, with no CMake step. glslang's generated build_info.h is src/shadercc's copy.
+# Default ON where a C++ compiler for the target is known to work (as NETPLAY); without it the
+# game's own shaders work as before and shader files are not offered. Linked statically.
+SHADERCC_GLSLANG := third_party/glslang
+SHADERCC_SPVC    := third_party/SPIRV-Cross
+ifndef SHADERCC
+ifdef PLAYER
+SHADERCC := 0
+else ifdef WASM
+SHADERCC := 1
+else ifeq ($(BUILD_OS)/$(BUILD_ARCH),linux/x86_64)
+SHADERCC := 1
+else ifeq ($(BUILD_OS),macos)
+SHADERCC := 1
+else ifneq (,$(findstring cygwin,$(GCC_MACHINE)))
+SHADERCC := 1
+else
+SHADERCC := 0
+endif
+endif
+ifeq ($(SHADERCC),1)
+SHADERCC_SRCS := $(SHADERCC_GLSLANG)/SPIRV/CInterface/spirv_c_interface.cpp \
+                 $(SHADERCC_GLSLANG)/SPIRV/GlslangToSpv.cpp \
+                 $(SHADERCC_GLSLANG)/SPIRV/InReadableOrder.cpp \
+                 $(SHADERCC_GLSLANG)/SPIRV/Logger.cpp \
+                 $(SHADERCC_GLSLANG)/SPIRV/SpvBuilder.cpp \
+                 $(SHADERCC_GLSLANG)/SPIRV/SpvPostProcess.cpp \
+                 $(SHADERCC_GLSLANG)/SPIRV/SpvTools.cpp \
+                 $(SHADERCC_GLSLANG)/SPIRV/disassemble.cpp \
+                 $(SHADERCC_GLSLANG)/SPIRV/doc.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/CInterface/glslang_c_interface.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/GenericCodeGen/CodeGen.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/GenericCodeGen/Link.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/Constant.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/InfoSink.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/Initialize.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/IntermTraverse.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/Intermediate.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/ParseContextBase.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/ParseHelper.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/PoolAlloc.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/RemoveTree.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/Scan.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/ShaderLang.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/SpirvIntrinsics.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/SymbolTable.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/Versions.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/attribute.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/glslang_tab.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/intermOut.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/iomapper.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/limits.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/linkValidate.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/parseConst.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/preprocessor/Pp.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/preprocessor/PpAtom.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/preprocessor/PpContext.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/preprocessor/PpScanner.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/preprocessor/PpTokens.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/propagateNoContraction.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/MachineIndependent/reflection.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/OSDependent/Unix/ossource.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/ResourceLimits/ResourceLimits.cpp \
+                 $(SHADERCC_GLSLANG)/glslang/ResourceLimits/resource_limits_c.cpp \
+                 $(SHADERCC_SPVC)/spirv_cfg.cpp \
+                 $(SHADERCC_SPVC)/spirv_cross.cpp \
+                 $(SHADERCC_SPVC)/spirv_cross_c.cpp \
+                 $(SHADERCC_SPVC)/spirv_cross_parsed_ir.cpp \
+                 $(SHADERCC_SPVC)/spirv_glsl.cpp \
+                 $(SHADERCC_SPVC)/spirv_hlsl.cpp \
+                 $(SHADERCC_SPVC)/spirv_msl.cpp \
+                 $(SHADERCC_SPVC)/spirv_parser.cpp \
+                 $(SHADERCC_SPVC)/spirv_reflect.cpp
+SHADERCC_OBJS := $(patsubst third_party/%.cpp,$(OBJDIR)/shadercc/%.o,$(SHADERCC_SRCS))
+OBJECTS   += $(SHADERCC_OBJS)
+DEPS      += $(SHADERCC_OBJS:.o=.d)
+CFLAGS    += -DSWOS_SHADERCC=1 -I$(SHADERCC_GLSLANG) -I$(SHADERCC_SPVC)
+# -w: third-party code, compiled as upstream ships it; the defines are its CMake build's.
+SHADERCC_CXXFLAGS := $(ARCHFLAGS) -O2 -std=gnu++17 -MMD -MP -w -DNDEBUG \
+                     -DENABLE_OPT=0 -DENABLE_SPIRV -DGLSLANG_OSINCLUDE_UNIX \
+                     -DSPIRV_CROSS_C_API_GLSL=1 -DSPIRV_CROSS_C_API_HLSL=1 \
+                     -DSPIRV_CROSS_C_API_MSL=1 -DSPIRV_CROSS_C_API_REFLECT=1 \
+                     -Isrc/shadercc -I$(SHADERCC_GLSLANG) -I$(SHADERCC_SPVC)
+LINK      := $(CXX)
+ifneq ($(UNAME_S),Darwin)
+ifndef WASM
+LDFLAGS   += -static-libstdc++ -static-libgcc
+endif
+endif
+endif
+
 # ---- A fork's own build additions ----
 # A fork of OpenSWOS (docs/FORKING.md) puts what only it builds in fork.mk beside this file --
 # a library of its own (OBJECTS += its objects, with their rules), flags, libraries to link
@@ -829,6 +926,12 @@ $(OBJDIR)/mods_builtin.o: $(wildcard $(SRCDIR)/fork_mods.inc)
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(BUILD_FLAGS_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+ifeq ($(SHADERCC),1)
+$(OBJDIR)/shadercc/%.o: third_party/%.cpp $(BUILD_FLAGS_STAMP)
+	@mkdir -p $(dir $@)
+	$(CXX) $(SHADERCC_CXXFLAGS) -c $< -o $@
+endif
 
 ifeq ($(NETPLAY),1)
 $(OBJDIR)/ggpo/%.o: $(GGPO_DIR)/lib/ggpo/%.cpp $(BUILD_FLAGS_STAMP)

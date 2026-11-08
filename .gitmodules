@@ -11,3 +11,9 @@
 [submodule "third_party/swos-competition-engine"]
 	path = third_party/swos-competition-engine
 	url = https://github.com/aminta/swos-competition-engine
+[submodule "third_party/glslang"]
+	path = third_party/glslang
+	url = https://github.com/KhronosGroup/glslang.git
+[submodule "third_party/SPIRV-Cross"]
+	path = third_party/SPIRV-Cross
+	url = https://github.com/KhronosGroup/SPIRV-Cross.git
