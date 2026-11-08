@@ -372,6 +372,7 @@ have comes from the first.
 
 **Static mods** (2026-11-07, Playa's request for SWOS United) are canonical mods that are part of
 the game rather than a choice. `PROJECT_STATIC_MODS` in `include/project_identity.h` names them
+`PROJECT_DEFAULT_MODS` (same file) is the softer one: canonical mods a fork turns ON by default -- still listed, a player may turn them off (SWOS United: dosmenus).
 by slug.
 - **Always on**, in the place a default mod takes, whatever their `"default"` and
   `[mods] disabled` say. A rig still takes only the cosmetic ones (§26), as for the defaults.

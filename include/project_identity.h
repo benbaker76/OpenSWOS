@@ -73,4 +73,10 @@
  * fork lists the mods its game is built on. A downloaded (DLC) mod is never static. */
 #define PROJECT_STATIC_MODS     ""
 
+/* DEFAULT MODS: canonical mods this game turns ON by default whatever their manifest's "default"
+ * says -- still listed, and a player may turn them off ([mods] disabled), unlike a static one.
+ * Slugs, separated by commas or spaces. OpenSWOS: none (each mod.json's "default" decides). A
+ * fork lists the ones its look is built on (SWOS United: dosmenus). */
+#define PROJECT_DEFAULT_MODS    ""
+
 #endif /* PROJECT_IDENTITY_H */
