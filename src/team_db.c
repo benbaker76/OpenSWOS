@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "team_db.h"
+#include "world.h"
 #include "endian_helpers.h"
 #include "swos_io.h"
 
@@ -71,11 +72,13 @@ void TeamDb_Checksum(const TeamFileEx *team, char out[TEAM_CHECKSUM_TEXT])
 
 /* ---- the database, a country at a time ---- */
 
+/* [0] 96/97's, [1] the world being played when it is not 96/97 (s_heldWorld: which). */
 static struct Country {
     TeamDbEntry *entries;
     int32_t      count;
     int32_t      absent;
-} s_country[kCountries];
+} s_country[2][kCountries];
+static int32_t s_heldWorld = -1;
 
 /* One country's teams as LoadTeamFile reads them -- the JSON database unless it is
  * turned off or has no such country, then the binary TEAM.nnn (big-endian count) --
@@ -111,21 +114,37 @@ static int32_t read_country(int32_t country, uint8_t *records, uint32_t size, Te
     return (uint32_t)count * kTeamRecord + 2 <= got ? count : 0;
 }
 
-static struct Country *country_of(int32_t country)
+/* A country of a database: 96/97's (`of9697`) or the world being played. */
+static struct Country *country_in(int32_t of9697, int32_t country)
 {
     static uint8_t   records[2 + kMaxTeamsInFile * kTeamRecord];
     static TeamDbIds ids[kMaxTeamsInFile];
+    const int32_t played = (int32_t)World_Current();
+    const int32_t db = of9697 || played == WORLD_9697 ? 0 : 1;
     struct Country *c;
     int32_t i, p;
 
     if (country < 0 || country >= kCountries || country == kOwnCustoms)
         return NULL;
-    c = &s_country[country];
+    if (db == 1 && s_heldWorld != played) {     /* another world now: its files, not the last one's */
+        for (i = 0; i < kCountries; i++) {
+            free(s_country[1][i].entries);
+            memset(&s_country[1][i], 0, sizeof s_country[1][i]);
+        }
+        s_heldWorld = played;
+    }
+    c = &s_country[db][country];
     if (c->absent)
         return NULL;
     if (c->entries)
         return c;
-    c->count = read_country(country, records, (uint32_t)sizeof records, ids);
+    if (db == 0 && played != WORLD_9697) {      /* 96/97's file under the world's: read with 96/97 on */
+        World_Set(World_TagOf(WORLD_9697));
+        c->count = read_country(country, records, (uint32_t)sizeof records, ids);
+        World_Set(World_TagOf((WorldId)played));
+    } else {
+        c->count = read_country(country, records, (uint32_t)sizeof records, ids);
+    }
     c->entries = c->count > 0 ? (TeamDbEntry *)calloc((size_t)c->count, sizeof *c->entries) : NULL;
     if (!c->entries) {
         c->absent = 1;
@@ -136,6 +155,7 @@ static struct Country *country_of(int32_t country)
         TeamDbEntry *e = &c->entries[i];
         memcpy(&e->team, records + 2 + (size_t)i * kTeamRecord, sizeof e->team);
         e->ids = ids[i];
+        e->world = db == 0 ? WORLD_9697 : played;
         /* What the file does not state is the 96/97 database's, by the formula. */
         if (!e->ids.uuid[0])
             TeamDb_DerivedTeamUuid(e->team.team.countryNumber, e->team.team.teamOrdinal, e->ids.uuid);
@@ -156,15 +176,15 @@ static struct Country *country_of(int32_t country)
     return c;
 }
 
-const TeamDbEntry *TeamDb_Entry(int32_t country, int32_t index)
+static const TeamDbEntry *entry_in(int32_t of9697, int32_t country, int32_t index)
 {
-    const struct Country *c = country_of(country);
+    const struct Country *c = country_in(of9697, country);
     return c && index >= 0 && index < c->count ? &c->entries[index] : NULL;
 }
 
-const TeamDbEntry *TeamDb_Team(int32_t country, int32_t ordinal)
+static const TeamDbEntry *team_in(int32_t of9697, int32_t country, int32_t ordinal)
 {
-    const struct Country *c = country_of(country);
+    const struct Country *c = country_in(of9697, country);
     int32_t i;
 
     for (i = 0; c && i < c->count; i++)
@@ -173,17 +193,28 @@ const TeamDbEntry *TeamDb_Team(int32_t country, int32_t ordinal)
     return NULL;
 }
 
-const TeamDbEntry *TeamDb_ByUuid(const char *uuid)
+const TeamDbEntry *TeamDb_Entry(int32_t country, int32_t index)     { return entry_in(0, country, index); }
+const TeamDbEntry *TeamDb_Team(int32_t country, int32_t ordinal)    { return team_in(0, country, ordinal); }
+const TeamDbEntry *TeamDb_Entry9697(int32_t country, int32_t index) { return entry_in(1, country, index); }
+const TeamDbEntry *TeamDb_Team9697(int32_t country, int32_t ordinal) { return team_in(1, country, ordinal); }
+
+static const TeamDbEntry *uuid_in(int32_t of9697, const char *uuid)
 {
     int32_t country, i;
 
     for (country = 0; country < kCountries; country++) {
-        const struct Country *c = country_of(country);
+        const struct Country *c = country_in(of9697, country);
         for (i = 0; c && i < c->count; i++)
             if (strcmp(c->entries[i].ids.uuid, uuid) == 0)
                 return &c->entries[i];
     }
     return NULL;
+}
+
+const TeamDbEntry *TeamDb_ByUuid(const char *uuid)
+{
+    const TeamDbEntry *e = uuid_in(0, uuid);
+    return e || World_Current() == WORLD_9697 ? e : uuid_in(1, uuid);
 }
 
 int32_t TeamDb_SelfTest(void)
@@ -207,15 +238,16 @@ int32_t TeamDb_SelfTest(void)
             bad++;
         }
     }
+    /* (96/97's database, whatever world is played: its ids are the formula's; a world states its own) */
     for (country = 0; country < kCountries; country++) {
         const TeamDbEntry *e;
-        for (i = 0; (e = TeamDb_Entry(country, i)) != NULL; i++) {
+        for (i = 0; (e = TeamDb_Entry9697(country, i)) != NULL; i++) {
             if (e->team.team.countryNumber != country)
                 continue;                       /* a record filed under another country's number */
             teams++;
             ids += 1 + TEAM_PLAYERS;
             TeamDb_DerivedTeamUuid(country, e->team.team.teamOrdinal, want);
-            if (strcmp(want, e->ids.uuid) != 0 || !e->canonical || TeamDb_ByUuid(e->ids.uuid) != e)
+            if (strcmp(want, e->ids.uuid) != 0 || !e->canonical || uuid_in(1, e->ids.uuid) != e)
                 bad++;
             for (p = 0; p < TEAM_PLAYERS; p++) {
                 TeamDb_DerivedPlayerUuid(country, e->team.team.teamOrdinal, p, want);

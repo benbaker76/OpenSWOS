@@ -121,6 +121,21 @@ Runtime fields a team screen writes (the cached match value, form, cards and inj
 counters) are not part of the check: they differ between a team fresh from the list and one
 that has been through the team screen.
 
+## 4. A team is checked against its own database
+
+A world (World 2026-27) replaces a country's team file in what the game reads, so while it is
+played the team with a number is the world's. A custom team made from 96/97's team with that
+number was being compared with the world's -- other players -- and refused. So `src/team_db.c`
+keeps two databases, the world being played and 96/97's under it (`TeamDb_Team` / `Entry` the
+world's, `TeamDb_Team9697` / `Entry9697` 96/97's, `TeamDb_ByUuid` the world's then 96/97's; each
+`TeamDbEntry` says which it is in), and everything here checks a team against the one its
+players are from: the world's team with its number first, then 96/97's. Resolving a custom team
+loads its base from its own database (`game_team`: 96/97 on for the while). So a 96/97 custom
+team plays with a world on, and one made from a world's club plays while that world is (with
+96/97 alone it has no base: not used, said in the log). `SWOS_WORLD=2627 --custom-team-selftest`
+runs every team of both (4,103 with World 2026-27). Replaces SWOS United's first fix, "a custom
+team is always 96/97's" (2026-11-04), which left no way to base one on a world's club.
+
 ## On the team screen
 
 A custom team is its database team's record under another name, so the line under the team's
