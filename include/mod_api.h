@@ -397,6 +397,18 @@ typedef struct {
     void        (*selectMatch)(void);
     void        (*userSelected)(const char *name);
     void        (*matchPlayed)(const AccountResult *result);
+    /* (added 2026-11-07, from SWOS United; NULL keeps OpenSWOS's answer) */
+    int32_t     (*chosenStyle)(void);                       /* -1 OPEN asks */
+    int32_t     (*joinAllowed)(const char *name);           /* 1 */
+    int32_t     (*playerInfo)(const char *name, char *country, uint32_t cap, int32_t *srn);   /* 0 */
+    int32_t     (*cupLocked)(void);                         /* 0 */
+    void        (*lobbyClosed)(void);
+    const char *(*matchTournament)(void);                   /* NULL */
+    void        (*showPlayer)(const char *name);
+    void        (*teamImportStart)(void);
+    int32_t     (*teamImportPoll)(const char **line1, const char **line2, int32_t *changed);
+    void        (*teamImportAnswer)(int32_t yes);
+    void        (*teamImportReset)(void);
 } ModOnlineProvider;
 int32_t ModApi_SetOnlineProvider(const char *slug, const ModOnlineProvider *provider);   /* (kept) */
 

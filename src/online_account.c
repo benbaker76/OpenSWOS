@@ -64,6 +64,27 @@ void        Account_MatchPlayed(const AccountResult *result)
     if (P(matchPlayed))
         s_provider.matchPlayed(result);
 }
+int32_t     Account_ChosenStyle(void)          { return P(chosenStyle) ? s_provider.chosenStyle() : -1; }
+int32_t     Account_JoinAllowed(const char *name) { return P(joinAllowed) ? s_provider.joinAllowed(name) : 1; }
+int32_t     Account_PlayerInfo(const char *name, char *country, uint32_t cap, int32_t *srn)
+{
+    return P(playerInfo) ? s_provider.playerInfo(name, country, cap, srn) : 0;
+}
+int32_t     Account_CupLocked(void)            { return P(cupLocked) ? s_provider.cupLocked() : 0; }
+void        Account_LobbyClosed(void)          { if (P(lobbyClosed)) s_provider.lobbyClosed(); }
+const char *Account_MatchTournament(void)      { return P(matchTournament) ? s_provider.matchTournament() : 0; }
+void        Account_ShowPlayer(const char *name) { if (P(showPlayer)) s_provider.showPlayer(name); }
+void        Account_TeamImportStart(void)      { if (P(teamImportStart)) s_provider.teamImportStart(); }
+int32_t     Account_TeamImportPoll(const char **line1, const char **line2, int32_t *changed)
+{
+    if (P(teamImportPoll))
+        return s_provider.teamImportPoll(line1, line2, changed);
+    *line1 = *line2 = "";
+    *changed = 0;
+    return TEAM_IMPORT_IDLE;
+}
+void        Account_TeamImportAnswer(int32_t yes) { if (P(teamImportAnswer)) s_provider.teamImportAnswer(yes); }
+void        Account_TeamImportReset(void)      { if (P(teamImportReset)) s_provider.teamImportReset(); }
 #undef P
 
 #else   /* the Amiga: no mods with code, OpenSWOS's own answers */

@@ -870,6 +870,17 @@ compile its own `online_account.c` (`PROJECT_ACCOUNTS`, which still works and tu
 check, the web pages, RANKINGS / LEAGUES / MATCH LOGS / RANKED, OPEN's mode, the lobby's calls,
 `matchPlayed`. A field left NULL keeps OpenSWOS's answer (no accounts). The server the player
 typed on the log-in screen still wins over `mmHost` (and a test's `SWOS_MM_HOST` over both).
+Since 2026-11-07 it also has the newer account calls (`chosenStyle`, `joinAllowed`, `playerInfo`,
+`cupLocked`, `lobbyClosed`, `matchTournament`, `showPlayer`, `teamImport*`).
+
+**A fork's own online SCREENS** (how they look, not the service): `src/online_menus.c` includes a
+fork's `src/online_menus_fork.inc` at its end when the file exists (OpenSWOS has none), and asks
+its `online_menus_fork()` for an `OnlineMenusFork` table -- MATCH MAKING drawn its own way
+(`ownsMatchMaking`, `matchMakingDraw`), a join request, CHOOSE GAMEPLAY's layout, the lobby's
+layout, rows, style name, status and chat colours, getting ready, a live match's start and end,
+MULTIPLAYER SETTINGS, its menus' handlers. Same translation unit, so the fork's code uses the
+file's helpers; each hook is optional. SWOS United's is SWOS 2020's table and lobby (Playaveli's
+work, 2026-11-07): a merge of OpenSWOS never meets it. The step before a full provider mod (§13).
 
 ---
 

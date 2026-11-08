@@ -59,6 +59,34 @@
 
 #include <SDL.h>                /* SDL_GetTicks, for a test knob */
 
+/* ---- A FORK'S OWN ONLINE SCREENS ----
+ * A fork that draws these screens its own way (SWOS United: SWOS 2020's matchmaking table and
+ * lobby) keeps that code in src/online_menus_fork.inc, which OpenSWOS does not have; it is
+ * included at the END of this file, so its code sees this file's helpers, and its
+ * online_menus_fork() returns these hooks. Each is optional; with none, or no file, every screen
+ * is OpenSWOS's. So a merge of OpenSWOS never meets the fork's screens. */
+typedef struct {
+    void        (*init)(void);                      /* OnlineMenus_Init: register its handlers */
+    int32_t     ownsMatchMaking;                    /* MATCH MAKING is the fork's (matchMakingDraw) */
+    void        (*matchMakingDraw)(void);           /* each frame, after the join requests */
+    void        (*joinRequested)(const char *who);  /* a player asks to join (and may) */
+    void        (*autoJoining)(const char *owner);  /* SWOS_MM_AUTO=join is asking owner's game */
+    int32_t     (*hostStyleLayout)(void);           /* CHOOSE GAMEPLAY laid out: 1 = the fork's */
+    void        (*lobbyEntered)(int32_t player);    /* OnlineMenus_EnterLobby */
+    void        (*lobbyLeft)(void);                 /* the lobby closed */
+    void        (*lobbyLayout)(void);               /* each frame, after lobby_layout */
+    const char *(*styleName)(int32_t style);        /* the lobby's GAMEPLAY text, NULL: OpenSWOS's */
+    void        (*lobbyStatus)(int32_t lobbyState); /* after the connection status is set */
+    void        (*lobbyRow)(int32_t row, const LobbyPlayer *p, int32_t canEdit);
+    int32_t     (*chatColor)(const LobbyChatLine *l);   /* a line's colour (fixed font), -1 OpenSWOS's */
+    void        (*readying)(void);                  /* GO pressed, about to be ready */
+    void        (*liveMatchStart)(void);            /* a live match's kick-off (the lobby's rules in force) */
+    void        (*liveMatchEnd)(int32_t finished, const char *why);
+    void        (*settingsDraw)(void);              /* MULTIPLAYER SETTINGS, each frame */
+} OnlineMenusFork;
+static const OnlineMenusFork *online_menus_fork(void);
+#define FORK_HOOK(h) (online_menus_fork() && online_menus_fork()->h)
+
 #define SWOS2020_MENU(name) "swos2020/" #name
 
 /* SWOS 2020 mnu2h colour constants used below (mnu2h/Constants.py). */
@@ -263,6 +291,8 @@ static void logInMenu_layout(void)
      * (PROJECT_HIDE_SWOS2020_EXTRAS). */
     set_text(LogInMenu_news, Account_Has(ACCOUNT_HAS_RANKINGS) ? "RANKINGS" : "NEWS");
     set_visible(LogInMenu_news, Account_Has(ACCOUNT_HAS_RANKINGS) || !PROJECT_HIDE_SWOS2020_EXTRAS);
+    /* Under ABOUT: SWOS 2020 has it 8 to the left (34, the buttons above 42). */
+    entry_at(LogInMenu_news)->x = entry_at(LogInMenu_OfflinelogOut)->x;
     /* SHOW PASSWORD only where there is one; no live cast here. */
     entry_at(LogInMenu_showPasswordLabel)->isInvisible = accounts ? 0 : 1;
     entry_at(LogInMenu_showPassword)->isInvisible = accounts ? 0 : 1;
@@ -566,10 +596,13 @@ static void matchMakingMenu_OnDraw(void)
     /* Every row's text and visibility is rebuilt below each frame, but these two
      * were set only in onInit -- so coming back from SETTINGS, which restores this
      * menu from its template, left the player's name and the EXIT button blank.
-     * Re-applied here, first, so the early return below cannot skip them. */
-    set_text(MatchMakingMenu_userName, s_username);
-    set_entry(MatchMakingMenu_menuExit, "EXIT", 1, kLightBrownWithRedFrame);
-    matchMaking_link_list();
+     * Re-applied here, first, so the early return below cannot skip them. (A fork's own
+     * MATCH MAKING lays them out itself.) */
+    if (!FORK_HOOK(ownsMatchMaking)) {
+        set_text(MatchMakingMenu_userName, s_username);
+        set_entry(MatchMakingMenu_menuExit, "EXIT", 1, kLightBrownWithRedFrame);
+        matchMaking_link_list();
+    }
 
     MmClient_Poll();
     state = MmClient_State();
@@ -579,14 +612,24 @@ static void matchMakingMenu_OnDraw(void)
      * request however many frames it takes to answer. SWOS_MM_AUTO=host answers
      * it for a test -- there is nobody to press the button on either machine. */
     if (MmClient_TakeJoinRequest(who, sizeof who)) {
+        const int32_t allowed = Account_JoinAllowed(who);
         snprintf(s_joinAsker, sizeof s_joinAsker, "%s", who);
-        if (s_mmAuto == MM_AUTO_HOST) {
+        if (allowed && FORK_HOOK(joinRequested))
+            online_menus_fork()->joinRequested(who);
+        if (!allowed) {
+            /* not this game's player (a league or cup match's opponent alone), or banned from it: refused */
+            fprintf(stderr, "[mm] refusing '%s': not allowed in this game\n", s_joinAsker);
+            MmClient_Eject(s_joinAsker);
+            s_joinAsker[0] = '\0';
+        } else if (s_mmAuto == MM_AUTO_HOST) {
             if (mm_auto_is_peer(s_joinAsker))
                 MmClient_Approve(s_joinAsker);
             else
                 fprintf(stderr, "[mm-auto] not approving '%s': waiting for '%s'\n",
                         s_joinAsker, getenv("SWOS_MM_AUTO_PEER"));
             s_joinAsker[0] = '\0';
+        } else if (FORK_HOOK(ownsMatchMaking)) {
+            s_joinAsker[0] = '\0';     /* (a fork's MATCH MAKING shows the asker itself: SWOS 2020's table) */
         } else {
             OnlineMenus_Show(SWOS2020_MENU(hostGameMessageMenu));
             return;
@@ -606,12 +649,21 @@ static void matchMakingMenu_OnDraw(void)
             int32_t g;
             for (g = 0; g < n; g++)
                 if (mm_auto_is_peer(open[g].owner)) {
+                    if (FORK_HOOK(autoJoining))
+                        online_menus_fork()->autoJoining(open[g].owner);
                     MmClient_JoinGame(open[g].owner);
                     break;
                 }
         }
     }
 
+    if (FORK_HOOK(ownsMatchMaking)) {            /* the rest of the menu is the fork's */
+        if (FORK_HOOK(matchMakingDraw))
+            online_menus_fork()->matchMakingDraw();
+        if (MmClient_StartInfo())
+            OnlineMenus_StartMatchFromMatchmaking();
+        return;
+    }
     if (MmClient_TakeRemoved())
         set_entry(MatchMakingMenu_desc, "THE HOST LEFT THE GAME", 0, 0);
 
@@ -707,6 +759,10 @@ static void lobby_nav(int32_t ordinal, int32_t left, int32_t right, int32_t up, 
 
 static void hostGameMessageMenu_OnInit(void)
 {
+    if (s_askStyle && FORK_HOOK(hostStyleLayout) && online_menus_fork()->hostStyleLayout()) {
+        set_text(HostGameMessageMenu_exit,     "EXIT");
+        return;                         /* (a fork's CHOOSE GAMEPLAY) */
+    }
     if (s_askStyle) {
         set_text(HostGameMessageMenu_header,   "HOST A GAME");
         set_text(HostGameMessageMenu_message1, "WHICH GAMEPLAY?");
@@ -895,6 +951,12 @@ void OnlineMenus_StartMatchFromMatchmaking(void)
     }
 
     OnlineMenus_Show(SWOS2020_MENU(mpWaitingMenu));
+
+    /* Back on MATCH MAKING: the lobby was left, or the link never came. The connection to the server
+     * went to make room for the link (above): log in again, or the player is left with a list
+     * that says DISCONNECTED. */
+    if (MmClient_State() == MM_IDLE && s_myName[0])
+        MmClient_Connect(mm_host(), mm_port(), s_myName, NULL);
 }
 
 const char *OnlineMenus_MatchStatus(void)
@@ -1090,6 +1152,7 @@ static void lobby_test_draw(LobbyState st)
                s_lobbyMatches == 1 ? "" : "es", st == LOBBY_FAILED ? NetplayLobby_Notice() : "host");
         fflush(stdout);
         MatchReport_Flush(20000);
+        Account_LobbyClosed();          /* (as leaving does: a service's last requests) */
         P2PLink_Close();
         exit(0);
     }
@@ -1103,6 +1166,8 @@ static int32_t s_openMode;          /* LOBBY_MODE_*: what OPEN's game counts for
 void OnlineMenus_EnterLobby(int32_t player, const char *name)
 {
     OnlineMenus_Init();
+    if (FORK_HOOK(lobbyEntered))
+        online_menus_fork()->lobbyEntered(player);
     NetplayLobby_Begin(player, name);
     if (player == 1 && s_openMode != LOBBY_MODE_FRIENDLY) {    /* what OPEN's game counts for */
         LobbyRules r = *NetplayLobby_Rules();
@@ -1120,6 +1185,9 @@ void OnlineMenus_EnterLobby(int32_t player, const char *name)
     MatchReport_Poll();
     MatchPrediction_Poll();
     MatchReport_Finish();       /* the other player's half, if it came, before the link goes */
+    Account_LobbyClosed();      /* (a service's last word on this lobby's matches) */
+    if (FORK_HOOK(lobbyLeft))
+        online_menus_fork()->lobbyLeft();
     NetplayLobby_End();
     P2PLink_Close();
     Platform_SetFrameHook(NULL);
@@ -1535,41 +1603,48 @@ static void chat_row(int32_t row, const char *text, uint16_t color)
     e->stringFlags = (uint16_t)(kLeftAligned | color);
 }
 
-/* The newest lines that fit, or further back after UP: each one its sayer, then what they
- * said -- the bot's in yellow when someone arrives, green otherwise (SWOS 2020's colours). */
+/* A line's colour: the bot's in yellow when someone arrives, green otherwise (SWOS 2020's colours);
+ * a fork's own where it says (OnlineMenusFork.chatColor). */
+static uint16_t chat_color(const LobbyChatLine *l)
+{
+    const int32_t fork = FORK_HOOK(chatColor) ? online_menus_fork()->chatColor(l) : -1;
+    if (fork >= 0)
+        return (uint16_t)fork;
+    return l->who != LOBBY_CHAT_BOT ? kWhiteText2 : strstr(l->text, "CONNECTED") ? kYellowText : kGreenText;
+}
+
+/* The rows from the bottom up, newest first: each line its text and, over it, its sayer's name --
+ * once for a bot line wrapped onto more (LobbyChatLine.cont). UP goes back a line at a time. */
 static void chat_draw(void)
 {
-    const int32_t n = NetplayLobby_ChatCount(), shown = CHAT_ROWS / 2;
-    int32_t first, k;
+    const int32_t n = NetplayLobby_ChatCount();
+    int32_t i, r = CHAT_ROWS;
     if (s_lobbyPane != LOBBY_PANE_CHAT)
         return;
     if (NetplayLobby_ChatSerial() != s_chatSeen) {      /* a new line: back to the newest */
         s_chatSeen = NetplayLobby_ChatSerial();
         s_chatScroll = 0;
     }
-    if (s_chatScroll > n - shown)
-        s_chatScroll = n - shown > 0 ? n - shown : 0;
-    first = n - shown - s_chatScroll;
-    if (first < 0)
-        first = 0;
-    for (k = 0; k < shown; k++) {
-        const LobbyChatLine *l = NetplayLobby_ChatLine(first + k);
+    if (s_chatScroll > n - 1)
+        s_chatScroll = n - 1 > 0 ? n - 1 : 0;
+    for (i = n - 1 - s_chatScroll; i >= 0 && r > 0; i--) {
+        const LobbyChatLine *l = NetplayLobby_ChatLine(i);
         char name[LOBBY_NAME_MAX + 2];
-        if (!l) {
-            chat_row(2 * k, "", kWhiteText2);
-            chat_row(2 * k + 1, "", kWhiteText2);
+        if (!l)
+            break;
+        chat_row(--r, l->text, chat_color(l));
+        if (l->cont || r == 0)
             continue;
-        }
         if (l->who == LOBBY_CHAT_BOT)
             snprintf(name, sizeof name, "JON HARE (BOT):");
         else
             snprintf(name, sizeof name, "%s:",
                      NetplayLobby_Player(l->who == LOBBY_CHAT_ME ? NetplayLobby_LocalPlayer()
                                                                  : 3 - NetplayLobby_LocalPlayer())->name);
-        chat_row(2 * k, name, kWhiteText2);
-        chat_row(2 * k + 1, l->text, l->who != LOBBY_CHAT_BOT ? kWhiteText2 :
-                 strstr(l->text, "CONNECTED") ? kYellowText : kGreenText);
+        chat_row(--r, name, kWhiteText2);
     }
+    while (r > 0)
+        chat_row(--r, "", kWhiteText2);
 }
 
 void OnlineMenus_DrawOverlay(void) {}
@@ -1699,6 +1774,8 @@ static void mpGameSetupMenu_OnDraw(void)
     }
 
     lobby_layout();
+    if (FORK_HOOK(lobbyLayout))
+        online_menus_fork()->lobbyLayout();
     chat_draw();
     s_lobbyDrawnAt = SDL_GetTicks();
     me    = NetplayLobby_LocalPlayer();
@@ -1731,13 +1808,18 @@ static void mpGameSetupMenu_OnDraw(void)
         }
     }
     set_text(MpGameSetupMenu_header, s_lobbyHeader);
-    snprintf(s_lobbyStyle, sizeof s_lobbyStyle, "%s", _gGameplayStyle == GAMEPLAY_DOS ? "PC (70FPS)"
+    snprintf(s_lobbyStyle, sizeof s_lobbyStyle, "%s",
+             FORK_HOOK(styleName) && online_menus_fork()->styleName(_gGameplayStyle)
+                 ? online_menus_fork()->styleName(_gGameplayStyle)
+             : _gGameplayStyle == GAMEPLAY_DOS ? "PC (70FPS)"
              : _gGameplayStyle == GAMEPLAY_XBOX ? "XBOX (60FPS)" : "AMIGA (50FPS)");
     set_text(MpGameSetupMenu_gameStyle, s_lobbyStyle);
     set_text(MpGameSetupMenu_gameStyle1, s_lobbyStyle);
     snprintf(s_lobbyConn, sizeof s_lobbyConn, "%s",
              st == LOBBY_FAILED ? "DISCONNECTED" : st == LOBBY_RECONNECTING ? "RECONNECTING" : "CONNECTED");
     set_text(MpGameSetupMenu_connectionStatus, s_lobbyConn);
+    if (FORK_HOOK(lobbyStatus))
+        online_menus_fork()->lobbyStatus((int32_t)st);
     if (P2PLink_PingMs() >= 0)
         snprintf(s_lobbyPing, sizeof s_lobbyPing, "%dMS", P2PLink_PingMs());
     else
@@ -1768,10 +1850,15 @@ static void mpGameSetupMenu_OnDraw(void)
 
         set_entry(MpGameSetupMenu_go_01 + row, p->ready ? "READY" : "-",
                   canEdit && p->hasTeam, p->ready ? kGreen : (canEdit && p->hasTeam ? kRed : kGray));
+        if (FORK_HOOK(lobbyRow))
+            online_menus_fork()->lobbyRow(row, p, canEdit);
     }
 
     /* The rules: the host's to change, everyone's to read. */
-    set_entry(MpGameSetupMenu_legOpt1, legs_name(rules), host && open, host && open ? kLightBlue : kGray);
+    if (Account_CupLocked())                    /* (a group match: no cup, and no choosing one) */
+        set_entry(MpGameSetupMenu_legOpt1, "OFF", 0, kGray);
+    else
+        set_entry(MpGameSetupMenu_legOpt1, legs_name(rules), host && open, host && open ? kLightBlue : kGray);
     set_entry(MpGameSetupMenu_etPen1, tie_name(rules), host && open && rules->legs > 0,
               host && open && rules->legs > 0 ? kLightBlue : kGray);
     set_entry(MpGameSetupMenu_gameLength1, length_name(rules->gameLength), host && open,
@@ -2106,6 +2193,8 @@ static void mpGameSetup_go_onSelect(void)
     const LobbyPlayer *p = NetplayLobby_Player(NetplayLobby_LocalPlayer());
     if (!on_my_row(MpGameSetupMenu_go_00))
         return;
+    if (!p->ready && FORK_HOOK(readying))
+        online_menus_fork()->readying();
     NetplayLobby_SetReady(!p->ready);
 }
 
@@ -2158,7 +2247,11 @@ static void next_tie_break(LobbyRules *r)
         r->tieBreak = r->tieBreak == LOBBY_TIE_ET_PEN ? LOBBY_TIE_PEN_ONLY : LOBBY_TIE_ET_PEN;
 }
 
-static void selectLegOpt1(void)     { change_rules(next_legs); }
+static void selectLegOpt1(void)
+{
+    if (!Account_CupLocked())
+        change_rules(next_legs);
+}
 static void selectEtPen1(void)      { change_rules(next_tie_break); }
 static void selectGameLength1(void) { change_rules(next_length); }
 static void selectPitchType1(void)  { change_rules(next_pitch); }
@@ -2403,6 +2496,8 @@ static void run_live_match(void)
 
     snprintf(s_matchStatus, sizeof s_matchStatus, "PLAYING");
     _gFrameStepInput = 1;               /* one frame of input at a time (game_loop.h) */
+    if (FORK_HOOK(liveMatchStart))
+        online_menus_fork()->liveMatchStart();
     InitAndPlayGame(&_selectedTeams[0], &_selectedTeams[1]);
     s_lobbyMatches++;
 
@@ -2423,6 +2518,8 @@ static void run_live_match(void)
                      (unsigned)_statsTeam1Goals, (unsigned)_statsTeam2Goals);
         else
             snprintf(notice, sizeof notice, "FULL TIME - PRESS GO FOR A REMATCH");
+        if (FORK_HOOK(liveMatchEnd))
+            online_menus_fork()->liveMatchEnd(!s_matchEndedEarly, why);
         tell_service(!s_matchEndedEarly);       /* (before the rules move on: the leg it was) */
         /* A two-leg tie moves on (the host's rules; the joiner hears of it). */
         NetplayLobby_MatchPlayed(!s_matchEndedEarly, _statsTeam1Goals, _statsTeam2Goals);
@@ -2445,10 +2542,20 @@ static void run_live_match(void)
  * played in the HOST's style: whoever joins takes it for that game (p2p_link.c). */
 static void matchMaking_openGame_onSelect(void)
 {
+    if (entry_at(MatchMakingMenu_openGame)->bgColor == kGray)
+        return;                         /* (grey is not now: SWOS 2020's) */
     /* A service with ranked and league / cup matches asks what this one is for first. */
     s_openMode = Account_Has(ACCOUNT_HAS_RANKED) ? Account_ChooseMode() : LOBBY_MODE_FRIENDLY;
     if (s_openMode < 0) {
         s_openMode = LOBBY_MODE_FRIENDLY;
+        return;
+    }
+    /* A match picked with its own style (a league or cup match's ranking): no question. */
+    if (Account_Has(ACCOUNT_HAS_RANKED) && Account_ChosenStyle() >= 0) {
+        extern void GameplayStyle_Set(int dos, int persist);
+        GameplayStyle_Set(Account_ChosenStyle(), 1);
+        fprintf(stderr, "[mm] hosting a %s game (the match's)\n", Account_ChosenStyle() ? "DOS" : "AMIGA");
+        MmClient_CreateGame();
         return;
     }
     s_askStyle = 1;
@@ -2459,6 +2566,8 @@ static void matchMaking_openGame_onSelect(void)
 /* LEAVE: stop advertising, or withdraw a join request. */
 static void matchMaking_cancelGame_onSelect(void)
 {
+    if (entry_at(MatchMakingMenu_cancelGame)->bgColor == kGray)
+        return;
     MmClient_LeaveGame();
 }
 
@@ -2588,6 +2697,8 @@ static void mmsOnDraw(void)
      * (include/match_report.h). */
     set_text(MmSettingsMenu_soundFxLabel, "SEND MATCH REPORTS");
     set_text(MmSettingsMenu_soundFx, MatchReport_Enabled() ? "ON" : "OFF");
+    if (FORK_HOOK(settingsDraw))
+        online_menus_fork()->settingsDraw();
     /* SWOS 2020's other rows -- its commentary and chat options, JOIN AMIGA SUPER LEAGUE,
      * JOIN DISCORD, HELP DESK -- are features this project will not have: hidden (the cursor
      * passes over a hidden entry to the next one its way), MY CUSTOM TEAM moved up under the
@@ -2777,6 +2888,8 @@ void OnlineMenus_Init(void)
         return;
     registered = 1;
     MenuJson_RegisterSymbols(k_handlers, (int)(sizeof k_handlers / sizeof k_handlers[0]));
+    if (FORK_HOOK(init))
+        online_menus_fork()->init();
     Account_Init();             /* (a fork's own screens: online_account.h) */
 }
 
@@ -2982,3 +3095,14 @@ int32_t OnlineMenus_SelfTest(void)
     fflush(stdout);
     return failed != 0;
 }
+
+/* ---- a fork's own online screens (the table at the top) ---- */
+#if defined(__has_include)
+#if __has_include("online_menus_fork.inc")
+#define ONLINE_MENUS_FORK 1
+#include "online_menus_fork.inc"        /* defines online_menus_fork() */
+#endif
+#endif
+#ifndef ONLINE_MENUS_FORK
+static const OnlineMenusFork *online_menus_fork(void) { return NULL; }
+#endif
