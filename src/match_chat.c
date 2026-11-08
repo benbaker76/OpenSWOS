@@ -52,7 +52,7 @@ enum {
     FADE_MS        = 1000,      /* then fades out over this */
     REPEATS        = 3,         /* each line sent this many times */
     PENDING_MAX    = 8,
-    NAME_MAX       = 24,
+    CHAT_NAME_MAX       = 24,
 };
 static const uint32_t kRepeatMs[REPEATS] = { 0, 250, 750 };
 #define WIRE_MARK '\x02'
@@ -69,7 +69,7 @@ static struct {
     int32_t  typing;                    /* the input line is open */
     int32_t  hidden;                    /* F3 */
     int32_t  hinted;                    /* the keys were shown (once a session) */
-    char     me[NAME_MAX + 1], them[NAME_MAX + 1];
+    char     me[CHAT_NAME_MAX + 1], them[CHAT_NAME_MAX + 1];
     Line     lines[KEEP_LINES];
     int32_t  count;
     uint32_t shownAt;                   /* SDL_GetTicks of the newest line */
@@ -198,6 +198,8 @@ static void close_input(void)
 {
     if (!C.typing)
         return;
+    if (SDL_HasScreenKeyboardSupport())
+        SDL_StopTextInput();            /* (the phone's keyboard goes away) */
     C.typing = 0;
     C.input[0] = '\0';
     C.inputLen = 0;
@@ -210,7 +212,8 @@ void MatchChat_End(void)
     C.active = 0;
 }
 
-int32_t MatchChat_Active(void) { return C.active; }
+int32_t MatchChat_Active(void) { return C.active && chat_live(); }
+int32_t MatchChat_Typing(void) { return C.typing; }
 
 static void send_line(const char *raw)
 {
@@ -318,6 +321,16 @@ static void open_input(void)
     SDL_StartTextInput();
 }
 
+void MatchChat_ToggleInput(void)
+{
+    if (!MatchChat_Active())
+        return;
+    if (C.typing)
+        close_input();
+    else
+        open_input();
+}
+
 static void input_space(void)
 {
     if (C.inputLen > 0 && C.inputLen < MATCHCHAT_TEXT_MAX && C.input[C.inputLen - 1] != ' ') {
@@ -380,7 +393,7 @@ int32_t MatchChat_Event(const SDL_Event *e)
                         send_line(C.input);
                     close_input();
                 }
-            } else if (k == SDLK_ESCAPE || (k == SDLK_TAB && e->key.repeat == 0)) {
+            } else if (k == SDLK_ESCAPE || k == SDLK_AC_BACK || (k == SDLK_TAB && e->key.repeat == 0)) {
                 close_input();
             } else if (k == SDLK_BACKSPACE) {
                 input_backspace();
@@ -517,7 +530,7 @@ void MatchChat_Draw(void)
     int32_t nrows = 0;
     for (int32_t li = C.count - 1; li >= 0 && nrows < SHOW_LINES; li--) {
         const Line *l = &C.lines[li];
-        char who[NAME_MAX + 4];
+        char who[CHAT_NAME_MAX + 4];
         const float nameW = l->who == WHO_NOTICE ? 0.0f
             : ChatFont_Measure(who, snprintf(who, sizeof who, "%s: ", l->who == WHO_ME ? C.me : C.them));
         Row wrapped[8];
@@ -540,7 +553,8 @@ void MatchChat_Draw(void)
     }
     const int32_t inputRows = C.typing ? 1 : 0;
     const float boxH = (nrows + inputRows) * lh + 2 * pad;
-    const float bx = margin, by = (float)oh - margin - boxH;
+    /* While typing on a phone its keyboard covers the bottom of the screen: the box goes to the top. */
+    const float bx = margin, by = C.typing && SDL_HasScreenKeyboardSupport() ? margin : (float)oh - margin - boxH;
 
     const SDL_FRect box = { bx, by, boxW, boxH };
     Gfx_FillRect(&box, (SDL_Color){ 0, 0, 0, (Uint8)(150 * alpha) });
@@ -554,7 +568,7 @@ void MatchChat_Draw(void)
         const Row *row = &rows[r];
         float x = bx + pad;
         if (row->first && row->line->who != WHO_NOTICE) {
-            char who[NAME_MAX + 4];
+            char who[CHAT_NAME_MAX + 4];
             const int32_t n = snprintf(who, sizeof who, "%s: ", row->line->who == WHO_ME ? C.me : C.them);
             ChatFont_Draw(x + sh, y + sh, who, n, shadow);
             ChatFont_Draw(x, y, who, n, row->line->who == WHO_ME ? meCol : themCol);

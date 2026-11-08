@@ -65,7 +65,9 @@ re-signs every 7 days). `build_ios.sh sim` and the Mac's development identity ar
   a stick on the left, FIRE on the right, PAUSE and ESC above it, drawn over the picture in the
   present path, player 1's through `InputSDL_TouchControls` / `InputSDL_TouchKey`. They go when a
   controller's button is pressed and come back with the next touch (not on a controller merely
-  being there: the iOS simulator reports one nobody holds).
+  being there: the iOS simulator reports one nobody holds). In an online match a CHAT button
+  (a speech bubble, left of PAUSE) opens a chat line with the system keyboard (docs/NETPLAY.md,
+  "Chat in a match").
 - **Text**: a text field brings up the system keyboard (`input_text.c`); SDL turns its characters
   into the key events the game reads. Android's back button is ESC.
 - **The screen**: always the whole screen, landscape, at the screen's own pixels; the widescreen

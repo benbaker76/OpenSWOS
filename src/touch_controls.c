@@ -22,6 +22,7 @@
 #include <math.h>
 #include <string.h>
 #include "touch_controls.h"
+#include "match_chat.h"     /* CHAT: an online match's chat line, with the phone's keyboard */
 
 #ifdef SWOS_MOBILE_BUILD
 
@@ -32,7 +33,7 @@ enum { KEY_P = 0x19, KEY_ESC = 0x45 };          /* (raw Amiga scancodes) */
 #define DEADZONE 0.28f                          /* (of the stick's radius) */
 
 static SDL_FingerID s_stickFinger = -1, s_fireFinger[4] = { -1, -1, -1, -1 };
-static int   s_dirs, s_fire, s_sent = -1, s_hidden, s_keyDown[2];
+static int   s_dirs, s_fire, s_sent = -1, s_hidden, s_keyDown[3];
 static int   s_mode = TOUCH_CONTROLS_AUTO;      /* [input] touch_controls */
 static float s_knobX, s_knobY;                  /* (the knob's offset, in output pixels) */
 
@@ -40,13 +41,14 @@ static float s_knobX, s_knobY;                  /* (the knob's offset, in output
  * 150 px stick and 112 px FIRE on a 360 px tall landscape phone). */
 typedef struct { float x, y, r; } Circle;
 typedef struct { float x, y, w, h; } Box;
-static void layout(int w, int h, Circle *stick, Circle *fire, Box *pause, Box *esc)
+static void layout(int w, int h, Circle *stick, Circle *fire, Box *pause, Box *esc, Box *chat)
 {
     const float u = (float)h / 360.0f;
     stick->r = 75 * u; stick->x = 28 * u + stick->r; stick->y = h - 28 * u - stick->r;
     fire->r = 56 * u;  fire->x = w - 32 * u - fire->r; fire->y = h - 44 * u - fire->r;
     esc->w = 52 * u; esc->h = 32 * u; esc->x = w - 32 * u - esc->w; esc->y = h - 172 * u - esc->h;
     *pause = *esc; pause->w = 64 * u; pause->x = esc->x - 10 * u - pause->w;
+    *chat = *esc; chat->x = pause->x - 10 * u - chat->w;     /* (only in an online match) */
 }
 
 static void send(void)
@@ -93,7 +95,7 @@ static void release_all(void)
     s_stickFinger = -1;
     for (int i = 0; i < 4; i++) s_fireFinger[i] = -1;
     s_dirs = 0; s_fire = 0; s_knobX = s_knobY = 0;
-    s_keyDown[0] = s_keyDown[1] = 0;
+    s_keyDown[0] = s_keyDown[1] = s_keyDown[2] = 0;
     send();
 }
 
@@ -115,7 +117,7 @@ int TouchControls_Mode(void)
 
 void TouchControls_ReleaseAll(void)
 {
-    if (s_stickFinger != -1 || s_fire || s_keyDown[0] || s_keyDown[1])
+    if (s_stickFinger != -1 || s_fire || s_keyDown[0] || s_keyDown[1] || s_keyDown[2])
         release_all();
 }
 
@@ -123,7 +125,7 @@ void TouchControls_ReleaseAll(void)
 void TouchControls_HandleEvent(const SDL_Event *e, int w, int h)
 {
     Circle stick, fire;
-    Box pause, esc;
+    Box pause, esc, chat;
     if (e->type == SDL_CONTROLLERBUTTONDOWN) {
         if (!s_hidden && s_mode == TOUCH_CONTROLS_AUTO) { s_hidden = 1; release_all(); }
         return;
@@ -132,13 +134,14 @@ void TouchControls_HandleEvent(const SDL_Event *e, int w, int h)
         return;
     if (w <= 0 || h <= 0)
         return;
-    layout(w, h, &stick, &fire, &pause, &esc);
+    layout(w, h, &stick, &fire, &pause, &esc, &chat);
     const float x = e->tfinger.x * w, y = e->tfinger.y * h;
     const SDL_FingerID id = e->tfinger.fingerId;
     if (e->type == SDL_FINGERDOWN) {
         s_hidden = 0;
         if (in_box(&pause, x, y)) { s_keyDown[0] = 1; InputSDL_TouchKey(KEY_P); return; }
         if (in_box(&esc, x, y))   { s_keyDown[1] = 1; InputSDL_TouchKey(KEY_ESC); return; }
+        if (MatchChat_Active() && in_box(&chat, x, y)) { s_keyDown[2] = 1; MatchChat_ToggleInput(); return; }
         if (y < h * 0.40f)
             return;                                     /* (the zones: the lower 60 %, as the page's) */
         if (x < w * 0.5f) {
@@ -157,7 +160,7 @@ void TouchControls_HandleEvent(const SDL_Event *e, int w, int h)
         return;
     }
     /* up */
-    s_keyDown[0] = s_keyDown[1] = 0;
+    s_keyDown[0] = s_keyDown[1] = s_keyDown[2] = 0;
     if (id == s_stickFinger) {
         s_stickFinger = -1; s_dirs = 0; s_knobX = s_knobY = 0;
         send();
@@ -216,11 +219,11 @@ void TouchControls_Draw(void)
 {
     int w = 0, h = 0;
     Circle stick, fire;
-    Box pause, esc;
+    Box pause, esc, chat;
     Gfx_OutputSize(&w, &h);
     if (s_hidden || s_mode == TOUCH_CONTROLS_NEVER || w <= 0 || h <= 0)
         return;
-    layout(w, h, &stick, &fire, &pause, &esc);
+    layout(w, h, &stick, &fire, &pause, &esc, &chat);
     const float u = (float)h / 360.0f;
     /* (in output pixels, on either presenter: gfx.h) */
     const GfxSpace space = Gfx_Space();
@@ -252,6 +255,19 @@ void TouchControls_Draw(void)
             Gfx_DrawLine(cx - s + t, cy - s, cx + s + t, cy + s, mark);
             Gfx_DrawLine(cx - s + t, cy + s, cx + s + t, cy - s, mark);
         }
+    }
+    if (MatchChat_Active()) {   /* CHAT: a speech bubble, lit while a line is open */
+        box(&chat, s_keyDown[2] || MatchChat_Typing(), u);
+        const float bw = chat.w * 0.46f, bh = chat.h * 0.38f, cx = chat.x + chat.w / 2, cy = chat.y + chat.h * 0.45f;
+        SDL_FRect b = { cx - bw / 2, cy - bh / 2, bw, bh };
+        Gfx_FillRect(&b, mark);
+        SDL_Vertex t[3];
+        memset(t, 0, sizeof t);
+        t[0].position.x = cx - bw * 0.25f; t[0].position.y = cy + bh / 2;
+        t[1].position.x = cx - bw * 0.05f; t[1].position.y = cy + bh / 2;
+        t[2].position.x = cx - bw * 0.35f; t[2].position.y = cy + bh / 2 + chat.h * 0.18f;
+        t[0].color = t[1].color = t[2].color = mark;
+        Gfx_Geometry(NULL, t, 3, NULL, 0);
     }
     {   /* FIRE's: a ball's ring */
         ring(fire.x, fire.y, fire.r * 0.32f, 3 * u, (SDL_Color){ 255, 255, 255, 170 });

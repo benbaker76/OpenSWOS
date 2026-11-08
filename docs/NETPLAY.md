@@ -1033,6 +1033,13 @@ ignores it. So it needs no `NETPLAY_COMPAT` raise.
 While a line is open the keyboard does not play: what it held is released, and every key and
 typed character goes to the line. Pads still play.
 
+**On a phone:**
+- The on-screen controls get a CHAT button, a speech bubble left of PAUSE, during a live match.
+- Tapping it opens a line, and `SDL_StartTextInput` brings up the phone's own keyboard, so no
+  keyboard of our own is drawn. Its Enter sends; Back or another tap drops the line.
+- While the line is open the box moves to the top of the screen, above the keyboard.
+- There are no quick messages on a phone (it has no number keys).
+
 **On the wire:**
 - GGPO-X sends a datagram once, so each line goes out three times (now, +250 ms, +750 ms) as
   `\x02` + a 4-hex-digit number + the text.

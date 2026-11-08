@@ -27,7 +27,11 @@
 /* A live match has started / ended: the lines are cleared, the names set ("" = P1/P2). */
 void    MatchChat_Begin(const char *myName, const char *theirName);
 void    MatchChat_End(void);
-int32_t MatchChat_Active(void);
+int32_t MatchChat_Active(void);         /* a chat is on: a live match (or SWOS_CHAT_DEMO's) */
+/* The phones' CHAT button (touch_controls.c): opens a line, with the system's keyboard, or
+ * drops the one that is open. */
+void    MatchChat_ToggleInput(void);
+int32_t MatchChat_Typing(void);
 
 /* An SDL event, before the game sees it: 1 when the chat took it. */
 int32_t MatchChat_Event(const SDL_Event *e);
