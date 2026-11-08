@@ -270,6 +270,11 @@ int32_t Netplay_AdvanceFrame(NetplaySession *s, uint16_t checksum)
     return ggpo_advance_frame(s->ggpo, checksum);
 }
 
+int32_t Netplay_Chat(NetplaySession *s, const char *text)
+{
+    return s && s->ggpo ? ggpo_client_chat(s->ggpo, text) : NETPLAY_ERR_UNAVAILABLE;
+}
+
 int32_t Netplay_CurrentFrame(NetplaySession *s, int32_t *frame)
 {
     int f = 0;
@@ -722,6 +727,12 @@ int32_t Netplay_SyncInput(NetplaySession *s, void *inputs, int32_t *disconnectFl
 int32_t Netplay_AdvanceFrame(NetplaySession *s, uint16_t checksum)
 {
     (void)s; (void)checksum;
+    return NETPLAY_ERR_UNAVAILABLE;
+}
+
+int32_t Netplay_Chat(NetplaySession *s, const char *text)
+{
+    (void)s; (void)text;
     return NETPLAY_ERR_UNAVAILABLE;
 }
 

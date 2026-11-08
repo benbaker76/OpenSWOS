@@ -111,6 +111,8 @@ int32_t     NetplayMatch_Frame(void);
  * through the same session). The pre-match prompts are skipped for one, the way
  * they are for the replay rig and for arcade mode. */
 int32_t     NetplayMatch_IsLive(void);
+/* A line of chat to the other player in a live match (match_chat.c); 0 when sent. */
+int32_t     NetplayMatch_SendChat(const char *text);
 
 /* Play a recorded match again (src/srp_resim.c): the state at frame 0 (a state_wire
  * packet), every frame's input and the SIM hash each frame started with, from a

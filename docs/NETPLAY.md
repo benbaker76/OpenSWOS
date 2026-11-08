@@ -1014,6 +1014,56 @@ down, so a GO pressed before the host's new rules arrive stands. Test knob:
 HOST_ENV=SWOS_LOBBY_CUP=2:2 RELAY=0 REPORTS=1 scripts/relay_test.sh` plays a tie and the
 first leg of the next.
 
+### Chat in a match (`src/match_chat.c`, `src/chat_font.c`)
+
+The lobby's chat (above) travels on the lobby's link, which closes at kick-off, so a match
+has a chat of its own on GGPO-X's `ggpo_client_chat`: one UDP datagram per line, on the match's
+socket, relayed with the match's packets. It is not match state. Nothing about it is saved by
+a rollback, hashed, recorded in the `.SRP` or compared by the recorder, and an older build just
+ignores it. So it needs no `NETPLAY_COMPAT` raise.
+
+**Keys** (desktop, live match only):
+
+| Key | What it does |
+|---|---|
+| TAB | opens a line (ENTER sends it; ESC or TAB drops it) |
+| F3 | hides or shows the box |
+| 1 .. 0 | sends a quick message (`[chat] quick1 .. quick0` in SWOS.ini) |
+
+While a line is open the keyboard does not play: what it held is released, and every key and
+typed character goes to the line. Pads still play.
+
+**On the wire:**
+- GGPO-X sends a datagram once, so each line goes out three times (now, +250 ms, +750 ms) as
+  `\x02` + a 4-hex-digit number + the text.
+- The receiver shows each number once, keeping a bit per number for the last 256.
+- Numbers restart each match.
+- Text arrives cleaned by `MatchChat_Clean`: at most 100 bytes of UTF-8, no control
+  characters, and anything the font lacks becomes `?`.
+
+**On screen:**
+- A translucent box at the bottom left of the window shows the last six rows (long lines wrap),
+  names in colour, with a one-pixel drop shadow.
+- It stays 6 s after the newest line, then fades over 1 s.
+- The first match of a session starts with a grey hint line giving the keys.
+- It is drawn at the window's own pixels through `gfx.h`, so it is the same on the GPU presenter
+  and SDL's renderer (docs/RENDERING.md).
+- The font is Roboto Condensed, subset and embedded (`third_party/fonts/roboto_condensed`,
+  `scripts/make_chat_font.sh`), rasterized by stb_truetype at `window height / 38` pixels
+  (12-48) whenever that changes.
+- Each glyph is drawn with a pixel of the sheet's empty margin round it: SDL's software
+  renderer drops one-pixel-thin triangles, and with them every `i`, `l` and `!`.
+
+**In the report:** each line is written to SWOS.log as `[chat] me: ...` / `[chat] them: ...`, as
+the lobby's lines are, so the match report has the match's chat.
+
+**Testing:**
+- `--chat-selftest` checks the cleaning, UTF-8, repeats and every glyph, and writes the glyph
+  sheet to `chat_selftest.png`.
+- In a real match: `SWOS_KEY_SCRIPT` types text with `<frame>:text=Hello_there` (`_` is a space),
+  so `HOST_ENV="SDL_VIDEODRIVER=x11 SWOS_KEY_SCRIPT=600:Tab,610:text=Hi,620:Return"
+  CAPTURE=50 scripts/netplay_lobby_test.sh` shows the box in the host's captures.
+
 ### When a match ends, and rematch
 
 **A live match hands the machine back the moment it is over** (`liveEnd`,

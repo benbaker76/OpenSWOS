@@ -23,6 +23,7 @@
 #include "match_prediction.h"   /* both players' PRED and SEEN, after the match */
 #include "netplay_ghost.h"  /* what this peer drew against what finally happened */
 #include "netplay_lobby.h"
+#include "match_chat.h"     /* chatting during the match: never match state */
 #include "p2p_link.h"
 #include "record_proto.h"
 #include "replay_v2.h"     /* the resumable recording: kick-off state, inputs, hashes */
@@ -330,6 +331,14 @@ void NetplayMatch_SetPacketKey(const uint8_t *key)
 /* A match played between two machines -- or one of those played again from its
  * recording (--srp-resim), which has to be played the same way: controls assigned
  * without the pre-match menu, no goal replay. */
+/* A line of chat to the other player, while a live match is running (match_chat.c). */
+int32_t NetplayMatch_SendChat(const char *text)
+{
+    if (s_np.mode != NETPLAY_MATCH_P2P || !s_np.live || !s_np.running || !s_np.session)
+        return -1;
+    return Netplay_Chat(s_np.session, text) == 0 ? 0 : -1;
+}
+
 int32_t NetplayMatch_IsLive(void)
 {
     return (s_np.mode == NETPLAY_MATCH_P2P && s_np.live) || s_np.mode == NETPLAY_MATCH_RESIM;
@@ -774,6 +783,12 @@ static void cbEvent(void *ctx, const NetplayEvent *ev)
                  * agreed from (p2p_link.c propose_delay). */
                 fprintf(stderr, "[netplay] kick-off: ping %d ms, jitter %d ms (measured by the link), "
                                 "input delay %d\n", s_np.linkPing, s_np.linkJitter, s_np.delay);
+                if (s_np.mode == NETPLAY_MATCH_P2P) {
+                    const int32_t me = NetplayLobby_LocalPlayer();
+                    const LobbyPlayer *mine = (me == 1 || me == 2) ? NetplayLobby_Player(me) : NULL;
+                    const LobbyPlayer *theirs = (me == 1 || me == 2) ? NetplayLobby_Player(3 - me) : NULL;
+                    MatchChat_Begin(mine ? mine->name : "", theirs ? theirs->name : "");
+                }
             }
         }
         s_np.running = 1;
@@ -795,6 +810,10 @@ static void cbEvent(void *ctx, const NetplayEvent *ev)
         ringDump(ev->desyncFrame);
         if (!s_np.abortWhy)
             s_np.abortWhy = "THE TWO GAMES WENT OUT OF STEP";
+        break;
+    case NETPLAY_EVENT_CHAT:
+        if (s_np.live && ev->chat)
+            MatchChat_Received(ev->chat);
         break;
     case NETPLAY_EVENT_DISCONNECTED:
         s_np.peerGone = 1;
@@ -2603,6 +2622,7 @@ int32_t NetplayMatch_Finish(void)
         fprintf(stderr, "[netplay] wrote %s\n", s_np.soundTracePath);
     }
     if (s_np.session) {
+        MatchChat_End();
         Netplay_Close(s_np.session);
         s_np.session = NULL;
     }

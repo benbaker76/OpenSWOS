@@ -107,6 +107,9 @@ int32_t     Netplay_AddLocalInput(NetplaySession *s, int32_t player, const void 
 /* inputs receives inputSize bytes for each of NETPLAY_MAX_PLAYERS players. */
 int32_t     Netplay_SyncInput(NetplaySession *s, void *inputs, int32_t *disconnectFlags);
 int32_t     Netplay_AdvanceFrame(NetplaySession *s, uint16_t checksum);
+/* A line of chat to the other player (GGPO-X's ggpo_client_chat: one datagram, not
+ * resent; under 120 bytes). It arrives as NETPLAY_EVENT_CHAT. match_chat.c. */
+int32_t     Netplay_Chat(NetplaySession *s, const char *text);
 /* The frame GGPO simulates next. */
 int32_t     Netplay_CurrentFrame(NetplaySession *s, int32_t *frame);
 /* The last frame whose input from every player is known, so that nothing up to it will be

@@ -110,6 +110,16 @@ key_service=F2
 Everything in `[arcade]` except `enabled` is also editable in-game from
 the F2 service menu, which writes changes straight back to `SWOS.ini`.
 
+#### `[chat]` (online matches)
+
+```ini
+[chat]
+quick1=Good luck, have fun!   ; the keys 1 .. 9, 0 send these in an online match
+quick2=Nice goal!             ; (TAB types your own line, F3 hides the chat).
+...                           ; Empty: that key sends nothing.
+quick0=GG
+```
+
 #### `[mods]` and `[tweaks]` (docs/MODS.md)
 
 ```ini

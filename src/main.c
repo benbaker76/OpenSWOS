@@ -46,6 +46,7 @@
 #include "replay_v2.h"          /* --record-replay, --view-replay: whole-match .SRP replays */
 #include "online_menus.h"       /* --menu, --menu-selftest */
 #include "netplay.h"            /* --netplay-selftest */
+#include "match_chat.h"         /* [chat] quick messages, --chat-selftest */
 #include "build_info.h"         /* --version, and the [build] line in SWOS.log */
 #include "p2p_link.h"           /* --netplay-selftest: the MULTIPLAYER menu's link */
 #include "mm_client.h"          /* --matchmaker-selftest */
@@ -299,6 +300,7 @@ static void print_usage(const char *argv0)
         "                            emulated card (default) or a recording of it,\n"
         "                            sound_dos/menu.mp3 ([audio] menu_music).\n"
         "  --input-selftest          Check the redefined keys and the press latch\n"
+        "  --chat-selftest           Check the match chat's text rules and its font\n"
         "  --dos-music-selftest      Play the PC menu music through once without sound\n"
         "                            and report what it found. Exits.\n"
         "  --dos-sound-selftest      Check that every PC sound file is in sound_dos/\n"
@@ -582,6 +584,8 @@ int main(int argc, char **argv)
     opts.opt_all_teams_equal = opts.opt_auto_save_highlights = opts.opt_menu_music = OPTION_UNSET;  /* the game's */
     opts.matchmaker[0] = '\0';    /* default: a matchmaking server on this machine */
     opts.record[0] = '\0';        /* default: "server" once SWOS.ini is read (below) */
+    for (int qi = 0; qi < MATCHCHAT_QUICK; qi++)       /* [chat] quick1..quick0 */
+        snprintf(opts.chat_quick[qi], sizeof opts.chat_quick[qi], "%s", MatchChat_DefaultQuick(qi));
     opts.prediction = 1;          /* default: a live match's replay keeps what each player saw */
     opts.no_injuries_cards = 0;   /* [testing] no_injuries_cards: the real rules unless asked (test_rules.h) */
 #ifdef SWOS_TEST_RULES
@@ -885,6 +889,8 @@ int main(int argc, char **argv)
         } else if (strcmp(a, "--input-selftest") == 0) {
             extern int InputSDL_SelfTest(void);
             return InputSDL_SelfTest() ? 1 : 0;
+        } else if (strcmp(a, "--chat-selftest") == 0) {
+            return MatchChat_SelfTest() ? 1 : 0;
         } else if (strcmp(a, "--dos-music-selftest") == 0) {
             return DosMusic_SelfTest() ? 1 : 0;
         } else if (strcmp(a, "--dos-sound-selftest") == 0) {
@@ -1227,6 +1233,8 @@ int main(int argc, char **argv)
     MatchRecord_SetLiveCast(opts.live_cast);
     /* And whether a match report leaves this machine (include/match_report.h). */
     MatchReport_SetEnabled(opts.reports);
+    for (int qi = 0; qi < MATCHCHAT_QUICK; qi++)
+        MatchChat_SetQuick(qi, opts.chat_quick[qi]);
     { extern void ReplayRec_SetPredictionKept(int32_t on); ReplayRec_SetPredictionKept(opts.prediction); }
     /* The testers' rule, for offline play (include/test_rules.h). Said in the log: a
      * report from a career played without injuries is read differently. */

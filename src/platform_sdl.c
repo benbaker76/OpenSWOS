@@ -16,6 +16,7 @@
 #include "mod_hooks.h"      /* ModHooks_FrameDrawn: the built-in mods' drawing */
 #include "gfx.h"            /* the overlays' drawing, on either presenter */
 #include "gpu_present.h"    /* the GPU presenter ([video] renderer = gpu: docs/RENDERING.md) */
+#include "match_chat.h"     /* chatting in an online match: its keys first, its box over the picture */
 #include "crt_effects.h"   /* CRT mask / vignette / curved corners */
 #include "display.h"
 #include "dos_mode.h"        /* gDosGraphics */
@@ -1728,6 +1729,11 @@ static void pump_events_any_thread(void)
 {
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
+        /* An online match's chat: TAB, F3, the quick keys, and everything typed into an open
+         * line -- the game never sees those (src/match_chat.c). */
+        if ((ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP || ev.type == SDL_TEXTINPUT ||
+             ev.type == SDL_TEXTEDITING) && MatchChat_Event(&ev))
+            continue;
         switch (ev.type) {
         case SDL_DROPFILE:
 #ifdef SWOS_IOS_BUILD
@@ -1885,6 +1891,7 @@ static void pump_events_any_thread(void)
             break;
         }
     }
+    MatchChat_Tick();                   /* (the repeats of a chat line just sent) */
     InputSDL_PostFrame();
 }
 
@@ -2221,6 +2228,7 @@ static void draw_overlays(void)
     /* CRT effects go on LAST, over the finished frame and its HUD, so the
      * grille and the glass edge sit on the picture rather than under it. */
     CrtEffects_Apply();
+    MatchChat_Draw();                /* (an online match's chat: over the CRT, to be read) */
 #ifdef SWOS_MOBILE_BUILD
     TouchControls_Draw();            /* (the phones' on-screen controls, over everything) */
 #endif
@@ -2469,7 +2477,7 @@ void Platform_SetFrameHook(void (*hook)(void))
  * keyboard: pair it with SWOS_PRESENT_CAPTURE to see what the keys did. Frame counts
  * depend on load times, so leave generous gaps. */
 enum { kKeyScriptMax = 128 };
-static struct { uint32_t frame; SDL_Keycode key; } s_key_script[kKeyScriptMax];
+static struct { uint32_t frame; SDL_Keycode key; char text[32]; } s_key_script[kKeyScriptMax];
 static int      s_key_script_len = -1;      /* -1 = not read yet */
 static uint32_t s_key_script_frame;
 
@@ -2501,8 +2509,17 @@ static void key_script_tick(void)
             if (sscanf(spec, "%u:%31[^ ,]%n", &frame, name, &used) != 2 || used == 0)
                 break;
             s_key_script[s_key_script_len].frame = frame;
-            s_key_script[s_key_script_len].key   = SDL_GetKeyFromName(name);
-            if (s_key_script[s_key_script_len].key == SDLK_UNKNOWN)
+            s_key_script[s_key_script_len].text[0] = '\0';
+            if (strncmp(name, "text=", 5) == 0) {
+                /* typed text (SDL_TEXTINPUT), '_' for a space: the chat (match_chat.c) */
+                char *t = s_key_script[s_key_script_len].text;
+                snprintf(t, sizeof s_key_script[0].text, "%s", name + 5);
+                for (; *t; t++)
+                    if (*t == '_')
+                        *t = ' ';
+                s_key_script[s_key_script_len].key = SDLK_UNKNOWN;
+                s_key_script_len++;
+            } else if ((s_key_script[s_key_script_len].key = SDL_GetKeyFromName(name)) == SDLK_UNKNOWN)
                 fprintf(stderr, "[keys] SWOS_KEY_SCRIPT: unknown key '%s'\n", name);
             else
                 s_key_script_len++;
@@ -2514,6 +2531,18 @@ static void key_script_tick(void)
     if (s_key_script_len == 0)
         return;
     for (int i = 0; i < s_key_script_len; i++) {
+        if (s_key_script[i].text[0]) {
+            if (s_key_script[i].frame == s_key_script_frame) {
+                SDL_Event ev;
+                memset(&ev, 0, sizeof ev);
+                ev.type = SDL_TEXTINPUT;
+                snprintf(ev.text.text, sizeof ev.text.text, "%s", s_key_script[i].text);
+                SDL_PushEvent(&ev);
+                fprintf(stderr, "[keys] frame %u: text \"%s\"\n", (unsigned)s_key_script_frame,
+                        s_key_script[i].text);
+            }
+            continue;
+        }
         if (s_key_script[i].frame == s_key_script_frame) {
             push_key(s_key_script[i].key, 1);
             fprintf(stderr, "[keys] frame %u: %s\n", (unsigned)s_key_script_frame,

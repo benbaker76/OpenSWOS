@@ -152,6 +152,8 @@ typedef struct {
                                               * recorder -- "server" (the matchmaker), "host[:port]",
                                               * or empty/"off". include/match_record.h */
     int                    prediction;       /* [netplay] prediction: PRED/SEEN in a live match's .SRP */
+    char                   chat_quick[10][101]; /* [chat] quick1..quick0: the keys 1..0 in an online
+                                              * match send these (include/match_chat.h); "" = off */
     int                    no_injuries_cards; /* [testing] no_injuries_cards: offline only (test_rules.h) */
     int                    reports;          /* [netplay] reports: SEND MATCH REPORTS -- both players'
                                               * logs and ratings to the server after an online

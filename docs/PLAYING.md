@@ -75,6 +75,16 @@ says which is which.
 | `+` / `-`    | Increase / decrease windowed scale (1× → 2× → 3× → 4×). Ignored while fullscreen. |
 | F9 / F11 / F12 / PrintScreen | Save screenshot to `bin/swos_shotNNN.png`            |
 
+### Chat in an online match
+
+| Key    | Action |
+|--------|--------|
+| TAB    | Type a line to the other player: ENTER sends it, ESC (or TAB again) drops it. The keyboard doesn't play while you type. |
+| F3     | Hide / show the chat box |
+| 1 .. 0 | Send a quick message: "Good luck, have fun!", "Nice goal!" and so on. Set your own in `SWOS.ini`'s `[chat]` section. |
+
+The box sits at the bottom left and fades a few seconds after the last line.
+
 ### Gamepad not detected?
 
 SDL only drives gamepads it has a mapping for. If your pad isn't in SDL's
