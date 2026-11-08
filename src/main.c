@@ -62,7 +62,6 @@
 #include "diy_import_dos.h"     /* --convert-diy */
 #include "dos_sound.h"          /* --sound-style, --dos-sound-selftest */
 #include "dos_music.h"          /* --music, --dos-music-selftest */
-#include "pitch_map.h"          /* --pitch-maps */
 #include "netplay_match.h"      /* --netplay-match */
 #include "rollback_rig.h"       /* --rollback */
 #include "world.h"              /* [general] world */
@@ -188,9 +187,6 @@ static void print_usage(const char *argv0)
         "                            'stereo' restores the original Amiga panning.\n"
         "  --jag-graphics=<on|off>   Render the Atari Jaguar's gameplay sprites\n"
         "                            (bin/grafs_jag; scripts/make_jag_graphics.py)\n"
-        "  --pitch-maps=<on|off>     Draw a DOS-graphics pitch from its Tile Agent map\n"
-        "                            (<graphics dir>/pitch<N>.tmj) where there is\n"
-        "                            one. Default off. The match is unchanged.\n"
         "  --outfit-shading=<on|off> Shade the kit into four tones per colour\n"
         "                            (default on). Off draws each kit colour flat,\n"
         "                            exactly as the 16-colour Amiga game does.\n"
@@ -559,7 +555,6 @@ int main(int argc, char **argv)
      * it by default until 2026-10-01; it still ships the banks, so `[graphics]
      * sprites = jaguar` in its SWOS.ini turns it on. */
     opts.jag_graphics = 0;
-    opts.pitch_maps = 0;          /* the pitch from the game's own files */
     /* Shading defaults (docs/PALETTE_V2.md §5). Step 2 rather than the Jaguar's
      * own ~3.3: at that depth a near-white sock bottoms out at 37.5% and reads
      * as dark grey. */
@@ -826,8 +821,6 @@ int main(int argc, char **argv)
             else if (strcmp(v, "amiga") == 0) opts.view_style = VIEW_STYLE_AMIGA;
             else if (strcmp(v, "dos") == 0)   opts.view_style = VIEW_STYLE_DOS;
             else { fprintf(stderr, "--view must be auto, amiga or dos (got %s)\n", v); return 1; }
-        } else if ((v = match_kv(a, "pitch-maps")) != NULL) {
-            opts.pitch_maps = (strcmp(v, "on") == 0 || strcmp(v, "1") == 0);
         } else if ((v = match_kv(a, "outfit-shading")) != NULL) {
             opts.outfit_shading = !(strcmp(v, "off") == 0 || strcmp(v, "0") == 0);
         } else if ((v = match_kv(a, "shadow-shading")) != NULL) {
@@ -1258,7 +1251,6 @@ int main(int argc, char **argv)
     /* Publish DOS-mode flags for the game code (default = Amiga graphics). */
     _gDosGraphics = opts.dos_graphics;
     JagGfx_SetEnabled(opts.jag_graphics);
-    PitchMap_SetEnabled(opts.pitch_maps);
     JagGfx_SetShading(opts.outfit_shading, opts.shadow_shading, opts.hair_shading, opts.shade_step);
     KitArt_SetJaguar(opts.kit_art);
     { extern void InputSDL_SetStickDeadzone(int percent); InputSDL_SetStickDeadzone(opts.stick_deadzone); }

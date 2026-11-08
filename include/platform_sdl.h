@@ -112,7 +112,6 @@ typedef struct {
      * NOT change the game: the simulation view is pinned either way, so the
      * extra columns are margin the simulation cannot see. */
     int                    widescreen;
-    int                    pitch_maps;       /* 1 = a DOS pitch's picture from <dir>/pitch<N>.tmj (pitch_map.h) */
     int                    outfit_shading;   /* 1 = shade the kit, 0 = flat team colour */
     int                    shadow_shading;   /* 1 = shade the drop shadow, 0 = SWOS's colour 8 */
     int                    hair_shading;     /* 1 = shade hair the game leaves flat (black), 0 = as the game has it */

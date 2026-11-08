@@ -12,7 +12,8 @@
 #ifdef SWOS_SDL_BUILD
 #include "dos_graphics.h"
 #include "jag_graphics.h"   /* DosGfx_ParsePitchMap, DOS_TILE_BYTES */
-#include "pitch_map.h"      /* [graphics] pitch_maps: the picture from a .tmj */
+#include "mod_api.h"        /* ModPitchTileFn */
+#include "mod_hooks.h"      /* the pitch's picture from a mod (the pitchmaps mod's .tmj) */
 #include "animated_patterns.h"   /* AnimatedPatterns_*OwnCell* */
 #include <stdio.h>          /* snprintf for the DOS pitch filenames */
 #include <string.h>
@@ -279,11 +280,10 @@ static void dos_load_pitch(uint16_t mapIndex)
     for (int i = 0; i < PITCH_POINTER_COUNT; i++)
         slots[i] = (uint32_t)(uintptr_t)_s_pitchFullPtrs[i];
 
-    /* [graphics] pitch_maps: this pitch's PICTURE from <dir>/pitch<N>.tmj when there
-     * is one. The files above are still what the match is played on (the crowd's
-     * slots); the map is baked once the fans have their kits, at the end of
-     * FixupAndColorPitchFile. */
-    PitchMap_Load(_gDosGraphicsDir, pitchNum);
+    /* A mod's picture of this pitch (the pitchmaps mod: <dir>/pitch<N>.tmj). The files
+     * above are still what the match is played on (the crowd's slots); the mod bakes its
+     * picture once the fans have their kits, at the end of FixupAndColorPitchFile. */
+    ModHooks_PitchLoaded(_gDosGraphicsDir, pitchNum);
 }
 #endif /* SWOS_SDL_BUILD */
 
@@ -412,7 +412,7 @@ __attribute__((used, externally_visible))
 void LoadPitchMap(uint16_t mapIndex)
 {
 #ifdef SWOS_SDL_BUILD
-    PitchMap_Drop();                /* until a map is loaded for this pitch */
+    ModHooks_PitchDropped();        /* until a mod's picture is loaded for this pitch */
     AnimatedPatterns_ClearOwnCells();   /* (Pitch_ApplyCrowdLayout marks them again) */
     if (_gDosGraphics) {
         dos_load_pitch(mapIndex);
@@ -863,9 +863,9 @@ void FixupAndColorPitchFile(void)
         #undef PITCH_GRID_ROWS
     }
 
-    /* The pitch from its map, now that every fan tile of the bank has its kit. */
+    /* A mod's picture of the pitch, now that every fan tile of the bank has its kit. */
     if (dosPitch)
-        PitchMap_Bake();
+        ModHooks_PitchColoured();
 #endif
 #if defined(AGA) && !defined(SWOS_SDL_BUILD)
     copyPitchTilesToFast();     /* the fans are coloured: the tiles are final */
@@ -942,7 +942,7 @@ void DrawChunkyPitch(void)
 
     int tilesAcross = fbW / PITCH_TILE_SIZE + 2;
     int tilesDown   = fbH / PITCH_TILE_SIZE + 2;
-    const int mapped = PitchMap_Active();
+    const ModPitchTileFn mapTile = ModHooks_PitchTiles();  /* a mod's picture, NULL none */
 
     for (int ty = 0; ty < tilesDown; ty++) {
         int gridY = startTileY + ty;
@@ -958,10 +958,10 @@ void DrawChunkyPitch(void)
                 int ptrIdx = PITCH_PTR_START + gridY * PITCH_GRID_COLS + gridX;
                 tile = (ptrIdx >= 0 && ptrIdx < PITCH_POINTER_COUNT)
                          ? _s_pitchFullPtrs[ptrIdx] : (uint8_t *)0;
-                /* Drawn from a map: the map's tile for this cell, seated or standing
-                 * as the engine's own tile there is (src/pitch_map.c). */
-                if (mapped && ptrIdx >= 0 && ptrIdx < PITCH_POINTER_COUNT)
-                    tile = (uint8_t *)PitchMap_Tile(ptrIdx, tile);
+                /* A mod's picture: its tile for this cell, seated or standing as the
+                 * engine's own tile there is (src/mod_pitchmaps.c). */
+                if (mapTile && ptrIdx >= 0 && ptrIdx < PITCH_POINTER_COUNT)
+                    tile = (uint8_t *)mapTile(ptrIdx, tile);
             }
 
             for (int row = 0; row < PITCH_TILE_SIZE; row++) {

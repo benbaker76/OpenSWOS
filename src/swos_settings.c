@@ -249,7 +249,6 @@ static int handler(void *user, const char *section,
             /* "auto" keeps the built-in default, which is the Amiga's on every
              * build (the web one included, since 2026-10-01). */
         }
-        else if (eqi(name, "pitch_maps") && parse_bool(value, &b)) opts->pitch_maps = b;
         else if (eqi(name, "outfit_shading") && parse_bool(value, &b)) opts->outfit_shading = b;
         else if (eqi(name, "shadow_shading") && parse_bool(value, &b)) opts->shadow_shading = b;
         else if (eqi(name, "hair_shading") && parse_bool(value, &b)) opts->hair_shading = b;
@@ -597,12 +596,6 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         opts->jag_graphics ? "jaguar" : "amiga" };
 
 
-    SETTING(n) = (IniEntry){ "graphics", "pitch_maps",
-        "; pitch_maps: true | false. With style = dos, draw a pitch from its Tile Agent\n"
-        "; map (grafs_dos/pitch<N>.tmj) where there is one, and from the game's own files\n"
-        "; where there is not (docs/PITCH_MAPS.md). Only the picture: the match itself,\n"
-        "; online and in replays, is the same either way.\n",
-        opts->pitch_maps ? "true" : "false" };
 
     SETTING(n) = (IniEntry){ "graphics", "outfit_shading",
         "; outfit_shading: true | false. Shade the kit into four tones per colour, the\n"

@@ -21,7 +21,8 @@
 #include "game_types.h"
 #include "display.h"
 #ifdef SWOS_SDL_BUILD
-#include "pitch_map.h"
+#include "mod_api.h"
+#include "mod_hooks.h"
 #endif
 
 /* ---- external asm globals ---- */
@@ -187,8 +188,9 @@ static void drawPatternFromIndex(uint16_t patternIndex)
             uint8_t *tile = _s_pitchFullPtrs[patternIndex];
             /* A pitch drawn from a map: the map's tile for this fan, as the pitch
              * itself is drawn (DrawChunkyPitch). */
-            if (PitchMap_Active()) {
-                tile = (uint8_t *)PitchMap_Tile((int32_t)patternIndex, tile);
+            const ModPitchTileFn mapTile = ModHooks_PitchTiles();
+            if (mapTile) {
+                tile = (uint8_t *)mapTile((int32_t)patternIndex, tile);
                 if (!tile)
                     return;             /* the map draws nothing in this cell */
             }

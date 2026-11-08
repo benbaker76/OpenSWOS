@@ -69,7 +69,14 @@ void ModHooks_MatchMoment(const struct ModMatchEvent *event);   /* every run (re
 void ModHooks_SoundEvent(uint8_t event, uint16_t arg);
 void ModHooks_NetFrame(int32_t frame);
 void ModHooks_NetConfirmed(int32_t frame);
-int32_t ModHooks_LobbyKeepsReady(void);        /* 1: a mod keeps this player's GO (lobbyKeepsReady) */
+int32_t ModHooks_LobbyKeepsReady(void);
+/* The pitch's picture (ModDef pitchLoaded ...). PitchTiles: the first mod's that has one this
+ * frame, NULL none -- asked once a frame, called for every cell. */
+void    ModHooks_PitchLoaded(const char *dir, int32_t pitchNumber);
+void    ModHooks_PitchColoured(void);
+void    ModHooks_PitchDropped(void);
+const uint8_t *(*ModHooks_PitchTiles(void))(int32_t cell, const uint8_t *engineTile);
+int32_t ModHooks_PitchCondition(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max);        /* 1: a mod keeps this player's GO (lobbyKeepsReady) */
 void ModHooks_MatchEnded(const struct ModMatchResult *result);
 
 /* The career's (docs/MODS.md §27), each named for its ModDef hook: CareerNew (src/career_init.c

@@ -37,6 +37,8 @@ struct SpriteGraphics;
  * handshake, §8.6); "cosmetic", "modes" and "career" mods never matter there.
  * ====================================================================================== */
 typedef struct ModMatchEvent ModMatchEvent;
+/* A pitch cell's tile (ModDef pitchTiles). */
+typedef const uint8_t *(*ModPitchTileFn)(int32_t cell, const uint8_t *engineTile);
 struct TeamFileEx;                              /* (include/game_types.h: a team as its file has it) */
 typedef struct ModMatchResult ModMatchResult;
 typedef struct ModCompetitionResult ModCompetitionResult;
@@ -69,6 +71,19 @@ typedef struct ModDef {
     int32_t (*spriteDraw)(const struct Sprite *sprite, const struct SpriteGraphics *gfx,
                           int16_t *x, int16_t *y);
     void (*frameKept)(void);            /* the match is paused: the frame shown again, as drawn */
+    /* A DOS-tier pitch's PICTURE (SDL; the pitchmaps mod's Tile Agent maps). Drawing only: the
+     * match plays on the game's own PITCHn.DAT/.BLK whatever these say. pitchLoaded after the
+     * game read its own files (`dir` the graphics folder); pitchColoured when every fan tile has
+     * its kit (bake then); pitchDropped when the next pitch is not loaded yet. pitchTiles, each
+     * frame the pitch is drawn: the function that gives each cell's tile (engineTile the
+     * engine's there, which says whether a fan sits or stands; NULL back: nothing, the
+     * surround), or NULL to leave the engine's tiles. pitchCondition: the pitch condition's
+     * palette entries (entry[], rgb[] 8-bit), how many; 0 says nothing. */
+    void (*pitchLoaded)(const char *dir, int32_t pitchNumber);
+    void (*pitchColoured)(void);
+    void (*pitchDropped)(void);
+    ModPitchTileFn (*pitchTiles)(void);
+    int32_t (*pitchCondition)(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max);
     /* Like frameDrawn, but every mod's frameUnder runs before any mod's frameDrawn: shading that
      * belongs to the picture (a darkened band), so what the other mods draw goes over it. */
     void (*frameUnder)(void);

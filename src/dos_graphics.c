@@ -11,7 +11,7 @@
 #include "dos_mode.h"
 #include <string.h>
 #ifdef SWOS_SDL_BUILD
-#include "pitch_map.h"
+#include "mod_hooks.h"
 #include <stdlib.h>
 #include <stdio.h>
 #endif
@@ -139,7 +139,7 @@ void DosGfx_BuildPalette(int pitchType, uint8_t *rgb888Out)
      * table above, so the game's own map gives the game's own colours exactly. */
     {
         uint8_t entry[64], colour[64][3];
-        int n = PitchMap_Condition(pitchType, entry, colour, 64);
+        int n = ModHooks_PitchCondition(pitchType, entry, colour, 64);
         int differ = 0;
         for (int i = 0; i < n; i++) {
             for (int c = 0; c < 3; c++) {

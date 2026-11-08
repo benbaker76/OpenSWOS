@@ -130,6 +130,41 @@ void ModHooks_NetConfirmed(int32_t frame)
     EACH(netConfirmed) (*m_)->netConfirmed(frame);
 }
 
+void ModHooks_PitchLoaded(const char *dir, int32_t pitchNumber)
+{
+    EACH(pitchLoaded) (*m_)->pitchLoaded(dir, pitchNumber);
+}
+
+void ModHooks_PitchColoured(void)
+{
+    EACH(pitchColoured) (*m_)->pitchColoured();
+}
+
+void ModHooks_PitchDropped(void)
+{
+    EACH(pitchDropped) (*m_)->pitchDropped();
+}
+
+ModPitchTileFn ModHooks_PitchTiles(void)
+{
+    EACH(pitchTiles) {
+        const ModPitchTileFn fn = (*m_)->pitchTiles();
+        if (fn)
+            return fn;
+    }
+    return NULL;
+}
+
+int32_t ModHooks_PitchCondition(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max)
+{
+    EACH(pitchCondition) {
+        const int32_t n = (*m_)->pitchCondition(pitchType, entry, rgb, max);
+        if (n > 0)
+            return n;
+    }
+    return 0;
+}
+
 int32_t ModHooks_LobbyKeepsReady(void)
 {
     int32_t keep = 0;

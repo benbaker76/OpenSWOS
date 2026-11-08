@@ -82,7 +82,7 @@ SDL_ONLY_SRCS := \
     match_step.c          \
     menu_symbols.c        \
     miniz_impl.c          \
-    pitch_map.c           \
+    mod_pitchmaps.c       \
     tileagent_impl.c      \
     mm_client.c           \
     netem_core.c          \

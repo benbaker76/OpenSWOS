@@ -1,5 +1,11 @@
-/* pitch_map.c -- the pitch's picture from a Tile Agent map (include/pitch_map.h,
- * docs/PITCH_MAPS.md). SDL only.
+/* mod_pitchmaps.c -- the pitchmaps mod (bin/mods/pitchmaps; canonical, off by default): a DOS-tier
+ * pitch's PICTURE from a Tile Agent map, <mod>/grafs_dos/pitch<N>.tmj or <graphics dir>/pitch<N>.tmj
+ * (docs/PITCH_MAPS.md). SDL only. It reaches the pitch through the engine's pitch hooks
+ * (include/mod_api.h): pitchLoaded, pitchColoured, pitchDropped, pitchTiles, pitchCondition.
+ *
+ * The match is not played from it: the crowd's slot table, its random picks and everything else
+ * simulated stay on the game's own PITCHn.DAT/.BLK, so a match, a replay and a netplay peer are
+ * bit for bit what they are with the mod off. The map decides what each cell LOOKS like.
  *
  * WHAT IS THE MAP'S AND WHAT IS NOT. The engine draws 2310 cells, each a 16 x 16
  * chunky tile. With a map in force each cell's tile is BAKED from the map's
@@ -26,7 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pitch_map.h"
+#include "mod_api.h"
 #include "display.h"            /* MAX_FAN_TILE_INDEX */
 #include "jag_graphics.h"       /* JagGfx_RemapDonated */
 #include "../third_party/tileagent/tileagent.h"
@@ -44,7 +50,10 @@ extern uint8_t *_s_pitchFullPtrs[];
 extern int Platform_LoadIndexedBMP(const char *path, uint8_t *out8, int out_cap,
                                    uint32_t *outPal, int *outW, int *outH);
 
-static int32_t s_enabled;
+#define SLUG "pitchmaps"
+
+/* pitch.c: the kit colours the engine gave a tile of its own bank, 0 if none. */
+extern int32_t Pitch_FanTileKit(const uint8_t *tile, uint8_t *slot10, uint8_t *slot11);
 
 static struct {
     ta_map  *map;
@@ -59,9 +68,7 @@ static struct {
     uint8_t  have[CELLS];               /* bit 0: a tile is drawn there; bit 1: a standing one too */
 } s_pm;
 
-void    PitchMap_SetEnabled(int32_t on) { s_enabled = on != 0; }
-int32_t PitchMap_Enabled(void)          { return s_enabled; }
-int32_t PitchMap_Active(void)           { return s_pm.map != NULL && s_pm.baked; }
+static int32_t PitchMap_Active(void)    { return s_pm.map != NULL && s_pm.baked; }
 
 static void release_map(void)
 {
@@ -79,7 +86,7 @@ static void release_map(void)
     s_pm.baked = 0;
 }
 
-void PitchMap_Drop(void)
+static void PitchMap_Drop(void)
 {
     s_pm.baked = 0;
 }
@@ -108,16 +115,16 @@ static char *read_text(const char *path, size_t *len)
     return text;
 }
 
-int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
+static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
 {
     char path[512], error[160], layout[32];
-    char *text;
+    char *text = NULL;
     size_t len = 0;
     int32_t i, shared = 0, event;
     ta_map *map;
 
     s_pm.baked = 0;
-    if (!s_enabled || !dir)
+    if (!dir)
         return 0;
     if (s_pm.map && s_pm.pitch == pitchNumber && strcmp(s_pm.dir, dir) == 0)
         return 1;                       /* the same pitch as last match */
@@ -126,12 +133,25 @@ int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
     /* A map of this pitch alone, or ONE map of every pitch whose `layout-<N>` event
      * shows this one's layers (the game's six share their stands and differ in the
      * mowing). */
-    snprintf(path, sizeof path, "%s/pitch%d.tmj", dir, (int)pitchNumber);
-    text = read_text(path, &len);
-    if (!text) {
-        shared = 1;
-        snprintf(path, sizeof path, "%s/pitch.tmj", dir);
-        text = read_text(path, &len);
+    {   /* the mod's own folder (its grafs_dos/), then the graphics folder's */
+        const char *mine = ModApi_ModDir(SLUG);
+        int32_t where;
+        for (where = 0; where < 2 && !text; where++) {
+            char base[400];
+            if (where == 0 && !(mine && mine[0]))
+                continue;
+            if (where == 0)
+                snprintf(base, sizeof base, "%s/grafs_dos", mine);
+            else
+                snprintf(base, sizeof base, "%s", dir);
+            snprintf(path, sizeof path, "%s/pitch%d.tmj", base, (int)pitchNumber);
+            text = read_text(path, &len);
+            if (!text) {
+                snprintf(path, sizeof path, "%s/pitch.tmj", base);
+                text = read_text(path, &len);
+                shared = text != NULL;
+            }
+        }
     }
     if (!text)
         return 0;                       /* no map for this pitch: the game's own files */
@@ -270,14 +290,14 @@ static int32_t engine_index(const uint8_t *tile)
     return (int32_t)((size_t)(tile - _pitchChunkyBuffer) / TILE_BYTES);
 }
 
-void PitchMap_Bake(void)
+static void PitchMap_Bake(void)
 {
     const ta_map *map = s_pm.map;
     int32_t cell, l, stands = 0, drawn = 0, differ = 0, differStand = 0;
     const int check = getenv("SWOS_PITCH_MAP_CHECK") != NULL;
 
     s_pm.baked = 0;
-    if (!map || !s_pm.player || !s_enabled)
+    if (!map || !s_pm.player)
         return;
     memset(s_pm.sit, 0, (size_t)CELLS * TILE_BYTES);
     memset(s_pm.stand, 0, (size_t)CELLS * TILE_BYTES);
@@ -380,7 +400,7 @@ void PitchMap_Bake(void)
                     "standing tile\n", (int)s_pm.pitch, (int)drawn, (int)stands);
 }
 
-const uint8_t *PitchMap_Tile(int32_t cell, const uint8_t *engineTile)
+static const uint8_t *PitchMap_Tile(int32_t cell, const uint8_t *engineTile)
 {
     int32_t index;
     if (cell < 0 || cell >= CELLS || !(s_pm.have[cell] & 1))
@@ -391,7 +411,7 @@ const uint8_t *PitchMap_Tile(int32_t cell, const uint8_t *engineTile)
     return s_pm.sit + (size_t)cell * TILE_BYTES;
 }
 
-int32_t PitchMap_Condition(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max)
+static int32_t PitchMap_Condition(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max)
 {
     /* kPitchPalettes' order (src/dos_graphics.c). */
     static const char *const names[7] = { "pitch-frozen", "pitch-muddy", "pitch-wet", "pitch-soft",
@@ -422,5 +442,19 @@ int32_t PitchMap_Condition(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3],
     }
     return n;
 }
+
+/* ---- the hooks ---- */
+
+static void pitch_loaded(const char *dir, int32_t pitchNumber) { PitchMap_Load(dir, pitchNumber); }
+static ModPitchTileFn pitch_tiles(void) { return PitchMap_Active() ? PitchMap_Tile : NULL; }
+
+const ModDef ModDef_pitchmaps = {
+    .slug           = SLUG,
+    .pitchLoaded    = pitch_loaded,
+    .pitchColoured  = PitchMap_Bake,
+    .pitchDropped   = PitchMap_Drop,
+    .pitchTiles     = pitch_tiles,
+    .pitchCondition = PitchMap_Condition,
+};
 
 #endif /* SWOS_SDL_BUILD */

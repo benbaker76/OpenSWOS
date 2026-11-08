@@ -132,8 +132,10 @@ the original never had -- is compiled in only under a switch, so one flag builds
 The pitch becomes a Tile Agent map: layers, some above the players, and animations with easing
 (`docs/PITCH_FORMAT_V2.md`; the format is Tile Agent's own, `D:\Projects\GitHub\TileAgent`
 `docs/FORMAT.md`). Stage 1 is in the game: a DOS-graphics pitch drawn from a `.tmj`
-(`docs/PITCH_MAPS.md`, `[graphics] pitch_maps`). It is base, not a mod, because it is a format
-the engine reads; the pitches made with it are mods.
+(`docs/PITCH_MAPS.md`). Since 2026-11-07 the reader is itself a mod, **pitchmaps** (canonical,
+off by default; the owner: everything as a mod): the engine has only the pitch hooks (`ModDef`
+`pitchLoaded` / `pitchColoured` / `pitchDropped` / `pitchTiles` / `pitchCondition`, §16), and
+the pitches made with it are mods too (their `grafs_dos/pitch<N>.tmj`).
 
 - **SDL** reads the `.tmj` and its images directly (the runtime in `third_party/tileagent`).
 - **The Amiga reads a binary**, never JSON (parsing JSON on a 68k takes seconds per file):
@@ -476,6 +478,7 @@ it. `init` runs at start-up (after the mod list, before the menus are built from
 | save data (H8) | `ModApi_SaveFile / LoadFile(slug, name, ...)` | the save folder's `mods/<slug>/<name>`, durable as a save (`Resload_SaveFileAt`: the web's sync, the Switch's commit); named fields, never dumps |
 | a match of its own (H2, H4) | `ModApi_DefaultSetup`, `ModApi_PlayMatch(slug, &setup, &result)` -- blocks until it is over; then `ModApi_EndMatch`, `StartShootout`, `Score`, `MatchFrames`, `ModMatch(slug)` | `src/mod_match.c`: a friendly without its menus, as the arcade cabinet plays one -- the teams by id (file << 8 \| ordinal), each side CPU / player 1 / player 2 (`SetupPlayers` asks no one), pitch, length, subs, extra time / penalties / straight to a shoot-out, replays, the stadium screen and the REPLAY menu or not, the match's name, the score and the minute (0-44) at kick-off (`InitGameRestoreTeams`' end); the friendly's own settings put back after. What comes after (retry, its menu) is the mod's own code, after PlayMatch returns |
 | match events (H3) | `matchStart`, `matchFrame`, `matchEvent`, `matchEnded` | every match: kick-off; each frame after the clock; goal / own goal / penalty goal (`GoalScored`), foul, yellow, second yellow, red, injury (`tackle_foul.c`), half time, second half, full time, extra time, shoot-out, each shoot-out kick (`NextPenalty`, in or not), the final whistle; the result. Each with its team (0 top, 1 bottom), the player's index, the minute and the frame. Never for a frame GGPO re-simulates (`NetplayMatch_Resimulating`) |
+| a pitch's picture (SDL, DOS tier) | `pitchLoaded`, `pitchColoured`, `pitchDropped`, `pitchTiles`, `pitchCondition` | `pitch.c`: after the game's own pitch files, when the fans have their kits, before the next pitch; `pitchTiles` once a frame -- the function giving each cell's tile, NULL the engine's (`animated_patterns.c` too); `pitchCondition` the condition's palette entries (`dos_graphics.c`). Drawing only: the match plays on the game's own files. The pitchmaps mod |
 | the online lobby | `lobbyKeepsReady` | the other player's side changed: return 1 to keep this player's GO (SWOS United's menus2020: SWOS 2020's way) -- safe, the other's own GO drops with their change |
 | an online match as played (H3) | `netFrame`, `matchMoment`, `soundEvent`, `netConfirmed` | for what must say only what FINALLY happened (SWOS United's Discord posts): `netFrame(frame)` before each frame is played, again after a rollback (what frames >= frame said is void); `matchMoment` every event of every run, re-simulations included; `soundEvent` the PC sound events (`dos_sound.h`: the woodwork, a corner, a penalty, a save -- every run, offline too); `netConfirmed(frame)` once every frame <= frame is final. Tag what you hear with the frame, drop it at `netFrame`, keep it at `netConfirmed` |
 

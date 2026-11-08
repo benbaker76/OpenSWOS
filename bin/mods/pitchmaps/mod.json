@@ -1,0 +1,13 @@
+{
+ "uuid": "d47c89e0-1430-5d0e-821d-bfd825a8e6ce",
+ "id": "pitchmaps",
+ "name": "Pitch maps",
+ "version": "1.0",
+ "author": "OpenSWOS (Tile Agent's format: third_party/tileagent)",
+ "about": "With the PC graphics, a pitch drawn from its Tile Agent map (grafs_dos/pitch<N>.tmj, in this mod or the graphics folder). Only the picture: the match is the same.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": false
+}
