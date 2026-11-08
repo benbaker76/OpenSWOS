@@ -237,6 +237,7 @@ enum {
     ModPage_label0,                     /* label<i> = label0 + 2 i, value<i> = label0 + 2 i + 1 */
     ModPage_note = ModPage_label0 + 2 * 8,
     ModPage_exit,
+    ModPage_author,                     /* (appended: the entries before keep their numbers) */
 };
 
 typedef struct {
@@ -248,7 +249,7 @@ typedef struct {
 static ModInfo     s_page;
 static PageSetting s_pageSettings[kRows];
 static int32_t     s_pageCount;
-static char        s_pageName[48], s_pageAbout[64], s_pageLabels[kRows][40], s_pageValues[kRows][24];
+static char        s_pageName[48], s_pageAbout[64], s_pageAuthor[64], s_pageLabels[kRows][40], s_pageValues[kRows][24];
 
 /* "choices_from": "<folder>": "off", then the image files (.png .bmp .jpg) in that folder of the
  * mod and of the player's game folder (swos_user_dir(); "user_folder" when its name is another),
@@ -294,6 +295,7 @@ static void read_page_settings(const ModInfo *m)
     char path[1024], about[256] = "";
     s_pageCount = 0;
     s_pageAbout[0] = '\0';
+    s_pageAuthor[0] = '\0';
     if (m->canonical)
         snprintf(path, sizeof path, "%s/%s/mod.json", MODS_CANONICAL_DIR, m->slug);
     else
@@ -305,6 +307,39 @@ static void read_page_settings(const ModInfo *m)
     const int len = (int)fread(json, 1, sizeof json - 1, f);
     fclose(f);
     json[len > 0 ? len : 0] = '\0';
+    {   /* "author": BY ..., one line: its asides in brackets left out (the licence, a PR, where an
+         * effect is from: in the mod's files), and ; / as the menu font has them */
+        char author[256], line[256];
+        if (mjson_get_string(json, len, "$.author", author, (int)sizeof author) >= 0) {
+            size_t n = 0;
+            int depth = 0;
+            for (const char *p = author; *p && n + 1 < sizeof line; p++) {
+                if (*p == '(') { depth++; continue; }
+                if (*p == ')') { if (depth) depth--; continue; }
+                if (depth)
+                    continue;
+                char c = *p == ';' ? ',' : *p == '/' ? '-' : *p;
+                if (c == ' ' && (n == 0 || line[n - 1] == ' '))
+                    continue;           /* (one space where an aside was) */
+                if ((c == ',') && n && line[n - 1] == ' ')
+                    n--;                /* ("x (y);" -> "x,") */
+                line[n++] = c;
+            }
+            while (n && (line[n - 1] == ' ' || line[n - 1] == ','))
+                n--;
+            line[n] = '\0';
+            char by[300];
+            enum { kLine = 46 };
+            snprintf(by, sizeof by, "BY %s", line);
+            if (strlen(by) > kLine) {
+                int cut = kLine - 3;
+                while (cut > 0 && by[cut] != ' ')
+                    cut--;
+                snprintf(by + (cut > 0 ? cut : kLine - 3), 4, "...");
+            }
+            upper(s_pageAuthor, sizeof s_pageAuthor, by);
+        }
+    }
     if (mjson_get_string(json, len, "$.about", about, (int)sizeof about) >= 0) {
         /* one line of the screen: cut at a word, with "..." when there is more */
         enum { kLine = 46 };
@@ -366,6 +401,7 @@ static void page_refresh(void)
     upper(s_pageName, sizeof s_pageName, s_page.name);
     entry_at(ModPage_header)->fg = (uintptr_t)s_pageName;
     entry_at(ModPage_subTitle)->fg = (uintptr_t)s_pageAbout;
+    entry_at(ModPage_author)->fg = (uintptr_t)s_pageAuthor;
     for (i = 0; i < kRows; i++) {
         MenuEntry *label = entry_at(ModPage_label0 + 2 * i), *value = entry_at(ModPage_label0 + 2 * i + 1);
         label->isInvisible = value->isInvisible = i >= s_pageCount;
