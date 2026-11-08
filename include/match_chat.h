@@ -33,6 +33,14 @@ int32_t MatchChat_Active(void);         /* a chat is on: a live match (or SWOS_C
 void    MatchChat_ToggleInput(void);
 int32_t MatchChat_Typing(void);
 
+/* THE LINE BEING TYPED, for another screen (the lobby's chat field, online_menus.c): it takes
+ * every key and typed character until ENTER (onSend gets the cleaned UTF-8 line, never empty),
+ * ESC or TAB. One line at a time: opening it drops the match's, and the other way round. */
+void        ChatLine_Open(void (*onSend)(const char *utf8));
+void        ChatLine_Close(void);
+int32_t     ChatLine_IsOpen(void);
+const char *ChatLine_Text(void);
+
 /* An SDL event, before the game sees it: 1 when the chat took it. */
 int32_t MatchChat_Event(const SDL_Event *e);
 /* A datagram from the other player (NETPLAY_EVENT_CHAT). */

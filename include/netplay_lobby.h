@@ -20,6 +20,7 @@
 
 #ifdef SWOS_SDL_BUILD
 
+#include "chat_style.h"
 #include "swos_types.h"
 #include "game_types.h"
 
@@ -171,7 +172,15 @@ void               NetplayLobby_MatchPlayed(int32_t completed, int32_t goals1, i
  * over this lobby's own link, never through a server -- and the lobby's bot ("JON HARE
  * (BOT)") adds lines of its own on each machine: who connected, how a match ended, why the
  * lobby closed. Kept for this lobby, across rematches; a new opponent starts it again. */
-#define LOBBY_CHAT_TEXT  28         /* a line's characters: SWOS 2020's input field */
+/* A line: up to 100 bytes of UTF-8, small letters and accents kept (match_chat.h
+ * MatchChat_Clean), drawn in the chat font (online_menus.c lobby_chat_overlay). It was 28
+ * capitals, SWOS 2020's field, until 2026-11-07: an older build still takes these lines --
+ * it makes them capitals, '?' for what it cannot draw, and cuts them at 28. */
+#if SWOS_CHAT_DYNAMIC_FONT
+#define LOBBY_CHAT_TEXT  100
+#else
+#define LOBBY_CHAT_TEXT  28         /* (the game's font: chat_style.h) */
+#endif
 #define LOBBY_CHAT_KEEP  64         /* lines kept for scrolling back */
 
 typedef enum { LOBBY_CHAT_ME, LOBBY_CHAT_THEM, LOBBY_CHAT_BOT } LobbyChatWho;
@@ -181,7 +190,7 @@ typedef struct {
     char    text[LOBBY_CHAT_TEXT + 1];
 } LobbyChatLine;
 
-/* Say a line (trimmed, capitals, what the font draws). It is sent as soon as the link is up
+/* Say a line (cleaned as MatchChat_Clean does). It is sent as soon as the link is up
  * -- after a rematch's reconnect too. 0 if there was something to say. */
 int32_t              NetplayLobby_Say(const char *text);
 /* A bot line, on this machine only. */

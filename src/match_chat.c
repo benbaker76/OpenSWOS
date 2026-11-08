@@ -12,6 +12,7 @@
  */
 #ifdef SWOS_SDL_BUILD
 #include "match_chat.h"
+#include "chat_style.h"     /* SWOS_CHAT_DYNAMIC_FONT 0: no chat box (it is overlay-only) */
 #include "chat_font.h"
 #include "gfx.h"
 #include "netplay_match.h"
@@ -66,21 +67,30 @@ typedef struct {
 
 static struct {
     int32_t  active;                    /* a live match is on */
-    int32_t  typing;                    /* the input line is open */
+    int32_t  typing;                    /* the match's line is open (L, owned by the match) */
     int32_t  hidden;                    /* F3 */
     int32_t  hinted;                    /* the keys were shown (once a session) */
     char     me[CHAT_NAME_MAX + 1], them[CHAT_NAME_MAX + 1];
     Line     lines[KEEP_LINES];
     int32_t  count;
     uint32_t shownAt;                   /* SDL_GetTicks of the newest line */
-    char     input[MATCHCHAT_TEXT_MAX + 1];
-    int32_t  inputLen;
     uint16_t nextSeq;                   /* what we send */
     uint32_t seen[8];                   /* their numbers seen, a bit each, over the last 256 */
     uint16_t seenHigh;                  /* the newest of them */
     int32_t  seenAny;
     struct { char wire[MATCHCHAT_TEXT_MAX + 8]; uint32_t at; int32_t sent; } pending[PENDING_MAX];
 } C;
+
+/* THE LINE BEING TYPED -- one, shared: the match's (TAB) or the lobby's (its chat field,
+ * ChatLine_Open). While it is open every key and typed character is the line's. */
+static struct {
+    int32_t open;
+    char    text[MATCHCHAT_TEXT_MAX + 1];
+    int32_t len;
+    void  (*onSend)(const char *utf8);
+} L;
+#define CI L.text
+#define CI_LEN L.len
 
 static char s_quick[MATCHCHAT_QUICK][MATCHCHAT_TEXT_MAX + 1];
 static int32_t s_quickSet;
@@ -177,8 +187,11 @@ static void add_line(int32_t who, const char *text)
         fprintf(stderr, "[chat] %s: %s\n", who == WHO_ME ? "me" : "them", text);
 }
 
+static void line_close(void);
+
 void MatchChat_Begin(const char *myName, const char *theirName)
 {
+    line_close();                       /* (a lobby line still open when the match kicked off) */
     const int32_t hidden = C.hidden, hinted = C.hinted;
     memset(&C, 0, sizeof C);
     C.hidden = hidden;
@@ -194,16 +207,37 @@ void MatchChat_Begin(const char *myName, const char *theirName)
     }
 }
 
-static void close_input(void)
+static void line_close(void)
 {
-    if (!C.typing)
+    if (!L.open)
         return;
     if (SDL_HasScreenKeyboardSupport())
         SDL_StopTextInput();            /* (the phone's keyboard goes away) */
-    C.typing = 0;
-    C.input[0] = '\0';
-    C.inputLen = 0;
-    C.shownAt = SDL_GetTicks();         /* (the box fades from here) */
+    L.open = 0;
+    L.text[0] = '\0';
+    L.len = 0;
+    L.onSend = NULL;
+    if (C.typing) {
+        C.typing = 0;
+        C.shownAt = SDL_GetTicks();     /* (the match's box fades from here) */
+    }
+}
+
+static void line_open(void (*onSend)(const char *utf8))
+{
+    line_close();
+    L.open = 1;
+    L.text[0] = '\0';
+    L.len = 0;
+    L.onSend = onSend;
+    InputSDL_ClearKeyState();           /* what the keyboard held, released: it types now */
+    SDL_StartTextInput();
+}
+
+static void close_input(void)          /* the match's line */
+{
+    if (C.typing)
+        line_close();
 }
 
 void MatchChat_End(void)
@@ -212,7 +246,7 @@ void MatchChat_End(void)
     C.active = 0;
 }
 
-int32_t MatchChat_Active(void) { return C.active && chat_live(); }
+int32_t MatchChat_Active(void) { return SWOS_CHAT_DYNAMIC_FONT && C.active && chat_live(); }
 int32_t MatchChat_Typing(void) { return C.typing; }
 
 static void send_line(const char *raw)
@@ -312,14 +346,21 @@ void MatchChat_Received(const char *message)
 
 /* ---- keys ---- */
 
-static void open_input(void)
+static void open_input(void)            /* the match's line */
 {
+    line_open(send_line);
     C.typing = 1;
-    C.input[0] = '\0';
-    C.inputLen = 0;
-    InputSDL_ClearKeyState();           /* what the keyboard held, released: it types now */
-    SDL_StartTextInput();
 }
+
+void ChatLine_Open(void (*onSend)(const char *utf8))
+{
+    C.typing = 0;
+    line_open(onSend);
+}
+
+void ChatLine_Close(void) { line_close(); }
+int32_t ChatLine_IsOpen(void) { return L.open; }
+const char *ChatLine_Text(void) { return L.text; }
 
 void MatchChat_ToggleInput(void)
 {
@@ -333,9 +374,9 @@ void MatchChat_ToggleInput(void)
 
 static void input_space(void)
 {
-    if (C.inputLen > 0 && C.inputLen < MATCHCHAT_TEXT_MAX && C.input[C.inputLen - 1] != ' ') {
-        C.input[C.inputLen++] = ' ';
-        C.input[C.inputLen] = '\0';
+    if (CI_LEN > 0 && CI_LEN < MATCHCHAT_TEXT_MAX && CI[CI_LEN - 1] != ' ') {
+        CI[CI_LEN++] = ' ';
+        CI[CI_LEN] = '\0';
     }
 }
 
@@ -348,10 +389,10 @@ static void input_append(const char *utf8)
     if (len && (utf8[0] == ' ' || utf8[0] == '\t'))
         input_space();
     const int32_t k = MatchChat_Clean(utf8, clean, sizeof clean);
-    if (k > 0 && C.inputLen + k <= MATCHCHAT_TEXT_MAX) {
-        memcpy(C.input + C.inputLen, clean, (size_t)k);
-        C.inputLen += k;
-        C.input[C.inputLen] = '\0';
+    if (k > 0 && CI_LEN + k <= MATCHCHAT_TEXT_MAX) {
+        memcpy(CI + CI_LEN, clean, (size_t)k);
+        CI_LEN += k;
+        CI[CI_LEN] = '\0';
     }
     if (k > 0 && len > 1 && (utf8[len - 1] == ' ' || utf8[len - 1] == '\t'))
         input_space();
@@ -359,22 +400,23 @@ static void input_append(const char *utf8)
 
 static void input_backspace(void)
 {
-    while (C.inputLen > 0) {
-        const uint8_t c = (uint8_t)C.input[--C.inputLen];
+    while (CI_LEN > 0) {
+        const uint8_t c = (uint8_t)CI[--CI_LEN];
         if ((c & 0xC0) != 0x80)
             break;                                  /* the first byte of the character */
     }
-    C.input[C.inputLen] = '\0';
+    CI[CI_LEN] = '\0';
 }
 
 int32_t MatchChat_Event(const SDL_Event *e)
 {
-    if (!C.active || !chat_live()) {
-        if (C.typing)
-            close_input();
-        return 0;
-    }
-    if (C.typing) {
+#if !SWOS_CHAT_DYNAMIC_FONT
+    (void)e;
+    return 0;                           /* (no box to type into: chat_style.h) */
+#endif
+    if (C.typing && (!C.active || !chat_live()))
+        close_input();                  /* (the match ended under the line) */
+    if (L.open) {
         switch (e->type) {
         case SDL_TEXTINPUT:
             input_append(e->text.text);
@@ -389,12 +431,15 @@ int32_t MatchChat_Event(const SDL_Event *e)
                 return 0;                           /* Alt+Enter: fullscreen, as ever */
             if (k == SDLK_RETURN || k == SDLK_KP_ENTER) {
                 if (e->key.repeat == 0) {
-                    if (C.inputLen)
-                        send_line(C.input);
-                    close_input();
+                    void (*send)(const char *) = L.onSend;
+                    char text[MATCHCHAT_TEXT_MAX + 1];
+                    snprintf(text, sizeof text, "%s", L.text);
+                    line_close();
+                    if (text[0] && send)
+                        send(text);
                 }
             } else if (k == SDLK_ESCAPE || k == SDLK_AC_BACK || (k == SDLK_TAB && e->key.repeat == 0)) {
-                close_input();
+                line_close();
             } else if (k == SDLK_BACKSPACE) {
                 input_backspace();
             }
@@ -404,6 +449,8 @@ int32_t MatchChat_Event(const SDL_Event *e)
             return 0;
         }
     }
+    if (!C.active || !chat_live())
+        return 0;
     if (e->type != SDL_KEYDOWN || e->key.repeat != 0)
         return 0;
     const SDL_Keycode k = e->key.keysym.sym;
@@ -485,6 +532,9 @@ static void demo_tick(void)
 
 void MatchChat_Draw(void)
 {
+#if !SWOS_CHAT_DYNAMIC_FONT
+    return;
+#endif
     demo_tick();
     if (!C.active || !Gfx_InFrame())
         return;
@@ -583,7 +633,7 @@ void MatchChat_Draw(void)
         /* the input line: its end, when longer than the box */
         const char *prompt = "> ";
         const float promptW = ChatFont_Measure(prompt, -1);
-        const char *t = C.input;
+        const char *t = CI;
         while (*t && ChatFont_Measure(t, -1) > textW - promptW - px * 0.5f) {
             int32_t used;
             ChatFont_NextChar(t, -1, &used);
@@ -606,6 +656,12 @@ void MatchChat_Draw(void)
 }
 
 /* ---- --chat-selftest ---- */
+
+static char s_selftestGot[MATCHCHAT_TEXT_MAX + 1];
+static void chat_selftest_cb(const char *t)
+{
+    snprintf(s_selftestGot, sizeof s_selftestGot, "%s", t);
+}
 
 int32_t MatchChat_SelfTest(void)
 {
@@ -659,6 +715,47 @@ int32_t MatchChat_SelfTest(void)
             }
         }
         memset(&C, 0, sizeof C);
+    }
+    {   /* the shared line: typed text (in chunks, spaces kept), backspace over a 2-byte
+         * character, ENTER sends it; ESC drops a line without sending */
+        struct { int32_t kind; const char *text; SDL_Keycode key; } steps[] = {
+            { SDL_TEXTINPUT, "Bonne", 0 }, { SDL_TEXTINPUT, " chance", 0 }, { SDL_TEXTINPUT, " \xC3\xA0", 0 },
+            { SDL_KEYDOWN, NULL, SDLK_BACKSPACE }, { SDL_TEXTINPUT, "\xC3\xA9 !", 0 }, { SDL_KEYDOWN, NULL, SDLK_RETURN },
+        };
+        ChatLine_Open(chat_selftest_cb);
+        for (size_t i = 0; i < sizeof steps / sizeof steps[0]; i++) {
+            SDL_Event e;
+            memset(&e, 0, sizeof e);
+            e.type = (Uint32)steps[i].kind;
+            if (steps[i].text)
+                snprintf(e.text.text, sizeof e.text.text, "%s", steps[i].text);
+            else
+                e.key.keysym.sym = steps[i].key;
+            if (!MatchChat_Event(&e)) {
+                fprintf(stderr, "[chat-selftest] FAIL: the open line did not take event %d\n", (int)i);
+                fails++;
+            }
+        }
+        if (strcmp(s_selftestGot, "Bonne chance \xC3\xA9 !") != 0 || ChatLine_IsOpen()) {
+            fprintf(stderr, "[chat-selftest] FAIL: the line sent \"%s\" (open %d)\n", s_selftestGot, ChatLine_IsOpen());
+            fails++;
+        }
+        s_selftestGot[0] = 0;
+        ChatLine_Open(chat_selftest_cb);
+        {
+            SDL_Event e;
+            memset(&e, 0, sizeof e);
+            e.type = SDL_TEXTINPUT;
+            snprintf(e.text.text, sizeof e.text.text, "never");
+            MatchChat_Event(&e);
+            e.type = SDL_KEYDOWN;
+            e.key.keysym.sym = SDLK_ESCAPE;
+            MatchChat_Event(&e);
+        }
+        if (s_selftestGot[0] || ChatLine_IsOpen()) {
+            fprintf(stderr, "[chat-selftest] FAIL: ESC sent the line, or left it open\n");
+            fails++;
+        }
     }
     fails += ChatFont_SelfTest();
     fprintf(stderr, "[chat-selftest] match chat %s\n", fails ? "FAIL" : "PASS");

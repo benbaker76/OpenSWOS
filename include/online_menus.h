@@ -48,4 +48,8 @@ int32_t     OnlineMenus_SetLoopbackLobby(const char *role);
 void        OnlineMenus_SetAutoLogin(const char *name);
 const char *OnlineMenus_MatchStatus(void);
 
+/* Over the picture, each frame (platform_sdl.c draw_overlays): the lobby's chat in the chat
+ * font, when the lobby is the menu on screen. */
+void OnlineMenus_DrawOverlay(void);
+
 #endif /* ONLINE_MENUS_H */

@@ -27,7 +27,9 @@ static float    s_savedSx = 1.0f, s_savedSy = 1.0f;
 static SDL_Rect s_savedVp;
 static int      s_outputSet;
 
-void Gfx_BindSdl(SDL_Renderer *r) { s_sdl = r; }
+static SDL_Window *s_win;               /* its window (SDL_RenderGetWindow is 2.0.22's) */
+
+void Gfx_BindSdl(SDL_Renderer *r, SDL_Window *w) { s_sdl = r; s_win = w; }
 
 int32_t Gfx_IsGpu(void) { return GpuPresent_Active(); }
 int32_t Gfx_InFrame(void) { return s_inFrame; }
@@ -75,6 +77,39 @@ void Gfx_OutputSize(int *w, int *h)
         GpuPresent_OutputSize(w, h);
     else if (s_sdl)
         SDL_GetRendererOutputSize(s_sdl, w, h);
+}
+
+void Gfx_PictureRect(float *x, float *y, float *w, float *h)
+{
+    int ow = 0, oh = 0;
+    *x = *y = 0.0f;
+    Gfx_OutputSize(&ow, &oh);
+    *w = (float)ow;
+    *h = (float)oh;
+    if (Gfx_IsGpu()) {
+        GpuPresent_PictureRect(x, y, w, h);
+        return;
+    }
+#if SDL_VERSION_ATLEAST(2, 0, 18)
+    if (!s_sdl)
+        return;
+    int lw = 0, lh = 0, ww = 0, wh = 0;
+    SDL_RenderGetLogicalSize(s_sdl, &lw, &lh);
+    SDL_Window *win = s_win;
+    if (!lw || !lh || !win)
+        return;                                 /* (stretched: the picture is the whole window) */
+    SDL_GetWindowSize(win, &ww, &wh);
+    if (ww <= 0 || wh <= 0)
+        return;
+    int x0, y0, x1, y1;
+    SDL_RenderLogicalToWindow(s_sdl, 0.0f, 0.0f, &x0, &y0);
+    SDL_RenderLogicalToWindow(s_sdl, (float)lw, (float)lh, &x1, &y1);
+    const float sx = (float)ow / ww, sy = (float)oh / wh;    /* window points -> drawable pixels */
+    *x = x0 * sx;
+    *y = y0 * sy;
+    *w = (x1 - x0) * sx;
+    *h = (y1 - y0) * sy;
+#endif
 }
 
 void Gfx_SpaceSize(int *w, int *h)

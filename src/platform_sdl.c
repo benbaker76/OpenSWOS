@@ -968,7 +968,7 @@ int Platform_Init(const PlatformInitOptions *opts)
         return -1;
     }
     }   /* (SDL's renderer) */
-    Gfx_BindSdl(s_renderer);
+    Gfx_BindSdl(s_renderer, s_window);
 
     s_subpixel_scroll = opts ? opts->subpixel_scroll : 1;
     s_scaling_smooth  = opts ? opts->scaling_smooth  : 1;
@@ -2229,6 +2229,7 @@ static void draw_overlays(void)
      * grille and the glass edge sit on the picture rather than under it. */
     CrtEffects_Apply();
     MatchChat_Draw();                /* (an online match's chat: over the CRT, to be read) */
+    { extern void OnlineMenus_DrawOverlay(void); OnlineMenus_DrawOverlay(); }   /* (the lobby's chat) */
 #ifdef SWOS_MOBILE_BUILD
     TouchControls_Draw();            /* (the phones' on-screen controls, over everything) */
 #endif

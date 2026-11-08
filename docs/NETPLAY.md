@@ -1016,6 +1016,23 @@ first leg of the next.
 
 ### Chat in a match (`src/match_chat.c`, `src/chat_font.c`)
 
+**The lobby's chat is in the same font** (since 2026-11-07):
+- Its rows and field keep their boxes from SWOS 2020's menu, but `OnlineMenus_DrawOverlay`
+  (`online_menus.c`) draws the lines over them at the window's pixels. They show small
+  letters and accents, wrap, and have coloured names.
+- A line is up to 100 bytes (`LOBBY_CHAT_TEXT`), cleaned as a match line is.
+- The field types through the same line as the match's TAB (`ChatLine_Open`), with the phone's
+  keyboard on a phone.
+- An older build still takes the longer lines: it makes them capitals, puts '?' for what it
+  can't draw, and cuts them at 28.
+- `SWOS_LOBBY_CHAT_OPEN=1` opens the field as the lobby opens, for `SWOS_KEY_SCRIPT` to type.
+
+**`SWOS_CHAT_DYNAMIC_FONT`** (`include/chat_style.h`) switches all of this off:
+- At 0 (the default without SDL, so the Amiga if it ever plays online) the lobby's chat is
+  SWOS 2020's again: 28 capitals in the game's own font, typed through `InputText`.
+- At 0 there is no in-match chat box, because it is overlay-only.
+- `make SWOS_CHAT_DYNAMIC_FONT=0` builds it on a PC.
+
 The lobby's chat (above) travels on the lobby's link, which closes at kick-off, so a match
 has a chat of its own on GGPO-X's `ggpo_client_chat`: one UDP datagram per line, on the match's
 socket, relayed with the match's packets. It is not match state. Nothing about it is saved by

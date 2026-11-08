@@ -415,6 +415,11 @@ endif
 # docs/WORLD_2026_27.md). `make SWOS_WORLDS=0` compiles them out: 96/97 alone, as before them.
 SWOS_WORLDS ?= 1
 DEBUG_FLAGS += -DSWOS_WORLDS=$(SWOS_WORLDS)
+# The chat's font (include/chat_style.h): unset, the chat font (SDL); `make
+# SWOS_CHAT_DYNAMIC_FONT=0` the game's own, as a build without the overlay would have it.
+ifdef SWOS_CHAT_DYNAMIC_FONT
+DEBUG_FLAGS += -DSWOS_CHAT_DYNAMIC_FONT=$(SWOS_CHAT_DYNAMIC_FONT)
+endif
 # [tweaks] (include/tweaks.h): built when include/project_identity.h says (PROJECT_TWEAKS);
 # `make SWOS_TWEAKS=0|1` overrides it.
 ifdef SWOS_TWEAKS

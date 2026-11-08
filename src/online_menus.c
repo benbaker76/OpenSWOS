@@ -48,6 +48,10 @@
 #include "uniform.h"          /* the UNIFORM screen, from the lobby's team screen */
 #include "custom_team.h"      /* MY CUSTOM TEAM */
 #include "online_account.h"   /* accounts: none here; a fork's (SWOS United's) */
+#include "chat_style.h"       /* SWOS_CHAT_DYNAMIC_FONT: the chat font, or the game's */
+#include "chat_font.h"        /* the lobby's chat, drawn at the window's own pixels */
+#include "match_chat.h"       /* ChatLine_*: the line typed into the chat field */
+#include "gfx.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1010,6 +1014,12 @@ static void lobby_test_knobs(void)
 
     if (say && say[0])
         (void)NetplayLobby_Say(say);
+#if SWOS_CHAT_DYNAMIC_FONT
+    if (getenv("SWOS_LOBBY_CHAT_OPEN")) {           /* the chat field open, for SWOS_KEY_SCRIPT to type */
+        extern void OnlineMenus_LobbyChatOpen(void);
+        OnlineMenus_LobbyChatOpen();
+    }
+#endif
     if (getenv("SWOS_LOBBY_EXTRA_DELAY"))           /* FRAME DELAY +: this player's extra frames */
         NetplayLobby_SetExtraDelay(atoi(getenv("SWOS_LOBBY_EXTRA_DELAY")));
 
@@ -1213,8 +1223,11 @@ enum { CHAT_ROWS = 10 };                /* chatMsg00..09: a line is two rows, it
 static int32_t  s_lobbyPane;
 static int32_t  s_chatScroll;           /* lines back from the newest */
 static uint32_t s_chatSeen;             /* NetplayLobby_ChatSerial when last drawn */
-static char     s_chatRow[CHAT_ROWS][LOBBY_CHAT_TEXT + 1];
+#if !SWOS_CHAT_DYNAMIC_FONT
+static char     s_chatRow[CHAT_ROWS][LOBBY_CHAT_TEXT + 1];     /* (the game's font: chat_style.h) */
 static char     s_chatInput[LOBBY_CHAT_TEXT + 1];
+#endif
+
 
 static void lobby_nav(int32_t ordinal, int32_t left, int32_t right, int32_t up, int32_t down)
 {
@@ -1335,7 +1348,11 @@ static void lobby_layout(void)
     set_entry(MpGameSetupMenu_scrollDown, "-", 1, kRed);
     set_entry(MpGameSetupMenu_liveCastUrlBtn, s_lobbyPane == LOBBY_PANE_CHAT ? "SWITCHES" : "CHAT", 1,
               kLightBlue);
+#if SWOS_CHAT_DYNAMIC_FONT
+    set_text(MpGameSetupMenu_inputChatMsg, "");     /* (drawn in the chat font: OnlineMenus_DrawOverlay) */
+#else
     set_text(MpGameSetupMenu_inputChatMsg, s_chatInput);
+#endif
 
     set_entry(MpGameSetupMenu_cPlayers_00, "PLAYERS", 0, kGray);
     set_entry(MpGameSetupMenu_teams_00,    "TEAMS",   0, kGray);
@@ -1348,6 +1365,167 @@ static void lobby_layout(void)
 /* ---- the chat ---- */
 
 enum { kWhiteText2 = 2, kGreenText = 14, kYellowText = 15, kLeftAligned = 1 << 15 };
+
+#if SWOS_CHAT_DYNAMIC_FONT
+/* The chat's rows (chatMsg00..09) and its field (inputChatMsg) keep their boxes but draw no
+ * text of the game's font: lobby_chat_overlay draws the lines over them in the chat font --
+ * small letters, accents, sharp at the window's size (chat_font.h). */
+static void chat_draw(void)
+{
+    int32_t i;
+    if (s_lobbyPane != LOBBY_PANE_CHAT)
+        return;
+    if (NetplayLobby_ChatSerial() != s_chatSeen) {      /* a new line: back to the newest */
+        s_chatSeen = NetplayLobby_ChatSerial();
+        s_chatScroll = 0;
+    }
+    if (s_chatScroll > NetplayLobby_ChatCount() - 1)
+        s_chatScroll = NetplayLobby_ChatCount() > 1 ? NetplayLobby_ChatCount() - 1 : 0;
+    for (i = MpGameSetupMenu_chatMsg00; i <= MpGameSetupMenu_chatMsg09; i++)
+        entry_at(i)->fg = (uintptr_t)"";
+}
+
+static int32_t lobby_on_screen(void);
+static void mpGameSetupMenu_OnInit(void);
+
+/* "<name>: " -- a player's name, or "Player N" while theirs has not arrived yet. */
+static void lobby_chat_name(char *out, uint32_t cap, int32_t who)
+{
+    const int32_t player = who == LOBBY_CHAT_ME ? NetplayLobby_LocalPlayer() : 3 - NetplayLobby_LocalPlayer();
+    const LobbyPlayer *p = (player == 1 || player == 2) ? NetplayLobby_Player(player) : NULL;
+    if (p && p->name[0])
+        snprintf(out, cap, "%s: ", p->name);
+    else
+        snprintf(out, cap, "Player %d: ", (int)player);
+}
+
+/* The chat over the lobby: the lines in the rows' box, newest at the bottom (UP goes back),
+ * wrapped, each its sayer then what they said -- the bot's yellow when someone arrives, green
+ * otherwise (SWOS 2020's colours); and the field: the line being typed, with its caret. */
+void OnlineMenus_DrawOverlay(void)
+{
+    if (!Gfx_InFrame() || !lobby_on_screen() || s_lobbyPane != LOBBY_PANE_CHAT)
+        return;
+    const MenuEntry *top = entry_at(MpGameSetupMenu_chatMsg00), *bot = entry_at(MpGameSetupMenu_chatMsg09);
+    const MenuEntry *field = entry_at(MpGameSetupMenu_inputChatMsg);
+    float px, py, pw, ph;
+    Gfx_PictureRect(&px, &py, &pw, &ph);
+    if (pw <= 0.0f || ph <= 0.0f || _screen_width <= 0 || _screen_height <= 0)
+        return;
+    const float sx = pw / _screen_width, sy = ph / _screen_height;
+    int32_t size = (int32_t)(sy * 7.0f + 0.5f);          /* the game's small text's size, sharp */
+    if (size < 10) size = 10;
+    if (size > 64) size = 64;
+    const GfxSpace space = Gfx_Space();
+    const GfxBlend blend = Gfx_Blend();
+    Gfx_SetSpace(GFX_SPACE_OUTPUT);
+    Gfx_SetBlend(GFX_BLEND_ALPHA);
+    if (ChatFont_Prepare(size) != 0) {
+        Gfx_SetBlend(blend);
+        Gfx_SetSpace(space);
+        return;
+    }
+    const float lh = (float)ChatFont_LineHeight(), pad = SDL_floorf(size * 0.3f);
+    const float ax = px + (_menu_draw_x_offset + top->x) * sx + pad, ay = py + top->y * sy;
+    const float aw = top->dwWidth * sx - 2 * pad, ah = (bot->y + bot->dwHeight - top->y) * sy;
+    const SDL_Color white = { 255, 255, 255, 255 }, meCol = { 120, 200, 255, 255 }, themCol = { 255, 214, 90, 255 },
+                    botName = { 190, 190, 190, 255 }, green = { 110, 230, 110, 255 }, yellow = { 255, 230, 80, 255 },
+                    shadow = { 0, 0, 0, 200 };
+    const float sh = size >= 24 ? 2.0f : 1.0f;
+
+    /* Rows, from the newest line up, s_chatScroll lines back. */
+    enum { MAX_ROWS = 24 };
+    struct { const LobbyChatLine *l; int32_t first, from, to; } rows[MAX_ROWS];
+    int32_t nrows = 0, maxRows = (int32_t)(ah / lh);
+    if (maxRows > MAX_ROWS) maxRows = MAX_ROWS;
+    for (int32_t li = NetplayLobby_ChatCount() - 1 - s_chatScroll; li >= 0 && nrows < maxRows; li--) {
+        const LobbyChatLine *l = NetplayLobby_ChatLine(li);
+        char who[LOBBY_NAME_MAX + 16];
+        int32_t starts[8], ends[8], nw = 0, at = 0;
+        const int32_t len = (int32_t)strlen(l->text);
+        if (l->who == LOBBY_CHAT_BOT)
+            snprintf(who, sizeof who, "Jon Hare (bot): ");
+        else
+            lobby_chat_name(who, sizeof who, l->who);
+        const float nameW = ChatFont_Measure(who, -1);
+        while (at < len && nw < 8) {                    /* wrapped at a space when it can be */
+            const float room = aw - (nw == 0 ? nameW : 0.0f);
+            int32_t i = at, lastSpace = -1;
+            while (i < len) {
+                int32_t used;
+                ChatFont_NextChar(l->text + i, len - i, &used);
+                if (ChatFont_Measure(l->text + at, i + used - at) > room)
+                    break;
+                if (l->text[i] == ' ')
+                    lastSpace = i;
+                i += used;
+            }
+            if (i < len && lastSpace > at)
+                i = lastSpace;
+            if (i == at) {
+                int32_t used;
+                ChatFont_NextChar(l->text + at, len - at, &used);
+                i = at + used;
+            }
+            starts[nw] = at;
+            ends[nw++] = i;
+            at = i;
+            while (at < len && l->text[at] == ' ')
+                at++;
+        }
+        if (nw == 0) {                                   /* (an empty line still has its name) */
+            starts[0] = ends[0] = 0;
+            nw = 1;
+        }
+        for (int32_t w = nw - 1; w >= 0 && nrows < maxRows; w--) {
+            rows[nrows].l = l;
+            rows[nrows].first = w == 0;
+            rows[nrows].from = starts[w];
+            rows[nrows].to = ends[w];
+            nrows++;
+        }
+    }
+    float y = ay + ah - lh;
+    for (int32_t r = 0; r < nrows; r++, y -= lh) {
+        const LobbyChatLine *l = rows[r].l;
+        float x = ax;
+        if (rows[r].first) {
+            char who[LOBBY_NAME_MAX + 16];
+            if (l->who == LOBBY_CHAT_BOT)
+                snprintf(who, sizeof who, "Jon Hare (bot): ");
+            else
+                lobby_chat_name(who, sizeof who, l->who);
+            ChatFont_Draw(x + sh, y + sh, who, -1, shadow);
+            ChatFont_Draw(x, y, who, -1, l->who == LOBBY_CHAT_BOT ? botName :
+                                         l->who == LOBBY_CHAT_ME ? meCol : themCol);
+            x += ChatFont_Measure(who, -1);
+        }
+        const SDL_Color col = l->who != LOBBY_CHAT_BOT ? white : strstr(l->text, "CONNECTED") ? yellow : green;
+        ChatFont_Draw(x + sh, y + sh, l->text + rows[r].from, rows[r].to - rows[r].from, shadow);
+        ChatFont_Draw(x, y, l->text + rows[r].from, rows[r].to - rows[r].from, col);
+    }
+
+    /* The field: what is being typed (its end, when longer than the box), and the caret. */
+    if (ChatLine_IsOpen()) {
+        const float fx = px + (_menu_draw_x_offset + field->x) * sx + pad, fw = field->dwWidth * sx - 2 * pad;
+        const float fy = py + field->y * sy + (field->dwHeight * sy - lh) / 2;
+        const char *t = ChatLine_Text();
+        while (*t && ChatFont_Measure(t, -1) > fw - size * 0.5f) {
+            int32_t used;
+            ChatFont_NextChar(t, -1, &used);
+            t += used;
+        }
+        ChatFont_Draw(fx + sh, fy + sh, t, -1, shadow);
+        ChatFont_Draw(fx, fy, t, -1, white);
+        if ((SDL_GetTicks() / 500) & 1) {
+            const SDL_FRect caret = { fx + ChatFont_Measure(t, -1) + 1.0f, fy + lh * 0.1f, sh, lh * 0.8f };
+            Gfx_FillRect(&caret, white);
+        }
+    }
+    Gfx_SetBlend(blend);
+    Gfx_SetSpace(space);
+}
+#else   /* the game's own font (chat_style.h): the rows hold the text, two to a line */
 
 static void chat_row(int32_t row, const char *text, uint16_t color)
 {
@@ -1394,6 +1572,9 @@ static void chat_draw(void)
     }
 }
 
+void OnlineMenus_DrawOverlay(void) {}
+#endif
+
 /* SELECT MATCH: the service's (online_account.h). */
 static void selectRankedModeOption1(void)
 {
@@ -1433,12 +1614,46 @@ static void matchMaking_chat_scrollDown_onSelect(void)
         s_chatScroll--;
 }
 
+#if SWOS_CHAT_DYNAMIC_FONT
+/* The line to type in (the chat's shared line, match_chat.h): ENTER says it, ESC drops it.
+ * Typed in the chat font -- small letters, accents -- with the phone's keyboard on a phone. */
+static void lobby_say(const char *utf8)
+{
+    (void)NetplayLobby_Say(utf8);
+}
+
+static void selectInputChatMsg(void)
+{
+    if (ChatLine_IsOpen())
+        ChatLine_Close();
+    else
+        ChatLine_Open(lobby_say);
+}
+
+void OnlineMenus_LobbyChatOpen(void) { ChatLine_Open(lobby_say); }
+#else
 /* The line to type in: Enter says it, Esc leaves it as it was. */
 static void selectInputChatMsg(void)
 {
     if (InputText(sizeof s_chatInput, (uint8_t *)entry_at(MpGameSetupMenu_inputChatMsg)) == 0 &&
         NetplayLobby_Say(s_chatInput) == 0)
         s_chatInput[0] = 0;
+}
+#endif
+
+static void mpGameSetupMenu_OnInit(void);
+
+/* The lobby is the menu on screen (not one of its own screens, TEAMS, TACTICS...). */
+static uint32_t s_lobbyDrawnAt;         /* SDL_GetTicks of the lobby's last own frame */
+
+static __attribute__((unused)) int32_t lobby_on_screen(void)
+{
+    extern uint8_t _currentMenu[];
+    const Menu *menu = (const Menu *)_currentMenu;
+    /* ... and drawing itself: the kick-off's screens (the line-ups, the match) are shown with
+     * the lobby still the menu, from inside its own onDraw (run_live_match). */
+    return menu->onInit == (MenuVoidFn)mpGameSetupMenu_OnInit && s_lobbyDrawnAt &&
+           SDL_GetTicks() - s_lobbyDrawnAt < 100;
 }
 
 static void mpGameSetupMenu_OnInit(void)
@@ -1485,6 +1700,7 @@ static void mpGameSetupMenu_OnDraw(void)
 
     lobby_layout();
     chat_draw();
+    s_lobbyDrawnAt = SDL_GetTicks();
     me    = NetplayLobby_LocalPlayer();
     host  = NetplayLobby_IsHost();
     open  = st == LOBBY_OPEN;

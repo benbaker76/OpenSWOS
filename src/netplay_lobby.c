@@ -60,6 +60,8 @@
 #include "custom_team.h"   /* CustomTeam_Allowed: what a team from the other player may be */
 #include "team_proto.h"    /* the server's word on both teams */
 #include "test_rules.h"     /* the host's CARDS/INJURIES switch */
+#include "chat_style.h"     /* SWOS_CHAT_DYNAMIC_FONT */
+#include "match_chat.h"     /* MatchChat_Clean: what a chat line may hold */
 
 #include <SDL.h>                        /* SDL_GetPerformanceCounter: key entropy fallback */
 #include <time.h>
@@ -172,6 +174,21 @@ static void set_notice(const char *text)
 
 /* ---- the chat ---- */
 
+#if SWOS_CHAT_DYNAMIC_FONT
+/* A line as the chat font draws it (MatchChat_Clean: no control characters, '?' for what the
+ * font lacks, trimmed, at most LOBBY_CHAT_TEXT bytes, cut on a character) -- what we say, and
+ * what the other player sends, which is theirs to make up. `len` bounds the input. */
+static void chat_clean(char *out, const char *in, uint32_t len)
+{
+    char tmp[4 * LOBBY_CHAT_TEXT + 1];
+    if (len > sizeof tmp - 1)
+        len = sizeof tmp - 1;
+    len = (uint32_t)strnlen(in, len);           /* (a string may end before len) */
+    memcpy(tmp, in, len);
+    tmp[len] = 0;
+    MatchChat_Clean(tmp, out, LOBBY_CHAT_TEXT + 1);
+}
+#else   /* the game's own font (chat_style.h) */
 /* A line as the menus draw it: printable, capitals, trimmed, at most LOBBY_CHAT_TEXT --
  * what we say, and what the other player sends, which is theirs to make up. */
 static void chat_clean(char *out, const char *in, uint32_t len)
@@ -191,6 +208,7 @@ static void chat_clean(char *out, const char *in, uint32_t len)
         n--;
     out[n] = 0;
 }
+#endif
 
 static void chat_add(int32_t who, const char *text)
 {
@@ -259,7 +277,7 @@ static void read_chat(void)
 int32_t NetplayLobby_Say(const char *text)
 {
     char line[LOBBY_CHAT_TEXT + 1];
-    chat_clean(line, text ? text : "", LOBBY_CHAT_TEXT);
+    chat_clean(line, text ? text : "", 4 * LOBBY_CHAT_TEXT);
     if (!line[0] || s_lobby.state == LOBBY_CLOSED)
         return 1;
     if (s_lobby.saidCount == CHAT_WINDOW) {

@@ -33,6 +33,9 @@ void    Gfx_SetSpace(GfxSpace space);           /* for the draws that follow (PI
 GfxSpace Gfx_Space(void);
 void    Gfx_SpaceSize(int *w, int *h);          /* the current space's size, in its own pixels */
 void    Gfx_OutputSize(int *w, int *h);         /* the window's drawable, in pixels */
+/* Where the picture is on the window, in OUTPUT pixels (the letterbox or the stretch): to draw
+ * at the window's own resolution over something the picture has (a menu entry's box). */
+void    Gfx_PictureRect(float *x, float *y, float *w, float *h);
 
 /* A texture of RGBA8 (bytes R, G, B, A in memory), `linear` to filter when scaled, else nearest. */
 GfxTexture *Gfx_CreateTexture(int w, int h, int linear);
@@ -51,7 +54,7 @@ void    Gfx_DrawRect(const SDL_FRect *r, SDL_Color c);      /* its outline, a pi
 void    Gfx_DrawLine(float x1, float y1, float x2, float y2, SDL_Color c);
 
 /* ---- the presenters' side (platform_sdl.c, gpu_present.c) ---- */
-void    Gfx_BindSdl(SDL_Renderer *r);           /* SDL's renderer, when it presents (else NULL) */
+void    Gfx_BindSdl(SDL_Renderer *r, SDL_Window *w);   /* SDL's renderer when it presents (else NULL) */
 void    Gfx_BeginFrame(void);                   /* PICTURE space, ALPHA blend */
 void    Gfx_EndFrame(void);
 int32_t Gfx_InFrame(void);
