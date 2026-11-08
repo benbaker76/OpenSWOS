@@ -723,3 +723,12 @@ int32_t ModApi_Hotkey(int32_t key, int32_t mods)
     return 0;
 }
 #endif
+
+#ifdef SWOS_SDL_BUILD
+#include "menu_dialog.h"
+int32_t ModApi_ShowDialog(const char *title, const char *text, const char *const *buttons, int32_t count,
+                          int32_t defaultButton)
+{
+    return MenuDialog_Show(title, text, buttons, count, defaultButton);
+}
+#endif

@@ -220,6 +220,17 @@ void FrontEndMainLoop(void)
      * rows under MULTIPLAYER. */
     extern int32_t OnlineMenus_ShowStartMenu(void);
     extern int32_t OnlineMenus_QuitAfterStartMenu(void);
+    /* The game data's or the world's notice (src/assets_check.c), once, before anything:
+     * its UPDATE NOW started OpenSWOS Setup, and the game closes for it. */
+    {
+        extern int32_t AssetsCheck_ShowNotice(void);
+        extern int32_t AssetsCheck_QuitForSetup(void);
+        if (AssetsCheck_ShowNotice()) {
+            if (AssetsCheck_QuitForSetup())
+                _quitToDos = 1;
+            CommonMenuExit();
+        }
+    }
     if (OnlineMenus_ShowStartMenu()) {
         if (OnlineMenus_QuitAfterStartMenu())
             _quitToDos = 1;             /* the online client: leaving the log-in is leaving */

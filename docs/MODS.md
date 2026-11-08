@@ -1176,3 +1176,6 @@ player can move it or switch it off in SWOS.ini -- `[mod.<slug>] hotkey = F7` / 
   on one machine only, so anything that touched the match would part the two games.
 
 The first: dosmenus' F5 (§25c), switching the menus between the PC's shading and the Amiga's.
+
+A mod's message the player answers: `ModApi_ShowDialog(title, text, buttons, count, default)` -- the
+game's own dialog screen (docs/MENUS.md §14), from the menus, never during a match.

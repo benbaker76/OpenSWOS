@@ -488,6 +488,9 @@ char _aModsNone[] = "NONE";
  * so a player finds theirs whatever the menus are in. The C and N with their marks are bytes of
  * the game's Latin-1 charset (the font extension's glyphs, docs/FONTS.md). */
 char _aLanguageOption[] = "LANGUAGE";
+/* OPTIONS -> SETUP (menus.c LaunchSetupSelected): its label and its button. */
+char _aSetupOption[] = "SETUP";
+char _aLaunchSetup[] = "LAUNCH";
 char _aLangEnglish[] = "ENGLISH";
 char _aLangGerman[] = "DEUTSCH";
 char _aLangFrench[] = "FRAN\307AIS";      /* FRANCAIS, its C with the cedilla (0xC7) */

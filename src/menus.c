@@ -8,6 +8,9 @@
 #include "world_playoff.h"
 #include "player_face3.h"
 #include "menus.h"
+#ifdef SWOS_SDL_BUILD
+#include "menu_dialog.h"     /* OPTIONS' notes */
+#endif
 #include "mod_hooks.h"        /* playerRowDrawn (SDL) */
 #include "dos_mode.h"         /* GAMEPLAY_*, Gameplay_SetStyle: OPTIONS -> GAMEPLAY */
 #ifdef SWOS_SDL_BUILD
@@ -2100,6 +2103,16 @@ void OptionsMenuBeforeDraw(void)
             snprintf(modsOn, sizeof modsOn, "NONE");
         _menuEntries[24].fg = (uintptr_t)modsOn;
     }
+    {   /* SETUP (27/28): only when OpenSWOS Setup is beside the game; else MODS and EXIT meet */
+        extern int32_t AssetsCheck_FindSetup(char *out, uint32_t cap);
+        char setup[1024];
+        if (!AssetsCheck_FindSetup(setup, (uint32_t)sizeof setup)) {
+            _menuEntries[27].isInvisible = 1;
+            _menuEntries[28].isInvisible = 1;
+            _menuEntries[24].downEntry = 19;
+            _menuEntries[19].upEntry = 24;
+        }
+    }
 #else
     /* WORLD (21/22), MODS (23/24) and LANGUAGE (25/26) are SDL only: the Amiga's world and mods
      * are its drawer's (OpenSWOS Setup writes data/WORLD and data/MODS), and it has no
@@ -2110,6 +2123,8 @@ void OptionsMenuBeforeDraw(void)
     _menuEntries[24].isInvisible = 1;
     _menuEntries[25].isInvisible = 1;        /* LANGUAGE (25/26): no translations on the Amiga */
     _menuEntries[26].isInvisible = 1;
+    _menuEntries[27].isInvisible = 1;        /* SETUP (27/28): it runs on a PC or a Mac */
+    _menuEntries[28].isInvisible = 1;
     _menuEntries[2].upEntry = -1;            /* (FRIENDLY/DIY GAME LENGTH is the top row there) */
     _menuEntries[15].isInvisible = 1;
     _menuEntries[16].isInvisible = 1;
@@ -2152,10 +2167,19 @@ void ChangeWorld(MenuEntry *entry)
         char path[1024];
         FILE *f = fopen(swos_data_path("data_json/worlds/2627/WORLD.ini", path, (uint32_t)sizeof path), "rb");
         if (!f) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME ": World 2026-27",
-                "World 2026-27 is not installed.\n\nOpen " PROJECT_SETUP_NAME ": its row \"World 2026-27\" "
-                "has the link to download it, then click Install. (On a phone: do that on your "
-                "computer, then copy the assets folder over again.)", NULL);
+            extern int32_t AssetsCheck_FindSetup(char *out, uint32_t cap);
+            extern int32_t AssetsCheck_LaunchSetup(void);
+            char setup[1024];
+            const char *buttons[2];
+            int32_t n = 0, iSetup = -1;
+            if (AssetsCheck_FindSetup(setup, (uint32_t)sizeof setup)) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
+            buttons[n++] = "OK";
+            if (MenuDialog_Show("World 2026-27",
+                    "World 2026-27 is not installed.|Open " PROJECT_SETUP_NAME ": its row World 2026-27 "
+                    "has the link to download it, then click Install. On a phone: do that on your "
+                    "computer, then copy the assets folder over again.", buttons, n, 0) == iSetup &&
+                iSetup >= 0)
+                AssetsCheck_LaunchSetup();
             return;
         }
         fclose(f);
@@ -2168,11 +2192,14 @@ void ChangeWorld(MenuEntry *entry)
     }
     CallDrawMenuItem(entry);
     if ((int)World_Current() != (want ? (int)WORLD_2627 : (int)WORLD_9697))
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME ": World",
-            want ? "World 2026-27 is played from the next time " PROJECT_NAME " starts.\n\n"
+    {
+        static const char *const ok[] = { "OK" };
+        MenuDialog_Show("World",
+            want ? "World 2026-27 is played from the next time " PROJECT_NAME " starts.|"
                    "Close it and start it again. Saves stay in the world they were made in."
-                 : "96/97 is played from the next time " PROJECT_NAME " starts.\n\n"
-                   "Close it and start it again. Saves stay in the world they were made in.", NULL);
+                 : "96-97 is played from the next time " PROJECT_NAME " starts.|"
+                   "Close it and start it again. Saves stay in the world they were made in.", ok, 1, 0);
+    }
 #else
     (void)entry;
 #endif
@@ -2212,12 +2239,32 @@ void ChangeLanguage(MenuEntry *entry)
     CallDrawMenuItem(entry);
     if (!told) {
         told = 1;
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, PROJECT_NAME ": Language",
-            "The new language is used from the next time " PROJECT_NAME " starts.\n\n"
-            "Close it and start it again.", NULL);
+        static const char *const ok[] = { "OK" };
+        MenuDialog_Show("Language", "The new language is used from the next time " PROJECT_NAME
+                        " starts.|Close it and start it again.", ok, 1, 0);
     }
 #else
     (void)entry;
+#endif
+}
+
+/* OPTIONS -> SETUP -> LAUNCH: OpenSWOS Setup (the game's data from the player's copy, World
+ * 2026-27's package, an update when the game asks for one), and the game closes so the setup
+ * can change its data. The row is shown only when the setup is beside the game
+ * (OptionsMenuBeforeDraw; src/assets_check.c AssetsCheck_FindSetup). SDL only. */
+__attribute__((used, externally_visible))
+void LaunchSetupSelected(void)
+{
+#ifdef SWOS_SDL_BUILD
+    extern int32_t AssetsCheck_LaunchSetup(void);
+    extern void Platform_RequestQuit(void);
+    static const char *const buttons[] = { "LAUNCH SETUP", "CANCEL" };
+    if (MenuDialog_Show("Setup",
+            PROJECT_SETUP_NAME " makes the game data from your copy of Sensible World of Soccer, "
+            "updates it when the game asks, and installs World 2026-27.|"
+            "The game closes so the setup can change its data.", buttons, 2, 0) == 0 &&
+        AssetsCheck_LaunchSetup())
+        Platform_RequestQuit();
 #endif
 }
 

@@ -1150,6 +1150,11 @@ typedef struct Menu_Options
    * only -- the Amiga has no translations; appended last so no entry's number moves (25, 26). */
   MenuEntry_Byte_Colors_TextPtr labelLanguage;
   MenuEntry_Byte_Nav_Colors_StringTable_OnSelect language;
+  /* SETUP: LAUNCH starts OpenSWOS Setup and closes the game (menus.c LaunchSetupSelected). SDL
+   * only, and only when the setup is beside the game; appended last so no entry's number moves
+   * (27, 28). */
+  MenuEntry_Byte_Colors_TextPtr labelSetup;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect setup;
   MenuMark markEndMenu;
 } Menu_Options;
 #pragma pack(pop)

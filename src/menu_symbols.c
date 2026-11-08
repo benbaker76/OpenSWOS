@@ -232,6 +232,7 @@ extern void JobOffersMenu(void);
 extern void JobOffersMenuRetired(void);
 extern void JobOffersNextPage(void);
 extern void JobOffers_DrawOldOfferLine(void);
+extern void LaunchSetupSelected(void);
 extern void LoadHighlightsMenu(void);
 extern void LoadLiverpool(void);
 extern void LoadOldCompetitionMenu(void);
@@ -488,6 +489,7 @@ extern char _aJobOffers[];
 extern char _aJobOffersBeing[];
 extern char _aL[];
 extern char _aLanguageOption[];
+extern char _aLaunchSetup[];
 extern char _aLeadingCompeti[];
 extern char _aLge[];
 extern char _aLge_0[];
@@ -551,6 +553,7 @@ extern char _aSaveHighlights[];
 extern char _aSeason_1[];
 extern char _aSecondKit[];
 extern char _aSeeded[];
+extern char _aSetupOption[];
 extern char _aSkills[];
 extern char _aSquad[];
 extern char _aStar[];
@@ -923,6 +926,7 @@ const MenuSymbol _menuSymbols[] = {
     { "JobOffersMenuRetired", (void*)JobOffersMenuRetired, SYM_FUNC },
     { "JobOffersNextPage", (void*)JobOffersNextPage, SYM_FUNC },
     { "JobOffers_DrawOldOfferLine", (void*)JobOffers_DrawOldOfferLine, SYM_FUNC },
+    { "LaunchSetupSelected", (void*)LaunchSetupSelected, SYM_FUNC },
     { "LoadHighlightsMenu", (void*)LoadHighlightsMenu, SYM_FUNC },
     { "LoadLiverpool", (void*)LoadLiverpool, SYM_FUNC },
     { "LoadOldCompetitionMenu", (void*)LoadOldCompetitionMenu, SYM_FUNC },
@@ -1176,6 +1180,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aJobOffersBeing", (void*)_aJobOffersBeing, SYM_STRING },
     { "_aL", (void*)_aL, SYM_STRING },
     { "_aLanguageOption", (void*)_aLanguageOption, SYM_STRING },
+    { "_aLaunchSetup", (void*)_aLaunchSetup, SYM_STRING },
     { "_aLeadingCompeti", (void*)_aLeadingCompeti, SYM_STRING },
     { "_aLge", (void*)_aLge, SYM_STRING },
     { "_aLge_0", (void*)_aLge_0, SYM_STRING },
@@ -1239,6 +1244,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aSeason_1", (void*)_aSeason_1, SYM_STRING },
     { "_aSecondKit", (void*)_aSecondKit, SYM_STRING },
     { "_aSeeded", (void*)_aSeeded, SYM_STRING },
+    { "_aSetupOption", (void*)_aSetupOption, SYM_STRING },
     { "_aSkills", (void*)_aSkills, SYM_STRING },
     { "_aSquad", (void*)_aSquad, SYM_STRING },
     { "_aStar", (void*)_aStar, SYM_STRING },

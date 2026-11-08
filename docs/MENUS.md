@@ -971,3 +971,24 @@ Two things a JSON menu may say that the packed format has no room for, for SWOS 
 The loader gives them to `menu_extras.c` as it builds a menu, and they are filed under the menu's
 final packed bytes (the pointer ShowMenu gets, `_currentMenuPtr`): a JSON-installed engine menu
 and a dynamic (JSON-only) one alike. Only the picture; the Amiga has neither.
+
+## 14. Dialogs: `menuDialog` (SDL; `src/menu_dialog.c`, 2026-11-08)
+
+A message the player answers is a screen of the game's, not the OS's message box:
+`MenuDialog_Show(title, text, buttons, count, default)` (`include/menu_dialog.h`) shows the JSON-only
+menu `openswos/menuDialog` -- a header, four button entries -- and returns the button chosen (or -1,
+ESC). Its onInit puts the title and the buttons used in place, stacked from the bottom (the others
+hidden, their neighbours set); its onDraw draws the text under the header, wrapped to 300 px, `|` or
+a newline a new paragraph. The menu font has capitals, digits and `. , : - !`: the text is shown in
+capitals, brackets as dashes, quotes and apostrophes left out -- write it as for a message box.
+Mods: `ModApi_ShowDialog` (docs/MODS.md).
+
+Its users: the start-up notice that the game data was made by an older OpenSWOS Setup (LAUNCH SETUP
+/ CONTINUE / DO NOT REMIND ME) or that World 2026-27 is missing or other data
+(src/assets_check.c, shown by the front end before the main menu); OPTIONS -> WORLD's and LANGUAGE's
+notes; OPTIONS -> SETUP -> LAUNCH (entries 27/28, shown only when the setup is beside the game:
+`openswos-setup(.exe)` in the game's folder, or the setup's .app beside SWOS.app). LAUNCH SETUP
+starts it (posix_spawn; `open -a` on a Mac) and closes the game, so the setup can change the data.
+A phone and the web never offer it. `mobile.c`'s two boxes stay the OS's: they come before the
+game's menus exist.
+

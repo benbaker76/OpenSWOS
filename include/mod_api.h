@@ -324,6 +324,12 @@ void    ModApi_MenuDisabled(int32_t entry, int32_t disabled);
 void    ModApi_MenuRedraw(int32_t entry);
 /* The game's error box with `text` (copied), until the player presses fire. */
 void    ModApi_ShowError(const char *text);
+/* A dialog of the game's (include/menu_dialog.h; SDL builds): a title, text (any case, shown in
+ * capitals; '|' or a newline starts a paragraph) and 1..4 buttons stacked at the bottom; returns
+ * the button chosen (0..count-1), or -1 for ESC. From the menus -- an entry's handler, a menu
+ * point -- never during a match. */
+int32_t ModApi_ShowDialog(const char *title, const char *text, const char *const *buttons, int32_t count,
+                          int32_t defaultButton);
 /* Every file in a folder (an absolute path: ModApi_ModDir(slug) + "/..."), not the dot ones:
  * `each` is called with its name (stop by returning nonzero); how many there were. */
 /* The player's assets folder (where the setup put the game's data from their own copy): a mod

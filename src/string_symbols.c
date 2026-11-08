@@ -359,24 +359,25 @@ extern char _aPitches[];                      extern char _aWorldOption[];      
 extern char _aWorld2627[];                    extern char _a2020Style[];                    extern char _aModsOption[];
 extern char _aModes[];                        extern char _aTeamPacks[];                    extern char _aModRow[];
 extern char _aNextPage[];                     extern char _aModsNone[];                     extern char _aLanguageOption[];
-extern char _aLangEnglish[];                  extern char _aLangGerman[];                   extern char _aLangFrench[];
-extern char _aLangSpanish[];                  extern char _aLangItalian[];                  extern char _aLangDutch[];
-extern char _aGoals[];                        extern char _aForm[];                         extern char _aLge[];
-extern char _aCups[];                         extern char _aCup_3[];                        extern char _aTot[];
-extern char _aOwnGoals[];                     extern char _aLoad[];                         extern char _aSave[];
-extern char _aSaveExit[];                     extern char _aFilename[];                     extern char _aDiskError[];
-extern char _aDiskFull[];                     extern char _aDeleteFile[];                   extern char _aCriteria[];
-extern char _aType[];                         extern char _aSkills[];                       extern char _aList[];
-extern char _aMore[];                         extern char _aOffers[];                       extern char _aMakeOffer[];
-extern char _aViewOffers[];                   extern char _aNoOffers[];                     extern char _aJobOffer[];
-extern char _aAccept[];                       extern char _aConsider[];                     extern char _aViewTeam[];
-extern char _aViewLeague[];                   extern char _aCoach_1[];                      extern char _aCup1[];
-extern char _aCup2[];                         extern char _aCup_10[];                       extern char _aLge_0[];
-extern char _aPound[];                        extern char _aTot_0[];                        extern char _aCareerPrompt[];
-extern char _aCustomTeamsChanged[];           extern char _aDiyCompetitionPrompt[];         extern char _aEditedTacticsWillBeLost[];
-extern char _aInsertBlankDis[];               extern char _aInsertGameSave[];               extern char _aInsertSwosDisk_0[];
-extern char _aPresetCompetitionPrompt[];      extern char _aSeasonPrompt[];                 extern char _aTacticsHaveBeenChanged[];
-extern char _aWeHereAtAWould[];               extern char _aWeLookForwardT_0[];
+extern char _aSetupOption[];                  extern char _aLaunchSetup[];                  extern char _aLangEnglish[];
+extern char _aLangGerman[];                   extern char _aLangFrench[];                   extern char _aLangSpanish[];
+extern char _aLangItalian[];                  extern char _aLangDutch[];                    extern char _aGoals[];
+extern char _aForm[];                         extern char _aLge[];                          extern char _aCups[];
+extern char _aCup_3[];                        extern char _aTot[];                          extern char _aOwnGoals[];
+extern char _aLoad[];                         extern char _aSave[];                         extern char _aSaveExit[];
+extern char _aFilename[];                     extern char _aDiskError[];                    extern char _aDiskFull[];
+extern char _aDeleteFile[];                   extern char _aCriteria[];                     extern char _aType[];
+extern char _aSkills[];                       extern char _aList[];                         extern char _aMore[];
+extern char _aOffers[];                       extern char _aMakeOffer[];                    extern char _aViewOffers[];
+extern char _aNoOffers[];                     extern char _aJobOffer[];                     extern char _aAccept[];
+extern char _aConsider[];                     extern char _aViewTeam[];                     extern char _aViewLeague[];
+extern char _aCoach_1[];                      extern char _aCup1[];                         extern char _aCup2[];
+extern char _aCup_10[];                       extern char _aLge_0[];                        extern char _aPound[];
+extern char _aTot_0[];                        extern char _aCareerPrompt[];                 extern char _aCustomTeamsChanged[];
+extern char _aDiyCompetitionPrompt[];         extern char _aEditedTacticsWillBeLost[];      extern char _aInsertBlankDis[];
+extern char _aInsertGameSave[];               extern char _aInsertSwosDisk_0[];             extern char _aPresetCompetitionPrompt[];
+extern char _aSeasonPrompt[];                 extern char _aTacticsHaveBeenChanged[];       extern char _aWeHereAtAWould[];
+extern char _aWeLookForwardT_0[];
 
 const StringSymbol _stringSymbols[] = {
     { "_a0611961355Asm6", (void *)_a0611961355Asm6 },
@@ -1447,6 +1448,8 @@ const StringSymbol _stringSymbols[] = {
     { "_aNextPage", (void *)_aNextPage },
     { "_aModsNone", (void *)_aModsNone },
     { "_aLanguageOption", (void *)_aLanguageOption },
+    { "_aSetupOption", (void *)_aSetupOption },
+    { "_aLaunchSetup", (void *)_aLaunchSetup },
     { "_aLangEnglish", (void *)_aLangEnglish },
     { "_aLangGerman", (void *)_aLangGerman },
     { "_aLangFrench", (void *)_aLangFrench },

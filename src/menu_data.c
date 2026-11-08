@@ -63,6 +63,7 @@ extern void ChangeMenuMusic(void);
 extern void ChangeGameplayStyle(void);
 extern void ChangeWorld(void);
 extern void ChangeLanguage(void);
+extern void LaunchSetupSelected(void);
 extern void ShowControlsMenu(void);
 extern void ShowModsMenu(void);
 extern void ChangePitchStyle(void);
@@ -512,6 +513,8 @@ extern char _aMenuMusic[];
 extern char _aGameplay[];
 extern char _aWorldOption[];
 extern char _aLanguageOption[];
+extern char _aSetupOption[];
+extern char _aLaunchSetup[];
 extern char _aModsOption[];
 extern char _aModes[];
 extern char _aTeamPacks[];
@@ -2949,7 +2952,7 @@ Menu_Options _optionsMenu = {
     },
     { MENU_MARK_START_MENU, 0, 0 },
     { 102, -71, 100, 15 },
-    { MENU_CMD_NAV, -1, -1, 24, -1 },
+    { MENU_CMD_NAV, -1, -1, 28, -1 },
     { MENU_CMD_COLORS, 0xC },
     { MENU_CMD_TEXT_PTR, 0x0, _aExit },
     { MENU_CMD_INPUT_FUNC, 0x30, ExitOptions },
@@ -2980,7 +2983,7 @@ Menu_Options _optionsMenu = {
     },
     {
         { -102, 140, -116, 11 },
-        { MENU_CMD_NAV, -1, -1, 22, 19 },
+        { MENU_CMD_NAV, -1, -1, 22, 28 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aModsNone },
         { MENU_CMD_ONSELECT_FIRE, ShowModsMenu },
@@ -2998,6 +3001,20 @@ Menu_Options _optionsMenu = {
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _languageStrTable },
         { MENU_CMD_ONSELECT_FIRE, ChangeLanguage },
+        MENU_CMD_END
+    },
+    {
+        { 10, 152, -116, 11 },
+        { MENU_CMD_COLORS, 0x9 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aSetupOption },
+        MENU_CMD_END
+    },
+    {
+        { -102, 152, -116, 11 },
+        { MENU_CMD_NAV, -1, -1, 24, 19 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_TEXT_PTR, 0x0, _aLaunchSetup },
+        { MENU_CMD_ONSELECT_FIRE, LaunchSetupSelected },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

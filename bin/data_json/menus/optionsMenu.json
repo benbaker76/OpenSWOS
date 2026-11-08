@@ -530,7 +530,7 @@
      "op": "nav",
      "left": -1,
      "right": -1,
-     "up": 24,
+     "up": 28,
      "down": -1
     },
     {
@@ -657,7 +657,7 @@
      "left": -1,
      "right": -1,
      "up": 22,
-     "down": 19
+     "down": 28
     },
     {
      "op": "colors",
@@ -725,6 +725,59 @@
     {
      "op": "onselect_fire",
      "func": "ChangeLanguage"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": 10,
+    "y": 152,
+    "w": -116,
+    "h": 11
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 9
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "str": "_aSetupOption"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "coords": {
+    "x": -102,
+    "y": 152,
+    "w": -116,
+    "h": 11
+   },
+   "commands": [
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 24,
+     "down": 19
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "text",
+     "flags": "0x0",
+     "str": "_aLaunchSetup"
+    },
+    {
+     "op": "onselect_fire",
+     "func": "LaunchSetupSelected"
     }
    ]
   }

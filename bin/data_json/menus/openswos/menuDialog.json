@@ -1,0 +1,167 @@
+{
+  "name": "menuDialog",
+  "comment": "A dialog drawn by the game (src/menu_dialog.c MenuDialog_Show; mods: ModApi_ShowDialog): a title, wrapped text, up to four buttons. JSON-only (docs/MENUS.md section 10): onInit puts the title and the buttons used in place (stacked from the bottom, the others hidden); onDraw draws the text under the header.",
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "openswosDialog_OnInit",
+  "onReturn": null,
+  "onDraw": "openswosDialog_OnDraw",
+  "defaultEntry": 1,
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 52,
+        "y": 0,
+        "w": 200,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DIALOG"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "button0",
+      "coords": {
+        "x": 82,
+        "y": 153,
+        "w": 140,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "BUTTON 0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "openswosDialog_b0_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "button1",
+      "coords": {
+        "x": 82,
+        "y": 172,
+        "w": 140,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "BUTTON 1"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 4
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "openswosDialog_b1_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "button2",
+      "coords": {
+        "x": 82,
+        "y": 191,
+        "w": 140,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "BUTTON 2"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "openswosDialog_b2_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "button3",
+      "coords": {
+        "x": 82,
+        "y": 210,
+        "w": 140,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "BUTTON 3"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "openswosDialog_b3_OnSelect"
+        }
+      ]
+    }
+  ]
+}
