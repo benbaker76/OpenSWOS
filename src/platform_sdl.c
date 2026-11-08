@@ -1918,6 +1918,13 @@ static void pump_events_any_thread(void)
                 Platform_SetWindowScale(s_win_scale_current - 1);
                 continue;
             }
+            /* A mod's hotkey (ModApi_AddHotkey): only keys the game leaves alone, never
+             * while a name is being typed. */
+            if (ev.key.repeat == 0 && !_gTextInputActive) {
+                extern int32_t ModApi_Hotkey(int32_t key, int32_t mods);
+                if (ModApi_Hotkey((int32_t)ev.key.keysym.sym, (int32_t)ev.key.keysym.mod))
+                    continue;
+            }
             /* Arcade cabinet inputs (MAME convention): 5 = coin P1, 6 = coin P2,
              * F2 = service, 1 = P1 start, 2 = P2 start. Only when arcade mode is
              * on; swallowed so they don't also reach the game/menu layer. */

@@ -764,6 +764,16 @@ const char *ModApi_Setting(const char *slug, const char *key, const char *fallba
 int32_t     ModApi_SettingInt(const char *slug, const char *key, int32_t fallback);  /* (on/true 1, off/false 0) */
 int32_t     ModApi_SetSetting(const char *slug, const char *key, const char *value);
 
+/* ---- a hotkey (SDL builds; docs/MODS.md "Hotkeys") ----
+ * A key that does something of the mod's, anywhere -- menus or match: `key` is the mod's
+ * choice by SDL's name ("F5"), which the player can change or switch off in SWOS.ini
+ * ([mod.<slug>] hotkey = F7 / off). Pressed alone (no Ctrl/Alt/Shift), it is the mod's and
+ * the game never sees it. The handler must change only what is DRAWN: it works during an
+ * online match too, on one machine. Refused (0): the game's own keys (F2 arcade service, F3
+ * the match chat, F9/F11/F12 screenshots, the letters, digits and the keys play and the menus
+ * use), a key another mod has, a name SDL does not know. 1 = the key is the mod's. From init. */
+int32_t     ModApi_AddHotkey(const char *slug, const char *key, const char *what, void (*fn)(void));
+
 /* ---- switching a tweak: [tweaks] keys (docs/MODS.md §4) ----
  * Switches the game's own tweak `key` ("cpu_cards", ...) on or off for as long as the game
  * runs; never written to SWOS.ini, so the player's own setting is back when the mod is off.

@@ -14,6 +14,10 @@
  * is drawn again); each frame the window shows, every pixel of those boxes that still has the box's
  * colour (the text and pictures on it have others) is painted over the picture in the PC game's
  * colour for that place -- the 336 x 256 menu mapped onto the 320 x 200 shade map. Drawing only.
+ *
+ * F5 (ModApi_AddHotkey; [mod.dosmenus] hotkey to change it) switches between the PC shading and
+ * the Amiga's flat menus while the game runs -- Playa's ask, 2026-11-08. Not remembered: the
+ * mod being on is what the next start shows.
  */
 #ifdef SWOS_SDL_BUILD
 
@@ -72,6 +76,19 @@ static void load_pc(void)
         fprintf(stderr, "[dosmenus] grafs_dos/FILL.256 is not the PC game's: the menus stay flat\n");
 }
 
+static int s_amigaLook;         /* F5: the Amiga's flat menus for now */
+
+static void toggle_look(void)
+{
+    s_amigaLook = !s_amigaLook;
+    fprintf(stderr, "[dosmenus] menus: %s\n", s_amigaLook ? "Amiga (flat)" : "PC (shaded)");
+}
+
+static void init(void)
+{
+    ModApi_AddHotkey(SLUG, "F5", "switches the menus between the PC's shading and the Amiga's", toggle_look);
+}
+
 static void draw_begin(void) { s_boxes = 0; }
 
 static void fill(int32_t colour, int32_t x, int32_t y, int32_t w, int32_t h)
@@ -114,6 +131,8 @@ static void frame_drawn(void)
 {
     const uint8_t *fb;
     int32_t any = 0;
+    if (s_amigaLook)
+        return;
     if (!s_pc.tried)
         load_pc();
     if (!s_pc.ok || !s_boxes || !ModApi_InMenus() || !(fb = Platform_FrameShown()))
@@ -157,6 +176,7 @@ static void frame_drawn(void)
 
 const ModDef ModDef_dosmenus = {
     .slug          = SLUG,
+    .init          = init,
     .menuDrawBegin = draw_begin,
     .menuFill      = fill,
     .frameUnder    = frame_drawn,      /* (part of the picture: the other mods draw over it) */

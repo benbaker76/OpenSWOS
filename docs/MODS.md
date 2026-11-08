@@ -917,7 +917,9 @@ engine says which boxes it fills (`ModDef menuFill`, `menuDrawBegin` when the wh
 again: menu_system.c), and the mod paints, under the other mods (`frameUnder`), every pixel of
 those boxes that still has the box's colour in the PC game's colour for that place -- the
 336 x 256 menu mapped onto the map. Text and pictures on a button have other colours: untouched.
-The palette's fades do not reach it (a fade-in shows the buttons at full colour).
+The palette's fades do not reach it (a fade-in shows the buttons at full colour). **F5** switches
+between this and the Amiga's flat menus while the game runs (Playa's ask, 2026-11-08; §34), not
+remembered -- the mod being on is what the next start shows.
 
 ## 26. The rigs play without gameplay mods
 
@@ -1156,3 +1158,21 @@ its SWOS-API): the online side of two mods both projects have.
 A challenge is known online by its name and its pack's `"category"` (SWOS 2020's were). A speedrun's
 `target` is SWOS 2020's game mode (the eight in the same order); `yours`/`theirs` are each team's
 skill points (its sixteen players' seven skills), by which SWOS 2020 sets a run's difficulty.
+
+## 34. Hotkeys (2026-11-08)
+
+A mod may have keys of its own: `ModApi_AddHotkey(slug, "F5", "what it does", fn)` from its init
+(SDL builds; `include/mod_api.h`). The key is named as SDL names it, and is the mod's CHOICE: the
+player can move it or switch it off in SWOS.ini -- `[mod.<slug>] hotkey = F7` / `off`.
+
+- **Which keys:** only the ones the game leaves alone -- F1, F4, F5, F6, F7, F8, F10, Insert, Home,
+  End, Page Up/Down, Scroll Lock, Pause. Refused: F2 (the arcade's service menu), F3 (the match
+  chat), F9/F11/F12 (screenshots), the letters and digits (play, the menus, typing), and a key
+  another mod already has (the first to ask keeps it; the log says who).
+- **When:** pressed alone (no Ctrl/Alt/Shift/GUI), not repeating, and not while a name is typed;
+  anywhere -- menus or match. The game never sees a mod's key (platform_sdl.c asks
+  `ModApi_Hotkey` first).
+- **What a handler may do:** change what is DRAWN, nothing else -- it works during an online match,
+  on one machine only, so anything that touched the match would part the two games.
+
+The first: dosmenus' F5 (§25c), switching the menus between the PC's shading and the Amiga's.

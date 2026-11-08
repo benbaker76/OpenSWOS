@@ -661,3 +661,65 @@ void ModApi_SetShaderParameter(const char *name, float value)
         GpuSlang_SetParameter(name, value);
 }
 #endif
+
+/* ---- hotkeys (ModApi_AddHotkey; platform_sdl.c asks ModApi_Hotkey on every key pressed) ---- */
+#ifdef SWOS_SDL_BUILD
+#include <SDL.h>
+
+enum { kMaxHotkeys = 16 };
+static struct { SDL_Keycode key; char slug[32], what[48]; void (*fn)(void); } s_hotkeys[kMaxHotkeys];
+static int32_t s_hotkeyCount;
+
+/* The keys the game (or OpenSWOS) uses itself: only the function keys it leaves free, and the
+ * few others nothing plays with, can be a mod's. */
+static int hotkey_allowed(SDL_Keycode k)
+{
+    switch (k) {
+    case SDLK_F1: case SDLK_F4: case SDLK_F5: case SDLK_F6: case SDLK_F7: case SDLK_F8: case SDLK_F10:
+    case SDLK_INSERT: case SDLK_HOME: case SDLK_END: case SDLK_PAGEUP: case SDLK_PAGEDOWN:
+    case SDLK_SCROLLLOCK: case SDLK_PAUSE:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+int32_t ModApi_AddHotkey(const char *slug, const char *key, const char *what, void (*fn)(void))
+{
+    const char *name = ModApi_Setting(slug, "hotkey", key);   /* (the player's choice first) */
+    if (!slug || !fn || !name || !name[0] || mod_strcasecmp(name, "off") == 0)
+        return 0;
+    const SDL_Keycode k = SDL_GetKeyFromName(name);
+    if (k == SDLK_UNKNOWN || !hotkey_allowed(k)) {
+        fprintf(stderr, "[mods] %s: hotkey %s refused (not a key a mod can have)\n", slug, name);
+        return 0;
+    }
+    for (int32_t i = 0; i < s_hotkeyCount; i++)
+        if (s_hotkeys[i].key == k) {
+            fprintf(stderr, "[mods] %s: hotkey %s refused (it is %s's)\n", slug, name, s_hotkeys[i].slug);
+            return 0;
+        }
+    if (s_hotkeyCount == kMaxHotkeys)
+        return 0;
+    s_hotkeys[s_hotkeyCount].key = k;
+    snprintf(s_hotkeys[s_hotkeyCount].slug, sizeof s_hotkeys[0].slug, "%s", slug);
+    snprintf(s_hotkeys[s_hotkeyCount].what, sizeof s_hotkeys[0].what, "%s", what ? what : "");
+    s_hotkeys[s_hotkeyCount].fn = fn;
+    s_hotkeyCount++;
+    fprintf(stderr, "[mods] %s: %s %s\n", slug, SDL_GetKeyName(k), what ? what : "");
+    return 1;
+}
+
+/* A key pressed (not a repeat): 1 when it was a mod's, and its handler has run. */
+int32_t ModApi_Hotkey(int32_t key, int32_t mods)
+{
+    if (mods & (KMOD_CTRL | KMOD_ALT | KMOD_SHIFT | KMOD_GUI))
+        return 0;
+    for (int32_t i = 0; i < s_hotkeyCount; i++)
+        if (s_hotkeys[i].key == (SDL_Keycode)key) {
+            s_hotkeys[i].fn();
+            return 1;
+        }
+    return 0;
+}
+#endif
