@@ -24,6 +24,7 @@
 #include <atomic>
 #include "../../../include/project_identity.h"
 #include "../../../include/game_options.h"   // the wizard's GAME OPTIONS (the game's SWOS.ini keys)
+#include "../../../include/assets_ini.h"     // ASSETS_INI_NAME: what the last install made (the ticks)
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -898,9 +899,57 @@ struct App {
     w().set_busy(b);
   }
 
+  // ------------------------------------------------------------ the ticks ---
+  // What the last install was started with -- where it is played, the extras -- kept in
+  // setup.ini ([setup] ticks), and ticked again at the next start; and whatever extra
+  // ASSETS.ini says is made (World 2026-27, SWOS 2020's pitches, the Jaguar's graphics) ticked
+  // too, so an update makes them again rather than leaving them behind. --wizard and the
+  // Amiga tab decide for themselves.
+  void SaveTicks() {
+    std::string l;
+    const auto add = [&l](bool on, const char* name) { if (on) l += (l.empty() ? "" : ",") + std::string(name); };
+    add(w().get_t_computer(), "computer");
+    add(w().get_t_phone(), "phone");
+    add(w().get_t_amiga(), "amiga");
+    add(w().get_t_whdload(), "whdload");
+    add(w().get_t_handheld(), "handheld");
+    add(w().get_x_world(), "world");
+    add(w().get_x_2020(), "2020");
+    add(w().get_x_jaguar(), "jaguar");
+    add(w().get_x_mods(), "mods");
+    const std::string text = IniSet(ReadFile(SetupIni()), "setup", "ticks", l.c_str());
+    sd::MakeDirs(UserDir());
+    if (FILE* f = sd::OpenFile(SetupIni(), "wb")) {
+      std::fwrite(text.data(), 1, text.size(), f);
+      std::fclose(f);
+    }
+    FileLog("ticks: " + l);
+  }
+  void RestoreTicks() {
+    const std::string ticks = IniValue(ReadFile(SetupIni()), "setup", "ticks");
+    const std::string made = ReadFile(Join(outDir, ASSETS_INI_NAME));
+    const auto has = [&ticks](const char* t) { return ("," + ticks + ",").find(std::string(",") + t + ",") != std::string::npos; };
+    const auto isMade = [&made](const char* part) { return std::atoi(IniValue(made, "data", part).c_str()) > 0; };
+    if (!ticks.empty()) {
+      w().set_t_computer(has("computer"));
+      w().set_t_phone(has("phone"));
+      w().set_t_amiga(has("amiga"));
+      w().set_t_whdload(has("whdload"));
+      w().set_t_handheld(has("handheld"));
+      w().set_x_mods(has("mods"));
+    }
+    w().set_x_world(kWorldUrl[0] && (has("world") || isMade("world")));
+    w().set_x_2020(has("2020") || isMade("swos2020"));
+    w().set_x_jaguar(has("jaguar") || isMade("jaguar"));
+    FileLog("ticks at start: " + (ticks.empty() ? std::string("(none kept)") : ticks) +
+            "; made: " + (isMade("world") ? "world " : "") + (isMade("swos2020") ? "2020 " : "") +
+            (isMade("jaguar") ? "jaguar" : ""));
+  }
+
   void Install() {
     if (busy) return;
     if (worker.joinable()) worker.join();
+    SaveTicks();
     SetBusy(true);
     w().set_done(false);
     w().set_status_error(false);
@@ -2625,6 +2674,8 @@ int main(int argc, char** argv) {
   ui->on_make_amiga([&app] { app.MakeAmiga(); });
   ui->on_amiga_kind_changed([&app] { app.AmigaKindChanged(); });
   ui->on_open_amiga_dest([&app] { app.OpenAmigaDest(); });
+  if (wizardArg.empty() && !amigaTab)
+    app.RestoreTicks();          // (before the first RefreshWizard: the screens follow the ticks)
   ui->on_wizard_changed([&app] { app.RefreshWizard(); });
   ui->on_option_chosen([&app](int row, int choice) { app.OptionChosen(row, choice); });
   ui->on_language_chosen([&app](slint::SharedString code) { app.LanguageChosen(std::string(code), true); });
