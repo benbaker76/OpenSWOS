@@ -57,6 +57,23 @@ void ModHooks_PlayerDrawn(const Sprite *sprite, const SpriteGraphics *gfx, int16
     EACH(playerDrawn) (*m_)->playerDrawn(sprite, gfx, x, y);
 }
 
+void ModHooks_SpritesBegin(void)
+{
+    EACH(spritesBegin) (*m_)->spritesBegin();
+}
+
+int32_t ModHooks_SpriteDraw(const Sprite *sprite, const SpriteGraphics *gfx, int16_t *x, int16_t *y)
+{
+    int32_t out = 0;
+    EACH(spriteDraw) out |= (*m_)->spriteDraw(sprite, gfx, x, y);
+    return out;
+}
+
+void ModHooks_FrameKept(void)
+{
+    EACH(frameKept) (*m_)->frameKept();
+}
+
 void ModHooks_ReplayFrameBegin(int32_t first, int32_t fresh)
 {
     ModApi_NoteReplayFrame();

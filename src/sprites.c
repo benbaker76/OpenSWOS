@@ -2092,6 +2092,9 @@ __attribute__((used, externally_visible))
 void DrawQueuedSprites(void)
 {
     uint8_t *a2 = (uint8_t *)_renderStackPtr;
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_SpritesBegin(void); ModHooks_SpritesBegin(); }   /* (a mod's: mod_hooks.h) */
+#endif
 
     /* Stack entry on disk: [Sprite *a1][SpriteGraphics *a0][int16 d1][int16 d2]
      * On 32-bit each pointer is 4 B (total 12 B/entry); on 64-bit each is 8 B
@@ -2127,6 +2130,14 @@ void DrawQueuedSprites(void)
             if (ModMatch_SpriteHidden(a4))
                 continue;
         }
+#ifdef SWOS_SDL_BUILD
+        {   /* a mod's drawing of it moved, or left out (mod_hooks.h ModHooks_SpriteDraw: the
+             * drawing only -- the sprite, match state, is as it was) */
+            extern int32_t ModHooks_SpriteDraw(const Sprite *, const SpriteGraphics *, int16_t *, int16_t *);
+            if (ModHooks_SpriteDraw(a4, a0, &d1, &d2))
+                continue;
+        }
+#endif
 
         /* Check if a4 is a player sprite (teamNumber 1 or 2).
          * Original asm used address range check (goalie1Sprite..bottomCornerLeftPositions),

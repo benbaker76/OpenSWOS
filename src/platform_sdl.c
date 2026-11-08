@@ -226,6 +226,7 @@ void Platform_KeepFrameFresh(void)
     if (s_hud_stamp)
         s_hud_stamp = Platform_NowMs();
     Render_KeepScrollSubpixel();
+    ModHooks_FrameKept();               /* (a mod's drawing that keeps the frame's age) */
 }
 
 /* Is there a HUD layer worth presenting this frame? Same 100 ms freshness rule
@@ -1521,6 +1522,13 @@ static const uint8_t *frame_source(void)
     if (_useAltBaseFlag != 0)
         return (const uint8_t *)(uintptr_t)_frontbufferBasePtr;
     return (const uint8_t *)(uintptr_t)_frontbufferBaseAltPtr;
+}
+
+/* The 8bpp frame this present shows (frame_source), FRONTBUFFER_ROW_STRIDE_BYTES a row: for a
+ * mod drawing over the picture from what it holds (ModDef frameDrawn). */
+const uint8_t *Platform_FrameShown(void)
+{
+    return frame_source();
 }
 
 /* ---- 8bpp chunky → RGBA ------------------------------------------- */

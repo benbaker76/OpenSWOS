@@ -37,6 +37,14 @@ struct Sprite;
 struct SpriteGraphics;
 void ModHooks_PlayerDrawn(const struct Sprite *sprite, const struct SpriteGraphics *gfx, int16_t x, int16_t y);
 
+/* A frame's sprites are about to be drawn (DrawQueuedSprites), then each of them: a mod may move a
+ * sprite's drawing or leave it out (1). Drawing only -- the sprites are match state and are never
+ * changed -- and possibly a re-simulated frame. FrameKept: the match is paused and the frame on
+ * screen is shown again (platform_sdl.c Platform_KeepFrameFresh). */
+void    ModHooks_SpritesBegin(void);
+int32_t ModHooks_SpriteDraw(const struct Sprite *sprite, const struct SpriteGraphics *gfx, int16_t *x, int16_t *y);
+void    ModHooks_FrameKept(void);
+
 /* A replay frame (the in-match one, src/highlight.c DrawReplayFrame, or a .SRP's,
  * src/replay_v2.c ReplayV2_DrawFrame): its pitch is drawn into the frame and its sprites are not
  * yet -- what is drawn here is under them. `first`: the replay's first frame, or one it jumped

@@ -62,6 +62,13 @@ typedef struct ModDef {
     void (*replayFrameBegin)(int32_t first, int32_t fresh);         /* a replay's pitch drawn */
     void (*replaySprite)(uint16_t image, int16_t left, int16_t top); /* each recorded sprite */
     void (*menuDrawn)(void);            /* a menu frame drawn (ModApi_Frame), before it is shown */
+    /* A frame's sprites (src/sprites.c DrawQueuedSprites): spritesBegin before the first, then
+     * spriteDraw before each is drawn at screen x, y -- move it (*x, *y) or return 1 to leave it
+     * out of the picture. Drawing only: the sprite itself is match state and is never changed. */
+    void (*spritesBegin)(void);
+    int32_t (*spriteDraw)(const struct Sprite *sprite, const struct SpriteGraphics *gfx,
+                          int16_t *x, int16_t *y);
+    void (*frameKept)(void);            /* the match is paused: the frame shown again, as drawn */
 
     /* -- the match -- */
     void (*matchStart)(void);           /* kick-off: the teams on the pitch, the setup applied */
