@@ -145,11 +145,15 @@ NO_LOG="SWOS_NO_LOG=1"
 [ "$REPORTS" = 1 ] && { NO_LOG=""; RECORD_ENV="$RECORD_ENV SWOS_REPORTS=server"; }
 # A HOME each: its own SWOS.ini (the defaults, the same on both) and its own save folder,
 # so the two LATEST.SRP files are two files.
-mkdir -p "$OUT/home-host/.swos" "$OUT/home-join/.swos"
-[ -n "${HOST_RES:-}" ] && printf '[video]\nresolution=%s\n' "$HOST_RES" > "$OUT/home-host/.swos/SWOS.ini"
-[ -n "${JOIN_RES:-}" ] && printf '[video]\nresolution=%s\n' "$JOIN_RES" > "$OUT/home-join/.swos/SWOS.ini"
+# Each player's settings folder is the project's (include/project_identity.h, PROJECT_USER_DOT_DIR:
+# ".swos" here, a fork's own name in a fork).
+DOT=$(sed -n 's/^#define PROJECT_USER_DOT_DIR *"\(.*\)".*/\1/p' include/project_identity.h)
+DOT=${DOT:-.swos}
+mkdir -p "$OUT/home-host/$DOT" "$OUT/home-join/$DOT"
+[ -n "${HOST_RES:-}" ] && printf '[video]\nresolution=%s\n' "$HOST_RES" > "$OUT/home-host/$DOT/SWOS.ini"
+[ -n "${JOIN_RES:-}" ] && printf '[video]\nresolution=%s\n' "$JOIN_RES" > "$OUT/home-join/$DOT/SWOS.ini"
 # JOIN_INI='[netplay]\nlive_cast=false': lines for the joiner's SWOS.ini (after the above)
-[ -n "${JOIN_INI:-}" ] && printf '%b\n' "$JOIN_INI" >> "$OUT/home-join/.swos/SWOS.ini"
+[ -n "${JOIN_INI:-}" ] && printf '%b\n' "$JOIN_INI" >> "$OUT/home-join/$DOT/SWOS.ini"
 [ -n "$DESYNC_FRAME" ] && JOIN_ENV="${JOIN_ENV:-} SWOS_LIVE_DESYNC_FRAME=$DESYNC_FRAME"
 # BLOCK=both|host|join: those players let nothing in from the other, only from the server,
 # so the match must end up relayed through the fallback session however RELAY is set.
@@ -196,7 +200,7 @@ wait "$HOST_PID" "$JOIN_PID"
 # REPORTS=1: what each player printed went to its SWOS.log -- read that instead.
 if [ "$REPORTS" = 1 ]; then
     for side in host join; do
-        { cat "$OUT/home-$side/.swos/SWOS.log" 2>/dev/null; cat "$OUT/$side.log"; } > "$OUT/$side.all" &&
+        { cat "$OUT/home-$side/$DOT/SWOS.log" 2>/dev/null; cat "$OUT/$side.log"; } > "$OUT/$side.all" &&
             mv "$OUT/$side.all" "$OUT/$side.log"
     done
 fi
@@ -394,7 +398,7 @@ fi
 reports_ok=1
 if [ "$REPORTS" = 1 ]; then
     reports_ok=0
-    if MATCHES=$MATCHES python3 - "$OUT" <<'PYEOF'
+    if DOT=$DOT MATCHES=$MATCHES python3 - "$OUT" <<'PYEOF'
 import glob, json, os, sys, zipfile
 out, matches = sys.argv[1], int(os.environ["MATCHES"])
 ok = True
@@ -407,7 +411,7 @@ def check(path):
     print("report: %s %s" % (os.path.relpath(path, out), "ok" if good else "MISSING %s" % sorted(want - names)))
     return good
 for side in ("host", "join"):
-    mine = sorted(glob.glob(os.path.join(out, "home-" + side, ".swos", "**", "netplay", "*.zip"), recursive=True))
+    mine = sorted(glob.glob(os.path.join(out, "home-" + side, os.environ["DOT"], "**", "netplay", "*.zip"), recursive=True))
     ok &= len(mine) == matches
     for p in mine:
         ok &= check(p)

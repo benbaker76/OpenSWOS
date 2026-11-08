@@ -59,19 +59,23 @@ run() {   # role, team, extra env...
 side_home() {   # role width style -> prints "HOME=<dir>", or nothing for the user's own
     local dir=$OUT/home-$1
     [ -n "$2" ] || [ -n "$3" ] || return 0
-    mkdir -p "$dir/.swos"
-    if [ -f "$HOME/.swos/SWOS.ini" ]; then
-        cp "$HOME/.swos/SWOS.ini" "$dir/.swos/SWOS.ini"
+    # (the settings folder is the project's: include/project_identity.h, PROJECT_USER_DOT_DIR)
+    local dot
+    dot=$(sed -n 's/^#define PROJECT_USER_DOT_DIR *"\(.*\)".*/\1/p' include/project_identity.h)
+    dot=${dot:-.swos}
+    mkdir -p "$dir/$dot"
+    if [ -f "$HOME/$dot/SWOS.ini" ]; then
+        cp "$HOME/$dot/SWOS.ini" "$dir/$dot/SWOS.ini"
     else
-        : > "$dir/.swos/SWOS.ini"
+        : > "$dir/$dot/SWOS.ini"
     fi
     if [ -n "$2" ]; then
-        sed -i "s/^resolution=.*/resolution=$2x272/" "$dir/.swos/SWOS.ini"
-        grep -q "^resolution=$2x272" "$dir/.swos/SWOS.ini" ||
-            printf '[video]\nresolution=%sx272\n' "$2" >> "$dir/.swos/SWOS.ini"
+        sed -i "s/^resolution=.*/resolution=$2x272/" "$dir/$dot/SWOS.ini"
+        grep -q "^resolution=$2x272" "$dir/$dot/SWOS.ini" ||
+            printf '[video]\nresolution=%sx272\n' "$2" >> "$dir/$dot/SWOS.ini"
     fi
     if [ -n "$3" ]; then        # (the section's other keys stay; a later style= wins)
-        printf '[gameplay]\nstyle=%s\n' "$3" >> "$dir/.swos/SWOS.ini"
+        printf '[gameplay]\nstyle=%s\n' "$3" >> "$dir/$dot/SWOS.ini"
     fi
     echo "HOME=$dir"
 }
