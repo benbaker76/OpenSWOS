@@ -72,6 +72,8 @@ static struct {
     sg_view       offTex, offAtt;
     int           offW, offH;
     int           toOff;                /* this frame's picture space is going into `off` */
+    GpuTex       *backdrop;             /* the menus' true-colour backdrop (GpuFrame.backdrop) */
+    uint32_t      backdropSerial;
     uint32_t      frames;
 } G;
 
@@ -360,6 +362,7 @@ static void upload_r8(sg_image img, const uint8_t *src, int pitch, int w, int h)
     sg_update_image(img, &d);
 }
 
+static float s_key;     /* draw_picture's: the backdrop's key + 1, 0 none */
 static void draw_picture(sg_pipeline pip, sg_view tex, const float src[4], float n, int hud, int rgba)
 {
     vs_present_params_t vp;
@@ -372,6 +375,7 @@ static void draw_picture(sg_pipeline pip, sg_view tex, const float src[4], float
     fp.mode[0] = n;
     fp.mode[1] = hud ? 1.0f : 0.0f;
     fp.mode[2] = rgba ? 1.0f : 0.0f;
+    fp.mode[3] = hud ? 0.0f : s_key;
     sg_bindings b;
     memset(&b, 0, sizeof b);
     b.views[VIEW_idx_tex] = tex;
@@ -554,12 +558,51 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
             if (sy >= 2.0f) qy = floorf(fy * sy + 0.5f) / sy;
         }
     }
+    s_key = 0.0f;
+    if (f->backdrop && !f->argb) {
+        /* The menus' backdrop under the picture: covering the window (or, into the CRT pass's
+         * image, the picture), cropped to its aspect, centred. */
+        if (!G.backdrop || G.backdropSerial != f->backdropSerial ||
+            G.backdrop->w != f->backdropW || G.backdrop->h != f->backdropH) {
+            if (G.backdrop)
+                GpuGfx_DestroyTexture(G.backdrop);
+            G.backdrop = GpuGfx_CreateTexture(f->backdropW, f->backdropH, 1);
+            if (G.backdrop)
+                GpuGfx_UpdateTexture(G.backdrop, f->backdrop, f->backdropW * 4);
+            G.backdropSerial = f->backdropSerial;
+        }
+        if (G.backdrop) {
+            const GfxSpace space = G.toOff ? GFX_SPACE_PICTURE : GFX_SPACE_OUTPUT;
+            const float W = G.toOff ? (float)f->w : (float)G.outW, H = G.toOff ? (float)f->h : (float)G.outH;
+            const float aw = G.toOff ? G.picW : (float)G.outW, ah = G.toOff ? G.picH : (float)G.outH;
+            const float scale = fmaxf(aw / (float)f->backdropW, ah / (float)f->backdropH);
+            const float cu = aw / scale / (float)f->backdropW, cv = ah / scale / (float)f->backdropH;
+            const float u0 = (1.0f - cu) / 2.0f, v0 = (1.0f - cv) / 2.0f, u1 = u0 + cu, v1 = v0 + cv;
+            GfxVertex v[6];
+            const float px[6] = { 0, W, 0, W, W, 0 }, py[6] = { 0, 0, H, 0, H, H };
+            const float tu[6] = { u0, u1, u0, u1, u1, u0 }, tv[6] = { v0, v0, v1, v0, v1, v1 };
+            for (int i = 0; i < 6; i++) {
+                memset(&v[i], 0, sizeof v[i]);
+                v[i].position.x = px[i];
+                v[i].position.y = py[i];
+                v[i].color.r = v[i].color.g = v[i].color.b = v[i].color.a = 255;
+                v[i].tex_coord.x = tu[i];
+                v[i].tex_coord.y = tv[i];
+            }
+            GpuGfx_SetState(G.backdrop, GFX_BLEND_NONE, space);
+            GpuGfx_Push(v, 6);
+            batch_flush();
+            s_key = (float)f->backdropKey + 1.0f;
+        }
+    }
     if (G.toOff)
         sg_apply_viewport(0, 0, (int)G.picW, (int)G.picH, true);
     else
         sg_apply_viewportf(G.picX, G.picY, G.picW, G.picH, true);
     const float world[4] = { qx, qy, qx + (float)f->w, qy + (float)f->h };
-    draw_picture(G.world, f->argb ? G.argbView : G.indexView, world, n, 0, f->argb != NULL);
+    /* (over a backdrop the picture blends: its key colour is see-through -- the HUD's pipeline) */
+    draw_picture(s_key > 0.0f ? G.hud : G.world, f->argb ? G.argbView : G.indexView, world, n, 0,
+                 f->argb != NULL);
     if (f->hud) {
         const float flat[4] = { 0.0f, 0.0f, (float)f->w, (float)f->h };
         draw_picture(G.hud, G.hudView, flat, n, 1, 0);

@@ -43,6 +43,11 @@ typedef struct {
     int             subpixel;   /* [video] subpixel_scroll */
     int             smooth;     /* [video] scaling = smooth */
     int             stretch;    /* the picture fills the window (widescreen = stretch) */
+    /* the menus' true-colour backdrop (Platform_SetMenuBackdrop): drawn covering the window, and
+     * the frame's `backdropKey` pixels transparent over it; NULL none */
+    const uint8_t  *backdrop;   /* R, G, B, A bytes */
+    int             backdropW, backdropH, backdropKey;
+    uint32_t        backdropSerial;     /* changes when the image does */
 } GpuFrame;
 
 /* Draws the picture; the overlays (gfx.h) can go on after it, until GpuPresent_End. A frame with

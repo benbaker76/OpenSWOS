@@ -10,6 +10,7 @@
  * The menu is JSON only (bin/data_json/menus/openswos/modsMenu.json, docs/MENUS.md section 10)
  * and flagged dos_redraw, so its onDraw runs every frame.
  */
+#include "swos_io.h"     /* swos_user_dir: choices_from */
 #include "mods.h"
 #include "mods_menu.h"
 
@@ -248,7 +249,41 @@ static PageSetting s_pageSettings[kRows];
 static int32_t     s_pageCount;
 static char        s_pageName[48], s_pageAbout[64], s_pageLabels[kRows][40], s_pageValues[kRows][24];
 
-/* mod.json's "settings": [{ "key", "label", "choices": [..], "default" }] */
+/* "choices_from": "<folder>": "off", then the image files (.png .bmp .jpg) in that folder of the
+ * mod and of the player's game folder (swos_user_dir(); "user_folder" when its name is another),
+ * each once, up to the page's 8. */
+typedef struct { PageSetting *ps; } ChoicesCtx;
+static int32_t choices_add(const char *name, void *ctx)
+{
+    PageSetting *ps = ((ChoicesCtx *)ctx)->ps;
+    const char *dot = strrchr(name, '.');
+    if (ps->choiceCount >= 8)
+        return 1;
+    if (!dot || !(SDL_strcasecmp(dot, ".png") == 0 || SDL_strcasecmp(dot, ".bmp") == 0 ||
+                  SDL_strcasecmp(dot, ".jpg") == 0 || SDL_strcasecmp(dot, ".jpeg") == 0) ||
+        strlen(name) >= sizeof ps->choices[0])
+        return 0;
+    for (int32_t c = 0; c < ps->choiceCount; c++)
+        if (SDL_strcasecmp(ps->choices[c], name) == 0)
+            return 0;
+    snprintf(ps->choices[ps->choiceCount++], sizeof ps->choices[0], "%s", name);
+    return 0;
+}
+
+static void choices_from_files(const ModInfo *m, const char *folder, const char *userFolder, PageSetting *ps)
+{
+    char dir[1100];
+    ChoicesCtx ctx = { ps };
+    snprintf(ps->choices[0], sizeof ps->choices[0], "off");
+    ps->choiceCount = 1;
+    snprintf(dir, sizeof dir, "%s/%s", ModApi_ModDir(m->slug), folder);
+    ModApi_ListFiles(dir, choices_add, &ctx);
+    snprintf(dir, sizeof dir, "%s/%s", swos_user_dir(), userFolder[0] ? userFolder : folder);
+    ModApi_ListFiles(dir, choices_add, &ctx);
+}
+
+/* mod.json's "settings": [{ "key", "label", "choices": [..] or "choices_from": "<folder>",
+ * "default" }] */
 static void read_page_settings(const ModInfo *m)
 {
     char path[1024], about[256] = "";
@@ -292,6 +327,13 @@ static void read_page_settings(const ModInfo *m)
             if (mjson_get_string(json, len, q, ps->choices[c], (int)sizeof ps->choices[c]) < 0)
                 break;
             ps->choiceCount++;
+        }
+        snprintf(q, sizeof q, "$.settings[%d].choices_from", (int)i);
+        if (!ps->choiceCount && mjson_get_string(json, len, q, t, (int)sizeof t) > 0) {
+            char user[64] = "";             /* (the player's folder's name, when not the same) */
+            snprintf(q, sizeof q, "$.settings[%d].user_folder", (int)i);
+            mjson_get_string(json, len, q, user, (int)sizeof user);
+            choices_from_files(m, t, user, ps); /* "off" and the image files of a folder */
         }
         if (!ps->choiceCount) {
             snprintf(ps->choices[0], sizeof ps->choices[0], "off");

@@ -884,6 +884,26 @@ work, 2026-11-07): a merge of OpenSWOS never meets it. The step before a full pr
 
 ---
 
+## 25b. Menu backgrounds (the backgrounds mod)
+
+A true-colour picture behind every menu (`src/mod_backgrounds.c`, `bin/mods/backgrounds`;
+canonical, on, with no picture of its own in OpenSWOS -- so nothing changes until there is one).
+`[mod.backgrounds] image` = a file in the mod's `images/` or the player's game folder's
+`backgrounds/` (Documents\SWOS\backgrounds), PNG, BMP or JPEG (stb_image, third_party), or `off`;
+not set, the first picture in the mod's `images/` -- which is how a fork makes one its default
+(SWOS United ships SWOS_United.png there). The MODS page lists them (`"choices_from"` /
+`"user_folder"` in a setting: "off" and the image files of those folders, up to 8).
+
+The engine's side (`ModDef menuBackdrop`): when the game loads a menu backdrop (`menubg*`,
+frontend.c `LoadOverlayToFrontbuffer`), a mod's picture makes the backdrop one KEY colour,
+`MENU_BACKDROP_KEY` 62 -- one of the backdrop's own (33-62), which no button, text or picture
+uses: measured on the main menu, the SWOS 2020 log-in and MODS. While the menus are up
+(`ModApi_InMenus`) the presenter shows the picture wherever the frame has the key: the GPU one
+draws it covering the window at full size and the frame over it with the key see-through; SDL's
+renderer puts its colours into the key's pixels at the game's own size. In a match or a replay
+the key is any colour: never shown there. Best made 1920 x 1080 (16:9) with what matters inside
+the centre 1440 x 1080, which a 4:3 window keeps -- it is cropped to the window's aspect, centred.
+
 ## 26. The rigs play without gameplay mods
 
 The rigs prove the original game, as they do with every tweak off (§4): under `--replay-test`

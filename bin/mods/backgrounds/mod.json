@@ -1,0 +1,21 @@
+{
+ "uuid": "1eecf5bb-1c99-5158-ad4a-11e586fcca59",
+ "id": "backgrounds",
+ "name": "Menu backgrounds",
+ "version": "1.0",
+ "author": "OpenSWOS",
+ "about": "A picture of your own behind the menus: PNG, BMP or JPEG in Documents/SWOS/backgrounds (1920 x 1080 is best).",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": true,
+ "settings": [
+  {
+   "key": "image",
+   "label": "Picture",
+   "choices_from": "images",
+   "user_folder": "backgrounds"
+  }
+ ]
+}

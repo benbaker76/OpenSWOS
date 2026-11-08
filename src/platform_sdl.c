@@ -1516,6 +1516,64 @@ static void refresh_palette_from_copper(void)
 }
 
 /* The frame to show (see chunky_to_rgba): the GPU presenter takes it as it is. */
+/* The menus' true-colour backdrop (Platform_SetMenuBackdrop). For SDL's renderer, `s_bdSmall`
+ * is the image covering the game's own frame size, sampled once per size. */
+static const uint8_t *s_bd;
+static int            s_bdW, s_bdH;
+static uint32_t       s_bdSerial;
+static uint32_t      *s_bdSmall;
+static int            s_bdSmallW, s_bdSmallH;
+static uint32_t       s_bdSmallSerial;
+
+void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h)
+{
+    if (rgba != s_bd || w != s_bdW || h != s_bdH)
+        s_bdSerial++;
+    s_bd = rgba && w > 0 && h > 0 ? rgba : NULL;
+    s_bdW = w;
+    s_bdH = h;
+}
+
+/* The backdrop shows: there is one, and the menus are up (in a match or a replay the key colour
+ * is anything). */
+static int backdrop_shown(void)
+{
+    extern int32_t ModApi_InMenus(void);
+    extern int _gArcadeMode;
+    return s_bd && !_gArcadeMode && ModApi_InMenus();
+}
+
+/* The backdrop at w x h, covering it (cropped to its aspect, centred): ARGB, for SDL's renderer. */
+static const uint32_t *backdrop_small(int w, int h)
+{
+    if (s_bdSmall && s_bdSmallW == w && s_bdSmallH == h && s_bdSmallSerial == s_bdSerial)
+        return s_bdSmall;
+    free(s_bdSmall);
+    s_bdSmall = (uint32_t *)malloc((size_t)w * h * 4);
+    if (!s_bdSmall)
+        return NULL;
+    {
+        /* (the frame's pixels are not square: it is shown at the window's aspect, so cover the
+         * picture's display aspect -- the logical size's -- not w : h) */
+        const float scale = SDL_max((float)w / (float)s_bdW, (float)h / (float)s_bdH);
+        const float cw = (float)w / scale, ch = (float)h / scale;
+        const float x0 = ((float)s_bdW - cw) / 2.0f, y0 = ((float)s_bdH - ch) / 2.0f;
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++) {
+                int sx = (int)(x0 + ((float)x + 0.5f) * cw / (float)w);
+                int sy = (int)(y0 + ((float)y + 0.5f) * ch / (float)h);
+                sx = sx < 0 ? 0 : sx >= s_bdW ? s_bdW - 1 : sx;
+                sy = sy < 0 ? 0 : sy >= s_bdH ? s_bdH - 1 : sy;
+                const uint8_t *p = s_bd + ((size_t)sy * s_bdW + sx) * 4;
+                s_bdSmall[(size_t)y * w + x] = 0xFF000000u | ((uint32_t)p[0] << 16) | ((uint32_t)p[1] << 8) | p[2];
+            }
+    }
+    s_bdSmallW = w;
+    s_bdSmallH = h;
+    s_bdSmallSerial = s_bdSerial;
+    return s_bdSmall;
+}
+
 static const uint8_t *frame_source(void)
 {
     if (_usePlaneOffsetFlag != 0)
@@ -1573,10 +1631,15 @@ static void chunky_to_rgba(uint32_t *dst, int dst_pitch_pixels)
      * irrelevant to the chunky frontbuffer. */
     (void)_cameraYMod320;
 
+    const uint32_t *bd = backdrop_shown() ? backdrop_small(_screen_width, _screen_height) : NULL;
     for (int y = 0; y < _screen_height; ++y) {
         const uint8_t *line = fb + (size_t)y * FRONTBUFFER_ROW_STRIDE_BYTES;
         uint32_t      *out  = dst + (size_t)y * dst_pitch_pixels;
         for (int x = 0; x < _screen_width; ++x) {
+            if (bd && line[x] == MENU_BACKDROP_KEY) {      /* the menus' true-colour backdrop */
+                out[x] = bd[(size_t)y * _screen_width + x];
+                continue;
+            }
             SDL_Color c = s_palette[line[x]];
             out[x] = ((uint32_t)0xFFu << 24) |
                      ((uint32_t)c.r  << 16) |
@@ -2294,6 +2357,13 @@ static void render_frame_gpu(int pump_full)
     f.subpixel = s_subpixel_scroll;
     f.smooth = s_scaling_smooth;
     f.stretch = s_stretch;
+    if (f.index && backdrop_shown()) {
+        f.backdrop = s_bd;
+        f.backdropW = s_bdW;
+        f.backdropH = s_bdH;
+        f.backdropKey = MENU_BACKDROP_KEY;
+        f.backdropSerial = s_bdSerial;
+    }
 
     if ((f.index || f.argb) && GpuPresent_Begin(&f, NULL)) {
         Gfx_BeginFrame();

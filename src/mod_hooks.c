@@ -165,6 +165,15 @@ int32_t ModHooks_PitchCondition(int32_t pitchType, uint8_t *entry, uint8_t (*rgb
     return 0;
 }
 
+int32_t ModHooks_MenuBackdrop(const uint8_t **rgba, int32_t *w, int32_t *h)
+{
+    EACH(menuBackdrop) {
+        if ((*m_)->menuBackdrop(rgba, w, h))
+            return 1;
+    }
+    return 0;
+}
+
 int32_t ModHooks_LobbyKeepsReady(void)
 {
     int32_t keep = 0;

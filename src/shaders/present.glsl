@@ -35,7 +35,8 @@ layout(binding=1) uniform sampler pal_smp;
 layout(binding=1) uniform fs_present_params {
     vec4 size;      // the source's width, height
     vec4 mode;      // x: the smooth factor n (0: nearest); y: 1 = the HUD (index 0 transparent);
-                    // z: 1 = an RGBA source, no palette
+                    // z: 1 = an RGBA source, no palette; w: key + 1 -- that index transparent
+                    // (the menus' true-colour backdrop shows through), 0 none
 };
 in vec2 uv;
 out vec4 frag_color;
@@ -48,6 +49,8 @@ vec4 texel(vec2 t) {
         return vec4(s.rgb, 1.0);
     int i = int(s.r * 255.0 + 0.5);
     if (mode.y > 0.5 && i == 0)
+        return vec4(0.0);
+    if (mode.w > 0.5 && i == int(mode.w + 0.5) - 1)
         return vec4(0.0);
     vec4 c = texelFetch(sampler2D(pal_tex, pal_smp), ivec2(i, 0), 0);
     return vec4(c.rgb, 1.0);
@@ -70,7 +73,7 @@ void main() {
         vec4 c11 = texel(floor((b + vec2(1.5, 1.5)) / n));
         c = mix(mix(c00, c10, f.x), mix(c01, c11, f.x), f.y);
     }
-    if (mode.y > 0.5 && c.a <= 0.0)
+    if ((mode.y > 0.5 || mode.w > 0.5) && c.a <= 0.0)
         discard;
     frag_color = c;
 }

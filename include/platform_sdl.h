@@ -198,6 +198,12 @@ void Platform_Shutdown(void);
 /* Opens url in the player's browser; 0 done. SDL_OpenURL, except in the Windows (Cygwin) build:
  * Cygwin's SDL runs xdg-open, which a Windows machine does not have -- ShellExecute there. */
 int  Platform_OpenUrl(const char *url);
+/* The menus' true-colour backdrop (frontend.c, from a mod): R, G, B, A bytes, w x h, kept by the
+ * caller; NULL the game's own. While the menus are up, every frame pixel of MENU_BACKDROP_KEY
+ * shows the image, which covers the window (the GPU presenter at full size, SDL's renderer at
+ * the game's). 62: a colour of the game's own backdrop (33-62), which no menu element uses. */
+#define MENU_BACKDROP_KEY 62
+void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h);
 /* One colour of the palette the screen is drawn in, by index. */
 void Platform_PaletteRgb(int index, uint8_t *r, uint8_t *g, uint8_t *b);
 

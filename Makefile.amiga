@@ -83,6 +83,8 @@ SDL_ONLY_SRCS := \
     menu_symbols.c        \
     miniz_impl.c          \
     mod_pitchmaps.c       \
+    mod_backgrounds.c     \
+    stb_image_impl.c      \
     tileagent_impl.c      \
     mm_client.c           \
     netem_core.c          \

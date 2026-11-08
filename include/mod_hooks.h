@@ -76,7 +76,9 @@ void    ModHooks_PitchLoaded(const char *dir, int32_t pitchNumber);
 void    ModHooks_PitchColoured(void);
 void    ModHooks_PitchDropped(void);
 const uint8_t *(*ModHooks_PitchTiles(void))(int32_t cell, const uint8_t *engineTile);
-int32_t ModHooks_PitchCondition(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max);        /* 1: a mod keeps this player's GO (lobbyKeepsReady) */
+int32_t ModHooks_PitchCondition(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max);
+/* The menus' backdrop from a mod (ModDef menuBackdrop): the first that gives one; 0 none. */
+int32_t ModHooks_MenuBackdrop(const uint8_t **rgba, int32_t *w, int32_t *h);        /* 1: a mod keeps this player's GO (lobbyKeepsReady) */
 void ModHooks_MatchEnded(const struct ModMatchResult *result);
 
 /* The career's (docs/MODS.md §27), each named for its ModDef hook: CareerNew (src/career_init.c

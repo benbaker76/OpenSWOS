@@ -84,6 +84,11 @@ typedef struct ModDef {
     void (*pitchDropped)(void);
     ModPitchTileFn (*pitchTiles)(void);
     int32_t (*pitchCondition)(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max);
+    /* The menus' backdrop as a true-colour image (SDL; the backgrounds mod): asked each time the
+     * game loads a menu backdrop (menubg / menubg2). 1 with *rgba (R, G, B, A bytes, w x h,
+     * kept by the mod until the next call) -- the backdrop is then that image behind every menu,
+     * filling the window; 0 the game's own. Drawing only. */
+    int32_t (*menuBackdrop)(const uint8_t **rgba, int32_t *w, int32_t *h);
     /* Like frameDrawn, but every mod's frameUnder runs before any mod's frameDrawn: shading that
      * belongs to the picture (a darkened band), so what the other mods draw goes over it. */
     void (*frameUnder)(void);

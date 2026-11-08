@@ -10,6 +10,10 @@
 #include "world.h"           /* the football world, before the competition tables */
 #include "world_cups.h"      /* its cups into the country tables */
 #include "display.h"
+#ifdef SWOS_SDL_BUILD
+#include "mod_hooks.h"    /* a mod's true-colour menu backdrop */
+#include "platform_sdl.h" /* Platform_SetMenuBackdrop, MENU_BACKDROP_KEY */
+#endif
 #include <string.h>   /* memcpy/memset — used by both the SDL decode and the Amiga overlay re-stride */
 
 /* FrontEndMainLoop */
@@ -67,6 +71,21 @@ void LoadOverlayToFrontbuffer(const uint8_t *path)
                 idx |= (uint8_t)(((planeByte >> bit) & 1u) << p);
             }
             rowDst[px] = idx;
+        }
+    }
+    {   /* A mod's true-colour backdrop (ModDef menuBackdrop): the menus' backdrop becomes one key
+         * colour everywhere -- the wide margins too -- and the presenter shows the image wherever
+         * the frame has it (Platform_SetMenuBackdrop). Only the menus' own backdrops: the disks,
+         * the credits and the rest stay as they are. */
+        const char *name = strrchr((const char *)path, '/');
+        const uint8_t *rgba = NULL;
+        int32_t w = 0, h = 0;
+        name = name ? name + 1 : (const char *)path;
+        if ((SDL_strncasecmp(name, "menubg", 6) == 0) && ModHooks_MenuBackdrop(&rgba, &w, &h) && rgba) {
+            memset(_frontbufferMaskBuffer, MENU_BACKDROP_KEY, FRONTBUFFER_SIZE_TOTAL_BYTES);
+            Platform_SetMenuBackdrop(rgba, w, h);
+        } else {
+            Platform_SetMenuBackdrop(NULL, 0, 0);
         }
     }
 #else
