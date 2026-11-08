@@ -485,13 +485,13 @@ char _aModRow[] = "";      /* a mod's row (MODPOINT): its label set when shown, 
 char _aNextPage[] = "NEXT PAGE";   /* JOB OFFERS with more than one page (job_offers_capacity) */
 char _aModsNone[] = "NONE";
 /* OPTIONS -> LANGUAGE (menus.c ChangeLanguage): its label, and each language in its own words --
- * so a player finds theirs whatever the menus are in -- without accents, which the game's font
- * lacks. */
+ * so a player finds theirs whatever the menus are in. The C and N with their marks are bytes of
+ * the game's Latin-1 charset (the font extension's glyphs, docs/FONTS.md). */
 char _aLanguageOption[] = "LANGUAGE";
 char _aLangEnglish[] = "ENGLISH";
 char _aLangGerman[] = "DEUTSCH";
-char _aLangFrench[] = "FRANCAIS";
-char _aLangSpanish[] = "ESPANOL";
+char _aLangFrench[] = "FRAN\307AIS";      /* FRANCAIS, its C with the cedilla (0xC7) */
+char _aLangSpanish[] = "ESPA\321OL";       /* ESPANOL, its N with the tilde (0xD1) */
 char _aLangItalian[] = "ITALIANO";
 char _aLangDutch[] = "NEDERLANDS";
 char _aGoals[] = "GOALS";
