@@ -867,6 +867,16 @@ SHADERCC_OBJS := $(patsubst third_party/%.cpp,$(OBJDIR)/shadercc/%.o,$(SHADERCC_
 OBJECTS   += $(SHADERCC_OBJS)
 DEPS      += $(SHADERCC_OBJS:.o=.d)
 CFLAGS    += -DSWOS_SHADERCC=1 -I$(SHADERCC_GLSLANG) -I$(SHADERCC_SPVC)
+# The web, two traps the Retro TV preset fell into (2026-11-08):
+#  - glslang's parser needs far more stack than Emscripten's 64 KB (native threads have 8 MB);
+#  - Asyncify instrumented the compiler too -- the game's sleeps are reachable through indirect
+#    calls, so it cannot prove the compiler never sleeps -- and the instrumented SPIRV-Cross took
+#    the browser's page process down mid-compile (a crash, no message; fine in Node, and fine
+#    without the game). The compiler never sleeps: left out, the wasm is 24 MB -> 15 MB.
+ifdef WASM
+LDFLAGS   += -sSTACK_SIZE=4194304 \
+             '-sASYNCIFY_REMOVE=["spirv_cross::*","glslang::*","spv::*","spvc_*","glslang_*","Slang_*"]'
+endif
 # -w: third-party code, compiled as upstream ships it; the defines are its CMake build's.
 SHADERCC_CXXFLAGS := $(ARCHFLAGS) -O2 -std=gnu++17 -MMD -MP -w -DNDEBUG \
                      -DENABLE_OPT=0 -DENABLE_SPIRV -DGLSLANG_OSINCLUDE_UNIX \

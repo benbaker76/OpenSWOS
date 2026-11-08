@@ -33,6 +33,12 @@ without changing anything.
 | iOS | Metal, as macOS (`src/sokol_impl_metal.m` in `packaging/mobile/CMakeLists.txt`; until 2026-11-08 SDL's renderer) |
 | Switch | none yet: SDL's renderer |
 
+The web build compiles it as well (`make WASM=1`): with a 4 MB stack (glslang's parser overran
+Emscripten's 64 KB) and the compiler left out of Asyncify (`ASYNCIFY_REMOVE`: instrumented, the
+browser's page process died mid-compile with no message; left out, the wasm is 24 -> 15 MB).
+Proved in headless Chrome (the Retro TV preset) and on a Pixel 8 (it and crt-lottes-multipass on
+Mali GLES), 2026-11-08.
+
 The phone builds compile the shader compiler too: `packaging/mobile/CMakeLists.txt` reads the
 Makefile's `SHADERCC_SRCS` list out of the Makefile itself, so the two cannot drift.
 
