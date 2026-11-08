@@ -833,6 +833,7 @@ void MenuTextFit_Sweep(void)
     if (done || !getenv("SWOS_TEXT_FIT") || !_charTables[0] || !_charTables[1])
         return;
     done = 1;
+    menu_overlap_widths();              /* (SWOS_MENU_OVERLAP_WIDTHS=<file>: candidates measured too) */
     for (int32_t m = 0; m < MenuJson_StaticCount(); m++) {
         uint8_t *packed = MenuJson_StaticMenu(m);
         if (!packed)
