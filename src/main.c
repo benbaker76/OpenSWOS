@@ -187,6 +187,10 @@ static void print_usage(const char *argv0)
         "                            'stereo' restores the original Amiga panning.\n"
         "  --jag-graphics=<on|off>   Render the Atari Jaguar's gameplay sprites\n"
         "                            (bin/grafs_jag; scripts/make_jag_graphics.py)\n"
+        "  --crt-curvature=<0-100>   The tube's glass bends the picture ([video]\n"
+        "                            crt_curvature; the accel renderer). 0 = flat\n"
+        "  --crt-ntsc=<0-100>        A composite TV signal: colour bleed, fringes,\n"
+        "                            dot crawl ([video] crt_ntsc; accel). 0 = off\n"
         "  --outfit-shading=<on|off> Shade the kit into four tones per colour\n"
         "                            (default on). Off draws each kit colour flat,\n"
         "                            exactly as the 16-colour Amiga game does.\n"
@@ -540,6 +544,8 @@ int main(int argc, char **argv)
     opts.crt_mask = 0;            /* CRT effects all default OFF — opt-in */
     opts.crt_mask_strength = 45;
     opts.crt_vignette = 0;
+    opts.crt_curvature = 0;
+    opts.crt_ntsc = 0;
     opts.crt_corners = 0;
     opts.render_driver[0] = '\0'; /* "" = auto (SDL default backend) */
     opts.res_w = 0; opts.res_h = 0;  /* 0,0 = auto (fill the desktop aspect) */
@@ -821,6 +827,10 @@ int main(int argc, char **argv)
             else if (strcmp(v, "amiga") == 0) opts.view_style = VIEW_STYLE_AMIGA;
             else if (strcmp(v, "dos") == 0)   opts.view_style = VIEW_STYLE_DOS;
             else { fprintf(stderr, "--view must be auto, amiga or dos (got %s)\n", v); return 1; }
+        } else if ((v = match_kv(a, "crt-curvature")) != NULL) {
+            opts.crt_curvature = atoi(v);
+        } else if ((v = match_kv(a, "crt-ntsc")) != NULL) {
+            opts.crt_ntsc = atoi(v);
         } else if ((v = match_kv(a, "outfit-shading")) != NULL) {
             opts.outfit_shading = !(strcmp(v, "off") == 0 || strcmp(v, "0") == 0);
         } else if ((v = match_kv(a, "shadow-shading")) != NULL) {

@@ -67,5 +67,7 @@ GpuTex *GpuGfx_CreateTexture(int w, int h, int linear);
 void    GpuGfx_UpdateTexture(GpuTex *t, const void *rgba, int pitch);
 void    GpuGfx_DestroyTexture(GpuTex *t);
 void    GpuPresent_EndPass(void);                        /* (before a read of the pixels) */
+/* The CRT pass ([video] crt_curvature, crt_ntsc, each 0..100; 0 and 0: none, no cost). */
+void    GpuPresent_SetCrt(int curvature, int ntsc);
 
 #endif

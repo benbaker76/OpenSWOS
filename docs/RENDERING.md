@@ -72,6 +72,26 @@ On SDL it maps onto SDL_Renderer; on the GPU presenter onto one streamed vertex 
 (`GpuGfx_*`). New overlay drawing goes through `gfx.h`, never straight to SDL_Renderer, or it will
 not show on the GPU presenter.
 
+## The CRT pass (`[video] crt_curvature`, `crt_ntsc`)
+
+Two TV effects only the GPU presenter has (SDL's renderer has no shader stage: there they are
+off), each 0-100, both 0 by default (`--crt-curvature=`, `--crt-ntsc=` for a run). With both at
+0 nothing changes and nothing is spent. With either on, `GpuPresent_Begin` draws the picture's
+space -- the frame, the HUD and every overlay in `GFX_SPACE_PICTURE` (the flags, display2020,
+the weather) -- into an offscreen image the picture's size on screen, and the first
+`GFX_SPACE_OUTPUT` draw (or the end of the pass) resolves it through the `crt` program onto the
+screen (`crt_resolve`); what is drawn in the window's space after that (the chat, the touch
+controls, the CRT mask / vignette / corners overlay) stays flat on the glass.
+
+- **Curvature**: a barrel -- each point pushed out by the square of its distance along the other
+  axis; outside the bent picture, black.
+- **NTSC**: our own model of a composite signal, written for this from how one works (no filter's
+  code -- Blargg's snes_ntsc is LGPL, docs and memory: parked for that). The picture is ENCODED
+  as Y plus I and Q on a subcarrier running a cycle each two source pixels, half a cycle further
+  each line and each frame, then DECODED with box filters of whole cycles -- Y one, I two, Q
+  three -- so a flat colour comes back as it was and only edges and detail bleed and fringe
+  (and crawl). 25 taps a pixel, a quarter of a source pixel apart, of the offscreen image.
+
 ## Captures
 
 With the GPU presenter, F12, `SWOS_SCREENSHOT_INTERVAL` and `SWOS_DUMP_FRAMES` still convert the
