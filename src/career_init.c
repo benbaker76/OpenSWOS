@@ -1822,13 +1822,29 @@ static void Rebuild_CompetitionSlotPointers(void)
          * with the same search FindTeamInDIY uses (gate-pass => no 0x6006). euroCup3
          * (the static record) is still the pointer TARGET — it carries the name
          * table the game list reads. */
-        if (euroCup3 != 0 && q3->isActive != 0 &&
+        /* And the season says so. A new season clears the quaternary pointer but leaves the
+         * slot-3 BUFFER as last season's cup left it -- active, and with the club in it -- so
+         * a club that played a euro cup last season and is in none this season had it brought
+         * back here, stale: listed in VIEW COMPETITIONS, a blank fixture list, a hang when
+         * opened (tester report, web, 2026-11-08: Hartlepool, the Cup Winners' Cup of the
+         * season before). What the season itself records is the cup's name in its information
+         * (strPtr3): written by the only two routes into slot 3 (the euro cups' and Copa's
+         * selection), cleared by InitializeNewSeason, saved (str_3) -- so it holds for saves
+         * already made too. */
+        const SeasonInformations *si = (const SeasonInformations *)GetCurrentSeasonPointer();
+        const int seasonPlaysSlot3 = si && si->strPtr3 && si->strPtr3[0];
+        if (euroCup3 != 0 && q3->isActive != 0 && seasonPlaysSlot3 &&
             q3->competitionType == ((Competition *)euroCup3)->type &&
             Career_TeamInLoadedEuroSlot(q3)) {
             _quaternaryCompetitionPtr = euroCup3;
         } else {
             _quaternaryCompetitionPtr = 0;  /* slot 3 inactive / club not in it this season */
         }
+#ifdef SWOS_SDL_BUILD   /* (SWOS.log, for a tester's report; the Amiga has no stdio) */
+        fprintf(stderr, "[career] load: continental cup %s (slot 3 %s, season's cup \"%s\")\n",
+                _quaternaryCompetitionPtr ? "in play" : "none this season",
+                q3->isActive ? "active" : "inactive", seasonPlaysSlot3 ? (const char *)si->strPtr3 : "");
+#endif
     }
 }
 
