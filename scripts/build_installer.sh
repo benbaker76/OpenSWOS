@@ -45,7 +45,7 @@
 # THE CYGWIN RUNTIME
 #
 # bin/SWOS.exe is a CYGWIN binary and will not start without its runtime beside
-# the exe. That is FOUR DLLs, only two of which cygcheck can see — see the long
+# the exe. That is FIVE DLLs, not all of which cygcheck can see — see the long
 # comment above DLLS below, and keep it in step with FULL_DLLS in
 # scripts/build_dist.sh so the installer and SWOS-portable.zip ship the same set.
 
@@ -72,13 +72,15 @@ DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag soun
 # it when it finishes, because the game cannot start without the player's data.
 SETUP_EXE="${SETUP_EXE:-tools/swosdata/build_win_static/bin/Release/openswos-setup.exe}"
 # Cygwin runtime for SWOS.exe — mirrors FULL_DLLS in build_dist.sh.
-# FOUR files, and only two of them are visible to
-# cygcheck:
+# FIVE files, and only some of them are visible to
+# cygcheck on the exe:
 #
 #   cygwin1.dll         the Cygwin runtime
 #   cygSDL2-2-0-0.dll   NOT SDL2 -- it is sdl2-compat, a ~350 KB SHIM
 #   cygSDL3-0.dll       the actual SDL, dlopen'd BY that shim at runtime
-#   cygiconv-2.dll      a link-time import of cygSDL3-0.dll
+#   cygiconv-2.dll      a link-time import of cygSDL3-0.dll (and of the exe since the shaders)
+#   cygintl-8.dll       gettext: the static libstdc++'s locale code, in the exe since the
+#                       shader compiler (a beta without it would not start, 2026-11-09)
 #
 # Cygwin now ships SDL2 as sdl2-compat, which implements the SDL2 API on top of
 # SDL3 and loads cygSDL3-0.dll with dlopen. A dlopen is invisible to cygcheck
@@ -101,7 +103,7 @@ SETUP_EXE="${SETUP_EXE:-tools/swosdata/build_win_static/bin/Release/openswos-set
 #
 # NOT the SDL2.dll from a normal SDL release: that is a native MSVC/MinGW build
 # with no cygwin1.dll import, and a Cygwin binary cannot load it.
-DLLS="cygwin1.dll cygSDL2-2-0-0.dll cygSDL3-0.dll cygiconv-2.dll"
+DLLS="cygwin1.dll cygSDL2-2-0-0.dll cygSDL3-0.dll cygiconv-2.dll cygintl-8.dll"
 
 usage() {
     awk 'NR >= 3 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "${BASH_SOURCE[0]}"
@@ -147,6 +149,10 @@ rm -rf "$STAGE_DIR"
 mkdir -p "$STAGE_DIR" || die "cannot create $STAGE_DIR"
 
 cp bin/SWOS.exe "$STAGE_DIR/" || die "cannot stage bin/SWOS.exe"
+
+# (the list checked against what the exe needs first: scripts/check_win_dlls.sh)
+scripts/check_win_dlls.sh "$DLLS"
+[ $? = 1 ] && die "DLLS is missing a DLL SWOS.exe needs: the installed game would not start"
 
 DLL_OK=""
 DLL_MISS=""

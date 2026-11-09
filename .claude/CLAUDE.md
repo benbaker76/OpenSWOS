@@ -318,7 +318,7 @@ of test careers.
 OpenSWOS Setup's Slint is Rust, whose programs need 10 -- on 7 the setup died at start with
 0xc0000005 (tester report, 2026-10-21).
 
-The Windows runtime is **four** DLLs, and only two of them are visible to
+The Windows runtime is **five** DLLs, and not all of them are visible to
 `cygcheck bin/SWOS.exe`:
 
 | DLL | why |
@@ -326,7 +326,8 @@ The Windows runtime is **four** DLLs, and only two of them are visible to
 | `cygwin1.dll` | the Cygwin runtime |
 | `cygSDL2-2-0-0.dll` | **not SDL2** — it is `sdl2-compat`, a ~350 KB shim |
 | `cygSDL3-0.dll` | the actual SDL, `dlopen`'d by that shim at runtime |
-| `cygiconv-2.dll` | a link-time import of `cygSDL3-0.dll` |
+| `cygiconv-2.dll` | a link-time import of `cygSDL3-0.dll` (and of the exe since the shaders) |
+| `cygintl-8.dll` | gettext: the static libstdc++'s locale code, in the exe since the shader compiler (glslang, SPIRV-Cross) -- a beta without it would not start (2026-11-09) |
 
 Cygwin now ships SDL2 as **sdl2-compat**, which implements the SDL2 API on top
 of SDL3 and loads `cygSDL3-0.dll` with `dlopen`. A `dlopen` is invisible to
@@ -338,7 +339,9 @@ SDL3 then fails to load and the shim reports its own failure rather than the
 cause.
 
 So `cygcheck` is still the right tool — but run it on **`cygSDL3-0.dll` too**,
-not only on the exe: it cannot see a library loaded at runtime. It is still
+not only on the exe: it cannot see a library loaded at runtime.
+`scripts/check_win_dlls.sh` does both and fails `build_dist.sh` / `build_installer.sh` when the
+shipped list is short. It is still
 wrong to derive the list with `strings`, which picks up every DLL name mentioned
 anywhere, including backends SDL only ever `dlopen`s, and lands you at ~14 MB of
 X11/pulse/codec libraries that never load. And **not** the `SDL2.dll` from a

@@ -189,13 +189,19 @@ FULL_DATA_DIRS="data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag
 # The data setup, built by the `setup` target.
 SETUP_CLI="tools/swosdata/build/swosdata"
 SETUP_EXE="tools/swosdata/build_win_static/bin/Release/openswos-setup.exe"
-# Cygwin runtime for SWOS.exe. FOUR files, and only two of them are visible to
-# cygcheck:
+# Cygwin runtime for SWOS.exe. FIVE files, and only some of them are visible to
+# cygcheck on the exe:
 #
 #   cygwin1.dll         the Cygwin runtime
 #   cygSDL2-2-0-0.dll   NOT SDL2 -- it is sdl2-compat, a ~350 KB SHIM
 #   cygSDL3-0.dll       the actual SDL, dlopen'd BY that shim at runtime
-#   cygiconv-2.dll      a link-time import of cygSDL3-0.dll
+#   cygiconv-2.dll      a link-time import of cygSDL3-0.dll (and of the exe since the shaders)
+#   cygintl-8.dll       gettext: the static libstdc++'s locale code, in the exe since the shader
+#                       compiler (glslang, SPIRV-Cross) came in -- a beta shipped without it and
+#                       would not start ("cygintl-8.dll was not found", a tester, 2026-11-09)
+#
+# scripts/check_win_dlls.sh checks this list against cygcheck (the exe and cygSDL3-0.dll) before
+# the zip is made, and fails the drop when a DLL is missing.
 #
 # Cygwin now ships SDL2 as sdl2-compat, which implements the SDL2 API on top of
 # SDL3 and loads cygSDL3-0.dll with dlopen. A dlopen is invisible to cygcheck
@@ -218,7 +224,7 @@ SETUP_EXE="tools/swosdata/build_win_static/bin/Release/openswos-setup.exe"
 #
 # NOT the SDL2.dll from a normal SDL release: that is a native MSVC/MinGW build
 # with no cygwin1.dll import, and a Cygwin binary cannot load it.
-FULL_DLLS="cygwin1.dll cygSDL2-2-0-0.dll cygSDL3-0.dll cygiconv-2.dll"
+FULL_DLLS="cygwin1.dll cygSDL2-2-0-0.dll cygSDL3-0.dll cygiconv-2.dll cygintl-8.dll"
 
 # Linux runtime for the four ELFs, the counterpart of FULL_DLLS above. Each
 # binary links libSDL2-2.0.so.0 for its own architecture, so a tester who has
@@ -732,7 +738,12 @@ if [ "$DO_FULL" = 1 ] && [ -n "$ZIPPED" ] && command -v zip >/dev/null 2>&1; the
             rm -rf "$PM_TMP"
         fi
 
-        # Windows runtime beside SWOS.exe. Skipped cleanly off-Cygwin hosts.
+        # Windows runtime beside SWOS.exe. Skipped cleanly off-Cygwin hosts. The list first checked
+        # against what the exe needs (scripts/check_win_dlls.sh): a short one is a drop that will not start.
+        if [ -f bin/SWOS.exe ]; then
+            scripts/check_win_dlls.sh "$FULL_DLLS"
+            [ $? = 1 ] && { echo "!! FULL_DLLS is missing a DLL SWOS.exe needs: the drop would not start" >&2; exit 1; }
+        fi
         DLL_ADDED=""; DLL_MISS=""
         for d in $FULL_DLLS; do
             if [ -f "$CYGWIN_BIN/$d" ]; then DLL_ADDED="$DLL_ADDED $CYGWIN_BIN/$d"
