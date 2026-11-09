@@ -1058,6 +1058,55 @@ static void stick_directions(int32_t ax, int32_t ay, int *_up, int *_down, int *
     if (vertical)   { if (ay < 0) *_up  = 1; else *_down = 1; }
 }
 
+#ifdef SWOS_WASM_BUILD
+/* The web: a pad the browser does not map as a "standard" gamepad, read from the Gamepad API
+ * itself. SDL's web port gives every pad its default Standard Gamepad mapping (directions on
+ * axes 0/1 and buttons 12-15, fire on 0/1) and has no hats; a retro stick or a converter is
+ * rarely standard, and Chrome on a Mac gives its POV hat as one more AXIS -- resting at 3.29, the
+ * eight directions -1 .. 1 in steps of 2/7 -- which nothing read: the directions did not
+ * register (tester report, 2026-11-08: two Macs, Chrome and Firefox, a USB stick and a Zipstick
+ * on a converter, both fine on the desktop build). So for such a pad: axes 0/1 as a stick, any
+ * axis seen resting above 1 as a hat, any button as fire -- the desktop's raw path. Bits: 1 up,
+ * 2 down, 4 left, 8 right, 16 fire; -1 a standard pad (SDL's mapping is right), -2 not found. */
+EM_JS(int, web_pad_bits, (const char *idPtr, int nth), {
+    const id = UTF8ToString(idPtr);
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const hats = (Module.swosHatAxes = Module.swosHatAxes || {});
+    let k = 0;
+    for (let i = 0; i < pads.length; i++) {
+        const p = pads[i];
+        /* (SDL's name for it: the id trimmed, its spaces single -- SDL_CreateJoystickName) */
+        if (!p || !p.connected || p.id.trim().replace(/ +/g, ' ') !== id || k++ !== nth) continue;
+        if (p.mapping === 'standard') return -1;
+        let bits = 0;
+        const key = p.index + ':' + p.id;
+        const seen = (hats[key] = hats[key] || {});
+        if (!seen.logged) {
+            seen.logged = 1;
+            console.log('[input] web pad "' + p.id + '": mapping "' + p.mapping + '", ' + p.axes.length +
+                        ' axes, ' + p.buttons.length + ' buttons: read from the Gamepad API');
+        }
+        for (let a = 0; a < p.axes.length; a++) {
+            const v = p.axes[a];
+            if (v > 1.05) { seen[a] = 1; continue; }        /* a hat at rest */
+            if (seen[a]) {                                   /* a hat: eight steps of 2/7 */
+                const step = Math.round((v + 1) * 3.5);
+                if (step < 0 || step > 7) continue;
+                const dirs = [1, 1 | 8, 8, 2 | 8, 2, 2 | 4, 4, 1 | 4];
+                bits |= dirs[step];
+            } else if (a < 2) {                              /* the stick */
+                if (v < -0.5) bits |= a ? 1 : 4;
+                if (v > 0.5) bits |= a ? 2 : 8;
+            }
+        }
+        for (let b = 0; b < p.buttons.length; b++)
+            if (p.buttons[b] && p.buttons[b].pressed) { bits |= 16; break; }
+        return bits;
+    }
+    return -2;
+});
+#endif
+
 /* Read directional + fire state from a single pad slot. `skip` (may be
  * NULL) is set when the conventional "second button" (B on mapped pads,
  * button index 1 on raw joysticks) is pressed — used for the SDL-only
@@ -1073,6 +1122,30 @@ static void read_device_state(int d,
         return;
     pad = s_dev_gc[d];
     raw = s_dev_raw[d];
+
+#ifdef SWOS_WASM_BUILD
+    {   /* (a pad the browser does not map as standard: read as the desktop reads a raw one) */
+        /* (the JOYSTICK's name, the browser's id: a controller's is "Standard Gamepad" for all) */
+        SDL_Joystick *j = pad ? SDL_GameControllerGetJoystick(pad) : raw;
+        const char *nm = j ? SDL_JoystickName(j) : NULL;
+        int nth = 0, bits;
+        for (int e = 0; e < d && nm; e++) {
+            SDL_Joystick *je = s_dev_gc[e] ? SDL_GameControllerGetJoystick(s_dev_gc[e]) : s_dev_raw[e];
+            const char *ne = je ? SDL_JoystickName(je) : NULL;
+            if (ne && strcmp(ne, nm) == 0)
+                nth++;
+        }
+        bits = nm ? web_pad_bits(nm, nth) : -2;
+        if (bits >= 0) {
+            if (bits & 1)  *_up = 1;
+            if (bits & 2)  *_down = 1;
+            if (bits & 4)  *left = 1;
+            if (bits & 8)  *right = 1;
+            if (bits & 16) *_fire = 1;
+            return;
+        }
+    }
+#endif
 
     if (pad) {
         Sint16 ax = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
