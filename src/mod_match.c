@@ -253,6 +253,30 @@ int32_t ModApi_ChooseTeams(void)
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
 }
 
+int32_t ModApi_ChooseOneTeam(const char *title, const char *button, struct TeamFileEx *out)
+{
+    extern void GoGetTeamsForPlay(uint8_t *gameType, uint8_t *playWhat, uint16_t numTeams, uint16_t showClub,
+                                  uint16_t showNational, uint16_t showOrigCustom);
+    extern uint16_t _chooseTeamsResult;
+    static char t[32], b[32];
+    if (!out)
+        return 0;
+    const char *env = getenv("SWOS_MOD_CHOOSE_TEAMS");
+    if (env) {                              /* (a test's answer: the first id, as ModApi_ChooseTeams') */
+        if (load_team((uint16_t)strtoul(env, NULL, 16), 0, TEAM_PLAYER_COACH))
+            return 0;
+        memcpy(out, &_selectedTeams[0], sizeof(TeamFileEx));
+        return 1;
+    }
+    snprintf(t, sizeof t, "%s", title ? title : "");
+    snprintf(b, sizeof b, "%s", button ? button : "");
+    GoGetTeamsForPlay((uint8_t *)t, (uint8_t *)b, 1, 1, 1, 1);
+    if (_chooseTeamsResult == 0 || _numSelectedTeams < 1)
+        return 0;
+    memcpy(out, &_selectedTeams[0], sizeof(TeamFileEx));
+    return 1;
+}
+
 int32_t ModApi_ChooseTeamsTitled(const char *title, const char *button)
 {
     extern void GoGetTeamsForPlay(uint8_t *gameType, uint8_t *playWhat, uint16_t numTeams, uint16_t showClub,
@@ -812,6 +836,18 @@ int16_t ModMatch_KeeperHighDive(const TeamGeneralInfo *team, int16_t ballNotHigh
 /* The player mark 4 pixels lower (SWOS 2020's MarkPlayerSP in its shoot-out). */
 int16_t ModMatch_MarkOffset(void) { return s_mm.active && s_mm.setup.keeperDive && _playingPenalties ? 4 : 0; }
 
+/* ModApi_PressFire: a player's fire held for some frames of a mod's match. */
+static int16_t s_fireFrames[2];
+void ModApi_PressFire(int32_t player, int32_t frames)
+{
+    if (s_mm.active && player >= 1 && player <= 2)
+        s_fireFrames[player - 1] = (int16_t)(frames < 1 ? 1 : frames > 200 ? 200 : frames);
+}
+int32_t ModMatch_ForcedFire(int32_t player)
+{
+    return s_mm.active && player >= 1 && player <= 2 && s_fireFrames[player - 1] > 0;
+}
+
 int32_t ModMatch_CameraTop(void) { return s_mm.active && s_mm.setup.cameraTop; }
 int32_t ModMatch_ShootoutStats(void) { return s_mm.active && s_mm.setup.shootoutStats; }
 
@@ -915,10 +951,30 @@ int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int1
 {
     extern void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16_t x, int16_t y);
     if (!s_mm.active || _gameStatePl != ST_GAME_IN_PROGRESS || (team != 0 && team != 1) ||
-        kind < MODRESTART_CORNER || kind > MODRESTART_GOAL_KICK)
+        kind < MODRESTART_KICK_OFF || kind > MODRESTART_GOAL_KICK)
         return -1;
+    if (kind == MODRESTART_KICK_OFF) {      /* (SWOS 2020's training F12: PrepareForInitialKick,
+                                             *  the stoppage over at once; the kick-off as it falls) */
+        extern void PrepareForInitialKick(void);
+        extern uint16_t _stoppageEventTimer;
+        PrepareForInitialKick();
+        _stoppageEventTimer = 0;
+        return 0;
+    }
     GameTimers_ModRestart(kind, team + 1, wing, x, y);
     return 0;
+}
+
+int32_t ModApi_ControlledPlayer(int32_t side, int16_t *x, int16_t *y)
+{
+    if (!s_mm.active || side < 0 || side > 1)
+        return 0;
+    const TeamGeneralInfo *t = team_by_number(side + 1);
+    if (!t->controlledPlayer)
+        return 0;
+    if (x) *x = t->controlledPlayer->x.s.i;
+    if (y) *y = t->controlledPlayer->y.s.i;
+    return 1;
 }
 
 /* restart (H6): PrepareForInitialKick's end, the FIRST kick-off only -- the break the match
@@ -1095,6 +1151,9 @@ void ModMatch_Frame(void)
         _gameSeconds = 0;
     }
     keeper_dive_frame();
+    for (int32_t p = 0; p < 2; p++)         /* (ModApi_PressFire: counted in frames played) */
+        if (s_fireFrames[p] > 0 && !ModMatch_Quiet())
+            s_fireFrames[p]--;
     if (s_mm.active && s_mm.setup.shootoutOnly && !s_mm.shootoutDone && s_kickedOff) {
         s_mm.shootoutDone = 1;
         ModApi_StartShootout();

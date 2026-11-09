@@ -96,6 +96,14 @@ void ModHooks_MatchStart(void)
     EACH(matchStart) (*m_)->matchStart();
 }
 
+int32_t ModHooks_MatchKey(const char *key)
+{
+    EACH(matchKey)
+        if ((*m_)->matchKey(key))
+            return 1;
+    return 0;
+}
+
 void ModHooks_MatchDrawn(void)
 {
     EACH(matchDrawn) (*m_)->matchDrawn();

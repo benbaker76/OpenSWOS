@@ -110,6 +110,11 @@ typedef struct ModDef {
      * whole again the next time, so nothing needs undrawing. SDL only (the Amiga AGA match frame
      * keeps what is drawn: it undraws only the sprites). Drawing only: never the match. */
     void (*matchDrawn)(void);
+    /* A key pressed during a match (SDL; its name as SDL names it: "F1", "Left Alt", "9", "-"),
+     * before the game sees it: 1 takes it (the game then never does). For a mod's own match's
+     * keys (SWOS 2020's training drills) -- check ModApi_ModMatch first. Not while a name is
+     * typed. Do the match's work at the next matchFrame, not here. */
+    int32_t (*matchKey)(const char *key);
 
     /* -- an online match as it is played, re-simulations included (docs/MODS.md §16) --
      * GGPO plays frames again after a rollback, so matchFrame / matchEvent see each frame's first
@@ -593,6 +598,8 @@ int32_t ModApi_ChooseTeams(void);
 /* The same team screen with a title and a start button of a mod's own ("SHOOTOUT", "START
  * SHOOTOUT"). */
 int32_t ModApi_ChooseTeamsTitled(const char *title, const char *button);
+/* One team, on the same screen (SWOS 2020's TEAM TRAINING), whole into *out: a setup's teamData. */
+int32_t ModApi_ChooseOneTeam(const char *title, const char *button, struct TeamFileEx *out);
 /* A random team of a team file (a country's clubs; 80-85 the national teams, 72 the original
  * custom teams, 100 the custom ones), whole, into *out: a setup's teamData. 0 when the file has
  * none. */
@@ -661,6 +668,11 @@ void    ModApi_FinalWhistle(int32_t winner);
  * drill wants one): MODRESTART_* for `team` (0 / 1) -- a corner's wing as the taker attacks, a
  * free kick's foul at x, y (world). From matchFrame, the ball in play; 0 when given. */
 int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int16_t y);
+/* A player's (1, 2) fire button held for `frames` frames of a mod's match, as if pressed: a short
+ * one kicks or passes, a long one the high kick (SWOS 2020's training F10 / F11). */
+void    ModApi_PressFire(int32_t player, int32_t frames);
+/* Where a side's (0, 1) controlled player is (world), in a mod's match: 0 when none. */
+int32_t ModApi_ControlledPlayer(int32_t side, int16_t *x, int16_t *y);
 void    ModApi_StartShootout(void);             /* to penalties now */
 void    ModApi_Score(int16_t goals[2]);         /* the score now */
 uint32_t ModApi_MatchFrames(void);              /* frames played from kick-off */

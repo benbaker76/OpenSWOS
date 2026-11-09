@@ -1904,6 +1904,14 @@ static void pump_events_any_thread(void)
                 Platform_ToggleFullscreen();
                 continue;
             }
+            /* A key for a mod during a match (ModDef.matchKey: SWOS 2020's training drills,
+             * F1-F12, ALT, 9, 0, - and =), before the game's and the window's own. */
+            if (ev.key.repeat == 0 && !_gTextInputActive) {
+                extern int32_t ModApi_InMatch(void);
+                extern int32_t ModHooks_MatchKey(const char *key);
+                if (ModApi_InMatch() && ModHooks_MatchKey(SDL_GetKeyName(ev.key.keysym.sym)))
+                    continue;
+            }
             /* +/- keys: cycle the windowed scale 1..4. Both the typing-
              * row keys and the keypad ones work. SDLK_EQUALS is the
              * same physical key as SDLK_PLUS on most layouts (US),

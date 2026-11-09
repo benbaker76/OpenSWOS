@@ -719,11 +719,25 @@ default -- so the main menu's MODES button is there): MODES -> PRACTICE opens it
   its MarkPlayerSP writing +4 through a stale pointer, its gkTurn 4 marking the wrong keeper.
   `SWOS_PRACTICE_SHOOTOUT_TEST=1` plays one CPU v CPU headless: PASS when it has a winner and
   its board was drawn (`SWOS_PRACTICE_SHOOTOUT_PLAYMATCH=1`: through PLAY MATCH, team 1 yours).
-- **DEMO GAME**: two random national teams (`ModApi_RandomTeam`, its own random numbers), CPU v
-  CPU, named DEMO GAME.
-- **TEAM TRAINING** (`practice.training`; SWOS 2020's practiceSetting.mnu): your defence,
-  midfield and attack, and the CPU's, each on or off, the goal you attack; START: the team screen,
-  then a match whose clock stays at 0 (no half time, no end but ESC), no cards, no injuries.
+- **DEMO GAME** (SWOS 2020's demoGamePractice_OnSelect): two random teams of every file, CPU v CPU,
+  team 1 kicking off, from the 89th minute -- a minute to watch -- named DEMO GAME.
+- The menu itself is SWOS 2020's practice.mnu (imported): FRIENDLY MATCH (the game's), TEAM
+  TRAINING, PENALTY SHOOTOUT, DEMO GAME, its help line under them.
+- **TEAM TRAINING** (SWOS 2020's trainingModePractice_OnSelect, 2026-11-09; its practiceSetting.mnu
+  and teamTrainingControls.mnu imported with scripts/import_swos2020_menus.py): ATTACK GOAL, CPU
+  SKILL (which original custom team the CPU is: JUST NIPPING OUT, THE SAD TRUTH, TWI, TRUE BLUE,
+  PROFESSIONALS, or RANDOM), each side's lines on or off, CPU GHOSTED (its outfielders play
+  unseen: `ghosts`), TACKLE ALLOWED (`noTackles`), PITCH TYPE, CONTROLS HELP; CHOOSE TEAM (one
+  team, `ModApi_ChooseOneTeam`, titled TEAM TRAINING) or RANDOM TEAM. Its pictures beside the
+  settings and on the controls screen (the pitch, the goal, the skill's stars, its keeper; the keys)
+  are SWOS 2020's character maps, `bin/mods/practice/pixmaps.txt` (scripts/extract_swos2020_pixmaps.py;
+  SDL). The match: clock at 0, no cards or injuries, the player's team kicking off, no result
+  banner; its drills on the keys (`ModDef.matchKey`, new: a key during a match, before the game's):
+  F1-F7 a free kick before the goal attacked, ALT one where the controlled player is
+  (`ModApi_ControlledPlayer`), F8 / F9 a corner, F10 / F11 a kick / a high kick
+  (`ModApi_PressFire`), F12 the kick-off again (`ModApi_Restart` takes MODRESTART_KICK_OFF now),
+  9 / 0 the player's goal kick, - / = the CPU's. After it, the settings again.
+  `SWOS_PRACTICE_TRAINING_TEST=1`: every drill in turn, CPU v CPU, PASS when all are taken.
   New in the setup (the map's G1, G4, G7, G9): `playingUp` / `kickOff` (set where the game draws
   them, `InitGameRestoreTeams`), `linesOut[2]` (`MODLINE_*`: those outfielders sent away at
   `InitPlayersBeforeEnteringPitch`'s end and put in the tunnel, as a sent-off man is -- the AI,

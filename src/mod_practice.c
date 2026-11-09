@@ -42,6 +42,8 @@ enum { St_header, St_free, St_choose, St_random, St_all, St_europe, St_africa, S
 enum { GRP_ALL = -1, GRP_EUROPE, GRP_N_AMERICA, GRP_S_AMERICA, GRP_AFRICA, GRP_ASIA, GRP_OCEANIA,
        GRP_NATIONAL, GRP_ORIGINAL, GRP_CUSTOM };
 
+static int8_t s_trUp, s_trSkill;        /* (TEAM TRAINING's, below: its pictures draw from them) */
+static uint32_t s_trTicks;
 static int32_t s_test, s_testFrames;  /* SWOS_PRACTICE_SHOOTOUT_TEST: 1 armed, 2 played */
 static void shootout_play(ModMatchSetup *setup);
 static int32_t s_stPick;                /* -2 left, -1 CHOOSE TEAMS, else a GRP_* (GRP_ALL as -3) */
@@ -521,6 +523,107 @@ static void shootout_drawn(void)
     draw_band_and_kits(&l, m);
 }
 
+/* TEAM TRAINING's pictures (SWOS 2020's PixelmapAndStrings.h, in the mod's pixmaps.txt:
+ * scripts/extract_swos2020_pixmaps.py): '1'..'F' a palette index, the rest clear. */
+typedef struct { char name[48]; int32_t w, h; const char *rows; } Pixmap;
+static Pixmap  s_pix[8];
+static int32_t s_pixCount = -1;
+
+static void pixmaps_load(void)
+{
+    char path[512];
+    uint32_t size = 0;
+    s_pixCount = 0;
+    snprintf(path, sizeof path, "%s/pixmaps.txt", ModApi_ModDir("practice"));
+    char *text = (char *)ModApi_ReadFile(path, &size);
+    if (!text)
+        return;
+    char *p = text, *end = text + size;
+    while (p < end && s_pixCount < (int32_t)(sizeof s_pix / sizeof s_pix[0])) {
+        char *eol = memchr(p, '\n', (size_t)(end - p));
+        if (!eol)
+            break;
+        *eol = '\0';
+        if (*p != '#') {
+            Pixmap *m = &s_pix[s_pixCount];
+            if (sscanf(p, "%47s %d %d", m->name, &m->w, &m->h) != 3 || m->w <= 0 || m->h <= 0)
+                break;
+            m->rows = eol + 1;
+            p = eol + 1 + (size_t)(m->w + 1) * (size_t)m->h;   /* (each row its width and a '\n') */
+            if (p > end)
+                break;
+            s_pixCount++;
+            continue;
+        }
+        p = eol + 1;
+    }
+}
+
+static const Pixmap *pixmap_named(const char *name)
+{
+    if (s_pixCount < 0)
+        pixmaps_load();
+    for (int32_t i = 0; i < s_pixCount; i++)
+        if (strcmp(s_pix[i].name, name) == 0)
+            return &s_pix[i];
+    return NULL;
+}
+
+/* drawMapEx(map, x, y, offsetx, offsety, w, h): a piece of a picture at SWOS 2020's screen x, y --
+ * its menus 8 to the right of where their entries say (DOS ConvertMenu), so placed here by the
+ * menu's header: the entry imported at `importX`, drawn where it is now. */
+static int32_t s_menuDx, s_menuDy;
+
+static void menu_origin(int32_t importX, int32_t importY)
+{
+    int32_t x = importX, y = importY;
+    ModApi_MenuEntryRect(0, &x, &y, NULL, NULL);
+    s_menuDx = ModApi_MenuMargin() + (x - importX) - 8;
+    s_menuDy = y - importY;
+}
+
+static void draw_map(const char *name, int32_t sx, int32_t sy, int32_t ox, int32_t oy, int32_t w, int32_t h)
+{
+    const Pixmap *m = pixmap_named(name);
+    if (!m || !(s_fb = ModApi_Frame(&s_stride)))
+        return;
+    ModApi_ScreenSize(&s_w, &s_h);
+    for (int32_t j = 0; j < h && oy + j < m->h; j++) {
+        const char *row = m->rows + (size_t)(oy + j) * (size_t)(m->w + 1);
+        for (int32_t i = 0; i < w && ox + i < m->w; i++) {
+            const char c = row[ox + i];
+            const int32_t v = c >= '1' && c <= '9' ? c - '0' : c >= 'A' && c <= 'F' ? c - 'A' + 10 : 0;
+            if (v)
+                put(sx + s_menuDx + i, sy + s_menuDy + j, (uint8_t)v);
+        }
+    }
+}
+
+/* practiceSetting_OnDraw's pictures: the pitch, the goal attacked, the CPU's skill in stars and its
+ * keeper, bobbing. */
+static void tr_draw_pictures(void)
+{
+    static const int32_t kFrame[6] = { 0, 1, 2, 3, 2, 1 }, kOffX[4] = { 0, 0, 0, -2 }, kOffY[4] = { 0, 2, 3, 5 };
+    menu_origin(89, 0);                     /* (its header, imported at 89, 0) */
+    draw_map("fields_default_99x101_1x1_Map", 207, 33, 0, 0, 99, 101);
+    const int32_t ax = 250, ay = 76;
+    if (!s_trUp)
+        draw_map("arrows_default_scaled_Map", ax, ay + 12, 0, 0, 24, 24);
+    else
+        draw_map("arrows_default_scaled_2_Map", ax, ay - 16, 0, 0, 24, 24);
+    if (s_trSkill <= 4)
+        draw_map("starsMap", ax + 3 - 3 * s_trSkill, s_trUp ? 33 : 126, 0, 10 * (s_trSkill * 2 + 1), 36, 10);
+    const int32_t f = kFrame[(s_trTicks % 120u) / 20u];
+    draw_map("goalkeeper_gloved_scaled_32x44_4x1_Map", 157 - 6 - kOffX[f], 159 - kOffY[f], f * 32, 0, 32, 44);
+}
+
+/* teamTrainingControlsMenu_OnDraw: the keys. */
+static void tr_draw_controls(void)
+{
+    menu_origin(92, 0);                     /* (its header, imported at 92, 0) */
+    draw_map("team_training_controls_230x68_1x1_map", 55, 18, 0, 0, 230, 68);
+}
+
 /* PLAY MATCH: the kick order beside the line-up (PlayMatchOnDraw: 10 by the second man down to 1
  * by the eleventh -- the slots kick 10, 9 .. 1). */
 static void shootout_row(const ModPlayerRow *row)
@@ -535,9 +638,11 @@ static void shootout_row(const ModPlayerRow *row)
 }
 
 static void shootout_menu(void);
+static void training_test_menu(void);
 static void shootout_menu_drawn(void)
 {
     shootout_test_menu();
+    training_test_menu();
     shootout_menu();
 }
 
@@ -557,116 +662,309 @@ static void shootout_menu(void)
 #endif
 
 
+/* ---- DEMO GAME (SWOS 2020's demoGamePractice_OnSelect: teamSelect 0, CPU v CPU) ----
+ * Two random teams of every file, the first kicking off, from the 89th minute: a minute to watch. */
 static void practice_demo(void)
 {
+    static TeamFileEx teams[2];
     ModMatchSetup setup;
     ModMatchResult r;
-    ModApi_DefaultSetup(&setup);
-    setup.team[0] = ModApi_RandomTeam();
-    do
-        setup.team[1] = ModApi_RandomTeam();
-    while (setup.team[1] == setup.team[0] && setup.team[0]);
-    if (!setup.team[0] || !setup.team[1])
+    if (!random_pair(GRP_ALL, teams))
         return;
+    ModApi_DefaultSetup(&setup);
+    setup.teamData[0] = &teams[0];
+    setup.teamData[1] = &teams[1];
+    setup.side[0] = setup.side[1] = MODSIDE_CPU;
+    setup.minute = 89;                      /* (cGame.time 0, 8, 9) */
+    setup.kickOff = 0;                      /* (InitGame_202: teamStarting 1) */
     setup.replayMenu = 0;
     setup.name = "demo game";
     if (ModApi_PlayMatch("practice", &setup, &r) == 0)
         fprintf(stderr, "[practice] demo game: %d-%d\n", (int)r.goals[0], (int)r.goals[1]);
 }
 
-/* ---- team training ---- */
-
-enum { kTrainRows = 8 };
-enum { Tr_header, Tr_subTitle, Tr_label0, Tr_note = Tr_label0 + 2 * kTrainRows, Tr_exit };
-
-static uint8_t s_lineOn[2][3] = { { 1, 1, 1 }, { 1, 1, 1 } };    /* [you / the CPU][defence, midfield, attack] */
-static uint8_t s_attackUp = 1;                                   /* you attack the top goal first */
-static char    s_values[kTrainRows][12];
-
-static void training_refresh(void)
+/* The menu's help line (practiceMenuOnDraw), for the entry the cursor is on. */
+enum { Pm_header, Pm_friendly, Pm_training, Pm_shootout, Pm_demo, Pm_help, Pm_exit };
+static void practice_menu_draw(void)
 {
-    static const char *const kLabels[kTrainRows] = { "YOUR DEFENCE", "YOUR MIDFIELD", "YOUR ATTACK", "CPU DEFENCE",
-                                                     "CPU MIDFIELD", "CPU ATTACK", "YOU ATTACK", "" };
-    for (int32_t i = 0; i < kTrainRows; i++) {
-        const char *v = i < 6 ? (s_lineOn[i / 3][i % 3] ? "ON" : "OFF") : i == 6 ? (s_attackUp ? "UP" : "DOWN") : "START";
-        snprintf(s_values[i], sizeof s_values[i], "%s", v);
-        ModApi_MenuText(Tr_label0 + 2 * i, kLabels[i]);
-        ModApi_MenuText(Tr_label0 + 2 * i + 1, s_values[i]);
-        ModApi_MenuVisible(Tr_label0 + 2 * i, i < 7);
-        ModApi_MenuVisible(Tr_label0 + 2 * i + 1, 1);
-    }
-    ModApi_MenuText(Tr_note, "THEN PICK YOUR TEAM AND THE CPU'S");
+    const int32_t e = ModApi_MenuCurrentEntry();
+    ModApi_MenuText(Pm_help, e == Pm_friendly ? "FRIENDLY GAME WITH FREELY SELECTABLE TEAMS"
+                           : e == Pm_training ? "PRACTICE WITH NO OPPONENT PLAYERS EXCEPT FOR GOALKEEPER"
+                           : e == Pm_shootout ? "PENALTY SHOOTOUT WITH FREELY SELECTABLE TEAMS"
+                           : e == Pm_demo ? "SIT BACK, RELAX AND WATCH GAMEPLAY OF TWO RANDOM CPU TEAMS"
+                                          : "BACK TO MAIN MENU");
 }
 
-static void training_init(void)
+/* ---- TEAM TRAINING (SWOS 2020's trainingModePractice_OnSelect, ChallengeGame gameMode 3) ----
+ * Its settings (practiceSetting.mnu): the goal attacked, the CPU's skill (which of the original
+ * custom teams it is: JUST NIPPING OUT .. PROFESSIONALS, or one at random), the lines of each side
+ * on or off, the CPU's players unseen, tackles, the pitch; CHOOSE TEAM (one team, titled TEAM
+ * TRAINING) or RANDOM TEAM. Then a match whose clock stays at 0, no cards and no injuries, the
+ * player's team kicking off, its drills on the keys (TEAM TRAINING CONTROLS); after it, the
+ * settings again. Kept for the session, as SWOS 2020 keeps its globals. */
+enum { Ps_header, Ps_upCaption, Ps_skillCaption, Ps_defCaption, Ps_midCaption, Ps_attCaption, Ps_ghostCaption,
+       Ps_tackleCaption, Ps_pitchCaption, Ps_help, Ps_up, Ps_skill, Ps_playerCaption, Ps_def0, Ps_mid0, Ps_att0,
+       Ps_cpuCaption, Ps_def, Ps_mid, Ps_att, Ps_ghost, Ps_tackle, Ps_pitch, Ps_helpCustom, Ps_msg, Ps_choose,
+       Ps_random, Ps_exit };
+static int8_t s_trUp;                   /* g_TeamPlayingUp: 0 DOWN, 1 UP */
+static int8_t s_trSkill;                /* g_GoalkeeperSkill: 0 BEGINNER .. 4 MASTER, 5 RANDOM */
+static int8_t s_trLine[2][3] = { { 1, 1, 1 }, { 0, 0, 0 } };    /* [player / CPU][defence, midfield, attack] */
+static int8_t s_trGhost;                /* g_GhostPlayers */
+static int8_t s_trTackle = 1;           /* g_TrainingModeTackleAllowed */
+static int8_t s_trPitch = -1;           /* g_PitchTypeCustom: -1 random, 0 frozen .. 6 hard */
+static int8_t s_trChoice;               /* g_PracticeSetting: -1 left, 0 CHOOSE TEAM, 1 RANDOM TEAM */
+
+static void tr_up(void) { s_trUp ^= 1; }
+static void tr_skill(void) { if (++s_trSkill > 5) s_trSkill = 0; }
+static void tr_def0(void) { s_trLine[0][0] ^= 1; }
+static void tr_mid0(void) { s_trLine[0][1] ^= 1; }
+static void tr_att0(void) { s_trLine[0][2] ^= 1; }
+static void tr_def(void) { s_trLine[1][0] ^= 1; }
+static void tr_mid(void) { s_trLine[1][1] ^= 1; }
+static void tr_att(void) { s_trLine[1][2] ^= 1; }
+static void tr_ghost(void) { s_trGhost ^= 1; }
+static void tr_tackle(void) { s_trTackle ^= 1; }
+static void tr_pitch(void) { if (++s_trPitch > 6) s_trPitch = -1; }
+static void tr_controls(void) { ModApi_ShowMenu("practice/teamTrainingControlsMenu"); }
+static int32_t tr_player_lines(void) { return s_trLine[0][0] | s_trLine[0][1] | s_trLine[0][2]; }
+static void tr_choose(void) { if (tr_player_lines()) { s_trChoice = 0; SetExitMenuFlag(); } }
+static void tr_random(void) { if (tr_player_lines()) { s_trChoice = 1; SetExitMenuFlag(); } }
+static void tr_exit(void) { s_trChoice = -1; SetExitMenuFlag(); }
+static void tr_init(void) { }
+static void tr_draw(void);
+static void tr_controls_draw(void);
+static void tr_controls_init(void) { }
+
+/* practiceSetting_OnDraw: the values, and what can be reached -- CPU GHOSTED only with a CPU line
+ * on, the team buttons only with a line of the player's on. */
+static void tr_refresh(void)
 {
-    for (int32_t i = 0; i < kTrainRows; i++) {
-        const int32_t v = Tr_label0 + 2 * i + 1;
-        ModApi_MenuNav(v, i ? v - 2 : -1, i + 1 < kTrainRows ? v + 2 : Tr_exit);
+    static const char *const kSkill[6] = { "BEGINNER", "AMATEUR", "ADVANCED", "PRO", "MASTER", "RANDOM" };
+    static const char *const kPitch[8] = { "RANDOM", "FROZEN", "MUDDY", "WET", "SOFT", "NORMAL", "DRY", "HARD" };
+    ModApi_MenuText(Ps_up, s_trUp ? "UP" : "DOWN");
+    ModApi_MenuText(Ps_pitch, kPitch[s_trPitch + 1]);
+    ModApi_MenuText(Ps_skill, kSkill[s_trSkill]);
+    ModApi_MenuText(Ps_def, s_trLine[1][0] ? "ON" : "OFF");
+    ModApi_MenuText(Ps_mid, s_trLine[1][1] ? "ON" : "OFF");
+    ModApi_MenuText(Ps_att, s_trLine[1][2] ? "ON" : "OFF");
+    ModApi_MenuText(Ps_def0, s_trLine[0][0] ? "ON" : "OFF");
+    ModApi_MenuText(Ps_mid0, s_trLine[0][1] ? "ON" : "OFF");
+    ModApi_MenuText(Ps_att0, s_trLine[0][2] ? "ON" : "OFF");
+    ModApi_MenuText(Ps_ghost, s_trGhost ? "ON" : "OFF");
+    ModApi_MenuText(Ps_tackle, s_trTackle ? "ON" : "OFF");
+    if (s_trLine[1][0] | s_trLine[1][1] | s_trLine[1][2]) {
+        ModApi_MenuNav4(Ps_att, Ps_att0, -1, Ps_mid, Ps_ghost);
+        ModApi_MenuNav4(Ps_att0, -1, Ps_att, Ps_mid0, Ps_ghost);
+        ModApi_MenuNav4(Ps_tackle, -1, -1, Ps_ghost, Ps_pitch);
+        ModApi_MenuColour(Ps_ghost, 13);
+        ModApi_MenuDisabled(Ps_ghost, 0);
+    } else {
+        ModApi_MenuNav4(Ps_att, Ps_att0, -1, Ps_mid, Ps_tackle);
+        ModApi_MenuNav4(Ps_att0, -1, Ps_att, Ps_mid0, Ps_tackle);
+        ModApi_MenuNav4(Ps_tackle, -1, -1, Ps_att, Ps_pitch);
+        ModApi_MenuColour(Ps_ghost, 7);
+        ModApi_MenuDisabled(Ps_ghost, 1);
     }
-    ModApi_MenuNav(Tr_exit, Tr_label0 + 2 * kTrainRows - 1, -1);
-    training_refresh();
+    const int32_t teams = tr_player_lines();
+    ModApi_MenuColour(Ps_choose, teams ? 14 : 7);
+    ModApi_MenuColour(Ps_random, teams ? 14 : 7);
+    ModApi_MenuDisabled(Ps_choose, !teams);
+    ModApi_MenuDisabled(Ps_random, !teams);
+    ModApi_MenuNav4(Ps_helpCustom, -1, -1, Ps_pitch, teams ? Ps_choose : Ps_exit);
+    ModApi_MenuNav4(Ps_exit, Ps_choose, Ps_random, teams ? Ps_choose : Ps_helpCustom, -1);
 }
 
-static void training_draw(void) { training_refresh(); }
-
-static void training_start(void)
+static uint32_t s_trTicks;              /* (the menu's own animation clock) */
+static void tr_draw(void)
 {
-    ModMatchSetup setup;
-    ModMatchResult r;
-    if (!ModApi_ChooseTeams())
+    tr_refresh();
+    s_trTicks++;
+#ifdef SWOS_SDL_BUILD
+    tr_draw_pictures();
+#endif
+}
+
+static void tr_controls_draw(void)
+{
+#ifdef SWOS_SDL_BUILD
+    tr_draw_controls();
+#endif
+}
+
+/* TEAM TRAINING's drills (TEAM TRAINING CONTROLS; SWOS 2020's controls.cpp, the training keys):
+ * the player's team's free kick at one of seven spots before the goal it attacks (F1-F7: x 148
+ * .. 548, 152 from the line -- FREE_KICK_UP / _DOWN) or where its controlled player is (ALT), its
+ * corner from the left or the right (F8, F9), a kick (F10) or a high kick (F11) of the ball at
+ * its player's feet, the kick-off again (F12), a goal kick at its own goal (9 left, 0 right) or
+ * the CPU's at the other (- left, = right). Taken at the next frame. */
+enum { DR_NONE, DR_FREE1, DR_FREE7 = DR_FREE1 + 6, DR_FREE_HERE, DR_CORNER_LEFT, DR_CORNER_RIGHT, DR_KICK,
+       DR_HIGH_KICK, DR_KICK_OFF, DR_GOAL_KICK_HOME_LEFT, DR_GOAL_KICK_HOME_RIGHT, DR_GOAL_KICK_OPPO_LEFT,
+       DR_GOAL_KICK_OPPO_RIGHT };
+static int8_t s_drill;
+static uint8_t s_training;              /* our training is the match */
+
+static int32_t training_key(const char *key)
+{
+    static const char *const kKeys[] = { "F1", "F2", "F3", "F4", "F5", "F6", "F7", "Left Alt", "F8", "F9", "F10",
+                                         "F11", "F12", "9", "0", "-", "=" };
+    if (!s_training || !ModApi_ModMatch("practice") || !key)
+        return 0;
+    for (int32_t i = 0; i < (int32_t)(sizeof kKeys / sizeof kKeys[0]); i++)
+        if (strcmp(key, kKeys[i]) == 0) {
+            s_drill = (int8_t)(DR_FREE1 + i);
+            return 1;
+        }
+    return 0;
+}
+
+/* The match's end the player's team (team 0) attacks: 1 the top goal. */
+static int32_t tr_attacks_top(void) { return s_trUp; }
+
+static int32_t s_trTest, s_trTestOk, s_trTestDone;    /* SWOS_PRACTICE_TRAINING_TEST (below) */
+static int32_t drill_apply(int8_t d);
+
+static void training_frame(void)
+{
+    if (!s_training || !ModApi_ModMatch("practice"))
         return;
-    ModApi_DefaultSetup(&setup);
-    setup.chosen = 1;
-    setup.clockStopped = 1;
-    setup.noCards = 1;
-    setup.noInjuries = 1;
-    setup.autoReplays = 0;
-    setup.replayMenu = 0;
-    setup.stadium = 0;
-    setup.playMatchScreen = 1;          /* (the line-up first: EDIT TACTICS, substitutes -- as SHOOTING
-                                           PRACTICE; report 0061) */
-    setup.name = "team training";
-    /* you: the team the player plays (the team screen's: the first that is not the CPU's) */
-    int32_t you = 0;
-    {
-        extern int32_t ModMatch_ChosenSide(int32_t team);   /* (src/mod_match.c: CPU or not) */
-        if (ModMatch_ChosenSide(0) == 0 && ModMatch_ChosenSide(1) != 0)
-            you = 1;
+    if (s_trTest == 2) {                /* (the test: every drill in turn, 400 frames apart; one the
+                                         *  game refuses -- the ball dead -- tried each frame after) */
+        static int32_t next = DR_FREE1, tries;
+        static uint32_t due = 400;
+        const uint32_t f = ModApi_MatchFrames();
+        if (next <= DR_GOAL_KICK_OPPO_RIGHT && f >= due) {
+            if (drill_apply((int8_t)next) == 0) {
+                fprintf(stdout, "TRAINING TEST: drill %d taken at frame %u%s\n", (int)next, (unsigned)f,
+                        tries ? " (after the ball came alive)" : "");
+                s_trTestOk++;
+                next++;
+                tries = 0;
+                due = f + 400;
+            } else if (++tries > 600) {
+                fprintf(stdout, "TRAINING TEST: drill %d refused for 600 frames\n", (int)next);
+                next++;
+                tries = 0;
+                due = f + 400;
+            }
+            s_trTestDone = next - DR_FREE1;
+        }
+        if (next > DR_GOAL_KICK_OPPO_RIGHT && f >= due)
+            ModApi_EndMatch();
+        return;
     }
-    for (int32_t who = 0; who < 2; who++) {
-        const int32_t team = who == 0 ? you : 1 - you;
-        setup.linesOut[team] = (uint8_t)((s_lineOn[who][0] ? 0 : MODLINE_DEFENCE) |
-                                         (s_lineOn[who][1] ? 0 : MODLINE_MIDFIELD) |
-                                         (s_lineOn[who][2] ? 0 : MODLINE_ATTACK));
-    }
-    setup.playingUp = (int8_t)(s_attackUp ? you : 1 - you);
-    setup.kickOff = (int8_t)you;
-    if (ModApi_PlayMatch("practice", &setup, &r) == 0)
-        fprintf(stderr, "[practice] team training: %d-%d in %u frames\n", (int)r.goals[0], (int)r.goals[1],
-                (unsigned)r.frames);
+    if (s_drill == DR_NONE)
+        return;
+    const int8_t d = s_drill;
+    s_drill = DR_NONE;
+    drill_apply(d);
 }
 
-static void training_row(int32_t i)
+/* A drill now: 0 when the game took it (a kick is always taken). */
+static int32_t drill_apply(int8_t d)
 {
-    if (i < 6)
-        s_lineOn[i / 3][i % 3] ^= 1;
-    else if (i == 6)
-        s_attackUp ^= 1;
-    else
-        training_start();
+    static const int16_t kFreeX[7] = { 148, 256, 304, 357, 405, 513, 548 };
+    const int32_t top = tr_attacks_top();
+    /* a wing as its taker attacks: his left is the screen's left when he attacks the top goal */
+    const int32_t leftWingAttacking = top ? 0 : 1, leftWingDefending = top ? 1 : 0;
+    if (d >= DR_FREE1 && d <= DR_FREE7) {
+        return ModApi_Restart(MODRESTART_FREE_KICK, 0, 0, kFreeX[d - DR_FREE1], (int16_t)(top ? 281 : 602));
+    } else if (d == DR_FREE_HERE) {
+        int16_t x, y;
+        return ModApi_ControlledPlayer(0, &x, &y) ? ModApi_Restart(MODRESTART_FREE_KICK, 0, 0, x, y) : -1;
+    } else if (d == DR_CORNER_LEFT || d == DR_CORNER_RIGHT) {
+        const int32_t screenLeft = d == DR_CORNER_LEFT;
+        return ModApi_Restart(MODRESTART_CORNER, 0, screenLeft ? leftWingAttacking : 1 - leftWingAttacking, 0, 0);
+    } else if (d == DR_KICK || d == DR_HIGH_KICK) {
+        ModApi_PressFire(1, d == DR_KICK ? 2 : 20);
+        return 0;
+    } else if (d == DR_KICK_OFF) {
+        return ModApi_Restart(MODRESTART_KICK_OFF, 0, 0, 0, 0);
+    } else {
+        const int32_t home = d == DR_GOAL_KICK_HOME_LEFT || d == DR_GOAL_KICK_HOME_RIGHT;
+        const int32_t screenLeft = d == DR_GOAL_KICK_HOME_LEFT || d == DR_GOAL_KICK_OPPO_LEFT;
+        /* the player's goal kick at its own goal (a taker's left as he attacks: the player's
+         * team's as it attacks, the CPU's the other way), the CPU's at the goal the player attacks */
+        const int32_t left = home ? leftWingAttacking : leftWingDefending;
+        return ModApi_Restart(MODRESTART_GOAL_KICK, home ? 0 : 1, screenLeft ? left : 1 - left, 0, 0);
+    }
 }
 
-static void trow0(void) { training_row(0); }
-static void trow1(void) { training_row(1); }
-static void trow2(void) { training_row(2); }
-static void trow3(void) { training_row(3); }
-static void trow4(void) { training_row(4); }
-static void trow5(void) { training_row(5); }
-static void trow6(void) { training_row(6); }
-static void trow7(void) { training_row(7); }
+/* SWOS_PRACTICE_TRAINING_TEST=1 (SWOS_SKIP_INTRO=1): at the first main menu, TEAM TRAINING with
+ * a random team, the CPU's at its default skill, every line on, both sides the CPU's; every
+ * drill in turn (each 400 frames apart), then the end. PASS when every drill was taken, the clock
+ * never moved, and the match ended, then quits. */
+static void practice_training(void);
+static void training_test_menu(void)
+{
+    if (s_trTest != 1 || !ModApi_IsMainMenu())
+        return;
+    s_trTest = 2;
+    s_trLine[1][0] = s_trLine[1][1] = s_trLine[1][2] = 1;
+    s_trChoice = 1;
+    practice_training();
+}
 
-static void practice_training(void) { ModApi_ShowMenu("practice/trainingMenu"); }
+static void practice_training(void)
+{
+    static TeamFileEx teams[2];
+    static const uint8_t kSkillTeam[5] = { 21, 40, 43, 42, 30 };   /* TEAM.072: global 1548, 1567, 1570,
+                                                                    * 1569, 1557 */
+    for (;;) {
+        ModMatchSetup setup;
+        ModMatchResult r;
+        if (s_trTest != 2) {
+            s_trChoice = -1;
+            ModApi_ShowMenu("practice/practiceSettingMenu");
+        }
+        if (s_trChoice < 0)
+            return;
+        if (s_trChoice == 0) {
+            if (!ModApi_ChooseOneTeam("TEAM TRAINING", "START TEAM TRAINING", &teams[0]))
+                continue;               /* (back to the settings) */
+        } else if (!random_pair(GRP_ALL, teams)) {
+            continue;
+        }
+        ModApi_DefaultSetup(&setup);
+        setup.teamData[0] = &teams[0];
+        const int32_t skill = s_trSkill == 5 ? (int32_t)st_rand(5) : s_trSkill;
+        setup.team[1] = (uint16_t)(72 << 8 | kSkillTeam[skill]);
+        setup.side[0] = s_trTest ? MODSIDE_CPU : MODSIDE_PLAYER1;
+        setup.side[1] = MODSIDE_CPU;
+        setup.clockStopped = 1;
+        setup.noCards = 1;
+        setup.noInjuries = 1;
+        setup.noTackles = (uint8_t)!s_trTackle;
+        setup.pitchType = s_trPitch;
+        setup.stadium = 0;                  /* (g_SkipStadiumMenu) */
+        setup.replayMenu = 0;
+        setup.playMatchScreen = s_trTest ? 0 : 1;     /* (the test has no player to leave it) */
+        setup.hideHud = MODHUD_RESULT;
+        setup.name = "team training";
+        for (int32_t t = 0; t < 2; t++)
+            setup.linesOut[t] = (uint8_t)((s_trLine[t][0] ? 0 : MODLINE_DEFENCE) | (s_trLine[t][1] ? 0 : MODLINE_MIDFIELD) |
+                                          (s_trLine[t][2] ? 0 : MODLINE_ATTACK));
+        if (s_trGhost)
+            setup.ghosts[1] = 0x7FE;        /* (the CPU's outfielders: its keeper is always seen) */
+        setup.playingUp = (int8_t)(s_trUp ? 0 : 1);   /* (DOWN: teamPlayingUp 1, team 1 attacks down) */
+        setup.kickOff = 0;
+        s_drill = DR_NONE;
+        s_training = 1;
+        if (ModApi_PlayMatch("practice", &setup, &r) == 0)
+            fprintf(stderr, "[practice] team training: %d-%d in %u frames\n", (int)r.goals[0], (int)r.goals[1],
+                    (unsigned)r.frames);
+        s_training = 0;
+        if (s_trTest == 2) {
+            const int32_t want = DR_GOAL_KICK_OPPO_RIGHT;
+            const int32_t ok = s_trTestDone == want && s_trTestOk == want && r.minute == 0;
+            fprintf(stdout, "PRACTICE TRAINING TEST %s: %d of %d drills taken, minute %d, %u frames\n",
+                    ok ? "PASS" : "FAIL", (int)s_trTestOk, (int)want, (int)r.minute, (unsigned)r.frames);
+#ifdef SWOS_SDL_BUILD
+            exit(ok ? 0 : 1);
+#endif
+            return;
+        }
+    }
+}
 
 
 static void practice_exit(void) { SetExitMenuFlag(); }
@@ -682,27 +980,37 @@ static void practice_init(void)
         { "stAsia", st_asia }, { "stOriginal", st_original }, { "stSAmerica", st_samerica },
         { "stOceania", st_oceania }, { "stCustom", st_custom }, { "stKeeper", st_keeper }, { "stExit", st_exit },
         { "demo", practice_demo },
+        { "menuDraw", practice_menu_draw },
         { "training", practice_training },
-        { "trainingInit", training_init },
-        { "trainingDraw", training_draw },
-        { "trow0", trow0 }, { "trow1", trow1 }, { "trow2", trow2 }, { "trow3", trow3 },
-        { "trow4", trow4 }, { "trow5", trow5 }, { "trow6", trow6 }, { "trow7", trow7 },
+        { "practiceSetting_OnInit", tr_init }, { "practiceSetting_OnDraw", tr_draw },
+        { "teamPlayingUp_OnSelect", tr_up }, { "goalkeeperSkill_OnSelect", tr_skill },
+        { "defense0_OnSelect", tr_def0 }, { "midfield0_OnSelect", tr_mid0 }, { "attack0_OnSelect", tr_att0 },
+        { "defense_OnSelect", tr_def }, { "midfield_OnSelect", tr_mid }, { "attack_OnSelect", tr_att },
+        { "ghostPlayers_OnSelect", tr_ghost }, { "tackleAllowed_OnSelect", tr_tackle },
+        { "pitchTypeCustom_OnSelect", tr_pitch }, { "helpCustom_OnSelect", tr_controls },
+        { "chooseTeam_OnSelect", tr_choose }, { "randomTeam_OnSelect", tr_random },
+        { "exitPracticeSetting_OnSelect", tr_exit },
+        { "teamTrainingControlsMenu_OnInit", tr_controls_init },
+        { "teamTrainingControlsMenu_OnDraw", tr_controls_draw },
         { "exit", practice_exit },
     };
     ModApi_RegisterHandlers("practice", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     ModApi_AddEntry(MODPOINT_MODES, "practice", "practice", practice_open);
     s_test = getenv("SWOS_PRACTICE_SHOOTOUT_TEST") != NULL;
+    s_trTest = getenv("SWOS_PRACTICE_TRAINING_TEST") != NULL;
 }
 
 const ModDef ModDef_practice = {
     .slug = "practice",
     .init = practice_init,
+    .matchFrame = training_frame,
 #ifdef SWOS_SDL_BUILD
     .matchDrawn = shootout_drawn,
     .menuDrawn = shootout_menu_drawn,
     .playerRowDrawn = shootout_row,
+    .matchKey = training_key,
 #else
-    .menuDrawn = shootout_test_menu,
+    .menuDrawn = shootout_test_menu,   /* (the tests are the SDL build's) */
 #endif
 };
 
