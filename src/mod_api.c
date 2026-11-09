@@ -42,6 +42,7 @@ static int mod_strcasecmp(const char *a, const char *b)
 extern uint16_t  _pitchNumberAndType;
 extern uint32_t  _gameTime;
 extern int32_t   GameLoop_Active(void);
+extern int32_t   GameLoop_MatchRunning(void);  /* (its frames, not the screens after it) */
 extern Sprite  **_team1SpritesTable;
 extern Sprite  **_team2SpritesTable;
 extern TeamGame *_topTeamPtr;
@@ -57,7 +58,7 @@ static uint32_t s_presents, s_replayPresent = 0xFFFFFF00u;
 void ModApi_NotePresent(void) { s_presents++; }
 void ModApi_NoteReplayFrame(void) { s_replayPresent = s_presents; }
 
-int32_t ModApi_InMatch(void) { return GameLoop_Active() != 0; }
+int32_t ModApi_InMatch(void) { return GameLoop_MatchRunning() != 0; }
 int32_t ModApi_InReplay(void) { return s_presents - s_replayPresent <= 2; }
 #ifdef SWOS_SDL_BUILD
 uint32_t ModApi_Ticks(void) { return SDL_GetTicks(); }
@@ -92,7 +93,7 @@ int32_t ModApi_MatchPlayerName(int32_t side, int32_t slot, char *out, int32_t ca
     if (!out || cap < 1)
         return 0;
     out[0] = '\0';
-    if (!t || slot < 0 || slot >= 16 || !ModApi_InMatch())
+    if (!t || slot < 0 || slot >= 16 || !GameLoop_Active())  /* (after its frames too: its end, AFTER THE MATCH) */
         return 0;
     for (const int8_t *s = t->players[slot].shortName;
          n < (int32_t)sizeof t->players[slot].shortName && n + 1 < cap && s[n]; n++)
@@ -105,7 +106,7 @@ int32_t ModApi_MatchTeam(int32_t side, ModMatchTeam *out)
 {
     extern TeamFile *_gameTeam1, *_gameTeam2;
     const TeamFile *t = side == 0 ? _gameTeam1 : side == 1 ? _gameTeam2 : NULL;
-    if (!out || !t || !ModApi_InMatch())
+    if (!out || !t || !GameLoop_Active())  /* (after its frames too: its end, AFTER THE MATCH) */
         return 0;
     memset(out, 0, sizeof *out);
     for (uint32_t i = 0; i < sizeof t->teamName && i + 1 < sizeof out->name && t->teamName[i]; i++)

@@ -673,7 +673,7 @@ struct ModMatchEvent {
 
 /* ---- when ---- */
 int32_t  ModApi_InMenus(void);          /* the front end (no match, no replay) */
-int32_t  ModApi_InMatch(void);          /* a match is being played (its frame loop runs) */
+int32_t  ModApi_InMatch(void);          /* a match is being played (its frame loop runs; not the REPLAY / EXIT screen after it) */
 int32_t  ModApi_InReplay(void);         /* a replay is being shown: the in-match one or VIEW's */
 uint32_t ModApi_Ticks(void);            /* real time, ms: for what a mod animates by itself */
 

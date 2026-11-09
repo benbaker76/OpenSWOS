@@ -925,12 +925,21 @@ static int32_t s_gameLoopDepth;
  * (Video_ApplyDisplayChange waits for the menus after it). */
 int32_t GameLoop_Active(void) { return s_gameLoopDepth > 0; }
 
+/* ...and its frames are still running: not once it is over, when the same loop shows the
+ * REPLAY / EXIT screen and the mods' AFTER THE MATCH entries (ModApi_InMatch: a mod drawing
+ * over the match -- the weather's rain -- stops there). A REPLAY's own GameLoop runs again. */
+static int32_t s_matchOver;
+int32_t GameLoop_MatchRunning(void) { return s_gameLoopDepth > 0 && !s_matchOver; }
+
 void __attribute__((used, externally_visible))
 GameLoop(void)
 {
+    const int32_t wasOver = s_matchOver;
+    s_matchOver = 0;
     s_gameLoopDepth++;
     game_loop_body();
     s_gameLoopDepth--;
+    s_matchOver = wasOver;
 }
 
 static void game_loop_body(void)
@@ -991,6 +1000,7 @@ end_of_match_flow:
     { extern void ReplayRec_MatchEnd(void); ReplayRec_MatchEnd(); }
 #endif
     { extern void ModMatch_Ended(void); ModMatch_Ended(); }   /* the mods are told, before any menu */
+    s_matchOver = 1;                                           /* (ModApi_InMatch: its frames are over) */
     FadeOutToBlack();
     /* nullsub_3 — no-op */
     SetHilFileHeader();
