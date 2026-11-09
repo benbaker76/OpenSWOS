@@ -206,6 +206,108 @@ static uint8_t  s_goals, s_done, s_tackled;
 static uint32_t s_doneAt;
 static int32_t  s_retry;
 
+#ifdef SWOS_SDL_BUILD
+/* ---- the run on the pitch (report 0060): the target at the top right, the time at the top left,
+ * as SWOS 2020's showSpeedrunTimerInfo -- without them a run looked like a friendly. The game's
+ * small font, made into pictures while the menus are up (ModApi_TextImage draws through the menu
+ * frame's text routine) and drawn over the match each frame (gfx.h, as the flags mod). ---- */
+#include "gfx.h"
+#include "display.h"            /* HUD_MARGIN, HUD_WIDTH */
+
+enum { kTextCap = 160 * 12 * 4, kTextColour = 2 };
+static const char kGlyphChars[] = "0123456789.:";
+typedef struct {
+    uint8_t     rgba[kTextCap];
+    int32_t     w, h, gpu;
+    GfxTexture *tex;
+} HudText;
+static HudText s_hudGlyph[sizeof kGlyphChars - 1], s_hudLabel;
+
+static void hud_make(HudText *t, const char *text)
+{
+    if (t->tex)
+        Gfx_DestroyTexture(t->tex);
+    t->tex = NULL;
+    if (!ModApi_TextImage(text, 1, kTextColour, t->rgba, kTextCap, &t->w, &t->h))
+        t->w = t->h = 0;
+}
+
+static void hud_prepare(int32_t target)    /* (a menu's: before the match) */
+{
+    char one[2] = { 0, 0 };
+    for (int32_t i = 0; kGlyphChars[i]; i++) {
+        one[0] = kGlyphChars[i];
+        hud_make(&s_hudGlyph[i], one);
+    }
+    hud_make(&s_hudLabel, kTarget[target].name);
+}
+
+static GfxTexture *hud_texture(HudText *t)
+{
+    if (!t->w)
+        return NULL;
+    if (t->tex && t->gpu == Gfx_IsGpu())
+        return t->tex;
+    if (t->tex)
+        Gfx_DestroyTexture(t->tex);
+    if ((t->tex = Gfx_CreateTexture(t->w, t->h, 0)) != NULL)
+        Gfx_UpdateTexture(t->tex, t->rgba, t->w * 4);
+    t->gpu = Gfx_IsGpu();
+    return t->tex;
+}
+
+static void hud_box(float x, float y, float w)  /* (a dark box behind a text at x, y of width w) */
+{
+    const SDL_FRect box = { x - 3, y, w + 6, 10 };
+    Gfx_FillRect(&box, (SDL_Color){ 0, 0, 0, 160 });
+}
+
+static void sr_frame(void)
+{
+    if (!ModApi_ModMatch("speedrun") || ModApi_InReplay() || s_target < 0)
+        return;
+    Gfx_SetSpace(GFX_SPACE_PICTURE);
+    Gfx_SetBlend(GFX_BLEND_ALPHA);
+    {   /* the time: from kick-off, frozen when the target is met */
+        char t[24];
+        const uint32_t frames = s_done ? s_doneAt : ModApi_MatchFrames();
+        const uint32_t fps = (uint32_t)ModApi_FrameRate();
+        const uint32_t cs = fps ? frames * 100 / fps : 0;
+        snprintf(t, sizeof t, "%u:%02u.%02u", (unsigned)(cs / 6000), (unsigned)(cs / 100 % 60), (unsigned)(cs % 100));
+        float w = 0;
+        const float y = 32;             /* under the target, right-aligned: the left is the game's scorers and clock */
+        for (const char *c = t; *c; c++) {
+            const char *g = strchr(kGlyphChars, *c);
+            if (g)
+                w += (float)s_hudGlyph[g - kGlyphChars].w;
+        }
+        float x = (float)(HUD_MARGIN + HUD_WIDTH) - 10 - w;
+        hud_box(x, y + 1, w);
+        for (const char *c = t; *c; c++) {
+            const char *g = strchr(kGlyphChars, *c);
+            if (!g)
+                continue;
+            HudText *h = &s_hudGlyph[g - kGlyphChars];
+            GfxTexture *tex = hud_texture(h);
+            if (tex) {
+                const SDL_FRect dst = { x, y, (float)h->w, (float)h->h };
+                Gfx_DrawTexture(tex, NULL, &dst);
+            }
+            x += (float)h->w;
+        }
+    }
+    {   /* the target */
+        GfxTexture *tex = hud_texture(&s_hudLabel);
+        if (tex) {
+            const float x = (float)(HUD_MARGIN + HUD_WIDTH) - 10 - (float)s_hudLabel.w, y = 20;
+            hud_box(x, y + 1, (float)s_hudLabel.w);
+            const SDL_FRect dst = { x, y, (float)s_hudLabel.w, (float)s_hudLabel.h };
+            Gfx_DrawTexture(tex, NULL, &dst);
+        }
+    }
+}
+#endif
+
 static void sr_event(const ModMatchEvent *e)
 {
     if (!ModApi_ModMatch("speedrun") || s_done || s_target < 0)
@@ -360,6 +462,9 @@ static void run_at(int32_t target, int32_t again, int32_t difficulty)
         setup.name = "speedrun";
         s_goals = s_done = s_tackled = 0;
         s_doneAt = 0;
+#ifdef SWOS_SDL_BUILD
+        hud_prepare(target);            /* (the time and target on the pitch: made in the menus) */
+#endif
         if (ModApi_PlayMatch("speedrun", &setup, &r) != 0)
             return;
         if (!s_recRead)
@@ -583,5 +688,8 @@ const ModDef ModDef_speedrun = {
     .init = sr_init,
     .matchEvent = sr_event,
     .matchEnded = sr_ended,
+#ifdef SWOS_SDL_BUILD
+    .frameDrawn = sr_frame,
+#endif
 };
 
