@@ -363,6 +363,7 @@ static void practice_shooting(void) { ModApi_ShowMenu("practice/shootingMenu"); 
  * the keeper-only side's outfielders must never take the pitch, the clock must stay at 0 and no
  * period may end; logs the goals; PASS or FAIL, then quits. */
 static int32_t s_shootTest, s_shootFailed, s_shootFrames;
+static int32_t s_shootThrows, s_shootCorners;   /* (the keeper-only side's restarts given: the drill went on) */
 
 static void shooting_test_frame(void)
 {
@@ -386,12 +387,23 @@ static void shooting_test_frame(void)
      * one from each touchline, early, while the ball is in play. The other side takes them
      * (game_timers.c), so the drill goes on and the goals keep coming. */
     {
-        static int32_t throws;
+        int32_t throws = s_shootThrows;
         if ((throws == 0 && s_shootFrames >= 100) || (throws == 1 && s_shootFrames >= 1500)) {
             const int16_t x = throws == 0 ? 100 : 580;      /* (refused while the ball is dead) */
             if (ModApi_Restart(MODRESTART_THROW_IN, 1, 0, x, 400) == 0) {
-                throws++;
+                throws = ++s_shootThrows;
                 fprintf(stdout, "SHOOTING TEST: a throw-in for the keeper's side, frame %d\n", (int)s_shootFrames);
+            }
+        }
+    }
+    /* ... and two corners for it (report 0059: its corner waited for good for a taker it has not
+     * got): each becomes the other side's goal kick (game_timers.c), and the drill goes on. */
+    {
+        const int32_t corners = s_shootCorners;
+        if ((corners == 0 && s_shootFrames >= 700) || (corners == 1 && s_shootFrames >= 2500)) {
+            if (ModApi_Restart(MODRESTART_CORNER, 1, corners, 0, 0) == 0) {
+                s_shootCorners++;
+                fprintf(stdout, "SHOOTING TEST: a corner for the keeper's side, frame %d\n", (int)s_shootFrames);
             }
         }
     }
@@ -425,9 +437,12 @@ static void shooting_test_menu(void)
     setup.side[0] = setup.side[1] = MODSIDE_CPU;
     setup.playMatchScreen = 0;              /* (it waits for a player) */
     ModApi_PlayMatch("practice", &setup, &r);
-    fprintf(stdout, "SHOOTING TEST %s: %d-%d in %u frames\n",
-            s_shootFailed || s_shootFrames < 6000 ? "FAIL" : "PASS", (int)r.goals[0], (int)r.goals[1],
-            (unsigned)r.frames);
+    /* (a drill that stood still at a restart its keeper-only side could not take scores nothing
+     * after it, and never reaches the later restarts: reports 0058, 0059) */
+    const int32_t stood = s_shootThrows < 2 || s_shootCorners < 2 || r.goals[0] + r.goals[1] == 0;
+    fprintf(stdout, "SHOOTING TEST %s: %d-%d in %u frames, %d throw-ins and %d corners for the keeper's side%s\n",
+            s_shootFailed || s_shootFrames < 6000 || stood ? "FAIL" : "PASS", (int)r.goals[0], (int)r.goals[1],
+            (unsigned)r.frames, (int)s_shootThrows, (int)s_shootCorners, stood ? " -- the drill stood still" : "");
 #ifdef SWOS_SDL_BUILD   /* (a test's, SWOS_SHOOTING_TEST: the Amiga has no environment to arm it) */
     exit(s_shootFailed || s_shootFrames < 6000);
 #endif
