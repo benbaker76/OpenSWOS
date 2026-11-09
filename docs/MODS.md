@@ -696,8 +696,29 @@ Ported from SWOS 2020's own code (the owner's choice), mapped onto the engine by
 default -- so the main menu's MODES button is there): MODES -> PRACTICE opens its own menu
 (`practice/practiceMenu`, in the mod's folder; handlers `practice.shootout`, `practice.demo`,
 `practice.exit`, which a fork's menus can name too):
-- **PENALTY SHOOTOUT**: the friendly's team screen (`ModApi_ChooseTeams`: the two teams and who
-  plays each), then straight to a shoot-out (`shootoutOnly`), named SHOOTOUT; back to the menu.
+- **PENALTY SHOOTOUT** (SWOS 2020's, 2026-11-09: its challengeGame2Practice_OnSelect /
+  ChallengeGame gameMode 1, `shootoutTeamsMenu.json`): its team screen -- CHOOSE TEAMS (the
+  friendly's team screen titled SHOOTOUT / START SHOOTOUT, `ModApi_ChooseTeamsTitled`) or two
+  random teams of a group (ALL, EUROPE ... CUSTOM: its 96/97 team files, `ModApi_RandomTeamData`;
+  team 1 the player's, team 2 the CPU's) -- and GOALKEEPER CONTROL (PLAYER each time it opens, or
+  COMPUTER). Then VERSUS, PLAY MATCH with the kick order beside the line-up (10 by the second man
+  .. 1 by the eleventh: `playerRowDrawn` + `menuDrawn`), the stadium, named SHOOTOUT, and straight
+  to penalties at 120: `cameraTop` (the top goal), `hideHud` RESULT, `shortStops` (its GS_GK_55_50 =
+  1 and StartingMatch's 1), `shootoutStats` (the statistics' GOALS the shoot-out's, no possession),
+  `keeperDive` (its setPlayerGKControl and the swos.asm patches it drives: the stick of the
+  defending player as the kick comes -- right / left a low dive that way, up-right / up-left a high
+  one, nothing he stays, up the game's keeper, down as before -- in ShouldGoalkeeperDive's answer,
+  the dive's side and GoalkeeperJumping's height; the keeper carries the player mark, 4 lower). On
+  the pitch (`matchDrawn`, a new hook after the sprites and the statistics; SDL only): the board of
+  names, score, five kicks a side (its tick and cross) and whose turn, the kicking side's takers
+  (head, number, name; the kicker highlighted), the darkened band and the two kits, the keeper's
+  arrow (not when both sides are players') and who plays each side (CPU / Keyboard1 / Joypad). Its
+  three layouts (DOS 320, Amiga 336, wide 480) centred in the frame. `ModApi_Shootout`,
+  `ModApi_ShootoutTaker`, `ModApi_MatchKit`, `ModApi_ControllerName` give the mod what it draws.
+  Not taken from SWOS 2020: its far keeper also obeying the stick (here only the defending one),
+  its MarkPlayerSP writing +4 through a stale pointer, its gkTurn 4 marking the wrong keeper.
+  `SWOS_PRACTICE_SHOOTOUT_TEST=1` plays one CPU v CPU headless: PASS when it has a winner and
+  its board was drawn (`SWOS_PRACTICE_SHOOTOUT_PLAYMATCH=1`: through PLAY MATCH, team 1 yours).
 - **DEMO GAME**: two random national teams (`ModApi_RandomTeam`, its own random numbers), CPU v
   CPU, named DEMO GAME.
 - **TEAM TRAINING** (`practice.training`; SWOS 2020's practiceSetting.mnu): your defence,
@@ -710,6 +731,13 @@ default -- so the main menu's MODES button is there): MODES -> PRACTICE opens it
   put back each frame, as SWOS 2020 does), `noCards` (`_cardsDisallowed`), `noInjuries` (no roll
   in `PlayerTackled`). Menus of a mod's own: `ModApi_MenuText / MenuVisible / MenuNav`. Still to
   come: the drills (F1-F12: forced restarts, G6), ghost players (G5), the manual keeper (G8).
+
+**`petarku-practice`** (`src/mod_petarku_practice.c`, `bin/mods/petarku-practice`: canonical,
+`"modes"`, on by default; split out of `practice` on 2026-11-09 -- SWOS 2020's features are never
+built on petarku's, nor his on SWOS 2020's): MODES -> PETARKU PRACTICE, his PENALTY SHOOTOUT (the
+friendly's team screen, each player's side's SHOOTING ORDER, `shootoutOrder`, his keeper
+`manualKeeper`) and SHOOTING PRACTICE (you against the CPU's keeper, its defenders and midfield on or
+off, no clock, every kick-off yours; `SWOS_SHOOTING_TEST=1` plays it headless).
 
 Checked: the menus draw from the mod's JSON; DEMO GAME plays two random teams;
 `SWOS_MOD_MATCH_TEST=shootout` plays a shoot-out from kick-off (every kick an event, 4-2);

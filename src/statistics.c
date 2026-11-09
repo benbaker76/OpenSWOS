@@ -260,13 +260,19 @@ void DrawStatistics(void)
     /* GOALS */
     y += 18;
     DrawMenuTextCentered(kColCentre, y, color, _aGoals, charTable);
-    writeStatsNumber(_statsTeam1Goals, 80, y, color, charTable);
-    writeStatsNumber(_statsTeam2Goals, kColRight, y, color, charTable);
+    {   /* a mod's match that shows its shoot-out (SWOS 2020's DrawStatistics_2): its score, no
+         * possession */
+        extern int32_t ModMatch_ShootoutStats(void);
+        extern uint16_t _team1PenaltyGoals, _team2PenaltyGoals;
+        const int32_t pens = ModMatch_ShootoutStats();
+        writeStatsNumber(pens ? _team1PenaltyGoals : _statsTeam1Goals, 80, y, color, charTable);
+        writeStatsNumber(pens ? _team2PenaltyGoals : _statsTeam2Goals, kColRight, y, color, charTable);
 
-    /* POSSESSION */
-    y += 18;
-    DrawMenuTextCentered(kColCentre, y, color, _aPossession, charTable);
-    d7 = (uint16_t)a5->ballPossession + (uint16_t)a6->ballPossession;
+        /* POSSESSION */
+        y += 18;
+        DrawMenuTextCentered(kColCentre, y, color, _aPossession, charTable);
+        d7 = pens ? 0 : (uint16_t)((uint16_t)a5->ballPossession + (uint16_t)a6->ballPossession);
+    }
     if (d7 == 0)
     {
         DrawMenuTextCentered(80, y, color, _aMinus, charTable);

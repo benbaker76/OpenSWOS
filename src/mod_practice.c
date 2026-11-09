@@ -1,150 +1,561 @@
 /*
  * mod_practice.c -- the practice mod (canonical, bin/mods/practice; docs/MODS.md §18): SWOS 2020's
  * PRACTICE (its practice.mnu, game.cpp ChallengeGame), ported onto the mod API. Both targets.
+ * SWOS 2020's alone: petarku's modes are their own mod (src/mod_petarku_practice.c), and neither is
+ * built on the other (the owner, 2026-11-09).
  *
  * MODES -> PRACTICE opens its menu (bin/mods/practice/data_json/menus/practice/practiceMenu.json,
  * its handlers practice.<name>):
- *   PENALTY SHOOTOUT  the friendly's team screen (who plays each side), each player's side's SHOOTING
- *                     ORDER (shootoutOrderMenu.json; petarku's), then straight to a shoot-out with a
- *                     player's keeper his to dive (SWOS 2020: challengeGame2Practice_OnSelect, minute
- *                     120 with penalties)
+ *   PENALTY SHOOTOUT  SWOS 2020's (challengeGame2Practice_OnSelect, ChallengeGame gameMode 1): its
+ *                     team screen (shootoutTeamsMenu.json: CHOOSE TEAMS, the random groups,
+ *                     GOALKEEPER CONTROL), then VERSUS / PLAY MATCH (the kick order beside the line-
+ *                     up) / the stadium, named SHOOTOUT, and straight to penalties: the camera at the
+ *                     top goal, no result banner, a player's keeper his to dive, the board of kicks,
+ *                     the takers and the kits on the pitch; the statistics show the shoot-out
  *   DEMO GAME         two random national teams, CPU v CPU (demoGamePractice_OnSelect)
  *   TEAM TRAINING     its settings (trainingMenu.json; SWOS 2020's practiceSetting.mnu): each line,
  *                     yours and the CPU's, on or off, the goal you attack; START, the team screen,
  *                     then a match whose clock stays at 0 -- no half time, no end but leaving it
  *                     (ESC) -- with no cards and no injuries (trainingModePractice_OnSelect)
- *   SHOOTING PRACTICE petarku's (shootingMenu.json): you against the CPU's goalkeeper (its
- *                     defenders and midfield on or off), no clock, every kick-off yours
- * Each match returns here (the menu again), as SWOS 2020's do. Training's drills (F1-F12), ghost
- * players and the manual keeper are next (docs/MODS.md §18).
+ * Each match returns here (the menu again), as SWOS 2020's do. Training's drills (F1-F12) and ghost
+ * players are next (docs/MODS.md §18).
  *
  * "changes": "modes": its matches are its own, a normal one untouched -- never matters online.
  */
 #include "mod_api.h"
-
+#include "game_types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 extern void SetExitMenuFlag(void);
 
-/* ---- the shoot-out's SHOOTING ORDER (petarku's, the5ar: his fork's penalty_shootout.c) ----
- * For each side a player plays, its ten outfielders as the queue (shootoutOrderMenu.json): 1-5 the
- * best-of-five takers, 6-10 after them. Fire on one, then on another, and the two swap. It starts
- * as the game's own order (NextPenalty walks line-up slots 10, 9 .. 1), so START SHOOTOUT at once
- * changes nothing. */
-enum { Or_header, Or_subTitle, Or_row0, Or_note = Or_row0 + 10, Or_start, Or_exit };
-enum { kRowColour = 13, kPickedColour = 14 };
+/* ---- PENALTY SHOOTOUT (SWOS 2020's: challengeGame2Practice_OnSelect, ChallengeGame::run with
+ * gameMode 1; docs/MODS.md §18) ----
+ * Its team screen (selectTeams.mnu as its gameMode 1 shows it): CHOOSE TEAMS (the friendly's team
+ * screen titled SHOOTOUT, START SHOOTOUT; a coach plays as a player), or two random teams of a
+ * group -- team 1 the player's, team 2 the CPU's -- and GOALKEEPER CONTROL, PLAYER (each time the
+ * screen opens) or COMPUTER. */
+enum { St_header, St_free, St_choose, St_random, St_all, St_europe, St_africa, St_national, St_nAmerica,
+       St_asia, St_original, St_sAmerica, St_oceania, St_custom, St_gkCaption, St_gk, St_exit };
+enum { GRP_ALL = -1, GRP_EUROPE, GRP_N_AMERICA, GRP_S_AMERICA, GRP_AFRICA, GRP_ASIA, GRP_OCEANIA,
+       GRP_NATIONAL, GRP_ORIGINAL, GRP_CUSTOM };
 
-static uint8_t s_order[10];             /* the side on the screen: line-up slots, shooting order */
-static int32_t s_orderTeam;             /* 0 / 1: that side */
-static int32_t s_picked = -1;           /* the row picked first, -1 none */
-static int32_t s_orderGo;               /* START SHOOTOUT pressed */
-static char    s_orderText[10][40];
-static char    s_orderTitle[40];
+static int32_t s_test, s_testFrames;  /* SWOS_PRACTICE_SHOOTOUT_TEST: 1 armed, 2 played */
+static void shootout_play(ModMatchSetup *setup);
+static int32_t s_stPick;                /* -2 left, -1 CHOOSE TEAMS, else a GRP_* (GRP_ALL as -3) */
+static uint8_t s_gkPlayer = 1;          /* GOALKEEPER CONTROL: PLAYER */
+static uint8_t s_shootout;              /* our shoot-out is the match (its drawing) */
+static uint32_t s_rand;
 
-static void order_refresh(void)
+static void st_init(void)
 {
-    static const char *const kPos[8] = { "GK", "RB", "LB", "D", "RW", "LW", "M", "A" };
-    ModTeamPlayer p;
+    s_gkPlayer = 1;                     /* (SWOS 2020 sets g_GKManual = -1 before the screen) */
+    ModApi_MenuText(St_gk, "PLAYER");
+}
+static void st_pick(int32_t pick) { s_stPick = pick; SetExitMenuFlag(); }
+static void st_choose(void) { st_pick(-1); }
+static void st_all(void) { st_pick(-3); }
+static void st_europe(void) { st_pick(GRP_EUROPE); }
+static void st_africa(void) { st_pick(GRP_AFRICA); }
+static void st_national(void) { st_pick(GRP_NATIONAL); }
+static void st_namerica(void) { st_pick(GRP_N_AMERICA); }
+static void st_asia(void) { st_pick(GRP_ASIA); }
+static void st_original(void) { st_pick(GRP_ORIGINAL); }
+static void st_samerica(void) { st_pick(GRP_S_AMERICA); }
+static void st_oceania(void) { st_pick(GRP_OCEANIA); }
+static void st_custom(void) { st_pick(GRP_CUSTOM); }
+static void st_exit(void) { st_pick(-2); }
+static void st_keeper(void)             /* (gkOption_OnSelect) */
+{
+    s_gkPlayer ^= 1;
+    ModApi_MenuText(St_gk, s_gkPlayer ? "PLAYER" : "COMPUTER");
+    ModApi_MenuRedraw(St_gk);
+}
 
-    snprintf(s_orderTitle, sizeof s_orderTitle, "%s", ModApi_ChosenName(s_orderTeam));
-    ModApi_MenuText(Or_subTitle, s_orderTitle);
-    for (int32_t i = 0; i < 10; i++) {
-        if (ModApi_ChosenTeamPlayer(s_orderTeam, s_order[i], &p))
-            snprintf(s_orderText[i], sizeof s_orderText[i], "%2d  %-18.18s %s", (int)i + 1, p.name,
-                     kPos[p.position & 7]);
-        else
-            snprintf(s_orderText[i], sizeof s_orderText[i], "%2d", (int)i + 1);
-        ModApi_MenuText(Or_row0 + i, s_orderText[i]);
-        ModApi_MenuColour(Or_row0 + i, i == s_picked ? kPickedColour : kRowColour);
+static uint32_t st_rand(uint32_t n)
+{
+    if (!s_rand)
+        s_rand = ModApi_Ticks() * 2654435761u | 1u;
+    s_rand = s_rand * 1664525u + 1013904223u;
+    return n ? (s_rand >> 16) % n : 0;
+}
+
+/* A team file of the group (SWOS 2020's getRandomTeamNr, its 96/97 files). */
+static int32_t group_file(int32_t group)
+{
+    static const uint8_t kEurope[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+                                       22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+                                       40, 41, 76, 78 };
+    static const uint8_t kNAmerica[] = { 51, 60, 73 };
+    static const uint8_t kSAmerica[] = { 43, 45, 46, 48, 49, 50, 64, 65, 66, 71, 77 };
+    static const uint8_t kAfrica[] = { 42, 69, 79 };
+    static const uint8_t kAsia[] = { 55, 67, 75 };
+    static const uint8_t kOceania[] = { 44, 62 };
+    static const uint8_t kNational[] = { 80, 81, 82, 83, 84, 85 };
+#define PICK(a) a[st_rand((uint32_t)sizeof a)]
+    switch (group) {
+    case GRP_EUROPE: return PICK(kEurope);
+    case GRP_N_AMERICA: return PICK(kNAmerica);
+    case GRP_S_AMERICA: return PICK(kSAmerica);
+    case GRP_AFRICA: return PICK(kAfrica);
+    case GRP_ASIA: return PICK(kAsia);
+    case GRP_OCEANIA: return PICK(kOceania);
+    case GRP_NATIONAL: return PICK(kNational);
+    case GRP_ORIGINAL: return 72;
+    case GRP_CUSTOM: return 100;
+    default:
+        for (;;) {                      /* (getRandomTeamNr(): every file there is -- 96/97's, as
+                                         *  its grouped list leaves out the numbers with none) */
+            const int32_t f = (int32_t)st_rand(87);
+            if (f != 9 && f != 47 && !(f >= 52 && f <= 54) && !(f >= 56 && f <= 59) && f != 61 && f != 63 &&
+                f != 68 && f != 70)
+                return f;
+        }
     }
-    ModApi_MenuText(Or_note, s_picked < 0 ? "PICK A PLAYER, THEN ANOTHER: THEY SWAP" : "NOW THE ONE TO SWAP WITH");
+#undef PICK
 }
 
-static void order_init(void)
+/* Two different random teams of the group (getRandomTeamBuffer: two files, different but in
+ * ORIGINAL and CUSTOM, then a team of each, again while the two are one). */
+static int32_t random_pair(int32_t group, TeamFileEx out[2])
 {
-    for (int32_t i = 0; i < 10; i++)
-        ModApi_MenuNav4(Or_row0 + i, -1, -1, i ? Or_row0 + i - 1 : -1, i < 9 ? Or_row0 + i + 1 : Or_start);
-    ModApi_MenuNav4(Or_start, -1, Or_exit, Or_row0 + 9, -1);
-    ModApi_MenuNav4(Or_exit, Or_start, -1, Or_row0 + 9, -1);
-    order_refresh();
-}
-
-static void order_draw(void) { order_refresh(); }
-
-static void order_row(int32_t i)
-{
-    if (getenv("SWOS_MOD_EVENT_LOG"))
-        fprintf(stderr, "[practice] row %d fire at %u (picked %d)\n", (int)i + 1, (unsigned)ModApi_Ticks(),
-                (int)s_picked + 1);
-    if (s_picked < 0) {
-        s_picked = i;
-    } else {
-        uint8_t t = s_order[i];
-        s_order[i] = s_order[s_picked];
-        s_order[s_picked] = t;
-        fprintf(stderr, "[practice] shooting order: %d <-> %d\n", (int)s_picked + 1, (int)i + 1);
-        s_picked = -1;
-    }
-    order_refresh();
-    for (int32_t r = 0; r < 10; r++)
-        ModApi_MenuRedraw(Or_row0 + r);
-    ModApi_MenuRedraw(Or_note);
-}
-
-static void orow0(void) { order_row(0); }
-static void orow1(void) { order_row(1); }
-static void orow2(void) { order_row(2); }
-static void orow3(void) { order_row(3); }
-static void orow4(void) { order_row(4); }
-static void orow5(void) { order_row(5); }
-static void orow6(void) { order_row(6); }
-static void orow7(void) { order_row(7); }
-static void orow8(void) { order_row(8); }
-static void orow9(void) { order_row(9); }
-static void order_start(void) { s_orderGo = 1; SetExitMenuFlag(); }
-static void order_exit(void)  { s_orderGo = 0; SetExitMenuFlag(); }
-
-/* The order of each side a player plays, chosen on the screen; a CPU side shoots as the game
- * picks. 0 when the player left. */
-static int32_t choose_orders(ModMatchSetup *setup)
-{
-    for (int32_t t = 0; t < 2; t++) {
-        if (!ModApi_ChosenIsPlayer(t))
+    for (int32_t tries = 0; tries < 64; tries++) {
+        const int32_t f0 = group_file(group), f1 = group_file(group);
+        if (f0 == f1 && group != GRP_ORIGINAL && group != GRP_CUSTOM)
             continue;
-        for (int32_t i = 0; i < 10; i++)
-            s_order[i] = (uint8_t)(10 - i);
-        s_orderTeam = t;
-        s_picked = -1;
-        s_orderGo = 0;
-        ModApi_ShowMenu("practice/shootoutOrderMenu");
-        if (!s_orderGo)
-            return 0;
-        for (int32_t i = 0; i < 10; i++)
-            setup->shootoutOrder[t][i] = s_order[i];
+        if (!ModApi_RandomTeamData(f0, &out[0]) || !ModApi_RandomTeamData(f1, &out[1]))
+            continue;
+        if (memcmp(&out[0], &out[1], sizeof out[0]) != 0)
+            return 1;
     }
-    return 1;
+    return 0;
 }
+
+/* The board's bookkeeping (showPenaltyGoalsInfo): who scored each kick, whose turn it is. */
+static uint8_t s_kicks[2][256];         /* teamNPenaltyGoalsArray: 1 a kick scored */
+static int16_t s_lastGoals[2];
+static uint8_t s_turnStarted;           /* penaltyShootoutStarted */
+static int8_t  s_turnFirst;             /* penaltyShootoutTeamTurn */
+static int16_t s_orderRowY[11];         /* PLAY MATCH: the line-up rows' y, by row (0 the keeper) */
+static int8_t  s_orderRows;
 
 static void practice_shootout(void)
 {
     ModMatchSetup setup;
-    ModMatchResult r;
-    if (!ModApi_ChooseTeams())
+    static TeamFileEx teams[2];
+    s_stPick = -2;
+    ModApi_ShowMenu("practice/shootoutTeamsMenu");
+    if (s_stPick == -2)
         return;
     ModApi_DefaultSetup(&setup);
-    if (!choose_orders(&setup))
-        return;
-    setup.chosen = 1;
+    if (s_stPick == -1) {
+        if (!ModApi_ChooseTeamsTitled("SHOOTOUT", "START SHOOTOUT"))
+            return;
+        setup.chosen = 1;
+    } else {
+        if (!random_pair(s_stPick == -3 ? GRP_ALL : s_stPick, teams))
+            return;
+        setup.teamData[0] = &teams[0];
+        setup.teamData[1] = &teams[1];
+        setup.side[0] = MODSIDE_PLAYER1;    /* (cGame.control1 2, control2 1) */
+        setup.side[1] = MODSIDE_CPU;
+    }
+    shootout_play(&setup);
+}
+
+/* SWOS 2020's rules for its shoot-out, and the match. */
+static void shootout_play(ModMatchSetup *setup0)
+{
+    ModMatchSetup setup = *setup0;
+    ModMatchResult r;
     setup.shootoutOnly = 1;
-    setup.manualKeeper = 1;                 /* a player's keeper dives where he holds (petarku's) */
-    setup.autoReplays = 0;
-    setup.replayMenu = 0;
+    setup.minute = 120;                     /* (ResetTime: g_time 1, 2, 0) */
+    setup.keeperDive = s_gkPlayer;
+    setup.cameraTop = 1;
+    setup.shootoutStats = 1;
+    setup.shortStops = 1;                   /* (GS_GK_55_50 = 1, and StartingMatch's 1 for 100) */
+    setup.hideHud = MODHUD_RESULT;          /* (ShowResult: out at once) */
+    setup.replayMenu = 0;                   /* (ReplayExitMenuAfterFriendly: replaySelected 0) */
+    setup.playMatchScreen = s_test == 1 && !getenv("SWOS_PRACTICE_SHOOTOUT_PLAYMATCH") ? 0 : 1;
+    if (s_test)
+        setup.stadium = 0;
     setup.name = "shootout";
+    memset(s_kicks, 0, sizeof s_kicks);
+    s_lastGoals[0] = s_lastGoals[1] = 0;
+    s_turnStarted = 0;
+    s_turnFirst = 0;
+    s_orderRows = 0;
+    s_shootout = 1;
     if (ModApi_PlayMatch("practice", &setup, &r) == 0)
         fprintf(stderr, "[practice] shoot-out: %d-%d\n", (int)r.penaltyGoals[0], (int)r.penaltyGoals[1]);
+    s_shootout = 0;
+    if (s_test == 1) {                  /* (SWOS_PRACTICE_SHOOTOUT_TEST, below) */
+        s_test = 2;
+        const int32_t ok = r.penaltyGoals[0] != r.penaltyGoals[1] && r.goals[0] == 0 && r.goals[1] == 0 &&
+                           s_testFrames > 0;
+        fprintf(stdout, "PRACTICE SHOOTOUT TEST %s: %d-%d on penalties, %u frames, board drawn %d times\n",
+                ok ? "PASS" : "FAIL", (int)r.penaltyGoals[0], (int)r.penaltyGoals[1], (unsigned)r.frames,
+                (int)s_testFrames);
+#ifdef SWOS_SDL_BUILD
+        exit(ok ? 0 : 1);
+#endif
+    }
 }
+
+/* SWOS_PRACTICE_SHOOTOUT_TEST=1 (SWOS_SKIP_INTRO=1): at the first main menu, SWOS 2020's shoot-out
+ * between two random teams of every file, CPU v CPU, no screens before it; PASS when the shoot-out
+ * had a winner (and no goal in play) and its board was drawn, then quits. */
+static void shootout_test_menu(void)
+{
+    static TeamFileEx teams[2];
+    ModMatchSetup setup;
+    if (s_test != 1 || !ModApi_IsMainMenu() || s_shootout)
+        return;
+    if (!random_pair(GRP_ALL, teams)) {
+        fprintf(stderr, "[practice] shoot-out test: no two random teams\n");
+        return;
+    }
+    ModApi_DefaultSetup(&setup);
+    setup.teamData[0] = &teams[0];
+    setup.teamData[1] = &teams[1];
+    setup.side[0] = setup.side[1] = MODSIDE_CPU;
+    if (getenv("SWOS_PRACTICE_SHOOTOUT_PLAYMATCH"))     /* (to see PLAY MATCH: the player's team 1) */
+        setup.side[0] = MODSIDE_PLAYER1;
+    shootout_play(&setup);
+}
+
+static int32_t our_shootout(void) { return s_shootout && ModApi_ModMatch("practice"); }
+
+/* The board's state as SWOS 2020 keeps it, a frame at a time. */
+static int32_t shootout_turn(const ModShootout *so)
+{
+    for (int32_t t = 0; t < 2; t++) {
+        if (so->goals[t] > s_lastGoals[t] && so->attempts[t] >= 1 && so->attempts[t] <= 256)
+            s_kicks[t][so->attempts[t] - 1] = 1;    /* (Team1PenaltyGoalInc) */
+        s_lastGoals[t] = so->goals[t];
+    }
+    const int16_t t1 = so->attempts[0], t2 = so->attempts[1];
+    if (!s_turnStarted && t1 != t2) {
+        s_turnFirst = (int8_t)(t1 > t2 ? 0 : 1);
+        s_turnStarted = 1;
+    }
+    return t1 > t2 ? 0 : t1 < t2 ? 1 : s_turnFirst == 0 ? 1 : 0;
+}
+
+#ifdef SWOS_SDL_BUILD
+/* ---- its pictures (SWOS 2020's PixelmapAndStrings.h, verbatim; the palette indices as there) ---- */
+static const char *const kMarkCheck[11] = {
+    ".......121.", ".......121.", "......121#.", "......121..", ".....121#..", ".1...121...",
+    "121.121#...", "#121121....", ".#1221#....", "..#121.....", "...#1#.....",
+};
+static const char *const kMarkX[11] = {
+    "33.......33", "323.....323", "#323...323#", ".#323.323#.", "..#32323#..", "...#323#...",
+    "...32323...", "..323#323..", ".323#.#323.", "323#...#323", "33#.....#33",
+};
+static const char *const kArrowRight[7] = {
+    ".....6F...", "......6F..", "4455566F2.", "455566FFF8", ".888886F88", ".....6F88.", "......88..",
+};
+static const char *const kArrowLeft[7] = {
+    "..F6......", ".F688.....", "2F6655544.", "FFF6655548", ".F68888888", "..F6......", "...88.....",
+};
+static const char *const kArrowRightUp[9] = {
+    "...66FF2.", ".....6FF8", "....6F6F8", "...566868", "..5658868", ".45588..8", "45488....", ".488.....",
+    "..8......",
+};
+static const char *const kArrowLeftUp[9] = {
+    "2FF66....", "FF6888...", "F6F6.....", "68665....", "68.565...", ".8..554..", ".....454.", "......488",
+    ".......8.",
+};
+static const char *const kHeads[3][8] = {
+    { "..333...", ".33333..", "33666338", "36261538", ".6666588", ".5635488", "..55488.", "...888.." },
+    { "..656...", ".65545..", "65666458", "56261548", ".6666588", ".5635488", "..55488.", "...888.." },
+    { "..333...", ".33333..", "33555338", "35251438", ".5555488", ".4534388", "..44388.", "...888.." },
+};
+static const char *const kUniforms[4][8] = {
+    { "........", ".12221..", ".12221+.", "..222++.", "..333+..", "..333+..", "...+++..", "........" },
+    { "........", ".21112..", ".21112+.", "..111++.", "..333+..", "..333+..", "...+++..", "........" },
+    { "........", ".12121..", ".12121+.", "..212++.", "..333+..", "..333+..", "...+++..", "........" },
+    { "........", ".11111..", ".12221+.", "..111++.", "..333+..", "..333+..", "...+++..", "........" },
+};
+static const char *const kSmallNumbers[10][8] = {     /* (the 9th, blank, row not drawn) */
+    { "........", "...2....", "...28...", "...28...", "...28...", "...28...", "....8...", "........" },
+    { "........", ".2222...", "..88828.", "..222.8.", ".28888..", ".22222..", "..88888.", "........" },
+    { "........", ".2222...", "..8882..", "..222.8.", "...882..", ".2222.8.", "..8888..", "........" },
+    { "........", ".2...2..", ".28..28.", ".222228.", "..88828.", ".....28.", "......8.", "........" },
+    { "........", ".22222..", ".288888.", ".2222...", "..8882..", ".2222.8.", "..8888..", "........" },
+    { "........", "..2222..", ".288888.", ".2222...", ".28882..", "..222.8.", "...888..", "........" },
+    { "........", ".22222..", "..88828.", ".....28.", ".....28.", ".....28.", "......8.", "........" },
+    { "........", "..222...", ".28882..", "..222.8.", ".28882..", "..222.8.", "...888..", "........" },
+    { "........", "..222...", ".28882..", "..22228.", "..88828.", ".2222.8.", "..8888..", "........" },
+    { "........", "2..222..", "2828882.", "2828..28", "2828..28", "28.222.8", ".8.8888.", "........" },
+};
+
+static uint8_t *s_fb;
+static int32_t  s_stride, s_w, s_h;
+
+static void put(int32_t x, int32_t y, uint8_t c)
+{
+    if (x >= 0 && y >= 0 && x < s_w && y < s_h)
+        s_fb[y * s_stride + x] = c;
+}
+
+static void fill(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint8_t c)     /* (inclusive) */
+{
+    for (int32_t y = y0; y <= y1; y++)
+        for (int32_t x = x0; x <= x1; x++)
+            put(x, y, c);
+}
+
+/* A picture: each character its palette index ('.' clear, or `bg` when it is not -1). */
+static void pixmap(const char *const *rows, int32_t w, int32_t h, int32_t x, int32_t y, const char *keys,
+                   const uint8_t *cols, int32_t bg)
+{
+    for (int32_t j = 0; j < h; j++)
+        for (int32_t i = 0; i < w; i++) {
+            const char *k = strchr(keys, rows[j][i]);
+            if (rows[j][i] != '.' && k)
+                put(x + i, y + j, cols[k - keys]);
+            else if (bg >= 0)
+                put(x + i, y + j, (uint8_t)bg);
+        }
+}
+
+static void text(int32_t x, int32_t y, const char *t, int32_t small)
+{
+    if (x < 0)
+        x = 0;
+    ModApi_DrawText(x, y, 2 /* kWhiteText2 */, t, small);
+}
+
+static int32_t text_w(const char *t, int32_t small) { return ModApi_TextWidth(t, small); }
+
+/* SWOS 2020's three layouts (its screen modes): 0 the DOS view (320 x 200), 1 the Amiga's (336),
+ * 2 its wide one (480): each centred in the frame by the difference. */
+typedef struct {
+    int32_t mode, base;                     /* the layout, the width it was laid out for */
+    int32_t nameRight, goalGap, cellX0, cellGap, y0, y1, y2;
+    int32_t ox, oy, headGap;                /* the takers panel */
+    int32_t bandY, bandH, kitX, kitY1, kitY2;
+} Layout;
+
+static void layout(Layout *l)
+{
+    memset(l, 0, sizeof *l);
+    if (s_h <= 200) {
+        l->mode = 0; l->base = 320; l->nameRight = 320 - 180; l->goalGap = 12; l->cellX0 = 190; l->cellGap = 22;
+        l->y0 = 161; l->y1 = 173; l->y2 = 186; l->ox = 15; l->oy = 60;
+        l->bandY = 168; l->bandH = 32; l->kitX = 143; l->kitY1 = 170; l->kitY2 = 183;
+    } else if (s_w >= 480) {
+        l->mode = 2; l->base = 480; l->nameRight = 480 - 280; l->goalGap = 0; l->cellX0 = 267; l->cellGap = 25;
+        l->y0 = 233; l->y1 = 245; l->y2 = 258; l->ox = 50; l->oy = 120; l->headGap = 11;
+        l->bandY = 230; l->bandH = 40; l->kitX = 210; l->kitY1 = 242; l->kitY2 = 255;
+    } else {
+        l->mode = 1; l->base = 336; l->nameRight = 336 - 195; l->goalGap = 10; l->cellX0 = 196; l->cellGap = 25;
+        l->y0 = 233; l->y1 = 245; l->y2 = 258; l->ox = 15; l->oy = 120;
+        l->bandY = 230; l->bandH = 40; l->kitX = 148; l->kitY1 = 242; l->kitY2 = 255;
+    }
+}
+
+static void draw_mark(char c, int32_t x, int32_t y)
+{
+    static const uint8_t cols[] = { 14, 2, 8, 10, 3, 1 };
+    pixmap(c == '1' ? kMarkCheck : kMarkX, 11, 11, x, y, "12#304", cols, -1);
+}
+
+/* The board (showPenaltyGoalsInfo): the names, the shoot-out's score, five kicks a side and whose
+ * turn it is; then the takers of the side kicking (but while the players leave and at the result). */
+static void draw_board(const ModShootout *so, const Layout *l, int32_t m)
+{
+    const int32_t turn = shootout_turn(so);
+    ModMatchTeam team[2];
+    char buf[24];
+    for (int32_t t = 0; t < 2; t++) {
+        if (!ModApi_MatchTeam(t, &team[t]))
+            team[t].name[0] = '\0';
+        const int32_t y = t ? l->y2 : l->y1;
+        text(m + l->nameRight - text_w(team[t].name, 0), y, team[t].name, 0);
+        snprintf(buf, sizeof buf, "%d", (int)so->goals[t]);
+        text(m + (l->base - text_w(buf, 0)) / 2 + l->goalGap, y, buf, 0);
+    }
+    const int32_t start = so->attempts[0] > 5 ? so->attempts[0] - 5 : 0;
+    for (int32_t i = start; i <= start + 5; i++) {
+        const int32_t c = i - start, x = m + l->cellX0 + l->cellGap * c;
+        if (l->mode != 0 && c <= 4) {
+            snprintf(buf, sizeof buf, "%d", (int)i + 1);
+            text(x, l->y0, buf, 0);
+        }
+        for (int32_t t = 0; t < 2; t++) {
+            const int32_t y = t ? l->y2 : l->y1, n = so->attempts[t];
+            char cell = 0;
+            if (c <= 4) {
+                if (i < n - 1)
+                    cell = s_kicks[t][i] ? '1' : '0';
+                else if (i == n - 1)
+                    cell = turn == t && !so->over && so->inProgress ? '*' : s_kicks[t][i] ? '1' : '0';
+                else
+                    cell = '-';
+            } else if (turn == t) {
+                cell = '*';
+            }
+            if (cell == '1')
+                draw_mark('1', x - 1, y);
+            else if (cell == '0')
+                draw_mark('0', x - 2, y);
+            else if (cell) {
+                buf[0] = cell;
+                buf[1] = '\0';
+                text(x, y, buf, 0);
+            }
+        }
+    }
+    if (so->gameState == 24 || so->gameState == 26)
+        return;
+    /* the takers panel: the kicking side's ten, its first kicker at the top */
+    const int32_t ox = m + l->ox, oy = l->oy, hg = l->headGap;
+    fill(ox - 13 - hg, oy + 6, ox + 102 - hg, oy + 96, 199);
+    const int32_t kicker = so->shooter[turn];
+    const int32_t cpu = so->side[turn] == MODSIDE_CPU;
+    for (int32_t i = 10, r = 1; i >= 1; i--, r++) {
+        char name[20];
+        int32_t shirt = 0, face = 0;
+        const int32_t y = oy + r * 9 - 1;
+        if (!ModApi_ShootoutTaker(turn, i, name, sizeof name, &shirt, &face))
+            continue;
+        const uint8_t numBox = (uint8_t)(i == kicker ? 240 : 200);
+        const uint8_t nameBox = (uint8_t)(i == kicker ? 240 : cpu ? 10 : 28);
+        const int32_t bx = l->mode == 2 ? ox - 11 : ox;
+        fill(bx - 1, y - 1, bx + 8, y + 6, numBox);
+        snprintf(buf, sizeof buf, "%d", (int)shirt);
+        text(bx + 5 - text_w(buf, 1) / 2, y, buf, 1);
+        const int32_t nx = l->mode == 2 ? ox : ox + 11;
+        fill(nx - 1, y - 1, nx + 90, y + 6, nameBox);
+        text(nx, y, name, 1);
+        const int32_t hx = l->mode == 2 ? ox - 22 : ox - 11, hy = oy + r * 9 - 2;
+        static const uint8_t headCols[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+        if (face < 0 || face > 2)
+            face = face == 3 ? 2 : 0;   /* (SWOS 2020 has three heads: black with blond hair, its black) */
+        for (int32_t j = 0; j < 8; j++) {
+            put(hx - 1, hy + j, nameBox);
+            put(hx + 8, hy + j, nameBox);
+        }
+        pixmap(kHeads[face], 8, 8, hx, hy, "123456789ABCDEF", headCols, nameBox);
+    }
+}
+
+/* The darkened band under the board and the two kits (render.cpp's drawSideDarkenRectangles: at the
+ * picture's colours there, the frame's lower half of the palette in its upper half here). */
+static void draw_band_and_kits(const Layout *l, int32_t m)
+{
+    int32_t x0 = 0, x1 = s_w - 1;
+    if (l->mode == 2) {
+        x0 = m + 48;
+        x1 = m + 48 + 384;
+    }
+    for (int32_t y = l->bandY; y <= l->bandY + l->bandH; y++)
+        for (int32_t x = x0; x <= x1; x++)
+            if (x >= 0 && x < s_w && y >= 0 && y < s_h && s_fb[y * s_stride + x] < 128)
+                s_fb[y * s_stride + x] += 128;
+    for (int32_t t = 0; t < 2; t++) {
+        int32_t type, shirt, stripes, shorts;
+        if (!ModApi_MatchKit(t, &type, &shirt, &stripes, &shorts))
+            continue;
+        const uint8_t cols[4] = { (uint8_t)shirt, (uint8_t)stripes, (uint8_t)shorts, 19 };
+        const char *const *u = kUniforms[type & 3];
+        const int32_t kx = m + l->kitX, ky = t ? l->kitY2 : l->kitY1;
+        for (int32_t j = 0; j < 15; j++)
+            for (int32_t i = 0; i < 15; i++) {
+                const char *k = strchr("123+", u[j / 2][i / 2]);
+                if (u[j / 2][i / 2] != '.' && k)
+                    put(kx + i, ky + j, cols[k - "123+"]);
+            }
+    }
+}
+
+/* The keeper's arrow (showGKIndicator: the ball on the spot, the keeper in the middle of his line;
+ * not when both sides are players', which would show the kicker where he goes) and who plays which
+ * side (showControllerInfo: the defending side's above, the kicker's below, at the right edge). */
+static void draw_keeper(const ModShootout *so)
+{
+    static const uint8_t cols[] = { 2, 15, 6, 5, 4, 8 };
+    int16_t cx, cy;
+    ModApi_Camera(&cx, &cy);
+    const int32_t gx = 336 - cx, yl = 131 - cy - 15;
+    const int32_t both = so->side[0] != MODSIDE_CPU && so->side[1] != MODSIDE_CPU;
+    if (so->keeperTurn >= 0 && so->ballOnSpot && !both)
+        switch (so->keeperStick) {
+        case 2: case 3: pixmap(kArrowRight, 10, 7, gx + 7, yl + 5, "2F6548", cols, -1); break;
+        case 6: case 5: pixmap(kArrowLeft, 10, 7, gx - 16, yl + 5, "2F6548", cols, -1); break;
+        case 1: pixmap(kArrowRightUp, 9, 9, gx + 6, yl + 1, "2F6548", cols, -1); break;
+        case 7: pixmap(kArrowLeftUp, 9, 9, gx - 14, yl + 1, "2F6548", cols, -1); break;
+        default: break;
+        }
+    if (so->ballOnSpot) {
+        const int32_t def = 1 - so->kicking;
+        for (int32_t k = 0; k < 2; k++) {
+            const int32_t t = k ? so->kicking : def;
+            const char *name = so->side[t] == MODSIDE_CPU ? "CPU"
+                             : ModApi_ControllerName(so->side[t] == MODSIDE_PLAYER2 ? 2 : 1);
+            text(s_w - text_w(name, 1) - 2, k ? 165 : 100, name, 1);   /* (the text routine
+                                                     * stops short of a glyph that ends at the edge) */
+        }
+    }
+}
+
+static void shootout_drawn(void)
+{
+    ModShootout so;
+    Layout l;
+    if (!our_shootout() || ModApi_InReplay() || !ModApi_Shootout(&so))
+        return;
+    s_fb = ModApi_Frame(&s_stride);
+    ModApi_ScreenSize(&s_w, &s_h);
+    if (!s_fb)
+        return;
+    layout(&l);
+    s_testFrames++;
+    const int32_t m = (s_w - l.base) / 2;
+    draw_keeper(&so);
+    draw_board(&so, &l, m);
+    draw_band_and_kits(&l, m);
+}
+
+/* PLAY MATCH: the kick order beside the line-up (PlayMatchOnDraw: 10 by the second man down to 1
+ * by the eleventh -- the slots kick 10, 9 .. 1). */
+static void shootout_row(const ModPlayerRow *row)
+{
+    if (row->screen != MODROWS_PLAY_MATCH || !our_shootout() || row->row < 0 || row->row > 10)
+        return;
+    int32_t y = 0;
+    ModApi_MenuEntryRect(row->firstCell, NULL, &y, NULL, NULL);
+    s_orderRowY[row->row] = (int16_t)y;
+    if (row->row >= s_orderRows)
+        s_orderRows = (int8_t)(row->row + 1);
+}
+
+static void shootout_menu(void);
+static void shootout_menu_drawn(void)
+{
+    shootout_test_menu();
+    shootout_menu();
+}
+
+static void shootout_menu(void)
+{
+    static const uint8_t cols[] = { 15, 8 };
+    if (!our_shootout() || !ModApi_IsPlayMatchMenu() || s_orderRows < 11)
+        return;
+    s_fb = ModApi_Frame(&s_stride);
+    ModApi_ScreenSize(&s_w, &s_h);
+    if (!s_fb)
+        return;
+    const int32_t x = ModApi_MenuMargin();
+    for (int32_t r = 1; r <= 10; r++)
+        pixmap(kSmallNumbers[10 - r], 8, 8, x, s_orderRowY[r], "28", cols, -1);
+}
+#endif
+
 
 static void practice_demo(void)
 {
@@ -257,198 +668,6 @@ static void trow7(void) { training_row(7); }
 
 static void practice_training(void) { ModApi_ShowMenu("practice/trainingMenu"); }
 
-/* ---- shooting practice (petarku's, the5ar: his fork's shooting_practice.c) ----
- * You against a CPU side stripped down to its goalkeeper, to practise finishing into an open
- * defence. The settings (shootingMenu.json) keep the CPU's DEFENDERS (RB, LB, D) and/or MIDFIELD
- * (M, LW, RW) -- its attackers always go -- and say which goal you attack; then the team screen
- * (exactly one side the CPU's), the PLAY MATCH screen (EDIT TACTICS, VIEW OPPO, substitutes) and
- * a match with no clock in which you take every kick-off (the other side may have nobody to send
- * to the centre circle). TEAM TRAINING with the CPU's lines out, plus kickOffAlways, hideClock
- * and playMatchScreen. SWOS_SHOOTING_TEST=1 plays it CPU v CPU, headless (below). */
-enum { kShootRows = 4 };
-enum { Sh_header, Sh_subTitle, Sh_label0, Sh_note = Sh_label0 + 2 * kShootRows, Sh_exit };
-
-static uint8_t s_keepDefenders;         /* the CPU keeps its back line */
-static uint8_t s_keepMidfield;          /* ... and/or its midfield */
-static uint8_t s_shootUp = 1;           /* you attack the top goal */
-static char    s_shootValues[kShootRows][12];
-
-static void shooting_refresh(void)
-{
-    static const char *const kLabels[kShootRows] = { "CPU DEFENDERS", "CPU MIDFIELD", "YOU ATTACK", "" };
-    for (int32_t i = 0; i < kShootRows; i++) {
-        const char *v = i == 0 ? (s_keepDefenders ? "ON" : "OFF")
-                      : i == 1 ? (s_keepMidfield ? "ON" : "OFF")
-                      : i == 2 ? (s_shootUp ? "UP" : "DOWN") : "START";
-        snprintf(s_shootValues[i], sizeof s_shootValues[i], "%s", v);
-        ModApi_MenuText(Sh_label0 + 2 * i, kLabels[i]);
-        ModApi_MenuText(Sh_label0 + 2 * i + 1, s_shootValues[i]);
-        ModApi_MenuVisible(Sh_label0 + 2 * i, i < kShootRows - 1);
-        ModApi_MenuVisible(Sh_label0 + 2 * i + 1, 1);
-    }
-    ModApi_MenuText(Sh_note, "THEN PICK YOUR TEAM AND THE CPU'S");
-}
-
-static void shooting_init(void)
-{
-    for (int32_t i = 0; i < kShootRows; i++) {
-        const int32_t v = Sh_label0 + 2 * i + 1;
-        ModApi_MenuNav(v, i ? v - 2 : -1, i + 1 < kShootRows ? v + 2 : Sh_exit);
-    }
-    ModApi_MenuNav(Sh_exit, Sh_label0 + 2 * kShootRows - 1, -1);
-    shooting_refresh();
-}
-
-static void shooting_draw(void) { shooting_refresh(); }
-
-/* The drill's rules, `you` being the team the player plays (the other the keeper-only CPU's). */
-static void shooting_setup(ModMatchSetup *setup, int32_t you)
-{
-    ModApi_DefaultSetup(setup);
-    setup->name = "shooting practice";
-    setup->clockStopped = 1;
-    setup->hideClock = 1;
-    setup->playMatchScreen = 1;
-    setup->autoReplays = 0;
-    setup->stadium = 0;
-    setup->replayMenu = 0;
-    setup->linesOut[1 - you] = (uint8_t)(MODLINE_ATTACK | (s_keepDefenders ? 0 : MODLINE_DEFENCE) |
-                                         (s_keepMidfield ? 0 : MODLINE_MIDFIELD));
-    setup->playingUp = (int8_t)(s_shootUp ? you : 1 - you);
-    setup->kickOff = (int8_t)you;
-    setup->kickOffAlways = 1;
-}
-
-static void shooting_start(void)
-{
-    extern int32_t ModMatch_ChosenSide(int32_t team);   /* (src/mod_match.c: CPU or not) */
-    ModMatchSetup setup;
-    ModMatchResult r;
-    int32_t cpu0, cpu1, you;
-
-    if (!ModApi_ChooseTeams())
-        return;
-    cpu0 = ModMatch_ChosenSide(0) == 0;
-    cpu1 = ModMatch_ChosenSide(1) == 0;
-    if (cpu0 == cpu1) {         /* the drill needs exactly one side the CPU's */
-        ModApi_ShowError("ONE TEAM MUST BE THE COMPUTER'S");
-        return;
-    }
-    you = cpu0 ? 1 : 0;
-    shooting_setup(&setup, you);
-    setup.chosen = 1;
-    if (ModApi_PlayMatch("practice", &setup, &r) == 0)
-        fprintf(stderr, "[practice] shooting practice: %d-%d in %u frames\n", (int)r.goals[0],
-                (int)r.goals[1], (unsigned)r.frames);
-}
-
-static void shooting_row(int32_t i)
-{
-    if (i == 0)
-        s_keepDefenders ^= 1;
-    else if (i == 1)
-        s_keepMidfield ^= 1;
-    else if (i == 2)
-        s_shootUp ^= 1;
-    else
-        shooting_start();
-}
-
-static void srow0(void) { shooting_row(0); }
-static void srow1(void) { shooting_row(1); }
-static void srow2(void) { shooting_row(2); }
-static void srow3(void) { shooting_row(3); }
-static void practice_shooting(void) { ModApi_ShowMenu("practice/shootingMenu"); }
-
-/* SWOS_SHOOTING_TEST=1 (SWOS_SKIP_INTRO=1, SWOS_HARNESS_TURBO=1): at the first main menu, the drill
- * CPU v CPU (team 0 "you", Norway v New Zealand) for 6000 frames, without the PLAY MATCH screen;
- * the keeper-only side's outfielders must never take the pitch, the clock must stay at 0 and no
- * period may end; logs the goals; PASS or FAIL, then quits. */
-static int32_t s_shootTest, s_shootFailed, s_shootFrames;
-static int32_t s_shootThrows, s_shootCorners;   /* (the keeper-only side's restarts given: the drill went on) */
-
-static void shooting_test_frame(void)
-{
-    ModPlayer p[22];
-    int32_t n;
-
-    if (!s_shootTest || !ModApi_ModMatch("practice"))
-        return;
-    n = ModApi_Players(p, 22);
-    for (int32_t i = 0; i < n; i++)
-        if (p[i].team == 1 && p[i].index != 0 && p[i].onPitch && !s_shootFailed) {
-            fprintf(stdout, "SHOOTING TEST: the CPU's player %d is on the pitch\n", (int)p[i].index);
-            s_shootFailed = 1;
-        }
-    if (ModApi_MatchMinute() != 0 && !s_shootFailed) {
-        fprintf(stdout, "SHOOTING TEST: the clock moved (%d)\n", (int)ModApi_MatchMinute());
-        s_shootFailed = 1;
-    }
-    /* The keeper-only side's throw-ins (report 0058: its keeper went to take one, and the
-     * game crashed as he threw -- or never reached the touchline, and the drill stood there):
-     * one from each touchline, early, while the ball is in play. The other side takes them
-     * (game_timers.c), so the drill goes on and the goals keep coming. */
-    {
-        int32_t throws = s_shootThrows;
-        if ((throws == 0 && s_shootFrames >= 100) || (throws == 1 && s_shootFrames >= 1500)) {
-            const int16_t x = throws == 0 ? 100 : 580;      /* (refused while the ball is dead) */
-            if (ModApi_Restart(MODRESTART_THROW_IN, 1, 0, x, 400) == 0) {
-                throws = ++s_shootThrows;
-                fprintf(stdout, "SHOOTING TEST: a throw-in for the keeper's side, frame %d\n", (int)s_shootFrames);
-            }
-        }
-    }
-    /* ... and two corners for it (report 0059: its corner waited for good for a taker it has not
-     * got): each becomes the other side's goal kick (game_timers.c), and the drill goes on. */
-    {
-        const int32_t corners = s_shootCorners;
-        if ((corners == 0 && s_shootFrames >= 700) || (corners == 1 && s_shootFrames >= 2500)) {
-            if (ModApi_Restart(MODRESTART_CORNER, 1, corners, 0, 0) == 0) {
-                s_shootCorners++;
-                fprintf(stdout, "SHOOTING TEST: a corner for the keeper's side, frame %d\n", (int)s_shootFrames);
-            }
-        }
-    }
-    if (++s_shootFrames >= 6000)
-        ModApi_EndMatch();
-}
-
-static void shooting_test_event(const ModMatchEvent *e)
-{
-    if (!s_shootTest || !ModApi_ModMatch("practice"))
-        return;
-    if (e->kind == MODEVENT_GOAL || e->kind == MODEVENT_OWN_GOAL || e->kind == MODEVENT_PENALTY_GOAL)
-        fprintf(stdout, "SHOOTING TEST: goal, team %d, frame %u\n", (int)e->team, (unsigned)e->frame);
-    else if (e->kind == MODEVENT_HALF_TIME || e->kind == MODEVENT_FULL_TIME) {
-        fprintf(stdout, "SHOOTING TEST: the clock ended a period (%d)\n", (int)e->kind);
-        s_shootFailed = 1;
-    }
-}
-
-static void shooting_test_menu(void)
-{
-    ModMatchSetup setup;
-    ModMatchResult r;
-
-    if (s_shootTest != 1 || !ModApi_IsMainMenu())
-        return;
-    s_shootTest = 2;
-    shooting_setup(&setup, 0);
-    setup.team[0] = 0x5020;                 /* Norway */
-    setup.team[1] = 0x5502;                 /* New Zealand */
-    setup.side[0] = setup.side[1] = MODSIDE_CPU;
-    setup.playMatchScreen = 0;              /* (it waits for a player) */
-    ModApi_PlayMatch("practice", &setup, &r);
-    /* (a drill that stood still at a restart its keeper-only side could not take scores nothing
-     * after it, and never reaches the later restarts: reports 0058, 0059) */
-    const int32_t stood = s_shootThrows < 2 || s_shootCorners < 2 || r.goals[0] + r.goals[1] == 0;
-    fprintf(stdout, "SHOOTING TEST %s: %d-%d in %u frames, %d throw-ins and %d corners for the keeper's side%s\n",
-            s_shootFailed || s_shootFrames < 6000 || stood ? "FAIL" : "PASS", (int)r.goals[0], (int)r.goals[1],
-            (unsigned)r.frames, (int)s_shootThrows, (int)s_shootCorners, stood ? " -- the drill stood still" : "");
-#ifdef SWOS_SDL_BUILD   /* (a test's, SWOS_SHOOTING_TEST: the Amiga has no environment to arm it) */
-    exit(s_shootFailed || s_shootFrames < 6000);
-#endif
-}
 
 static void practice_exit(void) { SetExitMenuFlag(); }
 
@@ -458,15 +677,12 @@ static void practice_init(void)
 {
     static const ModHandler kHandlers[] = {
         { "shootout", practice_shootout },
-        { "orderInit", order_init }, { "orderDraw", order_draw },
-        { "orow0", orow0 }, { "orow1", orow1 }, { "orow2", orow2 }, { "orow3", orow3 }, { "orow4", orow4 },
-        { "orow5", orow5 }, { "orow6", orow6 }, { "orow7", orow7 }, { "orow8", orow8 }, { "orow9", orow9 },
-        { "orderStart", order_start }, { "orderExit", order_exit },
+        { "stInit", st_init }, { "stChoose", st_choose }, { "stAll", st_all }, { "stEurope", st_europe },
+        { "stAfrica", st_africa }, { "stNational", st_national }, { "stNAmerica", st_namerica },
+        { "stAsia", st_asia }, { "stOriginal", st_original }, { "stSAmerica", st_samerica },
+        { "stOceania", st_oceania }, { "stCustom", st_custom }, { "stKeeper", st_keeper }, { "stExit", st_exit },
         { "demo", practice_demo },
         { "training", practice_training },
-        { "shooting", practice_shooting },
-        { "shootingInit", shooting_init }, { "shootingDraw", shooting_draw },
-        { "srow0", srow0 }, { "srow1", srow1 }, { "srow2", srow2 }, { "srow3", srow3 },
         { "trainingInit", training_init },
         { "trainingDraw", training_draw },
         { "trow0", trow0 }, { "trow1", trow1 }, { "trow2", trow2 }, { "trow3", trow3 },
@@ -475,14 +691,18 @@ static void practice_init(void)
     };
     ModApi_RegisterHandlers("practice", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     ModApi_AddEntry(MODPOINT_MODES, "practice", "practice", practice_open);
-    s_shootTest = getenv("SWOS_SHOOTING_TEST") != NULL;
+    s_test = getenv("SWOS_PRACTICE_SHOOTOUT_TEST") != NULL;
 }
 
 const ModDef ModDef_practice = {
     .slug = "practice",
     .init = practice_init,
-    .menuDrawn = shooting_test_menu,
-    .matchFrame = shooting_test_frame,
-    .matchEvent = shooting_test_event,
+#ifdef SWOS_SDL_BUILD
+    .matchDrawn = shootout_drawn,
+    .menuDrawn = shootout_menu_drawn,
+    .playerRowDrawn = shootout_row,
+#else
+    .menuDrawn = shootout_test_menu,
+#endif
 };
 

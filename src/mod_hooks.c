@@ -96,6 +96,11 @@ void ModHooks_MatchStart(void)
     EACH(matchStart) (*m_)->matchStart();
 }
 
+void ModHooks_MatchDrawn(void)
+{
+    EACH(matchDrawn) (*m_)->matchDrawn();
+}
+
 void ModHooks_MatchFrame(void)
 {
     if (ModMatch_Quiet())

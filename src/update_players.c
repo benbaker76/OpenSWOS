@@ -782,6 +782,11 @@ not_in_penalty:
                             } else {
                                 d0 = 2; d3 = 2;
                             }
+                            {   /* the side a player chose (mod_match.c, keeperDive: SWOS 2020's
+                                 * g_JumpDir2 / g_JumpDir6 in place of the 2 and 6 here) */
+                                extern int16_t ModMatch_KeeperDiveSide(const TeamGeneralInfo *team, int16_t dir);
+                                d0 = d3 = ModMatch_KeeperDiveSide(team, d0);
+                            }
                             player->direction = d0;
                             _ballSpeed = _ballSprite.speed;
                             opp->spinTimer = (int16_t)0xFFFF;
@@ -804,6 +809,11 @@ not_in_penalty:
     goalie_save_attempt_entry:
         {
             int16_t attemptSave = ShouldGoalkeeperDive(player, ball, team);
+            {   /* whether he dives at all, a player's choice (mod_match.c, keeperDive: SWOS 2020's
+                 * g_JumpOrNot at ShouldGoalkeeperDive's end) */
+                extern int16_t ModMatch_KeeperDive(const TeamGeneralInfo *team, int16_t dive);
+                attemptSave = ModMatch_KeeperDive(team, attemptSave);
+            }
             if (!attemptSave)
                 goto save_not_attempted_set_run_speed;
 
@@ -837,6 +847,10 @@ not_in_penalty:
                 }
 
             apply_facing_then_jump:
+                {   /* (as at the beaten keeper's dive above: the player's side) */
+                    extern int16_t ModMatch_KeeperDiveSide(const TeamGeneralInfo *team, int16_t dir);
+                    d0 = d3 = ModMatch_KeeperDiveSide(team, d0);
+                }
                 player->direction = d0;
                 GoalkeeperJumping(d0, d1, d3, player, ball, team);
                 team->passKickTimer = 0;

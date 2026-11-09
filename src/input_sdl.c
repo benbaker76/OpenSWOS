@@ -428,6 +428,13 @@ const char *InputSDL_Player1DeviceName(void)
     return d >= 0 && d < INPUTSDL_MAX_DEVICES && dev_open(d) ? dev_name(d) : NULL;
 }
 
+/* Whether player 1 / 2 (0, 1) plays with a pad (else the keyboard). */
+int InputSDL_PlayerHasPad(int player)
+{
+    const int d = player >= 0 && player < INPUTSDL_NUM_PADS ? s_player_dev[player] : -1;
+    return d >= 0 && d < INPUTSDL_MAX_DEVICES && dev_open(d);
+}
+
 /* A device nobody plays gets the lowest free player. -1 if both are taken. */
 static int dev_assign(int d)
 {

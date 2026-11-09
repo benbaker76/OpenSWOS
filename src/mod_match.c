@@ -253,6 +253,20 @@ int32_t ModApi_ChooseTeams(void)
     return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
 }
 
+int32_t ModApi_ChooseTeamsTitled(const char *title, const char *button)
+{
+    extern void GoGetTeamsForPlay(uint8_t *gameType, uint8_t *playWhat, uint16_t numTeams, uint16_t showClub,
+                                  uint16_t showNational, uint16_t showOrigCustom);
+    extern uint16_t _chooseTeamsResult;
+    static char t[32], b[32];
+    if (getenv("SWOS_MOD_CHOOSE_TEAMS"))
+        return ModApi_ChooseTeams();        /* (a test's answer, as there) */
+    snprintf(t, sizeof t, "%s", title ? title : "");
+    snprintf(b, sizeof b, "%s", button ? button : "");
+    GoGetTeamsForPlay((uint8_t *)t, (uint8_t *)b, 2, 1, 1, 1);
+    return _chooseTeamsResult != 0 && _numSelectedTeams >= 2;
+}
+
 #ifndef SWOS_SDL_BUILD
 /* (team packs are the SDL build's: the Amiga has none to offer) */
 int32_t ModApi_PackCount(void) { return 0; }
@@ -441,6 +455,27 @@ uint16_t ModApi_RandomTeam(void)
         return (uint16_t)(rec->team.countryNumber << 8 | rec->team.teamOrdinal);
     }
     return 0;
+}
+
+/* A random team of a team file (its number: a country's clubs, 80-85 the national teams, 72 the
+ * original custom teams, 100 the custom teams), whole, into *out (a TeamFileEx). */
+int32_t ModApi_RandomTeamData(int32_t file, struct TeamFileEx *out)
+{
+    static uint32_t state;
+    if (!out || file < 0 || file > 255 || LoadTeamFile((uint16_t)file) != 0)
+        return 0;
+    if (!state)
+#ifdef SWOS_SDL_BUILD
+        state = (uint32_t)SDL_GetPerformanceCounter() | 1u;
+#else
+        state = ModApi_Ticks() * 2654435761u | 1u;
+#endif
+    const uint16_t count = *(uint16_t *)_teamFileBuffer;
+    if (!count)
+        return 0;
+    state = state * 1664525u + 1013904223u;
+    memcpy(out, (const TeamFileEx *)(_teamFileBuffer + 2) + (state >> 16) % count, sizeof(TeamFileEx));
+    return 1;
 }
 
 int32_t ModApi_ModMatch(const char *slug)
@@ -684,6 +719,190 @@ int16_t ModMatch_ManualKeeper(const TeamGeneralInfo *team)
     }
 }
 
+/* keeperDive (SWOS 2020's practice shoot-out; its setPlayerGKControl, game.cpp, and the swos.asm
+ * patches it drives): what the defending keeper does, chosen by the stick of the player whose
+ * team he is. Read once a frame, before the controls move (ModMatch_Frame), as SWOS 2020 set it
+ * after a frame was drawn: the stick of the frame before. g_JumpManually, g_JumpOrNot,
+ * g_JumpHeight, g_JumpDir2 / g_JumpDir6 there. */
+enum { KEEPER_HEIGHT_NORMAL = 6, KEEPER_HEIGHT_LOW = 10000, KEEPER_HEIGHT_HIGH = 0 };
+static struct {
+    int8_t   team;              /* the team number (1, 2) the choice is for, 0 none */
+    uint8_t  manual;            /* the dive is the player's (else the game's) */
+    uint8_t  dive;              /* ... to dive at all */
+    uint16_t height;            /* the ball's height from which the dive is a high one */
+    int16_t  dir2, dir6;        /* the side the game's "right" (2) and "left" (6) dives go */
+    int16_t  stick;             /* the stick as last read, -1 none */
+} s_kd = { 0, 0, 0, KEEPER_HEIGHT_NORMAL, 2, 6, -1 };
+
+static void keeper_dive_reset(void)
+{
+    s_kd.team = 0;
+    s_kd.manual = s_kd.dive = 0;
+    s_kd.height = KEEPER_HEIGHT_NORMAL;
+    s_kd.dir2 = 2;
+    s_kd.dir6 = 6;
+    s_kd.stick = -1;
+}
+
+/* The defending team during a shoot-out (the top one: every kick is at the top goal). */
+static TeamGeneralInfo *shootout_defending(void)
+{
+    extern TeamGeneralInfo _topTeamData;
+    return _playingPenalties ? &_topTeamData : NULL;
+}
+
+static void keeper_dive_frame(void)
+{
+    extern TeamGeneralInfo _topTeamData, _bottomTeamData;
+    TeamGeneralInfo *def = s_mm.active && s_mm.setup.keeperDive ? shootout_defending() : NULL;
+    if (!def || def->playerNumber == 0) {   /* (the CPU's keeper, or none: the game's, unmarked) */
+        if (s_kd.team) {
+            _topTeamData.inGameTeamPtr->markedPlayer = -1;
+            _bottomTeamData.inGameTeamPtr->markedPlayer = -1;
+        }
+        keeper_dive_reset();
+        return;
+    }
+    if (s_kd.team != (int8_t)def->teamNumber)
+        keeper_dive_reset();
+    s_kd.team = (int8_t)def->teamNumber;
+    def->inGameTeamPtr->markedPlayer = 0;   /* (he carries the player mark: SWOS 2020's) */
+    _bottomTeamData.inGameTeamPtr->markedPlayer = -1;
+    const int16_t stick = (int16_t)def->direction;
+    s_kd.stick = stick < 0 || stick > 7 ? -1 : stick;
+    switch (s_kd.stick) {
+    case 2: case 3: s_kd.manual = 1; s_kd.dive = 1; s_kd.height = KEEPER_HEIGHT_LOW;  s_kd.dir2 = s_kd.dir6 = 2; break;
+    case 6: case 5: s_kd.manual = 1; s_kd.dive = 1; s_kd.height = KEEPER_HEIGHT_LOW;  s_kd.dir2 = s_kd.dir6 = 6; break;
+    case 1:         s_kd.manual = 1; s_kd.dive = 1; s_kd.height = KEEPER_HEIGHT_HIGH; s_kd.dir2 = s_kd.dir6 = 2; break;
+    case 7:         s_kd.manual = 1; s_kd.dive = 1; s_kd.height = KEEPER_HEIGHT_HIGH; s_kd.dir2 = s_kd.dir6 = 6; break;
+    case -1:        s_kd.manual = 1; s_kd.dive = 0; s_kd.height = KEEPER_HEIGHT_HIGH; s_kd.dir2 = 2; s_kd.dir6 = 6; break;
+    case 0:         s_kd.manual = 0; s_kd.dive = 0; s_kd.height = KEEPER_HEIGHT_NORMAL; s_kd.dir2 = 2; s_kd.dir6 = 6; break;
+    default:        break;          /* down: no branch in SWOS 2020 -- as the frame before */
+    }
+}
+
+static int32_t keeper_dive_mine(const TeamGeneralInfo *team)
+{
+    return s_kd.team && team && team->teamNumber == s_kd.team && _playingPenalties;
+}
+
+/* ShouldGoalkeeperDive's answer for `team`'s keeper: the player's when he has chosen. */
+int16_t ModMatch_KeeperDive(const TeamGeneralInfo *team, int16_t dive)
+{
+    return keeper_dive_mine(team) && s_kd.manual ? (int16_t)s_kd.dive : dive;
+}
+
+/* A dive's side, the game's 2 (right) or 6 (left): the player's when he has chosen. */
+int16_t ModMatch_KeeperDiveSide(const TeamGeneralInfo *team, int16_t dir)
+{
+    if (!keeper_dive_mine(team))
+        return dir;
+    return dir == 2 ? s_kd.dir2 : dir == 6 ? s_kd.dir6 : dir;
+}
+
+/* GoalkeeperJumping's high dive: -1 the game's own test (the ball above 5), else whether it is
+ * high by the player's choice (SWOS 2020: `cmp ballNotHighZ, g_JumpHeight / jae`, unsigned). */
+int16_t ModMatch_KeeperHighDive(const TeamGeneralInfo *team, int16_t ballNotHighZ)
+{
+    if (!keeper_dive_mine(team) || s_kd.height == KEEPER_HEIGHT_NORMAL)
+        return -1;
+    return (uint16_t)ballNotHighZ >= s_kd.height;
+}
+
+/* The player mark 4 pixels lower (SWOS 2020's MarkPlayerSP in its shoot-out). */
+int16_t ModMatch_MarkOffset(void) { return s_mm.active && s_mm.setup.keeperDive && _playingPenalties ? 4 : 0; }
+
+int32_t ModMatch_CameraTop(void) { return s_mm.active && s_mm.setup.cameraTop; }
+int32_t ModMatch_ShootoutStats(void) { return s_mm.active && s_mm.setup.shootoutStats; }
+
+int32_t ModApi_Shootout(ModShootout *out)
+{
+    extern uint16_t _team1PenaltyAttempts, _team2PenaltyAttempts;
+    extern int16_t  _team1PenaltyShooterIndex, _team2PenaltyShooterIndex;
+    extern uint16_t _gameState;
+    extern TeamGeneralInfo _bottomTeamData;
+    extern Sprite _ballSprite;
+    if (!out)
+        return 0;
+    memset(out, 0, sizeof *out);
+    if (!s_mm.active || _penaltiesState == 0)
+        return 0;
+    out->attempts[0] = (int16_t)_team1PenaltyAttempts;
+    out->attempts[1] = (int16_t)_team2PenaltyAttempts;
+    out->goals[0] = (int16_t)_team1PenaltyGoals;
+    out->goals[1] = (int16_t)_team2PenaltyGoals;
+    out->shooter[0] = _team1PenaltyShooterIndex;
+    out->shooter[1] = _team2PenaltyShooterIndex;
+    out->kicking = (int8_t)(_bottomTeamData.teamNumber == 2);
+    out->over = (uint8_t)!_playingPenalties;
+    out->gameState = _gameState;
+    out->inProgress = (uint8_t)(_gameState == ST_PENALTIES || _gameStatePl == ST_GAME_IN_PROGRESS);
+    out->side[0] = s_mm.setup.side[0];
+    out->side[1] = s_mm.setup.side[1];
+    out->keeperTurn = (int8_t)(s_kd.team ? s_kd.team - 1 : -1);
+    out->keeperStick = s_kd.team ? s_kd.stick : -1;
+    {
+        TeamGeneralInfo *def = shootout_defending();
+        const Sprite *gk = def && def->spritesTable ? def->spritesTable[0] : NULL;
+        out->ballOnSpot = (uint8_t)(_ballSprite.x.s.i == 336 && _ballSprite.y.s.i == 187 && gk &&
+                                    gk->x.s.i == 336 && gk->y.s.i == 131);
+    }
+    return 1;
+}
+
+const char *ModApi_ControllerName(int32_t player)
+{
+#ifdef SWOS_SDL_BUILD
+    extern int InputSDL_PlayerHasPad(int player);
+    if (InputSDL_PlayerHasPad(player - 1))
+        return "Joypad";
+    return player == 2 ? "Keyboard2" : "Keyboard1";
+#else
+    (void)player;
+    return "Joystick";
+#endif
+}
+
+static TeamGeneralInfo *team_by_number(int32_t number)
+{
+    extern TeamGeneralInfo _topTeamData, _bottomTeamData;
+    return _topTeamData.teamNumber == number ? &_topTeamData : &_bottomTeamData;
+}
+
+int32_t ModApi_ShootoutTaker(int32_t side, int32_t shooter, char *name, int32_t cap, int32_t *shirt,
+                             int32_t *face)
+{
+    extern PlayerInfo *GetPlayerPointerFromShirtNumber(Sprite *sprite, TeamGeneralInfo *team);
+    if (!s_mm.active || side < 0 || side > 1 || shooter < 1 || shooter > 10)
+        return 0;
+    TeamGeneralInfo *t = team_by_number(side + 1);
+    if (!t->spritesTable || !t->spritesTable[shooter])
+        return 0;
+    const PlayerInfo *p = GetPlayerPointerFromShirtNumber(t->spritesTable[shooter], t);
+    if (!p)
+        return 0;
+    if (name && cap > 0)
+        snprintf(name, (size_t)cap, "%.*s", (int)sizeof p->shortName, (const char *)p->shortName);
+    if (shirt)
+        *shirt = p->shirtNumber;
+    if (face)
+        *face = p->face;
+    return 1;
+}
+
+int32_t ModApi_MatchKit(int32_t side, int32_t *type, int32_t *shirt, int32_t *stripes, int32_t *shorts)
+{
+    extern TeamGame _topTeamInGame, _bottomTeamInGame;
+    if (side < 0 || side > 1 || !ModApi_InMatch())
+        return 0;
+    const TeamGame *g = side == 0 ? &_topTeamInGame : &_bottomTeamInGame;
+    if (type) *type = g->prShirtType;
+    if (shirt) *shirt = g->prShirtCol;
+    if (stripes) *stripes = g->prStripesCol;
+    if (shorts) *shorts = g->prShortsCol;
+    return 1;
+}
+
 /* pitchNumber (H7): SetPitchTypeAndNumber's end, after its random numbers -- the pitch number
  * to use (1..6), 0 the one drawn. */
 int16_t ModMatch_PitchNumber(void)
@@ -792,6 +1011,7 @@ static void preload_scorers(void)
 
 /* G9's rules, asked where the engine decides them. */
 int32_t ModMatch_QuickRestarts(void) { return s_mm.active && s_mm.setup.quickRestarts; }
+int32_t ModMatch_ShortStops(void) { return s_mm.active && s_mm.setup.shortStops; }
 int32_t ModMatch_StraightReds(void) { return s_mm.active && s_mm.setup.straightReds; }
 int32_t ModMatch_NoTackles(void) { return s_mm.active && s_mm.setup.noTackles; }
 
@@ -874,6 +1094,7 @@ void ModMatch_Frame(void)
         t[3] = (uint8_t)(m % 10);
         _gameSeconds = 0;
     }
+    keeper_dive_frame();
     if (s_mm.active && s_mm.setup.shootoutOnly && !s_mm.shootoutDone && s_kickedOff) {
         s_mm.shootoutDone = 1;
         ModApi_StartShootout();

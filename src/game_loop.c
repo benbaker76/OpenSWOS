@@ -830,6 +830,9 @@ GameFrameResult GameLoop_Frame(void)
     DrawBenchAndSubsMenu();
     BenchCheckControls();
     UpdateAndDrawStatistics();
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_MatchDrawn(void); ModHooks_MatchDrawn(); }  /* (a mod's drawing over the match) */
+#endif
 
     /* The window was closed. Not out of a LIVE match from here: this frame may be one
      * GGPO is re-simulating, and "a re-simulated frame left the match loop" was an
@@ -972,6 +975,12 @@ static void game_loop_body(void)
             d2 = SIM_CAMERA_MAX_Y;   /* bottom end: 592 at 272 lines */
         else
             d2 = 16;                 /* top end: the same in both */
+        {   /* a mod's match that starts at the top goal (SWOS 2020's shoot-out: its GameLoop_130
+             * sets D0 = 0 after the Rand, which is still drawn) */
+            extern int32_t ModMatch_CameraTop(void);
+            if (ModMatch_CameraTop())
+                d2 = 16;
+        }
         d1 = SIM_CAMERA_CENTRE_X;    /* 168 at 336 wide */
     }
 

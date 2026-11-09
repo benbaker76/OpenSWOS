@@ -1,0 +1,14 @@
+{
+ "uuid": "dc0bac4c-0fb8-5bed-8458-7b8f16918cf6",
+ "id": "petarku-practice",
+ "name": "Petarku's Practice",
+ "version": "1.0",
+ "author": "petarku (the5ar)",
+ "about": "Petarku's practice modes: a penalty shootout with your own shooting order and keeper, and shooting practice against the CPU's keeper.",
+ "targets": [
+  "sdl",
+  "amiga"
+ ],
+ "changes": "modes",
+ "default": true
+}

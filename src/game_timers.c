@@ -306,7 +306,8 @@ static void __attribute__((noinline)) handleBreakCameraMode(TeamGeneralInfo *a6)
         _stoppageEventTimer = (uint16_t)_gsStoppageEventReload;   /* GS_GK_55_50 */
         {   /* a mod's match with quick restarts (mod_match.c, G9) */
             extern int32_t ModMatch_QuickRestarts(void);
-            if (ModMatch_QuickRestarts())
+            extern int32_t ModMatch_ShortStops(void);
+            if (ModMatch_QuickRestarts() || ModMatch_ShortStops())
                 _stoppageEventTimer = 1;
         }
         if (_goalCameraMode != 0)

@@ -1,12 +1,12 @@
 {
  "name": "shootingMenu",
- "comment": "The practice mod's SHOOTING PRACTICE settings (petarku's, the5ar): the CPU's DEFENDERS and MIDFIELD on or off, the goal you attack, START. Laid out as TEAM TRAINING's. Handlers practice.<name> (src/mod_practice.c).",
+ "comment": "The practice mod's SHOOTING PRACTICE settings (petarku's, the5ar): the CPU's DEFENDERS and MIDFIELD on or off, the goal you attack, START. Laid out as TEAM TRAINING's. Handlers petarku-practice.<name> (src/mod_petarku_practice.c).",
  "menu_flags": {
   "dos_redraw": true
  },
- "onInit": "practice.shootingInit",
- "onReturn": "practice.shootingInit",
- "onDraw": "practice.shootingDraw",
+ "onInit": "petarku-practice.shootingInit",
+ "onReturn": "petarku-practice.shootingInit",
+ "onDraw": "petarku-practice.shootingDraw",
  "defaultEntry": 3,
  "items": [
   {
@@ -97,7 +97,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.srow0"
+     "func": "petarku-practice.srow0"
     }
    ]
   },
@@ -150,7 +150,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.srow1"
+     "func": "petarku-practice.srow1"
     }
    ]
   },
@@ -203,7 +203,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.srow2"
+     "func": "petarku-practice.srow2"
     }
    ]
   },
@@ -256,7 +256,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.srow3"
+     "func": "petarku-practice.srow3"
     }
    ]
   },
@@ -305,7 +305,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.exit"
+     "func": "petarku-practice.exit"
     }
    ]
   }

@@ -1,12 +1,12 @@
 {
  "name": "shootoutOrderMenu",
- "comment": "PENALTY SHOOTOUT's SHOOTING ORDER (petarku's, the5ar; src/mod_practice.c): a human side's ten outfielders as the queue, 1-5 the best-of-five takers, 6-10 after; fire on one then another and they swap. START SHOOTOUT, or EXIT back to the practice menu. Handlers practice.<name>.",
+ "comment": "PENALTY SHOOTOUT's SHOOTING ORDER (petarku's, the5ar; src/mod_petarku_practice.c): a human side's ten outfielders as the queue, 1-5 the best-of-five takers, 6-10 after; fire on one then another and they swap. START SHOOTOUT, or EXIT back to the practice menu. Handlers petarku-practice.<name>.",
  "menu_flags": {
   "dos_redraw": true
  },
- "onInit": "practice.orderInit",
- "onReturn": "practice.orderInit",
- "onDraw": "practice.orderDraw",
+ "onInit": "petarku-practice.orderInit",
+ "onReturn": "petarku-practice.orderInit",
+ "onDraw": "petarku-practice.orderDraw",
  "defaultEntry": 2,
  "items": [
   {
@@ -75,7 +75,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow0"
+     "func": "petarku-practice.orow0"
     }
    ]
   },
@@ -107,7 +107,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow1"
+     "func": "petarku-practice.orow1"
     }
    ]
   },
@@ -139,7 +139,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow2"
+     "func": "petarku-practice.orow2"
     }
    ]
   },
@@ -171,7 +171,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow3"
+     "func": "petarku-practice.orow3"
     }
    ]
   },
@@ -203,7 +203,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow4"
+     "func": "petarku-practice.orow4"
     }
    ]
   },
@@ -235,7 +235,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow5"
+     "func": "petarku-practice.orow5"
     }
    ]
   },
@@ -267,7 +267,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow6"
+     "func": "petarku-practice.orow6"
     }
    ]
   },
@@ -299,7 +299,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow7"
+     "func": "petarku-practice.orow7"
     }
    ]
   },
@@ -331,7 +331,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow8"
+     "func": "petarku-practice.orow8"
     }
    ]
   },
@@ -363,7 +363,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orow9"
+     "func": "petarku-practice.orow9"
     }
    ]
   },
@@ -412,7 +412,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orderStart"
+     "func": "petarku-practice.orderStart"
     }
    ]
   },
@@ -445,7 +445,7 @@
     },
     {
      "op": "onselect_fire",
-     "func": "practice.orderExit"
+     "func": "petarku-practice.orderExit"
     }
    ]
   }

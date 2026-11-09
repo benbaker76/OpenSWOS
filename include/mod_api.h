@@ -105,6 +105,11 @@ typedef struct ModDef {
     void (*matchFrame)(void);           /* each frame played, after the clock moved */
     void (*matchEvent)(const ModMatchEvent *event);
     void (*matchEnded)(const ModMatchResult *result);   /* any match's final whistle */
+    /* A match frame's picture, after its sprites, the bench and the statistics, before it is
+     * shown: draw into it (ModApi_Frame; ModApi_DrawText in the match's fonts). The frame is drawn
+     * whole again the next time, so nothing needs undrawing. SDL only (the Amiga AGA match frame
+     * keeps what is drawn: it undraws only the sprites). Drawing only: never the match. */
+    void (*matchDrawn)(void);
 
     /* -- an online match as it is played, re-simulations included (docs/MODS.md §16) --
      * GGPO plays frames again after a rollback, so matchFrame / matchEvent see each frame's first
@@ -288,6 +293,10 @@ int32_t ModApi_RunEntry(ModPoint point, int32_t index);     /* 0 when it ran */
 /* The main menu is the one being shown (a mod's replacement of it too: by the menu, not its
  * onInit). */
 int32_t ModApi_IsMainMenu(void);
+/* The PLAY MATCH screen (the line-up before a friendly, a mod's match's too) is the one shown. */
+int32_t ModApi_IsPlayMatchMenu(void);
+/* Where a menu's x 0 is in the frame (ModApi_Frame): a wide screen centres the 336 of a menu. */
+int32_t ModApi_MenuMargin(void);
 
 /* ---- a mod's own menus' handlers (H10) ----
  * A mod's menus (its JSON, data_json/menus/<slug>/..., through the overlay) name their
@@ -513,6 +522,19 @@ typedef struct {
                              * / down-right for low -- the moment the kick is struck (G8):
                              * 0 the game's keeper, 1 a neutral stick leaves it to the game,
                              * 2 a neutral stick stands still */
+    /* SWOS 2020's PRACTICE -> PENALTY SHOOTOUT (its ChallengeGame, gameMode 1) */
+    uint8_t  keeperDive;    /* at a shoot-out, a player's goalkeeper is his to dive, as SWOS 2020's
+                             * setPlayerGKControl: the stick held as the kick comes -- right / left
+                             * (or down-right / down-left) a low dive that way, up-right / up-left a
+                             * high one, nothing at all he stays, up the game's keeper again, down
+                             * as before. The game's own dive, its side and height chosen; the
+                             * keeper carries the player mark */
+    uint8_t  cameraTop;     /* the match starts with the camera at the top goal (not drawn) */
+    uint8_t  shootoutStats; /* the statistics' GOALS are the shoot-out's, POSSESSION none */
+    uint8_t  shortStops;    /* a ball come to rest calls the next event at once, and the match's
+                             * start does not wait (SWOS 2020's GS_GK_55_50 = 1, StartingMatch's 1
+                             * for 100); quickRestarts without the kick-off's (which a CPU's
+                             * kick-off repeats each frame) */
     /* where the match starts (H6, H7: a challenge's moment) */
     uint8_t  pitchNumber;   /* the pitch's own art, 1..6 (with pitchType, an exact pitch); 0 the game's */
     struct {
@@ -568,6 +590,13 @@ int32_t ModApi_ChooseFromPack(int32_t number);
 /* The friendly's team screen: the player picks two teams, and who plays each (CPU / player).
  * 1 when two were chosen (then ModMatchSetup.chosen plays them), 0 when the player left. */
 int32_t ModApi_ChooseTeams(void);
+/* The same team screen with a title and a start button of a mod's own ("SHOOTOUT", "START
+ * SHOOTOUT"). */
+int32_t ModApi_ChooseTeamsTitled(const char *title, const char *button);
+/* A random team of a team file (a country's clubs; 80-85 the national teams, 72 the original
+ * custom teams, 100 the custom ones), whole, into *out: a setup's teamData. 0 when the file has
+ * none. */
+int32_t ModApi_RandomTeamData(int32_t file, struct TeamFileEx *out);
 /* A database team by its uuid (docs/TEAM_IDS.md): its id for ModMatchSetup.team, or 0. The Amiga
  * has no team database: there it is always 0, and a mod gives the team's number as well
  * (ModApi_TeamByUuidNumber). */
@@ -635,6 +664,33 @@ int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int1
 void    ModApi_StartShootout(void);             /* to penalties now */
 void    ModApi_Score(int16_t goals[2]);         /* the score now */
 uint32_t ModApi_MatchFrames(void);              /* frames played from kick-off */
+
+/* A shoot-out as it stands (SWOS 2020's scoreboard draws from it): 0 when none is being played.
+ * Team 0 is team 1 (the banner's left), 1 team 2. */
+typedef struct {
+    int16_t  attempts[2];   /* kicks set up so far, the one being taken counted */
+    int16_t  goals[2];
+    int16_t  shooter[2];    /* the shooter index of each side's last kick: 1..10, the line-up slot
+                             * (10 kicks first, then 9 .. 1, then 10 again) */
+    int8_t   kicking;       /* the side taking the kick now, 0 / 1 */
+    uint8_t  over;          /* the shoot-out is decided: the players leaving, the result up */
+    uint8_t  inProgress;    /* the kick is being taken (not yet the next one set up) */
+    int16_t  gameState;     /* the game's state (ST_*): 24 the players leaving, 26 the result */
+    uint8_t  side[2];       /* ModSide: who plays each */
+    int8_t   keeperTurn;    /* the side whose keeper a player is diving (keeperDive), -1 none */
+    int16_t  keeperStick;   /* that player's stick (0 up .. 7 up-left, -1 none) */
+    uint8_t  ballOnSpot;    /* the ball on the spot, the keeper in the middle of his line */
+} ModShootout;
+int32_t ModApi_Shootout(ModShootout *out);
+/* A side's player by shooter index (1..10: the line-up slot it kicks from) -- his short name,
+ * shirt number and face (0 white, 1 ginger, 2 black, 3 black with blond hair) -- and a side's kit:
+ * its shirt type (0 plain, 1 coloured sleeves, 2 stripes, 3 hoops) and colours (palette indices). */
+int32_t ModApi_ShootoutTaker(int32_t side, int32_t shooter, char *name, int32_t cap, int32_t *shirt,
+                             int32_t *face);
+int32_t ModApi_MatchKit(int32_t side, int32_t *type, int32_t *shirt, int32_t *stripes, int32_t *shorts);
+/* What a player (1, 2) plays with, as SWOS 2020 names it: "Joypad", else "Keyboard1" / "Keyboard2"
+ * (the Amiga: "Joystick"). */
+const char *ModApi_ControllerName(int32_t player);
 
 /* ---- match events (H3): ModDef.matchEvent ---- */
 typedef enum {

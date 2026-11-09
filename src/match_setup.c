@@ -460,6 +460,11 @@ void StartingMatch(void)
     _hideBall = 0;
     InitTeamsData();
     _stoppageEventTimer = 100;
+    {   /* SWOS 2020's challenges (g_ExtraGame): 1 (mod_match.c, shortStops) */
+        extern int32_t ModMatch_ShortStops(void);
+        if (ModMatch_ShortStops())
+            _stoppageEventTimer = 1;
+    }
     _gameState = ST_STARTING_GAME;
     _breakCameraMode = 0xFFFF;
     _gameStatePl = 101;
