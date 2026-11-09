@@ -168,8 +168,14 @@ static void league_overrides(CompetitionLeague *lg, int32_t file, const char *js
     snprintf(key, sizeof key, "$.leagues.%d", (int)file);
     if (mjson_find(json, len, key, &o, &ol) != MJSON_TOK_OBJECT)
         return;
-    if (mjson_get_number(o, ol, "$.divisions_count", &v) && v >= 1 && v <= lg->header.divisionsCount)
-        lg->header.divisionsCount = (int8_t)v;      /* (fewer only: the record has no more) */
+    if (mjson_get_number(o, ol, "$.divisions_count", &v) && v >= 1 && v <= lg->header.divisionsCount &&
+        (int8_t)v != lg->header.divisionsCount) {   /* (fewer only: the record has no more) */
+        lg->header.divisionsCount = (int8_t)v;
+        /* the new bottom division relegates no one, as every league's last does: a club sent down to
+           a division that is no longer played is never placed (the season end's scratch check,
+           panic 0x4444 -- All National Teams' El Salvador, four divisions made one) */
+        lg->divisions[(int)v - 1].relegated = lg->divisions[(int)v - 1].relegatedPo = 0;
+    }
     if (mjson_get_number(o, ol, "$.rounds", &v)) lg->header.rounds = (int8_t)v;
     if (mjson_get_number(o, ol, "$.points_for_win", &v)) lg->header.pointsForWin = (int8_t)v;
     if (mjson_get_number(o, ol, "$.begin_month", &v)) lg->header.comp.beginMonth = (int8_t)((int)v * 8);
