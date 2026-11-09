@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include GPLAY_C
+#include "mod_ftic.h"
 #include "sec_cases.h"
 /* Italy (14 levels; 3 B teams: global, first team's global, top 1, flags 3), then the
  * countries of SHAPES (sec_cases.h), each its levels and B teams */

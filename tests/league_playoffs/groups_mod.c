@@ -1,6 +1,7 @@
 /* The Mod's parallel groups (tools/gplay.c pg_season, included as it is) over groups_cases.h's season
  * ends. Arguments: TABLE PROMREL SEASONS. */
 #include GPLAY_C
+#include "mod_ftic.h"
 #include "groups_cases.h"
 const u8 SEC_TAB[1] = { 0 };
 s8 SEC_SLT[4096], SEC_COPY[4096];

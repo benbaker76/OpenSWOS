@@ -29,6 +29,9 @@ codes = sorted(c for c in os.listdir(PACKS) if os.path.exists(os.path.join(PACKS
                and "league2" not in json.load(open(os.path.join(PACKS, c, "pack.json"), encoding="utf-8")).get("files", {}))
 os.environ["SEASON_PACKS"] = ",".join(os.path.join(PACKS, c) for c in codes)
 import mkseason                     # noqa: E402
+import complist                     # noqa: E402
+complist.check_titles = lambda *a, **k: []   # (the Mod's dev names rule: the world's names as its next
+                                    # package shortens them; the 4.0.5 data's are longer -- no split reads them)
 
 import world_import                 # noqa: E402
 

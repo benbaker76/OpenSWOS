@@ -53,17 +53,20 @@ CC="gcc -O1 -w"
 # check.sh does the same): the Mod 4.0.5's per-play-off seed (gplay.c gp_season, rc19) reads club[i]
 # of an entrant that failed its check and never set it -- a random address, a crash once in a few
 # runs; pattern-filled it is negative, the library's "no club". Fixed in the Mod 4.0.6.
-MC="$CC"
+# The Mod's side is built 32-bit (-m32, as the DOS exe it is written for): its 4.1 gp_champ (dev)
+# looks a team up through 32-bit assembly (gp_ftic; mod_ftic.h stands in for the game's cache).
+M32="-m32 -no-pie"
+MC="$CC $M32"
 for c in gcc clang /usr/lib/llvm-14/bin/clang; do
-    if echo 'int main(void){return 0;}' | $c -ftrivial-auto-var-init=pattern -x c -o /dev/null - 2>/dev/null; then
-        MC="$c -O1 -w -ftrivial-auto-var-init=pattern"
+    if echo 'int main(void){return 0;}' | $c $M32 -ftrivial-auto-var-init=pattern -x c -o /dev/null - 2>/dev/null; then
+        MC="$c $M32 -O1 -w -ftrivial-auto-var-init=pattern"
         break
     fi
 done
 $MC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -c -o "$OUT/mod_gp.o" $T/mod_gp.c
 $MC -DDPLAY_C="\"$MOD/tools/dplay.c\"" -c -o "$OUT/mod_dp.o" $T/mod_dp.c
-$CC -c -o "$OUT/mod_main.o" $T/mod_main.c
-$CC -o "$OUT/mod" "$OUT/mod_main.o" "$OUT/mod_dp.o" "$OUT/mod_gp.o"
+$CC $M32 -c -o "$OUT/mod_main.o" $T/mod_main.c
+$CC $M32 -o "$OUT/mod" "$OUT/mod_main.o" "$OUT/mod_dp.o" "$OUT/mod_gp.o"
 $CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/ours" $T/ours.c src/swos_rules_dplay.c src/swos_rules_gplay.c src/swos_rules_post.c src/swos_rules_check.c
 "$OUT/mod" "$OUT/mod.spec" "$N" > "$OUT/mod.txt"
 "$OUT/ours" "$OUT/ours.spec" "$N" > "$OUT/ours.txt" 2>/dev/null   # (its [playoffs] log)
@@ -297,6 +300,8 @@ import json, os, sys
 mod, out, packs = sys.argv[1:4]
 sys.path.insert(0, os.path.abspath("scripts")); sys.path.insert(1, mod + "/tools")
 import mkseason, ripool, statespec, world_states as ws
+import complist
+complist.check_titles = lambda *a, **k: []   # (as split_check.py: the dev names rule, not the rules')
 sim = statespec.sim_table()
 pk = next((p for p in mkseason.packs() if p.world is not None and any(c["type"] == "state" for c in p.comps)), None)
 if not sim or pk is None:
@@ -341,7 +346,7 @@ with open(out + "/sr.txt", "w") as o:
             words += [w[0], "%x" % (len(w) - 1)] + w[1:]
         o.write(" ".join(words) + "\n")
 PY
-$CC -m32 -w -fno-builtin -DMOD -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/ri_mod" $T/pools_drv.c
+$CC $M32 -w -fno-builtin -DMOD -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/ri_mod" $T/pools_drv.c
 $CC -w -Iinclude -include include/swos_platform.h -DSWOS_WORLDS=1 -o "$OUT/ri_ours" $T/pools_drv.c
 "$OUT/ri_mod" "$OUT/ri_tab.bin" "$OUT/sr.txt" > "$OUT/ri_mod.txt"
 "$OUT/ri_ours" "$OUT/ri_tab.bin" "$OUT/sr.txt" > "$OUT/ri_ours.txt"
@@ -404,6 +409,8 @@ SEASON_PACKS="${SPACKS%,}" \
 import sys
 mod, out, data = sys.argv[1:4]
 sys.path.insert(0, mod + "/tools")
+import complist
+complist.font_odd = lambda name: []   # (the dev names rule: the 4.0.5 data's O&M is O Y M in its next package)
 import conti
 conti.DATA = data
 spec, assocs, cups = conti.load(conti.CONFS)

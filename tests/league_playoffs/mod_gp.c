@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include GPLAY_C
+#include "mod_ftic.h"
 const u8 SEC_TAB[1] = { 0 };            /* (no second teams: play-outs take them anyway) */
 s8 SEC_SLT[4096], SEC_COPY[4096];
 const u8 GP_PROM_TAB[1] = { 0 };
