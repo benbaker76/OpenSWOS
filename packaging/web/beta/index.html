@@ -120,7 +120,37 @@ from the PC version (<a href="https://www.gog.com/en/game/sensible_world_of_socc
 your Amiga disk images, as in a release. An install you already have keeps its data and saves.</p>
 
 <h2>New in this beta</h2>
-<p class="note">Since the last release (<code>c07f39fc</code>, 2026-11-04):</p>
+<p class="note">Since the last beta (<code>82d69bb7</code>, 2026-11-07):</p>
+<ul class="note new">
+  <li><strong>The picture is drawn on the GPU everywhere</strong>: Direct3D 11 on Windows, Metal on Mac
+    and iPhone, OpenGL on Linux and Android, WebGL in the browser. If the picture is wrong or the game
+    will not start, tell us (and say your graphics card).</li>
+  <li><strong>RETRO TV</strong> (a mod, off until you turn it on in OPTIONS &rarr; MODS): the picture
+    as a TV shows it -- curved glass and a TV signal -- or any RetroArch <code>.slangp</code> shader
+    preset you put in <code>Documents/SWOS/shaders</code>, chosen on its page.</li>
+  <li><strong>PC MENU SHADING</strong> (a mod, on by default): the menus' buttons shaded as the PC game
+    shades them. <strong>F5</strong> switches between the PC and the Amiga look at any time.</li>
+  <li><strong>MENU BACKGROUNDS</strong> (a mod, on by default): a picture of your own behind the menus
+    -- PNG, BMP or JPEG in <code>Documents/SWOS/backgrounds</code>.</li>
+  <li><strong>Chat in an online match</strong>: TAB to type, F3 to hide it, 1-0 for quick messages; on
+    a phone, a CHAT button.</li>
+  <li><strong>The mouse in the menus</strong>: point to select, click to choose, right click to go
+    back, the wheel to step.</li>
+  <li><strong>OPTIONS &rarr; LANGUAGE</strong>: the menus in English, Deutsch, Fran&ccedil;ais,
+    Espa&ntilde;ol, Italiano or Nederlands, from the next start.</li>
+  <li>When your game data needs updating the game now says so on its own screen, with
+    <strong>LAUNCH SETUP</strong>; OPTIONS &rarr; SETUP opens OpenSWOS Setup at any time. The setup
+    remembers what you ticked, and ticks what is already installed.</li>
+  <li>A mod's page shows who made it. Hair: <code>bald</code> is now all bald (shaved).</li>
+  <li>Online: a two-legged tie's injuries and sendings-off carry over to the second leg. You can only
+    play someone on this beta.</li>
+  <li>Fixed: saving your options no longer resets the ones you did not change (shaders, for one);
+    a loaded career no longer brings last season's Cup Winners' Cup back; the rain no longer keeps
+    falling over REPLAY / EXIT after a friendly; QUIT THE MATCH? and REPLAY / EXIT are shaded like the
+    other menus.</li>
+  <li>The downloads are smaller (the programs are stripped of their debug information).</li>
+</ul>
+<p class="note">And since the last release (<code>c07f39fc</code>, 2026-11-04):</p>
 <ul class="note new">
   <li><strong>Mods.</strong> OPTIONS &rarr; MODS turns them on and off, and <strong>MODES</strong> on the
     main menu holds what they add:
@@ -198,6 +228,13 @@ your Amiga disk images, as in a release. An install you already have keeps its d
 <h2>What to test in this build</h2>
 <h3>Every platform</h3>
 <ol class="note">
+  <li><strong>The picture</strong> (new renderer): start the game, play a match, go fullscreen and back
+    (Alt+Enter), resize the window. Anything black, stretched, flickering or slow?</li>
+  <li><strong>RETRO TV</strong>: turn it on in OPTIONS &rarr; MODS, restart, try its settings on its
+    page. <strong>F5</strong> in the menus: PC and Amiga look.</li>
+  <li><strong>Online chat</strong>: in an online match, TAB, type, Enter; F3 hides it.</li>
+  <li><strong>The mouse</strong> in the menus, and <strong>OPTIONS &rarr; LANGUAGE</strong>: does every
+    screen read right, and does every label fit its button?</li>
   <li><strong>MODES</strong> on the main menu: PRACTICE (penalty shootout, demo game, team training,
     shooting practice), SPEEDRUN and CHALLENGES. Play one of each; leave a screen with EXIT and back out
     of a match with ESC.</li>
