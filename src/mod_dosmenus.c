@@ -34,6 +34,8 @@
 #define SLUG "dosmenus"
 
 extern const uint8_t *Platform_FrameShown(void);
+extern uint8_t *Platform_HudLayerBuffer(void);
+extern int EscConfirm_Showing(void);
 extern int _menu_draw_x_offset;
 
 /* swos.asm's menuItemColorTable: a menu colour's ramp in the PC menus' palette. */
@@ -130,28 +132,45 @@ static int ensure_layer(int32_t w, int32_t h)
 static void frame_drawn(void)
 {
     const uint8_t *fb;
-    int32_t any = 0;
+    int32_t any = 0, stride, xoff, hud = 0;
     if (s_amigaLook)
         return;
     if (!s_pc.tried)
         load_pc();
-    if (!s_pc.ok || !s_boxes || !ModApi_InMenus() || !(fb = Platform_FrameShown()))
+    if (!s_pc.ok || !s_boxes || ModApi_InReplay())
         return;
+    if (ModApi_InMatch()) {
+        /* In a match only the ESC screen's boxes (QUIT THE MATCH? RESUME / QUIT: esc_confirm.c),
+         * which it draws on the HUD layer -- the screen's width, centred, colour 0 clear. */
+        if (!EscConfirm_Showing() || !(fb = Platform_HudLayerBuffer()))
+            return;
+        stride = _screen_width;
+        xoff = WIDE_MARGIN;
+        hud = 1;
+    } else {
+        /* The menus, and the screens after a match (REPLAY / EXIT, AFTER THE MATCH). */
+        if (!(fb = Platform_FrameShown()))
+            return;
+        stride = FRONTBUFFER_ROW_STRIDE_BYTES;
+        xoff = _menu_draw_x_offset;
+    }
     if (!ensure_layer(_screen_width, _screen_height))
         return;
     memset(s_layer, 0, (size_t)s_lw * s_lh * 4);
     for (int32_t b = 0; b < s_boxes; b++) {
         const int32_t c = s_box[b].colour;
+        if (c == 0 && hud)
+            continue;                   /* (the HUD layer's clear) */
         for (int32_t y = s_box[b].y; y < s_box[b].y + s_box[b].h; y++) {
             if (y < 0 || y >= s_lh)
                 continue;
             /* the menu's 256 rows onto the map's 200 */
             const int32_t my = y * kMapH / 256 < kMapH ? y * kMapH / 256 : kMapH - 1;
             for (int32_t x = s_box[b].x; x < s_box[b].x + s_box[b].w; x++) {
-                if (x < 0 || x >= s_lw || fb[(size_t)y * FRONTBUFFER_ROW_STRIDE_BYTES + x] != c)
+                if (x < 0 || x >= s_lw || fb[(size_t)y * stride + x] != c)
                     continue;           /* (text, a picture, or the box is gone) */
                 /* the menu's 336 columns onto the map's 320 */
-                int32_t mx = (x - _menu_draw_x_offset) * kMapW / 336;
+                int32_t mx = (x - xoff) * kMapW / 336;
                 mx = mx < 0 ? 0 : mx >= kMapW ? kMapW - 1 : mx;
                 const uint8_t *rgb = s_pc.rgb[(k_ramp[c] + s_pc.shade[my * kMapW + mx]) & 255];
                 s_layer[(size_t)y * s_lw + x] = 0xFF000000u | ((uint32_t)rgb[0] << 16) | ((uint32_t)rgb[1] << 8) | rgb[2];

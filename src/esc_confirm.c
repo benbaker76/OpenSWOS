@@ -39,6 +39,12 @@ extern int      Platform_VBlank(void);
 extern void     MenuCheckControls(void);
 extern int32_t  NetplayMatch_Enabled(void);
 extern int32_t  CareerAutopilot_Active(void);
+extern void     ModHooks_MenuDrawBegin(void);
+
+static int s_showing;
+
+/* The boxes are up (the PC menu shading mod shades them on the HUD layer: mod_dosmenus.c). */
+int EscConfirm_Showing(void) { return s_showing; }
 
 int EscConfirm_Wanted(void)
 {
@@ -88,6 +94,8 @@ int EscConfirm_Ask(void)
     do                      /* the ESC (or the trigger) that brought it up, let go */
         hold();
     while (_currentKey == 0x1B);
+    ModHooks_MenuDrawBegin();   /* (the menu boxes a mod shades: these, from now) */
+    s_showing = 1;
     for (;; frames++) {
         draw(quit, (frames / 8) & 1);
         hold();
@@ -109,6 +117,8 @@ int EscConfirm_Ask(void)
         _frontbufferBasePtr = saved;
         _menu_draw_x_offset = savedX;
     }
+    s_showing = 0;
+    ModHooks_MenuDrawBegin();   /* (and none of them after) */
     return quit;
 }
 

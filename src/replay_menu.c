@@ -180,6 +180,11 @@ void ReplayExitMenuAfterFriendly(void)
     _replaySelected = 1;
     _paletteIndex = 0;
 
+#ifdef SWOS_SDL_BUILD
+    /* The boxes a mod shades (the PC menu shading: ModDef menuFill) are this screen's from here,
+     * not the last menu's: a stale one would paint over the picture where its colour matches. */
+    { extern void ModHooks_MenuDrawBegin(void); ModHooks_MenuDrawBegin(); }
+#endif
     /* Draw initial menu and fade in */
     DrawReplayOrExitMenu();
     FadeIn();
