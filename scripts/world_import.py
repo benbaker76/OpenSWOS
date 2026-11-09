@@ -1506,6 +1506,13 @@ void World_InstallBaked(void)
 %(cases)s
 #endif
     default:
+        {   /* 96/97 with a mod's European cups as league phases (LeaguePhase_SetModEurope) */
+            const uint8_t (*places)[4];
+            int32_t n;
+            CompetitionLeaguePhase *cups = LeaguePhase_ModCups(&places, &n);
+            if (cups)
+                LeaguePhase_InstallCups(cups);
+        }
         break;
     }
 }
@@ -1596,9 +1603,7 @@ CompetitionLeaguePhase *World_LeaguePhaseCups(const uint8_t (**places)[4], int32
 %(europe_cases)s
 #endif
     default:
-        *places = 0;
-        *count = 0;
-        return 0;
+        return LeaguePhase_ModCups(places, count);  /* (a mod's, while 96/97 is the world) */
     }
 }
 
@@ -1690,7 +1695,7 @@ const WorldUefaSeeds *World_UefaSeeds(void)
 %(coef_cases)s
 #endif
     default:
-        return 0;
+        return (const WorldUefaSeeds *)LeaguePhase_ModSeeds();
     }
 }
 
