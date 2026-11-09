@@ -90,6 +90,7 @@ SDL_ONLY_SRCS := \
     gpu_slang.c           \
     mod_retrotv.c         \
     stb_image_impl.c      \
+    stb_vorbis_impl.c     \
     tileagent_impl.c      \
     mm_client.c           \
     netem_core.c          \

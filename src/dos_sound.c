@@ -34,6 +34,9 @@
 #include "dos_sound_tables.h"
 #define DR_MP3_NO_STDIO                     /* as src/music_stream.c, which compiles it */
 #include "../third_party/dr_mp3/dr_mp3.h"
+#define STB_VORBIS_HEADER_ONLY              /* (src/stb_vorbis_impl.c compiles it) */
+#include "../third_party/stb_vorbis/stb_vorbis.c"
+#include "mods.h"                           /* a mod's effect in another format (file_load) */
 
 extern void AudioSDL_PcmPlay(int voice, const uint8_t *data, uint32_t len, int rate, int volume, int loops);
 extern void AudioSDL_PcmPlay16(int voice, const int16_t *data, uint32_t len, int rate, int volume, int loops);
@@ -62,7 +65,9 @@ static int32_t s_full;                  /* ... its effects, crowd and chants: th
 static int32_t s_training;
 static int32_t s_muteCommentary;        /* the PC game's F8 */
 
-static struct { uint8_t *volatile data; uint32_t len; int8_t tried; } s_file[DOS_SOUND_FILES];
+/* A file of the table: the PC game's .raw (8-bit, RATE), or a mod's .ogg / .wav / .mp3 decoded to
+ * 16-bit mono at its own rate (is16). */
+static struct { uint8_t *volatile data; uint32_t len; int32_t rate; int8_t is16, tried; } s_file[DOS_SOUND_FILES];
 static SDL_Thread  *s_loader;           /* reads the files while the game starts */
 static volatile int s_loadDone, s_loadGot;
 
@@ -93,7 +98,7 @@ static uint32_t rnd(void)
  *
  * SWOS 2020's arrangement: a folder per category under sound_dos/commentary/ (or
  * [audio] commentary_dir), any number of files in each, of any length -- .raw (the PC
- * game's own format: unsigned 8-bit mono, 22,050 Hz), .wav or .mp3. A category with
+ * game's own format: unsigned 8-bit mono, 22,050 Hz), .wav, .mp3, .ogg or .aiff. A category with
  * files in its folder is spoken from them; one without keeps the PC game's lines.
  * "_x3" or "-x3" at the end of a name makes that file three times as likely.
  * The names are SWOS 2020's, so a pack made for it drops in. */
@@ -114,7 +119,7 @@ static const char *const k_category[CATEGORIES] = {
 #define CUSTOM_PER_CATEGORY 64
 #define CUSTOM_MAX_BYTES    (96u * 1024u * 1024u)   /* of decoded sound, all categories together */
 
-typedef struct {
+typedef struct CustomLine {
     void    *data;              /* uint8_t (.raw) or int16_t samples, mono */
     uint32_t frames;
     int32_t  rate;
@@ -133,6 +138,8 @@ static uint32_t s_customBytes;
 
 /* ---- files ---- */
 
+static int32_t file_load_mod(int32_t id);   /* (below custom_load: a mod's, any format) */
+
 static int32_t file_load(int32_t id)
 {
     char rel[96], anchored[1024];
@@ -144,6 +151,8 @@ static int32_t file_load(int32_t id)
     if (s_file[id].tried)
         return s_file[id].data != NULL;
     s_file[id].tried = 1;
+    if (file_load_mod(id))
+        return 1;
     snprintf(rel, sizeof rel, "sound_dos/%s", k_dosSoundFiles[id]);
     f = fopen(swos_data_path(rel, anchored, (uint32_t)sizeof anchored), "rb");
     if (!f)
@@ -155,6 +164,8 @@ static int32_t file_load(int32_t id)
         uint8_t *data = (uint8_t *)malloc((size_t)size);
         if (data && fread(data, 1, (size_t)size, f) == (size_t)size) {
             s_file[id].len = (uint32_t)size;
+            s_file[id].rate = RATE;
+            s_file[id].is16 = 0;
             s_file[id].data = data;         /* last: the game plays what has a pointer */
         } else {
             free(data);
@@ -209,6 +220,56 @@ static int32_t chance_of(const char *name)
     if (p == dot - 1 || p - name < 2 || *p != 'x' || (p[-1] != '_' && p[-1] != '-'))
         return 1;
     return value < 1 ? 1 : value > 100 ? 100 : value;
+}
+
+/* An AIFF file (FORM / AIFF, uncompressed PCM, 8 or 16 bits, big-endian; one of SWOS 2020's
+ * packs has one): its samples mixed to 16-bit mono into *out. 0 when it is not that. */
+static int32_t aiff_decode(const uint8_t *b, uint32_t len, int16_t **out, uint32_t *frames, int32_t *rate)
+{
+    uint32_t at = 12, nframes = 0, ssnd = 0, ssndLen = 0;
+    int32_t channels = 0, bits = 0, hz = 0;
+    if (len < 12 || memcmp(b, "FORM", 4) != 0 || memcmp(b + 8, "AIFF", 4) != 0)
+        return 0;
+    while (at + 8 <= len) {
+        const uint32_t size = (uint32_t)b[at + 4] << 24 | (uint32_t)b[at + 5] << 16 | (uint32_t)b[at + 6] << 8 | b[at + 7];
+        const uint8_t *c = b + at + 8;
+        if (size > len - at - 8)
+            break;
+        if (memcmp(b + at, "COMM", 4) == 0 && size >= 18) {
+            channels = c[0] << 8 | c[1];
+            nframes = (uint32_t)c[2] << 24 | (uint32_t)c[3] << 16 | (uint32_t)c[4] << 8 | c[5];
+            bits = c[6] << 8 | c[7];
+            {   /* the rate: an 80-bit extended float (exponent, then the mantissa's top 32 bits do) */
+                const int32_t e = ((c[8] & 0x7F) << 8 | c[9]) - 16383 - 31;
+                const uint32_t m = (uint32_t)c[10] << 24 | (uint32_t)c[11] << 16 | (uint32_t)c[12] << 8 | c[13];
+                hz = e >= 0 ? (int32_t)(m << e) : (int32_t)(m >> -e);
+            }
+        } else if (memcmp(b + at, "SSND", 4) == 0 && size >= 8) {
+            const uint32_t off = (uint32_t)c[0] << 24 | (uint32_t)c[1] << 16 | (uint32_t)c[2] << 8 | c[3];
+            ssnd = at + 16 + off;
+            ssndLen = size - 8 - off;
+        }
+        at += 8 + size + (size & 1);
+    }
+    const int32_t bytes = bits <= 8 ? 1 : 2;
+    if (!ssnd || channels < 1 || (bits != 8 && bits != 16) || hz < 4000 || ssnd > len ||
+        (uint64_t)nframes * channels * bytes > ssndLen || ssndLen > len - ssnd)
+        return 0;
+    int16_t *mono = (int16_t *)malloc((size_t)nframes * 2 + 2);
+    if (!mono)
+        return 0;
+    for (uint32_t i = 0; i < nframes; i++) {
+        int32_t sum = 0;
+        for (int32_t ch = 0; ch < channels; ch++) {
+            const uint8_t *p = b + ssnd + ((size_t)i * channels + ch) * bytes;
+            sum += bytes == 1 ? (int8_t)p[0] * 256 : (int16_t)(p[0] << 8 | p[1]);
+        }
+        mono[i] = (int16_t)(sum / channels);
+    }
+    *out = mono;
+    *frames = nframes;
+    *rate = hz;
+    return 1;
 }
 
 /* One file of a category's folder, decoded to mono. 0 when it is not sound we can play. */
@@ -267,6 +328,41 @@ static int32_t custom_load(const char *path, CustomLine *out)
         }
         if (pcm)
             drmp3_free(pcm, NULL);
+    } else if (ends_with(path, ".aiff") || ends_with(path, ".aif")) {
+        uint8_t *file = slurp(path, &len);
+        int16_t *mono = NULL;
+        if (!file)
+            return 0;
+        if (aiff_decode(file, len, &mono, &out->frames, &out->rate)) {
+            out->data = mono;
+            out->is16 = 1;
+        }
+        free(file);
+    } else if (ends_with(path, ".ogg")) {  /* (SWOS 2020's packs: stb_vorbis, docs/MODS.md §10.3) */
+        uint8_t *file = slurp(path, &len);
+        int channels = 0, rate = 0;
+        short *pcm = NULL;
+        int frames;
+        if (!file)
+            return 0;
+        frames = stb_vorbis_decode_memory(file, (int)len, &channels, &rate, &pcm);
+        free(file);
+        if (pcm && frames > 0 && channels >= 1) {
+            int16_t *mono = (int16_t *)malloc((size_t)frames * 2);
+            if (mono) {
+                for (int i = 0; i < frames; i++) {
+                    int32_t sum = 0;
+                    for (int c = 0; c < channels; c++)
+                        sum += pcm[i * channels + c];
+                    mono[i] = (int16_t)(sum / channels);
+                }
+                out->data = mono;
+                out->frames = (uint32_t)frames;
+                out->rate = rate;
+                out->is16 = 1;
+            }
+        }
+        free(pcm);
     }
     if (!out->data || !out->frames || out->rate < 4000) {
         free(out->data);
@@ -276,6 +372,42 @@ static int32_t custom_load(const char *path, CustomLine *out)
     out->chance = chance_of(path);
     return 1;
 }
+
+static int32_t trace_on(void);
+
+/* A mod's own copy of a table file in any format SWOS 2020's packs use -- <name>.raw, .ogg, .wav
+ * or .mp3 under the mod's sound_dos/ -- the first enabled mod with one; the PC game's .raw when no
+ * mod has it (docs/MODS.md §10.3). 1 when a mod's was loaded. */
+static int32_t file_load_mod(int32_t id)
+{
+    static const char *const ext[] = { ".raw", ".ogg", ".wav", ".mp3", ".aiff" };
+    char base[96], path[1300];
+    const char *dot = strrchr(k_dosSoundFiles[id], '.');
+    snprintf(base, sizeof base, "%.*s", dot ? (int)(dot - k_dosSoundFiles[id]) : 95, k_dosSoundFiles[id]);
+    for (int32_t m = 0; m < Mods_Count(); m++)
+        for (int32_t e = 0; e < 5; e++) {
+            CustomLine line;
+            FILE *f;
+            snprintf(path, sizeof path, "%s/sound_dos/%s%s", Mods_Dir(m), base, ext[e]);
+            if (!(f = fopen(path, "rb")))
+                continue;
+            fclose(f);
+            if (!custom_load(path, &line)) {
+                fprintf(stderr, "[dos-sound] %s: not sound we can play -- the game's own\n", path);
+                return 0;
+            }
+            s_file[id].len = line.frames;
+            s_file[id].rate = line.rate;
+            s_file[id].is16 = (int8_t)line.is16;
+            s_file[id].data = (uint8_t *)line.data;     /* last: the game plays what has a pointer */
+            if (trace_on())
+                fprintf(stderr, "[dos-sound] %s from %s (%u frames at %d Hz)\n", k_dosSoundFiles[id], path,
+                        (unsigned)line.frames, (int)line.rate);
+            return 1;
+        }
+    return 0;
+}
+
 
 /* Every category's folder, once, after the PC game's own files. */
 static void custom_scan(void)
@@ -302,9 +434,10 @@ static void custom_scan(void)
             if (e->d_name[0] == '.')
                 continue;
             snprintf(path, sizeof path, "%s/%s", dir, e->d_name);
-            if (!ends_with(path, ".raw") && !ends_with(path, ".wav") && !ends_with(path, ".mp3")) {
+            if (!ends_with(path, ".raw") && !ends_with(path, ".wav") && !ends_with(path, ".mp3") &&
+                !ends_with(path, ".ogg") && !ends_with(path, ".aiff") && !ends_with(path, ".aif")) {
                 if (!ends_with(path, ".txt"))
-                    fprintf(stderr, "[sound] commentary/%s/%s: not .raw, .wav or .mp3 -- left out\n",
+                    fprintf(stderr, "[sound] commentary/%s/%s: not .raw, .wav, .mp3, .ogg or .aiff -- left out\n",
                             k_category[c], e->d_name);
                 continue;
             }
@@ -387,7 +520,11 @@ static void play_at(int32_t voice, int32_t id, int32_t volume, int32_t loops, in
     if (trace_on())
         fprintf(stderr, "[dos-sound] voice %d: %s, volume %d%s%s\n", voice, k_dosSoundFiles[id], volume,
                 loops ? ", looped" : "", rate != RATE ? ", at half rate" : "");
-    AudioSDL_PcmPlay(voice, s_file[id].data, s_file[id].len, rate, volume, loops);
+    if (s_file[id].is16)                /* (a mod's, at its own rate: the game's `rate` relative to RATE) */
+        AudioSDL_PcmPlay16(voice, (const int16_t *)s_file[id].data, s_file[id].len,
+                           (int)((int64_t)s_file[id].rate * rate / RATE), volume, loops);
+    else
+        AudioSDL_PcmPlay(voice, s_file[id].data, s_file[id].len, rate, volume, loops);
 }
 
 static void play(int32_t voice, int32_t id, int32_t volume, int32_t loops)
@@ -864,12 +1001,14 @@ int32_t DosSound_SelfTest(void)
     int32_t failures = 0, i, j;
     uint32_t bytes = 0;
 
+    if (getenv("SWOS_MODS_ENABLED") && !Mods_Count())   /* (a sound pack's mods: run before the game loads them) */
+        Mods_Init(getenv("SWOS_MODS_ENABLED"), "");
     for (i = 0; i < DOS_SOUND_FILES; i++) {
         if (!file_load(i)) {
             fprintf(stderr, "[dos-sound] FAIL: sound_dos/%s is missing\n", k_dosSoundFiles[i]);
             failures++;
         } else {
-            bytes += s_file[i].len;
+            bytes += s_file[i].len * (s_file[i].is16 ? 2u : 1u);
         }
     }
     for (i = 0; i < (int32_t)(sizeof tables / sizeof tables[0]); i++) {
@@ -880,6 +1019,18 @@ int32_t DosSound_SelfTest(void)
                 failures++;
             }
         }
+    }
+    {
+        int32_t lines = 0, cats = 0, mods = 0;
+        for (i = 0; i < DOS_SOUND_FILES; i++)
+            mods += s_file[i].is16;
+        custom_scan();                  /* (the commentary folders, as a match starts with them) */
+        for (i = 0; i < CATEGORIES; i++) {
+            lines += s_custom[i].count;
+            cats += s_custom[i].count > 0;
+        }
+        fprintf(stderr, "[dos-sound] %d of the files from a mod in another format; commentary: %d lines in %d "
+                        "categories\n", (int)mods, (int)lines, (int)cats);
     }
     fprintf(stderr, "[dos-sound] %d files, %u bytes (%.1f s at %d Hz), %d tables: %s\n",
             DOS_SOUND_FILES, bytes, bytes / (double)RATE, RATE, (int32_t)(sizeof tables / sizeof tables[0]),
