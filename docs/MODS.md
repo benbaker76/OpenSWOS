@@ -293,7 +293,11 @@ longer and, past 12 clubs, played twice; the Greek / Israeli / Italian / Scottis
 `fixes` switches (career.opt's first line: team, month, each-match, greek, israel, italia, scotch);
 El Salvador without moves from 2021; `points_for_win`; then `leagues`, explicit overrides by
 team-file number. Real match days for odd divisions (src/fixture_rounds.c, as a world's: the
-original's odd tables make a career panic, 0x1313). No away goals in the European cups from 2022.
+original's odd tables make a career panic, 0x1313). A country's cup with more places than its
+file has clubs goes down to the largest power of two that fits (the season change draws its
+clubs until every place is taken: 1994-95 1.0's Israel, 15 clubs for 16 places, hung). A league
+cut to fewer divisions relegates no one from its new bottom one. No away goals in the European
+cups from 2022.
 The nationality codes, and the career's years from `season_year` (World_FirstYear). Not ported:
 SWOS 2020's dead Taiwan / San Marino / Spain cases, and its five substitutes for every cup.
 `[teamdb]` log lines name every league it changed.

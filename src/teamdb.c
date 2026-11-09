@@ -196,6 +196,33 @@ static void league_overrides(CompetitionLeague *lg, int32_t file, const char *js
     fprintf(stderr, "[teamdb] file %d: the league's overrides applied\n", (int)file);
 }
 
+/* A country's cups (its competitionsTable entry's [2] and [3]) no bigger than its clubs: the season
+ * change fills a cup by drawing distinct clubs from its team file at random until every place is
+ * taken (career_teams.c fillCupTeamSelectionFromFile), so a database with fewer clubs than a cup's
+ * places never finishes it -- 1994-95 1.0's Israel, 14 clubs for its 16-team cup, hung the first
+ * season change. The cup goes down to the largest power of two that fits (SWOS 2020 changed no
+ * cup's size: its fixupLeagueCup only set the substitutes). */
+static void fit_cups(void **entry, int32_t file)
+{
+    int32_t count[LEAGUE_MAX_DIVISIONS];
+    const int32_t clubs = division_counts(file, count);
+    if (clubs <= 0 || (intptr_t)entry[2] == -1 || !entry[2])
+        return;
+    for (int32_t k = 2; k <= 3; k++) {
+        if (!entry[k] || (intptr_t)entry[k] == -1)
+            break;
+        CompCupHeader *cup = (CompCupHeader *)entry[k];
+        if (cup->comp.type != 1 || (uint8_t)cup->comp.teamNumber != (uint8_t)file || cup->teams <= clubs)
+            continue;
+        int32_t fit = 2;
+        while (fit * 2 <= clubs)
+            fit *= 2;
+        fprintf(stderr, "[teamdb] file %d: its cup of %d clubs made %d (the file has %d)\n", (int)file,
+                (int)cup->teams, (int)fit, (int)clubs);
+        cup->teams = (int8_t)fit;
+    }
+}
+
 /* ---- the European cups: their draw lists from the TMDs (SWOS 2020's fixTMDData) ---- */
 
 static void cup_from_tmd(Competition *cup, const char *name, int32_t teams)
@@ -282,6 +309,7 @@ void TeamDb_Apply(void)
         if ((uint8_t)lg->header.comp.teamNumber != (uint8_t)file || lg->header.divisionsCount < 1 ||
             lg->header.divisionsCount > LEAGUE_MAX_DIVISIONS)
             continue;                   /* (not a country's league) */
+        fit_cups(entry, file);
         const CompetitionLeague was = *lg;
         fixup_league(lg, file, fixes, points);
         league_overrides(lg, file, json, len);
