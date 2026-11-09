@@ -1700,6 +1700,7 @@ struct App {
 
   struct ModFile {
     std::string slug, dir, name, version, uuid, changes, problem;
+    std::string slot;        // "slot": one mod of a slot on at a time (docs/MODS.md §10.2)
     bool canonical = false, byDefault = false, sdl = false, amiga = false;
     bool isStatic = false;   // PROJECT_STATIC_MODS: part of the game -- on for good, never listed
   };
@@ -1791,6 +1792,7 @@ struct App {
     m.changes = ManifestValue(j, "changes");
     if (m.changes.empty()) m.changes = "gameplay";
     m.byDefault = ManifestValue(j, "default") == "true";
+    m.slot = ManifestValue(j, "slot");
     const std::string targets = ManifestValue(j, "targets");
     m.sdl = targets.find("\"sdl\"") != std::string::npos;
     m.amiga = targets.find("\"amiga\"") != std::string::npos;
@@ -1836,6 +1838,14 @@ struct App {
                              dis = SplitList(IniValue(ini, "mods", "disabled"));
     en.erase(std::remove(en.begin(), en.end(), m.slug), en.end());
     dis.erase(std::remove(dis.begin(), dis.end(), m.slug), dis.end());
+    if (on && !m.slot.empty())       // (a slot is pick-one: the others of it off -- the game keeps
+      for (const ModFile& o : modList)   //  only the first anyway, docs/MODS.md §10.2)
+        if (o.slug != m.slug && o.slot == m.slot) {
+          en.erase(std::remove(en.begin(), en.end(), o.slug), en.end());
+          if (o.canonical && o.byDefault && std::find(dis.begin(), dis.end(), o.slug) == dis.end())
+            dis.push_back(o.slug);
+          FileLog("mods: " + o.slug + " off (its slot \"" + m.slot + "\" is " + m.slug + "'s now)");
+        }
     if (m.canonical && m.byDefault) { if (!on) dis.push_back(m.slug); }
     else if (on) en.push_back(m.slug);
     ini = IniSet(ini, "mods", "enabled", JoinList(en).c_str());

@@ -2635,6 +2635,21 @@ void MultiplayerMenuSelected(void)
         if (Mods_OnlineSignature(mods, sizeof mods))
             fprintf(stderr, "[mods] online with %s: only against the same mods\n", mods);
     }
+#ifdef SWOS_SDL_BUILD
+    {   /* Mods that say "online": false (an offline-only team database): said here, before the
+         * log-in, not by a refused match later (docs/MODS.md §10). */
+        char mods[200], text[400];
+        if (Mods_OfflineOnly(mods, sizeof mods)) {
+            static const char *const ok[] = { "OK" };
+            snprintf(text, sizeof text, "THESE MODS ARE NOT FOR ONLINE PLAY: %s.|TURN THEM OFF IN OPTIONS - MODS, "
+                     "THEN RESTART, TO PLAY ONLINE.", mods);
+            fprintf(stderr, "[mods] MULTIPLAYER: offline-only mods on (%s): not started\n", mods);
+            MenuDialog_Show("PLAY ONLINE", text, ok, 1, 0);
+            CommonMenuExit();
+            return;
+        }
+    }
+#endif
     OnlineMenus_Init();
     OnlineMenus_Show("swos2020/logInMenu");
     /* Coming back re-unpacks the main menu from its packed bytes, where the CONTINUE and

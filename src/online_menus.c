@@ -2987,6 +2987,13 @@ int32_t OnlineMenus_ShowStartMenu(void)
         CreditsMenu_Show();         /* with its photos' palette, as the button opens it */
     else if (!strcmp(name, SWOS2020_MENU(selectMyCustomTeams)))
         CustomTeam_Manage();        /* the slots AND what choosing one does, as its button */
+    else if (!strncmp(name, CHOICE_MENU_NAME ":", sizeof CHOICE_MENU_NAME)) {   /* (<slug>:<key>) */
+        char slug[64];
+        const char *rest = name + sizeof CHOICE_MENU_NAME, *colon = strchr(rest, ':');
+        snprintf(slug, sizeof slug, "%.*s", colon ? (int)(colon - rest) : 0, rest);
+        if (!colon || !ModsMenu_ShowChoices(slug, colon + 1))
+            OnlineMenus_Show(MODS_MENU_NAME);
+    }
     else
         OnlineMenus_Show(name);
     return 1;
@@ -3067,6 +3074,13 @@ int32_t OnlineMenus_SelfTest(void)
         if (bad) {
             failed++;
             printf("  FAIL %-26s %s\n", "modPageMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
+        bad = MenuJson_VerifyDynamic(CHOICE_MENU_NAME, CHOICE_MENU_ENTRIES);
+        menus++;
+        entries += CHOICE_MENU_ENTRIES;
+        if (bad) {
+            failed++;
+            printf("  FAIL %-26s %s\n", "choiceMenu", bad < 0 ? "did not load" : "mismatch (see log)");
         }
     }
     CreditsMenu_Init();

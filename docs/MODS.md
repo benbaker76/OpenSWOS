@@ -228,6 +228,37 @@ targets a mod is for -- which also gives SWOS United and SWOS United Amiga their
 Mods are hosted by their authors (content with other people's rights stays theirs, as World
 2026-27 is Davide's); the index only points to them, with each file's hash.
 
+### 10.1 The index (the owner, 2026-11-09)
+
+One file, `index.json`, read by every mod manager (SWOS Launcher's DLC Manager first; OpenSWOS
+Setup later), falling back to SWOS 2020's CSVs where a manager still has them:
+
+```json
+{ "format": "openswos-mod-index", "version": 1,
+  "mods": [ { "uuid": "…", "slug": "…", "name": "…", "version": "1.0", "author": "…",
+              "changes": "cosmetic", "slot": "pitch", "targets": ["sdl"],
+              "url": "https://…/<slug>.zip", "sha256": "…", "size": 123456, "about": "…" } ] }
+```
+
+- `format` / `version`: this format; a manager refuses a version it does not know.
+- per mod, as its `mod.json` says (§14): `uuid` (its identity -- a DLC's uuid4, never changed),
+  `slug` (its folder in `Mods_Root()`: letters, digits, `-` and `_`, **at most 31**,
+  `MODS_ID_MAX`; a longer one is left out, the log says so), `name`, `version`, `author`,
+  `changes`, `slot` (`""` or absent: none), `targets`, `about` (one line);
+- `url` (a zip whose root is the mod's folder contents: `mod.json` at its top), `sha256` and
+  `size` of that zip.
+
+### 10.2 A manifest's keys for managers: "slot" and "online"
+
+- **`"slot"`**: one mod of a slot on at a time -- `pitch`, `commentary`, `fx`, `title_music`,
+  `menu_music`, `teamdb` (what SWOS 2020's DLC types replace whole). The game keeps the first
+  enabled mod of a slot and logs the others it leaves out (`src/mods.c` load_one); Setup and the
+  manager show a slot as pick-one. Cups, team packs and backgrounds have none: several can be on.
+- **`"online": false`**: not for online play (an offline-only team database). MULTIPLAYER says
+  which mods are on that are not for it and does not start until they are off
+  (`Mods_OfflineOnly`, menus.c MultiplayerMenuSelected), rather than a match being refused later.
+- Keys the game does not know (a converter's own, `"swos2020": {...}`) are ignored.
+
 ---
 
 ## 11. Order of work
@@ -930,6 +961,14 @@ The rigs prove the original game, as they do with every tweak off (§4): under `
 that is a test asking for it. So a default-on `career` mod (openswos-78's euro36) leaves the
 golden careers as they are.
 
+
+**Galleries (2026-11-09):** a mod of pictures only -- `images/<title>.png|.bmp|.jpg` and a
+`mod.json`, no code -- adds them to the choice: the page lists the `images/` of every enabled mod
+(after the backgrounds mod's own, before the player's folder), sorted by name, each name once, up
+to 256; with more than a page's rows the setting opens a scrolling list (`openswos/choiceMenu`,
+`--menu=openswos/choiceMenu:backgrounds:image` to look at it). The picture is found in the same
+places. A choice is a file name, so two galleries' pictures of one name are one choice: name them
+apart. BMP is read as it is (stb_image); PNG or JPEG only makes the download smaller.
 ---
 
 ## 27. Career events and a mod's section of the career save (§8.5; Career+'s §3.4)

@@ -3,7 +3,8 @@
  * behind every menu instead of the game's own backdrop (docs/MODS.md, "Menu backgrounds"). SDL
  * only.
  *
- * WHICH PICTURE: [mod.backgrounds] image -- a file in the mod's images/ folder or in the player's
+ * WHICH PICTURE: [mod.backgrounds] image -- a file in the mod's images/ folder, in an enabled
+ * mod's images/ (a gallery DLC: pictures only, no code), or in the player's
  * game folder's backgrounds/ (Documents\SWOS\backgrounds on Windows), PNG, BMP or JPEG; "off" the
  * game's own backdrop. Not set: the first picture in the mod's own images/ (a fork ships its
  * own there -- SWOS United its SWOS_United.png -- OpenSWOS ships none, so nothing changes).
@@ -23,6 +24,7 @@
 #include <SDL.h>
 
 #include "mod_api.h"
+#include "mods.h"          /* Mods_Count / Mods_Dir: a gallery mod's images/ */
 #include "swos_io.h"            /* swos_user_dir */
 #include "../third_party/stb_image/stb_image.h"
 
@@ -72,10 +74,15 @@ static void picture_path(char *out, size_t cap)
     snprintf(out, cap, "%s/%s", own, setting);
     if (file_exists(out))
         return;
+    for (int32_t i = 0; i < Mods_Count(); i++) {   /* (a gallery mod's images/: docs/MODS.md §25b) */
+        snprintf(out, cap, "%s/images/%s", Mods_Dir(i), setting);
+        if (file_exists(out))
+            return;
+    }
     snprintf(out, cap, "%s/backgrounds/%s", swos_user_dir(), setting);
     if (!file_exists(out)) {
-        fprintf(stderr, "[backgrounds] %s: not in %s nor %s/backgrounds -- the game's own backdrop\n",
-                setting, own, swos_user_dir());
+        fprintf(stderr, "[backgrounds] %s: not in %s, an enabled mod's images/ nor %s/backgrounds -- the "
+                        "game's own backdrop\n", setting, own, swos_user_dir());
         out[0] = '\0';
     }
 }
