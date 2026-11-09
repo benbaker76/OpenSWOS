@@ -504,6 +504,14 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
     if (!G.up)
         return 0;
     GpuPresent_OutputSize(&G.outW, &G.outH);
+    {   /* (the size it draws at, when it changes: next to the page's [page] lines on the web) */
+        static int lastW = -1, lastH = -1;
+        if (G.outW != lastW || G.outH != lastH) {
+            fprintf(stderr, "[gpu] output %dx%d\n", G.outW, G.outH);
+            lastW = G.outW;
+            lastH = G.outH;
+        }
+    }
     if (G.outW <= 0 || G.outH <= 0)
         return 0;
 

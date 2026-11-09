@@ -312,6 +312,35 @@
       });
     })();
 
+    // --- The function keys are the game's. SDL lets a key's default action happen while text
+    //     input is on (as it is in SDL 2), so F5 reloaded the page instead of switching the menus'
+    //     shading (dosmenus' hotkey), F3 (the match chat) opened the find bar, F1 the help, F6 the
+    //     address bar, F7 caret browsing, F10 the menu bar. The default action is stopped here, in
+    //     the capture phase; the event still reaches the game. F11 (fullscreen) and F12 (developer
+    //     tools) stay the browser's; a text field (the settings panel, the chat) keeps its keys. ---
+    window.addEventListener('keydown', function (e) {
+      var t = e.target, tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+      if (/^F([1-8]|10)$/.test(e.key)) e.preventDefault();
+    }, true);
+
+    // --- What happens to the picture, in the console: the WebGL context lost or restored, the
+    //     page hidden or shown, fullscreen in or out, with the canvas's size each time -- what
+    //     to ask a player for when the picture goes black (2026-11-08: black after alt-tabbing
+    //     out of fullscreen and back, until fullscreen again). ---
+    (function () {
+      var c = document.getElementById('canvas');
+      function size() { var r = c.getBoundingClientRect(); return c.width + 'x' + c.height + ' (shown ' + Math.round(r.width) + 'x' + Math.round(r.height) + ')'; }
+      c.addEventListener('webglcontextlost', function () { console.warn('[page] WebGL context LOST, canvas ' + size()); });
+      c.addEventListener('webglcontextrestored', function () { console.warn('[page] WebGL context restored, canvas ' + size()); });
+      document.addEventListener('visibilitychange', function () { console.log('[page] ' + (document.hidden ? 'hidden' : 'shown') + ', canvas ' + size()); });
+      ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (ev) {
+        document.addEventListener(ev, function () {
+          console.log('[page] fullscreen ' + ((document.fullscreenElement || document.webkitFullscreenElement) ? 'on' : 'off') + ', canvas ' + size());
+        });
+      });
+    })();
+
     // --- Fullscreen toggle. Mobile browsers have no F11 and only allow
     //     requestFullscreen() from a user gesture (a tap) — never from an
     //     orientationchange handler — so a tappable button is the only reliable

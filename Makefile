@@ -590,7 +590,9 @@ endif
 ifeq ($(origin SWOS_ASSETS),undefined)
 SWOS_ASSETS := $(HOME)/.swos/assets
 endif
-WASM_DATA_DIRS := data grafs grafs_aga grafs_jag sound data_json mods
+# (grafs_dos: the PC game's graphics -- the menus' PC shading (dosmenus, on by default) and the
+#  DOS graphics; 1.4 MB. Not sound_dos (15 MB) nor grafs_2020 (not ours to hand out).)
+WASM_DATA_DIRS := data grafs grafs_aga grafs_dos grafs_jag sound data_json mods
 
 # Emscripten link flags. ASYNCIFY lets the blocking game loop yield to the
 # browser at the one Platform_VBlank choke-point (emscripten_sleep — docs/WASM.md
