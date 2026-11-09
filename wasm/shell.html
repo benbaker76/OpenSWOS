@@ -380,6 +380,15 @@
                  document.msExitFullscreen;
         if (ex) ex.call(document);
       }
+      // Alt+Enter: this fullscreen too (the game's own does nothing on the web: SDL's resized the
+      // canvas and lost track of it when leaving -- a black picture). Here, in the key's own
+      // handler, it is a user gesture, as a browser wants for fullscreen.
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.altKey && !e.repeat) {
+          e.preventDefault();
+          if (fsElement()) exit(); else enter();
+        }
+      }, true);
       fsBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         if (fsElement()) exit(); else enter();

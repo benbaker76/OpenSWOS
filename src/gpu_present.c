@@ -351,10 +351,21 @@ void GpuPresent_Shutdown(void)
     G.up = 0;
 }
 
+#ifdef SWOS_WASM_BUILD
+#include <emscripten/html5.h>
+#endif
+
 void GpuPresent_OutputSize(int *w, int *h)
 {
 #if defined(GPU_NATIVE)
     GpuNative_DrawableSize(w, h);
+#elif defined(SWOS_WASM_BUILD)
+    /* The web: the canvas's own size, whatever resized it. SDL's idea of it can be stale -- its
+     * fullscreen resized the canvas to the screen and told SDL; leaving it put the canvas back
+     * and did not, so the picture was drawn 3440x1440 into a 650x272 canvas: black (Firefox:
+     * "Drawing to a destination rect smaller than the viewport rect"), 2026-11-08. */
+    if (emscripten_get_canvas_element_size("#canvas", w, h) != EMSCRIPTEN_RESULT_SUCCESS)
+        SDL_GL_GetDrawableSize(G.window, w, h);
 #else
     SDL_GL_GetDrawableSize(G.window, w, h);
 #endif

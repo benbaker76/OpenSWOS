@@ -1250,6 +1250,12 @@ static int window_is_fullscreen(void)
 
 void Platform_ToggleFullscreen(void)
 {
+#ifdef SWOS_WASM_BUILD
+    /* The web: the page does Alt+Enter itself (wasm/shell.html), as its fullscreen button does --
+     * the canvas scaled by the page, never resized. SDL's own fullscreen resized the canvas to the
+     * screen and, leaving it, left SDL with the screen's size: a black picture (2026-11-08). */
+    return;
+#endif
     if (!s_window) return;
     Uint32 flags = SDL_GetWindowFlags(s_window);
     int currently_fullscreen =
