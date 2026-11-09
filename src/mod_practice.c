@@ -213,6 +213,8 @@ static void training_start(void)
     setup.autoReplays = 0;
     setup.replayMenu = 0;
     setup.stadium = 0;
+    setup.playMatchScreen = 1;          /* (the line-up first: EDIT TACTICS, substitutes -- as SHOOTING
+                                           PRACTICE; report 0061) */
     setup.name = "team training";
     /* you: the team the player plays (the team screen's: the first that is not the CPU's) */
     int32_t you = 0;
