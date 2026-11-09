@@ -259,6 +259,45 @@ Setup later), falling back to SWOS 2020's CSVs where a manager still has them:
   (`Mods_OfflineOnly`, menus.c MultiplayerMenuSelected), rather than a match being refused later.
 - Keys the game does not know (a converter's own, `"swos2020": {...}`) are ignored.
 
+### 10.3 Sound in a mod's own format (2026-11-09)
+
+Commentary folders (`sound_dos/commentary/<category>/`) take `.raw`, `.wav`, `.mp3`, `.ogg` and
+`.aiff`; the PC sound table takes a mod's `sound_dos/<fx|hard|pierce>/<name>` as `.raw`, `.ogg`,
+`.wav`, `.mp3` or `.aiff` (lower-case table names, src/dos_sound_tables.h) before the game's
+`.raw`. All of it mono, at its own rate. `--dos-sound-selftest` with `SWOS_MODS_ENABLED` checks a
+sound pack (`SWOS_DOS_SOUND_TRACE=1` names each file taken from it).
+
+### 10.4 Team database mods (the owner, 2026-11-09)
+
+SWOS 2020's team database DLC as mods: another season's teams in 96/97's game, offline only.
+`"slot": "teamdb"`, `"changes": "data"`, `"online": false`; src/teamdb.c, applied once at
+start-up while the mod is on. The mod carries:
+
+- `data_json/teams/<COUNTRY>.json` -- the database's own format, **unchanged** (World 2026-27's
+  author converts into it): `scripts/decode_data.py --data-dir <the pack's DATA> --dump-json`;
+  a team file 96/97 has no JSON for goes as the binary `data/TEAM.NNN` (read through the overlay,
+  but no 96/97 league holds it);
+- `data/EUROCUP.TMD`, `EUROCWC.TMD`, `UEFACUP.TMD`, `POOLPLYR.DAT` -- binaries, as the game reads
+  them (the European cups' draw lists are taken from the TMDs: SWOS 2020's fixTMDData);
+- `data_json/translations/<lang>.json` -- the renames: `"strings"` and `"countries"` pairs
+  (`"_aYugoslavia": ["SERBIA", "SERBIAN"]`), merged over the game's (src/translations.c);
+- `data_json/teamdb.json`:
+  `{"format": "openswos-teamdb", "version": 1, "name", "season_year", "fixes": "1111100",
+  "points_for_win", "nationality_codes": {"114": "LBY"}, "leagues": {"<file>": {"divisions_count",
+  "rounds", "points_for_win", "begin_month", "end_month", "divisions": [{"teams", "promoted",
+  "promoted_po", "relegated", "relegated_po"}]}}}`.
+
+What it does, as SWOS 2020's init.cpp fixupLeague did per database: each country's league
+(team files 0..79) sized by its teams' `league` byte; when a division grew, the season a month
+longer and, past 12 clubs, played twice; the Greek / Israeli / Italian / Scottish rules by the
+`fixes` switches (career.opt's first line: team, month, each-match, greek, israel, italia, scotch);
+El Salvador without moves from 2021; `points_for_win`; then `leagues`, explicit overrides by
+team-file number. Real match days for odd divisions (src/fixture_rounds.c, as a world's: the
+original's odd tables make a career panic, 0x1313). No away goals in the European cups from 2022.
+The nationality codes, and the career's years from `season_year` (World_FirstYear). Not ported:
+SWOS 2020's dead Taiwan / San Marino / Spain cases, and its five substitutes for every cup.
+`[teamdb]` log lines name every league it changed.
+
 ---
 
 ## 11. Order of work

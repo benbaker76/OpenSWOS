@@ -17,6 +17,11 @@ static const uint16_t kFirstYear[WORLD_COUNT] = { 1996, 2026 };   /* (its first 
 
 uint16_t World_FirstYear(void)
 {
+#ifdef SWOS_SDL_BUILD
+    extern uint16_t TeamDb_SeasonYear(void);   /* (a team database mod's season, in 96/97: src/teamdb.c) */
+    if (World_Current() == WORLD_9697 && TeamDb_SeasonYear())
+        return TeamDb_SeasonYear();
+#endif
     return kFirstYear[World_Current()];
 }
 

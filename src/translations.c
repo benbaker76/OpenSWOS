@@ -287,6 +287,52 @@ void Translations_Load(const char *lang)
                     s_trp[m].addr = addr; s_trp[m].text = packed; m++; nCountry++;
                 }
             }
+            /* The enabled mods' country pairs (a team database's renames: SERBIA / SERBIAN),
+             * over the game's -- the last mod first, so the first one's win, as their strings. */
+            for (int32_t md = Mods_Count() - 1; md >= 0; md--) {
+                char mp[1300], *mb;
+                long mn;
+                FILE *mf;
+                snprintf(mp, sizeof mp, "%s/%s", Mods_Dir(md), path);
+                if (!(mf = fopen(mp, "rb")))
+                    continue;
+                fseek(mf, 0, SEEK_END);
+                mn = ftell(mf);
+                fseek(mf, 0, SEEK_SET);
+                mb = mn > 0 ? (char *)malloc((size_t)mn) : NULL;
+                if (!mb || fread(mb, 1, (size_t)mn, mf) != (size_t)mn) { fclose(mf); free(mb); continue; }
+                fclose(mf);
+                const char *ca; int cl, co = 0, cko, ckl, cvo, cvl, cvt, changed = 0;
+                if (mjson_find(mb, (int)mn, "$.countries", &ca, &cl) == MJSON_TOK_OBJECT)
+                    while ((co = mjson_next(ca, cl, co, &cko, &ckl, &cvo, &cvl, &cvt)) != 0) {
+                        if (cvt != MJSON_TOK_ARRAY || ckl < 3 || ckl >= 64)
+                            continue;
+                        char sym[64], name[48], nat[48];
+                        memcpy(sym, ca + cko + 1, (size_t)(ckl - 2)); sym[ckl - 2] = 0;
+                        void *addr = sym_addr(sym);
+                        if (!addr) continue;
+                        if (mjson_get_string(ca + cvo, cvl, "$[0]", name, (int)sizeof name) < 0) name[0] = 0;
+                        if (mjson_get_string(ca + cvo, cvl, "$[1]", nat,  (int)sizeof nat ) < 0) nat[0]  = 0;
+                        size_t ln = strlen(name), lt = strlen(nat);
+                        char *packed = (char *)malloc(1 + ln + 1 + lt + 1);
+                        if (!packed) continue;
+                        packed[0] = *(const char *)addr;         /* compiled flag byte */
+                        memcpy(packed + 1, name, ln); packed[1 + ln] = 0;
+                        memcpy(packed + 2 + ln, nat, lt); packed[2 + ln + lt] = 0;
+                        int k;
+                        for (k = 0; k < m && s_trp[k].addr != addr; k++)
+                            ;
+                        if (k < m)
+                            s_trp[k].text = packed;              /* (the old one may be held: kept) */
+                        else if (m < _stringSymbolsCount)
+                            s_trp[m].addr = addr, s_trp[m].text = packed, m++;
+                        else { free(packed); continue; }
+                        changed++;
+                    }
+                free(mb);
+                if (changed)
+                    fprintf(stderr, "[i18n] %s: %d countries\n", mp, changed);
+            }
             s_trpCount = m;
             qsort(s_trp, (size_t)s_trpCount, sizeof *s_trp, trp_cmp);
         }
