@@ -751,7 +751,7 @@ off is kept as read and written back (it was dropped by the next save).
 
 ## 19. Team packs (2026-11-04)
 
-Teams a mod brings: `data_json/teampacks/*.json` in the database's team format, numbers 210-249,
+Teams a mod brings: `data_json/teampacks/*.json` in the database's team format, numbers 150-249 (210-249 until 2026-11-09),
 made with `scripts/make_team_pack.py` (docs/TEAM_IDS.md §6). Engine, not a mod ("able to do
 more"): one lookup in the country-file search (`src/team_packs.c`), after which the team database,
 the matches and the online rule take them as the database's. A pack mod is `"changes": "data"`.

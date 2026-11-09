@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-#define TEAMPACK_FIRST 210
+#define TEAMPACK_FIRST 150      /* (210 until 2026-11-09: 40 numbers; SWOS 2020's 30 team collections) */
 #define TEAMPACK_LAST  249
 
 #ifdef SWOS_SDL_BUILD

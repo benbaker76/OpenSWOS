@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """make_team_pack.py -- make a team pack ready for a mod (include/team_packs.h, docs/TEAM_IDS.md).
 
-    scripts/make_team_pack.py PACK.json --number 210 [--name "FUN CUP"]
+    scripts/make_team_pack.py PACK.json --number 150 [--name "FUN CUP"]
     scripts/make_team_pack.py PACK.json --from bin/data_json/teams/ENGLAND.json --teams "ARSENAL,CHELSEA"
 
 A pack is a file in the database's own team format (bin/data_json/teams/<COUNTRY>.json: "type":
@@ -13,7 +13,7 @@ writes PACK.registry.inc beside it: the matchmaking server's lines for the pack'
 (TeamRegistry.inc's format), for a server that is to accept them.
 
 --from copies teams out of a database file to start a pack from (new ids, as above).
-A pack's number is 210..249 (TEAMPACK_FIRST..LAST): pick one no other pack you play with uses.
+A pack's number is 150..249 (TEAMPACK_FIRST..LAST): pick one no other pack you play with uses.
 """
 import argparse
 import json
@@ -24,7 +24,7 @@ import uuid
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from assign_team_uuids import checksum  # noqa: E402  (the game's checksum, one copy of it)
 
-FIRST, LAST = 210, 249
+FIRST, LAST = 150, 249                  # (include/team_packs.h TEAMPACK_FIRST..LAST)
 
 
 def main():

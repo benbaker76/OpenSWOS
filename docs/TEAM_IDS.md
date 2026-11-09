@@ -119,7 +119,7 @@ refusal, and that no match is played.
 
 A **team pack** is a mod's `data_json/teampacks/<name>.json` in the database's own team format
 (the header of `bin/data_json/teams/<COUNTRY>.json`: `"type": "team"`, `"country"`, `"teams"`),
-with a country number of its own, **210-249** (`TEAMPACK_FIRST..LAST`, include/team_packs.h) --
+with a country number of its own, **150-249** (210-249 until 2026-11-09; not 100, TEAM.CUS, nor the worlds' 0-98 and 186-196) (`TEAMPACK_FIRST..LAST`, include/team_packs.h) --
 outside every country's and every world file's (countries go to 85, second files to 197,
 `kOwnCustoms` is 100). `src/team_packs.c` finds them in the mods that are on, and
 `dj_slurp_country_teams` hands a pack's file to the game for its number when neither
