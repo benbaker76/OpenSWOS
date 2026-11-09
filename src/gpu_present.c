@@ -507,7 +507,9 @@ static void crt_resolve(void)
     sg_end_pass();
     G.toOff = 0;                        /* a slang chain: its passes, the last onto the screen */
     s_flipDst = 0;
+#ifdef SWOS_SHADERCC                    /* (G.toOff is never 2 without it: GpuPresent_Begin) */
     GpuSlang_Run(G.picX, G.picY, G.picW, G.picH, begin_screen_cleared);
+#endif
 }
 
 int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
@@ -570,6 +572,7 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
     }
     G.toOff = 0;
     s_flipDst = 0;
+#ifdef SWOS_SHADERCC                    /* (no slang compiler on this build: no chain) */
     if (f && !f->argb && GpuSlang_Active() && G.picW >= 1.0f && G.picH >= 1.0f) {
         const sg_view att = GpuSlang_BeginOriginal(f->w, f->h);
         if (att.id) {                   /* the picture's space into the chain's Original */
@@ -585,6 +588,7 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
 #endif
         }
     }
+#endif
     if (!G.toOff)
         begin_screen_pass(s_clear);
     G.inPass = 1;
