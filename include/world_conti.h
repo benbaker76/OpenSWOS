@@ -81,7 +81,25 @@ struct ct_seg {                         /* the career club's next game (CT_SEG.k
     u8 legs, level, month, pos;         /* pos: the club's place in the list */
     u16 club[32];                       /* team words */
 };
+/* 4.0.6 option C (the Mod's ctgame.c): the goals of a replay, kept only while CT_GREC points at one (a
+   view's own replay; NULL in the season end's, a load's and the daily's runs -- the same RNG calls either
+   way). A played round's bytes from off[cup][round] - 1 (0: not kept): a knockout 3 per tie (the first leg,
+   the second, extra time), a group stage its groups' matches in group()'s order. A byte: home goals + 1 |
+   (away goals + 1) << 4; 0 no match, CT_GR_OWN a game the career club played itself. */
+#define CT_GR_OWN 0xFF
+struct ct_grec {
+    u16 used, room;                     /* bytes of b[] used / available */
+    u16 off[CT_NCUP][CT_NRD];
+    u8 b[];
+};
+/* CT_ED.pad: bit 0 the season-1 edition as the build drew it (CT_S1), bit 1 the 4.0.6 goals model (every
+   edition made since; an older save's plays on to its end as it began) */
+#define CT_ED_S1 1
+#define CT_ED_G2 2
+
 extern const u8 *CT_SPEC;
+extern const u8 *CT_S1;                 /* 4.0.6 B2: the season-1 block ('S1'), or NULL: none (ours) */
+extern struct ct_grec *CT_GREC;         /* (NULL: no replay kept) */
 extern u16 *CT_LP[CT_NCUP];
 extern struct ct_in CT_IN;
 extern struct ct_state CT_ST;
@@ -103,6 +121,8 @@ void ct_finish(void);
 void ct_season(void);
 void ct_result(u32 v);
 void ct_resume(void);
+u32 ct_new1(u32 mgr);                   /* 4.0.6 B2: the season-1 edition from CT_S1 (0: none) */
+u32 ct_load1(u32 mgr);                  /* (after a load: a season-1 save without one) */
 
 #include "conti_season.h"           /* (the season's glue: src/conti_season.c) */
 

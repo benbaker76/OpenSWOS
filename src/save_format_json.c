@@ -7379,9 +7379,10 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         for (int i = 0; i < 16; i++) {
             res[3 * i] = CT_ED.f[i].c; res[3 * i + 1] = CT_ED.f[i].r; res[3 * i + 2] = CT_ED.f[i].v;
         }
-        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%lu,%Q:%d,%Q:%d,%Q:%d", "conti_edition",
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%lu,%Q:%d,%Q:%d,%Q:%d,%Q:%d", "conti_edition",
                      "mark", (int)CT_ED.mark, "seed", (unsigned long)CT_ED.seed, "manager_club", (int)CT_ED.mgr,
-                     "results_count", (int)CT_ED.nf, "main_cup", (int)g_contiMainCup);
+                     "results_count", (int)CT_ED.nf, "main_cup", (int)g_contiMainCup,
+                     "flags", (int)CT_ED.pad);  /* (CT_ED_G2: the 4.0.6 goals model; CT_ED_S1) */
         wp_emit_u16(&out, "entrants", ent, ne);
         wp_emit_u16(&out, "results", res, 16 * 3);
         json_out_emit("}", 1, &out);
@@ -8215,6 +8216,8 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(co, colen, "$.seed", &v) > 0) CT_ED.seed = (u32)v;
             if (mjson_get_long(co, colen, "$.manager_club", &v) > 0) CT_ED.mgr = (u16)v;
             if (mjson_get_long(co, colen, "$.results_count", &v) > 0) CT_ED.nf = (u8)(v > 16 ? 16 : v);
+            CT_ED.pad = 0;              /* (a save from before 4.0.6's goals model: its edition ends on the old one) */
+            if (mjson_get_long(co, colen, "$.flags", &v) > 0) CT_ED.pad = (u8)v;
             if (mjson_get_long(co, colen, "$.main_cup", &v) > 0) g_contiMainCup = (uint8_t)v;
             const int ne = wp_load_u16(co, colen, "$.entrants", ent, CT_NED * 3);
             CT_ED.ne = 0;

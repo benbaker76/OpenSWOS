@@ -313,3 +313,25 @@ that exists. His engine's first slice (tables and season end, on the library) st
 Mod's 4.0.6, which changes no rule's result (its `pg_a2` guard is in rules 11). Still to come as
 1.x additions: the rest of the Coppa D, `SEC_BQ` (may each B team go up next season: the zone
 colours, an output), the pool's queue (`team_pool.c` vs the Mod's RI section).
+
+## 12. The Mod's dev after 4.0.5 (branch mod-dev, 2026-11-09)
+
+Davide's dev (f024d24: 4.0.6 and the start of 4.1, not finished or released) checked against
+here with `scripts/league_playoffs_check.sh` (its Mod side built `-m32`: dev's gplay.c has
+i386 assembly). **The rules library needs nothing**: every check of it PASSES against dev (its
+one 4.0.6 rule change, a refused play-off entrant's `club[i] = -1`, is what `ent_code` always
+did). What moved is the Mod's game code outside the library, ported on the branch `mod-dev`,
+which waits for his work to be done:
+
+- the other confederations' cups (`world_conti.c/.py` = dev's `conti.c/.py`, a three-way merge):
+  4.0.6's goals model (about 2.6 a match, an edition's `CT_ED.pad` bit 2, saved as
+  `conti_edition.flags`: an older save's edition ends on the old model), the Recopa and CAF Super
+  Cup in their real months, the Intercontinental's second round as two (r2a / r2b) -- the spec
+  byte for byte dev's, `league_playoffs_check.sh` 15 PASS against dev. Left out: B2, season 1's
+  editions as the build drew them (`CT_S1`; ours plays season 1 at the first season end);
+- 4.1's `gp_champ` (`league_playoffs.c`): a title play-off's winner from outside the top 9 takes
+  the champion's place from the game's team cache (`CareerTeams_FindInCache`).
+
+The golden careers: the 96/97 ones unchanged; the 44 World 2026-27 ones recorded again (season 1
+differs only by `conti_edition.flags` and the Intercontinental's split round, the later ones by
+the new goals model's results).

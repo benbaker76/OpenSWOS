@@ -132,6 +132,15 @@ static int16_t findTeamInCache(uint16_t teamNum, TeamFileEx **teamOut, uint16_t 
     return 1;
 }
 
+/* findTeamInCache for the season end (league_playoffs.c: the Mod 4.1's gp_champ, a title play-off's
+ * winner from outside the top 9): its record, or NULL when it is not in the cache. */
+TeamFileEx *CareerTeams_FindInCache(uint16_t teamNum)
+{
+    TeamFileEx *team;
+    uint16_t index;
+    return findTeamInCache(teamNum, &team, &index) == 0 ? team : NULL;
+}
+
 /* ================================================================
  * VerifyTeamLoaded — look up team, panic if not found.
  * Asm: VerifyTeamLoaded
