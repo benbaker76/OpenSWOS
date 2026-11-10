@@ -655,8 +655,8 @@ static const Page k_audioPage = { "AUDIO OPTIONS", k_audioRows, (int32_t)(sizeof
 
 static void style_show(char *o, int32_t c)
 {
-    static const char *const k[3] = { "AMIGA", "PC DOS", "XBOX" };
-    snprintf(o, (size_t)c, "%s", k[_gGameplayStyle >= 0 && _gGameplayStyle <= 2 ? _gGameplayStyle : 0]);
+    static const char *const k[GAMEPLAY_STYLES] = { "AMIGA", "PC DOS", "XBOX", "AMIGA 60", "MOON" };
+    snprintf(o, (size_t)c, "%s", k[_gGameplayStyle >= 0 && _gGameplayStyle < GAMEPLAY_STYLES ? _gGameplayStyle : 0]);
 }
 static void style_change(int32_t dir)
 {
