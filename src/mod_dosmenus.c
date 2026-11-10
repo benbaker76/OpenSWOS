@@ -16,8 +16,9 @@
  * colour for that place -- the 336 x 256 menu mapped onto the 320 x 200 shade map. Drawing only.
  *
  * F5 (ModApi_AddHotkey; [mod.dosmenus] hotkey to change it) switches between the PC shading and
- * the Amiga's flat menus while the game runs -- Playa's ask, 2026-11-08. Not remembered: the
- * mod being on is what the next start shows.
+ * the Amiga's flat menus while the game runs -- Playa's ask, 2026-11-08. Not remembered: each
+ * start shows the game's own look first, PROJECT_MENU_LOOK_AMIGA (include/project_identity.h: the
+ * PC's in OpenSWOS, the Amiga's in SWOS United).
  */
 #ifdef SWOS_SDL_BUILD
 
@@ -30,6 +31,7 @@
 #include "gfx.h"
 #include "display.h"            /* _screen_width, _screen_height, FRONTBUFFER_ROW_STRIDE_BYTES */
 #include "swos_io.h"            /* swos_data_path */
+#include "project_identity.h"   /* PROJECT_MENU_LOOK_AMIGA */
 
 #define SLUG "dosmenus"
 
@@ -78,7 +80,7 @@ static void load_pc(void)
         fprintf(stderr, "[dosmenus] grafs_dos/FILL.256 is not the PC game's: the menus stay flat\n");
 }
 
-static int s_amigaLook;         /* F5: the Amiga's flat menus for now */
+static int s_amigaLook = PROJECT_MENU_LOOK_AMIGA;  /* F5: the Amiga's flat menus for now */
 
 static void toggle_look(void)
 {
