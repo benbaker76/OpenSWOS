@@ -34,6 +34,8 @@
 #include "dos_mode.h"
 #include "dos_sound.h"
 #include "dos_music.h"
+#include "tweaks.h"            /* STRONGER KEEPERS: [tweaks] stronger_goalkeeper_ai */
+#include "project_identity.h"  /* MENU LOOK: PROJECT_MENU_LOOK_AMIGA */
 
 #include <SDL.h>
 #include <stdio.h>
@@ -435,6 +437,24 @@ static void deadzone_change(int32_t dir)
     save();
 }
 
+/* MOUSE POINTER: [input] mouse_cursor (src/mouse_cursors.c; launcher options, agent A). */
+static void pointer_show(char *o, int32_t c)
+{
+    extern int32_t MouseCursors_Style(void);
+    static const char *const k[3] = { "SYSTEM", "WORKBENCH 2.04", "WORKBENCH 1.X" };
+    snprintf(o, (size_t)c, "%s", k[MouseCursors_Style()]);
+}
+static void pointer_change(int32_t dir)
+{
+    extern int32_t MouseCursors_Style(void);
+    extern void MouseCursors_Apply(int32_t style);
+    MouseCursors_Apply(step(MouseCursors_Style(), dir, 3));
+    if (g_arcadeOpts)
+        g_arcadeOpts->mouse_cursor = MouseCursors_Style();
+    note("THE MOUSE POINTER IN THE MENUS");
+    save();
+}
+
 static const Row k_controlRows[] = {
     { "PLAYER 1",                 p1_show,         p1_change },
     { "  SELECT JOYPAD",          select_show,     p1_select },
@@ -447,6 +467,7 @@ static const Row k_controlRows[] = {
     { "DISABLE SHOULDER BUTTONS", shoulders_show,  shoulders_change },
     { "CALL BENCH",               bench_show,      bench_change },
     { "STICK DEAD ZONE",          deadzone_show,   deadzone_change },
+    { "MOUSE POINTER",            pointer_show,    pointer_change },     /* (launcher options, agent A) */
 };
 static const Page k_controlsPage = { "CONTROLS", k_controlRows, (int32_t)(sizeof k_controlRows / sizeof k_controlRows[0]) };
 
@@ -520,6 +541,85 @@ static void cursor_change(int32_t dir)
     save();
 }
 
+/* ---- launcher options (agent A): the SWOS United Launcher's, in the game ---- */
+
+/* RESOLUTION: [video] resolution -- the render's SHAPE (swos_settings.c), auto (the display's) or
+ * one of the common shapes; a hand-written WxH shows as it is and steps to AUTO. */
+static const struct { const char *name; int w, h; } k_shapes[] = {
+    { "AUTO", 0, 0 }, { "4:3", 1440, 1080 }, { "16:10", 1920, 1200 }, { "16:9", 1920, 1080 },
+    { "21:9", 2560, 1080 }, { "32:9", 3840, 1080 },
+};
+enum { kShapes = (int)(sizeof k_shapes / sizeof k_shapes[0]) };
+
+static int32_t shape_index(void)
+{
+    for (int32_t i = 0; i < kShapes; i++)
+        if (O()->res_w == k_shapes[i].w && O()->res_h == k_shapes[i].h)
+            return i;
+    if (O()->res_w <= 0 || O()->res_h <= 0)
+        return 0;
+    return -1;
+}
+
+static void res_show(char *o, int32_t c)
+{
+    const int32_t i = shape_index();
+    if (i >= 0)
+        snprintf(o, (size_t)c, "%s", k_shapes[i].name);
+    else
+        snprintf(o, (size_t)c, "%dX%d", O()->res_w, O()->res_h);
+}
+static void res_change(int32_t dir)
+{
+    extern int Video_ResolutionChanged(const PlatformInitOptions *o, int dw, int dh);
+    int32_t i = shape_index();
+    int dw = 16, dh = 9;
+    i = i < 0 ? 0 : step(i, dir, kShapes);
+    O()->res_w = k_shapes[i].w;
+    O()->res_h = k_shapes[i].h;
+    if (O()->res_w > 0) {
+        dw = O()->res_w;
+        dh = O()->res_h;
+    } else {
+        SDL_DisplayMode dm;
+        SDL_Window *w = SDL_GetKeyboardFocus();        /* (the game's window: it has the keys) */
+        const int d = w ? SDL_GetWindowDisplayIndex(w) : O()->screen;
+        if (SDL_GetDesktopDisplayMode(d >= 0 ? d : 0, &dm) == 0 && dm.h > 0) {
+            dw = dm.w;
+            dh = dm.h;
+        }
+    }
+    if (Video_ResolutionChanged(O(), dw, dh))
+        note(i ? "THE PICTURE'S SHAPE: MORE PITCH WHEN WIDER" : "THE DISPLAY'S OWN SHAPE");
+    else
+        note("THE PICTURE'S SHAPE, WITH WIDESCREEN ON");
+    save();
+}
+
+/* AUTO CENTERING: [video] auto_centering (platform_sdl.c Platform_SetAutoCentering). */
+static void centre_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", on_off(O()->auto_centering)); }
+static void centre_change(int32_t dir)
+{
+    extern void Platform_SetAutoCentering(int on);
+    (void)dir;
+    O()->auto_centering = !O()->auto_centering;
+    Platform_SetAutoCentering(O()->auto_centering);
+    note("THE WINDOW KEPT IN THE MIDDLE OF ITS DISPLAY");
+    save();
+}
+
+/* SHOW FPS: [video] show_fps (src/fps_overlay.c). */
+static void fps_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", on_off(O()->show_fps)); }
+static void fps_change(int32_t dir)
+{
+    extern void FpsOverlay_Set(int32_t on);
+    (void)dir;
+    O()->show_fps = !O()->show_fps;
+    FpsOverlay_Set(O()->show_fps);
+    note("THE FRAMES SHOWN A SECOND, TOP RIGHT");
+    save();
+}
+
 static const Row k_videoRows[] = {
     { "WINDOW MODE",        winmode_show,  winmode_change },
     { "WINDOW SCALE",       scale_show,    scale_change },
@@ -530,6 +630,10 @@ static const Row k_videoRows[] = {
     { "MONITOR",            monitor_show,  monitor_change },
     { "RENDERER",           renderer_show, renderer_change },
     { "MENU CURSOR",        cursor_show,   cursor_change },
+    /* (launcher options, agent A) */
+    { "RESOLUTION",         res_show,      res_change },
+    { "AUTO CENTERING",     centre_show,   centre_change },
+    { "SHOW FPS",           fps_show,      fps_change },
 };
 static const Page k_videoPage = { "VIDEO OPTIONS", k_videoRows, (int32_t)(sizeof k_videoRows / sizeof k_videoRows[0]) };
 
@@ -698,11 +802,130 @@ static void hlspeed_change(int32_t dir) { (void)dir; O()->replay_half_speed = !O
 static void overlay_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", on_off(O()->replay_frame_overlay)); }
 static void overlay_change(int32_t dir) { (void)dir; O()->replay_frame_overlay = !O()->replay_frame_overlay; viewer_apply(); }
 
+/* ---- launcher options (agent A): the SWOS United Launcher's, in the game ---- */
+
+#if SWOS_TWEAK_STRONGER_GK
+/* SWOS 2020's --stronger-goalkeeper-ai: [tweaks] stronger_goalkeeper_ai (include/tweaks.h). Off
+ * line only: online and in the rigs the original's keepers play whatever this says. */
+static void keepers_show(char *o, int32_t c)
+{
+    snprintf(o, (size_t)c, "%s", (O()->tweaks & TWEAK_STRONGER_GOALKEEPER_AI) ? "STRONGER" : "ORIGINAL");
+}
+static void keepers_change(int32_t dir)
+{
+    (void)dir;
+    O()->tweaks ^= TWEAK_STRONGER_GOALKEEPER_AI;
+    Tweaks_Set(O()->tweaks);
+    note(_gGameplayStyle == GAMEPLAY_DOS || _gGameplayStyle == GAMEPLAY_XBOX
+         ? "THE AMIGA STYLES' KEEPERS; OFF LINE ONLY" : "THEY REACH A STEP FURTHER; OFF LINE ONLY");
+    save();
+}
+#endif
+
+/* ARTWORK: [graphics] style amiga | dos | 2020 -- what the pitch, HUD and menus are drawn from
+ * (main.c reads it before anything is loaded: from the next start). */
+static int32_t art_index(void)
+{
+    if (!O()->dos_graphics)
+        return 0;
+    return strcmp(O()->dos_dir, "grafs_2020") == 0 ? 2 : 1;
+}
+static void art_show(char *o, int32_t c)
+{
+    static const char *const k[3] = { "AMIGA", "PC DOS", "SWOS 2020" };
+    snprintf(o, (size_t)c, "%s", k[art_index()]);
+}
+static void art_change(int32_t dir)
+{
+    extern int swos_data_exists(const char *rel);
+    const int32_t i = step(art_index(), dir, 3);
+    O()->dos_graphics = i != 0;
+    if (i)
+        snprintf(O()->dos_dir, sizeof O()->dos_dir, "%s", i == 2 ? "grafs_2020" : "grafs_dos");
+    if (i == 2 && !swos_data_exists("grafs_2020/pitch1.dat"))
+        note("NO SWOS 2020 PITCHES: THE PC GAME'S; NEXT START");
+    else
+        later();
+    save();
+}
+
+/* MENU LOOK: [mod.dosmenus] look amiga | pc -- the PC menu shading mod's (src/mod_dosmenus.c, which
+ * follows it at once; F5 still flips it for the run). */
+static void look_show(char *o, int32_t c)
+{
+    extern const char *ModApi_Setting(const char *slug, const char *key, const char *fallback);
+    const char *v = ModApi_Setting("dosmenus", "look", PROJECT_MENU_LOOK_AMIGA ? "amiga" : "pc");
+    snprintf(o, (size_t)c, "%s", strcmp(v, "pc") == 0 ? "PC DOS" : "AMIGA");
+}
+static void look_change(int32_t dir)
+{
+    extern const char *ModApi_Setting(const char *slug, const char *key, const char *fallback);
+    extern int32_t ModApi_SetSetting(const char *slug, const char *key, const char *value);
+    extern int32_t Mods_IsOn(const char *slug);
+    extern int swos_data_exists(const char *rel);
+    const char *v = ModApi_Setting("dosmenus", "look", PROJECT_MENU_LOOK_AMIGA ? "amiga" : "pc");
+    (void)dir;
+    ModApi_SetSetting("dosmenus", "look", strcmp(v, "pc") == 0 ? "amiga" : "pc");
+    if (!Mods_IsOn("dosmenus"))
+        note("THE PC MENU SHADING MOD IS OFF: OPTIONS, MODS");
+    else if (!swos_data_exists("grafs_dos/FILL.256"))
+        note("PC DOS NEEDS THE PC GAME'S DATA");
+    else
+        note("F5 SWITCHES IT TOO, FOR THIS RUN");
+}
+
+/* CPU TACTICS: [gameplay] cpu_tactics (src/tactics_expert.c). Off line only. */
+static void tactics_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->cpu_tactics ? "EXPERT" : "NORMAL"); }
+static void tactics_change(int32_t dir)
+{
+    extern void TacticsExpert_Set(int32_t expert);
+    (void)dir;
+    O()->cpu_tactics = !O()->cpu_tactics;
+    TacticsExpert_Set(O()->cpu_tactics);
+    note(O()->cpu_tactics ? "SWOS 2020'S IMPROVED FORMATIONS; OFF LINE ONLY" : "THE GAME'S OWN FORMATIONS");
+    save();
+}
+
+/* START-UP: [general] skip_intro, skip_image_reels, no_load_pause (SWOS 2020's --no-intro,
+ * --no-image-reels, --no-load-pause). */
+static void intro_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->skip_intro ? "SKIP" : "PLAY"); }
+static void intro_change(int32_t dir) { (void)dir; O()->skip_intro = !O()->skip_intro; later(); save(); }
+
+static void reels_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->skip_image_reels ? "TITLE ONLY" : "ALL"); }
+static void reels_change(int32_t dir)
+{
+    (void)dir;
+    O()->skip_image_reels = !O()->skip_image_reels;
+    note(O()->skip_image_reels ? "THE TITLE AND ITS TUNE ALONE; NEXT START" : "EVERY PICTURE; NEXT START");
+    save();
+}
+
+static void loadpause_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->no_load_pause ? "OFF" : "ON"); }
+static void loadpause_change(int32_t dir)
+{
+    extern int _gNoLoadPause;
+    (void)dir;
+    O()->no_load_pause = !O()->no_load_pause;
+    _gNoLoadPause = O()->no_load_pause;
+    note(O()->no_load_pause ? "THE STADIUM SCREEN GOES AT ONCE; OFF LINE ONLY" : "THE STADIUM SCREEN'S 3 SECONDS");
+    save();
+}
+
 static const Row k_gameplayRows[] = {
     { "GAME STYLE",              style_show,    style_change },
     { "AUTO SAVE REPLAYS",       autosave_show, autosave_change },
     { "HIGHLIGHT DEFAULT SPEED", hlspeed_show,  hlspeed_change },
     { "FRAME INFO OVERLAY",      overlay_show,  overlay_change },
+    /* (launcher options, agent A) */
+    { "ARTWORK",                 art_show,      art_change },
+    { "MENU LOOK",               look_show,     look_change },
+#if SWOS_TWEAK_STRONGER_GK
+    { "STRONGER KEEPERS",        keepers_show,  keepers_change },
+#endif
+    { "CPU TACTICS",             tactics_show,  tactics_change },
+    { "SKIP INTRO",              intro_show,    intro_change },
+    { "INTRO PICTURES",          reels_show,    reels_change },
+    { "PRE-MATCH PAUSE",         loadpause_show, loadpause_change },
 };
 static const Page k_gameplayPage = { "GAMEPLAY OPTIONS", k_gameplayRows, (int32_t)(sizeof k_gameplayRows / sizeof k_gameplayRows[0]) };
 
