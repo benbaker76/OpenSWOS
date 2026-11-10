@@ -1149,7 +1149,7 @@
         {
           "op": "nav",
           "left": 15,
-          "right": 45,
+          "right": 51,
           "up": 49,
           "down": -1
         },
@@ -1166,6 +1166,37 @@
         {
           "op": "onselect_fire",
           "func": "AbortSaveFile"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 191,
+        "y": -71,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": 50,
+          "right": 45,
+          "up": 49,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SelectFilesSortOnSelect"
         }
       ]
     }

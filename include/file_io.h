@@ -48,5 +48,7 @@ void SelectFilesInputSaveFilenameOnSelect(MenuEntry *entry);
 /* --- Chunk 218: SelectFilesInit, SelectFilesOnReturn --- */
 void SelectFilesInit(void);
 void SelectFilesOnReturn(void);
+void SelectFilesSort(void);             /* the list's order ([general] file_sort: name | date) */
+void SelectFilesSortOnSelect(void);     /* SORTED BY: the other order */
 
 #endif
