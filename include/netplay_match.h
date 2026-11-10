@@ -111,6 +111,10 @@ int32_t     NetplayMatch_Frame(void);
  * through the same session). The pre-match prompts are skipped for one, the way
  * they are for the replay rig and for arcade mode. */
 int32_t     NetplayMatch_IsLive(void);
+/* The connection now, for an overlay (ModApi_NetStats): 0 when no live match is on. */
+int32_t     NetplayMatch_Stats(int32_t *pingMs, int32_t *jitterMs, int32_t *localX10, int32_t *remoteX10,
+                               int32_t *delay, uint32_t *rollbacks, uint32_t *holds, uint32_t *frame,
+                               uint32_t bySize[8]);
 /* A line of chat to the other player in a live match (match_chat.c); 0 when sent. */
 int32_t     NetplayMatch_SendChat(const char *text);
 

@@ -637,6 +637,7 @@ void ModMatch_KickOff(void)
         s_restartDone = 0;
         preload_scorers();
     }
+    { extern void ModExtras_KickOff(void); ModExtras_KickOff(); }   /* (mod_extras.c: no team taken) */
     ModHooks_MatchStart();
 }
 
@@ -943,8 +944,10 @@ int32_t ModApi_MatchKit(int32_t side, int32_t *type, int32_t *shirt, int32_t *st
  * to use (1..6), 0 the one drawn. */
 int16_t ModMatch_PitchNumber(void)
 {
-    return s_mm.active && s_mm.setup.pitchNumber >= 1 && s_mm.setup.pitchNumber <= 6
-               ? s_mm.setup.pitchNumber : 0;
+    extern int16_t ModExtras_PitchNumber(void);     /* (mod_extras.c: ModApi_SetMatchPitch's) */
+    if (s_mm.active && s_mm.setup.pitchNumber >= 1 && s_mm.setup.pitchNumber <= 6)
+        return s_mm.setup.pitchNumber;
+    return ModExtras_PitchNumber();
 }
 
 int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int16_t y)
@@ -1278,6 +1281,8 @@ void ModMatch_Ended(void)
     r.frames = s_frames;
     ModMatch_Event(MODEVENT_FINAL_WHISTLE, 0, -1, 0);
     ModHooks_MatchEnded(&r);
+    { extern void ModExtras_MatchEnded(void); ModExtras_MatchEnded(); }  /* (mod_extras.c: every team its
+                                                     * own again, the next match's pitch spent) */
 }
 
 /* SWOS_MOD_MATCH_TEST=1: at the first main menu, a mod's match through ModApi_PlayMatch --

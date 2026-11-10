@@ -1303,3 +1303,34 @@ The first: dosmenus' F5 (§25c), switching the menus between the PC's shading an
 
 A mod's message the player answers: `ModApi_ShowDialog(title, text, buttons, count, default)` -- the
 game's own dialog screen (docs/MENUS.md §14), from the menus, never during a match.
+
+## 35. SWOS 2020's match extras (2026-11-09, the SWOS 2020 port)
+
+Seven of SWOS 2020's in-match features, as hooks in the engine (`src/mod_extras.c`, the "match
+extras" block at the end of `include/mod_api.h`) and canonical mods (all SDL). What changes how a
+match plays happens only in `ModApi_OfflineMatch()` -- a match that is not online and not a rig's
+(the replay and rollback rigs, `--srp-resim`, the career autopilot), as `Tweaks_On` decides it --
+so `scripts/check_netplay_compat.sh` and the rigs see the game unchanged.
+
+| Mod / place | SWOS 2020's | What | On by default | Test |
+|---|---|---|---|---|
+| `autoplay` (modes) | F1 AUTOPLAY (game.cpp toggleAutoPlayMode) | F1 in a player v CPU match: the CPU plays the player's team until F1 again; "AUTO-PLAY" at 15, 25. Not in a mod's match (training, shoot-out, speedrun, challenges), never online | yes | `SWOS_AUTOPLAY_TEST=1` |
+| `balltrails` (cosmetic) | `--ball-trails` (drawSprites) | five discs behind the loose, moving ball, colour 121, under it | no | `SWOS_MOD_MATCH_TEST=1 SWOS_BALLTRAILS_TEST=1` |
+| `practice`, setting `radar` | RADAR IN TEAM TRAINING (render.cpp showRadar) | TEAM TRAINING's pitch at a tenth, top left: lines, players in their shirts' colours, the ball | on | `SWOS_PRACTICE_TRAINING_TEST=1` (fails when it was not drawn) |
+| `pitchselect` (modes) | SELECT PITCH (menu.cpp showPitchSelectMenu) | PLAY MATCH (first player's screen, not VIEW RESULT or training) asks PITCH 1-5, TRAINING PITCH or RANDOM (1-5). Its menu `bin/mods/pitchselect/data_json/menus/pitchselect/selectPitchMenu.json`, imported from selectPitchNonWidescreen.mnu. The pitch preview beside the list is not drawn | no | `SWOS_PITCHSELECT_TEST=1..6` |
+| `netstats` (cosmetic) | F7 frame-fairness strip (mpgame.cpp drawImGui, ConnectionQualityTracker) | online: rollback timeline, balance bar, advantage, jitter, why it warns; F7 (a hotkey) cycles WHEN POOR / ALWAYS / NEVER (`[mod.netstats] show`) | yes | `SWOS_NETSTATS_TEST=1` prints at a live match's end (not run headless) |
+| `src/match_chat.c` | CHAT WINDOW SCALE (F11/F12), AUTO CLOSE CHATBOX | `[chat] scale` 0..8 (1x .. 5x), Page Up / Page Down in an online match (F11/F12 are screenshots here); `[chat] auto_close` 1..5 s (was a fixed 6) | 1x, 5 s | `--chat-selftest` |
+| `scoreboard` (cosmetic) | `--new-scoreboard=1..4` (the clock + score corner, showTeamIcons) | the clock, both kits and the score on a darkened box at a corner (`[mod.scoreboard] corner`: top-left, top-right, bottom-left, bottom-right); the game's clock not drawn; at the top left the player's name 7 lower | no | `SWOS_MOD_MATCH_TEST=1 SWOS_SCOREBOARD_TEST=1` |
+
+The hooks, for any mod: `ModApi_Ball` (the ball's place, step, speed, loose), `ModApi_SpriteKind`
+(a `spriteDraw` sprite is the ball / the HUD clock / the player's name), `ModApi_SetTeamControl` /
+`ModApi_TeamControl` (who plays a team from now; every team its own again at the final whistle
+and the next kick-off), `ModApi_SetMatchPitch` / `ModApi_PitchNumber` (the next match's pitch art;
+after `SetPitchTypeAndNumber`'s random numbers, so the generators are untouched; spent at the final
+whistle; a mod match's `pitchNumber` wins), `ModApi_OnPlayMatch` (PLAY MATCH pressed,
+`play_match_menu.c PlayMatchSelected`, may show a menu), `ModApi_NetStats` (ping, jitter, GGPO's
+frames behind both ways, the delay, rollbacks -- by size, from `cbLoad` -- and holds;
+`NetplayMatch_Stats`, read only), `ModApi_OfflineMatch`, `ModApi_AnyModMatch`.
+
+For a MULTIPLAYER settings row: `MatchChat_Scale/SetScale`, `MatchChat_AutoClose/SetAutoClose`
+(`include/match_chat.h`), kept in `PlatformInitOptions.chat_scale` / `chat_auto_close`.

@@ -241,6 +241,14 @@ static int handler(void *user, const char *section,
         for (int qi = 0; qi < 10; qi++)
             if (eqi(name, kQuickNames[qi]))
                 snprintf(opts->chat_quick[qi], sizeof opts->chat_quick[qi], "%s", value);
+        /* the chat's window (SWOS 2020 port, agent C) */
+        if (eqi(name, "scale")) {
+            int v = atoi(value);
+            if (v >= 0 && v <= 8) opts->chat_scale = v;
+        } else if (eqi(name, "auto_close")) {
+            int v = atoi(value);
+            if (v >= 1 && v <= 5) opts->chat_auto_close = v;
+        }
     } else if (eqi(section, "graphics")) {
         int b;
         if (eqi(name, "style")) {
@@ -632,6 +640,19 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
             "; quick1 .. quick0: in an online match, the keys 1 .. 0 send these lines to the other\n"
             "; player (TAB types one of your own, F3 hides the chat). Empty: that key sends nothing.",
             opts->chat_quick[qi] };
+    {   /* the chat's window (SWOS 2020 port, agent C) */
+        static char scale[4], close[4];
+        snprintf(scale, sizeof scale, "%d", opts->chat_scale);
+        snprintf(close, sizeof close, "%d", opts->chat_auto_close);
+        SETTING(n) = (IniEntry){ "chat", "scale",
+            "; scale: 0 .. 8, the chat box 1x, 1.5x .. 5x (SWOS 2020's CHAT WINDOW SCALE). In an\n"
+            "; online match Page Up / Page Down change it, and it is kept here.",
+            scale };
+        SETTING(n) = (IniEntry){ "chat", "auto_close",
+            "; auto_close: 1 .. 5, the seconds the chat box stays after the newest line, then it\n"
+            "; fades (SWOS 2020's AUTO CLOSE CHATBOX).",
+            close };
+    }
 
 
     SETTING(n) = (IniEntry){ "graphics", "style",

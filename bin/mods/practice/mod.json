@@ -10,5 +10,16 @@
   "amiga"
  ],
  "changes": "modes",
- "default": true
+ "default": true,
+ "settings": [
+  {
+   "key": "radar",
+   "label": "Radar in team training",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  }
+ ]
 }

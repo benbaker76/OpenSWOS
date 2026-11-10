@@ -1,0 +1,26 @@
+{
+ "uuid": "5ad3974a-73e9-572c-ab93-93690f5f2e4b",
+ "id": "scoreboard",
+ "name": "New scoreboard",
+ "version": "1.0",
+ "author": "OpenSWOS (SWOS 2020's --new-scoreboard)",
+ "about": "The clock, the score and both kits always up in a corner of the match.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": false,
+ "settings": [
+  {
+   "key": "corner",
+   "label": "Corner",
+   "choices": [
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right"
+   ],
+   "default": "top-left"
+  }
+ ]
+}

@@ -1,0 +1,271 @@
+{
+  "name": "selectPitchMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/selectPitchNonWidescreen.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": null,
+  "onReturn": null,
+  "onDraw": "pitchselect.draw",
+  "defaultEntry": 1,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 92,
+        "y": 0,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SELECT PITCH"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitch1",
+      "coords": {
+        "x": 92,
+        "y": 28,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PITCH 1"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 2
+        },
+        {
+          "op": "onselect_fire",
+          "func": "pitchselect.pitch1"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitch2",
+      "coords": {
+        "x": 92,
+        "y": 53,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PITCH 2"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 1,
+          "down": 3
+        },
+        {
+          "op": "onselect_fire",
+          "func": "pitchselect.pitch2"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitch3",
+      "coords": {
+        "x": 92,
+        "y": 78,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PITCH 3"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": 4
+        },
+        {
+          "op": "onselect_fire",
+          "func": "pitchselect.pitch3"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitch4",
+      "coords": {
+        "x": 92,
+        "y": 103,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PITCH 4"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 3,
+          "down": 5
+        },
+        {
+          "op": "onselect_fire",
+          "func": "pitchselect.pitch4"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitch5",
+      "coords": {
+        "x": 92,
+        "y": 128,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PITCH 5"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 4,
+          "down": 6
+        },
+        {
+          "op": "onselect_fire",
+          "func": "pitchselect.pitch5"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitch6",
+      "coords": {
+        "x": 92,
+        "y": 153,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "TRAINING PITCH"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 5,
+          "down": 7
+        },
+        {
+          "op": "onselect_fire",
+          "func": "pitchselect.pitch6"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitchRandom",
+      "coords": {
+        "x": 92,
+        "y": 185,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "RANDOM"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 6,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "pitchselect.pitch7"
+        }
+      ]
+    }
+  ]
+}
