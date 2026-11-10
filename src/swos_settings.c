@@ -211,6 +211,10 @@ static int handler(void *user, const char *section,
             if      (eqi(value, "midi")) opts->menu_recording = 0;
             else if (eqi(value, "mp3"))  opts->menu_recording = 1;
         }
+        else if (eqi(name, "title_music")) {
+            if      (eqi(value, "midi")) opts->title_midi = 1;
+            else if (eqi(value, "mp3"))  opts->title_midi = 0;
+        }
         else if (eqi(name, "music")) {
             if      (eqi(value, "amiga")) opts->music_style = 0;
             else if (eqi(value, "pc") || eqi(value, "dos")) opts->music_style = 1;
@@ -573,6 +577,12 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; menu.xmi played live on the emulated card (midi), or a recording of it,\n"
         "; sound_dos/menu.mp3 (mp3).\n",
         opts->menu_recording ? "mp3" : "midi" };
+    SETTING(n) = (IniEntry){ "audio",  "title_music",
+        "; title_music: mp3 | midi. With music = pc, the intro plays the CD's title song,\n"
+        "; sound_dos/title.mp3 (mp3), or sound_dos/title.xmi live on the emulated card\n"
+        "; (midi: SWOS 2020's floppy title song, which a mod brings). Without its file, the\n"
+        "; Amiga's.\n",
+        opts->title_midi ? "midi" : "mp3" };
     SETTING(n) = (IniEntry){ "audio",  "commentary",
         "; commentary: auto | true | false. The PC game's commentary. auto (the\n"
         "; default): with style = pc only. true: always, over the Amiga's sounds too.\n",

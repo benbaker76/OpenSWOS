@@ -299,6 +299,9 @@ static void print_usage(const char *argv0)
         "  --menu-music=midi|mp3     With --music=pc: the menus play menu.xmi live on the\n"
         "                            emulated card (default) or a recording of it,\n"
         "                            sound_dos/menu.mp3 ([audio] menu_music).\n"
+        "  --title-music=mp3|midi    With --music=pc: the intro plays title.mp3 (default)\n"
+        "                            or sound_dos/title.xmi on the emulated card, from a\n"
+        "                            mod ([audio] title_music).\n"
         "  --input-selftest          Check the redefined keys and the press latch\n"
         "  --chat-selftest           Check the match chat's text rules and its font\n"
         "  --language=<code>         The menus' language for this run: en de fr es it nl\n"
@@ -551,6 +554,7 @@ int main(int argc, char **argv)
     opts.audio_mono = 1;
     opts.sound_style = 0;         /* the Amiga's sounds */
     opts.music_style = 0;         /* the Amiga's menu music */
+    opts.title_midi = 0;          /* with the PC's music: the intro plays title.mp3 */
     opts.menu_recording = 0;      /* with the PC's music: menu.xmi on the emulated chip */
     opts.commentary_dir[0] = '\0';
     opts.commentary = 2;          /* auto: with the PC's sounds */
@@ -894,6 +898,10 @@ int main(int argc, char **argv)
             else { fprintf(stderr, "--sound-style must be amiga or pc (got %s)\n", v); return 1; }
         } else if ((v = match_kv(a, "commentary-dir")) != NULL) {
             snprintf(opts.commentary_dir, sizeof opts.commentary_dir, "%s", v);
+        } else if ((v = match_kv(a, "title-music")) != NULL) {
+            if      (strcmp(v, "midi") == 0) opts.title_midi = 1;
+            else if (strcmp(v, "mp3") == 0)  opts.title_midi = 0;
+            else { fprintf(stderr, "--title-music must be mp3 or midi (got %s)\n", v); return 1; }
         } else if ((v = match_kv(a, "menu-music")) != NULL) {
             if      (strcmp(v, "midi") == 0) opts.menu_recording = 0;
             else if (strcmp(v, "mp3") == 0)  opts.menu_recording = 1;
@@ -1338,6 +1346,7 @@ int main(int argc, char **argv)
     DosSound_SetStyle(opts.sound_style);
     DosMusic_SetStyle(opts.music_style);
     DosMusic_SetMenuRecording(opts.menu_recording);
+    DosMusic_SetTitleMidi(opts.title_midi);
     DosSound_SetCommentary(opts.commentary);
     { extern int _gArcadeMode; _gArcadeMode = opts.arcade; }
     Gameplay_SetStyle(opts.dos_gameplay);      /* the style, its flags and the OPTIONS row */

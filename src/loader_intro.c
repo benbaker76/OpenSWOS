@@ -92,8 +92,14 @@ static void loaderIntroEnsureMenuMusicPlaying(void)
          * sequence byte zeroed, so passing 1 here was the cause of the
          * "music plays but no singing" symptom. */
         extern int AudioSDL_StreamStart(const char *name, int loop);
+        extern int AudioSDL_PcSongStart(const char *stem, int loop);
         extern int32_t DosMusic_Style(void);
-        /* [audio] music = pc: the PC CD release's title song, sound_dos/title.mp3. */
+        extern int32_t DosMusic_TitleMidi(void);
+        /* [audio] music = pc: [audio] title_music = midi plays sound_dos/title.xmi (SWOS 2020's
+         * floppy title song, from a mod) on the emulated card, else the PC CD release's title
+         * song, sound_dos/title.mp3. */
+        if (DosMusic_Style() && DosMusic_TitleMidi() && AudioSDL_PcSongStart("title", 0) == 0) {
+        } else
         if (DosMusic_Style() && AudioSDL_StreamStart("title", 0) == 0) {
         } else
         if (AudioSDL_StartSong(heroSongBuffer, HERO_SONG_BUFFER_BYTES,

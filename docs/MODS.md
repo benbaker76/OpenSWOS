@@ -254,6 +254,9 @@ Setup later), falling back to SWOS 2020's CSVs where a manager still has them:
   `menu_music`, `teamdb` (what SWOS 2020's DLC types replace whole). The game keeps the first
   enabled mod of a slot and logs the others it leaves out (`src/mods.c` load_one); Setup and the
   manager show a slot as pick-one. Cups, team packs and backgrounds have none: several can be on.
+  A `title_music` mod brings `sound_dos/title.mp3` (the CD-style song, `[audio] title_music = mp3`)
+  or `sound_dos/title.xmi` (played on the emulated AdLib, `title_music = midi`; docs/DOS_SOUND.md
+  "The CD track"); either needs `[audio] music = pc`.
 - **`"online": false`**: not for online play (an offline-only team database). MULTIPLAYER says
   which mods are on that are not for it and does not start until they are off
   (`Mods_OfflineOnly`, menus.c MultiplayerMenuSelected), rather than a match being refused later.

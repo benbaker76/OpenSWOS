@@ -155,6 +155,13 @@ stops it (`AudioSDL_StreamStart` in `src/audio_sdl.c`).
 
 Any `sound_dos/<name>.mp3` can be played this way; `title` is the only name asked for.
 
+**`[audio] title_music = midi`** (`--title-music=midi`, the AUDIO screen's PC TITLE MUSIC; default
+`mp3`) plays `sound_dos/title.xmi` instead -- SWOS 2020's floppy title song, which a mod brings
+(a `title_music` slot mod's `sound_dos/title.xmi`, found through the mods' overlay) -- on the
+emulated card with `sample.ad`, the menu music's player (`DosMusic_StartSong("title", 0)`): once,
+not repeating. Without title.xmi it plays title.mp3, and without that the Amiga's HERO.
+`--dos-music-selftest` plays it through too when one is installed.
+
 ## How it works
 
 **An event is not a sound.** The match code says what happened, with

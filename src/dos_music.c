@@ -65,9 +65,15 @@ typedef struct {
 } Voice;
 
 static int32_t  s_style;
-static int32_t  s_loaded;       /* 0 not tried, 1 ready, -1 missing or not understood */
-static uint8_t *s_xmi, *s_bank;
+static int32_t  s_loaded;       /* the bank: 0 not tried, 1 ready, -1 missing or not understood */
+static uint8_t *s_bank;
 static uint32_t s_bankLen;
+/* The songs: menu.xmi (the menus) and title.xmi (the intro, [audio] title_music = midi, from a
+ * mod: SWOS 2020's floppy title song), each read once. */
+static struct { const char *stem; int32_t loaded; uint8_t *xmi; const uint8_t *events; uint32_t len; } s_song[2] = {
+    { "menu" }, { "title" },
+};
+static int32_t  s_loop = 1;     /* the song playing repeats; else it stops at its end */
 static const uint8_t *s_events;
 static uint32_t s_eventsLen;
 
@@ -112,6 +118,8 @@ static uint8_t *read_file(const char *rel, uint32_t *len)
  * Chunk sizes are big-endian and chunks are padded to an even length. */
 static int32_t find_events(const uint8_t *d, uint32_t len)
 {
+    /* (It leaves the song in s_events/s_eventsLen; DosMusic_LoadSong keeps it and puts back
+     * the one that was there, which may be playing.) */
     uint32_t p = 0;
     while (p + 8 <= len) {
         uint32_t size = BE_READ_U32(d + p + 4);
@@ -159,17 +167,64 @@ int32_t DosMusic_Load(void)
     if (s_loaded)
         return s_loaded > 0;
     s_loaded = -1;
-    s_xmi = read_file("sound_dos/menu.xmi", &xmiLen);
     s_bank = read_file("sound_dos/sample.ad", &s_bankLen);
-    if (!s_xmi || !s_bank) {
-        fprintf(stderr, "[music] sound_dos/menu.xmi or sample.ad is missing: the Amiga's music is used\n");
+    if (!s_bank) {
+        fprintf(stderr, "[music] sound_dos/sample.ad is missing: the Amiga's music is used\n");
         return 0;
     }
-    if (!find_events(s_xmi, xmiLen) || !find_timbre(0, 0)) {
-        fprintf(stderr, "[music] sound_dos/menu.xmi or sample.ad is not what it should be: the Amiga's music is used\n");
+    if (!find_timbre(0, 0)) {
+        fprintf(stderr, "[music] sound_dos/sample.ad is not what it should be: the Amiga's music is used\n");
         return 0;
     }
     s_loaded = 1;
+    if (!DosMusic_LoadSong("menu")) {
+        s_loaded = -1;
+        return 0;
+    }
+    s_events = s_song[0].events;        /* the menu song until another is started */
+    s_eventsLen = s_song[0].len;
+    return 1;
+}
+
+static int32_t song_index(const char *stem)
+{
+    int32_t i;
+    for (i = 0; i < (int32_t)(sizeof s_song / sizeof s_song[0]); i++)
+        if (strcmp(s_song[i].stem, stem) == 0)
+            return i;
+    return -1;
+}
+
+int32_t DosMusic_LoadSong(const char *stem)
+{
+    const int32_t i = song_index(stem);
+    char rel[64];
+    uint32_t len = 0;
+
+    if (i < 0 || s_loaded < 0 || (!s_loaded && !s_bank && !DosMusic_Load()))
+        return 0;
+    if (s_song[i].loaded)
+        return s_song[i].loaded > 0;
+    s_song[i].loaded = -1;
+    snprintf(rel, sizeof rel, "sound_dos/%s.xmi", stem);
+    const uint8_t *was = s_events;
+    const uint32_t wasLen = s_eventsLen;
+    s_song[i].xmi = read_file(rel, &len);
+    if (!s_song[i].xmi) {
+        fprintf(stderr, "[music] %s is missing\n", rel);
+        return 0;
+    }
+    if (!find_events(s_song[i].xmi, len)) {
+        s_events = was;
+        s_eventsLen = wasLen;
+        fprintf(stderr, "[music] %s is not what it should be\n", rel);
+        return 0;
+    }
+    s_song[i].events = s_events;
+    s_song[i].len = s_eventsLen;
+    s_events = was;
+    s_eventsLen = wasLen;
+    s_song[i].loaded = 1;
     return 1;
 }
 
@@ -317,6 +372,10 @@ static void tick(void)
                 return;                         /* a song with nothing in it */
             for (v = 0; v < VOICES; v++)
                 key_off(v);
+            if (!s_loop) {                      /* the title song: once */
+                s_playing = 0;
+                return;
+            }
             s_pos = 0;
             s_nextTick = s_tick;
             s_stat.loops++;
@@ -378,8 +437,17 @@ static void tick(void)
 
 void DosMusic_Start(void)
 {
-    if (!DosMusic_Load())
+    DosMusic_StartSong("menu", 1);
+}
+
+void DosMusic_StartSong(const char *stem, int32_t loop)
+{
+    const int32_t i = song_index(stem);
+    if (!DosMusic_Load() || i < 0 || !DosMusic_LoadSong(stem))
         return;
+    s_events = s_song[i].events;
+    s_eventsLen = s_song[i].len;
+    s_loop = loop != 0;
     if (!s_chipRate)
         s_chipRate = 44100;
     {
@@ -448,6 +516,18 @@ int32_t DosMusic_MenuRecording(void)
     return s_menuRecording;
 }
 
+static int32_t s_titleMidi;
+
+void DosMusic_SetTitleMidi(int32_t on)
+{
+    s_titleMidi = on != 0;
+}
+
+int32_t DosMusic_TitleMidi(void)
+{
+    return s_titleMidi;
+}
+
 /* ---- self-test ---- */
 
 int32_t DosMusic_SelfTest(void)
@@ -512,6 +592,26 @@ int32_t DosMusic_SelfTest(void)
                 "output peak %u, rms %.0f: %s\n", s_stat.notes, ticks, ticks * 10.0 / TICKS_PER_10_SECONDS,
                 s_stat.noTimbre, s_stat.peak, s_stat.steals, peakOut, root, failures ? "FAILED" : "PASSED");
     }
+    /* The intro's song ([audio] title_music = midi), when a mod brings sound_dos/title.xmi: it
+     * plays, and once -- it stops at its end instead of coming round. */
+    if (DosMusic_LoadSong("title")) {
+        uint32_t notes;
+        DosMusic_StartSong("title", 0);
+        memset(&s_stat, 0, sizeof s_stat);
+        for (n = 0; n < 50 * 600 && s_playing; n++) {
+            memset(buf, 0, sizeof buf);
+            DosMusic_Render(buf, 44100 / 50, 44100, 256);
+        }
+        notes = s_stat.notes;
+        if (s_playing || notes == 0) {
+            fprintf(stderr, "[dos-music] FAIL: title.xmi %s\n", s_playing ? "did not stop at its end" : "played nothing");
+            failures++;
+        }
+        s_playing = 0;
+        fprintf(stderr, "[dos-music] title.xmi: %u notes in %.1f s, once: %s\n", notes,
+                s_tick * 10.0 / TICKS_PER_10_SECONDS, failures ? "FAILED" : "PASSED");
+    } else
+        fprintf(stderr, "[dos-music] no sound_dos/title.xmi (a mod's): its check skipped\n");
     return failures;
 }
 

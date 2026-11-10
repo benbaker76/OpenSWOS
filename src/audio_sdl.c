@@ -595,12 +595,20 @@ int AudioSDL_StreamStart(const char *name, int loop)
 
 /* Start the PC game's menu music in place of the Amiga's menu song. Returns 0 when it
  * is playing, -1 when its files are missing (the caller starts the Amiga's). */
+int AudioSDL_PcSongStart(const char *stem, int loop);
+
 int AudioSDL_PcMusicStart(void)
+{
+    return AudioSDL_PcSongStart("menu", 1);
+}
+
+/* sound_dos/<stem>.xmi on the emulated chip ("menu" repeats; "title" once, the intro's). */
+int AudioSDL_PcSongStart(const char *stem, int loop)
 {
 #if SWOS_AUDIO_DISABLED
     return -1;
 #endif
-    if (!s_audio_dev || !s_mtx || !DosMusic_Load())
+    if (!s_audio_dev || !s_mtx || !DosMusic_Load() || !DosMusic_LoadSong(stem))
         return -1;
     SDL_LockMutex(s_mtx);
     fade_finish_locked();
@@ -609,7 +617,7 @@ int AudioSDL_PcMusicStart(void)
     s_player_active = 0;
     s_loop_song = 0;
     MusicStream_Stop();
-    DosMusic_Start();
+    DosMusic_StartSong(stem, loop);
     SDL_ClearQueuedAudio(s_audio_dev);
     SDL_UnlockMutex(s_mtx);
     return DosMusic_Playing() ? 0 : -1;

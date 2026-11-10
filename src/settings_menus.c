@@ -621,6 +621,16 @@ static void pcmusic_change(int32_t dir)
     save();
 }
 
+static void pctitle_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", DosMusic_TitleMidi() ? "MIDI" : "MP3"); }
+static void pctitle_change(int32_t dir)
+{
+    (void)dir;
+    DosMusic_SetTitleMidi(!DosMusic_TitleMidi());
+    O()->title_midi = DosMusic_TitleMidi();
+    note(DosMusic_Style() ? "FROM THE NEXT START" : "WITH MUSIC: PC; FROM THE NEXT START");
+    save();
+}
+
 static void commentary_show(char *o, int32_t c)
 {
     static const char *const k[3] = { "OFF", "ON", "AUTO" };
@@ -646,6 +656,7 @@ static const Row k_audioRows[] = {
     { "MATCH SOUNDS",           sound_show,      sound_change },
     { "MUSIC",                  music_show,      music_change },
     { "PC MENU MUSIC",          pcmusic_show,    pcmusic_change },
+    { "PC TITLE MUSIC",         pctitle_show,    pctitle_change },
     { "COMMENTARY",             commentary_show, commentary_change },
     { "OUTPUT",                 mono_show,       mono_change },
 };
