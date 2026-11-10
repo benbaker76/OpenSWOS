@@ -418,26 +418,32 @@ void CreditsMenu_DrawOverlay(void)
             if (r[i].w > 0 && r[i].h > 0)
                 Gfx_FillRect(&r[i], black);
     }
+    /* Every line's place a whole number of pixels from the one before it, and the scroll itself
+     * snapped once: the font snaps each line to a whole pixel, so lines at different fractions
+     * (a blank line was 0.7 of one) tipped over on different frames -- one line a pixel up, the
+     * next a frame later: the text shimmered, seeming to move up and back. Now they all move
+     * together, a whole pixel at a time. */
     lh = (float)ChatFont_LineHeight();
+    const float gapH = SDL_roundf(lh * 0.7f);
     gap = SDL_floorf(size * 0.6f);                        /* either side of the middle */
     cx = px + pw / 2;
     fade = 28.0f * sy;
     speed = 20.0f * sy;                                   /* picture lines a second */
     total = 0;
     for (i = 0; i < s_fcCount; i++)
-        total += s_fc[i].kind == FC_GAP ? lh * 0.7f : fc_stacked(&s_fc[i], pw / 2, gap) ? 2 * lh : lh;
+        total += s_fc[i].kind == FC_GAP ? gapH : fc_stacked(&s_fc[i], pw / 2, gap) ? 2 * lh : lh;
     {
         /* From just below the bottom, up until the last line is gone; then again. */
         const float run = (bottom - top) + total + lh;
         float t = (float)(SDL_GetTicks64() - s_fullSince) / 1000.0f * speed;
         t -= SDL_floorf(t / run) * run;
-        y = bottom - t;
+        y = SDL_floorf(bottom - t);
     }
     for (i = 0; i < s_fcCount && y < bottom; i++) {
         const FcLine *l = &s_fc[i];
         const float wa = l->a ? ChatFont_Measure(l->a, -1) : 0, wb = l->b ? ChatFont_Measure(l->b, -1) : 0;
         const int32_t stacked = fc_stacked(l, pw / 2, gap);
-        const float h = l->kind == FC_GAP ? lh * 0.7f : stacked ? 2 * lh : lh;
+        const float h = l->kind == FC_GAP ? gapH : stacked ? 2 * lh : lh;
         if (y + h > top && l->kind != FC_GAP) {
             int32_t row;
             for (row = 0; row < (stacked ? 2 : 1); row++) {
