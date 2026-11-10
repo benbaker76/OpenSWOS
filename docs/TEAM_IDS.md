@@ -135,7 +135,9 @@ for every team and player without one -- a pack's team is not the database's, ev
 as a copy -- the checksum as the game computes it, and `PACK.registry.inc` beside it: the
 matchmaking server's lines for those teams. A mod of packs is `"changes": "data"`: online, both
 players need it alike (the mods' signature), and a server that is to verify its teams compiles its
-lines in (SWOS United's server keeps its own). Checked: a pack of two teams copied from England's
+lines in: SWOS 2020's 31 public packs (150..180) are in `third_party/matchmaker/Server/include/
+TeamRegistryPacks.inc`, after the generated `TeamRegistry.inc`; others can be read at start-up with
+`--teams FILE` (one "uuid checksum name" a line). Checked: a pack of two teams copied from England's
 file (number 210) -- CHELSEA, from the pack, plays a full match (`SWOS_MOD_MATCH_TEAMS=d201,5502
 SWOS_MOD_MATCH_TEST=1`) and the online rule accepts it. SWOS United's fun cup is built on it.
 

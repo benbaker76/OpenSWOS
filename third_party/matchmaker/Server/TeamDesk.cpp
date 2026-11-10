@@ -14,6 +14,7 @@ namespace
     struct Row { const char* uuid; const char* checksum; const char* name; };
     const Row kRegistry[] = {
 #include "TeamRegistry.inc"
+#include "TeamRegistryPacks.inc"
     };
 
     std::string Hex(const uint8_t* bytes, size_t count)
