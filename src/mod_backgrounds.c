@@ -8,7 +8,11 @@
  * game folder's backgrounds/ (Documents\SWOS\backgrounds on Windows), PNG, BMP or JPEG; "off" the
  * game's own backdrop. Not set: the first picture in the mod's own images/ (a fork ships its
  * own there -- SWOS United its SWOS_United.png -- OpenSWOS ships none, so nothing changes).
- * The MODS page offers "off" and every picture it finds (mod.json "choices_from").
+ * The MODS page offers "off" and every picture it finds (mod.json "choices_from"), and "auto" (not
+ * set: the mod's own first) and "random" (one of every picture it would list, picked once a start)
+ * -- the SWOS United Launcher's Auto / Random (launcher options, agent A). Its "PC DOS" and "Amiga"
+ * were SWOS 2020's own bg-images, which OpenSWOS does not ship: a player who has them puts them in
+ * backgrounds/ and picks them by name.
  *
  * HOW IT SHOWS: the engine asks at each menu backdrop it loads (ModDef menuBackdrop); with a
  * picture, the backdrop becomes one key colour and the presenter draws the picture under the menus,
@@ -56,16 +60,61 @@ static int file_exists(const char *path)
     return f != NULL;
 }
 
+/* "random": every picture the page would list, by name (each once), and one of them -- kept for the
+ * rest of the run, so the menus do not change picture on every screen. */
+typedef struct { char names[64][256]; int32_t n; } Pictures;
+
+static int32_t collect(const char *name, void *ctx)
+{
+    Pictures *p = (Pictures *)ctx;
+    char dummy[256] = "";
+    first_image(name, dummy);                       /* (an image file: the same test as auto's) */
+    if (!dummy[0] || p->n == 64)
+        return 0;
+    for (int32_t i = 0; i < p->n; i++)
+        if (SDL_strcasecmp(p->names[i], name) == 0)
+            return 0;
+    snprintf(p->names[p->n++], sizeof p->names[0], "%s", name);
+    return 0;
+}
+
+static const char *random_picture(void)
+{
+    static char chosen[256];
+    static int32_t picked;
+    if (!picked) {
+        static Pictures p;
+        char dir[1100];
+        p.n = 0;
+        snprintf(dir, sizeof dir, "%s/images", ModApi_ModDir(SLUG));
+        ModApi_ListFiles(dir, collect, &p);
+        for (int32_t i = 0; i < Mods_Count(); i++) {
+            snprintf(dir, sizeof dir, "%s/images", Mods_Dir(i));
+            ModApi_ListFiles(dir, collect, &p);
+        }
+        snprintf(dir, sizeof dir, "%s/backgrounds", swos_user_dir());
+        ModApi_ListFiles(dir, collect, &p);
+        chosen[0] = '\0';
+        if (p.n)
+            snprintf(chosen, sizeof chosen, "%s", p.names[(SDL_GetTicks() ^ (uint32_t)SDL_GetPerformanceCounter()) % (uint32_t)p.n]);
+        fprintf(stderr, "[backgrounds] random: %s (of %d)\n", chosen[0] ? chosen : "none", (int)p.n);
+        picked = 1;
+    }
+    return chosen[0] ? chosen : "off";
+}
+
 /* The picture's path, "" none. */
 static void picture_path(char *out, size_t cap)
 {
     const char *setting = ModApi_Setting(SLUG, "image", "");
     char own[1100], name[256] = "";
     out[0] = '\0';
+    if (SDL_strcasecmp(setting, "random") == 0)
+        setting = random_picture();
     if (SDL_strcasecmp(setting, "off") == 0)
         return;
     snprintf(own, sizeof own, "%s/images", ModApi_ModDir(SLUG));
-    if (!setting[0]) {
+    if (!setting[0] || SDL_strcasecmp(setting, "auto") == 0) {
         ModApi_ListFiles(own, first_image, name);
         if (name[0])
             snprintf(out, cap, "%s/%s", own, name);

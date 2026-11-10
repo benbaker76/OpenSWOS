@@ -15,7 +15,12 @@
    "key": "image",
    "label": "Picture",
    "choices_from": "images",
-   "user_folder": "backgrounds"
+   "user_folder": "backgrounds",
+   "choices_first": [
+    "auto",
+    "random"
+   ],
+   "default": "auto"
   }
  ]
 }

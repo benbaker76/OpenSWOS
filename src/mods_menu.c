@@ -390,6 +390,18 @@ static void read_page_settings(const ModInfo *m)
             snprintf(q, sizeof q, "$.settings[%d].choices_ext", (int)i);   /* (".slangp"; none: images) */
             mjson_get_string(json, len, q, ext, (int)sizeof ext);
             choices_from_files(m, t, user, ext, ps);    /* "off" and the files of a folder */
+            /* "choices_first": [..] -- names of the mod's own offered after "off", before the
+             * files (the backgrounds mod's "auto" and "random"; launcher options, agent A) */
+            for (int32_t k = 0; k < 8 && ps->choiceCount < kMaxChoices; k++) {
+                char extra[kChoiceLen];
+                snprintf(q, sizeof q, "$.settings[%d].choices_first[%d]", (int)i, (int)k);
+                if (mjson_get_string(json, len, q, extra, (int)sizeof extra) < 0)
+                    break;
+                memmove(ps->choices[2 + k], ps->choices[1 + k],
+                        (size_t)(ps->choiceCount - 1 - k) * sizeof ps->choices[0]);
+                snprintf(ps->choices[1 + k], sizeof ps->choices[0], "%s", extra);
+                ps->choiceCount++;
+            }
         }
         if (!ps->choiceCount) {
             snprintf(ps->choices[0], sizeof ps->choices[0], "off");
@@ -704,6 +716,28 @@ void ModsMenu_Show(void)
         return;
     }
     ShowMenu(menu);
+}
+
+/* SWOS_MOD_PAGE_TEST=<slug>: the choices its page offers for each setting, as read from its mod.json
+ * (choices, choices_from, choices_first, default first), on stdout; 1 when it has none. (launcher
+ * options, agent A: the backgrounds mod's auto / random, the dosmenus mod's look.) */
+int32_t ModsMenu_PageTest(const char *slug)
+{
+    static ModInfo mods[64];
+    const int32_t n = Mods_Scan(mods, 64);
+    for (int32_t i = 0; i < n; i++)
+        if (strcmp(mods[i].slug, slug) == 0) {
+            read_page_settings(&mods[i]);
+            for (int32_t k = 0; k < s_pageCount; k++) {
+                printf("[mod-page-test] %s %s:", slug, s_pageSettings[k].key);
+                for (int32_t c = 0; c < s_pageSettings[k].choiceCount; c++)
+                    printf(" %s", s_pageSettings[k].choices[c]);
+                printf("\n");
+            }
+            return s_pageCount ? 0 : 1;
+        }
+    printf("[mod-page-test] no mod %s\n", slug);
+    return 1;
 }
 
 #endif /* SWOS_SDL_BUILD */

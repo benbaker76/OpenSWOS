@@ -9,5 +9,16 @@
   "sdl"
  ],
  "changes": "cosmetic",
- "default": true
+ "default": true,
+ "settings": [
+  {
+   "key": "look",
+   "label": "Menu look",
+   "choices": [
+    "amiga",
+    "pc"
+   ],
+   "default": "amiga"
+  }
+ ]
 }
