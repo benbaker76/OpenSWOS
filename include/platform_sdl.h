@@ -221,6 +221,12 @@ typedef struct {
     int                    show_fps;             /* [video] show_fps: the frames a second, top right (--show-fps) */
     int                    mouse_cursor;         /* [input] mouse_cursor: 0 system, 1 workbench2, 2 workbench1 */
     int                    cpu_tactics;          /* [gameplay] cpu_tactics: 0 normal, 1 expert (--improved-cpu-tactics) */
+    /* ---- launcher options (agent B): DISPLAY OPTIONS (src/settings_menus.c, src/display_options.c) ---- */
+    int                    menu_opacity;         /* [video] menu_opacity: 0-100, the menus' coloured parts over
+                                                  * the backdrop (SWOS 2020's --alpha-blending-menu); 100 opaque */
+    int                    purple_for_brown;     /* [video] purple_for_brown: maroon kits drawn purple */
+    int                    improved_pitch_palette; /* [video] improved_pitch_palette: SWOS 2020's wet/soft stripes */
+    int                    pixel_filter;         /* [video] pixel_filter: PIXEL_FILTER_* (include/pixel_filter.h) */
 } PlatformInitOptions;
 
 int  Platform_Init(const PlatformInitOptions *opts);
@@ -234,6 +240,10 @@ int  Platform_OpenUrl(const char *url);
  * the game's). 62: a colour of the game's own backdrop (33-62), which no menu element uses. */
 #define MENU_BACKDROP_KEY 62
 void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h);
+/* ---- launcher options (agent B) ---- */
+/* DISPLAY OPTIONS: the menus' opacity, the pixel filter, purple for brown and the improved pitch
+ * palette, from the options (at Platform_Init, and when a row changes one). Drawing only. */
+void Platform_SetDisplayOptions(const PlatformInitOptions *o);
 /* One colour of the palette the screen is drawn in, by index. */
 void Platform_PaletteRgb(int index, uint8_t *r, uint8_t *g, uint8_t *b);
 

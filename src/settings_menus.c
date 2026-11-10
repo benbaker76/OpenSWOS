@@ -36,6 +36,12 @@
 #include "dos_music.h"
 #include "tweaks.h"            /* STRONGER KEEPERS: [tweaks] stronger_goalkeeper_ai */
 #include "project_identity.h"  /* MENU LOOK: PROJECT_MENU_LOOK_AMIGA */
+#include "pixel_filter.h"      /* DISPLAY OPTIONS (launcher options, agent B) */
+#include "mod_api.h"           /* ... its mods' settings */
+#include "mods.h"
+#include "team_colors.h"       /* (its self-test) */
+#include "match_setup.h"
+#include "dos_graphics.h"
 
 #include <SDL.h>
 #include <stdio.h>
@@ -929,6 +935,99 @@ static const Row k_gameplayRows[] = {
 };
 static const Page k_gameplayPage = { "GAMEPLAY OPTIONS", k_gameplayRows, (int32_t)(sizeof k_gameplayRows / sizeof k_gameplayRows[0]) };
 
+/* ===================================================================== DISPLAY OPTIONS
+ * (launcher options, agent B; docs/RENDERING.md "DISPLAY OPTIONS") The SWOS United Launcher's look
+ * options -- SWOS 2020's command-line flags -- in the game: the menus' opacity, the pixel filter,
+ * purple for brown, the improved pitch palette ([video] in SWOS.ini, Platform_SetDisplayOptions:
+ * at once), and the result display's and the scoreboard's settings, which are their mods'
+ * ([mod.display2020], [mod.scoreboard]: OPTIONS -> MODS turns the mods on). All drawing only. */
+
+static void display_apply(void)
+{
+    Platform_SetDisplayOptions(O());
+    save();
+}
+
+static void opacity_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%d%%", O()->menu_opacity); }
+static void opacity_change(int32_t dir)
+{
+    O()->menu_opacity = (int)step(O()->menu_opacity / 10, dir, 11) * 10;
+    note("THE MENUS' BUTTONS OVER THE BACKDROP");
+    display_apply();
+}
+
+static void filter_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", PixelFilter_Label(O()->pixel_filter)); }
+static void filter_change(int32_t dir)
+{
+    O()->pixel_filter = (int)step(O()->pixel_filter, dir, PIXEL_FILTER_COUNT);
+    note(O()->renderer == PLATFORM_RENDERER_ACCEL ? "NOT WITH A SHADER PRESET (RETRO TV)" : "THE GPU RENDERER ONLY");
+    display_apply();
+}
+
+static void purple_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->purple_for_brown ? "PURPLE" : "BROWN"); }
+static void purple_change(int32_t dir)
+{
+    (void)dir;
+    O()->purple_for_brown = !O()->purple_for_brown;
+    note("FROM THE NEXT MATCH");
+    display_apply();
+}
+
+static void pitchpal_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->improved_pitch_palette ? "IMPROVED" : "ORIGINAL"); }
+static void pitchpal_change(int32_t dir)
+{
+    (void)dir;
+    O()->improved_pitch_palette = !O()->improved_pitch_palette;
+    note("WET AND SOFT PITCHES, FROM THE NEXT MATCH");
+    display_apply();
+}
+
+/* A mod's setting, cycled through its choices (`choices` NULL: off / on). */
+static void mod_setting_show(const char *slug, const char *key, const char *fallback, char *o, int32_t c)
+{
+    if (!Mods_IsOn(slug)) {
+        snprintf(o, (size_t)c, "MOD OFF");
+        return;
+    }
+    upper(o, c, ModApi_Setting(slug, key, fallback));
+}
+static void mod_setting_change(const char *slug, const char *key, const char *fallback,
+                               const char *const *choices, int32_t n, int32_t dir)
+{
+    static const char *const k_onOff[2] = { "off", "on" };
+    const char *now = ModApi_Setting(slug, key, fallback);
+    int32_t at = 0;
+    if (!choices) {
+        choices = k_onOff;
+        n = 2;
+    }
+    for (int32_t i = 0; i < n; i++)
+        if (SDL_strcasecmp(now, choices[i]) == 0)
+            at = i;
+    ModApi_SetSetting(slug, key, choices[step(at, dir, n)]);
+    note(Mods_IsOn(slug) ? "" : "TURN THE MOD ON IN OPTIONS, MODS");
+}
+
+static const char *const k_bands[3] = { "smooth", "game", "off" };
+static const char *const k_corners[4] = { "top-left", "top-right", "bottom-left", "bottom-right" };
+static void reskits_show(char *o, int32_t c)  { mod_setting_show("display2020", "kits", "on", o, c); }
+static void reskits_change(int32_t d)         { mod_setting_change("display2020", "kits", "on", NULL, 0, d); }
+static void resband_show(char *o, int32_t c)  { mod_setting_show("display2020", "band", "smooth", o, c); }
+static void resband_change(int32_t d)         { mod_setting_change("display2020", "band", "smooth", k_bands, 3, d); }
+static void board_show(char *o, int32_t c)    { mod_setting_show("scoreboard", "corner", "top-left", o, c); }
+static void board_change(int32_t d)           { mod_setting_change("scoreboard", "corner", "top-left", k_corners, 4, d); }
+
+static const Row k_displayRows[] = {
+    { "MENU OPACITY",       opacity_show,  opacity_change },
+    { "PIXEL FILTER",       filter_show,   filter_change },
+    { "BROWN KITS",         purple_show,   purple_change },
+    { "PITCH PALETTE",      pitchpal_show, pitchpal_change },
+    { "KITS ON THE RESULT", reskits_show,  reskits_change },
+    { "RESULT BAND",        resband_show,  resband_change },
+    { "SCOREBOARD",         board_show,    board_change },
+};
+static const Page k_displayPage = { "DISPLAY OPTIONS", k_displayRows, (int32_t)(sizeof k_displayRows / sizeof k_displayRows[0]) };
+
 /* ===================================================================== SETTINGS (the hub) */
 
 static void page_show(const Page *page)
@@ -952,6 +1051,7 @@ static void settingsMenu_controls_OnSelect(void) { page_show(&k_controlsPage); }
 static void settingsMenu_video_OnSelect(void)    { page_show(&k_videoPage); }
 static void settingsMenu_audio_OnSelect(void)    { page_show(&k_audioPage); }
 static void settingsMenu_gameplay_OnSelect(void) { page_show(&k_gameplayPage); }
+static void settingsMenu_display_OnSelect(void)  { page_show(&k_displayPage); }   /* (launcher options, agent B) */
 static void settingsMenu_exit_OnSelect(void)     { SetExitMenuFlag(); }
 
 /* ===================================================================== CONTROLLER SETUP */
@@ -1206,6 +1306,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(settingsMenu_video_OnSelect),
     HANDLER(settingsMenu_audio_OnSelect),
     HANDLER(settingsMenu_gameplay_OnSelect),
+    HANDLER(settingsMenu_display_OnSelect),
     HANDLER(settingsMenu_exit_OnSelect),
     HANDLER(settingsPage_OnInit),
     HANDLER(settingsPage_OnDraw),
@@ -1265,11 +1366,45 @@ void SettingsMenus_Show(void)
     ShowMenu(menu);
 }
 
+/* DISPLAY OPTIONS, checked without a window (launcher options, agent B): the pixel filters'
+ * answers, purple for brown's menu colour and the improved pitch palette's green, each set and back. */
+static int DisplayOptions_SelfTest(void)
+{
+    extern uint16_t _kTeamColorsTable[];
+    int fails = PixelFilter_SelfTest();
+    {
+        const uint16_t maroon = _kTeamColorsTable[6];
+        TeamColors_SetPurpleForMaroon(1);
+        if (_kTeamColorsTable[6] != _kTeamColorsTable[10]) { fails++; fprintf(stderr, "[settings-selftest] FAIL: purple for brown: maroon's menu colour is not purple's\n"); }
+        TeamColors_SetPurpleForMaroon(0);
+        if (_kTeamColorsTable[6] != maroon) { fails++; fprintf(stderr, "[settings-selftest] FAIL: purple for brown not put back\n"); }
+    }
+    {
+        uint8_t was[768], now[768];
+        for (int type = 0; type < 7; type++) {
+            _gImprovedPitchPalette = 0;
+            DosGfx_BuildPalette(type, was);
+            _gImprovedPitchPalette = 1;
+            DosGfx_BuildPalette(type, now);
+            _gImprovedPitchPalette = 0;
+            const int differ = memcmp(was, now, sizeof was) != 0;
+            const int want = type == 2 || type == 3;            /* wet, soft */
+            if (differ != want || (want && !(now[9 * 3 + 1] > was[9 * 3 + 1]))) {
+                fails++;
+                fprintf(stderr, "[settings-selftest] FAIL: improved pitch palette, pitch type %d (entry 9 green %d -> %d)\n",
+                        type, was[9 * 3 + 1], now[9 * 3 + 1]);
+            }
+        }
+    }
+    return fails;
+}
+
 /* --settings-menus-selftest: every page's rows shown and changed both ways and back, with no
  * window or device, and the three menus loaded. Returns the number of failures. */
 int SettingsMenus_SelfTest(void)
 {
-    static const Page *const pages[] = { &k_controlsPage, &k_videoPage, &k_audioPage, &k_gameplayPage };
+    static const Page *const pages[] = { &k_controlsPage, &k_videoPage, &k_audioPage, &k_gameplayPage,
+                                         &k_displayPage };
     int fails = 0;
     SettingsMenus_Init();
     for (size_t p = 0; p < sizeof pages / sizeof pages[0]; p++) {
@@ -1297,6 +1432,7 @@ int SettingsMenus_SelfTest(void)
         MenuLook_SetCursor(0);
         if (memcmp(was, _kColorTableShine, sizeof was)) { fails++; fprintf(stderr, "[settings-selftest] FAIL: flashing cursor not restored\n"); }
     }
+    fails += DisplayOptions_SelfTest();     /* (launcher options, agent B) */
     {   /* the three menus load (their entry count is checked by --menu-selftest) */
         static const char *const names[] = { SETTINGS_MENU_NAME, SETTINGS_PAGE_NAME, JOYPAD_CONFIG_NAME };
         for (size_t i = 0; i < sizeof names / sizeof names[0]; i++)

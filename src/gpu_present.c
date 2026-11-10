@@ -49,7 +49,7 @@ static struct {
     sg_sampler    nearest, linear;
     sg_image      index, argb, hudImage, palette;
     sg_view       indexView, argbView, hudView, paletteView;
-    int           imgW, imgH;
+    int           imgW, imgH, imgK;     /* (imgK: the argb image is imgK times the frame, a pixel filter's) */
     uint8_t      *stage;                /* the packed frame / HUD (sokol takes whole images) */
     uint32_t     *palStage;
     GpuTex   *white;
@@ -406,9 +406,9 @@ static void picture_rect(int stretch, int lw, int lh)
 }
 
 /* The frame's images, (re)made at its size. */
-static int ensure_images(int w, int h)
+static int ensure_images(int w, int h, int k)
 {
-    if (G.imgW == w && G.imgH == h && G.index.id)
+    if (G.imgW == w && G.imgH == h && G.imgK == k && G.index.id)
         return 1;
     if (G.index.id) {
         sg_destroy_view(G.indexView); sg_destroy_image(G.index);
@@ -418,13 +418,14 @@ static int ensure_images(int w, int h)
     free(G.stage);
     G.stage = (uint8_t *)malloc((size_t)w * h * 4);
     G.index = make_image(w, h, SG_PIXELFORMAT_R8, "frame");
-    G.argb = make_image(w, h, SG_PIXELFORMAT_RGBA8, "frame-rgba");
+    G.argb = make_image(w * k, h * k, SG_PIXELFORMAT_RGBA8, "frame-rgba");
     G.hudImage = make_image(w, h, SG_PIXELFORMAT_R8, "hud");
     G.indexView = make_view(G.index);
     G.argbView = make_view(G.argb);
     G.hudView = make_view(G.hudImage);
     G.imgW = w;
     G.imgH = h;
+    G.imgK = k;
     return G.stage != NULL;
 }
 
@@ -440,6 +441,7 @@ static void upload_r8(sg_image img, const uint8_t *src, int pitch, int w, int h)
 }
 
 static float s_key;     /* draw_picture's: the backdrop's key + 1, 0 none */
+static float s_texK = 1.0f;     /* draw_picture's: an RGBA source this many times the frame (a pixel filter) */
 static void draw_picture(sg_pipeline pip, sg_view tex, const float src[4], float n, int hud, int rgba)
 {
     vs_present_params_t vp;
@@ -451,8 +453,8 @@ static void draw_picture(sg_pipeline pip, sg_view tex, const float src[4], float
     }
     memcpy(vp.src, src, sizeof vp.src);
     memset(&fp, 0, sizeof fp);
-    fp.size[0] = (float)G.srcW;
-    fp.size[1] = (float)G.srcH;
+    fp.size[0] = (float)G.srcW * (rgba && !hud ? s_texK : 1.0f);
+    fp.size[1] = (float)G.srcH * (rgba && !hud ? s_texK : 1.0f);
     fp.mode[0] = n;
     fp.mode[1] = hud ? 1.0f : 0.0f;
     fp.mode[2] = rgba ? 1.0f : 0.0f;
@@ -531,12 +533,14 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
     if (f) {
         G.srcW = f->w;
         G.srcH = f->h;
-        if (!ensure_images(f->w, f->h))
+        const int k = f->argb && f->argbScale > 1 ? f->argbScale : 1;
+        if (!ensure_images(f->w, f->h, k))
             return 0;
         /* The images before the pass (one update each a frame, the whole of each). */
         for (int i = 0; i < 256; i++) {
             const SDL_Color c = f->palette[i];
-            G.palStage[i] = (uint32_t)c.r | ((uint32_t)c.g << 8) | ((uint32_t)c.b << 16) | 0xFF000000u;
+            const uint32_t a = f->paletteAlpha ? f->paletteAlpha[i] : 0xFFu;
+            G.palStage[i] = (uint32_t)c.r | ((uint32_t)c.g << 8) | ((uint32_t)c.b << 16) | (a << 24);
         }
         {
             sg_image_data d;
@@ -549,7 +553,7 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
             sg_image_data d;
             memset(&d, 0, sizeof d);
             d.mip_levels[0].ptr = f->argb;
-            d.mip_levels[0].size = (size_t)f->w * f->h * 4;
+            d.mip_levels[0].size = (size_t)f->w * k * f->h * k * 4;
             sg_update_image(G.argb, &d);
         } else if (f->index) {
             upload_r8(G.index, f->index, f->indexPitch, f->w, f->h);
@@ -601,9 +605,12 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
         return 1;
     }
 
-    /* As scale_pass_factor and present_frame_copy (platform_sdl.c) choose them. */
-    const float sx = G.picW / (float)f->w, sy = G.picH / (float)f->h;
-    float n = 0.0f;
+    /* As scale_pass_factor and present_frame_copy (platform_sdl.c) choose them -- for a filtered
+     * frame (argbScale, launcher options agent B) against its own size: the HUD's is the frame's. */
+    const int fk = f->argb && f->argbScale > 1 ? f->argbScale : 1;
+    const float sx = G.picW / (float)(f->w * fk), sy = G.picH / (float)(f->h * fk);
+    const float sxH = G.picW / (float)f->w, syH = G.picH / (float)f->h;
+    float n = 0.0f, nHud = 0.0f;
     if (f->smooth && sx >= 1.5f && sy >= 1.5f &&
         !(fabsf(sx - floorf(sx + 0.5f)) < 0.001f && fabsf(sy - floorf(sy + 0.5f)) < 0.001f)) {
         const float s = sx > sy ? sx : sy;
@@ -611,11 +618,19 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
         if (n < 2.0f) n = 2.0f;
         if (n > 8.0f) n = 8.0f;
     }
+    if (f->smooth && sxH >= 1.5f && syH >= 1.5f &&
+        !(fabsf(sxH - floorf(sxH + 0.5f)) < 0.001f && fabsf(syH - floorf(syH + 0.5f)) < 0.001f)) {
+        const float s = sxH > syH ? sxH : syH;
+        nHud = floorf(s + 0.5f);
+        if (nHud < 2.0f) nHud = 2.0f;
+        if (nHud > 8.0f) nHud = 8.0f;
+    }
     float qx = 0.0f, qy = 0.0f;
     if (G.toOff == 2)
-        n = 0.0f;                       /* (Original is the picture at its own size: no scaling) */
+        n = nHud = 0.0f;                /* (Original is the picture at its own size: no scaling) */
     if (G.toOff != 2 && f->subpixel && (f->fracX || f->fracY)) {
-        const float fx = (float)f->fracX / 65536.0f, fy = (float)f->fracY / 65536.0f;
+        /* (in the source's pixels: a filtered frame's are fk to the frame's one) */
+        const float fx = (float)f->fracX / 65536.0f * (float)fk, fy = (float)f->fracY / 65536.0f * (float)fk;
         if (n > 0.0f) {
             qx = floorf(fx * n + 0.5f) / n;
             qy = floorf(fy * n + 0.5f) / n;
@@ -625,7 +640,7 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
         }
     }
     s_key = 0.0f;
-    if (f->backdrop && !f->argb) {
+    if (f->backdrop && (!f->argb || fk > 1)) {
         /* The menus' backdrop under the picture: covering the window (or, into the CRT pass's
          * image, the picture), cropped to its aspect, centred. */
         if (!G.backdrop || G.backdropSerial != f->backdropSerial ||
@@ -667,13 +682,15 @@ int32_t GpuPresent_Begin(const GpuFrame *f, const uint8_t clear[3])
         sg_apply_viewport(0, 0, (int)G.picW, (int)G.picH, true);
     else
         sg_apply_viewportf(G.picX, G.picY, G.picW, G.picH, true);
-    const float world[4] = { qx, qy, qx + (float)f->w, qy + (float)f->h };
+    const float world[4] = { qx, qy, qx + (float)(f->w * fk), qy + (float)(f->h * fk) };
     /* (over a backdrop the picture blends: its key colour is see-through -- the HUD's pipeline) */
+    s_texK = (float)fk;
     draw_picture(s_key > 0.0f ? G.hud : G.world, f->argb ? G.argbView : G.indexView, world, n, 0,
                  f->argb != NULL);
+    s_texK = 1.0f;
     if (f->hud) {
         const float flat[4] = { 0.0f, 0.0f, (float)f->w, (float)f->h };
-        draw_picture(G.hud, G.hudView, flat, n, 1, 0);
+        draw_picture(G.hud, G.hudView, flat, nHud, 1, 0);
     }
     return 1;
 }

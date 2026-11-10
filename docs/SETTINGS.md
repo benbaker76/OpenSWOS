@@ -330,6 +330,29 @@ and `random`.
 `SWOS_MOD_PAGE_TEST=<slug>` (a mod page's choices), and `--settings-menus-selftest` (every row
 shows a value).
 
+### DISPLAY OPTIONS: the SWOS United Launcher's look options (launcher options, agent B)
+
+The launcher set these with SWOS 2020's command-line flags; they are now in the game:
+OPTIONS -> SETTINGS -> **DISPLAY** (`src/settings_menus.c`, `k_displayRows`), each saved to
+`SWOS.ini` at once and in force at once (`Platform_SetDisplayOptions`). All of them are drawing
+only: no match state, no recording, no replay changes (`scripts/check_netplay_compat.sh`
+unchanged), and an online match plays the same whatever either player has set.
+
+| row | SWOS.ini | SWOS 2020 / the launcher | what |
+|---|---|---|---|
+| MENU OPACITY | `[video] menu_opacity = 0-100` (100) | `--alpha-blending-menu=N` | in the menus, the buttons and boxes blended over the backdrop -- the backgrounds mod's picture, else the game's own backdrop -- at that opacity; their text and frames (SWOS 2020's colours 1, 2, 7, 9 and white) stay solid. Never a match. With a picture the GPU presenter blends (the palette's alpha, `src/shaders/present.glsl`); without one, or on SDL's renderer, the frame is blended on the CPU against the mask buffer the menus are drawn from |
+| PIXEL FILTER | `[video] pixel_filter = none \| simple2x \| scale2x \| scale3x` (none) | `--filter=1..3` | the frame 2 or 3 times bigger before it is scaled to the window (`src/pixel_filter.c`): Simple2x doubles pixels, Scale2x/Scale3x are Andrea Mazzoleni's published rules, written from the algorithm. GPU renderer only (`[video] renderer = accel`), and off while the retrotv mod's slang preset is on (a filter of its own). The HUD layer is drawn unfiltered over it. SWOS 2020's LQ2x/3x, HQ2x/3x (hqx: LGPL) and 2xBRZ/3xBRZ (xBRZ: GPL 3) are **not** ported: their implementations' licences are not ones OpenSWOS takes |
+| BROWN KITS | `[video] purple_for_brown = true \| false` (false) | the launcher's colour palette "Purple instead of Brown" | every maroon ("brown") kit drawn purple: in the menus maroon's kit colour is purple's entry, in a match palette entry 12 is purple whenever a side wears maroon or purple (`TeamColors_PurpleInMatch`; the match's own maroon art then drawn with entry 4, as for a purple kit). Kit colours, the clash rule and the team files are untouched. From the next match |
+| PITCH PALETTE | `[video] improved_pitch_palette = true \| false` (false) | `--improved-pitch-palette` | the wet and soft pitches' grass has two stripes of one colour in the original; SWOS 2020 lightens the second (its `pitchWetColorTable[7]` 72 -> 79, `pitchSoftColorTable[7]` 56 -> 62): here palette entry 9's green, DOS 36 -> 39 and 28 -> 31 (six bits), Amiga 9 -> 10 and 7 -> 8 (four). A pitch drawn from a map (the pitchmaps mod) keeps the map's colours. From the next match |
+| KITS ON THE RESULT | `[mod.display2020] kits = on \| off` (on) | `--new-show-result` | the `display2020` mod (canonical, off by default; OPTIONS -> MODS turns it on): each side's kit under its name on the result, the names 14 further out on a wide screen |
+| RESULT BAND | `[mod.display2020] band = smooth \| game \| off` (smooth) | `--remove-darken-banner` | the result's band: darkened evenly across the width, the game's own grid, or none (SWOS 2020's flag turns its darkening off) |
+| SCOREBOARD | `[mod.scoreboard] corner` | `--new-scoreboard=1..4` | the scoreboard mod's corner (docs/MODS.md §35); SWOS United's first display2020 drew the same board top left, so it is not drawn there twice |
+
+A row for a mod's setting shows MOD OFF while that mod is off. `--settings-menus-selftest`
+checks the page's rows, the filters' answers (`PixelFilter_SelfTest`), purple's menu colour and
+the pitch palette's green; `SWOS_MODS_ENABLED=display2020 SWOS_MOD_MATCH_TEST=1
+SWOS_DISPLAY2020_TEST=1` plays a match and checks the band and kits were drawn as the settings say.
+
 ## Saves
 
 **Where saves go differs by target**, because the two have different

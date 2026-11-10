@@ -182,9 +182,30 @@ void TeamColors_MatchArt(void)
 }
 #endif
 
+/* ---- Purple instead of brown (the SWOS United Launcher's colour palette "Purple instead of
+ * Brown", launcher options agent B): every maroon kit is drawn purple -- in a match entry 12 is
+ * purple whenever a side wears maroon or purple (the match's own maroon art then drawn with entry 4,
+ * as above), in the menus maroon's kit colour is purple's entry. Drawing only: the kit colours a
+ * team has, the clash rule and the match are as they were. [video] purple_for_brown, set by
+ * DisplayOptions_Apply (SDL); the Amiga never sets it. */
+static int32_t s_purpleForMaroon;
+
+void TeamColors_SetPurpleForMaroon(int32_t on)
+{
+    s_purpleForMaroon = on != 0;
+    _kTeamColorsTable[KIT_MAROON] = s_purpleForMaroon ? _kTeamColorsTable[KIT_PURPLE] : 12;
+}
+
+int32_t TeamColors_PurpleForMaroon(void)
+{
+    return s_purpleForMaroon;
+}
+
 int32_t TeamColors_PurpleInMatch(void)
 {
     const uint8_t worn = (uint8_t)(s_kitMarks[0] | s_kitMarks[1]);
+    if (s_purpleForMaroon)
+        return (worn & 3) != 0;
     return (worn & 1) && !(worn & 2);
 }
 

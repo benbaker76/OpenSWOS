@@ -643,6 +643,9 @@ int main(int argc, char **argv)
     snprintf(opts.arcade_key_p2_start,  sizeof opts.arcade_key_p2_start,  "%s", "2");
     snprintf(opts.arcade_key_service,   sizeof opts.arcade_key_service,   "%s", "F2");
     snprintf(opts.dos_dir, sizeof opts.dos_dir, "%s", "grafs_dos");
+    /* (launcher options, agent B) DISPLAY OPTIONS: as before them -- solid menus, no filter,
+     * maroon kits maroon, the original pitch palette (the rest are 0 from the memset) */
+    opts.menu_opacity = 100;
     const char *replay_file = NULL, *replay_level = NULL, *replay_skip = NULL;
     int replay_max_errors = 1;
     int replay_window = 0;

@@ -40,6 +40,7 @@
 #include "ini.h"
 #include "dos_mode.h"   /* GAMEPLAY_*: [gameplay] style */
 #include "touch_controls.h" /* TOUCH_CONTROLS_*: [input] touch_controls */
+#include "pixel_filter.h"   /* [video] pixel_filter (launcher options, agent B) */
 
 #include <ctype.h>
 #include <errno.h>
@@ -161,6 +162,28 @@ static const char *small_num_str(int v)
 }
 
 
+/* ---- launcher options (agent B): DISPLAY OPTIONS ---- */
+static int handler_launcher_b(PlatformInitOptions *opts, const char *section, const char *name, const char *value)
+{
+    int b;
+    if (!eqi(section, "video"))
+        return 0;
+    if (eqi(name, "menu_opacity")) {
+        int n = atoi(value);
+        if (n >= 0 && n <= 100) opts->menu_opacity = n;
+    } else if (eqi(name, "purple_for_brown") && parse_bool(value, &b)) {
+        opts->purple_for_brown = b;
+    } else if (eqi(name, "improved_pitch_palette") && parse_bool(value, &b)) {
+        opts->improved_pitch_palette = b;
+    } else if (eqi(name, "pixel_filter")) {
+        const int f = PixelFilter_Parse(value);
+        if (f >= 0) opts->pixel_filter = f;
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
 static int handler(void *user, const char *section,
                    const char *name, const char *value)
 {
@@ -169,6 +192,8 @@ static int handler(void *user, const char *section,
     if (handler_swos2020_controls(opts, section, name, value))
         return 1;
     if (handler_launcher(opts, section, name, value))     /* (launcher options, agent A) */
+        return 1;
+    if (handler_launcher_b(opts, section, name, value))
         return 1;
 
     if (eqi(section, "video")) {
@@ -909,6 +934,28 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "mods",   "disabled",
         "; disabled: the game's own (canonical) mods to turn off, by name; they are on by default.",
         opts->mods_disabled };
+    /* ---- launcher options (agent B) ---- */
+    {
+        static char opacity[8];
+        snprintf(opacity, sizeof opacity, "%d", opts->menu_opacity);
+        SETTING(n) = (IniEntry){ "video", "menu_opacity",
+            "; menu_opacity: 0-100 -- the menus' buttons over the backdrop (SWOS 2020's alpha-blended\n"
+            "; menus): 100 solid, less lets the backdrop or the background picture show through them.\n"
+            "; Their text and frames stay solid. Menus only, never a match.", opacity };
+    }
+    SETTING(n) = (IniEntry){ "video", "purple_for_brown",
+        "; purple_for_brown: true | false -- every maroon (brown) kit drawn purple, in the menus and\n"
+        "; in a match (the SWOS 2020 launcher's \"Purple instead of Brown\"). Drawing only.",
+        opts->purple_for_brown ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "video", "improved_pitch_palette",
+        "; improved_pitch_palette: true | false -- SWOS 2020's: the wet and soft pitches' stripes show\n"
+        "; (their second grass colour a little lighter). Drawing only.",
+        opts->improved_pitch_palette ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "video", "pixel_filter",
+        "; pixel_filter: none | simple2x | scale2x | scale3x -- SWOS 2020's filters: the picture made 2 or\n"
+        "; 3 times bigger by the filter before it is scaled to the window. The GPU renderer only, and not\n"
+        "; with a RetroArch shader preset (the retrotv mod), which is a filter of its own.",
+        PixelFilter_Name(opts->pixel_filter) };
 #if SWOS_TWEAKS   /* (PROJECT_TWEAKS 0: no [tweaks] but the stronger keepers, with PROJECT_TWEAK_STRONGER_GK) */
     SETTING(n) = (IniEntry){ "tweaks", "cpu_cards",
         "; [tweaks]: small changes to the original's behaviour, each off by default and only off line\n"

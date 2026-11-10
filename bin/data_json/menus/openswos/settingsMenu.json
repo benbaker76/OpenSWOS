@@ -1,6 +1,6 @@
 {
   "name": "settingsMenu",
-  "comment": "OpenSWOS's SETTINGS: SWOS 2020's OPTIONS buttons -- CONTROLS, VIDEO, AUDIO, GAMEPLAY -- each a settingsPage. JSON-only (docs/MENUS.md section 10); handlers in src/settings_menus.c. Opened from OPTIONS (the SETTINGS row).",
+  "comment": "OpenSWOS's SETTINGS: SWOS 2020's OPTIONS buttons -- CONTROLS, VIDEO, AUDIO, GAMEPLAY -- each a settingsPage -- and DISPLAY, the SWOS United Launcher's look options (last in the list, so the others keep their numbers). JSON-only (docs/MENUS.md section 10); handlers in src/settings_menus.c. Opened from OPTIONS (the SETTINGS row).",
   "menu_flags": {
     "dos_redraw": true
   },
@@ -172,7 +172,7 @@
           "left": -1,
           "right": -1,
           "up": 4,
-          "down": 6
+          "down": 8
         },
         {
           "op": "onselect_fire",
@@ -185,7 +185,7 @@
       "name": "note",
       "coords": {
         "x": 12,
-        "y": 140,
+        "y": 156,
         "w": 296,
         "h": 12
       },
@@ -220,12 +220,45 @@
           "op": "nav",
           "left": -1,
           "right": -1,
-          "up": 5,
+          "up": 8,
           "down": -1
         },
         {
           "op": "onselect_fire",
           "func": "settingsMenu_exit_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "display",
+      "coords": {
+        "x": 92,
+        "y": 132,
+        "w": 136,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DISPLAY"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 5,
+          "down": 7
+        },
+        {
+          "op": "onselect_fire",
+          "func": "settingsMenu_display_OnSelect"
         }
       ]
     }

@@ -814,6 +814,15 @@ void StartPenalties(void)
     NextPenalty();
 }
 
+/* ---- launcher options (agent B): SWOS 2020's --improved-pitch-palette ----
+ * The wet and soft pitches' grass has two stripes of the same colour in the original (the pitch
+ * table's first and third entries: DOS 24,72,0 twice on wet, 24,56,0 twice on soft), so their
+ * stripes do not show. SWOS 2020 lightens the third (its options.cpp setImprovedPitchPalette:
+ * pitchWetColorTable[7] 72 -> 79, pitchSoftColorTable[7] 56 -> 62): here the same green, the DOS
+ * palette's six bits 36 -> 39 and 28 -> 31, the Amiga's four 9 -> 10 and 7 -> 8. Only the palette:
+ * no pitch factor or match state changes. [video] improved_pitch_palette (SDL); 0 on the Amiga. */
+uint8_t _gImprovedPitchPalette;
+
 /* ================================================================
  * ApplyPitchPaletteAndFactors
  *
@@ -841,6 +850,8 @@ void ApplyPitchPaletteAndFactors(void)
                 uint16_t idx = _paletteIndices[pi];
                 ((uint16_t *)_gamePalette)[idx] = palPtr[pi];
             }
+            if (_gImprovedPitchPalette && (pitchIdx == 2 || pitchIdx == 3))   /* (launcher options, agent B) */
+                ((uint16_t *)_gamePalette)[_paletteIndices[2]] = pitchIdx == 2 ? 0x03A0 : 0x0380;
         }
 #else
         {
@@ -849,6 +860,8 @@ void ApplyPitchPaletteAndFactors(void)
             *(uint16_t *)(_gamePalette) = palPtr[0];
             *(uint16_t *)(_gamePalette + 0xE) = palPtr[1];
             *(uint16_t *)(_gamePalette + 0x12) = palPtr[2];
+            if (_gImprovedPitchPalette && (pitchIdx == 2 || pitchIdx == 3))   /* (launcher options, agent B) */
+                *(uint16_t *)(_gamePalette + 0x12) = pitchIdx == 2 ? 0x03A0 : 0x0380;
         }
 #endif
 

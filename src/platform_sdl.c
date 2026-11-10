@@ -25,6 +25,10 @@
 #include "dos_gameplay.h"    /* DosGameplay_TargetFps — 70 (DOS) vs 50 (Amiga) */
 #include "dos_graphics.h"    /* DosGfx_BuildPalette */
 #include "build_info.h"      /* the commit, in the window title */
+#include "pixel_filter.h"    /* [video] pixel_filter (launcher options, agent B) */
+#include "team_colors.h"     /* [video] purple_for_brown */
+#include "match_setup.h"     /* [video] improved_pitch_palette */
+#include "gpu_slang.h"       /* (a shader preset is a filter of its own) */
 
 #include <SDL.h>
 #include <stdio.h>
@@ -975,6 +979,8 @@ int Platform_Init(const PlatformInitOptions *opts)
 
     s_subpixel_scroll = opts ? opts->subpixel_scroll : 1;
     s_scaling_smooth  = opts ? opts->scaling_smooth  : 1;
+    if (opts)
+        Platform_SetDisplayOptions(opts);   /* (launcher options, agent B: DISPLAY OPTIONS) */
     {
         CrtEffectsConfig cfx;
         cfx.mask          = opts ? (CrtMaskKind)opts->crt_mask : CRT_MASK_OFF;
@@ -1649,6 +1655,60 @@ static const uint32_t *backdrop_small(int w, int h)
     return s_bdSmall;
 }
 
+/* ---- launcher options (agent B): DISPLAY OPTIONS' menu opacity and pixel filter ----
+ * MENU OPACITY (SWOS 2020's --alpha-blending-menu, render.cpp updateMenuScreen*): in the menus the
+ * frame's coloured parts -- buttons, boxes -- are blended over the backdrop at that opacity, its
+ * text and frames left solid (SWOS 2020's colours 1, 2, 7, 9 and pure white). "The backdrop" is the
+ * one the menu was drawn on: the backgrounds mod's picture where there is one (the GPU presenter
+ * draws it under the frame and the palette's alpha does the rest), else the game's own backdrop
+ * from the mask buffer DrawMenu copies it from (here, on the CPU). Never in a match, a replay or
+ * the arcade.
+ * PIXEL FILTER (include/pixel_filter.h): the GPU presenter's frame made as ARGB on the CPU, through
+ * the filter, and handed over 2 or 3 times its size; the backdrop picture's pixels left clear so it
+ * is still drawn at the window's size under it. Not on SDL's renderer, and not with a slang preset.
+ * Neither reads or changes anything but the picture shown. */
+static int       s_menu_alpha = 255;    /* [video] menu_opacity as 0-255; 255 solid */
+static int       s_pixel_filter;        /* [video] pixel_filter: PIXEL_FILTER_* */
+static int       s_key_clear;           /* chunky_to_rgba: the backdrop picture's pixels clear */
+static uint32_t *s_filter_out;          /* the filtered frame */
+static size_t    s_filter_cap;
+
+void Platform_SetDisplayOptions(const PlatformInitOptions *o)
+{
+    int a = o->menu_opacity;
+    a = a < 0 ? 0 : a > 100 ? 100 : a;
+    s_menu_alpha = (a * 255 + 50) / 100;
+    s_pixel_filter = o->pixel_filter > 0 && o->pixel_filter < PIXEL_FILTER_COUNT ? o->pixel_filter : 0;
+    TeamColors_SetPurpleForMaroon(o->purple_for_brown);
+    _gImprovedPitchPalette = o->improved_pitch_palette ? 1 : 0;
+}
+
+/* The menus' opacity this frame, 0-255: 255 (solid) outside the menus. */
+static int menu_alpha_now(void)
+{
+    extern int32_t ModApi_InMenus(void);
+    extern int _gArcadeMode;
+    if (s_menu_alpha >= 255 || _gArcadeMode || !ModApi_InMenus())
+        return 255;
+    return s_menu_alpha;
+}
+
+/* A menu colour that stays solid at any opacity (SWOS 2020's: the text and the frames). */
+static int menu_solid(int idx)
+{
+    const SDL_Color c = s_palette[idx];
+    return idx == 1 || idx == 2 || idx == 7 || idx == 9 || (c.r == 255 && c.g == 255 && c.b == 255);
+}
+
+static uint32_t blend_argb(SDL_Color c, uint32_t under, int a)
+{
+    const int ur = (int)(under >> 16) & 255, ug = (int)(under >> 8) & 255, ub = (int)under & 255;
+    const int r = (c.r * a + ur * (255 - a) + 127) / 255;
+    const int g = (c.g * a + ug * (255 - a) + 127) / 255;
+    const int b = (c.b * a + ub * (255 - a) + 127) / 255;
+    return 0xFF000000u | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+}
+
 static const uint8_t *frame_source(void)
 {
     if (_usePlaneOffsetFlag != 0)
@@ -1706,13 +1766,28 @@ static void chunky_to_rgba(uint32_t *dst, int dst_pitch_pixels)
      * irrelevant to the chunky frontbuffer. */
     (void)_cameraYMod320;
 
-    const uint32_t *bd = backdrop_shown() ? backdrop_small(_screen_width, _screen_height) : NULL;
+    const uint32_t *bd = backdrop_shown() ? (s_key_clear ? NULL : backdrop_small(_screen_width, _screen_height)) : NULL;
+    const int keyed = backdrop_shown();
+    const int alpha = menu_alpha_now();     /* (launcher options, agent B: the menus' opacity) */
+    const uint8_t *under = alpha < 255 && fb != _frontbufferMaskBuffer ? _frontbufferMaskBuffer : NULL;
     for (int y = 0; y < _screen_height; ++y) {
         const uint8_t *line = fb + (size_t)y * FRONTBUFFER_ROW_STRIDE_BYTES;
+        const uint8_t *uline = under ? under + (size_t)y * FRONTBUFFER_ROW_STRIDE_BYTES : NULL;
         uint32_t      *out  = dst + (size_t)y * dst_pitch_pixels;
         for (int x = 0; x < _screen_width; ++x) {
-            if (bd && line[x] == MENU_BACKDROP_KEY) {      /* the menus' true-colour backdrop */
-                out[x] = bd[(size_t)y * _screen_width + x];
+            if (keyed && line[x] == MENU_BACKDROP_KEY) {   /* the menus' true-colour backdrop */
+                out[x] = bd ? bd[(size_t)y * _screen_width + x] : 0u;    /* (s_key_clear: the GPU's) */
+                continue;
+            }
+            if (uline && uline[x] != line[x] && !menu_solid(line[x])) {
+                const SDL_Color mc = s_palette[line[x]];
+                if (keyed && uline[x] == MENU_BACKDROP_KEY)
+                    out[x] = bd ? blend_argb(mc, bd[(size_t)y * _screen_width + x], alpha)
+                                : ((uint32_t)alpha << 24) | ((uint32_t)mc.r << 16) | ((uint32_t)mc.g << 8) | mc.b;
+                else {
+                    const SDL_Color uc = s_palette[uline[x]];
+                    out[x] = blend_argb(mc, 0xFF000000u | ((uint32_t)uc.r << 16) | ((uint32_t)uc.g << 8) | uc.b, alpha);
+                }
                 continue;
             }
             SDL_Color c = s_palette[line[x]];
@@ -2479,7 +2554,13 @@ static void render_frame_gpu(int pump_full)
 
     extern int _gArcadeMode;
     uint32_t *fb = NULL;
-    if (_gArcadeMode || frame_captures_wanted(pump_full)) {
+    /* (launcher options, agent B) a pixel filter, or the menus' opacity over the game's own
+     * backdrop: the frame made on the CPU. Not with a slang preset (a filter of its own). */
+    const int slang = GpuSlang_Active();
+    const int filter = slang ? 0 : s_pixel_filter;
+    const int menuAlpha = menu_alpha_now();
+    const int cpuAlpha = menuAlpha < 255 && !slang && !backdrop_shown();
+    if (_gArcadeMode || frame_captures_wanted(pump_full) || filter || cpuAlpha) {
         fb = s_frame_rgba;
         int arcade_full = 0;
         if (_gArcadeMode) {
@@ -2494,8 +2575,35 @@ static void render_frame_gpu(int pump_full)
             }
         }
         frame_captures(fb, pump_full);
-        if (_gArcadeMode)
+        if (_gArcadeMode || filter || cpuAlpha)
             f.argb = fb;
+        if (filter && !arcade_full && !_gArcadeMode && backdrop_shown()) {
+            s_key_clear = 1;            /* (the picture drawn by the GPU, under the filtered frame) */
+            chunky_to_rgba(fb, _screen_width);
+            s_key_clear = 0;
+        }
+    }
+    if (filter && f.argb) {
+        const int k = PixelFilter_Factor(filter);
+        const size_t need = (size_t)_screen_width * k * _screen_height * k;
+        if (need > s_filter_cap) {
+            free(s_filter_out);
+            s_filter_out = (uint32_t *)malloc(need * 4);
+            s_filter_cap = s_filter_out ? need : 0;
+        }
+        if (s_filter_out) {
+            PixelFilter_Run(filter, f.argb, _screen_width, _screen_height, _screen_width, s_filter_out);
+            f.argb = s_filter_out;
+            f.argbScale = k;
+        }
+    }
+    {   /* the menus' opacity over a backdrop picture: the palette's alpha (the shader blends) */
+        static uint8_t alphas[256];
+        if (menuAlpha < 255 && backdrop_shown()) {
+            for (int i = 0; i < 256; i++)
+                alphas[i] = menu_solid(i) ? 255 : (uint8_t)menuAlpha;
+            f.paletteAlpha = alphas;
+        }
     }
     if (!f.argb) {
         f.index = frame_source();
@@ -2510,7 +2618,7 @@ static void render_frame_gpu(int pump_full)
     f.subpixel = s_subpixel_scroll;
     f.smooth = s_scaling_smooth;
     f.stretch = s_stretch;
-    if (f.index && backdrop_shown()) {
+    if ((f.index || (f.argb && f.argbScale > 1)) && backdrop_shown()) {
         f.backdrop = s_bd;
         f.backdropW = s_bdW;
         f.backdropH = s_bdH;
