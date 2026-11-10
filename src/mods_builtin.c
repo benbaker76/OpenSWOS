@@ -30,6 +30,7 @@ extern const ModDef ModDef_balltrails;  /* src/mod_balltrails.c (SDL: SWOS 2020'
 extern const ModDef ModDef_scoreboard;  /* src/mod_scoreboard.c (SDL: SWOS 2020's new scoreboard) */
 extern const ModDef ModDef_netstats;    /* src/mod_netstats.c (SDL: SWOS 2020's network quality strip, F7) */
 extern const ModDef ModDef_pitchselect; /* src/mod_pitchselect.c (SDL: SWOS 2020's SELECT PITCH) */
+extern const ModDef ModDef_display2020; /* src/mod_display2020.c (SDL: SWOS 2020's result display; launcher options, agent B) */
 
 #if defined(__has_include)
 #if __has_include("fork_mods.inc")
@@ -70,6 +71,7 @@ const ModDef *const g_builtinMods[] = {
     MOD_SDL(ModDef_scoreboard)
     MOD_SDL(ModDef_netstats)
     MOD_SDL(ModDef_pitchselect)
+    MOD_SDL(ModDef_display2020)
 #ifdef FORK_MODS
     FORK_MOD_LIST                       /* "&ModDef_<slug>," a fork's mods */
 #endif
