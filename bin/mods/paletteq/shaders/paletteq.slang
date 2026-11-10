@@ -11,14 +11,21 @@
  * green down it, blue picks the tile) made by scripts/palette_to_lut.py. N is the strip's height.
  *
  * DITHER: the dither's strength, in colour (0 none, 0.25 a quarter of the range).
+ * GRID_X, GRID_Y: where the dither's grid starts, in game pixels, 0..3 -- the mod sets them each
+ * frame from the camera, so the pattern is fixed to the PITCH and scrolls with it (fixed to the
+ * screen, a scrolling pitch swam under a still pattern).
  */
 #pragma parameter DITHER "Dither strength" 0.12 0.0 0.5 0.01
+#pragma parameter GRID_X "Dither grid x" 0.0 0.0 3.0 1.0
+#pragma parameter GRID_Y "Dither grid y" 0.0 0.0 3.0 1.0
 
 layout(push_constant) uniform Push {
     vec4 SourceSize;
     vec4 OutputSize;
     uint FrameCount;
     float DITHER;
+    float GRID_X;
+    float GRID_Y;
 } params;
 
 layout(std140, set = 0, binding = 0) uniform UBO {
@@ -55,7 +62,7 @@ void main()
     vec2 px = floor(vTexCoord * params.SourceSize.xy);
     vec3 colour = texture(Source, (px + 0.5) * params.SourceSize.zw).rgb;
 
-    ivec2 b = ivec2(mod(px, 4.0));
+    ivec2 b = ivec2(mod(px + vec2(params.GRID_X, params.GRID_Y), 4.0));
     colour += ((bayer4[b.y * 4 + b.x] + 0.5) / 16.0 - 0.5) * params.DITHER;
 
     float n = float(textureSize(PALETTE_LUT, 0).y);

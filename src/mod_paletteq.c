@@ -33,6 +33,8 @@ static const struct { const char *name; float dither; } k_palettes[] = {
     { "cga", 0.35f }, { "pico-8", 0.20f },
 };
 
+static int32_t s_on;                    /* the preset is up (frame keeps its grid on the pitch) */
+
 static void init(void)
 {
     static const char *const k_strength[4] = { "auto", "low", "medium", "high" };
@@ -63,12 +65,34 @@ static void init(void)
     if (SDL_strcasecmp(dither, "off") == 0)
         d = 0.0f;
     ModApi_SetShaderParameter("DITHER", d);
+    s_on = 1;
     fprintf(stderr, "[paletteq] %s, dither %.2f\n", path, (double)d);
+}
+
+/* Each frame: the dither's grid where the camera has the pitch (GRID_X / GRID_Y, 0..3), so the
+ * pattern stays on the grass as it scrolls -- the world point at the screen's corner, in a match or
+ * a replay; the screen's own grid in the menus. */
+static void frame(void)
+{
+    static int32_t lastX = -1, lastY = -1;
+    int16_t cx = 0, cy = 0;
+    if (!s_on)
+        return;
+    if (ModApi_InMatch() || ModApi_InReplay())
+        ModApi_Camera(&cx, &cy);
+    const int32_t gx = cx & 3, gy = cy & 3;
+    if (gx != lastX || gy != lastY) {
+        ModApi_SetShaderParameter("GRID_X", (float)gx);
+        ModApi_SetShaderParameter("GRID_Y", (float)gy);
+        lastX = gx;
+        lastY = gy;
+    }
 }
 
 const ModDef ModDef_paletteq = {
     .slug = SLUG,
     .init = init,
+    .frameDrawn = frame,
 };
 
 #endif /* SWOS_SDL_BUILD */
