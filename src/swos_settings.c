@@ -77,10 +77,70 @@ static const char *const kQuickNames[10] = {
     "quick1", "quick2", "quick3", "quick4", "quick5", "quick6", "quick7", "quick8", "quick9", "quick0",
 };
 
+/* ---- SWOS 2020's CONTROLS MENU, menu look and MULTIPLAYER SETTINGS (SWOS 2020 port, agent A) ----
+ * Read before the sections below; 1 when it was one of these keys. */
+static int handler_swos2020_controls(PlatformInitOptions *opts, const char *section,
+                                     const char *name, const char *value)
+{
+    int b;
+    if (eqi(section, "input")) {
+        if (eqi(name, "pad1") || eqi(name, "pad2"))
+            snprintf(opts->pad_pref[name[3] - '1'], sizeof opts->pad_pref[0], "%s", value);
+        else if (eqi(name, "auto_detect_pads") && parse_bool(value, &b))
+            opts->auto_detect_pads = b;
+        else if (eqi(name, "pad_config"))
+            snprintf(opts->pad_config, sizeof opts->pad_config, "%s", value);
+        else if (eqi(name, "shoulder_buttons"))
+            opts->shoulder_buttons_off = !(eqi(value, "on") || eqi(value, "true") || eqi(value, "1"));
+        else if (eqi(name, "call_bench"))
+            opts->call_bench = eqi(value, "taps") ? 1 : eqi(value, "button") ? 2 : 0;
+        else
+            return 0;
+        return 1;
+    }
+    if (eqi(section, "video") && eqi(name, "menu_cursor")) {
+        opts->menu_cursor = eqi(value, "steady");
+        return 1;
+    }
+    if (eqi(section, "chat")) {
+        if (eqi(name, "close_after")) {
+            int n = atoi(value);
+            if (n >= 1 && n <= 6) opts->chat_close_after = n;
+        } else if (eqi(name, "controller_off") && parse_bool(value, &b))
+            opts->chat_controller_off = b;
+        else if (eqi(name, "scale")) {
+            int n = atoi(value);
+            if (n >= 100 && n <= 300) opts->chat_scale = n;
+        } else
+            return 0;
+        return 1;
+    }
+    if (eqi(section, "netplay") && eqi(name, "esc_presses")) {
+        int n = atoi(value);
+        if (n >= 1 && n <= 3) opts->esc_presses = n;
+        return 1;
+    }
+    return 0;
+}
+
+static const char *small_num_str(int v)
+{
+    static const char *const k[] = { "0", "1", "2", "3", "4", "5", "6" };
+    return v >= 0 && v <= 6 ? k[v] : "0";
+}
+
+static const char *chat_scale_str(int v)
+{
+    return v >= 300 ? "300" : v >= 250 ? "250" : v >= 200 ? "200" : v >= 150 ? "150" : "100";
+}
+
 static int handler(void *user, const char *section,
                    const char *name, const char *value)
 {
     PlatformInitOptions *opts = (PlatformInitOptions *)user;
+
+    if (handler_swos2020_controls(opts, section, name, value))
+        return 1;
 
     if (eqi(section, "video")) {
         if (eqi(name, "renderer")) {
@@ -421,7 +481,7 @@ static const char *crt_mask_str(int m)
  * next setting saved -- OPTIONS -> GAMEPLAY first of all -- crashed the macOS build,
  * which checks its stack, and corrupted it quietly everywhere else (2026-10-05). Every
  * append is bounded now (SETTING), and a full table says so. */
-#define SETTINGS_MAX 128
+#define SETTINGS_MAX 192
 #define SETTING(n)  if ((n) < SETTINGS_MAX) items[(n)++]
 
 /* Inline comment appended to a section-header line in a freshly-created file. */
@@ -480,6 +540,8 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
 
     SETTING(n) = (IniEntry){ "video",  "resolution", "; resolution: WxH (e.g. 2560x1080) drives the render ASPECT, or 'auto' for the desktop.\n; It is not the render SIZE: the picture is always 272 lines tall and 336..672 wide,\n; so a wider shape shows more pitch and a small one (320x200) just clamps to 336x272", vbuf[0] };
     SETTING(n) = (IniEntry){ "video",  "screen",     "; screen: monitor index to open on, 0 = primary. Auto-clamped if out of range; window size auto-fits that screen", vbuf[3] };
+    SETTING(n) = (IniEntry){ "video",  "menu_cursor", "; menu_cursor: flashing | steady. The menus' cursor frame (SWOS 2020's flashing menu cursor)",
+        opts->menu_cursor ? "steady" : "flashing" };   /* (SWOS 2020 port, agent A) */
     SETTING(n) = (IniEntry){ "audio",  "mode",       "; mode: mono | stereo", opts->audio_mono ? "mono" : "stereo" };
     SETTING(n) = (IniEntry){ "audio",  "style",
         "; style: amiga | pc. A match's sounds: the Amiga's, or the PC game's sampled\n"
@@ -539,6 +601,30 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "input", "key_left",  NULL, opts->key_bind[2] };
     SETTING(n) = (IniEntry){ "input", "key_right", NULL, opts->key_bind[3] };
     SETTING(n) = (IniEntry){ "input", "key_fire",  NULL, opts->key_bind[4] };
+    /* SWOS 2020's CONTROLS MENU and CONTROLLER SETUP (SWOS 2020 port, agent A; src/input_sdl.c) */
+    SETTING(n) = (IniEntry){ "input", "pad1",
+        "; pad1, pad2: whose controller is whose (OPTIONS -> SETTINGS -> CONTROLS). auto: the\n"
+        "; pads as they come, the first player 1's; keyboard (pad1): no pad, the keyboard alone;\n"
+        "; none (pad2): player 2 has no control; or a pad by its GUID (#2 for the second alike).",
+        opts->pad_pref[0][0] ? opts->pad_pref[0] : "auto" };
+    SETTING(n) = (IniEntry){ "input", "pad2", NULL, opts->pad_pref[1][0] ? opts->pad_pref[1] : "auto" };
+    SETTING(n) = (IniEntry){ "input", "auto_detect_pads",
+        "; auto_detect_pads: true | false. A pad plugged in later goes to a free auto player;\n"
+        "; false: it waits until SELECT JOYPAD gives it to one.",
+        opts->auto_detect_pads ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "input", "pad_config",
+        "; pad_config: CONTROLLER SETUP's, per pad GUID: guid:fire:bench:x+:x-:y+:y- separated by ;\n"
+        "; (a button number, -1 the default; a stick cut-off in percent, 0 = stick_deadzone).",
+        opts->pad_config };
+    SETTING(n) = (IniEntry){ "input", "shoulder_buttons",
+        "; shoulder_buttons: off | on. Off (DISABLE SHOULDER BUTTONS): the shoulder buttons and\n"
+        "; stick clicks cannot be a pad's FIRE or BENCH.",
+        opts->shoulder_buttons_off ? "off" : "on" };
+    SETTING(n) = (IniEntry){ "input", "call_bench",
+        "; call_bench: both | taps | button. The PC style's ways to call the bench: the second fire\n"
+        "; button or three taps (both), the taps alone, or the button alone (offline matches; the\n"
+        "; Amiga style has no second button and keeps the taps).",
+        opts->call_bench == 1 ? "taps" : opts->call_bench == 2 ? "button" : "both" };
     SETTING(n) = (IniEntry){ "gameplay", "fire_hold_lockout",
         "; fire_hold_lockout: true | false — true restores a BUG IN THE ORIGINAL\n"
         "; AMIGA GAME: an OPPONENT's tackle wipes your held fire button's shot charge,\n"
@@ -627,11 +713,27 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; rollbacks, and where players were drawn against where they really were. The\n"
         "; playback page shows it (docs/PLAYBACK.md). A replay plays the same without it.",
         opts->prediction ? "true" : "false" };
+    /* (SWOS 2020's MULTIPLAYER SETTINGS, agent A) */
+    SETTING(n) = (IniEntry){ "netplay", "esc_presses",
+        "; esc_presses: 1-3. ESC PRESSING TO QUIT: how many ESC presses, each within two seconds,\n"
+        "; leave an online match.",
+        small_num_str(opts->esc_presses) };
     for (int qi = 0; qi < 10; qi++)
         SETTING(n) = (IniEntry){ "chat", kQuickNames[qi], qi ? NULL :
             "; quick1 .. quick0: in an online match, the keys 1 .. 0 send these lines to the other\n"
             "; player (TAB types one of your own, F3 hides the chat). Empty: that key sends nothing.",
             opts->chat_quick[qi] };
+    /* SWOS 2020's MULTIPLAYER SETTINGS (SWOS 2020 port, agent A; src/match_chat.c) */
+    SETTING(n) = (IniEntry){ "chat", "close_after",
+        "; close_after: 1-6. AUTO CLOSE CHATBOX: seconds the chat stays after the newest line.",
+        small_num_str(opts->chat_close_after) };
+    SETTING(n) = (IniEntry){ "chat", "controller_off",
+        "; controller_off: true | false. DISABLE CONTROLLER IN CHAT: while you type a line your\n"
+        "; pad steers nobody.",
+        opts->chat_controller_off ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "chat", "scale",
+        "; scale: 100 | 150 | 200 | 250 | 300. CHAT WINDOW SCALE, percent.",
+        chat_scale_str(opts->chat_scale) };
 
 
     SETTING(n) = (IniEntry){ "graphics", "style",

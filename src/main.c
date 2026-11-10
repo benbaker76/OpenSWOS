@@ -570,6 +570,12 @@ int main(int argc, char **argv)
     opts.dos_gameplay = 0;        /* default Amiga gameplay */
     opts.stick_deadzone = 25;     /* percent: about what the old per-axis threshold was */
     opts.latch_presses = 1;       /* a short fire press is never lost between two reads */
+    /* SWOS 2020's CONTROLS MENU, menu look and MULTIPLAYER SETTINGS (agent A): as before them */
+    opts.auto_detect_pads = 1;
+    opts.shoulder_buttons_off = 1;
+    opts.chat_close_after = 6;
+    opts.chat_scale = 100;
+    opts.esc_presses = 1;
     memset(opts.key_bind, 0, sizeof opts.key_bind);   /* no keys of the player's own */
     opts.fire_hold_lockout = 0;   /* default: the original's fire-hold bug is FIXED */
     opts.contest_own_ratings = 0; /* default: the original's roll, team-mate's rating and all */
@@ -860,6 +866,10 @@ int main(int argc, char **argv)
             return Settings_GameOptionsSelfTest();
         } else if (strcmp(a, "--menu-selftest") == 0) {
             return OnlineMenus_SelfTest();
+        } else if (strcmp(a, "--settings-menus-selftest") == 0) {
+            /* SWOS 2020's OPTIONS screens and CONTROLLER SETUP (src/settings_menus.c, agent A) */
+            extern int SettingsMenus_SelfTest(void);
+            return SettingsMenus_SelfTest() ? 1 : 0;
         } else if ((v = match_kv(a, "convert-teams")) != NULL) {
             static char dirs[2048];
             char *comma;
@@ -1275,6 +1285,20 @@ int main(int argc, char **argv)
         TouchControls_SetMode(opts.touch_controls);     /* the phones' on-screen controls */
         for (i = 0; i < 5; i++)
             InputSDL_SetKeyBinding(i, opts.key_bind[i]);
+    }
+    {   /* SWOS 2020's CONTROLS MENU, CONTROLLER SETUP, menu cursor and MULTIPLAYER SETTINGS (agent A) */
+        extern void InputSDL_Configure(const PlatformInitOptions *o);
+        extern void InputSDL_SetChatPadOff(int on);
+        extern void InputSDL_SetEscPresses(int n);
+        extern void MenuLook_SetCursor(int steady);
+        extern void MatchChat_SetCloseAfter(int32_t seconds);
+        extern void MatchChat_SetScale(int32_t percent);
+        InputSDL_Configure(&opts);
+        InputSDL_SetChatPadOff(opts.chat_controller_off);
+        InputSDL_SetEscPresses(opts.esc_presses);
+        MenuLook_SetCursor(opts.menu_cursor);
+        MatchChat_SetCloseAfter(opts.chat_close_after);
+        MatchChat_SetScale(opts.chat_scale);
     }
     /* SWOS_SOUND_STYLE=pc, SWOS_COMMENTARY=on: for the test scripts, which pass no options. */
     { const char *e = getenv("SWOS_SOUND_STYLE");

@@ -49,13 +49,26 @@ static int32_t chat_live(void)
 enum {
     KEEP_LINES     = 64,        /* lines kept */
     SHOW_LINES     = 6,         /* rows of the box (wrapped lines count) */
-    SHOW_MS        = 6000,      /* the box stays this long after the newest line */
+    SHOW_MS_DEFAULT = 6000,     /* the box stays this long after the newest line ([chat] close_after) */
     FADE_MS        = 1000,      /* then fades out over this */
     REPEATS        = 3,         /* each line sent this many times */
     PENDING_MAX    = 8,
     CHAT_NAME_MAX       = 24,
 };
 static const uint32_t kRepeatMs[REPEATS] = { 0, 250, 750 };
+
+/* SWOS 2020's MULTIPLAYER SETTINGS (SWOS 2020 port, agent A): AUTO CLOSE CHATBOX -- how long the
+ * box stays after the newest line, [chat] close_after seconds (1-6; 6 the default, as before) --
+ * and CHAT WINDOW SCALE, [chat] scale percent (100, 150, 200, 250, 300). */
+static uint32_t s_showMs = SHOW_MS_DEFAULT;
+static int32_t  s_scale = 100;
+void MatchChat_SetCloseAfter(int32_t seconds)
+{
+    s_showMs = (uint32_t)(seconds >= 1 && seconds <= 6 ? seconds : 6) * 1000u;
+}
+int32_t MatchChat_CloseAfter(void) { return (int32_t)(s_showMs / 1000u); }
+void MatchChat_SetScale(int32_t percent) { s_scale = percent >= 100 && percent <= 300 ? percent : 100; }
+int32_t MatchChat_Scale(void) { return s_scale; }
 #define WIRE_MARK '\x02'
 
 typedef enum { WHO_ME, WHO_THEM, WHO_NOTICE } Who;
@@ -185,6 +198,16 @@ static void add_line(int32_t who, const char *text)
     C.shownAt = SDL_GetTicks();
     if (who != WHO_NOTICE)
         fprintf(stderr, "[chat] %s: %s\n", who == WHO_ME ? "me" : "them", text);
+}
+
+/* A line of the game's own in the box (ESC PRESSING TO QUIT's "press ESC again"). */
+void MatchChat_Notice(const char *text)
+{
+    fprintf(stderr, "[chat] notice: %s\n", text);
+    if (C.active) {
+        add_line(WHO_NOTICE, text);
+        C.hidden = 0;
+    }
 }
 
 static void line_close(void);
@@ -548,10 +571,10 @@ void MatchChat_Draw(void)
         if (C.hidden || C.count == 0)
             return;
         const uint32_t age = now - C.shownAt;
-        if (age >= SHOW_MS + FADE_MS)
+        if (age >= s_showMs + FADE_MS)
             return;
-        if (age > SHOW_MS)
-            alpha = 1.0f - (float)(age - SHOW_MS) / FADE_MS;
+        if (age > s_showMs)
+            alpha = 1.0f - (float)(age - s_showMs) / FADE_MS;
     }
 
     const GfxSpace space = Gfx_Space();
@@ -563,6 +586,7 @@ void MatchChat_Draw(void)
     int32_t px = oh / 38;
     if (px < 12) px = 12;
     if (px > 48) px = 48;
+    px = px * s_scale / 100;            /* CHAT WINDOW SCALE */
     if (ChatFont_Prepare(px) != 0) {
         Gfx_SetBlend(blend);
         Gfx_SetSpace(space);

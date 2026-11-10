@@ -46,6 +46,7 @@ extern int      _gDosGameplay;
 /* DOS's benchPickTeamCounter — see the team alternation in BenchCheckControls.
  * The Amiga has no such variable; it tests frameCount instead. */
 uint16_t _benchPickTeamCounter;
+int32_t  _gBenchTapsOff;        /* CALL BENCH: 2ND FIRE BUTTON ONLY (see check_double_tap) */
 extern uintptr_t _benchTeam;          /* Competition*-shaped pointer; retyped uintptr_t for 64-bit. See project_uint32_pointer_storage_trap.md. */
 extern uintptr_t _benchTeamGame;      /* TeamGame*-shaped pointer; retyped uintptr_t for 64-bit. */
 extern uint16_t _subsTeamsSwapped;
@@ -521,6 +522,11 @@ reset_bench_tap_state:
     return;
 
 check_double_tap:
+    /* SWOS 2020's CALL BENCH = 2ND FIRE BUTTON ONLY (ApplyCallBenchModeGate): the taps are not
+     * counted, as if no direction were held. Set by input_sdl.c for a DOS-style match of this
+     * machine's alone; always 0 on the Amiga, online and in the rigs. */
+    if (_gBenchTapsOff)
+        _subsDirection = 0xFFFF;
     /* double-tap detection for top team (a6 == &topTeamData) or bottom team */
     if (a6 == &_topTeamData) {
         /* player 1 double-tap detection */
