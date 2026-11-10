@@ -217,6 +217,10 @@ COUNTRY_ALIASES = {"NETHERLANDS": "HOLLAND", "CZECH REP.": "CZECH REPUBLIC", "FA
 # number, clubs and competitions; World 2026-27 shows the Mod's name (World_InstallBaked), and 96/97
 # keeps its own. Yugoslavia is Serbia in the Mod (Davide, 2026-11-04: "a bug").
 RENAMED_COUNTRIES = {41: (0, "SERBIA", "SERBIAN", 37, "SRB")}
+# A 96/97 nationality code whose nation changed name: today's FIFA code in the world (the Mod 4.1's
+# careerworld.NAT_TODAY, Davide 05/11; 37 YUG -> SRB is the rename above). The national teams keep
+# the game's names for now (the Mod's NAT_TEAM_TODAY renames them: its own copies of TEAM.080).
+NAT_TODAY = {6: "CZE", 47: "MKD", 86: "COD", 101: "SWZ"}
 # A new country's number is in every save that holds it: fixed here, never by order. Free:
 # 99 (and, if 96/97's national teams never need them, 100-251).
 NEW_COUNTRY_NUMBERS = {
@@ -1795,6 +1799,11 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                         "_shortCountryNames[%d * 3 + 2] = '%s';   /* nationality %d */"
                         % (nation, short[0], nation, short[1], nation, short[2], nation))
         externs.update(("extern void *_countriesTable[262];", "extern uint8_t _shortCountryNames[214 * 3];"))
+    for nation, short in sorted(NAT_TODAY.items()):
+        installs.append("        _shortCountryNames[%d * 3] = '%s'; _shortCountryNames[%d * 3 + 1] = '%s'; "
+                        "_shortCountryNames[%d * 3 + 2] = '%s';   /* nationality %d, today's code */"
+                        % (nation, short[0], nation, short[1], nation, short[2], nation))
+        externs.add("extern uint8_t _shortCountryNames[214 * 3];")
     installs.append("        FixtureRounds_Install();")
     installs.append("        World_SyncSecondFiles();")
     regions, season = world_lists(news)

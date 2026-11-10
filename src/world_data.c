@@ -1829,6 +1829,10 @@ void World_InstallBaked(void)
         install_league(&_welshLeague, &kWorld2627_welshLeague);
         _countriesTable[41] = (void *)kWorld2627_country41;   /* SERBIA, renamed */
         _shortCountryNames[37 * 3] = 'S'; _shortCountryNames[37 * 3 + 1] = 'R'; _shortCountryNames[37 * 3 + 2] = 'B';   /* nationality 37 */
+        _shortCountryNames[6 * 3] = 'C'; _shortCountryNames[6 * 3 + 1] = 'Z'; _shortCountryNames[6 * 3 + 2] = 'E';   /* nationality 6, today's code */
+        _shortCountryNames[47 * 3] = 'M'; _shortCountryNames[47 * 3 + 1] = 'K'; _shortCountryNames[47 * 3 + 2] = 'D';   /* nationality 47, today's code */
+        _shortCountryNames[86 * 3] = 'C'; _shortCountryNames[86 * 3 + 1] = 'O'; _shortCountryNames[86 * 3 + 2] = 'D';   /* nationality 86, today's code */
+        _shortCountryNames[101 * 3] = 'S'; _shortCountryNames[101 * 3 + 1] = 'W'; _shortCountryNames[101 * 3 + 2] = 'Z';   /* nationality 101, today's code */
         LeaguePhase_InstallCups(kWorld2627LeaguePhases);
         FixtureRounds_Install();
         World_SyncSecondFiles();
