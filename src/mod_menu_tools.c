@@ -56,11 +56,16 @@ static MapFile *file_of(const char *slug)
         *eol = '\0';
         if (*p != '#') {
             Map *m = &f->maps[f->count];
-            int w = 0, h = 0;
-            if (sscanf(p, "%47s %d %d", m->name, &w, &h) != 3 || w <= 0 || h <= 0)
+            /* "name width height" (no sscanf: the Amiga's libc has none) */
+            const char *q = p;
+            int32_t n = 0;
+            while (*q && *q != ' ' && n < (int32_t)sizeof m->name - 1)
+                m->name[n++] = *q++;
+            m->name[n] = 0;
+            m->w = (int32_t)strtol(q, (char **)&q, 10);
+            m->h = (int32_t)strtol(q, NULL, 10);
+            if (!n || m->w <= 0 || m->h <= 0)
                 break;
-            m->w = w;
-            m->h = h;
             m->rows = eol + 1;
             p = eol + 1 + (size_t)(m->w + 1) * (size_t)m->h;    /* (each row its width and a '\n') */
             if (p > end)

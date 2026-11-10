@@ -1,0 +1,238 @@
+{
+  "name": "customChallengesSortByMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/customChallengesSortBy.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": null,
+  "onReturn": null,
+  "onDraw": "challenges.sort_draw",
+  "defaultEntry": 1,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 82,
+        "y": 0,
+        "w": 145,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SORT OPTION"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "sortByDate",
+      "coords": {
+        "x": 82,
+        "y": 32,
+        "w": 145,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SORT BY DATE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 2
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.sort_date"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "sortByTeam",
+      "coords": {
+        "x": 82,
+        "y": 60,
+        "w": 145,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SORT BY TEAM"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 1,
+          "down": 3
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.sort_team"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "sortByCreatorAndTeam",
+      "coords": {
+        "x": 82,
+        "y": 88,
+        "w": 145,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SORT BY CREATOR / TEAM"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": 4
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.sort_creator"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "sortByCreatorAndLevel",
+      "coords": {
+        "x": 82,
+        "y": 116,
+        "w": 145,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SORT BY CREATOR / LEVEL"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 3,
+          "down": 5
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.sort_creator2"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "sortByLevel",
+      "coords": {
+        "x": 82,
+        "y": 144,
+        "w": 145,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SORT BY LEVEL"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 4,
+          "down": 6
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.sort_level"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 82,
+        "y": 185,
+        "w": 145,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 5,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.sort_exit"
+        }
+      ]
+    }
+  ]
+}
