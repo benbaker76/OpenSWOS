@@ -80,7 +80,7 @@
 #define PROJECT_DEFAULT_MODS    ""
 
 /* The menu shading mod's (dosmenus) look at start-up: 0 the PC's shading, 1 the Amiga's flat
- * menus (F5 switches it while the game runs). OpenSWOS: 0. SWOS United: 1 (the owner, 2026-11-09). */
-#define PROJECT_MENU_LOOK_AMIGA 0
+ * menus (F5 switches it while the game runs). Both OpenSWOS and SWOS United: 1 (the owner, 2026-11-09). */
+#define PROJECT_MENU_LOOK_AMIGA 1
 
 #endif /* PROJECT_IDENTITY_H */

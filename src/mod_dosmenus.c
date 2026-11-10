@@ -18,7 +18,7 @@
  * F5 (ModApi_AddHotkey; [mod.dosmenus] hotkey to change it) switches between the PC shading and
  * the Amiga's flat menus while the game runs -- Playa's ask, 2026-11-08. Not remembered: each
  * start shows the game's own look first, PROJECT_MENU_LOOK_AMIGA (include/project_identity.h: the
- * PC's in OpenSWOS, the Amiga's in SWOS United).
+ * Amiga's flat menus, in OpenSWOS and SWOS United alike; the PC shading one F5 away).
  */
 #ifdef SWOS_SDL_BUILD
 
