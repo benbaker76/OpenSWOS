@@ -21,6 +21,10 @@ void UefaCoef_Draw(uint8_t c, int32_t s, const uint16_t *t, int32_t n) { (void)c
 uint32_t UefaCoef_PotKey(uint8_t c, uint16_t t, uint32_t v) { (void)c; (void)t; return v; }
 uint32_t UefaCoef_Club(uint16_t t) { (void)t; return 0; }
 int32_t UefaCoef_On(void) { return 0; }
+int32_t UefaPrize_On(void) { return 0; }      /* (world_finance.c: the UEFA prize money) */
+void UefaPrize_Result(uint8_t c, int32_t r, uint16_t p, uint16_t w, uint16_t d, int32_t wo, int32_t dr, const uint16_t *t) { (void)c; (void)r; (void)p; (void)w; (void)d; (void)wo; (void)dr; (void)t; }
+void UefaPrize_PhaseEnd(uint8_t c, const uint16_t *o) { (void)c; (void)o; }
+void UefaPrize_Stage(uint8_t c, int32_t s, int32_t n, const uint16_t *t) { (void)c; (void)s; (void)n; (void)t; }
 WorldId (World_Current)(void) { return WORLD_9697; }
 uint8_t (World_FileCountry)(uint8_t file) { return file; }
 uint16_t Rand2(void) { return 0; }

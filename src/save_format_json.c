@@ -22,6 +22,7 @@
 #include "game_types.h"
 #include "endian_helpers.h"
 #include "world.h"             /* "world" in career and competition saves */
+#include "world_finance.h"     /* "uefa_prizes" in a world's career saves */
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
 #include "world_winners.h"     /* "season_winners" */
@@ -7260,6 +7261,16 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         json_out_emit("}", 1, &out);
     }
 
+    /* A world's UEFA prize money (world_finance.c): what the career club has been paid in its
+     * league-phase cup this season, and the switch. */
+    if (SWOS_WORLDS && World_Current() != WORLD_9697) {
+        const UefaPrizeState *p = &g_uefaPrize;
+        mjson_printf(json_out_emit, &out,
+                     ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "uefa_prizes",
+                     "ok", (int)p->ok, "cup", (int)p->cup, "season", (int)p->season, "flags", (int)p->flags,
+                     "wins", (int)p->wins, "draws", (int)p->draws, "stage", (int)p->stage, "off", (int)p->off);
+    }
+
     /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
      * points at the next season end -- per tie its round, whether its first club went through,
      * the two clubs (the Mod's team words, file | ordinal << 8). */
@@ -8046,6 +8057,27 @@ static void apply_semantic_load(const char *src, int src_size)
                 g_leagueWinners.e[i].team = e[3 * i + 2];
                 g_leagueWinners.n = (uint8_t)(i + 1);
             }
+        }
+    }
+
+    /* A world's UEFA prize money (world_finance.c); a save without it: an older one, what its
+     * club has reached counted as paid. */
+    WorldFinance_Loaded();
+    UefaPrize_LoadedWithout();
+    {
+        const char *up = NULL;
+        int uplen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.uefa_prizes", &up, &uplen) == MJSON_TOK_OBJECT) {
+            UefaPrizeState *p = &g_uefaPrize;
+            if (mjson_get_long(up, uplen, "$.ok", &v) > 0) p->ok = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.cup", &v) > 0) p->cup = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.season", &v) > 0) p->season = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.flags", &v) > 0) p->flags = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.wins", &v) > 0) p->wins = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.draws", &v) > 0) p->draws = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.stage", &v) > 0) p->stage = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.off", &v) > 0) p->off = (uint8_t)v;
         }
     }
 

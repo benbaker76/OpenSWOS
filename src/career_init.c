@@ -12,6 +12,7 @@
 #include "game_types.h"
 #include "league_playoffs.h"
 #include "uefa_coef.h"
+#include "world_finance.h"
 #include "world_conti.h"
 #include "states.h"
 #include "comp_identity.h"
@@ -273,6 +274,7 @@ void ChooseTeamAndStartCareer(void)
     WorldCups_Reset();
     CupD_Reset();
     UefaCoef_Reset();
+    UefaPrize_NewCareer();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
@@ -669,6 +671,7 @@ void InitCareer(uint16_t teamNo)
     WorldCups_Reset();
     CupD_Reset();
     UefaCoef_Reset();
+    UefaPrize_NewCareer();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();

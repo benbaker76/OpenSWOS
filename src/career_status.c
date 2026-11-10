@@ -50,6 +50,7 @@ extern uint16_t Rand2(void);
 extern TeamFileEx *VerifyTeamLoaded(uint16_t teamNum);
 extern uint16_t GetAveragePlayerPrice(TeamFileEx *team);
 #include "career_params.h"
+#include "world_finance.h"      /* a world's TV income and UEFA prizes */
 extern uint16_t CalcGateReceiptsBaseFromTeamValue(uint16_t avgPrice);
 extern uint16_t GetTeamValueBase(uint16_t avgPrice);
 
@@ -1320,6 +1321,8 @@ increment_count:
     _seasonMatchReceiptsCount++;
 
 final_update:
+    if (WorldFinance_On() && d7 > 0xFFFF)
+        d7 = 0xFFFF;                    /* (a world's gate saturates, not wraps: the Mod's finance.py) */
     d7 &= 0xFFFF;
     d7 <<= 4;
     if (leagueGate && _careerParams.league_gate_mult > 1 && team == &_careerTeam) {
@@ -1633,6 +1636,7 @@ void ApplyWeeklyFinancialDeductions(void) {
         _seasonRunningCostsAccum += running;
         _seasonRunningCostsAccum2 += running;
         _seasonWeeksDeducted++;
+        WorldFinance_Charge();          /* (a world's TV and commercial income, world_finance.c) */
     }
 
 save_week_and_clamp:
@@ -2885,6 +2889,40 @@ void ClubBusinessInit(void)
 
         /* Compute total profit/loss */
         int32_t total = computeTotalProfitLoss();
+
+        /* A world's rows (world_finance.c; the Mod's finance.py fi_stmt and uprize.py up_stmt):
+         * SPONSORS + TV RIGHTS on the hidden sponsorship row, the rows below it 15 down; UEFA
+         * PRIZE MONEY on the competition bonuses' row 15 below the old balance, the rows below
+         * it 10 down (the total 5: its gap is the others' then). */
+        int32_t tvShow = 0;
+        const int32_t tv = WorldFinance_PeriodTv(total, &tvShow);
+        if (tvShow) {
+            static char tvRow[] = "SPONSORS AND TV RIGHTS:";   /* (the Mod's "+": not every font has it) */
+            _menuEntries[6].isInvisible = 0;
+            _menuEntries[6].fg = (uintptr_t)tvRow;
+            _menuEntries[16].isInvisible = 0;
+            WriteAccountBalance(tv, (uint8_t *)_menuEntries[16].fg);
+            for (int16_t i = 7; i <= 11; i++) {
+                _menuEntries[i].y += 15;
+                _menuEntries[i + 10].y += 15;
+            }
+            total += tv;
+        }
+        if (UefaPrize_ShowRow()) {
+            static char prizeRow[] = "UEFA PRIZE MONEY:";
+            _menuEntries[3].isInvisible = 0;
+            _menuEntries[3].fg = (uintptr_t)prizeRow;
+            _menuEntries[3].y = _menuEntries[2].y + 15;
+            _menuEntries[13].isInvisible = 0;
+            _menuEntries[13].y = _menuEntries[3].y;
+            WriteAccountBalance(_competitionBonuses, (uint8_t *)_menuEntries[13].fg);
+            for (int16_t i = 4; i <= 10; i++) {
+                const int16_t dy = i == 10 ? 5 : 10;
+                _menuEntries[i].y += dy;
+                _menuEntries[i + 10].y += dy;
+            }
+        }
+
         if (total < 0) {
             _menuEntries[10].fg = (uintptr_t)_aTotalLoss;
         }
@@ -3072,6 +3110,7 @@ void Career_InitializeNewSeasonFinances(void)
 
     /* Transfer newBalance → old_balance and clear accumulators */
     _old_balance = _newBalance;
+    WorldFinance_PeriodStart();
     _playerPurchases = 0;
     _playerSales = 0;
     _playerWagesBill = 0;
@@ -3139,7 +3178,8 @@ skipSponsorship:
     /* Competition bonuses */
     _competitionBonuses = 0;
 
-    if (_stayingInOldClub && _quaternaryCompetitionPtr != 0) {
+    if (_stayingInOldClub && _quaternaryCompetitionPtr != 0 &&
+        !UefaPrize_SkipSeasonStartTerm(_euroCupSlotIndex)) {   /* (a world's UEFA prizes pay it instead) */
         int16_t bonus = (int8_t)_euroCupsCompetitionContextBuf.tourn.header.trophyBonusValue;
         uint32_t d0;
 

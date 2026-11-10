@@ -10,6 +10,7 @@
 
 #include "world.h"
 #include "diy_competition.h"
+#include "world_finance.h"      /* UefaPrize_CupWon */
 #include "comp_identity.h"
 #include "translations.h"
 #include "auto_skip_debug.h"
@@ -11591,6 +11592,7 @@ final_or_groups:
          * with BE_READ_U16 so resultCode holds the packed value
          * downstream comparisons expect. */
         baseS->resultCode = (int16_t)BE_READ_U16(&a3Ex->cupTeamIds[slotWord]);
+        UefaPrize_CupWon((uint8_t)baseS->field_2E, (uint16_t)baseS->resultCode);   /* (a world's UEFA prize) */
     }
 
     return 0;
