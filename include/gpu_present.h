@@ -48,6 +48,10 @@ typedef struct {
     const uint8_t  *backdrop;   /* R, G, B, A bytes */
     int             backdropW, backdropH, backdropKey;
     uint32_t        backdropSerial;     /* changes when the image does */
+    /* ---- launcher options (agent B) ---- */
+    int             argbScale;  /* `argb` is (w * argbScale) x (h * argbScale): a pixel filter's (0, 1: w x h).
+                                 * Over a backdrop its alpha is kept (the picture shows where it is 0) */
+    const uint8_t  *paletteAlpha;   /* 256 alphas for the palette over a backdrop (the menus' opacity), NULL solid */
 } GpuFrame;
 
 /* Draws the picture; the overlays (gfx.h) can go on after it, until GpuPresent_End. A frame with
