@@ -52,6 +52,10 @@ extern volatile uint16_t _keyCount;
  * (folded away), which is fine. */
 __attribute__((used, externally_visible))
 volatile uint8_t _skipLoaderIntro = 0;
+/* [general] skip_image_reels (SWOS 2020's --no-image-reels; SDL builds set it from SWOS.ini, the
+ * Amiga never): the intro is its title picture with the tune alone, until fire -- the pictures
+ * before and after it are SWOS 2020's "image reels", the PC loader's equivalent of these. */
+volatile uint8_t _skipLoaderReels = 0;
 extern volatile uint16_t _currentKey;
 #include "intro_chip_ram.h"     /* the title tune's samples, shared with the sprite pool on the Amiga */
 extern uint8_t _aSoundHeroSng[];
@@ -450,6 +454,14 @@ void ShowLoaderIntroSequence(void)
     }
 
     loaderIntroLoadHeroAudioBank();
+
+    if (_skipLoaderReels) {             /* the title alone, as long as the last frame waits */
+#ifndef AGA
+        _paletteIndex = 3;
+#endif
+        loaderIntroShowFrameWithMusic((const uint8_t *)GRAFS "loader1.raw", 0x6D6);
+        goto exit_cleanup;
+    }
 
 #ifndef AGA
     _paletteIndex = 6;
