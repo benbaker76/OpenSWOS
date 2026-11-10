@@ -1286,6 +1286,31 @@ void Platform_ToggleFullscreen(void)
     }
 }
 
+/* ---- SWOS 2020's VIDEO OPTIONS (SWOS 2020 port, agent A; src/settings_menus.c) ----
+ * WINDOW MODE: windowed, or one of the two fullscreens, now -- what Alt+Enter toggles between,
+ * picked by name. The kind of fullscreen is also what the next Alt+Enter goes to. */
+void Platform_SetFullscreenMode(PlatformFullscreenMode mode)
+{
+#ifdef SWOS_WASM_BUILD
+    (void)mode;
+    return;                             /* (the page owns fullscreen: Platform_ToggleFullscreen) */
+#else
+    if (!s_window)
+        return;
+    if (mode != PLATFORM_FULLSCREEN_NONE)
+        s_fullscreen_mode = mode;
+    if (mode == Platform_GetFullscreenMode())
+        return;
+    if (mode == PLATFORM_FULLSCREEN_NONE) {
+        Platform_ToggleFullscreen();    /* (back to the window's own size) */
+        return;
+    }
+    SDL_SetWindowFullscreen(s_window, mode == PLATFORM_FULLSCREEN_EXCLUSIVE ? SDL_WINDOW_FULLSCREEN
+                                                                            : SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_ShowCursor(SDL_DISABLE);
+#endif
+}
+
 /* The picture's pixel under the window's point wx, wy (the letterbox and the scaling undone,
  * as SDL draws the picture): 0 when it is on the picture (menu_mouse.c). */
 int Platform_MouseToPicture(int wx, int wy, int *x, int *y)

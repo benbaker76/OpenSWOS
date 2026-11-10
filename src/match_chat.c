@@ -200,6 +200,16 @@ static void add_line(int32_t who, const char *text)
         fprintf(stderr, "[chat] %s: %s\n", who == WHO_ME ? "me" : "them", text);
 }
 
+/* A line of the game's own in the box (ESC PRESSING TO QUIT's "press ESC again"). */
+void MatchChat_Notice(const char *text)
+{
+    fprintf(stderr, "[chat] notice: %s\n", text);
+    if (C.active) {
+        add_line(WHO_NOTICE, text);
+        C.hidden = 0;
+    }
+}
+
 static void line_close(void);
 
 void MatchChat_Begin(const char *myName, const char *theirName)

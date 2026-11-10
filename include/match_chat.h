@@ -70,4 +70,8 @@ int32_t MatchChat_AutoClose(void);
 
 int32_t MatchChat_SelfTest(void);
 
+/* ---- SWOS 2020's MULTIPLAYER SETTINGS rows (SWOS 2020 port, agent A) ---- */
+/* (AUTO CLOSE CHATBOX and CHAT WINDOW SCALE: MatchChat_AutoClose / MatchChat_Scale, above) */
+void    MatchChat_Notice(const char *text);         /* a line of the game's own */
+
 #endif

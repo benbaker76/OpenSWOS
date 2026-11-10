@@ -1,0 +1,731 @@
+{
+  "name": "settingsPage",
+  "comment": "One page of OpenSWOS's SETTINGS (CONTROLS, VIDEO, AUDIO, GAMEPLAY -- SWOS 2020's controlOptions/videoOptions/audioOptions/gameplayOptions screens, as rows of our own settings). JSON-only (docs/MENUS.md section 10); the rows are filled in and handled by src/settings_menus.c. FIRE or RIGHT changes a value, LEFT changes it back.",
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "settingsPage_OnInit",
+  "onReturn": "settingsPage_OnInit",
+  "onDraw": "settingsPage_OnDraw",
+  "defaultEntry": 2,
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 12,
+        "y": 0,
+        "w": 296,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x10"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label0",
+      "coords": {
+        "x": 12,
+        "y": 20,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value0",
+      "coords": {
+        "x": 182,
+        "y": 20,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 4
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row0_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label1",
+      "coords": {
+        "x": 12,
+        "y": 32,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value1",
+      "coords": {
+        "x": 182,
+        "y": 32,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": 6
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row1_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label2",
+      "coords": {
+        "x": 12,
+        "y": 44,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value2",
+      "coords": {
+        "x": 182,
+        "y": 44,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 4,
+          "down": 8
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row2_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label3",
+      "coords": {
+        "x": 12,
+        "y": 56,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value3",
+      "coords": {
+        "x": 182,
+        "y": 56,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 6,
+          "down": 10
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row3_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label4",
+      "coords": {
+        "x": 12,
+        "y": 68,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value4",
+      "coords": {
+        "x": 182,
+        "y": 68,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 8,
+          "down": 12
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row4_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label5",
+      "coords": {
+        "x": 12,
+        "y": 80,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value5",
+      "coords": {
+        "x": 182,
+        "y": 80,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 10,
+          "down": 14
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row5_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label6",
+      "coords": {
+        "x": 12,
+        "y": 92,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value6",
+      "coords": {
+        "x": 182,
+        "y": 92,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 12,
+          "down": 16
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row6_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label7",
+      "coords": {
+        "x": 12,
+        "y": 104,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value7",
+      "coords": {
+        "x": 182,
+        "y": 104,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 14,
+          "down": 18
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row7_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label8",
+      "coords": {
+        "x": 12,
+        "y": 116,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value8",
+      "coords": {
+        "x": 182,
+        "y": 116,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 16,
+          "down": 20
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row8_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label9",
+      "coords": {
+        "x": 12,
+        "y": 128,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value9",
+      "coords": {
+        "x": 182,
+        "y": 128,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 18,
+          "down": 22
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row9_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label10",
+      "coords": {
+        "x": 12,
+        "y": 140,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value10",
+      "coords": {
+        "x": 182,
+        "y": 140,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 20,
+          "down": 24
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row10_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "label11",
+      "coords": {
+        "x": 12,
+        "y": 152,
+        "w": 166,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "value11",
+      "coords": {
+        "x": 182,
+        "y": 152,
+        "w": 126,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 22,
+          "down": 26
+        },
+        {
+          "op": "input_func",
+          "mask": "0xE0",
+          "func": "settingsPage_row11_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "note",
+      "coords": {
+        "x": 12,
+        "y": 166,
+        "w": 296,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 110,
+        "y": 180,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "EXIT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 24,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "settingsPage_exit_OnSelect"
+        }
+      ]
+    }
+  ]
+}

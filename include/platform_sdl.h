@@ -195,6 +195,16 @@ typedef struct {
     /* -- the match chat's window (SWOS 2020 port, agent C; include/match_chat.h) -- */
     int                    chat_scale;           /* [chat] scale: 0..8, the box 1x .. 5x in halves */
     int                    chat_auto_close;      /* [chat] auto_close: 1..5 s the box stays after a line */
+    /* ---- SWOS 2020's CONTROLS MENU, CONTROLLER SETUP, menu look and MULTIPLAYER SETTINGS
+     * (SWOS 2020 port, agent A; src/input_sdl.c, src/settings_menus.c, src/match_chat.c) ---- */
+    char                   pad_pref[2][48];      /* [input] pad1/pad2: auto | keyboard | none | <guid>[#n] */
+    int                    auto_detect_pads;     /* [input] auto_detect_pads (1) */
+    char                   pad_config[512];      /* [input] pad_config: per pad GUID, fire/bench/cut-offs */
+    int                    shoulder_buttons_off; /* [input] shoulder_buttons: 1 = off, as SWOS 2020's default */
+    int                    call_bench;           /* [input] call_bench: 0 both, 1 taps, 2 button */
+    int                    menu_cursor;          /* [video] menu_cursor: 0 flashing, 1 steady */
+    int                    chat_controller_off;  /* [chat] controller_off: the pad steers nobody while typing */
+    int                    esc_presses;          /* [netplay] esc_presses: ESCs that leave a live match, 1-3 */
 } PlatformInitOptions;
 
 int  Platform_Init(const PlatformInitOptions *opts);
@@ -216,6 +226,7 @@ void Platform_PaletteRgb(int index, uint8_t *r, uint8_t *g, uint8_t *b);
  * Toggles between windowed and the fullscreen flavour the user launched
  * with (--fullscreen=desktop or =exclusive). */
 void Platform_ToggleFullscreen(void);
+void Platform_SetFullscreenMode(PlatformFullscreenMode mode);    /* VIDEO OPTIONS' WINDOW MODE (agent A) */
 void Platform_VolumeKey(int key);        /* Shift+1..6 in a match: a volume down / up */
 
 /* Set the windowed-mode integer scale factor (1..4) at runtime. Called
