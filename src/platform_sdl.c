@@ -1343,6 +1343,49 @@ int Platform_MouseToPicture(int wx, int wy, int *x, int *y)
 #endif
 }
 
+/* ---- launcher options (agent A) ----
+ * AUTO CENTERING (SWOS 2020's --auto-centering, controls.cpp setAutoCenteringWindow): a window
+ * resized, maximized or moved goes back to the middle of its display -- the one it is on now, so
+ * dragging it to another monitor centres it there. Windowed only; [video] auto_centering. */
+static int s_auto_center;
+static void auto_centre(Uint8 event);
+
+void Platform_SetAutoCentering(int on)
+{
+    s_auto_center = on != 0;
+    if (s_auto_center)
+        auto_centre(SDL_WINDOWEVENT_SIZE_CHANGED);
+}
+
+static void auto_centre(Uint8 event)
+{
+#if !defined(SWOS_WASM_BUILD) && !defined(SWOS_MOBILE_BUILD)
+    int d;
+    if (!s_auto_center || !s_window || window_is_fullscreen())
+        return;
+    if (event != SDL_WINDOWEVENT_SIZE_CHANGED && event != SDL_WINDOWEVENT_MAXIMIZED &&
+        event != SDL_WINDOWEVENT_MOVED)
+        return;
+    if (SDL_GetWindowFlags(s_window) & SDL_WINDOW_MAXIMIZED)
+        return;                         /* (a maximized window fills its display already) */
+    d = SDL_GetWindowDisplayIndex(s_window);
+    if (d < 0)
+        d = 0;
+    {
+        SDL_Rect r;
+        int w, h, x, y;
+        if (SDL_GetDisplayBounds(d, &r) != 0)     /* (what SDL_WINDOWPOS_CENTERED_DISPLAY centres in) */
+            return;
+        SDL_GetWindowSize(s_window, &w, &h);
+        SDL_GetWindowPosition(s_window, &x, &y);
+        if (x != r.x + (r.w - w) / 2 || y != r.y + (r.h - h) / 2)
+            SDL_SetWindowPosition(s_window, SDL_WINDOWPOS_CENTERED_DISPLAY(d), SDL_WINDOWPOS_CENTERED_DISPLAY(d));
+    }
+#else
+    (void)event;
+#endif
+}
+
 /* The mouse cursor over the window: shown in a menu while the mouse is used (menu_mouse.c). */
 void Platform_ShowMouseCursor(int on)
 {
@@ -1910,6 +1953,7 @@ static void pump_events_any_thread(void)
             break;
         case SDL_WINDOWEVENT:
             check_display();                /* (another monitor: its shape, its refresh) */
+            auto_centre(ev.window.event);   /* ([video] auto_centering) */
             if (ev.window.event == SDL_WINDOWEVENT_CLOSE) {
                 Platform_RequestQuit();
                 if (s_window) SDL_HideWindow(s_window);
@@ -2408,6 +2452,7 @@ static void draw_overlays(void)
      * grille and the glass edge sit on the picture rather than under it. */
     CrtEffects_Apply();
     MatchChat_Draw();                /* (an online match's chat: over the CRT, to be read) */
+    { extern void FpsOverlay_Draw(void); FpsOverlay_Draw(); }   /* ([video] show_fps: src/fps_overlay.c) */
     { extern void OnlineMenus_DrawOverlay(void); OnlineMenus_DrawOverlay(); }   /* (the lobby's chat) */
 #ifdef SWOS_MOBILE_BUILD
     TouchControls_Draw();            /* (the phones' on-screen controls, over everything) */
