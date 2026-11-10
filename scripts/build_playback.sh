@@ -4,7 +4,7 @@
 #
 #   scripts/build_playback.sh           # -> dist/playback (index.html, SWOS.html/.js/.wasm/.data)
 #
-# Needs emsdk: EMSDK_DIR (default ~/emsdk, then emsdk beside the checkout), or emcc already on PATH. Without it this
+# Needs emsdk: EMSDK_DIR, ~/emsdk, ~/git/emsdk or emsdk beside the checkout, or emcc already on PATH. Without it this
 # exits 3 -- "skipped", not "failed" -- so a server without emsdk still builds and
 # installs everything else (scripts/run_matchmaker.sh --with-playback,
 # scripts/swos-matchmaker-service.sh).
@@ -14,18 +14,19 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 
 if ! command -v emcc >/dev/null 2>&1; then
-    # EMSDK_DIR, else ~/emsdk, else beside the checkout: the admin page runs with a HOME of its
-    # own (online.openswos.net: /home/swos/git) while emsdk is /home/swos/emsdk, the checkout's
-    # neighbour -- so "Rebuild" skipped the player there (2026-11-10).
-    if [ -z "${EMSDK_DIR:-}" ]; then
-        for d in "$HOME/emsdk" "$(dirname "$ROOT")/emsdk"; do
-            [ -f "$d/emsdk_env.sh" ] && { EMSDK_DIR="$d"; break; }
-        done
-    fi
-    if [ ! -f "${EMSDK_DIR:-}/emsdk_env.sh" ]; then
-        echo "build_playback: no emsdk_env.sh in ${EMSDK_DIR:-$HOME/emsdk or $(dirname "$ROOT")/emsdk} (set EMSDK_DIR) -- skipped" >&2
+    # EMSDK_DIR, else ~/emsdk, ~/git/emsdk or beside the checkout -- the first that has
+    # emsdk_env.sh. The admin page sets EMSDK_DIR=~/git/emsdk (us.swos.eu's layout) while
+    # online.openswos.net's is ~/emsdk, so a given EMSDK_DIR that is not there falls through
+    # to the others: "Rebuild" skipped the player there (2026-11-10).
+    found=""
+    for d in ${EMSDK_DIR:+"$EMSDK_DIR"} "$HOME/emsdk" "$HOME/git/emsdk" "$(dirname "$ROOT")/emsdk"; do
+        [ -f "$d/emsdk_env.sh" ] && { found="$d"; break; }
+    done
+    if [ -z "$found" ]; then
+        echo "build_playback: no emsdk_env.sh in ${EMSDK_DIR:+$EMSDK_DIR, }$HOME/emsdk, $HOME/git/emsdk or $(dirname "$ROOT")/emsdk (set EMSDK_DIR) -- skipped" >&2
         exit 3
     fi
+    EMSDK_DIR="$found"
     # shellcheck disable=SC1091
     . "$EMSDK_DIR/emsdk_env.sh" >/dev/null 2>&1
     command -v emcc >/dev/null 2>&1 || { echo "build_playback: emsdk_env.sh did not put emcc on PATH" >&2; exit 1; }
