@@ -575,10 +575,14 @@ static void play(int32_t i)
             return;
         }
     }
+    s_retry = 0;
     for (;;) {
         ModMatchSetup setup;
         ModMatchResult r;
         ModApi_DefaultSetup(&setup);
+        /* CHANGE TACTICS (SWOS 2020's retryExitEx: g_RetryExit 2, g_SkipPlayMatchMenu 0): the
+         * friendly's PLAY MATCH screen first, its EDIT TACTICS and line-up; QUICK RETRY skips it */
+        setup.playMatchScreen = (uint8_t)(s_retry == 2 && !s_test);
         for (int32_t t = 0; t < 2; t++) {
             if (fromFile[t])
                 setup.teamData[t] = &given[t];
@@ -1186,15 +1190,17 @@ static void result_draw(void)
     snprintf(tries, sizeof tries, "%u", (unsigned)c->attempts);
     row(0, "ATTEMPTS", tries, 1);
     row(1, "", "QUICK RETRY", 0);
-    hide_from(2);
+    row(2, "", "CHANGE TACTICS", 0);
+    hide_from(3);
     ModApi_MenuText(M_note, "");
 }
 
 static void result_init(void)
 {
-    const int32_t retryRow = M_label0 + 2 * 1 + 1;
-    ModApi_MenuNav(retryRow, -1, M_exit);
-    ModApi_MenuNav(M_exit, retryRow, -1);
+    const int32_t retryRow = M_label0 + 2 * 1 + 1, tacticsRow = retryRow + 2;
+    ModApi_MenuNav(retryRow, -1, tacticsRow);
+    ModApi_MenuNav(tacticsRow, retryRow, M_exit);
+    ModApi_MenuNav(M_exit, tacticsRow, -1);
     ModApi_MenuSelect(retryRow);
     result_draw();
 }
@@ -1202,6 +1208,12 @@ static void result_init(void)
 static void result_retry(void)
 {
     s_retry = 1;
+    SetExitMenuFlag();
+}
+
+static void result_tactics(void)        /* CHANGE TACTICS: again, by the PLAY MATCH screen */
+{
+    s_retry = 2;
     SetExitMenuFlag();
 }
 
@@ -1457,7 +1469,7 @@ static void ch_init(void)
         { "info0", info_edit0 }, { "info1", info_edit1 }, { "info2", info_edit2 }, { "info3", info_edit3 },
         { "info4", info_edit4 }, { "info5", info_play }, { "info6", none }, { "info7", none },
         { "resultInit", result_init }, { "resultDraw", result_draw },
-        { "result0", none }, { "result1", result_retry }, { "result2", none }, { "result3", none },
+        { "result0", none }, { "result1", result_retry }, { "result2", result_tactics }, { "result3", none },
         { "result4", none }, { "result5", none }, { "result6", none }, { "result7", none },
         { "exit", ch_exit }, { "listExit", list_exit },
     };
