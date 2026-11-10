@@ -575,6 +575,8 @@ int main(int argc, char **argv)
     opts.contest_own_ratings = 0; /* default: the original's roll, team-mate's rating and all */
     opts.live_cast = 1;           /* (LIVE CAST: viewers may watch, as SWOS 2020's ON) */
     opts.replay_auto_save = 0;    /* default: LATEST.SRP only, no dated copy per match */
+    opts.replay_frame_overlay = 1;    /* (SWOS 2020's FRAME INFO OVERLAY: on) */
+    opts.replay_half_speed = 0;
     opts.netplay_name[0] = '\0';
     opts.netplay_remember = 1;    /* REMEMBER LOGIN INFO: on, as the login screen shows it */
     opts.assets_reminder_off[0] = '\0';  /* remind about older game data (src/assets_check.c) */
@@ -1222,6 +1224,8 @@ int main(int argc, char **argv)
 
     /* Whole-match recording (src/replay_v2.c). */
     ReplayRec_Configure(record_replay, opts.replay_auto_save);
+    { extern void ReplayV2_ViewerConfigure(int32_t overlay, int32_t halfSpeed);
+      ReplayV2_ViewerConfigure(opts.replay_frame_overlay, opts.replay_half_speed); }
 
     /* The matchmaking server the MULTIPLAYER menu logs in to (src/mm_client.c).
      * SWOS_MM_HOST / SWOS_MM_PORT still win, so a test can point one process

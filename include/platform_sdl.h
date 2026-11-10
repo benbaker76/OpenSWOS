@@ -130,6 +130,8 @@ typedef struct {
                                               * kills your held fire button's shot charge for good. 0 (default)
                                               * = fixed. See _gOriginalFireHoldLockout in team_control.c */
     int                    replay_auto_save; /* 1 = keep a dated .SRP of every match, not only LATEST.SRP */
+    int                    replay_frame_overlay; /* 1 = the viewer's frame box shows at first (I toggles it) */
+    int                    replay_half_speed;    /* 1 = recordings start at half speed in the viewer */
     char                   matchmaker[80];   /* [netplay] matchmaker: the server MULTIPLAYER logs in to,
                                               * "host" or "host:port". Typed on the login menu and saved
                                               * there; empty = a server on this machine. */

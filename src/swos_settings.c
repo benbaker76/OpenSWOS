@@ -199,6 +199,10 @@ static int handler(void *user, const char *section,
         int b;
         if (eqi(name, "auto_save") && parse_bool(value, &b))
             opts->replay_auto_save = b;
+        else if (eqi(name, "frame_overlay") && parse_bool(value, &b))
+            opts->replay_frame_overlay = b;
+        else if (eqi(name, "speed"))
+            opts->replay_half_speed = eqi(value, "half");
     } else if (eqi(section, "netplay")) {
         if (eqi(name, "matchmaker"))
             snprintf(opts->matchmaker, sizeof opts->matchmaker, "%s", value);
@@ -557,6 +561,15 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; folder and can be watched from HIGHLIGHTS -> LOAD. true also keeps a dated\n"
         "; copy of each (MMDDHHMM.SRP), so a match is not overwritten by the next one.",
         opts->replay_auto_save ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "replays", "frame_overlay",
+        "; frame_overlay: true | false — the box at the bottom left of a recording being\n"
+        "; watched (its speed, paused or not, the frame and a bar); I shows or hides it.\n"
+        "; The keys: P pause, Up / Down speed, Left / Right backwards / forwards (paused: a\n"
+        "; frame), Home / End the first / last frame, PgDn / PgUp a tenth back / on.",
+        opts->replay_frame_overlay ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "replays", "speed",
+        "; speed: normal | half — the speed a recording starts at in the viewer.",
+        opts->replay_half_speed ? "half" : "normal" };
     SETTING(n) = (IniEntry){ "netplay", "matchmaker",
         "; matchmaker: the server MULTIPLAYER logs in to, as \"host\" or \"host:port\"\n"
         "; (default port 19602). Empty means the public server, " PROJECT_MM_HOST ". You can type it\n"

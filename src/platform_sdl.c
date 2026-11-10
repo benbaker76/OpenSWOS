@@ -1904,6 +1904,13 @@ static void pump_events_any_thread(void)
                 Platform_ToggleFullscreen();
                 continue;
             }
+            /* A recording being viewed: its controls (src/replay_v2.c, the viewer's: P, I,
+             * the arrows, Home, End, PgUp, PgDn), before the game's own pause. */
+            if (ev.key.repeat == 0 && !_gTextInputActive) {
+                extern int32_t ReplayV2_ViewerKey(int32_t key);
+                if (ReplayV2_ViewerKey((int32_t)ev.key.keysym.sym))
+                    continue;
+            }
             /* A key for a mod during a match (ModDef.matchKey: SWOS 2020's training drills,
              * F1-F12, ALT, 9, 0, - and =), before the game's and the window's own. */
             if (ev.key.repeat == 0 && !_gTextInputActive) {
