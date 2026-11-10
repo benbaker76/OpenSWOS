@@ -146,6 +146,15 @@ static int handler(void *user, const char *section,
             if      (eqi(value, "amiga")) opts->sound_style = 0;
             else if (eqi(value, "pc") || eqi(value, "dos")) opts->sound_style = 1;
         }
+        else if (eqi(name, "music_volume") || eqi(name, "chants_volume") || eqi(name, "commentary_volume") ||
+                 eqi(name, "effects_volume")) {
+            int v = atoi(value);
+            v = v < 0 ? 0 : v > 100 ? 100 : v;
+            if (eqi(name, "music_volume")) opts->vol_music = v;
+            else if (eqi(name, "chants_volume")) opts->vol_chants = v;
+            else if (eqi(name, "commentary_volume")) opts->vol_commentary = v;
+            else opts->vol_effects = v;
+        }
         else if (eqi(name, "commentary_dir"))
             snprintf(opts->commentary_dir, sizeof opts->commentary_dir, "%s", value);
         else if (eqi(name, "menu_music")) {
@@ -561,6 +570,21 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; folder and can be watched from HIGHLIGHTS -> LOAD. true also keeps a dated\n"
         "; copy of each (MMDDHHMM.SRP), so a match is not overwritten by the next one.",
         opts->replay_auto_save ? "true" : "false" };
+    {
+        static char vols[4][8];
+        snprintf(vols[0], sizeof vols[0], "%d", opts->vol_music);
+        snprintf(vols[1], sizeof vols[1], "%d", opts->vol_chants);
+        snprintf(vols[2], sizeof vols[2], "%d", opts->vol_commentary);
+        snprintf(vols[3], sizeof vols[3], "%d", opts->vol_effects);
+        SETTING(n) = (IniEntry){ "audio", "music_volume",
+            "; music_volume, chants_volume, commentary_volume, effects_volume: 0..100 (SWOS 2020's\n"
+            "; AUDIO OPTIONS) -- the menus' music, the crowd chants, the commentary, the ball and\n"
+            "; the whistle (with the Amiga's sounds, its crowd too). In a match Shift+1 / Shift+2\n"
+            "; turn the chants down / up, Shift+3 / 4 the commentary, Shift+5 / 6 the effects.", vols[0] };
+        SETTING(n) = (IniEntry){ "audio", "chants_volume", NULL, vols[1] };
+        SETTING(n) = (IniEntry){ "audio", "commentary_volume", NULL, vols[2] };
+        SETTING(n) = (IniEntry){ "audio", "effects_volume", NULL, vols[3] };
+    }
     SETTING(n) = (IniEntry){ "replays", "frame_overlay",
         "; frame_overlay: true | false — the box at the bottom left of a recording being\n"
         "; watched (its speed, paused or not, the frame and a bar); I shows or hides it.\n"

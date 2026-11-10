@@ -131,6 +131,7 @@ typedef struct {
                                               * = fixed. See _gOriginalFireHoldLockout in team_control.c */
     int                    replay_auto_save; /* 1 = keep a dated .SRP of every match, not only LATEST.SRP */
     int                    replay_frame_overlay; /* 1 = the viewer's frame box shows at first (I toggles it) */
+    int                    vol_music, vol_chants, vol_commentary, vol_effects;  /* 0..100 ([audio] *_volume) */
     int                    replay_half_speed;    /* 1 = recordings start at half speed in the viewer */
     char                   matchmaker[80];   /* [netplay] matchmaker: the server MULTIPLAYER logs in to,
                                               * "host" or "host:port". Typed on the login menu and saved
@@ -212,6 +213,7 @@ void Platform_PaletteRgb(int index, uint8_t *r, uint8_t *g, uint8_t *b);
  * Toggles between windowed and the fullscreen flavour the user launched
  * with (--fullscreen=desktop or =exclusive). */
 void Platform_ToggleFullscreen(void);
+void Platform_VolumeKey(int key);        /* Shift+1..6 in a match: a volume down / up */
 
 /* Set the windowed-mode integer scale factor (1..4) at runtime. Called
  * from the +/- key handlers. No-op while fullscreen. */

@@ -832,6 +832,7 @@ GameFrameResult GameLoop_Frame(void)
     UpdateAndDrawStatistics();
 #ifdef SWOS_SDL_BUILD
     { extern void ModHooks_MatchDrawn(void); ModHooks_MatchDrawn(); }  /* (a mod's drawing over the match) */
+    { extern void Platform_DrawVolumes(void); Platform_DrawVolumes(); } /* (the volume keys' readout) */
 #endif
 
     /* The window was closed. Not out of a LIVE match from here: this frame may be one
