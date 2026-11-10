@@ -869,8 +869,9 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
   MY CUSTOM TEAM opens `swos2020/selectMyCustomTeams` (docs/CUSTOM_TEAMS.md); their handlers
   are in `src/uniform_menu.c` and `src/custom_team.c`, each with a symbol table of its own.
   **OPTIONS -> CONTROLS** (entries 15 and 16, `ShowControlsMenu`; a structural row, hidden
-  on the Amiga by `OptionsMenuBeforeDraw`) opens OpenSWOS's own `openswos/controlsMenu`
-  (`src/controls_menu.c`, docs/CONTROLS.md): the player's own keys and the press latch.
+  on the Amiga by `OptionsMenuBeforeDraw`) is SETTINGS on SDL (§10f), whose CONTROLS -> KEYBOARD
+  KEYS opens OpenSWOS's own `openswos/controlsMenu` (`src/controls_menu.c`, docs/CONTROLS.md):
+  the player's own keys and the press latch.
 - `--menu-selftest` loads every JSON-only menu -- the imported ones (`SWOS2020_MENUS`),
   `p2p/rateMatchMenu` (HOW WAS THE MATCH?) and `p2p/p2pMenu` -- unpacks each into scratch
   memory and checks its entries' ordinals, rectangles, nav links and text against its
@@ -890,6 +891,52 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
 - **Literal text is not translated** — `tr()` is keyed by symbol name.
 - **Blinking text** (`kBlinkText`) in a `dos_redraw` menu would add a vsync per blink
   frame (`UpdateBlinkingMenuText` redraws on its own). None of the imported menus blink.
+
+### 10f. SWOS 2020's OPTIONS screens, F6, the menu cursor (SDL, 2026-11-09)
+
+- **OPTIONS -> SETTINGS** (entries 15/16, the row that was CONTROLS; `ShowControlsMenu`,
+  relabelled by `OptionsMenuBeforeDraw`) opens `openswos/settingsMenu`: SWOS 2020's OPTIONS
+  buttons CONTROLS, VIDEO, AUDIO, GAMEPLAY (options.mnu). Each is a page of
+  `openswos/settingsPage` -- twelve label/value rows, an `input_func` mask `0xE0` so FIRE or
+  RIGHT steps a value on and LEFT back -- filled from a table of rows in `src/settings_menus.c`.
+  The rows are settings the game already had in SWOS.ini; SWOS 2020's own screens
+  (videoOptions.mnu's resolution list, audioOptions.mnu) are about its renderer and mixer, so
+  their layout is not imported, their purpose is:
+  - CONTROLS: docs/CONTROLS.md §4 (with SWOS 2020's CONTROLLER SETUP, `openswos/joypadConfigMenu`,
+    imported as it is from joypadConfig.mnu).
+  - VIDEO OPTIONS: WINDOW MODE (windowed / fullscreen / exclusive, now: `Platform_SetFullscreenMode`),
+    WINDOW SCALE (now), VSYNC, WIDESCREEN, SMOOTH SCROLLING, SCALING, MONITOR, RENDERER (from the
+    next start, said in the note), MENU CURSOR (below).
+  - AUDIO OPTIONS: the four volumes (`AudioSDL_SetKindVolumes`, 10% a step), MENU MUSIC (OPTIONS'
+    row), MATCH SOUNDS and MUSIC Amiga/PC, PC MENU MUSIC midi/mp3, COMMENTARY off/on/auto (all now),
+    OUTPUT mono/stereo (next start).
+  - GAMEPLAY OPTIONS: GAME STYLE (`GameplayStyle_Set`), AUTO SAVE REPLAYS (next start), HIGHLIGHT
+    DEFAULT SPEED and FRAME INFO OVERLAY (`ReplayV2_ViewerConfigure`, now) -- the rest of SWOS 2020's
+    gameplayOptions screen is OPTIONS' own rows, or other features (pitch selection, clash kits).
+- **F6 in a menu** (SWOS 2020's controls.cpp:2202): with a game in progress, the main menu's SAVE
+  (`QuickSave_FromMenu`, the body of `SaveContest` without its `CommonMenuExit`, which sets up the
+  MAIN menu's entries) from where the player is. Not on the main menu (it has SAVE), on PLAY MATCH,
+  during the season's turn, in a text field, a dialog or `--career-golden`. `input_sdl.c` notes the
+  key outside a match; `SettingsMenus_MenuFrame` (MenuProc, SDL) takes it.
+- **MENU CURSOR** (`[video] menu_cursor`, SWOS 2020's `--flashing-menu-cursor`): flashing, the
+  game's own, or steady -- `_kColorTableShine` held at its first colour.
+- **The rest of SWOS 2020's menu look** is its renderer's or its 2020 look, not ported: MENU ICONS
+  and the SWOS TV ICON (its main menu's pictures -- SWOS United's look), MENU SPRITE ANIMATION (its
+  main menu's animated balls and players), alpha-blended menus (its 32-bit renderer draws the menu
+  over a picture; ours is 8bpp end to end), mouse cursor images; SCREEN FADE SPEED: SWOS 2020's
+  DEFAULT is the DOS palette fade with half-frame delays, ours the Amiga's five-frame fade (0.1 s),
+  already faster than its FAST, and `_fadeInitFlag` is match state (`sim_state.c`). AMIGA STYLE
+  MENU is the `dosmenus` mod (F5).
+- **MULTIPLAYER SETTINGS** (`mmSettingsMenu`, `src/online_menus.c`): COMMENTARY (`[audio]
+  commentary`), AUTO CLOSE CHATBOX (`[chat] close_after`, 1-6 s), ESC PRESSING TO QUIT
+  (`[netplay] esc_presses`, 1-3 within two seconds, each short press said in the chat box), DISABLE
+  CONTROLLER IN CHAT (`[chat] controller_off`: the pad steers nobody while the player types) and
+  CHAT WINDOW SCALE (`[chat] scale`, 1X-3X) are shown and work. ACCEPT SOUND stays hidden (a fork's),
+  CHAT WINDOW SCALE moved into its place; VIDEO VSYNC is commented out in SWOS 2020's own menu (it
+  is on VIDEO OPTIONS); PITCH SET and DLC SETTING are its DLC's (here RECORD MATCHES and SEND MATCH
+  REPORTS). Each is this player's own: nothing goes to the other game.
+- `--settings-menus-selftest` shows and checks every page's rows and loads the three menus;
+  `--menu-selftest` checks them against their JSON.
 
 ## 11. Overlaps (`SWOS_MENU_OVERLAP=1`)
 
