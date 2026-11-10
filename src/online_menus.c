@@ -3110,6 +3110,7 @@ int32_t OnlineMenus_ShowStartMenu(void)
     P2PMenu_Init();             /* --menu=p2p/p2pMenu wants its handlers too */
     ControlsMenu_Init();
     { extern void SettingsMenus_Init(void); SettingsMenus_Init(); }   /* (--menu=openswos/settingsMenu) */
+    CreditsMenu_Init();              /* (--menu=openswos/creditsMenu, openswos/fullCreditsMenu) */
     ModsMenu_Init();            /* (--menu=openswos/modsMenu) */
     { extern void ModEntries_Init(void); ModEntries_Init(); }   /* (--menu=openswos/modEntriesMenu) */
     { extern void TeamPacksMenu_Init(void); TeamPacksMenu_Init(); }   /* (--menu=openswos/teamPacksMenu) */
@@ -3237,6 +3238,16 @@ int32_t OnlineMenus_SelfTest(void)
         if (bad) {
             failed++;
             printf("  FAIL %-26s %s\n", "creditsMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
+    }
+    {
+        int bad = MenuJson_VerifyDynamic(FULL_CREDITS_MENU_NAME, 1);
+        menus++;
+        entries += 1;
+        if (bad || CreditsMenu_FullCreditsLines() <= 0) {
+            failed++;
+            printf("  FAIL %-26s %s\n", "fullCreditsMenu", bad < 0 ? "did not load" : bad ? "mismatch (see log)" :
+                   "data/CREDITS.txt did not load");
         }
     }
 

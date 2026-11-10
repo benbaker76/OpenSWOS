@@ -2409,6 +2409,7 @@ static void draw_overlays(void)
     CrtEffects_Apply();
     MatchChat_Draw();                /* (an online match's chat: over the CRT, to be read) */
     { extern void OnlineMenus_DrawOverlay(void); OnlineMenus_DrawOverlay(); }   /* (the lobby's chat) */
+    { extern void CreditsMenu_DrawOverlay(void); CreditsMenu_DrawOverlay(); }   /* (FULL CREDITS' scrolling text) */
 #ifdef SWOS_MOBILE_BUILD
     TouchControls_Draw();            /* (the phones' on-screen controls, over everything) */
 #endif

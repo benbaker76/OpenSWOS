@@ -130,6 +130,7 @@ Project Manager                benbaker76
 Port to C                      benbaker76
 Reverse Engineering            benbaker76 (Amiga) / zkz (DOS)
 AGA                            benbaker76
+SWOS 2026-27 Mod               Aminta
 Multiplayer (GGPO-X)           thd79
 Server Help                    Redhair
 Test Lead                      Playaveli
