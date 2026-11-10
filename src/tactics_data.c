@@ -564,6 +564,12 @@ void TacticsData_SelectRelease(int dos)
     TeamTactics * const *set;
     int16_t i;
 
+#ifdef SWOS_SDL_BUILD
+    {   /* (the game's own formations, under [gameplay] cpu_tactics = expert: src/tactics_expert.c) */
+        extern void TacticsExpert_Hold(void);
+        TacticsExpert_Hold();
+    }
+#endif
 #ifdef SWOS_DOS_TACTICS
     (void)dos;
     set = dosSet;
@@ -584,6 +590,9 @@ void TacticsData_SelectRelease(int dos)
             dstSweep[i] = src[i];
         }
     }
+#ifdef SWOS_SDL_BUILD
+    { extern void TacticsExpert_Release(void); TacticsExpert_Release(); }
+#endif
 }
 
 /* ======================================================================

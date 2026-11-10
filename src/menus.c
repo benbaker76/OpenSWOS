@@ -370,6 +370,11 @@ __attribute__((used, externally_visible, optimize("no-tree-loop-distribute-patte
 void InitUserTactics(void)
 {
     int16_t i;
+#ifdef SWOS_SDL_BUILD
+    /* (the game's own formations, under [gameplay] cpu_tactics = expert: src/tactics_expert.c) */
+    extern void TacticsExpert_Hold(void), TacticsExpert_Release(void);
+    TacticsExpert_Hold();
+#endif
 
     /* Copy positions[8..9] (70 bytes) from 532 formation to both 442 and Sweep.
      *
@@ -420,6 +425,9 @@ void InitUserTactics(void)
     StringCopy(_aUSER_F, (uint8_t *)_teamTacticsUSERF.name);
 
     InitializeTacticsPositions();
+#ifdef SWOS_SDL_BUILD
+    TacticsExpert_Release();
+#endif
 }
 
 /* ================================================================
