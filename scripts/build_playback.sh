@@ -51,10 +51,12 @@ fi
 # missing file -- a server's whose checkout had none did, asking for sound/sfx.in2 for ever
 # (2026-11-07). So no data, no build: put the data setup's assets folder on the server and
 # point SWOS_ASSETS at it (or copy its trees into bin/).
-ASSETS="${SWOS_ASSETS:-}"
+# Unset, it is the game's own default, ~/.swos/assets -- the Makefile's too (online.openswos.net
+# keeps the data there; the check here used to want SWOS_ASSETS set, 2026-11-10).
+ASSETS="${SWOS_ASSETS:-$HOME/.swos/assets}"
 has_sound() { [ -f "$1/sound/SFX.SNG" ] || [ -n "$(ls -A "$1/sound_dos/fx" 2>/dev/null)" ]; }
 if ! has_sound bin && { [ -z "$ASSETS" ] || ! has_sound "$ASSETS"; }; then
-    echo "build_playback: no game data -- neither bin/ nor SWOS_ASSETS (${ASSETS:-unset}) has the" >&2
+    echo "build_playback: no game data -- neither bin/ nor SWOS_ASSETS ($ASSETS) has the" >&2
     echo "  game's sound (sound/SFX.SNG or sound_dos/). Run the data setup (tools/swosdata) and set" >&2
     echo "  SWOS_ASSETS to its assets folder. A player built without it hangs." >&2
     exit 1
