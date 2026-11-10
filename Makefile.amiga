@@ -89,6 +89,7 @@ SDL_ONLY_SRCS := \
     slang.c               \
     gpu_slang.c           \
     mod_retrotv.c         \
+    mod_paletteq.c        \
     stb_image_impl.c      \
     stb_vorbis_impl.c     \
     teamdb.c              \

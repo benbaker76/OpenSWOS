@@ -1382,3 +1382,30 @@ with `scripts/import_swos2020_menus.py`, its handlers from `game.cpp` / `replays
   `bin/data_json/menus/openswos/quickAccessMenu.json`): SAVE HIGHLIGHTS (SWOS 2020's SAVE AND SHARE:
   sharing needs its server), FULL MATCH REPLAYS (LATEST.SRP in the highlights viewer), CONTINUE.
   Off by default, as SWOS 2020 shipped it: `[general] quick_access = true`. SDL.
+
+## Retro Palettes: the `paletteq` mod (2026-11-09)
+
+`src/mod_paletteq.c`, `bin/mods/paletteq` (canonical, cosmetic, SDL, off by default): the picture in
+an old machine's colours through OpenSWOS's own slang shader, `shaders/paletteq.slang` -- the method
+of Jungool's C64 mode: each game pixel taken whole (the pass draws at the window's size and every
+screen pixel reads the game pixel it lies in, so the blocks stay hard-edged), a 4x4 Bayer dither fixed
+to the game's pixel grid (a scrolling pitch keeps its pattern), then one read of a lookup strip
+(`PALETTE_LUT`, N tiles of N x N: red across, green down, blue the tile; N is its height) that holds
+every colour's nearest palette colour.
+
+Settings: **Palette** -- amiga-ecs (the OCS/ECS colour space, 4,096 colours), amiga-aga (SWOS's own
+AGA palette, from `src/swos_amiga_data_imports.c`), dos-vga (the VGA BIOS's mode 13h palette), c64
+(Colodore), nes, master-system (6-bit RGB), mega-drive (9-bit RGB), game-boy, virtual-boy,
+atari-secam, amstrad-cpc, zx-spectrum, msx (TMS9918), intellivision (Wikipedia's YIQ table),
+super-cassette-vision, odyssey2 (RGBI), cga, pico-8; **Dither** on / off; **Dither strength** auto (the
+palette's own: little for 4,096 colours, much for 4), low, medium, high (the shader's `DITHER`).
+The GPU presenter only. One preset draws the picture: with `retrotv` on as well, this one shows.
+
+The strips and the presets are made by `scripts/make_paletteq.sh` with `scripts/palette_to_lut.py`
+(from Jungool, with OpenSWOS's palettes added: the ECS gamut and the VGA palette by rule, SWOS's AGA
+palette read from the source, the consoles from Wikipedia's List of video game console palettes):
+by CIEDE2000 -- the weighted RGB distance lost the hue (the NES and PICO-8 pitches came out brown and
+orange) -- but CGA, whose green pitch is white by hue and the remembered cyan-and-magenta dither by
+brightness. A palette: its colours in palette_to_lut.py, a line in make_paletteq.sh, a row in
+mod_paletteq.c's table and mod.json's choices. Checked: `--slang-selftest` compiles the preset for
+GLSL 410 / ES 300, Metal and HLSL; the algorithm run on a match frame for every palette (by eye).

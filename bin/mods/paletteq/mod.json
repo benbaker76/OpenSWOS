@@ -1,0 +1,60 @@
+{
+ "uuid": "5e422945-7203-570f-acfb-8dd5424deedd",
+ "id": "paletteq",
+ "name": "Retro Palettes",
+ "version": "1.0",
+ "author": "OpenSWOS (the method: Jungool's C64 mode; RetroArch's slang shader format)",
+ "about": "The picture in an old machine's colours, dithered as its games were: the Amiga's ECS and SWOS's own AGA palette, the PC's VGA, the Commodore 64, the NES, Master System, Mega Drive, Game Boy, Virtual Boy, ZX Spectrum, Amstrad CPC, MSX, CGA and more. Needs the GPU picture; with Retro TV on as well, this one shows.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": false,
+ "settings": [
+  {
+   "key": "palette",
+   "label": "Palette",
+   "choices": [
+    "amiga-ecs",
+    "amiga-aga",
+    "dos-vga",
+    "c64",
+    "nes",
+    "master-system",
+    "mega-drive",
+    "game-boy",
+    "virtual-boy",
+    "atari-secam",
+    "amstrad-cpc",
+    "zx-spectrum",
+    "msx",
+    "intellivision",
+    "super-cassette-vision",
+    "odyssey2",
+    "cga",
+    "pico-8"
+   ],
+   "default": "c64"
+  },
+  {
+   "key": "dither",
+   "label": "Dither",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "dither_strength",
+   "label": "Dither strength",
+   "choices": [
+    "auto",
+    "low",
+    "medium",
+    "high"
+   ],
+   "default": "auto"
+  }
+ ]
+}

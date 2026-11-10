@@ -1,0 +1,8 @@
+# The picture in the odyssey2 palette (paletteq.slang; luts/odyssey2.png: scripts/make_paletteq.sh).
+shaders = 1
+shader0 = paletteq.slang
+filter_linear0 = false
+scale_type0 = viewport
+textures = PALETTE_LUT
+PALETTE_LUT = luts/odyssey2.png
+PALETTE_LUT_linear = false

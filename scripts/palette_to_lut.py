@@ -72,6 +72,34 @@ BUILTIN = {
     "gameboy": ["0f380f", "306230", "8bac0f", "9bbc0f"],
     # CGA mode 4, palette 1 high intensity.
     "cga": ["000000", "55ffff", "ff55ff", "ffffff"],
+    # The NES's 2C02, the long-standing table emulators started from (its blacks included once).
+    "nes": [
+        "7c7c7c", "0000fc", "0000bc", "4428bc", "940084", "a80020", "a81000", "881400",
+        "503000", "007800", "006800", "005800", "004058", "000000",
+        "bcbcbc", "0078f8", "0058f8", "6844fc", "d800cc", "e40058", "f83800", "e45c10",
+        "ac7c00", "00b800", "00a800", "00a844", "008888",
+        "f8f8f8", "3cbcfc", "6888fc", "9878f8", "f878f8", "f85898", "f87858", "fca044",
+        "f8b800", "b8f818", "58d854", "58f898", "00e8d8", "787878",
+        "fcfcfc", "a4e4fc", "b8b8f8", "d8b8f8", "f8b8f8", "f8a4c0", "f0d0b0", "fce0a8",
+        "f8d878", "d8f878", "b8f8b8", "b8f8d8", "00fcfc", "f8d8f8",
+    ],
+    # The TMS9918's 15 colours and transparent-as-black (ColecoVision, MSX, SG-1000).
+    "msx": [
+        "000000", "21c842", "5edc78", "5455ed", "7d76fc", "d4524d", "42ebf5", "fc5554",
+        "ff7978", "d4c154", "e6ce80", "21b03b", "c95bba", "cccccc", "ffffff",
+    ],
+    # The Virtual Boy's red LEDs: off and three levels.
+    "virtual-boy": ["000000", "550000", "aa0000", "ff0000"],
+    # Epoch's Super Cassette Vision: each channel 0, 75 or 100% (Wikipedia's table).
+    "super-cassette-vision": [
+        "0000bf", "000000", "0000ff", "bf00ff", "00ff00", "bfffbf", "00ffff", "00bf00",
+        "ff0000", "ffbf00", "ff00ff", "ffbfbf", "ffff00", "bfbf00", "bfbfbf", "ffffff",
+    ],
+    # PICO-8, the fantasy console (not a machine, but the best-loved 16 colours since).
+    "pico-8": [
+        "000000", "1d2b53", "7e2553", "008751", "ab5236", "5f574f", "c2c3c7", "fff1e8",
+        "ff004d", "ffa300", "ffec27", "00e436", "29adff", "83769c", "ff77a8", "ffccaa",
+    ],
 }
 
 
@@ -123,10 +151,46 @@ def _swos_aga():
     return ["%02x%02x%02x" % (((w >> 8) & 15) * 17, ((w >> 4) & 15) * 17, (w & 15) * 17) for w in words]
 
 
+def _levels_gamut(levels):
+    """Every colour whose channels take only these values (a console's DAC steps)."""
+    return ["%02x%02x%02x" % (r, g, b) for r in levels for g in levels for b in levels]
+
+
+def _intellivision():
+    """The STIC's 16 colours from Wikipedia's YIQ table (List of video game console palettes)."""
+    yiq = [(0.000, 0.000, 0.000), (0.330, -0.733, 0.660), (0.523, 0.666, 0.200), (0.715, 0.266, -0.133),
+           (0.413, -0.133, -0.600), (0.577, -0.200, -0.533), (0.853, 0.533, -0.333), (1.000, 0.000, 0.000),
+           (0.550, 0.000, 0.000), (0.660, -0.533, -0.266), (0.687, 0.533, -0.066), (0.330, 0.266, -0.266),
+           (0.550, 0.400, 0.667), (0.660, -0.400, 0.400), (0.687, 0.066, -0.533), (0.440, 0.133, 0.533)]
+    out = []
+    for y, i, q in yiq:
+        rgb = (y + 0.956 * i + 0.621 * q, y - 0.272 * i - 0.647 * q, y - 1.106 * i + 1.703 * q)
+        out.append("%02x%02x%02x" % tuple(max(0, min(255, round(c * 255))) for c in rgb))
+    return out
+
+
+def _odyssey2():
+    """The Odyssey 2 / Videopac's 4-bit RGBI: eight colours, dim and bright."""
+    out = []
+    for bright in (0, 1):
+        for c in range(8):
+            r, g, b = (c >> 2) & 1, (c >> 1) & 1, c & 1
+            v = 0xff if bright else 0xaa
+            lo = 0x55 if bright else 0x00
+            out.append("%02x%02x%02x" % tuple(v if x else lo for x in (r, g, b)))
+    return out
+
+
 GENERATED = {
     "amiga-ecs": _ecs_gamut,        # 4,096 colours: exact with --levels 16
     "swos-aga": _swos_aga,          # SWOS's own AGA palette (256, a few repeated)
     "vga-mode13h": _vga_mode13h,    # the VGA BIOS default
+    "master-system": lambda: _levels_gamut((0, 85, 170, 255)),                     # 6-bit RGB, 64
+    "mega-drive": lambda: _levels_gamut(tuple(round(v * 255 / 7) for v in range(8))),  # 9-bit RGB, 512
+    "atari-secam": lambda: _levels_gamut((0, 255)),                                 # 3-bit RGB, 8
+    "amstrad-cpc": lambda: _levels_gamut((0, 128, 255)),                            # 27 colours
+    "intellivision": _intellivision,
+    "odyssey2": _odyssey2,
 }
 
 
