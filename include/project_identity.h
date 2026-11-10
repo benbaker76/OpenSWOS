@@ -71,6 +71,12 @@
  * other tweaks out can still offer the launcher's keeper option. Off line only, like every tweak. */
 #define PROJECT_TWEAK_STRONGER_GK PROJECT_TWEAKS
 
+/* The tweaks that are ON by default (include/tweaks.h TWEAKS_DEFAULT_ON): the fix of the
+ * originals' ball-contest lookup and SWOS 2020's career league rules (its "career crash fixes",
+ * 3 points for a win, 5 substitutes). 1 builds them even when PROJECT_TWEAKS is 0, as the
+ * stronger keepers above; RULES OPTIONS shows them. Off line only, like every tweak. */
+#define PROJECT_TWEAK_FIXES     PROJECT_TWEAKS
+
 /* STATIC MODS (docs/MODS.md §14): canonical mods -- folders in the game's own mods/ -- that are
  * part of this game rather than a choice: always on, whatever [mods] disabled says, and never
  * listed, neither on OPTIONS -> MODS (nor in its "N ON") nor on the setup's Mods screen. Slugs,

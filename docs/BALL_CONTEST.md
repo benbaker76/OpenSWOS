@@ -275,8 +275,10 @@ the other 58 they had the same one, and the lookup happens to be right.)
 
 ### The fix, as a setting
 
-`[gameplay] contest_own_ratings = true` (`--contest-own-ratings=on`) rates each side by the
-man actually at the ball. **Default false: the original.** In the Amiga code it is one
+`[tweaks] contest_own_ratings = true` (`--contest-own-ratings=on`; RULES OPTIONS' BALL CONTEST)
+rates each side by the man actually at the ball. **On by default since 2026-11-10** (a tweak: off
+online and under the rigs, which play the original; it was `[gameplay] contest_own_ratings`,
+default false). In the Amiga code it is one
 instruction — put this team's own man back in `a1` before the first lookup:
 
 ```

@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "tweaks.h"            /* [tweaks] contest_own_ratings */
 #include "ball_possession.h"
 #include "dos_sound.h"
 #include "math68k.h"  /* M68kShiftLeft16: a signed left shift is UB, and the two platforms differ */
@@ -466,10 +467,10 @@ exit_kick:
  * opponent's controlled player, but A6 -> this team?" beside it). The second lookup, for
  * the opponent, is right. docs/BALL_CONTEST.md, "Whose ratings the roll uses".
  *
- * 0 (the default) keeps it, because the game is the original's: a recording of the
- * original only replays with it. 1 rates this team by the man who is actually at the
- * ball -- `[gameplay] contest_own_ratings`, or -DSWOS_CONTEST_OWN_RATINGS=1 for a build
- * with no SWOS.ini (the Amiga's, through EXTRA_CFLAGS).
+ * The fix rates this team by the man who is actually at the ball: `[tweaks]
+ * contest_own_ratings` (include/tweaks.h; ON by default since 2026-11-10, off in the rigs,
+ * where a recording of the original only replays with the original's roll), or
+ * -DSWOS_CONTEST_OWN_RATINGS=1 for a build with no SWOS.ini (the Amiga's, through EXTRA_CFLAGS).
  *
  * OFFLINE ONLY for now. Two netplay peers must roll the same dice, and a recording must
  * be replayed by the rule it was played with; neither the handshake nor the .SRP says
@@ -486,6 +487,8 @@ static int contestOwnRatings(void)
     extern int32_t NetplayMatch_Enabled(void);
     if (NetplayMatch_Enabled())
         return 0;
+    if (Tweaks_On(TWEAK_CONTEST_OWN_RATINGS))
+        return 1;
 #endif
     return _gContestOwnRatings;
 }

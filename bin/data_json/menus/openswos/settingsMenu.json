@@ -185,7 +185,7 @@
       "name": "note",
       "coords": {
         "x": 12,
-        "y": 156,
+        "y": 176,
         "w": 296,
         "h": 12
       },
@@ -201,7 +201,7 @@
       "name": "exit",
       "coords": {
         "x": 110,
-        "y": 178,
+        "y": 194,
         "w": 100,
         "h": 15
       },
@@ -220,7 +220,7 @@
           "op": "nav",
           "left": -1,
           "right": -1,
-          "up": 8,
+          "up": 9,
           "down": -1
         },
         {
@@ -254,11 +254,44 @@
           "left": -1,
           "right": -1,
           "up": 5,
-          "down": 7
+          "down": 9
         },
         {
           "op": "onselect_fire",
           "func": "settingsMenu_display_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "rules",
+      "coords": {
+        "x": 92,
+        "y": 154,
+        "w": 136,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "RULES"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 8,
+          "down": 7
+        },
+        {
+          "op": "onselect_fire",
+          "func": "settingsMenu_rules_OnSelect"
         }
       ]
     }

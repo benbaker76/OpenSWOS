@@ -925,10 +925,6 @@ static const Row k_gameplayRows[] = {
     /* (launcher options, agent A) */
     { "ARTWORK",                 art_show,      art_change },
     { "MENU LOOK",               look_show,     look_change },
-#if SWOS_TWEAK_STRONGER_GK
-    { "STRONGER KEEPERS",        keepers_show,  keepers_change },
-#endif
-    { "CPU TACTICS",             tactics_show,  tactics_change },
     { "SKIP INTRO",              intro_show,    intro_change },
     { "INTRO PICTURES",          reels_show,    reels_change },
     { "PRE-MATCH PAUSE",         loadpause_show, loadpause_change },
@@ -1028,6 +1024,79 @@ static const Row k_displayRows[] = {
 };
 static const Page k_displayPage = { "DISPLAY OPTIONS", k_displayRows, (int32_t)(sizeof k_displayRows / sizeof k_displayRows[0]) };
 
+/* ===================================================================== RULES
+ * The tweaks that change the original's rules (include/tweaks.h): the contest fix and SWOS 2020's
+ * league rules, ON by default; the stronger keepers and the CPU's tactics (launcher options).
+ * Every one is OFF LINE ONLY: an online match, and the test rigs, play the original. */
+
+#if SWOS_TWEAK_FIXES
+static void tweak_flip(uint32_t bit)
+{
+    O()->tweaks ^= bit;
+    Tweaks_Set(O()->tweaks);
+    save();
+}
+static void contest_show(char *o, int32_t c)
+{
+    snprintf(o, (size_t)c, "%s", (O()->tweaks & TWEAK_CONTEST_OWN_RATINGS) ? "FIXED" : "ORIGINAL");
+}
+static void contest_change(int32_t dir)
+{
+    (void)dir;
+    tweak_flip(TWEAK_CONTEST_OWN_RATINGS);
+    note((O()->tweaks & TWEAK_CONTEST_OWN_RATINGS) ? "EACH SIDE RATED BY ITS MAN AT THE BALL; OFF LINE ONLY"
+                                                    : "THE ORIGINAL RATES ONE SIDE BY A TEAM-MATE");
+}
+static void league_tweak(uint32_t bit, const char *on, const char *off)
+{
+    extern void TeamDb_ApplyLeagueTweaks(void);
+    tweak_flip(bit);
+    TeamDb_ApplyLeagueTweaks();
+    note((O()->tweaks & bit) ? on : off);
+}
+static void lfix_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", (O()->tweaks & TWEAK_LEAGUE_CRASH_FIXES) ? "ON" : "OFF"); }
+static void lfix_change(int32_t dir)
+{
+    (void)dir;
+    league_tweak(TWEAK_LEAGUE_CRASH_FIXES, "LEAGUES FITTED TO THEIR TEAMS: NEW CAREERS", "THE ORIGINAL'S: NEW CAREERS");
+}
+static void lrules_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", (O()->tweaks & TWEAK_LEAGUE_RULES_2020) ? "SWOS 2020" : "ORIGINAL"); }
+static void lrules_change(int32_t dir)
+{
+    (void)dir;
+    league_tweak(TWEAK_LEAGUE_RULES_2020, "GREECE, ISRAEL, ITALY, SCOTLAND: NEW CAREERS", "THE ORIGINAL'S: NEW CAREERS");
+}
+static void points_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", (O()->tweaks & TWEAK_THREE_POINTS) ? "3" : "ORIGINAL"); }
+static void points_change(int32_t dir)
+{
+    (void)dir;
+    league_tweak(TWEAK_THREE_POINTS, "3 POINTS FOR A WIN: NEW CAREERS", "THE ORIGINAL'S: NEW CAREERS");
+}
+static void subs_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", (O()->tweaks & TWEAK_FIVE_SUBSTITUTES) ? "5 FROM 5" : "ORIGINAL"); }
+static void subs_change(int32_t dir)
+{
+    (void)dir;
+    league_tweak(TWEAK_FIVE_SUBSTITUTES, "5 SUBSTITUTES FROM 5: NEW CAREERS", "THE ORIGINAL'S: NEW CAREERS");
+}
+#endif
+
+static const Row k_rulesRows[] = {
+#if SWOS_TWEAK_FIXES
+    { "BALL CONTEST",            contest_show,  contest_change },
+#endif
+#if SWOS_TWEAK_STRONGER_GK
+    { "STRONGER KEEPERS",        keepers_show,  keepers_change },
+#endif
+    { "CPU TACTICS",             tactics_show,  tactics_change },
+#if SWOS_TWEAK_FIXES
+    { "LEAGUE CRASH FIXES",      lfix_show,     lfix_change },
+    { "LEAGUE RULES",            lrules_show,   lrules_change },
+    { "POINTS FOR A WIN",        points_show,   points_change },
+    { "SUBSTITUTES",             subs_show,     subs_change },
+#endif
+};
+static const Page k_rulesPage = { "RULES OPTIONS", k_rulesRows, (int32_t)(sizeof k_rulesRows / sizeof k_rulesRows[0]) };
+
 /* ===================================================================== SETTINGS (the hub) */
 
 static void page_show(const Page *page)
@@ -1052,6 +1121,7 @@ static void settingsMenu_video_OnSelect(void)    { page_show(&k_videoPage); }
 static void settingsMenu_audio_OnSelect(void)    { page_show(&k_audioPage); }
 static void settingsMenu_gameplay_OnSelect(void) { page_show(&k_gameplayPage); }
 static void settingsMenu_display_OnSelect(void)  { page_show(&k_displayPage); }   /* (launcher options, agent B) */
+static void settingsMenu_rules_OnSelect(void)    { page_show(&k_rulesPage); }     /* (the tweaks on by default) */
 static void settingsMenu_exit_OnSelect(void)     { SetExitMenuFlag(); }
 
 /* ===================================================================== CONTROLLER SETUP */
@@ -1307,6 +1377,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(settingsMenu_audio_OnSelect),
     HANDLER(settingsMenu_gameplay_OnSelect),
     HANDLER(settingsMenu_display_OnSelect),
+    HANDLER(settingsMenu_rules_OnSelect),
     HANDLER(settingsMenu_exit_OnSelect),
     HANDLER(settingsPage_OnInit),
     HANDLER(settingsPage_OnDraw),
@@ -1404,7 +1475,7 @@ static int DisplayOptions_SelfTest(void)
 int SettingsMenus_SelfTest(void)
 {
     static const Page *const pages[] = { &k_controlsPage, &k_videoPage, &k_audioPage, &k_gameplayPage,
-                                         &k_displayPage };
+                                         &k_displayPage, &k_rulesPage };
     int fails = 0;
     SettingsMenus_Init();
     for (size_t p = 0; p < sizeof pages / sizeof pages[0]; p++) {

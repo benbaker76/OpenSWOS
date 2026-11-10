@@ -35,6 +35,7 @@
 #include "mods.h"
 #include "world.h"
 #include "fixture_rounds.h"
+#include "tweaks.h"         /* the league-rule tweaks: TeamDb_ApplyLeagueTweaks */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -338,6 +339,146 @@ void TeamDb_Apply(void)
         _uefaCup.header.awayGoalsMode = 0;
     }
     free(json);
+}
+
+
+/* ---- SWOS 2020's league rules as tweaks, in 96/97 (include/tweaks.h; on by default) ----
+ *
+ * The launcher always passed SWOS 2020 --career-crash-fix=1111111 --always-points-per-win-3=1
+ * (core/src/game_launch.cpp), so its players had all of fixupLeague (src/init.cpp) in 96/97 too:
+ *   league_crash_fixes   1-3: a division sized by its file's clubs, and if one grew a season a
+ *                        month longer and fewer meetings -- nothing in 96/97's own leagues;
+ *   league_rules_2020    4-7: Greece from October (its cup September-June), Israel twice,
+ *                        Italy 3 down / 3 up, Scotland three times;
+ *   three_points_for_a_win, five_substitutes (SWOS 2020's mSub 5*16+5, leagues and cups).
+ * Applied to the competition graph at start-up and whenever RULES OPTIONS changes one, always
+ * from the leagues as they were installed (a snapshot), so switching one off gives the original
+ * back. A career copies its leagues when it starts and saves them: it keeps the rules it began
+ * with. Not with a team database mod (it brings its own: TeamDb_Apply) nor in another world
+ * (a world's leagues are its own); and as every tweak, not under the rigs (golden careers). */
+enum { kRuleFiles = CN_EUROPE };
+static CompetitionLeague s_ruleLeague[kRuleFiles];
+static int8_t   s_ruleCupSubs[kRuleFiles][2];
+static uint8_t  s_ruleSaved[kRuleFiles];
+static uint8_t  s_ruleSnapped;
+
+static CompetitionLeague *rule_league(int32_t file, void ***entryOut)
+{
+    void **entry = (void **)_competitionsTable[file];
+    if (file == CN_CUSTOM || !entry || (intptr_t)entry == -1 || !entry[0] || (intptr_t)entry[0] == -1)
+        return NULL;
+    CompetitionLeague *lg = (CompetitionLeague *)entry[0];
+    if ((uint8_t)lg->header.comp.teamNumber != (uint8_t)file || lg->header.divisionsCount < 1 ||
+        lg->header.divisionsCount > LEAGUE_MAX_DIVISIONS)
+        return NULL;
+    *entryOut = entry;
+    return lg;
+}
+
+static CompCupHeader *rule_cup(void **entry, int32_t k, int32_t file)
+{
+    if (!entry[k] || (intptr_t)entry[k] == -1)
+        return NULL;
+    CompCupHeader *cup = (CompCupHeader *)entry[k];
+    return (cup->comp.type == 1 && (uint8_t)cup->comp.teamNumber == (uint8_t)file) ? cup : NULL;
+}
+
+void TeamDb_ApplyLeagueTweaks(void)
+{
+    const uint32_t mask = TWEAK_LEAGUE_CRASH_FIXES | TWEAK_LEAGUE_RULES_2020 | TWEAK_THREE_POINTS |
+                          TWEAK_FIVE_SUBSTITUTES;
+    int32_t file, changed = 0;
+    void **entry;
+
+    if (s_db.on || World_Current() != WORLD_9697)
+        return;
+    if (!s_ruleSnapped) {                               /* the leagues as installed, once */
+        for (file = 0; file < kRuleFiles; file++) {
+            CompetitionLeague *lg = rule_league(file, &entry);
+            if (!lg)
+                continue;
+            s_ruleLeague[file] = *lg;
+            for (int32_t k = 0; k < 2; k++) {
+                CompCupHeader *cup = rule_cup(entry, k + 2, file);
+                s_ruleCupSubs[file][k] = cup ? cup->subsAndPointsForWin : 0;
+            }
+            s_ruleSaved[file] = 1;
+        }
+        s_ruleSnapped = 1;
+    }
+    const int fixes = Tweaks_On(TWEAK_LEAGUE_CRASH_FIXES), rules = Tweaks_On(TWEAK_LEAGUE_RULES_2020),
+              three = Tweaks_On(TWEAK_THREE_POINTS), five = Tweaks_On(TWEAK_FIVE_SUBSTITUTES);
+    for (file = 0; file < kRuleFiles; file++) {
+        CompetitionLeague *lg = rule_league(file, &entry);
+        if (!lg || !s_ruleSaved[file])
+            continue;
+        *lg = s_ruleLeague[file];                       /* the original, then the tweaks on it */
+        for (int32_t k = 0; k < 2; k++) {
+            CompCupHeader *cup = rule_cup(entry, k + 2, file);
+            if (cup)
+                cup->subsAndPointsForWin = s_ruleCupSubs[file][k];
+        }
+        const int32_t divisions = lg->header.divisionsCount;
+        if (fixes) {
+            int32_t count[LEAGUE_MAX_DIVISIONS], grew = 0;
+            if (division_counts(file, count))           /* #1 team_num_fix */
+                for (int32_t i = 0; i < divisions && i < LEAGUE_MAX_DIVISIONS; i++)
+                    if (count[i] > 0 && count[i] != lg->divisions[i].teams) {
+                        if (count[i] > lg->divisions[i].teams)
+                            grew = 1;
+                        lg->divisions[i].teams = (int8_t)count[i];
+                    }
+            if (grew) {                                 /* #2 month_fix, #3 each_match_fix */
+                int32_t b = (uint8_t)lg->header.comp.beginMonth / 8, e = (uint8_t)lg->header.comp.endMonth / 8;
+                if (b < e) { if (b - 1 >= 0) b--; else e++; }
+                else       { if (b - 1 >= 6) b--; else e++; }
+                lg->header.comp.beginMonth = (int8_t)(b * 8);
+                lg->header.comp.endMonth = (int8_t)(e * 8);
+                for (int32_t i = 0; i < divisions && i < LEAGUE_MAX_DIVISIONS; i++)
+                    if (lg->divisions[i].teams > 12) {
+                        lg->header.rounds = 2;
+                        break;
+                    }
+            }
+        }
+        if (rules) {
+            if (file == 15) {                           /* #4 Greece: October; its cup September-June */
+                lg->header.comp.beginMonth = 7 * 8;
+                for (int32_t k = 2; k <= 3; k++) {
+                    CompCupHeader *cup = rule_cup(entry, k, file);
+                    if (cup) {
+                        cup->comp.beginMonth = 8 * 8;
+                        cup->comp.endMonth = 5 * 8;
+                    }
+                }
+            }
+            if (file == 19)                             /* #5 Israel: twice */
+                lg->header.rounds = 2;
+            if (file == 20 && divisions >= 2) {         /* #6 Italy: 3 down, 3 up */
+                lg->divisions[0].relegated = 3;
+                lg->divisions[1].promoted = 3;
+            }
+            if (file == 33)                             /* #7 Scotland: three times */
+                lg->header.rounds = 3;
+        }
+        if (three)
+            lg->header.pointsForWin = 3;
+        if (five) {
+            lg->header.subsAndMaxSubs = 5 * 16 + 5;
+            for (int32_t k = 2; k <= 3; k++) {
+                CompCupHeader *cup = rule_cup(entry, k, file);
+                if (cup)
+                    cup->subsAndPointsForWin = 5 * 16 + 5;
+            }
+        }
+        if (memcmp(&s_ruleLeague[file], lg, sizeof *lg) != 0)
+            changed++;
+    }
+    fprintf(stderr, "[tweaks] 96/97 leagues:%s%s%s%s%s (%d leagues changed; a new career takes them)\n",
+            fixes ? " league_crash_fixes" : "", rules ? " league_rules_2020" : "",
+            three ? " three_points_for_a_win" : "", five ? " five_substitutes" : "",
+            (fixes || rules || three || five) ? "" : " the original's", (int)changed);
+    (void)mask;
 }
 
 #endif /* SWOS_SDL_BUILD */

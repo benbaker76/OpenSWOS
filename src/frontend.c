@@ -155,6 +155,8 @@ void FrontEndPreLoopSetup(void)
     DataJson_LoadNationalTeams();       /* (a mod's national teams: include/national_teams.h) */
     extern void TeamDb_Apply(void);
     TeamDb_Apply();                     /* (a team database mod's leagues, cups, codes, season: src/teamdb.c) */
+    extern void TeamDb_ApplyLeagueTweaks(void);
+    TeamDb_ApplyLeagueTweaks();         /* ([tweaks] SWOS 2020's league rules, on by default: 96/97 only) */
     /* SWOS_MENU_JSON: load every menu from bin/data_json/menus/*.json and overwrite
        the compiled static menu bytes IN PLACE (docs/MENUS.md §2d), so editing the
        JSON changes the running game. Bounded by each menu's compiled size; a menu

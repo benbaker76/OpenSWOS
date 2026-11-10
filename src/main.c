@@ -602,7 +602,9 @@ int main(int argc, char **argv)
     opts.esc_presses = 1;
     memset(opts.key_bind, 0, sizeof opts.key_bind);   /* no keys of the player's own */
     opts.fire_hold_lockout = 0;   /* default: the original's fire-hold bug is FIXED */
-    opts.contest_own_ratings = 0; /* default: the original's roll, team-mate's rating and all */
+    /* The tweaks that start ON (include/tweaks.h TWEAKS_DEFAULT_ON: the contest fix, SWOS 2020's
+     * league rules), of those this build has; [tweaks] in SWOS.ini then says otherwise. */
+    opts.tweaks = Tweaks_Built(TWEAKS_DEFAULT_ON);
     opts.live_cast = 1;           /* (LIVE CAST: viewers may watch, as SWOS 2020's ON) */
     opts.replay_auto_save = 0;    /* default: LATEST.SRP only, no dated copy per match */
     opts.replay_frame_overlay = 1;    /* (SWOS 2020's FRAME INFO OVERLAY: on) */
@@ -760,7 +762,9 @@ int main(int argc, char **argv)
                 return 1;
             }
         } else if ((v = match_kv(a, "contest-own-ratings")) != NULL) {
-            opts.contest_own_ratings = (strcmp(v, "on") == 0 || strcmp(v, "1") == 0);
+            /* ([tweaks] contest_own_ratings since 2026-11-10; this flag still sets it) */
+            if (strcmp(v, "on") == 0 || strcmp(v, "1") == 0) opts.tweaks |= Tweaks_Built(TWEAK_CONTEST_OWN_RATINGS);
+            else opts.tweaks &= ~TWEAK_CONTEST_OWN_RATINGS;
         } else if ((v = match_kv(a, "fire-hold-lockout")) != NULL) {
             if (strcmp(v, "on") == 0 || strcmp(v, "1") == 0)       opts.fire_hold_lockout = 1;
             else if (strcmp(v, "off") == 0 || strcmp(v, "0") == 0) opts.fire_hold_lockout = 0;
@@ -1207,10 +1211,8 @@ int main(int argc, char **argv)
          * see project_replay_framerate_decouple. */
         if (!Rollback_Enabled())
         opts.fire_hold_lockout = 1;
-        /* And the original's roll: its recordings only replay with the squad-slot lookup
-         * (docs/BALL_CONTEST.md -- playa-10090613 parts at frame 7,009 without it). */
-        if (!Rollback_Enabled())
-        opts.contest_own_ratings = 0;
+        /* (The original's contest roll: the tweak is off under the rigs, Tweaks_On --
+         * docs/BALL_CONTEST.md: playa-10090613 parts at frame 7,009 without it.) */
         /* Replay at the port's OWN native view, not the tester's monitor. The
          * original reason given here — "SWOS's camera constants are all derived
          * from the view size" — no longer holds: b4775f3 pinned _sim_view_width
@@ -1392,8 +1394,6 @@ int main(int argc, char **argv)
     Gameplay_SetStyle(opts.dos_gameplay);      /* the style, its flags and the OPTIONS row */
     { extern int _gOriginalFireHoldLockout;
       _gOriginalFireHoldLockout = opts.fire_hold_lockout; }
-    { extern int _gContestOwnRatings;
-      _gContestOwnRatings = opts.contest_own_ratings; }
     /* And say which style is actually in force, so "it ran in Amiga mode" is
      * something a tester can read off rather than infer from feel. */
     fprintf(stderr, "[gameplay] %s\n", _gGameplayStyle == GAMEPLAY_DOS
@@ -1407,8 +1407,8 @@ int main(int argc, char **argv)
             : "AMIGA (the shipped default)");
     /* Say it out loud — this one is a deliberate departure from the original,
      * so a tester comparing against real SWOS can see which half he is on. */
-    fprintf(stderr, "[gameplay] contested ball: %s\n", opts.contest_own_ratings
-            ? "each side rated by the man at the ball (contest_own_ratings; offline matches only)"
+    fprintf(stderr, "[gameplay] contested ball: %s\n", (opts.tweaks & TWEAK_CONTEST_OWN_RATINGS)
+            ? "each side rated by the man at the ball ([tweaks] contest_own_ratings; offline matches only)"
             : "the original's roll (one side rated by a team-mate, as both releases do)");
     fprintf(stderr, "[gameplay] fire-hold lockout: %s\n", opts.fire_hold_lockout
             ? "ON — original Amiga behaviour (an opponent's tackle kills your shot charge)"
@@ -1516,12 +1516,17 @@ int main(int argc, char **argv)
     }
     Tweaks_Set(opts.tweaks);    /* [tweaks] (include/tweaks.h): off line only, off in the rigs */
     if (opts.tweaks)
-        fprintf(stderr, "[tweaks] on:%s%s%s%s%s (off line only)\n",
+        fprintf(stderr, "[tweaks] on:%s%s%s%s%s%s%s%s%s%s (off line only)\n",
                 (opts.tweaks & TWEAK_CPU_CARDS) ? " cpu_cards" : "",
                 (opts.tweaks & TWEAK_NO_TEAMMATE_TACKLES) ? " no_teammate_tackles" : "",
                 (opts.tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? " tackle_controlled_player" : "",
                 (opts.tweaks & TWEAK_STRONGER_GOALKEEPER_AI) ? " stronger_goalkeeper_ai" : "",
-                (opts.tweaks & TWEAK_UNLIMITED_TRANSFERS) ? " unlimited_transfers" : "");
+                (opts.tweaks & TWEAK_UNLIMITED_TRANSFERS) ? " unlimited_transfers" : "",
+                (opts.tweaks & TWEAK_CONTEST_OWN_RATINGS) ? " contest_own_ratings" : "",
+                (opts.tweaks & TWEAK_LEAGUE_CRASH_FIXES) ? " league_crash_fixes" : "",
+                (opts.tweaks & TWEAK_LEAGUE_RULES_2020) ? " league_rules_2020" : "",
+                (opts.tweaks & TWEAK_THREE_POINTS) ? " three_points_for_a_win" : "",
+                (opts.tweaks & TWEAK_FIVE_SUBSTITUTES) ? " five_substitutes" : "");
     /* Load the UI translation table for the selected language
      * (data_json/translations/<lang>.json) now that the CWD is the binary dir
      * and stderr is the log. tr(symbol) resolves menu/UI text through it; a

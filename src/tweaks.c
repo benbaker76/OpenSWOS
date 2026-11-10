@@ -21,6 +21,11 @@ static const struct { const char *key; uint32_t bit; uint8_t byMod; } kTweaks[] 
     { "ai_injury_subs",           TWEAK_AI_INJURY_SUBS,           1 },
     { "stronger_goalkeeper_ai",   TWEAK_STRONGER_GOALKEEPER_AI,   1 },   /* (SWOS 2020's) */
     { "unlimited_transfers",      TWEAK_UNLIMITED_TRANSFERS,      1 },   /* (SWOS 2020's) */
+    { "contest_own_ratings",      TWEAK_CONTEST_OWN_RATINGS,      1 },   /* (on by default) */
+    { "league_crash_fixes",       TWEAK_LEAGUE_CRASH_FIXES,       1 },   /* (SWOS 2020's, on by default) */
+    { "league_rules_2020",        TWEAK_LEAGUE_RULES_2020,        1 },   /* (SWOS 2020's, on by default) */
+    { "three_points_for_a_win",   TWEAK_THREE_POINTS,             1 },   /* (SWOS 2020's, on by default) */
+    { "five_substitutes",         TWEAK_FIVE_SUBSTITUTES,         1 },   /* (SWOS 2020's, on by default) */
 };
 
 void Tweaks_Set(uint32_t mask) { s_mask = mask; }
@@ -39,7 +44,18 @@ static int32_t built(uint32_t bit)
 {
     if (SWOS_TWEAKS)
         return 1;
+    if (SWOS_TWEAK_FIXES && (bit & TWEAKS_DEFAULT_ON))
+        return 1;
     return SWOS_TWEAK_STRONGER_GK && bit == TWEAK_STRONGER_GOALKEEPER_AI;
+}
+
+uint32_t Tweaks_Built(uint32_t mask)
+{
+    uint32_t out = 0;
+    for (int32_t b = 0; b < 32; b++)
+        if ((mask & (1u << b)) && built(1u << b))
+            out |= 1u << b;
+    return out;
 }
 
 uint32_t Tweaks_Bit(const char *key)

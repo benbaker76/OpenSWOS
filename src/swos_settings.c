@@ -292,8 +292,8 @@ static int handler(void *user, const char *section,
         int b;
         if (eqi(name, "fire_hold_lockout") && parse_bool(value, &b))
             opts->fire_hold_lockout = b;
-        else if (eqi(name, "contest_own_ratings") && parse_bool(value, &b))
-            opts->contest_own_ratings = b;
+        /* ([gameplay] contest_own_ratings: [tweaks] since 2026-11-10 -- an old SWOS.ini's
+         * "false", written by every earlier build whatever the player chose, is not read) */
         else if (eqi(name, "style")) {
             if      (eqi(value, "amiga")) opts->dos_gameplay = GAMEPLAY_AMIGA;
             else if (eqi(value, "dos"))   opts->dos_gameplay = GAMEPLAY_DOS;
@@ -716,14 +716,6 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; (fixed). Your OWN tackle still spends the press either way — that half is\n"
         "; deliberate in the original. See team_control.c.",
         opts->fire_hold_lockout ? "true" : "false" };
-    SETTING(n) = (IniEntry){ "gameplay", "contest_own_ratings",
-        "; contest_own_ratings: true | false. When two players contest the ball the game\n"
-        "; rolls a dice weighted by tackling and ball control. The ORIGINAL rates one of the\n"
-        "; two sides by a team-mate (the player with the opponent's line-up number), in both\n"
-        "; the Amiga and PC releases. true rates each side by the man actually at the ball.\n"
-        "; Default false: the original. OFFLINE matches only -- an online match always\n"
-        "; plays the original's. See docs/BALL_CONTEST.md.",
-        opts->contest_own_ratings ? "true" : "false" };
 
 
     SETTING(n) = (IniEntry){ "gameplay", "style",
@@ -994,6 +986,33 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; BUY PLAYER is not held to the season's transfer quota (\"the club is unwilling to\n"
         "; purchase players\"), only to the room left in the career's player pool.",
         (opts->tweaks & TWEAK_UNLIMITED_TRANSFERS) ? "true" : "false" };
+#endif
+#if SWOS_TWEAK_FIXES   /* (ON by default -- TWEAKS_DEFAULT_ON; also alone: PROJECT_TWEAK_FIXES) */
+    SETTING(n) = (IniEntry){ "tweaks", "contest_own_ratings",
+        "; The tweaks below are ON by default (RULES OPTIONS); off line only, like every tweak.\n"
+        "; contest_own_ratings: true | false -- when two players contest the ball, each side is\n"
+        "; rated by the man at it. Both originals rate one side by a team-mate (the player with\n"
+        "; the opponent's line-up number): docs/BALL_CONTEST.md.",
+        (opts->tweaks & TWEAK_CONTEST_OWN_RATINGS) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "league_crash_fixes",
+        "; league_crash_fixes: true | false -- SWOS 2020's career fixes 1-3: a division sized by the\n"
+        "; teams in its file, and when one grew a longer season and fewer meetings. They change\n"
+        "; nothing in 96/97's own leagues; they guard against a database whose leagues differ.",
+        (opts->tweaks & TWEAK_LEAGUE_CRASH_FIXES) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "league_rules_2020",
+        "; league_rules_2020: true | false -- SWOS 2020's career fixes 4-7 in 96/97: Greece's season\n"
+        "; from October (its cup September to June), Israel plays each other twice (not three times),\n"
+        "; Italy relegates and promotes 3 (not 4), Scotland plays each other three times (not four).",
+        (opts->tweaks & TWEAK_LEAGUE_RULES_2020) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "three_points_for_a_win",
+        "; three_points_for_a_win: true | false -- every 96/97 league gives 3 points for a win\n"
+        "; (SWOS 2020's --always-points-per-win-3).",
+        (opts->tweaks & TWEAK_THREE_POINTS) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "five_substitutes",
+        "; five_substitutes: true | false -- every 96/97 league and cup: 5 substitutes from a bench\n"
+        "; of 5 (SWOS 2020's, with its 3 points). These four apply to a career started with them:\n"
+        "; a saved career keeps the rules it was started with.",
+        (opts->tweaks & TWEAK_FIVE_SUBSTITUTES) ? "true" : "false" };
 #endif
     /* ---- launcher options (agent A) ---- */
     SETTING(n) = (IniEntry){ "general", "skip_intro",
