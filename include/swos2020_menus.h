@@ -40,8 +40,9 @@
     X(myRankedStatsMenu, "swos2020/myRankedStatsMenu", MyRankedStatsMenu, 107) \
     X(myFriendlyStatsMenu, "swos2020/myFriendlyStatsMenu", MyFriendlyStatsMenu, 107) \
     X(selectUniformMenu, "swos2020/selectUniformMenu", SelectUniformMenu, 39) \
+    X(customTacticsWarningMenu, "swos2020/customTacticsWarningMenu", CustomTacticsWarningMenu, 10) \
 
-/* Every handler name the imported menus reference (262), sorted. */
+/* Every handler name the imported menus reference (264), sorted. */
 #define SWOS2020_MENU_CALLBACKS(X) \
     X(LeftBasicColor_Dec_onSelect) \
     X(LeftBasicColor_Inc_onSelect) \
@@ -86,6 +87,8 @@
     X(cupMatchView_onReturn) \
     X(cupMatchView_scrollDown_onSelect) \
     X(cupMatchView_scrollUp_onSelect) \
+    X(customTacticsWarningMenu_OnDraw) \
+    X(customTacticsWarningMenu_OnInit) \
     X(drawGoButtonAndStarsGraphics) \
     X(draw_mp_game_style_icon_sets) \
     X(exitNewsMenu_OnSelect) \
@@ -2248,5 +2251,20 @@ enum {
     SelectUniformMenu_HelpMsg = 38,
 };
 #define SelectUniformMenu_numEntries 39
+
+/* ---- customTacticsWarningMenu -- src/menus/customTacticsWarning.mnu ---- */
+enum {
+    CustomTacticsWarningMenu_header = 0,
+    CustomTacticsWarningMenu_panel = 1,
+    CustomTacticsWarningMenu_message0 = 2,
+    CustomTacticsWarningMenu_message1 = 3,
+    CustomTacticsWarningMenu_message2 = 4,
+    CustomTacticsWarningMenu_message3 = 5,
+    CustomTacticsWarningMenu_message4 = 6,
+    CustomTacticsWarningMenu_message5 = 7,
+    CustomTacticsWarningMenu_message6 = 8,
+    CustomTacticsWarningMenu_exit = 9,
+};
+#define CustomTacticsWarningMenu_numEntries 10
 
 #endif /* SWOS2020_MENUS_H */

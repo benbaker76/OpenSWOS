@@ -891,6 +891,17 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
 - **Blinking text** (`kBlinkText`) in a `dos_redraw` menu would add a vsync per blink
   frame (`UpdateBlinkingMenuText` redraws on its own). None of the imported menus blink.
 
+### 10f. The ranked match's custom-tactics warning (2026-11-09)
+
+`customTacticsWarningMenu` (swos-2020 `customTacticsWarning.mnu`, in `MULTIPLAYER_MENUS`):
+SWOS 2020 shows it after its team screen in a RANKED match not played in the PC style, when
+the opponent's team plays a USER tactic (12 and up): "YOUR OPPONENT PLAYS WITH CUSTOM TACTICS.
+ONLY PROCEED TO PLAY IF YOU AGREE ... OTHERWISE, CANCEL AND LEAVE LOBBY." Ours: the lobby's
+team screen confirmed (`lineup_screen`, `custom_tactics_warning` in `src/online_menus.c`), the
+lobby's mode `LOBBY_MODE_RANKED` (a service with ranked matches), the style not DOS, the other
+player's `tactic >= TACTIC_USER_A`. Only a warning; its OK goes back to the lobby, which it
+keeps polling. `SWOS_LOBBY_TACTICS_WARNING=1` logs it whatever the match (a test), `=2` shows it.
+
 ## 11. Overlaps (`SWOS_MENU_OVERLAP=1`)
 
 The menus were laid out for 96/97's data. A world's data can outgrow them: World 2026-27's

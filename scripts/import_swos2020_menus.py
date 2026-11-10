@@ -62,6 +62,8 @@ MULTIPLAYER_MENUS = [
     "myRankedStats", "myFriendlyStats",
     # the pre-match uniform selector, from the PLAY MATCH screen    (game.cpp)
     "selectUniform",
+    # the ranked match's warning, the opponent on custom tactics      (game.cpp)
+    "customTacticsWarning",
 ]
 
 # SWOS 2020's skip opcodes, by NUMBER (menuCodes.h: kLeftSkip = 17 ... kDownSkip = 20),

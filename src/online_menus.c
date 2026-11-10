@@ -1063,6 +1063,7 @@ static int32_t s_matchEndedEarly;   /* the last match was cut short: its notice 
 
 static void lineup_test_swap(void);    /* SWOS_LOBBY_LINEUP_SWAP, beside the TACTICS screen */
 static void lineup_screen(void);       /* the team screen, from TEAMS and TACTICS */
+static void custom_tactics_warning(void);   /* after the team screen, a ranked match (SWOS 2020) */
 
 static void lobby_test_knobs(void)
 {
@@ -2162,6 +2163,38 @@ static void lineup_screen(void)
     if (confirmed)
         NetplayLobby_SetReady(1);
     fprintf(stderr, "[lobby] team screen: %s\n", confirmed ? "confirmed, ready" : "left with EXIT, not ready");
+    if (confirmed)
+        custom_tactics_warning();
+}
+
+/* ---- the custom-tactics warning (SWOS 2020 port, agent D) ----
+ * SWOS 2020's customTacticsWarningMenu (game.cpp, after the team screen of startMultiplayTest):
+ * in a RANKED match not played in the PC style, when the other player's team plays a USER
+ * tactic (12 and up), the player is told so on leaving the team screen -- "only proceed if you
+ * agree ... otherwise, cancel and leave lobby". Only a warning: nothing is refused. */
+static void customTacticsWarningMenu_OnInit(void)
+{
+    set_text(CustomTacticsWarningMenu_header, _gGameplayStyle == GAMEPLAY_XBOX
+             ? "WARNING FOR RANKED MATCH XBOX" : "WARNING FOR RANKED MATCH AMIGA");
+}
+
+/* The lobby is not drawn while this is up and its OnDraw is what keeps the link going. */
+static void customTacticsWarningMenu_OnDraw(void)
+{
+    NetplayLobby_Poll();
+}
+
+static void custom_tactics_warning(void)
+{
+    const LobbyPlayer *other = NetplayLobby_Player(3 - NetplayLobby_LocalPlayer());
+    const int32_t test = getenv("SWOS_LOBBY_TACTICS_WARNING") != NULL;   /* (a test: shown always) */
+    if (!test && (NetplayLobby_Rules()->mode != LOBBY_MODE_RANKED || _gGameplayStyle == GAMEPLAY_DOS ||
+                  !other || !other->hasTeam || other->tactic < TACTIC_USER_A))
+        return;
+    fprintf(stderr, "[lobby] the other player plays a custom tactic: the ranked match's warning\n");
+    if (test && getenv("SWOS_LOBBY_TACTICS_WARNING")[0] == '1')
+        return;     /* (=1: say it, show nothing -- a headless run) */
+    OnlineMenus_Show(SWOS2020_MENU(customTacticsWarningMenu));
 }
 
 static void mpGameSetup_tactics_onSelect(void)
@@ -2828,6 +2861,8 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(mpGameSetupMenu_OnDraw),
     HANDLER(mpGameSetup_teams_onSelect),
     HANDLER(mpGameSetup_tactics_onSelect),
+    HANDLER(customTacticsWarningMenu_OnInit),
+    HANDLER(customTacticsWarningMenu_OnDraw),
     HANDLER(mpGameSetup_go_onSelect),
     HANDLER(selectLegOpt1),
     HANDLER(selectEtPen1),
