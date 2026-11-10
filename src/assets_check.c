@@ -59,6 +59,29 @@ static int32_t is_dir(const char *path)
     return stat(path, &st) == 0 && (st.st_mode & S_IFMT) == S_IFDIR;
 }
 
+/* The game's data is there: the assets folder the setup made (its ASSETS.ini, or an older setup's
+ * data/), or the data beside the game -- the first pitch, which every data set has and the game
+ * cannot start a menu without. */
+static int32_t have_game_data(const char *dir)
+{
+    char probe[1280];
+    FILE *f;
+    if (dir && dir[0]) {
+        snprintf(probe, sizeof probe, "%s/ASSETS.ini", dir);
+        if ((f = fopen(probe, "rb")) != NULL) { fclose(f); return 1; }
+        snprintf(probe, sizeof probe, "%s/data", dir);
+        if (is_dir(probe))
+            return 1;
+    }
+    static const char *const kProbe[] = { "grafs_aga/swcpich1.map", "grafs/swcpich1.map" };
+    for (uint32_t i = 0; i < sizeof kProbe / sizeof kProbe[0]; i++)
+        if ((f = fopen(swos_data_path(kProbe[i], probe, (uint32_t)sizeof probe), "rb")) != NULL) {
+            fclose(f);
+            return 1;
+        }
+    return 0;
+}
+
 static char *trim(char *t)
 {
     while (*t == ' ' || *t == '\t') t++;
@@ -139,6 +162,38 @@ void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath)
     const char *dir = swos_assets_dir();
     char why[256], sig[64];
 
+    if (!have_game_data(dir)) {
+        /* No game data at all: neither an assets folder made by the setup nor the data beside the
+         * game (a developer's bin/). The game would hang at its first picture, retrying the file
+         * (2026-11-10: SWOS United in a new player folder) -- so say so, offer the setup, quit.
+         * The in-game dialog needs the game's own fonts, so it is the system's message box. */
+        fprintf(stderr, "[assets] no game data: not in %s nor beside the game -- run %s\n",
+                dir && dir[0] ? dir : "(no assets folder)", PROJECT_SETUP_NAME);
+        if (getenv("SWOS_NO_ASSETS_CHECK") || !driver || strcmp(driver, "dummy") == 0 ||
+            strcmp(driver, "offscreen") == 0)
+            return;                 /* (headless: a test's; it says so in the log) */
+        char setup[1024], msg[1600];
+        const int32_t haveSetup = AssetsCheck_FindSetup(setup, sizeof setup);
+        snprintf(msg, sizeof msg,
+                 "%s plays with the game's data, made from your own copy of Sensible World of Soccer "
+                 "by %s, and there is none yet in\n%s\n\n%s",
+                 PROJECT_NAME, PROJECT_SETUP_NAME, dir && dir[0] ? dir : "(the player folder)",
+                 haveSetup ? "Launch Setup opens it: choose your copy of the game there, then start "
+                             PROJECT_NAME " again."
+                           : "Run " PROJECT_SETUP_NAME ", choose your copy of the game there, then start "
+                             PROJECT_NAME " again.");
+        const SDL_MessageBoxButtonData buttons[] = {
+            { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Quit" },
+            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Launch Setup" },
+        };
+        const SDL_MessageBoxData box = { SDL_MESSAGEBOX_WARNING, NULL, "No game data", msg,
+                                         haveSetup ? 2 : 1, buttons, NULL };
+        int hit = 0;
+        if (SDL_ShowMessageBox(&box, &hit) == 0 && hit == 1)
+            AssetsCheck_LaunchSetup();
+        SDL_Quit();
+        exit(1);
+    }
     if (!dir || !dir[0] || !is_dir(dir))
         return;                     /* no assets folder: the data is beside the game */
     outdated_parts(dir, why, sizeof why);
