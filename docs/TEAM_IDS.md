@@ -119,9 +119,11 @@ refusal, and that no match is played.
 
 A **team pack** is a mod's `data_json/teampacks/<name>.json` in the database's own team format
 (the header of `bin/data_json/teams/<COUNTRY>.json`: `"type": "team"`, `"country"`, `"teams"`),
-with a country number of its own, **150-249** (210-249 until 2026-11-09; not 100, TEAM.CUS, nor the worlds' 0-98 and 186-196) (`TEAMPACK_FIRST..LAST`, include/team_packs.h) --
-outside every country's and every world file's (countries go to 85, second files to 197,
-`kOwnCustoms` is 100). `src/team_packs.c` finds them in the mods that are on, and
+with a country number of its own in **150-249** (210-249 until 2026-11-09; `TEAMPACK_FIRST..LAST`,
+include/team_packs.h) -- outside every country's (countries go to 85, `kOwnCustoms`/TEAM.CUS is 100)
+but **not outside every world file's**: the worlds use 0-98 and their second files 186-197 (the
+Mod's Italy 197), and a world's file wins its number, so a pack at 186-197 is shadowed while that
+world plays. **Use 150..185 or 198..249.** `src/team_packs.c` finds them in the mods that are on, and
 `dj_slurp_country_teams` hands a pack's file to the game for its number when neither
 `countries.json` nor the world has one. So the team database, match loading (`LoadTeamFile`) and
 the online rule (`CustomTeam_Allowed`) take a pack's teams exactly as the database's. A number
