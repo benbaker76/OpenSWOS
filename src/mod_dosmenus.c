@@ -17,8 +17,10 @@
  *
  * F5 (ModApi_AddHotkey; [mod.dosmenus] hotkey to change it) switches between the PC shading and
  * the Amiga's flat menus while the game runs -- Playa's ask, 2026-11-08. Not remembered: each
- * start shows the game's own look first, PROJECT_MENU_LOOK_AMIGA (include/project_identity.h: the
- * Amiga's flat menus, in OpenSWOS and SWOS United alike; the PC shading one F5 away).
+ * start shows the look [mod.dosmenus] look says -- amiga | pc, the SWOS United Launcher's "Menu
+ * style" (launcher options, agent A), on this mod's page and GAMEPLAY OPTIONS' MENU LOOK, which
+ * change it at once -- and without that line the game's own, PROJECT_MENU_LOOK_AMIGA
+ * (include/project_identity.h: the Amiga's flat menus, in OpenSWOS and SWOS United alike).
  */
 #ifdef SWOS_SDL_BUILD
 
@@ -81,6 +83,17 @@ static void load_pc(void)
 }
 
 static int s_amigaLook = PROJECT_MENU_LOOK_AMIGA;  /* F5: the Amiga's flat menus for now */
+static char s_lookSetting[8] = "?";                /* [mod.dosmenus] look as last seen */
+
+/* The setting changed (the mod's page, GAMEPLAY OPTIONS' MENU LOOK; at start): its look now. */
+static void follow_setting(void)
+{
+    const char *v = ModApi_Setting(SLUG, "look", "");
+    if (strcmp(v, s_lookSetting) == 0)
+        return;
+    snprintf(s_lookSetting, sizeof s_lookSetting, "%s", v);
+    s_amigaLook = strcmp(v, "pc") == 0 ? 0 : strcmp(v, "amiga") == 0 ? 1 : PROJECT_MENU_LOOK_AMIGA;
+}
 
 static void toggle_look(void)
 {
@@ -135,6 +148,7 @@ static void frame_drawn(void)
 {
     const uint8_t *fb;
     int32_t any = 0, stride, xoff, hud = 0;
+    follow_setting();
     if (s_amigaLook)
         return;
     if (!s_pc.tried)

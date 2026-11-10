@@ -328,6 +328,23 @@ void InitGameSaveTeams(TeamGame *leftTeam, TeamGame *rightTeam)
     _paletteIndex = 2;
 }
 
+/* [general] no_load_pause (SWOS 2020's --no-load-pause, launcher options agent A): the stadium
+ * screen's 3 seconds before a match left out -- off line only, so the screens before an online
+ * match run as the other player's do, and never in a test rig. Set from SWOS.ini on SDL builds. */
+int _gNoLoadPause = 0;
+
+static int32_t NoLoadPause(void)
+{
+#ifdef SWOS_SDL_BUILD
+    extern int32_t NetplayMatch_Enabled(void), SrpResim_Armed(void), CareerAutopilot_Active(void);
+    extern int ReplayTest_Running(void), Rollback_Enabled(void);
+    return _gNoLoadPause && !NetplayMatch_Enabled() && !ReplayTest_Running() && !SrpResim_Armed() &&
+           !Rollback_Enabled() && !CareerAutopilot_Active();
+#else
+    return 0;
+#endif
+}
+
 /* ================================================================
  * Chunk 103 — Game Init Player Utilities
  * ================================================================ */
@@ -1281,7 +1298,7 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
     {
         int16_t i;
         extern int32_t ModMatch_SkipStadium(void);  /* a mod's match that wants none (mod_match.c) */
-        for (i = ModMatch_SkipStadium() ? -1 : 0x95; i >= 0; i--) {
+        for (i = ModMatch_SkipStadium() || NoLoadPause() ? -1 : 0x95; i >= 0; i--) {
             WaitForVSync();
         }
     }

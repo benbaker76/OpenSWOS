@@ -1141,6 +1141,9 @@ StartMatchSequence(TeamGame *topTeam, TeamGame *bottomTeam)
      * screen is black here, so the change is invisible -- the same rule the
      * palette learned on this exact transition. */
     MatchViewEnter();
+#ifdef SWOS_SDL_BUILD
+    { extern void TacticsExpert_MatchBegin(void); TacticsExpert_MatchBegin(); }  /* (online: the game's own) */
+#endif
     /* NO palette push here.
      *
      * InitGameSaveTeams has just faded the screen to black, and nothing has
@@ -1171,6 +1174,9 @@ StartMatchSequence(TeamGame *topTeam, TeamGame *bottomTeam)
     ClearFrontbuffers();
     GameLoop();
     MatchViewLeave();
+#ifdef SWOS_SDL_BUILD
+    { extern void TacticsExpert_MatchEnd(void); TacticsExpert_MatchEnd(); }
+#endif
 }
 
 /* ====================================================================

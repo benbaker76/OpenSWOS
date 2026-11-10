@@ -212,6 +212,15 @@ typedef struct {
     int                    menu_cursor;          /* [video] menu_cursor: 0 flashing, 1 steady */
     int                    chat_controller_off;  /* [chat] controller_off: the pad steers nobody while typing */
     int                    esc_presses;          /* [netplay] esc_presses: ESCs that leave a live match, 1-3 */
+    /* ---- launcher options (agent A): the SWOS United Launcher's, in SWOS.ini and on the settings
+     * pages (src/settings_menus.c, docs/SETTINGS.md "The launcher's options") ---- */
+    int                    skip_intro;           /* [general] skip_intro: no intro at start (--no-intro) */
+    int                    skip_image_reels;     /* [general] skip_image_reels: the intro's title only (--no-image-reels) */
+    int                    no_load_pause;        /* [general] no_load_pause: no 3 s on the stadium screen (--no-load-pause) */
+    int                    auto_centering;       /* [video] auto_centering: the window kept centred (--auto-centering) */
+    int                    show_fps;             /* [video] show_fps: the frames a second, top right (--show-fps) */
+    int                    mouse_cursor;         /* [input] mouse_cursor: 0 system, 1 workbench2, 2 workbench1 */
+    int                    cpu_tactics;          /* [gameplay] cpu_tactics: 0 normal, 1 expert (--improved-cpu-tactics) */
 } PlatformInitOptions;
 
 int  Platform_Init(const PlatformInitOptions *opts);

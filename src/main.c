@@ -302,6 +302,12 @@ static void print_usage(const char *argv0)
         "  --title-music=mp3|midi    With --music=pc: the intro plays title.mp3 (default)\n"
         "                            or sound_dos/title.xmi on the emulated card, from a\n"
         "                            mod ([audio] title_music).\n"
+        "  --no-intro, --no-image-reels, --no-load-pause, --auto-centering=0|1,\n"
+        "  --show-fps=0|1, --mouse-cursor=0|1|2, --improved-cpu-tactics=0|1\n"
+        "                            SWOS 2020's flags, as its launcher passed them: [general]\n"
+        "                            skip_intro, skip_image_reels, no_load_pause; [video]\n"
+        "                            auto_centering, show_fps; [input] mouse_cursor;\n"
+        "                            [gameplay] cpu_tactics (docs/SETTINGS.md).\n"
         "  --input-selftest          Check the redefined keys and the press latch\n"
         "  --chat-selftest           Check the match chat's text rules and its font\n"
         "  --language=<code>         The menus' language for this run: en de fr es it nl\n"
@@ -456,6 +462,21 @@ int Video_ApplyDisplayChange(void)
     _dos_view_height = SCREEN_HEIGHT;
     _menu_draw_x_offset = WIDE_MARGIN;
     Platform_ViewChanged();
+    return 1;
+}
+
+/* VIDEO OPTIONS' RESOLUTION (launcher options, agent A): [video] resolution changed while the game
+ * runs -- `dw` x `dh` the new shape (the display's own for 'auto'). With widescreen on, the next
+ * menu frame takes it (Video_ApplyDisplayChange); without, the width is the view's own and the
+ * shape changes nothing. 1 when it is taken now. */
+int Video_ResolutionChanged(const PlatformInitOptions *o, int dw, int dh)
+{
+    s_videoFollows = o->widescreen == 1 && !(o->res_w > 0 && o->res_h > 0);
+    if (o->widescreen != 1 || dw <= 0 || dh <= 0)
+        return 0;
+    s_videoPending = Video_WideWidth(dw, dh, 0);
+    if (s_videoPending == _screen_width)
+        s_videoPending = 0;
     return 1;
 }
 
@@ -859,6 +880,22 @@ int main(int argc, char **argv)
             if      (strcmp(v, "amiga") == 0)  opts.kit_art = 0;
             else if (strcmp(v, "jaguar") == 0) opts.kit_art = 1;
             else { fprintf(stderr, "--kit-art must be amiga or jaguar (got %s)\n", v); return 1; }
+        /* (launcher options, agent A) SWOS 2020's own flags, as the SWOS United Launcher passed
+         * them: each is also a SWOS.ini key and a settings row (docs/SETTINGS.md). */
+        } else if (strcmp(a, "--no-intro") == 0) {
+            opts.skip_intro = 1;
+        } else if (strcmp(a, "--no-image-reels") == 0) {
+            opts.skip_image_reels = 1;
+        } else if (strcmp(a, "--no-load-pause") == 0) {
+            opts.no_load_pause = 1;
+        } else if ((v = match_kv(a, "auto-centering")) != NULL) {
+            opts.auto_centering = atoi(v) != 0 || strcmp(v, "on") == 0;
+        } else if ((v = match_kv(a, "show-fps")) != NULL) {
+            opts.show_fps = atoi(v) != 0 || strcmp(v, "on") == 0;
+        } else if ((v = match_kv(a, "mouse-cursor")) != NULL) {
+            opts.mouse_cursor = atoi(v) >= 0 && atoi(v) <= 2 ? atoi(v) : 0;
+        } else if ((v = match_kv(a, "improved-cpu-tactics")) != NULL) {
+            opts.cpu_tactics = atoi(v) != 0 || strcmp(v, "expert") == 0;
         } else if (strcmp(a, "--online") == 0) {
             /* Straight to the multiplayer log-in; leaving it, the main menu. */
             OnlineMenus_StartOnline(0);
@@ -1425,6 +1462,10 @@ int main(int argc, char **argv)
     /* The built-in mods that are on, set up (include/mod_api.h ModDef.init): their entries and
      * their menus' handlers -- before the menus are built from JSON, which name them. */
     { extern void ModHooks_Init(void); ModHooks_Init(); }
+    if (getenv("SWOS_MOD_PAGE_TEST")) {     /* (launcher options, agent A: src/mods_menu.c) */
+        extern int32_t ModsMenu_PageTest(const char *slug);
+        return ModsMenu_PageTest(getenv("SWOS_MOD_PAGE_TEST"));
+    }
     { extern void TeamPacks_Install(void); TeamPacks_Install(); }   /* (the mods' team packs: include/team_packs.h) */
     {   /* A sprite set as a mod ("sprites": "jaguar", docs/JAGUAR.md): the Jaguar tier draws its
          * grafs_jag/, with the four shading settings its own (its page; [graphics]'s otherwise). */
@@ -1448,6 +1489,28 @@ int main(int argc, char **argv)
     if ((getenv("SWOS_MOD_MATCH_TEST") && strcmp(getenv("SWOS_MOD_MATCH_TEST"), "entry") != 0) ||
         getenv("SWOS_SKIP_INTRO"))
     { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
+    {   /* (launcher options, agent A: docs/SETTINGS.md) the start-up's, the FPS counter, and the
+         * built-in formations -- the game's own in a rig, whatever SWOS.ini says */
+        extern volatile uint8_t _skipLoaderIntro, _skipLoaderReels;
+        extern int _gNoLoadPause;
+        extern void FpsOverlay_Set(int32_t on);
+        extern void TacticsExpert_Set(int32_t expert);
+        if (opts.skip_intro)
+            _skipLoaderIntro = 1;
+        _skipLoaderReels = (uint8_t)(opts.skip_image_reels != 0);
+        _gNoLoadPause = opts.no_load_pause;
+        FpsOverlay_Set(opts.show_fps);
+        if (opts.cpu_tactics || getenv("SWOS_CPU_TACTICS_TEST"))
+            TacticsExpert_Set(opts.cpu_tactics && !s_rigRun);
+        if (getenv("SWOS_LAUNCHER_SETTINGS_TEST")) {
+            extern int Settings_LauncherSelfTest(void);
+            return Settings_LauncherSelfTest();
+        }
+        if (getenv("SWOS_CPU_TACTICS_TEST")) {
+            extern int32_t TacticsExpert_SelfTest(void);
+            return TacticsExpert_SelfTest();
+        }
+    }
     Tweaks_Set(opts.tweaks);    /* [tweaks] (include/tweaks.h): off line only, off in the rigs */
     if (opts.tweaks)
         fprintf(stderr, "[tweaks] on:%s%s%s%s%s (off line only)\n",
@@ -1692,6 +1755,12 @@ int main(int argc, char **argv)
         fprintf(stderr, "Platform_Init failed\n");
         SDL_Quit();
         return 1;
+    }
+    {   /* (launcher options, agent A) the window's: the pointer and the centring */
+        extern void MouseCursors_Apply(int32_t style);
+        extern void Platform_SetAutoCentering(int on);
+        MouseCursors_Apply(opts.mouse_cursor);
+        Platform_SetAutoCentering(opts.auto_centering);
     }
 
 #ifdef SWOS_MOBILE_BUILD

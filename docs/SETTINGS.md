@@ -278,6 +278,58 @@ frame, and it drops the edge-placement error from 0.42 to 0.10 output pixels.
 `SWOS.log` reports the factor it chose. `--scaling=sharp` restores the old
 single copy to compare.
 
+### The launcher's options (launcher options, agent A)
+
+The SWOS United Launcher (a SWOS 2020-style front end) set these with SWOS 2020's command-line
+flags; each is now a `SWOS.ini` key and a row on a settings page (OPTIONS -> SETTINGS), or a
+canonical mod's setting, so the launcher is not needed. SWOS 2020's flags still work, as it
+passed them (`--help`).
+
+| launcher option | `SWOS.ini` | in the game | |
+|---|---|---|---|
+| Resolution | `[video] resolution = auto \| WxH` | VIDEO: RESOLUTION (AUTO, 4:3, 16:10, 16:9, 21:9, 32:9) | the render's SHAPE, not its size; with widescreen on it is taken at once |
+| Auto centering | `[video] auto_centering` | VIDEO: AUTO CENTERING | a window resized, maximized or moved goes back to the middle of the display it is on (SWOS 2020's controls.cpp); windowed only |
+| Show FPS | `[video] show_fps` | VIDEO: SHOW FPS | the frames presented a second, top right, drawn over the picture (`src/fps_overlay.c`), never into the game's frame |
+| Mouse cursor | `[input] mouse_cursor = system \| workbench2 \| workbench1` | CONTROLS: MOUSE POINTER | SWOS 2020's `cursor1.bmp` / `cursor2.bmp` as the launcher numbered them, as pixel maps in `src/mouse_cursors.c` |
+| Graphics | `[graphics] style = amiga \| dos \| 2020` | GAMEPLAY: ARTWORK | from the next start (the artwork is loaded at start-up) |
+| Menu style | `[mod.dosmenus] look = amiga \| pc` | GAMEPLAY: MENU LOOK, and the PC menu shading mod's page | the look each start shows; F5 still flips it for the run. Unset: `PROJECT_MENU_LOOK_AMIGA` |
+| Background image | `[mod.backgrounds] image = auto \| random \| off \| <file>` | the Menu backgrounds mod's page | `auto` the mod's own first picture, `random` one of every picture it lists, once a start. The launcher's "PC DOS" and "Amiga" were SWOS 2020's bg-images, not shipped: put them in `backgrounds/` |
+| Stronger goalkeeper AI | `[tweaks] stronger_goalkeeper_ai` | GAMEPLAY: STRONGER KEEPERS | off line only; built with `PROJECT_TWEAK_STRONGER_GK` (project_identity.h) even when `PROJECT_TWEAKS` is 0 |
+| Improved CPU tactics | `[gameplay] cpu_tactics = normal \| expert` | GAMEPLAY: CPU TACTICS | off line only (below) |
+| Skip intro | `[general] skip_intro` | GAMEPLAY: SKIP INTRO | from the next start |
+| Skip image reels | `[general] skip_image_reels` | GAMEPLAY: INTRO PICTURES (ALL / TITLE ONLY) | the intro is its title picture and tune alone, until fire |
+| No pause while loading | `[general] no_load_pause` | GAMEPLAY: PRE-MATCH PAUSE | the stadium screen's 3 seconds before a match left out; off line only |
+| Game style, VSync, window mode, monitor, menu cursor | as before | VIDEO / GAMEPLAY | (they were there already) |
+| PC DOS screen / Amiga screen | none of its own | GAMEPLAY: GAME STYLE | the 320 x 200 view is part of the PC DOS style (below) |
+
+**CPU TACTICS = EXPERT** is SWOS 2020's `--improved-cpu-tactics` (options.cpp
+`setTacticsVariables`): its "mozq v3" set of the twelve built-in formations, 4-4-2 to DEFEND, for
+every team that plays one -- the computer's and the player's, named as SWOS 2020 names them (4132,
+5131, ...). `src/tactics_expert.c` points `_teamTacticsTable[0..11]` at that set instead of copying
+over the game's, and keeps the players' order by formation (`InitializeTacticsPositions`) with it,
+so NORMAL gives back every byte as it was. The game's own code that writes through the table
+(`InitUserTactics`, a style's `TacticsData_SelectRelease`) works on the game's own formations as it
+always did: USER A-F stay copies of the game's 4-4-2. A match played online or by a test rig plays
+the game's own whatever the setting (`TacticsExpert_MatchBegin`). `SWOS_CPU_TACTICS_TEST=1` checks
+the swaps.
+
+**PC DOS SCREEN.** SWOS 2020's `--screen-mode` 0 (the PC's 320 x 200) and 1 (the Amiga's 336 x 272).
+Here the view belongs to the GAMEPLAY style: PC DOS plays in the 320 x 200 view, the others in the
+Amiga's (`MatchViewEnter`; `[gameplay] style`). It is not a separate choice on purpose: the view
+size is the SIMULATION's too (the camera, and so who is on screen and which player is picked), so a
+view that differs from the style plays a different match -- the reason `[gameplay] view` was
+removed (2026-09-29) and the handshake compares it (`P2P_RULE_DOS_VIEW`). `--view` still pins it
+for replaying a recording made that way.
+
+A mod setting with `"choices_from"` can name choices of its own in `"choices_first"` (mod.json):
+offered after "off", before the folder's files (`src/mods_menu.c`) -- the backgrounds mod's `auto`
+and `random`.
+
+**Self-tests:** `SWOS_LAUNCHER_SETTINGS_TEST=1` (every value of these keys read and written back),
+`SWOS_CPU_TACTICS_TEST=1`, `SWOS_FPS_TEST=1` (with `show_fps` on: the counter counted),
+`SWOS_MOD_PAGE_TEST=<slug>` (a mod page's choices), and `--settings-menus-selftest` (every row
+shows a value).
+
 ## Saves
 
 **Where saves go differs by target**, because the two have different

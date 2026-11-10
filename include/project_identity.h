@@ -66,6 +66,11 @@
  * a build without them still plays one with them. */
 #define PROJECT_TWEAKS          1
 
+/* [tweaks] stronger_goalkeeper_ai alone (SWOS 2020's --stronger-goalkeeper-ai; GAMEPLAY OPTIONS'
+ * STRONGER KEEPERS): 1 builds that one tweak even when PROJECT_TWEAKS is 0 -- a fork that leaves the
+ * other tweaks out can still offer the launcher's keeper option. Off line only, like every tweak. */
+#define PROJECT_TWEAK_STRONGER_GK PROJECT_TWEAKS
+
 /* STATIC MODS (docs/MODS.md §14): canonical mods -- folders in the game's own mods/ -- that are
  * part of this game rather than a choice: always on, whatever [mods] disabled says, and never
  * listed, neither on OPTIONS -> MODS (nor in its "N ON") nor on the setup's Mods screen. Slugs,
