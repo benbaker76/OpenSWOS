@@ -2,9 +2,9 @@
  "uuid": "8b9b9c96-91ad-52ee-baff-052f28e2a5d3",
  "id": "practice",
  "name": "Practice",
- "version": "1.0",
+ "version": "1.1",
  "author": "OpenSWOS (SWOS 2020's practice modes)",
- "about": "Practice on your own: a penalty shootout, a demo game; team training to come.",
+ "about": "Practice on your own: a penalty shootout, team training (every drill) and a demo game.",
  "targets": [
   "sdl",
   "amiga"
