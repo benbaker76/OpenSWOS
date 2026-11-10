@@ -889,6 +889,63 @@ static int32_t drill_apply(int8_t d)
     }
 }
 
+#ifdef SWOS_SDL_BUILD
+/* RADAR IN TEAM TRAINING (SWOS 2020's showRadar, render.cpp; its option options.mnu, on by default:
+ * here the mod's setting "radar", OPTIONS -> MODS -> PRACTICE): the pitch a tenth of its size at the
+ * top left, 10 in and 20 down, on a darkened box -- its lines in colour 249, each player a pixel in
+ * his shirt's colour (team 2's shorts' when the shirts are the same), the ball in colour 3. */
+static int32_t s_radarDrawn;            /* (the training test counts them) */
+static void radar_drawn(void)
+{
+    enum { F = 10, GX = 10, GY = 20 };
+    ModPlayer pl[22];
+    ModBall ball;
+    int32_t c1 = 0, c2 = 0, shorts2 = 0;
+    if (!s_training || !ModApi_ModMatch("practice") || ModApi_InReplay() ||
+        !ModApi_SettingInt("practice", "radar", 1) || !(s_fb = ModApi_Frame(&s_stride)))
+        return;
+    ModApi_ScreenSize(&s_w, &s_h);
+    ModApi_MatchKit(0, NULL, &c1, NULL, NULL);
+    ModApi_MatchKit(1, NULL, &c2, NULL, &shorts2);
+    if (c1 == c2)
+        c2 = shorts2;
+    /* drawDarkenRect (inclusive): 672 x 898 world */
+    for (int32_t y = GY; y <= GY + 898 / F; y++)
+        for (int32_t x = GX; x <= GX + 672 / F; x++)
+            if (x < s_w && y < s_h && s_fb[y * s_stride + x] < 128)
+                s_fb[y * s_stride + x] += 128;
+    /* the lines: the touchlines' box, the half way line, the penalty areas */
+    const int32_t bx = 81 / F + GX, by = 129 / F + GY, bw = 510 / F, bh = 641 / F;
+    fill(bx, by, bx + bw - 1, by, 249);
+    fill(bx, by + bh - 1, bx + bw - 1, by + bh - 1, 249);
+    fill(bx, by, bx, by + bh - 1, 249);
+    fill(bx + bw - 1, by, bx + bw - 1, by + bh - 1, 249);
+    fill(bx, 449 / F + GY, bx + bw - 1, 449 / F + GY, 249);
+    static const int16_t kArea[2] = { 216, 682 };
+    for (int32_t a = 0; a < 2; a++) {
+        const int32_t ly = kArea[a] / F + GY, top = (a ? 682 : 129) / F + GY;
+        fill(193 / F + GX, ly, 193 / F + GX + 286 / F - 1, ly, 249);
+        fill(193 / F + GX, top, 193 / F + GX, top + 88 / F - 1, 249);
+        fill(478 / F + GX, top, 478 / F + GX, top + 88 / F - 1, 249);
+    }
+    const int32_t n = ModApi_Players(pl, 22);
+    for (int32_t i = 0; i < n; i++)
+        if (pl[i].onPitch)
+            put(pl[i].x / F + GX, pl[i].y / F + GY, (uint8_t)(pl[i].team ? c2 : c1));
+    if (ModApi_Ball(&ball) && ball.x <= 672)
+        put(ball.x / F + GX, ball.y / F + GY, 3);
+    s_radarDrawn++;
+}
+#endif
+
+#ifdef SWOS_SDL_BUILD
+static void practice_match_drawn(void)
+{
+    shootout_drawn();
+    radar_drawn();
+}
+#endif
+
 /* SWOS_PRACTICE_TRAINING_TEST=1 (SWOS_SKIP_INTRO=1): at the first main menu, TEAM TRAINING with
  * a random team, the CPU's at its default skill, every line on, both sides the CPU's; every
  * drill in turn (each 400 frames apart), then the end. PASS when every drill was taken, the clock
@@ -955,9 +1012,15 @@ static void practice_training(void)
         s_training = 0;
         if (s_trTest == 2) {
             const int32_t want = DR_GOAL_KICK_OPPO_RIGHT;
-            const int32_t ok = s_trTestDone == want && s_trTestOk == want && r.minute == 0;
-            fprintf(stdout, "PRACTICE TRAINING TEST %s: %d of %d drills taken, minute %d, %u frames\n",
-                    ok ? "PASS" : "FAIL", (int)s_trTestOk, (int)want, (int)r.minute, (unsigned)r.frames);
+#ifdef SWOS_SDL_BUILD
+            const int32_t radarOk = !ModApi_SettingInt("practice", "radar", 1) || s_radarDrawn > 0;
+#else
+            const int32_t radarOk = 1;
+#endif
+            const int32_t ok = s_trTestDone == want && s_trTestOk == want && r.minute == 0 && radarOk;
+            fprintf(stdout, "PRACTICE TRAINING TEST %s: %d of %d drills taken, minute %d, %u frames%s\n",
+                    ok ? "PASS" : "FAIL", (int)s_trTestOk, (int)want, (int)r.minute, (unsigned)r.frames,
+                    radarOk ? "" : ", no radar drawn");
 #ifdef SWOS_SDL_BUILD
             exit(ok ? 0 : 1);
 #endif
@@ -1005,7 +1068,7 @@ const ModDef ModDef_practice = {
     .init = practice_init,
     .matchFrame = training_frame,
 #ifdef SWOS_SDL_BUILD
-    .matchDrawn = shootout_drawn,
+    .matchDrawn = practice_match_drawn,
     .menuDrawn = shootout_menu_drawn,
     .playerRowDrawn = shootout_row,
     .matchKey = training_key,
