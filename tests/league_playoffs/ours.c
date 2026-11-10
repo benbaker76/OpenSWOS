@@ -7,6 +7,7 @@
 DIYCompetitionEx _diyCompetitionStart;
 uint8_t *diy_resolve_team(int32_t sel) { (void)sel; return 0; }
 TeamFileEx _careerTeam;
+TeamFileEx *CareerTeams_FindInCache(uint16_t t) { (void)t; return 0; }   /* (gp_champ: never found, as mod_ftic.h) */
 uint16_t _selTeamNumber;
 uint8_t _primaryQualifiedTeamGrids[10 * 684];
 uint16_t _cachedPrimaryQualifiedTeamIds[9];

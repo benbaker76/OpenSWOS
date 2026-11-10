@@ -335,3 +335,20 @@ which waits for his work to be done:
 The golden careers: the 96/97 ones unchanged; the 44 World 2026-27 ones recorded again (season 1
 differs only by `conti_edition.flags` and the Intercontinental's split round, the later ones by
 the new goals model's results).
+
+## 13. The Mod 4.1 (v4.1, f2c9e45, 2026-11-10)
+
+`scripts/league_playoffs_check.sh` against a checkout of v4.1 (`MOD=`): every check PASSES but the
+first, the Italian play-offs, which differs where 4.1 changed a rule: **the Coppa Italia Serie C
+winner** that finished relegated or in a play-out place no longer takes a play-off place (FIGC
+C.U. 209/A, 27 April 2026; the Mod's `dplay.c` `cup_out`: places n-5..n-2 of a group of n, a
+play-out not held when its two clubs are 8+ points apart). Built with 4.1's `dplay.c` minus
+`cup_out`, the check passes whole. That rule is the library's `sr_dplay.c` `cup_place`, which
+changes an existing result: a change for Davide (a v1.x or v2, his call), never in our submodule.
+Until it lands, a World 2026-27 Serie C career can see a cup winner placed 11th-17th go up and down
+at once, the 4.0.5 bug 4.1 fixed.
+
+The check needed two things for 4.1: its `gp_forcecfb` (test builds' forced place) names the
+split table's offsets `gplay.py` passes (`GP_SPST` ...: any value compiles it, `GP41`), and our
+harnesses a stand-in for `CareerTeams_FindInCache` (daefdd5d's `gp_champ`: never found, as the
+Mod's side's `mod_ftic.h`).
