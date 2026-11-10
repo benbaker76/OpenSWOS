@@ -928,15 +928,26 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
   already faster than its FAST, and `_fadeInitFlag` is match state (`sim_state.c`). AMIGA STYLE
   MENU is the `dosmenus` mod (F5).
 - **MULTIPLAYER SETTINGS** (`mmSettingsMenu`, `src/online_menus.c`): COMMENTARY (`[audio]
-  commentary`), AUTO CLOSE CHATBOX (`[chat] close_after`, 1-6 s), ESC PRESSING TO QUIT
+  commentary`), AUTO CLOSE CHATBOX (`[chat] auto_close`, 1-5 s, SWOS 2020's), ESC PRESSING TO QUIT
   (`[netplay] esc_presses`, 1-3 within two seconds, each short press said in the chat box), DISABLE
   CONTROLLER IN CHAT (`[chat] controller_off`: the pad steers nobody while the player types) and
-  CHAT WINDOW SCALE (`[chat] scale`, 1X-3X) are shown and work. ACCEPT SOUND stays hidden (a fork's),
+  CHAT WINDOW SCALE (`[chat] scale` 0-8, 1X-5X in halves, as SWOS 2020 and Page Up / Page Down) are shown and work. ACCEPT SOUND stays hidden (a fork's),
   CHAT WINDOW SCALE moved into its place; VIDEO VSYNC is commented out in SWOS 2020's own menu (it
   is on VIDEO OPTIONS); PITCH SET and DLC SETTING are its DLC's (here RECORD MATCHES and SEND MATCH
   REPORTS). Each is this player's own: nothing goes to the other game.
 - `--settings-menus-selftest` shows and checks every page's rows and loads the three menus;
   `--menu-selftest` checks them against their JSON.
+
+### 10f. The ranked match's custom-tactics warning (2026-11-09)
+
+`customTacticsWarningMenu` (swos-2020 `customTacticsWarning.mnu`, in `MULTIPLAYER_MENUS`):
+SWOS 2020 shows it after its team screen in a RANKED match not played in the PC style, when
+the opponent's team plays a USER tactic (12 and up): "YOUR OPPONENT PLAYS WITH CUSTOM TACTICS.
+ONLY PROCEED TO PLAY IF YOU AGREE ... OTHERWISE, CANCEL AND LEAVE LOBBY." Ours: the lobby's
+team screen confirmed (`lineup_screen`, `custom_tactics_warning` in `src/online_menus.c`), the
+lobby's mode `LOBBY_MODE_RANKED` (a service with ranked matches), the style not DOS, the other
+player's `tactic >= TACTIC_USER_A`. Only a warning; its OK goes back to the lobby, which it
+keeps polling. `SWOS_LOBBY_TACTICS_WARNING=1` logs it whatever the match (a test), `=2` shows it.
 
 ## 11. Overlaps (`SWOS_MENU_OVERLAP=1`)
 

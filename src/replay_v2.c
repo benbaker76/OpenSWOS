@@ -630,10 +630,12 @@ static uint8_t *build_meta(void)
     BE_WRITE_U16(q, (uint16_t)_screen_width);                     q += 2;
     /* 8 the DOS view (320x200), 16 "the view is recorded" -- a recording made before the
      * view was kept says neither, and the player works it out (recorded_view); 32 the
-     * XBOX gameplay style (1 is DOS's; neither, the Amiga's). */
+     * XBOX gameplay style, 64 AMIGA60, 128 MOON (1 is DOS's; none, the Amiga's). */
     BE_WRITE_U16(q, (uint16_t)((_gDosGameplay ? 1 : 0) | (_gDosGraphics ? 2 : 0) |
                                (_gArcadeMode ? 4 : 0) | (_gDosView ? 8 : 0) | 16 |
-                               (_gGameplayStyle == GAMEPLAY_XBOX ? 32 : 0)));   q += 2;
+                               (_gGameplayStyle == GAMEPLAY_XBOX ? 32 : 0) |
+                               (_gGameplayStyle == GAMEPLAY_AMIGA60 ? 64 : 0) |
+                               (_gGameplayStyle == GAMEPLAY_MOON ? 128 : 0)));   q += 2;
     /* The height the match was SIMULATED in (display.h _sim_view_height): 200 in the DOS
      * view, 272 in the Amiga's, whatever the picture. Playback maps the recorded camera
      * onto its own picture from it, exactly as the live match did (camera.c

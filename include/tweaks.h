@@ -26,6 +26,9 @@ enum {
     TWEAK_TACKLE_CONTROLLED_PLAYER = 1u << 2,   /* the slide is made by the player you control */
     TWEAK_MORE_FOULS               = 1u << 3,   /* one borderline (sideways) tackle in 16 is a foul */
     TWEAK_AI_INJURY_SUBS           = 1u << 4,   /* the computer replaces its injured players */
+    /* ---- SWOS 2020 port (agent D) ---- */
+    TWEAK_STRONGER_GOALKEEPER_AI   = 1u << 5,   /* SWOS 2020's: the Amiga keepers reach a step further */
+    TWEAK_UNLIMITED_TRANSFERS      = 1u << 6,   /* SWOS 2020's: buying is not held to the season's quota */
 };
 
 /* The tweaks SWOS.ini switched on (main.c, after the settings). */

@@ -453,8 +453,8 @@ int32_t ModApi_ChosenAgain(void)
 
 int32_t ModApi_FrameRate(void)
 {
-    extern int _gGameplayStyle;
-    return _gGameplayStyle == 1 ? 70 : _gGameplayStyle == 2 ? 60 : 50;   /* (GAMEPLAY_DOS, _XBOX, _AMIGA) */
+    extern int DosGameplay_TargetFps(void);
+    return DosGameplay_TargetFps();     /* (the style's: dos_gameplay.c) */
 }
 
 uint16_t ModApi_RandomTeam(void)

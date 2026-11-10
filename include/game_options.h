@@ -55,7 +55,8 @@ typedef struct {
 } GameOption;
 
 static const GameOptionValue kGoWorld[]    = { { "9697", "96/97", 0 }, { "2627", "2026-27", 0 } };
-static const GameOptionValue kGoGameplay[] = { { "amiga", "Amiga", 0 }, { "dos", "PC (DOS)", 0 }, { "xbox", "Xbox", 0 } };
+static const GameOptionValue kGoGameplay[] = { { "amiga", "Amiga", 0 }, { "dos", "PC (DOS)", 0 }, { "xbox", "Xbox", 0 },
+                                               { "amiga60", "Amiga 60 fps", 0 }, { "moon", "Moon Soccer", 0 } };
 static const GameOptionValue kGoGraphics[] = { { "amiga", "Amiga", 0 }, { "dos", "PC (DOS)", GAME_OPTION_VALUE_PC },
                                                { "2020", "SWOS 2020", GAME_OPTION_VALUE_2020 } };
 static const GameOptionValue kGoSprites[]  = { { "amiga", "Amiga", 0 }, { "jaguar", "Atari Jaguar", GAME_OPTION_VALUE_JAGUAR } };

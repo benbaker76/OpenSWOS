@@ -80,11 +80,20 @@ world=9697            ; the football world: 9697 (Sensible World of Soccer 96/97
                       ; they were made in
 
 [gameplay]
-style=amiga           ; amiga | dos | xbox — the Amiga release (50 FPS); the DOS release
-                      ; (70 FPS physics, timers, formations and its 320x200 view); or
-                      ; SWOS 2020's XBOX (60 FPS, the Amiga's ball physics and view, the
-                      ; DOS goalkeepers; docs/DOS_GAMEPLAY.md section 9). OPTIONS ->
-                      ; GAMEPLAY sets it; online, a match plays the host's
+style=amiga           ; amiga | dos | xbox | amiga60 | moon — the Amiga release (50 FPS);
+                      ; the DOS release (70 FPS physics, timers, formations and its 320x200
+                      ; view); or SWOS 2020's XBOX (60 FPS, the Amiga's ball physics and
+                      ; view, the DOS goalkeepers; docs/DOS_GAMEPLAY.md section 9), AMIGA
+                      ; (60FPS) or MOON SOCCER (section 10). OPTIONS -> GAMEPLAY sets it;
+                      ; online, a match plays the host's
+
+[graphics]
+clash_kits=false      ; SWOS 2020's GK/REF CLASH KITS (src/clash_kits.c): when either team
+                      ; wears a dark kit (black, blue, burgundy), both keepers wear green
+                      ; (grey if a team wears green) and the referee yellow (light blue if a
+                      ; team wears yellow). Drawing only: no effect online. SWOS 2020 has it
+                      ; on by default; off here, the original's colours. Not with the
+                      ; Jaguar's sprites; SDL only
 
 [dos]                 ; PC-only extras (Amiga is the definitive version)
 directory=grafs_dos   ; folder under bin/ to load the DOS assets from
@@ -196,7 +205,7 @@ keeps MULTIPLAYER off. Every tweak is off online and in the test rigs.
 --dos-graphics=<on|off>   Render the DOS-version graphics (from bin/grafs_dos)
                           instead of the Amiga graphics. Default: off.
                           PC-only extra; the Amiga look is the default.
---gameplay=<amiga|dos|xbox>  The gameplay style, as [gameplay] style.
+--gameplay=<amiga|dos|xbox|amiga60|moon>  The gameplay style, as [gameplay] style.
 --dos-gameplay=<on|off>   DOS gameplay tuning — 70 FPS physics/timer rates
                           instead of the Amiga's 50. Default: off. (--gameplay=dos)
 --dos-dir=<folder>        Folder under bin/ to load the DOS assets from.

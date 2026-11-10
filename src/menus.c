@@ -2361,7 +2361,8 @@ void ChangeMenuMusic(MenuEntry *entry)
 /* ================================================================
  * ChangeGameplayStyle — the OPTIONS menu's "GAMEPLAY" row
  *
- * Steps AMIGA -> DOS -> XBOX (SDL; the Amiga build, AMIGA <-> DOS), the same
+ * Steps AMIGA -> DOS -> XBOX -> AMIGA 60 -> MOON (SDL; the Amiga build, AMIGA -> DOS
+ * -> MOON), the same
  * switch as `--gameplay` and [gameplay] style in SWOS.ini: the DOS release's
  * 70fps physics, its timer reloads and its formation set, or SWOS 2020's XBOX
  * (60fps, the Amiga's ball, the DOS keepers), against the Amiga's.
@@ -2457,8 +2458,9 @@ void ChangeGameplayStyle(MenuEntry *entry)
 #else
     extern void ApplyGameStyle(void);
 
-    /* No XBOX on the Amiga: no 60 Hz tick. */
-    Gameplay_SetStyle(_gGameplayStyle == GAMEPLAY_DOS ? GAMEPLAY_AMIGA : GAMEPLAY_DOS);
+    /* No XBOX or AMIGA 60 on the Amiga: no 60 Hz tick. */
+    Gameplay_SetStyle(_gGameplayStyle == GAMEPLAY_AMIGA ? GAMEPLAY_DOS
+                      : _gGameplayStyle == GAMEPLAY_DOS ? GAMEPLAY_MOON : GAMEPLAY_AMIGA);
     ApplyGameStyle();
 #endif
 

@@ -372,6 +372,8 @@ SWOS 2020's dead Taiwan / San Marino / Spain cases, and its five substitutes for
 | `no_teammate_tackles` | the receiver runs onto the ball (`passingBall`), may slide on your fire press and is handed control on reaching it (SWOS2.s:31146-31215) | while a human's controlled player has the ball (within 72), the receiver comes to support distance only: no slide, no hand-over |
 | `more_fouls` | `PlayerTacklingTestFoul` waves on every tackle not from behind (direction more than 1 apart) | one in 16 of those is a foul -- its roll (`Rand`) taken only with the tweak on (benefactorr's Career+) |
 | `ai_injury_subs` | the computer never substitutes: `BenchCheckControls` answers only a player calling the bench | at a stoppage, the computer replaces an injured player with the bench player nearest his position (the keeper by the reserve keeper), within its substitutes; never the managed career club (benefactorr's Career+) |
+| `stronger_goalkeeper_ai` | the keeper's reach table by style (`_kGoalkeeperDiveDeltas`, `ApplyGameStyle`) | SWOS 2020's `--stronger-goalkeeper-ai`: one step lower in the styles with the Amiga's keepers (AMIGA, AMIGA60, MOON; docs/DOS_GAMEPLAY.md §10) |
+| `unlimited_transfers` | `BuyPlayerMenu` refuses with "the club is unwilling to purchase players" when fewer than 2 of the season's transfer slots are left (SWOS2.s:103795) | SWOS 2020's UNLIMITED TRANSFERS: BUY PLAYER only needs room for 2 in the career's player pool (`transfer_market.c`) |
 
 Checked: with every tweak off, `rollback_test.sh --all`, `replay_v2_test.sh --all` and
 `netplay_test.sh --all` pass; both targets build. **Not yet played with the tweaks on.**

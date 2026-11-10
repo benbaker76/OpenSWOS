@@ -116,6 +116,7 @@ typedef struct {
     int                    shadow_shading;   /* 1 = shade the drop shadow, 0 = SWOS's colour 8 */
     int                    hair_shading;     /* 1 = shade hair the game leaves flat (black), 0 = as the game has it */
     int                    shade_step;       /* sixteenths between kit shades: 16, 16-N, 16-2N, 16-3N; hair too */
+    int                    clash_kits;       /* [graphics] clash_kits: SWOS 2020's GK/REF CLASH KITS (clash_kits.c), 0 = off */
     int                    kit_art;          /* the UNIFORM screen's kit drawings: 0 = the Amiga's, 1 = the Jaguar's (kit_art.h) */
     int                    sound_style;      /* a match's sounds: 0 = the Amiga's, 1 = the PC game's samples (dos_sound.h) */
     char                   commentary_dir[260]; /* the folder of commentary categories; "" = sound_dos/commentary */
