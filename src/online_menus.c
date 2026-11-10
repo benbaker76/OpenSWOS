@@ -1812,7 +1812,9 @@ static void mpGameSetupMenu_OnDraw(void)
              FORK_HOOK(styleName) && online_menus_fork()->styleName(_gGameplayStyle)
                  ? online_menus_fork()->styleName(_gGameplayStyle)
              : _gGameplayStyle == GAMEPLAY_DOS ? "PC (70FPS)"
-             : _gGameplayStyle == GAMEPLAY_XBOX ? "XBOX (60FPS)" : "AMIGA (50FPS)");
+             : _gGameplayStyle == GAMEPLAY_XBOX ? "XBOX (60FPS)"
+             : _gGameplayStyle == GAMEPLAY_AMIGA60 ? "AMIGA (60FPS)"     /* (SWOS 2020's names) */
+             : _gGameplayStyle == GAMEPLAY_MOON ? "MOON SOCCER" : "AMIGA (50FPS)");
     set_text(MpGameSetupMenu_gameStyle, s_lobbyStyle);
     set_text(MpGameSetupMenu_gameStyle1, s_lobbyStyle);
     snprintf(s_lobbyConn, sizeof s_lobbyConn, "%s",

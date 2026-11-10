@@ -636,7 +636,7 @@ int32_t     ModApi_ChosenIsPlayer(int32_t team);
 int32_t     ModApi_ChosenTeamUuid(int32_t team, char *out, int32_t cap);
 uint16_t    ModApi_ChosenTeamNumber(int32_t team);     /* its number, country << 8 | ordinal; 0 none */
 const char *ModApi_ChosenName(int32_t team);
-/* The match's frames a second, by the gameplay style (Amiga 50, DOS 70, XBOX 60): a frame count
+/* The match's frames a second, by the gameplay style (Amiga and Moon 50, DOS 70, XBOX and Amiga60 60): a frame count
  * in seconds. */
 int32_t ModApi_FrameRate(void);
 

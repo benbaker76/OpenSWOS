@@ -180,6 +180,8 @@ static int handler(void *user, const char *section,
             if      (eqi(value, "amiga")) opts->dos_gameplay = GAMEPLAY_AMIGA;
             else if (eqi(value, "dos"))   opts->dos_gameplay = GAMEPLAY_DOS;
             else if (eqi(value, "xbox"))  opts->dos_gameplay = GAMEPLAY_XBOX;
+            else if (eqi(value, "amiga60")) opts->dos_gameplay = GAMEPLAY_AMIGA60;
+            else if (eqi(value, "moon"))  opts->dos_gameplay = GAMEPLAY_MOON;
         }
         /* `view` is gone (2026-09-29): the view is part of the style, one setting.
          * An old line is ignored rather than honoured -- a view that differs from the
@@ -558,13 +560,17 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
 
 
     SETTING(n) = (IniEntry){ "gameplay", "style",
-        "; style: amiga | dos | xbox. The Amiga release is the definitive one and what\n"
+        "; style: amiga | dos | xbox | amiga60 | moon. The Amiga release is the definitive one and what\n"
         "; this port is reverse engineered from; dos is the PC release's 70 FPS physics,\n"
         "; timers and formations, and its 320x200 view -- the view is part of how it\n"
         "; plays (what is on screen decides which players the game picks), so the\n"
         "; style sets both; xbox is SWOS 2020's XBOX style: 60 FPS, the Amiga's ball\n"
-        "; physics and view, the DOS goalkeepers. Online, the game plays the HOST's style.\n",
-        opts->dos_gameplay == GAMEPLAY_DOS ? "dos" : opts->dos_gameplay == GAMEPLAY_XBOX ? "xbox" : "amiga" };
+        "; physics and view, the DOS goalkeepers; amiga60 is SWOS 2020's AMIGA (60FPS): the\n"
+        "; Amiga's game at 60 FPS; moon is its MOON SOCCER: the Amiga's, with a moon's\n"
+        "; gravity. Online, the game plays the HOST's style.\n",
+        opts->dos_gameplay == GAMEPLAY_DOS ? "dos" : opts->dos_gameplay == GAMEPLAY_XBOX ? "xbox"
+        : opts->dos_gameplay == GAMEPLAY_AMIGA60 ? "amiga60" : opts->dos_gameplay == GAMEPLAY_MOON ? "moon"
+        : "amiga" };
     SETTING(n) = (IniEntry){ "replays", "auto_save",
         "; auto_save: true | false — every match is recorded to LATEST.SRP in the save\n"
         "; folder and can be watched from HIGHLIGHTS -> LOAD. true also keeps a dated\n"
@@ -747,6 +753,12 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; ai_injury_subs: true | false -- the computer replaces an injured player at a stoppage\n"
         "; (the original's computer never substitutes; benefactorr's Career+).",
         (opts->tweaks & TWEAK_AI_INJURY_SUBS) ? "true" : "false" };
+    /* ---- SWOS 2020 port (agent D) ---- */
+    SETTING(n) = (IniEntry){ "tweaks", "stronger_goalkeeper_ai",
+        "; stronger_goalkeeper_ai: true | false -- SWOS 2020's stronger goalkeeper AI: in the\n"
+        "; gameplay styles with the Amiga's keepers (amiga, amiga60, moon) they reach one step\n"
+        "; further for a shot (dos and xbox keep theirs).",
+        (opts->tweaks & TWEAK_STRONGER_GOALKEEPER_AI) ? "true" : "false" };
 #endif
     {   /* [options]: unset = the game's defaults (SetDefaultOptions) */
         static const char *const kLength[] = { "3", "5", "7", "10" };

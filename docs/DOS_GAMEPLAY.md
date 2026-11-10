@@ -428,6 +428,40 @@ match as one), NETPLAY_COMPAT 9. `P2PLink_SetPlayer` tells a punched link which 
 without it both sides of the direct-IP lobby's rematch, and of the test harnesses, borrowed
 each other's style. `HOST_STYLE=xbox scripts/netplay_lobby_test.sh` plays it.
 
+## 10. AMIGA60 and MOON -- SWOS 2020's styles 3 and 2; the stronger keepers (2026-11-09)
+
+`[gameplay] style = amiga60 | moon` (`--gameplay=amiga60|moon`; OPTIONS -> GAMEPLAY's
+fourth and fifth values, "AMIGA 60" and "MOON"). `GAMEPLAY_AMIGA60 = 3`, `GAMEPLAY_MOON = 4`
+(`include/dos_mode.h`): the numbers travel online and in recordings, never renumber. From
+swos-2020's `setGameStyleVariables` styles 3 and 2 (`options.cpp` 1707-1820):
+
+| | AMIGA60 (SWOS 2020's "AMIGA (60FPS)") | MOON (SWOS 2020's "MOON SOCCER") |
+|---|---|---|
+| frame rate | 60 | 50 |
+| ball | the Amiga's (16, 10, its pitch table), gravity **3840** | the Amiga's, gravity **2560** |
+| player movement | x50/60, as XBOX | the Amiga's |
+| keeper | save distance **24**, `GS_27_22` **22**, reach **0x38000..0x70000**, the Amiga keeper's code | save distance **16**, the rest the Amiga's |
+| keeper's loose ball | -0x8000 (swos-2020's `GS_SF` is -0x8000 in its styles 1-3) | -0x8000 |
+| timers | XBOX's (clock 59, the Amiga's x1.2) | the Amiga's |
+| formations, view, the rest | the Amiga's | the Amiga's |
+| Amiga build | no (no 60 Hz tick: plays AMIGA) | yes: OPTIONS steps AMIGA -> DOS -> MOON |
+
+swos-2020's own menu cannot select MOON (`changeGameStyle` returns at once) and its online
+OPEN prompt offers PC, AMIGA and XBOX only; ours is the same online (the OPEN prompt is
+unchanged), but the direct-IP lobby plays the host's style whatever it is. The handshake's
+style byte carries 3 and 4, recordings SIMV byte 3 and META flags 64 / 128 (32 is XBOX's).
+NETPLAY_COMPAT 13. swos-2020 refuses its SPEEDRUN challenge in MOON (`challengeGame0Extras`);
+the speedrun mod keeps its times by style, so it is not refused here.
+
+**The stronger goalkeeper AI** (`--stronger-goalkeeper-ai`, swos-2020's `getStrongerGoalkeeperAI`):
+the `[tweaks] stronger_goalkeeper_ai` key (`TWEAK_STRONGER_GOALKEEPER_AI`, docs/MODS.md §4; a
+mod may switch it with `ModApi_SetTweak`). In the styles with the Amiga's keepers -- AMIGA,
+AMIGA60, MOON -- the reach table one step lower (AMIGA and MOON 0x28000.., AMIGA60 0x30000..),
+exactly swos-2020's; DOS and XBOX have no such switch there and keep theirs. Written by
+`ApplyGameStyle` at kick-off, so it is off online and in the rigs (`Tweaks_On`), as swos-2020
+switches it off for a multiplayer match (game.cpp 21382). The log says
+`[gameplay] stronger goalkeeper AI: ...` when it is in force.
+
 ## Authoritative swos-2020 files
 - `src/options.cpp` — `setGameStyleVariables()` (1563-1843, THE table),
   `setDeltaZVariables()` (1467-1525), `--game-style` parse (619-634).

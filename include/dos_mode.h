@@ -24,13 +24,16 @@
  * DOS_GAMEPLAY.md section 9): 60 fps, the Amiga's ball physics, the DOS goalkeepers.
  * _gDosGameplay is (style == DOS) -- the DOS release's code paths, most of them nothing
  * to do with keepers; _gDosKeepers is the DOS goalkeeper's code (DOS and XBOX). All
- * three are set together by Gameplay_SetStyle (dos_gameplay.c). The Amiga build plays
- * AMIGA and DOS only: it has no 60 Hz tick. */
-enum { GAMEPLAY_AMIGA = 0, GAMEPLAY_DOS = 1, GAMEPLAY_XBOX = 2, GAMEPLAY_STYLES = 3 };
+ * three are set together by Gameplay_SetStyle (dos_gameplay.c). AMIGA60 and MOON are SWOS
+ * 2020's styles 3 and 2 (DOS_GAMEPLAY.md section 10): the Amiga's game at 60 fps, and the
+ * Amiga's with a moon's gravity. The values travel online and in recordings: never renumber.
+ * The Amiga build plays AMIGA, DOS and MOON: it has no 60 Hz tick. */
+enum { GAMEPLAY_AMIGA = 0, GAMEPLAY_DOS = 1, GAMEPLAY_XBOX = 2, GAMEPLAY_AMIGA60 = 3,
+       GAMEPLAY_MOON = 4, GAMEPLAY_STYLES = 5 };
 extern int _gGameplayStyle;
 extern int _gDosKeepers;
 void Gameplay_SetStyle(int style);
-const char *Gameplay_StyleName(int style);    /* "AMIGA", "DOS", "XBOX" */
+const char *Gameplay_StyleName(int style);    /* "AMIGA", "DOS", "XBOX", "AMIGA60", "MOON" */
 
 extern int _gDosGraphics;
 extern int _gDosGameplay;

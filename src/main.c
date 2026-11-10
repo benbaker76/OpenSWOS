@@ -208,10 +208,11 @@ static void print_usage(const char *argv0)
         "  --dos-graphics=<on|off>   Render the DOS-version graphics (bin/grafs_dos)\n"
         "                            instead of the Amiga graphics. Default: off.\n"
         "                            PC-only extra; the Amiga look is the default.\n"
-        "  --gameplay=<amiga|dos|xbox>  The gameplay style ([gameplay] style): the\n"
-        "                            Amiga's (50 Hz), the DOS version's (70 Hz), or\n"
-        "                            SWOS 2020's XBOX (60 Hz, the Amiga's ball physics,\n"
-        "                            the DOS goalkeepers).\n"
+        "  --gameplay=<amiga|dos|xbox|amiga60|moon>  The gameplay style ([gameplay]\n"
+        "                            style): the Amiga's (50 Hz), the DOS version's (70 Hz),\n"
+        "                            or one of SWOS 2020's: XBOX (60 Hz, the Amiga's ball\n"
+        "                            physics, the DOS goalkeepers), AMIGA60 (the Amiga's\n"
+        "                            game at 60 Hz) or MOON (the Amiga's, a moon's gravity).\n"
         "  --dos-gameplay=<on|off>   Use the DOS version's gameplay tuning: a 70 Hz\n"
         "                            game tick (movement scaled 41/64 so it doesn't\n"
         "                            play faster), plus the DOS goalkeeper reach and\n"
@@ -743,8 +744,10 @@ int main(int argc, char **argv)
             if      (strcmp(v, "amiga") == 0) opts.dos_gameplay = GAMEPLAY_AMIGA;
             else if (strcmp(v, "dos") == 0)   opts.dos_gameplay = GAMEPLAY_DOS;
             else if (strcmp(v, "xbox") == 0)  opts.dos_gameplay = GAMEPLAY_XBOX;
+            else if (strcmp(v, "amiga60") == 0) opts.dos_gameplay = GAMEPLAY_AMIGA60;
+            else if (strcmp(v, "moon") == 0)  opts.dos_gameplay = GAMEPLAY_MOON;
             else {
-                fprintf(stderr, "Invalid --gameplay value '%s' (expected amiga|dos|xbox)\n", v);
+                fprintf(stderr, "Invalid --gameplay value '%s' (expected amiga|dos|xbox|amiga60|moon)\n", v);
                 return 1;
             }
         } else if ((v = match_kv(a, "dos-gameplay")) != NULL) {
@@ -1323,6 +1326,10 @@ int main(int argc, char **argv)
             ? "DOS (70fps physics and timers, DOS formations)"
             : _gGameplayStyle == GAMEPLAY_XBOX
             ? "XBOX (SWOS 2020's: 60fps, Amiga ball physics, DOS goalkeepers)"
+            : _gGameplayStyle == GAMEPLAY_AMIGA60
+            ? "AMIGA60 (SWOS 2020's: the Amiga's game at 60fps)"
+            : _gGameplayStyle == GAMEPLAY_MOON
+            ? "MOON (SWOS 2020's Moon Soccer: the Amiga's game, gravity 2560)"
             : "AMIGA (the shipped default)");
     /* Say it out loud — this one is a deliberate departure from the original,
      * so a tester comparing against real SWOS can see which half he is on. */
@@ -1409,10 +1416,11 @@ int main(int argc, char **argv)
     { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
     Tweaks_Set(opts.tweaks);    /* [tweaks] (include/tweaks.h): off line only, off in the rigs */
     if (opts.tweaks)
-        fprintf(stderr, "[tweaks] on:%s%s%s (off line only)\n",
+        fprintf(stderr, "[tweaks] on:%s%s%s%s (off line only)\n",
                 (opts.tweaks & TWEAK_CPU_CARDS) ? " cpu_cards" : "",
                 (opts.tweaks & TWEAK_NO_TEAMMATE_TACKLES) ? " no_teammate_tackles" : "",
-                (opts.tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? " tackle_controlled_player" : "");
+                (opts.tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? " tackle_controlled_player" : "",
+                (opts.tweaks & TWEAK_STRONGER_GOALKEEPER_AI) ? " stronger_goalkeeper_ai" : "");
     /* Load the UI translation table for the selected language
      * (data_json/translations/<lang>.json) now that the CWD is the binary dir
      * and stderr is the log. tr(symbol) resolves menu/UI text through it; a
