@@ -32,21 +32,23 @@ done
 
 if [ "$WHAT" = sim ]; then SDK=iphonesimulator; DIR=build-ios-sim; else SDK=iphoneos; DIR=build-ios-device; fi
 
-# (one remote script: ssh joins its arguments into one string, so the values go in quoted -- printf %q)
+# (one remote script: ssh joins its arguments into one string, so the values go in quoted -- printf %q.
+#  No backslash-newline continuations in it: this heredoc is unquoted, so a "\\" at a line's end
+#  reaches the Mac as "\ " -- an escaped space, a stray " " argument -- and git took it for a path,
+#  "pathspec ' ' did not match" (2026-11-09). Long commands go on one line.)
 REMOTE=$(cat <<EOF
 set -e
 export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH
 cd $MAC_PATH
 if [ $DO_PULL = 1 ]; then
     git pull -q --ff-only
-    git submodule update --init -q third_party/ggpo-x third_party/swos-competition-engine \\
-        third_party/glslang third_party/SPIRV-Cross
+    git submodule update --init -q third_party/ggpo-x third_party/swos-competition-engine third_party/glslang third_party/SPIRV-Cross
 fi
 echo "built from commit  : \$(git rev-parse --short=8 HEAD)\$(git diff --quiet HEAD || echo ' (dirty)')"
 rm -rf $DIR
-cmake -S packaging/mobile -B $DIR -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_SYSTEM_NAME=iOS \\
-    -DCMAKE_OSX_SYSROOT=$SDK -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \\
-    -DSWOS_TEST_RULES=$TEST_RULES > $DIR.configure.log 2>&1 || { tail -20 $DIR.configure.log; exit 1; }
+CMAKE_ARGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=$SDK -DCMAKE_OSX_ARCHITECTURES=arm64"
+CMAKE_ARGS="\$CMAKE_ARGS -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DSWOS_TEST_RULES=$TEST_RULES"
+cmake -S packaging/mobile -B $DIR -G Ninja \$CMAKE_ARGS > $DIR.configure.log 2>&1 || { tail -20 $DIR.configure.log; exit 1; }
 cmake --build $DIR -j8 > $DIR.build.log 2>&1 || { grep -E "error|^ld: " $DIR.build.log | grep -v warning | head -20; exit 1; }
 if [ $WHAT = sim ]; then
     codesign --force --sign - $DIR/OpenSWOS.app
