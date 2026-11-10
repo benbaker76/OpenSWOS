@@ -602,6 +602,10 @@ GoalkeeperJumping(int16_t diveDir, int16_t speedVariant, int16_t destDir,
     team->goalkeeperDivingRight = 0;
 
     /* Choose dive animation based on ballNotHighZ */
+    {   /* a player's shoot-out keeper held down-left / down-right: the short low dive (mod_match.c) */
+        extern int16_t ModMatch_KeeperDiveSpeed(const TeamGeneralInfo *team, int16_t speed);
+        keeper->speed = ModMatch_KeeperDiveSpeed(team, keeper->speed);
+    }
     extern int16_t ModMatch_KeeperHighDive(const TeamGeneralInfo *team, int16_t ballNotHighZ);
     const int16_t chosenHigh = ModMatch_KeeperHighDive(team, _ballNotHighZ);   /* (keeperDive) */
     if (chosenHigh >= 0 ? chosenHigh : _ballNotHighZ > 5) {

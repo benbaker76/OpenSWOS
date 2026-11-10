@@ -700,8 +700,8 @@ int32_t ModApi_Shootout(ModShootout *out);
 int32_t ModApi_ShootoutTaker(int32_t side, int32_t shooter, char *name, int32_t cap, int32_t *shirt,
                              int32_t *face);
 int32_t ModApi_MatchKit(int32_t side, int32_t *type, int32_t *shirt, int32_t *stripes, int32_t *shorts);
-/* What a player (1, 2) plays with, as SWOS 2020 names it: "Joypad", else "Keyboard1" / "Keyboard2"
- * (the Amiga: "Joystick"). */
+/* What a player (1, 2) plays with, as SWOS 2020 names it in capitals: "JOYPAD", else "KEYBOARD1" /
+ * "KEYBOARD2" (the Amiga: "JOYSTICK"). Two players and one pad: the pad is player 2's. */
 const char *ModApi_ControllerName(int32_t player);
 
 /* ---- match events (H3): ModDef.matchEvent ---- */

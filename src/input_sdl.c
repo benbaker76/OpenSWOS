@@ -429,9 +429,24 @@ const char *InputSDL_Player1DeviceName(void)
 }
 
 /* Whether player 1 / 2 (0, 1) plays with a pad (else the keyboard). */
+static int pref_no_pad(int player);
+
+/* Two players, one pad (InputSDL_PostFrame): player 1's pad is player 2's, the keyboard player 1's
+ * -- unless player 2 is set to have none. */
+static int split_pad(void)
+{
+    extern uint16_t _twoPlayers;
+    extern int32_t  NetplayMatch_Enabled(void);
+    return _twoPlayers != 0 && s_player_dev[1] < 0 && s_player_dev[0] >= 0 && !NetplayMatch_Enabled() &&
+           !pref_no_pad(1);
+}
+
+/* Whether player 1 / 2 (0, 1) plays on a pad -- as InputSDL_PostFrame reads them: when two players
+ * share one pad, it is player 2's and player 1 has the keyboard (Playaveli's, 2026-11-09). */
 int InputSDL_PlayerHasPad(int player)
 {
-    const int d = player >= 0 && player < INPUTSDL_NUM_PADS ? s_player_dev[player] : -1;
+    const int split = split_pad();
+    const int d = player == 0 ? (split ? -1 : s_player_dev[0]) : player == 1 ? s_player_dev[split ? 0 : 1] : -1;
     return d >= 0 && d < INPUTSDL_MAX_DEVICES && dev_open(d);
 }
 
@@ -2232,10 +2247,7 @@ void InputSDL_PostFrame(void)
      * and player 2 has no pad of their own, player 1's pad goes to player 2 and the
      * keyboard stays player 1's. One player, two pads, or an online match (which reads
      * InputSDL_LocalMatchControls, not these registers): as before. */
-    extern uint16_t _twoPlayers;
-    extern int32_t  NetplayMatch_Enabled(void);
-    int split = _twoPlayers != 0 && s_player_dev[1] < 0 && s_player_dev[0] >= 0 &&
-                !NetplayMatch_Enabled() && !pref_no_pad(1);
+    int split = split_pad();
     {
         static int s_wasSplit;
         if (split != s_wasSplit) {

@@ -73,6 +73,7 @@ static TeamFileEx s_chosenKept[2];      /* the last chosen pair, as chosen (ModA
 static int32_t    s_chosenHave;
 static uint32_t s_frames;               /* from kick-off, every match */
 static uint8_t  s_kickedOff;
+static uint8_t  s_firstTaker;           /* (shootoutOnly: the first taker put on the centre spot) */
 static uint8_t  s_endTold;              /* this kick-off's end told the mods */
 static int32_t  s_testHooks;            /* SWOS_MOD_MATCH_TEST=hooks: PR #3's H1-H7, G6 */
 static int32_t  s_testTraining;         /* SWOS_MOD_MATCH_TEST=training (ModMatch_SelfTest) */
@@ -601,6 +602,7 @@ void ModMatch_KickOff(void)
     s_headerBy = NULL;
     s_frames = 0;
     s_kickedOff = 0;
+    s_firstTaker = 0;
     s_endTold = 0;
     if (s_mm.active) {
         s_mm.shootoutDone = 0;
@@ -798,6 +800,9 @@ static void keeper_dive_frame(void)
     switch (s_kd.stick) {
     case 2: case 3: s_kd.manual = 1; s_kd.dive = 1; s_kd.height = KEEPER_HEIGHT_LOW;  s_kd.dir2 = s_kd.dir6 = 2; break;
     case 6: case 5: s_kd.manual = 1; s_kd.dive = 1; s_kd.height = KEEPER_HEIGHT_LOW;  s_kd.dir2 = s_kd.dir6 = 6; break;
+    /* (down-right / down-left: the short low dive at half speed, ModMatch_KeeperDiveSpeed --
+     *  Playaveli's own, 2026-11-09: SWOS 2020 dives them as right / left, the full dive's ~60
+     *  pixels carrying him past the post) */
     case 1:         s_kd.manual = 1; s_kd.dive = 1; s_kd.height = KEEPER_HEIGHT_HIGH; s_kd.dir2 = s_kd.dir6 = 2; break;
     case 7:         s_kd.manual = 1; s_kd.dive = 1; s_kd.height = KEEPER_HEIGHT_HIGH; s_kd.dir2 = s_kd.dir6 = 6; break;
     case -1:        s_kd.manual = 1; s_kd.dive = 0; s_kd.height = KEEPER_HEIGHT_HIGH; s_kd.dir2 = 2; s_kd.dir6 = 6; break;
@@ -832,6 +837,12 @@ int16_t ModMatch_KeeperHighDive(const TeamGeneralInfo *team, int16_t ballNotHigh
     if (!keeper_dive_mine(team) || s_kd.height == KEEPER_HEIGHT_NORMAL)
         return -1;
     return (uint16_t)ballNotHighZ >= s_kd.height;
+}
+
+/* GoalkeeperJumping: the dive's speed -- half for the short low dive (down-left / down-right). */
+int16_t ModMatch_KeeperDiveSpeed(const TeamGeneralInfo *team, int16_t speed)
+{
+    return keeper_dive_mine(team) && s_kd.manual && (s_kd.stick == 3 || s_kd.stick == 5) ? (int16_t)(speed / 2) : speed;
 }
 
 /* The player mark 4 pixels lower (SWOS 2020's MarkPlayerSP in its shoot-out). */
@@ -892,11 +903,11 @@ const char *ModApi_ControllerName(int32_t player)
 #ifdef SWOS_SDL_BUILD
     extern int InputSDL_PlayerHasPad(int player);
     if (InputSDL_PlayerHasPad(player - 1))
-        return "Joypad";
-    return player == 2 ? "Keyboard2" : "Keyboard1";
+        return "JOYPAD";                    /* (capitals: the game's small font has no others) */
+    return player == 2 ? "KEYBOARD2" : "KEYBOARD1";
 #else
     (void)player;
-    return "Joystick";
+    return "JOYSTICK";
 #endif
 }
 
@@ -1157,9 +1168,36 @@ void ModMatch_Frame(void)
     for (int32_t p = 0; p < 2; p++)         /* (ModApi_PressFire: counted in frames played) */
         if (s_fireFrames[p] > 0 && !ModMatch_Quiet())
             s_fireFrames[p]--;
-    if (s_mm.active && s_mm.setup.shootoutOnly && !s_mm.shootoutDone && s_kickedOff) {
+    /* shootoutOnly: straight into the shoot-out at the match's first frame -- no walk-on, no
+     * kick-off (SWOS 2020's g_PenaltyShootoutStartUp: UpdateTime's first frame StartPenalties;
+     * Playaveli's SWOS United port, 2026-11-09) */
+    if (s_mm.active && s_mm.setup.shootoutOnly && !s_mm.shootoutDone) {
         s_mm.shootoutDone = 1;
         ModApi_StartShootout();
+    }
+    /* ... and nobody walks on for the first kick: while the players go to their places for it,
+     * each is put where he is going -- but the taker, who starts on the centre spot and runs up
+     * to the ball, as he does from the centre circle for every later kick */
+    {
+        extern uint16_t _team1PenaltyAttempts, _team2PenaltyAttempts;
+        if (s_mm.active && s_mm.setup.shootoutOnly && _playingPenalties && _gameStatePl == ST_PENALTIES &&
+            _team1PenaltyAttempts + _team2PenaltyAttempts == 1) {
+            extern Sprite **_team1SpritesTable, **_team2SpritesTable;
+            extern Sprite *_penaltyShooterSprite;
+            if (!s_firstTaker && _penaltyShooterSprite) {
+                s_firstTaker = 1;
+                _penaltyShooterSprite->x.s.i = 336;     /* (the centre spot) */
+                _penaltyShooterSprite->y.s.i = 449;
+            }
+            for (int32_t t = 0; t < 2; t++) {
+                Sprite **tab = t == 0 ? _team1SpritesTable : _team2SpritesTable;
+                for (int32_t i = 0; tab && i < 11; i++)
+                    if (tab[i] && tab[i] != _penaltyShooterSprite) {
+                        tab[i]->x.s.i = tab[i]->destX;
+                        tab[i]->y.s.i = tab[i]->destY;
+                    }
+            }
+        }
     }
     {
         static int32_t given;
