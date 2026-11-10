@@ -1,0 +1,13 @@
+{
+ "uuid": "8a948aea-f712-5495-8533-ec2e0581b77f",
+ "id": "pitchselect",
+ "name": "Pitch selection",
+ "version": "1.0",
+ "author": "OpenSWOS (SWOS 2020's SELECT PITCH)",
+ "about": "PLAY MATCH asks which pitch: 1-5, the training pitch, or random. Offline only.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "modes",
+ "default": false
+}

@@ -1,0 +1,13 @@
+{
+ "uuid": "6129a8c0-a79e-5c96-9efc-5f4f19cddc6f",
+ "id": "balltrails",
+ "name": "Ball trails",
+ "version": "1.0",
+ "author": "OpenSWOS (SWOS 2020's --ball-trails)",
+ "about": "A trail behind the loose ball as it flies.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": false
+}
