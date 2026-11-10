@@ -8,7 +8,9 @@
  * category's challenges, each OPEN, DONE or LOCKED (locked while an easier one of its category is
  * not done, as SWOS 2020 locks them; a category with a "locked" challenge is closed whole). One: where the match stands and what wins it, PLAY; then
  * the match from there -- your team is player 1's, the other the CPU's -- and YOU BEAT THE
- * CHALLENGE or NOT THIS TIME, QUICK RETRY or EXIT.
+ * CHALLENGE or NOT THIS TIME, QUICK RETRY, CHANGE TACTICS (the PLAY MATCH screen first) or EXIT.
+ * NEW CHALLENGE (and EDIT on one of the player's own) is SWOS 2020's DESIGN SCENARIO editor; the
+ * player's own have SORT BY in their list (both below).
  *
  * A challenge (data_json/challenges/<any>.json in this mod -- or in any mod that is on: a
  * challenge pack is a mod of such files):
@@ -36,7 +38,8 @@
  *       "injured": [[[shirt, level 1-7], ...], [...]], "locked": true, its category closed
  *       "record_name": "...",                                          its name online when longer
  *                                                                      than "name"'s 31 letters
- *       "restart": { "kind": "corner" | "free_kick" | "penalty" | "throw_in" | "goal_kick",
+ *       "restart": { "kind": "corner" | "free_kick" | "penalty" | "throw_in" | "goal_kick"
+ *                            | "random" (SWOS 2020's RANDOM: drawn at PLAY),
  *                    "team": 0|1|-1, "wing": 0|1|-1 (his left / right as he attacks),
  *                    "spot": 1-7|-1 (SWOS 2020's free-kick spots; 0 "x","y"), "deep": true }
  *     } ] }
@@ -401,6 +404,8 @@ static void pack_dir(int32_t m, char *dir, uint32_t cap)
 #endif
 }
 
+static void sort_custom(void);
+
 /* every mod that is on: its data_json/challenges/ */
 static void load(void)
 {
@@ -456,6 +461,7 @@ static void load(void)
         s_ch[i].catIndex = (int16_t)category_of(s_ch[i].category);
     }
     qsort(s_ch, (size_t)s_count, sizeof s_ch[0], by_category_difficulty);
+    sort_custom();                      /* (the player's own: SORT BY's order) */
     read_progress();
     free(s_defs);
     s_defs = NULL;
@@ -548,6 +554,7 @@ static int32_t draw2(void) { return (int32_t)(ModApi_Ticks() >> 3) & 1; }   /* (
 /* ---- playing one ---- */
 
 static int32_t s_cur = -1, s_won, s_retry, s_test;
+static int32_t s_trying;                /* the editor's TEST: no attempt, no progress, nothing online */
 
 static int32_t won(const Challenge *c, const ModMatchResult *r)
 {
@@ -575,10 +582,14 @@ static void play(int32_t i)
             return;
         }
     }
+    s_retry = 0;
     for (;;) {
         ModMatchSetup setup;
         ModMatchResult r;
         ModApi_DefaultSetup(&setup);
+        /* CHANGE TACTICS (SWOS 2020's retryExitEx: g_RetryExit 2, g_SkipPlayMatchMenu 0): the
+         * friendly's PLAY MATCH screen first, its EDIT TACTICS and line-up; QUICK RETRY skips it */
+        setup.playMatchScreen = (uint8_t)(s_retry == 2 && !s_test);
         for (int32_t t = 0; t < 2; t++) {
             if (fromFile[t])
                 setup.teamData[t] = &given[t];
@@ -623,22 +634,33 @@ static void play(int32_t i)
                                 : c->kickOff >= 0 ? c->kickOff : draw2();
             const int32_t wing = c->restartWing >= 0 ? c->restartWing : draw2();
             const int32_t attacksTop = setup.playingUp == taker;
-            setup.restart.kind = c->restartKind;
+            uint8_t kind = c->restartKind, deep = c->restartDeep;
+            int8_t spotSet = c->restartSpot;
+            if (kind == CHALLENGE_RESTART_RANDOM) {     /* (SWOS 2020's RANDOM: one of six, now) */
+                static const uint8_t kDrawn[6] = { CHALLENGE_RESTART_KICK_OFF, CHALLENGE_RESTART_FREE_KICK,
+                                                   CHALLENGE_RESTART_FREE_KICK, CHALLENGE_RESTART_CORNER,
+                                                   CHALLENGE_RESTART_THROW_IN, CHALLENGE_RESTART_GOAL_KICK };
+                const int32_t r = (int32_t)((ModApi_Ticks() >> 4) % 6);
+                kind = kDrawn[r];
+                deep = (uint8_t)(r == 2);
+                spotSet = (int8_t)(r == 1 || r == 2 ? -1 : 0);
+            }
+            setup.restart.kind = kind;
             setup.restart.team = (uint8_t)taker;
             setup.restart.wing = (uint8_t)wing;
             setup.restart.x = c->restartX;
             setup.restart.y = c->restartY;
-            if (c->restartKind == CHALLENGE_RESTART_FREE_KICK && c->restartSpot) {
-                const int32_t spot = c->restartSpot > 0 ? c->restartSpot : 1 + (int32_t)(ModApi_Ticks() % 7);
+            if (kind == CHALLENGE_RESTART_FREE_KICK && spotSet) {
+                const int32_t spot = spotSet > 0 ? spotSet : 1 + (int32_t)(ModApi_Ticks() % 7);
                 setup.restart.x = kSpotX[spot];
-                setup.restart.y = (int16_t)(attacksTop ? (c->restartDeep ? 602 : 281) : (c->restartDeep ? 401 : 602));
-            } else if (c->restartKind == CHALLENGE_RESTART_THROW_IN) {
+                setup.restart.y = (int16_t)(attacksTop ? (deep ? 602 : 281) : (deep ? 401 : 602));
+            } else if (kind == CHALLENGE_RESTART_THROW_IN) {
                 /* (SWOS 2020's: 160 short of the goal he attacks, wing as he attacks) */
                 const int32_t screenLeft = attacksTop ? !wing : wing;
                 setup.restart.x = (int16_t)(screenLeft ? 71 : 600);
                 setup.restart.y = (int16_t)(attacksTop ? 289 : 609);
             }
-            if (c->restartKind != CHALLENGE_RESTART_KICK_OFF && setup.kickOff < 0)
+            if (kind != CHALLENGE_RESTART_KICK_OFF && setup.kickOff < 0)
                 setup.kickOff = (int8_t)taker;
         }
         for (int32_t k = 0; k < 8; k++) {
@@ -649,12 +671,14 @@ static void play(int32_t i)
         }
         if (ModApi_PlayMatch("challenges", &setup, &r) != 0)
             return;
-        c->attempts++;
         s_won = won(c, &r);
-        if (s_won)
-            c->completed = 1;
-        save_progress();
-        if (s_won) {                        /* (online: queued, sent in the background) */
+        if (!s_trying) {
+            c->attempts++;
+            if (s_won)
+                c->completed = 1;
+            save_progress();
+        }
+        if (s_won && !s_trying) {           /* (online: queued, sent in the background) */
             char args[256];
             online_args(c, args, sizeof args);
             ModApi_CallService("online-records", "challenges.won", args, NULL, 0);
@@ -769,6 +793,16 @@ static void online_merge(void)
 static int32_t s_page, s_cat = -1;
 
 static int32_t show_categories(void) { return s_numCats > 1 && s_cat < 0; }
+/* SORT BY under the player's own (SWOS 2020's custom challenges list) */
+static int32_t with_sort(void)
+{
+    if (show_categories() || s_numCats <= 1)    /* (one category: its rows hold NEW CHALLENGE) */
+        return 0;
+    for (int32_t i = 0; i < s_count; i++)
+        if (s_ch[i].catIndex == s_cat && s_ch[i].custom)
+            return 1;
+    return 0;
+}
 static int32_t cur_category(void) { return s_numCats > 1 ? s_cat : 0; }
 
 /* The items of the view: categories, or the challenges of one (their first index, their count:
@@ -849,15 +883,17 @@ static void list_draw(void)
             row(r, label, s_ch[i].completed ? "DONE" : locked(i) ? "LOCKED" : "OPEN", 1);
         }
     }
-    const int32_t withNew = show_categories() || s_numCats <= 1;
+    const int32_t withNew = show_categories() || s_numCats <= 1, withSort = with_sort();
     if (withNew)
         row(n, "", "NEW CHALLENGE", 0);
+    if (withSort)
+        row(n + withNew, "", "SORT BY", 0);
     if (page_count() > 1) {
         snprintf(more, sizeof more, "MORE (%d/%d)", (int)s_page + 1, (int)page_count());
-        row(n + withNew, "", more, 0);
-        hide_from(n + withNew + 1);
+        row(n + withNew + withSort, "", more, 0);
+        hide_from(n + withNew + withSort + 1);
     } else {
-        hide_from(n + withNew);
+        hide_from(n + withNew + withSort);
     }
     online_merge();
     ModApi_MenuText(M_note, !s_count ? "NONE: A CHALLENGE PACK IS A MOD"
@@ -869,7 +905,7 @@ static void list_init(void)
     load();
     if (s_page >= page_count())
         s_page = 0;
-    nav_rows(page_rows() + (show_categories() || s_numCats <= 1) + (page_count() > 1));
+    nav_rows(page_rows() + (show_categories() || s_numCats <= 1) + with_sort() + (page_count() > 1));
     list_draw();
 }
 
@@ -880,12 +916,18 @@ static void pick(int32_t r)
     int32_t first;
     item_count(&first);
     const int32_t n = page_rows();
-    const int32_t withNew = show_categories() || s_numCats <= 1;
+    const int32_t withNew = show_categories() || s_numCats <= 1, withSort = with_sort();
     if (withNew && r == n) {                /* NEW CHALLENGE */
         edit_new();
+        list_init();                        /* (it may have saved one) */
         return;
     }
-    if (r == n + withNew && page_count() > 1) {   /* MORE */
+    if (withSort && r == n + withNew) {     /* SORT BY */
+        ModApi_ShowMenu("challenges/customChallengesSortByMenu");
+        list_init();
+        return;
+    }
+    if (r == n + withNew + withSort && page_count() > 1) {   /* MORE */
         s_page = (s_page + 1) % page_count();
         list_init();
         ModApi_MenuSelect(M_label0 + 2 * r + 1);
@@ -923,98 +965,457 @@ static void list_exit(void)
     SetExitMenuFlag();
 }
 
-/* ---- the editor (SWOS 2020's custom challenge, map 3.2): two teams chosen on the friendly's
- * screen, then the score, the minute and what winning is, on the info screen's rows; SAVE AND
- * PLAY writes it to the player's custom.json (the challenges format) and plays it. ---- */
+static int32_t s_editing;              /* (the editor is up) */
 
-static int32_t s_editing;
+/* ---- the editor: SWOS 2020's DESIGN SCENARIO (customChallengesEdit.mnu, imported, and its
+ * handlers in game.cpp: customChallengesEditMenu_*) over a challenge of the format's own fields.
+ * NEW CHALLENGE picks the two teams on the friendly's screen (who plays each: yours and the CPU's),
+ * then the screen: the teams (either picks both again), its name, the score at the start, the
+ * minute, the first leg's score, extra time / penalties / a direct shoot-out, the substitutes,
+ * SET CARDS AND INJURIES (customChallengesSentOffInjuryNew.mnu), the direction attacked, the
+ * pitch, the starting event and its taker, what wins it and its difficulty; then TEST (played
+ * once, kept nowhere), SAVE (the player's custom.json / CUSTOM.BIN), DELETE and EXIT. One of the
+ * player's own opens here again from its page (EDIT). Not here: SWOS 2020's UNIFORMS (a challenge
+ * keeps no kits) and PITCH SET (its own pitch art), hidden; its CPU INJURY was switched off in
+ * SWOS 2020 itself. ---- */
+
+enum {  /* customChallengesEditMenu's entries (scripts/import_swos2020_menus.py's ordinals) */
+    E_header = 0, E_team1, E_teamScore, E_team2, E_nickname, E_scoreLabel, E_team1Score, E_score_,
+    E_team2Score, E_scoreReset, E_uniformsLabel, E_uniforms, E_timeLabel, E_time, E_minus10, E_minus1,
+    E_reset0, E_plus1, E_plus10, E_legLabel, E_secondLeg, E_legTeam1, E_leg_, E_legTeam2, E_legReset,
+    E_etPenLabel, E_et, E_pen, E_directPen, E_subsLabel, E_subsMin, E_subsFrom, E_subsMax, E_cards,
+    E_attackLabel, E_attack, E_pitchTypeLabel, E_pitchType, E_eventLabel, E_startTeam, E_event,
+    E_winLabel, E_winTeam, E_win, E_diffLabel, E_difficulty, E_pitchSetLabel, E_pitchSet, E_test,
+    E_save, E_delete, E_exit, E_background
+};
+/* SWOS 2020's menu colours */
+enum { kDarkBlue = 3, kLightBrownOrange = 4, kRedTeam = 10, kPurpleTeam = 11, kLightBlue = 13, kGreen = 14 };
+enum { kScoreLimit = 40 };      /* (SWOS 2020's SCORE_LIMIT) */
+
+/* the starting event, SWOS 2020's names for it */
+enum { SE_KICK_OFF, SE_FREE_KICK, SE_FREE_KICK_HOME, SE_CORNER, SE_THROW_IN, SE_GOAL_KICK, SE_RANDOM, SE_SHOOTOUT };
+/* the win condition */
+enum { WC_ANY, WC_DRAW, WC_GOLDEN, WC_SILVER };
+
 static Challenge s_edit;
+static int32_t   s_editExisting;        /* s_edit is one of the player's own (its id kept) */
 
-static void edit_new(void)
+static int32_t ask(const char *title, const char *text)   /* SWOS 2020's g_ScenMessage: YES / NO */
+{
+#ifdef SWOS_SDL_BUILD
+    static const char *const kYesNo[2] = { "YES", "NO" };
+    return ModApi_ShowDialog(title, text, kYesNo, 2, 0) == 0;
+#else
+    (void)title; (void)text;
+    return 1;                           /* (the Amiga has no dialog) */
+#endif
+}
+
+static void tell(const char *title, const char *text)
+{
+#ifdef SWOS_SDL_BUILD
+    static const char *const kOk[1] = { "OK" };
+    ModApi_ShowDialog(title, text, kOk, 1, 0);
+#else
+    (void)title;
+    ModApi_ShowError(text);
+#endif
+}
+
+static int32_t se_of(const Challenge *c)
+{
+    if (c->shootoutOnly)
+        return SE_SHOOTOUT;
+    switch (c->restartKind) {
+    case CHALLENGE_RESTART_FREE_KICK: return c->restartDeep ? SE_FREE_KICK_HOME : SE_FREE_KICK;
+    case CHALLENGE_RESTART_CORNER: return SE_CORNER;
+    case CHALLENGE_RESTART_THROW_IN: return SE_THROW_IN;
+    case CHALLENGE_RESTART_GOAL_KICK: return SE_GOAL_KICK;
+    case CHALLENGE_RESTART_RANDOM: return SE_RANDOM;
+    default: return SE_KICK_OFF;
+    }
+}
+
+static void se_set(Challenge *c, int32_t se)
+{
+    static const uint8_t kKind[7] = { CHALLENGE_RESTART_KICK_OFF, CHALLENGE_RESTART_FREE_KICK,
+                                      CHALLENGE_RESTART_FREE_KICK, CHALLENGE_RESTART_CORNER,
+                                      CHALLENGE_RESTART_THROW_IN, CHALLENGE_RESTART_GOAL_KICK,
+                                      CHALLENGE_RESTART_RANDOM };
+    c->restartKind = kKind[se < 0 || se > SE_RANDOM ? 0 : se];
+    c->restartSpot = (int8_t)(se == SE_FREE_KICK || se == SE_FREE_KICK_HOME ? -1 : 0);
+    c->restartDeep = (uint8_t)(se == SE_FREE_KICK_HOME);
+    c->restartWing = -1;                /* (SWOS 2020's RANDOM corner, throw-in and goal kick) */
+    c->restartX = 336;
+    c->restartY = 449;
+}
+
+static int32_t wc_of(const Challenge *c)
+{
+    if (c->extraTimeRule == CHALLENGE_ET_GOLDEN_GOAL)
+        return WC_GOLDEN;
+    if (c->extraTimeRule == CHALLENGE_ET_SILVER_GOAL)
+        return WC_SILVER;
+    return c->win == W_DRAW ? WC_DRAW : WC_ANY;
+}
+
+static void wc_set(Challenge *c, int32_t wc)
+{
+    c->win = (uint8_t)(wc == WC_DRAW ? W_DRAW : W_WIN);
+    c->extraTimeRule = (uint8_t)(wc == WC_GOLDEN ? CHALLENGE_ET_GOLDEN_GOAL
+                                 : wc == WC_SILVER ? CHALLENGE_ET_SILVER_GOAL : CHALLENGE_ET_NORMAL);
+}
+
+/* (SWOS 2020's ScenarioGame::isKickOffInitialTime: these minutes start with a kick-off) */
+static int32_t kick_off_minute(void)
+{
+    const int32_t m = s_edit.minute;
+    return m == 0 || m == 45 || m == 90 || m == 105;
+}
+
+/* (humanTeamHasSentOffOrInjuryPlayers) */
+static int32_t yours_short(void)
+{
+    const int32_t y = s_edit.yours;
+    if (s_edit.sentOff[y])
+        return 1;
+    for (int32_t k = 0; k < 8; k++)
+        if (s_edit.injured[y][k].shirt)
+            return 1;
+    return 0;
+}
+
+static void reset_all_scores(void)
+{
+    s_edit.score[0] = s_edit.score[1] = 0;
+    s_edit.firstLeg[0] = s_edit.firstLeg[1] = 0;
+}
+
+/* SWOS 2020's setTotalScoresToSame: a start that must be level is (a second leg's aggregate at 90
+ * and 120, a golden / silver goal or a shoot-out from 90). mode 0: this leg's score moved, 1: the
+ * first leg's; team: the one changed. */
+static void same_scores(int32_t mode, int32_t team)
+{
+    Challenge *c = &s_edit;
+    if (c->minute == 0) {
+        c->score[0] = c->score[1] = 0;
+        return;
+    }
+    const int32_t goldenSilver = c->extraTimeRule != CHALLENGE_ET_NORMAL;
+    if (goldenSilver || c->shootoutOnly || c->secondLeg) {
+        const int32_t level = c->secondLeg ? (c->minute == 90 || c->minute == 120) : c->minute > 90;
+        if (level) {
+            int32_t s1 = c->score[0], s2 = c->score[1], l1 = c->firstLeg[0], l2 = c->firstLeg[1];
+            if (c->secondLeg) {
+                const int32_t a = s1 + l1, b = s2 + l2;
+                if (a != b) {
+                    if (mode == 0) {    /* (the first leg's evens it) */
+                        if (a > b) l2 += a - b; else l1 += b - a;
+                    } else {
+                        if (a > b) s2 += a - b; else s1 += b - a;
+                    }
+                    if (l1 > kScoreLimit || l2 > kScoreLimit || s1 > kScoreLimit || s2 > kScoreLimit) {
+                        reset_all_scores();
+                        return;
+                    }
+                    c->score[0] = (int8_t)s1; c->score[1] = (int8_t)s2;
+                    c->firstLeg[0] = (int8_t)l1; c->firstLeg[1] = (int8_t)l2;
+                }
+            } else if (team == 0) {
+                c->score[1] = c->score[0];
+            } else {
+                c->score[0] = c->score[1];
+            }
+        } else {
+            if (goldenSilver && !c->secondLeg && c->minute == 90) {
+                if (team == 0) c->score[1] = c->score[0]; else c->score[0] = c->score[1];
+            }
+            if (c->secondLeg && c->firstLeg[0] == c->firstLeg[1] && c->minute == 0)
+                c->score[0] = c->score[1] = 0;
+        }
+    } else if (!c->secondLeg && c->minute == 90) {
+        if (team == 0) c->score[1] = c->score[0]; else c->score[0] = c->score[1];
+    }
+}
+
+/* (customChallengesEditMenu_directPen_onSelect) */
+static void ed_directPen(void)
+{
+    Challenge *c = &s_edit;
+    if (c->shootoutOnly) {
+        c->shootoutOnly = 0;
+        c->minute = 0;
+        se_set(c, SE_KICK_OFF);
+        c->subsSet = 1;
+        c->subsMin = 2;
+        c->subsMax = 5;
+    } else {
+        c->shootoutOnly = 1;
+        c->minute = 120;
+        wc_set(c, WC_ANY);
+        c->extraTime = c->penalties = 0;
+        se_set(c, SE_KICK_OFF);
+        c->subsSet = 1;
+        c->subsMin = 0;
+        c->subsMax = 5;
+        /* (the taker's goal: SWOS 2020 turns the attack to face it) */
+        c->playingUp = (int8_t)(c->kickOff == 0 ? 1 : 0);
+        same_scores(0, 0);
+        same_scores(1, 0);
+    }
+    same_scores(0, 0);
+}
+
+static void change_minute(int32_t v)
+{
+    Challenge *c = &s_edit;
+    int32_t m = v == 0 ? 0 : c->minute + v;
+    m = m < 0 ? 0 : m > 120 ? 120 : m;
+    c->minute = (int16_t)m;
+    if (c->shootoutOnly && m != 120)
+        ed_directPen();             /* (off again: SWOS 2020's) */
+    if (kick_off_minute())
+        se_set(c, SE_KICK_OFF);
+    if (m == 120 && !c->shootoutOnly)
+        ed_directPen();
+    if (m >= 90 && m != 120)
+        c->extraTime = 1;
+    same_scores(0, 0);
+}
+
+static void ed_minus10(void) { change_minute(-10); }
+static void ed_minus1(void) { change_minute(-1); }
+static void ed_reset0(void) { change_minute(0); }
+static void ed_plus1(void) { change_minute(1); }
+static void ed_plus10(void) { change_minute(10); }
+
+static void ed_team1Score(void)
+{
+    if (++s_edit.score[0] > kScoreLimit) s_edit.score[0] = 0;
+    same_scores(0, 0);
+}
+static void ed_team2Score(void)
+{
+    if (++s_edit.score[1] > kScoreLimit) s_edit.score[1] = 0;
+    same_scores(0, 1);
+}
+static void ed_scoreReset(void)
+{
+    s_edit.score[0] = s_edit.score[1] = 0;
+    same_scores(0, 0);
+}
+static void ed_secondLeg(void)
+{
+    s_edit.secondLeg = (uint8_t)!s_edit.secondLeg;
+    if (!s_edit.secondLeg)
+        s_edit.firstLeg[0] = s_edit.firstLeg[1] = 0;
+    same_scores(1, 0);
+}
+static void ed_legTeam(int32_t t)
+{
+    if (!s_edit.secondLeg)
+        return;
+    if (++s_edit.firstLeg[t] > kScoreLimit) s_edit.firstLeg[t] = 0;
+    same_scores(1, 0);
+}
+static void ed_legTeam1(void) { ed_legTeam(0); }
+static void ed_legTeam2(void) { ed_legTeam(1); }
+static void ed_legReset(void)
+{
+    s_edit.firstLeg[0] = s_edit.firstLeg[1] = 0;
+    same_scores(1, 0);
+}
+static void ed_et(void)
+{
+    Challenge *c = &s_edit;
+    if (c->shootoutOnly || c->minute >= 90 || c->extraTimeRule != CHALLENGE_ET_NORMAL)
+        return;
+    c->extraTime = (uint8_t)!c->extraTime;
+    if (!c->extraTime)
+        c->penalties = 0;
+}
+static void ed_pen(void)
+{
+    if (s_edit.penalties)
+        s_edit.penalties = 0;
+    else if (s_edit.extraTime)
+        s_edit.penalties = 1;
+}
+static void ed_subsMin(void)
+{
+    Challenge *c = &s_edit;
+    if (c->shootoutOnly || yours_short())
+        return;
+    c->subsSet = 1;
+    if (++c->subsMin > c->subsMax)
+        c->subsMin = 0;
+}
+static void ed_subsMax(void)
+{
+    Challenge *c = &s_edit;
+    if (c->shootoutOnly || yours_short())
+        return;
+    c->subsSet = 1;
+    if (++c->subsMax > 5)
+        c->subsMin = c->subsMax = 0;
+}
+static void ed_attack(void)     /* DOWN -> UP -> RANDOM: the first team's direction */
+{
+    if (s_edit.shootoutOnly)
+        return;
+    /* (playingUp is the team attacking the top goal: team 1 DOWN is team 2 attacking it) */
+    s_edit.playingUp = (int8_t)(s_edit.playingUp == 1 ? 0 : s_edit.playingUp == 0 ? -1 : 1);
+}
+static void ed_startTeam(void)  /* TEAM1 -> TEAM2 -> RANDOM */
+{
+    Challenge *c = &s_edit;
+    c->kickOff = (int8_t)(c->kickOff == 0 ? 1 : c->kickOff == 1 ? -1 : 0);
+    c->restartTeam = c->kickOff;
+    if (c->shootoutOnly)
+        c->playingUp = (int8_t)(c->kickOff == 0 ? 1 : 0);
+}
+static void ed_event(void)
+{
+    Challenge *c = &s_edit;
+    if (c->shootoutOnly || kick_off_minute())
+        return;
+    const int32_t se = se_of(c);
+    se_set(c, se == SE_KICK_OFF ? SE_FREE_KICK : se == SE_RANDOM ? SE_KICK_OFF : se + 1);
+}
+static void ed_win(void)
+{
+    Challenge *c = &s_edit;
+    if (c->shootoutOnly)
+        return;
+    const int32_t wc = wc_of(c);
+    if (wc == WC_ANY) {
+        wc_set(c, WC_DRAW);
+    } else if (wc == WC_DRAW) {
+        wc_set(c, WC_GOLDEN);
+        c->extraTime = 1;
+        same_scores(0, 0);
+        same_scores(1, 0);
+    } else if (wc == WC_GOLDEN) {
+        wc_set(c, WC_SILVER);
+        c->extraTime = 1;
+        if (c->minute >= 105)
+            c->minute = 104;
+        same_scores(0, 0);
+        same_scores(1, 0);
+    } else {
+        wc_set(c, WC_ANY);
+    }
+}
+static void ed_difficulty(void)
+{
+    if (++s_edit.difficulty > 5)
+        s_edit.difficulty = 1;
+}
+static void ed_pitchType(void)  /* FROZEN .. HARD, RANDOM */
+{
+    s_edit.pitchType = (int8_t)(s_edit.pitchType >= 6 ? -1 : s_edit.pitchType + 1);
+}
+
+/* the teams: the friendly's team screen, both (SWOS 2020 picks one and asks WILL YOU TAKE
+ * CONTROL?: here the screen says who plays each) -- 1 when two were chosen */
+static int32_t edit_teams(void)
 {
     if (!ModApi_ChooseTeams())
-        return;
-    memset(&s_edit, 0, sizeof s_edit);
+        return 0;
+    char uuid[2][40];
+    for (int32_t t = 0; t < 2; t++)
+        if (!ModApi_ChosenTeamUuid(t, uuid[t], (int32_t)sizeof uuid[t])) {
+            ModApi_ShowError("THAT TEAM HAS NO ID: CHOOSE ANOTHER");
+            return 0;
+        }
     for (int32_t t = 0; t < 2; t++) {
         snprintf(s_edit.teamName[t], sizeof s_edit.teamName[t], "%s", ModApi_ChosenName(t));
-        if (!ModApi_ChosenTeamUuid(t, s_edit.teamUuid[t], (int32_t)sizeof s_edit.teamUuid[t])) {
-            ModApi_ShowError("THAT TEAM HAS NO ID: CHOOSE ANOTHER");
-            return;
-        }
+        snprintf(s_edit.teamUuid[t], sizeof s_edit.teamUuid[t], "%s", uuid[t]);
         s_edit.teamNumber[t] = ModApi_ChosenTeamNumber(t);
-        s_edit.scorers[t].team = -1;
+        s_edit.teamFile[t][0] = 0;
     }
-    for (int32_t k = 0; k < 8; k++)
-        s_edit.scorers[k].team = -1;
     s_edit.yours = (int8_t)(ModApi_ChosenIsPlayer(1) && !ModApi_ChosenIsPlayer(0) ? 1 : 0);
-    s_edit.score[s_edit.yours] = 0;
-    s_edit.score[!s_edit.yours] = 1;        /* (a challenge: you start behind) */
-    s_edit.minute = 70;
-    s_edit.pitchType = -1;
-    s_edit.playingUp = s_edit.kickOff = -1;     /* (drawn, as a friendly's) */
-    s_edit.win = W_WIN;
-    s_edit.custom = 1;
-    snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE");
+    s_edit.sentOff[0] = s_edit.sentOff[1] = 0;   /* (another squad: its shirts are not these) */
+    memset(s_edit.injured, 0, sizeof s_edit.injured);
+    return 1;
+}
+static void ed_team(void) { edit_teams(); }
+
+static void ed_nickname(void)   /* SWOS 2020's scenario NICKNAME: the challenge's title */
+{
+    static char text[32];
+    snprintf(text, sizeof text, "%s", s_edit.title);
+    if (ModApi_MenuInputText(E_nickname, text, 30))
+        snprintf(s_edit.title, sizeof s_edit.title, "%s", text);
+}
+
+static void edit_open(void)
+{
     s_editing = 1;
-    ModApi_ShowMenu("challenges/challengeInfo");
+    ModApi_ShowMenu("challenges/customChallengesEditMenu");
     s_editing = 0;
 }
 
-static void edit_draw(void)
+static void edit_new(void)
 {
-    static const char *const kWin[3] = { "WIN IT", "DON'T LOSE IT", "" };
-    static char score[2][8], minute[8];
-    ModApi_MenuText(M_header, "NEW CHALLENGE");
-    ModApi_MenuText(M_subTitle, "FIRE CHANGES A ROW");
-    snprintf(score[0], sizeof score[0], "%d", (int)s_edit.score[0]);
-    snprintf(score[1], sizeof score[1], "%d", (int)s_edit.score[1]);
-    snprintf(minute, sizeof minute, "%d", (int)s_edit.minute);
-    char a[40], b[40];
-    snprintf(a, sizeof a, "%s: %s", s_edit.teamName[0], s_edit.yours == 0 ? "YOU" : "CPU");
-    snprintf(b, sizeof b, "%s: %s", s_edit.teamName[1], s_edit.yours == 1 ? "YOU" : "CPU");
-    row(0, a, score[0], 1);
-    row(1, b, score[1], 1);
-    row(2, "THE MINUTE", minute, 1);
-    row(3, "TO WIN", kWin[s_edit.win == W_DRAW ? 1 : 0], 1);
-    row(4, "WHO YOU ARE", "SWAP", 1);
-    row(5, "", "SAVE AND PLAY", 0);
-    hide_from(6);
-    ModApi_MenuText(M_note, "IT GOES IN YOUR CHALLENGES");
+    memset(&s_edit, 0, sizeof s_edit);
+    if (!edit_teams())
+        return;
+    for (int32_t k = 0; k < 8; k++)
+        s_edit.scorers[k].team = -1;
+    /* SWOS 2020's new scenario (customMakeScenario...): MATCH START, a random free kick by the
+     * first team, either direction, WIN BY ANY SCORE, three stars, 2 to 5 substitutes */
+    s_edit.minute = 0;
+    s_edit.pitchType = -1;
+    s_edit.playingUp = -1;
+    s_edit.kickOff = s_edit.restartTeam = 0;
+    se_set(&s_edit, SE_FREE_KICK);
+    wc_set(&s_edit, WC_ANY);
+    s_edit.difficulty = 3;
+    s_edit.subsSet = 1;
+    s_edit.subsMin = 2;
+    s_edit.subsMax = 5;
+    s_edit.custom = 1;
+    s_edit.mod = -1;
+    snprintf(s_edit.title, sizeof s_edit.title, "NEW CHALLENGE");
+    snprintf(s_edit.category, sizeof s_edit.category, "CUSTOM");
+    s_editExisting = 0;
+    edit_open();
 }
 
+static void edit_existing(int32_t i)
+{
+    s_edit = s_ch[i];
+    s_editExisting = 1;
+    edit_open();
+}
+
+/* The player's own, written again: every one of the list's (the one with `skipId` left out), and
+ * `extra` -- custom.json on the PC, CUSTOM.BIN (a pack) on the Amiga. 1 written. */
 #ifndef SWOS_SDL_BUILD
-static void save_custom(void)   /* (the Amiga: CUSTOM.BIN, a pack) */
+static int32_t write_custom(const Challenge *extra, const char *skipId)
 {
     const uint32_t cap = CHALLENGE_PACK_HEADER + kMax * CHALLENGE_PACK_RECORD;
     ChallengeDef *defs = (ChallengeDef *)malloc(sizeof(ChallengeDef) * kMax);
     uint8_t *buf = (uint8_t *)malloc(cap);
-    int32_t count = 0, number = 1;
-    if (!defs || !buf) {
-        free(defs);
-        free(buf);
-        ModApi_ShowError("NO MEMORY TO SAVE IT");
-        return;
-    }
-    for (int32_t i = 0; i < s_count; i++)
-        if (s_ch[i].custom == 1)
-            number++;
-    snprintf(s_edit.id, sizeof s_edit.id, "custom-%d-%u", (int)number, (unsigned)ModApi_Ticks());
-    snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE %d", (int)number);
-    snprintf(s_edit.about, sizeof s_edit.about, "YOUR OWN CHALLENGE");
-    for (int32_t i = 0; i <= s_count && count < kMax; i++) {
-        const Challenge *c = i < s_count ? &s_ch[i] : &s_edit;
-        if (c->custom == 1)
+    int32_t count = 0, ok = 0;
+    if (defs && buf) {
+        for (int32_t i = 0; i <= s_count && count < kMax; i++) {
+            const Challenge *c = i < s_count ? &s_ch[i] : extra;
+            if (!c || c->custom != 1 || (i < s_count && skipId && !strcmp(c->id, skipId)))
+                continue;
             defs[count++] = c->def;
+        }
+        const int32_t n = ChallengePack_Write(defs, count, buf, cap);
+        ok = n > 0 && ModApi_SaveFile("challenges", "CUSTOM.BIN", buf, (uint32_t)n) == 0;
     }
-    const int32_t n = ChallengePack_Write(defs, count, buf, cap);
-    if (n > 0)
-        ModApi_SaveFile("challenges", "CUSTOM.BIN", buf, (uint32_t)n);
     free(defs);
     free(buf);
+    if (!ok)
+        ModApi_ShowError("NO MEMORY TO SAVE IT");
+    return ok;
 }
 #else
-/* custom.json: every challenge of the player's own (and `extra`, a new one), each whole
- * (ChallengePack_ToJson) -- 1 written */
 static int32_t write_custom(const Challenge *extra, const char *skipId)
 {
     const uint32_t cap = (uint32_t)(s_count + 1) * 4096 + 256;
@@ -1042,62 +1443,433 @@ static int32_t write_custom(const Challenge *extra, const char *skipId)
     free(buf);
     return ok;
 }
-
-static void save_custom(void)
-{
-    int32_t number = 1;
-    for (int32_t i = 0; i < s_count; i++)
-        if (s_ch[i].custom == 1)
-            number++;
-    snprintf(s_edit.id, sizeof s_edit.id, "custom-%d-%u", (int)number, (unsigned)ModApi_Ticks());
-    snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE %d", (int)number);
-    snprintf(s_edit.about, sizeof s_edit.about, "YOUR OWN CHALLENGE");
-    snprintf(s_edit.category, sizeof s_edit.category, "CUSTOM");
-    write_custom(&s_edit, NULL);
-}
 #endif
 
-static void edit_row(int32_t r)
+static void reload_list(void)
 {
-    switch (r) {
-    case 0: s_edit.score[0] = (int8_t)((s_edit.score[0] + 1) % 10); break;
-    case 1: s_edit.score[1] = (int8_t)((s_edit.score[1] + 1) % 10); break;
-    case 2: s_edit.minute = (int16_t)(s_edit.minute >= 85 ? 5 : s_edit.minute + 5); break;
-    case 3: s_edit.win = s_edit.win == W_WIN ? W_DRAW : W_WIN; break;
-    case 4: s_edit.yours = (int8_t)!s_edit.yours; break;
-    case 5: {
+    s_loaded = 0;
+    s_count = 0;
+    s_numKept = 0;                      /* (read again with the rest) */
+    load();
+}
+
+/* SAVE: one of the player's own, new or replacing itself (its id kept). 1 saved. */
+static int32_t edit_store(void)
+{
+    if (!s_editExisting) {
+        int32_t number = 1;
         if (s_count >= kMax) {
-            ModApi_ShowError("NO ROOM FOR ANOTHER CHALLENGE");
-            return;
+            tell("CUSTOM CHALLENGES", "NO ROOM FOR ANOTHER CHALLENGE");
+            return 0;
         }
-        save_custom();
-        s_loaded = 0;                       /* (read again: the new one in its place) */
-        s_count = 0;
-        s_numKept = 0;                      /* (read again with the rest) */
-        load();
-        for (int32_t i = s_count - 1; i >= 0; i--)
-            if (s_ch[i].custom == 1) {
-                s_cur = i;
-                break;
-            }
-        s_editing = 0;
-        play(s_cur);
+        for (int32_t i = 0; i < s_count; i++)
+            if (s_ch[i].custom == 1)
+                number++;
+        snprintf(s_edit.id, sizeof s_edit.id, "custom-%d-%u", (int)number, (unsigned)ModApi_Ticks());
+        snprintf(s_edit.name, sizeof s_edit.name, "MY CHALLENGE %d", (int)number);
+    }
+    snprintf(s_edit.about, sizeof s_edit.about, "%s V %s", s_edit.teamName[0], s_edit.teamName[1]);
+    snprintf(s_edit.category, sizeof s_edit.category, "CUSTOM");
+    if (!write_custom(&s_edit, s_editExisting ? s_edit.id : NULL))
+        return 0;
+    s_editExisting = 1;
+    reload_list();
+    return 1;
+}
+
+static int32_t edit_remove(void)
+{
+    if (!write_custom(NULL, s_edit.id))
+        return 0;
+    reload_list();
+    s_editExisting = 0;
+    return 1;
+}
+
+static void ed_save(void)
+{
+    if (ask("CUSTOM CHALLENGES", "SAVE?") && edit_store())
+        tell("CUSTOM CHALLENGES", "SAVED");
+}
+
+static void ed_delete(void)
+{
+    if (!s_editExisting) {              /* (never saved: nothing to delete -- leave it) */
         SetExitMenuFlag();
         return;
     }
-    default: return;
-    }
-    edit_draw();
-    for (int32_t i = 0; i < 6; i++)
-        ModApi_MenuRedraw(M_label0 + 2 * i + 1);
+    if (!ask("CUSTOM CHALLENGES", "DELETE?") || !edit_remove())
+        return;
+    tell("CUSTOM CHALLENGES", "DELETED");
+    SetExitMenuFlag();
 }
+
+/* TEST: played once from where it is set, as SWOS 2020's mainLoop(true) -- no progress kept */
+static void ed_test(void)
+{
+    if (s_count >= kMax) {
+        tell("CUSTOM CHALLENGES", "NO ROOM TO TEST IT");
+        return;
+    }
+    const int32_t at = s_count++;       /* (past the list's own, while it is played) */
+    s_ch[at] = s_edit;
+    if (!s_ch[at].id[0])
+        snprintf(s_ch[at].id, sizeof s_ch[at].id, "test");
+    s_trying = 1;
+    play(at);
+    s_trying = 0;
+    s_count--;
+}
+
+static void ed_exit(void) { SetExitMenuFlag(); }
+static void ed_none(void) {}
+
+static const char *minute_text(char *out, size_t cap, int32_t m)  /* (its INITIAL TIME line) */
+{
+    if (m == 0) return "MATCH START";
+    if (m == 45) return "2ND HALF";
+    if (m == 90) return "EXTRA TIME";
+    if (m == 120) return "A.E.T.";
+    const int32_t t = m % 100;
+    snprintf(out, cap, "%d%s MINUTE", (int)m,
+             t >= 11 && t <= 13 ? "TH" : m % 10 == 1 ? "ST" : m % 10 == 2 ? "ND" : m % 10 == 3 ? "RD" : "TH");
+    return out;
+}
+
+static void ed_init(void)
+{
+    ModApi_MenuVisible(E_uniformsLabel, 0);
+    ModApi_MenuVisible(E_uniforms, 0);
+    ModApi_MenuVisible(E_pitchSetLabel, 0);
+    ModApi_MenuVisible(E_pitchSet, 0);
+    /* (the hidden ones' neighbours: the rows beside them instead) */
+    ModApi_MenuNav4(E_scoreReset, E_team2Score, -1, E_nickname, E_minus10);
+    ModApi_MenuNav4(E_difficulty, -1, -1, E_win, E_exit);
+    ModApi_MenuNav4(E_win, E_startTeam, -1, E_event, E_difficulty);
+    ModApi_MenuNav4(E_exit, E_delete, -1, E_difficulty, -1);
+}
+
+static void ed_draw(void)
+{
+    static char team[2][32], score[8], s1[8], s2[8], minute[24], l1[8], l2[8], sMin[4], sMax[4],
+                startTeam[32], winTeam[32], nick[32];
+    static const char *const kEvent[8] = { "KICK OFF", "FREE KICK (OPPO. SIDE)", "FREE KICK (HOME SIDE)",
+                                           "CORNER KICK", "THROW IN", "GOAL KICK", "RANDOM", "PENALTY SHOOTOUT" };
+    static const char *const kWinText[4] = { "WIN BY ANY SCORE", "AT LEAST DRAW", "GOLDEN GOAL", "SILVER GOAL" };
+    static const char *const kPitch[8] = { "RANDOM", "FROZEN", "MUDDY", "WET", "SOFT", "NORMAL", "DRY", "HARD" };
+    const Challenge *c = &s_edit;
+    const int32_t cpu = 1 - c->yours;
+    snprintf(nick, sizeof nick, "%s", c->title);
+    ModApi_MenuText(E_nickname, nick);
+    snprintf(team[0], sizeof team[0], "%s ", c->teamName[0]);
+    snprintf(team[1], sizeof team[1], " %s", c->teamName[1]);
+    ModApi_MenuText(E_team1, team[0]);
+    ModApi_MenuText(E_team2, team[1]);
+    snprintf(score, sizeof score, "%d-%d", (int)c->score[0], (int)c->score[1]);
+    ModApi_MenuText(E_teamScore, score);
+    snprintf(s1, sizeof s1, "%d", (int)c->score[0]);
+    snprintf(s2, sizeof s2, "%d", (int)c->score[1]);
+    ModApi_MenuText(E_team1Score, s1);
+    ModApi_MenuText(E_team2Score, s2);
+    ModApi_MenuColour(E_team1, cpu == 1 ? kPurpleTeam : kRedTeam);
+    ModApi_MenuColour(E_team2, cpu == 1 ? kRedTeam : kPurpleTeam);
+    ModApi_MenuText(E_time, minute_text(minute, sizeof minute, c->minute));
+
+    const int32_t dp = c->shootoutOnly;
+    const int32_t dpOff = dp ? kDarkBlue : kLightBlue;
+    ModApi_MenuText(E_directPen, dp ? "DIRECT PENALTY SHOOTOUT" : "NO DIRECT PENALTY SHOOTOUT");
+    int32_t et = dpOff, pen = dpOff, win = dpOff, event = dpOff;
+    ModApi_MenuColour(E_subsMin, dpOff);
+    ModApi_MenuColour(E_subsMax, dpOff);
+    ModApi_MenuColour(E_attack, dpOff);
+    if (!dp && kick_off_minute())
+        event = kDarkBlue;
+    for (int32_t e = E_minus10; e <= E_plus10; e++)
+        ModApi_MenuColour(e, kLightBlue);
+    ModApi_MenuText(E_secondLeg, c->secondLeg ? "YES" : "NO");
+    snprintf(l1, sizeof l1, "%d", (int)c->firstLeg[0]);
+    snprintf(l2, sizeof l2, "%d", (int)c->firstLeg[1]);
+    ModApi_MenuText(E_legTeam1, l1);
+    ModApi_MenuText(E_legTeam2, l2);
+    ModApi_MenuText(E_et, c->extraTime ? "ET" : "NO ET");
+    ModApi_MenuText(E_pen, c->penalties ? "PEN" : "NO PEN");
+    snprintf(sMin, sizeof sMin, "%d", (int)c->subsMin);
+    snprintf(sMax, sizeof sMax, "%d", (int)c->subsMax);
+    ModApi_MenuText(E_subsMin, sMin);
+    ModApi_MenuText(E_subsMax, sMax);
+    ModApi_MenuText(E_attack, c->playingUp == 1 ? "DOWN" : c->playingUp == 0 ? "UP" : "RANDOM");
+    snprintf(startTeam, sizeof startTeam, "%s", c->kickOff == 0 ? c->teamName[0] : c->kickOff == 1 ? c->teamName[1]
+                                                                                                  : "RANDOM");
+    ModApi_MenuText(E_startTeam, startTeam);
+    ModApi_MenuText(E_event, kEvent[se_of(c)]);
+    snprintf(winTeam, sizeof winTeam, "%s", c->teamName[c->yours]);
+    ModApi_MenuText(E_winTeam, winTeam);
+    const int32_t wc = wc_of(c);
+    ModApi_MenuText(E_win, kWinText[wc]);
+    if (wc == WC_ANY && !dp)
+        et = kLightBlue;
+    if (wc == WC_DRAW)
+        et = kLightBlue;
+    if (c->minute >= 90)
+        et = kDarkBlue;
+    else if (!c->extraTime)
+        pen = kDarkBlue;
+    if (wc == WC_GOLDEN || wc == WC_SILVER)
+        et = kDarkBlue;
+    ModApi_MenuColour(E_et, et);
+    ModApi_MenuColour(E_pen, pen);
+    ModApi_MenuColour(E_win, win);
+    ModApi_MenuColour(E_event, event);
+    if (yours_short()) {
+        ModApi_MenuColour(E_subsMin, kDarkBlue);
+        ModApi_MenuColour(E_subsMax, kDarkBlue);
+    }
+    ModApi_MenuText(E_pitchType, kPitch[c->pitchType < 0 || c->pitchType > 6 ? 0 : c->pitchType + 1]);
+    ModApi_MenuColour(E_legTeam1, c->secondLeg ? kLightBlue : kDarkBlue);
+    ModApi_MenuColour(E_legTeam2, c->secondLeg ? kLightBlue : kDarkBlue);
+    ModApi_MenuColour(E_scoreReset, c->score[0] || c->score[1] ? kLightBrownOrange : kDarkBlue);
+    ModApi_MenuColour(E_legReset, c->firstLeg[0] || c->firstLeg[1] ? kLightBrownOrange : kDarkBlue);
+    ModApi_MenuText(E_difficulty, "");
+}
+
+static void ed_background(void)  /* (customChallengesEditMenu_onBackground: the difficulty in stars) */
+{
+    const int32_t star = s_edit.difficulty < 1 ? 1 : s_edit.difficulty > 5 ? 5 : s_edit.difficulty;
+    int32_t x, y, w, h;
+    ModApi_MenuEntryRect(E_difficulty, &x, &y, &w, &h);
+    ModApi_DrawMapAtEntry("challenges", "starsMap", E_difficulty, (w - (star * 8 - 2 * (star - 1))) / 2, 1, 0,
+                          10 * (1 + 2 * (star - 1)), 36, 10, 0);
+}
+
+/* ---- CARDS AND INJURIES (customChallengesSentOffInjuryNew.mnu): each team's sixteen by shirt
+ * number, a red card or an injury level (1..7) each -- never the goalkeeper's (shirt 1), never
+ * both; OK keeps them (at most 4 sent off a team, and 8 injured: the format's), CANCEL not. ---- */
+enum {
+    SO_T1_SENT = 1, SO_T1_INJ = 19, SO_T1_NO = 37, SO_T1_NAME = 55, SO_T1_POS = 73,
+    SO_T2_SENT = 109, SO_T2_INJ = 127, SO_T2_NO = 145, SO_T2_NAME = 163, SO_T2_POS = 181,
+    SO_DESC = 199, SO_RESET, SO_OK, SO_EXIT
+};
+static uint8_t s_soSent[2][16], s_soInj[2][16];
+static char    s_soName[2][16][16], s_soPos[2][16][4], s_soNo[16][4], s_soDesc[24];
+
+static int32_t so_base(int32_t t, int32_t col)  /* col 0 sent, 1 injury, 2 number, 3 name, 4 position */
+{
+    static const int16_t kBase[2][5] = { { SO_T1_SENT, SO_T1_INJ, SO_T1_NO, SO_T1_NAME, SO_T1_POS },
+                                         { SO_T2_SENT, SO_T2_INJ, SO_T2_NO, SO_T2_NAME, SO_T2_POS } };
+    return kBase[t][col];
+}
+
+static void so_init(void)
+{
+    static const char *const kPos[8] = { "GK", "RB", "LB", "D", "RW", "LW", "M", "A" };
+    memset(s_soSent, 0, sizeof s_soSent);
+    memset(s_soInj, 0, sizeof s_soInj);
+    memset(s_soName, 0, sizeof s_soName);
+    memset(s_soPos, 0, sizeof s_soPos);
+    for (int32_t t = 0; t < 2; t++) {
+        for (int32_t j = 0; j < 16; j++)
+            s_soSent[t][j] = (uint8_t)((s_edit.sentOff[t] >> (j + 1)) & 1);
+        for (int32_t k = 0; k < 8; k++)
+            if (s_edit.injured[t][k].shirt >= 1 && s_edit.injured[t][k].shirt <= 16)
+                s_soInj[t][s_edit.injured[t][k].shirt - 1] = s_edit.injured[t][k].level;
+        const uint16_t id = ModApi_TeamByUuidNumber(s_edit.teamUuid[t], s_edit.teamNumber[t]);
+        for (int32_t slot = 0; slot < 16 && id; slot++) {
+            ModTeamPlayer p;
+            if (!ModApi_TeamPlayer(id, slot, &p) || p.shirt < 1 || p.shirt > 16)
+                continue;
+            const char *sur = strrchr(p.name, ' ');     /* (getSurname) */
+            snprintf(s_soName[t][p.shirt - 1], sizeof s_soName[t][0], "%s", sur ? sur + 1 : p.name);
+            snprintf(s_soPos[t][p.shirt - 1], sizeof s_soPos[t][0], "%s", kPos[p.position & 7]);
+        }
+    }
+    for (int32_t j = 0; j < 16; j++)
+        snprintf(s_soNo[j], sizeof s_soNo[j], "%d", (int)j + 1);
+    /* the navigation (SWOS 2020 sets it each frame): rows 2..16 (shirt 1 never), across the four
+     * columns, the last row down to CANCEL */
+    for (int32_t j = 1; j < 16; j++)
+        for (int32_t t = 0; t < 2; t++)
+            for (int32_t col = 0; col < 2; col++) {
+                const int32_t e = so_base(t, col) + 2 + j;
+                const int32_t next = col == 0 ? so_base(t, 1) + 2 + j : so_base(1 - t, 0) + 2 + j;
+                const int32_t prev = col == 1 ? so_base(t, 0) + 2 + j : so_base(1 - t, 1) + 2 + j;
+                ModApi_MenuNav4(e, prev, next, j == 1 ? -1 : e - 1, j == 15 ? SO_EXIT : e + 1);
+            }
+}
+
+static void so_draw(void)
+{
+    static char name[2][32];
+    const int32_t cpu = 1 - s_edit.yours;
+    for (int32_t t = 0; t < 2; t++) {
+        const int32_t head = so_base(t, 0);
+        snprintf(name[t], sizeof name[t], "%s", s_edit.teamName[t]);
+        ModApi_SetMenuEntryRect(head, -1, -1, 132, 10);
+        ModApi_MenuText(head, name[t]);
+        ModApi_MenuColour(head, t == cpu ? kRedTeam : kPurpleTeam);
+        for (int32_t j = 0; j < 16; j++) {
+            ModApi_MenuText(so_base(t, 2) + 2 + j, s_soNo[j]);
+            ModApi_MenuText(so_base(t, 3) + 2 + j, s_soName[t][j]);
+            ModApi_MenuColour(so_base(t, 3) + 2 + j, t != cpu ? (j <= 10 ? kLightBlue : kPurpleTeam)
+                                                           : (j <= 10 ? kRedTeam : kLightBrownOrange));
+            ModApi_MenuText(so_base(t, 4) + 2 + j, s_soPos[t][j]);
+            if (s_soSent[t][j])         /* (drawRedCard: the card, half size) */
+                ModApi_DrawMapAtEntry("challenges", "cards_24x15_5x1_Map", so_base(t, 0) + 2 + j, 2, 0, 24, 0,
+                                      24, 15, 1);
+            if (s_soInj[t][j]) {        /* (drawInjuries) */
+                const int32_t v = s_soInj[t][j], idx = v == 1 ? 1 : v + 2;
+                ModApi_DrawMapAtEntry("challenges", "cards_injuries_map_16x10x_1x10_map", so_base(t, 1) + 2 + j,
+                                      v == 1 ? 1 : 0, 0, 16 * idx, 0, 16, 10, 0);
+            }
+        }
+    }
+    const int32_t m = ModApi_MenuCurrentEntry();
+    s_soDesc[0] = 0;
+    for (int32_t t = 0; t < 2; t++) {
+        if (m >= so_base(t, 0) + 2 && m <= so_base(t, 0) + 17)
+            snprintf(s_soDesc, sizeof s_soDesc, "SET CARDS");
+        else if (m >= so_base(t, 1) + 2 && m <= so_base(t, 1) + 17)
+            snprintf(s_soDesc, sizeof s_soDesc, "SET INJURY LEVELS");
+        else
+            continue;
+        int32_t x, y, w, h;
+        ModApi_MenuEntryRect(so_base(t, 2) + 17, &x, &y, &w, &h);
+        ModApi_SetMenuEntryRect(SO_DESC, x, y + h + 5, -1, -1);
+    }
+    ModApi_MenuText(SO_DESC, s_soDesc);
+}
+
+static void so_col(void)
+{
+    const int32_t m = ModApi_MenuCurrentEntry();
+    for (int32_t t = 0; t < 2; t++) {
+        const int32_t js = m - (so_base(t, 0) + 2), ji = m - (so_base(t, 1) + 2);
+        if (js >= 1 && js < 16 && !s_soInj[t][js])
+            s_soSent[t][js] ^= 1;
+        if (ji >= 1 && ji < 16 && !s_soSent[t][ji])
+            s_soInj[t][ji] = (uint8_t)(s_soInj[t][ji] >= 7 ? 0 : s_soInj[t][ji] + 1);
+    }
+}
+
+static void so_reset(void)
+{
+    memset(s_soSent, 0, sizeof s_soSent);
+    memset(s_soInj, 0, sizeof s_soInj);
+}
+
+static void so_ok(void)
+{
+    for (int32_t t = 0; t < 2; t++) {
+        int32_t sent = 0, inj = 0;
+        for (int32_t j = 0; j < 16; j++) {
+            sent += s_soSent[t][j];
+            inj += s_soInj[t][j] != 0;
+        }
+        if (sent > 4) {
+            tell("CUSTOM CHALLENGES", "SENT OFF PLAYERS SHOULD NOT EXCEED 4.");
+            return;
+        }
+        if (inj > 8) {
+            tell("CUSTOM CHALLENGES", "INJURED PLAYERS SHOULD NOT EXCEED 8.");
+            return;
+        }
+    }
+    for (int32_t t = 0; t < 2; t++) {
+        int32_t k = 0;
+        s_edit.sentOff[t] = 0;
+        memset(s_edit.injured[t], 0, sizeof s_edit.injured[t]);
+        for (int32_t j = 0; j < 16; j++) {
+            if (s_soSent[t][j])
+                s_edit.sentOff[t] |= 1u << (j + 1);
+            if (s_soInj[t][j] && k < 8) {
+                s_edit.injured[t][k].shirt = (uint8_t)(j + 1);
+                s_edit.injured[t][k].level = s_soInj[t][j];
+                k++;
+            }
+        }
+    }
+    s_edit.subsSet = 1;
+    s_edit.subsMin = (uint8_t)(yours_short() ? 0 : 2);
+    s_edit.subsMax = 5;
+    SetExitMenuFlag();
+}
+
+static void ed_cards(void) { ModApi_ShowMenu("challenges/customChallengesSentOffInjuryNewMenu"); }
+
+/* ---- SORT BY (customChallengesSortBy.mnu): the player's own and fetched challenges' order, in
+ * their category's list -- DATE (newest first), TEAM, CREATOR / TEAM, CREATOR / LEVEL, LEVEL. Ours
+ * carry no creator's name: CREATOR puts the player's own before those fetched for them. Kept in
+ * SWOS.ini ([mod.challenges] sort). ---- */
+enum { SORT_DATE, SORT_TEAM, SORT_CREATOR, SORT_CREATOR2, SORT_LEVEL };
+static const char *const kSortKey[5] = { "date", "name", "creator", "creator2", "level" };
+static int32_t s_sort = -1;
+
+static int32_t sort_option(void)
+{
+    if (s_sort < 0) {
+        const char *v = ModApi_Setting("challenges", "sort", "date");
+        s_sort = SORT_DATE;
+        for (int32_t k = 0; k < 5; k++)
+            if (!strcmp(v, kSortKey[k]))
+                s_sort = k;
+    }
+    return s_sort;
+}
+
+static int by_custom_sort(const void *a, const void *b)
+{
+    const Challenge *x = (const Challenge *)a, *y = (const Challenge *)b;
+    int r = 0;
+    const int32_t o = sort_option();
+    if (o == SORT_CREATOR || o == SORT_CREATOR2)
+        r = (int)x->custom - (int)y->custom;
+    if (!r && (o == SORT_LEVEL || o == SORT_CREATOR2))
+        r = (int)x->difficulty - (int)y->difficulty;
+    if (!r && o != SORT_DATE) {
+        r = strcmp(x->teamName[0], y->teamName[0]);
+        if (!r)
+            r = strcmp(x->teamName[1], y->teamName[1]);
+    }
+    if (!r)
+        r = o == SORT_DATE ? (int)y->seq - (int)x->seq : (int)x->seq - (int)y->seq;
+    return r;
+}
+
+/* the CUSTOM category's challenges (together: the list is sorted by category) in the order chosen */
+static void sort_custom(void)
+{
+    int32_t first = -1, n = 0;
+    for (int32_t i = 0; i < s_count; i++)
+        if (!strcmp(s_ch[i].category, "CUSTOM")) {
+            if (first < 0)
+                first = i;
+            n++;
+        }
+    if (n > 1)
+        qsort(&s_ch[first], (size_t)n, sizeof s_ch[0], by_custom_sort);
+}
+
+enum { SB_DATE = 1, SB_TEAM, SB_CREATOR, SB_CREATOR2, SB_LEVEL, SB_EXIT };
+static void sort_draw(void)
+{
+    static const int8_t kEntry[5] = { SB_DATE, SB_TEAM, SB_CREATOR, SB_CREATOR2, SB_LEVEL };
+    for (int32_t k = 0; k < 5; k++)
+        ModApi_MenuColour(kEntry[k], k == sort_option() ? kLightBlue : kGreen);
+}
+static void sort_set(int32_t o)
+{
+    s_sort = o;
+    ModApi_SetSetting("challenges", "sort", kSortKey[o]);
+    sort_custom();
+    SetExitMenuFlag();
+}
+static void sort_date(void) { sort_set(SORT_DATE); }
+static void sort_team(void) { sort_set(SORT_TEAM); }
+static void sort_creator(void) { sort_set(SORT_CREATOR); }
+static void sort_creator2(void) { sort_set(SORT_CREATOR2); }
+static void sort_level(void) { sort_set(SORT_LEVEL); }
 
 static void info_draw(void)
 {
-    if (s_editing) {
-        edit_draw();
-        return;
-    }
     const Challenge *c = &s_ch[s_cur];
     static const char *const kWin[3] = { "WIN IT", "DON'T LOSE IT", "" };
     char score[24], minute[16], win[24];
@@ -1131,47 +1903,45 @@ static void info_draw(void)
     row(3, "THE MINUTE", minute, 1);
     row(4, "TO WIN", win, 1);
     row(5, "", "PLAY", 0);
+    const int32_t own = c->custom == 1;     /* (the player's own: EDIT, SWOS 2020's LOAD) */
+    if (own)
+        row(6, "", "EDIT", 0);
     {   /* online: what the service says of it ("BEATEN BY 12 PLAYERS"), when there is one */
         char args[256];
         online_args(c, args, sizeof args);
         const int32_t r = ModApi_CallService("online-records", "challenges.stats", args, s_onlineLine,
                                              sizeof s_onlineLine);
         if (r == 0 && s_onlineLine[0])
-            row(6, "ONLINE", s_onlineLine, 1);
+            row(6 + own, "ONLINE", s_onlineLine, 1);
         else if (r == 1)
-            row(6, "ONLINE", "...", 1);
-        hide_from(r == 0 && s_onlineLine[0] ? 7 : r == 1 ? 7 : 6);
+            row(6 + own, "ONLINE", "...", 1);
+        hide_from((r == 0 && s_onlineLine[0]) || r == 1 ? 7 + own : 6 + own);
     }
     ModApi_MenuText(M_note, c->completed ? "DONE ALREADY: PLAY IT AGAIN" : "");
 }
 
 static void info_init(void)
 {
-    if (s_editing) {
-        nav_rows(6);
-        ModApi_MenuSelect(M_label0 + 1);
-        edit_draw();
-        return;
-    }
-    const int32_t playRow = M_label0 + 2 * 5 + 1;
-    ModApi_MenuNav(playRow, -1, M_exit);
-    ModApi_MenuNav(M_exit, playRow, -1);
+    const int32_t playRow = M_label0 + 2 * 5 + 1, editRow = playRow + 2;
+    const int32_t own = s_cur >= 0 && s_cur < s_count && s_ch[s_cur].custom == 1;
+    ModApi_MenuNav(playRow, -1, own ? editRow : M_exit);
+    if (own)
+        ModApi_MenuNav(editRow, playRow, M_exit);
+    ModApi_MenuNav(M_exit, own ? editRow : playRow, -1);
     ModApi_MenuSelect(playRow);
     info_draw();
 }
 
-static void info_edit0(void) { if (s_editing) edit_row(0); }
-static void info_edit1(void) { if (s_editing) edit_row(1); }
-static void info_edit2(void) { if (s_editing) edit_row(2); }
-static void info_edit3(void) { if (s_editing) edit_row(3); }
-static void info_edit4(void) { if (s_editing) edit_row(4); }
+static void info_edit(void)             /* EDIT: one of the player's own, in the editor */
+{
+    if (s_cur < 0 || s_cur >= s_count || s_ch[s_cur].custom != 1)
+        return;
+    edit_existing(s_cur);
+    SetExitMenuFlag();                      /* (back to the list: it may have changed or gone) */
+}
 
 static void info_play(void)
 {
-    if (s_editing) {
-        edit_row(5);
-        return;
-    }
     play(s_cur);
     SetExitMenuFlag();                      /* (back to the list, its states new) */
 }
@@ -1186,15 +1956,17 @@ static void result_draw(void)
     snprintf(tries, sizeof tries, "%u", (unsigned)c->attempts);
     row(0, "ATTEMPTS", tries, 1);
     row(1, "", "QUICK RETRY", 0);
-    hide_from(2);
+    row(2, "", "CHANGE TACTICS", 0);
+    hide_from(3);
     ModApi_MenuText(M_note, "");
 }
 
 static void result_init(void)
 {
-    const int32_t retryRow = M_label0 + 2 * 1 + 1;
-    ModApi_MenuNav(retryRow, -1, M_exit);
-    ModApi_MenuNav(M_exit, retryRow, -1);
+    const int32_t retryRow = M_label0 + 2 * 1 + 1, tacticsRow = retryRow + 2;
+    ModApi_MenuNav(retryRow, -1, tacticsRow);
+    ModApi_MenuNav(tacticsRow, retryRow, M_exit);
+    ModApi_MenuNav(M_exit, tacticsRow, -1);
     ModApi_MenuSelect(retryRow);
     result_draw();
 }
@@ -1202,6 +1974,12 @@ static void result_init(void)
 static void result_retry(void)
 {
     s_retry = 1;
+    SetExitMenuFlag();
+}
+
+static void result_tactics(void)        /* CHANGE TACTICS: again, by the PLAY MATCH screen */
+{
+    s_retry = 2;
     SetExitMenuFlag();
 }
 
@@ -1432,9 +2210,114 @@ static void pick6(void) { pick(6); }
 static void pick7(void) { pick(7); }
 
 #ifdef SWOS_SDL_BUILD
+/* SWOS_MOD_MATCH_TEST=challenge:editor -- the editor's rules (SWOS 2020's customChallengesEdit
+ * handlers), its save, read back and delete, then the made challenge played CPU v CPU. Writes
+ * the save folder's custom.json: run it with HOME pointing at a scratch folder. */
+static int32_t s_edFails;
+static void ed_check(int32_t ok, const char *what)
+{
+    fprintf(stdout, "CHALLENGE EDITOR %s: %s\n", ok ? "ok  " : "FAIL", what);
+    s_edFails += !ok;
+}
+
+static void editor_selftest(void)
+{
+    load();
+    memset(&s_edit, 0, sizeof s_edit);
+    static const char *const kUuid[2] = { "fad1a2cf-b275-5972-a3fa-35bda74afa6f",      /* ENGLAND */
+                                          "2bb28358-8981-5501-bee3-0916d4b736cc" };    /* GERMANY */
+    for (int32_t t = 0; t < 2; t++) {
+        snprintf(s_edit.teamUuid[t], sizeof s_edit.teamUuid[t], "%s", kUuid[t]);
+        s_edit.teamNumber[t] = (uint16_t)(t ? 0x5011 : 0x500b);
+        snprintf(s_edit.teamName[t], sizeof s_edit.teamName[t], "%s", t ? "GERMANY" : "ENGLAND");
+    }
+    for (int32_t k = 0; k < 8; k++)
+        s_edit.scorers[k].team = -1;
+    s_edit.pitchType = -1;
+    s_edit.playingUp = -1;
+    se_set(&s_edit, SE_FREE_KICK);
+    wc_set(&s_edit, WC_ANY);
+    s_edit.difficulty = 3;
+    s_edit.subsSet = 1;
+    s_edit.subsMin = 2;
+    s_edit.subsMax = 5;
+    s_edit.custom = 1;
+    s_edit.mod = -1;
+    snprintf(s_edit.title, sizeof s_edit.title, "SELF TEST");
+    s_editExisting = 0;
+
+    ed_team1Score();
+    ed_check(s_edit.score[0] == 0, "at MATCH START the score stays 0-0");
+    for (int32_t k = 0; k < 9; k++)
+        ed_plus10();
+    ed_check(s_edit.minute == 90 && s_edit.extraTime && se_of(&s_edit) == SE_KICK_OFF,
+             "minute 90: extra time on, the start a kick-off");
+    ed_team1Score();
+    ed_team1Score();
+    ed_check(s_edit.score[0] == 2 && s_edit.score[1] == 2, "at 90 the score is level (2-2)");
+    ed_win();
+    ed_win();
+    ed_check(wc_of(&s_edit) == WC_GOLDEN && s_edit.extraTimeRule == CHALLENGE_ET_GOLDEN_GOAL, "GOLDEN GOAL");
+    ed_win();
+    ed_win();
+    ed_check(wc_of(&s_edit) == WC_ANY, "back to WIN BY ANY SCORE");
+    for (int32_t k = 0; k < 3; k++)
+        ed_plus10();
+    ed_check(s_edit.minute == 120 && s_edit.shootoutOnly && se_of(&s_edit) == SE_SHOOTOUT,
+             "minute 120: a direct shoot-out");
+    ed_minus1();
+    ed_check(s_edit.minute == 0 && !s_edit.shootoutOnly && s_edit.subsMin == 2, "off again: MATCH START");
+    for (int32_t k = 0; k < 7; k++)
+        ed_plus10();
+    ed_minus1();
+    ed_check(s_edit.minute == 69, "minute 69");
+    for (int32_t k = 0; k < 6; k++)
+        ed_event();
+    ed_check(se_of(&s_edit) == SE_RANDOM, "starting event RANDOM");
+    ed_secondLeg();
+    ed_legTeam2();
+    ed_check(s_edit.secondLeg && s_edit.firstLeg[1] == 1, "a second leg, first leg 0-1");
+    ed_attack();
+    ed_startTeam();
+    ed_difficulty();
+    ed_pitchType();
+    s_edit.sentOff[0] = 1u << 5;
+    s_edit.injured[1][0].shirt = 7;
+    s_edit.injured[1][0].level = 3;
+    ed_check(edit_store(), "saved");
+    const Challenge made = s_edit;          /* (its id now) */
+    int32_t at = find_id(made.id);
+    ed_check(at >= 0, "read back");
+    if (at >= 0) {
+        const Challenge *c = &s_ch[at];
+        ed_check(c->minute == 69 && c->score[0] == made.score[0] && c->score[1] == made.score[1] &&
+                 c->secondLeg && c->firstLeg[1] == 1 && c->restartKind == CHALLENGE_RESTART_RANDOM &&
+                 c->playingUp == made.playingUp && c->kickOff == made.kickOff && c->difficulty == 4 &&
+                 c->pitchType == 0 && c->sentOff[0] == (1u << 5) && c->injured[1][0].shirt == 7 &&
+                 c->injured[1][0].level == 3 && c->subsSet && c->subsMin == 2 && c->subsMax == 5 &&
+                 !strcmp(c->title, "SELF TEST") && c->custom == 1,
+                 "every field as it was set");
+    }
+    s_sort = SORT_LEVEL;
+    sort_custom();
+    ed_check(edit_remove() && find_id(made.id) < 0, "deleted");
+    fflush(stdout);
+    if (s_edFails) {
+        fprintf(stdout, "CHALLENGE EDITOR: %d FAILED\n", (int)s_edFails);
+        exit(1);
+    }
+    s_ch[s_count] = made;                   /* (played as TEST plays it: past the list) */
+    s_test = 1;
+    s_trying = 1;
+    play(s_count++);
+    exit(3);                                /* (play() exits after the match) */
+}
+
 /* (src/mod_match.c ModMatch_SelfTest: SWOS_MOD_MATCH_TEST=challenge:<id>) */
 void ModChallenges_Test(const char *id)
 {
+    if (!strcmp(id, "editor"))
+        editor_selftest();
     load();
     for (int32_t i = 0; i < s_count; i++)
         if (!strcmp(s_ch[i].id, id)) {
@@ -1454,12 +2337,29 @@ static void ch_init(void)
         { "pick0", pick0 }, { "pick1", pick1 }, { "pick2", pick2 }, { "pick3", pick3 },
         { "pick4", pick4 }, { "pick5", pick5 }, { "pick6", pick6 }, { "pick7", pick7 },
         { "infoInit", info_init }, { "infoDraw", info_draw },
-        { "info0", info_edit0 }, { "info1", info_edit1 }, { "info2", info_edit2 }, { "info3", info_edit3 },
-        { "info4", info_edit4 }, { "info5", info_play }, { "info6", none }, { "info7", none },
+        { "info0", none }, { "info1", none }, { "info2", none }, { "info3", none },
+        { "info4", none }, { "info5", info_play }, { "info6", info_edit }, { "info7", none },
         { "resultInit", result_init }, { "resultDraw", result_draw },
-        { "result0", none }, { "result1", result_retry }, { "result2", none }, { "result3", none },
+        { "result0", none }, { "result1", result_retry }, { "result2", result_tactics }, { "result3", none },
         { "result4", none }, { "result5", none }, { "result6", none }, { "result7", none },
         { "exit", ch_exit }, { "listExit", list_exit },
+        /* the editor (customChallengesEdit.mnu), CARDS AND INJURIES, SORT BY */
+        { "ed_init", ed_init }, { "ed_draw", ed_draw }, { "ed_background", ed_background },
+        { "ed_team", ed_team }, { "ed_nickname", ed_nickname }, { "ed_team1Score", ed_team1Score },
+        { "ed_team2Score", ed_team2Score }, { "ed_scoreReset", ed_scoreReset }, { "ed_none", ed_none },
+        { "ed_minus10", ed_minus10 }, { "ed_minus1", ed_minus1 }, { "ed_reset0", ed_reset0 },
+        { "ed_plus1", ed_plus1 }, { "ed_plus10", ed_plus10 }, { "ed_secondLeg", ed_secondLeg },
+        { "ed_legTeam1", ed_legTeam1 }, { "ed_legTeam2", ed_legTeam2 }, { "ed_legReset", ed_legReset },
+        { "ed_et", ed_et }, { "ed_pen", ed_pen }, { "ed_directPen", ed_directPen }, { "ed_subsMin", ed_subsMin },
+        { "ed_subsMax", ed_subsMax }, { "ed_cards", ed_cards }, { "ed_attack", ed_attack },
+        { "ed_pitchType", ed_pitchType }, { "ed_startTeam", ed_startTeam }, { "ed_event", ed_event },
+        { "ed_win", ed_win }, { "ed_difficulty", ed_difficulty }, { "ed_test", ed_test }, { "ed_save", ed_save },
+        { "ed_delete", ed_delete }, { "ed_exit", ed_exit },
+        { "so_init", so_init }, { "so_draw", so_draw }, { "so_col", so_col }, { "so_reset", so_reset },
+        { "so_ok", so_ok }, { "so_exit", ed_exit },
+        { "sort_draw", sort_draw }, { "sort_date", sort_date }, { "sort_team", sort_team },
+        { "sort_creator", sort_creator }, { "sort_creator2", sort_creator2 }, { "sort_level", sort_level },
+        { "sort_exit", ed_exit },
     };
     ModApi_RegisterHandlers("challenges", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     ModApi_RegisterService("challenges", "challenges", service);

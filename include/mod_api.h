@@ -923,4 +923,19 @@ typedef struct {
 } ModNetStats;
 int32_t ModApi_NetStats(ModNetStats *out);
 
+/* ---- challenges, speedrun, after-match screens (SWOS 2020 port, agent B) ---- */
+
+/* SWOS 2020's small menu pictures (drawMapEx; src/mod_menu_tools.c): map `name` of the mod's
+ * pixmaps.txt (scripts/extract_swos2020_pixmaps.py), its piece at ox, oy of size w, h, into the
+ * frame (ModApi_Frame) at x, y -- `half` at half size, as drawMapExHalf. AtEntry: x, y from the
+ * shown menu's `entry` (SWOS 2020's e->x + dx, e->y + dy). From a menu's onDraw. The pixels drawn. */
+int32_t ModApi_DrawMap(const char *slug, const char *name, int32_t x, int32_t y, int32_t ox, int32_t oy,
+                       int32_t w, int32_t h, int32_t half);
+int32_t ModApi_DrawMapAtEntry(const char *slug, const char *name, int32_t entry, int32_t dx, int32_t dy,
+                              int32_t ox, int32_t oy, int32_t w, int32_t h, int32_t half);
+/* Typing into the shown menu's entry (a text entry), the game's own way (InputText: fire / enter
+ * keeps it, escape leaves it): `text` is shown there and edited in place, at most maxLen (1..98)
+ * letters -- its buffer larger. 1 when it was kept. From the entry's onSelect. */
+int32_t ModApi_MenuInputText(int32_t entry, char *text, int32_t maxLen);
+
 #endif /* MOD_API_H */

@@ -1,0 +1,3809 @@
+{
+  "name": "customChallengesSentOffInjuryNewMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/customChallengesSentOffInjuryNew.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "challenges.so_init",
+  "onReturn": null,
+  "onDraw": "challenges.so_draw",
+  "defaultEntry": 202,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 82,
+        "y": 0,
+        "w": 140,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CARDS AND INJURIES"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_00",
+      "coords": {
+        "x": 11,
+        "y": 26,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_01",
+      "coords": {
+        "x": 11,
+        "y": 34,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_02",
+      "coords": {
+        "x": 11,
+        "y": 42,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_03",
+      "coords": {
+        "x": 11,
+        "y": 50,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_04",
+      "coords": {
+        "x": 11,
+        "y": 58,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_05",
+      "coords": {
+        "x": 11,
+        "y": 66,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_06",
+      "coords": {
+        "x": 11,
+        "y": 74,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_07",
+      "coords": {
+        "x": 11,
+        "y": 82,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_08",
+      "coords": {
+        "x": 11,
+        "y": 90,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_09",
+      "coords": {
+        "x": 11,
+        "y": 98,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_10",
+      "coords": {
+        "x": 11,
+        "y": 106,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_11",
+      "coords": {
+        "x": 11,
+        "y": 114,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_12",
+      "coords": {
+        "x": 11,
+        "y": 122,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_13",
+      "coords": {
+        "x": 11,
+        "y": 130,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_14",
+      "coords": {
+        "x": 11,
+        "y": 138,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_15",
+      "coords": {
+        "x": 11,
+        "y": 146,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_16",
+      "coords": {
+        "x": 11,
+        "y": 154,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_sentoff_17",
+      "coords": {
+        "x": 11,
+        "y": 162,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_00",
+      "coords": {
+        "x": 22,
+        "y": 26,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_01",
+      "coords": {
+        "x": 22,
+        "y": 34,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_02",
+      "coords": {
+        "x": 22,
+        "y": 42,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_03",
+      "coords": {
+        "x": 22,
+        "y": 50,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_04",
+      "coords": {
+        "x": 22,
+        "y": 58,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_05",
+      "coords": {
+        "x": 22,
+        "y": 66,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_06",
+      "coords": {
+        "x": 22,
+        "y": 74,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_07",
+      "coords": {
+        "x": 22,
+        "y": 82,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_08",
+      "coords": {
+        "x": 22,
+        "y": 90,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_09",
+      "coords": {
+        "x": 22,
+        "y": 98,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_10",
+      "coords": {
+        "x": 22,
+        "y": 106,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_11",
+      "coords": {
+        "x": 22,
+        "y": 114,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_12",
+      "coords": {
+        "x": 22,
+        "y": 122,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_13",
+      "coords": {
+        "x": 22,
+        "y": 130,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_14",
+      "coords": {
+        "x": 22,
+        "y": 138,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_15",
+      "coords": {
+        "x": 22,
+        "y": 146,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_16",
+      "coords": {
+        "x": 22,
+        "y": 154,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_injury_17",
+      "coords": {
+        "x": 22,
+        "y": 162,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_00",
+      "coords": {
+        "x": 33,
+        "y": 26,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_01",
+      "coords": {
+        "x": 33,
+        "y": 34,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_02",
+      "coords": {
+        "x": 33,
+        "y": 42,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_03",
+      "coords": {
+        "x": 33,
+        "y": 50,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_04",
+      "coords": {
+        "x": 33,
+        "y": 58,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_05",
+      "coords": {
+        "x": 33,
+        "y": 66,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_06",
+      "coords": {
+        "x": 33,
+        "y": 74,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_07",
+      "coords": {
+        "x": 33,
+        "y": 82,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_08",
+      "coords": {
+        "x": 33,
+        "y": 90,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_09",
+      "coords": {
+        "x": 33,
+        "y": 98,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_10",
+      "coords": {
+        "x": 33,
+        "y": 106,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_11",
+      "coords": {
+        "x": 33,
+        "y": 114,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_12",
+      "coords": {
+        "x": 33,
+        "y": 122,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_13",
+      "coords": {
+        "x": 33,
+        "y": 130,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_14",
+      "coords": {
+        "x": 33,
+        "y": 138,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_15",
+      "coords": {
+        "x": 33,
+        "y": 146,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_16",
+      "coords": {
+        "x": 33,
+        "y": 154,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_no_17",
+      "coords": {
+        "x": 33,
+        "y": 162,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_00",
+      "coords": {
+        "x": 44,
+        "y": 26,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_01",
+      "coords": {
+        "x": 44,
+        "y": 34,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_02",
+      "coords": {
+        "x": 44,
+        "y": 42,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_03",
+      "coords": {
+        "x": 44,
+        "y": 50,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_04",
+      "coords": {
+        "x": 44,
+        "y": 58,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_05",
+      "coords": {
+        "x": 44,
+        "y": 66,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_06",
+      "coords": {
+        "x": 44,
+        "y": 74,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_07",
+      "coords": {
+        "x": 44,
+        "y": 82,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_08",
+      "coords": {
+        "x": 44,
+        "y": 90,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_09",
+      "coords": {
+        "x": 44,
+        "y": 98,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_10",
+      "coords": {
+        "x": 44,
+        "y": 106,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_11",
+      "coords": {
+        "x": 44,
+        "y": 114,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_12",
+      "coords": {
+        "x": 44,
+        "y": 122,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_13",
+      "coords": {
+        "x": 44,
+        "y": 130,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_14",
+      "coords": {
+        "x": 44,
+        "y": 138,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_15",
+      "coords": {
+        "x": 44,
+        "y": 146,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_16",
+      "coords": {
+        "x": 44,
+        "y": 154,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_playername_17",
+      "coords": {
+        "x": 44,
+        "y": 162,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_00",
+      "coords": {
+        "x": 127,
+        "y": 26,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_01",
+      "coords": {
+        "x": 127,
+        "y": 34,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_02",
+      "coords": {
+        "x": 127,
+        "y": 42,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_03",
+      "coords": {
+        "x": 127,
+        "y": 50,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_04",
+      "coords": {
+        "x": 127,
+        "y": 58,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_05",
+      "coords": {
+        "x": 127,
+        "y": 66,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_06",
+      "coords": {
+        "x": 127,
+        "y": 74,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_07",
+      "coords": {
+        "x": 127,
+        "y": 82,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_08",
+      "coords": {
+        "x": 127,
+        "y": 90,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_09",
+      "coords": {
+        "x": 127,
+        "y": 98,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_10",
+      "coords": {
+        "x": 127,
+        "y": 106,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_11",
+      "coords": {
+        "x": 127,
+        "y": 114,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_12",
+      "coords": {
+        "x": 127,
+        "y": 122,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_13",
+      "coords": {
+        "x": 127,
+        "y": 130,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_14",
+      "coords": {
+        "x": 127,
+        "y": 138,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_15",
+      "coords": {
+        "x": 127,
+        "y": 146,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_16",
+      "coords": {
+        "x": 127,
+        "y": 154,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1_fieldpos_17",
+      "coords": {
+        "x": 127,
+        "y": 162,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_00",
+      "coords": {
+        "x": 143,
+        "y": 26,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_01",
+      "coords": {
+        "x": 143,
+        "y": 34,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_02",
+      "coords": {
+        "x": 143,
+        "y": 42,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_03",
+      "coords": {
+        "x": 143,
+        "y": 50,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_04",
+      "coords": {
+        "x": 143,
+        "y": 58,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_05",
+      "coords": {
+        "x": 143,
+        "y": 66,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_06",
+      "coords": {
+        "x": 143,
+        "y": 74,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_07",
+      "coords": {
+        "x": 143,
+        "y": 82,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_08",
+      "coords": {
+        "x": 143,
+        "y": 90,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_09",
+      "coords": {
+        "x": 143,
+        "y": 98,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_10",
+      "coords": {
+        "x": 143,
+        "y": 106,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_11",
+      "coords": {
+        "x": 143,
+        "y": 114,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_12",
+      "coords": {
+        "x": 143,
+        "y": 122,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_13",
+      "coords": {
+        "x": 143,
+        "y": 130,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_14",
+      "coords": {
+        "x": 143,
+        "y": 138,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_15",
+      "coords": {
+        "x": 143,
+        "y": 146,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_16",
+      "coords": {
+        "x": 143,
+        "y": 154,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gap_17",
+      "coords": {
+        "x": 143,
+        "y": 162,
+        "w": 20,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_00",
+      "coords": {
+        "x": 164,
+        "y": 26,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_01",
+      "coords": {
+        "x": 164,
+        "y": 34,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_02",
+      "coords": {
+        "x": 164,
+        "y": 42,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_03",
+      "coords": {
+        "x": 164,
+        "y": 50,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_04",
+      "coords": {
+        "x": 164,
+        "y": 58,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_05",
+      "coords": {
+        "x": 164,
+        "y": 66,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_06",
+      "coords": {
+        "x": 164,
+        "y": 74,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_07",
+      "coords": {
+        "x": 164,
+        "y": 82,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_08",
+      "coords": {
+        "x": 164,
+        "y": 90,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_09",
+      "coords": {
+        "x": 164,
+        "y": 98,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_10",
+      "coords": {
+        "x": 164,
+        "y": 106,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_11",
+      "coords": {
+        "x": 164,
+        "y": 114,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_12",
+      "coords": {
+        "x": 164,
+        "y": 122,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_13",
+      "coords": {
+        "x": 164,
+        "y": 130,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_14",
+      "coords": {
+        "x": 164,
+        "y": 138,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_15",
+      "coords": {
+        "x": 164,
+        "y": 146,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_16",
+      "coords": {
+        "x": 164,
+        "y": 154,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_sentoff_17",
+      "coords": {
+        "x": 164,
+        "y": 162,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_00",
+      "coords": {
+        "x": 175,
+        "y": 26,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_01",
+      "coords": {
+        "x": 175,
+        "y": 34,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_02",
+      "coords": {
+        "x": 175,
+        "y": 42,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_03",
+      "coords": {
+        "x": 175,
+        "y": 50,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_04",
+      "coords": {
+        "x": 175,
+        "y": 58,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_05",
+      "coords": {
+        "x": 175,
+        "y": 66,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_06",
+      "coords": {
+        "x": 175,
+        "y": 74,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_07",
+      "coords": {
+        "x": 175,
+        "y": 82,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_08",
+      "coords": {
+        "x": 175,
+        "y": 90,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_09",
+      "coords": {
+        "x": 175,
+        "y": 98,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_10",
+      "coords": {
+        "x": 175,
+        "y": 106,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_11",
+      "coords": {
+        "x": 175,
+        "y": 114,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_12",
+      "coords": {
+        "x": 175,
+        "y": 122,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_13",
+      "coords": {
+        "x": 175,
+        "y": 130,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_14",
+      "coords": {
+        "x": 175,
+        "y": 138,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_15",
+      "coords": {
+        "x": 175,
+        "y": 146,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_16",
+      "coords": {
+        "x": 175,
+        "y": 154,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_injury_17",
+      "coords": {
+        "x": 175,
+        "y": 162,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_col"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_00",
+      "coords": {
+        "x": 186,
+        "y": 26,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_01",
+      "coords": {
+        "x": 186,
+        "y": 34,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_02",
+      "coords": {
+        "x": 186,
+        "y": 42,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_03",
+      "coords": {
+        "x": 186,
+        "y": 50,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_04",
+      "coords": {
+        "x": 186,
+        "y": 58,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_05",
+      "coords": {
+        "x": 186,
+        "y": 66,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_06",
+      "coords": {
+        "x": 186,
+        "y": 74,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_07",
+      "coords": {
+        "x": 186,
+        "y": 82,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_08",
+      "coords": {
+        "x": 186,
+        "y": 90,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_09",
+      "coords": {
+        "x": 186,
+        "y": 98,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_10",
+      "coords": {
+        "x": 186,
+        "y": 106,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_11",
+      "coords": {
+        "x": 186,
+        "y": 114,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_12",
+      "coords": {
+        "x": 186,
+        "y": 122,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_13",
+      "coords": {
+        "x": 186,
+        "y": 130,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_14",
+      "coords": {
+        "x": 186,
+        "y": 138,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_15",
+      "coords": {
+        "x": 186,
+        "y": 146,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_16",
+      "coords": {
+        "x": 186,
+        "y": 154,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_no_17",
+      "coords": {
+        "x": 186,
+        "y": 162,
+        "w": 10,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_00",
+      "coords": {
+        "x": 197,
+        "y": 26,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_01",
+      "coords": {
+        "x": 197,
+        "y": 34,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_02",
+      "coords": {
+        "x": 197,
+        "y": 42,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_03",
+      "coords": {
+        "x": 197,
+        "y": 50,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_04",
+      "coords": {
+        "x": 197,
+        "y": 58,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_05",
+      "coords": {
+        "x": 197,
+        "y": 66,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_06",
+      "coords": {
+        "x": 197,
+        "y": 74,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_07",
+      "coords": {
+        "x": 197,
+        "y": 82,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_08",
+      "coords": {
+        "x": 197,
+        "y": 90,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_09",
+      "coords": {
+        "x": 197,
+        "y": 98,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_10",
+      "coords": {
+        "x": 197,
+        "y": 106,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_11",
+      "coords": {
+        "x": 197,
+        "y": 114,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_12",
+      "coords": {
+        "x": 197,
+        "y": 122,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_13",
+      "coords": {
+        "x": 197,
+        "y": 130,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_14",
+      "coords": {
+        "x": 197,
+        "y": 138,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_15",
+      "coords": {
+        "x": 197,
+        "y": 146,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_16",
+      "coords": {
+        "x": 197,
+        "y": 154,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_playername_17",
+      "coords": {
+        "x": 197,
+        "y": 162,
+        "w": 82,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_00",
+      "coords": {
+        "x": 280,
+        "y": 26,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_01",
+      "coords": {
+        "x": 280,
+        "y": 34,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_02",
+      "coords": {
+        "x": 280,
+        "y": 42,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_03",
+      "coords": {
+        "x": 280,
+        "y": 50,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_04",
+      "coords": {
+        "x": 280,
+        "y": 58,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_05",
+      "coords": {
+        "x": 280,
+        "y": 66,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_06",
+      "coords": {
+        "x": 280,
+        "y": 74,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_07",
+      "coords": {
+        "x": 280,
+        "y": 82,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_08",
+      "coords": {
+        "x": 280,
+        "y": 90,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_09",
+      "coords": {
+        "x": 280,
+        "y": 98,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_10",
+      "coords": {
+        "x": 280,
+        "y": 106,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_11",
+      "coords": {
+        "x": 280,
+        "y": 114,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_12",
+      "coords": {
+        "x": 280,
+        "y": 122,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_13",
+      "coords": {
+        "x": 280,
+        "y": 130,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_14",
+      "coords": {
+        "x": 280,
+        "y": 138,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_15",
+      "coords": {
+        "x": 280,
+        "y": 146,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_16",
+      "coords": {
+        "x": 280,
+        "y": 154,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2_fieldpos_17",
+      "coords": {
+        "x": 280,
+        "y": 162,
+        "w": 15,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "desc",
+      "coords": {
+        "x": -8,
+        "y": 0,
+        "w": 320,
+        "h": 7
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "reset",
+      "coords": {
+        "x": 47,
+        "y": 190,
+        "w": 60,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "RESET"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 201,
+          "up": 13,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_reset"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "ok",
+      "coords": {
+        "x": 122,
+        "y": 190,
+        "w": 60,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OK"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": 200,
+          "right": 202,
+          "up": 31,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_ok"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 197,
+        "y": 190,
+        "w": 60,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CANCEL"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": 201,
+          "right": -1,
+          "up": 121,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.so_exit"
+        }
+      ]
+    }
+  ]
+}

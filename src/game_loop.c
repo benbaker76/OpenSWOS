@@ -1051,8 +1051,13 @@ end_of_match_flow:
     {
         extern void ModEntries_AfterMatch(void);
         extern int32_t ModMatch_Active(void);
-        if (_isGameFriendly != 0 && _trainingGame == 0 && !arcadeNoReplayMenu && !ModMatch_Active())
+        if (_isGameFriendly != 0 && _trainingGame == 0 && !arcadeNoReplayMenu && !ModMatch_Active()) {
+#ifdef SWOS_SDL_BUILD
+            extern void QuickAccess_AfterMatch(void);
+            QuickAccess_AfterMatch();       /* SWOS 2020's QUICK ACCESS ([general] quick_access) */
+#endif
             ModEntries_AfterMatch();
+        }
     }
 
 cleanup_and_return:

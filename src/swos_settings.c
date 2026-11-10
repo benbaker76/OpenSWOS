@@ -398,6 +398,13 @@ static int handler(void *user, const char *section,
             snprintf(opts->assets_reminder_off, sizeof opts->assets_reminder_off, "%s", value ? value : "");
         else if (eqi(name, "world") && value && value[0])
             snprintf(opts->world, sizeof opts->world, "%s", value);
+        else if (eqi(name, "file_sort") && value && (eqi(value, "name") || eqi(value, "date")))
+            snprintf(opts->file_sort, sizeof opts->file_sort, "%s", value);
+        else if (eqi(name, "quick_access")) {
+            int on;
+            if (parse_bool(value, &on))
+                opts->quick_access = on;
+        }
     } else if (eqi(section, "mods")) {
         if (eqi(name, "enabled"))
             snprintf(opts->mods, sizeof opts->mods, "%s", value ? value : "");
@@ -836,6 +843,15 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; (docs/WORLD_2026_27.md): SWOS 96/97, or World 2026-27 once " PROJECT_SETUP_NAME " has\n"
         "; imported its data. A save is played in the world it was made in.",
         opts->world[0] ? opts->world : "9697" };
+    SETTING(n) = (IniEntry){ "general","file_sort",
+        "; file_sort: name | date -- the order of the LOAD and SAVE screens' files (SWOS 2020's SORT\n"
+        "; OPTION; their SORTED BY button switches it): by name, as the game always had them, or the\n"
+        "; newest first.",
+        opts->file_sort[0] ? opts->file_sort : "name" };
+    SETTING(n) = (IniEntry){ "general","quick_access",
+        "; quick_access: true | false -- SWOS 2020's QUICK ACCESS after a friendly: SAVE HIGHLIGHTS,\n"
+        "; FULL MATCH REPLAYS (the match just played) or CONTINUE.",
+        opts->quick_access ? "true" : "false" };
     SETTING(n) = (IniEntry){ "mods",   "enabled",
         "; enabled: the mods to play with, by their folder's name in the mods folder beside this file,\n"
         "; in that order: a file two of them have comes from the first, e.g. enabled = classics, hall.\n"

@@ -302,6 +302,7 @@
     "SelectFilesInit",
     "SelectFilesInputSaveFilenameOnSelect",
     "SelectFilesOnReturn",
+    "SelectFilesSortOnSelect",
     "SelectGoals",
     "SelectLeaguesCommon",
     "SelectNationalTeam25AfterDraw",

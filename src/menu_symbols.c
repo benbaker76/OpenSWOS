@@ -310,6 +310,7 @@ extern void SelectFilenameToSaveAndExit(void);
 extern void SelectFilesInit(void);
 extern void SelectFilesInputSaveFilenameOnSelect(void);
 extern void SelectFilesOnReturn(void);
+extern void SelectFilesSortOnSelect(void);
 extern void SelectGoals(void);
 extern void SelectLeaguesCommon(void);
 extern void SelectNationalTeam25AfterDraw(void);
@@ -1004,6 +1005,7 @@ const MenuSymbol _menuSymbols[] = {
     { "SelectFilesInit", (void*)SelectFilesInit, SYM_FUNC },
     { "SelectFilesInputSaveFilenameOnSelect", (void*)SelectFilesInputSaveFilenameOnSelect, SYM_FUNC },
     { "SelectFilesOnReturn", (void*)SelectFilesOnReturn, SYM_FUNC },
+    { "SelectFilesSortOnSelect", (void*)SelectFilesSortOnSelect, SYM_FUNC },
     { "SelectGoals", (void*)SelectGoals, SYM_FUNC },
     { "SelectLeaguesCommon", (void*)SelectLeaguesCommon, SYM_FUNC },
     { "SelectNationalTeam25AfterDraw", (void*)SelectNationalTeam25AfterDraw, SYM_FUNC },

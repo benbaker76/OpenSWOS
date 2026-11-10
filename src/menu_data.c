@@ -28,6 +28,7 @@ void DIYCupOnSelect9(void) { SetupDIYCompetitionStatsMenu(); }
 extern void AbortChooseTeamsFriendly(void);
 extern void AbortEditTactics(void);
 extern void AbortSaveFile(void);
+extern void SelectFilesSortOnSelect(void);
 extern void AbortSelected(void);
 extern void AcceptJobOffer(void);
 extern void AcceptOffer(void);
@@ -6880,12 +6881,18 @@ Menu_SelectFiles _selectFilesMenu = {
     MENU_CMD_END,
     {
         { 121, -71, 62, 15 },
-        { MENU_CMD_NAV, 15, 45, 49, -1 },
+        { MENU_CMD_NAV, 15, 51, 49, -1 },
         { MENU_CMD_COLORS, 0xA },
         { MENU_CMD_TEXT_PTR, 0x0, _aAbort },
         { MENU_CMD_ONSELECT_FIRE, AbortSaveFile },
         MENU_CMD_END
     },
+    { 191, -71, 100, 15 },
+    { MENU_CMD_NAV, 50, 45, 49, -1 },
+    { MENU_CMD_COLORS, 0xD },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, SelectFilesSortOnSelect },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_Continue _continueMenu = {

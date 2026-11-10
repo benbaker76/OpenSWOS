@@ -3062,6 +3062,13 @@ typedef struct Menu_SelectFiles
   MenuCmd_OnSelect entry49_onSelect;
   MenuCommand entry49_end;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry50;
+  /* SORTED BY NAME / DATE (SWOS 2020's sortOption; src/file_io.c SelectFilesSortOnSelect) */
+  MenuCoords8 entry51_rc;
+  MenuCmd_Nav entry51_nav;
+  MenuCmd_Colors entry51_colors;
+  MenuCmd_TextNoPtr entry51_text;
+  MenuCmd_OnSelect entry51_onSelect;
+  MenuCommand entry51_end;
   MenuMark markEndMenu;
 } Menu_SelectFiles;
 #pragma pack(pop)
