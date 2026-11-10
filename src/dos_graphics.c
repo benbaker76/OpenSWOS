@@ -7,6 +7,7 @@
  */
 #include "team_colors.h"
 #include "dos_graphics.h"
+#include "match_setup.h"   /* _gImprovedPitchPalette */
 #include "display.h"
 #include "dos_mode.h"
 #include <string.h>
@@ -130,6 +131,8 @@ void DosGfx_BuildPalette(int pitchType, uint8_t *rgb888Out)
         pal6[dst + 1] = kPitchPalettes[pitchType][i * 3 + 1];
         pal6[dst + 2] = kPitchPalettes[pitchType][i * 3 + 2];
     }
+    if (_gImprovedPitchPalette && (pitchType == 2 || pitchType == 3))   /* (match_setup.c: SWOS 2020's) */
+        pal6[kPitchPaletteIndices[2] * 3 + 1] = pitchType == 2 ? 39 : 31;
     if (TeamColors_PurpleInMatch()) {   /* purple in maroon's entry (team_colors.c, the Mod's pk_pal) */
         pal6[12 * 3 + 0] = 24; pal6[12 * 3 + 1] = 8; pal6[12 * 3 + 2] = 34;
     }

@@ -50,4 +50,10 @@ void TeamColors_MatchArtEnd(void);   /* at the match's end: the art put back */
 #endif
 const uint8_t *TeamColors_Worn(const TeamGame *team);
 
+/* ---- launcher options (agent B) ---- */
+/* Purple instead of brown ([video] purple_for_brown): every maroon kit drawn purple, in the menus
+ * and in a match (TeamColors_PurpleInMatch then: a side wears maroon or purple). Drawing only. */
+void    TeamColors_SetPurpleForMaroon(int32_t on);
+int32_t TeamColors_PurpleForMaroon(void);
+
 #endif
