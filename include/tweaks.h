@@ -19,6 +19,12 @@
 #ifndef SWOS_TWEAKS
 #define SWOS_TWEAKS PROJECT_TWEAKS
 #endif
+/* The stronger keepers alone (project_identity.h PROJECT_TWEAK_STRONGER_GK): built with the others,
+ * or by itself in a build without them. SWOS_TWEAKS_ANY: any tweak at all is built. */
+#ifndef SWOS_TWEAK_STRONGER_GK
+#define SWOS_TWEAK_STRONGER_GK (SWOS_TWEAKS || PROJECT_TWEAK_STRONGER_GK)
+#endif
+#define SWOS_TWEAKS_ANY (SWOS_TWEAKS || SWOS_TWEAK_STRONGER_GK)
 
 enum {
     TWEAK_CPU_CARDS                = 1u << 0,   /* the computer's players are booked and sent off too */
@@ -47,7 +53,7 @@ int32_t Tweaks_SetByMod(uint32_t tweak, int32_t on, const char *who);
 /* The mod that switched `tweak` on, or NULL (the player's, or off). */
 const char *Tweaks_ByMod(uint32_t tweak);
 
-#if SWOS_TWEAKS
+#if SWOS_TWEAKS_ANY
 /* Whether `tweak` is on now: set in SWOS.ini or by a mod, and not online or under a rig. */
 int32_t Tweaks_On(uint32_t tweak);
 #else

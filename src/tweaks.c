@@ -33,15 +33,21 @@ static int32_t same(const char *a, const char *b)
     return *a == *b;
 }
 
+/* Whether this build has the tweak: all of them (SWOS_TWEAKS), or the stronger keepers alone
+ * (SWOS_TWEAK_STRONGER_GK, a fork's PROJECT_TWEAK_STRONGER_GK), or none. */
+static int32_t built(uint32_t bit)
+{
+    if (SWOS_TWEAKS)
+        return 1;
+    return SWOS_TWEAK_STRONGER_GK && bit == TWEAK_STRONGER_GOALKEEPER_AI;
+}
+
 uint32_t Tweaks_Bit(const char *key)
 {
-#if !SWOS_TWEAKS
-    (void)key;
-    return 0;   /* built without them: no key names one (SWOS.ini's are ignored, a mod's refused) */
-#endif
     for (uint32_t i = 0; key && i < sizeof kTweaks / sizeof kTweaks[0]; i++)
         if (same(key, kTweaks[i].key))
-            return kTweaks[i].bit;
+            return built(kTweaks[i].bit) ? kTweaks[i].bit : 0;   /* (not built: no key names it --
+                                                                   * SWOS.ini's ignored, a mod's refused) */
     return 0;
 }
 
@@ -60,7 +66,7 @@ int32_t Tweaks_SetByMod(uint32_t tweak, int32_t on, const char *who)
     for (i = 0; i < sizeof kTweaks / sizeof kTweaks[0]; i++)
         if (kTweaks[i].bit == tweak)
             break;
-    if (b < 0 || i == sizeof kTweaks / sizeof kTweaks[0] || !kTweaks[i].byMod)
+    if (b < 0 || i == sizeof kTweaks / sizeof kTweaks[0] || !kTweaks[i].byMod || !built(tweak))
         return 1;
     if (on) {
         s_modMask |= tweak;
@@ -85,7 +91,7 @@ const char *Tweaks_ByMod(uint32_t tweak)
     return (b >= 0 && (s_modMask & tweak) && s_modBy[b][0]) ? s_modBy[b] : (const char *)0;
 }
 
-#if SWOS_TWEAKS
+#if SWOS_TWEAKS_ANY
 #ifdef SWOS_SDL_BUILD
 #include "replay_test.h"    /* ReplayTest_Running */
 #include "srp_resim.h"      /* SrpResim_Armed */
