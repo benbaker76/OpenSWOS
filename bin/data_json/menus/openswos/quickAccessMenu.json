@@ -1,0 +1,173 @@
+{
+  "name": "quickAccessMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/quickAccess.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "QuickAccess_OnInit",
+  "onReturn": null,
+  "onDraw": "QuickAccess_OnDraw",
+  "defaultEntry": 2,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 92,
+        "y": 0,
+        "w": 120,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "QUICK ACCESS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "saveGame",
+      "coords": {
+        "x": 62,
+        "y": 48,
+        "w": 180,
+        "h": 20
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "highlights",
+      "coords": {
+        "x": 62,
+        "y": 48,
+        "w": 180,
+        "h": 20
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SAVE HIGHLIGHTS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 3
+        },
+        {
+          "op": "onselect_fire",
+          "func": "QuickAccess_Highlights"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "matchReplays",
+      "coords": {
+        "x": 62,
+        "y": 88,
+        "w": 180,
+        "h": 20
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "FULL MATCH REPLAYS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": 5
+        },
+        {
+          "op": "onselect_fire",
+          "func": "QuickAccess_MatchReplays"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "desc",
+      "coords": {
+        "x": 62,
+        "y": 140,
+        "w": 180,
+        "h": 20
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 92,
+        "y": 185,
+        "w": 120,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CONTINUE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 3,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SetExitMenuFlag"
+        }
+      ]
+    }
+  ],
+  "comment": "SWOS 2020's QUICK ACCESS after a match (quickAccess.mnu, imported; src/quick_access.c). SAVE AND SHARE HIGHLIGHTS is SAVE HIGHLIGHTS: sharing needs SWOS 2020's server."
+}

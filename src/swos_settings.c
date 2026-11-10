@@ -338,6 +338,11 @@ static int handler(void *user, const char *section,
             snprintf(opts->world, sizeof opts->world, "%s", value);
         else if (eqi(name, "file_sort") && value && (eqi(value, "name") || eqi(value, "date")))
             snprintf(opts->file_sort, sizeof opts->file_sort, "%s", value);
+        else if (eqi(name, "quick_access")) {
+            int on;
+            if (parse_bool(value, &on))
+                opts->quick_access = on;
+        }
     } else if (eqi(section, "mods")) {
         if (eqi(name, "enabled"))
             snprintf(opts->mods, sizeof opts->mods, "%s", value ? value : "");
@@ -723,6 +728,10 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; OPTION; their SORTED BY button switches it): by name, as the game always had them, or the\n"
         "; newest first.",
         opts->file_sort[0] ? opts->file_sort : "name" };
+    SETTING(n) = (IniEntry){ "general","quick_access",
+        "; quick_access: true | false -- SWOS 2020's QUICK ACCESS after a friendly: SAVE HIGHLIGHTS,\n"
+        "; FULL MATCH REPLAYS (the match just played) or CONTINUE.",
+        opts->quick_access ? "true" : "false" };
     SETTING(n) = (IniEntry){ "mods",   "enabled",
         "; enabled: the mods to play with, by their folder's name in the mods folder beside this file,\n"
         "; in that order: a file two of them have comes from the first, e.g. enabled = classics, hall.\n"

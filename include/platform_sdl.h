@@ -181,6 +181,8 @@ typedef struct {
     /* ---- SWOS 2020 port, agent B ---- */
     char                   file_sort[8];     /* [general] file_sort: the LOAD / SAVE lists' order (SWOS 2020's
                                               * sortOption): "name" (the game's own, default) | "date" */
+    int                    quick_access;     /* [general] quick_access: SWOS 2020's QUICK ACCESS after a
+                                              * friendly (src/quick_access.c), 0 off (default) */
     char                   world[8];         /* [general] world: the football world (include/world.h), "" = 9697 */
     char                   mods[256];        /* [mods] enabled: the mods to play with (include/mods.h), "" = none */
     char                   mods_disabled[256];   /* [mods] disabled: canonical mods turned off, "" = none */
