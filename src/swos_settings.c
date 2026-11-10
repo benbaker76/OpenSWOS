@@ -271,6 +271,8 @@ static int handler(void *user, const char *section,
             int v = atoi(value);
             if (v >= 1 && v <= 5) opts->shade_step = v;
         }
+        else if (eqi(name, "clash_kits") && parse_bool(value, &b))   /* (SWOS 2020 port, agent D) */
+            opts->clash_kits = b;
         else if (eqi(name, "kit_art")) {
             if      (eqi(value, "amiga"))  opts->kit_art = 0;
             else if (eqi(value, "jaguar")) opts->kit_art = 1;
@@ -683,6 +685,11 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
             "; Hair shading uses it too: black hair's highlight is lifted by 3 x N.\n",
             stepBuf };
     }
+    SETTING(n) = (IniEntry){ "graphics", "clash_kits",     /* (SWOS 2020 port, agent D) */
+        "; clash_kits: true | false -- SWOS 2020's GK/REF CLASH KITS: when either team wears a dark\n"
+        "; kit (black, blue, burgundy), both keepers change to green (grey if a team wears green)\n"
+        "; and the referee to yellow (light blue if a team wears yellow). Only how they look.",
+        opts->clash_kits ? "true" : "false" };
     SETTING(n) = (IniEntry){ "graphics", "kit_art",
         "; kit_art: amiga | jaguar. The shirts, shorts and socks drawn on the UNIFORM\n"
         "; screen: the Amiga's flat drawings, or the Atari Jaguar's shaded ones (shaded by\n"

@@ -87,6 +87,14 @@ style=amiga           ; amiga | dos | xbox | amiga60 | moon — the Amiga releas
                       ; (60FPS) or MOON SOCCER (section 10). OPTIONS -> GAMEPLAY sets it;
                       ; online, a match plays the host's
 
+[graphics]
+clash_kits=false      ; SWOS 2020's GK/REF CLASH KITS (src/clash_kits.c): when either team
+                      ; wears a dark kit (black, blue, burgundy), both keepers wear green
+                      ; (grey if a team wears green) and the referee yellow (light blue if a
+                      ; team wears yellow). Drawing only: no effect online. SWOS 2020 has it
+                      ; on by default; off here, the original's colours. Not with the
+                      ; Jaguar's sprites; SDL only
+
 [dos]                 ; PC-only extras (Amiga is the definitive version)
 directory=grafs_dos   ; folder under bin/ to load the DOS assets from
 graphics=false        ; true | false — render the DOS-version graphics

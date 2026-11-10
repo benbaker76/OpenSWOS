@@ -1269,6 +1269,7 @@ int main(int argc, char **argv)
     JagGfx_SetEnabled(opts.jag_graphics);
     JagGfx_SetShading(opts.outfit_shading, opts.shadow_shading, opts.hair_shading, opts.shade_step);
     KitArt_SetJaguar(opts.kit_art);
+    { extern int32_t g_clashKits; g_clashKits = opts.clash_kits; }   /* [graphics] clash_kits */
     { extern void InputSDL_SetStickDeadzone(int percent); InputSDL_SetStickDeadzone(opts.stick_deadzone); }
     {
         extern void InputSDL_SetPressLatch(int on);
