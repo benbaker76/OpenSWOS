@@ -1,6 +1,7 @@
 /*
  * controls_menu.c -- the CONTROLS menu: the player's own keys, and the press latch (SDL
- * builds). Opened from OPTIONS.
+ * builds). Opened from OPTIONS -> SETTINGS -> CONTROLS -> KEYBOARD KEYS (src/settings_menus.c,
+ * SWOS 2020's CONTROLS MENU, whose REDEFINE this is).
  *
  * SWOS 2020 had REDEFINE CONTROLS (its controlOptionsMenu.cpp: a screen that asked for UP,
  * DOWN, LEFT, RIGHT, FIRE and BENCH in turn). This is the same thing as rows of a menu: fire

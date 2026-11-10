@@ -2666,6 +2666,91 @@ static int32_t record_is_on(const char *spec)
            SDL_strcasecmp(spec, "off") != 0 && SDL_strcasecmp(spec, "false") != 0;
 }
 
+/* ---- SWOS 2020's MULTIPLAYER SETTINGS chat and match rows (SWOS 2020 port, agent A) ----
+ * COMMENTARY ([audio] commentary), AUTO CLOSE CHATBOX ([chat] close_after), ESC PRESSING TO QUIT
+ * ([netplay] esc_presses), DISABLE CONTROLLER IN CHAT ([chat] controller_off), CHAT WINDOW SCALE
+ * ([chat] scale): each this player's own -- the other game is told nothing. SWOS 2020's VIDEO
+ * VSYNC row is commented out in its own menu (vsync is on SETTINGS -> VIDEO); DLC SETTING and
+ * PITCH SET are its DLC's (those two rows are RECORD MATCHES and SEND MATCH REPORTS here). */
+extern void    InputSDL_SetChatPadOff(int on);
+extern int     InputSDL_ChatPadOff(void);
+extern void    InputSDL_SetEscPresses(int n);
+extern int     InputSDL_EscPresses(void);
+extern void    DosSound_SetCommentary(int32_t on);
+static char s_mmsChatbox[24], s_mmsEsc[16], s_mmsScale[16];
+
+static void mms_save(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    if (g_arcadeOpts && g_arcadeIniPath)
+        Settings_Save(g_arcadeOpts, g_arcadeIniPath);
+}
+
+static void mms_chat_rows_draw(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    static const char *const k_comm[3] = { "OFF", "ON", "AUTO" };
+    const int32_t comm = g_arcadeOpts ? g_arcadeOpts->commentary : 2;
+    const int32_t secs = MatchChat_CloseAfter(), esc = InputSDL_EscPresses(), sc = MatchChat_Scale();
+    set_text(MmSettingsMenu_commentary, k_comm[comm >= 0 && comm <= 2 ? comm : 2]);
+    snprintf(s_mmsChatbox, sizeof s_mmsChatbox, "AFTER %d SECOND%s", (int)secs, secs > 1 ? "S" : "");
+    set_text(MmSettingsMenu_chatboxTimeout, s_mmsChatbox);
+    snprintf(s_mmsEsc, sizeof s_mmsEsc, "%d TIME%s", (int)esc, esc > 1 ? "S" : "");
+    set_text(MmSettingsMenu_escPressingMax, s_mmsEsc);
+    set_text(MmSettingsMenu_disableControllerInChatbox, InputSDL_ChatPadOff() ? "ON" : "OFF");
+    snprintf(s_mmsScale, sizeof s_mmsScale, "%d%sX", (int)(sc / 100), sc % 100 ? ".5" : "");
+    set_text(MmSettingsMenu_chatWindowScale, s_mmsScale);
+}
+
+static void mmsSelectCommentary(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    if (!g_arcadeOpts)
+        return;
+    g_arcadeOpts->commentary = (g_arcadeOpts->commentary + 1) % 3;     /* OFF -> ON -> AUTO */
+    DosSound_SetCommentary(g_arcadeOpts->commentary);
+    mms_save();
+}
+
+static void mmsSelectChatboxTimeout(void)       /* (SWOS 2020 counts down: 5, 4 ... 1, 5) */
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    int32_t secs = MatchChat_CloseAfter() - 1;
+    MatchChat_SetCloseAfter(secs < 1 ? 6 : secs);
+    if (g_arcadeOpts)
+        g_arcadeOpts->chat_close_after = MatchChat_CloseAfter();
+    mms_save();
+}
+
+static void mmsSelectEscPressingMax(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    InputSDL_SetEscPresses(InputSDL_EscPresses() % 3 + 1);
+    if (g_arcadeOpts)
+        g_arcadeOpts->esc_presses = InputSDL_EscPresses();
+    mms_save();
+}
+
+static void mmsDisableControllerInChatbox(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    InputSDL_SetChatPadOff(!InputSDL_ChatPadOff());
+    if (g_arcadeOpts)
+        g_arcadeOpts->chat_controller_off = InputSDL_ChatPadOff();
+    mms_save();
+}
+
+static void mmsChangeChatWindowScale(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    int32_t sc = MatchChat_Scale() + 50;
+    MatchChat_SetScale(sc > 300 ? 100 : sc);
+    if (g_arcadeOpts)
+        g_arcadeOpts->chat_scale = MatchChat_Scale();
+    mms_save();
+}
+
 static void mmsOnInit(void)
 {
     const char *cur = record_current();
@@ -2697,20 +2782,22 @@ static void mmsOnDraw(void)
      * (include/match_report.h). */
     set_text(MmSettingsMenu_soundFxLabel, "SEND MATCH REPORTS");
     set_text(MmSettingsMenu_soundFx, MatchReport_Enabled() ? "ON" : "OFF");
+    mms_chat_rows_draw();
     if (FORK_HOOK(settingsDraw))
         online_menus_fork()->settingsDraw();
-    /* SWOS 2020's other rows -- its commentary and chat options, JOIN AMIGA SUPER LEAGUE,
-     * JOIN DISCORD, HELP DESK -- are features this project will not have: hidden (the cursor
-     * passes over a hidden entry to the next one its way), MY CUSTOM TEAM moved up under the
-     * two rows above. A fork that builds them keeps them (PROJECT_HIDE_SWOS2020_EXTRAS). */
+    /* SWOS 2020's other rows -- ACCEPT SOUND, JOIN AMIGA SUPER LEAGUE, JOIN DISCORD, HELP DESK --
+     * are a fork's (United's), not this project's: hidden (the cursor passes over a hidden entry
+     * to the next one its way), CHAT WINDOW SCALE moved up into ACCEPT SOUND's place and MY CUSTOM
+     * TEAM under it. A fork that builds them keeps them (PROJECT_HIDE_SWOS2020_EXTRAS). */
     if (PROJECT_HIDE_SWOS2020_EXTRAS) {
-        int32_t o;
-        for (o = MmSettingsMenu_commentaryLabel; o <= MmSettingsMenu_chatWindowScale; o++)
-            set_visible(o, 0);
+        set_visible(MmSettingsMenu_acceptSoundLabel, 0);
+        set_visible(MmSettingsMenu_acceptSound, 0);
+        entry_at(MmSettingsMenu_chatWindowScaleLabel)->y = entry_at(MmSettingsMenu_acceptSoundLabel)->y;
+        entry_at(MmSettingsMenu_chatWindowScale)->y = entry_at(MmSettingsMenu_acceptSound)->y;
         set_visible(MmSettingsMenu_joinASL, 0);
         set_visible(MmSettingsMenu_joinDiscord, 0);
         set_visible(MmSettingsMenu_helpDesk, 0);
-        entry_at(MmSettingsMenu_createOwnCustom)->y = (uint16_t)(entry_at(MmSettingsMenu_soundFx)->y + 12);
+        entry_at(MmSettingsMenu_createOwnCustom)->y = (uint16_t)(entry_at(MmSettingsMenu_chatWindowScale)->y + 12);
     }
 }
 
@@ -2806,6 +2893,11 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(mmsOnDraw),
     HANDLER(mmsSelectPitchSet),
     HANDLER(mmsSelectSoundFx),
+    HANDLER(mmsSelectCommentary),
+    HANDLER(mmsSelectChatboxTimeout),
+    HANDLER(mmsSelectEscPressingMax),
+    HANDLER(mmsDisableControllerInChatbox),
+    HANDLER(mmsChangeChatWindowScale),
     HANDLER(matchMaking_rankings_onSelect),
     HANDLER(matchMaking_openGame_onSelect),
     HANDLER(matchMaking_cancelGame_onSelect),
@@ -2980,6 +3072,7 @@ int32_t OnlineMenus_ShowStartMenu(void)
     }
     P2PMenu_Init();             /* --menu=p2p/p2pMenu wants its handlers too */
     ControlsMenu_Init();
+    { extern void SettingsMenus_Init(void); SettingsMenus_Init(); }   /* (--menu=openswos/settingsMenu) */
     ModsMenu_Init();            /* (--menu=openswos/modsMenu) */
     { extern void ModEntries_Init(void); ModEntries_Init(); }   /* (--menu=openswos/modEntriesMenu) */
     { extern void TeamPacksMenu_Init(void); TeamPacksMenu_Init(); }   /* (--menu=openswos/teamPacksMenu) */
@@ -3049,6 +3142,22 @@ int32_t OnlineMenus_SelfTest(void)
         if (bad) {
             failed++;
             printf("  FAIL %-26s %s\n", "controlsMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
+    }
+    {   /* SWOS 2020's OPTIONS screens and CONTROLLER SETUP (src/settings_menus.c) */
+        static const struct { const char *name; int entries; } k_settings[] = {
+            { "openswos/settingsMenu", 8 }, { "openswos/settingsPage", 27 }, { "openswos/joypadConfigMenu", 42 },
+        };
+        extern void SettingsMenus_Init(void);
+        SettingsMenus_Init();
+        for (size_t si = 0; si < sizeof k_settings / sizeof k_settings[0]; si++) {
+            int bad = MenuJson_VerifyDynamic(k_settings[si].name, k_settings[si].entries);
+            menus++;
+            entries += k_settings[si].entries;
+            if (bad) {
+                failed++;
+                printf("  FAIL %-26s %s\n", k_settings[si].name + 9, bad < 0 ? "did not load" : "mismatch (see log)");
+            }
         }
     }
     ModsMenu_Init();

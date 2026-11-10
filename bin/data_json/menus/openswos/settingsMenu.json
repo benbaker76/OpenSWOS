@@ -1,0 +1,233 @@
+{
+  "name": "settingsMenu",
+  "comment": "OpenSWOS's SETTINGS: SWOS 2020's OPTIONS buttons -- CONTROLS, VIDEO, AUDIO, GAMEPLAY -- each a settingsPage. JSON-only (docs/MENUS.md section 10); handlers in src/settings_menus.c. Opened from OPTIONS (the SETTINGS row).",
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "settingsMenu_OnInit",
+  "onReturn": "settingsMenu_OnInit",
+  "onDraw": "settingsMenu_OnDraw",
+  "defaultEntry": 2,
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 72,
+        "y": 0,
+        "w": 176,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x10",
+          "literal": "SETTINGS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "subTitle",
+      "coords": {
+        "x": 12,
+        "y": 22,
+        "w": 296,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SWOS 2020'S OPTIONS SCREENS"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "controls",
+      "coords": {
+        "x": 92,
+        "y": 44,
+        "w": 136,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CONTROLS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 3
+        },
+        {
+          "op": "onselect_fire",
+          "func": "settingsMenu_controls_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "video",
+      "coords": {
+        "x": 92,
+        "y": 66,
+        "w": 136,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "VIDEO"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": 4
+        },
+        {
+          "op": "onselect_fire",
+          "func": "settingsMenu_video_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "audio",
+      "coords": {
+        "x": 92,
+        "y": 88,
+        "w": 136,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "AUDIO"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 3,
+          "down": 5
+        },
+        {
+          "op": "onselect_fire",
+          "func": "settingsMenu_audio_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "gameplay",
+      "coords": {
+        "x": 92,
+        "y": 110,
+        "w": 136,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "GAMEPLAY"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 4,
+          "down": 6
+        },
+        {
+          "op": "onselect_fire",
+          "func": "settingsMenu_gameplay_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "note",
+      "coords": {
+        "x": 12,
+        "y": 140,
+        "w": 296,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 110,
+        "y": 178,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "EXIT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 5,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "settingsMenu_exit_OnSelect"
+        }
+      ]
+    }
+  ]
+}

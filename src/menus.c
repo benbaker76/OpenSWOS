@@ -2088,6 +2088,9 @@ void OptionsMenuBeforeDraw(void)
 #ifdef SWOS_SDL_BUILD
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
+    /* CONTROLS (15/16) opens SWOS 2020's OPTIONS screens (ShowControlsMenu): its name says so. */
+    _menuEntries[15].fg = (uintptr_t)"SETTINGS";
+    _menuEntries[16].fg = (uintptr_t)"CONTROLS, VIDEO...";
 #if !SWOS_WORLDS
     /* (no worlds in this build: no WORLD row; CONTROLS and MODS step to each other) */
     _menuEntries[21].isInvisible = 1;
@@ -2278,13 +2281,15 @@ void ShowModsMenu(void)
 #endif
 }
 
-/* OPTIONS -> CONTROLS: the player's own keys and the press latch (src/controls_menu.c). */
+/* OPTIONS -> SETTINGS (the CONTROLS row on SDL): SWOS 2020's OPTIONS screens -- CONTROLS
+ * (whose KEYBOARD KEYS is the keys screen this row used to open), VIDEO, AUDIO, GAMEPLAY
+ * (src/settings_menus.c). */
 __attribute__((used, externally_visible))
 void ShowControlsMenu(void)
 {
 #ifdef SWOS_SDL_BUILD
-    extern void ControlsMenu_Show(void);
-    ControlsMenu_Show();
+    extern void SettingsMenus_Show(void);
+    SettingsMenus_Show();
 #endif
 }
 
@@ -4365,12 +4370,32 @@ final_check: /* loc_141210 */
     }
 }
 
-/* SaveContest — save competition to disk (SWOS2.s line 68443) */
+/* SaveContest — save competition to disk (SWOS2.s line 68443). The save itself is
+ * save_contest_file(), which F6 calls from any menu too (QuickSave_FromMenu, SWOS 2020's quick
+ * save): CommonMenuExit, which ends this, sets up the MAIN menu's entries. */
+static void save_contest_file(void);
+
 __attribute__((used, externally_visible))
 void SaveContest(void)
 {
+    save_contest_file();
+    CommonMenuExit();
+}
+
+#ifdef SWOS_SDL_BUILD
+/* F6 in a menu (SWOS 2020's ctl:2202, callSelectSaveContest): the game in progress saved from
+ * where the player is, by the same steps as the main menu's SAVE (src/settings_menus.c decides
+ * when it may). */
+void QuickSave_FromMenu(void)
+{
+    save_contest_file();
+}
+#endif
+
+static void save_contest_file(void)
+{
     if (Asset_PromptInsertSaveDiskDf0(_saveFileTitle) != 0)
-        goto cleanup;
+        return;
 
     {
         uint16_t gt = _gameType;
@@ -4438,8 +4463,6 @@ void SaveContest(void)
 
 done:
     ShowInsertDisk2Dialog(_saveFileTitle);
-cleanup:
-    CommonMenuExit();
 }
 
 /* LoadOldCompetitionMenu — load competition from disk (SWOS2.s line 68524) */
