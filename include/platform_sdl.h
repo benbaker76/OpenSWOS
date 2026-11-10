@@ -192,6 +192,9 @@ typedef struct {
     int                    opt_all_teams_equal;
     int                    opt_auto_save_highlights;
     int                    opt_menu_music;
+    /* -- the match chat's window (SWOS 2020 port, agent C; include/match_chat.h) -- */
+    int                    chat_scale;           /* [chat] scale: 0..8, the box 1x .. 5x in halves */
+    int                    chat_auto_close;      /* [chat] auto_close: 1..5 s the box stays after a line */
 } PlatformInitOptions;
 
 int  Platform_Init(const PlatformInitOptions *opts);

@@ -589,6 +589,8 @@ int main(int argc, char **argv)
     for (int qi = 0; qi < MATCHCHAT_QUICK; qi++)       /* [chat] quick1..quick0 */
         snprintf(opts.chat_quick[qi], sizeof opts.chat_quick[qi], "%s", MatchChat_DefaultQuick(qi));
     opts.prediction = 1;          /* default: a live match's replay keeps what each player saw */
+    opts.chat_scale = 0;          /* [chat] scale: 1x (SWOS 2020's) */
+    opts.chat_auto_close = 5;     /* [chat] auto_close: 5 s (SWOS 2020's AFTER 5 SECONDS) */
     opts.no_injuries_cards = 0;   /* [testing] no_injuries_cards: the real rules unless asked (test_rules.h) */
 #ifdef SWOS_TEST_RULES
     opts.reports = 1;             /* a tester build: match reports come back to us */
@@ -1248,6 +1250,8 @@ int main(int argc, char **argv)
     MatchReport_SetEnabled(opts.reports);
     for (int qi = 0; qi < MATCHCHAT_QUICK; qi++)
         MatchChat_SetQuick(qi, opts.chat_quick[qi]);
+    MatchChat_SetScale(opts.chat_scale);
+    MatchChat_SetAutoClose(opts.chat_auto_close);
     { extern void ReplayRec_SetPredictionKept(int32_t on); ReplayRec_SetPredictionKept(opts.prediction); }
     /* The testers' rule, for offline play (include/test_rules.h). Said in the log: a
      * report from a career played without injuries is read differently. */
