@@ -759,6 +759,11 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; gameplay styles with the Amiga's keepers (amiga, amiga60, moon) they reach one step\n"
         "; further for a shot (dos and xbox keep theirs).",
         (opts->tweaks & TWEAK_STRONGER_GOALKEEPER_AI) ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "tweaks", "unlimited_transfers",
+        "; unlimited_transfers: true | false -- SWOS 2020's UNLIMITED TRANSFERS: in a career,\n"
+        "; BUY PLAYER is not held to the season's transfer quota (\"the club is unwilling to\n"
+        "; purchase players\"), only to the room left in the career's player pool.",
+        (opts->tweaks & TWEAK_UNLIMITED_TRANSFERS) ? "true" : "false" };
 #endif
     {   /* [options]: unset = the game's defaults (SetDefaultOptions) */
         static const char *const kLength[] = { "3", "5", "7", "10" };

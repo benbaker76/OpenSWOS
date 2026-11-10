@@ -1416,11 +1416,12 @@ int main(int argc, char **argv)
     { extern volatile uint8_t _skipLoaderIntro; _skipLoaderIntro = 1; }
     Tweaks_Set(opts.tweaks);    /* [tweaks] (include/tweaks.h): off line only, off in the rigs */
     if (opts.tweaks)
-        fprintf(stderr, "[tweaks] on:%s%s%s%s (off line only)\n",
+        fprintf(stderr, "[tweaks] on:%s%s%s%s%s (off line only)\n",
                 (opts.tweaks & TWEAK_CPU_CARDS) ? " cpu_cards" : "",
                 (opts.tweaks & TWEAK_NO_TEAMMATE_TACKLES) ? " no_teammate_tackles" : "",
                 (opts.tweaks & TWEAK_TACKLE_CONTROLLED_PLAYER) ? " tackle_controlled_player" : "",
-                (opts.tweaks & TWEAK_STRONGER_GOALKEEPER_AI) ? " stronger_goalkeeper_ai" : "");
+                (opts.tweaks & TWEAK_STRONGER_GOALKEEPER_AI) ? " stronger_goalkeeper_ai" : "",
+                (opts.tweaks & TWEAK_UNLIMITED_TRANSFERS) ? " unlimited_transfers" : "");
     /* Load the UI translation table for the selected language
      * (data_json/translations/<lang>.json) now that the CWD is the binary dir
      * and stderr is the log. tr(symbol) resolves menu/UI text through it; a

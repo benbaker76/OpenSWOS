@@ -17,6 +17,7 @@
 #include "career_params.h"   /* the list capacities (include/career_capacity.h), trialist_count_mode */
 #include "mod_hooks.h"       /* playerMoved / playerCreated (docs/MODS.md §27): SDL builds */
 #include "mod_api.h"         /* (ModPlayerKind: SDL builds) */
+#include "tweaks.h"          /* [tweaks] unlimited_transfers */
 
 /* Offset from GetPlayer() return value to actual PlayerFile data */
 #define PF_OFF              76  /* sizeof(TeamFile) */
@@ -140,6 +141,12 @@ uint16_t GetRemainingTransferPoolSlots(void)
         const uint32_t room = used >= cap ? 0 : cap - used;
         return (uint16_t)(room > 32767u ? 32767u : room);
     }
+    /* The original's subtraction, which its own tests never let go below 0. The
+     * unlimited_transfers tweak (BuyPlayerMenu) buys past the season's quota: then none are
+     * left, not 65535 -- and so whether the tweak is still on or not, as a career saved with
+     * it on keeps the count. */
+    if (_transferPoolSlotsUsed > _transferPoolSlotLimit)
+        return 0;
     return _transferPoolSlotLimit - _transferPoolSlotsUsed;
 }
 
@@ -2413,7 +2420,18 @@ void TransferMarketInit(void)
 __attribute__((used, externally_visible))
 void BuyPlayerMenu(void)
 {
-    uint16_t slots = GetRemainingTransferPoolSlots();
+    /* SWOS 2020's UNLIMITED TRANSFERS (g_UnlimitedBuyingPlayers, its swos.asm BuyPlayerMenu):
+     * the [tweaks] unlimited_transfers key, off by default (include/tweaks.h). It skips the
+     * season's quota; what is still asked is room for 2 in the career's player pool (a
+     * club that sells gets a replacement there, and AddCareerPoolPlayer has no bound of
+     * its own). SWOS 2020 skips the test altogether. */
+    uint16_t slots;
+    if (Tweaks_On(TWEAK_UNLIMITED_TRANSFERS)) {
+        const uint32_t used = _numForeignMarketPlayers2, cap = _careerParams.foreign_pool_capacity;
+        const uint32_t room = used >= cap ? 0 : cap - used;
+        slots = (uint16_t)(room > 32767u ? 32767u : room);
+    } else
+        slots = GetRemainingTransferPoolSlots();
     if (slots < 2) {
         _currentMessage = CLUB_UNWILLING_TO_PURCHASE_PLAYERS;
         ShowChairmanMessage();

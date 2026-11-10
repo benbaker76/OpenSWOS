@@ -20,6 +20,7 @@ static const struct { const char *key; uint32_t bit; uint8_t byMod; } kTweaks[] 
     { "more_fouls",               TWEAK_MORE_FOULS,               1 },
     { "ai_injury_subs",           TWEAK_AI_INJURY_SUBS,           1 },
     { "stronger_goalkeeper_ai",   TWEAK_STRONGER_GOALKEEPER_AI,   1 },   /* (SWOS 2020's) */
+    { "unlimited_transfers",      TWEAK_UNLIMITED_TRANSFERS,      1 },   /* (SWOS 2020's) */
 };
 
 void Tweaks_Set(uint32_t mask) { s_mask = mask; }
