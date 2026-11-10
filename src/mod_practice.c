@@ -112,7 +112,9 @@ static int32_t group_file(int32_t group)
                                          *  its grouped list leaves out the numbers with none) */
             const int32_t f = (int32_t)st_rand(87);
             if (f != 9 && f != 47 && !(f >= 52 && f <= 54) && !(f >= 56 && f <= 59) && f != 61 && f != 63 &&
-                f != 68 && f != 70)
+                f != 68 && f != 70 && f != 74 && f != 86)   /* (74 and 86: none either -- a file asked
+                                         *  for that is not there halted the game, panic 0x8008; SWOS
+                                         *  2020 skipped them by trying to open them) */
                 return f;
         }
     }

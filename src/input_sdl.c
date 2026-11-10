@@ -450,6 +450,18 @@ int InputSDL_PlayerHasPad(int player)
     return d >= 0 && d < INPUTSDL_MAX_DEVICES && dev_open(d);
 }
 
+/* Player 1 plays on the keyboard and his pad together (InputSDL_PostFrame): which of the two he
+ * used last, 1 the keyboard -- for what the screen calls his control (the shoot-out's JOYPAD /
+ * KEYBOARD1: a keyboard player with a pad plugged in was shown JOYPAD, Playaveli 2026-11-10). */
+static int s_p1KeyboardLast;
+
+/* Whether player 1 / 2 (0, 1) is playing on a pad now: InputSDL_PlayerHasPad, and for player 1
+ * the pad, not the keyboard, the last he used. */
+int InputSDL_PlayerUsesPad(int player)
+{
+    return InputSDL_PlayerHasPad(player) && !(player == 0 && s_p1KeyboardLast);
+}
+
 /* ---- SWOS 2020's CONTROLS MENU and CONTROLLER SETUP (SWOS 2020 port, agent A) ----
  *
  * SWOS 2020 (controls/joypads.cpp, controlOptionsMenu.cpp, joypadConfigMenu.cpp) lets each
@@ -2266,8 +2278,20 @@ void InputSDL_PostFrame(void)
     int p1_fire = s_kbd_fire;
     int skip = s_kbd_skip;
     touch_controls(&p1_up, &p1_down, &p1_left, &p1_right, &p1_fire);
-    if (!split)
-        read_pad_state(0, &p1_up, &p1_down, &p1_left, &p1_right, &p1_fire, &skip);
+    {
+        const int keys = p1_up | p1_down | p1_left | p1_right | p1_fire;
+        int pu = 0, pd = 0, pl = 0, pr = 0, pf = 0;
+        if (!split)
+            read_pad_state(0, &pu, &pd, &pl, &pr, &pf, &skip);
+        const int pad = pu | pd | pl | pr | pf;
+        if (keys != pad)                        /* (the one pressed alone: the one in use) */
+            s_p1KeyboardLast = keys;
+        p1_up |= pu;
+        p1_down |= pd;
+        p1_left |= pl;
+        p1_right |= pr;
+        p1_fire |= pf;
+    }
     p1_fire = sample_fire(p1_fire, !split, NULL);       /* a press is never lost between two reads */
 
     /* Player 2: pad 1 only -- or pad 0 when split. No keyboard binding — keeping the

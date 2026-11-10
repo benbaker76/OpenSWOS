@@ -487,7 +487,16 @@ uint16_t ModApi_RandomTeam(void)
 int32_t ModApi_RandomTeamData(int32_t file, struct TeamFileEx *out)
 {
     static uint32_t state;
-    if (!out || file < 0 || file > 255 || LoadTeamFile((uint16_t)file) != 0)
+    if (!out || file < 0 || file > 255)
+        return 0;
+#ifdef SWOS_SDL_BUILD
+    /* A file the game does not have: 0, as said -- LoadTeamFile halts on one (panic 0x8008); SWOS
+     * 2020's getRandomTeamNr tried to open it first. (100 is the custom teams'.) */
+    extern int DataJson_CountryHasTeamFile(int countryNum);
+    if (file != 100 && !DataJson_CountryHasTeamFile((int)file))
+        return 0;
+#endif
+    if (LoadTeamFile((uint16_t)file) != 0)
         return 0;
     if (!state)
 #ifdef SWOS_SDL_BUILD
@@ -901,8 +910,8 @@ int32_t ModApi_Shootout(ModShootout *out)
 const char *ModApi_ControllerName(int32_t player)
 {
 #ifdef SWOS_SDL_BUILD
-    extern int InputSDL_PlayerHasPad(int player);
-    if (InputSDL_PlayerHasPad(player - 1))
+    extern int InputSDL_PlayerUsesPad(int player);
+    if (InputSDL_PlayerUsesPad(player - 1))
         return "JOYPAD";                    /* (capitals: the game's small font has no others) */
     return player == 2 ? "KEYBOARD2" : "KEYBOARD1";
 #else
