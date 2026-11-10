@@ -865,4 +865,62 @@ int32_t     ModApi_SetTweak(const char *slug, const char *key, int32_t on);
 int32_t ModApi_SaveFile(const char *slug, const char *name, const void *data, uint32_t size);
 void   *ModApi_LoadFile(const char *slug, const char *name, uint32_t *size);
 
+/* ---- match extras (SWOS 2020 port, agent C; src/mod_extras.c, docs/MODS.md §35) ---- */
+
+/* An offline match a player may change: a match is on, not online, not a rig's (the replay and
+ * rollback rigs, --srp-resim, the career autopilot). What changes how a match plays checks it. */
+int32_t ModApi_OfflineMatch(void);
+/* A mod's match (ModApi_PlayMatch, any mod's) is the one being played. */
+int32_t ModApi_AnyModMatch(void);
+
+/* The ball now (in a match): world x, y and its height z; the whole pixels it moves by each frame;
+ * its speed; free when no player has it at his feet. 0 outside a match. */
+typedef struct {
+    int16_t x, y, z;
+    int16_t deltaX, deltaY, deltaZ;
+    int16_t speed;
+    uint8_t free;
+} ModBall;
+int32_t ModApi_Ball(ModBall *out);
+
+/* What a sprite a spriteDraw / playerDrawn hook is given is: */
+enum { MODSPRITE_OTHER, MODSPRITE_BALL, MODSPRITE_CLOCK /* the HUD's clock */,
+       MODSPRITE_PLAYER_NAME /* the HUD's name of the player on the ball */ };
+int32_t ModApi_SpriteKind(const struct Sprite *sprite);
+
+/* Who plays a team (0 team 1, 1 team 2, as the banner names them) from now: cpu 1 the computer, 0
+ * back to whoever played it at kick-off (SWOS 2020's AUTOPLAY, F1). Only in ModApi_OfflineMatch;
+ * call it from matchFrame. Every team is its own again at the final whistle and at the next
+ * kick-off. 0 done, 1 refused. ModApi_TeamControl: MODSIDE_* that team plays as now (a coach-only
+ * team counts as its player's). */
+int32_t ModApi_SetTeamControl(int32_t team, int32_t cpu);
+int32_t ModApi_TeamControl(int32_t team);
+
+/* The pitch the next match is played on (offline; a mod's match with a pitchNumber in its setup
+ * keeps that): its art 1..6 (6 the training pitch), 0 the one the game draws. It holds until that
+ * match's final whistle. Only the picture and its number change: the match draws its random
+ * numbers as ever. 0 done, 1 refused (online, a rig). ModApi_PitchNumber: the match's, 1..6. */
+int32_t ModApi_SetMatchPitch(int32_t number);
+int32_t ModApi_PitchNumber(void);
+/* PLAY MATCH pressed (the friendly's, a cup's, a career's screen) to start a match a player is
+ * in, offline, from the first player's screen: fn runs then, before the match is set up -- it may
+ * show a menu (ModApi_ShowMenu). One per mod. From init. */
+int32_t ModApi_OnPlayMatch(const char *slug, void (*fn)(void));
+
+/* An online match's connection, as this game sees it (SDL; 0 when no online match is on): what
+ * a draw-only overlay shows. Read at matchDrawn; nothing here touches the match. */
+typedef struct {
+    uint8_t  resimulating;      /* the frame being drawn is a re-simulation (not shown) */
+    int16_t  pingMs;            /* GGPO's ping, -1 not known yet */
+    int16_t  jitterMs;          /* the mean change of the ping from one second to the next, lately */
+    int16_t  localBehindX10;    /* frames x 10 this game runs behind the other (GGPO's timesync) */
+    int16_t  remoteBehindX10;   /* ... and the other behind this one, as it last said */
+    int16_t  delay;             /* the input delay agreed, frames */
+    uint32_t rollbacks;         /* rollbacks (state loads) this session */
+    uint32_t rollbacksBySize[8];/* ... by frames rolled back, 1..7 (7: 7 or more) */
+    uint32_t holds;             /* waits at the prediction limit since kick-off */
+    uint32_t frame;             /* the frame played */
+} ModNetStats;
+int32_t ModApi_NetStats(ModNetStats *out);
+
 #endif /* MOD_API_H */

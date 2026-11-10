@@ -328,6 +328,22 @@ int32_t Netplay_NetStats(NetplaySession *s, int32_t remotePlayer, int32_t *pingM
     return rc;
 }
 
+/* GGPO's timesync both ways, frames x 10 (the network quality overlay, mod_extras.c). */
+int32_t Netplay_FramesBehind(NetplaySession *s, int32_t remotePlayer, int32_t *localX10, int32_t *remoteX10)
+{
+    GGPONetworkStats stats;
+    GGPOErrorCode rc;
+    *localX10 = *remoteX10 = 0;
+    if (remotePlayer < 1 || remotePlayer > NETPLAY_MAX_PLAYERS)
+        return GGPO_ERRORCODE_PLAYER_OUT_OF_RANGE;
+    rc = ggpo_get_network_stats(s->ggpo, s->handles[remotePlayer - 1], &stats);
+    if (GGPO_SUCCEEDED(rc)) {
+        *localX10 = (int32_t)(stats.timesync.local_frames_behind * 10.0f);
+        *remoteX10 = (int32_t)(stats.timesync.remote_frames_behind * 10.0f);
+    }
+    return rc;
+}
+
 int32_t Netplay_ShouldWait(int32_t code)
 {
     return code == GGPO_ERRORCODE_NOT_SYNCHRONIZED || code == GGPO_ERRORCODE_PREDICTION_THRESHOLD;
@@ -765,6 +781,13 @@ int32_t Netplay_NetStats(NetplaySession *s, int32_t remotePlayer, int32_t *pingM
     (void)s; (void)remotePlayer;
     *pingMs = -1;
     *framesAheadX10 = 0;
+    return NETPLAY_ERR_UNAVAILABLE;
+}
+
+int32_t Netplay_FramesBehind(NetplaySession *s, int32_t remotePlayer, int32_t *localX10, int32_t *remoteX10)
+{
+    (void)s; (void)remotePlayer;
+    *localX10 = *remoteX10 = 0;
     return NETPLAY_ERR_UNAVAILABLE;
 }
 
