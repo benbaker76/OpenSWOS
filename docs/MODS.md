@@ -1303,3 +1303,49 @@ The first: dosmenus' F5 (§25c), switching the menus between the PC's shading an
 
 A mod's message the player answers: `ModApi_ShowDialog(title, text, buttons, count, default)` -- the
 game's own dialog screen (docs/MENUS.md §14), from the menus, never during a match.
+
+## SWOS 2020 port: challenges, speedrun, the file lists and after the match (2026-11-09)
+
+The rest of SWOS 2020's challenges and speedrun screens, ported faithfully (its menus imported
+with `scripts/import_swos2020_menus.py`, its handlers from `game.cpp` / `replaysMenu.cpp`):
+
+- **Custom challenge editor** (`challenges` mod, `src/mod_challenges.c`): SWOS 2020's DESIGN
+  SCENARIO (`customChallengesEditMenu.json`) over the challenge format's own fields -- teams
+  (the friendly's team screen: both, and who plays each), its name (typed: `ModApi_MenuInputText`,
+  the game's InputText), the score, the minute (-10 -1 0 +1 +10), the first leg, extra time /
+  penalties / a direct shoot-out, substitutes, the direction, the pitch, the starting event and
+  its taker, the win condition (any score, at least a draw, golden / silver goal), difficulty;
+  TEST (played once, no attempt or progress kept), SAVE, DELETE, EXIT -- with SWOS 2020's rules
+  between them (`setTotalScoresToSame`, kick-off minutes, 120 = a shoot-out). SET CARDS AND
+  INJURIES is `customChallengesSentOffInjuryNewMenu.json` (each side's sixteen by shirt; at most
+  4 sent off and -- the format's limit -- 8 injured a team; the goalkeeper never). EDIT on one of
+  the player's own opens it again. The format gains the restart kind `"random"` (SWOS 2020's
+  RANDOM starting event: one of six drawn at PLAY); no record layout changed. Not ported: UNIFORMS
+  (a challenge keeps no kits), PITCH SET (SWOS 2020's own pitch art) and CPU INJURY (switched off
+  in SWOS 2020 itself). Test: `HOME=<scratch> SWOS_MOD_MATCH_TEST=challenge:editor`.
+- **SORT BY** under the player's own challenges (`customChallengesSortByMenu.json`): date (newest
+  first), team, creator / team, creator / level, level -- `[mod.challenges] sort`. Ours carry no
+  creator's name: CREATOR puts the player's own before those fetched for them.
+- **CHANGE TACTICS** after a try (SWOS 2020's `retryExitEx`), beside QUICK RETRY: the match again
+  with the PLAY MATCH screen first (`ModMatchSetup.playMatchScreen`).
+- **Speedrun difficulty** (`speedrun` mod): `selectSpeedrunDifficultyMenu.json` after a target --
+  FREE TEAM CHOICE or one of the five PRECONFIGURED TEAMS pairs, BEGINNER .. MASTER, with its
+  trophies and stars; the card targets go straight to the teams (SWOS 2020's card picker had only
+  SELECT TEAMS); LEADERBOARD (its server) hidden. Test: `SWOS_SPEEDRUN_TEST_PICKER=1
+  SWOS_MOD_MATCH_TEST=speedrun:<n>`.
+- **Speedrun on the pitch**: SWOS 2020's `showSpeedrunTimerInfo` -- the run's time top left where
+  the clock was (the clock hidden), the target and the difficulty (a free choice's by the skill
+  points) top right -- and, once the result panel has gone at full time, `showSpeedrunShowResult`'s
+  band: SPEEDRUN COMPLETED and the time, or SPEEDRUN FAILED. Drawn into the match frame
+  (`matchDrawn`, SDL). It replaces report 0060's HUD, keeping its purpose.
+- **`ModApi_DrawMap` / `ModApi_DrawMapAtEntry`** (`src/mod_menu_tools.c`): SWOS 2020's small
+  pictures (`drawMapEx`, `drawMapExHalf`) from a mod's `pixmaps.txt`, which
+  `scripts/extract_swos2020_pixmaps.py` now writes per mod (`--mod`).
+- **File list SORT OPTION** (core, `src/file_io.c`): SORTED BY NAME / SORTED BY DATE beside ABORT on
+  the LOAD and SAVE screens (entry 51 of the select files menu, compiled and JSON alike) -- by name,
+  the game's own order and the default, or each extension's newest first. `[general] file_sort =
+  name | date`. SDL (the Amiga's listing has no dates: the button is hidden there).
+- **QUICK ACCESS** after a friendly (core, `src/quick_access.c`,
+  `bin/data_json/menus/openswos/quickAccessMenu.json`): SAVE HIGHLIGHTS (SWOS 2020's SAVE AND SHARE:
+  sharing needs its server), FULL MATCH REPLAYS (LATEST.SRP in the highlights viewer), CONTINUE.
+  Off by default, as SWOS 2020 shipped it: `[general] quick_access = true`. SDL.
