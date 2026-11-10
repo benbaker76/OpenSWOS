@@ -619,7 +619,7 @@
         {
           "op": "text",
           "flags": "0x2",
-          "str": "_aMinus"
+          "literal": "-"
         },
         {
           "op": "colors",
@@ -706,7 +706,7 @@
         {
           "op": "text",
           "flags": "0x2",
-          "str": "_aMinus"
+          "literal": "-"
         },
         {
           "op": "colors",
@@ -847,7 +847,7 @@
         {
           "op": "text",
           "flags": "0x2",
-          "str": "_aMinus"
+          "literal": "-"
         },
         {
           "op": "colors",
@@ -934,7 +934,7 @@
         {
           "op": "text",
           "flags": "0x2",
-          "str": "_aMinus"
+          "literal": "-"
         },
         {
           "op": "colors",
