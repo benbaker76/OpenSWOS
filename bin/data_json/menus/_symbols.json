@@ -231,6 +231,7 @@
     "LoadLiverpool",
     "LoadOldCompetitionMenu",
     "LoadTactics",
+    "MainMenuWorld",
     "ManagementArrowDownSelect",
     "ManagementArrowUpSelect",
     "ManagementRecordInit",

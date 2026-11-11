@@ -546,6 +546,40 @@
       ]
     },
     {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": -52,
+        "w": 84,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 16,
+          "up": 13,
+          "down": 15
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "MainMenuWorld"
+        }
+      ]
+    },
+    {
       "kind": "set_origin",
       "x": 0,
       "y": 0

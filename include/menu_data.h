@@ -1376,6 +1376,13 @@ typedef struct Menu_SWOSMainMenu
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry14;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry15;   /* CREDITS (SDL only) */
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry16;   /* MODES (SDL only, while a mod has an entry) */
+  MenuCoords8 entry17_rc;                               /* WORLD (SDL, SWOS_WORLDS: menus.c MainMenuWorld) */
+  MenuCmd_Invisible entry17_invisible;
+  MenuCmd_Nav entry17_nav;
+  MenuCmd_Colors entry17_colors;
+  MenuCmd_TextNoPtr entry17_text;
+  MenuCmd_OnSelect entry17_onSelect;
+  MenuCommand entry17_end;
   MenuMark_StartMenu menu3Start;
   MenuMark markEndMenu;
 } Menu_SWOSMainMenu;

@@ -246,6 +246,7 @@ extern void ManagementRecordMenu(void);
 extern void MaxSubstitutes(void);
 extern void MinSubstitutes(void);
 extern void ModesMenuSelected(void);
+extern void MainMenuWorld(void);
 extern void MultiplayerMenuSelected(void);
 extern void NationalTeamAddPlayer(void);
 extern void NationalTeamAddPlayerAbroadOnSelect(void);
@@ -935,6 +936,7 @@ const MenuSymbol _menuSymbols[] = {
     { "LoadLiverpool", (void*)LoadLiverpool, SYM_FUNC },
     { "LoadOldCompetitionMenu", (void*)LoadOldCompetitionMenu, SYM_FUNC },
     { "LoadTactics", (void*)LoadTactics, SYM_FUNC },
+    { "MainMenuWorld", (void*)MainMenuWorld, SYM_FUNC },
     { "ManagementArrowDownSelect", (void*)ManagementArrowDownSelect, SYM_FUNC },
     { "ManagementArrowUpSelect", (void*)ManagementArrowUpSelect, SYM_FUNC },
     { "ManagementRecordInit", (void*)ManagementRecordInit, SYM_FUNC },
