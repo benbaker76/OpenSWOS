@@ -320,6 +320,20 @@ def _ic_holders(a, entries):
     return out
 
 
+def ranking(ac, words):
+    """{team word: points} of an access file's club ranking (CONMEBOL's: 'assoc/club': {'rank', 'points'}), the
+    world's clubs only; points rounded, at least 1 (0 = unranked in conti.c), at most 0xFFFF. The Mod 4.1.1: before
+    it the keys never matched the words' (assoc, club) and the table was empty -- world_conti.c ranks by it in the
+    editions made from 4.1.1 on (CT_ED_R)."""
+    out = {}
+    for k, v in ((ac or {}).get('ranking') or {}).items():
+        key = tuple(k.split('/', 1)) if '/' in k else k
+        if words and key in words:
+            pt = v.get('points', 0) if isinstance(v, dict) else v
+            out[words[key]] = max(1, min(int(round(pt)), 0xFFFF))
+    return out
+
+
 def load(confs, files=None, words=None, s1=None):
     """-> (spec bytes, [association pack keys], [(conf, cup key)]). files: {association key: its league team file}
     (the game's build; the tests: 100 + index), words: {club key: team word} (the ranking's clubs)."""
@@ -519,9 +533,7 @@ def load(confs, files=None, words=None, s1=None):
     spec += bytes(0 if a.startswith('g:') else (files or {}).get(a, 100 + i) & 0xFF for i, a in enumerate(assocs))
     rank = {}
     for conf in confs:
-        for k, v in ((_read(conf, 'access') or {}).get('ranking') or {}).items():
-            if words and k in words:
-                rank[words[k]] = min(int(round(v)), 0xFFFF)
+        rank.update(ranking(_read(conf, 'access'), words))
     spec += struct.pack('<H', len(rank)) + b''.join(struct.pack('<HH', w, v) for w, v in sorted(rank.items()))
     spec += struct.pack('<H', len(gl)) + b''.join(struct.pack('<HBBI', w, a, 0, st) for w, a, st in gl)
     reg = {}                                            # (a league stage's regions: data's <conf>.<cup>_league.json)
@@ -548,6 +560,14 @@ def load(confs, files=None, words=None, s1=None):
     if gp:                                              # at every group stage's end is n (the 3rd's move, forced)
         print(f'exe: CONTI_GPLACE={gp} (test build)')
     spec += bytes((gp,))
+    f2 = (0xFF, 0xFF)                                   # CONTI_FORCE2=<cup>:<round> (the Mod 4.1.1's test builds
+    if os.environ.get('CONTI_FORCE2'):                  # only): the career club into a second cup's round too
+        fk, fr = os.environ['CONTI_FORCE2'].split(':')  # (world_conti.c access)
+        fc = next((i for i, (_, c, _) in enumerate(cups) if c['key'] == fk), None)
+        if fc is not None:
+            f2 = (fc, rkey[fc][fr])
+            print(f'exe: CONTI_FORCE2={fk}:{fr} (test build)')
+    spec += bytes(f2)
     return spec, assocs, [(conf, c['key']) for conf, c, _ in cups]
 
 

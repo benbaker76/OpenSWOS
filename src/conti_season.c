@@ -38,6 +38,8 @@ extern uint16_t _euroCupSlotIndex;
 extern uint16_t _teamSelectionKeyCacheIndex, _teamSelectionKeyCacheOffset, _competitionSlotUpdatedFlag;
 extern DIYCompetitionEx _diyCompetitionStart;
 extern uint8_t *_careerCompetitionSlotPtrTable[];
+extern uint8_t _teamSelectionKeyCache[];
+extern uint16_t _teamSelectionKeyCacheCount;
 uint16_t Career_SelectEuroCupSlotIfTeamParticipates(uint8_t *cupCopy, uint16_t euroCupIndex);
 void Career_RetireSlotCalendarEntries(uint8_t slot);
 
@@ -50,6 +52,7 @@ static uint16_t ourId(u16 w) { return (uint16_t)((w >> 8) | (w << 8)); }
 #define CONTI_TIE_INDEX 7               /* (_euroCupSlotIndex: 0-2 the European cups, 3 the Copa, 4-6 UEFA ties) */
 static CompetitionCup s_tie;
 static uint16_t s_tieWinner;            /* (the career club's tie decided today: its winner) */
+static uint8_t s_mainTie;               /* (its tie in its cup's game contest decided today: 1 won, 2 lost) */
 static uint8_t s_final;                 /* (the tie in slot 3 is its cup's final: a trophy) */
 static uint8_t s_gplace;                /* (a group stage just ended: the career club's place) */
 static uint8_t s_list[64], s_listOk;    /* (and its next stage's list, as the real draw) */
@@ -75,6 +78,7 @@ void Conti_Reset(void)
     CT_SEG.kind = 0xFF;
     s_on = 0;
     s_tieWinner = 0;
+    s_mainTie = 0;
     s_gplace = 0;
     s_listOk = 0;
     g_contiMainCup = 0;
@@ -145,9 +149,19 @@ static int32_t ours(void)               /* the edition's career club is the one 
     return CT_ED.mark == 0x4543 && CT_ED.mgr && !_isNationalSelector && CT_ED.mgr == modWord(_selTeamNumber);
 }
 
+/* The calendar's current week (eighths of a month from January, as a contest's months), 0: none. */
+static u8 week_now(void)
+{
+    if (!_teamSelectionKeyCacheCount)
+        return 0;
+    return ((const TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey;
+}
+
 /* CT_SEG a tie -> s_tie (the Mod's ct_prep): its cup's name, the two clubs in draw order, its
- * round byte and months; 0: not a tie. */
-static uint8_t *make_tie(void)
+ * round byte and months; 0: not a tie. now: a tie built mid-season never starts in a week
+ * already reached -- the week after it (the Mod 4.0.5 rc20: two rounds of one month; 4.1.1: the
+ * Recopa / Intercontinental built after the club is out of its cup's game contest); 0: as drawn. */
+static uint8_t *make_tie(u8 now)
 {
     int32_t ncups = 0;
     const WorldContiCup *cups = World_ContiCups(&ncups);
@@ -162,8 +176,9 @@ static uint8_t *make_tie(void)
     t->header.comp.compId = CONTI_TIE_ID;
     t->header.comp.type = 1;
     t->header.comp.teamNumber = -1;
-    t->header.comp.beginMonth = (int8_t)CT_SEG.month;     /* (eighths of a month from January; 96 on: the next year) */
-    t->header.comp.endMonth = (int8_t)(CT_SEG.month + 2);
+    const u8 begin = now && CT_SEG.month <= now ? (u8)(now + 1) : CT_SEG.month;
+    t->header.comp.beginMonth = (int8_t)begin;      /* (eighths of a month from January; 96 on: the next year) */
+    t->header.comp.endMonth = (int8_t)(begin + 2);
     t->header.comp.reserved1 = 15;      /* (nameTableOffset, teamListOffset) */
     t->header.comp.reserved2 = 21;
     t->header.comp.seedReorderFlag = 1; /* (as drawn: the first club at home first) */
@@ -289,10 +304,10 @@ static uint8_t *make_main(int32_t c)
     return (uint8_t *)k;
 }
 
-/* CT_SEG's contest: a tie (index 7) or a main round (8); 0 none. */
-static uint8_t *make_game(uint16_t *index)
+/* CT_SEG's contest: a tie (index 7) or a main round (8); 0 none. now: make_tie's. */
+static uint8_t *make_game(uint16_t *index, u8 now)
 {
-    uint8_t *rec = make_tie();
+    uint8_t *rec = make_tie(now);
     if (rec) {
         *index = CONTI_TIE_INDEX;
         return rec;
@@ -306,7 +321,7 @@ uint8_t *Conti_SeasonTie(uint16_t *index)
 {
     if (!spec() || !ours())
         return 0;
-    uint8_t *rec = make_game(index);
+    uint8_t *rec = make_game(index, 0);
     if (rec)
         SWOS_DBG("[conti] season start: %s (contest %d)\n", *index == CONTI_TIE_INDEX ? "a tie" : "its main round",
                  (int)(uint8_t)((Competition *)rec)->compId);
@@ -326,7 +341,7 @@ uint8_t *Conti_RestoreTie(uint16_t index)
         return id == CONTI_MAIN_ID ? make_main(g_contiMainCup) : 0;
     }
     uint16_t now = 0;
-    uint8_t *rec = make_game(&now);
+    uint8_t *rec = make_game(&now, week_now());
     return now == index ? rec : 0;
 }
 
@@ -347,9 +362,14 @@ static void into_slot3(uint8_t *rec, uint16_t index)
 /* A two-legged tie decided (diy_competition.c, as UefaQual_TieDecided): the career club's? */
 void Conti_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won)
 {
-    if ((uint8_t)_diyCompetitionStart.base.field_2E == CONTI_TIE_ID &&
-        (team1 == _selTeamNumber || team2 == _selTeamNumber))
+    extern DIYTournamentState _diyFileBufferCopy;
+    if (team1 != _selTeamNumber && team2 != _selTeamNumber)
+        return;
+    if ((uint8_t)_diyCompetitionStart.base.field_2E == CONTI_TIE_ID)
         s_tieWinner = team2Won ? team2 : team1;
+    else if ((uint8_t)_diyCompetitionStart.base.field_2E == CONTI_MAIN_ID ||
+             (uint8_t)_diyFileBufferCopy.header.field_2E == CONTI_MAIN_ID)
+        s_mainTie = (team2Won ? team2 : team1) == _selTeamNumber ? 1 : 2;    /* (its game contest's knockouts) */
 }
 
 /* A group stage's end in the game's contest (beside LeaguePhase_GroupsEnd; the Mod's ct_gpre /
@@ -399,14 +419,30 @@ void Conti_GroupsEnd(uint8_t *diy, int32_t after)
         s_gplace = (uint8_t)p;
 }
 
+/* CT_SEG's game into slot 3, as after a tie (the Mod's ct_daily .disp): none, or a round of the
+ * game contest already in slot 3 (kind 0x40), builds nothing -- out: the finished contest stays. */
+static void next_game(void)
+{
+    if (CT_SEG.kind == 0xFF || (CT_SEG.kind & 0x40))
+        return;
+    uint16_t index = 0;
+    uint8_t *rec = make_game(&index, week_now());
+    if (rec)
+        into_slot3(rec, index);
+}
+
 /* The day just played (Career_AdvanceToNextTeamSelectionKeyCacheEntry; the Mod's ct_daily): the
  * career club's tie decided -> its result, the next tie into slot 3 (its calendar's entries so
- * far retired first). A main round is not played yet: the edition simulates it. */
+ * far retired first). Its cup's main round is the game's contest: its group place, then (the Mod
+ * 4.1.1) every knockout round it gets past or loses there, go to the edition as they happen -- its
+ * later games in other cups (the Recopa, the Intercontinental) built once it is out, its final's
+ * winner the real one; before 4.1.1 the edition simulated the club's own cup at the season end. */
 void Conti_Daily(void)
 {
-    if (s_gplace) {                     /* a group stage ended: the club's place; a 3rd -> its next cup's
-                                           tie (the Libertadores' to the Sudamericana's play-off), else the
-                                           game's contest goes on (1st / 2nd: its knockouts; 4th: out) */
+    if (s_gplace) {                     /* a group stage ended: the club's place -- any place (4.1.1): a 3rd ->
+                                           its next cup's tie (the Libertadores' to the Sudamericana's play-off),
+                                           a 4th its next game elsewhere (the Recopa), 1st / 2nd the game's
+                                           contest goes on (its knockouts: CT_SEG kind 0x40) */
         const uint8_t place = s_gplace;
         s_gplace = 0;
         if (!spec() || !ours() || CT_SEG.kind == 0xFF)
@@ -414,15 +450,37 @@ void Conti_Daily(void)
         ct_result(place);
         SWOS_DBG("[conti] the career club's group: place %d; next: kind %02X (cup %d round %d)\n", (int)place,
                  (unsigned)CT_SEG.kind, (int)CT_SEG.cup, (int)CT_SEG.round);
-        if (place == 3 && CT_SEG.kind == K_KO) {
-            uint8_t *rec = make_tie();
-            if (rec)
-                into_slot3(rec, CONTI_TIE_INDEX);
-        }
+        next_game();
         return;
     }
-    if (!s_tieWinner)
+    if (!s_tieWinner) {                 /* 4.1.1: the club in a knockout round of its cup's game contest (kind
+                                           0x40, or a knockout main round 0x80): got past it, out, or the final */
+        const uint8_t tie = s_mainTie;
+        s_mainTie = 0;
+        if (!tie || !spec() || !ours() || CT_SEG.kind == 0xFF ||
+            (!(CT_SEG.kind & 0x40) && CT_SEG.kind != (0x80 | K_KO)))
+            return;
+        const DIYCompetition *s3 = (const DIYCompetition *)_careerCompetitionSlotPtrTable[3];
+        if (!s3)
+            return;
+        u32 id = s3->field_2E;
+        if (id == CONTI_MAIN_ID && g_contiMainCup == CT_SEG.cup)
+            id = ct_contest_id(CT_SEG.cup);     /* (ours: one id for every cup's contest; the Mod's its own) */
+        /* (the Mod reads it from the club's next slot-3 calendar entry, ct_gscan: ours has no matches in the
+           calendar of a type-2 contest -- the tie's result as the game decided it: won, the round after it in
+           the contest's numbering; lost, or the cup's last round won, none left) */
+        const int32_t mr = main_round(CT_SEG.cup), last = !ct_round_spec(CT_SEG.cup, CT_SEG.round + 1);
+        const u32 nx = tie == 1 && !last && mr >= 0 ? (u32)(CT_SEG.round + 1 - mr) : 0xFFFF;
+        const int32_t won = tie == 1 && (last || s3->winnerTeam == _selTeamNumber);
+        const u8 cup = CT_SEG.cup, round = CT_SEG.round;
+        if (!ct_gamein(id, nx, (u32)won))
+            return;
+        SWOS_DBG("[conti] the career club's cup %d round %d in its game contest: next round byte %u%s; next: kind %02X "
+                 "(cup %d round %d)\n", (int)cup, (int)round, (unsigned)nx, won ? " (won it)" : "",
+                 (unsigned)CT_SEG.kind, (int)CT_SEG.cup, (int)CT_SEG.round);
+        next_game();
         return;
+    }
     const uint16_t winner = s_tieWinner;
     s_tieWinner = 0;
     if (!spec() || !ours() || CT_SEG.kind == 0xFF)
@@ -433,10 +491,7 @@ void Conti_Daily(void)
                  winner == _selTeamNumber ? "won" : "lost", (unsigned)CT_SEG.kind,
                  (unsigned)ourId(CT_SEG.club[0]), (unsigned)ourId(CT_SEG.club[1]));
     }
-    uint16_t index = 0;
-    uint8_t *rec = make_game(&index);
-    if (rec)                            /* (out: the finished tie stays in slot 3) */
-        into_slot3(rec, index);
+    next_game();
 }
 
 /* A tie's round name (world_cups.c): its cup's round, by key; -1: not a conti tie. */

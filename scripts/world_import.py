@@ -2261,17 +2261,32 @@ def guest_team_files():
     return out
 
 
-def conti_spec():
+def conti_spec(picks):
     """The other confederations' cups (scripts/world_conti.py, the Mod's conti.load): their
-    associations' league team files the world's countries' numbers; the ranking's clubs none
-    (its keys never match the Mod's words: neither does the Mod's build); season 1's holders
+    associations' league team files the world's countries' numbers; the ranking's clubs (the Mod
+    4.1.1: CONMEBOL's, by 'assoc/club') as our team words of them -- the world's countries' clubs
+    in their team files (picks: {code: (wc, picked)}), the Mod's _world_maps; season 1's holders
     decided in-game (src/world_conti.c's caller); the guests in their own files (GUEST_FILES)."""
     import world_conti
     if not os.path.isdir(world_conti.DATA):
         return None
     world_conti._Guests.FILES = dict(GUEST_FILES)
     files = {c["code"].lower(): c["number"] for c in world_countries()}
-    spec, assocs, cups = world_conti.load(world_conti.CONFS, files=files)
+    words = {}
+    for code in sorted(picks):
+        wc, picked = picks[code]
+        path = os.path.join(MOD, "packs", code.lower(), "clubs.csv")
+        key_of = {r["name"]: r["key"] for r in csv.DictReader(open(path, encoding="utf-8"))}
+        for o, (e, d) in enumerate(picked):     # (a league's clubs: a state-only club is another file's)
+            k = key_of.get(e["team"]["team_name"])
+            if k and d is not None and o < 256:
+                words[(code.lower(), k)] = wc["number"] | o << 8
+    spec, assocs, cups = world_conti.load(world_conti.CONFS, files=files, words=words)
+    for conf in world_conti.CONFS:          # (a ranked club not in the world's leagues: unranked, as in the Mod)
+        for k in ((world_conti._read(conf, "access") or {}).get("ranking") or {}):
+            if tuple(k.split("/", 1)) not in words:
+                print("conti ranking: %s not in a league of the world (unranked)" % k)
+                counts["conti ranking: clubs not in a league of the world"] += 1
     counts["continental cups (conti)"] = len(cups)
     named = []                  # (each cup's names; its rounds' _cupRoundStringTable index, by key; its rank
     rn = {"final": 9, "sf": 7, "qf": 6, "r16": 12, "r32": 13, "pre": 15, "qual": 15}   # in its confederation (the
@@ -2438,7 +2453,7 @@ def main():
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks), conti_spec(), guests, proms, states, squad_numbers(), fingerprint,
+                             europe(picks), conti_spec(picks), guests, proms, states, squad_numbers(), fingerprint,
                              seconds))
     print("wrote %s (data %s)" % (os.path.relpath(DATA_C, REPO), fingerprint))
     for what, n in sorted(counts.items()):

@@ -422,8 +422,16 @@ open(out + "/conti.spec", "wb").write(spec)
 sys.path.insert(0, "scripts")
 import world_conti                      # (ours: the same bytes, with and without the team files)
 files = {k: 100 + i for i, k in enumerate(assocs)}
+# (the Mod 4.1.1's ranking by 'assoc/club': every ranked club a word of its association's file)
+words = {}
+for conf in conti.CONFS:
+    for i, k in enumerate(sorted(((conti._read(conf, "access") or {}).get("ranking") or {}))):
+        a = k.split("/", 1)[0]
+        if a in files:
+            words[tuple(k.split("/", 1))] = files[a] | (i % 200) << 8
 if world_conti.load(world_conti.CONFS) != (spec, assocs, cups) or \
-        world_conti.load(world_conti.CONFS, files=files) != conti.load(conti.CONFS, files=files):
+        world_conti.load(world_conti.CONFS, files=files) != conti.load(conti.CONFS, files=files) or \
+        world_conti.load(world_conti.CONFS, files=files, words=words) != conti.load(conti.CONFS, files=files, words=words):
     open(out + "/conti.spec", "wb").write(b"")
 PY
 if [ ! -s "$OUT/conti.spec" ]; then
