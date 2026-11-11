@@ -77,6 +77,10 @@ std::vector<DirEntry> ListDir(const std::string& dir);
 // Folders the PC game may have been installed to by GOG: Windows' GOG registry
 // entries whose name has "Sensible" in it, and the GOG Games folders.
 std::vector<std::string> GogInstallDirs();
+// Other installed SWOS-family programs Windows lists in its Uninstall registry (SWOS 2020, an
+// installed Amiga SWOS package, ...): each folder, and the Amiga disk images (.hdf/.adf/.lha) up to
+// two levels inside it. Candidates only: SdSources_AddFile decides. Empty elsewhere.
+std::vector<std::string> InstalledSwosPaths();
 
 // Set an environment variable for this process, unless it is set already.
 void SetEnvDefault(const char* name, const char* value);

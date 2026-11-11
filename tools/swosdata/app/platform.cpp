@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cctype>
 #include <cstring>
 #include <filesystem>
 #include <functional>
@@ -563,6 +564,71 @@ std::vector<std::string> GogInstallDirs() {
       }
   }
 #endif
+#endif
+  return out;
+}
+
+// Files under `dir` (and its folders, `depth` levels down) that an Amiga version comes as.
+static void FindAmigaImages(const std::string& dir, int depth, std::vector<std::string>& out) {
+  for (const DirEntry& d : ListDir(dir)) {
+    if (d.dir) {
+      if (depth > 0) FindAmigaImages(d.path, depth - 1, out);
+      continue;
+    }
+    std::string low = d.path;
+    for (char& c : low) c = (char)std::tolower((unsigned char)c);
+    const auto ends = [&low](const char* e) {
+      const size_t n = std::strlen(e);
+      return low.size() >= n && low.compare(low.size() - n, n, e) == 0;
+    };
+    if (ends(".hdf") || ends(".adf") || ends(".lha")) out.push_back(d.path);
+  }
+}
+
+std::vector<std::string> InstalledSwosPaths() {
+  std::vector<std::string> out;
+#ifdef _WIN32
+  // Every installer registers its program here (the 32- and 64-bit views, and the user's own):
+  // SWOS 2020's NSIS installer ("SWOS 2020 Ver.7.7", no InstallLocation: its uninstaller's folder),
+  // an Amiga SWOS package ("Amiga SWOS version 2.22": its Disks\\swos.hdf), GOG's game too.
+  struct Root { HKEY hive; const wchar_t* key; };
+  const Root roots[] = {
+      {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"},
+      {HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall"},
+      {HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"},
+  };
+  for (const Root& r : roots) {
+    HKEY list;
+    if (RegOpenKeyExW(r.hive, r.key, 0, KEY_READ, &list) != ERROR_SUCCESS) continue;
+    wchar_t sub[256];
+    for (DWORD i = 0;; i++) {
+      DWORD n = 256;
+      if (RegEnumKeyExW(list, i, sub, &n, nullptr, nullptr, nullptr, nullptr) != ERROR_SUCCESS) break;
+      wchar_t name[512] = {0}, loc[1024] = {0}, unins[1024] = {0};
+      DWORD nb = sizeof name, lb = sizeof loc, ub = sizeof unins;
+      if (RegGetValueW(list, sub, L"DisplayName", RRF_RT_REG_SZ, nullptr, name, &nb) != ERROR_SUCCESS) continue;
+      const std::wstring dn(name);
+      const bool swos = dn.find(L"Sensible World of Soccer") != std::wstring::npos ||
+                        dn.find(L"SWOS") != std::wstring::npos;
+      // (not this project's own installs, nor its forks')
+      if (!swos || dn.find(L"OpenSWOS") != std::wstring::npos || dn.find(L"SWOS United") != std::wstring::npos)
+        continue;
+      std::string dir;
+      if (RegGetValueW(list, sub, L"InstallLocation", RRF_RT_REG_SZ, nullptr, loc, &lb) == ERROR_SUCCESS && loc[0])
+        dir = Narrow(loc);
+      else if (RegGetValueW(list, sub, L"UninstallString", RRF_RT_REG_SZ, nullptr, unins, &ub) == ERROR_SUCCESS) {
+        std::string u = Narrow(unins);                       // "C:\\...\\uninst.exe" /S: its folder
+        if (!u.empty() && u[0] == '"') u = u.substr(1, u.find('"', 1) - 1);
+        const size_t slash = u.find_last_of("\\/");
+        if (slash != std::string::npos) dir = u.substr(0, slash);
+      }
+      while (!dir.empty() && (dir.back() == '\\' || dir.back() == '/')) dir.pop_back();
+      if (dir.empty()) continue;
+      out.push_back(dir);
+      FindAmigaImages(dir, 2, out);
+    }
+    RegCloseKey(list);
+  }
 #endif
   return out;
 }

@@ -2367,6 +2367,15 @@ struct App {
         seen[key] = {0, 0};
         note(Offer(dir), dir);
       }
+    // Other installed SWOS programs (Windows' Uninstall list): SWOS 2020 for its pitches, an Amiga
+    // package's disk images -- whatever is still missing; looked for when the window opens.
+    if (lookForGog && first)
+      for (const std::string& path : sd::InstalledSwosPaths()) {
+        const std::string key = "installed:" + path;
+        if (seen.count(key)) continue;
+        seen[key] = {0, 0};
+        note(Offer(path), path);
+      }
     // The PC game's CD in a drive (a mounted image too): the commentary a copy without it lacks,
     // or the whole PC game when there is none yet. Each drive's top folder only.
     if (!src.dosCd[0] && (!src.dosDir[0] || PcLacksCommentary())) {
