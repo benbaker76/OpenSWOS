@@ -497,13 +497,27 @@ std::vector<DirEntry> ListDir(const std::string& dir) {
   return out;
 }
 
+// The folders under `dir` (and `dir` itself) whose name says Sensible World of Soccer, `depth`
+// levels down: GOG's installs are named after the game; a wrapped Mac app or a Wine prefix keeps it
+// a few levels in. Each a candidate -- SdSources_AddFile decides whether it is the game.
+static void FindSensible(const std::string& dir, int depth, std::vector<std::string>& out) {
+  if (dir.empty() || depth < 0) return;
+  for (const DirEntry& d : ListDir(dir)) {
+    if (!d.dir) continue;
+    if (d.path.find("Sensible") != std::string::npos || d.path.find("SWOS") != std::string::npos) out.push_back(d.path);
+    if (depth > 0) FindSensible(d.path, depth - 1, out);
+  }
+}
+
 std::vector<std::string> GogInstallDirs() {
   std::vector<std::string> out;
 #ifdef _WIN32
-  // GOG Galaxy and GOG's offline installers both register every game here.
-  HKEY games;
-  if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\GOG.com\\Games", 0, KEY_READ,
-                    &games) == ERROR_SUCCESS) {
+  // GOG Galaxy and GOG's offline installers both register every game here: WOW6432Node on 64-bit
+  // Windows, the plain key on a 32-bit one.
+  const wchar_t* keys[] = {L"SOFTWARE\\WOW6432Node\\GOG.com\\Games", L"SOFTWARE\\GOG.com\\Games"};
+  for (const wchar_t* key : keys) {
+    HKEY games;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, key, 0, KEY_READ, &games) != ERROR_SUCCESS) continue;
     wchar_t sub[256];
     for (DWORD i = 0;; i++) {
       DWORD n = 256;
@@ -519,16 +533,37 @@ std::vector<std::string> GogInstallDirs() {
   }
   const char* roots[] = {"C:\\GOG Games", "C:\\Program Files (x86)\\GOG Galaxy\\Games",
                          "C:\\Program Files (x86)\\GOG.com", "C:\\Program Files\\GOG Galaxy\\Games"};
+  for (const char* root : roots) FindSensible(root, 0, out);
 #else
-  const char* home = std::getenv("HOME");
-  const std::string gog = home ? std::string(home) + "/GOG Games" : std::string();
-  const char* roots[] = {gog.c_str()};
-#endif
-  for (const char* root : roots) {
-    if (!root[0]) continue;
-    for (const DirEntry& d : ListDir(root))
-      if (d.dir && d.path.find("Sensible") != std::string::npos) out.push_back(d.path);
+  const char* h = std::getenv("HOME");
+  const std::string home = h ? h : "";
+#if defined(__APPLE__)
+  // GOG's Mac games are an .app in Applications (the system's or the player's own), the game's
+  // DOS folder inside it (Contents/Resources/...); GOG Galaxy may also use ~/GOG Games.
+  for (const std::string& apps : {std::string("/Applications"), home.empty() ? std::string() : home + "/Applications"})
+    for (const DirEntry& d : ListDir(apps))
+      if (d.dir && d.path.find("Sensible") != std::string::npos) {
+        out.push_back(d.path);
+        FindSensible(d.path + "/Contents/Resources", 2, out);
+      }
+  if (!home.empty()) FindSensible(home + "/GOG Games", 0, out);
+#else
+  // GOG sells the game for Windows and Mac only: on Linux it is installed through Wine, Heroic or
+  // Lutris -- their usual folders, the game a few levels in (a Wine prefix's drive_c).
+  if (!home.empty()) {
+    FindSensible(home + "/GOG Games", 0, out);
+    FindSensible(home + "/Games", 1, out);                              // Lutris, Heroic's games
+    FindSensible(home + "/Games/Heroic", 1, out);
+    FindSensible(home + "/.wine/drive_c/GOG Games", 0, out);
+    FindSensible(home + "/.wine/drive_c/Program Files (x86)/GOG Galaxy/Games", 0, out);
+    for (const DirEntry& pfx : ListDir(home + "/Games/Heroic/Prefixes"))  // Heroic's own Wine prefixes
+      if (pfx.dir) {
+        FindSensible(pfx.path + "/pfx/drive_c/GOG Games", 0, out);
+        FindSensible(pfx.path + "/drive_c/GOG Games", 0, out);
+      }
   }
+#endif
+#endif
   return out;
 }
 
