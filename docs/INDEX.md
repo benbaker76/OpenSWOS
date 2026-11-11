@@ -88,7 +88,7 @@ docs drift: search by function name.
 | doc | what it is | status | read when |
 |---|---|---|---|
 | [COMPETITION_DYNAMIC_REFACTOR.md](COMPETITION_DYNAMIC_REFACTOR.md) | Making competitions id-based and data-addable; how Copa Libertadores was built on it. | historical | adding a data-only competition, `Comp_ById`, `_careerContests` |
-| [WORLD_2026_27.md](WORLD_2026_27.md) | Worlds (data sets), and porting the SWOS 96/97 Mod's World 2026-27 (its season-end C, generators and limits) onto our season end, for both targets. | plan | a second world, the Mod's modules, raising team/league limits |
+| [WORLD_2026_27.md](WORLD_2026_27.md) | Worlds (data sets), and porting the SWOS 96/97 Mod's World 2026-27 (its season-end C, generators and limits) onto our season end, for both targets. | plan | a second world, the Mod's modules, raising team/league limits, converting an installed Mod (§6d) |
 | [RULES_LIBRARY.md](RULES_LIBRARY.md) | The shared rules library with the SWOS 96/97 Mod: what moved in (its season-end, cup and Coppa D rules, each checked against the Mod's C), the interface, the DOS build's limits, the bugs found on the way, what is not in yet. | current | before touching league_playoffs.c, world_cups.c, world_cupd.c's rules |
 | [COPA_LIBERTADORES.md](COPA_LIBERTADORES.md) | The original design of the Copa Libertadores (format, 1996 field, draw, qualification) — built differently in places. | historical | changing Copa rules or CONMEBOL qualification |
 | [FEATURES.md](FEATURES.md) | Sketches of three enhancements: Copa (done), career length (done, `num_seasons`), easy data add/remove (partly). | historical / plan | extending competitions, career length, data-driven content |

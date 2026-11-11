@@ -9,7 +9,8 @@
                                                     # the same import from two sets of packs)
 
 Reads the Mod's data as Davide Lorigliola sent it (bin/data_json/worlds/2627/mod/: his
-teams in OpenSWOS team JSON, his packs) and writes what the game reads for that world:
+teams in OpenSWOS team JSON, his packs) -- or as scripts/world_from_mod.py writes it from an
+installed Mod (docs/WORLD_2026_27.md 6d) and writes what the game reads for that world:
 
     bin/data_json/worlds/2627/teams/ITALY.json        the country's team file, our format
     bin/data_json/worlds/2627/competitions/leagues.json  the league records that differ
@@ -2358,6 +2359,8 @@ def main():
         DATA_C = os.path.abspath(a.data_c)
     if not os.path.isdir(MOD):
         sys.exit("no %s: the Mod's data (Davide's private copies) is not here" % os.path.relpath(MOD, REPO))
+    import world_conti                  # (its conti/ is the --mod folder's, not always the world's copy)
+    world_conti.DATA = os.path.join(MOD, "conti")
     (teams, second, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
     seconds = []
