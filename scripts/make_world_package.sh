@@ -48,6 +48,18 @@ manifest = {
     "about": "The football world of %s: its countries, leagues, cups and squads." % name[6:],
     "targets": ["sdl", "amiga"], "changes": "data", "default": False,
 }
+# The Mod 4.1's match and bench rules (include/world_rules.h), each ON as the Mod plays it: its
+# settings, at the END of the list (the career's rules come before them).
+MATCH_SETTINGS = [
+    ("stoppage_time", "Stoppage time"),             # (online: the host's)
+    ("cpu_red_cards", "CPU red cards"),
+    ("cpu_injuries", "CPU injuries"),
+    ("goalkeeper_injuries", "Goalkeeper injuries"),
+    ("bench_info", "Bench info strip"),
+    ("opponent_squad", "Opponent's squad"),         # (on the bench: UP on the coach; offline)
+]
+manifest.setdefault("settings", []).extend(
+    {"key": k, "label": label, "choices": ["on", "off"], "default": "on"} for k, label in MATCH_SETTINGS)
 n = 0
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     z.writestr(top + "/mod.json", json.dumps(manifest, indent=1) + "\n")
