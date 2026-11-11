@@ -451,7 +451,7 @@ void Ffp_SeasonStartAfter(void)
     g_ffp.fine = 0;
     g_ffp.block = 0;
     g_ffp.iprev = 0;
-    if (_stayingInOldClub && g_ffp.valid && income > 0) {   /* (a new club, an older save: no season of ours) */
+    if ((int16_t)_stayingInOldClub > 0 && g_ffp.valid && income > 0) {   /* (a new club -- 0, or 0xFFFF before its first season -- an older save: no season of ours) */
         g_ffp.iprev = (int32_t)income;
         const int32_t x = over_by(s_ffpWagesEnd);
         if (g_ffp.on && x > 0) {
