@@ -3,18 +3,21 @@
 the SWOS 96/97 Mod (DOS, Davide Lorigliola's), not from the JSON Davide sends (docs/WORLD_2026_27.md,
 "Converting the installed Mod").
 
-    python3 -I scripts/world_from_mod.py --mod GAME --base OLD --out DIR [--repo SWOS9697MOD]
+    python3 -I scripts/world_from_mod.py --mod GAME --out DIR [--names-from OLD] [--repo SWOS9697MOD]
     python3 -I scripts/world_import.py --mod DIR ...            # then, as from Davide's JSON
 
-GAME   the installed Mod: its folder (DATA/ inside) or DATA itself -- read only.
-OLD    the last JSON delivery of the Mod's data (bin/data_json/worlds/2627/mod/ as Davide sent it):
-       what the installed game does not hold in a form we can read -- the packs (pack.json,
-       clubs.csv, players.csv, ties.csv, cupd.json, complist.json), conti/, competitions/,
-       reference/, teams/NATIONALITIES.json -- is taken from it (the packs' club names brought up
-       to the installed ones, below).
-DIR    the `mod/` folder written: the same layout and fields as Davide's JSON.
+GAME   the installed Mod: its folder (DATA/ and ENGLISH.EXE inside) -- read only.
+DIR    the `mod/` folder written: the layout and fields of Davide's JSON (those world_import.py reads).
+OLD    optional, a JSON delivery of the Mod's data (bin/data_json/worlds/2627/mod/ as Davide sent it):
+       --names-from takes its original competition names where the Mod's own fitting gives the exe's
+       (the exe holds them fitted); --base (the old fallback, off by default) takes its packs and
+       continental cups whole instead of decoding them. Nothing needs either.
 SWOS9697MOD  optional, a checkout of the Mod's public repo (MIT): its tag of the installed version
        is noted in DIR/SOURCE.txt (the tools that describe the formats read here).
+
+The squads come from the installed game's DATA (below); the competitions, play-offs, splits, cups,
+Europe and the other confederations' cups are decoded from its patched exe by scripts/world_mod_*.py
+(world_mod_exe.py: the LE and its pointers; one module an area).
 
 What is read from the installed game (DATA/, the files the game itself plays):
 
@@ -58,6 +61,7 @@ import struct
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)                # (python3 -I: the decoders, world_mod_*.py, beside this file)
 CLUB_IDS = os.path.join(HERE, "world_club_ids_2627.csv")
 COUNTRIES = os.path.join(HERE, "world_countries_2627.csv")
 WORLD = 5                       # World 2026-27 in the Mod (its TMW5 / XTW5 / RS5 / POOL05 files)
@@ -259,8 +263,160 @@ class Ids:
 
 # ---- the conversion ----------------------------------------------------------------------------
 
-def convert(game, old, out, repo=None, registry_add=False):
+DECODERS = ("leagues", "playoffs", "splits", "cups", "europe", "conti")   # scripts/world_mod_<area>.py
+
+
+def merge(dst, src, path=""):
+    """A decoder's fragment into the whole: dicts by key, the competitions by their "key", the divisions by
+    their index; anything else must not be given twice."""
+    for k, v in src.items():
+        if k not in dst:
+            dst[k] = v
+        elif isinstance(v, dict) and isinstance(dst[k], dict):
+            merge(dst[k], v, path + "." + str(k))
+        elif k == "competitions" and isinstance(v, list):
+            have = {c.get("key"): c for c in dst[k]}
+            for c in v:
+                if c.get("key") in have:
+                    merge(have[c["key"]], c, path + ".competitions." + str(c.get("key")))
+                else:
+                    dst[k].append(c)
+        elif k == "divisions" and isinstance(v, list) and isinstance(dst[k], list):
+            for i, d in enumerate(v):
+                if i < len(dst[k]):
+                    if d:
+                        merge(dst[k][i], d, path + ".divisions[%d]" % i)
+                else:
+                    dst[k].append(d)
+        elif dst[k] != v:
+            sys.exit("decoders disagree on %s.%s: %r / %r" % (path, k, dst[k], v))
+
+
+def decode_game(game):
+    """What the Mod compiled into its exe and DATA, decoded (scripts/world_mod_*.py): one dict of
+    packs / clubs / ties / players / cupd / conti, as Davide's JSON has them."""
+    import importlib
+    import world_mod_exe
+    world = world_mod_exe.World(game)
+    whole = {}
+    for area in DECODERS:
+        mod = importlib.import_module("world_mod_" + area)
+        merge(whole, mod.decode(world), area)
+    return world, whole
+
+
+def names_from(whole, old):
+    """Optional (--names-from): the exe holds the Mod's FITTED competition names (complist.fit_titles: "PREMIER
+    LGE" for "PREMIER LEAGUE"); a JSON delivery's originals are put back where the Mod's own fitting turns them
+    into exactly the exe's (world_mod_playoffs.fit_short / fit_long), so a name the game has since changed stays
+    the game's. Returns (taken, kept)."""
+    import world_mod_playoffs as fit
+    countries = {r["code"]: r["country_name"] for r in read_registry(COUNTRIES)}
+    taken = kept = 0
+
+    def take(dec, org, country):
+        nonlocal taken, kept
+        dn, on = (dec or {}).get("names"), (org or {}).get("names")
+        if not dn or not on or "en" not in dn:
+            return
+        cand = on.get("en") or on.get("*")
+        if not isinstance(cand, list) or len(cand) < 2:
+            return
+        if [fit.fit_long(country, cand[0].upper(), cand[1].upper()), fit.fit_short(cand[1])] in \
+                ([dn["en"][0], dn["en"][1]], [dn["en"][0].upper(), dn["en"][1].upper()]) or \
+                [x.upper() for x in cand[:2]] == [x.upper() for x in dn["en"][:2]]:
+            dec["names"] = dict(on)
+            if "record" in org:
+                dec["record"] = org["record"]
+            taken += 1
+        else:
+            kept += 1
+    for code, pk in whole.get("packs", {}).items():
+        path = os.path.join(old, "packs", code.lower(), "pack.json")
+        if not os.path.exists(path):
+            continue
+        org = {c.get("key"): c for c in json.load(open(path, encoding="utf-8")).get("competitions", [])}
+        country = countries.get(code, code)
+        for c in pk.get("competitions", []):
+            o = org.get(c.get("key"))
+            if not o:
+                continue
+            take(c, o, country)
+            for d, od in zip(c.get("divisions") or [], o.get("divisions") or []):
+                take(d, od, country)
+            for po, opo in zip(c.get("ko_playoffs") or [], o.get("ko_playoffs") or []):
+                take(po, opo, country)
+    for code, cd in whole.get("cupd", {}).items():
+        path = os.path.join(old, "packs", code.lower(), "cupd.json")
+        if os.path.exists(path):
+            take(cd, json.load(open(path, encoding="utf-8")), countries.get(code, code))
+    for name, doc in whole.get("conti", {}).items():
+        path = os.path.join(old, "conti", name)
+        if name.endswith(".format.json") and os.path.exists(path):
+            org = {c.get("key"): c for c in json.load(open(path, encoding="utf-8")).get("cups", [])}
+            for c in doc.get("cups", []):
+                if c.get("key") in org:
+                    take(c, org[c["key"]], "")
+    return taken, kept
+
+
+def write_decoded(out, world, whole):
+    """The decoded packs and continental cups as the files world_import.py reads (only the fields it reads)."""
+    packs = whole.get("packs", {})
+
+    def star(v):                        # (the exe holds the English names: "*" = "en", some readers take "*" only)
+        if isinstance(v, dict):
+            nm = v.get("names")
+            if isinstance(nm, dict) and "en" in nm and "*" not in nm:
+                nm["*"] = nm["en"]
+            for x in v.values():
+                star(x)
+        elif isinstance(v, list):
+            for x in v:
+                star(x)
+    star(packs)
+    for code, pk in sorted(packs.items()):
+        d = os.path.join(out, "packs", code.lower())
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "pack.json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump(pk, f, indent=1)
+            f.write("\n")
+        rows = []
+        for key, c in (whole.get("clubs", {}).get(code) or {}).items():
+            fo = world.where.get((code, key))
+            pool = dict((k, n) for n, k in world.pools.get(code, []))
+            name = world.name[fo] if fo else pool.get(key, "")
+            rows.append({"key": key, "name": name, "division": c.get("division", ""),
+                         "second_of": c.get("second_of", ""), "area": c.get("area", "")})
+        write_csv(os.path.join(d, "clubs.csv"), rows, ["key", "name", "division", "second_of", "area"])
+        ties = whole.get("ties", {}).get(code) or []
+        write_csv(os.path.join(d, "ties.csv"), ties,
+                  ["competition", "round", "home", "away"] + sorted({k for t in ties for k in t} -
+                                                                    {"competition", "round", "home", "away"}))
+        players = whole.get("players", {}).get(code) or []
+        write_csv(os.path.join(d, "players.csv"), players, ["club", "price"])
+        if code in whole.get("cupd", {}):
+            with open(os.path.join(d, "cupd.json"), "w", encoding="utf-8", newline="\n") as f:
+                json.dump(whole["cupd"][code], f, indent=1)
+                f.write("\n")
+    if whole.get("conti"):
+        os.makedirs(os.path.join(out, "conti"), exist_ok=True)
+        for name, doc in sorted(whole["conti"].items()):
+            with open(os.path.join(out, "conti", name), "w", encoding="utf-8", newline="\n") as f:
+                json.dump(doc, f, indent=1)
+                f.write("\n")
+
+
+def convert(game, old, out, repo=None, registry_add=False, names=None):
+    """old: a JSON delivery to take the packs and continental cups from (the fallback); None: decoded from the
+    game's exe and DATA (scripts/world_mod_*.py)."""
     data = data_dir(game)
+    world = whole = None
+    if old is None:
+        world, whole = decode_game(game)
+        if names:
+            taken, kept = names_from(whole, names)
+            print("names from %s: %d taken, %d kept the game's" % (names, taken, kept))
     version = mod_version(game) or mod_version(os.path.dirname(data)) or "?"
     countries = read_registry(COUNTRIES)
     by_file = {int(r["file"]): r for r in countries}
@@ -268,6 +424,8 @@ def convert(game, old, out, repo=None, registry_add=False):
     packs = {}
 
     def pack(code):
+        if old is None:
+            return whole["packs"][code], []
         if code not in packs:
             p = os.path.join(old, "packs", code.lower())
             packs[code] = (json.load(open(os.path.join(p, "pack.json"), encoding="utf-8")),
@@ -321,13 +479,9 @@ def convert(game, old, out, repo=None, registry_add=False):
         if r["key"]:
             key_id[r["code"]][r["key"]] = r["club_id"]
 
-    # the pools' global numbers (Davide's JSON: after the world's last file, pool after pool)
-    top = 0
-    for code in by_code:
-        for fk, fv in pack(code)[0].get("files", {}).items():
-            if fk != "pool":
-                n = len(teams[by_file[fv["file"]]["json"]][1]) if fv["file"] in by_file else 0
-                top = max(top, fv["base"] + n)
+    # the pools' global numbers (Davide's JSON: after the world's last club, pool after pool)
+    top = 1 + max(struct.unpack_from(">H", rec, 2)[0] for js, (crow, clubs, pool) in teams.items() if not pool
+                  for rec, _ in clubs)
     pool_global = {}
     for code in sorted(pools):
         pool_global[code] = top
@@ -340,7 +494,14 @@ def convert(game, old, out, repo=None, registry_add=False):
         code = crow["code"]
         pk, rows = pack(code)
         csv_of = {key_id[code].get(r["key"]): r for r in rows if key_id[code].get(r["key"])}
-        states = {fv["file"] for fk, fv in pk.get("files", {}).items() if fk == "states"}
+        if old is None:                 # (the decoded clubs: by their place, the pool's by its order)
+            pool_keys = [k for _, k in world.pools.get(code, [])]
+            for key, c in (whole.get("clubs", {}).get(code) or {}).items():
+                fo = world.where.get((code, key))
+                at = (by_file[fo[0]]["json"], fo[1]) if fo else \
+                    (code + "_POOL", pool_keys.index(key)) if key in pool_keys else None
+                if at in club_id:
+                    csv_of[club_id[at]] = dict(c, key=key)
         entries = []
         for i, (rec, xt) in enumerate(clubs):
             cid = club_id[(js, i)]
@@ -351,8 +512,10 @@ def convert(game, old, out, repo=None, registry_add=False):
             x = {"v": 1, "club_id": cid}
             if pool:
                 x["division"] = None
+            elif row is not None and "division" in row:
+                x["division"] = row["division"] if row["division"] != "" else None
             else:
-                x["division"] = None if int(crow["file"]) in states else str(h["league"])
+                x["division"] = str(h["league"])
             x["area"] = (row or {}).get("area") or None
             parent = key_id[code].get((row or {}).get("second_of") or "")     # (a first team of this
             x["second_of"] = parent if parent in ids.used else None              # country's: as Davide's)
@@ -390,13 +553,16 @@ def convert(game, old, out, repo=None, registry_add=False):
     with open(os.path.join(out, "teams", "COUNTS.json"), "w", encoding="utf-8", newline="\n") as f:
         json.dump(list(summary.values()), f, indent=1)
         f.write("\n")
-    nat = os.path.join(old, "teams", "NATIONALITIES.json")
-    if os.path.exists(nat):
+    nat = os.path.join(old, "teams", "NATIONALITIES.json") if old else None
+    if nat and os.path.exists(nat):
         shutil.copyfile(nat, os.path.join(out, "teams", "NATIONALITIES.json"))
     shutil.copyfile(os.path.join(data, "POOL0%d.DAT" % WORLD), os.path.join(out, "POOL0%d.DAT" % WORLD))
 
+    if old is None:
+        write_decoded(out, world, whole)
+        by_code = {}                    # (no delivery's clubs.csv to rename)
     # what the game does not carry readably: the delivery's, the packs' club names the game's now
-    for sub in TAKEN:
+    for sub in (TAKEN if old else ()):
         src, dst = os.path.join(old, sub), os.path.join(out, sub)
         if os.path.isdir(src):
             if os.path.exists(dst):
@@ -430,7 +596,10 @@ def convert(game, old, out, repo=None, registry_add=False):
     with open(os.path.join(out, "SOURCE.txt"), "w", newline="\n") as f:
         f.write("Written by scripts/world_from_mod.py from an installed SWOS 96/97 Mod %s\n" % version)
         f.write("teams/, POOL0%d.DAT: the game's DATA (TMW%d, XTW%d, RS%d files)\n" % (WORLD, WORLD, WORLD, WORLD))
-        f.write("%s, teams/NATIONALITIES.json: the JSON delivery %s\n" % ("/, ".join(TAKEN) + "/", os.path.abspath(old)))
+        if old:
+            f.write("%s, teams/NATIONALITIES.json: the JSON delivery %s\n" % ("/, ".join(TAKEN) + "/", os.path.abspath(old)))
+        else:
+            f.write("packs/, conti/: decoded from the game's exe and DATA (scripts/world_mod_*.py)\n")
         if repo:
             f.write("the Mod's repo: tag v%s = %s\n" % (version, tag or "(none)"))
 
@@ -518,8 +687,11 @@ def compare(a, b, examples=3):
 def main():
     ap = argparse.ArgumentParser(description="World 2026-27's input for world_import.py from an installed SWOS 96/97 Mod")
     ap.add_argument("--mod", help="the installed Mod's folder (or its DATA)")
-    ap.add_argument("--base", help="the last JSON delivery of the Mod's data (a mod/ folder): what the game lacks")
+    ap.add_argument("--base", help="fallback: take the packs and continental cups from a JSON delivery of the Mod's "
+                                   "data (a mod/ folder) instead of decoding them from the game")
     ap.add_argument("--out", help="the mod/ folder to write")
+    ap.add_argument("--names-from", metavar="OLD", help="optional: a JSON delivery's original competition names, "
+                    "where the Mod's fitting gives the exe's (the exe holds them fitted)")
     ap.add_argument("--repo", help="a checkout of the Mod's public repo (its tag of the version, noted)")
     ap.add_argument("--registry-add", action="store_true", help="write new clubs' ids into the registry")
     ap.add_argument("--make-registry", metavar="OLD", help="the registries from a JSON delivery (rows only added)")
@@ -529,12 +701,12 @@ def main():
         make_registry(a.make_registry)
     elif a.compare:
         compare(*a.compare)
-    elif a.mod and a.base and a.out:
-        if os.path.abspath(a.out) == os.path.abspath(a.base):
+    elif a.mod and a.out:
+        if a.base and os.path.abspath(a.out) == os.path.abspath(a.base):
             sys.exit("--out is the delivery itself")
-        convert(a.mod, a.base, a.out, a.repo, a.registry_add)
+        convert(a.mod, a.base, a.out, a.repo, a.registry_add, a.names_from)
     else:
-        ap.error("--mod, --base and --out (or --make-registry / --compare)")
+        ap.error("--mod and --out (or --make-registry / --compare)")
 
 
 if __name__ == "__main__":
