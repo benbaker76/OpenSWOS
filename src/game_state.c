@@ -9,6 +9,7 @@
 #include "endian_helpers.h"
 #include "display.h"    /* _screen_width, WIDE_MARGIN — center the in-match HUD in widescreen */
 #include "dos_mode.h"   /* _gDosView: the DOS release places the match clock differently */
+#include "stoppage.h"   /* a world's stoppage time */
 
 /* ---- External globals ---- */
 extern uint16_t _isGoalAttempt;
@@ -205,6 +206,7 @@ void ResetTime(void)
     _copyTimeSprite = 1;
     _currentTimeSprite.imageIndex = SPR_8_MINS;
     _currentTimeSprite.visible = 0;
+    Stoppage_Reset();       /* (a world's stoppage time: none pending, this match's caps) */
 }
 
 /* ================================================================
@@ -826,7 +828,7 @@ time_invisible:
         goto no_update_to_time;
 
     /* Accumulate time delta */
-    _secondsSwitchAccumulator -= _timeDelta;
+    _secondsSwitchAccumulator -= Stoppage_Delta(_timeDelta);   /* (added time: the 10-minute pace) */
     if ((int16_t)_secondsSwitchAccumulator >= 0)
         goto no_update_to_time;
 
@@ -840,6 +842,8 @@ time_invisible:
 
     /* Minute boundary: increment BCD gameTime */
     _gameSeconds = 0;
+    if (Stoppage_MinuteRoll())      /* (an added minute: the game's minute stays at the end's) */
+        goto check_game_end;
     GAMETIME_ONES++;
     if (GAMETIME_ONES >= 10)
     {
@@ -854,6 +858,10 @@ time_invisible:
 
     /* --- check_game_end --- */
 check_game_end:
+    /* A world's stoppage time (stoppage.c): at the end of a half its added minutes first. */
+    if (Stoppage_Check())
+        goto no_update_to_time;
+
     /* Minute 1: mark half-start.
      * gameTime is written byte-by-byte via the GAMETIME_* macros (m68k BCD
      * layout: byte[1]=hundreds, byte[2]=tens, byte[3]=ones), but compared
@@ -874,6 +882,7 @@ check_game_end:
             goto last_cycle;
         _gameSeconds = 0;
         PlayEndGameWhistleSample();
+        Stoppage_Whistle();
         EndFirstHalf();
         BumpPlayersLastPlayedHalfAtHalfEnd();
         goto not_end_of_second_extra;
@@ -886,6 +895,7 @@ check_game_end:
             goto last_cycle;
         _gameSeconds = 0;
         PlayEndGameWhistleSample();
+        Stoppage_Whistle();
         { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
           ModMatch_Event(11 /* MODEVENT_FULL_TIME */, 0, -1, 0); }     /* the mods' match event (src/mod_match.c) */
         BumpPlayersLastPlayedHalfAtHalfEnd();
@@ -943,6 +953,7 @@ check_game_end:
             goto last_cycle;
         _gameSeconds = 0;
         PlayEndGameWhistleSample();
+        Stoppage_Whistle();
         EndFirstExtraTime();
         goto not_end_of_second_extra;
     }
@@ -954,6 +965,7 @@ check_game_end:
             goto last_cycle;
         _gameSeconds = 0;
         PlayEndGameWhistleSample();
+        Stoppage_Whistle();
 
         d0u = _team1TotalGoals;
         if (d0u != _team2TotalGoals)
@@ -1073,7 +1085,7 @@ not_end_of_second_extra:
 #if defined(RASTER_BARS) && !defined(SWOS_SDL_BUILD)
         uint8_t dHundreds = 0, dTens = (uint8_t)(_rasterFps / 10), dOnes = (uint8_t)(_rasterFps % 10);
 #else
-        uint8_t dHundreds = GAMETIME_HUNDREDS, dTens = GAMETIME_TENS, dOnes = GAMETIME_ONES;
+        uint8_t dHundreds = GAMETIME_HUNDREDS, dTens = GAMETIME_TENS, dOnes = Stoppage_ClockOnes(GAMETIME_ONES);
 #endif
 
         if (dHundreds != 0)
@@ -1104,8 +1116,8 @@ not_end_of_second_extra:
         digitSprite = SPR_CUP_WINNER + dOnes;
         CopySprite(digitSprite, sprIdx, xOff, yOff);
 
-        /* Set sprite image index */
-        _currentTimeSprite.imageIndex = sprIdx;
+        /* Set sprite image index (in a world's added time, the clock with its "+N") */
+        _currentTimeSprite.imageIndex = Stoppage_ClockSprite(sprIdx);
 
         /* Blit the assembled time sprite */
         if (sprIdx == SPR_INVITATION_TOURNAMENT)
