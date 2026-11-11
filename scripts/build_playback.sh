@@ -32,11 +32,6 @@ if ! command -v emcc >/dev/null 2>&1; then
     command -v emcc >/dev/null 2>&1 || { echo "build_playback: emsdk_env.sh did not put emcc on PATH" >&2; exit 1; }
 fi
 
-# The game's sources need the rules library (a submodule since 02443093). A server checkout
-# is updated by `git pull` alone (the admin page's button), which never fetches a submodule:
-# without this the player's build stopped at swosrules.h.
-git submodule update --init -q third_party/swos-competition-engine ||
-    { echo "build_playback: could not fetch the rules library (third_party/swos-competition-engine)" >&2; exit 1; }
 # A fork's own submodules its build needs (docs/FORKING.md): fork.submodules, a path a line --
 # SWOS United's online API client, third_party/swos-api. (A server's `git pull` fetches none.)
 if [ -f fork.submodules ]; then

@@ -1,5 +1,13 @@
 # RULES_LIBRARY.md — the shared rules library with the SWOS 96/97 Mod
 
+> **2026-11-11: no longer shared.** The owner moved the rules into OpenSWOS, `src/rules/`
+> (src/rules/README.md): the submodule `third_party/swos-competition-engine` is gone, its tag v1's
+> `rules/` copied in unchanged with its MIT licence (Copyright Davide Lorigliola,
+> `src/rules/LICENSE-MIT`); OpenSWOS's changes from here are GPL like the game. No more pull
+> requests to Davide's repo: a Mod release's rule change is ported here from his public repo, and
+> `scripts/league_playoffs_check.sh` still compares ours with his C. The "notes for Davide" below
+> (§13-14) are now OpenSWOS's own work list. What follows is the history as it was.
+
 **Status, 2026-11-02: in, at the tag v1 -- the Mod 4.0.5's rules, frozen** (§10-11). The library is `rules/` in Davide's repository
 (github.com/aminta/swos-competition-engine, its `docs/rules-library.md`), a submodule here at
 `third_party/swos-competition-engine`, compiled as `src/swos_rules_*.c` on every target. Six

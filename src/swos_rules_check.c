@@ -1,4 +1,4 @@
-/* The rules library's sr_check.c (third_party/swos-competition-engine, Davide Lorigliola's and
- * OpenSWOS's: docs/rules-library.md there), built here as one of src/'s sources on every target. */
+/* The rules' sr_check.c (src/rules: OpenSWOS's own since 2026-11-11, from the library it shared with
+ * Davide Lorigliola's Mod -- src/rules/README.md), built here as one of src/'s sources on every target. */
 #include "swos_types.h"                 /* (the fixed-width types: the Amiga has no <stdint.h>) */
-#include "../third_party/swos-competition-engine/rules/sr_check.c"
+#include "rules/sr_check.c"
