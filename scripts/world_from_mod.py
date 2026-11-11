@@ -305,58 +305,123 @@ def decode_game(game):
     return world, whole
 
 
-def names_from(whole, old):
-    """Optional (--names-from): the exe holds the Mod's FITTED competition names (complist.fit_titles: "PREMIER
-    LGE" for "PREMIER LEAGUE"); a JSON delivery's originals are put back where the Mod's own fitting turns them
-    into exactly the exe's (world_mod_playoffs.fit_short / fit_long), so a name the game has since changed stays
-    the game's. Returns (taken, kept)."""
-    import world_mod_playoffs as fit
-    countries = {r["code"]: r["country_name"] for r in read_registry(COUNTRIES)}
-    taken = kept = 0
+NAMES = os.path.join(HERE, "world_competition_names_2627.csv")
+NAME_FIELDS = ["kind", "key", "country", "exe_name", "full_name", "source", "notes"]
+NAMES_COMMENT = ("# World 2026-27's competition names (scripts/world_from_mod.py, docs/WORLD_2026_27.md 6d): the exe\n"
+                 "# holds the Mod's FITTED names; full_name (LONG|SHORT, |RECORD for a play-off's record line)\n"
+                 "# replaces exe_name when not blank. Names only -- never squads. Completed and checked by Playaveli.\n")
 
-    def take(dec, org, country):
-        nonlocal taken, kept
-        dn, on = (dec or {}).get("names"), (org or {}).get("names")
-        if not dn or not on or "en" not in dn:
-            return
-        cand = on.get("en") or on.get("*")
-        if not isinstance(cand, list) or len(cand) < 2:
-            return
-        if [fit.fit_long(country, cand[0].upper(), cand[1].upper()), fit.fit_short(cand[1])] in \
-                ([dn["en"][0], dn["en"][1]], [dn["en"][0].upper(), dn["en"][1].upper()]) or \
-                [x.upper() for x in cand[:2]] == [x.upper() for x in dn["en"][:2]]:
-            dec["names"] = dict(on)
-            if "record" in org:
-                dec["record"] = org["record"]
+
+def name_slots(packs, cupd, conti):
+    """Every name the converter decodes: (kind, key, country, position, the dict holding "names"). position
+    pairs a decoded slot with a delivery's (play-off keys are the decoder's, not Davide's)."""
+    for code, pk in sorted(packs.items()):
+        for c in pk.get("competitions", []):
+            kind = c.get("type", "league")
+            if c.get("names"):
+                yield kind, c["key"], code, (code, c["key"]), c
+            for i, d in enumerate(c.get("divisions") or []):
+                if d and d.get("names"):
+                    yield "division", "%s/%d" % (c["key"], i), code, (code, c["key"], "div", i), d
+            for i, po in enumerate(c.get("ko_playoffs") or []):
+                if po.get("names"):
+                    yield "playoff", po.get("key") or "%d" % i, code, (code, c["key"], "po", i), po
+    for code, cd in sorted(cupd.items()):
+        if cd.get("names"):
+            yield "cupd", "cupd", code, (code, "cupd"), cd
+    for name, doc in sorted(conti.items()):
+        if name.endswith(".format.json"):
+            for c in doc.get("cups", []):
+                if c.get("names"):
+                    yield "conti", "%s/%s" % (name.split(".")[0], c["key"]), "", (name, c["key"]), c
+
+
+def _pair(o):
+    nm = (o or {}).get("names") or {}
+    v = nm.get("en") or nm.get("*")
+    if not isinstance(v, list) or len(v) < 2:
+        return None
+    rec = ((o.get("record") or {}).get("en") or (o.get("record") or {}).get("*")) if o.get("record") else None
+    return [v[0], v[1]] + ([rec] if rec else [])
+
+
+def _delivery_slots(old):
+    packs, cupd, conti = {}, {}, {}
+    for path in glob.glob(os.path.join(old, "packs", "*", "pack.json")):
+        code = os.path.basename(os.path.dirname(path)).upper()
+        packs[code] = json.load(open(path, encoding="utf-8"))
+        cd = os.path.join(os.path.dirname(path), "cupd.json")
+        if os.path.exists(cd):
+            cupd[code] = json.load(open(cd, encoding="utf-8"))
+    for path in glob.glob(os.path.join(old, "conti", "*.format.json")):
+        conti[os.path.basename(path)] = json.load(open(path, encoding="utf-8"))
+    return {pos: o for _, _, _, pos, o in name_slots(packs, cupd, conti)}
+
+
+def _fits(cand, exe, country):
+    """The Mod's own fitting (world_mod_playoffs.fit_long / fit_short) turns cand into the exe's name."""
+    import world_mod_playoffs as fit
+    if [x.upper() for x in cand[:2]] == [x.upper() for x in exe[:2]]:
+        return True
+    return [fit.fit_long(country, cand[0].upper(), cand[1].upper()), fit.fit_short(cand[1])] in \
+        ([exe[0], exe[1]], [exe[0].upper(), exe[1].upper()])
+
+
+def write_names(whole, old, path=NAMES):
+    """The names table from a decode (exe_name) and a delivery (full_name, only into blank rows, only where the
+    Mod's fitting gives exactly the exe's name: a filled row is never overwritten). Returns (rows, filled, blank)."""
+    countries = {r["code"]: r["country_name"] for r in read_registry(COUNTRIES)}
+    have = {(r["kind"], r["country"], r["key"]): r for r in read_registry(path)} if os.path.exists(path) else {}
+    org = _delivery_slots(old) if old else {}
+    rows = []
+    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {})):
+        exe = _pair(o)
+        r = dict(have.get((kind, code, key)) or {"kind": kind, "key": key, "country": code, "full_name": "",
+                                                    "source": "", "notes": ""})
+        r["exe_name"] = "|".join(exe)
+        if not r.get("full_name") and pos in org:
+            cand = _pair(org[pos])
+            if cand and _fits(cand, exe, countries.get(code, code)):
+                r["full_name"] = "|".join(cand)
+                r["source"] = "same" if [x.upper() for x in cand] == [x.upper() for x in exe] else "delivery-4.0.5"
+        rows.append(r)
+    write_csv(path, rows, NAME_FIELDS, NAMES_COMMENT)
+    filled = sum(1 for r in rows if r["full_name"])
+    return len(rows), filled, len(rows) - filled
+
+
+def apply_names(whole, path=NAMES):
+    """A non-blank full_name replaces the exe's name (and a play-off's record line). Returns the count."""
+    if not path or not os.path.exists(path):
+        return 0
+    have = {(r["kind"], r["country"], r["key"]): r for r in read_registry(path)}
+    n = 0
+    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {})):
+        r = have.get((kind, code, key))
+        if r and r["full_name"]:
+            parts = r["full_name"].split("|")
+            o["names"] = {"en": parts[:2], "*": parts[:2]}
+            if len(parts) > 2:
+                o["record"] = {"en": parts[2], "*": parts[2]}
+            n += 1
+    return n
+
+
+def names_from(whole, old):
+    """Optional (--names-from): a delivery's names put straight back, where the Mod's own fitting gives exactly
+    the exe's. Returns (taken, kept)."""
+    countries = {r["code"]: r["country_name"] for r in read_registry(COUNTRIES)}
+    org = _delivery_slots(old)
+    taken = kept = 0
+    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {})):
+        cand = _pair(org.get(pos)) if pos in org else None
+        if cand and _fits(cand, _pair(o), countries.get(code, code)):
+            o["names"] = dict(org[pos]["names"])
+            if "record" in org[pos]:
+                o["record"] = org[pos]["record"]
             taken += 1
         else:
             kept += 1
-    for code, pk in whole.get("packs", {}).items():
-        path = os.path.join(old, "packs", code.lower(), "pack.json")
-        if not os.path.exists(path):
-            continue
-        org = {c.get("key"): c for c in json.load(open(path, encoding="utf-8")).get("competitions", [])}
-        country = countries.get(code, code)
-        for c in pk.get("competitions", []):
-            o = org.get(c.get("key"))
-            if not o:
-                continue
-            take(c, o, country)
-            for d, od in zip(c.get("divisions") or [], o.get("divisions") or []):
-                take(d, od, country)
-            for po, opo in zip(c.get("ko_playoffs") or [], o.get("ko_playoffs") or []):
-                take(po, opo, country)
-    for code, cd in whole.get("cupd", {}).items():
-        path = os.path.join(old, "packs", code.lower(), "cupd.json")
-        if os.path.exists(path):
-            take(cd, json.load(open(path, encoding="utf-8")), countries.get(code, code))
-    for name, doc in whole.get("conti", {}).items():
-        path = os.path.join(old, "conti", name)
-        if name.endswith(".format.json") and os.path.exists(path):
-            org = {c.get("key"): c for c in json.load(open(path, encoding="utf-8")).get("cups", [])}
-            for c in doc.get("cups", []):
-                if c.get("key") in org:
-                    take(c, org[c["key"]], "")
     return taken, kept
 
 
@@ -407,13 +472,15 @@ def write_decoded(out, world, whole):
                 f.write("\n")
 
 
-def convert(game, old, out, repo=None, registry_add=False, names=None):
+def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv=NAMES):
     """old: a JSON delivery to take the packs and continental cups from (the fallback); None: decoded from the
     game's exe and DATA (scripts/world_mod_*.py)."""
     data = data_dir(game)
     world = whole = None
     if old is None:
         world, whole = decode_game(game)
+        if names_csv:
+            print("names from %s: %d" % (os.path.relpath(names_csv), apply_names(whole, names_csv)))
         if names:
             taken, kept = names_from(whole, names)
             print("names from %s: %d taken, %d kept the game's" % (names, taken, kept))
@@ -692,6 +759,9 @@ def main():
     ap.add_argument("--out", help="the mod/ folder to write")
     ap.add_argument("--names-from", metavar="OLD", help="optional: a JSON delivery's original competition names, "
                     "where the Mod's fitting gives the exe's (the exe holds them fitted)")
+    ap.add_argument("--names", default=NAMES, help="the competition names table (default %(default)s; '' = none)")
+    ap.add_argument("--write-names", metavar="CSV", help="write / refresh the names table from --mod's decode, its "
+                    "blank full names from --names-from (a filled row is never overwritten)")
     ap.add_argument("--repo", help="a checkout of the Mod's public repo (its tag of the version, noted)")
     ap.add_argument("--registry-add", action="store_true", help="write new clubs' ids into the registry")
     ap.add_argument("--make-registry", metavar="OLD", help="the registries from a JSON delivery (rows only added)")
@@ -701,10 +771,13 @@ def main():
         make_registry(a.make_registry)
     elif a.compare:
         compare(*a.compare)
+    elif a.write_names and a.mod:
+        _, whole = decode_game(a.mod)
+        print("%s: %d rows, %d full names, %d blank" % ((a.write_names,) + write_names(whole, a.names_from, a.write_names)))
     elif a.mod and a.out:
         if a.base and os.path.abspath(a.out) == os.path.abspath(a.base):
             sys.exit("--out is the delivery itself")
-        convert(a.mod, a.base, a.out, a.repo, a.registry_add, a.names_from)
+        convert(a.mod, a.base, a.out, a.repo, a.registry_add, a.names_from, a.names or None)
     else:
         ap.error("--mod and --out (or --make-registry / --compare)")
 
