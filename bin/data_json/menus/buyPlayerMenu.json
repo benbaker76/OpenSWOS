@@ -268,6 +268,40 @@
           "func": "BuyPlayerModRow"
         }
       ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": -73,
+        "y": -71,
+        "w": 121,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "nav",
+          "left": 7,
+          "right": -1,
+          "up": 6,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "BuyPlayerCpuReplacements"
+        }
+      ]
     }
   ]
 }

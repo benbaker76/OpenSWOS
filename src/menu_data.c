@@ -44,6 +44,7 @@ extern void TransferMarketModRow(void);
 extern void NationalTeamAddPlayerModRow(void);
 extern void CompetitionStatsModRow(void);
 extern void BuyPlayerModRow(void);
+extern void BuyPlayerCpuReplacements(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerViewSquad(void);
@@ -8394,6 +8395,13 @@ Menu_BuyPlayer _buyPlayerMenu = {
         { MENU_CMD_ONSELECT_FIRE, BuyPlayerModRow },
         MENU_CMD_END
     },
+    { -73, -71, 121, 15 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, 7, -1, 6, -1 },
+    { MENU_CMD_COLORS, 0xE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, BuyPlayerCpuReplacements },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_TransferMarket _transferMarketMenu = {
@@ -10414,6 +10422,11 @@ Menu_Stadium _stadiumMenu = {
         { 0, 0, 0, 0 },
         MENU_CMD_END
     },
+    { MENU_MARK_START_MENU, 0, -15 },
+    { -104, 41, 0, 8 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_Highlights _highlightsMenu = {

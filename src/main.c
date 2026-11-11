@@ -899,6 +899,16 @@ int main(int argc, char **argv)
         } else if ((v = match_kv(a, "slang-selftest")) != NULL) {
             extern int32_t Slang_SelfTest(const char *preset);
             return Slang_SelfTest(v) ? 0 : 1;      /* (src/slang.c: a preset for every backend) */
+        } else if ((v = match_kv(a, "cpu-repl-selftest")) != NULL) {
+            extern int32_t CpuRepl_SelfTest(int32_t file, int32_t ordinal);
+            int f = -1, o = -1;
+            if (getenv("SWOS_WORLD"))
+                World_Set(getenv("SWOS_WORLD"));
+            if (sscanf(v, "%d,%d", &f, &o) != 2) {
+                fprintf(stderr, "--cpu-repl-selftest=<team file>,<ordinal>\n");
+                return 1;
+            }
+            return CpuRepl_SelfTest(f, o) ? 1 : 0;
         } else if (strcmp(a, "--custom-team-selftest") == 0) {
             if (getenv("SWOS_WORLD"))
                 World_Set(getenv("SWOS_WORLD"));

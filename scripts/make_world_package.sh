@@ -58,6 +58,8 @@ manifest = {
          "choices": ["on", "off"], "default": "on"},
         {"key": "euro", "label": "Money in euros (the pound's sign as the euro)",
          "choices": ["on", "off"], "default": "on"},
+        {"key": "cpu_replacements", "label": "CPU replacements (new careers)",
+         "choices": ["invented", "from_squad"], "default": "invented"},
     ],
 }
 n = 0

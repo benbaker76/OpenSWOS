@@ -1453,6 +1453,13 @@ typedef struct Menu_BuyPlayer
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry7;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry8;    /* OpenSWOS: a mod's row (MODPOINT; mod_entries.c) */
+  MenuCoords8 entry9_rc;                                /* OpenSWOS: CPU REPL. (cpu_repl.c; the Mod 4.1) */
+  MenuCmd_Invisible entry9_invisible;
+  MenuCmd_Nav entry9_nav;
+  MenuCmd_Colors entry9_colors;
+  MenuCmd_TextNoPtr entry9_text;
+  MenuCmd_OnSelect entry9_onSelect;
+  MenuCommand entry9_end;
   MenuMark markEndMenu;
 } Menu_BuyPlayer;
 #pragma pack(pop)
@@ -3524,6 +3531,13 @@ typedef struct Menu_Stadium
   MenuMark_StartMenu menu1Start5;
   MenuEntry_Byte_TextPtrOnly entries43_58[16];
   MenuEntry_Byte_CoordsOnly entry59;
+  /* OpenSWOS: a world's stadium name under the team bars (menus.c ShowStadiumInit; the SWOS
+   * 96/97 Mod 4.1's stadium.py) */
+  MenuMark_StartMenu menu1Start6;
+  MenuCoords8 entry60_rc;
+  MenuCmd_Invisible entry60_invisible;
+  MenuCmd_TextNoPtr entry60_text;
+  MenuCommand entry60_end;
   MenuMark markEndMenu;
 } Menu_Stadium;
 #pragma pack(pop)

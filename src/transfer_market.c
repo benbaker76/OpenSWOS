@@ -5,6 +5,7 @@
  */
 #include "transfer_market.h"
 #include "world_finance.h"
+#include "cpu_repl.h"
 #include "endian_helpers.h"
 #include "game_types.h"
 #include "menu_system.h"
@@ -1861,6 +1862,7 @@ void BuyPlayerInit(void)
         _menuEntries[6].downEntry = 8;
         _menuEntries[7].upEntry = 8;
     }
+    CpuRepl_MenuInit();     /* (a world's CPU REPL. button right of EXIT: cpu_repl.c) */
 }
 
 /* The TRANSFER MARKET's list rows: the original's five are entries 9-13; rows 6-10 (entries
@@ -4508,6 +4510,8 @@ void Career_RemovePlayerAndAddAsTrialist(uint16_t sourceTeam, uint16_t playerOrd
 
     /* Convert player to trialist using source name */
     Career_ConvertPlayerToTrialistFromName(savedTeam, savedOrd);
+    /* (a world's CPU REPL.: FROM SQUAD -- one of the club's squad players 17.. instead: cpu_repl.c) */
+    CpuRepl_AfterSale(savedTeam, savedOrd);
 }
 
 /* ================================================================

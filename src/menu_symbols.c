@@ -24,6 +24,7 @@ extern void BuyPlayerExit(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerModRow(void);
+extern void BuyPlayerCpuReplacements(void);
 extern void BuyPlayerViewSquad(void);
 extern void CareerGameListCommon(void);
 extern void CareerMenu(void);
@@ -717,6 +718,7 @@ const MenuSymbol _menuSymbols[] = {
     { "BuyOtherPlayersCommon", (void*)BuyOtherPlayersCommon, SYM_FUNC },
     { "BuyOtherPlayersFinish", (void*)BuyOtherPlayersFinish, SYM_FUNC },
     { "BuyOtherPlayersInit", (void*)BuyOtherPlayersInit, SYM_FUNC },
+    { "BuyPlayerCpuReplacements", (void*)BuyPlayerCpuReplacements, SYM_FUNC },
     { "BuyPlayerExit", (void*)BuyPlayerExit, SYM_FUNC },
     { "BuyPlayerInit", (void*)BuyPlayerInit, SYM_FUNC },
     { "BuyPlayerMenu", (void*)BuyPlayerMenu, SYM_FUNC },

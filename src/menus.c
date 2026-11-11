@@ -6,6 +6,7 @@
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
 #include "world_playoff.h"
+#include "world_stadium.h"   /* a world's stadium names (ShowStadiumInit) */
 #include "player_face3.h"
 #include "menus.h"
 #ifdef SWOS_SDL_BUILD
@@ -828,6 +829,28 @@ void ShowStadiumInit(void)
                 _menuEntries[31 - j].isInvisible = 1;
                 _menuEntries[58 - j].isInvisible = 1;
             }
+        }
+    }
+
+    /* A world's stadium name under the team bars (entry 60; world_stadium.c, the Mod 4.1's
+     * stadium.py): a neutral final's venue, else the home club's ground; none known, none shown. */
+    {
+        extern TeamFile *_gameTeam1;
+        extern uint16_t _currentSeasonShowing;
+        const char *ground = _gameTeam1 && !_trainingGame
+            ? WorldStadium_Name((uint8_t)_gameTeam1->countryNumber, (uint8_t)_gameTeam1->teamOrdinal,
+                                (const char *)_gameName, (const char *)_gameRound,
+                                (int32_t)_currentSeasonShowing + 1)
+            : 0;
+        uint8_t *d = (uint8_t *)_menuEntries[60].fg;
+        if (ground && d && _menuEntries[60].fg != 0xFFFFFFFF) {
+            int32_t k = 0;
+            while (ground[k] && k < WORLD_STADIUM_NAME_MAX) {
+                d[k] = (uint8_t)ground[k];
+                k++;
+            }
+            d[k] = 0;
+            _menuEntries[60].isInvisible = 0;
         }
     }
 

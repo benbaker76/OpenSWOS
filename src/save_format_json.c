@@ -23,6 +23,7 @@
 #include "endian_helpers.h"
 #include "world.h"             /* "world" in career and competition saves */
 #include "world_finance.h"     /* "uefa_prizes" in a world's career saves */
+#include "cpu_repl.h"          /* "cpu_replacements" in a world's career saves */
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
 #include "world_winners.h"     /* "season_winners" */
@@ -4077,6 +4078,43 @@ int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, 
     return n;
 }
 
+/* A world club's squad players from place 17 on (scripts/world_import.py: "extra_players" beside
+ * "players", the same fields), by its team file and ordinal: their count (0: none), at most max.
+ * For CPU REPL.: FROM SQUAD (src/cpu_repl.c). */
+int32_t DataJson_LoadTeamExtras(int32_t file, int32_t ordinal, PlayerFile *out, int32_t max)
+{
+    char team_file[128];
+    int jlen = 0, n = 0;
+    char *jj = dj_slurp_country_teams((int)file, team_file, (int)sizeof team_file, &jlen);
+    if (!jj)
+        return 0;
+    const char *arr;
+    int alen;
+    if (mjson_find(jj, jlen, "$.teams", &arr, &alen) == MJSON_TOK_ARRAY) {
+        int pos = 0, voff, vlen, vt;
+        while ((pos = fast_array_next(arr, alen, pos, &voff, &vlen, &vt)) != 0) {
+            double o = -1;
+            const char *xa;
+            int xl;
+            if (vt != MJSON_TOK_OBJECT ||
+                !mjson_get_number(arr + voff, vlen, "$.team.team_ordinal", &o) || (int32_t)o != ordinal)
+                continue;
+            if (mjson_find(arr + voff, vlen, "$.extra_players", &xa, &xl) == MJSON_TOK_ARRAY) {
+                int p2 = 0, vo2, vl2, vt2;
+                while (n < max && (p2 = fast_array_next(xa, xl, p2, &vo2, &vl2, &vt2)) != 0)
+                    if (vt2 == MJSON_TOK_OBJECT) {
+                        memset(&out[n], 0, sizeof out[n]);
+                        load_player_file_body(xa + vo2, vl2, (uint8_t *)&out[n]);
+                        n++;
+                    }
+            }
+            break;
+        }
+    }
+    free(jj);
+    return n;
+}
+
 /* ----------------------------------------------------------------------------
  * Competition JSON loader (data_json/competitions/*.json) — first increment:
  * parse a single competition RECORD (the cup / playoff family: comp base +
@@ -7277,6 +7315,13 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "on", (int)f->on, "block", (int)f->block, "valid", (int)f->valid,
                      "income", (long)f->inc, "last_income", (long)f->iprev, "fine", (long)f->fine,
                      "charges", (int)f->nch);
+        /* ... and its CPU replacements (cpu_repl.c): the choice, the squad players used. */
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:[", "cpu_replacements",
+                     "from_squad", (int)g_cpuRepl.fromSquad, "used");
+        for (int32_t i = 0; i < g_cpuRepl.n; i++)
+            mjson_printf(json_out_emit, &out, "%s[%d,%d]", i ? "," : "",
+                         (int)g_cpuRepl.used[i].team, (int)g_cpuRepl.used[i].mask);
+        mjson_printf(json_out_emit, &out, "]}");
     }
 
     /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
@@ -8086,6 +8131,30 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(up, uplen, "$.draws", &v) > 0) p->draws = (uint8_t)v;
             if (mjson_get_long(up, uplen, "$.stage", &v) > 0) p->stage = (uint8_t)v;
             if (mjson_get_long(up, uplen, "$.off", &v) > 0) p->off = (uint8_t)v;
+        }
+    }
+    /* ... its CPU replacements; a save without them: INVENTED. */
+    CpuRepl_LoadedWithout();
+    {
+        const char *cr = NULL;
+        int crlen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.cpu_replacements", &cr, &crlen) == MJSON_TOK_OBJECT) {
+            const char *arr = NULL;
+            int alen = 0;
+            if (mjson_get_long(cr, crlen, "$.from_squad", &v) > 0) g_cpuRepl.fromSquad = (uint8_t)(v != 0);
+            if (mjson_find(cr, crlen, "$.used", &arr, &alen) == MJSON_TOK_ARRAY) {
+                int pos = 0, ko, kl, vo, vl, vt;
+                while (g_cpuRepl.n < CPU_REPL_CLUBS &&
+                       (pos = mjson_next(arr, alen, pos, &ko, &kl, &vo, &vl, &vt)) != 0) {
+                    long t = 0, m = 0;             /* (no doubles on the Amiga: mjson_get_long) */
+                    if (vt == MJSON_TOK_ARRAY && mjson_get_long(arr + vo, vl, "$[0]", &t) > 0 &&
+                        mjson_get_long(arr + vo, vl, "$[1]", &m) > 0) {
+                        g_cpuRepl.used[g_cpuRepl.n].team = (uint16_t)t;
+                        g_cpuRepl.used[g_cpuRepl.n++].mask = (uint16_t)m;
+                    }
+                }
+            }
         }
     }
     /* ... its financial fair play; a save without it: an older one, the rule off. */
