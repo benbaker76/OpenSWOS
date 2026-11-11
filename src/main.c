@@ -571,6 +571,8 @@ int main(int argc, char **argv)
     opts.stick_deadzone = 25;     /* percent: about what the old per-axis threshold was */
     opts.latch_presses = 1;       /* a short fire press is never lost between two reads */
     memset(opts.key_bind, 0, sizeof opts.key_bind);   /* no keys of the player's own */
+    opts.p2_keyboard = 0;         /* P1 AND P2 ON KEYBOARD: not chosen */
+    memset(opts.p2_key_bind, 0, sizeof opts.p2_key_bind);   /* (player 2's: the defaults) */
     opts.fire_hold_lockout = 0;   /* default: the original's fire-hold bug is FIXED */
     opts.contest_own_ratings = 0; /* default: the original's roll, team-mate's rating and all */
     opts.live_cast = 1;           /* (LIVE CAST: viewers may watch, as SWOS 2020's ON) */
@@ -1268,6 +1270,13 @@ int main(int argc, char **argv)
         TouchControls_SetMode(opts.touch_controls);     /* the phones' on-screen controls */
         for (i = 0; i < 5; i++)
             InputSDL_SetKeyBinding(i, opts.key_bind[i]);
+        {   /* P1 AND P2 ON KEYBOARD (input_sdl.c) */
+            extern void InputSDL_SetP2Keyboard(int on);
+            extern int InputSDL_SetP2KeyBinding(int which, const char *name);
+            InputSDL_SetP2Keyboard(opts.p2_keyboard);
+            for (i = 0; i < 5; i++)
+                InputSDL_SetP2KeyBinding(i, opts.p2_key_bind[i]);
+        }
     }
     /* SWOS_SOUND_STYLE=pc, SWOS_COMMENTARY=on: for the test scripts, which pass no options. */
     { const char *e = getenv("SWOS_SOUND_STYLE");

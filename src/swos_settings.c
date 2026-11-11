@@ -184,6 +184,9 @@ static int handler(void *user, const char *section,
         } else if (eqi(name, "latch_presses")) {
             int b;
             if (parse_bool(value, &b)) opts->latch_presses = b;
+        } else if (eqi(name, "p2_keyboard")) {
+            int b;
+            if (parse_bool(value, &b)) opts->p2_keyboard = b;
         } else if (eqi(name, "touch_controls")) {
             if      (eqi(value, "auto"))   opts->touch_controls = TOUCH_CONTROLS_AUTO;
             else if (eqi(value, "always")) opts->touch_controls = TOUCH_CONTROLS_ALWAYS;
@@ -191,9 +194,14 @@ static int handler(void *user, const char *section,
         } else {
             static const char *const keys[5] = { "key_up", "key_down", "key_left", "key_right", "key_fire" };
             int i;
-            for (i = 0; i < 5; i++)
+            static const char *const p2keys[5] = { "p2_key_up", "p2_key_down", "p2_key_left", "p2_key_right",
+                                                   "p2_key_fire" };
+            for (i = 0; i < 5; i++) {
                 if (eqi(name, keys[i]))
                     snprintf(opts->key_bind[i], sizeof opts->key_bind[i], "%s", value);
+                if (eqi(name, p2keys[i]))
+                    snprintf(opts->p2_key_bind[i], sizeof opts->p2_key_bind[i], "%s", value);
+            }
         }
     } else if (eqi(section, "replays")) {
         int b;
@@ -526,6 +534,19 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "input", "key_left",  NULL, opts->key_bind[2] };
     SETTING(n) = (IniEntry){ "input", "key_right", NULL, opts->key_bind[3] };
     SETTING(n) = (IniEntry){ "input", "key_fire",  NULL, opts->key_bind[4] };
+    SETTING(n) = (IniEntry){ "input", "p2_keyboard",
+        "; p2_keyboard: true | false. P1 AND P2 ON KEYBOARD (OPTIONS -> CONTROLS): player 2\n"
+        "; plays on this keyboard too, with p2_key_up, p2_key_down, p2_key_left, p2_key_right,\n"
+        "; p2_key_fire (empty: W, S, A, D and Left Shift). Player 1 keeps all his keys. Many\n"
+        "; keyboards cannot read many keys held at once: if a key of one player does not\n"
+        "; answer while both press a lot, choose player 2's keys far from player 1's.\n"
+        "; Offline only: online each game plays its own player 1. Default false.",
+        opts->p2_keyboard ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "input", "p2_key_up",    NULL, opts->p2_key_bind[0] };
+    SETTING(n) = (IniEntry){ "input", "p2_key_down",  NULL, opts->p2_key_bind[1] };
+    SETTING(n) = (IniEntry){ "input", "p2_key_left",  NULL, opts->p2_key_bind[2] };
+    SETTING(n) = (IniEntry){ "input", "p2_key_right", NULL, opts->p2_key_bind[3] };
+    SETTING(n) = (IniEntry){ "input", "p2_key_fire",  NULL, opts->p2_key_bind[4] };
     SETTING(n) = (IniEntry){ "gameplay", "fire_hold_lockout",
         "; fire_hold_lockout: true | false — true restores a BUG IN THE ORIGINAL\n"
         "; AMIGA GAME: an OPPONENT's tackle wipes your held fire button's shot charge,\n"

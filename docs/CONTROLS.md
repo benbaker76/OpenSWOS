@@ -27,11 +27,34 @@ between two reads" all look the same. Three things now cover that.
   CURSOR UP"; the player's alone when both do not fit). The choice is written to `SWOS.ini`
   at once.
 - There is no key for the bench: the port's bench keys (`Q`/`W`) are a team each, and the
-  DOS second button is a pad button. Player 2 has no keyboard at all, as before.
+  DOS second button is a pad button. Player 2 has no keyboard unless P1 AND P2 ON KEYBOARD is
+  chosen (§1b).
 
 SWOS 2020 had REDEFINE CONTROLS inside a larger CONTROLS MENU (device per player, joypad
 configuration, three keyboard styles; its `controlOptionsMenu.cpp`). Only the redefinition
 is here; the rest of that menu is not imported.
+
+## 1b. P1 AND P2 ON KEYBOARD
+
+The SWOS 96/97 Mod 4.1's device (its CONTROL2.DAT), in every world: **KEYBOARD** on the CONTROLS
+menu switches between PLAYER 1 (the default) and **P1 AND P2 ON KEYBOARD** (`[input] p2_keyboard`).
+Player 2 then plays on the keyboard too, by default **W / S / A / D** and **LEFT SHIFT** to fire
+(`[input] p2_key_up`, `p2_key_down`, `p2_key_left`, `p2_key_right`, `p2_key_fire`; empty = the
+default). **KEYS OF** chooses whose keys the five rows show and redefine; DEFAULT KEYS puts that
+player's back. Player 1 keeps everything (his own keys come first); a key cannot be both players'.
+
+- Player 2's keys are controls and nothing else while the device is chosen (W no longer calls the
+  bench, S no longer opens the statistics), as player 1's own keys are; in a text field a letter is
+  a letter.
+- They are added to player 2's pad, as the keyboard is to player 1's (`InputSDL_PostFrame`); with
+  the device chosen the one-pad split (player 1's pad to player 2) does not happen: player 2 has
+  the keyboard.
+- **Offline only**: an online match reads each game's own player 1 (`InputSDL_LocalMatchControls`),
+  as always. Not chosen, nothing here is read: the input chain is as it was (the replay rig writes
+  the joystick registers itself).
+- Many keyboards cannot read many keys held at once (ghosting): if a key of one player does not
+  answer while both press a lot, choose player 2's keys far from player 1's.
+- Desktops only: a phone's CONTROLS has its ON-SCREEN row there.
 
 ## 2. The press latch
 
