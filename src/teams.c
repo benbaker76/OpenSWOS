@@ -447,6 +447,35 @@ int16_t LoadTeamFile(uint16_t extNumber)
         /* A world's pooled file in a career: its swapped slots' identities (team_pool.c). */
         TeamPool_ApplyToFile(ext8, _teamFileBuffer);
 
+#if SWOS_WORLDS
+        /* Today's names of the national teams whose nation changed it, in a world of today (the
+         * SWOS 96/97 Mod 4.1's NAT_TEAM_TODAY: its renamed copies of TEAM.080..085). */
+        if (ext8 >= 80 && ext8 <= 85 && World_Current() != WORLD_9697) {
+            static const char *const kToday[][2] = {
+                { "YUGOSLAVIA", "SERBIA" }, { "MACEDONIA", "NORTH MACEDONIA" },
+                { "SWAZILAND", "ESWATINI" }, { "CZECH REPUBLIC", "CZECHIA" },
+            };
+            const uint16_t n = *(uint16_t *)_teamFileBuffer;   /* (host-native after the load) */
+            TeamFileEx *t = (TeamFileEx *)(_teamFileBuffer + 2);
+            for (uint16_t i = 0; i < n; i++, t++)
+                for (uint32_t k = 0; k < sizeof kToday / sizeof kToday[0]; k++) {
+                    const char *a = kToday[k][0], *b = (const char *)t->team.teamName;
+                    while (*a && *a == *b)
+                        a++, b++;
+                    if (*a || *b)
+                        continue;
+                    const char *c = kToday[k][1];
+                    uint32_t j = 0;
+                    while (c[j] && j < sizeof t->team.teamName - 1) {
+                        t->team.teamName[j] = (int8_t)c[j];
+                        j++;
+                    }
+                    while (j < sizeof t->team.teamName)
+                        t->team.teamName[j++] = 0;
+                }
+        }
+#endif
+
         /* In career mode, also set league numbers */
         if (_gameType == GAME_TYPE_CAREER && _skipLeagueNumbers == 0) {
             setLeagueNumbers();

@@ -348,6 +348,30 @@ changes an existing result: a change for Davide (a v1.x or v2, his call), never 
 Until it lands, a World 2026-27 Serie C career can see a cup winner placed 11th-17th go up and down
 at once, the 4.0.5 bug 4.1 fixed.
 
+**For the pull request to Davide** (`sr_dplay.c`; written here, the submodule untouched -- v1 is
+frozen, so this is his v1.x or v2 to choose):
+
+- **What 4.1 changed** (his `tools/dplay.c`, v4.1 f2c9e45, lines 199-216): `cup_place` takes the
+  cup winner's own place only when it is 11th or lower **and not `cup_out(g, k)`**, a new helper:
+  place k of group g (n clubs) is out when it is relegated or in a play-out -- `n < 6 || k < n - 5`:
+  not out; `k == n - 5`: out only if `t[n-5].pts - t[n-2].pts < 8` (that play-out is played);
+  `k == n - 4`: out only if `t[n-4].pts - t[n-3].pts < 8`; any lower place: out. Out, the place goes
+  to the 11th of its group, as for a winner promoted or already in (2nd-10th).
+- **The library today** (`rules/sr_dplay.c`, tag v1 87b6527, line 164): `return g * NT + (k >= 10 ?
+  k : 10);` -- 4.0.5's rule. The change is that line becoming `(k >= 10 && !cup_out(st, g, k) ? k :
+  10)` and `cup_out` reading `st->dp.t[g]` / `st->dp.n[g]`: no struct, no signature, no new field
+  -- but a different result from the same input, so not a 1.x addition under the v1 agreement
+  ("a change to what exists is a v2"); a `sr_dplay_v41` flag in `sr_state` (default 4.0.5) would
+  keep v1's result and make it an addition, if he prefers.
+- **The comparison**: `scripts/league_playoffs_check.sh MOD=<v4.1 checkout>` -- every check passes
+  but the Italian play-offs, which part on exactly this rule; with 4.1's `dplay.c` minus `cup_out`
+  the whole check passes (§13 above). His side: `make rules-check MOD=...` with the change.
+- **Ours to change with it, the same day**: `src/world_playoff.c` (the career club's Serie C
+  national play-off, `c_playoff`, ~line 494) keeps its own copy of `cup_place` to build the career
+  club's contest before the season end; it must take `cup_out` when the library does, or the
+  career club's bracket and the season end's would name different clubs. Not changed now for the
+  same reason.
+
 The check needed two things for 4.1: its `gp_forcecfb` (test builds' forced place) names the
 split table's offsets `gplay.py` passes (`GP_SPST` ...: any value compiles it, `GP41`), and our
 harnesses a stand-in for `CareerTeams_FindInCache` (daefdd5d's `gp_champ`: never found, as the
