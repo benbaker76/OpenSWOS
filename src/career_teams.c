@@ -32,6 +32,7 @@
 #include "diy_competition.h"
 #include "file_io.h"
 #include "world.h"
+#include "world_rules.h"   /* a world's computer clubs' countdowns */
 
 /* ---- Constants ---- */
 /* Bytes parked by SaveSelectedTeams: numSelectedTeams + the records. The original parked 32
@@ -1797,6 +1798,9 @@ void Career_UpdateCareerFinishedFlag(void)
 __attribute__((used, externally_visible))
 void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
 {
+    /* a world's computer clubs' injuries and suspensions counted down, once a day (CPU RED
+     * CARDS / CPU INJURIES, world_rules.c) */
+    WorldRules_CpuDay();
     /* the Coppa Italia Serie D's rounds that have come (world_cupd.c): the entry just
      * played is the current one */
     if (_teamSelectionKeyCacheCount) {

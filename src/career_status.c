@@ -38,6 +38,7 @@
 #include "diy_competition.h"
 #include "endian_helpers.h"
 #include "career_teams.h"
+#include "world_rules.h"     /* a world's CPU RED CARDS / CPU INJURIES countdowns */
 #include "game_types.h"
 #include "menu_system.h"
 #include "auto_skip_debug.h"
@@ -318,8 +319,8 @@ static void maybeDecayPlayerStatusBucket(uint16_t bucketBits, PlayerFile *player
  * for those with nonzero status bucket bits.
  * ================================================================ */
 static void maybeDecayPlayerStatusBucketForTeam(TeamFileEx *team) {
-    /* Skip computer-controlled teams */
-    if (team->team.teamControls == 1)
+    /* Skip computer-controlled teams (a world's CPU INJURIES: counted down too, world_rules.c) */
+    if (team->team.teamControls == 1 && !WorldRules_CpuCountdown(WRULE_CPU_INJURIES))
         return;
 
     if (team == &_careerTeam) {
@@ -355,8 +356,8 @@ static void cyclePlayerStatusFlagsForTeam(TeamFileEx *team, uint16_t mode) {
     /* Skip if training game or computer-controlled team */
     if (_trainingGame != 0)
         return;
-    if (team->team.teamControls == 1)
-        return;
+    if (team->team.teamControls == 1 && !WorldRules_CpuCountdown(WRULE_CPU_CARDS))
+        return;     /* (a world's CPU RED CARDS: counted down too, world_rules.c) */
 
     uint8_t *playerList;
     int16_t count;
@@ -408,6 +409,14 @@ static void cyclePlayerStatusFlagsForTeam(TeamFileEx *team, uint16_t mode) {
             pf->cardsInjuries = ci;
         }
     }
+}
+
+/* A team's injury and card countdowns, once (world_rules.c: a world's computer clubs on each
+ * calendar day). */
+void CareerStatus_CountdownTeam(TeamFileEx *team, uint16_t mode)
+{
+    maybeDecayPlayerStatusBucketForTeam(team);
+    cyclePlayerStatusFlagsForTeam(team, mode);
 }
 
 /* ================================================================

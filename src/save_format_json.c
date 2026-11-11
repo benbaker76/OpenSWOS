@@ -23,6 +23,7 @@
 #include "endian_helpers.h"
 #include "world.h"             /* "world" in career and competition saves */
 #include "world_finance.h"     /* "uefa_prizes" in a world's career saves */
+#include "world_rules.h"       /* "world_rules" in a world's career saves */
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
 #include "world_winners.h"     /* "season_winners" */
@@ -7271,6 +7272,17 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "wins", (int)p->wins, "draws", (int)p->draws, "stage", (int)p->stage, "off", (int)p->off);
     }
 
+    /* A world's match rules kept with the career (world_rules.c: the Mod's CPU RED CARDS, CPU
+     * INJURIES, GOALKEEPER INJURIES -- its items 'CC' and 'GI') and the keepers' generator. */
+    if (SWOS_WORLDS && World_Current() != WORLD_9697) {
+        const uint32_t b = WorldRules_CareerBits();
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%ld}", "world_rules",
+                     "cpu_red_cards", (int)((b >> WRULE_CPU_CARDS) & 1),
+                     "cpu_injuries", (int)((b >> WRULE_CPU_INJURIES) & 1),
+                     "goalkeeper_injuries", (int)((b >> WRULE_GK_INJURIES) & 1),
+                     "gk_seed", (long)(int32_t)g_gkInjurySeed);    /* (signed: the Amiga's long) */
+    }
+
     /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
      * points at the next season end -- per tie its round, whether its first club went through,
      * the two clubs (the Mod's team words, file | ordinal << 8). */
@@ -8079,6 +8091,29 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(up, uplen, "$.stage", &v) > 0) p->stage = (uint8_t)v;
             if (mjson_get_long(up, uplen, "$.off", &v) > 0) p->off = (uint8_t)v;
         }
+    }
+
+    /* A world's match rules (world_rules.c); a save without them: an older one, all ON. */
+    {
+        const char *wr = NULL;
+        int wrlen = 0;
+        long v = 0;
+        uint32_t bits = 0;
+        int32_t have = 0;
+        g_gkInjurySeed = 0;
+        if (mjson_find(src, src_size, "$.world_rules", &wr, &wrlen) == MJSON_TOK_OBJECT) {
+            static const struct { const char *path; int32_t rule; } k[] = {
+                { "$.cpu_red_cards", WRULE_CPU_CARDS }, { "$.cpu_injuries", WRULE_CPU_INJURIES },
+                { "$.goalkeeper_injuries", WRULE_GK_INJURIES },
+            };
+            have = 1;
+            for (uint32_t i = 0; i < sizeof k / sizeof k[0]; i++)
+                if (mjson_get_long(wr, wrlen, k[i].path, &v) <= 0 || v != 0)
+                    bits |= 1u << k[i].rule;
+            if (mjson_get_long(wr, wrlen, "$.gk_seed", &v) > 0)
+                g_gkInjurySeed = (uint32_t)(int32_t)v;
+        }
+        WorldRules_CareerLoaded(have, bits);
     }
 
     /* A world's UEFA coefficients and qualifying bracket (uefa_coef.c); a save without them:
