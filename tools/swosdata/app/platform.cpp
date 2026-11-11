@@ -633,6 +633,36 @@ std::vector<std::string> InstalledSwosPaths() {
   return out;
 }
 
+std::vector<std::string> DriveRoots() {
+  std::vector<std::string> out;
+#ifdef _WIN32
+  const DWORD mask = GetLogicalDrives();
+  for (int i = 0; i < 26; i++) {
+    if (!(mask & (1u << i))) continue;
+    char root[4] = {(char)('A' + i), ':', '\\', 0};
+    const UINT type = GetDriveTypeA(root);
+    // (not a network drive: slow, and not where a game is installed)
+    if (type == DRIVE_FIXED || type == DRIVE_REMOVABLE || type == DRIVE_CDROM) out.push_back(root);
+  }
+#else
+  const char* h = std::getenv("HOME");
+  if (h && h[0]) out.push_back(h);
+#if defined(__APPLE__)
+  for (const DirEntry& d : ListDir("/Volumes"))
+    if (d.dir) out.push_back(d.path);
+#else
+  const char* user = std::getenv("USER");
+  const std::vector<std::string> media = {"/mnt", "/media", user ? std::string("/media/") + user : std::string(),
+                                          user ? std::string("/run/media/") + user : std::string()};
+  for (const std::string& m : media)
+    if (!m.empty())
+      for (const DirEntry& d : ListDir(m))
+        if (d.dir && d.path.find("/mnt/wsl") != 0) out.push_back(d.path);
+#endif
+#endif
+  return out;
+}
+
 void SetEnvDefault(const char* name, const char* value) {
 #ifdef _WIN32
   // Both the C runtime's copy and the process's own block, which Rust code reads.

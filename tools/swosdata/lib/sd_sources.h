@@ -64,6 +64,10 @@ int32_t SdSources_Scan(SdSources *s, const char *dir);
  * how many so far and which. A non-zero return stops the search; then -1. */
 typedef int32_t (*SdScanProgress)(void *user, int32_t folders, const char *dir);
 int32_t SdSources_ScanEx(SdSources *s, const char *dir, SdScanProgress progress, void *user);
+/* The same, only `maxDepth` folders down from `dir` (0: dir's own files and folders): the setup's
+ * SCAN MY DRIVES looks a few levels into each drive (D:\Games\GOG\<the game> is 3). */
+int32_t SdSources_ScanDepthEx(SdSources *s, const char *dir, int32_t maxDepth, SdScanProgress progress,
+                              void *user);
 
 /* Check one file the user picked: an .adf (either disk), the cartridge, a file
  * inside the PC game folder (its folder is taken), or a SWOS 2020 install (its

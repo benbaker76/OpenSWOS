@@ -81,6 +81,9 @@ std::vector<std::string> GogInstallDirs();
 // installed Amiga SWOS package, ...): each folder, and the Amiga disk images (.hdf/.adf/.lha) up to
 // two levels inside it. Candidates only: SdSources_AddFile decides. Empty elsewhere.
 std::vector<std::string> InstalledSwosPaths();
+// The places SCAN MY DRIVES looks into: every local, removable and optical drive on Windows; on a
+// Mac /Volumes' volumes and the home folder; on Linux the home folder and the mounted media.
+std::vector<std::string> DriveRoots();
 
 // Set an environment variable for this process, unless it is set already.
 void SetEnvDefault(const char* name, const char* value);

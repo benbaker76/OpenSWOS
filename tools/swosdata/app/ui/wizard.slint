@@ -245,6 +245,7 @@ export component DropZone inherits Rectangle {
     in property <bool> can-pick: true;
     callback browse();
     callback search();
+    callback search-drives();      // SCAN MY DRIVES
     height: 190px;
     border-radius: 12px;
     border-width: 2px;
@@ -314,6 +315,12 @@ export component DropZone inherits Rectangle {
                 icon: @image-url("icons/folder-search.svg");
                 enabled: root.enabled && root.can-pick;
                 clicked => { root.search(); }
+            }
+            TextButton {
+                label: @tr("Scan my drives");
+                icon: @image-url("icons/folder-search.svg");
+                enabled: root.enabled;
+                clicked => { root.search-drives(); }
             }
         }
     }

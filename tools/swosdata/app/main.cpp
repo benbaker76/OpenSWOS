@@ -857,6 +857,65 @@ struct App {
     });
   }
 
+  // SCAN MY DRIVES: every drive (DriveRoots), kDriveScanDepth folders down -- deep enough for
+  // D:\\Games\\GOG\\<the game> or <a package>\\Disks\\swos.hdf, quick enough to wait for -- then
+  // what it found, each with where.
+  static constexpr int32_t kDriveScanDepth = 3;
+  void StartScanDrives() {
+    if (busy) return;
+    if (worker.joinable()) worker.join();
+    const std::vector<std::string> roots = sd::DriveRoots();
+    if (roots.empty()) { Notice(T("No drives to look in."), true); return; }
+    SetBusy(true);
+    stopScan = false;
+    w().set_scanning(true);
+    w().set_scan_status(Str(T("Searching your drives ...")));
+    Notice("", false);
+    const SdSources start = src;
+    worker = std::thread([this, roots, start] {
+      SdSources found = start;
+      ScanProgress progress{this, std::chrono::steady_clock::now()};
+      bool stopped = false;
+      for (const std::string& root : roots) {
+        if (SdSources_ScanDepthEx(&found, root.c_str(), kDriveScanDepth, OnScanFolder, &progress) < 0) {
+          stopped = true;
+          break;
+        }
+      }
+      slint::invoke_from_event_loop([this, found, stopped, start] { FinishDriveScan(found, stopped, start); });
+    });
+  }
+
+  void FinishDriveScan(const SdSources& found, bool stopped, const SdSources& before) {
+    SetBusy(false);
+    w().set_scanning(false);
+    w().set_scan_status("");
+    src = found;
+    for (int r = 0; r < ROW_COUNT; r++)
+      if (r == ROW_AMIGA ? SdSources_HaveAmiga(&src) != 0 : RowPath(r)[0] != 0) unusable[r].clear();
+    // What is new, each with where: the PC game, its CD, the Amiga version, SWOS 2020, the
+    // cartridge, World 2026-27.
+    std::string list;
+    auto add = [&list](const std::string& what, const char* now, const char* was) {
+      if (now[0] && std::strcmp(now, was) != 0) list += (list.empty() ? "" : "  ") + Tf("{0}: {1}.", T(what), Shown(now));
+    };
+    add(N_("The PC game"), found.dosDir, before.dosDir);
+    add(N_("The PC game's CD"), found.dosCd, before.dosCd);
+    add(N_("The Amiga version"), found.hdf, before.hdf);
+    add(N_("The Amiga version"), found.lha, before.lha);
+    add(N_("Amiga disk 1"), found.adf1, before.adf1);
+    add(N_("Amiga disk 2"), found.adf2, before.adf2);
+    add(N_("SWOS 2020"), found.s2020Dir, before.s2020Dir);
+    add(N_("The Jaguar cartridge"), found.jagRom, before.jagRom);
+    add(N_("World 2026-27"), found.world, before.world);
+    std::string text = list.empty() ? T("Nothing new on your drives.") : Tf("Found on your drives -- {0}", list);
+    if (stopped) text += " " + T("(Stopped before the end.)");
+    if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src))
+      text += " " + T("The game needs the PC game or the Amiga version: Search a folder where yours is.");
+    Notice(text, list.empty());
+    Refresh();
+  }
+
   void FinishScan(const std::string& dir, const SdSources& found, bool stopped, const SdSources& before) {
     SetBusy(false);
     w().set_scanning(false);
@@ -2675,6 +2734,7 @@ int main(int argc, char** argv) {
     if (!dir.empty()) app.StartScan(dir);
   });
   ui->on_stop_scan([&app] { app.stopScan = true; });
+  ui->on_scan_drives([&app] { app.StartScanDrives(); });
   ui->on_browse_source([&app](int r) { app.BrowseRow(r); });
   ui->on_clear_sources([&app] { app.ClearSources(); });
   ui->on_change_out([&app] {

@@ -202,6 +202,7 @@ export component MainWindow inherits Window {
     in-out property <bool> amiga-world;
 
     callback choose-folder();
+    callback scan-drives();                 // SCAN MY DRIVES: every drive, a few folders deep
     callback browse-source(int);
     callback stop-scan();
     callback clear-sources();
@@ -580,6 +581,7 @@ export component MainWindow inherits Window {
                     can-pick: root.can-pick;
                     browse => { root.browse-source(root.src-row); }
                     search => { root.choose-folder(); }
+                    search-drives => { root.scan-drives(); }
                 }
                 // A folder search can be stopped; Start over forgets every copy found so far.
                 HorizontalLayout {

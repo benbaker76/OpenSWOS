@@ -982,6 +982,7 @@ typedef struct {
     void          *user;
     int32_t        folders;
     int32_t        stopped;
+    int32_t        maxDepth;   /* SCAN_MAX_DEPTH, or a drive scan's few levels */
 } ScanCtx;
 
 /* Everything there is to find. An Amiga hard disk image does not end the search while
@@ -1165,15 +1166,23 @@ static void scan_dir(SdSources *s, const char *dir, int32_t depth, ScanCtx *ctx)
         Sg_PathJoin(p, sizeof p, dir, list[i].name);
         if (!list[i].isDir)
             scan_file(s, p, list[i].name);
-        else if (!gameDir && depth < SCAN_MAX_DEPTH && !skip_folder(list[i].name))
+        else if (!gameDir && depth < ctx->maxDepth && !skip_folder(list[i].name))
             scan_dir(s, p, depth + 1, ctx);
     }
     free(list);
 }
 
+int32_t SdSources_ScanDepthEx(SdSources *s, const char *dir, int32_t maxDepth, SdScanProgress progress,
+                              void *user)
+{
+    ScanCtx ctx = { progress, user, 0, 0, maxDepth < SCAN_MAX_DEPTH ? maxDepth : SCAN_MAX_DEPTH };
+    scan_dir(s, dir, 0, &ctx);
+    return ctx.stopped ? -1 : count_found(s);
+}
+
 int32_t SdSources_ScanEx(SdSources *s, const char *dir, SdScanProgress progress, void *user)
 {
-    ScanCtx ctx = { progress, user, 0, 0 };
+    ScanCtx ctx = { progress, user, 0, 0, SCAN_MAX_DEPTH };
     scan_dir(s, dir, 0, &ctx);
     return ctx.stopped ? -1 : count_found(s);
 }
