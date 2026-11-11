@@ -83,6 +83,8 @@ extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
 extern void ChooseTeamsPlayMatchSelected(void);
 extern void ClubBusinessInit(void);
+extern void ClubBusinessFfpSwitch(void);
+extern void ClubBusinessUefaPrizesSwitch(void);
 extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
@@ -9625,6 +9627,25 @@ Menu_ClubBusiness _clubBusinessMenu = {
     { -22, 114, 70, 10 },
     { MENU_CMD_COLORS, 0x0 },
     { MENU_CMD_TEXT_NO_PTR, 0x4000 },
+    MENU_CMD_END,
+    MENU_MARK_WIDE_COORDS,
+    { 0, -20, 229, 8 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_TEXT_NO_PTR, 0x4000 },
+    MENU_CMD_END,
+    { 229, -21, 75, 10 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, -1, -1, -1, 1 },
+    { MENU_CMD_COLORS, 0xC },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, ClubBusinessFfpSwitch },
+    MENU_CMD_END,
+    { 4, 143, 96, 15 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, -1, 1, -1, -1 },
+    { MENU_CMD_COLORS, 0xC },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, ClubBusinessUefaPrizesSwitch },
     MENU_CMD_END,
     MENU_MARK_END_MENU
 };

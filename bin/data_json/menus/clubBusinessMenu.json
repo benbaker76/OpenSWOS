@@ -407,6 +407,96 @@
           "flags": "0x4000"
         }
       ]
+    },
+    {
+      "kind": "coords_mode",
+      "wide": true
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": -20,
+        "w": 229,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 229,
+        "y": -21,
+        "w": 75,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ClubBusinessFfpSwitch"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 4,
+        "y": 143,
+        "w": 96,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ClubBusinessUefaPrizesSwitch"
+        }
+      ]
     }
   ]
 }

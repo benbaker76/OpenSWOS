@@ -1579,6 +1579,27 @@ typedef struct Menu_ClubBusiness
   MenuCmd_Colors entry21_colors;
   MenuCmd_TextNoPtr entry21_text;
   MenuCommand entry21_end;
+  /* OpenSWOS: a world's financial fair play (its ratio row, its switch) and the UEFA prizes'
+   * switch (career_status.c ClubBusinessInit; the SWOS 96/97 Mod 4.1's ffp.py / uprize.py) */
+  MenuMark markWideCoords3;
+  MenuCoords16 entry22_rc;
+  MenuCmd_Invisible entry22_invisible;
+  MenuCmd_TextNoPtr entry22_text;
+  MenuCommand entry22_end;
+  MenuCoords16 entry23_rc;
+  MenuCmd_Invisible entry23_invisible;
+  MenuCmd_Nav entry23_nav;
+  MenuCmd_Colors entry23_colors;
+  MenuCmd_TextNoPtr entry23_text;
+  MenuCmd_OnSelect entry23_onSelect;
+  MenuCommand entry23_end;
+  MenuCoords16 entry24_rc;
+  MenuCmd_Invisible entry24_invisible;
+  MenuCmd_Nav entry24_nav;
+  MenuCmd_Colors entry24_colors;
+  MenuCmd_TextNoPtr entry24_text;
+  MenuCmd_OnSelect entry24_onSelect;
+  MenuCommand entry24_end;
   MenuMark markEndMenu;
 } Menu_ClubBusiness;
 #pragma pack(pop)

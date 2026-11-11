@@ -59,6 +59,8 @@ extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
 extern void ChooseTeamsPlayMatchSelected(void);
 extern void ClubBusinessInit(void);
+extern void ClubBusinessFfpSwitch(void);
+extern void ClubBusinessUefaPrizesSwitch(void);
 extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
@@ -752,8 +754,10 @@ const MenuSymbol _menuSymbols[] = {
     { "ChooseTeamsMenu", (void*)ChooseTeamsMenu, SYM_FUNC },
     { "ChooseTeamsPlayGame", (void*)ChooseTeamsPlayGame, SYM_FUNC },
     { "ChooseTeamsPlayMatchSelected", (void*)ChooseTeamsPlayMatchSelected, SYM_FUNC },
+    { "ClubBusinessFfpSwitch", (void*)ClubBusinessFfpSwitch, SYM_FUNC },
     { "ClubBusinessInit", (void*)ClubBusinessInit, SYM_FUNC },
     { "ClubBusinessMenu", (void*)ClubBusinessMenu, SYM_FUNC },
+    { "ClubBusinessUefaPrizesSwitch", (void*)ClubBusinessUefaPrizesSwitch, SYM_FUNC },
     { "ClubTeams", (void*)ClubTeams, SYM_FUNC },
     { "CoachOrPlayerCoach", (void*)CoachOrPlayerCoach, SYM_FUNC },
     { "CompetitionInfo", (void*)CompetitionInfo, SYM_FUNC },

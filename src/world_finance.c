@@ -21,10 +21,18 @@
 #include "world.h"
 #include "league_groups.h"
 #include "uefa_coef.h"
+#include "string_utils.h"
 
 extern int32_t  _newBalance, _old_balance, _competitionBonuses, _weeklyPlayerWages;
+extern int32_t  _sensisoftPlcSponsorship, _startingBalance;
 extern uint16_t _wageScalingDivisor, _currentDivisionIndex, _selTeamNumber, _gameType;
+extern uint16_t _stayingInOldClub;
 extern uint8_t  _seasonPlaying;
+extern int32_t  ModApi_SettingInt(const char *slug, const char *key, int32_t fallback);
+
+/* The world mod's settings (mod.json "settings", OPTIONS -> MODS -> its page; docs/MODS.md §17):
+ * what a new career starts with. */
+#define WORLD_MOD "world2627"
 
 #define GAME_TYPE_CAREER 4
 #define MAX_BALANCE 100000000                   /* (ClampNewBalanceAndUpdateClubStatus's) */
@@ -77,6 +85,7 @@ void WorldFinance_Charge(void)
     const int32_t wages = _weeklyPlayerWages > 0 ? _weeklyPlayerWages : 0;
     const int32_t tv = base + (int32_t)((uint32_t)wages / 10u * 11u + (uint32_t)wages % 10u * 11u / 10u);
     s_tvPeriod += tv;
+    g_ffp.inc += base;                  /* (FFP's income: the base, not the share paid for the wages) */
     credit(tv);
 }
 
@@ -160,6 +169,7 @@ void UefaPrize_NewCareer(void)
     UefaPrizeState z = { 0 };
     g_uefaPrize = z;
     g_uefaPrize.ok = 1;
+    g_uefaPrize.off = !ModApi_SettingInt(WORLD_MOD, "uefa_prizes", 1);
 }
 
 void UefaPrize_LoadedWithout(void)
@@ -334,4 +344,171 @@ int32_t UefaPrize_SkipSeasonStartTerm(uint16_t euroCupSlotIndex)
 int32_t UefaPrize_ShowRow(void)
 {
     return _competitionBonuses != 0 && UefaPrize_On();
+}
+
+int32_t UefaPrize_Shown(void)
+{
+    return world() && _gameType == GAME_TYPE_CAREER && UefaCoef_On();
+}
+
+/* =====================================================================
+ * Financial fair play (ffp.py)
+ * ===================================================================== */
+
+FfpState g_ffp;
+
+#define FFP_LIMIT 40                            /* per cent of last season's income (Davide 05/11) */
+
+static int32_t s_ffpWagesEnd;                   /* (FF_WEND: between the season start's two halves) */
+static int32_t s_ffpSponsorship;                /* (the ending season's sponsorship: the call resets it) */
+
+void Ffp_NewCareer(void)
+{
+    FfpState z = { 0 };
+    g_ffp = z;
+    g_ffp.on = ModApi_SettingInt(WORLD_MOD, "financial_fair_play", 1) != 0;
+    g_ffp.valid = 1;                            /* (counted from its first season) */
+}
+
+void Ffp_LoadedWithout(void)
+{
+    FfpState z = { 0 };
+    g_ffp = z;                                  /* (an older save: off, its season not counted) */
+}
+
+void Ffp_Gate(int32_t credited)
+{
+    if (WorldFinance_On())
+        g_ffp.inc += credited;
+}
+
+/* (32-bit arithmetic throughout: the Amiga's libgcc has no 64-bit division) */
+static int32_t wage_bill(uint16_t charges)      /* the wages per charge x the charges, saturated */
+{
+    const int32_t w = _weeklyPlayerWages > 0 ? _weeklyPlayerWages : 0;
+    if (charges && w > INT32_MAX / charges)
+        return INT32_MAX;
+    return w * charges;
+}
+
+static int32_t wages_now(void)
+{
+    return wage_bill(_wageScalingDivisor);
+}
+
+/* W - the limit (> 0: over it); last season's income I is never negative here (none: no limit). */
+static int32_t over_by(int32_t w)
+{
+    const int32_t i = g_ffp.iprev;
+    const int32_t limit = i / 100 * FFP_LIMIT + i % 100 * FFP_LIMIT / 100;      /* (I x 40 / 100) */
+    return w - limit;
+}
+
+void Ffp_SeasonStartBefore(void)
+{
+    if (!WorldFinance_On())
+        return;
+    /* the wage bill at the season's end, before the squad is priced again: its wages per charge x
+     * ITS charges (an older save: none kept -- the new season's) */
+    s_ffpWagesEnd = wage_bill(g_ffp.nch ? g_ffp.nch : _wageScalingDivisor);
+    s_ffpSponsorship = _sensisoftPlcSponsorship;
+}
+
+static void ffp_memo(int32_t fine)
+{
+    extern void *_clubMessagesTable[];
+    extern volatile uint16_t _currentMessage;
+    extern uintptr_t _plNameForMessage[];
+    extern void ShowChairmanMessage(void);
+    static char l1[] = "SORRY %a, OUR WAGES ARE OVER 40 PER CENT OF";
+    static char l2[] = "INCOME: WE ARE FINED %b AND CANNOT BUY PLAYERS";
+    static uint8_t amount[24];
+    Int2Pounds((uint32_t)fine, amount);
+    void *t0 = _clubMessagesTable[0], *t1 = _clubMessagesTable[1];
+    const uintptr_t name = _plNameForMessage[0];
+    const uint16_t msg = _currentMessage;
+    _clubMessagesTable[0] = l1;                 /* message 1's two lines ours for this one memo */
+    _clubMessagesTable[1] = l2;
+    _plNameForMessage[0] = (uintptr_t)amount;
+    _currentMessage = 1;
+    ShowChairmanMessage();
+    _clubMessagesTable[0] = t0;
+    _clubMessagesTable[1] = t1;
+    _plNameForMessage[0] = name;
+    _currentMessage = msg;
+}
+
+void Ffp_SeasonStartAfter(void)
+{
+    if (!WorldFinance_On())
+        return;
+    /* I: the ending season's sponsorship, gates and TV base, the competition bonuses and the
+     * chairman's money the season start has just paid */
+    int64_t income = (int64_t)s_ffpSponsorship + g_ffp.inc + _competitionBonuses + _startingBalance;
+    if (income > INT32_MAX)
+        income = INT32_MAX;             /* (a 64-bit sum: no division of it) */
+    g_ffp.inc = 0;
+    g_ffp.fine = 0;
+    g_ffp.block = 0;
+    g_ffp.iprev = 0;
+    if (_stayingInOldClub && g_ffp.valid && income > 0) {   /* (a new club, an older save: no season of ours) */
+        g_ffp.iprev = (int32_t)income;
+        const int32_t x = over_by(s_ffpWagesEnd);
+        if (g_ffp.on && x > 0) {
+            g_ffp.block = 1;
+            g_ffp.fine = x / 2 / 1000 * 1000;
+            _newBalance -= g_ffp.fine;          /* (the season-start statement's own row) */
+            ffp_memo(g_ffp.fine);
+        }
+    }
+    g_ffp.valid = 1;
+    g_ffp.nch = _wageScalingDivisor;            /* (this season's charges: the next season start's W) */
+}
+
+int32_t Ffp_PurchasesBlocked(void)
+{
+    return WorldFinance_On() && g_ffp.on && g_ffp.block && over_by(wages_now()) > 0;
+}
+
+int32_t Ffp_Shown(void)
+{
+    return WorldFinance_On();
+}
+
+void Ffp_RatioText(char *out, int32_t size)
+{
+    char num[16];
+    if (g_ffp.iprev > 0) {
+        uint32_t w = (uint32_t)wages_now(), i = (uint32_t)g_ffp.iprev;
+        while (i > 40000000u) {         /* (the remainder x 10 below stays in 32 bits) */
+            w >>= 1;
+            i >>= 1;
+        }
+        uint32_t r = w / i, rem = w % i;
+        if (r > 9)
+            r = 999;
+        else
+            for (int32_t d = 0; d < 2; d++) {
+                rem *= 10;
+                r = r * 10 + rem / i;
+                rem %= i;
+            }
+        int32_t n = 0;
+        char rev[8];
+        do { rev[n++] = (char)('0' + r % 10); r /= 10; } while (r && n < 7);
+        int32_t k = 0;
+        while (n)
+            num[k++] = rev[--n];
+        num[k++] = '%';
+        num[k] = 0;
+    } else {
+        num[0] = '-'; num[1] = '-'; num[2] = 0;
+    }
+    /* (no snprintf on the Amiga's -nostdlib: by hand) */
+    const char *parts[3] = { "WAGES/INCOME ", num, " (MAX 40%)" };
+    int32_t o = 0;
+    for (int32_t p = 0; p < 3; p++)
+        for (const char *c = parts[p]; *c && o < size - 1; c++)
+            out[o++] = *c;
+    out[o] = 0;
 }

@@ -2416,7 +2416,7 @@ __attribute__((used, externally_visible))
 void BuyPlayerMenu(void)
 {
     uint16_t slots = GetRemainingTransferPoolSlots();
-    if (slots < 2) {
+    if (slots < 2 || Ffp_PurchasesBlocked()) {     /* (a world's financial fair play: world_finance.c) */
         _currentMessage = CLUB_UNWILLING_TO_PURCHASE_PLAYERS;
         ShowChairmanMessage();
         return;

@@ -7269,6 +7269,14 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "uefa_prizes",
                      "ok", (int)p->ok, "cup", (int)p->cup, "season", (int)p->season, "flags", (int)p->flags,
                      "wins", (int)p->wins, "draws", (int)p->draws, "stage", (int)p->stage, "off", (int)p->off);
+        /* ... and its financial fair play: the switch, this season's sanction and fine, the
+         * season's income so far, last season's, the season's charges. */
+        const FfpState *f = &g_ffp;
+        mjson_printf(json_out_emit, &out,
+                     ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%ld,%Q:%ld,%Q:%ld,%Q:%d}", "ffp",
+                     "on", (int)f->on, "block", (int)f->block, "valid", (int)f->valid,
+                     "income", (long)f->inc, "last_income", (long)f->iprev, "fine", (long)f->fine,
+                     "charges", (int)f->nch);
     }
 
     /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
@@ -8078,6 +8086,23 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(up, uplen, "$.draws", &v) > 0) p->draws = (uint8_t)v;
             if (mjson_get_long(up, uplen, "$.stage", &v) > 0) p->stage = (uint8_t)v;
             if (mjson_get_long(up, uplen, "$.off", &v) > 0) p->off = (uint8_t)v;
+        }
+    }
+    /* ... its financial fair play; a save without it: an older one, the rule off. */
+    Ffp_LoadedWithout();
+    {
+        const char *ff = NULL;
+        int fflen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.ffp", &ff, &fflen) == MJSON_TOK_OBJECT) {
+            FfpState *f = &g_ffp;
+            if (mjson_get_long(ff, fflen, "$.on", &v) > 0) f->on = (uint8_t)v;
+            if (mjson_get_long(ff, fflen, "$.block", &v) > 0) f->block = (uint8_t)v;
+            if (mjson_get_long(ff, fflen, "$.valid", &v) > 0) f->valid = (uint8_t)v;
+            if (mjson_get_long(ff, fflen, "$.income", &v) > 0) f->inc = (int32_t)v;
+            if (mjson_get_long(ff, fflen, "$.last_income", &v) > 0) f->iprev = (int32_t)v;
+            if (mjson_get_long(ff, fflen, "$.fine", &v) > 0) f->fine = (int32_t)v;
+            if (mjson_get_long(ff, fflen, "$.charges", &v) > 0) f->nch = (uint16_t)v;
         }
     }
 
