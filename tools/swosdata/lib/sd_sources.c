@@ -1516,3 +1516,45 @@ int32_t SdSources_ReadDos(SdSources *s, const char *rel, SgBuf *out, char *err)
     snprintf(err, 256, "%s is not in the PC game folder%s", rel, s->dosCd[0] ? " or on its CD" : "");
     return -1;
 }
+
+/* ---- the PC data from SWOS 2020 (no PC game, no Amiga version) ---------- */
+
+int32_t SdSources_PcFromSwos2020(const SdSources *s)
+{
+    return s->s2020Dir[0] && !s->dosDir[0] && !SdSources_HaveAmiga(s);
+}
+
+/* The 96/97 teams SWOS 2020 keeps for its online play: its own DATA/ is a later season. */
+#define S2020_TEAMS_9697 "MP/DB/96_97"
+
+int32_t SdSources_Swos2020Has9697Teams(const SdSources *s)
+{
+    char p[1024];
+    return s->s2020Dir[0] && Sg_FindNoCase(s->s2020Dir, S2020_TEAMS_9697 "/DATA/TEAM.000", p, sizeof p) == 0;
+}
+
+int32_t SdSources_ReadSwos2020Pc(SdSources *s, const char *rel, SgBuf *out, char *err)
+{
+    char p[1024], alt[300];
+    const char *name = strrchr(rel, '/');
+    name = name ? name + 1 : rel;
+    /* The PC game's CD, when there is one, for the sounds: the originals and the commentary. */
+    if (s->dosCd[0] && (!strncmp(rel, "SFX/", 4) || !strncmp(rel, "HARD/", 5)) &&
+        SdSources_ReadDos(s, rel, out, err) == 0)
+        return 0;
+    if (!strncmp(rel, "SFX/PIERCE/", 11)) {           /* the commentary: SWOS 2020 has none */
+        snprintf(err, 256, "%s: SWOS 2020 has no commentary", rel);
+        return -1;
+    }
+    if (!strncmp(rel, "SFX/FX/", 7) || !strncmp(rel, "HARD/", 5))
+        snprintf(alt, sizeof alt, "audio/fx/%s", name);   /* its effects and crowd, in one folder */
+    else if (!strncmp(rel, "DATA/", 5) && SdSources_Swos2020Has9697Teams(s))
+        snprintf(alt, sizeof alt, S2020_TEAMS_9697 "/%s", rel);
+    else
+        snprintf(alt, sizeof alt, "%s", rel);
+    if (Sg_FindNoCase(s->s2020Dir, alt, p, sizeof p) != 0) {
+        snprintf(err, 256, "%.200s is not in SWOS 2020's game folder", alt);
+        return -1;
+    }
+    return Sg_ReadFile(p, out, err);
+}
