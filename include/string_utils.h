@@ -26,5 +26,6 @@ void GetBankBalance(uint8_t *dst);
 void PrepareMenuForFadeIn(void);
 /* Select the money symbol: dollar!=0 -> '$', else the default '£'. */
 void Currency_SetDollar(int dollar);
+void Currency_Apply(void);      /* the sign again for the world now played (World_Set) */
 
 #endif

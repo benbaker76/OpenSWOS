@@ -56,6 +56,8 @@ manifest = {
          "choices": ["on", "off"], "default": "on"},
         {"key": "financial_fair_play", "label": "Financial fair play (new careers)",
          "choices": ["on", "off"], "default": "on"},
+        {"key": "euro", "label": "Money in euros (the pound's sign as the euro)",
+         "choices": ["on", "off"], "default": "on"},
     ],
 }
 n = 0
