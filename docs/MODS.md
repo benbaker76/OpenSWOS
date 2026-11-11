@@ -770,12 +770,9 @@ default -- so the main menu's MODES button is there): MODES -> PRACTICE opens it
   in `PlayerTackled`). Menus of a mod's own: `ModApi_MenuText / MenuVisible / MenuNav`. Still to
   come: the drills (F1-F12: forced restarts, G6), ghost players (G5), the manual keeper (G8).
 
-**`petarku-practice`** (`src/mod_petarku_practice.c`, `bin/mods/petarku-practice`: canonical,
-`"modes"`, on by default; split out of `practice` on 2026-11-09 -- SWOS 2020's features are never
-built on petarku's, nor his on SWOS 2020's): MODES -> PETARKU PRACTICE, his PENALTY SHOOTOUT (the
-friendly's team screen, each player's side's SHOOTING ORDER, `shootoutOrder`, his keeper
-`manualKeeper`) and SHOOTING PRACTICE (you against the CPU's keeper, its defenders and midfield on or
-off, no clock, every kick-off yours; `SWOS_SHOOTING_TEST=1` plays it headless).
+**`petarku-practice`** was removed on 2026-11-11: petarku, its author, said SWOS 2020's practice
+covers it -- its shoot-out lets you choose the shooting order (in a friendlier way), and its team
+training is the same as his shooting practice (Playaveli agreed).
 
 Checked: the menus draw from the mod's JSON; DEMO GAME plays two random teams;
 `SWOS_MOD_MATCH_TEST=shootout` plays a shoot-out from kick-off (every kick an event, 4-2);

@@ -14,7 +14,6 @@
 extern const ModDef ModDef_weather;     /* src/mod_weather.c */
 extern const ModDef ModDef_hair;        /* src/mod_hair.c */
 extern const ModDef ModDef_practice;    /* src/mod_practice.c */
-extern const ModDef ModDef_petarkuPractice; /* src/mod_petarku_practice.c */
 extern const ModDef ModDef_speedrun;    /* src/mod_speedrun.c */
 extern const ModDef ModDef_challenges;  /* src/mod_challenges.c */
 extern const ModDef ModDef_classics;    /* src/mod_classics.c */
@@ -55,7 +54,6 @@ const ModDef *const g_builtinMods[] = {
     MOD_SDL(ModDef_weather)
     MOD_SDL(ModDef_hair)
     MOD_AMIGA(ModDef_practice)
-    MOD_AMIGA(ModDef_petarkuPractice)
     MOD_AMIGA(ModDef_speedrun)
     MOD_AMIGA(ModDef_challenges)
     MOD_AMIGA(ModDef_classics)

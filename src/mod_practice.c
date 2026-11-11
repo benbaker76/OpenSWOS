@@ -1,8 +1,8 @@
 /*
  * mod_practice.c -- the practice mod (canonical, bin/mods/practice; docs/MODS.md §18): SWOS 2020's
  * PRACTICE (its practice.mnu, game.cpp ChallengeGame), ported onto the mod API. Both targets.
- * SWOS 2020's alone: petarku's modes are their own mod (src/mod_petarku_practice.c), and neither is
- * built on the other (the owner, 2026-11-09).
+ * SWOS 2020's alone (petarku's own practice mod was removed on 2026-11-11: this covers it, its author
+ * said).
  *
  * MODES -> PRACTICE opens its menu (bin/mods/practice/data_json/menus/practice/practiceMenu.json,
  * its handlers practice.<name>):
