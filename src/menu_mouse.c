@@ -293,6 +293,17 @@ void MenuMouse_Frame(void)
     }
 }
 
+/* A left click since the last call (or the last menu frame), taken: the intro's pictures skip on
+ * it as on fire (src/loader_intro.c) -- and, taken, it does not press a button of the first menu
+ * too. 1 when there was one. Any button counts; a touch is not a click here. */
+int32_t MenuMouse_TakeClick(void)
+{
+    const int32_t any = s_left > 0 || s_right > 0;
+    if (any)
+        s_left = s_right = s_wheel = 0;
+    return any;
+}
+
 /* A match frame: no cursor over the pitch, and no click kept for the next menu. */
 void MenuMouse_InMatch(void)
 {

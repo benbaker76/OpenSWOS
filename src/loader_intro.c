@@ -329,6 +329,18 @@ static void loaderIntroLoadFrameToFrontbufferAlt(const uint8_t *filename)
  * Original asm: d7 = timeout count (dbf-style, so iterates d7+1 times).
  * Each iteration: poll input, wait 1 tick.
  * ================================================================ */
+/* A mouse click skips an intro picture as fire does (SDL: src/menu_mouse.c, which takes the click
+ * so the first menu does not get it too). */
+static int32_t intro_clicked(void)
+{
+#ifdef SWOS_SDL_BUILD
+    extern int32_t MenuMouse_TakeClick(void);
+    return MenuMouse_TakeClick();
+#else
+    return 0;
+#endif
+}
+
 static int16_t loaderIntroWaitForFireOrTimeout(int16_t timeout)
 {
     int16_t remaining = timeout;
@@ -339,7 +351,7 @@ static int16_t loaderIntroWaitForFireOrTimeout(int16_t timeout)
 
         Player1StatusProc();
 
-        if (_pl1Fire != 0)
+        if (_pl1Fire != 0 || intro_clicked())
             return 1;
         if (_quitToDos != 0)
             return 1;
@@ -442,7 +454,7 @@ void ShowLoaderIntroSequence(void)
     UpdatePlanePtrsAndBlitParams();
 
     Player1StatusProc();
-    if (_pl1Fire != 0)
+    if (_pl1Fire != 0 || intro_clicked())
     {
         /* Fire pressed path: just show loader1.raw and fade in */
 #ifndef AGA
