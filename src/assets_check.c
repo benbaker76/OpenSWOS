@@ -10,9 +10,10 @@
  * holding the data) is never a reminder.
  *
  * The reminder is a dialog of the game's own (MenuDialog_Show, include/menu_dialog.h), shown
- * by the front end before the main menu (AssetsCheck_ShowNotice): LAUNCH SETUP starts
- * OpenSWOS Setup -- when it is beside the game -- and closes the game, so the setup can replace
- * the data; CONTINUE plays on; DON'T REMIND ME keeps the data versions it was about in SWOS.ini
+ * by the front end before the main menu (AssetsCheck_ShowNotice): UPDATE NOW starts
+ * OpenSWOS Setup -- when it is beside the game -- with --headless and closes the game, so the
+ * setup can remake the data from the sources it was made from, with no window, and start the
+ * game again (its window opens only if it needs the player); CONTINUE plays on; DON'T REMIND ME keeps the data versions it was about in SWOS.ini
  * ([general] assets_reminder_off): the same reminder is not shown again, a later setup that
  * changes a part again is. The world's package (AssetsCheck_World) is said on the same screen.
  * Nothing is shown headless (the test rigs), in the arcade cabinet, in the web build (its data
@@ -178,19 +179,20 @@ void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath)
                  "%s plays with the game's data, made from your own copy of Sensible World of Soccer "
                  "by %s, and there is none yet in\n%s\n\n%s",
                  PROJECT_NAME, PROJECT_SETUP_NAME, dir && dir[0] ? dir : "(the player folder)",
-                 haveSetup ? "Launch Setup opens it: choose your copy of the game there, then start "
-                             PROJECT_NAME " again."
+                 haveSetup ? "Make Game Data makes it from your copy of the game and starts "
+                             PROJECT_NAME " again -- or, if it cannot find your copy, opens "
+                             PROJECT_SETUP_NAME " so you can choose it."
                            : "Run " PROJECT_SETUP_NAME ", choose your copy of the game there, then start "
                              PROJECT_NAME " again.");
         const SDL_MessageBoxButtonData buttons[] = {
             { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Quit" },
-            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Launch Setup" },
+            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Make Game Data" },
         };
         const SDL_MessageBoxData box = { SDL_MESSAGEBOX_WARNING, NULL, "No game data", msg,
                                          haveSetup ? 2 : 1, buttons, NULL };
         int hit = 0;
         if (SDL_ShowMessageBox(&box, &hit) == 0 && hit == 1)
-            AssetsCheck_LaunchSetup();
+            AssetsCheck_LaunchSetupHeadless();   /* (the window only when it needs the player) */
         SDL_Quit();
         exit(1);
     }
@@ -292,25 +294,30 @@ int32_t AssetsCheck_FindSetup(char *out, uint32_t cap)
 #endif
 }
 
-/* Start OpenSWOS Setup (on its own: it outlives the game). 1 when it started. */
-int32_t AssetsCheck_LaunchSetup(void)
+/* Start OpenSWOS Setup (on its own: it outlives the game). 1 when it started. headless: with
+ * --headless, which makes the data with no window when it finds the player's copy of the game,
+ * and opens the window only when it does not (tools/swosdata/app/main.cpp App::Headless). */
+static int32_t launch_setup(int32_t headless)
 {
     char path[1024];
     pid_t pid;
     if (!AssetsCheck_FindSetup(path, sizeof path))
         return 0;
 #if defined(__APPLE__)
-    char *argv[] = { "/usr/bin/open", "-a", path, NULL };
+    char *argv[] = { "/usr/bin/open", "-a", path, headless ? "--args" : NULL, "--headless", NULL };
 #else
-    char *argv[] = { path, NULL };
+    char *argv[] = { path, headless ? "--headless" : NULL, NULL };
 #endif
     if (posix_spawn(&pid, argv[0], NULL, NULL, argv, environ) != 0) {
         fprintf(stderr, "[assets] could not start %s\n", path);
         return 0;
     }
-    fprintf(stderr, "[assets] started %s\n", path);
+    fprintf(stderr, "[assets] started %s%s\n", path, headless ? " --headless" : "");
     return 1;
 }
+
+int32_t AssetsCheck_LaunchSetup(void) { return launch_setup(0); }
+int32_t AssetsCheck_LaunchSetupHeadless(void) { return launch_setup(1); }
 
 int32_t AssetsCheck_ShowNotice(void)
 {
@@ -326,15 +333,18 @@ int32_t AssetsCheck_ShowNotice(void)
                  "differently.|%s It remembers where your copy of the game is, so it only takes a "
                  "moment.|The game still plays meanwhile: some pictures may be out of date.",
                  PROJECT_SETUP_NAME, haveSetup
-                     ? "LAUNCH SETUP opens it and closes the game: click Update there."
+                     ? "UPDATE NOW closes the game, updates your game data and starts the game again."
                      : "Run " PROJECT_SETUP_NAME " and click Update.");
     else
         snprintf(text, sizeof text, "%s", s_noticeText);
-    if (haveSetup) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
+    if (haveSetup) { iSetup = n; buttons[n++] = s_notice == NOTICE_ASSETS ? "UPDATE NOW" : "LAUNCH SETUP"; }
     buttons[n++] = "CONTINUE";
     if (s_notice == NOTICE_ASSETS) { iNever = n; buttons[n++] = "DO NOT REMIND ME"; }
     const int32_t chosen = MenuDialog_Show(s_noticeTitle, text, buttons, n, 0);
-    if (chosen >= 0 && chosen == iSetup && AssetsCheck_LaunchSetup()) {
+    /* (the data update: --headless updates it from the sources it was made from and starts the
+     * game again, the setup's window only if it needs the player) */
+    if (chosen >= 0 && chosen == iSetup &&
+        (s_notice == NOTICE_ASSETS ? AssetsCheck_LaunchSetupHeadless() : AssetsCheck_LaunchSetup())) {
         s_quitForSetup = 1;             /* (the game closes so the setup can replace the data) */
     } else if (chosen >= 0 && chosen == iNever && s_opts) {
         snprintf(s_opts->assets_reminder_off, sizeof s_opts->assets_reminder_off, "%s", s_noticeSig);
@@ -351,6 +361,7 @@ int32_t AssetsCheck_QuitForSetup(void) { return s_quitForSetup; }
 #else
 int32_t AssetsCheck_FindSetup(char *out, uint32_t cap) { (void)out; (void)cap; return 0; }
 int32_t AssetsCheck_LaunchSetup(void) { return 0; }
+int32_t AssetsCheck_LaunchSetupHeadless(void) { return 0; }
 int32_t AssetsCheck_ShowNotice(void) { return 0; }
 int32_t AssetsCheck_QuitForSetup(void) { return 0; }
 #endif

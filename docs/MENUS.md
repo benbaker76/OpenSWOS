@@ -1041,8 +1041,9 @@ a newline a new paragraph. The menu font has capitals, digits and `. , : - !`: t
 capitals, brackets as dashes, quotes and apostrophes left out -- write it as for a message box.
 Mods: `ModApi_ShowDialog` (docs/MODS.md).
 
-Its users: the start-up notice that the game data was made by an older OpenSWOS Setup (LAUNCH SETUP
-/ CONTINUE / DO NOT REMIND ME) or that World 2026-27 is missing or other data
+Its users: the start-up notice that the game data was made by an older OpenSWOS Setup (UPDATE NOW
+/ CONTINUE / DO NOT REMIND ME: UPDATE NOW starts the setup with `--headless`, which remakes the data
+with no window and starts the game again) or that World 2026-27 is missing or other data
 (src/assets_check.c, shown by the front end before the main menu); OPTIONS -> WORLD's and LANGUAGE's
 notes; OPTIONS -> SETUP -> LAUNCH (entries 27/28, shown only when the setup is beside the game:
 `openswos-setup(.exe)` in the game's folder, or the setup's .app beside SWOS.app). LAUNCH SETUP
