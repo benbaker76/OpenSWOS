@@ -351,13 +351,15 @@ first, the Italian play-offs, which differs where 4.1 changed a rule: **the Copp
 winner** that finished relegated or in a play-out place no longer takes a play-off place (FIGC
 C.U. 209/A, 27 April 2026; the Mod's `dplay.c` `cup_out`: places n-5..n-2 of a group of n, a
 play-out not held when its two clubs are 8+ points apart). Built with 4.1's `dplay.c` minus
-`cup_out`, the check passes whole. That rule is the library's `sr_dplay.c` `cup_place`, which
-changes an existing result: a change for Davide (a v1.x or v2, his call), never in our submodule.
-Until it lands, a World 2026-27 Serie C career can see a cup winner placed 11th-17th go up and down
-at once, the 4.0.5 bug 4.1 fixed.
+`cup_out`, the check passes whole. That rule is in `sr_dplay.c` `cup_place` (src/rules/), which
+changes an existing result. It was written up as a change for Davide's library; since the rules
+moved into OpenSWOS (2026-11-11) it is **ours to make** -- an open item of OpenSWOS's work list
+below. Until it is made, a World 2026-27 Serie C career can see a cup winner placed 11th-17th go up
+and down at once, the 4.0.5 bug 4.1 fixed.
 
-**For the pull request to Davide** (`sr_dplay.c`; written here, the submodule untouched -- v1 is
-frozen, so this is his v1.x or v2 to choose):
+**OpenSWOS work list: 4.1's `cup_out`** (`src/rules/sr_dplay.c`; first written as a pull request
+for Davide, when v1 was frozen in his repo; the rules are ours now, so the change is ours to make,
+with the comparison below as its proof):
 
 - **What 4.1 changed** (his `tools/dplay.c`, v4.1 f2c9e45, lines 199-216): `cup_place` takes the
   cup winner's own place only when it is 11th or lower **and not `cup_out(g, k)`**, a new helper:
@@ -368,17 +370,15 @@ frozen, so this is his v1.x or v2 to choose):
 - **The library today** (`rules/sr_dplay.c`, tag v1 87b6527, line 164): `return g * NT + (k >= 10 ?
   k : 10);` -- 4.0.5's rule. The change is that line becoming `(k >= 10 && !cup_out(st, g, k) ? k :
   10)` and `cup_out` reading `st->dp.t[g]` / `st->dp.n[g]`: no struct, no signature, no new field
-  -- but a different result from the same input, so not a 1.x addition under the v1 agreement
-  ("a change to what exists is a v2"); a `sr_dplay_v41` flag in `sr_state` (default 4.0.5) would
-  keep v1's result and make it an addition, if he prefers.
+  -- but a different result from the same input. World 2026-27 is 4.1's data, so 4.1's rule is
+  what it should play; the golden careers of an Italian Serie C club record the change.
 - **The comparison**: `scripts/league_playoffs_check.sh MOD=<v4.1 checkout>` -- every check passes
   but the Italian play-offs, which part on exactly this rule; with 4.1's `dplay.c` minus `cup_out`
-  the whole check passes (§13 above). His side: `make rules-check MOD=...` with the change.
-- **Ours to change with it, the same day**: `src/world_playoff.c` (the career club's Serie C
+  the whole check passes (§13 above); with the change it must pass whole against 4.1 / 4.1.1.
+- **To change with it, the same commit**: `src/world_playoff.c` (the career club's Serie C
   national play-off, `c_playoff`, ~line 494) keeps its own copy of `cup_place` to build the career
   club's contest before the season end; it must take `cup_out` when the library does, or the
-  career club's bracket and the season end's would name different clubs. Not changed now for the
-  same reason.
+  career club's bracket and the season end's would name different clubs.
 
 The check needed two things for 4.1: its `gp_forcecfb` (test builds' forced place) names the
 split table's offsets `gplay.py` passes (`GP_SPST` ...: any value compiles it, `GP41`), and our
@@ -412,12 +412,12 @@ needs nothing new from 4.1.1** -- what moved is the Mod's game code:
   ranking, the test builds' `CONTI_FORCE2` pair); the package's files and fingerprint unchanged.
 - **the Poule Scudetto out of the Champions League** (`gp_champ`, `league_playoffs.c`): a title
   play-off with no entrant by a top-division place is a lower tier's title, and its winner is no
-  champion for the qualifiers. **A note for Davide:** the Mod marks it inside the season end
-  (`gplay.c` `result()`: `po_low` / `ch_low`), in the code the library's `sr_gplay.c` is; ours
-  reads the same from the spec on the game's side, mapping the n-th title result to the n-th
-  title play-off (each makes at most one; no world country has two). If the library ever carries
-  `gp_champ`, a 1.x output -- e.g. `sr_result` flag "a lower tier's title", or the play-off index
-  of each result -- would make that mapping unnecessary.
+  champion for the qualifiers. **OpenSWOS work list** (first written as a note for Davide): the
+  Mod marks it inside the season end (`gplay.c` `result()`: `po_low` / `ch_low`), in the code our
+  `src/rules/sr_gplay.c` is; ours reads the same from the spec on the game's side, mapping the n-th
+  title result to the n-th title play-off (each makes at most one; no world country has two). If
+  `sr_gplay.c` carries `gp_champ` itself -- e.g. an `sr_result` flag "a lower tier's title", or
+  the play-off index of each result -- that mapping goes.
 - **New Zealand's Grand Final without the career club** (`gplay.c` `gf_step_c` / `gf_drop_c`):
   nothing to port. The Mod plays NZ's group alone in slot 3 and its Grand Final as a contest of
   its own (a placeholder of the career club, decided 3-in-5 when the club was not in it: a phantom
@@ -432,7 +432,7 @@ needs nothing new from 4.1.1** -- what moved is the Mod's game code:
   with no links), `swostest.py` (his harness), `kits_shipped`.
 
 `scripts/league_playoffs_check.sh` against v4.1.1: as against 4.1 -- every check PASSES but the
-Italian play-offs' Coppa Italia Serie C winner (§13, `cup_out`: still the library's, Davide's);
+Italian play-offs' Coppa Italia Serie C winner (§13, `cup_out`: on OpenSWOS's work list);
 with `cup_out` taken out of the Mod's `dplay.c` the check passes whole. Its conti step now also
 packs the spec with a ranking (`words`) both ways.
 
