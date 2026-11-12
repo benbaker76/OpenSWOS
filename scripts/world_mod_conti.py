@@ -34,7 +34,8 @@ imported. Standard library only (scripts/world_conti.py, ours, for the 'rest' ch
 Not in the installed files (compile to nothing in the importer unless said): notes, sources, a host other than
 neutral / centralised (one bit), a draw's pots / pot_by / ties content beyond its kind and association rule, the
 months after a group stage's first, a holder's group (A1: one bit), the access codes 0 and 1 (both compile to 0),
-the ranking (empty in 4.0.5's spec), the guests' "club" / "role" / "source" / "access", players past the 16th, the
+the ranking's rank and the clubs ranked outside the world (only the world's clubs and their rounded points are
+compiled, in 4.1.1 as a table of its own: ranking_table), the guests' "club" / "role" / "source" / "access", players past the 16th, the
 guest associations' FIFA codes (only their order and each one's clubs are compiled: named here A1, A2, ...), the
 league stage's pot layout and its regions' names (only each association's region: named West / East here), the
 cups' short names (only the fitted calendar label is in the exe; the importer's kWorld..ContiCups short name uses
@@ -382,6 +383,35 @@ def _confs(p, stepladders, nc, gconf):
     return out
 
 
+def ranking_table(world):
+    """{(code, key): points} of the club ranking the Mod 4.1.1 moved out of the spec (its tools/conti.py d4_patch:
+    `u16 count`, then count x (u16 team word, u16 points), the words ascending, in obj4; conti.c's pointer CT_RK in
+    obj1's data points at it), or {} for an exe without one (4.0.5, 4.1: the spec's own ranking, empty). Found as
+    the one pointer target that parses as such a table of the world's clubs, never by address; a word of no team
+    file is left out. The points are the rounded ones conti.py compiled (world_conti.ranking rounds them again: the
+    same integers)."""
+    e = world.exe
+    found = {}
+    for (to, toff), srcs in e.refs.items():
+        o = e.obj.get(to)
+        if o is None or toff + 2 > len(o) or not any(so == 1 for so, _ in srcs):
+            continue
+        n = struct.unpack_from("<H", o, toff)[0]
+        if not 8 <= n <= 4000 or toff + 2 + 4 * n > len(o):
+            continue
+        rows = [struct.unpack_from("<HH", o, toff + 2 + 4 * i) for i in range(n)]
+        if any(rows[i][0] >= rows[i + 1][0] for i in range(n - 1)) or any(v == 0 for _, v in rows):
+            continue
+        clubs = [world.word(w) for w, _ in rows]
+        named = {c: v for c, (_, v) in zip(clubs, rows) if c and c[0]}
+        if len(named) * 10 < n * 9:     # (a word of no team file: a club the Mod keeps off its files -- 4.1.1's
+            continue                    # table has one, file 253 -- has no club of ours to rank)
+        found[(to, toff)] = named
+    if len(found) > 1:
+        raise ValueError("conti ranking: %d tables parse as the club ranking: %s" % (len(found), sorted(found)))
+    return next(iter(found.values())) if found else {}
+
+
 def decode(world):
     e = world.exe
     nm, sn, rnt, nc = _tables(e)
@@ -496,6 +526,18 @@ def decode(world):
         acc[conf]["cups"].append(a)
     for c in acc["fifa"]["cups"]:
         _ic_join_access(c)
+    # the club ranking (4.1.1: the exe's table CT_RK, out of the spec): each club in the access file of the
+    # confederation whose cups its association enters
+    conf_of_assoc = {}
+    for ci in range(nc):
+        for x in p["acc"]:
+            if x[1] == ci and x[0] < len(assocs):
+                conf_of_assoc.setdefault(assocs[x[0]], conf_of[ci])
+    for (code, key), points in sorted(ranking_table(world).items()):
+        conf = conf_of_assoc.get(code.lower())
+        if conf is None:
+            raise ValueError("conti ranking: %s/%s, an association no cup's access names" % (code, key))
+        acc[conf]["ranking"]["%s/%s" % (code.lower(), key)] = {"points": points}
 
     out = {}
     for conf in CONFS:
