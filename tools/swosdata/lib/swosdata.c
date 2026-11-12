@@ -180,14 +180,14 @@ static int32_t count_2020(void)
     return n;
 }
 
-/* The PC game's sound effects, crowd and commentary (sound_dos/fx, hard, pierce): not every
- * release has them all -- the floppy version has no commentary and fewer effects, a copy of an
- * installed CD leaves the CD's own (SFX/) behind. The game plays without a missing one; the
- * graphics, the teams and the menu music are what the PC game must have. */
+/* The PC game's sound effects, crowd and commentary (sound_dos/fx, hard, pierce), and its cutscenes
+ * with their sounds (video_dos, sound_dos/flc, sound_dos/chairman): not every release has them all
+ * -- the floppy version has no commentary, no cutscenes and fewer effects, a copy of an installed CD
+ * leaves the CD's own (SFX/, ARC/) behind. The game plays without a missing one; the graphics, the
+ * teams and the menu music are what the PC game must have. */
 static int32_t dos_optional(const char *dest)
 {
-    return !strncmp(dest, "sound_dos/fx/", 13) || !strncmp(dest, "sound_dos/hard/", 15) ||
-           !strncmp(dest, "sound_dos/pierce/", 17);
+    return SdManifest_DosOptional(dest);
 }
 
 /* The PC menu music and its instruments: SWOS 2020 has neither (it plays menu.mp3, a recording). */
@@ -206,7 +206,7 @@ static const SdCopy kFrom2020Music[] = {
 
 static int32_t step_dos_files(SdJob *job, int32_t *done, int32_t total, char *err)
 {
-    int32_t missing = 0, commentary = 0;
+    int32_t missing = 0, commentary = 0, videos = 0;
     const int32_t from2020 = pc_from_2020(job);
     for (int32_t i = 0; g_sdDosCopy[i].dest; i++) {
         SgBuf b;
@@ -215,6 +215,7 @@ static int32_t step_dos_files(SdJob *job, int32_t *done, int32_t total, char *er
                 return -1;
             missing++;
             commentary += !strncmp(g_sdDosCopy[i].dest, "sound_dos/pierce/", 17);
+            videos += SdManifest_DosVideo(g_sdDosCopy[i].dest);
             err[0] = 0;
             if (job->progress)
                 job->progress(job->user, ++*done, total);
@@ -248,10 +249,17 @@ static int32_t step_dos_files(SdJob *job, int32_t *done, int32_t total, char *er
               (int)music);
         logf_(job, "PC: %d of the PC game's sounds are not in SWOS 2020 -- the commentary, most of the crowd's "
                    "and the menu music's instruments; the game plays without them (give the setup the PC game "
-                   "or its CD for them)", (int)missing);
+                   "or its CD for them)", (int)(missing - videos));
+        if (videos)
+            logf_(job, "PC: %d of the cutscenes' files are not in SWOS 2020 -- the PC cutscenes mod shows nothing "
+                       "(give the setup the PC game or its CD for them)", (int)videos);
         return 0;
     }
     logf_(job, "PC: %d files", count_dos() - missing);
+    if (videos)
+        logf_(job, "PC: %d of the cutscenes' files are not in this copy (ARC/, SFX/FLC/, SFX/ENGLISH/EC*) -- "
+                   "the game plays without them; the PC cutscenes mod shows nothing", (int)videos);
+    missing -= videos;
     if (missing)
         logf_(job, "PC: %d of its sounds are not in this copy%s -- the game plays without them", (int)missing,
               commentary == 76 ? (job->src.dosCd[0] ? " (no commentary: not on the CD given either)"

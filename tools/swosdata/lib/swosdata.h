@@ -31,7 +31,7 @@ typedef struct {
 
 typedef enum {
     SD_STEP_AMIGA_FILES,    /* data/, grafs/, sound/ from the Amiga disks */
-    SD_STEP_DOS_FILES,      /* grafs_dos/, sound_dos/ from the PC game */
+    SD_STEP_DOS_FILES,      /* grafs_dos/, sound_dos/, video_dos/ from the PC game */
     SD_STEP_AGA_PC,         /* grafs_aga/: backdrops, pitches, credits from the PC game */
     SD_STEP_AGA_AMIGA,      /* grafs_aga/: the loading and disk screens, from the Amiga */
     SD_STEP_TEAMS,          /* data_json/teams/ (and data/ without the Amiga disks) */
