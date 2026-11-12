@@ -110,6 +110,9 @@ patches the leading byte of every money format string (`aPound`, `a1k`, `a0m`, `
 | `dollar` | 0x24 | `$` (font ext) |
 | `euro` | 0x9D | `€` (font ext) |
 
+A world of the euro's years (World 2026-27) shows `pound` as the euro (`Currency_Apply`, the world
+mod's setting `euro`; docs/WORLD_2026_27.md), on the Amiga too.
+
 The supported languages (`en/de/es/fr/it/nl`) need only these three: `£` (UK English),
 `$` (US English), and `€` for the five Eurozone languages (de/es/it/fr/nl). No other
 currency glyph is required — the Swiss franc is the only near-miss and it's written `CHF`,

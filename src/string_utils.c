@@ -9,6 +9,8 @@
 /* Prevent GCC from converting byte loops to memcpy/memset (no libc) */
 #pragma GCC optimize("no-tree-loop-distribute-patterns")
 
+#include "world.h"   /* a euro world's money sign (Currency_Apply) */
+
 /* ASM externs for number formatting */
 extern uint8_t _aPound[];       /* "£" (0x9C, 0x00) */
 extern uint8_t _nullString_0[]; /* "" (0x00) */
@@ -19,16 +21,47 @@ extern uint8_t _nullString_0[]; /* "" (0x00) */
  * leading byte in all of them: pound -> 0x9C (stock), dollar -> '$' 0x24, euro -> '€' 0x9D.
  * The '$' and '€' glyphs live in the font extension (see docs/FONTS.md); the pound glyph is
  * the stock 0x9C. */
-void Currency_Set(const char *name)
+static uint8_t s_currencyChosen = 0x9C;                       /* the player's (SWOS.ini) */
+
+/* A world whose seasons are the euro's (its first season 2002 or later: World 2026-27) shows the
+ * pound as the euro -- the amounts as they are, the sign alone (the SWOS 96/97 Mod 4.1's
+ * tools/euro.py, option A) -- unless the world mod's setting "euro" is off. A player who chose
+ * the dollar keeps it. 96/97 (and a SWOS_WORLDS=0 build) keeps the pound. */
+static uint8_t currency_for_world(void)
+{
+#if SWOS_WORLDS
+    if (s_currencyChosen == 0x9C && World_FirstYear() >= 2002) {
+        extern int32_t ModApi_SettingInt(const char *slug, const char *key, int32_t fallback);
+        char slug[16] = "world";
+        const char *t = World_Tag();
+        int32_t k = 5;
+        while (*t && k < (int32_t)sizeof slug - 1)
+            slug[k++] = *t++;
+        slug[k] = 0;
+        if (ModApi_SettingInt(slug, "euro", 1))
+            return 0x9D;
+    }
+#endif
+    return s_currencyChosen;
+}
+
+void Currency_Apply(void)
 {
     extern char _a1k[], _a0m[], _a01m[];
+    const uint8_t sym = currency_for_world();
+    _aPound[0] = sym;
+    _a1k[0] = _a0m[0] = _a01m[0] = (char)sym;
+}
+
+void Currency_Set(const char *name)
+{
     uint8_t sym = 0x9C;                                       /* pound (default/stock) */
     if (name) {
         if (name[0] == 'd' || name[0] == 'D') sym = 0x24;     /* dollar '$' */
         else if (name[0] == 'e' || name[0] == 'E') sym = 0x9D; /* euro '€' */
     }
-    _aPound[0] = sym;
-    _a1k[0] = _a0m[0] = _a01m[0] = (char)sym;
+    s_currencyChosen = sym;
+    Currency_Apply();
 }
 
 /* Back-compat shim for any caller still passing a bool. */

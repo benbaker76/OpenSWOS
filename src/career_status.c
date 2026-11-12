@@ -1332,7 +1332,9 @@ final_update:
         _newBalance = careerSaturatingAdd(_newBalance, credit);
         _seasonGateReceiptsAccum2 = careerSaturatingAdd(_seasonGateReceiptsAccum2, credit);
         _seasonGateReceiptsAccum = careerSaturatingAdd(_seasonGateReceiptsAccum, credit);
+        Ffp_Gate((int32_t)(credit > INT32_MAX ? INT32_MAX : credit));
     } else {
+    Ffp_Gate((int32_t)d7);              /* (a world's financial fair play counts the season's gates) */
     _gateReceipts += (int32_t)d7;
     _newBalance += (int32_t)d7;
     _seasonGateReceiptsAccum2 += (int32_t)d7;
@@ -2870,7 +2872,16 @@ static void formatNewBalanceEntry(MenuEntry *e, int32_t balance) {
  * 3) stayingInOldClub → extended with sponsorship info
  * ================================================================ */
 __attribute__((used, externally_visible))
+static void clubBusinessWorldRows(void);
+
 void ClubBusinessInit(void)
+{
+    extern void clubBusinessInitOriginal(void);
+    clubBusinessInitOriginal();
+    clubBusinessWorldRows();
+}
+
+void clubBusinessInitOriginal(void)
 {
     if (_contractNegotiationActive) {
         /* ---- Path 1: Full financial summary ---- */
@@ -3091,6 +3102,74 @@ void ClubBusinessInit(void)
     MenuEntry *e498 = &_menuEntries[21];
     e498->y -= 15;
     formatNewBalanceEntry(e498, _newBalance);
+}
+
+/* A world's rows and switches on CLUB BUSINESS (the Mod 4.1's ffp.py ff_biz and uprize.py up_biz):
+ * the season-start statement's FINANCIAL FAIR PLAY FINE row (on the wages' row, hidden there);
+ * the wages / last season's income row above the old balance, and the rule's switch beside it in
+ * the new balance's column (UP from CONTINUE); the UEFA prizes' switch left of CONTINUE. */
+static char s_ffpOn[] = "FFP: ON", s_ffpOff[] = "FFP: OFF";
+static char s_upOn[] = "UEFA PRIZES: ON", s_upOff[] = "UEFA PRIZES: OFF";
+
+static void clubBusinessWorldRows(void)
+{
+    if (!_contractNegotiationActive && _stayingInOldClub && g_ffp.fine && Ffp_Shown()) {
+        static char fineRow[] = "FINANCIAL FAIR PLAY FINE:";
+        MenuEntry *label = &_menuEntries[9], *value = &_menuEntries[19];
+        label->isInvisible = 0;
+        label->fg = (uintptr_t)fineRow;
+        label->y = (uint16_t)(_menuEntries[8].y + 15);
+        value->isInvisible = 0;
+        value->y = (uint16_t)(_menuEntries[18].y + 15);
+        WriteAccountBalance(-g_ffp.fine, (uint8_t *)value->fg);
+        _menuEntries[10].y += 10;
+        _menuEntries[11].y += 10;
+        _menuEntries[20].y += 10;
+        _menuEntries[21].y += 10;
+        const int32_t total = _newBalance - _old_balance;       /* (the total with the fine: new - old) */
+        if (total < 0)
+            _menuEntries[10].fg = (uintptr_t)_aTotalLoss;
+        WriteAccountBalance(total, (uint8_t *)_menuEntries[20].fg);
+    }
+    if (Ffp_Shown()) {
+        MenuEntry *ratio = &_menuEntries[22], *sw = &_menuEntries[23];
+        ratio->isInvisible = 0;
+        ratio->x = _menuEntries[2].x;
+        ratio->dwWidth = _menuEntries[2].dwWidth;
+        ratio->y = (uint16_t)(_menuEntries[2].y - 15);
+        Ffp_RatioText((char *)ratio->fg, 70);
+        sw->isInvisible = 0;
+        sw->x = _menuEntries[21].x;
+        sw->dwWidth = _menuEntries[21].dwWidth;
+        sw->y = (uint16_t)(ratio->y - 1);
+        sw->fg = (uintptr_t)(g_ffp.on ? s_ffpOn : s_ffpOff);
+        _menuEntries[1].upEntry = 23;
+    }
+    if (UefaPrize_Shown()) {
+        MenuEntry *sw = &_menuEntries[24];
+        sw->isInvisible = 0;
+        sw->y = _menuEntries[1].y;
+        sw->dwHeight = _menuEntries[1].dwHeight;
+        sw->fg = (uintptr_t)(g_uefaPrize.off ? s_upOff : s_upOn);
+        _menuEntries[1].leftEntry = 24;
+    }
+}
+
+/* Fire on the switches: the rule / the prizes on or off for this career (saved with it). */
+__attribute__((used, externally_visible))
+void ClubBusinessFfpSwitch(void)
+{
+    g_ffp.on ^= 1;
+    _menuEntries[23].fg = (uintptr_t)(g_ffp.on ? s_ffpOn : s_ffpOff);
+    DrawMenuItem(&_menuEntries[23]);
+}
+
+__attribute__((used, externally_visible))
+void ClubBusinessUefaPrizesSwitch(void)
+{
+    g_uefaPrize.off ^= 1;
+    _menuEntries[24].fg = (uintptr_t)(g_uefaPrize.off ? s_upOff : s_upOn);
+    DrawMenuItem(&_menuEntries[24]);
 }
 
 /* ================================================================

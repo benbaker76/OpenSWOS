@@ -47,6 +47,20 @@ manifest = {
     "author": "the SWOS 96/97 Mod (Davide Lorigliola and its contributors)",
     "about": "The football world of %s: its countries, leagues, cups and squads." % name[6:],
     "targets": ["sdl", "amiga"], "changes": "data", "default": False,
+    # The world's switches (docs/WORLD_2026_27.md, the Mod 4.1's features): each the Mod's own
+    # default; read by the game through ModApi_SettingInt("world<tag>", key).
+    "settings": [
+        # -- career (the CAREER agent's block: what a NEW career starts with; each is also a
+        #    switch of its own in the career, saved with it) --
+        {"key": "uefa_prizes", "label": "UEFA prize money (new careers)",
+         "choices": ["on", "off"], "default": "on"},
+        {"key": "financial_fair_play", "label": "Financial fair play (new careers)",
+         "choices": ["on", "off"], "default": "on"},
+        {"key": "euro", "label": "Money in euros (the pound's sign as the euro)",
+         "choices": ["on", "off"], "default": "on"},
+        {"key": "cpu_replacements", "label": "CPU replacements (new careers)",
+         "choices": ["invented", "from_squad"], "default": "invented"},
+    ],
 }
 n = 0
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:

@@ -24,6 +24,7 @@ extern void BuyPlayerExit(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerModRow(void);
+extern void BuyPlayerCpuReplacements(void);
 extern void BuyPlayerViewSquad(void);
 extern void CareerGameListCommon(void);
 extern void CareerMenu(void);
@@ -59,6 +60,8 @@ extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
 extern void ChooseTeamsPlayMatchSelected(void);
 extern void ClubBusinessInit(void);
+extern void ClubBusinessFfpSwitch(void);
+extern void ClubBusinessUefaPrizesSwitch(void);
 extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
@@ -244,6 +247,7 @@ extern void ManagementRecordMenu(void);
 extern void MaxSubstitutes(void);
 extern void MinSubstitutes(void);
 extern void ModesMenuSelected(void);
+extern void MainMenuWorld(void);
 extern void MultiplayerMenuSelected(void);
 extern void NationalTeamAddPlayer(void);
 extern void NationalTeamAddPlayerAbroadOnSelect(void);
@@ -715,6 +719,7 @@ const MenuSymbol _menuSymbols[] = {
     { "BuyOtherPlayersCommon", (void*)BuyOtherPlayersCommon, SYM_FUNC },
     { "BuyOtherPlayersFinish", (void*)BuyOtherPlayersFinish, SYM_FUNC },
     { "BuyOtherPlayersInit", (void*)BuyOtherPlayersInit, SYM_FUNC },
+    { "BuyPlayerCpuReplacements", (void*)BuyPlayerCpuReplacements, SYM_FUNC },
     { "BuyPlayerExit", (void*)BuyPlayerExit, SYM_FUNC },
     { "BuyPlayerInit", (void*)BuyPlayerInit, SYM_FUNC },
     { "BuyPlayerMenu", (void*)BuyPlayerMenu, SYM_FUNC },
@@ -753,8 +758,10 @@ const MenuSymbol _menuSymbols[] = {
     { "ChooseTeamsMenu", (void*)ChooseTeamsMenu, SYM_FUNC },
     { "ChooseTeamsPlayGame", (void*)ChooseTeamsPlayGame, SYM_FUNC },
     { "ChooseTeamsPlayMatchSelected", (void*)ChooseTeamsPlayMatchSelected, SYM_FUNC },
+    { "ClubBusinessFfpSwitch", (void*)ClubBusinessFfpSwitch, SYM_FUNC },
     { "ClubBusinessInit", (void*)ClubBusinessInit, SYM_FUNC },
     { "ClubBusinessMenu", (void*)ClubBusinessMenu, SYM_FUNC },
+    { "ClubBusinessUefaPrizesSwitch", (void*)ClubBusinessUefaPrizesSwitch, SYM_FUNC },
     { "ClubTeams", (void*)ClubTeams, SYM_FUNC },
     { "CoachOrPlayerCoach", (void*)CoachOrPlayerCoach, SYM_FUNC },
     { "CompetitionInfo", (void*)CompetitionInfo, SYM_FUNC },
@@ -932,6 +939,7 @@ const MenuSymbol _menuSymbols[] = {
     { "LoadLiverpool", (void*)LoadLiverpool, SYM_FUNC },
     { "LoadOldCompetitionMenu", (void*)LoadOldCompetitionMenu, SYM_FUNC },
     { "LoadTactics", (void*)LoadTactics, SYM_FUNC },
+    { "MainMenuWorld", (void*)MainMenuWorld, SYM_FUNC },
     { "ManagementArrowDownSelect", (void*)ManagementArrowDownSelect, SYM_FUNC },
     { "ManagementArrowUpSelect", (void*)ManagementArrowUpSelect, SYM_FUNC },
     { "ManagementRecordInit", (void*)ManagementRecordInit, SYM_FUNC },

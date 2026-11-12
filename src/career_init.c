@@ -13,6 +13,7 @@
 #include "league_playoffs.h"
 #include "uefa_coef.h"
 #include "world_finance.h"
+#include "cpu_repl.h"
 #include "world_conti.h"
 #include "states.h"
 #include "comp_identity.h"
@@ -275,6 +276,8 @@ void ChooseTeamAndStartCareer(void)
     CupD_Reset();
     UefaCoef_Reset();
     UefaPrize_NewCareer();
+    Ffp_NewCareer();
+    CpuRepl_NewCareer();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
@@ -672,6 +675,8 @@ void InitCareer(uint16_t teamNo)
     CupD_Reset();
     UefaCoef_Reset();
     UefaPrize_NewCareer();
+    Ffp_NewCareer();
+    CpuRepl_NewCareer();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
@@ -1465,7 +1470,9 @@ void InitializeNewSeason(void)
 
     FillForeignMarketPlayers();
     FillCareerTeamPlayers();
+    Ffp_SeasonStartBefore();    /* (a world's financial fair play: the season-end wage bill) */
     Career_InitializeNewSeasonFinances();
+    Ffp_SeasonStartAfter();     /* (... judged against the season's income: fine, memo, market) */
     InitializeCareerSeasonFinancials();
     CupD_SeasonStart();     /* the Coppa Italia Serie D's rounds before the first match (world_cupd.c) */
 

@@ -2325,6 +2325,49 @@ def write_team_file(teams, json_name):
     WRITTEN.add(os.path.abspath(path))
 
 
+def stadiums(picks):
+    """competitions/stadiums.json (src/world_stadium.c) from the Mod's tools/stadium_tmw5_clubs.csv and
+    stadium_tmw5_venues.csv (4.1, its stadium.py), when they are in the Mod's folder: they are its
+    data (its LICENCE §2), so only with Davide's package. Each club by the Mod's team file and
+    ordinal (its JSON's team.country_number / team_ordinal) -> ours; names in the game's letters,
+    at most 48; the venues by competition and round (the English names) and season (0: every)."""
+    clubs_csv = os.path.join(MOD, "stadium_tmw5_clubs.csv")
+    venues_csv = os.path.join(MOD, "stadium_tmw5_venues.csv")
+    if not os.path.isfile(clubs_csv):
+        old = os.path.join(WORLD, "competitions", "stadiums.json")
+        if os.path.isfile(old):
+            os.remove(old)
+            print("removed", os.path.relpath(old, REPO), "(an earlier run's)")
+        return
+    ours = {}
+    for code, (wc, picked) in picks.items():
+        for i, (e, _div) in enumerate(picked):
+            if i < 256:
+                ours[(e["team"]["country_number"], e["team"]["team_ordinal"])] = (wc["number"], i)
+    letters = lambda t: re.sub(r"[^A-Z0-9 .'-]", "", text_upper(t).replace('"', "''"))[:48].strip()
+    clubs = []
+    with open(clubs_csv, encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            at = ours.get((int(r["file"]), int(r["ordinal"])))
+            name = letters(r.get("stadium") or "")
+            if at and name:
+                clubs.append([at[0], at[1], name])
+            else:
+                counts["stadium names without a club of ours"] += 1
+    venues = []
+    if os.path.isfile(venues_csv):
+        with open(venues_csv, encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                name = letters(r.get("venue") or "")
+                if name:
+                    venues.append({"competition": r.get("comp_en") or r["competition"],
+                                   "round": r.get("round_en") or r["round"], "name": name,
+                                   "season": int(r.get("season") or 0)})
+    write(os.path.join(WORLD, "competitions", "stadiums.json"),
+          {"clubs": sorted(clubs), "venues": venues})
+    counts["stadium names"] += len(clubs)
+
+
 def world_fingerprint():
     """The world's data as its package carries it -- teams/, competitions/, data/: the SHA-1 of
     every file's path and bytes, in path order, its first 16 hex digits. Baked into world_data.c
@@ -2421,6 +2464,7 @@ def main():
     leagues["count"] = len(leagues["leagues"])
     write(os.path.join(WORLD, "competitions", "leagues.json"), leagues)
     guests = guest_team_files()
+    stadiums(picks)
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):
         folder = os.path.join(WORLD, sub)

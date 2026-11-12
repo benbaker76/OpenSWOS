@@ -56,5 +56,35 @@ void    UefaPrize_CupWon(uint8_t compId, uint16_t winner);
 int32_t UefaPrize_SkipSeasonStartTerm(uint16_t euroCupSlotIndex);
 /* The in-season statement shows a UEFA PRIZE MONEY row for the period's competition bonuses. */
 int32_t UefaPrize_ShowRow(void);
+int32_t UefaPrize_Shown(void);                  /* CLUB BUSINESS shows the switch: a league-phase world's career */
+
+/* ---- Financial fair play (the Mod 4.0.6 / 4.1's ffp.py, Marco's idea) ----
+ * At each season start of a club staying on, its wage bill at the season's end (the wages per
+ * charge x that season's charges) against the income of the season just ended (its gates, its
+ * sponsorship, the TV base -- not the share that grows with the wages -- the new season's
+ * competition bonuses and the chairman's money): over 40 % closes the market while the wages stay
+ * over it, and costs a fine of half the excess (rounded down to thousands), told in a memo and
+ * shown on the season-start statement. A switch per career (CLUB BUSINESS): ON for a new career
+ * (the world mod's setting "financial_fair_play"), OFF for a save made before it. Nothing is
+ * checked in a club's first season or for a season begun before a load of an older save. */
+typedef struct {
+    uint8_t  on;                        /* the rule on for this career */
+    uint8_t  block;                     /* sanctioned this season: purchases refused while over the limit */
+    uint8_t  valid;                     /* inc covers the whole season (0: an older save loaded mid-season) */
+    int32_t  inc;                       /* the season's gates and TV base so far */
+    int32_t  iprev;                     /* last season's income I (0: none of ours) */
+    int32_t  fine;                      /* the fine taken at this season's start */
+    uint16_t nch;                       /* the season's match charges: the season-end wage bill's */
+} FfpState;
+extern FfpState g_ffp;
+
+void    Ffp_NewCareer(void);
+void    Ffp_LoadedWithout(void);                /* a save without the item: the rule off */
+void    Ffp_Gate(int32_t credited);             /* a gate credited to the career club */
+void    Ffp_SeasonStartBefore(void);            /* InitializeNewSeason, before Career_InitializeNewSeasonFinances */
+void    Ffp_SeasonStartAfter(void);             /* ... after it: the judgement, the fine, the memo */
+int32_t Ffp_PurchasesBlocked(void);             /* BuyPlayerMenu: the market closed */
+int32_t Ffp_Shown(void);                        /* CLUB BUSINESS shows the ratio and the switch */
+void    Ffp_RatioText(char *out, int32_t size); /* "WAGES/INCOME 37% (MAX 40%)" */
 
 #endif
