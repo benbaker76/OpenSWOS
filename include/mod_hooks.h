@@ -107,6 +107,28 @@ void ModHooks_PlayerCreated(uint16_t team, uint8_t slot, uint8_t kind, struct Pl
 void ModHooks_PlayerRowDrawn(uint8_t screen, uint16_t team, uint8_t slot, int16_t row, int16_t firstCell,
                              int16_t cells, const struct PlayerFile *player);
 
+/* A gameplay mod's rules (docs/MODS.md §36; ModDef matchWords, friendlyRules, matchName,
+ * matchStep):
+ *   g_modMatchWords     the words of the match state the mods that are on keep (sim_state.c's
+ *                       SIM_OPTIONAL region: there only while MatchWordsUsed)
+ *   FriendlyRules       a friendly being set up where its rules are decided -- offline in
+ *                       InitAndPlayGame, online on the HOST in NetplayLobby_Start (a single
+ *                       friendly): every mod's, what they ask of the setup merged into *out;
+ *                       1 when one armed its rules
+ *   MatchName           the name of the rules a friendly plays by, from the match state, NULL none
+ *                       (InitAndPlayGame, every machine)
+ *   MatchStep           each frame simulated (src/game_loop.c, after the clock), re-simulations
+ *                       included: the only hook that may change the match
+ *   ClearMatchState     the words back to zero: before a match is offered and after each friendly */
+#define MOD_MATCH_WORDS 32
+extern uint32_t g_modMatchWords[MOD_MATCH_WORDS];
+int32_t     ModHooks_MatchWordsUsed(void);
+struct ModFriendlyRules;
+int32_t     ModHooks_FriendlyRules(struct ModFriendlyRules *out);
+const char *ModHooks_MatchName(void);
+void        ModHooks_MatchStep(void);
+void        ModHooks_ClearMatchState(void);
+
 char *ModHooks_CareerSaveSection(void);
 void  ModHooks_CareerLoadSection(const char *json, int32_t len);
 

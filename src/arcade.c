@@ -14,6 +14,8 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <strings.h>
 #include <dirent.h>
 #include <sys/stat.h>
 
@@ -26,6 +28,7 @@
 #include "swos_settings.h"  /* Settings_Save — service menu writes SWOS.ini */
 #include "arcade_svcfont.h" /* SVCFONT glyph LUT (TROGF15 large / TROGF7 small) */
 #include "game_types.h"     /* TeamFileEx — arcade match teams */
+#include "mod_api.h"        /* ModApi_CallService: the arcade mod's modes and rules */
 
 int _gArcadeMode = 0;
 
@@ -37,27 +40,49 @@ int _gArcadeMode = 0;
  * actual match (real crowd SFX wanted). SDL-only. */
 int _gArcadeSfxSuppressed = 0;
 
-/* Match-title shown on the pre-match stadium/line-up screen in arcade mode, in
- * place of "FRIENDLY" (set into _gameName by InitAndPlayGame). */
-uint8_t _aArcadeMatchName[] = "GOLDEN GOAL";
+/* The arcade's GAME MODES and how a match is played by them are the arcade mod's
+ * (src/mod_arcade.c, docs/ARCADE.md "Game modes -- the arcade mod"): the cabinet switches the mod on (main.c),
+ * lists its modes in the F2 service menu and hands it the operator's settings before each match,
+ * all through the mod's "arcade" service -- never the mod's own data. The names, read once: */
+#define ARC_MODES_MAX 16
+static char s_modeNames[ARC_MODES_MAX][32];
+static int  s_modeCount;
 
-/* Arcade game modes — shown in the F2 service menu, persisted as [arcade] mode in
- * SWOS.ini, documented in docs/ARCADE.md. Index 0 is the default. To add a mode:
- * add its name here and wire its rules into the match setup. */
-static const char *const s_arcadeModeNames[] = {
-    "GOLDEN GOAL",
-};
-int Arcade_ModeCount(void) { return (int)(sizeof s_arcadeModeNames / sizeof s_arcadeModeNames[0]); }
+static void arc_load_modes(void)
+{
+    char buf[ARC_MODES_MAX * 32];
+    if (s_modeCount)
+        return;
+    if (ModApi_CallService("arcade", "modes", NULL, buf, sizeof buf) == 0) {
+        for (char *p = buf, *nl; *p && s_modeCount < ARC_MODES_MAX; p = nl + 1) {
+            nl = strchr(p, '\n');
+            if (!nl)
+                nl = p + strlen(p) - 1;
+            else
+                *nl = 0;
+            if (*p)
+                snprintf(s_modeNames[s_modeCount++], sizeof s_modeNames[0], "%.31s", p);
+        }
+    }
+    if (!s_modeCount) {
+        fprintf(stderr, "[arcade] the arcade mod is not on: its matches are plain friendlies\n");
+        snprintf(s_modeNames[0], sizeof s_modeNames[0], "%s", "GOLDEN GOAL");
+        s_modeCount = 1;
+    }
+}
+
+int Arcade_ModeCount(void) { arc_load_modes(); return s_modeCount; }
 const char *Arcade_ModeName(int idx)
 {
-    if (idx < 0 || idx >= Arcade_ModeCount()) idx = 0;
-    return s_arcadeModeNames[idx];
+    arc_load_modes();
+    if (idx < 0 || idx >= s_modeCount) idx = 0;
+    return s_modeNames[idx];
 }
 int Arcade_ModeFromName(const char *name)
 {
     if (!name) return -1;
     for (int i = 0; i < Arcade_ModeCount(); i++)
-        if (strcasecmp(name, s_arcadeModeNames[i]) == 0) return i;
+        if (strcasecmp(name, s_modeNames[i]) == 0) return i;
     return -1;
 }
 
@@ -976,117 +1001,70 @@ static int arc_load_team(int flag, int slot, uint8_t controls)
 }
 
 /* ====================================================================
- * Arcade match rules (Parts 2-3) — DETERMINISTIC, driven by the game-frame
- * step (one tick per game-loop iteration), never a wall clock, so the sim
- * stays deterministic for future lockstep multiplayer.
- *
- * - Length: end after game_seconds * ARC_FRAMES_PER_SEC frames of play.
- * - Golden goal: the first goal ends the match (the scorer is ahead).
- * - Penalties: a level score at the time limit goes to a shootout.
- * The match's own clock is run slow (_gameLength = 3 in arc_start_game) so the
- * engine's half-time/full-time never fire within the arcade limit — no edits to
- * the shared match-clock code needed.
+ * The match: its RULES are the arcade mod's (src/mod_arcade.c) -- the time
+ * limit, the golden goal, penalties on a draw, the goal replays, by the mode
+ * the operator picked -- played in the match state on every frame. The cabinet
+ * hands the mod its F2 settings before each match (arc_arm_rules) and asks it
+ * afterwards how long the match ran (arc_frames_played, for the run's TIME).
  * ==================================================================== */
-#define ARC_FRAMES_PER_SEC 50   /* nominal sim frames per arcade second (Amiga PAL cadence) */
+#define ARC_FRAMES_PER_SEC 50   /* the mod's arcade second (its FRAMES_PER_SECOND) */
 
 extern PlatformInitOptions *g_arcadeOpts;   /* live options (defined below) */
 
-static int  s_arcGoldenGoal;    /* end on first goal */
-static int  s_arcPenalties;     /* draw -> penalty shootout */
-static int  s_arcMatchActive;   /* gates the per-frame logic for the current match */
-static int  s_arcTimerStarted;  /* the frame count begins at kickoff (first live frame) */
-static long s_arcFramesPlayed;  /* deterministic count of frames since kickoff */
-static long s_arcLimitFrames;   /* end the match at this many frames */
-static int  s_arcGoalPendingEnd;      /* golden goal scored: end once the celebration + replay resolve */
-static int  s_arcGoalCelebrationSeen; /* the goal-camera celebration has been observed running */
+static int  s_arcInMatchTick;         /* a cabinet match is on: the debug key may end it */
 static int  s_arcDebugEndRun;         /* DEBUG instant-win key pressed: end the run -> name entry */
 static int  s_arcDebugForceNameEntry; /* DEBUG: show name entry even if the run wouldn't qualify */
 
-/* Latch the rule settings for the match about to start (called from arc_start_game). */
-static void arc_begin_match_rules(void)
+/* The operator's mode: its name in [arcade] mode, as an index of the mod's modes. */
+static int arc_mode_index(void)
 {
-    extern uint16_t _autoReplays;   /* game_timers.c goal-replay gate */
-    int secs = (g_arcadeOpts && g_arcadeOpts->arcade_game_seconds > 0)
-               ? g_arcadeOpts->arcade_game_seconds : 45;
-    s_arcGoldenGoal  = g_arcadeOpts ? g_arcadeOpts->arcade_golden_goal : 1;
-    s_arcPenalties   = g_arcadeOpts ? g_arcadeOpts->arcade_penalties  : 1;
-    s_arcLimitFrames = (long)secs * ARC_FRAMES_PER_SEC;
-    s_arcFramesPlayed = 0;
-    s_arcTimerStarted = 0;
-    s_arcMatchActive  = 1;
-    s_arcGoalPendingEnd = 0;
-    s_arcGoalCelebrationSeen = 0;
+    int m = g_arcadeOpts ? Arcade_ModeFromName(g_arcadeOpts->arcade_mode) : 0;
+    return m < 0 ? 0 : m;
+}
+
+/* The next match by the operator's settings (the arcade mod's service; called from arc_start_game). */
+static void arc_arm_rules(void)
+{
+    char args[640];
+    int secs = (g_arcadeOpts && g_arcadeOpts->arcade_game_seconds > 0) ? g_arcadeOpts->arcade_game_seconds : 45;
+    snprintf(args, sizeof args,
+             "{\"mode\":\"%s\",\"game_seconds\":%d,\"golden_goal\":%s,\"penalties_on_draw\":%s,"
+             "\"goal_replay\":%s}", Arcade_ModeName(arc_mode_index()), secs,
+             (!g_arcadeOpts || g_arcadeOpts->arcade_golden_goal) ? "true" : "false",
+             (!g_arcadeOpts || g_arcadeOpts->arcade_penalties) ? "true" : "false",
+             (!g_arcadeOpts || g_arcadeOpts->arcade_goal_replay) ? "true" : "false");
+    if (ModApi_CallService("arcade", "arm", args, NULL, 0) != 0)
+        fprintf(stderr, "[arcade] the arcade mod is not on: this match is a plain friendly\n");
     s_arcDebugEndRun = 0;
-    /* GOAL REPLAY setting -> the engine's goal auto-replay. */
-    _autoReplays = (g_arcadeOpts && g_arcadeOpts->arcade_goal_replay) ? 1 : 0;
     _gArcadeSfxSuppressed = 0;   /* the match wants real crowd / in-game SFX */
 }
 
-void Arcade_MatchTick(void)
+/* The frames the last match was played by the mod's rules (its TIME). */
+static long arc_frames_played(void)
 {
-    extern uint16_t _gameStatePl;
-    extern uint16_t _playingPenalties;
+    char out[96];
+    double v = 0;
+    if (ModApi_CallService("arcade", "played", NULL, out, sizeof out) != 0)
+        return 0;
+    { const char *p = strstr(out, "\"frames\":"); if (p) v = atof(p + 9); }
+    return (long)v;
+}
+
+/* Each frame of a match (src/game_loop.c): the cabinet's DEBUG instant-win key (F10) -- P1/the
+ * champion wins, the match ends and the run with it: GAME OVER -> name entry, for testing the
+ * high-score flow. The cabinet never plays online, so the key may end the match here. */
+void Arcade_CabinetTick(void)
+{
     extern uint16_t _team1TotalGoals, _team2TotalGoals, _playGame;
-    extern volatile uint16_t _goalCameraMode;
-    extern uint16_t _replayState;
-    extern void StartPenalties(void);
-
     extern int Platform_ArcadeDebugWin(void);
-
-    if (!_gArcadeMode || !s_arcMatchActive) return;
-    if (_playingPenalties) return;                  /* the shootout runs + ends itself */
-
-    /* DEBUG instant-win key (F10): make P1/champion the winner, end the match, and
-     * flag the run to stop -> GAME OVER -> name entry. For testing the high-score flow. */
+    if (!_gArcadeMode || !s_arcInMatchTick)
+        return;
     if (Platform_ArcadeDebugWin()) {
         if (_team1TotalGoals <= _team2TotalGoals)
             _team1TotalGoals = (uint16_t)(_team2TotalGoals + 1);
         s_arcDebugEndRun = 1;
-        s_arcMatchActive = 0;
+        s_arcInMatchTick = 0;
         _playGame = 0;
-        return;
-    }
-
-    /* Golden goal scored: do NOT cut the match on a fixed timer. The old 2-second
-     * shrink raced the goal celebration + AUTO REPLAYS and ended the match before
-     * the replay could play ("a goal immediately exits"). Instead let the whole
-     * goal sequence resolve — the engine runs the celebration (_goalCameraMode != 0)
-     * and, if AUTO REPLAYS is on, the instant replay (_replayState != 0, with
-     * _goalCameraMode forced to 0 on the replay frame) — then end once everything has
-     * settled. The scorer is ahead, so the result picks a winner, not penalties. */
-    if (s_arcGoalPendingEnd) {
-        if (_goalCameraMode != 0) s_arcGoalCelebrationSeen = 1;   /* celebration began */
-        if (s_arcGoalCelebrationSeen && _goalCameraMode == 0 && _replayState == 0) {
-            s_arcMatchActive = 0;
-            _playGame = 0;
-        }
-        return;   /* the frame timer is paused while a golden goal resolves */
-    }
-
-    if (!s_arcTimerStarted) {
-        if (_gameStatePl != ST_GAME_IN_PROGRESS) return;  /* wait for kickoff */
-        s_arcTimerStarted = 1;
-        s_arcFramesPlayed = 0;
-    }
-    if (++s_arcFramesPlayed < s_arcLimitFrames) return;
-
-    /* Time up with no golden goal: a level score goes to penalties (if enabled),
-     * otherwise the match just ends on the current score. */
-    s_arcMatchActive = 0;
-    if (_team1TotalGoals == _team2TotalGoals && s_arcPenalties)
-        StartPenalties();
-    else
-        _playGame = 0;
-}
-
-void Arcade_GoalScored(void)
-{
-    if (!_gArcadeMode || !s_arcMatchActive) return;
-    if (s_arcGoldenGoal) {
-        /* First goal wins. Flag the match to end once the goal celebration AND the
-         * auto-replay (if AUTO REPLAYS is on) have finished — see Arcade_MatchTick.
-         * Don't end on a fixed delay here: that raced the replay and exited first. */
-        s_arcGoalPendingEnd = 1;
     }
 }
 
@@ -1117,7 +1095,6 @@ static void arc_start_game(void)
     extern uint16_t _pitchTypeOrSeason;   /* 0 = fixed pitch type, not seasonal */
     extern uint16_t _maxSubstitutes;
     extern uint16_t _minSubstitutes;
-    extern uint16_t _gameLength;          /* clock-speed index (0..3); 3 = slowest */
     int numPlayers = (s_startGame >= 2) ? 2 : 1;
     int p1 = 0, p2 = 0;
     s_startGame = 0;   /* consume the trigger now: during the run the modal screens
@@ -1153,8 +1130,7 @@ static void arc_start_game(void)
     _friendlyPitchType = (uint16_t)pitch;  /* the game's own pitch, of the chosen type */
     _maxSubstitutes = 0;                    /* arcade: no subs */
     _minSubstitutes = 0;
-    _gameLength = 3;                        /* slowest match clock: engine half/full-time
-                                             * never fire within the arcade frame limit */
+    /* (the match clock and the goal replays are the arcade mod's: its rules ask for them) */
 
     /* The run. champFlag holds the seat (top/team-1 slot, human, joystick 1); the
      * opponent slot is replaced each match. wins = streak, totalSecs = total play time.
@@ -1203,14 +1179,16 @@ static void arc_start_game(void)
           if (_frontbufferBasePtr)    memset((void *)_frontbufferBasePtr, 0, fbn);
           if (_frontbufferBaseAltPtr) memset((void *)_frontbufferBaseAltPtr, 0, fbn); }
         StopMusic();                        /* silence menu music before kickoff */
-        arc_begin_match_rules();            /* arm golden-goal / time-limit / penalties */
+        arc_arm_rules();                    /* the mod's mode: golden goal / time limit / penalties */
         s_arcInMatch = 1;                   /* suppress the attract overlay during goal replays */
+        s_arcInMatchTick = 1;
         InitAndPlayGame(&_selectedTeams[0], &_selectedTeams[1]);
+        s_arcInMatchTick = 0;
         s_arcInMatch = 0;
 
         if (_quitToDos) { aborted = 1; break; }
 
-        totalSecs += (uint32_t)(s_arcFramesPlayed / ARC_FRAMES_PER_SEC);
+        totalSecs += (uint32_t)(arc_frames_played() / ARC_FRAMES_PER_SEC);
 
         int winner = arc_match_winner();
         if (s_arcDebugEndRun) {              /* DEBUG (F10): end the run with a RANDOM score so the
@@ -1251,7 +1229,7 @@ static void arc_start_game(void)
     s_flagScreenActive = 0;
 
     if (!aborted)
-        arc_run_over(g_arcadeOpts ? g_arcadeOpts->arcade_mode : 0, wins, totalSecs, runFlag);
+        arc_run_over(arc_mode_index(), wins, totalSecs, runFlag);
 
     s_arcModalRunOver = 0;                   /* attract input is live again */
     arc_music_attract();                    /* resume HERO for the attract loop */
@@ -1384,8 +1362,9 @@ static void arc_service_menu(void)
         int adj = ((_pl1Right && !r) ? 1 : 0) - ((_pl1Left && !l) ? 1 : 0);
         if (adj) {
             if (sel == 0) {
-                int mc = Arcade_ModeCount();
-                g_arcadeOpts->arcade_mode = (g_arcadeOpts->arcade_mode + adj + mc) % mc;
+                int mc = Arcade_ModeCount();    /* (the arcade mod's modes) */
+                snprintf(g_arcadeOpts->arcade_mode, sizeof g_arcadeOpts->arcade_mode, "%.31s",
+                         Arcade_ModeName((arc_mode_index() + adj + mc) % mc));
             } else if (sel == 1) {
                 int idx = 1;
                 for (int i = 0; i < NT; i++) if (times[i] == g_arcadeOpts->arcade_game_seconds) idx = i;
@@ -1427,7 +1406,7 @@ static void arc_service_menu(void)
             const char *label = (i == 0) ? "MODE" : (i == 1) ? "GAME TIME"
                               : (i == 2) ? "GOLDEN GOAL" : (i == 3) ? "PENALTIES ON DRAW"
                               : (i == 4) ? "GOAL REPLAY" : (i == 5) ? "ATTRACT AUDIO" : "GAMEPLAY";
-            if      (i == 0) snprintf(val, sizeof val, "%s", Arcade_ModeName(g_arcadeOpts->arcade_mode));
+            if      (i == 0) snprintf(val, sizeof val, "%.23s", Arcade_ModeName(arc_mode_index()));
             else if (i == 1) snprintf(val, sizeof val, "%d SEC", g_arcadeOpts->arcade_game_seconds);
             else if (i == 2) snprintf(val, sizeof val, "%s", g_arcadeOpts->arcade_golden_goal ? "ON" : "OFF");
             else if (i == 3) snprintf(val, sizeof val, "%s", g_arcadeOpts->arcade_penalties   ? "ON" : "OFF");
@@ -2342,7 +2321,7 @@ static void arc_debug_next_screen(void)
     };
     enum { ARC_DBG_SCREENS = 7 };
     static int idx = 0;
-    int mode = g_arcadeOpts ? g_arcadeOpts->arcade_mode : 0;
+    int mode = arc_mode_index();
 
     fprintf(stderr, "[arcade] DEBUG screen %d/%d: %s\n", idx, ARC_DBG_SCREENS, names[idx]);
 

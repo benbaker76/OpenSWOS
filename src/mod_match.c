@@ -554,6 +554,20 @@ void ModApi_Score(int16_t goals[2])
 
 uint32_t ModApi_MatchFrames(void) { return s_frames; }
 
+int32_t ModApi_MatchPhase(ModMatchPhase *out)
+{
+    extern volatile uint16_t _goalCameraMode;
+    extern uint16_t _replayState;
+    memset(out, 0, sizeof *out);
+    if (!_playGame)
+        return 0;
+    out->inPlay = (uint8_t)(_gameStatePl == ST_GAME_IN_PROGRESS);
+    out->shootout = (uint8_t)(_playingPenalties != 0);
+    out->goalCelebration = (uint8_t)(_goalCameraMode != 0);
+    out->replay = (uint8_t)(_replayState != 0);
+    return 1;
+}
+
 /* ---- the engine asks (include/mod_hooks.h) ---- */
 
 /* SetupPlayers: the sides, as the arcade cabinet sets them -- no prompts. 1 when it did. */
@@ -1354,6 +1368,11 @@ void ModMatch_SelfTest(void)
     if (strncmp(how, "challenge:", 10) == 0) {  /* (the challenges mod's, src/mod_challenges.c) */
         extern void ModChallenges_Test(const char *id);
         ModChallenges_Test(how + 10);
+        return;
+    }
+    if (strncmp(how, "arcade", 6) == 0) {       /* (the arcade mod's rules: arcade[:seconds], src/mod_arcade.c) */
+        extern void ModArcade_Test(int32_t seconds);
+        ModArcade_Test(how[6] == ':' ? atoi(how + 7) : 0);
         return;
     }
     if (strncmp(how, "speedrun:", 9) == 0) {    /* (the speedrun mod's run, src/mod_speedrun.c) */

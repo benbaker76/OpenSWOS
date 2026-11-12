@@ -782,10 +782,12 @@ GameFrameResult GameLoop_Frame(void)
     PlayEnqueuedSamples();
     UpdateTime();
 #ifdef SWOS_SDL_BUILD
-    /* Arcade in-match rules (deterministic frame count): golden goal / time limit /
-     * penalties. No-op unless _gArcadeMode (checked inside). */
-    { extern void Arcade_MatchTick(void); Arcade_MatchTick(); }
+    /* The arcade cabinet's in-match key (F10, a debug win). No-op unless _gArcadeMode. */
+    { extern void Arcade_CabinetTick(void); Arcade_CabinetTick(); }
 #endif
+    /* A gameplay mod's rules, every frame simulated (the arcade mod's golden goal, time limit,
+     * penalties: docs/MODS.md §36). No mod with them on: nothing. */
+    { extern void ModHooks_MatchStep(void); ModHooks_MatchStep(); }
     { extern void ModMatch_Frame(void); ModMatch_Frame(); }   /* (the mods: include/mod_api.h) */
     /* nullsub_8 — no-op */
     RASTER(RASTER_SIM);

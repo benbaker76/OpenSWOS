@@ -43,6 +43,10 @@
 /* SimStateRegion.flags */
 #define SIM_VIEW         0x0002u   /* SIM_TIER_VIEW; otherwise SIM_TIER_SIM */
 #define SIM_PART         0x0004u   /* covers part of its variable, not all of it */
+#define SIM_OPTIONAL     0x0008u   /* there only while a gameplay mod that is on keeps words in the
+                                    * match state (ModHooks_MatchWordsUsed, docs/MODS.md §36): else
+                                    * absent from the state, its hash and the layout hash alike, so
+                                    * a build without such a mod on is the build it always was */
 
 /* Tier masks. */
 #define SIM_TIER_SIM     0x0001u

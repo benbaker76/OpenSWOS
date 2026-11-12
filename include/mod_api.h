@@ -47,6 +47,14 @@ typedef struct ModPlayerCreated ModPlayerCreated;
 typedef struct ModJsonWriter ModJsonWriter;
 typedef struct ModPlayerRow ModPlayerRow;
 
+/* What a gameplay mod's friendlyRules asks of the friendly's setup (the game sets it, and puts the
+ * player's own back after the match): */
+typedef struct ModFriendlyRules {
+    uint8_t slowClock;      /* the slowest match clock (GAME LENGTH 10 minutes): half time and full
+                             * time come late, after the mod's own end of the match */
+    int8_t  autoReplays;    /* the goals' instant replays: 1 on, 0 off, -1 as the player has them */
+} ModFriendlyRules;
+
 typedef struct ModDef {
     const char *slug;                   /* its folder: bin/mods/<slug> (canonical) */
 
@@ -159,6 +167,31 @@ typedef struct ModDef {
      * the mod's records empty). A new career is careerNew, never careerLoad. -- */
     void (*careerSave)(ModJsonWriter *out);
     void (*careerLoad)(const char *json, int32_t len);
+
+    /* -- gameplay: rules a match is PLAYED by (a "gameplay" mod's; docs/MODS.md §36) --
+     * Unlike every hook above, matchStep runs on every frame SIMULATED -- an online match's
+     * re-simulations too -- so it may change the match (end it, go to penalties: ModApi_EndMatch,
+     * ModApi_StartShootout). What it keeps from one frame to the next must then be match state:
+     * matchWords asks for that many 32-bit words of it (ModApi_MatchState; up to MOD_MATCH_WORDS
+     * between the mods that are on), saved and loaded by a rollback, sent in a resync, recorded in
+     * a .SRP. Only a mod whose "changes" is "gameplay" gets them (both online players have it then).
+     *   friendlyRules  a friendly is being set up where its rules are decided: offline at
+     *                  InitAndPlayGame (the FRIENDLY menu's, the arcade cabinet's, a mod's own
+     *                  ModApi_PlayMatch -- check ModApi_ModMatch/AnyModMatch), online on the HOST
+     *                  as it offers a single friendly (NetplayLobby_Start). Arm the rules from this
+     *                  player's settings into the words and say what the setup must be (*out);
+     *                  1 when armed, 0 not. Never on the online joiner, nor for a recording played
+     *                  again: the host's words come to them in the kick-off state, its setup in the
+     *                  setup -- that is how the host's settings are the match's.
+     *   matchName      the name the screens give the match (the stadium's "FRIENDLY"), from the
+     *                  words; NULL none. Every machine, InitAndPlayGame.
+     *   matchStep      each frame simulated, after the clock (where Arcade_MatchTick ran).
+     * The words are zero outside a friendly the mod armed (cleared after each), so a cup, a
+     * career or a plain friendly never sees them set. */
+    uint8_t matchWords;
+    int32_t (*friendlyRules)(struct ModFriendlyRules *out);
+    const char *(*matchName)(void);
+    void (*matchStep)(void);
 
     /* -- a player's row in a list screen, filled and not yet drawn (docs/MODS.md §29): the
      * hook may rewrite its cells' text (ModApi_MenuText, the text kept by the mod), show or hide
@@ -676,6 +709,17 @@ int32_t ModApi_ControlledPlayer(int32_t side, int16_t *x, int16_t *y);
 void    ModApi_StartShootout(void);             /* to penalties now */
 void    ModApi_Score(int16_t goals[2]);         /* the score now */
 uint32_t ModApi_MatchFrames(void);              /* frames played from kick-off */
+/* A gameplay mod's words of the match state (ModDef matchWords; docs/MODS.md §36): NULL when it
+ * has none (off, not a gameplay mod, or the pool full), else *count of them. */
+uint32_t *ModApi_MatchState(const char *slug, int32_t *count);
+/* Where the match is, as the simulation has it (for matchStep): */
+typedef struct {
+    uint8_t inPlay;         /* the game in progress: kicked off and the ball live or about to be */
+    uint8_t shootout;       /* a penalty shoot-out is on */
+    uint8_t goalCelebration;/* a goal's celebration (the goal camera) is running */
+    uint8_t replay;         /* an instant replay is showing */
+} ModMatchPhase;
+int32_t ModApi_MatchPhase(ModMatchPhase *out);  /* 0 outside a match */
 
 /* A shoot-out as it stands (SWOS 2020's scoreboard draws from it): 0 when none is being played.
  * Team 0 is team 1 (the banner's left), 1 team 2. */

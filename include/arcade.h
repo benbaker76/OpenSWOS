@@ -49,17 +49,17 @@ void Arcade_CompositeOverlay(uint32_t *dst, int dst_pitch_pixels, int w, int h);
  * in which case the platform skips the normal 8bpp present path. */
 int Arcade_RenderFullScreen(uint32_t *dst, int dst_pitch_pixels, int w, int h);
 
-/* Arcade game modes — the F2 service-menu MODE setting, persisted as
- * [arcade] mode in SWOS.ini. Index 0 is the default. Currently only
- * "GOLDEN GOAL"; more will be added. */
+/* Arcade game modes -- the F2 service-menu MODE setting, persisted by name as
+ * [arcade] mode in SWOS.ini. The modes and their rules are the arcade mod's
+ * (src/mod_arcade.c, docs/ARCADE.md "Game modes -- the arcade mod"): these are its names, as
+ * its "arcade" service lists them; index 0 is the default. */
 int         Arcade_ModeCount(void);
 const char *Arcade_ModeName(int idx);             /* clamped to a valid name */
 int         Arcade_ModeFromName(const char *name); /* case-insensitive; -1 if unknown */
 
-/* In-match arcade rules, driven by the deterministic game-frame step (NOT a
- * wall clock — keeps the sim deterministic for lockstep multiplayer). */
-void Arcade_MatchTick(void);   /* once per game-loop frame: counts frames, ends the match */
-void Arcade_GoalScored(void);  /* call after a goal is registered: golden-goal ends the match */
+/* Once per game-loop frame (src/game_loop.c): the cabinet's DEBUG instant-win key
+ * (F10) in a cabinet match. The match's own rules are the arcade mod's. */
+void Arcade_CabinetTick(void);
 
 
 #endif /* SWOS_ARCADE_H */

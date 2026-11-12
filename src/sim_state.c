@@ -55,6 +55,7 @@
 #include "match_step.h"
 #include "endian_helpers.h"
 #include "stoppage.h"         /* a world's stoppage time: match state */
+#include "mod_hooks.h"        /* g_modMatchWords: a gameplay mod's own match state (SIM_OPTIONAL) */
 
 #include <stdlib.h>
 #include <string.h>
@@ -593,6 +594,9 @@ const SimStateRegion g_simStateRegions[] = {
     REGION(_currentTimeSprite, S, k_hudSprite), REGION(_cornerFlagSprite2, S, k_sprite),
     REGION(_copyTimeSprite, S, k_word16),
     REGION(_overlayFlagBackup, S, k_word16), REGION(_currentPlayerIndicatorPosition, S, k_word16),
+
+    /* a gameplay mod's own (the arcade rules: docs/MODS.md §36) -- only while one is on */
+    REGION(g_modMatchWords, S | SIM_OPTIONAL, k_word32),
 };
 
 #undef S
@@ -610,6 +614,8 @@ _Static_assert(sizeof g_simStateRegions / sizeof g_simStateRegions[0] <= MAX_REG
 
 int SimState_RegionActive(int32_t i, uint32_t tiers)
 {
+    if ((g_simStateRegions[i].flags & SIM_OPTIONAL) && !ModHooks_MatchWordsUsed())
+        return 0;
     return !s_disabled[i] && (SIM_REGION_TIER(&g_simStateRegions[i]) & tiers) != 0;
 }
 
@@ -1260,6 +1266,8 @@ uint64_t SimState_LayoutHash(void)
     for (int32_t i = 0; i < g_simStateRegionCount; i++) {
         const SimStateRegion *r = &g_simStateRegions[i];
         const SimLayout *l = r->layout;
+        if ((r->flags & SIM_OPTIONAL) && !ModHooks_MatchWordsUsed())
+            continue;               /* (not there: the layout is the one without it) */
         h = mix_bytes(h, r->name, (uint32_t)strlen(r->name) + 1);
         h = mix_u32(h, SimState_RegionPortableSize(i));
         h = mix_u32(h, r->flags);

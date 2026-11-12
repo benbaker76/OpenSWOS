@@ -166,7 +166,7 @@ typedef struct {
                                               * logs and ratings to the server after an online
                                               * match. include/match_report.h */
     int                    arcade;           /* 1 = arcade/coin-op mode — boot to attract. PC-only. See docs/ARCADE.md */
-    int                    arcade_mode;         /* arcade game mode index (0 = GOLDEN GOAL) */
+    char                   arcade_mode[32];     /* arcade game mode, by name: one of the arcade mod's (src/mod_arcade.c) */
     int                    arcade_game_seconds; /* arcade match length in seconds (default 45) */
     int                    arcade_golden_goal;  /* 1 = first goal wins the match (default 1) */
     int                    arcade_penalties;    /* 1 = penalty shootout when drawn (default 1) */
