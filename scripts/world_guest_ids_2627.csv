@@ -1,0 +1,162 @@
+# World 2026-27's guest clubs (other confederations' cups; scripts/world_mod_conti.py): a guest's id is
+# guest:<key> -- never change a key; add rows only. Made from the Mod 4.0.5's TMW5.191-194 (= Davide's keys).
+file,ordinal,name,key
+191,0,YOUNG AFRICANS,youngafricans
+191,1,SIMBA,simba
+191,2,PETRO DE LUANDA,petrodeluanda
+191,3,WILIETE,wiliete
+191,4,TP MAZEMBE,tpmazembe
+191,5,AIGLES DU CONGO,aiglesducongo
+191,6,AL HILAL,alhilal
+191,7,AL MERRIKH,almerrikh
+191,8,DJOLIBA,djoliba
+191,9,STADE MALIEN,stademalien
+191,10,ASEC MIMOSAS,asecmimosas
+191,11,SAN PEDRO,sanpedro
+191,12,ENUGU RANGERS,enugurangers
+191,13,RIVERS UNITED,riversunited
+191,14,SWEHLY,swehly
+191,15,POWER DYNAMOS,powerdynamos
+191,16,HOROYA,horoya
+191,17,GABORONE UNITED,gaboroneunited
+191,18,FC NOUADHIBOU,fcnouadhibou
+191,19,TEUNGUETH FC,teunguethfc
+191,20,GOR MAHIA,gormahia
+191,21,COLOMBE SPORTIVE,colombesportive
+191,22,UD SONGO,udsongo
+191,23,ASCK,asck
+191,24,VIPERS,vipers
+191,25,NSINGIZINI,nsingizini
+191,26,ASN NIGELEC,asnnigelec
+191,27,AS SOBEMAP,assobemap
+191,28,AIGLE NOIR,aiglenoir
+191,29,RAHIMO,rahimo
+191,30,N'DJAMENA,ndjamena
+191,31,FOMBONI,fomboni
+191,32,AS PORT,asport
+191,33,15 DE AGOSTO,15deagosto
+191,34,SIDAAMA BUNA,sidaamabuna
+191,35,MANGASPORT,mangasport
+191,36,MEDINA UNITED,medinaunited
+191,37,CANCHUNGO,canchungo
+191,38,LIJABATHO,lijabatho
+191,39,CFFA,cffa
+191,40,MIGHTY WANDERERS,mightywanderers
+191,41,LA CURE WAVES,lacurewaves
+191,42,AFRICAN STARS,africanstars
+191,43,APR,apr
+191,44,FORESTERS,foresters
+191,45,STAR SPORT ACAD.,starsportacad
+191,46,HEEGAN,heegan
+191,47,EL MERREIKH,elmerreikh
+191,48,KVZ FC,kvzfc
+191,49,SCOTTLAND,scottland
+191,50,AZAM,azam
+191,51,SINGIDA BS,singidabs
+191,52,PRIMEIRO AGOSTO,primeiroagosto
+191,53,KABUSCORP,kabuscorp
+191,54,AS MANIEMA UNION,asmaniemaunion
+191,55,VIRUNGA,virunga
+191,56,HILAL ALSAHIL,hilalalsahil
+191,57,AL AHLI MADANI,alahlimadani
+191,58,REAL BAMAKO,realbamako
+191,59,DIARRA,diarra
+191,60,AF AMADOU DIALLO,afamadoudiallo
+191,61,KORHOGO,korhogo
+191,62,SHOOTING STARS,shootingstars
+191,63,WARRIORS,warriors
+191,64,AL AHLI TRIPOLI,alahlitripoli
+191,65,RED ARROWS,redarrows
+191,66,HAFIA,hafia
+191,67,JWANENG GALAXY,jwanenggalaxy
+191,68,DOUANES,douanes
+191,69,DIAMBARS,diambars
+191,70,TUSKER,tusker
+191,71,PANTHERE SPORT.,pantheresport
+191,72,BLACK BULLS,blackbulls
+191,73,ASKO KARA,askokara
+191,74,KITARA,kitara
+191,75,GREEN MAMBA,greenmamba
+191,76,AS ZAM,aszam
+191,77,RUKINZO,rukinzo
+191,78,VITESSE,vitesse
+191,79,ASPAC,aspac
+191,80,AS PSI,aspsi
+191,81,ATOMIC NGOME,atomicngome
+191,82,ASAS DJIBOUTI,asasdjibouti
+191,83,THE PANTHERS,thepanthers
+191,84,WELWALO ADIGRAT,welwaloadigrat
+191,85,UD INTERNACIONAL,udinternacional
+191,86,ROUGE,rouge
+191,87,UNAM,unam
+191,88,RAYON SPORTS,rayonsports
+191,89,PTL BAZAR,ptlbazar
+191,90,EAST END LIONS,eastendlions
+191,91,MOGADISHU CITY,mogadishucity
+191,92,AL-GHAZAL,alghazal
+191,93,KMKM,kmkm
+192,0,AHAL,ahal
+192,1,BORNEO,borneo
+192,2,AL-QADSIA,alqadsia
+192,3,ANSAR,ansar
+192,4,SHAN UNITED,shanunited
+192,5,NEJMEH,nejmeh
+192,6,ISTIKLOL,istiklol
+192,7,REGAR-TADAZ,regartadaz
+192,8,YANGON UNITED,yangonunited
+192,9,DORDOI BISHKEK,dordoibishkek
+192,10,MURAS UNITED,murasunited
+192,11,FORTIS,fortis
+192,12,FC ULAANBAATAR,fculaanbaatar
+192,13,STALLIONS,stallions
+192,14,AL ITTIHAD AHLI,alittihadahli
+192,15,EZRA,ezra
+192,16,HOMS AL FIDAA,homsalfidaa
+192,17,KASUKA,kasuka
+192,18,MAZIYA,maziya
+192,19,KARKETU DILI,karketudili
+192,20,PARO,paro
+192,21,ABU MUSLIM,abumuslim
+192,22,BURIRAM UNITED,buriramunited
+192,23,PORT,port
+192,24,RATCHABURI,ratchaburi
+192,25,NEFTCHI,neftchi
+192,26,JOHOR DT,johordt
+192,27,PAKHTAKOR,pakhtakor
+192,28,AL-HUSSEIN,alhussein
+192,29,CONG AN HA NOI,conganhanoi
+192,30,BG PATHUM UNITED,bgpathumunited
+192,31,NASAF,nasaf
+192,32,AL-SHORTA,alshorta
+192,33,KUCHING CITY,kuchingcity
+192,34,AL-FAISALY,alfaisaly
+192,35,THE CONG-VIETTEL,thecongviettel
+192,36,LION CITY,lioncity
+192,37,AL-KHALDIYA,alkhaldiya
+192,38,TAMPINES ROVERS,tampinesrovers
+192,39,AL-SEEB,alseeb
+192,40,KITCHEE,kitchee
+192,41,AL-NAHDA,alnahda
+192,42,TAI PO,taipo
+192,43,AL-KUWAIT,alkuwait
+192,44,PKR SVAY RIENG,pkrsvayrieng
+192,45,PERSIB,persib
+192,46,MANILA DIGGER,maniladigger
+192,47,ARKADAG,arkadag
+192,48,AL-ARABI,alarabi
+192,49,BANGLADESH POL.,bangladeshpol
+192,50,AL-QUWA AL-JAW.,alquwaaljaw
+192,51,AL-MUHARRAQ,almuharraq
+192,52,PHNOM PENH CROWN,phnompenhcrown
+193,0,REWA,rewa
+193,1,TIGA SPORT,tigasport
+193,2,LAE CITY,laecity
+193,3,CENTRAL COAST,centralcoast
+193,4,VENUS,venus
+193,5,GALAXY,galaxy
+193,6,PAGO YOUTH,pagoyouth
+193,7,TUPAPA,tupapa
+193,8,VAIVASE-TAI,vaivasetai
+193,9,NUKUHETULU,nukuhetulu
+194,0,MOUNT PLEASANT,mountpleasant
+194,1,O&M,om
