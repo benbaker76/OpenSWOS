@@ -17,7 +17,7 @@
 #
 # The fingerprint is baked into the game too (src/world_data.c World_DataFingerprint): a
 # package belongs with the builds made from the same import run. Make a new one, and upload
-# it, whenever world_import.py's output changes (the fingerprint in WORLD.ini says so). The
+# it with its .txt (scripts/upload_dlc.sh), whenever world_import.py's output changes (the fingerprint in WORLD.ini says so). The
 # matchmaking server's team list is refreshed here too (assign_team_uuids.py --worlds).
 set -euo pipefail
 
@@ -88,6 +88,35 @@ print("%d files" % n)
 PY
 mv "$OUT.tmp" "$OUT"
 echo "$OUT: $(du -h "$OUT" | cut -f1), data $FP"
+
+# Its credits, hosted beside it (OpenSWOS Setup's "credits" link, kWorldCredits): the data's
+# sources, the Mod release it was converted from (world_from_mod.py's SOURCE.txt, or
+# MOD_RELEASE=x.y.z) and the fingerprint -- written with the zip, so the two always agree.
+REL=${MOD_RELEASE:-$(sed -n 's/.*installed SWOS 96\/97 Mod \([0-9.]*\).*/\1/p' "$SRC/mod/SOURCE.txt" 2>/dev/null | head -1)}
+[ -n "$REL" ] || { echo "make_world_package: which Mod release is this? (MOD_RELEASE=x.y.z)" >&2; exit 1; }
+NCOUNTRY=$(ls "$SRC/teams"/*.json | grep -vc NATIONALITIES || true)
+cat > "${OUT%.zip}.txt" <<EOF
+OpenSWOS-World-$TAG.zip -- the World $(sed -n 's/^name *= *World *//p' "$SRC/WORLD.ini") for OpenSWOS
+==========================================================
+
+What it is: the World 2026-27 of the SWOS 96/97 Mod (github.com/aminta/swos-9697-mod), release $REL,
+converted for OpenSWOS (github.com/benbaker76/OpenSWOS) by its scripts/world_from_mod.py and
+scripts/world_import.py. OpenSWOS Setup downloads and installs it as a mod; the game checks its
+fingerprint (WORLD.ini) against the one baked into the build.
+Contents: $NCOUNTRY team files (JSON, and the Amiga's TEAM.nnn), leagues.json, WORLD.ini, mod.json.
+Fingerprint: $FP.
+
+Data sources and credits
+- Transfermarkt (transfermarkt.com): squads, market values (turned into SWOS prices), coaches, league
+  members 2026-27.
+- EA SPORTS FC ratings feed: player attributes (skill profiles).
+- Wikipedia contributors (CC BY-SA 4.0): club kits; Wikidata (CC0): club <-> article links.
+- Derived data only: no market values or ratings are included as such. The original SWOS 96/97 game data
+  is not included.
+
+World 2026-27 by Davide Lorigliola and the SWOS 96/97 Mod's contributors; conversion by Ben Baker (OpenSWOS).
+EOF
+echo "${OUT%.zip}.txt: its credits (Mod $REL)"
 
 # The matchmaking server's team list carries the world's teams (their ids and checksums: an
 # online match's teams are checked against it): it goes with the same data.

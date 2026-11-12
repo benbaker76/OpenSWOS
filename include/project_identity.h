@@ -55,6 +55,13 @@
  * the app; on Android it opens the app directly (an App Link: <site>/.well-known/assetlinks.json). */
 #define PROJECT_SITE            "openswos.net"
 
+/* Where the project hosts World 2026-27's package and its credits (scripts/make_world_package.sh
+ * writes both; OpenSWOS Setup's World row downloads the zip and links the credits): OpenSWOS on its
+ * own site since 2026-11-12 (scripts/upload_dlc.sh -> openswos.net/dlc/), a fork on its own DLC
+ * host. "" for both hides the World row (a fork that does not offer it). */
+#define PROJECT_WORLD_PACKAGE_URL "https://openswos.net/dlc/OpenSWOS-World-2627.zip"
+#define PROJECT_WORLD_CREDITS_URL "https://openswos.net/dlc/OpenSWOS-World-2627.txt"
+
 /* SWOS 2020's online-menu entries for features this project will not have -- the log-in's NEWS,
  * MULTIPLAYER SETTINGS' commentary and chat rows, JOIN AMIGA SUPER LEAGUE, JOIN DISCORD, HELP
  * DESK (src/online_menus.c): 1 hides them, 0 keeps them for a fork that builds them. */

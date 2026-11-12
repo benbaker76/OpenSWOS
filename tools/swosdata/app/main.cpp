@@ -57,12 +57,12 @@ extern "C" {
 #include <nfd.h>
 #endif
 
-// Where World 2026-27's package is downloaded from: hosted apart from OpenSWOS, by its authors
-// (the SWOS 96/97 Mod's Davide Lorigliola, 2026-11-02), its squads being theirs; the same URL for
-// each new package. "" would show no World 2026-27 row at all (`swosdata --world FILE` still
-// installs one, for testing). Its README beside it: the data's sources and credits.
-static const char kWorldUrl[] = "https://worldofswos.com/static/openswos/OpenSWOS-World-2627.zip";
-static const char kWorldCredits[] = "https://worldofswos.com/static/openswos/README.txt";
+// Where World 2026-27's package is downloaded from: never in the repo (its squads are its authors'),
+// hosted by each project itself since 2026-11-12 (until then by the Mod's Davide Lorigliola): the
+// same URL for each new package. "" would show no World 2026-27 row at all (`swosdata --world FILE`
+// still installs one, for testing). Its credits beside it: the data's sources, release, fingerprint.
+static const char kWorldUrl[] = PROJECT_WORLD_PACKAGE_URL;       /* (include/project_identity.h) */
+static const char kWorldCredits[] = PROJECT_WORLD_CREDITS_URL;
 // The PC game's CD version, two downloads: archive.org's (the game installed, and the whole CD as a
 // CloneCD image beside it) and files.swos.eu's image of the CD (an .iso in a .zip). Either alone is
 // the whole PC game, commentary and all (sd_sources.c: a .zip's game and CD images). files.swos.eu
