@@ -623,9 +623,9 @@ static void release_switches(void)
 /* A gameplay mod's rules for the match the host offers (docs/MODS.md §36: the arcade mod's) --
  * decided here, on the host, from its own settings, and only for a single friendly. They go to
  * the joiner as the rest of the match does: the mod's words in the kick-off state, the slow clock
- * and the replays in the setup. The host's own AUTO REPLAYS is put back after the match. */
+ * and the replays in the setup. The host's own AUTO REPLAYS and GAME LENGTH are put back after. */
 static int32_t  s_modRulesHeld;
-static uint16_t s_ownReplays;
+static uint16_t s_ownReplays, s_ownLength;
 
 static void arm_mod_rules(void)
 {
@@ -634,8 +634,10 @@ static void arm_mod_rules(void)
     ModHooks_ClearMatchState();
     if (s_lobby.rules.mode != LOBBY_MODE_FRIENDLY || s_lobby.rules.legs != 0 || !ModHooks_FriendlyRules(&rules))
         return;
-    if (!s_modRulesHeld)
+    if (!s_modRulesHeld) {
         s_ownReplays = _autoReplays;
+        s_ownLength  = s_lobby.rules.gameLength;   /* (the OPTIONS length assemble_match just set) */
+    }
     s_modRulesHeld = 1;
     if (rules.slowClock)
         _gameLength = 3;
@@ -648,11 +650,12 @@ static void arm_mod_rules(void)
 
 static void release_mod_rules(void)
 {
-    extern uint16_t _autoReplays;
+    extern uint16_t _gameLength, _autoReplays;
     if (!s_modRulesHeld)
         return;
     s_modRulesHeld = 0;
     _autoReplays = s_ownReplays;
+    _gameLength  = s_ownLength;         /* (the slow clock is the match's, never the player's option) */
 }
 
 void NetplayLobby_RestoreTactics(void)
