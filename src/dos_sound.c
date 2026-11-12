@@ -1003,8 +1003,21 @@ int32_t DosSound_SelfTest(void)
 
     if (getenv("SWOS_MODS_ENABLED") && !Mods_Count())   /* (a sound pack's mods: run before the game loads them) */
         Mods_Init(getenv("SWOS_MODS_ENABLED"), "");
+    /* Data made from SWOS 2020 (no PC game: tools/swosdata, ASSETS.ini pc_swos2020) has the PC
+     * game's effects (fx/) and 11 of its crowd's sounds, no commentary and no other crowd: there
+     * only fx/ must be whole, the rest is said, not failed. */
+    extern int32_t AssetsCheck_PcFromSwos2020(void);
+    const int32_t from2020 = AssetsCheck_PcFromSwos2020();
+    int32_t notIn2020 = 0;
+    if (from2020)
+        fprintf(stderr, "[dos-sound] the PC data was made from SWOS 2020: its effects must all be there, "
+                        "its crowd's and commentary need not\n");
     for (i = 0; i < DOS_SOUND_FILES; i++) {
         if (!file_load(i)) {
+            if (from2020 && strncmp(k_dosSoundFiles[i], "fx/", 3) != 0) {
+                notIn2020++;
+                continue;
+            }
             fprintf(stderr, "[dos-sound] FAIL: sound_dos/%s is missing\n", k_dosSoundFiles[i]);
             failures++;
         } else {
@@ -1032,6 +1045,9 @@ int32_t DosSound_SelfTest(void)
         fprintf(stderr, "[dos-sound] %d of the files from a mod in another format; commentary: %d lines in %d "
                         "categories\n", (int)mods, (int)lines, (int)cats);
     }
+    if (notIn2020)
+        fprintf(stderr, "[dos-sound] %d of the files not in SWOS 2020 (made from it): not there, as expected\n",
+                (int)notIn2020);
     fprintf(stderr, "[dos-sound] %d files, %u bytes (%.1f s at %d Hz), %d tables: %s\n",
             DOS_SOUND_FILES, bytes, bytes / (double)RATE, RATE, (int32_t)(sizeof tables / sizeof tables[0]),
             failures ? "FAILED" : "PASSED");

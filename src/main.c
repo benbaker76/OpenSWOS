@@ -1328,6 +1328,24 @@ int main(int argc, char **argv)
     if (TestRules_Setting())
         fprintf(stderr, "[testing] no_injuries_cards = true: offline matches book and injure nobody\n");
 
+    /* The data setup given only SWOS 2020 (no PC game, no Amiga version) makes the PC data from
+     * its install as it is (tools/swosdata, ASSETS.ini pc_swos2020): SWOS 2020's art and its
+     * pitches, three to eight times the tiles of the PC game's, which only the PC drawing path
+     * loads -- the Amiga style's map (grafs_aga/SWCPICHn.MAP) is staged through the frontbuffer
+     * and does not fit it. So draw its ARTWORK, whatever SWOS.ini says. No commentary: its lines
+     * are not there, and the commentary is silent but for a player's own (sound_dos/commentary/). */
+    {
+        extern int32_t AssetsCheck_PcFromSwos2020(void);
+        extern int swos_data_exists(const char *rel);
+        if (AssetsCheck_PcFromSwos2020()) {
+            opts.dos_graphics = 1;
+            snprintf(opts.dos_dir, sizeof opts.dos_dir, "%s",
+                     swos_data_exists("grafs_2020/pitch1.dat") ? "grafs_2020" : "grafs_dos");
+            fprintf(stderr, "[assets] the PC data was made from SWOS 2020 (no PC game or Amiga version): "
+                            "its graphics (ARTWORK = SWOS 2020), no PC commentary, its menu.mp3 for the "
+                            "menu music\n");
+        }
+    }
     /* Publish DOS-mode flags for the game code (default = Amiga graphics). */
     _gDosGraphics = opts.dos_graphics;
     JagGfx_SetEnabled(opts.jag_graphics);

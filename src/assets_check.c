@@ -116,6 +116,35 @@ static int32_t read_versions(const char *assetsDir, int32_t version[PART_COUNT])
     return 0;
 }
 
+int32_t AssetsCheck_PcFromSwos2020(void)
+{
+    static int32_t s_known = -1;
+    char path[1024], line[1200], section[32] = "";
+    FILE *f;
+    const char *dir = swos_assets_dir();
+    if (s_known >= 0)
+        return s_known;
+    s_known = 0;
+    if (!dir || !dir[0])
+        return 0;
+    snprintf(path, sizeof path, "%s/%s", dir, ASSETS_INI_NAME);
+    if ((f = fopen(path, "r")) == NULL)
+        return 0;
+    while (fgets(line, sizeof line, f)) {
+        char *t = trim(line), *eq;
+        if (*t == '[') {
+            char *e = strchr(t, ']');
+            if (e) { *e = '\0'; snprintf(section, sizeof section, "%s", t + 1); }
+        } else if (strcmp(section, "sources") == 0 && (eq = strchr(t, '=')) != NULL) {
+            *eq = '\0';
+            if (strcmp(trim(t), ASSETS_SRC_PC_SWOS2020) == 0 && trim(eq + 1)[0])
+                s_known = 1;
+        }
+    }
+    fclose(f);
+    return s_known;
+}
+
 /* Which parts are out of date, for the log: "dos_files 1<2, aga_pc 0<1". "" when none. */
 static void outdated_parts(const char *assetsDir, char *out, uint32_t cap)
 {

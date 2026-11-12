@@ -169,7 +169,8 @@ int32_t DosMusic_Load(void)
     s_loaded = -1;
     s_bank = read_file("sound_dos/sample.ad", &s_bankLen);
     if (!s_bank) {
-        fprintf(stderr, "[music] sound_dos/sample.ad is missing: the Amiga's music is used\n");
+        fprintf(stderr, "[music] sound_dos/sample.ad is missing: the menus play sound_dos/menu.mp3 if it "
+                        "is there, else the Amiga's music\n");
         return 0;
     }
     if (!find_timbre(0, 0)) {
