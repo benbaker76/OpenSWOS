@@ -249,6 +249,10 @@ static int32_t shootout_turn(const ModShootout *so)
 }
 
 #ifdef SWOS_SDL_BUILD
+#include "display.h"            /* _screen_width, FRONTBUFFER_ROW_STRIDE_BYTES */
+#include "gfx.h"
+#include "platform_sdl.h"       /* Platform_FrameShown, Platform_PaletteRgb, Platform_NowMs */
+
 /* ---- its pictures (SWOS 2020's PixelmapAndStrings.h, verbatim; the palette indices as there) ---- */
 static const char *const kMarkCheck[11] = {
     ".......121.", ".......121.", "......121#.", "......121..", ".....121#..", ".1...121...",
@@ -457,10 +461,7 @@ static void draw_band_and_kits(const Layout *l, int32_t m)
         x0 = m + 48;
         x1 = m + 48 + 384;
     }
-    for (int32_t y = l->bandY; y <= l->bandY + l->bandH; y++)
-        for (int32_t x = x0; x <= x1; x++)
-            if (x >= 0 && x < s_w && y >= 0 && y < s_h && s_fb[y * s_stride + x] < 128)
-                s_fb[y * s_stride + x] += 128;
+    (void)x0; (void)x1;                 /* (the band itself: band_snap / band_present) */
     for (int32_t t = 0; t < 2; t++) {
         int32_t type, shirt, stripes, shorts;
         if (!ModApi_MatchKit(t, &type, &shirt, &stripes, &shorts))
@@ -507,6 +508,111 @@ static void draw_keeper(const ModShootout *so)
     }
 }
 
+/* The band's shading at the present (gfx.h), SWOS 2020's: a colour halved, black at half alpha.
+ * In the frame buffer it was each pixel's index + 128 -- SWOS 2020's VGA palette's darker half,
+ * here the Amiga palette's upper half: near black on the grass, nothing on what is up there
+ * already (Playa, 2026-11-11). The band's rows are kept before the board and the kits are
+ * drawn; at the present every pixel still as it was is shaded, so the text stays bright. One
+ * copy per frame buffer (the game draws into one while the other is shown), as display2020's. */
+typedef struct {
+    uintptr_t fb;
+    int32_t   x0, y0, x1, y1;           /* inclusive; x1 < x0: none */
+    uint8_t  *snap;
+} BandSnap;
+static BandSnap    s_bandSnap[2];
+static uint64_t    s_bandMs;
+static uint8_t    *s_bandRgba;
+static int32_t     s_bandRgbaCap;
+static GfxTexture *s_bandTex;
+static int32_t     s_bandTexW, s_bandTexH;
+
+static BandSnap *band_slot(uintptr_t fb, int32_t take)
+{
+    for (int32_t i = 0; i < 2; i++)
+        if (s_bandSnap[i].fb == fb)
+            return &s_bandSnap[i];
+    if (!take)
+        return NULL;
+    BandSnap *b = !s_bandSnap[0].fb ? &s_bandSnap[0] : !s_bandSnap[1].fb ? &s_bandSnap[1] : &s_bandSnap[0];
+    b->fb = fb;
+    return b;
+}
+
+static void band_snap(const Layout *l, int32_t m)
+{
+    BandSnap *b = band_slot((uintptr_t)s_fb, 1);
+    int32_t x0 = 0, x1 = s_w - 1, y0 = l->bandY, y1 = l->bandY + l->bandH;
+    if (l->mode == 2) {
+        x0 = m + 48;
+        x1 = m + 48 + 384;
+    }
+    if (x0 < 0) x0 = 0;
+    if (x1 > s_w - 1) x1 = s_w - 1;
+    if (y0 < 0) y0 = 0;
+    if (y1 > s_h - 1) y1 = s_h - 1;
+    b->x1 = b->x0 - 1;
+    if (x1 < x0 || y1 < y0)
+        return;
+    if (!b->snap)
+        b->snap = (uint8_t *)malloc((size_t)PITCH_VIEW_MAX_WIDTH * 288);
+    if (!b->snap)
+        return;
+    for (int32_t y = y0; y <= y1; y++)
+        memcpy(b->snap + (size_t)y * s_w + x0, s_fb + (size_t)y * s_stride + x0, (size_t)(x1 - x0 + 1));
+    b->x0 = x0; b->x1 = x1; b->y0 = y0; b->y1 = y1;
+    s_bandMs = Platform_NowMs();
+}
+
+static void band_kept(void)
+{
+    if (s_bandMs)
+        s_bandMs = Platform_NowMs();
+}
+
+static void band_present(void)
+{
+    const uint8_t *fb8 = Platform_FrameShown();
+    const BandSnap *b = fb8 && s_bandMs && Platform_NowMs() - s_bandMs <= 100 && ModApi_InMatch() &&
+                        !ModApi_InReplay() ? band_slot((uintptr_t)fb8, 0) : NULL;
+    if (!b || b->x1 < b->x0 || !b->snap)
+        return;
+    const int32_t w = b->x1 - b->x0 + 1, h = b->y1 - b->y0 + 1, sw = _screen_width;
+    if (w * h * 4 > s_bandRgbaCap) {
+        free(s_bandRgba);
+        s_bandRgba = (uint8_t *)malloc((size_t)w * h * 4);
+        s_bandRgbaCap = s_bandRgba ? w * h * 4 : 0;
+        if (!s_bandRgba)
+            return;
+    }
+    for (int32_t y = 0; y < h; y++) {
+        const uint8_t *now = fb8 + (size_t)(b->y0 + y) * FRONTBUFFER_ROW_STRIDE_BYTES + b->x0;
+        const uint8_t *was = b->snap + (size_t)(b->y0 + y) * sw + b->x0;
+        uint8_t *p = s_bandRgba + (size_t)y * w * 4;
+        for (int32_t x = 0; x < w; x++, p += 4) {
+            p[0] = p[1] = p[2] = 0;
+            p[3] = now[x] == was[x] ? 128 : 0;
+        }
+    }
+    if (!s_bandTex || s_bandTexW != w || s_bandTexH != h) {
+        if (s_bandTex)
+            Gfx_DestroyTexture(s_bandTex);
+        s_bandTex = Gfx_CreateTexture(w, h, 0);
+        s_bandTexW = w;
+        s_bandTexH = h;
+        if (!s_bandTex)
+            return;
+    }
+    Gfx_UpdateTexture(s_bandTex, s_bandRgba, w * 4);
+    const GfxSpace space = Gfx_Space();
+    const GfxBlend blend = Gfx_Blend();
+    const SDL_FRect dst = { (float)b->x0, (float)b->y0, (float)w, (float)h };
+    Gfx_SetSpace(GFX_SPACE_PICTURE);
+    Gfx_SetBlend(GFX_BLEND_ALPHA);
+    Gfx_DrawTexture(s_bandTex, NULL, &dst);
+    Gfx_SetBlend(blend);
+    Gfx_SetSpace(space);
+}
+
 static void shootout_drawn(void)
 {
     ModShootout so;
@@ -520,6 +626,7 @@ static void shootout_drawn(void)
     layout(&l);
     s_testFrames++;
     const int32_t m = (s_w - l.base) / 2;
+    band_snap(&l, m);                   /* (before anything of the board's is drawn) */
     draw_keeper(&so);
     draw_board(&so, &l, m);
     draw_band_and_kits(&l, m);
@@ -1071,6 +1178,8 @@ const ModDef ModDef_practice = {
     .matchFrame = training_frame,
 #ifdef SWOS_SDL_BUILD
     .matchDrawn = practice_match_drawn,
+    .frameUnder = band_present,         /* (the board's band, shaded at the present) */
+    .frameKept = band_kept,
     .menuDrawn = shootout_menu_drawn,
     .playerRowDrawn = shootout_row,
     .matchKey = training_key,

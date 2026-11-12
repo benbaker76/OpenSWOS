@@ -444,14 +444,17 @@ int Video_ApplyDisplayChange(void)
     fprintf(stderr, "[video] another display: render %dx%d (was %d wide)\n", w, _screen_height, ow);
     {   /* The menu's backdrop (the panel DrawMenu copies) is laid out at the old stride: each
          * row's centred picture to the new one, the margins cleared. Rows in the order that
-         * never overwrites one not yet read (wider: from the bottom). */
+         * never overwrites one not yet read (wider: from the bottom). With a true-colour
+         * backdrop the whole panel is its key colour -- the margins too, or they come out
+         * black beside the picture (a 16:9 laptop to a 21:9 monitor, Playa 2026-11-11). */
+        const uint8_t margin = Platform_MenuBackdropOn() ? MENU_BACKDROP_KEY : 0;
         const int keep = w < ow ? w : ow, from = (ow - keep) / 2, to = (w - keep) / 2;
         uint8_t row[PITCH_VIEW_MAX_WIDTH];
         for (int i = 0; i < SCREEN_HEIGHT; i++) {
             const int y = w > ow ? SCREEN_HEIGHT - 1 - i : i;
             uint8_t *src = _frontbufferMaskBuffer + (size_t)y * ow, *dst = _frontbufferMaskBuffer + (size_t)y * w;
             memcpy(row, src + from, (size_t)keep);
-            memset(dst, 0, (size_t)w);
+            memset(dst, margin, (size_t)w);
             memcpy(dst + to, row, (size_t)keep);
         }
     }

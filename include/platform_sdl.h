@@ -243,6 +243,8 @@ int  Platform_OpenUrl(const char *url);
  * the game's). 62: a colour of the game's own backdrop (33-62), which no menu element uses. */
 #define MENU_BACKDROP_KEY 62
 void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h);
+/* 1 while a true-colour backdrop is set: the menus' backdrop panel is MENU_BACKDROP_KEY. */
+int  Platform_MenuBackdropOn(void);
 /* ---- launcher options (agent B) ---- */
 /* DISPLAY OPTIONS: the menus' opacity, the pixel filter, purple for brown and the improved pitch
  * palette, from the options (at Platform_Init, and when a row changes one). Drawing only. */

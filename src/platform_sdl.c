@@ -1615,6 +1615,11 @@ void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h)
     s_bdH = h;
 }
 
+int Platform_MenuBackdropOn(void)
+{
+    return s_bd != NULL;
+}
+
 /* The backdrop shows: there is one, and the menus are up (in a match or a replay the key colour
  * is anything). */
 static int backdrop_shown(void)

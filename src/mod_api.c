@@ -139,6 +139,14 @@ int32_t ModApi_ResultBanner(ModResultBanner *out)
     return 1;
 }
 
+void ModApi_HudBox(int32_t *left, int32_t *right)
+{
+    if (left)
+        *left = (int32_t)HUD_MARGIN;
+    if (right)
+        *right = (int32_t)(HUD_MARGIN + HUD_WIDTH);
+}
+
 int32_t ModApi_Players(ModPlayer *out, int32_t max)
 {
     int32_t n = 0;

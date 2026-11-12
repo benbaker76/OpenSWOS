@@ -817,6 +817,9 @@ typedef struct {
     int16_t nameTop, nameHeight;
 } ModResultBanner;
 int32_t  ModApi_ResultBanner(ModResultBanner *out);
+/* The match HUD's box across the screen, in picture x: [left, right). The screen's width up to
+ * 16:9, centred on an ultrawide -- where the game's own name and clock sit (display.h HUD_WIDTH). */
+void     ModApi_HudBox(int32_t *left, int32_t *right);
 
 /* The players as they are now (in a match, not a replay): up to 22, team 0's first, each team's
  * goalkeeper its first. */

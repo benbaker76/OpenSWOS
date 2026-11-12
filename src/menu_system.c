@@ -611,6 +611,11 @@ void CallDrawMenuItem(MenuEntry *entry)
      * present required. */
     DrawMenuBackWithCheck(entry);
     DrawMenuItem(entry);
+    /* The redraw covers the entry's image (a JSON menu's, drawn each frame after the entries),
+     * and this present comes before that frame's pass: a main-menu icon blinked off for a
+     * frame as the cursor left its button. Put the images back first. (Not the mods' menuDrawn:
+     * the test drivers among them count its calls as frames.) */
+    { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }
     WaitForVSync();
     BlitterCopyOverlayToScreen();
 #else
@@ -1799,6 +1804,9 @@ void UpdateBlinkingMenuText(void)
 
         if (d5 == 0)
             return;
+#ifdef SWOS_SDL_BUILD
+        { extern void MenuExtras_Drawn(void); MenuExtras_Drawn(); }     /* (as CallDrawMenuItem) */
+#endif
         WaitForVSync();
     }
 }
