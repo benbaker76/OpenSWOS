@@ -264,36 +264,82 @@ User-confirmed concrete requirements as we build it:
   plays real crowd SFX.
 - **Attract RPL/HIL reels** play on the pitch they were recorded on.
 
-### Game modes
+### Game modes -- the arcade mod (2026-11-12)
 
-The arcade match runs in a selectable **game mode**, chosen on the F2 service menu's
-**MODE** row and persisted as `[arcade] mode=<name>` in `SWOS.ini` (case-insensitive;
-unknown/blank falls back to the default). Index 0 is the default.
+**The game modes and their rules are a canonical mod, `arcade`** (`src/mod_arcade.c`,
+`bin/mods/arcade/mod.json`, uuid `a7a7972e-6003-5da6-8dcb-2c478f1e5829`, `"changes": "gameplay"`,
+off by default, SDL only). The owner's decision, 2026-11-12: the **cabinet** -- the boot gate,
+INSERT COIN, credits, the coin/start keys, the attract reels, the F2 service menu and its font,
+the high scores, CONTINUE? -- stays in the core (`src/arcade.c`); how an arcade match is
+**played** is the mod's, so a player can play the arcade's modes in an ordinary friendly too.
 
 | Mode | Rules |
 |--|--|
-| **GOLDEN GOAL** (default) | Short timed match (`game_seconds`, default 45 s). The first goal wins and ends the match (after a brief celebration); if it's still level at the time limit the match goes to a penalty shootout (`penalties_on_draw`). |
+| **GOLDEN GOAL** (default) | Short timed match (`game_seconds`, default 45 s). The first goal wins and ends the match, once its celebration and (with `goal_replay`) its replay are over; if it is still level at the time limit the match goes to a penalty shootout (`penalties_on_draw`). |
 
-Per-match rule toggles (F2 service menu, saved to `SWOS.ini`): `game_seconds`,
-`golden_goal`, `penalties_on_draw`, and `goal_replay` (replay each goal — drives the
-engine's auto-replay, the same thing the normal OPTIONS menu calls **AUTO REPLAYS** /
-`_autoReplays`). The match length is counted in **game frames** (deterministic, not
-wall-clock), so it stays lockstep-safe for future multiplayer.
+**Where it applies.** With the mod on (OPTIONS -> MODS), every **friendly** plays by the mode
+its settings pick (`[mod.arcade]` in SWOS.ini, the mod's page: `friendlies` on/off,
+`mode`, `game_seconds` 30-240, `golden_goal`, `penalties_on_draw`, `goal_replay`, defaults as
+the cabinet's): the FRIENDLY menu's, an online single friendly (below), the cabinet's. Not
+training, not another mod's own match (practice, challenges), and never a cup, a league, a
+season or a career match -- the rules are decided only where a friendly is set up
+(`InitAndPlayGame`). A cup tie could take them as they are (penalties on a draw decide it); a
+league could not (its draws must stay draws): that would be a new hook where a competition
+match is set up, not a change to the mod.
 
-**Goal replay (golden goal):** a golden goal no longer ends the match on a fixed
-2-second timer. That old timer raced the goal celebration + auto-replay and ended the
-match before the replay could play ("a goal immediately exits"). Instead
-`Arcade_GoalScored` flags the match to end, and `Arcade_MatchTick` waits for the whole
-goal sequence to resolve — the engine runs the celebration (`_goalCameraMode != 0`)
-and, when AUTO REPLAYS is on, the instant replay (`_replayState != 0`) — then ends with
-the scorer ahead. With `goal_replay` off, the celebration just plays through and the
-match ends; with it on, the replay plays first.
+**How it plays.** The rules are decided once, where the match is set up (`ModDef.friendlyRules`),
+and written into the mod's **words of the match state** (`ModApi_MatchState`, 8 words; the
+`g_modMatchWords` region of `src/sim_state.c`): the mode, the rules in force, the limit in
+frames, the frames played, the golden goal's progress. `matchStep` runs every frame simulated,
+after the clock (where `Arcade_MatchTick` ran), and plays them from there: it counts the frames
+from kick-off, sees a golden goal from the score, waits for the celebration
+(`_goalCameraMode`) and the replay (`_replayState`) to finish, then `ModApi_EndMatch`; at the
+limit a level score goes to `ModApi_StartShootout`. The match asks the setup for the slowest
+clock (GAME LENGTH 10 minutes: half time is five minutes away) and the replays as `goal_replay`
+says (`ModFriendlyRules`); the player's own GAME LENGTH and AUTO REPLAYS are back after the match.
+An arcade second is 50 frames (the cabinet's since it was built), so under the PC's 70-frame
+gameplay a match is shorter in real time, as the cabinet's always was.
 
-More modes will be added later. Adding one is: add its display name to
-`s_arcadeModeNames[]` in `src/arcade.c` (the `Arcade_Mode*` helpers expose
-name↔index for the service menu + `SWOS.ini`), then wire its rules into the match
-setup. The mode shows on the pre-match line-up title in place of "FRIENDLY"
-(`_aArcadeMatchName`).
+**The cabinet uses the mod.** In arcade mode `main.c` puts `arcade` in front of the mods list for
+the run (never written to SWOS.ini). The cabinet talks to the mod only through its **service**
+(`ModApi_CallService("arcade", ...)`, docs/MODS.md §33): `modes` lists the modes' names (the F2
+MODE row cycles them; the high-score tables are kept per name), `arm` hands it the operator's
+settings before each match (`arc_arm_rules`), `played` says how long the match ran (the run's
+TIME). Without the mod (a fork without it) the cabinet's matches are plain friendlies, and the log
+says so.
+
+**The `[arcade]` keys are kept** as the cabinet's operator settings, read and written as before
+(the F2 menu saves them): `mode` (by name: one of the mod's modes), `game_seconds` (10..600),
+`golden_goal`, `penalties_on_draw`, `goal_replay`, `gameplay` (the cabinet's style: AMIGA or DOS,
+which also picks the attract reels -- a friendly plays the player's own style, online the host's,
+so it is not the mod's). They are handed to the mod for each cabinet match, overriding the mod's
+own `[mod.arcade]` settings, which are a player's for friendlies. Nothing for an existing cabinet
+to migrate.
+
+**Online.** A friendly with the mod on is a `gameplay` mod's match: both players need the mod
+alike or the handshake refuses (YOUR MODS ARE DIFFERENT, `Mods_OnlineSignature`), and **the
+host's settings are the match's**: the host decides the rules as it offers a single friendly
+(`NetplayLobby_Start`, lobby mode FRIENDLY, one match), and they go to the joiner the way the
+rest of the match does -- the words in the kick-off state, the slow clock and the replays in the
+setup -- so the joiner's own settings are never read. A league or ranked lobby match, or a
+two-legged tie, plays without them. The words are match state, so a rollback, a resync and a
+`.SRP` (`--srp-resim` with `--mods=arcade`) carry them. The cabinet itself has no online play.
+**A plain match is untouched:** with the mod off the words are not in the match state, its hash
+or its layout hash (`SIM_OPTIONAL`), so `check_netplay_compat.sh` is unchanged and NETPLAY_COMPAT
+was not raised.
+
+**Adding a mode.** A row of `k_modes` in `src/mod_arcade.c` -- its name, its rules (`RULE_TIME_LIMIT`,
+`RULE_GOLDEN_GOAL`, `RULE_PENALTIES`, `RULE_GOAL_REPLAY`), which of them a setting may switch off,
+and, for a rule none of those is, a `step` of its own (its state in the words from `W_MODE_0`;
+changing the match only through the ModApi) -- and its name in the `mode` choices of
+`bin/mods/arcade/mod.json`. The F2 menu, the high-score tables and the stadium's title pick it up
+by themselves. A new mode changes how an online friendly can be played: raise the mod's
+`version`, so two games with different modes are told apart.
+
+**Checked:** `SWOS_MOD_MATCH_TEST=arcade[:seconds]` (with `SWOS_HARNESS_TURBO=1`,
+`SWOS_SKIP_INTRO=1`, `--mods=arcade`) plays one GOLDEN GOAL friendly CPU v CPU headless and
+passes when the rules decided it: a golden goal (one goal, ended by the mod) or, level at the
+limit, a shoot-out with a winner (`arcade:10` all but forces penalties).
 
 ### National-team flag mapping (FLAGS.bmp cell → SWOS national team)
 

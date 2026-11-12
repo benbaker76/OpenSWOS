@@ -1429,3 +1429,37 @@ orange) -- but CGA, whose green pitch is white by hue and the remembered cyan-an
 brightness. A palette: its colours in palette_to_lut.py, a line in make_paletteq.sh, a row in
 mod_paletteq.c's table and mod.json's choices. Checked: `--slang-selftest` compiles the preset for
 GLSL 410 / ES 300, Metal and HLSL; the algorithm run on a match frame for every palette (by eye).
+
+## 36. Gameplay mods: rules in the match state; the arcade mod (2026-11-12)
+
+The first canonical **gameplay** mod is `arcade` (`src/mod_arcade.c`, docs/ARCADE.md "Game modes --
+the arcade mod"): the arcade cabinet's game modes (GOLDEN GOAL so far) played in any friendly. The
+owner's decision, 2026-11-12: the cabinet stays in the core and uses the mod; the modes and their
+rules are the mod's. What it needed of the engine is general -- any mod that changes how a match
+plays uses the same:
+
+| what | how | where |
+|---|---|---|
+| state of its own in the match | `ModDef.matchWords` (n 32-bit words), `ModApi_MatchState(slug, &n)` | `g_modMatchWords` (`src/mod_hooks.c`, 32 words between the mods that are on), a `SIM_OPTIONAL` region of `src/sim_state.c`: saved and loaded by a rollback, sent in a resync and the lobby's kick-off state, recorded in a `.SRP`. Handed out at start-up, in the built-in list's order, only to a mod that is on and whose `"changes"` is `gameplay` / `data` -- both online players have the same such mods, so the same words are the same mod's. **With no such mod on the region is not there at all**: not in the state, its hash, nor the layout hash the handshake and the recordings compare -- a build with it off is, online, the build it always was |
+| rules decided where a friendly is set up | `ModDef.friendlyRules(ModFriendlyRules *out)` | offline at `InitAndPlayGame` (the FRIENDLY menu's, the cabinet's, a mod's own `ModApi_PlayMatch`; not training); online on the HOST in `NetplayLobby_Start`, for a single friendly (lobby mode FRIENDLY, no legs), before the setup and the kick-off state are taken. The mod arms its words from the player's settings and asks the setup for the slowest clock and/or its replays (`ModFriendlyRules`); the game puts the player's own GAME LENGTH / AUTO REPLAYS back after the match. Never on the joiner, nor for a recording played again |
+| the match's name | `ModDef.matchName()` | `InitAndPlayGame`, every machine, from the words: the stadium's title in place of FRIENDLY |
+| the rules, each frame | `ModDef.matchStep()` | `src/game_loop.c`, after the clock, on **every frame simulated** -- an online match's re-simulations too (unlike `matchFrame`): the one hook that may change the match, through `ModApi_EndMatch`, `ModApi_StartShootout`; it reads where the match is with `ModApi_MatchPhase` (in play, a shoot-out, a goal's celebration, a replay) and `ModApi_Score` |
+
+The words are cleared before each offline friendly is set up, before the host offers a match, and
+after every friendly, so a cup, a league or a career match never sees them set.
+
+**Online, the host's settings are the match's** -- without a word on the wire: the host's words
+travel in the kick-off state the START message already carries (both players load it before the
+match is set up), the slow clock and the replays in the setup it already carries. The joiner's own
+settings are never read. If the host has no kick-off state to send, it clears its words, so the two
+play the same (plain) rules. Both players need the mod alike (§17's signature); a new mode or rule
+is a new `version`. **NETPLAY_COMPAT was not raised**: nothing on the wire changed, and a plain match
+is bit for bit what it was (`check_netplay_compat.sh` unchanged).
+
+The rigs play without it (§26: a gameplay mod is off in a rig unless the run names it). A recording
+of an online arcade friendly plays again with `--srp-resim=<file> --mods=arcade` (the layout hash
+then includes the words).
+
+`SWOS_MOD_MATCH_TEST=arcade[:seconds]` (`--mods=arcade`, `SWOS_HARNESS_TURBO=1 SWOS_SKIP_INTRO=1`)
+plays one GOLDEN GOAL friendly CPU v CPU headless and passes when the rules decided it: a golden goal
+or, level at the limit, a shoot-out.
