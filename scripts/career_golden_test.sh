@@ -90,7 +90,7 @@ play() {
         *)     cp "$FIXTURES/$what" "$dir/" || return 2 ;;
     esac
     ( cd bin && env ${ENVS[$1]:-} HOME="$HOMEDIR" SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy SWOS_HARNESS_TURBO=1 \
-        timeout 900 ./SWOS.x86_64 ${WORLD[$1]:+--world=${WORLD[$1]}} \
+        timeout -s KILL 900 ./SWOS.x86_64 ${WORLD[$1]:+--world=${WORLD[$1]}} \
         --career-golden="$what" --golden-seasons="$SEASONS" \
         --golden-out="$PWD/../$dir" ) > "$dir/run.log" 2>&1
     grep -q '^\[golden\] done' "$dir/run.log"

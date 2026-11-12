@@ -29,6 +29,7 @@
 #include "statistics.h"
 #include "transfer_market.h"
 #include "league_playoffs.h"
+#include "league_split.h"     /* LeagueSplit_InZones: a league in zones */
 #include "world_playoff.h"
 #include "world_winners.h"
 #include "world_cups.h"
@@ -694,6 +695,15 @@ void ShowChairmanOpinionAboutTheSeason(void)
         int16_t pos4 = (int16_t)FindTeamInDIY(_selTeamNumber, (DIYCompetition *)&_euroCupsCompetitionContextBuf);
         if ((uint16_t)pos4 < 2)
             d7 -= _careerParams.board_euro_top2_bonus;
+    }
+
+    /* A world's league in zones (Argentina, Panama): each stage title won this season -- the
+     * Apertura, the Clausura -- counts as a cup won (the Mod 4.1.2's zp_bonus: -2 each). */
+    if (LeagueSplit_InZones(&_primaryCompetitionBuf)) {
+        const int32_t titles = WorldPlayoff_StageWins();
+        SWOS_DBG("[zones] the season-end opinion: place %d of %d in the club's zone (scaled), %d more expensive, "
+                 "verdict %d, %d stage title(s) won\n", (int)position, (int)numTeams, (int)rank, (int)d7, (int)titles);
+        d7 -= (int16_t)(2 * titles);
     }
 
     /* Clamp d7 to >= 0 */

@@ -934,8 +934,8 @@
     { 0xC5BDB, ".AFRICAN CLUBS CUP" },   /* a_africanClubsCup */
     { 0xC5BF4, "EUROPEAN CHAMPIONS CUP" },   /* aEuropeanChampionsCup */
     { 0xC5C0C, "EUROPEAN CUP" },   /* aEuropeanCup */
-    { 0xC5C24, "EUFA CUP" },   /* aEufaCup */
-    { 0xC5C3C, "EUFA CUP" },   /* aEufaCup_0 */
+    { 0xC5C24, "UEFA CUP" },   /* aEufaCup */
+    { 0xC5C3C, "UEFA CUP" },   /* aEufaCup_0 */
     { 0xC5C54, "EUROPEAN CUP-WINNERS CUP" },   /* aEuropeanCupWinnersCup */
     { 0xC5C6D, "EURO CW CUP" },   /* aEuroCwCup */
     { 0xC5C85, "SOUTH AMERICAN CUP" },   /* aSouthAmericanCup */

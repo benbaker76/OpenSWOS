@@ -756,8 +756,8 @@
     { 32832, "WORLD CLUB" },   /* aWorldClub */
     { 32843, "EUROPEAN CHAMPIONS CUP" },   /* aEuropeanChampi_1 */
     { 32866, "EUROPEAN CUP" },   /* aEuropeanCup */
-    { 32879, "EUFA CUP" },   /* aEufaCup */
-    { 32888, "EUFA CUP" },   /* aEufaCup_0 */
+    { 32879, "UEFA CUP" },   /* aEufaCup */
+    { 32888, "UEFA CUP" },   /* aEufaCup_0 */
     { 32897, "EUROPEAN CUP-WINNERS CUP" },   /* aEuropeanCupWin */
     { 32922, "EURO CW CUP" },   /* aEuroCwCup */
     { 32934, "SOUTH AMERICAN CUP" },   /* aSouthAmericanC */

@@ -220,7 +220,30 @@ static int32_t main_round(int32_t c)    /* (its round of the game's contest, -1 
     return mr;
 }
 
-static uint8_t *make_main(int32_t c)
+/* The career calendar's last week (the Mod 4.1.2's cal_last: the latest of its entries). */
+static u8 cal_last(void)
+{
+    u8 last = 0;
+    const uint8_t *e = _teamSelectionKeyCache;
+    for (int32_t left = (int16_t)_teamSelectionKeyCacheCount; left > 0; left--) {
+        const TeamSelectionKeyCacheEntry *h = (const TeamSelectionKeyCacheEntry *)e;
+        if (h->sortKey > last)
+            last = h->sortKey;
+        if (!h->entryStride)
+            break;
+        e += h->entryStride;
+    }
+    return last;
+}
+
+/* now: a main round built mid-season (next_game) whose own weeks are already gone -- the Recopa
+ * after the club is out of the Libertadores' knockouts, its legs (weeks 104 / 112) played while
+ * it was still in it -- is played in the next weeks, the first and the one two later, as a tie
+ * built late (the Mod 4.1.2's ct_late, MC); not a knockout, or no room for them before the
+ * calendar's last week: not built (0) -- the season end plays it, as a round still waiting there
+ * (ct_finish). The Mod's game put such a leg past the calendar's end and the season never ended;
+ * ours put the contest in slot 3 with no match left to play. 0: as drawn. */
+static uint8_t *make_main(int32_t c, u8 now)
 {
     int32_t ncups = 0;
     const WorldContiCup *cups = World_ContiCups(&ncups);
@@ -239,8 +262,23 @@ static uint8_t *make_main(int32_t c)
         if (Q[0] == K_KO)
             ko[nko++] = round_byte(Q);
     }
-    const u8 begin = month(R[9]);
+    u8 begin = month(R[9]);
     u8 end = month(last[9]);
+    if (R[0] != K_GROUPS && end <= begin)   /* (a one-round cup, the Recopa's: a month's window) */
+        end = (u8)(begin + 8);
+    if (now && end <= now) {
+        const u8 lastWeek = cal_last();
+        if (R[0] != K_KO || now + 3 > lastWeek) {
+            SWOS_DBG("[conti] cup %d's main round (weeks %d-%d) not built at week %d: %s -- the season end "
+                     "plays it\n", (int)c, (int)begin, (int)end, (int)now,
+                     R[0] != K_KO ? "a group stage" : "no room before the calendar's last week");
+            return 0;
+        }
+        SWOS_DBG("[conti] cup %d's main round (weeks %d-%d) built late at week %d: weeks %d-%d (the calendar's "
+                 "last %d)\n", (int)c, (int)begin, (int)end, (int)now, (int)(now + 1), (int)(now + 3), (int)lastWeek);
+        begin = (u8)(now + 1);
+        end = (u8)(now + 3);
+    }
     s_rank = cups[c].rank;
     if (R[0] == K_GROUPS) {
         const int32_t ng = R[6], gs = R[7], n = ng * gs;
@@ -287,8 +325,6 @@ static uint8_t *make_main(int32_t c)
     *k = _cupWinnersCup;
     k->header.comp.compId = (int8_t)CONTI_MAIN_ID;
     g_contiMainCup = (uint8_t)c;
-    if (end <= begin)                   /* (a one-round cup, the Recopa's: a month's window) */
-        end = (u8)(begin + 8);
     k->header.comp.beginMonth = (int8_t)begin;
     k->header.comp.endMonth = (int8_t)end;
     k->header.teams = (int8_t)n;
@@ -304,16 +340,25 @@ static uint8_t *make_main(int32_t c)
     return (uint8_t *)k;
 }
 
-/* CT_SEG's contest: a tie (index 7) or a main round (8); 0 none. now: make_tie's. */
-static uint8_t *make_game(uint16_t *index, u8 now)
+/* CT_SEG's contest: a tie (index 7) or a main round (8); 0 none. now: make_tie's. late: built
+ * mid-season after a result (next_game, the Mod's ct_daily): a tie whose second week is past the
+ * calendar's last one would never be reached (the Mod 4.1.2) and a main round whose weeks are gone
+ * moves to the next ones (make_main) -- else not built, the season end plays it. */
+static uint8_t *make_game(uint16_t *index, u8 now, int32_t late)
 {
     uint8_t *rec = make_tie(now);
     if (rec) {
         *index = CONTI_TIE_INDEX;
+        if (late && (u8)s_tie.header.comp.endMonth > cal_last()) {
+            SWOS_DBG("[conti] a tie (weeks %d-%d) not built at week %d: past the calendar's last week %d -- the "
+                     "season end plays it\n", (int)(u8)s_tie.header.comp.beginMonth,
+                     (int)(u8)s_tie.header.comp.endMonth, (int)now, (int)cal_last());
+            return 0;
+        }
         return rec;
     }
     *index = CONTI_MAIN_INDEX;
-    return CT_SEG.kind != 0xFF && (CT_SEG.kind & 0x80) ? make_main(CT_SEG.cup) : 0;
+    return CT_SEG.kind != 0xFF && (CT_SEG.kind & 0x80) ? make_main(CT_SEG.cup, late ? now : 0) : 0;
 }
 
 /* The slot-3 contest the career club starts a season in: its first tie or main round (0 = none). */
@@ -321,7 +366,7 @@ uint8_t *Conti_SeasonTie(uint16_t *index)
 {
     if (!spec() || !ours())
         return 0;
-    uint8_t *rec = make_game(index, 0);
+    uint8_t *rec = make_game(index, 0, 0);
     if (rec)
         SWOS_DBG("[conti] season start: %s (contest %d)\n", *index == CONTI_TIE_INDEX ? "a tie" : "its main round",
                  (int)(uint8_t)((Competition *)rec)->compId);
@@ -338,10 +383,10 @@ uint8_t *Conti_RestoreTie(uint16_t index)
     if (index == CONTI_MAIN_INDEX) {    /* (its contest: the cup the loaded slot holds -- CT_SEG may be past
                                            its main round, its group place reported) */
         const uint8_t id = (uint8_t)((DIYCompetition *)_careerCompetitionSlotPtrTable[3])->field_2E;
-        return id == CONTI_MAIN_ID ? make_main(g_contiMainCup) : 0;
+        return id == CONTI_MAIN_ID ? make_main(g_contiMainCup, 0) : 0;
     }
     uint16_t now = 0;
-    uint8_t *rec = make_game(&now, week_now());
+    uint8_t *rec = make_game(&now, week_now(), 0);
     return now == index ? rec : 0;
 }
 
@@ -426,7 +471,7 @@ static void next_game(void)
     if (CT_SEG.kind == 0xFF || (CT_SEG.kind & 0x40))
         return;
     uint16_t index = 0;
-    uint8_t *rec = make_game(&index, week_now());
+    uint8_t *rec = make_game(&index, week_now(), 1);
     if (rec)
         into_slot3(rec, index);
 }
