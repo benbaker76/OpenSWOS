@@ -12,6 +12,8 @@
 #include "dos_gameplay.h"   /* ApplyGameStyle — DOS/Amiga match tuning */
 #include "endian_helpers.h"
 #include "game_types.h"
+#include "mod_hooks.h"   /* a gameplay mod's rules for a friendly */
+#include "mod_api.h"
 #include "play_match_menu.h"
 #include "string_utils.h"
 #ifdef SWOS_SDL_BUILD
@@ -1014,11 +1016,36 @@ cancelled:
  */
 __attribute__((used, externally_visible))
 void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
+    /* A gameplay mod's rules for a friendly (docs/MODS.md §36: the arcade mod's). Offline they
+     * are decided here, from the player's settings; in an online match (and a recording played
+     * again) they came with the host's kick-off state and setup, so nothing is decided here.
+     * What a mod asks of the setup -- the slow clock, the replays -- is the player's own again
+     * after the match. */
+    extern uint16_t _gameLength, _autoReplays;
+    int32_t online = 0, ruled = 0;
+    const uint16_t keepLength = _gameLength, keepReplays = _autoReplays;
+#ifdef SWOS_SDL_BUILD
+    { extern int32_t NetplayMatch_IsLive(void); online = NetplayMatch_IsLive(); }
+#endif
+    if (!online)
+        ModHooks_ClearMatchState();
+
     /* SetupPlayers: mode=0, maxSubs=_maxSubstitutes, excludeFlags=1, allowSquadChanges=1 */
     SetupPlayers(team1, team2, (int16_t)_maxSubstitutes, 1, 1, 0);
 
     if (_exitGameFlag != 0)
         goto done;
+
+    if (!online && _trainingGame == 0) {
+        ModFriendlyRules rules;
+        ruled = ModHooks_FriendlyRules(&rules);
+        if (ruled) {
+            if (rules.slowClock)
+                _gameLength = 3;
+            if (rules.autoReplays >= 0)
+                _autoReplays = (uint16_t)rules.autoReplays;
+        }
+    }
 
     /* Set game name */
     if (_trainingGame != 0) {
@@ -1027,13 +1054,16 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
         extern const char *ModMatch_Name(void);  /* a mod's match's own (mod_match.c) */
 #ifdef SWOS_SDL_BUILD
         extern int _gArcadeMode;
-        extern uint8_t _aArcadeMatchName[];   /* "GOLDEN GOAL" (arcade.c) */
 #endif
         if (ModMatch_Name())
             StringCopy((uint8_t *)ModMatch_Name(), _gameName);
+        else if (ModHooks_MatchName())          /* the rules it plays by ("GOLDEN GOAL") */
+            StringCopy((uint8_t *)ModHooks_MatchName(), _gameName);
 #ifdef SWOS_SDL_BUILD
-        else if (_gArcadeMode)
+        else if (_gArcadeMode) {
+            extern uint8_t _aArcadeMatchName[];   /* "GOLDEN GOAL" (arcade.c) */
             StringCopy(_aArcadeMatchName, _gameName);
+        }
 #endif
         else
         StringCopy(_aFriendly_1, _gameName);
@@ -1066,6 +1096,11 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
 
 done:
     _isCareer = 0;
+    if (ruled) {
+        _gameLength = keepLength;
+        _autoReplays = keepReplays;
+    }
+    ModHooks_ClearMatchState();     /* (a cup or a career match after it never sees them) */
 }
 
 /* ========================================================================

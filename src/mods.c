@@ -78,6 +78,17 @@ int32_t Mods_IsOn(const char *slug)
             return 1;
     return 0;
 }
+int32_t Mods_ChangesMatch(const char *slug)
+{
+    for (int32_t i = 0; i < s_count; i++)
+        if (strcmp(s_ids[i], slug) == 0)
+#ifdef SWOS_SDL_BUILD
+            return s_online[i] != 0;
+#else
+            return 1;
+#endif
+    return 0;
+}
 
 #ifdef SWOS_SDL_BUILD
 static uint32_t fnv(uint32_t h, const void *data, uint32_t n)

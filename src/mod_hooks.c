@@ -28,11 +28,99 @@ extern int32_t ModMatch_Quiet(void);        /* src/mod_match.c: a re-simulated f
     for (const ModDef *const *m_ = g_builtinMods; *m_; m_++)                             \
         if ((*m_)->hook && Mods_IsOn((*m_)->slug))
 
+/* ---- a gameplay mod's words of the match state (docs/MODS.md §36) ----
+ * Handed out once, at Init, to the mods that are on and change the match, in the built-in list's
+ * order: both players of an online match have the same such mods (Mods_OnlineSignature), so the
+ * same words are the same mod's on both. */
+uint32_t g_modMatchWords[MOD_MATCH_WORDS];
+static struct { const ModDef *def; uint8_t at, count; } s_words[8];
+static int32_t s_wordMods, s_wordsUsed;
+
+int32_t ModHooks_MatchWordsUsed(void) { return s_wordsUsed != 0; }
+
+static void hand_out_words(void)
+{
+    s_wordMods = s_wordsUsed = 0;
+    for (const ModDef *const *m = g_builtinMods; *m; m++) {
+        const uint8_t n = (*m)->matchWords;
+        if (!n || !Mods_IsOn((*m)->slug))
+            continue;
+        if (!Mods_ChangesMatch((*m)->slug)) {
+            fprintf(stderr, "[mods] %s: words of the match state are a gameplay mod's (its \"changes\")\n",
+                    (*m)->slug);
+            continue;
+        }
+        if (s_wordMods == (int32_t)(sizeof s_words / sizeof s_words[0]) || s_wordsUsed + n > MOD_MATCH_WORDS) {
+            fprintf(stderr, "[mods] %s: no room for its %u words of the match state (MOD_MATCH_WORDS)\n",
+                    (*m)->slug, (unsigned)n);
+            continue;
+        }
+        s_words[s_wordMods].def = *m;
+        s_words[s_wordMods].at = (uint8_t)s_wordsUsed;
+        s_words[s_wordMods].count = n;
+        s_wordMods++;
+        s_wordsUsed += n;
+        fprintf(stderr, "[mods] %s keeps %u words in the match state\n", (*m)->slug, (unsigned)n);
+    }
+    ModHooks_ClearMatchState();
+}
+
+uint32_t *ModApi_MatchState(const char *slug, int32_t *count)
+{
+    for (int32_t i = 0; slug && i < s_wordMods; i++)
+        if (strcmp(s_words[i].def->slug, slug) == 0) {
+            if (count)
+                *count = s_words[i].count;
+            return &g_modMatchWords[s_words[i].at];
+        }
+    if (count)
+        *count = 0;
+    return NULL;
+}
+
+void ModHooks_ClearMatchState(void)
+{
+    memset(g_modMatchWords, 0, sizeof g_modMatchWords);
+}
+
+int32_t ModHooks_FriendlyRules(ModFriendlyRules *out)
+{
+    int32_t armed = 0;
+    out->slowClock = 0;
+    out->autoReplays = -1;
+    EACH(friendlyRules) {
+        ModFriendlyRules one = { 0, -1 };
+        if ((*m_)->friendlyRules(&one)) {
+            armed = 1;
+            out->slowClock |= one.slowClock;
+            if (one.autoReplays >= 0)
+                out->autoReplays = one.autoReplays;
+        }
+    }
+    return armed;
+}
+
+const char *ModHooks_MatchName(void)
+{
+    EACH(matchName) {
+        const char *name = (*m_)->matchName();
+        if (name && name[0])
+            return name;
+    }
+    return NULL;
+}
+
+void ModHooks_MatchStep(void)
+{
+    EACH(matchStep) (*m_)->matchStep();
+}
+
 void ModHooks_Init(void)
 {
 #ifndef SWOS_SDL_BUILD
     { extern void ModApi_ReadSettings(void); ModApi_ReadSettings(); }   /* (save/MODS.INI, now: mod_api.c) */
 #endif
+    hand_out_words();
     EACH(init) (*m_)->init();
 }
 

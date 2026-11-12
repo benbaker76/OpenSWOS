@@ -554,6 +554,20 @@ void ModApi_Score(int16_t goals[2])
 
 uint32_t ModApi_MatchFrames(void) { return s_frames; }
 
+int32_t ModApi_MatchPhase(ModMatchPhase *out)
+{
+    extern volatile uint16_t _goalCameraMode;
+    extern uint16_t _replayState;
+    memset(out, 0, sizeof *out);
+    if (!_playGame)
+        return 0;
+    out->inPlay = (uint8_t)(_gameStatePl == ST_GAME_IN_PROGRESS);
+    out->shootout = (uint8_t)(_playingPenalties != 0);
+    out->goalCelebration = (uint8_t)(_goalCameraMode != 0);
+    out->replay = (uint8_t)(_replayState != 0);
+    return 1;
+}
+
 /* ---- the engine asks (include/mod_hooks.h) ---- */
 
 /* SetupPlayers: the sides, as the arcade cabinet sets them -- no prompts. 1 when it did. */

@@ -786,6 +786,9 @@ GameFrameResult GameLoop_Frame(void)
      * penalties. No-op unless _gArcadeMode (checked inside). */
     { extern void Arcade_MatchTick(void); Arcade_MatchTick(); }
 #endif
+    /* A gameplay mod's rules, every frame simulated (the arcade mod's golden goal, time limit,
+     * penalties: docs/MODS.md §36). No mod with them on: nothing. */
+    { extern void ModHooks_MatchStep(void); ModHooks_MatchStep(); }
     { extern void ModMatch_Frame(void); ModMatch_Frame(); }   /* (the mods: include/mod_api.h) */
     /* nullsub_8 — no-op */
     RASTER(RASTER_SIM);
