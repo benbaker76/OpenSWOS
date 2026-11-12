@@ -97,6 +97,12 @@
  * fork lists the ones its look is built on (SWOS United: dosmenus). */
 #define PROJECT_DEFAULT_MODS    ""
 
+/* OFF MODS: canonical mods this game turns OFF by default whatever their manifest's "default"
+ * says -- still listed, and a player may turn them on ([mods] enabled). Slugs, separated by commas
+ * or spaces. OpenSWOS: none. A fork lists the ones its game does without (SWOS United: the
+ * challenge packs that are not SWOS 2020's). */
+#define PROJECT_OFF_MODS        ""
+
 /* The menu shading mod's (dosmenus) look at start-up: 0 the PC's shading, 1 the Amiga's flat
  * menus (F5 switches it while the game runs). Both OpenSWOS and SWOS United: 1 (the owner, 2026-11-09). */
 #define PROJECT_MENU_LOOK_AMIGA 1

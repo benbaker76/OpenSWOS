@@ -470,7 +470,7 @@ have comes from the first.
 
 **Static mods** (2026-11-07, Playa's request for SWOS United) are canonical mods that are part of
 the game rather than a choice. `PROJECT_STATIC_MODS` in `include/project_identity.h` names them
-`PROJECT_DEFAULT_MODS` (same file) is the softer one: canonical mods a fork turns ON by default -- still listed, a player may turn them off (SWOS United: dosmenus).
+`PROJECT_DEFAULT_MODS` (same file) is the softer one: canonical mods a fork turns ON by default -- still listed, a player may turn them off (SWOS United: dosmenus). `PROJECT_OFF_MODS` (2026-11-12) is its opposite: canonical mods a fork turns OFF by default, still listed, a player may turn them on (SWOS United: `challenge-classics`, `challenge-collection`).
 by slug.
 - **Always on**, in the place a default mod takes, whatever their `"default"` and
   `[mods] disabled` say. A rig still takes only the cosmetic ones (§26), as for the defaults.
@@ -866,6 +866,9 @@ was: SWOS MASTERS first and waiting for the four, EUROPEAN CUPS, DOMESTIC COMPET
 CUPS (never released there) left out -- 73 challenges in 5 categories. Checked:
 `SWOS_MOD_MATCH_TEST=challenge:categories` prints the service's lines (SWOS MASTERS 2 with no
 progress, 0 with the four completed); every pack through the binary and back, field for field.
+**CLASSICS is a pack mod of its own** (2026-11-12): `challenge-classics` (OpenSWOS's six, from HOLD
+ON to THE COMEBACK, the same file and ids: progress is kept), no longer inside the `challenges`
+mod, which is now the engine alone -- so a fork can do without the pack (`PROJECT_OFF_MODS`).
 
 ## 19. Team packs (2026-11-04)
 

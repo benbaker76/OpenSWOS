@@ -1852,6 +1852,11 @@ struct App {
     m.changes = ManifestValue(j, "changes");
     if (m.changes.empty()) m.changes = "gameplay";
     m.byDefault = ManifestValue(j, "default") == "true";
+    if (canonical) {        // (the game's own rule, src/mods.c fork_default: the fork's lists win)
+      const std::vector<std::string> off = SplitList(PROJECT_OFF_MODS), on = SplitList(PROJECT_DEFAULT_MODS);
+      if (std::find(off.begin(), off.end(), m.slug) != off.end()) m.byDefault = false;
+      else if (std::find(on.begin(), on.end(), m.slug) != on.end()) m.byDefault = true;
+    }
     m.slot = ManifestValue(j, "slot");
     const std::string targets = ManifestValue(j, "targets");
     m.sdl = targets.find("\"sdl\"") != std::string::npos;

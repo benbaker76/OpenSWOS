@@ -1,0 +1,14 @@
+{
+ "uuid": "a8504286-e52e-589e-96b2-93b7b6788e50",
+ "id": "challenge-classics",
+ "name": "Challenge Classics",
+ "version": "1.0",
+ "author": "OpenSWOS",
+ "about": "Six challenges for MODES -> CHALLENGES: from HOLD ON to THE COMEBACK. OpenSWOS's own first pack, once part of the challenges mod.",
+ "targets": [
+  "sdl",
+  "amiga"
+ ],
+ "changes": "modes",
+ "default": true
+}
