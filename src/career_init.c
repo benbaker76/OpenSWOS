@@ -52,6 +52,7 @@ extern uint16_t _careerSeasonsCompleted;
 #include "world_winners.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_rules.h"
 extern uint16_t _currentSeasonShowing;
 extern uint16_t _seasonTransferQuota;
 extern uint16_t _pendingForeignPlayerCount;
@@ -282,6 +283,7 @@ void ChooseTeamAndStartCareer(void)
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
     Conti_Reset();
+    WorldRules_NewCareer();     /* (a world's keeper injuries: a new generator) */
     States_Reset();
     _teamsLoaded = 0;
     SelectTeamToManage();
@@ -681,6 +683,7 @@ void InitCareer(uint16_t teamNo)
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
     Conti_Reset();
+    WorldRules_NewCareer();     /* (a world's keeper injuries: a new generator) */
     States_Reset();
 
     DIY_LoadLeagueScratchFromTable();

@@ -94,8 +94,12 @@ enum {
     NETPLAY_SW_SHORT_PRESSES  = 0x01,
     NETPLAY_SW_KICKOFF_SYNC   = 0x04,
     NETPLAY_SW_CARDS_INJURIES = 0x10,
-    NETPLAY_SW_ALL            = NETPLAY_SW_SHORT_PRESSES | NETPLAY_SW_KICKOFF_SYNC | NETPLAY_SW_CARDS_INJURIES,
-    NETPLAY_SW_DEFAULT        = NETPLAY_SW_ALL,
+    /* STOPPAGE TIME: a world's added minutes (src/stoppage.c), the host's world setting
+     * `stoppage_time` -- no lobby row: it travels as the host has it (NETPLAY_COMPAT 13 on its branch, 14 merged) */
+    NETPLAY_SW_STOPPAGE       = 0x20,
+    NETPLAY_SW_ALL            = NETPLAY_SW_SHORT_PRESSES | NETPLAY_SW_KICKOFF_SYNC | NETPLAY_SW_CARDS_INJURIES |
+                                NETPLAY_SW_STOPPAGE,
+    NETPLAY_SW_DEFAULT        = NETPLAY_SW_SHORT_PRESSES | NETPLAY_SW_KICKOFF_SYNC | NETPLAY_SW_CARDS_INJURIES,
 };
 /* The switches the NEXT live match plays by, set at kick-off by the lobby on both
  * machines; -1 lets go (this machine's own settings, and the rest as this build plays). */

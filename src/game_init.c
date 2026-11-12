@@ -17,6 +17,7 @@
 #ifdef SWOS_SDL_BUILD
 #include "uniform.h"        /* a kit chosen for this match (UNIFORM screen) */
 #endif
+#include "world_rules.h"    /* a world's CPU cards / injuries, keeper injuries */
 
 /* ---- External globals (in SWOS2.s code/BSS sections) ---- */
 extern uintptr_t _currentScorer;
@@ -360,7 +361,8 @@ static int32_t NoLoadPause(void)
 __attribute__((used, externally_visible))
 void UpdatePlayerInjuries(TeamGame *tg, TeamFileEx *teamFileBase)
 {
-    if (teamFileBase->team.teamControls == 1)  /* TEAM_COMPUTER */
+    if (teamFileBase->team.teamControls == 1 &&    /* TEAM_COMPUTER (a world's CPU INJURIES: kept) */
+        !WorldRules_CpuOpen(WRULE_CPU_INJURIES))
         return;
 
     for (int16_t i = 15; i >= 0; i--) {
@@ -535,7 +537,8 @@ void ApplyPlayerStatusAfterSim(TeamGame *tg, TeamFileEx *teamFileBase)
     if (_trainingGame != 0)
         return;
 
-    if (teamFileBase->team.teamControls == 1)  /* TEAM_COMPUTER */
+    if (teamFileBase->team.teamControls == 1 &&    /* TEAM_COMPUTER (a world's CPU RED CARDS: kept) */
+        !WorldRules_CpuOpen(WRULE_CPU_CARDS))
         return;
 
     for (int16_t i = 15; i >= 0; i--) {
@@ -1134,6 +1137,9 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
     int16_t allowedInjuries;
     uint32_t avail;
 
+    /* A world's computer clubs field available players (CPU RED CARDS / CPU INJURIES): their
+     * injured and suspended starters swapped out for this match, the order back after it. */
+    WorldRules_CpuLineupsBegin(0, (TeamFileEx *)team1, (TeamFileEx *)team2, paramD3);
     _hilStarted = 0;
     /* The Rand2 save stack starts empty for every match.
      *
@@ -1336,12 +1342,14 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
     /* Process team 1 */
     AccumulateMatchGoalsIntoTeamFile(&_topTeamInGame, (TeamFileEx *)team1, (uint16_t)paramD7);
     UpdatePlayerInjuries(&_topTeamInGame, (TeamFileEx *)team1);
+    WorldRules_GkAfterMatch(&_topTeamInGame, (TeamFileEx *)team1);     /* (a world's keeper injuries) */
     ApplyPlayerStatusAfterSim(&_topTeamInGame, (TeamFileEx *)team1);
     UpdateCareerPlayerStatsAfterMatch(&_topTeamInGame, (TeamFileEx *)team1);
 
     /* Process team 2 */
     AccumulateMatchGoalsIntoTeamFile(&_bottomTeamInGame, (TeamFileEx *)team2, (uint16_t)paramD7);
     UpdatePlayerInjuries(&_bottomTeamInGame, (TeamFileEx *)team2);
+    WorldRules_GkAfterMatch(&_bottomTeamInGame, (TeamFileEx *)team2);
     ApplyPlayerStatusAfterSim(&_bottomTeamInGame, (TeamFileEx *)team2);
     UpdateCareerPlayerStatsAfterMatch(&_bottomTeamInGame, (TeamFileEx *)team2);
 
@@ -1364,5 +1372,6 @@ post_match:
     }
 
     PrepareMenuForFadeIn();
+    WorldRules_CpuLineupsEnd(0);
     /* gameCanceled is tested by caller via return/tst.w */
 }

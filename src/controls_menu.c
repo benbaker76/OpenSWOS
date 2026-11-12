@@ -41,6 +41,8 @@ enum {
     ControlsMenu_clear,
     ControlsMenu_exit,
     ControlsMenu_touchLabel, ControlsMenu_touch,    /* (appended: a phone's only) */
+    ControlsMenu_deviceLabel, ControlsMenu_device,  /* (appended: P1 AND P2 ON KEYBOARD, the desktops') */
+    ControlsMenu_playerLabel, ControlsMenu_player,  /* (whose keys the rows show) */
     ControlsMenu_kNumEntries
 };
 
@@ -53,6 +55,14 @@ extern void        InputSDL_SetPressLatch(int on);
 extern int         InputSDL_PressLatch(void);
 extern void        InputSDL_CaptureKey(int on);
 extern int32_t     InputSDL_CapturedKey(void);
+extern void        InputSDL_SetP2Keyboard(int on);
+extern int         InputSDL_P2Keyboard(void);
+extern int         InputSDL_SetP2KeyBinding(int which, const char *name);
+extern const char *InputSDL_P2KeyBindingName(int which);
+extern const char *InputSDL_P2KeyBindingSaved(int which);
+
+/* The rows show (and redefine) player 1's keys, or player 2's for P1 AND P2 ON KEYBOARD. */
+static int32_t s_p2;
 
 extern void      MenuCheckControls(void);
 extern void      CallDrawMenuItem(MenuEntry *entry);
@@ -93,6 +103,10 @@ static void save(void)
     for (i = 0; i < kKeys; i++)
         snprintf(g_arcadeOpts->key_bind[i], sizeof g_arcadeOpts->key_bind[i], "%s", InputSDL_KeyBindingName(i));
     g_arcadeOpts->latch_presses = InputSDL_PressLatch();
+    g_arcadeOpts->p2_keyboard = InputSDL_P2Keyboard();
+    for (i = 0; i < kKeys; i++)
+        snprintf(g_arcadeOpts->p2_key_bind[i], sizeof g_arcadeOpts->p2_key_bind[i], "%s",
+                 InputSDL_P2KeyBindingSaved(i));
     g_arcadeOpts->touch_controls = TouchControls_Mode();
     if (g_arcadeIniPath)
         Settings_Save(g_arcadeOpts, g_arcadeIniPath);
@@ -108,6 +122,11 @@ static void refresh(void)
 
     for (i = 0; i < kKeys; i++) {
         const char *name = InputSDL_KeyBindingName(i);
+        if (s_p2) {                     /* (player 2's: his keys alone, no built-in ones) */
+            upper(s_rowText[i], sizeof s_rowText[i], InputSDL_P2KeyBindingName(i));
+            entry_at(ControlsMenu_up + 2 * i)->fg = (uintptr_t)s_rowText[i];
+            continue;
+        }
         if (name[0]) {
             char own[16];
             upper(own, sizeof own, name);
@@ -122,6 +141,8 @@ static void refresh(void)
     entry_at(ControlsMenu_touch)->fg = (uintptr_t)(TouchControls_Mode() == TOUCH_CONTROLS_NEVER ? "NEVER"
                                                  : TouchControls_Mode() == TOUCH_CONTROLS_ALWAYS ? "ALWAYS" : "AUTO");
     entry_at(ControlsMenu_note)->fg = (uintptr_t)s_note;
+    entry_at(ControlsMenu_device)->fg = (uintptr_t)(InputSDL_P2Keyboard() ? "P1 AND P2 ON KEYBOARD" : "PLAYER 1");
+    entry_at(ControlsMenu_player)->fg = (uintptr_t)(s_p2 ? "PLAYER 2" : "PLAYER 1");
 }
 
 /* The keys that are controls already, whatever is chosen here: a second meaning for one of
@@ -171,7 +192,10 @@ static void choose(int32_t which)
     if (sc == SDL_SCANCODE_ESCAPE)
         return;
     if (sc == SDL_SCANCODE_BACKSPACE || sc == SDL_SCANCODE_DELETE) {
-        InputSDL_SetKeyBinding(which, "");
+        if (s_p2)
+            InputSDL_SetP2KeyBinding(which, "");    /* (player 2's: back to the default) */
+        else
+            InputSDL_SetKeyBinding(which, "");
         save();
         return;
     }
@@ -186,12 +210,16 @@ static void choose(int32_t which)
         return;
     }
     for (i = 0; i < kKeys; i++) {
-        if (i != which && SDL_GetScancodeFromName(InputSDL_KeyBindingName(i)) == sc) {
+        /* (one key, one control: player 1's own and player 2's together) */
+        if (((s_p2 || i != which) && SDL_GetScancodeFromName(InputSDL_KeyBindingName(i)) == sc) ||
+            ((!s_p2 || i != which) && SDL_GetScancodeFromName(InputSDL_P2KeyBindingName(i)) == sc &&
+             (s_p2 || InputSDL_P2Keyboard()))) {
             snprintf(s_note, sizeof s_note, "%s IS ALREADY USED", name);
             return;
         }
     }
-    if (InputSDL_SetKeyBinding(which, SDL_GetScancodeName(sc)) != 0) {
+    if ((s_p2 ? InputSDL_SetP2KeyBinding(which, SDL_GetScancodeName(sc))
+              : InputSDL_SetKeyBinding(which, SDL_GetScancodeName(sc))) != 0) {
         note("THAT KEY CANNOT BE USED");
         return;
     }
@@ -219,9 +247,18 @@ static void controlsMenu_OnInit(void)
 #endif
     entry_at(ControlsMenu_touchLabel)->isInvisible = !touch;
     entry_at(ControlsMenu_touch)->isInvisible = !touch;
-    nav(ControlsMenu_latch, ControlsMenu_fire, touch ? ControlsMenu_touch : ControlsMenu_clear);
-    nav(ControlsMenu_clear, touch ? ControlsMenu_touch : ControlsMenu_latch, -1);
-    nav(ControlsMenu_exit,  touch ? ControlsMenu_touch : ControlsMenu_latch, -1);
+    /* P1 AND P2 ON KEYBOARD and whose keys: the desktops' (a phone has the touch row there) */
+    entry_at(ControlsMenu_deviceLabel)->isInvisible = touch;
+    entry_at(ControlsMenu_device)->isInvisible = touch;
+    entry_at(ControlsMenu_playerLabel)->isInvisible = touch;
+    entry_at(ControlsMenu_player)->isInvisible = touch;
+    if (touch)
+        s_p2 = 0;
+    nav(ControlsMenu_latch, ControlsMenu_fire, touch ? ControlsMenu_touch : ControlsMenu_device);
+    nav(ControlsMenu_device, ControlsMenu_latch, ControlsMenu_player);
+    nav(ControlsMenu_player, ControlsMenu_device, ControlsMenu_clear);
+    nav(ControlsMenu_clear, touch ? ControlsMenu_touch : ControlsMenu_player, -1);
+    nav(ControlsMenu_exit,  touch ? ControlsMenu_touch : ControlsMenu_player, -1);
     note("");
     refresh();
 }
@@ -246,6 +283,23 @@ static void controlsMenu_latch_OnSelect(void)
     save();
 }
 
+/* KEYBOARD: [input] p2_keyboard -- PLAYER 1, or P1 AND P2 ON KEYBOARD (the SWOS 96/97 Mod
+ * 4.1's device). */
+static void controlsMenu_device_OnSelect(void)
+{
+    InputSDL_SetP2Keyboard(!InputSDL_P2Keyboard());
+    s_p2 = InputSDL_P2Keyboard();       /* (his keys on show: what was just chosen) */
+    note(InputSDL_P2Keyboard() ? "PLAYER 2 ON THESE KEYS, OFFLINE MATCHES" : "THE KEYBOARD IS PLAYER 1'S");
+    save();
+}
+
+/* KEYS OF: whose keys the rows show and redefine. */
+static void controlsMenu_player_OnSelect(void)
+{
+    s_p2 = !s_p2;
+    note(s_p2 && !InputSDL_P2Keyboard() ? "USED WITH P1 AND P2 ON KEYBOARD" : "");
+}
+
 /* ON-SCREEN: [input] touch_controls, AUTO -> ALWAYS -> NEVER. */
 static void controlsMenu_touch_OnSelect(void)
 {
@@ -260,8 +314,12 @@ static void controlsMenu_touch_OnSelect(void)
 static void controlsMenu_clear_OnSelect(void)
 {
     int32_t i;
-    for (i = 0; i < kKeys; i++)
-        InputSDL_SetKeyBinding(i, "");
+    for (i = 0; i < kKeys; i++) {
+        if (s_p2)
+            InputSDL_SetP2KeyBinding(i, "");    /* (player 2's: W S A D, LEFT SHIFT) */
+        else
+            InputSDL_SetKeyBinding(i, "");
+    }
     note("");
     save();
 }
@@ -285,6 +343,8 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(controlsMenu_fire_OnSelect),
     HANDLER(controlsMenu_latch_OnSelect),
     HANDLER(controlsMenu_touch_OnSelect),
+    HANDLER(controlsMenu_device_OnSelect),
+    HANDLER(controlsMenu_player_OnSelect),
     HANDLER(controlsMenu_clear_OnSelect),
     HANDLER(controlsMenu_exit_OnSelect),
 };

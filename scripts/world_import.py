@@ -30,7 +30,9 @@ Coppa Italia and Coppa Italia Serie C from the real draw (include/world_cups.h).
 country stays 96/97's (the overlay falls back to it).
 
 What our engine cannot show yet is mapped, and counted on the way:
-  - 16 players a team (the Mod's extra 14 are left out);
+  - 16 players a team; the Mod's extra squad players (its long benches' 17-30) are kept apart,
+    "extra_players" beside "players" (the same fields and ids), which the game reads past --
+    its long benches and CPU replacements will play them (docs/WORLD_2026_27.md, the Mod 4.1);
   - nationalities past the Mod's 213 (none in 2026-27) -> the club's country's;
   - shirt numbers outside 1..99 -> the free ones.
 
@@ -127,12 +129,19 @@ def team(entry, country, ordinal, global_number, league, home_nation):
         counts["purple kits"] += 1
     players = [player(p, home_nation) for p in entry["players"]]
     shirt_numbers(players)
+    # The Mod's extra squad players (x_swos9697 "extra_players", its long benches' 17..30): kept
+    # apart, numbered after the 16 (whose numbers stay as they were), ids from 16 on.
+    extras = [player(p, home_nation) for p in x.get("extra_players") or []]
+    if extras:
+        counts["extra squad players kept apart (extra_players)"] += len(extras)
+        shirt_numbers(players + extras)
     club = x.get("club_id") or "club:%d.%d" % (country, ordinal)
     tid = str(uuid.uuid5(NAMESPACE, "2627/team/%s" % club))
-    for i, p in enumerate(players):
-        p_out = {"uuid": str(uuid.uuid5(NAMESPACE, "2627/team/%s/player/%d" % (club, i)))}
-        p_out.update(p)
-        players[i] = p_out
+    for group, first in ((players, 0), (extras, 16)):
+        for i, p in enumerate(group):
+            p_out = {"uuid": str(uuid.uuid5(NAMESPACE, "2627/team/%s/player/%d" % (club, first + i)))}
+            p_out.update(p)
+            group[i] = p_out
     names = ("shirt_type", "stripes_color", "basic_color", "shorts_color", "socks_color")
     head = {
         "country_number": country, "team_ordinal": ordinal,
@@ -148,7 +157,10 @@ def team(entry, country, ordinal, global_number, league, home_nation):
     head["coach_name"] = t["coach_name"]
     head["player_values_dirty"] = t["some_flag"] & 255
     head["player_numbers"] = [n & 255 for n in t["player_numbers"]]
-    return {"uuid": tid, "checksum": checksum(players), "team": head, "players": players}
+    out = {"uuid": tid, "checksum": checksum(players), "team": head, "players": players}
+    if extras:
+        out["extra_players"] = extras       # (not in the checksum: what a match plays is the 16)
+    return out
 
 
 SERIE_C_GROUPS = 3          # Serie C: three groups side by side under Serie B

@@ -27,6 +27,7 @@
 #include "diy_competition.h"
 #include "deterministic.h"
 #include "auto_skip_debug.h"
+#include "world_rules.h"         /* a world's CPU cards / injuries, keeper injuries */
 
 /* Team control type constants (matching play_match_menu.h) */
 #ifndef TEAM_COMPUTER
@@ -411,9 +412,35 @@ static void AssignSimulatedGoalsToScorers(TeamFileEx *team, uint8_t *remapTable,
  * ApplyRandomPlayerStatusAfterSim
  * Applies random injury/card/status changes to players after simulation.
  * ================================================================ */
+static void ApplyRandomPlayerStatusAfterSimBody(TeamFileEx *team, uint8_t *remapTable);
+
+/* A computer club's records written only for the kinds a world keeps (CPU RED CARDS / CPU
+ * INJURIES, world_rules.c): the call opens for either, then the other kind's bits go back. */
+static void cpu_kept(TeamFileEx *team, uint8_t *remapTable,
+                     void (*body)(TeamFileEx *, uint8_t *))
+{
+    uint8_t keep = 0, was[16];
+    if (team->team.teamControls == 1) {
+        if (!WorldRules_CpuAny())
+            return;
+        if (!WorldRules_CpuOpen(WRULE_CPU_CARDS))    keep |= 0x1F;
+        if (!WorldRules_CpuOpen(WRULE_CPU_INJURIES)) keep |= 0xE0;
+        for (int32_t i = 0; i < 16; i++)
+            was[i] = team->players[i].cardsInjuries;
+    }
+    body(team, remapTable);
+    if (keep)
+        for (int32_t i = 0; i < 16; i++)
+            team->players[i].cardsInjuries =
+                (uint8_t)((team->players[i].cardsInjuries & ~keep) | (was[i] & keep));
+}
+
 static void ApplyRandomPlayerStatusAfterSim(TeamFileEx *team, uint8_t *remapTable) {
     if (_trainingGame) return;
-    if (team->team.teamControls == 1) return;
+    cpu_kept(team, remapTable, ApplyRandomPlayerStatusAfterSimBody);
+}
+
+static void ApplyRandomPlayerStatusAfterSimBody(TeamFileEx *team, uint8_t *remapTable) {
     /* The testers' rule (test_rules.h): never assign post-match injuries / cards, so
      * the tester can VIEW RESULT through a season without substitution prompts. */
     if (TestRules_NoInjuriesCards())
@@ -582,8 +609,13 @@ static void ApplyRandomPlayerStatusAfterSim(TeamFileEx *team, uint8_t *remapTabl
  * substitution / VIEW RESULT prompt treats the same as a real injury.
  * ================================================================ */
 __attribute__((used, externally_visible))
+static void InitPlayerRemapTableForTeamBody(TeamFileEx *team, uint8_t *remapTable);
+
 void InitPlayerRemapTableForTeam(TeamFileEx *team, uint8_t *remapTable) {
-    if (team->team.teamControls == 1) return;
+    cpu_kept(team, remapTable, InitPlayerRemapTableForTeamBody);
+}
+
+static void InitPlayerRemapTableForTeamBody(TeamFileEx *team, uint8_t *remapTable) {
     /* The testers' rule (test_rules.h): never assign post-match status buckets, so
      * the tester can VIEW RESULT through a season without IsPlayerInjured flagging
      * anyone unavailable. */
@@ -913,6 +945,9 @@ void CalculateViewResult(DIYCompetition *ctx, uint16_t modeFlag,
     viewResultStatColumnIndex = statColumnIndex;
     viewResultTeam1Ptr = team1;
     viewResultTeam2Ptr = team2;
+    /* A world's computer clubs field available players (CPU RED CARDS / CPU INJURIES): their
+     * injured and suspended starters swapped out for this result, the order back after it. */
+    WorldRules_CpuLineupsBegin(1, team1, team2, (int16_t)_inEditTactics);
 
     /* Clear goal counters (32 bytes each) — longword stores to avoid
      * GCC generating memset calls (no libc). */
@@ -942,6 +977,8 @@ void CalculateViewResult(DIYCompetition *ctx, uint16_t modeFlag,
     /* Apply random player status */
     ApplyRandomPlayerStatusAfterSim(team1, team1PlayerRemapTable);
     ApplyRandomPlayerStatusAfterSim(team2, team2PlayerRemapTable);
+    WorldRules_GkAfterSim(team1, team1PlayerRemapTable);     /* (a world's keeper injuries) */
+    WorldRules_GkAfterSim(team2, team2PlayerRemapTable);
 
     /* Compute old player skill (view base index) */
     /* Note: for team1, the goals-in parameter is team2's goals (opponent's goals) */
@@ -1096,6 +1133,7 @@ void CalculateViewResult(DIYCompetition *ctx, uint16_t modeFlag,
                           (unsigned)*outTeam1Goals, (unsigned)*outTeam2Goals);
     }
 #endif
+    WorldRules_CpuLineupsEnd(1);
 }
 
 /* ================================================================

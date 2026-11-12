@@ -311,6 +311,73 @@ static int bound_action(SDL_Scancode sc)
     return -1;
 }
 
+/* ---- P1 AND P2 ON KEYBOARD: [input] p2_keyboard, p2_key_up ... p2_key_fire ----
+ *
+ * The SWOS 96/97 Mod 4.1's CONTROLS device (its CONTROL2.DAT): player 2 on the same keyboard,
+ * W / S / A / D and LEFT SHIFT by default, redefinable as player 1's own keys. Player 1 keeps
+ * everything (the cursor keys, CTRL / ENTER, his own keys, which come first). Player 2's keys are
+ * controls and nothing else while the device is chosen, as player 1's own are (W no longer calls
+ * the bench). Offline only: an online match reads each game's player 1
+ * (InputSDL_LocalMatchControls), so it is as it always was. Not chosen (the default), nothing
+ * here is read and the keyboard is exactly as before. */
+static int s_p2kbd_on;
+static SDL_Scancode s_p2bind[BIND_COUNT] = {
+    SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_LSHIFT,
+};
+static const SDL_Scancode k_p2default[BIND_COUNT] = {
+    SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_LSHIFT,
+};
+static uint8_t s_p2down[BIND_COUNT];
+
+void InputSDL_SetP2Keyboard(int on)
+{
+    s_p2kbd_on = on != 0;
+    memset(s_p2down, 0, sizeof s_p2down);
+}
+int InputSDL_P2Keyboard(void) { return s_p2kbd_on; }
+
+/* Player 2's key `which` (0 up .. 4 fire): an SDL scancode name, or "" for the default. 0, or 1
+ * for a name SDL does not know. */
+int InputSDL_SetP2KeyBinding(int which, const char *name)
+{
+    SDL_Scancode sc = k_p2default[which < 0 || which >= BIND_COUNT ? 0 : which];
+    if (which < 0 || which >= BIND_COUNT)
+        return 1;
+    if (name && name[0]) {
+        sc = SDL_GetScancodeFromName(name);
+        if (sc == SDL_SCANCODE_UNKNOWN)
+            return 1;
+    }
+    s_p2bind[which] = sc;
+    return 0;
+}
+
+const char *InputSDL_P2KeyBindingName(int which)
+{
+    if (which < 0 || which >= BIND_COUNT)
+        return "";
+    return SDL_GetScancodeName(s_p2bind[which]);
+}
+
+/* As SWOS.ini keeps it: "" when it is the default. */
+const char *InputSDL_P2KeyBindingSaved(int which)
+{
+    if (which < 0 || which >= BIND_COUNT || s_p2bind[which] == k_p2default[which])
+        return "";
+    return SDL_GetScancodeName(s_p2bind[which]);
+}
+
+static int p2_action(SDL_Scancode sc)
+{
+    int i;
+    if (!s_p2kbd_on || sc == SDL_SCANCODE_UNKNOWN || _gTextInputActive)
+        return -1;
+    for (i = 0; i < BIND_COUNT; i++)
+        if (s_p2bind[i] == sc)
+            return i;
+    return -1;
+}
+
 /* ---- A press is never lost between two reads: [input] latch_presses ----
  *
  * The match reads fire as a LEVEL, once a frame: down or up at that moment. A press whose
@@ -432,13 +499,13 @@ const char *InputSDL_Player1DeviceName(void)
 static int pref_no_pad(int player);
 
 /* Two players, one pad (InputSDL_PostFrame): player 1's pad is player 2's, the keyboard player 1's
- * -- unless player 2 is set to have none. */
+ * -- unless player 2 is set to have none, or plays on the keyboard (P1 AND P2 ON KEYBOARD). */
 static int split_pad(void)
 {
     extern uint16_t _twoPlayers;
     extern int32_t  NetplayMatch_Enabled(void);
     return _twoPlayers != 0 && s_player_dev[1] < 0 && s_player_dev[0] >= 0 && !NetplayMatch_Enabled() &&
-           !pref_no_pad(1);
+           !pref_no_pad(1) && !s_p2kbd_on;     /* (player 2 on the keyboard: has one) */
 }
 
 /* Whether player 1 / 2 (0, 1) plays on a pad -- as InputSDL_PostFrame reads them: when two players
@@ -1411,6 +1478,12 @@ void InputSDL_HandleEvent(const SDL_Event *e)
             }
             break;
         }
+        /* Player 2's on the keyboard (P1 AND P2 ON KEYBOARD): a control, and nothing else. */
+        act = p2_action(e->key.keysym.scancode);
+        if (act >= 0) {
+            s_p2down[act] = 1;
+            break;
+        }
         int a = sdl_to_amiga(e->key.keysym.sym);
         /* Arrow keys drive joy1Dat directly (s_kbd_up/down/left/right
          * below) so we DON'T also push their Amiga scancodes into
@@ -1543,6 +1616,14 @@ void InputSDL_HandleEvent(const SDL_Event *e)
                 } else {
                     kbd_arrow(arrow[act], 0);
                 }
+                if (!_gTextInputActive)
+                    break;
+            }
+            for (i = 0, act = -1; s_p2kbd_on && i < BIND_COUNT; i++)
+                if (s_p2bind[i] == e->key.keysym.scancode)
+                    act = i;
+            if (act >= 0) {
+                s_p2down[act] = 0;
                 if (!_gTextInputActive)
                     break;
             }
@@ -1942,6 +2023,7 @@ void InputSDL_ClearKeyState(void)
     s_kbd_held_up = s_kbd_held_down = s_kbd_held_left = s_kbd_held_right = 0;
     s_kbd_fire_keys = 0;
     s_fire_event = s_fire_event_pad = 0;    /* a press from before is not one in what comes next */
+    memset(s_p2down, 0, sizeof s_p2down);
     s_kbd_skip = 0;
     s_touch_dirs = s_touch_fire = 0;
     _pauseSkipRequested = 0;
@@ -2214,8 +2296,26 @@ int InputSDL_SelfTest(void)
         InputSDL_SetEscPresses(1);
     }
 
+    /* P1 AND P2 ON KEYBOARD: W / LEFT SHIFT are player 2's, never a game key; off, they are
+     * what they were. */
     for (i = 0; i < BIND_COUNT; i++)
         InputSDL_SetKeyBinding(i, "");
+    InputSDL_ClearKeyState();
+    InputSDL_SetP2Keyboard(1);
+    keys = _keyCount;
+    selftest_key(SDL_SCANCODE_W, SDLK_w, 1);
+    selftest_key(SDL_SCANCODE_LSHIFT, SDLK_LSHIFT, 1);
+    EXPECT(s_p2down[BIND_UP] && s_p2down[BIND_FIRE], "P2 keyboard: W and LEFT SHIFT are player 2's");
+    EXPECT(_keyCount == keys, "P2 keyboard: W is no game key");
+    EXPECT(!(InputSDL_LocalMatchControls() & 0x2F), "P2 keyboard: player 1 untouched");
+    selftest_key(SDL_SCANCODE_W, SDLK_w, 0);
+    selftest_key(SDL_SCANCODE_LSHIFT, SDLK_LSHIFT, 0);
+    EXPECT(!s_p2down[BIND_UP] && !s_p2down[BIND_FIRE], "P2 keyboard: released");
+    InputSDL_SetP2Keyboard(0);
+    keys = _keyCount;
+    selftest_key(SDL_SCANCODE_W, SDLK_w, 1);
+    EXPECT(_keyCount != keys && !s_p2down[BIND_UP], "P2 keyboard off: W is the game's W again");
+    selftest_key(SDL_SCANCODE_W, SDLK_w, 0);
     InputSDL_ClearKeyState();
 #undef EXPECT
     fprintf(stderr, "[input-selftest] %s\n", fails ? "FAILED" : "ok");
@@ -2299,6 +2399,13 @@ void InputSDL_PostFrame(void)
      * plugged in but unused. */
     int p2_up = 0, p2_down = 0, p2_left = 0, p2_right = 0, p2_fire = 0;
     read_pad_state(split ? 0 : 1, &p2_up, &p2_down, &p2_left, &p2_right, &p2_fire, &skip);
+    if (s_p2kbd_on) {           /* P1 AND P2 ON KEYBOARD: player 2's keys too */
+        p2_up |= s_p2down[BIND_UP];
+        p2_down |= s_p2down[BIND_DOWN];
+        p2_left |= s_p2down[BIND_LEFT];
+        p2_right |= s_p2down[BIND_RIGHT];
+        p2_fire |= s_p2down[BIND_FIRE];
+    }
 
     _pauseSkipRequested = (uint16_t)(skip ? 1 : 0);
 

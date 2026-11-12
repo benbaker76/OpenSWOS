@@ -54,6 +54,7 @@
 #include "sim_state_ids.h"
 #include "match_step.h"
 #include "endian_helpers.h"
+#include "stoppage.h"         /* a world's stoppage time: match state */
 
 #include <stdlib.h>
 #include <string.h>
@@ -397,6 +398,7 @@ const SimStateRegion g_simStateRegions[] = {
     REGION(_currentGameTick, S, k_word16), REGION(_currentTick, S, k_word16), REGION(_lastGameTick, S, k_word16),
     REGION(_lastFrameTicks, S, k_word16), REGION(_frameCount, S, k_word16), REGION(_inGameCounter, S, k_word16),
     REGION(_gameSeconds, S, k_word16), REGION(_secondsSwitchAccumulator, S, k_word16), REGION(_gameTime, S, k_bytes),
+    REGION(g_stoppageB, S, k_bytes), REGION(g_stoppageW, S, k_word16), REGION(g_stoppageL, S, k_word32),
     REGION(_playGame, S, k_word16),
 
     /* input edges: what turning the players' inputs into game events remembers (match_step.h) */

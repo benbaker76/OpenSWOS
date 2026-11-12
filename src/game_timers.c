@@ -12,6 +12,7 @@
 #include "dos_sound.h"
 #include "game_types.h"
 #include "netplay_match.h"    /* NetplayMatch_IsLive: no goal replay online (SDL) */
+#include "stoppage.h"
 extern int32_t ModMatch_Active(void);   /* (mod_match.c: a mod's match is the one being played) */
 
 /* ---- Extern globals ---- */
@@ -495,6 +496,7 @@ void UpdateGameTimersAndCameraBreakMode(void)
     _gameNotInProgressCounterWriteOnly += 1;
     d0 = _lastFrameTicks;
     _stoppageTimerTotal += d0;
+    Stoppage_DeadBall(d0);      /* (a world's stoppage time counts the half's dead-ball ticks) */
 
     if (_gameStatePl == ST_WAITING_ON_PLAYER) {
         _stoppageTimerActive += d0;

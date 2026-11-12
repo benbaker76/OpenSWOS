@@ -28,6 +28,6 @@
 #ifndef NETPLAY_COMPAT_H
 #define NETPLAY_COMPAT_H
 
-#define NETPLAY_COMPAT 13     /* 13: SWOS 2020's AMIGA60 and MOON gameplay styles (the handshake's style byte 3 and 4: dos_mode.h); 12: a two-legged tie's first leg leaves its injuries and sendings-off on the second (netplay_lobby.c leg_carry); 11: the replay ring is 38000 bytes on SDL, the resync state with it (10: the handshake carries the mods that change the match; 9: the XBOX gameplay style, the handshake's style byte; 8: the host's crowd in the setup; 7: the lobby's match mode and service ids; 6: the lobby chat) */
+#define NETPLAY_COMPAT 14     /* 14: main's 13 and mod41-match's 13 merged (both changes in one build); 13 (main): SWOS 2020's AMIGA60 and MOON gameplay styles (the handshake's style byte 3 and 4: dos_mode.h); 13 (mod41-match): a world's stoppage time -- the host's switch 0x20 and its state in the match state (stoppage.c); 12: a two-legged tie's first leg leaves its injuries and sendings-off on the second (netplay_lobby.c leg_carry); 11: the replay ring is 38000 bytes on SDL, the resync state with it (10: the handshake carries the mods that change the match; 9: the XBOX gameplay style, the handshake's style byte; 8: the host's crowd in the setup; 7: the lobby's match mode and service ids; 6: the lobby chat) */
 
 #endif
