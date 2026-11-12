@@ -6,6 +6,7 @@
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
 #include "world_playoff.h"
+#include "world_stadium.h"   /* a world's stadium names (ShowStadiumInit) */
 #include "player_face3.h"
 #include "menus.h"
 #ifdef SWOS_SDL_BUILD
@@ -836,6 +837,28 @@ void ShowStadiumInit(void)
                 _menuEntries[31 - j].isInvisible = 1;
                 _menuEntries[58 - j].isInvisible = 1;
             }
+        }
+    }
+
+    /* A world's stadium name under the team bars (entry 60; world_stadium.c, the Mod 4.1's
+     * stadium.py): a neutral final's venue, else the home club's ground; none known, none shown. */
+    {
+        extern TeamFile *_gameTeam1;
+        extern uint16_t _currentSeasonShowing;
+        const char *ground = _gameTeam1 && !_trainingGame
+            ? WorldStadium_Name((uint8_t)_gameTeam1->countryNumber, (uint8_t)_gameTeam1->teamOrdinal,
+                                (const char *)_gameName, (const char *)_gameRound,
+                                (int32_t)_currentSeasonShowing + 1)
+            : 0;
+        uint8_t *d = (uint8_t *)_menuEntries[60].fg;
+        if (ground && d && _menuEntries[60].fg != 0xFFFFFFFF) {
+            int32_t k = 0;
+            while (ground[k] && k < WORLD_STADIUM_NAME_MAX) {
+                d[k] = (uint8_t)ground[k];
+                k++;
+            }
+            d[k] = 0;
+            _menuEntries[60].isInvisible = 0;
         }
     }
 
@@ -2166,6 +2189,19 @@ void ChangePitchStyle(MenuEntry *entry)
  * to go back to, so the choice is played from the NEXT start: the row shows it, SWOS.ini keeps it,
  * and a message says so. 2026-27 only once its data is installed (OpenSWOS Setup: its package,
  * data_json/worlds/2627/WORLD.ini) -- else the row stays and the message says where to get it. */
+/* The main menu's WORLD button (entry 17; the SWOS 96/97 Mod 4.1's world selector): the world
+ * chosen, as OPTIONS -> WORLD's row -- the same choice, played from the next start. */
+static void main_menu_world_label(MenuEntry *e)
+{
+    extern uint16_t _worldOption;
+    const char *t = _worldOption ? "WORLD: 2026-27" : "WORLD: 1996-97";
+    uint8_t *d = (uint8_t *)e->fg;
+    if (!d || e->fg == 0xFFFFFFFF)
+        return;
+    while ((*d++ = (uint8_t)*t++) != 0)
+        ;
+}
+
 __attribute__((used, externally_visible))
 void ChangeWorld(MenuEntry *entry)
 {
@@ -2196,6 +2232,8 @@ void ChangeWorld(MenuEntry *entry)
         fclose(f);
     }
     _worldOption = (uint16_t)want;
+    if (entry == &_menuEntries[17] && Menu_IsMainMenu())
+        main_menu_world_label(entry);
     if (g_arcadeOpts) {
         snprintf(g_arcadeOpts->world, sizeof g_arcadeOpts->world, "%s", want ? "2627" : "9697");
         if (g_arcadeIniPath)
@@ -2214,6 +2252,12 @@ void ChangeWorld(MenuEntry *entry)
 #else
     (void)entry;
 #endif
+}
+
+__attribute__((used, externally_visible))
+void MainMenuWorld(void)
+{
+    ChangeWorld(&_menuEntries[17]);
 }
 
 /* OPTIONS -> LANGUAGE: the menus' language -- [general] language in SWOS.ini
@@ -2822,8 +2866,25 @@ extern void PrintFormatted(const uint8_t *fmt, uint8_t *out,
  * CONTINUE, SAVE, LOAD OLD COMPETITION, MULTIPLAYER (11-14), one column -- overlaps one, the
  * column ends short of them, every button alike. Where none overlaps nothing changes. Run last,
  * once the buttons are where they will be drawn. */
+static void main_menu_fit_lower_left(void)
+{
+    const MenuEntry *w = &_menuEntries[17];
+    if (w->isInvisible)
+        return;
+    for (int32_t e = 11; e <= 14; e++) {
+        MenuEntry *m = &_menuEntries[e];
+        const int32_t right = w->x + w->dwWidth + 4;
+        if (!m->isInvisible && m->x < right && w->x < m->x + m->dwWidth &&
+            m->y < w->y + w->dwHeight && w->y < m->y + m->dwHeight && m->x + m->dwWidth > right) {
+            m->dwWidth = (uint16_t)(m->x + m->dwWidth - right);
+            m->x = (uint16_t)right;
+        }
+    }
+}
+
 static void main_menu_fit_lower_right(void)
 {
+    main_menu_fit_lower_left();
     int32_t left = 0x7FFF, overlap = 0;
     for (int32_t s = 15; s <= 16; s++) {
         const MenuEntry *small = &_menuEntries[s];
@@ -2874,6 +2935,15 @@ void CommonMenuExit(void)
         _menuEntries[15].upEntry = (int8_t)(modes ? 16 : 13);   /* CREDITS up: MODES or LOAD OLD */
         _menuEntries[13].downEntry = (int8_t)(modes ? 16 : 15); /* LOAD OLD down: MODES or CREDITS */
     }
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    /* WORLD (entry 17): the world played from the next start, as OPTIONS -> WORLD (the Mod
+     * 4.1's main-menu selector); never on the Amiga (its world is its drawer's data/WORLD). */
+    _menuEntries[17].isInvisible = 0;
+    main_menu_world_label(&_menuEntries[17]);
+    _menuEntries[17].rightEntry = (int8_t)(_menuEntries[16].isInvisible ? 15 : 16);
+    _menuEntries[16].leftEntry = 17;
+    _menuEntries[15].leftEntry = 17;
+#endif
 #ifndef SWOS_NETPLAY
     /* OpenSWOS's MULTIPLAYER button (entry 14) plays over the network, so it is only
      * in a build that has the netplay library (make NETPLAY=1, docs/NETPLAY.md): never

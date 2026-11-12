@@ -22,6 +22,7 @@
  */
 
 #include "tweaks.h"
+#include "world_rules.h"   /* a world's bench info strip and the opponent's squad */
 #ifdef SWOS_SDL_BUILD
 #include <stdio.h>
 #endif      /* ai_injury_subs */
@@ -245,6 +246,13 @@ static void drawSubstitutesMenu(void);
 static void drawSubstitutesMenuEntry(uint16_t y, uint16_t baseColor, int16_t selectedIndex,
                                      uint8_t *charsTable, TeamGame *teamGame, uint16_t *playerOffsets);
 static void drawFormationMenu(void);
+/* (a world's bench info strip and OPPONENT SQUAD: the SWOS 96/97 Mod 4.1's bstrip.py / oppl.py) */
+#define SUBS_STATE_OPPONENT 5
+static uint16_t s_opponentPage;
+static int32_t opponentListAllowed(void);
+static void opponentListControls(void);
+static void drawOpponentList(void);
+static void benchInfoStrip(void);
 static void drawFormationMenuEntry(uint8_t *charsTable, uint16_t y, uint16_t entryColor, uint16_t entryIndex);
 
 /* Set by SetupPlayers from the original selected teams.  In career coach-only
@@ -812,6 +820,10 @@ static void benchMenuHandleControls(void)
             markPlayersMenuHandler();
             return;
         }
+        if (_subsState == SUBS_STATE_OPPONENT) {
+            opponentListControls();
+            return;
+        }
         return;
     }
 
@@ -877,6 +889,12 @@ static void benchMenuHandleControls(void)
             if (_trainingGame != 0) {
             training_swap:
                 trainingSwapBenchTeams();
+            } else if (opponentListAllowed()) {
+                /* a world's OPPONENT SQUAD: UP on the coach shows the other team (read only) */
+                _subsState = SUBS_STATE_OPPONENT;
+                s_opponentPage = 0;
+                _subsBlockFire = 1;
+                _overlayActiveFlag = 1;
             }
             return;
             /* dead code: benchPlayerIndex=6, fallthrough removed */
@@ -1916,6 +1934,9 @@ skip_opponent_1:
         drawFormationMenu();
     else if (_subsState == 4)
         drawSubstitutesMenu();
+    else if (_subsState == SUBS_STATE_OPPONENT)
+        drawOpponentList();
+    benchInfoStrip();       /* (a world's bench info strip: drawn only, no state) */
 }
 
 /* ================================================================
@@ -2496,6 +2517,209 @@ static void drawFormationMenuEntry(uint8_t *charsTable, uint16_t y, uint16_t ent
         uint16_t tx = _formationMenuX - Render_CameraX() + 30;
         DrawMenuTextCentered(tx, y, 2, textStr, charsTable);
     }
+}
+
+/* ================================================================
+ * A world's bench info strip and OPPONENT SQUAD (world_rules.h; the SWOS 96/97 Mod 4.1's
+ * tools/bstrip.py, Francesco's idea, and tools/oppl.py, Davide's -- MIT, Davide Lorigliola).
+ *
+ * The strip: on the bench (state 0, the arrow on a substitute) his row in the menu's header
+ * place and a box under it with his three best skills over his value, as the squad screens show
+ * them; in the substitutes menu (state 1) that box for the player going in, left of the picture,
+ * and one for the highlighted row, right of it -- the two compared. A goalkeeper: his value
+ * alone. DRAWN ONLY: every match variable it borrows is put back, so a netplay peer with it on
+ * and one with it off play the same match.
+ *
+ * OPPONENT SQUAD: UP on the coach opens the other team's list, read only -- its 11 in formation
+ * order, DOWN its substitutes still to come on, UP back to the 11, FIRE / LEFT / RIGHT back to
+ * the bench. The match stands still as in the game's other bench menus. Offline only: it is a
+ * state of the bench (a peer without it would not be in it), so online UP on the coach does
+ * nothing, as it always did.
+ * ================================================================ */
+extern TeamFile *_gameTeam1, *_gameTeam2;
+extern void FormTopSkillsString(uint8_t *dst, PlayerFile *playerFile);
+extern void FormatPlayerValueOrStatusText(uint8_t *base, uint8_t *dst);
+extern uint8_t *GetPlayer(uint16_t teamNumber, uint16_t playerFileIndex);
+#ifdef SWOS_SDL_BUILD
+extern int32_t NetplayMatch_Enabled(void);
+#endif
+
+/* The menu's three colours for a team, as drawSubstitutesMenu picks them -- without writing
+ * its globals (match state). */
+static void team_menu_colours(const TeamGame *tg, uint16_t *bg, uint16_t *hi, uint16_t *frame)
+{
+    const uint16_t c[9] = { (uint16_t)tg->prShirtCol, (uint16_t)tg->prStripesCol, (uint16_t)tg->prShortsCol,
+                            (uint16_t)tg->prSocksCol, 3, 1, 3, 1, 0xFFFF };
+    int32_t i = 0;
+    uint16_t a, b, d;
+    do { a = c[i++]; } while (a == 2 || a == 15);
+    i = 0;
+    do { b = c[i++]; } while (b == 2 || b == 15 || b == a);
+    i = 0;
+    do { d = c[i++]; } while (d == a || d == b);
+    *bg = a;
+    *hi = b;
+    *frame = (int16_t)d < 0 ? b : d;
+}
+
+/* The record of in-game player `pi` of team `tg`, as the squad screens read it (GetPlayer:
+ * PlayerFile at +76). */
+static uint8_t *strip_record(const TeamGame *tg, const PlayerInfo *pi)
+{
+    const TeamFile *t = tg == &_topTeamInGame ? _gameTeam1 : _gameTeam2;
+    if (!t || pi->playerIndex < 0 || pi->playerIndex > 15)
+        return (uint8_t *)0;
+    return GetPlayer(PACK_BE_U16(t->countryNumber, t->teamOrdinal), (uint16_t)(int8_t)pi->playerIndex);
+}
+
+/* A box at (x, y): the player's three best skills over his value (a keeper: his value). */
+static void strip_box(uint16_t x, uint16_t y, const TeamGame *tg, const PlayerInfo *pi)
+{
+    uint8_t *rec = strip_record(tg, pi);
+    uint8_t skills[8], value[32], *v;
+    uint16_t bg, hi, frame;
+    if (!rec)
+        return;
+    team_menu_colours(tg, &bg, &hi, &frame);
+    FormTopSkillsString(skills, (PlayerFile *)rec);
+    FormatPlayerValueOrStatusText(rec, value);
+    for (v = value; *v == '*'; v++)     /* (the format's padding) */
+        ;
+    FillRectangle(x + 2, y + 2, 40, 33, 8);
+    FillRectangle(x, y, 40, 33, frame);
+    FillRectangle(x + 1, y + 1, 38, 31, bg);
+    if (skills[0]) {
+        DrawMenuTextCentered(x + 20, y + 6, 2, skills, (uint8_t *)_smallCharsTable);
+        DrawMenuTextCentered(x + 20, y + 19, 2, v, (uint8_t *)_smallCharsTable);
+    } else
+        DrawMenuTextCentered(x + 20, y + 13, 2, v, (uint8_t *)_smallCharsTable);
+}
+
+static void benchInfoStrip(void)
+{
+    const TeamGame *tg = (const TeamGame *)_benchTeamGame;
+    const uint16_t x0 = (uint16_t)(_subsMenuX - Render_CameraX());
+    if (!_inSubstitutesMenu || !tg || !WorldRules_On(WRULE_BENCH_INFO))
+        return;
+    if (_subsState == 0) {
+        uint16_t ord;
+        const PlayerInfo *pi;
+        if (_goToSubsTimer || _substituteInProgress || !_benchPlayerIndex || _trainingGame)
+            return;     /* (the arrow on a substitute, as the game draws it) */
+        ord = (uint16_t)(_benchPlayerIndex + 10);
+        if (ord > 15)
+            return;
+        pi = piFromOffset((TeamGame *)tg, _ingameTeamPlayerOffsets[ord]);
+        if (pi->position < 0)
+            return;     /* (a place used already) */
+        {   /* his row in the header's place: the menu's own entry, its colours borrowed */
+            const uint16_t sbg = _subsMenuBackgroundColor, shi = _subsMenuHighlightColor,
+                           sfr = _subsMenuEntryFrameColor;
+            uint16_t bg, hi, frame;
+            team_menu_colours(tg, &bg, &hi, &frame);
+            _subsMenuBackgroundColor = bg;
+            _subsMenuHighlightColor = hi;
+            _subsMenuEntryFrameColor = frame;
+            drawSubstitutesMenuEntry(36, bg, (int16_t)ord, (uint8_t *)_smallCharsTable, (TeamGame *)tg,
+                                     _ingameTeamPlayerOffsets);
+            _subsMenuBackgroundColor = sbg;
+            _subsMenuHighlightColor = shi;
+            _subsMenuEntryFrameColor = sfr;
+        }
+        strip_box((uint16_t)(x0 - 2), 49, tg, pi);
+    } else if (_subsState == 1) {
+        if ((int16_t)_plToEnterGameIndex >= 0 && _plToEnterGameIndex <= 15)
+            strip_box((uint16_t)(x0 - 2), 49, tg,
+                      piFromOffset((TeamGame *)tg, _ingameTeamPlayerOffsets[_plToEnterGameIndex]));
+        if ((int16_t)_plToBeSubstitutedPos >= 0 && _plToBeSubstitutedPos <= 15)
+            strip_box((uint16_t)(x0 + 86), 49, tg,
+                      piFromOffset((TeamGame *)tg, _ingameTeamPlayerOffsets[_plToBeSubstitutedPos]));
+    }
+}
+
+static int32_t opponentListAllowed(void)
+{
+#ifdef SWOS_SDL_BUILD
+    if (NetplayMatch_Enabled())
+        return 0;       /* (online: a bench state the other game would not have) */
+#endif
+    return WorldRules_On(WRULE_OPPONENT_SQUAD);
+}
+
+static void opponentListControls(void)
+{
+    const int16_t d = (int16_t)_subsDirection;
+    if (_subsFire || d == 2 || d == 6) {
+        subsBenchOff();     /* (back to the bench, the arrow on the coach) */
+        return;
+    }
+    if (d == 4)
+        s_opponentPage = 1;
+    else if (d == 0)
+        s_opponentPage = 0;
+}
+
+static void drawOpponentList(void)
+{
+    TeamGeneralInfo *me = (TeamGeneralInfo *)_benchTeam;
+    TeamGeneralInfo *them = me->opponentsTeam;
+    TeamGame *tg = (TeamGame *)_benchTeamGame == &_topTeamInGame ? &_bottomTeamInGame : &_topTeamInGame;
+    uint8_t *chars = (uint8_t *)_smallCharsTable;
+    const uint16_t x0 = (uint16_t)(_subsMenuX - Render_CameraX());
+    /* (the globals the game's entry drawing reads, borrowed and put back) */
+    const uintptr_t sTeam = _benchTeam, sGame = _benchTeamGame;
+    const uint16_t sbg = _subsMenuBackgroundColor, shi = _subsMenuHighlightColor, sfr = _subsMenuEntryFrameColor,
+                   sState = _subsState;
+    uint16_t bg, hi, frame, y = 36;
+
+    team_menu_colours(tg, &bg, &hi, &frame);
+    _benchTeam = (uintptr_t)them;
+    _benchTeamGame = (uintptr_t)tg;
+    _subsMenuBackgroundColor = bg;
+    _subsMenuHighlightColor = hi;
+    _subsMenuEntryFrameColor = frame;
+    _subsState = 1;     /* (the entries' own look: no FORMATION row) */
+
+    /* the header: the team's name */
+    FillRectangle(x0, y, 126, 11, 8);
+    FillRectangle(x0 - 2, y - 2, 126, 11, frame);
+    FillRectangle(x0 - 1, y - 1, 124, 9, bg);
+    DrawMenuTextCentered((uint16_t)(x0 + 61), (uint16_t)(y + 1), 2, (uint8_t *)tg->teamName, chars);
+    y += 15;
+    if (s_opponentPage == 0) {
+        for (uint16_t i = 0; i < 11; i++, y += 10) {
+            uint16_t ord;
+            getBenchPlayerPointer(i, &ord);     /* (its formation's order: _benchTeam is theirs) */
+            drawSubstitutesMenuEntry(y, bg, (int16_t)ord, chars, tg, _ingameTeamPlayerOffsets);
+        }
+    } else {
+        for (uint16_t ord = 11; ord < 16; ord++) {
+            const PlayerInfo *pi = piFromOffset(tg, _ingameTeamPlayerOffsets[ord]);
+            uint8_t num[4];
+            uint8_t n = (uint8_t)pi->shirtNumber, k = 0;
+            if (pi->position < 0)
+                continue;       /* (on already, or not on the bench) */
+            FillRectangle(x0, y, 126, 11, 8);
+            FillRectangle(x0 - 2, y - 2, 126, 11, frame);
+            FillRectangle(x0 - 1, y - 1, 124, 9, bg);
+            if (n >= 10)
+                num[k++] = (uint8_t)('0' + n / 10 % 10);
+            num[k++] = (uint8_t)('0' + n % 10);
+            num[k] = 0;
+            DrawMenuTextCentered((uint16_t)(x0 + 4), (uint16_t)(y + 1), 2, num, chars);
+            DrawMenuText((uint16_t)(x0 + 9), (uint16_t)(y + 1), 2, (uint8_t *)pi->shortName, chars);
+            DrawMenuTextCentered((uint16_t)(x0 + 116), (uint16_t)(y + 1), 2,
+                                 (uint8_t *)_playerPositionsStringTable[(uint16_t)(int16_t)(int8_t)pi->position], chars);
+            y += 10;
+        }
+    }
+
+    _benchTeam = sTeam;
+    _benchTeamGame = sGame;
+    _subsMenuBackgroundColor = sbg;
+    _subsMenuHighlightColor = shi;
+    _subsMenuEntryFrameColor = sfr;
+    _subsState = sState;
 }
 
 /* ================================================================

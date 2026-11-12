@@ -35,6 +35,10 @@ void Career_RetireSlotCalendarEntries(uint8_t slot);   /* (before a slot takes a
 /* --- Career competition team selection (Chunk 90) --- */
 void Career_SortTeamFilePtrsByAvgPlayerPrice(uint16_t extNumber);
 void LoadSomeEuroCup(uint8_t *whichCup);
+/* A world's first-season foreign clubs into the TMD pool in place of 96/97's three .TMD files:
+ * its league phases' 108 clubs, its team files' records (as the Mod's data\world05.tmd). 0 for
+ * 96/97 or a world without league phases (then LoadSomeEuroCup, as before). */
+int32_t Career_LoadWorldEuropeTmd(void);
 void AppendTeamsToSelectionFromTmdOrTeamFile(uint16_t *out, uint16_t *teamIds, uint16_t count);
 void Career_TryAddRandomTeamByRegionToLists(void);
 void FatalError(void);

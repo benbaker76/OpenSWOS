@@ -1017,6 +1017,29 @@
         "h": 0
       },
       "commands": []
+    },
+    {
+      "kind": "set_origin",
+      "x": 0,
+      "y": -15
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": -104,
+        "y": 41,
+        "w": 0,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
     }
   ]
 }

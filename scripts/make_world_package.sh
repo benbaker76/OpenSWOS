@@ -47,7 +47,33 @@ manifest = {
     "author": "the SWOS 96/97 Mod (Davide Lorigliola and its contributors)",
     "about": "The football world of %s: its countries, leagues, cups and squads." % name[6:],
     "targets": ["sdl", "amiga"], "changes": "data", "default": False,
+    # The world's switches (docs/WORLD_2026_27.md, the Mod 4.1's features): each the Mod's own
+    # default; read by the game through ModApi_SettingInt("world<tag>", key).
+    "settings": [
+        # -- career (the CAREER agent's block: what a NEW career starts with; each is also a
+        #    switch of its own in the career, saved with it) --
+        {"key": "uefa_prizes", "label": "UEFA prize money (new careers)",
+         "choices": ["on", "off"], "default": "on"},
+        {"key": "financial_fair_play", "label": "Financial fair play (new careers)",
+         "choices": ["on", "off"], "default": "on"},
+        {"key": "euro", "label": "Money in euros",     # (the pound sign shows the euro)
+         "choices": ["on", "off"], "default": "on"},
+        {"key": "cpu_replacements", "label": "CPU replacements (new careers)",
+         "choices": ["invented", "from_squad"], "default": "invented"},
+    ],
 }
+# The Mod 4.1's match and bench rules (include/world_rules.h), each ON as the Mod plays it: its
+# settings, at the END of the list (the career's rules come before them).
+MATCH_SETTINGS = [
+    ("stoppage_time", "Stoppage time"),             # (online: the host's)
+    ("cpu_red_cards", "CPU red cards"),
+    ("cpu_injuries", "CPU injuries"),
+    ("goalkeeper_injuries", "Goalkeeper injuries"),
+    ("bench_info", "Bench info strip"),
+    ("opponent_squad", "Opponent's squad"),         # (on the bench: UP on the coach; offline)
+]
+manifest.setdefault("settings", []).extend(
+    {"key": k, "label": label, "choices": ["on", "off"], "default": "on"} for k, label in MATCH_SETTINGS)
 n = 0
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     z.writestr(top + "/mod.json", json.dumps(manifest, indent=1) + "\n")

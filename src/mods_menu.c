@@ -238,12 +238,14 @@ enum {
     ModPage_note = ModPage_label0 + 2 * 8,
     ModPage_exit,
     ModPage_author,                     /* (appended: the entries before keep their numbers) */
+    ModPage_scrollUp,                   /* the MODS screen's arrows, shown only when a mod has */
+    ModPage_scrollDown,                 /* more settings than rows (the world's: 10) */
 };
 
 /* A setting's choices: its own list ("choices"), or the files of a folder ("choices_from") -- a
  * gallery mod's pictures can be many, so up to kMaxChoices, named up to 63 characters; more than
  * a page's rows and the setting opens a scrolling list (openswos/choiceMenu) instead of stepping. */
-enum { kMaxChoices = 256, kChoiceLen = 64 };
+enum { kMaxChoices = 256, kChoiceLen = 64, kMaxSettings = 32 };
 typedef struct {
     char key[32], label[40];
     char choices[kMaxChoices][kChoiceLen];
@@ -251,8 +253,9 @@ typedef struct {
 } PageSetting;
 
 static ModInfo     s_page;
-static PageSetting s_pageSettings[kRows];
+static PageSetting s_pageSettings[kMaxSettings];
 static int32_t     s_pageCount;
+static int32_t     s_pageTop;           /* row 0 showing s_pageSettings[s_pageTop] */
 static char        s_pageName[48], s_pageAbout[64], s_pageAuthor[64], s_pageLabels[kRows][40], s_pageValues[kRows][40];
 
 /* "choices_from": "<folder>": "off", then the image files (.png .bmp .jpg) in that folder of the
@@ -365,7 +368,7 @@ static void read_page_settings(const ModInfo *m)
         }
         upper(s_pageAbout, sizeof s_pageAbout, about);
     }
-    for (int32_t i = 0; i < kRows; i++) {
+    for (int32_t i = 0; i < kMaxSettings; i++) {
         char q[64], t[64];
         PageSetting *ps = &s_pageSettings[s_pageCount];
         snprintf(q, sizeof q, "$.settings[%d].key", (int)i);
@@ -430,26 +433,41 @@ static void page_refresh(void)
     entry_at(ModPage_author)->fg = (uintptr_t)s_pageAuthor;
     for (i = 0; i < kRows; i++) {
         MenuEntry *label = entry_at(ModPage_label0 + 2 * i), *value = entry_at(ModPage_label0 + 2 * i + 1);
-        label->isInvisible = value->isInvisible = i >= s_pageCount;
-        if (i >= s_pageCount)
+        const PageSetting *ps = &s_pageSettings[s_pageTop + i];
+        label->isInvisible = value->isInvisible = s_pageTop + i >= s_pageCount;
+        if (s_pageTop + i >= s_pageCount)
             continue;
-        snprintf(s_pageLabels[i], sizeof s_pageLabels[i], "%s", s_pageSettings[i].label);
-        upper(s_pageValues[i], sizeof s_pageValues[i],
-              ModApi_Setting(s_page.slug, s_pageSettings[i].key, s_pageSettings[i].choices[0]));
+        snprintf(s_pageLabels[i], sizeof s_pageLabels[i], "%s", ps->label);
+        upper(s_pageValues[i], sizeof s_pageValues[i], ModApi_Setting(s_page.slug, ps->key, ps->choices[0]));
         label->fg = (uintptr_t)s_pageLabels[i];
         value->fg = (uintptr_t)s_pageValues[i];
     }
+    entry_at(ModPage_scrollUp)->isInvisible = entry_at(ModPage_scrollDown)->isInvisible = s_pageCount <= kRows;
     entry_at(ModPage_note)->fg = (uintptr_t)s_note;
 }
 
 static void modPageMenu_OnInit(void)
 {
     int32_t i;
-    for (i = 0; i < s_pageCount; i++) {
+    const int32_t rows = s_pageCount < kRows ? s_pageCount : kRows;
+    if (s_pageTop > s_pageCount - rows)     /* (back from a choice list: the same place) */
+        s_pageTop = s_pageCount - rows;
+    if (s_pageTop < 0)
+        s_pageTop = 0;
+    for (i = 0; i < rows; i++) {
         const int32_t value = ModPage_label0 + 2 * i + 1;
-        nav(value, i ? value - 2 : -1, i + 1 < s_pageCount ? value + 2 : ModPage_exit);
+        nav(value, i ? value - 2 : -1, i + 1 < rows ? value + 2 : ModPage_exit);
     }
-    nav(ModPage_exit, s_pageCount ? ModPage_label0 + 2 * s_pageCount - 1 : -1, -1);
+    if (s_pageCount > kRows) {  /* the arrows: right of the first and the last row's value (the MODS screen's) */
+        const int32_t first = ModPage_label0 + 1, last = ModPage_label0 + 2 * (kRows - 1) + 1;
+        nav_lr(first, -1, ModPage_scrollUp);
+        nav_lr(last, -1, ModPage_scrollDown);
+        nav(ModPage_scrollUp, -1, ModPage_scrollDown);
+        nav_lr(ModPage_scrollUp, first, -1);
+        nav(ModPage_scrollDown, ModPage_scrollUp, ModPage_exit);
+        nav_lr(ModPage_scrollDown, last, -1);
+    }
+    nav(ModPage_exit, rows ? ModPage_label0 + 2 * rows - 1 : -1, -1);
     if (!s_pageCount)
         SetCurrentEntry(ModPage_exit);          /* (nothing else to stand on) */
     note(s_pageCount ? "FIRE CHANGES A SETTING" : "THIS MOD HAS NO SETTINGS");
@@ -457,6 +475,16 @@ static void modPageMenu_OnInit(void)
 }
 
 static void modPageMenu_OnDraw(void) { page_refresh(); }
+
+static void page_scroll(int32_t by)
+{
+    const int32_t top = s_pageTop + by, last = s_pageCount - kRows;
+    s_pageTop = top < 0 ? 0 : top > last ? (last > 0 ? last : 0) : top;
+    page_refresh();
+}
+
+static void modPageMenu_scrollUp_OnSelect(void) { page_scroll(-1); }
+static void modPageMenu_scrollDown_OnSelect(void) { page_scroll(1); }
 
 /* ---- a setting with more choices than rows: a scrolling list (openswos/choiceMenu) ---- */
 
@@ -556,6 +584,7 @@ static void choiceMenu_exit_OnSelect(void) { SetExitMenuFlag(); }
 
 static void page_cycle(int32_t i)
 {
+    i += s_pageTop;                     /* (row i shows the setting s_pageTop + i) */
     if (i >= s_pageCount)
         return;
     const PageSetting *ps = &s_pageSettings[i];
@@ -597,6 +626,7 @@ static void open_page(int32_t i)
         return;
     s_page = s_mods[i];
     read_page_settings(&s_page);
+    s_pageTop = 0;
     uint8_t *menu = MenuJson_Load(MOD_PAGE_MENU_NAME);
     if (!menu) {
         fprintf(stderr, "[mods-menu] cannot show %s\n", MOD_PAGE_MENU_NAME);
@@ -677,6 +707,8 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(modPageMenu_row6_OnSelect),
     HANDLER(modPageMenu_row7_OnSelect),
     HANDLER(modPageMenu_exit_OnSelect),
+    HANDLER(modPageMenu_scrollUp_OnSelect),
+    HANDLER(modPageMenu_scrollDown_OnSelect),
     HANDLER(choiceMenu_OnInit),
     HANDLER(choiceMenu_OnDraw),
     HANDLER(choiceMenu_row0_OnSelect),

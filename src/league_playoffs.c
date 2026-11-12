@@ -462,31 +462,75 @@ void LeaguePlayoffs_Decide(uint16_t country, const int8_t *table, int8_t *scratc
                 (int)country, (int)e.code, (int)e.pidx, (unsigned)e.offset, e.field ? e.field : "?");
     }
     {   /* gp_champ: a 'title' play-off's champion first in the top division's top 9, the clubs
-         * above it one place down -- the qualifiers read it as the champion (a winner outside
-         * the top 9: the table's 1st stays) */
+         * above it one place down -- the qualifiers read it as the champion. The Mod 4.1 (Davide
+         * 06/11, Malta's 11th won the Final Four): a winner outside the top 9 comes in first all the
+         * same, its record from the game's team cache, the 9th dropping out; not in the cache: the
+         * table's 1st stays, as before. The Mod 4.1.1 (Jacopo's TERMOLI, Davide 11/11): a lower
+         * tier's title -- a title play-off with no entrant by a top-division place, Italy's POULE
+         * SCUDETTO SERIE D -- is no champion here: Europe from the top flight only. The Mod marks
+         * it in gplay.c's result() (ch_low / po_low), inside the library's season end; ours reads
+         * the same from the spec here, the n-th title result the n-th title play-off's (each makes
+         * at most one; every world country has one title play-off at most). */
+        uint8_t low[16];
+        int32_t nlow = 0, ntitle = 0;
+        for (int32_t p = 0; nlow < 16; p++) {
+            const uint8_t *sp = LeaguePlayoffs_SpecAt((uint8_t)country, p);
+            if (!sp)
+                break;
+            if (sp[0] != SR_KIND_TITLE)
+                continue;
+            uint8_t lo = 1;                 /* (an entrant by a top-division place: kind 0 / 3 / 5 / 6 / 7, div 0) */
+            for (int32_t i = 0; i < sp[1] && i < 64; i++) {
+                const uint8_t *e = sp + 6 + 4 * i;
+                if (e[0] != 4 && e[0] != 8 && e[0] != 9 && e[1] == 0)
+                    lo = 0;
+            }
+            low[nlow++] = lo;
+        }
         extern uint8_t _primaryQualifiedTeamGrids[];
         extern uint16_t _cachedPrimaryQualifiedTeamIds[];
+        extern TeamFileEx *CareerTeams_FindInCache(uint16_t teamNum);
         static TeamFileEx tmp;
         for (int32_t k = 0; k < s_rules.gp.nres; k++) {
             const sr_result *x = &s_rules.gp.res[k];
             if (x->kind != SR_KIND_TITLE)
                 continue;
+            if (ntitle < nlow && low[ntitle++]) {
+                SWOS_DBG("[playoffs] country %d: the title play-off's champion %04X is a lower tier's: no "
+                         "European place\n", (int)country, (unsigned)x->team[0]);
+                continue;
+            }
             int32_t j = 0;
             while (j < 9 && BE_READ_U16(_primaryQualifiedTeamGrids + (uint32_t)j * sizeof(TeamFileEx)) != x->team[0])
                 j++;
-            if (j == 0 || j >= 9)
+            if (j == 0)
                 continue;
             uint8_t *g = _primaryQualifiedTeamGrids;
-            const uint16_t id = _cachedPrimaryQualifiedTeamIds[j];
-            tmp = *(TeamFileEx *)(g + (uint32_t)j * sizeof(TeamFileEx));
+            uint16_t id;
+            const int32_t outside = j >= 9;
+            if (outside) {                  /* (4.1: from the cache, or as before) */
+                const TeamFileEx *t = CareerTeams_FindInCache(x->team[0]);
+                if (!t || PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal) != x->team[0])
+                    continue;
+                tmp = *t;
+                id = x->team[0];
+                j = 8;
+            } else {
+                id = _cachedPrimaryQualifiedTeamIds[j];
+                tmp = *(TeamFileEx *)(g + (uint32_t)j * sizeof(TeamFileEx));
+            }
             for (int32_t i = j; i > 0; i--) {
                 *(TeamFileEx *)(g + (uint32_t)i * sizeof(TeamFileEx)) = *(TeamFileEx *)(g + (uint32_t)(i - 1) * sizeof(TeamFileEx));
                 _cachedPrimaryQualifiedTeamIds[i] = _cachedPrimaryQualifiedTeamIds[i - 1];
             }
             *(TeamFileEx *)g = tmp;
             _cachedPrimaryQualifiedTeamIds[0] = id;
-            SWOS_DBG("[playoffs] country %d: the title play-off's champion %04X (was %d.)\n", (int)country,
-                     (unsigned)x->team[0], (int)j + 1);
+            if (outside)
+                SWOS_DBG("[playoffs] country %d: the title play-off's champion %04X (outside the top 9: from the "
+                         "cache, the 9th out)\n", (int)country, (unsigned)x->team[0]);
+            else
+                SWOS_DBG("[playoffs] country %d: the title play-off's champion %04X (was %d.)\n", (int)country,
+                         (unsigned)x->team[0], (int)j + 1);
         }
     }
 

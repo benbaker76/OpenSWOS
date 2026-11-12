@@ -321,3 +321,124 @@ that exists. His engine's first slice (tables and season end, on the library) st
 Mod's 4.0.6, which changes no rule's result (its `pg_a2` guard is in rules 11). Still to come as
 1.x additions: the rest of the Coppa D, `SEC_BQ` (may each B team go up next season: the zone
 colours, an output), the pool's queue (`team_pool.c` vs the Mod's RI section).
+
+## 12. The Mod's dev after 4.0.5 (branch mod-dev, 2026-11-09)
+
+Davide's dev (f024d24: 4.0.6 and the start of 4.1, not finished or released) checked against
+here with `scripts/league_playoffs_check.sh` (its Mod side built `-m32`: dev's gplay.c has
+i386 assembly). **The rules library needs nothing**: every check of it PASSES against dev (its
+one 4.0.6 rule change, a refused play-off entrant's `club[i] = -1`, is what `ent_code` always
+did). What moved is the Mod's game code outside the library, ported on the branch `mod-dev`,
+which waits for his work to be done:
+
+- the other confederations' cups (`world_conti.c/.py` = dev's `conti.c/.py`, a three-way merge):
+  4.0.6's goals model (about 2.6 a match, an edition's `CT_ED.pad` bit 2, saved as
+  `conti_edition.flags`: an older save's edition ends on the old model), the Recopa and CAF Super
+  Cup in their real months, the Intercontinental's second round as two (r2a / r2b) -- the spec
+  byte for byte dev's, `league_playoffs_check.sh` 15 PASS against dev. Left out: B2, season 1's
+  editions as the build drew them (`CT_S1`; ours plays season 1 at the first season end);
+- 4.1's `gp_champ` (`league_playoffs.c`): a title play-off's winner from outside the top 9 takes
+  the champion's place from the game's team cache (`CareerTeams_FindInCache`).
+
+The golden careers: the 96/97 ones unchanged; the 44 World 2026-27 ones recorded again (season 1
+differs only by `conti_edition.flags` and the Intercontinental's split round, the later ones by
+the new goals model's results).
+
+## 13. The Mod 4.1 (v4.1, f2c9e45, 2026-11-10)
+
+`scripts/league_playoffs_check.sh` against a checkout of v4.1 (`MOD=`): every check PASSES but the
+first, the Italian play-offs, which differs where 4.1 changed a rule: **the Coppa Italia Serie C
+winner** that finished relegated or in a play-out place no longer takes a play-off place (FIGC
+C.U. 209/A, 27 April 2026; the Mod's `dplay.c` `cup_out`: places n-5..n-2 of a group of n, a
+play-out not held when its two clubs are 8+ points apart). Built with 4.1's `dplay.c` minus
+`cup_out`, the check passes whole. That rule is in `sr_dplay.c` `cup_place` (src/rules/), which
+changes an existing result. It was written up as a change for Davide's library; since the rules
+moved into OpenSWOS (2026-11-11) it is **ours to make** -- an open item of OpenSWOS's work list
+below. Until it is made, a World 2026-27 Serie C career can see a cup winner placed 11th-17th go up
+and down at once, the 4.0.5 bug 4.1 fixed.
+
+**OpenSWOS work list: 4.1's `cup_out`** (`src/rules/sr_dplay.c`; first written as a pull request
+for Davide, when v1 was frozen in his repo; the rules are ours now, so the change is ours to make,
+with the comparison below as its proof):
+
+- **What 4.1 changed** (his `tools/dplay.c`, v4.1 f2c9e45, lines 199-216): `cup_place` takes the
+  cup winner's own place only when it is 11th or lower **and not `cup_out(g, k)`**, a new helper:
+  place k of group g (n clubs) is out when it is relegated or in a play-out -- `n < 6 || k < n - 5`:
+  not out; `k == n - 5`: out only if `t[n-5].pts - t[n-2].pts < 8` (that play-out is played);
+  `k == n - 4`: out only if `t[n-4].pts - t[n-3].pts < 8`; any lower place: out. Out, the place goes
+  to the 11th of its group, as for a winner promoted or already in (2nd-10th).
+- **The library today** (`rules/sr_dplay.c`, tag v1 87b6527, line 164): `return g * NT + (k >= 10 ?
+  k : 10);` -- 4.0.5's rule. The change is that line becoming `(k >= 10 && !cup_out(st, g, k) ? k :
+  10)` and `cup_out` reading `st->dp.t[g]` / `st->dp.n[g]`: no struct, no signature, no new field
+  -- but a different result from the same input. World 2026-27 is 4.1's data, so 4.1's rule is
+  what it should play; the golden careers of an Italian Serie C club record the change.
+- **The comparison**: `scripts/league_playoffs_check.sh MOD=<v4.1 checkout>` -- every check passes
+  but the Italian play-offs, which part on exactly this rule; with 4.1's `dplay.c` minus `cup_out`
+  the whole check passes (§13 above); with the change it must pass whole against 4.1 / 4.1.1.
+- **To change with it, the same commit**: `src/world_playoff.c` (the career club's Serie C
+  national play-off, `c_playoff`, ~line 494) keeps its own copy of `cup_place` to build the career
+  club's contest before the season end; it must take `cup_out` when the library does, or the
+  career club's bracket and the season end's would name different clubs.
+
+The check needed two things for 4.1: its `gp_forcecfb` (test builds' forced place) names the
+split table's offsets `gplay.py` passes (`GP_SPST` ...: any value compiles it, `GP41`), and our
+harnesses a stand-in for `CareerTeams_FindInCache` (daefdd5d's `gp_champ`: never found, as the
+Mod's side's `mod_ftic.h`).
+
+## 14. The Mod 4.1.1 (v4.1.1, d5b7a37, 2026-11-11)
+
+Davide's bug-fix release over 4.1, ported on `mod-dev` (branch `mod411`). **The rules library
+needs nothing new from 4.1.1** -- what moved is the Mod's game code:
+
+- **the other confederations' cups** (`world_conti.c` = 4.1.1's `conti.c`, three-way merged again,
+  base v4.1): the career club in a cup whose main round is the game's own contest (the
+  Libertadores, the Sudamericana, the CAF Champions League, AFC Champions League Two) now reports
+  every round it gets past or loses there (`ct_gamein`, called from `Conti_Daily`; the Mod reads
+  the round of the club's next slot-3 calendar entry, `ct_gscan`, but our calendar holds no matches
+  for a type-2 contest's days -- ours takes the club's tie as the game decided it, `Conti_TieDecided`
+  in the game contest: won, the next round; lost or the final, none left), every group place too (a 4th: out, its
+  next game elsewhere), so its Recopa / Intercontinental ties are built as soon as it is out
+  (never in a week already reached: the Mod's `ct_prep` clamp, now `make_tie`'s) and the season
+  end's holder is the real final's winner -- before, the edition simulated the club's own cup at
+  the season end. While it is alive in that contest, another cup's round is simulated (`g_live`).
+  Editions made from 4.1.1 on (`CT_ED.pad` bit 2, `CT_ED_R`, saved in `conti_edition.flags`)
+  draw their pots by the confederation's club ranking -- CONMEBOL's, its keys `assoc/club` now
+  matched (`world_conti.py ranking`, `world_import.py conti_spec` giving our team words; 170 of
+  its 176 clubs: six Brazilian ones are in no league of the world) -- and draw a group stage
+  again, up to 16 times, while two clubs of one association meet. An older save's edition replays
+  as it began. Left out, as before: the 4.1 build's season-1 block (`CT_S1R0` / `CT_S1H0`; ours
+  plays season 1 at the first season end) and the exe's table placement (`CT_RK`: ours keeps the
+  ranking in the spec). `world_data.c` re-imported: the cups' spec only (4560 -> 5242 bytes: the
+  ranking, the test builds' `CONTI_FORCE2` pair); the package's files and fingerprint unchanged.
+- **the Poule Scudetto out of the Champions League** (`gp_champ`, `league_playoffs.c`): a title
+  play-off with no entrant by a top-division place is a lower tier's title, and its winner is no
+  champion for the qualifiers. **OpenSWOS work list** (first written as a note for Davide): the
+  Mod marks it inside the season end (`gplay.c` `result()`: `po_low` / `ch_low`), in the code our
+  `src/rules/sr_gplay.c` is; ours reads the same from the spec on the game's side, mapping the n-th
+  title result to the n-th title play-off (each makes at most one; no world country has two). If
+  `sr_gplay.c` carries `gp_champ` itself -- e.g. an `sr_result` flag "a lower tier's title", or
+  the play-off index of each result -- that mapping goes.
+- **New Zealand's Grand Final without the career club** (`gplay.c` `gf_step_c` / `gf_drop_c`):
+  nothing to port. The Mod plays NZ's group alone in slot 3 and its Grand Final as a contest of
+  its own (a placeholder of the career club, decided 3-in-5 when the club was not in it: a phantom
+  match). Ours plays the whole group contest -- the group and its final -- as the game's type-2
+  contest (`world_playoff.c` `groups_record`), so its final was always the two real finalists',
+  decided by the game's own simulated match (`WorldPlayoff_TieDecided`). Not the Mod's: our final
+  takes the group's top two as the game does, where the Mod passes over a B team that may not
+  qualify (`SEC_PO`; New Zealand's A-League reserves) -- older than 4.1.1, left as it is.
+- **Not game behaviour**: the patcher (Chrome, joypad boxes), `euro.py` / `patch.py` / `swreg.py`
+  / `uprize.py` (where code sits in the DOS exe), `fmtgame.py` (the Coppa D FORMAT page's text:
+  ours has no such page), `benchx.py`'s `de_fix` (a DOS menu whose selection could rest on a title
+  with no links), `swostest.py` (his harness), `kits_shipped`.
+
+`scripts/league_playoffs_check.sh` against v4.1.1: as against 4.1 -- every check PASSES but the
+Italian play-offs' Coppa Italia Serie C winner (§13, `cup_out`: on OpenSWOS's work list);
+with `cup_out` taken out of the Mod's `dplay.c` the check passes whole. Its conti step now also
+packs the spec with a ranking (`words`) both ways.
+
+The golden careers: the 7 96/97 ones unchanged; the 44 World 2026-27 ones recorded again -- every
+save from season 1 on holds the conti edition, whose draws now follow the ranking and the
+association rule (`conti_edition.flags` 2 -> 6; a European club's season 1 differs by its
+`conti_edition` alone, `career_golden_diff.py`); the CONMEBOL / AFC career clubs' seasons also by
+their game contest's knockouts now reported (Flamengo: R16 to the final won, its Libertadores in
+the edition the one it played). `BRA2627-FLAMENGO` played twice: the same saves.

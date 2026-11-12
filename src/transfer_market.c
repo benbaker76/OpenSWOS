@@ -4,6 +4,8 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "transfer_market.h"
+#include "world_finance.h"
+#include "cpu_repl.h"
 #include "endian_helpers.h"
 #include "game_types.h"
 #include "menu_system.h"
@@ -1426,6 +1428,7 @@ void Career_CommitNewBalanceAndResetFinanceTotals(void)
 
     _financeTotalsNeedResetFlag = 0;
     _old_balance = _newBalance;
+    WorldFinance_PeriodStart();         /* (a world's TV share: the statement's period, world_finance.c) */
     _playerPurchases = 0;
     _playerSales = 0;
     _playerWagesBill = 0;
@@ -1866,6 +1869,7 @@ void BuyPlayerInit(void)
         _menuEntries[6].downEntry = 8;
         _menuEntries[7].upEntry = 8;
     }
+    CpuRepl_MenuInit();     /* (a world's CPU REPL. button right of EXIT: cpu_repl.c) */
 }
 
 /* The TRANSFER MARKET's list rows: the original's five are entries 9-13; rows 6-10 (entries
@@ -2432,7 +2436,7 @@ void BuyPlayerMenu(void)
         slots = (uint16_t)(room > 32767u ? 32767u : room);
     } else
         slots = GetRemainingTransferPoolSlots();
-    if (slots < 2) {
+    if (slots < 2 || Ffp_PurchasesBlocked()) {     /* (a world's financial fair play: world_finance.c) */
         _currentMessage = CLUB_UNWILLING_TO_PURCHASE_PLAYERS;
         ShowChairmanMessage();
         return;
@@ -4524,6 +4528,8 @@ void Career_RemovePlayerAndAddAsTrialist(uint16_t sourceTeam, uint16_t playerOrd
 
     /* Convert player to trialist using source name */
     Career_ConvertPlayerToTrialistFromName(savedTeam, savedOrd);
+    /* (a world's CPU REPL.: FROM SQUAD -- one of the club's squad players 17.. instead: cpu_repl.c) */
+    CpuRepl_AfterSale(savedTeam, savedOrd);
 }
 
 /* ================================================================
@@ -5498,6 +5504,24 @@ static int16_t domesticBuyerEligible(TeamFileEx *team, uint16_t refSkill)
     return 1;
 }
 
+/* A world's outgoing offers rule A (the SWOS 96/97 Mod 4.0.6's tools/sella.py, MIT, Davide
+ * Lorigliola; Francesco's report: a Serie D player bought by Roma): a club bids for one of the
+ * career club's players only if he would be among its 12 best -- fewer than 12 of its 16 priced
+ * above his price + 2. The Mod plays it in every world; OpenSWOS in a world other than 96/97, whose
+ * market stays the original's. 1 = the candidate stays. */
+#define OFFER_RULE_N      12
+#define OFFER_RULE_MARGIN 2
+static int32_t offerRuleA(const TeamFileEx *team, uint16_t refSkill)
+{
+    if (!SWOS_WORLDS || World_Current() == WORLD_9697)
+        return 1;
+    const uint32_t above = (uint32_t)(uint8_t)refSkill + OFFER_RULE_MARGIN;
+    int32_t n = 0;
+    for (int32_t i = 0; i < 16; i++)
+        n += (uint8_t)team->players[i].price > above;
+    return n < OFFER_RULE_N;
+}
+
 __attribute__((used, externally_visible))
 void CreateRandomTransferOfferForPlayer(uint16_t playerOrdinal)
 {
@@ -5542,7 +5566,8 @@ void CreateRandomTransferOfferForPlayer(uint16_t playerOrdinal)
         uint8_t selTeamByte = (uint8_t)(_selTeamNumber >> 8);
         while (d4 < _numSelectedTeams) {
             if (selTeamByte == *a0) {
-                if (domesticBuyerEligible((TeamFileEx *)a0, refSkill) == 0) {
+                if (domesticBuyerEligible((TeamFileEx *)a0, refSkill) == 0 &&
+                    offerRuleA((const TeamFileEx *)a0, refSkill)) {
                     _offerCandidateTeamIndexBuffer[d5] = (uint8_t)d4;
                     d5++;
                 }
@@ -5567,7 +5592,8 @@ void CreateRandomTransferOfferForPlayer(uint16_t playerOrdinal)
         uint8_t selTeamByte = (uint8_t)(_selTeamNumber >> 8);
         while (d4 < numCareerTeams) {
             if (selTeamByte != *a0) {
-                if (IsTeamEligibleForOfferByRefSkill((TeamFileEx *)a0, refSkill) == 0) {
+                if (IsTeamEligibleForOfferByRefSkill((TeamFileEx *)a0, refSkill) == 0 &&
+                    offerRuleA((const TeamFileEx *)a0, refSkill)) {
                     _offerCandidateTeamIndexBuffer[d5] = (uint8_t)d4;
                     d5++;
                 }

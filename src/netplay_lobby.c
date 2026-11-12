@@ -44,6 +44,7 @@
  */
 #include "mod_hooks.h"    /* lobbyKeepsReady */
 #include "netplay_lobby.h"
+#include "world_rules.h"     /* the host's stoppage time */
 
 #ifdef SWOS_SDL_BUILD
 
@@ -601,9 +602,10 @@ static void apply_switches(uint16_t sw)
     /* CARDS/INJURIES off: the old tester builds' rule, for this match, on both machines,
      * from the kick-off on (test_rules.h; the recording says so -- netplay_match.c). */
     TestRules_Force((sw & NETPLAY_SW_CARDS_INJURIES) ? -1 : 1);
-    fprintf(stderr, "[lobby] the host's switches: short presses %s, kick-off sync %s, cards/injuries %s\n",
+    fprintf(stderr, "[lobby] the host's switches: short presses %s, kick-off sync %s, cards/injuries %s, "
+            "stoppage time %s\n",
             (sw & NETPLAY_SW_SHORT_PRESSES) ? "ON" : "OFF", (sw & NETPLAY_SW_KICKOFF_SYNC) ? "ON" : "OFF",
-            (sw & NETPLAY_SW_CARDS_INJURIES) ? "ON" : "OFF");
+            (sw & NETPLAY_SW_CARDS_INJURIES) ? "ON" : "OFF", (sw & NETPLAY_SW_STOPPAGE) ? "ON" : "OFF");
 }
 
 static void release_switches(void)
@@ -904,6 +906,8 @@ void NetplayLobby_Begin(int32_t localPlayer, const char *localName)
             uint16_t sw = NETPLAY_SW_DEFAULT & ~NETPLAY_SW_SHORT_PRESSES;
             if (InputSDL_PressLatch())
                 sw |= NETPLAY_SW_SHORT_PRESSES;
+            if (WorldRules_On(WRULE_STOPPAGE))     /* (a world's stoppage time, as the host has it) */
+                sw |= NETPLAY_SW_STOPPAGE;
             s_lobby.rules.switches = sw;
         }
         clamp_rules(&s_lobby.rules);

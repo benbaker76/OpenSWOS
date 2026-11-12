@@ -86,6 +86,10 @@ int32_t World_Set(const char *tag)
     if (w < 0 || (!SWOS_WORLDS && w != WORLD_9697))    /* (SWOS_WORLDS=0: 96/97 alone) */
         return -1;
     s_world = (WorldId)w;
+    {
+        extern void Currency_Apply(void);
+        Currency_Apply();               /* (a euro world's money sign: string_utils.c) */
+    }
     return 0;
 }
 

@@ -12,6 +12,8 @@
 #include "game_types.h"
 #include "league_playoffs.h"
 #include "uefa_coef.h"
+#include "world_finance.h"
+#include "cpu_repl.h"
 #include "world_conti.h"
 #include "states.h"
 #include "comp_identity.h"
@@ -50,6 +52,7 @@ extern uint16_t _careerSeasonsCompleted;
 #include "world_winners.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_rules.h"
 extern uint16_t _currentSeasonShowing;
 extern uint16_t _seasonTransferQuota;
 extern uint16_t _pendingForeignPlayerCount;
@@ -273,10 +276,14 @@ void ChooseTeamAndStartCareer(void)
     WorldCups_Reset();
     CupD_Reset();
     UefaCoef_Reset();
+    UefaPrize_NewCareer();
+    Ffp_NewCareer();
+    CpuRepl_NewCareer();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
     Conti_Reset();
+    WorldRules_NewCareer();     /* (a world's keeper injuries: a new generator) */
     States_Reset();
     _teamsLoaded = 0;
     SelectTeamToManage();
@@ -669,10 +676,14 @@ void InitCareer(uint16_t teamNo)
     WorldCups_Reset();
     CupD_Reset();
     UefaCoef_Reset();
+    UefaPrize_NewCareer();
+    Ffp_NewCareer();
+    CpuRepl_NewCareer();
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
     Conti_Reset();
+    WorldRules_NewCareer();     /* (a world's keeper injuries: a new generator) */
     States_Reset();
 
     DIY_LoadLeagueScratchFromTable();
@@ -720,9 +731,13 @@ void InitCareer(uint16_t teamNo)
 
     _careerFileBuffer = 0;
 
-    LoadSomeEuroCup(_euroCup);
-    LoadSomeEuroCup(_cupWinnersCup);
-    LoadSomeEuroCup(_uefaCup);
+    /* (a world's clubs, never 96/97's, whose ids name other clubs there: career_teams.c) */
+    extern int32_t Career_LoadWorldEuropeTmd(void);
+    if (!Career_LoadWorldEuropeTmd()) {
+        LoadSomeEuroCup(_euroCup);
+        LoadSomeEuroCup(_cupWinnersCup);
+        LoadSomeEuroCup(_uefaCup);
+    }
 
     /* Copy careerContests table entries: {src, dest, count} until
      * src == 0xFFFFFFFF. Iterate as the typed CompetitionCareer[]
@@ -1462,7 +1477,9 @@ void InitializeNewSeason(void)
 
     FillForeignMarketPlayers();
     FillCareerTeamPlayers();
+    Ffp_SeasonStartBefore();    /* (a world's financial fair play: the season-end wage bill) */
     Career_InitializeNewSeasonFinances();
+    Ffp_SeasonStartAfter();     /* (... judged against the season's income: fine, memo, market) */
     InitializeCareerSeasonFinancials();
     CupD_SeasonStart();     /* the Coppa Italia Serie D's rounds before the first match (world_cupd.c) */
 

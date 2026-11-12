@@ -15,9 +15,54 @@ DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin", "da
                     "mod", "conti")
 
 
+FIXES = {('conmebol', 'rec'): {'month': 2, 'level': 'et_pens'},   # 4.0.6: the real editions (Recopa 2026: February,
+         ('caf', 'sc'): {'month': 10}}  # extra time then pens; CAF Super Cup 2025: October) - the data's month 8 / 9
+                                        # and 'pens' kept for older branches (the Mod's conti.py)
+
+
 def _read(conf, kind):
     p = os.path.join(DATA, f'{conf}.{kind}.json')
-    return json.load(open(p, encoding='utf-8')) if os.path.exists(p) else None
+    if not os.path.exists(p):
+        return None
+    d = json.load(open(p, encoding='utf-8'))
+    if kind == 'format':
+        for c in d.get('cups', []):
+            c['rounds'][0].update(FIXES.get((conf, c.get('key'))) or {})
+    if conf == 'fifa':
+        _ic_split(d, kind)
+    return d
+
+
+def _ic_split(d, kind):
+    """4.0.6 (the Mod's conti.py): the Intercontinental's second round as two rounds, each in its real
+    month (2026: the African-Asian-Pacific Cup 19 Sep, the Derby of the Americas 9 Dec, after the
+    Libertadores final): r2a (the CAF holder v the r1 winner, slots 1-2, month 9, its winner straight to
+    the Challenger Cup) and r2b (the Libertadores v the CONCACAF holders, slots 3-4, month 12: then the
+    Challenger Cup and the final, in round order). The data keeps one r2."""
+    for c in d.get('cups', []):
+        if c.get('key') != 'ic':
+            continue
+        if kind == 'format':
+            rs = c['rounds']
+            j = next((i for i, r in enumerate(rs) if r['key'] == 'r2'), None)
+            if j is None:
+                continue
+            r2, tn = rs[j], rs[j].get('tie_names') or {}
+            a = dict(r2, key='r2a', month=9, winners='playoff', ties=r2['ties'][:1])
+            b = dict(r2, key='r2b', month=12, host='neutral', ties=r2['ties'][1:])
+            for x, t in ((a, tn.get('aap')), (b, tn.get('americas'))):
+                x.pop('tie_names', None)
+                if t:
+                    x['names'] = {lg: [t[lg], r2['names'][lg][1]] for lg in t}
+            rs[j:j + 1] = [a, b]
+        else:
+            h = (c.get('access') or {}).get('holders') or {}
+            for k, rk in h.items():
+                if rk == 'r2':
+                    h[k] = 'r2b' if k in ('lib', 'ccc') else 'r2a'
+            for side in (c.get('rotation') or {}).values():
+                if 'r2' in side:
+                    side['r2a'] = side.pop('r2')
 
 
 class _Guests:
@@ -197,11 +242,17 @@ def fields(c, known, outside):
                     feed[key[t]] += r['groups'] * len(_places(q))
                 elif ':' not in t:
                     best[key[t]] = r['groups']
+    nties = lambda r: len(r['ties']) if isinstance(r.get('ties'), list) else r.get('ties')
+    for r in rounds:                                    # (4.0.6 a round whose winners go elsewhere, 'winners': its
+        if r.get('winners'):                            # ties' winners into that round, its own size from its ties)
+            feed[key[r['winners']]] += nties(r)
     field = [0] * n
     for j in range(n - 1, -1, -1):
         r = rounds[j]
         if r['kind'] in ('groups', 'league_stage'):
             field[j] = r.get('clubs') or r['groups'] * r['size']
+        elif r.get('winners'):
+            field[j] = 2 * nties(r)
         elif j == n - 1:
             field[j] = 2
         else:
@@ -266,6 +317,20 @@ def _ic_holders(a, entries):
     for k, rk in entries.items():
         if k not in rotated:
             out.append((k, rk, slots.get(k, 2), 0))
+    return out
+
+
+def ranking(ac, words):
+    """{team word: points} of an access file's club ranking (CONMEBOL's: 'assoc/club': {'rank', 'points'}), the
+    world's clubs only; points rounded, at least 1 (0 = unranked in conti.c), at most 0xFFFF. The Mod 4.1.1: before
+    it the keys never matched the words' (assoc, club) and the table was empty -- world_conti.c ranks by it in the
+    editions made from 4.1.1 on (CT_ED_R)."""
+    out = {}
+    for k, v in ((ac or {}).get('ranking') or {}).items():
+        key = tuple(k.split('/', 1)) if '/' in k else k
+        if words and key in words:
+            pt = v.get('points', 0) if isinstance(v, dict) else v
+            out[words[key]] = max(1, min(int(round(pt)), 0xFFFF))
     return out
 
 
@@ -382,6 +447,8 @@ def load(confs, files=None, words=None, s1=None):
                                                 # ct_structs past the end: the trap after the Challenger Cup)
             b[18] = min(size[j], 255)                   # (the round's places: byes when the world cannot fill it)
             b[10] = CHAMP if j == len(rounds) - 1 else (ci << 4 | (j + 1))
+            if rd.get('winners'):                       # (4.0.6: the winners to a later round - the Intercontinental's
+                b[10] = target(conf, ci, rd['winners'])  # r2a past r2b to the Challenger Cup)
             b[11] = OUT
             for q in range(4):
                 b[12 + q] = OUT
@@ -454,9 +521,11 @@ def load(confs, files=None, words=None, s1=None):
     force = (0xFF, 0xFF)                                # CONTI_FORCE=<cup>:<round> (test builds only): the
     if os.environ.get('CONTI_FORCE'):                   # career club enters that round at every season end
         fk, fr = os.environ['CONTI_FORCE'].split(':')
+        rep = fr.endswith('!')                          # (4.0.6 '<round>!': the club takes the place of the round's
+        fr = fr.rstrip('!')                             # entrant of its confederation - a full one-tie round stays full)
         fc = next((i for i, (_, c, _) in enumerate(cups) if c['key'] == fk), None)
         if fc is not None:                              # (season1_native loads one confederation at a time)
-            force = (fc, rkey[fc][fr])
+            force = (fc, rkey[fc][fr] | (0x80 if rep else 0))
             print(f'exe: CONTI_FORCE={fk}:{fr} (test build)')
     spec = bytes((len(cups), len(assocs)) + force) + body
     spec += struct.pack('<H', len(access)) + b''.join(bytes(x) for x in access)
@@ -464,9 +533,7 @@ def load(confs, files=None, words=None, s1=None):
     spec += bytes(0 if a.startswith('g:') else (files or {}).get(a, 100 + i) & 0xFF for i, a in enumerate(assocs))
     rank = {}
     for conf in confs:
-        for k, v in ((_read(conf, 'access') or {}).get('ranking') or {}).items():
-            if words and k in words:
-                rank[words[k]] = min(int(round(v)), 0xFFFF)
+        rank.update(ranking(_read(conf, 'access'), words))
     spec += struct.pack('<H', len(rank)) + b''.join(struct.pack('<HH', w, v) for w, v in sorted(rank.items()))
     spec += struct.pack('<H', len(gl)) + b''.join(struct.pack('<HBBI', w, a, 0, st) for w, a, st in gl)
     reg = {}                                            # (a league stage's regions: data's <conf>.<cup>_league.json)
@@ -493,6 +560,14 @@ def load(confs, files=None, words=None, s1=None):
     if gp:                                              # at every group stage's end is n (the 3rd's move, forced)
         print(f'exe: CONTI_GPLACE={gp} (test build)')
     spec += bytes((gp,))
+    f2 = (0xFF, 0xFF)                                   # CONTI_FORCE2=<cup>:<round> (the Mod 4.1.1's test builds
+    if os.environ.get('CONTI_FORCE2'):                  # only): the career club into a second cup's round too
+        fk, fr = os.environ['CONTI_FORCE2'].split(':')  # (world_conti.c access)
+        fc = next((i for i, (_, c, _) in enumerate(cups) if c['key'] == fk), None)
+        if fc is not None:
+            f2 = (fc, rkey[fc][fr])
+            print(f'exe: CONTI_FORCE2={fk}:{fr} (test build)')
+    spec += bytes(f2)
     return spec, assocs, [(conf, c['key']) for conf, c, _ in cups]
 
 

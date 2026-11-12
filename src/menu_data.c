@@ -9,6 +9,7 @@
 extern void MultiplayerMenuSelected(void);
 extern void CreditsMenuSelected(void);
 extern void ModesMenuSelected(void);
+extern void MainMenuWorld(void);
 extern void SetExitMenuFlag(void);
 extern void TopGoalScorersMenu_0(void);
 extern void SetupDIYCompetitionStatsMenu(void);
@@ -44,6 +45,7 @@ extern void TransferMarketModRow(void);
 extern void NationalTeamAddPlayerModRow(void);
 extern void CompetitionStatsModRow(void);
 extern void BuyPlayerModRow(void);
+extern void BuyPlayerCpuReplacements(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerViewSquad(void);
@@ -84,6 +86,8 @@ extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
 extern void ChooseTeamsPlayMatchSelected(void);
 extern void ClubBusinessInit(void);
+extern void ClubBusinessFfpSwitch(void);
+extern void ClubBusinessUefaPrizesSwitch(void);
 extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
@@ -7109,6 +7113,13 @@ Menu_SWOSMainMenu _swosMainMenu = {
         { MENU_CMD_ONSELECT_FIRE, ModesMenuSelected },
         MENU_CMD_END
     },
+    { 0, -52, 84, 14 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, -1, 16, 13, 15 },
+    { MENU_CMD_COLORS, 0xE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, MainMenuWorld },
+    MENU_CMD_END,
     { MENU_MARK_START_MENU, 0, 0 },
     MENU_MARK_END_MENU
 };
@@ -8391,6 +8402,13 @@ Menu_BuyPlayer _buyPlayerMenu = {
         { MENU_CMD_ONSELECT_FIRE, BuyPlayerModRow },
         MENU_CMD_END
     },
+    { -73, -71, 121, 15 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, 7, -1, 6, -1 },
+    { MENU_CMD_COLORS, 0xE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, BuyPlayerCpuReplacements },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_TransferMarket _transferMarketMenu = {
@@ -9633,6 +9651,25 @@ Menu_ClubBusiness _clubBusinessMenu = {
     { MENU_CMD_COLORS, 0x0 },
     { MENU_CMD_TEXT_NO_PTR, 0x4000 },
     MENU_CMD_END,
+    MENU_MARK_WIDE_COORDS,
+    { 0, -20, 229, 8 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_TEXT_NO_PTR, 0x4000 },
+    MENU_CMD_END,
+    { 229, -21, 75, 10 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, -1, -1, -1, 1 },
+    { MENU_CMD_COLORS, 0xC },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, ClubBusinessFfpSwitch },
+    MENU_CMD_END,
+    { 4, 143, 96, 15 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, -1, 1, -1, -1 },
+    { MENU_CMD_COLORS, 0xC },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, ClubBusinessUefaPrizesSwitch },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_ChooseTactics _chooseTacticsMenu = {
@@ -10392,6 +10429,11 @@ Menu_Stadium _stadiumMenu = {
         { 0, 0, 0, 0 },
         MENU_CMD_END
     },
+    { MENU_MARK_START_MENU, 0, -15 },
+    { -104, 41, 0, 8 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_Highlights _highlightsMenu = {

@@ -1,6 +1,6 @@
 {
   "name": "controlsMenu",
-  "comment": "OpenSWOS's CONTROLS menu: the player's own keys (redefine) and the press latch. JSON-only (docs/MENUS.md section 10); handlers in src/controls_menu.c, the keys themselves in src/input_sdl.c. Opened from OPTIONS.",
+  "comment": "OpenSWOS's CONTROLS menu: the player's own keys (redefine; player 2's too, for P1 AND P2 ON KEYBOARD) and the press latch. JSON-only (docs/MENUS.md section 10); handlers in src/controls_menu.c, the keys themselves in src/input_sdl.c. Opened from OPTIONS.",
   "menu_flags": {
     "dos_redraw": true
   },
@@ -377,7 +377,7 @@
       "name": "note",
       "coords": {
         "x": 12,
-        "y": 150,
+        "y": 166,
         "w": 296,
         "h": 12
       },
@@ -393,7 +393,7 @@
       "name": "clear",
       "coords": {
         "x": 37,
-        "y": 162,
+        "y": 180,
         "w": 100,
         "h": 15
       },
@@ -426,7 +426,7 @@
       "name": "exit",
       "coords": {
         "x": 167,
-        "y": 162,
+        "y": 180,
         "w": 100,
         "h": 15
       },
@@ -505,6 +505,114 @@
         {
           "op": "onselect_fire",
           "func": "controlsMenu_touch_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "deviceLabel",
+      "coords": {
+        "x": 32,
+        "y": 134,
+        "w": 92,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "KEYBOARD"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "device",
+      "coords": {
+        "x": 132,
+        "y": 134,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 11,
+          "down": 15
+        },
+        {
+          "op": "onselect_fire",
+          "func": "controlsMenu_device_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "playerLabel",
+      "coords": {
+        "x": 32,
+        "y": 150,
+        "w": 92,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "KEYS OF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "player",
+      "coords": {
+        "x": 132,
+        "y": 150,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 11,
+          "down": 15
+        },
+        {
+          "op": "onselect_fire",
+          "func": "controlsMenu_player_OnSelect"
         }
       ]
     }

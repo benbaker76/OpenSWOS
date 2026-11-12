@@ -1376,6 +1376,13 @@ typedef struct Menu_SWOSMainMenu
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry14;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry15;   /* CREDITS (SDL only) */
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry16;   /* MODES (SDL only, while a mod has an entry) */
+  MenuCoords8 entry17_rc;                               /* WORLD (SDL, SWOS_WORLDS: menus.c MainMenuWorld) */
+  MenuCmd_Invisible entry17_invisible;
+  MenuCmd_Nav entry17_nav;
+  MenuCmd_Colors entry17_colors;
+  MenuCmd_TextNoPtr entry17_text;
+  MenuCmd_OnSelect entry17_onSelect;
+  MenuCommand entry17_end;
   MenuMark_StartMenu menu3Start;
   MenuMark markEndMenu;
 } Menu_SWOSMainMenu;
@@ -1446,6 +1453,13 @@ typedef struct Menu_BuyPlayer
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry7;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry8;    /* OpenSWOS: a mod's row (MODPOINT; mod_entries.c) */
+  MenuCoords8 entry9_rc;                                /* OpenSWOS: CPU REPL. (cpu_repl.c; the Mod 4.1) */
+  MenuCmd_Invisible entry9_invisible;
+  MenuCmd_Nav entry9_nav;
+  MenuCmd_Colors entry9_colors;
+  MenuCmd_TextNoPtr entry9_text;
+  MenuCmd_OnSelect entry9_onSelect;
+  MenuCommand entry9_end;
   MenuMark markEndMenu;
 } Menu_BuyPlayer;
 #pragma pack(pop)
@@ -1579,6 +1593,27 @@ typedef struct Menu_ClubBusiness
   MenuCmd_Colors entry21_colors;
   MenuCmd_TextNoPtr entry21_text;
   MenuCommand entry21_end;
+  /* OpenSWOS: a world's financial fair play (its ratio row, its switch) and the UEFA prizes'
+   * switch (career_status.c ClubBusinessInit; the SWOS 96/97 Mod 4.1's ffp.py / uprize.py) */
+  MenuMark markWideCoords3;
+  MenuCoords16 entry22_rc;
+  MenuCmd_Invisible entry22_invisible;
+  MenuCmd_TextNoPtr entry22_text;
+  MenuCommand entry22_end;
+  MenuCoords16 entry23_rc;
+  MenuCmd_Invisible entry23_invisible;
+  MenuCmd_Nav entry23_nav;
+  MenuCmd_Colors entry23_colors;
+  MenuCmd_TextNoPtr entry23_text;
+  MenuCmd_OnSelect entry23_onSelect;
+  MenuCommand entry23_end;
+  MenuCoords16 entry24_rc;
+  MenuCmd_Invisible entry24_invisible;
+  MenuCmd_Nav entry24_nav;
+  MenuCmd_Colors entry24_colors;
+  MenuCmd_TextNoPtr entry24_text;
+  MenuCmd_OnSelect entry24_onSelect;
+  MenuCommand entry24_end;
   MenuMark markEndMenu;
 } Menu_ClubBusiness;
 #pragma pack(pop)
@@ -3503,6 +3538,13 @@ typedef struct Menu_Stadium
   MenuMark_StartMenu menu1Start5;
   MenuEntry_Byte_TextPtrOnly entries43_58[16];
   MenuEntry_Byte_CoordsOnly entry59;
+  /* OpenSWOS: a world's stadium name under the team bars (menus.c ShowStadiumInit; the SWOS
+   * 96/97 Mod 4.1's stadium.py) */
+  MenuMark_StartMenu menu1Start6;
+  MenuCoords8 entry60_rc;
+  MenuCmd_Invisible entry60_invisible;
+  MenuCmd_TextNoPtr entry60_text;
+  MenuCommand entry60_end;
   MenuMark markEndMenu;
 } Menu_Stadium;
 #pragma pack(pop)

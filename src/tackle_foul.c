@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "tweaks.h"   /* [tweaks] cpu_cards */
+#include "world_rules.h"   /* a world's CPU RED CARDS */
 #include "tackle_foul.h"
 #include "test_rules.h"
 #include "dos_sound.h"
@@ -318,7 +319,7 @@ TryBookingThePlayer(Sprite *player, TeamGeneralInfo *team)
 
     /* (The original books only a team with a human controller; [tweaks] cpu_cards books the
      * computer's too: include/tweaks.h.) */
-    if (Tweaks_On(TWEAK_CPU_CARDS)) {
+    if (Tweaks_On(TWEAK_CPU_CARDS) || WorldRules_On(WRULE_CPU_CARDS)) {   /* (or a world's CPU RED CARDS) */
         /* every side by the same rolls */
     } else if (_plgD3Param != 0) {
         /* Highlight mode */
@@ -417,7 +418,7 @@ TrySendingOffThePlayer(Sprite *player, TeamGeneralInfo *team)
 
     /* Need at least one human controller (not with [tweaks] cpu_cards: include/tweaks.h) */
     if (team->playerNumber == 0 &&
-        team->playerCoachNumber == 0 && !Tweaks_On(TWEAK_CPU_CARDS))
+        team->playerCoachNumber == 0 && !Tweaks_On(TWEAK_CPU_CARDS) && !WorldRules_On(WRULE_CPU_CARDS))
         return 1;
 
     /* Check injury quota */

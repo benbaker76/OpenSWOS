@@ -63,6 +63,10 @@ for c in gcc clang /usr/lib/llvm-14/bin/clang; do
         break
     fi
 done
+# The Mod 4.1's gp_forcecfb (a test build's forced place, never called here) swaps a split league's
+# rows by its build's offsets (gplay.py passes split.py's ST / OFF / MAGIC): any values compile it.
+GP41="-DGP_SPST=0 -DGP_SPGRP=0 -DGP_SPPRE=0 -DGP_SPMAGIC=0"
+MC="$MC $GP41"
 $MC -DGPLAY_C="\"$MOD/tools/gplay.c\"" -c -o "$OUT/mod_gp.o" $T/mod_gp.c
 $MC -DDPLAY_C="\"$MOD/tools/dplay.c\"" -c -o "$OUT/mod_dp.o" $T/mod_dp.c
 $CC $M32 -c -o "$OUT/mod_main.o" $T/mod_main.c
@@ -346,7 +350,7 @@ with open(out + "/sr.txt", "w") as o:
             words += [w[0], "%x" % (len(w) - 1)] + w[1:]
         o.write(" ".join(words) + "\n")
 PY
-$CC $M32 -w -fno-builtin -DMOD -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/ri_mod" $T/pools_drv.c
+$CC $M32 $GP41 -w -fno-builtin -DMOD -DGPLAY_C="\"$MOD/tools/gplay.c\"" -o "$OUT/ri_mod" $T/pools_drv.c
 $CC -w -Iinclude -include include/swos_platform.h -DSWOS_WORLDS=1 -o "$OUT/ri_ours" $T/pools_drv.c
 "$OUT/ri_mod" "$OUT/ri_tab.bin" "$OUT/sr.txt" > "$OUT/ri_mod.txt"
 "$OUT/ri_ours" "$OUT/ri_tab.bin" "$OUT/sr.txt" > "$OUT/ri_ours.txt"
@@ -418,8 +422,16 @@ open(out + "/conti.spec", "wb").write(spec)
 sys.path.insert(0, "scripts")
 import world_conti                      # (ours: the same bytes, with and without the team files)
 files = {k: 100 + i for i, k in enumerate(assocs)}
+# (the Mod 4.1.1's ranking by 'assoc/club': every ranked club a word of its association's file)
+words = {}
+for conf in conti.CONFS:
+    for i, k in enumerate(sorted(((conti._read(conf, "access") or {}).get("ranking") or {}))):
+        a = k.split("/", 1)[0]
+        if a in files:
+            words[tuple(k.split("/", 1))] = files[a] | (i % 200) << 8
 if world_conti.load(world_conti.CONFS) != (spec, assocs, cups) or \
-        world_conti.load(world_conti.CONFS, files=files) != conti.load(conti.CONFS, files=files):
+        world_conti.load(world_conti.CONFS, files=files) != conti.load(conti.CONFS, files=files) or \
+        world_conti.load(world_conti.CONFS, files=files, words=words) != conti.load(conti.CONFS, files=files, words=words):
     open(out + "/conti.spec", "wb").write(b"")
 PY
 if [ ! -s "$OUT/conti.spec" ]; then

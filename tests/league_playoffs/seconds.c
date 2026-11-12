@@ -7,6 +7,7 @@
 DIYCompetitionEx _diyCompetitionStart;
 uint8_t *diy_resolve_team(int32_t sel) { (void)sel; return 0; }
 TeamFileEx _careerTeam;
+TeamFileEx *CareerTeams_FindInCache(uint16_t t) { (void)t; return 0; }   /* (gp_champ: never found, as mod_ftic.h) */
 uint16_t _playPromotedAnimation, _playRelegatedAnimation;
 uint16_t _teamsCountryNumbers[256];
 int32_t TeamPool_Swap(uint8_t c, uint16_t o) { (void)c; (void)o; return -1; }

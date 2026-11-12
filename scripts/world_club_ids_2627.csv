@@ -1,0 +1,2231 @@
+# World 2026-27's club ids (scripts/world_from_mod.py): a club's uuid is uuid5 of
+# 2627/team/<club_id> (docs/TEAM_IDS.md) -- never change a club_id; add rows only.
+# json/file/ordinal: where the club was when its row was made (file 'pool': <code>_POOL);
+# key: the Mod's pack key (clubs.csv).
+code,json,file,ordinal,name,key,club_id
+ALB,ALB,143,0,VLLAZNIA,vllaznia,club:alb.vllaznia
+ALB,ALB,143,1,AF ELBASANI,afelbasani,club:alb.af-elbasani
+ALB,ALB,143,2,EGNATIA,egnatia,club:alb.egnatia
+ALB,ALB,143,3,DINAMO CITY,dinamocity,club:alb.dinamo-city
+ALB,ALB,143,4,PARTIZANI,partizani,club:alb.partizani
+ALB,ALB,143,5,TIRANA,tirana,club:alb.tirana
+ALB,ALB,143,6,VORA,vora,club:alb.vora
+ALB,ALB,143,7,TEUTA,teuta,club:alb.teuta
+ALB,ALB,143,8,LACI,laci,club:alb.laci
+ALB,ALB,143,9,SKENDERBEU,skenderbeu,club:alb.skenderbeu
+ALG,ALG,212,0,MC ALGIERS,mcalgiers,club:alg.mc-algiers
+ALG,ALG,212,1,SAOURA,saoura,club:alg.saoura
+ALG,ALG,212,2,BELOUIZDAD,belouizdad,club:alg.belouizdad
+ALG,ALG,212,3,MC ORAN,mcoran,club:alg.mc-oran
+ALG,ALG,212,4,KABYLIE,kabylie,club:alg.kabylie
+ALG,ALG,212,5,OLYMPIQUE AKBOU,olympiqueakbou,club:alg.olympique-akbou
+ALG,ALG,212,6,USM KHENCHELA,usmkhenchela,club:alg.usm-khenchela
+ALG,ALG,212,7,CONSTANTINE,constantine,club:alg.constantine
+ALG,ALG,212,8,BEN AKNOUN,benaknoun,club:alg.ben-aknoun
+ALG,ALG,212,9,USM ALGER,usmalger,club:alg.usm-alger
+ALG,ALG,212,10,SETIF,setif,club:alg.setif
+ALG,ALG,212,11,MB ROUISSAT,mbrouissat,club:alg.mb-rouissat
+ALG,ALG,212,12,ASO CHLEF,asochlef,club:alg.aso-chlef
+ALG,ALG,212,13,EL BIAR,elbiar,club:alg.el-biar
+ALG,ALG,212,14,BISKRA,biskra,club:alg.biskra
+ALG,ALG,212,15,TEMOUCHENT,temouchent,club:alg.temouchent
+AND,AND,153,0,INTER D'ESCALDES,interdescaldes,club:and.inter-descaldes
+AND,AND,153,1,RANGER'S,rangers,club:and.rangers
+AND,AND,153,2,SANTA COLOMA,santacoloma,club:and.santa-coloma
+AND,AND,153,3,AC ESCALDES,acescaldes,club:and.ac-escaldes
+AND,AND,153,4,PENYA ENCARNADA,penyaencarnada,club:and.penya-encarnada
+AND,AND,153,5,ORDINO,ordino,club:and.ordino
+AND,AND,153,6,ESPORTIU CARROI,esportiucarroi,club:and.esportiu-carroi
+AND,AND,153,7,ESPERANCA,cfesperanca,club:and.esperanca
+AND,AND,153,8,CASA PORTUGAL,casaportugal,club:and.casa-portugal
+AND,AND,153,9,ESCALDES,escaldes,club:and.escaldes
+ARG,ARG,163,0,ARGENTINOS JRS.,argentinosjrs,club:arg.argentinos-jrs
+ARG,ARG,163,1,ROSARIO CENTRAL,rosariocentral,club:arg.rosario-central
+ARG,ARG,163,2,BOCA JUNIORS,bocajuniors,club:arg.boca-juniors
+ARG,ARG,163,3,RIVER PLATE,riverplate,club:arg.river-plate
+ARG,ARG,163,4,RACING,racing,club:arg.racing
+ARG,ARG,163,5,INDEPENDIENTE,independiente,club:arg.independiente
+ARG,ARG,163,6,HURACAN,huracan,club:arg.huracan
+ARG,ARG,163,7,SAN LORENZO,sanlorenzo,club:arg.san-lorenzo
+ARG,ARG,163,8,ATLETICO TIGRE,atleticotigre,club:arg.atletico-tigre
+ARG,ARG,163,9,DEP. RIESTRA,depriestra,club:arg.dep-riestra
+ARG,ARG,163,10,IND. RIVADAVIA,indrivadavia,club:arg.ind-rivadavia
+ARG,ARG,163,11,PLATENSE,platense,club:arg.platense
+ARG,ARG,163,12,BARRACAS CENTRAL,barracascentral,club:arg.barracas-central
+ARG,ARG,163,13,LANUS,lanus,club:arg.lanus
+ARG,ARG,163,14,ESTUDIANTES LP,estudianteslp,club:arg.estudiantes-lp
+ARG,ARG,163,15,INSTITUTO ACC,institutoacc,club:arg.instituto-acc
+ARG,ARG,163,16,NEWELL'S,newells,club:arg.newells
+ARG,ARG,163,17,DEFENSA,defensa,club:arg.defensa
+ARG,ARG,163,18,ATLETICO TUCUMAN,atleticotucuman,club:arg.atletico-tucuman
+ARG,ARG,163,19,CENTRAL CORDOBA,centralcordoba,club:arg.central-cordoba
+ARG,ARG,163,20,GIMNASIA LP,gimnasialp,club:arg.gimnasia-lp
+ARG,ARG,163,21,BELGRANO,belgrano,club:arg.belgrano
+ARG,ARG,163,22,SARMIENTO JUNIN,sarmientojunin,club:arg.sarmiento-junin
+ARG,ARG,163,23,ALDOSIVI,aldosivi,club:arg.aldosivi
+ARG,ARG,163,24,VELEZ SARSFIELD,velezsarsfield,club:arg.velez-sarsfield
+ARG,ARG,163,25,BANFIELD,banfield,club:arg.banfield
+ARG,ARG,163,26,TALLERES,talleres,club:arg.talleres
+ARG,ARG,163,27,UNION (SANTA FE),unionsantafe,club:arg.union-santa-fe
+ARG,ARG,163,28,GIMNASIA MENDOZA,gimnasiamendoza,club:arg.gimnasia-mendoza
+ARG,ARG,163,29,ESTUDIANTES RC,estudiantesrc,club:arg.estudiantes-rc
+ARG,ARG,163,30,DEPORTIVO MADRYN,deportivomadryn,club:arg.deportivo-madryn
+ARG,ARG,163,31,ESTUDIANTES,estudiantes,club:arg.estudiantes
+ARG,ARG,163,32,DEPORTIVO MORON,deportivomoron,club:arg.deportivo-moron
+ARG,ARG,163,33,SAN MIGUEL,sanmiguel,club:arg.san-miguel
+ARG,ARG,163,34,CHACO FOR EVER,chacoforever,club:arg.chaco-for-ever
+ARG,ARG,163,35,ALL BOYS,allboys,club:arg.all-boys
+ARG,ARG,163,36,DEF. BELGRANO,defbelgrano,club:arg.def-belgrano
+ARG,ARG,163,37,RACING (CORDOBA),racingcordoba,club:arg.racing-cordoba
+ARG,ARG,163,38,FERRO,ferro,club:arg.ferro
+ARG,ARG,163,39,SAN TELMO,santelmo,club:arg.san-telmo
+ARG,ARG,163,40,LOS ANDES,losandes,club:arg.los-andes
+ARG,ARG,163,41,MITRE,mitre,club:arg.mitre
+ARG,ARG,163,42,ALMIRANTE BROWN,almirantebrown,club:arg.almirante-brown
+ARG,ARG,163,43,CENTRAL NORTE,centralnorte,club:arg.central-norte
+ARG,ARG,163,44,COLON,colon,club:arg.colon
+ARG,ARG,163,45,GODOY CRUZ,godoycruz,club:arg.godoy-cruz
+ARG,ARG,163,46,ACASSUSO,acassuso,club:arg.acassuso
+ARG,ARG,163,47,CIUDAD BOLIVAR,ciudadbolivar,club:arg.ciudad-bolivar
+ARG,ARG,163,48,ATLANTA,atlanta,club:arg.atlanta
+ARG,ARG,163,49,TRISTAN SUAREZ,tristansuarez,club:arg.tristan-suarez
+ARG,ARG,163,50,GIMNASIA Y TIRO,gimnasiaytiro,club:arg.gimnasia-y-tiro
+ARG,ARG,163,51,GIMNASIA (J),gimnasiaj,club:arg.gimnasia-j
+ARG,ARG,163,52,SAN MARTIN (T),sanmartint,club:arg.san-martin-t
+ARG,ARG,163,53,TEMPERLEY,temperley,club:arg.temperley
+ARG,ARG,163,54,DEPORTIVO MAIPU,deportivomaipu,club:arg.deportivo-maipu
+ARG,ARG,163,55,AGROPECUARIO,agropecuario,club:arg.agropecuario
+ARG,ARG,163,56,PATRONATO,patronato,club:arg.patronato
+ARG,ARG,163,57,COLEGIALES,colegiales,club:arg.colegiales
+ARG,ARG,163,58,CHACARITA JRS.,chacaritajrs,club:arg.chacarita-jrs
+ARG,ARG,163,59,NUEVA CHICAGO,nuevachicago,club:arg.nueva-chicago
+ARG,ARG,163,60,GUEMES,guemes,club:arg.guemes
+ARG,ARG,163,61,QUILMES,quilmes,club:arg.quilmes
+ARG,ARG,163,62,ALMAGRO,almagro,club:arg.almagro
+ARG,ARG,163,63,SAN MARTIN (SJ),sanmartinsj,club:arg.san-martin-sj
+ARG,ARG,163,64,AMSD ATLETICO,amsdatletico,club:arg.amsd-atletico
+ARG,ARG,163,65,MIDLAND,midland,club:arg.midland
+ARM,ARM,132,0,ARARAT-ARMENIA,araratarmenia,club:arm.ararat-armenia
+ARM,ARM,132,1,NOAH YEREVAN,noahyerevan,club:arm.noah-yerevan
+ARM,ARM,132,2,PYUNIK YEREVAN,pyunikyerevan,club:arm.pyunik-yerevan
+ARM,ARM,132,3,ALASHKERT,alashkertfc,club:arm.alashkert
+ARM,ARM,132,4,URARTU YEREVAN,urartuyerevan,club:arm.urartu-yerevan
+ARM,ARM,132,5,VAN,van,club:arm.van
+ARM,ARM,132,6,BKMA YEREVAN,bkmayerevan,club:arm.bkma-yerevan
+ARM,ARM,132,7,GANDZASAR KAPAN,gandzasarkapan,club:arm.gandzasar-kapan
+ARM,ARM,132,8,ARARAT YEREVAN,araratyerevan,club:arm.ararat-yerevan
+ARM,ARM,132,9,SHIRAK GYUMRI,shirakgyumri,club:arm.shirak-gyumri
+ARM,ARM,132,10,SARDARAPAT,sardarapat,club:arm.sardarapat
+ARM,ARM,132,11,SYUNIK,syunik,club:arm.syunik
+AUS,AUS,187,0,NEWCASTLE,newcastle,club:aus.newcastle
+AUS,AUS,187,1,ADELAIDE UNITED,adelaideunited,club:aus.adelaide-united
+AUS,AUS,187,2,AUCKLAND,auckland,club:aus.auckland
+AUS,AUS,187,3,MELB. VICTORY,melbvictory,club:aus.melb-victory
+AUS,AUS,187,4,SYDNEY,sydney,club:aus.sydney
+AUS,AUS,187,5,MELBOURNE CITY,melbournecity,club:aus.melbourne-city
+AUS,AUS,187,6,MACARTHUR,macarthur,club:aus.macarthur
+AUS,AUS,187,7,WELLINGTON,wellington,club:aus.wellington
+AUS,AUS,187,8,CENTRAL COAST,centralcoast,club:aus.central-coast
+AUS,AUS,187,9,PERTH GLORY,perthglory,club:aus.perth-glory
+AUS,AUS,187,10,BRISBANE ROAR,brisbaneroar,club:aus.brisbane-roar
+AUS,AUS,187,11,WESTERN SYDNEY,westernsydney,club:aus.western-sydney
+AUS,AUS,187,12,NWS SPIRIT,nwsspirit,club:aus.nws-spirit
+AUS,AUS,187,13,APIA LEICHHARDT,apialeichhardt,club:aus.apia-leichhardt
+AUS,AUS,187,14,MARC. STALLIONS,marcstallions,club:aus.marc-stallions
+AUS,AUS,187,15,ROCKDALE ILINDEN,rockdaleilinden,club:aus.rockdale-ilinden
+AUS,AUS,187,16,BLACKTOWN CITY,blacktowncity,club:aus.blacktown-city
+AUS,AUS,187,17,SYDNEY UNITED 58,sydneyunited58,club:aus.sydney-united-58
+AUS,AUS,187,18,SYDNEY OLYMPIC,sydneyolympic,club:aus.sydney-olympic
+AUS,AUS,187,19,WOLVES FC,wolvesfc,club:aus.wolves-fc
+AUS,AUS,187,20,ST. GEORGE FA,stgeorgefa,club:aus.st-george-fa
+AUS,AUS,187,21,SYDNEY II,sydneyii,club:aus.sydney-ii
+AUS,AUS,187,22,MANLY UNITED,manlyunited,club:aus.manly-united
+AUS,AUS,187,23,ST GEORGE SAINTS,stgeorgesaints,club:aus.st-george-saints
+AUS,AUS,187,24,SUTHERLAND,sutherland,club:aus.sutherland
+AUS,AUS,187,25,WEST SYDNEY II,westsydneyii,club:aus.west-sydney-ii
+AUS,AUS,187,26,RAIDERS,raiders,club:aus.raiders
+AUS,AUS,187,27,UNIVERSITY OF,universityof,club:aus.university-of
+AUS,AUS,187,28,AVONDALE,avondale,club:aus.avondale
+AUS,AUS,187,29,HEIDELBERG UTD.,heidelbergutd,club:aus.heidelberg-utd
+AUS,AUS,187,30,DAND. THUNDER,dandthunder,club:aus.dand-thunder
+AUS,AUS,187,31,OAKLEIGH CANNONS,oakleighcannons,club:aus.oakleigh-cannons
+AUS,AUS,187,32,PRESTON LIONS,prestonlions,club:aus.preston-lions
+AUS,AUS,187,33,DANDENONG CITY,dandenongcity,club:aus.dandenong-city
+AUS,AUS,187,34,HUME CITY,humecity,club:aus.hume-city
+AUS,AUS,187,35,GREEN GULLY,greengully,club:aus.green-gully
+AUS,AUS,187,36,SOUTH MELBOURNE,southmelbourne,club:aus.south-melbourne
+AUS,AUS,187,37,ALTONA MAGIC,altonamagic,club:aus.altona-magic
+AUS,AUS,187,38,ST ALBANS SAINTS,stalbanssaints,club:aus.st-albans-saints
+AUS,AUS,187,39,MELBOURNE CITY 2,melbournecity2,club:aus.melbourne-city-2
+AUS,AUS,187,40,CAROLINE SPRINGS,carolinesprings,club:aus.caroline-springs
+AUS,AUS,187,41,BENTLEIGH GREENS,bentleighgreens,club:aus.bentleigh-greens
+AUS,AUS,187,42,MORETON CITY,moretoncity,club:aus.moreton-city
+AUS,AUS,187,43,GOLD COAST,goldcoast,club:aus.gold-coast
+AUS,AUS,187,44,PENINSULA POWER,peninsulapower,club:aus.peninsula-power
+AUS,AUS,187,45,BRISBANE ROAR 2,brisbaneroar2,club:aus.brisbane-roar-2
+AUS,AUS,187,46,LIONS,lions,club:aus.lions
+AUS,AUS,187,47,WYNNUM WOLVES,wynnumwolves,club:aus.wynnum-wolves
+AUS,AUS,187,48,EASTERN SUBURBS,easternsuburbs,club:aus.eastern-suburbs
+AUS,AUS,187,49,MAGIC UNITED,magicunited,club:aus.magic-united
+AUS,AUS,187,50,BRISBANE CITY,brisbanecity,club:aus.brisbane-city
+AUS,AUS,187,51,OLYMPIC,olympic,club:aus.olympic
+AUS,AUS,187,52,ROCHEDALE ROVERS,rochedalerovers,club:aus.rochedale-rovers
+AUS,AUS,187,53,GOLD COAST 2,goldcoast2,club:aus.gold-coast-2
+AUT,AUT,117,0,LASK,lask,club:aut.lask
+AUT,AUT,117,1,RIED,ried,club:aut.ried
+AUT,AUT,117,2,STURM GRAZ,sturmgraz,club:aut.sturm-graz
+AUT,AUT,117,3,WOLFSBERGER,wolfsberger,club:aut.wolfsberger
+AUT,AUT,117,4,SALZBURG,salzburg,club:aut.salzburg
+AUT,AUT,117,5,SCR ALTACH,scraltach,club:aut.scr-altach
+AUT,AUT,117,6,AUSTRIA VIENNA,austriavienna,club:aut.austria-vienna
+AUT,AUT,117,7,GRAZER AK,grazerak,club:aut.grazer-ak
+AUT,AUT,117,8,RAPID VIENNA,rapidvienna,club:aut.rapid-vienna
+AUT,AUT,117,9,WSG TIROL,wsgtirol,club:aut.wsg-tirol
+AUT,AUT,117,10,HARTBERG,hartberg,club:aut.hartberg
+AUT,AUT,117,11,AUSTRIA LUSTENAU,austrialustenau,club:aut.austria-lustenau
+AZE,AZE,127,0,SABAH,sabah,club:aze.sabah
+AZE,AZE,127,1,QARABAG,qarabag,club:aze.qarabag
+AZE,AZE,127,2,TURAN-TOVUZ,turantovuz,club:aze.turan-tovuz
+AZE,AZE,127,3,NEFTCHI,neftchi,club:aze.neftchi
+AZE,AZE,127,4,ZIRA,zira,club:aze.zira
+AZE,AZE,127,5,ARAZ-NAKHCHIVAN,araznakhchivan,club:aze.araz-nakhchivan
+AZE,AZE,127,6,SUMGAYIT,sumgayit,club:aze.sumgayit
+AZE,AZE,127,7,SHAMAKHI,shamakhi,club:aze.shamakhi
+AZE,AZE,127,8,IMISHLI,imishli,club:aze.imishli
+AZE,AZE,127,9,KAPAZ,kapaz,club:aze.kapaz
+AZE,AZE,127,10,GABALA,gabala,club:aze.gabala
+AZE,AZE,127,11,SHAFA BAKU,shafabaku,club:aze.shafa-baku
+BEL,BEL,108,0,UNION SG,unionsg,club:bel.union-sg
+BEL,BEL,108,1,BRUGGE,brugge,club:bel.brugge
+BEL,BEL,108,2,SINT-TRUIDENSE,sinttruidense,club:bel.sint-truidense
+BEL,BEL,108,3,GENT,kaagent,club:bel.gent
+BEL,BEL,108,4,MECHELEN,mechelen,club:bel.mechelen
+BEL,BEL,108,5,ANDERLECHT,anderlecht,club:bel.anderlecht
+BEL,BEL,108,6,GENK,genk,club:bel.genk
+BEL,BEL,108,7,STANDARD LIEGE,standardliege,club:bel.standard-liege
+BEL,BEL,108,8,KVC WESTERLO,kvcwesterlo,club:bel.kvc-westerlo
+BEL,BEL,108,9,ROYAL ANTWERP,royalantwerp,club:bel.royal-antwerp
+BEL,BEL,108,10,ROYAL CHARLEROI,royalcharleroi,club:bel.royal-charleroi
+BEL,BEL,108,11,OH LEUVEN,ohleuven,club:bel.oh-leuven
+BEL,BEL,108,12,ZULTE WAREGEM,zultewaregem,club:bel.zulte-waregem
+BEL,BEL,108,13,CERCLE BRUGGE,cerclebrugge,club:bel.cercle-brugge
+BEL,BEL,108,14,RAAL LOUVIERE,raallouviere,club:bel.raal-louviere
+BEL,BEL,108,15,BEVEREN,beveren,club:bel.beveren
+BEL,BEL,108,16,KORTRIJK,kortrijk,club:bel.kortrijk
+BEL,BEL,108,17,LOMMEL,lommel,club:bel.lommel
+BIH,BIH,137,0,BORAC BANJA LUKA,boracbanjaluka,club:bih.borac-banja-luka
+BIH,BIH,137,1,ZRINJSKI MOSTAR,zrinjskimostar,club:bih.zrinjski-mostar
+BIH,BIH,137,2,SARAJEVO,sarajevo,club:bih.sarajevo
+BIH,BIH,137,3,VELEZ MOSTAR,velezmostar,club:bih.velez-mostar
+BIH,BIH,137,4,SIROKI BRIJEG,sirokibrijeg,club:bih.siroki-brijeg
+BIH,BIH,137,5,ZELJEZNICAR,zeljeznicar,club:bih.zeljeznicar
+BIH,BIH,137,6,RADNIK BIJELJINA,radnikbijeljina,club:bih.radnik-bijeljina
+BIH,BIH,137,7,SLOGA MERIDIAN,slogameridian,club:bih.sloga-meridian
+BIH,BIH,137,8,CELIK ZENICA,celikzenica,club:bih.celik-zenica
+BIH,BIH,137,9,BSK BANJA LUKA,bskbanjaluka,club:bih.bsk-banja-luka
+BLR,BLR,154,0,ML VITEBSK,mlvitebsk,club:blr.ml-vitebsk
+BLR,BLR,154,1,DINAMO MINSK,dinamominsk,club:blr.dinamo-minsk
+BLR,BLR,154,2,SLAVIA MOZYR,slaviamozyr,club:blr.slavia-mozyr
+BLR,BLR,154,3,DYNAMO BREST,dynamobrest,club:blr.dynamo-brest
+BLR,BLR,154,4,MINSK,minsk,club:blr.minsk
+BLR,BLR,154,5,ISLOCH,isloch,club:blr.isloch
+BLR,BLR,154,6,TORPEDO ZHODINO,torpedozhodino,club:blr.torpedo-zhodino
+BLR,BLR,154,7,NEMAN GRODNO,nemangrodno,club:blr.neman-grodno
+BLR,BLR,154,8,GOMEL,gomel,club:blr.gomel
+BLR,BLR,154,9,BATE BORISOV,bateborisov,club:blr.bate-borisov
+BLR,BLR,154,10,DZERZHINSK,dzerzhinsk,club:blr.dzerzhinsk
+BLR,BLR,154,11,VITEBSK,vitebsk,club:blr.vitebsk
+BLR,BLR,154,12,NAFTAN,naftan,club:blr.naftan
+BLR,BLR,154,13,BARANOVICHI,baranovichi,club:blr.baranovichi
+BLR,BLR,154,14,DNEPR MOGILEV,dneprmogilev,club:blr.dnepr-mogilev
+BLR,BLR,154,15,BELSHINA,belshina,club:blr.belshina
+BOL,BOL,170,0,ALWAYS READY,alwaysready,club:bol.always-ready
+BOL,BOL,170,1,BOLIVAR PAZ,bolivarpaz,club:bol.bolivar-paz
+BOL,BOL,170,2,THE STRONGEST,thestrongest,club:bol.the-strongest
+BOL,BOL,170,3,SA BULO BULO,sabulobulo,club:bol.sa-bulo-bulo
+BOL,BOL,170,4,BLOOMING,clubblooming,club:bol.blooming
+BOL,BOL,170,5,IND. PETROLERO,indpetrolero,club:bol.ind-petrolero
+BOL,BOL,170,6,NACIONAL POTOSI,nacionalpotosi,club:bol.nacional-potosi
+BOL,BOL,170,7,GUABIRA,guabira,club:bol.guabira
+BOL,BOL,170,8,GV SAN JOSE,gvsanjose,club:bol.gv-san-jose
+BOL,BOL,170,9,AURORA,aurora,club:bol.aurora
+BOL,BOL,170,10,REAL TOMAYAPO,realtomayapo,club:bol.real-tomayapo
+BOL,BOL,170,11,ORIENTE P.,orientep,club:bol.oriente-p
+BOL,BOL,170,12,REAL ORURO,realoruro,club:bol.real-oruro
+BOL,BOL,170,13,UNIV. DE VINTO,univdevinto,club:bol.univ-de-vinto
+BOL,BOL,170,14,A.B.B.,abb,club:bol.a-b-b
+BOL,BOL,170,15,REAL POTOSI,realpotosi,club:bol.real-potosi
+BRA,BRA_1,161,0,FLAMENGO,flamengo,club:bra.flamengo
+BRA,BRA_1,161,1,PALMEIRAS,palmeiras,club:bra.palmeiras
+BRA,BRA_1,161,2,CRUZEIRO ESPORTE,cruzeiroesporte,club:bra.cruzeiro-esporte
+BRA,BRA_1,161,3,MIRASSOL (SP),mirassolsp,club:bra.mirassol-sp
+BRA,BRA_1,161,4,FLUMINENSE,fluminense,club:bra.fluminense
+BRA,BRA_1,161,5,BOTAFOGO,botafogo,club:bra.botafogo
+BRA,BRA_1,161,6,BAHIA,esportebahia,club:bra.bahia
+BRA,BRA_1,161,7,SAO PAULO,saopaulo,club:bra.sao-paulo
+BRA,BRA_1,161,8,GREMIO,gremio,club:bra.gremio
+BRA,BRA_1,161,9,RB BRAGANTINO,rbbragantino,club:bra.rb-bragantino
+BRA,BRA_1,161,10,ATLETICO MINEIRO,atleticomineiro,club:bra.atletico-mineiro
+BRA,BRA_1,161,11,SANTOS,santos,club:bra.santos
+BRA,BRA_1,161,12,CORINTHIANS,corinthians,club:bra.corinthians
+BRA,BRA_1,161,13,VASCO DA GAMA,vascodagama,club:bra.vasco-da-gama
+BRA,BRA_1,161,14,VITORIA,esportevitoria,club:bra.vitoria
+BRA,BRA_1,161,15,INTERNACIONAL,internacional,club:bra.internacional
+BRA,BRA_1,161,16,CORITIBA,coritibafc,club:bra.coritiba
+BRA,BRA_1,161,17,ATHLETICO-PR,athleticopr,club:bra.athletico-pr
+BRA,BRA_1,161,18,CHAPECOENSE,chapecoense,club:bra.chapecoense
+BRA,BRA_1,161,19,REMO (PA),remopa,club:bra.remo-pa
+BRA,BRA_1,161,20,CRICIUMA,criciuma,club:bra.criciuma
+BRA,BRA_1,161,21,GOIAS,goias,club:bra.goias
+BRA,BRA_1,161,22,NOVORIZONTINO,novorizontino,club:bra.novorizontino
+BRA,BRA_1,161,23,CRB,crb,club:bra.crb
+BRA,BRA_1,161,24,AVAI,avai,club:bra.avai
+BRA,BRA_1,161,25,CUIABA-MT,cuiabamt,club:bra.cuiaba-mt
+BRA,BRA_1,161,26,ATLETICO-GO,atleticogo,club:bra.atletico-go
+BRA,BRA_1,161,27,OPERARIO-PR,operariopr,club:bra.operario-pr
+BRA,BRA_1,161,28,VILA NOVA (GO),vilanovago,club:bra.vila-nova-go
+BRA,BRA_1,161,29,AMERICA (MG),americamg,club:bra.america-mg
+BRA,BRA_1,161,30,ATHLETIC,athletic,club:bra.athletic
+BRA,BRA_1,161,31,BOTAFOGO-SP,botafogosp,club:bra.botafogo-sp
+BRA,BRA_1,161,32,CEARA SPORTING,cearasporting,club:bra.ceara-sporting
+BRA,BRA_1,161,33,FORTALEZA,fortaleza,club:bra.fortaleza
+BRA,BRA_1,161,34,JUVENTUDE,juventude,club:bra.juventude
+BRA,BRA_1,161,35,RECIFE,recife,club:bra.recife
+BRA,BRA_1,161,36,SAO BERNARDO,saobernardo,club:bra.sao-bernardo
+BRA,BRA_1,161,37,LONDRINA,londrinaesporte,club:bra.londrina
+BRA,BRA_1,161,38,ATLETICA,atletica,club:bra.atletica
+BRA,BRA_1,161,39,CAPIBARIBE,capibaribe,club:bra.capibaribe
+BRA,BRA_2,162,0,GUARANI (SP),guaranisp,club:bra.guarani-sp
+BRA,BRA_2,162,1,NOROESTE,esportenoroeste,club:bra.noroeste
+BRA,BRA_2,162,2,AE VELO,aevelo,club:bra.ae-velo
+BRA,BRA_2,162,3,PORTUGUESA,portuguesa,club:bra.portuguesa
+BRA,BRA_2,162,4,PRIMAVERA,primavera,club:bra.primavera
+BRA,BRA_2,162,5,CAPIVARIANO,capivariano,club:bra.capivariano
+BRA,BRA_2,162,6,SAMPAIO CORREA E,sampaiocorreae,club:bra.sampaio-correa-e
+BRA,BRA_2,162,7,VOLTA REDONDA,voltaredonda,club:bra.volta-redonda
+BRA,BRA_2,162,8,BANGU ATLETICO,banguatletico,club:bra.bangu-atletico
+BRA,BRA_2,162,9,MADUREIRA,madureira,club:bra.madureira
+BRA,BRA_2,162,10,BOAVISTA,boavista,club:bra.boavista
+BRA,BRA_2,162,11,NOVA IGUACU (RJ),novaiguacurj,club:bra.nova-iguacu-rj
+BRA,BRA_2,162,12,AA PORTUGUESA,aaportuguesa,club:bra.aa-portuguesa
+BRA,BRA_2,162,13,MARICA,marica,club:bra.marica
+BRA,BRA_2,162,14,POUSO ALEGRE,pousoalegre,club:bra.pouso-alegre
+BRA,BRA_2,162,15,BETIM,betim,club:bra.betim
+BRA,BRA_2,162,16,UBERLANDIA,uberlandia,club:bra.uberlandia
+BRA,BRA_2,162,17,NORTH (MG),northmg,club:bra.north-mg
+BRA,BRA_2,162,18,TOMBENSE (MG),tombensemg,club:bra.tombense-mg
+BRA,BRA_2,162,19,EC DEMOCRATA,ecdemocrata,club:bra.ec-democrata
+BRA,BRA_2,162,20,UNIAO RECREATIVA,uniaorecreativa,club:bra.uniao-recreativa
+BRA,BRA_2,162,21,ITABIRITO,itabirito,club:bra.itabirito
+BRA,BRA_2,162,22,MARINGA,maringa,club:bra.maringa
+BRA,BRA_2,162,23,AZURIZ,azuriz,club:bra.azuriz
+BRA,BRA_2,162,24,CIANORTE (PR),cianortepr,club:bra.cianorte-pr
+BRA,BRA_2,162,25,ANDRAUS BRASIL,andrausbrasil,club:bra.andraus-brasil
+BRA,BRA_2,162,26,CASCAVEL (PR),cascavelpr,club:bra.cascavel-pr
+BRA,BRA_2,162,27,FOZ IGUACU,foziguacu,club:bra.foz-iguacu
+BRA,BRA_2,162,28,SAO JOSEENSE,saojoseense,club:bra.sao-joseense
+BRA,BRA_2,162,29,GALO MARINGA,galomaringa,club:bra.galo-maringa
+BRA,BRA_2,162,30,ALAGOINHAS,alagoinhas,club:bra.alagoinhas
+BRA,BRA_2,162,31,BAHIA FEIRA (BA),bahiafeiraba,club:bra.bahia-feira-ba
+BRA,BRA_2,162,32,JUAZEIRENSE (BA),juazeirenseba,club:bra.juazeirense-ba
+BRA,BRA_2,162,33,JACUIPENSE,jacuipense,club:bra.jacuipense
+BRA,BRA_2,162,34,GALICIA (BA),galiciaba,club:bra.galicia-ba
+BRA,BRA_2,162,35,JEQUIE,jequie,club:bra.jequie
+BRA,BRA_2,162,36,BARCELONA (BA),barcelonaba,club:bra.barcelona-ba
+BRA,BRA_2,162,37,PORTO SC,portosc,club:bra.porto-sc
+BRA,BRA_2,162,38,CAXIAS,sercaxiassul,club:bra.caxias
+BRA,BRA_2,162,39,INTERNACIONAL 2,internacional2,club:bra.internacional-2
+BRA,BRA_2,162,40,ESPORTE SAO JOSE,esportesaojose,club:bra.esporte-sao-jose
+BRA,BRA_2,162,41,NOVO HAMBURGO,novohamburgo,club:bra.novo-hamburgo
+BRA,BRA_2,162,42,AVENIDA,avenida,club:bra.avenida
+BRA,BRA_2,162,43,YPIRANGA,ypiranga,club:bra.ypiranga
+BRA,BRA_2,162,44,GUARANY BAGE,guaranybage,club:bra.guarany-bage
+BRA,BRA_2,162,45,SAO LUIZ,saoluiz,club:bra.sao-luiz
+BRA,BRA_2,162,46,MONSOON,monsoon,club:bra.monsoon
+BRA,BRA_2,162,47,FLORESTA,florestaesporte,club:bra.floresta
+BRA,BRA_2,162,48,FERROVIARIO,ferroviario,club:bra.ferroviario
+BRA,BRA_2,162,49,HORIZONTE,horizonte,club:bra.horizonte
+BRA,BRA_2,162,50,MARACANA,maracana,club:bra.maracana
+BRA,BRA_2,162,51,QUIXADA (CE),quixadace,club:bra.quixada-ce
+BRA,BRA_2,162,52,IGUATU,iguatu,club:bra.iguatu
+BRA,BRA_2,162,53,MARANGUAPE (CE),maranguapece,club:bra.maranguape-ce
+BRA,BRA_2,162,54,CEFAT TIROL,cefattirol,club:bra.cefat-tirol
+BRA,BRA_2,162,55,BRUSQUE (SC),brusquesc,club:bra.brusque-sc
+BRA,BRA_2,162,56,FIGUEIRENSE,figueirense,club:bra.figueirense
+BRA,BRA_2,162,57,SANTA CATARINA,santacatarina,club:bra.santa-catarina
+BRA,BRA_2,162,58,BARRA,barra,club:bra.barra
+BRA,BRA_2,162,59,CAMBORIU,camboriu,club:bra.camboriu
+BRA,BRA_2,162,60,ESPORTE,esporte,club:bra.esporte
+BRA,BRA_2,162,61,NAUTICO MARCILIO,nauticomarcilio,club:bra.nautico-marcilio
+BRA,BRA_2,162,62,CONCORDIA,concordia,club:bra.concordia
+BRA,BRA_2,162,63,CARLOS RENAUX,carlosrenaux,club:bra.carlos-renaux
+BRA,BRA_2,162,64,GOIATUBA,goiatuba,club:bra.goiatuba
+BRA,BRA_2,162,65,ATLETICA 2,atletica2,club:bra.atletica-2
+BRA,BRA_2,162,66,RECREATIVO E,recreativoe,club:bra.recreativo-e
+BRA,BRA_2,162,67,ANAPOLIS,anapolis,club:bra.anapolis
+BRA,BRA_2,162,68,APARECIDENSE,aaaparecidense,club:bra.aparecidense
+BRA,BRA_2,162,69,AE JATAIENSE,aejataiense,club:bra.ae-jataiense
+BRA,BRA_2,162,70,INHUMAS,inhumas,club:bra.inhumas
+BRA,BRA_2,162,71,CENTRO OESTE,centrooeste,club:bra.centro-oeste
+BRA,BRA_2,162,72,OUVIDORENSE,ouvidorense,club:bra.ouvidorense
+BRA,BRA_2,162,73,MAGUARY,aamaguary,club:bra.maguary
+BRA,BRA_2,162,74,SANTA CRUZ (PE),santacruzpe,club:bra.santa-cruz-pe
+BRA,BRA_2,162,75,AAD VITORIA DAS,aadvitoriadas,club:bra.aad-vitoria-das
+BRA,BRA_2,162,76,DECISAO,decisao,club:bra.decisao
+BRA,BRA_2,162,77,RETRO BRASIL,retrobrasil,club:bra.retro-brasil
+BRA,BRA_2,162,78,JAGUAR (PE),jaguarpe,club:bra.jaguar-pe
+BRA,BRA_2,162,79,PAYSANDU,paysandu,club:bra.paysandu
+BRA,BRA_2,162,80,CASTANHAL,castanhal,club:bra.castanhal
+BRA,BRA_2,162,81,TUNA LUSO,tunaluso,club:bra.tuna-luso
+BRA,BRA_2,162,82,AGUIA MARABA,aguiamaraba,club:bra.aguia-maraba
+BRA,BRA_2,162,83,SAO RAIMUNDO,saoraimundo,club:bra.sao-raimundo
+BRA,BRA_2,162,84,CAMETA,cameta,club:bra.cameta
+BRA,BRA_2,162,85,SAO FRANCISCO,saofrancisco,club:bra.sao-francisco
+BRA,BRA_2,162,86,BRAGANTINO PARA,bragantinopara,club:bra.bragantino-para
+BRA,BRA_2,162,87,INDEPENDENTE,independente,club:bra.independente
+BRA,BRA_2,162,88,SANTA ROSA,santarosa,club:bra.santa-rosa
+BRA,BRA_2,162,89,CAPITAO POCO,capitaopoco,club:bra.capitao-poco
+BRA,BRA_2,162,90,CORURIPE,aacoruripe,club:bra.coruripe
+BRA,BRA_2,162,91,MURICI (AL),muricial,club:bra.murici-al
+BRA,BRA_2,162,92,CENTRO SPORTIVO,centrosportivo,club:bra.centro-sportivo
+BRA,BRA_2,162,93,SPORTIVA,sportiva,club:bra.sportiva
+BRA,BRA_2,162,94,ESPORTIVA,esportiva,club:bra.esportiva
+BRA,BRA_2,162,95,PENEDENSE,penedense,club:bra.penedense
+BRA,BRA_2,162,96,CRUZEIRO,cruzeiro,club:bra.cruzeiro
+BRA,BRA_2,162,97,VARZEA GRANDE,varzeagrande,club:bra.varzea-grande
+BRA,BRA_2,162,98,RONDONOPOLIS,rondonopolis,club:bra.rondonopolis
+BRA,BRA_2,162,99,MIXTO (MT),mixtomt,club:bra.mixto-mt
+BRA,BRA_2,162,100,LUVERDENSE (MT),luverdensemt,club:bra.luverdense-mt
+BRA,BRA_2,162,101,VARZEA-GRANDENSE,varzeagrandense,club:bra.varzea-grandense
+BRA,BRA_2,162,102,NOVA MUTUM,novamutum,club:bra.nova-mutum
+BRA,BRA_2,162,103,CS SINOP,cssinop,club:bra.cs-sinop
+BRA,BRA_2,162,104,PRIMAVERA AC,primaveraac,club:bra.primavera-ac
+BRA,BRA_2,162,105,CHAPADA,chapada,club:bra.chapada
+BRA,BRA_2,162,106,SPARE 1,spare1,club:bra.spare-1
+BRA,BRA_2,162,107,SPARE 2,spare2,club:bra.spare-2
+BRA,BRA_2,162,108,SPARE 3,spare3,club:bra.spare-3
+BRA,BRA_2,162,109,SPARE 4,spare4,club:bra.spare-4
+BRA,BRA_2,162,110,SPARE 5,spare5,club:bra.spare-5
+BRA,BRA_2,162,111,SPARE 6,spare6,club:bra.spare-6
+BRA,BRA_2,162,112,SPARE 7,spare7,club:bra.spare-7
+BRA,BRA_2,162,113,SPARE 8,spare8,club:bra.spare-8
+BRA,BRA_2,162,114,SPARE 9,spare9,club:bra.spare-9
+BRA,BRA_2,162,115,SPARE 10,spare10,club:bra.spare-10
+BRA,BRA_2,162,116,SPARE 11,spare11,club:bra.spare-11
+BRA,BRA_2,162,117,SPARE 12,spare12,club:bra.spare-12
+BRA,BRA_2,162,118,SPARE 13,spare13,club:bra.spare-13
+BRA,BRA_POOL,pool,0,JUVENTUS,juventus,club:bra.juventus
+BRA,BRA_POOL,pool,1,FERROVIARIA,ferroviaria,club:bra.ferroviaria
+BRA,BRA_POOL,pool,2,SAO JOSE,saojose,club:bra.sao-jose
+BRA,BRA_POOL,pool,3,SERTAOZINHO,sertaozinho,club:bra.sertaozinho
+BRA,BRA_POOL,pool,4,AMERICANO,americano,club:bra.americano
+BRA,BRA_POOL,pool,5,RESENDE,resende,club:bra.resende
+BRA,BRA_POOL,pool,6,AMERICA,america,club:bra.america
+BRA,BRA_POOL,pool,7,VILLA NOVA,villanova,club:bra.villa-nova
+BRA,BRA_POOL,pool,8,DEMOCRATA,democrata,club:bra.democrata
+BRA,BRA_POOL,pool,9,VALERIODOCE,valeriodoce,club:bra.valeriodoce
+BRA,BRA_POOL,pool,10,AYMORES,aymores,club:bra.aymores
+BRA,BRA_POOL,pool,11,PARANAVAI,paranavai,club:bra.paranavai
+BRA,BRA_POOL,pool,12,PARANA,parana,club:bra.parana
+BRA,BRA_POOL,pool,13,FLUMINENSE FEIRA,fluminensefeira,club:bra.fluminense-feira
+BRA,BRA_POOL,pool,14,SSA,ssa,club:bra.ssa
+BRA,BRA_POOL,pool,15,BARREIRAS,barreiras,club:bra.barreiras
+BRA,BRA_POOL,pool,16,FEIRA,feira,club:bra.feira
+BRA,BRA_POOL,pool,17,PASSO FUNDO,passofundo,club:bra.passo-fundo
+BRA,BRA_POOL,pool,18,APAFUT,apafut,club:bra.apafut
+BRA,BRA_POOL,pool,19,BRASIL PELOTAS,gebrasil,club:bra.brasil-pelotas
+BRA,BRA_POOL,pool,20,FREDERIQUENSE,frederiquense,club:bra.frederiquense
+BRA,BRA_POOL,pool,21,HERCILIO LUZ,hercilioluz,club:bra.hercilio-luz
+BRA,BRA_POOL,pool,22,METROPOLITANO,metropolitano,club:bra.metropolitano
+BRA,BRA_POOL,pool,23,CARAVAGGIO,caravaggio,club:bra.caravaggio
+BRA,BRA_POOL,pool,24,BLUMENAU,blumenau,club:bra.blumenau
+BRA,BRA_POOL,pool,25,RIO VERDE,rioverde,club:bra.rio-verde
+BRA,BRA_POOL,pool,26,GOIANESIA,goianesia,club:bra.goianesia
+BRA,BRA_POOL,pool,27,MINEIROS,mineiros,club:bra.mineiros
+BRA,BRA_POOL,pool,28,URUMAJO,urumajo,club:bra.urumajo
+BRA,BRA_POOL,pool,29,IZABELENSE,izabelense,club:bra.izabelense
+BRA,BRA_POOL,pool,30,ITAPIPOCA,itapipoca,club:bra.itapipoca
+BRA,BRA_POOL,pool,31,ICASA,icasa,club:bra.icasa
+BRA,BRA_POOL,pool,32,CRATO,crato,club:bra.crato
+BRA,BRA_POOL,pool,33,SPORTING,sporting,club:bra.sporting
+BRA,BRA_POOL,pool,34,ZUMBI,zumbi,club:bra.zumbi
+BRA,BRA_POOL,pool,35,MIGUELENSE,miguelense,club:bra.miguelense
+BRA,BRA_POOL,pool,36,SINOP,sinop,club:bra.sinop
+BRA,BRA_POOL,pool,37,CACERENSE,cacerense,club:bra.cacerense
+BRA,BRA_POOL,pool,38,UIRAPURU,uirapuru,club:bra.uirapuru
+BRA,BRA_POOL,pool,39,SORRISO,sorriso,club:bra.sorriso
+BRA,BRA_POOL,pool,40,AMERICA PE,americafc,club:bra.america-pe
+BRA,BRA_POOL,pool,41,CARUARU CITY,caruarucity,club:bra.caruaru-city
+BRA,BRA_POOL,pool,42,PORTO,porto,club:bra.porto
+BUL,BUL,129,0,LEVSKI SOFIA,levskisofia,club:bul.levski-sofia
+BUL,BUL,129,1,LOKO PLOVDIV,lokoplovdiv,club:bul.loko-plovdiv
+BUL,BUL,129,2,BOTEV VRATSA,botevvratsa,club:bul.botev-vratsa
+BUL,BUL,129,3,CSKA,cska,club:bul.cska
+BUL,BUL,129,4,ARDA KARDZHALI,ardakardzhali,club:bul.arda-kardzhali
+BUL,BUL,129,5,LOKOMOTIV SOFIA,lokomotivsofia,club:bul.lokomotiv-sofia
+BUL,BUL,129,6,LUDOGORETS,ludogorets,club:bul.ludogorets
+BUL,BUL,129,7,CHERNO MORE,chernomore,club:bul.cherno-more
+BUL,BUL,129,8,SLAVIA SOFIA,slaviasofia,club:bul.slavia-sofia
+BUL,BUL,129,9,CSKA SOFIA,cskasofia,club:bul.cska-sofia
+BUL,BUL,129,10,BOTEV PLOVDIV,botevplovdiv,club:bul.botev-plovdiv
+BUL,BUL,129,11,SPARTAK VARNA,spartakvarna,club:bul.spartak-varna
+BUL,BUL,129,12,SEPTEMVRI SOFIA,septemvrisofia,club:bul.septemvri-sofia
+BUL,BUL,129,13,DUNAV RUSE,dunavruse,club:bul.dunav-ruse
+CAN,CAN,174,0,FORGE,forge,club:can.forge
+CAN,CAN,174,1,ATLETICO OTTAWA,atleticoottawa,club:can.atletico-ottawa
+CAN,CAN,174,2,CAVALRY,cavalry,club:can.cavalry
+CAN,CAN,174,3,HFX WANDERERS,hfxwanderers,club:can.hfx-wanderers
+CAN,CAN,174,4,INTER TORONTO,intertoronto,club:can.inter-toronto
+CAN,CAN,174,5,PACIFIC,pacific,club:can.pacific
+CAN,CAN,174,6,VANCOUVER,vancouver,club:can.vancouver
+CAN,CAN,174,7,SUPRA DU QUEBEC,supraduquebec,club:can.supra-du-quebec
+CHI,CHI,167,0,COQUIMBO UNIDO,coquimbounido,club:chi.coquimbo-unido
+CHI,CHI,167,1,U. CATOLICA,ucatolica,club:chi.u-catolica
+CHI,CHI,167,2,O'HIGGINS,ohiggins,club:chi.ohiggins
+CHI,CHI,167,3,U. DE CHILE,udechile,club:chi.u-de-chile
+CHI,CHI,167,4,AUDAX ITALIANO,audaxitaliano,club:chi.audax-italiano
+CHI,CHI,167,5,PALESTINO,palestino,club:chi.palestino
+CHI,CHI,167,6,COBRESAL,cobresal,club:chi.cobresal
+CHI,CHI,167,7,COLO-COLO,colocolo,club:chi.colo-colo
+CHI,CHI,167,8,HUACHIPATO,huachipato,club:chi.huachipato
+CHI,CHI,167,9,NUBLENSE,nublense,club:chi.nublense
+CHI,CHI,167,10,DEPORTES LIMACHE,deporteslimache,club:chi.deportes-limache
+CHI,CHI,167,11,UNION CALERA,unioncalera,club:chi.union-calera
+CHI,CHI,167,12,DEPORTES SERENA,deportesserena,club:chi.deportes-serena
+CHI,CHI,167,13,EVERTON,everton,club:chi.everton
+CHI,CHI,167,14,CONCEPCION,concepcion,club:chi.concepcion
+CHI,CHI,167,15,CONCEPCION 2,concepcion2,club:chi.concepcion-2
+CHN,CHN,183,0,SHANGHAI PORT,shanghaiport,club:chn.shanghai-port
+CHN,CHN,183,1,SHANGHAI SHENHUA,shanghaishenhua,club:chn.shanghai-shenhua
+CHN,CHN,183,2,RONGCHENG,cdrongcheng,club:chn.rongcheng
+CHN,CHN,183,3,BEIJING GUOAN,beijingguoan,club:chn.beijing-guoan
+CHN,CHN,183,4,SHANDONG TAISHAN,shandongtaishan,club:chn.shandong-taishan
+CHN,CHN,183,5,JINMEN TIGER,tjjinmentiger,club:chn.jinmen-tiger
+CHN,CHN,183,6,ZHEJIANG,zhejiang,club:chn.zhejiang
+CHN,CHN,183,7,YUNNAN YUKUN,yunnanyukun,club:chn.yunnan-yukun
+CHN,CHN,183,8,QD WEST COAST,qdwestcoast,club:chn.qd-west-coast
+CHN,CHN,183,9,HENAN,henan,club:chn.henan
+CHN,CHN,183,10,DALIAN YINGBO,dalianyingbo,club:chn.dalian-yingbo
+CHN,CHN,183,11,SZ PENG CITY,szpengcity,club:chn.sz-peng-city
+CHN,CHN,183,12,WH THREE TOWNS,whthreetowns,club:chn.wh-three-towns
+CHN,CHN,183,13,QINGDAO HAINIU,qingdaohainiu,club:chn.qingdao-hainiu
+CHN,CHN,183,14,LIAONING TIEREN,liaoningtieren,club:chn.liaoning-tieren
+CHN,CHN,183,15,TONGLIANGLONG,tonglianglong,club:chn.tonglianglong
+COL,COL,164,0,INDEP. MEDELLIN,indepmedellin,club:col.indep-medellin
+COL,COL,164,1,DEPORTES TOLIMA,deportestolima,club:col.deportes-tolima
+COL,COL,164,2,ATL. NACIONAL,atlnacional,club:col.atl-nacional
+COL,COL,164,3,A. BUCARAMANGA,abucaramanga,club:col.a-bucaramanga
+COL,COL,164,4,JUNIOR,junior,club:col.junior
+COL,COL,164,5,FORTALEZA CEIF,fortalezaceif,club:col.fortaleza-ceif
+COL,COL,164,6,INDEP. SANTA FE,indepsantafe,club:col.indep-santa-fe
+COL,COL,164,7,AMERICA CALI,americacali,club:col.america-cali
+COL,COL,164,8,ALIANZA,alianza,club:col.alianza
+COL,COL,164,9,RIONEGRO AGUILAS,rionegroaguilas,club:col.rionegro-aguilas
+COL,COL,164,10,ONCE CALDAS,oncecaldas,club:col.once-caldas
+COL,COL,164,11,MILLONARIOS,millonarios,club:col.millonarios
+COL,COL,164,12,LLANEROS,llaneros,club:col.llaneros
+COL,COL,164,13,DEPORTIVO CALI,deportivocali,club:col.deportivo-cali
+COL,COL,164,14,DEPORTIVO PASTO,deportivopasto,club:col.deportivo-pasto
+COL,COL,164,15,PEREIRA,pereira,club:col.pereira
+COL,COL,164,16,BOYACA CHICO,boyacachico,club:col.boyaca-chico
+COL,COL,164,17,LA EQUIDAD,cdlaequidad,club:col.la-equidad
+COL,COL,164,18,CUCUTA DEPORTIVO,cucutadeportivo,club:col.cucuta-deportivo
+COL,COL,164,19,JAGUARES CORDOBA,jaguarescordoba,club:col.jaguares-cordoba
+CRC,CRC,175,0,LD ALAJUELENSE,ldalajuelense,club:crc.ld-alajuelense
+CRC,CRC,175,1,SAPRISSA,saprissa,club:crc.saprissa
+CRC,CRC,175,2,CARTAGINES,cartagines,club:crc.cartagines
+CRC,CRC,175,3,HEREDIANO,herediano,club:crc.herediano
+CRC,CRC,175,4,PEREZ ZELEDON,perezzeledon,club:crc.perez-zeledon
+CRC,CRC,175,5,PUNTARENAS,puntarenas,club:crc.puntarenas
+CRC,CRC,175,6,SPORTING,sporting,club:crc.sporting
+CRC,CRC,175,7,SAN CARLOS,sancarlos,club:crc.san-carlos
+CRC,CRC,175,8,INTER SAN CARLOS,intersancarlos,club:crc.inter-san-carlos
+CRC,CRC,175,9,BELEN,belen,club:crc.belen
+CRO,CRO,120,0,DINAMO ZAGREB,dinamozagreb,club:cro.dinamo-zagreb
+CRO,CRO,120,1,HAJDUK SPLIT,hajduksplit,club:cro.hajduk-split
+CRO,CRO,120,2,VARAZDIN,varazdin,club:cro.varazdin
+CRO,CRO,120,3,RIJEKA,rijeka,club:cro.rijeka
+CRO,CRO,120,4,LOKOMOTIVA,nklokomotiva,club:cro.lokomotiva
+CRO,CRO,120,5,ISTRA,istra,club:cro.istra
+CRO,CRO,120,6,GORICA,gorica,club:cro.gorica
+CRO,CRO,120,7,SLAVEN BELUPO,slavenbelupo,club:cro.slaven-belupo
+CRO,CRO,120,8,OSIJEK,osijek,club:cro.osijek
+CRO,CRO,120,9,RUDES,rudes,club:cro.rudes
+CYP,CYP,115,0,OMONIA NICOSIA,omonianicosia,club:cyp.omonia-nicosia
+CYP,CYP,115,1,AEK LARNACA,aeklarnaca,club:cyp.aek-larnaca
+CYP,CYP,115,2,APOLLON LIMASSOL,apollonlimassol,club:cyp.apollon-limassol
+CYP,CYP,115,3,PAFOS,pafos,club:cyp.pafos
+CYP,CYP,115,4,APOEL NICOSIA,apoelnicosia,club:cyp.apoel-nicosia
+CYP,CYP,115,5,ARIS LIMASSOL,arislimassol,club:cyp.aris-limassol
+CYP,CYP,115,6,ANORTHOSIS,anorthosis,club:cyp.anorthosis
+CYP,CYP,115,7,AEL LIMASSOL,aellimassol,club:cyp.ael-limassol
+CYP,CYP,115,8,OMONIA ARADIPPOU,omoniaaradippou,club:cyp.omonia-aradippou
+CYP,CYP,115,9,KRASAVA ENY,krasavaeny,club:cyp.krasava-eny
+CYP,CYP,115,10,OLYMPIAKOS N.,olympiakosn,club:cyp.olympiakos-n
+CYP,CYP,115,11,NEA SALAMIS,neasalamis,club:cyp.nea-salamis
+CYP,CYP,115,12,OMONIA 29TH MAY,omonia29thmay,club:cyp.omonia-29th-may
+CYP,CYP,115,13,KARMIOTISSA,karmiotissa,club:cyp.karmiotissa
+CZE,CZE,110,0,SLAVIA PRAGUE,slaviaprague,club:cze.slavia-prague
+CZE,CZE,110,1,SPARTA PRAHA,spartapraha,club:cze.sparta-praha
+CZE,CZE,110,2,VIKTORIA PLZEN,viktoriaplzen,club:cze.viktoria-plzen
+CZE,CZE,110,3,JABLONEC,jablonec,club:cze.jablonec
+CZE,CZE,110,4,HRADEC KRALOVE,hradeckralove,club:cze.hradec-kralove
+CZE,CZE,110,5,SLOVAN LIBEREC,slovanliberec,club:cze.slovan-liberec
+CZE,CZE,110,6,SIGMA OLOMOUC,sigmaolomouc,club:cze.sigma-olomouc
+CZE,CZE,110,7,PARDUBICE,pardubice,club:cze.pardubice
+CZE,CZE,110,8,BOHEMIANS PRAGUE,bohemiansprague,club:cze.bohemians-prague
+CZE,CZE,110,9,MLADA BOLESLAV,mladaboleslav,club:cze.mlada-boleslav
+CZE,CZE,110,10,ZLIN,zlin,club:cze.zlin
+CZE,CZE,110,11,TEPLICE,teplice,club:cze.teplice
+CZE,CZE,110,12,1.FC SLOVACKO,1fcslovacko,club:cze.1-fc-slovacko
+CZE,CZE,110,13,BANIK OSTRAVA,banikostrava,club:cze.banik-ostrava
+CZE,CZE,110,14,ZBROJOVKA BRNO,zbrojovkabrno,club:cze.zbrojovka-brno
+CZE,CZE,110,15,ARTIS BRNO,artisbrno,club:cze.artis-brno
+DEN,DEN,113,0,AARHUS GF,aarhusgf,club:den.aarhus-gf
+DEN,DEN,113,1,MIDTJYLLAND,midtjylland,club:den.midtjylland
+DEN,DEN,113,2,SONDERJYSKE,sonderjyske,club:den.sonderjyske
+DEN,DEN,113,3,BRONDBY,brondby,club:den.brondby
+DEN,DEN,113,4,VIBORG,viborg,club:den.viborg
+DEN,DEN,113,5,NORDSJAELLAND,nordsjaelland,club:den.nordsjaelland
+DEN,DEN,113,6,COPENHAGEN,copenhagen,club:den.copenhagen
+DEN,DEN,113,7,ODENSE BOLDKLUB,odenseboldklub,club:den.odense-boldklub
+DEN,DEN,113,8,RANDERS,randers,club:den.randers
+DEN,DEN,113,9,SILKEBORG,silkeborg,club:den.silkeborg
+DEN,DEN,113,10,LYNGBY BOLDKLUB,lyngbyboldklub,club:den.lyngby-boldklub
+DEN,DEN,113,11,HORSENS,horsens,club:den.horsens
+ECU,ECU,166,0,INDEPENDIENTE,independiente,club:ecu.independiente
+ECU,ECU,166,1,BARCELONA SC,barcelonasc,club:ecu.barcelona-sc
+ECU,ECU,166,2,LDU QUITO,lduquito,club:ecu.ldu-quito
+ECU,ECU,166,3,UNI. CATOLICA,unicatolica,club:ecu.uni-catolica
+ECU,ECU,166,4,ORENSE,orense,club:ecu.orense
+ECU,ECU,166,5,LIBERTAD,libertad,club:ecu.libertad
+ECU,ECU,166,6,DEPORTIVO CUENCA,deportivocuenca,club:ecu.deportivo-cuenca
+ECU,ECU,166,7,EMELEC,emelec,club:ecu.emelec
+ECU,ECU,166,8,AUCAS,aucas,club:ecu.aucas
+ECU,ECU,166,9,MACARA,macara,club:ecu.macara
+ECU,ECU,166,10,DELFIN,delfin,club:ecu.delfin
+ECU,ECU,166,11,TECNICO U.,tecnicou,club:ecu.tecnico-u
+ECU,ECU,166,12,MUSHUC RUNA,mushucruna,club:ecu.mushuc-runa
+ECU,ECU,166,13,MANTA,manta,club:ecu.manta
+ECU,ECU,166,14,GUAYAQUIL CITY,guayaquilcity,club:ecu.guayaquil-city
+ECU,ECU,166,15,LEONES,leones,club:ecu.leones
+EGY,EGY,188,0,ZAMALEK,zamalek,club:egy.zamalek
+EGY,EGY,188,1,PYRAMIDS,pyramids,club:egy.pyramids
+EGY,EGY,188,2,AL AHLY,alahly,club:egy.al-ahly
+EGY,EGY,188,3,CLEOPATRA,cleopatra,club:egy.cleopatra
+EGY,EGY,188,4,EL MASRY,elmasry,club:egy.el-masry
+EGY,EGY,188,5,SMOUHA,smouha,club:egy.smouha
+EGY,EGY,188,6,EL SHARKIA ENPPI,elsharkiaenppi,club:egy.el-sharkia-enppi
+EGY,EGY,188,7,ZED,zed,club:egy.zed
+EGY,EGY,188,8,WADI DEGLA,wadidegla,club:egy.wadi-degla
+EGY,EGY,188,9,EL GOUNA,elgouna,club:egy.el-gouna
+EGY,EGY,188,10,BANK EL AHLY,bankelahly,club:egy.bank-el-ahly
+EGY,EGY,188,11,SUEZ PETROJET,suezpetrojet,club:egy.suez-petrojet
+EGY,EGY,188,12,MODERN,modern,club:egy.modern
+EGY,EGY,188,13,TALA'EA EL GAISH,talaeaelgaish,club:egy.talaea-el-gaish
+EGY,EGY,188,14,ITTIHAD ALEX,ittihadalex,club:egy.ittihad-alex
+EGY,EGY,188,15,GHAZL EL MAHALLA,ghazlelmahalla,club:egy.ghazl-el-mahalla
+EGY,EGY,188,16,EL MOKAWLOON,elmokawloon,club:egy.el-mokawloon
+EGY,EGY,188,17,QANAH,qanah,club:egy.qanah
+EGY,EGY,188,18,PETROL ASYUT,petrolasyut,club:egy.petrol-asyut
+EGY,EGY,188,19,ABO QIR,aboqir,club:egy.abo-qir
+ENG,ENG,101,0,ARSENAL,arsenal,club:eng.arsenal
+ENG,ENG,101,1,MANCHESTER CITY,manchestercity,club:eng.manchester-city
+ENG,ENG,101,2,MAN UTD,manutd,club:eng.man-utd
+ENG,ENG,101,3,ASTON VILLA,astonvilla,club:eng.aston-villa
+ENG,ENG,101,4,LIVERPOOL,liverpool,club:eng.liverpool
+ENG,ENG,101,5,BOURNEMOUTH,bournemouth,club:eng.bournemouth
+ENG,ENG,101,6,SUNDERLAND,sunderland,club:eng.sunderland
+ENG,ENG,101,7,BRIGHTON,brighton,club:eng.brighton
+ENG,ENG,101,8,BRENTFORD,brentford,club:eng.brentford
+ENG,ENG,101,9,CHELSEA,chelsea,club:eng.chelsea
+ENG,ENG,101,10,FULHAM,fulham,club:eng.fulham
+ENG,ENG,101,11,NEWCASTLE UNITED,newcastleunited,club:eng.newcastle-united
+ENG,ENG,101,12,EVERTON,everton,club:eng.everton
+ENG,ENG,101,13,LEEDS UNITED,leedsunited,club:eng.leeds-united
+ENG,ENG,101,14,CRYSTAL PALACE,crystalpalace,club:eng.crystal-palace
+ENG,ENG,101,15,NOTT'M FOREST,nottmforest,club:eng.nottm-forest
+ENG,ENG,101,16,TOTTENHAM,tottenham,club:eng.tottenham
+ENG,ENG,101,17,COVENTRY CITY,coventrycity,club:eng.coventry-city
+ENG,ENG,101,18,IPSWICH TOWN,ipswichtown,club:eng.ipswich-town
+ENG,ENG,101,19,HULL CITY,hullcity,club:eng.hull-city
+ENG,ENG,101,20,MILLWALL,millwall,club:eng.millwall
+ENG,ENG,101,21,SOUTHAMPTON,southampton,club:eng.southampton
+ENG,ENG,101,22,MIDDLESBROUGH,middlesbrough,club:eng.middlesbrough
+ENG,ENG,101,23,WREXHAM,wrexham,club:eng.wrexham
+ENG,ENG,101,24,DERBY COUNTY,derbycounty,club:eng.derby-county
+ENG,ENG,101,25,NORWICH CITY,norwichcity,club:eng.norwich-city
+ENG,ENG,101,26,BIRMINGHAM CITY,birminghamcity,club:eng.birmingham-city
+ENG,ENG,101,27,SWANSEA CITY,swanseacity,club:eng.swansea-city
+ENG,ENG,101,28,BRISTOL CITY,bristolcity,club:eng.bristol-city
+ENG,ENG,101,29,SHEFFIELD UNITED,sheffieldunited,club:eng.sheffield-united
+ENG,ENG,101,30,PRESTON,preston,club:eng.preston
+ENG,ENG,101,31,QPR,qpr,club:eng.qpr
+ENG,ENG,101,32,WATFORD,watford,club:eng.watford
+ENG,ENG,101,33,STOKE CITY,stokecity,club:eng.stoke-city
+ENG,ENG,101,34,PORTSMOUTH,portsmouth,club:eng.portsmouth
+ENG,ENG,101,35,CHARLTON,charlton,club:eng.charlton
+ENG,ENG,101,36,BLACKBURN ROVERS,blackburnrovers,club:eng.blackburn-rovers
+ENG,ENG,101,37,WEST BROM,westbrom,club:eng.west-brom
+ENG,ENG,101,38,WEST HAM UNITED,westhamunited,club:eng.west-ham-united
+ENG,ENG,101,39,BURNLEY,burnley,club:eng.burnley
+ENG,ENG,101,40,WOLVES,wolves,club:eng.wolves
+ENG,ENG,101,41,LINCOLN CITY,lincolncity,club:eng.lincoln-city
+ENG,ENG,101,42,CARDIFF CITY,cardiffcity,club:eng.cardiff-city
+ENG,ENG,101,43,BOLTON WANDERERS,boltonwanderers,club:eng.bolton-wanderers
+ENG,ENG,101,44,STOCKPORT COUNTY,stockportcounty,club:eng.stockport-county
+ENG,ENG,101,45,BRADFORD CITY,bradfordcity,club:eng.bradford-city
+ENG,ENG,101,46,STEVENAGE,stevenage,club:eng.stevenage
+ENG,ENG,101,47,LUTON TOWN,lutontown,club:eng.luton-town
+ENG,ENG,101,48,PLYMOUTH ARGYLE,plymouthargyle,club:eng.plymouth-argyle
+ENG,ENG,101,49,HUDDERSFIELD,huddersfield,club:eng.huddersfield
+ENG,ENG,101,50,MANSFIELD TOWN,mansfieldtown,club:eng.mansfield-town
+ENG,ENG,101,51,WYCOMBE,wycombe,club:eng.wycombe
+ENG,ENG,101,52,READING,reading,club:eng.reading
+ENG,ENG,101,53,BLACKPOOL,blackpool,club:eng.blackpool
+ENG,ENG,101,54,DONCASTER ROVERS,doncasterrovers,club:eng.doncaster-rovers
+ENG,ENG,101,55,BARNSLEY,barnsley,club:eng.barnsley
+ENG,ENG,101,56,WIGAN,wigan,club:eng.wigan
+ENG,ENG,101,57,BURTON ALBION,burtonalbion,club:eng.burton-albion
+ENG,ENG,101,58,PETERBOROUGH,peterborough,club:eng.peterborough
+ENG,ENG,101,59,WIMBLEDON,wimbledon,club:eng.wimbledon
+ENG,ENG,101,60,LEYTON ORIENT,leytonorient,club:eng.leyton-orient
+ENG,ENG,101,61,OXFORD UNITED,oxfordunited,club:eng.oxford-united
+ENG,ENG,101,62,LEICESTER CITY,leicestercity,club:eng.leicester-city
+ENG,ENG,101,63,SHEFF WED,sheffwed,club:eng.sheff-wed
+ENG,ENG,101,64,BROMLEY,bromley,club:eng.bromley
+ENG,ENG,101,65,MK DONS,mkdons,club:eng.mk-dons
+ENG,ENG,101,66,CAMBRIDGE UNITED,cambridgeunited,club:eng.cambridge-united
+ENG,ENG,101,67,NOTTS COUNTY,nottscounty,club:eng.notts-county
+ENG,ENG,101,68,SALFORD CITY,salfordcity,club:eng.salford-city
+ENG,ENG,101,69,CHESTERFIELD,chesterfield,club:eng.chesterfield
+ENG,ENG,101,70,GRIMSBY TOWN,grimsbytown,club:eng.grimsby-town
+ENG,ENG,101,71,BARNET,barnet,club:eng.barnet
+ENG,ENG,101,72,SWINDON TOWN,swindontown,club:eng.swindon-town
+ENG,ENG,101,73,OLDHAM,oldham,club:eng.oldham
+ENG,ENG,101,74,CREWE ALEXANDRA,crewealexandra,club:eng.crewe-alexandra
+ENG,ENG,101,75,COLCHESTER UTD.,colchesterutd,club:eng.colchester-utd
+ENG,ENG,101,76,WALSALL,walsall,club:eng.walsall
+ENG,ENG,101,77,BRISTOL ROVERS,bristolrovers,club:eng.bristol-rovers
+ENG,ENG,101,78,FLEETWOOD TOWN,fleetwoodtown,club:eng.fleetwood-town
+ENG,ENG,101,79,ACCRINGTON,accrington,club:eng.accrington
+ENG,ENG,101,80,GILLINGHAM,gillingham,club:eng.gillingham
+ENG,ENG,101,81,CHELTENHAM TOWN,cheltenhamtown,club:eng.cheltenham-town
+ENG,ENG,101,82,SHREWSBURY TOWN,shrewsburytown,club:eng.shrewsbury-town
+ENG,ENG,101,83,NEWPORT COUNTY,newportcounty,club:eng.newport-county
+ENG,ENG,101,84,TRANMERE ROVERS,tranmererovers,club:eng.tranmere-rovers
+ENG,ENG,101,85,CRAWLEY TOWN,crawleytown,club:eng.crawley-town
+ENG,ENG,101,86,EXETER CITY,exetercity,club:eng.exeter-city
+ENG,ENG,101,87,PORT VALE,portvale,club:eng.port-vale
+ENG,ENG,101,88,ROTHERHAM UNITED,rotherhamunited,club:eng.rotherham-united
+ENG,ENG,101,89,NORTHAMPTON TOWN,northamptontown,club:eng.northampton-town
+ENG,ENG,101,90,YORK CITY,yorkcity,club:eng.york-city
+ENG,ENG,101,91,ROCHDALE,rochdale,club:eng.rochdale
+ESP,ESP,103,0,BARCELONA,barcelona,club:esp.barcelona
+ESP,ESP,103,1,REAL MADRID,realmadrid,club:esp.real-madrid
+ESP,ESP,103,2,VILLARREAL,villarreal,club:esp.villarreal
+ESP,ESP,103,3,ATLETICO MADRID,atleticomadrid,club:esp.atletico-madrid
+ESP,ESP,103,4,BETIS,realbetis,club:esp.betis
+ESP,ESP,103,5,CELTA,celtavigo,club:esp.celta
+ESP,ESP,103,6,GETAFE,getafe,club:esp.getafe
+ESP,ESP,103,7,RAYO,rayovallecano,club:esp.rayo
+ESP,ESP,103,8,VALENCIA,valencia,club:esp.valencia
+ESP,ESP,103,9,REAL SOCIEDAD,realsociedad,club:esp.real-sociedad
+ESP,ESP,103,10,ESPANYOL,espanyol,club:esp.espanyol
+ESP,ESP,103,11,ATHLETIC BILBAO,bilbao,club:esp.athletic-bilbao
+ESP,ESP,103,12,SEVILLA,sevilla,club:esp.sevilla
+ESP,ESP,103,13,ALAVES,deportivoalaves,club:esp.alaves
+ESP,ESP,103,14,ELCHE,elche,club:esp.elche
+ESP,ESP,103,15,LEVANTE,levante,club:esp.levante
+ESP,ESP,103,16,OSASUNA,osasuna,club:esp.osasuna
+ESP,ESP,103,17,RACING SANTANDER,racingsantander,club:esp.racing-santander
+ESP,ESP,103,18,DEPORTIVO,deplacoruna,club:esp.deportivo
+ESP,ESP,103,19,MALAGA,malaga,club:esp.malaga
+ESP,ESP,103,20,ALMERIA,almeria,club:esp.almeria
+ESP,ESP,103,21,LAS PALMAS,laspalmas,club:esp.las-palmas
+ESP,ESP,103,22,CASTELLON,castellon,club:esp.castellon
+ESP,ESP,103,23,BURGOS,burgos,club:esp.burgos
+ESP,ESP,103,24,EIBAR,eibar,club:esp.eibar
+ESP,ESP,103,25,SPORTING GIJON,sportinggijon,club:esp.sporting-gijon
+ESP,ESP,103,26,CORDOBA,cordoba,club:esp.cordoba
+ESP,ESP,103,27,CEUTA,ceuta,club:esp.ceuta
+ESP,ESP,103,28,ALBACETE,albacete,club:esp.albacete
+ESP,ESP,103,29,ANDORRA,andorra,club:esp.andorra
+ESP,ESP,103,30,GRANADA,granada,club:esp.granada
+ESP,ESP,103,31,REAL SOCIEDAD B,realsociedadb,club:esp.real-sociedad-b
+ESP,ESP,103,32,LEGANES,leganes,club:esp.leganes
+ESP,ESP,103,33,REAL VALLADOLID,realvalladolid,club:esp.real-valladolid
+ESP,ESP,103,34,CADIZ,cadiz,club:esp.cadiz
+ESP,ESP,103,35,MALLORCA,mallorca,club:esp.mallorca
+ESP,ESP,103,36,GIRONA,girona,club:esp.girona
+ESP,ESP,103,37,REAL OVIEDO,realoviedo,club:esp.real-oviedo
+ESP,ESP,103,38,TENERIFE,tenerife,club:esp.tenerife
+ESP,ESP,103,39,ELDENSE,eldense,club:esp.eldense
+ESP,ESP,103,40,CELTA FORTUNA,celtafortuna,club:esp.celta-fortuna
+ESP,ESP,103,41,SABADELL,sabadell,club:esp.sabadell
+ESP,ESP_POOL,pool,0,LUGO,lugo,club:esp.lugo
+ESP,ESP_POOL,pool,1,LOGRONES,logrones,club:esp.logrones
+ESP,ESP_POOL,pool,2,REAL ZARAGOZA,realzaragoza,club:esp.real-zaragoza
+ESP,ESP_POOL,pool,3,RACING FERROL,racingferrol,club:esp.racing-ferrol
+EST,EST,142,0,FLORA TALLINN,floratallinn,club:est.flora-tallinn
+EST,EST,142,1,FCI LEVADIA,fcilevadia,club:est.fci-levadia
+EST,EST,142,2,KALJU,kalju,club:est.kalju
+EST,EST,142,3,PAIDE,paide,club:est.paide
+EST,EST,142,4,NARVA TRANS,narvatrans,club:est.narva-trans
+EST,EST,142,5,PARNU VAPRUS,parnuvaprus,club:est.parnu-vaprus
+EST,EST,142,6,HARJU LAAGRI,harjulaagri,club:est.harju-laagri
+EST,EST,142,7,TAMMEKA,jktammeka,club:est.tammeka
+EST,EST,142,8,KURESSAARE,kuressaare,club:est.kuressaare
+EST,EST,142,9,NOMME UNITED,nommeunited,club:est.nomme-united
+FIN,FIN,134,0,INTER TURKU,interturku,club:fin.inter-turku
+FIN,FIN,134,1,ILVES TAMPERE,ilvestampere,club:fin.ilves-tampere
+FIN,FIN,134,2,HJK HELSINKI,hjkhelsinki,club:fin.hjk-helsinki
+FIN,FIN,134,3,KUPS KUOPIO,kupskuopio,club:fin.kups-kuopio
+FIN,FIN,134,4,SJK SEINAJOKI,sjkseinajoki,club:fin.sjk-seinajoki
+FIN,FIN,134,5,GNISTAN,gnistan,club:fin.gnistan
+FIN,FIN,134,6,VPS,vps,club:fin.vps
+FIN,FIN,134,7,JARO,jaro,club:fin.jaro
+FIN,FIN,134,8,IFK MARIEHAMN,ifkmariehamn,club:fin.ifk-mariehamn
+FIN,FIN,134,9,OULU,oulu,club:fin.oulu
+FIN,FIN,134,10,LAHTI,lahti,club:fin.lahti
+FIN,FIN,134,11,TURUN PALLOSEURA,turunpalloseura,club:fin.turun-palloseura
+FRA,FRA,105,0,PARIS-SG,psg,club:fra.paris-sg
+FRA,FRA,105,1,LENS,lens,club:fra.lens
+FRA,FRA,105,2,LILLE,lille,club:fra.lille
+FRA,FRA,105,3,LYON,olympiquelyon,club:fra.lyon
+FRA,FRA,105,4,MARSEILLE,marseille,club:fra.marseille
+FRA,FRA,105,5,RENNES,staderennais,club:fra.rennes
+FRA,FRA,105,6,MONACO,monaco,club:fra.monaco
+FRA,FRA,105,7,STRASBOURG,rstrasbourg,club:fra.strasbourg
+FRA,FRA,105,8,TOULOUSE,toulouse,club:fra.toulouse
+FRA,FRA,105,9,LORIENT,lorient,club:fra.lorient
+FRA,FRA,105,10,PARIS FC,paris,club:fra.paris-fc
+FRA,FRA,105,11,BREST,stadebrestois,club:fra.brest
+FRA,FRA,105,12,ANGERS,angerssco,club:fra.angers
+FRA,FRA,105,13,LE HAVRE,lehavre,club:fra.le-havre
+FRA,FRA,105,14,AUXERRE,ajauxerre,club:fra.auxerre
+FRA,FRA,105,15,NICE,nice,club:fra.nice
+FRA,FRA,105,16,TROYES,estactroyes,club:fra.troyes
+FRA,FRA,105,17,LE MANS,lemans,club:fra.le-mans
+FRA,FRA,105,18,SAINT-ETIENNE,saintetienne,club:fra.saint-etienne
+FRA,FRA,105,19,RED STAR,redstar,club:fra.red-star
+FRA,FRA,105,20,RODEZ AF,rodezaf,club:fra.rodez-af
+FRA,FRA,105,21,STADE REIMS,stadereims,club:fra.stade-reims
+FRA,FRA,105,22,ANNECY,annecy,club:fra.annecy
+FRA,FRA,105,23,MONTPELLIER HSC,montpellierhsc,club:fra.montpellier-hsc
+FRA,FRA,105,24,PAU,pau,club:fra.pau
+FRA,FRA,105,25,USL DUNKERQUE,usldunkerque,club:fra.usl-dunkerque
+FRA,FRA,105,26,EA GUINGAMP,eaguingamp,club:fra.ea-guingamp
+FRA,FRA,105,27,GRENOBLE FOOT 38,grenoblefoot38,club:fra.grenoble-foot-38
+FRA,FRA,105,28,CLERMONT FOOT 63,clermontfoot63,club:fra.clermont-foot-63
+FRA,FRA,105,29,NANCY-LORRAINE,nancylorraine,club:fra.nancy-lorraine
+FRA,FRA,105,30,BOULOGNE,boulogne,club:fra.boulogne
+FRA,FRA,105,31,STADE LAVALLOIS,stadelavallois,club:fra.stade-lavallois
+FRA,FRA,105,32,NANTES,nantes,club:fra.nantes
+FRA,FRA,105,33,METZ,metz,club:fra.metz
+FRA,FRA,105,34,DIJON FCO,dijonfco,club:fra.dijon-fco
+FRA,FRA,105,35,SOCHAUX,fcsochaux,club:fra.sochaux
+FRO,FRO,139,0,KI KLAKSVIK,kiklaksvik,club:fro.ki-klaksvik
+FRO,FRO,139,1,HB TORSHAVN,hbtorshavn,club:fro.hb-torshavn
+FRO,FRO,139,2,NSI RUNAVIK,nsirunavik,club:fro.nsi-runavik
+FRO,FRO,139,3,VIKINGUR GOTA,vikingurgota,club:fro.vikingur-gota
+FRO,FRO,139,4,B36 TORSHAVN,b36torshavn,club:fro.b36-torshavn
+FRO,FRO,139,5,B68 TOFTIR,b68toftir,club:fro.b68-toftir
+FRO,FRO,139,6,EB/STREYMUR,ebstreymur,club:fro.eb-streymur
+FRO,FRO,139,7,07 VESTUR,07vestur,club:fro.07-vestur
+FRO,FRO,139,8,SKALA,skala,club:fro.skala
+FRO,FRO,139,9,AB ARGIR,abargir,club:fro.ab-argir
+GEO,GEO,157,0,IBERIA TBILISI,iberiatbilisi,club:geo.iberia-tbilisi
+GEO,GEO,157,1,DILA GORI,dilagori,club:geo.dila-gori
+GEO,GEO,157,2,TORPEDO KUTAISI,torpedokutaisi,club:geo.torpedo-kutaisi
+GEO,GEO,157,3,DINAMO TBILISI,dinamotbilisi,club:geo.dinamo-tbilisi
+GEO,GEO,157,4,GAGRA,gagra,club:geo.gagra
+GEO,GEO,157,5,DINAMO BATUMI,dinamobatumi,club:geo.dinamo-batumi
+GEO,GEO,157,6,SAMGURALI,samgurali,club:geo.samgurali
+GEO,GEO,157,7,RUSTAVI,rustavi,club:geo.rustavi
+GEO,GEO,157,8,TKIBULI,tkibuli,club:geo.tkibuli
+GEO,GEO,157,9,SPAERI TBILISI,spaeritbilisi,club:geo.spaeri-tbilisi
+GER,GER,104,0,BAYERN,bayernmunich,club:ger.bayern
+GER,GER,104,1,DORTMUND,dortmund,club:ger.dortmund
+GER,GER,104,2,LEIPZIG,rbleipzig,club:ger.leipzig
+GER,GER,104,3,STUTTGART,stuttgart,club:ger.stuttgart
+GER,GER,104,4,HOFFENHEIM,hoffenheim,club:ger.hoffenheim
+GER,GER,104,5,LEVERKUSEN,leverkusen,club:ger.leverkusen
+GER,GER,104,6,FREIBURG,freiburg,club:ger.freiburg
+GER,GER,104,7,FRANKFURT,frankfurt,club:ger.frankfurt
+GER,GER,104,8,AUGSBURG,augsburg,club:ger.augsburg
+GER,GER,104,9,MAINZ,1fsvmainz05,club:ger.mainz
+GER,GER,104,10,UNION BERLIN,unionberlin,club:ger.union-berlin
+GER,GER,104,11,M'GLADBACH,monchengladbach,club:ger.mgladbach
+GER,GER,104,12,HAMBURGER SV,hamburger,club:ger.hamburger-sv
+GER,GER,104,13,KOLN,1fckoln,club:ger.koln
+GER,GER,104,14,BREMEN,werderbremen,club:ger.bremen
+GER,GER,104,15,SCHALKE,schalke04,club:ger.schalke
+GER,GER,104,16,ELVERSBERG,07elversberg,club:ger.elversberg
+GER,GER,104,17,PADERBORN,paderborn07,club:ger.paderborn
+GER,GER,104,18,HANNOVER 96,hannover96,club:ger.hannover-96
+GER,GER,104,19,DARMSTADT 98,darmstadt98,club:ger.darmstadt-98
+GER,GER,104,20,1.FC K'LAUTERN,1fcklautern,club:ger.1-fc-klautern
+GER,GER,104,21,HERTHA,hertha,club:ger.hertha
+GER,GER,104,22,1.FC NUREMBERG,1fcnuremberg,club:ger.1-fc-nuremberg
+GER,GER,104,23,BOCHUM,bochum,club:ger.bochum
+GER,GER,104,24,KARLSRUHER,karlsruher,club:ger.karlsruher
+GER,GER,104,25,DYNAMO DRESDEN,dynamodresden,club:ger.dynamo-dresden
+GER,GER,104,26,HOLSTEIN KIEL,holsteinkiel,club:ger.holstein-kiel
+GER,GER,104,27,ARM. BIELEFELD,armbielefeld,club:ger.arm-bielefeld
+GER,GER,104,28,1.FC MAGDEBURG,1fcmagdeburg,club:ger.1-fc-magdeburg
+GER,GER,104,29,E. BRAUNSCHWEIG,ebraunschweig,club:ger.e-braunschweig
+GER,GER,104,30,GREUTHER FURTH,greutherfurth,club:ger.greuther-furth
+GER,GER,104,31,WOLFSBURG,wolfsburg,club:ger.wolfsburg
+GER,GER,104,32,1.FC HEIDENHEIM,1fcheidenheim,club:ger.1-fc-heidenheim
+GER,GER,104,33,ST. PAULI,stpauli,club:ger.st-pauli
+GER,GER,104,34,OSNABRUCK,osnabruck,club:ger.osnabruck
+GER,GER,104,35,ENERGIE COTTBUS,energiecottbus,club:ger.energie-cottbus
+GER,GER,104,36,ROT-WEISS ESSEN,rotweissessen,club:ger.rot-weiss-essen
+GER,GER,104,37,MSV DUISBURG,msvduisburg,club:ger.msv-duisburg
+GER,GER,104,38,HANSA ROSTOCK,hansarostock,club:ger.hansa-rostock
+GER,GER,104,39,VERL,verl,club:ger.verl
+GER,GER,104,40,ALEMANNIA AACHEN,alemanniaaachen,club:ger.alemannia-aachen
+GER,GER,104,41,WEHEN WIESBADEN,wehenwiesbaden,club:ger.wehen-wiesbaden
+GER,GER,104,42,WALDHOF MANNHEIM,waldhofmannheim,club:ger.waldhof-mannheim
+GER,GER,104,43,VIKTORIA KOLN,viktoriakoln,club:ger.viktoria-koln
+GER,GER,104,44,INGOLSTADT 04,ingolstadt04,club:ger.ingolstadt-04
+GER,GER,104,45,JAHN REGENSBURG,jahnregensburg,club:ger.jahn-regensburg
+GER,GER,104,46,STUTTGART II,stuttgartii,club:ger.stuttgart-ii
+GER,GER,104,47,1.FC SAARBRUCKEN,1fcsaarbrucken,club:ger.1-fc-saarbrucken
+GER,GER,104,48,HOFFENHEIM II,hoffenheimii,club:ger.hoffenheim-ii
+GER,GER,104,49,HAVELSE,havelse,club:ger.havelse
+GER,GER,104,50,F. DUSSELDORF,fdusseldorf,club:ger.f-dusseldorf
+GER,GER,104,51,PREUSSEN MUNSTER,preussenmunster,club:ger.preussen-munster
+GER,GER,104,52,SONNENHOF-GR.,sonnenhofgr,club:ger.sonnenhof-gr
+GER,GER,104,53,FORTUNA KOLN,fortunakoln,club:ger.fortuna-koln
+GER,GER,104,54,MEPPEN,meppen,club:ger.meppen
+GER,GER,104,55,WURZB. KICKERS,wurzbkickers,club:ger.wurzb-kickers
+GER,GER_POOL,pool,0,SGV FREIBERG,sgvfreiberg,club:ger.sgv-freiberg
+GER,GER_POOL,pool,1,MEMMINGEN,memmingen,club:ger.memmingen
+GER,GER_POOL,pool,2,RW OBERHAUSEN,rwoberhausen,club:ger.rw-oberhausen
+GER,GER_POOL,pool,3,SC WEICHE 08,scweiche08,club:ger.sc-weiche-08
+GHA,GHA,218,0,MEDEAMA,medeama,club:gha.medeama
+GHA,GHA,218,1,GOLD STARS,goldstarsfc,club:gha.gold-stars
+GHA,GHA,218,2,HEARTS OF OAK,heartsofoak,club:gha.hearts-of-oak
+GHA,GHA,218,3,DREAMS,dreams,club:gha.dreams
+GHA,GHA,218,4,SAMARTEX,samartex,club:gha.samartex
+GHA,GHA,218,5,ADUANA,aduana,club:gha.aduana
+GHA,GHA,218,6,BEREKUM CHELSEA,berekumchelsea,club:gha.berekum-chelsea
+GHA,GHA,218,7,ASANTE KOTOKO,asantekotoko,club:gha.asante-kotoko
+GHA,GHA,218,8,KARELA UNITED,karelaunited,club:gha.karela-united
+GHA,GHA,218,9,VISION,vision,club:gha.vision
+GHA,GHA,218,10,BECHEM UNITED,bechemunited,club:gha.bechem-united
+GHA,GHA,218,11,HOLY STARS,holystarsfc,club:gha.holy-stars
+GHA,GHA,218,12,HEART OF LIONS,heartoflions,club:gha.heart-of-lions
+GHA,GHA,218,13,YOUNG APOSTLES,youngapostles,club:gha.young-apostles
+GHA,GHA,218,14,ALL BLACKS,allblacksfc,club:gha.all-blacks
+GHA,GHA,218,15,ASHANTIGOLD 04,ashantigold04,club:gha.ashantigold-04
+GHA,GHA,218,16,DEBIBI UNITED,debibiunited,club:gha.debibi-united
+GHA,GHA,218,17,PORT CITY,portcity,club:gha.port-city
+GIB,GIB,152,0,LINCOLN RED IMPS,lincolnredimps,club:gib.lincoln-red-imps
+GIB,GIB,152,1,ST JOSEPH'S,stjosephs,club:gib.st-josephs
+GIB,GIB,152,2,MONS CALPE,monscalpe,club:gib.mons-calpe
+GIB,GIB,152,3,EUROPA,europa,club:gib.europa
+GIB,GIB,152,4,LIONS GIBRALTAR,lionsgibraltar,club:gib.lions-gibraltar
+GIB,GIB,152,5,LYNX,lynx,club:gib.lynx
+GIB,GIB,152,6,MAGPIES,magpies,club:gib.magpies
+GIB,GIB,152,7,EUROPA POINT,europapoint,club:gib.europa-point
+GIB,GIB,152,8,COLLEGE,college,club:gib.college
+GIB,GIB,152,9,GLACIS UNITED,glacisunited,club:gib.glacis-united
+GIB,GIB,152,10,HOUND DOGS,hounddogs,club:gib.hound-dogs
+GRE,GRE,111,0,AEK ATHENS,aekathens,club:gre.aek-athens
+GRE,GRE,111,1,OLYMPIACOS,olympiacos,club:gre.olympiacos
+GRE,GRE,111,2,PAOK,paok,club:gre.paok
+GRE,GRE,111,3,PANATHINAIKOS,panathinaikos,club:gre.panathinaikos
+GRE,GRE,111,4,LEVADIAKOS,levadiakos,club:gre.levadiakos
+GRE,GRE,111,5,OFI CRETE,oficrete,club:gre.ofi-crete
+GRE,GRE,111,6,VOLOS,volos,club:gre.volos
+GRE,GRE,111,7,ARIS SALONIKI,arissaloniki,club:gre.aris-saloniki
+GRE,GRE,111,8,ATROMITOS ATHENS,atromitosathens,club:gre.atromitos-athens
+GRE,GRE,111,9,KIFISIA,kifisia,club:gre.kifisia
+GRE,GRE,111,10,PANETOLIKOS,panetolikos,club:gre.panetolikos
+GRE,GRE,111,11,ASTERAS AKTOR,asterasaktor,club:gre.asteras-aktor
+GRE,GRE,111,12,IRAKLIS,iraklis,club:gre.iraklis
+GRE,GRE,111,13,KALAMATA,kalamata,club:gre.kalamata
+GUA,GUA,176,0,MUNICIPAL,municipal,club:gua.municipal
+GUA,GUA,176,1,DEPORTIVO MIXCO,deportivomixco,club:gua.deportivo-mixco
+GUA,GUA,176,2,ANTIGUA GFC,antiguagfc,club:gua.antigua-gfc
+GUA,GUA,176,3,AURORA,aurora,club:gua.aurora
+GUA,GUA,176,4,MALACATECO,malacateco,club:gua.malacateco
+GUA,GUA,176,5,XELAJU MC,xelajumc,club:gua.xelaju-mc
+GUA,GUA,176,6,COBAN IMPERIAL,cobanimperial,club:gua.coban-imperial
+GUA,GUA,176,7,MARQUENSE,cdmarquense,club:gua.marquense
+GUA,GUA,176,8,GUASTATOYA,guastatoya,club:gua.guastatoya
+GUA,GUA,176,9,COMUNICACIONES,comunicaciones,club:gua.comunicaciones
+GUA,GUA,176,10,DEPORTIVO SAN,deportivosan,club:gua.deportivo-san
+GUA,GUA,176,11,SUCHITEPEQUEZ,suchitepequez,club:gua.suchitepequez
+HON,HON,177,0,OLIMPIA,olimpia,club:hon.olimpia
+HON,HON,177,1,MARATHON,marathon,club:hon.marathon
+HON,HON,177,2,MOTAGUA,fcmotagua,club:hon.motagua
+HON,HON,177,3,PLATENSE,platense,club:hon.platense
+HON,HON,177,4,REAL ESPANA,realespana,club:hon.real-espana
+HON,HON,177,5,OLANCHO,olancho,club:hon.olancho
+HON,HON,177,6,LOBOS UPNFM,lobosupnfm,club:hon.lobos-upnfm
+HON,HON,177,7,JUTICALPA,juticalpa,club:hon.juticalpa
+HON,HON,177,8,GENESIS PN,genesispn,club:hon.genesis-pn
+HON,HON,177,9,CHOLOMA,choloma,club:hon.choloma
+HON,HON,177,10,INDEPENDIENTE,independiente,club:hon.independiente
+HON,HON,177,11,ESTRELLA ROJA,estrellaroja,club:hon.estrella-roja
+HUN,HUN,122,0,ETO,eto,club:hun.eto
+HUN,HUN,122,1,FERENCVAROSI TC,ferencvarositc,club:hun.ferencvarosi-tc
+HUN,HUN,122,2,PAKSI,paksi,club:hun.paksi
+HUN,HUN,122,3,DEBRECENI VSC,debrecenivsc,club:hun.debreceni-vsc
+HUN,HUN,122,4,ZALAEGERSZEGI TE,zalaegerszegite,club:hun.zalaegerszegi-te
+HUN,HUN,122,5,PUSKAS AKADEMIA,puskasakademia,club:hun.puskas-akademia
+HUN,HUN,122,6,UJPEST,ujpest,club:hun.ujpest
+HUN,HUN,122,7,NYIREGYHAZA,nyiregyhaza,club:hun.nyiregyhaza
+HUN,HUN,122,8,KISVARDA,kisvarda,club:hun.kisvarda
+HUN,HUN,122,9,MTK BUDAPEST,mtkbudapest,club:hun.mtk-budapest
+HUN,HUN,122,10,VASAS,vasas,club:hun.vasas
+HUN,HUN,122,11,KISPESTHONVED,kispesthonved,club:hun.kispesthonved
+IND,IND,217,0,EAST BENGAL,eastbengal,club:ind.east-bengal
+IND,IND,217,1,MOHUN BAGAN SG,mohunbagansg,club:ind.mohun-bagan-sg
+IND,IND,217,2,MUMBAI CITY,mumbaicity,club:ind.mumbai-city
+IND,IND,217,3,BENGALURU,bengaluru,club:ind.bengaluru
+IND,IND,217,4,PUNJAB,punjab,club:ind.punjab
+IND,IND,217,5,GOA,goa,club:ind.goa
+IND,IND,217,6,KERALA BLASTERS,keralablasters,club:ind.kerala-blasters
+IND,IND,217,7,NORTHEAST UNITED,northeastunited,club:ind.northeast-united
+IND,IND,217,8,INTER KASHI,interkashi,club:ind.inter-kashi
+IND,IND,217,9,SPORTING DELHI,sportingdelhi,club:ind.sporting-delhi
+IND,IND,217,10,ODISHA,odisha,club:ind.odisha
+IND,IND,217,11,CHENNAIYIN,chennaiyin,club:ind.chennaiyin
+IND,IND,217,12,BROTHERS,brothers,club:ind.brothers
+IND,IND,217,13,SHILLONG LAJONG,shillonglajong,club:ind.shillong-lajong
+IND,IND,217,14,RAJASTHAN UNITED,rajasthanunited,club:ind.rajasthan-united
+IND,IND,217,15,SREENIDI DECCAN,sreenidideccan,club:ind.sreenidi-deccan
+IND,IND,217,16,CHANMARI,chanmari,club:ind.chanmari
+IND,IND,217,17,DEMPO,dempo,club:ind.dempo
+IND,IND,217,18,AIZAWL,aizawl,club:ind.aizawl
+IND,IND,217,19,REAL KASHMIR,realkashmir,club:ind.real-kashmir
+IND,IND,217,20,GOKULAM KERALA,gokulamkerala,club:ind.gokulam-kerala
+IND,IND,217,21,MOHAMMEDAN,mohammedan,club:ind.mohammedan
+IND,IND,217,22,SAMALESWARI,samaleswari,club:ind.samaleswari
+IND,IND,217,23,BENGALURU UNITED,bengaluruunited,club:ind.bengaluru-united
+IRL,IRL,130,0,SHAMROCK ROVERS,shamrockrovers,club:irl.shamrock-rovers
+IRL,IRL,130,1,DERRY CITY,derrycity,club:irl.derry-city
+IRL,IRL,130,2,SHELBOURNE,shelbourne,club:irl.shelbourne
+IRL,IRL,130,3,BOHEMIAN,bohemian,club:irl.bohemian
+IRL,IRL,130,4,ST. PATRICK'S,stpatricks,club:irl.st-patricks
+IRL,IRL,130,5,DROGHEDA UNITED,droghedaunited,club:irl.drogheda-united
+IRL,IRL,130,6,SLIGO ROVERS,sligorovers,club:irl.sligo-rovers
+IRL,IRL,130,7,GALWAY UNITED,galwayunited,club:irl.galway-united
+IRL,IRL,130,8,WATERFORD,waterford,club:irl.waterford
+IRL,IRL,130,9,DUNDALK,dundalk,club:irl.dundalk
+IRN,IRN,186,0,ESTEGHLAL,esteghlal,club:irn.esteghlal
+IRN,IRN,186,1,TRACTOR,tractor,club:irn.tractor
+IRN,IRN,186,2,SEPAHAN,sepahan,club:irn.sepahan
+IRN,IRN,186,3,GOL GOHAR SIRJAN,golgoharsirjan,club:irn.gol-gohar-sirjan
+IRN,IRN,186,4,PERSEPOLIS,persepolis,club:irn.persepolis
+IRN,IRN,186,5,CHADORMALU,chadormalu,club:irn.chadormalu
+IRN,IRN,186,6,FOOLAD,foolad,club:irn.foolad
+IRN,IRN,186,7,FAJR SEPASI,fajrsepasi,club:irn.fajr-sepasi
+IRN,IRN,186,8,KHEYBAR,kheybarfc,club:irn.kheybar
+IRN,IRN,186,9,MALAVAN,malavan,club:irn.malavan
+IRN,IRN,186,10,ESTEGHLAL KHZ.,esteghlalkhz,club:irn.esteghlal-khz
+IRN,IRN,186,11,PAYKAN,paykan,club:irn.paykan
+IRN,IRN,186,12,ALUMINIUM ARAK,aluminiumarak,club:irn.aluminium-arak
+IRN,IRN,186,13,SHAMS AZAR,shamsazar,club:irn.shams-azar
+IRN,IRN,186,14,ZOB AHAN ESFAHAN,zobahanesfahan,club:irn.zob-ahan-esfahan
+IRN,IRN,186,15,MAZANDARAN,mazandaran,club:irn.mazandaran
+IRN,IRN,186,16,MES SHAHR BABAK,messhahrbabak,club:irn.mes-shahr-babak
+IRN,IRN,186,17,SANAT NAFT,sanatnaft,club:irn.sanat-naft
+ISL,ISL,131,0,VIKINGUR,vikingur,club:isl.vikingur
+ISL,ISL,131,1,VALUR REYKJAVIK,valurreykjavik,club:isl.valur-reykjavik
+ISL,ISL,131,2,STJARNAN,stjarnan,club:isl.stjarnan
+ISL,ISL,131,3,BREIDABLIK,breidablik,club:isl.breidablik
+ISL,ISL,131,4,FH HAFNARFJORDUR,fhhafnarfjordur,club:isl.fh-hafnarfjordur
+ISL,ISL,131,5,FRAM REYKJAVIK,framreykjavik,club:isl.fram-reykjavik
+ISL,ISL,131,6,IBV,ibv,club:isl.ibv
+ISL,ISL,131,7,KA AKUREYRI,kaakureyri,club:isl.ka-akureyri
+ISL,ISL,131,8,KR REYKJAVIK,krreykjavik,club:isl.kr-reykjavik
+ISL,ISL,131,9,IA AKRANES,iaakranes,club:isl.ia-akranes
+ISL,ISL,131,10,THOR AKUREYRI,thorakureyri,club:isl.thor-akureyri
+ISL,ISL,131,11,KEFLAVIK,keflavik,club:isl.keflavik
+ISR,ISR,121,0,H. BEER SHEVA,hbeersheva,club:isr.h-beer-sheva
+ISR,ISR,121,1,BEITAR JERUSALEM,beitarjerusalem,club:isr.beitar-jerusalem
+ISR,ISR,121,2,MACCABI TEL AVIV,maccabitelaviv,club:isr.maccabi-tel-aviv
+ISR,ISR,121,3,HAPOEL TEL AVIV,hapoeltelaviv,club:isr.hapoel-tel-aviv
+ISR,ISR,121,4,MACCABI HAIFA,maccabihaifa,club:isr.maccabi-haifa
+ISR,ISR,121,5,H. PETAH TIKVA,hpetahtikva,club:isr.h-petah-tikva
+ISR,ISR,121,6,MACCABI NETANYA,maccabinetanya,club:isr.maccabi-netanya
+ISR,ISR,121,7,BNEI SAKHNIN,bneisakhnin,club:isr.bnei-sakhnin
+ISR,ISR,121,8,KIRYAT SHMONA,kiryatshmona,club:isr.kiryat-shmona
+ISR,ISR,121,9,HAPOEL HAIFA,hapoelhaifa,club:isr.hapoel-haifa
+ISR,ISR,121,10,HAPOEL JERUSALEM,hapoeljerusalem,club:isr.hapoel-jerusalem
+ISR,ISR,121,11,IRONI TIBERIAS,ironitiberias,club:isr.ironi-tiberias
+ISR,ISR,121,12,M. PETAH TIKVA,mpetahtikva,club:isr.m-petah-tikva
+ISR,ISR,121,13,HAPOEL RAMAT GAN,hapoelramatgan,club:isr.hapoel-ramat-gan
+ITA,ITA,102,0,INTER,inter,club:ita.inter
+ITA,ITA,102,1,NAPOLI,napoli,club:ita.napoli
+ITA,ITA,102,2,ROMA,roma,club:ita.roma
+ITA,ITA,102,3,COMO,como,club:ita.como
+ITA,ITA,102,4,MILAN,milan,club:ita.milan
+ITA,ITA,102,5,JUVENTUS,juventus,club:ita.juventus
+ITA,ITA,102,6,ATALANTA,atalantabc,club:ita.atalanta
+ITA,ITA,102,7,BOLOGNA,bologna,club:ita.bologna
+ITA,ITA,102,8,LAZIO,lazio,club:ita.lazio
+ITA,ITA,102,9,UDINESE,udinesecalcio,club:ita.udinese
+ITA,ITA,102,10,SASSUOLO,sassuolo,club:ita.sassuolo
+ITA,ITA,102,11,TORINO,torino,club:ita.torino
+ITA,ITA,102,12,PARMA,parmacalcio,club:ita.parma
+ITA,ITA,102,13,CAGLIARI,cagliaricalcio,club:ita.cagliari
+ITA,ITA,102,14,FIORENTINA,fiorentina,club:ita.fiorentina
+ITA,ITA,102,15,GENOA,genoacfc,club:ita.genoa
+ITA,ITA,102,16,LECCE,lecce,club:ita.lecce
+ITA,ITA,102,17,VENEZIA,venezia,club:ita.venezia
+ITA,ITA,102,18,FROSINONE,frosinonecalcio,club:ita.frosinone
+ITA,ITA,102,19,MONZA,monza,club:ita.monza
+ITA,ITA,102,20,PALERMO,palermo,club:ita.palermo
+ITA,ITA,102,21,CATANZARO,catanzaro,club:ita.catanzaro
+ITA,ITA,102,22,MODENA,modena,club:ita.modena
+ITA,ITA,102,23,JUVE STABIA,juvestabia,club:ita.juve-stabia
+ITA,ITA,102,24,AVELLINO,avellino,club:ita.avellino
+ITA,ITA,102,25,PADOVA,calciopadova,club:ita.padova
+ITA,ITA,102,26,CESENA,cesena,club:ita.cesena
+ITA,ITA,102,27,MANTOVA,mantova,club:ita.mantova
+ITA,ITA,102,28,CARRARESE,carraresecalcio,club:ita.carrarese
+ITA,ITA,102,29,SAMPDORIA,sampdoria,club:ita.sampdoria
+ITA,ITA,102,30,VIRTUS ENTELLA,virtusentella,club:ita.virtus-entella
+ITA,ITA,102,31,EMPOLI,empoli,club:ita.empoli
+ITA,ITA,102,32,SUDTIROL,sudtirol,club:ita.sudtirol
+ITA,ITA,102,33,CREMONESE,cremonese,club:ita.cremonese
+ITA,ITA,102,34,HELLAS VERONA,hellasverona,club:ita.hellas-verona
+ITA,ITA,102,35,PISA,pisasporting,club:ita.pisa
+ITA,ITA,102,36,VICENZA,lrvicenza,club:ita.vicenza
+ITA,ITA,102,37,AREZZO,arezzo,club:ita.arezzo
+ITA,ITA,102,38,BENEVENTO,beneventocalcio,club:ita.benevento
+ITA,ITA,102,39,ASCOLI,ascolicalcio,club:ita.ascoli
+ITA,ITA,102,40,UNION BRESCIA,unionbrescia,club:ita.union-brescia
+ITA,ITA,102,41,RENATE,renate,club:ita.renate
+ITA,ITA,102,42,LECCO,calciolecco,club:ita.lecco
+ITA,ITA,102,43,TRENTO,trento,club:ita.trento
+ITA,ITA,102,44,JUVENTUS NG,juvenextgen,club:ita.juventus-ng
+ITA,ITA,102,45,CITTADELLA,cittadella,club:ita.cittadella
+ITA,ITA,102,46,LUMEZZANE,lumezzane,club:ita.lumezzane
+ITA,ITA,102,47,ALCIONE MILANO,alcionemilano,club:ita.alcione-milano
+ITA,ITA,102,48,ARZIGNANO V.,arzignano,club:ita.arzignano-v
+ITA,ITA,102,49,GIANA ERMINIO,gianaerminio,club:ita.giana-erminio
+ITA,ITA,102,50,ALBINOLEFFE,albinoleffe,club:ita.albinoleffe
+ITA,ITA,102,51,NOVARA,novara,club:ita.novara
+ITA,ITA,102,52,CARPI,carpi,club:ita.carpi
+ITA,ITA,102,53,PRO VERCELLI,provercelli,club:ita.pro-vercelli
+ITA,ITA,102,54,OSPITALETTO F.,cprospitaletto,club:ita.ospitaletto-f
+ITA,ITA,102,55,PERGOLETTESE,pergolettese,club:ita.pergolettese
+ITA,ITA,102,56,DOLOMITI BELL.,dolomiti,club:ita.dolomiti-bell
+ITA,ITA,102,57,FOLGORE CARATESE,folgorecaratese,club:ita.folgore-caratese
+ITA,ITA,102,58,TREVISO,treviso,club:ita.treviso
+ITA,ITA,102,59,DESENZANO,calciodesenzano,club:ita.desenzano
+ITA,ITA,102,60,RAVENNA,ravenna,club:ita.ravenna
+ITA,ITA,102,61,CAMPOBASSO,campobasso,club:ita.campobasso
+ITA,ITA,102,62,PIANESE,pianese,club:ita.pianese
+ITA,ITA,102,63,PINETO,pinetocalcio,club:ita.pineto
+ITA,ITA,102,64,GUBBIO,gubbio,club:ita.gubbio
+ITA,ITA,102,65,VIS PESARO,vispesaro,club:ita.vis-pesaro
+ITA,ITA,102,66,LIVORNO,livorno,club:ita.livorno
+ITA,ITA,102,67,ATALANTA U23,atalantau23,club:ita.atalanta-u23
+ITA,ITA,102,68,FORLI,forli,club:ita.forli
+ITA,ITA,102,69,PERUGIA,perugiacalcio,club:ita.perugia
+ITA,ITA,102,70,LATINA,latinacalcio,club:ita.latina
+ITA,ITA,102,71,GUIDONIA M.,guidonia,club:ita.guidonia-m
+ITA,ITA,102,72,SAMBENEDETTESE,sambenedettese,club:ita.sambenedettese
+ITA,ITA,102,73,TORRES,seftorres,club:ita.torres
+ITA,ITA,102,74,REGGIANA,reggiana,club:ita.reggiana
+ITA,ITA,102,75,PESCARA,delfinopescara,club:ita.pescara
+ITA,ITA,102,76,SPEZIA,speziacalcio,club:ita.spezia
+ITA,ITA,102,77,VADO,vado,club:ita.vado
+ITA,ITA,102,78,GROSSETO,grosseto,club:ita.grosseto
+ITA,ITA,102,79,OSTIAMARE,ostiamare,club:ita.ostiamare
+ITA,ITA,102,80,CATANIA,catania,club:ita.catania
+ITA,ITA,102,81,SALERNITANA,salernitana,club:ita.salernitana
+ITA,ITA,102,82,COSENZA,cosenzacalcio,club:ita.cosenza
+ITA,ITA,102,83,CASERTANA,casertana,club:ita.casertana
+ITA,ITA,102,84,CROTONE,crotone,club:ita.crotone
+ITA,ITA,102,85,CASARANO,casaranocalcio,club:ita.casarano
+ITA,ITA,102,86,MONOPOLI,monopoli,club:ita.monopoli
+ITA,ITA,102,87,AUDACE CERIGNOLA,audacecerignola,club:ita.audace-cerignola
+ITA,ITA,102,88,POTENZA,potenzacalcio,club:ita.potenza
+ITA,ITA,102,89,INTER U23,interu23,club:ita.inter-u23
+ITA,ITA,102,90,ALTAMURA,altamura,club:ita.altamura
+ITA,ITA,102,91,CAVESE,cavese,club:ita.cavese
+ITA,ITA,102,92,PICERNO,azpicerno,club:ita.picerno
+ITA,ITA,102,93,SORRENTO,sorrento,club:ita.sorrento
+ITA,ITA,102,94,GIUGLIANO,giuglianocalcio,club:ita.giugliano
+ITA,ITA,102,95,FOGGIA,calciofoggia,club:ita.foggia
+ITA,ITA,102,96,BARI,bari,club:ita.bari
+ITA,ITA,102,97,SCAFATESE,scafatesecalcio,club:ita.scafatese
+ITA,ITA,102,98,BARLETTA,barletta,club:ita.barletta
+ITA,ITA,102,99,SAVOIA,savoia,club:ita.savoia
+ITA,ITA,102,100,LIGORNA,ligorna,club:ita.ligorna
+ITA,ITA,102,101,BIELLESE,asdbiellese,club:ita.biellese
+ITA,ITA,102,102,CHISOLA,chisola,club:ita.chisola
+ITA,ITA,102,103,SESTRI LEVANTE,sestrilevante,club:ita.sestri-levante
+ITA,ITA,102,104,SANREMESE,sanremesecalcio,club:ita.sanremese
+ITA,ITA,102,105,VALENZANA MADO,valenzanamado,club:ita.valenzana-mado
+ITA,ITA,102,106,CELLE VARAZZE,cellevarazze,club:ita.celle-varazze
+ITA,ITA,102,107,SALUZZO,saluzzo,club:ita.saluzzo
+ITA,ITA,102,108,IMPERIA,ssdimperia,club:ita.imperia
+ITA,ITA,102,109,DERTHONA,derthona,club:ita.derthona
+ITA,ITA,102,110,GOZZANO,asdcgozzano,club:ita.gozzano
+ITA,ITA,102,111,ASTI,asdasti,club:ita.asti
+ITA,ITA,102,112,BRA,bra,club:ita.bra
+ITA,ITA,102,113,ALESSANDRIA,alessandria,club:ita.alessandria
+ITA,ITA,102,114,BORGOSESIA,calcio,club:ita.borgosesia
+ITA,ITA,102,115,FEZZANESE,usdfezzanese,club:ita.fezzanese
+ITA,ITA,102,116,MILLESIMO,asdmillesimo,club:ita.millesimo
+ITA,ITA,102,117,CHIEVOVERONA,chievoverona,club:ita.chievoverona
+ITA,ITA,102,118,MILAN FUTURO,milanfuturo,club:ita.milan-futuro
+ITA,ITA,102,119,PIACENZA,piacenzacalcio,club:ita.piacenza
+ITA,ITA,102,120,LEON,leon,club:ita.leon
+ITA,ITA,102,121,PALAZZOLO,propalazzolo,club:ita.palazzolo
+ITA,ITA,102,122,BRUSAPORTO,brusaporto,club:ita.brusaporto
+ITA,ITA,102,123,SCANZOROSCIATE,scanzorosciate,club:ita.scanzorosciate
+ITA,ITA,102,124,ROVATO,rovatocalcio,club:ita.rovato
+ITA,ITA,102,125,VILLA VALLE,villavalle,club:ita.villa-valle
+ITA,ITA,102,126,VIRTUS CISERANO,virtusbergamo,club:ita.virtus-ciserano
+ITA,ITA,102,127,CLUB MILANO,milano,club:ita.club-milano
+ITA,ITA,102,128,CALDIERO TERME,caldieroterme,club:ita.caldiero-terme
+ITA,ITA,102,129,REAL CALEPINA,realcalepina,club:ita.real-calepina
+ITA,ITA,102,130,VIRTUS VERONA,virtusverona,club:ita.virtus-verona
+ITA,ITA,102,131,FIORENZUOLA,fiorenzuola,club:ita.fiorenzuola
+ITA,ITA,102,132,NIBBIANO VALT.,nibbianovaltid,club:ita.nibbiano-valt
+ITA,ITA,102,133,TRITIUM,tritiumcalcio,club:ita.tritium
+ITA,ITA,102,134,LEGNAGO SALUS,legnagosalus,club:ita.legnago-salus
+ITA,ITA,102,135,UNION CLODIENSE,clodiense,club:ita.union-clodiense
+ITA,ITA,102,136,ESTE,este,club:ita.este
+ITA,ITA,102,137,MESTRE,mestre,club:ita.mestre
+ITA,ITA,102,138,BRIAN LIGNANO,brian,club:ita.brian-lignano
+ITA,ITA,102,139,CJARLINS MUZANE,cjarlinsmuzane,club:ita.cjarlins-muzane
+ITA,ITA,102,140,BASSANO,bassano,club:ita.bassano
+ITA,ITA,102,141,CONEGLIANO,fcdconegliano,club:ita.conegliano
+ITA,ITA,102,142,CAMPODARSEGO,campodarsego,club:ita.campodarsego
+ITA,ITA,102,143,LA ROCCA ALTAV.,altavilla,club:ita.la-rocca-altav
+ITA,ITA,102,144,CALVI NOALE,calvinoale,club:ita.calvi-noale
+ITA,ITA,102,145,LUPARENSE,luparense,club:ita.luparense
+ITA,ITA,102,146,OBERMAIS,obermais,club:ita.obermais
+ITA,ITA,102,147,TRIESTINA,triestina,club:ita.triestina
+ITA,ITA,102,148,SANDONA,calciosandona,club:ita.sandona
+ITA,ITA,102,149,LME,lavarianmortean,club:ita.lme
+ITA,ITA,102,150,SCHIO,calcioschio,club:ita.schio
+ITA,ITA,102,151,CASATESE MERATE,casatesemerate,club:ita.casatese-merate
+ITA,ITA,102,152,LENTIGIONE,lentigione,club:ita.lentigione
+ITA,ITA,102,153,PISTOIESE,pistoiese,club:ita.pistoiese
+ITA,ITA,102,154,VARESE,varese,club:ita.varese
+ITA,ITA,102,155,OLTREPO,oltrepo,club:ita.oltrepo
+ITA,ITA,102,156,PRO SESTO,prosesto,club:ita.pro-sesto
+ITA,ITA,102,157,CITTADELLA MOD.,cittvismodena,club:ita.cittadella-mod
+ITA,ITA,102,158,CORREGGESE,correggese,club:ita.correggese
+ITA,ITA,102,159,SANT'ANGELO,santangelo,club:ita.santangelo
+ITA,ITA,102,160,CASTELLANZESE,castellanzese,club:ita.castellanzese
+ITA,ITA,102,161,CREMA,crema,club:ita.crema
+ITA,ITA,102,162,PAVIA,paviacalcio,club:ita.pavia
+ITA,ITA,102,163,VARESINA,varesinacalcio,club:ita.varesina
+ITA,ITA,102,164,TROPICAL CORIANO,tropicalcoriano,club:ita.tropical-coriano
+ITA,ITA,102,165,PRO PATRIA,propatria,club:ita.pro-patria
+ITA,ITA,102,166,PONTEDERA,pontedera,club:ita.pontedera
+ITA,ITA,102,167,SOLBIATESE,calcio2,club:ita.solbiatese
+ITA,ITA,102,168,ARCONATESE,arconatese,club:ita.arconatese
+ITA,ITA,102,169,TAU ALTOPASCIO,tau,club:ita.tau-altopascio
+ITA,ITA,102,170,PRATO,prato,club:ita.prato
+ITA,ITA,102,171,SIENA,siena,club:ita.siena
+ITA,ITA,102,172,FLAMINIA,flaminia,club:ita.flaminia
+ITA,ITA,102,173,SERAVEZZA,seravezzapozzi,club:ita.seravezza
+ITA,ITA,102,174,TERRANUOVA T.,terranuova,club:ita.terranuova-t
+ITA,ITA,102,175,SCANDICCI,scandicci,club:ita.scandicci
+ITA,ITA,102,176,MONTEVARCHI,montevarchi,club:ita.montevarchi
+ITA,ITA,102,177,PROGRESSO,progresso,club:ita.progresso
+ITA,ITA,102,178,GHIVIBORGO,ghiviborgo,club:ita.ghiviborgo
+ITA,ITA,102,179,SAN DONATO TAV.,sandonato,club:ita.san-donato-tav
+ITA,ITA,102,180,FOLL. GAVORRANO,follgavorrano,club:ita.foll-gavorrano
+ITA,ITA,102,181,SASSO MARCONI,sassomarconi,club:ita.sasso-marconi
+ITA,ITA,102,182,NUOVA TERNANA,nuovaternana,club:ita.nuova-ternana
+ITA,ITA,102,183,LUCCHESE,lucchesecalcio,club:ita.lucchese
+ITA,ITA,102,184,MEZZOLARA,mezzolaracalcio,club:ita.mezzolara
+ITA,ITA,102,185,RONDINELLA,asdrondinella,club:ita.rondinella
+ITA,ITA,102,186,ANCONA,anconacalcio,club:ita.ancona
+ITA,ITA,102,187,TERAMO,teramocalcio,club:ita.teramo
+ITA,ITA,102,188,ATLETICO ASCOLI,atlascoli,club:ita.atletico-ascoli
+ITA,ITA,102,189,NOTARESCO,notarescocalcio,club:ita.notaresco
+ITA,ITA,102,190,FOLIGNO,folignocalcio,club:ita.foligno
+ITA,ITA,102,191,L'AQUILA,laquila,club:ita.laquila
+ITA,ITA,102,192,GIULIANOVA,giulianova,club:ita.giulianova
+ITA,ITA,102,193,VIGOR SENIGALLIA,vigorsenigallia,club:ita.vigor-senigallia
+ITA,ITA,102,194,FORSEMPRONESE,forsempronese,club:ita.forsempronese
+ITA,ITA,102,195,TRESTINA,trestina,club:ita.trestina
+ITA,ITA,102,196,TERMOLI,termolicalcio,club:ita.termoli
+ITA,ITA,102,197,MACERATESE,maceratese,club:ita.maceratese
+ITA,ITA,102,198,RECANATESE,recanatese,club:ita.recanatese
+ITA,ITA,102,199,ANGELANA,angelana,club:ita.angelana
+ITA,ITA,102,200,SANTEGIDIESE,santegidiese,club:ita.santegidiese
+ITA,ITA,102,201,MONTECCHIO GALLO,asdksport,club:ita.montecchio-gallo
+ITA,ITA,102,202,LANCIANO,lanciano,club:ita.lanciano
+ITA,ITA,102,203,PIETRALUNGHESE,pietralunghese,club:ita.pietralunghese
+ITA,ITA,102,204,TRASTEVERE,trastevere,club:ita.trastevere
+ITA,ITA,102,205,ASD MONASTIR,asdmonastir,club:ita.asd-monastir
+ITA,ITA,102,206,PAGANESE,paganesecalcio,club:ita.paganese
+ITA,ITA,102,207,ALBALONGA,albalonga,club:ita.albalonga
+ITA,ITA,102,208,GELBISON,gelbison,club:ita.gelbison
+ITA,ITA,102,209,LATTE DOLCE,lattedolce,club:ita.latte-dolce
+ITA,ITA,102,210,AFRAGOLESE,afragolese,club:ita.afragolese
+ITA,ITA,102,211,COS SARRABUS,sarrabusogl,club:ita.cos-sarrabus
+ITA,ITA,102,212,UNIPOMEZIA,unipomezia,club:ita.unipomezia
+ITA,ITA,102,213,BUDONI,calciobudoni,club:ita.budoni
+ITA,ITA,102,214,ATL. LODIGIANI,alodigiani,club:ita.atl-lodigiani
+ITA,ITA,102,215,SARNESE,sarnese,club:ita.sarnese
+ITA,ITA,102,216,ANZIO,anziocalcio,club:ita.anzio
+ITA,ITA,102,217,CERTOSA CAMPAGN.,certosavigor,club:ita.certosa-campagn
+ITA,ITA,102,218,ARANOVA,aranova,club:ita.aranova
+ITA,ITA,102,219,OSSESE,ossese,club:ita.ossese
+ITA,ITA,102,220,VENAFRO,venafro,club:ita.venafro
+ITA,ITA,102,221,MARTINA,martinacalcio,club:ita.martina
+ITA,ITA,102,222,NARDO,nardo,club:ita.nardo
+ITA,ITA,102,223,GRAVINA,gravina,club:ita.gravina
+ITA,ITA,102,224,NOCERINA,nocerinacalcio,club:ita.nocerina
+ITA,ITA,102,225,FIDELIS ANDRIA,fidelisandria,club:ita.fidelis-andria
+ITA,ITA,102,226,V. FRANCAVILLA,vfrancavilla,club:ita.v-francavilla
+ITA,ITA,102,227,FRANCAVILLA,francavilla,club:ita.francavilla
+ITA,ITA,102,228,PALMESE,palmese,club:ita.palmese
+ITA,ITA,102,229,PUTEOLI R.NORM.,realaversa,club:ita.puteoli-r-norm
+ITA,ITA,102,230,MANFREDONIA,manfredonia,club:ita.manfredonia
+ITA,ITA,102,231,ISCHIA,ischia,club:ita.ischia
+ITA,ITA,102,232,TURRIS,turris,club:ita.turris
+ITA,ITA,102,233,BRINDISI,brindisi,club:ita.brindisi
+ITA,ITA,102,234,BISCEGLIE,bisceglie,club:ita.bisceglie
+ITA,ITA,102,235,GLADIATOR,gladiator,club:ita.gladiator
+ITA,ITA,102,236,EBOLITANA,ebolitanacalcio,club:ita.ebolitana
+ITA,ITA,102,237,REAL FORIO,realforio,club:ita.real-forio
+ITA,ITA,102,238,NISSA,nissa,club:ita.nissa
+ITA,ITA,102,239,REGGINA,reggina,club:ita.reggina
+ITA,ITA,102,240,ATHLETIC PALERMO,athlpalermo,club:ita.athletic-palermo
+ITA,ITA,102,241,IGEA VIRTUS,igeavirtus,club:ita.igea-virtus
+ITA,ITA,102,242,SAMBIASE,asdsambiase,club:ita.sambiase
+ITA,ITA,102,243,MILAZZO,milazzo,club:ita.milazzo
+ITA,ITA,102,244,VIGOR LAMEZIA,vigorlamezia,club:ita.vigor-lamezia
+ITA,ITA,102,245,GELA,cittadigela,club:ita.gela
+ITA,ITA,102,246,CASTRUMFAVARA,favara,club:ita.castrumfavara
+ITA,ITA,102,247,ENNA,ennacalcio,club:ita.enna
+ITA,ITA,102,248,VIBONESE,vibonese,club:ita.vibonese
+ITA,ITA,102,249,RAGUSA,ragusacalcio,club:ita.ragusa
+ITA,ITA,102,250,SIRACUSA,siracusacalcio,club:ita.siracusa
+ITA,ITA,102,251,TRAPANI,trapani,club:ita.trapani
+ITA,ITA,102,252,MODICA,asdmodica,club:ita.modica
+ITA,ITA,102,253,DIGIESSE,asddigiesse,club:ita.digiesse
+ITA,ITA,102,254,AVOLA,calcioavola,club:ita.avola
+ITA,ITA,102,255,LICATA,licatacalcio,club:ita.licata
+ITA,ITA_POOL,pool,0,PAVONESE,calciopavonese,club:ita.pavonese
+ITA,ITA_POOL,pool,1,VIRTUS BOLZANO,virtusbolzano,club:ita.virtus-bolzano
+ITA,ITA_POOL,pool,2,CITTA DI ANAGNI,cittadianagni,club:ita.citta-di-anagni
+ITA,ITA_POOL,pool,3,GRASSINA,asdgrassina,club:ita.grassina
+ITA,ITA_POOL,pool,4,LASCARIS,gsdlascaris,club:ita.lascaris
+ITA,ITA_POOL,pool,5,MELFI,melfi,club:ita.melfi
+ITA,ITA_POOL,pool,6,CAIRESE,asdcairese,club:ita.cairese
+ITA,ITA_POOL,pool,7,ORVIETANA,orvietanacalcio,club:ita.orvietana
+ITA,ITA_POOL,pool,8,SORA,soracalcio,club:ita.sora
+ITA,ITA_POOL,pool,9,BRENO,usdbreno,club:ita.breno
+ITA,ITA_POOL,pool,10,VIGASIO,vigasio,club:ita.vigasio
+ITA,ITA_POOL,pool,11,IMOLESE,imolesecalcio,club:ita.imolese
+ITA,ITA_POOL,pool,12,NOLA,nola,club:ita.nola
+ITA,ITA_POOL,pool,13,CAMAIORE,camaiorecalcio,club:ita.camaiore
+ITA,ITA_POOL,pool,14,SAN MARINO,sanmarino,club:ita.san-marino
+ITA,ITA_POOL,pool,15,OLBIA,olbiacalcio,club:ita.olbia
+ITA,ITA_POOL,pool,16,HERACLEA,heraclea,club:ita.heraclea
+ITA,ITA_POOL,pool,17,ACR MESSINA,acrmessina,club:ita.acr-messina
+ITA,ITA_POOL,pool,18,SAN LUIGI,sanluigicalcio,club:ita.san-luigi
+ITA,ITA_POOL,pool,19,POGGIBONSI,poggibonsi,club:ita.poggibonsi
+ITA,ITA_POOL,pool,20,CHIETI,chieti,club:ita.chieti
+ITA,ITA_POOL,pool,21,R. MONTEROTONDO,rmonterotondo,club:ita.r-monterotondo
+ITA,ITA_POOL,pool,22,POMPEI,pompei,club:ita.pompei
+ITA,ITA_POOL,pool,23,ACIREALE,acirealecalcio,club:ita.acireale
+ITA,ITA_POOL,pool,24,LAVAGNESE,usdlavagnese,club:ita.lavagnese
+ITA,ITA_POOL,pool,25,SONDRIO,sondrio,club:ita.sondrio
+ITA,ITA_POOL,pool,26,ADRIESE,adriese,club:ita.adriese
+ITA,ITA_POOL,pool,27,TREVIGLIESE,trevigliese,club:ita.trevigliese
+ITA,ITA_POOL,pool,28,CANNARA,asdcannara,club:ita.cannara
+ITA,ITA_POOL,pool,29,CASTELFIDARDO,castelfidardo,club:ita.castelfidardo
+ITA,ITA_POOL,pool,30,MONTESPACCATO,montespaccato,club:ita.montespaccato
+ITA,ITA_POOL,pool,31,FERRANDINA,ferrandina,club:ita.ferrandina
+ITA,ITA_POOL,pool,32,SANCATALDESE,sancataldese,club:ita.sancataldese
+ITA,ITA_POOL,pool,33,NOVAROMENTIN,ssdnovaromentin,club:ita.novaromentin
+ITA,ITA_POOL,pool,34,AVC VOGHERESE,avcvogherese,club:ita.avc-vogherese
+ITA,ITA_POOL,pool,35,PORTOGRUARO,portogruaro,club:ita.portogruaro
+ITA,ITA_POOL,pool,36,TUTTOCUOIO,tuttocuoio,club:ita.tuttocuoio
+ITA,ITA_POOL,pool,37,SANSEPOLCRO,sansepolcro,club:ita.sansepolcro
+ITA,ITA_POOL,pool,38,SAMMAURESE,sammaurese,club:ita.sammaurese
+ITA,ITA_POOL,pool,39,CASSINO,cassinocalcio,club:ita.cassino
+ITA,ITA_POOL,pool,40,ACERRANA,asdacerrana,club:ita.acerrana
+ITA,ITA_POOL,pool,41,PATERNO,paternocalcio,club:ita.paterno
+JPN,JPN,181,0,KASHIWA REYSOL,kashiwareysol,club:jpn.kashiwa-reysol
+JPN,JPN,181,1,SANF. HIROSHIMA,sanfhiroshima,club:jpn.sanf-hiroshima
+JPN,JPN,181,2,MACHIDA ZELVIA,machidazelvia,club:jpn.machida-zelvia
+JPN,JPN,181,3,TOKYO,tokyo,club:jpn.tokyo
+JPN,JPN,181,4,VISSEL KOBE,visselkobe,club:jpn.vissel-kobe
+JPN,JPN,181,5,KASHIMA ANTLERS,kashimaantlers,club:jpn.kashima-antlers
+JPN,JPN,181,6,YOKOHAMA F. M.,yokohamafm,club:jpn.yokohama-f-m
+JPN,JPN,181,7,KAWASAKI FRONT.,kawasakifront,club:jpn.kawasaki-front
+JPN,JPN,181,8,FAGIANO OKAYAMA,fagianookayama,club:jpn.fagiano-okayama
+JPN,JPN,181,9,SHIMIZU S-PULSE,shimizuspulse,club:jpn.shimizu-s-pulse
+JPN,JPN,181,10,URAWA REDS,urawareds,club:jpn.urawa-reds
+JPN,JPN,181,11,CEREZO OSAKA,cerezoosaka,club:jpn.cerezo-osaka
+JPN,JPN,181,12,MITO HOLLYHOCK,mitohollyhock,club:jpn.mito-hollyhock
+JPN,JPN,181,13,V-VAREN NAGASAKI,vvarennagasaki,club:jpn.v-varen-nagasaki
+JPN,JPN,181,14,NAGOYA GRAMPUS,nagoyagrampus,club:jpn.nagoya-grampus
+JPN,JPN,181,15,KYOTO SANGA,kyotosanga,club:jpn.kyoto-sanga
+JPN,JPN,181,16,AVISPA FUKUOKA,avispafukuoka,club:jpn.avispa-fukuoka
+JPN,JPN,181,17,GAMBA OSAKA,gambaosaka,club:jpn.gamba-osaka
+JPN,JPN,181,18,JEF UNITED CHIBA,jefunitedchiba,club:jpn.jef-united-chiba
+JPN,JPN,181,19,TOKYO VERDY,tokyoverdy,club:jpn.tokyo-verdy
+JPN,JPN,181,20,VEGALTA SENDAI,vegaltasendai,club:jpn.vegalta-sendai
+JPN,JPN,181,21,RB OMIYA ARDIJA,rbomiyaardija,club:jpn.rb-omiya-ardija
+JPN,JPN,181,22,ALBIREX NIIGATA,albirexniigata,club:jpn.albirex-niigata
+JPN,JPN,181,23,KATALLER TOYAMA,katallertoyama,club:jpn.kataller-toyama
+JPN,JPN,181,24,YOKOHAMA,yokohama,club:jpn.yokohama
+JPN,JPN,181,25,SHONAN BELLMARE,shonanbellmare,club:jpn.shonan-bellmare
+JPN,JPN,181,26,OITA TRINITA,oitatrinita,club:jpn.oita-trinita
+JPN,JPN,181,27,FUJIEDA MYFC,fujiedamyfc,club:jpn.fujieda-myfc
+JPN,JPN,181,28,TEG. MIYAZAKI,tegmiyazaki,club:jpn.teg-miyazaki
+JPN,JPN,181,29,JUBILO IWATA,jubiloiwata,club:jpn.jubilo-iwata
+JPN,JPN,181,30,SAGAN TOSU,sagantosu,club:jpn.sagan-tosu
+JPN,JPN,181,31,TOKUSHIMA VORTIS,tokushimavortis,club:jpn.tokushima-vortis
+JPN,JPN,181,32,MONTE. YAMAGATA,monteyamagata,club:jpn.monte-yamagata
+JPN,JPN,181,33,BLAUBLITZ AKITA,blaublitzakita,club:jpn.blaublitz-akita
+JPN,JPN,181,34,IWAKI,iwaki,club:jpn.iwaki
+JPN,JPN,181,35,TOCHIGI CITY,tochigicity,club:jpn.tochigi-city
+JPN,JPN,181,36,H. C. SAPPORO,hcsapporo,club:jpn.h-c-sapporo
+JPN,JPN,181,37,IMABARI,imabari,club:jpn.imabari
+JPN,JPN,181,38,VANR. HACHINOHE,vanrhachinohe,club:jpn.vanr-hachinohe
+JPN,JPN,181,39,VENTFORET KOFU,ventforetkofu,club:jpn.ventforet-kofu
+KAZ,KAZ,136,0,KAIRAT ALMATY,kairatalmaty,club:kaz.kairat-almaty
+KAZ,KAZ,136,1,ASTANA,astana,club:kaz.astana
+KAZ,KAZ,136,2,TOBOL KOSTANAY,tobolkostanay,club:kaz.tobol-kostanay
+KAZ,KAZ,136,3,YELIMAY SEMEY,yelimaysemey,club:kaz.yelimay-semey
+KAZ,KAZ,136,4,AKTOBE,aktobe,club:kaz.aktobe
+KAZ,KAZ,136,5,ZHENIS ASTANA,zhenisastana,club:kaz.zhenis-astana
+KAZ,KAZ,136,6,ORDABASY,ordabasy,club:kaz.ordabasy
+KAZ,KAZ,136,7,OKZHETPES,okzhetpes,club:kaz.okzhetpes
+KAZ,KAZ,136,8,QYZYLJAR,qyzyljar,club:kaz.qyzyljar
+KAZ,KAZ,136,9,ULYTAU ZH.,ulytauzh,club:kaz.ulytau-zh
+KAZ,KAZ,136,10,KAYSAR KYZYLORDA,kaysarkyzylorda,club:kaz.kaysar-kyzylorda
+KAZ,KAZ,136,11,ZHETYSU,zhetysu,club:kaz.zhetysu
+KAZ,KAZ,136,12,ATYRAU,atyrau,club:kaz.atyrau
+KAZ,KAZ,136,13,KASPIY AKTAU,kaspiyaktau,club:kaz.kaspiy-aktau
+KAZ,KAZ,136,14,IRTYSH PAVLODAR,irtyshpavlodar,club:kaz.irtysh-pavlodar
+KAZ,KAZ,136,15,ALTAY OSKEMEN,altayoskemen,club:kaz.altay-oskemen
+KOR,KOR,182,0,JEONBUK HYUNDAI,jeonbukhyundai,club:kor.jeonbuk-hyundai
+KOR,KOR,182,1,GWANGJU,gwangju,club:kor.gwangju
+KOR,KOR,182,2,DAEJEON HANA C.,daejeonhanac,club:kor.daejeon-hana-c
+KOR,KOR,182,3,ANYANG,anyang,club:kor.anyang
+KOR,KOR,182,4,GIMCHEON SANGMU,gimcheonsangmu,club:kor.gimcheon-sangmu
+KOR,KOR,182,5,ULSAN HD,ulsanhd,club:kor.ulsan-hd
+KOR,KOR,182,6,POHANG STEELERS,pohangsteelers,club:kor.pohang-steelers
+KOR,KOR,182,7,GANGWON,gangwon,club:kor.gangwon
+KOR,KOR,182,8,JEJU,jeju,club:kor.jeju
+KOR,KOR,182,9,SEOUL,seoul,club:kor.seoul
+KOR,KOR,182,10,INCHEON UNITED,incheonunited,club:kor.incheon-united
+KOR,KOR,182,11,BUCHEON,bucheon,club:kor.bucheon
+KOS,KOS,135,0,DRITA,drita,club:kos.drita
+KOS,KOS,135,1,MALISHEVA,malisheva,club:kos.malisheva
+KOS,KOS,135,2,BALLKANI,ballkani,club:kos.ballkani
+KOS,KOS,135,3,DUKAGJINI,dukagjini,club:kos.dukagjini
+KOS,KOS,135,4,GJILANI,gjilani,club:kos.gjilani
+KOS,KOS,135,5,DRENICA,drenica,club:kos.drenica
+KOS,KOS,135,6,PRISHTINA,prishtina,club:kos.prishtina
+KOS,KOS,135,7,LLAPI,llapi,club:kos.llapi
+KOS,KOS,135,8,FERONIKELI 74,feronikeli74,club:kos.feronikeli-74
+KOS,KOS,135,9,VUSHTRRIA,vushtrria,club:kos.vushtrria
+KSA,KSA,180,0,AL-NASSR,alnassr,club:ksa.al-nassr
+KSA,KSA,180,1,AL-HILAL,alhilalsfc,club:ksa.al-hilal
+KSA,KSA,180,2,AL-AHLI SFC,alahlisfc,club:ksa.al-ahli-sfc
+KSA,KSA,180,3,AL-QADSIAH,alqadsiah,club:ksa.al-qadsiah
+KSA,KSA,180,4,AL-ITTIHAD,alittihad,club:ksa.al-ittihad
+KSA,KSA,180,5,AL-TAAWOUN,altaawoun,club:ksa.al-taawoun
+KSA,KSA,180,6,AL-ETTIFAQ,alettifaq,club:ksa.al-ettifaq
+KSA,KSA,180,7,NEOM,neom,club:ksa.neom
+KSA,KSA,180,8,AL-HAZEM,alhazem,club:ksa.al-hazem
+KSA,KSA,180,9,AL-FAYHA,alfayha,club:ksa.al-fayha
+KSA,KSA,180,10,AL-FATEH,alfateh,club:ksa.al-fateh
+KSA,KSA,180,11,AL-KHALEEJ,alkhaleej,club:ksa.al-khaleej
+KSA,KSA,180,12,AL-SHABAB,alshabab,club:ksa.al-shabab
+KSA,KSA,180,13,AL-KHOLOOD,alkholood,club:ksa.al-kholood
+KSA,KSA,180,14,AL-RIYADH,alriyadh,club:ksa.al-riyadh
+KSA,KSA,180,15,AL-DIRIYAH,aldiriyah,club:ksa.al-diriyah
+KSA,KSA,180,16,ABHA,abha,club:ksa.abha
+KSA,KSA,180,17,AL-FAISALY,alfaisaly,club:ksa.al-faisaly
+LIE,LIE,141,0,VADUZ,vaduz,club:lie.vaduz
+LIE,LIE,141,1,BALZERS,balzers,club:lie.balzers
+LIE,LIE,141,2,ESCHEN/MAUREN,eschenmauren,club:lie.eschen-mauren
+LIE,LIE,141,3,RUGGELL,ruggell,club:lie.ruggell
+LIE,LIE,141,4,SCHAAN,schaan,club:lie.schaan
+LIE,LIE,141,5,TRIESEN,triesen,club:lie.triesen
+LTU,LTU,150,0,KAUNO ZALGIRIS,kaunozalgiris,club:ltu.kauno-zalgiris
+LTU,LTU,150,1,HEGELMANN,hegelmann,club:ltu.hegelmann
+LTU,LTU,150,2,ZALGIRIS VILNIUS,zalgirisvilnius,club:ltu.zalgiris-vilnius
+LTU,LTU,150,3,SUDUVA,suduva,club:ltu.suduva
+LTU,LTU,150,4,FA SIAULIAI,fasiauliai,club:ltu.fa-siauliai
+LTU,LTU,150,5,PANEVEZYS,panevezys,club:ltu.panevezys
+LTU,LTU,150,6,DZIUGAS TELSIAI,dziugastelsiai,club:ltu.dziugas-telsiai
+LTU,LTU,150,7,BANGA GARGZDAI,bangagargzdai,club:ltu.banga-gargzdai
+LTU,LTU,150,8,RITERIAI,riteriai,club:ltu.riteriai
+LTU,LTU,150,9,TRANSINVEST,transinvest,club:ltu.transinvest
+LUX,LUX,155,0,ATERT BISSEN,atertbissen,club:lux.atert-bissen
+LUX,LUX,155,1,DIFFERDANGE 03,differdange03,club:lux.differdange-03
+LUX,LUX,155,2,MONDORF,usmondorf,club:lux.mondorf
+LUX,LUX,155,3,UNA STRASSEN,unastrassen,club:lux.una-strassen
+LUX,LUX,155,4,F91 DUDELANGE,f91dudelange,club:lux.f91-dudelange
+LUX,LUX,155,5,JEUNESSE ESCH,jeunesseesch,club:lux.jeunesse-esch
+LUX,LUX,155,6,RFCU LUXEMBOURG,rfculuxembourg,club:lux.rfcu-luxembourg
+LUX,LUX,155,7,UN KAERJENG 97,unkaerjeng97,club:lux.un-kaerjeng-97
+LUX,LUX,155,8,HOSTERT,hostert,club:lux.hostert
+LUX,LUX,155,9,VICTORIA ROSPORT,victoriarosport,club:lux.victoria-rosport
+LUX,LUX,155,10,PR. NIEDERKORN,prniederkorn,club:lux.pr-niederkorn
+LUX,LUX,155,11,SWIFT HESPERANGE,swifthesperange,club:lux.swift-hesperange
+LUX,LUX,155,12,RUMELANGE,rumelange,club:lux.rumelange
+LUX,LUX,155,13,E. ETTELBRUCK,eettelbruck,club:lux.e-ettelbruck
+LUX,LUX,155,14,WILTZ 71,wiltz71,club:lux.wiltz-71
+LUX,LUX,155,15,WALFERDANGE,walferdange,club:lux.walferdange
+LVA,LVA,138,0,RIGA,riga,club:lva.riga
+LVA,LVA,138,1,RFS,rfs,club:lva.rfs
+LVA,LVA,138,2,LIEPAJA,liepaja,club:lva.liepaja
+LVA,LVA,138,3,BFC DAUGAVPILS,bfcdaugavpils,club:lva.bfc-daugavpils
+LVA,LVA,138,4,AUDA,auda,club:lva.auda
+LVA,LVA,138,5,FS JELGAVA,fsjelgava,club:lva.fs-jelgava
+LVA,LVA,138,6,TUKUMS,tukums,club:lva.tukums
+LVA,LVA,138,7,SUPER NOVA,supernova,club:lva.super-nova
+LVA,LVA,138,8,GROBINA,grobina,club:lva.grobina
+LVA,LVA,138,9,OGRE UNITED,ogreunited,club:lva.ogre-united
+MAR,MAR,210,0,MAS FES,masfes,club:mar.mas-fes
+MAR,MAR,210,1,RS BERKANE,rsberkane,club:mar.rs-berkane
+MAR,MAR,210,2,RAJA,raja,club:mar.raja
+MAR,MAR,210,3,FAR RABAT,farrabat,club:mar.far-rabat
+MAR,MAR,210,4,WYDAD CASABLANCA,wydadcasablanca,club:mar.wydad-casablanca
+MAR,MAR,210,5,DIFAA EL JADIDA,difaaeljadida,club:mar.difaa-el-jadida
+MAR,MAR,210,6,ITTIHAD TANGER,ittihadtanger,club:mar.ittihad-tanger
+MAR,MAR,210,7,FUS RABAT,fusrabat,club:mar.fus-rabat
+MAR,MAR,210,8,COD MEKNES,codmeknes,club:mar.cod-meknes
+MAR,MAR,210,9,KACM MARRAKECH,kacmmarrakech,club:mar.kacm-marrakech
+MAR,MAR,210,10,RCA ZEMAMRA,rcazemamra,club:mar.rca-zemamra
+MAR,MAR,210,11,HASSANIA,hassania,club:mar.hassania
+MAR,MAR,210,12,UNION TOUARGA,uniontouarga,club:mar.union-touarga
+MAR,MAR,210,13,MOGHREB ATLETICO,moghrebatletico,club:mar.moghreb-atletico
+MAR,MAR,210,14,AMAL TIZNIT,amaltiznit,club:mar.amal-tiznit
+MAR,MAR,210,15,WIDAD TEMARA,widadtemara,club:mar.widad-temara
+MDA,MDA,133,0,PETROCUB,petrocub,club:mda.petrocub
+MDA,MDA,133,1,ZIMBRU CHISINAU,zimbruchisinau,club:mda.zimbru-chisinau
+MDA,MDA,133,2,SHERIFF TIRASPOL,sherifftiraspol,club:mda.sheriff-tiraspol
+MDA,MDA,133,3,MILSAMI ORHEI,milsamiorhei,club:mda.milsami-orhei
+MDA,MDA,133,4,BALTI,balti,club:mda.balti
+MDA,MDA,133,5,DACIA BUIUCANI,daciabuiucani,club:mda.dacia-buiucani
+MDA,MDA,133,6,POLITEHNICA UTM,politehnicautm,club:mda.politehnica-utm
+MDA,MDA,133,7,REAL SIRETI,realsireti,club:mda.real-sireti
+MEX,MEX,173,0,UNAM PUMAS,unampumas,club:mex.unam-pumas
+MEX,MEX,173,1,CHIVAS,chivas,club:mex.chivas
+MEX,MEX,173,2,CRUZ AZUL,cruzazul,club:mex.cruz-azul
+MEX,MEX,173,3,PACHUCA,pachuca,club:mex.pachuca
+MEX,MEX,173,4,DEPORTIVO TOLUCA,deportivotoluca,club:mex.deportivo-toluca
+MEX,MEX,173,5,ATLAS,atlas,club:mex.atlas
+MEX,MEX,173,6,TIGRES UANL,tigresuanl,club:mex.tigres-uanl
+MEX,MEX,173,7,AMERICA,america,club:mex.america
+MEX,MEX,173,8,TIJUANA,tijuana,club:mex.tijuana
+MEX,MEX,173,9,LEON,leon,club:mex.leon
+MEX,MEX,173,10,QUERETARO,queretaro,club:mex.queretaro
+MEX,MEX,173,11,JUAREZ,juarez,club:mex.juarez
+MEX,MEX,173,12,MONTERREY,monterrey,club:mex.monterrey
+MEX,MEX,173,13,SAN LUIS,sanluis,club:mex.san-luis
+MEX,MEX,173,14,NECAXA,necaxa,club:mex.necaxa
+MEX,MEX,173,15,PUEBLA,puebla,club:mex.puebla
+MEX,MEX,173,16,SANTOS LAGUNA,santoslaguna,club:mex.santos-laguna
+MEX,MEX,173,17,ATLANTE,atlante,club:mex.atlante
+MEX,MEX,173,18,TEPATITLAN,tepatitlan,club:mex.tepatitlan
+MEX,MEX,173,19,CANCUN,cancun,club:mex.cancun
+MEX,MEX,173,20,ATLETICO MORELIA,atleticomorelia,club:mex.atletico-morelia
+MEX,MEX,173,21,ATLETICO PAZ,atleticopaz,club:mex.atletico-paz
+MEX,MEX,173,22,TAMPICO MADERO,tampicomadero,club:mex.tampico-madero
+MEX,MEX,173,23,MIN. ZACATECAS,minzacatecas,club:mex.min-zacatecas
+MEX,MEX,173,24,TAPATIO,tapatio,club:mex.tapatio
+MEX,MEX,173,25,TLAXCALA,tlaxcala,club:mex.tlaxcala
+MEX,MEX,173,26,VENADOS YUCATAN,venadosyucatan,club:mex.venados-yucatan
+MEX,MEX,173,27,ALEBRIJES OAXACA,alebrijesoaxaca,club:mex.alebrijes-oaxaca
+MEX,MEX,173,28,DORADOS SINALOA,doradossinaloa,club:mex.dorados-sinaloa
+MEX,MEX,173,29,CORRECAMINOS UAT,correcaminosuat,club:mex.correcaminos-uat
+MEX,MEX,173,30,LEONES NEGROS,leonesnegros,club:mex.leones-negros
+MEX,MEX,173,31,PIRATAS,piratas,club:mex.piratas
+MEX,MEX,173,32,CRUZ AZUL 2,cruzazul2,club:mex.cruz-azul-2
+MEX,MEX,173,33,DURANGO,durango,club:mex.durango
+MKD,MKD,149,0,VARDAR SKOPJE,vardarskopje,club:mkd.vardar-skopje
+MKD,MKD,149,1,SHKENDIJA TETOVO,shkendijatetovo,club:mkd.shkendija-tetovo
+MKD,MKD,149,2,STRUGA,struga,club:mkd.struga
+MKD,MKD,149,3,SILEKS KRATOVO,silekskratovo,club:mkd.sileks-kratovo
+MKD,MKD,149,4,TIKVES KAVADARCI,tikveskavadarci,club:mkd.tikves-kavadarci
+MKD,MKD,149,5,ARSIMI,arsimi,club:mkd.arsimi
+MKD,MKD,149,6,BASHKIMI,bashkimi,club:mkd.bashkimi
+MKD,MKD,149,7,HARACINE,haracine,club:mkd.haracine
+MKD,MKD,149,8,BREGALNICA STIP,bregalnicastip,club:mkd.bregalnica-stip
+MKD,MKD,149,9,SKOPJE,skopje,club:mkd.skopje
+MLT,MLT,140,0,HAMRUN SPARTANS,hamrunspartans,club:mlt.hamrun-spartans
+MLT,MLT,140,1,FLORIANA,floriana,club:mlt.floriana
+MLT,MLT,140,2,VALLETTA,valletta,club:mlt.valletta
+MLT,MLT,140,3,SLIEMA WANDERERS,sliemawanderers,club:mlt.sliema-wanderers
+MLT,MLT,140,4,MARSAXLOKK,marsaxlokk,club:mlt.marsaxlokk
+MLT,MLT,140,5,HIBERNIANS,hibernians,club:mlt.hibernians
+MLT,MLT,140,6,GZIRA UNITED,gziraunited,club:mlt.gzira-united
+MLT,MLT,140,7,ZABBAR SP,zabbarsp,club:mlt.zabbar-sp
+MLT,MLT,140,8,MOSTA,mosta,club:mlt.mosta
+MLT,MLT,140,9,BIRKIRKARA,birkirkara,club:mlt.birkirkara
+MLT,MLT,140,10,BALZAN,balzan,club:mlt.balzan
+MLT,MLT,140,11,BIRZEBBUGA,birzebbugafc,club:mlt.birzebbuga
+MNE,MNE,156,0,SUTJESKA NIKSIC,sutjeskaniksic,club:mne.sutjeska-niksic
+MNE,MNE,156,1,MORNAR BAR,mornarbar,club:mne.mornar-bar
+MNE,MNE,156,2,PETROVAC,petrovac,club:mne.petrovac
+MNE,MNE,156,3,DECIC TUZI,decictuzi,club:mne.decic-tuzi
+MNE,MNE,156,4,B. PODGORICA,bpodgorica,club:mne.b-podgorica
+MNE,MNE,156,5,MLADOST DG,mladostdg,club:mne.mladost-dg
+MNE,MNE,156,6,ARSENAL TIVAT,arsenaltivat,club:mne.arsenal-tivat
+MNE,MNE,156,7,JEZERO,jezero,club:mne.jezero
+MNE,MNE,156,8,BOKELJ,bokelj,club:mne.bokelj
+MNE,MNE,156,9,ULCINJ,ulcinj,club:mne.ulcinj
+NED,NED,107,0,PSV EINDHOVEN,psveindhoven,club:ned.psv-eindhoven
+NED,NED,107,1,FEYENOORD,feyenoord,club:ned.feyenoord
+NED,NED,107,2,NEC NIJMEGEN,necnijmegen,club:ned.nec-nijmegen
+NED,NED,107,3,TWENTE ENSCHEDE,twenteenschede,club:ned.twente-enschede
+NED,NED,107,4,AJAX AMSTERDAM,ajaxamsterdam,club:ned.ajax-amsterdam
+NED,NED,107,5,UTRECHT,utrecht,club:ned.utrecht
+NED,NED,107,6,AZ ALKMAAR,azalkmaar,club:ned.az-alkmaar
+NED,NED,107,7,HEERENVEEN,heerenveen,club:ned.heerenveen
+NED,NED,107,8,GRONINGEN,groningen,club:ned.groningen
+NED,NED,107,9,SPARTA ROTTERDAM,spartarotterdam,club:ned.sparta-rotterdam
+NED,NED,107,10,FORTUNA SITTARD,fortunasittard,club:ned.fortuna-sittard
+NED,NED,107,11,GO AHEAD EAGLES,goaheadeagles,club:ned.go-ahead-eagles
+NED,NED,107,12,EXCELSIOR,excelsior,club:ned.excelsior
+NED,NED,107,13,TELSTAR,telstar,club:ned.telstar
+NED,NED,107,14,PEC ZWOLLE,peczwolle,club:ned.pec-zwolle
+NED,NED,107,15,ADO DEN HAAG,adodenhaag,club:ned.ado-den-haag
+NED,NED,107,16,CAMBUUR,sccambuur,club:ned.cambuur
+NED,NED,107,17,WILLEM II,willemii,club:ned.willem-ii
+NED,NED,107,18,DE GRAAFSCHAP,degraafschap,club:ned.de-graafschap
+NED,NED,107,19,ALMERE CITY,almerecity,club:ned.almere-city
+NED,NED,107,20,RKC WAALWIJK,rkcwaalwijk,club:ned.rkc-waalwijk
+NED,NED,107,21,PSV U21,psvu21,club:ned.psv-u21
+NED,NED,107,22,RODA JC KERKRADE,rodajckerkrade,club:ned.roda-jc-kerkrade
+NED,NED,107,23,DEN BOSCH,denbosch,club:ned.den-bosch
+NED,NED,107,24,DORDRECHT,dordrecht,club:ned.dordrecht
+NED,NED,107,25,EINDHOVEN,eindhoven,club:ned.eindhoven
+NED,NED,107,26,UTRECHT U21,utrechtu21,club:ned.utrecht-u21
+NED,NED,107,27,VVV-VENLO,vvvvenlo,club:ned.vvv-venlo
+NED,NED,107,28,EMMEN,emmen,club:ned.emmen
+NED,NED,107,29,VITESSE ARNHEM,vitessearnhem,club:ned.vitesse-arnhem
+NED,NED,107,30,TOP OSS,toposs,club:ned.top-oss
+NED,NED,107,31,AZ ALKMAAR U21,azalkmaaru21,club:ned.az-alkmaar-u21
+NED,NED,107,32,HELMOND,helmond,club:ned.helmond
+NED,NED,107,33,MVV MAASTRICHT,mvvmaastricht,club:ned.mvv-maastricht
+NED,NED,107,34,AJAX U21,ajaxu21,club:ned.ajax-u21
+NED,NED,107,35,VOLENDAM,volendam,club:ned.volendam
+NED,NED,107,36,NAC BREDA,nacbreda,club:ned.nac-breda
+NED,NED,107,37,HERACLES ALMELO,heraclesalmelo,club:ned.heracles-almelo
+NED,NED_POOL,pool,0,KVV QUICK BOYS,kvvquickboys,club:ned.kvv-quick-boys
+NED,NED_POOL,pool,1,TREFFERS,treffers,club:ned.treffers
+NED,NED_POOL,pool,2,KOZAKKEN BOYS,kozakkenboys,club:ned.kozakken-boys
+NED,NED_POOL,pool,3,IJSSELMEERVOGELS,ijsselmeervogels,club:ned.ijsselmeervogels
+NED,NED_POOL,pool,4,HHC HARDENBERG,hhchardenberg,club:ned.hhc-hardenberg
+NED,NED_POOL,pool,5,BVV BARENDRECHT,bvvbarendrecht,club:ned.bvv-barendrecht
+NIR,NIR,151,0,LARNE,larne,club:nir.larne
+NIR,NIR,151,1,GLENTORAN,glentoran,club:nir.glentoran
+NIR,NIR,151,2,COLERAINE,coleraine,club:nir.coleraine
+NIR,NIR,151,3,LINFIELD,linfield,club:nir.linfield
+NIR,NIR,151,4,CLIFTONVILLE,cliftonville,club:nir.cliftonville
+NIR,NIR,151,5,DUNGANNON SWIFTS,dungannonswifts,club:nir.dungannon-swifts
+NIR,NIR,151,6,CARRICK RANGERS,carrickrangers,club:nir.carrick-rangers
+NIR,NIR,151,7,BANGOR,bangor,club:nir.bangor
+NIR,NIR,151,8,PORTADOWN,portadown,club:nir.portadown
+NIR,NIR,151,9,BALLYMENA UNITED,ballymenaunited,club:nir.ballymena-united
+NIR,NIR,151,10,CRUSADERS,crusaders,club:nir.crusaders
+NIR,NIR,151,11,LIMAVADY UNITED,limavadyunited,club:nir.limavady-united
+NOR,NOR,114,0,VIKING,viking,club:nor.viking
+NOR,NOR,114,1,BODO/GLIMT,bodoglimt,club:nor.bodo-glimt
+NOR,NOR,114,2,TROMSO IL,tromsoil,club:nor.tromso-il
+NOR,NOR,114,3,BRANN,brann,club:nor.brann
+NOR,NOR,114,4,SANDEFJORD,sandefjord,club:nor.sandefjord
+NOR,NOR,114,5,VALERENGA,valerenga,club:nor.valerenga
+NOR,NOR,114,6,ROSENBORG,rosenborg,club:nor.rosenborg
+NOR,NOR,114,7,FREDRIKSTAD,fredrikstad,club:nor.fredrikstad
+NOR,NOR,114,8,SARPSBORG 08,sarpsborg08,club:nor.sarpsborg-08
+NOR,NOR,114,9,MOLDE,molde,club:nor.molde
+NOR,NOR,114,10,HAMARKAMERATENE,hamarkameratene,club:nor.hamarkameratene
+NOR,NOR,114,11,KFUM OSLO,kfumoslo,club:nor.kfum-oslo
+NOR,NOR,114,12,KRISTIANSUND,kristiansund,club:nor.kristiansund
+NOR,NOR,114,13,LILLESTROM,lillestrom,club:nor.lillestrom
+NOR,NOR,114,14,START,start,club:nor.start
+NOR,NOR,114,15,AALESUNDS,aalesunds,club:nor.aalesunds
+NZL,NZL,214,0,WESTERN SPRINGS,westernsprings,club:nzl.western-springs
+NZL,NZL,214,1,BIRKENHEAD,birkenhead,club:nzl.birkenhead
+NZL,NZL,214,2,AUCKLAND UNITED,aucklandunited,club:nzl.auckland-united
+NZL,NZL,214,3,AUCKLAND CITY,aucklandcity,club:nzl.auckland-city
+NZL,NZL,214,4,EASTERN SUBURBS,easternsuburbs,club:nzl.eastern-suburbs
+NZL,NZL,214,5,EAST COAST BAYS,eastcoastbays,club:nzl.east-coast-bays
+NZL,NZL,214,6,TAURANGA CITY,taurangacity,club:nzl.tauranga-city
+NZL,NZL,214,7,BAY OLYMPIC,bayolympic,club:nzl.bay-olympic
+NZL,NZL,214,8,AUCKLAND FC RES,aucklandfcres,club:nzl.auckland-fc-res
+NZL,NZL,214,9,FENCIBLES UNITED,fenciblesunited,club:nzl.fencibles-united
+NZL,NZL,214,10,MELVILLE UNITED,melvilleunited,club:nzl.melville-united
+NZL,NZL,214,11,MANUKAU UNITED,manukauunited,club:nzl.manukau-united
+NZL,NZL,214,12,OLYMPIC,olympic,club:nzl.olympic
+NZL,NZL,214,13,MIRAMAR RANGERS,miramarrangers,club:nzl.miramar-rangers
+NZL,NZL,214,14,WESTERN SUBURBS,westernsuburbs,club:nzl.western-suburbs
+NZL,NZL,214,15,PHOENIX RES.,phoenixres,club:nzl.phoenix-res
+NZL,NZL,214,16,NAPIER CITY,napiercity,club:nzl.napier-city
+NZL,NZL,214,17,PETONE,petone,club:nzl.petone
+NZL,NZL,214,18,WATERSIDE KARORI,watersidekarori,club:nzl.waterside-karori
+NZL,NZL,214,19,UPPER HUTT CITY,upperhuttcity,club:nzl.upper-hutt-city
+NZL,NZL,214,20,ISLAND BAY,islandbay,club:nzl.island-bay
+NZL,NZL,214,21,WESTERN,western,club:nzl.western
+NZL,NZL,214,22,COASTAL SPIRIT,coastalspirit,club:nzl.coastal-spirit
+NZL,NZL,214,23,CHRISTCHURCH,christchurch,club:nzl.christchurch
+NZL,NZL,214,24,CASHMERE TECH,cashmeretech,club:nzl.cashmere-tech
+NZL,NZL,214,25,NELSON SUBURBS,nelsonsuburbs,club:nzl.nelson-suburbs
+NZL,NZL,214,26,NOMADS UNITED,nomadsunited,club:nzl.nomads-united
+NZL,NZL,214,27,FERRYMEAD BAYS,ferrymeadbays,club:nzl.ferrymead-bays
+NZL,NZL,214,28,DUNEDIN C.R.,dunedincr,club:nzl.dunedin-c-r
+NZL,NZL,214,29,WANAKA,wanaka,club:nzl.wanaka
+NZL,NZL,214,30,SELWYN UNITED,selwynunited,club:nzl.selwyn-united
+NZL,NZL,214,31,NORTHERN,northern,club:nzl.northern
+PAN,PAN,178,0,PLAZA AMADOR,plazaamador,club:pan.plaza-amador
+PAN,PAN,178,1,SAN FRANCISCO,sanfrancisco,club:pan.san-francisco
+PAN,PAN,178,2,ARABE UNIDO,arabeunido,club:pan.arabe-unido
+PAN,PAN,178,3,VERAGUAS UNITED,veraguasunited,club:pan.veraguas-united
+PAN,PAN,178,4,UMECIT,umecit,club:pan.umecit
+PAN,PAN,178,5,INDEPENDIENTE,independiente,club:pan.independiente
+PAN,PAN,178,6,TAURO,tauro,club:pan.tauro
+PAN,PAN,178,7,UNIVERSITARIO,universitario,club:pan.universitario
+PAN,PAN,178,8,ALIANZA PANAMA,alianzapanama,club:pan.alianza-panama
+PAN,PAN,178,9,HERRERA,herrera,club:pan.herrera
+PAN,PAN,178,10,SAN MIGUELITO,sanmiguelito,club:pan.san-miguelito
+PAN,PAN,178,11,UNION COCLE,unioncocle,club:pan.union-cocle
+PAR,PAR,168,0,LIBERTAD,libertad,club:par.libertad
+PAR,PAR,168,1,CERRO PORTENO,cerroporteno,club:par.cerro-porteno
+PAR,PAR,168,2,GUARANI,guarani,club:par.guarani
+PAR,PAR,168,3,TRINIDENSE,trinidense,club:par.trinidense
+PAR,PAR,168,4,OLIMPIA,olimpia,club:par.olimpia
+PAR,PAR,168,5,AMELIANO,csameliano,club:par.ameliano
+PAR,PAR,168,6,RECOLETA,recoleta,club:par.recoleta
+PAR,PAR,168,7,NACIONAL,nacional,club:par.nacional
+PAR,PAR,168,8,SPORTIVO LUQUENO,sportivoluqueno,club:par.sportivo-luqueno
+PAR,PAR,168,9,SPORTIVO 2 MAYO,sportivo2mayo,club:par.sportivo-2-mayo
+PAR,PAR,168,10,RUBIO NU,rubionu,club:par.rubio-nu
+PAR,PAR,168,11,SPORTIVO SAN,sportivosan,club:par.sportivo-san
+PER,PER,169,0,UNIVERSITARIO,universitario,club:per.universitario
+PER,PER,169,1,ALIANZA LIMA,alianzalima,club:per.alianza-lima
+PER,PER,169,2,CUSCO,cusco,club:per.cusco
+PER,PER,169,3,ALIANZA ATL.,alianzaatl,club:per.alianza-atl
+PER,PER,169,4,SPORTING CRISTAL,sportingcristal,club:per.sporting-cristal
+PER,PER,169,5,MELGAR,melgar,club:per.melgar
+PER,PER,169,6,HUANCAYO,huancayo,club:per.huancayo
+PER,PER,169,7,DEP. GARCILASO,depgarcilaso,club:per.dep-garcilaso
+PER,PER,169,8,TARMA,adtarma,club:per.tarma
+PER,PER,169,9,CIENCIANO,cienciano,club:per.cienciano
+PER,PER,169,10,LOS CHANKAS,loschankas,club:per.los-chankas
+PER,PER,169,11,ATLETICO GRAU,atleticograu,club:per.atletico-grau
+PER,PER,169,12,BOYS ASSOCIATION,boysassociation,club:per.boys-association
+PER,PER,169,13,JUAN PABLO II,juanpabloii,club:per.juan-pablo-ii
+PER,PER,169,14,UTC,utc,club:per.utc
+PER,PER,169,15,COMERCIANTES,comerciantes,club:per.comerciantes
+PER,PER,169,16,CAJAMARCA,cajamarca,club:per.cajamarca
+PER,PER,169,17,MOQUEGUA,moquegua,club:per.moquegua
+POL,POL,112,0,LECH POZNAN,lechpoznan,club:pol.lech-poznan
+POL,POL,112,1,GORNIK ZABRZE,gornikzabrze,club:pol.gornik-zabrze
+POL,POL,112,2,JAGIELLONIA,jagiellonia,club:pol.jagiellonia
+POL,POL,112,3,RAKOW,rakow,club:pol.rakow
+POL,POL,112,4,KATOWICE,katowice,club:pol.katowice
+POL,POL,112,5,LEGIA WARSZAWA,legiawarszawa,club:pol.legia-warszawa
+POL,POL,112,6,ZAGLEBIE LUBIN,zaglebielubin,club:pol.zaglebie-lubin
+POL,POL,112,7,WISLA PLOCK,wislaplock,club:pol.wisla-plock
+POL,POL,112,8,POGON SZCZECIN,pogonszczecin,club:pol.pogon-szczecin
+POL,POL,112,9,RADOMIAK RADOM,radomiakradom,club:pol.radomiak-radom
+POL,POL,112,10,KORONA KIELCE,koronakielce,club:pol.korona-kielce
+POL,POL,112,11,MOTOR LUBLIN,motorlublin,club:pol.motor-lublin
+POL,POL,112,12,CRACOVIA,cracovia,club:pol.cracovia
+POL,POL,112,13,WIDZEW LODZ,widzewlodz,club:pol.widzew-lodz
+POL,POL,112,14,PIAST GLIWICE,piastgliwice,club:pol.piast-gliwice
+POL,POL,112,15,WISLA KRAKOW,wislakrakow,club:pol.wisla-krakow
+POL,POL,112,16,SLASK WROCLAW,slaskwroclaw,club:pol.slask-wroclaw
+POL,POL,112,17,WIECZYSTA KRAKOW,wieczystakrakow,club:pol.wieczysta-krakow
+POR,POR,106,0,PORTO,porto,club:por.porto
+POR,POR,106,1,SPORTING,sporting,club:por.sporting
+POR,POR,106,2,BENFICA,benfica,club:por.benfica
+POR,POR,106,3,BRAGA,braga,club:por.braga
+POR,POR,106,4,FAMALICAO,famalicao,club:por.famalicao
+POR,POR,106,5,GIL VICENTE,gilvicente,club:por.gil-vicente
+POR,POR,106,6,MOREIRENSE,moreirense,club:por.moreirense
+POR,POR,106,7,AROUCA,arouca,club:por.arouca
+POR,POR,106,8,VIT. GUIMARAES,vitguimaraes,club:por.vit-guimaraes
+POR,POR,106,9,ESTORIL PRAIA,estorilpraia,club:por.estoril-praia
+POR,POR,106,10,ALVERCA,alverca,club:por.alverca
+POR,POR,106,11,RIO AVE,rioave,club:por.rio-ave
+POR,POR,106,12,SANTA CLARA,santaclara,club:por.santa-clara
+POR,POR,106,13,NACIONAL,nacional,club:por.nacional
+POR,POR,106,14,ESTRELA AMADORA,estrelaamadora,club:por.estrela-amadora
+POR,POR,106,15,CASA PIA,casapia,club:por.casa-pia
+POR,POR,106,16,MARITIMO,maritimo,club:por.maritimo
+POR,POR,106,17,ACADEMICO VISEU,academicoviseu,club:por.academico-viseu
+POR,POR,106,18,UNIAO TORREENSE,uniaotorreense,club:por.uniao-torreense
+POR,POR,106,19,VIZELA,vizela,club:por.vizela
+POR,POR,106,20,PORTO B,portob,club:por.porto-b
+POR,POR,106,21,LEIRIA,leiria,club:por.leiria
+POR,POR,106,22,LEIXOES,leixoes,club:por.leixoes
+POR,POR,106,23,FEIRENSE,feirense,club:por.feirense
+POR,POR,106,24,CHAVES,chaves,club:por.chaves
+POR,POR,106,25,BENFICA B,benficab,club:por.benfica-b
+POR,POR,106,26,FELGUEIRAS,felgueiras,club:por.felgueiras
+POR,POR,106,27,LUS. LOUROSA,luslourosa,club:por.lus-lourosa
+POR,POR,106,28,SPORTING B,sportingb,club:por.sporting-b
+POR,POR,106,29,PENAFIEL,penafiel,club:por.penafiel
+POR,POR,106,30,PORTIMONENSE SAD,portimonensesad,club:por.portimonense-sad
+POR,POR,106,31,FARENSE,farense,club:por.farense
+POR,POR,106,32,TONDELA,tondela,club:por.tondela
+POR,POR,106,33,AVS,avs,club:por.avs
+POR,POR,106,34,AMARANTE,amarante,club:por.amarante
+POR,POR,106,35,COIMBRA,coimbra,club:por.coimbra
+POR,POR_POOL,pool,0,USC PAREDES,uscparedes,club:por.usc-paredes
+POR,POR_POOL,pool,1,OS BELENENSES,osbelenenses,club:por.os-belenenses
+POR,POR_POOL,pool,2,LECA,leca,club:por.leca
+POR,POR_POOL,pool,3,ATLETICO,atletico,club:por.atletico
+POR,POR_POOL,pool,4,MARCO 09,marco09,club:por.marco-09
+QAT,QAT,184,0,AL-SADD,alsadd,club:qat.al-sadd
+QAT,QAT,184,1,AL-SHAMAL,alshamal,club:qat.al-shamal
+QAT,QAT,184,2,AL-RAYYAN,alrayyan,club:qat.al-rayyan
+QAT,QAT,184,3,AL-GHARAFA,algharafa,club:qat.al-gharafa
+QAT,QAT,184,4,AL-DUHAIL,alduhail,club:qat.al-duhail
+QAT,QAT,184,5,AL-ARABI,alarabi,club:qat.al-arabi
+QAT,QAT,184,6,AL-WAKRAH,alwakrah,club:qat.al-wakrah
+QAT,QAT,184,7,QATAR,qatar,club:qat.qatar
+QAT,QAT,184,8,AL-AHLI,alahli,club:qat.al-ahli
+QAT,QAT,184,9,AL-SAILIYA,alsailiya,club:qat.al-sailiya
+QAT,QAT,184,10,AL-SHAHANIA,alshahania,club:qat.al-shahania
+QAT,QAT,184,11,LUSAIL,lusail,club:qat.lusail
+ROU,ROU,125,0,UNIV. CRAIOVA,univcraiova,club:rou.univ-craiova
+ROU,ROU,125,1,RAPID,rapid,club:rou.rapid
+ROU,ROU,125,2,U CLUJ,ucluj,club:rou.u-cluj
+ROU,ROU,125,3,CFR CLUJ,cfrcluj,club:rou.cfr-cluj
+ROU,ROU,125,4,DINAMO,dinamo,club:rou.dinamo
+ROU,ROU,125,5,ACSC ARGES,acscarges,club:rou.acsc-arges
+ROU,ROU,125,6,FCSB,fcsb,club:rou.fcsb
+ROU,ROU,125,7,UTA ARAD,utaarad,club:rou.uta-arad
+ROU,ROU,125,8,BOTOSANI,botosani,club:rou.botosani
+ROU,ROU,125,9,OTELUL GALATI,otelulgalati,club:rou.otelul-galati
+ROU,ROU,125,10,FARUL CONSTANTA,farulconstanta,club:rou.farul-constanta
+ROU,ROU,125,11,PETROLUL,petrolul,club:rou.petrolul
+ROU,ROU,125,12,CSIKSZEREDA,fkcsikszereda,club:rou.csikszereda
+ROU,ROU,125,13,CORVINUL,corvinul,club:rou.corvinul
+ROU,ROU,125,14,SEPSI OSK,sepsiosk,club:rou.sepsi-osk
+ROU,ROU,125,15,VOLUNTARI,voluntari,club:rou.voluntari
+RSA,RSA,213,0,ORLANDO PIRATES,orlandopirates,club:rsa.orlando-pirates
+RSA,RSA,213,1,SUNDOWNS,sundowns,club:rsa.sundowns
+RSA,RSA,213,2,KAIZER CHIEFS,kaizerchiefs,club:rsa.kaizer-chiefs
+RSA,RSA,213,3,AMAZULU,amazulu,club:rsa.amazulu
+RSA,RSA,213,4,SEKHUKHUNE,sekhukhune,club:rsa.sekhukhune
+RSA,RSA,213,5,GOLDEN ARROWS,goldenarrows,club:rsa.golden-arrows
+RSA,RSA,213,6,POLOKWANE CITY,polokwanecity,club:rsa.polokwane-city
+RSA,RSA,213,7,DURBAN CITY,durbancity,club:rsa.durban-city
+RSA,RSA,213,8,STELLENBOSCH,stellenbosch,club:rsa.stellenbosch
+RSA,RSA,213,9,SIWELELE,siwelele,club:rsa.siwelele
+RSA,RSA,213,10,RICHARDS BAY,richardsbay,club:rsa.richards-bay
+RSA,RSA,213,11,TS GALAXY,tsgalaxy,club:rsa.ts-galaxy
+RSA,RSA,213,12,CHIPPA UNITED,chippaunited,club:rsa.chippa-united
+RSA,RSA,213,13,MARUMO GALLANTS,marumogallants,club:rsa.marumo-gallants
+RSA,RSA,213,14,KRUGER UNITED,krugerunited,club:rsa.kruger-united
+RSA,RSA,213,15,MILFORD,milford,club:rsa.milford
+RUS,RUS,160,0,ZENIT S-PB,zenitspb,club:rus.zenit-s-pb
+RUS,RUS,160,1,KRASNODAR,krasnodar,club:rus.krasnodar
+RUS,RUS,160,2,LOKOMOTIV MOSCOW,lokomotivmoscow,club:rus.lokomotiv-moscow
+RUS,RUS,160,3,SPARTAK MOSCOW,spartakmoscow,club:rus.spartak-moscow
+RUS,RUS,160,4,CSKA MOSCOW,cskamoscow,club:rus.cska-moscow
+RUS,RUS,160,5,BALTIKA,baltika,club:rus.baltika
+RUS,RUS,160,6,DYNAMO MOSCOW,dynamomoscow,club:rus.dynamo-moscow
+RUS,RUS,160,7,RUBIN KAZAN,rubinkazan,club:rus.rubin-kazan
+RUS,RUS,160,8,AKHMAT GROZNY,akhmatgrozny,club:rus.akhmat-grozny
+RUS,RUS,160,9,ROSTOV,rostov,club:rus.rostov
+RUS,RUS,160,10,KS SAMARA,kssamara,club:rus.ks-samara
+RUS,RUS,160,11,ORENBURG,orenburg,club:rus.orenburg
+RUS,RUS,160,12,AKRON TOLYATTI,akrontolyatti,club:rus.akron-tolyatti
+RUS,RUS,160,13,DINAMO MAKHACH.,dinamomakhach,club:rus.dinamo-makhach
+RUS,RUS,160,14,RODINA MOSCOW,rodinamoscow,club:rus.rodina-moscow
+RUS,RUS,160,15,FAKEL VORONEZH,fakelvoronezh,club:rus.fakel-voronezh
+SCO,SCO,118,0,HEARTS,hearts,club:sco.hearts
+SCO,SCO,118,1,RANGERS,rangers,club:sco.rangers
+SCO,SCO,118,2,CELTIC,celtic,club:sco.celtic
+SCO,SCO,118,3,MOTHERWELL,motherwell,club:sco.motherwell
+SCO,SCO,118,4,HIBERNIAN,hibernian,club:sco.hibernian
+SCO,SCO,118,5,FALKIRK,falkirk,club:sco.falkirk
+SCO,SCO,118,6,DUNDEE UNITED,dundeeunited,club:sco.dundee-united
+SCO,SCO,118,7,ABERDEEN,aberdeen,club:sco.aberdeen
+SCO,SCO,118,8,DUNDEE,dundee,club:sco.dundee
+SCO,SCO,118,9,ST. MIRREN,stmirren,club:sco.st-mirren
+SCO,SCO,118,10,KILMARNOCK,kilmarnock,club:sco.kilmarnock
+SCO,SCO,118,11,ST. JOHNSTONE,stjohnstone,club:sco.st-johnstone
+SCO,SCO,118,12,PARTICK THISTLE,partickthistle,club:sco.partick-thistle
+SCO,SCO,118,13,ARBROATH,arbroath,club:sco.arbroath
+SCO,SCO,118,14,DUNFERMLINE,dunfermline,club:sco.dunfermline
+SCO,SCO,118,15,RAITH ROVERS,raithrovers,club:sco.raith-rovers
+SCO,SCO,118,16,QUEEN'S PARK,queenspark,club:sco.queens-park
+SCO,SCO,118,17,AYR UNITED,ayrunited,club:sco.ayr-united
+SCO,SCO,118,18,GREENOCK MORTON,greenockmorton,club:sco.greenock-morton
+SCO,SCO,118,19,LIVINGSTON,livingston,club:sco.livingston
+SCO,SCO,118,20,INVERNESS CT,invernessct,club:sco.inverness-ct
+SCO,SCO,118,21,STENHOUSEMUIR,stenhousemuir,club:sco.stenhousemuir
+SCO,SCO,118,22,QUEEN OF SOUTH,queenofsouth,club:sco.queen-of-south
+SCO,SCO,118,23,ALLOA,alloa,club:sco.alloa
+SCO,SCO,118,24,PETERHEAD,peterhead,club:sco.peterhead
+SCO,SCO,118,25,MONTROSE,montrose,club:sco.montrose
+SCO,SCO,118,26,COVE RANGERS,coverangers,club:sco.cove-rangers
+SCO,SCO,118,27,EAST FIFE,eastfife,club:sco.east-fife
+SCO,SCO,118,28,HAMILTON ACAD.,hamiltonacad,club:sco.hamilton-acad
+SCO,SCO,118,29,AIRDRIEONIANS,airdrieonians,club:sco.airdrieonians
+SCO,SCO,118,30,ROSS COUNTY,rosscounty,club:sco.ross-county
+SCO,SCO,118,31,EAST KILBRIDE,eastkilbride,club:sco.east-kilbride
+SCO,SCO,118,32,THE SPARTANS,thespartans,club:sco.the-spartans
+SCO,SCO,118,33,CLYDE,clyde,club:sco.clyde
+SCO,SCO,118,34,FORFAR,forfar,club:sco.forfar
+SCO,SCO,118,35,STRANRAER,stranraer,club:sco.stranraer
+SCO,SCO,118,36,ELGIN CITY,elgincity,club:sco.elgin-city
+SCO,SCO,118,37,ANNAN,annan,club:sco.annan
+SCO,SCO,118,38,STIRLING ALBION,stirlingalbion,club:sco.stirling-albion
+SCO,SCO,118,39,DUMBARTON,dumbarton,club:sco.dumbarton
+SCO,SCO,118,40,EDINBURGH CITY,edinburghcity,club:sco.edinburgh-city
+SCO,SCO,118,41,KELTY HEARTS,keltyhearts,club:sco.kelty-hearts
+SLV,SLV,179,0,LUIS ANGEL FIRPO,luisangelfirpo,club:slv.luis-angel-firpo
+SLV,SLV,179,1,FAS,fas,club:slv.fas
+SLV,SLV,179,2,ALIANZA,alianza,club:slv.alianza
+SLV,SLV,179,3,ISIDRO METAPAN,isidrometapan,club:slv.isidro-metapan
+SLV,SLV,179,4,AGUILA,aguila,club:slv.aguila
+SLV,SLV,179,5,MUNICIPAL LIMENO,municipallimeno,club:slv.municipal-limeno
+SLV,SLV,179,6,CACAHUATIQUE,cacahuatique,club:slv.cacahuatique
+SLV,SLV,179,7,CD PLATENSE,cdplatense,club:slv.cd-platense
+SLV,SLV,179,8,FUERTE SF,fuertesf,club:slv.fuerte-sf
+SLV,SLV,179,9,INTER FA,interfa,club:slv.inter-fa
+SLV,SLV,179,10,ATLETICO BALBOA,atleticobalboa,club:slv.atletico-balboa
+SLV,SLV,179,11,INCA ARUBA,incaaruba,club:slv.inca-aruba
+SLV,SLV,179,12,IZALCO,izalco,club:slv.izalco
+SLV,SLV,179,13,FUERTE AGUILARES,fuerteaguilares,club:slv.fuerte-aguilares
+SLV,SLV,179,14,PUMAS,pumas,club:slv.pumas
+SLV,SLV,179,15,FORFUT,forfut,club:slv.forfut
+SLV,SLV,179,16,ADET-ARUBA,adetaruba,club:slv.adet-aruba
+SLV,SLV,179,17,ONCE LOBOS,oncelobos,club:slv.once-lobos
+SLV,SLV,179,18,NACIONAL,nacional,club:slv.nacional
+SLV,SLV,179,19,MARTE SOYAPANGO,martesoyapango,club:slv.marte-soyapango
+SLV,SLV,179,20,ONCE MUNICIPAL,oncemunicipal,club:slv.once-municipal
+SLV,SLV,179,21,VENDAVAL,vendaval,club:slv.vendaval
+SLV,SLV,179,22,EL ROBLE,elroble,club:slv.el-roble
+SLV,SLV,179,23,ACADEMIA BP,academiabp,club:slv.academia-bp
+SLV,SLV,179,24,INDEPENDIENTE,independiente,club:slv.independiente
+SLV,SLV,179,25,TENANCINGO,tenancingo,club:slv.tenancingo
+SLV,SLV,179,26,SAN MARCOS,sanmarcos,club:slv.san-marcos
+SLV,SLV,179,27,SESA,sesa,club:slv.sesa
+SLV,SLV,179,28,NEO PIPIL,neopipil,club:slv.neo-pipil
+SLV,SLV,179,29,OLIMPICO LITORAL,olimpicolitoral,club:slv.olimpico-litoral
+SLV,SLV,179,30,AUDAZ,audaz,club:slv.audaz
+SLV,SLV,179,31,DRAGON,dragon,club:slv.dragon
+SLV,SLV,179,32,SAL Y MAR,salymar,club:slv.sal-y-mar
+SLV,SLV,179,33,EL VENCEDOR,elvencedor,club:slv.el-vencedor
+SLV,SLV,179,34,ORION,orion,club:slv.orion
+SLV,SLV,179,35,SAN RAFAEL,sanrafael,club:slv.san-rafael
+SLV,SLV,179,36,HACHADURA,hachadura,club:slv.hachadura
+SLV,SLV,179,37,CANDELARENO,candelareno,club:slv.candelareno
+SLV,SLV,179,38,BRASILIA,brasilia,club:slv.brasilia
+SLV,SLV,179,39,SANTO TOMAS,santotomas,club:slv.santo-tomas
+SLV,SLV,179,40,BUENOS AIRES,buenosaires,club:slv.buenos-aires
+SLV,SLV,179,41,SANTOS,santos,club:slv.santos
+SLV,SLV,179,42,NACIONAL LAS,nacionallas,club:slv.nacional-las
+SLV,SLV,179,43,INTERNATIONAL,international,club:slv.international
+SLV,SLV,179,44,ATLETICO BELEN,atleticobelen,club:slv.atletico-belen
+SLV,SLV,179,45,ANCLA ORO,anclaoro,club:slv.ancla-oro
+SLV,SLV,179,46,ATLETICO SAN,atleticosan,club:slv.atletico-san
+SLV,SLV,179,47,BRASIL,brasil,club:slv.brasil
+SLV,SLV,179,48,RACING GUALUCA,racinggualuca,club:slv.racing-gualuca
+SLV,SLV,179,49,ESTRELLAS SUR,estrellassur,club:slv.estrellas-sur
+SLV,SLV,179,50,VISTA HERMOSA,vistahermosa,club:slv.vista-hermosa
+SLV,SLV,179,51,(CD) BUENOS,cdbuenos,club:slv.cd-buenos
+SLV,SLV,179,52,ATLETICO VERAPAZ,atleticoverapaz,club:slv.atletico-verapaz
+SLV,SLV,179,53,REAL SOCIEDAD,realsociedad,club:slv.real-sociedad
+SLV,SLV,179,54,NONUALCO,nonualco,club:slv.nonualco
+SMR,SMR,159,0,TRE FIORI,trefiori,club:smr.tre-fiori
+SMR,SMR,159,1,VIRTUS ACQUAVIVA,virtusacquaviva,club:smr.virtus-acquaviva
+SMR,SMR,159,2,TRE PENNE,trepenne,club:smr.tre-penne
+SMR,SMR,159,3,FIORITA,fiorita,club:smr.fiorita
+SMR,SMR,159,4,FOLGORE/FALCIANO,folgorefalciano,club:smr.folgore-falciano
+SMR,SMR,159,5,DOMAGNANO,domagnano,club:smr.domagnano
+SMR,SMR,159,6,FIORENTINO,fiorentino,club:smr.fiorentino
+SMR,SMR,159,7,COSMOS,cosmos,club:smr.cosmos
+SMR,SMR,159,8,JUVENES-DOGANA,juvenesdogana,club:smr.juvenes-dogana
+SMR,SMR,159,9,LIBERTAS,libertas,club:smr.libertas
+SMR,SMR,159,10,PENNAROSSA,pennarossa,club:smr.pennarossa
+SMR,SMR,159,11,SAN GIOVANNI,sangiovanni,club:smr.san-giovanni
+SMR,SMR,159,12,FAETANO,faetano,club:smr.faetano
+SMR,SMR,159,13,SAN MARINO AC.,sanmarinoac,club:smr.san-marino-ac
+SMR,SMR,159,14,CAILUNGO,cailungo,club:smr.cailungo
+SMR,SMR,159,15,MURATA,murata,club:smr.murata
+SRB,SRB,124,0,RED STAR,redstar,club:srb.red-star
+SRB,SRB,124,1,VOJVODINA,vojvodina,club:srb.vojvodina
+SRB,SRB,124,2,PARTIZAN,partizan,club:srb.partizan
+SRB,SRB,124,3,ZELEZ. PANCEVO,zelezpancevo,club:srb.zelez-pancevo
+SRB,SRB,124,4,NOVI PAZAR,novipazar,club:srb.novi-pazar
+SRB,SRB,124,5,BEOGRAD,beograd,club:srb.beograd
+SRB,SRB,124,6,CUKARICKI,cukaricki,club:srb.cukaricki
+SRB,SRB,124,7,RADNIK SURDULICA,radniksurdulica,club:srb.radnik-surdulica
+SRB,SRB,124,8,IMT BELGRAD,imtbelgrad,club:srb.imt-belgrad
+SRB,SRB,124,9,RADNICKI 1923,radnicki1923,club:srb.radnicki-1923
+SRB,SRB,124,10,RADNICKI NIS,radnickinis,club:srb.radnicki-nis
+SRB,SRB,124,11,MLADOST LUCANI,mladostlucani,club:srb.mladost-lucani
+SRB,SRB,124,12,ZEMUN,zemun,club:srb.zemun
+SRB,SRB,124,13,MACVA SABAC,macvasabac,club:srb.macva-sabac
+SUI,SUI,116,0,THUN,thun,club:sui.thun
+SUI,SUI,116,1,ST. GALLEN,stgallen,club:sui.st-gallen
+SUI,SUI,116,2,LUGANO,lugano,club:sui.lugano
+SUI,SUI,116,3,SION,sion,club:sui.sion
+SUI,SUI,116,4,BASEL,basel,club:sui.basel
+SUI,SUI,116,5,YOUNG BOYS,youngboys,club:sui.young-boys
+SUI,SUI,116,6,LUZERN,luzern,club:sui.luzern
+SUI,SUI,116,7,SERVETTE,servette,club:sui.servette
+SUI,SUI,116,8,LAUSANNE-SPORT,lausannesport,club:sui.lausanne-sport
+SUI,SUI,116,9,ZURICH,zurich,club:sui.zurich
+SUI,SUI,116,10,GRASSHOPPERS,grasshoppers,club:sui.grasshoppers
+SUI,SUI,116,11,VADUZ,vaduz,club:sui.vaduz
+SUR,SUR,215,0,NOTCH,notch,club:sur.notch
+SUR,SUR,215,1,INTER WANICA,interwanica,club:sur.inter-wanica
+SUR,SUR,215,2,BROKI,broki,club:sur.broki
+SUR,SUR,215,3,LEO VICTOR,leovictor,club:sur.leo-victor
+SUR,SUR,215,4,POLITIE VOETBAL,politievoetbal,club:sur.politie-voetbal
+SUR,SUR,215,5,FLORA,flora,club:sur.flora
+SUR,SUR,215,6,ROBINHOOD,robinhood,club:sur.robinhood
+SUR,SUR,215,7,MOENGOTAPOE,moengotapoe,club:sur.moengotapoe
+SUR,SUR,215,8,TRANSVAAL,transvaal,club:sur.transvaal
+SUR,SUR,215,9,VOORWAARTS,voorwaarts,club:sur.voorwaarts
+SVK,SVK,128,0,SLO. BRATISLAVA,slobratislava,club:svk.slo-bratislava
+SVK,SVK,128,1,DUNAJSKA STREDA,dunajskastreda,club:svk.dunajska-streda
+SVK,SVK,128,2,MSK ZILINA,mskzilina,club:svk.msk-zilina
+SVK,SVK,128,3,SPARTAK TRNAVA,spartaktrnava,club:svk.spartak-trnava
+SVK,SVK,128,4,PODBREZOVA,podbrezova,club:svk.podbrezova
+SVK,SVK,128,5,MICHALOVCE,michalovce,club:svk.michalovce
+SVK,SVK,128,6,MFK RUZOMBEROK,mfkruzomberok,club:svk.mfk-ruzomberok
+SVK,SVK,128,7,KOSICE,kosice,club:svk.kosice
+SVK,SVK,128,8,TRENCIN,trencin,club:svk.trencin
+SVK,SVK,128,9,KFC KOMARNO,kfckomarno,club:svk.kfc-komarno
+SVK,SVK,128,10,MFK SKALICA,mfkskalica,club:svk.mfk-skalica
+SVK,SVK,128,11,BANSKA BYSTRICA,banskabystrica,club:svk.banska-bystrica
+SVN,SVN,126,0,CELJE,celje,club:svn.celje
+SVN,SVN,126,1,KOPER,koper,club:svn.koper
+SVN,SVN,126,2,BRAVO,bravo,club:svn.bravo
+SVN,SVN,126,3,OLIMPIJA,nkolimpija,club:svn.olimpija
+SVN,SVN,126,4,MARIBOR,maribor,club:svn.maribor
+SVN,SVN,126,5,RADOMLJE,radomlje,club:svn.radomlje
+SVN,SVN,126,6,ALUMINIJ,nkaluminij,club:svn.aluminij
+SVN,SVN,126,7,NS MURA,nsmura,club:svn.ns-mura
+SVN,SVN,126,8,BRINJE GROSUPLJE,brinjegrosuplje,club:svn.brinje-grosuplje
+SVN,SVN,126,9,NAFTA,nafta,club:svn.nafta
+SWE,SWE,119,0,MJALLBY AIF,mjallbyaif,club:swe.mjallby-aif
+SWE,SWE,119,1,HAMMARBY,hammarby,club:swe.hammarby
+SWE,SWE,119,2,GAIS,gais,club:swe.gais
+SWE,SWE,119,3,IFK GOTEBORG,ifkgoteborg,club:swe.ifk-goteborg
+SWE,SWE,119,4,DJURGARDENS,djurgardens,club:swe.djurgardens
+SWE,SWE,119,5,MALMO,malmo,club:swe.malmo
+SWE,SWE,119,6,AIK,aik,club:swe.aik
+SWE,SWE,119,7,ELFSBORG,elfsborg,club:swe.elfsborg
+SWE,SWE,119,8,SIRIUS,sirius,club:swe.sirius
+SWE,SWE,119,9,HACKEN,hacken,club:swe.hacken
+SWE,SWE,119,10,HALMSTADS,halmstads,club:swe.halmstads
+SWE,SWE,119,11,BROMMAPOJKARNA,brommapojkarna,club:swe.brommapojkarna
+SWE,SWE,119,12,DEGERFORS,degerfors,club:swe.degerfors
+SWE,SWE,119,13,VASTERAS,vasteras,club:swe.vasteras
+SWE,SWE,119,14,KALMAR,kalmar,club:swe.kalmar
+SWE,SWE,119,15,ORGRYTE IS,orgryteis,club:swe.orgryte-is
+TPE,TPE,216,0,TAIPEI,taipei,club:tpe.taipei
+TPE,TPE,216,1,TAIPOWER,taipower,club:tpe.taipower
+TPE,TPE,216,2,TATUNG,tatung,club:tpe.tatung
+TPE,TPE,216,3,HANG YUAN,hangyuan,club:tpe.hang-yuan
+TPE,TPE,216,4,TAICHUNG FUTURO,taichungfuturo,club:tpe.taichung-futuro
+TPE,TPE,216,5,TAINAN CITY,tainancity,club:tpe.tainan-city
+TPE,TPE,216,6,TAICHUNG ROCK,taichungrock,club:tpe.taichung-rock
+TPE,TPE,216,7,MING CHUAN UNIV,mingchuanuniv,club:tpe.ming-chuan-univ
+TPE,TPE,216,8,TAIPEI RESERVES,taipeireserves,club:tpe.taipei-reserves
+TPE,TPE,216,9,INTER,inter,club:tpe.inter
+TPE,TPE,216,10,ATTACKERS,attackers,club:tpe.attackers
+TPE,TPE,216,11,TAICHUNG ROCK 2,taichungrock2,club:tpe.taichung-rock-2
+TPE,TPE,216,12,ESPORTE DESAFIO,esportedesafio,club:tpe.esporte-desafio
+TPE,TPE,216,13,FU JEN CATHOLIC,fujencatholic,club:tpe.fu-jen-catholic
+TPE,TPE,216,14,WAN ISLAND,wanisland,club:tpe.wan-island
+TUN,TUN,211,0,AFRICAIN,africain,club:tun.africain
+TUN,TUN,211,1,ESPERANCE TUNIS,esperancetunis,club:tun.esperance-tunis
+TUN,TUN,211,2,SFAXIEN,sfaxien,club:tun.sfaxien
+TUN,TUN,211,3,STADE TUNISIEN,stadetunisien,club:tun.stade-tunisien
+TUN,TUN,211,4,MONASTIR,monastir,club:tun.monastir
+TUN,TUN,211,5,ZARZIS,zarzis,club:tun.zarzis
+TUN,TUN,211,6,ES SAHEL,essahel,club:tun.es-sahel
+TUN,TUN,211,7,ES METLAOUI,esmetlaoui,club:tun.es-metlaoui
+TUN,TUN,211,8,JS OMRANE,jsomrane,club:tun.js-omrane
+TUN,TUN,211,9,BEN GUERDANE,usbenguerdane,club:tun.ben-guerdane
+TUN,TUN,211,10,MARSA,marsa,club:tun.marsa
+TUN,TUN,211,11,BIZERTIN,cabizertin,club:tun.bizertin
+TUN,TUN,211,12,OLYMPIQUE BEJA,olympiquebeja,club:tun.olympique-beja
+TUN,TUN,211,13,PROGRES SPORTIF,progressportif,club:tun.progres-sportif
+TUN,TUN,211,14,HAMMAM-LIF,hammamlif,club:tun.hammam-lif
+TUN,TUN,211,15,HAMMAM SOUSSE,hammamsousse,club:tun.hammam-sousse
+TUR,TUR,109,0,GALATASARAY,galatasaray,club:tur.galatasaray
+TUR,TUR,109,1,FENERBAHCE,fenerbahce,club:tur.fenerbahce
+TUR,TUR,109,2,TRABZONSPOR,trabzonspor,club:tur.trabzonspor
+TUR,TUR,109,3,BESIKTAS,besiktas,club:tur.besiktas
+TUR,TUR,109,4,BASAKSEHIR,basaksehir,club:tur.basaksehir
+TUR,TUR,109,5,GOZTEPE,goztepe,club:tur.goztepe
+TUR,TUR,109,6,SAMSUNSPOR,samsunspor,club:tur.samsunspor
+TUR,TUR,109,7,CAYKUR RIZESPOR,caykurrizespor,club:tur.caykur-rizespor
+TUR,TUR,109,8,KONYASPOR,konyaspor,club:tur.konyaspor
+TUR,TUR,109,9,KOCAELISPOR,kocaelispor,club:tur.kocaelispor
+TUR,TUR,109,10,ALANYASPOR,alanyaspor,club:tur.alanyaspor
+TUR,TUR,109,11,GAZIANTEP,gaziantep,club:tur.gaziantep
+TUR,TUR,109,12,KASIMPASA,kasimpasa,club:tur.kasimpasa
+TUR,TUR,109,13,GENCLERBIRLIGI,genclerbirligi,club:tur.genclerbirligi
+TUR,TUR,109,14,EYUPSPOR,eyupspor,club:tur.eyupspor
+TUR,TUR,109,15,ERZURUMSPOR,erzurumspor,club:tur.erzurumspor
+TUR,TUR,109,16,AMED,amed,club:tur.amed
+TUR,TUR,109,17,CORUM,corum,club:tur.corum
+TUR,TUR,109,18,ESENLER EROKSPOR,esenlererokspor,club:tur.esenler-erokspor
+TUR,TUR,109,19,BODRUM,bodrum,club:tur.bodrum
+TUR,TUR,109,20,PENDIKSPOR,pendikspor,club:tur.pendikspor
+TUR,TUR,109,21,A. KECIORENGUCU,akeciorengucu,club:tur.a-keciorengucu
+TUR,TUR,109,22,BANDIRMA SPOR,bandirmaspor,club:tur.bandirma-spor
+TUR,TUR,109,23,MANISA,manisa,club:tur.manisa
+TUR,TUR,109,24,SIVASSPOR,sivasspor,club:tur.sivasspor
+TUR,TUR,109,25,ISTANBULSPOR,istanbulspor,club:tur.istanbulspor
+TUR,TUR,109,26,SARIYER,sariyer,club:tur.sariyer
+TUR,TUR,109,27,IGDIR,igdir,club:tur.igdir
+TUR,TUR,109,28,VAN SPOR,vanspor,club:tur.van-spor
+TUR,TUR,109,29,BOLUSPOR,boluspor,club:tur.boluspor
+TUR,TUR,109,30,UMRANIYESPOR,umraniyespor,club:tur.umraniyespor
+TUR,TUR,109,31,ANTALYASPOR,antalyaspor,club:tur.antalyaspor
+TUR,TUR,109,32,KAYSERISPOR,kayserispor,club:tur.kayserispor
+TUR,TUR,109,33,FATIH KARAGUMRUK,fatihkaragumruk,club:tur.fatih-karagumruk
+TUR,TUR,109,34,BATMAN PETROL,batmanpetrol,club:tur.batman-petrol
+TUR,TUR,109,35,BURSASPOR,bursaspor,club:tur.bursaspor
+TUR,TUR,109,36,MUGLASPOR,muglaspor,club:tur.muglaspor
+TUR,TUR,109,37,MARDIN SPOR,mardinspor,club:tur.mardin-spor
+UAE,UAE,185,0,AL-AIN,alain,club:uae.al-ain
+UAE,UAE,185,1,SHABAB AL-AHLI,shababalahli,club:uae.shabab-al-ahli
+UAE,UAE,185,2,AL-WASL,alwasl,club:uae.al-wasl
+UAE,UAE,185,3,AL-JAZIRA,aljazira,club:uae.al-jazira
+UAE,UAE,185,4,AL-WAHDA,alwahda,club:uae.al-wahda
+UAE,UAE,185,5,AL-NASR (UAE),alnasruae,club:uae.al-nasr-uae
+UAE,UAE,185,6,AJMAN,ajman,club:uae.ajman
+UAE,UAE,185,7,SHARJAH,sharjah,club:uae.sharjah
+UAE,UAE,185,8,KHOR FAKKAN,khorfakkan,club:uae.khor-fakkan
+UAE,UAE,185,9,BANIYAS,baniyas,club:uae.baniyas
+UAE,UAE,185,10,KALBA,kalba,club:uae.kalba
+UAE,UAE,185,11,AL-DHAFRA,aldhafra,club:uae.al-dhafra
+UAE,UAE,185,12,UNITED (UAE),uniteduae,club:uae.united-uae
+UAE,UAE,185,13,HATTA,hatta,club:uae.hatta
+UKR,UKR,123,0,SHAKHTAR DONETSK,shakhtardonetsk,club:ukr.shakhtar-donetsk
+UKR,UKR,123,1,LNZ CHERKASY,lnzcherkasy,club:ukr.lnz-cherkasy
+UKR,UKR,123,2,POLISSYA,polissya,club:ukr.polissya
+UKR,UKR,123,3,DYNAMO KYIV,dynamokyiv,club:ukr.dynamo-kyiv
+UKR,UKR,123,4,KHARKIV,kharkiv,club:ukr.kharkiv
+UKR,UKR,123,5,KOLOS KOVALIVKA,koloskovalivka,club:ukr.kolos-kovalivka
+UKR,UKR,123,6,KRYVBAS,kryvbas,club:ukr.kryvbas
+UKR,UKR,123,7,ZORYA LUGANSK,zoryalugansk,club:ukr.zorya-lugansk
+UKR,UKR,123,8,KARPATY LVIV,karpatylviv,club:ukr.karpaty-lviv
+UKR,UKR,123,9,EPITSENTR,epitsentr,club:ukr.epitsentr
+UKR,UKR,123,10,VERES RIVNE,veresrivne,club:ukr.veres-rivne
+UKR,UKR,123,11,OBOLON KYIV,obolonkyiv,club:ukr.obolon-kyiv
+UKR,UKR,123,12,KUDRIVKA,kudrivka,club:ukr.kudrivka
+UKR,UKR,123,13,BUKOVYNA,bukovyna,club:ukr.bukovyna
+UKR,UKR,123,14,CHORNOMORETS,chornomorets,club:ukr.chornomorets
+UKR,UKR,123,15,LIVYI BEREG KYIV,livyiberegkyiv,club:ukr.livyi-bereg-kyiv
+URU,URU,165,0,LIVERPOOL FC,liverpoolfc,club:uru.liverpool-fc
+URU,URU,165,1,NACIONAL,nacional,club:uru.nacional
+URU,URU,165,2,JUVENTUD,juventud,club:uru.juventud
+URU,URU,165,3,PENAROL,penarol,club:uru.penarol
+URU,URU,165,4,DEFENSOR,defensorsc,club:uru.defensor
+URU,URU,165,5,RACING CLUB,racingclub,club:uru.racing-club
+URU,URU,165,6,BOSTON RIVER,bostonriver,club:uru.boston-river
+URU,URU,165,7,CERRO LARGO,cerrolargo,club:uru.cerro-largo
+URU,URU,165,8,MVD CITY TORQUE,mvdcitytorque,club:uru.mvd-city-torque
+URU,URU,165,9,PROGRESO,progreso,club:uru.progreso
+URU,URU,165,10,CERRO,cerro,club:uru.cerro
+URU,URU,165,11,DANUBIO,danubio,club:uru.danubio
+URU,URU,165,12,WANDERERS,wanderers,club:uru.wanderers
+URU,URU,165,13,ALBION,albion,club:uru.albion
+URU,URU,165,14,CENTRAL ESPANOL,centralespanol,club:uru.central-espanol
+URU,URU,165,15,MALDONADO,cdmaldonado,club:uru.maldonado
+URU,URU,165,16,ATENAS,caatenas,club:uru.atenas
+URU,URU,165,17,COLON URUGUAY,colonuruguay,club:uru.colon-uruguay
+URU,URU,165,18,TACUAREMBO,tacuarembo,club:uru.tacuarembo
+URU,URU,165,19,ORIENTAL,oriental,club:uru.oriental
+URU,URU,165,20,RENTISTAS,rentistas,club:uru.rentistas
+URU,URU,165,21,FENIX,fenix,club:uru.fenix
+URU,URU,165,22,LUZ,luz,club:uru.luz
+URU,URU,165,23,CERRITO,cerrito,club:uru.cerrito
+URU,URU,165,24,URUGUAY FC,uruguayfc,club:uru.uruguay-fc
+URU,URU,165,25,PLAZA COLONIA,plazacolonia,club:uru.plaza-colonia
+URU,URU,165,26,MIRAMAR MISIONES,miramarmisiones,club:uru.miramar-misiones
+URU,URU,165,27,RIVER PLATE,riverplate,club:uru.river-plate
+URU,URU,165,28,PAYSANDU,paysandu,club:uru.paysandu
+URU,URU,165,29,HURACAN,huracan,club:uru.huracan
+USA,USA,172,0,PHILADELPHIA,philadelphia,club:usa.philadelphia
+USA,USA,172,1,SAN DIEGO,sandiego,club:usa.san-diego
+USA,USA,172,2,CINCINNATI,cincinnati,club:usa.cincinnati
+USA,USA,172,3,VANCOUVER,vancouver,club:usa.vancouver
+USA,USA,172,4,INTER MIAMI,intermiami,club:usa.inter-miami
+USA,USA,172,5,LOS ANGELES,losangeles,club:usa.los-angeles
+USA,USA,172,6,CHARLOTTE,charlotte,club:usa.charlotte
+USA,USA,172,7,MINNESOTA UNITED,minnesotaunited,club:usa.minnesota-united
+USA,USA,172,8,NEW YORK CITY,newyorkcity,club:usa.new-york-city
+USA,USA,172,9,SEATTLE SOUNDERS,seattlesounders,club:usa.seattle-sounders
+USA,USA,172,10,NASHVILLE,nashville,club:usa.nashville
+USA,USA,172,11,AUSTIN,austin,club:usa.austin
+USA,USA,172,12,COLUMBUS CREW,columbuscrew,club:usa.columbus-crew
+USA,USA,172,13,DALLAS,dallas,club:usa.dallas
+USA,USA,172,14,CHICAGO FIRE,chicagofire,club:usa.chicago-fire
+USA,USA,172,15,PORTLAND TIMBERS,portlandtimbers,club:usa.portland-timbers
+USA,USA,172,16,ORLANDO CITY,orlandocity,club:usa.orlando-city
+USA,USA,172,17,SALT LAKE,saltlake,club:usa.salt-lake
+USA,USA,172,18,NEW YORK,newyork,club:usa.new-york
+USA,USA,172,19,SJ EARTHQUAKES,sjearthquakes,club:usa.sj-earthquakes
+USA,USA,172,20,NEW ENGLAND,newengland,club:usa.new-england
+USA,USA,172,21,COLORADO RAPIDS,coloradorapids,club:usa.colorado-rapids
+USA,USA,172,22,TORONTO,toronto,club:usa.toronto
+USA,USA,172,23,HOUSTON DYNAMO,houstondynamo,club:usa.houston-dynamo
+USA,USA,172,24,MONTREAL,montreal,club:usa.montreal
+USA,USA,172,25,ST. LOUIS CITY,stlouiscity,club:usa.st-louis-city
+USA,USA,172,26,ATLANTA UNITED,atlantaunited,club:usa.atlanta-united
+USA,USA,172,27,LA GALAXY,lagalaxy,club:usa.la-galaxy
+USA,USA,172,28,D.C. UNITED,dcunited,club:usa.d-c-united
+USA,USA,172,29,KANSAS CITY,kansascity,club:usa.kansas-city
+VEN,VEN,171,0,DEPORTIVO GUAIRA,deportivoguaira,club:ven.deportivo-guaira
+VEN,VEN,171,1,CARABOBO,carabobo,club:ven.carabobo
+VEN,VEN,171,2,UCV FC,ucvfc,club:ven.ucv-fc
+VEN,VEN,171,3,TACHIRA,tachira,club:ven.tachira
+VEN,VEN,171,4,PUERTO CABELLO,puertocabello,club:ven.puerto-cabello
+VEN,VEN,171,5,ANZOATEGUI,anzoategui,club:ven.anzoategui
+VEN,VEN,171,6,PORTUGUESA,portuguesa,club:ven.portuguesa
+VEN,VEN,171,7,METROPOLITANOS,metropolitanos,club:ven.metropolitanos
+VEN,VEN,171,8,CARACAS,caracas,club:ven.caracas
+VEN,VEN,171,9,MONAGAS,monagas,club:ven.monagas
+VEN,VEN,171,10,RAYO ZULIANO,rayozuliano,club:ven.rayo-zuliano
+VEN,VEN,171,11,ESTUDIANTES,estudiantes,club:ven.estudiantes
+VEN,VEN,171,12,ZAMORA,zamora,club:ven.zamora
+VEN,VEN,171,13,TRUJILLANOS,trujillanos,club:ven.trujillanos
+WAL,WAL,158,0,THE NEW SAINTS,thenewsaints,club:wal.the-new-saints
+WAL,WAL,158,1,CONNAH'S QUAY,connahsquay,club:wal.connahs-quay
+WAL,WAL,158,2,HAVERFORDWEST,haverfordwest,club:wal.haverfordwest
+WAL,WAL,158,3,BARRY TOWN,barrytown,club:wal.barry-town
+WAL,WAL,158,4,CAERNARFON TOWN,caernarfontown,club:wal.caernarfon-town
+WAL,WAL,158,5,COLWYN BAY,colwynbay,club:wal.colwyn-bay
+WAL,WAL,158,6,BRITON FERRY,britonferry,club:wal.briton-ferry
+WAL,WAL,158,7,PENYBONT,penybont,club:wal.penybont
+WAL,WAL,158,8,CARDIFF MET,cardiffmet,club:wal.cardiff-met
+WAL,WAL,158,9,FLINT TOWN,flinttown,club:wal.flint-town
+WAL,WAL,158,10,LLANDUDNO,llandudno,club:wal.llandudno
+WAL,WAL,158,11,AIRBUS UK,airbusuk,club:wal.airbus-uk
+WAL,WAL,158,12,TREFELIN B & G,trefelinbg,club:wal.trefelin-b-g
+WAL,WAL,158,13,CAMBRIAN UNITED,cambrianunited,club:wal.cambrian-united
+WAL,WAL,158,14,AMMANFORD,ammanford,club:wal.ammanford
+WAL,WAL,158,15,HOLYWELL TOWN,holywelltown,club:wal.holywell-town

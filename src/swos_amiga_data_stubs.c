@@ -1610,7 +1610,8 @@ SWOS_CHIP_BSS IntroChipRam g_introChipRam;
  * (accented capitals incl. Spanish Á Ú Ñ + ¿ ¡ and French Œ Ÿ, full ASCII, $),
  * which the DOS sprite build never touches, so the glyphs survive in DOS-graphics
  * mode as well as Amiga. Then 1310..1480, the shirt numbers: a match's 17..99, the menus' 12..99 (shirt_numbers.c);
- * 1481..1683 face 3's two sets and its menu icon (player_face3.c). */
+ * 1481..1683 face 3's two sets and its menu icon (player_face3.c). 1304 is the stoppage-time
+ * clock with its "+N" (stoppage.c); 1305..1309 are free. */
 #if UINTPTR_MAX == 0xFFFFFFFFu
 SWOS_CHIP_BSS char _spriteGraphics[1684 * 4];          /* 1684 ptrs × 4 B (32-bit) */
 #else

@@ -601,6 +601,8 @@ int main(int argc, char **argv)
     opts.shoulder_buttons_off = 1;
     opts.esc_presses = 1;
     memset(opts.key_bind, 0, sizeof opts.key_bind);   /* no keys of the player's own */
+    opts.p2_keyboard = 0;         /* P1 AND P2 ON KEYBOARD: not chosen */
+    memset(opts.p2_key_bind, 0, sizeof opts.p2_key_bind);   /* (player 2's: the defaults) */
     opts.fire_hold_lockout = 0;   /* default: the original's fire-hold bug is FIXED */
     /* The tweaks that start ON (include/tweaks.h TWEAKS_DEFAULT_ON: the contest fix, SWOS 2020's
      * league rules), of those this build has; [tweaks] in SWOS.ini then says otherwise. */
@@ -969,6 +971,16 @@ int main(int argc, char **argv)
         } else if ((v = match_kv(a, "slang-selftest")) != NULL) {
             extern int32_t Slang_SelfTest(const char *preset);
             return Slang_SelfTest(v) ? 0 : 1;      /* (src/slang.c: a preset for every backend) */
+        } else if ((v = match_kv(a, "cpu-repl-selftest")) != NULL) {
+            extern int32_t CpuRepl_SelfTest(int32_t file, int32_t ordinal);
+            int f = -1, o = -1;
+            if (getenv("SWOS_WORLD"))
+                World_Set(getenv("SWOS_WORLD"));
+            if (sscanf(v, "%d,%d", &f, &o) != 2) {
+                fprintf(stderr, "--cpu-repl-selftest=<team file>,<ordinal>\n");
+                return 1;
+            }
+            return CpuRepl_SelfTest(f, o) ? 1 : 0;
         } else if (strcmp(a, "--custom-team-selftest") == 0) {
             if (getenv("SWOS_WORLD"))
                 World_Set(getenv("SWOS_WORLD"));
@@ -1361,6 +1373,13 @@ int main(int argc, char **argv)
         TouchControls_SetMode(opts.touch_controls);     /* the phones' on-screen controls */
         for (i = 0; i < 5; i++)
             InputSDL_SetKeyBinding(i, opts.key_bind[i]);
+        {   /* P1 AND P2 ON KEYBOARD (input_sdl.c) */
+            extern void InputSDL_SetP2Keyboard(int on);
+            extern int InputSDL_SetP2KeyBinding(int which, const char *name);
+            InputSDL_SetP2Keyboard(opts.p2_keyboard);
+            for (i = 0; i < 5; i++)
+                InputSDL_SetP2KeyBinding(i, opts.p2_key_bind[i]);
+        }
     }
     {   /* SWOS 2020's CONTROLS MENU, CONTROLLER SETUP, menu cursor and MULTIPLAYER SETTINGS (agent A) */
         extern void InputSDL_Configure(const PlatformInitOptions *o);

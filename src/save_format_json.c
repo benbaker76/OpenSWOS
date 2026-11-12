@@ -22,6 +22,9 @@
 #include "game_types.h"
 #include "endian_helpers.h"
 #include "world.h"             /* "world" in career and competition saves */
+#include "world_finance.h"     /* "uefa_prizes" in a world's career saves */
+#include "cpu_repl.h"          /* "cpu_replacements" in a world's career saves */
+#include "world_rules.h"       /* "world_rules" in a world's career saves */
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
 #include "world_winners.h"     /* "season_winners" */
@@ -4076,6 +4079,43 @@ int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, 
     return n;
 }
 
+/* A world club's squad players from place 17 on (scripts/world_import.py: "extra_players" beside
+ * "players", the same fields), by its team file and ordinal: their count (0: none), at most max.
+ * For CPU REPL.: FROM SQUAD (src/cpu_repl.c). */
+int32_t DataJson_LoadTeamExtras(int32_t file, int32_t ordinal, PlayerFile *out, int32_t max)
+{
+    char team_file[128];
+    int jlen = 0, n = 0;
+    char *jj = dj_slurp_country_teams((int)file, team_file, (int)sizeof team_file, &jlen);
+    if (!jj)
+        return 0;
+    const char *arr;
+    int alen;
+    if (mjson_find(jj, jlen, "$.teams", &arr, &alen) == MJSON_TOK_ARRAY) {
+        int pos = 0, voff, vlen, vt;
+        while ((pos = fast_array_next(arr, alen, pos, &voff, &vlen, &vt)) != 0) {
+            double o = -1;
+            const char *xa;
+            int xl;
+            if (vt != MJSON_TOK_OBJECT ||
+                !mjson_get_number(arr + voff, vlen, "$.team.team_ordinal", &o) || (int32_t)o != ordinal)
+                continue;
+            if (mjson_find(arr + voff, vlen, "$.extra_players", &xa, &xl) == MJSON_TOK_ARRAY) {
+                int p2 = 0, vo2, vl2, vt2;
+                while (n < max && (p2 = fast_array_next(xa, xl, p2, &vo2, &vl2, &vt2)) != 0)
+                    if (vt2 == MJSON_TOK_OBJECT) {
+                        memset(&out[n], 0, sizeof out[n]);
+                        load_player_file_body(xa + vo2, vl2, (uint8_t *)&out[n]);
+                        n++;
+                    }
+            }
+            break;
+        }
+    }
+    free(jj);
+    return n;
+}
+
 /* ----------------------------------------------------------------------------
  * Competition JSON loader (data_json/competitions/*.json) — first increment:
  * parse a single competition RECORD (the cup / playoff family: comp base +
@@ -7260,6 +7300,42 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         json_out_emit("}", 1, &out);
     }
 
+    /* A world's UEFA prize money (world_finance.c): what the career club has been paid in its
+     * league-phase cup this season, and the switch. */
+    if (SWOS_WORLDS && World_Current() != WORLD_9697) {
+        const UefaPrizeState *p = &g_uefaPrize;
+        mjson_printf(json_out_emit, &out,
+                     ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "uefa_prizes",
+                     "ok", (int)p->ok, "cup", (int)p->cup, "season", (int)p->season, "flags", (int)p->flags,
+                     "wins", (int)p->wins, "draws", (int)p->draws, "stage", (int)p->stage, "off", (int)p->off);
+        /* ... and its financial fair play: the switch, this season's sanction and fine, the
+         * season's income so far, last season's, the season's charges. */
+        const FfpState *f = &g_ffp;
+        mjson_printf(json_out_emit, &out,
+                     ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%ld,%Q:%ld,%Q:%ld,%Q:%d}", "ffp",
+                     "on", (int)f->on, "block", (int)f->block, "valid", (int)f->valid,
+                     "income", (long)f->inc, "last_income", (long)f->iprev, "fine", (long)f->fine,
+                     "charges", (int)f->nch);
+        /* ... and its CPU replacements (cpu_repl.c): the choice, the squad players used. */
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:[", "cpu_replacements",
+                     "from_squad", (int)g_cpuRepl.fromSquad, "used");
+        for (int32_t i = 0; i < g_cpuRepl.n; i++)
+            mjson_printf(json_out_emit, &out, "%s[%d,%d]", i ? "," : "",
+                         (int)g_cpuRepl.used[i].team, (int)g_cpuRepl.used[i].mask);
+        mjson_printf(json_out_emit, &out, "]}");
+    }
+
+    /* A world's match rules kept with the career (world_rules.c: the Mod's CPU RED CARDS, CPU
+     * INJURIES, GOALKEEPER INJURIES -- its items 'CC' and 'GI') and the keepers' generator. */
+    if (SWOS_WORLDS && World_Current() != WORLD_9697) {
+        const uint32_t b = WorldRules_CareerBits();
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%ld}", "world_rules",
+                     "cpu_red_cards", (int)((b >> WRULE_CPU_CARDS) & 1),
+                     "cpu_injuries", (int)((b >> WRULE_CPU_INJURIES) & 1),
+                     "goalkeeper_injuries", (int)((b >> WRULE_GK_INJURIES) & 1),
+                     "gk_seed", (long)(int32_t)g_gkInjurySeed);    /* (signed: the Amiga's long) */
+    }
+
     /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
      * points at the next season end -- per tie its round, whether its first club went through,
      * the two clubs (the Mod's team words, file | ordinal << 8). */
@@ -7379,9 +7455,10 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         for (int i = 0; i < 16; i++) {
             res[3 * i] = CT_ED.f[i].c; res[3 * i + 1] = CT_ED.f[i].r; res[3 * i + 2] = CT_ED.f[i].v;
         }
-        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%lu,%Q:%d,%Q:%d,%Q:%d", "conti_edition",
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%lu,%Q:%d,%Q:%d,%Q:%d,%Q:%d", "conti_edition",
                      "mark", (int)CT_ED.mark, "seed", (unsigned long)CT_ED.seed, "manager_club", (int)CT_ED.mgr,
-                     "results_count", (int)CT_ED.nf, "main_cup", (int)g_contiMainCup);
+                     "results_count", (int)CT_ED.nf, "main_cup", (int)g_contiMainCup,
+                     "flags", (int)CT_ED.pad);  /* (CT_ED_G2: the 4.0.6 goals model; CT_ED_S1) */
         wp_emit_u16(&out, "entrants", ent, ne);
         wp_emit_u16(&out, "results", res, 16 * 3);
         json_out_emit("}", 1, &out);
@@ -8048,6 +8125,91 @@ static void apply_semantic_load(const char *src, int src_size)
         }
     }
 
+    /* A world's UEFA prize money (world_finance.c); a save without it: an older one, what its
+     * club has reached counted as paid. */
+    WorldFinance_Loaded();
+    UefaPrize_LoadedWithout();
+    {
+        const char *up = NULL;
+        int uplen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.uefa_prizes", &up, &uplen) == MJSON_TOK_OBJECT) {
+            UefaPrizeState *p = &g_uefaPrize;
+            if (mjson_get_long(up, uplen, "$.ok", &v) > 0) p->ok = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.cup", &v) > 0) p->cup = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.season", &v) > 0) p->season = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.flags", &v) > 0) p->flags = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.wins", &v) > 0) p->wins = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.draws", &v) > 0) p->draws = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.stage", &v) > 0) p->stage = (uint8_t)v;
+            if (mjson_get_long(up, uplen, "$.off", &v) > 0) p->off = (uint8_t)v;
+        }
+    }
+    /* ... its CPU replacements; a save without them: INVENTED. */
+    CpuRepl_LoadedWithout();
+    {
+        const char *cr = NULL;
+        int crlen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.cpu_replacements", &cr, &crlen) == MJSON_TOK_OBJECT) {
+            const char *arr = NULL;
+            int alen = 0;
+            if (mjson_get_long(cr, crlen, "$.from_squad", &v) > 0) g_cpuRepl.fromSquad = (uint8_t)(v != 0);
+            if (mjson_find(cr, crlen, "$.used", &arr, &alen) == MJSON_TOK_ARRAY) {
+                int pos = 0, ko, kl, vo, vl, vt;
+                while (g_cpuRepl.n < CPU_REPL_CLUBS &&
+                       (pos = mjson_next(arr, alen, pos, &ko, &kl, &vo, &vl, &vt)) != 0) {
+                    long t = 0, m = 0;             /* (no doubles on the Amiga: mjson_get_long) */
+                    if (vt == MJSON_TOK_ARRAY && mjson_get_long(arr + vo, vl, "$[0]", &t) > 0 &&
+                        mjson_get_long(arr + vo, vl, "$[1]", &m) > 0) {
+                        g_cpuRepl.used[g_cpuRepl.n].team = (uint16_t)t;
+                        g_cpuRepl.used[g_cpuRepl.n++].mask = (uint16_t)m;
+                    }
+                }
+            }
+        }
+    }
+    /* ... its financial fair play; a save without it: an older one, the rule off. */
+    Ffp_LoadedWithout();
+    {
+        const char *ff = NULL;
+        int fflen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.ffp", &ff, &fflen) == MJSON_TOK_OBJECT) {
+            FfpState *f = &g_ffp;
+            if (mjson_get_long(ff, fflen, "$.on", &v) > 0) f->on = (uint8_t)v;
+            if (mjson_get_long(ff, fflen, "$.block", &v) > 0) f->block = (uint8_t)v;
+            if (mjson_get_long(ff, fflen, "$.valid", &v) > 0) f->valid = (uint8_t)v;
+            if (mjson_get_long(ff, fflen, "$.income", &v) > 0) f->inc = (int32_t)v;
+            if (mjson_get_long(ff, fflen, "$.last_income", &v) > 0) f->iprev = (int32_t)v;
+            if (mjson_get_long(ff, fflen, "$.fine", &v) > 0) f->fine = (int32_t)v;
+            if (mjson_get_long(ff, fflen, "$.charges", &v) > 0) f->nch = (uint16_t)v;
+        }
+    }
+
+    /* A world's match rules (world_rules.c); a save without them: an older one, all ON. */
+    {
+        const char *wr = NULL;
+        int wrlen = 0;
+        long v = 0;
+        uint32_t bits = 0;
+        int32_t have = 0;
+        g_gkInjurySeed = 0;
+        if (mjson_find(src, src_size, "$.world_rules", &wr, &wrlen) == MJSON_TOK_OBJECT) {
+            static const struct { const char *path; int32_t rule; } k[] = {
+                { "$.cpu_red_cards", WRULE_CPU_CARDS }, { "$.cpu_injuries", WRULE_CPU_INJURIES },
+                { "$.goalkeeper_injuries", WRULE_GK_INJURIES },
+            };
+            have = 1;
+            for (uint32_t i = 0; i < sizeof k / sizeof k[0]; i++)
+                if (mjson_get_long(wr, wrlen, k[i].path, &v) <= 0 || v != 0)
+                    bits |= 1u << k[i].rule;
+            if (mjson_get_long(wr, wrlen, "$.gk_seed", &v) > 0)
+                g_gkInjurySeed = (uint32_t)(int32_t)v;
+        }
+        WorldRules_CareerLoaded(have, bits);
+    }
+
     /* A world's UEFA coefficients and qualifying bracket (uefa_coef.c); a save without them:
      * the seeds at their first use. */
     UefaCoef_Reset();
@@ -8215,6 +8377,8 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(co, colen, "$.seed", &v) > 0) CT_ED.seed = (u32)v;
             if (mjson_get_long(co, colen, "$.manager_club", &v) > 0) CT_ED.mgr = (u16)v;
             if (mjson_get_long(co, colen, "$.results_count", &v) > 0) CT_ED.nf = (u8)(v > 16 ? 16 : v);
+            CT_ED.pad = 0;              /* (a save from before 4.0.6's goals model: its edition ends on the old one) */
+            if (mjson_get_long(co, colen, "$.flags", &v) > 0) CT_ED.pad = (u8)v;
             if (mjson_get_long(co, colen, "$.main_cup", &v) > 0) g_contiMainCup = (uint8_t)v;
             const int ne = wp_load_u16(co, colen, "$.entrants", ent, CT_NED * 3);
             CT_ED.ne = 0;

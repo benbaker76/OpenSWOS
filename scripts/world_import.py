@@ -9,7 +9,8 @@
                                                     # the same import from two sets of packs)
 
 Reads the Mod's data as Davide Lorigliola sent it (bin/data_json/worlds/2627/mod/: his
-teams in OpenSWOS team JSON, his packs) and writes what the game reads for that world:
+teams in OpenSWOS team JSON, his packs) -- or as scripts/world_from_mod.py writes it from an
+installed Mod (docs/WORLD_2026_27.md 6d) and writes what the game reads for that world:
 
     bin/data_json/worlds/2627/teams/ITALY.json        the country's team file, our format
     bin/data_json/worlds/2627/competitions/leagues.json  the league records that differ
@@ -30,7 +31,9 @@ Coppa Italia and Coppa Italia Serie C from the real draw (include/world_cups.h).
 country stays 96/97's (the overlay falls back to it).
 
 What our engine cannot show yet is mapped, and counted on the way:
-  - 16 players a team (the Mod's extra 14 are left out);
+  - 16 players a team; the Mod's extra squad players (its long benches' 17-30) are kept apart,
+    "extra_players" beside "players" (the same fields and ids), which the game reads past --
+    its long benches and CPU replacements will play them (docs/WORLD_2026_27.md, the Mod 4.1);
   - nationalities past the Mod's 213 (none in 2026-27) -> the club's country's;
   - shirt numbers outside 1..99 -> the free ones.
 
@@ -127,12 +130,19 @@ def team(entry, country, ordinal, global_number, league, home_nation):
         counts["purple kits"] += 1
     players = [player(p, home_nation) for p in entry["players"]]
     shirt_numbers(players)
+    # The Mod's extra squad players (x_swos9697 "extra_players", its long benches' 17..30): kept
+    # apart, numbered after the 16 (whose numbers stay as they were), ids from 16 on.
+    extras = [player(p, home_nation) for p in x.get("extra_players") or []]
+    if extras:
+        counts["extra squad players kept apart (extra_players)"] += len(extras)
+        shirt_numbers(players + extras)
     club = x.get("club_id") or "club:%d.%d" % (country, ordinal)
     tid = str(uuid.uuid5(NAMESPACE, "2627/team/%s" % club))
-    for i, p in enumerate(players):
-        p_out = {"uuid": str(uuid.uuid5(NAMESPACE, "2627/team/%s/player/%d" % (club, i)))}
-        p_out.update(p)
-        players[i] = p_out
+    for group, first in ((players, 0), (extras, 16)):
+        for i, p in enumerate(group):
+            p_out = {"uuid": str(uuid.uuid5(NAMESPACE, "2627/team/%s/player/%d" % (club, first + i)))}
+            p_out.update(p)
+            group[i] = p_out
     names = ("shirt_type", "stripes_color", "basic_color", "shorts_color", "socks_color")
     head = {
         "country_number": country, "team_ordinal": ordinal,
@@ -148,7 +158,10 @@ def team(entry, country, ordinal, global_number, league, home_nation):
     head["coach_name"] = t["coach_name"]
     head["player_values_dirty"] = t["some_flag"] & 255
     head["player_numbers"] = [n & 255 for n in t["player_numbers"]]
-    return {"uuid": tid, "checksum": checksum(players), "team": head, "players": players}
+    out = {"uuid": tid, "checksum": checksum(players), "team": head, "players": players}
+    if extras:
+        out["extra_players"] = extras       # (not in the checksum: what a match plays is the 16)
+    return out
 
 
 SERIE_C_GROUPS = 3          # Serie C: three groups side by side under Serie B
@@ -217,6 +230,10 @@ COUNTRY_ALIASES = {"NETHERLANDS": "HOLLAND", "CZECH REP.": "CZECH REPUBLIC", "FA
 # number, clubs and competitions; World 2026-27 shows the Mod's name (World_InstallBaked), and 96/97
 # keeps its own. Yugoslavia is Serbia in the Mod (Davide, 2026-11-04: "a bug").
 RENAMED_COUNTRIES = {41: (0, "SERBIA", "SERBIAN", 37, "SRB")}
+# A 96/97 nationality code whose nation changed name: today's FIFA code in the world (the Mod 4.1's
+# careerworld.NAT_TODAY, Davide 05/11; 37 YUG -> SRB is the rename above). The national teams keep
+# the game's names for now (the Mod's NAT_TEAM_TODAY renames them: its own copies of TEAM.080).
+NAT_TODAY = {6: "CZE", 47: "MKD", 86: "COD", 101: "SWZ"}
 # A new country's number is in every save that holds it: fixed here, never by order. Free:
 # 99 (and, if 96/97's national teams never need them, 100-251).
 NEW_COUNTRY_NUMBERS = {
@@ -1795,6 +1812,11 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                         "_shortCountryNames[%d * 3 + 2] = '%s';   /* nationality %d */"
                         % (nation, short[0], nation, short[1], nation, short[2], nation))
         externs.update(("extern void *_countriesTable[262];", "extern uint8_t _shortCountryNames[214 * 3];"))
+    for nation, short in sorted(NAT_TODAY.items()):
+        installs.append("        _shortCountryNames[%d * 3] = '%s'; _shortCountryNames[%d * 3 + 1] = '%s'; "
+                        "_shortCountryNames[%d * 3 + 2] = '%s';   /* nationality %d, today's code */"
+                        % (nation, short[0], nation, short[1], nation, short[2], nation))
+        externs.add("extern uint8_t _shortCountryNames[214 * 3];")
     installs.append("        FixtureRounds_Install();")
     installs.append("        World_SyncSecondFiles();")
     regions, season = world_lists(news)
@@ -2252,17 +2274,32 @@ def guest_team_files():
     return out
 
 
-def conti_spec():
+def conti_spec(picks):
     """The other confederations' cups (scripts/world_conti.py, the Mod's conti.load): their
-    associations' league team files the world's countries' numbers; the ranking's clubs none
-    (its keys never match the Mod's words: neither does the Mod's build); season 1's holders
+    associations' league team files the world's countries' numbers; the ranking's clubs (the Mod
+    4.1.1: CONMEBOL's, by 'assoc/club') as our team words of them -- the world's countries' clubs
+    in their team files (picks: {code: (wc, picked)}), the Mod's _world_maps; season 1's holders
     decided in-game (src/world_conti.c's caller); the guests in their own files (GUEST_FILES)."""
     import world_conti
     if not os.path.isdir(world_conti.DATA):
         return None
     world_conti._Guests.FILES = dict(GUEST_FILES)
     files = {c["code"].lower(): c["number"] for c in world_countries()}
-    spec, assocs, cups = world_conti.load(world_conti.CONFS, files=files)
+    words = {}
+    for code in sorted(picks):
+        wc, picked = picks[code]
+        path = os.path.join(MOD, "packs", code.lower(), "clubs.csv")
+        key_of = {r["name"]: r["key"] for r in csv.DictReader(open(path, encoding="utf-8"))}
+        for o, (e, d) in enumerate(picked):     # (a league's clubs: a state-only club is another file's)
+            k = key_of.get(e["team"]["team_name"])
+            if k and d is not None and o < 256:
+                words[(code.lower(), k)] = wc["number"] | o << 8
+    spec, assocs, cups = world_conti.load(world_conti.CONFS, files=files, words=words)
+    for conf in world_conti.CONFS:          # (a ranked club not in the world's leagues: unranked, as in the Mod)
+        for k in ((world_conti._read(conf, "access") or {}).get("ranking") or {}):
+            if tuple(k.split("/", 1)) not in words:
+                print("conti ranking: %s not in a league of the world (unranked)" % k)
+                counts["conti ranking: clubs not in a league of the world"] += 1
     counts["continental cups (conti)"] = len(cups)
     named = []                  # (each cup's names; its rounds' _cupRoundStringTable index, by key; its rank
     rn = {"final": 9, "sf": 7, "qf": 6, "r16": 12, "r32": 13, "pre": 15, "qual": 15}   # in its confederation (the
@@ -2316,6 +2353,49 @@ def write_team_file(teams, json_name):
     WRITTEN.add(os.path.abspath(path))
 
 
+def stadiums(picks):
+    """competitions/stadiums.json (src/world_stadium.c) from the Mod's tools/stadium_tmw5_clubs.csv and
+    stadium_tmw5_venues.csv (4.1, its stadium.py), when they are in the Mod's folder: they are its
+    data (its LICENCE §2), so only with Davide's package. Each club by the Mod's team file and
+    ordinal (its JSON's team.country_number / team_ordinal) -> ours; names in the game's letters,
+    at most 48; the venues by competition and round (the English names) and season (0: every)."""
+    clubs_csv = os.path.join(MOD, "stadium_tmw5_clubs.csv")
+    venues_csv = os.path.join(MOD, "stadium_tmw5_venues.csv")
+    if not os.path.isfile(clubs_csv):
+        old = os.path.join(WORLD, "competitions", "stadiums.json")
+        if os.path.isfile(old):
+            os.remove(old)
+            print("removed", os.path.relpath(old, REPO), "(an earlier run's)")
+        return
+    ours = {}
+    for code, (wc, picked) in picks.items():
+        for i, (e, _div) in enumerate(picked):
+            if i < 256:
+                ours[(e["team"]["country_number"], e["team"]["team_ordinal"])] = (wc["number"], i)
+    letters = lambda t: re.sub(r"[^A-Z0-9 .'-]", "", text_upper(t).replace('"', "''"))[:48].strip()
+    clubs = []
+    with open(clubs_csv, encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            at = ours.get((int(r["file"]), int(r["ordinal"])))
+            name = letters(r.get("stadium") or "")
+            if at and name:
+                clubs.append([at[0], at[1], name])
+            else:
+                counts["stadium names without a club of ours"] += 1
+    venues = []
+    if os.path.isfile(venues_csv):
+        with open(venues_csv, encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                name = letters(r.get("venue") or "")
+                if name:
+                    venues.append({"competition": r.get("comp_en") or r["competition"],
+                                   "round": r.get("round_en") or r["round"], "name": name,
+                                   "season": int(r.get("season") or 0)})
+    write(os.path.join(WORLD, "competitions", "stadiums.json"),
+          {"clubs": sorted(clubs), "venues": venues})
+    counts["stadium names"] += len(clubs)
+
+
 def world_fingerprint():
     """The world's data as its package carries it -- teams/, competitions/, data/: the SHA-1 of
     every file's path and bytes, in path order, its first 16 hex digits. Baked into world_data.c
@@ -2349,6 +2429,8 @@ def main():
         DATA_C = os.path.abspath(a.data_c)
     if not os.path.isdir(MOD):
         sys.exit("no %s: the Mod's data (Davide's private copies) is not here" % os.path.relpath(MOD, REPO))
+    import world_conti                  # (its conti/ is the --mod folder's, not always the world's copy)
+    world_conti.DATA = os.path.join(MOD, "conti")
     (teams, second, picked), leagues = italy(), italian_league()
     write_team_file(teams, "ITALY")
     seconds = []
@@ -2412,6 +2494,7 @@ def main():
     leagues["count"] = len(leagues["leagues"])
     write(os.path.join(WORLD, "competitions", "leagues.json"), leagues)
     guests = guest_team_files()
+    stadiums(picks)
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):
         folder = os.path.join(WORLD, sub)
@@ -2429,7 +2512,7 @@ def main():
         f.write(world_data_c("2627", leagues, resized,
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
-                             europe(picks), conti_spec(), guests, proms, states, squad_numbers(), fingerprint,
+                             europe(picks), conti_spec(picks), guests, proms, states, squad_numbers(), fingerprint,
                              seconds))
     print("wrote %s (data %s)" % (os.path.relpath(DATA_C, REPO), fingerprint))
     for what, n in sorted(counts.items()):
