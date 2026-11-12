@@ -98,6 +98,8 @@ int32_t ChallengePack_Write(const ChallengeDef *defs, int32_t count, uint8_t *ou
                 put8(&w, d->injured[t][k].level);
             }
         put_str(&w, d->recordName, 64);
+        for (int32_t k = 0; k < CHALLENGE_UNLOCK_MAX; k++)        /* (version 3) */
+            put_str(&w, d->unlockAfter[k], 32);
         if (!w.bad && w.p - start != CHALLENGE_PACK_RECORD)
             return -1;      /* (the record size in the header is wrong) */
     }
@@ -113,7 +115,8 @@ int32_t ChallengePack_Read(const uint8_t *data, uint32_t size, ChallengeDef *def
     if (r.bad || memcmp(magic, CHALLENGE_PACK_MAGIC, 7) != 0 || version < 1 || version > CHALLENGE_PACK_VERSION)
         return -1;
     const int32_t count = (int32_t)get16(&r);
-    const uint32_t record = version == 1 ? CHALLENGE_PACK_RECORD_V1 : CHALLENGE_PACK_RECORD;
+    const uint32_t record = version == 1 ? CHALLENGE_PACK_RECORD_V1 : version == 2 ? CHALLENGE_PACK_RECORD_V2
+                                                                    : CHALLENGE_PACK_RECORD;
     if (r.bad || size < CHALLENGE_PACK_HEADER + (uint32_t)count * record)
         return -1;
     int32_t n = 0;
@@ -139,6 +142,9 @@ int32_t ChallengePack_Read(const uint8_t *data, uint32_t size, ChallengeDef *def
                     d->injured[t][k].level = (uint8_t)get8(&r);
                 }
             get_str(&r, d->recordName, 64);
+            if (version >= 3)
+                for (int32_t k = 0; k < CHALLENGE_UNLOCK_MAX; k++)
+                    get_str(&r, d->unlockAfter[k], 32);
         } else {                    /* (what version 1 meant by the fields it has not) */
             d->playingUp = d->kickOff = -1;
         }
@@ -288,6 +294,11 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
         b = 0;
         snprintf(q, sizeof q, "$.challenges[%d].locked", (int)i);
         c->unavailable = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        for (int32_t k = 0; k < CHALLENGE_UNLOCK_MAX; k++) {     /* "unlock_after": [categories] */
+            snprintf(q, sizeof q, "$.challenges[%d].unlock_after[%d]", (int)i, (int)k);
+            if (mjson_get_string(json, len, q, c->unlockAfter[k], (int)sizeof c->unlockAfter[k]) > 0)
+                upper(c->unlockAfter[k]);
+        }
         {
             const int32_t a = NUM("first_leg[0]", -1), z = NUM("first_leg[1]", -1);
             if (a >= 0 && z >= 0) {
@@ -433,6 +444,12 @@ int32_t ChallengePack_ToJson(const ChallengeDef *c, char *out, uint32_t cap)
         js(&o, " \"pitch_number\": %d,", (int)c->pitchNumber);
     if (c->unavailable)
         js(&o, " \"locked\": true,");
+    if (c->unlockAfter[0][0]) {
+        js(&o, " \"unlock_after\": [");
+        for (int32_t k = 0; k < CHALLENGE_UNLOCK_MAX && c->unlockAfter[k][0]; k++)
+            js(&o, "%s\"%s\"", k ? ", " : "", c->unlockAfter[k]);
+        js(&o, "],");
+    }
     js(&o, "\n    \"sent_off\": [");
     for (int32_t t = 0; t < 2; t++) {
         int32_t first = 1;

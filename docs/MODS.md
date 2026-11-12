@@ -855,6 +855,18 @@ SWOS 2020's `01-...` before `challenges.json`). A shoot-out challenge gives the 
 player (`manualKeeper`, SWOS 2020's "MANUAL GK CONTROL"). Progress of a challenge whose pack is
 off is kept as read and written back (it was dropped by the next save).
 
+**Format version 3 (2026-11-12): `"unlock_after"`.** A challenge's `"unlock_after": [categories]`
+(up to four) closes its whole category until every challenge of those categories is completed --
+SWOS 2020's SWOS MASTERS, open once FIFA WORLD CUP, UEFA EURO CUP, ISS DELUXE and ISS 64 are done
+(its confirmCategory). Our list says LOCKED, and picking it "COMPLETE <them> FIRST"; the service's
+`categories` line is `<name>\t<done>\t<all>\t<closed>\t<needs>`, closed 1 for `"locked"`, 2 for
+waiting, needs the categories it waits for. The binary is version 3 (`unlockAfter[4][32]` at the
+record's end; 1 and 2 still read). The converter (pack 1.1) now writes SWOS 2020's screen as it
+was: SWOS MASTERS first and waiting for the four, EUROPEAN CUPS, DOMESTIC COMPETITIONS and FANTASY
+CUPS (never released there) left out -- 73 challenges in 5 categories. Checked:
+`SWOS_MOD_MATCH_TEST=challenge:categories` prints the service's lines (SWOS MASTERS 2 with no
+progress, 0 with the four completed); every pack through the binary and back, field for field.
+
 ## 19. Team packs (2026-11-04)
 
 Teams a mod brings: `data_json/teampacks/*.json` in the database's team format, numbers 150-249 (210-249 until 2026-11-09),

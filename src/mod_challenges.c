@@ -36,6 +36,9 @@
  *       "shootout": true,                                              a shoot-out alone
  *       "first_leg": [0, 4],                                           the second leg of a tie
  *       "injured": [[[shirt, level 1-7], ...], [...]], "locked": true, its category closed
+ *     -- version 3:
+ *       "unlock_after": ["FIFA WORLD CUP", ...]                        its category closed until
+ *                                                                      these are all completed
  *       "record_name": "...",                                          its name online when longer
  *                                                                      than "name"'s 31 letters
  *       "restart": { "kind": "corner" | "free_kick" | "penalty" | "throw_in" | "goal_kick"
@@ -478,13 +481,58 @@ static int32_t category_unavailable(const char *category)
     return 0;
 }
 
+/* Every challenge of a category done (the player's own not counted); 0 for a category no pack
+ * that is on has. */
+static int32_t category_completed(const char *category)
+{
+    int32_t any = 0;
+    for (int32_t k = 0; k < s_count; k++)
+        if (!s_ch[k].custom && !strcmp(s_ch[k].category, category)) {
+            if (!s_ch[k].completed)
+                return 0;
+            any = 1;
+        }
+    return any;
+}
+
+/* A category waiting for others ("unlock_after": SWOS 2020's SWOS MASTERS, open once FIFA, UEFA,
+ * ISS DELUXE and ISS 64 are completed -- its confirmCategory): 1 while one of them is not. Their
+ * names, joined, into out[cap] when out is given. */
+static int32_t category_waiting(const char *category, char *out, uint32_t cap)
+{
+    if (out && cap)
+        out[0] = 0;
+    for (int32_t k = 0; k < s_count; k++) {
+        const Challenge *c = &s_ch[k];
+        if (c->custom || !c->unlockAfter[0][0] || strcmp(c->category, category) != 0)
+            continue;
+        int32_t waiting = 0;
+        for (int32_t j = 0; j < CHALLENGE_UNLOCK_MAX && c->unlockAfter[j][0]; j++) {
+            waiting |= !category_completed(c->unlockAfter[j]);
+            if (out && cap) {
+                const uint32_t used = (uint32_t)strlen(out);
+                const int32_t last = j + 1 == CHALLENGE_UNLOCK_MAX || !c->unlockAfter[j + 1][0];
+                snprintf(out + used, cap - used, "%s%s", j ? (last ? " AND " : ", ") : "", c->unlockAfter[j]);
+            }
+        }
+        return waiting;
+    }
+    return 0;
+}
+
+/* closed: "locked" (never playable) or waiting for other categories */
+static int32_t category_closed(const char *category)
+{
+    return category_unavailable(category) || category_waiting(category, NULL, 0);
+}
+
 /* locked while an easier one of its category is not done (SWOS 2020's setScenariosLocked, over
- * the category's scenarios), or its category is (category_unavailable) */
+ * the category's scenarios), or its category is closed (category_closed) */
 static int32_t locked(int32_t i)
 {
     if (s_ch[i].custom)
         return 0;
-    if (category_unavailable(s_ch[i].category))
+    if (category_closed(s_ch[i].category))
         return 1;
     for (int32_t k = 0; k < s_count; k++)
         if (!s_ch[k].custom && !strcmp(s_ch[k].category, s_ch[i].category) &&
@@ -863,7 +911,7 @@ static void list_draw(void)
             int32_t done, all;
             char value[16];
             category_counts(k, &done, &all);
-            if (category_unavailable(s_cats[k]))
+            if (category_closed(s_cats[k]))
                 snprintf(value, sizeof value, "LOCKED");
             else
                 snprintf(value, sizeof value, "%d/%d", (int)done, (int)all);
@@ -939,6 +987,12 @@ static void pick(int32_t r)
         const int32_t k = s_page * kPerPage + r;
         if (category_unavailable(s_cats[k])) {
             ModApi_ShowError("NOT IN THIS VERSION YET");
+            return;
+        }
+        char needs[160], text[200];
+        if (category_waiting(s_cats[k], needs, sizeof needs)) {
+            snprintf(text, sizeof text, "COMPLETE %s FIRST", needs);
+            ModApi_ShowError(text);
             return;
         }
         s_cat = k;
@@ -1997,7 +2051,8 @@ static void ch_open(void)
 }
 
 /* ---- the "challenges" service: the challenges for another mod's screens (docs/MODS.md §18) ----
- *   categories {}                 "<name>\t<done>\t<all>\t<closed 0/1>" a line, in the list's order
+ *   categories {}                 "<name>\t<done>\t<all>\t<closed 0/1/2>\t<needs>" a line, in the list's order
+ *                                 (closed 1 "locked", 2 waiting for "unlock_after": needs its categories)
  *   list       {"category"}       "<id>\t<title or name>\t<difficulty>\t<0 open, 1 done, 2 locked>
  *                                 \t<0 a pack's, 1 the player's own, 2 fetched>"
  *   save       {"challenge":{..}} one of the player's own, saved (its id; a new one without) -> "<id>"
@@ -2143,7 +2198,10 @@ static int32_t service(const char *method, const char *args, char *out, uint32_t
         for (int32_t k = 0; k < s_numCats; k++) {
             int32_t done, all;
             category_counts(k, &done, &all);
-            put(&o, "%s\t%d\t%d\t%d\n", s_cats[k], (int)done, (int)all, (int)category_unavailable(s_cats[k]));
+            char needs[160];
+            /* closed: 0 open, 1 "locked" (never), 2 waiting for the categories in the last field */
+            const int32_t closed = category_unavailable(s_cats[k]) ? 1 : category_waiting(s_cats[k], needs, sizeof needs) ? 2 : 0;
+            put(&o, "%s\t%d\t%d\t%d\t%s\n", s_cats[k], (int)done, (int)all, (int)closed, closed == 2 ? needs : "");
         }
         return 0;
     }
@@ -2313,12 +2371,19 @@ static void editor_selftest(void)
     exit(3);                                /* (play() exits after the match) */
 }
 
-/* (src/mod_match.c ModMatch_SelfTest: SWOS_MOD_MATCH_TEST=challenge:<id>) */
+/* (src/mod_match.c ModMatch_SelfTest: SWOS_MOD_MATCH_TEST=challenge:<id>, or challenge:categories) */
 void ModChallenges_Test(const char *id)
 {
     if (!strcmp(id, "editor"))
         editor_selftest();
     load();
+    if (!strcmp(id, "categories")) {        /* the "categories" service's lines: each category's lock */
+        static char out[4096];
+        ModApi_CallService("challenges", "categories", "{}", out, sizeof out);
+        fprintf(stdout, "CHALLENGE CATEGORIES\n%s", out);
+        fflush(stdout);
+        exit(0);
+    }
     for (int32_t i = 0; i < s_count; i++)
         if (!strcmp(s_ch[i].id, id)) {
             s_test = 1;

@@ -19,7 +19,9 @@ What each scenario field becomes is SWOS 2020's own behaviour (game.cpp Scenario
 STARTING EVENT's taker is TEAM STARTING; its LEFT / RIGHT is the screen's side, written here as
 the taker's wing as he attacks; RANDOM is drawn at PLAY; a GOLDEN / SILVER GOAL is a win with
 that extra-time rule; OVERRIDE ... START PENALTY SHOOTOUT is a shoot-out alone; LOCKED closes
-the scenario's whole category, as it did there. CPU KEEPER LEVEL, CPU INJURY SPEED, CAMERA
+the scenario's whole category, as it did there. As SWOS 2020's SELECT CATEGORY did: EUROPEAN CUPS,
+DOMESTIC COMPETITIONS and FANTASY CUPS (never released) are left out, and SWOS MASTERS comes first,
+open once FIFA WORLD CUP, UEFA EURO CUP, ISS DELUXE and ISS 64 are completed ("unlock_after"). CPU KEEPER LEVEL, CPU INJURY SPEED, CAMERA
 STARTING and PITCH SET are not read (SWOS 2020 ignores the first two and the last has one value).
 """
 import json
@@ -99,6 +101,14 @@ def slug(text):
 PITCH = ['FROZEN', 'MUDDY', 'WET', 'SOFT', 'NORMAL', 'DRY', 'HARD']
 LENGTH = {'3': 0, '5': 1, '7': 2, '10': 3}
 
+# SWOS 2020's SELECT CATEGORY (game.cpp selectCategoryMenu_OnDraw) is drawn by hand for its
+# categories: SWOS MASTERS at the top, open once the four below it are completed
+# (confirmCategory), and these three never shown -- not released ("THIS CATEGORY WILL BE
+# AVAILABLE, AFTER RELEASING LATER"). They are left out of the pack, and SWOS MASTERS comes first.
+UNRELEASED = {'EUROPEAN CUPS', 'DOMESTIC COMPETITIONS', 'FANTASY CUPS'}
+MASTERS = 'SWOS MASTERS'
+MASTERS_AFTER = ['FIFA WORLD CUP', 'UEFA EURO CUP', 'ISS DELUXE', 'ISS 64']
+
 
 def side_team(v):
     v = (v or '').strip().upper()
@@ -124,6 +134,8 @@ def convert(src, out, check):
     for number, sc in sections:
         sid = slug(number.replace('SCENARIO', ''))
         cat = sc.get('CATEGORY', '').upper()
+        if cat in UNRELEASED:
+            continue
         if cat not in packs:
             packs[cat] = []
             categories.append(cat)
@@ -178,7 +190,9 @@ def convert(src, out, check):
         pitch = (sc.get('PITCH TYPE') or 'RANDOM').upper()
         if pitch in PITCH:
             c['pitch_type'] = PITCH.index(pitch)
-        if yes(sc.get('LOCKED')):
+        if cat == MASTERS:          # (LOCKED there until the four are done: confirmCategory)
+            c['unlock_after'] = MASTERS_AFTER
+        elif yes(sc.get('LOCKED')):
             c['locked'] = True
 
         win = (sc.get('WIN CONDITION') or 'WIN BY ANY SCORE').upper()
@@ -248,8 +262,15 @@ def convert(src, out, check):
         print('\n'.join(problems), file=sys.stderr)
         if check:
             return 1
+    missing = [c for c in MASTERS_AFTER + [MASTERS] if c not in categories]
+    if missing:
+        problems.append(f'categories SWOS MASTERS needs are not in challenges.ini: {missing}')
+        print(problems[-1], file=sys.stderr)
+        return 1
+    categories.sort(key=lambda c: c != MASTERS)       # (SWOS MASTERS first, the rest as they were)
+    count = sum(len(packs[c]) for c in categories)
     if check:
-        print(f'{len(sections)} scenarios, {len(categories)} categories: fine')
+        print(f'{count} scenarios, {len(categories)} categories: fine')
         return 0
 
     os.makedirs(os.path.join(out, 'data_json', 'challenges'), exist_ok=True)
@@ -258,7 +279,8 @@ def convert(src, out, check):
         with open(os.path.join(out, path), 'wb') as f:
             f.write(struct.pack('>H', len(recs)) + b''.join(recs))
     for k, cat in enumerate(categories):
-        doc = {'format': 'openswos-challenges', 'version': 2, 'category': cat, 'challenges': packs[cat]}
+        doc = {'format': 'openswos-challenges', 'version': 3 if cat == MASTERS else 2, 'category': cat,
+               'challenges': packs[cat]}
         with open(os.path.join(out, 'data_json', 'challenges', f'{k + 1:02d}-{slug(cat)}.json'), 'w') as f:
             json.dump(doc, f, indent=1)
             f.write('\n')
@@ -266,9 +288,9 @@ def convert(src, out, check):
         'uuid': str(uuid.uuid5(uuid.NAMESPACE_URL, 'openswos-mod:swos2020-challenges')),
         'id': 'swos2020-challenges',
         'name': 'SWOS 2020 Challenges',
-        'version': '1.0',
+        'version': '1.1',             # (1.1: SWOS 2020's screen -- SWOS MASTERS unlocks, three unreleased out)
         'author': 'SWOS 2020 (its challenge mode: github.com/starwindz/swos-2020)',
-        'about': f'SWOS 2020\'s challenge mode: {len(sections)} scenarios in {len(categories)} categories, '
+        'about': f'SWOS 2020\'s challenge mode: {count} scenarios in {len(categories)} categories, '
                  'from the 1966 World Cup final on. Converted from its challenges.ini.',
         'targets': ['sdl', 'amiga'],
         'changes': 'modes',
@@ -277,7 +299,7 @@ def convert(src, out, check):
     with open(os.path.join(out, 'mod.json'), 'w') as f:
         json.dump(mod, f, indent=1)
         f.write('\n')
-    print(f'{len(sections)} scenarios in {len(categories)} categories, {len(team_files)} team files -> {out}')
+    print(f'{count} scenarios in {len(categories)} categories, {len(team_files)} team files -> {out}')
     return 0
 
 
