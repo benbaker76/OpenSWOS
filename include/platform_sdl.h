@@ -314,6 +314,14 @@ void Platform_ShowProgress(int permille);
 const uint8_t *Platform_FrameShown(void);
 uint8_t       *Platform_HudLayerBuffer(void);
 
+/* A cutscene over the whole picture (src/mod_api.c ModApi_Cutscene*, the PC cutscenes mod):
+ * `pixels` (w x h palette indices) centred 1:1 on the screen, the rest its darkest colour, in its
+ * own `rgb` palette (768 bytes, 0-255) at `level` (0 black .. 256 full) -- shown by the next
+ * presents in place of the game's frame and palette, which are left as they are. NULL: the game's
+ * picture again. Platform_PressCount: key, mouse, pad and touch presses so far (a skip). */
+void     Platform_CutsceneShow(const uint8_t *pixels, int w, int h, const uint8_t *rgb, int level);
+uint32_t Platform_PressCount(void);
+
 /* Run the Amiga Level-3 VBlank ISR body, throttled to ~50 Hz max and
  * mutex-guarded so concurrent calls from the timer thread and the main
  * thread serialise. Use this from main-thread spin loops on flags the

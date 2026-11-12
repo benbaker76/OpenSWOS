@@ -36,6 +36,8 @@
 #include "uefa_coef.h"
 #include "conti_season.h"
 #include "states.h"
+#include "mod_api.h"        /* ModCareerEventKind */
+#include "mod_hooks.h"      /* ModHooks_CareerEvent: the PC cutscenes' moments */
 #include <string.h>   /* memcpy — used by the tournament field-map copies */
 
 /* ---- Constants ---- */
@@ -11289,6 +11291,25 @@ extern TeamFileEx *_diyCupLastMatchTeam2Ptr;
 extern uint16_t _diyCupLastMatchScoreTeam1;
 extern uint16_t _diyCupLastMatchScoreTeam2;
 
+/* A career result the player played or watched (`mode`/`selector` != 0: MATCH, VIEW MATCH,
+ * VIEW HIGHLIGHTS -- not RESULT), not one of the off-season's (_seasonUpdateInProgress), with the
+ * career team in it: told to the mods (ModHooks_CareerEvent), where the PC game plays its dressing
+ * room's cutscenes (swos.asm cseg_88A12's end, a league fixture; cseg_28E76's end, a cup's last
+ * match). The PC game tests exactly these: selTeamNumber != -1 (a career), its own copy of the
+ * mode, dseg_10E848 (the off-season's flag: our _seasonUpdateInProgress), then which side is
+ * careerTeam. Display only: nothing here changes the career. */
+static void career_result_event(uint8_t kind, int16_t mode, const TeamFileEx *team1, const TeamFileEx *team2,
+                                uint16_t goals1, uint16_t goals2)
+{
+    extern volatile uint16_t _seasonUpdateInProgress;
+    if (mode == 0 || _selTeamNumber == 0xFFFF || _seasonUpdateInProgress != 0)
+        return;
+    if (team1 == &_careerTeam)
+        ModHooks_CareerEvent(kind, (int16_t)((int32_t)goals1 - (int32_t)goals2), 0, 0);
+    else if (team2 == &_careerTeam)
+        ModHooks_CareerEvent(kind, (int16_t)((int32_t)goals2 - (int32_t)goals1), 0, 0);
+}
+
 /* DIY_PlayCupMatchAndAdvance
  *
  * Orchestrates a complete DIY cup match: routes to play/sim path based on mode,
@@ -11594,8 +11615,14 @@ final_or_groups:
         DIYCompetition *bufCopyS2 = &_diyFileBufferCopy.header;
         uint16_t bufCopyCurRound = (uint16_t)bufCopyS2->roundComplete;   /* 0x54 */
         uint16_t bufCopyTotalRounds = (uint16_t)bufCopyS2->totalMatchesInRound; /* 0x52 */
-        if (bufCopyCurRound + 1 != bufCopyTotalRounds)
+        if (bufCopyCurRound + 1 != bufCopyTotalRounds) {
+            /* (the PC game goes to its cutscene test from here too -- cseg_28E76's jnz cseg_295B0 --
+             * so a stage of a cup with groups and a final (hasGroups 2) ends with one) */
+            if (baseS->hasGroups == 2)
+                career_result_event(MODCAREER_CUP_FINAL, mode, team1, team2,
+                                    _diyCupLastMatchScoreTeam1, _diyCupLastMatchScoreTeam2);
             return 0; /* groups stage not done yet */
+        }
     }
 
     /* Determine competition winner from grid bracket */
@@ -11611,6 +11638,11 @@ final_or_groups:
         UefaPrize_CupWon((uint8_t)baseS->field_2E, (uint16_t)baseS->resultCode);   /* (a world's UEFA prize) */
     }
 
+    /* The cup's last match: the PC game's WIN CUP / LOSE CUP cutscene here (cseg_295B0: a cup
+     * without groups, or with groups and a final) */
+    if (baseS->hasGroups == 0 || baseS->hasGroups == 2)
+        career_result_event(MODCAREER_CUP_FINAL, mode, team1, team2,
+                            _diyCupLastMatchScoreTeam1, _diyCupLastMatchScoreTeam2);
     return 0;
 }
 
@@ -11857,5 +11889,7 @@ uint16_t DIY_PlayOrSimulateLeagueFixture(int16_t allowSquadChanges, int16_t sele
     _diyLeftTeamResult = goals1;
     _diyRightTeamResult = goals2;
 
+    /* the PC game's WIN / LOSE dressing-room cutscene here (cseg_89147: won or lost by three) */
+    career_result_event(MODCAREER_MATCH, selector, team1, team2, goals1, goals2);
     return 0;
 }

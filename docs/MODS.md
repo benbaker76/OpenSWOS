@@ -1478,3 +1478,64 @@ then includes the words).
 `SWOS_MOD_MATCH_TEST=arcade[:seconds]` (`--mods=arcade`, `SWOS_HARNESS_TURBO=1 SWOS_SKIP_INTRO=1`)
 plays one GOLDEN GOAL friendly CPU v CPU headless and passes when the rules decided it: a golden goal
 or, level at the limit, a shoot-out.
+
+## 37. The PC cutscenes: the dosvideos mod and careerEvent (2026-11-12)
+
+**`dosvideos`** ("PC cutscenes", canonical, `"changes": "cosmetic"`, `"targets": ["sdl"]`, on by
+default as `dosmenus` is: with no PC data it plays nothing; `src/mod_dosvideos.c`) plays the PC
+game's career cutscenes -- FLIC clips, decoded by our own `src/flic.c` -- at the moments the PC
+game plays them. The clips, their sounds, the decoder and how a clip is shown: docs/DOS_VIDEO.md.
+
+**The hook.** `ModDef careerEvent(const ModCareerEvent *)` (include/mod_api.h; `ModHooks_CareerEvent`,
+core, both targets -- nothing on the Amiga listens), told where swos.asm calls its cutscenes.
+Display only: what runs there may show something and wait for the player, never change the career,
+its saves or the game's random numbers.
+
+| kind | our place | the PC game's (swos.asm) | the clip |
+|---|---|---|---|
+| `MODCAREER_MATCH` | `DIY_PlayOrSimulateLeagueFixture`'s end (src/diy_competition.c, `career_result_event`) | `cseg_88A12`'s end (`cseg_89147`, ~121465): `selTeamNumber != -1`, the mode it was called with (`dseg_180586`) not RESULT, not the off-season (`dseg_10E848`), won or lost by 3+ | WIN / LOSE, the first time and then every third such result (`dseg_180588`) |
+| `MODCAREER_CUP_FINAL` | `DIY_PlayCupMatchAndAdvance`, the winner decided (and, `hasGroups` 2, each stage's end) | `cseg_28E76`'s `cseg_295B0` (~30075): `[esi+47h]` -- `hasGroups` -- 0 or 2, the same career/mode/off-season tests, not a draw | WCUP / LCUP |
+| `MODCAREER_NEW_SEASON` | `ContinueCareerNextSeason` (src/career_init.c), staying, before `InitializeNewSeason` | `PlayNewSeasonAnimations` (~102208), from `ContinueCareerNextSeason`'s no-job branch | WCUP if `playWinCupAnimation`, else PROM if promoted, else RELE if relegated |
+| `MODCAREER_CHAIRMAN` | `ShowChairmanMessage` (src/chairman_memo.c), before the memo's menu | `PlayChairmanScene` (~82804), the first thing `ShowChairmanMessage` does | `CH<n>_<id>` / `CHP_<id>`, id = `dseg_17BB14[currentMessage]` |
+
+The PC game tests the career team in each: WIN when the winner is `careerTeam`, LOSE otherwise --
+ours tells only results with the career team in them (a career's played or watched match always
+has it). A cup final drawn and decided on penalties plays nothing (the match's goals are equal),
+as in the PC game.
+
+**The rules the mod keeps** (its own, in memory -- display only):
+- The result counter (`dseg_180588`): -1 at a new career (`InitNewSeason`, from the new career's
+  menu: ours `careerNew`), never saved -- the PC game does not reset it on a load, nor do we. A 3+
+  result with -1 plays and sets 3; else it counts down and plays at 0, setting 3 again.
+- The chairman's scenes (`PlayChairmanScene`): only with the CHAIRMAN SCENES option on (here the
+  mod's "Chairman scenes", on: `SetDefaultOptions` sets `g_chairmanScenes = ON`) and the sound on;
+  memo 0 has no scene; scene ids 24-26 -- memos 24-26, the frequent ones: `TRIAL_PLAYER_LEFT_CLUB`,
+  `RESERVE_PLAYER_LEFT_CLUB`, `PLAYER_JOINED_CLUB_ON_TRIAL` -- only every fourth time
+  (`dseg_17BB8E`, never saved).
+- Which of the three chairmen (`chairmanIndex`, CH1..CH3, voices ECA..ECC): picked again at every
+  welcome memo (19, 20, 33, 34: `ShowGreetingMessage` / `ShowLastSeasonMessage`) as
+  `(rand & 7) / 3`, never the one before -- the PC game with `Rand2`, the mod with a generator of
+  its own (never the game's). The PC game kept `chairmanIndex` in the career file; we save nothing,
+  so a loaded career starts with the first chairman until its next welcome memo.
+- A national team's memos (27-38) are the president's: `CHP_<id>`, a frame every 6/70 s.
+
+**Settings** (`[mod.dosvideos]`): `room` (Dressing room: WIN, LOSE, WCUP, LCUP, PROM, RELE) and
+`chairman` (Chairman scenes), both `on` by default.
+
+**Never played** (`ModApi_CutsceneBlocked`): under the career autopilot (the golden careers), a rig
+(`--replay-test`, `--srp-resim`, `--career-golden`), online, in a match, with no sound, with the
+intro skipped (the PC game's `skipIntro`: `SWOS_SKIP_INTRO`, `[general] skip_intro`), or with no
+window. The counters still count (the PC game counts before it looks at `skipIntro`). Each moment
+logs one line: `[dosvideos] <clip>: <why> (...)`, `... -- not played (<rule>)`, or the count.
+
+**Checked:** `SWOS_DOSVIDEO_TEST=rules` runs the rules on made-up events (21 checks: the counter's
+1st and 4th, the cup final drawn, the season's order, the scenes' every fourth, the president's,
+300 welcome memos never giving the same chairman twice) -- `DOSVIDEOS RULES PASS`.
+`SWOS_DOSVIDEO_TEST=<clip>,...` plays clips at the main menu. `scripts/career_golden_test.sh` passes
+unchanged with the mod on (it is cosmetic, so on in the rig): its careers tell the mod their moments
+-- the chairmen's scenes, WCUP / PROM / RELE at the seasons' ends -- and it plays none ("not played
+(the career autopilot)"). `SWOS_DOSVIDEO_TEST=career` lets the autopilot's moments play: ENG1-WOLVES,
+two seasons, 32 chairman's scenes played inside the career's own flow, and its three season saves
+the golden record's byte for byte. The autopilot answers RESULT for every fixture, so it never
+reaches MATCH or CUP_FINAL (a played or watched match): those two are checked by the rules test and
+by reading, not yet in a played career.

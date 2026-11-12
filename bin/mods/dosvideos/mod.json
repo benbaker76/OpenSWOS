@@ -1,0 +1,33 @@
+{
+ "uuid": "6ec76299-759a-5331-9200-27e4f0e0e33e",
+ "id": "dosvideos",
+ "name": "PC cutscenes",
+ "version": "1.0",
+ "author": "OpenSWOS (the PC game's cutscenes, from the player's copy)",
+ "about": "The PC game's career cutscenes: the dressing room after a big win or loss, a cup final, promotion and relegation, and the chairman's scenes before his memos. Needs the PC game's data.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": true,
+ "settings": [
+  {
+   "key": "room",
+   "label": "Dressing room",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "chairman",
+   "label": "Chairman scenes",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  }
+ ]
+}

@@ -26,6 +26,12 @@ typedef struct {
 extern const SdAmigaSeason g_sdAmigaSeasons[];
 /* Ends with { NULL, NULL }. */
 extern const SdCopy g_sdDosCopy[];
+/* 1 when a g_sdDosCopy file may be missing and the PC data is still whole: the sounds a release
+ * may not have (sound_dos/fx, hard, pierce) and the cutscenes and theirs (video_dos/,
+ * sound_dos/flc/, sound_dos/chairman/: the dosvideos mod plays them when they are there). */
+int32_t SdManifest_DosOptional(const char *dest);
+/* 1 for the cutscenes' files (video_dos/, sound_dos/flc/, sound_dos/chairman/). */
+int32_t SdManifest_DosVideo(const char *dest);
 /* SWOS 2020's pitches, src in its game folder (swos/). Ends with { NULL, NULL }. */
 extern const SdCopy g_sd2020Copy[];
 

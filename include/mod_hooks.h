@@ -97,6 +97,10 @@ void ModHooks_CompetitionFinished(uint16_t season, uint8_t competitionId, uint8_
                                   uint16_t winner);
 void ModHooks_PlayerMoved(uint16_t fromTeam, uint8_t fromSlot, uint16_t toTeam, uint8_t toSlot);
 void ModHooks_PlayerCreated(uint16_t team, uint8_t slot, uint8_t kind, struct PlayerFile *player);
+/* A career moment the PC game shows a cutscene at (ModDef careerEvent; include/mod_api.h
+ * ModCareerEvent says each kind's place): kind ModCareerEventKind, goalDiff the career team's goals
+ * minus the other side's (MATCH, CUP_FINAL), message the memo (CHAIRMAN), flags (NEW_SEASON). */
+void ModHooks_CareerEvent(uint8_t kind, int16_t goalDiff, uint16_t message, uint8_t flags);
 
 /* The career save's "mods" section (src/save_format_json.c): the text that follows the career's
  * last member -- `,\n  "mods":{"<slug>":{...},...}` -- malloc'd, or NULL when no mod that is on

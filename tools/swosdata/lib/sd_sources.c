@@ -779,7 +779,7 @@ static int32_t dos_missing(const char *dir, char *first, uint32_t cap)
     first[0] = '\0';
     for (int32_t i = 0; g_sdDosCopy[i].dest; i++) {
         const char *d = g_sdDosCopy[i].dest;
-        if (!strncmp(d, "sound_dos/fx/", 13) || !strncmp(d, "sound_dos/hard/", 15) || !strncmp(d, "sound_dos/pierce/", 17))
+        if (SdManifest_DosOptional(d))
             continue;
         char p[1100];
         if (find_dos_at(dir, NULL, g_sdDosCopy[i].src, p, sizeof p) == 0)
@@ -1343,7 +1343,8 @@ static int32_t is_dos_cd_image(const char *path)
 }
 
 /* The game's own files off an image of the CD into a folder of the setup's own under the system's
- * temporary folder, once -- not SFX/ (read off the image as it is needed), nor the videos (ARC/),
+ * temporary folder, once -- not SFX/ nor the cutscenes (ARC/), both read off the image as they are
+ * needed (SdSources_ReadDos),
  * the boot disk or the sound card drivers: that folder, a PC game folder, in `out`. 0 when the
  * image has the game on it. */
 static int32_t cd_image_game(const char *image, char *out, uint32_t cap)
@@ -1360,7 +1361,7 @@ static int32_t cd_image_game(const char *image, char *out, uint32_t cap)
         char done[1200];
         snprintf(out, cap, "%s/" PROJECT_SETUP_PROGRAM "/%s.game", temp_root(), base);
         snprintf(done, sizeof done, "%s/.copied", out);         /* (a copy cut short is made again) */
-        static const char *const kSkip[] = { "SFX", "ARC", "BOOT", "ENSONIQ", NULL };   /* (ARC: the videos) */
+        static const char *const kSkip[] = { "SFX", "ARC", "BOOT", "ENSONIQ", NULL };   /* (ARC: the cutscenes) */
         if (Sg_IsFile(done) || (CdImage_ExtractTree(cd, out, kSkip, err) == 0 &&
                                 Sg_WriteFile(done, "", 0, err) == 0))
             rc = is_dos_dir(out) ? 0 : -1;

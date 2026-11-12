@@ -12,6 +12,8 @@
 #include "menu_system.h"
 #include "input_text.h"
 #include "translations.h"   /* tr_ptr — localize the by-pointer memo body text */
+#include "mod_api.h"        /* ModCareerEventKind */
+#include "mod_hooks.h"      /* ModHooks_CareerEvent: the PC chairman's scenes */
 
 /* ---- ASM externs (globals) ---- */
 extern MenuEntry _menuEntries[];
@@ -43,6 +45,9 @@ extern uint8_t _aThePresident[];           /* "THE PRESIDENT" */
 __attribute__((used, externally_visible))
 void ShowChairmanMessage(void)
 {
+    /* (where the PC game plays its chairman's scene first: ShowChairmanMessage calls
+     * PlayChairmanScene, then ShowMenu -- a mod's, display only) */
+    ModHooks_CareerEvent(MODCAREER_CHAIRMAN, 0, _currentMessage, 0);
     ShowMenu(_chairmanMemosMenu);
 }
 

@@ -44,6 +44,7 @@ void        Mods_Init(const char *enabled, const char *disabled);
 /* Before Mods_Init: a rig runs (main.c), so the default-on canonical mods that are not cosmetic
  * stay off (a mod the run names is still on). SDL. */
 void        Mods_SetRig(int32_t on);
+int32_t     Mods_IsRig(void);              /* (a rig runs: --replay-test, --srp-resim, --career-golden) */
 
 int32_t     Mods_Count(void);
 const char *Mods_Id(int32_t i);

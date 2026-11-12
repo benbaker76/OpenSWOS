@@ -338,6 +338,7 @@ static struct { char id[MODS_ID_MAX]; char uuid[40]; uint8_t byDefault, cosmetic
  * the run names itself (--mods) is still on (docs/MODS.md §26). */
 static int32_t s_rig;
 void Mods_SetRig(int32_t on) { s_rig = on; }
+int32_t Mods_IsRig(void) { return s_rig; }
 static int32_t s_canonCount;
 
 static int in_list(const char *list, const char *id)

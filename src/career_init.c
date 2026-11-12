@@ -45,6 +45,7 @@ extern uint16_t _lastOfferPrimaryPlayerOrdinal;
 extern uint16_t _offerNegotiationAttemptCount;
 extern uint16_t _careerSeasonsCompleted;
 #include "career_params.h"
+#include "mod_api.h"         /* ModCareerEventKind */
 #include "mod_hooks.h"       /* the career events (docs/MODS.md §27): SDL builds */
 #include "league_groups.h"
 #include "team_pool.h"
@@ -817,6 +818,12 @@ void ContinueCareerNextSeason(void)
         SWOS_AUTOSKIP_LOG("[bug1] back from AdvanceToNextSeason: youreSacked=%u", (unsigned)_youreSacked);
         InitializeStartingBalanceForNewSeason();
         SWOS_AUTOSKIP_LOG("[bug1] back from InitStartingBalance: youreSacked=%u", (unsigned)_youreSacked);
+        /* (where the PC game calls PlayNewSeasonAnimations: the cup won, promoted, relegated --
+         * its WIN CUP / PROMOTED / RELEGATED cutscenes; a mod's, display only) */
+        ModHooks_CareerEvent(MODCAREER_NEW_SEASON, 0, 0,
+                             (uint8_t)((_playWinCupAnimation == 1 ? MODCAREER_WON_CUP : 0) |
+                                       (_playPromotedAnimation == 1 ? MODCAREER_PROMOTED : 0) |
+                                       (_playRelegatedAnimation == 1 ? MODCAREER_RELEGATED : 0)));
         InitializeNewSeason();
         SWOS_AUTOSKIP_LOG("[bug1] back from InitializeNewSeason: youreSacked=%u", (unsigned)_youreSacked);
     }

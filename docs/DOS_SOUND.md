@@ -50,6 +50,10 @@ sounds and `SWOS.log` says so.
 The web build does not carry the folder (9 MB more to download), so it always plays the
 Amiga's sounds. The Amiga build has none of this.
 
+Two more folders under `sound_dos/` belong to the PC game's career cutscenes, not to a match:
+`flc/` (the dressing room's six sounds) and `chairman/english/` (the chairmen's and the
+president's voices, 92 files). Same format; docs/DOS_VIDEO.md.
+
 ## Your own commentary
 
 A folder per category under `sound_dos/commentary/`, any number of `.wav`, `.mp3` or `.raw`

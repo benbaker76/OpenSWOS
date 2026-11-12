@@ -314,6 +314,7 @@ static void print_usage(const char *argv0)
         "  --dos-music-selftest      Play the PC menu music through once without sound\n"
         "                            and report what it found. Exits.\n"
         "  --dos-sound-selftest      Check that every PC sound file is in sound_dos/\n"
+        "  --flic-selftest=DIR       Decode every PC cutscene (.FLC) in DIR (SWOS_FLIC_DUMP=OUT: the frames)\n"
         "                            and every table names one. Exits.\n"
         "  --convert-diy=<in>,<out>  Rewrite a PC/SWOS 2020 .DIY as this game's JSON\n"
         "                            .DIY, which the Amiga loads. Exits.\n"
@@ -971,6 +972,9 @@ int main(int argc, char **argv)
             return DosMusic_SelfTest() ? 1 : 0;
         } else if (strcmp(a, "--dos-sound-selftest") == 0) {
             return DosSound_SelfTest() ? 1 : 0;
+        } else if ((v = match_kv(a, "flic-selftest")) != NULL) {
+            extern int32_t DosVideos_FlicSelfTest(const char *dir);
+            return DosVideos_FlicSelfTest(v) ? 1 : 0;   /* (src/mod_dosvideos.c: every .FLC in a folder) */
         } else if ((v = match_kv(a, "slang-selftest")) != NULL) {
             extern int32_t Slang_SelfTest(const char *preset);
             return Slang_SelfTest(v) ? 0 : 1;      /* (src/slang.c: a preset for every backend) */

@@ -163,6 +163,9 @@ none, so with a copy like that the setup looks in your CD drives by itself, and 
 there it shows one more screen, *Add the PC game's commentary* (optional): put the CD in, or
 drag a copy of the CD or its image (`.iso`, `.img`, `.bin` or `.cue`) onto the window. Skip it
 and the game plays without the PC commentary (its other sounds, and the Amiga's, still play).
+The CD (and GOG's game) also has the PC game's **cutscenes** -- the dressing room after a big
+win or loss, the chairman at his desk -- which the setup copies the same way when they are there
+(about 86 MB); a career plays them with the *PC cutscenes* mod (OPTIONS -> MODS), on by default.
 
 **Game options.** How the game looks and plays the first time you start it: the gameplay,
 graphics, sound, music, screen, language and more. Not sure? Leave them: you can change any

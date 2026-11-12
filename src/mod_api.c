@@ -742,3 +742,86 @@ int32_t ModApi_ShowDialog(const char *title, const char *text, const char *const
     return MenuDialog_Show(title, text, buttons, count, defaultButton);
 }
 #endif
+
+/* ---- a cutscene over the whole screen (the PC cutscenes mod; include/mod_api.h) ---- */
+#ifdef SWOS_SDL_BUILD
+#include "career_autopilot.h"
+#include "fade.h"
+extern void AudioSDL_CutsceneSolo(int on);
+extern void AudioSDL_CutscenePlay(const uint8_t *data, uint32_t len, int rate);
+extern int  AudioSDL_CutscenePlaying(void);
+extern int  AudioSDL_Available(void);
+
+static uint32_t s_cutPresses;
+
+const char *ModApi_CutsceneBlocked(int32_t test)
+{
+    extern int32_t NetplayMatch_IsLive(void);
+    extern int32_t NetplayLobby_IsOpen(void);
+    extern volatile uint8_t _skipLoaderIntro;
+    extern uint16_t _quitToDos;
+    const char *video = SDL_GetCurrentVideoDriver();
+    if (test < 2 && CareerAutopilot_Active())
+        return "the career autopilot";
+    if (test < 2 && Mods_IsRig())
+        return "a rig runs";
+    if (NetplayMatch_IsLive() || NetplayLobby_IsOpen())
+        return "online";
+    if (ModApi_InMatch())
+        return "a match";
+    if (_quitToDos)
+        return "quitting";
+    if (!AudioSDL_Available())
+        return "no sound";                  /* (the PC game's: not with g_soundOff) */
+    if (!test && _skipLoaderIntro)
+        return "the intro is skipped";      /* (the PC game's: not with skipIntro) */
+    if (!test && (!video || !strcmp(video, "dummy") || !strcmp(video, "offscreen")))
+        return "no window";
+    return NULL;
+}
+
+void ModApi_CutsceneBegin(void)
+{
+    FadeOutToBlack();
+    AudioSDL_CutsceneSolo(1);
+    s_cutPresses = Platform_PressCount();
+}
+
+int32_t ModApi_CutsceneFrame(const uint8_t *pixels, int32_t w, int32_t h, const uint8_t *rgb, int32_t level)
+{
+    extern uint16_t _quitToDos;
+    Platform_CutsceneShow(pixels, w, h, rgb, level);
+    if (Platform_VBlank() || _quitToDos)
+        return 1;
+    return Platform_PressCount() != s_cutPresses;
+}
+
+void ModApi_CutsceneSound(const uint8_t *pcm, uint32_t len, int32_t rate)
+{
+    AudioSDL_CutscenePlay(pcm, len, rate);
+}
+
+int32_t ModApi_CutsceneSoundPlaying(void) { return AudioSDL_CutscenePlaying(); }
+
+void ModApi_CutsceneEnd(void)
+{
+    extern uint16_t _menuFade, _fireResetFlag;
+    extern volatile uint16_t _keyCount, _currentKey;
+    extern int32_t MenuMouse_TakeClick(void);
+    Platform_CutsceneShow(NULL, 0, 0, NULL, 0);
+    AudioSDL_CutsceneSolo(0);
+    /* (the press that skipped, still down or queued, must not choose the menu's entry: as the
+     * intro's skip, loader_intro.c) */
+    _fireResetFlag = 1;
+    _keyCount = 0;
+    _currentKey = 0;
+    (void)MenuMouse_TakeClick();
+    _menuFade = 1;                          /* (the PC game's menuFade: the menu fades in) */
+}
+
+const char *ModApi_Language(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    return g_arcadeOpts && g_arcadeOpts->language[0] ? g_arcadeOpts->language : "en";
+}
+#endif
