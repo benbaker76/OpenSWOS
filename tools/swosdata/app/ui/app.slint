@@ -1354,3 +1354,41 @@ export component MainWindow inherits Window {
         }
     }
 }
+
+// --headless's own small window (main.cpp App::HeadlessScanDrives): the search of every drive,
+// which can take a minute or more, shown with what it is looking in and a Stop -- not the whole
+// setup window, which opens only if the search finds no copy of the game (or is stopped).
+export component SearchWindow inherits Window {
+    in property <string> project-name: "OpenSWOS";
+    in property <string> status;
+    callback stop();
+    title: @tr("{0} Setup", root.project-name);
+    icon: @image-url("../../../../packaging/linux/hicolor/256x256/apps/openswos.png");
+    preferred-width: 520px;
+    background: Theme.chrome;
+    default-font-size: 13px;
+
+    VerticalLayout {
+        padding: 18px;
+        spacing: 12px;
+        Text {
+            text: @tr("Looking for your copy of Sensible World of Soccer on your drives...");
+            color: Theme.text;
+            font-weight: 700;
+            wrap: word-wrap;
+        }
+        Text {
+            text: root.status;
+            color: Theme.text-dim;
+            overflow: elide;
+        }
+        ProgressIndicator { indeterminate: true; height: 6px; }
+        HorizontalLayout {
+            alignment: end;
+            TextButton {
+                label: @tr("Stop");
+                clicked => { root.stop(); }
+            }
+        }
+    }
+}

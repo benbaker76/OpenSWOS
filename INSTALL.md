@@ -81,9 +81,12 @@ Then, if you play somewhere else as well:
    - If Windows says *"Windows protected your PC"*, click **More info**, then **Run anyway**.
      OpenSWOS isn't signed by Microsoft, which is why it asks.
 2. Click **Next** through the installer.
-3. On the last page, leave **"Set up the game data from your copy of Sensible World of
-   Soccer"** ticked and click **Finish**. OpenSWOS Setup opens: go to
-   [step 4](#4-run-openswos-setup).
+3. On the last page, leave **"Make the game data automatically from your copy of Sensible
+   World of Soccer"** ticked and click **Finish**. If your copy is found (GOG's game, the CD,
+   SWOS 2020, an Amiga copy in your Downloads -- or, after a short search of your drives,
+   anywhere a few folders down), the game data is made with no questions and the game starts.
+   If it is not, OpenSWOS Setup opens and says so: go to [step 4](#4-run-openswos-setup).
+   Tick **"Open OpenSWOS Setup"** too to choose for yourself what is made.
 
 Later, you can open the setup again from the Start menu: **OpenSWOS → OpenSWOS Setup**.
 

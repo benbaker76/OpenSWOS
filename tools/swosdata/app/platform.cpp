@@ -585,12 +585,12 @@ static void FindAmigaImages(const std::string& dir, int depth, std::vector<std::
   }
 }
 
-std::vector<std::string> InstalledSwosPaths() {
-  std::vector<std::string> out;
 #ifdef _WIN32
-  // Every installer registers its program here (the 32- and 64-bit views, and the user's own):
-  // SWOS 2020's NSIS installer ("SWOS 2020 Ver.7.7", no InstallLocation: its uninstaller's folder),
-  // an Amiga SWOS package ("Amiga SWOS version 2.22": its Disks\\swos.hdf), GOG's game too.
+// Every program Windows' Uninstall list names (the 32- and 64-bit views, and the user's own):
+// its DisplayName and its folder -- InstallLocation, else the folder of its UninstallString
+// (SWOS 2020's NSIS installer sets none: "C:\\Games\\SWOS 2020\\uninst.exe").
+static std::vector<std::pair<std::wstring, std::string>> UninstallEntries() {
+  std::vector<std::pair<std::wstring, std::string>> out;
   struct Root { HKEY hive; const wchar_t* key; };
   const Root roots[] = {
       {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"},
@@ -607,12 +607,6 @@ std::vector<std::string> InstalledSwosPaths() {
       wchar_t name[512] = {0}, loc[1024] = {0}, unins[1024] = {0};
       DWORD nb = sizeof name, lb = sizeof loc, ub = sizeof unins;
       if (RegGetValueW(list, sub, L"DisplayName", RRF_RT_REG_SZ, nullptr, name, &nb) != ERROR_SUCCESS) continue;
-      const std::wstring dn(name);
-      const bool swos = dn.find(L"Sensible World of Soccer") != std::wstring::npos ||
-                        dn.find(L"SWOS") != std::wstring::npos;
-      // (not this project's own installs, nor its forks')
-      if (!swos || dn.find(L"OpenSWOS") != std::wstring::npos || dn.find(L"SWOS United") != std::wstring::npos)
-        continue;
       std::string dir;
       if (RegGetValueW(list, sub, L"InstallLocation", RRF_RT_REG_SZ, nullptr, loc, &lb) == ERROR_SUCCESS && loc[0])
         dir = Narrow(loc);
@@ -623,11 +617,39 @@ std::vector<std::string> InstalledSwosPaths() {
         if (slash != std::string::npos) dir = u.substr(0, slash);
       }
       while (!dir.empty() && (dir.back() == '\\' || dir.back() == '/')) dir.pop_back();
-      if (dir.empty()) continue;
-      out.push_back(dir);
-      FindAmigaImages(dir, 2, out);
+      if (!dir.empty()) out.emplace_back(name, dir);
     }
     RegCloseKey(list);
+  }
+  return out;
+}
+#endif
+
+std::string Swos2020InstallDir() {
+#ifdef _WIN32
+  for (const auto& [name, dir] : UninstallEntries())     // ("SWOS 2020 Ver.7.7")
+    if (name.rfind(L"SWOS 2020", 0) == 0) return dir;
+  // Not installed (a copy unpacked there, or its entry gone): where its installer puts it.
+  const std::string fixed = "C:\\Games\\SWOS 2020";
+  if (IsDir(fixed)) return fixed;
+#endif
+  return {};
+}
+
+std::vector<std::string> InstalledSwosPaths() {
+  std::vector<std::string> out;
+#ifdef _WIN32
+  // Every installer registers its program in the Uninstall list: SWOS 2020's NSIS installer
+  // ("SWOS 2020 Ver.7.7", no InstallLocation: its uninstaller's folder), an Amiga SWOS package
+  // ("Amiga SWOS version 2.22": its Disks\\swos.hdf), GOG's game too.
+  for (const auto& [dn, dir] : UninstallEntries()) {
+    const bool swos = dn.find(L"Sensible World of Soccer") != std::wstring::npos ||
+                      dn.find(L"SWOS") != std::wstring::npos;
+    // (not this project's own installs, nor its forks')
+    if (!swos || dn.find(L"OpenSWOS") != std::wstring::npos || dn.find(L"SWOS United") != std::wstring::npos)
+      continue;
+    out.push_back(dir);
+    FindAmigaImages(dir, 2, out);
   }
 #endif
   return out;

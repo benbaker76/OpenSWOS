@@ -81,6 +81,11 @@ std::vector<std::string> GogInstallDirs();
 // installed Amiga SWOS package, ...): each folder, and the Amiga disk images (.hdf/.adf/.lha) up to
 // two levels inside it. Candidates only: SdSources_AddFile decides. Empty elsewhere.
 std::vector<std::string> InstalledSwosPaths();
+// SWOS 2020's install folder: its entry in Windows' Uninstall list (DisplayName "SWOS 2020 ...":
+// InstallLocation, else its uninstaller's folder), else C:\Games\SWOS 2020 when that is there (a
+// copy that was not installed). Windows only: "" elsewhere. (Taken as SWOS 2020 only -- its swos/
+// folder has SWOS 2020's own art, so it is never the PC game.)
+std::string Swos2020InstallDir();
 // The places SCAN MY DRIVES looks into: every local, removable and optical drive on Windows; on a
 // Mac /Volumes' volumes and the home folder; on Linux the home folder and the mounted media.
 std::vector<std::string> DriveRoots();

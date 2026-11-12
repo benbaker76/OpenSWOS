@@ -22,6 +22,9 @@ int32_t AssetsCheck_QuitForSetup(void);
  * the notice's LAUNCH SETUP and OPTIONS -> LAUNCH SETUP. Never on a phone or the web. */
 int32_t AssetsCheck_FindSetup(char *out, uint32_t cap);
 int32_t AssetsCheck_LaunchSetup(void);
+/* The same with --headless: the data made with no window when the setup finds the player's copy
+ * of the game, its window only when it does not -- the "no game data" box's Launch Setup. */
+int32_t AssetsCheck_LaunchSetupHeadless(void);
 
 /* The world a run plays (include/world.h) and its data package's state, found before SDL_Init
  * (main.c): 0 fine, 1 its package is not installed (96/97 played instead), 2 the installed

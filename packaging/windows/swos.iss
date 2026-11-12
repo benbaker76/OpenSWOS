@@ -31,6 +31,7 @@
 ; The data setup: OpenSWOS ships none of the original game's data, and this makes
 ; it from the player's own copy (tools/swosdata). Run when the install finishes.
 #define SetupExeName   "openswos-setup.exe"
+#define SetupName      AppName + " Setup"
 #define AppURL         "https://github.com/benbaker76/OpenSWOS"
 
 ; Relative to THIS file. Inno resolves relative paths against the script's
@@ -105,14 +106,36 @@ Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
-Name: "{group}\{#AppName} Setup"; Filename: "{app}\{#SetupExeName}"
+Name: "{group}\{#SetupName}"; Filename: "{app}\{#SetupExeName}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
-; Not the game: without the player's data it has nothing to show. The setup has a
-; Play button for when it is done.
-Filename: "{app}\{#SetupExeName}"; Description: "Set up the game data from your copy of Sensible World of Soccer"; Flags: nowait postinstall skipifsilent
+; Not the game: without the player's data it has nothing to show. Two boxes on the last page:
+;  - the data made with no window (--headless, tools/swosdata/app/main.cpp App::Headless):
+;    nothing when it is up to date; an update from the sources the last install used when a
+;    part is out of date (an upgrade); else from the copy of the game found where the window
+;    looks at its start (GOG, the installed SWOS programs, the CD, Downloads), else on every
+;    drive (a small window with Stop). The setup's window opens by itself only when no copy is
+;    found, the search is stopped or making the data fails. Waited for,
+;    as the player who started the installer (the data goes to THEIR Documents, not the
+;    admin's), and not hidden: that window must be able to show.
+;  - the setup's whole window, for a player who wants to choose (unticked).
+; The automatic pass also starts the game when there is enough to play (so there is no "Launch
+; the game" box of Inno's); with the window ticked too, it passes --no-play (HeadlessParams) and the
+; window follows it.
+Filename: "{app}\{#SetupExeName}"; Parameters: "{code:HeadlessParams}"; Description: "Make the game data automatically from your copy of Sensible World of Soccer"; StatusMsg: "Making the game data from your copy of Sensible World of Soccer..."; Flags: postinstall waituntilterminated runasoriginaluser skipifsilent
+Filename: "{app}\{#SetupExeName}"; Description: "Open {#SetupName}"; Flags: postinstall nowait runasoriginaluser skipifsilent unchecked
+
+[Code]
+// The automatic entry's arguments: --no-play when "Open ... Setup" (the second of the last page's
+// boxes) is ticked too -- the window comes next, and the game is played from there.
+function HeadlessParams(Param: String): String;
+begin
+  Result := '--headless';
+  if (WizardForm.RunList.Items.Count > 1) and WizardForm.RunList.Checked[1] then
+    Result := Result + ' --no-play';
+end;
 
 [UninstallDelete]
 ; The data trees are installed wholesale by one wildcard, so remove them
