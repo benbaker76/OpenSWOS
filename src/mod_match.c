@@ -1370,6 +1370,11 @@ void ModMatch_SelfTest(void)
         ModChallenges_Test(how + 10);
         return;
     }
+    if (strncmp(how, "arcade", 6) == 0) {       /* (the arcade mod's rules: arcade[:seconds], src/mod_arcade.c) */
+        extern void ModArcade_Test(int32_t seconds);
+        ModArcade_Test(how[6] == ':' ? atoi(how + 7) : 0);
+        return;
+    }
     if (strncmp(how, "speedrun:", 9) == 0) {    /* (the speedrun mod's run, src/mod_speedrun.c) */
         extern void ModSpeedrun_Test(int32_t target);
         ModSpeedrun_Test(atoi(how + 9));

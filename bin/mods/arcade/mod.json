@@ -1,0 +1,73 @@
+{
+ "uuid": "a7a7972e-6003-5da6-8dcb-2c478f1e5829",
+ "id": "arcade",
+ "name": "Arcade rules",
+ "version": "1.0",
+ "author": "OpenSWOS (the arcade cabinet's game modes)",
+ "about": "The arcade's game modes in a friendly: GOLDEN GOAL -- a short match, the first goal wins it, a draw goes to penalties. The arcade cabinet plays by them.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "gameplay",
+ "default": false,
+ "settings": [
+  {
+   "key": "friendlies",
+   "label": "Arcade rules in friendlies",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "mode",
+   "label": "Mode",
+   "choices": [
+    "GOLDEN GOAL"
+   ],
+   "default": "GOLDEN GOAL"
+  },
+  {
+   "key": "game_seconds",
+   "label": "Match length (seconds)",
+   "choices": [
+    "30",
+    "45",
+    "60",
+    "90",
+    "120",
+    "180",
+    "240"
+   ],
+   "default": "45"
+  },
+  {
+   "key": "golden_goal",
+   "label": "Golden goal",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "penalties_on_draw",
+   "label": "Penalties on a draw",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  },
+  {
+   "key": "goal_replay",
+   "label": "Goal replays",
+   "choices": [
+    "on",
+    "off"
+   ],
+   "default": "on"
+  }
+ ]
+}
