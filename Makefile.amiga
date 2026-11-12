@@ -86,6 +86,8 @@ SDL_ONLY_SRCS := \
     mod_pitchmaps.c       \
     mod_backgrounds.c     \
     mod_dosmenus.c        \
+    mod_dosvideos.c       \
+    flic.c                \
     slang.c               \
     gpu_slang.c           \
     mod_retrotv.c         \
