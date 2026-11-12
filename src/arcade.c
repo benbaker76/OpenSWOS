@@ -1005,9 +1005,9 @@ static int arc_load_team(int flag, int slot, uint8_t controls)
  * limit, the golden goal, penalties on a draw, the goal replays, by the mode
  * the operator picked -- played in the match state on every frame. The cabinet
  * hands the mod its F2 settings before each match (arc_arm_rules) and asks it
- * afterwards how long the match ran (arc_frames_played, for the run's TIME).
+ * afterwards how long the match ran (arc_seconds_played, for the run's TIME).
  * ==================================================================== */
-#define ARC_FRAMES_PER_SEC 50   /* the mod's arcade second (its FRAMES_PER_SECOND) */
+#define ARC_FRAMES_PER_SEC 50   /* a second of the cabinet's own screens (the menu loop runs at 50) */
 
 extern PlatformInitOptions *g_arcadeOpts;   /* live options (defined below) */
 
@@ -1039,14 +1039,15 @@ static void arc_arm_rules(void)
     _gArcadeSfxSuppressed = 0;   /* the match wants real crowd / in-game SFX */
 }
 
-/* The frames the last match was played by the mod's rules (its TIME). */
-static long arc_frames_played(void)
+/* The seconds the last match was played by the mod's rules (its TIME): real seconds, whatever
+ * the gameplay style's frame rate (the mod divides by it). */
+static long arc_seconds_played(void)
 {
-    char out[96];
+    char out[128];
     double v = 0;
     if (ModApi_CallService("arcade", "played", NULL, out, sizeof out) != 0)
         return 0;
-    { const char *p = strstr(out, "\"frames\":"); if (p) v = atof(p + 9); }
+    { const char *p = strstr(out, "\"seconds\":"); if (p) v = atof(p + 10); }
     return (long)v;
 }
 
@@ -1188,7 +1189,7 @@ static void arc_start_game(void)
 
         if (_quitToDos) { aborted = 1; break; }
 
-        totalSecs += (uint32_t)(arc_frames_played() / ARC_FRAMES_PER_SEC);
+        totalSecs += (uint32_t)arc_seconds_played();
 
         int winner = arc_match_winner();
         if (s_arcDebugEndRun) {              /* DEBUG (F10): end the run with a RANDOM score so the

@@ -297,8 +297,10 @@ from kick-off, sees a golden goal from the score, waits for the celebration
 limit a level score goes to `ModApi_StartShootout`. The match asks the setup for the slowest
 clock (GAME LENGTH 10 minutes: half time is five minutes away) and the replays as `goal_replay`
 says (`ModFriendlyRules`); the player's own GAME LENGTH and AUTO REPLAYS are back after the match.
-An arcade second is 50 frames (the cabinet's since it was built), so under the PC's 70-frame
-gameplay a match is shorter in real time, as the cabinet's always was.
+An arcade second is a real second: the limit is `game_seconds` times the match's frame rate by
+its gameplay style (`ModApi_FrameRate`: Amiga 50, XBOX 60, DOS 70), and the cabinet's TIME is the
+mod's `seconds`. (Until 2026-11-12 it was 50 frames whatever the style: a "45 s" match under DOS
+gameplay lasted 32 s.)
 
 **The cabinet uses the mod.** In arcade mode `main.c` puts `arcade` in front of the mods list for
 the run (never written to SWOS.ini). The cabinet talks to the mod only through its **service**

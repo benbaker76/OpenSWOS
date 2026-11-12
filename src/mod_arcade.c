@@ -57,9 +57,15 @@ static const ArcadeMode k_modes[] = {
 };
 #define MODE_COUNT ((int32_t)(sizeof k_modes / sizeof k_modes[0]))
 
-/* An arcade second is 50 frames, the Amiga's PAL frame (the cabinet's since it was built): at
- * the PC's 70 frames the match is shorter in real time, as the cabinet's always was. */
-#define FRAMES_PER_SECOND 50
+/* An arcade second is a real second: the match's frames a second by its gameplay style (Amiga 50,
+ * XBOX 60, DOS 70 -- ModApi_FrameRate). Online the joiner plays the host's style, and the limit
+ * travels as frames in the words, so both count the same. (Until 2026-11-12 it was 50 frames
+ * whatever the style: a "45 s" match under DOS gameplay lasted 32 s.) */
+static uint32_t frames_per_second(void)
+{
+    const int32_t fps = ModApi_FrameRate();
+    return fps > 0 ? (uint32_t)fps : 50u;
+}
 #define SECONDS_MIN       10
 #define SECONDS_MAX       600
 
@@ -150,7 +156,7 @@ static int32_t arcade_friendly_rules(ModFriendlyRules *out)
     w[W_ACTIVE] = 1;
     w[W_MODE] = (uint32_t)r.mode;
     w[W_RULES] = (m->rules & ~m->settable) | (r.rules & m->rules & m->settable);
-    w[W_LIMIT] = (uint32_t)clamp_seconds(r.seconds) * FRAMES_PER_SECOND;
+    w[W_LIMIT] = (uint32_t)clamp_seconds(r.seconds) * frames_per_second();
     /* the slowest clock: at 45 s, or even 240, the engine's half time is still minutes away */
     out->slowClock = (uint8_t)((w[W_RULES] & RULE_TIME_LIMIT) != 0);
     out->autoReplays = (int8_t)((w[W_RULES] & RULE_GOAL_REPLAY) != 0);
@@ -227,7 +233,7 @@ static void arcade_step(void)
  *   arm   {"mode":"GOLDEN GOAL","game_seconds":45,"golden_goal":true,
  *          "penalties_on_draw":true,"goal_replay":true}
  *                         the next friendly plays by these (the operator's F2 settings), once
- *   played                {"active":1,"frames":N}: the last match's rules, its frames played */
+ *   played                {"active":1,"frames":N,"seconds":S}: the last match's rules, how long it ran */
 static int32_t args_bool(const char *args, const char *path, int32_t fallback)
 {
     int b = 0;
@@ -265,7 +271,8 @@ static int32_t arcade_service(const char *method, const char *args, char *out, u
     }
     if (!strcmp(method, "played")) {
         if (out && cap)
-            snprintf(out, cap, "{\"active\":%d,\"frames\":%u}", (int)s_lastActive, (unsigned)s_lastPlayed);
+            snprintf(out, cap, "{\"active\":%d,\"frames\":%u,\"seconds\":%u}", (int)s_lastActive,
+                     (unsigned)s_lastPlayed, (unsigned)(s_lastPlayed / frames_per_second()));
         return 0;
     }
     return -1;
@@ -303,7 +310,7 @@ void ModArcade_Test(int32_t seconds)
         exit(1);
     }
     const int32_t rc = ModApi_PlayMatch(SLUG, &setup, &r);
-    const uint32_t limit = (uint32_t)clamp_seconds(seconds) * FRAMES_PER_SECOND;
+    const uint32_t limit = (uint32_t)clamp_seconds(seconds) * frames_per_second();
     ModApi_CallService("arcade", "played", NULL, played, sizeof played);
     fprintf(stderr, "[arcade] test: the service says %s\n", played);
     const int32_t golden = r.goals[0] + r.goals[1] == 1 && r.endedByMod;
