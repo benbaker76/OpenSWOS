@@ -417,8 +417,9 @@ int32_t ModApi_ShowDialog(const char *title, const char *text, const char *const
  * -- a careerEvent, a mod's entry --, never in a match. ModApi_CutsceneBlocked says first whether
  * one may play: NULL when it may, else why not (the one rule for every cutscene: the career
  * autopilot, a rig, an online match or lobby, no sound, the intro skipped as the PC game's
- * skipIntro, a run with no window). `test` != 0 (a test's own clip) lets the skipped intro and a
- * windowless run through. Then:
+ * skipIntro, a run with no window). `test` 1 (a test's own clip) lets the skipped intro and a
+ * windowless run through; 2 (a test driving a career with the autopilot) the autopilot and the
+ * rig too. Then:
  *   Begin          the game's picture fades to black; its music and sounds are held
  *   Frame          shows a picture (w x h palette indices, centred 1:1, the rest its darkest colour)
  *                  in its own palette (768 bytes, R G B 0-255) at `level` (0 black .. 256 full) and

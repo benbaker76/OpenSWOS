@@ -761,9 +761,9 @@ const char *ModApi_CutsceneBlocked(int32_t test)
     extern volatile uint8_t _skipLoaderIntro;
     extern uint16_t _quitToDos;
     const char *video = SDL_GetCurrentVideoDriver();
-    if (CareerAutopilot_Active())
+    if (test < 2 && CareerAutopilot_Active())
         return "the career autopilot";
-    if (Mods_IsRig())
+    if (test < 2 && Mods_IsRig())
         return "a rig runs";
     if (NetplayMatch_IsLive() || NetplayLobby_IsOpen())
         return "online";

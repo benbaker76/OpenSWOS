@@ -39,7 +39,8 @@
  * SWOS_DOSVIDEO_TEST=<clip>[,<clip>...] (win, lose, wcup, lcup, prom, rele, ch1_05, chp_03 ...)
  * plays those at the 30th main-menu frame, even with no window or the intro skipped, then quits
  * after 60 more menu frames with "DOSVIDEOS TEST PASS"; =rules runs the moments' rules on made-up
- * events (nothing played) and quits with PASS or FAIL. --flic-selftest=<dir> decodes every .FLC
+ * events (nothing played) and quits with PASS or FAIL; =career lets the career autopilot's moments
+ * play (--career-golden: a test of the real moments, the career's own flow around them). --flic-selftest=<dir> decodes every .FLC
  * in a folder (SWOS_FLIC_DUMP=<out>: each file's frames, for scripts/flic_check.py).
  */
 #ifdef SWOS_SDL_BUILD
@@ -72,7 +73,7 @@ static uint16_t s_resultCount = 0xFFFF;     /* dseg_180588 */
 static uint16_t s_sceneCount;               /* dseg_17BB8E */
 static uint16_t s_chairman;                 /* chairmanIndex: 0..2 */
 static uint32_t s_rng;
-static int32_t  s_test;                     /* 1 clips, 2 rules */
+static int32_t  s_test;                     /* 1 clips, 2 rules, 3 career */
 static int32_t  s_dry;                      /* (the rules test: decide, never play) */
 static char     s_dryLog[256];
 static int32_t  s_saidMissing;
@@ -128,7 +129,7 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
         snprintf(s_dryLog + strlen(s_dryLog), sizeof s_dryLog - strlen(s_dryLog), "%s%s", s_dryLog[0] ? " " : "", clip);
         return;
     }
-    const char *blocked = ModApi_CutsceneBlocked(s_test == 1);
+    const char *blocked = ModApi_CutsceneBlocked(s_test == 1 ? 1 : s_test == 3 ? 2 : 0);
     if (blocked) {
         fprintf(stderr, "[dosvideos] %s: %s -- not played (%s)\n", clip, why, blocked);
         return;
@@ -377,7 +378,7 @@ static int32_t rules_test(void)
 static void test_menu(void)
 {
     static int32_t frames, done;
-    if (!s_test || !ModApi_IsMainMenu())
+    if (!s_test || s_test == 3 || !ModApi_IsMainMenu())
         return;
     frames++;
     if (s_test == 2) {
@@ -416,7 +417,7 @@ static void test_menu(void)
 static void dosvideos_init(void)
 {
     const char *t = getenv("SWOS_DOSVIDEO_TEST");
-    s_test = !t || !t[0] ? 0 : !strcmp(t, "rules") ? 2 : 1;
+    s_test = !t || !t[0] ? 0 : !strcmp(t, "rules") ? 2 : !strcmp(t, "career") ? 3 : 1;
 }
 
 /* --flic-selftest=<dir>: every .FLC in `dir` decoded to its last frame -- its frame count the
