@@ -126,9 +126,11 @@ Music & Sound                  Alex Joseph, Graham King, Jason Page,
 
 OpenSWOS
 
+Project Manager                benbaker76
 Port to C                      benbaker76
 Reverse Engineering            benbaker76 (Amiga) / zkz (DOS)
 AGA                            benbaker76
+SWOS 2026-27 Mod               Aminta
 Multiplayer (GGPO-X)           thd79
 Server Help                    Redhair
 Test Lead                      Playaveli
@@ -139,6 +141,15 @@ Beta Testers                   Brummie, crom1, ElMichaJ, Elsheimy, EMPI,
 Donators                       benbaker76, Playaveli, starwindz, Petarku,
                                gatifun, burellapaolo, az0man0,
                                Cartoplotus68, JoSon, aliko
+
+SWOS United
+
+Project Manager                Playaveli
+Engineering Lead               benbaker76
+SWOS 2020 Lead Developer       starwindz
+Multiplayer (GGPO-X)           thd79
+Webmaster                      ElMichaJ
+Manic SWOS Preacher            Redhair
 ```
 
 - **Ben Baker** ([github.com/benbaker76](https://github.com/benbaker76)) —

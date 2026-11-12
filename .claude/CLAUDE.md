@@ -225,19 +225,19 @@ transfers or saves**; `--update` records a deliberate change, `--twice` re-prove
 `scripts/career_golden_diff.py A B` names what changed. A save must hold no address -- the test
 found two (`namePtr` in the competition blobs, now written as a set/unset marker).
 
-**The season-end and cup rules are a library shared with the SWOS 96/97 Mod** (docs/RULES_LIBRARY.md):
-`third_party/swos-competition-engine` (submodule, Davide Lorigliola's repo), its `rules/` built as
-`src/swos_rules_*.c` on every target -- the Italian play-offs, every pack's knockouts, the career
-club's play-off contests, B teams and the season's moves, the cups' clubs, the Coppa D's later
-seasons, the parallel groups (`sr_pg_season`; `league_groups.c` the game's side) -- at the tag **v1**
-(87b6527, 2026-11-02: the Mod 4.0.5's rules, 4.0.6's pg_a2 guard; docs/RULES_LIBRARY.md §10-11).
-**v1 is frozen**: struct layouts, signatures and results stay; additions are 1.x, a change to what
-exists is a v2 agreed with Davide. `league_playoffs.c`,
-`world_cups.c` and `world_cupd.c` are the game's side of them; it gives the library each spec's length
-(`spec_len`, required) and the B teams' `b_in_ko` / `base` / `levels`. A rule
-change goes there as a pull request with its comparison against the Mod's C (`make rules-check
-MOD=...` there); `scripts/league_playoffs_check.sh` here runs ours through it (MOD= a 4.0.5 checkout). Freestanding C99, no
-libc, one caller-owned state (`sr_state`): the Mod links the same code into the DOS exe.
+**The season-end and cup rules are OpenSWOS's own, in `src/rules/`** (docs/RULES_LIBRARY.md,
+src/rules/README.md), built as `src/swos_rules_*.c` on every target -- the Italian play-offs, every
+pack's knockouts, the career club's play-off contests, B teams and the season's moves, the cups'
+clubs, the Coppa D's later seasons, the parallel groups (`sr_pg_season`; `league_groups.c` the game's
+side). Until 2026-11-11 a library shared with Davide Lorigliola's SWOS 96/97 Mod (the submodule
+`third_party/swos-competition-engine`, its tag v1 = 87b6527): the owner moved it in, so our work stays
+GPL. The files came under MIT (Copyright Davide Lorigliola: `src/rules/LICENSE-MIT`, kept with them);
+what we change from here on is ours. **No pull requests to his repo any more**: a Mod release's rule
+change is ported here from his public repo (the release notes, the diff between its tags), and
+`scripts/league_playoffs_check.sh` (MOD= a checkout of the Mod at that tag) builds the Mod's own C
+beside ours and compares them. `league_playoffs.c`, `world_cups.c` and `world_cupd.c` are the game's
+side; it gives the rules each spec's length (`spec_len`, required) and the B teams' `b_in_ko` /
+`base` / `levels`. Freestanding C99, no libc, one caller-owned state (`sr_state`).
 
 **Whole-match replays** (`.SRP`, `src/replay_v2.c`, docs/REPLAY_FORMAT_V2.md) are SDL-only and
 recorded from every match that is not training, the arcade cabinet or the rig: `LATEST.SRP` in the
@@ -658,7 +658,12 @@ all save types are proven."
 > first and beside the binary second (`swos_data_path()`); `make WASM=1` preloads
 > `bin/` plus `$(SWOS_ASSETS)`. Without the Amiga disks the game plays the PC
 > sound/music and skips the Amiga loading screens (`_gNoAmigaSound`,
-> `_gNoAmigaScreens`, main.c). What stays tracked in the trees below is the
+> `_gNoAmigaScreens`, main.c). With NEITHER the PC game nor the Amiga version, only SWOS 2020,
+> the setup makes the PC data from SWOS 2020's install as it is (`SdSources_PcFromSwos2020`,
+> ASSETS.ini `[sources] pc_swos2020`): its art and pitches, the 96/97 teams of its `MP/DB/96_97`,
+> its 28 effects/crowd sounds, its title/menu mp3s; no commentary, no menu.xmi. The game then
+> draws ARTWORK = SWOS 2020 whatever SWOS.ini says (those pitches only fit the PC drawing path),
+> and the setup will not make an Amiga drawer from it. What stays tracked in the trees below is the
 > project's own (LOADER76, credits photos, 1UP.WAV, `bin/setup/`);
 > the rest is `.gitignore`d, so a developer's `bin/` can still hold it (the
 > FS-UAE harness needs it there). **Every drop is staged from git-tracked files

@@ -102,7 +102,7 @@ def cmd_verify():
 def cmd_dump_json(out_dir, compact=False):
     # resolve a relative dir against the repo root (parent of bin/data's parent)
     if not os.path.isabs(out_dir):
-        repo = os.path.dirname(os.path.dirname(tf._data_dir()))
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # (not the data's: --data-dir)
         out_dir = os.path.join(repo, out_dir)
     os.makedirs(out_dir, exist_ok=True)
     kw = {"separators": (",", ":")} if compact else {"indent": 2}   # expanded by default
@@ -126,7 +126,11 @@ def main(argv=None):
     ap.add_argument("--dump-json", metavar="DIR", nargs="?", const="bin/data_json/teams", default=None,
                     help="export every file as JSON to DIR (default: bin/data_json/teams/, relative to repo root)")
     ap.add_argument("--compact", action="store_true", help="minify the --dump-json output (default: indented)")
+    ap.add_argument("--data-dir", metavar="DIR", default=None,
+                    help="read the data files from DIR instead of bin/data (a SWOS 2020 team database's DATA)")
     args = ap.parse_args(argv)
+    if args.data_dir:
+        tf.DATA_DIR = os.path.abspath(args.data_dir)
 
     if args.verify:
         return cmd_verify()

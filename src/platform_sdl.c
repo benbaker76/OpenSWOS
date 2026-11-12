@@ -13,7 +13,9 @@
 #include <stdint.h>
 #include "project_identity.h"
 #include "platform_sdl.h"
-#include "mod_hooks.h"      /* ModHooks_FrameDrawn: the built-in mods' drawing */
+#include "mod_hooks.h"
+#include "swos_settings.h"  /* Settings_Save: the volume keys' */
+#include "text_render.h"    /* DrawMenuText: their readout */      /* ModHooks_FrameDrawn: the built-in mods' drawing */
 #include "gfx.h"            /* the overlays' drawing, on either presenter */
 #include "gpu_present.h"    /* the GPU presenter ([video] renderer = gpu: docs/RENDERING.md) */
 #include "match_chat.h"     /* chatting in an online match: its keys first, its box over the picture */
@@ -23,6 +25,10 @@
 #include "dos_gameplay.h"    /* DosGameplay_TargetFps — 70 (DOS) vs 50 (Amiga) */
 #include "dos_graphics.h"    /* DosGfx_BuildPalette */
 #include "build_info.h"      /* the commit, in the window title */
+#include "pixel_filter.h"    /* [video] pixel_filter (launcher options, agent B) */
+#include "team_colors.h"     /* [video] purple_for_brown */
+#include "match_setup.h"     /* [video] improved_pitch_palette */
+#include "gpu_slang.h"       /* (a shader preset is a filter of its own) */
 
 #include <SDL.h>
 #include <stdio.h>
@@ -973,6 +979,8 @@ int Platform_Init(const PlatformInitOptions *opts)
 
     s_subpixel_scroll = opts ? opts->subpixel_scroll : 1;
     s_scaling_smooth  = opts ? opts->scaling_smooth  : 1;
+    if (opts)
+        Platform_SetDisplayOptions(opts);   /* (launcher options, agent B: DISPLAY OPTIONS) */
     {
         CrtEffectsConfig cfx;
         cfx.mask          = opts ? (CrtMaskKind)opts->crt_mask : CRT_MASK_OFF;
@@ -1284,6 +1292,31 @@ void Platform_ToggleFullscreen(void)
     }
 }
 
+/* ---- SWOS 2020's VIDEO OPTIONS (SWOS 2020 port, agent A; src/settings_menus.c) ----
+ * WINDOW MODE: windowed, or one of the two fullscreens, now -- what Alt+Enter toggles between,
+ * picked by name. The kind of fullscreen is also what the next Alt+Enter goes to. */
+void Platform_SetFullscreenMode(PlatformFullscreenMode mode)
+{
+#ifdef SWOS_WASM_BUILD
+    (void)mode;
+    return;                             /* (the page owns fullscreen: Platform_ToggleFullscreen) */
+#else
+    if (!s_window)
+        return;
+    if (mode != PLATFORM_FULLSCREEN_NONE)
+        s_fullscreen_mode = mode;
+    if (mode == Platform_GetFullscreenMode())
+        return;
+    if (mode == PLATFORM_FULLSCREEN_NONE) {
+        Platform_ToggleFullscreen();    /* (back to the window's own size) */
+        return;
+    }
+    SDL_SetWindowFullscreen(s_window, mode == PLATFORM_FULLSCREEN_EXCLUSIVE ? SDL_WINDOW_FULLSCREEN
+                                                                            : SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_ShowCursor(SDL_DISABLE);
+#endif
+}
+
 /* The picture's pixel under the window's point wx, wy (the letterbox and the scaling undone,
  * as SDL draws the picture): 0 when it is on the picture (menu_mouse.c). */
 int Platform_MouseToPicture(int wx, int wy, int *x, int *y)
@@ -1313,6 +1346,49 @@ int Platform_MouseToPicture(int wx, int wy, int *x, int *y)
 #else
     (void)wx; (void)wy; (void)x; (void)y;
     return -1;
+#endif
+}
+
+/* ---- launcher options (agent A) ----
+ * AUTO CENTERING (SWOS 2020's --auto-centering, controls.cpp setAutoCenteringWindow): a window
+ * resized, maximized or moved goes back to the middle of its display -- the one it is on now, so
+ * dragging it to another monitor centres it there. Windowed only; [video] auto_centering. */
+static int s_auto_center;
+static void auto_centre(Uint8 event);
+
+void Platform_SetAutoCentering(int on)
+{
+    s_auto_center = on != 0;
+    if (s_auto_center)
+        auto_centre(SDL_WINDOWEVENT_SIZE_CHANGED);
+}
+
+static void auto_centre(Uint8 event)
+{
+#if !defined(SWOS_WASM_BUILD) && !defined(SWOS_MOBILE_BUILD)
+    int d;
+    if (!s_auto_center || !s_window || window_is_fullscreen())
+        return;
+    if (event != SDL_WINDOWEVENT_SIZE_CHANGED && event != SDL_WINDOWEVENT_MAXIMIZED &&
+        event != SDL_WINDOWEVENT_MOVED)
+        return;
+    if (SDL_GetWindowFlags(s_window) & SDL_WINDOW_MAXIMIZED)
+        return;                         /* (a maximized window fills its display already) */
+    d = SDL_GetWindowDisplayIndex(s_window);
+    if (d < 0)
+        d = 0;
+    {
+        SDL_Rect r;
+        int w, h, x, y;
+        if (SDL_GetDisplayBounds(d, &r) != 0)     /* (what SDL_WINDOWPOS_CENTERED_DISPLAY centres in) */
+            return;
+        SDL_GetWindowSize(s_window, &w, &h);
+        SDL_GetWindowPosition(s_window, &x, &y);
+        if (x != r.x + (r.w - w) / 2 || y != r.y + (r.h - h) / 2)
+            SDL_SetWindowPosition(s_window, SDL_WINDOWPOS_CENTERED_DISPLAY(d), SDL_WINDOWPOS_CENTERED_DISPLAY(d));
+    }
+#else
+    (void)event;
 #endif
 }
 
@@ -1579,6 +1655,60 @@ static const uint32_t *backdrop_small(int w, int h)
     return s_bdSmall;
 }
 
+/* ---- launcher options (agent B): DISPLAY OPTIONS' menu opacity and pixel filter ----
+ * MENU OPACITY (SWOS 2020's --alpha-blending-menu, render.cpp updateMenuScreen*): in the menus the
+ * frame's coloured parts -- buttons, boxes -- are blended over the backdrop at that opacity, its
+ * text and frames left solid (SWOS 2020's colours 1, 2, 7, 9 and pure white). "The backdrop" is the
+ * one the menu was drawn on: the backgrounds mod's picture where there is one (the GPU presenter
+ * draws it under the frame and the palette's alpha does the rest), else the game's own backdrop
+ * from the mask buffer DrawMenu copies it from (here, on the CPU). Never in a match, a replay or
+ * the arcade.
+ * PIXEL FILTER (include/pixel_filter.h): the GPU presenter's frame made as ARGB on the CPU, through
+ * the filter, and handed over 2 or 3 times its size; the backdrop picture's pixels left clear so it
+ * is still drawn at the window's size under it. Not on SDL's renderer, and not with a slang preset.
+ * Neither reads or changes anything but the picture shown. */
+static int       s_menu_alpha = 255;    /* [video] menu_opacity as 0-255; 255 solid */
+static int       s_pixel_filter;        /* [video] pixel_filter: PIXEL_FILTER_* */
+static int       s_key_clear;           /* chunky_to_rgba: the backdrop picture's pixels clear */
+static uint32_t *s_filter_out;          /* the filtered frame */
+static size_t    s_filter_cap;
+
+void Platform_SetDisplayOptions(const PlatformInitOptions *o)
+{
+    int a = o->menu_opacity;
+    a = a < 0 ? 0 : a > 100 ? 100 : a;
+    s_menu_alpha = (a * 255 + 50) / 100;
+    s_pixel_filter = o->pixel_filter > 0 && o->pixel_filter < PIXEL_FILTER_COUNT ? o->pixel_filter : 0;
+    TeamColors_SetPurpleForMaroon(o->purple_for_brown);
+    _gImprovedPitchPalette = o->improved_pitch_palette ? 1 : 0;
+}
+
+/* The menus' opacity this frame, 0-255: 255 (solid) outside the menus. */
+static int menu_alpha_now(void)
+{
+    extern int32_t ModApi_InMenus(void);
+    extern int _gArcadeMode;
+    if (s_menu_alpha >= 255 || _gArcadeMode || !ModApi_InMenus())
+        return 255;
+    return s_menu_alpha;
+}
+
+/* A menu colour that stays solid at any opacity (SWOS 2020's: the text and the frames). */
+static int menu_solid(int idx)
+{
+    const SDL_Color c = s_palette[idx];
+    return idx == 1 || idx == 2 || idx == 7 || idx == 9 || (c.r == 255 && c.g == 255 && c.b == 255);
+}
+
+static uint32_t blend_argb(SDL_Color c, uint32_t under, int a)
+{
+    const int ur = (int)(under >> 16) & 255, ug = (int)(under >> 8) & 255, ub = (int)under & 255;
+    const int r = (c.r * a + ur * (255 - a) + 127) / 255;
+    const int g = (c.g * a + ug * (255 - a) + 127) / 255;
+    const int b = (c.b * a + ub * (255 - a) + 127) / 255;
+    return 0xFF000000u | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+}
+
 static const uint8_t *frame_source(void)
 {
     if (_usePlaneOffsetFlag != 0)
@@ -1636,13 +1766,28 @@ static void chunky_to_rgba(uint32_t *dst, int dst_pitch_pixels)
      * irrelevant to the chunky frontbuffer. */
     (void)_cameraYMod320;
 
-    const uint32_t *bd = backdrop_shown() ? backdrop_small(_screen_width, _screen_height) : NULL;
+    const uint32_t *bd = backdrop_shown() ? (s_key_clear ? NULL : backdrop_small(_screen_width, _screen_height)) : NULL;
+    const int keyed = backdrop_shown();
+    const int alpha = menu_alpha_now();     /* (launcher options, agent B: the menus' opacity) */
+    const uint8_t *under = alpha < 255 && fb != _frontbufferMaskBuffer ? _frontbufferMaskBuffer : NULL;
     for (int y = 0; y < _screen_height; ++y) {
         const uint8_t *line = fb + (size_t)y * FRONTBUFFER_ROW_STRIDE_BYTES;
+        const uint8_t *uline = under ? under + (size_t)y * FRONTBUFFER_ROW_STRIDE_BYTES : NULL;
         uint32_t      *out  = dst + (size_t)y * dst_pitch_pixels;
         for (int x = 0; x < _screen_width; ++x) {
-            if (bd && line[x] == MENU_BACKDROP_KEY) {      /* the menus' true-colour backdrop */
-                out[x] = bd[(size_t)y * _screen_width + x];
+            if (keyed && line[x] == MENU_BACKDROP_KEY) {   /* the menus' true-colour backdrop */
+                out[x] = bd ? bd[(size_t)y * _screen_width + x] : 0u;    /* (s_key_clear: the GPU's) */
+                continue;
+            }
+            if (uline && uline[x] != line[x] && !menu_solid(line[x])) {
+                const SDL_Color mc = s_palette[line[x]];
+                if (keyed && uline[x] == MENU_BACKDROP_KEY)
+                    out[x] = bd ? blend_argb(mc, bd[(size_t)y * _screen_width + x], alpha)
+                                : ((uint32_t)alpha << 24) | ((uint32_t)mc.r << 16) | ((uint32_t)mc.g << 8) | mc.b;
+                else {
+                    const SDL_Color uc = s_palette[uline[x]];
+                    out[x] = blend_argb(mc, 0xFF000000u | ((uint32_t)uc.r << 16) | ((uint32_t)uc.g << 8) | uc.b, alpha);
+                }
                 continue;
             }
             SDL_Color c = s_palette[line[x]];
@@ -1698,6 +1843,48 @@ static void write_screenshot(const uint32_t *argb)
     else
         fprintf(stderr, "[screenshot] stbi_write_png %s failed\n", path);
     free(rgba);
+}
+
+/* ---- SWOS 2020's in-match volume keys and their two seconds on screen ---- */
+static uint32_t s_volume_shown;         /* SDL_GetTicks() when a key changed one, 0 none */
+
+void Platform_VolumeKey(int key)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    extern void AudioSDL_SetKindVolumes(int music, int chants, int commentary, int effects);
+    PlatformInitOptions *o = g_arcadeOpts;
+    if (!o)
+        return;
+    int *v = key < 2 ? &o->vol_chants : key < 4 ? &o->vol_commentary : &o->vol_effects;
+    *v += (key & 1) ? 5 : -5;
+    *v = *v < 0 ? 0 : *v > 100 ? 100 : *v;
+    AudioSDL_SetKindVolumes(o->vol_music, o->vol_chants, o->vol_commentary, o->vol_effects);
+    s_volume_shown = SDL_GetTicks() | 1u;
+    if (g_arcadeIniPath)
+        Settings_Save(o, g_arcadeIniPath);
+}
+
+/* The volumes over the match (showClockScoresAndOthers: three lines at the top left). From the
+ * match's frame, after its sprites. */
+void Platform_DrawVolumes(void)
+{
+    extern void *_charTables[];
+    extern PlatformInitOptions *g_arcadeOpts;
+    char buf[48];
+    if (!s_volume_shown || !g_arcadeOpts)
+        return;
+    if (SDL_GetTicks() - s_volume_shown > 2000) {
+        s_volume_shown = 0;
+        return;
+    }
+    const PlatformInitOptions *o = g_arcadeOpts;
+    snprintf(buf, sizeof buf, "   CHANTS VOLUME : %d%%", o->vol_chants);
+    DrawMenuText(4, 30, 2, (uint8_t *)buf, (uint8_t *)_charTables[0]);
+    snprintf(buf, sizeof buf, "   COMMENTARY VOLUME : %d%%", o->vol_commentary);
+    DrawMenuText(4, 41, 2, (uint8_t *)buf, (uint8_t *)_charTables[0]);
+    snprintf(buf, sizeof buf, "   BALL AND WHISTLE VOLUME : %d%%", o->vol_effects);
+    DrawMenuText(4, 52, 2, (uint8_t *)buf, (uint8_t *)_charTables[0]);
 }
 
 /* Capture what is actually PRESENTED — not what was drawn into the framebuffer.
@@ -1841,6 +2028,7 @@ static void pump_events_any_thread(void)
             break;
         case SDL_WINDOWEVENT:
             check_display();                /* (another monitor: its shape, its refresh) */
+            auto_centre(ev.window.event);   /* ([video] auto_centering) */
             if (ev.window.event == SDL_WINDOWEVENT_CLOSE) {
                 Platform_RequestQuit();
                 if (s_window) SDL_HideWindow(s_window);
@@ -1903,6 +2091,32 @@ static void pump_events_any_thread(void)
                 (ev.key.keysym.mod & KMOD_ALT)) {
                 Platform_ToggleFullscreen();
                 continue;
+            }
+            /* SWOS 2020's volume keys in a match: Shift+1 / 2 the crowd chants down / up, 3 / 4
+             * the commentary, 5 / 6 the ball and whistle; shown for two seconds, kept in
+             * SWOS.ini ([audio] *_volume). */
+            if (ev.key.repeat == 0 && !_gTextInputActive && (ev.key.keysym.mod & KMOD_SHIFT) &&
+                ev.key.keysym.sym >= SDLK_1 && ev.key.keysym.sym <= SDLK_6) {
+                extern int32_t ModApi_InMatch(void);
+                if (ModApi_InMatch()) {
+                    Platform_VolumeKey((int)(ev.key.keysym.sym - SDLK_1));
+                    continue;
+                }
+            }
+            /* A recording being viewed: its controls (src/replay_v2.c, the viewer's: P, I,
+             * the arrows, Home, End, PgUp, PgDn), before the game's own pause. */
+            if (ev.key.repeat == 0 && !_gTextInputActive) {
+                extern int32_t ReplayV2_ViewerKey(int32_t key);
+                if (ReplayV2_ViewerKey((int32_t)ev.key.keysym.sym))
+                    continue;
+            }
+            /* A key for a mod during a match (ModDef.matchKey: SWOS 2020's training drills,
+             * F1-F12, ALT, 9, 0, - and =), before the game's and the window's own. */
+            if (ev.key.repeat == 0 && !_gTextInputActive) {
+                extern int32_t ModApi_InMatch(void);
+                extern int32_t ModHooks_MatchKey(const char *key);
+                if (ModApi_InMatch() && ModHooks_MatchKey(SDL_GetKeyName(ev.key.keysym.sym)))
+                    continue;
             }
             /* +/- keys: cycle the windowed scale 1..4. Both the typing-
              * row keys and the keypad ones work. SDLK_EQUALS is the
@@ -2313,7 +2527,9 @@ static void draw_overlays(void)
      * grille and the glass edge sit on the picture rather than under it. */
     CrtEffects_Apply();
     MatchChat_Draw();                /* (an online match's chat: over the CRT, to be read) */
+    { extern void FpsOverlay_Draw(void); FpsOverlay_Draw(); }   /* ([video] show_fps: src/fps_overlay.c) */
     { extern void OnlineMenus_DrawOverlay(void); OnlineMenus_DrawOverlay(); }   /* (the lobby's chat) */
+    { extern void CreditsMenu_DrawOverlay(void); CreditsMenu_DrawOverlay(); }   /* (FULL CREDITS' scrolling text) */
 #ifdef SWOS_MOBILE_BUILD
     TouchControls_Draw();            /* (the phones' on-screen controls, over everything) */
 #endif
@@ -2338,7 +2554,13 @@ static void render_frame_gpu(int pump_full)
 
     extern int _gArcadeMode;
     uint32_t *fb = NULL;
-    if (_gArcadeMode || frame_captures_wanted(pump_full)) {
+    /* (launcher options, agent B) a pixel filter, or the menus' opacity over the game's own
+     * backdrop: the frame made on the CPU. Not with a slang preset (a filter of its own). */
+    const int slang = GpuSlang_Active();
+    const int filter = slang ? 0 : s_pixel_filter;
+    const int menuAlpha = menu_alpha_now();
+    const int cpuAlpha = menuAlpha < 255 && !slang && !backdrop_shown();
+    if (_gArcadeMode || frame_captures_wanted(pump_full) || filter || cpuAlpha) {
         fb = s_frame_rgba;
         int arcade_full = 0;
         if (_gArcadeMode) {
@@ -2353,8 +2575,35 @@ static void render_frame_gpu(int pump_full)
             }
         }
         frame_captures(fb, pump_full);
-        if (_gArcadeMode)
+        if (_gArcadeMode || filter || cpuAlpha)
             f.argb = fb;
+        if (filter && !arcade_full && !_gArcadeMode && backdrop_shown()) {
+            s_key_clear = 1;            /* (the picture drawn by the GPU, under the filtered frame) */
+            chunky_to_rgba(fb, _screen_width);
+            s_key_clear = 0;
+        }
+    }
+    if (filter && f.argb) {
+        const int k = PixelFilter_Factor(filter);
+        const size_t need = (size_t)_screen_width * k * _screen_height * k;
+        if (need > s_filter_cap) {
+            free(s_filter_out);
+            s_filter_out = (uint32_t *)malloc(need * 4);
+            s_filter_cap = s_filter_out ? need : 0;
+        }
+        if (s_filter_out) {
+            PixelFilter_Run(filter, f.argb, _screen_width, _screen_height, _screen_width, s_filter_out);
+            f.argb = s_filter_out;
+            f.argbScale = k;
+        }
+    }
+    {   /* the menus' opacity over a backdrop picture: the palette's alpha (the shader blends) */
+        static uint8_t alphas[256];
+        if (menuAlpha < 255 && backdrop_shown()) {
+            for (int i = 0; i < 256; i++)
+                alphas[i] = menu_solid(i) ? 255 : (uint8_t)menuAlpha;
+            f.paletteAlpha = alphas;
+        }
     }
     if (!f.argb) {
         f.index = frame_source();
@@ -2369,7 +2618,7 @@ static void render_frame_gpu(int pump_full)
     f.subpixel = s_subpixel_scroll;
     f.smooth = s_scaling_smooth;
     f.stretch = s_stretch;
-    if (f.index && backdrop_shown()) {
+    if ((f.index || (f.argb && f.argbScale > 1)) && backdrop_shown()) {
         f.backdrop = s_bd;
         f.backdropW = s_bdW;
         f.backdropH = s_bdH;

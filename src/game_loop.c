@@ -830,6 +830,10 @@ GameFrameResult GameLoop_Frame(void)
     DrawBenchAndSubsMenu();
     BenchCheckControls();
     UpdateAndDrawStatistics();
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_MatchDrawn(void); ModHooks_MatchDrawn(); }  /* (a mod's drawing over the match) */
+    { extern void Platform_DrawVolumes(void); Platform_DrawVolumes(); } /* (the volume keys' readout) */
+#endif
 
     /* The window was closed. Not out of a LIVE match from here: this frame may be one
      * GGPO is re-simulating, and "a re-simulated frame left the match loop" was an
@@ -972,6 +976,12 @@ static void game_loop_body(void)
             d2 = SIM_CAMERA_MAX_Y;   /* bottom end: 592 at 272 lines */
         else
             d2 = 16;                 /* top end: the same in both */
+        {   /* a mod's match that starts at the top goal (SWOS 2020's shoot-out: its GameLoop_130
+             * sets D0 = 0 after the Rand, which is still drawn) */
+            extern int32_t ModMatch_CameraTop(void);
+            if (ModMatch_CameraTop())
+                d2 = 16;
+        }
         d1 = SIM_CAMERA_CENTRE_X;    /* 168 at 336 wide */
     }
 
@@ -1041,8 +1051,13 @@ end_of_match_flow:
     {
         extern void ModEntries_AfterMatch(void);
         extern int32_t ModMatch_Active(void);
-        if (_isGameFriendly != 0 && _trainingGame == 0 && !arcadeNoReplayMenu && !ModMatch_Active())
+        if (_isGameFriendly != 0 && _trainingGame == 0 && !arcadeNoReplayMenu && !ModMatch_Active()) {
+#ifdef SWOS_SDL_BUILD
+            extern void QuickAccess_AfterMatch(void);
+            QuickAccess_AfterMatch();       /* SWOS 2020's QUICK ACCESS ([general] quick_access) */
+#endif
             ModEntries_AfterMatch();
+        }
     }
 
 cleanup_and_return:
@@ -1126,6 +1141,9 @@ StartMatchSequence(TeamGame *topTeam, TeamGame *bottomTeam)
      * screen is black here, so the change is invisible -- the same rule the
      * palette learned on this exact transition. */
     MatchViewEnter();
+#ifdef SWOS_SDL_BUILD
+    { extern void TacticsExpert_MatchBegin(void); TacticsExpert_MatchBegin(); }  /* (online: the game's own) */
+#endif
     /* NO palette push here.
      *
      * InitGameSaveTeams has just faded the screen to black, and nothing has
@@ -1156,6 +1174,9 @@ StartMatchSequence(TeamGame *topTeam, TeamGame *bottomTeam)
     ClearFrontbuffers();
     GameLoop();
     MatchViewLeave();
+#ifdef SWOS_SDL_BUILD
+    { extern void TacticsExpert_MatchEnd(void); TacticsExpert_MatchEnd(); }
+#endif
 }
 
 /* ====================================================================

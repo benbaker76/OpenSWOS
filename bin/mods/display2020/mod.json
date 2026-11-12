@@ -1,0 +1,30 @@
+{
+ "uuid": "77d4ef2a-528e-5918-93da-c331e300dacc",
+ "id": "display2020",
+ "name": "SWOS 2020 result display",
+ "version": "1.1",
+ "author": "Playaveli, SWOS United (SWOS 2020's --new-show-result and --remove-darken-banner)",
+ "about": "On the result: each side's kit under its name, and the band behind it darkened smoothly across the width, left as the game draws it, or taken away.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": false,
+ "settings": [
+  {
+   "key": "kits",
+   "label": "Kits on the result",
+   "default": "on"
+  },
+  {
+   "key": "band",
+   "label": "Result band",
+   "choices": [
+    "smooth",
+    "game",
+    "off"
+   ],
+   "default": "smooth"
+  }
+ ]
+}

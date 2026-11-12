@@ -1363,10 +1363,29 @@ void SelectFilesInputSaveFilenameOnSelect(MenuEntry *entry)
  * and assigns filenames to visible menu entries.
  * ================================================================ */
 __attribute__((used, externally_visible))
+/* SWOS 2020's file list SORT OPTION ([general] file_sort; SelectFilesSort below) */
+#ifdef SWOS_SDL_BUILD
+#include "platform_sdl.h"
+#include "swos_io.h"
+#include <sys/stat.h>
+extern PlatformInitOptions *g_arcadeOpts;
+static int32_t files_by_date(void)
+{
+    return g_arcadeOpts && !strcmp(g_arcadeOpts->file_sort, "date");
+}
+static char s_sortLabel[20];
+#endif
+
 void SelectFilesOnReturn(void)
 {
     /* Set menu title in entry 0 */
     _menuEntries[0].fg = _menuTitle;
+#ifdef SWOS_SDL_BUILD
+    snprintf(s_sortLabel, sizeof s_sortLabel, "%s", files_by_date() ? "SORTED BY DATE" : "SORTED BY NAME");
+    _menuEntries[51].fg = (uintptr_t)s_sortLabel;
+#else
+    _menuEntries[51].isInvisible = 1;   /* (the Amiga's listing has no dates: the game's order alone) */
+#endif
 
     if (_savingFile != 0) {
         /* Show save filename entry (entry 48) */
@@ -1487,6 +1506,18 @@ void SelectFilesInit(void)
             SetCurrentEntry(50);
     }
 
+    SelectFilesSort();
+
+    /* Fall through to OnReturn */
+    SelectFilesOnReturn();
+}
+
+/* The list's order: by extension, then the game's own name order (its bubble sort, below) --
+ * then, with [general] file_sort = date (SWOS 2020's sortOption 0, sortFilenamesByDate), each
+ * extension's newest first. SDL: the Amiga's listing has no dates (files_by_date, above). */
+
+void SelectFilesSort(void)
+{
     /* Bubble sort files by extension then name */
     int16_t count = (int16_t)_numMatchedFiles - 2;
     if (count >= 0) {
@@ -1534,7 +1565,44 @@ void SelectFilesInit(void)
             }
         } while (swapped);
     }
+#ifdef SWOS_SDL_BUILD
+    if (files_by_date() && _numMatchedFiles > 1) {
+        enum { kMaxFiles = 64 };
+        int64_t when[kMaxFiles];
+        const int32_t n = _numMatchedFiles < kMaxFiles ? (int32_t)_numMatchedFiles : kMaxFiles;
+        for (int32_t i = 0; i < n; i++) {
+            char path[1024];
+            struct stat st;
+            snprintf(path, sizeof path, "%s/%s", swos_save_dir(), (const char *)_foundFilesPtrTable[i] + 2);
+            when[i] = stat(path, &st) == 0 ? (int64_t)st.st_mtime : 0;
+        }
+        for (int32_t i = 1; i < n; i++) {   /* (insertion: stable, the names' order kept on a tie) */
+            void *ptr = _foundFilesPtrTable[i];
+            const uint32_t ext = _extensionsBuffer[i];
+            const int64_t t = when[i];
+            int32_t j = i - 1;
+            while (j >= 0 && _extensionsBuffer[j] == ext && when[j] < t) {
+                _foundFilesPtrTable[j + 1] = _foundFilesPtrTable[j];
+                _extensionsBuffer[j + 1] = _extensionsBuffer[j];
+                when[j + 1] = when[j];
+                j--;
+            }
+            _foundFilesPtrTable[j + 1] = ptr;
+            _extensionsBuffer[j + 1] = ext;
+            when[j + 1] = t;
+        }
+    }
+#endif
+}
 
-    /* Fall through to OnReturn */
+/* SORTED BY NAME / DATE (SWOS 2020's sortOptionSelectFile): the other order, the list again */
+void SelectFilesSortOnSelect(void)
+{
+#ifdef SWOS_SDL_BUILD
+    if (g_arcadeOpts)
+        snprintf(g_arcadeOpts->file_sort, sizeof g_arcadeOpts->file_sort, "%s", files_by_date() ? "name" : "date");
+    SelectFilesSort();
     SelectFilesOnReturn();
+    DrawMenu();
+#endif
 }

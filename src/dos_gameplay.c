@@ -1,13 +1,19 @@
 /*
  * dos_gameplay.c — apply the gameplay style's tuning: the Amiga (50 FPS), the DOS
- * (70 FPS) or SWOS 2020's XBOX (60 FPS: the Amiga's ball, the DOS keepers).
- * See dos_gameplay.h / docs/DOS_GAMEPLAY.md (section 9: XBOX). With the AMIGA style the
- * Amiga values (== the globals' defaults) are written.
+ * (70 FPS), or one of SWOS 2020's: XBOX (60 FPS: the Amiga's ball, the DOS keepers),
+ * AMIGA60 (the Amiga's game at 60 FPS) and MOON (the Amiga's with a moon's gravity).
+ * See dos_gameplay.h / docs/DOS_GAMEPLAY.md (section 9: XBOX; 10: AMIGA60, MOON and the
+ * stronger keepers). With the AMIGA style the Amiga values (== the globals' defaults)
+ * are written.
  */
 #include "dos_gameplay.h"
 #include "dos_mode.h"
 #include "tactics_data.h"     /* gDosGameplay */
 #include "swos_types.h"
+#include "tweaks.h"            /* [tweaks] stronger_goalkeeper_ai */
+#ifdef SWOS_SDL_BUILD
+#include <stdio.h>
+#endif
 
 /* ---- Keeper (already named globals in swos_amiga_data_imports.c) ---------- */
 extern uint16_t _kKeeperSaveDistance[1];      /* Amiga 24 / DOS 16 (dive/save threshold) */
@@ -166,16 +172,17 @@ int _gDosKeepers = 0;
 
 const char *Gameplay_StyleName(int style)
 {
-    return style == GAMEPLAY_DOS ? "DOS" : style == GAMEPLAY_XBOX ? "XBOX" : "AMIGA";
+    return style == GAMEPLAY_DOS ? "DOS" : style == GAMEPLAY_XBOX ? "XBOX"
+         : style == GAMEPLAY_AMIGA60 ? "AMIGA60" : style == GAMEPLAY_MOON ? "MOON" : "AMIGA";
 }
 
 /* The one place the style changes: the three flags together, and the OPTIONS row's
  * mirror. The constants follow with ApplyGameStyle (the callers' business: at kick-off
- * it runs anyway). The Amiga build has no 60 Hz tick, so XBOX is SDL's. */
+ * it runs anyway). The Amiga build has no 60 Hz tick, so XBOX and AMIGA60 are SDL's. */
 void Gameplay_SetStyle(int style)
 {
 #ifndef SWOS_SDL_BUILD
-    if (style == GAMEPLAY_XBOX)
+    if (style == GAMEPLAY_XBOX || style == GAMEPLAY_AMIGA60)
         style = GAMEPLAY_AMIGA;
 #endif
     if (style < 0 || style >= GAMEPLAY_STYLES)
@@ -188,7 +195,8 @@ void Gameplay_SetStyle(int style)
 
 int DosGameplay_TargetFps(void)
 {
-    return _gGameplayStyle == GAMEPLAY_DOS ? 70 : _gGameplayStyle == GAMEPLAY_XBOX ? 60 : 50;
+    return _gGameplayStyle == GAMEPLAY_DOS ? 70
+         : _gGameplayStyle == GAMEPLAY_XBOX || _gGameplayStyle == GAMEPLAY_AMIGA60 ? 60 : 50;
 }
 
 void ApplyGameStyle(void)
@@ -199,8 +207,12 @@ void ApplyGameStyle(void)
     /* A constant's value in each style: the Amiga's, the DOS release's, XBOX's. XBOX is
      * SWOS 2020's style 4 (src/options.cpp setGameStyleVariables): its timers are the
      * Amiga's x1.2 (60 frames a second for 50), and where SWOS 2020 has no GS_* constant
-     * -- the reloads the replay rig found after it, below -- the same x1.2 is ours. */
-#define BY_STYLE(amiga, dosv, xbox) (style == GAMEPLAY_DOS ? (dosv) : style == GAMEPLAY_XBOX ? (xbox) : (amiga))
+     * -- the reloads the replay rig found after it, below -- the same x1.2 is ours.
+     * AMIGA60 (its style 3) is XBOX with the Amiga's keepers, so it takes XBOX's 60 fps
+     * values; MOON (its style 2) is the Amiga's but for its gravity and its keepers' save
+     * distance -- every other value of either is written as XBOX's or the Amiga's. */
+    const int at60 = style == GAMEPLAY_XBOX || style == GAMEPLAY_AMIGA60;
+#define BY_STYLE(amiga, dosv, xbox) (style == GAMEPLAY_DOS ? (dosv) : at60 ? (xbox) : (amiga))
 
     /* --- Formations ---
      * The DOS release re-tuned 4-4-2, 4-3-3 and Sweep (21 coverage bytes; its
@@ -211,20 +223,42 @@ void ApplyGameStyle(void)
     TacticsData_SelectRelease(dos);
 
     /* --- Goalkeeper --- */
-    _kKeeperSaveDistance[0] = BY_STYLE(24, 16, 16);
+    /* (AMIGA60: the Amiga's 24; MOON: 16, as SWOS 2020's style 2.) */
+    _kKeeperSaveDistance[0] = style == GAMEPLAY_AMIGA60 ? 24 : style == GAMEPLAY_MOON ? 16
+                            : BY_STYLE(24, 16, 16);
     /* DOS reacts at shorter range: the whole reach table shifts down by 0x8000. XBOX's
-     * starts two steps above the DOS one, 0x40000..0x78000 ("XBOX GK Values"). */
-    for (i = 0; i < 8; i++) {
-        uint32_t amiga = (uint32_t)(0x30000 + i * 0x8000);
-        _kGoalkeeperDiveDeltas[i] = BY_STYLE(amiga, amiga - 0x8000u, amiga + 0x10000u);
+     * starts two steps above the DOS one, 0x40000..0x78000 ("XBOX GK Values"); AMIGA60's
+     * one step above the Amiga's, 0x38000..0x70000.
+     *
+     * The stronger_goalkeeper_ai tweak (SWOS 2020's --stronger-goalkeeper-ai, include/
+     * tweaks.h): in the styles with the Amiga's keepers -- AMIGA, MOON, AMIGA60 -- the
+     * table one step lower, as SWOS 2020's setGameStyleVariables has it (0x28000.. at 50
+     * fps, 0x30000.. at 60). DOS and XBOX keep theirs. Off line only (Tweaks_On is 0
+     * online and in the rigs), as SWOS 2020 switches it off for an online match. */
+    {
+        const int amigaKeepers = style == GAMEPLAY_AMIGA || style == GAMEPLAY_MOON ||
+                                 style == GAMEPLAY_AMIGA60;
+        const uint32_t stronger = amigaKeepers && Tweaks_On(TWEAK_STRONGER_GOALKEEPER_AI) ? 0x8000u : 0u;
+        for (i = 0; i < 8; i++) {
+            const uint32_t amiga = (uint32_t)(0x30000 + i * 0x8000);
+            _kGoalkeeperDiveDeltas[i] = (style == GAMEPLAY_AMIGA60 ? amiga + 0x8000u
+                                         : BY_STYLE(amiga, amiga - 0x8000u, amiga + 0x10000u)) - stronger;
+        }
+#ifdef SWOS_SDL_BUILD
+        if (stronger)
+            fprintf(stderr, "[gameplay] stronger goalkeeper AI: the %s keepers reach from 0x%X\n",
+                    Gameplay_StyleName(style), (unsigned)_kGoalkeeperDiveDeltas[0]);
+#endif
     }
-    _gsKeeperLooseBallMinDeltaZ = BY_STYLE(-0x8000, -0x8000, 0x8000);
+    /* (-0x8000 in SWOS 2020's styles 1-3 too: its GS_SF "sign fix" is DOS's and XBOX's.) */
+    _gsKeeperLooseBallMinDeltaZ = style == GAMEPLAY_AMIGA60 ? -0x8000 : BY_STYLE(-0x8000, -0x8000, 0x8000);
 
     /* --- Ball physics (existing k-globals) --- */
     _kBallGroundConstant[0] = dos ? 13u : 16u;
     _kBallAirConstant[0]    = dos ? 4u  : 10u;
-    /* XBOX: the Amiga's ball at 60 frames a second -- its gravity per frame x50/60. */
-    _kGravityConstant[0]    = BY_STYLE(4608u, 3291u, 3840u);
+    /* XBOX and AMIGA60: the Amiga's ball at 60 frames a second -- its gravity per frame
+     * x50/60. MOON: 2560, SWOS 2020's moon (the ball stays up ~1.8 times as long). */
+    _kGravityConstant[0]    = style == GAMEPLAY_MOON ? 2560u : BY_STYLE(4608u, 3291u, 3840u);
     /* Only the first 3 entries of kPitchBallSpeedInfluence differ between styles
      * (stored as uint16 holding signed values, read back as int16). */
     _kPitchBallSpeedInfluence[0] = (uint16_t)(int16_t)(dos ? -3 : -2);
@@ -235,7 +269,8 @@ void ApplyGameStyle(void)
     /* --- Match clock + GS_* stoppage timers --- */
     _gsFramesPerGameSecond = BY_STYLE(GS_FRAMES_PER_GAME_SECOND_AMIGA, GS_FRAMES_PER_GAME_SECOND_DOS, 59);
     _gsEndGameCounter      = BY_STYLE(50, 55, 60);
-    _gsBallDefensiveZ      = BY_STYLE(22, 27, 27);      /* XBOX: the DOS keeper's ("XBOX GK Values") */
+    _gsBallDefensiveZ      = style == GAMEPLAY_AMIGA60 ? 22   /* (SWOS 2020's style 3: the Amiga's) */
+                           : BY_STYLE(22, 27, 27);      /* XBOX: the DOS keeper's ("XBOX GK Values") */
     _gsPenaltyTimer        = BY_STYLE(100, 110, 120);
     _gsPenaltiesKeeperFree = BY_STYLE(50, 55, 60);
     _gsHalftimeStoppage    = BY_STYLE(350, 385, 420);

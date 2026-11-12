@@ -1,0 +1,13 @@
+{
+ "uuid": "0b0505e6-f36b-57b2-b7ab-0a69af05eb51",
+ "id": "autoplay",
+ "name": "Autoplay",
+ "version": "1.0",
+ "author": "OpenSWOS (SWOS 2020's AUTOPLAY)",
+ "about": "F1 in a match against the computer: the computer plays your team until F1 again. Offline only.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "modes",
+ "default": true
+}

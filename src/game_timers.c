@@ -306,7 +306,8 @@ static void __attribute__((noinline)) handleBreakCameraMode(TeamGeneralInfo *a6)
         _stoppageEventTimer = (uint16_t)_gsStoppageEventReload;   /* GS_GK_55_50 */
         {   /* a mod's match with quick restarts (mod_match.c, G9) */
             extern int32_t ModMatch_QuickRestarts(void);
-            if (ModMatch_QuickRestarts())
+            extern int32_t ModMatch_ShortStops(void);
+            if (ModMatch_QuickRestarts() || ModMatch_ShortStops())
                 _stoppageEventTimer = 1;
         }
         if (_goalCameraMode != 0)
@@ -546,6 +547,15 @@ static int32_t team_has_outfielder(const TeamGeneralInfo *team)
     return 0;
 }
 
+/* A corner the side can take: in a mod's match a side may have no outfielder (SHOOTING PRACTICE:
+ * the CPU's keeper alone), and its corner waited for good for a taker it does not have (report
+ * 0059). The ball off the defending side over its own line is then its goal kick, as the ball
+ * off the other side would be. A real match never has a team without outfielders. */
+static int32_t corner_takeable(const TeamGeneralInfo *taker)
+{
+    return !ModMatch_Active() || team_has_outfielder(taker);
+}
+
 /* ---- Helper: write restart globals and stop players ---- */
 static void __attribute__((noinline)) writeRestartGlobalsAndStopPlayers(
     TeamGeneralInfo *team, int16_t d1, int16_t d2, int16_t d3, uint8_t d4)
@@ -577,6 +587,10 @@ static void __attribute__((noinline)) writeRestartGlobalsAndStopPlayers(
 void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16_t x, int16_t y)
 {
     TeamGeneralInfo *taker = _topTeamData.teamNumber == teamNumber ? &_topTeamData : &_bottomTeamData;
+    if (kind == 1 && !team_has_outfielder(taker)) {    /* (a corner it cannot take, report 0059: */
+        taker = taker->opponentsTeam;                   /*  the other side's goal kick, as the ball */
+        kind = 5;                                       /*  going out gives -- CheckIfBallOutOfPlay) */
+    }
     const int32_t up = taker == &_bottomTeamData;       /* attacking the top goal */
     int16_t d1, d2, d3;
     uint8_t d4;
@@ -833,7 +847,7 @@ void CheckIfBallOutOfPlay(void)
 
     if (d2 < 129) {
         /* Ball past top end line */
-        if (_lastTeamPlayed == a6) {
+        if (_lastTeamPlayed == a6 && corner_takeable(a6->opponentsTeam)) {
             /* Same team kicked it out — corner for opponent */
             a6 = &_bottomTeamData;
             if (d1 < 336) {
@@ -875,7 +889,7 @@ void CheckIfBallOutOfPlay(void)
 
     if (d2 > 769) {
         /* Ball past bottom end line */
-        if (_lastTeamPlayed == a6) {
+        if (_lastTeamPlayed == a6 && corner_takeable(a6->opponentsTeam)) {
             /* Same team kicked it out — corner for opponent */
             a6 = &_topTeamData;
             if (d1 < 336) {

@@ -16,6 +16,8 @@
 #include "chat_font.h"
 #include "gfx.h"
 #include "netplay_match.h"
+#include "platform_sdl.h"   /* PlatformInitOptions: [chat] scale */
+#include "swos_settings.h"  /* Settings_Save */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,13 +51,24 @@ static int32_t chat_live(void)
 enum {
     KEEP_LINES     = 64,        /* lines kept */
     SHOW_LINES     = 6,         /* rows of the box (wrapped lines count) */
-    SHOW_MS        = 6000,      /* the box stays this long after the newest line */
     FADE_MS        = 1000,      /* then fades out over this */
     REPEATS        = 3,         /* each line sent this many times */
     PENDING_MAX    = 8,
     CHAT_NAME_MAX       = 24,
 };
 static const uint32_t kRepeatMs[REPEATS] = { 0, 250, 750 };
+
+/* SWOS 2020's CHAT WINDOW SCALE (mpgame.cpp g_ChatWindowScale, its F11/F12 -- here Page Up / Page
+ * Down, F11/F12 being OpenSWOS's screenshots) and AUTO CLOSE CHATBOX (g_ChatboxTimeout): [chat]
+ * scale 0..8, the box 1x to 5x in halves; [chat] auto_close 1..5, the seconds it stays after the
+ * newest line before it fades. Set at start-up from SWOS.ini and by the keys, which keep it there. */
+static int32_t s_scale = 0, s_closeS = 5;
+
+void MatchChat_SetScale(int32_t scale) { s_scale = scale < 0 ? 0 : scale > MATCHCHAT_SCALE_MAX ? MATCHCHAT_SCALE_MAX : scale; }
+int32_t MatchChat_Scale(void) { return s_scale; }
+void MatchChat_SetAutoClose(int32_t seconds) { s_closeS = seconds < 1 ? 1 : seconds > 5 ? 5 : seconds; }
+int32_t MatchChat_AutoClose(void) { return s_closeS; }
+
 #define WIRE_MARK '\x02'
 
 typedef enum { WHO_ME, WHO_THEM, WHO_NOTICE } Who;
@@ -185,6 +198,16 @@ static void add_line(int32_t who, const char *text)
     C.shownAt = SDL_GetTicks();
     if (who != WHO_NOTICE)
         fprintf(stderr, "[chat] %s: %s\n", who == WHO_ME ? "me" : "them", text);
+}
+
+/* A line of the game's own in the box (ESC PRESSING TO QUIT's "press ESC again"). */
+void MatchChat_Notice(const char *text)
+{
+    fprintf(stderr, "[chat] notice: %s\n", text);
+    if (C.active) {
+        add_line(WHO_NOTICE, text);
+        C.hidden = 0;
+    }
 }
 
 static void line_close(void);
@@ -408,6 +431,19 @@ static void input_backspace(void)
     CI[CI_LEN] = '\0';
 }
 
+static void scale_key(int32_t up)       /* (wraps round, as SWOS 2020's keys do) */
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    s_scale = up ? (s_scale >= MATCHCHAT_SCALE_MAX ? 0 : s_scale + 1) : (s_scale <= 0 ? MATCHCHAT_SCALE_MAX : s_scale - 1);
+    C.shownAt = SDL_GetTicks();         /* (shown, to see the size) */
+    if (g_arcadeOpts) {
+        g_arcadeOpts->chat_scale = s_scale;
+        if (g_arcadeIniPath)
+            Settings_Save(g_arcadeOpts, g_arcadeIniPath);
+    }
+}
+
 int32_t MatchChat_Event(const SDL_Event *e)
 {
 #if !SWOS_CHAT_DYNAMIC_FONT
@@ -463,6 +499,10 @@ int32_t MatchChat_Event(const SDL_Event *e)
         C.hidden = !C.hidden;
         if (!C.hidden)
             C.shownAt = SDL_GetTicks();
+        return 1;
+    }
+    if ((k == SDLK_PAGEUP || k == SDLK_PAGEDOWN) && !mods) {
+        scale_key(k == SDLK_PAGEUP);
         return 1;
     }
     if (!mods && ((k >= SDLK_1 && k <= SDLK_9) || k == SDLK_0)) {
@@ -548,10 +588,11 @@ void MatchChat_Draw(void)
         if (C.hidden || C.count == 0)
             return;
         const uint32_t age = now - C.shownAt;
-        if (age >= SHOW_MS + FADE_MS)
+        const uint32_t showMs = (uint32_t)s_closeS * 1000u;
+        if (age >= showMs + FADE_MS)
             return;
-        if (age > SHOW_MS)
-            alpha = 1.0f - (float)(age - SHOW_MS) / FADE_MS;
+        if (age > showMs)
+            alpha = 1.0f - (float)(age - showMs) / FADE_MS;
     }
 
     const GfxSpace space = Gfx_Space();
@@ -563,6 +604,8 @@ void MatchChat_Draw(void)
     int32_t px = oh / 38;
     if (px < 12) px = 12;
     if (px > 48) px = 48;
+    px = px * (2 + s_scale) / 2;        /* (CHAT WINDOW SCALE: 1x, 1.5x .. 5x) */
+    if (px > oh / 8) px = oh / 8;       /* (six rows still on the screen) */
     if (ChatFont_Prepare(px) != 0) {
         Gfx_SetBlend(blend);
         Gfx_SetSpace(space);
@@ -570,7 +613,7 @@ void MatchChat_Draw(void)
     }
     const float lh = (float)ChatFont_LineHeight();
     const float pad = SDL_floorf(px * 0.5f), margin = SDL_floorf(px * 0.6f);
-    float boxW = SDL_floorf(ow * 0.42f);
+    float boxW = SDL_floorf(ow * 0.42f * (2 + s_scale) / 2);
     if (boxW < px * 14.0f) boxW = px * 14.0f;
     if (boxW > ow - 2 * margin) boxW = ow - 2 * margin;
     const float textW = boxW - 2 * pad;

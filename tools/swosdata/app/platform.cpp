@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cctype>
 #include <cstring>
 #include <filesystem>
 #include <functional>
@@ -497,13 +498,27 @@ std::vector<DirEntry> ListDir(const std::string& dir) {
   return out;
 }
 
+// The folders under `dir` (and `dir` itself) whose name says Sensible World of Soccer, `depth`
+// levels down: GOG's installs are named after the game; a wrapped Mac app or a Wine prefix keeps it
+// a few levels in. Each a candidate -- SdSources_AddFile decides whether it is the game.
+static void FindSensible(const std::string& dir, int depth, std::vector<std::string>& out) {
+  if (dir.empty() || depth < 0) return;
+  for (const DirEntry& d : ListDir(dir)) {
+    if (!d.dir) continue;
+    if (d.path.find("Sensible") != std::string::npos || d.path.find("SWOS") != std::string::npos) out.push_back(d.path);
+    if (depth > 0) FindSensible(d.path, depth - 1, out);
+  }
+}
+
 std::vector<std::string> GogInstallDirs() {
   std::vector<std::string> out;
 #ifdef _WIN32
-  // GOG Galaxy and GOG's offline installers both register every game here.
-  HKEY games;
-  if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\GOG.com\\Games", 0, KEY_READ,
-                    &games) == ERROR_SUCCESS) {
+  // GOG Galaxy and GOG's offline installers both register every game here: WOW6432Node on 64-bit
+  // Windows, the plain key on a 32-bit one.
+  const wchar_t* keys[] = {L"SOFTWARE\\WOW6432Node\\GOG.com\\Games", L"SOFTWARE\\GOG.com\\Games"};
+  for (const wchar_t* key : keys) {
+    HKEY games;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, key, 0, KEY_READ, &games) != ERROR_SUCCESS) continue;
     wchar_t sub[256];
     for (DWORD i = 0;; i++) {
       DWORD n = 256;
@@ -519,16 +534,154 @@ std::vector<std::string> GogInstallDirs() {
   }
   const char* roots[] = {"C:\\GOG Games", "C:\\Program Files (x86)\\GOG Galaxy\\Games",
                          "C:\\Program Files (x86)\\GOG.com", "C:\\Program Files\\GOG Galaxy\\Games"};
+  for (const char* root : roots) FindSensible(root, 0, out);
 #else
-  const char* home = std::getenv("HOME");
-  const std::string gog = home ? std::string(home) + "/GOG Games" : std::string();
-  const char* roots[] = {gog.c_str()};
-#endif
-  for (const char* root : roots) {
-    if (!root[0]) continue;
-    for (const DirEntry& d : ListDir(root))
-      if (d.dir && d.path.find("Sensible") != std::string::npos) out.push_back(d.path);
+  const char* h = std::getenv("HOME");
+  const std::string home = h ? h : "";
+#if defined(__APPLE__)
+  // GOG's Mac games are an .app in Applications (the system's or the player's own), the game's
+  // DOS folder inside it (Contents/Resources/...); GOG Galaxy may also use ~/GOG Games.
+  for (const std::string& apps : {std::string("/Applications"), home.empty() ? std::string() : home + "/Applications"})
+    for (const DirEntry& d : ListDir(apps))
+      if (d.dir && d.path.find("Sensible") != std::string::npos) {
+        out.push_back(d.path);
+        FindSensible(d.path + "/Contents/Resources", 2, out);
+      }
+  if (!home.empty()) FindSensible(home + "/GOG Games", 0, out);
+#else
+  // GOG sells the game for Windows and Mac only: on Linux it is installed through Wine, Heroic or
+  // Lutris -- their usual folders, the game a few levels in (a Wine prefix's drive_c).
+  if (!home.empty()) {
+    FindSensible(home + "/GOG Games", 0, out);
+    FindSensible(home + "/Games", 1, out);                              // Lutris, Heroic's games
+    FindSensible(home + "/Games/Heroic", 1, out);
+    FindSensible(home + "/.wine/drive_c/GOG Games", 0, out);
+    FindSensible(home + "/.wine/drive_c/Program Files (x86)/GOG Galaxy/Games", 0, out);
+    for (const DirEntry& pfx : ListDir(home + "/Games/Heroic/Prefixes"))  // Heroic's own Wine prefixes
+      if (pfx.dir) {
+        FindSensible(pfx.path + "/pfx/drive_c/GOG Games", 0, out);
+        FindSensible(pfx.path + "/drive_c/GOG Games", 0, out);
+      }
   }
+#endif
+#endif
+  return out;
+}
+
+// Files under `dir` (and its folders, `depth` levels down) that an Amiga version comes as.
+static void FindAmigaImages(const std::string& dir, int depth, std::vector<std::string>& out) {
+  for (const DirEntry& d : ListDir(dir)) {
+    if (d.dir) {
+      if (depth > 0) FindAmigaImages(d.path, depth - 1, out);
+      continue;
+    }
+    std::string low = d.path;
+    for (char& c : low) c = (char)std::tolower((unsigned char)c);
+    const auto ends = [&low](const char* e) {
+      const size_t n = std::strlen(e);
+      return low.size() >= n && low.compare(low.size() - n, n, e) == 0;
+    };
+    if (ends(".hdf") || ends(".adf") || ends(".lha")) out.push_back(d.path);
+  }
+}
+
+#ifdef _WIN32
+// Every program Windows' Uninstall list names (the 32- and 64-bit views, and the user's own):
+// its DisplayName and its folder -- InstallLocation, else the folder of its UninstallString
+// (SWOS 2020's NSIS installer sets none: "C:\\Games\\SWOS 2020\\uninst.exe").
+static std::vector<std::pair<std::wstring, std::string>> UninstallEntries() {
+  std::vector<std::pair<std::wstring, std::string>> out;
+  struct Root { HKEY hive; const wchar_t* key; };
+  const Root roots[] = {
+      {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"},
+      {HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall"},
+      {HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"},
+  };
+  for (const Root& r : roots) {
+    HKEY list;
+    if (RegOpenKeyExW(r.hive, r.key, 0, KEY_READ, &list) != ERROR_SUCCESS) continue;
+    wchar_t sub[256];
+    for (DWORD i = 0;; i++) {
+      DWORD n = 256;
+      if (RegEnumKeyExW(list, i, sub, &n, nullptr, nullptr, nullptr, nullptr) != ERROR_SUCCESS) break;
+      wchar_t name[512] = {0}, loc[1024] = {0}, unins[1024] = {0};
+      DWORD nb = sizeof name, lb = sizeof loc, ub = sizeof unins;
+      if (RegGetValueW(list, sub, L"DisplayName", RRF_RT_REG_SZ, nullptr, name, &nb) != ERROR_SUCCESS) continue;
+      std::string dir;
+      if (RegGetValueW(list, sub, L"InstallLocation", RRF_RT_REG_SZ, nullptr, loc, &lb) == ERROR_SUCCESS && loc[0])
+        dir = Narrow(loc);
+      else if (RegGetValueW(list, sub, L"UninstallString", RRF_RT_REG_SZ, nullptr, unins, &ub) == ERROR_SUCCESS) {
+        std::string u = Narrow(unins);                       // "C:\\...\\uninst.exe" /S: its folder
+        if (!u.empty() && u[0] == '"') u = u.substr(1, u.find('"', 1) - 1);
+        const size_t slash = u.find_last_of("\\/");
+        if (slash != std::string::npos) dir = u.substr(0, slash);
+      }
+      while (!dir.empty() && (dir.back() == '\\' || dir.back() == '/')) dir.pop_back();
+      if (!dir.empty()) out.emplace_back(name, dir);
+    }
+    RegCloseKey(list);
+  }
+  return out;
+}
+#endif
+
+std::string Swos2020InstallDir() {
+#ifdef _WIN32
+  for (const auto& [name, dir] : UninstallEntries())     // ("SWOS 2020 Ver.7.7")
+    if (name.rfind(L"SWOS 2020", 0) == 0) return dir;
+  // Not installed (a copy unpacked there, or its entry gone): where its installer puts it.
+  const std::string fixed = "C:\\Games\\SWOS 2020";
+  if (IsDir(fixed)) return fixed;
+#endif
+  return {};
+}
+
+std::vector<std::string> InstalledSwosPaths() {
+  std::vector<std::string> out;
+#ifdef _WIN32
+  // Every installer registers its program in the Uninstall list: SWOS 2020's NSIS installer
+  // ("SWOS 2020 Ver.7.7", no InstallLocation: its uninstaller's folder), an Amiga SWOS package
+  // ("Amiga SWOS version 2.22": its Disks\\swos.hdf), GOG's game too.
+  for (const auto& [dn, dir] : UninstallEntries()) {
+    const bool swos = dn.find(L"Sensible World of Soccer") != std::wstring::npos ||
+                      dn.find(L"SWOS") != std::wstring::npos;
+    // (not this project's own installs, nor its forks')
+    if (!swos || dn.find(L"OpenSWOS") != std::wstring::npos || dn.find(L"SWOS United") != std::wstring::npos)
+      continue;
+    out.push_back(dir);
+    FindAmigaImages(dir, 2, out);
+  }
+#endif
+  return out;
+}
+
+std::vector<std::string> DriveRoots() {
+  std::vector<std::string> out;
+#ifdef _WIN32
+  const DWORD mask = GetLogicalDrives();
+  for (int i = 0; i < 26; i++) {
+    if (!(mask & (1u << i))) continue;
+    char root[4] = {(char)('A' + i), ':', '\\', 0};
+    const UINT type = GetDriveTypeA(root);
+    // (not a network drive: slow, and not where a game is installed)
+    if (type == DRIVE_FIXED || type == DRIVE_REMOVABLE || type == DRIVE_CDROM) out.push_back(root);
+  }
+#else
+  const char* h = std::getenv("HOME");
+  if (h && h[0]) out.push_back(h);
+#if defined(__APPLE__)
+  for (const DirEntry& d : ListDir("/Volumes"))
+    if (d.dir) out.push_back(d.path);
+#else
+  const char* user = std::getenv("USER");
+  const std::vector<std::string> media = {"/mnt", "/media", user ? std::string("/media/") + user : std::string(),
+                                          user ? std::string("/run/media/") + user : std::string()};
+  for (const std::string& m : media)
+    if (!m.empty())
+      for (const DirEntry& d : ListDir(m))
+        if (d.dir && d.path.find("/mnt/wsl") != 0) out.push_back(d.path);
+#endif
+#endif
   return out;
 }
 

@@ -1080,6 +1080,18 @@ __attribute__((used, externally_visible))
 void PlayMatchSelected(void) {
     if (_careerTeam.team.teamControls == TEAM_COMPUTER)
         _careerTeamCoachOnly = 1;
+#ifdef SWOS_SDL_BUILD
+    /* A mod's turn as PLAY MATCH starts a match (ModApi_OnPlayMatch: SWOS 2020's SELECT PITCH), from
+     * the first player's screen -- not VIEW RESULT, not a training match. Its menu comes and goes
+     * here; who pressed PLAY is kept across it (the menu's own presses set the fire flags). */
+    if ((_pl1Fire || _pl2Fire) && _squadChangesAllowed && _isFirstPlayerChoosingTeam && !_trainingGame) {
+        extern void ModExtras_PlayMatchPressed(void);
+        const uint8_t p1 = _pl1Fire, p2 = _pl2Fire;
+        ModExtras_PlayMatchPressed();
+        _pl1Fire = p1;
+        _pl2Fire = p2;
+    }
+#endif
     if (_pl1Fire) {
         _playerNumThatStarted = 1;
         _player1ClearFlag = 0; _player2ClearFlag = 0;

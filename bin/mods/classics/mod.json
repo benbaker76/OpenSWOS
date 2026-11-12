@@ -2,9 +2,9 @@
  "uuid": "14e2f6d4-962f-5088-9187-19e107d1b8e3",
  "id": "classics",
  "name": "Historic Tournaments",
- "version": "1.1",
- "author": "petarku / the5ar (PR #11); the tournaments by Insane (SWOS 2020 DLC, with permission)",
- "about": "Famous tournaments as preset competitions: every World Cup and Euro, the continental cups and the 1990s European Cups (Insane's, from SWOS 2020), and your own .DIY cups from classic/ in your assets folder.",
+ "version": "1.2",
+ "author": "petarku / the5ar (PR #11); the tournaments by Insane (SWOS 2020 DLC, with permission); 1993 Primeira Divisao, 1998 Ligue Pro 1 and the 1994 African Cup of Nations by Taraji",
+ "about": "Famous tournaments as preset competitions: every World Cup and Euro, the continental cups and the 1990s European Cups (Insane's, from SWOS 2020), Taraji's 1993 Primeira Divisao, 1998 Ligue Pro 1 and 1994 African Cup of Nations, and your own .DIY cups from classic/ in your assets folder.",
  "targets": [
   "sdl",
   "amiga"

@@ -1,6 +1,6 @@
 {
   "name": "creditsMenu",
-  "comment": "OpenSWOS's CREDITS screen, from the main menu's CREDITS button. JSON-only (docs/MENUS.md section 10): a header and the exit button; the text (include/credits_text.h) and the photos are drawn by src/credits_menu.c every frame.",
+  "comment": "OpenSWOS's CREDITS screen, from the main menu's CREDITS button. JSON-only (docs/MENUS.md section 10): a header, FULL CREDITS (the scrolling credits, openswos/fullCreditsMenu) and the exit button; the text (include/credits_text.h) and the photos are drawn by src/credits_menu.c every frame.",
   "menu_flags": {
     "dos_redraw": true
   },
@@ -35,7 +35,7 @@
       "kind": "entry",
       "name": "exit",
       "coords": {
-        "x": 92,
+        "x": 154,
         "y": 210,
         "w": 120,
         "h": 15
@@ -53,7 +53,7 @@
         },
         {
           "op": "nav",
-          "left": -1,
+          "left": 2,
           "right": -1,
           "up": -1,
           "down": -1
@@ -61,6 +61,39 @@
         {
           "op": "onselect_fire",
           "func": "openswosCredits_exit_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "fullCredits",
+      "coords": {
+        "x": 30,
+        "y": 210,
+        "w": 120,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "FULL CREDITS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 4
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "openswosCredits_fullCredits_OnSelect"
         }
       ]
     }

@@ -234,7 +234,8 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
                            : !strcmp(kind, "free_kick") ? CHALLENGE_RESTART_FREE_KICK
                            : !strcmp(kind, "penalty") ? CHALLENGE_RESTART_PENALTY
                            : !strcmp(kind, "throw_in") ? CHALLENGE_RESTART_THROW_IN
-                           : !strcmp(kind, "goal_kick") ? CHALLENGE_RESTART_GOAL_KICK : CHALLENGE_RESTART_KICK_OFF;
+                           : !strcmp(kind, "goal_kick") ? CHALLENGE_RESTART_GOAL_KICK
+                           : !strcmp(kind, "random") ? CHALLENGE_RESTART_RANDOM : CHALLENGE_RESTART_KICK_OFF;
             const int32_t team = NUM("restart.team", 0), wing = NUM("restart.wing", 0);
             c->restartTeam = (int8_t)(team < 0 ? -1 : team ? 1 : 0);
             c->restartWing = (int8_t)(wing < 0 ? -1 : wing ? 1 : 0);
@@ -370,7 +371,8 @@ static void js_str(Js *o, const char *key, const char *v)    /* "key": "v", esca
 
 int32_t ChallengePack_ToJson(const ChallengeDef *c, char *out, uint32_t cap)
 {
-    static const char *const kinds[6] = { "kick_off", "corner", "free_kick", "penalty", "throw_in", "goal_kick" };
+    static const char *const kinds[7] = { "kick_off", "corner", "free_kick", "penalty", "throw_in", "goal_kick",
+                                           "random" };
     Js o = { out, cap, 0 };
     js(&o, "  { ");
     js_str(&o, "id", c->id);
@@ -455,7 +457,7 @@ int32_t ChallengePack_ToJson(const ChallengeDef *c, char *out, uint32_t cap)
     js(&o, "],");
     if (c->restartKind != CHALLENGE_RESTART_KICK_OFF || c->restartTeam || c->restartWing || c->restartSpot ||
         c->restartDeep) {
-        js(&o, "\n    \"restart\": { \"kind\": \"%s\", \"team\": %d, \"wing\": %d", kinds[c->restartKind < 6 ? c->restartKind : 0],
+        js(&o, "\n    \"restart\": { \"kind\": \"%s\", \"team\": %d, \"wing\": %d", kinds[c->restartKind < 7 ? c->restartKind : 0],
            (int)c->restartTeam, (int)c->restartWing);
         if (c->restartKind == CHALLENGE_RESTART_FREE_KICK || c->restartSpot)
             js(&o, ", \"spot\": %d, \"x\": %d, \"y\": %d", (int)c->restartSpot, (int)c->restartX, (int)c->restartY);

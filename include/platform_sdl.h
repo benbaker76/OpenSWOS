@@ -116,20 +116,25 @@ typedef struct {
     int                    shadow_shading;   /* 1 = shade the drop shadow, 0 = SWOS's colour 8 */
     int                    hair_shading;     /* 1 = shade hair the game leaves flat (black), 0 = as the game has it */
     int                    shade_step;       /* sixteenths between kit shades: 16, 16-N, 16-2N, 16-3N; hair too */
+    int                    clash_kits;       /* [graphics] clash_kits: SWOS 2020's GK/REF CLASH KITS (clash_kits.c), 0 = off */
     int                    kit_art;          /* the UNIFORM screen's kit drawings: 0 = the Amiga's, 1 = the Jaguar's (kit_art.h) */
     int                    sound_style;      /* a match's sounds: 0 = the Amiga's, 1 = the PC game's samples (dos_sound.h) */
     char                   commentary_dir[260]; /* the folder of commentary categories; "" = sound_dos/commentary */
+    int                    title_midi;       /* with music_style 1: 1 = the intro plays sound_dos/title.xmi on the emulated chip, 0 = title.mp3 */
     int                    menu_recording;   /* with music_style 1: 1 = play sound_dos/menu.mp3, 0 = menu.xmi on the emulated chip */
     int                    music_style;      /* the menus' music: 0 = the Amiga's, 1 = the PC game's menu.xmi (dos_music.h) */
     int                    commentary;       /* the PC game's commentary: 0 off, 1 on (over the Amiga's sounds too), 2 auto = with sound_style 1 */
     int                    dos_gameplay;     /* the gameplay style, GAMEPLAY_* (dos_mode.h): 0 AMIGA, 1 DOS, 2 XBOX */
-    int                    contest_own_ratings; /* 1 = a contested ball's dice rates each side by the man at the
+    int                    contest_own_ratings_unused; /* 1 = a contested ball's dice rates each side by the man at the
                                               * ball; 0 (default) = the original's squad-slot lookup
                                               * (ball_possession.c, _gContestOwnRatings). Offline only. */
     int                    fire_hold_lockout;/* 1 = keep the ORIGINAL Amiga bug where an OPPONENT's tackle
                                               * kills your held fire button's shot charge for good. 0 (default)
                                               * = fixed. See _gOriginalFireHoldLockout in team_control.c */
     int                    replay_auto_save; /* 1 = keep a dated .SRP of every match, not only LATEST.SRP */
+    int                    replay_frame_overlay; /* 1 = the viewer's frame box shows at first (I toggles it) */
+    int                    vol_music, vol_chants, vol_commentary, vol_effects;  /* 0..100 ([audio] *_volume) */
+    int                    replay_half_speed;    /* 1 = recordings start at half speed in the viewer */
     char                   matchmaker[80];   /* [netplay] matchmaker: the server MULTIPLAYER logs in to,
                                               * "host" or "host:port". Typed on the login menu and saved
                                               * there; empty = a server on this machine. */
@@ -175,6 +180,11 @@ typedef struct {
     char                   assets_reminder_off[64]; /* [general] assets_reminder_off: the data versions whose "update your
                                                      * game data" reminder was dismissed (src/assets_check.c), "" none */
     char                   currency[8];      /* "pound" (default) or "dollar" — money symbol */
+    /* ---- SWOS 2020 port, agent B ---- */
+    char                   file_sort[8];     /* [general] file_sort: the LOAD / SAVE lists' order (SWOS 2020's
+                                              * sortOption): "name" (the game's own, default) | "date" */
+    int                    quick_access;     /* [general] quick_access: SWOS 2020's QUICK ACCESS after a
+                                              * friendly (src/quick_access.c), 0 off (default) */
     char                   world[8];         /* [general] world: the football world (include/world.h), "" = 9697 */
     char                   mods[256];        /* [mods] enabled: the mods to play with (include/mods.h), "" = none */
     char                   mods_disabled[256];   /* [mods] disabled: canonical mods turned off, "" = none */
@@ -189,6 +199,34 @@ typedef struct {
     int                    opt_all_teams_equal;
     int                    opt_auto_save_highlights;
     int                    opt_menu_music;
+    /* -- the match chat's window (SWOS 2020 port, agent C; include/match_chat.h) -- */
+    int                    chat_scale;           /* [chat] scale: 0..8, the box 1x .. 5x in halves */
+    int                    chat_auto_close;      /* [chat] auto_close: 1..5 s the box stays after a line */
+    /* ---- SWOS 2020's CONTROLS MENU, CONTROLLER SETUP, menu look and MULTIPLAYER SETTINGS
+     * (SWOS 2020 port, agent A; src/input_sdl.c, src/settings_menus.c, src/match_chat.c) ---- */
+    char                   pad_pref[2][48];      /* [input] pad1/pad2: auto | keyboard | none | <guid>[#n] */
+    int                    auto_detect_pads;     /* [input] auto_detect_pads (1) */
+    char                   pad_config[512];      /* [input] pad_config: per pad GUID, fire/bench/cut-offs */
+    int                    shoulder_buttons_off; /* [input] shoulder_buttons: 1 = off, as SWOS 2020's default */
+    int                    call_bench;           /* [input] call_bench: 0 both, 1 taps, 2 button */
+    int                    menu_cursor;          /* [video] menu_cursor: 0 flashing, 1 steady */
+    int                    chat_controller_off;  /* [chat] controller_off: the pad steers nobody while typing */
+    int                    esc_presses;          /* [netplay] esc_presses: ESCs that leave a live match, 1-3 */
+    /* ---- launcher options (agent A): the SWOS United Launcher's, in SWOS.ini and on the settings
+     * pages (src/settings_menus.c, docs/SETTINGS.md "The launcher's options") ---- */
+    int                    skip_intro;           /* [general] skip_intro: no intro at start (--no-intro) */
+    int                    skip_image_reels;     /* [general] skip_image_reels: the intro's title only (--no-image-reels) */
+    int                    no_load_pause;        /* [general] no_load_pause: no 3 s on the stadium screen (--no-load-pause) */
+    int                    auto_centering;       /* [video] auto_centering: the window kept centred (--auto-centering) */
+    int                    show_fps;             /* [video] show_fps: the frames a second, top right (--show-fps) */
+    int                    mouse_cursor;         /* [input] mouse_cursor: 0 system, 1 workbench2, 2 workbench1 */
+    int                    cpu_tactics;          /* [gameplay] cpu_tactics: 0 normal, 1 expert (--improved-cpu-tactics) */
+    /* ---- launcher options (agent B): DISPLAY OPTIONS (src/settings_menus.c, src/display_options.c) ---- */
+    int                    menu_opacity;         /* [video] menu_opacity: 0-100, the menus' coloured parts over
+                                                  * the backdrop (SWOS 2020's --alpha-blending-menu); 100 opaque */
+    int                    purple_for_brown;     /* [video] purple_for_brown: maroon kits drawn purple */
+    int                    improved_pitch_palette; /* [video] improved_pitch_palette: SWOS 2020's wet/soft stripes */
+    int                    pixel_filter;         /* [video] pixel_filter: PIXEL_FILTER_* (include/pixel_filter.h) */
 } PlatformInitOptions;
 
 int  Platform_Init(const PlatformInitOptions *opts);
@@ -202,6 +240,10 @@ int  Platform_OpenUrl(const char *url);
  * the game's). 62: a colour of the game's own backdrop (33-62), which no menu element uses. */
 #define MENU_BACKDROP_KEY 62
 void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h);
+/* ---- launcher options (agent B) ---- */
+/* DISPLAY OPTIONS: the menus' opacity, the pixel filter, purple for brown and the improved pitch
+ * palette, from the options (at Platform_Init, and when a row changes one). Drawing only. */
+void Platform_SetDisplayOptions(const PlatformInitOptions *o);
 /* One colour of the palette the screen is drawn in, by index. */
 void Platform_PaletteRgb(int index, uint8_t *r, uint8_t *g, uint8_t *b);
 
@@ -210,6 +252,8 @@ void Platform_PaletteRgb(int index, uint8_t *r, uint8_t *g, uint8_t *b);
  * Toggles between windowed and the fullscreen flavour the user launched
  * with (--fullscreen=desktop or =exclusive). */
 void Platform_ToggleFullscreen(void);
+void Platform_SetFullscreenMode(PlatformFullscreenMode mode);    /* VIDEO OPTIONS' WINDOW MODE (agent A) */
+void Platform_VolumeKey(int key);        /* Shift+1..6 in a match: a volume down / up */
 
 /* Set the windowed-mode integer scale factor (1..4) at runtime. Called
  * from the +/- key handlers. No-op while fullscreen. */

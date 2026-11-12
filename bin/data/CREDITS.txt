@@ -1,0 +1,126 @@
+Sensible World of Soccer
+
+Developer                      Sensible Software
+Publisher                      Renegade
+Producer                       Graeme Boxall
+Programmer / Coder             Chris Chapman
+Graphics                       Jon Hare, Stoo Cambridge
+Music & Sound                  Alex Joseph, Graham King, Jason Page,
+                               Jon Hare, Richard Joseph
+
+OpenSWOS
+
+Project Manager                benbaker76
+Port to C                      benbaker76
+Reverse Engineering            benbaker76 (Amiga) / zkz (DOS)
+AGA                            benbaker76
+SWOS 2026-27 Mod               Aminta
+Multiplayer (GGPO-X)           thd79
+Server Help                    Redhair
+Test Lead                      Playaveli
+Beta Testers                   Brummie, crom1, ElMichaJ, Elsheimy, EMPI,
+                               gatifun, Mladen, Mózg, petarku, Predicador,
+                               Rebel, Redhair, starwindz, thd79, umtytm,
+                               Yashalkok
+Donators                       benbaker76, Playaveli, starwindz, Petarku,
+                               gatifun, burellapaolo, az0man0,
+                               Cartoplotus68, JoSon, aliko
+
+SWOS United
+
+Project Manager                Playaveli
+Engineering Lead               benbaker76
+SWOS 2020 Lead Developer       starwindz
+Multiplayer (GGPO-X)           thd79
+Webmaster                      ElMichaJ
+Manic SWOS Preacher            Redhair
+
+SWOS 2020
+
+* SWOS 2020 v5.0 and later versions
+- Lead programmer & code: starwindz
+- Programmer & code consultants: thd79, zkz
+- Production management & concept art: Playaveli
+- Graphic artist: Francescomanetti82
+- Lead beta testers: gatifun, Brummie, Insane
+- Beta testers: Blazej, Crom1, EMPI, N3griazul11,
+                NKalli, Patigoal, pol2381, Rebel,
+                Redhair, xflea
+- Web site integration for online rankings:
+  ElMichaJ
+
+* SWOS 2020 v1.0 to v4.0
+- Lead programmer & code for SWOS 2020: starwindz
+- Base code from reverse engineering: zkz
+- Production management: Playaveli
+- Amiga game style, Widescreen mode, Amiga screen mode
+  and additional improved features for SWOS 2020:
+  starwindz
+- Programming and integration for game launcher,
+  DLC Manager:
+  starwindz
+
+- Reverse engineering for Amiga game style: segra
+- SWOS 2019/20 team database:
+  Playaveli, Carlo, Gorzo, daddywarhol,
+  Betichus, hellasmarco, Rock and Roll,
+  lemonheadiv, Armandojimenez,
+  Theologistic, BOCo, petarku, xflea,
+  gatifun, Sebatosh, djowGer, N3griazul11,
+  CAbRaLzinhO_Auge
+
+- SWOS previous team database:
+  Gideon Cresswell, Dominic Cresswell,
+  Jon Billingham, Paul Turner,
+  Crispin Boylan, SensibleSWOS, Synchronated,
+  SWOS United
+
+- Custom pitches:
+  W.Carling, Francescomanetti82, DancingWolf
+- Adboards graphics and HD background images:
+  SrS, DancingWolf, Insane
+- General custom graphics including pitches
+  Redhair, Dominic Cresswell,
+  Whiteulver, AZSCROMAD0S, Introv0lv0, Turko, jerry,
+  EreWego, mrsensible, Tomplus,
+  starwindz(Amiga to PC conversion)
+
+- Audio commentaries or Sound FX:
+  Jon Billingham, W.Carling, EreWeGo, Cem Turan,
+  Playaveli, Freddy Hajas, lemonheadiv, gatifun,
+  arcisas, bill_bill, ztronzo, xflea,
+  Adrian Venditez, Gravedigger-Sydney, Yeahwadam,
+  Francescomanetti82
+
+- Title music:
+  Jon Hare & Richard Joseph feat. Jackie Reed (vocals)
+
+- Menu music:
+  Playaveli,
+  PC DOS 3.5 Floppy Version w/ Yamaha DB50XG
+
+- Source code of pixel scalers:
+  https://github.com/Orum/PointSize
+- Shader files of OpenGL shaders:
+  https://github.com/hizzlekizzle/quark-shaders
+- Technical support for OpenGL shader programming:
+  Anoxic
+
+- Data structure identification of leagues and cups:
+  Anoxic (Author of AG-SWSEdt)
+
+- Expert Tactics System: Mozg
+  (Gameplay - Difficulty Option in the Launcher)
+
+- Beta testers:
+  starwindz, Playaveli, djowGer, Redhair, lemonheadiv,
+  Sebatosh, petarku, xflea, W.Carling, BOCo, gatifun,
+  Gorzo, Armandojimenez, Anoxic, N3griazul11,
+  captaincofresi
+
+- Beta testers for update v3.0:
+  Theologistic, Playaveli, N3griazul11,
+  Ztronzo, Redhair
+
+- Icons of wait window: freeicons.io
+- Main menu icons: Francescomanetti82

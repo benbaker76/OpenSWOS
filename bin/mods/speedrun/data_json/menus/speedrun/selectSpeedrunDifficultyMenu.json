@@ -1,0 +1,439 @@
+{
+  "name": "selectSpeedrunDifficultyMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/selectSpeedrunDifficulty.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "speedrun.diffInit",
+  "onReturn": null,
+  "onDraw": "speedrun.diffDraw",
+  "defaultEntry": 2,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "selectSpeedrunDifficultyHeader",
+      "coords": {
+        "x": 72,
+        "y": 0,
+        "w": 160,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "subTitleLeft",
+      "coords": {
+        "x": 32,
+        "y": 23,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "FREE TEAM CHOICE"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "selectSpeedrunTeams",
+      "coords": {
+        "x": 32,
+        "y": 44,
+        "w": 100,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SELECT TEAMS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 10,
+          "up": -1,
+          "down": 15
+        },
+        {
+          "op": "onselect_fire",
+          "func": "speedrun.diffTeams"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "msg0",
+      "coords": {
+        "x": 32,
+        "y": 85,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DIFFICULTY LEVEL IS"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "msg1",
+      "coords": {
+        "x": 32,
+        "y": 95,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SET AUTOMATICALLY"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "msg2",
+      "coords": {
+        "x": 32,
+        "y": 105,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "BY YOUR SELECTION"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "msg3",
+      "coords": {
+        "x": 32,
+        "y": 115,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OF TEAMS, DEPENDING"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "msg4",
+      "coords": {
+        "x": 32,
+        "y": 125,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "ON THE TEAMS' TOTAL"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "msg5",
+      "coords": {
+        "x": 32,
+        "y": 135,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SKILL POINTS."
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "subTitleRight",
+      "coords": {
+        "x": 172,
+        "y": 23,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PRECONFIGURED TEAMS"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "beginner",
+      "coords": {
+        "x": 172,
+        "y": 44,
+        "w": 100,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "BEGINNER"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": 2,
+          "right": -1,
+          "up": -1,
+          "down": 11
+        },
+        {
+          "op": "onselect_fire",
+          "func": "speedrun.diff0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "amateur",
+      "coords": {
+        "x": 172,
+        "y": 71,
+        "w": 100,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "AMATEUR"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 10,
+          "down": 12
+        },
+        {
+          "op": "onselect_fire",
+          "func": "speedrun.diff1"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "advanced",
+      "coords": {
+        "x": 172,
+        "y": 98,
+        "w": 100,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "ADVANCED"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 11,
+          "down": 13
+        },
+        {
+          "op": "onselect_fire",
+          "func": "speedrun.diff2"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pro",
+      "coords": {
+        "x": 172,
+        "y": 125,
+        "w": 100,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PRO"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 12,
+          "down": 14
+        },
+        {
+          "op": "onselect_fire",
+          "func": "speedrun.diff3"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "master",
+      "coords": {
+        "x": 172,
+        "y": 152,
+        "w": 100,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "MASTER"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": 15,
+          "right": -1,
+          "up": 13,
+          "down": 16
+        },
+        {
+          "op": "onselect_fire",
+          "func": "speedrun.diff4"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "news",
+      "coords": {
+        "x": 32,
+        "y": 152,
+        "w": 100,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "LEADERBOARD"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 11
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 14,
+          "up": 2,
+          "down": 16
+        },
+        {
+          "op": "onselect_fire",
+          "func": "speedrun.diffNews"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 112,
+        "y": 185,
+        "w": 75,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": 15,
+          "right": 14,
+          "up": 14,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "speedrun.diffExit"
+        }
+      ]
+    }
+  ]
+}

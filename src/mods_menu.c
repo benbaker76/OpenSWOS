@@ -240,26 +240,31 @@ enum {
     ModPage_author,                     /* (appended: the entries before keep their numbers) */
 };
 
+/* A setting's choices: its own list ("choices"), or the files of a folder ("choices_from") -- a
+ * gallery mod's pictures can be many, so up to kMaxChoices, named up to 63 characters; more than
+ * a page's rows and the setting opens a scrolling list (openswos/choiceMenu) instead of stepping. */
+enum { kMaxChoices = 256, kChoiceLen = 64 };
 typedef struct {
     char key[32], label[40];
-    char choices[8][24];
+    char choices[kMaxChoices][kChoiceLen];
     int32_t choiceCount;
 } PageSetting;
 
 static ModInfo     s_page;
 static PageSetting s_pageSettings[kRows];
 static int32_t     s_pageCount;
-static char        s_pageName[48], s_pageAbout[64], s_pageAuthor[64], s_pageLabels[kRows][40], s_pageValues[kRows][24];
+static char        s_pageName[48], s_pageAbout[64], s_pageAuthor[64], s_pageLabels[kRows][40], s_pageValues[kRows][40];
 
 /* "choices_from": "<folder>": "off", then the image files (.png .bmp .jpg) in that folder of the
- * mod and of the player's game folder (swos_user_dir(); "user_folder" when its name is another),
- * each once, up to the page's 8. */
+ * mod, of every enabled mod (a gallery DLC's images/: docs/MODS.md §25b) and of the player's game
+ * folder (swos_user_dir(); "user_folder" when its name is another), each name once, up to
+ * kMaxChoices. */
 typedef struct { PageSetting *ps; const char *ext; } ChoicesCtx;
 static int32_t choices_add(const char *name, void *ctx)
 {
     PageSetting *ps = ((ChoicesCtx *)ctx)->ps;
     const char *dot = strrchr(name, '.');
-    if (ps->choiceCount >= 8)
+    if (ps->choiceCount >= kMaxChoices)
         return 1;
     const char *ext = ((ChoicesCtx *)ctx)->ext;
     if (!dot || strlen(name) >= sizeof ps->choices[0])
@@ -275,6 +280,8 @@ static int32_t choices_add(const char *name, void *ctx)
     return 0;
 }
 
+static int choice_cmp(const void *a, const void *b) { return SDL_strcasecmp((const char *)a, (const char *)b); }
+
 static void choices_from_files(const ModInfo *m, const char *folder, const char *userFolder, const char *ext,
                                PageSetting *ps)
 {
@@ -284,8 +291,15 @@ static void choices_from_files(const ModInfo *m, const char *folder, const char 
     ps->choiceCount = 1;
     snprintf(dir, sizeof dir, "%s/%s", ModApi_ModDir(m->slug), folder);
     ModApi_ListFiles(dir, choices_add, &ctx);
+    for (int32_t i = 0; i < Mods_Count(); i++)          /* (the other enabled mods' same folder) */
+        if (strcmp(Mods_Id(i), m->slug) != 0) {
+            snprintf(dir, sizeof dir, "%s/%s", Mods_Dir(i), folder);
+            ModApi_ListFiles(dir, choices_add, &ctx);
+        }
     snprintf(dir, sizeof dir, "%s/%s", swos_user_dir(), userFolder[0] ? userFolder : folder);
     ModApi_ListFiles(dir, choices_add, &ctx);
+    if (ps->choiceCount > 2)                            /* (by name, "off" first: a gallery's years in order) */
+        SDL_qsort(ps->choices[1], (size_t)(ps->choiceCount - 1), sizeof ps->choices[0], choice_cmp);
 }
 
 /* mod.json's "settings": [{ "key", "label", "choices": [..] or "choices_from": "<folder>",
@@ -362,7 +376,7 @@ static void read_page_settings(const ModInfo *m)
             snprintf(t, sizeof t, "%s", ps->key);
         upper(ps->label, sizeof ps->label, t);
         ps->choiceCount = 0;
-        for (int32_t c = 0; c < 8; c++) {
+        for (int32_t c = 0; c < kMaxChoices; c++) {
             snprintf(q, sizeof q, "$.settings[%d].choices[%d]", (int)i, (int)c);
             if (mjson_get_string(json, len, q, ps->choices[c], (int)sizeof ps->choices[c]) < 0)
                 break;
@@ -376,6 +390,18 @@ static void read_page_settings(const ModInfo *m)
             snprintf(q, sizeof q, "$.settings[%d].choices_ext", (int)i);   /* (".slangp"; none: images) */
             mjson_get_string(json, len, q, ext, (int)sizeof ext);
             choices_from_files(m, t, user, ext, ps);    /* "off" and the files of a folder */
+            /* "choices_first": [..] -- names of the mod's own offered after "off", before the
+             * files (the backgrounds mod's "auto" and "random"; launcher options, agent A) */
+            for (int32_t k = 0; k < 8 && ps->choiceCount < kMaxChoices; k++) {
+                char extra[kChoiceLen];
+                snprintf(q, sizeof q, "$.settings[%d].choices_first[%d]", (int)i, (int)k);
+                if (mjson_get_string(json, len, q, extra, (int)sizeof extra) < 0)
+                    break;
+                memmove(ps->choices[2 + k], ps->choices[1 + k],
+                        (size_t)(ps->choiceCount - 1 - k) * sizeof ps->choices[0]);
+                snprintf(ps->choices[1 + k], sizeof ps->choices[0], "%s", extra);
+                ps->choiceCount++;
+            }
         }
         if (!ps->choiceCount) {
             snprintf(ps->choices[0], sizeof ps->choices[0], "off");
@@ -386,7 +412,7 @@ static void read_page_settings(const ModInfo *m)
         if (mjson_get_string(json, len, q, t, (int)sizeof t) >= 0)     /* (the default goes first) */
             for (int32_t c = 1; c < ps->choiceCount; c++)
                 if (SDL_strcasecmp(ps->choices[c], t) == 0) {
-                    char first[24];
+                    char first[kChoiceLen];
                     memcpy(first, ps->choices[0], sizeof first);
                     memcpy(ps->choices[0], ps->choices[c], sizeof first);
                     memcpy(ps->choices[c], first, sizeof first);
@@ -432,11 +458,117 @@ static void modPageMenu_OnInit(void)
 
 static void modPageMenu_OnDraw(void) { page_refresh(); }
 
+/* ---- a setting with more choices than rows: a scrolling list (openswos/choiceMenu) ---- */
+
+enum {
+    Choice_header,
+    Choice_row0,                        /* row<i> = row0 + i */
+    Choice_note = Choice_row0 + kRows,
+    Choice_exit,
+    Choice_scrollUp,
+    Choice_scrollDown,
+};
+
+static int32_t s_pick;                  /* the setting being chosen */
+static int32_t s_pickTop;               /* row 0 showing its choice s_pickTop */
+static char    s_pickRows[kRows][kChoiceLen], s_pickHeader[48];
+
+static void pick_refresh(void)
+{
+    const PageSetting *ps = &s_pageSettings[s_pick];
+    const char *now = ModApi_Setting(s_page.slug, ps->key, ps->choices[0]);
+    entry_at(Choice_header)->fg = (uintptr_t)s_pickHeader;
+    for (int32_t i = 0; i < kRows; i++) {
+        MenuEntry *row = entry_at(Choice_row0 + i);
+        const int32_t c = s_pickTop + i;
+        row->isInvisible = c >= ps->choiceCount;
+        if (c >= ps->choiceCount)
+            continue;
+        char text[kChoiceLen + 4];
+        snprintf(text, sizeof text, "%s%s", SDL_strcasecmp(ps->choices[c], now) == 0 ? "> " : "", ps->choices[c]);
+        upper(s_pickRows[i], sizeof s_pickRows[i], text);
+        row->fg = (uintptr_t)s_pickRows[i];
+    }
+    entry_at(Choice_scrollUp)->isInvisible = entry_at(Choice_scrollDown)->isInvisible = ps->choiceCount <= kRows;
+    entry_at(Choice_note)->fg = (uintptr_t)s_note;
+}
+
+static void choiceMenu_OnInit(void)
+{
+    const PageSetting *ps = &s_pageSettings[s_pick];
+    const int32_t rows = ps->choiceCount < kRows ? ps->choiceCount : kRows;
+    const char *now = ModApi_Setting(s_page.slug, ps->key, ps->choices[0]);
+    snprintf(s_pickHeader, sizeof s_pickHeader, "%s", ps->label);
+    s_pickTop = 0;                      /* (the current choice in view) */
+    for (int32_t c = 0; c < ps->choiceCount; c++)
+        if (SDL_strcasecmp(ps->choices[c], now) == 0)
+            s_pickTop = c - c % kRows;
+    if (s_pickTop > ps->choiceCount - rows)
+        s_pickTop = ps->choiceCount - rows;
+    for (int32_t i = 0; i < rows; i++) {
+        nav(Choice_row0 + i, i ? Choice_row0 + i - 1 : -1, i + 1 < rows ? Choice_row0 + i + 1 : Choice_exit);
+        nav_lr(Choice_row0 + i, -1, ps->choiceCount > kRows ? (i < kRows / 2 ? Choice_scrollUp : Choice_scrollDown) : -1);
+    }
+    if (ps->choiceCount > kRows) {
+        nav(Choice_scrollUp, -1, Choice_scrollDown);
+        nav_lr(Choice_scrollUp, Choice_row0, -1);
+        nav(Choice_scrollDown, Choice_scrollUp, Choice_exit);
+        nav_lr(Choice_scrollDown, Choice_row0 + kRows - 1, -1);
+    }
+    nav(Choice_exit, rows ? Choice_row0 + rows - 1 : -1, -1);
+    note("FIRE CHOOSES; THE ARROWS SCROLL");
+    pick_refresh();
+}
+
+static void choiceMenu_OnDraw(void) { pick_refresh(); }
+
+static void pick_row(int32_t i)
+{
+    const PageSetting *ps = &s_pageSettings[s_pick];
+    const int32_t c = s_pickTop + i;
+    if (c >= ps->choiceCount)
+        return;
+    ModApi_SetSetting(s_page.slug, ps->key, ps->choices[c]);
+    fprintf(stderr, "[mods] %s: %s = %s\n", s_page.slug, ps->key, ps->choices[c]);
+    note("CHANGED: SWOS.INI SAYS SO");
+    SetExitMenuFlag();
+}
+
+static void pick_scroll(int32_t by)
+{
+    const int32_t n = s_pageSettings[s_pick].choiceCount, last = n - kRows;
+    const int32_t top = s_pickTop + by * kRows;  /* (a page at a time: a gallery can be long) */
+    s_pickTop = top < 0 ? 0 : top > last ? (last > 0 ? last : 0) : top;
+    pick_refresh();
+}
+
+static void choiceMenu_row0_OnSelect(void) { pick_row(0); }
+static void choiceMenu_row1_OnSelect(void) { pick_row(1); }
+static void choiceMenu_row2_OnSelect(void) { pick_row(2); }
+static void choiceMenu_row3_OnSelect(void) { pick_row(3); }
+static void choiceMenu_row4_OnSelect(void) { pick_row(4); }
+static void choiceMenu_row5_OnSelect(void) { pick_row(5); }
+static void choiceMenu_row6_OnSelect(void) { pick_row(6); }
+static void choiceMenu_row7_OnSelect(void) { pick_row(7); }
+static void choiceMenu_scrollUp_OnSelect(void) { pick_scroll(-1); }
+static void choiceMenu_scrollDown_OnSelect(void) { pick_scroll(1); }
+static void choiceMenu_exit_OnSelect(void) { SetExitMenuFlag(); }
+
 static void page_cycle(int32_t i)
 {
     if (i >= s_pageCount)
         return;
     const PageSetting *ps = &s_pageSettings[i];
+    if (ps->choiceCount > kRows) {      /* (a long list: chosen from a scrolling one) */
+        uint8_t *menu = MenuJson_Load(CHOICE_MENU_NAME);
+        if (!menu) {
+            fprintf(stderr, "[mods-menu] cannot show %s\n", CHOICE_MENU_NAME);
+            return;
+        }
+        s_pick = i;
+        ShowMenu(menu);
+        return;
+    }
     const char *now = ModApi_Setting(s_page.slug, ps->key, ps->choices[0]);
     int32_t at = 0;
     for (int32_t c = 0; c < ps->choiceCount; c++)
@@ -472,6 +604,31 @@ static void open_page(int32_t i)
     }
     ShowMenu(menu);
     note("TURNED ON OR OFF FROM THE NEXT START");
+}
+
+int32_t ModsMenu_ShowChoices(const char *slug, const char *key)
+{
+    ModInfo all[kMaxMods];
+    const int32_t n = Mods_Scan(all, kMaxMods);
+    ModsMenu_Init();
+    for (int32_t i = 0; i < n; i++) {
+        if (strcmp(all[i].slug, slug) != 0)
+            continue;
+        s_page = all[i];
+        read_page_settings(&s_page);
+        for (int32_t k = 0; k < s_pageCount; k++)
+            if (strcmp(s_pageSettings[k].key, key) == 0) {
+                uint8_t *menu = MenuJson_Load(CHOICE_MENU_NAME);
+                if (!menu)
+                    return 0;
+                s_pick = k;
+                fprintf(stderr, "[mods-menu] %s: %s, %d choices\n", slug, key, (int)s_pageSettings[k].choiceCount);
+                ShowMenu(menu);
+                return 1;
+            }
+    }
+    fprintf(stderr, "[mods-menu] --menu: no mod %s with a setting %s\n", slug, key);
+    return 0;
 }
 
 static void modsMenu_page0_OnSelect(void) { open_page(0); }
@@ -520,6 +677,19 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(modPageMenu_row6_OnSelect),
     HANDLER(modPageMenu_row7_OnSelect),
     HANDLER(modPageMenu_exit_OnSelect),
+    HANDLER(choiceMenu_OnInit),
+    HANDLER(choiceMenu_OnDraw),
+    HANDLER(choiceMenu_row0_OnSelect),
+    HANDLER(choiceMenu_row1_OnSelect),
+    HANDLER(choiceMenu_row2_OnSelect),
+    HANDLER(choiceMenu_row3_OnSelect),
+    HANDLER(choiceMenu_row4_OnSelect),
+    HANDLER(choiceMenu_row5_OnSelect),
+    HANDLER(choiceMenu_row6_OnSelect),
+    HANDLER(choiceMenu_row7_OnSelect),
+    HANDLER(choiceMenu_scrollUp_OnSelect),
+    HANDLER(choiceMenu_scrollDown_OnSelect),
+    HANDLER(choiceMenu_exit_OnSelect),
 };
 
 #undef HANDLER
@@ -546,6 +716,28 @@ void ModsMenu_Show(void)
         return;
     }
     ShowMenu(menu);
+}
+
+/* SWOS_MOD_PAGE_TEST=<slug>: the choices its page offers for each setting, as read from its mod.json
+ * (choices, choices_from, choices_first, default first), on stdout; 1 when it has none. (launcher
+ * options, agent A: the backgrounds mod's auto / random, the dosmenus mod's look.) */
+int32_t ModsMenu_PageTest(const char *slug)
+{
+    static ModInfo mods[64];
+    const int32_t n = Mods_Scan(mods, 64);
+    for (int32_t i = 0; i < n; i++)
+        if (strcmp(mods[i].slug, slug) == 0) {
+            read_page_settings(&mods[i]);
+            for (int32_t k = 0; k < s_pageCount; k++) {
+                printf("[mod-page-test] %s %s:", slug, s_pageSettings[k].key);
+                for (int32_t c = 0; c < s_pageSettings[k].choiceCount; c++)
+                    printf(" %s", s_pageSettings[k].choices[c]);
+                printf("\n");
+            }
+            return s_pageCount ? 0 : 1;
+        }
+    printf("[mod-page-test] no mod %s\n", slug);
+    return 1;
 }
 
 #endif /* SWOS_SDL_BUILD */

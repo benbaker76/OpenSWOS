@@ -64,6 +64,10 @@ int32_t SdSources_Scan(SdSources *s, const char *dir);
  * how many so far and which. A non-zero return stops the search; then -1. */
 typedef int32_t (*SdScanProgress)(void *user, int32_t folders, const char *dir);
 int32_t SdSources_ScanEx(SdSources *s, const char *dir, SdScanProgress progress, void *user);
+/* The same, only `maxDepth` folders down from `dir` (0: dir's own files and folders): the setup's
+ * SCAN MY DRIVES looks a few levels into each drive (D:\Games\GOG\<the game> is 3). */
+int32_t SdSources_ScanDepthEx(SdSources *s, const char *dir, int32_t maxDepth, SdScanProgress progress,
+                              void *user);
 
 /* Check one file the user picked: an .adf (either disk), the cartridge, a file
  * inside the PC game folder (its folder is taken), or a SWOS 2020 install (its
@@ -120,6 +124,20 @@ int32_t SdSources_HaveWorld(const SdSources *s);
  * 0 when it is one. */
 typedef struct { char tag[16], name[64], fingerprint[24]; } SdWorldInfo;
 int32_t SdSources_OpenWorld(const char *path, SdWorldInfo *info, char *dir, uint32_t cap);
+
+/* No PC game and no Amiga version, only SWOS 2020: the PC data is made from SWOS 2020's install
+ * as it is (OpenSWOS Setup decided 2026-11-11) -- its own graphics and pitches (TEAM1-3, BENCH,
+ * GOAL1, SCORE, LOADER1, PITCH1-6 are SWOS 2020's art, the rest the PC game's own), the 96/97
+ * teams it keeps for its online play (MP/DB/96_97/DATA; its DATA/ is a later season), its effects
+ * and crowd (audio/fx: 17 of the effects, 11 of the crowd's); no commentary, no menu.xmi or
+ * sample.ad (its menu.mp3 instead). Never taken for the PC game itself (is_dos_dir). */
+int32_t SdSources_PcFromSwos2020(const SdSources *s);
+/* Whether SWOS 2020 has the 96/97 teams (MP/DB/96_97/DATA). */
+int32_t SdSources_Swos2020Has9697Teams(const SdSources *s);
+/* A PC game file (`rel` as SdSources_ReadDos takes it: "PITCH1.BLK", "SFX/FX/KICKX.RAW",
+ * "HARD/CHEER.RAW", "DATA/TEAM.000") from SWOS 2020's game folder, any case -- the sounds off the
+ * PC game's CD first when there is one (dosCd). */
+int32_t SdSources_ReadSwos2020Pc(SdSources *s, const char *rel, SgBuf *out, char *err);
 
 /* Open the disks for reading. 0 on success. */
 int32_t SdSources_Open(SdSources *s, char *err);

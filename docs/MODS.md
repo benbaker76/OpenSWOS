@@ -228,6 +228,83 @@ targets a mod is for -- which also gives SWOS United and SWOS United Amiga their
 Mods are hosted by their authors (content with other people's rights stays theirs, as World
 2026-27 is Davide's); the index only points to them, with each file's hash.
 
+### 10.1 The index (the owner, 2026-11-09)
+
+One file, `index.json`, read by every mod manager (SWOS Launcher's DLC Manager first; OpenSWOS
+Setup later), falling back to SWOS 2020's CSVs where a manager still has them:
+
+```json
+{ "format": "openswos-mod-index", "version": 1,
+  "mods": [ { "uuid": "…", "slug": "…", "name": "…", "version": "1.0", "author": "…",
+              "changes": "cosmetic", "slot": "pitch", "targets": ["sdl"],
+              "url": "https://…/<slug>.zip", "sha256": "…", "size": 123456, "about": "…" } ] }
+```
+
+- `format` / `version`: this format; a manager refuses a version it does not know.
+- per mod, as its `mod.json` says (§14): `uuid` (its identity -- a DLC's uuid4, never changed),
+  `slug` (its folder in `Mods_Root()`: letters, digits, `-` and `_`, **at most 31**,
+  `MODS_ID_MAX`; a longer one is left out, the log says so), `name`, `version`, `author`,
+  `changes`, `slot` (`""` or absent: none), `targets`, `about` (one line);
+- `url` (a zip whose root is the mod's folder contents: `mod.json` at its top), `sha256` and
+  `size` of that zip.
+
+### 10.2 A manifest's keys for managers: "slot" and "online"
+
+- **`"slot"`**: one mod of a slot on at a time -- `pitch`, `commentary`, `fx`, `title_music`,
+  `menu_music`, `teamdb` (what SWOS 2020's DLC types replace whole). The game keeps the first
+  enabled mod of a slot and logs the others it leaves out (`src/mods.c` load_one); Setup and the
+  manager show a slot as pick-one. Cups, team packs and backgrounds have none: several can be on.
+  A `title_music` mod brings `sound_dos/title.mp3` (the CD-style song, `[audio] title_music = mp3`)
+  or `sound_dos/title.xmi` (played on the emulated AdLib, `title_music = midi`; docs/DOS_SOUND.md
+  "The CD track"); either needs `[audio] music = pc`.
+- **`"online": false`**: not for online play (an offline-only team database). MULTIPLAYER says
+  which mods are on that are not for it and does not start until they are off
+  (`Mods_OfflineOnly`, menus.c MultiplayerMenuSelected), rather than a match being refused later.
+- Keys the game does not know (a converter's own, `"swos2020": {...}`) are ignored.
+
+### 10.3 Sound in a mod's own format (2026-11-09)
+
+Commentary folders (`sound_dos/commentary/<category>/`) take `.raw`, `.wav`, `.mp3`, `.ogg` and
+`.aiff`; the PC sound table takes a mod's `sound_dos/<fx|hard|pierce>/<name>` as `.raw`, `.ogg`,
+`.wav`, `.mp3` or `.aiff` (lower-case table names, src/dos_sound_tables.h) before the game's
+`.raw`. All of it mono, at its own rate. `--dos-sound-selftest` with `SWOS_MODS_ENABLED` checks a
+sound pack (`SWOS_DOS_SOUND_TRACE=1` names each file taken from it).
+
+### 10.4 Team database mods (the owner, 2026-11-09)
+
+SWOS 2020's team database DLC as mods: another season's teams in 96/97's game, offline only.
+`"slot": "teamdb"`, `"changes": "data"`, `"online": false`; src/teamdb.c, applied once at
+start-up while the mod is on. The mod carries:
+
+- `data_json/teams/<COUNTRY>.json` -- the database's own format, **unchanged** (World 2026-27's
+  author converts into it): `scripts/decode_data.py --data-dir <the pack's DATA> --dump-json`;
+  a team file 96/97 has no JSON for goes as the binary `data/TEAM.NNN` (read through the overlay,
+  but no 96/97 league holds it);
+- `data/EUROCUP.TMD`, `EUROCWC.TMD`, `UEFACUP.TMD`, `POOLPLYR.DAT` -- binaries, as the game reads
+  them (the European cups' draw lists are taken from the TMDs: SWOS 2020's fixTMDData);
+- `data_json/translations/<lang>.json` -- the renames: `"strings"` and `"countries"` pairs
+  (`"_aYugoslavia": ["SERBIA", "SERBIAN"]`), merged over the game's (src/translations.c);
+- `data_json/teamdb.json`:
+  `{"format": "openswos-teamdb", "version": 1, "name", "season_year", "fixes": "1111100",
+  "points_for_win", "nationality_codes": {"114": "LBY"}, "leagues": {"<file>": {"divisions_count",
+  "rounds", "points_for_win", "begin_month", "end_month", "divisions": [{"teams", "promoted",
+  "promoted_po", "relegated", "relegated_po"}]}}}`.
+
+What it does, as SWOS 2020's init.cpp fixupLeague did per database: each country's league
+(team files 0..79) sized by its teams' `league` byte; when a division grew, the season a month
+longer and, past 12 clubs, played twice; the Greek / Israeli / Italian / Scottish rules by the
+`fixes` switches (career.opt's first line: team, month, each-match, greek, israel, italia, scotch);
+El Salvador without moves from 2021; `points_for_win`; then `leagues`, explicit overrides by
+team-file number. Real match days for odd divisions (src/fixture_rounds.c, as a world's: the
+original's odd tables make a career panic, 0x1313). A country's cup with more places than its
+file has clubs goes down to the largest power of two that fits (the season change draws its
+clubs until every place is taken: 1994-95 1.0's Israel, 15 clubs for 16 places, hung). A league
+cut to fewer divisions relegates no one from its new bottom one. No away goals in the European
+cups from 2022.
+The nationality codes, and the career's years from `season_year` (World_FirstYear). Not ported:
+SWOS 2020's dead Taiwan / San Marino / Spain cases, and its five substitutes for every cup.
+`[teamdb]` log lines name every league it changed.
+
 ---
 
 ## 11. Order of work
@@ -289,7 +366,9 @@ Mods are hosted by their authors (content with other people's rights stays their
   Not yet run on a phone, a handheld or under WHDLoad itself.
 
 **The first tweaks (§4)** (`include/tweaks.h`, `src/tweaks.c`): `[tweaks]` in SWOS.ini, each
-`true | false`, off by default; off online and under every rig (`Tweaks_On`); the Amiga has none.
+`true | false`, off by default but the five below the table (`TWEAKS_DEFAULT_ON`); off online and
+under every rig (`Tweaks_On`, so the golden careers and the replay rigs play the original); the
+Amiga has none. On the settings' **RULES OPTIONS** page: the five, STRONGER KEEPERS, CPU TACTICS.
 
 | Key | The original (checked: SWOS2.s and swos.asm agree; our C matched) | The tweak |
 |---|---|---|
@@ -298,6 +377,25 @@ Mods are hosted by their authors (content with other people's rights stays their
 | `no_teammate_tackles` | the receiver runs onto the ball (`passingBall`), may slide on your fire press and is handed control on reaching it (SWOS2.s:31146-31215) | while a human's controlled player has the ball (within 72), the receiver comes to support distance only: no slide, no hand-over |
 | `more_fouls` | `PlayerTacklingTestFoul` waves on every tackle not from behind (direction more than 1 apart) | one in 16 of those is a foul -- its roll (`Rand`) taken only with the tweak on (benefactorr's Career+) |
 | `ai_injury_subs` | the computer never substitutes: `BenchCheckControls` answers only a player calling the bench | at a stoppage, the computer replaces an injured player with the bench player nearest his position (the keeper by the reserve keeper), within its substitutes; never the managed career club (benefactorr's Career+) |
+| `stronger_goalkeeper_ai` | the keeper's reach table by style (`_kGoalkeeperDiveDeltas`, `ApplyGameStyle`) | SWOS 2020's `--stronger-goalkeeper-ai`: one step lower in the styles with the Amiga's keepers (AMIGA, AMIGA60, MOON; docs/DOS_GAMEPLAY.md §10) |
+| `unlimited_transfers` | `BuyPlayerMenu` refuses with "the club is unwilling to purchase players" when fewer than 2 of the season's transfer slots are left (SWOS2.s:103795) | SWOS 2020's UNLIMITED TRANSFERS: BUY PLAYER only needs room for 2 in the career's player pool (`transfer_market.c`) |
+
+**ON by default** (2026-11-10, the owner: SWOS 2020's launcher always passed its league rules,
+`--career-crash-fix=1111111 --always-points-per-win-3=1`, core/src/game_launch.cpp; a fork without
+the other tweaks still builds these with `PROJECT_TWEAK_FIXES`, SWOS United does):
+
+| Key | The original | The tweak |
+|---|---|---|
+| `contest_own_ratings` | a contested ball's roll rates one side by a team-mate, the player with the opponent's line-up number (both releases: SWOS2.s:23439-23443, swos.asm "A1 -> opponent's controlled player, but A6 -> this team?"; docs/BALL_CONTEST.md) | each side rated by its man at the ball (`src/ball_possession.c`). Was `[gameplay] contest_own_ratings`, off by default; that key is no longer read (every earlier SWOS.ini wrote `false`) |
+| `league_crash_fixes` | SWOS 2020's fixupLeague (src/init.cpp) fixes 1-3 | a division sized by its file's clubs; if one grew, the season a month longer and the clubs meeting twice. **Nothing changes in 96/97's own leagues** (checked: 0 of them); a guard for other data |
+| `league_rules_2020` | its fixes 4-7 | Greece from October (its cup September-June), Israel plays twice (not 3), Italy relegates/promotes 3 (not 4), Scotland plays 3 times (not 4) |
+| `three_points_for_a_win` | each league's own | every league 3 points for a win |
+| `five_substitutes` | each league's and cup's own | 5 substitutes from a bench of 5 (SWOS 2020's mSub `5*16+5`) |
+
+The four league ones change 96/97's competition graph (`TeamDb_ApplyLeagueTweaks`, src/teamdb.c:
+from a snapshot of the leagues as installed, at start-up and when RULES OPTIONS changes one) --
+not with a team database mod (its `teamdb.json` "fixes" and "points_for_win") or another world. A
+career copies its leagues when it starts and saves them, so it keeps the rules it began with.
 
 Checked: with every tweak off, `rollback_test.sh --all`, `replay_v2_test.sh --all` and
 `netplay_test.sh --all` pass; both targets build. **Not yet played with the tweaks on.**
@@ -622,13 +720,48 @@ Ported from SWOS 2020's own code (the owner's choice), mapped onto the engine by
 default -- so the main menu's MODES button is there): MODES -> PRACTICE opens its own menu
 (`practice/practiceMenu`, in the mod's folder; handlers `practice.shootout`, `practice.demo`,
 `practice.exit`, which a fork's menus can name too):
-- **PENALTY SHOOTOUT**: the friendly's team screen (`ModApi_ChooseTeams`: the two teams and who
-  plays each), then straight to a shoot-out (`shootoutOnly`), named SHOOTOUT; back to the menu.
-- **DEMO GAME**: two random national teams (`ModApi_RandomTeam`, its own random numbers), CPU v
-  CPU, named DEMO GAME.
-- **TEAM TRAINING** (`practice.training`; SWOS 2020's practiceSetting.mnu): your defence,
-  midfield and attack, and the CPU's, each on or off, the goal you attack; START: the team screen,
-  then a match whose clock stays at 0 (no half time, no end but ESC), no cards, no injuries.
+- **PENALTY SHOOTOUT** (SWOS 2020's, 2026-11-09: its challengeGame2Practice_OnSelect /
+  ChallengeGame gameMode 1, `shootoutTeamsMenu.json`): its team screen -- CHOOSE TEAMS (the
+  friendly's team screen titled SHOOTOUT / START SHOOTOUT, `ModApi_ChooseTeamsTitled`) or two
+  random teams of a group (ALL, EUROPE ... CUSTOM: its 96/97 team files, `ModApi_RandomTeamData`;
+  team 1 the player's, team 2 the CPU's) -- and GOALKEEPER CONTROL (PLAYER each time it opens, or
+  COMPUTER). Then VERSUS, PLAY MATCH with the kick order beside the line-up (10 by the second man
+  .. 1 by the eleventh: `playerRowDrawn` + `menuDrawn`), the stadium, named SHOOTOUT, and straight
+  to penalties at 120: `cameraTop` (the top goal), `hideHud` RESULT, `shortStops` (its GS_GK_55_50 =
+  1 and StartingMatch's 1), `shootoutStats` (the statistics' GOALS the shoot-out's, no possession),
+  `keeperDive` (its setPlayerGKControl and the swos.asm patches it drives: the stick of the
+  defending player as the kick comes -- right / left a low dive that way, up-right / up-left a high
+  one, nothing he stays, up the game's keeper, down as before -- in ShouldGoalkeeperDive's answer,
+  the dive's side and GoalkeeperJumping's height; the keeper carries the player mark, 4 lower). On
+  the pitch (`matchDrawn`, a new hook after the sprites and the statistics; SDL only): the board of
+  names, score, five kicks a side (its tick and cross) and whose turn, the kicking side's takers
+  (head, number, name; the kicker highlighted), the darkened band and the two kits, the keeper's
+  arrow (not when both sides are players') and who plays each side (CPU / Keyboard1 / Joypad). Its
+  three layouts (DOS 320, Amiga 336, wide 480) centred in the frame. `ModApi_Shootout`,
+  `ModApi_ShootoutTaker`, `ModApi_MatchKit`, `ModApi_ControllerName` give the mod what it draws.
+  Not taken from SWOS 2020: its far keeper also obeying the stick (here only the defending one),
+  its MarkPlayerSP writing +4 through a stale pointer, its gkTurn 4 marking the wrong keeper.
+  `SWOS_PRACTICE_SHOOTOUT_TEST=1` plays one CPU v CPU headless: PASS when it has a winner and
+  its board was drawn (`SWOS_PRACTICE_SHOOTOUT_PLAYMATCH=1`: through PLAY MATCH, team 1 yours).
+- **DEMO GAME** (SWOS 2020's demoGamePractice_OnSelect): two random teams of every file, CPU v CPU,
+  team 1 kicking off, from the 89th minute -- a minute to watch -- named DEMO GAME.
+- The menu itself is SWOS 2020's practice.mnu (imported): FRIENDLY MATCH (the game's), TEAM
+  TRAINING, PENALTY SHOOTOUT, DEMO GAME, its help line under them.
+- **TEAM TRAINING** (SWOS 2020's trainingModePractice_OnSelect, 2026-11-09; its practiceSetting.mnu
+  and teamTrainingControls.mnu imported with scripts/import_swos2020_menus.py): ATTACK GOAL, CPU
+  SKILL (which original custom team the CPU is: JUST NIPPING OUT, THE SAD TRUTH, TWI, TRUE BLUE,
+  PROFESSIONALS, or RANDOM), each side's lines on or off, CPU GHOSTED (its outfielders play
+  unseen: `ghosts`), TACKLE ALLOWED (`noTackles`), PITCH TYPE, CONTROLS HELP; CHOOSE TEAM (one
+  team, `ModApi_ChooseOneTeam`, titled TEAM TRAINING) or RANDOM TEAM. Its pictures beside the
+  settings and on the controls screen (the pitch, the goal, the skill's stars, its keeper; the keys)
+  are SWOS 2020's character maps, `bin/mods/practice/pixmaps.txt` (scripts/extract_swos2020_pixmaps.py;
+  SDL). The match: clock at 0, no cards or injuries, the player's team kicking off, no result
+  banner; its drills on the keys (`ModDef.matchKey`, new: a key during a match, before the game's):
+  F1-F7 a free kick before the goal attacked, ALT one where the controlled player is
+  (`ModApi_ControlledPlayer`), F8 / F9 a corner, F10 / F11 a kick / a high kick
+  (`ModApi_PressFire`), F12 the kick-off again (`ModApi_Restart` takes MODRESTART_KICK_OFF now),
+  9 / 0 the player's goal kick, - / = the CPU's. After it, the settings again.
+  `SWOS_PRACTICE_TRAINING_TEST=1`: every drill in turn, CPU v CPU, PASS when all are taken.
   New in the setup (the map's G1, G4, G7, G9): `playingUp` / `kickOff` (set where the game draws
   them, `InitGameRestoreTeams`), `linesOut[2]` (`MODLINE_*`: those outfielders sent away at
   `InitPlayersBeforeEnteringPitch`'s end and put in the tunnel, as a sent-off man is -- the AI,
@@ -636,6 +769,10 @@ default -- so the main menu's MODES button is there): MODES -> PRACTICE opens it
   put back each frame, as SWOS 2020 does), `noCards` (`_cardsDisallowed`), `noInjuries` (no roll
   in `PlayerTackled`). Menus of a mod's own: `ModApi_MenuText / MenuVisible / MenuNav`. Still to
   come: the drills (F1-F12: forced restarts, G6), ghost players (G5), the manual keeper (G8).
+
+**`petarku-practice`** was removed on 2026-11-11: petarku, its author, said SWOS 2020's practice
+covers it -- its shoot-out lets you choose the shooting order (in a friendlier way), and its team
+training is the same as his shooting practice (Playaveli agreed).
 
 Checked: the menus draw from the mod's JSON; DEMO GAME plays two random teams;
 `SWOS_MOD_MATCH_TEST=shootout` plays a shoot-out from kick-off (every kick an event, 4-2);
@@ -720,7 +857,7 @@ off is kept as read and written back (it was dropped by the next save).
 
 ## 19. Team packs (2026-11-04)
 
-Teams a mod brings: `data_json/teampacks/*.json` in the database's team format, numbers 210-249,
+Teams a mod brings: `data_json/teampacks/*.json` in the database's team format, numbers 150-249 (210-249 until 2026-11-09),
 made with `scripts/make_team_pack.py` (docs/TEAM_IDS.md §6). Engine, not a mod ("able to do
 more"): one lookup in the country-file search (`src/team_packs.c`), after which the team database,
 the matches and the online rule take them as the database's. A pack mod is `"changes": "data"`.
@@ -930,6 +1067,14 @@ The rigs prove the original game, as they do with every tweak off (§4): under `
 that is a test asking for it. So a default-on `career` mod (openswos-78's euro36) leaves the
 golden careers as they are.
 
+
+**Galleries (2026-11-09):** a mod of pictures only -- `images/<title>.png|.bmp|.jpg` and a
+`mod.json`, no code -- adds them to the choice: the page lists the `images/` of every enabled mod
+(after the backgrounds mod's own, before the player's folder), sorted by name, each name once, up
+to 256; with more than a page's rows the setting opens a scrolling list (`openswos/choiceMenu`,
+`--menu=openswos/choiceMenu:backgrounds:image` to look at it). The picture is found in the same
+places. A choice is a file name, so two galleries' pictures of one name are one choice: name them
+apart. BMP is read as it is (stb_image); PNG or JPEG only makes the download smaller.
 ---
 
 ## 27. Career events and a mod's section of the career save (§8.5; Career+'s §3.4)
@@ -1179,3 +1324,108 @@ The first: dosmenus' F5 (§25c), switching the menus between the PC's shading an
 
 A mod's message the player answers: `ModApi_ShowDialog(title, text, buttons, count, default)` -- the
 game's own dialog screen (docs/MENUS.md §14), from the menus, never during a match.
+
+## 35. SWOS 2020's match extras (2026-11-09, the SWOS 2020 port)
+
+Seven of SWOS 2020's in-match features, as hooks in the engine (`src/mod_extras.c`, the "match
+extras" block at the end of `include/mod_api.h`) and canonical mods (all SDL). What changes how a
+match plays happens only in `ModApi_OfflineMatch()` -- a match that is not online and not a rig's
+(the replay and rollback rigs, `--srp-resim`, the career autopilot), as `Tweaks_On` decides it --
+so `scripts/check_netplay_compat.sh` and the rigs see the game unchanged.
+
+| Mod / place | SWOS 2020's | What | On by default | Test |
+|---|---|---|---|---|
+| `autoplay` (modes) | F1 AUTOPLAY (game.cpp toggleAutoPlayMode) | F1 in a player v CPU match: the CPU plays the player's team until F1 again; "AUTO-PLAY" at 15, 25. Not in a mod's match (training, shoot-out, speedrun, challenges), never online | yes | `SWOS_AUTOPLAY_TEST=1` |
+| `balltrails` (cosmetic) | `--ball-trails` (drawSprites) | five discs behind the loose, moving ball, colour 121, under it | no | `SWOS_MOD_MATCH_TEST=1 SWOS_BALLTRAILS_TEST=1` |
+| `practice`, setting `radar` | RADAR IN TEAM TRAINING (render.cpp showRadar) | TEAM TRAINING's pitch at a tenth, top left: lines, players in their shirts' colours, the ball | on | `SWOS_PRACTICE_TRAINING_TEST=1` (fails when it was not drawn) |
+| `pitchselect` (modes) | SELECT PITCH (menu.cpp showPitchSelectMenu) | PLAY MATCH (first player's screen, not VIEW RESULT or training) asks PITCH 1-5, TRAINING PITCH or RANDOM (1-5). Its menu `bin/mods/pitchselect/data_json/menus/pitchselect/selectPitchMenu.json`, imported from selectPitchNonWidescreen.mnu. The pitch preview beside the list is not drawn | no | `SWOS_PITCHSELECT_TEST=1..6` |
+| `netstats` (cosmetic) | F7 frame-fairness strip (mpgame.cpp drawImGui, ConnectionQualityTracker) | online: rollback timeline, balance bar, advantage, jitter, why it warns; F7 (a hotkey) cycles WHEN POOR / ALWAYS / NEVER (`[mod.netstats] show`) | yes | `SWOS_NETSTATS_TEST=1` prints at a live match's end (not run headless) |
+| `src/match_chat.c` | CHAT WINDOW SCALE (F11/F12), AUTO CLOSE CHATBOX | `[chat] scale` 0..8 (1x .. 5x), Page Up / Page Down in an online match (F11/F12 are screenshots here); `[chat] auto_close` 1..5 s (was a fixed 6) | 1x, 5 s | `--chat-selftest` |
+| `scoreboard` (cosmetic) | `--new-scoreboard=1..4` (the clock + score corner, showTeamIcons) | the clock, both kits and the score on a darkened box at a corner (`[mod.scoreboard] corner`: top-left, top-right, bottom-left, bottom-right); the game's clock not drawn; at the top left the player's name 7 lower | no | `SWOS_MOD_MATCH_TEST=1 SWOS_SCOREBOARD_TEST=1` |
+| `display2020` (cosmetic; launcher options, agent B) | `--new-show-result`, `--remove-darken-banner` (render.cpp showTeamIconsLarge, drawDarkenRect) | Playaveli's SWOS United mod, same slug and uuid: `[mod.display2020] kits` (each side's kit under its name on the result) and `band` = smooth / game / off (the result band evenly darkened, the game's grid, none); its scoreboard is the `scoreboard` mod's. Also rows on SETTINGS -> DISPLAY (docs/SETTINGS.md) | no | `SWOS_MODS_ENABLED=display2020 SWOS_MOD_MATCH_TEST=1 SWOS_DISPLAY2020_TEST=1` |
+
+The hooks, for any mod: `ModApi_Ball` (the ball's place, step, speed, loose), `ModApi_SpriteKind`
+(a `spriteDraw` sprite is the ball / the HUD clock / the player's name), `ModApi_SetTeamControl` /
+`ModApi_TeamControl` (who plays a team from now; every team its own again at the final whistle
+and the next kick-off), `ModApi_SetMatchPitch` / `ModApi_PitchNumber` (the next match's pitch art;
+after `SetPitchTypeAndNumber`'s random numbers, so the generators are untouched; spent at the final
+whistle; a mod match's `pitchNumber` wins), `ModApi_OnPlayMatch` (PLAY MATCH pressed,
+`play_match_menu.c PlayMatchSelected`, may show a menu), `ModApi_NetStats` (ping, jitter, GGPO's
+frames behind both ways, the delay, rollbacks -- by size, from `cbLoad` -- and holds;
+`NetplayMatch_Stats`, read only), `ModApi_OfflineMatch`, `ModApi_AnyModMatch`.
+
+For a MULTIPLAYER settings row: `MatchChat_Scale/SetScale`, `MatchChat_AutoClose/SetAutoClose`
+(`include/match_chat.h`), kept in `PlatformInitOptions.chat_scale` / `chat_auto_close`.
+
+## SWOS 2020 port: challenges, speedrun, the file lists and after the match (2026-11-09)
+
+The rest of SWOS 2020's challenges and speedrun screens, ported faithfully (its menus imported
+with `scripts/import_swos2020_menus.py`, its handlers from `game.cpp` / `replaysMenu.cpp`):
+
+- **Custom challenge editor** (`challenges` mod, `src/mod_challenges.c`): SWOS 2020's DESIGN
+  SCENARIO (`customChallengesEditMenu.json`) over the challenge format's own fields -- teams
+  (the friendly's team screen: both, and who plays each), its name (typed: `ModApi_MenuInputText`,
+  the game's InputText), the score, the minute (-10 -1 0 +1 +10), the first leg, extra time /
+  penalties / a direct shoot-out, substitutes, the direction, the pitch, the starting event and
+  its taker, the win condition (any score, at least a draw, golden / silver goal), difficulty;
+  TEST (played once, no attempt or progress kept), SAVE, DELETE, EXIT -- with SWOS 2020's rules
+  between them (`setTotalScoresToSame`, kick-off minutes, 120 = a shoot-out). SET CARDS AND
+  INJURIES is `customChallengesSentOffInjuryNewMenu.json` (each side's sixteen by shirt; at most
+  4 sent off and -- the format's limit -- 8 injured a team; the goalkeeper never). EDIT on one of
+  the player's own opens it again. The format gains the restart kind `"random"` (SWOS 2020's
+  RANDOM starting event: one of six drawn at PLAY); no record layout changed. Not ported: UNIFORMS
+  (a challenge keeps no kits), PITCH SET (SWOS 2020's own pitch art) and CPU INJURY (switched off
+  in SWOS 2020 itself). Test: `HOME=<scratch> SWOS_MOD_MATCH_TEST=challenge:editor`.
+- **SORT BY** under the player's own challenges (`customChallengesSortByMenu.json`): date (newest
+  first), team, creator / team, creator / level, level -- `[mod.challenges] sort`. Ours carry no
+  creator's name: CREATOR puts the player's own before those fetched for them.
+- **CHANGE TACTICS** after a try (SWOS 2020's `retryExitEx`), beside QUICK RETRY: the match again
+  with the PLAY MATCH screen first (`ModMatchSetup.playMatchScreen`).
+- **Speedrun difficulty** (`speedrun` mod): `selectSpeedrunDifficultyMenu.json` after a target --
+  FREE TEAM CHOICE or one of the five PRECONFIGURED TEAMS pairs, BEGINNER .. MASTER, with its
+  trophies and stars; the card targets go straight to the teams (SWOS 2020's card picker had only
+  SELECT TEAMS); LEADERBOARD (its server) hidden. Test: `SWOS_SPEEDRUN_TEST_PICKER=1
+  SWOS_MOD_MATCH_TEST=speedrun:<n>`.
+- **Speedrun on the pitch**: SWOS 2020's `showSpeedrunTimerInfo` -- the run's time top left where
+  the clock was (the clock hidden), the target and the difficulty (a free choice's by the skill
+  points) top right -- and, once the result panel has gone at full time, `showSpeedrunShowResult`'s
+  band: SPEEDRUN COMPLETED and the time, or SPEEDRUN FAILED. Drawn into the match frame
+  (`matchDrawn`, SDL). It replaces report 0060's HUD, keeping its purpose.
+- **`ModApi_DrawMap` / `ModApi_DrawMapAtEntry`** (`src/mod_menu_tools.c`): SWOS 2020's small
+  pictures (`drawMapEx`, `drawMapExHalf`) from a mod's `pixmaps.txt`, which
+  `scripts/extract_swos2020_pixmaps.py` now writes per mod (`--mod`).
+- **File list SORT OPTION** (core, `src/file_io.c`): SORTED BY NAME / SORTED BY DATE beside ABORT on
+  the LOAD and SAVE screens (entry 51 of the select files menu, compiled and JSON alike) -- by name,
+  the game's own order and the default, or each extension's newest first. `[general] file_sort =
+  name | date`. SDL (the Amiga's listing has no dates: the button is hidden there).
+- **QUICK ACCESS** after a friendly (core, `src/quick_access.c`,
+  `bin/data_json/menus/openswos/quickAccessMenu.json`): SAVE HIGHLIGHTS (SWOS 2020's SAVE AND SHARE:
+  sharing needs its server), FULL MATCH REPLAYS (LATEST.SRP in the highlights viewer), CONTINUE.
+  Off by default, as SWOS 2020 shipped it: `[general] quick_access = true`. SDL.
+
+## Retro Palettes: the `paletteq` mod (2026-11-09)
+
+`src/mod_paletteq.c`, `bin/mods/paletteq` (canonical, cosmetic, SDL, off by default): the picture in
+an old machine's colours through OpenSWOS's own slang shader, `shaders/paletteq.slang` -- the method
+of Jungool's C64 mode: each game pixel taken whole (the pass draws at the window's size and every
+screen pixel reads the game pixel it lies in, so the blocks stay hard-edged), a 4x4 Bayer dither fixed
+to the game's pixel grid (a scrolling pitch keeps its pattern), then one read of a lookup strip
+(`PALETTE_LUT`, N tiles of N x N: red across, green down, blue the tile; N is its height) that holds
+every colour's nearest palette colour.
+
+Settings: **Palette** -- amiga-ecs (the OCS/ECS colour space, 4,096 colours), amiga-aga (SWOS's own
+AGA palette, from `src/swos_amiga_data_imports.c`), dos-vga (the VGA BIOS's mode 13h palette), c64
+(Colodore), nes, master-system (6-bit RGB), mega-drive (9-bit RGB), game-boy, virtual-boy,
+atari-secam, amstrad-cpc, zx-spectrum, msx (TMS9918), intellivision (Wikipedia's YIQ table),
+super-cassette-vision, odyssey2 (RGBI), cga, pico-8; **Dither** on / off; **Dither strength** auto (the
+palette's own: little for 4,096 colours, much for 4), low, medium, high (the shader's `DITHER`).
+The GPU presenter only. One preset draws the picture: with `retrotv` on as well, this one shows.
+
+The strips and the presets are made by `scripts/make_paletteq.sh` with `scripts/palette_to_lut.py`
+(from Jungool, with OpenSWOS's palettes added: the ECS gamut and the VGA palette by rule, SWOS's AGA
+palette read from the source, the consoles from Wikipedia's List of video game console palettes):
+by CIEDE2000 -- the weighted RGB distance lost the hue (the NES and PICO-8 pitches came out brown and
+orange) -- but CGA, whose green pitch is white by hue and the remembered cyan-and-magenta dither by
+brightness. A palette: its colours in palette_to_lut.py, a line in make_paletteq.sh, a row in
+mod_paletteq.c's table and mod.json's choices. Checked: `--slang-selftest` compiles the preset for
+GLSL 410 / ES 300, Metal and HLSL; the algorithm run on a match frame for every palette (by eye).

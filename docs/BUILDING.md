@@ -275,15 +275,27 @@ FAT12; `lib/fat_image.c`) carry the game as one RNC archive split across them, `
 circulate are the UPGRADE, which goes over an installed SWOS -- five of the files the setup
 needs are not on them, and it says so rather than install half a game.
 
+The setup's window can do the same with none of it showing: `openswos-setup --headless` (the
+Windows installer's last page, the game's "no game data" box and its UPDATE NOW). Data up to
+date: nothing. A part made by an older setup: remade from the sources ASSETS.ini names. Else the
+sources are found where the window looks at its start -- SWOS 2020's install (its Uninstall
+entry, else `C:\Games\SWOS 2020`), GOG's game, the rest of Windows' Uninstall list, the CD,
+Downloads (`--search-first=gog` puts GOG before SWOS 2020, for the window's own start too) --
+else on every drive (SCAN MY DRIVES, in a small window with Stop; on the console without a
+display), and the data made; then the game beside the setup is started (`--no-play`: not). The
+window opens, saying why, only when no copy is found, the search is stopped or the install
+fails. Exit 0 for all of that (1 only when an install the player then starts in the window
+fails; with no display at all, Slint stops the program when the window is needed);
+`setup.log` beside the assets folder has every step (`headless:`).
+
 Every file it writes is byte-for-byte the one the original game (or SWOS 2020) shipped (or,
 for the converted AGA and Jaguar graphics, the one this project's own
 converters always made). `tools/swosdata` is built on
 [swosgfx](https://github.com/benbaker76/swosgfx) (the converters; a submodule at
 `third_party/swosgfx`, so `git submodule update --init` first) plus an ADF reader.
 
-The game's competition rules are a submodule too: `third_party/swos-competition-engine`, the
-rules it shares with the SWOS 96/97 Mod (docs/RULES_LIBRARY.md), compiled into every target --
-after a clone, `git submodule update --init` (the release scripts do it).
+The game's competition rules are OpenSWOS's own, in `src/rules/` (docs/RULES_LIBRARY.md; until
+2026-11-11 the submodule `third_party/swos-competition-engine`), compiled into every target.
 
 ## Tools
 

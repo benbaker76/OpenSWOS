@@ -64,6 +64,8 @@ void ModHooks_Init(void);
 void ModHooks_MenuDrawn(void);
 void ModHooks_MatchStart(void);
 void ModHooks_MatchFrame(void);
+void ModHooks_MatchDrawn(void);
+int32_t ModHooks_MatchKey(const char *key);
 void ModHooks_MatchEvent(const struct ModMatchEvent *event);
 void ModHooks_MatchMoment(const struct ModMatchEvent *event);   /* every run (re-simulations too) */
 void ModHooks_SoundEvent(uint8_t event, uint16_t arg);

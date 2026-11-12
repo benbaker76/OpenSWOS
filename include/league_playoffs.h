@@ -7,7 +7,7 @@
  * after the season -- Serie B's third promotion by a play-off of the 3rd-8th, its fourth
  * relegation by a play-out of the 16th and 17th, a Serie C group's by play-outs. They are
  * decided as the SWOS 96/97 Mod decides them -- by its own rules, the library both games link
- * (third_party/swos-competition-engine, docs/RULES_LIBRARY.md) -- from every division's final
+ * (src/rules, docs/RULES_LIBRARY.md) -- from every division's final
  * table; the career club's own ties as it played them (world_playoff.c).
  *
  * The league's own record keeps BALANCED counts, so the season's one-division moves pass
@@ -19,7 +19,7 @@
 #define LEAGUE_PLAYOFFS_H
 
 #include "swos_types.h"
-#include "../third_party/swos-competition-engine/rules/swosrules.h"    /* the rules (swos_rules_*.c) */
+#include "../src/rules/swosrules.h"    /* the rules (swos_rules_*.c) */
 
 /* A title of the SEASON WINNERS page (src/world_winners.c; the Mod's winners.py): division
  * (0xFE: a state championship), its title (0: the contest's own name), its source as the Mod's

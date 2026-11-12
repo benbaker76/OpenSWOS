@@ -69,7 +69,9 @@ typedef struct {
     char    changes[16];        /* "cosmetic", "modes", "career", "gameplay", "data" */
     char    sprites[16];        /* "jaguar": its grafs_jag/ is a sprite set the Jaguar tier draws */
     char    problem[80];        /* why it cannot be on ("" when it can) */
+    char    slot[16];           /* "slot": one mod of a slot on at a time ("" none; MODS.md §10) */
     uint8_t canonical, cosmetic, byDefault, on;
+    uint8_t offline;            /* "online": false -- not for online play (Mods_OfflineOnly) */
 } ModInfo;
 int32_t     Mods_Scan(ModInfo *out, int32_t max);
 #endif
@@ -80,6 +82,16 @@ int32_t     Mods_Scan(ModInfo *out, int32_t max);
  * none (cosmetic, modes and career mods never matter online). `names`, when given, gets them
  * ("Name 1.0, ..."). The handshake refuses a player whose signature differs. */
 uint32_t    Mods_OnlineSignature(char *names, uint32_t cap);
+
+/* The mods that are on and say "online": false in their mod.json (an offline-only team
+ * database, say): how many, and their names ("Name, ...") in `names` when given. MULTIPLAYER
+ * refuses to start while there are any, saying which (docs/MODS.md §10). */
+int32_t     Mods_OfflineOnly(char *names, uint32_t cap);
+
+/* A mod's "slot" ("" none): of the mods enabled in one slot -- pitch, commentary, fx,
+ * title_music, menu_music, teamdb -- only the first in [mods] enabled is on, the log naming
+ * the others (MODS.md §10). */
+const char *Mods_Slot(int32_t i);
 
 /* The first mod that is on whose manifest says "sprites": "jaguar" (its slug), or NULL: its
  * grafs_jag/ sheets are drawn by the Jaguar tier (docs/JAGUAR.md, "Sprite sets as mods"). SDL. */

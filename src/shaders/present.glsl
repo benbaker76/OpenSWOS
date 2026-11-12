@@ -3,8 +3,8 @@
 // Compiled by scripts/gen_shaders.sh (sokol-shdc) into present.glsl.h, committed.
 //
 // present: the game's picture. Its 8bpp frame (palette indices, an R8 texture) is coloured
-//   through the palette (256x1 RGBA8) -- or, for the arcade screens that are drawn in RGBA, read
-//   as an RGBA texture -- and scaled: nearest, or "smooth" = nearest to a whole factor n and
+//   through the palette (256x1 RGBA8) -- or, for the arcade screens and a pixel filter's frame that
+//   are drawn in ARGB words, read as an RGBA texture -- and scaled: nearest, or "smooth" = nearest to a whole factor n and
 //   linear from there, exactly what the SDL path's two passes do (platform_sdl.c
 //   present_frame_copy), done here in one. The sub-pixel scroll moves the source rectangle, the
 //   last row and column clamped as the SDL path's slivers are. The HUD layer is the same
@@ -36,7 +36,9 @@ layout(binding=1) uniform fs_present_params {
     vec4 size;      // the source's width, height
     vec4 mode;      // x: the smooth factor n (0: nearest); y: 1 = the HUD (index 0 transparent);
                     // z: 1 = an RGBA source, no palette; w: key + 1 -- that index transparent
-                    // (the menus' true-colour backdrop shows through), 0 none
+                    // (the menus' true-colour backdrop shows through), 0 none. Over a backdrop
+                    // (w) a colour's alpha -- the palette's, or an RGBA source's -- is kept: the
+                    // menus' opacity ([video] menu_opacity) and a filtered frame's key pixels
 };
 in vec2 uv;
 out vec4 frag_color;
@@ -45,15 +47,17 @@ out vec4 frag_color;
 vec4 texel(vec2 t) {
     ivec2 p = ivec2(clamp(t, vec2(0.0), size.xy - vec2(1.0)));
     vec4 s = texelFetch(sampler2D(idx_tex, idx_smp), p, 0);
-    if (mode.z > 0.5)
-        return vec4(s.rgb, 1.0);
+    if (mode.z > 0.5) {
+        s = s.bgra;     // (the frame is ARGB8888 words, 0xAARRGGBB: B, G, R, A bytes on the hosts that have a GPU)
+        return mode.w > 0.5 ? vec4(s.rgb * s.a, s.a) : vec4(s.rgb, 1.0);
+    }
     int i = int(s.r * 255.0 + 0.5);
     if (mode.y > 0.5 && i == 0)
         return vec4(0.0);
     if (mode.w > 0.5 && i == int(mode.w + 0.5) - 1)
         return vec4(0.0);
     vec4 c = texelFetch(sampler2D(pal_tex, pal_smp), ivec2(i, 0), 0);
-    return vec4(c.rgb, 1.0);
+    return mode.w > 0.5 && mode.y < 0.5 ? vec4(c.rgb * c.a, c.a) : vec4(c.rgb, 1.0);
 }
 
 void main() {

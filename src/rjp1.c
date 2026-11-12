@@ -91,8 +91,11 @@ int RJP1_Load(RJP1_Player *p,
     /* Default per-channel attenuation to unity (64 = full volume).
      * The host scales individual channels by writing a smaller value
      * via RJP1_SetChannelAttenuation. */
-    for (int i = 0; i < RJP1_NUM_CHANNELS; ++i)
+    for (int i = 0; i < RJP1_NUM_CHANNELS; ++i) {
         p->channel_attenuation[i] = 64;
+        if (p->channel_gain[i] <= 0 || p->channel_gain[i] > 256)
+            p->channel_gain[i] = 256;       /* (the host's own, kept across loads; unset: unity) */
+    }
     p->loaded = 1;
     return 1;
 }
@@ -581,6 +584,7 @@ void RJP1_MixSamples(RJP1_Player *p, int sample_rate, int8_t *buf, int len)
          * accumulating. */
         const int chAtten = p->channel_attenuation[i];
         if (chAtten == 0) continue;
+        const int chGain = p->channel_gain[i] > 0 && p->channel_gain[i] <= 256 ? p->channel_gain[i] : 256;
         const uint32_t pos_inc = (uint32_t)((((uint64_t)RJP1_PAULA_FREQ / (uint32_t)hw->per) << RJP1_FRAC_BITS) / (uint32_t)sample_rate);
         for (int q = 0; q < len; q += 2) {
             int b = buf[q + amiga_channel_map[i]];
@@ -620,6 +624,7 @@ void RJP1_MixSamples(RJP1_Player *p, int sample_rate, int8_t *buf, int len)
              * The chant fade-in/out path drives chAtten; the
              * wave-script's set_volume drives hw->vol. */
             int raw  = sample_lerp * hw->vol * chAtten / (64 * 64);
+            raw = raw * chGain / 256;       /* (the player's volume for its kind) */
 
             /* 3-stage cascaded one-pole low-pass — matches the analog
              * chain on real Amigas more closely. */

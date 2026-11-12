@@ -32,12 +32,37 @@ static uint8_t s_online[MODS_MAX];          /* must be alike online: "gameplay" 
 static char    s_versions[MODS_MAX][24];
 static uint32_t s_fileHash[MODS_MAX];
 static uint8_t s_jagSprites[MODS_MAX];      /* "sprites": "jaguar" */
+static char    s_slots[MODS_MAX][16];       /* "slot": one on at a time */
+static uint8_t s_offline[MODS_MAX];         /* "online": false */
 static int32_t s_count;
 
 int32_t Mods_Count(void) { return s_count; }
 const char *Mods_Id(int32_t i) { return i >= 0 && i < s_count ? s_ids[i] : ""; }
 const char *Mods_Uuid(int32_t i) { return i >= 0 && i < s_count ? s_uuids[i] : ""; }
 int32_t Mods_IsCanonical(int32_t i) { return i >= 0 && i < s_count && s_canonical[i]; }
+const char *Mods_Slot(int32_t i) { return i >= 0 && i < s_count ? s_slots[i] : ""; }
+int32_t Mods_OfflineOnly(char *names, uint32_t cap)
+{
+#ifndef SWOS_SDL_BUILD
+    (void)names; (void)cap;
+    return 0;                           /* (the Amiga reads no manifest: no "online") */
+#else
+    int32_t n = 0;
+    uint32_t at = 0;
+    if (names && cap)
+        names[0] = '\0';
+    for (int32_t i = 0; i < s_count; i++) {
+        if (!s_offline[i])
+            continue;
+        if (names && at + 2 < cap) {
+            int w = snprintf(names + at, cap - at, "%s%s", n ? ", " : "", s_names[i]);
+            at = w > 0 && (uint32_t)w < cap - at ? at + (uint32_t)w : cap - 1;
+        }
+        n++;
+    }
+    return n;
+#endif
+}
 int32_t Mods_IsStatic(int32_t i) { return i >= 0 && i < s_count && s_static[i]; }
 int32_t Mods_CountListed(void)
 {
@@ -183,6 +208,11 @@ static const char *next_id(const char *p, char *out, uint32_t cap, int *star)
         out[n] = '\0';
         if (ok && n)
             return p;
+#ifdef SWOS_SDL_BUILD
+        if (n)                          /* (said, not skipped in silence: a DLC's long slug) */
+            fprintf(stderr, "[mods] \"%s...\": not a mod's name -- letters, digits, '-' and '_', at most %u "
+                            "(MODS_ID_MAX): left out\n", out, (unsigned)(cap - 1));
+#endif
     }
 }
 
@@ -336,6 +366,10 @@ static const char *read_manifest(const char *dir, int canonical, ModInfo *info)
     snprintf(info->changes, sizeof info->changes, "%s", changes[0] ? changes : "gameplay");
     if (mjson_get_string(json, len, "$.sprites", info->sprites, (int)sizeof info->sprites) < 0)
         info->sprites[0] = '\0';
+    if (mjson_get_string(json, len, "$.slot", info->slot, (int)sizeof info->slot) < 0)
+        info->slot[0] = '\0';
+    info->offline = (uint8_t)(mjson_get_bool(json, len, "$.online", &b) && !b);   /* ("online": false) */
+    b = 0;
     info->cosmetic = (uint8_t)(strcmp(info->changes, "gameplay") != 0 && strcmp(info->changes, "data") != 0);
     (void)canonical;
     info->byDefault = (uint8_t)((mjson_get_bool(json, len, "$.default", &b) && b) ||
@@ -368,6 +402,13 @@ static void load_one(const char *id, const char *dir, int canonical)
     const char *why = read_manifest(dir, canonical, &info);
     if (!why[0] && uuid_taken(info.uuid))
         why = "another enabled mod has its uuid";
+    if (!why[0] && info.slot[0])            /* (one mod a slot: the first enabled keeps it) */
+        for (int32_t i = 0; i < s_count; i++)
+            if (strcmp(s_slots[i], info.slot) == 0) {
+                fprintf(stderr, "[mods] %s: left out -- its slot \"%s\" is %s's (one %s mod at a time: the "
+                                "first in [mods] enabled)\n", id, info.slot, s_ids[i], info.slot);
+                return;
+            }
     if (why[0]) {
         fprintf(stderr, "[mods] %s: left out -- %s (%s)\n", id, why, dir);
         return;
@@ -375,6 +416,8 @@ static void load_one(const char *id, const char *dir, int canonical)
     s_cosmetic[s_count] = info.cosmetic;
     s_online[s_count] = (uint8_t)!info.cosmetic;
     s_jagSprites[s_count] = strcmp(info.sprites, "jaguar") == 0;
+    snprintf(s_slots[s_count], sizeof s_slots[0], "%s", info.slot);
+    s_offline[s_count] = info.offline;
     snprintf(s_versions[s_count], sizeof s_versions[0], "%s", info.version);
     s_fileHash[s_count] = s_online[s_count] ? hash_tree(dir, "", 2166136261u) : 0;
     s_canonical[s_count] = (uint8_t)canonical;
@@ -383,8 +426,9 @@ static void load_one(const char *id, const char *dir, int canonical)
     snprintf(s_ids[s_count], sizeof s_ids[0], "%s", id);
     snprintf(s_uuids[s_count], sizeof s_uuids[0], "%s", info.uuid);
     snprintf(s_dirs[s_count], sizeof s_dirs[0], "%s", dir);
-    fprintf(stderr, "[mods] on: %s (%s %s, %s, %s %s) from %s\n", id, info.name, info.version, info.changes,
-            s_static[s_count] ? "static" : canonical ? "canonical" : "dlc", info.uuid, dir);
+    fprintf(stderr, "[mods] on: %s (%s %s, %s, %s %s%s%s%s) from %s\n", id, info.name, info.version, info.changes,
+            s_static[s_count] ? "static" : canonical ? "canonical" : "dlc", info.uuid,
+            info.slot[0] ? ", slot " : "", info.slot, info.offline ? ", offline only" : "", dir);
     s_count++;
 }
 

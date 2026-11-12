@@ -126,8 +126,9 @@ int32_t ModApi_MatchTeam(int32_t side, ModMatchTeam *out)
 int32_t ModApi_ResultBanner(ModResultBanner *out)
 {
     extern Sprite _team1NameSprite;
-    if (!out || !ModApi_InMatch() || !_team1NameSprite.visible)
-        return 0;
+    extern int32_t ModMatch_SpriteHidden(const Sprite *spr);
+    if (!out || !ModApi_InMatch() || !_team1NameSprite.visible || ModMatch_SpriteHidden(&_team1NameSprite))
+        return 0;                       /* (hidden by a mod's match, hideHud RESULT: not up -- Playaveli) */
     /* (the names' sprites are HUD: placed at camera + screen position, their z the HUD's layer --
      *  game_state.c, the result panel) */
     const SpriteGraphics *g = _spriteGraphicsPtr ? ((SpriteGraphics **)_spriteGraphicsPtr)[193 /* SPR_TEAM1_NAME */] : NULL;

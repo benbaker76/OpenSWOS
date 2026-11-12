@@ -1,8 +1,7 @@
 /*
  * league_groups.c -- leagues with parallel groups at the season end (include/league_groups.h).
  *
- * The placement is the rules library's sr_pg_season (third_party/swos-competition-engine,
- * rules/sr_groups.c, its rules 11 -- moved there from here, checked against the Mod's C); this is
+ * The placement is the rules' sr_pg_season (src/rules/sr_groups.c, its rules 11 -- moved there from here, checked against the Mod's C); this is
  * the game's side of it: the world's tables, the pool's swaps, the new offsets back. It was
  * ported from the SWOS 96/97 Mod's tools/gplay.c (pg_one, pg_level), which carries this
  * notice:
@@ -42,7 +41,7 @@
 #include "league_groups.h"
 #include "team_pool.h"
 #include "world.h"
-#include "../third_party/swos-competition-engine/rules/swosrules.h"
+#include "rules/swosrules.h"
 
 extern uint16_t _teamsCountryNumbers[256];
 

@@ -1,0 +1,991 @@
+{
+  "name": "joypadConfigMenu",
+  "comment": "SWOS 2020's CONTROLLER SETUP (src/menus/joypadConfig.mnu, imported by scripts/import_swos2020_menus.py; handlers renamed joypadConfig_*, the numbers made text): a pad's NAME, GUID, ID, BUTTONS, AXES, POWER, RAW X/Y, its FIRE and BENCH buttons and its four stick cut-offs, with the cut-off box. Handlers in src/settings_menus.c; the settings in src/input_sdl.c ([input] pad_config). Opened from SETTINGS -> CONTROLS.",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/joypadConfig.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "joypadConfig_joypadConfigMenuOnInit",
+  "onReturn": "joypadConfig_joypadConfigMenuOnInit",
+  "onDraw": "joypadConfig_joypadConfigMenuOnDraw",
+  "defaultEntry": 23,
+  "exports": {
+    "kInfoFieldWidth": 260,
+    "kDeadZoneBoxX1": 160,
+    "kDeadZoneBoxY1": 60,
+    "kDeadZoneBoxX2": 280,
+    "kDeadZoneBoxY2": 166
+  },
+  "items": [
+    {
+      "kind": "set_origin",
+      "x": -8,
+      "y": 0
+    },
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 92,
+        "y": 0,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CONTROLLER SETUP"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 25,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "NAME:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 35,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "GUID:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 45,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "ID:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 55,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "BUTTONS:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 65,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "AXES:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 75,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "POWER:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 85,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "RAW X:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 95,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "RAW Y:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "fireButtonLabel",
+      "coords": {
+        "x": 20,
+        "y": 115,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "FIRE:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 125,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "BENCH"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 135,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "CUT-OFF X+:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 145,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "CUT-OFF Y+:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 155,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "CUT-OFF X-:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 20,
+        "y": 165,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "CUT-OFF Y-:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "name",
+      "coords": {
+        "x": 70,
+        "y": 25,
+        "w": 260,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x800F"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "guid",
+      "coords": {
+        "x": 70,
+        "y": 35,
+        "w": 260,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x800F"
+        }
+      ]
+    },
+    {
+      "kind": "start_template"
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1
+      },
+      "commands": [
+        {
+          "op": "number",
+          "flags": "0xF",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "id",
+      "coords": {
+        "x": 71,
+        "y": 45,
+        "w": 260,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x800F"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "numButtons",
+      "coords": {
+        "x": 71,
+        "y": 55,
+        "w": 260,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x800F"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "numAxes",
+      "coords": {
+        "x": 71,
+        "y": 65,
+        "w": 260,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x800F"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "powerLevel",
+      "coords": {
+        "x": 71,
+        "y": 75,
+        "w": 260,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x800F"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "rawX",
+      "coords": {
+        "x": 71,
+        "y": 85,
+        "w": 260,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x800F"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "rawY",
+      "coords": {
+        "x": 71,
+        "y": 95,
+        "w": 260,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x800F"
+        }
+      ]
+    },
+    {
+      "kind": "start_template"
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1
+      },
+      "commands": [
+        {
+          "op": "number",
+          "flags": "0x2",
+          "value": 0
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "fireButton",
+      "coords": {
+        "x": 82,
+        "y": 115,
+        "w": 48,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 37,
+          "up": 35,
+          "down": 24
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_selectFireButton"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "benchButton",
+      "coords": {
+        "x": 82,
+        "y": 125,
+        "w": 48,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 37,
+          "up": 23,
+          "down": 25
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_selectBenchButton"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "deadZoneXPos",
+      "coords": {
+        "x": 82,
+        "y": 135,
+        "w": 48,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 37,
+          "up": 24,
+          "down": 26
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_enterDeadZoneXPos"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "deadZoneYPos",
+      "coords": {
+        "x": 82,
+        "y": 145,
+        "w": 48,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 37,
+          "up": 25,
+          "down": 27
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_enterDeadZoneYPos"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "deadZoneXNeg",
+      "coords": {
+        "x": 82,
+        "y": 155,
+        "w": 48,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 32,
+          "up": 26,
+          "down": 28
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_enterDeadZoneXNeg"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "deadZoneYNeg",
+      "coords": {
+        "x": 82,
+        "y": 165,
+        "w": 48,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 32,
+          "up": 27,
+          "down": 41
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_enterDeadZoneYNeg"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "decYNeg",
+      "coords": {
+        "x": 198,
+        "y": 49,
+        "w": 9,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x2",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 35,
+          "right": 31,
+          "up": -1,
+          "down": 32
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_decreaseYNeg"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "yNegPercentage",
+      "coords": {
+        "x": 208,
+        "y": 49,
+        "w": 24,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 3
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "incYNeg",
+      "coords": {
+        "x": 233,
+        "y": 49,
+        "w": 9,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x2",
+          "str": "_aPlus"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 29,
+          "right": 38,
+          "up": -1,
+          "down": 34
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_increaseYNeg"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "decYPos",
+      "coords": {
+        "x": 198,
+        "y": 168,
+        "w": 9,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x2",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 28,
+          "right": 34,
+          "up": 29,
+          "down": 41
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_decreaseYPos"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "yPosPercentage",
+      "coords": {
+        "x": 208,
+        "y": 168,
+        "w": 24,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 3
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "incYPos",
+      "coords": {
+        "x": 233,
+        "y": 168,
+        "w": 9,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x2",
+          "str": "_aPlus"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 32,
+          "right": -1,
+          "up": 31,
+          "down": 41
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_increaseYPos"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "incXNeg",
+      "coords": {
+        "x": 144,
+        "y": 98,
+        "w": 9,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x2",
+          "str": "_aPlus"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 23,
+          "right": 38,
+          "up": 29,
+          "down": 37
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_increaseXNeg"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "xNegPercentage",
+      "coords": {
+        "x": 135,
+        "y": 109,
+        "w": 24,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 3
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "decXNeg",
+      "coords": {
+        "x": 144,
+        "y": 120,
+        "w": 9,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x2",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 23,
+          "right": 40,
+          "up": 35,
+          "down": 41
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_decreaseXNeg"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "incXPos",
+      "coords": {
+        "x": 289,
+        "y": 98,
+        "w": 9,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x2",
+          "str": "_aPlus"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 35,
+          "right": -1,
+          "up": 31,
+          "down": 40
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_increaseXPos"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "xPosPercentage",
+      "coords": {
+        "x": 282,
+        "y": 109,
+        "w": 24,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 3
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "decXPos",
+      "coords": {
+        "x": 289,
+        "y": 120,
+        "w": 9,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x2",
+          "literal": "-"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 37,
+          "right": -1,
+          "up": 38,
+          "down": 34
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_decreaseXPos"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 92,
+        "y": 185,
+        "w": 125,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 28,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SetExitMenuFlag"
+        }
+      ]
+    }
+  ]
+}

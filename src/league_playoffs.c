@@ -2,7 +2,7 @@
  * league_playoffs.c -- a world's play-offs and play-outs at the season end
  * (include/league_playoffs.h).
  *
- * The rules are the rules library's (third_party/swos-competition-engine/rules, built here by
+ * The rules are src/rules' (OpenSWOS's, from the library once shared with the Mod; built by
  * src/swos_rules_*.c): the SWOS 96/97 Mod's own -- dplay.c's Italian play-offs, gplay.c's pack
  * knockouts, its B-team rules -- one C copy both games link, checked against the Mod's C season
  * after season (its tests/rules/check.sh; scripts/league_playoffs_check.sh here). This file is
@@ -181,7 +181,7 @@ void LeaguePlayoffs_KeepStage(uint8_t country, uint16_t division)
     b->n_kept = (u8)n;
 }
 
-/* ---- The rules library (third_party/swos-competition-engine/rules): a league's rules, the
+/* ---- The rules (src/rules): a league's rules, the
  * season's inputs, what the career club played ---- */
 
 LeaguePromedio g_promedio;

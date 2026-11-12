@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include <stdint.h>
 #include "input.h"
 
 /* ---- Hardware register definitions ----
@@ -84,6 +85,11 @@ void Player1StatusProc(void)
 
     /* Fire button: CIAA_PRA bit 7, active low (seq = set if equal/zero) */
     _pl1Fire = (HW_CIAA_PRA & (1 << 7)) ? 0x00 : 0xFF;
+    {   /* a mod's match pressing it (ModApi_PressFire: SWOS 2020's training F10 / F11) */
+        extern int32_t ModMatch_ForcedFire(int32_t player);
+        if (ModMatch_ForcedFire(1))
+            _pl1Fire = 0xFF;
+    }
 
     /* ---- Compute diagonal combinations ---- */
     _pl1UpRight  = _pl1Up   & _pl1Right;
@@ -251,6 +257,11 @@ void Player2StatusProc(void)
 
     /* Fire button: CIAA_PRA bit 6, active low */
     _pl2Fire = (HW_CIAA_PRA & (1 << 6)) ? 0x00 : 0xFF;
+    {
+        extern int32_t ModMatch_ForcedFire(int32_t player);
+        if (ModMatch_ForcedFire(2))
+            _pl2Fire = 0xFF;
+    }
 
     /* ---- Compute diagonal combinations ---- */
     _pl2UpRight   = _pl2Up   & _pl2Right;

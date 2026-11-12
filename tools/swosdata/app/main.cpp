@@ -35,6 +35,7 @@
 #include <ctime>
 #include <functional>
 #include <map>
+#include <optional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -857,6 +858,65 @@ struct App {
     });
   }
 
+  // SCAN MY DRIVES: every drive (DriveRoots), kDriveScanDepth folders down -- deep enough for
+  // D:\\Games\\GOG\\<the game> or <a package>\\Disks\\swos.hdf, quick enough to wait for -- then
+  // what it found, each with where.
+  static constexpr int32_t kDriveScanDepth = 3;
+  void StartScanDrives() {
+    if (busy) return;
+    if (worker.joinable()) worker.join();
+    const std::vector<std::string> roots = sd::DriveRoots();
+    if (roots.empty()) { Notice(T("No drives to look in."), true); return; }
+    SetBusy(true);
+    stopScan = false;
+    w().set_scanning(true);
+    w().set_scan_status(Str(T("Searching your drives ...")));
+    Notice("", false);
+    const SdSources start = src;
+    worker = std::thread([this, roots, start] {
+      SdSources found = start;
+      ScanProgress progress{this, std::chrono::steady_clock::now()};
+      bool stopped = false;
+      for (const std::string& root : roots) {
+        if (SdSources_ScanDepthEx(&found, root.c_str(), kDriveScanDepth, OnScanFolder, &progress) < 0) {
+          stopped = true;
+          break;
+        }
+      }
+      slint::invoke_from_event_loop([this, found, stopped, start] { FinishDriveScan(found, stopped, start); });
+    });
+  }
+
+  void FinishDriveScan(const SdSources& found, bool stopped, const SdSources& before) {
+    SetBusy(false);
+    w().set_scanning(false);
+    w().set_scan_status("");
+    src = found;
+    for (int r = 0; r < ROW_COUNT; r++)
+      if (r == ROW_AMIGA ? SdSources_HaveAmiga(&src) != 0 : RowPath(r)[0] != 0) unusable[r].clear();
+    // What is new, each with where: the PC game, its CD, the Amiga version, SWOS 2020, the
+    // cartridge, World 2026-27.
+    std::string list;
+    auto add = [&list](const std::string& what, const char* now, const char* was) {
+      if (now[0] && std::strcmp(now, was) != 0) list += (list.empty() ? "" : "  ") + Tf("{0}: {1}.", T(what), Shown(now));
+    };
+    add(N_("The PC game"), found.dosDir, before.dosDir);
+    add(N_("The PC game's CD"), found.dosCd, before.dosCd);
+    add(N_("The Amiga version"), found.hdf, before.hdf);
+    add(N_("The Amiga version"), found.lha, before.lha);
+    add(N_("Amiga disk 1"), found.adf1, before.adf1);
+    add(N_("Amiga disk 2"), found.adf2, before.adf2);
+    add(N_("SWOS 2020"), found.s2020Dir, before.s2020Dir);
+    add(N_("The Jaguar cartridge"), found.jagRom, before.jagRom);
+    add(N_("World 2026-27"), found.world, before.world);
+    std::string text = list.empty() ? T("Nothing new on your drives.") : Tf("Found on your drives -- {0}", list);
+    if (stopped) text += " " + T("(Stopped before the end.)");
+    if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src) && !SdSources_PcFromSwos2020(&src))
+      text += " " + T("The game needs the PC game or the Amiga version: Search a folder where yours is.");
+    Notice(text, list.empty());
+    Refresh();
+  }
+
   void FinishScan(const std::string& dir, const SdSources& found, bool stopped, const SdSources& before) {
     SetBusy(false);
     w().set_scanning(false);
@@ -874,7 +934,7 @@ struct App {
       error = true;
     }
     if (stopped) text += " " + T("(Stopped before the end.)");
-    if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src))
+    if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src) && !SdSources_PcFromSwos2020(&src))
       text += " The game needs the PC game or the Amiga version.";
     else if (src.adf1[0] != 0 && src.adf2[0] == 0)
       text += " Disk 2 of the Amiga version is still missing.";
@@ -1700,6 +1760,7 @@ struct App {
 
   struct ModFile {
     std::string slug, dir, name, version, uuid, changes, problem;
+    std::string slot;        // "slot": one mod of a slot on at a time (docs/MODS.md §10.2)
     bool canonical = false, byDefault = false, sdl = false, amiga = false;
     bool isStatic = false;   // PROJECT_STATIC_MODS: part of the game -- on for good, never listed
   };
@@ -1791,6 +1852,7 @@ struct App {
     m.changes = ManifestValue(j, "changes");
     if (m.changes.empty()) m.changes = "gameplay";
     m.byDefault = ManifestValue(j, "default") == "true";
+    m.slot = ManifestValue(j, "slot");
     const std::string targets = ManifestValue(j, "targets");
     m.sdl = targets.find("\"sdl\"") != std::string::npos;
     m.amiga = targets.find("\"amiga\"") != std::string::npos;
@@ -1836,6 +1898,14 @@ struct App {
                              dis = SplitList(IniValue(ini, "mods", "disabled"));
     en.erase(std::remove(en.begin(), en.end(), m.slug), en.end());
     dis.erase(std::remove(dis.begin(), dis.end(), m.slug), dis.end());
+    if (on && !m.slot.empty())       // (a slot is pick-one: the others of it off -- the game keeps
+      for (const ModFile& o : modList)   //  only the first anyway, docs/MODS.md §10.2)
+        if (o.slug != m.slug && o.slot == m.slot) {
+          en.erase(std::remove(en.begin(), en.end(), o.slug), en.end());
+          if (o.canonical && o.byDefault && std::find(dis.begin(), dis.end(), o.slug) == dis.end())
+            dis.push_back(o.slug);
+          FileLog("mods: " + o.slug + " off (its slot \"" + m.slot + "\" is " + m.slug + "'s now)");
+        }
     if (m.canonical && m.byDefault) { if (!on) dis.push_back(m.slug); }
     else if (on) en.push_back(m.slug);
     ini = IniSet(ini, "mods", "enabled", JoinList(en).c_str());
@@ -2255,6 +2325,7 @@ struct App {
   std::string downloads;
   std::map<std::string, std::pair<uint64_t, int64_t>> seen, growing;
   bool gogInstaller = false;   // GOG's installer for the PC game is in Downloads
+  std::string searchFirst = "swos2020";   // --search-first: swos2020 (SWOS 2020's install) or gog
   std::string watchDir;         // testing: watch this folder instead of Downloads
   bool lookForGog = true;       // testing: --no-gog
   slint::Timer watchTimer;
@@ -2344,18 +2415,43 @@ struct App {
     return what;
   }
 
-  void Watch(bool first) {
-    if (busy) return;
+  // What the window looks at by itself, once (first: at the start) and then every two seconds:
+  // GOG's install folder, the other installed SWOS programs, the PC game's CD in a drive, the
+  // Downloads folder. What it finds goes into src (Offer); returns what to tell the player about
+  // the last thing found, "" for nothing. No window needed: --headless runs it before there is one.
+  std::string Detect(bool first) {
     std::string found;
     auto note = [&found](const std::string& what, const std::string& where) {
       if (!what.empty()) found = Tf("Found {0} in {1}.", T(what), Shown(where));
     };
-    if (!src.dosDir[0] && lookForGog)
+    // SWOS 2020's install (Windows: its Uninstall entry, else C:\Games\SWOS 2020) and GOG's
+    // game, in the order --search-first says (SWOS 2020's first by default), then the rest.
+    auto swos2020 = [&] {
+      if (!lookForGog || !first || src.s2020Dir[0]) return;
+      const std::string dir = sd::Swos2020InstallDir();
+      if (dir.empty() || seen.count("installed:" + dir)) return;
+      seen["installed:" + dir] = {0, 0};   // (not again from the Uninstall list below)
+      note(Offer(dir), dir);
+    };
+    auto gog = [&] {
+      if (src.dosDir[0] || !lookForGog) return;
       for (const std::string& dir : sd::GogInstallDirs()) {
         const std::string key = "gog:" + dir;
         if (seen.count(key)) continue;
         seen[key] = {0, 0};
         note(Offer(dir), dir);
+      }
+    };
+    if (searchFirst == "gog") { gog(); swos2020(); }
+    else { swos2020(); gog(); }
+    // Other installed SWOS programs (Windows' Uninstall list): SWOS 2020 for its pitches, an Amiga
+    // package's disk images -- whatever is still missing; looked for when the window opens.
+    if (lookForGog && first)
+      for (const std::string& path : sd::InstalledSwosPaths()) {
+        const std::string key = "installed:" + path;
+        if (seen.count(key)) continue;
+        seen[key] = {0, 0};
+        note(Offer(path), path);
       }
     // The PC game's CD in a drive (a mounted image too): the commentary a copy without it lacks,
     // or the whole PC game when there is none yet. Each drive's top folder only.
@@ -2374,10 +2470,7 @@ struct App {
     if (!downloads.empty()) {
       for (const sd::DirEntry& e : sd::ListDir(downloads)) {
         if (GogInstaller(e.path)) {
-          if (!gogInstaller) {
-            gogInstaller = true;
-            RefreshRows();
-          }
+          gogInstaller = true;   // (Watch shows it)
           continue;
         }
         if (ProgramZip(e.path) && amigaProgram.empty() && !e.dir) {
@@ -2403,9 +2496,18 @@ struct App {
         note(Offer(e.path), e.path);
       }
     }
+    return found;
+  }
+
+  void Watch(bool first) {
+    if (busy) return;
+    const bool hadGogInstaller = gogInstaller;
+    const std::string found = Detect(first);
     if (!found.empty()) {
       Notice(found, false);
       Refresh();
+    } else if (gogInstaller != hadGogInstaller) {
+      RefreshRows();
     }
   }
 
@@ -2420,6 +2522,277 @@ struct App {
     w().set_watching(Str(WatchingText()));
     Watch(true);
     watchTimer.start(slint::TimerMode::Repeated, std::chrono::seconds(2), [this] { Watch(false); });
+  }
+
+  // ----------------------------------------------------------- headless ---
+  // --headless (the Windows installer's last page; the game's "no game data" box and its UPDATE
+  // NOW for data made by an older setup): make the
+  // game's data with no window when that needs nothing from the player, the window only when it
+  // does. Runs before the window exists, so it touches nothing of it.
+  //
+  //   1. The data in the assets folder is up to date -- every part there complete and at this
+  //      setup's data version (ASSETS.ini), enough to play, and every source ASSETS.ini names
+  //      still where it was: nothing to do.
+  //   2. Some part made by an older setup, every source ASSETS.ini names still there: the
+  //      update the window's Update makes, from those sources -- no search. Otherwise the
+  //      sources are found as the window finds them at its start: what ASSETS.ini
+  //      says the last install used, SWOS 2020's install (Windows) and GOG's install folder
+  //      (in --search-first's order), the other installed SWOS programs,
+  //      the PC game's CD in a drive, the Downloads folder (Detect).
+  //   3. Neither the PC game nor the Amiga version among them: every drive is searched as SCAN
+  //      MY DRIVES searches it, in a small window of its own with a Stop (HeadlessScanDrives).
+  //   4. With the PC game or the Amiga version found, everything the sources can make is made,
+  //      as the window's Install makes it (SWOS 2020's pitches, the Jaguar's graphics, World
+  //      2026-27 too when they were found), and ASSETS.ini written.
+  //   5. Enough to play (the test before the window's Play): the game beside the setup is
+  //      started, as Play starts it -- unless --no-play.
+  //   6. Still neither -- unless the data is up to date anyway (a source moved) -- the search
+  //      stopped, or making the data failed: the window opens with what was found, and
+  //      HeadlessNotice says why.
+  // Returns 1 when the work is done (nothing more to do), 0 when the window is to open.
+  enum { kHeadlessNotFound = 1, kHeadlessFailed = 2, kHeadlessStopped = 3 };
+  bool headlessPlay = true;     // --no-play: false
+  int headlessOpened = 0;       // why the window opened instead
+  std::string headlessError;    // kHeadlessFailed: what failed
+
+  // (once the language is set: the window's)
+  std::string HeadlessNotice() const {
+    if (headlessOpened == kHeadlessNotFound)
+      return T("Your copy of Sensible World of Soccer was not found, on your drives either: point to it here, "
+               "then click Install.");
+    if (headlessOpened == kHeadlessStopped)
+      return T("The search of your drives was stopped before it found your copy of Sensible World of Soccer: "
+               "point to it here, then click Install.");
+    return Tf("Making the game's data failed ({0}). Check your copy of the game here, then click Install.",
+              headlessError);
+  }
+
+  static void HeadlessLog(void* user, const char* line) {
+    App* app = static_cast<App*>(user);
+    app->FileLog(line ? line : "");
+    std::printf("%s\n", line ? line : "");
+    std::fflush(stdout);
+  }
+
+  // ASSETS.ini's [sources]: each key's whole value (paths have spaces; IniValue stops at one).
+  std::vector<std::pair<std::string, std::string>> RecordedSources() const {
+    std::vector<std::pair<std::string, std::string>> out;
+    const std::string text = ReadFile(Join(outDir, ASSETS_INI_NAME));
+    std::string sec;
+    size_t pos = 0;
+    while (pos < text.size()) {
+      size_t end = text.find('\n', pos);
+      if (end == std::string::npos) end = text.size();
+      std::string line = text.substr(pos, end - pos);
+      pos = end + 1;
+      while (!line.empty() && (line.back() == '\r' || line.back() == ' ' || line.back() == '\t')) line.pop_back();
+      line.erase(0, line.find_first_not_of(" \t"));
+      if (line.size() > 1 && line[0] == '[') {
+        sec = line.substr(1, line.find(']') - 1);
+        continue;
+      }
+      const size_t eq = line.find('=');
+      if (sec != "sources" || eq == std::string::npos || line[0] == ';' || line[0] == '#') continue;
+      std::string key = line.substr(0, eq), value = line.substr(eq + 1);
+      while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) key.pop_back();
+      value.erase(0, value.find_first_not_of(" \t"));
+      if (!value.empty()) out.emplace_back(key, value);
+    }
+    return out;
+  }
+
+  int Headless() {
+    FileLog("headless: making the game's data without the window if it can");
+    SwosData_Installed(outDir.c_str(), installed);
+    bool complete = Playable();
+    std::string parts;
+    for (int s = 0; s < SD_STEP_COUNT; s++) {
+      const int st = InstalledState(s);
+      if (st == 2 || st == 3) complete = false;
+      if (st != 0)
+        parts += std::string(parts.empty() ? "" : ", ") + SwosData_PartKey(SdStep(s)) +
+                 (st == 1 ? "" : st == 2 ? " (incomplete)" : " (older)");
+    }
+    FileLog("headless: installed: " + (parts.empty() ? std::string("nothing") : parts) +
+            (complete ? "; up to date" : ""));
+    bool moved = false;
+    for (const auto& [key, path] : RecordedSources())
+      if (!sd::IsFile(path) && !sd::IsDir(path)) {
+        FileLog("headless: source " + key + " is gone: " + Shown(path));
+        moved = true;
+      }
+    if (complete && !moved) {
+      FileLog("headless: the game's data is up to date: nothing to do");
+      HeadlessPlay();
+      return 1;
+    }
+
+    // What the window would have at its start: the sources the last install used -- for an
+    // update (a part made by an older setup, every source still there) all it needs, as the
+    // window's Update uses them -- and, for anything else, what Detect finds.
+    SwosData_LoadSources(outDir.c_str(), &src);
+    SdSources u = Usable();
+    const bool update = Outdated() && !moved && (SdSources_HaveDos(&u) || SdSources_HaveAmiga(&u));
+    if (update) {
+      FileLog("headless: an update, from the sources the last install used");
+    } else {
+      downloads = !watchDir.empty() ? watchDir : sd::DownloadsDir();
+      Detect(true);
+      u = Usable();
+    }
+    if (!SdSources_HaveDos(&u) && !SdSources_HaveAmiga(&u) && !complete) {
+      if (!HeadlessScanDrives()) {
+        FileLog("headless: the search of the drives was stopped: the window opens");
+        headlessOpened = kHeadlessStopped;
+        return 0;
+      }
+      u = Usable();
+    }
+    auto said = [this](const char* what, const char* path) {
+      if (path[0]) FileLog(std::string("headless: ") + what + ": " + Shown(path));
+    };
+    said("PC game", src.dosDir);
+    said("PC game's CD", src.dosCd);
+    said("PC game's floppy 1", src.dosFloppy1);
+    said("PC game's floppy 2", src.dosFloppy2);
+    said("Amiga version", AmigaPath().c_str());
+    if (!amigaProblem.empty()) FileLog("headless: the Amiga version cannot be used: " + amigaProblem);
+    said("Jaguar cartridge", src.jagRom);
+    said("SWOS 2020", src.s2020Dir);
+    said("World 2026-27", src.world);
+
+    if (!SdSources_HaveDos(&u) && !SdSources_HaveAmiga(&u)) {
+      if (complete) {   // (a source moved, and the data is fine without it)
+        FileLog("headless: the game's data is up to date (its copy of the game was not found again): nothing to do");
+        HeadlessPlay();
+        return 1;
+      }
+      FileLog("headless: neither the PC game nor the Amiga version found: the window opens");
+      headlessOpened = kHeadlessNotFound;
+      return 0;
+    }
+
+    if (resDir.empty())
+      FileLog("headless: warning: the game's own files (setup/glyphs.txt) were not found beside this program");
+    FileLog("headless: installing to " + Shown(outDir));
+    std::printf("Making the game's data in %s ...\n", Shown(outDir).c_str());
+    std::fflush(stdout);
+    SdJob job;
+    std::memset(&job, 0, sizeof job);
+    job.src = u;
+    job.src.disk1 = job.src.disk2 = job.src.hdfDisk = nullptr;
+    job.src.lhaArc = nullptr;
+    std::snprintf(job.outDir, sizeof job.outDir, "%s", outDir.c_str());
+    std::snprintf(job.resDir, sizeof job.resDir, "%s", resDir.c_str());
+    std::snprintf(job.modsDir, sizeof job.modsDir, "%s", ModsDir().c_str());   // (a world: a mod)
+    job.log = HeadlessLog;
+    job.user = this;
+    char err[256] = {0};
+    const int32_t rc = SwosData_Run(&job, err);
+    SdSources_Close(&job.src);
+    SwosData_Installed(outDir.c_str(), installed);
+    if (rc != 0) {
+      FileLog(std::string("headless: install failed: ") + err + ": the window opens");
+      headlessOpened = kHeadlessFailed;
+      headlessError = err;
+      return 0;
+    }
+    WorldModOn();
+    FileLog("headless: install done: " + Shown(outDir));
+    std::printf("Done: the game's data is in %s\n", Shown(outDir).c_str());
+    HeadlessPlay();
+    return 1;
+  }
+
+  // The game beside the setup started, as Play starts it, when there is enough to play.
+  void HeadlessPlay() {
+    if (!headlessPlay) return;
+    if (!Playable()) {
+      FileLog("headless: not enough of the game's data to play: the game is not started");
+      return;
+    }
+    game = FindGame(exeDir);
+    if (game.empty()) FileLog("headless: no game beside this program to start");
+    else if (sd::Launch(game, exeDir)) FileLog("headless: started " + Shown(game));
+    else FileLog("headless: could not start " + Shown(game));
+  }
+
+  // Step 3: every drive, kDriveScanDepth folders down, as SCAN MY DRIVES searches them -- with a
+  // small window saying where it is and a Stop (closing it stops too), or, with no display to
+  // open one on (Linux without X11 or Wayland), on the console. What it finds joins src.
+  // false when the player stopped it.
+  struct HeadlessScan {
+    App* app;
+    std::chrono::steady_clock::time_point last;
+    std::optional<slint::ComponentWeakHandle<SearchWindow>> win;
+  };
+  static int32_t OnHeadlessScan(void* user, int32_t folders, const char* dir) {
+    HeadlessScan* p = static_cast<HeadlessScan*>(user);
+    const auto now = std::chrono::steady_clock::now();
+    if (now - p->last >= std::chrono::milliseconds(p->win ? 100 : 2000)) {
+      p->last = now;
+      const std::string text = Tf("Searching... {0} folders: {1}", folders, Shown(dir));
+      if (p->win) {
+        slint::invoke_from_event_loop([w = *p->win, text] {   // (the window may be gone by then)
+          if (auto h = w.lock()) (*h)->set_status(Str(text));
+        });
+      } else {
+        std::printf("%s\n", text.c_str());
+        std::fflush(stdout);
+      }
+    }
+    return p->app->stopScan.load() ? 1 : 0;
+  }
+
+  bool HeadlessScanDrives() {
+    const std::vector<std::string> roots = sd::DriveRoots();
+    std::string list;
+    for (const std::string& r : roots) list += (list.empty() ? "" : " ") + Shown(r);
+    FileLog("headless: neither the PC game nor the Amiga version found yet: searching the drives: " + list);
+    stopScan = false;
+    SdSources found = src;
+    bool stopped = false;
+    HeadlessScan progress{this, std::chrono::steady_clock::now(), std::nullopt};
+    auto scan = [this, &roots, &found, &stopped, &progress] {
+      for (const std::string& root : roots)
+        if (SdSources_ScanDepthEx(&found, root.c_str(), kDriveScanDepth, OnHeadlessScan, &progress) < 0) {
+          stopped = true;
+          break;
+        }
+    };
+#if !defined(_WIN32) && !defined(__APPLE__)
+    const char* x11 = std::getenv("DISPLAY");
+    const char* wayland = std::getenv("WAYLAND_DISPLAY");
+    const bool display = (x11 && *x11) || (wayland && *wayland);
+#else
+    const bool display = true;
+#endif
+    if (!display) {
+      std::printf("Searching your drives for your copy of Sensible World of Soccer ...\n");
+      std::fflush(stdout);
+      scan();
+    } else {
+      auto win = SearchWindow::create();
+      win->set_project_name(PROJECT_NAME);
+      win->set_status(Str(T("Searching your drives ...")));
+      win->on_stop([this] { stopScan = true; });
+      progress.win = slint::ComponentWeakHandle<SearchWindow>(win);
+      std::thread worker([&scan] {
+        scan();
+        slint::invoke_from_event_loop([] { slint::quit_event_loop(); });
+      });
+      win->show();
+      slint::run_event_loop();   // (until the search ends -- or the window is closed: a Stop)
+      win->hide();
+      stopScan = true;           // (closed: the search stops at its next folder)
+      worker.join();
+      progress.win.reset();
+    }
+    src = found;
+    for (int r = 0; r < ROW_COUNT; r++)
+      if (r == ROW_AMIGA ? SdSources_HaveAmiga(&src) != 0 : RowPath(r)[0] != 0) unusable[r].clear();
+    FileLog(std::string("headless: the search of the drives ") + (stopped ? "was stopped" : "is done"));
+    return !stopped;
   }
 
   // ------------------------------------------------------------ testing ---
@@ -2455,8 +2828,21 @@ int Usage() {
   sd::AttachParentConsole();
   std::printf(
       PROJECT_SETUP_NAME " %s\n"
-      "usage: " PROJECT_SETUP_PROGRAM " [--res DIR] [--scan DIR]... [--out DIR] [--amiga]\n"
+      "usage: " PROJECT_SETUP_PROGRAM " [--headless] [--res DIR] [--scan DIR]... [--out DIR] [--amiga]\n"
       "                      [--program DIR] [--drawer-to DIR | --whdload-to FILE]\n"
+      "  --headless        make the game's data with no window: nothing when it is up to\n"
+      "                    date, else from the copy of the game found as the window finds\n"
+      "                    it at its start, else on every drive (a small window with Stop);\n"
+      "                    then the game is started. The window opens only when no copy is\n"
+      "                    found, the search is stopped or making the data fails.\n"
+      "                    Exit 0: done, or nothing to do (or the window ran); 1: an\n"
+      "                    install started in that window failed\n"
+      "  --no-play         with --headless: do not start the game when it is done\n"
+      "  --search-first=swos2020|gog\n"
+      "                    which is looked for first, at the start and with --headless:\n"
+      "                    SWOS 2020's install (default) or GOG's game; then the other\n"
+      "                    installed SWOS programs, the CD, Downloads (--headless: then\n"
+      "                    every drive)\n"
       "  --res DIR         the game's own files (with setup/glyphs.txt); default: beside\n"
       "                    this program, else the nearest bin/ above it\n"
       "  --scan DIR        look for the game's sources in DIR and every folder inside\n"
@@ -2492,6 +2878,7 @@ int main(int argc, char** argv) {
   std::vector<std::string> scans;
   std::string resArg, outArg, programArg, drawerArg, whdloadArg;
   bool amigaTab = false, watch = true, details = false, about = false;
+  bool headless = false;       // --headless: the data made with no window when it can be (App::Headless)
   std::string modInstall;      // --mod-install=ZIP: install that mod (docs/MODS.md) and quit
   std::string wizardArg;
   int wizardStep = 0;
@@ -2502,6 +2889,13 @@ int main(int argc, char** argv) {
     const char* v = i + 1 < argc ? argv[i + 1] : nullptr;
     if (a == "--auto") {
       app.autoRun = true;
+    } else if (a == "--headless") {
+      headless = true;
+    } else if (a.rfind("--search-first=", 0) == 0) {
+      app.searchFirst = a.substr(15);
+      if (app.searchFirst != "swos2020" && app.searchFirst != "gog") return Usage();
+    } else if (a == "--no-play") {
+      app.headlessPlay = false;
     } else if (a == "--quit") {
       app.quitAfter = true;
     } else if (a == "--play") {
@@ -2575,6 +2969,15 @@ int main(int argc, char** argv) {
     app.FileLog("install to: " + Shown(app.outDir));
   }
 
+  // (no window needed for these: --headless finds with them)
+  app.FindProgram(programArg);
+  for (const auto& s : scans) SdSources_Scan(&app.src, s.c_str());
+
+  if (headless) {
+    sd::AttachParentConsole();
+    if (app.Headless()) return 0;   // made, or nothing to make: no window at all
+  }
+
   // Wayland matches this against a .desktop file for the icon; X11 and
   // Windows/macOS use the Window's own icon.
   slint::set_xdg_app_id(PROJECT_SETUP_PROGRAM);
@@ -2612,9 +3015,6 @@ int main(int argc, char** argv) {
 #ifndef SD_WITH_DIALOGS
   ui->set_can_pick(false);
 #endif
-  app.FindProgram(programArg);
-
-  for (const auto& s : scans) SdSources_Scan(&app.src, s.c_str());
   // What the last install was made from (ASSETS.ini), where --scan found nothing.
   SwosData_LoadSources(app.outDir.c_str(), &app.src);
   app.StartLanguage();
@@ -2650,12 +3050,14 @@ int main(int argc, char** argv) {
   app.RefreshPlan();
   if (watch) app.StartWatching();
   else ui->set_watching("");
+  if (app.headlessOpened) app.Notice(app.HeadlessNotice(), true);   // why --headless needs the player
 
   ui->on_choose_folder([&app] {
     const std::string dir = PickFolder({});
     if (!dir.empty()) app.StartScan(dir);
   });
   ui->on_stop_scan([&app] { app.stopScan = true; });
+  ui->on_scan_drives([&app] { app.StartScanDrives(); });
   ui->on_browse_source([&app](int r) { app.BrowseRow(r); });
   ui->on_clear_sources([&app] { app.ClearSources(); });
   ui->on_change_out([&app] {

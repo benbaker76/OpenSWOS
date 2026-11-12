@@ -99,6 +99,7 @@ static struct {
     uint32_t         guessedFrames;       /* frames first played on a guess */
     uint32_t         guessNotRepeat;      /* ... whose guess was not the last input known */
     uint32_t         saves, loads;
+    uint32_t         loadsBySize[8];      /* loads by frames rolled back, 7 = 7 or more (an overlay's) */
     uint32_t         unidentified;        /* checksums that met a pointer with no identity */
     int32_t          lastConfirmed;       /* p2p */
     int32_t          resultFrame;         /* live: the frame a whistle went at, until it is confirmed; -1 */
@@ -349,6 +350,27 @@ int32_t NetplayMatch_IsLive(void)
  * (src/mod_match.c ModMatch_Quiet) -- it is played again, not for the first time. */
 static int32_t s_resimulating;
 int32_t NetplayMatch_Resimulating(void) { return s_resimulating; }
+
+/* The connection as this game sees it, for a draw-only overlay (ModApi_NetStats, mod_extras.c):
+ * the ping and jitter logStats samples once a second, GGPO's timesync both ways, the rollbacks and
+ * holds. Read only; 0 when no live match is on. */
+int32_t NetplayMatch_Stats(int32_t *pingMs, int32_t *jitterMs, int32_t *localX10, int32_t *remoteX10,
+                           int32_t *delay, uint32_t *rollbacks, uint32_t *holds, uint32_t *frame,
+                           uint32_t bySize[8])
+{
+    if (!(s_np.mode == NETPLAY_MATCH_P2P && s_np.live) || !s_np.session || !s_np.running)
+        return 0;
+    *pingMs = s_np.statLastPing;
+    *jitterMs = s_np.statN > 1 ? (int32_t)(s_np.statJitSum / (s_np.statN - 1))
+              : s_np.statAllN > 1 ? (int32_t)(s_np.statAllJitSum / (s_np.statAllN - 1)) : 0;
+    Netplay_FramesBehind(s_np.session, 3 - s_np.player, localX10, remoteX10);
+    *delay = s_np.delay;
+    *rollbacks = s_np.loads;
+    *holds = s_np.predictionWaits;
+    *frame = s_np.frames;
+    memcpy(bySize, s_np.loadsBySize, sizeof s_np.loadsBySize);
+    return 1;
+}
 
 int32_t NetplayMatch_IsP2P(void)
 {
@@ -716,11 +738,11 @@ static int32_t cbSave(void *ctx, uint8_t **state, int32_t *len, int32_t *checksu
 static int32_t cbLoad(void *ctx, const uint8_t *state, int32_t len, int32_t framesToRollback)
 {
     (void)ctx;
-    (void)framesToRollback;
     if ((uint32_t)len != s_np.stateSize)
         return 0;
     SimState_Load(state, SIM_TIER_ALL);
     s_np.loads++;
+    s_np.loadsBySize[framesToRollback < 1 ? 1 : framesToRollback > 7 ? 7 : framesToRollback]++;
     return 1;
 }
 

@@ -89,7 +89,10 @@ SDL_ONLY_SRCS := \
     slang.c               \
     gpu_slang.c           \
     mod_retrotv.c         \
+    mod_paletteq.c        \
     stb_image_impl.c      \
+    stb_vorbis_impl.c     \
+    teamdb.c              \
     tileagent_impl.c      \
     mm_client.c           \
     netem_core.c          \
@@ -104,6 +107,7 @@ SDL_ONLY_SRCS := \
     p2p_link.c            \
     p2p_menu.c            \
     controls_menu.c       \
+    settings_menus.c      \
     credits_menu.c        \
     platform_sdl.c        \
     platform_timer.c      \

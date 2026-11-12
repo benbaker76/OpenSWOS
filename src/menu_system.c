@@ -2039,6 +2039,7 @@ void MenuProc(void)
 #ifdef SWOS_SDL_BUILD
     { extern void MenuMouse_Frame(void); MenuMouse_Frame(); }            /* the mouse (menu_mouse.c) */
     { extern void CareerAutopilot_Tick(void); CareerAutopilot_Tick(); }  /* --career-golden */
+    { extern void SettingsMenus_MenuFrame(void); SettingsMenus_MenuFrame(); }  /* F6 quick save (settings_menus.c) */
 #endif
 
     menu = (Menu *)_currentMenu;

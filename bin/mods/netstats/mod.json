@@ -1,0 +1,25 @@
+{
+ "uuid": "6246d072-dfd6-5b5d-bc6b-35dbff8661c2",
+ "id": "netstats",
+ "name": "Network quality",
+ "version": "1.0",
+ "author": "OpenSWOS (SWOS 2020's frame-fairness strip, F7)",
+ "about": "Online: a strip along the top -- rollbacks, who runs ahead, the jitter, and why the connection is poor. F7 cycles when it shows.",
+ "targets": [
+  "sdl"
+ ],
+ "changes": "cosmetic",
+ "default": true,
+ "settings": [
+  {
+   "key": "show",
+   "label": "Show it",
+   "choices": [
+    "when poor",
+    "always",
+    "never"
+   ],
+   "default": "when poor"
+  }
+ ]
+}

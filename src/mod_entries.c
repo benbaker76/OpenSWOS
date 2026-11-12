@@ -10,6 +10,7 @@
 #include "menu_symbols.h"
 #include "menu_system.h"
 #include "mods.h"
+#include "display.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,6 +83,25 @@ int32_t ModApi_RunEntry(ModPoint point, int32_t index)
 }
 
 int32_t ModApi_IsMainMenu(void) { return Menu_IsMainMenu(); }
+
+int32_t ModApi_IsPlayMatchMenu(void)
+{
+    extern uint8_t _playMatchMenu[];
+    extern uintptr_t _currentMenuPtr;
+    extern uint8_t _currentMenu[];
+    extern void PlayMatchMenuInit(void);
+    const Menu *menu = (const Menu *)_currentMenu;    /* (the JSON-built menu has the same onInit) */
+    return _currentMenuPtr == (uintptr_t)_playMatchMenu || (menu && menu->onInit == (MenuVoidFn)PlayMatchMenuInit);
+}
+
+int32_t ModApi_MenuMargin(void)
+{
+#ifdef SWOS_SDL_BUILD
+    return (int32_t)WIDE_MARGIN;
+#else
+    return 0;
+#endif
+}
 
 /* ---- a career screen's row (MODPOINT_BUY_PLAYER ..., docs/MODS.md §28) ---- */
 

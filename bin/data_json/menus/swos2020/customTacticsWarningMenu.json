@@ -1,0 +1,202 @@
+{
+  "name": "customTacticsWarningMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/customTacticsWarning.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "customTacticsWarningMenu_OnInit",
+  "onReturn": null,
+  "onDraw": "customTacticsWarningMenu_OnDraw",
+  "defaultEntry": 9,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 62,
+        "y": 0,
+        "w": 180,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "WARNING FOR RANKED MATCH AMIGA"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "panel",
+      "coords": {
+        "x": 12,
+        "y": 50,
+        "w": 280,
+        "h": 71
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 4
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "message0",
+      "coords": {
+        "x": 2,
+        "y": 54,
+        "w": 300,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "YOUR OPPONENT PLAYS WITH CUSTOM TACTICS."
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "message1",
+      "coords": {
+        "x": 2,
+        "y": 64,
+        "w": 300,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "ONLY PROCEED TO PLAY IF YOU AGREE."
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "message2",
+      "coords": {
+        "x": 2,
+        "y": 74,
+        "w": 300,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "message3",
+      "coords": {
+        "x": 2,
+        "y": 84,
+        "w": 300,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "YOU ARE NOW FREE TO USE CUSTOM TACTICS, AS WELL. "
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "message4",
+      "coords": {
+        "x": 2,
+        "y": 94,
+        "w": 300,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "message5",
+      "coords": {
+        "x": 2,
+        "y": 104,
+        "w": 300,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OTHERWISE, CANCEL AND LEAVE LOBBY."
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "message6",
+      "coords": {
+        "x": 2,
+        "y": 114,
+        "w": 300,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 112,
+        "y": 185,
+        "w": 80,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OK"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 4
+        },
+        {
+          "op": "onselect_fire",
+          "func": "SetExitMenuFlag"
+        }
+      ]
+    }
+  ]
+}

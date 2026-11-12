@@ -3,8 +3,8 @@
 Status: **implemented** (`src/replay_v2.c`, `include/replay_v2.h`, SDL builds).
 A whole match is recorded to `LATEST.SRP` in the save folder and played back
 through the highlights viewer at any screen width, with the sounds the match
-made. Trick play (§6) is specified but not wired in the game's viewer; the recordings
-player (docs/PLAYBACK.md) seeks, pauses and steps by frame.
+made. Trick play (§6) is in the game's viewer (SWOS 2020's controls, 2026-11-09); the
+recordings player (docs/PLAYBACK.md) seeks, pauses and steps by frame.
 
 Test: `scripts/replay_v2_test.sh --all` — every recording in the corpus, both
 gameplays, recorded and played back at 336/484/672, requiring the sprites, the
@@ -439,10 +439,24 @@ joiner's to part at exactly N+1.
 
 ---
 
-## 6. Trick play (replaces `.IDX`) — not wired yet
+## 6. Trick play (replaces `.IDX`)
 
-(In the game's own viewer. The browser recordings player, docs/PLAYBACK.md, already seeks to
-any frame, pauses and steps a frame at a time, from the frame offsets it keeps on load.)
+**In the game's viewer** (2026-11-09, SWOS 2020's replayControls.mnu / replays.cpp;
+`src/replay_v2.c`, "The viewer's controls"): a `.SRP` watched from HIGHLIGHTS -> LOAD or after a
+match takes P (pause), Up / Down (the speed by a quarter, 0 to 20 times), Left / Right (backwards
+/ forwards; paused, a frame), Home / End (first / last frame), PgDn / PgUp (a tenth back / on),
+I (the frame box: speed, state, frame and a bar, SWOS 2020's, at the bottom left); a pad's stick
+as the arrows; fire stops it. Only a recording played forwards at its own speed sounds: a jump,
+a pause, backwards or another speed is silent, and a jump puts the camera where the match had
+it. `[replays] frame_overlay` (default true) and `speed` (normal | half: SWOS 2020's HIGHLIGHT
+DEFAULT SPEED). At its defaults the viewer is the same frame stream as before
+(`replay_v2_test.sh --all` unchanged); `SWOS_VIEWER_TEST=1` with `--view-replay` presses the keys
+and checks each one's frame. The legacy `.HIL` / `.RPL` path has none of this.
+
+(The browser recordings player, docs/PLAYBACK.md, seeks to any frame, pauses and steps a frame
+at a time, from the frame offsets it keeps on load.)
+
+The design it was planned against:
 
 - **FF / RW:** jump to nearest keyframe, replay deltas; audio either muted or
   time-compressed.

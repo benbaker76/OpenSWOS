@@ -1,234 +1,228 @@
 {
- "name": "practiceMenu",
- "comment": "The practice mod's menu (bin/mods/practice, src/mod_practice.c; SWOS 2020's practice.mnu): its handlers are practice.<name> (include/mod_api.h ModApi_RegisterHandlers).",
- "menu_flags": {
-  "dos_redraw": true
- },
- "onInit": null,
- "onReturn": null,
- "onDraw": null,
- "defaultEntry": 2,
- "items": [
-  {
-   "kind": "entry",
-   "name": "header",
-   "coords": {
-    "x": 72,
-    "y": 0,
-    "w": 176,
-    "h": 16
-   },
-   "commands": [
-    {
-     "op": "text",
-     "flags": "0x10",
-     "literal": "PRACTICE"
-    },
-    {
-     "op": "colors",
-     "frame_color": 1,
-     "background_color": 7
-    }
-   ]
+  "name": "practiceMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/practice.mnu",
+    "commit": "df38d20"
   },
-  {
-   "kind": "entry",
-   "name": "subTitle",
-   "coords": {
-    "x": 12,
-    "y": 20,
-    "w": 296,
-    "h": 12
-   },
-   "commands": [
-    {
-     "op": "text",
-     "flags": "0x0",
-     "literal": "PLAY ON YOUR OWN"
-    }
-   ]
+  "menu_flags": {
+    "dos_redraw": true
   },
-  {
-   "kind": "entry",
-   "name": "row0",
-   "coords": {
-    "x": 48,
-    "y": 36,
-    "w": 224,
-    "h": 12
-   },
-   "commands": [
-    {
-     "op": "text",
-     "flags": "0x0",
-     "literal": "PENALTY SHOOTOUT"
-    },
-    {
-     "op": "colors",
-     "frame_color": 0,
-     "background_color": 13
-    },
-    {
-     "op": "nav",
-     "left": -1,
-     "right": -1,
-     "up": -1,
-     "down": 3
-    },
-    {
-     "op": "onselect_fire",
-     "func": "practice.shootout"
-    }
-   ]
+  "onInit": null,
+  "onReturn": null,
+  "onDraw": "practice.menuDraw",
+  "defaultEntry": 1,
+  "exports": {
+    "EXM_X1": 98,
+    "EXM_Y": 37,
+    "EXM_W": 124,
+    "EXM_H": 18,
+    "EXM_GAP": 32
   },
-  {
-   "kind": "entry",
-   "name": "row1",
-   "coords": {
-    "x": 48,
-    "y": 50,
-    "w": 224,
-    "h": 12
-   },
-   "commands": [
+  "items": [
     {
-     "op": "text",
-     "flags": "0x0",
-     "literal": "DEMO GAME"
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 102,
+        "y": 0,
+        "w": 100,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PRACTICE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
     },
     {
-     "op": "colors",
-     "frame_color": 0,
-     "background_color": 13
+      "kind": "entry",
+      "name": "friendlyMode",
+      "coords": {
+        "x": 90,
+        "y": 37,
+        "w": 124,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "FRIENDLY MATCH"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 2
+        },
+        {
+          "op": "onselect_fire",
+          "func": "FriendlyMenu"
+        }
+      ]
     },
     {
-     "op": "nav",
-     "left": -1,
-     "right": -1,
-     "up": 2,
-     "down": 4
+      "kind": "entry",
+      "name": "trainingMode",
+      "coords": {
+        "x": 90,
+        "y": 69,
+        "w": 124,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "TEAM TRAINING"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 1,
+          "down": 3
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.training"
+        }
+      ]
     },
     {
-     "op": "onselect_fire",
-     "func": "practice.demo"
+      "kind": "entry",
+      "name": "challengeGame2",
+      "coords": {
+        "x": 90,
+        "y": 101,
+        "w": 124,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PENALTY SHOOTOUT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 2,
+          "down": 4
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.shootout"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "demoGame",
+      "coords": {
+        "x": 90,
+        "y": 133,
+        "w": 124,
+        "h": 18
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DEMO GAME"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 3,
+          "down": 6
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.demo"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "HelpMsg",
+      "coords": {
+        "x": 102,
+        "y": 162,
+        "w": 101,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 122,
+        "y": 185,
+        "w": 60,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 4,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.exit"
+        }
+      ]
     }
-   ]
-  },
-  {
-   "kind": "entry",
-   "name": "row2",
-   "coords": {
-    "x": 48,
-    "y": 64,
-    "w": 224,
-    "h": 12
-   },
-   "commands": [
-    {
-     "op": "text",
-     "flags": "0x0",
-     "literal": "TEAM TRAINING"
-    },
-    {
-     "op": "colors",
-     "frame_color": 0,
-     "background_color": 13
-    },
-    {
-     "op": "nav",
-     "left": -1,
-     "right": -1,
-     "up": 3,
-     "down": 5
-    },
-    {
-     "op": "onselect_fire",
-     "func": "practice.training"
-    }
-   ]
-  },
-  {
-   "kind": "entry",
-   "name": "row3",
-   "coords": {
-    "x": 48,
-    "y": 78,
-    "w": 224,
-    "h": 12
-   },
-   "commands": [
-    {
-     "op": "text",
-     "flags": "0x0",
-     "literal": "SHOOTING PRACTICE"
-    },
-    {
-     "op": "colors",
-     "frame_color": 0,
-     "background_color": 13
-    },
-    {
-     "op": "nav",
-     "left": -1,
-     "right": -1,
-     "up": 4,
-     "down": 7
-    },
-    {
-     "op": "onselect_fire",
-     "func": "practice.shooting"
-    }
-   ]
-  },
-  {
-   "kind": "entry",
-   "name": "note",
-   "coords": {
-    "x": 12,
-    "y": 150,
-    "w": 296,
-    "h": 12
-   },
-   "commands": [
-    {
-     "op": "text",
-     "flags": "0x0",
-     "literal": ""
-    }
-   ]
-  },
-  {
-   "kind": "entry",
-   "name": "exit",
-   "coords": {
-    "x": 102,
-    "y": 166,
-    "w": 100,
-    "h": 15
-   },
-   "commands": [
-    {
-     "op": "text",
-     "flags": "0x0",
-     "literal": "EXIT"
-    },
-    {
-     "op": "colors",
-     "frame_color": 0,
-     "background_color": 12
-    },
-    {
-     "op": "nav",
-     "left": -1,
-     "right": -1,
-     "up": 5,
-     "down": -1
-    },
-    {
-     "op": "onselect_fire",
-     "func": "practice.exit"
-    }
-   ]
-  }
- ]
+  ],
+  "comment": "SWOS 2020's practice.mnu (scripts/import_swos2020_menus.py): FRIENDLY MATCH the game's own, the rest practice.<name> (src/mod_practice.c)."
 }

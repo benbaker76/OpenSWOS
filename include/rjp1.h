@@ -115,6 +115,9 @@ typedef struct RJP1_Player {
      * channels (e.g. fade the crowd-chant channel) without poking the
      * RJP1 internals. Default 64 = unity. */
     int          channel_attenuation[RJP1_NUM_CHANNELS];
+    /* Per-channel volume the player chose (0..256, 256 = unity): the music's, or a sound
+     * kind's -- the crowd chants' channel, the effects' (audio_sdl.c, [audio] *_volume). */
+    int          channel_gain[RJP1_NUM_CHANNELS];
 } RJP1_Player;
 
 /* Returns 1 on success, 0 on failure. */

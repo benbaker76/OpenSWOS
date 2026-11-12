@@ -466,6 +466,8 @@ char _aGameplay[] = "GAMEPLAY";
 char _aAmigaStyle[] = "AMIGA";
 char _aDosStyle[] = "DOS";
 char _aXboxStyle[] = "XBOX";
+char _aAmiga60Style[] = "AMIGA 60";     /* SWOS 2020's AMIGA (60FPS) */
+char _aMoonStyle[] = "MOON";            /* SWOS 2020's MOON SOCCER */
 /* OPTIONS -> CONTROLS: the player's own keys (SDL; src/controls_menu.c). */
 char _aControls[] = "CONTROLS";
 char _aRedefineKeys[] = "REDEFINE KEYS";

@@ -1,0 +1,46 @@
+{
+  "name": "fullCreditsMenu",
+  "comment": "OpenSWOS's FULL CREDITS, from the CREDITS screen. JSON-only (docs/MENUS.md section 10): only the exit button; the credits (bin/data/CREDITS.txt) scroll up over the rest of the screen in the chat font, drawn by src/credits_menu.c CreditsMenu_DrawOverlay.",
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "openswosFullCredits_OnInit",
+  "onReturn": null,
+  "onDraw": null,
+  "defaultEntry": 0,
+  "items": [
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 92,
+        "y": 210,
+        "w": 120,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "EXIT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 4
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "openswosCredits_exit_OnSelect"
+        }
+      ]
+    }
+  ]
+}

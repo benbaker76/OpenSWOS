@@ -3,9 +3,11 @@
  * SPEEDRUN (game.cpp challengeGame0Extras_OnSelect, checkSpeedrunWinningCondition), ported onto
  * the mod API. Both targets.
  *
- * MODES -> SPEEDRUN: eight targets, each with its best time. Pick one, then the teams (the
- * friendly's team screen: yours is the one you play, the other the CPU's or a friend's), and the
- * clock runs from kick-off -- a 3-minute match on a normal pitch -- until the target is met, which
+ * MODES -> SPEEDRUN: eight targets, each with its best time. Pick one, then SWOS 2020's
+ * difficulty (selectSpeedrunDifficultyMenu: FREE TEAM CHOICE or one of five PRECONFIGURED TEAMS
+ * pairs, BEGINNER .. MASTER; the card targets go straight on), then the teams (the friendly's team
+ * screen: yours is the one you play, the other the CPU's or a friend's), and the clock runs from
+ * kick-off -- SWOS 2020's timer on the pitch (sr_drawn) -- -- a 3-minute match on a normal pitch -- until the target is met, which
  * ends the match, or the final whistle, which fails it (MATCH: win it):
  *   1 GOAL, 3 GOALS, 10 GOALS   your team scores that many
  *   HEADER                      your team scores a header
@@ -13,7 +15,8 @@
  *                               (SWOS 2020's: a goal while the last commentary was a tackle's)
  *   YELLOW CARD, RED CARD       one of yours is booked / sent off
  *   MATCH                       your team wins the match
- * Then the time, the best, TRY AGAIN (the same teams) or EXIT.
+ * At the final whistle SWOS 2020's result band (SPEEDRUN COMPLETED and the time, or FAILED), then
+ * the time, the best, TRY AGAIN (the same teams) or EXIT.
  *
  * Times are FRAMES from kick-off (the match's own, so a run is the same however fast the machine
  * draws), shown in seconds at the gameplay style's rate -- SWOS 2020 kept wall-clock seconds. The
@@ -206,9 +209,104 @@ static uint8_t  s_goals, s_done, s_tackled;
 static uint32_t s_doneAt;
 static int32_t  s_retry;
 
+static int32_t s_level = -1;             /* SWOS 2020's difficulty of the run, 0..4 (a free choice's
+                                         * by the teams' skill points); -1 none (the card targets) */
+static uint8_t s_over;                  /* the final whistle has gone: the result on the pitch */
+static uint32_t s_overAt;               /* (its frame: the time stops there) */
+
+#ifdef SWOS_SDL_BUILD
+/* ---- the run on the pitch: SWOS 2020's showSpeedrunTimerInfo (game.cpp) -- the time from
+ * kick-off top left in a dark box, the target and its difficulty top right -- and, after the final
+ * whistle, showSpeedrunShowResult: a dark band at the foot of the screen, the difficulty, SPEEDRUN
+ * COMPLETED and the time, or SPEEDRUN FAILED. (Report 0060 asked for the target and the time on the
+ * pitch: this is SWOS 2020's own way of showing them.) Drawn into the match's 8bpp frame. ---- */
+#include "display.h"            /* HUD_MARGIN, HUD_WIDTH */
+
+static const char *const kLevelName[5] = { "BEGINNER", "AMATEUR", "ADVANCED", "PRO", "MASTER" };
+
+static void frame_time(char *out, size_t cap, uint32_t frames)   /* (getFrameTimerString: m:ss.cc) */
+{
+    const uint32_t fps = (uint32_t)ModApi_FrameRate();
+    const uint32_t cs = fps ? frames * 100 / fps : 0;
+    snprintf(out, cap, "%u:%02u.%02u", (unsigned)(cs / 6000), (unsigned)(cs / 100 % 60), (unsigned)(cs % 100));
+}
+
+static void dark_box(uint8_t *fb, int32_t stride, int32_t sw, int32_t sh, int32_t x, int32_t y, int32_t w,
+                     int32_t h, uint8_t c)
+{
+    for (int32_t j = y; j < y + h; j++)
+        for (int32_t i = x; i < x + w; i++)
+            if (i >= 0 && j >= 0 && i < sw && j < sh)
+                fb[j * stride + i] = c;
+}
+
+static void centred(int32_t cx, int32_t y, const char *t, int32_t small)
+{
+    const int32_t x = cx - ModApi_TextWidth(t, small) / 2;
+    ModApi_DrawText(x < 0 ? 0 : x, y, 2 /* kWhiteText2 */, t, small);
+}
+
+static void sr_drawn(void)
+{
+    int32_t stride, sw, sh;
+    uint8_t *fb;
+    if (!ModApi_ModMatch("speedrun") || ModApi_InReplay() || s_target < 0 || !(fb = ModApi_Frame(&stride)))
+        return;
+    ModApi_ScreenSize(&sw, &sh);
+    const uint8_t dark = ModApi_NearestColour(0, 0, 0);
+    const int32_t left = HUD_MARGIN, right = HUD_MARGIN + HUD_WIDTH;
+    char t[32];
+    frame_time(t, sizeof t, s_done ? s_doneAt : s_over ? s_overAt : ModApi_MatchFrames());
+    dark_box(fb, stride, sw, sh, left + 10, 19, 71, 8, dark);
+    ModApi_DrawText(left + 25, 20, 2, t, 1);
+    dark_box(fb, stride, sw, sh, right - 90, 6, 81, 9, dark);
+    centred(right - 50, 8, kTarget[s_target].name, 1);
+    if (s_level >= 0) {
+        dark_box(fb, stride, sw, sh, right - 90, 19, 81, 8, dark);
+        centred(right - 50, 20, kLevelName[s_level], 1);
+    }
+    ModResultBanner banner;
+    if ((!s_over && !s_done) || ModApi_ResultBanner(&banner))
+        return;                         /* (SWOS 2020's waits for the result panel to go too) */
+    /* the result: SWOS 2020's band (DOS 40 high from 158 of 200; its taller screens 50 from 220) */
+    const int32_t tall = sh >= 240;
+    const int32_t top = tall ? sh - 52 : sh - 42, y1 = tall ? sh - 44 : sh - 38, y2 = tall ? sh - 31 : sh - 25,
+                  y3 = tall ? sh - 17 : sh - 11;
+    const int32_t cx = (left + right) / 2;
+    dark_box(fb, stride, sw, sh, sw == HUD_WIDTH ? 0 : left, top, sw == HUD_WIDTH ? sw : HUD_WIDTH, tall ? 50 : 40,
+             dark);
+    if (s_level >= 0)
+        centred(cx, y1, kLevelName[s_level], 1);
+    if (s_done) {
+        char line[48];
+        centred(cx, y2, "*** SPEEDRUN COMPLETED ***", 0);
+        snprintf(line, sizeof line, "%s - %s", kTarget[s_target].name, t);
+        centred(cx, y3, line, 1);
+    } else {
+        centred(cx, y2, "SPEEDRUN FAILED. TRY AGAIN.", 0);
+        centred(cx, y3, kTarget[s_target].name, 1);
+    }
+}
+#endif
+
 static void sr_event(const ModMatchEvent *e)
 {
-    if (!ModApi_ModMatch("speedrun") || s_done || s_target < 0)
+    if (!ModApi_ModMatch("speedrun") || s_target < 0)
+        return;
+    /* (the 90 minutes up: a run has no extra time -- FINAL_WHISTLE comes only as the match closes) */
+    if ((e->kind == MODEVENT_FULL_TIME || e->kind == MODEVENT_FINAL_WHISTLE) && !s_over) {
+        s_over = 1;                     /* (the result on the pitch from now: sr_drawn) */
+        s_overAt = e->frame;
+        if (!s_done && kTarget[s_target].kind == T_MATCH) {     /* (MATCH: won when it ends) */
+            int16_t g[2];
+            ModApi_Score(g);
+            if (g[s_you] > g[1 - s_you]) {
+                s_done = 1;
+                s_doneAt = e->frame;
+            }
+        }
+    }
+    if (s_done)
         return;
     const uint8_t kind = kTarget[s_target].kind;
     int32_t met = 0;
@@ -286,6 +384,19 @@ static int32_t skill_points(int32_t team)
     return sum;
 }
 
+/* The run's difficulty as SWOS 2020 shows it: a preset's own; a free choice's by the skill points,
+ * yours less theirs (>= 375 BEGINNER, 150.. AMATEUR, -149..149 ADVANCED, ..-150 PRO, <= -375
+ * MASTER); none for the card targets (its 105 / 107, which have no picker). */
+static int32_t level_of(int32_t target)
+{
+    if (kTarget[target].kind == T_YELLOW || kTarget[target].kind == T_RED)
+        return -1;
+    if (s_difficulty >= 0)
+        return s_difficulty;
+    const int32_t d = skill_points(s_you) - skill_points(1 - s_you);
+    return d >= 375 ? 0 : d >= 150 ? 1 : d >= -149 ? 2 : d >= -374 ? 3 : 4;
+}
+
 static int32_t s_onlineAsked;           /* the result screen's line asked for since the run */
 static char    s_onlineLine[48];
 
@@ -310,20 +421,21 @@ static void online_finished(int32_t target)
 
 /* the run: the match, then the result screen, again while TRY AGAIN. difficulty: one of SWOS
  * 2020's preconfigured pairs (0..4, yours the first), -1 the teams chosen on the friendly's
- * screen. */
-static void run_at(int32_t target, int32_t again, int32_t difficulty)
+ * screen. 0 when nothing was played (the team screen left, a team missing). */
+static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
 {
+    int32_t played = 0;
     s_target = target;
     s_difficulty = difficulty;
     for (;;) {
         const int32_t preset = difficulty >= 0 && difficulty < 5;
         if (!s_test && !preset && (again ? !ModApi_ChosenAgain() : !ModApi_ChooseTeams()))
-            return;
+            return played;
         again = 1;
         s_you = s_test || preset ? 0 : ModApi_ChosenIsPlayer(0) ? 0 : ModApi_ChosenIsPlayer(1) ? 1 : -1;
         if (s_you < 0) {
             fprintf(stderr, "[speedrun] no team is yours: pick one to play\n");
-            return;
+            return played;
         }
         if (preset)
             snprintf(s_resultTeams, sizeof s_resultTeams, "%s v %s", kPreset[difficulty].name[0],
@@ -342,7 +454,7 @@ static void run_at(int32_t target, int32_t again, int32_t difficulty)
             }
             if (!setup.team[0] || !setup.team[1]) {
                 fprintf(stderr, "[speedrun] a preset team is not in the database\n");
-                return;
+                return played;
             }
         }
         if (s_test && !preset) {            /* (the test: Norway, the CPU's but "yours", v New Zealand) */
@@ -358,10 +470,15 @@ static void run_at(int32_t target, int32_t again, int32_t difficulty)
         setup.replayMenu = 0;
         setup.kickOff = (int8_t)s_you;
         setup.name = "speedrun";
-        s_goals = s_done = s_tackled = 0;
-        s_doneAt = 0;
+#ifdef SWOS_SDL_BUILD
+        setup.hideClock = 1;                /* (SWOS 2020's run time sits where the clock was: sr_drawn) */
+#endif
+        s_goals = s_done = s_tackled = s_over = 0;
+        s_doneAt = s_overAt = 0;
+        s_level = level_of(target);
         if (ModApi_PlayMatch("speedrun", &setup, &r) != 0)
-            return;
+            return played;
+        played = 1;
         if (!s_recRead)
             records_read();
         Record *rec = &s_rec[target];
@@ -385,7 +502,7 @@ static void run_at(int32_t target, int32_t again, int32_t difficulty)
         s_retry = 0;
         ModApi_ShowMenu("speedrun/speedrunResult");
         if (!s_retry)
-            return;
+            return played;
     }
 }
 
@@ -419,7 +536,80 @@ static void menu_init(void)
     menu_refresh();
 }
 
-static void run(int32_t target, int32_t again) { run_at(target, again, -1); }
+/* ---- SWOS 2020's difficulty picker (selectSpeedrunDifficulty.mnu): FREE TEAM CHOICE (SELECT
+ * TEAMS: the friendly's team screen, the difficulty then the teams' skill points') or one of the
+ * five PRECONFIGURED TEAMS pairs, BEGINNER .. MASTER. The card targets have none (SWOS 2020's
+ * selectSpeedrunDifficultyCard: SELECT TEAMS alone), so they go straight to the teams. Leaving the
+ * team screen comes back here, as SWOS 2020's goto speedrunSelectDifficulty_label. LEADERBOARD
+ * needs SWOS 2020's server: not shown. ---- */
+enum { D_header = 0, D_teams = 2, D_beginner = 10, D_master = 14, D_news = 15, D_exit = 16 };
+static int32_t s_pickTarget, s_pick;
+static char    s_pickHead[40];
+static int32_t s_pickTest, s_pickDrawn;     /* SWOS_SPEEDRUN_TEST_PICKER=1 (ModSpeedrun_Test) */
+
+static void diff_init(void)
+{
+    snprintf(s_pickHead, sizeof s_pickHead, "%s - DIFFICULTY", kTarget[s_pickTarget].name);
+    ModApi_MenuText(D_header, s_pickHead);
+    ModApi_MenuVisible(D_news, 0);
+    ModApi_MenuNav4(D_teams, -1, D_beginner, -1, D_exit);
+    ModApi_MenuNav4(D_master, D_teams, -1, D_master - 1, D_exit);
+    ModApi_MenuNav4(D_exit, D_teams, D_master, D_master, -1);
+}
+
+static void diff_set(int32_t v);
+static void diff_draw(void)     /* (selectSpeedrunDifficultyMenuOnDraw: its trophies and stars) */
+{
+    /* SWOS 2020's screen x, y: its menus' entries 8 to the right of where they are imported, the
+     * header's imported at 72, 0 */
+#define AT(name, sx, sy, ox, oy, w, h) \
+    (s_pickDrawn += ModApi_DrawMapAtEntry("speedrun", name, D_header, (sx) - 8 - 72, (sy), ox, oy, w, h, 0))
+    static const int8_t kTrophy[5] = { 1, 3, 5, 4, 8 };
+    const int32_t gap = 27, ox0 = 94 + 70, oy0 = 47, ox = 212 + 70, oy = 48;
+    for (int32_t k = 0; k < 5; k++) {
+        const int32_t t = kTrophy[k], shift = t == 1 || t == 3;
+        AT("trophiesMap", ox0 + 2 * shift, oy0 + gap * k - 2 * shift, 0, 14 * t, 16, 14);
+        AT("starsMap", ox, oy + gap * k, 0, 10 * (1 + 2 * k), 36, 10);
+    }
+    AT("arrows_default_scaled_Map", 40 + 42, 44 + 20, 0, 0, 24, 24);
+#undef AT
+    if (s_pickTest && ++s_pickTest > 3) {   /* (the test: a few frames drawn, then a preset) */
+        fprintf(stdout, "SPEEDRUN PICKER: '%s', %d pixels of pictures a frame\n", s_pickHead,
+                (int)(s_pickDrawn / (s_pickTest - 1)));
+        fflush(stdout);
+        s_pickTest = 0;
+        diff_set(2);
+    }
+}
+
+static void diff_set(int32_t v) { s_pick = v; SetExitMenuFlag(); }
+static void diff0(void) { diff_set(0); }
+static void diff1(void) { diff_set(1); }
+static void diff2(void) { diff_set(2); }
+static void diff3(void) { diff_set(3); }
+static void diff4(void) { diff_set(4); }
+static void diff_teams(void) { diff_set(5); }
+static void diff_exit(void) { diff_set(-1); }
+
+static void run(int32_t target, int32_t again)
+{
+    if (again || kTarget[target].kind == T_YELLOW || kTarget[target].kind == T_RED) {
+        run_at(target, again, -1);
+        return;
+    }
+    s_pickTarget = target;
+    for (;;) {
+        s_pick = -1;
+        if (ModApi_ShowMenu("speedrun/selectSpeedrunDifficultyMenu") != 0) {
+            run_at(target, 0, -1);          /* (no picker: the teams, as before it) */
+            return;
+        }
+        if (s_pick < 0)
+            return;
+        if (run_at(target, 0, s_pick == 5 ? -1 : s_pick) || s_pick != 5)
+            return;
+    }
+}
 
 static void target0(void) { run(0, 0); }
 static void target1(void) { run(1, 0); }
@@ -558,6 +748,9 @@ static void sr_init(void)
         { "result0", result_none }, { "result1", result_none }, { "result2", result_none }, { "result3", result3 },
         { "result4", result_none }, { "result5", result_none }, { "result6", result_none }, { "result7", result_none },
         { "exit", sr_exit },
+        { "diffInit", diff_init }, { "diffDraw", diff_draw }, { "diffTeams", diff_teams },
+        { "diff0", diff0 }, { "diff1", diff1 }, { "diff2", diff2 }, { "diff3", diff3 }, { "diff4", diff4 },
+        { "diffNews", result_none }, { "diffExit", diff_exit },
     };
     ModApi_RegisterHandlers("speedrun", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     ModApi_RegisterService("speedrun", "speedrun", sr_service);
@@ -571,6 +764,11 @@ void ModSpeedrun_Test(int32_t target)
     if (target < 0 || target >= kTargets)
         exit(2);
     s_test = 1;
+    if (getenv("SWOS_SPEEDRUN_TEST_PICKER")) {  /* the picker shown, drawn, ADVANCED picked */
+        s_pickTest = 1;
+        run(target, 0);
+        exit(2);
+    }
     {   /* SWOS_SPEEDRUN_TEST_DIFFICULTY=0..4: a preconfigured pair's (both the CPU's) */
         const char *d = getenv("SWOS_SPEEDRUN_TEST_DIFFICULTY");
         run_at(target, 0, d && *d >= '0' && *d <= '4' ? *d - '0' : -1);
@@ -583,5 +781,8 @@ const ModDef ModDef_speedrun = {
     .init = sr_init,
     .matchEvent = sr_event,
     .matchEnded = sr_ended,
+#ifdef SWOS_SDL_BUILD
+    .matchDrawn = sr_drawn,
+#endif
 };
 

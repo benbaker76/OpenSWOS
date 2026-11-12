@@ -66,6 +66,17 @@
  * a build without them still plays one with them. */
 #define PROJECT_TWEAKS          1
 
+/* [tweaks] stronger_goalkeeper_ai alone (SWOS 2020's --stronger-goalkeeper-ai; GAMEPLAY OPTIONS'
+ * STRONGER KEEPERS): 1 builds that one tweak even when PROJECT_TWEAKS is 0 -- a fork that leaves the
+ * other tweaks out can still offer the launcher's keeper option. Off line only, like every tweak. */
+#define PROJECT_TWEAK_STRONGER_GK PROJECT_TWEAKS
+
+/* The tweaks that are ON by default (include/tweaks.h TWEAKS_DEFAULT_ON): the fix of the
+ * originals' ball-contest lookup and SWOS 2020's career league rules (its "career crash fixes",
+ * 3 points for a win, 5 substitutes). 1 builds them even when PROJECT_TWEAKS is 0, as the
+ * stronger keepers above; RULES OPTIONS shows them. Off line only, like every tweak. */
+#define PROJECT_TWEAK_FIXES     PROJECT_TWEAKS
+
 /* STATIC MODS (docs/MODS.md §14): canonical mods -- folders in the game's own mods/ -- that are
  * part of this game rather than a choice: always on, whatever [mods] disabled says, and never
  * listed, neither on OPTIONS -> MODS (nor in its "N ON") nor on the setup's Mods screen. Slugs,
@@ -78,5 +89,9 @@
  * Slugs, separated by commas or spaces. OpenSWOS: none (each mod.json's "default" decides). A
  * fork lists the ones its look is built on (SWOS United: dosmenus). */
 #define PROJECT_DEFAULT_MODS    ""
+
+/* The menu shading mod's (dosmenus) look at start-up: 0 the PC's shading, 1 the Amiga's flat
+ * menus (F5 switches it while the game runs). Both OpenSWOS and SWOS United: 1 (the owner, 2026-11-09). */
+#define PROJECT_MENU_LOOK_AMIGA 1
 
 #endif /* PROJECT_IDENTITY_H */

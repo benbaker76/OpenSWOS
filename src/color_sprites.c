@@ -564,6 +564,8 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
         }
     }
 
+    { extern void ClashKits_Apply(const TeamGame *t1, const TeamGame *t2);
+      ClashKits_Apply(team1, team2); }   /* [graphics] clash_kits: SWOS 2020's (clash_kits.c) */
     ShirtNumbers_Build();   /* the shirt numbers 17..99 from this match's digits (shirt_numbers.c) */
 #ifdef SWOS_SDL_BUILD
     TeamColors_MatchArt();  /* purple's entry 12: the match's own maroon art kept maroon (team_colors.c) */

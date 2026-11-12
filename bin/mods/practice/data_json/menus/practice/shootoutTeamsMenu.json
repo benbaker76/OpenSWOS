@@ -1,0 +1,520 @@
+{
+ "name": "shootoutTeamsMenu",
+ "comment": "The practice mod's PENALTY SHOOTOUT team screen (SWOS 2020's selectTeams.mnu, its gameMode 1: header, GOALKEEPER CONTROL shown). Handlers practice.<name> (src/mod_practice.c).",
+ "menu_flags": {
+  "dos_redraw": true
+ },
+ "onInit": "practice.stInit",
+ "onReturn": null,
+ "onDraw": null,
+ "defaultEntry": 2,
+ "items": [
+  {
+   "kind": "entry",
+   "name": "header",
+   "coords": {
+    "x": 74,
+    "y": 0,
+    "w": 156,
+    "h": 16
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x10",
+     "literal": "PENALTY SHOOTOUT"
+    },
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "freeSelection",
+   "coords": {
+    "x": 102,
+    "y": 24,
+    "w": 101,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "FREE SELECTION"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "teamSelectionMenu",
+   "coords": {
+    "x": 102,
+    "y": 36,
+    "w": 100,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "CHOOSE TEAMS"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": 4
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stChoose"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "randomSelection",
+   "coords": {
+    "x": 102,
+    "y": 60,
+    "w": 101,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "RANDOM SELECTION"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "allRandom",
+   "coords": {
+    "x": 114,
+    "y": 73,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "ALL RANDOM"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 2,
+     "down": 6
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stAll"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "europe",
+   "coords": {
+    "x": 27,
+    "y": 93,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "EUROPE"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 6,
+     "up": 4,
+     "down": 8
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stEurope"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "africa",
+   "coords": {
+    "x": 114,
+    "y": 93,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "AFRICA"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": 5,
+     "right": 7,
+     "up": 4,
+     "down": 9
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stAfrica"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "national",
+   "coords": {
+    "x": 201,
+    "y": 93,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "NATIONAL"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": 6,
+     "right": -1,
+     "up": 4,
+     "down": 10
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stNational"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "nAmerica",
+   "coords": {
+    "x": 27,
+    "y": 113,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "N. AMERICA"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 9,
+     "up": 5,
+     "down": 11
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stNAmerica"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "asia",
+   "coords": {
+    "x": 114,
+    "y": 113,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "ASIA"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": 8,
+     "right": 10,
+     "up": 6,
+     "down": 12
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stAsia"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "original",
+   "coords": {
+    "x": 201,
+    "y": 113,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "ORIGINAL"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": 9,
+     "right": -1,
+     "up": 7,
+     "down": 13
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stOriginal"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "sAmerica",
+   "coords": {
+    "x": 27,
+    "y": 133,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "S. AMERICA"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": 12,
+     "up": 8,
+     "down": 15
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stSAmerica"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "oceania",
+   "coords": {
+    "x": 114,
+    "y": 133,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "OCEANIA"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": 11,
+     "right": 13,
+     "up": 9,
+     "down": 15
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stOceania"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "custom",
+   "coords": {
+    "x": 201,
+    "y": 133,
+    "w": 76,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "CUSTOM"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": 12,
+     "right": -1,
+     "up": 10,
+     "down": 15
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stCustom"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "gkOptionCaption",
+   "coords": {
+    "x": 47,
+    "y": 164,
+    "w": 120,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "GOALKEEPER CONTROL"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "gkOption",
+   "coords": {
+    "x": 172,
+    "y": 164,
+    "w": 80,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "PLAYER"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 12,
+     "down": 16
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stKeeper"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "exit",
+   "coords": {
+    "x": 122,
+    "y": 185,
+    "w": 60,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "EXIT"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 15,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.stExit"
+    }
+   ]
+  }
+ ]
+}

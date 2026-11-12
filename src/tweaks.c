@@ -19,6 +19,13 @@ static const struct { const char *key; uint32_t bit; uint8_t byMod; } kTweaks[] 
     { "tackle_controlled_player", TWEAK_TACKLE_CONTROLLED_PLAYER, 1 },
     { "more_fouls",               TWEAK_MORE_FOULS,               1 },
     { "ai_injury_subs",           TWEAK_AI_INJURY_SUBS,           1 },
+    { "stronger_goalkeeper_ai",   TWEAK_STRONGER_GOALKEEPER_AI,   1 },   /* (SWOS 2020's) */
+    { "unlimited_transfers",      TWEAK_UNLIMITED_TRANSFERS,      1 },   /* (SWOS 2020's) */
+    { "contest_own_ratings",      TWEAK_CONTEST_OWN_RATINGS,      1 },   /* (on by default) */
+    { "league_crash_fixes",       TWEAK_LEAGUE_CRASH_FIXES,       1 },   /* (SWOS 2020's, on by default) */
+    { "league_rules_2020",        TWEAK_LEAGUE_RULES_2020,        1 },   /* (SWOS 2020's, on by default) */
+    { "three_points_for_a_win",   TWEAK_THREE_POINTS,             1 },   /* (SWOS 2020's, on by default) */
+    { "five_substitutes",         TWEAK_FIVE_SUBSTITUTES,         1 },   /* (SWOS 2020's, on by default) */
 };
 
 void Tweaks_Set(uint32_t mask) { s_mask = mask; }
@@ -31,15 +38,32 @@ static int32_t same(const char *a, const char *b)
     return *a == *b;
 }
 
+/* Whether this build has the tweak: all of them (SWOS_TWEAKS), or the stronger keepers alone
+ * (SWOS_TWEAK_STRONGER_GK, a fork's PROJECT_TWEAK_STRONGER_GK), or none. */
+static int32_t built(uint32_t bit)
+{
+    if (SWOS_TWEAKS)
+        return 1;
+    if (SWOS_TWEAK_FIXES && (bit & TWEAKS_DEFAULT_ON))
+        return 1;
+    return SWOS_TWEAK_STRONGER_GK && bit == TWEAK_STRONGER_GOALKEEPER_AI;
+}
+
+uint32_t Tweaks_Built(uint32_t mask)
+{
+    uint32_t out = 0;
+    for (int32_t b = 0; b < 32; b++)
+        if ((mask & (1u << b)) && built(1u << b))
+            out |= 1u << b;
+    return out;
+}
+
 uint32_t Tweaks_Bit(const char *key)
 {
-#if !SWOS_TWEAKS
-    (void)key;
-    return 0;   /* built without them: no key names one (SWOS.ini's are ignored, a mod's refused) */
-#endif
     for (uint32_t i = 0; key && i < sizeof kTweaks / sizeof kTweaks[0]; i++)
         if (same(key, kTweaks[i].key))
-            return kTweaks[i].bit;
+            return built(kTweaks[i].bit) ? kTweaks[i].bit : 0;   /* (not built: no key names it --
+                                                                   * SWOS.ini's ignored, a mod's refused) */
     return 0;
 }
 
@@ -58,7 +82,7 @@ int32_t Tweaks_SetByMod(uint32_t tweak, int32_t on, const char *who)
     for (i = 0; i < sizeof kTweaks / sizeof kTweaks[0]; i++)
         if (kTweaks[i].bit == tweak)
             break;
-    if (b < 0 || i == sizeof kTweaks / sizeof kTweaks[0] || !kTweaks[i].byMod)
+    if (b < 0 || i == sizeof kTweaks / sizeof kTweaks[0] || !kTweaks[i].byMod || !built(tweak))
         return 1;
     if (on) {
         s_modMask |= tweak;
@@ -83,7 +107,7 @@ const char *Tweaks_ByMod(uint32_t tweak)
     return (b >= 0 && (s_modMask & tweak) && s_modBy[b][0]) ? s_modBy[b] : (const char *)0;
 }
 
-#if SWOS_TWEAKS
+#if SWOS_TWEAKS_ANY
 #ifdef SWOS_SDL_BUILD
 #include "replay_test.h"    /* ReplayTest_Running */
 #include "srp_resim.h"      /* SrpResim_Armed */

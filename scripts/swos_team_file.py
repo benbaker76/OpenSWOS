@@ -367,7 +367,12 @@ def encode_poolplyr_blob(players: list) -> bytes:
 # ======================================================================
 # file-level API
 # ======================================================================
+DATA_DIR = None     # another game's DATA folder (decode_data.py --data-dir): a SWOS 2020 team database
+
+
 def _data_dir() -> str:
+    if DATA_DIR:
+        return DATA_DIR
     here = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(os.path.dirname(here), "bin", "data")
 

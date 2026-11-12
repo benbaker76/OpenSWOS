@@ -64,3 +64,42 @@ report of "I pressed and nothing happened" is answered from the file:
 
 `bin/SWOS.x86_64 --input-selftest` drives the bindings and the latch with made-up key events
 (no window). `--menu-selftest` checks the menu against its JSON.
+
+## 4. SWOS 2020's CONTROLS MENU and CONTROLLER SETUP (2026-11-09)
+
+OPTIONS' CONTROLS row is **SETTINGS** on SDL: SWOS 2020's OPTIONS buttons -- CONTROLS, VIDEO,
+AUDIO, GAMEPLAY (`openswos/settingsMenu`, each a page of `openswos/settingsPage`, handlers in
+`src/settings_menus.c`; docs/MENUS.md §10f). The keys screen above is CONTROLS -> KEYBOARD KEYS.
+The CONTROLS page is SWOS 2020's controlOptions.mnu (its `controls/controlOptionsMenu.cpp`)
+as rows:
+
+| row | SWOS.ini `[input]` | what it does |
+|---|---|---|
+| PLAYER 1 / PLAYER 2 | `pad1`, `pad2` | AUTO (as before: the pads as they come, the first player 1's), KEYBOARD (player 1: no pad) / NONE (player 2: no control), or one pad by its GUID -- `#2` for the second of two alike (SWOS 2020's `joypad1`/`joypad2` + occurrence). A pad chosen by name goes to its player whenever it is connected; it takes the place of an AUTO one |
+| SELECT JOYPAD | | the next pad a button is pressed on is that player's (SWOS 2020's `selectJoypadWithButtonPress`); swaps with the other player's |
+| CONTROLLER SETUP | `pad_config` | SWOS 2020's joypadConfig.mnu, imported as it is (`openswos/joypadConfigMenu`): NAME, GUID, ID, BUTTONS, AXES, POWER, RAW X/Y, the pad's FIRE and BENCH buttons (press one; ESC leaves it, BACKSPACE the default), the four stick CUT-OFFs (fire on the value +5%, the +/- boxes 1%) and the cut-off box lit as the stick moves |
+| KEYBOARD KEYS | `key_*` | the keys screen (§1) |
+| AUTO-DETECT JOYPADS | `auto_detect_pads` | on (default): a pad plugged in later goes to a free AUTO player; off: it waits until SELECT JOYPAD |
+| DISABLE SHOULDER BUTTONS | `shoulder_buttons` | on (default, `off` in the file): the shoulders, paddles and stick clicks can be no FIRE or BENCH |
+| CALL BENCH | `call_bench` | `both` (default): the PC style's second fire button or three taps; `taps`: the button calls nothing; `button`: the taps are not counted (offline only) |
+| STICK DEAD ZONE | `stick_deadzone` | the radius every cut-off defaults to |
+
+`pad_config` is `guid:fire:bench:x+:x-:y+:y-;...` -- a button (a mapped pad's SDL button
+number, a plain joystick's index), `-1` the default (fire: A or B / any button but BENCH;
+bench: X / none); a cut-off in percent of the stick's travel, `0` = `stick_deadzone`. A
+cut-off scales its half of the axis so that it lands on the dead zone's radius, then the
+eight-way reading (ReportBot 0032) is unchanged -- all four at 0 read exactly as before. A button made
+FIRE or BENCH sends nothing else (Y is no replay key then). START, BACK, GUIDE and R3 (whose
+hold leaves a match) cannot be either.
+
+**Netplay.** None of it reaches the match: it decides which device is which player and how a
+device reads, and what is read goes into the same `MATCH_*` input bits. CALL BENCH `taps`
+withholds `MATCH_BENCH` at the source (an input, so the other game plays what it gets);
+`button` changes the simulation (`_gBenchTapsOff`, `bench_subs.c`), so `input_sdl.c` sets it
+only for a match of this machine's alone -- never online, in the rigs or on the Amiga -- and
+only in the DOS style, the one with a second button. `scripts/check_netplay_compat.sh` passes
+unchanged. SWOS 2020's IMPROVED KEYBOARD CONTROL is not here: it fixes its DOS keyboard
+polling; ours reads SDL's keys (and already lets the newer arrow win, §1).
+
+`--input-selftest` checks `pad_config` read and written back, the cut-offs and ESC PRESSING
+TO QUIT; `--settings-menus-selftest` shows every page's rows and loads the three menus.

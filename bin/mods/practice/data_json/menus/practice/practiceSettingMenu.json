@@ -1,0 +1,785 @@
+{
+  "name": "practiceSettingMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/practiceSetting.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "practice.practiceSetting_OnInit",
+  "onReturn": null,
+  "onDraw": "practice.practiceSetting_OnDraw",
+  "defaultEntry": 10,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 89,
+        "y": 0,
+        "w": 126,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "TEAM TRAINING"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "teamPlayingUpCaption",
+      "coords": {
+        "x": 6,
+        "y": 21,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "ATTACK GOAL"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "goalkeeperSkillCaption",
+      "coords": {
+        "x": 6,
+        "y": 33,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CPU SKILL"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "defenseCaption",
+      "coords": {
+        "x": 6,
+        "y": 61,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DEFENSE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "midfieldCaption",
+      "coords": {
+        "x": 6,
+        "y": 73,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "MIDFIELD"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "attackCaption",
+      "coords": {
+        "x": 6,
+        "y": 85,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "ATTACK"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "ghostPlayersCaption",
+      "coords": {
+        "x": 6,
+        "y": 101,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CPU GHOSTED"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "tackleAllowedCaption",
+      "coords": {
+        "x": 6,
+        "y": 113,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "TACKLE ALLOWED"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitchTypeCaption",
+      "coords": {
+        "x": 6,
+        "y": 125,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PITCH TYPE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "help",
+      "coords": {
+        "x": 6,
+        "y": 137,
+        "w": 99,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "INSTRUCTION"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "teamPlayingUp",
+      "coords": {
+        "x": 110,
+        "y": 21,
+        "w": 84,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DOWN"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": 11
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.teamPlayingUp_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "goalkeeperSkill",
+      "coords": {
+        "x": 110,
+        "y": 33,
+        "w": 84,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "BEGINNER"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 10,
+          "down": 17
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.goalkeeperSkill_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "playerCaption",
+      "coords": {
+        "x": 110,
+        "y": 49,
+        "w": 41,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PLAYER"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "defense0",
+      "coords": {
+        "x": 110,
+        "y": 61,
+        "w": 41,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OFF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 17,
+          "up": 11,
+          "down": 14
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.defense0_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "midfield0",
+      "coords": {
+        "x": 110,
+        "y": 73,
+        "w": 41,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OFF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 18,
+          "up": 13,
+          "down": 15
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.midfield0_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "attack0",
+      "coords": {
+        "x": 110,
+        "y": 85,
+        "w": 41,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OFF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 19,
+          "up": 14,
+          "down": 20
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.attack0_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "oppoCaption",
+      "coords": {
+        "x": 153,
+        "y": 49,
+        "w": 41,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CPU"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "defense",
+      "coords": {
+        "x": 153,
+        "y": 61,
+        "w": 41,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OFF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 13,
+          "right": -1,
+          "up": 11,
+          "down": 18
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.defense_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "midfield",
+      "coords": {
+        "x": 153,
+        "y": 73,
+        "w": 41,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OFF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 14,
+          "right": -1,
+          "up": 17,
+          "down": 19
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.midfield_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "attack",
+      "coords": {
+        "x": 153,
+        "y": 85,
+        "w": 41,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OFF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 15,
+          "right": -1,
+          "up": 18,
+          "down": 20
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.attack_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "ghostPlayers",
+      "coords": {
+        "x": 110,
+        "y": 101,
+        "w": 84,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OFF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 19,
+          "down": 21
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.ghostPlayers_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "tackleAllowed",
+      "coords": {
+        "x": 110,
+        "y": 113,
+        "w": 84,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "OFF"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 20,
+          "down": 22
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.tackleAllowed_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pitchTypeCustom",
+      "coords": {
+        "x": 110,
+        "y": 125,
+        "w": 84,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "RANDOM"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 21,
+          "down": 23
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.pitchTypeCustom_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "helpCustom",
+      "coords": {
+        "x": 110,
+        "y": 137,
+        "w": 84,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CONTROLS HELP"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 22,
+          "down": 25
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.helpCustom_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "msgCenter",
+      "coords": {
+        "x": 52,
+        "y": 141,
+        "w": 200,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "chooseTeam",
+      "coords": {
+        "x": 6,
+        "y": 161,
+        "w": 99,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "CHOOSE TEAM"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 26,
+          "up": 23,
+          "down": 27
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.chooseTeam_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "randomTeam",
+      "coords": {
+        "x": 199,
+        "y": 161,
+        "w": 99,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "RANDOM TEAM"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": 25,
+          "right": -1,
+          "up": 22,
+          "down": 27
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.randomTeam_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 110,
+        "y": 185,
+        "w": 84,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aExit"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": 25,
+          "right": 26,
+          "up": 25,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "practice.exitPracticeSetting_OnSelect"
+        }
+      ]
+    }
+  ],
+  "comment": "SWOS 2020's practiceSetting.mnu, imported by scripts/import_swos2020_menus.py (its handlers practice.<name>: src/mod_practice.c)."
+}

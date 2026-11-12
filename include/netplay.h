@@ -125,6 +125,9 @@ int32_t     Netplay_UnackedInputs(NetplaySession *s, int32_t remotePlayer, int32
 int32_t     Netplay_SetKickoffPrediction(NetplaySession *s, int32_t on);
 int32_t     Netplay_NetStats(NetplaySession *s, int32_t remotePlayer, int32_t *pingMs,
                              int32_t *framesAheadX10);
+/* GGPO's timesync, frames x 10: how far this game runs behind the other, and the other behind it. */
+int32_t     Netplay_FramesBehind(NetplaySession *s, int32_t remotePlayer, int32_t *localX10,
+                                 int32_t *remoteX10);
 /* Whether a refused call is only to be tried again next tick: the session is not
  * synchronized yet, or this peer is as far ahead of the other's input as GGPO allows. */
 int32_t     Netplay_ShouldWait(int32_t code);

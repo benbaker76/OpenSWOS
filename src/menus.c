@@ -370,6 +370,11 @@ __attribute__((used, externally_visible, optimize("no-tree-loop-distribute-patte
 void InitUserTactics(void)
 {
     int16_t i;
+#ifdef SWOS_SDL_BUILD
+    /* (the game's own formations, under [gameplay] cpu_tactics = expert: src/tactics_expert.c) */
+    extern void TacticsExpert_Hold(void), TacticsExpert_Release(void);
+    TacticsExpert_Hold();
+#endif
 
     /* Copy positions[8..9] (70 bytes) from 532 formation to both 442 and Sweep.
      *
@@ -420,6 +425,9 @@ void InitUserTactics(void)
     StringCopy(_aUSER_F, (uint8_t *)_teamTacticsUSERF.name);
 
     InitializeTacticsPositions();
+#ifdef SWOS_SDL_BUILD
+    TacticsExpert_Release();
+#endif
 }
 
 /* ================================================================
@@ -2088,6 +2096,9 @@ void OptionsMenuBeforeDraw(void)
 #ifdef SWOS_SDL_BUILD
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
+    /* CONTROLS (15/16) opens SWOS 2020's OPTIONS screens (ShowControlsMenu): its name says so. */
+    _menuEntries[15].fg = (uintptr_t)"SETTINGS";
+    _menuEntries[16].fg = (uintptr_t)"CONTROLS, VIDEO...";
 #if !SWOS_WORLDS
     /* (no worlds in this build: no WORLD row; CONTROLS and MODS step to each other) */
     _menuEntries[21].isInvisible = 1;
@@ -2278,13 +2289,15 @@ void ShowModsMenu(void)
 #endif
 }
 
-/* OPTIONS -> CONTROLS: the player's own keys and the press latch (src/controls_menu.c). */
+/* OPTIONS -> SETTINGS (the CONTROLS row on SDL): SWOS 2020's OPTIONS screens -- CONTROLS
+ * (whose KEYBOARD KEYS is the keys screen this row used to open), VIDEO, AUDIO, GAMEPLAY
+ * (src/settings_menus.c). */
 __attribute__((used, externally_visible))
 void ShowControlsMenu(void)
 {
 #ifdef SWOS_SDL_BUILD
-    extern void ControlsMenu_Show(void);
-    ControlsMenu_Show();
+    extern void SettingsMenus_Show(void);
+    SettingsMenus_Show();
 #endif
 }
 
@@ -2356,7 +2369,8 @@ void ChangeMenuMusic(MenuEntry *entry)
 /* ================================================================
  * ChangeGameplayStyle — the OPTIONS menu's "GAMEPLAY" row
  *
- * Steps AMIGA -> DOS -> XBOX (SDL; the Amiga build, AMIGA <-> DOS), the same
+ * Steps AMIGA -> DOS -> XBOX -> AMIGA 60 -> MOON (SDL; the Amiga build, AMIGA -> DOS
+ * -> MOON), the same
  * switch as `--gameplay` and [gameplay] style in SWOS.ini: the DOS release's
  * 70fps physics, its timer reloads and its formation set, or SWOS 2020's XBOX
  * (60fps, the Amiga's ball, the DOS keepers), against the Amiga's.
@@ -2452,8 +2466,9 @@ void ChangeGameplayStyle(MenuEntry *entry)
 #else
     extern void ApplyGameStyle(void);
 
-    /* No XBOX on the Amiga: no 60 Hz tick. */
-    Gameplay_SetStyle(_gGameplayStyle == GAMEPLAY_DOS ? GAMEPLAY_AMIGA : GAMEPLAY_DOS);
+    /* No XBOX or AMIGA 60 on the Amiga: no 60 Hz tick. */
+    Gameplay_SetStyle(_gGameplayStyle == GAMEPLAY_AMIGA ? GAMEPLAY_DOS
+                      : _gGameplayStyle == GAMEPLAY_DOS ? GAMEPLAY_MOON : GAMEPLAY_AMIGA);
     ApplyGameStyle();
 #endif
 
@@ -2635,6 +2650,21 @@ void MultiplayerMenuSelected(void)
         if (Mods_OnlineSignature(mods, sizeof mods))
             fprintf(stderr, "[mods] online with %s: only against the same mods\n", mods);
     }
+#ifdef SWOS_SDL_BUILD
+    {   /* Mods that say "online": false (an offline-only team database): said here, before the
+         * log-in, not by a refused match later (docs/MODS.md §10). */
+        char mods[200], text[400];
+        if (Mods_OfflineOnly(mods, sizeof mods)) {
+            static const char *const ok[] = { "OK" };
+            snprintf(text, sizeof text, "THESE MODS ARE NOT FOR ONLINE PLAY: %s.|TURN THEM OFF IN OPTIONS - MODS, "
+                     "THEN RESTART, TO PLAY ONLINE.", mods);
+            fprintf(stderr, "[mods] MULTIPLAYER: offline-only mods on (%s): not started\n", mods);
+            MenuDialog_Show("PLAY ONLINE", text, ok, 1, 0);
+            CommonMenuExit();
+            return;
+        }
+    }
+#endif
     OnlineMenus_Init();
     OnlineMenus_Show("swos2020/logInMenu");
     /* Coming back re-unpacks the main menu from its packed bytes, where the CONTINUE and
@@ -4350,12 +4380,32 @@ final_check: /* loc_141210 */
     }
 }
 
-/* SaveContest — save competition to disk (SWOS2.s line 68443) */
+/* SaveContest — save competition to disk (SWOS2.s line 68443). The save itself is
+ * save_contest_file(), which F6 calls from any menu too (QuickSave_FromMenu, SWOS 2020's quick
+ * save): CommonMenuExit, which ends this, sets up the MAIN menu's entries. */
+static void save_contest_file(void);
+
 __attribute__((used, externally_visible))
 void SaveContest(void)
 {
+    save_contest_file();
+    CommonMenuExit();
+}
+
+#ifdef SWOS_SDL_BUILD
+/* F6 in a menu (SWOS 2020's ctl:2202, callSelectSaveContest): the game in progress saved from
+ * where the player is, by the same steps as the main menu's SAVE (src/settings_menus.c decides
+ * when it may). */
+void QuickSave_FromMenu(void)
+{
+    save_contest_file();
+}
+#endif
+
+static void save_contest_file(void)
+{
     if (Asset_PromptInsertSaveDiskDf0(_saveFileTitle) != 0)
-        goto cleanup;
+        return;
 
     {
         uint16_t gt = _gameType;
@@ -4423,8 +4473,6 @@ void SaveContest(void)
 
 done:
     ShowInsertDisk2Dialog(_saveFileTitle);
-cleanup:
-    CommonMenuExit();
 }
 
 /* LoadOldCompetitionMenu — load competition from disk (SWOS2.s line 68524) */

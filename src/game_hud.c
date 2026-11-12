@@ -157,6 +157,10 @@ void MarkPlayer(void)
         spr->x.s.i      = playerSpr->x.s.i;
         spr->z.s.i      = playerSpr->z.s.i + 20;
         spr->y.s.i      = playerSpr->y.s.i;
+        {   /* SWOS 2020's practice shoot-out draws it 4 lower (mod_match.c, keeperDive) */
+            extern int16_t ModMatch_MarkOffset(void);
+            spr->y.s.i += ModMatch_MarkOffset();
+        }
     }
 }
 

@@ -1063,6 +1063,7 @@ static int32_t s_matchEndedEarly;   /* the last match was cut short: its notice 
 
 static void lineup_test_swap(void);    /* SWOS_LOBBY_LINEUP_SWAP, beside the TACTICS screen */
 static void lineup_screen(void);       /* the team screen, from TEAMS and TACTICS */
+static void custom_tactics_warning(void);   /* after the team screen, a ranked match (SWOS 2020) */
 
 static void lobby_test_knobs(void)
 {
@@ -1812,7 +1813,9 @@ static void mpGameSetupMenu_OnDraw(void)
              FORK_HOOK(styleName) && online_menus_fork()->styleName(_gGameplayStyle)
                  ? online_menus_fork()->styleName(_gGameplayStyle)
              : _gGameplayStyle == GAMEPLAY_DOS ? "PC (70FPS)"
-             : _gGameplayStyle == GAMEPLAY_XBOX ? "XBOX (60FPS)" : "AMIGA (50FPS)");
+             : _gGameplayStyle == GAMEPLAY_XBOX ? "XBOX (60FPS)"
+             : _gGameplayStyle == GAMEPLAY_AMIGA60 ? "AMIGA (60FPS)"     /* (SWOS 2020's names) */
+             : _gGameplayStyle == GAMEPLAY_MOON ? "MOON SOCCER" : "AMIGA (50FPS)");
     set_text(MpGameSetupMenu_gameStyle, s_lobbyStyle);
     set_text(MpGameSetupMenu_gameStyle1, s_lobbyStyle);
     snprintf(s_lobbyConn, sizeof s_lobbyConn, "%s",
@@ -2160,6 +2163,38 @@ static void lineup_screen(void)
     if (confirmed)
         NetplayLobby_SetReady(1);
     fprintf(stderr, "[lobby] team screen: %s\n", confirmed ? "confirmed, ready" : "left with EXIT, not ready");
+    if (confirmed)
+        custom_tactics_warning();
+}
+
+/* ---- the custom-tactics warning (SWOS 2020 port, agent D) ----
+ * SWOS 2020's customTacticsWarningMenu (game.cpp, after the team screen of startMultiplayTest):
+ * in a RANKED match not played in the PC style, when the other player's team plays a USER
+ * tactic (12 and up), the player is told so on leaving the team screen -- "only proceed if you
+ * agree ... otherwise, cancel and leave lobby". Only a warning: nothing is refused. */
+static void customTacticsWarningMenu_OnInit(void)
+{
+    set_text(CustomTacticsWarningMenu_header, _gGameplayStyle == GAMEPLAY_XBOX
+             ? "WARNING FOR RANKED MATCH XBOX" : "WARNING FOR RANKED MATCH AMIGA");
+}
+
+/* The lobby is not drawn while this is up and its OnDraw is what keeps the link going. */
+static void customTacticsWarningMenu_OnDraw(void)
+{
+    NetplayLobby_Poll();
+}
+
+static void custom_tactics_warning(void)
+{
+    const LobbyPlayer *other = NetplayLobby_Player(3 - NetplayLobby_LocalPlayer());
+    const int32_t test = getenv("SWOS_LOBBY_TACTICS_WARNING") != NULL;   /* (a test: shown always) */
+    if (!test && (NetplayLobby_Rules()->mode != LOBBY_MODE_RANKED || _gGameplayStyle == GAMEPLAY_DOS ||
+                  !other || !other->hasTeam || other->tactic < TACTIC_USER_A))
+        return;
+    fprintf(stderr, "[lobby] the other player plays a custom tactic: the ranked match's warning\n");
+    if (test && getenv("SWOS_LOBBY_TACTICS_WARNING")[0] == '1')
+        return;     /* (=1: say it, show nothing -- a headless run) */
+    OnlineMenus_Show(SWOS2020_MENU(customTacticsWarningMenu));
 }
 
 static void mpGameSetup_tactics_onSelect(void)
@@ -2666,6 +2701,91 @@ static int32_t record_is_on(const char *spec)
            SDL_strcasecmp(spec, "off") != 0 && SDL_strcasecmp(spec, "false") != 0;
 }
 
+/* ---- SWOS 2020's MULTIPLAYER SETTINGS chat and match rows (SWOS 2020 port, agent A) ----
+ * COMMENTARY ([audio] commentary), AUTO CLOSE CHATBOX ([chat] close_after), ESC PRESSING TO QUIT
+ * ([netplay] esc_presses), DISABLE CONTROLLER IN CHAT ([chat] controller_off), CHAT WINDOW SCALE
+ * ([chat] scale): each this player's own -- the other game is told nothing. SWOS 2020's VIDEO
+ * VSYNC row is commented out in its own menu (vsync is on SETTINGS -> VIDEO); DLC SETTING and
+ * PITCH SET are its DLC's (those two rows are RECORD MATCHES and SEND MATCH REPORTS here). */
+extern void    InputSDL_SetChatPadOff(int on);
+extern int     InputSDL_ChatPadOff(void);
+extern void    InputSDL_SetEscPresses(int n);
+extern int     InputSDL_EscPresses(void);
+extern void    DosSound_SetCommentary(int32_t on);
+static char s_mmsChatbox[24], s_mmsEsc[16], s_mmsScale[16];
+
+static void mms_save(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern const char *g_arcadeIniPath;
+    if (g_arcadeOpts && g_arcadeIniPath)
+        Settings_Save(g_arcadeOpts, g_arcadeIniPath);
+}
+
+static void mms_chat_rows_draw(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    static const char *const k_comm[3] = { "OFF", "ON", "AUTO" };
+    const int32_t comm = g_arcadeOpts ? g_arcadeOpts->commentary : 2;
+    const int32_t secs = MatchChat_AutoClose(), esc = InputSDL_EscPresses(), sc = MatchChat_Scale();
+    set_text(MmSettingsMenu_commentary, k_comm[comm >= 0 && comm <= 2 ? comm : 2]);
+    snprintf(s_mmsChatbox, sizeof s_mmsChatbox, "AFTER %d SECOND%s", (int)secs, secs > 1 ? "S" : "");
+    set_text(MmSettingsMenu_chatboxTimeout, s_mmsChatbox);
+    snprintf(s_mmsEsc, sizeof s_mmsEsc, "%d TIME%s", (int)esc, esc > 1 ? "S" : "");
+    set_text(MmSettingsMenu_escPressingMax, s_mmsEsc);
+    set_text(MmSettingsMenu_disableControllerInChatbox, InputSDL_ChatPadOff() ? "ON" : "OFF");
+    snprintf(s_mmsScale, sizeof s_mmsScale, "%d%sX", (int)(1 + sc / 2), sc % 2 ? ".5" : "");   /* (0..8: 1x .. 5x) */
+    set_text(MmSettingsMenu_chatWindowScale, s_mmsScale);
+}
+
+static void mmsSelectCommentary(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    if (!g_arcadeOpts)
+        return;
+    g_arcadeOpts->commentary = (g_arcadeOpts->commentary + 1) % 3;     /* OFF -> ON -> AUTO */
+    DosSound_SetCommentary(g_arcadeOpts->commentary);
+    mms_save();
+}
+
+static void mmsSelectChatboxTimeout(void)       /* (SWOS 2020 counts down: 5, 4 ... 1, 5) */
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    int32_t secs = MatchChat_AutoClose() - 1;
+    MatchChat_SetAutoClose(secs < 1 ? 5 : secs);
+    if (g_arcadeOpts)
+        g_arcadeOpts->chat_auto_close = MatchChat_AutoClose();
+    mms_save();
+}
+
+static void mmsSelectEscPressingMax(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    InputSDL_SetEscPresses(InputSDL_EscPresses() % 3 + 1);
+    if (g_arcadeOpts)
+        g_arcadeOpts->esc_presses = InputSDL_EscPresses();
+    mms_save();
+}
+
+static void mmsDisableControllerInChatbox(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    InputSDL_SetChatPadOff(!InputSDL_ChatPadOff());
+    if (g_arcadeOpts)
+        g_arcadeOpts->chat_controller_off = InputSDL_ChatPadOff();
+    mms_save();
+}
+
+static void mmsChangeChatWindowScale(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    int32_t sc = MatchChat_Scale() + 1;
+    MatchChat_SetScale(sc > MATCHCHAT_SCALE_MAX ? 0 : sc);
+    if (g_arcadeOpts)
+        g_arcadeOpts->chat_scale = MatchChat_Scale();
+    mms_save();
+}
+
 static void mmsOnInit(void)
 {
     const char *cur = record_current();
@@ -2697,20 +2817,22 @@ static void mmsOnDraw(void)
      * (include/match_report.h). */
     set_text(MmSettingsMenu_soundFxLabel, "SEND MATCH REPORTS");
     set_text(MmSettingsMenu_soundFx, MatchReport_Enabled() ? "ON" : "OFF");
+    mms_chat_rows_draw();
     if (FORK_HOOK(settingsDraw))
         online_menus_fork()->settingsDraw();
-    /* SWOS 2020's other rows -- its commentary and chat options, JOIN AMIGA SUPER LEAGUE,
-     * JOIN DISCORD, HELP DESK -- are features this project will not have: hidden (the cursor
-     * passes over a hidden entry to the next one its way), MY CUSTOM TEAM moved up under the
-     * two rows above. A fork that builds them keeps them (PROJECT_HIDE_SWOS2020_EXTRAS). */
+    /* SWOS 2020's other rows -- ACCEPT SOUND, JOIN AMIGA SUPER LEAGUE, JOIN DISCORD, HELP DESK --
+     * are a fork's (United's), not this project's: hidden (the cursor passes over a hidden entry
+     * to the next one its way), CHAT WINDOW SCALE moved up into ACCEPT SOUND's place and MY CUSTOM
+     * TEAM under it. A fork that builds them keeps them (PROJECT_HIDE_SWOS2020_EXTRAS). */
     if (PROJECT_HIDE_SWOS2020_EXTRAS) {
-        int32_t o;
-        for (o = MmSettingsMenu_commentaryLabel; o <= MmSettingsMenu_chatWindowScale; o++)
-            set_visible(o, 0);
+        set_visible(MmSettingsMenu_acceptSoundLabel, 0);
+        set_visible(MmSettingsMenu_acceptSound, 0);
+        entry_at(MmSettingsMenu_chatWindowScaleLabel)->y = entry_at(MmSettingsMenu_acceptSoundLabel)->y;
+        entry_at(MmSettingsMenu_chatWindowScale)->y = entry_at(MmSettingsMenu_acceptSound)->y;
         set_visible(MmSettingsMenu_joinASL, 0);
         set_visible(MmSettingsMenu_joinDiscord, 0);
         set_visible(MmSettingsMenu_helpDesk, 0);
-        entry_at(MmSettingsMenu_createOwnCustom)->y = (uint16_t)(entry_at(MmSettingsMenu_soundFx)->y + 12);
+        entry_at(MmSettingsMenu_createOwnCustom)->y = (uint16_t)(entry_at(MmSettingsMenu_chatWindowScale)->y + 12);
     }
 }
 
@@ -2806,6 +2928,11 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(mmsOnDraw),
     HANDLER(mmsSelectPitchSet),
     HANDLER(mmsSelectSoundFx),
+    HANDLER(mmsSelectCommentary),
+    HANDLER(mmsSelectChatboxTimeout),
+    HANDLER(mmsSelectEscPressingMax),
+    HANDLER(mmsDisableControllerInChatbox),
+    HANDLER(mmsChangeChatWindowScale),
     HANDLER(matchMaking_rankings_onSelect),
     HANDLER(matchMaking_openGame_onSelect),
     HANDLER(matchMaking_cancelGame_onSelect),
@@ -2826,6 +2953,8 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(mpGameSetupMenu_OnDraw),
     HANDLER(mpGameSetup_teams_onSelect),
     HANDLER(mpGameSetup_tactics_onSelect),
+    HANDLER(customTacticsWarningMenu_OnInit),
+    HANDLER(customTacticsWarningMenu_OnDraw),
     HANDLER(mpGameSetup_go_onSelect),
     HANDLER(selectLegOpt1),
     HANDLER(selectEtPen1),
@@ -2980,6 +3109,8 @@ int32_t OnlineMenus_ShowStartMenu(void)
     }
     P2PMenu_Init();             /* --menu=p2p/p2pMenu wants its handlers too */
     ControlsMenu_Init();
+    { extern void SettingsMenus_Init(void); SettingsMenus_Init(); }   /* (--menu=openswos/settingsMenu) */
+    CreditsMenu_Init();              /* (--menu=openswos/creditsMenu, openswos/fullCreditsMenu) */
     ModsMenu_Init();            /* (--menu=openswos/modsMenu) */
     { extern void ModEntries_Init(void); ModEntries_Init(); }   /* (--menu=openswos/modEntriesMenu) */
     { extern void TeamPacksMenu_Init(void); TeamPacksMenu_Init(); }   /* (--menu=openswos/teamPacksMenu) */
@@ -2987,6 +3118,13 @@ int32_t OnlineMenus_ShowStartMenu(void)
         CreditsMenu_Show();         /* with its photos' palette, as the button opens it */
     else if (!strcmp(name, SWOS2020_MENU(selectMyCustomTeams)))
         CustomTeam_Manage();        /* the slots AND what choosing one does, as its button */
+    else if (!strncmp(name, CHOICE_MENU_NAME ":", sizeof CHOICE_MENU_NAME)) {   /* (<slug>:<key>) */
+        char slug[64];
+        const char *rest = name + sizeof CHOICE_MENU_NAME, *colon = strchr(rest, ':');
+        snprintf(slug, sizeof slug, "%.*s", colon ? (int)(colon - rest) : 0, rest);
+        if (!colon || !ModsMenu_ShowChoices(slug, colon + 1))
+            OnlineMenus_Show(MODS_MENU_NAME);
+    }
     else
         OnlineMenus_Show(name);
     return 1;
@@ -3044,6 +3182,22 @@ int32_t OnlineMenus_SelfTest(void)
             printf("  FAIL %-26s %s\n", "controlsMenu", bad < 0 ? "did not load" : "mismatch (see log)");
         }
     }
+    {   /* SWOS 2020's OPTIONS screens and CONTROLLER SETUP (src/settings_menus.c) */
+        static const struct { const char *name; int entries; } k_settings[] = {
+            { "openswos/settingsMenu", 10 }, { "openswos/settingsPage", 27 }, { "openswos/joypadConfigMenu", 42 },
+        };
+        extern void SettingsMenus_Init(void);
+        SettingsMenus_Init();
+        for (size_t si = 0; si < sizeof k_settings / sizeof k_settings[0]; si++) {
+            int bad = MenuJson_VerifyDynamic(k_settings[si].name, k_settings[si].entries);
+            menus++;
+            entries += k_settings[si].entries;
+            if (bad) {
+                failed++;
+                printf("  FAIL %-26s %s\n", k_settings[si].name + 9, bad < 0 ? "did not load" : "mismatch (see log)");
+            }
+        }
+    }
     ModsMenu_Init();
     {
         int bad = MenuJson_VerifyDynamic(MODS_MENU_NAME, MODS_MENU_ENTRIES);
@@ -3068,6 +3222,13 @@ int32_t OnlineMenus_SelfTest(void)
             failed++;
             printf("  FAIL %-26s %s\n", "modPageMenu", bad < 0 ? "did not load" : "mismatch (see log)");
         }
+        bad = MenuJson_VerifyDynamic(CHOICE_MENU_NAME, CHOICE_MENU_ENTRIES);
+        menus++;
+        entries += CHOICE_MENU_ENTRIES;
+        if (bad) {
+            failed++;
+            printf("  FAIL %-26s %s\n", "choiceMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
     }
     CreditsMenu_Init();
     {
@@ -3077,6 +3238,16 @@ int32_t OnlineMenus_SelfTest(void)
         if (bad) {
             failed++;
             printf("  FAIL %-26s %s\n", "creditsMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
+    }
+    {
+        int bad = MenuJson_VerifyDynamic(FULL_CREDITS_MENU_NAME, 1);
+        menus++;
+        entries += 1;
+        if (bad || CreditsMenu_FullCreditsLines() <= 0) {
+            failed++;
+            printf("  FAIL %-26s %s\n", "fullCreditsMenu", bad < 0 ? "did not load" : bad ? "mismatch (see log)" :
+                   "data/CREDITS.txt did not load");
         }
     }
 

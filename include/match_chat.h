@@ -59,6 +59,19 @@ const char *MatchChat_DefaultQuick(int32_t i);
  * MATCHCHAT_TEXT_MAX bytes, cut on a character. Returns the length. */
 int32_t MatchChat_Clean(const char *in, char *out, int32_t outSize);
 
+/* SWOS 2020's CHAT WINDOW SCALE ([chat] scale: 0..MATCHCHAT_SCALE_MAX, the box 1x .. 5x in halves;
+ * Page Up / Page Down in an online match) and AUTO CLOSE CHATBOX ([chat] auto_close: 1..5, the
+ * seconds the box stays after the newest line). For a settings row: read, set (the caller saves). */
+#define MATCHCHAT_SCALE_MAX 8
+void    MatchChat_SetScale(int32_t scale);
+int32_t MatchChat_Scale(void);
+void    MatchChat_SetAutoClose(int32_t seconds);
+int32_t MatchChat_AutoClose(void);
+
 int32_t MatchChat_SelfTest(void);
+
+/* ---- SWOS 2020's MULTIPLAYER SETTINGS rows (SWOS 2020 port, agent A) ---- */
+/* (AUTO CLOSE CHATBOX and CHAT WINDOW SCALE: MatchChat_AutoClose / MatchChat_Scale, above) */
+void    MatchChat_Notice(const char *text);         /* a line of the game's own */
 
 #endif

@@ -10,9 +10,10 @@
  * holding the data) is never a reminder.
  *
  * The reminder is a dialog of the game's own (MenuDialog_Show, include/menu_dialog.h), shown
- * by the front end before the main menu (AssetsCheck_ShowNotice): LAUNCH SETUP starts
- * OpenSWOS Setup -- when it is beside the game -- and closes the game, so the setup can replace
- * the data; CONTINUE plays on; DON'T REMIND ME keeps the data versions it was about in SWOS.ini
+ * by the front end before the main menu (AssetsCheck_ShowNotice): UPDATE NOW starts
+ * OpenSWOS Setup -- when it is beside the game -- with --headless and closes the game, so the
+ * setup can remake the data from the sources it was made from, with no window, and start the
+ * game again (its window opens only if it needs the player); CONTINUE plays on; DON'T REMIND ME keeps the data versions it was about in SWOS.ini
  * ([general] assets_reminder_off): the same reminder is not shown again, a later setup that
  * changes a part again is. The world's package (AssetsCheck_World) is said on the same screen.
  * Nothing is shown headless (the test rigs), in the arcade cabinet, in the web build (its data
@@ -59,6 +60,29 @@ static int32_t is_dir(const char *path)
     return stat(path, &st) == 0 && (st.st_mode & S_IFMT) == S_IFDIR;
 }
 
+/* The game's data is there: the assets folder the setup made (its ASSETS.ini, or an older setup's
+ * data/), or the data beside the game -- the first pitch, which every data set has and the game
+ * cannot start a menu without. */
+static int32_t have_game_data(const char *dir)
+{
+    char probe[1280];
+    FILE *f;
+    if (dir && dir[0]) {
+        snprintf(probe, sizeof probe, "%s/ASSETS.ini", dir);
+        if ((f = fopen(probe, "rb")) != NULL) { fclose(f); return 1; }
+        snprintf(probe, sizeof probe, "%s/data", dir);
+        if (is_dir(probe))
+            return 1;
+    }
+    static const char *const kProbe[] = { "grafs_aga/swcpich1.map", "grafs/swcpich1.map" };
+    for (uint32_t i = 0; i < sizeof kProbe / sizeof kProbe[0]; i++)
+        if ((f = fopen(swos_data_path(kProbe[i], probe, (uint32_t)sizeof probe), "rb")) != NULL) {
+            fclose(f);
+            return 1;
+        }
+    return 0;
+}
+
 static char *trim(char *t)
 {
     while (*t == ' ' || *t == '\t') t++;
@@ -91,6 +115,35 @@ static int32_t read_versions(const char *assetsDir, int32_t version[PART_COUNT])
     }
     fclose(f);
     return 0;
+}
+
+int32_t AssetsCheck_PcFromSwos2020(void)
+{
+    static int32_t s_known = -1;
+    char path[1024], line[1200], section[32] = "";
+    FILE *f;
+    const char *dir = swos_assets_dir();
+    if (s_known >= 0)
+        return s_known;
+    s_known = 0;
+    if (!dir || !dir[0])
+        return 0;
+    snprintf(path, sizeof path, "%s/%s", dir, ASSETS_INI_NAME);
+    if ((f = fopen(path, "r")) == NULL)
+        return 0;
+    while (fgets(line, sizeof line, f)) {
+        char *t = trim(line), *eq;
+        if (*t == '[') {
+            char *e = strchr(t, ']');
+            if (e) { *e = '\0'; snprintf(section, sizeof section, "%s", t + 1); }
+        } else if (strcmp(section, "sources") == 0 && (eq = strchr(t, '=')) != NULL) {
+            *eq = '\0';
+            if (strcmp(trim(t), ASSETS_SRC_PC_SWOS2020) == 0 && trim(eq + 1)[0])
+                s_known = 1;
+        }
+    }
+    fclose(f);
+    return s_known;
 }
 
 /* Which parts are out of date, for the log: "dos_files 1<2, aga_pc 0<1". "" when none. */
@@ -139,6 +192,39 @@ void AssetsCheck_Run(PlatformInitOptions *opts, const char *iniPath)
     const char *dir = swos_assets_dir();
     char why[256], sig[64];
 
+    if (!have_game_data(dir)) {
+        /* No game data at all: neither an assets folder made by the setup nor the data beside the
+         * game (a developer's bin/). The game would hang at its first picture, retrying the file
+         * (2026-11-10: SWOS United in a new player folder) -- so say so, offer the setup, quit.
+         * The in-game dialog needs the game's own fonts, so it is the system's message box. */
+        fprintf(stderr, "[assets] no game data: not in %s nor beside the game -- run %s\n",
+                dir && dir[0] ? dir : "(no assets folder)", PROJECT_SETUP_NAME);
+        if (getenv("SWOS_NO_ASSETS_CHECK") || !driver || strcmp(driver, "dummy") == 0 ||
+            strcmp(driver, "offscreen") == 0)
+            return;                 /* (headless: a test's; it says so in the log) */
+        char setup[1024], msg[1600];
+        const int32_t haveSetup = AssetsCheck_FindSetup(setup, sizeof setup);
+        snprintf(msg, sizeof msg,
+                 "%s plays with the game's data, made from your own copy of Sensible World of Soccer "
+                 "by %s, and there is none yet in\n%s\n\n%s",
+                 PROJECT_NAME, PROJECT_SETUP_NAME, dir && dir[0] ? dir : "(the player folder)",
+                 haveSetup ? "Make Game Data makes it from your copy of the game and starts "
+                             PROJECT_NAME " again -- or, if it cannot find your copy, opens "
+                             PROJECT_SETUP_NAME " so you can choose it."
+                           : "Run " PROJECT_SETUP_NAME ", choose your copy of the game there, then start "
+                             PROJECT_NAME " again.");
+        const SDL_MessageBoxButtonData buttons[] = {
+            { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Quit" },
+            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Make Game Data" },
+        };
+        const SDL_MessageBoxData box = { SDL_MESSAGEBOX_WARNING, NULL, "No game data", msg,
+                                         haveSetup ? 2 : 1, buttons, NULL };
+        int hit = 0;
+        if (SDL_ShowMessageBox(&box, &hit) == 0 && hit == 1)
+            AssetsCheck_LaunchSetupHeadless();   /* (the window only when it needs the player) */
+        SDL_Quit();
+        exit(1);
+    }
     if (!dir || !dir[0] || !is_dir(dir))
         return;                     /* no assets folder: the data is beside the game */
     outdated_parts(dir, why, sizeof why);
@@ -237,25 +323,30 @@ int32_t AssetsCheck_FindSetup(char *out, uint32_t cap)
 #endif
 }
 
-/* Start OpenSWOS Setup (on its own: it outlives the game). 1 when it started. */
-int32_t AssetsCheck_LaunchSetup(void)
+/* Start OpenSWOS Setup (on its own: it outlives the game). 1 when it started. headless: with
+ * --headless, which makes the data with no window when it finds the player's copy of the game,
+ * and opens the window only when it does not (tools/swosdata/app/main.cpp App::Headless). */
+static int32_t launch_setup(int32_t headless)
 {
     char path[1024];
     pid_t pid;
     if (!AssetsCheck_FindSetup(path, sizeof path))
         return 0;
 #if defined(__APPLE__)
-    char *argv[] = { "/usr/bin/open", "-a", path, NULL };
+    char *argv[] = { "/usr/bin/open", "-a", path, headless ? "--args" : NULL, "--headless", NULL };
 #else
-    char *argv[] = { path, NULL };
+    char *argv[] = { path, headless ? "--headless" : NULL, NULL };
 #endif
     if (posix_spawn(&pid, argv[0], NULL, NULL, argv, environ) != 0) {
         fprintf(stderr, "[assets] could not start %s\n", path);
         return 0;
     }
-    fprintf(stderr, "[assets] started %s\n", path);
+    fprintf(stderr, "[assets] started %s%s\n", path, headless ? " --headless" : "");
     return 1;
 }
+
+int32_t AssetsCheck_LaunchSetup(void) { return launch_setup(0); }
+int32_t AssetsCheck_LaunchSetupHeadless(void) { return launch_setup(1); }
 
 int32_t AssetsCheck_ShowNotice(void)
 {
@@ -271,15 +362,18 @@ int32_t AssetsCheck_ShowNotice(void)
                  "differently.|%s It remembers where your copy of the game is, so it only takes a "
                  "moment.|The game still plays meanwhile: some pictures may be out of date.",
                  PROJECT_SETUP_NAME, haveSetup
-                     ? "LAUNCH SETUP opens it and closes the game: click Update there."
+                     ? "UPDATE NOW closes the game, updates your game data and starts the game again."
                      : "Run " PROJECT_SETUP_NAME " and click Update.");
     else
         snprintf(text, sizeof text, "%s", s_noticeText);
-    if (haveSetup) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
+    if (haveSetup) { iSetup = n; buttons[n++] = s_notice == NOTICE_ASSETS ? "UPDATE NOW" : "LAUNCH SETUP"; }
     buttons[n++] = "CONTINUE";
     if (s_notice == NOTICE_ASSETS) { iNever = n; buttons[n++] = "DO NOT REMIND ME"; }
     const int32_t chosen = MenuDialog_Show(s_noticeTitle, text, buttons, n, 0);
-    if (chosen >= 0 && chosen == iSetup && AssetsCheck_LaunchSetup()) {
+    /* (the data update: --headless updates it from the sources it was made from and starts the
+     * game again, the setup's window only if it needs the player) */
+    if (chosen >= 0 && chosen == iSetup &&
+        (s_notice == NOTICE_ASSETS ? AssetsCheck_LaunchSetupHeadless() : AssetsCheck_LaunchSetup())) {
         s_quitForSetup = 1;             /* (the game closes so the setup can replace the data) */
     } else if (chosen >= 0 && chosen == iNever && s_opts) {
         snprintf(s_opts->assets_reminder_off, sizeof s_opts->assets_reminder_off, "%s", s_noticeSig);
@@ -296,6 +390,7 @@ int32_t AssetsCheck_QuitForSetup(void) { return s_quitForSetup; }
 #else
 int32_t AssetsCheck_FindSetup(char *out, uint32_t cap) { (void)out; (void)cap; return 0; }
 int32_t AssetsCheck_LaunchSetup(void) { return 0; }
+int32_t AssetsCheck_LaunchSetupHeadless(void) { return 0; }
 int32_t AssetsCheck_ShowNotice(void) { return 0; }
 int32_t AssetsCheck_QuitForSetup(void) { return 0; }
 #endif

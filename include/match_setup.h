@@ -41,4 +41,9 @@ void InitGameRestoreTeams(void);
 /* Its pitch step alone: palette, Jaguar shadow, ball physics (the highlights viewer). */
 void ApplyPitchPaletteAndFactors(void);
 
+/* ---- launcher options (agent B) ---- */
+/* SWOS 2020's improved pitch palette ([video] improved_pitch_palette): the wet and soft pitches'
+ * second grass stripe lightened, so their stripes show. Palette only. */
+extern uint8_t _gImprovedPitchPalette;
+
 #endif

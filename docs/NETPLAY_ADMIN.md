@@ -61,7 +61,7 @@ These still need someone with ssh on the server (Redhair):
 | `/playback/` still shows the old page | **Update recordings player**, then reload the page (Ctrl+F5); **Rebuild** alone does not put it live |
 | a **delete** on `/playback/` fails with "the server said 403/404" | the admin page is older than the delete endpoint: **Restart admin page** (or, the first time, the ssh restart above) |
 | a card shows `?` for a player, or a recording shows only its id | **Refresh match list**. A match still open when the server restarted gets its ledger line at the restart itself; `Service: restart` now refreshes the cards after restarting too. Names come from the ledger and the match reports — one without a report in `reports/` stays `?` |
-| Rebuild's log says the player was skipped ("no emsdk") | emsdk not found: the panel looks in `~/git/emsdk` (`EMSDK_DIR`) |
+| Rebuild's log says the player was skipped ("no emsdk") | emsdk not found: the panel sets `EMSDK_DIR=~/git/emsdk`; `build_playback.sh` falls back to `~/emsdk`, `~/git/emsdk` and `emsdk` beside the checkout |
 | a queued button does nothing for more than a minute | the root cron job is not running — ssh, `sudo crontab -l` ([README](../tools/matchmaker-admin/README.md), setup step 2) |
 | after **Service: install**, the log ends with a **WARNING** about `/playback/` | nginx could not be set up by the script; the warning says what to add by hand ([PLAYBACK.md](PLAYBACK.md), "On the server") |
 

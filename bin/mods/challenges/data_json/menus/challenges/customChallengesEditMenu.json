@@ -1,0 +1,1515 @@
+{
+  "name": "customChallengesEditMenu",
+  "source": {
+    "project": "swos-2020",
+    "file": "src/menus/customChallengesEdit.mnu",
+    "commit": "df38d20"
+  },
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "challenges.ed_init",
+  "onReturn": null,
+  "onDraw": "challenges.ed_draw",
+  "defaultEntry": 51,
+  "exports": {},
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 102,
+        "y": 0,
+        "w": 100,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DESIGN SCENARIO"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1",
+      "coords": {
+        "x": -8,
+        "y": 20,
+        "w": 140,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4010",
+          "literal": "AC MILAN"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 11
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 3,
+          "up": -1,
+          "down": 4
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_team"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "teamScore",
+      "coords": {
+        "x": 132,
+        "y": 20,
+        "w": 40,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x10",
+          "literal": "0-0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2",
+      "coords": {
+        "x": 172,
+        "y": 20,
+        "w": 140,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8010",
+          "literal": "REAL MADRID"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 10
+        },
+        {
+          "op": "nav",
+          "left": 1,
+          "right": -1,
+          "up": -1,
+          "down": 4
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_team"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "scenarioNickname",
+      "coords": {
+        "x": -8,
+        "y": 38,
+        "w": 320,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 1,
+          "down": 6
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_nickname"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "initialScoreLabel",
+      "coords": {
+        "x": -8,
+        "y": 59,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "INITIAL SCORE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team1Score",
+      "coords": {
+        "x": 89,
+        "y": 59,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "00"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 8,
+          "up": 1,
+          "down": 14
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_team1Score"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team_Score",
+      "coords": {
+        "x": 107,
+        "y": 59,
+        "w": 8,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "team2Score",
+      "coords": {
+        "x": 115,
+        "y": 59,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "00"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 6,
+          "right": 9,
+          "up": 4,
+          "down": 14
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_team2Score"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "teamScoreReset",
+      "coords": {
+        "x": 135,
+        "y": 60,
+        "w": 33,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": " RESET"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": 8,
+          "right": 11,
+          "up": 4,
+          "down": 14
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_scoreReset"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "customUniformsLabel",
+      "coords": {
+        "x": 191,
+        "y": 59,
+        "w": 58,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "UNIFORMS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "customUniforms",
+      "coords": {
+        "x": 251,
+        "y": 59,
+        "w": 61,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SETTING..."
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 9,
+          "right": -1,
+          "up": 4,
+          "down": 14
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_none"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "initialTimeLabel",
+      "coords": {
+        "x": -8,
+        "y": 71,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "INITIAL TIME"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "initialTime",
+      "coords": {
+        "x": 89,
+        "y": 71,
+        "w": 70,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "34MINS"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "minus10",
+      "coords": {
+        "x": 161,
+        "y": 71,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-10"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 15,
+          "up": 6,
+          "down": 20
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_minus10"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "minus1",
+      "coords": {
+        "x": 179,
+        "y": 71,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-1"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 14,
+          "right": 16,
+          "up": 6,
+          "down": 20
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_minus1"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "reset0",
+      "coords": {
+        "x": 197,
+        "y": 71,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 15,
+          "right": 17,
+          "up": 6,
+          "down": 20
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_reset0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "plus1",
+      "coords": {
+        "x": 215,
+        "y": 71,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "+1"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 16,
+          "right": 18,
+          "up": 8,
+          "down": 20
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_plus1"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "plus10",
+      "coords": {
+        "x": 233,
+        "y": 71,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "+10"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 17,
+          "right": -1,
+          "up": 6,
+          "down": 20
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_plus10"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "legLabel",
+      "coords": {
+        "x": -8,
+        "y": 90,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "FIRST LEG SCORE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "secondLeg",
+      "coords": {
+        "x": 89,
+        "y": 90,
+        "w": 51,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "NO"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 21,
+          "up": 14,
+          "down": 26
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_secondLeg"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "legTeam1Score",
+      "coords": {
+        "x": 142,
+        "y": 90,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "00"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 20,
+          "right": 23,
+          "up": 14,
+          "down": 26
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_legTeam1"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "legTeam_Score",
+      "coords": {
+        "x": 160,
+        "y": 90,
+        "w": 8,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "-"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "legTeam2Score",
+      "coords": {
+        "x": 169,
+        "y": 90,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "00"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 21,
+          "right": 24,
+          "up": 14,
+          "down": 26
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_legTeam2"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "legTeamScoreReset",
+      "coords": {
+        "x": 189,
+        "y": 91,
+        "w": 33,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": " RESET"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": 23,
+          "right": -1,
+          "up": 14,
+          "down": 26
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_legReset"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "etPenLabel",
+      "coords": {
+        "x": -8,
+        "y": 102,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "EXTRA TIME / PEN"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "et",
+      "coords": {
+        "x": 89,
+        "y": 102,
+        "w": 32,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "NO EXTRA TIME"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 27,
+          "up": 20,
+          "down": 30
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_et"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "pen",
+      "coords": {
+        "x": 123,
+        "y": 102,
+        "w": 38,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "NO PENALTY SHOOTOUT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 26,
+          "right": 28,
+          "up": 20,
+          "down": 30
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_pen"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "directPen",
+      "coords": {
+        "x": 163,
+        "y": 102,
+        "w": 149,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DIRECT PENALTY SHOOTOUT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 27,
+          "right": -1,
+          "up": 20,
+          "down": 30
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_directPen"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "subsLabel",
+      "coords": {
+        "x": -8,
+        "y": 114,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "SUBSTITUTES"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "subsMin",
+      "coords": {
+        "x": 89,
+        "y": 114,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "3"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 32,
+          "up": 26,
+          "down": 35
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_subsMin"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "subsFrom",
+      "coords": {
+        "x": 107,
+        "y": 114,
+        "w": 33,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "FROM"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "subsMax",
+      "coords": {
+        "x": 142,
+        "y": 114,
+        "w": 16,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "5"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 30,
+          "right": 33,
+          "up": 26,
+          "down": 35
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_subsMax"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "sentOffInjurySetting",
+      "coords": {
+        "x": 163,
+        "y": 114,
+        "w": 149,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SET CARDS AND INJURIES..."
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 32,
+          "right": -1,
+          "up": 30,
+          "down": 35
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_cards"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "attackGoalLabel",
+      "coords": {
+        "x": -8,
+        "y": 133,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "ATTACK DIRECTION"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "attackGoal",
+      "coords": {
+        "x": 89,
+        "y": 133,
+        "w": 52,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DOWN"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 37,
+          "up": 30,
+          "down": 39
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_attack"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "changePitchTypeLabel",
+      "coords": {
+        "x": 191,
+        "y": 133,
+        "w": 58,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PITCH TYPE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "changePitchType",
+      "coords": {
+        "x": 251,
+        "y": 133,
+        "w": 61,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "RANDOM"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 35,
+          "right": -1,
+          "up": 33,
+          "down": 40
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_pitchType"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "startingEventLabel",
+      "coords": {
+        "x": -8,
+        "y": 145,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "STARTING EVENT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "startingTeam",
+      "coords": {
+        "x": 89,
+        "y": 145,
+        "w": 100,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "RETRO KICKERS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 40,
+          "up": 35,
+          "down": 43
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_startTeam"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "startingEvent",
+      "coords": {
+        "x": 191,
+        "y": 145,
+        "w": 121,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "RANDOM FREE KICK"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 39,
+          "right": -1,
+          "up": 37,
+          "down": 43
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_event"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "winConditionLabel",
+      "coords": {
+        "x": -8,
+        "y": 157,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "WIN CONDITION"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "winTeam",
+      "coords": {
+        "x": 89,
+        "y": 157,
+        "w": 100,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "winCondition",
+      "coords": {
+        "x": 191,
+        "y": 157,
+        "w": 121,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "WIN BY ANY SCORE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 40,
+          "down": 47
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_win"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "difficultyLabel",
+      "coords": {
+        "x": -8,
+        "y": 169,
+        "w": 94,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x4000",
+          "literal": "DIFFICULTY"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "difficulty",
+      "coords": {
+        "x": 89,
+        "y": 169,
+        "w": 52,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": ""
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 47,
+          "up": 43,
+          "down": 51
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_difficulty"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "changePitchSetLabel",
+      "coords": {
+        "x": 191,
+        "y": 169,
+        "w": 58,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PITCH SET"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "changePitchSet",
+      "coords": {
+        "x": 251,
+        "y": 169,
+        "w": 61,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DEDICATED"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": 45,
+          "right": -1,
+          "up": 43,
+          "down": 51
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_none"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "test",
+      "coords": {
+        "x": 9,
+        "y": 188,
+        "w": 60,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "TEST"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 49,
+          "up": 45,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_test"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "save",
+      "coords": {
+        "x": 84,
+        "y": 188,
+        "w": 60,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SAVE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": 48,
+          "right": 50,
+          "up": 45,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_save"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "delete_",
+      "coords": {
+        "x": 159,
+        "y": 188,
+        "w": 60,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "DELETE"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": 49,
+          "right": 51,
+          "up": 45,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_delete"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 234,
+        "y": 188,
+        "w": 60,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "EXIT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": 50,
+          "right": -1,
+          "up": 47,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "challenges.ed_exit"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "onbackground",
+      "coords": {
+        "x": -8,
+        "y": -8,
+        "w": 1,
+        "h": 1
+      },
+      "commands": [
+        {
+          "op": "fg_func",
+          "func": "challenges.ed_background"
+        }
+      ]
+    }
+  ]
+}
