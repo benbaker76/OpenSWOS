@@ -1052,19 +1052,10 @@ void InitAndPlayGame(TeamFileEx *team1, TeamFileEx *team2) {
         StringCopy(_aTraining, _gameName);
     } else {
         extern const char *ModMatch_Name(void);  /* a mod's match's own (mod_match.c) */
-#ifdef SWOS_SDL_BUILD
-        extern int _gArcadeMode;
-#endif
         if (ModMatch_Name())
             StringCopy((uint8_t *)ModMatch_Name(), _gameName);
         else if (ModHooks_MatchName())          /* the rules it plays by ("GOLDEN GOAL") */
             StringCopy((uint8_t *)ModHooks_MatchName(), _gameName);
-#ifdef SWOS_SDL_BUILD
-        else if (_gArcadeMode) {
-            extern uint8_t _aArcadeMatchName[];   /* "GOLDEN GOAL" (arcade.c) */
-            StringCopy(_aArcadeMatchName, _gameName);
-        }
-#endif
         else
         StringCopy(_aFriendly_1, _gameName);
     }

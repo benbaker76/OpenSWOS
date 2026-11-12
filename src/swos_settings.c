@@ -48,10 +48,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* Arcade game-mode name<->index (defined in arcade.c) for [arcade] mode. */
-extern const char *Arcade_ModeName(int idx);
-extern int         Arcade_ModeFromName(const char *name);
-
 static int eqi(const char *a, const char *b)
 {
     while (*a && *b) {
@@ -414,9 +410,8 @@ static int handler(void *user, const char *section,
     } else if (eqi(section, "arcade")) {
         int b;
         if (eqi(name, "enabled") && parse_bool(value, &b)) opts->arcade = b;
-        else if (eqi(name, "mode") && value && value[0]) {
-            int m = Arcade_ModeFromName(value); if (m >= 0) opts->arcade_mode = m;
-        }
+        else if (eqi(name, "mode") && value && value[0])   /* (a mode of the arcade mod's: the cabinet checks it) */
+            snprintf(opts->arcade_mode, sizeof opts->arcade_mode, "%s", value);
         else if (eqi(name, "game_seconds")) {
             int v = atoi(value); if (v >= 10 && v <= 600) opts->arcade_game_seconds = v;
         }
@@ -898,7 +893,7 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; and does not follow the sprites setting.\n",
         opts->kit_art ? "jaguar" : "amiga" };
     SETTING(n) = (IniEntry){ "arcade", "enabled",    "; enabled: true | false — boot straight to attract mode, no main menu", opts->arcade ? "true" : "false" };
-    SETTING(n) = (IniEntry){ "arcade", "mode",       "; mode: arcade game mode (F2 service menu). Currently: GOLDEN GOAL", Arcade_ModeName(opts->arcade_mode) };
+    SETTING(n) = (IniEntry){ "arcade", "mode",       "; mode: arcade game mode (F2 service menu), one of the arcade mod's. Currently: GOLDEN GOAL", opts->arcade_mode[0] ? opts->arcade_mode : "GOLDEN GOAL" };
     SETTING(n) = (IniEntry){ "arcade", "game_seconds", "; game rules (F2 service menu). game_seconds 10..600;  golden_goal/penalties_on_draw/goal_replay: true | false", vbuf[2] };
     SETTING(n) = (IniEntry){ "arcade", "golden_goal", NULL, opts->arcade_golden_goal ? "true" : "false" };
     SETTING(n) = (IniEntry){ "arcade", "penalties_on_draw", NULL, opts->arcade_penalties ? "true" : "false" };

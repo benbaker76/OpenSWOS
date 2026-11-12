@@ -634,7 +634,7 @@ int main(int argc, char **argv)
     opts.reports = 0;             /* a public release: the player opts in (SEND MATCH REPORTS) */
 #endif
     opts.arcade = 0;              /* default off — normal front-end menu */
-    opts.arcade_mode = 0;         /* GOLDEN GOAL */
+    snprintf(opts.arcade_mode, sizeof opts.arcade_mode, "%s", "GOLDEN GOAL");   /* (the arcade mod's first mode) */
     opts.arcade_game_seconds = 45;
     opts.arcade_golden_goal = 1;
     opts.arcade_penalties = 1;
@@ -1496,8 +1496,16 @@ int main(int argc, char **argv)
      * Before anything reads the game's data -- translations included, which a mod may carry. */
     {
         const char *env = getenv("SWOS_MODS_ENABLED");
+        const char *list = s_modsArgSet ? s_modsArg : env ? env : opts.mods;
+        static char withArcade[sizeof opts.mods + 16];
         Mods_SetRig(s_rigRun);      /* (a rig proves the original: the gameplay mods stay off) */
-        Mods_Init(s_modsArgSet ? s_modsArg : env ? env : opts.mods, opts.mods_disabled);
+        /* The arcade cabinet plays by the arcade mod's rules (src/mod_arcade.c): it is on for the
+         * run whatever the lists say -- never written to SWOS.ini. */
+        if (opts.arcade && !s_rigRun) {
+            snprintf(withArcade, sizeof withArcade, "arcade%s%s", list && list[0] ? ", " : "", list ? list : "");
+            list = withArcade;
+        }
+        Mods_Init(list, opts.mods_disabled);
     }
     /* The built-in mods that are on, set up (include/mod_api.h ModDef.init): their entries and
      * their menus' handlers -- before the menus are built from JSON, which name them. */
