@@ -2938,11 +2938,20 @@ void CommonMenuExit(void)
 #if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
     /* WORLD (entry 17): the world played from the next start, as OPTIONS -> WORLD (the Mod
      * 4.1's main-menu selector); never on the Amiga (its world is its drawer's data/WORLD). */
-    _menuEntries[17].isInvisible = 0;
-    main_menu_world_label(&_menuEntries[17]);
-    _menuEntries[17].rightEntry = (int8_t)(_menuEntries[16].isInvisible ? 15 : 16);
-    _menuEntries[16].leftEntry = 17;
-    _menuEntries[15].leftEntry = 17;
+    {
+        /* (only on OpenSWOS's own main menu: a fork's -- SWOS United's SWOS 2020 menu -- has other
+         * entries there, and entry 17's text was written over: a crash at start-up) */
+        extern void MainMenuWorld(void);
+        extern uint8_t _currentMenu[];
+        if (((Menu *)_currentMenu)->numEntries > 17 &&
+            _menuEntries[17].onSelect == (MenuEntryFn)(void (*)(void))MainMenuWorld) {
+            _menuEntries[17].isInvisible = 0;
+            main_menu_world_label(&_menuEntries[17]);
+            _menuEntries[17].rightEntry = (int8_t)(_menuEntries[16].isInvisible ? 15 : 16);
+            _menuEntries[16].leftEntry = 17;
+            _menuEntries[15].leftEntry = 17;
+        }
+    }
 #endif
 #ifndef SWOS_NETPLAY
     /* OpenSWOS's MULTIPLAYER button (entry 14) plays over the network, so it is only
