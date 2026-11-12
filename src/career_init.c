@@ -731,9 +731,13 @@ void InitCareer(uint16_t teamNo)
 
     _careerFileBuffer = 0;
 
-    LoadSomeEuroCup(_euroCup);
-    LoadSomeEuroCup(_cupWinnersCup);
-    LoadSomeEuroCup(_uefaCup);
+    /* (a world's clubs, never 96/97's, whose ids name other clubs there: career_teams.c) */
+    extern int32_t Career_LoadWorldEuropeTmd(void);
+    if (!Career_LoadWorldEuropeTmd()) {
+        LoadSomeEuroCup(_euroCup);
+        LoadSomeEuroCup(_cupWinnersCup);
+        LoadSomeEuroCup(_uefaCup);
+    }
 
     /* Copy careerContests table entries: {src, dest, count} until
      * src == 0xFFFFFFFF. Iterate as the typed CompetitionCareer[]
