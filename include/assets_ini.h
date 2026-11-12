@@ -45,5 +45,9 @@
 #define ASSETS_SRC_JAGUAR      "jaguar"
 #define ASSETS_SRC_SWOS2020    "swos2020"
 #define ASSETS_SRC_WORLD       "world"          /* a world's package (OpenSWOS-World-<tag>.zip) */
+/* Set when the PC part (dos_files, aga_pc, teams) was made from SWOS 2020's install, there being
+ * no PC game and no Amiga version: SWOS 2020's game folder. Its art and pitches, no commentary, no
+ * menu.xmi (src/assets_check.c AssetsCheck_PcFromSwos2020). Not written otherwise. */
+#define ASSETS_SRC_PC_SWOS2020 "pc_swos2020"
 
 #endif /* ASSETS_INI_H */

@@ -721,6 +721,12 @@ void TryPlayMusic(void)
         } else
         if (DosMusic_Style() && AudioSDL_PcMusicStart() == 0) {
         } else
+        if (DosMusic_Style() && !DosMusic_MenuRecording() && AudioSDL_StreamStart("menu", 1) == 0) {
+            /* no menu.xmi or sample.ad (data made from SWOS 2020: tools/swosdata): the recording */
+            static int s_said;
+            if (!s_said++)
+                fprintf(stderr, "[music] no PC menu.xmi: the menus play sound_dos/menu.mp3\n");
+        } else
         if (AudioSDL_StartSong(_menuSongData, MENU_SONG_DATA_BYTES,
                                _menuInsBank,  MENU_INS_BANK_BYTES, 1) != 0) {
             /* Load failed — keep audio silent but mark "loaded" so we

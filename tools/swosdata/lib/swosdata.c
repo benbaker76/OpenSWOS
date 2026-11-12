@@ -66,11 +66,11 @@ void SwosData_Plan(const SdJob *job, SdStepInfo info[SD_STEP_COUNT])
 
     info[SD_STEP_DOS_FILES].name = "PC graphics, sound and commentary";
     info[SD_STEP_DOS_FILES].needs = "the PC game";
-    info[SD_STEP_DOS_FILES].ready = SdSources_HaveDos(&job->src);
+    info[SD_STEP_DOS_FILES].ready = SdSources_HaveDos(&job->src) || SdSources_PcFromSwos2020(&job->src);
 
     info[SD_STEP_AGA_PC].name = "AGA menus, pitches and credits";
     info[SD_STEP_AGA_PC].needs = "the PC game";
-    info[SD_STEP_AGA_PC].ready = SdSources_HaveDos(&job->src);
+    info[SD_STEP_AGA_PC].ready = SdSources_HaveDos(&job->src) || SdSources_PcFromSwos2020(&job->src);
 
     info[SD_STEP_AGA_AMIGA].name = "AGA loading screens";
     info[SD_STEP_AGA_AMIGA].needs = "both Amiga disks";
@@ -78,7 +78,8 @@ void SwosData_Plan(const SdJob *job, SdStepInfo info[SD_STEP_COUNT])
 
     info[SD_STEP_TEAMS].name = "Teams and players";
     info[SD_STEP_TEAMS].needs = "the Amiga disks or the PC game";
-    info[SD_STEP_TEAMS].ready = SdSources_HaveAmiga(&job->src) || SdSources_HaveDos(&job->src);
+    info[SD_STEP_TEAMS].ready = SdSources_HaveAmiga(&job->src) || SdSources_HaveDos(&job->src) ||
+                                SdSources_PcFromSwos2020(&job->src);
 
     info[SD_STEP_JAGUAR].name = "Atari Jaguar sprites";
     info[SD_STEP_JAGUAR].needs = "the Jaguar cartridge and the PC game";
@@ -98,6 +99,24 @@ static int32_t write_out(SdJob *job, const char *rel, const SgBuf *b, char *err)
     char path[1100];
     Sg_PathJoin(path, sizeof path, job->outDir, rel);
     return Sg_WriteFile(path, b->data, b->size, err);
+}
+
+/* The PC game's files: from the PC game -- or, with neither it nor the Amiga version, from
+ * SWOS 2020's install as it is (SdSources_PcFromSwos2020). */
+static int32_t pc_from_2020(const SdJob *job)
+{
+    return SdSources_PcFromSwos2020(&job->src);
+}
+
+static const char *pc_dir(const SdJob *job)
+{
+    return pc_from_2020(job) ? job->src.s2020Dir : job->src.dosDir;
+}
+
+static int32_t read_pc(SdJob *job, const char *rel, SgBuf *out, char *err)
+{
+    return pc_from_2020(job) ? SdSources_ReadSwos2020Pc(&job->src, rel, out, err)
+                             : SdSources_ReadDos(&job->src, rel, out, err);
 }
 
 static void tick(SdJob *job, int32_t *done, int32_t total)
@@ -171,13 +190,28 @@ static int32_t dos_optional(const char *dest)
            !strncmp(dest, "sound_dos/pierce/", 17);
 }
 
+/* The PC menu music and its instruments: SWOS 2020 has neither (it plays menu.mp3, a recording). */
+static int32_t dos_music(const char *dest)
+{
+    return !strcmp(dest, "sound_dos/menu.xmi") || !strcmp(dest, "sound_dos/sample.ad");
+}
+
+/* From SWOS 2020 only: its recordings of the PC music, which the game streams ([audio] music = pc:
+ * docs/DOS_SOUND.md) -- the CD's title song, and the menu music in place of menu.xmi. */
+static const SdCopy kFrom2020Music[] = {
+    { "sound_dos/title.mp3", "PC DOS - Goalscoringsuperstarhero.mp3" },
+    { "sound_dos/menu.mp3",  "menu.mp3" },
+};
+#define FROM_2020_MUSIC_COUNT ((int32_t)(sizeof kFrom2020Music / sizeof kFrom2020Music[0]))
+
 static int32_t step_dos_files(SdJob *job, int32_t *done, int32_t total, char *err)
 {
     int32_t missing = 0, commentary = 0;
+    const int32_t from2020 = pc_from_2020(job);
     for (int32_t i = 0; g_sdDosCopy[i].dest; i++) {
         SgBuf b;
-        if (SdSources_ReadDos(&job->src, g_sdDosCopy[i].src, &b, err) != 0) {
-            if (!dos_optional(g_sdDosCopy[i].dest))
+        if (read_pc(job, g_sdDosCopy[i].src, &b, err) != 0) {
+            if (!dos_optional(g_sdDosCopy[i].dest) && !(from2020 && dos_music(g_sdDosCopy[i].dest)))
                 return -1;
             missing++;
             commentary += !strncmp(g_sdDosCopy[i].dest, "sound_dos/pierce/", 17);
@@ -192,6 +226,30 @@ static int32_t step_dos_files(SdJob *job, int32_t *done, int32_t total, char *er
             return -1;
         if (job->progress)
             job->progress(job->user, ++*done, total);
+    }
+    if (from2020) {
+        int32_t music = 0;
+        for (int32_t i = 0; i < FROM_2020_MUSIC_COUNT; i++) {
+            char path[1100];
+            SgBuf b;
+            if (Sg_FindNoCase(job->src.s2020Dir, kFrom2020Music[i].src, path, sizeof path) == 0 &&
+                Sg_ReadFile(path, &b, err) == 0) {
+                int32_t rc = write_out(job, kFrom2020Music[i].dest, &b, err);
+                Sg_BufFree(&b);
+                if (rc != 0)
+                    return -1;
+                music++;
+            }
+            err[0] = 0;
+            tick(job, done, total);
+        }
+        logf_(job, "PC, from SWOS 2020 (no PC game or Amiga version given): %d files, %d of them its "
+                   "recordings of the music; its own graphics and pitches", count_dos() - missing + music,
+              (int)music);
+        logf_(job, "PC: %d of the PC game's sounds are not in SWOS 2020 -- the commentary, most of the crowd's "
+                   "and the menu music's instruments; the game plays without them (give the setup the PC game "
+                   "or its CD for them)", (int)missing);
+        return 0;
     }
     logf_(job, "PC: %d files", count_dos() - missing);
     if (missing)
@@ -297,7 +355,7 @@ static int32_t make_backdrop(SdJob *job, const char *dosName, SgImage *out, char
 {
     char path[1100];
     SgImage pic;
-    if (Sg_FindNoCase(job->src.dosDir, dosName, path, sizeof path) != 0) {
+    if (Sg_FindNoCase(pc_dir(job), dosName, path, sizeof path) != 0) {
         snprintf(err, 256, "%s is not in the PC game folder", dosName);
         return -1;
     }
@@ -314,7 +372,7 @@ static int32_t make_banks(SdJob *job, int32_t *done, int32_t total, char *err)
 {
     SgImage banks[SG_BANK_COUNT];
     char glyphs[1100];
-    if (Sg_DosToAmigaBanks(job->src.dosDir, banks, err) != 0)
+    if (Sg_DosToAmigaBanks(pc_dir(job), banks, err) != 0)
         return -1;
     glyphs_path(job, glyphs, sizeof glyphs);
     int32_t rc = Sg_FontExtend(&banks[SG_BANK_CHARSET], glyphs, err);
@@ -343,7 +401,7 @@ static int32_t step_aga_pc(SdJob *job, int32_t *done, int32_t total, char *err)
     for (int32_t n = 1; n <= 6 && rc == 0; n++) {
         SgBuf map;
         char rel[64];
-        if ((rc = Sg_DosPitchToAgaMap(job->src.dosDir, n, &map, err)) != 0)
+        if ((rc = Sg_DosPitchToAgaMap(pc_dir(job), n, &map, err)) != 0)
             break;
         snprintf(rel, sizeof rel, "grafs_aga/SWCPICH%d.MAP", n);
         rc = write_packed(job, rel, &map, err);
@@ -424,7 +482,7 @@ static int32_t step_teams(SdJob *job, int32_t *done, int32_t total, char *err)
         char dosRel[64], name[64], out[96];
         snprintf(dosRel, sizeof dosRel, "DATA/%s", rel + 5);
         int32_t rc = fromAmiga ? SdSources_ReadAmiga(&job->src, rel, &raw, err)
-                               : SdSources_ReadDos(&job->src, dosRel, &raw, err);
+                               : read_pc(job, dosRel, &raw, err);
         if (rc != 0)
             return -1;
         /* Without the disks the game's own data/ comes from the PC files too,
@@ -455,7 +513,11 @@ static int32_t step_teams(SdJob *job, int32_t *done, int32_t total, char *err)
             return -1;
         tick(job, done, total);
     }
-    logf_(job, "Teams: %d files, from the %s", count_teams(), fromAmiga ? "Amiga disks" : "PC game");
+    logf_(job, "Teams: %d files, from the %s", count_teams(),
+          fromAmiga ? "Amiga disks"
+          : !pc_from_2020(job) ? "PC game"
+          : SdSources_Swos2020Has9697Teams(&job->src) ? "96/97 teams SWOS 2020 keeps for its online play"
+          : "SWOS 2020's own (no 96/97 teams in it: not the season OpenSWOS plays online)");
     return 0;
 }
 
@@ -555,7 +617,7 @@ int32_t SwosData_Run(SdJob *job, char *err)
     if (info[SD_STEP_AMIGA_FILES].ready)
         total += count_amiga() + 1;
     if (info[SD_STEP_DOS_FILES].ready)
-        total += count_dos();
+        total += count_dos() + (pc_from_2020(job) ? FROM_2020_MUSIC_COUNT : 0);
     if (info[SD_STEP_AGA_PC].ready)
         total += AGA_PC_COUNT;
     if (info[SD_STEP_AGA_AMIGA].ready)
@@ -634,6 +696,7 @@ static char *source_field(SdSources *s, int32_t i)
 typedef struct {
     int32_t version[SD_STEP_COUNT];     /* 0: not listed */
     char    source[SRC_COUNT][1024];    /* "": not listed */
+    char    pcFrom2020[1024];           /* ASSETS_SRC_PC_SWOS2020: "" when the PC part is the PC game's */
 } SdAssetsIni;
 
 static char *trim(char *t)
@@ -674,6 +737,8 @@ static int32_t ini_read(const char *assetsDir, SdAssetsIni *ini)
             for (int32_t i = 0; i < SRC_COUNT; i++)
                 if (strcmp(key, kSourceKey[i]) == 0)
                     snprintf(ini->source[i], sizeof ini->source[i], "%s", val);
+            if (strcmp(key, ASSETS_SRC_PC_SWOS2020) == 0)
+                snprintf(ini->pcFrom2020, sizeof ini->pcFrom2020, "%s", val);
         }
     }
     fclose(f);
@@ -708,6 +773,15 @@ static int32_t ini_write(const char *assetsDir, const SdAssetsIni *ini, char *er
 #endif
         fprintf(f, "%s = %s\n", kSourceKey[i], p);
     }
+    if (ini->pcFrom2020[0]) {           /* (only then: a PC game's install is written as it was) */
+        char p[1024];
+        snprintf(p, sizeof p, "%s", ini->pcFrom2020);
+#ifdef _WIN32
+        for (char *c = p; *c; c++)
+            if (*c == '/') *c = '\\';
+#endif
+        fprintf(f, "%s = %s\n", ASSETS_SRC_PC_SWOS2020, p);
+    }
     if (fclose(f) != 0) {
         snprintf(err, 256, "cannot write %.200s", path);
         remove(tmp);
@@ -734,6 +808,8 @@ static int32_t write_assets_ini(SdJob *job, const SdStepInfo info[SD_STEP_COUNT]
         if (used[0])
             snprintf(ini.source[i], sizeof ini.source[i], "%s", used);
     }
+    if (info[SD_STEP_DOS_FILES].ready)  /* the PC part made again: from SWOS 2020 or not, now */
+        snprintf(ini.pcFrom2020, sizeof ini.pcFrom2020, "%s", pc_from_2020(job) ? job->src.s2020Dir : "");
     return ini_write(job->outDir, &ini, err);
 }
 
@@ -761,6 +837,19 @@ int32_t SwosData_LoadSources(const char *assetsDir, SdSources *s)
         }
     }
     return n;
+}
+
+/* The AGA files made from SWOS 2020 (ASSETS.ini pc_swos2020): its pitches as SWCPICHn.MAP are three
+ * to eight times the PC game's and do not fit the Amiga's pitch buffer, so no drawer or WHDLoad
+ * package is made from them. 1 (and err) when so. */
+static int32_t aga_from_2020(const char *assetsDir, char *err)
+{
+    SdAssetsIni ini;
+    if (ini_read(assetsDir, &ini) != 0 || !ini.pcFrom2020[0])
+        return 0;
+    snprintf(err, 256, "the PC data was made from SWOS 2020, whose pitches do not fit the Amiga: "
+                       "give the setup the PC game and install again");
+    return 1;
 }
 
 /* ---- what is installed already ------------------------------------------ */
@@ -809,9 +898,12 @@ static void list_optional(const char *assetsDir, const char *rel, SdInstalled *n
 void SwosData_Installed(const char *assetsDir, SdInstalled out[SD_STEP_COUNT])
 {
     char rel[160];
+    SdAssetsIni ini;
     memset(out, 0, sizeof(SdInstalled) * SD_STEP_COUNT);
     if (!assetsDir || !assetsDir[0])
         return;
+    const int32_t haveIni = ini_read(assetsDir, &ini) == 0;
+    const int32_t from2020 = haveIni && ini.pcFrom2020[0];   /* (no menu.xmi, sample.ad: its mp3s) */
 
     /* The team files in the Amiga list are the teams step's: it writes them from
      * the PC game too, so they say nothing about the Amiga disks. */
@@ -822,11 +914,14 @@ void SwosData_Installed(const char *assetsDir, SdInstalled out[SD_STEP_COUNT])
 
     n = &out[SD_STEP_DOS_FILES];
     for (int32_t i = 0; g_sdDosCopy[i].dest; i++) {   /* (the sounds a release may not have: not counted) */
-        if (dos_optional(g_sdDosCopy[i].dest))
+        if (dos_optional(g_sdDosCopy[i].dest) || (from2020 && dos_music(g_sdDosCopy[i].dest)))
             list_optional(assetsDir, g_sdDosCopy[i].dest, n);
         else
             count_file(assetsDir, g_sdDosCopy[i].dest, n);
     }
+    if (from2020)
+        for (int32_t i = 0; i < FROM_2020_MUSIC_COUNT; i++)
+            list_optional(assetsDir, kFrom2020Music[i].dest, n);
 
     n = &out[SD_STEP_AGA_PC];
     for (int32_t b = 0; b < SG_BANK_COUNT; b++) {
@@ -887,8 +982,7 @@ void SwosData_Installed(const char *assetsDir, SdInstalled out[SD_STEP_COUNT])
         count_file(assetsDir, rel, n);
     }
 
-    SdAssetsIni ini;
-    if (ini_read(assetsDir, &ini) == 0)
+    if (haveIni)
         for (int32_t s = 0; s < SD_STEP_COUNT; s++)
             out[s].version = ini.version[s];
 }
@@ -1146,6 +1240,8 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
     Pkg pkg = { NULL, 0, 0 };
     int32_t rc = -1;
 
+    if (aga_from_2020(assetsDir, err))
+        return -1;
     if (Sg_FindNoCase(drawerDir, "SWOS2", probe, sizeof probe) != 0) {
         snprintf(err, 256, "%.200s is not a SWOS drawer (no SWOS2 in it)", drawerDir);
         return -1;
@@ -1257,6 +1353,8 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir, i
 {
     static const char *const kTrees[] = { "data", "grafs", "grafs_aga", "sound" };
     char probe[1100];
+    if (aga_from_2020(assetsDir, err))
+        return -1;
     if (Sg_FindNoCase(drawerDir, "SWOS2", probe, sizeof probe) != 0) {
         snprintf(err, 256, "%s is not a SWOS drawer (no SWOS2 in it): unpack SWOS-Amiga.zip first",
                  drawerDir);

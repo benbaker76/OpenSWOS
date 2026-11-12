@@ -34,4 +34,10 @@ int32_t AssetsCheck_LaunchSetupHeadless(void);
 void AssetsCheck_SetWorld(int32_t state, const char *tag, const char *have, const char *want);
 void AssetsCheck_World(PlatformInitOptions *opts);
 
+/* 1 when OpenSWOS Setup made the PC data from SWOS 2020's install, there being no PC game and no
+ * Amiga version (ASSETS.ini [sources] pc_swos2020): SWOS 2020's art and pitches, which only the
+ * PC drawing path holds (its pitches do not fit the Amiga's), no commentary, its menu.mp3 for
+ * menu.xmi. Read once; callable before SDL_Init. */
+int32_t AssetsCheck_PcFromSwos2020(void);
+
 #endif /* ASSETS_CHECK_H */

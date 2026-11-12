@@ -658,7 +658,12 @@ all save types are proven."
 > first and beside the binary second (`swos_data_path()`); `make WASM=1` preloads
 > `bin/` plus `$(SWOS_ASSETS)`. Without the Amiga disks the game plays the PC
 > sound/music and skips the Amiga loading screens (`_gNoAmigaSound`,
-> `_gNoAmigaScreens`, main.c). What stays tracked in the trees below is the
+> `_gNoAmigaScreens`, main.c). With NEITHER the PC game nor the Amiga version, only SWOS 2020,
+> the setup makes the PC data from SWOS 2020's install as it is (`SdSources_PcFromSwos2020`,
+> ASSETS.ini `[sources] pc_swos2020`): its art and pitches, the 96/97 teams of its `MP/DB/96_97`,
+> its 28 effects/crowd sounds, its title/menu mp3s; no commentary, no menu.xmi. The game then
+> draws ARTWORK = SWOS 2020 whatever SWOS.ini says (those pitches only fit the PC drawing path),
+> and the setup will not make an Amiga drawer from it. What stays tracked in the trees below is the
 > project's own (LOADER76, credits photos, 1UP.WAV, `bin/setup/`);
 > the rest is `.gitignore`d, so a developer's `bin/` can still hold it (the
 > FS-UAE harness needs it there). **Every drop is staged from git-tracked files
