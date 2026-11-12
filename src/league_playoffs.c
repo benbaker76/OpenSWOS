@@ -465,7 +465,28 @@ void LeaguePlayoffs_Decide(uint16_t country, const int8_t *table, int8_t *scratc
          * above it one place down -- the qualifiers read it as the champion. The Mod 4.1 (Davide
          * 06/11, Malta's 11th won the Final Four): a winner outside the top 9 comes in first all the
          * same, its record from the game's team cache, the 9th dropping out; not in the cache: the
-         * table's 1st stays, as before. */
+         * table's 1st stays, as before. The Mod 4.1.1 (Jacopo's TERMOLI, Davide 11/11): a lower
+         * tier's title -- a title play-off with no entrant by a top-division place, Italy's POULE
+         * SCUDETTO SERIE D -- is no champion here: Europe from the top flight only. The Mod marks
+         * it in gplay.c's result() (ch_low / po_low), inside the library's season end; ours reads
+         * the same from the spec here, the n-th title result the n-th title play-off's (each makes
+         * at most one; every world country has one title play-off at most). */
+        uint8_t low[16];
+        int32_t nlow = 0, ntitle = 0;
+        for (int32_t p = 0; nlow < 16; p++) {
+            const uint8_t *sp = LeaguePlayoffs_SpecAt((uint8_t)country, p);
+            if (!sp)
+                break;
+            if (sp[0] != SR_KIND_TITLE)
+                continue;
+            uint8_t lo = 1;                 /* (an entrant by a top-division place: kind 0 / 3 / 5 / 6 / 7, div 0) */
+            for (int32_t i = 0; i < sp[1] && i < 64; i++) {
+                const uint8_t *e = sp + 6 + 4 * i;
+                if (e[0] != 4 && e[0] != 8 && e[0] != 9 && e[1] == 0)
+                    lo = 0;
+            }
+            low[nlow++] = lo;
+        }
         extern uint8_t _primaryQualifiedTeamGrids[];
         extern uint16_t _cachedPrimaryQualifiedTeamIds[];
         extern TeamFileEx *CareerTeams_FindInCache(uint16_t teamNum);
@@ -474,6 +495,11 @@ void LeaguePlayoffs_Decide(uint16_t country, const int8_t *table, int8_t *scratc
             const sr_result *x = &s_rules.gp.res[k];
             if (x->kind != SR_KIND_TITLE)
                 continue;
+            if (ntitle < nlow && low[ntitle++]) {
+                SWOS_DBG("[playoffs] country %d: the title play-off's champion %04X is a lower tier's: no "
+                         "European place\n", (int)country, (unsigned)x->team[0]);
+                continue;
+            }
             int32_t j = 0;
             while (j < 9 && BE_READ_U16(_primaryQualifiedTeamGrids + (uint32_t)j * sizeof(TeamFileEx)) != x->team[0])
                 j++;
