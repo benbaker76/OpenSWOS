@@ -154,6 +154,10 @@ const char *WorldPlayoff_RoundName(uint16_t round, uint16_t rounds);
  * season and the contest the career club played, written into the current season's record. */
 void WorldPlayoff_RecordLines(void);
 
+/* 4.1.2: the stage titles (Apertura, Clausura, Trofeo) the career club won this season, decided
+ * or its knockout under way (the Mod's gp_stwins_c): the season-end opinion's, a league in zones. */
+int32_t WorldPlayoff_StageWins(void);
+
 /* The SEASON WINNERS page (world_winners.c): play-off pidx's contest this season, tie `tie`'s
  * winner (-1 the last tie's, a group contest's champion) -- 1 decided (*team), 0 being played,
  * -1 no contest of it; and the Italian rules' contest k (1 Serie B's play-off, 2 its play-out:

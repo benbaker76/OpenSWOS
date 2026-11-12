@@ -62,6 +62,22 @@ void LeagueSplit_Walking(int32_t on);
 int32_t LeagueSplit_RestOfDayWithoutCareerClub(void);
 int32_t LeagueSplit_Pages(uint16_t *groups, uint16_t *perGroup);   /* a table of > 22: its zones as pages */
 
+/* 4.1.2 (the Mod's split.py ZP_ASM): a league in zones by membership (Argentina, Panama, the
+ * MLS) judged on the career club's zone. For the career league's slot only (the callers'):
+ *   ZoneFind      FindTeamInDIY's league place -> the place in its zone, scaled to the league
+ *                 (pz x N / z); the place itself when the league is in no zones now;
+ *   ZoneOfTeam    GetMoreExpensiveTeamsCount: the club's row and the rows' zones (*zones, *n),
+ *                 -1 when not in zones (count every club then);
+ *   ZoneScale     ... its count of the zone's clubs, scaled to the league (e x N / z);
+ *   ZoneRecord    the season record's league place (1-based) -> the place in the zone, when it
+ *                 is the last ZoneFind's;
+ *   InZones       the league is in zones now (the season-end opinion's stage titles). */
+uint16_t LeagueSplit_ZoneFind(const void *league, uint16_t place);
+int32_t  LeagueSplit_ZoneOfTeam(const void *league, uint16_t teamNo, const uint8_t **zones, int32_t *n);
+uint16_t LeagueSplit_ZoneScale(const uint8_t *zones, int32_t n, int32_t row, uint16_t count);
+int8_t   LeagueSplit_ZoneRecord(int8_t code);
+int32_t  LeagueSplit_InZones(const void *league);
+
 /* The career league's head-to-head points (a split league's, the career's; saved). */
 #define LEAGUE_SPLIT_H2H 64
 extern uint8_t g_leagueSplitH2H[LEAGUE_SPLIT_H2H];

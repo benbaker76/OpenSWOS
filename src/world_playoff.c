@@ -1073,6 +1073,28 @@ static int32_t same_text(const char *a, const char *b)
     return *a == *b;
 }
 
+/* 4.1.2 (Enzo, Davide 12/11; the Mod's gplay.c gp_stwins_c, split.py zp_bonus): the stage titles
+ * (Apertura, Clausura, Trofeo) the career club won this season, for the chairman's season-end
+ * opinion in a league in zones (each one counts as a cup won). The same sources as the record's
+ * lines: the stage titles decided before, and the stage knockout still under way. Read only. */
+int32_t WorldPlayoff_StageWins(void)
+{
+    const uint8_t season = (uint8_t)(g_worldCups.seasons + 1);
+    const int32_t live = g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC && g_worldPlayoff.season == season;
+    const uint8_t *ks = live ? k_spec() : 0;
+    const int32_t kstage = ks && ks[0] == 8 ? ks[3] & 3 : -1;
+    int32_t n = 0;
+    for (int32_t st = 0; st < 3; st++) {
+        const WorldStageTitle *x = &g_worldStageTitle[st];
+        if (st == kstage || x->season != season || !x->done || !x->pidx1)
+            continue;
+        n += x->clubResult == 1;
+    }
+    if (kstage >= 0 && k_club_res() == 1)
+        n++;
+    return n;
+}
+
 void WorldPlayoff_RecordLines(void)
 {
     extern uint16_t _gameType;

@@ -11,6 +11,7 @@
 #include "comp_identity.h"
 #include "game_types.h"
 #include "world.h"
+#include "league_split.h"   /* LeagueSplit_ZoneRecord: a league in zones */
 #include "menu_system.h"
 #include "play_match_menu.h"
 #include "input_text.h"
@@ -1798,7 +1799,9 @@ void Career_FillCurrentSeasonInfo(void)
         if (d1 >= 0) {
             d1 = EncodeCompetitionPositionForSeasonInfo_impl(
                 d1, (uint8_t *)&_primaryCompetitionBuf, compDef);
-            a5->comp1Result = (int8_t)d1;
+            /* (a world's league in zones: the place in the club's zone, not the scaled
+             * one FindTeamInDIY gave -- the Mod 4.1.2's zp_rec; league_split.c) */
+            a5->comp1Result = LeagueSplit_ZoneRecord((int8_t)d1);
 
             /* Check qualifying stage status (WC or EC qualifier) */
             uint8_t defId = compDef ? comp_id(compDef) : 0xFFu;

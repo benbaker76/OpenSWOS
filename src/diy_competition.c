@@ -10016,8 +10016,13 @@ league_search:
             uint16_t teamIdx = (uint16_t)((uint32_t)(int32_t)rawIdx / 18u);
             /* leagueTeamIds is BE-packed (295c9f3) — compare against
              * host-native teamNo via BE_READ_U16. */
-            if (BE_READ_U16(&leagueTeamIds[teamIdx]) == teamNo)
+            if (BE_READ_U16(&leagueTeamIds[teamIdx]) == teamNo) {
+                /* (a world's league in zones, the career league's slot: the place in the
+                 * club's zone, scaled to the league -- the Mod 4.1.2's zp_find; league_split.c) */
+                if ((uint8_t *)comp == (uint8_t *)&_primaryCompetitionBuf)
+                    return LeagueSplit_ZoneFind(comp, i);
                 return i;
+            }
         }
         goto not_found;
     }
@@ -10292,6 +10297,13 @@ uint16_t GetMoreExpensiveTeamsCount(uint16_t teamNo, DIYCompetition *comp)
     TeamFileEx *myTeam = VerifyTeamLoaded(teamNo);
     uint16_t myPrice = GetAveragePlayerPrice(myTeam);
 
+    /* A world's league in zones, the career league's slot: its own zone's clubs only, the count
+     * scaled to the league (the Mod 4.1.2's zp_skip / zp_escale; league_split.c). */
+    const uint8_t *zones = 0;
+    int32_t zoneRows = 0, myRow = -1;
+    if (compType == 0 && (uint8_t *)comp == (uint8_t *)&_primaryCompetitionBuf)
+        myRow = LeagueSplit_ZoneOfTeam(comp, teamNo, &zones, &zoneRows);
+
     /* Count teams with higher average price.
      * teamIds points at competitionFileBuffer +0x12E/+0x24E/+0x9A — all
      * BE-packed `{country, ordinal}` per the 295c9f3 convention. Use
@@ -10302,11 +10314,15 @@ uint16_t GetMoreExpensiveTeamsCount(uint16_t teamNo, DIYCompetition *comp)
         uint16_t otherId = BE_READ_U16(&teamIds[i]);
         if (otherId == teamNo)
             continue;
+        if (myRow >= 0 && i < zoneRows && zones[i] != zones[myRow])
+            continue;
         TeamFileEx *otherTeam = VerifyTeamLoaded(otherId);
         uint16_t otherPrice = GetAveragePlayerPrice(otherTeam);
         if (otherPrice > myPrice)
             count++;
     }
+    if (myRow >= 0)
+        count = LeagueSplit_ZoneScale(zones, zoneRows, myRow, count);
     return count;
 }
 

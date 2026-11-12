@@ -64,10 +64,9 @@ static DIYTeamStats *row_stats(int32_t row)
     return (DIYTeamStats *)((uint8_t *)&_diyCompetitionStart + (uint32_t)row * ROW + DIY_STANDINGS_OFFSET);
 }
 
-/* The current league's split table, or 0 (no split running). */
-static const uint8_t *active(void)
+/* League c's split table, or 0 (no split running). */
+static const uint8_t *active_of(const DIYCompetitionEx *c)
 {
-    DIYCompetitionEx *c = &_diyCompetitionStart;
     const LeagueSplitState *st = &c->leagueSplit;
     int32_t n = 0;
     const LeagueSplit *sp = World_LeagueSplits(&n);
@@ -75,6 +74,12 @@ static const uint8_t *active(void)
         st->compId != c->base.field_2E || st->n != c->base.numTeams)
         return 0;
     return sp[st->entry - 1].table;
+}
+
+/* The current league's. */
+static const uint8_t *active(void)
+{
+    return active_of(&_diyCompetitionStart);
 }
 
 /* Day `day` after the split: its stage (the last whose first day it has reached). */
@@ -504,4 +509,97 @@ int32_t LeagueSplit_RestOfDayWithoutCareerClub(void)
         DIY_PlayOrSimulateLeagueFixture(0, 0);
     while (!c->leagueCurrentSlot);
     return 1;
+}
+
+/* ---- 4.1.2: the place in the club's own zone (the Mod's split.py ZP_ASM, Enzo / Davide) ----
+ *
+ * A league in zones by membership (Argentina, Panama: two zones; the MLS: two conferences) is
+ * one table of N rows, the second zone under the first. The board, the season record and the
+ * season-end opinion judge the career club on its place in its own zone, scaled to the league
+ * (pz x N / z: every ratio check of the original's then gives the in-zone result -- exact for
+ * two zones of N / 2 -- and the zone's first stays 0), and count its more expensive clubs in its
+ * zone only, scaled the same way. Only for the career league's slot (the Mod: competitionFile-
+ * Buffer), in a stage whose groups are by membership; anything else is the original's. */
+
+static struct {
+    uint8_t  ok;                /* the last FindTeamInDIY of the career league gave a zone place */
+    uint16_t place, scaled;     /* its zone place (0-based), and that place scaled to the league */
+} s_zone;
+
+/* League c's zones now: each row's zone (its stage's members), *n its rows; 0 none (the Mod's
+ * zp_entry: before the split, or a stage not by membership). */
+static const uint8_t *zones_of(const DIYCompetitionEx *c, int32_t *n)
+{
+    const uint8_t *t = c->base.competitionType == 0 ? active_of(c) : 0;
+    if (!t || !t[7])
+        return 0;
+    const int32_t day = (int32_t)c->leagueMatchProgress - t[5];
+    if (day < 0)
+        return 0;
+    const uint8_t *rec = t + 16 + SR * stage_of(t, day);
+    if (!(rec[2] & F_MEMBERS) || !w16(rec + 20))
+        return 0;
+    *n = t[3];
+    return t + w16(rec + 20);
+}
+
+static int32_t zone_size(const uint8_t *zones, int32_t n, uint8_t z)
+{
+    int32_t k = 0;
+    for (int32_t r = 0; r < n; r++)
+        k += zones[r] == z;
+    return k;
+}
+
+uint16_t LeagueSplit_ZoneFind(const void *league, uint16_t place)
+{
+    const DIYCompetitionEx *c = (const DIYCompetitionEx *)league;
+    int32_t n = 0;
+    s_zone.ok = 0;
+    const uint8_t *zones = zones_of(c, &n);
+    if (!zones || place >= n)
+        return place;
+    const uint16_t *order = c->matchData.league.teamEntryOffsets;
+    const uint8_t z = zones[order[place] / ROW];
+    int32_t pz = 0;
+    for (int32_t k = 0; k < place; k++)
+        pz += zones[order[k] / ROW] == z;
+    const int32_t size = zone_size(zones, n, z);
+    if (!size)
+        return place;
+    s_zone.ok = 1;
+    s_zone.place = (uint16_t)pz;
+    s_zone.scaled = (uint16_t)((uint32_t)pz * (uint32_t)n / (uint32_t)size);
+    return s_zone.scaled;
+}
+
+int32_t LeagueSplit_ZoneOfTeam(const void *league, uint16_t teamNo, const uint8_t **zones, int32_t *n)
+{
+    const DIYCompetitionEx *c = (const DIYCompetitionEx *)league;
+    const uint8_t *zs = zones_of(c, n);
+    if (!zs)
+        return -1;
+    for (int32_t r = 0; r < *n; r++)
+        if (BE_READ_U16(&c->matchData.league.leagueTeamIds[r]) == teamNo) {
+            *zones = zs;
+            return r;
+        }
+    return -1;
+}
+
+uint16_t LeagueSplit_ZoneScale(const uint8_t *zones, int32_t n, int32_t row, uint16_t count)
+{
+    const int32_t size = zone_size(zones, n, zones[row]);
+    return size ? (uint16_t)((uint32_t)count * (uint32_t)n / (uint32_t)size) : count;
+}
+
+int8_t LeagueSplit_ZoneRecord(int8_t code)
+{
+    return s_zone.ok && (uint8_t)code == (uint8_t)(s_zone.scaled + 1) ? (int8_t)(s_zone.place + 1) : code;
+}
+
+int32_t LeagueSplit_InZones(const void *league)
+{
+    int32_t n = 0;
+    return zones_of((const DIYCompetitionEx *)league, &n) != 0;
 }
