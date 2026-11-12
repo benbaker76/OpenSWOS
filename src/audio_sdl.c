@@ -106,6 +106,12 @@ static int      s_pcm_master = 64;   /* 0..64: the match's fades */
  * (2) the chants', the rest -- the crowd with the effects -- the effects'. */
 static int      s_vol_music = 256, s_vol_chants = 256, s_vol_comment = 256, s_vol_fx = 256;
 static int      s_player_song;       /* the shared player holds a song (else the match's sounds) */
+/* A cutscene's sound (src/mod_api.c ModApi_Cutscene*, the PC cutscenes mod): while s_cut_solo is
+ * set, nothing else is mixed -- the songs, the effects and the PC music are held where they are
+ * (not ticked, so each goes on from there after) -- and this voice plays at the effects' volume,
+ * whatever the menus' master volume. Unsigned 8-bit mono, the caller's. */
+static int      s_cut_solo;
+static PcmVoice s_cut;
 
 /* Queue-mode mix scratch. Sized for one game tick (50 Hz) of stereo S8
  * at the highest plausible negotiated rate (48 kHz) plus a little slack. */
@@ -277,6 +283,29 @@ void AudioSDL_Tick(void)
      * double-step the song state). */
     Uint32 queued_bytes = SDL_GetQueuedAudioSize(s_audio_dev);
     if (queued_bytes >= target_bytes) {
+        SDL_UnlockMutex(s_mtx);
+        return;
+    }
+
+    if (s_cut_solo) {               /* (a cutscene: its sound alone) */
+        const int frames = samples_per_tick / 2;
+        for (int i = 0; i < frames; i++) {
+            int smp = 0;
+            if (s_cut.data) {
+                const uint32_t at = (uint32_t)(s_cut.pos >> 16);
+                if (at >= s_cut.len) {
+                    s_cut.data = NULL;
+                } else {
+                    const uint32_t at1 = at + 1 < s_cut.len ? at + 1 : at;
+                    const int frac = (int)(s_cut.pos & 0xFFFF);
+                    const int a = (int)s_cut.data[at] - 128, b = (int)s_cut.data[at1] - 128;
+                    smp = (a * 256 + (b - a) * frac / 256) * s_vol_fx / 256;
+                    s_cut.pos += s_cut.step;
+                }
+            }
+            s_out_buf[i * 2] = s_out_buf[i * 2 + 1] = (int16_t)(smp < -32768 ? -32768 : smp > 32767 ? 32767 : smp);
+        }
+        SDL_QueueAudio(s_audio_dev, s_out_buf, out_bytes);
         SDL_UnlockMutex(s_mtx);
         return;
     }
@@ -794,6 +823,38 @@ int AudioSDL_PcmPlaying(int voice)
 {
     return voice >= 0 && voice < PCM_VOICES && s_pcm[voice].data != NULL;
 }
+
+/* ---- a cutscene's sound (see s_cut_solo) ---- */
+int AudioSDL_Available(void) { return s_audio_dev != 0; }
+
+void AudioSDL_CutsceneSolo(int on)
+{
+    if (!s_mtx)
+        return;
+    SDL_LockMutex(s_mtx);
+    s_cut_solo = on != 0;
+    if (!on)
+        s_cut.data = NULL;
+    SDL_UnlockMutex(s_mtx);
+}
+
+void AudioSDL_CutscenePlay(const uint8_t *data, uint32_t len, int rate)
+{
+    if (!s_mtx)
+        return;
+    SDL_LockMutex(s_mtx);
+    s_cut.data = NULL;
+    if (data && len && rate > 0) {
+        const int freq = s_audio_spec.freq ? s_audio_spec.freq : AUDIO_SAMPLE_RATE;
+        s_cut.len = len;
+        s_cut.pos = 0;
+        s_cut.step = (uint32_t)(((uint64_t)rate << 16) / (uint32_t)freq);
+        s_cut.data = data;
+    }
+    SDL_UnlockMutex(s_mtx);
+}
+
+int AudioSDL_CutscenePlaying(void) { return s_cut.data != NULL; }
 
 /* 0..64: the match's fades (half time, full time) on every PCM voice at once. */
 void AudioSDL_PcmMaster(int vol_0_64)

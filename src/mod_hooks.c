@@ -357,6 +357,13 @@ void ModHooks_PlayerCreated(uint16_t team, uint8_t slot, uint8_t kind, PlayerFil
     EACH(playerCreated) (*m_)->playerCreated(&c);
 }
 
+void ModHooks_CareerEvent(uint8_t kind, int16_t goalDiff, uint16_t message, uint8_t flags)
+{
+    extern uint16_t _isNationalSelector;
+    const ModCareerEvent e = { kind, (uint8_t)(_isNationalSelector != 0), goalDiff, message, flags };
+    EACH(careerEvent) (*m_)->careerEvent(&e);
+}
+
 void ModHooks_PlayerRowDrawn(uint8_t screen, uint16_t team, uint8_t slot, int16_t row, int16_t firstCell,
                              int16_t cells, const PlayerFile *player)
 {
