@@ -343,7 +343,9 @@ int main(int argc, char **argv)
                job.src.hdf[0] && !(job.src.adf1[0] && job.src.adf2[0]) && job.src.hdfDir[0] ? ", game in " : "",
                job.src.hdf[0] && !(job.src.adf1[0] && job.src.adf2[0]) ? job.src.hdfDir : "");
     }
-    printf("PC game:      %s\n", job.src.dosDir[0] ? job.src.dosDir : "(not found)");
+    printf("PC game:      %s\n", job.src.dosDir[0] ? job.src.dosDir
+                                  : SdSources_PcFromSwos2020(&job.src) ? "(not found: made from SWOS 2020, below)"
+                                  : "(not found)");
     if (job.src.dosFloppy1[0] || job.src.dosFloppy2[0])
         printf("PC floppies:  %s, %s\n", job.src.dosFloppy1[0] ? job.src.dosFloppy1 : "(disk 1 not found)",
                job.src.dosFloppy2[0] ? job.src.dosFloppy2 : "(disk 2 not found)");

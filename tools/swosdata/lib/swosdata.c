@@ -839,6 +839,19 @@ int32_t SwosData_LoadSources(const char *assetsDir, SdSources *s)
     return n;
 }
 
+/* The AGA files made from SWOS 2020 (ASSETS.ini pc_swos2020): its pitches as SWCPICHn.MAP are three
+ * to eight times the PC game's and do not fit the Amiga's pitch buffer, so no drawer or WHDLoad
+ * package is made from them. 1 (and err) when so. */
+static int32_t aga_from_2020(const char *assetsDir, char *err)
+{
+    SdAssetsIni ini;
+    if (ini_read(assetsDir, &ini) != 0 || !ini.pcFrom2020[0])
+        return 0;
+    snprintf(err, 256, "the PC data was made from SWOS 2020, whose pitches do not fit the Amiga: "
+                       "give the setup the PC game and install again");
+    return 1;
+}
+
 /* ---- what is installed already ------------------------------------------ */
 
 /* SwosData_ListFiles: every file SwosData_Installed counts, with its step. */
@@ -1227,6 +1240,8 @@ int32_t SwosData_MakeWhdload(const char *assetsDir, const char *drawerDir, const
     Pkg pkg = { NULL, 0, 0 };
     int32_t rc = -1;
 
+    if (aga_from_2020(assetsDir, err))
+        return -1;
     if (Sg_FindNoCase(drawerDir, "SWOS2", probe, sizeof probe) != 0) {
         snprintf(err, 256, "%.200s is not a SWOS drawer (no SWOS2 in it)", drawerDir);
         return -1;
@@ -1338,6 +1353,8 @@ int32_t SwosData_FillAmigaDrawer(const char *assetsDir, const char *drawerDir, i
 {
     static const char *const kTrees[] = { "data", "grafs", "grafs_aga", "sound" };
     char probe[1100];
+    if (aga_from_2020(assetsDir, err))
+        return -1;
     if (Sg_FindNoCase(drawerDir, "SWOS2", probe, sizeof probe) != 0) {
         snprintf(err, 256, "%s is not a SWOS drawer (no SWOS2 in it): unpack SWOS-Amiga.zip first",
                  drawerDir);
