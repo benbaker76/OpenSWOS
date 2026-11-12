@@ -910,7 +910,7 @@ struct App {
     add(N_("World 2026-27"), found.world, before.world);
     std::string text = list.empty() ? T("Nothing new on your drives.") : Tf("Found on your drives -- {0}", list);
     if (stopped) text += " " + T("(Stopped before the end.)");
-    if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src))
+    if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src) && !SdSources_PcFromSwos2020(&src))
       text += " " + T("The game needs the PC game or the Amiga version: Search a folder where yours is.");
     Notice(text, list.empty());
     Refresh();
@@ -933,7 +933,7 @@ struct App {
       error = true;
     }
     if (stopped) text += " " + T("(Stopped before the end.)");
-    if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src))
+    if (!SdSources_HaveDos(&src) && !SdSources_HaveAmiga(&src) && !SdSources_PcFromSwos2020(&src))
       text += " The game needs the PC game or the Amiga version.";
     else if (src.adf1[0] != 0 && src.adf2[0] == 0)
       text += " Disk 2 of the Amiga version is still missing.";
