@@ -56,7 +56,7 @@ manifest = {
          "choices": ["on", "off"], "default": "on"},
         {"key": "financial_fair_play", "label": "Financial fair play (new careers)",
          "choices": ["on", "off"], "default": "on"},
-        {"key": "euro", "label": "Money in euros (the pound's sign as the euro)",
+        {"key": "euro", "label": "Money in euros",     # (the pound sign shows the euro)
          "choices": ["on", "off"], "default": "on"},
         {"key": "cpu_replacements", "label": "CPU replacements (new careers)",
          "choices": ["invented", "from_squad"], "default": "invented"},

@@ -1,6 +1,6 @@
 {
   "name": "modPageMenu",
-  "comment": "OpenSWOS's page of one mod: its name, what it does and its settings (mod.json \"settings\", kept in SWOS.ini [mod.<slug>], docs/MODS.md §16). JSON-only (docs/MENUS.md section 10); handlers in src/mods_menu.c. Opened from the MODS screen (fire on a mod's name).",
+  "comment": "OpenSWOS's page of one mod: its name, what it does and its settings (mod.json \"settings\", kept in SWOS.ini [mod.<slug>], docs/MODS.md §16). JSON-only (docs/MENUS.md section 10); handlers in src/mods_menu.c. Opened from the MODS screen (fire on a mod's name). More settings than rows: the MODS screen's scroll arrows (scrollUp / scrollDown).",
   "menu_flags": {
     "dos_redraw": true
   },
@@ -532,6 +532,70 @@
         {
           "op": "text_no_ptr",
           "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "scrollUp",
+      "coords": {
+        "x": 300,
+        "y": 35,
+        "w": 8,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 0
+        },
+        {
+          "op": "sprite_fg",
+          "index": 183
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "modPageMenu_scrollUp_OnSelect"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "scrollDown",
+      "coords": {
+        "x": 300,
+        "y": 133,
+        "w": 8,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 0
+        },
+        {
+          "op": "sprite_fg",
+          "index": 184
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "modPageMenu_scrollDown_OnSelect"
         }
       ]
     }

@@ -11,7 +11,7 @@
 #define MODS_MENU_ENTRIES  22   /* (the self-test's count: one per item of the JSON) */
 /* A mod's page: its name, what it does, its settings (mod.json "settings"). */
 #define MOD_PAGE_MENU_NAME     "openswos/modPageMenu"
-#define MOD_PAGE_MENU_ENTRIES  21   /* (the author line, 2026-11-08: appended) */
+#define MOD_PAGE_MENU_ENTRIES  23   /* (the author line, 2026-11-08, and the scroll arrows, 2026-11-11: appended) */
 /* A setting's choices as a scrolling list: more than a page's rows (a gallery's pictures). */
 #define CHOICE_MENU_NAME       "openswos/choiceMenu"
 #define CHOICE_MENU_ENTRIES    13
