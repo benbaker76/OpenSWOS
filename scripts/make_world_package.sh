@@ -91,6 +91,13 @@ echo "$OUT: $(du -h "$OUT" | cut -f1), data $FP"
 
 # The matchmaking server's team list carries the world's teams (their ids and checksums: an
 # online match's teams are checked against it): it goes with the same data.
+# Its 96/97 half comes from bin/data_json/teams (the original game's, never in git): a tree
+# without it would write a list with no 96/97 team in it, which refuses every 96/97 match.
+if ! ls "$ROOT"/bin/data_json/teams/*.json >/dev/null 2>&1; then
+    echo "make_world_package: no bin/data_json/teams here (96/97's teams) -- the server's team list" >&2
+    echo "left as it is; refresh it from a tree that has them (assign_team_uuids.py --registry --worlds)" >&2
+    exit 0
+fi
 python3 -I "$ROOT/scripts/assign_team_uuids.py" --registry --worlds | grep "^registry:"
 if ! git -C "$ROOT" diff --quiet -- third_party/matchmaker/Server/include/TeamRegistry.inc; then
     echo "make_world_package: the server's team list changed -- commit TeamRegistry.inc, then rebuild"
