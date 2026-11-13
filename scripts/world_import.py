@@ -97,6 +97,7 @@ def player(p, home_nation):
         "cached_match_value": p["field_1"] & 255,
         "shirt_number": p["shirt_number"] & 255,
         "player_name": p["player_name"],
+        "looks": p.get("field_19", 0) & 7 if len(p["player_name"]) < 22 else 0,   # (byte 25: the Mod's looks)
         "position": pf >> 5,
         "face": face,
         "flags": pf & 7,
@@ -111,6 +112,10 @@ def player(p, home_nation):
         "goal_stats": [g & 255 for g in p["goal_stats"]],
         "form": p["some_flag"] & 255,
     }
+    if out["looks"]:
+        counts["players with a look (bald, shaved, white hair)"] += 1
+    else:
+        del out["looks"]
     if p.get("born"):               # (a B team's player: his year of birth, the call-ups' under-23 rule)
         out["born"] = int(p["born"])
         counts["players with a year of birth (B teams)"] += 1
