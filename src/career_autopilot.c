@@ -177,6 +177,86 @@ static int32_t view_world(const Menu *menu)
     return 0;
 }
 
+/* Test (SWOS_GOLDEN_HUB_PATH=<label>/<label>/...): at the in-season hub's n-th pass
+ * (SWOS_GOLDEN_HUB_PASS=<n>, default 1; counted from the SWOS_GOLDEN_SHOT_FROM-th season-end
+ * hub on), each label pressed in turn on whatever screen is up -- a screenshot of each screen
+ * before its label is pressed, and of the last one -- then exit 0 ('*': the entry the cursor is
+ * on, '#<n>': entry n; a label not on its screen: its rows listed, exit 2). SWOS_GOLDEN_HUB_PLAYER=1:
+ * the career club a player's meanwhile (its match shows the stadium screen). To look at screens a career reaches
+ * from its hub (VIEW COMPETITIONS, CONTINENTAL CUPS, ...). 1: this tick was the test's. */
+static int32_t hub_path(const Menu *menu)
+{
+    extern void Platform_RequestScreenshot(void);
+    static const char *env = (const char *)1;
+    static char buf[512];
+    static const char *step[24];
+    static int32_t steps, k, stage, wait, passes, waited;
+    int32_t i;
+    if (env == (const char *)1) {
+        env = getenv("SWOS_GOLDEN_HUB_PATH");
+        if (env && *env) {
+            snprintf(buf, sizeof buf, "%s", env);
+            for (char *p = buf; p && *p && steps < 24; ) {
+                step[steps++] = p;
+                p = strchr(p, '/');
+                if (p)
+                    *p++ = '\0';
+            }
+        }
+    }
+    if (!steps)
+        return 0;
+    if (stage > 0 && getenv("SWOS_GOLDEN_HUB_PLAYER"))    /* (=1: the career club a player's while the path */
+        _careerTeam.team.teamControls = 2;              /*  runs: its match shows the stadium screen) */
+    if (stage == 0) {
+        const char *from = getenv("SWOS_GOLDEN_SHOT_FROM"), *pass = getenv("SWOS_GOLDEN_HUB_PASS");
+        if (menu->onInit != ContestMenuInit || s_hubs < (from ? atoi(from) : 0) ||
+            ++passes < (pass ? atoi(pass) : 1))
+            return 0;
+        stage = 1;
+        wait = 8;
+        say("[golden] hub path: %d label(s)\n", (int)steps);
+    }
+    if (wait > 0) {
+        if (--wait == 3) {
+            Platform_RequestScreenshot();
+            say("[golden] hub path screenshot %d\n", (int)k);
+        }
+        return 1;
+    }
+    if (k >= steps) {
+        say("[golden] done\n");
+        exit(0);
+    }
+    if (strcmp(step[k], "*") == 0)
+        i = ((const Menu *)_currentMenu)->selectedEntry ? -2 : -1;
+    else if (step[k][0] == '#')         /* ('#<n>': entry n, a row with no label) */
+        i = atoi(step[k] + 1) < menu->numEntries ? atoi(step[k] + 1) : -1;
+    else
+        i = entry_labelled(step[k]);
+    if (i == -1) {
+        if (++waited < 100)
+            return 1;
+        say("[golden] '%s' is not on this screen; its rows:\n", step[k]);
+        for (uint16_t r = 0; r < menu->numEntries; r++) {
+            const MenuEntry *e = CalcMenuEntryAddress(r);
+            if (!e->isInvisible && e->content == ENTRY_STRING && e->fg)
+                say("[golden]   %s\n", (const char *)e->fg);
+        }
+        exit(2);
+    }
+    waited = 0;
+    if (i >= 0)
+        SetCurrentEntry((uint16_t)i);
+    _shortFire = 1;
+    if (menu->onInit == PlayMatchMenuInit)
+        _pl1Fire = 1;                   /* (PlayMatchSelected goes on at a player's fire: see below) */
+    say("[golden] hub path: %s\n", step[k]);
+    k++;
+    wait = 8;
+    return 1;
+}
+
 /* --career-golden=new:<continent>/<country>/<division>/<club>: a new career, the club
  * picked through CAREER -> CHOOSE TEAM AND START CAREER by the rows' labels (the picker
  * uses one handler for every row, so only the label tells them apart). */
@@ -641,6 +721,8 @@ void CareerAutopilot_Tick(void)
         return;
     }
     if (bteam_shots(menu))              /* (test: SWOS_GOLDEN_SHOT_BTEAM) */
+        return;
+    if (hub_path(menu))                 /* (test: SWOS_GOLDEN_HUB_PATH) */
         return;
     _careerTeam.team.teamControls = 1;  /* the career club's matches are simulated */
     MenuSystem_LatchSeasonSkip();
