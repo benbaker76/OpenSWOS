@@ -6,14 +6,15 @@
 static const char *const kTags[WORLD_COUNT] = {
     "9697",
     "2627",
+    "8485",
 };
 
 static WorldId s_world = WORLD_9697;
-/* OPTIONS -> WORLD (menus.c ChangeWorld): the world SWOS.ini names -- 0 96/97, 1 2026-27 --,
- * which the game plays from its next start; the row draws it. */
+/* OPTIONS -> WORLD (menus.c ChangeWorld): the world SWOS.ini names -- its WorldId: 0 96/97,
+ * 1 2026-27, 2 Europe 1984-85 --, which the game plays from its next start; the row draws it. */
 uint16_t _worldOption;
 
-static const uint16_t kFirstYear[WORLD_COUNT] = { 1996, 2026 };   /* (its first season's start) */
+static const uint16_t kFirstYear[WORLD_COUNT] = { 1996, 2026, 1984 };   /* (its first season's start) */
 
 uint16_t World_FirstYear(void)
 {

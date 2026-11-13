@@ -449,8 +449,9 @@ int16_t LoadTeamFile(uint16_t extNumber)
 
 #if SWOS_WORLDS
         /* Today's names of the national teams whose nation changed it, in a world of today (the
-         * SWOS 96/97 Mod 4.1's NAT_TEAM_TODAY: its renamed copies of TEAM.080..085). */
-        if (ext8 >= 80 && ext8 <= 85 && World_Current() != WORLD_9697) {
+         * SWOS 96/97 Mod 4.1's NAT_TEAM_TODAY: its renamed copies of TEAM.080..085, the worlds
+         * from 2019 on -- Europe 1984-85's are the era's own files). */
+        if (ext8 >= 80 && ext8 <= 85 && World_Current() != WORLD_9697 && World_FirstYear() >= 2019) {
             static const char *const kToday[][2] = {
                 { "YUGOSLAVIA", "SERBIA" }, { "MACEDONIA", "NORTH MACEDONIA" },
                 { "SWAZILAND", "ESWATINI" }, { "CZECH REPUBLIC", "CZECHIA" },

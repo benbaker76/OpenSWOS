@@ -8,6 +8,7 @@
  * Chunk 65: 7 exported + 12 static functions ported from SWOS2.s.
  */
 
+#include "world_europe.h"
 #include "career_eurocups.h"
 #include "game_types.h"
 #include "diy_competition.h"
@@ -296,6 +297,47 @@ void Career_AppendTeamToEuroCupListN(int32_t cup, TeamFileEx *record)
         appendTeamToUefaCupList((uint8_t *)record);
 }
 
+/* ---- A world's European knockouts (include/world_europe.h; the Mod's careerworld): each country
+ * its places -- the Champions' Cup its champion, the Cup Winners' Cup its cup winner (else the cup's
+ * runner-up, else the league's next), the UEFA Cup the league's next -- every club once, a holder in
+ * no list (it plays its own cup as holder: Career_DrawEuropeanCupTeamsAndCopyGrids). ---- */
+
+static int16_t koTaken(uint16_t team)
+{
+    return team == _euroCupTitleHolderTeamId || team == _cupWinnersCupTitleHolderTeamId ||
+           team == _uefaCupTitleHolderTeamId ||
+           isTeamInList(team, _euroCupTeamListPtr, _euroCupQualifiedTeamCount) ||
+           isTeamInCupWinnersCupList(team) || isTeamInUefaCupList(team);
+}
+
+/* The first of n grids whose club is not taken, 0: none. */
+static uint8_t *koNext(uint8_t *grids, int32_t n)
+{
+    for (int32_t i = 0; i < n; i++) {
+        uint8_t *g = grids + i * (int32_t)sizeof(TeamFileEx);
+        if (!koTaken(BE_READ_U16(g)))
+            return g;
+    }
+    return 0;
+}
+
+static void koQualify(const uint8_t *places)
+{
+    uint8_t *league = _primaryQualifiedTeamGrids;                           /* the top 9 (slots 0..8) */
+    uint8_t *cup = _primaryQualifiedTeamGrids + 9 * sizeof(TeamFileEx);    /* the cup's final (9, 10) */
+    const int32_t top = _diyCompetitionStart.base.numTeams < 9 ? _diyCompetitionStart.base.numTeams : 9;
+    uint8_t *g;
+    for (int32_t i = 0; i < places[0]; i++)
+        if ((g = koNext(league, top)) != 0)
+            appendTeamToEuroCupList(g);
+    for (int32_t i = 0; i < places[1]; i++)
+        if ((g = koNext(cup, 2)) != 0 || (g = koNext(league, top)) != 0)
+            appendTeamToCupWinnersCupList(g);
+    for (int32_t i = 0; i < places[2]; i++)
+        if ((g = koNext(league, top)) != 0)
+            appendTeamToUefaCupList(g);
+}
+
 __attribute__((used, externally_visible))
 void Career_ProcessCompetitionForEuropeanCupQualification(void)
 {
@@ -307,6 +349,12 @@ void Career_ProcessCompetitionForEuropeanCupQualification(void)
         return; /* not European (first byte != 0) → skip */
     if (worldLeaguePhases()) {     /* (its top 9 and cup winner: the qualifying rounds, uefa_coef.c) */
         UefaQual_Country();
+        return;
+    }
+    if (WorldEurope_Active()) {    /* (a classic world's knockouts: its places) */
+        const uint8_t *places = WorldEurope_Places((uint8_t)idx);
+        if (places)
+            koQualify(places);
         return;
     }
     qualifyTeamForEuroCup();
@@ -509,6 +557,22 @@ __attribute__((used, externally_visible))
 void Career_UpdateEuroCupCompetitionSlot(void)
 {
     uint8_t *a4 = _euroCupCopy;
+    if (a4[1] == 1) {               /* (a classic world's Champions' Cup: a knockout, as the Cup
+                                     *  Winners' Cup -- include/world_europe.h) */
+        if (a4 == _quaternaryCompetitionPtr) {
+            RestoreSelectedTeams();
+            Career_CopyEuroCupsCompetitionContextToOrFromActive();
+            reloadEuroCupTeamSelectionFromRestoredField();
+            ShowDIYCupMenuWithParams(1, 1, 0);
+            Career_CopyEuroCupTeamGridAndTitleHolder();
+            RestoreSelectedTeams();     /* (the backup stays the league's: the Cup Winners' Cup's note) */
+            SaveSelectedTeams();
+        } else {
+            Career_AutoAdvanceCupCompetitionFromRecord(a4);
+            Career_CopyEuroCupTeamGridAndTitleHolder();
+        }
+        return;
+    }
     /* Branch purely on whether this euro cup is the player's quaternary
      * competition — matches SWOS2.s Career_UpdateEuroCupCompetitionSlot @57397
      * (cmpa.l quaternaryCompetitionPtr,a4 / bne). A club->national transition
@@ -696,6 +760,15 @@ void Career_DrawEuropeanCupTeamsAndCopyGrids(void)
             appendTeamToEuroCupList(_cupWinnersCupTitleHolderGrid);
         if (_uefaCupTitleHolderTeamId != 0xFFFF && !UefaQual_KeepsUeclHolder())
             appendTeamToCupWinnersCupList(_uefaCupTitleHolderGrid);     /* (unless it won its league) */
+        return;
+    }
+    if (WorldEurope_Active()) {     /* (a classic world's knockouts: each holder its own place) */
+        if (_euroCupTitleHolderTeamId != 0xFFFF)
+            appendTeamToEuroCupList(_euroCupTitleHolderGrid);
+        if (_cupWinnersCupTitleHolderTeamId != 0xFFFF)
+            appendTeamToCupWinnersCupList(_cupWinnersCupTitleHolderGrid);
+        if (_uefaCupTitleHolderTeamId != 0xFFFF)
+            appendTeamToUefaCupList(_uefaCupTitleHolderGrid);
         return;
     }
     drawRandomTeamFromPoolAndCopyGrid(
