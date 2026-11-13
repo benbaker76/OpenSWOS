@@ -95,3 +95,10 @@ ITA2627-LIGORNA-POULE SWOS_TEST_PLAYOFF_PLACE=1 @2627 EUROPE/ITALY/SERIE D/SERIE
 # ... a play-off of more rounds than the engine's six, in parts: the MLS's wild card club (seven game
 # rounds: the wild card, then round one's best-of-three to the MLS Cup).
 USA2627-LAGALAXY-WILDCARD SWOS_TEST_PLAYOFF_PLACE=23 @2627 NORTH AMERICA/U.S.A./LA GALAXY
+# Squads of 30 and the B-team call-ups (docs/WORLD_2026_27.md §6g): Inter calls up from Inter U23 at the
+# first hub -- three over-age and one under-23 player for the next match, a fifth refused (at most 4),
+# two for the season (in the summer window) -- and buys the national market's first player 17..
+ITA2627-INTER-BTEAM SWOS_TEST_BTEAM=1:18,1:19,1:21,1:0,1:24,2:3,2:4 SWOS_TEST_BUY_EXTRA=1 @2627 EUROPE/ITALY/SERIE A/INTER
+# ... Brisbane Roar from Brisbane Roar 2 (Australia's rule: no over-age player, no keeper exception,
+# its own windows): an over-age one refused, an under-23 one called, a season call-up out of a window.
+AUS2627-BRISBANE-BTEAM SWOS_TEST_BTEAM=1:1,1:2,2:4 @2627 OCEANIA/AUSTRALIA/A-LEAGUE MEN/BRISBANE ROAR
