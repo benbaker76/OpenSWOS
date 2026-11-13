@@ -32,6 +32,7 @@
 #include "diy_competition.h"
 #include "file_io.h"
 #include "world.h"
+#include "world_europe.h"
 #include "world_rules.h"   /* a world's computer clubs' countdowns */
 
 /* ---- Constants ---- */
@@ -818,6 +819,27 @@ int32_t Career_LoadWorldEuropeTmd(void)
     int32_t n;
     if (World_Current() == WORLD_9697)
         return 0;
+    if (WorldEurope_Active()) {                 /* (a classic world's knockouts: include/world_europe.h) */
+        const WorldEuropeKO *ko = World_EuropeKnockouts();
+        _teamsLoaded = 0;
+        for (int32_t k = 0; k < 3; k++) {
+            const CompetitionCup *c = ko->cup[k];
+            for (int32_t i = 0; i < c->header.teams; i++) {     /* (a list past 32 runs on after it) */
+                const uint16_t id = TEAMID_PACK(c->teamSeedList[i]);
+                _skipLeagueNumbers = 1;
+                LoadTeamFile((uint16_t)(id >> 8));
+                _skipLeagueNumbers = 0;
+                const uint8_t *rec = findTeamInTeamFileBuffer(id);
+                if (!rec) {
+                    _panicReasonCode = 0x3446;
+                    PanicHaltLoop();
+                }
+                Career_AppendTeamToTmdTeamPool((TeamFileEx *)rec);
+            }
+        }
+        _teamsLoaded = 0;
+        return 1;
+    }
     CompetitionLeaguePhase *cups = World_LeaguePhaseCups(&places, &n);
     if (!cups)
         return 0;

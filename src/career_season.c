@@ -12,6 +12,7 @@
 #include "uefa_coef.h"
 #include "world_conti.h"
 #include "world.h"
+#include "world_europe.h"
 #include "career_eurocups.h"
 #include "career_init.h"
 #include "career_status.h"
@@ -1812,15 +1813,26 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
     if (lp)
         UefaQual_Fill();
     Conti_SeasonEnd();      /* (a world's other confederations' cups: the next editions) */
-    const uint16_t euroBefore = lp ? UefaQual_Listed() : 0x50, euroAfter = lp ? 108 : 0x50;
+    /* (a classic world's knockouts: every country's places, then the holders -- include/world_europe.h) */
+    extern uint16_t _euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId, _uefaCupTitleHolderTeamId;
+    const WorldEuropeKO *ko = WorldEurope_Active() ? World_EuropeKnockouts() : 0;
+    uint16_t koPlaces = 0, koHolders = 0;
+    if (ko) {
+        for (int32_t i = 0; i < ko->count; i++)
+            koPlaces = (uint16_t)(koPlaces + ko->places[i][1] + ko->places[i][2] + ko->places[i][3]);
+        koHolders = (uint16_t)((_euroCupTitleHolderTeamId != 0xFFFF) + (_cupWinnersCupTitleHolderTeamId != 0xFFFF) +
+                               (_uefaCupTitleHolderTeamId != 0xFFFF));
+    }
+    const uint16_t euroBefore = lp ? UefaQual_Listed() : ko ? koPlaces : 0x50,
+                   euroAfter = lp ? 108 : ko ? (uint16_t)(koPlaces + koHolders) : 0x50;
     if (_careerFileBuffer == euroBefore + Career_CopaLibertadoresQualifiedTeamCount()) {
         Career_DrawEuropeanCupTeamsAndCopyGrids();
         _seasonUpdateInProgress = 0;
         RestoreSelectedTeams();
 
-        if (_euroCupQualifiedTeamCount == (lp ? 36 : 16) &&
-            _cupWinnersCupQualifiedTeamCount == (lp ? 36 : 32) &&
-            _uefaCupQualifiedTeamCount == (lp ? 36 : 32) &&
+        if (_euroCupQualifiedTeamCount == (lp ? 36 : ko ? ko->cup[0]->header.teams : 16) &&
+            _cupWinnersCupQualifiedTeamCount == (lp ? 36 : ko ? ko->cup[1]->header.teams : 32) &&
+            _uefaCupQualifiedTeamCount == (lp ? 36 : ko ? ko->cup[2]->header.teams : 32) &&
             Career_CopaLibertadoresQualifiedTeamCount() == Career_CopaLibertadoresExpectedTeamCount() &&
             _careerFileBuffer == euroAfter + Career_CopaLibertadoresQualifiedTeamCount()) {
             Career_StorePromotionRelegationInSeasonInfo();
@@ -1829,6 +1841,11 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
                 UefaQual_Post();        /* (the career club's qualifying opponents' records) */
             return;
         }
+        if (ko)
+            SWOS_DBG("[world-europe] season end: %u / %u / %u clubs, pool %u (places %u, holders %u)\n",
+                     (unsigned)_euroCupQualifiedTeamCount, (unsigned)_cupWinnersCupQualifiedTeamCount,
+                     (unsigned)_uefaCupQualifiedTeamCount, (unsigned)_careerFileBuffer, (unsigned)koPlaces,
+                     (unsigned)koHolders);
         _panicReasonCode = 0x8998;
         PanicHaltLoop();
         return;

@@ -449,8 +449,9 @@ int16_t LoadTeamFile(uint16_t extNumber)
 
 #if SWOS_WORLDS
         /* Today's names of the national teams whose nation changed it, in a world of today (the
-         * SWOS 96/97 Mod 4.1's NAT_TEAM_TODAY: its renamed copies of TEAM.080..085). */
-        if (ext8 >= 80 && ext8 <= 85 && World_Current() != WORLD_9697) {
+         * SWOS 96/97 Mod 4.1's NAT_TEAM_TODAY: its renamed copies of TEAM.080..085, the worlds
+         * from 2019 on -- Europe 1984-85's are the era's own files). */
+        if (ext8 >= 80 && ext8 <= 85 && World_Current() != WORLD_9697 && World_FirstYear() >= 2019) {
             static const char *const kToday[][2] = {
                 { "YUGOSLAVIA", "SERBIA" }, { "MACEDONIA", "NORTH MACEDONIA" },
                 { "SWAZILAND", "ESWATINI" }, { "CZECH REPUBLIC", "CZECHIA" },
@@ -3482,6 +3483,22 @@ loc_E2D0:
         a5 = (void **)((QualifyingGroup *)compListAddr)->countries;
         if (d7 != 254 && World_ContinentCountries((uint8_t)d7))    /* (a world's, its new countries in) */
             a5 = (void **)World_ContinentCountries((uint8_t)d7);
+        /* A world with continents it has no clubs in (Europe 1984-85 is Europe alone: its
+         * World_ContinentCountries an empty list): they are left out of the club pickers (FRIENDLY,
+         * DIY, CAREER) -- not of the national teams' or the preset competitions', which every world
+         * has. (a5 is the list the choice is looked up in below: the world's, filtered.) */
+        if (d7 == 254 && _choosingPreset == 0 && _teamsType != 0 && World_ContinentCountries(CN_EUROPE)) {
+            static uint8_t s_regions[16];
+            const uint8_t *r = (const uint8_t *)a5;
+            int32_t k = 0;
+            for (; *r != 255 && k < 15; r++) {
+                const uint8_t *in = World_ContinentCountries(*r);
+                if (*r < CN_EUROPE || *r > CN_OCEANIA || !in || in[0] != 255)
+                    s_regions[k++] = *r;
+            }
+            s_regions[k] = 255;
+            a5 = (void **)s_regions;
+        }
         cPtr = (uint8_t *)a5;
         for (;;) {
             cByte = *cPtr++;

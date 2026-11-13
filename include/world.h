@@ -21,6 +21,9 @@ typedef enum {
     WORLD_2627,         /* the SWOS 96/97 Mod's World 2026-27 (docs/WORLD_2026_27.md): its data
                          * in data_json/worlds/2627/ over 96/97's, file by file and record by
                          * record (src/save_format_json.c); phase 3 holds Italy's leagues */
+    WORLD_8485,         /* the Mod's classic world Europe 1984-85 (DaniSwos's database; docs/
+                         * WORLD_2026_27.md §6g): its 32 countries' clubs over 96/97's, its own
+                         * countries alone (src/world_data_8485.c) */
     WORLD_COUNT
 } WorldId;
 

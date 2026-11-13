@@ -654,6 +654,10 @@ its own generator.
 
 ## 17. Worlds as mods; mods online (2026-11-04)
 
+(**Europe 1984-85** is one too, `world8485`, uuid `48496e1d-27d7-49d8-acff-c428814a1bc6` for ever:
+docs/WORLD_2026_27.md §6g. The setup installs every world package it is given; an Amiga drawer takes
+one world mod.)
+
 **World 2026-27 is a DLC mod, `world2627`** (uuid `15ea9117-6aa0-4968-a293-6cf33092ff33`, for
 ever; `"changes": "data"`, both targets). Its code stays in the engine -- the league splits, the
 play-offs, the rules library, behind `SWOS_WORLDS` -- because that makes the engine able to do

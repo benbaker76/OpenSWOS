@@ -30,6 +30,8 @@
 #include "cd_image.h"
 #include "sg_util.h"
 
+#define SD_WORLDS_MORE 3        /* (worlds besides the first: one package a world) */
+
 typedef struct {
     char  adf1[1024];       /* Amiga disk 1 (volume "SWOS"), "" when not found */
     char  adf2[1024];       /* Amiga disk 2 (volume "SWOS2") */
@@ -47,6 +49,8 @@ typedef struct {
     char  jagRom[1024];     /* the Jaguar cartridge image */
     char  s2020Dir[1024];   /* SWOS 2020's game folder: <install>/swos */
     char  world[1024];      /* a world's package (.zip) or the folder with its WORLD.ini */
+    char  worldMore[SD_WORLDS_MORE][1024];  /* other worlds' packages (each its own tag: World
+                             * 2026-27, Europe 1984-85 ...), installed with the first (step_world) */
     Adf  *disk1, *disk2;    /* open while SdSources_Open .. Close */
     Adf  *hdfDisk;
     LhaArchive *lhaArc;
@@ -73,6 +77,9 @@ int32_t SdSources_ScanDepthEx(SdSources *s, const char *dir, int32_t maxDepth, S
  * inside the PC game folder (its folder is taken), or a SWOS 2020 install (its
  * folder, its swos/ folder or a file in either). 0 when recognised. */
 int32_t SdSources_AddFile(SdSources *s, const char *path);
+/* A world's package (a .zip or its unpacked folder) found: the first, or another world's beside it
+ * (worldMore; the same world's again is left out). */
+void SdSources_AddWorld(SdSources *s, const char *path);
 
 /* The PC game's CD, for its commentary and effects: a folder with SFX/PIERCE or SFX/FX (the
  * drive, a copy of the disc, the SFX folder itself or a file in it), or an image of the disc

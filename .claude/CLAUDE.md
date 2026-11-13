@@ -205,8 +205,12 @@ so world code reads a club's country through `World_FileCountry` and indexes clu
 -> `dist/OpenSWOS-World-2627.zip`, made after every import whose output changed: its WORLD.ini
 fingerprint must be the one `world_import.py` baked into `src/world_data.c`), which OpenSWOS Setup
 installs as a DLC **mod**, `mods/world2627/` (docs/MODS.md §17: `data_json/worlds/2627/` for the PC,
-`amiga/data/` for the Amiga; uuid `15ea9117-...` for ever). 96/97 is the default
-world: a run plays `--world`, else `SWOS_WORLD`, else SWOS.ini's `[general] world`, else 96/97 (a
+`amiga/data/` for the Amiga; uuid `15ea9117-...` for ever). **Europe 1984-85** (`8485`, DaniSwos's
+database, docs/WORLD_2026_27.md §6g) is a world the same way: `world_from_mod.py --world 8485`,
+`world_import.py --tag 8485` -> `src/world_data_8485.c` (one baked file a world, `src/world_baked.c`
+picks the current one), `make_world_package.sh 8485` (mod `world8485`, uuid `48496e1d-...`). 96/97 is the default
+world: a run plays `--world`, else `SWOS_WORLD`, else SWOS.ini's `[general] world` (96/97 when
+`[general] original_main_menu`), else 96/97 (a
 world without its WORLD.ini installed -- the mod off -- falls back to 96/97, said in `[world]` lines);
 the Amiga plays the world's mod's `data/WORLD`, in a drawer only when the player ticks the world on the
 Amiga tab. **Online, mods whose `"changes"` is `gameplay` or `data` must be alike in both games**

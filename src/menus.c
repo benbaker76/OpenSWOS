@@ -2184,23 +2184,49 @@ void ChangePitchStyle(MenuEntry *entry)
     CallDrawMenuItem(entry);
 }
 
-/* OPTIONS -> WORLD: 96/97 / 2026-27 -- [general] world in SWOS.ini (include/world.h). A world
- * goes over 96/97's tables when the menus start (World_InstallBaked), and nothing keeps 96/97's
- * to go back to, so the choice is played from the NEXT start: the row shows it, SWOS.ini keeps it,
- * and a message says so. 2026-27 only once its data is installed (OpenSWOS Setup: its package,
- * data_json/worlds/2627/WORLD.ini) -- else the row stays and the message says where to get it. */
+/* OPTIONS -> WORLD: 96/97, 2026-27, Europe 1984-85 -- [general] world in SWOS.ini (include/world.h).
+ * A world goes over 96/97's tables when the menus start (World_InstallBaked), and nothing keeps
+ * 96/97's to go back to, so the choice is played from the NEXT start: the row shows it, SWOS.ini
+ * keeps it, and a message says so. Each press goes to the next world whose data is installed
+ * (OpenSWOS Setup: its package, data_json/worlds/<tag>/WORLD.ini; 96/97 always); none but 96/97:
+ * the message says where to get them. */
 /* The main menu's WORLD button (entry 17; the SWOS 96/97 Mod 4.1's world selector): the world
  * chosen, as OPTIONS -> WORLD's row -- the same choice, played from the next start. */
+/* [general] original_main_menu (the Mod 4.1's "Original main menu", Marco's idea; src/main.c): 96/97's
+ * main menu -- no WORLD button -- and 96/97 the world played. Never on the Amiga. */
+int32_t g_originalMainMenu;
+
+static const char *const kWorldLabels[WORLD_COUNT] = { "WORLD: 1996-97", "WORLD: 2026-27", "EUROPE 1984-85" };
+static const char *const kWorldNames[WORLD_COUNT] = { "96-97", "World 2026-27", "Europe 1984-85" };
+
 static void main_menu_world_label(MenuEntry *e)
 {
     extern uint16_t _worldOption;
-    const char *t = _worldOption ? "WORLD: 2026-27" : "WORLD: 1996-97";
+    const char *t = kWorldLabels[_worldOption < WORLD_COUNT ? _worldOption : 0];
     uint8_t *d = (uint8_t *)e->fg;
     if (!d || e->fg == 0xFFFFFFFF)
         return;
     while ((*d++ = (uint8_t)*t++) != 0)
         ;
 }
+
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+/* A world's data is installed (96/97's always is). */
+int32_t World_Installed(int32_t w)
+{
+    char rel[64], path[1024];
+    if (w == WORLD_9697)
+        return 1;
+    if (!World_TagOf((WorldId)w))
+        return 0;
+    snprintf(rel, sizeof rel, "data_json/worlds/%s/WORLD.ini", World_TagOf((WorldId)w));
+    FILE *f = fopen(swos_data_path(rel, path, (uint32_t)sizeof path), "rb");
+    if (!f)
+        return 0;
+    fclose(f);
+    return 1;
+}
+#endif
 
 __attribute__((used, externally_visible))
 void ChangeWorld(MenuEntry *entry)
@@ -2209,45 +2235,45 @@ void ChangeWorld(MenuEntry *entry)
     extern uint16_t _worldOption;
     extern PlatformInitOptions *g_arcadeOpts;
     extern const char *g_arcadeIniPath;
-    const int want = !_worldOption;                 /* 1: 2026-27 */
-    if (want) {
-        char path[1024];
-        FILE *f = fopen(swos_data_path("data_json/worlds/2627/WORLD.ini", path, (uint32_t)sizeof path), "rb");
-        if (!f) {
-            extern int32_t AssetsCheck_FindSetup(char *out, uint32_t cap);
-            extern int32_t AssetsCheck_LaunchSetup(void);
-            char setup[1024];
-            const char *buttons[2];
-            int32_t n = 0, iSetup = -1;
-            if (AssetsCheck_FindSetup(setup, (uint32_t)sizeof setup)) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
-            buttons[n++] = "OK";
-            if (MenuDialog_Show("World 2026-27",
-                    "World 2026-27 is not installed.|Open " PROJECT_SETUP_NAME ": its row World 2026-27 "
-                    "has the link to download it, then click Install. On a phone: do that on your "
-                    "computer, then copy the assets folder over again.", buttons, n, 0) == iSetup &&
-                iSetup >= 0)
-                AssetsCheck_LaunchSetup();
-            return;
+    int32_t want = WORLD_9697;
+    for (int32_t i = 1; i < WORLD_COUNT; i++) {     /* the next installed world, 96/97 after the last */
+        const int32_t w = (_worldOption + i) % WORLD_COUNT;
+        if (World_Installed(w)) {
+            want = w;
+            break;
         }
-        fclose(f);
+    }
+    if (want == WORLD_9697 && _worldOption == WORLD_9697) {   /* (none but 96/97) */
+        extern int32_t AssetsCheck_FindSetup(char *out, uint32_t cap);
+        extern int32_t AssetsCheck_LaunchSetup(void);
+        char setup[1024];
+        const char *buttons[2];
+        int32_t n = 0, iSetup = -1;
+        if (AssetsCheck_FindSetup(setup, (uint32_t)sizeof setup)) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
+        buttons[n++] = "OK";
+        if (MenuDialog_Show("Worlds",
+                "No other world is installed.|Open " PROJECT_SETUP_NAME ": its rows World 2026-27 and "
+                "Europe 1984-85 have the links to download them, then click Install. On a phone: do that "
+                "on your computer, then copy the assets folder over again.", buttons, n, 0) == iSetup &&
+            iSetup >= 0)
+            AssetsCheck_LaunchSetup();
+        return;
     }
     _worldOption = (uint16_t)want;
     if (entry == &_menuEntries[17] && Menu_IsMainMenu())
         main_menu_world_label(entry);
     if (g_arcadeOpts) {
-        snprintf(g_arcadeOpts->world, sizeof g_arcadeOpts->world, "%s", want ? "2627" : "9697");
+        snprintf(g_arcadeOpts->world, sizeof g_arcadeOpts->world, "%s", World_TagOf((WorldId)want));
         if (g_arcadeIniPath)
             Settings_Save(g_arcadeOpts, g_arcadeIniPath);
     }
     CallDrawMenuItem(entry);
-    if ((int)World_Current() != (want ? (int)WORLD_2627 : (int)WORLD_9697))
-    {
+    if ((int32_t)World_Current() != want) {
         static const char *const ok[] = { "OK" };
-        MenuDialog_Show("World",
-            want ? "World 2026-27 is played from the next time " PROJECT_NAME " starts.|"
-                   "Close it and start it again. Saves stay in the world they were made in."
-                 : "96-97 is played from the next time " PROJECT_NAME " starts.|"
-                   "Close it and start it again. Saves stay in the world they were made in.", ok, 1, 0);
+        char text[200];
+        snprintf(text, sizeof text, "%s is played from the next time " PROJECT_NAME " starts.|"
+                 "Close it and start it again. Saves stay in the world they were made in.", kWorldNames[want]);
+        MenuDialog_Show("World", text, ok, 1, 0);
     }
 #else
     (void)entry;
@@ -2943,7 +2969,7 @@ void CommonMenuExit(void)
          * entries there, and entry 17's text was written over: a crash at start-up) */
         extern void MainMenuWorld(void);
         extern uint8_t _currentMenu[];
-        if (((Menu *)_currentMenu)->numEntries > 17 &&
+        if (((Menu *)_currentMenu)->numEntries > 17 && !g_originalMainMenu &&
             _menuEntries[17].onSelect == (MenuEntryFn)(void (*)(void))MainMenuWorld) {
             _menuEntries[17].isInvisible = 0;
             main_menu_world_label(&_menuEntries[17]);

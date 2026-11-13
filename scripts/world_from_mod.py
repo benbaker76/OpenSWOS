@@ -766,8 +766,16 @@ def main():
     ap.add_argument("--registry-add", action="store_true", help="write new clubs' ids into the registry")
     ap.add_argument("--make-registry", metavar="OLD", help="the registries from a JSON delivery (rows only added)")
     ap.add_argument("--compare", nargs=2, metavar=("A", "B"), help="the teams of two mod/ folders, by kind")
+    ap.add_argument("--world", default="2627", help="the world: 2627 (World 2026-27, decoded from the exe) or a "
+                    "classic one, its packs from --repo (8485: Europe 1984-85; scripts/world_mod_classic.py)")
     a = ap.parse_args()
-    if a.make_registry:
+    if a.world != "2627":
+        if not (a.mod and a.out):
+            ap.error("--world %s: --mod and --out (and --repo)" % a.world)
+        import world_mod_classic
+        version = mod_version(a.mod) or mod_version(os.path.join(a.mod, "..")) or sys.exit("which Mod is %s?" % a.mod)
+        world_mod_classic.convert(a.mod, a.repo, a.out, a.world, version, sys.modules[__name__])
+    elif a.make_registry:
         make_registry(a.make_registry)
     elif a.compare:
         compare(*a.compare)

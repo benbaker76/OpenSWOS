@@ -95,3 +95,8 @@ ITA2627-LIGORNA-POULE SWOS_TEST_PLAYOFF_PLACE=1 @2627 EUROPE/ITALY/SERIE D/SERIE
 # ... a play-off of more rounds than the engine's six, in parts: the MLS's wild card club (seven game
 # rounds: the wild card, then round one's best-of-three to the MLS Cup).
 USA2627-LAGALAXY-WILDCARD SWOS_TEST_PLAYOFF_PLACE=23 @2627 NORTH AMERICA/U.S.A./LA GALAXY
+# Europe 1984-85 (the Mod's classic world, DaniSwos's database: docs/WORLD_2026_27.md §6g): its knockout
+# European cups (32 / 32 / 64), a club of a 96/97 country, one of the world's own (East Germany).
+ENG8485-LIVERPOOL @8485 EUROPE/ENGLAND/FIRST DIVISION/LIVERPOOL
+ITA8485-JUVENTUS @8485 EUROPE/ITALY/SERIE A/JUVENTUS
+GDR8485-DRESDEN @8485 EUROPE/EAST GERMANY/DYNAMO DRESDEN
