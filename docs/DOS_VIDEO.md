@@ -64,6 +64,14 @@ the buffers. Freestanding C99, fixed-width types, no libc, the caller's buffers 
 - 1,500 damaged copies (truncated, bits flipped) under ASan and UBSan: each stopped with an
   error or decoded, nothing out of bounds.
 
+**The frames as pictures** (2026-11-12, for editing or an upscaled set one day):
+`scripts/flic_extract.py <file.FLC | dir> <out> [--scale N]` writes each clip's frames as
+`<out>/<NAME>/0000.png ...` (RGB, as the game shows them) and a `clip.json` with the frame count,
+size and the game's frame time (4/70 s; 6/70 s for CHP_nn). Pillow's reader, proved identical to
+ours above. Run it with the python3 that has Pillow (not `-I` when Pillow is a user install).
+The game reads only `.FLC` today: an upscaled set needs a reader of its own (and its palette is
+gone once frames are RGB).
+
 ## How a clip is shown (src/mod_dosvideos.c, the PC game's PlayAnimation)
 
 swos.asm `PlayAnimationCommon` / `PlayAnimation`, the `FadeAndPlay*Animation` around them:
