@@ -26,6 +26,7 @@ extern void BuyPlayerMenu(void);
 extern void BuyPlayerModRow(void);
 extern void BuyPlayerCpuReplacements(void);
 extern void BuyOtherPlayersPage(void);
+extern void ViewSquadPage(void);
 extern void BTeamSquadButton(void);
 extern void BuyPlayerViewSquad(void);
 extern void CareerGameListCommon(void);
@@ -1103,6 +1104,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ViewSquadExitContinue", (void*)ViewSquadExitContinue, SYM_FUNC },
     { "ViewSquadInit", (void*)ViewSquadInit, SYM_FUNC },
     { "ViewSquadOnSelect21", (void*)ViewSquadOnSelect21, SYM_FUNC },
+    { "ViewSquadPage", (void*)ViewSquadPage, SYM_FUNC },
     { "ViewWorldMenu", (void*)ViewWorldMenu, SYM_FUNC },
     { "_a343", (void*)_a343, SYM_STRING },
     { "_a352", (void*)_a352, SYM_STRING },
