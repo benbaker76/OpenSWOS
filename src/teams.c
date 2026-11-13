@@ -3483,6 +3483,22 @@ loc_E2D0:
         a5 = (void **)((QualifyingGroup *)compListAddr)->countries;
         if (d7 != 254 && World_ContinentCountries((uint8_t)d7))    /* (a world's, its new countries in) */
             a5 = (void **)World_ContinentCountries((uint8_t)d7);
+        /* A world with continents it has no clubs in (Europe 1984-85 is Europe alone: its
+         * World_ContinentCountries an empty list): they are left out of the club pickers (FRIENDLY,
+         * DIY, CAREER) -- not of the national teams' or the preset competitions', which every world
+         * has. (a5 is the list the choice is looked up in below: the world's, filtered.) */
+        if (d7 == 254 && _choosingPreset == 0 && _teamsType != 0 && World_ContinentCountries(CN_EUROPE)) {
+            static uint8_t s_regions[16];
+            const uint8_t *r = (const uint8_t *)a5;
+            int32_t k = 0;
+            for (; *r != 255 && k < 15; r++) {
+                const uint8_t *in = World_ContinentCountries(*r);
+                if (*r < CN_EUROPE || *r > CN_OCEANIA || !in || in[0] != 255)
+                    s_regions[k++] = *r;
+            }
+            s_regions[k] = 255;
+            a5 = (void **)s_regions;
+        }
         cPtr = (uint8_t *)a5;
         for (;;) {
             cByte = *cPtr++;
