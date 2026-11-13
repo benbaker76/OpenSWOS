@@ -485,6 +485,46 @@ def write_decoded(out, world, whole):
                 f.write("\n")
 
 
+def stadiums(data, out):
+    """DATA\\STADTMW<n>.DAT (the Mod's tools/stadium.py, 4.0.6/4.1: the full stadium names) ->
+    stadium_tmw<n>_clubs.csv (file, ordinal, stadium: by the Mod's team file and ordinal) and
+    stadium_tmw<n>_venues.csv (competition, round, venue, season: the neutral finals, one row per
+    language of the Mod's exes, as the file has them), which scripts/world_import.py turns into
+    competitions/stadiums.json. Format v3 (v2 read too): 'STAD', u16 version, u16 venue rows,
+    u32 their offset; 256 x (u32 offset, u16 count) by team file, each record u8 ordinal + the name;
+    a venue row competition[40] round[40] name[] u8 season. Returns (clubs, venues) written."""
+    import struct
+    names = {"clubs": "stadium_tmw%d_clubs.csv" % WORLD, "venues": "stadium_tmw%d_venues.csv" % WORLD}
+    for n in names.values():
+        if os.path.exists(os.path.join(out, n)):
+            os.remove(os.path.join(out, n))
+    path = next((os.path.join(data, f) for f in os.listdir(data) if f.upper() == "STADTMW%d.DAT" % WORLD), None)
+    if not path:
+        return 0, 0
+    d = open(path, "rb").read()
+    magic, ver, nv, voff = struct.unpack_from("<4sHHI", d, 0)
+    if magic != b"STAD" or ver not in (2, 3):
+        raise SystemExit("%s: not a stadium file of a version this reads (%r v%d)" % (path, magic, ver))
+    nm = 49 if ver == 3 else 33
+    cstr = lambda b: b.split(b"\0")[0].decode("latin-1")
+    clubs = []
+    for f in range(256):
+        off, cnt = struct.unpack_from("<IH", d, 12 + 6 * f)
+        for i in range(cnt):
+            p = off + (1 + nm) * i
+            clubs.append({"file": f, "ordinal": d[p], "stadium": cstr(d[p + 1:p + 1 + nm])})
+    venues, seen = [], set()
+    for v in range(nv):
+        p = voff + v * (80 + nm + 1)
+        row = (cstr(d[p:p + 40]), cstr(d[p + 40:p + 80]), cstr(d[p + 80:p + 80 + nm]), d[p + 80 + nm])
+        if row not in seen:
+            seen.add(row)
+            venues.append(dict(zip(("competition", "round", "venue", "season"), row)))
+    write_csv(os.path.join(out, names["clubs"]), clubs, ["file", "ordinal", "stadium"])
+    write_csv(os.path.join(out, names["venues"]), venues, ["competition", "round", "venue", "season"])
+    return len(clubs), len(venues)
+
+
 def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv=NAMES):
     """old: a JSON delivery to take the packs and continental cups from (the fallback); None: decoded from the
     game's exe and DATA (scripts/world_mod_*.py)."""
@@ -655,6 +695,10 @@ def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv
         shutil.copyfile(nat, os.path.join(out, "teams", "NATIONALITIES.json"))
     shutil.copyfile(os.path.join(data, "POOL0%d.DAT" % WORLD), os.path.join(out, "POOL0%d.DAT" % WORLD))
 
+    nc, nv = stadiums(data, out)
+    if nc:
+        counts["stadium names (clubs)"] += nc
+        counts["stadium names (venue rows, every language)"] += nv
     bpath = os.path.join(out, "bteams.json")
     if bage:
         doc = {"v": 1, "about": "DATA\\BAGE.%03d (the Mod's tools/bteam.py): the B teams of the call-ups, by the "
@@ -704,6 +748,7 @@ def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv
     with open(os.path.join(out, "SOURCE.txt"), "w", newline="\n") as f:
         f.write("Written by scripts/world_from_mod.py from an installed SWOS 96/97 Mod %s\n" % version)
         f.write("teams/, POOL0%d.DAT: the game's DATA (TMW%d, XTW%d, RS%d files)\n" % (WORLD, WORLD, WORLD, WORLD))
+        f.write("stadium_tmw%d_*.csv: the game's DATA\\STADTMW%d.DAT\n" % (WORLD, WORLD))
         if old:
             f.write("%s, teams/NATIONALITIES.json: the JSON delivery %s\n" % ("/, ".join(TAKEN) + "/", os.path.abspath(old)))
         else:
