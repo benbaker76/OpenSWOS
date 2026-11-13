@@ -551,6 +551,111 @@ void WorldPacks_FromEnv(void)
     }
 }
 
+/* ---- a .DIY round trip (SWOS_WORLD_PACKS_DIY_TEST=<a JSON .DIY>, with SWOS_WORLD_PACKS) ----
+ * The .DIY loaded, its teams replaced by the packs' clubs (the first pack's, the second's, in
+ * turn), saved; the packs' numbers then given to other countries (another session's), the save
+ * loaded again: its "world_packs" must give the numbers back, its teams be the same clubs, and
+ * the database find each one at its number. Run once the game's data is up (src/SWOS.c). */
+int32_t WorldPacks_DiyTestArmed(void) { return getenv("SWOS_WORLD_PACKS_DIY_TEST") != NULL; }
+
+void WorldPacks_DiyTestRun(void)
+{
+    extern int16_t SaveJson_LoadDIYData(const uint8_t *src, uint32_t src_size);
+    extern int16_t SaveJson_WriteDIY(uint8_t *filename);
+    extern int16_t SaveJson_LoadDIY(uint8_t *filename, const uint8_t *src_unused, uint32_t src_size_unused);
+    extern int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, int maxTeams);
+    extern TeamFileEx _selectedTeams[];
+    extern uint16_t _numSelectedTeams, _gameType;
+    static uint8_t buf[2 + kMaxClubs * sizeof(TeamFileEx)];
+    static TeamFileEx before[64];
+    static uint8_t name[] = "_WPTEST.DIY";
+    int32_t fails = 0, packs[2] = { 0, 0 }, worlds[2];
+    const char *files[2];
+    char keep[2][40];
+
+    for (int32_t k = 0, n = 0; k < kSlots && n < 2; k++)
+        if (s_pack[k].world >= 0) {
+            packs[n] = TEAMPACK_FIRST + k;
+            worlds[n] = s_pack[k].world;
+            snprintf(keep[n], sizeof keep[n], "%s", s_pack[k].file);
+            files[n] = keep[n];
+            n++;
+        }
+    const char *in = getenv("SWOS_WORLD_PACKS_DIY_TEST");
+    FILE *f = fopen(in, "rb");
+    long len = 0;
+    uint8_t *data = NULL;
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        len = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        data = (uint8_t *)malloc((size_t)len + 1);
+        if (data && fread(data, 1, (size_t)len, f) == (size_t)len)
+            data[len] = 0;
+        else
+            len = 0;
+        fclose(f);
+    }
+    _gameType = 1;
+    if (!packs[1] || len <= 0 || SaveJson_LoadDIYData(data, (uint32_t)len) != 0 || !_numSelectedTeams) {
+        printf("[world-packs] DIY test: needs two SWOS_WORLD_PACKS and a JSON .DIY (%s)\nFAIL\n", in ? in : "-");
+        exit(1);
+    }
+    free(data);
+    const int32_t n = _numSelectedTeams < 64 ? _numSelectedTeams : 64;
+    for (int32_t i = 0; i < n; i++) {
+        const int32_t num = packs[i & 1];
+        const int c = DataJson_LoadTeamFileForCountry(num, buf, kMaxClubs);
+        const int32_t o = c > 0 ? (i / 2) % c : 0;
+        if (c <= 0) {
+            printf("[world-packs] DIY test: pack %d unreadable\nFAIL\n", (int)num);
+            exit(1);
+        }
+        const uint8_t controls = _selectedTeams[i].team.teamControls;
+        _selectedTeams[i] = ((const TeamFileEx *)(buf + 2))[o];
+        _selectedTeams[i].team.teamControls = controls;
+        before[i] = _selectedTeams[i];
+    }
+    if (SaveJson_WriteDIY(name) != 0) {
+        printf("[world-packs] DIY test: not saved\nFAIL\n");
+        exit(1);
+    }
+    /* another session: those numbers are other countries now, the teams gone */
+    WorldPacks_UseAt(packs[0], worlds[1], "GERMANY.json");
+    WorldPacks_UseAt(packs[1], worlds[0], "SPAIN.json");
+    memset(_selectedTeams, 0, sizeof(TeamFileEx) * (size_t)n);
+    printf("[world-packs] DIY test: %d teams saved (packs %d = %s %s, %d = %s %s); the numbers given to %s and %s\n",
+           (int)n, (int)packs[0], World_TagOf((WorldId)worlds[0]), files[0], (int)packs[1],
+           World_TagOf((WorldId)worlds[1]), files[1], (const char *)_countriesTable[packs[0]] + 1,
+           (const char *)_countriesTable[packs[1]] + 1);
+    if (SaveJson_LoadDIY(name, NULL, 0) != 0) {
+        printf("[world-packs] DIY test: not loaded\nFAIL\n");
+        exit(1);
+    }
+    for (int32_t k = 0; k < 2; k++) {
+        int32_t w = -1;
+        const char *file = NULL;
+        const int32_t ok = WorldPacks_Info(packs[k], &w, &file) && w == worlds[k] && strcmp(file, files[k]) == 0;
+        printf("  pack %d after the load: %s %s -- %s\n", (int)packs[k], w >= 0 ? World_TagOf((WorldId)w) : "-",
+               file ? file : "-", ok ? "the save's" : "WRONG");
+        fails += !ok;
+    }
+    for (int32_t i = 0; i < n; i++) {
+        const TeamFileEx *t = &_selectedTeams[i];
+        const TeamDbEntry *e = TeamDb_Team(t->team.countryNumber, t->team.teamOrdinal);
+        const int32_t same = memcmp(t, &before[i], sizeof *t) == 0;
+        const int32_t found = e && strncmp((const char *)e->team.team.teamName, (const char *)t->team.teamName, 16) == 0;
+        if (i < 4 || !same || !found)
+            printf("  team %2d %3d.%-3d %-16.16s %s, the database: %s\n", (int)i, t->team.countryNumber,
+                   t->team.teamOrdinal, (const char *)t->team.teamName, same ? "as saved" : "CHANGED",
+                   found ? "that club" : "NOT FOUND");
+        fails += !same || !found;
+    }
+    printf("[world-packs] DIY round trip: %d teams, %d failed: %s\n", (int)n, (int)fails, fails ? "FAIL" : "PASS");
+    fflush(stdout);
+    exit(fails ? 1 : 0);
+}
+
 /* ---- the self-test ---- */
 
 int32_t WorldPacks_SelfTest(void)
