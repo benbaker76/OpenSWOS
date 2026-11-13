@@ -702,7 +702,9 @@ enum { MODRESTART_KICK_OFF, MODRESTART_CORNER, MODRESTART_FREE_KICK, MODRESTART_
        MODRESTART_THROW_IN,     /* (a throw-in: x the touchline -- < 336 the left -- y where) */
        MODRESTART_GOAL_KICK };  /* (wing as for a corner: 0 his left as he attacks) */
 enum { MODHUD_RESULT = 1,       /* the score / result banner (a goal's, half and full time) */
-       MODHUD_PLAYER_NAME = 2   /* the name of the player on the ball */ };
+       MODHUD_PLAYER_NAME = 2,  /* the name of the player on the ball */
+       MODHUD_SCORES = 4        /* the result banner without its HALF TIME / FULL TIME title: the
+                                 * names, the score, the scorers, the grid */ };
 
 enum { MODLINE_DEFENCE = 1, MODLINE_MIDFIELD = 2, MODLINE_ATTACK = 4 };   /* (backs and defenders;
                                                                            * wings and midfielders; attackers) */
@@ -784,6 +786,8 @@ struct ModMatchResult {
 int32_t ModApi_PlayMatch(const char *slug, const ModMatchSetup *setup, ModMatchResult *result);
 int32_t ModApi_ModMatch(const char *slug);      /* this mod's match is the one being played */
 void    ModApi_EndMatch(void);                  /* the final whistle now, on the score as it is */
+/* The match's MODHUD_* bits from now (a setup's hideHud, changed while it is played). */
+void    ModApi_SetHideHud(int32_t bits);
 /* The referee's final whistle now (G10: a golden or silver goal, a speedrun's target): the match
  * ends as a shoot-out's does -- `winner` (0 / 1; -1 by the score, a level one the top team's)
  * celebrates, the other team mourns -- then the players leave and the result is told as ever. */

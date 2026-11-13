@@ -522,6 +522,12 @@ int32_t ModApi_ModMatch(const char *slug)
     return s_mm.active && slug && strcmp(s_mm.slug, slug) == 0;
 }
 
+void ModApi_SetHideHud(int32_t bits)
+{
+    if (s_mm.active)
+        s_mm.setup.hideHud = (uint8_t)bits;
+}
+
 void ModApi_EndMatch(void)
 {
     if (!_playGame)
@@ -1125,7 +1131,7 @@ int32_t ModMatch_SpriteHidden(const Sprite *spr)
 {
     if (!s_mm.active || !(s_mm.setup.hideHud | s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1]))
         return 0;
-    if (s_mm.setup.hideHud & MODHUD_RESULT) {
+    if (s_mm.setup.hideHud & (MODHUD_RESULT | MODHUD_SCORES)) {
         extern Sprite _dashSprite, _gridBottomRowLeftSprite, _gridBottomRowRightSprite,
             _gridMiddleRowLeftSprite, _gridMiddleRowRightSprite, _gridUpperRowLeftSprite,
             _gridUpperRowRightSprite, _resultAfterTheGameSprite, _resultOnHalftimeSprite,
@@ -1142,8 +1148,9 @@ int32_t ModMatch_SpriteHidden(const Sprite *spr)
             &_team2NameSprite, &_team2TotalGoalsDigit1Sprite, &_team2TotalGoalsDigit2Sprite,
         };
         for (size_t i = 0; i < sizeof kResult / sizeof kResult[0]; i++)
-            if (spr == kResult[i])
-                return 1;
+            if (spr == kResult[i])      /* (MODHUD_SCORES alone keeps the HALF / FULL TIME title) */
+                return (s_mm.setup.hideHud & MODHUD_RESULT) ||
+                       (spr != &_resultAfterTheGameSprite && spr != &_resultOnHalftimeSprite);
         /* ... the wide screen's third column of the banner's grid, and the scorer lines under it */
         extern Sprite _team1ScorerSprite[], _team2ScorerSprite[];
 #ifdef SWOS_SDL_BUILD   /* (the widescreen tiles: the SDL build's) */

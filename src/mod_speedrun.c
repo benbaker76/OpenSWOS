@@ -295,16 +295,18 @@ static void sr_drawn(void)
         box_one(&s_boxLevel, right - 90, 19, 81, 8, kLevelName[s_level], 40, 1, 1);
     else
         HudBox_Off(&s_boxLevel);
-    ModResultBanner banner;
-    if ((!s_over && !s_done) || ModApi_ResultBanner(&banner)) {
+    if (!s_over && !s_done) {
         HudBox_Off(&s_boxResult);
-        return;                         /* (SWOS 2020's waits for the result panel to go too) */
+        return;
     }
-    /* the result: SWOS 2020's band (DOS 40 high from 158 of 200; its taller screens 50 from 220) */
+    /* the result: SWOS 2020's showSpeedrunShowResult, from the final whistle (its
+     * kResultAfterTheGame) with the game's result still up -- its band 50 high from 220 (DOS 40
+     * from 158 of 200), the whole width, or 70 % of it centred on a wide screen */
     const int32_t tall = sh >= 240;
     const int32_t top = tall ? sh - 52 : sh - 42, h = tall ? 50 : 40;
-    const int32_t bx = sw == HUD_WIDTH ? 0 : left, bw = sw == HUD_WIDTH ? sw : HUD_WIDTH;
-    const int32_t cx = (left + right) / 2 - bx;
+    const int32_t wide = sw > 336;
+    const int32_t bw = wide ? sw * 7 / 10 : sw, bx = wide ? (sw - bw) / 2 : 0;
+    const int32_t cx = sw / 2 - bx;
     char line[48];
     BoxText r;
     memset(&r, 0, sizeof r);
@@ -348,13 +350,27 @@ static void sr_kept(void)
     HudBox_Kept(&s_boxResult);
 }
 
-/* The name of the player on the ball sits over the run's time: not drawn in a run (Playa). */
-static int32_t sr_sprite(const struct Sprite *sprite, const struct SpriteGraphics *gfx, int16_t *x, int16_t *y)
-{
-    (void)gfx; (void)x; (void)y;
-    return ModApi_ModMatch("speedrun") && !ModApi_InReplay() && ModApi_SpriteKind(sprite) == MODSPRITE_PLAYER_NAME;
-}
 #endif
+
+static int32_t s_whistle;               /* the target met: 1 the cards' (yours wins), 2 by the score */
+
+/* The final whistle, the frame after the target was met: from inside the event the goal's own
+ * sequence ran on over it -- the kick-off again, the match on to full time (Playa, 2026-11-12). */
+static void sr_frame(void)
+{
+    if (!s_whistle || !ModApi_ModMatch("speedrun"))
+        return;
+    const int32_t winner = s_whistle == 1 ? s_you : -1;
+    s_whistle = 0;
+    /* the game's result banner (names, score, scorers, its grid) would sit under the completion
+     * banner: from the whistle only that (Playa, 2026-11-12) */
+    ModApi_SetHideHud(MODHUD_PLAYER_NAME | MODHUD_SCORES);
+    {
+        extern void PlayEndGameWhistleSample(void);
+        PlayEndGameWhistleSample();
+    }
+    ModApi_FinalWhistle(winner);
+}
 
 static void sr_event(const ModMatchEvent *e)
 {
@@ -363,6 +379,7 @@ static void sr_event(const ModMatchEvent *e)
     /* (the 90 minutes up: a run has no extra time -- FINAL_WHISTLE comes only as the match closes) */
     if ((e->kind == MODEVENT_FULL_TIME || e->kind == MODEVENT_FINAL_WHISTLE) && !s_over) {
         s_over = 1;                     /* (the result on the pitch from now: sr_drawn) */
+        ModApi_SetHideHud(MODHUD_PLAYER_NAME | MODHUD_SCORES);  /* (only it: sr_frame) */
         s_overAt = e->frame;
         if (!s_done && kTarget[s_target].kind == T_MATCH) {     /* (MATCH: won when it ends) */
             int16_t g[2];
@@ -400,7 +417,12 @@ static void sr_event(const ModMatchEvent *e)
         s_done = 1;
         s_doneAt = e->frame;
         fprintf(stderr, "[speedrun] %s in %u frames\n", kTarget[s_target].key, (unsigned)e->frame);
-        ModApi_EndMatch();
+        /* SWOS 2020's endSpeedrun: the end-of-game whistle and the game's own end (EndOfGame) --
+         * the winner celebrates, the result is told, the players leave -- while the completion
+         * banner shows (sr_drawn). Ending it at once (ModApi_EndMatch) took the result and the
+         * banner off the screen the frame they came up (Playa, 2026-11-12). The card targets'
+         * winner is yours, as its winningTeamPtr = &leftTeamIngame. */
+        s_whistle = kind == T_YELLOW || kind == T_RED ? 1 : 2;     /* (sr_frame: the next frame) */
     }
 }
 
@@ -622,8 +644,9 @@ static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
         setup.playMatchScreen = (uint8_t)!s_test;
 #ifdef SWOS_SDL_BUILD
         setup.hideClock = 1;                /* (SWOS 2020's run time sits where the clock was: sr_drawn) */
+        setup.hideHud = MODHUD_PLAYER_NAME; /* (the on-ball name sat over the run's time -- Playa) */
 #endif
-        s_goals = s_done = s_tackled = s_over = 0;
+        s_goals = s_done = s_tackled = s_over = s_whistle = 0;
         s_doneAt = s_overAt = 0;
         s_level = level_of(target);
         if (ModApi_PlayMatch("speedrun", &setup, &r) != 0)
@@ -942,12 +965,12 @@ const ModDef ModDef_speedrun = {
     .slug = "speedrun",
     .init = sr_init,
     .matchEvent = sr_event,
+    .matchFrame = sr_frame,
     .matchEnded = sr_ended,
 #ifdef SWOS_SDL_BUILD
     .matchDrawn = sr_drawn,
     .frameUnder = sr_present,
     .frameKept = sr_kept,
-    .spriteDraw = sr_sprite,
 #endif
 };
 
