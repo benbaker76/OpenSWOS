@@ -9,6 +9,7 @@
 #include "world_playoff.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "league_playoffs.h"
 #include "league_groups.h"
 #include "world.h"
@@ -1174,6 +1175,8 @@ void WorldPlayoff_RecordLines(void)
     for (int32_t st = 0; st < 3; st++)
         if (wmask & 1 << st) RL_ADD(wname[st], 1);
     if (kr) RL_ADD(kn, kr);
+    RL_ADD(SuperCup_RecordLine(0), 1);          /* (a national Super Cup won: gplay.c sc_rline) */
+    RL_ADD(SuperCup_RecordLine(1), 1);          /* (the UEFA Super Cup won: usc_rline) */
 #undef RL_ADD
     if (!rl_n)
         return;
@@ -1308,7 +1311,7 @@ void WorldPlayoff_Advance(uint16_t week)
     const uint8_t *s = LeaguePlayoffs_SpecAt(s_pendStage.country, s_pendStage.pidx);
     if (!s || (g_worldPlayoff.kind && !g_worldPlayoff.winner))
         return;                                 /* (a contest under way in slot 4: none) */
-    if (_diyCompetitionPtr && !g_worldPlayoff.kind && CupD_InSlot4() != 1)
+    if (_diyCompetitionPtr && !g_worldPlayoff.kind && CupD_InSlot4() != 1 && SuperCup_InSlot4() != 1)
         return;
     if (!k_make(s_pendStage.country, s_pendStage.division, s_pendStage.table, s_pendStage.n, s_pendStage.pidx,
                 s[3] & 3))
@@ -1555,8 +1558,9 @@ static int32_t league_ended(void)
     if (g_worldPlayoff.kind && !(g_worldPlayoff.kind == WORLD_PLAYOFF_SPEC && g_worldPlayoff.winner))
         return 1;                               /* (built already: slot 4 is ours; a decided stage
                                                    title's contest gives way) */
-    if (_diyCompetitionPtr && CupD_InSlot4() != 1)
-        return 0;                               /* (slot 4 is 96/97's; a decided Coppa D tie gives way) */
+    if (_diyCompetitionPtr && CupD_InSlot4() != 1 && SuperCup_InSlot4() != 1)
+        return 0;                               /* (slot 4 is 96/97's; a decided Coppa D or Super Cup
+                                                   tie gives way) */
     for (int32_t i = 0; i < count; i++)
         if (all[i].country == World_FileCountry((uint8_t)_careerTeam.team.countryNumber))
             lp = &all[i];

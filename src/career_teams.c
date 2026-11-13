@@ -22,6 +22,7 @@
 #include "world_playoff.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "translations.h"
 #include "endian_helpers.h"
 #include "game_types.h"
@@ -1845,6 +1846,7 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
      * played is the current one */
     if (_teamSelectionKeyCacheCount) {
         CupD_Step(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
+        SuperCup_Step(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
         UefaQual_Daily();       /* (a world's: the career club's qualifying tie decided) */
         Conti_Daily();          /* (or its tie in another confederation's cup) */
         WorldPlayoff_Advance(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
@@ -2023,7 +2025,8 @@ void Career_ProcessCurrentCompetitionSlotAfterMatch(void)
         if (((DIYCompetitionEx *)slotPtr)->minSubstitutes != 0)
             return;
         if (!WorldPlayoff_CareerLeagueEnded() &&   /* a world's play-off the club plays (world_playoff.c), */
-            !CupD_InSlot4())                       /* a Coppa Italia Serie D tie's slot (world_cupd.c) */
+            !CupD_InSlot4() &&                     /* a Coppa Italia Serie D tie's slot (world_cupd.c), */
+            !SuperCup_InSlot4())                   /* a Super Cup tie's (world_supercup.c) */
             DIY_RebuildCompetitionAndTeamSelectionCaches();
     }
 }
@@ -2146,7 +2149,8 @@ void Career_OpenCompetitionSlotMenuAndApplyChanges(uint16_t d2)
     if (((DIYCompetitionEx *)slotPtr)->minSubstitutes != 0)
         return;
     if (!WorldPlayoff_CareerLeagueEnded() &&    /* a world's play-off the club plays (world_playoff.c), */
-        !CupD_InSlot4())                        /* a Coppa Italia Serie D tie's slot (world_cupd.c) */
+        !CupD_InSlot4() &&                      /* a Coppa Italia Serie D tie's slot (world_cupd.c), */
+        !SuperCup_InSlot4())                    /* a Super Cup tie's (world_supercup.c) */
         DIY_RebuildCompetitionAndTeamSelectionCaches();
 }
 
