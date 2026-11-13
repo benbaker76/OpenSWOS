@@ -14,6 +14,8 @@
 #include "uefa_coef.h"
 #include "world_finance.h"
 #include "cpu_repl.h"
+#include "squad_extras.h"
+#include "bteam.h"
 #include "world_conti.h"
 #include "states.h"
 #include "comp_identity.h"
@@ -282,6 +284,8 @@ void ChooseTeamAndStartCareer(void)
     UefaPrize_NewCareer();
     Ffp_NewCareer();
     CpuRepl_NewCareer();
+    SquadExtras_Reset();        /* (a world's squads of 30: nobody gone yet) */
+    BTeam_Reset();              /* (... nobody called up from a B team) */
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
@@ -443,6 +447,7 @@ void Career_InitializeSelectedTeamAndStartingBalance(uint16_t teamNumber, int32_
     }
 
     _careerNumPlayers = 16;
+    SquadExtras_ClubLoaded();   /* (a world's club: its players 17.. join the squad, squad_extras.c) */
     _teamsLoaded = 0;
     _newBalance = 0;
     _sensisoftPlcSponsorshipFactor = 0;
@@ -683,6 +688,8 @@ void InitCareer(uint16_t teamNo)
     UefaPrize_NewCareer();
     Ffp_NewCareer();
     CpuRepl_NewCareer();
+    SquadExtras_Reset();        /* (a world's squads of 30: nobody gone yet) */
+    BTeam_Reset();              /* (... nobody called up from a B team) */
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
@@ -810,6 +817,7 @@ void ContinueCareerNextSeason(void)
             ShowLeavingMessage();
         }
         SWOS_AUTOSKIP_LOG("[bug1] ContinueCareerNextSeason: offer-accepted branch");
+        BTeam_ReturnAll();      /* (a world's B-team call-ups go back before the old club's record is written) */
         Career_AdvanceToNextSeason_UpdateCompetitions();
         Career_ContinueToNextSeasonInitTeamAndFunds(_teamNoOfferAccepted, _teamFundsAccepted);
         InitializeNewSeason();
@@ -817,6 +825,7 @@ void ContinueCareerNextSeason(void)
         SWOS_AUTOSKIP_LOG("[bug1] ContinueCareerNextSeason: chairman branch (no offer accepted)");
         ShowChairmanOpinionAboutTheSeason();
         SWOS_AUTOSKIP_LOG("[bug1] back from ShowChairmanOpinion: youreSacked=%u", (unsigned)_youreSacked);
+        BTeam_ReturnAll();      /* (a world's B-team call-ups: back at the season's end) */
         Career_AdvanceToNextSeason_UpdateCompetitions();
         SWOS_AUTOSKIP_LOG("[bug1] back from AdvanceToNextSeason: youreSacked=%u", (unsigned)_youreSacked);
         InitializeStartingBalanceForNewSeason();

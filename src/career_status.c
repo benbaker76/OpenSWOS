@@ -28,6 +28,8 @@
  * GetExpectedLeagueRankIndex.
  */
 
+#include "squad_extras.h"
+#include "bteam.h"
 #include "career_status.h"
 #include "teams.h"
 #include "league_phase.h"
@@ -2365,8 +2367,9 @@ void Career_UpdatePlayerWeeklyWageCache(uint16_t playerIndex)
     if (someFlag == PLAYER_FORM_TRIALIST) {
         /* Trialist: reduce wage (default 33%) */
         avgBase = (uint16_t)((uint32_t)avgBase * _careerParams.wage_trialist_pct / 100);
-    } else if (someFlag == PLAYER_FORM_RESERVE) {
-        /* Youth: reduce wage (default 66%) */
+    } else if (someFlag == PLAYER_FORM_RESERVE || SquadExtras_IsOwnExtra(pf)) {
+        /* Youth: reduce wage (default 66%) -- and a world club's own players 17.. while they are
+         * its (squad_extras.c: the Mod's xtra_wage) */
         avgBase = (uint16_t)((uint32_t)avgBase * _careerParams.wage_reserve_pct / 100);
     }
 
@@ -2379,6 +2382,8 @@ void Career_UpdatePlayerWeeklyWageCache(uint16_t playerIndex)
     if (_careerParams.wage_pct != 100)  /* (career_params: Career+'s 40%) */
         wage = wage * _careerParams.wage_pct / 100u;
 
+    if (BTeam_CalledKind(pf) == 1)      /* (a world's B-team call-up for one match: no wages, bteam.c) */
+        wage = 0;
     _weeklyWageByPlayerIndex[playerIndex] = (int32_t)wage;
 
     recalcTotalWeeklyWages();

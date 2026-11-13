@@ -25,6 +25,8 @@ extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerModRow(void);
 extern void BuyPlayerCpuReplacements(void);
+extern void BuyOtherPlayersPage(void);
+extern void BTeamSquadButton(void);
 extern void BuyPlayerViewSquad(void);
 extern void CareerGameListCommon(void);
 extern void CareerMenu(void);
@@ -713,12 +715,14 @@ const MenuSymbol _menuSymbols[] = {
     { "AcceptJobOffer", (void*)AcceptJobOffer, SYM_FUNC },
     { "AcceptOffer", (void*)AcceptOffer, SYM_FUNC },
     { "AskForMore", (void*)AskForMore, SYM_FUNC },
+    { "BTeamSquadButton", (void*)BTeamSquadButton, SYM_FUNC },
     { "BuyOtherDomesticPlayer", (void*)BuyOtherDomesticPlayer, SYM_FUNC },
     { "BuyOtherForeignPlayer", (void*)BuyOtherForeignPlayer, SYM_FUNC },
     { "BuyOtherPlayersAfterDrawCommon", (void*)BuyOtherPlayersAfterDrawCommon, SYM_FUNC },
     { "BuyOtherPlayersCommon", (void*)BuyOtherPlayersCommon, SYM_FUNC },
     { "BuyOtherPlayersFinish", (void*)BuyOtherPlayersFinish, SYM_FUNC },
     { "BuyOtherPlayersInit", (void*)BuyOtherPlayersInit, SYM_FUNC },
+    { "BuyOtherPlayersPage", (void*)BuyOtherPlayersPage, SYM_FUNC },
     { "BuyPlayerCpuReplacements", (void*)BuyPlayerCpuReplacements, SYM_FUNC },
     { "BuyPlayerExit", (void*)BuyPlayerExit, SYM_FUNC },
     { "BuyPlayerInit", (void*)BuyPlayerInit, SYM_FUNC },

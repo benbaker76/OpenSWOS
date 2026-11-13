@@ -1241,6 +1241,40 @@
           "value": 77
         }
       ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 121,
+        "y": 185,
+        "w": 59,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 8,
+          "up": 45,
+          "down": 9
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "BTeamSquadButton"
+        }
+      ]
     }
   ]
 }

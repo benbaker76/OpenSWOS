@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "bteam.h"
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
 #include "world_playoff.h"
@@ -1564,6 +1565,7 @@ afterBankBalance:
     /* Entry 2: fg = team name, Entry 5: fg = coach name */
     _menuEntries[2].fg = (uintptr_t)tf->teamName;
     _menuEntries[5].fg = (uintptr_t)tf->coachName;
+    BTeam_SquadMenuInit();      /* (a world career's B TEAM button: bteam.c) */
     return;
 
 viewModeCompChecks:

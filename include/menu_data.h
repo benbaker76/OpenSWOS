@@ -1940,6 +1940,13 @@ typedef struct Menu_BuyOtherPlayers
   MenuCoords16 entry30_rc;
   MenuCmd_TextPtr entry30_text;
   MenuCommand entry30_end;
+  MenuCoords16 entry31_rc;                              /* OpenSWOS: NEXT / PREV PAGE (a world club's */
+  MenuCmd_Invisible entry31_invisible;                  /*  players 17..: transfer_market.c, the Mod's */
+  MenuCmd_Nav entry31_nav;                              /*  xbrowse.py) */
+  MenuCmd_Colors entry31_colors;
+  MenuCmd_TextNoPtr entry31_text;
+  MenuCmd_OnSelect entry31_onSelect;
+  MenuCommand entry31_end;
   MenuMark markEndMenu;
 } Menu_BuyOtherPlayers;
 #pragma pack(pop)
@@ -2540,6 +2547,13 @@ typedef struct Menu_Squad
   MenuEntry_Byte_NumberOnly entries59_61[3];
   MenuMark markWideCoords3;
   MenuEntry_Wide_NumberOnly entries62_63[2];
+  MenuCoords16 entry64_rc;                              /* OpenSWOS: B TEAM (a world career's B-team */
+  MenuCmd_Invisible entry64_invisible;                  /*  call-ups: bteam.c, the Mod 4.1's bteam.py) */
+  MenuCmd_Nav entry64_nav;
+  MenuCmd_Colors entry64_colors;
+  MenuCmd_TextNoPtr entry64_text;
+  MenuCmd_OnSelect entry64_onSelect;
+  MenuCommand entry64_end;
   MenuMark markEndMenu;
 } Menu_Squad;
 #pragma pack(pop)
