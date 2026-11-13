@@ -95,3 +95,10 @@ ITA2627-LIGORNA-POULE SWOS_TEST_PLAYOFF_PLACE=1 @2627 EUROPE/ITALY/SERIE D/SERIE
 # ... a play-off of more rounds than the engine's six, in parts: the MLS's wild card club (seven game
 # rounds: the wild card, then round one's best-of-three to the MLS Cup).
 USA2627-LAGALAXY-WILDCARD SWOS_TEST_PLAYOFF_PLACE=23 @2627 NORTH AMERICA/U.S.A./LA GALAXY
+# ... the Super Cups (src/world_supercup.c): Italy's in the first season (Inter v Lazio, 22 December),
+# Spain's and Turkey's final fours, and the UEFA Super Cup from the second season (the career club
+# made the Champions League holder: SWOS_TEST_USC_FORCE, the Mod's USC_FORCE) before Germany's.
+ITA2627-INTER @2627 EUROPE/ITALY/SERIE A/INTER
+ESP2627-BARCELONA @2627 EUROPE/SPAIN/LALIGA/BARCELONA
+TUR2627-GALATASARAY @2627 EUROPE/TURKEY/SUPER LIG/GALATASARAY
+GER2627-BAYERN-USC SWOS_TEST_USC_FORCE=1 @2627 EUROPE/GERMANY/BUNDESLIGA/BAYERN
