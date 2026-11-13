@@ -10,6 +10,7 @@
  * Chunk 90: Career competition team selection (12 functions).
  */
 
+#include "bteam.h"
 #include "career_teams.h"
 #include <stdio.h>    /* (Career_PeekTeam) */
 #include <stdlib.h>   /* (Career_ForEachClub) */
@@ -1838,6 +1839,8 @@ void Career_UpdateCareerFinishedFlag(void)
 __attribute__((used, externally_visible))
 void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
 {
+    /* a world's B-team call-ups for one match go back (bteam.c: the Mod's bt_adv) */
+    BTeam_ReturnMatch();
     /* a world's computer clubs' injuries and suspensions counted down, once a day (CPU RED
      * CARDS / CPU INJURIES, world_rules.c) */
     WorldRules_CpuDay();

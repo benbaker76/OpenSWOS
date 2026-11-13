@@ -498,6 +498,78 @@ static void at_hub(void)
     _shortFire = 1;
 }
 
+/* Test (SWOS_GOLDEN_SHOT_BTEAM=1): a world career's B-team screens, a screenshot each, at the first
+ * in-season hub (bteam.c): SQUAD with its B TEAM button, the B squad, its page 2 (the players 17..),
+ * a call-up's page and its answer (NEXT MATCH ONLY on page 2's first player), the B squad again (him
+ * greyed), the squad again (him in it, LOAN). 1: this tick was the test's. */
+static int32_t bteam_shots(const Menu *menu)
+{
+    extern void SquadInit(void), BuyOtherPlayersInit(void), SquadMenu(void), BTeamSquadButton(void);
+    extern void BuyOtherPlayersPage(void), BuyOtherPlayersCommon(void *entry), SetExitMenuFlag(void);
+    extern void Platform_RequestScreenshot(void);
+    extern MenuEntry _menuEntries[];
+    static int32_t on = -1, stage, wait;
+    static MenuVoidFn dialogSeen;
+    if (on < 0)
+        on = getenv("SWOS_GOLDEN_SHOT_BTEAM") != NULL;
+    if (!on || stage < 0)
+        return 0;
+    if (stage > 0)                      /* (a player's club while its screens are up, as they are */
+        _careerTeam.team.teamControls = 2;  /*  in a game: the autopilot's own club is the computer's) */
+    if (wait > 0) {                     /* (a screenshot asked: let it be drawn first) */
+        wait--;
+        return 1;
+    }
+#define SHOT(what) do { Platform_RequestScreenshot(); say("[golden] bteam screenshot: %s\n", what); wait = 3; } while (0)
+    if (stage == 0) {
+        if (menu->onInit != ContestMenuInit)
+            return 0;
+        stage = 1;
+        _careerTeam.team.teamControls = 2;
+        SquadMenu();                    /* (the hub's SQUAD; this test drives it, back here when done) */
+        stage = -1;
+        return 1;
+    }
+    if (menu->onInit == SquadInit) {
+        switch (stage) {
+        case 1: SHOT("the squad"); stage = 2; return 1;
+        case 2: stage = 3; BTeamSquadButton(); stage = 9; _shortFire = 0; return 1;
+        case 9: SHOT("the squad after the call-up"); stage = 10; return 1;
+        default: SetExitMenuFlag(); return 1;
+        }
+    }
+    if (menu->onInit == BuyOtherPlayersInit) {
+        switch (stage) {
+        case 3: SHOT("the B squad"); stage = 4; return 1;
+        case 4: BuyOtherPlayersPage(); stage = 5; return 1;
+        case 5: SHOT("the B squad, page 2"); stage = 6; return 1;
+        case 6:
+            stage = 7;
+            dialogSeen = NULL;
+            BuyOtherPlayersCommon(&_menuEntries[3]);
+            stage = 8;
+            _shortFire = 0;             /* (the answer's fire is spent: not this screen's) */
+            return 1;
+        case 8: SHOT("the B squad after the call-up"); stage = 81; return 1;
+        default: SetExitMenuFlag(); return 1;
+        }
+    }
+    if (stage == 7) {                   /* (the call-up page, then its answer: a shot, then fire) */
+        static int32_t shots;
+        if (menu->onInit != dialogSeen || shots == 0) {
+            dialogSeen = menu->onInit;
+            shots = 1;
+            SHOT("a call-up dialog");
+            return 1;
+        }
+        shots = 0;
+        _shortFire = 1;
+        return 1;
+    }
+#undef SHOT
+    return 0;
+}
+
 void CareerAutopilot_Tick(void)
 {
     const Menu *menu;
@@ -568,8 +640,15 @@ void CareerAutopilot_Tick(void)
         choose_step(menu);
         return;
     }
+    if (bteam_shots(menu))              /* (test: SWOS_GOLDEN_SHOT_BTEAM) */
+        return;
     _careerTeam.team.teamControls = 1;  /* the career club's matches are simulated */
     MenuSystem_LatchSeasonSkip();
+    if (menu->onInit == ContestMenuInit) {
+        extern void BTeam_TestRequests(void), SquadExtras_TestRequests(void);
+        BTeam_TestRequests();           /* (test: SWOS_TEST_BTEAM's call-ups, at the first hub: bteam.c) */
+        SquadExtras_TestRequests();     /* (test: SWOS_TEST_BUY_EXTRA, squad_extras.c) */
+    }
 
     if (menu->onInit == CareerOverInit)
         at_hub();

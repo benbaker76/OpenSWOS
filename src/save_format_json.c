@@ -24,6 +24,8 @@
 #include "world.h"             /* "world" in career and competition saves */
 #include "world_finance.h"     /* "uefa_prizes" in a world's career saves */
 #include "cpu_repl.h"          /* "cpu_replacements" in a world's career saves */
+#include "squad_extras.h"      /* "squad_extras" (the players 17.. gone from their clubs) */
+#include "bteam.h"             /* "b_team" (the B-team call-ups) */
 #include "world_rules.h"       /* "world_rules" in a world's career saves */
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
@@ -4116,6 +4118,53 @@ int32_t DataJson_LoadTeamExtras(int32_t file, int32_t ordinal, PlayerFile *out, 
     return n;
 }
 
+/* A world club's players' years of birth (scripts/world_import.py: "born" on a B team's players,
+ * from the Mod's DATA\BAGE.nnn), by its team file and ordinal: born[i] for its player i -- 0..15
+ * its record's, 16.. its "extra_players" -- 0 unknown; the players counted (16 + its extras), at
+ * most max. For the B-team call-ups' under-23 rule (src/bteam.c). */
+int32_t DataJson_LoadTeamBorn(int32_t file, int32_t ordinal, uint16_t *born, int32_t max)
+{
+    char team_file[128];
+    int jlen = 0, n = 0;
+    char *jj = dj_slurp_country_teams((int)file, team_file, (int)sizeof team_file, &jlen);
+    if (!jj)
+        return 0;
+    for (int i = 0; i < max; i++)
+        born[i] = 0;
+    const char *arr;
+    int alen;
+    if (mjson_find(jj, jlen, "$.teams", &arr, &alen) == MJSON_TOK_ARRAY) {
+        int pos = 0, voff, vlen, vt;
+        while ((pos = fast_array_next(arr, alen, pos, &voff, &vlen, &vt)) != 0) {
+            double o = -1;
+            if (vt != MJSON_TOK_OBJECT ||
+                !mjson_get_number(arr + voff, vlen, "$.team.team_ordinal", &o) || (int32_t)o != ordinal)
+                continue;
+            static const char *const kGroup[2] = { "$.players", "$.extra_players" };
+            for (int g = 0; g < 2; g++) {
+                const char *xa;
+                int xl, p2 = 0, vo2, vl2, vt2, k = 0;
+                if (mjson_find(arr + voff, vlen, kGroup[g], &xa, &xl) != MJSON_TOK_ARRAY)
+                    continue;
+                while ((p2 = fast_array_next(xa, xl, p2, &vo2, &vl2, &vt2)) != 0) {
+                    const int at = g ? 16 + k : k;
+                    double y = 0;
+                    k++;
+                    if (vt2 != MJSON_TOK_OBJECT || at >= max)
+                        continue;
+                    if (mjson_get_number(xa + vo2, vl2, "$.born", &y) && y > 1800 && y < 2200)
+                        born[at] = (uint16_t)y;
+                    if (at + 1 > n)
+                        n = at + 1;
+                }
+            }
+            break;
+        }
+    }
+    free(jj);
+    return n;
+}
+
 /* ----------------------------------------------------------------------------
  * Competition JSON loader (data_json/competitions/*.json) — first increment:
  * parse a single competition RECORD (the cup / playoff family: comp base +
@@ -7323,6 +7372,20 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             mjson_printf(json_out_emit, &out, "%s[%d,%d]", i ? "," : "",
                          (int)g_cpuRepl.used[i].team, (int)g_cpuRepl.used[i].mask);
         mjson_printf(json_out_emit, &out, "]}");
+        /* ... its squads of 30 (squad_extras.c): the clubs' players 17.. gone from them -- club,
+         * place - 1, name (the Mod's items XS and XL) -- and the list's ring; */
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:[", "squad_extras", "ring", (int)g_sqx.ring, "left");
+        for (int32_t i = 0; i < g_sqx.n; i++)
+            mjson_printf(json_out_emit, &out, "%s[%d,%d,%Q]", i ? "," : "", (int)g_sqx.left[i].team,
+                         (int)g_sqx.left[i].index, (const char *)g_sqx.left[i].name);
+        mjson_printf(json_out_emit, &out, "]}");
+        /* ... and its B-team call-ups (bteam.c, the Mod's item BU): kind, place - 1 in the B team,
+         * the B team, name. */
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:[", "b_team", "called");
+        for (int32_t i = 0; i < g_bteam.n; i++)
+            mjson_printf(json_out_emit, &out, "%s[%d,%d,%d,%Q]", i ? "," : "", (int)g_bteam.call[i].kind,
+                         (int)g_bteam.call[i].index, (int)g_bteam.call[i].team, (const char *)g_bteam.call[i].name);
+        mjson_printf(json_out_emit, &out, "]}");
     }
 
     /* A world's match rules kept with the career (world_rules.c: the Mod's CPU RED CARDS, CPU
@@ -8168,6 +8231,54 @@ static void apply_semantic_load(const char *src, int src_size)
                 }
             }
         }
+    }
+    /* ... its squads of 30 and B-team call-ups; a save without them: nobody gone, nobody called. */
+    SquadExtras_Reset();
+    BTeam_Reset();
+    {
+        const char *it = NULL, *arr = NULL;
+        int itlen = 0, alen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.squad_extras", &it, &itlen) == MJSON_TOK_OBJECT) {
+            if (mjson_get_long(it, itlen, "$.ring", &v) > 0) g_sqx.ring = (uint16_t)(v % SQX_LEFT_MAX);
+            if (mjson_find(it, itlen, "$.left", &arr, &alen) == MJSON_TOK_ARRAY) {
+                int pos = 0, ko, kl, vo, vl, vt;
+                while (g_sqx.n < SQX_LEFT_MAX && (pos = mjson_next(arr, alen, pos, &ko, &kl, &vo, &vl, &vt)) != 0) {
+                    long t = 0, x = 0;
+                    char nm[32];
+                    if (vt == MJSON_TOK_ARRAY && mjson_get_long(arr + vo, vl, "$[0]", &t) > 0 &&
+                        mjson_get_long(arr + vo, vl, "$[1]", &x) > 0 &&
+                        mjson_get_string(arr + vo, vl, "$[2]", nm, sizeof nm) > 0) {
+                        SqxLeft *e = &g_sqx.left[g_sqx.n++];
+                        e->team = (uint16_t)t;
+                        e->index = (uint8_t)x;
+                        memset(e->name, 0, sizeof e->name);
+                        for (int q = 0; q < 22 && nm[q]; q++)
+                            e->name[q] = (int8_t)nm[q];
+                    }
+                }
+            }
+        }
+        if (mjson_find(src, src_size, "$.b_team", &it, &itlen) == MJSON_TOK_OBJECT &&
+            mjson_find(it, itlen, "$.called", &arr, &alen) == MJSON_TOK_ARRAY) {
+            int pos = 0, ko, kl, vo, vl, vt;
+            while (g_bteam.n < BTEAM_MAX && (pos = mjson_next(arr, alen, pos, &ko, &kl, &vo, &vl, &vt)) != 0) {
+                long k = 0, x = 0, t = 0;
+                char nm[32];
+                if (vt == MJSON_TOK_ARRAY && mjson_get_long(arr + vo, vl, "$[0]", &k) > 0 &&
+                    mjson_get_long(arr + vo, vl, "$[1]", &x) > 0 && mjson_get_long(arr + vo, vl, "$[2]", &t) > 0 &&
+                    mjson_get_string(arr + vo, vl, "$[3]", nm, sizeof nm) > 0) {
+                    BTeamCall *c = &g_bteam.call[g_bteam.n++];
+                    c->kind = (uint8_t)k;
+                    c->index = (uint8_t)x;
+                    c->team = (uint16_t)t;
+                    memset(c->name, 0, sizeof c->name);
+                    for (int q = 0; q < 22 && nm[q]; q++)
+                        c->name[q] = (int8_t)nm[q];
+                }
+            }
+        }
+        SquadExtras_Changed();
     }
     /* ... its financial fair play; a save without it: an older one, the rule off. */
     Ffp_LoadedWithout();

@@ -608,6 +608,40 @@
           "str": null
         }
       ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 184,
+        "y": 185,
+        "w": 76,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "nav",
+          "left": 2,
+          "right": -1,
+          "up": 18,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "BuyOtherPlayersPage"
+        }
+      ]
     }
   ]
 }

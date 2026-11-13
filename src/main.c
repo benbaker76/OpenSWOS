@@ -988,6 +988,21 @@ int main(int argc, char **argv)
                 return 1;
             }
             return CpuRepl_SelfTest(f, o) ? 1 : 0;
+        } else if ((v = match_kv(a, "squad-extras-selftest")) != NULL) {
+            extern int32_t SquadExtras_SelfTest(int32_t file, int32_t ordinal);
+            int f = -1, o = -1;                    /* (src/squad_extras.c: a club's players 17..) */
+            if (getenv("SWOS_WORLD"))
+                World_Set(getenv("SWOS_WORLD"));
+            if (sscanf(v, "%d,%d", &f, &o) != 2) {
+                fprintf(stderr, "--squad-extras-selftest=<team file>,<ordinal>\n");
+                return 1;
+            }
+            return SquadExtras_SelfTest(f, o) ? 1 : 0;
+        } else if (strncmp(a, "--bteam-selftest", 16) == 0) {
+            extern int32_t BTeam_SelfTest(const char *arg);
+            if (getenv("SWOS_WORLD"))              /* (src/bteam.c: the B teams, their years) */
+                World_Set(getenv("SWOS_WORLD"));
+            return BTeam_SelfTest(a[16] == '=' ? a + 17 : "") ? 1 : 0;
         } else if (strcmp(a, "--custom-team-selftest") == 0) {
             if (getenv("SWOS_WORLD"))
                 World_Set(getenv("SWOS_WORLD"));

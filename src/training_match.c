@@ -9,6 +9,7 @@
  * Chunk 176: 5 functions — sub swap candidates, trial players for new season.
  */
 
+#include "squad_extras.h"
 #include "training_match.h"
 #include "endian_helpers.h"
 #include "game_types.h"
@@ -456,6 +457,13 @@ void TrainingMatch_AddTrialPlayersForNewSeason(void)
 {
     if (_isNationalSelector != 0)
         return;
+
+    /* A world's club that brought its own players 17.. (squad_extras.c): they, not 10 invented
+     * reserves (the Mod's xtra_reserves; the squad order's copy and the subs below still run). */
+    if (SquadExtras_TakeAdded()) {
+        TrainingMatch_ApplyUseMatchTeamAndSwapSubs();
+        return;
+    }
 
     TrainingMatch_TryAddTrialPlayerAtPosition(2);
     TrainingMatch_TryAddTrialPlayerAtPosition(1);

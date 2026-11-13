@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "squad_extras.h"
 #include "teams.h"
 #include "world.h"
 #include "career_teams.h"
@@ -1046,8 +1047,15 @@ uint8_t *GetPlayer(uint16_t teamNumber, uint16_t playerFileIndex)
         teamBase = _currentTeam;
     else if (teamNumber == _selTeamNumber)
         teamBase = (uint8_t *)&_careerTeam;
-    else
+    else {
+        /* another club's player 17.. (a world career's squads: squad_extras.c, the Mod's gp_wide) */
+        if (playerFileIndex >= 16) {
+            uint8_t *x = SquadExtras_GetPlayer(teamNumber, playerFileIndex);
+            if (x)
+                return x;
+        }
         teamBase = (uint8_t *)GetTeamPointer(teamNumber);
+    }
 
     return teamBase + (uint16_t)(playerFileIndex * sizeof(PlayerFile));
 }
@@ -1469,6 +1477,9 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
     uint8_t *a1;
 
     d1 = index;
+
+    /* (one of a world club's own players 17.. leaving it: listed, never back -- squad_extras.c) */
+    SquadExtras_OwnLeaving(d1);
 
     /* Get player record and accumulate stats */
     player = GetPlayer(_selTeamNumber, d1);
