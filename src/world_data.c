@@ -2366,6 +2366,22 @@ const LeagueGroups *WorldData2627_LeagueGroups(int32_t *count)
     }
 }
 
+/* A classic world's countries without groups: each league club's slot and division in the team
+ * file (levels 0: a division its own level), for its cups' clubs from the second season
+ * (src/world_cups.c build; the Mod's cupsf.py / gplay.c cf_build). */
+#if SWOS_WORLDS
+
+#endif
+
+const LeagueGroups *WorldData2627_CupClubs(uint16_t country)
+{
+#if SWOS_WORLDS
+
+#endif
+    (void)country;
+    return 0;
+}
+
 /* The leagues' play-offs and play-outs (src/league_playoffs.c): the Mod's counts per
  * division, its Italian rules, its knockouts compiled as tools/gplay.py compiles them. */
 #if SWOS_WORLDS
