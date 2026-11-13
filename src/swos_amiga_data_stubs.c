@@ -18,6 +18,7 @@
 #include "swos_sections.h"
 #include "intro_chip_ram.h"
 #include "game_types.h"     /* TEAM_FILE_BUFFER_SIZE */
+#include "player_looks.h"  /* SPRITE_TABLE_SLOTS */
 
 /* AI_maxStoppageTime: real data in swos_amiga_data_imports.c */
 /* LoaderBootstrapBlobPI: real data in swos_data_bulk_imports.c */
@@ -1611,12 +1612,9 @@ SWOS_CHIP_BSS IntroChipRam g_introChipRam;
  * which the DOS sprite build never touches, so the glyphs survive in DOS-graphics
  * mode as well as Amiga. Then 1310..1480, the shirt numbers: a match's 17..99, the menus' 12..99 (shirt_numbers.c);
  * 1481..1683 face 3's two sets and its menu icon (player_face3.c). 1304 is the stoppage-time
- * clock with its "+N" (stoppage.c); 1305..1309 are free. */
-#if UINTPTR_MAX == 0xFFFFFFFFu
-SWOS_CHIP_BSS char _spriteGraphics[1684 * 4];          /* 1684 ptrs × 4 B (32-bit) */
-#else
-SWOS_CHIP_BSS char _spriteGraphics[1684 * 8];          /* 1684 ptrs × 8 B */
-#endif
+ * clock with its "+N" (stoppage.c); 1305..1309 are free. SDL: then the players' looks, a match's
+ * twelve sets, their face icons and the line-up's little players (player_looks.h). */
+SWOS_CHIP_BSS char _spriteGraphics[SPRITE_TABLE_SLOTS * sizeof(void *)];
 /* spriteGraphicsPtr: real data in swos_amiga_data_imports.c */
 /* squadChangesAllowed: real data in swos_amiga_data_imports.c */
 /* squadDisplayCount: real data in swos_amiga_data_imports.c */

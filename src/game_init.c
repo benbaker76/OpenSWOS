@@ -6,6 +6,7 @@
 #ifdef SWOS_SDL_BUILD
 #include <stdlib.h>
 #endif
+#include "player_looks.h"
 #include "swos_fixed_team_name.h"   /* SWOS_CopyTeamName17 */
 #include "game_init.h"
 #include "league_phase.h"
@@ -472,6 +473,7 @@ void InitInGamePlayer(uint16_t playerIndex, uint16_t playerSlot,
 #endif
     pi->blond = face == 3;              /* (face 3: a black player, blond: player_face3.c) */
     pi->face = (int8_t)(face == 3 ? 2 : face);
+    PlayerLooks_NotePlayer(pi, pf);     /* (his look, drawing only: player_looks.c) */
 
     /* Position: bits 5-7 of positionAndFace */
     uint16_t pos = (uint16_t)(pf->positionAndFace & PF_POSITION_MASK) >> 5;
