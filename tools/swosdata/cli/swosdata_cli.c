@@ -355,6 +355,9 @@ int main(int argc, char **argv)
     printf("Jaguar:       %s\n", job.src.jagRom[0] ? job.src.jagRom : "(not found)");
     printf("SWOS 2020:    %s\n", job.src.s2020Dir[0] ? job.src.s2020Dir : "(not found)");
     printf("World:        %s\n", job.src.world[0] ? job.src.world : "(not found)");
+    for (int32_t i = 0; i < SD_WORLDS_MORE; i++)
+        if (job.src.worldMore[i][0])
+            printf("World:        %s\n", job.src.worldMore[i]);
     if (!job.outDir[0])
         return 0;       /* no --out: only say what was found */
     if (!job.resDir[0])

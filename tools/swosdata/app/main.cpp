@@ -618,7 +618,17 @@ struct App {
         unusable[r] = path;
         return N_("Not the Sensible Soccer Jaguar cartridge (a 2 MB .jag, .j64, .rom or .bin).");
       case ROW_WORLD:
-        if (found.world[0]) { take(src.world, found.world); return N_(""); }
+        if (found.world[0]) {
+          // Another world's package beside the one there (one a world, by WORLD.ini's tag): both
+          // are installed; the same world's replaces it.
+          SdWorldInfo a{}, b{};
+          if (src.world[0] && SdSources_OpenWorld(src.world, &a, nullptr, 0) == 0 &&
+              SdSources_OpenWorld(found.world, &b, nullptr, 0) == 0 && std::strcmp(a.tag, b.tag) != 0)
+            SdSources_AddWorld(&src, found.world);
+          else
+            take(src.world, found.world);
+          return N_("");
+        }
         src.world[0] = '\0';
         unusable[r] = path;
         return N_("Not a world's package: OpenSWOS-World-2627.zip, or the folder it was unpacked to.");
@@ -2099,9 +2109,14 @@ struct App {
     std::string list;
     const std::string data = Join(drawerGame, "data/MODS");
     sd::RemoveTree(Join(drawerGame, "mods"));
+    bool tookWorld = false;   // (the Amiga plays one world: its drawer takes the first world mod that is on)
     for (const ModFile& m : modList) {
       if (!m.amiga || !m.problem.empty() || !ModOn(m)) continue;
-      if (IsWorldMod(m) && !withWorld) continue;
+      if (IsWorldMod(m)) {
+        if (!withWorld) continue;
+        if (tookWorld) { FileLog("mods: " + m.slug + " not in the drawer (the Amiga plays one world)"); continue; }
+        tookWorld = true;
+      }
       std::string err;
       const std::string from = sd::IsDir(Join(m.dir, "amiga")) ? Join(m.dir, "amiga") : m.dir;
       const std::string to = Join(Join(drawerGame, "mods"), m.slug);
@@ -2392,6 +2407,7 @@ struct App {
     if (found.jagRom[0] && !src.jagRom[0]) { take(src.jagRom, found.jagRom); unusable[ROW_JAG].clear(); what = N_("the Jaguar cartridge"); }
     if (found.s2020Dir[0] && !src.s2020Dir[0]) { take(src.s2020Dir, found.s2020Dir); unusable[ROW_2020].clear(); what = N_("SWOS 2020"); }
     if (kWorldUrl[0] && found.world[0] && !src.world[0]) { take(src.world, found.world); unusable[ROW_WORLD].clear(); what = N_("World 2026-27"); }
+    else if (found.world[0] && src.world[0]) SdSources_AddWorld(&src, found.world);   // (another world's: beside it)
     if (found.adf1[0] || found.adf2[0] || found.hdf[0] || found.lha[0]) {
       // The library's own rule picks the better of the two Amiga versions.
       SdSources_AddFile(&src, path.c_str());
