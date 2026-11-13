@@ -35,6 +35,13 @@ int32_t WorldEurope_Active(void);
 /* A country's places (cc, cwc, uefa), 0: none. */
 const uint8_t *WorldEurope_Places(uint8_t country);
 
+/* No two clubs of one country in a tie of rounds 1 and 2 (the UEFA rule of the time, the Mod 3.0):
+ * a cup's draw just made (InitDIYCupFromRecord: its record's id), and round 1 just played
+ * (UpdateCompetitionProgress, the winners in their next ties). A career's cups 0..2 of a classic
+ * world only. */
+void WorldEurope_DrawMade(uint8_t compId);
+void WorldEurope_RoundPlayed(void);
+
 /* (A new career's first-season clubs: Career_LoadWorldEuropeTmd, src/career_teams.c.) */
 
 #endif
