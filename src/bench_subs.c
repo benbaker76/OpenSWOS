@@ -253,8 +253,8 @@ static void drawOpponentsBench(void);
  * only: it is worked out from the cursor, no state of its own. */
 static uint16_t bench_window_first(void)
 {
-    if (!LongBench_On() || _trainingGame)
-        return 1;
+    if (!LongBench_On() || _trainingGame || LongBench_TwoRows())
+        return 1;               /* (two rows: everyone seated, no window) */
     return (uint16_t)(_benchPlayerIndex > 5 ? _benchPlayerIndex - 4 : 1);
 }
 static void drawBenchPlayersAndCoach(TeamGame *teamGame, TeamGeneralInfo *team, uint16_t x, uint16_t y);
@@ -667,6 +667,8 @@ activate_bench:
 
         d1 = 389;   /* top bench Y */
         d2 = 485;   /* bottom bench Y */
+        if (LongBench_TwoRows())
+            d1 = LB_TOP_BENCH_Y;    /* (the long top dugout grew a row upwards: the Mod's bx_benchy) */
 
         if (_trainingGame != 0) {
             d1 += 67;    /* training game bench coordinates */
@@ -1743,7 +1745,7 @@ static int bench_occupants_visible(void)
 static void draw_bench_occupants_only(void)
 {
     /* Bench Y bases and the side convention, mirroring the activation block. */
-    uint16_t topY = 389, botY = 485;
+    uint16_t topY = LongBench_TwoRows() ? LB_TOP_BENCH_Y : 389, botY = 485;
     if ((uint8_t)_topTeamInGame.teamName[0] & 2) {
         uint16_t t = topY; topY = botY; botY = t;
     }
@@ -1941,7 +1943,12 @@ skip_opponent_1:
 
     if (_goToSubsTimer == 0 && _substituteInProgress == 0 && _subsState == 0) {
         uint16_t save_d1 = d1;
-        DrawSpriteInCameraView(SPR_SELECT_SUBSTITUTE_ARROW, d1, d2);
+        if (LongBench_TwoRows() && _benchPlayerIndex > LB_BACK_ROW)
+            /* (the front row's: the arrow mirrored, right of the row, at its seat -- the Mod's bx_arrow) */
+            DrawSpriteInCameraView((uint16_t)LongBench_MirroredArrow(SPR_SELECT_SUBSTITUTE_ARROW),
+                                   (uint16_t)(d1 + LB_ARROW_DX), (uint16_t)(d2 - 53));
+        else
+            DrawSpriteInCameraView(SPR_SELECT_SUBSTITUTE_ARROW, d1, d2);
         d1 = save_d1;
     }
 
@@ -2074,7 +2081,12 @@ skip_coach:
         place += 4; /* advance by 4 more players = player 15 */
     }
 
-    for (d7 = first; d7 < first + 5; d7++) {
+    /* (a long bench's two rows: every place seated -- the coach and places 1..7 at the game's seats,
+     *  8.. in front, a column to the right; the window of five only without them) */
+    const uint16_t twoRows = (uint16_t)LongBench_TwoRows();
+    const uint16_t last = twoRows ? (uint16_t)(first + LongBench_Last() - 1) : (uint16_t)(first + 4);
+    const uint16_t backY = d2;
+    for (d7 = first; d7 <= last; d7++) {
         pi = LongBench_Player(teamGame, (uint16_t)place);
         /* check if player is valid to draw */
         if (pi->skip != 0)
@@ -2138,7 +2150,15 @@ skip_coach:
         }
         d0 += d3;
         d0 += d6;
-        DrawSpriteHotspotInCameraView(d0, d1, d2);
+        if (twoRows) {                  /* (the Mod's bx_seat) */
+            const int32_t front = d7 > LB_BACK_ROW;
+            const uint16_t y = (uint16_t)(backY + 7 * (d7 - 1) - (front ? 53 : 0));
+            /* a figure standing up from the back row stands in front of the front row */
+            const uint16_t base = (uint16_t)(d0 - d3 - d6);
+            const int32_t standing = base == 0x4B2 || base == 0x4B5;
+            DrawSpriteHotspotInCameraView(d0, (uint16_t)(d1 + (front || standing ? LB_FRONT_X : 0)), y);
+        } else
+            DrawSpriteHotspotInCameraView(d0, d1, d2);
 
     next_player:
         d2 += 7;

@@ -25,6 +25,7 @@ extern uint32_t _gameTime;               /* BCD-encoded: byte3=ones, byte2=tens,
 extern uint16_t _secondsSwitchAccumulator;
 extern uint16_t _copyTimeSprite;
 extern Sprite   _currentTimeSprite;
+extern uint16_t _inSubstitutesMenu;
 #ifdef SWOS_SDL_BUILD
 /* Widescreen 3rd score-panel tile per row — see sprite_data.c. */
 extern Sprite   _gridUpperRowExtraSprite;
@@ -1150,6 +1151,17 @@ set_time_sprite_x:
         /* If player indicator is at position 4, shift time down by 8 */
         if (_currentPlayerIndicatorPosition == 4)
             _currentTimeSprite.y.s.i += 8;
+
+        /* A long bench's two rows: while the bench is open the clock goes to the top right, left
+         * of the spinning S, off the top dugout's coach and first seats (long_bench.c, the Mod's
+         * bx_clock; its right edge 32 columns in from the right). */
+        if (_inSubstitutesMenu && LongBench_TwoRows()) {
+            extern uint8_t *_spriteGraphicsPtr;
+            const SpriteGraphics *g = _currentTimeSprite.imageIndex >= 0 && _spriteGraphicsPtr
+                ? ((SpriteGraphics **)_spriteGraphicsPtr)[_currentTimeSprite.imageIndex] : (const SpriteGraphics *)0;
+            const int16_t w = g ? g->pixWidth : 30;
+            _currentTimeSprite.x.s.i = (int16_t)(Render_CameraX() + HUD_MARGIN + HUD_WIDTH - 31 - w);
+        }
 
         _currentTimeSprite.z.s.i = 10000;
     }

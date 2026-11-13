@@ -25,6 +25,7 @@
  */
 #include "long_bench.h"
 #include "squad_extras.h"
+#include "custom_team.h"
 #include "world.h"
 #include "endian_helpers.h"
 
@@ -98,13 +99,26 @@ static int32_t side_of(const TeamGame *tg)
 
 #if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
 
+static int32_t club_bench(const TeamFile *t, uint8_t *et);
+
 static int32_t world_benches(void)
 {
     return World_Current() == WORLD_2627;
 }
 
-/* A club's (country, division) bench: its division's, else its country's own; 0: none. */
+/* A club's (country, division) bench: its division's, else its country's own; 0: none -- and none
+ * for a national team, the game's custom teams or a team made from a club (MY CUSTOM TEAM): they
+ * keep the game's bench, as the Mod's. */
 static int32_t division_bench(const TeamFile *t, uint8_t *et)
+{
+    if (t->countryNumber == CN_CUSTOM || (t->countryNumber >= CN_EUROPE && t->countryNumber <= CN_OCEANIA))
+        return 0;
+    if (CustomTeam_IsEdited((const TeamFileEx *)t))
+        return 0;
+    return club_bench(t, et);
+}
+
+static int32_t club_bench(const TeamFile *t, uint8_t *et)
 {
     const uint8_t country = World_FileCountry(t->countryNumber);
     const LongBenchDiv *own = NULL;
@@ -171,7 +185,7 @@ static int32_t match_bench(const TeamFile *t1, const TeamFile *t2, uint8_t *et)
          *  already there for the pre-match screen, as at the kick-off) */
         int32_t n = title_bench(country, (const char *)_diyCompetitionStart.base.competitionName, et);
         if (!n)
-            n = league_match ? division_bench(club, et) : country_bench(country, et);
+            n = league_match ? club_bench(club, et) : country_bench(country, et);
         return n;
     }
     if (_gameType == GAME_TYPE_NO_GAME || _gameType == GAME_TYPE_DIY) {
@@ -300,6 +314,192 @@ void LongBench_SaveKickOff(void)
 void LongBench_RestoreKickOff(void)
 {
     memcpy(g_lbExtra, s_kickoff, sizeof s_kickoff);
+}
+
+/* ---- the two-row dugouts (the Mod's dugout.py, 4.0.6 / 4.1) ----
+ * The dugouts are pitch tiles in columns 0-1: the top one rows 23-27 (the roof cap, two middle rows,
+ * the seat end, the steps), the bottom one 29-33, the halfway line between them. With a long bench
+ * the top one grows a row upwards (cap 22) and the bottom one a row downwards (steps 34), and both a
+ * column wider (column 2: column 1's last pixel column repeated, the floor going on). Every tile comes
+ * from the original dugouts in the same grass-stripe phase; one missing in a phase is made from one
+ * that exists, its grass pixels swapped for that phase's grass. Done on the loaded tile map (any of
+ * the game's pitch sets), so the files stay as they are; a pitch whose dugouts are not where the
+ * game's are is left alone. Drawing only: the match never reads a tile. */
+int32_t LongBench_TwoRows(void)
+{
+    return LongBench_On() && !_trainingGame;
+}
+
+#ifdef SWOS_SDL_BUILD
+#define DG_COLS      42
+#define DG_ADD       1
+#define DG_TILES     96                 /* new tiles at most (the Mod's PITCH1-5 make 10-20) */
+static const int8_t k_top[5] = { 23, 24, 25, 26, 27 }, k_bot[5] = { 29, 30, 31, 32, 33 };
+static uint8_t  s_dgPool[DG_TILES][256];
+static int32_t  s_dgUsed;
+
+enum { DG_CAP, DG_MID, DG_END, DG_STEPS, DG_NONE };
+
+static int32_t dg_kind_new(int32_t r)   /* the long dugouts' row r */
+{
+    if (r == 22 || r == 29) return DG_CAP;
+    if ((r >= 23 && r <= 25) || (r >= 30 && r <= 32)) return DG_MID;
+    if (r == 26 || r == 33) return DG_END;
+    if (r == 27 || r == 34) return DG_STEPS;
+    return DG_NONE;
+}
+
+static int32_t dg_kind_old(int32_t r)   /* the game's dugouts' row r */
+{
+    static const int8_t k[5] = { DG_CAP, DG_MID, DG_MID, DG_END, DG_STEPS };
+    for (int32_t i = 0; i < 5; i++)
+        if (r == k_top[i] || r == k_bot[i])
+            return k[i];
+    return DG_NONE;
+}
+
+static const uint8_t *grass_tile(uint8_t *const *o, const int32_t *grass, int32_t ng, int32_t per, int32_t r,
+                                 int32_t c)
+{
+    for (int32_t i = 0; i < ng; i++)
+        if (((grass[i] - r) % per + per) % per == 0 && dg_kind_new(grass[i]) == DG_NONE)
+            return o[grass[i] * DG_COLS + c];
+    return o[grass[0] * DG_COLS + c];
+}
+
+static uint8_t *dg_add(const uint8_t *px)
+{
+    if (s_dgUsed >= DG_TILES)
+        return NULL;
+    memcpy(s_dgPool[s_dgUsed], px, 256);
+    return s_dgPool[s_dgUsed++];
+}
+
+void LongBench_PitchDugouts(uint8_t **tiles)
+{
+    uint8_t *o[55 * DG_COLS];           /* the original map */
+    uint8_t *have[DG_NONE][2][8];       /* (kind, column, stripe phase) -> tile */
+    int32_t grass[55], ng = 0, per = 0;
+    if (!LongBench_TwoRows() || !tiles)
+        return;
+    memcpy(o, tiles, sizeof o);
+    s_dgUsed = 0;
+    memset(have, 0, sizeof have);
+    for (int32_t r = 10; r < 47; r++)
+        if (dg_kind_old(r) == DG_NONE)
+            grass[ng++] = r;
+#define T(r, c) o[(r) * DG_COLS + (c)]
+    for (int32_t p = 1; p <= 8 && !per; p++) {
+        int32_t ok = 1;
+        for (int32_t i = 0; i < ng && ok; i++)
+            for (int32_t j = 0; j < ng && ok; j++)
+                if ((grass[j] - grass[i]) % p == 0)
+                    for (int32_t c = 0; c < 2 && ok; c++)
+                        ok = T(grass[i], c) == T(grass[j], c);
+        if (ok)
+            per = p;
+    }
+    if (!per) {
+        fprintf(stderr, "[bench] the pitch's grass has no stripe period: the game's dugouts kept\n");
+        return;
+    }
+    for (int32_t i = 0; i < 10; i++) {
+        const int32_t r = i < 5 ? k_top[i] : k_bot[i - 5];
+        for (int32_t c = 0; c < 2; c++)
+            if (!have[dg_kind_old(r)][c][r % per])
+                have[dg_kind_old(r)][c][r % per] = T(r, c);
+    }
+    /* the grass tile of row r's stripe phase, column c (a row that stays grass) */
+    #define G(r, c) grass_tile(o, grass, ng, per, (r), (c))
+    {
+        /* (the game's dugouts must be where the Mod's are: ink from row 23 to row 33's end) */
+        if (T(23, 0) == G(23, 0) && T(23, 1) == G(23, 1)) {
+            fprintf(stderr, "[bench] the pitch's dugouts are not where the game's are: kept\n");
+            return;
+        }
+        for (int32_t c = 0; c < 3; c++)
+            if (T(22, c) != G(22, c) || T(34, c) != G(34, c)) {
+                fprintf(stderr, "[bench] the rows the dugouts grow into are not grass: the game's dugouts kept\n");
+                return;
+            }
+    }
+    for (int32_t r = 22; r <= 34; r++) {
+        const int32_t k = dg_kind_new(r);
+        if (k == DG_NONE)
+            continue;
+        for (int32_t c = 0; c < 2; c++) {
+            uint8_t *t = have[k][c][r % per];
+            if (!t) {                   /* a phase with no such tile: from one that has it, grass swapped */
+                int32_t ph = -1;
+                for (int32_t p = 0; p < per && ph < 0; p++)
+                    if (have[k][c][p])
+                        ph = p;
+                if (ph < 0)
+                    return;
+                const uint8_t *src = have[k][c][ph], *g0 = G(ph, c), *g1 = G(r, c);
+                uint8_t px[256];
+                for (int32_t i = 0; i < 256; i++)
+                    px[i] = src[i] == g0[i] ? g1[i] : src[i];
+                t = have[k][c][r % per] = dg_add(px);
+                if (!t)
+                    return;
+            }
+            tiles[r * DG_COLS + c] = t;
+        }
+    }
+    for (int32_t r = 22; r <= 34; r++) {   /* the 3rd column: the floor goes on */
+        if (dg_kind_new(r) == DG_NONE)
+            continue;
+        const uint8_t *t1 = tiles[r * DG_COLS + 1], *g1 = G(r, 1), *g2 = G(r, 2);
+        uint8_t px[256];
+        for (int32_t y = 0; y < 16; y++)
+            for (int32_t x = 0; x < 16; x++)
+                px[y * 16 + x] = t1[y * 16 + 15] == g1[y * 16 + 15] ? g2[y * 16 + x] : t1[y * 16 + 15];
+        uint8_t *t = dg_add(px);
+        if (t)
+            tiles[r * DG_COLS + 2] = t;
+    }
+#undef T
+#undef G
+    fprintf(stderr, "[bench] two-row dugouts: stripe period %d, %d new tiles\n", (int)per, (int)s_dgUsed);
+}
+#else
+void LongBench_PitchDugouts(uint8_t **tiles) { (void)tiles; }
+#endif
+
+/* The game's selection arrow mirrored (the front row's, pointing left): a sprite of its own past the
+ * names' (SDL), made once from the arrow; the game's own index elsewhere. */
+int32_t LongBench_MirroredArrow(int32_t arrow)
+{
+#ifdef SWOS_SDL_BUILD
+    extern uint8_t *_spriteGraphicsPtr;
+    static SpriteGraphics hdr;
+    static uint8_t *pix;
+    static const SpriteGraphics *made;
+    SpriteGraphics **table = (SpriteGraphics **)(uintptr_t)_spriteGraphicsPtr;
+    const SpriteGraphics *a = table ? table[arrow] : NULL;
+    if (!a || !a->sprData || a->maskPtr)
+        return arrow;
+    if (made != a) {
+        const uint32_t stride = (uint32_t)a->wquads * 16u, bytes = stride * (uint32_t)a->nlines;
+        free(pix);
+        pix = (uint8_t *)calloc(1, bytes);
+        if (!pix)
+            return arrow;
+        hdr = *a;
+        for (int32_t y = 0; y < a->nlines; y++)
+            for (int32_t x = 0; x < a->pixWidth; x++)
+                pix[y * stride + (a->pixWidth - 1 - x)] = a->sprData[y * stride + x];
+        hdr.sprData = pix;
+        hdr.centerX = (int16_t)(a->pixWidth - 1 - a->centerX);
+        hdr.ordinal = (int16_t)LB_ARROW_SPRITE;
+        made = a;
+    }
+    table[LB_ARROW_SPRITE] = &hdr;
+    return LB_ARROW_SPRITE;
+#else
+    return arrow;
+#endif
 }
 
 /* ---- the names of places 17.. ---- */
@@ -519,7 +719,7 @@ int32_t LongBench_SelfTest(void)
             uint8_t et = 0;
             t.countryNumber = 20;           /* (Italy's: Serie A 15, Serie B 12, Serie C 15, ..) */
             t.league = d;
-            const int32_t n = division_bench(&t, &et);
+            const int32_t n = club_bench(&t, &et);
             printf("[bench] country 20 division %u: %d named\n", (unsigned)d, (int)n);
         }
     }

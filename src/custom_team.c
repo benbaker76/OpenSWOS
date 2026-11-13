@@ -183,7 +183,22 @@ int32_t CustomTeam_Allowed(const TeamFileEx *team)
     return answer;
 }
 
+static int32_t is_custom(const TeamFileEx *team, int32_t kits);
+
 int32_t CustomTeam_IsCustom(const TeamFileEx *team)
+{
+    return is_custom(team, 1);
+}
+
+/* A team made from a database one (names, faces, nationalities changed: MY CUSTOM TEAM), its kits
+ * aside -- a kit chosen online travels inside the team (long_bench.c: a custom team keeps the
+ * game's bench, as the Mod's). */
+int32_t CustomTeam_IsEdited(const TeamFileEx *team)
+{
+    return is_custom(team, 0);
+}
+
+static int32_t is_custom(const TeamFileEx *team, int32_t kits)
 {
     uint8_t is[kPlayers];
     const TeamDbEntry *base = base_with_players(team, is, 0);
@@ -197,7 +212,7 @@ int32_t CustomTeam_IsCustom(const TeamFileEx *team)
     if (strncmp((const char *)a->teamName, (const char *)b->teamName, sizeof a->teamName) != 0 ||
         strncmp((const char *)a->coachName, (const char *)b->coachName, sizeof a->coachName) != 0)
         return 1;
-    for (kit = 0; kit < 2; kit++) {
+    for (kit = 0; kit < 2 && kits; kit++) {
         KitArt_FromTeam(a, kit, &mine);
         KitArt_FromTeam(b, kit, &his);
         if (memcmp(&mine, &his, sizeof mine) != 0)

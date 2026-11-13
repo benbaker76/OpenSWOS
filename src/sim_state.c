@@ -43,8 +43,8 @@
  * _s_pitchFullPtrs (pitch.c) mirrors the fan tile slots of _pitchDatBuffer at full
  * pointer width for the renderer; SimState_Load rebuilds it from the slots.
  */
-#ifdef SWOS_SDL_BUILD
 #include "long_bench.h"
+#ifdef SWOS_SDL_BUILD
 #include <stdio.h>      /* SimState_DescribePortableByte only; the m68k build has no stdio */
 #include "goal_ring.h"
 #endif

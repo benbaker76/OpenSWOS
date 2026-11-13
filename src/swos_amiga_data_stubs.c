@@ -1613,8 +1613,9 @@ SWOS_CHIP_BSS IntroChipRam g_introChipRam;
  * 1481..1683 face 3's two sets and its menu icon (player_face3.c). 1304 is the stoppage-time
  * clock with its "+N" (stoppage.c); 1305..1309 are free. */
 #ifdef SWOS_SDL_BUILD
-/* SDL: 20 more, 1684..1703, a long bench's names of places 17.. (long_bench.c, LB_NAME_SPRITE_BASE). */
-SWOS_CHIP_BSS char _spriteGraphics[(1684 + 20) * sizeof(void *)];
+/* SDL: 21 more -- 1684..1703 a long bench's names of places 17.., 1704 the front row's arrow
+ * (long_bench.c, LB_NAME_SPRITE_BASE, LB_ARROW_SPRITE). */
+SWOS_CHIP_BSS char _spriteGraphics[(1684 + 21) * sizeof(void *)];
 #elif UINTPTR_MAX == 0xFFFFFFFFu
 SWOS_CHIP_BSS char _spriteGraphics[1684 * 4];          /* 1684 ptrs × 4 B (32-bit) */
 #else
