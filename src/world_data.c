@@ -19,6 +19,7 @@
 #include "fixture_rounds.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "league_split.h"
 #include "league_phase.h"
 #include "uefa_coef.h"
@@ -723,6 +724,34 @@ static char kWorld2627_name309[] = "EUROPA LEAGUE";
 static char kWorld2627_name310[] = "UEFA CONFERENCE LEAGUE";
 
 static char kWorld2627_name311[] = "CONF. LEAGUE";
+
+static char kWorld2627_name312[] = "BRAZILIAN SUPER CUP";
+
+static char kWorld2627_name313[] = "FA COMMUNITY SHIELD";
+
+static char kWorld2627_name314[] = "COMM. SHIELD";
+
+static char kWorld2627_name315[] = "SPANISH SUPER CUP";
+
+static char kWorld2627_name316[] = "TROPHEE DES CHAMPIONS";
+
+static char kWorld2627_name317[] = "T. CHAMPIONS";
+
+static char kWorld2627_name318[] = "GERMAN SUPER CUP";
+
+static char kWorld2627_name319[] = "ITALIAN SUPER CUP";
+
+static char kWorld2627_name320[] = "SAUDI SUPER CUP";
+
+static char kWorld2627_name321[] = "CAMPEON DE CAMPEONES";
+
+static char kWorld2627_name322[] = "CAMP. DE CAMP.";
+
+static char kWorld2627_name323[] = "TURKISH SUPER CUP";
+
+static char kWorld2627_name324[] = "UEFA SUPER CUP";
+
+static char kWorld2627_name325[] = "UEFA S. CUP";
 
 static CompetitionLeague kWorld2627_italianLeague = {
     { { 61, 0, 20, 64, 32, 33, 0, 0, 0 }, 14, 2, 3, 53 },
@@ -10091,6 +10120,37 @@ const WorldCupD *WorldData2627_CupD(void)
         return &kWorld2627CupD;
 #endif
     default:
+        return 0;
+    }
+}
+
+/* The Super Cups (src/world_supercup.c): the Mod's GP_SCT, as tools/supercup.py compiles
+ * tools/supercups2627.json. */
+#if SWOS_WORLDS
+static const WorldSuperCup kWorld2627SuperCups[] = {
+    { 46, 192, 2, 0, 101, 101, 0, 2, { 1, 35, 0, 0 }, { { 46, 0 }, { 46, 12 }, { 0, 0 }, { 0, 0 } }, { 0, 0 }, { kWorld2627_name312, kWorld2627_name234 }, kWorld2627_name312 },   /* bra */
+    { 8, 128, 2, 1, 59, 59, 0, 2, { 1, 35, 0, 0 }, { { 8, 0 }, { 8, 1 }, { 0, 0 }, { 0, 0 } }, { 0, 0 }, { kWorld2627_name313, kWorld2627_name314 }, kWorld2627_name313 },   /* eng */
+    { 35, 132, 1, 1, 104, 105, 0, 4, { 1, 84, 83, 82 }, { { 35, 0 }, { 35, 3 }, { 35, 9 }, { 35, 1 } }, { 0, 0 }, { kWorld2627_name315, kWorld2627_name234 }, kWorld2627_name315 },   /* esp */
+    { 13, 134, 2, 1, 59, 59, 0, 2, { 1, 35, 0, 0 }, { { 13, 0 }, { 13, 1 }, { 0, 0 }, { 0, 0 } }, { 0, 0 }, { kWorld2627_name316, kWorld2627_name317 }, kWorld2627_name316 },   /* fra */
+    { 14, 133, 2, 1, 61, 61, 0, 2, { 1, 35, 0, 0 }, { { 14, 0 }, { 14, 1 }, { 0, 0 }, { 0, 0 } }, { 0, 0 }, { kWorld2627_name318, kWorld2627_name234 }, kWorld2627_name318 },   /* ger */
+    { 20, 130, 1, 1, 93, 93, 0, 2, { 1, 67, 0, 0 }, { { 20, 0 }, { 20, 8 }, { 0, 0 }, { 0, 0 } }, { 0, 0 }, { kWorld2627_name319, kWorld2627_name234 }, kWorld2627_name319 },   /* ita */
+    { 89, 225, 1, 1, 92, 93, 1, 4, { 1, 84, 83, 82 }, { { 89, 0 }, { 89, 13 }, { 89, 2 }, { 89, 3 } }, { 0, 0 }, { kWorld2627_name320, kWorld2627_name234 }, kWorld2627_name320 },   /* ksa */
+    { 60, 0, 2, 0, 54, 54, 0, 2, { 7, 8, 0, 0 }, { { 60, 4 }, { 60, 2 }, { 0, 0 }, { 0, 0 } }, { 0, 1 }, { kWorld2627_name321, kWorld2627_name322 }, kWorld2627_name321 },   /* mex */
+    { 38, 139, 1, 1, 96, 98, 1, 4, { 1, 84, 83, 82 }, { { 38, 0 }, { 38, 8 }, { 38, 2 }, { 38, 1 } }, { 0, 0 }, { kWorld2627_name323, kWorld2627_name234 }, kWorld2627_name323 },   /* tur */
+    { 255, 0, 2, 1, 58, 58, 0, 2, { 9, 186, 0, 0 }, { { 13, 0 }, { 8, 3 }, { 0, 0 }, { 0, 0 } }, { 0, 0 }, { kWorld2627_name324, kWorld2627_name325 }, kWorld2627_name324 },   /* uefa */
+};
+#endif
+
+const WorldSuperCup *WorldData2627_SuperCups(int32_t *count)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+    case WORLD_2627:
+        *count = 10;
+        return kWorld2627SuperCups;
+#endif
+    default:
+        *count = 0;
         return 0;
     }
 }

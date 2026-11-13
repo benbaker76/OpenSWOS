@@ -20,6 +20,7 @@
 #include "world_playoff.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "string_utils.h"
 #include "random.h"
 #include "deterministic.h"
@@ -10835,6 +10836,9 @@ setDecisive:
         CupD_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
                         PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
                         d7 & 1);
+        SuperCup_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                            PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                            d7 & 1);
         UefaQual_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
                             PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
                             d7 & 1);

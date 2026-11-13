@@ -10,6 +10,7 @@ uint16_t _teamsCountryNumbers[256];
 uint16_t _internationalAutoAdvanceFlag;
 void *_competitionsTable[256];
 int32_t CupD_RoundStringIndex(uint8_t c, uint16_t r) { (void)c; (void)r; return -1; }
+int32_t SuperCup_RoundStringIndex(uint8_t c) { (void)c; return -1; }
 int32_t UefaQual_RoundStringIndex(uint8_t c) { (void)c; return -1; }
 int32_t Conti_RoundStringIndex(uint8_t c) { (void)c; return -1; }
 int32_t WorldPlayoff_RoundStringIndex(uint8_t c, uint16_t r) { (void)c; (void)r; return -1; }

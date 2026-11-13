@@ -22,6 +22,7 @@
 #include "world.h"
 #include "world_playoff.h"
 #include "world_cups.h"
+#include "world_supercup.h"
 #include "league_playoffs.h"
 #include "game_types.h"
 #include "comp_identity.h"
@@ -276,6 +277,24 @@ static int32_t last_known(void)
     return g_leagueWinners.season && (uint8_t)(g_leagueWinners.season + 1) == (uint8_t)(g_worldCups.seasons + 1);
 }
 
+/* The career's own league viewed (any division; the Mod's winners.py: slot 0's contest): this
+ * season's national Super Cup line (world_supercup.c, gplay.c sc_wline_c) -- its name, its winner
+ * (0: to be played). 0: none. */
+static const char *supercup_line(uint16_t *winner)
+{
+    const DIYCompetitionEx *c = viewed();
+    if (!World_Current() || _gameType != 4 || c->base.competitionType != 0 || c->base.numTeams < 2)
+        return 0;
+    const TeamFile *t = row_team(c, 0);
+    extern void *_competitionsTable[];
+    void **entry = (void **)_competitionsTable[t->countryNumber];
+    const Competition *primary = entry ? (const Competition *)entry[0] : 0;
+    if (!primary || (intptr_t)primary == -1 || (uint8_t)primary->compId != (uint8_t)c->base.field_2E ||
+        World_FileCountry(t->countryNumber) != World_FileCountry((uint8_t)_careerTeam.team.countryNumber))
+        return 0;
+    return SuperCup_WinnersLine(winner);
+}
+
 /* ---- The page's text ---- */
 
 static void put(const char *a, const char *b, uint8_t colour)
@@ -321,10 +340,12 @@ static void build(void)
     uint8_t division = 0;
     const LeaguePlayoffs *lp = viewed_titles(&division);
     const DIYCompetitionEx *c = viewed();
+    uint16_t scWinner = 0;
+    const char *sc = supercup_line(&scWinner);
     s_nlines = s_blocks = 0;
-    if (!lp)
+    if (!lp && !sc)
         return;
-    for (int32_t i = 0; i < lp->nwinners; i++) {
+    for (int32_t i = 0; lp && i < lp->nwinners; i++) {
         const LeagueWinLine *l = &lp->winners[i];
         if (l->division != division)
             continue;
@@ -332,6 +353,10 @@ static void build(void)
         if (w)
             block(l->title ? l->title : (const char *)c->base.competitionName, w);
     }
+    if (sc)                                     /* (this season's national Super Cup: the Mod's 'U' line) */
+        block(sc, scWinner ? team_name(scWinner) : kTbp);
+    if (!lp)
+        return;
     /* the last season, a page of its own: the division the career club played in ('M') */
     if (!last_known() || lp->country != World_FileCountry((uint8_t)_careerTeam.team.countryNumber))
         return;
@@ -492,8 +517,9 @@ void CompetitionStatsWinners(void)
 int32_t WorldWinners_Available(void)
 {
     uint8_t division = 0;
+    uint16_t w = 0;
     const LeaguePlayoffs *lp = viewed_titles(&division);
-    return lp && count_titles(lp, division) > 0;
+    return (lp && count_titles(lp, division) > 0) || supercup_line(&w);
 }
 
 void CompetitionStatsInit(void)

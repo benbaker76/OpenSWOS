@@ -18,6 +18,7 @@ uint8_t _teamSelectionKeyCache[16];
 Playoffs _div1Playoffs;
 WorldCupsState g_worldCups;
 WorldPlayoffState g_worldPlayoff;
+int32_t SuperCup_InSlot4(void) { return 0; }
 TeamPoolState *TeamPool_State(uint8_t c) { (void)c; return 0; }
 uint8_t World_FileCountry(uint8_t f) { return f; }                  /* (one file a country here) */
 uint16_t World_Slot(uint8_t f, uint8_t o) { (void)f; return o; }

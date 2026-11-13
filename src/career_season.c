@@ -34,6 +34,7 @@
 #include "world_playoff.h"
 #include "world_winners.h"
 #include "world_cups.h"
+#include "world_supercup.h"
 #include "states.h"
 #include "mod_hooks.h"       /* competitionFinished (docs/MODS.md §27): SDL builds */
 #include "mod_api.h"         /* (ModCompKind: SDL builds) */
@@ -858,10 +859,16 @@ void Career_ProcessCompetitionForNextSeason(uint16_t compIndex)
     /* Entry layout: [0]=primary ptr, [1]=skip, [2]=secondary ptr, [3]=tertiary ptr */
     uint8_t *primary = (uint8_t *)tableEntry[0];
     processPrimaryCompetitionForNextSeason(primary);
+    SuperCup_TableEnded((uint8_t)compIndex);   /* (a world's Super Cups: the top division's order) */
 
     uint8_t *secondary = (uint8_t *)tableEntry[2];
     if (secondary != (uint8_t *)(uintptr_t)-1) {
         Career_ProcessSecondaryCompetitionForNextSeason(secondary);
+        {   /* (a world's Super Cups: the national cup's winner and finalist, world_supercup.c) */
+            extern uint16_t _cachedSecondaryQualifiedTeamIds[];
+            SuperCup_CupEnded((uint8_t)compIndex, _cachedSecondaryQualifiedTeamIds[0],
+                              _cachedSecondaryQualifiedTeamIds[1]);
+        }
 
         uint8_t *tertiary = (uint8_t *)tableEntry[3];
         if (tertiary != (uint8_t *)(uintptr_t)-1) {
@@ -1774,6 +1781,10 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
             if (euro[k].holder != 0xFFFFu)
                 ModHooks_CompetitionFinished(_currentSeasonShowing, euro[k].id, MODCOMP_CONTINENTAL, 0,
                                              euro[k].holder);
+        /* (a world's UEFA Super Cup: the three holders, before the qualifiers clear them --
+         *  the Mod's usc_snap; world_supercup.c) */
+        SuperCup_HoldersEnded(_euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId,
+                              _uefaCupTitleHolderTeamId);
     }
     Career_UpdateCopaLibertadoresCompetitionSlot();   /* Inc3b-part-2: auto-advance Copa */
 

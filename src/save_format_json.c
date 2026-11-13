@@ -36,6 +36,7 @@
 #include "uefa_access.h"
 #include "world_cups.h"        /* "world_cups" in career saves */
 #include "world_cupd.h"        /* "world_cupd" in career saves */
+#include "world_supercup.h"    /* "world_supercup" in career saves */
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
 #include "translations.h"   /* tr() — localize competition name symbols */
 #include "career_capacity.h"   /* the career lists' original and compiled sizes */
@@ -7181,6 +7182,47 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit, &out, "],%Q:%d}", "slot2", (int)d->slot2);
     }
 
+    /* A world's Super Cups (world_supercup.c): per Super Cup what the last season end left (its
+     * season, the top division's final order, the national cup's winner and finalist), the
+     * European holders, this season's national and UEFA Super Cup, the career club's tie. */
+    {
+        int32_t nsc = 0;
+        if (World_SuperCups(&nsc) && nsc > 0) {
+            const WorldSuperCupState *s = &g_worldSuperCup;
+            static uint16_t tables[WORLD_SUPERCUPS_MAX * WORLD_SUPERCUP_TABLE];
+            uint16_t cups[2 * WORLD_SUPERCUPS_MAX];
+            uint8_t seasons[WORLD_SUPERCUPS_MAX], counts[WORLD_SUPERCUPS_MAX], cupSeasons[WORLD_SUPERCUPS_MAX];
+            if (nsc > WORLD_SUPERCUPS_MAX)
+                nsc = WORLD_SUPERCUPS_MAX;
+            for (int i = 0; i < nsc; i++) {
+                const WorldSuperCupKept *k = &s->kept[i];
+                seasons[i] = k->season;
+                counts[i] = k->n;
+                cupSeasons[i] = k->cupSeason;
+                cups[2 * i] = k->cup[0];
+                cups[2 * i + 1] = k->cup[1];
+                for (int j = 0; j < WORLD_SUPERCUP_TABLE; j++)
+                    tables[i * WORLD_SUPERCUP_TABLE + j] = k->table[j];
+            }
+            mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d", "world_supercup", "count", (int)nsc);
+            wp_emit_u8(&out, "table_seasons", seasons, nsc);
+            wp_emit_u8(&out, "table_counts", counts, nsc);
+            wp_emit_u16(&out, "tables", tables, nsc * WORLD_SUPERCUP_TABLE);
+            wp_emit_u8(&out, "cup_seasons", cupSeasons, nsc);
+            wp_emit_u16(&out, "cups", cups, 2 * nsc);
+            mjson_printf(json_out_emit, &out, ",%Q:%d", "holders_season", (int)s->holdSeason);
+            wp_emit_u16(&out, "holders", s->hold, 3);
+            mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d", "season", (int)s->season,
+                         "entry", (int)s->entry, "round", (int)s->round, "won", (int)s->won,
+                         "other", (int)s->other, "winner", (int)s->winner);
+            mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d", "uefa_season", (int)s->uSeason,
+                         "uefa_state", (int)s->uState, "uefa_won", (int)s->uWon, "uefa_winner", (int)s->uWinner);
+            mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "built", (int)s->built,
+                         "final", (int)s->final, "week", (int)s->week, "team_a", (int)s->teamA,
+                         "team_b", (int)s->teamB);
+        }
+    }
+
     /* A world's play-off the career club plays (world_playoff.c): which, its clubs (team
      * numbers), their places, points and the round under way, the other groups' tables
      * simulated early, the winner once decided. */
@@ -8029,6 +8071,53 @@ static void apply_semantic_load(const char *src, int src_size)
                     for (pos = 0, i = 0; i < cap[k] && (pos = fast_array_next(arr, al, pos, &voff, &vlen, &vt)) != 0; )
                         if (mjson_get_long(arr + voff, vlen, "$", &v) > 0)
                             dst[k][i++] = (uint8_t)v;
+        }
+    }
+
+    /* A world's Super Cups (world_supercup.c); a save without them: nothing known until its next
+     * season end. Slot 4 follows a tie under way (SuperCup_RestoreSlot, in the pointer rebuild). */
+    SuperCup_Reset();
+    {
+        const char *sc = NULL;
+        int sclen = 0;
+        if (mjson_find(src, src_size, "$.world_supercup", &sc, &sclen) == MJSON_TOK_OBJECT) {
+            WorldSuperCupState *s = &g_worldSuperCup;
+            static uint16_t tables[WORLD_SUPERCUPS_MAX * WORLD_SUPERCUP_TABLE];
+            uint16_t cups[2 * WORLD_SUPERCUPS_MAX];
+            uint8_t seasons[WORLD_SUPERCUPS_MAX], counts[WORLD_SUPERCUPS_MAX], cupSeasons[WORLD_SUPERCUPS_MAX];
+            long v = 0;
+            const int n = wp_load_u8(sc, sclen, "$.table_seasons", seasons, WORLD_SUPERCUPS_MAX);
+            wp_load_u8(sc, sclen, "$.table_counts", counts, WORLD_SUPERCUPS_MAX);
+            wp_load_u8(sc, sclen, "$.cup_seasons", cupSeasons, WORLD_SUPERCUPS_MAX);
+            const int nt = wp_load_u16(sc, sclen, "$.tables", tables, WORLD_SUPERCUPS_MAX * WORLD_SUPERCUP_TABLE);
+            const int nc = wp_load_u16(sc, sclen, "$.cups", cups, 2 * WORLD_SUPERCUPS_MAX);
+            for (int i = 0; i < n; i++) {
+                WorldSuperCupKept *k = &s->kept[i];
+                k->season = seasons[i];
+                k->n = counts[i] <= WORLD_SUPERCUP_TABLE ? counts[i] : WORLD_SUPERCUP_TABLE;
+                k->cupSeason = cupSeasons[i];
+                k->cup[0] = 2 * i < nc ? cups[2 * i] : 0xFFFF;
+                k->cup[1] = 2 * i + 1 < nc ? cups[2 * i + 1] : 0xFFFF;
+                for (int j = 0; j < WORLD_SUPERCUP_TABLE; j++)
+                    k->table[j] = i * WORLD_SUPERCUP_TABLE + j < nt ? tables[i * WORLD_SUPERCUP_TABLE + j] : 0xFFFF;
+            }
+            if (mjson_get_long(sc, sclen, "$.holders_season", &v) > 0) s->holdSeason = (uint8_t)v;
+            wp_load_u16(sc, sclen, "$.holders", s->hold, 3);
+            if (mjson_get_long(sc, sclen, "$.season", &v) > 0) s->season = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.entry", &v) > 0) s->entry = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.round", &v) > 0) s->round = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.won", &v) > 0) s->won = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.other", &v) > 0) s->other = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.winner", &v) > 0) s->winner = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.uefa_season", &v) > 0) s->uSeason = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.uefa_state", &v) > 0) s->uState = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.uefa_won", &v) > 0) s->uWon = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.uefa_winner", &v) > 0) s->uWinner = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.built", &v) > 0) s->built = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.final", &v) > 0) s->final = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.week", &v) > 0) s->week = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.team_a", &v) > 0) s->teamA = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.team_b", &v) > 0) s->teamB = (uint16_t)v;
         }
     }
 

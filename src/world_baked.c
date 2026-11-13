@@ -19,6 +19,7 @@
 #include "league_phase.h"
 #include "uefa_coef.h"
 #include "world_europe.h"
+#include "world_supercup.h"
 
 /* (X: one world's tag, as its generated functions are named) */
 #define WORLD_BAKED_DECLARE(T)                                                                     \
@@ -42,7 +43,8 @@
     const WorldUefaSeeds *WorldData##T##_UefaSeeds(void);                                           \
     const LeagueSplit *WorldData##T##_LeagueSplits(int32_t *count);                                 \
     const WorldCupD *WorldData##T##_CupD(void);                                                     \
-    const WorldEuropeKO *WorldData##T##_EuropeKnockouts(void);
+    const WorldEuropeKO *WorldData##T##_EuropeKnockouts(void);                                      \
+    const WorldSuperCup *WorldData##T##_SuperCups(int32_t *count);
 
 #if SWOS_WORLDS
 WORLD_BAKED_DECLARE(2627)
@@ -185,4 +187,9 @@ const WorldCupD *World_CupD(void)
 const WorldEuropeKO *World_EuropeKnockouts(void)
 {
     WORLD_CALL(EuropeKnockouts(), return 0)
+}
+
+const WorldSuperCup *World_SuperCups(int32_t *count)
+{
+    WORLD_CALL(SuperCups(count), *count = 0; return 0)
 }

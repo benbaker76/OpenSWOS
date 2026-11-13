@@ -19,6 +19,7 @@
 #include "fixture_rounds.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "league_split.h"
 #include "league_phase.h"
 #include "uefa_coef.h"
@@ -2346,6 +2347,24 @@ const WorldCupD *WorldData8485_CupD(void)
 
 #endif
     default:
+        return 0;
+    }
+}
+
+/* The Super Cups (src/world_supercup.c): the Mod's GP_SCT, as tools/supercup.py compiles
+ * tools/supercups2627.json. */
+#if SWOS_WORLDS
+
+#endif
+
+const WorldSuperCup *WorldData8485_SuperCups(int32_t *count)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+
+#endif
+    default:
+        *count = 0;
         return 0;
     }
 }
