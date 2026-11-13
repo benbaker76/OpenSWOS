@@ -91,7 +91,7 @@ def player(p, home_nation):
         nat = home_nation
         counts["nationality without a name -> the club's country's"] += 1
     vh, tc, sf = p["velocity_heading"] & 255, p["tackling_control"] & 255, p["speed_finishing"] & 255
-    return {
+    out = {
         "nationality": nat,
         "cached_match_value": p["field_1"] & 255,
         "shirt_number": p["shirt_number"] & 255,
@@ -110,6 +110,10 @@ def player(p, home_nation):
         "goal_stats": [g & 255 for g in p["goal_stats"]],
         "form": p["some_flag"] & 255,
     }
+    if p.get("born"):               # (a B team's player: his year of birth, the call-ups' under-23 rule)
+        out["born"] = int(p["born"])
+        counts["players with a year of birth (B teams)"] += 1
+    return out
 
 
 def shirt_numbers(players):
@@ -2396,6 +2400,35 @@ def stadiums(picks):
     counts["stadium names"] += len(clubs)
 
 
+def bteams(picks):
+    """competitions/bteams.json (src/bteam.c, the B-team call-ups) from the Mod's bteams.json
+    (scripts/world_from_mod.py, its DATA\\BAGE.nnn): each B team and its first team by the Mod's
+    team file and ordinal -> our team words (file << 8 | ordinal), the countries' rules as they are.
+    The players' years of birth are on the team files' players ("born")."""
+    src = os.path.join(MOD, "bteams.json")
+    dst = os.path.join(WORLD, "competitions", "bteams.json")
+    if not os.path.isfile(src):
+        if os.path.isfile(dst):
+            os.remove(dst)
+            print("removed", os.path.relpath(dst, REPO), "(an earlier run's)")
+        return
+    ours = {}
+    for code, (wc, picked) in picks.items():
+        for i, (e, _div) in enumerate(picked):
+            f, o = slot_team(wc["number"], i, code) if code in SECOND_FILES else (wc["number"], i)
+            ours[(e["team"]["country_number"], e["team"]["team_ordinal"])] = f << 8 | o
+    mod = json.load(open(src, encoding="utf-8"))
+    teams = []
+    for t in mod["teams"]:
+        b, par = ours.get(tuple(t["b"])), ours.get(tuple(t["parent"]))
+        if b is None or par is None:
+            counts["B teams without a club of ours (left out)"] += 1
+            continue
+        teams.append({"b": b, "parent": par, "rules": t["rules"]})
+    write(dst, {"rules": mod["rules"], "teams": teams})
+    counts["B teams (call-ups)"] += len(teams)
+
+
 def world_fingerprint():
     """The world's data as its package carries it -- teams/, competitions/, data/: the SHA-1 of
     every file's path and bytes, in path order, its first 16 hex digits. Baked into world_data.c
@@ -2495,6 +2528,7 @@ def main():
     write(os.path.join(WORLD, "competitions", "leagues.json"), leagues)
     guests = guest_team_files()
     stadiums(picks)
+    bteams(picks)
     # A country no longer imported keeps no file of an earlier run's: its 96/97 one is read.
     for sub, pattern in (("teams", r".*\.json"), ("data", r"TEAM\.\d{3}")):
         folder = os.path.join(WORLD, sub)

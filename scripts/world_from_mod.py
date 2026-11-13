@@ -27,6 +27,9 @@ What is read from the installed game (DATA/, the files the game itself plays):
                 (76-byte header + 16 x 38-byte players), uncompressed (RNC accepted too)
     XTW5.nnn    each club's players 17..30 (the Mod's tools/xtra.py: [u16 BE clubs][u8 per club]
                 + clubs x per x 38 bytes; a player with no name is no player)
+    BAGE.005    the B-team call-ups' (the Mod's tools/bteam.py; scripts/world_mod_bteams.py): the B
+                teams' players' years of birth ("born" on those players) and the B teams, their
+                first teams and the countries' rules (bteams.json)
     RS5nnn.DAT  a league's off-file pool (gplay.c ri_season; tools/mkseason.py rs_files), team-file
                 form, nnn a file of the country -> <CODE>_POOL.json
     POOL05.DAT  the world's foreign market (copied as it is)
@@ -541,6 +544,16 @@ def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv
         ids.resolve(clubs)
 
     club_id = {(c[1], c[2]): cid for cid, c in ids.used.items()}
+    # the B-team call-ups' data (DATA\\BAGE.nnn: world_mod_bteams.py): each B team's players' years of
+    # birth go onto its players ("born", only where known), the links and the rules into bteams.json
+    import world_mod_bteams
+    bage = world_mod_bteams.decode(data, WORLD)
+    born_of = {}
+    for t in (bage or {}).get("teams", []):
+        f, o = t["b"]
+        if f not in by_file:
+            sys.exit("BAGE: B team %d/%d of no known team file" % (f, o))
+        born_of[(by_file[f]["json"], o)] = t["born"]
     key_id = collections.defaultdict(dict)          # code -> pack key -> club id (the registry's keys)
     for r in ids.rows:
         if r["key"]:
@@ -594,8 +607,15 @@ def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv
             else:
                 x["extra_players"] = [player(p) for p in xt]
                 counts["extra players"] += len(xt)
-            entries.append({"team": h, "players": [player(rec[76 + j * PLAYER_SIZE:76 + (j + 1) * PLAYER_SIZE])
-                                                   for j in range(16)], "x_swos9697": x})
+            players = [player(rec[76 + j * PLAYER_SIZE:76 + (j + 1) * PLAYER_SIZE]) for j in range(16)]
+            born = born_of.get((js, i))
+            if born is not None and not pool:
+                for j, p in enumerate(players + x["extra_players"]):
+                    if j < len(born) and born[j]:
+                        p["born"] = born[j]
+                        counts["B-team players with a year of birth (BAGE)"] += 1
+                counts["B teams (BAGE)"] += 1
+            entries.append({"team": h, "players": players, "x_swos9697": x})
         xh = {"v": 1, "country_code": code, "world": WORLD, "about": ABOUT}
         if pool:
             xh["pool_file"] = pool_file[code]
@@ -625,6 +645,17 @@ def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv
         shutil.copyfile(nat, os.path.join(out, "teams", "NATIONALITIES.json"))
     shutil.copyfile(os.path.join(data, "POOL0%d.DAT" % WORLD), os.path.join(out, "POOL0%d.DAT" % WORLD))
 
+    bpath = os.path.join(out, "bteams.json")
+    if bage:
+        doc = {"v": 1, "about": "DATA\\BAGE.%03d (the Mod's tools/bteam.py): the B teams of the call-ups, by the "
+                                "Mod's team file and ordinal; the years of birth are on the players" % WORLD,
+               "rules": bage["rules"],
+               "teams": [{"b": list(t["b"]), "parent": list(t["parent"]), "rules": t["rules"]} for t in bage["teams"]]}
+        with open(bpath, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(doc, f, indent=1)
+            f.write("\n")
+    elif os.path.exists(bpath):
+        os.remove(bpath)
     if old is None:
         write_decoded(out, world, whole)
         by_code = {}                    # (no delivery's clubs.csv to rename)
