@@ -58,6 +58,7 @@ void SetBenchPlayersNumbers(TeamFileEx *team);
 /* Real squad numbers (a world's squad_numbers, in a career): on; a new player of the managed club
  * (its slot) keeps his number or takes the lowest free. */
 int32_t SquadNumbers_On(void);
+int32_t SquadNumbers_Kept(const TeamFileEx *team);   /* (or a team whose numbers were edited) */
 void SquadNumbers_Free(uint16_t slot);
 void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index);
 void RemovePlayerFromTeam(uint16_t playerOrd);

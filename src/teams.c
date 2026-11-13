@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "shirt_edit.h"
 #include "squad_extras.h"
 #include "teams.h"
 #include "world.h"
@@ -1315,6 +1316,13 @@ int32_t SquadNumbers_On(void)
     return _gameType == 4 && World_SquadNumbers();
 }
 
+/* A team whose numbers are its players' own: a squad-number world's career, or a team whose
+ * numbers were edited (EDIT CUSTOM TEAMS: SHIRT_NUMBERS_KEPT, shirt_edit.c). */
+int32_t SquadNumbers_Kept(const TeamFileEx *team)
+{
+    return SquadNumbers_On() || (team && (team->team.andWith0xFE & SHIRT_NUMBERS_KEPT));
+}
+
 void SquadNumbers_Free(uint16_t slot)
 {
     const uint16_t numPlayers = *(uint16_t *)_careerNumPlayers;   /* (a word: declared bytes here) */
@@ -1350,7 +1358,7 @@ void SetBenchPlayersNumbers(TeamFileEx *team)
     uint16_t teamNum = BE_READ_U16(team);  /* first word: countryNumber + teamOrdinal */
     uint16_t d1;
 
-    if (SquadNumbers_On())              /* (real squad numbers: the players' own) */
+    if (SquadNumbers_Kept(team))        /* (real squad numbers, or edited ones: the players' own) */
         return;
 
     for (d1 = 11; d1 < 16; d1++) {

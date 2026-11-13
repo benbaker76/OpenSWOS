@@ -2044,6 +2044,11 @@ void MenuProc(void)
     UpdateBlinkingMenuText();
     MenuCheckControls();
     MenuInputInjectPoint();   /* stable harness input-injection anchor — break here by SYMBOL */
+    {   /* EDIT CUSTOM TEAMS' number box, while lit: the controls are its (shirt_edit.c) */
+        extern int32_t ShirtEdit_Frame(void);
+        if (ShirtEdit_Frame())
+            return;
+    }
 #ifdef SWOS_SDL_BUILD
     { extern void MenuMouse_Frame(void); MenuMouse_Frame(); }            /* the mouse (menu_mouse.c) */
     { extern void CareerAutopilot_Tick(void); CareerAutopilot_Tick(); }  /* --career-golden */
