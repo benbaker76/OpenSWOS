@@ -774,7 +774,7 @@ NEW_COMP_IDS = {
     ("USA", "cup"): 244, ("ARG", "cup"): 245, ("BRA", "cup"): 246,
 }
 # (the ids a world's own contests hold: include/comp_identity.h -- none of the above may take one)
-RESERVED_COMP_IDS = {200, 201, 202, 239, 240, 241, 242, 243, 247, 248}
+RESERVED_COMP_IDS = {200, 201, 202, 239, 240, 241, 242, 243, 247, 248, 249}
 assert not RESERVED_COMP_IDS & set(NEW_COMP_IDS.values()), "NEW_COMP_IDS: an id of comp_identity.h's"
 # A new country's league: an id of its own (fixed: saves hold it), its record's shape a 96/97
 # country's of the same continent (its season's months), its continent's byte (the first of
@@ -1388,6 +1388,67 @@ def italian_cupd(picked, country, pool_ids):
             "strength": st, "pool_strength": pst, "names": names}
 
 
+SUPERCUP_RULES = {"champion": 1, "second": 2, "cup_winner": 3, "cup_finalist": 4, "third": 5, "fourth": 6,
+                  "title0": 7, "title1": 8, "uefa_cl": 9, "uefa_el": 10, "uefa_ecl": 11}   # (gplay.c SCR_*)
+
+
+def supercups(picks):
+    """The Super Cups (the converter's supercups.json, as the Mod's tools/supercups2627.json; its gplay.c
+    GP_SCT, src/world_supercup.c): per Super Cup its country (WORLD_SUPERCUP_UEFA: the UEFA Super Cup), the
+    national cup's contest id (the Mod's generator's seed), from_season, early, the weeks, level, its 2 or 4
+    rules with their fallbacks, the first season's entrants ({country, ordinal}), the stage-title play-offs
+    (pidx), the names. picks: {code: (wc, picked)}."""
+    path = os.path.join(MOD, "supercups.json")
+    if not os.path.exists(path):
+        return []
+    spec = json.load(open(path, encoding="utf-8"))
+    keyed = {}
+
+    def club(code, key):
+        if code not in keyed:
+            wc, picked = picks[code]
+            rows = csv.DictReader(open(os.path.join(MOD, "packs", code.lower(), "clubs.csv"), encoding="utf-8"))
+            by_name = {e["team"]["team_name"]: o for o, (e, d) in enumerate(picked)}
+            keyed[code] = {r["key"]: slot_team(wc["number"], by_name[r["name"]], code)
+                           for r in rows if r["name"] in by_name}
+        if key not in keyed[code]:
+            sys.exit("supercup %s: %s is not in the team file" % (code, key))
+        return keyed[code][key]
+    out = []
+    for code in sorted(k for k in spec if not k.startswith("_")):
+        d = spec[code]
+        uefa = code == "uefa"
+        if not uefa and code.upper() not in picks:
+            continue
+        rules = d["rule"]
+        n = len(rules)
+        fb = d.get("if_double")
+        fb = fb if isinstance(fb, list) else [None] + [fb] * (n - 1)
+        rb = [SUPERCUP_RULES[r] | (SUPERCUP_RULES[f] << 4 if f else 0) for r, f in zip(rules, fb)]
+        first = [club(e.split(":")[0].upper(), e.split(":")[1]) if uefa else club(code.upper(), e)
+                 for e in d["first_entrants"]]
+        assert n in (2, 4) and len(first) == n, code
+        titles = d.get("titles") or [0, 0]
+        if titles and not isinstance(titles[0], int):     # (the Mod's keys: the pack's play-off indices)
+            keys = [po.get("key") for po in pack_league(mod_pack(code.upper())).get("ko_playoffs", [])]
+            titles = [keys.index(t) for t in titles]
+        seed = d.get("cup_id")
+        if seed is None and not uefa:
+            cup = next((c for c in mod_pack(code.upper()).get("competitions", []) if c.get("key") == "cup"), None)
+            seed = int(cup["id"], 16) if cup and cup.get("id") else 0
+        w1 = week_of(d["date"])
+        w2 = week_of(d["final_date"]) if n == 4 else w1
+        names = ((d.get("names") or {}).get("*") or (d.get("names") or {}).get("en"))[:2]
+        rec = (d.get("record") or {}).get("*") or (d.get("record") or {}).get("en") or names[0]
+        out.append({"code": code, "country": 0xFF if uefa else picks[code.upper()][0]["number"],
+                    "seed": seed or 0, "from": d.get("from_season", 1), "early": int(bool(d.get("early"))),
+                    "week": w1, "final": w2, "level": 1 if d.get("level") == "et_pens" else 0, "n": n,
+                    "rules": rb + [0] * (4 - n), "first": first + [(0, 0)] * (4 - n), "titles": titles[:2],
+                    "names": [x.upper() for x in names], "record": rec.upper()})
+    counts["super cups"] = len(out)
+    return out
+
+
 def team_file_binary(teams):
     """The binary TEAM.nnn of a team file, as scripts/emit_teams.py makes 96/97's."""
     return tf.dict_filename(teams), tf.rnc_pack(tf.dict_to_blob(teams), tf.dict_rnc_method(teams))
@@ -1413,6 +1474,7 @@ WORLD_DATA_C = """/*
 #include "fixture_rounds.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "league_split.h"
 #include "league_phase.h"
 #include "uefa_coef.h"
@@ -1750,6 +1812,24 @@ const WorldCupD *World_CupD(void)
         return 0;
     }
 }
+
+/* The Super Cups (src/world_supercup.c): the Mod's GP_SCT, as tools/supercup.py compiles
+ * tools/supercups2627.json. */
+#if SWOS_WORLDS
+%(supercups)s
+#endif
+
+const WorldSuperCup *World_SuperCups(int32_t *count)
+{
+    switch (World_Current()) {
+#if SWOS_WORLDS
+%(supercup_cases)s
+#endif
+    default:
+        *count = 0;
+        return 0;
+    }
+}
 """
 
 
@@ -1767,7 +1847,7 @@ def squad_numbers():
 
 
 def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, news=(), splits=(), euro=None, conti=None,
-                 guests=(), proms=(), states=(), squad=False, fingerprint="", seconds=()):
+                 guests=(), proms=(), states=(), squad=False, fingerprint="", seconds=(), supercups=()):
     externs, strings, records, installs, new_countries = set(), [], [], [], []
     symbols = {}
 
@@ -2062,6 +2142,21 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         conti_cases = "    case WORLD_%s:\n        return kWorld%sContiSpec;" % (tag, tag)
         conti_cup_cases = "    case WORLD_%s:\n        *count = %d;\n        return kWorld%sContiCups;" % (
             tag, len(named), tag)
+    sc_tables, sc_cases = [], ""
+    if supercups:
+        rows = []
+        for sc in supercups:
+            for n in sc["names"] + [sc["record"]]:
+                if n not in symbols:
+                    strings.append("static char %s[] = %s;" % (symbol(n), c_string(n)))
+            rows.append("    { %d, %d, %d, %d, %d, %d, %d, %d, { %s }, { %s }, { %d, %d }, { %s, %s }, %s },   /* %s */" % (
+                sc["country"], sc["seed"], sc["from"], sc["early"], sc["week"], sc["final"], sc["level"], sc["n"],
+                ", ".join(map(str, sc["rules"])), ", ".join("{ %d, %d }" % t for t in sc["first"]),
+                sc["titles"][0], sc["titles"][1], symbols[sc["names"][0]], symbols[sc["names"][1]],
+                symbols[sc["record"]], sc["code"]))
+        sc_tables.append("static const WorldSuperCup kWorld%sSuperCups[] = {\n%s\n};" % (tag, "\n".join(rows)))
+        sc_cases = ("    case WORLD_%s:\n        *count = %d;\n        return kWorld%sSuperCups;"
+                    % (tag, len(supercups), tag))
     return WORLD_DATA_C % {"europe": "\n\n".join(euro_tables), "europe_cases": euro_cases,
                            "conti": conti_tab + ("\n\n" + "\n\n".join(prom_tabs) if prom_tabs else "")
                                     + ("\n\n" + "\n\n".join(st_tabs) if st_tabs else ""),
@@ -2080,7 +2175,8 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                            "playoffs": "\n\n".join(po_tables), "po_cases": po_cases,
                            "pools": "\n\n".join(pool_tables), "pool_cases": pool_cases,
                            "cups": "\n\n".join(cup_tables), "cup_cases": cup_cases,
-                           "cupd": "\n\n".join(cd_tables), "cupd_cases": cd_cases}
+                           "cupd": "\n\n".join(cd_tables), "cupd_cases": cd_cases,
+                           "supercups": "\n".join(sc_tables), "supercup_cases": sc_cases}
 
 
 WRITTEN = set()             # (this run's files: the world's others are an earlier run's, removed)
@@ -2513,7 +2609,7 @@ def main():
                              groups,
                              playoffs, pools, cups, italian_cupd(picked, country, None), news, splits,
                              europe(picks), conti_spec(picks), guests, proms, states, squad_numbers(), fingerprint,
-                             seconds))
+                             seconds, supercups(picks)))
     print("wrote %s (data %s)" % (os.path.relpath(DATA_C, REPO), fingerprint))
     for what, n in sorted(counts.items()):
         print("  %-52s %d" % (what, n))

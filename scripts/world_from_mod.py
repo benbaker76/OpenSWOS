@@ -263,7 +263,7 @@ class Ids:
 
 # ---- the conversion ----------------------------------------------------------------------------
 
-DECODERS = ("leagues", "playoffs", "splits", "cups", "europe", "conti")   # scripts/world_mod_<area>.py
+DECODERS = ("leagues", "playoffs", "splits", "cups", "europe", "conti", "supercups")   # scripts/world_mod_<area>.py
 
 
 def merge(dst, src, path=""):
@@ -312,7 +312,7 @@ NAMES_COMMENT = ("# World 2026-27's competition names (scripts/world_from_mod.py
                  "# replaces exe_name when not blank. Names only -- never squads. Completed and checked by Playaveli.\n")
 
 
-def name_slots(packs, cupd, conti):
+def name_slots(packs, cupd, conti, supercups=None):
     """Every name the converter decodes: (kind, key, country, position, the dict holding "names"). position
     pairs a decoded slot with a delivery's (play-off keys are the decoder's, not Davide's)."""
     for code, pk in sorted(packs.items()):
@@ -334,6 +334,9 @@ def name_slots(packs, cupd, conti):
             for c in doc.get("cups", []):
                 if c.get("names"):
                     yield "conti", "%s/%s" % (name.split(".")[0], c["key"]), "", (name, c["key"]), c
+    for key, sc in sorted((supercups or {}).items()):     # (the Super Cups: world_mod_supercups.py)
+        if sc.get("names"):
+            yield "supercup", key, "" if key == "uefa" else key.upper(), ("supercup", key), sc
 
 
 def _pair(o):
@@ -374,7 +377,8 @@ def write_names(whole, old, path=NAMES):
     have = {(r["kind"], r["country"], r["key"]): r for r in read_registry(path)} if os.path.exists(path) else {}
     org = _delivery_slots(old) if old else {}
     rows = []
-    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {})):
+    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {}),
+                                                  whole.get("supercups", {})):
         exe = _pair(o)
         r = dict(have.get((kind, code, key)) or {"kind": kind, "key": key, "country": code, "full_name": "",
                                                     "source": "", "notes": ""})
@@ -396,7 +400,8 @@ def apply_names(whole, path=NAMES):
         return 0
     have = {(r["kind"], r["country"], r["key"]): r for r in read_registry(path)}
     n = 0
-    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {})):
+    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {}),
+                                                  whole.get("supercups", {})):
         r = have.get((kind, code, key))
         if r and r["full_name"]:
             parts = r["full_name"].split("|")
@@ -413,7 +418,8 @@ def names_from(whole, old):
     countries = {r["code"]: r["country_name"] for r in read_registry(COUNTRIES)}
     org = _delivery_slots(old)
     taken = kept = 0
-    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {})):
+    for kind, key, code, pos, o in name_slots(whole.get("packs", {}), whole.get("cupd", {}), whole.get("conti", {}),
+                                                  whole.get("supercups", {})):
         cand = _pair(org.get(pos)) if pos in org else None
         if cand and _fits(cand, _pair(o), countries.get(code, code)):
             o["names"] = dict(org[pos]["names"])
@@ -464,6 +470,10 @@ def write_decoded(out, world, whole):
             with open(os.path.join(d, "cupd.json"), "w", encoding="utf-8", newline="\n") as f:
                 json.dump(whole["cupd"][code], f, indent=1)
                 f.write("\n")
+    if whole.get("supercups"):          # (as the Mod's tools/supercups2627.json: world_mod_supercups.py)
+        with open(os.path.join(out, "supercups.json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump(whole["supercups"], f, indent=1)
+            f.write("\n")
     if whole.get("conti"):
         os.makedirs(os.path.join(out, "conti"), exist_ok=True)
         for name, doc in sorted(whole["conti"].items()):
