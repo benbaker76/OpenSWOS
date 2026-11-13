@@ -8403,18 +8403,18 @@ static const uint8_t kWorld2627ContiSpec[5242] = {
 };
 
 static const WorldContiCup kWorld2627ContiCups[12] = {
-    { "COPA LIBERTADORES", "LIBERTADORES", { 0, 1, 2, 3, 12, 6, 7, 9 }, 0, 1 },
-    { "COPA SUDAMERICANA", "SUDAMERICANA", { 0, 1, 2, 12, 6, 7, 9 }, 1, 1 },
-    { "RECOPA SUDAMERICANA", "RECOPA", { 9 }, 2, 1 },
-    { "CONCACAF CHAMPIONS CUP", "CONCACAF CHAMP.", { 0, 12, 6, 7, 9 }, 0, 1 },
-    { "AFC CHAMPIONS LEAGUE ELITE", "ACL ELITE", { 15, 1, 12, 6, 7, 9 }, 0, 1 },
-    { "AFC CHAMPIONS LEAGUE TWO", "ACL TWO", { 15, 1, 12, 6, 7, 9 }, 1, 1 },
-    { "AFC CHALLENGE LEAGUE", "AFC CHALLENGE L.", { 15, 1, 6, 7, 9 }, 2, 1 },
-    { "CAF CHAMPIONS LEAGUE", "CAF CHAMPIONS L.", { 0, 1, 2, 6, 7, 9 }, 0, 1 },
-    { "CAF CONFEDERATION CUP", "CAF CONFED. CUP", { 0, 1, 2, 6, 7, 9 }, 1, 1 },
-    { "CAF SUPER CUP", "CAF SUPER CUP", { 9 }, 2, 1 },
-    { "OFC CHAMPIONS LEAGUE", "OFC CHAMP. L.", { 15, 1, 7, 9 }, 0, 1 },
-    { "INTERCONTINENTAL CUP", "INTERC. CUP", { 0, 1, 2, 3, 9 }, 0, 0 },
+    { "COPA LIBERTADORES", "LIBERTADORES", { 0, 1, 2, 3, 12, 6, 7, 9 }, 0, 1, 0 },
+    { "COPA SUDAMERICANA", "SUDAMERICANA", { 0, 1, 2, 12, 6, 7, 9 }, 1, 1, 0 },
+    { "RECOPA SUDAMERICANA", "RECOPA", { 9 }, 2, 1, 0 },
+    { "CONCACAF CHAMPIONS CUP", "CONCACAF CHAMP.", { 0, 12, 6, 7, 9 }, 0, 1, 1 },
+    { "AFC CHAMPIONS LEAGUE ELITE", "ACL ELITE", { 15, 1, 12, 6, 7, 9 }, 0, 1, 2 },
+    { "AFC CHAMPIONS LEAGUE TWO", "ACL TWO", { 15, 1, 12, 6, 7, 9 }, 1, 1, 2 },
+    { "AFC CHALLENGE LEAGUE", "AFC CHALLENGE L.", { 15, 1, 6, 7, 9 }, 2, 1, 2 },
+    { "CAF CHAMPIONS LEAGUE", "CAF CHAMPIONS L.", { 0, 1, 2, 6, 7, 9 }, 0, 1, 3 },
+    { "CAF CONFEDERATION CUP", "CAF CONFED. CUP", { 0, 1, 2, 6, 7, 9 }, 1, 1, 3 },
+    { "CAF SUPER CUP", "CAF SUPER CUP", { 9 }, 2, 1, 3 },
+    { "OFC CHAMPIONS LEAGUE", "OFC CHAMP. L.", { 15, 1, 7, 9 }, 0, 1, 4 },
+    { "INTERCONTINENTAL CUP", "INTERC. CUP", { 0, 1, 2, 3, 9 }, 0, 0, 5 },
 };
 
 static const WorldPromedio kWorld2627Promedio43[30] = {
