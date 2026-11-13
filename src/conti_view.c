@@ -288,6 +288,7 @@ static void contiConfsMenu_exit(void) { SetExitMenuFlag(); }
 /* ---- a confederation's rounds ---- */
 
 static int32_t s_sel;                   /* the rounds' cursor (the Mod's CR_SEL) */
+static int32_t s_picked = -1;           /* the round opened from it */
 static int32_t s_only = -1;             /* (VIEW WORLD: one cup) */
 
 static void list_rounds(void)
@@ -354,6 +355,8 @@ static void contiRoundsMenu_OnInit(void)
     }
     nav(RS_summary, -1, RS_exit, n0 ? RS_round0 + n0 - 1 : -1, -1);
     nav(RS_exit, RS_summary, -1, n1 ? RS_round0 + 8 + n1 - 1 : n0 ? RS_round0 + n0 - 1 : -1, -1);
+    if (s_picked >= 0 && s_picked < s_nround)   /* (back from a round: on it, as the Mod's) */
+        s_sel = s_picked;
     SetCurrentEntry((uint16_t)(s_nround ? RS_round0 + s_sel : RS_exit));
 }
 static void contiRoundsMenu_OnDraw(void) {}
@@ -363,7 +366,7 @@ static void show_summary(void);
 static void round_pick(int32_t k)
 {
     if (k < s_nround) {
-        s_sel = k;
+        s_sel = s_picked = k;
         show_round(s_round[k] >> 4, s_round[k] & 15);
     }
 }
@@ -794,6 +797,7 @@ static void open(const char *name)
 static void show_rounds(int32_t conf)
 {
     s_conf = conf;
+    s_picked = -1;
     open(CONTI_ROUNDS_MENU_NAME);
 }
 
