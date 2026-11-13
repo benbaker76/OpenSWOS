@@ -3174,7 +3174,7 @@ static const char *const k_noPresets[2] = { "NO PRESET COMPETITIONS FOR", "THIS 
 #define MODS_ROW_COLOR 11   /* (BLUE_TO_PURPLE: the Mod's HISTORIC box, historic.py MENU_COLOR) */
 
 /* SelectTeamsReinit, after SetLeagueNames: the notice rows text on the menu's background, the
- * mods' row purple. */
+ * mods' row purple in a world that is not 96/97. */
 static void style_marker_rows(void)
 {
     for (uint16_t i = 0; i < _numLeaguesInCountry && i < 10; i++) {
@@ -3182,7 +3182,8 @@ static void style_marker_rows(void)
         if (_leaguesPtrTable[i] == (void *)&k_noticeMarker) {
             e->isDisabled = 1;
             e->bgColor = 0;
-        } else if (_leaguesPtrTable[i] == (void *)&k_modCompsMarker) {
+        } else if (_leaguesPtrTable[i] == (void *)&k_modCompsMarker && World_Current() != WORLD_9697) {
+            /* (in a world only: 96/97 keeps the original look) */
             e->bgColor = (uint16_t)((e->bgColor & 0xFFF0) | MODS_ROW_COLOR);
         }
     }
