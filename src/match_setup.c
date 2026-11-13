@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "long_bench.h"
 #include "match_setup.h"
 #include "dos_sound.h"
 #include "jag_graphics.h"
@@ -921,6 +922,7 @@ void InitGameRestoreTeams(void)
         *dst2++ = *src2++;
     }
 
+    LongBench_RestoreKickOff();          /* (a long bench's places 17..) */
     InitializePlayerSpriteFrameIndices();
 
 #ifdef DETERMINISTIC_MODE

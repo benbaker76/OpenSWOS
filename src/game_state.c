@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "long_bench.h"
 #include "game_state.h"
 #include "goal_ring.h"
 #include "game_types.h"
@@ -290,6 +291,7 @@ void CopyPlayerNameLengths(void)
         _plNamesLengthTableCopy[d0 * 2]     = _plNamesLengthTable[d0 * 2];
         _plNamesLengthTableCopy[d0 * 2 + 1] = _plNamesLengthTable[d0 * 2 + 1];
     }
+    LongBench_InitNames();      /* (a long bench's places 17..) */
 }
 
 /* ================================================================

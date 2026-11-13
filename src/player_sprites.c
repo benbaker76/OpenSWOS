@@ -5,6 +5,7 @@
  */
 #include "player_face3.h"
 #include "player_sprites.h"
+#include "long_bench.h"
 #include "game_types.h"
 #include "string_utils.h"
 #include "menu_system.h"
@@ -390,4 +391,13 @@ void MakeSpritesFromPlayerNames(TeamGame *leftTeam, TeamGame *rightTeam)
         sprIdx = makePlayerNameSprite(shirtNum, (uint8_t *)rightTeam->players[i].shortName,
                                       sprIdx, nameLenPtr++);
     }
+
+    LongBench_MakeNameSprites(leftTeam, rightTeam);     /* (a long bench's places 17..) */
+}
+
+/* A name sprite at sprite `spriteIdx` (long_bench.c: places 17.. of a long bench). */
+uint16_t MakePlayerNameSpriteAt(uint16_t playerNumber, uint8_t *shortName, uint16_t spriteIdx,
+                                uint8_t *nameLenOut)
+{
+    return makePlayerNameSprite(playerNumber, shortName, spriteIdx, nameLenOut);
 }

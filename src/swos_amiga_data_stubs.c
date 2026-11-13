@@ -1612,7 +1612,10 @@ SWOS_CHIP_BSS IntroChipRam g_introChipRam;
  * mode as well as Amiga. Then 1310..1480, the shirt numbers: a match's 17..99, the menus' 12..99 (shirt_numbers.c);
  * 1481..1683 face 3's two sets and its menu icon (player_face3.c). 1304 is the stoppage-time
  * clock with its "+N" (stoppage.c); 1305..1309 are free. */
-#if UINTPTR_MAX == 0xFFFFFFFFu
+#ifdef SWOS_SDL_BUILD
+/* SDL: 20 more, 1684..1703, a long bench's names of places 17.. (long_bench.c, LB_NAME_SPRITE_BASE). */
+SWOS_CHIP_BSS char _spriteGraphics[(1684 + 20) * sizeof(void *)];
+#elif UINTPTR_MAX == 0xFFFFFFFFu
 SWOS_CHIP_BSS char _spriteGraphics[1684 * 4];          /* 1684 ptrs × 4 B (32-bit) */
 #else
 SWOS_CHIP_BSS char _spriteGraphics[1684 * 8];          /* 1684 ptrs × 8 B */

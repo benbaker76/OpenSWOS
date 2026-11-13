@@ -65,6 +65,13 @@ uint8_t    *SquadExtras_GetPlayer(uint16_t team, uint16_t index);
 /* The n-th extra still there (page 2 of a club): its index (16..), or -1. */
 int32_t     SquadExtras_Nth(uint16_t team, int32_t n);
 
+/* A long bench (long_bench.c): the n-th of a club's players 17.. it brings to a match, in any
+ * match of a world (a friendly's, a DIY's, a career's): in a career the ones gone are left out;
+ * `index` his place - 1 (16..). And his record by that index (the after-match write-backs land in
+ * the club's cached block only, as the Mod's). NULL: none. */
+PlayerFile *SquadExtras_BenchPlayer(uint16_t team, int32_t n, uint16_t *index);
+PlayerFile *SquadExtras_BenchRecord(uint16_t team, uint16_t index);
+
 /* AddCareerTeamPlayer's pick for a club with extras: 16 + extras equally likely (one more
  * Rand2, as the Mod); the game's own pick stays for 0..15 or a gone one. */
 uint16_t SquadExtras_MarketPick(uint16_t team, uint16_t pick);

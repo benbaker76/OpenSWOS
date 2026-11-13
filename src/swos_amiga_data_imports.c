@@ -716,7 +716,9 @@ uint16_t _minSubstitutes[1] = { 0x0000 };
 uintptr_t _extension[1] = { 0 };
 uint16_t _showPrereleaseCounter[1] = { 0x0000 };
 uint16_t _kPlayerSpeedsGameStopped[8] = { 1136,1152,1168,1184,1200,1216,1232,1248 };
-uint16_t _ingameTeamPlayerOffsets[16] = { 0,61,122,183,244,305,366,427 , 488,549,610,671,732,793,854,915 };
+uint16_t _ingameTeamPlayerOffsets[26] = { 0,61,122,183,244,305,366,427 , 488,549,610,671,732,793,854,915,
+    /* a long bench's places 16..25 (long_bench.c: the Mod's bx_table; reached via LongBench_Player) */
+    976,1037,1098,1159,1220,1281,1342,1403,1464,1525 };
 uint16_t _jobOffersFromRetired[1] = { 0x0000               };
 uint16_t _findTeamInDIY_SuppressSideEffectsFlag[1] = { 0x0000 };
 uint16_t _squadPrevSelectedPlayerIndex[1] = { 0x0000 };

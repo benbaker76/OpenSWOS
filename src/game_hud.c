@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "long_bench.h"
 #include "shirt_numbers.h"
 #include "game_hud.h"
 #include "game_types.h"
@@ -264,13 +265,19 @@ position_name:
 
     d2 = (int16_t)(int8_t)_plNamesLengthTableCopy[d0];
     d1 = (int16_t)(int8_t)_plOrdinalsTable[d0];
-    d1 += SPR_TEAM1_PLAYER_NAMES_START;
+    if (d1 >= 16)                       /* (a long bench's substitute from place 17 on) */
+        d1 = (int16_t)LongBench_NameSprite(0, (uint8_t)d1, 0);
+    else
+        d1 += SPR_TEAM1_PLAYER_NAMES_START;
 
     /* Check if this is the bottom team */
     if (a1->inGameTeamPtr != &_topTeamInGame) {
         d2 = (int16_t)(int8_t)_plNamesLengthTableCopy[d0 + 16];
         d1 = (int16_t)(int8_t)_plOrdinalsTable[d0 + 16];
-        d1 += SPR_TEAM2_PLAYER_NAMES_START;
+        if (d1 >= 16)
+            d1 = (int16_t)LongBench_NameSprite(1, (uint8_t)d1, 0);
+        else
+            d1 += SPR_TEAM2_PLAYER_NAMES_START;
     }
 
     d2 = (int16_t)(int8_t)(uint8_t)d2;     /* sign-extend from byte */
