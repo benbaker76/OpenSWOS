@@ -464,6 +464,20 @@ static void c_next_round(int32_t pr, const uint8_t *t, int32_t pairs)
     lay_out(pairs);
 }
 
+/* Place k of a Serie C group of n relegated or in a play-out place (the Mod 4.1's dplay.c cup_out,
+ * as src/rules/sr_dplay.c's: the season end's and the career club's contest must agree). The
+ * play-outs n-5 v n-2 and n-4 v n-3, each not played when 8+ points apart. */
+static int32_t cup_out(const TableRow *t, int32_t n, int32_t k)
+{
+    if (n < 6 || k < n - 5)
+        return 0;
+    if (k == n - 5)
+        return (int32_t)t[n - 5].r.pts - (int32_t)t[n - 2].r.pts < 8;
+    if (k == n - 4)
+        return (int32_t)t[n - 4].r.pts - (int32_t)t[n - 3].r.pts < 8;
+    return 1;
+}
+
 /* Serie C's play-off, built: the career club 2nd-10th of its group, or its group's 11th
  * standing in for the Coppa Italia Serie C winner (dplay.c c_lend). */
 static int32_t c_playoff(const LeaguePlayoffs *lp, const TableRow *own, int32_t nown, int32_t mine)
@@ -492,8 +506,9 @@ static int32_t c_playoff(const LeaguePlayoffs *lp, const TableRow *own, int32_t 
         if (n[g] < 11)
             return 0;
     /* the Coppa Italia Serie C winner's place (dplay.c cup_place): the winner itself when it
-     * finished 11th or lower, the 11th of its group when promoted or already in; unknown:
-     * the best 11th. A career club not in the cup has it played now (world_cups.c). */
+     * finished 11th or lower, the 11th of its group when promoted or already in, or -- the Mod
+     * 4.1, src/rules/sr_dplay.c cup_out -- relegated or in a play-out place; unknown: the best
+     * 11th. A career club not in the cup has it played now (world_cups.c). */
     const uint8_t country = World_FileCountry((uint8_t)_careerTeam.team.countryNumber);
     WorldCups_PlayLeagueCupEarly(country);
     const uint16_t cupw = WorldCups_LeagueCupWinner(country);
@@ -502,7 +517,7 @@ static int32_t c_playoff(const LeaguePlayoffs *lp, const TableRow *own, int32_t 
         for (int32_t k = 0; k < n[g]; k++)
             if (tab[g][k].team == cupw) {
                 cg = g;
-                cp = k >= 10 ? k : 10;
+                cp = k >= 10 && !cup_out(tab[g], n[g], k) ? k : 10;
             }
     if (cg < 0) {
         cg = 0;
