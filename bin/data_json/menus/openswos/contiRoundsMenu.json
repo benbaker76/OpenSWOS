@@ -1,0 +1,628 @@
+{
+  "name": "contiRoundsMenu",
+  "comment": "OpenSWOS's rounds of a confederation's club cups (the Mod 4.1's rounds menu, ctview.py's P3): every round drawn so far, in the order they are played, '<cup> <round>'; one opens its view; SUMMARY the text pages of every cup. JSON-only; handlers in src/conti_view.c.",
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "contiRoundsMenu_OnInit",
+  "onReturn": "contiRoundsMenu_OnInit",
+  "onDraw": "contiRoundsMenu_OnDraw",
+  "defaultEntry": 2,
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 12,
+        "y": 0,
+        "w": 296,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x10"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "note",
+      "coords": {
+        "x": 12,
+        "y": 20,
+        "w": 296,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round0",
+      "coords": {
+        "x": 8,
+        "y": 36,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round1",
+      "coords": {
+        "x": 8,
+        "y": 53,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round1"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round2",
+      "coords": {
+        "x": 8,
+        "y": 70,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round2"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round3",
+      "coords": {
+        "x": 8,
+        "y": 87,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round3"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round4",
+      "coords": {
+        "x": 8,
+        "y": 104,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round4"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round5",
+      "coords": {
+        "x": 8,
+        "y": 121,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round5"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round6",
+      "coords": {
+        "x": 8,
+        "y": 138,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round6"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round7",
+      "coords": {
+        "x": 8,
+        "y": 155,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round7"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round8",
+      "coords": {
+        "x": 162,
+        "y": 36,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round8"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round9",
+      "coords": {
+        "x": 162,
+        "y": 53,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round9"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round10",
+      "coords": {
+        "x": 162,
+        "y": 70,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round10"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round11",
+      "coords": {
+        "x": 162,
+        "y": 87,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round11"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round12",
+      "coords": {
+        "x": 162,
+        "y": 104,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round12"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round13",
+      "coords": {
+        "x": 162,
+        "y": 121,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round13"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round14",
+      "coords": {
+        "x": 162,
+        "y": 138,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round14"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "round15",
+      "coords": {
+        "x": 162,
+        "y": 155,
+        "w": 150,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_round15"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "summary",
+      "coords": {
+        "x": 8,
+        "y": 182,
+        "w": 150,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "SUMMARY"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_summary"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 162,
+        "y": 182,
+        "w": 150,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "EXIT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundsMenu_exit"
+        }
+      ]
+    }
+  ]
+}

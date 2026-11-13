@@ -31,6 +31,8 @@
 #include "game_utils.h"
 #include "game_types.h"
 #include "world.h"
+#include "conti_view.h"        /* VIEW COMPETITIONS' CONTINENTAL CUPS */
+#include "world_supercup.h"   /* ... and slot 4's Super Cup */
 #ifdef SWOS_SDL_BUILD
 #include <SDL.h>              /* OPTIONS -> WORLD: its messages */
 #include "project_identity.h"
@@ -860,10 +862,17 @@ void ShowStadiumInit(void)
             }
             d[k] = 0;
             _menuEntries[60].isInvisible = 0;
+            _menuEntries[60].y -= 2;        /* (in the 7 rows between the bars and the first line-up row) */
         }
     }
 
     DrawMenu();
+#ifdef SWOS_SDL_BUILD
+    if (getenv("SWOS_SHOT_STADIUM")) {  /* (test: a screenshot of this screen, its stadium name) */
+        extern void Platform_RequestScreenshot(void);
+        Platform_RequestScreenshot();
+    }
+#endif
     SetExitMenuFlag();
 }
 
@@ -5319,6 +5328,8 @@ static void SetNationalityField(void)
  * Sets up competition name text pointers and shuffles Y coordinates
  * when hiding unavailable competition slots.
  * ================================================================ */
+static void ViewCompetitionsWorldEntries(void);
+
 __attribute__((used, externally_visible))
 void ViewCompetitionsOnReturn(void)
 {
@@ -5379,6 +5390,65 @@ void ViewCompetitionsOnReturn(void)
     {
         _menuEntries[6].isInvisible = 1;
     }
+
+    ViewCompetitionsWorldEntries();
+}
+
+/* OpenSWOS (a world career's): CONTINENTAL CUPS (entry 8; the SWOS 96/97 Mod 4.1's, SDL:
+ * conti_view.c) and the Super Cup in slot 4 (entry 9; world_supercup.c), both hidden otherwise.
+ * When one shows, the rows are laid out again in the order 1-4, the Super Cup, TOP GOAL SCORERS,
+ * CONTINENTAL CUPS, MANAGEMENT RECORD (closer together when they would reach EXIT), linked in that
+ * order; else the screen is the original's. */
+static void ViewCompetitionsWorldEntries(void)
+{
+    extern uint8_t _currentMenu[];
+    extern CompetitionSlotBuffer _diyCompetitionContextBuf;
+    static const uint8_t order[] = { 1, 2, 3, 4, 9, 5, 8, 6 };
+    const Menu *menu = (const Menu *)_currentMenu;
+    uint8_t shown[sizeof order];
+    int32_t n = 0;
+    if (menu->numEntries < 10)
+        return;
+    _menuEntries[8].isInvisible = 1;
+    _menuEntries[9].isInvisible = 1;
+    const int32_t cc = _gameType == 4 && ContiView_Available();
+    const int32_t sc = _gameType == 4 && SuperCup_InSlot4();
+    if (!cc && !sc)
+        return;
+    if (cc) {
+        _menuEntries[8].isInvisible = 0;
+        _menuEntries[8].fg = (uintptr_t)"CONTINENTAL CUPS";
+    }
+    if (sc) {
+        _menuEntries[9].isInvisible = 0;
+        _menuEntries[9].fg = (uintptr_t)_diyCompetitionContextBuf.tourn.header.competitionName;
+    }
+    for (uint32_t i = 0; i < sizeof order; i++)
+        if (!_menuEntries[order[i]].isInvisible)
+            shown[n++] = order[i];
+    /* (the rows' y as unpacked: entry 1's is never moved; MANAGEMENT RECORD's 125 below it, as the menu has it) */
+    const int32_t top = _menuEntries[1].y, bottom = top + 125;
+    int32_t step = 25;
+    if (n > 1 && top + step * (n - 1) > bottom)
+        step = (bottom - top) / (n - 1);
+    for (int32_t i = 0; i < n; i++) {
+        MenuEntry *e = &_menuEntries[shown[i]];
+        e->y = (uint16_t)(top + step * i);
+        if (shown[i] == 6 && step == 25)
+            e->y = (uint16_t)bottom;                /* (MANAGEMENT RECORD where the original has it) */
+        e->upEntry = (int8_t)(i ? shown[i - 1] : -1);
+        e->downEntry = (int8_t)(i + 1 < n ? shown[i + 1] : 7);
+        e->directionUp = e->directionDown = -1;
+    }
+    _menuEntries[7].upEntry = (int8_t)(n ? shown[n - 1] : -1);
+    _menuEntries[7].directionUp = -1;
+}
+
+/* VIEW COMPETITIONS' CONTINENTAL CUPS (entry 8): the confederations' cups (conti_view.c). */
+__attribute__((used, externally_visible))
+void ViewContinentalCups(void)
+{
+    ContiView_ShowConfs();
 }
 
 

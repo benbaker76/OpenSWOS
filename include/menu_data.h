@@ -1290,6 +1290,9 @@ typedef struct Menu_ViewCompetitions
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry7;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry8;    /* OpenSWOS: CONTINENTAL CUPS (a world career's, SDL: */
+                                                        /*  conti_view.c, the Mod 4.1's ctview.py) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry9;    /* OpenSWOS: slot 4's Super Cup (world_supercup.c) */
   MenuMark markEndMenu;
 } Menu_ViewCompetitions;
 #pragma pack(pop)

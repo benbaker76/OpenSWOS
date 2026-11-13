@@ -4845,6 +4845,15 @@ void OpenDiyPreset3(void)
     ShowDiyCompetitionForSource((uint8_t *)&_euroCupsCompetitionContextBuf);
 }
 
+/* OpenDiySlot4 -- OpenSWOS: VIEW COMPETITIONS' entry 9, the career's slot 4 (a world's Super Cup:
+ * menus.c ViewCompetitionsWorldEntries shows it only then) */
+__attribute__((used, externally_visible))
+void OpenDiySlot4(void)
+{
+    extern CompetitionSlotBuffer _diyCompetitionContextBuf;
+    ShowDiyCompetitionForSource((uint8_t *)&_diyCompetitionContextBuf);
+}
+
 /* ================================================================
  * Chunk 120: DIY Design Menu functions
  * ================================================================ */

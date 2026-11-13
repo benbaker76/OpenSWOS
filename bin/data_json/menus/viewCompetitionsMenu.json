@@ -253,6 +253,70 @@
           "func": "SetExitMenuFlag"
         }
       ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 47,
+        "y": -126,
+        "w": -46,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": null
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ViewContinentalCups"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 47,
+        "y": -126,
+        "w": -46,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": null
+        },
+        {
+          "op": "onselect_fire",
+          "func": "OpenDiySlot4"
+        }
+      ]
     }
   ]
 }
