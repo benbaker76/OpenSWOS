@@ -182,7 +182,8 @@ def cup_ties(key, cup, perms):
     """ties.csv rows of a cup from its contest order (round 1's ties, then its byes) and its rounds' draws: round 1
     as listed; a later round's tie = the winners of the previous round's ties its permutation picks. The winners of
     the first season are not in the exe (only the bracket is): a later tie names the HOME club of each tie it follows
-    from (a bye: the club) -- the same bracket (world_import.bracket_order reads nothing else)."""
+    from (a bye: the club) -- the same bracket (world_import.bracket_order reads nothing else) --, and so its
+    'winner' is that club (every round but the final: the Mod's mkseason.Pack.bracket requires one)."""
     clubs = cup["clubs"]
     nr = len(cup["rounds"])
     if len(perms) != nr:
@@ -200,6 +201,9 @@ def cup_ties(key, cup, perms):
         ties = [(prev[pm[2 * i]], prev[pm[2 * i + 1]]) for i in range(len(pm) // 2)]
         rows += [{"competition": key, "round": str(r + 1), "home": h, "away": a, "winner": ""} for h, a in ties]
         prev = [h for h, _ in ties]
+    for row in rows:                                    # (the stand-ins: a tie's home club, a bye's club)
+        if row["round"] != str(nr):
+            row["winner"] = row["home"]
     return rows
 
 

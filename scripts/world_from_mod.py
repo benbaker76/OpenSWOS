@@ -7,7 +7,9 @@ the SWOS 96/97 Mod (DOS, Davide Lorigliola's), not from the JSON Davide sends (d
     python3 -I scripts/world_import.py --mod DIR ...            # then, as from Davide's JSON
 
 GAME   the installed Mod: its folder (DATA/ and ENGLISH.EXE inside) -- read only.
-DIR    the `mod/` folder written: the layout and fields of Davide's JSON (those world_import.py reads).
+DIR    the `mod/` folder written: the layout of Davide's JSON, its packs in the Mod's own full pack format (every
+       pack.json field and clubs.csv / players.csv column the Mod's tools read: scripts/world_mod_packfmt.py), so
+       scripts/league_playoffs_check.sh runs the Mod's own code over it.
 OLD    optional, a JSON delivery of the Mod's data (bin/data_json/worlds/2627/mod/ as Davide sent it):
        --names-from takes its original competition names where the Mod's own fitting gives the exe's
        (the exe holds them fitted); --base (the old fallback, off by default) takes its packs and
@@ -434,9 +436,13 @@ def names_from(whole, old):
     return taken, kept
 
 
-def write_decoded(out, world, whole):
-    """The decoded packs and continental cups as the files world_import.py reads (only the fields it reads)."""
+def write_decoded(out, world, whole, version="?"):
+    """The decoded packs and continental cups in the Mod's full pack format (the fields world_import.py reads and
+    every one the Mod's own code needs: scripts/world_mod_packfmt.py)."""
+    import world_mod_packfmt as pf
     packs = whole.get("packs", {})
+    game = os.path.dirname(world.data) if os.path.basename(world.data).upper() == "DATA" else world.data
+    root = pf.complete(world, whole, game, version)
 
     def star(v):                        # (the exe holds the English names: "*" = "en", some readers take "*" only)
         if isinstance(v, dict):
@@ -455,20 +461,21 @@ def write_decoded(out, world, whole):
         with open(os.path.join(d, "pack.json"), "w", encoding="utf-8", newline="\n") as f:
             json.dump(pk, f, indent=1)
             f.write("\n")
-        rows = []
-        for key, c in (whole.get("clubs", {}).get(code) or {}).items():
-            fo = world.where.get((code, key))
-            pool = dict((k, n) for n, k in world.pools.get(code, []))
-            name = world.name[fo] if fo else pool.get(key, "")
-            rows.append({"key": key, "name": name, "division": c.get("division", ""),
-                         "second_of": c.get("second_of", ""), "area": c.get("area", "")})
-        write_csv(os.path.join(d, "clubs.csv"), rows, ["key", "name", "division", "second_of", "area"])
+        rows = pf.club_rows(world, whole, code)
+        if sorted(r["key"] for r in rows) != sorted(whole.get("clubs", {}).get(code) or {}):
+            sys.exit("%s: clubs.csv's clubs are not the decoded ones" % code)
+        write_csv(os.path.join(d, "clubs.csv"), rows, pf.CLUB_FIELDS)
         ties = whole.get("ties", {}).get(code) or []
         write_csv(os.path.join(d, "ties.csv"), ties,
                   ["competition", "round", "home", "away"] + sorted({k for t in ties for k in t} -
                                                                     {"competition", "round", "home", "away"}))
-        players = whole.get("players", {}).get(code) or []
-        write_csv(os.path.join(d, "players.csv"), players, ["club", "price"])
+        players = pf.player_rows(world, code, pk)
+        if sorted((r["club"], r["price"]) for r in players) != \
+                sorted((r["club"], r["price"]) for r in whole.get("players", {}).get(code) or []):
+            sys.exit("%s: players.csv's prices are not the decoded ones" % code)
+        write_csv(os.path.join(d, "players.csv"), players, pf.PLAYER_FIELDS)
+        if code == root and pk.get("pool"):
+            shutil.copyfile(os.path.join(world.data, "POOL0%d.DAT" % WORLD), os.path.join(d, pk["pool"]))
         if code in whole.get("cupd", {}):
             with open(os.path.join(d, "cupd.json"), "w", encoding="utf-8", newline="\n") as f:
                 json.dump(whole["cupd"][code], f, indent=1)
@@ -492,6 +499,9 @@ def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv
     world = whole = None
     if old is None:
         world, whole = decode_game(game)
+        import world_mod_packfmt
+        langs = world_mod_packfmt.lang_names(game if os.path.isdir(os.path.join(game, "DATA")) else
+                                             os.path.dirname(data), whole)      # (before a name is replaced)
         if names_csv:
             print("names from %s: %d" % (os.path.relpath(names_csv), apply_names(whole, names_csv)))
         if names:
@@ -667,7 +677,9 @@ def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv
     elif os.path.exists(bpath):
         os.remove(bpath)
     if old is None:
-        write_decoded(out, world, whole)
+        for o, fld, v in langs:         # (the other languages' names: world_mod_packfmt.lang_names)
+            o[fld].update(v)
+        write_decoded(out, world, whole, version)
         by_code = {}                    # (no delivery's clubs.csv to rename)
     # what the game does not carry readably: the delivery's, the packs' club names the game's now
     for sub in (TAKEN if old else ()):
@@ -707,7 +719,8 @@ def convert(game, old, out, repo=None, registry_add=False, names=None, names_csv
         if old:
             f.write("%s, teams/NATIONALITIES.json: the JSON delivery %s\n" % ("/, ".join(TAKEN) + "/", os.path.abspath(old)))
         else:
-            f.write("packs/, conti/: decoded from the game's exe and DATA (scripts/world_mod_*.py)\n")
+            f.write("packs/, conti/: decoded from the game's exe and DATA (scripts/world_mod_*.py), the packs in "
+                    "the Mod's full pack format (scripts/world_mod_packfmt.py)\n")
         if repo:
             f.write("the Mod's repo: tag v%s = %s\n" % (version, tag or "(none)"))
 
