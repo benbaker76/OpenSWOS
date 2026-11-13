@@ -2254,8 +2254,8 @@ void ChangeWorld(MenuEntry *entry)
         if (AssetsCheck_FindSetup(setup, (uint32_t)sizeof setup)) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
         buttons[n++] = "OK";
         if (MenuDialog_Show("Worlds",
-                "No other world is installed.|Open " PROJECT_SETUP_NAME ": its rows World 2026-27 and "
-                "Europe 1984-85 have the links to download them, then click Install. On a phone: do that "
+                "No other world is installed.|Open " PROJECT_SETUP_NAME ": its Worlds row has the links to "
+                "download World 2026-27 and Europe 1984-85, then click Install. On a phone: do that "
                 "on your computer, then copy the assets folder over again.", buttons, n, 0) == iSetup &&
             iSetup >= 0)
             AssetsCheck_LaunchSetup();
