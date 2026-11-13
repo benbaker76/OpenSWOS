@@ -39,6 +39,8 @@
  * "changes": "modes": its matches are its own -- never matters online.
  */
 #include "mod_api.h"
+#include "game_types.h"       /* TeamFileEx (the preconfigured teams) */
+#include "endian_helpers.h"
 
 
 #include "mjson.h"
@@ -221,6 +223,7 @@ static uint32_t s_overAt;               /* (its frame: the time stops there) */
  * COMPLETED and the time, or SPEEDRUN FAILED. (Report 0060 asked for the target and the time on the
  * pitch: this is SWOS 2020's own way of showing them.) Drawn into the match's 8bpp frame. ---- */
 #include "display.h"            /* HUD_MARGIN, HUD_WIDTH */
+#include "mod_hudbox.h"
 
 static const char *const kLevelName[5] = { "BEGINNER", "AMATEUR", "ADVANCED", "PRO", "MASTER" };
 
@@ -231,61 +234,125 @@ static void frame_time(char *out, size_t cap, uint32_t frames)   /* (getFrameTim
     snprintf(out, cap, "%u:%02u.%02u", (unsigned)(cs / 6000), (unsigned)(cs / 100 % 60), (unsigned)(cs % 100));
 }
 
-static void dark_box(uint8_t *fb, int32_t stride, int32_t sw, int32_t sh, int32_t x, int32_t y, int32_t w,
-                     int32_t h, uint8_t c)
+/* Each box drawn at the present (mod_hudbox.h): in the frame buffer they went with the sub-pixel
+ * scroll and flickered as the camera moved, in black where SWOS 2020's are its VGA palette's 180
+ * (putPixelDirect(..., 180): 8, 8, 8 of 63, a dark grey) -- Playa, 2026-11-12. The result's band
+ * is shaded as SWOS 2020's result band. */
+static HudBox s_boxTime, s_boxTarget, s_boxLevel, s_boxResult;
+enum { kGrey = 32 };                    /* (VGA 8 of 63) */
+
+typedef struct { const char *text[3]; int32_t x[3], y[3], small[3], centre[3], n; } BoxText;
+
+static void box_contents(void *ctx)
 {
-    for (int32_t j = y; j < y + h; j++)
-        for (int32_t i = x; i < x + w; i++)
-            if (i >= 0 && j >= 0 && i < sw && j < sh)
-                fb[j * stride + i] = c;
+    const BoxText *t = (const BoxText *)ctx;
+    for (int32_t i = 0; i < t->n; i++) {
+        if (!t->text[i])
+            continue;
+        int32_t x = t->x[i] - (t->centre[i] ? ModApi_TextWidth(t->text[i], t->small[i]) / 2 : 0);
+        ModApi_DrawText(x < 0 ? 0 : x, t->y[i], 2 /* kWhiteText2 */, t->text[i], t->small[i]);
+    }
 }
 
-static void centred(int32_t cx, int32_t y, const char *t, int32_t small)
+static void box_one(HudBox *b, int32_t x, int32_t y, int32_t w, int32_t h, const char *text, int32_t tx,
+                    int32_t ty, int32_t centre)
 {
-    const int32_t x = cx - ModApi_TextWidth(t, small) / 2;
-    ModApi_DrawText(x < 0 ? 0 : x, y, 2 /* kWhiteText2 */, t, small);
+    BoxText t;
+    memset(&t, 0, sizeof t);
+    t.n = 1;
+    t.text[0] = text;
+    t.x[0] = tx;
+    t.y[0] = ty;
+    t.small[0] = 1;
+    t.centre[0] = centre;
+    HudBox_Draw(b, x, y, w, h, HUDBOX_SOLID, kGrey, kGrey, kGrey, box_contents, &t);
+}
+
+static void sr_off(void)
+{
+    HudBox_Off(&s_boxTime);
+    HudBox_Off(&s_boxTarget);
+    HudBox_Off(&s_boxLevel);
+    HudBox_Off(&s_boxResult);
 }
 
 static void sr_drawn(void)
 {
-    int32_t stride, sw, sh;
-    uint8_t *fb;
-    if (!ModApi_ModMatch("speedrun") || ModApi_InReplay() || s_target < 0 || !(fb = ModApi_Frame(&stride)))
+    int32_t sw, sh;
+    if (!ModApi_ModMatch("speedrun") || ModApi_InReplay() || s_target < 0) {
+        sr_off();
         return;
+    }
     ModApi_ScreenSize(&sw, &sh);
-    const uint8_t dark = ModApi_NearestColour(0, 0, 0);
     const int32_t left = HUD_MARGIN, right = HUD_MARGIN + HUD_WIDTH;
     char t[32];
     frame_time(t, sizeof t, s_done ? s_doneAt : s_over ? s_overAt : ModApi_MatchFrames());
-    dark_box(fb, stride, sw, sh, left + 10, 19, 71, 8, dark);
-    ModApi_DrawText(left + 25, 20, 2, t, 1);
-    dark_box(fb, stride, sw, sh, right - 90, 6, 81, 9, dark);
-    centred(right - 50, 8, kTarget[s_target].name, 1);
-    if (s_level >= 0) {
-        dark_box(fb, stride, sw, sh, right - 90, 19, 81, 8, dark);
-        centred(right - 50, 20, kLevelName[s_level], 1);
-    }
+    /* (each text where it was: the time at 25, 20 in its box from 10, 19; the target centred at
+     *  right - 50, 8 in its box from 6; the difficulty at 20 in its box from 19) */
+    box_one(&s_boxTime, left + 10, 19, 71, 8, t, 15, 1, 0);
+    box_one(&s_boxTarget, right - 90, 6, 81, 9, kTarget[s_target].name, 40, 2, 1);
+    if (s_level >= 0)
+        box_one(&s_boxLevel, right - 90, 19, 81, 8, kLevelName[s_level], 40, 1, 1);
+    else
+        HudBox_Off(&s_boxLevel);
     ModResultBanner banner;
-    if ((!s_over && !s_done) || ModApi_ResultBanner(&banner))
+    if ((!s_over && !s_done) || ModApi_ResultBanner(&banner)) {
+        HudBox_Off(&s_boxResult);
         return;                         /* (SWOS 2020's waits for the result panel to go too) */
+    }
     /* the result: SWOS 2020's band (DOS 40 high from 158 of 200; its taller screens 50 from 220) */
     const int32_t tall = sh >= 240;
-    const int32_t top = tall ? sh - 52 : sh - 42, y1 = tall ? sh - 44 : sh - 38, y2 = tall ? sh - 31 : sh - 25,
-                  y3 = tall ? sh - 17 : sh - 11;
-    const int32_t cx = (left + right) / 2;
-    dark_box(fb, stride, sw, sh, sw == HUD_WIDTH ? 0 : left, top, sw == HUD_WIDTH ? sw : HUD_WIDTH, tall ? 50 : 40,
-             dark);
-    if (s_level >= 0)
-        centred(cx, y1, kLevelName[s_level], 1);
-    if (s_done) {
-        char line[48];
-        centred(cx, y2, "*** SPEEDRUN COMPLETED ***", 0);
-        snprintf(line, sizeof line, "%s - %s", kTarget[s_target].name, t);
-        centred(cx, y3, line, 1);
-    } else {
-        centred(cx, y2, "SPEEDRUN FAILED. TRY AGAIN.", 0);
-        centred(cx, y3, kTarget[s_target].name, 1);
+    const int32_t top = tall ? sh - 52 : sh - 42, h = tall ? 50 : 40;
+    const int32_t bx = sw == HUD_WIDTH ? 0 : left, bw = sw == HUD_WIDTH ? sw : HUD_WIDTH;
+    const int32_t cx = (left + right) / 2 - bx;
+    char line[48];
+    BoxText r;
+    memset(&r, 0, sizeof r);
+    r.n = 3;
+    for (int32_t i = 0; i < 3; i++) {
+        r.x[i] = cx;
+        r.centre[i] = 1;
+        r.small[i] = 1;
     }
+    r.y[0] = (tall ? sh - 44 : sh - 38) - top;
+    r.y[1] = (tall ? sh - 31 : sh - 25) - top;
+    r.y[2] = (tall ? sh - 17 : sh - 11) - top;
+    r.text[0] = s_level >= 0 ? kLevelName[s_level] : NULL;
+    r.small[1] = 0;
+    if (s_done) {
+        r.text[1] = "*** SPEEDRUN COMPLETED ***";
+        snprintf(line, sizeof line, "%s - %s", kTarget[s_target].name, t);
+        r.text[2] = line;
+    } else {
+        r.text[1] = "SPEEDRUN FAILED. TRY AGAIN.";
+        r.text[2] = kTarget[s_target].name;
+    }
+    HudBox_Draw(&s_boxResult, bx, top, bw, h, HUDBOX_SHADE, 0, 0, 0, box_contents, &r);
+}
+
+static void sr_present(void)
+{
+    if (!ModApi_ModMatch("speedrun") || ModApi_InReplay())
+        return;
+    HudBox_Present(&s_boxTime);
+    HudBox_Present(&s_boxTarget);
+    HudBox_Present(&s_boxLevel);
+    HudBox_Present(&s_boxResult);
+}
+
+static void sr_kept(void)
+{
+    HudBox_Kept(&s_boxTime);
+    HudBox_Kept(&s_boxTarget);
+    HudBox_Kept(&s_boxLevel);
+    HudBox_Kept(&s_boxResult);
+}
+
+/* The name of the player on the ball sits over the run's time: not drawn in a run (Playa). */
+static int32_t sr_sprite(const struct Sprite *sprite, const struct SpriteGraphics *gfx, int16_t *x, int16_t *y)
+{
+    (void)gfx; (void)x; (void)y;
+    return ModApi_ModMatch("speedrun") && !ModApi_InReplay() && ModApi_SpriteKind(sprite) == MODSPRITE_PLAYER_NAME;
 }
 #endif
 
@@ -348,21 +415,47 @@ static void sr_ended(const ModMatchResult *r)
 }
 
 /* SWOS 2020's preconfigured teams, a pair a difficulty (its selectSpeedrunDifficulty: BEGINNER ..
- * MASTER). Its were the PC game's TEAM.072 clubs, which this database has not: these are 96/97's,
- * each pair's skill points (yours - theirs, skill_points) in SWOS 2020's band for that difficulty
- * (>= 375, 150..374, -149..149, -374..-150, <= -375). Yours first. */
-static const struct { uint16_t team[2]; const char *uuid[2]; const char *name[2]; } kPreset[5] = {
-    { { 0x5202, 0x5026 }, { "30e26617-4001-56c3-a068-8d88849c8398", "4f610b16-c3b0-5aca-8a20-8f8c34d1da9f" },
-      { "BRAZIL", "SAN MARINO" } },                                     /* BEGINNER  +479 */
-    { { 0x5017, 0x502f }, { "8250fcaa-bcdf-5f40-836a-87614846de84", "47a64604-70c3-54c2-a21b-8bf8a575adbb" },
-      { "ITALY", "WALES" } },                                           /* AMATEUR   +192 */
-    { { 0x500b, 0x5011 }, { "fad1a2cf-b275-5972-a3fa-35bda74afa6f", "2bb28358-8981-5501-bee3-0916d4b736cc" },
-      { "ENGLAND", "GERMANY" } },                                       /* ADVANCED    -4 */
-    { { 0x5027, 0x5017 }, { "ffcdd024-64c5-5134-a1dc-57df93f0f419", "8250fcaa-bcdf-5f40-836a-87614846de84" },
-      { "SCOTLAND", "ITALY" } },                                        /* PRO       -198 */
-    { { 0x501b, 0x5011 }, { "c5c60571-0563-5ada-8203-b847f2b79f84", "2bb28358-8981-5501-bee3-0916d4b736cc" },
-      { "LUXEMBOURG", "GERMANY" } },                                    /* MASTER    -451 */
+ * MASTER; game.cpp: tno1 / tno2 by global team number from ITS TEAM.072, where SWOS 2020 put its
+ * own teams over ten of the PC game's custom clubs -- PLAYER TEAM v BEGINNER .. MASTER). Those ten,
+ * as SWOS 2020's file has them, are this mod's teams/SPEEDRUN.EDT (a big-endian count, then the
+ * 684-byte records), found there by global number as SWOS 2020 found them. Yours first. (Until
+ * 2026-11-12 96/97 nations stood in for them -- Playa.) */
+static const struct { uint16_t global[2]; const char *name[2]; } kPreset[5] = {
+    { { 1558, 1548 }, { "PLAYER TEAM", "BEGINNER" } },
+    { { 1571, 1567 }, { "PLAYER TEAM", "AMATEUR" } },
+    { { 1568, 1570 }, { "PLAYER TEAM", "ADVANCED" } },
+    { { 1566, 1569 }, { "PLAYER TEAM", "PRO" } },
+    { { 1547, 1557 }, { "PLAYER TEAM", "MASTER" } },
 };
+static TeamFileEx s_presetTeam[2];      /* the run's pair, a setup's teamData */
+
+/* SWOS 2020's team of that global number from teams/SPEEDRUN.EDT into *out (the number in the
+ * host's order, as a teamData wants it). The file read once, kept for the run (6.8 KB). */
+static int32_t preset_team(uint16_t global, TeamFileEx *out)
+{
+    static uint8_t *s_file;
+    static uint32_t s_size;
+    if (!s_file) {
+        char path[1100];
+        snprintf(path, sizeof path, "%s/teams/SPEEDRUN.EDT", ModApi_ModDir("speedrun"));
+        s_file = (uint8_t *)ModApi_ReadFile(path, &s_size);
+        if (!s_file) {
+            fprintf(stderr, "[speedrun] no %s: the preconfigured teams are missing\n", path);
+            return 0;
+        }
+    }
+    const uint32_t count = s_size >= 2 ? ((uint32_t)s_file[0] << 8) | s_file[1] : 0;
+    for (uint32_t k = 0; k < count && 2 + (k + 1) * sizeof(TeamFileEx) <= s_size; k++) {
+        const uint8_t *rec = s_file + 2 + k * sizeof(TeamFileEx);
+        if ((uint16_t)(((uint16_t)rec[2] << 8) | rec[3]) == global) {      /* (big-endian in the file) */
+            memcpy(out, rec, sizeof *out);
+            out->team.globalTeamNumber = (int16_t)BE16_TO_HOST((uint16_t)out->team.globalTeamNumber);
+            return 1;
+        }
+    }
+    fprintf(stderr, "[speedrun] team %u is not in SPEEDRUN.EDT\n", (unsigned)global);
+    return 0;
+}
 static int32_t s_difficulty = -1;       /* the run's preset (0..4), -1 the teams chosen */
 
 static char s_resultTeams[48];
@@ -375,8 +468,7 @@ static int32_t skill_points(int32_t team)
     for (int32_t slot = 0; slot < 16; slot++) {
         ModTeamPlayer p;
         const int32_t got = s_difficulty >= 0
-            ? ModApi_TeamPlayer(ModApi_TeamByUuidNumber(kPreset[s_difficulty].uuid[team],
-                                                        kPreset[s_difficulty].team[team]), slot, &p)
+            ? ModApi_TeamDataPlayer(&s_presetTeam[team], slot, &p)
             : ModApi_ChosenTeamPlayer(team, slot, &p);
         if (got)
             sum += p.passing + p.shooting + p.heading + p.tackling + p.control + p.speed + p.finishing;
@@ -419,6 +511,55 @@ static void online_finished(int32_t target)
     s_onlineLine[0] = 0;
 }
 
+#ifdef SWOS_SDL_BUILD   /* (the Amiga: no such screens -- a run plays as before) */
+/* SWOS 2020's DIFFICULTY SETTING (difficultySetting.mnu, game.cpp's difficultySettingMenu_OnDraw):
+ * after the teams are chosen for a free choice, the difficulty their skill points give, the
+ * difference and each side's, and PLAY / EXIT (EXIT: the difficulty picker again, as its goto
+ * speedrunSelectDifficulty_label). And its TRY AGAIN / EXIT (retryExit.mnu) after a run left with
+ * ESC: TRY AGAIN plays the same teams again, through their line-up. Both this mod's menus. */
+enum { DS_header = 0, DS_panel, DS_msg0, DS_msg1, DS_msg2, DS_msg3, DS_play, DS_exit };
+static char    s_dsText[4][64];
+static int32_t s_dsLevel, s_dsChoice;
+
+static void ds_init(void)
+{
+    for (int32_t i = 0; i < 4; i++)
+        ModApi_MenuText(DS_msg0 + i, s_dsText[i]);
+}
+
+static void ds_draw(void)       /* (its trophy left of PLAY, its stars right: the level's) */
+{
+    static const int8_t kTrophy[5] = { 1, 3, 5, 4, 8 };
+    const int32_t t = kTrophy[s_dsLevel], shift = t == 1 || t == 3;
+    /* SWOS 2020's 92 + 2 * shift, 165 - 2 * shift and 215, 168, against PLAY drawn at 110, 163 */
+    ModApi_DrawMapAtEntry("speedrun", "trophiesMap", DS_play, -18 + 2 * shift, 2 - 2 * shift, 0, 14 * t, 16, 14, 0);
+    ModApi_DrawMapAtEntry("speedrun", "starsMap", DS_play, 105, 5, 0, 10 * (1 + 2 * s_dsLevel), 36, 10, 0);
+}
+
+static void ds_play(void) { s_dsChoice = 1; SetExitMenuFlag(); }
+static void ds_exit(void) { s_dsChoice = 0; SetExitMenuFlag(); }
+
+static int32_t s_retryChoice;
+static void retry_try(void) { s_retryChoice = 1; SetExitMenuFlag(); }
+static void retry_exit(void) { s_retryChoice = 0; SetExitMenuFlag(); }
+
+/* The difficulty screen for the chosen teams (yours first): 1 PLAY, 0 EXIT. */
+static int32_t difficulty_setting(void)
+{
+    const int32_t yours = skill_points(s_you), theirs = skill_points(1 - s_you), d = yours - theirs;
+    s_dsLevel = d >= 375 ? 0 : d >= 150 ? 1 : d >= -149 ? 2 : d >= -374 ? 3 : 4;
+    snprintf(s_dsText[0], sizeof s_dsText[0], "DIFFICULTY : %s", kLevelName[s_dsLevel]);
+    snprintf(s_dsText[1], sizeof s_dsText[1], "SKILL POINT DIFFERENCE : %d", (int)d);
+    snprintf(s_dsText[2], sizeof s_dsText[2], "PLAYER (%s) : %d", ModApi_ChosenName(s_you), (int)yours);
+    snprintf(s_dsText[3], sizeof s_dsText[3], "COMPUTER (%s) : %d", ModApi_ChosenName(1 - s_you), (int)theirs);
+    s_dsChoice = 0;
+    if (ModApi_ShowMenu("speedrun/difficultySettingMenu") != 0)
+        return 1;                       /* (no such menu: play, as before it) */
+    return s_dsChoice;
+}
+
+#endif
+
 /* the run: the match, then the result screen, again while TRY AGAIN. difficulty: one of SWOS
  * 2020's preconfigured pairs (0..4, yours the first), -1 the teams chosen on the friendly's
  * screen. 0 when nothing was played (the team screen left, a team missing). */
@@ -429,6 +570,7 @@ static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
     s_difficulty = difficulty;
     for (;;) {
         const int32_t preset = difficulty >= 0 && difficulty < 5;
+        const int32_t retried = again;
         if (!s_test && !preset && (again ? !ModApi_ChosenAgain() : !ModApi_ChooseTeams()))
             return played;
         again = 1;
@@ -437,6 +579,13 @@ static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
             fprintf(stderr, "[speedrun] no team is yours: pick one to play\n");
             return played;
         }
+#ifdef SWOS_SDL_BUILD
+        if (!s_test && !preset && !retried && kTarget[target].kind != T_YELLOW && kTarget[target].kind != T_RED &&
+            !difficulty_setting())
+            return played;
+#else
+        (void)retried;
+#endif
         if (preset)
             snprintf(s_resultTeams, sizeof s_resultTeams, "%s v %s", kPreset[difficulty].name[0],
                      kPreset[difficulty].name[1]);
@@ -449,12 +598,10 @@ static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
         setup.chosen = !s_test && !preset;
         if (preset) {
             for (int32_t t = 0; t < 2; t++) {
-                setup.team[t] = ModApi_TeamByUuidNumber(kPreset[difficulty].uuid[t], kPreset[difficulty].team[t]);
+                if (!preset_team(kPreset[difficulty].global[t], &s_presetTeam[t]))
+                    return played;
+                setup.teamData[t] = &s_presetTeam[t];
                 setup.side[t] = (uint8_t)(t == 0 && !s_test ? MODSIDE_PLAYER1 : MODSIDE_CPU);
-            }
-            if (!setup.team[0] || !setup.team[1]) {
-                fprintf(stderr, "[speedrun] a preset team is not in the database\n");
-                return played;
             }
         }
         if (s_test && !preset) {            /* (the test: Norway, the CPU's but "yours", v New Zealand) */
@@ -470,6 +617,9 @@ static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
         setup.replayMenu = 0;
         setup.kickOff = (int8_t)s_you;
         setup.name = "speedrun";
+        /* the friendly's PLAY MATCH screen first, as SWOS 2020's PlayFriendly showed it: the line-up,
+         * the tactics, the uniform (Playa, 2026-11-12) */
+        setup.playMatchScreen = (uint8_t)!s_test;
 #ifdef SWOS_SDL_BUILD
         setup.hideClock = 1;                /* (SWOS 2020's run time sits where the clock was: sr_drawn) */
 #endif
@@ -499,6 +649,14 @@ static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
             exit(s_done ? 0 : 1);
 #endif
         }
+#ifdef SWOS_SDL_BUILD
+        if (r.quit && !s_done) {        /* (left with ESC: SWOS 2020's retryExitMenu) */
+            s_retryChoice = 0;
+            if (ModApi_ShowMenu("speedrun/retryExitMenu") == 0 && !s_retryChoice)
+                return played;
+            continue;                   /* (TRY AGAIN: the same teams, their line-up first) */
+        }
+#endif
         s_retry = 0;
         ModApi_ShowMenu("speedrun/speedrunResult");
         if (!s_retry)
@@ -749,6 +907,10 @@ static void sr_init(void)
         { "result4", result_none }, { "result5", result_none }, { "result6", result_none }, { "result7", result_none },
         { "exit", sr_exit },
         { "diffInit", diff_init }, { "diffDraw", diff_draw }, { "diffTeams", diff_teams },
+#ifdef SWOS_SDL_BUILD
+        { "dsInit", ds_init }, { "dsDraw", ds_draw }, { "dsPlay", ds_play }, { "dsExit", ds_exit },
+        { "retryTry", retry_try }, { "retryExit", retry_exit },
+#endif
         { "diff0", diff0 }, { "diff1", diff1 }, { "diff2", diff2 }, { "diff3", diff3 }, { "diff4", diff4 },
         { "diffNews", result_none }, { "diffExit", diff_exit },
     };
@@ -783,6 +945,9 @@ const ModDef ModDef_speedrun = {
     .matchEnded = sr_ended,
 #ifdef SWOS_SDL_BUILD
     .matchDrawn = sr_drawn,
+    .frameUnder = sr_present,
+    .frameKept = sr_kept,
+    .spriteDraw = sr_sprite,
 #endif
 };
 

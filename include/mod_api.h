@@ -744,6 +744,8 @@ typedef struct {
     uint8_t passing, shooting, heading, tackling, control, speed, finishing;   /* 0..7 each */
 } ModTeamPlayer;
 int32_t ModApi_TeamPlayer(uint16_t teamId, int32_t slot, ModTeamPlayer *out);
+/* One player (by line-up slot, 0..15) of a team given whole (a setup's teamData): 1 when there. */
+int32_t ModApi_TeamDataPlayer(const struct TeamFileEx *team, int32_t slot, ModTeamPlayer *out);
 int32_t ModApi_ChosenTeamPlayer(int32_t team, int32_t slot, ModTeamPlayer *out);
 /* A random national team's id (its own random numbers: the match's are not taken), or 0. */
 uint16_t ModApi_RandomTeam(void);

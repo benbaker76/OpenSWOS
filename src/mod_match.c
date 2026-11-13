@@ -385,6 +385,11 @@ static int32_t team_player(const TeamFileEx *t, int32_t slot, ModTeamPlayer *out
     return 1;
 }
 
+int32_t ModApi_TeamDataPlayer(const TeamFileEx *team, int32_t slot, ModTeamPlayer *out)
+{
+    return team_player(team, slot, out);
+}
+
 int32_t ModApi_TeamPlayer(uint16_t teamId, int32_t slot, ModTeamPlayer *out)
 {
 #ifdef SWOS_SDL_BUILD

@@ -1,0 +1,188 @@
+{
+ "name": "difficultySettingMenu",
+ "comment": "A free team choice's difficulty, by the teams' skill points: PLAY or EXIT -- SWOS 2020's difficultySetting.mnu; handlers speedrun.<name>.",
+ "source": {
+  "project": "swos-2020",
+  "file": "src/menus/difficultySetting.mnu",
+  "commit": "df38d20"
+ },
+ "menu_flags": {
+  "dos_redraw": true
+ },
+ "onInit": "speedrun.dsInit",
+ "onReturn": null,
+ "onDraw": "speedrun.dsDraw",
+ "defaultEntry": 6,
+ "exports": {},
+ "items": [
+  {
+   "kind": "entry",
+   "name": "header",
+   "coords": {
+    "x": 92,
+    "y": 0,
+    "w": 120,
+    "h": 16
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "DIFFICULTY SETTING"
+    },
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "panel",
+   "coords": {
+    "x": 52,
+    "y": 50,
+    "w": 200,
+    "h": 78
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 4
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "msg0",
+   "coords": {
+    "x": 52,
+    "y": 60,
+    "w": 200,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "msg1",
+   "coords": {
+    "x": 52,
+    "y": 80,
+    "w": 200,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "msg2",
+   "coords": {
+    "x": 52,
+    "y": 90,
+    "w": 200,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "msg3",
+   "coords": {
+    "x": 52,
+    "y": 100,
+    "w": 200,
+    "h": 14
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "play",
+   "coords": {
+    "x": 102,
+    "y": 163,
+    "w": 100,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "PLAY"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": 7
+    },
+    {
+     "op": "onselect_fire",
+     "func": "speedrun.dsPlay"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "exit",
+   "coords": {
+    "x": 102,
+    "y": 185,
+    "w": 100,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "EXIT"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 6,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "speedrun.dsExit"
+    }
+   ]
+  }
+ ]
+}

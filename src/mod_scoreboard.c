@@ -15,8 +15,7 @@
 #ifdef SWOS_SDL_BUILD
 #include "mod_api.h"
 #include "mod_draw8.h"
-#include "gfx.h"
-#include "platform_sdl.h"     /* Platform_PaletteRgb, Platform_NowMs */
+#include "mod_hudbox.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,36 +45,27 @@ static int32_t board_sprite(const struct Sprite *sprite, const struct SpriteGrap
     return 0;
 }
 
-/* The board is drawn at the present, over the finished picture (gfx.h, the picture's space):
- * SWOS 2020 drew it over its output, after the scroll. Written into the frame buffer it went
- * with the pitch -- the frame scrolls under the camera by the sub-pixel residual, and the
- * scroll blit keeps rows from the last frame -- so it flickered as the camera moved, and its
- * shading (each pixel's index + 128, SWOS 2020's VGA palette's darker half) found the Amiga
- * palette's upper half, near black (Playa, 2026-11-11). Now: the box a colour halved (black at
- * half alpha, as the result band of display2020), the kits and the text opaque over it. */
-enum { kBoxW = 73, kBoxH = 9, kScrH = 12 };
+/* The board is drawn at the present, over the finished picture (mod_hudbox.h: SWOS 2020 drew it
+ * over its output, after the scroll -- in the frame buffer it went with the pitch and flickered as
+ * the camera moved), the picture under it shaded as SWOS 2020's index + 128 shades it, the kits
+ * and the text over that (Playa, 2026-11-11/12). */
+enum { kBoxW = 73, kBoxH = 9 };
 
-extern volatile uintptr_t _frontbufferBasePtr;
-extern int _menu_draw_x_offset;
+static HudBox s_box;
 
-static uint8_t   *s_scr;                /* kits and text, 8bpp, the frame buffer's stride */
-static int32_t    s_scrW;
-static uint8_t    s_rgba[kBoxW * kBoxH * 4];
-static int32_t    s_boxX, s_boxY;
-static uint64_t   s_drawnMs;            /* the last match frame that drew it (the HUD's 100 ms rule) */
-static GfxTexture *s_tex;
-
-/* The board's pixels into s_scr, at the box's own (0, 0), `bg` everywhere else. */
-static void board_pixels(uint8_t bg)
+/* The board's contents at the box's own (0, 0). */
+static void board_contents(void *ctx)
 {
-    memset(s_scr, bg, (size_t)s_scrW * kScrH);
-    const uintptr_t saved = _frontbufferBasePtr;
-    const int savedX = _menu_draw_x_offset;
-    _frontbufferBasePtr = (uintptr_t)s_scr;     /* (ModApi_DrawText draws into the frame buffer) */
-    _menu_draw_x_offset = 0;
-    D8 d = { s_scr, s_scrW, kBoxW, kScrH };
-    /* showTeamIcons: the kits at ox + 23 and ox + 63 of its box (ox the box's left) */
-    D8_Kit(&d, 0, 23, 1, 1);
+    (void)ctx;
+    int32_t sw, sh;
+    uint8_t *fb;
+    int32_t stride;
+    fb = ModApi_Frame(&stride);         /* (the scratch buffer, while HudBox_Draw draws) */
+    ModApi_ScreenSize(&sw, &sh);
+    D8 d = { fb, stride, kBoxW, kBoxH };
+    /* showTeamIcons put the kits at 23 and 63 of the box; the first is drawn at 27, so the two sit
+     * alike about the score (centred at 49): at 23 it was 4 nearer the clock (Playa, 2026-11-12) */
+    D8_Kit(&d, 0, 27, 1, 1);
     D8_Kit(&d, 1, 63, 1, 1);
     /* the clock, right-aligned at the clock's ox + 20; the score centred at its ox + 47 (that ox
      * 2 in from the box's) */
@@ -86,27 +76,22 @@ static void board_pixels(uint8_t bg)
     ModApi_Score(goals);
     snprintf(buf, sizeof buf, "%d-%d", (int)goals[0], (int)goals[1]);
     ModApi_DrawText(2 + 47 - ModApi_TextWidth(buf, 1) / 2, 2, 2, buf, 1);
-    _frontbufferBasePtr = saved;
-    _menu_draw_x_offset = savedX;
 }
 
 static void board_drawn(void)
 {
     ModResultBanner banner;
     int32_t sw, sh;
-    if (!ModApi_InMatch() || ModApi_InReplay())
+    if (!ModApi_InMatch() || ModApi_InReplay()) {
+        HudBox_Off(&s_box);
         return;
-    const int32_t mode = corner();
-    if ((mode == BOTTOM_LEFT || mode == BOTTOM_RIGHT) && ModApi_ResultBanner(&banner))
-        return;
-    ModApi_ScreenSize(&sw, &sh);
-    if (!s_scr || s_scrW != sw) {
-        free(s_scr);
-        s_scrW = sw;
-        s_scr = (uint8_t *)malloc((size_t)sw * kScrH);
-        if (!s_scr)
-            return;
     }
+    const int32_t mode = corner();
+    if ((mode == BOTTOM_LEFT || mode == BOTTOM_RIGHT) && ModApi_ResultBanner(&banner)) {
+        HudBox_Off(&s_box);
+        return;
+    }
+    ModApi_ScreenSize(&sw, &sh);
     int32_t ox, oy;                     /* (the clock's and score's) */
     int32_t left, right;                /* the HUD's box: on an ultrawide the 16:9 part, as the
                                          * game's own clock and the player's name (Playa) */
@@ -121,51 +106,16 @@ static void board_drawn(void)
     case TOP_RIGHT:    ox = right - 80;  oy = 5;        break;
     default:           ox = left + 10;   oy = 5 + 1;    break;
     }
-    /* What the board drew is what is the same over two backgrounds; the rest is the box. */
-    static uint8_t a[kBoxW * kBoxH];
-    board_pixels(0x00);
-    for (int32_t y = 0; y < kBoxH; y++)
-        memcpy(a + y * kBoxW, s_scr + (size_t)y * s_scrW, kBoxW);
-    board_pixels(0xFF);
-    for (int32_t y = 0; y < kBoxH; y++)
-        for (int32_t x = 0; x < kBoxW; x++) {
-            const uint8_t c = s_scr[(size_t)y * s_scrW + x];
-            uint8_t *p = s_rgba + (y * kBoxW + x) * 4;
-            if (c == a[y * kBoxW + x]) {
-                Platform_PaletteRgb(c, &p[0], &p[1], &p[2]);
-                p[3] = 255;
-            } else {
-                p[0] = p[1] = p[2] = 0;
-                p[3] = 128;
-            }
-        }
-    s_boxX = ox - 2;
-    s_boxY = oy;
-    s_drawnMs = Platform_NowMs();
+    HudBox_Draw(&s_box, ox - 2, oy, kBoxW, kBoxH, HUDBOX_SHADE, 0, 0, 0, board_contents, NULL);
     s_testDrawn++;
 }
 
-static void board_kept(void)
-{
-    if (s_drawnMs)
-        s_drawnMs = Platform_NowMs();
-}
+static void board_kept(void) { HudBox_Kept(&s_box); }
 
 static void board_present(void)
 {
-    if (!s_drawnMs || Platform_NowMs() - s_drawnMs > 100 || !ModApi_InMatch() || ModApi_InReplay())
-        return;
-    if (!s_tex && !(s_tex = Gfx_CreateTexture(kBoxW, kBoxH, 0)))
-        return;
-    Gfx_UpdateTexture(s_tex, s_rgba, kBoxW * 4);
-    const GfxSpace space = Gfx_Space();
-    const GfxBlend blend = Gfx_Blend();
-    const SDL_FRect dst = { (float)s_boxX, (float)s_boxY, (float)kBoxW, (float)kBoxH };
-    Gfx_SetSpace(GFX_SPACE_PICTURE);
-    Gfx_SetBlend(GFX_BLEND_ALPHA);
-    Gfx_DrawTexture(s_tex, NULL, &dst);
-    Gfx_SetBlend(blend);
-    Gfx_SetSpace(space);
+    if (ModApi_InMatch() && !ModApi_InReplay())
+        HudBox_Present(&s_box);
 }
 
 /* SWOS_SCOREBOARD_TEST=1: in the first match (SWOS_MOD_MATCH_TEST's is one), PASS when the board

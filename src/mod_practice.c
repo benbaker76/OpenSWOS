@@ -253,6 +253,7 @@ static int32_t shootout_turn(const ModShootout *so)
 #ifdef SWOS_SDL_BUILD
 #include "display.h"            /* _screen_width, FRONTBUFFER_ROW_STRIDE_BYTES */
 #include "gfx.h"
+#include "mod_hudbox.h"         /* HudBox_ShadeChannel */
 #include "platform_sdl.h"       /* Platform_FrameShown, Platform_PaletteRgb, Platform_NowMs */
 
 /* ---- its pictures (SWOS 2020's PixelmapAndStrings.h, verbatim; the palette indices as there) ---- */
@@ -510,7 +511,8 @@ static void draw_keeper(const ModShootout *so)
     }
 }
 
-/* The band's shading at the present (gfx.h), SWOS 2020's: a colour halved, black at half alpha.
+/* The band's shading at the present (gfx.h), SWOS 2020's: each colour less 61 of 255 a channel
+ * (its VGA palette's upper half, the lower less 15 of 63: mod_hudbox.h).
  * In the frame buffer it was each pixel's index + 128 -- SWOS 2020's VGA palette's darker half,
  * here the Amiga palette's upper half: near black on the grass, nothing on what is up there
  * already (Playa, 2026-11-11). The band's rows are kept before the board and the kits are
@@ -591,8 +593,14 @@ static void band_present(void)
         const uint8_t *was = b->snap + (size_t)(b->y0 + y) * sw + b->x0;
         uint8_t *p = s_bandRgba + (size_t)y * w * 4;
         for (int32_t x = 0; x < w; x++, p += 4) {
-            p[0] = p[1] = p[2] = 0;
-            p[3] = now[x] == was[x] ? 128 : 0;
+            p[0] = p[1] = p[2] = p[3] = 0;
+            if (now[x] == was[x]) {             /* (the board drew nothing here: shaded) */
+                Platform_PaletteRgb(now[x], &p[0], &p[1], &p[2]);
+                p[0] = HudBox_ShadeChannel(p[0]);
+                p[1] = HudBox_ShadeChannel(p[1]);
+                p[2] = HudBox_ShadeChannel(p[2]);
+                p[3] = 255;
+            }
         }
     }
     if (!s_bandTex || s_bandTexW != w || s_bandTexH != h) {
