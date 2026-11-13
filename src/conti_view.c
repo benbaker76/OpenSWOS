@@ -20,8 +20,8 @@
  * goals kept: CT_GREC) -- a round once its month has come in the career's calendar (its draw), its
  * results once that month is over, never past the career club's next game. The replay changes
  * nothing: CT_IN, CT_OUT, CT_SEG and the main rounds' lists are put back as they were. The career
- * club's own games (played in the game's contests) show who went through, not their scores. The
- * world's first season has no edition in ours (no season-1 block: §6c), so nothing is in progress.
+ * club's own games (played in the game's contests) show who went through, not their scores.
+ * Without an edition (CT_ED, a career before its cups were built) nothing is in progress.
  */
 #include "conti_view.h"
 
@@ -48,7 +48,7 @@ extern void SetExitMenuFlag(void);
 static struct ct_out s_out;
 static struct ct_seg s_seg;
 static u16 s_ids[CT_NC];
-static int32_t s_live;                  /* an edition in progress (else none: the world's first season) */
+static int32_t s_live;                  /* an edition in progress (CT_ED) */
 static u8 s_week;
 enum { GREC_ROOM = 12288 };
 static union { struct ct_grec g; uint8_t b[sizeof(struct ct_grec) + GREC_ROOM]; } s_grec;
@@ -271,7 +271,7 @@ static void contiConfsMenu_OnInit(void)
         nav(CF_conf0 + i, -1, -1, i ? CF_conf0 + i - 1 : -1, i + 1 < s_nconfs ? CF_conf0 + i + 1 : CF_exit);
     }
     nav(CF_exit, -1, -1, s_nconfs ? CF_conf0 + s_nconfs - 1 : -1, -1);
-    entry_at(CF_note)->fg = (uintptr_t)(s_live ? "" : "NO CUP IN PROGRESS: THEY START AFTER THE FIRST SEASON");
+    entry_at(CF_note)->fg = (uintptr_t)(s_live ? "" : "NO CUP IN PROGRESS");
 }
 static void contiConfsMenu_OnDraw(void) {}
 
@@ -647,7 +647,7 @@ static void summary_lines(void)
         }
     }
     if (!any || !s_live)
-        text_line(L_TEXT, s_live ? "NO CUP IN PROGRESS" : "NO CUP IN PROGRESS: THEY START AFTER THE FIRST SEASON");
+        text_line(L_TEXT, "NO CUP IN PROGRESS");
 }
 
 static void refresh_view(void)
