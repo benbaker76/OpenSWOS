@@ -2901,6 +2901,8 @@ void SetTeamsCoordinates(void)
     }
 }
 
+static void style_marker_rows(void);   /* (below, with the world list's markers) */
+
 __attribute__((used, externally_visible))
 void SelectTeamsReinit(void)
 {
@@ -2986,6 +2988,7 @@ void SelectTeamsReinit(void)
 
     SetTeamsCoordinates();
     SetLeagueNames();
+    style_marker_rows();
     SetCountryNames();
 
     /* Set cursor to previous selection if valid */
@@ -3160,11 +3163,37 @@ extern const char *ModComps_RowLabel(void);     /* (src/mod_comps.c) */
 extern int32_t     ModComps_Choose(void);
 static uint8_t     k_modCompsMarker;
 
+/* PRESET COMPETITION in a world that is not 96/97 (the SWOS 96/97 Mod 4.1's "choose your world"):
+ * the preset competitions are 96/97's, their clubs 96/97's team numbers, which the world's files
+ * fill with its own clubs -- so the world list says there are none, in two rows of text where its
+ * rows would be (the Mod's words, swe.py AV_LINES), and keeps the mods' row (HISTORIC TOURNAMENTS:
+ * the Mod's purple box) below them. The rows are no competition: their slots in leaguesPtrTable
+ * hold this marker. */
+static uint8_t     k_noticeMarker;
+static const char *const k_noPresets[2] = { "NO PRESET COMPETITIONS FOR", "THIS WORLD AT THE MOMENT" };
+#define MODS_ROW_COLOR 11   /* (BLUE_TO_PURPLE: the Mod's HISTORIC box, historic.py MENU_COLOR) */
+
+/* SelectTeamsReinit, after SetLeagueNames: the notice rows text on the menu's background, the
+ * mods' row purple. */
+static void style_marker_rows(void)
+{
+    for (uint16_t i = 0; i < _numLeaguesInCountry && i < 10; i++) {
+        MenuEntry *e = &_menuEntries[11 + i];
+        if (_leaguesPtrTable[i] == (void *)&k_noticeMarker) {
+            e->isDisabled = 1;
+            e->bgColor = 0;
+        } else if (_leaguesPtrTable[i] == (void *)&k_modCompsMarker) {
+            e->bgColor = (uint16_t)((e->bgColor & 0xFFF0) | MODS_ROW_COLOR);
+        }
+    }
+}
+
 __attribute__((used, externally_visible))
 void SelectTeamsFinalMenu(uint16_t mode)
 {
     uint16_t d6;            /* country/team-file number, preserved across calls */
     uint16_t d7;            /* current country index byte */
+    int32_t  noPresets = 0; /* PRESET COMPETITION in a world: none of 96/97's (k_noticeMarker) */
     uint16_t d1;            /* counter for enumeration */
     /* The competition list is a `Competition *[N]` terminated by
      * (Competition *)-1 / -2 sentinels — entries are native pointers
@@ -3282,12 +3311,26 @@ loc_E012:
     /* Competitions from mods (src/mod_comps.c, MODPOINT_COMPETITIONS): one row above WORLD CUP
      * in PRESET COMPETITION's world list. It is no competition: its slot in leaguesPtrTable
      * holds a marker, which the selection below catches before anything reads it as one. */
+    noPresets = 0;
+#if SWOS_WORLDS
+    if ((uint8_t)d7 == 254 && _choosingPreset != 0 && World_Current() != WORLD_9697) {
+        noPresets = 1;
+        for (int32_t k = 0; k < 2; k++) {
+            *teamNamesPtr++ = (void *)k_noPresets[k];
+            *leaguesPtrOut++ = (void *)&k_noticeMarker;
+            *leagueNumsOut++ = 0xFFFF;
+            d1++;
+        }
+    }
+#endif
     if ((uint8_t)d7 == 254 && _choosingPreset != 0 && ModComps_RowLabel() != NULL) {
         *teamNamesPtr++ = (void *)ModComps_RowLabel();
         *leaguesPtrOut++ = (void *)&k_modCompsMarker;
         *leagueNumsOut++ = 0xFFFF;
         d1++;
     }
+    if (noPresets)
+        goto loc_E2D0;      /* (none of 96/97's: no WORLD CUP, no continents) */
 
     /* loc_13E086: iterate through competition entries */
 loc_E086:
@@ -3503,6 +3546,10 @@ loc_E2D0:
          * stays pointed at countries[] so the `a5[index]` country lookups in the
          * selection handling below are correct too. See STRUCT_CONSOLIDATE.md §4d. */
         a5 = (void **)((QualifyingGroup *)compListAddr)->countries;
+        if (noPresets) {
+            static uint8_t s_none[1] = { 255 };
+            a5 = (void **)s_none;
+        }
         if (d7 != 254 && World_ContinentCountries((uint8_t)d7))    /* (a world's, its new countries in) */
             a5 = (void **)World_ContinentCountries((uint8_t)d7);
         /* A world with continents it has no clubs in (Europe 1984-85 is Europe alone: its
@@ -3564,6 +3611,9 @@ loc_E2D0:
 
     /* The mods' competitions row: their screens; leave as if backed out when one is to start
      * (PresetCompetitionMenu starts it), else back to the world list. */
+    if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
+        _leaguesPtrTable[_selectedLeagueIndex] == (void *)&k_noticeMarker)
+        goto loc_E012;      /* (a notice row: nothing to choose) */
     if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
         _leaguesPtrTable[_selectedLeagueIndex] == (void *)&k_modCompsMarker) {
         if (ModComps_Choose())
