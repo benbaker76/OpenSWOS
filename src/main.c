@@ -620,6 +620,8 @@ int main(int argc, char **argv)
     opts.netplay_remember = 1;    /* REMEMBER LOGIN INFO: on, as the login screen shows it */
     opts.assets_reminder_off[0] = '\0';  /* remind about older game data (src/assets_check.c) */
     opts.world[0] = '\0';                /* [general] world: 96/97 (include/world.h) */
+    opts.original_main_menu = 0;         /* [general] original_main_menu: the Mod 4.1's main menu */
+    int worldArg = 0;                    /* (--world / SWOS_WORLD named the world: it is played) */
     snprintf(opts.file_sort, sizeof opts.file_sort, "%s", "name");   /* [general] file_sort (src/file_io.c) */
     opts.quick_access = 0;               /* [general] quick_access (src/quick_access.c) */
     opts.opt_game_length = opts.opt_pitch_type = opts.opt_auto_replays = OPTION_UNSET;   /* [options]: */
@@ -1118,6 +1120,7 @@ int main(int argc, char **argv)
                 return 1;
             }
             snprintf(opts.world, sizeof opts.world, "%s", v);
+            worldArg = 1;
         } else if (strncmp(a, "--career-golden", 15) == 0 || strncmp(a, "--golden-", 9) == 0) {
             /* The golden career test (src/career_autopilot.c, scripts/career_golden_test.sh). */
             extern int32_t CareerAutopilot_ParseArg(const char *a);
@@ -1594,9 +1597,21 @@ int main(int argc, char **argv)
     }
     /* The football world (include/world.h): --world, else SWOS_WORLD, else SWOS.ini's, else
      * 96/97 -- World 2026-27's data is the player's to add (OpenSWOS Setup imports it). */
-    if (!opts.world[0] && getenv("SWOS_WORLD") && getenv("SWOS_WORLD")[0])
+    const char *playWorld = opts.world;
+    if (!worldArg && getenv("SWOS_WORLD") && getenv("SWOS_WORLD")[0]) {
         snprintf(opts.world, sizeof opts.world, "%s", getenv("SWOS_WORLD"));
-    if (opts.world[0] && World_Set(opts.world) != 0)
+        worldArg = 1;
+    }
+    /* ORIGINAL MAIN MENU (the Mod 4.1's, Marco's idea): 96/97's menu, 96/97 the world -- SWOS.ini's
+     * world is kept for when it is off (--world and SWOS_WORLD still choose). */
+    if (opts.original_main_menu && !worldArg) {
+        if (opts.world[0] && strcmp(opts.world, "9697") != 0)
+            fprintf(stderr, "[world] original_main_menu: playing 9697 (SWOS.ini's world %s kept)\n", opts.world);
+        playWorld = "9697";
+    }
+    { extern int32_t g_originalMainMenu;
+      g_originalMainMenu = opts.original_main_menu; }
+    if (playWorld[0] && World_Set(playWorld) != 0)
         fprintf(stderr, "[world] unknown world '%s' in SWOS.ini: playing %s\n", opts.world, World_Tag());
     if (World_Current() != WORLD_9697) {
         /* Its data (OpenSWOS Setup installs its package: data_json/worlds/<tag>/WORLD.ini): none,
@@ -1627,7 +1642,8 @@ int main(int argc, char **argv)
       extern int32_t Language_OptionFor(const char *code);
       _languageOption = (uint16_t)Language_OptionFor(opts.language); }
     { extern uint16_t _worldOption;
-      _worldOption = (uint16_t)(World_FromTag(opts.world[0] ? opts.world : "9697") == (int32_t)WORLD_2627); }
+      const int32_t w = World_FromTag(opts.world[0] ? opts.world : "9697");
+      _worldOption = (uint16_t)(w > 0 ? w : 0); }
 
     if (_gDosGraphics)
         fprintf(stderr, "[dos] DOS graphics mode ON (bin/%s)\n", _gDosGraphicsDir);

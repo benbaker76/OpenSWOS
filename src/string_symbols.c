@@ -354,10 +354,10 @@ extern char _aStatistics[];                   extern char _aViewSquads[];       
 extern char _aBank[];                         extern char _aH[];                            extern char _aA_2[];
 extern char _aSemiFinal[];                    extern char _aFinal_4[];                      extern char _aMenuMusic[];
 extern char _aGameplay[];                     extern char _aAmigaStyle[];                   extern char _aDosStyle[];
-extern char _aAmiga60Style[];                 extern char _aMoonStyle[];
-extern char _aXboxStyle[];                    extern char _aControls[];                     extern char _aRedefineKeys[];
-extern char _aPitches[];                      extern char _aWorldOption[];                  extern char _aWorld9697[];
-extern char _aWorld2627[];                    extern char _a2020Style[];                    extern char _aModsOption[];
+extern char _aXboxStyle[];                    extern char _aAmiga60Style[];                 extern char _aMoonStyle[];
+extern char _aControls[];                     extern char _aRedefineKeys[];                 extern char _aPitches[];
+extern char _aWorldOption[];                  extern char _aWorld9697[];                    extern char _aWorld2627[];
+extern char _aWorld8485[];                    extern char _a2020Style[];                    extern char _aModsOption[];
 extern char _aModes[];                        extern char _aTeamPacks[];                    extern char _aModRow[];
 extern char _aNextPage[];                     extern char _aModsNone[];                     extern char _aLanguageOption[];
 extern char _aSetupOption[];                  extern char _aLaunchSetup[];                  extern char _aLangEnglish[];
@@ -1443,6 +1443,7 @@ const StringSymbol _stringSymbols[] = {
     { "_aWorldOption", (void *)_aWorldOption },
     { "_aWorld9697", (void *)_aWorld9697 },
     { "_aWorld2627", (void *)_aWorld2627 },
+    { "_aWorld8485", (void *)_aWorld8485 },
     { "_a2020Style", (void *)_a2020Style },
     { "_aModsOption", (void *)_aModsOption },
     { "_aModes", (void *)_aModes },
