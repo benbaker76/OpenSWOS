@@ -74,5 +74,6 @@ int32_t BTeam_SelfTest(const char *arg);
 /* SWOS_TEST_BTEAM="kind:index,..." -- the golden careers' call-ups, made at a hub of the career
  * club's first season (src/career_autopilot.c). */
 void    BTeam_TestRequests(void);
+void    BTeam_TestShowCalled(void);     /* SWOS_TEST_BTEAM_SHOWN: a call-up onto a drawn row */
 
 #endif

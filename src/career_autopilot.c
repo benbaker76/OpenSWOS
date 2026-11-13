@@ -534,7 +534,12 @@ static int32_t bteam_shots(const Menu *menu)
         switch (stage) {
         case 1: SHOT("the squad"); stage = 2; return 1;
         case 2: stage = 3; BTeamSquadButton(); stage = 9; _shortFire = 0; return 1;
-        case 9: SHOT("the squad after the call-up"); stage = 10; return 1;
+        case 9: {
+            extern void BTeam_TestShowCalled(void), DrawMenu(void);
+            BTeam_TestShowCalled();     /* (SWOS_TEST_BTEAM_SHOWN: him on a drawn row) */
+            DrawMenu();
+            SHOT("the squad after the call-up"); stage = 10; return 1;
+        }
         default: SetExitMenuFlag(); return 1;
         }
     }

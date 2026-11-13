@@ -523,6 +523,27 @@ int32_t BTeam_SelfTest(const char *arg)
     return B.nTeams > 0 ? 0 : 1;
 }
 
+/* Test (SWOS_TEST_BTEAM_SHOWN=1, career_autopilot.c's B-team screenshots): the first called-up
+ * player swapped into place 16 of the squad order (row 16, whose number is drawn), to see it yellow. */
+void BTeam_TestShowCalled(void)
+{
+    extern uint8_t  _currentMatchPlayers[];
+    extern uint16_t _careerNumPlayers;
+    if (!getenv("SWOS_TEST_BTEAM_SHOWN"))
+        return;
+    for (uint16_t k = 16; k < _careerNumPlayers; k++) {
+        const PlayerFile *p = (const PlayerFile *)((const uint8_t *)&_careerTeam + PF_OFF +
+                                                  _currentMatchPlayers[k] * sizeof(PlayerFile));
+        if (BTeam_CalledKind(p)) {
+            const uint8_t t = _currentMatchPlayers[15];
+            _currentMatchPlayers[15] = _currentMatchPlayers[k];
+            _currentMatchPlayers[k] = t;
+            fprintf(stderr, "[bteam] test: %.22s to place 16 (his number shown)\n", (const char *)p->playerName);
+            return;
+        }
+    }
+}
+
 void BTeam_TestRequests(void)
 {
     static int32_t done;
@@ -560,5 +581,6 @@ __attribute__((used, externally_visible))
 void BTeamSquadButton(void) {}
 int32_t BTeam_SelfTest(const char *arg) { (void)arg; return 1; }
 void BTeam_TestRequests(void) {}
+void BTeam_TestShowCalled(void) {}
 
 #endif
