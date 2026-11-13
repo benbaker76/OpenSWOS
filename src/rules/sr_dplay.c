@@ -153,15 +153,32 @@ static void serie_b(sr_state *st)
     }
 }
 
+/* The Mod 4.1 (its dplay.c 353984f, FIGC C.U. 209/A, NOIF art. 49 II.1 d-e): place k of group g
+ * relegated directly or in a play-out place. The play-out places of a group of n: n-5 v n-2 and
+ * n-4 v n-3, each not played when 8+ points apart (the better placed safe, the other down). */
+static int cup_out(const sr_state *st, int g, int k)
+{
+    const int n = st->dp.n[g];
+    if (n < 6 || k < n - 5)
+        return 0;
+    if (k == n - 5)
+        return st->dp.t[g][n - 5].pts - st->dp.t[g][n - 2].pts < 8;
+    if (k == n - 4)
+        return st->dp.t[g][n - 4].pts - st->dp.t[g][n - 3].pts < 8;
+    return 1;
+}
+
 /* the Coppa Italia Serie C winner's play-off place: the winner itself when it finished 11th
- * or lower, the 11th of its group when it is promoted or already in (2nd-10th); unknown:
- * the best 11th of the groups */
+ * or lower, the 11th of its group when it is promoted or already in (2nd-10th), or relegated
+ * or in a play-out (cup_out: it went up and down at once before); unknown: the best 11th of
+ * the groups */
 static int cup_place(const sr_state *st, int ng)
 {
     int e[4];
     for (int g = 1; g <= ng && st->dp.cupw; g++)
         for (int k = 0; k < st->dp.n[g]; k++)
-            if (st->dp.t[g][k].team == st->dp.cupw) return g * NT + (k >= 10 ? k : 10);
+            if (st->dp.t[g][k].team == st->dp.cupw)
+                return g * NT + (k >= 10 && !cup_out(st, g, k) ? k : 10);
     for (int g = 0; g < ng; g++) e[g] = (g + 1) * NT + 10;
     return best_of(st, e, ng);
 }

@@ -353,13 +353,17 @@ C.U. 209/A, 27 April 2026; the Mod's `dplay.c` `cup_out`: places n-5..n-2 of a g
 play-out not held when its two clubs are 8+ points apart). Built with 4.1's `dplay.c` minus
 `cup_out`, the check passes whole. That rule is in `sr_dplay.c` `cup_place` (src/rules/), which
 changes an existing result. It was written up as a change for Davide's library; since the rules
-moved into OpenSWOS (2026-11-11) it is **ours to make** -- an open item of OpenSWOS's work list
-below. Until it is made, a World 2026-27 Serie C career can see a cup winner placed 11th-17th go up
-and down at once, the 4.0.5 bug 4.1 fixed.
+moved into OpenSWOS (2026-11-11) it is ours, and **it is made (2026-11-12)**: `cup_out` in
+`sr_dplay.c` and in `world_playoff.c`'s copy (the career club's Serie C play-off), below.
 
-**OpenSWOS work list: 4.1's `cup_out`** (`src/rules/sr_dplay.c`; first written as a pull request
-for Davide, when v1 was frozen in his repo; the rules are ours now, so the change is ours to make,
-with the comparison below as its proof):
+**4.1's `cup_out` -- DONE 2026-11-12** (`src/rules/sr_dplay.c` `cup_out` / `cup_place`, and
+`src/world_playoff.c` `cup_out` / `c_playoff`, the same commit). `scripts/league_playoffs_check.sh`
+against v4.1.2 PASSES whole: 20000 seasons of the Italian play-offs, 580000 moves, every one the
+Mod's, and every other section. Golden careers: two re-recorded -- ITA2627-PALERMO-PLAYOUT (from
+season 3) and FRA2627-LENS (from season 1: the world's league-move table,
+`diy_league_season_state_table`, two Italian clubs' moves swapped -- every career's save carries
+the whole world's season end; later seasons follow from it); the rest unchanged. The work list as
+it was written:
 
 - **What 4.1 changed** (his `tools/dplay.c`, v4.1 f2c9e45, lines 199-216): `cup_place` takes the
   cup winner's own place only when it is 11th or lower **and not `cup_out(g, k)`**, a new helper:
@@ -432,8 +436,8 @@ needs nothing new from 4.1.1** -- what moved is the Mod's game code:
   with no links), `swostest.py` (his harness), `kits_shipped`.
 
 `scripts/league_playoffs_check.sh` against v4.1.1: as against 4.1 -- every check PASSES but the
-Italian play-offs' Coppa Italia Serie C winner (§13, `cup_out`: on OpenSWOS's work list);
-with `cup_out` taken out of the Mod's `dplay.c` the check passes whole. Its conti step now also
+Italian play-offs' Coppa Italia Serie C winner (§13, `cup_out`: ported 2026-11-12, since when the
+check passes whole against 4.1, 4.1.1 and 4.1.2). Its conti step now also
 packs the spec with a ranking (`words`) both ways.
 
 The golden careers: the 7 96/97 ones unchanged; the 44 World 2026-27 ones recorded again -- every
