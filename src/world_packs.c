@@ -13,6 +13,7 @@
 #include "team_packs.h"
 #include "world.h"
 
+#include <SDL.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -475,60 +476,120 @@ void WorldPacks_Fix(int32_t number, TeamFileEx *records, int32_t count)
     }
 }
 
-/* ---- a club by its checksum ---- */
+/* ---- a club by its checksum ----
+ * An index of every other world's clubs (checksum -> world, file, ordinal), made once on a thread of
+ * its own from the start-up (WorldPacks_IndexStart): reading the worlds' team files (56 MB of JSON)
+ * when a team arrives would hold the lobby's link up for seconds. */
+
+typedef struct {
+    char    sum[TEAM_CHECKSUM_TEXT];
+    uint8_t world, country, ordinal;
+} WpIndexEntry;
+
+static WpIndexEntry *s_index;
+static int32_t       s_indexCount;
+static SDL_Thread   *s_indexThread;
+static int32_t       s_indexDone;
+
+static int index_build(void *unused)
+{
+    (void)unused;
+    int32_t cap = 8192, n = 0;
+    WpIndexEntry *ix = (WpIndexEntry *)malloc(sizeof *ix * (size_t)cap);
+    for (int32_t w = 0; ix && w < WORLD_COUNT; w++) {
+        if (!s_worlds[w].read)
+            continue;
+        for (int32_t c = 0; c < s_worlds[w].count && c < 256; c++) {
+            char rel[128];
+            int len = 0;
+            file_path(w, s_worlds[w].c[c].file, rel, sizeof rel);
+            char *j = slurp(rel, &len);
+            const char *arr;
+            int alen, i = 0;
+            if (j && mjson_find(j, len, "$.teams", &arr, &alen) == MJSON_TOK_ARRAY) {
+                int koff, klen, voff, vlen, vt, off = 0;
+                while ((off = mjson_next(arr, alen, off, &koff, &klen, &voff, &vlen, &vt)) != 0) {
+                    if (vt != MJSON_TOK_OBJECT)
+                        continue;
+                    if (n == cap) {
+                        WpIndexEntry *g = (WpIndexEntry *)realloc(ix, sizeof *ix * (size_t)(cap *= 2));
+                        if (!g)
+                            break;
+                        ix = g;
+                    }
+                    ix[n].sum[0] = '\0';
+                    mjson_get_string(arr + voff, vlen, "$.checksum", ix[n].sum, (int)sizeof ix[n].sum);
+                    ix[n].world = (uint8_t)w;
+                    ix[n].country = (uint8_t)c;
+                    ix[n].ordinal = (uint8_t)i++;
+                    if (ix[n].sum[0])
+                        n++;
+                }
+            }
+            free(j);
+        }
+    }
+    s_index = ix;
+    s_indexCount = n;
+    return 0;
+}
+
+void WorldPacks_IndexStart(void)
+{
+    if (s_indexThread || s_indexDone || WorldPacks_WorldCount() == 0)
+        return;
+    /* (the worlds' country lists read here, on the main thread: the index only reads them) */
+    for (int32_t i = 0; ; i++) {
+        int32_t w;
+        if (WorldPacks_World(i, &w, NULL) != 0)
+            break;
+        read_world(w);
+    }
+    s_indexThread = SDL_CreateThread(index_build, "world-packs index", NULL);
+    if (!s_indexThread) {           /* (no threads: made at the first ask) */
+        index_build(NULL);
+        s_indexDone = 1;
+    }
+}
+
+static void index_ready(void)
+{
+    if (!s_indexDone && !s_indexThread)
+        WorldPacks_IndexStart();
+    if (s_indexThread) {
+        SDL_WaitThread(s_indexThread, NULL);
+        s_indexThread = NULL;
+        s_indexDone = 1;
+        fprintf(stderr, "[world-packs] the other worlds' clubs by checksum: %d\n", (int)s_indexCount);
+    }
+}
 
 int32_t WorldPacks_FindTeam(const char *checksum, int32_t *number, int32_t *ordinal)
 {
-    static char missed[TEAM_CHECKSUM_TEXT];
-    if (!checksum || !checksum[0] || strcmp(checksum, missed) == 0)
+    if (!checksum || !checksum[0])
         return 0;
-    /* the packs given already first, then every other world's files */
+    index_ready();
+    /* identical clubs (a file's SPARE ones; a club in two files, VADUZ in Switzerland's and
+     * Liechtenstein's) are each other's: one in a pack given already first */
     for (int32_t pass = 0; pass < 2; pass++)
-        for (int32_t wi = 0; ; wi++) {
-            int32_t world;
-            if (WorldPacks_World(wi, &world, NULL) != 0)
-                break;
-            for (int32_t c = 0; c < WorldPacks_CountryCount(world); c++) {
-                const char *file;
-                WorldPacks_Country(world, c, NULL, &file);
-                int32_t given = 0;
-                for (int32_t k = 0; k < kSlots; k++)
-                    if (s_pack[k].world == world && strcmp(s_pack[k].file, file) == 0)
-                        given = TEAMPACK_FIRST + k;
-                if ((pass == 0) != (given != 0))
-                    continue;
-                char rel[128];
-                int len = 0;
-                file_path(world, file, rel, sizeof rel);
-                char *j = slurp(rel, &len);
-                const char *arr;
-                int alen, i = 0;
-                if (!j || !strstr(j, checksum) ||
-                    mjson_find(j, len, "$.teams", &arr, &alen) != MJSON_TOK_ARRAY) {
-                    free(j);
-                    continue;
-                }
-                int koff, klen, voff, vlen, vt, off = 0;
-                while ((off = mjson_next(arr, alen, off, &koff, &klen, &voff, &vlen, &vt)) != 0) {
-                    char sum[TEAM_CHECKSUM_TEXT] = "";
-                    if (vt != MJSON_TOK_OBJECT)
-                        continue;
-                    mjson_get_string(arr + voff, vlen, "$.checksum", sum, (int)sizeof sum);
-                    if (strcmp(sum, checksum) == 0) {
-                        free(j);
-                        const int32_t num = given ? given : WorldPacks_Use(world, file);
-                        if (!num)
-                            return 0;
-                        *number = num;
-                        *ordinal = i;
-                        return 1;
-                    }
-                    i++;
-                }
-                free(j);
-            }
-        }
-    snprintf(missed, sizeof missed, "%s", checksum);
+    for (int32_t i = 0; i < s_indexCount; i++) {
+        const WpIndexEntry *e = &s_index[i];
+        if (strcmp(e->sum, checksum) != 0)
+            continue;
+        const char *file = s_worlds[e->world].c[e->country].file;
+        int32_t given = 0;
+        for (int32_t k = 0; k < kSlots && !given; k++)
+            if (s_pack[k].world == e->world && strcmp(s_pack[k].file, file) == 0)
+                given = 1;
+        if (pass == 0 && !given)
+            continue;
+        const int32_t num = WorldPacks_Use(e->world, file);
+        if (!num)
+            return 0;
+        *number = num;
+        *ordinal = e->ordinal;
+        return 1;
+    }
     return 0;
 }
 
@@ -692,10 +753,11 @@ int32_t WorldPacks_SelfTest(void)
                 const int i = k ? n - 1 : 0;
                 const TeamDbEntry *e = TeamDb_Team(num, i);
                 int32_t fn = 0, fo = -1;
+                const TeamDbEntry *g = 0;
                 if (!e || strncmp((const char *)e->team.team.teamName, (const char *)t[i].team.teamName, 16) != 0 ||
-                    !WorldPacks_FindTeam(e->ids.checksum, &fn, &fo) || fn != num ||
-                    (fo != i && strcmp(TeamDb_Team(fn, fo)->ids.checksum, e->ids.checksum) != 0)) {
-                    /* (identical clubs -- a file's SPARE ones -- are each other's) */
+                    !WorldPacks_FindTeam(e->ids.checksum, &fn, &fo) || !(g = TeamDb_Team(fn, fo)) ||
+                    strcmp(g->ids.checksum, e->ids.checksum) != 0) {
+                    /* (identical clubs -- SPARE ones, a club in two files -- are each other's) */
                     printf("  %-20s club %d (%.16s): not found again (%d/%d)\n", name, i,
                            (const char *)t[i].team.teamName, (int)fn, (int)fo);
                     bad = 1;

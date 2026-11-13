@@ -53,6 +53,9 @@ const char *WorldPacks_Path(int32_t number);
 struct TeamFileEx;
 void        WorldPacks_Fix(int32_t number, struct TeamFileEx *records, int32_t count);
 
+/* The index FindTeam looks in, made on a thread of its own from the start-up (src/main.c). */
+void        WorldPacks_IndexStart(void);
+
 /* A club of another installed world by its checksum (a team the other game sent, numbered by its
  * session): its pack number here (given now if need be) and ordinal. 1 found, 0 not. */
 int32_t     WorldPacks_FindTeam(const char *checksum, int32_t *number, int32_t *ordinal);
