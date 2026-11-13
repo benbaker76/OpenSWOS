@@ -193,6 +193,16 @@ static const TeamDbEntry *team_in(int32_t of9697, int32_t country, int32_t ordin
     return NULL;
 }
 
+void TeamDb_ForgetCountry(int32_t country)
+{
+    if (country < 0 || country >= kCountries)
+        return;
+    for (int32_t db = 0; db < 2; db++) {
+        free(s_country[db][country].entries);
+        memset(&s_country[db][country], 0, sizeof s_country[db][country]);
+    }
+}
+
 const TeamDbEntry *TeamDb_Entry(int32_t country, int32_t index)     { return entry_in(0, country, index); }
 const TeamDbEntry *TeamDb_Team(int32_t country, int32_t ordinal)    { return team_in(0, country, ordinal); }
 const TeamDbEntry *TeamDb_Entry9697(int32_t country, int32_t index) { return entry_in(1, country, index); }

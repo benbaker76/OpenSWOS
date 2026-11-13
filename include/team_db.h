@@ -52,6 +52,10 @@ void TeamDb_Checksum(const TeamFileEx *team, char out[TEAM_CHECKSUM_TEXT]);
 
 /* Every team of the database: its stated ids are the derived ones, its stated checksum
  * the computed one, and no id is used twice. Prints one line; 1 = all of that holds. */
+/* A country number's file has changed (a session pack given to another file, include/world_packs.h):
+ * its teams are read again at the next ask. */
+void TeamDb_ForgetCountry(int32_t country);
+
 int32_t TeamDb_SelfTest(void);
 
 #endif /* TEAM_DB_H */

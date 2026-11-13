@@ -3062,7 +3062,18 @@ void ChooseTeamsInit(void)
     {
 #ifdef SWOS_SDL_BUILD
         extern int32_t TeamPacks_Count(void);
-        const int32_t packs = TeamPacks_Count() > 0;
+#if SWOS_WORLDS
+        /* (and the other installed worlds' clubs: include/world_packs.h -- the row is OTHER
+         * WORLDS when no mod has a pack) */
+        extern int32_t WorldPacks_WorldCount(void);
+        const int32_t worlds = WorldPacks_WorldCount() > 0;
+#else
+        const int32_t worlds = 0;
+#endif
+        const int32_t packs = TeamPacks_Count() > 0 || worlds;
+        extern char _aTeamPacks[];
+        if (packs)
+            _menuEntries[5].fg = (uintptr_t)(TeamPacks_Count() > 0 ? _aTeamPacks : "OTHER WORLDS");
 #else
         const int32_t packs = 0;
 #endif
