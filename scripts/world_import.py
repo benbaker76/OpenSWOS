@@ -61,7 +61,7 @@ import world_split                     # noqa: E402  (emit_league)
 import swos_team_file as tf                  # noqa: E402  (the binary TEAM.nnn)
 TAG = "2627"                # the world imported (--tag): its folder, its ids' namespace, its baked file
 WORLD = os.path.join(REPO, "bin", "data_json", "worlds", TAG)
-MOD = os.environ.get("WORLD_IMPORT_MOD") or os.path.join(WORLD, "mod")   # (league_playoffs_check.sh sets it)
+MOD = os.path.join(WORLD, "mod")
 DATA_C = os.path.join(REPO, "src", "world_data.c")
 BASE = os.path.join(REPO, "bin", "data_json")
 
