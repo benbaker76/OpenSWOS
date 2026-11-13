@@ -2454,7 +2454,7 @@ def conti_spec(picks):
                 counts["conti ranking: clubs not in a league of the world"] += 1
     counts["continental cups (conti)"] = len(cups)
     named = []                  # (each cup's names; its rounds' _cupRoundStringTable index, by key; its rank
-    rn = {"final": 9, "sf": 7, "qf": 6, "r16": 12, "r32": 13, "pre": 15, "qual": 15}   # in its confederation (the
+    rn = {"final": 8, "sf": 7, "qf": 6, "r16": 12, "r32": 13, "pre": 15, "qual": 15}   # in its confederation (the
     for conf, key in cups:                                                              # trophy's: the first a
         c = next(c for c in world_conti._read(conf, "format")["cups"] if c["key"] == key)  # Champions Cup's); no
         long_, short = c["names"]["en"]                                                 # contest of its own: a

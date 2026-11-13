@@ -170,7 +170,7 @@ static uint8_t *make_tie(u8 now)
     uint8_t *z = (uint8_t *)&s_tie;
     for (uint32_t i = 0; i < sizeof s_tie; i++)
         z[i] = 0;
-    s_final = CT_SEG.round < 8 && cups[CT_SEG.cup].round[CT_SEG.round] == 9;
+    s_final = CT_SEG.round < 8 && cups[CT_SEG.cup].round[CT_SEG.round] == 8;   /* (FINAL) */
     CompetitionCup *t = &s_tie;
     const uint16_t a = ourId(CT_SEG.club[0]), b = ourId(CT_SEG.club[1]);
     t->header.comp.compId = CONTI_TIE_ID;

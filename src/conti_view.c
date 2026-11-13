@@ -129,9 +129,7 @@ static const char *round_name(int32_t c, int32_t r)
     const u8 *rs = R(c, r);
     if (rs && rs[0] == K_GROUPS)                /* (the importer names a group stage by its place: FOURTH ROUND) */
         return rs[19] ? "LEAGUE STAGE" : "GROUP STAGE";
-    int32_t k = t[c].round[r];
-    if (k == 9)                         /* (the importer's final: FINAL GROUP is 9, FINAL 8) */
-        k = 8;
+    const int32_t k = t[c].round[r];
     return k >= 0 && k < 23 && _cupRoundStringTable[k] ? (const char *)_cupRoundStringTable[k] : "";
 }
 
