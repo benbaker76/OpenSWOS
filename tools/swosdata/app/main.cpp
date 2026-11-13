@@ -43,6 +43,9 @@
 #include <vector>
 
 #include "app.h"
+#include <slint-platform.h>
+#include <condition_variable>
+#include <deque>
 #include "platform.hpp"
 #include "phone_server.hpp"
 #include "tr.hpp"
@@ -76,6 +79,75 @@ static const char kPcCdArchiveOrg[] =
 static const char kPcCdSwosEu[] = "http://files.swos.eu/images/PC%20SWOS%2096-97%20full%20CD.zip";
 
 namespace {
+
+// ------------------------------------------------------------ offscreen ---
+// --offscreen (testing, with --snapshot): no window at all -- the screens drawn by Slint's
+// software renderer into memory, the event loop this program's own. For the screenshots on a
+// machine with no display (docs/images/setup; a test that must not show a window).
+struct OffscreenWindow : slint::platform::WindowAdapter {
+  slint::platform::SoftwareRenderer renderer_{slint::platform::SoftwareRenderer::RepaintBufferType::NewBuffer};
+  slint::PhysicalSize size_{slint::PhysicalSize({1180, 760})};
+  bool sized = false;
+  slint::platform::AbstractRenderer& renderer() override { return renderer_; }
+  slint::PhysicalSize size() override { return size_; }
+  void set_size(slint::PhysicalSize s) override { size_ = s; sized = true; Resized(); }
+  void update_window_properties(const WindowProperties& p) override {
+    if (sized) return;
+    const auto pref = p.layout_constraints().preferred;
+    if (pref.width > 1 && pref.height > 1) {
+      size_ = slint::PhysicalSize({uint32_t(pref.width), uint32_t(pref.height)});
+      sized = true;
+      Resized();
+    }
+  }
+  void set_visible(bool v) override { if (v) Resized(); }
+  void Resized() {
+    window().dispatch_resize_event(slint::LogicalSize({float(size_.width), float(size_.height)}));
+  }
+  // The window as it stands, RGB.
+  std::vector<slint::Rgb8Pixel> Render(uint32_t& w, uint32_t& h) {
+    w = size_.width; h = size_.height;
+    std::vector<slint::Rgb8Pixel> px(size_t(w) * h);
+    renderer_.render(std::span<slint::Rgb8Pixel>(px.data(), px.size()), w);
+    return px;
+  }
+};
+
+OffscreenWindow* g_offscreen = nullptr;
+
+struct OffscreenPlatform : slint::platform::Platform {
+  std::mutex m;
+  std::condition_variable cv;
+  std::deque<slint::platform::Platform::Task> tasks;
+  bool quit = false;
+  std::unique_ptr<slint::platform::WindowAdapter> create_window_adapter() override {
+    auto w = std::make_unique<OffscreenWindow>();
+    g_offscreen = w.get();
+    return w;
+  }
+  void run_event_loop() override {
+    for (;;) {
+      slint::platform::update_timers_and_animations();
+      std::deque<slint::platform::Platform::Task> now;
+      {
+        std::unique_lock<std::mutex> l(m);
+        if (quit) { quit = false; return; }
+        if (tasks.empty()) {
+          auto next = slint::platform::duration_until_next_timer_update();
+          cv.wait_for(l, next ? std::min(*next, std::chrono::milliseconds(50)) : std::chrono::milliseconds(50));
+        }
+        now.swap(tasks);
+      }
+      for (auto& t : now) std::move(t).run();
+    }
+  }
+  void quit_event_loop() override { std::lock_guard<std::mutex> l(m); quit = true; cv.notify_all(); }
+  void run_in_event_loop(slint::platform::Platform::Task t) override {
+    std::lock_guard<std::mutex> l(m);
+    tasks.push_back(std::move(t));
+    cv.notify_all();
+  }
+};
 
 slint::SharedString Str(const std::string& s) { return slint::SharedString(s); }
 
@@ -801,6 +873,7 @@ struct App {
     const bool world = info[SD_STEP_WORLD].ready || SwosData_HaveAmigaWorld(outDir.c_str()) || HaveWorldMod();
     w().set_amiga_world_available(world);
     if (!world) w().set_amiga_world(false);
+    ShowAmigaWorld();
     if (!busy && !w().get_amiga_done() && !w().get_amiga_error()) {
       std::string text;
       if (amigaProgram.empty())
@@ -1819,6 +1892,47 @@ struct App {
       if (IsWorldMod(m) && m.problem.empty() && m.amiga) return true;
     return false;
   }
+  // The Amiga plays one world: the installed worlds it can play (their mods), the one chosen.
+  std::string amigaWorldPick;
+  std::vector<std::pair<std::string, std::string>> AmigaWorlds() {   // (slug, its WORLD.ini name)
+    std::vector<std::pair<std::string, std::string>> out;
+    ModsScan();
+    for (const ModFile& m : modList) {
+      if (!IsWorldMod(m) || !m.problem.empty() || !m.amiga) continue;
+      std::string name = m.name;
+      for (const sd::DirEntry& e : sd::ListDir(Join(m.dir, "data_json/worlds"))) {
+        SdWorldInfo wi{};
+        if (e.dir && SdSources_OpenWorld(e.path.c_str(), &wi, nullptr, 0) == 0 && wi.name[0]) name = wi.name;
+      }
+      out.push_back({m.slug, name});
+    }
+    return out;
+  }
+  std::string AmigaWorldSlug() {
+    const auto ws = AmigaWorlds();
+    for (const auto& w : ws)
+      if (w.first == amigaWorldPick) return w.first;
+    return ws.empty() ? std::string() : ws[0].first;
+  }
+  void ShowAmigaWorld() {
+    const auto ws = AmigaWorlds();
+    const std::string slug = AmigaWorldSlug();
+    std::string name = "World 2026-27";   // (an earlier setup's world in the assets folder: 2026-27's)
+    for (const auto& w : ws)
+      if (w.first == slug) name = w.second;
+    w().set_amiga_world_name(Str(name));
+    w().set_amiga_world_count(int(ws.size()));
+  }
+  void AmigaWorldNext() {
+    const auto ws = AmigaWorlds();
+    if (ws.size() < 2) return;
+    const std::string slug = AmigaWorldSlug();
+    size_t i = 0;
+    while (i < ws.size() && ws[i].first != slug) i++;
+    amigaWorldPick = ws[(i + 1) % ws.size()].first;
+    FileLog("amiga: the drawer's world is " + amigaWorldPick);
+    ShowAmigaWorld();
+  }
   // The Worlds row's line: each world package given (by its WORLD.ini's name and data), then each
   // world installed (its mod's WORLD.ini), as "Europe 1984-85 (data 9435fb35a4505c62)".
   std::string WorldsDetail() {
@@ -2152,8 +2266,8 @@ struct App {
   // An Amiga drawer made in `drawerGame` (its SWOS folder): the mods that are on and made for the
   // Amiga into its mods/, and data/MODS listing them (an id with '*': not cosmetic) -- or no
   // data/MODS when none is, so an earlier one does not stay.
-  // A mod with an amiga/ folder gives the Amiga that folder's contents only (World 2026-27: its
-  // Amiga team files, not the PC's). A world's mod goes in only with the World 2026-27 tick.
+  // A mod with an amiga/ folder gives the Amiga that folder's contents only (a world: its Amiga
+  // team files, not the PC's). A world's mod goes in only with the world tick: the one named there.
   void ModsToDrawer(const std::string& drawerGame, bool withWorld) {
     ModsScan();
     std::string list;
@@ -2161,10 +2275,16 @@ struct App {
     sd::RemoveTree(Join(drawerGame, "mods"));
     bool tookWorld = false;   // (the Amiga plays one world: its drawer takes the first world mod that is on)
     for (const ModFile& m : modList) {
-      if (!m.amiga || !m.problem.empty() || !ModOn(m)) continue;
+      // (the world ticked goes in on or off: the player asked for it)
+      if (!m.amiga || !m.problem.empty() || (!ModOn(m) && !(withWorld && IsWorldMod(m) && m.slug == AmigaWorldSlug())))
+        continue;
       if (IsWorldMod(m)) {
         if (!withWorld) continue;
-        if (tookWorld) { FileLog("mods: " + m.slug + " not in the drawer (the Amiga plays one world)"); continue; }
+        const std::string want = AmigaWorldSlug();
+        if (tookWorld || (!want.empty() && m.slug != want)) {
+          FileLog("mods: " + m.slug + " not in the drawer (the Amiga plays one world)");
+          continue;
+        }
         tookWorld = true;
       }
       std::string err;
@@ -2870,6 +2990,18 @@ struct App {
   // ------------------------------------------------------------ testing ---
 
   void Snapshot(const std::string& path) {
+    if (g_offscreen) {   // (--offscreen: drawn into memory)
+      uint32_t width = 0, height = 0;
+      const auto px = g_offscreen->Render(width, height);
+      FILE* f = std::fopen(path.c_str(), "wb");
+      if (!f) return;
+      std::fprintf(f, "P6\n%u %u\n255\n", width, height);
+      std::fwrite(px.data(), 3, px.size(), f);
+      std::fclose(f);
+      std::printf("snapshot: %s (%ux%u, offscreen)\n", path.c_str(), width, height);
+      std::fflush(stdout);
+      return;
+    }
     auto shot = w().window().take_snapshot();
     if (!shot) {
       std::fprintf(stderr, "snapshot: the window could not be captured\n");
@@ -2927,6 +3059,7 @@ int Usage() {
       "  --whdload-to FILE make the WHDLoad package FILE (for the Amiga)\n"
       "testing: --auto (install, or with --amiga make it)  --snapshot PREFIX  --quit  --play\n"
       "         --snapshot-at MS (when the -start snapshot is taken; 1200)\n"
+      "         --offscreen (no window: the snapshots drawn in memory)\n"
       "         --no-watch (leave the Downloads folder alone)  --details  --about\n"
       "         --downloads DIR (watch DIR instead)  --no-gog (no GOG install lookup)\n"
       "  --mod-install=ZIP install that mod into the mods folder, turned on, and quit (docs/MODS.md)\n",
@@ -2945,6 +3078,9 @@ int main(int argc, char** argv) {
   // needs nothing. SLINT_BACKEND set by the user still wins. (Every Mac has the GPU.)
   sd::SetEnvDefault("SLINT_BACKEND", "winit-software");
 #endif
+  for (int i = 1; i < argc; i++)
+    if (std::strcmp(argv[i], "--offscreen") == 0)
+      slint::platform::set_platform(std::make_unique<OffscreenPlatform>());
   App app;
   app.exeDir = sd::ExeDir();
   std::vector<std::string> scans;
@@ -2961,6 +3097,8 @@ int main(int argc, char** argv) {
     const char* v = i + 1 < argc ? argv[i + 1] : nullptr;
     if (a == "--auto") {
       app.autoRun = true;
+    } else if (a == "--offscreen") {
+      // (taken above: no window, the screens drawn into memory -- with --snapshot)
     } else if (a == "--headless") {
       headless = true;
     } else if (a.rfind("--search-first=", 0) == 0) {
@@ -3147,6 +3285,7 @@ int main(int argc, char** argv) {
   ui->on_choose_amiga_program([&app] { app.ChooseProgram(); });
   ui->on_make_amiga([&app] { app.MakeAmiga(); });
   ui->on_amiga_kind_changed([&app] { app.AmigaKindChanged(); });
+  ui->on_amiga_world_next([&app] { app.AmigaWorldNext(); });
   ui->on_open_amiga_dest([&app] { app.OpenAmigaDest(); });
   if (wizardArg.empty() && !amigaTab)
     app.RestoreTicks();          // (before the first RefreshWizard: the screens follow the ticks)
