@@ -17,8 +17,10 @@
  *                     yours and the CPU's, on or off, the goal you attack; START, the team screen,
  *                     then a match whose clock stays at 0 -- no half time, no end but leaving it
  *                     (ESC) -- with no cards and no injuries (trainingModePractice_OnSelect)
- * Each match returns here (the menu again), as SWOS 2020's do. Training's drills (F1-F12) and ghost
- * players are next (docs/MODS.md §18).
+ * Each match returns here (the menu again), as SWOS 2020's do. Training's drills (F1-F12, Left Alt,
+ * 9 0 - =: set pieces on demand, as SWOS 2020's controls.cpp has them -- training only, as there:
+ * its gate is g_TrainingMode) are below (TEAM TRAINING CONTROLS); ghost players are next
+ * (docs/MODS.md §18).
  *
  * "changes": "modes": its matches are its own, a normal one untouched -- never matters online.
  */
