@@ -873,8 +873,9 @@ def main():
     present = missing = stale = 0
     for k, i, s, u, fn in want:
         pg = pages.get((k, i, s))
-        if pg is None and k == 'squad':                 # a club page is a squad, without the details
-            pg = pages.get(('club', i, s))
+        club = pages.get(('club', i, s)) if k == 'squad' else None
+        if club is not None and (pg is None or _better(club, pg, {'squad': 0, 'club': 1})):
+            pg = club                                   # a club page is a squad, without the details
         if pg is None:
             missing += 1
             print(f'MISSING  {fn:24} {u}')
@@ -884,7 +885,7 @@ def main():
         what = f"{n} rows" + (f", coach {pg['coach']}" if pg.get('coach') else '')
         if k == 'squad' and pg['kind'] == 'club':
             what += ' (club page: no height / foot / contract; save the detailed squad)'
-        if args.since and st and st < args.since:
+        if args.since and st and st < args.since and k != 'table':     # (a final table does not age)
             stale += 1
             print(f'STALE    {fn:24} {st} {what}  <- {os.path.basename(pg["file"])}')
         else:
