@@ -771,8 +771,10 @@ default -- so the main menu's MODES button is there): MODES -> PRACTICE opens it
   `InitPlayersBeforeEnteringPitch`'s end and put in the tunnel, as a sent-off man is -- the AI,
   possession and team control already play around `sentAway`), `clockStopped` (the start minute
   put back each frame, as SWOS 2020 does), `noCards` (`_cardsDisallowed`), `noInjuries` (no roll
-  in `PlayerTackled`). Menus of a mod's own: `ModApi_MenuText / MenuVisible / MenuNav`. Still to
-  come: the drills (F1-F12: forced restarts, G6), ghost players (G5), the manual keeper (G8).
+  in `PlayerTackled`). Menus of a mod's own: `ModApi_MenuText / MenuVisible / MenuNav`. Built since:
+  the drills (F1-F12, Left Alt, 9 0 - =: forced restarts, G6 -- TEAM TRAINING only, as SWOS 2020's
+  controls.cpp gates them on g_TrainingMode), ghost players (CPU GHOSTED, G5), the manual keeper (the
+  shoot-out's, G8).
 
 **`petarku-practice`** was removed on 2026-11-11: petarku, its author, said SWOS 2020's practice
 covers it -- its shoot-out lets you choose the shooting order (in a friendlier way), and its team
