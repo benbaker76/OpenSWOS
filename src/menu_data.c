@@ -96,6 +96,7 @@ extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
 extern void CompetitionStatsInit(void);
 extern void CompetitionStatsWinners(void);
+extern void CompetitionStatsSummary(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
 extern void ConsiderJobOffer(void);
@@ -5146,6 +5147,14 @@ Menu_CompetitionStats _competitionStatsMenu = {
         { MENU_CMD_COLORS, 0xE },
         { MENU_CMD_TEXT_PTR, 0x0, _aModRow },
         { MENU_CMD_ONSELECT_FIRE, CompetitionStatsModRow },
+        MENU_CMD_END
+    },
+    {
+        { 92, 115, 120, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, -1 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, 0 },
+        { MENU_CMD_ONSELECT_FIRE, CompetitionStatsSummary },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

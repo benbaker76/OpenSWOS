@@ -28,6 +28,7 @@
 #include "comp_identity.h"
 #include "diy_competition.h"
 #include "career_teams.h"
+#include "conti_view.h"         /* STAT > SUMMARY */
 #include "menu_system.h"
 #include "menus.h"           /* ModRow_Show */
 #undef STR_COLOR_MASK                   /* (menu_data.h's enum names them too) */
@@ -42,6 +43,7 @@ extern uint8_t  _seasonPlaying;
 extern uint16_t _selTeamNumber;
 extern uint16_t _gameType;
 extern MenuEntry _menuEntries[];
+extern uint8_t _currentMenu[];
 extern TeamFileEx _careerTeam;
 extern DIYCompetitionEx _diyCompetitionStart;
 
@@ -513,6 +515,7 @@ void CompetitionStatsWinners(void)
 #define STATS_SQUADS  3
 #define STATS_EXIT    4
 #define STATS_WINNERS 5
+#define STATS_SUMMARY 7     /* (SUMMARY: conti_view.c) */
 #define STATS_MOD_ROW 6     /* (a mod's row: MODPOINT_COMPETITION_STATS, include/menus.h ModRow_Show) */
 int32_t WorldWinners_Available(void)
 {
@@ -537,6 +540,27 @@ void CompetitionStatsInit(void)
         _menuEntries[STATS_MOD_ROW].downEntry = STATS_EXIT;
         _menuEntries[STATS_EXIT].upEntry = STATS_MOD_ROW;
     }
+    /* SUMMARY (entry 7; a world's cups, SDL: conti_view.c -- the Mod 4.1's STAT > SUMMARY): below the
+     * last row shown */
+    if (((const Menu *)_currentMenu)->numEntries > STATS_SUMMARY) {
+        const int32_t sum = ContiView_StatSummaryAvailable();
+        _menuEntries[STATS_SUMMARY].isInvisible = !sum;
+        if (sum) {
+            const int32_t above = _menuEntries[STATS_EXIT].upEntry;
+            _menuEntries[STATS_SUMMARY].fg = (uintptr_t)"SUMMARY";
+            _menuEntries[STATS_SUMMARY].y = (uint16_t)(_menuEntries[above].y + 25);
+            _menuEntries[above].downEntry = STATS_SUMMARY;
+            _menuEntries[STATS_SUMMARY].upEntry = (int8_t)above;
+            _menuEntries[STATS_SUMMARY].downEntry = STATS_EXIT;
+            _menuEntries[STATS_EXIT].upEntry = STATS_SUMMARY;
+        }
+    }
+}
+
+/* STAT > SUMMARY (competitionStatsMenu entry 7): conti_view.c */
+void CompetitionStatsSummary(void)
+{
+    ContiView_ShowStatSummary();
 }
 
 /* ---- The last season's record (league_playoffs.c writes it) ---- */

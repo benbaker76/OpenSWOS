@@ -221,6 +221,38 @@
           "func": "CompetitionStatsModRow"
         }
       ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 92,
+        "y": 115,
+        "w": 120,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": null
+        },
+        {
+          "op": "onselect_fire",
+          "func": "CompetitionStatsSummary"
+        }
+      ]
     }
   ]
 }

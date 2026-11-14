@@ -10,6 +10,7 @@
 
 #include "world.h"
 #include "diy_competition.h"
+#include "cup_record.h"
 #include "world_finance.h"      /* UefaPrize_CupWon */
 #include "comp_identity.h"
 #include "translations.h"
@@ -10608,6 +10609,7 @@ void ProcessDIYLeagueMatchResultAndCareerUpdates(TeamFileEx *team1, TeamFileEx *
         d7 |= 0x82;    /* bits 7 and 1 set */
     }
 
+    CupRecord_Match(team1, team2, d1, d2, d7, 0, 0, 1);   /* (a world's cups' SUMMARY: cup_record.c) */
     /* Career updates (form, contract negotiation, loss flag) */
     updateCareerAfterResult(team1, team2, d1, d2, d7);
 
@@ -10857,6 +10859,7 @@ setDecisive:
     }
 
 careerUpdate:
+    CupRecord_Match(team1, team2, d1, d2, d7, d5, d6, 0);  /* (a world's cups' SUMMARY: cup_record.c) */
     updateCareerAfterResult(team1, team2, d1, d2, d7);
 
     /* Pack results: d6=(d5<<8)+d6, d4=(d3<<8)+d4, d5=d4, d4=(d1<<8)+d2 */

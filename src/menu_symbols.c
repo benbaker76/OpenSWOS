@@ -70,6 +70,7 @@ extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
 extern void CompetitionStatsInit(void);
 extern void CompetitionStatsModRow(void);
+extern void CompetitionStatsSummary(void);
 extern void CompetitionStatsWinners(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
@@ -773,6 +774,7 @@ const MenuSymbol _menuSymbols[] = {
     { "CompetitionInfo", (void*)CompetitionInfo, SYM_FUNC },
     { "CompetitionStatsInit", (void*)CompetitionStatsInit, SYM_FUNC },
     { "CompetitionStatsModRow", (void*)CompetitionStatsModRow, SYM_FUNC },
+    { "CompetitionStatsSummary", (void*)CompetitionStatsSummary, SYM_FUNC },
     { "CompetitionStatsWinners", (void*)CompetitionStatsWinners, SYM_FUNC },
     { "CompetitionTopGoalScorersExit", (void*)CompetitionTopGoalScorersExit, SYM_FUNC },
     { "CompetitionTopGoalScorersInit", (void*)CompetitionTopGoalScorersInit, SYM_FUNC },

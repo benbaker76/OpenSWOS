@@ -56,6 +56,7 @@ extern uint16_t _careerSeasonsCompleted;
 #include "world_cups.h"
 #include "world_cupd.h"
 #include "world_supercup.h"
+#include "cup_record.h"
 #include "world_rules.h"
 extern uint16_t _currentSeasonShowing;
 extern uint16_t _seasonTransferQuota;
@@ -280,6 +281,7 @@ void ChooseTeamAndStartCareer(void)
     WorldCups_Reset();
     CupD_Reset();
     SuperCup_Reset();
+    CupRecord_Reset();
     UefaCoef_Reset();
     UefaPrize_NewCareer();
     Ffp_NewCareer();
@@ -684,6 +686,7 @@ void InitCareer(uint16_t teamNo)
     WorldCups_Reset();
     CupD_Reset();
     SuperCup_Reset();
+    CupRecord_Reset();
     UefaCoef_Reset();
     UefaPrize_NewCareer();
     Ffp_NewCareer();
@@ -1502,6 +1505,7 @@ void InitializeNewSeason(void)
     InitializeCareerSeasonFinancials();
     CupD_SeasonStart();     /* the Coppa Italia Serie D's rounds before the first match (world_cupd.c) */
     SuperCup_SeasonStart(); /* a world's Super Cup tie built early (world_supercup.c) */
+    CupRecord_SeasonStart(); /* a world's cups' SUMMARY: the European record starts again */
 
     /* Show appropriate chairman message */
     if (_stayingInOldClub != 0) {

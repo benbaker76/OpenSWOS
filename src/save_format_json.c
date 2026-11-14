@@ -39,6 +39,7 @@
 #include "world_cups.h"        /* "world_cups" in career saves */
 #include "world_cupd.h"        /* "world_cupd" in career saves */
 #include "world_supercup.h"    /* "world_supercup" in career saves */
+#include "cup_record.h"       /* "cup_record" in career saves */
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
 #include "translations.h"   /* tr() — localize competition name symbols */
 #include "career_capacity.h"   /* the career lists' original and compiled sizes */
@@ -7272,6 +7273,29 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
     }
 
+    /* A world's cups' SUMMARY (cup_record.c): the career club's European cup this season -- the
+     * league phase's final table (team numbers, points) and its knockout matches -- and the other
+     * confederations' cups' matches the game played this edition. A match: round, flags, goals,
+     * penalties, the two team numbers. */
+    if (g_cupRecord.euroSeason || g_cupRecord.contiEdition) {
+        const CupRecordState *r = &g_cupRecord;
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d", "cup_record", "euro_season",
+                     (int)r->euroSeason, "euro_contest", (int)r->euroComp, "conti_edition", (int)r->contiEdition);
+        wp_emit_u16(&out, "table", r->table, r->nTable);
+        wp_emit_u8(&out, "points", r->points, r->nTable);
+        for (int k = 0; k < 2; k++) {
+            const CupRecGame *g = k ? r->conti : r->games;
+            const int n = k ? r->nConti : r->nGames;
+            mjson_printf(json_out_emit, &out, ",%Q:[", k ? "conti_matches" : "euro_matches");
+            for (int i = 0; i < n; i++)
+                mjson_printf(json_out_emit, &out, "%s[%d,%d,%d,%d,%d,%d,%d,%d]", i ? "," : "", (int)g[i].round,
+                             (int)g[i].flags, (int)g[i].g1, (int)g[i].g2, (int)g[i].p1, (int)g[i].p2,
+                             (int)g[i].t1, (int)g[i].t2);
+            mjson_printf(json_out_emit, &out, "]");
+        }
+        mjson_printf(json_out_emit, &out, "}");
+    }
+
     /* A world's play-off the career club plays (world_playoff.c): which, its clubs (team
      * numbers), their places, points and the round under way, the other groups' tables
      * simulated early, the winner once decided. */
@@ -8181,6 +8205,44 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(sc, sclen, "$.week", &v) > 0) s->week = (uint8_t)v;
             if (mjson_get_long(sc, sclen, "$.team_a", &v) > 0) s->teamA = (uint16_t)v;
             if (mjson_get_long(sc, sclen, "$.team_b", &v) > 0) s->teamB = (uint16_t)v;
+        }
+    }
+
+    /* A world's cups' SUMMARY (cup_record.c); a save without it: nothing kept. */
+    CupRecord_Reset();
+    {
+        const char *cr = NULL;
+        int crlen = 0;
+        if (mjson_find(src, src_size, "$.cup_record", &cr, &crlen) == MJSON_TOK_OBJECT) {
+            CupRecordState *r = &g_cupRecord;
+            long v = 0;
+            if (mjson_get_long(cr, crlen, "$.euro_season", &v) > 0) r->euroSeason = (uint8_t)v;
+            if (mjson_get_long(cr, crlen, "$.euro_contest", &v) > 0) r->euroComp = (uint8_t)v;
+            if (mjson_get_long(cr, crlen, "$.conti_edition", &v) > 0) r->contiEdition = (uint8_t)v;
+            const int nt = wp_load_u16(cr, crlen, "$.table", r->table, CUP_RECORD_TABLE);
+            wp_load_u8(cr, crlen, "$.points", r->points, CUP_RECORD_TABLE);
+            r->nTable = (uint8_t)(nt > 0 ? nt : 0);
+            for (int k = 0; k < 2; k++) {
+                const char *arr = NULL;
+                int alen = 0, off = 0, koff, klen, voff, vlen, vtype, n = 0;
+                CupRecGame *g = k ? r->conti : r->games;
+                const int cap = k ? CUP_RECORD_CONTI : CUP_RECORD_GAMES;
+                if (mjson_find(cr, crlen, k ? "$.conti_matches" : "$.euro_matches", &arr, &alen) != MJSON_TOK_ARRAY)
+                    continue;
+                while ((off = mjson_next(arr, alen, off, &koff, &klen, &voff, &vlen, &vtype)) != 0 && n < cap) {
+                    long f[8] = { 0 };
+                    static const char *const path[8] = { "$[0]", "$[1]", "$[2]", "$[3]", "$[4]", "$[5]", "$[6]", "$[7]" };
+                    if (vtype != MJSON_TOK_ARRAY)
+                        continue;
+                    for (int j = 0; j < 8; j++)
+                        mjson_get_long(arr + voff, vlen, path[j], &f[j]);
+                    g[n].round = (uint8_t)f[0]; g[n].flags = (uint8_t)f[1]; g[n].g1 = (uint8_t)f[2];
+                    g[n].g2 = (uint8_t)f[3]; g[n].p1 = (uint8_t)f[4]; g[n].p2 = (uint8_t)f[5];
+                    g[n].t1 = (uint16_t)f[6]; g[n].t2 = (uint16_t)f[7];
+                    n++;
+                }
+                if (k) r->nConti = (uint8_t)n; else r->nGames = (uint8_t)n;
+            }
         }
     }
 

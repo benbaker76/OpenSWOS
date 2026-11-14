@@ -23,6 +23,9 @@ void ContiView_ShowConfs(void);         /* CONTINENTAL CUPS */
 int32_t ContiView_CupsOfContinent(uint8_t continent, uint8_t *out, int32_t max);
 const char *ContiView_CupName(int32_t cup);
 void ContiView_ShowCup(int32_t cup);
-int32_t ContiView_SelfTest(void);       /* --conti-view-selftest */
+int32_t ContiView_SelfTest(void);
+/* STAT > SUMMARY: the career club's European cup's record, a conti cup's rounds (0: none for the contest viewed) */
+int32_t ContiView_StatSummaryAvailable(void);
+void ContiView_ShowStatSummary(void);       /* --conti-view-selftest */
 
 #endif

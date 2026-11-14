@@ -11,6 +11,7 @@
  * numbers are its own (seeded by the caller), so a season replays the same.
  */
 #include "league_phase.h"
+#include "cup_record.h"
 #include "uefa_coef.h"
 
 #define N   LEAGUE_PHASE_CLUBS
@@ -487,6 +488,8 @@ static int32_t ours_id(uint8_t compId)
     return SWOS_WORLDS && s_installed && compId <= CONFERENCE;
 }
 
+int32_t LeaguePhase_IsCup(uint8_t compId) { return ours_id(compId); }
+
 int32_t LeaguePhase_StageDays(uint8_t compId, uint16_t groups, uint16_t perGroup)
 {
     return ours_id(compId) && groups == 2 && perGroup == 18 ? (compId == CONFERENCE ? 6 : 8) : 0;
@@ -708,6 +711,12 @@ void LeaguePhase_GroupsEnd(uint8_t *diy, int32_t after)
                 w[p] = lp_word(s_final[p]);
             UefaCoef_PhaseEnd((uint8_t)_diyCompetitionStart.base.field_2E, w);
             UefaPrize_PhaseEnd((uint8_t)_diyCompetitionStart.base.field_2E, w);   /* (the ranking pillar) */
+            {   /* (the cups' SUMMARY: the final table, its points -- cup_record.c) */
+                uint16_t pts[N];
+                for (int32_t p = 0; p < N; p++)
+                    pts[p] = lp_row(s_final[p])->points;
+                CupRecord_LeaguePhaseEnd((uint8_t)_diyCompetitionStart.base.field_2E, w, pts, N);
+            }
         }
         return;
     }

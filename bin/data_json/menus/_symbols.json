@@ -63,6 +63,7 @@
     "CompetitionInfo",
     "CompetitionStatsInit",
     "CompetitionStatsModRow",
+    "CompetitionStatsSummary",
     "CompetitionStatsWinners",
     "CompetitionTopGoalScorersExit",
     "CompetitionTopGoalScorersInit",

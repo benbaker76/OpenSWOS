@@ -30,10 +30,13 @@
 #include "world_conti.h"
 #include "world.h"
 #include "team_db.h"
+#include "cup_record.h"
 #include "menu_load_json.h"
 #include "menu_symbols.h"
 #include "menu_system.h"
 #include "game_types.h"
+#include "comp_identity.h"
+#include "diy_competition.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -285,6 +288,12 @@ static void contiConfsMenu_exit(void) { SetExitMenuFlag(); }
 
 /* ---- a confederation's rounds ---- */
 
+static int32_t s_euro;                  /* the rounds menu and view show the European cup's record */
+static uint8_t s_estage[8];             /* its phases: 0xFF the league phase, else a knockout stage */
+static int32_t s_nestage;
+static int32_t s_ek;                    /* the phase shown (-1: its summary) */
+static char s_euroName[48];
+static int32_t s_autoOpen;              /* CONTINENTAL CUPS: open the round in progress once */
 static int32_t s_sel;                   /* the rounds' cursor (the Mod's CR_SEL) */
 static int32_t s_picked = -1;           /* the round opened from it */
 static int32_t s_only = -1;             /* (VIEW WORLD: one cup) */
@@ -326,10 +335,39 @@ static void list_rounds(void)
             s_sel = i - s;
 }
 
+static void euro_stages(void);
+static const char *euro_stage_name(int32_t k);
+static void euroRoundsInit(void)
+{
+    euro_stages();
+    snprintf(s_header, sizeof s_header, "%s", s_euroName);
+    entry_at(RS_header)->fg = (uintptr_t)s_header;
+    entry_at(RS_note)->fg = (uintptr_t)(s_nestage ? "" : "NOTHING PLAYED YET");
+    s_nround = s_nestage;
+    for (int32_t k = 0; k < kRoundsMax; k++) {
+        MenuEntry *e = entry_at(RS_round0 + k);
+        e->isInvisible = k >= s_nestage;
+        e->bgColor = 0x0E;                  /* (the Mod's green boxes) */
+        if (k < s_nestage)
+            e->fg = (uintptr_t)euro_stage_name(k);
+    }
+    const int32_t n0 = s_nround < 8 ? s_nround : 8;
+    for (int32_t k = 0; k < s_nround; k++)
+        nav(RS_round0 + k, -1, -1, k ? RS_round0 + k - 1 : -1, k + 1 < s_nround ? RS_round0 + k + 1 : RS_summary);
+    nav(RS_summary, -1, RS_exit, n0 ? RS_round0 + n0 - 1 : -1, -1);
+    nav(RS_exit, RS_summary, -1, n0 ? RS_round0 + n0 - 1 : -1, -1);
+    s_sel = s_picked >= 0 && s_picked < s_nround ? s_picked : s_nround ? s_nround - 1 : 0;
+    SetCurrentEntry((uint16_t)(s_nround ? RS_round0 + s_sel : RS_summary));
+}
+
 static void contiRoundsMenu_OnInit(void)
 {
     int32_t n = 0;
     const WorldContiCup *t = cups(&n);
+    if (s_euro) {
+        euroRoundsInit();
+        return;
+    }
     list_rounds();
     snprintf(s_header, sizeof s_header, "%s", k_confName[s_conf]);
     entry_at(RS_header)->fg = (uintptr_t)s_header;
@@ -337,6 +375,7 @@ static void contiRoundsMenu_OnInit(void)
     for (int32_t k = 0; k < kRoundsMax; k++) {
         MenuEntry *e = entry_at(RS_round0 + k);
         e->isInvisible = k >= s_nround;
+        e->bgColor = 0x0D;
         if (k < s_nround) {
             const int32_t c = s_round[k] >> 4, r = s_round[k] & 15;
             snprintf(s_roundText[k], sizeof s_roundText[k], "%s %s", t[c].shortName, round_name(c, r));
@@ -357,15 +396,32 @@ static void contiRoundsMenu_OnInit(void)
         s_sel = s_picked;
     SetCurrentEntry((uint16_t)(s_nround ? RS_round0 + s_sel : RS_exit));
 }
-static void contiRoundsMenu_OnDraw(void) {}
+static void round_pick(int32_t k);
+static void contiRoundsMenu_OnDraw(void)
+{
+    /* CONTINENTAL CUPS opens straight on the round in progress (drawn, not played: the Mod's CR_IN);
+     * before a season's first, between rounds and after the final: the list */
+    if (s_autoOpen && !s_euro) {
+        s_autoOpen = 0;
+        for (int32_t k = 0; k < s_nround; k++)
+            if (rstate(s_round[k] >> 4, s_round[k] & 15) == 1) {
+                round_pick(k);
+                return;
+            }
+    }
+}
 
 static void show_round(int32_t c, int32_t r);
 static void show_summary(void);
+static void show_stage(int32_t k);
 static void round_pick(int32_t k)
 {
     if (k < s_nround) {
         s_sel = s_picked = k;
-        show_round(s_round[k] >> 4, s_round[k] & 15);
+        if (s_euro)
+            show_stage(k);
+        else
+            show_round(s_round[k] >> 4, s_round[k] & 15);
     }
 }
 static void contiRoundsMenu_round0(void) { round_pick(0); }
@@ -423,6 +479,72 @@ static void keep_together(int32_t k)    /* the next k lines on one page */
 static int32_t gh(u8 v) { return (v & 15) - 1; }
 static int32_t ga(u8 v) { return (v >> 4) - 1; }
 
+/* The game's own matches of a conti round (cup_record.c: the career club's ties and group, which the
+ * engine's replay marks CT_GR_OWN): club index x -> our team number; the matches of round (c, r)
+ * between two clubs (either way round), in the order played. */
+static uint16_t our_team(int32_t x)
+{
+    if (!x || x > CT_NC || !s_ids[x - 1])
+        return 0xFFFF;
+    const u16 w = s_ids[x - 1];
+    return (uint16_t)((w & 0xFF) << 8 | w >> 8);
+}
+
+static int32_t own_games(int32_t c, int32_t r, int32_t x, int32_t y, const CupRecGame **out, int32_t max)
+{
+    const CupRecordState *rec = CupRecord_Conti();
+    const uint16_t a = our_team(x), b = our_team(y);
+    int32_t k = 0;
+    for (int32_t i = 0; rec && i < rec->nConti && k < max; i++) {
+        const CupRecGame *g = &rec->conti[i];
+        /* (a group's: its round; a tie's: the cup's knockout matches of the two -- the game contest's
+         * later rounds are recorded under the round its stage began in, CT_SEG moving after them) */
+        const int32_t round_ok = R(c, r)[0] == K_GROUPS ? g->round == (uint8_t)(c << 4 | r)
+                                                       : (g->round >> 4) == c && !(g->flags & CUPREC_LEAGUE);
+        if (round_ok && ((g->t1 == a && g->t2 == b) || (g->t1 == b && g->t2 == a)))
+            out[k++] = g;
+    }
+    return k;
+}
+
+static uint16_t our_mgr(void)
+{
+    return CT_ED.mgr ? (uint16_t)((CT_ED.mgr & 0xFF) << 8 | CT_ED.mgr >> 8) : 0xFFFF;
+}
+
+/* the career club's knockout matches of round (c, r) the game played */
+static int32_t own_tie(int32_t c, int32_t r, const CupRecGame **out, int32_t max)
+{
+    const CupRecordState *rec = CupRecord_Conti();
+    const uint16_t me = our_mgr();
+    int32_t k = 0;
+    for (int32_t i = 0; rec && i < rec->nConti && k < max; i++) {
+        const CupRecGame *g = &rec->conti[i];
+        if (g->round == (uint8_t)(c << 4 | r) && !(g->flags & CUPREC_LEAGUE) && (g->t1 == me || g->t2 == me))
+            out[k++] = g;
+    }
+    return k;
+}
+
+/* a tie's score from the game's matches: club a's goals first; ET / P */
+static void own_tie_score_t(Line *l, uint16_t a, const CupRecGame *const *g, int32_t n)
+{
+    int32_t ta = 0, tb = 0, et = 0, pens = 0;
+    l->b[0] = 0;
+    for (int32_t i = 0; i < n && i < 2; i++) {
+        const int32_t ga1 = g[i]->t1 == a ? g[i]->g1 : g[i]->g2, gb1 = g[i]->t1 == a ? g[i]->g2 : g[i]->g1;
+        snprintf(l->b + strlen(l->b), sizeof l->b - strlen(l->b), "%s%d-%d", i ? " " : "", (int)ga1, (int)gb1);
+        ta += ga1;
+        tb += gb1;
+        et |= (g[i]->flags & CUPREC_ET) != 0;
+        pens |= (g[i]->flags & CUPREC_PENS) != 0;
+    }
+    if (pens)
+        snprintf(l->b + strlen(l->b), sizeof l->b - strlen(l->b), " P");
+    else if (et)
+        snprintf(l->b + strlen(l->b), sizeof l->b - strlen(l->b), " ET");
+}
+
 static void ko_lines(int32_t c, int32_t r, int32_t played)
 {
     const u8 *rs = R(c, r);
@@ -439,7 +561,18 @@ static void ko_lines(int32_t c, int32_t r, int32_t played)
         l->win = s_out.res[c][r][i] ? 1 : 2;
         const u8 *g = off ? s_grec.g.b + off - 1 + 3 * (i / 2) : 0;
         if (!g || g[0] == CT_GR_OWN || !g[0]) {
-            snprintf(l->b, sizeof l->b, "PLAYED");
+            /* (the career club's: the game's tie -- its opponent the game contest's draw, which may not be
+             * the engine's; its scores) */
+            const CupRecGame *mine[2];
+            const int32_t me = s_out.ent[c][r][i] && our_team(s_out.ent[c][r][i]) == our_mgr() ? 0 : 1;
+            const int32_t k = own_tie(c, r, mine, 2);
+            if (k) {
+                const uint16_t opp = mine[0]->t1 == our_mgr() ? mine[0]->t2 : mine[0]->t1;
+                char *other = me ? l->a : l->c;
+                snprintf(other, me ? sizeof l->a : sizeof l->c, "%s", word_name((u16)(opp >> 8 | (opp & 0xFF) << 8)));
+                own_tie_score_t(l, me ? opp : our_mgr(), mine, k);
+            } else
+                snprintf(l->b, sizeof l->b, "PLAYED");
             continue;
         }
         int32_t a = gh(g[0]), b = ga(g[0]);
@@ -478,7 +611,30 @@ static void group_lines(int32_t c, int32_t r, int32_t played)
             place[k] = played && i < n ? s_out.res[c][r][i] : k + 1;
         }
         const u8 *gb = off ? s_grec.g.b + off - 1 + g * gm : 0;
-        if (played && gb)
+        const CupRecGame *mine[160];        /* (the career club's group: the game's matches) */
+        int32_t nmine = 0;
+        if (played && gb && gb[0] == CT_GR_OWN) {
+            for (int32_t i = 0; i < gs; i++)
+                for (int32_t j = i + 1; j < gs; j++) {
+                    const CupRecGame *two[4];
+                    const int32_t k = own_games(c, r, clubs[i], clubs[j], two, 4);
+                    for (int32_t q = 0; q < k && nmine < 160; q++)
+                        mine[nmine++] = two[q];
+                }
+            for (int32_t q = 0; q < nmine; q++) {
+                int32_t h = -1, a = -1;
+                for (int32_t k = 0; k < gs; k++) {
+                    if (our_team(clubs[k]) == mine[q]->t1) h = k;
+                    if (our_team(clubs[k]) == mine[q]->t2) a = k;
+                }
+                const int32_t x = mine[q]->g1, y = mine[q]->g2;
+                pl[h]++; pl[a]++; gf[h] += x; gag[h] += y; gf[a] += y; gag[a] += x;
+                if (x > y) { w[h]++; lo[a]++; pts[h] += 3; }
+                else if (x < y) { w[a]++; lo[h]++; pts[a] += 3; }
+                else { d[h]++; d[a]++; pts[h]++; pts[a]++; }
+            }
+        }
+        if (played && gb && !nmine)
             for (int32_t leg = 0; leg < grounds; leg++)
                 for (int32_t i = 0; i < gs; i++)
                     for (int32_t j = i + 1; j < gs; j++, m++) {
@@ -499,7 +655,8 @@ static void group_lines(int32_t c, int32_t r, int32_t played)
             snprintf(t, sizeof t, "%s%s", round_name(c, r), played ? "" : ": TO BE PLAYED");
         Line *h = add(L_TABHEAD);
         snprintf(h->a, sizeof h->a, "%s", t);
-        if (played && !own && gb) {
+        const int32_t figures = played && gb && (!own || nmine);
+        if (figures) {
             static const char *const k_h[7] = { "P", "W", "D", "L", "F", "A", "PTS" };
             for (int32_t j = 0; j < 7; j++)
                 snprintf(h->k[j], sizeof h->k[j], "%s", k_h[j]);
@@ -512,12 +669,20 @@ static void group_lines(int32_t c, int32_t r, int32_t played)
                 Line *l = add(L_TABLE);
                 snprintf(l->a, sizeof l->a, played ? "%d %s" : "%.0d%s", (int)q, club(clubs[k]));
                 l->win = played && q <= up;
-                if (played && !own && gb) {
+                if (figures) {
                     put_num(l, 0, pl[k]); put_num(l, 1, w[k]); put_num(l, 2, d[k]); put_num(l, 3, lo[k]);
                     put_num(l, 4, gf[k]); put_num(l, 5, gag[k]); put_num(l, 6, pts[k]);
                 }
             }
-        if (played && !own && gb && gs <= 6) {               /* (the results, a small group's) */
+        if (nmine)                                          /* (the results: the game's) */
+            for (int32_t q = 0; q < nmine; q++) {
+                Line *l = add(L_TIE);
+                snprintf(l->a, sizeof l->a, "%s", word_name((u16)(mine[q]->t1 >> 8 | (mine[q]->t1 & 0xFF) << 8)));
+                snprintf(l->c, sizeof l->c, "%s", word_name((u16)(mine[q]->t2 >> 8 | (mine[q]->t2 & 0xFF) << 8)));
+                snprintf(l->b, sizeof l->b, "%d-%d", (int)mine[q]->g1, (int)mine[q]->g2);
+                l->win = mine[q]->g1 > mine[q]->g2 ? 1 : mine[q]->g1 < mine[q]->g2 ? 2 : 0;
+            }
+        else if (played && !own && gb) {                    /* (the results) */
             m = 0;
             for (int32_t leg = 0; leg < grounds; leg++)
                 for (int32_t i = 0; i < gs; i++)
@@ -531,7 +696,7 @@ static void group_lines(int32_t c, int32_t r, int32_t played)
                         snprintf(l->b, sizeof l->b, "%d-%d", (int)gh(v), (int)ga(v));
                         l->win = gh(v) > ga(v) ? 1 : gh(v) < ga(v) ? 2 : 0;
                     }
-        } else if (played && own)
+        } else if (played && own && !nmine)
             text_line(L_TEXT, "  (YOUR CLUB'S GROUP: ITS PLACES AS YOU PLAYED IT)");
         add(L_TEXT);
     }
@@ -678,7 +843,7 @@ static void refresh_view(void)
             left->stringFlags = (uint16_t)(0x4000 | (l->win == 1 ? 15 : 2));    /* (the club through: yellow) */
             right->stringFlags = (uint16_t)(0x8000 | (l->win == 2 ? 15 : 2));
         } else {
-            left->stringFlags = (uint16_t)(0x8000 | (l->kind == L_TABLE && l->win ? 13 : 2));
+            left->stringFlags = (uint16_t)(0x8000 | (l->kind != L_TABLE || !l->win ? 2 : l->win == 1 ? 13 : 14));
             for (int32_t j = 0; j < 7; j++) {
                 MenuEntry *k = entry_at(base + 4 + j);
                 k->isInvisible = !l->k[j][0];
@@ -710,16 +875,168 @@ static int32_t step_round(int32_t dir, int32_t *c, int32_t *r)
     return 1;
 }
 
+/* ---- the career club's European cup: its record (cup_record.c) ---- */
+
+static void euro_stages(void)
+{
+    const CupRecordState *rec = CupRecord_Euro();
+    s_nestage = 0;
+    if (!rec)
+        return;
+    if (rec->nTable)
+        s_estage[s_nestage++] = 0xFF;
+    for (int32_t i = 0; i < rec->nGames && s_nestage < 8; i++) {
+        int32_t seen = 0;
+        for (int32_t k = 0; k < s_nestage; k++)
+            seen |= s_estage[k] == rec->games[i].round;
+        if (!seen)
+            s_estage[s_nestage++] = rec->games[i].round;
+    }
+}
+
+/* a knockout stage's ties: (first leg's home, away, first leg, second leg or NULL) */
+typedef struct { uint16_t a, b; const CupRecGame *g[2]; } EuroTie;
+static int32_t euro_ties(uint8_t stage, EuroTie *t, int32_t max)
+{
+    const CupRecordState *rec = CupRecord_Euro();
+    int32_t n = 0;
+    for (int32_t i = 0; rec && i < rec->nGames; i++) {
+        const CupRecGame *g = &rec->games[i];
+        if (g->round != stage)
+            continue;
+        int32_t k = -1;
+        if (g->flags & CUPREC_LEG2)
+            for (int32_t j = 0; j < n; j++)
+                if (t[j].a == g->t2 && t[j].b == g->t1 && !t[j].g[1])
+                    k = j;
+        if (k >= 0)
+            t[k].g[1] = g;
+        else if (n < max) {
+            t[n].a = g->t1;
+            t[n].b = g->t2;
+            t[n].g[0] = g;
+            t[n].g[1] = 0;
+            n++;
+        }
+    }
+    return n;
+}
+
+static const char *team_name(uint16_t team)
+{
+    return word_name((u16)(team >> 8 | (team & 0xFF) << 8));
+}
+
+static const char *euro_stage_name(int32_t k)
+{
+    if (k < 0 || k >= s_nestage)
+        return "";
+    if (s_estage[k] == 0xFF)
+        return "LEAGUE PHASE";
+    EuroTie t[16];
+    const int32_t n = euro_ties(s_estage[k], t, 16);
+    const int32_t first = s_nestage && s_estage[0] == 0xFF ? k == 1 : k == 0;
+    return n <= 1 ? "FINAL" : n <= 2 ? "SEMI-FINALS" : n <= 4 ? "QUARTER-FINALS" : first ? "PLAY-OFFS" : "ROUND OF 16";
+}
+
+static void euro_tie_line(const EuroTie *t)
+{
+    Line *l = add(L_TIE);
+    snprintf(l->a, sizeof l->a, "%s", team_name(t->a));
+    snprintf(l->c, sizeof l->c, "%s", team_name(t->b));
+    const CupRecGame *g0 = t->g[0], *g1 = t->g[1], *dec = g1 ? g1 : g0;
+    if (g1)
+        snprintf(l->b, sizeof l->b, "%d-%d %d-%d", (int)g0->g1, (int)g0->g2, (int)g1->g2, (int)g1->g1);
+    else
+        snprintf(l->b, sizeof l->b, "%d-%d", (int)g0->g1, (int)g0->g2);
+    if (dec->flags & CUPREC_PENS)
+        snprintf(l->b + strlen(l->b), sizeof l->b - strlen(l->b), " P");
+    else if (dec->flags & CUPREC_ET)
+        snprintf(l->b + strlen(l->b), sizeof l->b - strlen(l->b), " ET");
+    if ((dec->flags & CUPREC_DECIDED) && (g1 || !(g0->flags & CUPREC_LEG2))) {
+        const uint16_t won = (dec->flags & CUPREC_T2WON) ? dec->t2 : dec->t1;
+        l->win = won == t->a ? 1 : 2;
+    }
+}
+
+static void euro_table_lines(void)
+{
+    const CupRecordState *rec = CupRecord_Euro();
+    Line *h = add(L_TABHEAD);
+    snprintf(h->a, sizeof h->a, "LEAGUE PHASE");
+    snprintf(h->k[6], sizeof h->k[6], "PTS");
+    for (int32_t i = 0; rec && i < rec->nTable; i++) {
+        Line *l = add(L_TABLE);
+        snprintf(l->a, sizeof l->a, "%d %s", (int)i + 1, team_name(rec->table[i]));
+        put_num(l, 6, rec->points[i]);
+        l->win = i < 8 ? 1 : i < 24 ? 2 : 0;   /* (1-8 the round of 16, 9-24 the play-offs) */
+    }
+}
+
+static void euro_stage_lines(int32_t k)
+{
+    s_nlines = 0;
+    s_top = 0;
+    snprintf(s_viewHeader, sizeof s_viewHeader, "%s", s_euroName);
+    snprintf(s_viewSub, sizeof s_viewSub, "%s", euro_stage_name(k));
+    if (s_estage[k] == 0xFF) {
+        euro_table_lines();
+        return;
+    }
+    EuroTie t[16];
+    const int32_t n = euro_ties(s_estage[k], t, 16);
+    for (int32_t i = 0; i < n; i++)
+        euro_tie_line(&t[i]);
+}
+
+/* STAT > SUMMARY's full page: the league phase, then every knockout stage played so far */
+static void euro_summary_lines(void)
+{
+    s_nlines = 0;
+    s_top = 0;
+    snprintf(s_viewHeader, sizeof s_viewHeader, "%s", s_euroName);
+    snprintf(s_viewSub, sizeof s_viewSub, "SUMMARY");
+    for (int32_t k = 0; k < s_nestage; k++) {
+        if (s_estage[k] == 0xFF) {
+            euro_table_lines();
+            add(L_TEXT);
+            continue;
+        }
+        EuroTie t[16];
+        const int32_t n = euro_ties(s_estage[k], t, 16);
+        keep_together(2);
+        text_line(L_HEAD, euro_stage_name(k));
+        for (int32_t i = 0; i < n; i++)
+            euro_tie_line(&t[i]);
+        add(L_TEXT);
+    }
+    while (s_nlines && s_lines[s_nlines - 1].kind == L_TEXT && !s_lines[s_nlines - 1].a[0])
+        s_nlines--;
+    if (!s_nlines)
+        text_line(L_TEXT, "NOTHING PLAYED YET");
+}
+
 static void contiRoundMenu_OnInit(void)
 {
     int32_t c, r;
-    if (s_vc >= 0)
+    if (s_euro) {
+        euro_stages();
+        if (s_ek >= 0 && s_ek < s_nestage)
+            euro_stage_lines(s_ek);
+        else
+            euro_summary_lines();
+    } else if (s_vc >= 0)
         build_round(s_vc, s_vr);
     else
         summary_lines();
     MenuEntry *prev = entry_at(RV_prev), *next = entry_at(RV_next);
-    prev->isInvisible = s_vc < 0 || !step_round(-1, &c, &r);
-    next->isInvisible = s_vc < 0 || !step_round(1, &c, &r);
+    if (s_euro) {
+        prev->isInvisible = s_ek <= 0;
+        next->isInvisible = s_ek < 0 || s_ek + 1 >= s_nestage;
+    } else {
+        prev->isInvisible = s_vc < 0 || !step_round(-1, &c, &r);
+        next->isInvisible = s_vc < 0 || !step_round(1, &c, &r);
+    }
     const int32_t pages = s_nlines > kRows;
     nav(RV_prev, -1, RV_exit, pages ? RV_scrollDown : -1, -1);
     nav(RV_exit, prev->isInvisible ? -1 : RV_prev, next->isInvisible ? -1 : RV_next, pages ? RV_scrollDown : -1, -1);
@@ -741,6 +1058,13 @@ static void contiRoundMenu_scrollDown(void) { page(1); }
 static void other_round(int32_t dir)
 {
     int32_t c, r;
+    if (s_euro) {
+        if (s_ek >= 0 && s_ek + dir >= 0 && s_ek + dir < s_nestage) {
+            s_ek += dir;
+            contiRoundMenu_OnInit();
+        }
+        return;
+    }
     if (s_vc >= 0 && step_round(dir, &c, &r)) {
         s_vc = c;
         s_vr = r;
@@ -796,6 +1120,8 @@ static void show_rounds(int32_t conf)
 {
     s_conf = conf;
     s_picked = -1;
+    s_euro = 0;
+    s_autoOpen = 1;
     open(CONTI_ROUNDS_MENU_NAME);
 }
 
@@ -806,8 +1132,15 @@ static void show_round(int32_t c, int32_t r)
     open(CONTI_ROUND_MENU_NAME);
 }
 
+static void show_stage(int32_t k)
+{
+    s_ek = k;
+    open(CONTI_ROUND_MENU_NAME);
+}
+
 static void show_summary(void)
 {
+    s_ek = -1;
     s_vc = -1;
     open(CONTI_ROUND_MENU_NAME);
 }
@@ -823,6 +1156,7 @@ void ContiView_ShowConfs(void)
     if (!ContiView_Available())
         return;
     s_only = -1;
+    s_euro = 0;
     open(CONTI_CONFS_MENU_NAME);
 }
 
@@ -857,6 +1191,7 @@ void ContiView_ShowCup(int32_t c)
     if (!t || c < 0 || c >= n)
         return;
     snapshot();
+    s_euro = 0;
     s_conf = t[c].conf;
     s_only = c;
     list_rounds();
@@ -864,6 +1199,62 @@ void ContiView_ShowCup(int32_t c)
         show_round(s_round[s_sel] >> 4, s_round[s_sel] & 15);
     else
         show_summary();
+    s_only = -1;
+}
+
+/* STAT > SUMMARY (world_winners.c, competitionStatsMenu entry 7) of the contest viewed: the career
+ * club's European cup -> its phases (green boxes: the league phase, the knockout stages played so far)
+ * and the full page; a conti cup's contest -> that cup's rounds. 0: none for this contest. */
+static int32_t stat_cup(uint8_t id)
+{
+    extern uint8_t g_contiMainCup;
+    if (id == COMPID_contiMain)
+        return g_contiMainCup;
+    if (id == COMPID_contiTie && CT_SEG.kind != 0xFF)
+        return CT_SEG.cup;
+    return -1;
+}
+
+int32_t ContiView_StatSummaryAvailable(void)
+{
+    extern DIYCompetitionEx _diyCompetitionStart;
+    const uint8_t id = (uint8_t)_diyCompetitionStart.base.field_2E;
+    const CupRecordState *rec = CupRecord_Euro();
+    if (rec && rec->euroComp == id)
+        return 1;
+    int32_t n = 0;
+    return stat_cup(id) >= 0 && cups(&n) && stat_cup(id) < n;
+}
+
+void ContiView_ShowStatSummary(void)
+{
+    extern DIYCompetitionEx _diyCompetitionStart;
+    const uint8_t id = (uint8_t)_diyCompetitionStart.base.field_2E;
+    const CupRecordState *rec = CupRecord_Euro();
+    if (rec && rec->euroComp == id) {
+        snprintf(s_euroName, sizeof s_euroName, "%.30s", (const char *)_diyCompetitionStart.base.competitionName);
+        for (char *p = s_euroName; *p; p++)
+            if (*p == '*')
+                *p = 0;
+        s_euro = 1;
+        s_picked = -1;
+        s_autoOpen = 0;
+        open(CONTI_ROUNDS_MENU_NAME);
+        s_euro = 0;
+        return;
+    }
+    int32_t n = 0;
+    const WorldContiCup *t = cups(&n);
+    const int32_t c = stat_cup(id);
+    if (!t || c < 0 || c >= n)
+        return;
+    snapshot();
+    s_euro = 0;
+    s_conf = t[c].conf;
+    s_only = c;
+    s_picked = -1;
+    s_autoOpen = 0;
+    open(CONTI_ROUNDS_MENU_NAME);
     s_only = -1;
 }
 
@@ -904,5 +1295,7 @@ const char *ContiView_CupName(int32_t c) { (void)c; return ""; }
 void ContiView_ShowCup(int32_t c) { (void)c; }
 void ContiView_Init(void) {}
 int32_t ContiView_SelfTest(void) { return 0; }
+int32_t ContiView_StatSummaryAvailable(void) { return 0; }
+void ContiView_ShowStatSummary(void) {}
 
 #endif
