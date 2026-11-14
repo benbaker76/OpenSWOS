@@ -1364,8 +1364,7 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
         }
         {   /* a long bench's further pages of the line-ups (menus.c, the Mod's bx_stad) */
             extern void Stadium_LongBenchPages(int32_t waitFrames);
-            if (!ModMatch_SkipStadium() && !NoLoadPause())
-                Stadium_LongBenchPages(0x95);
+            Stadium_LongBenchPages(!ModMatch_SkipStadium() && !NoLoadPause() ? 0x95 : -1);
         }
     }
 

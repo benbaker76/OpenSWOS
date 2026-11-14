@@ -1541,6 +1541,8 @@ int16_t ShowPlayMatchMenu(int16_t controlFlags, int16_t _maxSubstitutes,
     _playMatchTeam2Ptr = team2;
     _maxSubstitutesEntries = (uint16_t)_maxSubstitutes;
     s_lbBench = LongBench_PreMatch((const TeamFile *)team1, (const TeamFile *)team2);  /* (a world's long bench) */
+    if (s_lbBench > 5)
+        _maxSubstitutesEntries = 5;     /* (its bench: rows 12..16, then row 17 and the box -- the Mod's sq_n) */
     _playMatchControlFlags = (uint16_t)controlFlags;
     _playMatchExcludeFlags = (int16_t)excludeFlags;
     _inEditTactics = (uint16_t)excludeFlags;
