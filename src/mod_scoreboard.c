@@ -40,7 +40,7 @@ static int32_t board_sprite(const struct Sprite *sprite, const struct SpriteGrap
     const int32_t kind = ModApi_SpriteKind(sprite);
     if (kind == MODSPRITE_CLOCK)
         return 1;                       /* (positionTimeSprite: 1000 off the screen) */
-    if (kind == MODSPRITE_PLAYER_NAME && corner() == TOP_LEFT)
+    if (kind == MODSPRITE_PLAYER_NAME && corner() == TOP_LEFT && !ModApi_HudHidden(MODHUD_SCOREBOARD))
         *y = (int16_t)(*y + 7);
     return 0;
 }
@@ -82,8 +82,8 @@ static void board_drawn(void)
 {
     ModResultBanner banner;
     int32_t sw, sh;
-    if (!ModApi_InMatch() || ModApi_InReplay()) {
-        HudBox_Off(&s_box);
+    if (!ModApi_InMatch() || ModApi_InReplay() || ModApi_HudHidden(MODHUD_SCOREBOARD)) {
+        HudBox_Off(&s_box);             /* (MODHUD_SCOREBOARD: TEAM TRAINING has none, as SWOS 2020's) */
         return;
     }
     const int32_t mode = corner();

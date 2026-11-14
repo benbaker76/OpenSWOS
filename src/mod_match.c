@@ -522,6 +522,11 @@ int32_t ModApi_ModMatch(const char *slug)
     return s_mm.active && slug && strcmp(s_mm.slug, slug) == 0;
 }
 
+int32_t ModApi_HudHidden(int32_t bits)
+{
+    return s_mm.active && (s_mm.setup.hideHud & bits) != 0;
+}
+
 void ModApi_SetHideHud(int32_t bits)
 {
     if (s_mm.active)

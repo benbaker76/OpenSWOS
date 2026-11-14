@@ -1,0 +1,158 @@
+{
+ "name": "onlineCustomTeamPrompt",
+ "comment": "TEAM TRAINING's CHOOSE TEAM: USE OF ONLINE CUSTOM TEAM -- SWOS 2020's chooseTeam_OnSelect prompt (its continue/abort prompt's look), YES then MY CUSTOM TEAMS; handlers practice.<name>.",
+ "source": {
+  "project": "swos-2020",
+  "file": "src/game.cpp chooseTeam_OnSelect",
+  "commit": "df38d20"
+ },
+ "menu_flags": {
+  "dos_redraw": true
+ },
+ "onInit": null,
+ "onReturn": null,
+ "onDraw": null,
+ "defaultEntry": 4,
+ "exports": {},
+ "items": [
+  {
+   "kind": "entry",
+   "name": "header",
+   "coords": {
+    "x": 75,
+    "y": 0,
+    "w": 153,
+    "h": 16
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "USE OF ONLINE CUSTOM TEAM"
+    },
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "panel",
+   "coords": {
+    "x": 47,
+    "y": 50,
+    "w": 209,
+    "h": 39
+   },
+   "commands": [
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 4
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "msg0",
+   "coords": {
+    "x": 47,
+    "y": 58,
+    "w": 209,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "DO YOU WANT TO USE ONE OF YOUR"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "msg1",
+   "coords": {
+    "x": 47,
+    "y": 67,
+    "w": 209,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "ONLINE CUSTOM TEAMS?"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "yes",
+   "coords": {
+    "x": 102,
+    "y": 163,
+    "w": 100,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "YES"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": 5
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.ctYes"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "no",
+   "coords": {
+    "x": 102,
+    "y": 185,
+    "w": 100,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "NO"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": 4,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "practice.ctNo"
+    }
+   ]
+  }
+ ]
+}

@@ -26,6 +26,7 @@
  */
 #include "mod_api.h"
 #include "game_types.h"
+#include "endian_helpers.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -255,6 +256,7 @@ static int32_t shootout_turn(const ModShootout *so)
 #include "gfx.h"
 #include "mod_hudbox.h"         /* HudBox_ShadeChannel */
 #include "platform_sdl.h"       /* Platform_FrameShown, Platform_PaletteRgb, Platform_NowMs */
+#include "custom_team.h"        /* MY CUSTOM TEAMS for TEAM TRAINING (tr_own_team) */
 
 /* ---- its pictures (SWOS 2020's PixelmapAndStrings.h, verbatim; the palette indices as there) ---- */
 static const char *const kMarkCheck[11] = {
@@ -1015,47 +1017,63 @@ static int32_t drill_apply(int8_t d)
  * top left, 10 in and 20 down, on a darkened box -- its lines in colour 249, each player a pixel in
  * his shirt's colour (team 2's shorts' when the shirts are the same), the ball in colour 3. */
 static int32_t s_radarDrawn;            /* (the training test counts them) */
-static void radar_drawn(void)
+static HudBox  s_radarBox;              /* drawn at the present (mod_hudbox.h): over the scroll, and the
+                                         * grass under it shaded as SWOS 2020's darkened box -- it was
+                                         * index + 128 in the frame, near black here (Playa) */
+enum { kRadarF = 10, kRadarX = 10, kRadarY = 20, kRadarW = 672 / kRadarF + 1, kRadarH = 898 / kRadarF + 1 };
+
+/* The radar's lines and dots at its own (0, 0) (the box's scratch frame). */
+static void radar_contents(void *ctx)
 {
-    enum { F = 10, GX = 10, GY = 20 };
+    enum { F = kRadarF };
     ModPlayer pl[22];
     ModBall ball;
     int32_t c1 = 0, c2 = 0, shorts2 = 0;
-    if (!s_training || !ModApi_ModMatch("practice") || ModApi_InReplay() ||
-        !ModApi_SettingInt("practice", "radar", 1) || !(s_fb = ModApi_Frame(&s_stride)))
-        return;
-    ModApi_ScreenSize(&s_w, &s_h);
+    (void)ctx;
+    s_fb = ModApi_Frame(&s_stride);
+    s_w = kRadarW;
+    s_h = kRadarH;
     ModApi_MatchKit(0, NULL, &c1, NULL, NULL);
     ModApi_MatchKit(1, NULL, &c2, NULL, &shorts2);
     if (c1 == c2)
         c2 = shorts2;
-    /* drawDarkenRect (inclusive): 672 x 898 world */
-    for (int32_t y = GY; y <= GY + 898 / F; y++)
-        for (int32_t x = GX; x <= GX + 672 / F; x++)
-            if (x < s_w && y < s_h && s_fb[y * s_stride + x] < 128)
-                s_fb[y * s_stride + x] += 128;
     /* the lines: the touchlines' box, the half way line, the penalty areas */
-    const int32_t bx = 81 / F + GX, by = 129 / F + GY, bw = 510 / F, bh = 641 / F;
+    const int32_t bx = 81 / F, by = 129 / F, bw = 510 / F, bh = 641 / F;
     fill(bx, by, bx + bw - 1, by, 249);
     fill(bx, by + bh - 1, bx + bw - 1, by + bh - 1, 249);
     fill(bx, by, bx, by + bh - 1, 249);
     fill(bx + bw - 1, by, bx + bw - 1, by + bh - 1, 249);
-    fill(bx, 449 / F + GY, bx + bw - 1, 449 / F + GY, 249);
+    fill(bx, 449 / F, bx + bw - 1, 449 / F, 249);
     static const int16_t kArea[2] = { 216, 682 };
     for (int32_t a = 0; a < 2; a++) {
-        const int32_t ly = kArea[a] / F + GY, top = (a ? 682 : 129) / F + GY;
-        fill(193 / F + GX, ly, 193 / F + GX + 286 / F - 1, ly, 249);
-        fill(193 / F + GX, top, 193 / F + GX, top + 88 / F - 1, 249);
-        fill(478 / F + GX, top, 478 / F + GX, top + 88 / F - 1, 249);
+        const int32_t ly = kArea[a] / F, top = (a ? 682 : 129) / F;
+        fill(193 / F, ly, 193 / F + 286 / F - 1, ly, 249);
+        fill(193 / F, top, 193 / F, top + 88 / F - 1, 249);
+        fill(478 / F, top, 478 / F, top + 88 / F - 1, 249);
     }
     const int32_t n = ModApi_Players(pl, 22);
     for (int32_t i = 0; i < n; i++)
         if (pl[i].onPitch)
-            put(pl[i].x / F + GX, pl[i].y / F + GY, (uint8_t)(pl[i].team ? c2 : c1));
+            put(pl[i].x / F, pl[i].y / F, (uint8_t)(pl[i].team ? c2 : c1));
     if (ModApi_Ball(&ball) && ball.x <= 672)
-        put(ball.x / F + GX, ball.y / F + GY, 3);
+        put(ball.x / F, ball.y / F, 3);
+}
+
+/* RADAR IN TEAM TRAINING's box, drawn each match frame of the training (its darkened box
+ * drawDarkenRect, inclusive: 672 x 898 world a tenth of its size, 10 in and 20 down). */
+static void radar_drawn(void)
+{
+    if (!s_training || !ModApi_ModMatch("practice") || ModApi_InReplay() ||
+        !ModApi_SettingInt("practice", "radar", 1)) {
+        HudBox_Off(&s_radarBox);
+        return;
+    }
+    HudBox_Draw(&s_radarBox, kRadarX, kRadarY, kRadarW, kRadarH, HUDBOX_SHADE, 0, 0, 0, radar_contents, NULL);
     s_radarDrawn++;
 }
+
+static void radar_present(void) { HudBox_Present(&s_radarBox); }
+static void radar_kept(void) { HudBox_Kept(&s_radarBox); }
 #endif
 
 #ifdef SWOS_SDL_BUILD
@@ -1063,6 +1081,18 @@ static void practice_match_drawn(void)
 {
     shootout_drawn();
     radar_drawn();
+}
+
+static void practice_present(void)
+{
+    band_present();
+    radar_present();
+}
+
+static void practice_kept(void)
+{
+    band_kept();
+    radar_kept();
 }
 #endif
 
@@ -1081,6 +1111,55 @@ static void training_test_menu(void)
     practice_training();
 }
 
+/* SWOS 2020's training opponents are its preconfigured BEGINNER .. MASTER teams (game.cpp: tno 1548,
+ * 1567, 1570, 1569, 1557 from ITS TEAM.072, which put them over those PC custom clubs): the speedrun
+ * mod's teams/SPEEDRUN.EDT holds them as its file has them. 1 when that file had the one asked for. */
+static int32_t tr_opponent(uint16_t global, TeamFileEx *out)
+{
+    static uint8_t *s_file;
+    static uint32_t s_size;
+    if (!s_file) {
+        char path[1100];
+        snprintf(path, sizeof path, "%s/teams/SPEEDRUN.EDT", ModApi_ModDir("speedrun"));
+        s_file = (uint8_t *)ModApi_ReadFile(path, &s_size);
+        if (!s_file)
+            return 0;
+    }
+    const uint32_t count = s_size >= 2 ? ((uint32_t)s_file[0] << 8) | s_file[1] : 0;
+    for (uint32_t k = 0; k < count && 2 + (k + 1) * sizeof(TeamFileEx) <= s_size; k++) {
+        const uint8_t *rec = s_file + 2 + k * sizeof(TeamFileEx);
+        if ((uint16_t)(((uint16_t)rec[2] << 8) | rec[3]) == global) {
+            memcpy(out, rec, sizeof *out);
+            out->team.globalTeamNumber = (int16_t)BE16_TO_HOST((uint16_t)out->team.globalTeamNumber);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+#ifdef SWOS_SDL_BUILD
+/* CHOOSE TEAM as SWOS 2020's chooseTeam_OnSelect: a custom team of the player's own (its online
+ * custom teams there, MY CUSTOM TEAMS here) asked for first -- USE OF ONLINE CUSTOM TEAM, then the
+ * slots; NO, the slots left, or none at all: the team screen. 1 a custom team is in *out. */
+static int32_t s_ctYes;
+static void ct_yes(void) { s_ctYes = 1; SetExitMenuFlag(); }
+static void ct_no(void) { s_ctYes = 0; SetExitMenuFlag(); }
+
+static int32_t tr_own_team(TeamFileEx *out)
+{
+    TeamFileEx probe;
+    int32_t any = 0;
+    for (int32_t slot = 0; slot < CUSTOM_TEAM_SLOTS && !any; slot++)
+        any = CustomTeam_Load(slot, &probe);
+    if (!any)
+        return 0;
+    s_ctYes = 0;                        /* (its look: practice/onlineCustomTeamPrompt, SWOS 2020's prompt) */
+    if (ModApi_ShowMenu("practice/onlineCustomTeamPrompt") != 0 || !s_ctYes)
+        return 0;
+    return CustomTeam_Pick(out) == 1;
+}
+#endif
+
 static void practice_training(void)
 {
     static TeamFileEx teams[2];
@@ -1096,6 +1175,9 @@ static void practice_training(void)
         if (s_trChoice < 0)
             return;
         if (s_trChoice == 0) {
+#ifdef SWOS_SDL_BUILD
+            if (!tr_own_team(&teams[0]))
+#endif
             if (!ModApi_ChooseOneTeam("TEAM TRAINING", "START TEAM TRAINING", &teams[0]))
                 continue;               /* (back to the settings) */
         } else if (!random_pair(GRP_ALL, teams)) {
@@ -1104,7 +1186,11 @@ static void practice_training(void)
         ModApi_DefaultSetup(&setup);
         setup.teamData[0] = &teams[0];
         const int32_t skill = s_trSkill == 5 ? (int32_t)st_rand(5) : s_trSkill;
-        setup.team[1] = (uint16_t)(72 << 8 | kSkillTeam[skill]);
+        static const uint16_t kSkillGlobal[5] = { 1548, 1567, 1570, 1569, 1557 };
+        if (tr_opponent(kSkillGlobal[skill], &teams[1]))
+            setup.teamData[1] = &teams[1];  /* (SWOS 2020's own BEGINNER .. MASTER) */
+        else
+            setup.team[1] = (uint16_t)(72 << 8 | kSkillTeam[skill]);   /* (the PC's, without the file) */
         setup.side[0] = s_trTest ? MODSIDE_CPU : MODSIDE_PLAYER1;
         setup.side[1] = MODSIDE_CPU;
         setup.clockStopped = 1;
@@ -1116,7 +1202,11 @@ static void practice_training(void)
         setup.stadium = 0;                  /* (g_SkipStadiumMenu) */
         setup.replayMenu = 0;
         setup.playMatchScreen = s_trTest ? 0 : 1;     /* (the test has no player to leave it) */
-        setup.hideHud = MODHUD_RESULT;
+        /* SWOS 2020's training: no result, no scoreboard and no clock (its showTeamIcons returns for
+         * g_TrainingMode), on the training pitch -- pitch 6's art -- whatever the PITCH TYPE (Playa) */
+        setup.hideHud = MODHUD_RESULT | MODHUD_SCOREBOARD;
+        setup.hideClock = 1;
+        setup.pitchNumber = 6;
         setup.name = "team training";
         for (int32_t t = 0; t < 2; t++)
             setup.linesOut[t] = (uint8_t)((s_trLine[t][0] ? 0 : MODLINE_DEFENCE) | (s_trLine[t][1] ? 0 : MODLINE_MIDFIELD) |
@@ -1177,6 +1267,9 @@ static void practice_init(void)
         { "teamTrainingControlsMenu_OnInit", tr_controls_init },
         { "teamTrainingControlsMenu_OnDraw", tr_controls_draw },
         { "exit", practice_exit },
+#ifdef SWOS_SDL_BUILD
+        { "ctYes", ct_yes }, { "ctNo", ct_no },
+#endif
     };
     ModApi_RegisterHandlers("practice", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     ModApi_AddEntry(MODPOINT_MODES, "practice", "practice", practice_open);
@@ -1190,8 +1283,8 @@ const ModDef ModDef_practice = {
     .matchFrame = training_frame,
 #ifdef SWOS_SDL_BUILD
     .matchDrawn = practice_match_drawn,
-    .frameUnder = band_present,         /* (the board's band, shaded at the present) */
-    .frameKept = band_kept,
+    .frameUnder = practice_present,     /* (the board's band and the radar, at the present) */
+    .frameKept = practice_kept,
     .menuDrawn = shootout_menu_drawn,
     .playerRowDrawn = shootout_row,
     .matchKey = training_key,
