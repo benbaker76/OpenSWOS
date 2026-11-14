@@ -441,6 +441,30 @@ static void *cup_pick_ptr(int32_t id)
          : (void *)_careerContests[id].competitionCopy;
 }
 
+/* [career] exact_continuation (SWOS.ini, the settings' RULES page; off by default, as the original
+ * and SWOS 2020 keep no random state): a career save also keeps the first random generator and the
+ * game's clocks, so that a loaded career plays on exactly as it would have. */
+static int32_t s_exactContinuation, s_exactLoaded, s_clockPending;
+static uint16_t s_pendingTick, s_pendingGameTick, s_menuTick, s_menuGameTick;
+
+/* CareerOverInit / ContestMenuInit (menus.c), every time a career menu opens: the clocks as they
+ * are there are the ones a save keeps (the frames between the menu and the save are the save's);
+ * the first career menu after a load gets the saved ones back. */
+void SaveJson_ApplyPendingClock(void)
+{
+    extern volatile uint16_t _currentGameTick, _currentTick;
+    if (s_clockPending) {
+        s_clockPending = 0;
+        _currentTick = s_pendingTick;
+        _currentGameTick = s_pendingGameTick;
+    }
+    s_menuTick = _currentTick;
+    s_menuGameTick = _currentGameTick;
+}
+void    SaveJson_SetExactContinuation(int32_t on) { s_exactContinuation = on != 0; }
+int32_t SaveJson_ExactContinuation(void) { return s_exactContinuation; }
+int32_t SaveJson_ExactStateLoaded(void) { return s_exactLoaded; }
+
 /* Rebuild_CompetitionSlotPointers (career_init.c): the loaded national coach's pick list, 1; else 0
  * (an older save: the list drawn again). */
 int32_t SaveJson_RestoreCupPickList(void)
@@ -7520,6 +7544,16 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "gk_seed", (long)(int32_t)g_gkInjurySeed);    /* (signed: the Amiga's long) */
     }
 
+    /* [career] exact_continuation: the state a career needs to go on exactly (the second random
+     * generator is saved already: seed_2 ...). Only with the setting on: a save is otherwise as before. */
+    if (s_exactContinuation) {
+        extern uint8_t _seed, _randXorIndex, _randXorKey;
+        extern volatile uint16_t _currentGameTick, _currentTick;
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "exact_continuation",
+                     "seed", (int)_seed, "rand_xor_index", (int)_randXorIndex, "rand_xor_key", (int)_randXorKey,
+                     "current_tick", (int)s_menuTick, "current_game_tick", (int)s_menuGameTick);
+    }
+
     /* A national coach's cup pick list (his season's five competitions: the draw's friendly /
      * invitation / tour cups and his qualifying group), as careerContests indices -- -1 / -2 the
      * table's ends, -3 none. Without it a load drew them again (Career_SetCupPickList_ForSelected-
@@ -8538,6 +8572,31 @@ static void apply_semantic_load(const char *src, int src_size)
                 g_gkInjurySeed = (uint32_t)(int32_t)v;
         }
         WorldRules_CareerLoaded(have, bits);
+    }
+
+    /* [career] exact_continuation (see the writer): restored only with the setting on. */
+    s_exactLoaded = 0;
+    if (s_exactContinuation) {
+        const char *ec = NULL;
+        int eclen = 0;
+        if (mjson_find(src, src_size, "$.exact_continuation", &ec, &eclen) == MJSON_TOK_OBJECT) {
+            extern uint8_t _seed, _randXorIndex, _randXorKey;
+            extern volatile uint16_t _currentGameTick, _currentTick;
+            long a = 0, b = 0, c = 0, d = 0, e = 0;
+            if (mjson_get_long(ec, eclen, "$.seed", &a) > 0 && mjson_get_long(ec, eclen, "$.rand_xor_index", &b) > 0 &&
+                mjson_get_long(ec, eclen, "$.rand_xor_key", &c) > 0 && mjson_get_long(ec, eclen, "$.current_tick", &d) > 0 &&
+                mjson_get_long(ec, eclen, "$.current_game_tick", &e) > 0) {
+                _seed = (uint8_t)a;
+                _randXorIndex = (uint8_t)b;
+                _randXorKey = (uint8_t)c;
+                /* the clocks at the career's menu the save was made at (SaveJson_ApplyPendingClock):
+                 * the frames a load takes to get there are not the career's */
+                s_pendingTick = (uint16_t)d;
+                s_pendingGameTick = (uint16_t)e;
+                s_clockPending = 1;
+                s_exactLoaded = 1;
+            }
+        }
     }
 
     /* A national coach's cup pick list (see the writer): kept for Rebuild_CompetitionSlotPointers. */

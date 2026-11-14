@@ -635,6 +635,7 @@ int main(int argc, char **argv)
     opts.chat_scale = 0;          /* [chat] scale: 1x (SWOS 2020's) */
     opts.chat_auto_close = 5;     /* [chat] auto_close: 5 s (SWOS 2020's AFTER 5 SECONDS) */
     opts.no_injuries_cards = 0;   /* [testing] no_injuries_cards: the real rules unless asked (test_rules.h) */
+    opts.career_exact_continuation = 0;   /* [career] exact_continuation: off, as the original */
 #ifdef SWOS_TEST_RULES
     opts.reports = 1;             /* a tester build: match reports come back to us */
 #else
@@ -1374,6 +1375,11 @@ int main(int argc, char **argv)
     /* The testers' rule, for offline play (include/test_rules.h). Said in the log: a
      * report from a career played without injuries is read differently. */
     TestRules_SetSetting(opts.no_injuries_cards);
+    {   /* [career] exact_continuation (save_format_json.c); SWOS_EXACT_CONTINUATION=0/1 for one run */
+        extern void SaveJson_SetExactContinuation(int32_t on);
+        const char *ec = getenv("SWOS_EXACT_CONTINUATION");
+        SaveJson_SetExactContinuation(ec ? ec[0] == '1' : opts.career_exact_continuation);
+    }
     {   /* ... or from the environment, for one run (the harness drives careers with it;
          * the name is the old compile-time flag's, which the docs and scripts still use) */
         const char *e = getenv("SWOS_TEST_NO_INJURIES_CARDS");
