@@ -61,6 +61,10 @@
  * host. "" for both hides the World row (a fork that does not offer it). */
 #define PROJECT_WORLD_PACKAGE_URL "https://openswos.net/dlc/OpenSWOS-World-2627.zip"
 #define PROJECT_WORLD_CREDITS_URL "https://openswos.net/dlc/OpenSWOS-World-2627.txt"
+/* The same for Europe 1984-85 (DaniSwos's database: docs/WORLD_2026_27.md §6g). "" hides its link
+ * (the Worlds row stays while either world has one). */
+#define PROJECT_WORLD8485_PACKAGE_URL "https://openswos.net/dlc/OpenSWOS-World-8485.zip"
+#define PROJECT_WORLD8485_CREDITS_URL "https://openswos.net/dlc/OpenSWOS-World-8485.txt"
 
 /* SWOS 2020's online-menu entries for features this project will not have -- the log-in's NEWS,
  * MULTIPLAYER SETTINGS' commentary and chat rows, JOIN AMIGA SUPER LEAGUE, JOIN DISCORD, HELP

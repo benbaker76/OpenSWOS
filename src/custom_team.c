@@ -36,6 +36,8 @@
 #include <strings.h>
 
 #include "custom_team.h"
+#include "team_packs.h"
+#include "world_packs.h"
 #include "project_identity.h"   /* PROJECT_TEAM_FORMAT */
 #include "endian_helpers.h"
 #include "kit_art.h"
@@ -156,6 +158,20 @@ static const TeamDbEntry *base_with_players(const TeamFileEx *team, uint8_t is[k
     for (i = 0; i < n; i++)
         if ((!canonical || bases[i]->canonical) && match_players(team, &bases[i]->team, is))
             return bases[i];
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    /* Another world's club the other game numbered by its session (include/world_packs.h): the
+     * same club here, found by its checksum, at this session's number. */
+    if (team->team.countryNumber >= TEAMPACK_FIRST && team->team.countryNumber <= TEAMPACK_LAST &&
+        !TeamPacks_File(team->team.countryNumber)) {
+        char sum[TEAM_CHECKSUM_TEXT];
+        int32_t number, ordinal;
+        const TeamDbEntry *e;
+        TeamDb_Checksum(team, sum);
+        if (WorldPacks_FindTeam(sum, &number, &ordinal) && (e = TeamDb_Team(number, ordinal)) != NULL &&
+            (!canonical || e->canonical) && match_players(team, &e->team, is))
+            return e;
+    }
+#endif
     return NULL;
 }
 

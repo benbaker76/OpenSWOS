@@ -108,6 +108,14 @@ static int32_t level_of(const LeagueGroups *lg, int32_t division)
 static int32_t build(const WorldCup *c, TeamId *out)
 {
     const LeagueGroups *lg = LeagueGroups_ForCountry(c->country);
+    if (!lg) {
+        /* a classic world's country without groups (Europe 1984-85): its clubs, a division its
+         * level -- unless a cup-only club plays (255): the Mod keeps that cup's real list */
+        lg = World_CupClubs(c->country);
+        for (int32_t g = 0; lg && g < c->groups; g++)
+            if (c->quota[g][0] == 255)
+                lg = 0;
+    }
     const int32_t ranked = g_worldCups.placesCountry == c->country &&
                            (uint8_t)(g_worldCups.placesSeason + 1) == g_worldCups.seasons;
     static uint16_t slot[WORLD_SLOTS];          /* (slots: include/world.h) */
