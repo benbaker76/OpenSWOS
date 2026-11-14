@@ -2770,7 +2770,6 @@ void EditTeamsChangePlayerFace(MenuEntry *entry)
     uint8_t posAndFace = pf->positionAndFace;
     uint16_t faceIdx = (posAndFace & PF_FACE_MASK) >> 3;
 
-#ifdef SWOS_SDL_BUILD
     /* The SWOS 96/97 Mod 4.1's ten looks (Marco; its edteam.py): white, ginger, black, dark blond,
      * then receding, shaved and white hair, each light and dark (player_looks.c). A 22-letter
      * name has no room for a look (byte 25 is its end): the four faces. */
@@ -2785,7 +2784,6 @@ void EditTeamsChangePlayerFace(MenuEntry *entry)
         CallDrawMenuItem(entry);
         return;
     }
-#endif
     faceIdx++;
     if (faceIdx == 4)                   /* (0..3: face 3 black with blond hair, player_face3.c) */
         faceIdx = 0;
