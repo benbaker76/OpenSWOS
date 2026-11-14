@@ -103,7 +103,9 @@ void World_InstallBaked(void)
         return;
     case WORLD_8485:
         WorldData8485_InstallBaked();
-        WorldNationals_Install();       /* (its national competitions: world_nationals.c) */
+#ifndef SWOS_SDL_BUILD
+        WorldNationals_Install();       /* (its national competitions: world_nationals.c; the SDL's after its JSON) */
+#endif
         return;
     default:
         break;
