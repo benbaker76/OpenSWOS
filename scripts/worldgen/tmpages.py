@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""worldgen/tmpages.py -- Transfermarkt pages SAVED FROM A BROWSER, parsed (docs/WORLD_DATAGEN.md §2b).
+"""worldgen/tmpages.py -- Transfermarkt pages SAVED FROM A BROWSER, parsed (docs/WORLD_DATAGEN.md §4).
 
 transfermarkt.com answers a script with a CAPTCHA, so worldgen never fetches it: the owner opens
 the pages in his own browser and saves them (Ctrl+S, "Webpage, HTML only" or "complete") into one
@@ -667,6 +667,22 @@ def tm_country_names(pages):
     return names
 
 
+def _days(a, b):
+    try:
+        return (datetime.date.fromisoformat(a) - datetime.date.fromisoformat(b)).days
+    except (TypeError, ValueError):
+        return 0
+
+
+def _better(new, old, rank):
+    d = _days(stamp(new), stamp(old))
+    if rank[new['kind']] < rank[old['kind']]:
+        return d >= -7
+    if rank[new['kind']] > rank[old['kind']]:
+        return d > 7
+    return d > 0
+
+
 class Pages:
     """A folder of saved pages, as the generator reads it: squads, coaches, tables per club id."""
 
@@ -679,7 +695,8 @@ class Pages:
         best = {}
         for (k, i, s), pg in self.pages.items():
             if k in rank and (season is None or s in (None, str(season))):
-                if i not in best or rank[k] < rank[best[i]['kind']]:
+                # the detailed squad wins, unless the club page is more than a week newer
+                if i not in best or _better(pg, best[i], rank):
                     best[i] = pg
             if k == 'staff':
                 self.coaches[i] = pg.get('coach')
