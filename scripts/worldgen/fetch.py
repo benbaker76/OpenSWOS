@@ -45,12 +45,13 @@ HEADERS_JSON = dict(HEADERS_HTML, Accept='application/json, text/plain, */*')
 HEADERS_JSON.pop('Upgrade-Insecure-Requests')
 
 # Wikimedia's servers want a client that says what it is (their User-Agent policy: a browser
-# string from a script is refused with 403), so they get the project's own, generic one.
+# string from a script is refused with 403), and so does the Internet Archive's Wayback Machine
+# (a browser string from a script gets 429), so they get the project's own, generic one.
 TOOL_UA = 'OpenSWOS-worldgen/1.0 (https://github.com/benbaker76/OpenSWOS; football game data study)'
 TOOL_UA_HOSTS = ('query.wikidata.org', 'www.wikidata.org', 'en.wikipedia.org', 'commons.wikimedia.org',
-                 'upload.wikimedia.org')
+                 'upload.wikimedia.org', 'web.archive.org')
 
-DELAY = {'www.transfermarkt.com': (4.0, 7.0)}          # seconds between two requests to one host
+DELAY = {'www.transfermarkt.com': (4.0, 7.0), 'web.archive.org': (5.0, 7.0)}        # seconds between two requests to one host
 DEFAULT_DELAY = (3.0, 3.5)
 
 _jar = http.cookiejar.CookieJar()
