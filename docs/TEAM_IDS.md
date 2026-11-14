@@ -110,6 +110,19 @@ should not stop a match the matchmaker already arranged. It does not open a hole
 use — a player can silence their *own* game's question, not the other game's. A direct-IP
 match (the `p2p` menu) has no server and asks nobody; the local checks of §4 still hold.
 
+**The players 17..** (2026-11-13, docs/WORLD_2026_27.md §6j). A World 2026-27 long bench brings a
+club's players 17.. (its `"extra_players"`) on, and the checksum above is of its sixteen. Once the
+teams' answer is in, a game whose teams have them asks again: the same packet with byte 4 =
+`TEAMCHECK_PROTOCOL_EXTRAS` (2) and each checksum the one of the team's players 17.. in order
+(`TeamDb_ChecksumPlayers`, `SquadExtras_Checksum`). The server checks them against
+`TeamRegistryExtras.inc` (written beside the list by `--registry --worlds`): OK; CHANGED -- refused as
+above (`[lobby] team check: player N's X (its players 17..) is REFUSED`); UNKNOWN for a list without
+them -- unverified, not refused. A server from before reads only protocol 1 and drops the packet:
+after two tries (~0.8 s) the players 17.. are played unverified (`no answer about the players 17..
+(an older server)`). `HOST_ENV=SWOS_TEAMCHECK_CORRUPT_EXTRAS=1 TEAMCHECK_REFUSE=1 SWOS_WORLD=2627
+HOST_TEAM=14:00 JOIN_TEAM=14:01 scripts/relay_test.sh` proves a refusal; `SERVER=<an older
+swos-matchmaker>` the old server's case.
+
 `scripts/relay_test.sh` requires the server to vouch for both teams on both sides of every
 match it plays. `HOST_ENV="SWOS_TEAMCHECK_CORRUPT=1" TEAMCHECK_REFUSE=1 scripts/relay_test.sh`
 asks about the other player's team with a checksum that is not its data's, and requires the

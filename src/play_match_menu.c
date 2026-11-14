@@ -785,7 +785,12 @@ void PlayMatchMenuReinit(void) {
     _pmMenuNumPlayers = 16 - 5 + _maxSubstitutesEntries;
 
     uint16_t np = _numPlayers;
-    if (_playMatchTeam1Ptr != &_currentTeam) {
+    uint16_t frN = 0;
+    if (_playMatchTeam1Ptr != &_currentTeam &&
+        LongBench_FrOrder(PACK_BE_U16(_playMatchTeam1Ptr->team.countryNumber, _playMatchTeam1Ptr->team.teamOrdinal),
+                          &frN)) {
+        np = frN;                       /* (a friendly's long bench: 16 + its players 17..) */
+    } else if (_playMatchTeam1Ptr != &_currentTeam) {
         if (_selTeamNumber == 0xFFFF) {
             np = 16;
         } else {
@@ -992,10 +997,14 @@ void PlayMatchMenuSwapPlayers(TeamFileEx *team, int16_t d3, int16_t d4) {
             pn = (uint8_t *)_currentMatchPlayers;
         } else {
             pn = team->team.playerNumbers;
+            if (LongBench_FrSwap(tNum, d3, d4))     /* (a friendly's long bench: its own order) */
+                pn = NULL;
         }
+        if (pn) {
         uint8_t t = pn[(uint16_t)d4];
         pn[(uint16_t)d4] = pn[(uint16_t)d3];
         pn[(uint16_t)d3] = t;
+        }
     }
 
     if (_trainingGame && !_is_A_team) {

@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "long_bench.h"
 #include "shirt_edit.h"
 #include "squad_extras.h"
 #include "teams.h"
@@ -892,6 +893,10 @@ void RotatePlayersLeft(TeamFileEx *team, uint16_t maxSubs)
         arr = _currentMatchPlayers;
         count = (int16_t)*(uint16_t *)_careerNumPlayers;
     } else {
+        /* (a friendly's long bench: its own order, places 17.. included -- long_bench.c) */
+        if (LongBench_FrRotate(PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal),
+                               (uint16_t)(maxSubs + 11)))
+            return;
         arr = team->team.playerNumbers;
         count = 0x10;
     }
@@ -1055,6 +1060,11 @@ uint8_t *GetPlayer(uint16_t teamNumber, uint16_t playerFileIndex)
             uint8_t *x = SquadExtras_GetPlayer(teamNumber, playerFileIndex);
             if (x)
                 return x;
+            {   /* (a friendly's: its long bench's players 17.., long_bench.c's own order) */
+                PlayerFile *p = SquadExtras_BenchRecord(teamNumber, playerFileIndex);
+                if (p)
+                    return (uint8_t *)p - sizeof(TeamFile);
+            }
         }
         teamBase = (uint8_t *)GetTeamPointer(teamNumber);
     }
@@ -1082,12 +1092,18 @@ uint8_t *GetPlayerAtIndex(uint16_t teamNumber, uint16_t ordinal)
     } else if (teamNumber == _selTeamNumber) {
         fileIndex = (uint16_t)_currentMatchPlayers[ordinal];
     } else {
-        if (ordinal >= 16) {
-            _panicReasonCode = 0x1146;
-            PanicHaltLoop();
+        uint16_t n = 0;
+        const uint8_t *order = LongBench_FrOrder(teamNumber, &n);  /* (a friendly's long bench: its own order) */
+        if (order && ordinal < n) {
+            fileIndex = order[ordinal];
+        } else {
+            if (ordinal >= 16) {
+                _panicReasonCode = 0x1146;
+                PanicHaltLoop();
+            }
+            TeamFileEx *teamPtr = GetTeamPointer(teamNumber);
+            fileIndex = (uint16_t)teamPtr->team.playerNumbers[ordinal];
         }
-        TeamFileEx *teamPtr = GetTeamPointer(teamNumber);
-        fileIndex = (uint16_t)teamPtr->team.playerNumbers[ordinal];
     }
 
     _cGetPlayerAtIndexFileIdx = fileIndex;
