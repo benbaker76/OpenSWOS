@@ -66,6 +66,13 @@ void     LongBench_MatchStart(const TeamFile *team1, const TeamFile *team2, int1
  * matches -- a lobby's state sent at START among them -- the state is the game's. */
 void     LongBench_Prepare(const TeamFile *team1, const TeamFile *team2);
 void     LongBench_MatchEnd(void);
+/* A friendly club's own order of its places (16 + its players 17..: world friendlies and DIY
+ * matches with a long bench, offline): active for the two teams of the pre-match screen / the
+ * kick-off; GetPlayerAtIndex reads it, the pre-match screen swaps and rotates it. NULL: none. */
+void           LongBench_FrActivate(const TeamFile *team1, const TeamFile *team2, int32_t on);
+const uint8_t *LongBench_FrOrder(uint16_t team, uint16_t *count);
+int32_t        LongBench_FrSwap(uint16_t team, int16_t a, int16_t b);
+int32_t        LongBench_FrRotate(uint16_t team, uint16_t from);
 /* The pre-match screens' bench for these two teams (ShowPlayMatchMenu): over 5, or 0. */
 uint16_t LongBench_PreMatch(const TeamFile *team1, const TeamFile *team2);
 /* The places of each in-match team: 16 (the game's), or 11 + the bench (17..26). */

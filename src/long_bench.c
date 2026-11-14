@@ -56,6 +56,7 @@ typedef char _lb_pi_check[(sizeof(PlayerInfo) == 61) ? 1 : -1];
 typedef char _lb_rp_check[(sizeof(PlayerInfo) * 2 * LB_EXTRA_PLACES + 2 == LB_REPLAY_BYTES) ? 1 : -1];
 
 static uint16_t s_places = LB_GAME_PLACES;
+static uint16_t s_frActive[2] = { 0xFFFF, 0xFFFF };    /* (a friendly club's own order: below) */
 static int32_t  s_quiet;
 static uint8_t  s_named, s_et;
 static uint8_t  s_kickoff[2][LB_EXTRA_PLACES * 61];
@@ -214,6 +215,7 @@ uint16_t LongBench_PreMatch(const TeamFile *team1, const TeamFile *team2)
 {
     uint8_t et = 0;
     const int32_t n = match_bench(team1, team2, &et);
+    LongBench_FrActivate(team1, team2, n > 5);
     return (uint16_t)(n > 5 ? (n > LB_MAX_SUBS ? LB_MAX_SUBS : n) : 0);
 }
 
@@ -235,6 +237,7 @@ void LongBench_MatchEnd(void)
 {
     s_places = LB_GAME_PLACES;      /* (between matches the state is the game's: a lobby's too) */
     s_named = s_et = 0;
+    s_frActive[0] = s_frActive[1] = 0xFFFF;
 }
 
 void LongBench_MatchStart(const TeamFile *team1, const TeamFile *team2, int16_t *minSubs, int16_t *maxSubs)
@@ -243,6 +246,21 @@ void LongBench_MatchStart(const TeamFile *team1, const TeamFile *team2, int16_t 
     int32_t named = match_bench(team1, team2, &et);
     s_places = LB_GAME_PLACES;
     s_named = s_et = 0;
+    LongBench_FrActivate(team1, team2, named > 5);
+#ifdef SWOS_SDL_BUILD
+    {   /* (test: SWOS_TEST_FRSWAP=a:b -- the top club's places a and b swapped, as the pre-match
+         *  screen would, before the in-match teams are built) */
+        static int32_t done;
+        const char *e = getenv("SWOS_TEST_FRSWAP");
+        int a = -1, b = -1;
+        if (e && !done && sscanf(e, "%d:%d", &a, &b) == 2 && team1) {
+            const uint16_t t = PACK_BE_U16(team1->countryNumber, team1->teamOrdinal);
+            done = 1;
+            fprintf(stderr, "[bench] test: places %d and %d of %.16s swapped: %s\n", a + 1, b + 1,
+                    (const char *)team1->teamName, LongBench_FrSwap(t, (int16_t)a, (int16_t)b) ? "done" : "NO ORDER");
+        }
+    }
+#endif
     if (named > LB_MAX_SUBS)
         named = LB_MAX_SUBS;
     if (named > 5) {
@@ -288,8 +306,20 @@ void LongBench_InitPlace(TeamFileEx *team, TeamGame *tg, uint16_t place)
         }
     } else {
         /* any other club: its players 17.. still there, in order */
-        uint16_t at = 0;
-        PlayerFile *p = SquadExtras_BenchPlayer(teamNum, (int32_t)(place - LB_GAME_PLACES), &at);
+        uint16_t at = 0, n = 0;
+        const uint8_t *order = LongBench_FrOrder(teamNum, &n);
+        PlayerFile *p = NULL;
+        if (order) {                    /* (a friendly club's own order: the pre-match screen's) */
+            if (place < n) {
+                at = order[place];
+                if (at < LB_GAME_PLACES) {
+                    base = GetPlayer(teamNum, at);
+                    index = at;
+                } else
+                    p = SquadExtras_BenchRecord(teamNum, at);
+            }
+        } else
+            p = SquadExtras_BenchPlayer(teamNum, (int32_t)(place - LB_GAME_PLACES), &at);
         if (p) {
             base = (uint8_t *)p - PF_OFF;
             index = at;
@@ -330,6 +360,129 @@ void LongBench_SaveKickOff(void)
 void LongBench_RestoreKickOff(void)
 {
     memcpy(g_lbExtra, s_kickoff, sizeof s_kickoff);
+}
+
+/* ---- a friendly club's own order of its places (the Mod's fr_find, fr_ga, fr_sw_pm) ----
+ * In a World 2026-27 friendly or DIY match with a long bench (offline: online the lobby has no
+ * pre-match screen), a club's places are 16 + its players 17..: 0..15 its record's order
+ * (playerNumbers), then its players 17.. in their data order. The pre-match screen lists them all
+ * (row 17 and the box rotate the places from 17 on), swaps any two, and the kick-off builds the
+ * in-match team in that order. The record keeps its 16 in their new relative order (no index past
+ * 15 in it: a player 17.. among the starters moves the record's next ones up). Four clubs' orders
+ * kept; one whose record was reordered elsewhere starts again from it. */
+#define FR_CLUBS 4
+typedef struct {
+    uint16_t team;
+    uint8_t  valid, n;                  /* n: places (16 + its players 17..) */
+    uint8_t  order[16 + SQX_MAX];       /* place -> file index (0..15 its record's, 16.. its 17..) */
+    uint8_t  rec[16];                   /* the record's playerNumbers as last written */
+} FrOrder;
+static FrOrder  s_fr[FR_CLUBS];
+static uint8_t  s_frNext;
+
+static TeamFileEx *fr_team(uint16_t team)
+{
+    extern TeamFileEx *GetTeamPointer(uint16_t teamId);
+    return GetTeamPointer(team);
+}
+
+static FrOrder *fr_find(uint16_t team)
+{
+    if (team == 0xFFFF || (team != s_frActive[0] && team != s_frActive[1]))
+        return NULL;
+    TeamFileEx *t = fr_team(team);
+    if (!t)
+        return NULL;
+    FrOrder *f = NULL;
+    for (int32_t i = 0; i < FR_CLUBS && !f; i++)
+        if (s_fr[i].valid && s_fr[i].team == team)
+            f = &s_fr[i];
+    if (f && memcmp(f->rec, t->team.playerNumbers, 16) != 0)
+        f->valid = 0;                   /* (reordered elsewhere: from its record again) */
+    if (!f || !f->valid) {
+        if (!f) {
+            f = &s_fr[s_frNext];
+            s_frNext = (uint8_t)((s_frNext + 1) % FR_CLUBS);
+        }
+        memset(f, 0, sizeof *f);
+        f->team = team;
+        memcpy(f->order, t->team.playerNumbers, 16);
+        memcpy(f->rec, t->team.playerNumbers, 16);
+        f->n = 16;
+        uint16_t at;
+        for (int32_t k = 0; f->n < 16 + SQX_MAX && SquadExtras_BenchPlayer(team, k, &at); k++)
+            f->order[f->n++] = (uint8_t)at;
+        f->valid = 1;
+    }
+    return f;
+}
+
+static int32_t fr_eligible(const TeamFile *t)
+{
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    extern int32_t NetplayMatch_Enabled(void);
+    if (!t || World_Current() != WORLD_2627 || NetplayMatch_Enabled() ||
+        (_gameType != GAME_TYPE_NO_GAME && _gameType != GAME_TYPE_DIY) || _trainingGame)
+        return 0;
+    if (t->countryNumber == CN_CUSTOM || (t->countryNumber >= CN_EUROPE && t->countryNumber <= CN_OCEANIA) ||
+        (const void *)t == (const void *)&_careerTeam || CustomTeam_IsEdited((const TeamFileEx *)t))
+        return 0;
+    uint16_t at;
+    return SquadExtras_BenchPlayer(PACK_BE_U16(t->countryNumber, t->teamOrdinal), 0, &at) != NULL;
+#else
+    (void)t;
+    return 0;
+#endif
+}
+
+void LongBench_FrActivate(const TeamFile *team1, const TeamFile *team2, int32_t on)
+{
+    const TeamFile *t[2] = { team1, team2 };
+    for (int32_t i = 0; i < 2; i++)
+        s_frActive[i] = on && fr_eligible(t[i]) ? PACK_BE_U16(t[i]->countryNumber, t[i]->teamOrdinal) : 0xFFFF;
+}
+
+const uint8_t *LongBench_FrOrder(uint16_t team, uint16_t *count)
+{
+    const FrOrder *f = fr_find(team);
+    if (!f)
+        return NULL;
+    *count = f->n;
+    return f->order;
+}
+
+static void fr_write_back(FrOrder *f)
+{
+    TeamFileEx *t = fr_team(f->team);
+    int32_t k = 0;
+    for (int32_t i = 0; i < f->n && k < 16; i++)
+        if (f->order[i] < 16)
+            t->team.playerNumbers[k++] = f->order[i];
+    memcpy(f->rec, t->team.playerNumbers, 16);
+}
+
+int32_t LongBench_FrSwap(uint16_t team, int16_t a, int16_t b)
+{
+    FrOrder *f = fr_find(team);
+    if (!f || a < 0 || b < 0 || a >= f->n || b >= f->n)
+        return 0;
+    const uint8_t t = f->order[a];
+    f->order[a] = f->order[b];
+    f->order[b] = t;
+    fr_write_back(f);
+    return 1;
+}
+
+int32_t LongBench_FrRotate(uint16_t team, uint16_t from)
+{
+    FrOrder *f = fr_find(team);
+    if (!f || from + 1 >= f->n)
+        return f != NULL;
+    const uint8_t first = f->order[from];
+    memmove(&f->order[from], &f->order[from + 1], (size_t)(f->n - from - 1));
+    f->order[f->n - 1] = first;
+    fr_write_back(f);
+    return 1;
 }
 
 /* ---- the two-row dugouts (the Mod's dugout.py, 4.0.6 / 4.1) ----
