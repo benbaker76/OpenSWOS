@@ -12,6 +12,7 @@
 #include "uefa_coef.h"
 #include "world_conti.h"
 #include "world.h"
+#include "world_nationals.h"
 #include "world_europe.h"
 #include "career_eurocups.h"
 #include "career_init.h"
@@ -1130,6 +1131,11 @@ static void setupWorldCupQualifyingGroups(uint16_t **teamListPtr)
         d5--;
     _worldCupQualifyingGroup8Copy[0xD] = (uint8_t)d5;
 
+    /* A classic world: its cycle's European groups, no draw (careerworld.py w_wcqdraw); the other
+     * continents' as the game draws them. */
+    if (WorldNationals_FillWorldCupGroups())
+        goto wc_groups_done;
+
     Career_SortTeamFilePtrsByAvgPlayerPrice(0x50);
     /* Sort leaves a6=teamSortBuffer in the asm — see comment in
      * fillWorldCupQualifyingGroupTeams. Re-point teamListPtr at the
@@ -1276,6 +1282,8 @@ static void setCupPickList_Europe(uint16_t **teamListPtr)
 
     /* EC group filling (only during EC qualifying year, bit 0) */
     if (!(_someTeamFlags & 0x01))
+        return;
+    if (WorldNationals_FillEuroGroups())    /* (a classic world: its cycle's groups, w_ecqdraw) */
         return;
 
     Career_SortTeamFilePtrsByAvgPlayerPrice(0x50);

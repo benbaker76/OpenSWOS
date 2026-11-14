@@ -10,6 +10,7 @@
  * Chunk 99: 8 job offer menu functions from SWOS2.s lines 82566-82903.
  */
 
+#include <stdlib.h>
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season; job_offers_capacity */
 #include "job_offers.h"
@@ -1065,6 +1066,10 @@ void JobOffersAfterDrawCommon(void *entryPtr)
  *   in:  none (uses globals)
  *   out: none (may call AddJobOffer)
  * ================================================================ */
+#ifdef SWOS_SDL_BUILD
+static int32_t s_testNationalOffered;      /* SWOS_TEST_NATIONAL_JOB: the offer made */
+#endif
+
 __attribute__((used, externally_visible))
 void Career_MaybeGenerateJobOffer(void)
 {
@@ -1105,6 +1110,22 @@ void Career_MaybeGenerateJobOffer(void)
         IsOldJobOffer(lastNationalityCall) != 0 &&
         IsTeamCodeOkForNationalSelector((uint16_t)(lastNationalityCall >> 8)) != 0) {
         AddJobOffer(lastNationalityCall, (uint32_t)-1);
+        return;
+    }
+#endif
+
+#ifdef SWOS_SDL_BUILD
+    /* SWOS_TEST_NATIONAL_JOB (the golden careers, src/career_autopilot.c): the manager's national
+     * team offers him its job as soon as offers come, and no other club does -- the national-coach
+     * career (its qualifiers, World Cup, European Championship) reached without reputation, the
+     * offer the game's own (checkNational's checks below; its gates -- confidence, chance, the
+     * seasons a nation hires in, IsTeamCodeOkForNationalSelector -- left out). */
+    if (getenv("SWOS_TEST_NATIONAL_JOB") && _isNationalSelector == 0 && !s_testNationalOffered) {
+        const uint16_t nat = _lastNationalityCall;
+        if (nat != 0xFFFF && IsNewJobOffer(nat) != 0 && IsOldJobOffer(nat) != 0) {
+            AddJobOffer(nat, (uint32_t)-1);     /* (not the seasons' gate either: from the first) */
+            s_testNationalOffered = 1;          /* (once: a coach sacked later gets the game's offers) */
+        }
         return;
     }
 #endif

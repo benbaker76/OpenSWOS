@@ -14,6 +14,7 @@
 #include "competition_data.h"
 #include "world.h"
 #include "league_groups.h"
+#include "world_nationals.h"
 #include "league_playoffs.h"
 #include "team_pool.h"
 #include "fixture_rounds.h"
@@ -2379,6 +2380,20 @@ const LeagueGroups *WorldData2627_CupClubs(uint16_t country)
 
 #endif
     (void)country;
+    return 0;
+}
+
+/* A classic world's national competitions (src/world_nationals.c; the Mod 3.1's national/pack.json:
+ * its cycles' hosts, qualifying groups and direct qualifiers, its holder, its national teams' rules). */
+#if SWOS_WORLDS
+
+#endif
+
+const WorldNationals *WorldData2627_Nationals(void)
+{
+#if SWOS_WORLDS
+
+#endif
     return 0;
 }
 

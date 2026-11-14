@@ -19,6 +19,7 @@
 #include "comp_identity.h"
 #include "menu_system.h"
 #include "game_types.h"
+#include "mod_api.h"
 #include "save_format_json.h"
 #include "swos_io.h"
 #include <stdarg.h>
@@ -55,6 +56,7 @@ extern void JobOffersMenuRetired(void);
 extern void JobOffersInit(void);
 extern void JobOffersCommon(MenuEntry *);       /* job_offers.c: an offer row, opens _gotJobOfferMenu */
 extern void GotJobOfferInit(void);
+extern void OldJobOffersCommon(void);
 extern void AcceptJobOffer(void);
 extern void ChooseTeamAndStartCareer(void);     /* career_init.c */
 extern void DIYLeagueTournamentNextMatch(void);   /* diy_competition.c: takes no entry */
@@ -70,6 +72,7 @@ static int32_t     s_started;
 static int32_t     s_hubs;          /* season-end hubs reached (and saves written) */
 static int32_t     s_hubSeason = -1;
 static int32_t     s_jobs;          /* job offers taken after a sacking */
+static int32_t     s_nationalTaken; /* SWOS_TEST_NATIONAL_JOB: the national offer gone to */
 static int32_t     s_infoShown;
 static int32_t     s_viewShot;      /* (SWOS_GOLDEN_VIEW_SLOT3: screens left to shoot) */
 static int32_t     s_winPage, s_winWait;    /* (SWOS_GOLDEN_VIEW_WINNERS: the page shown, drawn yet) */
@@ -480,6 +483,18 @@ static void at_hub(void)
             exit(0);
         }
     }
+    {   /* SWOS_TEST_NATIONAL_JOB (job_offers.c): the national team's offer taken at the first hub
+         * that has it -- JOB OFFERS, the first offer, ACCEPT -- the next season a national coach's */
+        extern uint16_t _isNationalSelector, _numNewJobOffers, _numJobOffers;
+        static const MenuEntryFn jobs[] = { (MenuEntryFn)JobOffersMenuRetired, (MenuEntryFn)JobOffersMenu };
+        if (getenv("SWOS_TEST_NATIONAL_JOB") && _isNationalSelector == 0 && !s_nationalTaken &&
+            _numNewJobOffers + _numJobOffers > 0 && select_first(jobs, 2)) {
+            s_nationalTaken = 1;    /* (ACCEPT: GotJobOfferInit below, at the season's end) */
+            say("[golden] the national team's job offer: accepted\n");
+            _shortFire = 1;
+            return;
+        }
+    }
     {
         int32_t i = entry_with((MenuEntryFn)ContinueCareer);
         if (i < 0) {
@@ -575,6 +590,88 @@ static int32_t bteam_shots(const Menu *menu)
     return 0;
 }
 
+/* SWOS_TEST_NATIONAL_JOB (job_offers.c): the national team's offer, as soon as the hub shows JOB
+ * OFFERS -- the first offer (the only one then), CONSIDER (ACCEPT is the season end's: at_hub); a
+ * national coach's from the next season. 1 when it went to the offers. */
+static int32_t national_offer(void)
+{
+    extern uint16_t _isNationalSelector, _numNewJobOffers, _numJobOffers;
+    int32_t j;
+    static int32_t considered;
+    if (!getenv("SWOS_TEST_NATIONAL_JOB") || _isNationalSelector != 0 || considered ||
+        _numNewJobOffers + _numJobOffers == 0 || (j = entry_with((MenuEntryFn)JobOffersMenu)) < 0 ||
+        CalcMenuEntryAddress((uint16_t)j)->isDisabled)
+        return 0;
+    considered = 1;             /* (CONSIDER: kept to the season's end, when ACCEPT is there) */
+    say("[golden] the national team's job offer: considered\n");
+    SetCurrentEntry((uint16_t)j);
+    _shortFire = 1;
+    return 1;
+}
+
+/* A national coach's squad short of its 20 (the job's first season, a retirement): called up as a
+ * coach would, the best players of the nation by value -- 2 goalkeepers, the rest outfield, as the
+ * squad's slots take them -- from its home league's clubs first, then every club (the mods' call-up,
+ * ModApi_CallUpPlayer, then the game's add). 1 when it did some (the hub then drawn again). */
+static int32_t national_callups(void)
+{
+    extern uint16_t _isNationalSelector, _careerNumPlayers;
+    extern uint8_t  _nationalTeamNationality, _nationalTeamFileId;
+    extern int32_t  Career_PeekTeam(uint16_t teamId, TeamFileEx *out);
+    extern void     Career_ShowAddInternationalPlayerDialog(uint16_t homeOrAbroadFlag);
+    extern void     SetNationalSelectorButtons(void);
+    extern void     ContestMenuOnReturn(void);
+    enum { kMax = 400 };
+    static struct { uint16_t team, slot, price; uint8_t gk; } cand[kMax];
+    static TeamFileEx t;
+    int32_t n = 0, added = 0;
+    if (_isNationalSelector == 0 || _careerNumPlayers >= 20)
+        return 0;
+    for (int32_t pass = 0; pass < 2 && _careerNumPlayers < 20; pass++) {
+        n = 0;
+        for (int32_t f = 0; f < 100 && n < kMax; f++) {
+            if ((pass == 0) != (f == _nationalTeamFileId) || f == 72 || (f >= 80 && f <= 85))
+                continue;
+            for (int32_t o = 0; o < 256 && n < kMax; o++) {
+                const uint16_t team = (uint16_t)(f << 8 | o);
+                if (!Career_PeekTeam(team, &t))
+                    break;
+                for (int32_t p = 0; p < 16 && n < kMax; p++)
+                    if ((uint8_t)t.players[p].playerName[0] != 0xFF &&
+                        (uint8_t)t.players[p].nationality == _nationalTeamNationality) {
+                        cand[n].team = team;
+                        cand[n].slot = (uint16_t)p;
+                        cand[n].price = (uint8_t)t.players[p].price;
+                        cand[n].gk = ((t.players[p].positionAndFace & PF_POSITION_MASK) >> 5) == 0;
+                        n++;
+                    }
+            }
+        }
+        /* by value (dearest first), then team and slot: the same squad every run */
+        for (int32_t i = 1; i < n; i++)
+            for (int32_t j = i; j > 0 && (cand[j].price > cand[j - 1].price ||
+                                          (cand[j].price == cand[j - 1].price &&
+                                           (cand[j].team < cand[j - 1].team ||
+                                            (cand[j].team == cand[j - 1].team && cand[j].slot < cand[j - 1].slot)))); j--) {
+                const __typeof__(cand[0]) x = cand[j];
+                cand[j] = cand[j - 1];
+                cand[j - 1] = x;
+            }
+        for (int32_t i = 0; i < n && _careerNumPlayers < 20; i++) {
+            const uint16_t before = _careerNumPlayers;
+            if (ModApi_CallUpPlayer(cand[i].team, cand[i].slot) != 0)
+                continue;
+            Career_ShowAddInternationalPlayerDialog(2);
+            if (_careerNumPlayers > before)
+                added++;
+        }
+    }
+    say("[golden] national squad: %d called up, %u of 20\n", (int)added, (unsigned)_careerNumPlayers);
+    ContestMenuOnReturn();
+    SetNationalSelectorButtons();
+    return added > 0;
+}
+
 void CareerAutopilot_Tick(void)
 {
     const Menu *menu;
@@ -661,6 +758,10 @@ void CareerAutopilot_Tick(void)
     }
     else if (menu->onInit == SelectTeamsInit && view_world(menu)) {
     }
+    else if (menu->onInit == ContestMenuInit && national_offer()) {
+    }
+    else if (menu->onInit == ContestMenuInit && national_callups()) {
+    }
     else if (menu->onInit == ContestMenuInit) {
         /* The in-season hub: NEXT MATCH plays the next match day (PLAY MATCH, its
          * default, only opens the table). Test (SWOS_GOLDEN_VIEW_SLOT3=<n>): the first n
@@ -730,8 +831,11 @@ void CareerAutopilot_Tick(void)
     }
     else if (menu->onInit == JobOffersInit) {
         /* The first offer; with none showing, back out (the hub then says it is over). */
-        static const MenuEntryFn offer[] = { JobOffersCommon };
-        select_first(offer, 1);
+        /* (one considered before -- an old offer's row -- only where it can be accepted: the
+         * season end's JOB OFFERS; in the season the screen is left as it was) */
+        extern uint16_t _jobOffersFromRetired;
+        static const MenuEntryFn offer[] = { JobOffersCommon, (MenuEntryFn)OldJobOffersCommon };
+        select_first(offer, _jobOffersFromRetired ? 2 : 1);
         _shortFire = 1;
     }
     else if (menu->onInit == GotJobOfferInit) {

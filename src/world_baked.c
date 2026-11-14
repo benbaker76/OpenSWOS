@@ -14,6 +14,7 @@
 #include "league_playoffs.h"
 #include "team_pool.h"
 #include "world_cups.h"
+#include "world_nationals.h"
 #include "world_cupd.h"
 #include "league_split.h"
 #include "league_phase.h"
@@ -45,7 +46,8 @@
     const WorldCupD *WorldData##T##_CupD(void);                                                     \
     const WorldEuropeKO *WorldData##T##_EuropeKnockouts(void);                                      \
     const WorldSuperCup *WorldData##T##_SuperCups(int32_t *count);                                  \
-    const LeagueGroups *WorldData##T##_CupClubs(uint16_t country);
+    const LeagueGroups *WorldData##T##_CupClubs(uint16_t country);                                  \
+    const WorldNationals *WorldData##T##_Nationals(void);
 
 #if SWOS_WORLDS
 WORLD_BAKED_DECLARE(2627)
@@ -101,6 +103,9 @@ void World_InstallBaked(void)
         return;
     case WORLD_8485:
         WorldData8485_InstallBaked();
+#ifndef SWOS_SDL_BUILD
+        WorldNationals_Install();       /* (its national competitions: world_nationals.c; the SDL's after its JSON) */
+#endif
         return;
     default:
         break;
@@ -118,6 +123,11 @@ void World_InstallBaked(void)
 const LeagueGroups *World_LeagueGroups(int32_t *count)
 {
     WORLD_CALL(LeagueGroups(count), *count = 0; return 0)
+}
+
+const WorldNationals *World_Nationals(void)
+{
+    WORLD_CALL(Nationals(), return 0)
 }
 
 const LeagueGroups *World_CupClubs(uint16_t country)
