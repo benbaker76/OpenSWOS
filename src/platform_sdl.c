@@ -2936,6 +2936,8 @@ static void push_key(SDL_Keycode key, int down)
     SDL_PushEvent(&ev);
 }
 
+void Platform_TestKey(int32_t key, int32_t down) { push_key((SDL_Keycode)key, down); }   /* (a test's: career_autopilot.c) */
+
 static void key_script_tick(void)
 {
     if (s_key_script_len < 0) {

@@ -498,6 +498,54 @@ static void at_hub(void)
     _shortFire = 1;
 }
 
+/* Test (SWOS_GOLDEN_SHOT_NUMBERS=1): at the first in-season hub, the squad screen, where a player's
+ * shirt number is edited as a player would (shirt_edit.c): the cursor on the second row, LEFT, UP,
+ * '7' (a swap), ENTER; then LEFT, '2' '3', ESC (undone). A screenshot every 4 passes. SDL keys,
+ * pressed through the event queue. 1: this tick was the test's. */
+static int32_t numbers_test(const Menu *menu)
+{
+    extern void SquadInit(void), SquadMenu(void), SetExitMenuFlag(void), Platform_RequestScreenshot(void);
+    extern void Platform_TestKey(int32_t key, int32_t down);
+    extern MenuEntry _menuEntries[];
+    static const struct { int16_t at; int32_t key; } kPress[] = {
+        { 10, 0x40000050 /* LEFT */ }, { 22, 0x40000052 /* UP */ }, { 34, '7' }, { 46, 13 /* RETURN */ },
+        { 62, 0x40000050 }, { 74, '2' }, { 78, '3' }, { 90, 27 /* ESCAPE */ },
+    };
+    static int32_t on = -1, stage, held;
+    if (on < 0)
+        on = getenv("SWOS_GOLDEN_SHOT_NUMBERS") != NULL;
+    if (!on || stage < 0)
+        return 0;
+    if (stage == 0) {
+        if (menu->onInit != ContestMenuInit)
+            return 0;
+        stage = 1;
+        _careerTeam.team.teamControls = 2;  /* (the player's club while it is up, as in a game) */
+        SquadMenu();                        /* (the hub's SQUAD: back here when it is left) */
+        _careerTeam.team.teamControls = 1;
+        stage = -1;
+        return 1;
+    }
+    if (menu->onInit != SquadInit)
+        return 0;
+    if (held == 4)
+        ((Menu *)menu)->selectedEntry = &_menuEntries[29];   /* (the second row) */
+    for (uint32_t i = 0; i < sizeof kPress / sizeof kPress[0]; i++) {
+        if (held == kPress[i].at)
+            Platform_TestKey(kPress[i].key, 1);
+        if (held == kPress[i].at + 2)
+            Platform_TestKey(kPress[i].key, 0);
+    }
+    if (held % 4 == 0) {
+        Platform_RequestScreenshot();
+        say("[golden] numbers: pass %d\n", (int)held);
+    }
+    if (++held >= 110)
+        SetExitMenuFlag();
+    _shortFire = 0;
+    return 1;
+}
+
 /* Test (SWOS_GOLDEN_SHOT_BTEAM=1): a world career's B-team screens, a screenshot each, at the first
  * in-season hub (bteam.c): SQUAD with its B TEAM button, the B squad, its page 2 (the players 17..),
  * a call-up's page and its answer (NEXT MATCH ONLY on page 2's first player), the B squad again (him
@@ -646,6 +694,8 @@ void CareerAutopilot_Tick(void)
         return;
     }
     if (bteam_shots(menu))              /* (test: SWOS_GOLDEN_SHOT_BTEAM) */
+        return;
+    if (numbers_test(menu))             /* (test: SWOS_GOLDEN_SHOT_NUMBERS) */
         return;
     _careerTeam.team.teamControls = 1;  /* the career club's matches are simulated */
     MenuSystem_LatchSeasonSkip();
