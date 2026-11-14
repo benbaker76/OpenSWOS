@@ -537,8 +537,11 @@ static void start(void)
     }
     /* (SWOS_GOLDEN_KEEP_RANDOM: the save's own random state and clock kept -- a career stopped and
      * loaded again goes on as the run that was not stopped; compared with it) */
-    if (!getenv("SWOS_GOLDEN_KEEP_RANDOM"))
-        pin_random();
+    {   /* ([career] exact_continuation: the save's random state and clocks restored -- kept) */
+        extern int32_t SaveJson_ExactStateLoaded(void);
+        if (!getenv("SWOS_GOLDEN_KEEP_RANDOM") && !SaveJson_ExactStateLoaded())
+            pin_random();
+    }
     StartContest();             /* the career runs inside this, modal */
     say("[golden] the career ended after %d of %d season(s)\n",
         (int)(s_hubs > 0 ? s_hubs - 1 : 0), (int)s_seasons);

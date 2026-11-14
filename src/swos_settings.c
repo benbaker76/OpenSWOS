@@ -437,6 +437,10 @@ static int handler(void *user, const char *section,
             snprintf(opts->arcade_key_p2_start, sizeof opts->arcade_key_p2_start, "%s", value);
         else if (eqi(name, "key_service") && value && value[0])
             snprintf(opts->arcade_key_service, sizeof opts->arcade_key_service, "%s", value);
+    } else if (eqi(section, "career")) {
+        int b;
+        if (eqi(name, "exact_continuation") && parse_bool(value, &b))
+            opts->career_exact_continuation = b;
     } else if (eqi(section, "testing")) {
         int b;
         if (eqi(name, "no_injuries_cards") && parse_bool(value, &b))
@@ -909,6 +913,11 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "arcade", "key_p2_credit", NULL, opts->arcade_key_p2_credit[0] ? opts->arcade_key_p2_credit : "6" };
     SETTING(n) = (IniEntry){ "arcade", "key_p2_start", NULL, opts->arcade_key_p2_start[0]  ? opts->arcade_key_p2_start  : "2" };
     SETTING(n) = (IniEntry){ "arcade", "key_service", NULL, opts->arcade_key_service[0]   ? opts->arcade_key_service   : "F2" };
+    SETTING(n) = (IniEntry){ "career", "exact_continuation",
+        "; exact_continuation: true | false -- a career's saves also keep its random state and clock,\n"
+        "; so a loaded career plays on exactly as it would have. Off: as the original (a load plays\n"
+        "; on differently).",
+        opts->career_exact_continuation ? "true" : "false" };
 #ifdef SWOS_TEST_RULES
     SETTING(n) = (IniEntry){ "testing", "no_injuries_cards",
         "; no_injuries_cards: true | false -- FOR TESTING A CAREER: nobody is booked, sent off,\n"

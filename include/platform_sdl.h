@@ -162,6 +162,7 @@ typedef struct {
     char                   chat_quick[10][101]; /* [chat] quick1..quick0: the keys 1..0 in an online
                                               * match send these (include/match_chat.h); "" = off */
     int                    no_injuries_cards; /* [testing] no_injuries_cards: offline only (test_rules.h) */
+    int                    career_exact_continuation; /* [career] exact_continuation: saves keep the random state */
     int                    reports;          /* [netplay] reports: SEND MATCH REPORTS -- both players'
                                               * logs and ratings to the server after an online
                                               * match. include/match_report.h */

@@ -1080,6 +1080,18 @@ static void subs_change(int32_t dir)
 }
 #endif
 
+static void exact_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->career_exact_continuation ? "ON" : "OFF"); }
+static void exact_change(int32_t dir)
+{
+    extern void SaveJson_SetExactContinuation(int32_t on);
+    (void)dir;
+    O()->career_exact_continuation = !O()->career_exact_continuation;
+    SaveJson_SetExactContinuation(O()->career_exact_continuation);
+    save();
+    note(O()->career_exact_continuation ? "A LOADED CAREER PLAYS ON EXACTLY AS IT WOULD HAVE"
+                                        : "THE ORIGINAL'S: A LOADED CAREER PLAYS ON DIFFERENTLY");
+}
+
 static const Row k_rulesRows[] = {
 #if SWOS_TWEAK_FIXES
     { "BALL CONTEST",            contest_show,  contest_change },
@@ -1094,6 +1106,7 @@ static const Row k_rulesRows[] = {
     { "POINTS FOR A WIN",        points_show,   points_change },
     { "SUBSTITUTES",             subs_show,     subs_change },
 #endif
+    { "CAREER EXACT LOADS",      exact_show,    exact_change },
 };
 static const Page k_rulesPage = { "RULES OPTIONS", k_rulesRows, (int32_t)(sizeof k_rulesRows / sizeof k_rulesRows[0]) };
 
