@@ -12,6 +12,7 @@
 #include "world.h"
 #include "world_europe.h"
 #include "diy_competition.h"
+#include "cup_record.h"
 #include "world_finance.h"      /* UefaPrize_CupWon */
 #include "comp_identity.h"
 #include "translations.h"
@@ -4846,6 +4847,15 @@ __attribute__((used, externally_visible))
 void OpenDiyPreset3(void)
 {
     ShowDiyCompetitionForSource((uint8_t *)&_euroCupsCompetitionContextBuf);
+}
+
+/* OpenDiySlot4 -- OpenSWOS: VIEW COMPETITIONS' entry 9, the career's slot 4 (a world's Super Cup:
+ * menus.c ViewCompetitionsWorldEntries shows it only then) */
+__attribute__((used, externally_visible))
+void OpenDiySlot4(void)
+{
+    extern CompetitionSlotBuffer _diyCompetitionContextBuf;
+    ShowDiyCompetitionForSource((uint8_t *)&_diyCompetitionContextBuf);
 }
 
 /* ================================================================
@@ -10603,6 +10613,7 @@ void ProcessDIYLeagueMatchResultAndCareerUpdates(TeamFileEx *team1, TeamFileEx *
         d7 |= 0x82;    /* bits 7 and 1 set */
     }
 
+    CupRecord_Match(team1, team2, d1, d2, d7, 0, 0, 1);   /* (a world's cups' SUMMARY: cup_record.c) */
     /* Career updates (form, contract negotiation, loss flag) */
     updateCareerAfterResult(team1, team2, d1, d2, d7);
 
@@ -10852,6 +10863,7 @@ setDecisive:
     }
 
 careerUpdate:
+    CupRecord_Match(team1, team2, d1, d2, d7, d5, d6, 0);  /* (a world's cups' SUMMARY: cup_record.c) */
     updateCareerAfterResult(team1, team2, d1, d2, d7);
 
     /* Pack results: d6=(d5<<8)+d6, d4=(d3<<8)+d4, d5=d4, d4=(d1<<8)+d2 */

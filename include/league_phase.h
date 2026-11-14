@@ -53,6 +53,9 @@ typedef struct {
 void LeaguePhase_Rank(const LeaguePhaseRow *row, const uint8_t (*cal)[2], int32_t matches, int32_t finished,
                       uint8_t *order);
 
+/* compId is one of a world's league-phase cups (installed). */
+int32_t LeaguePhase_IsCup(uint8_t compId);
+
 /* How far the last draw relaxed the country rules (0: not at all). */
 int32_t LeaguePhase_Relaxed(void);
 

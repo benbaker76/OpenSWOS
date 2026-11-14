@@ -1,6 +1,6 @@
 /*
  * world_nationals.h -- a classic world's national competitions (src/world_nationals.c;
- * docs/WORLD_2026_27.md §6k): the SWOS 96/97 Mod 3.1's Europe 1984-85 -- the World Cup and the
+ * docs/WORLD_2026_27.md §6n): the SWOS 96/97 Mod 3.1's Europe 1984-85 -- the World Cup and the
  * European Championship cycles of the era, as a national coach's career plays them.
  *
  * The data is the pack's (packs/europe-1984-85/national/pack.json "national"; scripts/world_import.py

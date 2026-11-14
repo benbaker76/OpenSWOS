@@ -1,0 +1,2501 @@
+{
+  "name": "contiRoundMenu",
+  "comment": "OpenSWOS's view of one round of a continental cup (the Mod 4.1 shows it in the game's own cup screens; ours is one screen): a knockout round's ties with each leg's score, the club through highlighted; a group stage's tables and results; its SUMMARY page. 13 lines a page, the scroll arrows for the rest; PREV / NEXT ROUND the cup's other rounds. JSON-only; handlers in src/conti_view.c.",
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "contiRoundMenu_OnInit",
+  "onReturn": "contiRoundMenu_OnInit",
+  "onDraw": "contiRoundMenu_OnDraw",
+  "defaultEntry": 3,
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 12,
+        "y": 0,
+        "w": 296,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x10"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "subTitle",
+      "coords": {
+        "x": 12,
+        "y": 18,
+        "w": 296,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "prev",
+      "coords": {
+        "x": 8,
+        "y": 182,
+        "w": 96,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "PREV ROUND"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundMenu_prev"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 110,
+        "y": 182,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "EXIT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundMenu_exit"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "next",
+      "coords": {
+        "x": 216,
+        "y": 182,
+        "w": 96,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "NEXT ROUND"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 14
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundMenu_next"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "scrollUp",
+      "coords": {
+        "x": 302,
+        "y": 33,
+        "w": 8,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 0
+        },
+        {
+          "op": "sprite_fg",
+          "index": 183
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundMenu_scrollUp"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "scrollDown",
+      "coords": {
+        "x": 302,
+        "y": 159,
+        "w": 8,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 0
+        },
+        {
+          "op": "sprite_fg",
+          "index": 184
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiRoundMenu_scrollDown"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line0",
+      "coords": {
+        "x": 12,
+        "y": 32,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left0",
+      "coords": {
+        "x": 12,
+        "y": 32,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid0",
+      "coords": {
+        "x": 126,
+        "y": 32,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right0",
+      "coords": {
+        "x": 190,
+        "y": 32,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num0_0",
+      "coords": {
+        "x": 142,
+        "y": 32,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num0_1",
+      "coords": {
+        "x": 164,
+        "y": 32,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num0_2",
+      "coords": {
+        "x": 186,
+        "y": 32,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num0_3",
+      "coords": {
+        "x": 208,
+        "y": 32,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num0_4",
+      "coords": {
+        "x": 230,
+        "y": 32,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num0_5",
+      "coords": {
+        "x": 252,
+        "y": 32,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num0_6",
+      "coords": {
+        "x": 274,
+        "y": 32,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line1",
+      "coords": {
+        "x": 12,
+        "y": 43,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left1",
+      "coords": {
+        "x": 12,
+        "y": 43,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid1",
+      "coords": {
+        "x": 126,
+        "y": 43,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right1",
+      "coords": {
+        "x": 190,
+        "y": 43,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num1_0",
+      "coords": {
+        "x": 142,
+        "y": 43,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num1_1",
+      "coords": {
+        "x": 164,
+        "y": 43,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num1_2",
+      "coords": {
+        "x": 186,
+        "y": 43,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num1_3",
+      "coords": {
+        "x": 208,
+        "y": 43,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num1_4",
+      "coords": {
+        "x": 230,
+        "y": 43,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num1_5",
+      "coords": {
+        "x": 252,
+        "y": 43,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num1_6",
+      "coords": {
+        "x": 274,
+        "y": 43,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line2",
+      "coords": {
+        "x": 12,
+        "y": 54,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left2",
+      "coords": {
+        "x": 12,
+        "y": 54,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid2",
+      "coords": {
+        "x": 126,
+        "y": 54,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right2",
+      "coords": {
+        "x": 190,
+        "y": 54,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num2_0",
+      "coords": {
+        "x": 142,
+        "y": 54,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num2_1",
+      "coords": {
+        "x": 164,
+        "y": 54,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num2_2",
+      "coords": {
+        "x": 186,
+        "y": 54,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num2_3",
+      "coords": {
+        "x": 208,
+        "y": 54,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num2_4",
+      "coords": {
+        "x": 230,
+        "y": 54,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num2_5",
+      "coords": {
+        "x": 252,
+        "y": 54,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num2_6",
+      "coords": {
+        "x": 274,
+        "y": 54,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line3",
+      "coords": {
+        "x": 12,
+        "y": 65,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left3",
+      "coords": {
+        "x": 12,
+        "y": 65,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid3",
+      "coords": {
+        "x": 126,
+        "y": 65,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right3",
+      "coords": {
+        "x": 190,
+        "y": 65,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num3_0",
+      "coords": {
+        "x": 142,
+        "y": 65,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num3_1",
+      "coords": {
+        "x": 164,
+        "y": 65,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num3_2",
+      "coords": {
+        "x": 186,
+        "y": 65,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num3_3",
+      "coords": {
+        "x": 208,
+        "y": 65,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num3_4",
+      "coords": {
+        "x": 230,
+        "y": 65,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num3_5",
+      "coords": {
+        "x": 252,
+        "y": 65,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num3_6",
+      "coords": {
+        "x": 274,
+        "y": 65,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line4",
+      "coords": {
+        "x": 12,
+        "y": 76,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left4",
+      "coords": {
+        "x": 12,
+        "y": 76,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid4",
+      "coords": {
+        "x": 126,
+        "y": 76,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right4",
+      "coords": {
+        "x": 190,
+        "y": 76,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num4_0",
+      "coords": {
+        "x": 142,
+        "y": 76,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num4_1",
+      "coords": {
+        "x": 164,
+        "y": 76,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num4_2",
+      "coords": {
+        "x": 186,
+        "y": 76,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num4_3",
+      "coords": {
+        "x": 208,
+        "y": 76,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num4_4",
+      "coords": {
+        "x": 230,
+        "y": 76,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num4_5",
+      "coords": {
+        "x": 252,
+        "y": 76,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num4_6",
+      "coords": {
+        "x": 274,
+        "y": 76,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line5",
+      "coords": {
+        "x": 12,
+        "y": 87,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left5",
+      "coords": {
+        "x": 12,
+        "y": 87,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid5",
+      "coords": {
+        "x": 126,
+        "y": 87,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right5",
+      "coords": {
+        "x": 190,
+        "y": 87,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num5_0",
+      "coords": {
+        "x": 142,
+        "y": 87,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num5_1",
+      "coords": {
+        "x": 164,
+        "y": 87,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num5_2",
+      "coords": {
+        "x": 186,
+        "y": 87,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num5_3",
+      "coords": {
+        "x": 208,
+        "y": 87,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num5_4",
+      "coords": {
+        "x": 230,
+        "y": 87,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num5_5",
+      "coords": {
+        "x": 252,
+        "y": 87,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num5_6",
+      "coords": {
+        "x": 274,
+        "y": 87,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line6",
+      "coords": {
+        "x": 12,
+        "y": 98,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left6",
+      "coords": {
+        "x": 12,
+        "y": 98,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid6",
+      "coords": {
+        "x": 126,
+        "y": 98,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right6",
+      "coords": {
+        "x": 190,
+        "y": 98,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num6_0",
+      "coords": {
+        "x": 142,
+        "y": 98,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num6_1",
+      "coords": {
+        "x": 164,
+        "y": 98,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num6_2",
+      "coords": {
+        "x": 186,
+        "y": 98,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num6_3",
+      "coords": {
+        "x": 208,
+        "y": 98,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num6_4",
+      "coords": {
+        "x": 230,
+        "y": 98,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num6_5",
+      "coords": {
+        "x": 252,
+        "y": 98,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num6_6",
+      "coords": {
+        "x": 274,
+        "y": 98,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line7",
+      "coords": {
+        "x": 12,
+        "y": 109,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left7",
+      "coords": {
+        "x": 12,
+        "y": 109,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid7",
+      "coords": {
+        "x": 126,
+        "y": 109,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right7",
+      "coords": {
+        "x": 190,
+        "y": 109,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num7_0",
+      "coords": {
+        "x": 142,
+        "y": 109,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num7_1",
+      "coords": {
+        "x": 164,
+        "y": 109,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num7_2",
+      "coords": {
+        "x": 186,
+        "y": 109,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num7_3",
+      "coords": {
+        "x": 208,
+        "y": 109,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num7_4",
+      "coords": {
+        "x": 230,
+        "y": 109,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num7_5",
+      "coords": {
+        "x": 252,
+        "y": 109,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num7_6",
+      "coords": {
+        "x": 274,
+        "y": 109,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line8",
+      "coords": {
+        "x": 12,
+        "y": 120,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left8",
+      "coords": {
+        "x": 12,
+        "y": 120,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid8",
+      "coords": {
+        "x": 126,
+        "y": 120,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right8",
+      "coords": {
+        "x": 190,
+        "y": 120,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num8_0",
+      "coords": {
+        "x": 142,
+        "y": 120,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num8_1",
+      "coords": {
+        "x": 164,
+        "y": 120,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num8_2",
+      "coords": {
+        "x": 186,
+        "y": 120,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num8_3",
+      "coords": {
+        "x": 208,
+        "y": 120,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num8_4",
+      "coords": {
+        "x": 230,
+        "y": 120,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num8_5",
+      "coords": {
+        "x": 252,
+        "y": 120,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num8_6",
+      "coords": {
+        "x": 274,
+        "y": 120,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line9",
+      "coords": {
+        "x": 12,
+        "y": 131,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left9",
+      "coords": {
+        "x": 12,
+        "y": 131,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid9",
+      "coords": {
+        "x": 126,
+        "y": 131,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right9",
+      "coords": {
+        "x": 190,
+        "y": 131,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num9_0",
+      "coords": {
+        "x": 142,
+        "y": 131,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num9_1",
+      "coords": {
+        "x": 164,
+        "y": 131,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num9_2",
+      "coords": {
+        "x": 186,
+        "y": 131,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num9_3",
+      "coords": {
+        "x": 208,
+        "y": 131,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num9_4",
+      "coords": {
+        "x": 230,
+        "y": 131,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num9_5",
+      "coords": {
+        "x": 252,
+        "y": 131,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num9_6",
+      "coords": {
+        "x": 274,
+        "y": 131,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line10",
+      "coords": {
+        "x": 12,
+        "y": 142,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left10",
+      "coords": {
+        "x": 12,
+        "y": 142,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid10",
+      "coords": {
+        "x": 126,
+        "y": 142,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right10",
+      "coords": {
+        "x": 190,
+        "y": 142,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num10_0",
+      "coords": {
+        "x": 142,
+        "y": 142,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num10_1",
+      "coords": {
+        "x": 164,
+        "y": 142,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num10_2",
+      "coords": {
+        "x": 186,
+        "y": 142,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num10_3",
+      "coords": {
+        "x": 208,
+        "y": 142,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num10_4",
+      "coords": {
+        "x": 230,
+        "y": 142,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num10_5",
+      "coords": {
+        "x": 252,
+        "y": 142,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num10_6",
+      "coords": {
+        "x": 274,
+        "y": 142,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line11",
+      "coords": {
+        "x": 12,
+        "y": 153,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left11",
+      "coords": {
+        "x": 12,
+        "y": 153,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid11",
+      "coords": {
+        "x": 126,
+        "y": 153,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right11",
+      "coords": {
+        "x": 190,
+        "y": 153,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num11_0",
+      "coords": {
+        "x": 142,
+        "y": 153,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num11_1",
+      "coords": {
+        "x": 164,
+        "y": 153,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num11_2",
+      "coords": {
+        "x": 186,
+        "y": 153,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num11_3",
+      "coords": {
+        "x": 208,
+        "y": 153,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num11_4",
+      "coords": {
+        "x": 230,
+        "y": 153,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num11_5",
+      "coords": {
+        "x": 252,
+        "y": 153,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num11_6",
+      "coords": {
+        "x": 274,
+        "y": 153,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "line12",
+      "coords": {
+        "x": 12,
+        "y": 164,
+        "w": 286,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "left12",
+      "coords": {
+        "x": 12,
+        "y": 164,
+        "w": 112,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "mid12",
+      "coords": {
+        "x": 126,
+        "y": 164,
+        "w": 62,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "right12",
+      "coords": {
+        "x": 190,
+        "y": 164,
+        "w": 108,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x8000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num12_0",
+      "coords": {
+        "x": 142,
+        "y": 164,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num12_1",
+      "coords": {
+        "x": 164,
+        "y": 164,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num12_2",
+      "coords": {
+        "x": 186,
+        "y": 164,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num12_3",
+      "coords": {
+        "x": 208,
+        "y": 164,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num12_4",
+      "coords": {
+        "x": 230,
+        "y": 164,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num12_5",
+      "coords": {
+        "x": 252,
+        "y": 164,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "num12_6",
+      "coords": {
+        "x": 274,
+        "y": 164,
+        "w": 20,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x4000"
+        }
+      ]
+    }
+  ]
+}

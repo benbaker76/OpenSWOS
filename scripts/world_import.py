@@ -2307,8 +2307,8 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         conti_tab = "static const uint8_t kWorld%sContiSpec[%d] = {\n%s\n};" % (tag, len(conti), "\n".join(
             "    " + ", ".join("0x%02X" % b for b in conti[i:i + 16]) + "," for i in range(0, len(conti), 16)))
         conti_tab += "\n\nstatic const WorldContiCup kWorld%sContiCups[%d] = {\n%s\n};" % (tag, len(named), "\n".join(
-            '    { "%s", "%s", { %s }, %d, %d },' % (n, sn, ", ".join(str(r) for r in rounds), rank, contest)
-            for n, sn, rounds, rank, contest in named))
+            '    { "%s", "%s", { %s }, %d, %d, %d },' % (n, sn, ", ".join(str(r) for r in rounds), rank, contest, conf)
+            for n, sn, rounds, rank, contest, conf in named))
         conti_cases = "    case WORLD_%s:\n        return kWorld%sContiSpec;" % (tag, tag)
         conti_cup_cases = "    case WORLD_%s:\n        *count = %d;\n        return kWorld%sContiCups;" % (
             tag, len(named), tag)
@@ -2572,14 +2572,14 @@ def conti_spec(picks):
                 counts["conti ranking: clubs not in a league of the world"] += 1
     counts["continental cups (conti)"] = len(cups)
     named = []                  # (each cup's names; its rounds' _cupRoundStringTable index, by key; its rank
-    rn = {"final": 9, "sf": 7, "qf": 6, "r16": 12, "r32": 13, "pre": 15, "qual": 15}   # in its confederation (the
+    rn = {"final": 8, "sf": 7, "qf": 6, "r16": 12, "r32": 13, "pre": 15, "qual": 15}   # in its confederation (the
     for conf, key in cups:                                                              # trophy's: the first a
         c = next(c for c in world_conti._read(conf, "format")["cups"] if c["key"] == key)  # Champions Cup's); no
         long_, short = c["names"]["en"]                                                 # contest of its own: a
         rank = [k for cf, k in cups if cf == conf].index(key)                          # stepladder's ties only)
         named.append((long_.upper()[:30], short.upper()[:16],
                       [rn.get(r["key"], min(j, 5)) for j, r in enumerate(c["rounds"][:8])],
-                      min(rank, 2), 0 if c.get("stepladder") else 1))
+                      min(rank, 2), 0 if c.get("stepladder") else 1, world_conti.CONFS.index(conf)))
     return spec, named
 
 

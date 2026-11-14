@@ -1018,6 +1018,11 @@ int main(int argc, char **argv)
 #else
             return 1;
 #endif
+        } else if (strcmp(a, "--conti-view-selftest") == 0) {
+            extern int32_t ContiView_SelfTest(void);
+            if (getenv("SWOS_WORLD"))              /* (src/conti_view.c: the continental cups' views) */
+                World_Set(getenv("SWOS_WORLD"));
+            return ContiView_SelfTest() ? 1 : 0;
         } else if (strcmp(a, "--custom-team-selftest") == 0) {
             if (getenv("SWOS_WORLD"))
                 World_Set(getenv("SWOS_WORLD"));

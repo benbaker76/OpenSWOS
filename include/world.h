@@ -101,7 +101,9 @@ typedef struct WorldContiCup {
     uint8_t round[8];
     uint8_t rank;                       /* in its confederation: 0 its first (a Champions Cup's trophy), 1, 2 */
     uint8_t contest;                    /* its main round a contest of the game's (0: a stepladder, ties only) */
+    uint8_t conf;                       /* its confederation: WORLD_CONF_* (the continental cups' views) */
 } WorldContiCup;
+enum { WORLD_CONF_CONMEBOL, WORLD_CONF_CONCACAF, WORLD_CONF_AFC, WORLD_CONF_CAF, WORLD_CONF_OFC, WORLD_CONF_FIFA };
 const WorldContiCup *World_ContiCups(int32_t *count);
 
 /* Argentina's promedio history (src/league_playoffs.c; the Mod's GP_PROM_TAB): each club's points and

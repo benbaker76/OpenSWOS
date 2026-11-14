@@ -1913,8 +1913,9 @@ static void write_screenshot(const uint32_t *argb)
         rgba[i * 4 + 2] = (uint8_t)(p >>  0); /* B */
         rgba[i * 4 + 3] = 0xFF;               /* A (opaque) */
     }
-    char path[64];
-    snprintf(path, sizeof(path), "swos_shot%03d.png", s_screenshot_index++);
+    char path[512];
+    const char *dir = getenv("SWOS_SCREENSHOT_DIR");     /* (tests running side by side: each its own) */
+    snprintf(path, sizeof(path), "%s%sswos_shot%03d.png", dir ? dir : "", dir ? "/" : "", s_screenshot_index++);
     if (stbi_write_png(path, _screen_width, _screen_height, 4,
                        rgba, _screen_width * 4))
         fprintf(stderr, "[screenshot] wrote %s\n", path);

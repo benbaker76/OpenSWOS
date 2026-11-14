@@ -97,6 +97,7 @@ extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
 extern void CompetitionStatsInit(void);
 extern void CompetitionStatsWinners(void);
+extern void CompetitionStatsSummary(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
 extern void ConsiderJobOffer(void);
@@ -286,6 +287,7 @@ extern void OpenDiyFromFile(void);
 extern void OpenDiyPreset1(void);
 extern void OpenDiyPreset2(void);
 extern void OpenDiyPreset3(void);
+extern void OpenDiySlot4(void);
 extern void OptionsMenuBeforeDraw(void);
 extern void OptionsMenuSelected(void);
 extern void OriginalCustomTeams(void);
@@ -414,6 +416,7 @@ extern void ViewSquadExitContinue(void);
 extern void ViewSquadInit(void);
 extern void ViewSquadOnSelect21(void);
 extern void ViewWorldMenu(void);
+extern void ViewContinentalCups(void);
 
 /* ---- External string constants ---- */
 extern char _a343[];
@@ -5147,6 +5150,14 @@ Menu_CompetitionStats _competitionStatsMenu = {
         { MENU_CMD_ONSELECT_FIRE, CompetitionStatsModRow },
         MENU_CMD_END
     },
+    {
+        { 92, 115, 120, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, -1 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, 0 },
+        { MENU_CMD_ONSELECT_FIRE, CompetitionStatsSummary },
+        MENU_CMD_END
+    },
     MENU_MARK_END_MENU
 };
 Menu_CareerOver _careerOverMenu = {
@@ -5363,6 +5374,22 @@ Menu_ViewCompetitions _viewCompetitionsMenu = {
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
+    {
+        { 47, -126, -46, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, -1 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, 0 },
+        { MENU_CMD_ONSELECT_FIRE, ViewContinentalCups },
+        MENU_CMD_END
+    },
+    {
+        { 47, -126, -46, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, -1 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, 0 },
+        { MENU_CMD_ONSELECT_FIRE, OpenDiySlot4 },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

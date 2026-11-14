@@ -25,6 +25,8 @@
 #include "career_init.h"
 #include "league_groups.h"
 #include "team_pool.h"
+#include "conti_view.h"         /* VIEW WORLD: a world's cup rows */
+#include "conti_season.h"       /* Conti_ReplacesCopa */
 #include "swos_io.h"
 #include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in; malloc (TeamFile_PutAside) */
 #include <string.h>            /* (TeamFile_PutAside) */
@@ -3186,6 +3188,10 @@ static uint16_t groupedLeagueRows(const LeagueGroups *lg, uint8_t *compEntry,
 extern const char *ModComps_RowLabel(void);     /* (src/mod_comps.c) */
 extern int32_t     ModComps_Choose(void);
 static uint8_t     k_modCompsMarker;
+#ifdef SWOS_SDL_BUILD
+static uint8_t     k_contiMarker[16];  /* VIEW WORLD's rows of a world's other confederations' cups
+                                         * (conti_view.c): each cup's marker, caught as the mods' is */
+#endif
 
 /* PRESET COMPETITION in a world that is not 96/97 (the SWOS 96/97 Mod 4.1's "choose your world"):
  * the preset competitions are 96/97's, their clubs 96/97's team numbers, which the world's files
@@ -3372,6 +3378,13 @@ loc_E086:
         goto loc_E086;
     }
 
+#ifdef SWOS_SDL_BUILD
+    /* A world's own cups replace the 96/97 Copa Libertadores (conti_season.c): its row is theirs */
+    if (_gameType == GAME_TYPE_CAREER && compEntry == (uint8_t *)Comp_ById(COMPID_copaLibertadores) &&
+        Conti_ReplacesCopa() && ContiView_Available())
+        goto loc_E086;
+#endif
+
     /* Career mode continental cup filtering (loc_13E0A6) */
     if (_gameType == GAME_TYPE_CAREER) {
         /* NOTE: Copa Libertadores is deliberately NOT filtered here. It is a
@@ -3555,6 +3568,22 @@ loc_E246:
     }
 
 loc_E2D0:
+#ifdef SWOS_SDL_BUILD
+    /* VIEW WORLD in a world career: the continent's club cups of its confederation (the world's: FIFA's),
+     * green rows above its countries, as the SWOS 96/97 Mod 4.1 has them (conti_view.c); the world's
+     * list (255) FIFA's */
+    if (_gameType == GAME_TYPE_CAREER && _chooseCompetitionOnly != 0 && _choosingPreset == 0 &&
+        (d7 == 255 || d7 == 254 || (d7 >= CN_EUROPE && d7 <= CN_OCEANIA))) {
+        uint8_t cupsHere[8];
+        const int32_t k = ContiView_CupsOfContinent((uint8_t)d7, cupsHere, 8);
+        for (int32_t i = 0; i < k && d1 < 10; i++) {
+            *teamNamesPtr++ = (void *)ContiView_CupName(cupsHere[i]);
+            *leaguesPtrOut++ = (void *)&k_contiMarker[cupsHere[i] & 15];
+            *leagueNumsOut++ = 0xFFFF;
+            d1++;
+        }
+    }
+#endif
     _numLeaguesInCountry = d1;
     HLOG("enum done country=%u numLeagues=%u\n", (unsigned)(d7 & 0xFF), (unsigned)d1);
 
@@ -3645,6 +3674,16 @@ loc_E2D0:
             goto exit_clear;
         goto loc_E012;
     }
+
+#ifdef SWOS_SDL_BUILD
+    /* A world's cup row: its view, then back to the continent's screen */
+    if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
+        (uint8_t *)_leaguesPtrTable[_selectedLeagueIndex] >= k_contiMarker &&
+        (uint8_t *)_leaguesPtrTable[_selectedLeagueIndex] < k_contiMarker + sizeof k_contiMarker) {
+        ContiView_ShowCup((int32_t)((uint8_t *)_leaguesPtrTable[_selectedLeagueIndex] - k_contiMarker));
+        goto loc_E012;
+    }
+#endif
 
     /* Check selectedTeamIndex */
     d7 = (uint16_t)_selectedTeamIndex;

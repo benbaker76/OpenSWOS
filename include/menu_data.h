@@ -1208,6 +1208,7 @@ typedef struct Menu_CompetitionStats
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;    /* WINNERS (a world's; world_winners.c) */
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;    /* OpenSWOS: a mod's row (MODPOINT; mod_entries.c) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry7;    /* OpenSWOS: SUMMARY (a world's cups; conti_view.c) */
   MenuMark markEndMenu;
 } Menu_CompetitionStats;
 #pragma pack(pop)
@@ -1290,6 +1291,9 @@ typedef struct Menu_ViewCompetitions
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry7;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry8;    /* OpenSWOS: CONTINENTAL CUPS (a world career's, SDL: */
+                                                        /*  conti_view.c, the Mod 4.1's ctview.py) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry9;    /* OpenSWOS: slot 4's Super Cup (world_supercup.c) */
   MenuMark markEndMenu;
 } Menu_ViewCompetitions;
 #pragma pack(pop)
