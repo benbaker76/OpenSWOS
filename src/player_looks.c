@@ -154,9 +154,7 @@ int32_t PlayerLooks_InMatch(const TeamGame *team, const PlayerInfo *pi)
     return k < 0 || !pi ? LOOK_NONE : s_matchLook[k][(uint8_t)pi->playerIndex & 63];
 }
 
-#ifdef SWOS_SDL_BUILD
-
-/* ---- the rules over a frame (raw colours, 16 wide, chunky) ---- */
+/* ---- the rules over a frame (raw colours, 16 wide, chunky; both targets) ---- */
 
 enum { W = 16, HMAX = 24, SET = 101 };
 static const int16_t kSetBase[2] = { 227, 530 };   /* each team's first (raw, face 0) set */
@@ -233,9 +231,58 @@ static void apply_look(uint8_t *px, int32_t nl, int32_t f, int32_t look, int32_t
         whiten(px, nl * W, 0);
 }
 
-/* ---- a match's sets ---- */
+/* bald.c bald_icon's receding shape over an icon (menu colours, hair 3 in the top three rows) */
+static void icon_receding(uint8_t *px, int32_t nl)
+{
+    uint8_t hm[3][W];
+    int32_t skin = 0, y0 = -1;
+    for (int32_t y = 3; y < nl && !skin; y++)
+        for (int32_t x = 0; x < W; x++)
+            if (px[y * W + x] && px[y * W + x] != 3) { skin = px[y * W + x]; break; }
+    if (!skin)
+        return;
+    for (int32_t y = 0; y < 3; y++)
+        for (int32_t x = 0; x < W; x++) {
+            hm[y][x] = px[y * W + x] == 3;
+            if (hm[y][x]) {
+                px[y * W + x] = (uint8_t)skin;
+                if (y0 < 0)
+                    y0 = y;
+            }
+        }
+    if (y0 < 0)
+        return;
+    int32_t lo = 0, hi = W - 1;
+    while (lo < W && !px[y0 * W + lo]) lo++;
+    while (hi > 0 && !px[y0 * W + hi]) hi--;
+    if (lo > hi)
+        return;
+    px[y0 * W + lo] = px[y0 * W + hi] = 0;
+    int32_t top = 0, next = 0;
+    for (int32_t x = 0; x < W; x++) {
+        top += px[y0 * W + x] != 0;
+        next += px[(y0 + 1) * W + x] != 0;
+    }
+    if (top < next - 3)
+        for (int32_t x = 0; x < W; x++)
+            px[y0 * W + x] = 0;
+    for (int32_t y = 2, n = 0; y >= 0 && n < 2; y--) {
+        int32_t a = -1, b = -1;
+        for (int32_t x = 0; x < W; x++)
+            if (hm[y][x] && px[y * W + x]) { if (a < 0) a = x; b = x; }
+        if (a < 0)
+            continue;
+        px[y * W + a] = px[y * W + b] = 3;
+        n++;
+    }
+}
 
 static SpriteGraphics **table(void) { return (SpriteGraphics **)_spriteGraphicsPtr; }
+
+#ifdef SWOS_SDL_BUILD
+
+/* ---- a match's sets ---- */
+
 
 static uint8_t        s_raw[2][SET][HMAX * W];
 static SpriteGraphics s_rawHdr[2][SET];
@@ -389,52 +436,6 @@ static SpriteGraphics s_icon[LOOKS_VARIANTS];
 static uint8_t        s_iconPix[LOOKS_VARIANTS][16 * 16];
 static const SpriteGraphics *s_iconSource[LOOKS_VARIANTS];
 
-/* bald.c bald_icon's receding shape over an icon (menu colours, hair 3 in the top three rows) */
-static void icon_receding(uint8_t *px, int32_t nl)
-{
-    uint8_t hm[3][W];
-    int32_t skin = 0, y0 = -1;
-    for (int32_t y = 3; y < nl && !skin; y++)
-        for (int32_t x = 0; x < W; x++)
-            if (px[y * W + x] && px[y * W + x] != 3) { skin = px[y * W + x]; break; }
-    if (!skin)
-        return;
-    for (int32_t y = 0; y < 3; y++)
-        for (int32_t x = 0; x < W; x++) {
-            hm[y][x] = px[y * W + x] == 3;
-            if (hm[y][x]) {
-                px[y * W + x] = (uint8_t)skin;
-                if (y0 < 0)
-                    y0 = y;
-            }
-        }
-    if (y0 < 0)
-        return;
-    int32_t lo = 0, hi = W - 1;
-    while (lo < W && !px[y0 * W + lo]) lo++;
-    while (hi > 0 && !px[y0 * W + hi]) hi--;
-    if (lo > hi)
-        return;
-    px[y0 * W + lo] = px[y0 * W + hi] = 0;
-    int32_t top = 0, next = 0;
-    for (int32_t x = 0; x < W; x++) {
-        top += px[y0 * W + x] != 0;
-        next += px[(y0 + 1) * W + x] != 0;
-    }
-    if (top < next - 3)
-        for (int32_t x = 0; x < W; x++)
-            px[y0 * W + x] = 0;
-    for (int32_t y = 2, n = 0; y >= 0 && n < 2; y--) {
-        int32_t a = -1, b = -1;
-        for (int32_t x = 0; x < W; x++)
-            if (hm[y][x] && px[y * W + x]) { if (a < 0) a = x; b = x; }
-        if (a < 0)
-            continue;
-        px[y * W + a] = px[y * W + b] = 3;
-        n++;
-    }
-}
-
 int16_t PlayerLooks_MenuIcon(uint16_t face, int32_t look)
 {
     if (look <= LOOK_NONE || look >= LOOK_COUNT)
@@ -521,17 +522,236 @@ uint16_t PlayerLooks_LittlePlayer(int32_t look, uint16_t srcSprite, uint16_t *co
     return srcSprite;
 }
 
-#else /* the Amiga: the looks are carried, not drawn */
+#else /* ---- the Amiga ---- */
 
-void PlayerLooks_CopySets(void) {}
-void PlayerLooks_ConvertSets(int32_t team, uint16_t *colorTable) { (void)team; (void)colorTable; }
+/* The Amiga's sprites are planar in chip RAM, one word wide, a line's planes together
+ * (line * planes + plane), and the blitter draws them through a mask the face sets share. A
+ * team's six sets would be ~200 KB of chip RAM; instead (docs/WORLD_2026_27.md §6l):
+ *   - each team's raw set is copied to FAST RAM before it is recoloured (as SDL's);
+ *   - after the team's sets are, only the variants its players wear are made, in fast RAM,
+ *     WITHIN the frame's own silhouette -- so the shared mask stays right: no pixel is added
+ *     (Marco's head where the frame has none is left out), none is removed (the white hair's
+ *     end pixels stay grey, the receding icon keeps its outline);
+ *   - a player drawn with a look has a small CHIP slot of his own (one frame, 384 bytes; 20
+ *     players: 7.5 KB), filled from fast RAM when his frame changes; he is blitted from it with
+ *     his frame's own mask and ordinal (its depth: display.h spriteNumPlanes).
+ * Replays (the highlights) record the frame's own ordinal: they show the plain face. */
+#include "swos_sections.h"
+
+enum { POOL_WORDS = 10 * 1024, SLOTS = 20, SLOT_WORDS = HMAX * 8 };
+
+static uint16_t       s_raw[2][POOL_WORDS];                 /* (fast RAM: the raw sets) */
+static uint16_t       s_var[2][LOOKS_VARIANTS][POOL_WORDS]; /* (fast RAM: the looks worn) */
+static uint16_t       s_off[2][SET];                        /* a frame's first word in both */
+static uint8_t        s_words[2][SET];
+static uint8_t        s_haveRaw[2], s_varReady[2][LOOKS_VARIANTS];
+SWOS_CHIP_BSS static uint16_t s_slot[SLOTS][SLOT_WORDS];   /* what the blitter reads */
+static SpriteGraphics s_slotHdr[SLOTS];
+static int32_t        s_slotKey[SLOTS];
+
+static uint16_t colour_planes(int16_t ordinal)
+{
+    return spriteIsPadded8(ordinal) ? SPRITE_NUM_PLANES : spriteNumPlanes(ordinal);
+}
+
+static void decode(const uint16_t *w, int32_t nl, uint16_t sp, uint16_t cp, uint8_t *px)
+{
+    for (int32_t y = 0; y < nl; y++)
+        for (int32_t x = 0; x < W; x++) {
+            uint8_t c = 0;
+            for (uint16_t p = 0; p < cp; p++)
+                c |= (uint8_t)(((w[y * sp + p] >> (15 - x)) & 1) << p);
+            px[y * W + x] = c;
+        }
+}
+
+static void encode(const uint8_t *px, int32_t nl, uint16_t sp, uint16_t cp, uint16_t *w)
+{
+    for (int32_t y = 0; y < nl; y++)
+        for (uint16_t p = 0; p < cp; p++) {
+            uint16_t word = 0;
+            for (int32_t x = 0; x < W; x++)
+                word = (uint16_t)(word | (((px[y * W + x] >> p) & 1) << (15 - x)));
+            w[y * sp + p] = word;
+        }
+}
+
+void PlayerLooks_CopySets(void)
+{
+    for (int32_t k = 0; k < SLOTS; k++)
+        s_slotKey[k] = -1;
+    for (int32_t t = 0; t < 2; t++) {
+        uint32_t used = 0;
+        int32_t i;
+        s_haveRaw[t] = 0;
+        for (int32_t v = 0; v < LOOKS_VARIANTS; v++)
+            s_varReady[t][v] = 0;
+        for (i = 0; i < SET; i++) {
+            const SpriteGraphics *src = table()[kSetBase[t] + i];
+            if (!src || !src->sprData || src->wquads != 1 || src->nlines > HMAX)
+                break;
+            const uint32_t n = (uint32_t)src->nlines * spriteNumPlanes(src->ordinal);
+            if (used + n > POOL_WORDS)
+                break;
+            s_off[t][i] = (uint16_t)used;
+            s_words[t][i] = (uint8_t)n;
+            for (uint32_t k = 0; k < n; k++)
+                s_raw[t][used + k] = ((const uint16_t *)src->sprData)[k];
+            used += n;
+        }
+        s_haveRaw[t] = i == SET;
+    }
+}
+
+void PlayerLooks_ConvertSets(int32_t t, uint16_t *colorTable)
+{
+    extern void ConvertColorTableToSkinColor(uint16_t color, uint16_t *destTable);
+    extern TeamGame *_topTeamPtr, *_bottomTeamPtr;
+    const TeamGame *team = t == 0 ? _topTeamPtr : _bottomTeamPtr;
+    uint8_t need[LOOKS_VARIANTS] = { 0 };
+    static uint8_t raw[HMAX * W], px[HMAX * W];
+    if (t < 0 || t > 1 || !s_haveRaw[t] || !team)
+        return;
+    for (int32_t i = 1; i < 16; i++) {                  /* (the looks this side wears; keepers keep their hair) */
+        const int32_t look = PlayerLooks_InMatch(team, &team->players[i]);
+        if (look != LOOK_NONE)
+            need[(look - 1) * 2 + (team->players[i].face == 2)] = 1;
+    }
+    for (int32_t v = 0; v < LOOKS_VARIANTS; v++) {
+        if (!need[v])
+            continue;
+        const int32_t look = v / 2 + 1, dark = v & 1;
+        uint16_t tab[16];
+        for (int32_t k = 0; k < 16; k++)
+            tab[k] = colorTable[k];
+        ConvertColorTableToSkinColor(dark ? 2 : 0, tab);
+        for (int32_t f = 0; f < SET; f++) {
+            const SpriteGraphics *g = table()[kSetBase[t] + f];
+            const int32_t nl = g->nlines;
+            const uint16_t sp = spriteNumPlanes(g->ordinal), cp = colour_planes(g->ordinal);
+            decode(&s_raw[t][s_off[t][f]], nl, sp, cp, raw);
+            for (int32_t k = 0; k < nl * W; k++)
+                px[k] = raw[k];
+            apply_look(px, nl, f, look, dark);
+            for (int32_t k = 0; k < nl * W; k++) {
+                if (!raw[k])
+                    px[k] = 0;                          /* (the silhouette is the mask's) */
+                else if (!px[k])
+                    px[k] = look == LOOK_WHITE ? 1 : 6;
+                if (px[k])
+                    px[k] = (uint8_t)tab[px[k] & 15];
+            }
+            uint16_t *dst = &s_var[t][v][s_off[t][f]];
+            for (uint32_t k = 0; k < s_words[t][f]; k++)
+                dst[k] = 0;                             /* (a padded frame's planes 4..7: zeros) */
+            encode(px, nl, sp, cp, dst);
+        }
+        s_varReady[t][v] = 1;
+    }
+}
+
 int16_t PlayerLooks_Image(const Sprite *s, int16_t image) { (void)s; return image; }
-const SpriteGraphics *PlayerLooks_Graphics(const Sprite *s, const SpriteGraphics *g) { (void)s; return g; }
-int16_t PlayerLooks_MenuIcon(uint16_t face, int32_t look) { (void)look; return Face_MenuIcon(face); }
+
+const SpriteGraphics *PlayerLooks_Graphics(const Sprite *s, const SpriteGraphics *g)
+{
+    extern Sprite  **_team1SpritesTable, **_team2SpritesTable;
+    extern TeamGame *_topTeamPtr, *_bottomTeamPtr;
+    extern uint16_t  _useIndividualPlayerSkinColor;
+    if (!s || !g || !_useIndividualPlayerSkinColor || !_team1SpritesTable || !_team2SpritesTable)
+        return g;
+    int32_t t = -1, slot = -1;
+    for (int32_t i = 1; i < 11 && t < 0; i++) {         /* (0, the goalkeeper, keeps his hair) */
+        if (_team1SpritesTable[i] == s) { t = 0; slot = i; }
+        else if (_team2SpritesTable[i] == s) { t = 1; slot = i; }
+    }
+    if (t < 0)
+        return g;
+    const TeamGame *team = t == 0 ? _topTeamPtr : _bottomTeamPtr;
+    const PlayerInfo *pi = team ? &team->players[slot] : NULL;
+    const int32_t look = PlayerLooks_InMatch(team, pi);
+    if (look == LOOK_NONE)
+        return g;
+    const int16_t image = g->ordinal, f3 = Face3_Set(t);
+    int32_t f;
+    if (image >= kSetBase[t] && image < kSetBase[t] + 3 * SET)
+        f = (image - kSetBase[t]) % SET;
+    else if (f3 >= 0 && image >= f3 && image < f3 + SET)
+        f = image - f3;
+    else
+        return g;
+    const int32_t v = (look - 1) * 2 + (pi->face == 2);
+    if (!s_varReady[t][v] || g->nlines != table()[kSetBase[t] + f]->nlines)
+        return g;
+    const int32_t k = t * 10 + slot - 1, key = (v << 16) | (f << 8) | image;
+    if (s_slotKey[k] != key) {                          /* (his frame changed: the chip copy) */
+        const uint16_t *src = &s_var[t][v][s_off[t][f]];
+        for (uint32_t i = 0; i < s_words[t][f] && i < SLOT_WORDS; i++)
+            s_slot[k][i] = src[i];
+        s_slotKey[k] = key;
+    }
+    s_slotHdr[k] = *g;                                  /* (its mask, its ordinal: its depth) */
+    s_slotHdr[k].sprData = (uint8_t *)s_slot[k];
+    return &s_slotHdr[k];
+}
+
+/* The menus' face icons: the look over the white / black face, in its own outline. */
+static SpriteGraphics s_icon[LOOKS_VARIANTS];
+SWOS_CHIP_BSS static uint16_t s_iconPix[LOOKS_VARIANTS][16 * 8];
+static const SpriteGraphics *s_iconSource[LOOKS_VARIANTS];
+
+int16_t PlayerLooks_MenuIcon(uint16_t face, int32_t look)
+{
+    static uint8_t px[HMAX * W], was[HMAX * W];
+    if (look <= LOOK_NONE || look >= LOOK_COUNT)
+        return Face_MenuIcon(face);
+    const int32_t dark = (face & 3) >= 2, v = (look - 1) * 2 + dark;
+    const SpriteGraphics *src = table()[dark ? 188 : 186];
+    if (!src || !src->sprData || src->wquads != 1 || src->nlines > HMAX || src->nlines < 4)
+        return Face_MenuIcon(face);
+    const uint16_t sp = spriteNumPlanes(src->ordinal);
+    if ((uint32_t)src->nlines * sp > sizeof s_iconPix[0] / 2 || sp < 4)
+        return Face_MenuIcon(face);
+    const int16_t slot = (int16_t)(LOOKS_ICON_FIRST + v);
+    if (s_iconSource[v] != src) {
+        const int32_t nl = src->nlines;
+        decode((const uint16_t *)src->sprData, nl, sp, 4, was);
+        for (int32_t k = 0; k < nl * W; k++)
+            px[k] = was[k];
+        if (look == LOOK_RECEDING)
+            icon_receding(px, nl);
+        else if (look == LOOK_WHITE)
+            whiten(px, 3 * W, 1);
+        else
+            for (int32_t y = 0; y < 8 && y < nl; y++)
+                for (int32_t x = 0; x < W; x++)
+                    px[y * W + x] = g_looksArtIcons[dark][y][x];
+        for (int32_t k = 0; k < nl * W; k++)            /* (its outline: the menus' mask) */
+            if (!was[k])
+                px[k] = 0;
+            else if (!px[k])
+                px[k] = was[k];
+        for (uint32_t k = 0; k < (uint32_t)nl * sp; k++)
+            s_iconPix[v][k] = ((const uint16_t *)src->sprData)[k];
+        encode(px, nl, sp, 4, s_iconPix[v]);
+        s_icon[v] = *src;
+        s_icon[v].sprData = (uint8_t *)s_iconPix[v];
+        s_icon[v].ordinal = slot;                       /* (4 planes deep, as the face's) */
+        table()[slot] = &s_icon[v];
+        s_iconSource[v] = src;
+    }
+    return slot;
+}
+
 uint16_t PlayerLooks_LittlePlayer(int32_t look, uint16_t srcSprite, uint16_t *colTable)
 {
-    (void)look; (void)colTable;
-    return srcSprite;
+    if (look == LOOK_WHITE) {
+        colTable[13] = colTable[9] = 2;
+        colTable[12] = 1;
+    } else if (look == LOOK_SHAVED) {
+        colTable[13] = colTable[9] = colTable[6];
+        colTable[12] = colTable[5];
+    }
+    return srcSprite;                                   /* (receding needs a copy of the sprite: SDL's) */
 }
 
 #endif
