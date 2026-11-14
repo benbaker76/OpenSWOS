@@ -12,11 +12,13 @@
  * sprite is what the frame shows there, so a sprite drawn over him earlier is left alone. A
  * ponytail is a few pixels beside the head, behind it.
  *
- * A player's look comes from looks.csv in the mod's folder when it names him (the SWOS 96/97 Mod's
+ * A player with a look of his own -- the SWOS 96/97 Mod's, in his record (player_looks.c, drawn by
+ * the game itself) -- keeps it: this mod leaves him alone. For the others:
+ * a player's look comes from looks.csv in the mod's folder when it names him (the SWOS 96/97 Mod's
  * bald-looks format: country,club,name,look[,face]; the looks natural, blonde, black, receding,
  * shaved -- also "bald": all bald, the owner's choice 2026-11-08 -- ponytail), else from his name: the same player always looks the same. Shaved heads are
- * drawn from shavedart.json in the mod's folder when it is there (the Mod's art, per frame), else
- * the hair simply becomes the skull's colour.
+ * drawn from shavedart.json in the mod's folder when it is there, else from Marco's art as the game
+ * has it (player_looks_art.c).
  *
  * Cosmetic: draws into the frame, which is not match state (src/sim_state.c), from the players'
  * names, faces and frames, never changing any of them.
@@ -28,6 +30,7 @@
 #include "game_types.h"
 #include "mod_api.h"
 #include "player_face3.h"
+#include "player_looks.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -271,7 +274,32 @@ typedef struct {
 static ArtHead *s_art[2];           /* [0] light (faces 0, 1), [1] dark (faces 2, 3) */
 static int32_t  s_artCount[2];
 static int16_t  s_artFrame[kSet][3]; /* the head, its box column dark, light */
-static int      s_artRead, s_artOk;
+static int      s_artRead, s_artOk, s_artRaw;
+
+/* Without a shavedart.json of its own: Marco's art as the game has it (player_looks_art.c, the
+ * Mod's file in RAW colours: 13 the skull tone, the dark heads' colours the raw ones). */
+static void builtin_art(void)
+{
+    for (int skin = 0; skin < 2; skin++) {
+        const LooksArtHead *src = skin ? g_looksArtDark : g_looksArtLight;
+        s_art[skin] = (ArtHead *)calloc(LOOKS_ART_HEADS, sizeof(ArtHead));
+        if (!s_art[skin])
+            return;
+        for (int i = 0; i < LOOKS_ART_HEADS; i++) {
+            ArtHead *h = &s_art[skin][i];
+            h->ry = src[i].ry;
+            h->rx = src[i].rx;
+            h->h = src[i].h;
+            h->w = src[i].w;
+            memcpy(h->cells, src[i].cells, sizeof h->cells);
+        }
+        s_artCount[skin] = LOOKS_ART_HEADS;
+    }
+    for (int k = 0; k < kSet; k++)
+        for (int j = 0; j < 3; j++)
+            s_artFrame[k][j] = g_looksArtFrames[k][j];
+    s_artOk = s_artRaw = 1;
+}
 
 /* a small reader for the one file: numbers and the keys "dark", "light", "frames" */
 static const char *skip_to(const char *p, const char *key)
@@ -335,12 +363,16 @@ static void read_art(void)
     char path[1024];
     const char *dir = mod_dir();
     s_artRead = 1;
-    if (!dir)
+    if (!dir) {
+        builtin_art();
         return;
+    }
     snprintf(path, sizeof path, "%s/shavedart.json", dir);
     FILE *f = fopen(path, "rb");
-    if (!f)
+    if (!f) {
+        builtin_art();
         return;
+    }
     fseek(f, 0, SEEK_END);
     const long n = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -407,8 +439,10 @@ static void look_frame(int f, int face, const Look *look, uint8_t out[kH][kW])
                     const int v = h->cells[y][x], py = oy + y, px = ox + x;
                     if (v < 0 || py >= nl || px >= kW)
                         continue;
-                    /* (light: 6/5/4 skin, 3 black, 16 the tone; dark: 4 <- 6, 3 <- 4, 17 the tone) */
-                    out[py][px] = (uint8_t)(v == 16 || v == 17 ? 16 : !dark ? v : v == 4 ? 6 : v == 3 ? 4 : v);
+                    /* (light: 6/5/4 skin, 3 black, 16 the tone; dark: 4 <- 6, 3 <- 4, 17 the tone;
+                     *  the built-in art is raw already, 13 its tone) */
+                    out[py][px] = (uint8_t)(s_artRaw ? (v == 13 ? 16 : v)
+                                            : v == 16 || v == 17 ? 16 : !dark ? v : v == 4 ? 6 : v == 3 ? 4 : v);
                 }
         } else {
             /* no art: the skull, the hair's lowest row left as a shade */
@@ -448,6 +482,8 @@ void ModHair_PlayerDrawn(const Sprite *sprite, const SpriteGraphics *gfx, int16_
     if (!team)
         return;
     const PlayerInfo *p = &team->players[idx];
+    if (PlayerLooks_InMatch(team, p) != LOOK_NONE)
+        return;                                         /* (his own look, from the data: player_looks.c) */
     const int face = p->blond ? 3 : (p->face & 3);
     const int f = gfx->ordinal - kSetBase[t] - sprite->frameOffset;
     if (f < 0 || f >= kSet || gfx->nlines != s_lines[f] || gfx->wquads != 1)

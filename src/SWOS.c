@@ -388,6 +388,15 @@ skip_title_screens: ;
             if (DiyConvert_Armed())
                 DiyConvert_Run();     /* writes the JSON .DIY, then exits */
         }
+#if SWOS_WORLDS
+        {
+            /* SWOS_WORLD_PACKS_DIY_TEST: a .DIY of other worlds' clubs saved and loaded again */
+            extern int32_t WorldPacks_DiyTestArmed(void);
+            extern void    WorldPacks_DiyTestRun(void);
+            if (WorldPacks_DiyTestArmed())
+                WorldPacks_DiyTestRun();
+        }
+#endif
         {
             extern int32_t ReplayV2_ViewTestArmed(void);
             extern void    ReplayV2_ViewTestRun(void);

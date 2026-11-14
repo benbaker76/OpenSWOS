@@ -49,6 +49,10 @@ typedef struct {
 /* The world's leagues with groups (src/world_data.c, generated); *count of them. */
 const LeagueGroups *World_LeagueGroups(int32_t *count);
 
+/* A classic world's country without groups: its league clubs, each its division in the team file
+ * (levels 0), for its cups' clubs from the second season (src/world_cups.c). NULL: none. */
+const LeagueGroups *World_CupClubs(uint16_t country);
+
 /* The league with groups of a country, NULL for one without. */
 const LeagueGroups *LeagueGroups_ForCountry(uint16_t country);
 

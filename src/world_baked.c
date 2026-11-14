@@ -44,7 +44,8 @@
     const LeagueSplit *WorldData##T##_LeagueSplits(int32_t *count);                                 \
     const WorldCupD *WorldData##T##_CupD(void);                                                     \
     const WorldEuropeKO *WorldData##T##_EuropeKnockouts(void);                                      \
-    const WorldSuperCup *WorldData##T##_SuperCups(int32_t *count);
+    const WorldSuperCup *WorldData##T##_SuperCups(int32_t *count);                                  \
+    const LeagueGroups *WorldData##T##_CupClubs(uint16_t country);
 
 #if SWOS_WORLDS
 WORLD_BAKED_DECLARE(2627)
@@ -117,6 +118,11 @@ void World_InstallBaked(void)
 const LeagueGroups *World_LeagueGroups(int32_t *count)
 {
     WORLD_CALL(LeagueGroups(count), *count = 0; return 0)
+}
+
+const LeagueGroups *World_CupClubs(uint16_t country)
+{
+    WORLD_CALL(CupClubs(country), return 0)
 }
 
 const LeaguePlayoffs *World_LeaguePlayoffs(int32_t *count)

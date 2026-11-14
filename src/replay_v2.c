@@ -18,6 +18,7 @@
 #ifdef SWOS_SDL_BUILD
 
 #include "long_bench.h"
+#include "player_looks.h"
 #include "replay_v2.h"
 #include "mod_hooks.h"
 #include <SDL.h>            /* the checkpoint's thread */
@@ -536,13 +537,15 @@ void ReplayRec_CaptureSprites(void)
         const Sprite *s = _sortedSprites[i];
         const SpriteGraphics *g;
         uint8_t *p;
+        int16_t image;
         if (!s || s->imageIndex < 0 || s->z.s.i >= HUD_Z_MIN)
             continue;
-        g = graphics((uint16_t)s->imageIndex);
+        image = PlayerLooks_Image(s, s->imageIndex);     /* (a player's look: player_looks.c) */
+        g = graphics((uint16_t)image);
         if (Sprite_WalkedOff(s, g))
             continue;               /* (walked off into the tunnel: not drawn either) */
         p = s_rec.frms + s_rec.frmsLen;
-        BE_WRITE_U16(p, (uint16_t)s->imageIndex);
+        BE_WRITE_U16(p, (uint16_t)image);
         BE_WRITE_U16(p + 2, (uint16_t)(s->x.s.i - g->centerX));
         BE_WRITE_U16(p + 4, (uint16_t)(s->y.s.i - g->centerY - s->z.s.i));
         s_rec.frmsLen += SPRITE_BYTES;

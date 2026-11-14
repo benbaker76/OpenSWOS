@@ -39,6 +39,7 @@ extern volatile uint8_t _keyBuffer[];
 extern uint16_t _writeOnly01;
 extern volatile uint16_t _lastVBlankServiceTick;
 extern volatile uint8_t _keyIn;
+volatile uint8_t _gAmigaShiftHeld;   /* (input_text.c: SHIFT types the symbol on a key) */
 
 /* ---- Volatile globals from SWOS2.s BSS ---- */
 extern volatile int16_t _waitingInterrupt;
@@ -166,6 +167,8 @@ void _Int2KeyboardHandler(void)
 
     _keyDelay = 0;
     _keyIn = d0;
+    if ((d0 & 0x7F) == 0x60 || (d0 & 0x7F) == 0x61)     /* LSHIFT / RSHIFT: InputText types the */
+        _gAmigaShiftHeld = (uint8_t)!(d0 & 0x80);       /* key's symbol while one is held */
 
     /* If high bit set (key release), skip buffer insertion */
     if (d0 & 0x80)

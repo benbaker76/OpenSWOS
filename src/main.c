@@ -318,6 +318,7 @@ static void print_usage(const char *argv0)
         "                            and every table names one. Exits.\n"
         "  --convert-diy=<in>,<out>  Rewrite a PC/SWOS 2020 .DIY as this game's JSON\n"
         "                            .DIY, which the Amiga loads. Exits.\n"
+        "  --world-packs-selftest    Other installed worlds' countries as session team packs\n"
         "  --custom-team-selftest    Check every database team against the custom team\n"
         "                            rule (names, faces, kits and line-up only) and\n"
         "                            through the team file's text. Exits.\n"
@@ -1008,6 +1009,15 @@ int main(int argc, char **argv)
             if (getenv("SWOS_WORLD"))              /* (src/bteam.c: the B teams, their years) */
                 World_Set(getenv("SWOS_WORLD"));
             return BTeam_SelfTest(a[16] == '=' ? a + 17 : "") ? 1 : 0;
+        } else if (strcmp(a, "--world-packs-selftest") == 0) {
+#if SWOS_WORLDS
+            extern int32_t WorldPacks_SelfTest(void);   /* (src/world_packs.c: other worlds' clubs) */
+            if (getenv("SWOS_WORLD"))
+                World_Set(getenv("SWOS_WORLD"));
+            return WorldPacks_SelfTest() ? 1 : 0;
+#else
+            return 1;
+#endif
         } else if (strcmp(a, "--custom-team-selftest") == 0) {
             if (getenv("SWOS_WORLD"))
                 World_Set(getenv("SWOS_WORLD"));
@@ -1543,6 +1553,10 @@ int main(int argc, char **argv)
         return ModsMenu_PageTest(getenv("SWOS_MOD_PAGE_TEST"));
     }
     { extern void TeamPacks_Install(void); TeamPacks_Install(); }   /* (the mods' team packs: include/team_packs.h) */
+#if SWOS_WORLDS
+    { extern void WorldPacks_FromEnv(void); WorldPacks_FromEnv(); }  /* (SWOS_WORLD_PACKS: a test's, world_packs.h) */
+    { extern void WorldPacks_IndexStart(void); WorldPacks_IndexStart(); }   /* (the other worlds' clubs by checksum) */
+#endif
     {   /* A sprite set as a mod ("sprites": "jaguar", docs/JAGUAR.md): the Jaguar tier draws its
          * grafs_jag/, with the four shading settings its own (its page; [graphics]'s otherwise). */
         const char *set = Mods_JaguarSprites();

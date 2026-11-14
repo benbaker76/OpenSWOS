@@ -1,0 +1,1685 @@
+{
+ "name": "worldCountriesMenu",
+ "comment": "OpenSWOS's list of another world's countries (include/world_packs.h): fire on one gives it a team pack number for the session and lists its clubs. CHOOSE TEAMS' TEAM PACKS row -> a world opens it. 48 a page. JSON-only (docs/MENUS.md section 10); handlers in src/team_packs_menu.c.",
+ "menu_flags": {
+  "dos_redraw": true
+ },
+ "onInit": "worldCountriesMenu_OnInit",
+ "onReturn": "worldCountriesMenu_OnInit",
+ "onDraw": "worldCountriesMenu_OnDraw",
+ "defaultEntry": 2,
+ "items": [
+  {
+   "kind": "entry",
+   "name": "header",
+   "coords": {
+    "x": 56,
+    "y": 0,
+    "w": 208,
+    "h": 16
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x10"
+    },
+    {
+     "op": "colors",
+     "frame_color": 1,
+     "background_color": 7
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "subTitle",
+   "coords": {
+    "x": 12,
+    "y": 18,
+    "w": 296,
+    "h": 10
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row0",
+   "coords": {
+    "x": 4,
+    "y": 30,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row0_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row1",
+   "coords": {
+    "x": 4,
+    "y": 39,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row1_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row2",
+   "coords": {
+    "x": 4,
+    "y": 48,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row2_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row3",
+   "coords": {
+    "x": 4,
+    "y": 57,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row3_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row4",
+   "coords": {
+    "x": 4,
+    "y": 66,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row4_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row5",
+   "coords": {
+    "x": 4,
+    "y": 75,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row5_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row6",
+   "coords": {
+    "x": 4,
+    "y": 84,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row6_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row7",
+   "coords": {
+    "x": 4,
+    "y": 93,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row7_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row8",
+   "coords": {
+    "x": 4,
+    "y": 102,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row8_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row9",
+   "coords": {
+    "x": 4,
+    "y": 111,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row9_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row10",
+   "coords": {
+    "x": 4,
+    "y": 120,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row10_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row11",
+   "coords": {
+    "x": 4,
+    "y": 129,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row11_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row12",
+   "coords": {
+    "x": 4,
+    "y": 138,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row12_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row13",
+   "coords": {
+    "x": 4,
+    "y": 147,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row13_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row14",
+   "coords": {
+    "x": 4,
+    "y": 156,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row14_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row15",
+   "coords": {
+    "x": 4,
+    "y": 165,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row15_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row16",
+   "coords": {
+    "x": 108,
+    "y": 30,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row16_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row17",
+   "coords": {
+    "x": 108,
+    "y": 39,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row17_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row18",
+   "coords": {
+    "x": 108,
+    "y": 48,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row18_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row19",
+   "coords": {
+    "x": 108,
+    "y": 57,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row19_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row20",
+   "coords": {
+    "x": 108,
+    "y": 66,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row20_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row21",
+   "coords": {
+    "x": 108,
+    "y": 75,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row21_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row22",
+   "coords": {
+    "x": 108,
+    "y": 84,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row22_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row23",
+   "coords": {
+    "x": 108,
+    "y": 93,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row23_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row24",
+   "coords": {
+    "x": 108,
+    "y": 102,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row24_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row25",
+   "coords": {
+    "x": 108,
+    "y": 111,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row25_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row26",
+   "coords": {
+    "x": 108,
+    "y": 120,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row26_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row27",
+   "coords": {
+    "x": 108,
+    "y": 129,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row27_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row28",
+   "coords": {
+    "x": 108,
+    "y": 138,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row28_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row29",
+   "coords": {
+    "x": 108,
+    "y": 147,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row29_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row30",
+   "coords": {
+    "x": 108,
+    "y": 156,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row30_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row31",
+   "coords": {
+    "x": 108,
+    "y": 165,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row31_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row32",
+   "coords": {
+    "x": 212,
+    "y": 30,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row32_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row33",
+   "coords": {
+    "x": 212,
+    "y": 39,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row33_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row34",
+   "coords": {
+    "x": 212,
+    "y": 48,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row34_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row35",
+   "coords": {
+    "x": 212,
+    "y": 57,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row35_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row36",
+   "coords": {
+    "x": 212,
+    "y": 66,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row36_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row37",
+   "coords": {
+    "x": 212,
+    "y": 75,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row37_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row38",
+   "coords": {
+    "x": 212,
+    "y": 84,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row38_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row39",
+   "coords": {
+    "x": 212,
+    "y": 93,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row39_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row40",
+   "coords": {
+    "x": 212,
+    "y": 102,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row40_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row41",
+   "coords": {
+    "x": 212,
+    "y": 111,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row41_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row42",
+   "coords": {
+    "x": 212,
+    "y": 120,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row42_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row43",
+   "coords": {
+    "x": 212,
+    "y": 129,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row43_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row44",
+   "coords": {
+    "x": 212,
+    "y": 138,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row44_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row45",
+   "coords": {
+    "x": 212,
+    "y": 147,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row45_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row46",
+   "coords": {
+    "x": 212,
+    "y": 156,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row46_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "row47",
+   "coords": {
+    "x": 212,
+    "y": 165,
+    "w": 96,
+    "h": 8
+   },
+   "commands": [
+    {
+     "op": "text_no_ptr",
+     "flags": "0x0"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 13
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_row47_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "prev",
+   "coords": {
+    "x": 20,
+    "y": 178,
+    "w": 96,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "PREVIOUS"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_prev_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "exit",
+   "coords": {
+    "x": 112,
+    "y": 178,
+    "w": 96,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "EXIT"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 12
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_exit_OnSelect"
+    }
+   ]
+  },
+  {
+   "kind": "entry",
+   "name": "next",
+   "coords": {
+    "x": 204,
+    "y": 178,
+    "w": 96,
+    "h": 15
+   },
+   "commands": [
+    {
+     "op": "text",
+     "flags": "0x0",
+     "literal": "NEXT"
+    },
+    {
+     "op": "colors",
+     "frame_color": 0,
+     "background_color": 14
+    },
+    {
+     "op": "nav",
+     "left": -1,
+     "right": -1,
+     "up": -1,
+     "down": -1
+    },
+    {
+     "op": "onselect_fire",
+     "func": "worldCountriesMenu_next_OnSelect"
+    }
+   ]
+  }
+ ]
+}

@@ -17,6 +17,7 @@
  * See SAVE_FORMAT_JSON.md for the migration history.
  */
 
+#include "player_looks.h"
 #include "save_format_json.h"
 #include "mjson.h"
 #include "game_types.h"
@@ -2671,7 +2672,12 @@ static void jb_player(JB *j, const uint8_t *p)
     jb_key_long (j, "nationality",        (int32_t)(int8_t)p[offsetof(PlayerFile, nationality)]);       jb_c(j, ',');
     jb_key_long (j, "cached_match_value", (int32_t)(int8_t)p[offsetof(PlayerFile, cachedMatchValue)]);  jb_c(j, ',');
     jb_key_long (j, "shirt_number",       (int32_t)(int8_t)p[offsetof(PlayerFile, shirtNumber)]);       jb_c(j, ',');
-    jb_key_str  (j, "player_name", p, offsetof(PlayerFile, playerName), 23);                         jb_c(j, ',');
+    /* (22: byte 25, the name's terminator, is also the SWOS 96/97 Mod's look -- "looks", next --
+     *  when the name is shorter; jb_key_str clears what follows the name up to its length) */
+    jb_key_str  (j, "player_name", p, offsetof(PlayerFile, playerName), 22);                         jb_c(j, ',');
+    if (p[offsetof(PlayerFile, playerName) + 21] == 0 && (p[offsetof(PlayerFile, playerName) + 22] & LOOKS_BITS)) {
+        jb_key_ulong(j, "looks", (uint32_t)(p[offsetof(PlayerFile, playerName) + 22] & LOOKS_BITS));  jb_c(j, ',');
+    }
     {
         const uint8_t pf = p[offsetof(PlayerFile, positionAndFace)];
         const uint8_t ci = p[offsetof(PlayerFile, cardsInjuries)];
@@ -3101,6 +3107,8 @@ static const StructFieldDesc s_player_fields[] = {
     { "cached_match_value",   offsetof(PlayerFile, cachedMatchValue),    0, FLD_U8 },
     { "shirt_number",         offsetof(PlayerFile, shirtNumber),         0, FLD_U8 },
     { "player_name",          offsetof(PlayerFile, playerName),         23, FLD_STR },
+    /* the SWOS 96/97 Mod's look (include/player_looks.h): byte 25, after the name (which clears it) */
+    { "looks",                offsetof(PlayerFile, playerName) + 22,     0, FLD_U8 },
     /* positionAndFace bits: position (5-7), face (3-4), flags (0-2). */
     { "position",             offsetof(PlayerFile, positionAndFace), PF_POSITION_MASK, FLD_BITS },
     { "face",                 offsetof(PlayerFile, positionAndFace), PF_FACE_MASK,     FLD_BITS },
@@ -3557,6 +3565,7 @@ int DataJson_LoadTeamArray(const char *json, int len, struct TeamFileEx *out, in
 
 #ifdef SWOS_SDL_BUILD
 #include "team_db.h"        /* struct TeamDbIds: the ids a teams file states */
+#include "world_packs.h"    /* another world's country as a session pack */
 /* Read a whole file into a malloc'd NUL-terminated buffer (*out_len = byte len).
    Caller frees. Returns NULL on any error. */
 static char *dj_slurp(const char *path, int *out_len)
@@ -3951,6 +3960,13 @@ static char *dj_slurp_country_teams(int countryNum, char *team_file, int team_fi
         snprintf(wpath, sizeof wpath, "data_json/worlds/%s/%s", World_Tag(), team_file);
         return dj_slurp(wpath, out_len);
     }
+#if SWOS_WORLDS
+    if (!team_file[0] && WorldPacks_Path(countryNum)) {
+        /* Another world's country, a pack number for the session (include/world_packs.h). */
+        snprintf(team_file, team_file_size, "%s", WorldPacks_Path(countryNum) + 10);
+        return dj_slurp(WorldPacks_Path(countryNum), out_len);
+    }
+#endif
     if (!team_file[0]) {
         /* A team pack's number (include/team_packs.h): a mod's teams, in their own file. */
         extern const char *TeamPacks_File(int country);
@@ -4067,6 +4083,9 @@ int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, 
     free(jj);
     if (n <= 0)
         return -1;
+#if SWOS_WORLDS
+    WorldPacks_Fix(countryNum, (struct TeamFileEx *)(teamFileBuf + 2), n);   /* (another world's: the pack's) */
+#endif
     *(unsigned short *)teamFileBuf = (unsigned short)n;   /* host-native count header */
     {
         /* Announce ONCE so a test run can confirm the JSON path is live (not a
@@ -9317,6 +9336,31 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
         }
     }
 
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    /* Another world's countries its teams are from (include/world_packs.h): each pack number's
+     * world and file, so that a load gives them those numbers again. Only when there are some. */
+    {
+        int32_t said = 0;
+        uint8_t seen[256] = { 0 };
+        for (uint16_t i = 0; i < _primaryCompetitionBuf.tourn.header.numTeams; i++) {
+            const uint8_t c = _selectedTeams[i].team.countryNumber;
+            int32_t w;
+            const char *file;
+            if (seen[c] || !WorldPacks_Info(c, &w, &file))
+                continue;
+            seen[c] = 1;
+            if (said++)
+                json_out_emit(",", 1, &out);
+            else
+                mjson_printf(json_out_emit, &out, ",\n  %Q:[", "world_packs");
+            mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:%Q,%Q:%Q}", "number", (int)c, "world",
+                         World_TagOf((WorldId)w), "file", file);
+        }
+        if (said)
+            json_out_emit("]", 1, &out);
+    }
+#endif
+
     /* DIY teams array — primaryCompetitionBuf.tourn.header.numTeams TeamFileEx records at
      * &selTeamsPtr. Same record layout as the career selected_teams. */
     mjson_printf(json_out_emit, &out, ",\n  %Q:[", "diy_teams");
@@ -9389,7 +9433,7 @@ static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const
      * mjson_next team walk below was the "load looks crashed" report. */
     enum { RK_SCHEMA, RK_KIND, RK_SCALARS, RK_SLOT, RK_STAGE, RK_CUPFULL,
            RK_STANDINGS, RK_SC_TAB, RK_SC_AGG, RK_SC_PEN, RK_TEAMS, RK_OVR,
-           RK_COUNT };
+           RK_WPACKS, RK_COUNT };
     KeySlice rk[RK_COUNT] = {
         [RK_SCHEMA]    = { "schema_version", NULL, 0, 0 },
         [RK_KIND]      = { "file_kind", NULL, 0, 0 },
@@ -9403,6 +9447,7 @@ static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const
         [RK_SC_PEN]    = { "stage_score_pen", NULL, 0, 0 },
         [RK_TEAMS]     = { "diy_teams", NULL, 0, 0 },
         [RK_OVR]       = { "competition_overrides", NULL, 0, 0 },
+        [RK_WPACKS]    = { "world_packs", NULL, 0, 0 },
     };
     capture_object_keys((const char *)src, (int)src_size, rk, RK_COUNT);
 
@@ -9461,6 +9506,24 @@ static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const
      * empty competition name. The legacy emit was a stale absolute
      * pointer that would have crashed if dereferenced after a
      * cross-build load anyway. */
+
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    /* Another world's countries, at the numbers the save gave them (include/world_packs.h). */
+    if (rk[RK_WPACKS].v && rk[RK_WPACKS].vt == MJSON_TOK_ARRAY) {
+        int koff, klen, voff, vlen, vt, off = 0;
+        while ((off = mjson_next(rk[RK_WPACKS].v, rk[RK_WPACKS].vlen, off, &koff, &klen, &voff, &vlen, &vt)) != 0) {
+            const char *e = rk[RK_WPACKS].v + voff;
+            double num = -1;
+            char tag[16] = "", file[48] = "";
+            if (vt == MJSON_TOK_OBJECT && mjson_get_number(e, vlen, "$.number", &num) &&
+                mjson_get_string(e, vlen, "$.world", tag, (int)sizeof tag) > 0 &&
+                mjson_get_string(e, vlen, "$.file", file, (int)sizeof file) > 0 &&
+                !WorldPacks_UseAt((int32_t)num, World_FromTag(tag), file))
+                fprintf(stderr, "[world-packs] the save's %s of world %s (%d): not installed -- its teams play, "
+                                "its country is not named\n", file, tag, (int)num);
+        }
+    }
+#endif
 
     if (rk[RK_SCALARS].v && rk[RK_SCALARS].vt == MJSON_TOK_OBJECT)
         load_scalar_table_comp_slice(rk[RK_SCALARS].v, rk[RK_SCALARS].vlen,

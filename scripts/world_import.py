@@ -97,6 +97,7 @@ def player(p, home_nation):
         "cached_match_value": p["field_1"] & 255,
         "shirt_number": p["shirt_number"] & 255,
         "player_name": p["player_name"],
+        "looks": p.get("field_19", 0) & 7 if len(p["player_name"]) < 22 else 0,   # (byte 25: the Mod's looks)
         "position": pf >> 5,
         "face": face,
         "flags": pf & 7,
@@ -111,6 +112,10 @@ def player(p, home_nation):
         "goal_stats": [g & 255 for g in p["goal_stats"]],
         "form": p["some_flag"] & 255,
     }
+    if out["looks"]:
+        counts["players with a look (bald, shaved, white hair)"] += 1
+    else:
+        del out["looks"]
     if p.get("born"):               # (a B team's player: his year of birth, the call-ups' under-23 rule)
         out["born"] = int(p["born"])
         counts["players with a year of birth (B teams)"] += 1
@@ -1210,6 +1215,9 @@ def country_playoffs(wc, pk, picked):
             "combined": stage_combined(lg.get("ko_playoffs", [])), "winners": winners}
 
 
+CUP_CLUBS = []              # (a classic world's: (country, [(slot, division)]) its cups' clubs from season 2)
+
+
 def country_cups(wc, pk, picked):
     """A country's national cup (slot 1) and league cup (slot 2) as its pack has them (as
     italian_cups, any country): its 96/97 records reshaped, or new ones."""
@@ -1618,6 +1626,22 @@ const LeagueGroups *%(P)s_LeagueGroups(int32_t *count)
     }
 }
 
+/* A classic world's countries without groups: each league club's slot and division in the team
+ * file (levels 0: a division its own level), for its cups' clubs from the second season
+ * (src/world_cups.c build; the Mod's cupsf.py / gplay.c cf_build). */
+#if SWOS_WORLDS
+%(cupclubs)s
+#endif
+
+const LeagueGroups *%(P)s_CupClubs(uint16_t country)
+{
+#if SWOS_WORLDS
+%(cupclub_cases)s
+#endif
+    (void)country;
+    return 0;
+}
+
 /* The leagues' play-offs and play-outs (src/league_playoffs.c): the Mod's counts per
  * division, its Italian rules, its knockouts compiled as tools/gplay.py compiles them. */
 #if SWOS_WORLDS
@@ -1963,6 +1987,17 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
         tag, "\n".join(group_entries) or "    { 0 },"))
     group_cases = ("    case WORLD_%s:\n        *count = %d;\n        return kWorld%sGroups;"
                    % (tag, len(groups), tag))
+    cc_rows, cc_entries = [], []
+    for country, clubs in CUP_CLUBS:
+        sym = "kWorld%s_cupClubs%d" % (tag, country)
+        cc_rows.append("static const LeagueGroupClub %s[] = {\n%s\n};" % (sym, "\n".join(
+            "    { %d, %d, { LEAGUE_GROUPS_NO_AREA, LEAGUE_GROUPS_NO_AREA } }," % (o, d) for o, d in clubs)))
+        cc_entries.append("    { %d, 0, 0, %d, %s }," % (country, len(clubs), sym))
+    cupclub_tables = "\n\n".join(cc_rows + ["static const LeagueGroups kWorld%sCupClubs[] = {\n%s\n};" % (
+        tag, "\n".join(cc_entries))]) if cc_entries else ""
+    cupclub_cases = ("    if (World_Current() == WORLD_%s)\n        for (int32_t i = 0; i < %d; i++)\n"
+                     "            if (kWorld%sCupClubs[i].country == country)\n                return &kWorld%sCupClubs[i];"
+                     % (tag, len(cc_entries), tag, tag)) if cc_entries else ""
     po_tables, po_entries = [], []
     for po in playoffs:
         sym = "kWorld%s_%s" % (tag, po["name"].lower())
@@ -2228,6 +2263,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                            "externs": "\n".join(sorted(externs)),
                            "records": "\n\n".join(strings + records), "cases": cases,
                            "groups": "\n\n".join(group_tables), "group_cases": group_cases,
+                           "cupclubs": cupclub_tables, "cupclub_cases": cupclub_cases,
                            "playoffs": "\n\n".join(po_tables), "po_cases": po_cases,
                            "pools": "\n\n".join(pool_tables), "pool_cases": pool_cases,
                            "cups": "\n\n".join(cup_tables), "cup_cases": cup_cases,
@@ -2741,6 +2777,7 @@ def main_classic(cfg):
         write_team_file(t, wc["base"])
         leagues["leagues"].append(country_league(wc, pk, pk_picked))
         cups += country_cups(wc, pk, pk_picked)
+        CUP_CLUBS.append((wc["number"], [(o, d) for o, (_, d) in enumerate(pk_picked) if d is not None]))
         resized.append((wc["number"], t["count"]))
         numbers.add(wc["number"])
         counts["countries imported"] += 1

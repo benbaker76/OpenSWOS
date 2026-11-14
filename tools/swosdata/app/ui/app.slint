@@ -200,6 +200,9 @@ export component MainWindow inherits Window {
     // unless asked for (the Amiga has no SWOS.ini: the drawer plays the world it is made with).
     in property <bool> amiga-world-available;
     in-out property <bool> amiga-world;
+    in property <string> amiga-world-name: "World 2026-27";   // (the world the drawer would take: its WORLD.ini name)
+    in property <int> amiga-world-count: 1;                     // (installed worlds the Amiga can play)
+    callback amiga-world-next();
 
     callback choose-folder();
     callback scan-drives();                 // SCAN MY DRIVES: every drive, a few folders deep
@@ -416,8 +419,8 @@ export component MainWindow inherits Window {
                 }
                 if root.world-available: ExtraRow {
                     icon: @image-url("icons/world.svg");
-                    title: @tr("World 2026-27");
-                    text: @tr("Today's clubs, players and competitions, from the SWOS 96/97 Mod");
+                    title: @tr("Worlds");
+                    text: @tr("World 2026-27 and Europe 1984-85, from the SWOS 96/97 Mod");
                     selected: root.x-world;
                     clicked => { root.x-world = !root.x-world; root.wizard-changed(); }
                 }
@@ -512,7 +515,7 @@ export component MainWindow inherits Window {
                         Text {
                             text: root.kind == Step.pc ? @tr("Get the PC game")
                                 : root.kind == Step.amiga ? @tr("Get the Amiga version")
-                                : root.kind == Step.world ? @tr("Get World 2026-27")
+                                : root.kind == Step.world ? @tr("Get the worlds")
                                 : root.kind == Step.s2020 ? @tr("Add SWOS 2020's pitches")
                                 : root.kind == Step.pccd ? @tr("Add the PC game's commentary")
                                 : @tr("Add the Jaguar's players");
@@ -541,8 +544,8 @@ export component MainWindow inherits Window {
                 }
                 if root.kind == Step.world: VerticalLayout {
                     spacing: 8px;
-                    Instruction { number: 1; text: @tr("Download OpenSWOS-World-2627.zip below."); }
-                    Instruction { number: 2; text: @tr("Drag it here, or leave it in your Downloads folder. You choose the world in the game, in OPTIONS -> WORLD."); }
+                    Instruction { number: 1; text: @tr("Download OpenSWOS-World-2627.zip (World 2026-27), OpenSWOS-World-8485.zip (Europe 1984-85) or both, below."); }
+                    Instruction { number: 2; text: @tr("Drag them here, or leave them in your Downloads folder. You choose the world in the game: its WORLD button, or OPTIONS -> WORLD."); }
                 }
                 if root.kind == Step.s2020: VerticalLayout {
                     spacing: 8px;
@@ -1136,11 +1139,20 @@ export component MainWindow inherits Window {
                                 clicked => { root.choose-amiga-program(); }
                             }
                         }
-                        if root.amiga-world-available: CheckBox {
-                            text: @tr("Play World 2026-27 (its clubs and players) instead of 96/97");
-                            checked <=> root.amiga-world;
-                            enabled: !root.busy;
-                            toggled => { root.amiga-kind-changed(); }
+                        if root.amiga-world-available: HorizontalLayout {
+                            spacing: 10px;
+                            CheckBox {
+                                text: @tr("Play {0} (its clubs and players) instead of 96/97", root.amiga-world-name);
+                                checked <=> root.amiga-world;
+                                enabled: !root.busy;
+                                toggled => { root.amiga-kind-changed(); }
+                            }
+                            // (the Amiga plays one world: the drawer takes the one named)
+                            if root.amiga-world-count > 1: TextButton {
+                                label: @tr("Another world");
+                                enabled: !root.busy;
+                                clicked => { root.amiga-world-next(); }
+                            }
                         }
                         HorizontalLayout {
                             spacing: 14px;

@@ -19,7 +19,7 @@
  *   - any other club: its 16, then its players 17.. still at the club (squad_extras.c);
  *   - a place with nobody (or an injured / suspended substitute): empty, as a substituted player.
  * In the match the dugout shows five at a time and scrolls with the cursor (the Mod's 4.0.5); a
- * substitute from place 17 on gets a name sprite of his own (sprites 1684.., SDL).
+ * substitute from place 17 on gets a name sprite of his own (sprites from LB_NAME_SPRITE_BASE, SDL).
  *
  * SDL only in practice: the Amiga has no world's squads beyond 16 and reads no JSON, so every
  * match there has the game's bench (LongBench_Places() == 16).
@@ -29,6 +29,7 @@
 
 #include "swos_types.h"
 #include "game_types.h"
+#include "player_looks.h"   /* LOOKS_SPRITES_END: the long bench's name sprites follow the looks' sets */
 
 #define LB_MAX_SUBS       15                    /* the most named substitutes (the Mod's cap) */
 #define LB_PLACES_MAX     (11 + LB_MAX_SUBS)    /* 26 */
@@ -111,9 +112,9 @@ void     LongBench_SaveKickOff(void);
 void     LongBench_RestoreKickOff(void);
 
 /* ---- the names (a substitute from place 17 on shows his name like anyone) ---- */
-#define LB_NAME_SPRITE_BASE  1684               /* (sprites past the game's table: SDL) */
+#define LB_NAME_SPRITE_BASE  LOOKS_SPRITES_END  /* (sprites past the game's table and the looks' sets: SDL) */
 #define LB_NAME_SPRITES      (2 * LB_EXTRA_PLACES)
-#define LB_ARROW_SPRITE      (LB_NAME_SPRITE_BASE + LB_NAME_SPRITES)   /* 1704: the arrow mirrored */
+#define LB_ARROW_SPRITE      (LB_NAME_SPRITE_BASE + LB_NAME_SPRITES)   /* the arrow mirrored */
 int32_t  LongBench_MirroredArrow(int32_t arrow);
 /* The name tables' values for places 16.. (as _plOrdinalsTable / _plNamesLengthTableCopy). */
 extern uint8_t g_lbOrdinals[2][LB_EXTRA_PLACES];

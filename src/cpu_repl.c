@@ -182,6 +182,13 @@ int32_t CpuRepl_AfterSale(uint16_t team, uint16_t slot)
     (void)team; (void)slot;
     return 0;
 }
+
+/* (--cpu-repl-selftest: no world has squad players beyond 16 without the worlds) */
+int32_t CpuRepl_SelfTest(int32_t file, int32_t ordinal)
+{
+    (void)file; (void)ordinal;
+    return 1;
+}
 #endif
 
 /* BUY PLAYER's button (entry 9, right of EXIT): the choice for this career. */

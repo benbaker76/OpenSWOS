@@ -28,11 +28,18 @@ cd "$(dirname "$0")/.."
 N=${1:-20000}
 MOD=${MOD:-/mnt/d/Projects/GitHub/swos-9697-mod}
 DATA=bin/data_json/worlds/2627/mod
+# (world_from_mod.py writes the Mod's own full pack format -- pack.json "format", "files", "squads";
+# clubs.csv's file, country, kits; players.csv's role, skills -- so every section runs the Mod's own
+# code, mkseason.Pack included, over the conversion of the installed game: docs/WORLD_2026_27.md 6d)
+DATA=$(cd "$DATA" 2>/dev/null && pwd || echo "$DATA")
 T=tests/league_playoffs
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 if [ ! -d "$DATA" ] || [ ! -f "$MOD/tools/gplay.c" ]; then
     echo "SKIP: needs $DATA and the Mod's tools ($MOD)"; exit 0
+fi
+if ! grep -q '"format"' "$DATA/packs/eng/pack.json"; then
+    echo "FAIL: $DATA holds slim packs (an older world_from_mod.py): convert the installed Mod again"; exit 1
 fi
 python3 -I - "$MOD" "$OUT" <<'PY'
 import importlib.util, sys
@@ -276,7 +283,7 @@ PY
 # The mid-season splits (scripts/world_split.py): every split league's table, its spec as the Mod's
 # mkseason.splits makes it from the same pack and its bytes as its split.entry makes them; the odd
 # pair tables as its oddtables'.
-if python3 -I $T/split_check.py "$MOD/tools" bin/data_json/worlds/2627/mod/packs > "$OUT/split.txt"; then
+if python3 -I $T/split_check.py "$MOD/tools" "$DATA/packs" > "$OUT/split.txt"; then
     echo "PASS: the splits, $(grep -c '^PASS' "$OUT/split.txt") divisions' tables byte for byte the Mod's" \
          "($(grep -c '^SKIP' "$OUT/split.txt") skipped)"
 else
@@ -294,12 +301,12 @@ fi
 # Italy's, v4, "files" "league2": its file holds 256; it has no states, splits or other
 # confederation's cups)
 mod_packs() {
-    for d in "$PWD"/bin/data_json/worlds/2627/mod/packs/*/; do
+    for d in "$DATA"/packs/*/; do
         [ -f "$d/pack.json" ] && ! grep -q '"league2"' "$d/pack.json" && printf '%s,' "${d%/}"
     done
 }
 SPACKS=$(mod_packs)
-SEASON_PACKS="${SPACKS%,}" python3 -I - "$MOD" "$OUT" "$PWD/bin/data_json/worlds/2627/mod/packs" <<'PY' > /dev/null
+SEASON_PACKS="${SPACKS%,}" python3 -I - "$MOD" "$OUT" "$DATA/packs" <<'PY' > /dev/null
 import json, os, sys
 mod, out, packs = sys.argv[1:4]
 sys.path.insert(0, os.path.abspath("scripts")); sys.path.insert(1, mod + "/tools")
@@ -406,10 +413,10 @@ $CC -Iinclude -include include/swos_platform.h -DSWOS_SDL_BUILD -o "$OUT/lp_chec
 # The other confederations' cups (src/world_conti.c, the Mod's conti.c as it is): the world's
 # cups packed by the Mod's own conti.load over the world's data, both C files over random
 # seasons of a synthetic world -- every round's entrants and draw, every winner the Mod's.
-PACKS="$PWD/bin/data_json/worlds/2627/mod/packs"
+PACKS="$DATA/packs"
 SPACKS=$(mod_packs)
 SEASON_PACKS="${SPACKS%,}" \
-    python3 -I - "$MOD" "$OUT" "$PWD/bin/data_json/worlds/2627/mod/conti" <<'PY' > /dev/null
+    python3 -I - "$MOD" "$OUT" "$DATA/conti" <<'PY' > /dev/null
 import sys
 mod, out, data = sys.argv[1:4]
 sys.path.insert(0, mod + "/tools")

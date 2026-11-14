@@ -10,6 +10,7 @@
 
 #include "long_bench.h"
 #include "world.h"
+#include "world_europe.h"
 #include "diy_competition.h"
 #include "world_finance.h"      /* UefaPrize_CupWon */
 #include "comp_identity.h"
@@ -2859,6 +2860,7 @@ void DIY_UpdateCompetitionProgress(void)
     WorldPlayoff_ArrangeNextRound();
     WorldCups_ArrangeNextRound();   /* a world cup's first season: the real bracket (world_cups.c) */
     CupD_ArrangeNextRound();        /* the Coppa Italia Serie D's slot-2 cup: by its table (world_cupd.c) */
+    WorldEurope_RoundPlayed();      /* a classic world's European cups: round 2 no same-country tie */
 
     {
         uint8_t *grid = comp->teamGridPairings;
@@ -9422,6 +9424,7 @@ void InitDIYCupFromRecord(uint8_t *cupRec)
     if (compHdr->seedReorderFlag == 0)
         DIY_ShuffleTeamGridPairs();
     WorldCups_CupMade(cupRec);   /* a world cup: its byes, a later season's draw (world_cups.c) */
+    WorldEurope_DrawMade((uint8_t)compHdr->compId);   /* a classic world's cups: no same-country tie */
 }
 
 __attribute__((used, externally_visible))
