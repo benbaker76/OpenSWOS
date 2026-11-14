@@ -8487,10 +8487,10 @@ static void apply_semantic_load(const char *src, int src_size)
             int ok = 1;
             for (int32_t i = 0; i < 5 && ok; i++) {
                 char path[16];
-                double v = 0;
-                snprintf(path, sizeof path, "$[%d]", (int)i);
-                ok = mjson_get_number(pl, pllen, path, &v) && (s_cupPick[i] = cup_pick_ptr((int32_t)v), 1) &&
-                     (int32_t)v >= -3;
+                long v = 0;
+                snprintf(path, sizeof path, "$[%d]", (int)i);   /* (mjson_get_long: the Amiga's, no floats) */
+                ok = mjson_get_long(pl, pllen, path, &v) > 0 && v >= -3 && v < 48 /* (CAREER_CONTESTS_CAP) */ &&
+                     (s_cupPick[i] = cup_pick_ptr((int32_t)v), 1);
             }
             s_cupPickLoaded = ok;
         }
