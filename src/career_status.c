@@ -28,6 +28,7 @@
  * GetExpectedLeagueRankIndex.
  */
 
+#include <stdlib.h>
 #include "squad_extras.h"
 #include "bteam.h"
 #include "career_status.h"
@@ -1386,6 +1387,13 @@ void MaybeSackManagerAfterSeasonReview(void) {
 
     if (randVal > threshold)
         return;
+#ifdef SWOS_SDL_BUILD
+    {   /* SWOS_TEST_NATIONAL_JOB (the golden careers, job_offers.c): the national coach is kept --
+         * his cycle's competitions played out (the draw above taken all the same) */
+        if (_isNationalSelector && getenv("SWOS_TEST_NATIONAL_JOB"))
+            return;
+    }
+#endif
 
     _currentMessage = CHAIRMAN_WE_DIDNT_RENEW_YOUR_CONTRACT;
     ShowChairmanMessage();

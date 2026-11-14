@@ -114,3 +114,10 @@ ITA2627-INTER-BTEAM SWOS_TEST_BTEAM=1:18,1:19,1:21,1:0,1:24,2:3,2:4 SWOS_TEST_BU
 # ... Brisbane Roar from Brisbane Roar 2 (Australia's rule: no over-age player, no keeper exception,
 # its own windows): an over-age one refused, an under-23 one called, a season call-up out of a window.
 AUS2627-BRISBANE-BTEAM SWOS_TEST_BTEAM=1:1,1:2,2:4 @2627 OCEANIA/AUSTRALIA/A-LEAGUE MEN/BRISBANE ROAR
+# A national coach's career (SWOS_TEST_NATIONAL_JOB, src/job_offers.c + src/career_autopilot.c): the
+# manager's national team offers its job at once and is the only offer then (CONSIDER in the season,
+# ACCEPT at its end), the squad is called up by value, and the coach is never sacked -- so the cycle's
+# qualifiers, World Cup and European Championship are played. 96/97's the control (the game's own
+# national competitions); Europe 1984-85's the Mod 3.1's (src/world_nationals.c).
+ENG-NATIONAL SWOS_TEST_NATIONAL_JOB=1 EUROPE/ENGLAND/PREMIER LEAGUE/ARSENAL
+ENG8485-NATIONAL SWOS_TEST_NATIONAL_JOB=1 @8485 EUROPE/ENGLAND/FIRST DIVISION/LIVERPOOL
