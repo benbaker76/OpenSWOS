@@ -89,6 +89,7 @@ docs drift: search by function name.
 |---|---|---|---|
 | [COMPETITION_DYNAMIC_REFACTOR.md](COMPETITION_DYNAMIC_REFACTOR.md) | Making competitions id-based and data-addable; how Copa Libertadores was built on it. | historical | adding a data-only competition, `Comp_ById`, `_careerContests` |
 | [WORLD_2026_27.md](WORLD_2026_27.md) | Worlds (data sets), and porting the SWOS 96/97 Mod's World 2026-27 (its season-end C, generators and limits) onto our season end, for both targets. | plan | a second world, the Mod's modules, raising team/league limits, converting an installed Mod (§6d) |
+| [WORLD_DATAGEN.md](WORLD_DATAGEN.md) | The user guide of the world data generator `scripts/worldgen/` (setup on Windows, every command, saving Transfermarkt pages from your browser, a worked example, troubleshooting), and the study behind it: generating World 2026-27's squads ourselves from the original sources (Transfermarkt -- the open dataset or saved pages, `--tm` --, EA SPORTS FC ratings, Wikipedia/Wikidata) instead of taking them from the Mod, every derivation rule and how exactly it reproduces the Mod's, the phase-2 plan. | current (phase 1 + pages) | regenerating squads, saving Transfermarkt pages, a new season's data, the source decisions |
 | [RULES_LIBRARY.md](RULES_LIBRARY.md) | The shared rules library with the SWOS 96/97 Mod: what moved in (its season-end, cup and Coppa D rules, each checked against the Mod's C), the interface, the DOS build's limits, the bugs found on the way, what is not in yet. | current | before touching league_playoffs.c, world_cups.c, world_cupd.c's rules |
 | [COPA_LIBERTADORES.md](COPA_LIBERTADORES.md) | The original design of the Copa Libertadores (format, 1996 field, draw, qualification) — built differently in places. | historical | changing Copa rules or CONMEBOL qualification |
 | [FEATURES.md](FEATURES.md) | Sketches of three enhancements: Copa (done), career length (done, `num_seasons`), easy data add/remove (partly). | historical / plan | extending competitions, career length, data-driven content |
@@ -199,10 +200,11 @@ referenced but do not exist on the owner's PC; they are on another machine, or g
 | `data/` | reference only, never compiled: `SWOS2.s` (the disassembly), `Data.c`, `SWOS2_IDA.h`, `SWOS2.h` |
 | `bin/` | the runtime tree every target reads and links into: `data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound data_json save`, `c`/`s` (AmigaDOS boot files), the binaries, the Cygwin DLLs |
 | `bin/data_json/` | editable JSON baked into C / loaded at run time ([DATA_PIPELINE.md](DATA_PIPELINE.md)) |
+| `bin/data_json/worldgen-cache/` | the world data generator's cache (every fetched source page, `manifest.tsv`) and `tm-pages/`, the Transfermarkt pages saved from a browser; `bin/data_json/worldgen/` its output -- all gitignored ([WORLD_DATAGEN.md](WORLD_DATAGEN.md) §6) |
 | `build/<os>/<arch>/` | SDL objects (each with a `.build-flags` stamp); `build/matchmaker/` the server; `build/recordings/`, `build/reports/` fetched from the server; `build/recordings-pred/` sample PRED recordings |
 | `obj/` | Amiga objects (`make -f Makefile.amiga`); `obj-switch/`, `build-switch/` the Switch build |
 | `dist/` | everything a tester gets (zips, installer, `.nsp`, macOS archives), `dist/web/` the web build, `dist/playback/` the recordings player (gitignored) |
-| `tests/` | `dos/` the replay-rig corpus (`.RGD.gz`), `replay/`, `replay-v2/`, `rollback/`, `netplay/`, `hunt/` |
+| `tests/` | `dos/` the replay-rig corpus (`.RGD.gz`), `replay/`, `replay-v2/`, `rollback/`, `netplay/`, `hunt/`, `worldgen/` (the Transfermarkt page parser's invented fixtures) |
 | `scripts/` | build, release, test and tooling scripts; `scripts/amiga/amigascope/` the AmigaScope submodule |
 | `third_party/` | `swosgfx/` (submodule: the graphics converters `tools/swosdata` is built on), `ggpo-x/` (submodule, branch `openswos`), `matchmaker/` (the server), `enet/`, `miniz/` |
 | `tools/` | `matchmaker-admin/` (the server's admin page), `mm_refpeer/`, address/stub generators |
