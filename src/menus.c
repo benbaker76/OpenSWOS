@@ -781,6 +781,11 @@ void Stadium_LongBenchPages(int32_t waitFrames)
     extern void Platform_RequestScreenshot(void);
     extern uint8_t _stadiumMenu[];
     const uint16_t places = LongBench_Places();
+#ifdef SWOS_SDL_BUILD
+    extern int32_t NetplayMatch_Enabled(void);
+    if (NetplayMatch_Enabled())
+        waitFrames = -1;                /* (online: the screens before a match are the game's own) */
+#endif
     if (places <= 16 || !s_stadShown || waitFrames < 0) {
         s_stadShown = 0;
         return;

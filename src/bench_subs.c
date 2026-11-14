@@ -1187,6 +1187,12 @@ substitutePlayer(void)
     }
 
     swapPlayerNameData(d6, d7);
+#ifdef SWOS_SDL_BUILD
+    extern int32_t NetplayMatch_Resimulating(void);
+    if (d6 >= 16 && !NetplayMatch_Resimulating())  /* (a long bench's player from place 17 on: said once) */
+        fprintf(stderr, "[bench] substitution: place %d (%.15s) on for place %d\n", (int)d6 + 1,
+                (const char *)LongBench_Player(a0, (uint16_t)d6)->shortName, (int)d7 + 1);
+#endif
 
     off6 = _ingameTeamPlayerOffsets[d6];
     off7 = _ingameTeamPlayerOffsets[d7];
