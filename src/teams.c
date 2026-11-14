@@ -1346,7 +1346,7 @@ void SquadNumbers_Free(uint16_t slot)
     const uint16_t numPlayers = *(uint16_t *)_careerNumPlayers;   /* (a word: declared bytes here) */
     uint8_t used[100];
     const uint16_t team = BE_READ_U16(&_careerTeam);   /* (the managed club, as SetBenchPlayersNumbers reads it) */
-    if (!SquadNumbers_On() || slot >= 32)
+    if (!SquadNumbers_Kept(&_careerTeam) || slot >= 32)  /* (real or edited squad numbers) */
         return;
     for (int32_t n = 0; n < 100; n++)
         used[n] = 0;
@@ -1550,7 +1550,7 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
             PlayerFile *pf1 = (PlayerFile *)(a1 + 76);
             PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
             int8_t tmpShirt = pf2->shirtNumber;
-            if (!SquadNumbers_On()) {   /* (real squad numbers: not swapped) */
+            if (!SquadNumbers_Kept(&_careerTeam)) {   /* (real or edited squad numbers: not swapped) */
                 pf2->shirtNumber = pf1->shirtNumber;
                 pf1->shirtNumber = tmpShirt;
             }
@@ -1596,7 +1596,7 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
             PlayerFile *pf1 = (PlayerFile *)(a1 + 76);
             PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
             int8_t tmpShirt = pf2->shirtNumber;
-            if (!SquadNumbers_On()) {   /* (real squad numbers: not swapped) */
+            if (!SquadNumbers_Kept(&_careerTeam)) {   /* (real or edited squad numbers: not swapped) */
                 pf2->shirtNumber = pf1->shirtNumber;
                 pf1->shirtNumber = tmpShirt;
             }

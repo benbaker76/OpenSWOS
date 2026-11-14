@@ -1,5 +1,5 @@
 /*
- * shirt_edit.h -- EDIT CUSTOM TEAMS: a player's shirt number edited on the screen (src/shirt_edit.c;
+ * shirt_edit.h -- a player's shirt number edited on the screen (EDIT CUSTOM TEAMS, a career's squad screen) (src/shirt_edit.c;
  * the SWOS 96/97 Mod 4.1's edteam.py, Marco's idea).
  */
 #ifndef SHIRT_EDIT_H
@@ -15,6 +15,7 @@
 int32_t ShirtEdit_Frame(void);
 /* EditTeamsPlayersBeforeDraw: the row whose number box is lit (-1 none), and its colour. */
 int32_t ShirtEdit_LitRow(void);
+int32_t ShirtEdit_LitSquadRow(void);   /* (SquadAfterDrawCommon: a career squad screen's lit row) */
 uint16_t ShirtEdit_LitColour(void);
 
 #endif

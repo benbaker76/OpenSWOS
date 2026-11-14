@@ -73,9 +73,11 @@ uint16_t PlayerLooks_LittlePlayer(int32_t look, uint16_t srcSprite, uint16_t *co
 #define LOOKS_SPRITES_END     (LOOKS_LITTLE_FIRST + LOOKS_LITTLE_SLOTS)
 
 #ifdef SWOS_SDL_BUILD
+#define LOOKS_ICON_FIRST      LOOKS_MENU_ICON_FIRST
 #define SPRITE_TABLE_SLOTS    LOOKS_SPRITES_END
-#else
-#define SPRITE_TABLE_SLOTS    FACE3_SPRITES_END
+#else                                             /* (the Amiga: the six face icons only) */
+#define LOOKS_ICON_FIRST      FACE3_SPRITES_END
+#define SPRITE_TABLE_SLOTS    (FACE3_SPRITES_END + LOOKS_VARIANTS)
 #endif
 
 /* ---- Marco's shaved heads (src/player_looks_art.c, scripts/gen_shaved_art.py) ---- */

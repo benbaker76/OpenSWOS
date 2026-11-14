@@ -46,7 +46,6 @@ VPATH     = $(SRC_DIRS) support asm
 # Anything genuinely shared must compile for BOTH targets — that's the point of
 # the merge; don't "fix" a shared file by adding it to this list.
 SDL_ONLY_SRCS := \
-    player_looks_art.c    \
     arcade.c              \
     gfx.c                 \
     chat_font.c           \
