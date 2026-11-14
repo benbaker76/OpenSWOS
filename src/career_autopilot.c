@@ -455,7 +455,10 @@ static void start(void)
         say("[golden] cannot load %s/%s\n", s_outDir, s_save);
         exit(2);
     }
-    pin_random();
+    /* (SWOS_GOLDEN_KEEP_RANDOM: the save's own random state and clock kept -- a career stopped and
+     * loaded again goes on as the run that was not stopped; compared with it) */
+    if (!getenv("SWOS_GOLDEN_KEEP_RANDOM"))
+        pin_random();
     StartContest();             /* the career runs inside this, modal */
     say("[golden] the career ended after %d of %d season(s)\n",
         (int)(s_hubs > 0 ? s_hubs - 1 : 0), (int)s_seasons);
@@ -791,6 +794,22 @@ void CareerAutopilot_Tick(void)
                 Platform_RequestScreenshot();
                 say("[golden] hub screenshot\n");
                 return;
+            }
+            {   /* Test (SWOS_GOLDEN_SAVE_MID=<season>:<n>): the career saved as MIDSAVE.CAR at the n-th
+                 * pass of that season's hub -- a save in the middle of a season, to go on from
+                 * (--career-golden=MIDSAVE.CAR) and compare with the run that was not stopped */
+                static const char *mid = (const char *)1;
+                static int32_t midPasses, midDone;
+                if (mid == (const char *)1)
+                    mid = getenv("SWOS_GOLDEN_SAVE_MID");
+                if (mid && !midDone && strchr(mid, ':') && (int32_t)_currentSeasonShowing == atoi(mid) &&
+                    ++midPasses == atoi(strchr(mid, ':') + 1)) {
+                    midDone = 1;
+                    say(SaveJson_WriteCareer((uint8_t *)"MIDSAVE.CAR") == 0
+                            ? "[golden] MIDSAVE.CAR: season %u, hub pass %d (tick %u)\n"
+                            : "[golden] MIDSAVE.CAR not written (season %u, pass %d, tick %u)\n",
+                        (unsigned)_currentSeasonShowing, (int)midPasses, (unsigned)_currentTick);
+                }
             }
             select_first(next, 1);
             _shortFire = 1;

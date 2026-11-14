@@ -416,6 +416,42 @@ static int save_world_ok(const uint8_t *src, uint32_t size)
     return 0;
 }
 
+/* A national coach's cup pick list entry <-> its careerContests index (the copies), or the
+ * table's -1 / -2 ends, -3 none, -4 unknown. */
+extern void *_careerCupPickList[];
+static void   *s_cupPick[5];
+static int32_t s_cupPickLoaded;
+static int32_t cup_pick_id(const void *p)
+{
+    extern CompetitionCareer _careerContests[];
+    if ((uintptr_t)p == (uintptr_t)-1) return -1;
+    if ((uintptr_t)p == (uintptr_t)-2) return -2;
+    if (!p) return -3;
+    for (int32_t i = 0; (uintptr_t)_careerContests[i].competition != 0xFFFFFFFFu &&
+                        (uintptr_t)_careerContests[i].competition != (uintptr_t)-1; i++)
+        if ((const void *)_careerContests[i].competitionCopy == p)
+            return i;
+    return -4;
+}
+static void *cup_pick_ptr(int32_t id)
+{
+    extern CompetitionCareer _careerContests[];
+    return id == -1 ? (void *)(uintptr_t)-1 : id == -2 ? (void *)(uintptr_t)-2 : id < 0 ? NULL
+         : (void *)_careerContests[id].competitionCopy;
+}
+
+/* Rebuild_CompetitionSlotPointers (career_init.c): the loaded national coach's pick list, 1; else 0
+ * (an older save: the list drawn again). */
+int32_t SaveJson_RestoreCupPickList(void)
+{
+    if (!s_cupPickLoaded)
+        return 0;
+    for (int32_t i = 0; i < 5; i++)
+        _careerCupPickList[i] = s_cupPick[i];
+    s_cupPickLoaded = 0;
+    return 1;
+}
+
 #define KIND_CAREER     "career"
 #define KIND_PRESET     "preset"
 #define KIND_DIY        "diy"
@@ -7460,6 +7496,19 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "gk_seed", (long)(int32_t)g_gkInjurySeed);    /* (signed: the Amiga's long) */
     }
 
+    /* A national coach's cup pick list (his season's five competitions: the draw's friendly /
+     * invitation / tour cups and his qualifying group), as careerContests indices -- -1 / -2 the
+     * table's ends, -3 none. Without it a load drew them again (Career_SetCupPickList_ForSelected-
+     * Region), the season's lists and the random state not the ones saved. */
+    {
+        if (_isNationalSelector) {
+            mjson_printf(json_out_emit, &out, ",\n  %Q:[", "cup_pick_list");
+            for (int32_t i = 0; i < 5; i++)
+                mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)cup_pick_id(_careerCupPickList[i]));
+            json_out_emit("]", 1, &out);
+        }
+    }
+
     /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
      * points at the next season end -- per tie its round, whether its first club went through,
      * the two clubs (the Mod's team words, file | ordinal << 8). */
@@ -8427,6 +8476,24 @@ static void apply_semantic_load(const char *src, int src_size)
                 g_gkInjurySeed = (uint32_t)(int32_t)v;
         }
         WorldRules_CareerLoaded(have, bits);
+    }
+
+    /* A national coach's cup pick list (see the writer): kept for Rebuild_CompetitionSlotPointers. */
+    s_cupPickLoaded = 0;
+    {
+        const char *pl = NULL;
+        int pllen = 0;
+        if (mjson_find(src, src_size, "$.cup_pick_list", &pl, &pllen) == MJSON_TOK_ARRAY) {
+            int ok = 1;
+            for (int32_t i = 0; i < 5 && ok; i++) {
+                char path[16];
+                long v = 0;
+                snprintf(path, sizeof path, "$[%d]", (int)i);   /* (mjson_get_long: the Amiga's, no floats) */
+                ok = mjson_get_long(pl, pllen, path, &v) > 0 && v >= -3 && v < 48 /* (CAREER_CONTESTS_CAP) */ &&
+                     (s_cupPick[i] = cup_pick_ptr((int32_t)v), 1);
+            }
+            s_cupPickLoaded = ok;
+        }
     }
 
     /* A world's UEFA coefficients and qualifying bracket (uefa_coef.c); a save without them:
