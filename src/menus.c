@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "squad_extras.h"
+#include "long_bench.h"
 #include "bteam.h"
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
@@ -877,6 +878,59 @@ void ShowStadiumInit(void)
  *
  * in: team = TeamGame pointer, playerIndex = 0-based player index
  * ================================================================ */
+/* The line-ups screen's pages (a long bench, the Mod's bx_stad): page 0 the game's 11 + 5, then
+ * rows 12..16 the next five places each. */
+static uint16_t s_stadPage;
+
+static uint16_t stad_place(uint16_t row)
+{
+    return (uint16_t)(row < 11 || !s_stadPage ? row : 16 + (s_stadPage - 1) * 5 + (row - 11));
+}
+
+static void stad_rows(void)
+{
+    const uint16_t first[2] = { 16, 43 };
+    TeamGame *tg[2] = { &_topTeamInGame, &_bottomTeamInGame };
+    for (int32_t t = 0; t < 2; t++)
+        for (uint16_t r = 11; r < 16; r++) {
+            const uint16_t place = stad_place(r);
+            PlayerInfo *pi = place < LongBench_Places() ? LongBench_Player(tg[t], place) : NULL;
+            MenuEntry *name = &_menuEntries[first[t] + r], *pic = &_menuEntries[first[t] - 11 + r];
+            const uint16_t hide = (uint16_t)(!pi || !pi->fullName[0]);
+            if (pi)
+                name->fg = (uintptr_t)pi->fullName;
+            name->isInvisible = hide;
+            pic->isInvisible = hide;
+        }
+}
+
+/* InitializeInGameTeamsAndStartGame, after the line-ups' wait: a long bench's further pages, each
+ * shown as long (no wait: none). */
+void Stadium_LongBenchPages(int32_t waitFrames)
+{
+    extern void WaitForVSync(void);
+    extern void Platform_RequestScreenshot(void);
+    extern uint8_t _currentMenu[];
+    extern void ShowStadiumInit(void);
+    const uint16_t places = LongBench_Places();
+    /* (only over the line-ups screen itself: a match that skips it -- online, a mod's -- has
+     *  another menu up, whose entries these are not) */
+    if (places <= 16 || ((const Menu *)_currentMenu)->onInit != (MenuVoidFn)ShowStadiumInit)
+        return;
+    for (s_stadPage = 1; 16 + (s_stadPage - 1) * 5 < places; s_stadPage++) {
+        stad_rows();
+        DrawMenu();
+        for (int32_t i = waitFrames; i >= 0; i--) {
+#ifdef SWOS_SDL_BUILD
+            if (i == waitFrames - 20 && getenv("SWOS_TEST_LINEUP_SHOTS"))
+                Platform_RequestScreenshot();   /* (test: each page photographed) */
+#endif
+            WaitForVSync();
+        }
+    }
+    s_stadPage = 0;
+}
+
 __attribute__((used, externally_visible))
 void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
 {
@@ -903,8 +957,8 @@ void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
         _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = (uint16_t)team->prSocksCol;
     }
 
-    /* Set skin color from player's face2 field */
-    int16_t skinColor = (int8_t)team->players[playerIndex].face2;
+    /* Set skin color from player's face2 field (a long bench's page: its place's -- long_bench.c) */
+    int16_t skinColor = (int8_t)LongBench_Player(team, (uint16_t)stad_place(playerIndex))->face2;
     FillSkinColorConversionTable((uint16_t)skinColor, _stadiumMenuLittlePlayerSpriteCopy.colTable);
 }
 

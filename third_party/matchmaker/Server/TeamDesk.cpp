@@ -16,6 +16,13 @@ namespace
 #include "TeamRegistry.inc"
 #include "TeamRegistryPacks.inc"
     };
+    // A world's clubs' players 17.. (a long bench brings them on): its id, the checksum of those
+    // players in their order. team_proto.h, TEAMCHECK_PROTOCOL_EXTRAS.
+    struct ExtrasRow { const char* uuid; const char* checksum; };
+    const ExtrasRow kExtras[] = {
+#include "TeamRegistryExtras.inc"
+        {nullptr, nullptr}
+    };
 
     std::string Hex(const uint8_t* bytes, size_t count)
     {
@@ -50,6 +57,10 @@ TeamDesk::TeamDesk(ENetHost* host, Ledger& ledger, const std::string& extraFile)
 {
     for (const Row& row : kRegistry)
         Add(row.uuid, row.checksum, row.name);
+    size_t extras = 0;
+    for (const ExtrasRow& row : kExtras)
+        if (row.uuid && AddExtras(row.uuid, row.checksum))
+            extras++;
     size_t builtIn = m_teams.size();
 
     if (!extraFile.empty())
@@ -74,7 +85,8 @@ TeamDesk::TeamDesk(ENetHost* host, Ledger& ledger, const std::string& extraFile)
                   << (bad ? ", " + std::to_string(bad) + " lines not understood" : "")
                   << (in.eof() ? "" : " (could not read it)") << "\n";
     }
-    std::cout << "[teams] " << m_teams.size() << " canonical teams: a game may ask whether its teams are on the list\n";
+    std::cout << "[teams] " << m_teams.size() << " canonical teams (" << extras
+              << " with their players 17..): a game may ask whether its teams are on the list\n";
 }
 
 bool TeamDesk::Add(const std::string& uuid, const std::string& checksum, const std::string& name)
@@ -85,6 +97,20 @@ bool TeamDesk::Add(const std::string& uuid, const std::string& checksum, const s
         return false;
     team.name = name;
     m_teams[id] = team;
+    return true;
+}
+
+bool TeamDesk::AddExtras(const std::string& uuid, const std::string& checksum)
+{
+    Id id;
+    std::array<uint8_t, 8> sum;
+    if (TeamCheck_Hex(uuid.c_str(), id.data(), 16) != 0 || TeamCheck_Hex(checksum.c_str(), sum.data(), 8) != 0)
+        return false;
+    auto it = m_teams.find(id);
+    if (it == m_teams.end())
+        return false;
+    it->second.hasExtras = true;
+    it->second.extras = sum;
     return true;
 }
 
@@ -99,10 +125,11 @@ int TeamDesk::OnDatagram(const ENetAddress& from, const uint8_t* data, size_t le
         Id id;
         memcpy(id.data(), c.team[i].uuid, 16);
         auto it = m_teams.find(id);
+        const bool extras = c.protocol == TEAMCHECK_PROTOCOL_EXTRAS;
         m_asked++;
-        if (it == m_teams.end())
+        if (it == m_teams.end() || (extras && !it->second.hasExtras))
             c.team[i].status = TEAMCHECK_UNKNOWN;
-        else if (memcmp(it->second.checksum.data(), c.team[i].checksum, 8) != 0)
+        else if (memcmp((extras ? it->second.extras : it->second.checksum).data(), c.team[i].checksum, 8) != 0)
             c.team[i].status = TEAMCHECK_CHANGED;
         else
             c.team[i].status = TEAMCHECK_OK;
@@ -114,14 +141,23 @@ int TeamDesk::OnDatagram(const ENetAddress& from, const uint8_t* data, size_t le
             m_refused++;
             const std::string uuid = Uuid(c.team[i].uuid), sum = Hex(c.team[i].checksum, 8);
             const bool unknown = c.team[i].status == TEAMCHECK_UNKNOWN;
-            std::cout << "[teams] " << Address(from) << ": REFUSED " << uuid << " (checksum " << sum << "): "
+            if (extras && unknown && it != m_teams.end())
+            {   // (a list without its players 17..: unverified on the game's side, not refused)
+                m_refused--;
+                std::cout << "[teams] " << Address(from) << ": " << it->second.name
+                          << "'s players 17.. are not on this list\n";
+                continue;
+            }
+            std::cout << "[teams] " << Address(from) << ": REFUSED " << uuid << (extras ? " players 17.." : "")
+                      << " (checksum " << sum << "): "
                       << (unknown ? "no team with that id"
-                                  : it->second.name + " has checksum " + Hex(it->second.checksum.data(), 8))
+                                  : it->second.name + " has checksum " +
+                                        Hex((extras ? it->second.extras : it->second.checksum).data(), 8))
                       << "\n";
             std::ostringstream json;
             json << "{\"type\":\"teamcheck\",\"at\":\"" << ServerTime::WallClock() << "\",\"from\":\"" << Address(from)
                  << "\",\"uuid\":\"" << uuid << "\",\"checksum\":\"" << sum << "\",\"why\":\""
-                 << (unknown ? "unknown" : "changed") << "\"}";
+                 << (unknown ? "unknown" : extras ? "extras changed" : "changed") << "\"}";
             m_ledger.Write(json.str());
         }
     }

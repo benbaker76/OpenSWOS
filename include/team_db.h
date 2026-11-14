@@ -47,6 +47,7 @@ const TeamDbEntry *TeamDb_ByUuid(const char *uuid);
 /* What a team's id stands for: 16 hex digits of the SHA-1 of its sixteen players'
  * position, seven skills and value -- everything a match plays it by, nothing else. */
 void TeamDb_Checksum(const TeamFileEx *team, char out[TEAM_CHECKSUM_TEXT]);
+void TeamDb_ChecksumPlayers(const PlayerFile *players, int32_t count, char out[TEAM_CHECKSUM_TEXT]);
 
 /* (TeamDb_DerivedTeamUuid / TeamDb_DerivedPlayerUuid: include/team_uuid.h) */
 

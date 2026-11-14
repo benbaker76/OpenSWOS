@@ -56,6 +56,7 @@ typedef char _lb_pi_check[(sizeof(PlayerInfo) == 61) ? 1 : -1];
 typedef char _lb_rp_check[(sizeof(PlayerInfo) * 2 * LB_EXTRA_PLACES + 2 == LB_REPLAY_BYTES) ? 1 : -1];
 
 static uint16_t s_places = LB_GAME_PLACES;
+static int32_t  s_quiet;
 static uint8_t  s_named, s_et;
 static uint8_t  s_kickoff[2][LB_EXTRA_PLACES * 61];
 
@@ -221,6 +222,21 @@ void LongBench_LeagueMatch(int32_t on)
     league_match = on;
 }
 
+void LongBench_Prepare(const TeamFile *team1, const TeamFile *team2)
+{
+    int16_t mn = 0, mx = 0;
+    const int32_t quiet = s_quiet;
+    s_quiet = 1;
+    LongBench_MatchStart(team1, team2, &mn, &mx);
+    s_quiet = quiet;
+}
+
+void LongBench_MatchEnd(void)
+{
+    s_places = LB_GAME_PLACES;      /* (between matches the state is the game's: a lobby's too) */
+    s_named = s_et = 0;
+}
+
 void LongBench_MatchStart(const TeamFile *team1, const TeamFile *team2, int16_t *minSubs, int16_t *maxSubs)
 {
     uint8_t et = 0;
@@ -241,7 +257,7 @@ void LongBench_MatchStart(const TeamFile *team1, const TeamFile *team2, int16_t 
         *minSubs = (int16_t)(named < LB_USED ? named : LB_USED);
     }
 #ifdef SWOS_SDL_BUILD
-    if (named > 0)
+    if (named > 0 && !s_quiet)
         fprintf(stderr, "[bench] %s: %d named substitutes, %d changes%s (%u places)\n", (const char *)_gameName,
                 (int)*maxSubs, (int)*minSubs, s_et ? ", one more in extra time" : "", (unsigned)s_places);
 #endif

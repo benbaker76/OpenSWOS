@@ -61,6 +61,11 @@ extern const int32_t        g_worldBenchTitleCount;
  * match's bench. `maxSubs` / `minSubs` are the game's (bench, substitutions allowed); with a long
  * bench they become the competition's. Sets LongBench_Places(). */
 void     LongBench_MatchStart(const TeamFile *team1, const TeamFile *team2, int16_t *minSubs, int16_t *maxSubs);
+/* The same decided early (a netplay session sizes its states before the kick-off: NetplayMatch_Start,
+ * _StartResim), and undone after the match (InitializeInGameTeamsAndStartGame's end): between
+ * matches -- a lobby's state sent at START among them -- the state is the game's. */
+void     LongBench_Prepare(const TeamFile *team1, const TeamFile *team2);
+void     LongBench_MatchEnd(void);
 /* The pre-match screens' bench for these two teams (ShowPlayMatchMenu): over 5, or 0. */
 uint16_t LongBench_PreMatch(const TeamFile *team1, const TeamFile *team2);
 /* The places of each in-match team: 16 (the game's), or 11 + the bench (17..26). */

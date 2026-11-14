@@ -71,6 +71,9 @@ int32_t     SquadExtras_Nth(uint16_t team, int32_t n);
  * the club's cached block only, as the Mod's). NULL: none. */
 PlayerFile *SquadExtras_BenchPlayer(uint16_t team, int32_t n, uint16_t *index);
 PlayerFile *SquadExtras_BenchRecord(uint16_t team, uint16_t index);
+/* The checksum of a club's players 17.. as its team file has them, in order (the team check's
+ * TEAMCHECK_PROTOCOL_EXTRAS); 0: the club has none. */
+int32_t     SquadExtras_Checksum(uint16_t team, uint8_t out[8]);
 
 /* AddCareerTeamPlayer's pick for a club with extras: 16 + extras equally likely (one more
  * Rand2, as the Mod); the game's own pick stays for 0..15 or a gone one. */

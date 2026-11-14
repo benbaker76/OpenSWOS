@@ -1360,6 +1360,11 @@ void InitializeInGameTeamsAndStartGame(int16_t randomizePitch, int16_t minSubs,
         for (i = ModMatch_SkipStadium() || NoLoadPause() ? -1 : 0x95; i >= 0; i--) {
             WaitForVSync();
         }
+        {   /* a long bench's further pages of the line-ups (menus.c, the Mod's bx_stad) */
+            extern void Stadium_LongBenchPages(int32_t waitFrames);
+            if (!ModMatch_SkipStadium() && !NoLoadPause())
+                Stadium_LongBenchPages(0x95);
+        }
     }
 
     _deadVarAlways0 = 0;
@@ -1426,5 +1431,6 @@ post_match:
 
     PrepareMenuForFadeIn();
     WorldRules_CpuLineupsEnd(0);
+    LongBench_MatchEnd();               /* (the state between matches is the game's) */
     /* gameCanceled is tested by caller via return/tst.w */
 }

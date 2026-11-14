@@ -244,6 +244,25 @@ PlayerFile *SquadExtras_BenchPlayer(uint16_t team, int32_t n, uint16_t *index)
     return NULL;
 }
 
+int32_t SquadExtras_Checksum(uint16_t team, uint8_t out[8])
+{
+    extern void TeamDb_ChecksumPlayers(const PlayerFile *players, int32_t count, char out[17]);
+    PlayerFile p[SQX_MAX];
+    char text[17];
+    if (World_Current() == WORLD_9697)
+        return 0;
+    const int32_t n = DataJson_LoadTeamExtras(team >> 8, team & 0xFF, p, SQX_MAX);
+    if (n <= 0)
+        return 0;
+    TeamDb_ChecksumPlayers(p, n, text);
+    for (int32_t i = 0; i < 8; i++) {
+        unsigned v = 0;
+        sscanf(text + 2 * i, "%2x", &v);
+        out[i] = (uint8_t)v;
+    }
+    return 1;
+}
+
 PlayerFile *SquadExtras_BenchRecord(uint16_t team, uint16_t index)
 {
     if (World_Current() == WORLD_9697 || index < 16 || index >= 16 + SQX_MAX)
@@ -417,6 +436,7 @@ PlayerFile *SquadExtras_BenchPlayer(uint16_t team, int32_t n, uint16_t *index)
     return 0;
 }
 PlayerFile *SquadExtras_BenchRecord(uint16_t team, uint16_t index) { (void)team; (void)index; return 0; }
+int32_t SquadExtras_Checksum(uint16_t team, uint8_t out[8]) { (void)team; (void)out; return 0; }
 uint16_t SquadExtras_MarketPick(uint16_t team, uint16_t pick) { (void)team; return pick; }
 void SquadExtras_Left(uint16_t team, uint16_t index, const int8_t *name)
 {
