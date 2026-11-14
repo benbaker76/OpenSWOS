@@ -26,6 +26,7 @@ void Career_AutoAdvanceCupCompetitionFromRecord(uint8_t *r) { (void)r; }
 TeamId *comp_team_seed_list(Competition *c) { (void)c; static TeamId t[32]; return t; }
 static WorldCup s_cups[2];
 const WorldCup *World_Cups(int32_t *count) { *count = 2; return s_cups; }
+const LeagueGroups *World_CupClubs(uint16_t c) { (void)c; return 0; }   /* (a classic world's cups by division: none here) */
 static const LeagueLevel s_levels[4] = { { 0, 1, { 20 }, 0 }, { 1, 1, { 20 }, 0 },
                                          { 2, 3, { 20, 20, 20 }, 0 }, { 5, 9, { 17 }, 0 } };
 static LeagueGroupClub s_clubs[256];
