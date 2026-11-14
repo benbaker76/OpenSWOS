@@ -887,7 +887,6 @@ void FontExt_ApplyConv(void)
 #define SB(i, s, b) do { _smallCharsTable.conversionTable[(i)] = (uint16_t)(s); \
                          _bigCharsTable.conversionTable[(i)]   = (uint16_t)(b); } while (0)
 #include "font_ext_conv.inc"
-    SB(0x3F, 0, 0);     /* '_' drawn as a space (a typed name's: ROBERTO_CARLOS, input_text.c) */
 #undef SB
 }
 

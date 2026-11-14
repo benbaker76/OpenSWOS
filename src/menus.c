@@ -6,6 +6,7 @@
 #include "squad_extras.h"
 #include "long_bench.h"
 #include "player_looks.h"
+#include "shirt_edit.h"
 #include "bteam.h"
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
@@ -1771,6 +1772,13 @@ void SquadAfterDrawCommon(void *entryPtr)
          * landed on `content` instead of `fg`. */
         e->fgNumber = (uint16_t)(uint8_t)pf->shirtNumber;
         e->isInvisible = 0;
+    }
+    /* its box lit while it is edited (a career's squad: shirt_edit.c) */
+    if (ShirtEdit_LitSquadRow() == (int32_t)d7) {
+        e->background = ENTRY_FRAME_AND_BACK_COLOR;
+        e->bgColor = ShirtEdit_LitColour();
+    } else {
+        e->background = NO_BACKGROUND;
     }
     /* (a world's B-team call-up: his number in yellow, as the Mod 4.1 shows it -- bteam.c) */
     e->stringFlags = (uint16_t)((e->stringFlags & 0xFFF0) | (BTeam_CalledKind(pf) ? 15 : 0));

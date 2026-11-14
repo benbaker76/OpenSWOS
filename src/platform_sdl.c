@@ -2901,8 +2901,27 @@ void Platform_SetFrameHook(void (*hook)(void))
  * Escape, Up, Down, Left, Right, Space ...). For driving a menu with nobody at the
  * keyboard: pair it with SWOS_PRESENT_CAPTURE to see what the keys did. Frame counts
  * depend on load times, so leave generous gaps. */
-enum { kKeyScriptMax = 128 };
-static struct { uint32_t frame; SDL_Keycode key; char text[32]; } s_key_script[kKeyScriptMax];
+enum { kKeyScriptMax = 256 };
+/* typed: a character as a real keyboard types it (`type=`): the key's KEYDOWN -- with SHIFT held
+ * for a shifted symbol -- and its SDL_TEXTINPUT, the key let go two frames on. */
+static struct { uint32_t frame; SDL_Keycode key; char text[32]; uint8_t typed, shift; } s_key_script[kKeyScriptMax];
+
+/* The key a US keyboard types `c` with, and whether SHIFT is held for it. */
+static SDL_Keycode typed_key(char c, uint8_t *shift)
+{
+    static const char kShifted[] = "!@#$%^&*()_+:\"<>?~{}|", kBase[] = "1234567890-=;',./`[]\\";
+    const char *at;
+    *shift = 0;
+    if (c >= 'A' && c <= 'Z') {
+        *shift = 1;
+        return (SDL_Keycode)(c - 'A' + 'a');
+    }
+    if (c && (at = strchr(kShifted, c)) != NULL) {
+        *shift = 1;
+        return (SDL_Keycode)kBase[at - kShifted];
+    }
+    return (SDL_Keycode)(uint8_t)c;            /* (a-z, 0-9, space and the unshifted symbols) */
+}
 static int      s_key_script_len = -1;      /* -1 = not read yet */
 static uint32_t s_key_script_frame;
 
@@ -2935,6 +2954,30 @@ static void key_script_tick(void)
                 break;
             s_key_script[s_key_script_len].frame = frame;
             s_key_script[s_key_script_len].text[0] = '\0';
+            if (strncmp(name, "type=", 5) == 0) {
+                /* typed characters, one every 4 frames, as a real keyboard sends them; %XX for a
+                 * character the script cannot hold (%20 a space, %2C a comma) */
+                const char *t = name + 5;
+                uint32_t at = frame;
+                while (*t && s_key_script_len < kKeyScriptMax) {
+                    char c = *t++;
+                    unsigned hex;
+                    if (c == '%' && sscanf(t, "%2x", &hex) == 1) {
+                        c = (char)hex;
+                        t += 2;
+                    }
+                    s_key_script[s_key_script_len].frame = at;
+                    s_key_script[s_key_script_len].text[0] = c;
+                    s_key_script[s_key_script_len].text[1] = '\0';
+                    s_key_script[s_key_script_len].typed = 1;
+                    s_key_script[s_key_script_len].key = typed_key(c, &s_key_script[s_key_script_len].shift);
+                    s_key_script_len++;
+                    at += 4;
+                }
+                spec += used;
+                continue;
+            }
+            s_key_script[s_key_script_len].typed = 0;
             if (strncmp(name, "text=", 5) == 0) {
                 /* typed text (SDL_TEXTINPUT), '_' for a space: the chat (match_chat.c) */
                 char *t = s_key_script[s_key_script_len].text;
@@ -2956,6 +2999,26 @@ static void key_script_tick(void)
     if (s_key_script_len == 0)
         return;
     for (int i = 0; i < s_key_script_len; i++) {
+        if (s_key_script[i].typed) {
+            if (s_key_script[i].frame == s_key_script_frame) {
+                SDL_Event ev;
+                if (s_key_script[i].shift)
+                    push_key(SDLK_LSHIFT, 1);
+                push_key(s_key_script[i].key, 1);
+                memset(&ev, 0, sizeof ev);
+                ev.type = SDL_TEXTINPUT;
+                snprintf(ev.text.text, sizeof ev.text.text, "%s", s_key_script[i].text);
+                SDL_PushEvent(&ev);
+                fprintf(stderr, "[keys] frame %u: typed '%s'%s\n", (unsigned)s_key_script_frame,
+                        s_key_script[i].text, s_key_script[i].shift ? " (shift)" : "");
+            }
+            if (s_key_script[i].frame + 2 == s_key_script_frame) {
+                push_key(s_key_script[i].key, 0);
+                if (s_key_script[i].shift)
+                    push_key(SDLK_LSHIFT, 0);
+            }
+            continue;
+        }
         if (s_key_script[i].text[0]) {
             if (s_key_script[i].frame == s_key_script_frame) {
                 SDL_Event ev;
