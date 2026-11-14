@@ -650,6 +650,8 @@ typedef struct {
                              * is the score; a challenge's "2-1, 70th minute" names who scored */
     /* the match's own rules (G9: SWOS 2020's training and challenges) */
     uint8_t  quickRestarts; /* a break restarts at once: no wait for the ball, the CPU never waits */
+    uint8_t  restartInBreaks; /* ModApi_Restart in a break too (the kick-off's wait, a set piece; not a
+                             * goal, a penalty or the match's end) -- SWOS 2020's training keys */
     uint8_t  straightReds;  /* every foul that is carded is a red (noCards still wins) */
     uint8_t  noTackles;     /* nobody slides in */
     /* what is not drawn (G13, G5): only the picture, the match plays as ever */

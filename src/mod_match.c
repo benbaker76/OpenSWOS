@@ -987,7 +987,13 @@ int16_t ModMatch_PitchNumber(void)
 int32_t ModApi_Restart(int32_t kind, int32_t team, int32_t wing, int16_t x, int16_t y)
 {
     extern void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16_t x, int16_t y);
-    if (!s_mm.active || _gameStatePl != ST_GAME_IN_PROGRESS || (team != 0 && team != 1) ||
+    extern uint16_t _goalCounter, _gameState;
+    /* (restartInBreaks: SWOS 2020's training keys set their kick whatever the game is doing -- a
+     *  break's own state replaced, as GameTimers_ModRestart does at the first kick-off -- but not
+     *  over a goal's celebration, a penalty, half time or the end) */
+    const int32_t inBreak = s_mm.setup.restartInBreaks && !_goalCounter && _gameState >= ST_GOAL_OUT_LEFT &&
+                            _gameState <= ST_STARTING_GAME && _gameState != ST_PENALTY;
+    if (!s_mm.active || (_gameStatePl != ST_GAME_IN_PROGRESS && !inBreak) || (team != 0 && team != 1) ||
         kind < MODRESTART_KICK_OFF || kind > MODRESTART_GOAL_KICK)
         return -1;
     if (kind == MODRESTART_KICK_OFF) {      /* (SWOS 2020's training F12: PrepareForInitialKick,

@@ -965,9 +965,10 @@ static void training_frame(void)
     }
     if (s_drill == DR_NONE)
         return;
-    const int8_t d = s_drill;
-    s_drill = DR_NONE;
-    drill_apply(d);
+    /* the key's drill now; refused (a goal being celebrated) -- kept, and tried each frame until
+     * it is taken: a key pressed was never one lost (Playa, 2026-11-13) */
+    if (drill_apply(s_drill) == 0)
+        s_drill = DR_NONE;
 }
 
 /* A drill now: 0 when the game took it (a kick is always taken). */
@@ -1099,6 +1100,7 @@ static void practice_training(void)
         setup.side[0] = s_trTest ? MODSIDE_CPU : MODSIDE_PLAYER1;
         setup.side[1] = MODSIDE_CPU;
         setup.clockStopped = 1;
+        setup.restartInBreaks = 1;          /* (the drills' keys at any time, as SWOS 2020's) */
         setup.noCards = 1;
         setup.noInjuries = 1;
         setup.noTackles = (uint8_t)!s_trTackle;

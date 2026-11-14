@@ -2157,13 +2157,6 @@ static void pump_events_any_thread(void)
                     continue;   /* swallow — don't also reach the menu */
                 }
             }
-            if (ev.key.repeat == 0 &&
-                (ev.key.keysym.sym == SDLK_F9 ||
-                 ev.key.keysym.sym == SDLK_F11 ||
-                 ev.key.keysym.sym == SDLK_F12 ||
-                 ev.key.keysym.sym == SDLK_PRINTSCREEN)) {
-                s_screenshot_request = 1;
-            }
             /* Alt+Enter: toggle fullscreen. Swallow the event so it
              * doesn't also reach the menu input layer as ENTER (which
              * would fire the currently-selected button). */
@@ -2199,6 +2192,15 @@ static void pump_events_any_thread(void)
                 extern int32_t ModHooks_MatchKey(const char *key);
                 if (ModApi_InMatch() && ModHooks_MatchKey(SDL_GetKeyName(ev.key.keysym.sym)))
                     continue;
+            }
+            /* The screenshot keys -- after a mod's match keys: TEAM TRAINING's drills are F9, F11
+             * and F12 too, and each wrote a screenshot as it set its kick (Playa, 2026-11-13). */
+            if (ev.key.repeat == 0 &&
+                (ev.key.keysym.sym == SDLK_F9 ||
+                 ev.key.keysym.sym == SDLK_F11 ||
+                 ev.key.keysym.sym == SDLK_F12 ||
+                 ev.key.keysym.sym == SDLK_PRINTSCREEN)) {
+                s_screenshot_request = 1;
             }
             /* +/- keys: cycle the windowed scale 1..4. Both the typing-
              * row keys and the keypad ones work. SDLK_EQUALS is the
