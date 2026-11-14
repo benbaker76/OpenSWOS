@@ -25,6 +25,7 @@
 #define WORLD_PACKS_H
 
 #include <stdint.h>
+#include "swos_types.h"   /* SWOS_WORLDS's default, when no makefile sets it (Makefile.switch) */
 
 #if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
 

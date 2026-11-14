@@ -757,7 +757,9 @@ static uint32_t s_cutPresses;
 const char *ModApi_CutsceneBlocked(int32_t test)
 {
     extern int32_t NetplayMatch_IsLive(void);
-    extern int32_t NetplayLobby_IsOpen(void);
+#ifdef SWOS_NETPLAY
+    extern int32_t NetplayLobby_IsOpen(void);   /* (netplay_lobby.c: only in a netplay build) */
+#endif
     extern volatile uint8_t _skipLoaderIntro;
     extern uint16_t _quitToDos;
     const char *video = SDL_GetCurrentVideoDriver();
@@ -765,8 +767,12 @@ const char *ModApi_CutsceneBlocked(int32_t test)
         return "the career autopilot";
     if (test < 2 && Mods_IsRig())
         return "a rig runs";
-    if (NetplayMatch_IsLive() || NetplayLobby_IsOpen())
+    if (NetplayMatch_IsLive())
         return "online";
+#ifdef SWOS_NETPLAY
+    if (NetplayLobby_IsOpen())
+        return "online";
+#endif
     if (ModApi_InMatch())
         return "a match";
     if (_quitToDos)
