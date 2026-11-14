@@ -1,10 +1,14 @@
-# WORLD_DATAGEN.md — generating World 2026-27's data ourselves
+# WORLD_DATAGEN.md — the world data generator (`scripts/worldgen/`)
 
-**Status (2026-11-13): phase 1 done** — the Mod's derivation is mapped and measured, and
-`scripts/worldgen/` generates a sample of leagues (England's Premier League, Championship and
-League Two, Serie A, the Scottish Premiership, Malta: 112 clubs, 3,027 players) from the original
-sources in the Mod's own pack format. Phase 2 (the whole world) waits on the source decisions in
-§6.
+**Status (2026-11-14): phase 1 done, Transfermarkt pages supported.** `scripts/worldgen/`
+generates a world's squads (World 2026-27 first) from the original sources in the SWOS 96/97
+Mod's own pack format: a sample of leagues today (England's Premier League, Championship and
+League Two, Serie A, the Scottish Premiership, Malta: 112 clubs, 3,027 players). Transfermarkt
+comes from the open dataset or from **pages saved from the owner's own browser** (`--tm`), the
+way the Mod's author works. Phase 2 (the whole world) is §14.
+
+Part I is the user guide (§1-§8); Part II the study behind it: what the Mod does, the rules and
+how exactly they reproduce it (§9-§14).
 
 The goal (the owner, 2026-11-13): OpenSWOS makes World 2026-27's data **itself, from the original
 sources**, instead of taking it from Davide Lorigliola's SWOS 96/97 Mod (docs/WORLD_2026_27.md).
@@ -13,7 +17,206 @@ the 2025-26 tables), EA SPORTS FC ratings (player attributes), Wikipedia (kits, 
 Wikidata (CC0), kassiesa.net (UEFA coefficients), the competitions' regulations (formats). "The
 game files only contain derived data."
 
-## 1. What the Mod does (read from its public notes)
+# Part I — the user guide
+
+## 1. What it is, in one run
+
+For each club of a **sample** (a CSV: country, division, Transfermarkt club id, its previous
+season's level and place) the generator collects the club's squad and its players' market
+values, positions, birth dates, nationalities and EA attributes, derives each player's level,
+seven skills, price, position in the record, shirt number, nationality and face, and the club's
+name, coach and kits, calibrates each division so its order follows the previous table, and
+writes `clubs.csv` + `players.csv` per country — the Mod's pack format, what its `mkseason` and
+our `scripts/world_import.py` read (§12). `compare.py` measures the result against the Mod's own
+packs, field by field.
+
+Every source page is fetched **once**, politely, and cached; a build reads the cache only
+(`--offline`), so the same cache gives the same output. Nothing it reads or writes goes in git:
+the cache and the output are real people's data (`bin/data_json/` is ignored).
+
+## 2. Setup
+
+**Python 3.8 or later, the standard library only** — no `pip install` for anything here.
+
+- **Windows** (the owner's desktop): Python from python.org (tick "Add python.exe to PATH"), or
+  the `py` launcher it installs. Run from a Command Prompt or PowerShell in the checkout:
+  ```
+  cd C:\Projects\AI\SWOS\OpenSWOS
+  py -3 -I scripts\worldgen\tmpages.py urls --country eng --division 0
+  ```
+  (`-I` = isolated mode: Python ignores the current folder and `PYTHON*` variables, the habit
+  for scripts that read downloaded data.) Paths work with either slash.
+- **Linux / WSL / macOS**: `python3 -I scripts/worldgen/<script>.py ...` as in the examples.
+- **The Mod's packs** (only for `fit.py` and `compare.py`): `bin/data_json/worlds/2627/mod/packs/`,
+  made by `scripts/world_import.py` from an installed Mod (docs/WORLD_2026_27.md §6d).
+- The browser: any. Its pages are saved by hand (§4); nothing here drives it.
+
+## 3. The sources
+
+| source | gives | read by | how |
+|---|---|---|---|
+| **Transfermarkt pages** you saved (`--tm pages` / `both`) | squads, numbers, sub-positions, birth dates, nationalities (first and second), height, foot, contract, market values, coaches, tables, a league's clubs | `tmpages.py` | from a folder; **never fetched**: transfermarkt.com answers a script with a CAPTCHA (§10) |
+| **transfermarkt-datasets** (github.com/dcaribou/transfermarkt-datasets, CC0, scraped from Transfermarkt) (`--tm dataset`, the default) | the same fields for 32 top flights, frozen 2026-07-06 | `tmdata.py` | 3 gzipped CSVs, once |
+| **EA SPORTS FC ratings** (drop-api.ea.com, the data of ea.com's ratings pages) | every attribute, overall, birth date of 16,228 men | `ea.py` | the whole feed, once (~180 requests, ~10 min) |
+| **Wikidata** (CC0) | Transfermarkt club id → English Wikipedia article | `wiki.py` | SPARQL, 80 ids a query |
+| **Wikipedia** (CC BY-SA 4.0) | squads (where no Transfermarkt page), kits, manager, club name | `wiki.py` | MediaWiki API, 50 articles a request |
+| **Wikimedia Commons** | kit pattern images | `wiki.py` | one PNG each |
+| **Wayback Machine** (web.archive.org) | archived copies of Transfermarkt pages: test fixtures and measurements only | `fetch.py` | one request at a time |
+
+`--tm both` is the normal choice once pages exist: a club's saved pages win (its squad list
+too, as the Mod's: Transfermarkt's current squad), a field a page lacks (a club page has no
+height) comes from the dataset's record of the same player id, and a club without pages is read
+from the dataset as before. `--tm pages` uses no dataset at all for Transfermarkt's fields.
+
+## 4. Saving the Transfermarkt pages (the owner's workflow)
+
+The pages come from your own browser session: you open each page and save it. ~4 pages a club
+(about 3,100 for the whole world, the Mod's count; 42 for the Premier League).
+
+1. **The list.** For the leagues of a run:
+   ```
+   py -3 -I scripts\worldgen\tmpages.py urls --country eng --division 0 --format html > pl.html
+   ```
+   then open `pl.html` in the browser: one link a page, with the file name to save it as.
+   (`--format text` prints the same to the console, `--format tsv` as name TAB url; without
+   `--country` / `--division` every club of the sample.) Per division: its clubs page (2026-27)
+   and its final table (2025-26); per club: its **detailed squad**
+   (`.../kader/verein/<id>/saison_id/2026/plus/1`) and its **staff** page (the coach).
+2. **The folder.** Save everything into one folder — the default the generator reads is
+   `bin\data_json\worldgen-cache\tm-pages\` (gitignored; `--tm-pages` for another). Subfolders are
+   fine (one per league keeps it tidy).
+3. **Save each page.** Open the link; when Transfermarkt shows its verification, solve it as you
+   would anyway; when the page is there, **Ctrl+S**. Either "Webpage, HTML only" (one file, enough)
+   or "Webpage, complete" (a file + a `_files` folder, which is ignored) — both parse. Type the
+   suggested name, or keep the browser's own ("Arsenal FC - Detailed squad 26_27 _
+   Transfermarkt.html"): **a page is recognised by its content** (its canonical link / og:url,
+   the browser's "saved from" mark), never its file name. Use transfermarkt.com (English); the
+   German site works too (§7).
+4. **Check.** At any time:
+   ```
+   py -3 -I scripts\worldgen\tmpages.py check bin\data_json\worldgen-cache\tm-pages --country eng --division 0 --since 2026-09-01
+   ```
+   prints each page as `present` (with its date and rows: "29 rows, coach Mikel Arteta"),
+   `STALE` (dated before `--since`: save it again), `MISSING` (with its URL), and any file that is
+   `UNKNOWN` (not a Transfermarkt page, or a verification page saved by mistake). Save the missing
+   ones and run it again.
+5. **Generate** (§5, `gen.py --tm both`), then **compare** if the Mod's packs are there.
+
+A page's date: the date it shows itself ("Last update: ..."), else a Wayback capture's, else the
+file's (its save date). Save a league's pages within a few days: values and squads move.
+
+**No automated browser.** The owner asked (2026-11-14) for a `fetch-with-browser` command: a
+visible browser window, the human solving the verification, then the script loading the ~3,100
+pages one by one in that session. It is **not built**: the verification is Transfermarkt's
+control against automated access, and a script that loads thousands of pages through a session
+a human unlocked is that automated access — the check passed by a person on the script's behalf.
+That is the line this generator does not cross (§14, decision 1), whoever solves the check. What
+it offers instead: the clickable list (step 1), the check (step 4), and any page saved by hand
+works. If Transfermarkt gives written consent or a data feed (the Mod's own notes advise asking:
+its `notes/world-2025-26-squads.md`, open question 2), automating the fetch becomes a different
+question and the parser takes its pages unchanged.
+
+## 5. The commands
+
+All take `--help`. `py -3 -I` on Windows, `python3 -I` elsewhere.
+
+| command | what | options |
+|---|---|---|
+| `tmpages.py urls` | the pages a run needs, with a file name each (§4.1) | `--sample CSV` (default `sample_2627.csv`), `--country`, `--division`, `--season 2026`, `--prev` (the table's season, default season − 1), `--format text\|tsv\|html` |
+| `tmpages.py check DIR` | present / stale / missing / unknown (§4.4) | the same + `--since YYYY-MM-DD` |
+| `tmpages.py parse FILE...` | what a saved page holds, as JSON | `--brief` (counts + first rows) |
+| `tmpages.py sample DIR` | a division's sample rows from its saved clubs + table pages (a club not in the previous table gets `?` for its previous level: promoted / relegated, fill in by hand) | `--country`, `--division`, `--comp` (Transfermarkt code; default from the country / division), `--season` |
+| `test_tmpages.py` | the parser's tests: our invented fixtures in `tests/worldgen/`, and with `--wayback DIR` real archived pages (field coverage) | `--wayback DIR` |
+| `tmdata.py` | fetch / summarise the open dataset (once) | |
+| `ea.py` | fetch / summarise EA's feed (once, ~10 min) | |
+| `fit.py` | fit the scales to the Mod's packs → `curves.json` (committed; rerun only for a new Mod) | |
+| `gen.py` | **generate** → `bin/data_json/worldgen/2627/<country>/` | `--tm dataset\|pages\|both`, `--tm-pages DIR`, `--season 2026`, `--wiki-squads` (Wikipedia's squad lists even where pages exist), `--sample`, `--out DIR`, `--offline`, `--no-calibrate`, `--no-move`, `--no-images` |
+| `compare.py` | ours vs the Mod's packs, per division (`--clubs`: per club) | `--gen DIR`, `--mod DIR`, `--clubs`, `--json FILE` |
+| `fetch.py --stats` | what the cache holds, per host | `fetch.py URL` fetches one page into the cache |
+
+Examples:
+```
+py -3 -I scripts\worldgen\tmpages.py parse --brief "C:\Users\me\Downloads\Arsenal FC - Detailed squad.html"
+py -3 -I scripts\worldgen\gen.py --tm both --offline
+py -3 -I scripts\worldgen\gen.py --tm pages --tm-pages D:\tm\2026-10 --out D:\tm\out
+py -3 -I scripts\worldgen\compare.py --clubs
+py -3 -I scripts\worldgen\test_tmpages.py
+```
+
+## 6. Files and folders
+
+| path | what | in git |
+|---|---|---|
+| `scripts/worldgen/*.py`, `curves.json`, `sample_2627.csv` | the tool, its fitted scales, the sample | yes |
+| `tests/worldgen/tm_*.html` | parser fixtures: Transfermarkt's markup with **invented** players and clubs | yes |
+| `bin/data_json/worldgen-cache/pages/`, `manifest.tsv` | every fetched page, gzipped, and its manifest line (url, date, status, size, sha1) — `$WORLDGEN_CACHE` moves it | no |
+| `bin/data_json/worldgen-cache/tm-pages/` | **your saved Transfermarkt pages** (`--tm-pages`, `$WORLDGEN_TM_PAGES`) | no |
+| `bin/data_json/worldgen-cache/tm-pages-wayback/` | Wayback copies used for the measurement (§11) | no |
+| `bin/data_json/worldgen/2627/<country>/clubs.csv`, `players.csv` | the output (`--out`) | no |
+| `bin/data_json/worlds/2627/mod/packs/` | the Mod's packs (fit / compare) | no |
+
+| script | role |
+|---|---|
+| `fetch.py` | the one polite cached fetcher (§10) |
+| `tmpages.py` | saved Transfermarkt pages: parser, URL list, check |
+| `tmdata.py`, `ea.py`, `wiki.py` | the other sources; `wiki.py` also parses `{{Fs player}}` squads, infobox kits and kit PNGs |
+| `join.py` | the sources per player (dataset ↔ EA ↔ the Mod) |
+| `model.py` | every derivation rule of §11 |
+| `fit.py` → `curves.json` | our scales fitted to the Mod's output (numbers of our own making, no squad data) |
+| `gen.py`, `modpack.py`, `modport.py` | the generator, the pack reader / writer, `swos_name` + `_xtra_cap` from the Mod's `tools/` (MIT, its notice kept) |
+| `compare.py`, `test_tmpages.py` | the measurements, the parser's tests |
+
+## 7. A worked example: the Premier League 2026-27
+
+```
+:: 1. once: the other sources (the cache keeps them)
+py -3 -I scripts\worldgen\tmdata.py
+py -3 -I scripts\worldgen\ea.py
+:: 2. the list of the 42 pages, opened in the browser
+py -3 -I scripts\worldgen\tmpages.py urls --country eng --division 0 --format html > pl.html
+start pl.html
+::    ... save each page into bin\data_json\worldgen-cache\tm-pages\eng0\ (§4) ...
+:: 3. what is still missing
+py -3 -I scripts\worldgen\tmpages.py check bin\data_json\worldgen-cache\tm-pages --country eng --division 0 --since 2026-09-01
+:: 4. (a new league: its sample rows from the clubs + table pages, then edit the '?')
+py -3 -I scripts\worldgen\tmpages.py sample bin\data_json\worldgen-cache\tm-pages --country eng --division 0
+:: 5. generate (the sample's other leagues come from the dataset) and compare with the Mod
+py -3 -I scripts\worldgen\gen.py --tm both
+py -3 -I scripts\worldgen\compare.py
+```
+`gen.py` says what it took: `[tm] both: saved squads for 20 of 112 clubs, coaches for 20 (pages
+dated 2026-10-14 .. 2026-10-24)`, then a line per country. The PL's clubs.csv `source` column says
+`squad tm-pages` for each club read from its pages.
+
+**Languages**: transfermarkt.com (English), .co.uk and .us parse fully. The German sites (.de,
+.at, .ch) parse too: positions are translated, "30,00 Mio. €" / "800 Tsd. €" and 15.09.1995 read,
+and nationalities are kept with Transfermarkt's own country id (the flag image), named in
+English through any English page in the folder (country names of a German-only folder stay
+German and miss the nation table: save at least one English squad page). Other languages: the
+values and dates read, the positions do not (untranslated) — use .com.
+
+## 8. Troubleshooting, and what it cannot do yet
+
+| symptom | cause / fix |
+|---|---|
+| `check` lists a file as `UNKNOWN ... captcha` | the verification page was saved instead of the page: open the URL again, solve the check, save once the squad shows |
+| `MISSING` though you saved it | saved from another URL form (the club page `startseite`, the non-detailed `kader`): those are recognised as the same club but listed under their own kind — the detailed squad is still missing; or the page is another season's (`saison_id`); or it is in a `_files` folder |
+| `present ... (club page: no height / foot / contract; save the detailed squad)` | the club's front page was saved: it works (`gen.py` uses it), but the detailed squad has height, foot, contract and birth dates |
+| `STALE` | dated before `--since`: save it again (values and squads change) |
+| a player with no value | Transfermarkt shows "-": the generator estimates it as the Mod does (70% of the club's lowest known value) |
+| nationalities in German | a German page with no English page in the folder (§7) |
+| `not in the cache (offline)` | `--offline` and a source page never fetched: run once without `--offline` |
+| `[fetch] 429` / `503` from web.archive.org | the Wayback Machine is busy: fetch.py backs off and retries; run again later |
+
+**Not yet**: the squad-statistics page (minutes, the Mod's order of importance) is recognised
+but not used; the whole world's sample (§14: club lists and tables for 91 countries — `tmpages.py
+sample` makes a division's rows from its pages); press names, the face hand list and blond hair
+(§11); kits stay Wikipedia's; the writer to our team JSON (`mod/teams`) is phase 2; and no
+automated fetching of Transfermarkt (§4).
+
+# Part II — the study
+
+## 9. What the Mod does (read from its public notes)
 
 The squad generator itself is private (the Mod's `internal/`), but its notes describe it:
 `notes/world-2025-26.md` ("Data: Transfermarkt 2026-27", "Squads", "Skill model", "EA SPORTS FC
@@ -43,7 +246,7 @@ the installed 4.1.1's players: checked for England, 2,475 of 2,475 players ident
    EA's portraits; a hand list. **Kits**: the infobox colours, the pattern image read in the torso
    box. **Names**: the club's press name (BBC Sport, Gazzetta, Marca ...), else the plain name.
 
-## 2. Sources, and how worldgen reads them
+## 10. Sources, and how worldgen reads them
 
 Everything goes through `scripts/worldgen/fetch.py`: one request at a time, ≥ 3 s apart per host
 (4-7 s for Transfermarkt), each page cached once (gzipped, with a manifest: url, date, status,
@@ -56,7 +259,7 @@ personal data in any header.
 
 | source | what | how | requests (phase 1) |
 |---|---|---|---|
-| **Transfermarkt** (transfermarkt.com) | squads, values, sub-positions, coaches, tables | **blocked**: every page answers a script with an AWS WAF *Human Verification* CAPTCHA (HTTP 405, `x-amzn-waf-action: captcha`), whatever the headers. A CAPTCHA is an access control: worldgen does not get past it (§6, decision 1) | 1 URL, 3 tries |
+| **Transfermarkt** (transfermarkt.com) | squads, values, sub-positions, coaches, tables | **blocked**: every page answers a script with an AWS WAF *Human Verification* CAPTCHA (HTTP 405, `x-amzn-waf-action: captcha`), whatever the headers. A CAPTCHA is an access control: worldgen does not get past it (§14, decision 1). Pages the owner saves from his own browser are read by `tmpages.py` (§4) | 1 URL, 3 tries |
 | **transfermarkt-datasets** (github.com/dcaribou/transfermarkt-datasets, CC0, data from Transfermarkt) | players (value, sub-position, birth date, citizenship, height, club), clubs (coach), valuations | `tmdata.py`: 3 gzipped CSVs from its public bucket. **Frozen at 2026-07-06** (before the window closed; the project is paused) and **32 top flights only** (no Championship, no Serie B ...) | 3 |
 | **EA SPORTS FC ratings** (drop-api.ea.com, the data of ea.com's ratings pages) | 16,228 men's players: every attribute, overall, birth date, position | `ea.py`: the whole feed (it takes no league filter), 100 a page. Still the FC 26-era rosters the Mod used (17,873 items, the same count) | 179 |
 | **Wikidata** (CC0) | Transfermarkt club id (P7223) → en.wikipedia article | `wiki.articles`: SPARQL, 80 ids a query | 8 |
@@ -67,7 +270,7 @@ The squads are **Wikipedia's** (current: November 2026), joined by name to the d
 sub-position, birth date, height) and by birth date + a name token to EA (the Mod's own match
 rule); the dataset's club list is the fallback where an article has no squad (3 of 111).
 
-## 3. The rules and how exactly they reproduce the Mod
+## 11. The rules and how exactly they reproduce the Mod
 
 Two measurements. **Rule alone**: the rule applied to the Mod's own inputs where they are known
 (e.g. its S), over the whole world's matched players. **Generator**: `gen.py` from the sources,
@@ -106,7 +309,7 @@ TM's value updates in between); (2) the Mod's quantiles are over its whole world
 curve; (3) our calibration follows the Mod's description, not its code (ladder, blend and rounding
 details unknown); (4) Championship / League Two / Malta players have no dataset value (estimated as
 the Mod does) and Malta none in EA either. EA overall alone is as good a level as the value (row 3
-vs 4), which matters for §6.
+vs 4), which matters for §14.
 
 ### Squads, players, clubs
 
@@ -124,27 +327,42 @@ vs 4), which matters for §6.
 | club name | the article title without legal forms (FC, AC, Calcio ...) and founding years, ≤ 16 | 86.6%; the rest are press names (MAN UTD, QPR, WOLVES, HEARTS, NOTT'M FOREST) — a hand list |
 | kit | infobox colours → the nearest of the game's 11 (reference RGBs fitted to the Mod's kits: the menu palette's own sends navy to purple); the body pattern image composed over the body colour, torso box: a second colour ≥ 20% → stripes (2) or hoops (3) by the direction of the colour changes; arms ≠ body → sleeves (1) | home kit **type 90%, whole kit 60%** of the 88 clubs whose Mod kit is from Wikipedia (PL: type 100%, whole 65%). The Mod's League Two kits are generated (a plain hashed colour, white shorts), not Wikipedia's: 0% there, as expected |
 
-## 4. The generator: `scripts/worldgen/`
+### With Transfermarkt's own pages (`--tm both`, 2026-11-14)
 
-```
-python3 -I scripts/worldgen/ea.py          # fetch EA's feed once (~10 min)
-python3 -I scripts/worldgen/tmdata.py      # fetch the dataset once
-python3 -I scripts/worldgen/fit.py         # (needs the Mod's packs) -> curves.json
-python3 -I scripts/worldgen/gen.py [--offline] [--out DIR]   # -> bin/data_json/worldgen/2627/<country>/
-python3 -I scripts/worldgen/compare.py [--clubs]             # vs the Mod's packs
-```
+The same generator on the Premier League's 20 clubs with **Transfermarkt pages** in place of the
+dataset: each club's front page (`startseite`: number, name, sub-position, birth date, nationalities,
+market value) as the Wayback Machine archived it between 2026-10-04 and 10-27 (the Mod's snapshot
+is ~10-15), fetched from web.archive.org, never from Transfermarkt (`bin/data_json/worldgen-cache/
+tm-pages-wayback/eng0/`, ignored). Nothing else changed: the same curves (fitted on the dataset's
+July values), EA, Wikipedia kits. The archive holds club pages and a few non-detailed squads, no
+detailed squad (`/plus/1`) of the summer, so height, foot and contract are untested on real pages
+(the invented fixtures cover them).
 
-| file | what |
-|---|---|
-| `fetch.py` | the polite cached fetcher (§2) |
-| `ea.py`, `tmdata.py`, `wiki.py` | the sources; `wiki.py` also parses `{{Fs player}}` squads, infobox kits and kit PNGs |
-| `join.py` | the Mod's players → their source records (for `fit.py`) |
-| `model.py` | every rule of §3 |
-| `fit.py` → `curves.json` | our scales fitted to the Mod's output: level curves, sub-position profiles, nation tables, the dark list (numbers of our own making, no squad data) |
-| `sample_2627.csv` | the sample: country, division, Transfermarkt club id, its 2025-26 level and place, in that table's order |
-| `gen.py` | the generator |
-| `modport.py` | `swos_name` and `_xtra_cap` from the Mod's `tools/` (MIT, its notice kept) |
-| `compare.py` | the club-by-club comparison |
+| Premier League, vs the Mod | dataset (July values, Wikipedia squads) | **pages** (October, Transfermarkt's squads) | pages' values, Wikipedia's squads (`--wiki-squads`) |
+|---|---|---|---|
+| the Mod's players found | 92.6% | **100%** | 96.7% |
+| the Mod's 16 in our 16 | 85.3% | **98.1%** | 96.2% |
+| row in the 16 | 78.8% | **95.5%** | 94.2% |
+| shirt number | 96.4% | **99.6%** | 95.6% |
+| face (second nationality) | 72.1% | **93.5%** | 93.7% |
+| S outfield (16): exact / within 1 / within 3 | 32% / 69% / 95% | **42% / 86% / 100%** | 41% / 80% / 100% |
+| S keeper (16): exact / within 1 | 22% / 59% | **29% / 66%** | 23% / 60% |
+| S extras: exact / within 3 | 15% / 51% | **22% / 82%** | 22% / 77% |
+| 7 skills exact (all players) / when S equal | 20% / 81% | **27%** / 80% | 26% / 79% |
+| price exact | 24% | **33%** | 31% |
+| strength rank rho (s11) | 0.98 | **0.99** | 0.98 |
+
+The squads become the Mod's (its 16 found 98%: the misses are the archive's date vs the Mod's),
+and the level gains most where the dataset was stale: within 1 from 69% to 86%, the extras within
+3 from 51% to 82%. What still separates S: the Mod's whole-world quantile mapping vs our fitted
+curve (refit on page values once the world's pages exist: `fit.py`), and its calibration's private
+details. `--tm pages` gives the same Premier League (every field the generator needs is on the
+pages); `--tm both` matters for detailed squads missing a value, and for the leagues without pages.
+The coach stays the Wikipedia infobox's here (90%): the archive has one staff page, of 2025.
+
+## 12. The generator's output
+
+The commands are §5, the files §6.
 
 **Output format: the Mod's pack CSVs** (`clubs.csv` key, name, coach, country, file, division,
 tactic, kit1, kit2, lineup, source; `players.csv` club, name, role, position, number, nat, skin, 7
@@ -155,7 +373,7 @@ format writer for phase 2 — while the competitions (`pack.json`) stay the impo
 column records the squad's origin and the club's calibration step. The output is real people's
 data: it stays in the ignored `bin/data_json/worldgen/`.
 
-## 5. What stays manual
+## 13. What stays manual
 
 - **Formats, splits, play-offs, cups' draws, European places, B teams** (`pack.json`): from the
   regulations and Wikipedia season pages, by hand, as the Mod does them (its
@@ -167,16 +385,18 @@ data: it stays in the ignored `bin/data_json/worldgen/`.
 - **UEFA coefficients** (kassiesa.net: one page each for associations and clubs; not fetched here).
 - **The calibration's ladder** is our reading of the Mod's description; its exact code is private.
 
-## 6. Phase 2: the whole world (91 countries, ~2,400 clubs, ~24,000 extras)
+## 14. Phase 2: the whole world (91 countries, ~2,400 clubs, ~24,000 extras)
 
 **Decisions for the owner first:**
 
 1. **Market values.** Transfermarkt cannot be read by a script (the CAPTCHA). Options:
-   (a) the owner opens the pages in his own browser (a human session passes the check) and saves
-   them, or drives that browser — ~3,100 pages, the Mod's count; (b) values only where the frozen
-   dataset has them (32 top flights, July 2026), EA overall elsewhere (as good a level where EA
-   rates the player: §3) and the division's level below that; (c) ask Transfermarkt for written
-   consent / a data feed. (b) needs nothing new; (a) or (c) for a faithful copy of the Mod.
+   (a) the owner opens the pages in his own browser and saves them — ~3,100 pages, the Mod's count;
+   (b) values only where the frozen dataset has them (32 top flights, July 2026), EA overall
+   elsewhere (as good a level where EA rates the player: §11) and the division's level below that;
+   (c) ask Transfermarkt for written consent / a data feed. **Decided 2026-11-14: both sources** —
+   (a) through `tmpages.py` and `--tm both`, the dataset (b) filling what has no page (§3, §4). A
+   script driving the browser through the pages after a human passed the check is not (a): that is
+   the automated access the check exists to stop (§4, "No automated browser"); with (c) it would be.
 2. **Squads**: Wikipedia (current, CC BY-SA, every club with an article: 108 of 111 here) or
    Transfermarkt (as the Mod). Lower divisions and non-English countries need the other language
    Wikipedias, whose squad templates differ (it: `{{Calciatore in rosa}}`, de, es ...): one parser
