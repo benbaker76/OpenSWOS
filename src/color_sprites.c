@@ -5,6 +5,7 @@
  */
 #include "player_face3.h"
 #include "shirt_numbers.h"
+#include "player_looks.h"
 #include "color_sprites.h"
 #include "team_colors.h"   /* SHIRT_* kit-pattern constants */
 #include "game_types.h"
@@ -467,8 +468,10 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
 
     /* Face 3 (black, blond hair): each team's raw first set copied before it is recoloured
      * (player_face3.c, the Mod's copy_sets) */
-    if (_useIndividualPlayerSkinColor != 0)
+    if (_useIndividualPlayerSkinColor != 0) {
         Face3_CopySets();
+        PlayerLooks_CopySets();     /* (the players' looks, player_looks.c: the same copy) */
+    }
 
     /* Team 1 skin 0: convert sprites 227-327 */
     if (_useIndividualPlayerSkinColor != 0)
@@ -486,6 +489,7 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
         ConvertColorTableToSkinColor(2, _team1PlayersColorTable);
         convertSpriteRange(429, 530, _team1PlayersColorTable);
         convert_face3(0, _team1PlayersColorTable);      /* (its face 3 copy) */
+        PlayerLooks_ConvertSets(0, _team1PlayersColorTable);    /* (its looks' sets) */
     }
 
     /* Team 1 goalkeeper: convert sprites 833-890.
@@ -543,6 +547,7 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
         ConvertColorTableToSkinColor(2, _team2PlayersColorTable);
         convertSpriteRange(0x2DC, 833, _team2PlayersColorTable);
         convert_face3(1, _team2PlayersColorTable);
+        PlayerLooks_ConvertSets(1, _team2PlayersColorTable);
     }
 
     /* Team 2 goalkeeper: convert sprites 949-1006.

@@ -176,10 +176,55 @@ void PrintFormatted(const uint8_t *fmt, uint8_t *out,
  * Filters currentKey to allowed charset.
  * Returns: key value if allowed, 0 if not.
  * ============================================================ */
+/* The characters a name may have beyond A-Z, 0-9 and the space (the SWOS 96/97 Mod 4.1, Marco's
+ * idea; docs/WORLD_2026_27.md §6l): - . / ' ? + ( ) : , and _ (drawn as a space: ROBERTO_CARLOS is
+ * one word, the surname shown whole). A file name (allowExtraCharsFlag) takes - ' ( ) _ but never
+ * . or / (the extension, the folder). The font has every one of them (the charset's own glyphs). */
+static int32_t extra_char(uint8_t c)
+{
+    static const char kName[] = "-./'?+():,_", kFile[] = "-'()_";
+    const char *set = _allowExtraCharsFlag ? kFile : kName;
+    for (; *set; set++)
+        if ((uint8_t)*set == c)
+            return 1;
+    return 0;
+}
+
+/* A character typed (the keyboard's own layout, SHIFT included): its capital, or 0 if a
+ * name cannot have it. */
+static uint8_t typed_char(int32_t ch)
+{
+    if (ch >= 'a' && ch <= 'z')
+        ch -= 'a' - 'A';
+    if ((ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == ' ')
+        return (uint8_t)ch;
+    return ch > ' ' && ch < 0x7F && extra_char((uint8_t)ch) ? (uint8_t)ch : 0;
+}
+
+#ifndef SWOS_SDL_BUILD
+/* The Amiga: SHIFT held types the symbol on the key (a US / UK keyboard's), as the Mod's DOS
+ * game types its keyboard's (the Amiga's LUT gives only the unshifted character). */
+extern volatile uint8_t _gAmigaShiftHeld;    /* (the keyboard interrupt's: interrupts.c) */
+static uint16_t shifted(uint16_t key)
+{
+    static const char kFrom[] = "1234567890-=;',./", kTo[] = "!@#$%^&*()_+:\"<>?";
+    for (int32_t i = 0; kFrom[i]; i++)
+        if ((uint8_t)kFrom[i] == key)
+            return (uint8_t)kTo[i];
+    return key;
+}
+#endif
+
 __attribute__((used, externally_visible))
 uint16_t InputTextFilterKey(void)
 {
     uint16_t key = _currentKey;
+#ifndef SWOS_SDL_BUILD
+    if (_gAmigaShiftHeld && key > ' ' && key < 0x7F)
+        key = shifted(key);
+#endif
+    if (key > ' ' && key < 0x7F && !(key >= 'A' && key <= 'Z') && !(key >= '0' && key <= '9'))
+        return extra_char((uint8_t)key) ? key : 0;
 
     /* A-Z allowed */
     if (key >= 'A' && key <= 'Z')
@@ -308,12 +353,38 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
 #endif
 
     _deadInputTextVar = 0;
+#ifdef SWOS_SDL_BUILD
+    if (!s_rawMode)
+        InputSDL_RawText(1);            /* (the characters as typed, the keyboard's layout and SHIFT) */
+#endif
 
     for (;;) {
         MenuCheckControls();
 
         if (_shortFire != 0)
             goto commit;
+
+#ifdef SWOS_SDL_BUILD
+        if (!s_rawMode) {               /* the characters typed (SDL_TEXTINPUT), A..Z, 0..9 and the extras */
+            int ch;
+            while ((ch = InputSDL_RawChar()) >= 0) {
+                const uint8_t c = typed_char(ch);
+                if (c && GetStringLength(_inMenuKeyboardBuffer) != maxLen) {
+                    InsertCharacter(pos, c);
+                    pos++;
+                }
+            }
+            /* LEFT / RIGHT move the cursor (SHIFT types now): the arrows reach the game as its
+             * controls, not as keys */
+            {
+                extern int16_t _menuControlsDirection;
+                if (_menuControlsDirection == 6 && pos > _inMenuKeyboardBuffer)
+                    pos--;
+                else if (_menuControlsDirection == 2 && *pos != 0)
+                    pos++;
+            }
+        }
+#endif
 
 #ifdef SWOS_SDL_BUILD
         if (s_rawMode) {                /* the characters typed, beside what is drawn for them */
@@ -333,8 +404,8 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
 #endif
         uint16_t key = InputTextFilterKey();
 #ifdef SWOS_SDL_BUILD
-        if (s_rawMode && key >= 0x20 && key < 0x7E)
-            key = 0;                    /* (the game's own keys give the capitals: taken above) */
+        if (key >= 0x20 && key < 0x7E)
+            key = 0;                    /* (the game's own keys give the capitals: typed above) */
 #endif
 
         if (key == 0) {
@@ -345,14 +416,14 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
             goto commit;
         }
 
-        if (key == 19) { /* Left shift — move cursor left */
+        if (key == 19) { /* LEFT (the Amiga's arrow key) — move cursor left */
             if (pos > _inMenuKeyboardBuffer) {
                 pos--;
             }
             continue;
         }
 
-        if (key == 18) { /* Right shift — move cursor right */
+        if (key == 18) { /* RIGHT — move cursor right */
             if (*pos != 0) {
                 pos++;
             }
@@ -361,8 +432,7 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
 
         if (key == 27) { /* Escape — cancel */
 #ifdef SWOS_SDL_BUILD
-            if (s_rawMode)
-                InputSDL_RawText(0);
+            InputSDL_RawText(0);
 #endif
             entry->fg = (uintptr_t)origStr;
             inputTextRedraw(entry);
@@ -409,6 +479,7 @@ static uint16_t inputTextBody(uint16_t maxLenPlus1, uint8_t *entryRaw)
 
 commit:
 #ifdef SWOS_SDL_BUILD
+    InputSDL_RawText(0);
     if (s_rawMode) {
         InputSDL_RawText(0);
         StringCopy(s_raw, origStr);     /* the characters, not their faces */

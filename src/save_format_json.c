@@ -17,6 +17,7 @@
  * See SAVE_FORMAT_JSON.md for the migration history.
  */
 
+#include "player_looks.h"
 #include "save_format_json.h"
 #include "mjson.h"
 #include "game_types.h"
@@ -2671,7 +2672,12 @@ static void jb_player(JB *j, const uint8_t *p)
     jb_key_long (j, "nationality",        (int32_t)(int8_t)p[offsetof(PlayerFile, nationality)]);       jb_c(j, ',');
     jb_key_long (j, "cached_match_value", (int32_t)(int8_t)p[offsetof(PlayerFile, cachedMatchValue)]);  jb_c(j, ',');
     jb_key_long (j, "shirt_number",       (int32_t)(int8_t)p[offsetof(PlayerFile, shirtNumber)]);       jb_c(j, ',');
-    jb_key_str  (j, "player_name", p, offsetof(PlayerFile, playerName), 23);                         jb_c(j, ',');
+    /* (22: byte 25, the name's terminator, is also the SWOS 96/97 Mod's look -- "looks", next --
+     *  when the name is shorter; jb_key_str clears what follows the name up to its length) */
+    jb_key_str  (j, "player_name", p, offsetof(PlayerFile, playerName), 22);                         jb_c(j, ',');
+    if (p[offsetof(PlayerFile, playerName) + 21] == 0 && (p[offsetof(PlayerFile, playerName) + 22] & LOOKS_BITS)) {
+        jb_key_ulong(j, "looks", (uint32_t)(p[offsetof(PlayerFile, playerName) + 22] & LOOKS_BITS));  jb_c(j, ',');
+    }
     {
         const uint8_t pf = p[offsetof(PlayerFile, positionAndFace)];
         const uint8_t ci = p[offsetof(PlayerFile, cardsInjuries)];
@@ -3101,6 +3107,8 @@ static const StructFieldDesc s_player_fields[] = {
     { "cached_match_value",   offsetof(PlayerFile, cachedMatchValue),    0, FLD_U8 },
     { "shirt_number",         offsetof(PlayerFile, shirtNumber),         0, FLD_U8 },
     { "player_name",          offsetof(PlayerFile, playerName),         23, FLD_STR },
+    /* the SWOS 96/97 Mod's look (include/player_looks.h): byte 25, after the name (which clears it) */
+    { "looks",                offsetof(PlayerFile, playerName) + 22,     0, FLD_U8 },
     /* positionAndFace bits: position (5-7), face (3-4), flags (0-2). */
     { "position",             offsetof(PlayerFile, positionAndFace), PF_POSITION_MASK, FLD_BITS },
     { "face",                 offsetof(PlayerFile, positionAndFace), PF_FACE_MASK,     FLD_BITS },

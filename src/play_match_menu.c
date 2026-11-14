@@ -112,6 +112,7 @@ extern int16_t _togglePlayerCoachRedrawItemList[];
 extern void CheckIsTeamNational(void);
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
 extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern int32_t SquadNumbers_Kept(const TeamFileEx *team);
 extern void SquadNumbers_Free(uint16_t slot);
 extern void DrawMenu(void);
 extern void CallDrawMenuItem(MenuEntry *entry);
@@ -965,7 +966,7 @@ void PlayMatchMenuSwapPlayers(TeamFileEx *team, int16_t d3, int16_t d4) {
         PlayerFile *pf1 = (PlayerFile *)(p1 + 76);
         PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
         int8_t ts = pf2->shirtNumber;
-        if (!SquadNumbers_On()) {       /* (real squad numbers: not swapped, teams.c) */
+        if (!SquadNumbers_Kept(team)) {  /* (real or edited squad numbers: not swapped, teams.c) */
             pf2->shirtNumber = pf1->shirtNumber;
             pf1->shirtNumber = ts;
         }

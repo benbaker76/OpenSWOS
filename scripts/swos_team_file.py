@@ -135,8 +135,14 @@ def _s16(v: int) -> int:
 # C loader. The three skill nibble-pairs are SPLIT into editable halves
 # (velocity/heading, tackling/control, speed/finishing); position_and_face and
 # cards_injuries stay packed. Mirrors save_format_json.c s_player_fields.
+def player_looks(b: bytes) -> int:
+    """Byte 25's look bits (the SWOS 96/97 Mod's: 1 bald, 2 shaved, 4 white hair; include/player_looks.h),
+    only when the name is shorter than 22 letters -- else byte 25 is its terminator."""
+    return b[25] & 7 if b[24] == 0 else 0
+
+
 def parse_player(b: bytes) -> dict:
-    return {
+    out = {
         "nationality": _s8(b[0]),
         "cached_match_value": _s8(b[1]),   # was field_1
         "shirt_number": _s8(b[2]),
@@ -163,6 +169,10 @@ def parse_player(b: bytes) -> dict:
         "goal_stats": list(b[33:37]),
         "form": _s8(b[37]),                # was some_flag
     }
+    if player_looks(b):                    # (after the name: a loader reads it over the name's end)
+        out = {k: v for k, v in list(out.items())[:4]} | {"looks": player_looks(b)} | \
+              {k: v for k, v in list(out.items())[4:]}
+    return out
 
 
 def _pack_nib(p: dict, hi_key: str, lo_key: str, packed_key: str) -> int:
@@ -192,6 +202,8 @@ def encode_player(p: dict) -> bytearray:
     # 23-byte name field covers byte 25 (the NUL terminator); a <=22-char name
     # leaves it 0, so no separate field_19 write is needed.
     _put_str(b, PLAYER_NAME_OFF, PLAYER_NAME_LEN, p["player_name"])
+    if p.get("looks") and b[24] == 0:      # (byte 25: the Mod's look bits, a name shorter than 22)
+        b[25] = int(p["looks"]) & 7
     b[26] = _pack_bits(p, [("position", 5, 0x07), ("face", 3, 0x03), ("flags", 0, 0x07)],
                        "position_and_face")
     b[27] = _pack_bits(p, [("cards", 0, 0x03), ("injury", 2, 0x07), ("status_bucket", 5, 0x07)],
