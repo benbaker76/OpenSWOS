@@ -47,6 +47,7 @@ extern void CompetitionStatsModRow(void);
 extern void BuyPlayerModRow(void);
 extern void BuyPlayerCpuReplacements(void);
 extern void BuyOtherPlayersPage(void);
+extern void ViewSquadPage(void);
 extern void BTeamSquadButton(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
@@ -7967,6 +7968,13 @@ Menu_ViewSquad _viewSquadMenu = {
     MENU_MARK_WIDE_COORDS,
     { 272, 0, 32, 8 },
     { MENU_CMD_TEXT_PTR, 0x8000, 0 },
+    MENU_CMD_END,
+    { 184, 185, 76, 15 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, 2, -1, 19, -1 },
+    { MENU_CMD_COLORS, 0xE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, ViewSquadPage },
     MENU_CMD_END,
     MENU_MARK_END_MENU
 };

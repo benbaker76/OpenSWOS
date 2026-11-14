@@ -4,6 +4,7 @@
  */
 #ifdef SWOS_SDL_BUILD
 
+#include "long_bench.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -919,6 +920,9 @@ int32_t NetplayMatch_Start(void)
      * interrupt behind its back (docs/ROLLBACK.md, "How the rig plays a match"). */
     Platform_QuiesceTimerThread();
     _gFrameStepInput = 1;      /* input a frame at a time (game_loop.h) */
+    /* A world's long bench: decided now from the setup's teams, as the kick-off will decide it,
+     * so the state's size counts its places 17.. from the first save (long_bench.c). */
+    { extern TeamFileEx _selectedTeams[]; LongBench_Prepare(&_selectedTeams[0].team, &_selectedTeams[1].team); }
     s_np.stateSize = SimState_Size(SIM_TIER_ALL);
     s_np.endFrame = -1;
     s_np.resultFrame = -1;
@@ -2453,6 +2457,7 @@ int32_t NetplayMatch_StartResim(const uint8_t *kickoff, uint32_t kickoffLen, con
     memset(&s_np, 0, sizeof s_np);
     memset(&s_resim, 0, sizeof s_resim);
     s_np.mode = NETPLAY_MATCH_RESIM;
+    { extern TeamFileEx _selectedTeams[]; LongBench_Prepare(&_selectedTeams[0].team, &_selectedTeams[1].team); }
     s_resim.kickoff = kickoff;
     s_resim.kickoffLen = kickoffLen;
     s_resim.inputs = inputs;

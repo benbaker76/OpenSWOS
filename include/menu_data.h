@@ -1900,6 +1900,13 @@ typedef struct Menu_ViewSquad
   MenuCoords16 entry34_rc;
   MenuCmd_TextPtr entry34_text;
   MenuCommand entry34_end;
+  MenuCoords16 entry35_rc;                              /* OpenSWOS: NEXT / PREV PAGE (a world club's */
+  MenuCmd_Invisible entry35_invisible;                  /*  players 17..: menus.c ViewSquadPage, the */
+  MenuCmd_Nav entry35_nav;                              /*  Mod's 4.0.5 / 4.0.6 squad view) */
+  MenuCmd_Colors entry35_colors;
+  MenuCmd_TextNoPtr entry35_text;
+  MenuCmd_OnSelect entry35_onSelect;
+  MenuCommand entry35_end;
   MenuMark markEndMenu;
 } Menu_ViewSquad;
 #pragma pack(pop)

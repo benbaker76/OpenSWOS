@@ -1000,6 +1000,9 @@ int main(int argc, char **argv)
                 return 1;
             }
             return SquadExtras_SelfTest(f, o) ? 1 : 0;
+        } else if (strcmp(a, "--long-bench-selftest") == 0) {
+            extern int32_t LongBench_SelfTest(void);
+            return LongBench_SelfTest() ? 1 : 0;   /* (src/long_bench.c: World 2026-27's bench table) */
         } else if (strncmp(a, "--bteam-selftest", 16) == 0) {
             extern int32_t BTeam_SelfTest(const char *arg);
             if (getenv("SWOS_WORLD"))              /* (src/bteam.c: the B teams, their years) */

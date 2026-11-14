@@ -47,6 +47,10 @@
                                     * match state (ModHooks_MatchWordsUsed, docs/MODS.md §36): else
                                     * absent from the state, its hash and the layout hash alike, so
                                     * a build without such a mod on is the build it always was */
+#define SIM_LONGBENCH    0x0010u   /* a long bench's places 17.. (long_bench.c): there only while the
+                                    * match has one (LongBench_On, decided at the kick-off from the
+                                    * teams on both games alike); never in the layout hash, so a
+                                    * 96/97 match's state, hash and layout are what they always were */
 
 /* Tier masks. */
 #define SIM_TIER_SIM     0x0001u

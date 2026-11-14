@@ -866,6 +866,8 @@ void FixupAndColorPitchFile(void)
     /* A mod's picture of the pitch, now that every fan tile of the bank has its kit. */
     if (dosPitch)
         ModHooks_PitchColoured();
+    /* A long bench's two-row dugouts (long_bench.c, the Mod's dugout.py): the tile map only. */
+    { extern void LongBench_PitchDugouts(uint8_t **tiles); LongBench_PitchDugouts(_s_pitchFullPtrs); }
 #endif
 #if defined(AGA) && !defined(SWOS_SDL_BUILD)
     copyPitchTilesToFast();     /* the fans are coloured: the tiles are final */

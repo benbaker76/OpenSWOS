@@ -35,10 +35,12 @@ public:
     size_t Teams() const { return m_teams.size(); }
 
 private:
-    struct Team { std::array<uint8_t, 8> checksum; std::string name; };
+    struct Team { std::array<uint8_t, 8> checksum; std::string name; bool hasExtras = false;
+                  std::array<uint8_t, 8> extras{}; };   // (its players 17..: TEAMCHECK_PROTOCOL_EXTRAS)
     using Id = std::array<uint8_t, 16>;
 
     bool Add(const std::string& uuid, const std::string& checksum, const std::string& name);
+    bool AddExtras(const std::string& uuid, const std::string& checksum);
 
     ENetHost* m_host;
     Ledger&   m_ledger;

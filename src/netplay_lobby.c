@@ -42,6 +42,7 @@
  * their six slots from before the match and put it back afterwards
  * (NetplayLobby_RestoreTactics): playing online never changes a player's library.
  */
+#include "squad_extras.h"
 #include "mod_hooks.h"    /* lobbyKeepsReady */
 #include "netplay_lobby.h"
 #include "world_rules.h"     /* the host's stoppage time */
@@ -1309,6 +1310,19 @@ static struct {
     int32_t       tries;            /* > 0 while an answer is awaited */
 } s_check;
 
+/* The players 17.. (a world's long bench brings them on; team_proto.h TEAMCHECK_PROTOCOL_EXTRAS):
+ * asked once the teams' answer is in -- the server's answer is one packet deep here -- for each
+ * team that has them, two tries; no answer (a server from before) leaves them unverified. */
+enum { kExtrasTries = 2 };
+static struct {
+    TeamCheckTeam asked[2];
+    int32_t       has[2];
+    uint32_t      nonce;
+    uint32_t      sentAt;
+    int32_t       tries;            /* > 0 while an answer is awaited */
+    int32_t       due;              /* the teams' answer is in: ask about their players 17.. */
+} s_xcheck;
+
 static int32_t refused(const LobbyPlayer *p)
 {
     return p->verified == LOBBY_TEAM_REFUSED_UNKNOWN || p->verified == LOBBY_TEAM_REFUSED_CHANGED;
@@ -1320,7 +1334,47 @@ static int32_t refused(const LobbyPlayer *p)
  * that did not wait would begin on a team whose refusal was still on its way. */
 static int32_t team_blocks(const LobbyPlayer *p)
 {
-    return refused(p) || (P2PLink_HasServer() && p->hasTeam && p->verified == LOBBY_TEAM_UNASKED);
+    return refused(p) || (P2PLink_HasServer() && p->hasTeam &&
+                          (p->verified == LOBBY_TEAM_UNASKED || s_xcheck.due || s_xcheck.tries > 0));
+}
+
+static void xcheck_send(void)
+{
+    uint8_t packet[TEAMCHECK_MAX_LEN];
+    TeamCheck c;
+    memset(&c, 0, sizeof c);
+    c.protocol = TEAMCHECK_PROTOCOL_EXTRAS;
+    c.type = TEAMCHECK_ASK;
+    c.nonce = s_xcheck.nonce;
+    for (int32_t p = 0; p < 2; p++)
+        if (s_xcheck.has[p])
+            c.team[c.count++] = s_xcheck.asked[p];
+    if (c.count)
+        P2PLink_AskServer(packet, TeamCheck_Write(packet, &c));
+    s_xcheck.sentAt = SDL_GetTicks();
+}
+
+/* The players 17.. of both teams: asked when the teams' own answer is in. */
+static void xcheck_start(void)
+{
+    s_xcheck.due = 0;
+    s_xcheck.tries = 0;
+    for (int32_t p = 0; p < 2; p++) {
+        s_xcheck.has[p] = 0;
+        if (!s_check.has[p])
+            continue;
+        const TeamFileEx *t = &s_lobby.players[p].team;
+        s_xcheck.asked[p] = s_check.asked[p];
+        s_xcheck.has[p] = SquadExtras_Checksum(PACK_BE_U16(t->team.countryNumber, t->team.teamOrdinal),
+                                               s_xcheck.asked[p].checksum);
+        if (s_xcheck.has[p] && p != s_lobby.me - 1 && getenv("SWOS_TEAMCHECK_CORRUPT_EXTRAS"))
+            s_xcheck.asked[p].checksum[0] ^= 0x5A;     /* (test: the other's players 17.. doctored) */
+    }
+    if (s_xcheck.has[0] || s_xcheck.has[1]) {
+        s_xcheck.nonce = s_check.nonce * 1103515245u + 12345u;
+        s_xcheck.tries = 1;
+        xcheck_send();
+    }
 }
 
 static void team_check_send(void)
@@ -1371,6 +1425,7 @@ static void team_check(void)
         }
     }
     if (changed) {
+        s_xcheck.due = s_xcheck.tries = 0;
         s_check.nonce = s_check.nonce * 1664525u + 1013904223u + SDL_GetTicks();
         s_check.tries = (s_check.has[0] || s_check.has[1]) ? 1 : 0;
         if (s_check.tries)
@@ -1378,8 +1433,39 @@ static void team_check(void)
     }
 
     n = P2PLink_ServerAnswer(TEAMCHECK_MAGIC, packet, (int32_t)sizeof packet);
+    if (n > 0 && TeamCheck_Read(packet, n, &c) == 0 && c.type == TEAMCHECK_ANSWER &&
+        c.protocol == TEAMCHECK_PROTOCOL_EXTRAS && c.nonce == s_xcheck.nonce && s_xcheck.tries > 0) {
+        for (i = 0; i < c.count; i++)
+            for (p = 0; p < 2; p++) {
+                LobbyPlayer *pl = &s_lobby.players[p];
+                if (!s_xcheck.has[p] || memcmp(c.team[i].uuid, s_xcheck.asked[p].uuid, 16) != 0 ||
+                    memcmp(c.team[i].checksum, s_xcheck.asked[p].checksum, 8) != 0)
+                    continue;
+                fprintf(stderr, "[lobby] team check: player %d's %.16s (its players 17..) is %s\n", (int)p + 1,
+                        (const char *)pl->team.team.teamName,
+                        c.team[i].status == TEAMCHECK_OK ? "canonical" :
+                        c.team[i].status == TEAMCHECK_UNKNOWN ? "not on the server's list: unverified" :
+                        "REFUSED: the server's copy of them is other data");
+                if (c.team[i].status == TEAMCHECK_CHANGED) {
+                    pl->verified = LOBBY_TEAM_REFUSED_CHANGED;
+                    drop_my_ready();
+                }
+            }
+        s_xcheck.tries = 0;
+        n = 0;
+    } else if (s_xcheck.tries > 0 && SDL_GetTicks() - s_xcheck.sentAt >= (uint32_t)kCheckResendMs) {
+        if (s_xcheck.tries >= kExtrasTries) {
+            fprintf(stderr, "[lobby] team check: no answer about the players 17.. (an older server): unverified\n");
+            s_xcheck.tries = 0;
+        } else {
+            s_xcheck.tries++;
+            xcheck_send();
+        }
+    }
+    if (s_xcheck.due)
+        xcheck_start();
     if (n > 0 && TeamCheck_Read(packet, n, &c) == 0 && c.type == TEAMCHECK_ANSWER && c.nonce == s_check.nonce &&
-        s_check.tries > 0) {
+        c.protocol == TEAMCHECK_PROTOCOL && s_check.tries > 0) {
         for (i = 0; i < c.count; i++)
             for (p = 0; p < 2; p++) {
                 LobbyPlayer *pl = &s_lobby.players[p];
@@ -1399,6 +1485,7 @@ static void team_check(void)
                     drop_my_ready();
             }
         s_check.tries = 0;
+        s_xcheck.due = 1;           /* (now their players 17..: xcheck_start, the next poll) */
     } else if (s_check.tries > 0 && SDL_GetTicks() - s_check.sentAt >= (uint32_t)kCheckResendMs) {
         if (s_check.tries >= kCheckTries) {
             for (p = 0; p < 2; p++)

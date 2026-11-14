@@ -227,6 +227,51 @@ uint8_t *SquadExtras_GetPlayer(uint16_t team, uint16_t index)
     return s_blank;
 }
 
+PlayerFile *SquadExtras_BenchPlayer(uint16_t team, int32_t n, uint16_t *index)
+{
+    if (World_Current() == WORLD_9697 || n < 0)
+        return NULL;
+    Block *b = block(team);
+    const int32_t career = SquadExtras_On();
+    for (int32_t i = 0; i < b->n; i++) {
+        if (!b->p[i].playerName[0] || (career && ((b->gone >> i) & 1)))
+            continue;
+        if (n-- == 0) {
+            *index = (uint16_t)(16 + i);
+            return &b->p[i];
+        }
+    }
+    return NULL;
+}
+
+int32_t SquadExtras_Checksum(uint16_t team, uint8_t out[8])
+{
+    extern void TeamDb_ChecksumPlayers(const PlayerFile *players, int32_t count, char out[17]);
+    PlayerFile p[SQX_MAX];
+    char text[17];
+    if (World_Current() == WORLD_9697)
+        return 0;
+    const int32_t n = DataJson_LoadTeamExtras(team >> 8, team & 0xFF, p, SQX_MAX);
+    if (n <= 0)
+        return 0;
+    TeamDb_ChecksumPlayers(p, n, text);
+    for (int32_t i = 0; i < 8; i++) {
+        unsigned v = 0;
+        sscanf(text + 2 * i, "%2x", &v);
+        out[i] = (uint8_t)v;
+    }
+    return 1;
+}
+
+PlayerFile *SquadExtras_BenchRecord(uint16_t team, uint16_t index)
+{
+    if (World_Current() == WORLD_9697 || index < 16 || index >= 16 + SQX_MAX)
+        return NULL;
+    Block *b = block(team);
+    const int32_t i = index - 16;
+    return i < b->n && b->p[i].playerName[0] ? &b->p[i] : NULL;
+}
+
 int32_t SquadExtras_Nth(uint16_t team, int32_t n)
 {
     if (!SquadExtras_On() || team == _selTeamNumber)
@@ -325,7 +370,26 @@ void SquadExtras_TestRequests(void)
     extern uint8_t  _homeMarketPlayers[];
     extern uint16_t _numHomeMarketPlayers;
     extern void Career_RemovePlayerAndAddAsTrialist(uint16_t sourceTeam, uint16_t playerOrd);
-    static int32_t done;
+    static int32_t done, viewed;
+    if (!viewed && getenv("SWOS_TEST_VIEWSQUAD") && SquadExtras_On()) {
+        /* (test: the squad view of the national market's first club with players 17..: its page 2,
+         *  menus.c ViewSquadInit photographs it) */
+        extern uint8_t  _homeMarketPlayers[];
+        extern uint16_t _numHomeMarketPlayers;
+        extern int16_t ShowSquad(TeamFile *teamPtr, uint8_t *title, uint32_t maskLo, uint32_t maskHi,
+                                 uint16_t arg2, uint16_t arg3);
+        extern TeamFileEx *GetTeamPointer(uint16_t teamId);
+        viewed = 1;
+        for (uint16_t i = 0; i < _numHomeMarketPlayers; i++) {
+            const uint8_t *e = &_homeMarketPlayers[i * 4];
+            const uint16_t team = (uint16_t)(e[0] << 8 | e[1]);
+            if (team != _selTeamNumber && SquadExtras_Nth(team, 0) >= 0) {
+                fprintf(stderr, "[squads] test: the squad view of %04x, page 2\n", (unsigned)team);
+                ShowSquad((TeamFile *)GetTeamPointer(team), (uint8_t *)"VIEW SQUAD", 0, 0, 1, 0xFFFF);
+                break;
+            }
+        }
+    }
     if (done || !getenv("SWOS_TEST_BUY_EXTRA") || !SquadExtras_On())
         return;
     done = 1;
@@ -366,6 +430,13 @@ int32_t SquadExtras_Count(uint16_t team) { (void)team; return 0; }
 PlayerFile *SquadExtras_Player(uint16_t team, uint16_t index) { (void)team; (void)index; return 0; }
 uint8_t *SquadExtras_GetPlayer(uint16_t team, uint16_t index) { (void)team; (void)index; return 0; }
 int32_t SquadExtras_Nth(uint16_t team, int32_t n) { (void)team; (void)n; return -1; }
+PlayerFile *SquadExtras_BenchPlayer(uint16_t team, int32_t n, uint16_t *index)
+{
+    (void)team; (void)n; (void)index;
+    return 0;
+}
+PlayerFile *SquadExtras_BenchRecord(uint16_t team, uint16_t index) { (void)team; (void)index; return 0; }
+int32_t SquadExtras_Checksum(uint16_t team, uint8_t out[8]) { (void)team; (void)out; return 0; }
 uint16_t SquadExtras_MarketPick(uint16_t team, uint16_t pick) { (void)team; return pick; }
 void SquadExtras_Left(uint16_t team, uint16_t index, const int8_t *name)
 {

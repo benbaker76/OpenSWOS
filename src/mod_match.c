@@ -1417,7 +1417,7 @@ static void play_test_match(int32_t thenQuit)
     setup.score[0] = 2;
     setup.score[1] = 1;
     setup.minute = 40;
-    setup.stadium = 0;
+    setup.stadium = getenv("SWOS_TEST_LONGBENCH") != NULL;  /* (the long bench's test: the line-ups' pages) */
     setup.replayMenu = 0;
     setup.autoReplays = 0;
     setup.name = "mod match test";

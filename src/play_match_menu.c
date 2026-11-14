@@ -16,6 +16,7 @@
  * TogglePlayerCoach, GetPlayerPosition.
  */
 
+#include "long_bench.h"
 #include "mod_hooks.h"        /* playerRowDrawn (SDL) */
 #include "play_match_menu.h"
 #include "endian_helpers.h"
@@ -1235,6 +1236,8 @@ void TogglePlayerCoach(void) {
     DrawMenuItemsWaitForVSync(_togglePlayerCoachRedrawItemList);
 }
 
+static uint16_t s_lbBench;              /* this screen's long bench (ShowPlayMatchMenu), 0: the game's */
+
 /* ================================================================
  * DrawPlayerEntries  (line 81983)
  *
@@ -1253,8 +1256,12 @@ void DrawPlayerEntries(MenuEntry *a5) {
     if (d7 == 16) {
         d5 = 1;
         d7 = d7 - 5 + _maxSubstitutesEntries;
-        bgE->bgColor = (bgE->bgColor & 0xFFF0) | BLUE_TO_BLACK_8;
-        numE->bgColor = (numE->bgColor & 0xFFF0) | BLUE_TO_BLACK_8;
+        /* (a world's long bench, long_bench.c: the player the box shows here sits on it in the
+         *  match -- a substitute's colour) */
+        const uint16_t c = d7 < 11 + s_lbBench && !_viewingOpponentTeam && !_showingCpuTeams
+                           ? BLUE_TO_PURPLE_11 : BLUE_TO_BLACK_8;
+        bgE->bgColor = (bgE->bgColor & 0xFFF0) | c;
+        numE->bgColor = (numE->bgColor & 0xFFF0) | c;
     } else if (d7 < 11) {
         if (!_showingCpuTeams && !_viewingOpponentTeam) {
             uint16_t c = (d7 == 0) ? YELLOW_GREEN_BLACK_14 : BRIGHT_BLUE_TO_BLUE_13;
@@ -1523,6 +1530,7 @@ int16_t ShowPlayMatchMenu(int16_t controlFlags, int16_t _maxSubstitutes,
     _playMatchTeam1Ptr = team1;
     _playMatchTeam2Ptr = team2;
     _maxSubstitutesEntries = (uint16_t)_maxSubstitutes;
+    s_lbBench = LongBench_PreMatch((const TeamFile *)team1, (const TeamFile *)team2);  /* (a world's long bench) */
     _playMatchControlFlags = (uint16_t)controlFlags;
     _playMatchExcludeFlags = (int16_t)excludeFlags;
     _inEditTactics = (uint16_t)excludeFlags;

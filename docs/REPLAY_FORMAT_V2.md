@@ -130,6 +130,14 @@ stamp, the final score, `pitchNumberAndType`, `gameMaxSubstitutes`, the
 competition name and round, and the two teams as the `.HIL` header holds them
 (1018 bytes each, the 11 int16 kit words big-endian).
 
+A match with a **long bench** (a world's, docs/WORLD_2026_27.md §6j: more than 16 places a
+team) adds a tail after those bytes (since 2026-11-13): `LBNC`, the places a team has (17..26,
+big-endian word), then both teams' places 17..26 at kick-off as PlayerInfo records (61 bytes each,
+10 a team, all single bytes) -- the substitutes beyond the game's 16 the viewer would name
+(`LongBench_ReplayRead`). A reader takes META's length from its chunk; an older viewer reads its
+fixed part and ignores the tail, and a file without it is a match of the game's 16. The recorder
+copies META as the game sends it, so its `.SRP` is still the host's byte for byte.
+
 Everything but the final score is taken at **kick-off**. At the end of a match
 `SetPitchTypeAndNumber` has already run for whatever comes next, so a `.SRP`
 written with the end-of-match value plays on a different pitch than the match

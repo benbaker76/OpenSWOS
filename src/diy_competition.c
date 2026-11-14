@@ -8,6 +8,7 @@
  * Chunk 60: 16 functions ported from SWOS2.s.
  */
 
+#include "long_bench.h"
 #include "world.h"
 #include "diy_competition.h"
 #include "world_finance.h"      /* UefaPrize_CupWon */
@@ -10983,6 +10984,8 @@ uint16_t PlayDIYLeagueMatchAndCacheResult(TeamFileEx *team1, TeamFileEx *team2,
     DIYCompetition *diy = &_diyCompetitionStart.base;
 
     /* Call SetupPlayers: d1=diyCompetitionStart.matchData.league.leagueMaxSubstitutes, d2=substitutesCount */
+    LongBench_LeagueMatch(1);       /* (a world's long bench: a league's by the club's division; the
+                                     *  cups' path clears it) */
     SetupPlayers(team1, team2, (int16_t)_diyCompetitionStart.matchData.league.leagueMaxSubstitutes,
                   diy->substitutesCount, allowSquadChanges, mode);
 
@@ -11059,6 +11062,7 @@ uint16_t PlayDIYLeagueMatchAndCacheResult(TeamFileEx *team1, TeamFileEx *team2,
 __attribute__((used, externally_visible))
 uint16_t PlayDIYCupFixtureAndCacheResult(TeamFileEx *team1, TeamFileEx *team2,
                                            int16_t allowSquadChanges, int16_t mode) {
+    LongBench_LeagueMatch(0);       /* (a cup's: by its name, else the country's bench) */
     /* d1 = diyCompetitionStart.pointsForAWin (word), d2 = substitutesCount → SetupPlayers */
     DIYCompetition *diyStart = &_diyCompetitionStart.base;
     SetupPlayers(team1, team2, (int16_t)_diyCompetitionStart.pointsForAWin,

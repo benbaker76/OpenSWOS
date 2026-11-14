@@ -3,6 +3,8 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "squad_extras.h"
+#include "long_bench.h"
 #include "bteam.h"
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
@@ -876,6 +878,59 @@ void ShowStadiumInit(void)
  *
  * in: team = TeamGame pointer, playerIndex = 0-based player index
  * ================================================================ */
+/* The line-ups screen's pages (a long bench, the Mod's bx_stad): page 0 the game's 11 + 5, then
+ * rows 12..16 the next five places each. */
+static uint16_t s_stadPage;
+
+static uint16_t stad_place(uint16_t row)
+{
+    return (uint16_t)(row < 11 || !s_stadPage ? row : 16 + (s_stadPage - 1) * 5 + (row - 11));
+}
+
+static void stad_rows(void)
+{
+    const uint16_t first[2] = { 16, 43 };
+    TeamGame *tg[2] = { &_topTeamInGame, &_bottomTeamInGame };
+    for (int32_t t = 0; t < 2; t++)
+        for (uint16_t r = 11; r < 16; r++) {
+            const uint16_t place = stad_place(r);
+            PlayerInfo *pi = place < LongBench_Places() ? LongBench_Player(tg[t], place) : NULL;
+            MenuEntry *name = &_menuEntries[first[t] + r], *pic = &_menuEntries[first[t] - 11 + r];
+            const uint16_t hide = (uint16_t)(!pi || !pi->fullName[0]);
+            if (pi)
+                name->fg = (uintptr_t)pi->fullName;
+            name->isInvisible = hide;
+            pic->isInvisible = hide;
+        }
+}
+
+/* InitializeInGameTeamsAndStartGame, after the line-ups' wait: a long bench's further pages, each
+ * shown as long (no wait: none). */
+void Stadium_LongBenchPages(int32_t waitFrames)
+{
+    extern void WaitForVSync(void);
+    extern void Platform_RequestScreenshot(void);
+    extern uint8_t _currentMenu[];
+    extern void ShowStadiumInit(void);
+    const uint16_t places = LongBench_Places();
+    /* (only over the line-ups screen itself: a match that skips it -- online, a mod's -- has
+     *  another menu up, whose entries these are not) */
+    if (places <= 16 || ((const Menu *)_currentMenu)->onInit != (MenuVoidFn)ShowStadiumInit)
+        return;
+    for (s_stadPage = 1; 16 + (s_stadPage - 1) * 5 < places; s_stadPage++) {
+        stad_rows();
+        DrawMenu();
+        for (int32_t i = waitFrames; i >= 0; i--) {
+#ifdef SWOS_SDL_BUILD
+            if (i == waitFrames - 20 && getenv("SWOS_TEST_LINEUP_SHOTS"))
+                Platform_RequestScreenshot();   /* (test: each page photographed) */
+#endif
+            WaitForVSync();
+        }
+    }
+    s_stadPage = 0;
+}
+
 __attribute__((used, externally_visible))
 void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
 {
@@ -902,8 +957,8 @@ void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
         _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = (uint16_t)team->prSocksCol;
     }
 
-    /* Set skin color from player's face2 field */
-    int16_t skinColor = (int8_t)team->players[playerIndex].face2;
+    /* Set skin color from player's face2 field (a long bench's page: its place's -- long_bench.c) */
+    int16_t skinColor = (int8_t)LongBench_Player(team, (uint16_t)stad_place(playerIndex))->face2;
     FillSkinColorConversionTable((uint16_t)skinColor, _stadiumMenuLittlePlayerSpriteCopy.colTable);
 }
 
@@ -1710,6 +1765,8 @@ void SquadAfterDrawCommon(void *entryPtr)
         e->fgNumber = (uint16_t)(uint8_t)pf->shirtNumber;
         e->isInvisible = 0;
     }
+    /* (a world's B-team call-up: his number in yellow, as the Mod 4.1 shows it -- bteam.c) */
+    e->stringFlags = (uint16_t)((e->stringFlags & 0xFFF0) | (BTeam_CalledKind(pf) ? 15 : 0));
     e->y = yPos;
 
     /* Entry 48: player name */
@@ -6301,12 +6358,82 @@ extern void BuildTransferPlayerMenuEntry(void *item, uint8_t *player,
                                            uint16_t y, int16_t idx,
                                            uint16_t style, uint8_t *extra);
 
+/* A world club's second page in the squad view (STAT / VIEW SQUADS, a job offer's VIEW TEAM, an
+ * offer's "+": a player to add to the deal): its players 17.. still there (squad_extras.c; the Mod's
+ * 4.0.5 / 4.0.6 squad view) -- entry 35, NEXT PAGE / PREV PAGE right of EXIT. Any club but the
+ * managed one (its own 17.. are on its row 17 and the box), in a world career. */
+#define VS_EXIT  2
+#define VS_ROW0  4
+#define VS_ROWS  16
+#define VS_PAGE  35
+static uint8_t  s_vsPage;               /* 0 the record's 16, 1 the club's players 17.. */
+static uint16_t s_vsTeam;
+
+static int32_t vs_has_page(void)
+{
+    extern uint8_t _currentMenu[];
+    if (((const Menu *)_currentMenu)->numEntries <= VS_PAGE || s_vsTeam == _selTeamNumber)
+        return 0;
+    return SquadExtras_Nth(s_vsTeam, 0) >= 0;
+}
+
+static void vs_page_layout(void)
+{
+    extern uint8_t _currentMenu[];
+    if (((const Menu *)_currentMenu)->numEntries <= VS_PAGE)
+        return;
+    MenuEntry *page = &_menuEntries[VS_PAGE];
+    const int32_t has = vs_has_page();
+    if (!has) {
+        s_vsPage = 0;
+        page->isInvisible = 1;
+        return;                         /* (the game's own screen, untouched) */
+    }
+    const int8_t exitE = (int8_t)(_viewSquadArg2 ? VS_EXIT + 1 : VS_EXIT);  /* (EXIT, or CONTINUE) */
+    page->isInvisible = 0;
+    page->fg = (uintptr_t)(s_vsPage ? "PREV PAGE" : "NEXT PAGE");
+    page->leftEntry = exitE;
+    _menuEntries[exitE].rightEntry = VS_PAGE;
+    int32_t n = VS_ROWS;
+    if (s_vsPage) {
+        n = 0;
+        while (n < VS_ROWS && SquadExtras_Nth(s_vsTeam, n) >= 0)
+            n++;
+    }
+    for (int32_t r = 0; r < VS_ROWS; r++) {
+        MenuEntry *e = &_menuEntries[VS_ROW0 + r];
+        e->isInvisible = (uint16_t)(r >= n);
+        e->downEntry = (int8_t)(r + 1 < n ? VS_ROW0 + r + 1 : exitE);
+    }
+    page->upEntry = (int8_t)(VS_ROW0 + (n > 0 ? n - 1 : 0));
+}
+
+/* NEXT PAGE / PREV PAGE (entry 35) */
+__attribute__((used, externally_visible))
+void ViewSquadPage(void)
+{
+    s_vsPage ^= 1;
+    vs_page_layout();
+    SetCurrentEntry(VS_PAGE);
+    DrawMenu();
+}
+
 /* ViewSquadInit (Chunk 163)
  * Initializes view squad menu: shows/hides entries based on roster size,
  * sets title/team name, handles pre-selection. */
 __attribute__((used, externally_visible))
 void ViewSquadInit(void)
 {
+    s_vsTeam = PACK_BE_U16(_squadTeamPtr->countryNumber, _squadTeamPtr->teamOrdinal);
+    s_vsPage = 0;
+#ifdef SWOS_SDL_BUILD
+    if (getenv("SWOS_TEST_VIEWSQUAD") && vs_has_page()) {   /* (test: page 2 shown, photographed) */
+        extern void Platform_RequestScreenshot(void);
+        s_vsPage = 1;
+        Platform_RequestScreenshot();
+    }
+#endif
+    vs_page_layout();
     uint16_t teamNum = _selTeamNumber;
     if (teamNum != 0xFFFF) {
         if (teamNum == PACK_BE_U16(_squadTeamPtr->countryNumber, _squadTeamPtr->teamOrdinal)) {
@@ -6352,8 +6479,14 @@ void ViewSquadCommon(void *entryPtr)
     _viewSquadSelectedTeam = relIdx;
 
     uint16_t outSlot, outPlayerIndex;
-    GetPlayerInfoBreakPosition((TeamFileEx *)_squadTeamPtr, relIdx,
-                                 &outSlot, &outPlayerIndex);
+    if (s_vsPage) {                     /* (page 2: the club's players 17.. still there) */
+        const int32_t x = SquadExtras_Nth(s_vsTeam, relIdx);
+        if (x < 0)
+            return;
+        outPlayerIndex = (uint16_t)x;
+    } else
+        GetPlayerInfoBreakPosition((TeamFileEx *)_squadTeamPtr, relIdx,
+                                     &outSlot, &outPlayerIndex);
     _viewSquadSelectedPlayer = outPlayerIndex;
     SetExitMenuFlag();
 }
@@ -6375,8 +6508,17 @@ void ViewSquadAfterDrawCommon(void *entryPtr)
         d6 = 0xFFFF;
 
     uint16_t outSlot, outPlayerIndex;
-    uint8_t *player = GetPlayerInfoBreakPosition(
-        (TeamFileEx *)_squadTeamPtr, d1, &outSlot, &outPlayerIndex);
+    uint8_t *player;
+    if (s_vsPage) {                     /* (page 2: the club's players 17.., numbered from 17) */
+        const int32_t x = SquadExtras_Nth(s_vsTeam, d1);
+        if (x < 0)
+            return;
+        outPlayerIndex = (uint16_t)x;
+        player = SquadExtras_GetPlayer(s_vsTeam, (uint16_t)x);
+        d6 = (uint16_t)(x + 1);
+    } else
+        player = GetPlayerInfoBreakPosition(
+            (TeamFileEx *)_squadTeamPtr, d1, &outSlot, &outPlayerIndex);
 
     /* ASM: GetPlayerInfoBreakPosition overwrites d1 with the file index.
      * The mask checks below must use the file index, not the display row.

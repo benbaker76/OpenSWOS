@@ -59,6 +59,8 @@ int32_t CustomTeam_Allowed(const TeamFileEx *team);
  * that has been through the team screen has those. For the team screen, which says
  * (CUSTOM) where it would name the country of the team's file. */
 int32_t CustomTeam_IsCustom(const TeamFileEx *team);
+/* The same, its kits aside (a kit chosen online travels in the team): long_bench.c. */
+int32_t CustomTeam_IsEdited(const TeamFileEx *team);
 
 /* What this team is, for the matchmaking server's team check (include/team_proto.h):
  * the id of the database team it is, and the checksum of its players as they are in

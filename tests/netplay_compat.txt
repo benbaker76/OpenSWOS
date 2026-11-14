@@ -1,6 +1,6 @@
 # NETPLAY_COMPAT and the SIM-hash digest of each test recording it was recorded with.
 # Written by scripts/check_netplay_compat.sh --update; read by the same script.
-netplay_compat 14
+netplay_compat 15
 2xcpu-08030320-off cad589b77688addc68217a03062e57c61e48e3a0 17271
 2xcpu-08030320-on a435c5f379144dc4da122f233e2c3f2aadf65970 21241
 playa-10090613-off ba902aa3f82adc82eaa180b8be846a818eb47020 22498
