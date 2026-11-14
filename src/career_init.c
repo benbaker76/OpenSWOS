@@ -18,6 +18,7 @@
 #include "bteam.h"
 #include "world_conti.h"
 #include "states.h"
+#include "world_nationals.h"
 #include "comp_identity.h"
 #include <string.h>   /* memcpy in Rebuild_CupRecordNameSourcePointers */
 #include "endian_helpers.h"
@@ -673,6 +674,7 @@ __attribute__((used, externally_visible))
 void InitCareer(uint16_t teamNo)
 {
     _worldCupHostTeam = 20994;
+    WorldNationals_CareerStart();       /* (a classic world's holder: world_nationals.c) */
 
     /* Clear 2000 bytes of diyLeagueSeasonStateTable (volatile to prevent memset optimization) */
     {
@@ -1304,6 +1306,7 @@ void InitializeNewSeason(void)
             cycle -= 5;                                 /* wrap into the 5-cycle period */
         _worldCupQualifyingTeam = _seasonCycleNationalFlagsA[cycle];
         _euroChampionshipQualTeam = _seasonCycleNationalFlagsB[cycle];
+        WorldNationals_Hosts();             /* (a classic world's cycle: its hosts) */
 
         /* Set cup pick list for selected region (param unused, function writes to global) */
         Career_SetCupPickList_ForSelectedRegion(0);

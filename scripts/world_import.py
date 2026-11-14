@@ -1211,6 +1211,45 @@ def country_playoffs(wc, pk, picked):
 
 
 CUP_CLUBS = []              # (a classic world's: (country, [(slot, division)]) its cups' clubs from season 2)
+NATIONALS = None            # (a classic world's national competitions: national_competitions())
+
+
+def national_competitions(countries):
+    """A classic world's national/pack.json "national" (the Mod 3.1, its mkseason competitions()):
+    team words ours (file << 8 | ordinal: the file's rows in clubs.csv's order, "numbers": "place"),
+    and nations.csv's rules -- (file, ordinal, unused, nationality, home country number) per team."""
+    d = os.path.join(MOD, "national")
+    if not os.path.exists(os.path.join(d, "pack.json")):
+        return None
+    pk = json.load(open(os.path.join(d, "pack.json"), encoding="utf-8"))
+    n = pk.get("national")
+    if not n:
+        return None
+    as_file = {k: v["as"] for k, v in pk["files"].items()}
+    where, count = {}, {}
+    for r in csv.DictReader(open(os.path.join(d, "clubs.csv"), encoding="utf-8")):
+        f = as_file[r["file"]]
+        where[r["key"]] = (f, count.get(f, 0))
+        count[f] = count.get(f, 0) + 1
+    word = lambda k: where[k][0] << 8 | where[k][1]
+    codes = {wc["code"].upper(): wc["number"] for wc in countries}
+    cycles = []
+    for c in n["cycles"]:
+        g = {k: [(take, [word(t) for t in teams]) for take, teams in c[k]] for k in ("wcq", "ecq")}
+        cycles.append({"wc_host": word(c["wc_host"]), "ec_host": word(c["ec_host"]),
+                       "direct": [word(t) for t in c["wc_direct"]], **g})
+    rules = []
+    for r in csv.DictReader(open(os.path.join(d, "nations.csv"), encoding="utf-8")):
+        if r["key"] not in where:
+            continue
+        f, o = where[r["key"]]
+        home = codes.get(r["home"], 0) if r["code"] else 0
+        if r["code"] and r["home"] and r["home"] not in codes:
+            sys.exit("national: %s's home %s is no country of the world" % (r["key"], r["home"]))
+        rules.append((f, o, int(r["unused"] == "1"), int(r["nat"] or 0) if r["code"] else 0, home, r["key"]))
+    rules = [r[:5] + (r[5],) for r in rules]
+    return {"holder": word(n["wc_holder"]), "points": n["win_points"], "wc_teams": n["wc_teams"],
+            "ec_teams": n["ec_teams"], "cycles": cycles, "rules": rules}
 
 
 def country_cups(wc, pk, picked):
@@ -1482,6 +1521,7 @@ WORLD_DATA_C = """/*
 #include "competition_data.h"
 #include "world.h"
 #include "league_groups.h"
+#include "world_nationals.h"
 #include "league_playoffs.h"
 #include "team_pool.h"
 #include "fixture_rounds.h"
@@ -1634,6 +1674,20 @@ const LeagueGroups *%(P)s_CupClubs(uint16_t country)
 %(cupclub_cases)s
 #endif
     (void)country;
+    return 0;
+}
+
+/* A classic world's national competitions (src/world_nationals.c; the Mod 3.1's national/pack.json:
+ * its cycles' hosts, qualifying groups and direct qualifiers, its holder, its national teams' rules). */
+#if SWOS_WORLDS
+%(nationals)s
+#endif
+
+const WorldNationals *%(P)s_Nationals(void)
+{
+#if SWOS_WORLDS
+%(nationals_case)s
+#endif
     return 0;
 }
 
@@ -1993,6 +2047,33 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
     cupclub_cases = ("    if (World_Current() == WORLD_%s)\n        for (int32_t i = 0; i < %d; i++)\n"
                      "            if (kWorld%sCupClubs[i].country == country)\n                return &kWorld%sCupClubs[i];"
                      % (tag, len(cc_entries), tag, tag)) if cc_entries else ""
+    nat_tables, nat_case = "", ""
+    if NATIONALS:
+        n = NATIONALS
+        rows = []
+        for i, c in enumerate(n["cycles"]):
+            def groups(gs):
+                out = []
+                for j in range(8):
+                    take, teams = gs[j] if j < len(gs) else (0, [])
+                    out.append("{ %d, %d, { %s } }" % (len(teams), take, ", ".join(
+                        "0x%04X" % t for t in teams + [0] * (6 - len(teams)))))
+                return ",\n        ".join(out)
+            rows.append("static const uint16_t kWorld%sNatDirect%d[] = { %s };" % (
+                tag, i, ", ".join("0x%04X" % t for t in c["direct"]) or "0"))
+            rows.append("static const WorldNatCycle kWorld%sNatCycle%d = {\n    0x%04X, 0x%04X,\n    {\n        %s\n    },\n"
+                        "    {\n        %s\n    },\n    %d, kWorld%sNatDirect%d\n};" % (
+                            tag, i, c["wc_host"], c["ec_host"], groups(c["wcq"]), groups(c["ecq"]),
+                            len(c["direct"]), tag, i))
+        rows.append("static const WorldNatCycle *const kWorld%sNatCycles[] = { %s };" % (
+            tag, ", ".join("&kWorld%sNatCycle%d" % (tag, i) for i in range(len(n["cycles"])))))
+        rows.append("static const WorldNatRule kWorld%sNatRules[] = {\n%s\n};" % (tag, "\n".join(
+            "    { %d, %d, %d, %d, %d },   /* %s */" % r for r in n["rules"])))
+        rows.append("static const WorldNationals kWorld%sNationals = {\n    0x%04X, %d, %d, %d,\n    %d, kWorld%sNatCycles,\n"
+                    "    %d, kWorld%sNatRules\n};" % (tag, n["holder"], n["points"], n["wc_teams"], n["ec_teams"],
+                                                    len(n["cycles"]), tag, len(n["rules"]), tag))
+        nat_tables = "\n\n".join(rows)
+        nat_case = "    if (World_Current() == WORLD_%s)\n        return &kWorld%sNationals;" % (tag, tag)
     po_tables, po_entries = [], []
     for po in playoffs:
         sym = "kWorld%s_%s" % (tag, po["name"].lower())
@@ -2259,6 +2340,7 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
                            "records": "\n\n".join(strings + records), "cases": cases,
                            "groups": "\n\n".join(group_tables), "group_cases": group_cases,
                            "cupclubs": cupclub_tables, "cupclub_cases": cupclub_cases,
+                           "nationals": nat_tables, "nationals_case": nat_case,
                            "playoffs": "\n\n".join(po_tables), "po_cases": po_cases,
                            "pools": "\n\n".join(pool_tables), "pool_cases": pool_cases,
                            "cups": "\n\n".join(cup_tables), "cup_cases": cup_cases,
@@ -2776,6 +2858,8 @@ def main_classic(cfg):
         resized.append((wc["number"], t["count"]))
         numbers.add(wc["number"])
         counts["countries imported"] += 1
+    global NATIONALS
+    NATIONALS = national_competitions(world_countries())
     for rec in leagues["leagues"]:
         rec.pop("playoff_links", None)
         rec.pop("promotion_link_data", None)

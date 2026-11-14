@@ -9,6 +9,8 @@
  */
 
 #include "world_europe.h"
+#include "world_nationals.h"
+#include <stdio.h>
 #include "career_eurocups.h"
 #include "game_types.h"
 #include "diy_competition.h"
@@ -859,6 +861,30 @@ void Career_UpdateEuropeanChampionshipCompetitions(void)
     BE_WRITE_U16(a5, _euroChampionshipQualTeam);
     a5 += 2;
 
+    /* A classic world (careerworld.py w_ecfill): the host, then each of its cycle's groups' places. */
+    if (WorldNationals_Cycle()) {
+        const WorldNatCycle *c = WorldNationals_Cycle();
+        extern void *_ecQualifyingGroupsTable[];
+        WorldNationals_RefreshGroups(0);
+        for (int32_t g = 0; g < 8; g++) {
+            uint8_t *group = (uint8_t *)_ecQualifyingGroupsTable[g];
+            if (!c->ecq[g].places || !((CompetitionLeague *)group)->divisions[0].teams)
+                continue;
+            updateECSlot(group, c->ecq[g].places, a5);
+            a5 += 2 * c->ecq[g].places;
+        }
+#ifdef SWOS_SDL_BUILD
+        {
+            const uint8_t *l = (const uint8_t *)comp_team_seed_list((Competition *)_europeanChampionships2Copy);
+            fprintf(stderr, "[world-nationals] the European Championship's %d:", (int)((a5 - l) / 2));
+            for (const uint8_t *q = l; q < a5; q += 2)
+                fprintf(stderr, " %04X", (unsigned)BE_READ_U16(q));
+            fprintf(stderr, "\n");
+        }
+#endif
+        return;
+    }
+
     /* Asm uses `(a5)+` inside DIY_BuildQualifiedTeamListFromSortedTable_EC,
      * advancing a5 by `count * 2` bytes across each slot call. The m68k
      * register is shared between caller and callee; in C we have to
@@ -926,6 +952,54 @@ void Career_UpdateWorldCupCompetitions(void)
     a5 = (uint8_t *)comp_team_seed_list((Competition *)a5);
     /* BE write — matches the eurochampionship variant above and the
      * BE-packed convention for *.unk1 team-id lists (295c9f3). */
+    /* A classic world (careerworld.py w_wcfill): in its first cycle its own holder; the holder, the
+     * host, each of the cycle's groups' places, then the non-European qualifiers in their order
+     * until the World Cup is full (a team already in skipped). */
+    if (WorldNationals_Cycle()) {
+        extern uint16_t _currentSeasonShowing, _worldCupQualifyingTeam;
+        const WorldNatCycle *c = WorldNationals_Cycle();
+        const WorldNationals *n = World_Nationals();
+        extern void *_worldCupQualifyingGroupsTable[];
+        uint8_t *list = a5;
+        if (_currentSeasonShowing < 4)
+            _worldCupHostTeam = n->holder;
+        /* (a holder that is no national team -- a coach hired in a World Cup's season took his
+         * primary competition's winner: careerworld.py writes it all the same; here it is left
+         * out and the qualifiers fill its place) */
+        if ((_worldCupHostTeam >> 8) >= 80 && (_worldCupHostTeam >> 8) <= 85) {
+            BE_WRITE_U16(a5, _worldCupHostTeam);
+            a5 += 2;
+        }
+        if (_worldCupQualifyingTeam != 0xFFFF && _worldCupQualifyingTeam != _worldCupHostTeam) {
+            BE_WRITE_U16(a5, _worldCupQualifyingTeam);
+            a5 += 2;
+        }
+        WorldNationals_RefreshGroups(1);
+        for (int32_t g = 0; g < 8; g++) {
+            uint8_t *group = (uint8_t *)_worldCupQualifyingGroupsTable[g];
+            if (!c->wcq[g].places || !((CompetitionLeague *)group)->divisions[0].teams)
+                continue;
+            updateWCSlot(group, c->wcq[g].places, a5);
+            a5 += 2 * c->wcq[g].places;
+        }
+        for (int32_t d = 0; d < c->direct && (a5 - list) / 2 < n->wcTeams; d++) {
+            const uint16_t w = c->directTeam[d];
+            int32_t in = 0;
+            for (uint8_t *q = list; q < a5; q += 2)
+                in |= BE_READ_U16(q) == w;
+            if (!in) {
+                BE_WRITE_U16(a5, w);
+                a5 += 2;
+            }
+        }
+#ifdef SWOS_SDL_BUILD
+        fprintf(stderr, "[world-nationals] the World Cup's %d:", (int)((a5 - list) / 2));
+        for (const uint8_t *q = list; q < a5; q += 2)
+            fprintf(stderr, " %04X", (unsigned)BE_READ_U16(q));
+        fprintf(stderr, "\n");
+#endif
+        return;
+    }
     BE_WRITE_U16(a5, _worldCupHostTeam);
     a5 += 2;
 
