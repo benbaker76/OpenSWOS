@@ -747,6 +747,63 @@ extern uint16_t _littlePlayersSpriteTable[];
 #define SPR_LITTLE_PLAYER_GOALIE  213
 #define SHIRT_VERTICAL_STRIPES    2
 
+/* The line-ups screen's pages (a long bench, the Mod's bx_stad): page 0 the game's 11 + 5, then
+ * rows 12..16 the next five places each. */
+static uint16_t s_stadPage;
+static uint8_t  s_stadShown;            /* the line-ups screen was shown for this match */
+
+static uint16_t stad_place(uint16_t row)
+{
+    return (uint16_t)(row < 11 || !s_stadPage ? row : 16 + (s_stadPage - 1) * 5 + (row - 11));
+}
+
+static void stad_rows(void)
+{
+    const uint16_t first[2] = { 16, 43 };
+    TeamGame *tg[2] = { &_topTeamInGame, &_bottomTeamInGame };
+    for (int32_t t = 0; t < 2; t++)
+        for (uint16_t r = 11; r < 16; r++) {
+            const uint16_t place = stad_place(r);
+            PlayerInfo *pi = place < LongBench_Places() ? LongBench_Player(tg[t], place) : NULL;
+            MenuEntry *name = &_menuEntries[first[t] + r];  /* (the bench has names only: no little players) */
+            if (pi)
+                name->fg = (uintptr_t)pi->fullName;
+            name->isInvisible = (uint16_t)(!pi || !pi->fullName[0]);
+        }
+}
+
+/* InitializeInGameTeamsAndStartGame, after the line-ups' wait: a long bench's further pages, the
+ * line-ups screen shown again with rows 12..16 the next five places, each as long. Only when that
+ * screen was shown for this match (an online or a mod's match has none). */
+void Stadium_LongBenchPages(int32_t waitFrames)
+{
+    extern void WaitForVSync(void);
+    extern void Platform_RequestScreenshot(void);
+    extern uint8_t _stadiumMenu[];
+    const uint16_t places = LongBench_Places();
+#ifdef SWOS_SDL_BUILD
+    extern int32_t NetplayMatch_Enabled(void);
+    if (NetplayMatch_Enabled())
+        waitFrames = -1;                /* (online: the screens before a match are the game's own) */
+#endif
+    if (places <= 16 || !s_stadShown || waitFrames < 0) {
+        s_stadShown = 0;
+        return;
+    }
+    for (s_stadPage = 1; 16 + (s_stadPage - 1) * 5 < places; s_stadPage++) {
+        ShowMenu(_stadiumMenu);
+        for (int32_t i = waitFrames; i >= 0; i--) {
+#ifdef SWOS_SDL_BUILD
+            if (i == waitFrames - 20 && getenv("SWOS_TEST_LINEUP_SHOTS"))
+                Platform_RequestScreenshot();   /* (test: each page photographed) */
+#endif
+            WaitForVSync();
+        }
+    }
+    s_stadPage = 0;
+    s_stadShown = 0;
+}
+
 /* ================================================================
  * ShowStadiumInit  (SWOS2.s line 89572)
  *
@@ -866,6 +923,9 @@ void ShowStadiumInit(void)
         }
     }
 
+    s_stadShown = 1;                    /* (a long bench's pages go over this screen: Stadium_LongBenchPages) */
+    if (s_stadPage)
+        stad_rows();
     DrawMenu();
     SetExitMenuFlag();
 }
@@ -879,59 +939,6 @@ void ShowStadiumInit(void)
  *
  * in: team = TeamGame pointer, playerIndex = 0-based player index
  * ================================================================ */
-/* The line-ups screen's pages (a long bench, the Mod's bx_stad): page 0 the game's 11 + 5, then
- * rows 12..16 the next five places each. */
-static uint16_t s_stadPage;
-
-static uint16_t stad_place(uint16_t row)
-{
-    return (uint16_t)(row < 11 || !s_stadPage ? row : 16 + (s_stadPage - 1) * 5 + (row - 11));
-}
-
-static void stad_rows(void)
-{
-    const uint16_t first[2] = { 16, 43 };
-    TeamGame *tg[2] = { &_topTeamInGame, &_bottomTeamInGame };
-    for (int32_t t = 0; t < 2; t++)
-        for (uint16_t r = 11; r < 16; r++) {
-            const uint16_t place = stad_place(r);
-            PlayerInfo *pi = place < LongBench_Places() ? LongBench_Player(tg[t], place) : NULL;
-            MenuEntry *name = &_menuEntries[first[t] + r], *pic = &_menuEntries[first[t] - 11 + r];
-            const uint16_t hide = (uint16_t)(!pi || !pi->fullName[0]);
-            if (pi)
-                name->fg = (uintptr_t)pi->fullName;
-            name->isInvisible = hide;
-            pic->isInvisible = hide;
-        }
-}
-
-/* InitializeInGameTeamsAndStartGame, after the line-ups' wait: a long bench's further pages, each
- * shown as long (no wait: none). */
-void Stadium_LongBenchPages(int32_t waitFrames)
-{
-    extern void WaitForVSync(void);
-    extern void Platform_RequestScreenshot(void);
-    extern uint8_t _currentMenu[];
-    extern void ShowStadiumInit(void);
-    const uint16_t places = LongBench_Places();
-    /* (only over the line-ups screen itself: a match that skips it -- online, a mod's -- has
-     *  another menu up, whose entries these are not) */
-    if (places <= 16 || ((const Menu *)_currentMenu)->onInit != (MenuVoidFn)ShowStadiumInit)
-        return;
-    for (s_stadPage = 1; 16 + (s_stadPage - 1) * 5 < places; s_stadPage++) {
-        stad_rows();
-        DrawMenu();
-        for (int32_t i = waitFrames; i >= 0; i--) {
-#ifdef SWOS_SDL_BUILD
-            if (i == waitFrames - 20 && getenv("SWOS_TEST_LINEUP_SHOTS"))
-                Platform_RequestScreenshot();   /* (test: each page photographed) */
-#endif
-            WaitForVSync();
-        }
-    }
-    s_stadPage = 0;
-}
-
 __attribute__((used, externally_visible))
 void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
 {

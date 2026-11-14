@@ -29,6 +29,7 @@
  */
 
 #include <stdlib.h>
+#include "long_bench.h"
 #include "squad_extras.h"
 #include "bteam.h"
 #include "career_status.h"
@@ -600,6 +601,30 @@ uint16_t IsPlayerInjuredForDisplay(PlayerFile *playerFile, int16_t mode) {
     return player_injury_status(playerFile, mode);
 }
 
+/* A friendly club's long bench (long_bench.c, the Mod's fr_a2 / fr_a1): the checks read the order
+ * on the pre-match screen -- its 16 and its players 17.. -- not the record's. 0: the record's. */
+static int32_t fr_list(TeamFileEx *team, uint8_t **list, uint16_t *count)
+{
+    uint16_t n = 0;
+    const uint8_t *order = LongBench_FrOrder(PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal), &n);
+    if (!order || team == &_careerTeam || team == &_currentTeam)
+        return 0;
+    *list = (uint8_t *)order;
+    *count = n;
+    return 1;
+}
+
+static PlayerFile *fr_player(TeamFileEx *team, int16_t idx)
+{
+    if (idx >= 16) {
+        PlayerFile *x = SquadExtras_BenchRecord(PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal),
+                                                (uint16_t)idx);
+        if (x)
+            return x;
+    }
+    return &team->players[idx];
+}
+
 /* ================================================================
  * GetNumberOfSubstitutes
  * Counts players with position == 0 (goalkeeper) in the team.
@@ -617,12 +642,14 @@ uint16_t GetNumberOfSubstitutes(TeamFileEx *team, uint16_t numPl) {
         playerList = _playerPositions;
     } else {
         playerList = team->team.playerNumbers;
+        uint16_t frN;
+        fr_list(team, &playerList, &frN);
     }
 
     uint16_t count = 0;
     for (; iter >= 0; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
         uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
         if (position == 0)
             count++;
@@ -645,12 +672,14 @@ uint16_t GetNumberOfSubstitutesInSelectionList(TeamFileEx *team, uint16_t extraC
         playerList = _playerPositions;
     } else {
         playerList = team->team.playerNumbers;
+        uint16_t frN;
+        fr_list(team, &playerList, &frN);
     }
 
     uint16_t count = 0;
     for (; iter >= 11; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
         uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
         if (position == 0)
             count++;
@@ -728,6 +757,7 @@ uint32_t GetNumberOfAvailablePlayers(TeamFileEx *team, int16_t excludeCardsFlag,
     } else {
         playerList = team->team.playerNumbers;
         totalCount = 16;
+        fr_list(team, &playerList, &totalCount);
     }
 
     if (numPl != 0)
@@ -739,7 +769,7 @@ uint32_t GetNumberOfAvailablePlayers(TeamFileEx *team, int16_t excludeCardsFlag,
 
     for (; iter >= 0; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
         if (isPlayerDisabled(pf, excludeCardsFlag)) {
             disabled++;
             available--;
@@ -768,6 +798,7 @@ uint32_t GetNumberOfAvailableSubstitutes(TeamFileEx *team, int16_t flag) {
     } else {
         playerList = team->team.playerNumbers;
         totalCount = 16;
+        fr_list(team, &playerList, &totalCount);
     }
 
     uint16_t disabled = 0;
@@ -776,7 +807,7 @@ uint32_t GetNumberOfAvailableSubstitutes(TeamFileEx *team, int16_t flag) {
 
     for (; iter >= 0; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
 
         /* Check if goalkeeper (position == 0) */
         uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
@@ -810,6 +841,7 @@ uint32_t GetNumberOfAvailableStartingPlayers(TeamFileEx *team, int16_t flag) {
     } else {
         playerList = team->team.playerNumbers;
         totalCount = 16;
+        fr_list(team, &playerList, &totalCount);
     }
 
     uint16_t disabled = 0;
@@ -818,7 +850,7 @@ uint32_t GetNumberOfAvailableStartingPlayers(TeamFileEx *team, int16_t flag) {
 
     for (; iter >= 0; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
 
         /* Check if NOT goalkeeper (position != 0) */
         uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;

@@ -440,6 +440,11 @@ void LongBench_FrActivate(const TeamFile *team1, const TeamFile *team2, int32_t 
     const TeamFile *t[2] = { team1, team2 };
     for (int32_t i = 0; i < 2; i++)
         s_frActive[i] = on && fr_eligible(t[i]) ? PACK_BE_U16(t[i]->countryNumber, t[i]->teamOrdinal) : 0xFFFF;
+#ifdef SWOS_SDL_BUILD
+    if (getenv("SWOS_TEST_FRIENDLY"))
+        fprintf(stderr, "[bench] test: own orders %04x %04x (long bench %d)\n", (unsigned)s_frActive[0],
+                (unsigned)s_frActive[1], (int)on);
+#endif
 }
 
 const uint8_t *LongBench_FrOrder(uint16_t team, uint16_t *count)
