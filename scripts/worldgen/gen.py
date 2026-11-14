@@ -11,7 +11,12 @@ players.csv, what the Mod's mkseason and our world importer read -- from:
   squad list, shirt numbers, nations  the club's English Wikipedia article ({{Fs player}}; the
                                        article found through Wikidata's Transfermarkt id P7223);
                                        the Transfermarkt dataset's club list when it has none
-  market value, sub-position, birth   the open transfermarkt-datasets (snapshot 2026-07-06)
+  market value, sub-position, birth   Transfermarkt (--tm): the open transfermarkt-datasets
+                                       (snapshot 2026-07-06; 'dataset', the default), Transfermarkt's
+                                       own pages saved from a browser (tmpages.py; 'pages': then the
+                                       squad list, numbers, second nationality and coach are the
+                                       pages' too, as the Mod's), or 'both' (the pages where a club
+                                       has them, the dataset filling the rest)
   attributes, overall                 EA SPORTS FC's public ratings feed
   kits, coach, club name              the Wikipedia infobox
 
@@ -31,6 +36,7 @@ import join                                             # noqa: E402
 import model                                            # noqa: E402
 import modpack                                          # noqa: E402
 import modport                                          # noqa: E402
+import tmpages                                          # noqa: E402
 import wiki                                             # noqa: E402
 
 COUNTRY = {'eng': ('ENG', 'ENG'), 'ita': ('ITA', 'ITA'), 'sco': ('SCO', 'SCO'), 'mlt': ('MLT', 'MLT'),
@@ -58,13 +64,17 @@ def match_tm(name, club_players, src):
     return cands[0] if len(cands) == 1 else None
 
 
-def squad_of(club, src, texts, arts):
+def squad_of(club, src, texts, arts, pages_squads=True):
     """[{name, number, fifa, wpos, tm, ea, order}] of one club."""
     tid = club['tm_id']
     tm_players = src.tm.by_club.get(tid, [])
     wl = wiki.squad(texts[arts[tid]]) if tid in arts and arts[tid] in texts else []
     out = []
-    if len(wl) >= MIN_WIKI_SQUAD:
+    if pages_squads and tid in src.tm_pages_clubs:     # Transfermarkt's own squad (the Mod's)
+        for k, t in enumerate(tm_players):
+            out.append(dict(name=t['name'], number=t.get('number'), fifa='', wpos='', tm=t, order=k))
+        club['squad_source'] = 'tm-pages'
+    elif len(wl) >= MIN_WIKI_SQUAD:
         taken = set()
         for k, w in enumerate(wl):
             t = match_tm(w['name'], [p for p in tm_players if p['player_id'] not in taken], src)
@@ -85,6 +95,48 @@ def squad_of(club, src, texts, arts):
     return out
 
 
+def use_tm_source(src, clubs, mode, folder, season):
+    """Point src.tm's per-club players (and the name index) at the chosen Transfermarkt source.
+    'pages': a club's players are its saved squad page's (none when it has no page); 'both': the
+    page's where there is one, a field the page lacks filled from the dataset's record of the same
+    player id, the dataset's players for a club without a page."""
+    src.tm_pages_clubs, src.tm_pages_coach = set(), {}
+    if mode == 'dataset':
+        return
+    pages = tmpages.Pages(folder, season)
+    by_id = {p['player_id']: p for p in src.tm.players}
+    by_club = {}
+    for c in clubs:
+        tid = c['tm_id']
+        recs = pages.records(tid)
+        if recs is not None:
+            if mode == 'both':
+                for r in recs:
+                    d = by_id.get(r['player_id'])
+                    for k, v in (d or {}).items():
+                        if not r.get(k) and v:
+                            r[k] = v
+            by_club[tid] = recs
+            src.tm_pages_clubs.add(tid)
+        elif mode == 'both':
+            by_club[tid] = src.tm.by_club.get(tid, [])
+        else:
+            by_club[tid] = []
+        if pages.coaches.get(tid):
+            src.tm_pages_coach[tid] = pages.coaches[tid]
+    src.tm.by_club = by_club
+    players = [p for ps in by_club.values() for p in ps]
+    if mode == 'both':
+        seen = {p['player_id'] for p in players}
+        players += [p for p in src.tm.players if p['player_id'] not in seen]
+    src.tm_by_tokens = {}
+    for p in players:
+        src.tm_by_tokens.setdefault(frozenset(ea.tokens(p['name'])), []).append(p)
+    dates = sorted(pages.dates[t] for t in src.tm_pages_clubs if pages.dates.get(t))
+    print(f'[tm] {mode}: saved squads for {len(src.tm_pages_clubs)} of {len(clubs)} clubs, coaches for '
+          f'{len(src.tm_pages_coach)} (pages dated {dates[0] if dates else "-"} .. {dates[-1] if dates else "-"})')
+
+
 def build_club(club, squad, curves, home_nat):
     """The club's players (16 + extras) with positions, values and S before calibration."""
     lv = curves.get('level', {})
@@ -102,13 +154,17 @@ def build_club(club, squad, curves, home_nat):
         else:                                   # the Mod: 70% of the club's lowest known value
             p['value'], p['value_known'] = (0.7 * min(known) if known else club['division_median']), False
         birth = (t and t['date_of_birth']) or (e and e['birth'])
-        years = model.age(birth) if birth else 25
+        years = model.age(birth) if birth else ((t and t.get('age')) or 25)   # (a page with ages only)
         x = model.adjusted_value(p['value'], years)
         c = lv.get('keeper' if pos == 'G' else 'outfield')
         p['S'] = max(0, min(49, round(model.level(c['value'], c['overall'], x, e['overall'] if e else None)))) \
             if c else 10
         nat = model.nationality(p['fifa'], t and t['country_of_citizenship'], curves, home_nat)
         p['nat'], p['skin'] = nat, model.face(nat, curves)
+        if t and t.get('second_citizenship'):           # (the pages': the Mod's rule, any of them)
+            nat2 = model.nationality('', t['second_citizenship'], curves, None)
+            if nat2 is not None and model.face(nat2, curves) == 'dark':
+                p['skin'] = 'dark'
         p['out_name'] = modport.swos_name(t['name'] if t else p['name'])
         p['ident'] = t['player_id'] if t else p['name']
     return model.pick_sixteen(squad)
@@ -142,10 +198,18 @@ def main():
     ap.add_argument('--no-calibrate', action='store_true', help='no division calibration step')
     ap.add_argument('--no-images', action='store_true', help="kits from the infobox's colours only (no "
                     'pattern images from Commons)')
+    ap.add_argument('--tm', choices=('dataset', 'pages', 'both'), default='dataset',
+                    help="Transfermarkt's data from the open dataset, from saved pages (--tm-pages), or "
+                    'both (the pages win where a club has them)')
+    ap.add_argument('--tm-pages', default=tmpages.DEFAULT_DIR, help='the folder of saved Transfermarkt pages')
+    ap.add_argument('--season', type=int, default=2026, help="the pages' season (2026 = 2026-27)")
+    ap.add_argument('--wiki-squads', action='store_true', help="squad lists from Wikipedia even where a "
+                    'club has a saved Transfermarkt squad (its values still from the pages)')
     a = ap.parse_args()
     curves = model.load_curves()
     src = join.Sources(offline=a.offline)
     clubs = model.sample(a.sample)
+    use_tm_source(src, clubs, a.tm, a.tm_pages, a.season)
     arts = wiki.articles([c['tm_id'] for c in clubs], offline=a.offline)
     texts = wiki.wikitext(arts.values(), offline=a.offline)
     divisions = defaultdict(list)
@@ -155,7 +219,7 @@ def main():
     for (cc, d), cl in divisions.items():
         country, home = COUNTRY.get(cc, (cc.upper(), cc.upper()))
         home_nat = model.GAME_NAT.get(home, 0)
-        squads = [squad_of(c, src, texts, arts) for c in cl]
+        squads = [squad_of(c, src, texts, arts, not a.wiki_squads) for c in cl]
         vals = sorted(float(p['tm']['market_value_in_eur']) for s in squads for p in s
                       if p['tm'] and p['tm']['market_value_in_eur'])
         median = vals[len(vals) // 2] if vals else 50000.0
@@ -176,6 +240,8 @@ def main():
             name = model.club_name(title or tmclub.get('name', c['tm_id']))
             key = re.sub(r'[^a-z0-9]', '', name.lower()) or 'club' + c['tm_id']
             coach = re.sub(r'\(.*?\)', '', wiki.infobox_field(text, 'manager', 'head_coach', 'coach')).strip()
+            if src.tm_pages_coach.get(c['tm_id']):         # the staff page's, when saved
+                coach = src.tm_pages_coach[c['tm_id']]
             if not coach or coach.lower() in ('vacant', 'tba', 'tbd'):
                 coach = tmclub.get('coach_name', '') or ''
             kits = []
