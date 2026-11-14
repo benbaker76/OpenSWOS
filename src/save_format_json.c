@@ -17,6 +17,7 @@
  * See SAVE_FORMAT_JSON.md for the migration history.
  */
 
+#include "player_looks.h"
 #include "save_format_json.h"
 #include "mjson.h"
 #include "game_types.h"
@@ -24,6 +25,8 @@
 #include "world.h"             /* "world" in career and competition saves */
 #include "world_finance.h"     /* "uefa_prizes" in a world's career saves */
 #include "cpu_repl.h"          /* "cpu_replacements" in a world's career saves */
+#include "squad_extras.h"      /* "squad_extras" (the players 17.. gone from their clubs) */
+#include "bteam.h"             /* "b_team" (the B-team call-ups) */
 #include "world_rules.h"       /* "world_rules" in a world's career saves */
 #include "team_pool.h"         /* "team_pool" in career saves */
 #include "world_playoff.h"     /* "world_playoff" in career saves */
@@ -36,6 +39,9 @@
 #include "uefa_access.h"
 #include "world_cups.h"        /* "world_cups" in career saves */
 #include "world_cupd.h"        /* "world_cupd" in career saves */
+#include "world_supercup.h"    /* "world_supercup" in career saves */
+#include "cup_record.h"
+#include "menu_system.h"      /* Menu (SaveJson_MenuFrame) */       /* "cup_record" in career saves */
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
 #include "translations.h"   /* tr() — localize competition name symbols */
 #include "career_capacity.h"   /* the career lists' original and compiled sizes */
@@ -410,6 +416,94 @@ static int save_world_ok(const uint8_t *src, uint32_t size)
     SWOS_DBG("[save] made in world %s, this is %s: refused\n",
              tag[0] ? tag : "9697", World_Tag());
     return 0;
+}
+
+/* A national coach's cup pick list entry <-> its careerContests index (the copies), or the
+ * table's -1 / -2 ends, -3 none, -4 unknown. */
+extern void *_careerCupPickList[];
+static void   *s_cupPick[5];
+static int32_t s_cupPickLoaded;
+static int32_t cup_pick_id(const void *p)
+{
+    extern CompetitionCareer _careerContests[];
+    if ((uintptr_t)p == (uintptr_t)-1) return -1;
+    if ((uintptr_t)p == (uintptr_t)-2) return -2;
+    if (!p) return -3;
+    for (int32_t i = 0; (uintptr_t)_careerContests[i].competition != 0xFFFFFFFFu &&
+                        (uintptr_t)_careerContests[i].competition != (uintptr_t)-1; i++)
+        if ((const void *)_careerContests[i].competitionCopy == p)
+            return i;
+    return -4;
+}
+static void *cup_pick_ptr(int32_t id)
+{
+    extern CompetitionCareer _careerContests[];
+    return id == -1 ? (void *)(uintptr_t)-1 : id == -2 ? (void *)(uintptr_t)-2 : id < 0 ? NULL
+         : (void *)_careerContests[id].competitionCopy;
+}
+
+/* [career] exact_continuation (SWOS.ini, the settings' RULES page; off by default, as the original
+ * and SWOS 2020 keep no random state): a career save also keeps the first random generator and the
+ * game's clocks, so that a loaded career plays on exactly as it would have. */
+static int32_t s_exactContinuation, s_exactLoaded, s_clockPending;
+static uint16_t s_pendingTick, s_pendingGameTick, s_menuTick, s_menuGameTick;
+
+/* CareerOverInit / ContestMenuInit (menus.c), every time a career menu opens: the clocks as they
+ * are there are the ones a save keeps (the frames between the menu and the save are the save's);
+ * the first career menu after a load gets the saved ones back. */
+void SaveJson_ApplyPendingClock(void)
+{
+    extern volatile uint16_t _currentGameTick, _currentTick;
+    if (s_clockPending) {
+        s_clockPending = 0;
+        _currentTick = s_pendingTick;
+        _currentGameTick = s_pendingGameTick;
+    }
+    s_menuTick = _currentTick;
+    s_menuGameTick = _currentGameTick;
+}
+/* The European qualifying draws' seed-group tables (swos_amiga_ptr_imports.c: {ptr, size, count},
+ * ended by ptr -1), whose groups the season end shuffles in place (career_season.c). */
+typedef struct __attribute__((packed)) { void *ptr; uint16_t size, count; } ExactSeedEntry;
+static const ExactSeedEntry *exact_seed_table(int32_t t)
+{
+    extern uint8_t _euroCupQualGroupSeedLists_4_6_11[], _euroCupQualGroupSeedListsReduced_4_6_11[],
+                   _euroCupQualGroupSeedBuckets_15_18_22[];
+    return (const ExactSeedEntry *)(t == 0 ? _euroCupQualGroupSeedLists_4_6_11
+                                  : t == 1 ? _euroCupQualGroupSeedListsReduced_4_6_11
+                                           : _euroCupQualGroupSeedBuckets_15_18_22);
+}
+
+/* MenuProc (menu_system.c), every frame: the clocks are taken -- and a load's put back -- each time
+ * a career hub comes up, its first showing or its return after a match day, so a save made at any
+ * pass of the hub keeps the clocks of that pass. */
+void SaveJson_MenuFrame(void)
+{
+    extern void ContestMenuInit(void), CareerOverInit(void);
+    extern uint8_t _currentMenu[];
+    static MenuVoidFn last;
+    const Menu *m = (const Menu *)_currentMenu;
+    if (m->onInit == last)
+        return;
+    last = m->onInit;
+    if (last == ContestMenuInit || last == CareerOverInit)
+        SaveJson_ApplyPendingClock();
+}
+
+void    SaveJson_SetExactContinuation(int32_t on) { s_exactContinuation = on != 0; }
+int32_t SaveJson_ExactContinuation(void) { return s_exactContinuation; }
+int32_t SaveJson_ExactStateLoaded(void) { return s_exactLoaded; }
+
+/* Rebuild_CompetitionSlotPointers (career_init.c): the loaded national coach's pick list, 1; else 0
+ * (an older save: the list drawn again). */
+int32_t SaveJson_RestoreCupPickList(void)
+{
+    if (!s_cupPickLoaded)
+        return 0;
+    for (int32_t i = 0; i < 5; i++)
+        _careerCupPickList[i] = s_cupPick[i];
+    s_cupPickLoaded = 0;
+    return 1;
 }
 
 #define KIND_CAREER     "career"
@@ -2668,7 +2762,12 @@ static void jb_player(JB *j, const uint8_t *p)
     jb_key_long (j, "nationality",        (int32_t)(int8_t)p[offsetof(PlayerFile, nationality)]);       jb_c(j, ',');
     jb_key_long (j, "cached_match_value", (int32_t)(int8_t)p[offsetof(PlayerFile, cachedMatchValue)]);  jb_c(j, ',');
     jb_key_long (j, "shirt_number",       (int32_t)(int8_t)p[offsetof(PlayerFile, shirtNumber)]);       jb_c(j, ',');
-    jb_key_str  (j, "player_name", p, offsetof(PlayerFile, playerName), 23);                         jb_c(j, ',');
+    /* (22: byte 25, the name's terminator, is also the SWOS 96/97 Mod's look -- "looks", next --
+     *  when the name is shorter; jb_key_str clears what follows the name up to its length) */
+    jb_key_str  (j, "player_name", p, offsetof(PlayerFile, playerName), 22);                         jb_c(j, ',');
+    if (p[offsetof(PlayerFile, playerName) + 21] == 0 && (p[offsetof(PlayerFile, playerName) + 22] & LOOKS_BITS)) {
+        jb_key_ulong(j, "looks", (uint32_t)(p[offsetof(PlayerFile, playerName) + 22] & LOOKS_BITS));  jb_c(j, ',');
+    }
     {
         const uint8_t pf = p[offsetof(PlayerFile, positionAndFace)];
         const uint8_t ci = p[offsetof(PlayerFile, cardsInjuries)];
@@ -3098,6 +3197,8 @@ static const StructFieldDesc s_player_fields[] = {
     { "cached_match_value",   offsetof(PlayerFile, cachedMatchValue),    0, FLD_U8 },
     { "shirt_number",         offsetof(PlayerFile, shirtNumber),         0, FLD_U8 },
     { "player_name",          offsetof(PlayerFile, playerName),         23, FLD_STR },
+    /* the SWOS 96/97 Mod's look (include/player_looks.h): byte 25, after the name (which clears it) */
+    { "looks",                offsetof(PlayerFile, playerName) + 22,     0, FLD_U8 },
     /* positionAndFace bits: position (5-7), face (3-4), flags (0-2). */
     { "position",             offsetof(PlayerFile, positionAndFace), PF_POSITION_MASK, FLD_BITS },
     { "face",                 offsetof(PlayerFile, positionAndFace), PF_FACE_MASK,     FLD_BITS },
@@ -3554,6 +3655,7 @@ int DataJson_LoadTeamArray(const char *json, int len, struct TeamFileEx *out, in
 
 #ifdef SWOS_SDL_BUILD
 #include "team_db.h"        /* struct TeamDbIds: the ids a teams file states */
+#include "world_packs.h"    /* another world's country as a session pack */
 /* Read a whole file into a malloc'd NUL-terminated buffer (*out_len = byte len).
    Caller frees. Returns NULL on any error. */
 static char *dj_slurp(const char *path, int *out_len)
@@ -3948,6 +4050,13 @@ static char *dj_slurp_country_teams(int countryNum, char *team_file, int team_fi
         snprintf(wpath, sizeof wpath, "data_json/worlds/%s/%s", World_Tag(), team_file);
         return dj_slurp(wpath, out_len);
     }
+#if SWOS_WORLDS
+    if (!team_file[0] && WorldPacks_Path(countryNum)) {
+        /* Another world's country, a pack number for the session (include/world_packs.h). */
+        snprintf(team_file, team_file_size, "%s", WorldPacks_Path(countryNum) + 10);
+        return dj_slurp(WorldPacks_Path(countryNum), out_len);
+    }
+#endif
     if (!team_file[0]) {
         /* A team pack's number (include/team_packs.h): a mod's teams, in their own file. */
         extern const char *TeamPacks_File(int country);
@@ -4064,6 +4173,9 @@ int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, 
     free(jj);
     if (n <= 0)
         return -1;
+#if SWOS_WORLDS
+    WorldPacks_Fix(countryNum, (struct TeamFileEx *)(teamFileBuf + 2), n);   /* (another world's: the pack's) */
+#endif
     *(unsigned short *)teamFileBuf = (unsigned short)n;   /* host-native count header */
     {
         /* Announce ONCE so a test run can confirm the JSON path is live (not a
@@ -4108,6 +4220,53 @@ int32_t DataJson_LoadTeamExtras(int32_t file, int32_t ordinal, PlayerFile *out, 
                         load_player_file_body(xa + vo2, vl2, (uint8_t *)&out[n]);
                         n++;
                     }
+            }
+            break;
+        }
+    }
+    free(jj);
+    return n;
+}
+
+/* A world club's players' years of birth (scripts/world_import.py: "born" on a B team's players,
+ * from the Mod's DATA\BAGE.nnn), by its team file and ordinal: born[i] for its player i -- 0..15
+ * its record's, 16.. its "extra_players" -- 0 unknown; the players counted (16 + its extras), at
+ * most max. For the B-team call-ups' under-23 rule (src/bteam.c). */
+int32_t DataJson_LoadTeamBorn(int32_t file, int32_t ordinal, uint16_t *born, int32_t max)
+{
+    char team_file[128];
+    int jlen = 0, n = 0;
+    char *jj = dj_slurp_country_teams((int)file, team_file, (int)sizeof team_file, &jlen);
+    if (!jj)
+        return 0;
+    for (int i = 0; i < max; i++)
+        born[i] = 0;
+    const char *arr;
+    int alen;
+    if (mjson_find(jj, jlen, "$.teams", &arr, &alen) == MJSON_TOK_ARRAY) {
+        int pos = 0, voff, vlen, vt;
+        while ((pos = fast_array_next(arr, alen, pos, &voff, &vlen, &vt)) != 0) {
+            double o = -1;
+            if (vt != MJSON_TOK_OBJECT ||
+                !mjson_get_number(arr + voff, vlen, "$.team.team_ordinal", &o) || (int32_t)o != ordinal)
+                continue;
+            static const char *const kGroup[2] = { "$.players", "$.extra_players" };
+            for (int g = 0; g < 2; g++) {
+                const char *xa;
+                int xl, p2 = 0, vo2, vl2, vt2, k = 0;
+                if (mjson_find(arr + voff, vlen, kGroup[g], &xa, &xl) != MJSON_TOK_ARRAY)
+                    continue;
+                while ((p2 = fast_array_next(xa, xl, p2, &vo2, &vl2, &vt2)) != 0) {
+                    const int at = g ? 16 + k : k;
+                    double y = 0;
+                    k++;
+                    if (vt2 != MJSON_TOK_OBJECT || at >= max)
+                        continue;
+                    if (mjson_get_number(xa + vo2, vl2, "$.born", &y) && y > 1800 && y < 2200)
+                        born[at] = (uint16_t)y;
+                    if (at + 1 > n)
+                        n = at + 1;
+                }
             }
             break;
         }
@@ -6273,6 +6432,11 @@ static void load_comp_slot_obj(const char *o, int olen, DIYCompetitionEx *s)
 #undef LD8
 #undef LDU16
 
+    /* (a name already there -- the slot's bytes, loaded before it -- is left as it is: the bytes
+     * past its NUL are a longer earlier name's tail, which the run that was not stopped still has) */
+    char nameNow[sizeof(b->competitionName) + 1];
+    memcpy(nameNow, b->competitionName, sizeof(b->competitionName));
+    nameNow[sizeof(b->competitionName)] = 0;
     memset(b->competitionName, 0, sizeof(b->competitionName));
     if ((q = key_slice(kv, N_SLOT_KEYS, "name")) != NULL &&
         q->vt == MJSON_TOK_STRING) {
@@ -6282,7 +6446,11 @@ static void load_comp_slot_obj(const char *o, int olen, DIYCompetitionEx *s)
             uint32_t n = (uint32_t)got;
             if (n > sizeof(b->competitionName) - 1)
                 n = sizeof(b->competitionName) - 1;
-            memcpy(b->competitionName, tmp, n);
+            if (n < (uint32_t)sizeof(tmp)) tmp[n] = 0;
+            if (strcmp(nameNow, tmp) == 0)
+                memcpy(b->competitionName, nameNow, sizeof(b->competitionName));
+            else
+                memcpy(b->competitionName, tmp, n);
         }
     }
 
@@ -7181,6 +7349,70 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         mjson_printf(json_out_emit, &out, "],%Q:%d}", "slot2", (int)d->slot2);
     }
 
+    /* A world's Super Cups (world_supercup.c): per Super Cup what the last season end left (its
+     * season, the top division's final order, the national cup's winner and finalist), the
+     * European holders, this season's national and UEFA Super Cup, the career club's tie. */
+    {
+        int32_t nsc = 0;
+        if (World_SuperCups(&nsc) && nsc > 0) {
+            const WorldSuperCupState *s = &g_worldSuperCup;
+            static uint16_t tables[WORLD_SUPERCUPS_MAX * WORLD_SUPERCUP_TABLE];
+            uint16_t cups[2 * WORLD_SUPERCUPS_MAX];
+            uint8_t seasons[WORLD_SUPERCUPS_MAX], counts[WORLD_SUPERCUPS_MAX], cupSeasons[WORLD_SUPERCUPS_MAX];
+            if (nsc > WORLD_SUPERCUPS_MAX)
+                nsc = WORLD_SUPERCUPS_MAX;
+            for (int i = 0; i < nsc; i++) {
+                const WorldSuperCupKept *k = &s->kept[i];
+                seasons[i] = k->season;
+                counts[i] = k->n;
+                cupSeasons[i] = k->cupSeason;
+                cups[2 * i] = k->cup[0];
+                cups[2 * i + 1] = k->cup[1];
+                for (int j = 0; j < WORLD_SUPERCUP_TABLE; j++)
+                    tables[i * WORLD_SUPERCUP_TABLE + j] = k->table[j];
+            }
+            mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d", "world_supercup", "count", (int)nsc);
+            wp_emit_u8(&out, "table_seasons", seasons, nsc);
+            wp_emit_u8(&out, "table_counts", counts, nsc);
+            wp_emit_u16(&out, "tables", tables, nsc * WORLD_SUPERCUP_TABLE);
+            wp_emit_u8(&out, "cup_seasons", cupSeasons, nsc);
+            wp_emit_u16(&out, "cups", cups, 2 * nsc);
+            mjson_printf(json_out_emit, &out, ",%Q:%d", "holders_season", (int)s->holdSeason);
+            wp_emit_u16(&out, "holders", s->hold, 3);
+            mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d", "season", (int)s->season,
+                         "entry", (int)s->entry, "round", (int)s->round, "won", (int)s->won,
+                         "other", (int)s->other, "winner", (int)s->winner);
+            mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d", "uefa_season", (int)s->uSeason,
+                         "uefa_state", (int)s->uState, "uefa_won", (int)s->uWon, "uefa_winner", (int)s->uWinner);
+            mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "built", (int)s->built,
+                         "final", (int)s->final, "week", (int)s->week, "team_a", (int)s->teamA,
+                         "team_b", (int)s->teamB);
+        }
+    }
+
+    /* A world's cups' SUMMARY (cup_record.c): the career club's European cup this season -- the
+     * league phase's final table (team numbers, points) and its knockout matches -- and the other
+     * confederations' cups' matches the game played this edition. A match: round, flags, goals,
+     * penalties, the two team numbers. */
+    if (g_cupRecord.euroSeason || g_cupRecord.contiEdition) {
+        const CupRecordState *r = &g_cupRecord;
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d", "cup_record", "euro_season",
+                     (int)r->euroSeason, "euro_contest", (int)r->euroComp, "conti_edition", (int)r->contiEdition);
+        wp_emit_u16(&out, "table", r->table, r->nTable);
+        wp_emit_u8(&out, "points", r->points, r->nTable);
+        for (int k = 0; k < 2; k++) {
+            const CupRecGame *g = k ? r->conti : r->games;
+            const int n = k ? r->nConti : r->nGames;
+            mjson_printf(json_out_emit, &out, ",%Q:[", k ? "conti_matches" : "euro_matches");
+            for (int i = 0; i < n; i++)
+                mjson_printf(json_out_emit, &out, "%s[%d,%d,%d,%d,%d,%d,%d,%d]", i ? "," : "", (int)g[i].round,
+                             (int)g[i].flags, (int)g[i].g1, (int)g[i].g2, (int)g[i].p1, (int)g[i].p2,
+                             (int)g[i].t1, (int)g[i].t2);
+            mjson_printf(json_out_emit, &out, "]");
+        }
+        mjson_printf(json_out_emit, &out, "}");
+    }
+
     /* A world's play-off the career club plays (world_playoff.c): which, its clubs (team
      * numbers), their places, points and the round under way, the other groups' tables
      * simulated early, the winner once decided. */
@@ -7249,6 +7481,18 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             }
             json_out_emit("}", 1, &out);
         }
+    }
+
+    /* A world's European title holders (career_eurocups.c: the Champions', Cup Winners' and UEFA
+     * cups' winners, as team words): its cups end in the season and the season end reads them --
+     * the Super Cup (SuperCup_HoldersEnded), the pots (UefaCoef_PotKey), the continental cups
+     * (conti_season.c). Outside the career buffer in the original too, so a loaded career had
+     * none. 96/97 not: its season end sets them again before it reads them. */
+    if (World_Current() != WORLD_9697) {
+        extern uint16_t _euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId, _uefaCupTitleHolderTeamId;
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d}", "euro_title_holders",
+                     "champions", (int)_euroCupTitleHolderTeamId, "cup_winners",
+                     (int)_cupWinnersCupTitleHolderTeamId, "uefa", (int)_uefaCupTitleHolderTeamId);
     }
 
     /* The SEASON WINNERS page's last season (league_playoffs.c, world_winners.c): its season,
@@ -7323,6 +7567,20 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
             mjson_printf(json_out_emit, &out, "%s[%d,%d]", i ? "," : "",
                          (int)g_cpuRepl.used[i].team, (int)g_cpuRepl.used[i].mask);
         mjson_printf(json_out_emit, &out, "]}");
+        /* ... its squads of 30 (squad_extras.c): the clubs' players 17.. gone from them -- club,
+         * place - 1, name (the Mod's items XS and XL) -- and the list's ring; */
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:[", "squad_extras", "ring", (int)g_sqx.ring, "left");
+        for (int32_t i = 0; i < g_sqx.n; i++)
+            mjson_printf(json_out_emit, &out, "%s[%d,%d,%Q]", i ? "," : "", (int)g_sqx.left[i].team,
+                         (int)g_sqx.left[i].index, (const char *)g_sqx.left[i].name);
+        mjson_printf(json_out_emit, &out, "]}");
+        /* ... and its B-team call-ups (bteam.c, the Mod's item BU): kind, place - 1 in the B team,
+         * the B team, name. */
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:[", "b_team", "called");
+        for (int32_t i = 0; i < g_bteam.n; i++)
+            mjson_printf(json_out_emit, &out, "%s[%d,%d,%d,%Q]", i ? "," : "", (int)g_bteam.call[i].kind,
+                         (int)g_bteam.call[i].index, (int)g_bteam.call[i].team, (const char *)g_bteam.call[i].name);
+        mjson_printf(json_out_emit, &out, "]}");
     }
 
     /* A world's match rules kept with the career (world_rules.c: the Mod's CPU RED CARDS, CPU
@@ -7334,6 +7592,41 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "cpu_injuries", (int)((b >> WRULE_CPU_INJURIES) & 1),
                      "goalkeeper_injuries", (int)((b >> WRULE_GK_INJURIES) & 1),
                      "gk_seed", (long)(int32_t)g_gkInjurySeed);    /* (signed: the Amiga's long) */
+    }
+
+    /* [career] exact_continuation: the state a career needs to go on exactly (the second random
+     * generator is saved already: seed_2 ...). Only with the setting on: a save is otherwise as before. */
+    if (s_exactContinuation) {
+        extern uint8_t _seed, _randXorIndex, _randXorKey;
+        extern volatile uint16_t _currentGameTick, _currentTick;
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d", "exact_continuation",
+                     "seed", (int)_seed, "rand_xor_index", (int)_randXorIndex, "rand_xor_key", (int)_randXorKey,
+                     "current_tick", (int)s_menuTick, "current_game_tick", (int)s_menuGameTick);
+        /* the European qualifying draws' seed groups, in the order the season ends' shuffles left them
+         * (Career_FillRandomTeamListExcludingSelected shuffles them IN PLACE: static data, which a load
+         * otherwise starts again from the unshuffled order) -- the bytes, a list per group */
+        mjson_printf(json_out_emit, &out, ",%Q:[", "euro_seed_groups");
+        for (int32_t t = 0, n = 0; t < 3; t++)
+            for (const ExactSeedEntry *g = exact_seed_table(t); g->ptr != (void *)(uintptr_t)-1; g++, n++) {
+                mjson_printf(json_out_emit, &out, "%s[", n ? "," : "");
+                for (uint16_t i = 0; i < g->size; i++)
+                    mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)((const uint8_t *)g->ptr)[i]);
+                json_out_emit("]", 1, &out);
+            }
+        json_out_emit("]}", 2, &out);
+    }
+
+    /* A national coach's cup pick list (his season's five competitions: the draw's friendly /
+     * invitation / tour cups and his qualifying group), as careerContests indices -- -1 / -2 the
+     * table's ends, -3 none. Without it a load drew them again (Career_SetCupPickList_ForSelected-
+     * Region), the season's lists and the random state not the ones saved. */
+    {
+        if (_isNationalSelector) {
+            mjson_printf(json_out_emit, &out, ",\n  %Q:[", "cup_pick_list");
+            for (int32_t i = 0; i < 5; i++)
+                mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)cup_pick_id(_careerCupPickList[i]));
+            json_out_emit("]", 1, &out);
+        }
     }
 
     /* A world's qualifying rounds (uefa_access.c's state): the season's bracket, kept for its
@@ -8032,6 +8325,91 @@ static void apply_semantic_load(const char *src, int src_size)
         }
     }
 
+    /* A world's Super Cups (world_supercup.c); a save without them: nothing known until its next
+     * season end. Slot 4 follows a tie under way (SuperCup_RestoreSlot, in the pointer rebuild). */
+    SuperCup_Reset();
+    {
+        const char *sc = NULL;
+        int sclen = 0;
+        if (mjson_find(src, src_size, "$.world_supercup", &sc, &sclen) == MJSON_TOK_OBJECT) {
+            WorldSuperCupState *s = &g_worldSuperCup;
+            static uint16_t tables[WORLD_SUPERCUPS_MAX * WORLD_SUPERCUP_TABLE];
+            uint16_t cups[2 * WORLD_SUPERCUPS_MAX];
+            uint8_t seasons[WORLD_SUPERCUPS_MAX], counts[WORLD_SUPERCUPS_MAX], cupSeasons[WORLD_SUPERCUPS_MAX];
+            long v = 0;
+            const int n = wp_load_u8(sc, sclen, "$.table_seasons", seasons, WORLD_SUPERCUPS_MAX);
+            wp_load_u8(sc, sclen, "$.table_counts", counts, WORLD_SUPERCUPS_MAX);
+            wp_load_u8(sc, sclen, "$.cup_seasons", cupSeasons, WORLD_SUPERCUPS_MAX);
+            const int nt = wp_load_u16(sc, sclen, "$.tables", tables, WORLD_SUPERCUPS_MAX * WORLD_SUPERCUP_TABLE);
+            const int nc = wp_load_u16(sc, sclen, "$.cups", cups, 2 * WORLD_SUPERCUPS_MAX);
+            for (int i = 0; i < n; i++) {
+                WorldSuperCupKept *k = &s->kept[i];
+                k->season = seasons[i];
+                k->n = counts[i] <= WORLD_SUPERCUP_TABLE ? counts[i] : WORLD_SUPERCUP_TABLE;
+                k->cupSeason = cupSeasons[i];
+                k->cup[0] = 2 * i < nc ? cups[2 * i] : 0xFFFF;
+                k->cup[1] = 2 * i + 1 < nc ? cups[2 * i + 1] : 0xFFFF;
+                for (int j = 0; j < WORLD_SUPERCUP_TABLE; j++)
+                    k->table[j] = i * WORLD_SUPERCUP_TABLE + j < nt ? tables[i * WORLD_SUPERCUP_TABLE + j] : 0xFFFF;
+            }
+            if (mjson_get_long(sc, sclen, "$.holders_season", &v) > 0) s->holdSeason = (uint8_t)v;
+            wp_load_u16(sc, sclen, "$.holders", s->hold, 3);
+            if (mjson_get_long(sc, sclen, "$.season", &v) > 0) s->season = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.entry", &v) > 0) s->entry = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.round", &v) > 0) s->round = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.won", &v) > 0) s->won = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.other", &v) > 0) s->other = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.winner", &v) > 0) s->winner = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.uefa_season", &v) > 0) s->uSeason = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.uefa_state", &v) > 0) s->uState = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.uefa_won", &v) > 0) s->uWon = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.uefa_winner", &v) > 0) s->uWinner = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.built", &v) > 0) s->built = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.final", &v) > 0) s->final = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.week", &v) > 0) s->week = (uint8_t)v;
+            if (mjson_get_long(sc, sclen, "$.team_a", &v) > 0) s->teamA = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.team_b", &v) > 0) s->teamB = (uint16_t)v;
+        }
+    }
+
+    /* A world's cups' SUMMARY (cup_record.c); a save without it: nothing kept. */
+    CupRecord_Reset();
+    {
+        const char *cr = NULL;
+        int crlen = 0;
+        if (mjson_find(src, src_size, "$.cup_record", &cr, &crlen) == MJSON_TOK_OBJECT) {
+            CupRecordState *r = &g_cupRecord;
+            long v = 0;
+            if (mjson_get_long(cr, crlen, "$.euro_season", &v) > 0) r->euroSeason = (uint8_t)v;
+            if (mjson_get_long(cr, crlen, "$.euro_contest", &v) > 0) r->euroComp = (uint8_t)v;
+            if (mjson_get_long(cr, crlen, "$.conti_edition", &v) > 0) r->contiEdition = (uint8_t)v;
+            const int nt = wp_load_u16(cr, crlen, "$.table", r->table, CUP_RECORD_TABLE);
+            wp_load_u8(cr, crlen, "$.points", r->points, CUP_RECORD_TABLE);
+            r->nTable = (uint8_t)(nt > 0 ? nt : 0);
+            for (int k = 0; k < 2; k++) {
+                const char *arr = NULL;
+                int alen = 0, off = 0, koff, klen, voff, vlen, vtype, n = 0;
+                CupRecGame *g = k ? r->conti : r->games;
+                const int cap = k ? CUP_RECORD_CONTI : CUP_RECORD_GAMES;
+                if (mjson_find(cr, crlen, k ? "$.conti_matches" : "$.euro_matches", &arr, &alen) != MJSON_TOK_ARRAY)
+                    continue;
+                while ((off = mjson_next(arr, alen, off, &koff, &klen, &voff, &vlen, &vtype)) != 0 && n < cap) {
+                    long f[8] = { 0 };
+                    static const char *const path[8] = { "$[0]", "$[1]", "$[2]", "$[3]", "$[4]", "$[5]", "$[6]", "$[7]" };
+                    if (vtype != MJSON_TOK_ARRAY)
+                        continue;
+                    for (int j = 0; j < 8; j++)
+                        mjson_get_long(arr + voff, vlen, path[j], &f[j]);
+                    g[n].round = (uint8_t)f[0]; g[n].flags = (uint8_t)f[1]; g[n].g1 = (uint8_t)f[2];
+                    g[n].g2 = (uint8_t)f[3]; g[n].p1 = (uint8_t)f[4]; g[n].p2 = (uint8_t)f[5];
+                    g[n].t1 = (uint16_t)f[6]; g[n].t2 = (uint16_t)f[7];
+                    n++;
+                }
+                if (k) r->nConti = (uint8_t)n; else r->nGames = (uint8_t)n;
+            }
+        }
+    }
+
     /* A world's play-off under way (world_playoff.c); slot 4 follows it
      * (WorldPlayoff_RestoreSlot, in the pointer rebuild). */
     WorldPlayoff_Reset();
@@ -8106,6 +8484,18 @@ static void apply_semantic_load(const char *src, int src_size)
         }
     }
 
+    {   /* a world's European title holders (see the writer); a save without them: as before */
+        extern uint16_t _euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId, _uefaCupTitleHolderTeamId;
+        const char *th = NULL;
+        int thlen = 0;
+        long v;
+        if (mjson_find(src, src_size, "$.euro_title_holders", &th, &thlen) == MJSON_TOK_OBJECT) {
+            if (mjson_get_long(th, thlen, "$.champions", &v) > 0) _euroCupTitleHolderTeamId = (uint16_t)v;
+            if (mjson_get_long(th, thlen, "$.cup_winners", &v) > 0) _cupWinnersCupTitleHolderTeamId = (uint16_t)v;
+            if (mjson_get_long(th, thlen, "$.uefa", &v) > 0) _uefaCupTitleHolderTeamId = (uint16_t)v;
+        }
+    }
+
     WorldWinners_Reset();
     {
         const char *wn = NULL;
@@ -8169,6 +8559,54 @@ static void apply_semantic_load(const char *src, int src_size)
             }
         }
     }
+    /* ... its squads of 30 and B-team call-ups; a save without them: nobody gone, nobody called. */
+    SquadExtras_Reset();
+    BTeam_Reset();
+    {
+        const char *it = NULL, *arr = NULL;
+        int itlen = 0, alen = 0;
+        long v = 0;
+        if (mjson_find(src, src_size, "$.squad_extras", &it, &itlen) == MJSON_TOK_OBJECT) {
+            if (mjson_get_long(it, itlen, "$.ring", &v) > 0) g_sqx.ring = (uint16_t)(v % SQX_LEFT_MAX);
+            if (mjson_find(it, itlen, "$.left", &arr, &alen) == MJSON_TOK_ARRAY) {
+                int pos = 0, ko, kl, vo, vl, vt;
+                while (g_sqx.n < SQX_LEFT_MAX && (pos = mjson_next(arr, alen, pos, &ko, &kl, &vo, &vl, &vt)) != 0) {
+                    long t = 0, x = 0;
+                    char nm[32];
+                    if (vt == MJSON_TOK_ARRAY && mjson_get_long(arr + vo, vl, "$[0]", &t) > 0 &&
+                        mjson_get_long(arr + vo, vl, "$[1]", &x) > 0 &&
+                        mjson_get_string(arr + vo, vl, "$[2]", nm, sizeof nm) > 0) {
+                        SqxLeft *e = &g_sqx.left[g_sqx.n++];
+                        e->team = (uint16_t)t;
+                        e->index = (uint8_t)x;
+                        memset(e->name, 0, sizeof e->name);
+                        for (int q = 0; q < 22 && nm[q]; q++)
+                            e->name[q] = (int8_t)nm[q];
+                    }
+                }
+            }
+        }
+        if (mjson_find(src, src_size, "$.b_team", &it, &itlen) == MJSON_TOK_OBJECT &&
+            mjson_find(it, itlen, "$.called", &arr, &alen) == MJSON_TOK_ARRAY) {
+            int pos = 0, ko, kl, vo, vl, vt;
+            while (g_bteam.n < BTEAM_MAX && (pos = mjson_next(arr, alen, pos, &ko, &kl, &vo, &vl, &vt)) != 0) {
+                long k = 0, x = 0, t = 0;
+                char nm[32];
+                if (vt == MJSON_TOK_ARRAY && mjson_get_long(arr + vo, vl, "$[0]", &k) > 0 &&
+                    mjson_get_long(arr + vo, vl, "$[1]", &x) > 0 && mjson_get_long(arr + vo, vl, "$[2]", &t) > 0 &&
+                    mjson_get_string(arr + vo, vl, "$[3]", nm, sizeof nm) > 0) {
+                    BTeamCall *c = &g_bteam.call[g_bteam.n++];
+                    c->kind = (uint8_t)k;
+                    c->index = (uint8_t)x;
+                    c->team = (uint16_t)t;
+                    memset(c->name, 0, sizeof c->name);
+                    for (int q = 0; q < 22 && nm[q]; q++)
+                        c->name[q] = (int8_t)nm[q];
+                }
+            }
+        }
+        SquadExtras_Changed();
+    }
     /* ... its financial fair play; a save without it: an older one, the rule off. */
     Ffp_LoadedWithout();
     {
@@ -8208,6 +8646,65 @@ static void apply_semantic_load(const char *src, int src_size)
                 g_gkInjurySeed = (uint32_t)(int32_t)v;
         }
         WorldRules_CareerLoaded(have, bits);
+    }
+
+    /* [career] exact_continuation (see the writer): restored only with the setting on. */
+    s_exactLoaded = 0;
+    if (s_exactContinuation) {
+        const char *ec = NULL;
+        int eclen = 0;
+        if (mjson_find(src, src_size, "$.exact_continuation", &ec, &eclen) == MJSON_TOK_OBJECT) {
+            extern uint8_t _seed, _randXorIndex, _randXorKey;
+            extern volatile uint16_t _currentGameTick, _currentTick;
+            long a = 0, b = 0, c = 0, d = 0, e = 0;
+            if (mjson_get_long(ec, eclen, "$.seed", &a) > 0 && mjson_get_long(ec, eclen, "$.rand_xor_index", &b) > 0 &&
+                mjson_get_long(ec, eclen, "$.rand_xor_key", &c) > 0 && mjson_get_long(ec, eclen, "$.current_tick", &d) > 0 &&
+                mjson_get_long(ec, eclen, "$.current_game_tick", &e) > 0) {
+                _seed = (uint8_t)a;
+                _randXorIndex = (uint8_t)b;
+                _randXorKey = (uint8_t)c;
+                /* the clocks at the career's menu the save was made at (SaveJson_ApplyPendingClock):
+                 * the frames a load takes to get there are not the career's */
+                s_pendingTick = (uint16_t)d;
+                s_pendingGameTick = (uint16_t)e;
+                s_clockPending = 1;
+                s_exactLoaded = 1;
+                /* the seed groups (see the writer): each only when its length is the group's */
+                for (int32_t t = 0, n = 0; t < 3; t++)
+                    for (const ExactSeedEntry *g = exact_seed_table(t); g->ptr != (void *)(uintptr_t)-1; g++, n++) {
+                        char path[40];
+                        long v;
+                        uint8_t tmp[64];
+                        int32_t ok = g->size <= sizeof tmp;
+                        for (uint16_t i = 0; i < g->size && ok; i++) {
+                            snprintf(path, sizeof path, "$.euro_seed_groups[%d][%u]", (int)n, (unsigned)i);
+                            ok = mjson_get_long(ec, eclen, path, &v) > 0 && v >= 0 && v < 256;
+                            if (ok) tmp[i] = (uint8_t)v;
+                        }
+                        snprintf(path, sizeof path, "$.euro_seed_groups[%d][%u]", (int)n, (unsigned)g->size);
+                        if (ok && mjson_get_long(ec, eclen, path, &v) <= 0)
+                            memcpy(g->ptr, tmp, g->size);
+                    }
+            }
+        }
+    }
+
+    /* A national coach's cup pick list (see the writer): kept for Rebuild_CompetitionSlotPointers. */
+    s_cupPickLoaded = 0;
+    {
+        const char *pl = NULL;
+        int pllen = 0;
+        if (mjson_find(src, src_size, "$.cup_pick_list", &pl, &pllen) == MJSON_TOK_ARRAY) {
+            int ok = 1;
+            for (int32_t i = 0; i < 5 && ok; i++) {
+                char path[16];
+                long v = 0;
+                snprintf(path, sizeof path, "$[%d]", (int)i);   /* (mjson_get_long: the Amiga's, no floats) */
+                ok = mjson_get_long(pl, pllen, path, &v) > 0 && v >= -3 && v < 48 /* (CAREER_CONTESTS_CAP) */ &&
+                     (s_cupPick[i] = cup_pick_ptr((int32_t)v), 1);
+            }
+            s_cupPickLoaded = ok;
+        }
     }
 
     /* A world's UEFA coefficients and qualifying bracket (uefa_coef.c); a save without them:
@@ -9117,6 +9614,31 @@ static int16_t write_competition_buf(uint8_t *filename, const char *kind)
         }
     }
 
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    /* Another world's countries its teams are from (include/world_packs.h): each pack number's
+     * world and file, so that a load gives them those numbers again. Only when there are some. */
+    {
+        int32_t said = 0;
+        uint8_t seen[256] = { 0 };
+        for (uint16_t i = 0; i < _primaryCompetitionBuf.tourn.header.numTeams; i++) {
+            const uint8_t c = _selectedTeams[i].team.countryNumber;
+            int32_t w;
+            const char *file;
+            if (seen[c] || !WorldPacks_Info(c, &w, &file))
+                continue;
+            seen[c] = 1;
+            if (said++)
+                json_out_emit(",", 1, &out);
+            else
+                mjson_printf(json_out_emit, &out, ",\n  %Q:[", "world_packs");
+            mjson_printf(json_out_emit, &out, "{%Q:%d,%Q:%Q,%Q:%Q}", "number", (int)c, "world",
+                         World_TagOf((WorldId)w), "file", file);
+        }
+        if (said)
+            json_out_emit("]", 1, &out);
+    }
+#endif
+
     /* DIY teams array — primaryCompetitionBuf.tourn.header.numTeams TeamFileEx records at
      * &selTeamsPtr. Same record layout as the career selected_teams. */
     mjson_printf(json_out_emit, &out, ",\n  %Q:[", "diy_teams");
@@ -9189,7 +9711,7 @@ static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const
      * mjson_next team walk below was the "load looks crashed" report. */
     enum { RK_SCHEMA, RK_KIND, RK_SCALARS, RK_SLOT, RK_STAGE, RK_CUPFULL,
            RK_STANDINGS, RK_SC_TAB, RK_SC_AGG, RK_SC_PEN, RK_TEAMS, RK_OVR,
-           RK_COUNT };
+           RK_WPACKS, RK_COUNT };
     KeySlice rk[RK_COUNT] = {
         [RK_SCHEMA]    = { "schema_version", NULL, 0, 0 },
         [RK_KIND]      = { "file_kind", NULL, 0, 0 },
@@ -9203,6 +9725,7 @@ static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const
         [RK_SC_PEN]    = { "stage_score_pen", NULL, 0, 0 },
         [RK_TEAMS]     = { "diy_teams", NULL, 0, 0 },
         [RK_OVR]       = { "competition_overrides", NULL, 0, 0 },
+        [RK_WPACKS]    = { "world_packs", NULL, 0, 0 },
     };
     capture_object_keys((const char *)src, (int)src_size, rk, RK_COUNT);
 
@@ -9261,6 +9784,24 @@ static int16_t load_competition_mem(const uint8_t *src, uint32_t src_size, const
      * empty competition name. The legacy emit was a stale absolute
      * pointer that would have crashed if dereferenced after a
      * cross-build load anyway. */
+
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    /* Another world's countries, at the numbers the save gave them (include/world_packs.h). */
+    if (rk[RK_WPACKS].v && rk[RK_WPACKS].vt == MJSON_TOK_ARRAY) {
+        int koff, klen, voff, vlen, vt, off = 0;
+        while ((off = mjson_next(rk[RK_WPACKS].v, rk[RK_WPACKS].vlen, off, &koff, &klen, &voff, &vlen, &vt)) != 0) {
+            const char *e = rk[RK_WPACKS].v + voff;
+            double num = -1;
+            char tag[16] = "", file[48] = "";
+            if (vt == MJSON_TOK_OBJECT && mjson_get_number(e, vlen, "$.number", &num) &&
+                mjson_get_string(e, vlen, "$.world", tag, (int)sizeof tag) > 0 &&
+                mjson_get_string(e, vlen, "$.file", file, (int)sizeof file) > 0 &&
+                !WorldPacks_UseAt((int32_t)num, World_FromTag(tag), file))
+                fprintf(stderr, "[world-packs] the save's %s of world %s (%d): not installed -- its teams play, "
+                                "its country is not named\n", file, tag, (int)num);
+        }
+    }
+#endif
 
     if (rk[RK_SCALARS].v && rk[RK_SCALARS].vt == MJSON_TOK_OBJECT)
         load_scalar_table_comp_slice(rk[RK_SCALARS].v, rk[RK_SCALARS].vlen,

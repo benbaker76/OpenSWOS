@@ -2001,6 +2001,8 @@ void MenuProc(void)
     if (_seasonUpdateInProgress == 0)
         s_seasonSkipLatched = 0;
 
+    { extern void SaveJson_MenuFrame(void); SaveJson_MenuFrame(); }  /* (a career hub's clocks: [career] exact_continuation) */
+
     ReadTimerDelta();
 
     if (_magicValue != 0x12345678) {
@@ -2047,8 +2049,15 @@ void MenuProc(void)
 #ifdef SWOS_SDL_BUILD
     { extern void MenuMouse_Frame(void); MenuMouse_Frame(); }            /* the mouse (menu_mouse.c) */
     { extern void CareerAutopilot_Tick(void); CareerAutopilot_Tick(); }  /* --career-golden */
+    { extern void ModMatch_TestFriendlyTick(void); ModMatch_TestFriendlyTick(); }  /* SWOS_TEST_FRIENDLY */
     { extern void SettingsMenus_MenuFrame(void); SettingsMenus_MenuFrame(); }  /* F6 quick save (settings_menus.c) */
 #endif
+    {   /* a shirt number's box, while lit: the controls are its (shirt_edit.c: EDIT CUSTOM TEAMS,
+         * a career's squad screen) */
+        extern int32_t ShirtEdit_Frame(void);
+        if (ShirtEdit_Frame())
+            return;
+    }
 
     menu = (Menu *)_currentMenu;
     selectedEntry = menu->selectedEntry;

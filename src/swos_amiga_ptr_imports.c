@@ -896,15 +896,16 @@ struct __attribute__((packed)) {
     { (void *)_aDosStyle, (void *)_a2020Style }
 };
 
-/* OPTIONS -> WORLD: 96/97 / 2026-27, indexed by _worldOption (world.c): the world
- * SWOS.ini names, which the game plays from its next start (menus.c ChangeWorld). */
-extern char _aWorld9697[], _aWorld2627[];
+/* OPTIONS -> WORLD: 96/97 / 2026-27 / Europe 1984-85, indexed by _worldOption (world.c: the
+ * WorldId): the world SWOS.ini names, which the game plays from its next start (menus.c
+ * ChangeWorld). */
+extern char _aWorld9697[], _aWorld2627[], _aWorld8485[];
 extern uint16_t _worldOption;
 struct __attribute__((packed)) {
-    void    *indexPtr; uint16_t base; void    *entries[2];
+    void    *indexPtr; uint16_t base; void    *entries[3];
 } _worldStrTable = {
     (&_worldOption), 0,
-    { (void *)_aWorld9697, (void *)_aWorld2627 }
+    { (void *)_aWorld9697, (void *)_aWorld2627, (void *)_aWorld8485 }
 };
 
 /* OPTIONS -> LANGUAGE: indexed by _languageOption, in kLanguageCodes' order (menus.c

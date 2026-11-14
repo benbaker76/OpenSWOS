@@ -5,6 +5,7 @@
 #include "game_types.h"
 #include "swos_types.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "league_playoffs.h"   /* (the rules library: swosrules.h) */
 #include "world_cups.h"
 #include "team_pool.h"
@@ -305,7 +306,8 @@ static void build_tie(const WorldCupD *c, int32_t t, uint16_t a, uint16_t b, uin
 /* Slot 4 can take the tie: free, or the cup's own last tie (decided). */
 static int32_t slot4_free(void)
 {
-    return !g_worldPlayoff.kind && (!_diyCompetitionPtr || _diyCompetitionPtr == (uint8_t *)&s_rec);
+    return !g_worldPlayoff.kind && (!_diyCompetitionPtr || _diyCompetitionPtr == (uint8_t *)&s_rec ||
+                                    SuperCup_InSlot4() == 1);   /* (a decided Super Cup tie gives way) */
 }
 
 /* The season end's tables and the pool's new arrivals (the season start's entry order: in

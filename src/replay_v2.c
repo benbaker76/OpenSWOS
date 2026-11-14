@@ -17,6 +17,8 @@
  */
 #ifdef SWOS_SDL_BUILD
 
+#include "long_bench.h"
+#include "player_looks.h"
 #include "replay_v2.h"
 #include "mod_hooks.h"
 #include <SDL.h>            /* the checkpoint's thread */
@@ -59,6 +61,10 @@
 #define TEAM_HDR_INT16S     11
 #define META_SCORE_OFF      SRP_META_SCORE_OFF          /* the final score inside META */
 #define META_BYTES          (2 + 2 + 2 + 2 + 4 + 32 + 2 + 2 + 2 + 2 + 2 + 40 + 40 + 2 * TEAM_BYTES)
+/* After the fixed META, optionally: "LBNC", then a long bench's places 17.. at the kick-off
+ * (long_bench.c LongBench_ReplayWrite: the place count, both teams' 10 PlayerInfo) -- their names
+ * for the viewer. A file without it: the game's 16 places. */
+#define META_BENCH          FOURCC('L', 'B', 'N', 'C')
 #define MAX_FRAME_SPRITES   78      /* _sortedSprites */
 
 /* Sprites at z >= this are the screen-pinned HUD (sprites.c HUD_LAYER_Z_MIN): placed
@@ -235,6 +241,7 @@ static struct {
     uint32_t    chapterCount, chapterCap;
 
     uint8_t    *meta;           /* the match's identity, taken at kick-off */
+    uint32_t    metaLen;        /* META_BYTES, or more with a long bench's tail (META_BENCH) */
     int32_t     suppressed;     /* ReplayRec_Suppress: nothing is recorded */
 } s_rec;
 
@@ -530,13 +537,15 @@ void ReplayRec_CaptureSprites(void)
         const Sprite *s = _sortedSprites[i];
         const SpriteGraphics *g;
         uint8_t *p;
+        int16_t image;
         if (!s || s->imageIndex < 0 || s->z.s.i >= HUD_Z_MIN)
             continue;
-        g = graphics((uint16_t)s->imageIndex);
+        image = PlayerLooks_Image(s, s->imageIndex);     /* (a player's look: player_looks.c) */
+        g = graphics((uint16_t)image);
         if (Sprite_WalkedOff(s, g))
             continue;               /* (walked off into the tunnel: not drawn either) */
         p = s_rec.frms + s_rec.frmsLen;
-        BE_WRITE_U16(p, (uint16_t)s->imageIndex);
+        BE_WRITE_U16(p, (uint16_t)image);
         BE_WRITE_U16(p + 2, (uint16_t)(s->x.s.i - g->centerX));
         BE_WRITE_U16(p + 4, (uint16_t)(s->y.s.i - g->centerY - s->z.s.i));
         s_rec.frmsLen += SPRITE_BYTES;
@@ -622,10 +631,19 @@ static void put_team(uint8_t *out, const TeamGame *team)
 
 static uint8_t *build_meta(void)
 {
-    uint8_t *m = (uint8_t *)calloc(1, META_BYTES);
+    /* (a long bench's places 17.. go after the fixed META, tagged: their names in the replay) */
+    uint8_t bench[LB_REPLAY_BYTES];
+    const uint32_t benchLen = LongBench_ReplayWrite(bench);
+    uint8_t *m = (uint8_t *)calloc(1, META_BYTES + (benchLen ? 4 + benchLen : 0));
     uint8_t *q = m;
     if (!m)
         return NULL;
+    s_rec.metaLen = META_BYTES;
+    if (benchLen) {
+        BE_WRITE_U32(m + META_BYTES, META_BENCH);
+        memcpy(m + META_BYTES + 4, bench, benchLen);
+        s_rec.metaLen = META_BYTES + 4 + benchLen;
+    }
     BE_WRITE_U16(q, 1);                                           q += 2;  /* meta version */
     BE_WRITE_U16(q, (uint16_t)_screen_width);                     q += 2;
     /* 8 the DOS view (320x200), 16 "the view is recorded" -- a recording made before the
@@ -701,7 +719,7 @@ static void content(SrpContent *c)
 {
     memset(c, 0, sizeof *c);
     c->meta         = s_rec.meta;
-    c->metaLen      = s_rec.meta ? META_BYTES : 0;
+    c->metaLen      = s_rec.meta ? s_rec.metaLen : 0;
     c->frms         = s_rec.frms;
     c->frmsLen      = s_rec.frmsLen;
     c->offsets      = s_rec.offsets;
@@ -1590,6 +1608,11 @@ int32_t ReplayV2_Load(const uint8_t *name)
     DosReplay_ClearRpl();
     snprintf(s_play.file, sizeof s_play.file, "%s", (const char *)name);   /* (ReplayV2_SaveCopy) */
     apply_meta(meta);
+    /* (a long bench: its places 17.., for their names; none: the game's 16) */
+    if (metaLen >= META_BYTES + 4 + LB_REPLAY_BYTES && BE_READ_U32(meta + META_BYTES) == META_BENCH)
+        LongBench_ReplayRead(meta + META_BYTES + 4, metaLen - META_BYTES - 4);
+    else
+        LongBench_ReplayRead(NULL, 0);
     free(meta);
     free(file);
     _replayPlaybackFps = s_play.tickRate ? s_play.tickRate : 50;

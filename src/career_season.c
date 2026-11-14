@@ -12,6 +12,8 @@
 #include "uefa_coef.h"
 #include "world_conti.h"
 #include "world.h"
+#include "world_nationals.h"
+#include "world_europe.h"
 #include "career_eurocups.h"
 #include "career_init.h"
 #include "career_status.h"
@@ -33,6 +35,7 @@
 #include "world_playoff.h"
 #include "world_winners.h"
 #include "world_cups.h"
+#include "world_supercup.h"
 #include "states.h"
 #include "mod_hooks.h"       /* competitionFinished (docs/MODS.md §27): SDL builds */
 #include "mod_api.h"         /* (ModCompKind: SDL builds) */
@@ -857,10 +860,16 @@ void Career_ProcessCompetitionForNextSeason(uint16_t compIndex)
     /* Entry layout: [0]=primary ptr, [1]=skip, [2]=secondary ptr, [3]=tertiary ptr */
     uint8_t *primary = (uint8_t *)tableEntry[0];
     processPrimaryCompetitionForNextSeason(primary);
+    SuperCup_TableEnded((uint8_t)compIndex);   /* (a world's Super Cups: the top division's order) */
 
     uint8_t *secondary = (uint8_t *)tableEntry[2];
     if (secondary != (uint8_t *)(uintptr_t)-1) {
         Career_ProcessSecondaryCompetitionForNextSeason(secondary);
+        {   /* (a world's Super Cups: the national cup's winner and finalist, world_supercup.c) */
+            extern uint16_t _cachedSecondaryQualifiedTeamIds[];
+            SuperCup_CupEnded((uint8_t)compIndex, _cachedSecondaryQualifiedTeamIds[0],
+                              _cachedSecondaryQualifiedTeamIds[1]);
+        }
 
         uint8_t *tertiary = (uint8_t *)tableEntry[3];
         if (tertiary != (uint8_t *)(uintptr_t)-1) {
@@ -1122,6 +1131,11 @@ static void setupWorldCupQualifyingGroups(uint16_t **teamListPtr)
         d5--;
     _worldCupQualifyingGroup8Copy[0xD] = (uint8_t)d5;
 
+    /* A classic world: its cycle's European groups, no draw (careerworld.py w_wcqdraw); the other
+     * continents' as the game draws them. */
+    if (WorldNationals_FillWorldCupGroups())
+        goto wc_groups_done;
+
     Career_SortTeamFilePtrsByAvgPlayerPrice(0x50);
     /* Sort leaves a6=teamSortBuffer in the asm — see comment in
      * fillWorldCupQualifyingGroupTeams. Re-point teamListPtr at the
@@ -1268,6 +1282,8 @@ static void setCupPickList_Europe(uint16_t **teamListPtr)
 
     /* EC group filling (only during EC qualifying year, bit 0) */
     if (!(_someTeamFlags & 0x01))
+        return;
+    if (WorldNationals_FillEuroGroups())    /* (a classic world: its cycle's groups, w_ecqdraw) */
         return;
 
     Career_SortTeamFilePtrsByAvgPlayerPrice(0x50);
@@ -1773,6 +1789,10 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
             if (euro[k].holder != 0xFFFFu)
                 ModHooks_CompetitionFinished(_currentSeasonShowing, euro[k].id, MODCOMP_CONTINENTAL, 0,
                                              euro[k].holder);
+        /* (a world's UEFA Super Cup: the three holders, before the qualifiers clear them --
+         *  the Mod's usc_snap; world_supercup.c) */
+        SuperCup_HoldersEnded(_euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId,
+                              _uefaCupTitleHolderTeamId);
     }
     Career_UpdateCopaLibertadoresCompetitionSlot();   /* Inc3b-part-2: auto-advance Copa */
 
@@ -1812,15 +1832,26 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
     if (lp)
         UefaQual_Fill();
     Conti_SeasonEnd();      /* (a world's other confederations' cups: the next editions) */
-    const uint16_t euroBefore = lp ? UefaQual_Listed() : 0x50, euroAfter = lp ? 108 : 0x50;
+    /* (a classic world's knockouts: every country's places, then the holders -- include/world_europe.h) */
+    extern uint16_t _euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId, _uefaCupTitleHolderTeamId;
+    const WorldEuropeKO *ko = WorldEurope_Active() ? World_EuropeKnockouts() : 0;
+    uint16_t koPlaces = 0, koHolders = 0;
+    if (ko) {
+        for (int32_t i = 0; i < ko->count; i++)
+            koPlaces = (uint16_t)(koPlaces + ko->places[i][1] + ko->places[i][2] + ko->places[i][3]);
+        koHolders = (uint16_t)((_euroCupTitleHolderTeamId != 0xFFFF) + (_cupWinnersCupTitleHolderTeamId != 0xFFFF) +
+                               (_uefaCupTitleHolderTeamId != 0xFFFF));
+    }
+    const uint16_t euroBefore = lp ? UefaQual_Listed() : ko ? koPlaces : 0x50,
+                   euroAfter = lp ? 108 : ko ? (uint16_t)(koPlaces + koHolders) : 0x50;
     if (_careerFileBuffer == euroBefore + Career_CopaLibertadoresQualifiedTeamCount()) {
         Career_DrawEuropeanCupTeamsAndCopyGrids();
         _seasonUpdateInProgress = 0;
         RestoreSelectedTeams();
 
-        if (_euroCupQualifiedTeamCount == (lp ? 36 : 16) &&
-            _cupWinnersCupQualifiedTeamCount == (lp ? 36 : 32) &&
-            _uefaCupQualifiedTeamCount == (lp ? 36 : 32) &&
+        if (_euroCupQualifiedTeamCount == (lp ? 36 : ko ? ko->cup[0]->header.teams : 16) &&
+            _cupWinnersCupQualifiedTeamCount == (lp ? 36 : ko ? ko->cup[1]->header.teams : 32) &&
+            _uefaCupQualifiedTeamCount == (lp ? 36 : ko ? ko->cup[2]->header.teams : 32) &&
             Career_CopaLibertadoresQualifiedTeamCount() == Career_CopaLibertadoresExpectedTeamCount() &&
             _careerFileBuffer == euroAfter + Career_CopaLibertadoresQualifiedTeamCount()) {
             Career_StorePromotionRelegationInSeasonInfo();
@@ -1829,6 +1860,11 @@ void Career_AdvanceToNextSeason_UpdateCompetitions(void)
                 UefaQual_Post();        /* (the career club's qualifying opponents' records) */
             return;
         }
+        if (ko)
+            SWOS_DBG("[world-europe] season end: %u / %u / %u clubs, pool %u (places %u, holders %u)\n",
+                     (unsigned)_euroCupQualifiedTeamCount, (unsigned)_cupWinnersCupQualifiedTeamCount,
+                     (unsigned)_uefaCupQualifiedTeamCount, (unsigned)_careerFileBuffer, (unsigned)koPlaces,
+                     (unsigned)koHolders);
         _panicReasonCode = 0x8998;
         PanicHaltLoop();
         return;

@@ -43,6 +43,8 @@
 
 #include "player_face3.h"
 #include "shirt_numbers.h"
+#include "player_looks.h"
+#include "shirt_edit.h"
 #include "edit_tactics.h"
 #include "endian_helpers.h"
 #include "menu_system.h"
@@ -171,6 +173,7 @@ extern uint8_t _editTacticsMenu[];
 /* ---- C-callable bridges for asm functions (defined in swos2_unit.s) ---- */
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
 extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern int32_t SquadNumbers_Kept(const TeamFileEx *team);
 extern void SquadNumbers_Free(uint16_t slot);
 extern void EditTactics_CommitPlayerPositionsAndRecalcSkill(void);
 extern void EditTacticsMenuSavePlayerPositions(void);
@@ -2168,7 +2171,7 @@ void EditTactics_SwapPlayersInSlots(uint16_t slot1, uint16_t slot2)
 
         /* Swap shirt numbers between players */
         int8_t tmp2 = pf2->shirtNumber;
-        if (!SquadNumbers_On()) {       /* (real squad numbers: not swapped, teams.c) */
+        if (!SquadNumbers_Kept(teamEx)) {  /* (real or edited squad numbers: not swapped, teams.c) */
             pf2->shirtNumber = pf1->shirtNumber;
             pf1->shirtNumber = tmp2;
         }
@@ -2767,6 +2770,20 @@ void EditTeamsChangePlayerFace(MenuEntry *entry)
     uint8_t posAndFace = pf->positionAndFace;
     uint16_t faceIdx = (posAndFace & PF_FACE_MASK) >> 3;
 
+    /* The SWOS 96/97 Mod 4.1's ten looks (Marco; its edteam.py): white, ginger, black, dark blond,
+     * then receding, shaved and white hair, each light and dark (player_looks.c). A 22-letter
+     * name has no room for a look (byte 25 is its end): the four faces. */
+    if (PlayerLooks_Room(pf)) {
+        const int32_t look = PlayerLooks_FromBits((uint8_t)pf->playerName[22]);
+        int32_t at = look == LOOK_NONE ? (int32_t)faceIdx : 4 + (look - 1) * 2 + (faceIdx >= 2);
+        at = (at + 1) % 10;
+        faceIdx = (uint16_t)(at < 4 ? at : ((at - 4) & 1) ? 2 : 0);
+        PlayerLooks_Set(pf, at < 4 ? LOOK_NONE : (at - 4) / 2 + 1);
+        pf->positionAndFace = (posAndFace & (uint8_t)~PF_FACE_MASK) | (uint8_t)(faceIdx << PF_FACE_SHIFT);
+        entry->fgWord = (uint16_t)PlayerLooks_PlayerMenuIcon(pf);
+        CallDrawMenuItem(entry);
+        return;
+    }
     faceIdx++;
     if (faceIdx == 4)                   /* (0..3: face 3 black with blond hair, player_face3.c) */
         faceIdx = 0;
@@ -2774,7 +2791,7 @@ void EditTeamsChangePlayerFace(MenuEntry *entry)
     pf->positionAndFace = (posAndFace & (uint8_t)~PF_FACE_MASK) | (uint8_t)(faceIdx << PF_FACE_SHIFT);
 
     /* Update menu entry sprite to show new face */
-    entry->fgWord = (uint16_t)Face_MenuIcon(faceIdx);
+    entry->fgWord = (uint16_t)PlayerLooks_PlayerMenuIcon(pf);
     CallDrawMenuItem(entry);
 }
 
@@ -2814,9 +2831,7 @@ void InitEditTeamsMenu(void)
 
     for (int16_t i = 15; i >= 0; i--) {
         PlayerFile *pf = &teamEx->players[15 - i];
-        uint8_t posAndFace = pf->positionAndFace;
-        uint16_t faceIdx = (posAndFace & PF_FACE_MASK) >> 3;
-        faceEntry->fgWord = (uint16_t)Face_MenuIcon(faceIdx);
+        faceEntry->fgWord = (uint16_t)PlayerLooks_PlayerMenuIcon(pf);   /* (a look: player_looks.c) */
         faceEntry = (MenuEntry *)((uint8_t *)faceEntry + MENUENTRY_STRIDE);
 
         nameEntry->fg = (uintptr_t)(uint8_t *)pf->playerName;
@@ -2837,8 +2852,14 @@ void EditTeamsPlayersBeforeDraw(MenuEntry *entry)
 
     MenuEntry *e = &_menuEntries[0xC08 / 56];
 
-    /* Player number (shirt number) */
+    /* Player number (shirt number) -- its box lit while it is edited (shirt_edit.c) */
     uint8_t shirtNum = (uint8_t)pf->shirtNumber;
+    if (ShirtEdit_LitRow() == (int32_t)playerIdx) {     /* (the number entry has no box of its own) */
+        e->background = ENTRY_FRAME_AND_BACK_COLOR;
+        e->bgColor = ShirtEdit_LitColour();
+    } else {
+        e->background = NO_BACKGROUND;
+    }
     e->fgWord = (uint16_t)shirtNum;
     e->y = y;
     e = (MenuEntry *)((uint8_t *)e + MENUENTRY_STRIDE);

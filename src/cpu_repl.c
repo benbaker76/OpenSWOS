@@ -16,6 +16,8 @@
 #include "world.h"
 #include "game_types.h"
 #include "menu_system.h"
+#include "squad_extras.h"
+#include "transfer_market.h"
 #ifdef SWOS_SDL_BUILD
 #include <stdio.h>
 #endif
@@ -101,6 +103,11 @@ static int32_t pick(const PlayerFile *extras, int32_t n, int32_t want, uint16_t 
         const PlayerFile *c = &extras[i];
         if (!c->playerName[0] || (used >> i & 1))
             continue;
+        /* (gone from his club -- bought, called up from a B team: squad_extras.c -- or on the
+         * national market, for sale: cpurefill.py's skip) */
+        if (squad && (!SquadExtras_Player(team, (uint16_t)(16 + i)) ||
+                      IsPlayerInCareerContest(team, (uint16_t)(16 + i)) >= 0))
+            continue;
         const int32_t r = role(c);
         if ((want == 0) != (r == 0))            /* a goalkeeper only for a goalkeeper */
             continue;
@@ -138,6 +145,9 @@ int32_t CpuRepl_AfterSale(uint16_t team, uint16_t slot)
     if (Career_WriteTeamPlayer(team, slot, &p) != 0)
         return 0;
     *used_mask(team, 1) |= (uint16_t)(1u << best);
+    /* (gone from places 17..: never offered or brought back as such -- squad_extras.c) */
+    RemovePlayerFromCareerContest(team, (uint16_t)(16 + best));
+    SquadExtras_Left(team, (uint16_t)(16 + best), p.playerName);
     fprintf(stderr, "[cpu-repl] %04x slot %u: %.22s from its squad (place %d)\n", (unsigned)team,
             (unsigned)slot, (const char *)p.playerName, (int)(17 + best));
     return 1;
@@ -171,6 +181,13 @@ int32_t CpuRepl_AfterSale(uint16_t team, uint16_t slot)
 {
     (void)team; (void)slot;
     return 0;
+}
+
+/* (--cpu-repl-selftest: no world has squad players beyond 16 without the worlds) */
+int32_t CpuRepl_SelfTest(int32_t file, int32_t ordinal)
+{
+    (void)file; (void)ordinal;
+    return 1;
 }
 #endif
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # make_world_package.sh [TAG] -- dist/OpenSWOS-World-<TAG>.zip: a world's data, for OpenSWOS
-# Setup to import (docs/WORLD_2026_27.md, phase 3).
+# Setup to import (docs/WORLD_2026_27.md, phase 3): 2627 (World 2026-27, the default) or 8485
+# (Europe 1984-85, DaniSwos's database: §6g).
 #
 # World 2026-27's squads are their authors' (the SWOS 96/97 Mod's data), so OpenSWOS does not
 # ship them: this package is hosted apart, and the player's OpenSWOS Setup installs it like
@@ -30,22 +31,28 @@ for f in WORLD.ini competitions/leagues.json; do
     [ -f "$SRC/$f" ] || { echo "make_world_package: no $SRC/$f -- run scripts/world_import.py first" >&2; exit 1; }
 done
 FP=$(sed -n 's/^fingerprint *= *//p' "$SRC/WORLD.ini")
-grep -q "\"$FP\"" "$ROOT/src/world_data.c" ||
-    { echo "make_world_package: WORLD.ini's data ($FP) is not src/world_data.c's -- rerun world_import.py" >&2; exit 1; }
+NAME=$(sed -n 's/^name *= *//p' "$SRC/WORLD.ini")
+# (each world's baked tables: World 2026-27's src/world_data.c, another's src/world_data_<tag>.c)
+DATA_C="$ROOT/src/world_data.c"
+[ "$TAG" = 2627 ] || DATA_C="$ROOT/src/world_data_$TAG.c"
+grep -q "\"$FP\"" "$DATA_C" ||
+    { echo "make_world_package: WORLD.ini's data ($FP) is not ${DATA_C#$ROOT/}'s -- rerun world_import.py" >&2; exit 1; }
 
 mkdir -p "$ROOT/dist"
-python3 -I - "$SRC" "$OUT.tmp" "OpenSWOS-World-$TAG" "$TAG" "$FP" <<'PY'
+python3 -I - "$SRC" "$OUT.tmp" "OpenSWOS-World-$TAG" "$TAG" "$FP" "$NAME" <<'PY'
 import json, os, sys, zipfile
-src, out, top, tag, fp = sys.argv[1:]
+src, out, top, tag, fp, name = sys.argv[1:]
 # The mod's uuid is the world's for ever (a DLC's own: docs/MODS.md §14); the version, its data.
-UUIDS = {"2627": "15ea9117-6aa0-4968-a293-6cf33092ff33"}
+UUIDS = {"2627": "15ea9117-6aa0-4968-a293-6cf33092ff33",
+         "8485": "48496e1d-27d7-49d8-acff-c428814a1bc6"}
+AUTHORS = {"8485": "DaniSwos (the 1984-85 database) and the SWOS 96/97 Mod (Davide Lorigliola and its contributors)"}
 if tag not in UUIDS:
     sys.exit("make_world_package: world %s has no mod uuid yet -- give it one (uuid4) in UUIDS" % tag)
-name = "World %s-%s" % ("20" + tag[:2], tag[2:]) if len(tag) == 4 else "World " + tag
+name = name or ("World %s-%s" % ("20" + tag[:2], tag[2:]) if len(tag) == 4 else "World " + tag)
 manifest = {
     "uuid": UUIDS[tag], "id": "world" + tag, "name": name, "version": fp,
-    "author": "the SWOS 96/97 Mod (Davide Lorigliola and its contributors)",
-    "about": "The football world of %s: its countries, leagues, cups and squads." % name[6:],
+    "author": AUTHORS.get(tag, "the SWOS 96/97 Mod (Davide Lorigliola and its contributors)"),
+    "about": "The football world of %s: its countries, leagues, cups and squads." % name.replace("World ", ""),
     "targets": ["sdl", "amiga"], "changes": "data", "default": False,
     # The world's switches (docs/WORLD_2026_27.md, the Mod 4.1's features): each the Mod's own
     # default; read by the game through ModApi_SettingInt("world<tag>", key).
@@ -62,6 +69,8 @@ manifest = {
          "choices": ["invented", "from_squad"], "default": "invented"},
     ],
 }
+if tag != "2627":       # (World 2026-27's career switches: a classic world has none of them)
+    manifest["settings"] = []
 # The Mod 4.1's match and bench rules (include/world_rules.h), each ON as the Mod plays it: its
 # settings, at the END of the list (the career's rules come before them).
 MATCH_SETTINGS = [
@@ -95,6 +104,30 @@ echo "$OUT: $(du -h "$OUT" | cut -f1), data $FP"
 REL=${MOD_RELEASE:-$(sed -n 's/.*installed SWOS 96\/97 Mod \([0-9.]*\).*/\1/p' "$SRC/mod/SOURCE.txt" 2>/dev/null | head -1)}
 [ -n "$REL" ] || { echo "make_world_package: which Mod release is this? (MOD_RELEASE=x.y.z)" >&2; exit 1; }
 NCOUNTRY=$(ls "$SRC/teams"/*.json | grep -vc NATIONALITIES || true)
+if [ "$TAG" = 8485 ]; then
+cat > "${OUT%.zip}.txt" <<EOF
+OpenSWOS-World-$TAG.zip -- $NAME for OpenSWOS
+==========================================================
+
+What it is: the classic career world Europe 1984-85 of the SWOS 96/97 Mod (github.com/aminta/swos-9697-mod),
+release $REL, converted for OpenSWOS (github.com/benbaker76/OpenSWOS) by its scripts/world_from_mod.py
+--world 8485 and scripts/world_import.py --tag 8485: 32 countries' clubs of the 1984-85 season, their leagues
+and national cups, the three European cups as they were, the era's national teams. OpenSWOS Setup downloads
+and installs it as a mod; the game checks its fingerprint (WORLD.ini) against the one baked into the build.
+Contents: $NCOUNTRY team files (JSON, and the Amiga's TEAM.nnn), leagues.json, WORLD.ini, mod.json.
+Fingerprint: $FP.
+
+Data sources and credits
+- DaniSwos (CM01/02 Retro Update Team): the 1984-85 database -- the squads, players and national teams.
+  Used with his permission.
+- The SWOS 96/97 Mod's packs (packs/europe-1984-85): club order from the 1983-84 final tables, European
+  entrants 1984-85, coaches and national cups from en/it/es/nl/pt/fr.wikipedia.org and Wikidata.
+- The original SWOS 96/97 game data is not included.
+
+Europe 1984-85 by DaniSwos and the SWOS 96/97 Mod (Davide Lorigliola and its contributors); conversion by
+Ben Baker (OpenSWOS).
+EOF
+else
 cat > "${OUT%.zip}.txt" <<EOF
 OpenSWOS-World-$TAG.zip -- the World $(sed -n 's/^name *= *World *//p' "$SRC/WORLD.ini") for OpenSWOS
 ==========================================================
@@ -116,6 +149,7 @@ Data sources and credits
 
 World 2026-27 by Davide Lorigliola and the SWOS 96/97 Mod's contributors; conversion by Ben Baker (OpenSWOS).
 EOF
+fi
 echo "${OUT%.zip}.txt: its credits (Mod $REL)"
 
 # The matchmaking server's team list carries the world's teams (their ids and checksums: an

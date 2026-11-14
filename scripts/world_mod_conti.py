@@ -66,6 +66,7 @@ CODE = {0x40: "next", 0x41: "ap", 0x42: "cl", 1: "cup"}
 POS = ["G", "RB", "LB", "D", "RW", "LW", "M", "A"]                 # (mkseason EXPLICIT_POS: byte 26 bits 5-7)
 SKIN = ["light", "ginger", "dark", "darkblond"]                     # (bits 3-4)
 SKILLS = ["pa", "ve", "he", "ta", "co", "sp", "fi"]
+ROLE = {"G": "G", "RB": "D", "LB": "D", "D": "D", "RW": "M", "LW": "M", "M": "M", "A": "A"}   # (mkseason EXPLICIT_ROLE)
 # rnames: name indices of the format keys (CT_KEYS), and CT_NEW's English long names
 N_OLD = 12
 CT_KEYS = {12: "league", 13: "po", 14: "r16", 16: "pre", 21: "r1", 24: "qf", 25: "sf", 26: "final", 34: "groups"}
@@ -220,8 +221,8 @@ def guest_club(r):
     for j in range(16):
         q = r[76 + 38 * j:76 + 38 * (j + 1)]
         nib = [q[28 + i // 2] >> (4 * (1 - i % 2)) & 15 for i in range(8)]
-        p = {"name": _text(q[3:26]), "number": q[2], "nat": q[0], "position": POS[q[26] >> 5],
-             "skin": SKIN[q[26] >> 3 & 3]}
+        p = {"name": _text(q[3:26]), "role": ROLE[POS[q[26] >> 5]], "number": q[2], "nat": q[0],
+             "position": POS[q[26] >> 5], "skin": SKIN[q[26] >> 3 & 3]}       # (role: the Mod's guests.record)
         for k, sk in enumerate(SKILLS):
             v = nib[k + 1]
             p[sk] = str(v & 7) + ("*" if v & 8 else "")

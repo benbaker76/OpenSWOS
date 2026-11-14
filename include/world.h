@@ -21,6 +21,9 @@ typedef enum {
     WORLD_2627,         /* the SWOS 96/97 Mod's World 2026-27 (docs/WORLD_2026_27.md): its data
                          * in data_json/worlds/2627/ over 96/97's, file by file and record by
                          * record (src/save_format_json.c); phase 3 holds Italy's leagues */
+    WORLD_8485,         /* the Mod's classic world Europe 1984-85 (DaniSwos's database; docs/
+                         * WORLD_2026_27.md §6g): its 32 countries' clubs over 96/97's, its own
+                         * countries alone (src/world_data_8485.c) */
     WORLD_COUNT
 } WorldId;
 
@@ -98,7 +101,9 @@ typedef struct WorldContiCup {
     uint8_t round[8];
     uint8_t rank;                       /* in its confederation: 0 its first (a Champions Cup's trophy), 1, 2 */
     uint8_t contest;                    /* its main round a contest of the game's (0: a stepladder, ties only) */
+    uint8_t conf;                       /* its confederation: WORLD_CONF_* (the continental cups' views) */
 } WorldContiCup;
+enum { WORLD_CONF_CONMEBOL, WORLD_CONF_CONCACAF, WORLD_CONF_AFC, WORLD_CONF_CAF, WORLD_CONF_OFC, WORLD_CONF_FIFA };
 const WorldContiCup *World_ContiCups(int32_t *count);
 
 /* Argentina's promedio history (src/league_playoffs.c; the Mod's GP_PROM_TAB): each club's points and

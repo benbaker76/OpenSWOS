@@ -25,6 +25,9 @@ extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerModRow(void);
 extern void BuyPlayerCpuReplacements(void);
+extern void BuyOtherPlayersPage(void);
+extern void ViewSquadPage(void);
+extern void BTeamSquadButton(void);
 extern void BuyPlayerViewSquad(void);
 extern void CareerGameListCommon(void);
 extern void CareerMenu(void);
@@ -68,6 +71,7 @@ extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
 extern void CompetitionStatsInit(void);
 extern void CompetitionStatsModRow(void);
+extern void CompetitionStatsSummary(void);
 extern void CompetitionStatsWinners(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
@@ -267,6 +271,7 @@ extern void OpenDiyFromFile(void);
 extern void OpenDiyPreset1(void);
 extern void OpenDiyPreset2(void);
 extern void OpenDiyPreset3(void);
+extern void OpenDiySlot4(void);
 extern void OptionsMenuBeforeDraw(void);
 extern void OptionsMenuSelected(void);
 extern void OriginalCustomTeams(void);
@@ -386,6 +391,7 @@ extern void ViewCompetitionsInit(void);
 extern void ViewCompetitionsMenu(void);
 extern void ViewCompetitionsMenuRetired(void);
 extern void ViewCompetitionsOnReturn(void);
+extern void ViewContinentalCups(void);
 extern void ViewDomesticPlayerMarket(void);
 extern void ViewForeignPlayerMarket(void);
 extern void ViewFutureTeam(void);
@@ -713,12 +719,14 @@ const MenuSymbol _menuSymbols[] = {
     { "AcceptJobOffer", (void*)AcceptJobOffer, SYM_FUNC },
     { "AcceptOffer", (void*)AcceptOffer, SYM_FUNC },
     { "AskForMore", (void*)AskForMore, SYM_FUNC },
+    { "BTeamSquadButton", (void*)BTeamSquadButton, SYM_FUNC },
     { "BuyOtherDomesticPlayer", (void*)BuyOtherDomesticPlayer, SYM_FUNC },
     { "BuyOtherForeignPlayer", (void*)BuyOtherForeignPlayer, SYM_FUNC },
     { "BuyOtherPlayersAfterDrawCommon", (void*)BuyOtherPlayersAfterDrawCommon, SYM_FUNC },
     { "BuyOtherPlayersCommon", (void*)BuyOtherPlayersCommon, SYM_FUNC },
     { "BuyOtherPlayersFinish", (void*)BuyOtherPlayersFinish, SYM_FUNC },
     { "BuyOtherPlayersInit", (void*)BuyOtherPlayersInit, SYM_FUNC },
+    { "BuyOtherPlayersPage", (void*)BuyOtherPlayersPage, SYM_FUNC },
     { "BuyPlayerCpuReplacements", (void*)BuyPlayerCpuReplacements, SYM_FUNC },
     { "BuyPlayerExit", (void*)BuyPlayerExit, SYM_FUNC },
     { "BuyPlayerInit", (void*)BuyPlayerInit, SYM_FUNC },
@@ -767,6 +775,7 @@ const MenuSymbol _menuSymbols[] = {
     { "CompetitionInfo", (void*)CompetitionInfo, SYM_FUNC },
     { "CompetitionStatsInit", (void*)CompetitionStatsInit, SYM_FUNC },
     { "CompetitionStatsModRow", (void*)CompetitionStatsModRow, SYM_FUNC },
+    { "CompetitionStatsSummary", (void*)CompetitionStatsSummary, SYM_FUNC },
     { "CompetitionStatsWinners", (void*)CompetitionStatsWinners, SYM_FUNC },
     { "CompetitionTopGoalScorersExit", (void*)CompetitionTopGoalScorersExit, SYM_FUNC },
     { "CompetitionTopGoalScorersInit", (void*)CompetitionTopGoalScorersInit, SYM_FUNC },
@@ -966,6 +975,7 @@ const MenuSymbol _menuSymbols[] = {
     { "OpenDiyPreset1", (void*)OpenDiyPreset1, SYM_FUNC },
     { "OpenDiyPreset2", (void*)OpenDiyPreset2, SYM_FUNC },
     { "OpenDiyPreset3", (void*)OpenDiyPreset3, SYM_FUNC },
+    { "OpenDiySlot4", (void*)OpenDiySlot4, SYM_FUNC },
     { "OptionsMenuBeforeDraw", (void*)OptionsMenuBeforeDraw, SYM_FUNC },
     { "OptionsMenuSelected", (void*)OptionsMenuSelected, SYM_FUNC },
     { "OriginalCustomTeams", (void*)OriginalCustomTeams, SYM_FUNC },
@@ -1085,6 +1095,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ViewCompetitionsMenu", (void*)ViewCompetitionsMenu, SYM_FUNC },
     { "ViewCompetitionsMenuRetired", (void*)ViewCompetitionsMenuRetired, SYM_FUNC },
     { "ViewCompetitionsOnReturn", (void*)ViewCompetitionsOnReturn, SYM_FUNC },
+    { "ViewContinentalCups", (void*)ViewContinentalCups, SYM_FUNC },
     { "ViewDomesticPlayerMarket", (void*)ViewDomesticPlayerMarket, SYM_FUNC },
     { "ViewForeignPlayerMarket", (void*)ViewForeignPlayerMarket, SYM_FUNC },
     { "ViewFutureTeam", (void*)ViewFutureTeam, SYM_FUNC },
@@ -1099,6 +1110,7 @@ const MenuSymbol _menuSymbols[] = {
     { "ViewSquadExitContinue", (void*)ViewSquadExitContinue, SYM_FUNC },
     { "ViewSquadInit", (void*)ViewSquadInit, SYM_FUNC },
     { "ViewSquadOnSelect21", (void*)ViewSquadOnSelect21, SYM_FUNC },
+    { "ViewSquadPage", (void*)ViewSquadPage, SYM_FUNC },
     { "ViewWorldMenu", (void*)ViewWorldMenu, SYM_FUNC },
     { "_a343", (void*)_a343, SYM_STRING },
     { "_a352", (void*)_a352, SYM_STRING },

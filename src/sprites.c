@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "player_looks.h"
 #include "sprites.h"
 #include "math68k.h"
 #include "game_types.h"
@@ -2109,6 +2110,11 @@ void DrawQueuedSprites(void)
         SpriteGraphics *a0 = *(SpriteGraphics **)a2;
         a2 -= sizeof(Sprite *);
         Sprite *a4 = *(Sprite **)a2;
+
+        /* A player is drawn with his look's frame (player_looks.c: the drawing only, the sprite
+         * is as it was), and the highlights keep what is drawn. */
+        if (a4->teamNumber == 1 || a4->teamNumber == 2)
+            a0 = (SpriteGraphics *)PlayerLooks_Graphics(a4, a0);
 
         /* Check if highlight recording needed */
         if (a4->teamNumber != 0) {

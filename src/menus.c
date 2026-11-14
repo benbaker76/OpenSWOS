@@ -3,6 +3,11 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "squad_extras.h"
+#include "long_bench.h"
+#include "player_looks.h"
+#include "shirt_edit.h"
+#include "bteam.h"
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
 #include "world_playoff.h"
@@ -30,6 +35,8 @@
 #include "game_utils.h"
 #include "game_types.h"
 #include "world.h"
+#include "conti_view.h"        /* VIEW COMPETITIONS' CONTINENTAL CUPS */
+#include "world_supercup.h"   /* ... and slot 4's Super Cup */
 #ifdef SWOS_SDL_BUILD
 #include <SDL.h>              /* OPTIONS -> WORLD: its messages */
 #include "project_identity.h"
@@ -743,6 +750,63 @@ extern uint16_t _littlePlayersSpriteTable[];
 #define SPR_LITTLE_PLAYER_GOALIE  213
 #define SHIRT_VERTICAL_STRIPES    2
 
+/* The line-ups screen's pages (a long bench, the Mod's bx_stad): page 0 the game's 11 + 5, then
+ * rows 12..16 the next five places each. */
+static uint16_t s_stadPage;
+static uint8_t  s_stadShown;            /* the line-ups screen was shown for this match */
+
+static uint16_t stad_place(uint16_t row)
+{
+    return (uint16_t)(row < 11 || !s_stadPage ? row : 16 + (s_stadPage - 1) * 5 + (row - 11));
+}
+
+static void stad_rows(void)
+{
+    const uint16_t first[2] = { 16, 43 };
+    TeamGame *tg[2] = { &_topTeamInGame, &_bottomTeamInGame };
+    for (int32_t t = 0; t < 2; t++)
+        for (uint16_t r = 11; r < 16; r++) {
+            const uint16_t place = stad_place(r);
+            PlayerInfo *pi = place < LongBench_Places() ? LongBench_Player(tg[t], place) : NULL;
+            MenuEntry *name = &_menuEntries[first[t] + r];  /* (the bench has names only: no little players) */
+            if (pi)
+                name->fg = (uintptr_t)pi->fullName;
+            name->isInvisible = (uint16_t)(!pi || !pi->fullName[0]);
+        }
+}
+
+/* InitializeInGameTeamsAndStartGame, after the line-ups' wait: a long bench's further pages, the
+ * line-ups screen shown again with rows 12..16 the next five places, each as long. Only when that
+ * screen was shown for this match (an online or a mod's match has none). */
+void Stadium_LongBenchPages(int32_t waitFrames)
+{
+    extern void WaitForVSync(void);
+    extern void Platform_RequestScreenshot(void);
+    extern uint8_t _stadiumMenu[];
+    const uint16_t places = LongBench_Places();
+#ifdef SWOS_SDL_BUILD
+    extern int32_t NetplayMatch_Enabled(void);
+    if (NetplayMatch_Enabled())
+        waitFrames = -1;                /* (online: the screens before a match are the game's own) */
+#endif
+    if (places <= 16 || !s_stadShown || waitFrames < 0) {
+        s_stadShown = 0;
+        return;
+    }
+    for (s_stadPage = 1; 16 + (s_stadPage - 1) * 5 < places; s_stadPage++) {
+        ShowMenu(_stadiumMenu);
+        for (int32_t i = waitFrames; i >= 0; i--) {
+#ifdef SWOS_SDL_BUILD
+            if (i == waitFrames - 20 && getenv("SWOS_TEST_LINEUP_SHOTS"))
+                Platform_RequestScreenshot();   /* (test: each page photographed) */
+#endif
+            WaitForVSync();
+        }
+    }
+    s_stadPage = 0;
+    s_stadShown = 0;
+}
+
 /* ================================================================
  * ShowStadiumInit  (SWOS2.s line 89572)
  *
@@ -859,10 +923,20 @@ void ShowStadiumInit(void)
             }
             d[k] = 0;
             _menuEntries[60].isInvisible = 0;
+            _menuEntries[60].y -= 2;        /* (in the 7 rows between the bars and the first line-up row) */
         }
     }
 
+    s_stadShown = 1;                    /* (a long bench's pages go over this screen: Stadium_LongBenchPages) */
+    if (s_stadPage)
+        stad_rows();
     DrawMenu();
+#ifdef SWOS_SDL_BUILD
+    if (getenv("SWOS_SHOT_STADIUM")) {  /* (test: a screenshot of this screen, its stadium name) */
+        extern void Platform_RequestScreenshot(void);
+        Platform_RequestScreenshot();
+    }
+#endif
     SetExitMenuFlag();
 }
 
@@ -901,9 +975,14 @@ void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
         _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = (uint16_t)team->prSocksCol;
     }
 
-    /* Set skin color from player's face2 field */
-    int16_t skinColor = (int8_t)team->players[playerIndex].face2;
+    /* Set skin color from player's face2 field (a long bench's page: its place's -- long_bench.c) */
+    int16_t skinColor = (int8_t)LongBench_Player(team, (uint16_t)stad_place(playerIndex))->face2;
     FillSkinColorConversionTable((uint16_t)skinColor, _stadiumMenuLittlePlayerSpriteCopy.colTable);
+    /* his look, as on the pitch (the Mod 4.1; player_looks.c): an outfield player's */
+    if (playerIndex != 0)
+        _stadiumMenuLittlePlayerSpriteCopy.srcSprite = PlayerLooks_LittlePlayer(
+            PlayerLooks_InMatch(team, &team->players[playerIndex]),
+            (uint16_t)_stadiumMenuLittlePlayerSpriteCopy.srcSprite, _stadiumMenuLittlePlayerSpriteCopy.colTable);
 }
 
 /* ================================================================
@@ -1147,6 +1226,7 @@ extern uint16_t _careerNumPlayers;
 extern void CallDrawMenuItem(MenuEntry *entry);
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
 extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern int32_t SquadNumbers_Kept(const TeamFileEx *team);
 extern void SquadNumbers_Free(uint16_t slot);
 extern uint8_t *GetPlayerAtIndex(uint16_t teamNumber, uint16_t ordinal);
 extern uint16_t _cGetPlayerAtIndexFileIdx;
@@ -1242,7 +1322,7 @@ static void squadSwapPlayersAtIndices(uint16_t prevFileIdx, uint16_t currFileIdx
         PlayerFile *prevPf = (PlayerFile *)(prevBlockPtr + 76);
         PlayerFile *currPf = (PlayerFile *)(currBlockPtr + 76);
         int8_t tmpShirt = currPf->shirtNumber;
-        if (!SquadNumbers_On()) {       /* (real squad numbers: not swapped, teams.c) */
+        if (!SquadNumbers_Kept(squadTf)) {  /* (real or edited squad numbers: not swapped, teams.c) */
             currPf->shirtNumber = prevPf->shirtNumber;
             prevPf->shirtNumber = tmpShirt;
         }
@@ -1564,6 +1644,7 @@ afterBankBalance:
     /* Entry 2: fg = team name, Entry 5: fg = coach name */
     _menuEntries[2].fg = (uintptr_t)tf->teamName;
     _menuEntries[5].fg = (uintptr_t)tf->coachName;
+    BTeam_SquadMenuInit();      /* (a world career's B TEAM button: bteam.c) */
     return;
 
 viewModeCompChecks:
@@ -1708,6 +1789,15 @@ void SquadAfterDrawCommon(void *entryPtr)
         e->fgNumber = (uint16_t)(uint8_t)pf->shirtNumber;
         e->isInvisible = 0;
     }
+    /* its box lit while it is edited (a career's squad: shirt_edit.c) */
+    if (ShirtEdit_LitSquadRow() == (int32_t)d7) {
+        e->background = ENTRY_FRAME_AND_BACK_COLOR;
+        e->bgColor = ShirtEdit_LitColour();
+    } else {
+        e->background = NO_BACKGROUND;
+    }
+    /* (a world's B-team call-up: his number in yellow, as the Mod 4.1 shows it -- bteam.c) */
+    e->stringFlags = (uint16_t)((e->stringFlags & 0xFFF0) | (BTeam_CalledKind(pf) ? 15 : 0));
     e->y = yPos;
 
     /* Entry 48: player name */
@@ -2184,23 +2274,49 @@ void ChangePitchStyle(MenuEntry *entry)
     CallDrawMenuItem(entry);
 }
 
-/* OPTIONS -> WORLD: 96/97 / 2026-27 -- [general] world in SWOS.ini (include/world.h). A world
- * goes over 96/97's tables when the menus start (World_InstallBaked), and nothing keeps 96/97's
- * to go back to, so the choice is played from the NEXT start: the row shows it, SWOS.ini keeps it,
- * and a message says so. 2026-27 only once its data is installed (OpenSWOS Setup: its package,
- * data_json/worlds/2627/WORLD.ini) -- else the row stays and the message says where to get it. */
+/* OPTIONS -> WORLD: 96/97, 2026-27, Europe 1984-85 -- [general] world in SWOS.ini (include/world.h).
+ * A world goes over 96/97's tables when the menus start (World_InstallBaked), and nothing keeps
+ * 96/97's to go back to, so the choice is played from the NEXT start: the row shows it, SWOS.ini
+ * keeps it, and a message says so. Each press goes to the next world whose data is installed
+ * (OpenSWOS Setup: its package, data_json/worlds/<tag>/WORLD.ini; 96/97 always); none but 96/97:
+ * the message says where to get them. */
 /* The main menu's WORLD button (entry 17; the SWOS 96/97 Mod 4.1's world selector): the world
  * chosen, as OPTIONS -> WORLD's row -- the same choice, played from the next start. */
+/* [general] original_main_menu (the Mod 4.1's "Original main menu", Marco's idea; src/main.c): 96/97's
+ * main menu -- no WORLD button -- and 96/97 the world played. Never on the Amiga. */
+int32_t g_originalMainMenu;
+
+static const char *const kWorldLabels[WORLD_COUNT] = { "WORLD: 1996-97", "WORLD: 2026-27", "EUROPE 1984-85" };
+static const char *const kWorldNames[WORLD_COUNT] = { "96-97", "World 2026-27", "Europe 1984-85" };
+
 static void main_menu_world_label(MenuEntry *e)
 {
     extern uint16_t _worldOption;
-    const char *t = _worldOption ? "WORLD: 2026-27" : "WORLD: 1996-97";
+    const char *t = kWorldLabels[_worldOption < WORLD_COUNT ? _worldOption : 0];
     uint8_t *d = (uint8_t *)e->fg;
     if (!d || e->fg == 0xFFFFFFFF)
         return;
     while ((*d++ = (uint8_t)*t++) != 0)
         ;
 }
+
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+/* A world's data is installed (96/97's always is). */
+int32_t World_Installed(int32_t w)
+{
+    char rel[64], path[1024];
+    if (w == WORLD_9697)
+        return 1;
+    if (!World_TagOf((WorldId)w))
+        return 0;
+    snprintf(rel, sizeof rel, "data_json/worlds/%s/WORLD.ini", World_TagOf((WorldId)w));
+    FILE *f = fopen(swos_data_path(rel, path, (uint32_t)sizeof path), "rb");
+    if (!f)
+        return 0;
+    fclose(f);
+    return 1;
+}
+#endif
 
 __attribute__((used, externally_visible))
 void ChangeWorld(MenuEntry *entry)
@@ -2209,45 +2325,45 @@ void ChangeWorld(MenuEntry *entry)
     extern uint16_t _worldOption;
     extern PlatformInitOptions *g_arcadeOpts;
     extern const char *g_arcadeIniPath;
-    const int want = !_worldOption;                 /* 1: 2026-27 */
-    if (want) {
-        char path[1024];
-        FILE *f = fopen(swos_data_path("data_json/worlds/2627/WORLD.ini", path, (uint32_t)sizeof path), "rb");
-        if (!f) {
-            extern int32_t AssetsCheck_FindSetup(char *out, uint32_t cap);
-            extern int32_t AssetsCheck_LaunchSetup(void);
-            char setup[1024];
-            const char *buttons[2];
-            int32_t n = 0, iSetup = -1;
-            if (AssetsCheck_FindSetup(setup, (uint32_t)sizeof setup)) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
-            buttons[n++] = "OK";
-            if (MenuDialog_Show("World 2026-27",
-                    "World 2026-27 is not installed.|Open " PROJECT_SETUP_NAME ": its row World 2026-27 "
-                    "has the link to download it, then click Install. On a phone: do that on your "
-                    "computer, then copy the assets folder over again.", buttons, n, 0) == iSetup &&
-                iSetup >= 0)
-                AssetsCheck_LaunchSetup();
-            return;
+    int32_t want = WORLD_9697;
+    for (int32_t i = 1; i < WORLD_COUNT; i++) {     /* the next installed world, 96/97 after the last */
+        const int32_t w = (_worldOption + i) % WORLD_COUNT;
+        if (World_Installed(w)) {
+            want = w;
+            break;
         }
-        fclose(f);
+    }
+    if (want == WORLD_9697 && _worldOption == WORLD_9697) {   /* (none but 96/97) */
+        extern int32_t AssetsCheck_FindSetup(char *out, uint32_t cap);
+        extern int32_t AssetsCheck_LaunchSetup(void);
+        char setup[1024];
+        const char *buttons[2];
+        int32_t n = 0, iSetup = -1;
+        if (AssetsCheck_FindSetup(setup, (uint32_t)sizeof setup)) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
+        buttons[n++] = "OK";
+        if (MenuDialog_Show("Worlds",
+                "No other world is installed.|Open " PROJECT_SETUP_NAME ": its Worlds row has the links to "
+                "download World 2026-27 and Europe 1984-85, then click Install. On a phone: do that "
+                "on your computer, then copy the assets folder over again.", buttons, n, 0) == iSetup &&
+            iSetup >= 0)
+            AssetsCheck_LaunchSetup();
+        return;
     }
     _worldOption = (uint16_t)want;
     if (entry == &_menuEntries[17] && Menu_IsMainMenu())
         main_menu_world_label(entry);
     if (g_arcadeOpts) {
-        snprintf(g_arcadeOpts->world, sizeof g_arcadeOpts->world, "%s", want ? "2627" : "9697");
+        snprintf(g_arcadeOpts->world, sizeof g_arcadeOpts->world, "%s", World_TagOf((WorldId)want));
         if (g_arcadeIniPath)
             Settings_Save(g_arcadeOpts, g_arcadeIniPath);
     }
     CallDrawMenuItem(entry);
-    if ((int)World_Current() != (want ? (int)WORLD_2627 : (int)WORLD_9697))
-    {
+    if ((int32_t)World_Current() != want) {
         static const char *const ok[] = { "OK" };
-        MenuDialog_Show("World",
-            want ? "World 2026-27 is played from the next time " PROJECT_NAME " starts.|"
-                   "Close it and start it again. Saves stay in the world they were made in."
-                 : "96-97 is played from the next time " PROJECT_NAME " starts.|"
-                   "Close it and start it again. Saves stay in the world they were made in.", ok, 1, 0);
+        char text[200];
+        snprintf(text, sizeof text, "%s is played from the next time " PROJECT_NAME " starts.|"
+                 "Close it and start it again. Saves stay in the world they were made in.", kWorldNames[want]);
+        MenuDialog_Show("World", text, ok, 1, 0);
     }
 #else
     (void)entry;
@@ -2943,7 +3059,7 @@ void CommonMenuExit(void)
          * entries there, and entry 17's text was written over: a crash at start-up) */
         extern void MainMenuWorld(void);
         extern uint8_t _currentMenu[];
-        if (((Menu *)_currentMenu)->numEntries > 17 &&
+        if (((Menu *)_currentMenu)->numEntries > 17 && !g_originalMainMenu &&
             _menuEntries[17].onSelect == (MenuEntryFn)(void (*)(void))MainMenuWorld) {
             _menuEntries[17].isInvisible = 0;
             main_menu_world_label(&_menuEntries[17]);
@@ -5291,6 +5407,8 @@ static void SetNationalityField(void)
  * Sets up competition name text pointers and shuffles Y coordinates
  * when hiding unavailable competition slots.
  * ================================================================ */
+static void ViewCompetitionsWorldEntries(void);
+
 __attribute__((used, externally_visible))
 void ViewCompetitionsOnReturn(void)
 {
@@ -5351,6 +5469,65 @@ void ViewCompetitionsOnReturn(void)
     {
         _menuEntries[6].isInvisible = 1;
     }
+
+    ViewCompetitionsWorldEntries();
+}
+
+/* OpenSWOS (a world career's): CONTINENTAL CUPS (entry 8; the SWOS 96/97 Mod 4.1's, SDL:
+ * conti_view.c) and the Super Cup in slot 4 (entry 9; world_supercup.c), both hidden otherwise.
+ * When one shows, the rows are laid out again in the order 1-4, the Super Cup, TOP GOAL SCORERS,
+ * CONTINENTAL CUPS, MANAGEMENT RECORD (closer together when they would reach EXIT), linked in that
+ * order; else the screen is the original's. */
+static void ViewCompetitionsWorldEntries(void)
+{
+    extern uint8_t _currentMenu[];
+    extern CompetitionSlotBuffer _diyCompetitionContextBuf;
+    static const uint8_t order[] = { 1, 2, 3, 4, 9, 5, 8, 6 };
+    const Menu *menu = (const Menu *)_currentMenu;
+    uint8_t shown[sizeof order];
+    int32_t n = 0;
+    if (menu->numEntries < 10)
+        return;
+    _menuEntries[8].isInvisible = 1;
+    _menuEntries[9].isInvisible = 1;
+    const int32_t cc = _gameType == 4 && ContiView_Available();
+    const int32_t sc = _gameType == 4 && SuperCup_InSlot4();
+    if (!cc && !sc)
+        return;
+    if (cc) {
+        _menuEntries[8].isInvisible = 0;
+        _menuEntries[8].fg = (uintptr_t)"CONTINENTAL CUPS";
+    }
+    if (sc) {
+        _menuEntries[9].isInvisible = 0;
+        _menuEntries[9].fg = (uintptr_t)_diyCompetitionContextBuf.tourn.header.competitionName;
+    }
+    for (uint32_t i = 0; i < sizeof order; i++)
+        if (!_menuEntries[order[i]].isInvisible)
+            shown[n++] = order[i];
+    /* (the rows' y as unpacked: entry 1's is never moved; MANAGEMENT RECORD's 125 below it, as the menu has it) */
+    const int32_t top = _menuEntries[1].y, bottom = top + 125;
+    int32_t step = 25;
+    if (n > 1 && top + step * (n - 1) > bottom)
+        step = (bottom - top) / (n - 1);
+    for (int32_t i = 0; i < n; i++) {
+        MenuEntry *e = &_menuEntries[shown[i]];
+        e->y = (uint16_t)(top + step * i);
+        if (shown[i] == 6 && step == 25)
+            e->y = (uint16_t)bottom;                /* (MANAGEMENT RECORD where the original has it) */
+        e->upEntry = (int8_t)(i ? shown[i - 1] : -1);
+        e->downEntry = (int8_t)(i + 1 < n ? shown[i + 1] : 7);
+        e->directionUp = e->directionDown = -1;
+    }
+    _menuEntries[7].upEntry = (int8_t)(n ? shown[n - 1] : -1);
+    _menuEntries[7].directionUp = -1;
+}
+
+/* VIEW COMPETITIONS' CONTINENTAL CUPS (entry 8): the confederations' cups (conti_view.c). */
+__attribute__((used, externally_visible))
+void ViewContinentalCups(void)
+{
+    ContiView_ShowConfs();
 }
 
 
@@ -5844,7 +6021,8 @@ void SetMenuEntryPlayerFace(MenuEntry *entry, PlayerFile *playerFile) {
     uint16_t d0 = playerFile[2].positionAndFace;
     d0 &= 0x18;
     d0 >>= 3;
-    entry->fgWord = (uint16_t)Face_MenuIcon(d0);     /* (face 3: player_face3.c) */
+    (void)d0;
+    entry->fgWord = (uint16_t)PlayerLooks_PlayerMenuIcon(&playerFile[2]);   /* (face 3, a look: player_looks.c) */
 }
 
 /* ---- Chunk 142: SaveCareer ---- */
@@ -5912,7 +6090,7 @@ void SetSquadMenuEntryStatusSprite(MenuEntry *entry, PlayerFile *playerFile, uin
 
         if (d2 == 0) {
             if (d3 == 0) {
-                entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
+                entry->fgWord = (uint16_t)PlayerLooks_PlayerMenuIcon(pf);   /* (0xBA + face; 3, a look: player_looks.c) */
                 return;
             }
             if (d3 == 0x20) {
@@ -5957,7 +6135,7 @@ void SetSquadMenuEntryStatusSprite(MenuEntry *entry, PlayerFile *playerFile, uin
 
     if (d2 == 0) {
         if (d3 == 0) {
-            entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
+            entry->fgWord = (uint16_t)PlayerLooks_PlayerMenuIcon(pf);   /* (0xBA + face; 3, a look: player_looks.c) */
             return;
         }
         if (d3 == 0x20) {
@@ -6021,7 +6199,7 @@ void SetSquadMenuEntryStatusSprite_AfterSim(MenuEntry *entry, PlayerFile *player
     uint16_t d3 = playerFile->cardsInjuries & 0xE0;
 
     if (d3 == 0) {
-        entry->fgWord = (uint16_t)Face_MenuIcon(d1);   /* (0xBA + face; 3: player_face3.c) */
+        entry->fgWord = (uint16_t)PlayerLooks_PlayerMenuIcon(playerFile);   /* (0xBA + face; 3, a look: player_looks.c) */
         return;
     }
     if (d3 == 0x20) {
@@ -6273,12 +6451,82 @@ extern void BuildTransferPlayerMenuEntry(void *item, uint8_t *player,
                                            uint16_t y, int16_t idx,
                                            uint16_t style, uint8_t *extra);
 
+/* A world club's second page in the squad view (STAT / VIEW SQUADS, a job offer's VIEW TEAM, an
+ * offer's "+": a player to add to the deal): its players 17.. still there (squad_extras.c; the Mod's
+ * 4.0.5 / 4.0.6 squad view) -- entry 35, NEXT PAGE / PREV PAGE right of EXIT. Any club but the
+ * managed one (its own 17.. are on its row 17 and the box), in a world career. */
+#define VS_EXIT  2
+#define VS_ROW0  4
+#define VS_ROWS  16
+#define VS_PAGE  35
+static uint8_t  s_vsPage;               /* 0 the record's 16, 1 the club's players 17.. */
+static uint16_t s_vsTeam;
+
+static int32_t vs_has_page(void)
+{
+    extern uint8_t _currentMenu[];
+    if (((const Menu *)_currentMenu)->numEntries <= VS_PAGE || s_vsTeam == _selTeamNumber)
+        return 0;
+    return SquadExtras_Nth(s_vsTeam, 0) >= 0;
+}
+
+static void vs_page_layout(void)
+{
+    extern uint8_t _currentMenu[];
+    if (((const Menu *)_currentMenu)->numEntries <= VS_PAGE)
+        return;
+    MenuEntry *page = &_menuEntries[VS_PAGE];
+    const int32_t has = vs_has_page();
+    if (!has) {
+        s_vsPage = 0;
+        page->isInvisible = 1;
+        return;                         /* (the game's own screen, untouched) */
+    }
+    const int8_t exitE = (int8_t)(_viewSquadArg2 ? VS_EXIT + 1 : VS_EXIT);  /* (EXIT, or CONTINUE) */
+    page->isInvisible = 0;
+    page->fg = (uintptr_t)(s_vsPage ? "PREV PAGE" : "NEXT PAGE");
+    page->leftEntry = exitE;
+    _menuEntries[exitE].rightEntry = VS_PAGE;
+    int32_t n = VS_ROWS;
+    if (s_vsPage) {
+        n = 0;
+        while (n < VS_ROWS && SquadExtras_Nth(s_vsTeam, n) >= 0)
+            n++;
+    }
+    for (int32_t r = 0; r < VS_ROWS; r++) {
+        MenuEntry *e = &_menuEntries[VS_ROW0 + r];
+        e->isInvisible = (uint16_t)(r >= n);
+        e->downEntry = (int8_t)(r + 1 < n ? VS_ROW0 + r + 1 : exitE);
+    }
+    page->upEntry = (int8_t)(VS_ROW0 + (n > 0 ? n - 1 : 0));
+}
+
+/* NEXT PAGE / PREV PAGE (entry 35) */
+__attribute__((used, externally_visible))
+void ViewSquadPage(void)
+{
+    s_vsPage ^= 1;
+    vs_page_layout();
+    SetCurrentEntry(VS_PAGE);
+    DrawMenu();
+}
+
 /* ViewSquadInit (Chunk 163)
  * Initializes view squad menu: shows/hides entries based on roster size,
  * sets title/team name, handles pre-selection. */
 __attribute__((used, externally_visible))
 void ViewSquadInit(void)
 {
+    s_vsTeam = PACK_BE_U16(_squadTeamPtr->countryNumber, _squadTeamPtr->teamOrdinal);
+    s_vsPage = 0;
+#ifdef SWOS_SDL_BUILD
+    if (getenv("SWOS_TEST_VIEWSQUAD") && vs_has_page()) {   /* (test: page 2 shown, photographed) */
+        extern void Platform_RequestScreenshot(void);
+        s_vsPage = 1;
+        Platform_RequestScreenshot();
+    }
+#endif
+    vs_page_layout();
     uint16_t teamNum = _selTeamNumber;
     if (teamNum != 0xFFFF) {
         if (teamNum == PACK_BE_U16(_squadTeamPtr->countryNumber, _squadTeamPtr->teamOrdinal)) {
@@ -6324,8 +6572,14 @@ void ViewSquadCommon(void *entryPtr)
     _viewSquadSelectedTeam = relIdx;
 
     uint16_t outSlot, outPlayerIndex;
-    GetPlayerInfoBreakPosition((TeamFileEx *)_squadTeamPtr, relIdx,
-                                 &outSlot, &outPlayerIndex);
+    if (s_vsPage) {                     /* (page 2: the club's players 17.. still there) */
+        const int32_t x = SquadExtras_Nth(s_vsTeam, relIdx);
+        if (x < 0)
+            return;
+        outPlayerIndex = (uint16_t)x;
+    } else
+        GetPlayerInfoBreakPosition((TeamFileEx *)_squadTeamPtr, relIdx,
+                                     &outSlot, &outPlayerIndex);
     _viewSquadSelectedPlayer = outPlayerIndex;
     SetExitMenuFlag();
 }
@@ -6347,8 +6601,17 @@ void ViewSquadAfterDrawCommon(void *entryPtr)
         d6 = 0xFFFF;
 
     uint16_t outSlot, outPlayerIndex;
-    uint8_t *player = GetPlayerInfoBreakPosition(
-        (TeamFileEx *)_squadTeamPtr, d1, &outSlot, &outPlayerIndex);
+    uint8_t *player;
+    if (s_vsPage) {                     /* (page 2: the club's players 17.., numbered from 17) */
+        const int32_t x = SquadExtras_Nth(s_vsTeam, d1);
+        if (x < 0)
+            return;
+        outPlayerIndex = (uint16_t)x;
+        player = SquadExtras_GetPlayer(s_vsTeam, (uint16_t)x);
+        d6 = (uint16_t)(x + 1);
+    } else
+        player = GetPlayerInfoBreakPosition(
+            (TeamFileEx *)_squadTeamPtr, d1, &outSlot, &outPlayerIndex);
 
     /* ASM: GetPlayerInfoBreakPosition overwrites d1 with the file index.
      * The mask checks below must use the file index, not the display row.

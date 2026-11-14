@@ -52,14 +52,18 @@
  * 120 bytes + CC64: src/league_phase.c), so with the worlds compiled in their copies hold one. A
  * copy's saved list runs to its template's size (the contest table's), so 96/97's saves are as
  * they were. */
+/* A classic world's UEFA Cup is a 64-club knockout (include/world_europe.h): its copy holds the
+ * record and the 32 clubs after it, 156 bytes. */
 #if SWOS_WORLDS
 #define EURO_COPY(n) 120
+#define EURO_COPY_KO 160
 #else
 #define EURO_COPY(n) (n)
+#define EURO_COPY_KO 92
 #endif
 uint8_t _euroCupCopy                          [EURO_COPY(112) + CC64] __attribute__((aligned(4)));
 uint8_t _cupWinnersCupCopy                    [EURO_COPY(92) + CC64] __attribute__((aligned(4)));
-uint8_t _uefaCupCopy                          [EURO_COPY(92) + CC64] __attribute__((aligned(4)));
+uint8_t _uefaCupCopy                          [EURO_COPY_KO + CC64] __attribute__((aligned(4)));
 uint8_t _invitationTournamentCopy             [92 + CC64] __attribute__((aligned(4)));
 uint8_t _tourCopy                             [92 + CC64] __attribute__((aligned(4)));
 uint8_t _friendlyCopy                         [92 + CC64] __attribute__((aligned(4)));

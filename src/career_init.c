@@ -14,8 +14,11 @@
 #include "uefa_coef.h"
 #include "world_finance.h"
 #include "cpu_repl.h"
+#include "squad_extras.h"
+#include "bteam.h"
 #include "world_conti.h"
 #include "states.h"
+#include "world_nationals.h"
 #include "comp_identity.h"
 #include <string.h>   /* memcpy in Rebuild_CupRecordNameSourcePointers */
 #include "endian_helpers.h"
@@ -53,6 +56,8 @@ extern uint16_t _careerSeasonsCompleted;
 #include "world_winners.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
+#include "cup_record.h"
 #include "world_rules.h"
 extern uint16_t _currentSeasonShowing;
 extern uint16_t _seasonTransferQuota;
@@ -276,10 +281,14 @@ void ChooseTeamAndStartCareer(void)
     TeamPool_Reset();
     WorldCups_Reset();
     CupD_Reset();
+    SuperCup_Reset();
+    CupRecord_Reset();
     UefaCoef_Reset();
     UefaPrize_NewCareer();
     Ffp_NewCareer();
     CpuRepl_NewCareer();
+    SquadExtras_Reset();        /* (a world's squads of 30: nobody gone yet) */
+    BTeam_Reset();              /* (... nobody called up from a B team) */
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
@@ -441,6 +450,7 @@ void Career_InitializeSelectedTeamAndStartingBalance(uint16_t teamNumber, int32_
     }
 
     _careerNumPlayers = 16;
+    SquadExtras_ClubLoaded();   /* (a world's club: its players 17.. join the squad, squad_extras.c) */
     _teamsLoaded = 0;
     _newBalance = 0;
     _sensisoftPlcSponsorshipFactor = 0;
@@ -666,6 +676,7 @@ __attribute__((used, externally_visible))
 void InitCareer(uint16_t teamNo)
 {
     _worldCupHostTeam = 20994;
+    WorldNationals_CareerStart();       /* (a classic world's holder: world_nationals.c) */
 
     /* Clear 2000 bytes of diyLeagueSeasonStateTable (volatile to prevent memset optimization) */
     {
@@ -676,10 +687,14 @@ void InitCareer(uint16_t teamNo)
     TeamPool_Reset();
     WorldCups_Reset();
     CupD_Reset();
+    SuperCup_Reset();
+    CupRecord_Reset();
     UefaCoef_Reset();
     UefaPrize_NewCareer();
     Ffp_NewCareer();
     CpuRepl_NewCareer();
+    SquadExtras_Reset();        /* (a world's squads of 30: nobody gone yet) */
+    BTeam_Reset();              /* (... nobody called up from a B team) */
     LeaguePlayoffs_ResetStages();
     WorldPlayoff_ResetStageTitles();
     WorldWinners_Reset();
@@ -807,6 +822,7 @@ void ContinueCareerNextSeason(void)
             ShowLeavingMessage();
         }
         SWOS_AUTOSKIP_LOG("[bug1] ContinueCareerNextSeason: offer-accepted branch");
+        BTeam_ReturnAll();      /* (a world's B-team call-ups go back before the old club's record is written) */
         Career_AdvanceToNextSeason_UpdateCompetitions();
         Career_ContinueToNextSeasonInitTeamAndFunds(_teamNoOfferAccepted, _teamFundsAccepted);
         InitializeNewSeason();
@@ -814,6 +830,7 @@ void ContinueCareerNextSeason(void)
         SWOS_AUTOSKIP_LOG("[bug1] ContinueCareerNextSeason: chairman branch (no offer accepted)");
         ShowChairmanOpinionAboutTheSeason();
         SWOS_AUTOSKIP_LOG("[bug1] back from ShowChairmanOpinion: youreSacked=%u", (unsigned)_youreSacked);
+        BTeam_ReturnAll();      /* (a world's B-team call-ups: back at the season's end) */
         Career_AdvanceToNextSeason_UpdateCompetitions();
         SWOS_AUTOSKIP_LOG("[bug1] back from AdvanceToNextSeason: youreSacked=%u", (unsigned)_youreSacked);
         InitializeStartingBalanceForNewSeason();
@@ -1292,6 +1309,7 @@ void InitializeNewSeason(void)
             cycle -= 5;                                 /* wrap into the 5-cycle period */
         _worldCupQualifyingTeam = _seasonCycleNationalFlagsA[cycle];
         _euroChampionshipQualTeam = _seasonCycleNationalFlagsB[cycle];
+        WorldNationals_Hosts();             /* (a classic world's cycle: its hosts) */
 
         /* Set cup pick list for selected region (param unused, function writes to global) */
         Career_SetCupPickList_ForSelectedRegion(0);
@@ -1489,6 +1507,8 @@ void InitializeNewSeason(void)
     Ffp_SeasonStartAfter();     /* (... judged against the season's income: fine, memo, market) */
     InitializeCareerSeasonFinancials();
     CupD_SeasonStart();     /* the Coppa Italia Serie D's rounds before the first match (world_cupd.c) */
+    SuperCup_SeasonStart(); /* a world's Super Cup tie built early (world_supercup.c) */
+    CupRecord_SeasonStart(); /* a world's cups' SUMMARY: the European record starts again */
 
     /* Show appropriate chairman message */
     if (_stayingInOldClub != 0) {
@@ -1724,7 +1744,10 @@ static void Rebuild_CompetitionSlotPointers(void)
     void **compTablePtr;
 
     if (_isNationalSelector != 0) {
-        Career_SetCupPickList_ForSelectedRegion(0);
+        /* the save's pick list (save_format_json.c cup_pick_list); an older save's drawn again */
+        extern int32_t SaveJson_RestoreCupPickList(void);
+        if (!SaveJson_RestoreCupPickList())
+            Career_SetCupPickList_ForSelectedRegion(0);
         compTablePtr = (void **)&_careerCupPickList;
     } else {
         uint16_t tableIdx = (_selTeamNumber == 0xFFFF)
@@ -1779,6 +1802,7 @@ static void Rebuild_CompetitionSlotPointers(void)
     }
     WorldPlayoff_RestoreSlot();     /* a world's play-off under way (world_playoff.c) */
     CupD_RestoreSlot();             /* a Coppa Italia Serie D tie under way (world_cupd.c) */
+    SuperCup_RestoreSlot();         /* a Super Cup tie under way (world_supercup.c) */
 
     /* Slot 3 (quaternary, euro cups) — re-derive from the SAVED euro-cup
      * slot CONTEXT, not from quaternaryCompetitionPtr.

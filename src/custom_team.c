@@ -36,6 +36,10 @@
 #include <strings.h>
 
 #include "custom_team.h"
+#include "team_packs.h"
+#include "world_packs.h"
+#include "player_looks.h"
+#include "shirt_edit.h"
 #include "project_identity.h"   /* PROJECT_TEAM_FORMAT */
 #include "endian_helpers.h"
 #include "kit_art.h"
@@ -156,6 +160,20 @@ static const TeamDbEntry *base_with_players(const TeamFileEx *team, uint8_t is[k
     for (i = 0; i < n; i++)
         if ((!canonical || bases[i]->canonical) && match_players(team, &bases[i]->team, is))
             return bases[i];
+#if defined(SWOS_SDL_BUILD) && SWOS_WORLDS
+    /* Another world's club the other game numbered by its session (include/world_packs.h): the
+     * same club here, found by its checksum, at this session's number. */
+    if (team->team.countryNumber >= TEAMPACK_FIRST && team->team.countryNumber <= TEAMPACK_LAST &&
+        !TeamPacks_File(team->team.countryNumber)) {
+        char sum[TEAM_CHECKSUM_TEXT];
+        int32_t number, ordinal;
+        const TeamDbEntry *e;
+        TeamDb_Checksum(team, sum);
+        if (WorldPacks_FindTeam(sum, &number, &ordinal) && (e = TeamDb_Team(number, ordinal)) != NULL &&
+            (!canonical || e->canonical) && match_players(team, &e->team, is))
+            return e;
+    }
+#endif
     return NULL;
 }
 
@@ -183,7 +201,22 @@ int32_t CustomTeam_Allowed(const TeamFileEx *team)
     return answer;
 }
 
+static int32_t is_custom(const TeamFileEx *team, int32_t kits);
+
 int32_t CustomTeam_IsCustom(const TeamFileEx *team)
+{
+    return is_custom(team, 1);
+}
+
+/* A team made from a database one (names, faces, nationalities changed: MY CUSTOM TEAM), its kits
+ * aside -- a kit chosen online travels inside the team (long_bench.c: a custom team keeps the
+ * game's bench, as the Mod's). */
+int32_t CustomTeam_IsEdited(const TeamFileEx *team)
+{
+    return is_custom(team, 0);
+}
+
+static int32_t is_custom(const TeamFileEx *team, int32_t kits)
 {
     uint8_t is[kPlayers];
     const TeamDbEntry *base = base_with_players(team, is, 0);
@@ -197,7 +230,7 @@ int32_t CustomTeam_IsCustom(const TeamFileEx *team)
     if (strncmp((const char *)a->teamName, (const char *)b->teamName, sizeof a->teamName) != 0 ||
         strncmp((const char *)a->coachName, (const char *)b->coachName, sizeof a->coachName) != 0)
         return 1;
-    for (kit = 0; kit < 2; kit++) {
+    for (kit = 0; kit < 2 && kits; kit++) {
         KitArt_FromTeam(a, kit, &mine);
         KitArt_FromTeam(b, kit, &his);
         if (memcmp(&mine, &his, sizeof mine) != 0)
@@ -207,9 +240,13 @@ int32_t CustomTeam_IsCustom(const TeamFileEx *team)
         const PlayerFile *p = &team->players[i], *q = &base->team.players[is[i]];
         if (strncmp((const char *)p->playerName, (const char *)q->playerName, sizeof p->playerName) != 0 ||
             p->nationality != q->nationality ||
-            (p->positionAndFace & PF_FACE_MASK) != (q->positionAndFace & PF_FACE_MASK))
+            (p->positionAndFace & PF_FACE_MASK) != (q->positionAndFace & PF_FACE_MASK) ||
+            PlayerLooks_FromBits(PlayerLooks_Room(p) ? (uint8_t)p->playerName[22] : 0) !=
+                PlayerLooks_FromBits(PlayerLooks_Room(q) ? (uint8_t)q->playerName[22] : 0))
             return 1;
     }
+    if ((a->andWith0xFE & SHIRT_NUMBERS_KEPT) != (b->andWith0xFE & SHIRT_NUMBERS_KEPT))
+        return 1;                   /* (numbers edited: its players' own, shirt_edit.c) */
     return 0;
 }
 
@@ -328,7 +365,9 @@ int32_t CustomTeam_FromTeam(const TeamFileEx *team, CustomTeam *out)
                                                                        : (uint8_t)his->nationality;
         p->shirtNumber = theirs->shirtNumber >= 1 && theirs->shirtNumber <= kMaxShirtNumber
                        ? theirs->shirtNumber : his->shirtNumber;
+        p->looks = PlayerLooks_Bits(PlayerLooks_FromBits(PlayerLooks_Room(theirs) ? (uint8_t)theirs->playerName[22] : 0));
     }
+    out->numbersKept = (team->team.andWith0xFE & SHIRT_NUMBERS_KEPT) != 0;
     return 1;
 }
 
@@ -421,7 +460,12 @@ int32_t CustomTeam_Resolve(const CustomTeam *custom, TeamFileEx *out)
             p->nationality = (int8_t)c->nationality;
         if (c->shirtNumber >= 1 && c->shirtNumber <= kMaxShirtNumber)
             p->shirtNumber = c->shirtNumber;
+        PlayerLooks_Set(p, PlayerLooks_FromBits(c->looks));   /* (none for a 22-letter name) */
     }
+    if (custom->numbersKept)
+        out->team.andWith0xFE |= SHIRT_NUMBERS_KEPT;
+    else
+        out->team.andWith0xFE &= (uint8_t)~SHIRT_NUMBERS_KEPT;
     return 1;
 }
 
@@ -494,6 +538,8 @@ static int32_t write_json(const CustomTeam *custom, char *json, size_t size)
     put(&t, ",\n    \"tactics\": %d,\n", custom->tactics);
     put_kit(&t, "primary", &custom->kit[0]);
     put_kit(&t, "secondary", &custom->kit[1]);
+    if (custom->numbersKept)
+        put(&t, "    \"shirt_numbers_kept\": 1,\n");
     put(&t, "    \"player_numbers\": [");
     for (i = 0; i < kPlayers; i++)
         put(&t, "%s%d", i ? ", " : "", custom->lineup[i]);
@@ -502,7 +548,8 @@ static int32_t write_json(const CustomTeam *custom, char *json, size_t size)
         const CustomPlayer *p = &custom->players[i];
         put(&t, "    { \"uuid\": \"%s\", \"player_name\": ", p->uuid);
         put_string(&t, p->name, sizeof p->name);
-        put(&t, ", \"face\": %d, \"nationality\": %d, \"shirt_number\": %d", p->face, p->nationality, p->shirtNumber);
+        put(&t, ", \"face\": %d, \"nationality\": %d, \"shirt_number\": %d, \"looks\": %d", p->face, p->nationality,
+            p->shirtNumber, p->looks);
         /* Who he is in the database, for whoever reads the file; nothing reads it back. */
         for (j = 0; base && j < kPlayers; j++)
             if (strcmp(p->uuid, base->ids.player[j]) == 0) {
@@ -593,6 +640,7 @@ static int32_t read_json(const char *json, int32_t length, CustomTeam *out)
     out->tactics = (uint8_t)json_int(json, length, "$.team.tactics", 0, LOBBY_TACTIC_MAX, out->tactics);
     json_kit(json, length, "primary", &out->kit[0]);
     json_kit(json, length, "secondary", &out->kit[1]);
+    out->numbersKept = (uint8_t)json_int(json, length, "$.team.shirt_numbers_kept", 0, 1, out->numbersKept);
     {
         uint8_t order[kPlayers];
         for (i = 0; i < kPlayers; i++) {
@@ -629,6 +677,8 @@ static int32_t read_json(const char *json, int32_t length, CustomTeam *out)
         p->nationality = (uint8_t)json_int(json, length, path, 0, kNationalities - 1, p->nationality);
         snprintf(path, sizeof path, "$.players[%d].shirt_number", (int)i);
         p->shirtNumber = (int8_t)json_int(json, length, path, 1, kMaxShirtNumber, p->shirtNumber);
+        snprintf(path, sizeof path, "$.players[%d].looks", (int)i);
+        p->looks = PlayerLooks_Bits(PlayerLooks_FromBits((uint8_t)json_int(json, length, path, 0, LOOKS_BITS, p->looks)));
     }
     return 1;
 }
@@ -952,6 +1002,9 @@ int32_t CustomTeam_SelfTest(void)
               team.players[2].shirtNumber = team.players[13].shirtNumber; team.players[13].shirtNumber = n; }
             team.players[4].nationality = 13;
             team.players[4].shirtNumber = 77;
+            /* A look (the SWOS 96/97 Mod's, EDIT CUSTOM TEAMS: not a skill) and numbers of their own. */
+            PlayerLooks_Set(&team.players[5], LOOK_SHAVED);
+            team.team.andWith0xFE |= SHIRT_NUMBERS_KEPT;
             if (!CustomTeam_Allowed(&team))
                 bad |= 4;
 
@@ -971,6 +1024,7 @@ int32_t CustomTeam_SelfTest(void)
                     want.team.playerNumbers[1] != team.team.playerNumbers[1] ||
                     want.players[4].nationality != 13 || want.players[4].shirtNumber != 77 ||
                     memcmp(want.players[5].playerName, "A \"QUOTED\" NAME", 15) != 0 ||
+                    PlayerLooks_Of(&want.players[5]) != LOOK_SHAVED || !(want.team.andWith0xFE & SHIRT_NUMBERS_KEPT) ||
                     !same_player(&want.players[7], &team.players[7]) ||
                     !same_player(&want.players[9], &team.players[9]))
                     bad |= 64;

@@ -318,6 +318,7 @@ static void print_usage(const char *argv0)
         "                            and every table names one. Exits.\n"
         "  --convert-diy=<in>,<out>  Rewrite a PC/SWOS 2020 .DIY as this game's JSON\n"
         "                            .DIY, which the Amiga loads. Exits.\n"
+        "  --world-packs-selftest    Other installed worlds' countries as session team packs\n"
         "  --custom-team-selftest    Check every database team against the custom team\n"
         "                            rule (names, faces, kits and line-up only) and\n"
         "                            through the team file's text. Exits.\n"
@@ -620,6 +621,8 @@ int main(int argc, char **argv)
     opts.netplay_remember = 1;    /* REMEMBER LOGIN INFO: on, as the login screen shows it */
     opts.assets_reminder_off[0] = '\0';  /* remind about older game data (src/assets_check.c) */
     opts.world[0] = '\0';                /* [general] world: 96/97 (include/world.h) */
+    opts.original_main_menu = 0;         /* [general] original_main_menu: the Mod 4.1's main menu */
+    int worldArg = 0;                    /* (--world / SWOS_WORLD named the world: it is played) */
     snprintf(opts.file_sort, sizeof opts.file_sort, "%s", "name");   /* [general] file_sort (src/file_io.c) */
     opts.quick_access = 0;               /* [general] quick_access (src/quick_access.c) */
     opts.opt_game_length = opts.opt_pitch_type = opts.opt_auto_replays = OPTION_UNSET;   /* [options]: */
@@ -632,6 +635,7 @@ int main(int argc, char **argv)
     opts.chat_scale = 0;          /* [chat] scale: 1x (SWOS 2020's) */
     opts.chat_auto_close = 5;     /* [chat] auto_close: 5 s (SWOS 2020's AFTER 5 SECONDS) */
     opts.no_injuries_cards = 0;   /* [testing] no_injuries_cards: the real rules unless asked (test_rules.h) */
+    opts.career_exact_continuation = 0;   /* [career] exact_continuation: off, as the original */
 #ifdef SWOS_TEST_RULES
     opts.reports = 1;             /* a tester build: match reports come back to us */
 #else
@@ -988,6 +992,38 @@ int main(int argc, char **argv)
                 return 1;
             }
             return CpuRepl_SelfTest(f, o) ? 1 : 0;
+        } else if ((v = match_kv(a, "squad-extras-selftest")) != NULL) {
+            extern int32_t SquadExtras_SelfTest(int32_t file, int32_t ordinal);
+            int f = -1, o = -1;                    /* (src/squad_extras.c: a club's players 17..) */
+            if (getenv("SWOS_WORLD"))
+                World_Set(getenv("SWOS_WORLD"));
+            if (sscanf(v, "%d,%d", &f, &o) != 2) {
+                fprintf(stderr, "--squad-extras-selftest=<team file>,<ordinal>\n");
+                return 1;
+            }
+            return SquadExtras_SelfTest(f, o) ? 1 : 0;
+        } else if (strcmp(a, "--long-bench-selftest") == 0) {
+            extern int32_t LongBench_SelfTest(void);
+            return LongBench_SelfTest() ? 1 : 0;   /* (src/long_bench.c: World 2026-27's bench table) */
+        } else if (strncmp(a, "--bteam-selftest", 16) == 0) {
+            extern int32_t BTeam_SelfTest(const char *arg);
+            if (getenv("SWOS_WORLD"))              /* (src/bteam.c: the B teams, their years) */
+                World_Set(getenv("SWOS_WORLD"));
+            return BTeam_SelfTest(a[16] == '=' ? a + 17 : "") ? 1 : 0;
+        } else if (strcmp(a, "--world-packs-selftest") == 0) {
+#if SWOS_WORLDS
+            extern int32_t WorldPacks_SelfTest(void);   /* (src/world_packs.c: other worlds' clubs) */
+            if (getenv("SWOS_WORLD"))
+                World_Set(getenv("SWOS_WORLD"));
+            return WorldPacks_SelfTest() ? 1 : 0;
+#else
+            return 1;
+#endif
+        } else if (strcmp(a, "--conti-view-selftest") == 0) {
+            extern int32_t ContiView_SelfTest(void);
+            if (getenv("SWOS_WORLD"))              /* (src/conti_view.c: the continental cups' views) */
+                World_Set(getenv("SWOS_WORLD"));
+            return ContiView_SelfTest() ? 1 : 0;
         } else if (strcmp(a, "--custom-team-selftest") == 0) {
             if (getenv("SWOS_WORLD"))
                 World_Set(getenv("SWOS_WORLD"));
@@ -1118,6 +1154,7 @@ int main(int argc, char **argv)
                 return 1;
             }
             snprintf(opts.world, sizeof opts.world, "%s", v);
+            worldArg = 1;
         } else if (strncmp(a, "--career-golden", 15) == 0 || strncmp(a, "--golden-", 9) == 0) {
             /* The golden career test (src/career_autopilot.c, scripts/career_golden_test.sh). */
             extern int32_t CareerAutopilot_ParseArg(const char *a);
@@ -1338,6 +1375,11 @@ int main(int argc, char **argv)
     /* The testers' rule, for offline play (include/test_rules.h). Said in the log: a
      * report from a career played without injuries is read differently. */
     TestRules_SetSetting(opts.no_injuries_cards);
+    {   /* [career] exact_continuation (save_format_json.c); SWOS_EXACT_CONTINUATION=0/1 for one run */
+        extern void SaveJson_SetExactContinuation(int32_t on);
+        const char *ec = getenv("SWOS_EXACT_CONTINUATION");
+        SaveJson_SetExactContinuation(ec ? ec[0] == '1' : opts.career_exact_continuation);
+    }
     {   /* ... or from the environment, for one run (the harness drives careers with it;
          * the name is the old compile-time flag's, which the docs and scripts still use) */
         const char *e = getenv("SWOS_TEST_NO_INJURIES_CARDS");
@@ -1522,6 +1564,10 @@ int main(int argc, char **argv)
         return ModsMenu_PageTest(getenv("SWOS_MOD_PAGE_TEST"));
     }
     { extern void TeamPacks_Install(void); TeamPacks_Install(); }   /* (the mods' team packs: include/team_packs.h) */
+#if SWOS_WORLDS
+    { extern void WorldPacks_FromEnv(void); WorldPacks_FromEnv(); }  /* (SWOS_WORLD_PACKS: a test's, world_packs.h) */
+    { extern void WorldPacks_IndexStart(void); WorldPacks_IndexStart(); }   /* (the other worlds' clubs by checksum) */
+#endif
     {   /* A sprite set as a mod ("sprites": "jaguar", docs/JAGUAR.md): the Jaguar tier draws its
          * grafs_jag/, with the four shading settings its own (its page; [graphics]'s otherwise). */
         const char *set = Mods_JaguarSprites();
@@ -1594,9 +1640,21 @@ int main(int argc, char **argv)
     }
     /* The football world (include/world.h): --world, else SWOS_WORLD, else SWOS.ini's, else
      * 96/97 -- World 2026-27's data is the player's to add (OpenSWOS Setup imports it). */
-    if (!opts.world[0] && getenv("SWOS_WORLD") && getenv("SWOS_WORLD")[0])
+    const char *playWorld = opts.world;
+    if (!worldArg && getenv("SWOS_WORLD") && getenv("SWOS_WORLD")[0]) {
         snprintf(opts.world, sizeof opts.world, "%s", getenv("SWOS_WORLD"));
-    if (opts.world[0] && World_Set(opts.world) != 0)
+        worldArg = 1;
+    }
+    /* ORIGINAL MAIN MENU (the Mod 4.1's, Marco's idea): 96/97's menu, 96/97 the world -- SWOS.ini's
+     * world is kept for when it is off (--world and SWOS_WORLD still choose). */
+    if (opts.original_main_menu && !worldArg) {
+        if (opts.world[0] && strcmp(opts.world, "9697") != 0)
+            fprintf(stderr, "[world] original_main_menu: playing 9697 (SWOS.ini's world %s kept)\n", opts.world);
+        playWorld = "9697";
+    }
+    { extern int32_t g_originalMainMenu;
+      g_originalMainMenu = opts.original_main_menu; }
+    if (playWorld[0] && World_Set(playWorld) != 0)
         fprintf(stderr, "[world] unknown world '%s' in SWOS.ini: playing %s\n", opts.world, World_Tag());
     if (World_Current() != WORLD_9697) {
         /* Its data (OpenSWOS Setup installs its package: data_json/worlds/<tag>/WORLD.ini): none,
@@ -1627,7 +1685,8 @@ int main(int argc, char **argv)
       extern int32_t Language_OptionFor(const char *code);
       _languageOption = (uint16_t)Language_OptionFor(opts.language); }
     { extern uint16_t _worldOption;
-      _worldOption = (uint16_t)(World_FromTag(opts.world[0] ? opts.world : "9697") == (int32_t)WORLD_2627); }
+      const int32_t w = World_FromTag(opts.world[0] ? opts.world : "9697");
+      _worldOption = (uint16_t)(w > 0 ? w : 0); }
 
     if (_gDosGraphics)
         fprintf(stderr, "[dos] DOS graphics mode ON (bin/%s)\n", _gDosGraphicsDir);

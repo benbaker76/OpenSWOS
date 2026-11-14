@@ -21,6 +21,7 @@ typedef struct CustomPlayer {
     uint8_t face;                       /* 0..2 */
     uint8_t nationality;                /* an index into the game's country names */
     int8_t  shirtNumber;
+    uint8_t looks;                      /* the SWOS 96/97 Mod's look bits (include/player_looks.h), 0 none */
 } CustomPlayer;
 
 typedef struct CustomTeam {
@@ -31,6 +32,7 @@ typedef struct CustomTeam {
     uint8_t  tactics;
     KitLook  kit[2];                            /* first, second */
     uint8_t  lineup[TEAM_PLAYERS];              /* TeamFile.playerNumbers */
+    uint8_t  numbersKept;                       /* its shirt numbers are its players' own (shirt_edit.h) */
     CustomPlayer players[TEAM_PLAYERS];
 } CustomTeam;
 
@@ -54,11 +56,14 @@ int32_t CustomTeam_Save(int32_t slot, const TeamFileEx *team);
 int32_t CustomTeam_Allowed(const TeamFileEx *team);
 
 /* Has this team been made someone's own -- a database team under another name, with
- * another coach, other kits, or players renamed, refaced or given another nationality?
+ * another coach, other kits, or players renamed, refaced, given another look or nationality,
+ * or its numbers edited (shirt_edit.c)?
  * A line-up, a formation or swapped shirt numbers alone do not make it one: every team
  * that has been through the team screen has those. For the team screen, which says
  * (CUSTOM) where it would name the country of the team's file. */
 int32_t CustomTeam_IsCustom(const TeamFileEx *team);
+/* The same, its kits aside (a kit chosen online travels in the team): long_bench.c. */
+int32_t CustomTeam_IsEdited(const TeamFileEx *team);
 
 /* What this team is, for the matchmaking server's team check (include/team_proto.h):
  * the id of the database team it is, and the checksum of its players as they are in

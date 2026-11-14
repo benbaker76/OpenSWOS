@@ -4,6 +4,7 @@
  */
 #ifdef SWOS_SDL_BUILD
 
+#include "long_bench.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,6 +111,7 @@ static struct {
     uint32_t         lingerStartMs;       /* p2p: 0 until the end is known */
     uint32_t         stallRng;            /* p2p: when to pause -- never the game's generator */
     uint32_t         randomInput;         /* live: SWOS_LIVE_RANDOM_INPUT's generator, 0 = the pad */
+    int32_t          benchInput;          /* live: SWOS_LIVE_BENCH_INPUT's bench place, 0 = none */
     uint32_t         chaseInput;          /* live: SWOS_LIVE_CHASE_INPUT's generator, 0 = off */
     int32_t          paceUsPerFrame;      /* live: extra wait per frame GGPO's time sync asks for */
     int32_t          paceFramesLeft;      /* ... for this many more frames */
@@ -919,6 +921,9 @@ int32_t NetplayMatch_Start(void)
      * interrupt behind its back (docs/ROLLBACK.md, "How the rig plays a match"). */
     Platform_QuiesceTimerThread();
     _gFrameStepInput = 1;      /* input a frame at a time (game_loop.h) */
+    /* A world's long bench: decided now from the setup's teams, as the kick-off will decide it,
+     * so the state's size counts its places 17.. from the first save (long_bench.c). */
+    { extern TeamFileEx _selectedTeams[]; LongBench_Prepare(&_selectedTeams[0].team, &_selectedTeams[1].team); }
     s_np.stateSize = SimState_Size(SIM_TIER_ALL);
     s_np.endFrame = -1;
     s_np.resultFrame = -1;
@@ -1161,6 +1166,10 @@ int32_t NetplayMatch_StartLive(int32_t localPlayer, const char *peerIp, uint16_t
         s_np.liveFrameLimit = (lim && lim[0]) ? atoi(lim) : 0;
         s_np.randomInput = (rnd && rnd[0]) ? (uint32_t)strtoul(rnd, NULL, 0) | 1u : 0;
         {
+            const char *bi = getenv("SWOS_LIVE_BENCH_INPUT");
+            s_np.benchInput = (bi && bi[0]) ? atoi(bi) : 0;
+        }
+        {
             const char *ch = getenv("SWOS_LIVE_CHASE_INPUT");
             s_np.chaseInput = (ch && ch[0]) ? (uint32_t)strtoul(ch, NULL, 0) | 1u : 0;
         }
@@ -1224,6 +1233,46 @@ static uint8_t randomInput(void)
         s_np.randomInput = pad.state;
         return v;
     }
+}
+
+/* SWOS_LIVE_BENCH_INPUT=<place>: a live match's local input that, as a person would, calls this
+ * player's bench at a stoppage, takes the cursor down to bench place <place> (6..15: a long bench's
+ * player from place 17 on, long_bench.c) and brings him on -- FIRE on him, FIRE on the player the
+ * game offers to take off -- once; the random pad (SWOS_LIVE_RANDOM_INPUT) before and after. It is
+ * this player's INPUT, so it is in the confirmed inputs both games play, in the recording's INPT,
+ * and a resimulation replays it; it reacts to what this peer has on screen, as chaseInput does. */
+static uint8_t benchInput(void)
+{
+    extern uint16_t _inSubstitutesMenu, _gameStatePl, _subsState, _benchPlayerIndex, _goToSubsTimer;
+    extern uint16_t _cameraCoordinatesValid, _substituteInProgress, _team1NumSubs, _team2NumSubs;
+    extern uintptr_t _benchTeam;
+    static int32_t phase, tick, done;
+    const int32_t want = s_np.benchInput;
+    extern TeamGeneralInfo _topTeamData, _bottomTeamData;
+    const TeamGeneralInfo *mine = (int32_t)_topTeamData.playerNumber == s_np.player ? &_topTeamData : &_bottomTeamData;
+    const uint16_t subs = mine->teamNumber == 1 ? _team1NumSubs : _team2NumSubs;
+    tick++;
+    if (done || subs > 0) {
+        if (!done && subs > 0)
+            fprintf(stderr, "[live] bench input: a substitution made (bench place %u)\n", (unsigned)want);
+        done = 1;
+        return s_np.randomInput ? randomInput() : 0;
+    }
+    if (_inSubstitutesMenu && _benchTeam == (uintptr_t)mine) {
+        if (!_cameraCoordinatesValid || _goToSubsTimer || _substituteInProgress)
+            return 0;
+        if ((tick & 7) >= 2)
+            return 0;                   /* (a tap: two frames on, six off) */
+        if (_subsState == 0 && _benchPlayerIndex < want)
+            return MATCH_DOWN;
+        return MATCH_FIRE;              /* (on him; then on the one the game offers) */
+    }
+    if (_gameStatePl != 100 /* ST_GAME_IN_PROGRESS */ || phase > 0) {
+        /* a stoppage: the bench button for a few frames */
+        phase = (phase + 1) % 40;
+        return phase < 4 ? MATCH_BENCH : 0;
+    }
+    return s_np.randomInput ? randomInput() : 0;
 }
 
 /* SWOS_LIVE_CHASE_INPUT=<seed>: a live match's local input from a player who chases the
@@ -2145,6 +2194,7 @@ prepared:
         memset(in, 0, sizeof in);
         in[s_np.player - 1].controls =
             s_np.chaseInput ? chaseInput() :       /* asked for by name: beats a test's own */
+            s_np.benchInput ? benchInput() :
             s_inputSource ? s_inputSource() :
             s_np.randomInput ? randomInput() : InputSDL_LocalMatchControls();
         in[s_np.player - 1].key = 0;       /* see InputSDL_LocalMatchControls */
@@ -2164,7 +2214,7 @@ prepared:
         }
         /* This pass's read is thrown away and the frame read again: a press it took
          * goes back (input_sdl.c, the press latch). */
-        if (s_np.live && !s_np.chaseInput && !s_inputSource && !s_np.randomInput) {
+        if (s_np.live && !s_np.chaseInput && !s_np.benchInput && !s_inputSource && !s_np.randomInput) {
             extern void InputSDL_UnreadMatchControls(void);
             InputSDL_UnreadMatchControls();
         }
@@ -2179,7 +2229,7 @@ prepared:
         /* ... and what the fire button did since the read before (SRP_READ_FIRE_*): only
          * when the controls really were this machine's. */
         extern uint8_t InputSDL_LastFireEvidence(void);
-        uint8_t evidence = (s_np.live && !s_np.chaseInput && !s_inputSource && !s_np.randomInput)
+        uint8_t evidence = (s_np.live && !s_np.chaseInput && !s_np.benchInput && !s_inputSource && !s_np.randomInput)
                                ? InputSDL_LastFireEvidence() : 0;
         Ghost_Read(frame, local[0], SDL_GetTicks(), s_np.delay,
                    (uint8_t)((s_np.paceFramesLeft > 0 ? s_np.paceKind : 0) | evidence), 0);
@@ -2453,6 +2503,7 @@ int32_t NetplayMatch_StartResim(const uint8_t *kickoff, uint32_t kickoffLen, con
     memset(&s_np, 0, sizeof s_np);
     memset(&s_resim, 0, sizeof s_resim);
     s_np.mode = NETPLAY_MATCH_RESIM;
+    { extern TeamFileEx _selectedTeams[]; LongBench_Prepare(&_selectedTeams[0].team, &_selectedTeams[1].team); }
     s_resim.kickoff = kickoff;
     s_resim.kickoffLen = kickoffLen;
     s_resim.inputs = inputs;

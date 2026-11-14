@@ -170,7 +170,7 @@ static uint8_t *make_tie(u8 now)
     uint8_t *z = (uint8_t *)&s_tie;
     for (uint32_t i = 0; i < sizeof s_tie; i++)
         z[i] = 0;
-    s_final = CT_SEG.round < 8 && cups[CT_SEG.cup].round[CT_SEG.round] == 9;
+    s_final = CT_SEG.round < 8 && cups[CT_SEG.cup].round[CT_SEG.round] == 8;   /* (FINAL) */
     CompetitionCup *t = &s_tie;
     const uint16_t a = ourId(CT_SEG.club[0]), b = ourId(CT_SEG.club[1]);
     t->header.comp.compId = CONTI_TIE_ID;
@@ -564,6 +564,9 @@ int32_t Conti_TrophyTier(void)
 /* The 96/97 Copa Libertadores gives way to a world's own cups. */
 int32_t Conti_ReplacesCopa(void) { return World_ContiSpec() != 0; }
 
+/* The career calendar's current week (the views': src/conti_view.c). */
+uint8_t Conti_WeekNow(void) { return week_now(); }
+
 #else
 
 void Conti_Country(void) { }
@@ -579,5 +582,6 @@ int32_t Conti_RoundStringIndex(uint8_t compId) { (void)compId; return -1; }
 int32_t Conti_ReplacesCopa(void) { return 0; }
 int32_t Conti_TieIsFinal(void) { return 0; }
 int32_t Conti_TrophyTier(void) { return -1; }
+uint8_t Conti_WeekNow(void) { return 0; }
 
 #endif /* SWOS_WORLDS */

@@ -1208,6 +1208,7 @@ typedef struct Menu_CompetitionStats
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry4;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;    /* WINNERS (a world's; world_winners.c) */
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;    /* OpenSWOS: a mod's row (MODPOINT; mod_entries.c) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry7;    /* OpenSWOS: SUMMARY (a world's cups; conti_view.c) */
   MenuMark markEndMenu;
 } Menu_CompetitionStats;
 #pragma pack(pop)
@@ -1290,6 +1291,9 @@ typedef struct Menu_ViewCompetitions
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry5;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry6;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry7;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry8;    /* OpenSWOS: CONTINENTAL CUPS (a world career's, SDL: */
+                                                        /*  conti_view.c, the Mod 4.1's ctview.py) */
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry9;    /* OpenSWOS: slot 4's Super Cup (world_supercup.c) */
   MenuMark markEndMenu;
 } Menu_ViewCompetitions;
 #pragma pack(pop)
@@ -1900,6 +1904,13 @@ typedef struct Menu_ViewSquad
   MenuCoords16 entry34_rc;
   MenuCmd_TextPtr entry34_text;
   MenuCommand entry34_end;
+  MenuCoords16 entry35_rc;                              /* OpenSWOS: NEXT / PREV PAGE (a world club's */
+  MenuCmd_Invisible entry35_invisible;                  /*  players 17..: menus.c ViewSquadPage, the */
+  MenuCmd_Nav entry35_nav;                              /*  Mod's 4.0.5 / 4.0.6 squad view) */
+  MenuCmd_Colors entry35_colors;
+  MenuCmd_TextNoPtr entry35_text;
+  MenuCmd_OnSelect entry35_onSelect;
+  MenuCommand entry35_end;
   MenuMark markEndMenu;
 } Menu_ViewSquad;
 #pragma pack(pop)
@@ -1940,6 +1951,13 @@ typedef struct Menu_BuyOtherPlayers
   MenuCoords16 entry30_rc;
   MenuCmd_TextPtr entry30_text;
   MenuCommand entry30_end;
+  MenuCoords16 entry31_rc;                              /* OpenSWOS: NEXT / PREV PAGE (a world club's */
+  MenuCmd_Invisible entry31_invisible;                  /*  players 17..: transfer_market.c, the Mod's */
+  MenuCmd_Nav entry31_nav;                              /*  xbrowse.py) */
+  MenuCmd_Colors entry31_colors;
+  MenuCmd_TextNoPtr entry31_text;
+  MenuCmd_OnSelect entry31_onSelect;
+  MenuCommand entry31_end;
   MenuMark markEndMenu;
 } Menu_BuyOtherPlayers;
 #pragma pack(pop)
@@ -2540,6 +2558,13 @@ typedef struct Menu_Squad
   MenuEntry_Byte_NumberOnly entries59_61[3];
   MenuMark markWideCoords3;
   MenuEntry_Wide_NumberOnly entries62_63[2];
+  MenuCoords16 entry64_rc;                              /* OpenSWOS: B TEAM (a world career's B-team */
+  MenuCmd_Invisible entry64_invisible;                  /*  call-ups: bteam.c, the Mod 4.1's bteam.py) */
+  MenuCmd_Nav entry64_nav;
+  MenuCmd_Colors entry64_colors;
+  MenuCmd_TextNoPtr entry64_text;
+  MenuCmd_OnSelect entry64_onSelect;
+  MenuCommand entry64_end;
   MenuMark markEndMenu;
 } Menu_Squad;
 #pragma pack(pop)

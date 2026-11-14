@@ -46,6 +46,9 @@ extern void NationalTeamAddPlayerModRow(void);
 extern void CompetitionStatsModRow(void);
 extern void BuyPlayerModRow(void);
 extern void BuyPlayerCpuReplacements(void);
+extern void BuyOtherPlayersPage(void);
+extern void ViewSquadPage(void);
+extern void BTeamSquadButton(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerViewSquad(void);
@@ -94,6 +97,7 @@ extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
 extern void CompetitionStatsInit(void);
 extern void CompetitionStatsWinners(void);
+extern void CompetitionStatsSummary(void);
 extern void CompetitionTopGoalScorersExit(void);
 extern void CompetitionTopGoalScorersInit(void);
 extern void ConsiderJobOffer(void);
@@ -283,6 +287,7 @@ extern void OpenDiyFromFile(void);
 extern void OpenDiyPreset1(void);
 extern void OpenDiyPreset2(void);
 extern void OpenDiyPreset3(void);
+extern void OpenDiySlot4(void);
 extern void OptionsMenuBeforeDraw(void);
 extern void OptionsMenuSelected(void);
 extern void OriginalCustomTeams(void);
@@ -411,6 +416,7 @@ extern void ViewSquadExitContinue(void);
 extern void ViewSquadInit(void);
 extern void ViewSquadOnSelect21(void);
 extern void ViewWorldMenu(void);
+extern void ViewContinentalCups(void);
 
 /* ---- External string constants ---- */
 extern char _a343[];
@@ -5078,6 +5084,13 @@ Menu_Squad _squadMenu = {
             MENU_CMD_END
         }
     },
+    { 121, 185, 59, 15 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, -1, 8, 45, 9 },
+    { MENU_CMD_COLORS, 0xE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, BTeamSquadButton },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_CompetitionStats _competitionStatsMenu = {
@@ -5135,6 +5148,14 @@ Menu_CompetitionStats _competitionStatsMenu = {
         { MENU_CMD_COLORS, 0xE },
         { MENU_CMD_TEXT_PTR, 0x0, _aModRow },
         { MENU_CMD_ONSELECT_FIRE, CompetitionStatsModRow },
+        MENU_CMD_END
+    },
+    {
+        { 92, 115, 120, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, -1 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, 0 },
+        { MENU_CMD_ONSELECT_FIRE, CompetitionStatsSummary },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU
@@ -5353,6 +5374,22 @@ Menu_ViewCompetitions _viewCompetitionsMenu = {
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
+    {
+        { 47, -126, -46, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, -1 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, 0 },
+        { MENU_CMD_ONSELECT_FIRE, ViewContinentalCups },
+        MENU_CMD_END
+    },
+    {
+        { 47, -126, -46, 15 },
+        { MENU_CMD_NAV, -1, -1, -1, -1 },
+        { MENU_CMD_COLORS, 0xE },
+        { MENU_CMD_TEXT_PTR, 0x0, 0 },
+        { MENU_CMD_ONSELECT_FIRE, OpenDiySlot4 },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU
@@ -7959,6 +7996,13 @@ Menu_ViewSquad _viewSquadMenu = {
     { 272, 0, 32, 8 },
     { MENU_CMD_TEXT_PTR, 0x8000, 0 },
     MENU_CMD_END,
+    { 184, 185, 76, 15 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, 2, -1, 19, -1 },
+    { MENU_CMD_COLORS, 0xE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, ViewSquadPage },
+    MENU_CMD_END,
     MENU_MARK_END_MENU
 };
 Menu_BuyOtherPlayers _buyOtherPlayersMenu = {
@@ -8135,6 +8179,13 @@ Menu_BuyOtherPlayers _buyOtherPlayersMenu = {
     MENU_MARK_WIDE_COORDS,
     { 272, 0, 32, 8 },
     { MENU_CMD_TEXT_PTR, 0x8000, 0 },
+    MENU_CMD_END,
+    { 184, 185, 76, 15 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, 2, -1, 18, -1 },
+    { MENU_CMD_COLORS, 0xE },
+    { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    { MENU_CMD_ONSELECT_FIRE, BuyOtherPlayersPage },
     MENU_CMD_END,
     MENU_MARK_END_MENU
 };

@@ -43,6 +43,7 @@
  * _s_pitchFullPtrs (pitch.c) mirrors the fan tile slots of _pitchDatBuffer at full
  * pointer width for the renderer; SimState_Load rebuilds it from the slots.
  */
+#include "long_bench.h"
 #ifdef SWOS_SDL_BUILD
 #include <stdio.h>      /* SimState_DescribePortableByte only; the m68k build has no stdio */
 #include "goal_ring.h"
@@ -508,6 +509,9 @@ const SimStateRegion g_simStateRegions[] = {
     REGION(_subsMenuHighlightColor, S, k_word16),
     REGION(_plComingX, S, k_word16), REGION(_plComingY, S, k_word16), REGION(_plComingYTmp, S, k_word16), REGION(_plLeavingX, S, k_word16),
     REGION(_plNamesLengthTableCopy, S, k_bytes), REGION(_plOrdinalsTable, S, k_bytes),
+    /* a long bench's places 17.. and their names (long_bench.c): only while the match has one */
+    REGION(g_lbExtra, S | SIM_LONGBENCH, k_bytes),
+    REGION(g_lbOrdinals, S | SIM_LONGBENCH, k_bytes), REGION(g_lbNameLenCopy, S | SIM_LONGBENCH, k_bytes),
     REGION(_plPositions, S, k_ptrTactics), REGION(_teamThatSubstitutes, S, k_ptrTeamInfo),
     REGION(_plSubstitutedX, S, k_word16), REGION(_plSubstitutedY, S, k_word16), REGION(_substitutedPlSprite, S, k_ptrSprite),
     REGION(_initialSubsState, S, k_word16), REGION(_selectedPlayerInSubs, S, k_word16), REGION(_showingUserStats, S, k_word16),
@@ -615,6 +619,8 @@ _Static_assert(sizeof g_simStateRegions / sizeof g_simStateRegions[0] <= MAX_REG
 int SimState_RegionActive(int32_t i, uint32_t tiers)
 {
     if ((g_simStateRegions[i].flags & SIM_OPTIONAL) && !ModHooks_MatchWordsUsed())
+        return 0;
+    if ((g_simStateRegions[i].flags & SIM_LONGBENCH) && !LongBench_On())
         return 0;
     return !s_disabled[i] && (SIM_REGION_TIER(&g_simStateRegions[i]) & tiers) != 0;
 }
@@ -1268,6 +1274,8 @@ uint64_t SimState_LayoutHash(void)
         const SimLayout *l = r->layout;
         if ((r->flags & SIM_OPTIONAL) && !ModHooks_MatchWordsUsed())
             continue;               /* (not there: the layout is the one without it) */
+        if (r->flags & SIM_LONGBENCH)
+            continue;               /* (a long bench's: the teams decide it, both games alike) */
         h = mix_bytes(h, r->name, (uint32_t)strlen(r->name) + 1);
         h = mix_u32(h, SimState_RegionPortableSize(i));
         h = mix_u32(h, r->flags);

@@ -437,6 +437,10 @@ static int handler(void *user, const char *section,
             snprintf(opts->arcade_key_p2_start, sizeof opts->arcade_key_p2_start, "%s", value);
         else if (eqi(name, "key_service") && value && value[0])
             snprintf(opts->arcade_key_service, sizeof opts->arcade_key_service, "%s", value);
+    } else if (eqi(section, "career")) {
+        int b;
+        if (eqi(name, "exact_continuation") && parse_bool(value, &b))
+            opts->career_exact_continuation = b;
     } else if (eqi(section, "testing")) {
         int b;
         if (eqi(name, "no_injuries_cards") && parse_bool(value, &b))
@@ -469,6 +473,8 @@ static int handler(void *user, const char *section,
             snprintf(opts->assets_reminder_off, sizeof opts->assets_reminder_off, "%s", value ? value : "");
         else if (eqi(name, "world") && value && value[0])
             snprintf(opts->world, sizeof opts->world, "%s", value);
+        else if (eqi(name, "original_main_menu"))
+            opts->original_main_menu = value && (eqi(value, "true") || eqi(value, "on") || eqi(value, "1"));
         else if (eqi(name, "file_sort") && value && (eqi(value, "name") || eqi(value, "date")))
             snprintf(opts->file_sort, sizeof opts->file_sort, "%s", value);
         else if (eqi(name, "quick_access")) {
@@ -907,6 +913,11 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "arcade", "key_p2_credit", NULL, opts->arcade_key_p2_credit[0] ? opts->arcade_key_p2_credit : "6" };
     SETTING(n) = (IniEntry){ "arcade", "key_p2_start", NULL, opts->arcade_key_p2_start[0]  ? opts->arcade_key_p2_start  : "2" };
     SETTING(n) = (IniEntry){ "arcade", "key_service", NULL, opts->arcade_key_service[0]   ? opts->arcade_key_service   : "F2" };
+    SETTING(n) = (IniEntry){ "career", "exact_continuation",
+        "; exact_continuation: true | false -- a career's saves also keep its random state and clock,\n"
+        "; so a loaded career plays on exactly as it would have. Off: as the original (a load plays\n"
+        "; on differently).",
+        opts->career_exact_continuation ? "true" : "false" };
 #ifdef SWOS_TEST_RULES
     SETTING(n) = (IniEntry){ "testing", "no_injuries_cards",
         "; no_injuries_cards: true | false -- FOR TESTING A CAREER: nobody is booked, sent off,\n"
@@ -921,10 +932,15 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; an older " PROJECT_SETUP_NAME " -- the data versions it was about. Empty: remind (src/assets_check.c).",
         opts->assets_reminder_off };
     SETTING(n) = (IniEntry){ "general","world",
-        "; world: 9697 | 2627 -- the football world: its countries, clubs and competitions\n"
-        "; (docs/WORLD_2026_27.md): SWOS 96/97, or World 2026-27 once " PROJECT_SETUP_NAME " has\n"
-        "; imported its data. A save is played in the world it was made in.",
+        "; world: 9697 | 2627 | 8485 -- the football world: its countries, clubs and competitions\n"
+        "; (docs/WORLD_2026_27.md): SWOS 96/97, World 2026-27 or Europe 1984-85 once " PROJECT_SETUP_NAME "\n"
+        "; has imported its data. A save is played in the world it was made in.",
         opts->world[0] ? opts->world : "9697" };
+    SETTING(n) = (IniEntry){ "general","original_main_menu",
+        "; original_main_menu: true | false -- the main menu as 96/97's (no WORLD button, CAREER in\n"
+        "; the middle) and 96/97 the world played, whatever world says (the SWOS 96/97 Mod 4.1's\n"
+        "; \"Original main menu\", Marco's idea). world is kept for when it is off again.",
+        opts->original_main_menu ? "true" : "false" };
     SETTING(n) = (IniEntry){ "general","file_sort",
         "; file_sort: name | date -- the order of the LOAD and SAVE screens' files (SWOS 2020's SORT\n"
         "; OPTION; their SORTED BY button switches it): by name, as the game always had them, or the\n"

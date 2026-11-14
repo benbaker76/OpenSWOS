@@ -28,6 +28,10 @@
  * GetExpectedLeagueRankIndex.
  */
 
+#include <stdlib.h>
+#include "long_bench.h"
+#include "squad_extras.h"
+#include "bteam.h"
 #include "career_status.h"
 #include "teams.h"
 #include "league_phase.h"
@@ -597,6 +601,30 @@ uint16_t IsPlayerInjuredForDisplay(PlayerFile *playerFile, int16_t mode) {
     return player_injury_status(playerFile, mode);
 }
 
+/* A friendly club's long bench (long_bench.c, the Mod's fr_a2 / fr_a1): the checks read the order
+ * on the pre-match screen -- its 16 and its players 17.. -- not the record's. 0: the record's. */
+static int32_t fr_list(TeamFileEx *team, uint8_t **list, uint16_t *count)
+{
+    uint16_t n = 0;
+    const uint8_t *order = LongBench_FrOrder(PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal), &n);
+    if (!order || team == &_careerTeam || team == &_currentTeam)
+        return 0;
+    *list = (uint8_t *)order;
+    *count = n;
+    return 1;
+}
+
+static PlayerFile *fr_player(TeamFileEx *team, int16_t idx)
+{
+    if (idx >= 16) {
+        PlayerFile *x = SquadExtras_BenchRecord(PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal),
+                                                (uint16_t)idx);
+        if (x)
+            return x;
+    }
+    return &team->players[idx];
+}
+
 /* ================================================================
  * GetNumberOfSubstitutes
  * Counts players with position == 0 (goalkeeper) in the team.
@@ -614,12 +642,14 @@ uint16_t GetNumberOfSubstitutes(TeamFileEx *team, uint16_t numPl) {
         playerList = _playerPositions;
     } else {
         playerList = team->team.playerNumbers;
+        uint16_t frN;
+        fr_list(team, &playerList, &frN);
     }
 
     uint16_t count = 0;
     for (; iter >= 0; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
         uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
         if (position == 0)
             count++;
@@ -642,12 +672,14 @@ uint16_t GetNumberOfSubstitutesInSelectionList(TeamFileEx *team, uint16_t extraC
         playerList = _playerPositions;
     } else {
         playerList = team->team.playerNumbers;
+        uint16_t frN;
+        fr_list(team, &playerList, &frN);
     }
 
     uint16_t count = 0;
     for (; iter >= 11; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
         uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
         if (position == 0)
             count++;
@@ -725,6 +757,7 @@ uint32_t GetNumberOfAvailablePlayers(TeamFileEx *team, int16_t excludeCardsFlag,
     } else {
         playerList = team->team.playerNumbers;
         totalCount = 16;
+        fr_list(team, &playerList, &totalCount);
     }
 
     if (numPl != 0)
@@ -736,7 +769,7 @@ uint32_t GetNumberOfAvailablePlayers(TeamFileEx *team, int16_t excludeCardsFlag,
 
     for (; iter >= 0; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
         if (isPlayerDisabled(pf, excludeCardsFlag)) {
             disabled++;
             available--;
@@ -765,6 +798,7 @@ uint32_t GetNumberOfAvailableSubstitutes(TeamFileEx *team, int16_t flag) {
     } else {
         playerList = team->team.playerNumbers;
         totalCount = 16;
+        fr_list(team, &playerList, &totalCount);
     }
 
     uint16_t disabled = 0;
@@ -773,7 +807,7 @@ uint32_t GetNumberOfAvailableSubstitutes(TeamFileEx *team, int16_t flag) {
 
     for (; iter >= 0; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
 
         /* Check if goalkeeper (position == 0) */
         uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
@@ -807,6 +841,7 @@ uint32_t GetNumberOfAvailableStartingPlayers(TeamFileEx *team, int16_t flag) {
     } else {
         playerList = team->team.playerNumbers;
         totalCount = 16;
+        fr_list(team, &playerList, &totalCount);
     }
 
     uint16_t disabled = 0;
@@ -815,7 +850,7 @@ uint32_t GetNumberOfAvailableStartingPlayers(TeamFileEx *team, int16_t flag) {
 
     for (; iter >= 0; iter--) {
         int16_t idx = (int8_t)playerList[iter];
-        PlayerFile *pf = &team->players[idx];
+        PlayerFile *pf = fr_player(team, idx);
 
         /* Check if NOT goalkeeper (position != 0) */
         uint16_t position = ((uint16_t)pf->positionAndFace & PF_POSITION_MASK) >> PF_POSITION_SHIFT;
@@ -1384,6 +1419,13 @@ void MaybeSackManagerAfterSeasonReview(void) {
 
     if (randVal > threshold)
         return;
+#ifdef SWOS_SDL_BUILD
+    {   /* SWOS_TEST_NATIONAL_JOB (the golden careers, job_offers.c): the national coach is kept --
+         * his cycle's competitions played out (the draw above taken all the same) */
+        if (_isNationalSelector && getenv("SWOS_TEST_NATIONAL_JOB"))
+            return;
+    }
+#endif
 
     _currentMessage = CHAIRMAN_WE_DIDNT_RENEW_YOUR_CONTRACT;
     ShowChairmanMessage();
@@ -2365,8 +2407,9 @@ void Career_UpdatePlayerWeeklyWageCache(uint16_t playerIndex)
     if (someFlag == PLAYER_FORM_TRIALIST) {
         /* Trialist: reduce wage (default 33%) */
         avgBase = (uint16_t)((uint32_t)avgBase * _careerParams.wage_trialist_pct / 100);
-    } else if (someFlag == PLAYER_FORM_RESERVE) {
-        /* Youth: reduce wage (default 66%) */
+    } else if (someFlag == PLAYER_FORM_RESERVE || SquadExtras_IsOwnExtra(pf)) {
+        /* Youth: reduce wage (default 66%) -- and a world club's own players 17.. while they are
+         * its (squad_extras.c: the Mod's xtra_wage) */
         avgBase = (uint16_t)((uint32_t)avgBase * _careerParams.wage_reserve_pct / 100);
     }
 
@@ -2379,6 +2422,8 @@ void Career_UpdatePlayerWeeklyWageCache(uint16_t playerIndex)
     if (_careerParams.wage_pct != 100)  /* (career_params: Career+'s 40%) */
         wage = wage * _careerParams.wage_pct / 100u;
 
+    if (BTeam_CalledKind(pf) == 1)      /* (a world's B-team call-up for one match: no wages, bteam.c) */
+        wage = 0;
     _weeklyWageByPlayerIndex[playerIndex] = (int32_t)wage;
 
     recalcTotalWeeklyWages();

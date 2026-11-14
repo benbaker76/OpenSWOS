@@ -3,6 +3,9 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "long_bench.h"
+#include "shirt_edit.h"
+#include "squad_extras.h"
 #include "teams.h"
 #include "world.h"
 #include "career_teams.h"
@@ -22,6 +25,8 @@
 #include "career_init.h"
 #include "league_groups.h"
 #include "team_pool.h"
+#include "conti_view.h"         /* VIEW WORLD: a world's cup rows */
+#include "conti_season.h"       /* Conti_ReplacesCopa */
 #include "swos_io.h"
 #include <stdlib.h>            /* getenv — SWOS_DATA_JSON team-load wire-in; malloc (TeamFile_PutAside) */
 #include <string.h>            /* (TeamFile_PutAside) */
@@ -449,8 +454,9 @@ int16_t LoadTeamFile(uint16_t extNumber)
 
 #if SWOS_WORLDS
         /* Today's names of the national teams whose nation changed it, in a world of today (the
-         * SWOS 96/97 Mod 4.1's NAT_TEAM_TODAY: its renamed copies of TEAM.080..085). */
-        if (ext8 >= 80 && ext8 <= 85 && World_Current() != WORLD_9697) {
+         * SWOS 96/97 Mod 4.1's NAT_TEAM_TODAY: its renamed copies of TEAM.080..085, the worlds
+         * from 2019 on -- Europe 1984-85's are the era's own files). */
+        if (ext8 >= 80 && ext8 <= 85 && World_Current() != WORLD_9697 && World_FirstYear() >= 2019) {
             static const char *const kToday[][2] = {
                 { "YUGOSLAVIA", "SERBIA" }, { "MACEDONIA", "NORTH MACEDONIA" },
                 { "SWAZILAND", "ESWATINI" }, { "CZECH REPUBLIC", "CZECHIA" },
@@ -889,6 +895,10 @@ void RotatePlayersLeft(TeamFileEx *team, uint16_t maxSubs)
         arr = _currentMatchPlayers;
         count = (int16_t)*(uint16_t *)_careerNumPlayers;
     } else {
+        /* (a friendly's long bench: its own order, places 17.. included -- long_bench.c) */
+        if (LongBench_FrRotate(PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal),
+                               (uint16_t)(maxSubs + 11)))
+            return;
         arr = team->team.playerNumbers;
         count = 0x10;
     }
@@ -1046,8 +1056,20 @@ uint8_t *GetPlayer(uint16_t teamNumber, uint16_t playerFileIndex)
         teamBase = _currentTeam;
     else if (teamNumber == _selTeamNumber)
         teamBase = (uint8_t *)&_careerTeam;
-    else
+    else {
+        /* another club's player 17.. (a world career's squads: squad_extras.c, the Mod's gp_wide) */
+        if (playerFileIndex >= 16) {
+            uint8_t *x = SquadExtras_GetPlayer(teamNumber, playerFileIndex);
+            if (x)
+                return x;
+            {   /* (a friendly's: its long bench's players 17.., long_bench.c's own order) */
+                PlayerFile *p = SquadExtras_BenchRecord(teamNumber, playerFileIndex);
+                if (p)
+                    return (uint8_t *)p - sizeof(TeamFile);
+            }
+        }
         teamBase = (uint8_t *)GetTeamPointer(teamNumber);
+    }
 
     return teamBase + (uint16_t)(playerFileIndex * sizeof(PlayerFile));
 }
@@ -1072,12 +1094,18 @@ uint8_t *GetPlayerAtIndex(uint16_t teamNumber, uint16_t ordinal)
     } else if (teamNumber == _selTeamNumber) {
         fileIndex = (uint16_t)_currentMatchPlayers[ordinal];
     } else {
-        if (ordinal >= 16) {
-            _panicReasonCode = 0x1146;
-            PanicHaltLoop();
+        uint16_t n = 0;
+        const uint8_t *order = LongBench_FrOrder(teamNumber, &n);  /* (a friendly's long bench: its own order) */
+        if (order && ordinal < n) {
+            fileIndex = order[ordinal];
+        } else {
+            if (ordinal >= 16) {
+                _panicReasonCode = 0x1146;
+                PanicHaltLoop();
+            }
+            TeamFileEx *teamPtr = GetTeamPointer(teamNumber);
+            fileIndex = (uint16_t)teamPtr->team.playerNumbers[ordinal];
         }
-        TeamFileEx *teamPtr = GetTeamPointer(teamNumber);
-        fileIndex = (uint16_t)teamPtr->team.playerNumbers[ordinal];
     }
 
     _cGetPlayerAtIndexFileIdx = fileIndex;
@@ -1306,12 +1334,19 @@ int32_t SquadNumbers_On(void)
     return _gameType == 4 && World_SquadNumbers();
 }
 
+/* A team whose numbers are its players' own: a squad-number world's career, or a team whose
+ * numbers were edited (EDIT CUSTOM TEAMS: SHIRT_NUMBERS_KEPT, shirt_edit.c). */
+int32_t SquadNumbers_Kept(const TeamFileEx *team)
+{
+    return SquadNumbers_On() || (team && (team->team.andWith0xFE & SHIRT_NUMBERS_KEPT));
+}
+
 void SquadNumbers_Free(uint16_t slot)
 {
     const uint16_t numPlayers = *(uint16_t *)_careerNumPlayers;   /* (a word: declared bytes here) */
     uint8_t used[100];
     const uint16_t team = BE_READ_U16(&_careerTeam);   /* (the managed club, as SetBenchPlayersNumbers reads it) */
-    if (!SquadNumbers_On() || slot >= 32)
+    if (!SquadNumbers_Kept(&_careerTeam) || slot >= 32)  /* (real or edited squad numbers) */
         return;
     for (int32_t n = 0; n < 100; n++)
         used[n] = 0;
@@ -1341,7 +1376,7 @@ void SetBenchPlayersNumbers(TeamFileEx *team)
     uint16_t teamNum = BE_READ_U16(team);  /* first word: countryNumber + teamOrdinal */
     uint16_t d1;
 
-    if (SquadNumbers_On())              /* (real squad numbers: the players' own) */
+    if (SquadNumbers_Kept(team))        /* (real squad numbers, or edited ones: the players' own) */
         return;
 
     for (d1 = 11; d1 < 16; d1++) {
@@ -1470,6 +1505,9 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
 
     d1 = index;
 
+    /* (one of a world club's own players 17.. leaving it: listed, never back -- squad_extras.c) */
+    SquadExtras_OwnLeaving(d1);
+
     /* Get player record and accumulate stats */
     player = GetPlayer(_selTeamNumber, d1);
     {
@@ -1512,7 +1550,7 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
             PlayerFile *pf1 = (PlayerFile *)(a1 + 76);
             PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
             int8_t tmpShirt = pf2->shirtNumber;
-            if (!SquadNumbers_On()) {   /* (real squad numbers: not swapped) */
+            if (!SquadNumbers_Kept(&_careerTeam)) {   /* (real or edited squad numbers: not swapped) */
                 pf2->shirtNumber = pf1->shirtNumber;
                 pf1->shirtNumber = tmpShirt;
             }
@@ -1558,7 +1596,7 @@ void Career_RemovePlayerFromSelectedTeamRoster(uint16_t index)
             PlayerFile *pf1 = (PlayerFile *)(a1 + 76);
             PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
             int8_t tmpShirt = pf2->shirtNumber;
-            if (!SquadNumbers_On()) {   /* (real squad numbers: not swapped) */
+            if (!SquadNumbers_Kept(&_careerTeam)) {   /* (real or edited squad numbers: not swapped) */
                 pf2->shirtNumber = pf1->shirtNumber;
                 pf1->shirtNumber = tmpShirt;
             }
@@ -2889,6 +2927,8 @@ void SetTeamsCoordinates(void)
     }
 }
 
+static void style_marker_rows(void);   /* (below, with the world list's markers) */
+
 __attribute__((used, externally_visible))
 void SelectTeamsReinit(void)
 {
@@ -2974,6 +3014,7 @@ void SelectTeamsReinit(void)
 
     SetTeamsCoordinates();
     SetLeagueNames();
+    style_marker_rows();
     SetCountryNames();
 
     /* Set cursor to previous selection if valid */
@@ -3050,7 +3091,18 @@ void ChooseTeamsInit(void)
     {
 #ifdef SWOS_SDL_BUILD
         extern int32_t TeamPacks_Count(void);
-        const int32_t packs = TeamPacks_Count() > 0;
+#if SWOS_WORLDS
+        /* (and the other installed worlds' clubs: include/world_packs.h -- the row is OTHER
+         * WORLDS when no mod has a pack) */
+        extern int32_t WorldPacks_WorldCount(void);
+        const int32_t worlds = WorldPacks_WorldCount() > 0;
+#else
+        const int32_t worlds = 0;
+#endif
+        const int32_t packs = TeamPacks_Count() > 0 || worlds;
+        extern char _aTeamPacks[];
+        if (packs)
+            _menuEntries[5].fg = (uintptr_t)(TeamPacks_Count() > 0 ? _aTeamPacks : "OTHER WORLDS");
 #else
         const int32_t packs = 0;
 #endif
@@ -3136,12 +3188,43 @@ static uint16_t groupedLeagueRows(const LeagueGroups *lg, uint8_t *compEntry,
 extern const char *ModComps_RowLabel(void);     /* (src/mod_comps.c) */
 extern int32_t     ModComps_Choose(void);
 static uint8_t     k_modCompsMarker;
+#ifdef SWOS_SDL_BUILD
+static uint8_t     k_contiMarker[16];  /* VIEW WORLD's rows of a world's other confederations' cups
+                                         * (conti_view.c): each cup's marker, caught as the mods' is */
+#endif
+
+/* PRESET COMPETITION in a world that is not 96/97 (the SWOS 96/97 Mod 4.1's "choose your world"):
+ * the preset competitions are 96/97's, their clubs 96/97's team numbers, which the world's files
+ * fill with its own clubs -- so the world list says there are none, in two rows of text where its
+ * rows would be (the Mod's words, swe.py AV_LINES), and keeps the mods' row (HISTORIC TOURNAMENTS:
+ * the Mod's purple box) below them. The rows are no competition: their slots in leaguesPtrTable
+ * hold this marker. */
+static uint8_t     k_noticeMarker;
+static const char *const k_noPresets[2] = { "NO PRESET COMPETITIONS FOR", "THIS WORLD AT THE MOMENT" };
+#define MODS_ROW_COLOR 11   /* (BLUE_TO_PURPLE: the Mod's HISTORIC box, historic.py MENU_COLOR) */
+
+/* SelectTeamsReinit, after SetLeagueNames: the notice rows text on the menu's background, the
+ * mods' row purple in a world that is not 96/97. */
+static void style_marker_rows(void)
+{
+    for (uint16_t i = 0; i < _numLeaguesInCountry && i < 10; i++) {
+        MenuEntry *e = &_menuEntries[11 + i];
+        if (_leaguesPtrTable[i] == (void *)&k_noticeMarker) {
+            e->isDisabled = 1;
+            e->bgColor = 0;
+        } else if (_leaguesPtrTable[i] == (void *)&k_modCompsMarker && World_Current() != WORLD_9697) {
+            /* (in a world only: 96/97 keeps the original look) */
+            e->bgColor = (uint16_t)((e->bgColor & 0xFFF0) | MODS_ROW_COLOR);
+        }
+    }
+}
 
 __attribute__((used, externally_visible))
 void SelectTeamsFinalMenu(uint16_t mode)
 {
     uint16_t d6;            /* country/team-file number, preserved across calls */
     uint16_t d7;            /* current country index byte */
+    int32_t  noPresets = 0; /* PRESET COMPETITION in a world: none of 96/97's (k_noticeMarker) */
     uint16_t d1;            /* counter for enumeration */
     /* The competition list is a `Competition *[N]` terminated by
      * (Competition *)-1 / -2 sentinels — entries are native pointers
@@ -3259,12 +3342,26 @@ loc_E012:
     /* Competitions from mods (src/mod_comps.c, MODPOINT_COMPETITIONS): one row above WORLD CUP
      * in PRESET COMPETITION's world list. It is no competition: its slot in leaguesPtrTable
      * holds a marker, which the selection below catches before anything reads it as one. */
+    noPresets = 0;
+#if SWOS_WORLDS
+    if ((uint8_t)d7 == 254 && _choosingPreset != 0 && World_Current() != WORLD_9697) {
+        noPresets = 1;
+        for (int32_t k = 0; k < 2; k++) {
+            *teamNamesPtr++ = (void *)k_noPresets[k];
+            *leaguesPtrOut++ = (void *)&k_noticeMarker;
+            *leagueNumsOut++ = 0xFFFF;
+            d1++;
+        }
+    }
+#endif
     if ((uint8_t)d7 == 254 && _choosingPreset != 0 && ModComps_RowLabel() != NULL) {
         *teamNamesPtr++ = (void *)ModComps_RowLabel();
         *leaguesPtrOut++ = (void *)&k_modCompsMarker;
         *leagueNumsOut++ = 0xFFFF;
         d1++;
     }
+    if (noPresets)
+        goto loc_E2D0;      /* (none of 96/97's: no WORLD CUP, no continents) */
 
     /* loc_13E086: iterate through competition entries */
 loc_E086:
@@ -3280,6 +3377,13 @@ loc_E086:
             goto loc_E2D0;
         goto loc_E086;
     }
+
+#ifdef SWOS_SDL_BUILD
+    /* A world's own cups replace the 96/97 Copa Libertadores (conti_season.c): its row is theirs */
+    if (_gameType == GAME_TYPE_CAREER && compEntry == (uint8_t *)Comp_ById(COMPID_copaLibertadores) &&
+        Conti_ReplacesCopa() && ContiView_Available())
+        goto loc_E086;
+#endif
 
     /* Career mode continental cup filtering (loc_13E0A6) */
     if (_gameType == GAME_TYPE_CAREER) {
@@ -3464,6 +3568,22 @@ loc_E246:
     }
 
 loc_E2D0:
+#ifdef SWOS_SDL_BUILD
+    /* VIEW WORLD in a world career: the continent's club cups of its confederation (the world's: FIFA's),
+     * green rows above its countries, as the SWOS 96/97 Mod 4.1 has them (conti_view.c); the world's
+     * list (255) FIFA's */
+    if (_gameType == GAME_TYPE_CAREER && _chooseCompetitionOnly != 0 && _choosingPreset == 0 &&
+        (d7 == 255 || d7 == 254 || (d7 >= CN_EUROPE && d7 <= CN_OCEANIA))) {
+        uint8_t cupsHere[8];
+        const int32_t k = ContiView_CupsOfContinent((uint8_t)d7, cupsHere, 8);
+        for (int32_t i = 0; i < k && d1 < 10; i++) {
+            *teamNamesPtr++ = (void *)ContiView_CupName(cupsHere[i]);
+            *leaguesPtrOut++ = (void *)&k_contiMarker[cupsHere[i] & 15];
+            *leagueNumsOut++ = 0xFFFF;
+            d1++;
+        }
+    }
+#endif
     _numLeaguesInCountry = d1;
     HLOG("enum done country=%u numLeagues=%u\n", (unsigned)(d7 & 0xFF), (unsigned)d1);
 
@@ -3480,8 +3600,28 @@ loc_E2D0:
          * stays pointed at countries[] so the `a5[index]` country lookups in the
          * selection handling below are correct too. See STRUCT_CONSOLIDATE.md §4d. */
         a5 = (void **)((QualifyingGroup *)compListAddr)->countries;
+        if (noPresets) {
+            static uint8_t s_none[1] = { 255 };
+            a5 = (void **)s_none;
+        }
         if (d7 != 254 && World_ContinentCountries((uint8_t)d7))    /* (a world's, its new countries in) */
             a5 = (void **)World_ContinentCountries((uint8_t)d7);
+        /* A world with continents it has no clubs in (Europe 1984-85 is Europe alone: its
+         * World_ContinentCountries an empty list): they are left out of the club pickers (FRIENDLY,
+         * DIY, CAREER) -- not of the national teams' or the preset competitions', which every world
+         * has. (a5 is the list the choice is looked up in below: the world's, filtered.) */
+        if (d7 == 254 && _choosingPreset == 0 && _teamsType != 0 && World_ContinentCountries(CN_EUROPE)) {
+            static uint8_t s_regions[16];
+            const uint8_t *r = (const uint8_t *)a5;
+            int32_t k = 0;
+            for (; *r != 255 && k < 15; r++) {
+                const uint8_t *in = World_ContinentCountries(*r);
+                if (*r < CN_EUROPE || *r > CN_OCEANIA || !in || in[0] != 255)
+                    s_regions[k++] = *r;
+            }
+            s_regions[k] = 255;
+            a5 = (void **)s_regions;
+        }
         cPtr = (uint8_t *)a5;
         for (;;) {
             cByte = *cPtr++;
@@ -3526,11 +3666,24 @@ loc_E2D0:
     /* The mods' competitions row: their screens; leave as if backed out when one is to start
      * (PresetCompetitionMenu starts it), else back to the world list. */
     if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
+        _leaguesPtrTable[_selectedLeagueIndex] == (void *)&k_noticeMarker)
+        goto loc_E012;      /* (a notice row: nothing to choose) */
+    if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
         _leaguesPtrTable[_selectedLeagueIndex] == (void *)&k_modCompsMarker) {
         if (ModComps_Choose())
             goto exit_clear;
         goto loc_E012;
     }
+
+#ifdef SWOS_SDL_BUILD
+    /* A world's cup row: its view, then back to the continent's screen */
+    if (_selectedTeamIndex < 0 && _selectedLeagueIndex >= 0 &&
+        (uint8_t *)_leaguesPtrTable[_selectedLeagueIndex] >= k_contiMarker &&
+        (uint8_t *)_leaguesPtrTable[_selectedLeagueIndex] < k_contiMarker + sizeof k_contiMarker) {
+        ContiView_ShowCup((int32_t)((uint8_t *)_leaguesPtrTable[_selectedLeagueIndex] - k_contiMarker));
+        goto loc_E012;
+    }
+#endif
 
     /* Check selectedTeamIndex */
     d7 = (uint16_t)_selectedTeamIndex;

@@ -8,8 +8,11 @@
  * Chunk 60: 16 functions ported from SWOS2.s.
  */
 
+#include "long_bench.h"
 #include "world.h"
+#include "world_europe.h"
 #include "diy_competition.h"
+#include "cup_record.h"
 #include "world_finance.h"      /* UefaPrize_CupWon */
 #include "comp_identity.h"
 #include "translations.h"
@@ -20,6 +23,7 @@
 #include "world_playoff.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "string_utils.h"
 #include "random.h"
 #include "deterministic.h"
@@ -2857,6 +2861,7 @@ void DIY_UpdateCompetitionProgress(void)
     WorldPlayoff_ArrangeNextRound();
     WorldCups_ArrangeNextRound();   /* a world cup's first season: the real bracket (world_cups.c) */
     CupD_ArrangeNextRound();        /* the Coppa Italia Serie D's slot-2 cup: by its table (world_cupd.c) */
+    WorldEurope_RoundPlayed();      /* a classic world's European cups: round 2 no same-country tie */
 
     {
         uint8_t *grid = comp->teamGridPairings;
@@ -4842,6 +4847,15 @@ __attribute__((used, externally_visible))
 void OpenDiyPreset3(void)
 {
     ShowDiyCompetitionForSource((uint8_t *)&_euroCupsCompetitionContextBuf);
+}
+
+/* OpenDiySlot4 -- OpenSWOS: VIEW COMPETITIONS' entry 9, the career's slot 4 (a world's Super Cup:
+ * menus.c ViewCompetitionsWorldEntries shows it only then) */
+__attribute__((used, externally_visible))
+void OpenDiySlot4(void)
+{
+    extern CompetitionSlotBuffer _diyCompetitionContextBuf;
+    ShowDiyCompetitionForSource((uint8_t *)&_diyCompetitionContextBuf);
 }
 
 /* ================================================================
@@ -9420,6 +9434,7 @@ void InitDIYCupFromRecord(uint8_t *cupRec)
     if (compHdr->seedReorderFlag == 0)
         DIY_ShuffleTeamGridPairs();
     WorldCups_CupMade(cupRec);   /* a world cup: its byes, a later season's draw (world_cups.c) */
+    WorldEurope_DrawMade((uint8_t)compHdr->compId);   /* a classic world's cups: no same-country tie */
 }
 
 __attribute__((used, externally_visible))
@@ -10598,6 +10613,7 @@ void ProcessDIYLeagueMatchResultAndCareerUpdates(TeamFileEx *team1, TeamFileEx *
         d7 |= 0x82;    /* bits 7 and 1 set */
     }
 
+    CupRecord_Match(team1, team2, d1, d2, d7, 0, 0, 1);   /* (a world's cups' SUMMARY: cup_record.c) */
     /* Career updates (form, contract negotiation, loss flag) */
     updateCareerAfterResult(team1, team2, d1, d2, d7);
 
@@ -10835,6 +10851,9 @@ setDecisive:
         CupD_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
                         PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
                         d7 & 1);
+        SuperCup_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
+                            PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
+                            d7 & 1);
         UefaQual_TieDecided(PACK_BE_U16(team1->team.countryNumber, team1->team.teamOrdinal),
                             PACK_BE_U16(team2->team.countryNumber, team2->team.teamOrdinal),
                             d7 & 1);
@@ -10844,6 +10863,7 @@ setDecisive:
     }
 
 careerUpdate:
+    CupRecord_Match(team1, team2, d1, d2, d7, d5, d6, 0);  /* (a world's cups' SUMMARY: cup_record.c) */
     updateCareerAfterResult(team1, team2, d1, d2, d7);
 
     /* Pack results: d6=(d5<<8)+d6, d4=(d3<<8)+d4, d5=d4, d4=(d1<<8)+d2 */
@@ -10979,6 +10999,8 @@ uint16_t PlayDIYLeagueMatchAndCacheResult(TeamFileEx *team1, TeamFileEx *team2,
     DIYCompetition *diy = &_diyCompetitionStart.base;
 
     /* Call SetupPlayers: d1=diyCompetitionStart.matchData.league.leagueMaxSubstitutes, d2=substitutesCount */
+    LongBench_LeagueMatch(1);       /* (a world's long bench: a league's by the club's division; the
+                                     *  cups' path clears it) */
     SetupPlayers(team1, team2, (int16_t)_diyCompetitionStart.matchData.league.leagueMaxSubstitutes,
                   diy->substitutesCount, allowSquadChanges, mode);
 
@@ -11055,6 +11077,7 @@ uint16_t PlayDIYLeagueMatchAndCacheResult(TeamFileEx *team1, TeamFileEx *team2,
 __attribute__((used, externally_visible))
 uint16_t PlayDIYCupFixtureAndCacheResult(TeamFileEx *team1, TeamFileEx *team2,
                                            int16_t allowSquadChanges, int16_t mode) {
+    LongBench_LeagueMatch(0);       /* (a cup's: by its name, else the country's bench) */
     /* d1 = diyCompetitionStart.pointsForAWin (word), d2 = substitutesCount → SetupPlayers */
     DIYCompetition *diyStart = &_diyCompetitionStart.base;
     SetupPlayers(team1, team2, (int16_t)_diyCompetitionStart.pointsForAWin,

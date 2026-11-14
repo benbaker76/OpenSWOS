@@ -1,0 +1,276 @@
+{
+  "name": "contiConfsMenu",
+  "comment": "OpenSWOS's CONTINENTAL CUPS (the SWOS 96/97 Mod 4.1's COPPE CONTINENTALI): the confederations whose club cups a world career plays (src/world_conti.c), the career club's first; one opens its rounds. JSON-only (docs/MENUS.md section 10); handlers in src/conti_view.c. Opened from VIEW COMPETITIONS (entry 8).",
+  "menu_flags": {
+    "dos_redraw": true
+  },
+  "onInit": "contiConfsMenu_OnInit",
+  "onReturn": "contiConfsMenu_OnInit",
+  "onDraw": "contiConfsMenu_OnDraw",
+  "defaultEntry": 2,
+  "items": [
+    {
+      "kind": "entry",
+      "name": "header",
+      "coords": {
+        "x": 72,
+        "y": 0,
+        "w": 176,
+        "h": 16
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x10",
+          "literal": "CONTINENTAL CUPS"
+        },
+        {
+          "op": "colors",
+          "frame_color": 1,
+          "background_color": 7
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "note",
+      "coords": {
+        "x": 12,
+        "y": 20,
+        "w": 296,
+        "h": 12
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "conf0",
+      "coords": {
+        "x": 80,
+        "y": 40,
+        "w": 160,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiConfsMenu_conf0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "conf1",
+      "coords": {
+        "x": 80,
+        "y": 62,
+        "w": 160,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiConfsMenu_conf1"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "conf2",
+      "coords": {
+        "x": 80,
+        "y": 84,
+        "w": 160,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiConfsMenu_conf2"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "conf3",
+      "coords": {
+        "x": 80,
+        "y": 106,
+        "w": 160,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiConfsMenu_conf3"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "conf4",
+      "coords": {
+        "x": 80,
+        "y": 128,
+        "w": 160,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiConfsMenu_conf4"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "conf5",
+      "coords": {
+        "x": 80,
+        "y": 150,
+        "w": 160,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiConfsMenu_conf5"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "exit",
+      "coords": {
+        "x": 110,
+        "y": 182,
+        "w": 100,
+        "h": 15
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x0",
+          "literal": "EXIT"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 12
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": -1,
+          "down": -1
+        },
+        {
+          "op": "onselect_fire",
+          "func": "contiConfsMenu_exit"
+        }
+      ]
+    }
+  ]
+}

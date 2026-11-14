@@ -30,6 +30,7 @@
 #include "competition_data.h"
 #include "career_teams.h"
 #include "conti_season.h"
+#include "world.h"
 
 /* ---- routing: the 10 CONMEBOL league competition indices ----
  *
@@ -92,10 +93,23 @@ extern void DIY_EditCompetitionSlot(uint16_t paramA, uint16_t paramB, uint16_t p
  * Exported (career_init.c's Copa slot-selection reaches Copa's *Copy through
  * this, mirroring how the euro cascade names _euroCupCopy directly). */
 __attribute__((used, externally_visible))
+/* A world whose countries are its own (World_SeasonCountries) plays the Copa only when South America
+ * is in it: Europe 1984-85 is Europe alone (include/world.h). */
+static int32_t copa_in_world(void)
+{
+    const uint8_t *c = World_SeasonCountries();
+    if (!c)
+        return 1;
+    for (; *c != 0xFF; c++)
+        if (*c == s_copaEligibleMaster[2])      /* (Brazil) */
+            return 1;
+    return 0;
+}
+
 Competition *Career_CopaWorkingCopy(void)
 {
     Competition *tmpl = Comp_ById(COMPID_copaLibertadores);
-    if (!tmpl || Conti_ReplacesCopa())  /* (a world's own cups take its place: conti_season.c) */
+    if (!tmpl || Conti_ReplacesCopa() || !copa_in_world())  /* (a world's own cups take its place: conti_season.c) */
         return NULL;
     for (int i = 0; i < CAREER_CONTESTS_CAP; i++) {
         if (_careerContests[i].competition == tmpl)
@@ -248,7 +262,7 @@ uint16_t Career_CopaLibertadoresQualifiedTeamCount(void)
 __attribute__((used, externally_visible))
 uint16_t Career_CopaLibertadoresExpectedTeamCount(void)
 {
-    return Comp_ById(COMPID_copaLibertadores) && !Conti_ReplacesCopa() ? 20 : 0;
+    return Comp_ById(COMPID_copaLibertadores) && !Conti_ReplacesCopa() && copa_in_world() ? 20 : 0;
 }
 
 /* Career_UpdateCopaLibertadoresCompetitionSlot — analog of

@@ -162,6 +162,7 @@ typedef struct {
     char                   chat_quick[10][101]; /* [chat] quick1..quick0: the keys 1..0 in an online
                                               * match send these (include/match_chat.h); "" = off */
     int                    no_injuries_cards; /* [testing] no_injuries_cards: offline only (test_rules.h) */
+    int                    career_exact_continuation; /* [career] exact_continuation: saves keep the random state */
     int                    reports;          /* [netplay] reports: SEND MATCH REPORTS -- both players'
                                               * logs and ratings to the server after an online
                                               * match. include/match_report.h */
@@ -189,6 +190,7 @@ typedef struct {
     int                    quick_access;     /* [general] quick_access: SWOS 2020's QUICK ACCESS after a
                                               * friendly (src/quick_access.c), 0 off (default) */
     char                   world[8];         /* [general] world: the football world (include/world.h), "" = 9697 */
+    int                    original_main_menu; /* [general] original_main_menu: 96/97's main menu, 96/97 the world */
     char                   mods[256];        /* [mods] enabled: the mods to play with (include/mods.h), "" = none */
     char                   mods_disabled[256];   /* [mods] disabled: canonical mods turned off, "" = none */
     uint32_t               tweaks;           /* [tweaks]: TWEAK_* bits switched on (include/tweaks.h), 0 = none */

@@ -27,6 +27,7 @@
 #include <stdio.h>
 #endif      /* ai_injury_subs */
 #include "bench_subs.h"
+#include "long_bench.h"   /* a world's long bench: places 17.., the cursor, the window */
 #include "dos_sound.h"
 #include "game_types.h"
 #include "game_state.h"
@@ -146,7 +147,7 @@ extern uint8_t  _plOrdinalsTable[];
 extern uint8_t  _plNamesLengthTableCopy[];
 /* 16 slots: 11 on the pitch and 5 on the bench (swos_amiga_data_imports.c). */
 #define INGAME_TEAM_PLAYER_SLOTS 16
-extern uint16_t _ingameTeamPlayerOffsets[INGAME_TEAM_PLAYER_SLOTS];
+extern uint16_t _ingameTeamPlayerOffsets[];      /* (26: a long bench's places too) */
 extern void *_positionsTable[];
 extern AnimTable _playerNormalStandingAnimTable;
 
@@ -177,8 +178,14 @@ extern AnimTable _playerNormalStandingAnimTable;
  */
 static inline PlayerInfo *piFromOffset(TeamGame *tg, uint16_t off)
 {
-    return &tg->players[off / sizeof(PlayerInfo)];
+    /* (a long bench's places 16.. live beside the team: LongBench_Player) */
+    return LongBench_Player(tg, (uint16_t)(off / sizeof(PlayerInfo)));
 }
+
+/* The game's `cmp [gameMaxSubstitutes], 5` branches: with a bench over 5 the first bench place is
+ * the goalkeeper's only. No bench of the game is over 5, so they were never taken; a long bench
+ * (long_bench.c) must not take them either -- the Mod's benchx.py compares with 127. */
+#define LB_GK_FIRST_PLACE() (_gameMaxSubstitutes > 127)
 
 /* ---- external data ---- */
 extern FixedPoint _cameraX;
@@ -241,6 +248,15 @@ static void findInitialPlayerToBeSubstituted(void);
 static void swapPlayerNameData(int16_t enterIndex, int16_t leaveIndex);
 static PlayerInfo *getBenchPlayerPointer(uint16_t index, uint16_t *outOrdinal);
 static void drawOpponentsBench(void);
+/* A long bench's dugout shows five places at a time (the Mod's 4.0.5): the first one shown, by the
+ * cursor -- the window moves only as far as it must to show it. 1 for the game's bench. Drawing
+ * only: it is worked out from the cursor, no state of its own. */
+static uint16_t bench_window_first(void)
+{
+    if (!LongBench_On() || _trainingGame || LongBench_TwoRows())
+        return 1;               /* (two rows: everyone seated, no window) */
+    return (uint16_t)(_benchPlayerIndex > 5 ? _benchPlayerIndex - 4 : 1);
+}
 static void drawBenchPlayersAndCoach(TeamGame *teamGame, TeamGeneralInfo *team, uint16_t x, uint16_t y);
 static void drawSubstitutesMenu(void);
 static void drawSubstitutesMenuEntry(uint16_t y, uint16_t baseColor, int16_t selectedIndex,
@@ -292,15 +308,15 @@ static void aiReplaceInjuredPlayer(TeamGeneralInfo *team, TeamGame *tg,
      * protects the managed career club when its on-field controls are zero. */
     if (!isAllowed ||
         team->playerNumber != 0 || team->playerCoachNumber != 0 ||
-        *used >= _maxSubsPerTeam || _maxSubsPerTeam == 0) return;
+        *used >= LongBench_SubsAllowed() || _maxSubsPerTeam == 0) return;
 
     for (i = 0; i < 11; ++i) {
         PlayerInfo *hurt = &tg->players[i];
         int oldPos;
         if (!hurt->isInjured || hurt->skip || hurt->position < 0) continue;
         oldPos = (uint8_t)hurt->position;
-        for (j = 11; j < 16; ++j) {
-            PlayerInfo *candidate = &tg->players[j];
+        for (j = 11; j < (int)LongBench_Places(); ++j) {     /* (a long bench: every place) */
+            PlayerInfo *candidate = LongBench_Player(tg, (uint16_t)j);
             int score;
             if (candidate->skip || candidate->position < 0 ||
                 candidate->isInjured || (uint8_t)candidate->numYellowCards >= 2)
@@ -322,13 +338,14 @@ static void aiReplaceInjuredPlayer(TeamGeneralInfo *team, TeamGame *tg,
     _benchTeamGame = (uintptr_t)tg;
     SwapPlayerNameData((uint16_t)entering, (uint16_t)leaving);
     {
-        PlayerInfo tmp = tg->players[entering];
-        tg->players[leaving].position = -1;
-        tg->players[entering] = tg->players[leaving];
-        tg->players[leaving] = tmp;
+        PlayerInfo *in = LongBench_Player(tg, (uint16_t)entering), *out = LongBench_Player(tg, (uint16_t)leaving);
+        PlayerInfo tmp = *in;
+        out->position = -1;
+        *in = *out;
+        *out = tmp;
         /* Never carry the injured outgoing player's status onto the
          * replacement occupying the on-field slot. */
-        tg->players[leaving].isInjured = 0;
+        out->isInjured = 0;
     }
     if (tg->markedPlayer == leaving || tg->markedPlayer == entering)
         tg->markedPlayer = -1;
@@ -453,6 +470,8 @@ BenchCheckControls(void)
     aiCheckInjuredSubs();
 
     /* check if either player has called the bench */
+    if (LongBench_TestCallBench())      /* (test: SWOS_TEST_LONGBENCH, long_bench.c) */
+        _bench1Called = 1;
     a6 = &_topTeamData;
     if (_bench1Called != 0)
         goto activate_bench;
@@ -648,6 +667,8 @@ activate_bench:
 
         d1 = 389;   /* top bench Y */
         d2 = 485;   /* bottom bench Y */
+        if (LongBench_TwoRows())
+            d1 = LB_TOP_BENCH_Y;    /* (the long top dugout grew a row upwards: the Mod's bx_benchy) */
 
         if (_trainingGame != 0) {
             d1 += 67;    /* training game bench coordinates */
@@ -693,6 +714,8 @@ menu_active_phase:
     {
         int16_t d7;
         a6 = (TeamGeneralInfo *)_benchTeam;
+        if (_cameraCoordinatesValid != 0 && _goToSubsTimer == 0)
+            LongBench_TestInput(&_subsDirection, &_subsFire);  /* (test: SWOS_TEST_LONGBENCH) */
 
         if (_cameraCoordinatesValid == 0) {
             _goToSubsTimer = 15;
@@ -867,12 +890,12 @@ static void benchMenuHandleControls(void)
         if (_gameState == ST_KEEPER_HOLDS_BALL)
             return;
         _subsBlockDirections = 1;
-        if (_benchPlayerIndex == 5)
+        if (_benchPlayerIndex == LongBench_Last())      /* (5; a long bench's last place) */
             return;
         /* dead code: clr.w benchPlayerIndex; bra exit_rts removed */
         do {
             _benchPlayerIndex++;
-            if (_benchPlayerIndex == 6) goto scan_backward;
+            if (_benchPlayerIndex == LongBench_Last() + 1) goto scan_backward;
             if (isThisPlayerOkToSelect() >= 0) return;
         } while (1);
 
@@ -968,7 +991,7 @@ static int16_t isThisPlayerOkToSelect(void)
         d1 = _team2GoalkeeperReplaced;
     }
 
-    if (d0 == _maxSubsPerTeam)
+    if (d0 == LongBench_SubsAllowed())      /* (_maxSubsPerTeam; a long bench's competition: + 1 in extra time) */
         return -1;
     /* dead code block at 10D1DE-10D1FC skipped (unreachable after bra.s) */
 
@@ -976,7 +999,7 @@ static int16_t isThisPlayerOkToSelect(void)
     {
         uint16_t idx = _benchPlayerIndex + 10;
         TeamGame *btg = (TeamGame *)_benchTeamGame;
-        PlayerInfo *pi = &btg->players[idx];
+        PlayerInfo *pi = LongBench_Player(btg, idx);
 
         if (pi->skip != 0)
             return -1;
@@ -1018,7 +1041,7 @@ static void firePressedInSubsMenu(void)
     _overlayActiveFlag = 1;
     _plToEnterGameIndex = _benchPlayerIndex + 10;
 
-    if (_gameMaxSubstitutes > 5 && _plToEnterGameIndex == 11) {
+    if (LB_GK_FIRST_PLACE() && _plToEnterGameIndex == 11) {
         _plToBeSubstitutedPos = 0;
         return;
     }
@@ -1164,6 +1187,12 @@ substitutePlayer(void)
     }
 
     swapPlayerNameData(d6, d7);
+#ifdef SWOS_SDL_BUILD
+    extern int32_t NetplayMatch_Resimulating(void);
+    if (d6 >= 16 && !NetplayMatch_Resimulating())  /* (a long bench's player from place 17 on: said once) */
+        fprintf(stderr, "[bench] substitution: place %d (%.15s) on for place %d\n", (int)d6 + 1,
+                (const char *)LongBench_Player(a0, (uint16_t)d6)->shortName, (int)d7 + 1);
+#endif
 
     off6 = _ingameTeamPlayerOffsets[d6];
     off7 = _ingameTeamPlayerOffsets[d7];
@@ -1171,19 +1200,20 @@ substitutePlayer(void)
 
     /* mark leaving player as unavailable:
      * ingameTeamPlayerOffsets[p] + 42 = start of PlayerInfo p in TeamGame;
-     * position field is at offset 4 within PlayerInfo */
+     * position field is at offset 4 within PlayerInfo. Reached through the place's PlayerInfo:
+     * a long bench's places 16.. are beside the team (long_bench.c). */
     {
-        uint8_t *tgBytes = (uint8_t *)a0;
-        tgBytes[off7 + 42 + 4] = 0xFF;  /* PlayerInfo.position = 0xFF */
+        uint8_t *p7 = (uint8_t *)piFromOffset(a0, off7);
+        p7[4] = 0xFF;  /* PlayerInfo.position = 0xFF */
     }
 
     /* swap player info data (61 bytes) */
     {
-        uint8_t *tgBytes = (uint8_t *)a0;
+        uint8_t *p6 = (uint8_t *)piFromOffset(a0, off6), *p7 = (uint8_t *)piFromOffset(a0, off7);
         for (i = 60; i >= 0; i--) {
-            uint8_t tmp = tgBytes[off6 + 42 + i];
-            tgBytes[off6 + 42 + i] = tgBytes[off7 + 42 + i];
-            tgBytes[off7 + 42 + i] = tmp;
+            uint8_t tmp = p6[i];
+            p6[i] = p7[i];
+            p7[i] = tmp;
         }
     }
 
@@ -1421,7 +1451,7 @@ static void updateSubstitutePlayerIndices(void)
      * both until they are merged. */
     if (_subsState != 4) {
         if (_plToEnterGameIndex == 11) {
-            if (_gameMaxSubstitutes > 5)
+            if (LB_GK_FIRST_PLACE())
                 return;
         }
     }
@@ -1641,6 +1671,11 @@ static void swapPlayerNameData(int16_t enterIndex, int16_t leaveIndex)
     uint8_t *lenTable = _plNamesLengthTableCopy;
     uint8_t tmp;
 
+    if (enterIndex >= 16 || leaveIndex >= 16) {     /* (a long bench's places 17..: long_bench.c) */
+        LongBench_SwapNames((uintptr_t)_benchTeamGame != (uintptr_t)&_topTeamInGame, enterIndex, leaveIndex);
+        return;
+    }
+
     if ((uintptr_t)_benchTeamGame != (uintptr_t)&_topTeamInGame) {
         ordTable += 16;
         lenTable += 16;
@@ -1716,7 +1751,7 @@ static int bench_occupants_visible(void)
 static void draw_bench_occupants_only(void)
 {
     /* Bench Y bases and the side convention, mirroring the activation block. */
-    uint16_t topY = 389, botY = 485;
+    uint16_t topY = LongBench_TwoRows() ? LB_TOP_BENCH_Y : 389, botY = 485;
     if ((uint8_t)_topTeamInGame.teamName[0] & 2) {
         uint16_t t = topY; topY = botY; botY = t;
     }
@@ -1894,6 +1929,8 @@ skip_opponent_1:
     d2 -= 21;
     d2 += 4;
     d0 = _benchPlayerIndex;
+    if (d0 != 0)                        /* (a long bench: the arrow on the window's row) */
+        d0 = (uint16_t)(d0 - bench_window_first() + 1);
     d1 -= 12;
     d0 *= 7;
 
@@ -1912,7 +1949,12 @@ skip_opponent_1:
 
     if (_goToSubsTimer == 0 && _substituteInProgress == 0 && _subsState == 0) {
         uint16_t save_d1 = d1;
-        DrawSpriteInCameraView(SPR_SELECT_SUBSTITUTE_ARROW, d1, d2);
+        if (LongBench_TwoRows() && _benchPlayerIndex > LB_BACK_ROW)
+            /* (the front row's: the arrow mirrored, right of the row, at its seat -- the Mod's bx_arrow) */
+            DrawSpriteInCameraView((uint16_t)LongBench_MirroredArrow(SPR_SELECT_SUBSTITUTE_ARROW),
+                                   (uint16_t)(d1 + LB_ARROW_DX), (uint16_t)(d2 - 53));
+        else
+            DrawSpriteInCameraView(SPR_SELECT_SUBSTITUTE_ARROW, d1, d2);
         d1 = save_d1;
     }
 
@@ -2034,15 +2076,24 @@ skip_coach:
     if (_trainingGame != 0)
         d2 += 7;
 
-    /* advance to player 11 (first substitute) */
-    pi = &teamGame->players[11];
+    /* advance to player 11 (first substitute) -- a long bench's window of five: the first place
+     * shown (bench_window_first; 1 otherwise) */
+    uint16_t first = _inSubstitutesMenu && teamGame == (TeamGame *)_benchTeamGame && (int16_t)_subsState >= 0
+                     ? bench_window_first() : 1;
+    int16_t place = (int16_t)(10 + first);
 
     if (_trainingGame != 0 && _drawTrainingTopHalfOfTheBench != 0) {
         d2 -= 0x38;
-        pi += 4; /* advance by 4 more players = player 15 */
+        place += 4; /* advance by 4 more players = player 15 */
     }
 
-    for (d7 = 1; d7 < 6; d7++) {
+    /* (a long bench's two rows: every place seated -- the coach and places 1..7 at the game's seats,
+     *  8.. in front, a column to the right; the window of five only without them) */
+    const uint16_t twoRows = (uint16_t)LongBench_TwoRows();
+    const uint16_t last = twoRows ? (uint16_t)(first + LongBench_Last() - 1) : (uint16_t)(first + 4);
+    const uint16_t backY = d2;
+    for (d7 = first; d7 <= last; d7++) {
+        pi = LongBench_Player(teamGame, (uint16_t)place);
         /* check if player is valid to draw */
         if (pi->skip != 0)
             goto next_player;
@@ -2070,7 +2121,7 @@ skip_coach:
 
     draw_selected:
         d0 = 0x4B5;
-        if (_gameMaxSubstitutes > 5) {
+        if (LB_GK_FIRST_PLACE()) {
             if (d7 != 1)
                 goto sprite_chosen;
             goto use_gk_sprite;
@@ -2083,7 +2134,7 @@ skip_coach:
 
     draw_normal:
         d0 = 0x4AF;
-        if (_gameMaxSubstitutes > 5) {
+        if (LB_GK_FIRST_PLACE()) {
             if (d7 != 1)
                 goto sprite_chosen;
             goto use_gk_normal;
@@ -2105,14 +2156,22 @@ skip_coach:
         }
         d0 += d3;
         d0 += d6;
-        DrawSpriteHotspotInCameraView(d0, d1, d2);
+        if (twoRows) {                  /* (the Mod's bx_seat) */
+            const int32_t front = d7 > LB_BACK_ROW;
+            const uint16_t y = (uint16_t)(backY + 7 * (d7 - 1) - (front ? 53 : 0));
+            /* a figure standing up from the back row stands in front of the front row */
+            const uint16_t base = (uint16_t)(d0 - d3 - d6);
+            const int32_t standing = base == 0x4B2 || base == 0x4B5;
+            DrawSpriteHotspotInCameraView(d0, (uint16_t)(d1 + (front || standing ? LB_FRONT_X : 0)), y);
+        } else
+            DrawSpriteHotspotInCameraView(d0, d1, d2);
 
     next_player:
         d2 += 7;
         if (_trainingGame != 0 && _drawTrainingTopHalfOfTheBench != 0) {
-            pi -= 2; /* go backward: +1 - 2 = -1 */
+            place--; /* go backward: +1 - 2 = -1 */
         } else {
-            pi++;
+            place++;
         }
     }
 }
@@ -2567,9 +2626,9 @@ static void team_menu_colours(const TeamGame *tg, uint16_t *bg, uint16_t *hi, ui
 static uint8_t *strip_record(const TeamGame *tg, const PlayerInfo *pi)
 {
     const TeamFile *t = tg == &_topTeamInGame ? _gameTeam1 : _gameTeam2;
-    if (!t || pi->playerIndex < 0 || pi->playerIndex > 15)
+    if (!t || pi->playerIndex < 0)
         return (uint8_t *)0;
-    return GetPlayer(PACK_BE_U16(t->countryNumber, t->teamOrdinal), (uint16_t)(int8_t)pi->playerIndex);
+    return LongBench_Record((const TeamFileEx *)t, pi->playerIndex);     /* (a long bench's 17.. too) */
 }
 
 /* A box at (x, y): the player's three best skills over his value (a keeper: his value). */
@@ -2607,7 +2666,7 @@ static void benchInfoStrip(void)
         if (_goToSubsTimer || _substituteInProgress || !_benchPlayerIndex || _trainingGame)
             return;     /* (the arrow on a substitute, as the game draws it) */
         ord = (uint16_t)(_benchPlayerIndex + 10);
-        if (ord > 15)
+        if (ord >= LongBench_Places())
             return;
         pi = piFromOffset((TeamGame *)tg, _ingameTeamPlayerOffsets[ord]);
         if (pi->position < 0)
@@ -2628,7 +2687,7 @@ static void benchInfoStrip(void)
         }
         strip_box((uint16_t)(x0 - 2), 49, tg, pi);
     } else if (_subsState == 1) {
-        if ((int16_t)_plToEnterGameIndex >= 0 && _plToEnterGameIndex <= 15)
+        if ((int16_t)_plToEnterGameIndex >= 0 && _plToEnterGameIndex < LongBench_Places())
             strip_box((uint16_t)(x0 - 2), 49, tg,
                       piFromOffset((TeamGame *)tg, _ingameTeamPlayerOffsets[_plToEnterGameIndex]));
         if ((int16_t)_plToBeSubstitutedPos >= 0 && _plToBeSubstitutedPos <= 15)
@@ -2653,10 +2712,17 @@ static void opponentListControls(void)
         subsBenchOff();     /* (back to the bench, the arrow on the coach) */
         return;
     }
-    if (d == 4)
-        s_opponentPage = 1;
-    else if (d == 0)
-        s_opponentPage = 0;
+    /* page 0 the eleven, then the bench, eleven a page (a long bench's can take two) */
+    {
+        const uint16_t pages = (uint16_t)(1 + (LongBench_Places() - 11 + 10) / 11);
+        if (d == 4 && s_opponentPage + 1 < pages) {
+            s_opponentPage++;
+            _subsBlockDirections = 1;
+        } else if (d == 0 && s_opponentPage > 0) {
+            s_opponentPage--;
+            _subsBlockDirections = 1;
+        }
+    }
 }
 
 static void drawOpponentList(void)
@@ -2693,8 +2759,9 @@ static void drawOpponentList(void)
             drawSubstitutesMenuEntry(y, bg, (int16_t)ord, chars, tg, _ingameTeamPlayerOffsets);
         }
     } else {
-        for (uint16_t ord = 11; ord < 16; ord++) {
-            const PlayerInfo *pi = piFromOffset(tg, _ingameTeamPlayerOffsets[ord]);
+        const uint16_t from = (uint16_t)(11 + (s_opponentPage - 1) * 11);
+        for (uint16_t ord = from; ord < LongBench_Places() && ord < from + 11; ord++) {
+            const PlayerInfo *pi = LongBench_Player(tg, ord);
             uint8_t num[4];
             uint8_t n = (uint8_t)pi->shirtNumber, k = 0;
             if (pi->position < 0)
@@ -2950,6 +3017,11 @@ void SwapPlayerNameData(uint16_t enterIndex, uint16_t leaveIndex)
     uint8_t *ordinals = (uint8_t *)&_plOrdinalsTable;
     uint8_t *nameLens = (uint8_t *)&_plNamesLengthTableCopy;
 
+    if (enterIndex >= 16 || leaveIndex >= 16) {     /* (a long bench's places 17..: long_bench.c) */
+        LongBench_SwapNames(_benchTeamGame != (uintptr_t)&_topTeamInGame, (int16_t)enterIndex, (int16_t)leaveIndex);
+        return;
+    }
+
     if (_benchTeamGame != (uintptr_t)&_topTeamInGame) {
         ordinals += 16;
         nameLens += 16;
@@ -3133,7 +3205,7 @@ void FirePressedInSubsMenu(void)
     _overlayActiveFlag = 1;
     _plToEnterGameIndex = idx + 10;
 
-    if (_gameMaxSubstitutes > 5 && _plToEnterGameIndex == 11) {
+    if (LB_GK_FIRST_PLACE() && _plToEnterGameIndex == 11) {
         _plToBeSubstitutedPos = 0;
         return;
     }
@@ -3196,7 +3268,7 @@ void UpdateSubstitutePlayerIndices(void)
      * cursor to lineup position 1 while we stayed on the keeper and
      * substituted him instead (docs/TESTS.md). */
     if (_subsState != 4) {
-        if (_plToEnterGameIndex == 11 && _gameMaxSubstitutes > 5)
+        if (_plToEnterGameIndex == 11 && LB_GK_FIRST_PLACE())
             return;
     }
 

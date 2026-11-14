@@ -95,3 +95,29 @@ ITA2627-LIGORNA-POULE SWOS_TEST_PLAYOFF_PLACE=1 @2627 EUROPE/ITALY/SERIE D/SERIE
 # ... a play-off of more rounds than the engine's six, in parts: the MLS's wild card club (seven game
 # rounds: the wild card, then round one's best-of-three to the MLS Cup).
 USA2627-LAGALAXY-WILDCARD SWOS_TEST_PLAYOFF_PLACE=23 @2627 NORTH AMERICA/U.S.A./LA GALAXY
+# Europe 1984-85 (the Mod's classic world, DaniSwos's database: docs/WORLD_2026_27.md §6g): its knockout
+# European cups (32 / 32 / 64), a club of a 96/97 country, one of the world's own (East Germany).
+ENG8485-LIVERPOOL @8485 EUROPE/ENGLAND/FIRST DIVISION/LIVERPOOL
+ITA8485-JUVENTUS @8485 EUROPE/ITALY/SERIE A/JUVENTUS
+GDR8485-DRESDEN @8485 EUROPE/EAST GERMANY/DYNAMO DRESDEN
+# ... the Super Cups (src/world_supercup.c): Italy's in the first season (Inter v Lazio, 22 December),
+# Spain's and Turkey's final fours, and the UEFA Super Cup from the second season (the career club
+# made the Champions League holder: SWOS_TEST_USC_FORCE, the Mod's USC_FORCE) before Germany's.
+ITA2627-INTER @2627 EUROPE/ITALY/SERIE A/INTER
+ESP2627-BARCELONA @2627 EUROPE/SPAIN/LALIGA/BARCELONA
+TUR2627-GALATASARAY @2627 EUROPE/TURKEY/SUPER LIG/GALATASARAY
+GER2627-BAYERN-USC SWOS_TEST_USC_FORCE=1 @2627 EUROPE/GERMANY/BUNDESLIGA/BAYERN
+# Squads of 30 and the B-team call-ups (docs/WORLD_2026_27.md §6g): Inter calls up from Inter U23 at the
+# first hub -- three over-age and one under-23 player for the next match, a fifth refused (at most 4),
+# two for the season (in the summer window) -- and buys the national market's first player 17..
+ITA2627-INTER-BTEAM SWOS_TEST_BTEAM=1:18,1:19,1:21,1:0,1:24,2:3,2:4 SWOS_TEST_BUY_EXTRA=1 @2627 EUROPE/ITALY/SERIE A/INTER
+# ... Brisbane Roar from Brisbane Roar 2 (Australia's rule: no over-age player, no keeper exception,
+# its own windows): an over-age one refused, an under-23 one called, a season call-up out of a window.
+AUS2627-BRISBANE-BTEAM SWOS_TEST_BTEAM=1:1,1:2,2:4 @2627 OCEANIA/AUSTRALIA/A-LEAGUE MEN/BRISBANE ROAR
+# A national coach's career (SWOS_TEST_NATIONAL_JOB, src/job_offers.c + src/career_autopilot.c): the
+# manager's national team offers its job at once and is the only offer then (CONSIDER in the season,
+# ACCEPT at its end), the squad is called up by value, and the coach is never sacked -- so the cycle's
+# qualifiers, World Cup and European Championship are played. 96/97's the control (the game's own
+# national competitions); Europe 1984-85's the Mod 3.1's (src/world_nationals.c).
+ENG-NATIONAL SWOS_TEST_NATIONAL_JOB=1 EUROPE/ENGLAND/PREMIER LEAGUE/ARSENAL
+ENG8485-NATIONAL SWOS_TEST_NATIONAL_JOB=1 @8485 EUROPE/ENGLAND/FIRST DIVISION/LIVERPOOL

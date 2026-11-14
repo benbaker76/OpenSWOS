@@ -24,6 +24,15 @@
  *            16  the team's id (a UUID's sixteen bytes)
  *             8  the checksum (the eight bytes its sixteen hex digits spell)
  *             1  status      0 in an ASK; in an ANSWER one of TEAMCHECK_OK / _UNKNOWN / _CHANGED
+ *
+ * THE PLAYERS 17.. (since 2026-11-13, docs/TEAM_IDS.md §5): a world's long bench brings a club's
+ * players 17.. (its "extra_players") on, and the checksum above is of its sixteen. A game whose
+ * team has them asks a second packet beside the first, the same layout with byte 4 =
+ * TEAMCHECK_PROTOCOL_EXTRAS and each checksum the one of the team's players 17.. in their order
+ * (TeamDb_ChecksumPlayers). A server that knows them answers it in kind: OK, CHANGED, or UNKNOWN
+ * for a team its list has no players 17.. for (an older list: unverified, never refused). A
+ * server from before reads only protocol 1, and drops the second packet unanswered: the game then
+ * plays the players 17.. unverified, as it plays any team when there is no server.
  */
 #ifndef TEAM_PROTO_H
 #define TEAM_PROTO_H
@@ -33,6 +42,7 @@
 
 #define TEAMCHECK_MAGIC      "SWTC"
 #define TEAMCHECK_PROTOCOL   1
+#define TEAMCHECK_PROTOCOL_EXTRAS 2     /* the same packet, of the teams' players 17.. */
 #define TEAMCHECK_ASK        1
 #define TEAMCHECK_ANSWER     2
 #define TEAMCHECK_MAX_TEAMS  2
@@ -51,6 +61,7 @@ typedef struct {
 } TeamCheckTeam;
 
 typedef struct {
+    uint8_t       protocol;     /* TEAMCHECK_PROTOCOL, or _EXTRAS (0 in a Write: TEAMCHECK_PROTOCOL) */
     uint8_t       type;
     uint8_t       count;
     uint32_t      nonce;
@@ -63,7 +74,7 @@ static inline int32_t TeamCheck_Write(uint8_t *p, const TeamCheck *c)
 {
     int32_t i;
     memcpy(p, TEAMCHECK_MAGIC, 4);
-    p[4] = TEAMCHECK_PROTOCOL;
+    p[4] = c->protocol ? c->protocol : TEAMCHECK_PROTOCOL;
     p[5] = c->type;
     p[6] = c->count;
     p[7] = 0;
@@ -82,9 +93,11 @@ static inline int32_t TeamCheck_Write(uint8_t *p, const TeamCheck *c)
 static inline int32_t TeamCheck_Read(const uint8_t *p, int32_t len, TeamCheck *c)
 {
     int32_t i;
-    if (len < TEAMCHECK_HEAD || memcmp(p, TEAMCHECK_MAGIC, 4) != 0 || p[4] != TEAMCHECK_PROTOCOL ||
+    if (len < TEAMCHECK_HEAD || memcmp(p, TEAMCHECK_MAGIC, 4) != 0 ||
+        (p[4] != TEAMCHECK_PROTOCOL && p[4] != TEAMCHECK_PROTOCOL_EXTRAS) ||
         p[6] < 1 || p[6] > TEAMCHECK_MAX_TEAMS || len != TeamCheck_Length(p[6]))
         return 1;
+    c->protocol = p[4];
     c->type = p[5];
     c->count = p[6];
     c->nonce = (uint32_t)p[8] << 24 | (uint32_t)p[9] << 16 | (uint32_t)p[10] << 8 | p[11];

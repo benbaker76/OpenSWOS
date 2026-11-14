@@ -10,6 +10,7 @@
 #include "world_cups.h"
 #include "league_playoffs.h"   /* (the rules library: swosrules.h) */
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "endian_helpers.h"
 #include "league_groups.h"
 
@@ -107,6 +108,14 @@ static int32_t level_of(const LeagueGroups *lg, int32_t division)
 static int32_t build(const WorldCup *c, TeamId *out)
 {
     const LeagueGroups *lg = LeagueGroups_ForCountry(c->country);
+    if (!lg) {
+        /* a classic world's country without groups (Europe 1984-85): its clubs, a division its
+         * level -- unless a cup-only club plays (255): the Mod keeps that cup's real list */
+        lg = World_CupClubs(c->country);
+        for (int32_t g = 0; lg && g < c->groups; g++)
+            if (c->quota[g][0] == 255)
+                lg = 0;
+    }
     const int32_t ranked = g_worldCups.placesCountry == c->country &&
                            (uint8_t)(g_worldCups.placesSeason + 1) == g_worldCups.seasons;
     static uint16_t slot[WORLD_SLOTS];          /* (slots: include/world.h) */
@@ -386,6 +395,9 @@ int32_t WorldCups_RoundStringIndex(uint8_t compId, uint16_t round, uint16_t roun
     const int32_t cupd = CupD_RoundStringIndex(compId, round);   /* (the Coppa Italia Serie D: world_cupd.c) */
     if (cupd >= 0)
         return cupd;
+    const int32_t sc = SuperCup_RoundStringIndex(compId);       /* (a Super Cup tie: world_supercup.c) */
+    if (sc >= 0)
+        return sc;
     const int32_t uq = UefaQual_RoundStringIndex(compId);       /* (a UEFA qualifying tie: uefa_coef.c) */
     if (uq >= 0)
         return uq;

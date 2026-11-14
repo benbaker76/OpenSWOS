@@ -49,13 +49,20 @@ enum {
 
 void TeamDb_Checksum(const TeamFileEx *team, char out[TEAM_CHECKSUM_TEXT])
 {
+    TeamDb_ChecksumPlayers(team->players, TEAM_PLAYERS, out);
+}
+
+/* The same of any players, in order (a world club's players 17..: the team check's
+ * TEAMCHECK_PROTOCOL_EXTRAS, scripts/assign_team_uuids.py's checksum of its "extra_players"). */
+void TeamDb_ChecksumPlayers(const PlayerFile *players, int32_t count, char out[TEAM_CHECKSUM_TEXT])
+{
     TeamSha1 s;
     uint8_t digest[20];
     int32_t i;
 
     TeamSha1_Start(&s);
-    for (i = 0; i < TEAM_PLAYERS; i++) {
-        const PlayerFile *p = &team->players[i];
+    for (i = 0; i < count; i++) {
+        const PlayerFile *p = &players[i];
         const uint8_t plays[9] = {
             (uint8_t)((p->positionAndFace & PF_POSITION_MASK) >> 5),
             (uint8_t)(p->passing & 15),
@@ -191,6 +198,16 @@ static const TeamDbEntry *team_in(int32_t of9697, int32_t country, int32_t ordin
         if (c->entries[i].team.team.countryNumber == country && c->entries[i].team.team.teamOrdinal == ordinal)
             return &c->entries[i];
     return NULL;
+}
+
+void TeamDb_ForgetCountry(int32_t country)
+{
+    if (country < 0 || country >= kCountries)
+        return;
+    for (int32_t db = 0; db < 2; db++) {
+        free(s_country[db][country].entries);
+        memset(&s_country[db][country], 0, sizeof s_country[db][country]);
+    }
 }
 
 const TeamDbEntry *TeamDb_Entry(int32_t country, int32_t index)     { return entry_in(0, country, index); }

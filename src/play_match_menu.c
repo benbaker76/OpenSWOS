@@ -16,6 +16,7 @@
  * TogglePlayerCoach, GetPlayerPosition.
  */
 
+#include "long_bench.h"
 #include "mod_hooks.h"        /* playerRowDrawn (SDL) */
 #include "play_match_menu.h"
 #include "endian_helpers.h"
@@ -111,6 +112,7 @@ extern int16_t _togglePlayerCoachRedrawItemList[];
 extern void CheckIsTeamNational(void);
 extern void SetBenchPlayersNumbers(TeamFileEx *team);
 extern int32_t SquadNumbers_On(void);           /* (real squad numbers: teams.c) */
+extern int32_t SquadNumbers_Kept(const TeamFileEx *team);
 extern void SquadNumbers_Free(uint16_t slot);
 extern void DrawMenu(void);
 extern void CallDrawMenuItem(MenuEntry *entry);
@@ -783,7 +785,12 @@ void PlayMatchMenuReinit(void) {
     _pmMenuNumPlayers = 16 - 5 + _maxSubstitutesEntries;
 
     uint16_t np = _numPlayers;
-    if (_playMatchTeam1Ptr != &_currentTeam) {
+    uint16_t frN = 0;
+    if (_playMatchTeam1Ptr != &_currentTeam &&
+        LongBench_FrOrder(PACK_BE_U16(_playMatchTeam1Ptr->team.countryNumber, _playMatchTeam1Ptr->team.teamOrdinal),
+                          &frN)) {
+        np = frN;                       /* (a friendly's long bench: 16 + its players 17..) */
+    } else if (_playMatchTeam1Ptr != &_currentTeam) {
         if (_selTeamNumber == 0xFFFF) {
             np = 16;
         } else {
@@ -964,7 +971,7 @@ void PlayMatchMenuSwapPlayers(TeamFileEx *team, int16_t d3, int16_t d4) {
         PlayerFile *pf1 = (PlayerFile *)(p1 + 76);
         PlayerFile *pf2 = (PlayerFile *)(p2 + 76);
         int8_t ts = pf2->shirtNumber;
-        if (!SquadNumbers_On()) {       /* (real squad numbers: not swapped, teams.c) */
+        if (!SquadNumbers_Kept(team)) {  /* (real or edited squad numbers: not swapped, teams.c) */
             pf2->shirtNumber = pf1->shirtNumber;
             pf1->shirtNumber = ts;
         }
@@ -990,10 +997,14 @@ void PlayMatchMenuSwapPlayers(TeamFileEx *team, int16_t d3, int16_t d4) {
             pn = (uint8_t *)_currentMatchPlayers;
         } else {
             pn = team->team.playerNumbers;
+            if (LongBench_FrSwap(tNum, d3, d4))     /* (a friendly's long bench: its own order) */
+                pn = NULL;
         }
+        if (pn) {
         uint8_t t = pn[(uint16_t)d4];
         pn[(uint16_t)d4] = pn[(uint16_t)d3];
         pn[(uint16_t)d3] = t;
+        }
     }
 
     if (_trainingGame && !_is_A_team) {
@@ -1235,6 +1246,8 @@ void TogglePlayerCoach(void) {
     DrawMenuItemsWaitForVSync(_togglePlayerCoachRedrawItemList);
 }
 
+static uint16_t s_lbBench;              /* this screen's long bench (ShowPlayMatchMenu), 0: the game's */
+
 /* ================================================================
  * DrawPlayerEntries  (line 81983)
  *
@@ -1253,8 +1266,12 @@ void DrawPlayerEntries(MenuEntry *a5) {
     if (d7 == 16) {
         d5 = 1;
         d7 = d7 - 5 + _maxSubstitutesEntries;
-        bgE->bgColor = (bgE->bgColor & 0xFFF0) | BLUE_TO_BLACK_8;
-        numE->bgColor = (numE->bgColor & 0xFFF0) | BLUE_TO_BLACK_8;
+        /* (a world's long bench, long_bench.c: the player the box shows here sits on it in the
+         *  match -- a substitute's colour) */
+        const uint16_t c = d7 < 11 + s_lbBench && !_viewingOpponentTeam && !_showingCpuTeams
+                           ? BLUE_TO_PURPLE_11 : BLUE_TO_BLACK_8;
+        bgE->bgColor = (bgE->bgColor & 0xFFF0) | c;
+        numE->bgColor = (numE->bgColor & 0xFFF0) | c;
     } else if (d7 < 11) {
         if (!_showingCpuTeams && !_viewingOpponentTeam) {
             uint16_t c = (d7 == 0) ? YELLOW_GREEN_BLACK_14 : BRIGHT_BLUE_TO_BLUE_13;
@@ -1523,6 +1540,9 @@ int16_t ShowPlayMatchMenu(int16_t controlFlags, int16_t _maxSubstitutes,
     _playMatchTeam1Ptr = team1;
     _playMatchTeam2Ptr = team2;
     _maxSubstitutesEntries = (uint16_t)_maxSubstitutes;
+    s_lbBench = LongBench_PreMatch((const TeamFile *)team1, (const TeamFile *)team2);  /* (a world's long bench) */
+    if (s_lbBench > 5)
+        _maxSubstitutesEntries = 5;     /* (its bench: rows 12..16, then row 17 and the box -- the Mod's sq_n) */
     _playMatchControlFlags = (uint16_t)controlFlags;
     _playMatchExcludeFlags = (int16_t)excludeFlags;
     _inEditTactics = (uint16_t)excludeFlags;

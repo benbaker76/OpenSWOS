@@ -20,6 +20,7 @@
  */
 #include "test_rules.h"
 #include "online_menus.h"
+#include "conti_view.h"
 #include "dos_mode.h"           /* the gameplay style: OPEN asks it, the lobby shows it */
 #include "project_identity.h"  /* PROJECT_HIDE_SWOS2020_EXTRAS */
 #include "mm_client.h"         /* the matchmaking server (docs/NETPLAY.md section 7) */
@@ -3112,6 +3113,7 @@ int32_t OnlineMenus_ShowStartMenu(void)
     { extern void SettingsMenus_Init(void); SettingsMenus_Init(); }   /* (--menu=openswos/settingsMenu) */
     CreditsMenu_Init();              /* (--menu=openswos/creditsMenu, openswos/fullCreditsMenu) */
     ModsMenu_Init();            /* (--menu=openswos/modsMenu) */
+    ContiView_Init();           /* (--menu=openswos/contiConfsMenu, ...) */
     { extern void ModEntries_Init(void); ModEntries_Init(); }   /* (--menu=openswos/modEntriesMenu) */
     { extern void TeamPacksMenu_Init(void); TeamPacksMenu_Init(); }   /* (--menu=openswos/teamPacksMenu) */
     if (!strcmp(name, CREDITS_MENU_NAME))
@@ -3228,6 +3230,22 @@ int32_t OnlineMenus_SelfTest(void)
         if (bad) {
             failed++;
             printf("  FAIL %-26s %s\n", "choiceMenu", bad < 0 ? "did not load" : "mismatch (see log)");
+        }
+    }
+    {   /* a world career's CONTINENTAL CUPS (src/conti_view.c) */
+        static const struct { const char *name; int entries; } k_conti[] = {
+            { CONTI_CONFS_MENU_NAME, CONTI_CONFS_MENU_ENTRIES }, { CONTI_ROUNDS_MENU_NAME, CONTI_ROUNDS_MENU_ENTRIES },
+            { CONTI_ROUND_MENU_NAME, CONTI_ROUND_MENU_ENTRIES },
+        };
+        ContiView_Init();
+        for (size_t ci = 0; ci < sizeof k_conti / sizeof k_conti[0]; ci++) {
+            int bad = MenuJson_VerifyDynamic(k_conti[ci].name, k_conti[ci].entries);
+            menus++;
+            entries += k_conti[ci].entries;
+            if (bad) {
+                failed++;
+                printf("  FAIL %-26s %s\n", k_conti[ci].name + 9, bad < 0 ? "did not load" : "mismatch (see log)");
+            }
         }
     }
     CreditsMenu_Init();

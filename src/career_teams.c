@@ -10,6 +10,7 @@
  * Chunk 90: Career competition team selection (12 functions).
  */
 
+#include "bteam.h"
 #include "career_teams.h"
 #include <stdio.h>    /* (Career_PeekTeam) */
 #include <stdlib.h>   /* (Career_ForEachClub) */
@@ -22,6 +23,7 @@
 #include "world_playoff.h"
 #include "world_cups.h"
 #include "world_cupd.h"
+#include "world_supercup.h"
 #include "translations.h"
 #include "endian_helpers.h"
 #include "game_types.h"
@@ -32,6 +34,7 @@
 #include "diy_competition.h"
 #include "file_io.h"
 #include "world.h"
+#include "world_europe.h"
 #include "world_rules.h"   /* a world's computer clubs' countdowns */
 
 /* ---- Constants ---- */
@@ -818,6 +821,27 @@ int32_t Career_LoadWorldEuropeTmd(void)
     int32_t n;
     if (World_Current() == WORLD_9697)
         return 0;
+    if (WorldEurope_Active()) {                 /* (a classic world's knockouts: include/world_europe.h) */
+        const WorldEuropeKO *ko = World_EuropeKnockouts();
+        _teamsLoaded = 0;
+        for (int32_t k = 0; k < 3; k++) {
+            const CompetitionCup *c = ko->cup[k];
+            for (int32_t i = 0; i < c->header.teams; i++) {     /* (a list past 32 runs on after it) */
+                const uint16_t id = TEAMID_PACK(c->teamSeedList[i]);
+                _skipLeagueNumbers = 1;
+                LoadTeamFile((uint16_t)(id >> 8));
+                _skipLeagueNumbers = 0;
+                const uint8_t *rec = findTeamInTeamFileBuffer(id);
+                if (!rec) {
+                    _panicReasonCode = 0x3446;
+                    PanicHaltLoop();
+                }
+                Career_AppendTeamToTmdTeamPool((TeamFileEx *)rec);
+            }
+        }
+        _teamsLoaded = 0;
+        return 1;
+    }
     CompetitionLeaguePhase *cups = World_LeaguePhaseCups(&places, &n);
     if (!cups)
         return 0;
@@ -1838,6 +1862,8 @@ void Career_UpdateCareerFinishedFlag(void)
 __attribute__((used, externally_visible))
 void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
 {
+    /* a world's B-team call-ups for one match go back (bteam.c: the Mod's bt_adv) */
+    BTeam_ReturnMatch();
     /* a world's computer clubs' injuries and suspensions counted down, once a day (CPU RED
      * CARDS / CPU INJURIES, world_rules.c) */
     WorldRules_CpuDay();
@@ -1845,6 +1871,7 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
      * played is the current one */
     if (_teamSelectionKeyCacheCount) {
         CupD_Step(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
+        SuperCup_Step(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
         UefaQual_Daily();       /* (a world's: the career club's qualifying tie decided) */
         Conti_Daily();          /* (or its tie in another confederation's cup) */
         WorldPlayoff_Advance(((TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset))->sortKey);
@@ -2023,7 +2050,8 @@ void Career_ProcessCurrentCompetitionSlotAfterMatch(void)
         if (((DIYCompetitionEx *)slotPtr)->minSubstitutes != 0)
             return;
         if (!WorldPlayoff_CareerLeagueEnded() &&   /* a world's play-off the club plays (world_playoff.c), */
-            !CupD_InSlot4())                       /* a Coppa Italia Serie D tie's slot (world_cupd.c) */
+            !CupD_InSlot4() &&                     /* a Coppa Italia Serie D tie's slot (world_cupd.c), */
+            !SuperCup_InSlot4())                   /* a Super Cup tie's (world_supercup.c) */
             DIY_RebuildCompetitionAndTeamSelectionCaches();
     }
 }
@@ -2146,7 +2174,8 @@ void Career_OpenCompetitionSlotMenuAndApplyChanges(uint16_t d2)
     if (((DIYCompetitionEx *)slotPtr)->minSubstitutes != 0)
         return;
     if (!WorldPlayoff_CareerLeagueEnded() &&    /* a world's play-off the club plays (world_playoff.c), */
-        !CupD_InSlot4())                        /* a Coppa Italia Serie D tie's slot (world_cupd.c) */
+        !CupD_InSlot4() &&                      /* a Coppa Italia Serie D tie's slot (world_cupd.c), */
+        !SuperCup_InSlot4())                    /* a Super Cup tie's (world_supercup.c) */
         DIY_RebuildCompetitionAndTeamSelectionCaches();
 }
 

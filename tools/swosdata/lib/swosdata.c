@@ -89,7 +89,7 @@ void SwosData_Plan(const SdJob *job, SdStepInfo info[SD_STEP_COUNT])
     info[SD_STEP_SWOS2020].needs = "a SWOS 2020 install";
     info[SD_STEP_SWOS2020].ready = SdSources_HaveSwos2020(&job->src);
 
-    info[SD_STEP_WORLD].name = "World 2026-27";
+    info[SD_STEP_WORLD].name = "World 2026-27";       /* (and any other world's package found) */
     info[SD_STEP_WORLD].needs = "the World 2026-27 package";
     info[SD_STEP_WORLD].ready = SdSources_HaveWorld(&job->src);
 }
@@ -594,12 +594,12 @@ static int32_t write_assets_ini(SdJob *job, const SdStepInfo info[SD_STEP_COUNT]
 
 /* A world's package (OpenSWOS-World-<tag>.zip, or the folder it was unpacked to) into the assets
  * folder (SwosData_InstallWorld). */
-static int32_t step_world(SdJob *job, int32_t *done, int32_t total, char *err)
+static int32_t step_one_world(SdJob *job, const char *path, char *err)
 {
     SdWorldInfo w;
     char dir[1400];
-    if (SdSources_OpenWorld(job->src.world, &w, dir, sizeof dir) != 0) {
-        snprintf(err, 256, "%.200s is not a world package (no WORLD.ini)", job->src.world);
+    if (SdSources_OpenWorld(path, &w, dir, sizeof dir) != 0) {
+        snprintf(err, 256, "%.200s is not a world package (no WORLD.ini)", path);
         return -1;
     }
     if (job->log) {
@@ -612,6 +612,17 @@ static int32_t step_world(SdJob *job, int32_t *done, int32_t total, char *err)
                      ? SwosData_InstallWorldMod(dir, w.tag, w.name, w.fingerprint, job->modsDir, job->outDir, NULL, 0,
                                                 job->log, job->user, err)
                      : SwosData_InstallWorld(dir, w.tag, job->outDir, NULL, job->log, job->user, err);
+    return rc;
+}
+
+/* Every world package found (one a world: World 2026-27, Europe 1984-85 ...), each by its own
+ * WORLD.ini -- its tag, name and fingerprint; mod.json its mod. */
+static int32_t step_world(SdJob *job, int32_t *done, int32_t total, char *err)
+{
+    int32_t rc = step_one_world(job, job->src.world, err);
+    for (int32_t i = 0; rc == 0 && i < SD_WORLDS_MORE; i++)
+        if (job->src.worldMore[i][0])
+            rc = step_one_world(job, job->src.worldMore[i], err);
     tick(job, done, total);
     return rc;
 }

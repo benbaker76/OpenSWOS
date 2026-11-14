@@ -153,6 +153,8 @@ void FrontEndPreLoopSetup(void)
     DataJson_LoadCareerParams();
     extern void DataJson_LoadNationalTeams(void);
     DataJson_LoadNationalTeams();       /* (a mod's national teams: include/national_teams.h) */
+    extern void WorldNationals_Install(void);
+    WorldNationals_Install();           /* (a classic world's national competitions, over the JSON's) */
     extern void TeamDb_Apply(void);
     TeamDb_Apply();                     /* (a team database mod's leagues, cups, codes, season: src/teamdb.c) */
     extern void TeamDb_ApplyLeagueTweaks(void);

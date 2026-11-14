@@ -486,6 +486,13 @@ static int32_t add_zip(SdSources *s, const char *path)
 
 /* ---- a world's package ------------------------------------------------------- */
 
+static void take_world(SdSources *s, const char *path);   /* (below) */
+
+void SdSources_AddWorld(SdSources *s, const char *path)
+{
+    take_world(s, path);
+}
+
 typedef struct {
     char    name[260];
     uint8_t isDir;
@@ -844,8 +851,7 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
     if (ends_with_nocase(path, ".zip")) {
         SdWorldInfo w;
         if (SdSources_OpenWorld(path, &w, NULL, 0) == 0) {
-            if (!s->world[0])
-                snprintf(s->world, sizeof s->world, "%s", path);
+            take_world(s, path);
             return 0;
         }
         return add_zip(s, path);
@@ -925,8 +931,7 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
         }
         SdWorldInfo w;
         if (SdSources_OpenWorld(path, &w, game, sizeof game) == 0) {
-            if (!s->world[0])
-                snprintf(s->world, sizeof s->world, "%s", game);
+            take_world(s, game);
             return 0;
         }
         if (has_commentary_dir(path))       /* the PC game's CD, or its sounds */
@@ -955,14 +960,38 @@ int32_t SdSources_AddFile(SdSources *s, const char *path)
         }
         SdWorldInfo w;               /* (its WORLD.ini, or a file beside it) */
         if (SdSources_OpenWorld(dir, &w, game, sizeof game) == 0 && strcmp(game, dir) == 0) {
-            if (!s->world[0])
-                snprintf(s->world, sizeof s->world, "%s", game);
+            take_world(s, game);
             return 0;
         }
         if (has_commentary_dir(dir))
             return SdSources_AddDosCd(s, dir);
     }
     return -1;
+}
+
+/* A world's package found: the first one, or another world's (by its WORLD.ini tag) beside it --
+ * one package a world, the first found of each kept. */
+static void take_world(SdSources *s, const char *path)
+{
+    SdWorldInfo w, o;
+    if (!s->world[0]) {
+        snprintf(s->world, sizeof s->world, "%s", path);
+        return;
+    }
+    if (SdSources_OpenWorld(path, &w, NULL, 0) != 0)
+        return;
+    if (strcmp(s->world, path) == 0 ||
+        (SdSources_OpenWorld(s->world, &o, NULL, 0) == 0 && strcmp(o.tag, w.tag) == 0))
+        return;
+    for (int32_t i = 0; i < SD_WORLDS_MORE; i++) {
+        if (!s->worldMore[i][0]) {
+            snprintf(s->worldMore[i], sizeof s->worldMore[i], "%s", path);
+            return;
+        }
+        if (strcmp(s->worldMore[i], path) == 0 ||
+            (SdSources_OpenWorld(s->worldMore[i], &o, NULL, 0) == 0 && strcmp(o.tag, w.tag) == 0))
+            return;
+    }
 }
 
 static int32_t count_found(const SdSources *s)
@@ -1149,8 +1178,7 @@ static void scan_dir(SdSources *s, const char *dir, int32_t depth, ScanCtx *ctx)
         SdWorldInfo w;               /* (an unpacked world package) */
         char root[1024];
         if (SdSources_OpenWorld(dir, &w, root, sizeof root) == 0) {
-            if (!s->world[0])
-                snprintf(s->world, sizeof s->world, "%s", root);
+            take_world(s, root);
             gameDir = 1;
         }
     } else if (has_entry(list, n, "swos", 1) || has_entry(list, n, "swos-port-Release.exe", 0)) {
