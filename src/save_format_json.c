@@ -40,7 +40,8 @@
 #include "world_cups.h"        /* "world_cups" in career saves */
 #include "world_cupd.h"        /* "world_cupd" in career saves */
 #include "world_supercup.h"    /* "world_supercup" in career saves */
-#include "cup_record.h"       /* "cup_record" in career saves */
+#include "cup_record.h"
+#include "menu_system.h"      /* Menu (SaveJson_MenuFrame) */       /* "cup_record" in career saves */
 #include "comp_identity.h"     /* COMPID_copaLibertadores: an old save's Copa (128) */
 #include "translations.h"   /* tr() — localize competition name symbols */
 #include "career_capacity.h"   /* the career lists' original and compiled sizes */
@@ -461,6 +462,34 @@ void SaveJson_ApplyPendingClock(void)
     s_menuTick = _currentTick;
     s_menuGameTick = _currentGameTick;
 }
+/* The European qualifying draws' seed-group tables (swos_amiga_ptr_imports.c: {ptr, size, count},
+ * ended by ptr -1), whose groups the season end shuffles in place (career_season.c). */
+typedef struct __attribute__((packed)) { void *ptr; uint16_t size, count; } ExactSeedEntry;
+static const ExactSeedEntry *exact_seed_table(int32_t t)
+{
+    extern uint8_t _euroCupQualGroupSeedLists_4_6_11[], _euroCupQualGroupSeedListsReduced_4_6_11[],
+                   _euroCupQualGroupSeedBuckets_15_18_22[];
+    return (const ExactSeedEntry *)(t == 0 ? _euroCupQualGroupSeedLists_4_6_11
+                                  : t == 1 ? _euroCupQualGroupSeedListsReduced_4_6_11
+                                           : _euroCupQualGroupSeedBuckets_15_18_22);
+}
+
+/* MenuProc (menu_system.c), every frame: the clocks are taken -- and a load's put back -- each time
+ * a career hub comes up, its first showing or its return after a match day, so a save made at any
+ * pass of the hub keeps the clocks of that pass. */
+void SaveJson_MenuFrame(void)
+{
+    extern void ContestMenuInit(void), CareerOverInit(void);
+    extern uint8_t _currentMenu[];
+    static MenuVoidFn last;
+    const Menu *m = (const Menu *)_currentMenu;
+    if (m->onInit == last)
+        return;
+    last = m->onInit;
+    if (last == ContestMenuInit || last == CareerOverInit)
+        SaveJson_ApplyPendingClock();
+}
+
 void    SaveJson_SetExactContinuation(int32_t on) { s_exactContinuation = on != 0; }
 int32_t SaveJson_ExactContinuation(void) { return s_exactContinuation; }
 int32_t SaveJson_ExactStateLoaded(void) { return s_exactLoaded; }
@@ -6403,6 +6432,11 @@ static void load_comp_slot_obj(const char *o, int olen, DIYCompetitionEx *s)
 #undef LD8
 #undef LDU16
 
+    /* (a name already there -- the slot's bytes, loaded before it -- is left as it is: the bytes
+     * past its NUL are a longer earlier name's tail, which the run that was not stopped still has) */
+    char nameNow[sizeof(b->competitionName) + 1];
+    memcpy(nameNow, b->competitionName, sizeof(b->competitionName));
+    nameNow[sizeof(b->competitionName)] = 0;
     memset(b->competitionName, 0, sizeof(b->competitionName));
     if ((q = key_slice(kv, N_SLOT_KEYS, "name")) != NULL &&
         q->vt == MJSON_TOK_STRING) {
@@ -6412,7 +6446,11 @@ static void load_comp_slot_obj(const char *o, int olen, DIYCompetitionEx *s)
             uint32_t n = (uint32_t)got;
             if (n > sizeof(b->competitionName) - 1)
                 n = sizeof(b->competitionName) - 1;
-            memcpy(b->competitionName, tmp, n);
+            if (n < (uint32_t)sizeof(tmp)) tmp[n] = 0;
+            if (strcmp(nameNow, tmp) == 0)
+                memcpy(b->competitionName, nameNow, sizeof(b->competitionName));
+            else
+                memcpy(b->competitionName, tmp, n);
         }
     }
 
@@ -7445,6 +7483,18 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         }
     }
 
+    /* A world's European title holders (career_eurocups.c: the Champions', Cup Winners' and UEFA
+     * cups' winners, as team words): its cups end in the season and the season end reads them --
+     * the Super Cup (SuperCup_HoldersEnded), the pots (UefaCoef_PotKey), the continental cups
+     * (conti_season.c). Outside the career buffer in the original too, so a loaded career had
+     * none. 96/97 not: its season end sets them again before it reads them. */
+    if (World_Current() != WORLD_9697) {
+        extern uint16_t _euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId, _uefaCupTitleHolderTeamId;
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d}", "euro_title_holders",
+                     "champions", (int)_euroCupTitleHolderTeamId, "cup_winners",
+                     (int)_cupWinnersCupTitleHolderTeamId, "uefa", (int)_uefaCupTitleHolderTeamId);
+    }
+
     /* The SEASON WINNERS page's last season (league_playoffs.c, world_winners.c): its season,
      * then per title its type, index and team word. */
     if (g_leagueWinners.season && g_leagueWinners.n) {
@@ -7549,9 +7599,21 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
     if (s_exactContinuation) {
         extern uint8_t _seed, _randXorIndex, _randXorKey;
         extern volatile uint16_t _currentGameTick, _currentTick;
-        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "exact_continuation",
+        mjson_printf(json_out_emit, &out, ",\n  %Q:{%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d", "exact_continuation",
                      "seed", (int)_seed, "rand_xor_index", (int)_randXorIndex, "rand_xor_key", (int)_randXorKey,
                      "current_tick", (int)s_menuTick, "current_game_tick", (int)s_menuGameTick);
+        /* the European qualifying draws' seed groups, in the order the season ends' shuffles left them
+         * (Career_FillRandomTeamListExcludingSelected shuffles them IN PLACE: static data, which a load
+         * otherwise starts again from the unshuffled order) -- the bytes, a list per group */
+        mjson_printf(json_out_emit, &out, ",%Q:[", "euro_seed_groups");
+        for (int32_t t = 0, n = 0; t < 3; t++)
+            for (const ExactSeedEntry *g = exact_seed_table(t); g->ptr != (void *)(uintptr_t)-1; g++, n++) {
+                mjson_printf(json_out_emit, &out, "%s[", n ? "," : "");
+                for (uint16_t i = 0; i < g->size; i++)
+                    mjson_printf(json_out_emit, &out, "%s%d", i ? "," : "", (int)((const uint8_t *)g->ptr)[i]);
+                json_out_emit("]", 1, &out);
+            }
+        json_out_emit("]}", 2, &out);
     }
 
     /* A national coach's cup pick list (his season's five competitions: the draw's friendly /
@@ -8422,6 +8484,18 @@ static void apply_semantic_load(const char *src, int src_size)
         }
     }
 
+    {   /* a world's European title holders (see the writer); a save without them: as before */
+        extern uint16_t _euroCupTitleHolderTeamId, _cupWinnersCupTitleHolderTeamId, _uefaCupTitleHolderTeamId;
+        const char *th = NULL;
+        int thlen = 0;
+        long v;
+        if (mjson_find(src, src_size, "$.euro_title_holders", &th, &thlen) == MJSON_TOK_OBJECT) {
+            if (mjson_get_long(th, thlen, "$.champions", &v) > 0) _euroCupTitleHolderTeamId = (uint16_t)v;
+            if (mjson_get_long(th, thlen, "$.cup_winners", &v) > 0) _cupWinnersCupTitleHolderTeamId = (uint16_t)v;
+            if (mjson_get_long(th, thlen, "$.uefa", &v) > 0) _uefaCupTitleHolderTeamId = (uint16_t)v;
+        }
+    }
+
     WorldWinners_Reset();
     {
         const char *wn = NULL;
@@ -8595,6 +8669,22 @@ static void apply_semantic_load(const char *src, int src_size)
                 s_pendingGameTick = (uint16_t)e;
                 s_clockPending = 1;
                 s_exactLoaded = 1;
+                /* the seed groups (see the writer): each only when its length is the group's */
+                for (int32_t t = 0, n = 0; t < 3; t++)
+                    for (const ExactSeedEntry *g = exact_seed_table(t); g->ptr != (void *)(uintptr_t)-1; g++, n++) {
+                        char path[40];
+                        long v;
+                        uint8_t tmp[64];
+                        int32_t ok = g->size <= sizeof tmp;
+                        for (uint16_t i = 0; i < g->size && ok; i++) {
+                            snprintf(path, sizeof path, "$.euro_seed_groups[%d][%u]", (int)n, (unsigned)i);
+                            ok = mjson_get_long(ec, eclen, path, &v) > 0 && v >= 0 && v < 256;
+                            if (ok) tmp[i] = (uint8_t)v;
+                        }
+                        snprintf(path, sizeof path, "$.euro_seed_groups[%d][%u]", (int)n, (unsigned)g->size);
+                        if (ok && mjson_get_long(ec, eclen, path, &v) <= 0)
+                            memcpy(g->ptr, tmp, g->size);
+                    }
             }
         }
     }

@@ -2001,6 +2001,8 @@ void MenuProc(void)
     if (_seasonUpdateInProgress == 0)
         s_seasonSkipLatched = 0;
 
+    { extern void SaveJson_MenuFrame(void); SaveJson_MenuFrame(); }  /* (a career hub's clocks: [career] exact_continuation) */
+
     ReadTimerDelta();
 
     if (_magicValue != 0x12345678) {

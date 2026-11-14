@@ -2733,11 +2733,9 @@ extern TeamFileEx _careerTeam;
  * by UnpackMenu. */
 extern void CareerOverFinish(void);
 
-extern void SaveJson_ApplyPendingClock(void);
 __attribute__((used, externally_visible))
 void CareerOverInit(void)
 {
-    SaveJson_ApplyPendingClock();   /* ([career] exact_continuation: a loaded career's clocks, here) */
     if (_currentSeasonShowing == _careerParams.num_seasons - 1) {
         SetCurrentEntry(6);
     } else if (_numNewJobOffers != 0 || _numJobOffers != 0) {
@@ -3897,7 +3895,6 @@ setFinishSeason:
 __attribute__((used, externally_visible))
 void ContestMenuInit(void)
 {
-    SaveJson_ApplyPendingClock();   /* ([career] exact_continuation: a loaded career's clocks, here) */
     /* Tamper check: irqCookieObfuscated XOR 0xCFD1F861 must equal 0x1786 */
     uint32_t cookie = _irqCookieObfuscated ^ 0xCFD1F861;
     if (cookie != 0x1786)
