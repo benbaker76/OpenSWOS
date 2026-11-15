@@ -127,18 +127,7 @@ void MoveCamera(void)
         boundsMargin = 37;
         {
             int16_t camY = (int16_t)(_cameraY.raw >> 16);
-            /* (a long bench's two rows: the camera aims 1 px lower, at the halfway line between the
-             *  long dugouts, and one that stops 1..3 px short -- MoveCamera's step there is 0, so it
-             *  never stood still and the bench took no keys -- is put on it: the Mod's bx_camlo) */
-            const int16_t lb = LongBench_TwoRows() ? (int16_t)(LB_CAM_Y - 0x1C1) : 0;
-            if (lb) {
-                const int16_t dest = (int16_t)(SIM_CAMERA_BENCH_Y + lb);
-                if (camY >= dest - 3 && camY < dest) {
-                    _cameraY.raw = (int32_t)((uint32_t)(uint16_t)dest << 16);
-                    camY = dest;
-                }
-            }
-            if (camY >= SIM_CAMERA_BENCH_Y_LO + lb && camY <= SIM_CAMERA_BENCH_Y_HI + lb) {
+            if (camY >= SIM_CAMERA_BENCH_Y_LO && camY <= SIM_CAMERA_BENCH_Y_HI) {
                 /* The camera has reached the bench view (the asm's literal
                  * 303..323 — see SIM_CAMERA_BENCH_Y_*, which is f(view) and
                  * reproduces the DOS release's own 339..359 at 200 lines). */
@@ -300,7 +289,7 @@ bench_camera_mode:
 
 bench_camera_target_and_zero_vel:
     targetX = (int16_t)_benchXLimit;
-    targetY = LongBench_TwoRows() ? LB_CAM_Y : 0x1C1;     /* (long_bench.c: the Mod's bx_camy) */
+    targetY = 0x1C1;
     _cameraXVelocity = 0;
     _cameraYVelocity = 0;
     /* fall through to offset_and_clamp_to_view */

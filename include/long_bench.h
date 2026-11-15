@@ -79,16 +79,13 @@ uint16_t LongBench_PreMatch(const TeamFile *team1, const TeamFile *team2);
 /* The places of each in-match team: 16 (the game's), or 11 + the bench (17..26). */
 uint16_t LongBench_Places(void);
 int32_t  LongBench_On(void);                    /* this match has a bench over 5 */
-/* The two-row dugouts (a long bench, not a training game): both benches seated in two rows, the
- * dugouts a row longer and a column wider (LongBench_PitchDugouts, from FixupAndColorPitchFile), the
- * bench camera at the halfway line, the clock aside while the bench is open. */
-int32_t  LongBench_TwoRows(void);
-#define LB_BACK_ROW   7                 /* places in the back row, after the coach */
-#define LB_FRONT_X    9                 /* the front row: towards the pitch (y: 53 up, place 8 level with the coach) */
+/* The front row (a long bench, not a training game): the game's dugouts as they are, the coach and
+ * places 1..5 seated, places 6.. standing in a row in front of the dugout (bench_subs.c). */
+int32_t  LongBench_FrontRow(void);
+#define LB_SEATED     5                 /* places seated on the bench, after the coach */
+#define LB_FRONT_X    9                 /* the front row: towards the pitch */
+#define LB_FRONT_DY   (7 * LB_SEATED + 4)   /* ... and up: place 6 level with the coach */
 #define LB_ARROW_DX   41                /* the front row's arrow, mirrored, right of it */
-#define LB_TOP_BENCH_Y 373              /* the top dugout grew a row upwards (389 - 16) */
-#define LB_CAM_Y      450               /* the bench camera's y: both dugouts whole in view */
-void     LongBench_PitchDugouts(uint8_t **tiles);
 /* The bench cursor's last place (1-based): 5, or the bench (5 in a training game). */
 uint16_t LongBench_Last(void);
 /* Places 16..25 of the top (0) and bottom (1) in-match teams. */
