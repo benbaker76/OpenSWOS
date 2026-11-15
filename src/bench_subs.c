@@ -1807,7 +1807,12 @@ static void draw_bench_occupants_only(void)
      * menu seats it. Without it, whenever _topTeamPtr is not _topTeamInGame the menu put
      * each team on one bench and play on the other: the benches swapped as the substitute
      * came on (ReportBot 0049). */
-    if (_topTeamPtr != &_topTeamInGame) {
+    /* The bench team is _topTeamData with ITS OWN team's record -- inGameTeamPtr, as the menu takes
+     * a team's by its number. _topTeamData is team 2 whenever team 2 plays up (the second half:
+     * InitTeamsData), and pairing it with _topTeamPtr then drew each bench in the other team's kit
+     * until the bench was called (Playa's fix in SWOS United, 2026-11-14). */
+    TeamGame *benchGame = (TeamGame *)_topTeamData.inGameTeamPtr;
+    if (benchGame != &_topTeamInGame) {
         uint16_t t = topY; topY = botY; botY = t;
     }
 
@@ -1820,7 +1825,7 @@ static void draw_bench_occupants_only(void)
     _benchY          = topY;
     _opponentBenchY  = botY;
     _benchTeam       = (uintptr_t)&_topTeamData;
-    _benchTeamGame   = (uintptr_t)_topTeamPtr;
+    _benchTeamGame   = (uintptr_t)benchGame;
     _initialSubsState = 0;      /* idle: neutral coach frames, no selection */
 
     drawOpponentsBench();
