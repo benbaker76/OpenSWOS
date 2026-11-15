@@ -92,12 +92,18 @@ static struct {
 
 static int32_t s_goalsLayer = -1, s_flagsLayer = -1;    /* the map's sorted "goals", "flags" */
 static int32_t s_advertsLayer = -1;                     /* ... and "adverts" */
+/* The crowd (stage 3): the map's own, picture only. The layer whose swap track makes its fans
+ * stand, each cell's state as last drawn and whether the other buffer still needs it. */
+static int32_t s_crowdLayer = -1;
+static uint16_t s_crowdSeen = 0xFFFF;                   /* the engine's _animPatternsState we last told */
+static uint8_t s_crowdDrawn[CELLS], s_crowdAgain[CELLS];
 static uint16_t s_advertSeen;                           /* the engine's _advertIndex we last told the map */
 static int32_t sorted_layer(const char *name);
+static int32_t swap_source(const ta_layer *layer);
 
 static void above_release(void)
 {
-    s_goalsLayer = s_flagsLayer = s_advertsLayer = -1;
+    s_goalsLayer = s_flagsLayer = s_advertsLayer = s_crowdLayer = -1;
     int32_t i;
     for (i = 0; i < MAX_SETS; i++) {
         free(s_up.rgba[i]);
@@ -271,6 +277,10 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
     s_goalsLayer = sorted_layer("goals");
     s_flagsLayer = sorted_layer("flags");
     s_advertsLayer = sorted_layer("adverts");
+    for (i = 0; i < map->layer_count && s_crowdLayer < 0; i++)
+        if (map->layers[i].type == TA_LAYER_TILE && map->layers[i].depth == TA_DEPTH_BELOW &&
+            swap_source(&map->layers[i]) >= 0)
+            s_crowdLayer = i;
     for (i = 0; s_up.count && i < map->tileset_count; i++) {
         const size_t n = (size_t)s_pm.imageW[i] * (size_t)s_pm.imageH[i];
         size_t p;
@@ -480,6 +490,11 @@ static const uint8_t *PitchMap_Tile(int32_t cell, const uint8_t *engineTile)
     int32_t index;
     if (cell < 0 || cell >= CELLS || !(s_pm.have[cell] & 1))
         return NULL;
+    if ((s_pm.have[cell] & 2) && s_crowdLayer >= 0 && s_up.showing && s_pm.player) {
+        /* the map's crowd: its own state, whatever the engine's picks say */
+        const int32_t st = ta_player_swap_state(s_pm.player, s_crowdLayer, cell % GRID_COLS, cell / GRID_COLS);
+        return (st == 1 ? s_pm.stand : s_pm.sit) + (size_t)cell * TILE_BYTES;
+    }
     index = engine_index(engineTile);
     if ((s_pm.have[cell] & 2) && index >= 1 && index <= MAX_FAN_TILE_INDEX && !(index & 1))
         return s_pm.stand + (size_t)cell * TILE_BYTES;
@@ -527,9 +542,20 @@ static void above_start(void)
     char layout[32];
     int32_t e;
     const int32_t type = ModApi_PitchType();
-    ta_player_set_seed(s_pm.player, ModApi_Ticks() * 2654435761u + (uint32_t)s_pm.pitch);
+    {   /* the seed: from the match as it starts -- the same on two netplay peers, so both see the
+         * same crowd and the same clouds (nothing needs them to: it is the picture) */
+        extern uint8_t _seed, _randXorIndex;
+        ta_player_set_seed(s_pm.player, ((uint32_t)_seed << 8 | _randXorIndex) * 2654435761u +
+                                        (uint32_t)s_pm.pitch);
+    }
+    /* The crowd is the map's own: its swap tracks pick their fans from the map's random numbers,
+     * never the match's (the engine's crowd still runs on the match's, unseen -- docs/PITCH_MAPS.md) */
+    ta_player_set_auto_swaps(s_pm.player, s_crowdLayer >= 0);
     ta_player_reset(s_pm.player, s_up.clock);       /* ("always" animations: in step with the game's) */
     s_advertSeen = 0;
+    s_crowdSeen = 0xFFFF;
+    memset(s_crowdDrawn, 0xFF, sizeof s_crowdDrawn);
+    memset(s_crowdAgain, 0, sizeof s_crowdAgain);
     snprintf(layout, sizeof layout, "layout-%d", (int)s_pm.pitch);
     if ((e = ta_map_event(s_pm.map, layout)) >= 0)
         ta_player_fire(s_pm.player, e, 0);
@@ -544,9 +570,11 @@ static void above_start(void)
             fprintf(stderr, "[pitch-map] match: benches from the map: top %d,%d, bottom %d,%d\n",
                     t ? px : -1, t ? py : -1, b ? qx : -1, b ? qy : -1);
     }
-    fprintf(stderr, "[pitch-map] match: %d layer(s) over the players (%s), goals %s, corner flags %s\n",
+    fprintf(stderr, "[pitch-map] match: %d layer(s) over the players (%s), goals %s, corner flags %s, "
+                    "crowd %s\n",
             (int)s_up.count, type >= 0 && type <= 3 ? "clouds" : "clear sky",
-            s_goalsLayer >= 0 ? "from the map" : "the game's", s_flagsLayer >= 0 ? "from the map" : "the game's");
+            s_goalsLayer >= 0 ? "from the map" : "the game's", s_flagsLayer >= 0 ? "from the map" : "the game's",
+            s_crowdLayer >= 0 ? "the map's own (its random numbers, not the match's)" : "the game's");
 }
 
 /* The map's time is the game's frame counter (_frameCount, 16 bits, a tick a game frame, in a
@@ -576,6 +604,38 @@ static int32_t tick(void)
         }
     }
     ta_player_advance(s_pm.player, s_up.clock);     /* (at the same frame: nothing moves) */
+    {   /* The crowd's mood: the engine's state machine (DrawAnimatedPatterns: what the match is
+         * doing -- read, never changed), each change an event of the map's (Tile Agent's
+         * docs/SWOS_UNITED.md 3.3). A goal: the stand of the team that scored -- "goal-top" when
+         * the fans in the top stand are the scorers' -- aged by the goal clock, so arriving in the
+         * middle of a celebration lands on its phase; a replay has no clock, so its phase's start. */
+        extern uint16_t _animPatternsState, _patternsGoalCounter, _fansSidesSwapped;
+        extern TeamGame *_teamScoredGamePtr;
+        extern TeamGame _topTeamInGame, _bottomTeamInGame;
+        const uint16_t st = _animPatternsState;
+        if (s_crowdLayer >= 0 && st != s_crowdSeen) {
+            const char *name = NULL;
+            int32_t age = 0, e;
+            const int32_t wasGoal = s_crowdSeen >= 2 && s_crowdSeen <= 5, isGoal = st >= 2 && st <= 5;
+            if (st == 6)
+                name = "match-start";
+            else if (st == 7)
+                name = "play-on";
+            else if (st == 1)
+                name = "stoppage";
+            else if (isGoal && !wasGoal) {
+                const TeamGame *topFans = _fansSidesSwapped ? &_bottomTeamInGame : &_topTeamInGame;
+                name = _teamScoredGamePtr == topFans ? "goal-top" : "goal-bottom";
+                if (ModApi_InReplay())
+                    age = st == 3 ? 24 : st == 5 ? 199 : 0;
+                else
+                    age = _patternsGoalCounter > 0 ? _patternsGoalCounter - 1 : 0;
+            }
+            if (name && (e = ta_map_event(s_pm.map, name)) >= 0)
+                ta_player_fire(s_pm.player, e, age);
+            s_crowdSeen = st;
+        }
+    }
     {   /* The adverts: the engine decides when and which (ManageAdvertisements: its dice, the
          * foul's x, the bail-outs) and the map shows them -- "advert-N" when it starts one, with
          * the head start that puts the map's 8-frame steps on the engine's beat, "adverts-off"
@@ -604,8 +664,44 @@ static int32_t tick(void)
     return 1;
 }
 
-static void sprites_begin(void) { (void)tick(); }
-static void replay_frame_begin(int32_t first, int32_t fresh) { (void)first; (void)fresh; (void)tick(); }
+/* The fans whose state the map changed since the cell was last drawn: drawn again now, before the
+ * sprites, into the frame and the mask buffer -- and once more next frame, for the other of the two
+ * buffers (the engine's own flips draw twice the same way: DrawAnimatedPatterns' slots). */
+static void crowd_draw(void)
+{
+    int32_t cell;
+    if (s_crowdLayer < 0)
+        return;
+    for (cell = GRID_COLS; cell < CELLS; cell++) {
+        int32_t st;
+        if (!(s_pm.have[cell] & 2))
+            continue;
+        st = ta_player_swap_state(s_pm.player, s_crowdLayer, cell % GRID_COLS, cell / GRID_COLS);
+        if (st < 0)
+            continue;
+        if (st != s_crowdDrawn[cell]) {
+            s_crowdDrawn[cell] = (uint8_t)st;
+            s_crowdAgain[cell] = 1;
+            ModApi_RedrawPitchCell(cell);
+        } else if (s_crowdAgain[cell]) {
+            s_crowdAgain[cell] = 0;
+            ModApi_RedrawPitchCell(cell);
+        }
+    }
+}
+
+static void sprites_begin(void)
+{
+    if (tick())
+        crowd_draw();
+}
+
+static void replay_frame_begin(int32_t first, int32_t fresh)
+{
+    (void)first; (void)fresh;
+    if (tick())
+        crowd_draw();
+}
 
 static void above_draw(void)
 {

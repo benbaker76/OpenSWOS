@@ -191,6 +191,16 @@ int32_t ModApi_ReplayPlayerFeet(uint16_t image, int16_t left, int16_t top, int16
 
 /* ---- the screen ---- */
 
+void ModApi_RedrawPitchCell(int32_t cell)
+{
+#ifdef SWOS_SDL_BUILD
+    extern void AnimatedPatterns_RedrawCell(int32_t cell);
+    AnimatedPatterns_RedrawCell(cell);
+#else
+    (void)cell;                         /* (the Amiga: no pitch-map mods) */
+#endif
+}
+
 void ModApi_Camera(int16_t *x, int16_t *y)
 {
     *x = (int16_t)Render_CameraX();

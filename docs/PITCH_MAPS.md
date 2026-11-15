@@ -123,14 +123,57 @@ pitches made in the format come from players, as mods.
 - The ground is unchanged: 0 of 2310 cells, 0 fans' standing tiles and 0 condition channels
   differ.
 
-## What is left for the map to take over
+## Stage 3: the crowd, the map's own (2026-11-15)
 
-The crowd. Both rows below change what the simulation holds (which fan stands is picked from
-the match's `Rand()`, and the slot table is rolled back and recorded). They need the Tile Agent
-player's state in the rollback registry, and both netplay peers playing the same map: as a mod
-whose `"changes"` is `data`, which the handshake already compares (`Mods_OnlineSignature`).
+With a map that has a crowd (a layer with a swap track: the example's `crowd-sit` /
+`crowd-stand`), **the fans are the map's**: which cells are fans, how many stand, how often and
+in what rhythm, all from the map, picked from **the map's own random numbers**
+(`ta_player_set_auto_swaps(player, 1)`), never the match's.
 
-| | today | from the map |
-|---|---|---|
-| the crowd's rates and rhythms | `DrawAnimatedPatterns`' `d6`/`d0` per state | swap tracks keyed on `match-start`, `play-on`, `stoppage`, `goal-top`/`goal-bottom` |
-| which cells are fans | tile indices 1..22 in the game's bank | the cells where both layers of a swap pair have a tile |
+The engine's crowd is **left exactly as it is**. `DrawAnimatedPatterns` still runs on the
+match's `Rand()`, fills its slot table and is rolled back and hashed. It is only unseen: when it
+redraws a cell, the pitch-map hook answers with the map's state for that cell. So the random
+stream, a recording, a replay, a resim and two netplay peers are bit for bit what they are with
+the mod off. Pitch maps stays a cosmetic mod, and two players online may even use different
+pitches. The original game's crowd, pick for pick, is what plays whenever no map draws the crowd.
+
+What the map's crowd follows is the match's **mood**, read and never changed: the engine's crowd
+state (`_animPatternsState`), each change an event of the map's (Tile Agent's
+docs/SWOS_UNITED.md §3.3):
+
+| the engine's state | the map's event |
+|---|---|
+| 6 the game has not started | `match-start` |
+| 7 in play | `play-on` |
+| 1 the ball out of play | `stoppage` |
+| 2, 3, 4, 5 a goal (entered from another state) | `goal-top` when the fans in the top stand (`_fansSidesSwapped` says whose) are the scorers', else `goal-bottom`; aged by the goal clock (`_patternsGoalCounter − 1`), in a replay by its phase (0, 24, 199) |
+
+The seed is taken from the match as it starts (`_seed`, `_randXorIndex`, the pitch), so two
+peers see the same crowd and the same clouds. Nothing requires it.
+
+**Drawing.** The pitch is not drawn whole each frame: a fan that changes is drawn into the frame
+and the mask buffer, then again next frame for the other buffer, as the engine does its own. The
+mod finds each map fan whose state changed since it was last drawn and redraws it at
+`spritesBegin` / `replayFrameBegin`, before the sprites, through the new
+`ModApi_RedrawPitchCell` (the engine's `drawPatternFromIndex`, SDL only: no slot, no `Rand()`).
+Cells scrolled into view are drawn by `DrawChunkyPitch` through the same hook, so they show the
+map's state too.
+
+**Checked:**
+- `check_netplay_compat.sh` with PC graphics and the pitchmaps mod on, through `SWOS.ini` in its
+  `HOME`, with the example map in the assets folder: **30 unchanged, 0 changed**, NETPLAY_COMPAT
+  15. A corpus match under that `HOME` confirms the rig ran the map's crowd ("crowd the map's own
+  (its random numbers, not the match's)").
+- In a match's pre-kick-off view of the top stand, the stand's pixels change by 2,000–6,000 from
+  one capture to the next with the camera still, and the cells are the map's sitting and standing
+  fans.
+
+## What is left
+
+- **A crowd that stays the game's.** With the map's crowd on, the game's pitches drawn from the
+  example map have the same character of crowd but not the same fans, cell for cell. That is the
+  price of keeping the match's random stream. A map that wants the engine's picks exactly could
+  carry a property for it (the stage-2 behaviour); left out until someone asks.
+- **A goal undone by a rollback** (online): the crowd follows what is drawn, so a celebration
+  may start and stop. It is cosmetic, like the rest of the picture. The goal events could wait for
+  `netConfirmed` at the cost of the input delay.

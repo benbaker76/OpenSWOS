@@ -356,6 +356,15 @@ ResetAnimatedPatternsForBothTeams(void)
 }
 
 #ifdef SWOS_SDL_BUILD
+/* A pitch cell drawn again as the crowd draws a fan it flipped -- into the frame and the mask
+ * buffer, through the pitch-map hook (ModApi_RedrawPitchCell: a mod whose own crowd flips cells
+ * the engine never does). Drawing only: no slot, no Rand(). */
+void AnimatedPatterns_RedrawCell(int32_t cell)
+{
+    if (cell >= 0 && cell < 2310)
+        drawPatternFromIndex((uint16_t)cell);
+}
+
 /* ================================================================
  * AnimatedPatterns_SyncTileMirror
  *

@@ -927,6 +927,12 @@ int32_t  ModApi_ReplayPlayerFeet(uint16_t image, int16_t left, int16_t top, int1
 
 /* ---- the screen ---- */
 void     ModApi_Camera(int16_t *x, int16_t *y);     /* the world point at screen 0,0 */
+/* Draws a pitch cell (0..2309: row * 42 + column) again in this frame, as the crowd draws a fan it
+ * flipped: into the frame and the clean pitch sprites are undrawn from, its tile from the
+ * pitchTiles hook. For a mod whose own crowd changes cells (the pitchmaps mod): call it from
+ * spritesBegin / replayFrameBegin, and again the next frame (the other of the two buffers). Off
+ * screen, nothing. Drawing only. */
+void     ModApi_RedrawPitchCell(int32_t cell);
 void     ModApi_ScreenSize(int32_t *w, int32_t *h);
 /* The 8bpp frame being drawn and its row stride; only at a hook that says it may be drawn into. */
 uint8_t *ModApi_Frame(int32_t *stride);
