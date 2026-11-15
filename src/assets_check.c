@@ -297,7 +297,7 @@ void AssetsCheck_World(PlatformInitOptions *opts)
 #if !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
 
 /* OpenSWOS Setup beside the game: openswos-setup(.exe) in the game's folder; on a Mac the
- * setup's app beside SWOS.app (the drop's OpenSWOS/ folder) or beside a bare binary. Never on
+ * setup's app inside SWOS.app (Contents/Helpers), beside it, or beside a bare binary. Never on
  * a phone (its data comes from a PC's). 1 with its path. */
 int32_t AssetsCheck_FindSetup(char *out, uint32_t cap)
 {
@@ -310,7 +310,12 @@ int32_t AssetsCheck_FindSetup(char *out, uint32_t cap)
     if (!base)
         return 0;
 #if defined(__APPLE__)
-    snprintf(out, cap, "%s../../../%s.app", base, PROJECT_SETUP_NAME);     /* (base: SWOS.app/Contents/Resources/) */
+    /* (base: SWOS.app/Contents/Resources/) Inside the game since 2026-11-14 -- the DMG's one
+     * app, in Contents/Helpers (where a signed bundle keeps the apps it carries); before
+     * that, beside SWOS.app (the zip's OpenSWOS/ folder). */
+    snprintf(out, cap, "%s../Helpers/%s.app", base, PROJECT_SETUP_NAME);
+    if (stat(out, &st) != 0)
+        snprintf(out, cap, "%s../../../%s.app", base, PROJECT_SETUP_NAME);
     if (stat(out, &st) != 0)
         snprintf(out, cap, "%s%s.app", base, PROJECT_SETUP_NAME);
 #elif defined(__CYGWIN__) || defined(_WIN32)

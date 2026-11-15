@@ -244,12 +244,19 @@ std::string PickSaveFile(const char* filterName, const char* filterSpec, const s
 // the executable in an install; above it in OpenSWOS-Setup.zip; in a dev build,
 // the repo's bin/ above it.
 #if defined(__APPLE__)
-// On macOS the setup is its own .app beside SWOS.app (SWOS-macOS-app.zip), and
-// the game's files are inside that: SWOS.app/Contents/MacOS. exeDir is
-// "OpenSWOS Setup.app/Contents/MacOS", three levels below the folder they share.
-static std::string GameAppMacOSDir(const std::string& exeDir) {
-  const std::string shared = sd::ParentDir(sd::ParentDir(sd::ParentDir(exeDir)));
-  const std::string dir = Join(shared, "SWOS.app/Contents/MacOS");
+// On macOS the setup is inside the game since 2026-11-14 -- SWOS.app/Contents/Helpers/OpenSWOS
+// Setup.app, the DMG's one app (a signed bundle keeps the apps it carries in Helpers) -- and was
+// beside SWOS.app before (the zip's OpenSWOS/ folder). exeDir is "OpenSWOS Setup.app/Contents/MacOS".
+// The game's Contents/<sub> (MacOS for its binary; Resources, or MacOS in an older bundle, for its
+// files), "" when neither layout is around this setup.
+static std::string GameAppDir(const std::string& exeDir, const char* sub) {
+  const std::string setupApp = sd::ParentDir(sd::ParentDir(exeDir));
+  const std::string helpers = sd::ParentDir(setupApp);
+  if (helpers.size() > 8 && helpers.compare(helpers.size() - 8, 8, "/Helpers") == 0) {
+    const std::string dir = Join(sd::ParentDir(helpers), sub);     // SWOS.app/Contents/<sub>
+    if (sd::IsDir(dir)) return dir;
+  }
+  const std::string dir = Join(Join(helpers, "SWOS.app/Contents"), sub);   // beside SWOS.app
   return sd::IsDir(dir) ? dir : std::string();
 }
 #endif
@@ -263,8 +270,8 @@ std::string FindResDir(const std::string& exeDir) {
     const std::string res = Join(sd::ParentDir(exeDir), "Resources");
     if (sd::IsFile(Join(res, "setup/glyphs.txt"))) return res;
   }
-  {
-    const std::string mac = GameAppMacOSDir(exeDir);
+  for (const char* sub : {"Resources", "MacOS"}) {
+    const std::string mac = GameAppDir(exeDir, sub);
     if (!mac.empty() && sd::IsFile(Join(mac, "setup/glyphs.txt"))) return mac;
   }
 #endif
@@ -303,7 +310,7 @@ std::string FindGame(const std::string& exeDir) {
   }
 #if defined(__APPLE__)
   {
-    const std::string mac = GameAppMacOSDir(exeDir);
+    const std::string mac = GameAppDir(exeDir, "MacOS");
     if (!mac.empty() && sd::IsFile(Join(mac, "SWOS"))) return Join(mac, "SWOS");
   }
 #endif
@@ -1669,7 +1676,8 @@ struct App {
 
   std::string FindPortZip() const {
     for (std::string d = exeDir; !d.empty();) {
-      for (const char* rel : {"swos.zip", "portmaster/swos.zip", "dist/portmaster/swos.zip"})
+      for (const char* rel : {"swos.zip", "portmaster/swos.zip", "dist/portmaster/swos.zip",
+                              "Resources/portmaster/swos.zip"})   // (SWOS.app/Contents/, the setup inside it)
         if (sd::IsFile(Join(d, rel)) && PortZip(Join(d, rel))) return Join(d, rel);
       const std::string up = sd::ParentDir(d);
       if (up == d) break;

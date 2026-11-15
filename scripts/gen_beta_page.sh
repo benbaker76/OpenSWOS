@@ -30,7 +30,7 @@ fi
 # file | platform | what it is
 ROWS_SPEC='SWOS-Setup.exe|Windows|Installer; runs OpenSWOS Setup when it finishes
 SWOS-portable.zip|Windows / Linux|Unzip, run <code>openswos-setup.exe</code> (Linux: <code>swosdata</code>) once, then play
-SWOS-macOS-app.zip|macOS|SWOS.app and OpenSWOS Setup.app: run the setup once
+OpenSWOS-macOS.dmg|macOS|Drag SWOS to Applications; its first start makes the game data
 SWOS-Amiga.zip|Amiga|A SWOS drawer: OpenSWOS Setup adds the game data and the mods, then copy it to your Amiga
 OpenSWOS-Setup.zip|Windows / macOS / Linux|OpenSWOS Setup on its own: for the Amiga drawer and the WHDLoad package
 OpenSWOS-Android.apk|Android|Install on the phone (allow installs from this source)

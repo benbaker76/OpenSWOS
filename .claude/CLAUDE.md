@@ -309,7 +309,7 @@ beside it.
 | `dist/SWOS-Setup.exe` | 14 MB | Inno Setup installer — the Windows half of the full zip, for a tester who'd rather double-click |
 | `dist/SWOS.nsp` | 84 MB | the Switch package (`scripts/build_switch.sh`) |
 | `dist/portmaster/swos.zip` | 5 MB | the PortMaster port (its own folder: on a Windows drive `dist/swos.zip` is `dist/SWOS.zip`, which overwrote it until 2026-11-04 -- every packer now checks it holds the launcher) (target `portmaster`: `scripts/build_portmaster.sh --no-build` on the drop's `bin/SWOS.aarch64`); also `portmaster/swos.zip` in SWOS-portable.zip, OpenSWOS-Setup.zip, SWOS-Setup.exe and SWOS-macOS-app.zip (sent to the Mac by `build_macos.sh`, so build the port first), where the setup's Handheld screen finds it to put on the card; itch.io channel `portmaster` |
-| `dist/SWOS-macOS*.zip` | 19 / 1.4 MB | from `scripts/build_macos.sh` — see below |
+| `dist/OpenSWOS-macOS.dmg`, `dist/SWOS-macOS*.zip` | 50 / 48 / 8 MB | from `scripts/build_macos.sh` — see below |
 | `dist/OpenSWOS-Setup.zip` | ~30 MB | the data setup ALONE for Windows, macOS and Linux (`scripts/build_setup_zip.sh`, after `build_macos.sh`, which brings back the Mac's part): how an Amiga player gets it -- the setup cannot run on the Amiga, it fills the drawer on a PC or Mac. Its programs find `setup/` and `data/` in the folder ABOVE them. The Mac window is UNIVERSAL like the game: a static Slint built for both slices by `tools/swosdata/build_slint_macos.sh` (once per Mac; the published Slint SDK is arm64-only) |
 
 The full dist keeps everything at the zip root because the SDL binary chdir's to
@@ -547,11 +547,12 @@ scripts/build_macos.sh --release   # public build
 scripts/build_macos.sh --no-pull   # build the Mac's tree as-is
 ```
 
-Two archives come back, mirroring `build_dist.sh`'s split:
+What comes back:
 
 | archive | ~size | contents |
 |---|---|---|
-| `dist/SWOS-macOS-app.zip` | 19 MB | the drag-installable `.app`, `SDL2.framework` bundled |
+| `dist/OpenSWOS-macOS.dmg` | 50 MB | **the Mac download** (2026-11-14): ONE app, `SWOS.app`, with OpenSWOS Setup inside (`Contents/Helpers`), the data in `Contents/Resources` (never `Contents/MacOS`: code only there), SDL2.framework and the PortMaster port; drag to Applications, the first start's Make Game Data runs the setup `--headless`. Signed (Developer ID, hardened runtime), notarized and stapled when the Mac has the keychain `scripts/macos_signing_setup.sh` made -- else ad-hoc, said in the summary (docs/MACOS_BUILD.md) |
+| `dist/SWOS-macOS-app.zip` | 48 MB | the same signed app, zipped (itch.io's `mac-app` channel) |
 | `dist/SWOS-macOS.zip` | 1.4 MB | the universal binary alone — **needs SDL2 installed system-wide**, since the framework only ships inside the `.app` |
 
 They are packed into the **Mac's** `dist/` too, not its `bin/` — the Mac is a

@@ -7,9 +7,14 @@
 #   scripts/build_macos.sh --release      # public build (stock injuries + cards)
 #   scripts/build_macos.sh --no-pull      # build the Mac's tree as-is
 #
-# Two archives come back, mirroring build_dist.sh's split:
-#   dist/SWOS-macOS-app.zip  the drag-installable .app, SDL2.framework bundled, beside the
-#                            setup and portmaster/swos.zip (this machine's dist/portmaster/swos.zip)
+# What comes back:
+#   dist/OpenSWOS-macOS.dmg  THE Mac download: SWOS.app with OpenSWOS Setup inside it
+#                            (Contents/Helpers), SDL2.framework and the PortMaster port
+#                            (this machine's dist/portmaster/swos.zip) -- drag it to
+#                            Applications; its first start makes the game data. Signed with a
+#                            Developer ID, notarized and stapled when the Mac has the keychain
+#                            scripts/macos_signing_setup.sh makes (docs/MACOS_BUILD.md)
+#   dist/SWOS-macOS-app.zip  the same app, zipped (itch.io's channel, older links)
 #   dist/SWOS-macOS.zip      the universal binary alone — needs SDL2 installed
 #                            system-wide, since the framework ships in the .app
 #
@@ -184,21 +189,82 @@ case "$(lipo -archs "$SETUP_APP/Contents/MacOS/OpenSWOS Setup" 2>/dev/null)" in
 esac
 
 mkdir -p dist
-echo "== packing dist/$ZIP (ditto — preserves the frameworks' symlinks)"
-rm -f "dist/$ZIP"
-# One folder, OpenSWOS/, holding the game, the setup window and the setup's
-# command line. ditto --keepParent takes the basename of its source, so it runs
-# on a staged folder; the archive is written into dist/.
-STAGE="$(mktemp -d)/OpenSWOS"
-mkdir -p "$STAGE" &&
-    ditto bin/SWOS.app "$STAGE/SWOS.app" &&
-    ditto "$SETUP_APP" "$STAGE/OpenSWOS Setup.app" &&
-    cp tools/swosdata/build/swosdata-universal "$STAGE/swosdata" &&
+# ONE app (2026-11-14): SWOS.app with OpenSWOS Setup inside it, in Contents/Helpers (where a signed
+# bundle keeps the apps it carries), and the PortMaster port in Contents/Resources/portmaster/ --
+# a player drags the one app to Applications, and its first start makes the game data unattended
+# (the no-data box's Make Game Data: the setup with --headless; src/assets_check.c).
+WORK="$(mktemp -d)"
+DMGROOT="$WORK/OpenSWOS"
+APP="$DMGROOT/SWOS.app"
+mkdir -p "$DMGROOT" &&
+    ditto bin/SWOS.app "$APP" &&
+    mkdir -p "$APP/Contents/Helpers" &&
+    ditto "$SETUP_APP" "$APP/Contents/Helpers/OpenSWOS Setup.app" &&
     { [ ! -f dist/portmaster-swos.zip ] ||
-      { mkdir -p "$STAGE/portmaster" && cp dist/portmaster-swos.zip "$STAGE/portmaster/swos.zip"; }; } &&
-    ditto -c -k --sequesterRsrc --keepParent "$STAGE" "dist/$ZIP" ||
-    { echo "!! ditto failed"; exit 1; }
-rm -rf "$(dirname "$STAGE")"
+      { mkdir -p "$APP/Contents/Resources/portmaster" &&
+        cp dist/portmaster-swos.zip "$APP/Contents/Resources/portmaster/swos.zip"; }; } &&
+    xattr -cr "$APP" ||
+    { echo "!! assembling the app failed"; exit 1; }
+
+# Signing (docs/MACOS_BUILD.md, "Signing and notarizing"): with the Developer ID keychain that
+# scripts/macos_signing_setup.sh made on this Mac, every piece is signed from the inside out with
+# the hardened runtime and a timestamp, and the DMG is notarized and stapled. Without it, an
+# ad-hoc signature (the app opens with right-click -> Open) and no notarization.
+SIGNDIR="$HOME/.openswos-signing"
+KC="$HOME/Library/Keychains/openswos-signing.keychain-db"
+NOTARY=0
+if [ -f "$SIGNDIR/keychain.pass" ] && [ -f "$SIGNDIR/identity" ] && [ -f "$KC" ]; then
+    security unlock-keychain -p "$(cat "$SIGNDIR/keychain.pass")" "$KC" || { echo "!! cannot unlock $KC"; exit 1; }
+    ID="$(cat "$SIGNDIR/identity")"
+    SIGN=(codesign --force --options runtime --timestamp --keychain "$KC" --sign "$ID")
+    NOTARY=1
+    echo "== signing with $ID"
+else
+    ID="-"
+    SIGN=(codesign --force --sign -)
+    echo "== WARNING: no signing keychain on this Mac (scripts/macos_signing_setup.sh): ad-hoc signed, NOT notarized"
+fi
+sign() { "${SIGN[@]}" "$@" >/dev/null 2>"$WORK/sign.err" || { echo "!! codesign $*:"; cat "$WORK/sign.err"; exit 1; }; }
+# Deepest first: loose libraries, then frameworks, then the setup's app, then the game's.
+while IFS= read -r -d '' f; do sign "$f"; done < <(find "$APP" -name '*.dylib' -type f -print0)
+while IFS= read -r -d '' f; do sign "$f"; done < <(find "$APP" -name '*.framework' -type d -prune -print0)
+sign "$APP/Contents/Helpers/OpenSWOS Setup.app"
+sign "$APP"
+codesign --verify --deep --strict "$APP" || { echo "!! the signed app does not verify"; exit 1; }
+echo "== SIGNED_AS=$ID"
+
+# The DMG: the app and a link to /Applications, to drag it onto.
+DMG="OpenSWOS-macOS.dmg"
+ln -s /Applications "$DMGROOT/Applications"
+rm -f "dist/$DMG"
+hdiutil create -quiet -volname OpenSWOS -srcfolder "$DMGROOT" -ov -format UDZO "dist/$DMG" ||
+    { echo "!! hdiutil failed"; exit 1; }
+[ "$ID" = "-" ] || sign "dist/$DMG"
+rm "$DMGROOT/Applications"
+
+if [ "$NOTARY" = 1 ]; then
+    echo "== notarizing dist/$DMG (a few minutes)"
+    OUT="$(xcrun notarytool submit "dist/$DMG" --keychain-profile openswos-notary --keychain "$KC" --wait 2>&1)"
+    echo "$OUT" | sed 's/^/   /'
+    if ! echo "$OUT" | grep -q "status: Accepted"; then
+        SUB="$(echo "$OUT" | sed -n 's/^ *id: //p' | head -1)"
+        [ -n "$SUB" ] && xcrun notarytool log "$SUB" --keychain-profile openswos-notary --keychain "$KC"
+        echo "!! notarization was not accepted"; exit 1
+    fi
+    # The ticket covers every signature the DMG holds: the DMG, the app and the setup inside it.
+    xcrun stapler staple "dist/$DMG" >/dev/null && xcrun stapler staple "$APP" >/dev/null &&
+        xcrun stapler staple "$APP/Contents/Helpers/OpenSWOS Setup.app" >/dev/null ||
+        { echo "!! stapling failed"; exit 1; }
+    spctl -a -t open --context context:primary-signature -v "dist/$DMG" 2>&1 | sed 's/^/   /'
+    spctl -a -t exec -v "$APP" 2>&1 | sed 's/^/   /'
+    echo "== NOTARIZED=yes"
+else
+    echo "== NOTARIZED=no"
+fi
+
+echo "== packing dist/$ZIP (the same app; ditto — preserves the frameworks' symlinks)"
+rm -f "dist/$ZIP"
+ditto -c -k --sequesterRsrc --keepParent "$APP" "dist/$ZIP" || { echo "!! ditto failed"; exit 1; }
 # zipinfo shows a leading 'l' in the mode column for a stored symlink. A plain
 # `zip -r` would have followed them and this count would be 0.
 echo "== SYMLINKS_IN_ZIP=$(zipinfo "dist/$ZIP" 2>/dev/null | grep -c '^l' || true)"
@@ -216,13 +282,22 @@ rm -f "dist/$ZIPBIN"
 SETUP_PART=OpenSWOS-Setup-macOS.zip
 echo "== packing dist/$SETUP_PART (the setup, for OpenSWOS-Setup.zip)"
 rm -f "dist/$SETUP_PART"
-STAGE="$(mktemp -d)/macOS"
+# The setup's app is the one signed (and stapled) inside the game's; the command line is signed
+# here and, signed, notarized with the folder (a bare program cannot be stapled: Gatekeeper asks
+# Apple online the first time it runs).
+STAGE="$WORK/macOS"
 mkdir -p "$STAGE" &&
-    ditto "$SETUP_APP" "$STAGE/OpenSWOS Setup.app" &&
+    ditto "$APP/Contents/Helpers/OpenSWOS Setup.app" "$STAGE/OpenSWOS Setup.app" &&
     cp tools/swosdata/build/swosdata-universal "$STAGE/swosdata" &&
+    sign "$STAGE/swosdata" &&
     ditto -c -k --keepParent "$STAGE" "dist/$SETUP_PART" ||
     { echo "!! ditto (setup) failed"; exit 1; }
-rm -rf "$(dirname "$STAGE")"
+if [ "$NOTARY" = 1 ]; then
+    echo "== notarizing dist/$SETUP_PART (swosdata)"
+    xcrun notarytool submit "dist/$SETUP_PART" --keychain-profile openswos-notary --keychain "$KC" --wait 2>&1 |
+        grep -q "status: Accepted" || { echo "!! notarization of the setup was not accepted"; exit 1; }
+fi
+rm -rf "$WORK"
 
 echo "== BUILT_COMMIT=$(git rev-parse --short HEAD)"
 echo "== ZIP_BYTES=$(stat -f%z "dist/$ZIP")"
@@ -234,6 +309,7 @@ grep -q "== REMOTE_OK" "$LOG" || { echo ""; echo "-- FAIL: remote build did not 
 
 banner "fetch -> dist/$MAC_ZIP, dist/$MAC_ZIP_BIN"
 mkdir -p dist
+scp -q "$MAC_HOST:$MAC_PATH/dist/OpenSWOS-macOS.dmg" dist/OpenSWOS-macOS.dmg || { echo "-- FAIL: scp (.dmg)"; exit 1; }
 scp -q "$MAC_HOST:$MAC_PATH/dist/$MAC_ZIP"     "dist/$MAC_ZIP"     || { echo "-- FAIL: scp (.app)"; exit 1; }
 scp -q "$MAC_HOST:$MAC_PATH/dist/$MAC_ZIP_BIN" "dist/$MAC_ZIP_BIN" || { echo "-- FAIL: scp (binary)"; exit 1; }
 scp -q "$MAC_HOST:$MAC_PATH/dist/OpenSWOS-Setup-macOS.zip" dist/OpenSWOS-Setup-macOS.zip ||
@@ -251,5 +327,7 @@ printf '  slices             : %s\n' "$(grep -m1 '^== lipo:' "$LOG" | sed 's/^==
 printf '  setup slices       : %s\n' "$(grep -m1 '^== setup lipo:' "$LOG" | sed 's/^== setup lipo: //')"
 printf '  symlinks preserved : %s (0 would mean SDL2.framework is broken)\n' \
     "$(sed -n 's/.*SYMLINKS_IN_ZIP=//p' "$LOG" | head -1)"
+printf '  signed as          : %s\n' "$(sed -n 's/.*SIGNED_AS=//p' "$LOG" | head -1)"
+printf '  notarized          : %s\n' "$(sed -n 's/.*NOTARIZED=//p' "$LOG" | head -1)"
 echo ""
-ls -l "dist/$MAC_ZIP" "dist/$MAC_ZIP_BIN" dist/OpenSWOS-Setup-macOS.zip
+ls -l dist/OpenSWOS-macOS.dmg "dist/$MAC_ZIP" "dist/$MAC_ZIP_BIN" dist/OpenSWOS-Setup-macOS.zip

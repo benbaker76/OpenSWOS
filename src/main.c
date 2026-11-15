@@ -29,6 +29,7 @@
 #define chdir(p) _chdir(p)
 #else
 #include <unistd.h>          /* readlink, chdir */
+#include <sys/stat.h>        /* stat: the Mac bundle's Resources */
 #endif
 
 #include "test_rules.h"
@@ -541,6 +542,16 @@ int main(int argc, char **argv)
     }
 #elif !defined(SWOS_WASM_BUILD) && !defined(SWOS_SWITCH_BUILD)
     chdir_to_binary(argv ? argv[0] : NULL);
+#if defined(__APPLE__)
+    /* SWOS.app keeps the game's files in Contents/Resources (Contents/MacOS is for code alone: a
+     * signed, notarized bundle may hold nothing else there -- docs/MACOS_BUILD.md); a bundle made
+     * before 2026-11-14, or a bare binary, has them beside it. */
+    {
+        struct stat st;
+        if (stat("data", &st) != 0 && stat("../Resources/data", &st) == 0 && chdir("../Resources") != 0)
+            fprintf(stderr, "warning: chdir(../Resources) failed\n");
+    }
+#endif
 #endif
 
     /* Resolve the per-user game folder + save dir NOW, before Settings_Load, so

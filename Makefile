@@ -1056,8 +1056,9 @@ macos-universal:
 # bin/SWOS.app drag-installable bundle that includes:
 #   - the universal SWOS binary at Contents/MacOS/SWOS
 #   - the game data dirs (data/ grafs/ grafs_aga/ grafs_dos/ grafs_2020/
-#     grafs_arcade/ sound/ data_json/) beside the binary, where the
-#     SWOS chdir-to-own-dir startup finds them. NO save/ — saves go to a
+#     grafs_arcade/ sound/ data_json/) in Contents/Resources, where the
+#     startup goes after its chdir to the binary's dir (main.c: Contents/MacOS
+#     holds code alone in a signed, notarized bundle). NO save/ — saves go to a
 #     per-user dir (~/Library/Application Support/SWOS/save); see docs/SAVE.md.
 #   - SDL2.framework bundled in Contents/Frameworks/ so end users
 #     don't need to install SDL2 themselves (the binary's -rpath
@@ -1113,7 +1114,7 @@ macos-app: macos-universal
 	  else \
 	    echo "    WARNING: SDL2.framework not found — user will need to install it system-wide" >&2; \
 	  fi; \
-	  echo "    copying $$(scripts/stage_runtime.sh $$APP/Contents/MacOS \
+	  echo "    copying $$(scripts/stage_runtime.sh $$APP/Contents/Resources \
 	        data grafs grafs_aga grafs_dos grafs_2020 grafs_arcade grafs_jag sound sound_dos data_json setup mods)"; \
 	  if   [ -f SWOS.icns ];           then cp SWOS.icns           $$APP/Contents/Resources/; \
 	  elif [ -f $(BINDIR)/SWOS.icns ]; then cp $(BINDIR)/SWOS.icns $$APP/Contents/Resources/; \
@@ -1127,5 +1128,4 @@ macos-app: macos-universal
 	  echo "    size:  $$(du -sh $$APP | cut -f1)"; \
 	  echo ""; \
 	  echo "    Run:        open $$APP"; \
-	  echo "    Ad-hoc sign: codesign --force --deep --sign - $$APP"; \
-	  echo "    Distribute: hdiutil create -fs HFS+ -srcfolder $$APP -volname SWOS $(BINDIR)/SWOS.dmg"
+	  echo "    Release: scripts/build_macos.sh (OpenSWOS Setup inside, signed, notarized, the DMG)"

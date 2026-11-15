@@ -166,18 +166,24 @@ SWOS.app/
     ├── Info.plist                   # bundle metadata (CFBundleName, version, min-OS, …)
     ├── PkgInfo                      # "APPL????" legacy marker
     ├── MacOS/
-    │   ├── SWOS                     # the universal binary
-    │   ├── data/                    # game assets (copied from bin/data/)
-    │   ├── grafs/
-    │   ├── grafs_aga/
-    │   ├── grafs_dos/  grafs_2020/  grafs_arcade/  grafs_jag/   # each if present in bin/
-    │   ├── sound/
-    │   └── data_json/               # (no save/ — saves go to a per-user dir; see docs/SAVE.md)
+    │   └── SWOS                     # the universal binary -- code ONLY here (signing)
     ├── Frameworks/
     │   └── SDL2.framework           # bundled (so user doesn't need to install)
+    ├── Helpers/                     # (scripts/build_macos.sh adds it: not make macos-app)
+    │   └── OpenSWOS Setup.app       # the data setup, started by the game's no-data box
     └── Resources/
-        └── SWOS.icns                # from the repo root (committed; generated from SWOS.svg by scripts/generate_icons.py)
+        ├── SWOS.icns                # from the repo root (committed; generated from SWOS.svg by scripts/generate_icons.py)
+        ├── data/  grafs/  grafs_aga/  sound/  sound_dos/  data_json/  setup/  mods/ ...
+        │                            # the project's own files (scripts/stage_runtime.sh);
+        │                            # (no save/ — saves go to a per-user dir; see docs/SAVE.md)
+        └── portmaster/swos.zip      # (build_macos.sh: the setup's Handheld screen puts it on a card)
 ```
+
+The game changes to `Contents/MacOS` at start (main.c `chdir_to_binary`) and on to `../Resources`
+when the data is there. Until 2026-11-14 the data sat beside the binary in `Contents/MacOS`. A
+signed bundle may hold only code there: codesign stores the signatures of other files as extended
+attributes, which a zip or DMG loses, and notarization refuses the bundle. Older bundles still
+run, because the game only moves when `data/` is not beside it.
 
 The binary's `-rpath @executable_path/../Frameworks` means a bundled
 `SDL2.framework` at `Contents/Frameworks/` resolves automatically — end
@@ -185,20 +191,54 @@ users don't need to install SDL2 themselves.
 
 Run it via `open bin/SWOS.app` (or just double-click in Finder).
 
-**Gatekeeper note**: the bundle is unsigned. Running it on the same
-Mac that built it is fine; copied to another Mac, macOS may refuse
-to launch ("developer cannot be verified"). Two options:
+`make macos-app` leaves the bundle unsigned. That is fine on the Mac that built it, but on another
+Mac Gatekeeper refuses it. Releases come from `scripts/build_macos.sh`, below.
 
-```bash
-# Ad-hoc sign — lets right-click → Open work on any Mac
-codesign --force --deep --sign - bin/SWOS.app
+## The release: one app in a DMG, signed and notarized (2026-11-14)
 
-# Wrap in a .dmg for distribution
-hdiutil create -fs HFS+ -srcfolder bin/SWOS.app -volname SWOS bin/SWOS.dmg
-```
+`scripts/build_macos.sh` (run from the Linux/WSL checkout; it drives the Mac over ssh) makes
+**`dist/OpenSWOS-macOS.dmg`**, which holds `SWOS.app` and a link to Applications. The player drags
+SWOS onto Applications and starts it. OpenSWOS Setup is inside the app, so the first start's
+no-data box (**Make Game Data**) runs it with `--headless`: it finds the player's copy of the game
+and makes the data with no window, and opens its window only when it needs the player. This is
+the Mac's version of the Windows installer's last page. `SWOS-macOS-app.zip` is the same app,
+zipped, for itch.io's channel.
 
-Proper Developer-ID signing + notarisation needs a paid Apple Developer
-account and `xcrun notarytool` — out of scope for this doc.
+The same app is in both. Its parts are signed from the inside out (dylibs, frameworks, the setup's
+app, then the game's) with the **hardened runtime** and a secure timestamp. The DMG is signed,
+**notarized** (`xcrun notarytool submit --wait`) and **stapled**, as are the app and the setup
+inside it, so a player's Mac opens them with no warning, even offline. `OpenSWOS-Setup-macOS.zip`
+(for `OpenSWOS-Setup.zip`) carries that same signed setup app, plus `swosdata`, which is signed
+and notarized with the zip. A bare program can't be stapled, so Gatekeeper checks it online the
+first time it runs.
+
+### Signing and notarizing: the Mac's keychain, once
+
+An ssh session cannot use the login keychain while it's locked: codesign fails with
+`errSecInternalComponent`. So the build Mac has a keychain of its own for this, made once by its
+owner **in a terminal on the Mac**:
+
+1. In Keychain Access, under My Certificates, select **Developer ID Application: Benjamin Baker
+   (9AM8849YMD)** and choose File → Export Items… → `.p12`, with a password of your choosing.
+2. Make an **app-specific password** for your Apple ID: account.apple.com → Sign-In and Security →
+   App-Specific Passwords.
+3. `scripts/macos_signing_setup.sh ~/Desktop/DeveloperID.p12 --apple-id you@example.com`
+   - It makes `~/Library/Keychains/openswos-signing.keychain-db`. Its password is random and is
+     kept in `~/.openswos-signing/keychain.pass` (mode 600), which the build uses to unlock it.
+   - It imports the certificate: you type the `.p12`'s password. It also records the certificate's
+     name in `~/.openswos-signing/identity` and makes a test signature.
+   - It stores the notary credentials as the profile `openswos-notary` in that keychain:
+     notarytool asks for the app-specific password.
+   - Then delete the `.p12`.
+
+Nothing typed there is kept anywhere but the keychain. Without that keychain, `build_macos.sh`
+still makes the DMG, ad-hoc signed and not notarized, and says so ("signed as: -", "notarized:
+no"). Players then open it with right-click → Open, or on Sequoia with System Settings → Privacy
+& Security → Open Anyway.
+
+A rejected notarization prints notarytool's log: an unsigned piece, a missing timestamp, or code
+in `Resources` that is not signed. The summary also prints `spctl`'s verdict on the DMG and the
+app ("accepted, source=Notarized Developer ID").
 
 ---
 
