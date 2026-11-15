@@ -322,6 +322,10 @@ uint8_t       *Platform_HudLayerBuffer(void);
  * presents in place of the game's frame and palette, which are left as they are. NULL: the game's
  * picture again. Platform_PressCount: key, mouse, pad and touch presses so far (a skip). */
 void     Platform_CutsceneShow(const uint8_t *pixels, int w, int h, const uint8_t *rgb, int level);
+/* The same for an upscaled clip's frame: `rgba` (w x h, R G B A bytes; kept by the caller until the
+ * next call) drawn at the window's resolution over the place an `origW` x `origH` original would
+ * have, at `level`; `changed` when its pixels are new (uploaded again). NULL: the game's picture. */
+void     Platform_CutsceneShowHD(const uint8_t *rgba, int w, int h, int origW, int origH, int level, int changed);
 uint32_t Platform_PressCount(void);
 
 /* Run the Amiga Level-3 VBlank ISR body, throttled to ~50 Hz max and

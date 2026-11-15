@@ -1517,6 +1517,88 @@ void Platform_CutsceneShow(const uint8_t *pixels, int w, int h, const uint8_t *r
         SDL_UnlockMutex(s_render_mtx);
 }
 
+/* An upscaled clip's frame (Platform_CutsceneShowHD): RGBA at its own size, drawn over the picture
+ * where the original clip would be -- `origW` x `origH` of the picture's pixels, centred -- at the
+ * window's resolution (draw_overlays: gfx.h, either presenter). The picture under it is black. */
+static const uint8_t *s_cut_hd;
+static int      s_cut_hdW, s_cut_hdH, s_cut_hdOrigW, s_cut_hdOrigH, s_cut_hdLevel;
+static uint32_t s_cut_hdSerial, s_cut_hdUploaded;
+static GfxTexture *s_cut_hdTex;
+static int      s_cut_hdTexW, s_cut_hdTexH;
+
+void Platform_CutsceneShowHD(const uint8_t *rgba, int w, int h, int origW, int origH, int level, int changed)
+{
+    static const uint8_t black[768];
+    if (s_render_mtx)
+        SDL_LockMutex(s_render_mtx);
+    if (!rgba) {
+        s_cut_hd = NULL;
+        cutscene_show_locked(NULL, 0, 0, NULL, 0);
+    } else {
+        s_cut_hd = rgba;
+        s_cut_hdW = w;
+        s_cut_hdH = h;
+        s_cut_hdOrigW = origW;
+        s_cut_hdOrigH = origH;
+        s_cut_hdLevel = level < 0 ? 0 : level > 256 ? 256 : level;
+        if (changed)
+            s_cut_hdSerial++;
+        {   /* (the picture under it: black -- one blank frame of the original's size) */
+            static uint8_t *blank;
+            static size_t blankCap;
+            const size_t need = (size_t)origW * (size_t)origH;
+            if (need > blankCap) {
+                free(blank);
+                blank = (uint8_t *)calloc(need, 1);
+                blankCap = blank ? need : 0;
+            }
+            if (blank)
+                cutscene_show_locked(blank, origW, origH, black, 256);
+        }
+    }
+    if (s_render_mtx)
+        SDL_UnlockMutex(s_render_mtx);
+}
+
+/* (draw_overlays, first: under the CRT effects and the FPS counter) */
+static void cutscene_hd_draw(void)
+{
+    if (!s_cut_on || !s_cut_hd)
+        return;
+    if (!s_cut_hdTex || s_cut_hdTexW != s_cut_hdW || s_cut_hdTexH != s_cut_hdH) {
+        if (s_cut_hdTex)
+            Gfx_DestroyTexture(s_cut_hdTex);
+        s_cut_hdTex = Gfx_CreateTexture(s_cut_hdW, s_cut_hdH, 1);
+        s_cut_hdTexW = s_cut_hdW;
+        s_cut_hdTexH = s_cut_hdH;
+        s_cut_hdUploaded = s_cut_hdSerial - 1;
+    }
+    if (!s_cut_hdTex)
+        return;
+    if (s_cut_hdUploaded != s_cut_hdSerial) {
+        Gfx_UpdateTexture(s_cut_hdTex, s_cut_hd, s_cut_hdW * 4);
+        s_cut_hdUploaded = s_cut_hdSerial;
+    }
+    const float x = (float)(_screen_width - s_cut_hdOrigW) / 2.0f, y = (float)(_screen_height - s_cut_hdOrigH) / 2.0f;
+    const float x1 = x + (float)s_cut_hdOrigW, y1 = y + (float)s_cut_hdOrigH;
+    const Uint8 l = (Uint8)(s_cut_hdLevel >= 256 ? 255 : s_cut_hdLevel);
+    GfxVertex v[4];
+    SDL_memset(v, 0, sizeof v);
+    v[0].position.x = x;  v[0].position.y = y;  v[0].tex_coord.x = 0; v[0].tex_coord.y = 0;
+    v[1].position.x = x1; v[1].position.y = y;  v[1].tex_coord.x = 1; v[1].tex_coord.y = 0;
+    v[2].position.x = x1; v[2].position.y = y1; v[2].tex_coord.x = 1; v[2].tex_coord.y = 1;
+    v[3].position.x = x;  v[3].position.y = y1; v[3].tex_coord.x = 0; v[3].tex_coord.y = 1;
+    for (int i = 0; i < 4; i++) {
+        v[i].color.r = v[i].color.g = v[i].color.b = l;
+        v[i].color.a = 255;
+    }
+    static const int idx[6] = { 0, 1, 2, 0, 2, 3 };
+    Gfx_SetSpace(GFX_SPACE_PICTURE);
+    Gfx_SetBlend(GFX_BLEND_NONE);
+    Gfx_Geometry(s_cut_hdTex, v, 4, idx, 6);
+    Gfx_SetBlend(GFX_BLEND_ALPHA);
+}
+
 static void cutscene_show_locked(const uint8_t *pixels, int w, int h, const uint8_t *rgb, int level)
 {
     if (!pixels) {
@@ -2604,6 +2686,7 @@ static void screenshot_frame_release(uint32_t *shot, uint32_t *fb)
 /* What goes over the picture, on either presenter (gfx.h). */
 static void draw_overlays(void)
 {
+    cutscene_hd_draw();             /* (an upscaled cutscene's frame: in place of the picture) */
     /* The built-in mods' drawing over the frame (src/mod_hooks.c: the weather), before the
      * CRT effects so the grille and the glass sit on top of it too. */
     if (!s_cut_on)

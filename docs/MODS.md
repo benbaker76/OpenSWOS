@@ -1525,8 +1525,10 @@ as in the PC game.
   so a loaded career starts with the first chairman until its next welcome memo.
 - A national team's memos (27-38) are the president's: `CHP_<id>`, a frame every 6/70 s.
 
-**Settings** (`[mod.dosvideos]`): `room` (Dressing room: WIN, LOSE, WCUP, LCUP, PROM, RELE) and
-`chairman` (Chairman scenes), both `on` by default.
+**Settings** (`[mod.dosvideos]`): `room` (Dressing room: WIN, LOSE, WCUP, LCUP, PROM, RELE),
+`chairman` (Chairman scenes) and, since 1.1 (2026-11-14), `hd` (Upscaled clips: a clip's
+`video_dos/hd/<name>.mpg` in place of its picture when there is one -- docs/DOS_VIDEO.md, "The
+upscaled clips"), all `on` by default.
 
 **Never played** (`ModApi_CutsceneBlocked`): under the career autopilot (the golden careers), a rig
 (`--replay-test`, `--srp-resim`, `--career-golden`), online, in a match, with no sound, with the

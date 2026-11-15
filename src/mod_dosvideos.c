@@ -52,6 +52,7 @@
 #include <SDL.h>
 
 #include "flic.h"
+#include "../third_party/pl_mpeg/pl_mpeg.h"   /* the upscaled clips (src/pl_mpeg_impl.c) */
 #include "mod_api.h"
 #include "swos_io.h"            /* swos_data_path */
 #include "project_identity.h"   /* PROJECT_SETUP_NAME */
@@ -97,7 +98,7 @@ static void *read_data(const char *rel, uint32_t *size)
     *size = 0;
     if (!f)
         return NULL;
-    if (fseek(f, 0, SEEK_END) == 0 && (n = ftell(f)) > 0 && n < 64L * 1024 * 1024 && fseek(f, 0, SEEK_SET) == 0 &&
+    if (fseek(f, 0, SEEK_END) == 0 && (n = ftell(f)) > 0 && n < 512L * 1024 * 1024 && fseek(f, 0, SEEK_SET) == 0 &&
         (buf = malloc((size_t)n)) != NULL) {
         if (fread(buf, 1, (size_t)n, f) == (size_t)n) {
             *size = (uint32_t)n;
@@ -118,6 +119,78 @@ static const char *voice_language(void)
     if (!strncmp(l, "de", 2)) return "german";
     if (!strncmp(l, "it", 2)) return "italian";
     return "english";
+}
+
+static int32_t hd_on(void);
+
+/* An upscaled clip (docs/DOS_VIDEO.md, "The upscaled clips"): video_dos/hd/<clip>.mpg, MPEG-1, one
+ * picture for each of the .FLC's frames -- the .FLC still says how many, how big and when, the
+ * picture comes from here. NULL when there is none, it is off, or it cannot be read. */
+typedef struct {
+    plm_t   *plm;
+    uint8_t *rgba;
+    int32_t  w, h, changed;
+} HdClip;
+
+static int32_t hd_open(HdClip *hd, const char *clip)
+{
+    char rel[96];
+    uint32_t size = 0;
+    memset(hd, 0, sizeof *hd);
+    if (!hd_on())
+        return 0;
+    snprintf(rel, sizeof rel, "video_dos/hd/%s.mpg", clip);
+    uint8_t *file = (uint8_t *)read_data(rel, &size);
+    if (!file)
+        return 0;
+    hd->plm = plm_create_with_memory(file, size, 1);       /* (it frees the file) */
+    if (!hd->plm) {
+        free(file);
+        return 0;
+    }
+    plm_set_audio_enabled(hd->plm, 0);
+    plm_set_loop(hd->plm, 0);
+    hd->w = plm_get_width(hd->plm);
+    hd->h = plm_get_height(hd->plm);
+    if (hd->w <= 0 || hd->h <= 0 || hd->w > 8192 || hd->h > 8192 ||
+        !(hd->rgba = (uint8_t *)malloc((size_t)hd->w * hd->h * 4))) {
+        fprintf(stderr, "[dosvideos] %s is not a picture the game can play: the original instead\n", rel);
+        plm_destroy(hd->plm);
+        memset(hd, 0, sizeof *hd);
+        return 0;
+    }
+    memset(hd->rgba, 255, (size_t)hd->w * hd->h * 4);      /* (plm_frame_to_rgba leaves the alpha) */
+    return 1;
+}
+
+/* The next picture into hd->rgba; 0 when the file has no more (the last one stays). */
+static int32_t hd_next(HdClip *hd)
+{
+    plm_frame_t *fr = hd->plm ? plm_decode_video(hd->plm) : NULL;
+    if (!fr)
+        return 0;
+    plm_frame_to_rgba(fr, hd->rgba, hd->w * 4);
+    hd->changed = 1;
+    return 1;
+}
+
+static void hd_close(HdClip *hd)
+{
+    if (hd->plm)
+        plm_destroy(hd->plm);
+    free(hd->rgba);
+    memset(hd, 0, sizeof *hd);
+}
+
+/* One frame of the clip on the screen: the upscaled picture when there is one, else the .FLC's. */
+static int32_t show(HdClip *hd, const uint8_t *pixels, const Flic *f, const uint8_t *pal, int32_t level)
+{
+    if (hd->plm) {
+        const int32_t changed = hd->changed;
+        hd->changed = 0;
+        return ModApi_CutsceneFrameHD(hd->rgba, hd->w, hd->h, f->width, f->height, level, changed);
+    }
+    return ModApi_CutsceneFrame(pixels, f->width, f->height, pal, level);
 }
 
 /* Plays video_dos/<clip>.flc with sound_dos/<sound> (NULL or missing: silent), a frame every
@@ -168,6 +241,14 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
         return;
     }
 
+    HdClip hd;
+    if (hd_open(&hd, clip) && !hd_next(&hd)) {
+        fprintf(stderr, "[dosvideos] video_dos/hd/%s.mpg has no picture: the original instead\n", clip);
+        hd_close(&hd);
+    }
+    if (hd.plm)
+        fprintf(stderr, "[dosvideos] %s: upscaled, %dx%d (video_dos/hd/%s.mpg)\n", clip, (int)hd.w, (int)hd.h, clip);
+
     enum { kFadeMs = 450 };
     const uint32_t frameMs = (uint32_t)(delay + 1) * 1000u / 70u;
     int32_t skipped = 0, rc = 1, shown = 1;
@@ -177,7 +258,7 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
         for (;;) {
             const uint32_t t = ModApi_Ticks() - t0;
             const int32_t level = t >= kFadeMs ? 256 : (int32_t)(t * 256 / kFadeMs);
-            if (ModApi_CutsceneFrame(pixels, f.width, f.height, pal, level)) { skipped = 1; break; }
+            if (show(&hd, pixels, &f, pal, level)) { skipped = 1; break; }
             if (level >= 256)
                 break;
         }
@@ -192,9 +273,10 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
                 rc = Flic_Next(&f, pixels, pal);
                 if (rc != 1)
                     break;
+                (void)hd_next(&hd);
                 shown++;
             }
-            if (ModApi_CutsceneFrame(pixels, f.width, f.height, pal, 256))
+            if (show(&hd, pixels, &f, pal, 256))
                 skipped = 1;
         }
     }
@@ -203,7 +285,7 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
     if (!skipped && pcm) {      /* (after the last frame: the sound to its end -- a press cuts it short) */
         const uint32_t until = ModApi_Ticks() + slen / 22 + 1000;
         while (ModApi_CutsceneSoundPlaying() && (int32_t)(until - ModApi_Ticks()) > 0)
-            if (ModApi_CutsceneFrame(pixels, f.width, f.height, pal, 256))
+            if (show(&hd, pixels, &f, pal, 256))
                 break;
     }
     {   /* fade out (FadeOutToBlack) */
@@ -211,13 +293,14 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
         for (;;) {
             const uint32_t t = ModApi_Ticks() - t0;
             const int32_t level = t >= kFadeMs / 2 ? 0 : 256 - (int32_t)(t * 512 / kFadeMs);
-            ModApi_CutsceneFrame(pixels, f.width, f.height, pal, level);
+            show(&hd, pixels, &f, pal, level);
             if (level <= 0)
                 break;
         }
     }
     ModApi_CutsceneSound(NULL, 0, 0);
     ModApi_CutsceneEnd();
+    hd_close(&hd);
     fprintf(stderr, "[dosvideos] %s: %s after %u of %u frames\n", clip, skipped ? "skipped" : "played",
             (unsigned)shown, (unsigned)f.frames);
     free(pixels);
@@ -226,6 +309,7 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
 }
 
 static int32_t room_on(void) { return ModApi_SettingInt(SLUG, "room", 1); }
+static int32_t hd_on(void) { return ModApi_SettingInt(SLUG, "hd", 1); }
 static int32_t chairman_on(void) { return ModApi_SettingInt(SLUG, "chairman", 1); }
 
 static void career_event(const ModCareerEvent *e)

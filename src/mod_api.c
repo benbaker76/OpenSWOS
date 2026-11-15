@@ -802,6 +802,16 @@ int32_t ModApi_CutsceneFrame(const uint8_t *pixels, int32_t w, int32_t h, const 
     return Platform_PressCount() != s_cutPresses;
 }
 
+int32_t ModApi_CutsceneFrameHD(const uint8_t *rgba, int32_t w, int32_t h, int32_t origW, int32_t origH,
+                               int32_t level, int32_t changed)
+{
+    extern uint16_t _quitToDos;
+    Platform_CutsceneShowHD(rgba, w, h, origW, origH, level, changed);
+    if (Platform_VBlank() || _quitToDos)
+        return 1;
+    return Platform_PressCount() != s_cutPresses;
+}
+
 void ModApi_CutsceneSound(const uint8_t *pcm, uint32_t len, int32_t rate)
 {
     AudioSDL_CutscenePlay(pcm, len, rate);

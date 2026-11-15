@@ -70,8 +70,8 @@ the buffers. Freestanding C99, fixed-width types, no libc, the caller's buffers 
 at that frame (the owner, 2026-11-12: the palette kept); `--rgb` writes RGB instead -- and a
 `clip.json` with the frame count, size and the game's frame time (4/70 s; 6/70 s for CHP_nn).
 Pillow's reader, proved identical to ours above. Run it with the python3 that has Pillow (not `-I`
-when Pillow is a user install). The game reads only `.FLC` today: an upscaled set needs a reader of
-its own.
+when Pillow is a user install). The game plays an upscaled set through MPEG-1 files of its own
+(below, "The upscaled clips").
 
 **As video files** (2026-11-14): `scripts/flic_encode.py <frames> <PC game | sound_dos> <out>
 [--info <extracted frames>] [--clip ...] [--crf N] [--codec h264|h265|av1] [--fps N]` makes one MP4
@@ -85,7 +85,39 @@ owner's `upscale` (github.com/benbaker76/upscale) -- model `RealESRGAN_anime_x4`
 --no-tiles --alpha opaque`, its folder mode, about 0.65 s a frame on the AMD GPU -- chosen by eye
 over APISR_GRL_x4 (adds dark outlines), UltraSharp_x4 (keeps the dither noise), RealESRGAN_x4plus
 (soft faces) and UltraMix_Smooth_x4. fp16 in one pass is within 0.5/255 on average of fp32 tiled,
-and has no tile seams.
+and has no tile seams. A second set from `RealESRGAN_x8` (2560x1600, tiled, about 10 s a frame) is
+softer and more like the original render, with invented skin texture.
+
+## The upscaled clips (2026-11-14)
+
+The game plays a clip's **upscaled picture** when the assets folder has one:
+`video_dos/hd/<name>.mpg` (lower case, as `video_dos/`), with the mod's **Upscaled clips** setting
+on (`[mod.dosvideos] hd`, default on). Without one, or with the setting off, it plays the `.FLC`.
+
+- **Only the picture comes from the `.mpg`.** The `.FLC` is still opened, and it decides how many
+  frames there are, their size, when each is due, the sound, the fades and the skip. The `.mpg`
+  gives one picture per `.FLC` frame, in order. When it runs out the last picture stays, and a
+  file the game cannot read plays the original (said in the log).
+- **MPEG-1**, decoded by pl_mpeg (`third_party/pl_mpeg`, MIT, one header; `src/pl_mpeg_impl.c`).
+  It is a simple codec with no patents left and a small, permissive decoder, so it suits the game
+  where MP4/H.264 would not. The rate in the file (25) is never read.
+- **Shown at the window's resolution:** `ModApi_CutsceneFrameHD` → `Platform_CutsceneShowHD`.
+  The frame is an RGBA texture drawn through gfx.h on either presenter. It covers exactly the
+  rectangle the original would (its 320x200 or 320x240, centred in the game's picture, scaled
+  as the picture is), over black, and the fades go through the vertices' colour. A 4x set is
+  1280x800 in that place. The game's frame buffers and palette are untouched, as for the
+  original.
+- **Made by** `scripts/flic_encode.py <upscaled frames> - <out> --info <extracted frames>
+  --mpeg1 [--q N]`. Quantiser 2 (near the best) gives about 4 MB a clip and 400 MB for the 98 at
+  4x. It checks that each file has exactly as many pictures as its clip.
+- **Not shipped:** the set is made from the PC game's own pictures, so like `video_dos/` it is the
+  player's to make, never part of OpenSWOS. Making it needs the upscaler and a GPU for an hour
+  or more (above). Whether OpenSWOS Setup should offer it is an open question (2026-11-14).
+
+**Checked:** `SWOS_DOSVIDEO_TEST=win` with `video_dos/hd/win.mpg` logs `win: upscaled, 1280x800`
+and plays 73 of 73. Its presented frames, captured with `SWOS_PRESENT_CAPTURE` on SDL's software
+renderer, show the upscaled picture where the original goes, changing frame to frame, then holding
+the last frame until the sound ends. With `hd = off` the original plays in the same place.
 
 ## How a clip is shown (src/mod_dosvideos.c, the PC game's PlayAnimation)
 

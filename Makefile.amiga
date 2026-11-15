@@ -87,6 +87,7 @@ SDL_ONLY_SRCS := \
     mod_backgrounds.c     \
     mod_dosmenus.c        \
     mod_dosvideos.c       \
+    pl_mpeg_impl.c        \
     flic.c                \
     slang.c               \
     gpu_slang.c           \

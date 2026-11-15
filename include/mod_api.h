@@ -425,6 +425,11 @@ int32_t ModApi_ShowDialog(const char *title, const char *text, const char *const
  *                  in its own palette (768 bytes, R G B 0-255) at `level` (0 black .. 256 full) and
  *                  waits for the next frame (the game's pace): 1 when the player pressed a key, a
  *                  mouse or pad button or touched the screen since Begin (a skip) or closed the game
+ *   FrameHD        as Frame, for a true-colour picture at a higher resolution: `rgba` (w x h, R G B
+ *                  A bytes, kept by the caller until the next call) drawn at the window's own
+ *                  resolution where an `origW` x `origH` picture would be shown by Frame (centred,
+ *                  scaled as the game's picture is), black around it; `changed` 1 when its pixels
+ *                  are new since the last call (else the uploaded copy is drawn again)
  *   Sound          plays unsigned 8-bit mono samples at `rate` Hz (the caller keeps them) alone
  *   SoundPlaying   1 while it plays
  *   End            the game's picture and sound back; the press that skipped dropped; the menu
@@ -432,6 +437,8 @@ int32_t ModApi_ShowDialog(const char *title, const char *text, const char *const
 const char *ModApi_CutsceneBlocked(int32_t test);
 void    ModApi_CutsceneBegin(void);
 int32_t ModApi_CutsceneFrame(const uint8_t *pixels, int32_t w, int32_t h, const uint8_t *rgb, int32_t level);
+int32_t ModApi_CutsceneFrameHD(const uint8_t *rgba, int32_t w, int32_t h, int32_t origW, int32_t origH,
+                               int32_t level, int32_t changed);
 void    ModApi_CutsceneSound(const uint8_t *pcm, uint32_t len, int32_t rate);
 int32_t ModApi_CutsceneSoundPlaying(void);
 void    ModApi_CutsceneEnd(void);

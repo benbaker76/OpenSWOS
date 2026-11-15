@@ -4,6 +4,7 @@ upscaled set of them) and the clips' sounds, timed as the game plays them.
 
   scripts/flic_encode.py <frames dir> <PC game folder | sound dir> <out dir>
                          [--clip NAME ...] [--crf N] [--codec h264|h265|av1] [--fps N]
+  scripts/flic_encode.py <frames dir> - <out dir> --mpeg1 [--q N] [--clip NAME ...]
 
 <frames dir> holds a folder a clip (WIN/, CH1_05/, ...), each with its frames 0000.png ... and
 the clip.json flic_extract.py wrote -- or an upscaled copy of those folders, frames only, in which
@@ -25,6 +26,12 @@ taller than wide on a 4:3 screen, so its files carry a sample aspect of 5:6 (a p
 1280x800 as 1280x960); 320x240 ones are square. --fps N writes N frames a second (each of the
 clip's frames repeated or not as its time falls) for a player or site that wants a common rate;
 the default is the clip's own (17.5 or 11.67).
+
+--mpeg1 writes the game's own upscaled set instead (docs/DOS_VIDEO.md, "The upscaled clips"): one
+MPEG-1 file a clip, <out>/<name>.mpg (lower case, as the game looks for them in video_dos/hd/),
+its pictures and nothing else -- one for each of the clip's frames, no sound, no fades, no held
+last frame: the game takes those, and the timing, from the .FLC, and only the picture from here.
+--q is MPEG-1's quantiser, 1 (largest, best) to 31 (default 2). The sound argument is not used.
 
 Needs ffmpeg on PATH.
 """
@@ -118,6 +125,29 @@ def encode(frames_dir, info_dir, sound_root, out_dir, clip, args):
     return True
 
 
+def encode_mpeg1(frames_dir, info_dir, out_dir, clip, args):
+    info = clip_info(frames_dir, info_dir, clip)
+    src = os.path.join(frames_dir, clip)
+    frames = sorted(f for f in os.listdir(src) if f.endswith(".png") and f[:4].isdigit())
+    if len(frames) != info["frames"]:
+        print(f"{clip}: {len(frames)} frames here, {info['frames']} in the clip -- skipped", file=sys.stderr)
+        return False
+    out = os.path.join(out_dir, clip.lower() + ".mpg")
+    # (25 a second: MPEG-1 has a list of rates and the clip's is not on it -- the game never reads
+    # it; I and P pictures only, a key picture every 12)
+    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                    "-framerate", "25", "-start_number", "0", "-i", os.path.join(src, "%04d.png"),
+                    "-vf", "format=yuv420p", "-c:v", "mpeg1video", "-q:v", str(args.q), "-g", "12", "-bf", "0",
+                    "-f", "mpeg", out], check=True)
+    n = subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries",
+                        "stream=nb_read_frames", "-of", "csv=p=0", out], capture_output=True, text=True).stdout.strip()
+    if n != str(len(frames)):
+        print(f"{clip}: the file has {n} pictures, the clip {len(frames)}", file=sys.stderr)
+        return False
+    print(f"{clip}: {len(frames)} pictures -> {os.path.basename(out)} ({os.path.getsize(out) // 1024} KB)")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("frames")
@@ -128,10 +158,15 @@ def main():
     ap.add_argument("--crf", type=int, default=14, help="quality: lower is better (default 14)")
     ap.add_argument("--codec", choices=["h264", "h265", "av1"], default="h264")
     ap.add_argument("--fps", help="a fixed output rate, e.g. 30 (default: the clip's own)")
+    ap.add_argument("--mpeg1", action="store_true", help="the game's upscaled set: MPEG-1, pictures only")
+    ap.add_argument("--q", type=int, default=2, help="--mpeg1's quantiser, 1-31 (default 2)")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     clips = args.clip or sorted(d for d in os.listdir(args.frames) if os.path.isdir(os.path.join(args.frames, d)))
-    ok = sum(encode(args.frames, args.info, args.sound, args.out, c.upper(), args) for c in clips)
+    if args.mpeg1:
+        ok = sum(encode_mpeg1(args.frames, args.info, args.out, c.upper(), args) for c in clips)
+    else:
+        ok = sum(encode(args.frames, args.info, args.sound, args.out, c.upper(), args) for c in clips)
     print(f"{ok} of {len(clips)} clips written to {args.out}")
     return 0 if ok == len(clips) else 1
 
