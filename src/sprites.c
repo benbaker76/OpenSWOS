@@ -2111,16 +2111,20 @@ void DrawQueuedSprites(void)
         a2 -= sizeof(Sprite *);
         Sprite *a4 = *(Sprite **)a2;
 
-        /* A player is drawn with his look's frame (player_looks.c: the drawing only, the sprite
-         * is as it was), and the highlights keep what is drawn. */
-        if (a4->teamNumber == 1 || a4->teamNumber == 2)
-            a0 = (SpriteGraphics *)PlayerLooks_Graphics(a4, a0);
-
-        /* Check if highlight recording needed */
+        /* Check if highlight recording needed. The highlights keep the frame as the game has
+         * it, never a look's: a highlight's sprite number is 11 bits (SaveCoordinatesForHighlights,
+         * the .HIL layout), and the looks' frames are 1684..2895 on SDL (player_looks.h) -- one past
+         * 2047 came back as another sprite, a white-haired player's frame as the ball (crom1,
+         * 2026-11-14). The whole-match .SRP keeps the looks (16-bit numbers: replay_v2.c). */
         if (a4->teamNumber != 0) {
             int16_t d0 = a0->ordinal;
             SaveCoordinatesForHighlights(d0, (uint16_t)d1, (uint16_t)d2);
         }
+
+        /* A player is drawn with his look's frame (player_looks.c: the drawing only, the sprite
+         * is as it was). */
+        if (a4->teamNumber == 1 || a4->teamNumber == 2)
+            a0 = (SpriteGraphics *)PlayerLooks_Graphics(a4, a0);
 
 #ifdef SWOS_SDL_BUILD
         /* SWOS_REPLAY_TRACE (src/replay_v2.c): what the live match drew, to compare a
