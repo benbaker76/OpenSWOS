@@ -949,10 +949,17 @@ sprite_decode:
 
             sx = worldX - (int32_t)Render_CameraX() - _menu_draw_x_offset;
             sy = worldY - (int32_t)Render_CameraY();
+            {   /* (a mod's own drawing of it in its place: the blit adds _menu_draw_x_offset) */
+                extern int32_t ModHooks_ReplaySpriteDraw(uint16_t, int16_t, int16_t, int16_t, int16_t);
+                if (ModHooks_ReplaySpriteDraw((uint16_t)sprIdx, (int16_t)worldX, (int16_t)worldY,
+                                              (int16_t)(sx + _menu_draw_x_offset), (int16_t)sy))
+                    sprIdx = 0xFFFFFFFFu;
+            }
         }
 #endif
-        DarkenRectangle((uint16_t)sprIdx, (uint16_t)(int16_t)sx,
-                          (uint16_t)(int16_t)sy);
+        if (sprIdx != 0xFFFFFFFFu)
+            DarkenRectangle((uint16_t)sprIdx, (uint16_t)(int16_t)sx,
+                              (uint16_t)(int16_t)sy);
     }
 
     /* Read next entry after sprite */

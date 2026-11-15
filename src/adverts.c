@@ -8,6 +8,9 @@
 #include "swos_types.h"
 #ifdef SWOS_SDL_BUILD
 #include "display.h"   /* WIDE_MARGIN — the second corner flag is widescreen-only */
+#ifdef SWOS_SDL_BUILD
+#include <stdlib.h>      /* getenv: SWOS_TEST_ADVERTS */
+#endif
 #endif
 
 /* Sprite image indices */
@@ -209,6 +212,13 @@ void ManageAdvertisements(void)
     /* If advertIndex == 0, try to start a new ad cycle */
     if (_advertIndex == 0) {
         d0 = Rand();
+#ifdef SWOS_SDL_BUILD
+        /* SWOS_TEST_ADVERTS=1: every chance shows one (a test of their picture: the pitchmaps
+         * mod's check, docs/PITCH_MAPS.md); the same Rand() is drawn either way */
+        { static int8_t force = -1;
+          if (force < 0) force = getenv("SWOS_TEST_ADVERTS") != NULL;
+          if (force) d0 = 0; }
+#endif
         if (d0 > 128)
             goto stop_ad_cycle;
 

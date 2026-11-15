@@ -134,6 +134,20 @@ typedef struct ta_animation {
     const ta_track *tracks;
 } ta_animation;
 
+/* An object on an object layer: a named point a game asks for ("where the
+ * substitutes sit"), or a rectangle. Map pixels, rounded down. */
+typedef struct ta_object {
+    int id;
+    const char *name;
+    const char *class_name;  /* the file's "type" */
+    int x, y;                /* the layer's offset NOT included */
+    int width, height;       /* 0 for a point */
+    int point;
+    int visible;
+    int property_count;
+    const ta_property *properties;
+} ta_object;
+
 enum { TA_TILESET_NONE = -1, TA_TILESET_MIXED = -2 };
 enum { TA_LAYER_TILE = 0, TA_LAYER_OBJECT = 1, TA_LAYER_IMAGE = 2, TA_LAYER_GROUP = 3 };
 enum { TA_DEPTH_BELOW = 0, TA_DEPTH_SORTED = 1, TA_DEPTH_ABOVE = 2 };
@@ -158,6 +172,8 @@ typedef struct ta_layer {
     const ta_animation *animations;
     int property_count;
     const ta_property *properties;
+    int object_count;          /* an object layer's objects, in the file's order */
+    const ta_object *objects;
 } ta_layer;
 
 enum {
@@ -238,6 +254,8 @@ int ta_map_event(const ta_map *map, const char *name);
 int ta_map_layer(const ta_map *map, const char *name);
 int ta_map_tileset(const ta_map *map, const char *name);
 int ta_map_group(const ta_map *map, const char *name);
+/* A property by name in a list of them (a map's, a layer's, an object's); NULL when there is none. */
+const ta_property *ta_property_find(const ta_property *properties, int count, const char *name);
 /* The tileset a tile id belongs to (-1: none), and the tile's place in its image. */
 int ta_map_tileset_of(const ta_map *map, uint32_t gid);
 void ta_tileset_tile(const ta_tileset *tileset, uint32_t gid, int *x, int *y);
@@ -284,6 +302,12 @@ typedef struct ta_blit {
 } ta_blit;
 
 int ta_player_layer_visible(const ta_player *player, int layer);
+/* The object called `name` on the topmost shown object layer that has a shown
+ * one; NULL when there is none. `x`, `y` (may be NULL) get where it is: its
+ * own x, y plus that layer's offset. `layer` (may be NULL) gets which layer.
+ * Layer groups and events decide which layer is shown, so each layout of a
+ * map can put the same name somewhere else. */
+const ta_object *ta_player_object(const ta_player *player, const char *name, int *x, int *y, int *layer);
 void ta_player_layer_pose(const ta_player *player, int layer, ta_layer_pose *out);
 /* The layer's blocks, in drawing order. Answers how many there are; writes at most `max`. */
 int ta_player_blits(const ta_player *player, int layer, ta_blit *out, int max);
@@ -385,7 +409,7 @@ void ta_draw_blit32(const ta_player *player, int layer, const ta_blit *blit, con
 
 /* ------------------------------------------------------------------- easing */
 
-/* The 31 curves, 16.16 in and out. Identical to OpenSWOS's src/easing.c;
+/* The 31 curves, 16.16 in and out. Identical to SWOS United's src/easing.c;
  * define TA_EASE(kind, t) before compiling tileagent.c to use another. */
 int32_t ta_ease(int kind, int32_t t);
 int ta_ease_from_name(const char *name); /* -1 = unknown */

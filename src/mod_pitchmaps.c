@@ -38,6 +38,7 @@
 #include "jag_graphics.h"       /* JagGfx_RemapDonated */
 #include "../third_party/tileagent/tileagent.h"
 #include "gfx.h"                /* the layers over the players, on either presenter */
+#include "game_types.h"         /* Sprite, SpriteGraphics: the spriteDraw hook's */
 
 #define CELLS       2310        /* pitch.c PITCH_POINTER_COUNT: 42 x 55 */
 #define GRID_COLS   42
@@ -89,8 +90,14 @@ static struct {
     int32_t   clock, showing;
 } s_up;
 
+static int32_t s_goalsLayer = -1, s_flagsLayer = -1;    /* the map's sorted "goals", "flags" */
+static int32_t s_advertsLayer = -1;                     /* ... and "adverts" */
+static uint16_t s_advertSeen;                           /* the engine's _advertIndex we last told the map */
+static int32_t sorted_layer(const char *name);
+
 static void above_release(void)
 {
+    s_goalsLayer = s_flagsLayer = s_advertsLayer = -1;
     int32_t i;
     for (i = 0; i < MAX_SETS; i++) {
         free(s_up.rgba[i]);
@@ -261,6 +268,9 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
     for (i = 0; i < map->layer_count && s_up.count < MAX_ABOVE; i++)
         if (map->layers[i].depth == TA_DEPTH_ABOVE)
             s_up.layer[s_up.count++] = i;
+    s_goalsLayer = sorted_layer("goals");
+    s_flagsLayer = sorted_layer("flags");
+    s_advertsLayer = sorted_layer("adverts");
     for (i = 0; s_up.count && i < map->tileset_count; i++) {
         const size_t n = (size_t)s_pm.imageW[i] * (size_t)s_pm.imageH[i];
         size_t p;
@@ -518,27 +528,91 @@ static void above_start(void)
     int32_t e;
     const int32_t type = ModApi_PitchType();
     ta_player_set_seed(s_pm.player, ModApi_Ticks() * 2654435761u + (uint32_t)s_pm.pitch);
-    ta_player_reset(s_pm.player, 0);
+    ta_player_reset(s_pm.player, s_up.clock);       /* ("always" animations: in step with the game's) */
+    s_advertSeen = 0;
     snprintf(layout, sizeof layout, "layout-%d", (int)s_pm.pitch);
     if ((e = ta_map_event(s_pm.map, layout)) >= 0)
         ta_player_fire(s_pm.player, e, 0);
     e = ta_map_event(s_pm.map, type >= 0 && type <= 3 ? "clouds" : "clear-sky");
     if (e >= 0)
         ta_player_fire(s_pm.player, e, 0);
-    s_up.clock = 0;
+    {   /* where the map puts the benches (bench_point: drawing only) */
+        int px = 0, py = 0, l = -1, qx = 0, qy = 0;
+        const ta_object *t = ta_player_object(s_pm.player, "bench-top", &px, &py, &l);
+        const ta_object *b = ta_player_object(s_pm.player, "bench-bottom", &qx, &qy, &l);
+        if (t || b)
+            fprintf(stderr, "[pitch-map] match: benches from the map: top %d,%d, bottom %d,%d\n",
+                    t ? px : -1, t ? py : -1, b ? qx : -1, b ? qy : -1);
+    }
+    fprintf(stderr, "[pitch-map] match: %d layer(s) over the players (%s), goals %s, corner flags %s\n",
+            (int)s_up.count, type >= 0 && type <= 3 ? "clouds" : "clear sky",
+            s_goalsLayer >= 0 ? "from the map" : "the game's", s_flagsLayer >= 0 ? "from the map" : "the game's");
 }
+
+/* The map's time is the game's frame counter (_frameCount, 16 bits, a tick a game frame, in a
+ * match and its replays), unwrapped: the flags wave and the adverts step on the engine's beat.
+ * Brought up to date before the sprites are drawn (spritesBegin, replayFrameBegin) and before the
+ * layers over them (frameDrawn); a counter that jumps or runs back starts the map again there.
+ * 0 when nothing is to be drawn from the map now. */
+static int32_t tick(void)
+{
+    extern uint16_t _frameCount;
+    static uint16_t last;
+    const int32_t showing = PitchMap_Active() && s_pm.player && (ModApi_InMatch() || ModApi_InReplay());
+    if (!showing) {
+        s_up.showing = 0;
+        return 0;
+    }
+    {
+        const uint16_t d = (uint16_t)(_frameCount - last);
+        if (!s_up.showing || d > 1000) {
+            s_up.clock = _frameCount;
+            last = _frameCount;
+            s_up.showing = 1;
+            above_start();
+        } else if (d) {
+            s_up.clock += d;
+            last = _frameCount;
+        }
+    }
+    ta_player_advance(s_pm.player, s_up.clock);     /* (at the same frame: nothing moves) */
+    {   /* The adverts: the engine decides when and which (ManageAdvertisements: its dice, the
+         * foul's x, the bail-outs) and the map shows them -- "advert-N" when it starts one, with
+         * the head start that puts the map's 8-frame steps on the engine's beat, "adverts-off"
+         * when it stops (Tile Agent docs/SWOS_UNITED.md 3.4). Live only: a replay has its own. */
+        extern uint16_t _advertIndex;
+        if (!ModApi_InReplay() && _advertIndex != s_advertSeen) {
+            char name[16];
+            int32_t e = -1;
+            if (_advertIndex >= 1 && _advertIndex <= 3) {
+                snprintf(name, sizeof name, "advert-%u", (unsigned)_advertIndex);
+                e = ta_map_event(s_pm.map, name);
+                if (e >= 0)
+                    ta_player_fire(s_pm.player, e, (int32_t)(((uint16_t)(_frameCount - 1) & 7) + 1));
+            } else if (s_advertSeen >= 1 && s_advertSeen <= 3) {
+                e = ta_map_event(s_pm.map, "adverts-off");
+                if (e >= 0)
+                    ta_player_fire(s_pm.player, e, 0);
+            }
+            if (getenv("SWOS_PITCH_MAP_CHECK"))
+                fprintf(stderr, "[pitch-map] check: the engine's advert %d -> %d at frame %u: %s\n",
+                        (int)(int16_t)s_advertSeen, (int)(int16_t)_advertIndex, (unsigned)_frameCount,
+                        e >= 0 ? "the map's event fired" : "no event in the map");
+            s_advertSeen = _advertIndex;
+        }
+    }
+    return 1;
+}
+
+static void sprites_begin(void) { (void)tick(); }
+static void replay_frame_begin(int32_t first, int32_t fresh) { (void)first; (void)fresh; (void)tick(); }
 
 static void above_draw(void)
 {
     int32_t w = 0, h = 0, i;
     int16_t cx = 0, cy = 0;
-    const int32_t showing = PitchMap_Active() && s_up.count && (ModApi_InMatch() || ModApi_InReplay());
-    if (showing && !s_up.showing)
-        above_start();
-    s_up.showing = showing;
-    if (!showing)
+    if (!tick() || !s_up.count)
         return;
-    ta_player_advance(s_pm.player, ++s_up.clock);
     ModApi_ScreenSize(&w, &h);
     ModApi_Camera(&cx, &cy);
     if (w <= 0 || h <= 0)
@@ -594,6 +668,199 @@ static void above_draw(void)
     }
 }
 
+/* ---- the goals and the corner flags (stage 2: sorted layers, drawn among the sprites) ----
+ * The engine keeps its sprites -- the goals' fronts (images 1091, 1092: the net over a ball that
+ * crossed the line) and the corner flag (1070-1073, moved to the corner in view) are match state
+ * and stay in its sorted list -- and the map says what they look like: where the engine draws
+ * one, the mod draws the block of the map's "goals" or "flags" layer nearest to it instead, in
+ * the same place in the drawing order, and the engine's is left out. Tile Agent's SWOS map has a
+ * block at each sprite's position (docs/SWOS_UNITED.md 3.5, 3.6). Its time is the map's own
+ * (above_draw's clock): a waving flag's cel is not the engine's frame for frame. */
+enum { IMG_FLAG_FIRST = 1070, IMG_FLAG_LAST = 1073, IMG_GOAL_TOP = 1091, IMG_GOAL_BOTTOM = 1092,
+       IMG_ADVERT_FIRST = 113, IMG_ADVERT_LAST = 136 };     /* (adverts.c: three strips of eight) */
+
+static int32_t sorted_layer(const char *name)
+{
+    int32_t l;
+    for (l = 0; s_pm.map && l < s_pm.map->layer_count; l++)
+        if (s_pm.map->layers[l].depth == TA_DEPTH_SORTED && s_pm.map->layers[l].name &&
+            strcmp(s_pm.map->layers[l].name, name) == 0)
+            return l;
+    return -1;
+}
+
+/* The engine's sprite `image`, its world top-left (wx, wy) drawn at the frame's (sx, sy): 1 when
+ * the map's block was drawn in its place. */
+static int32_t block_instead(uint16_t image, int32_t wx, int32_t wy, int32_t sx, int32_t sy)
+{
+    ta_blit b[16];
+    ta_image8 img[MAX_SETS];
+    int32_t layer, n, i, best = -1, w = 0, h = 0, stride = 0;
+    int64_t bestD = 0;
+    if (!PitchMap_Active() || !s_pm.player)
+        return 0;
+    if (image == IMG_GOAL_TOP || image == IMG_GOAL_BOTTOM)
+        layer = s_goalsLayer;
+    else if (image >= IMG_FLAG_FIRST && image <= IMG_FLAG_LAST)
+        layer = s_flagsLayer;
+    else if (image >= IMG_ADVERT_FIRST && image <= IMG_ADVERT_LAST) {
+        /* the eight strips are one block in the map: drawn at the first, the rest left out */
+        if (ModApi_InReplay() || s_advertsLayer < 0)
+            return 0;
+        layer = s_advertsLayer;
+        if ((image - IMG_ADVERT_FIRST) % 8 != 0)
+            return ta_player_layer_visible(s_pm.player, layer);
+    } else
+        return 0;
+    if (layer < 0 || !ta_player_layer_visible(s_pm.player, layer))
+        return 0;
+    n = ta_player_blits(s_pm.player, layer, b, 16);
+    if (n > 16)
+        n = 16;
+    for (i = 0; i < n; i++) {   /* the block whose own top-left is nearest the sprite's */
+        const int64_t dx = b[i].x - wx, dy = b[i].y - wy, d = dx * dx + dy * dy;
+        if (best < 0 || d < bestD)
+            best = i, bestD = d;
+    }
+    if (best < 0)
+        return 0;
+    for (i = 0; i < MAX_SETS; i++) {
+        img[i].pixels = s_pm.image[i];
+        img[i].width = s_pm.imageW[i];
+        img[i].height = s_pm.imageH[i];
+        img[i].stride = s_pm.imageW[i];
+        img[i].transparent = s_pm.map->transparent;
+    }
+    ModApi_ScreenSize(&w, &h);
+    {
+        uint8_t *frame = ModApi_Frame(&stride);
+        /* the frame's pixel (sx, sy) is the world's (wx, wy) */
+        const ta_target8 target = { frame, w, h, stride, wx - sx, wy - sy };
+        if (!frame)
+            return 0;
+        ta_draw_blit8(s_pm.player, layer, &b[best], img, &target);
+    }
+    return 1;
+}
+
+/* SWOS_PITCH_MAP_CHECK=1: the first time each goal or flag image is drawn from the map, its block
+ * against the engine's sprite over the sprite's rectangle, pixel for pixel (its transparent 0s
+ * are not compared: there the pitch shows either way). */
+static void check_block(uint16_t image, const struct SpriteGraphics *gfx, int32_t wx, int32_t wy)
+{
+    static uint8_t told[8];
+    static uint8_t buf[128 * 64];
+    ta_blit b[16];
+    ta_image8 img[MAX_SETS];
+    int32_t slot, layer, n, i, best = -1, differ = 0, total = 0, px, py;
+    int64_t bestD = 0;
+    if (!getenv("SWOS_PITCH_MAP_CHECK") || !gfx || !gfx->sprData || gfx->pixWidth > 128 || gfx->nlines > 64)
+        return;
+    static int32_t adTotal, adDiffer, adStrips;
+    const int32_t advert = image >= IMG_ADVERT_FIRST && image <= IMG_ADVERT_LAST;
+    if (!(advert || image == IMG_GOAL_TOP || image == IMG_GOAL_BOTTOM ||
+          (image >= IMG_FLAG_FIRST && image <= IMG_FLAG_LAST)))
+        return;
+    if (advert) {           /* every strip drawn: a running total (the map's steps against the engine's) */
+        if (ModApi_InReplay() || s_advertsLayer < 0 || !ta_player_layer_visible(s_pm.player, s_advertsLayer))
+            return;
+        layer = s_advertsLayer;
+    } else {
+        slot = image >= IMG_GOAL_TOP ? 4 + (image - IMG_GOAL_TOP) : image - IMG_FLAG_FIRST;
+        if (slot < 0 || slot >= 8 || told[slot])
+            return;
+        told[slot] = 1;
+        layer = image >= IMG_GOAL_TOP ? s_goalsLayer : s_flagsLayer;
+    }
+    n = ta_player_blits(s_pm.player, layer, b, 16);
+    for (i = 0; i < n && i < 16; i++) {
+        const int64_t dx = b[i].x - wx, dy = b[i].y - wy, d = dx * dx + dy * dy;
+        if (best < 0 || d < bestD)
+            best = i, bestD = d;
+    }
+    if (best < 0)
+        return;
+    for (i = 0; i < MAX_SETS; i++) {
+        img[i].pixels = s_pm.image[i];
+        img[i].width = s_pm.imageW[i];
+        img[i].height = s_pm.imageH[i];
+        img[i].stride = s_pm.imageW[i];
+        img[i].transparent = s_pm.map->transparent;
+    }
+    memset(buf, 0, sizeof buf);
+    {
+        const ta_target8 target = { buf, gfx->pixWidth, gfx->nlines, 128, wx, wy };
+        ta_draw_blit8(s_pm.player, layer, &b[best], img, &target);
+    }
+    for (py = 0; py < gfx->nlines; py++)
+        for (px = 0; px < gfx->pixWidth; px++) {
+            const uint8_t e = gfx->sprData[py * gfx->wquads * 16 + px];
+            if (!e)
+                continue;
+            total++;
+            differ += buf[py * 128 + px] != e;
+        }
+    if (advert) {
+        adTotal += total;
+        adDiffer += differ;
+        if (++adStrips % 64 == 0)
+            fprintf(stderr, "[pitch-map] check: adverts, %d strips drawn so far: %d of %d pixels differ "
+                            "from the game's\n", (int)adStrips, (int)adDiffer, (int)adTotal);
+        return;
+    }
+    fprintf(stderr, "[pitch-map] check: image %u from the map's block at %d,%d: %d of %d pixels differ "
+                    "from the game's sprite\n", (unsigned)image, b[best].x, b[best].y, (int)differ, (int)total);
+}
+
+static int32_t sprite_draw(const struct Sprite *sprite, const struct SpriteGraphics *gfx, int16_t *x, int16_t *y)
+{
+    extern int _menu_draw_x_offset;
+    if (!sprite || !gfx)
+        return 0;
+    if (PitchMap_Active() && s_pm.player)
+        check_block((uint16_t)sprite->imageIndex, gfx, sprite->x.s.i - gfx->centerX,
+                    sprite->y.s.i - gfx->centerY - sprite->z.s.i);
+    return block_instead((uint16_t)sprite->imageIndex, sprite->x.s.i - gfx->centerX,
+                         sprite->y.s.i - gfx->centerY - sprite->z.s.i, *x + _menu_draw_x_offset, *y);
+}
+
+static int32_t replay_sprite_draw(uint16_t image, int16_t left, int16_t top, int16_t sx, int16_t sy)
+{
+    return block_instead(image, left, top, sx, sy);
+}
+
+/* ---- the benches (Tile Agent's named points: docs/SWOS_UNITED.md 3.8) ----
+ * A map's "bench-top" / "bench-bottom" point, on the topmost shown object layer (each layout can
+ * have its own: the training ground's both at 27,456), is the engine's base point of that bench;
+ * swos:seat-step, swos:column-seats, swos:column-step, swos:column-dy and swos:arrow-dx its
+ * layout. Drawing only (bench_subs.c bench_geom): the camera and the substitutions keep the
+ * engine's. No point: the engine's bench. */
+static void bench_prop(const ta_object *o, const char *name, int16_t *v)
+{
+    const ta_property *p = ta_property_find(o->properties, o->property_count, name);
+    if (p && p->text && p->text[0])
+        *v = (int16_t)p->number;
+}
+
+static int32_t bench_point(int32_t top, int16_t *x, int16_t *y, ModBenchSteps *steps)
+{
+    int px = 0, py = 0, layer = -1;
+    const ta_object *o;
+    if (!PitchMap_Active() || !s_pm.player)
+        return 0;
+    o = ta_player_object(s_pm.player, top ? "bench-top" : "bench-bottom", &px, &py, &layer);
+    if (!o)
+        return 0;
+    *x = (int16_t)px;
+    *y = (int16_t)py;
+    bench_prop(o, "swos:seat-step", &steps->seatStep);
+    bench_prop(o, "swos:column-seats", &steps->columnSeats);
+    bench_prop(o, "swos:column-step", &steps->columnStep);
+    bench_prop(o, "swos:column-dy", &steps->columnDy);
+    bench_prop(o, "swos:arrow-dx", &steps->arrowDx);
+    return 1;
+}
+
 /* ---- the hooks ---- */
 
 static void pitch_loaded(const char *dir, int32_t pitchNumber) { PitchMap_Load(dir, pitchNumber); }
@@ -607,6 +874,11 @@ const ModDef ModDef_pitchmaps = {
     .pitchTiles     = pitch_tiles,
     .pitchCondition = PitchMap_Condition,
     .frameDrawn     = above_draw,
+    .spritesBegin   = sprites_begin,
+    .replayFrameBegin = replay_frame_begin,
+    .spriteDraw     = sprite_draw,
+    .benchPoint     = bench_point,
+    .replaySpriteDraw = replay_sprite_draw,
 };
 
 #endif /* SWOS_SDL_BUILD */

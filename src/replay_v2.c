@@ -2292,6 +2292,10 @@ void ReplayV2_DrawFrame(void)
          * to record the value before the blit, and could never see this. */
         {
             int16_t blitX = (int16_t)(sx - _menu_draw_x_offset);
+            /* (a mod's own drawing of it in its place: the frame's column is sx) */
+            extern int32_t ModHooks_ReplaySpriteDraw(uint16_t, int16_t, int16_t, int16_t, int16_t);
+            if (ModHooks_ReplaySpriteDraw(image, (int16_t)BE_READ_U16(sp + 2), (int16_t)BE_READ_U16(sp + 4), sx, sy))
+                continue;
             DarkenRectangle(image, blitX, sy);
             if (s_trace)
                 trace_sprite(g->ordinal, (int16_t)(blitX + _menu_draw_x_offset), sy);

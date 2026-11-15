@@ -902,6 +902,42 @@ static void read_properties(ta_arena *arena, const jnode *list, int *count, cons
     *out = properties;
 }
 
+/* 16.16 to a whole number, rounded down whatever the sign. */
+static int floor_fixed(int32_t value)
+{
+    const uint32_t magnitude = value >= 0 ? (uint32_t)value : 0u - (uint32_t)value;
+    return value >= 0 ? (int)(magnitude >> 16) : -(int)((magnitude + 0xFFFFu) >> 16);
+}
+
+static int read_objects(ta_arena *arena, const jnode *list, ta_layer *layer)
+{
+    ta_object *objects;
+    const jnode *item;
+    int n = 0;
+    if (list->type != J_ARR || list->count == 0)
+        return 1;
+    objects = (ta_object *)arena_alloc(arena, sizeof(ta_object) * list->count);
+    if (!objects)
+        return 0;
+    for (item = list->child; item; item = item->next) {
+        ta_object *object = &objects[n++];
+        object->id = j_int(j_get(item, "id"), 0);
+        object->name = j_text(arena, j_get(item, "name"), "");
+        object->class_name = j_has(item, "type") ? j_text(arena, j_get(item, "type"), "")
+                                                 : j_text(arena, j_get(item, "class"), "");
+        object->x = floor_fixed(j_fixed(j_get(item, "x"), 0));
+        object->y = floor_fixed(j_fixed(j_get(item, "y"), 0));
+        object->width = floor_fixed(j_fixed(j_get(item, "width"), 0));
+        object->height = floor_fixed(j_fixed(j_get(item, "height"), 0));
+        object->point = j_bool(j_get(item, "point"), 0);
+        object->visible = j_bool(j_get(item, "visible"), 1);
+        read_properties(arena, j_get(item, "properties"), &object->property_count, &object->properties);
+    }
+    layer->object_count = n;
+    layer->objects = objects;
+    return 1;
+}
+
 static void read_tileset_fields(ta_map *map, const jnode *json, ta_tileset *tileset)
 {
     ta_internal *in = (ta_internal *)map->internal;
@@ -1697,6 +1733,8 @@ ta_map *ta_map_load(const char *json, size_t length, const ta_options *options, 
                 read_animations(map, i, j_get(item, "animations"), layer, &pending);
         } else if (strcmp(type, "objectgroup") == 0) {
             layer->type = TA_LAYER_OBJECT;
+            if (!read_objects(&in->arena, j_get(item, "objects"), layer))
+                goto no_memory_in;
         } else if (strcmp(type, "imagelayer") == 0) {
             layer->type = TA_LAYER_IMAGE;
         } else {
@@ -2670,6 +2708,39 @@ int ta_player_layer_visible(const ta_player *player, int layer)
     if (player->visible[layer] >= 0)
         return player->visible[layer] != 0;
     return player->map->layers[layer].visible;
+}
+
+const ta_object *ta_player_object(const ta_player *player, const char *name, int *x, int *y, int *layer)
+{
+    const ta_map *map = player->map;
+    int l, o;
+    for (l = map->layer_count - 1; l >= 0; l--) {
+        const ta_layer *candidate = &map->layers[l];
+        if (candidate->type != TA_LAYER_OBJECT || !ta_player_layer_visible(player, l))
+            continue;
+        for (o = 0; o < candidate->object_count; o++) {
+            const ta_object *object = &candidate->objects[o];
+            if (!object->visible || strcmp(object->name, name) != 0)
+                continue;
+            if (x)
+                *x = object->x + candidate->offset_x;
+            if (y)
+                *y = object->y + candidate->offset_y;
+            if (layer)
+                *layer = l;
+            return object;
+        }
+    }
+    return NULL;
+}
+
+const ta_property *ta_property_find(const ta_property *properties, int count, const char *name)
+{
+    int i;
+    for (i = 0; i < count; i++)
+        if (strcmp(properties[i].name, name) == 0)
+            return &properties[i];
+    return NULL;
 }
 
 int ta_player_status(const ta_player *player, int layer, int animation)

@@ -39,6 +39,13 @@ struct SpriteGraphics;
 typedef struct ModMatchEvent ModMatchEvent;
 /* A pitch cell's tile (ModDef pitchTiles). */
 typedef const uint8_t *(*ModPitchTileFn)(int32_t cell, const uint8_t *engineTile);
+/* How a bench's figures are laid out from its point (the benchPoint hook): the engine's values
+ * when a mod says nothing. seatStep: y between seats (7); columnSeats: places in the back column
+ * after the coach on a long bench (7); columnStep, columnDy: the front column's x and y from the
+ * back one (9, -53); arrowDx: the front column's arrow, mirrored, right of it (41). */
+typedef struct ModBenchSteps {
+    int16_t seatStep, columnSeats, columnStep, columnDy, arrowDx;
+} ModBenchSteps;
 struct TeamFileEx;                              /* (include/game_types.h: a team as its file has it) */
 typedef struct ModMatchResult ModMatchResult;
 typedef struct ModCompetitionResult ModCompetitionResult;
@@ -72,6 +79,10 @@ typedef struct ModDef {
                         int16_t x, int16_t y);      /* a player sprite just drawn at screen x, y */
     void (*replayFrameBegin)(int32_t first, int32_t fresh);         /* a replay's pitch drawn */
     void (*replaySprite)(uint16_t image, int16_t left, int16_t top); /* each recorded sprite */
+    /* A replay's sprite about to be drawn (the in-match replay and VIEW's .SRP), in the order it is
+     * drawn: its image, its world top-left and where on the frame (ModApi_Frame) it goes. 1 leaves
+     * it out of the picture -- a mod draws its own there (spriteDraw's twin for a replay). */
+    int32_t (*replaySpriteDraw)(uint16_t image, int16_t left, int16_t top, int16_t screenX, int16_t screenY);
     void (*menuDrawn)(void);            /* a menu frame drawn (ModApi_Frame), before it is shown */
     /* A frame's sprites (src/sprites.c DrawQueuedSprites): spritesBegin before the first, then
      * spriteDraw before each is drawn at screen x, y -- move it (*x, *y) or return 1 to leave it
@@ -93,6 +104,12 @@ typedef struct ModDef {
     void (*pitchDropped)(void);
     ModPitchTileFn (*pitchTiles)(void);
     int32_t (*pitchCondition)(int32_t pitchType, uint8_t *entry, uint8_t (*rgb)[3], int32_t max);
+    /* Where a bench is drawn (the pitchmaps mod: a map's "bench-top" / "bench-bottom" point): `top`
+     * 1 the top bench (a training game's: the top half), *x, *y the engine's base point -- the
+     * coach 15 above it, the seats below -- and *steps its layout, all the engine's on the way in.
+     * 1 when changed. DRAWING ONLY: the bench camera, when the bench shows, and a substitute's walk
+     * on stay the engine's (they are match state). */
+    int32_t (*benchPoint)(int32_t top, int16_t *x, int16_t *y, ModBenchSteps *steps);
     /* The menus' backdrop as a true-colour image (SDL; the backgrounds mod): asked each time the
      * game loads a menu backdrop (menubg / menubg2). 1 with *rgba (R, G, B, A bytes, w x h,
      * kept by the mod until the next call) -- the backdrop is then that image behind every menu,

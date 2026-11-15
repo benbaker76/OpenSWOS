@@ -28,6 +28,9 @@
 #endif      /* ai_injury_subs */
 #include "bench_subs.h"
 #include "long_bench.h"   /* a world's long bench: places 17.., the cursor, the window */
+#ifdef SWOS_SDL_BUILD
+#include "mod_api.h"      /* ModBenchSteps: a map's bench (bench_geom) */
+#endif
 #include "dos_sound.h"
 #include "game_types.h"
 #include "game_state.h"
@@ -258,6 +261,51 @@ static uint16_t bench_window_first(void)
     return (uint16_t)(_benchPlayerIndex > 5 ? _benchPlayerIndex - 4 : 1);
 }
 static void drawBenchPlayersAndCoach(TeamGame *teamGame, TeamGeneralInfo *team, uint16_t x, uint16_t y);
+
+/* Where a bench is drawn and how its figures are laid out: the engine's (its base point, the coach
+ * 15 above it, a seat every 7, a long bench's front column 9 right and 53 up after 7 places, its
+ * arrow 41 right) unless a mod's map says otherwise (ModDef benchPoint: the pitchmaps mod's
+ * "bench-top" / "bench-bottom"). Drawing only: the camera, the gate (_benchXLimit + 8) and a
+ * substitute's walk-on read the engine's own values, never these. */
+typedef struct {
+    int16_t dx, dy;                     /* the map's point less the engine's */
+    int16_t seatStep, columnSeats, columnStep, columnDy, arrowDx;
+} BenchGeom;
+
+static void bench_geom(uint16_t engineX, uint16_t engineY, int32_t top, BenchGeom *g)
+{
+    g->dx = g->dy = 0;
+    g->seatStep = 7;
+    g->columnSeats = LB_BACK_ROW;
+    g->columnStep = LB_FRONT_X;
+    g->columnDy = -53;
+    g->arrowDx = LB_ARROW_DX;
+#ifdef SWOS_SDL_BUILD
+    {
+        extern int32_t ModHooks_BenchPoint(int32_t, int16_t *, int16_t *, ModBenchSteps *);
+        int16_t x = (int16_t)engineX, y = (int16_t)engineY;
+        ModBenchSteps st = { g->seatStep, g->columnSeats, g->columnStep, g->columnDy, g->arrowDx };
+        if (ModHooks_BenchPoint(top, &x, &y, &st)) {
+            g->dx = (int16_t)(x - (int16_t)engineX);
+            g->dy = (int16_t)(y - (int16_t)engineY);
+            g->seatStep = st.seatStep > 0 ? st.seatStep : 7;
+            g->columnSeats = st.columnSeats > 0 ? st.columnSeats : LB_BACK_ROW;
+            g->columnStep = st.columnStep;
+            g->columnDy = st.columnDy;
+            g->arrowDx = st.arrowDx;
+        }
+    }
+#else
+    (void)engineX; (void)engineY; (void)top;
+#endif
+}
+
+/* The top bench is the one above the halfway line (389, or a long bench's 373, against 485); a
+ * training game's two halves share one, the top half drawn when `trainingTop`. */
+static int32_t bench_top(uint16_t engineY, int32_t trainingTop)
+{
+    return _trainingGame ? trainingTop != 0 : engineY < 437;
+}
 static void drawSubstitutesMenu(void);
 static void drawSubstitutesMenuEntry(uint16_t y, uint16_t baseColor, int16_t selectedIndex,
                                      uint8_t *charsTable, TeamGame *teamGame, uint16_t *playerOffsets);
@@ -1932,6 +1980,7 @@ skip_opponent_1:
     if (d0 != 0)                        /* (a long bench: the arrow on the window's row) */
         d0 = (uint16_t)(d0 - bench_window_first() + 1);
     d1 -= 12;
+    const uint16_t arrowRow = d0;       /* (the seat the arrow is at: bench_geom's seat step) */
     d0 *= 7;
 
     if (_trainingGame != 0) {
@@ -1948,14 +1997,19 @@ skip_opponent_1:
     d2 += d0;
 
     if (_goToSubsTimer == 0 && _substituteInProgress == 0 && _subsState == 0) {
-        uint16_t save_d1 = d1;
-        if (LongBench_TwoRows() && _benchPlayerIndex > LB_BACK_ROW)
-            /* (the front row's: the arrow mirrored, right of the row, at its seat -- the Mod's bx_arrow) */
-            DrawSpriteInCameraView((uint16_t)LongBench_MirroredArrow(SPR_SELECT_SUBSTITUTE_ARROW),
-                                   (uint16_t)(d1 + LB_ARROW_DX), (uint16_t)(d2 - 53));
-        else
-            DrawSpriteInCameraView(SPR_SELECT_SUBSTITUTE_ARROW, d1, d2);
-        d1 = save_d1;
+        /* (the arrow where the map put the bench: d1 is passed on below as the engine's) */
+        BenchGeom g;
+        bench_geom(_benchXLimit, _benchY, bench_top(_benchY, _subsTrainingTopTeam), &g);
+        {
+            const uint16_t ax = (uint16_t)(d1 + g.dx);
+            const uint16_t ay = (uint16_t)(d2 + g.dy + (_trainingGame ? 0 : (int16_t)arrowRow * (g.seatStep - 7)));
+            if (LongBench_TwoRows() && _benchPlayerIndex > g.columnSeats)
+                /* (the front row's: the arrow mirrored, right of the row, at its seat -- the Mod's bx_arrow) */
+                DrawSpriteInCameraView((uint16_t)LongBench_MirroredArrow(SPR_SELECT_SUBSTITUTE_ARROW),
+                                       (uint16_t)(ax + g.arrowDx), (uint16_t)(ay + g.columnDy));
+            else
+                DrawSpriteInCameraView(SPR_SELECT_SUBSTITUTE_ARROW, ax, ay);
+        }
     }
 
     d1 += 12;
@@ -2025,6 +2079,11 @@ static void drawBenchPlayersAndCoach(TeamGame *teamGame, TeamGeneralInfo *team, 
     uint16_t d3, d0, d7;
     PlayerInfo *pi;
 
+    BenchGeom g;
+    bench_geom(d1, d2, bench_top(d2, _drawTrainingTopHalfOfTheBench), &g);
+    d1 = (uint16_t)(d1 + g.dx);
+    d2 = (uint16_t)(d2 + g.dy);
+
     if ((uint16_t)team->teamNumber != 1) {
         d5 = 7;
         d6 = 12;
@@ -2072,7 +2131,7 @@ static void drawBenchPlayersAndCoach(TeamGame *teamGame, TeamGeneralInfo *team, 
     }
 
 skip_coach:
-    d2 += 7;
+    d2 += g.seatStep;
     if (_trainingGame != 0)
         d2 += 7;
 
@@ -2157,17 +2216,17 @@ skip_coach:
         d0 += d3;
         d0 += d6;
         if (twoRows) {                  /* (the Mod's bx_seat) */
-            const int32_t front = d7 > LB_BACK_ROW;
-            const uint16_t y = (uint16_t)(backY + 7 * (d7 - 1) - (front ? 53 : 0));
+            const int32_t front = d7 > g.columnSeats;
+            const uint16_t y = (uint16_t)(backY + g.seatStep * (d7 - 1) + (front ? g.columnDy : 0));
             /* a figure standing up from the back row stands in front of the front row */
             const uint16_t base = (uint16_t)(d0 - d3 - d6);
             const int32_t standing = base == 0x4B2 || base == 0x4B5;
-            DrawSpriteHotspotInCameraView(d0, (uint16_t)(d1 + (front || standing ? LB_FRONT_X : 0)), y);
+            DrawSpriteHotspotInCameraView(d0, (uint16_t)(d1 + (front || standing ? g.columnStep : 0)), y);
         } else
             DrawSpriteHotspotInCameraView(d0, d1, d2);
 
     next_player:
-        d2 += 7;
+        d2 += g.seatStep;
         if (_trainingGame != 0 && _drawTrainingTopHalfOfTheBench != 0) {
             place--; /* go backward: +1 - 2 = -1 */
         } else {

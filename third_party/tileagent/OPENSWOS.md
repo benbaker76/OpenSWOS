@@ -1,12 +1,12 @@
 # The Tile Agent runtime in OpenSWOS
 
-Loads a Tile Agent pitch map (`.tmj`) and says which of its layers a pitch shows
-(`src/pitch_map.c`, docs/PITCH_MAPS.md). SDL builds only.
+Loads a Tile Agent pitch map (`.tmj`), runs it and draws its layers and blocks (the pitchmaps mod,
+`src/mod_pitchmaps.c`, docs/PITCH_MAPS.md). SDL builds only.
 
 | | |
 |---|---|
 | upstream | Tile Agent, the owner's own tile map editor — `D:\Projects\GitHub\TileAgent`, `runtime/` |
-| taken | 2026-10-02 (layer groups, and each layer's `tileset`); its own tests ran the C runtime against the editor's player on Linux gcc and MSVC, clean under ASan/UBSan |
+| taken | 2026-11-14, `benbaker76/TileAgent` main @ `8a5e1e9` ("Named points": object layers, `ta_player_object`, `ta_property_find`); before that 2026-10-02 (layer groups, each layer's `tileset`). Its own tests run the C runtime against the editor's player on Linux gcc and MSVC, clean under ASan/UBSan |
 | files | `tileagent.c`, `tileagent.h` — **unmodified** |
 | format | `TA_FORMAT_VERSION` 2 (its `docs/FORMAT.md`) |
 
