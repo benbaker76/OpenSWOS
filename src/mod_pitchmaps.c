@@ -33,9 +33,11 @@
 #include <string.h>
 
 #include "mod_api.h"
+#include "swos_io.h"            /* swos_data_path: the mods, the assets folder, the game */
 #include "display.h"            /* MAX_FAN_TILE_INDEX */
 #include "jag_graphics.h"       /* JagGfx_RemapDonated */
 #include "../third_party/tileagent/tileagent.h"
+#include "gfx.h"                /* the layers over the players, on either presenter */
 
 #define CELLS       2310        /* pitch.c PITCH_POINTER_COUNT: 42 x 55 */
 #define GRID_COLS   42
@@ -70,9 +72,39 @@ static struct {
 
 static int32_t PitchMap_Active(void)    { return s_pm.map != NULL && s_pm.baked; }
 
+/* ---- the layers over the players (stage 2: depth "above" -- the example's clouds) ----
+ * Drawn over the finished frame (frameDrawn, gfx.h: either presenter, blended at the layer's
+ * opacity), from the camera, while a match or a replay is shown. The runtime runs them on a clock
+ * of its own (presented frames), seeded at each match: drawing only, so nothing here is match
+ * state and a match, a replay and a netplay peer are what they are without it. */
+#define MAX_ABOVE 8
+static struct {
+    int32_t   layer[MAX_ABOVE], count;
+    uint8_t  *rgba[MAX_SETS];           /* each tileset in R G B A, the map's palette */
+    ta_image32 image[MAX_SETS];
+    uint8_t  *buf;                      /* the picture's size: one layer drawn from the camera */
+    int32_t   bufW, bufH;
+    GfxTexture *tex;
+    int32_t   texW, texH;
+    int32_t   clock, showing;
+} s_up;
+
+static void above_release(void)
+{
+    int32_t i;
+    for (i = 0; i < MAX_SETS; i++) {
+        free(s_up.rgba[i]);
+        s_up.rgba[i] = NULL;
+        memset(&s_up.image[i], 0, sizeof s_up.image[i]);
+    }
+    s_up.count = 0;
+    s_up.showing = 0;
+}
+
 static void release_map(void)
 {
     int32_t i;
+    above_release();
     for (i = 0; i < MAX_SETS; i++) {
         free(s_pm.image[i]);
         s_pm.image[i] = NULL;
@@ -117,7 +149,7 @@ static char *read_text(const char *path, size_t *len)
 
 static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
 {
-    char path[512], error[160], layout[32];
+    char path[1100], base[512], error[160], layout[32];
     char *text = NULL;
     size_t len = 0;
     int32_t i, shared = 0, event;
@@ -133,28 +165,30 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
     /* A map of this pitch alone, or ONE map of every pitch whose `layout-<N>` event
      * shows this one's layers (the game's six share their stands and differ in the
      * mowing). */
-    {   /* the mod's own folder (its grafs_dos/), then the graphics folder's */
-        const char *mine = ModApi_ModDir(SLUG);
-        int32_t where;
-        for (where = 0; where < 2 && !text; where++) {
-            char base[400];
-            if (where == 0 && !(mine && mine[0]))
-                continue;
-            if (where == 0)
-                snprintf(base, sizeof base, "%s/grafs_dos", mine);
-            else
-                snprintf(base, sizeof base, "%s", dir);
-            snprintf(path, sizeof path, "%s/pitch%d.tmj", base, (int)pitchNumber);
+    /* Where the game's own files are looked for (swos_data_path): each enabled mod's folder first
+     * -- this one's, or a pitch a player made and shipped as a mod (DLC) -- then the assets
+     * folder, then beside the game. The map's images are read from the folder it was found in. */
+    {
+        char rel[160];
+        snprintf(rel, sizeof rel, "%s/pitch%d.tmj", dir, (int)pitchNumber);
+        swos_data_path(rel, path, (uint32_t)sizeof path);
+        text = read_text(path, &len);
+        if (!text) {
+            snprintf(rel, sizeof rel, "%s/pitch.tmj", dir);
+            swos_data_path(rel, path, (uint32_t)sizeof path);
             text = read_text(path, &len);
-            if (!text) {
-                snprintf(path, sizeof path, "%s/pitch.tmj", base);
-                text = read_text(path, &len);
-                shared = text != NULL;
-            }
+            shared = text != NULL;
         }
     }
     if (!text)
         return 0;                       /* no map for this pitch: the game's own files */
+    {   /* the map's folder: its images are beside it */
+        char *slash = strrchr(path, '/');
+        char *bslash = strrchr(path, '\\');
+        if (bslash && (!slash || bslash > slash))
+            slash = bslash;
+        snprintf(base, sizeof base, "%.*s", slash ? (int)(slash - path) : 1, slash ? path : ".");
+    }
     error[0] = '\0';
     map = ta_map_load(text, len, NULL, error, sizeof error);
     free(text);
@@ -200,7 +234,7 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
         if (!name || !name[0])
             continue;
         s_pm.image[i] = (uint8_t *)malloc(IMAGE_CAP);
-        snprintf(path, sizeof path, "%s/%s", dir, name);
+        snprintf(path, sizeof path, "%s/%s", base, name);
         if (!s_pm.image[i] || Platform_LoadIndexedBMP(path, s_pm.image[i], IMAGE_CAP, pal, &w, &h) != 0) {
             fprintf(stderr, "[pitch-map] pitch %d: tileset image %s did not load (an 8-bit BMP is "
                             "what is read) -- drawing the game's own pitch\n", (int)pitchNumber, path);
@@ -221,8 +255,39 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
     }
     snprintf(s_pm.dir, sizeof s_pm.dir, "%s", dir);
     s_pm.pitch = pitchNumber;
-    fprintf(stderr, "[pitch-map] pitch %d from %s/%s: %d layers, %d tilesets, %d events%s%s\n",
-            (int)pitchNumber, dir, shared ? "pitch.tmj" : "its own map", map->layer_count,
+
+    /* The layers over the players, and every tileset in true colour for them (their blocks can
+     * come from any layer's): only when the map has one. */
+    for (i = 0; i < map->layer_count && s_up.count < MAX_ABOVE; i++)
+        if (map->layers[i].depth == TA_DEPTH_ABOVE)
+            s_up.layer[s_up.count++] = i;
+    for (i = 0; s_up.count && i < map->tileset_count; i++) {
+        const size_t n = (size_t)s_pm.imageW[i] * (size_t)s_pm.imageH[i];
+        size_t p;
+        if (!s_pm.image[i] || !(s_up.rgba[i] = (uint8_t *)malloc(n * 4))) {
+            above_release();
+            break;
+        }
+        for (p = 0; p < n; p++) {
+            const int32_t v = s_pm.image[i][p];
+            uint8_t *o = s_up.rgba[i] + p * 4;
+            if (v == map->transparent || v >= map->palette_count) {
+                o[0] = o[1] = o[2] = o[3] = 0;
+            } else {
+                o[0] = map->palette[v].r;
+                o[1] = map->palette[v].g;
+                o[2] = map->palette[v].b;
+                o[3] = 255;
+            }
+        }
+        s_up.image[i].pixels = s_up.rgba[i];
+        s_up.image[i].width = s_pm.imageW[i];
+        s_up.image[i].height = s_pm.imageH[i];
+        s_up.image[i].stride = s_pm.imageW[i] * 4;
+    }
+    fprintf(stderr, "[pitch-map] pitch %d from %s/%s: %d layers (%d over the players), %d tilesets, "
+                    "%d events%s%s\n",
+            (int)pitchNumber, base, shared ? "pitch.tmj" : "its own map", map->layer_count, (int)s_up.count,
             map->tileset_count, map->event_count, event >= 0 ? ", layout event " : "",
             event >= 0 ? layout : "");
     return 1;
@@ -443,6 +508,92 @@ static int32_t PitchMap_Condition(int32_t pitchType, uint8_t *entry, uint8_t (*r
     return n;
 }
 
+/* A match or a replay begins to be shown: the runtime from its start, the layout's layers, and
+ * the sky by the pitch condition -- the map's "clouds" event on a frozen, muddy, wet or soft
+ * pitch, "clear-sky" on a normal, dry or hard one (the Weather mod's rain and snow go with the
+ * first four). Each its own seed: its own wind. */
+static void above_start(void)
+{
+    char layout[32];
+    int32_t e;
+    const int32_t type = ModApi_PitchType();
+    ta_player_set_seed(s_pm.player, ModApi_Ticks() * 2654435761u + (uint32_t)s_pm.pitch);
+    ta_player_reset(s_pm.player, 0);
+    snprintf(layout, sizeof layout, "layout-%d", (int)s_pm.pitch);
+    if ((e = ta_map_event(s_pm.map, layout)) >= 0)
+        ta_player_fire(s_pm.player, e, 0);
+    e = ta_map_event(s_pm.map, type >= 0 && type <= 3 ? "clouds" : "clear-sky");
+    if (e >= 0)
+        ta_player_fire(s_pm.player, e, 0);
+    s_up.clock = 0;
+}
+
+static void above_draw(void)
+{
+    int32_t w = 0, h = 0, i;
+    int16_t cx = 0, cy = 0;
+    const int32_t showing = PitchMap_Active() && s_up.count && (ModApi_InMatch() || ModApi_InReplay());
+    if (showing && !s_up.showing)
+        above_start();
+    s_up.showing = showing;
+    if (!showing)
+        return;
+    ta_player_advance(s_pm.player, ++s_up.clock);
+    ModApi_ScreenSize(&w, &h);
+    ModApi_Camera(&cx, &cy);
+    if (w <= 0 || h <= 0)
+        return;
+    if (w != s_up.bufW || h != s_up.bufH) {
+        free(s_up.buf);
+        s_up.buf = (uint8_t *)malloc((size_t)w * h * 4);
+        s_up.bufW = s_up.buf ? w : 0;
+        s_up.bufH = s_up.buf ? h : 0;
+    }
+    if (!s_up.buf)
+        return;
+    if (!s_up.tex || s_up.texW != w || s_up.texH != h) {
+        if (s_up.tex)
+            Gfx_DestroyTexture(s_up.tex);
+        s_up.tex = Gfx_CreateTexture(w, h, 0);
+        s_up.texW = w;
+        s_up.texH = h;
+    }
+    if (!s_up.tex)
+        return;
+    for (i = 0; i < s_up.count; i++) {
+        const int32_t l = s_up.layer[i];
+        ta_layer_pose pose;
+        if (!ta_player_layer_visible(s_pm.player, l))
+            continue;
+        ta_player_layer_pose(s_pm.player, l, &pose);
+        if (pose.alpha <= 0)
+            continue;
+        {   /* drawn solid into a clear buffer, then blended at the layer's opacity */
+            const ta_target32 target = { s_up.buf, w, h, w * 4, cx, cy };
+            memset(s_up.buf, 0, (size_t)w * h * 4);
+            ta_draw_layer32(s_pm.player, l, s_up.image, &target, TA_DRAW_ALL | TA_DRAW_OPAQUE);
+        }
+        Gfx_UpdateTexture(s_up.tex, s_up.buf, w * 4);
+        {
+            GfxVertex v[4];
+            static const int idx[6] = { 0, 1, 2, 0, 2, 3 };
+            int k;
+            memset(v, 0, sizeof v);
+            v[1].position.x = v[2].position.x = (float)w;
+            v[2].position.y = v[3].position.y = (float)h;
+            v[1].tex_coord.x = v[2].tex_coord.x = 1.0f;
+            v[2].tex_coord.y = v[3].tex_coord.y = 1.0f;
+            for (k = 0; k < 4; k++) {
+                v[k].color.r = v[k].color.g = v[k].color.b = 255;
+                v[k].color.a = (Uint8)(pose.alpha > 255 ? 255 : pose.alpha);
+            }
+            Gfx_SetSpace(GFX_SPACE_PICTURE);
+            Gfx_SetBlend(GFX_BLEND_ALPHA);
+            Gfx_Geometry(s_up.tex, v, 4, idx, 6);
+        }
+    }
+}
+
 /* ---- the hooks ---- */
 
 static void pitch_loaded(const char *dir, int32_t pitchNumber) { PitchMap_Load(dir, pitchNumber); }
@@ -455,6 +606,7 @@ const ModDef ModDef_pitchmaps = {
     .pitchDropped   = PitchMap_Drop,
     .pitchTiles     = pitch_tiles,
     .pitchCondition = PitchMap_Condition,
+    .frameDrawn     = above_draw,
 };
 
 #endif /* SWOS_SDL_BUILD */
