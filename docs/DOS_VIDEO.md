@@ -73,6 +73,20 @@ Pillow's reader, proved identical to ours above. Run it with the python3 that ha
 when Pillow is a user install). The game reads only `.FLC` today: an upscaled set needs a reader of
 its own.
 
+**As video files** (2026-11-14): `scripts/flic_encode.py <frames> <PC game | sound_dos> <out>
+[--info <extracted frames>] [--clip ...] [--crf N] [--codec h264|h265|av1] [--fps N]` makes one MP4
+a clip from those frames -- or an upscaled copy of them, any size -- with its sound (AAC), timed as
+the game shows it: the first frame faded in over 450 ms, then the sound and a frame every 4/70 s
+(6/70 s), the last frame held until the sound ends, a 225 ms fade out. A 320x200 clip keeps its
+pixels and carries a 5:6 sample aspect (shown 4:3). Needs ffmpeg.
+
+**The upscaled set** (2026-11-14): all 8,614 frames enlarged 4x (1280x800 / 1280x960) by the
+owner's `upscale` (github.com/benbaker76/upscale) -- model `RealESRGAN_anime_x4`, `--fp16
+--no-tiles --alpha opaque`, its folder mode, about 0.65 s a frame on the AMD GPU -- chosen by eye
+over APISR_GRL_x4 (adds dark outlines), UltraSharp_x4 (keeps the dither noise), RealESRGAN_x4plus
+(soft faces) and UltraMix_Smooth_x4. fp16 in one pass is within 0.5/255 on average of fp32 tiled,
+and has no tile seams.
+
 ## How a clip is shown (src/mod_dosvideos.c, the PC game's PlayAnimation)
 
 swos.asm `PlayAnimationCommon` / `PlayAnimation`, the `FadeAndPlay*Animation` around them:
