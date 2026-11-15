@@ -478,6 +478,8 @@ static void PitchMap_Bake(void)
             int32_t index = engine_index(mine);
             static const uint8_t none[TILE_BYTES];
             const uint8_t *shown = (s_pm.have[cell] & 1) ? s_pm.sit + (size_t)cell * TILE_BYTES : none;
+            if (cell < GRID_COLS)
+                continue;               /* (row 0: never on screen, empty in a map -- docs/PITCH_MAPS.md) */
             if (memcmp(shown, mine ? mine : none, TILE_BYTES) != 0) {
                 if (++differ <= 8)
                     fprintf(stderr, "[pitch-map] check: cell %d (row %d col %d) is not the engine's "
@@ -509,7 +511,7 @@ static void PitchMap_Bake(void)
                 DosGfx_BuildPalette((int)type, rgb);
         }
         fprintf(stderr, "[pitch-map] check: %d of %d cells differ from the engine's pitch; "
-                        "%d animated fans' standing tiles differ\n", (int)differ, CELLS, (int)differStand);
+                        "%d animated fans' standing tiles differ\n", (int)differ, CELLS - GRID_COLS, (int)differStand);
     }
     fprintf(stderr, "[pitch-map] pitch %d drawn from its map: %d cells, %d of them fans with a "
                     "standing tile\n", (int)s_pm.pitch, (int)drawn, (int)stands);
