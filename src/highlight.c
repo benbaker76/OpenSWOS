@@ -975,6 +975,9 @@ check_next:
         goto sprite_decode;  /* Another sprite — loop */
 
     /* Next frame-start marker — back up, save pointer for next call */
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_SpritesEnd(void); ModHooks_SpritesEnd(); }   /* (a mod's: what is left among the sprites) */
+#endif
     a0 -= 4;
     a0 = wrapPointerBack(a0);
     _currentGoalPtr = a0;

@@ -2201,6 +2201,9 @@ void DrawQueuedSprites(void)
             _frontbufferBasePtr = savedFbBase;
 #endif
     }
+#ifdef SWOS_SDL_BUILD
+    { extern void ModHooks_SpritesEnd(void); ModHooks_SpritesEnd(); }   /* (a mod's: mod_hooks.h) */
+#endif
 }
 
 /* ================================================================

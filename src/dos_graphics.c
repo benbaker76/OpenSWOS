@@ -141,8 +141,8 @@ void DosGfx_BuildPalette(int pitchType, uint8_t *rgb888Out)
      * `pitch-<condition>` event (src/pitch_map.c). Through the same six bits as the
      * table above, so the game's own map gives the game's own colours exactly. */
     {
-        uint8_t entry[64], colour[64][3];
-        int n = ModHooks_PitchCondition(pitchType, entry, colour, 64);
+        uint8_t entry[256], colour[256][3];     /* (a map's colour cycles too: up to every entry) */
+        int n = ModHooks_PitchCondition(pitchType, entry, colour, 256);
         int differ = 0;
         for (int i = 0; i < n; i++) {
             for (int c = 0; c < 3; c++) {

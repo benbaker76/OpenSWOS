@@ -168,6 +168,51 @@ map's state too.
   one capture to the next with the camera still, and the cells are the map's sitting and standing
   fans.
 
+## Stage 4: everything the format draws (2026-11-15)
+
+The renderer now draws every feature of Tile Agent's format a pitch can use. All of it is
+picture only (the match, its replays and two netplay peers are what they are without the mod):
+
+| | how |
+|---|---|
+| **the ground, live** | Each frame (`spritesBegin`, `replayFrameBegin`) the cells around the camera, two cells of margin, are composed again from every visible layer under the players through the runtime's own drawing (`ta_draw_layer8`): swap tracks (the crowd's among them), layer tracks (a layer that moves, drifts or fades), blit tracks (animated blocks on the ground), and layers an event shows or hides. Each cell is treated as the bake treats it (the Jaguar tier's donated entries, the fans' kits from the cell's own engine tile). A cell that changed is drawn again into the frame and the mask buffer, now and next frame (both buffers), with `ModApi_RedrawPitchCell`. Cells scrolled into view are drawn by `DrawChunkyPitch` through `pitchTiles`. This replaced the crowd-only redraw of stage 3. |
+| **the palette** | The presenter rebuilds the PC palette every frame and asks `pitchCondition` (`DosGfx_BuildPalette`, which now takes up to 256 entries). While a match or a replay shows the map, the mod adds the map's colour cycles as turned this frame and the entries of a palette variant an event put in force (`ta_player_palette`, `ta_player_palette_choice`). Every place an entry a cycle turns is used changes, as on any paletted screen. |
+| **any sorted layer** | Layers whose `depth` is `sorted`, besides `goals`, `flags` and `adverts`, an author's own (a ball boy, a camera tower...): their blocks of the frame, by anchor y, are drawn among the engine's sprites. Each is drawn just before the first sprite standing lower on the pitch, all before the HUD's screen-pinned sprites, and the rest at the new `spritesEnd` hook (called after `DrawQueuedSprites` and after both replay sprite loops). |
+
+**Not in the format, so not here:** image layers. Tile Agent reads them but does not draw them
+(its docs/FORMAT.md: "does not understand (image layers ...)").
+
+**A pitch map is the game's grid:** 42 x 55 cells of 16 x 16, indexed in the game's palette.
+That is fixed by the match, not the renderer: the camera, the crowd's slots and every sprite's
+position are in that space.
+
+### Row 0
+
+Row 0 (world y 0-15) is **never on screen**: the camera's top stops at y 16 (`MoveCamera`'s
+clamp, `targetY <= 0x10`). The engine still uses its own `PITCHn.DAT`'s row 0, as the table of
+the 42 fan tiles its recolouring starts from (`pitch.c`), but that is the engine's file, never the
+map. **In a map, row 0 is unused.** The mod never composes it, and an author may leave it empty.
+The row stays in the grid and is not removed from the format, so that a map's pixels stay the
+engine's world pixels: the goals at 300,129, the benches at 27,389, the flags, the adverts, every
+anchor and named point is where the engine's own coordinates say. A 54-row map would put all of
+them 16 pixels out and need a second coordinate system for nothing (the row costs 42 cells).
+
+**Checked** with a test copy of the example map (scratch only): a colour cycle on the grass
+(entries 78-81, a step every 8 frames), a ground layer with an animated block moving 160 pixels
+and back over 100 frames, and a sorted layer with a flag block on the centre circle.
+- In a match, `SWOS_PITCH_MAP_SHOT` frames 40 and 80 show the grass in different colours. At
+  frames 200 and 230 the block has moved about 48 pixels along the ground under the players, with
+  no trail left, and the flag stands among the players.
+- `SWOS_PITCH_MAP_CHECK` over the first 500 frames: 228 ground cells changed by the map, and 500
+  blocks of the sorted layer drawn. The cells as first composed: 476, 0 different from the bake,
+  which is itself 0 of 2310 from the engine's pitch.
+- `check_netplay_compat.sh` with the mod and that map on: see the commit.
+
+Test switches: `SWOS_PITCH_MAP_CHECK=1` (all the checks above),
+`SWOS_PITCH_MAP_SHOT=<frames>[,...]` (the game's frame, 8-bit, written as `pitchmap_shot_<n>.ppm`
+that many frames into the match: a picture at a known moment however long the start-up takes),
+and `SWOS_TEST_ADVERTS=1`.
+
 ## What is left
 
 - **A crowd that stays the game's.** With the map's crowd on, the game's pitches drawn from the

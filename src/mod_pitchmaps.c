@@ -96,14 +96,34 @@ static int32_t s_advertsLayer = -1;                     /* ... and "adverts" */
  * stand, each cell's state as last drawn and whether the other buffer still needs it. */
 static int32_t s_crowdLayer = -1;
 static uint16_t s_crowdSeen = 0xFFFF;                   /* the engine's _animPatternsState we last told */
-static uint8_t s_crowdDrawn[CELLS], s_crowdAgain[CELLS];
+/* The ground, live (stage 4): each cell as the map draws it now -- every visible layer under the
+ * players composed through the runtime (its swaps, the crowd's too, its moving and drifting
+ * layers, its animated blocks, layers an event shows or hides) -- for the cells around the camera,
+ * each frame. A cell that changed is drawn again, in both buffers. */
+static uint8_t *s_dyn;                          /* CELLS tiles */
+static uint8_t  s_dynHave[CELLS], s_dynAgain[CELLS];
+static uint8_t  s_kit[CELLS][4], s_kitHas[CELLS]; /* the fans' kits (10, 11): seated 0-1, standing 2-3 */
+static uint8_t *s_canvas;
+static size_t   s_canvasCap;
+static int32_t  s_checkFrames, s_checkCells, s_checkDiffer;
+static uint32_t s_startClock, s_statChanged, s_statSorted;   /* (SWOS_PITCH_MAP_CHECK / _SHOT) */
 static uint16_t s_advertSeen;                           /* the engine's _advertIndex we last told the map */
+/* Any other sorted layer (stage 4: an author's ball boy, camera tower, ...): its blocks of this
+ * frame, by anchor y, drawn among the engine's sprites as their y comes (the next not drawn yet:
+ * s_pendNext); s_ox, s_oy: the world point at the frame's 0,0 this frame. */
+#define MAX_EXTRA_SORTED 8
+#define MAX_PENDING      64
+static int32_t  s_extraSorted[MAX_EXTRA_SORTED], s_extraCount;
+static ta_blit  s_pend[MAX_PENDING];
+static int16_t  s_pendLayer[MAX_PENDING];
+static int32_t  s_pendN, s_pendNext, s_ox, s_oy, s_haveO;
 static int32_t sorted_layer(const char *name);
 static int32_t swap_source(const ta_layer *layer);
 
 static void above_release(void)
 {
     s_goalsLayer = s_flagsLayer = s_advertsLayer = s_crowdLayer = -1;
+    s_extraCount = s_pendN = s_pendNext = 0;
     int32_t i;
     for (i = 0; i < MAX_SETS; i++) {
         free(s_up.rgba[i]);
@@ -277,6 +297,10 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
     s_goalsLayer = sorted_layer("goals");
     s_flagsLayer = sorted_layer("flags");
     s_advertsLayer = sorted_layer("adverts");
+    for (i = 0; i < map->layer_count && s_extraCount < MAX_EXTRA_SORTED; i++)
+        if (map->layers[i].type == TA_LAYER_TILE && map->layers[i].depth == TA_DEPTH_SORTED &&
+            i != s_goalsLayer && i != s_flagsLayer && i != s_advertsLayer)
+            s_extraSorted[s_extraCount++] = i;
     for (i = 0; i < map->layer_count && s_crowdLayer < 0; i++)
         if (map->layers[i].type == TA_LAYER_TILE && map->layers[i].depth == TA_DEPTH_BELOW &&
             swap_source(&map->layers[i]) >= 0)
@@ -387,6 +411,7 @@ static void PitchMap_Bake(void)
     memset(s_pm.sit, 0, (size_t)CELLS * TILE_BYTES);
     memset(s_pm.stand, 0, (size_t)CELLS * TILE_BYTES);
     memset(s_pm.have, 0, sizeof s_pm.have);
+    memset(s_kitHas, 0, sizeof s_kitHas);
 
     for (cell = 0; cell < CELLS; cell++) {
         uint8_t *sit = s_pm.sit + (size_t)cell * TILE_BYTES;
@@ -428,15 +453,20 @@ static void PitchMap_Bake(void)
         uint8_t c10, c11;
         if (!mine || !(s_pm.have[cell] & 1))
             continue;
-        if (Pitch_FanTileKit(mine, &c10, &c11))
+        s_kitHas[cell] = 0;
+        if (Pitch_FanTileKit(mine, &c10, &c11)) {
             recolour(s_pm.sit + (size_t)cell * TILE_BYTES, c10, c11);
+            s_kit[cell][0] = c10, s_kit[cell][1] = c11, s_kitHas[cell] |= 1;
+        }
         if (!(s_pm.have[cell] & 2))
             continue;
         /* The standing tile wears what the engine's own standing tile wears: its
          * pair is the next tile for a seated (odd) one, the one before otherwise. */
         pair = index > 0 ? ((index & 1) ? mine + TILE_BYTES : mine - TILE_BYTES) : mine;
-        if (Pitch_FanTileKit(pair, &c10, &c11) || Pitch_FanTileKit(mine, &c10, &c11))
+        if (Pitch_FanTileKit(pair, &c10, &c11) || Pitch_FanTileKit(mine, &c10, &c11)) {
             recolour(s_pm.stand + (size_t)cell * TILE_BYTES, c10, c11);
+            s_kit[cell][2] = c10, s_kit[cell][3] = c11, s_kitHas[cell] |= 2;
+        }
     }
     s_pm.baked = 1;
 
@@ -490,11 +520,8 @@ static const uint8_t *PitchMap_Tile(int32_t cell, const uint8_t *engineTile)
     int32_t index;
     if (cell < 0 || cell >= CELLS || !(s_pm.have[cell] & 1))
         return NULL;
-    if ((s_pm.have[cell] & 2) && s_crowdLayer >= 0 && s_up.showing && s_pm.player) {
-        /* the map's crowd: its own state, whatever the engine's picks say */
-        const int32_t st = ta_player_swap_state(s_pm.player, s_crowdLayer, cell % GRID_COLS, cell / GRID_COLS);
-        return (st == 1 ? s_pm.stand : s_pm.sit) + (size_t)cell * TILE_BYTES;
-    }
+    if (s_up.showing && s_dyn && s_dynHave[cell])
+        return s_dyn + (size_t)cell * TILE_BYTES;   /* the map's ground as it is now (stage 4) */
     index = engine_index(engineTile);
     if ((s_pm.have[cell] & 2) && index >= 1 && index <= MAX_FAN_TILE_INDEX && !(index & 1))
         return s_pm.stand + (size_t)cell * TILE_BYTES;
@@ -513,10 +540,8 @@ static int32_t PitchMap_Condition(int32_t pitchType, uint8_t *entry, uint8_t (*r
     if (!PitchMap_Active() || pitchType < 0 || pitchType > 6)
         return 0;
     e = ta_map_event(map, names[pitchType]);
-    if (e < 0)
-        return 0;
-    event = &map->events[e];
-    for (a = 0; a < event->action_count; a++) {
+    event = e >= 0 ? &map->events[e] : NULL;
+    for (a = 0; event && a < event->action_count; a++) {
         const ta_action *action = &event->actions[a];
         const ta_variant *v;
         int32_t i;
@@ -529,6 +554,31 @@ static int32_t PitchMap_Condition(int32_t pitchType, uint8_t *entry, uint8_t (*r
             rgb[n][1] = v->colors[i].g;
             rgb[n][2] = v->colors[i].b;
         }
+    }
+    /* While a match or a replay shows the map (stage 4): its palette as it is now -- the colour
+     * cycles turned and a variant an event has put in force -- for the entries those name. The
+     * presenter asks every frame (DosGfx_BuildPalette). Picture only: the palette is no match
+     * state. Every entry a cycle turns changes wherever it is used, as on any paletted screen. */
+    if (s_up.showing && s_pm.player && map->palette_count > 0) {
+        ta_color now[256];
+        const int32_t count = ta_player_palette(s_pm.player, now);
+        const int32_t choice = ta_player_palette_choice(s_pm.player);
+        int32_t c, k;
+        for (c = 0; c < map->cycle_count; c++)
+            for (k = map->cycles[c].first; k <= map->cycles[c].last && k < count && n < max; k++, n++) {
+                entry[n] = (uint8_t)k;
+                rgb[n][0] = now[k].r;
+                rgb[n][1] = now[k].g;
+                rgb[n][2] = now[k].b;
+            }
+        if (choice >= 0 && choice < map->variant_count)
+            for (k = 0; k < map->variants[choice].count && n < max; k++, n++) {
+                const int32_t en = map->variants[choice].entries[k];
+                entry[n] = (uint8_t)en;
+                rgb[n][0] = now[en].r;
+                rgb[n][1] = now[en].g;
+                rgb[n][2] = now[en].b;
+            }
     }
     return n;
 }
@@ -554,8 +604,11 @@ static void above_start(void)
     ta_player_reset(s_pm.player, s_up.clock);       /* ("always" animations: in step with the game's) */
     s_advertSeen = 0;
     s_crowdSeen = 0xFFFF;
-    memset(s_crowdDrawn, 0xFF, sizeof s_crowdDrawn);
-    memset(s_crowdAgain, 0, sizeof s_crowdAgain);
+    memset(s_dynHave, 0, sizeof s_dynHave);
+    memset(s_dynAgain, 0, sizeof s_dynAgain);
+    s_checkFrames = s_checkCells = s_checkDiffer = 0;
+    s_startClock = (uint32_t)s_up.clock;
+    s_statChanged = s_statSorted = 0;
     snprintf(layout, sizeof layout, "layout-%d", (int)s_pm.pitch);
     if ((e = ta_map_event(s_pm.map, layout)) >= 0)
         ta_player_fire(s_pm.player, e, 0);
@@ -664,50 +717,165 @@ static int32_t tick(void)
     return 1;
 }
 
-/* The fans whose state the map changed since the cell was last drawn: drawn again now, before the
- * sprites, into the frame and the mask buffer -- and once more next frame, for the other of the two
- * buffers (the engine's own flips draw twice the same way: DrawAnimatedPatterns' slots). */
-static void crowd_draw(void)
+/* The cells around the camera, composed again from every visible layer under the players (the
+ * runtime's own drawing, ta_draw_layer8: swaps, offsets, drift, blocks, as the editor shows them),
+ * each as the bake treats it (the Jaguar tier's donated entries, the fans' kits). One that changed
+ * since it was last drawn is drawn again now, before the sprites, into the frame and the mask
+ * buffer -- and once more next frame, for the other of the two buffers (the engine's own fan flips
+ * draw twice the same way). Two cells of margin, so a cell is fresh before it scrolls in (then
+ * DrawChunkyPitch draws it through PitchMap_Tile). Row 0 is never on screen (the camera's top
+ * stops at 16) and is not composed. */
+static void ground_compose(void)
 {
-    int32_t cell;
-    if (s_crowdLayer < 0)
+    const ta_map *map = s_pm.map;
+    ta_image8 img[MAX_SETS];
+    int16_t cx = 0, cy = 0;
+    int32_t w = 0, h = 0, c0, r0, c1, r1, W, H, l, r, c, i;
+    const int check = s_checkFrames < 25 && getenv("SWOS_PITCH_MAP_CHECK") != NULL;
+    if (!map || !s_pm.player)
         return;
-    for (cell = GRID_COLS; cell < CELLS; cell++) {
-        int32_t st;
-        if (!(s_pm.have[cell] & 2))
-            continue;
-        st = ta_player_swap_state(s_pm.player, s_crowdLayer, cell % GRID_COLS, cell / GRID_COLS);
-        if (st < 0)
-            continue;
-        if (st != s_crowdDrawn[cell]) {
-            s_crowdDrawn[cell] = (uint8_t)st;
-            s_crowdAgain[cell] = 1;
-            ModApi_RedrawPitchCell(cell);
-        } else if (s_crowdAgain[cell]) {
-            s_crowdAgain[cell] = 0;
-            ModApi_RedrawPitchCell(cell);
-        }
+    if (!s_dyn && !(s_dyn = (uint8_t *)malloc((size_t)CELLS * TILE_BYTES)))
+        return;
+    ModApi_Camera(&cx, &cy);
+    ModApi_ScreenSize(&w, &h);
+    c0 = cx / TILE_PX - 2;
+    r0 = cy / TILE_PX - 2;
+    c1 = (cx + w) / TILE_PX + 2;
+    r1 = (cy + h) / TILE_PX + 2;
+    if (c0 < 0) c0 = 0;
+    if (r0 < 1) r0 = 1;
+    if (c1 > GRID_COLS - 1) c1 = GRID_COLS - 1;
+    if (r1 > GRID_ROWS - 1) r1 = GRID_ROWS - 1;
+    if (c1 < c0 || r1 < r0)
+        return;
+    W = (c1 - c0 + 1) * TILE_PX;
+    H = (r1 - r0 + 1) * TILE_PX;
+    if ((size_t)W * H > s_canvasCap) {
+        free(s_canvas);
+        s_canvas = (uint8_t *)malloc((size_t)W * H);
+        s_canvasCap = s_canvas ? (size_t)W * H : 0;
+        if (!s_canvas)
+            return;
     }
+    memset(s_canvas, 0, (size_t)W * H);
+    for (i = 0; i < MAX_SETS; i++) {
+        img[i].pixels = s_pm.image[i];
+        img[i].width = s_pm.imageW[i];
+        img[i].height = s_pm.imageH[i];
+        img[i].stride = s_pm.imageW[i];
+        img[i].transparent = map->transparent;
+    }
+    {
+        const ta_target8 target = { s_canvas, W, H, W, c0 * TILE_PX, r0 * TILE_PX };
+        for (l = 0; l < map->layer_count; l++)
+            if (map->layers[l].type == TA_LAYER_TILE && map->layers[l].depth == TA_DEPTH_BELOW &&
+                ta_player_layer_visible(s_pm.player, l))
+                ta_draw_layer8(s_pm.player, l, img, &target, TA_DRAW_ALL);
+    }
+    for (r = r0; r <= r1; r++)
+        for (c = c0; c <= c1; c++) {
+            const int32_t cell = r * GRID_COLS + c;
+            uint8_t tile[TILE_BYTES], *dst = s_dyn + (size_t)cell * TILE_BYTES;
+            int32_t y, st;
+            if (!(s_pm.have[cell] & 1))
+                continue;                       /* (the surround: nothing, as at the bake) */
+            for (y = 0; y < TILE_PX; y++)
+                memcpy(tile + y * TILE_PX, s_canvas + (size_t)((r - r0) * TILE_PX + y) * W + (c - c0) * TILE_PX, TILE_PX);
+            JagGfx_RemapDonated(tile, TILE_BYTES);
+            st = s_crowdLayer >= 0 ? ta_player_swap_state(s_pm.player, s_crowdLayer, c, r) : -1;
+            if (st == 1 && (s_kitHas[cell] & 2))
+                recolour(tile, s_kit[cell][2], s_kit[cell][3]);
+            else if (s_kitHas[cell] & 1)
+                recolour(tile, s_kit[cell][0], s_kit[cell][1]);
+            if (check && !s_dynHave[cell] && !(s_pm.have[cell] & 2)) {
+                /* SWOS_PITCH_MAP_CHECK: a cell no fan stands in, as first composed, against the bake
+                 * (which is checked against the engine's own tiles at the kick-off) */
+                s_checkCells++;
+                s_checkDiffer += memcmp(tile, s_pm.sit + (size_t)cell * TILE_BYTES, TILE_BYTES) != 0;
+            }
+            if (!s_dynHave[cell] || memcmp(tile, dst, TILE_BYTES) != 0) {
+                if (s_dynHave[cell])
+                    s_statChanged++;
+                memcpy(dst, tile, TILE_BYTES);
+                s_dynHave[cell] = 1;
+                s_dynAgain[cell] = 1;
+                ModApi_RedrawPitchCell(cell);
+            } else if (s_dynAgain[cell]) {
+                s_dynAgain[cell] = 0;
+                ModApi_RedrawPitchCell(cell);
+            }
+        }
+    if (check && ++s_checkFrames == 25)
+        fprintf(stderr, "[pitch-map] check: the live ground, %d cells as first composed: %d differ from "
+                        "the bake\n", (int)s_checkCells, (int)s_checkDiffer);
 }
+
+static void sorted_collect(void);
 
 static void sprites_begin(void)
 {
-    if (tick())
-        crowd_draw();
+    if (tick()) {
+        ground_compose();
+        sorted_collect();
+    }
 }
 
 static void replay_frame_begin(int32_t first, int32_t fresh)
 {
     (void)first; (void)fresh;
-    if (tick())
-        crowd_draw();
+    if (tick()) {
+        ground_compose();
+        sorted_collect();
+    }
+}
+
+/* SWOS_PITCH_MAP_SHOT=<n>[,<n>...]: the game's own frame (8 bits, the palette in force: no
+ * presenter, no clouds) written as pitchmap_shot_<n>.ppm in the current folder <n> frames into the
+ * match -- a test's picture at a known moment, whenever the match starts (the rig presents
+ * nothing). With SWOS_PITCH_MAP_CHECK the moving ground and the sorted blocks are counted too. */
+static void shot_and_stats(void)
+{
+    const char *want = getenv("SWOS_PITCH_MAP_SHOT");
+    const uint32_t at = (uint32_t)s_up.clock - s_startClock;
+    if (want && want[0]) {
+        const char *p = want;
+        while (*p) {
+            if ((uint32_t)strtoul(p, NULL, 10) == at) {
+                char name[64];
+                int32_t w = 0, h = 0, stride = 0, x, y;
+                uint8_t *frame = ModApi_Frame(&stride);
+                FILE *f;
+                ModApi_ScreenSize(&w, &h);
+                snprintf(name, sizeof name, "pitchmap_shot_%u.ppm", (unsigned)at);
+                if (frame && (f = fopen(name, "wb")) != NULL) {
+                    fprintf(f, "P6\n%d %d\n255\n", (int)w, (int)h);
+                    for (y = 0; y < h; y++)
+                        for (x = 0; x < w; x++) {
+                            uint8_t rgb[3];
+                            ModApi_PaletteColour(frame[(size_t)y * stride + x], &rgb[0], &rgb[1], &rgb[2]);
+                            fwrite(rgb, 1, 3, f);
+                        }
+                    fclose(f);
+                    fprintf(stderr, "[pitch-map] shot: %s\n", name);
+                }
+            }
+            while (*p && *p != ',') p++;
+            if (*p == ',') p++;
+        }
+    }
+    if (getenv("SWOS_PITCH_MAP_CHECK") && at > 0 && at % 500 == 0)
+        fprintf(stderr, "[pitch-map] check: %u frames in: %u ground cells changed by the map, %u blocks of "
+                        "other sorted layers drawn\n", (unsigned)at, (unsigned)s_statChanged, (unsigned)s_statSorted);
 }
 
 static void above_draw(void)
 {
     int32_t w = 0, h = 0, i;
     int16_t cx = 0, cy = 0;
-    if (!tick() || !s_up.count)
+    if (!tick())
+        return;
+    shot_and_stats();
+    if (!s_up.count)
         return;
     ModApi_ScreenSize(&w, &h);
     ModApi_Camera(&cx, &cy);
@@ -908,8 +1076,81 @@ static void check_block(uint16_t image, const struct SpriteGraphics *gfx, int32_
                     "from the game's sprite\n", (unsigned)image, b[best].x, b[best].y, (int)differ, (int)total);
 }
 
+/* The frame's blocks of the other sorted layers, by anchor y (spritesBegin, replayFrameBegin). */
+static void sorted_collect(void)
+{
+    int32_t k, n, i, j;
+    s_pendN = s_pendNext = 0;
+    s_haveO = 0;
+    for (k = 0; k < s_extraCount; k++) {
+        ta_blit b[16];
+        const int32_t l = s_extraSorted[k];
+        if (!ta_player_layer_visible(s_pm.player, l))
+            continue;
+        n = ta_player_blits(s_pm.player, l, b, 16);
+        for (i = 0; i < n && i < 16 && s_pendN < MAX_PENDING; i++) {
+            for (j = s_pendN; j > 0 && s_pend[j - 1].anchor_y > b[i].anchor_y; j--) {
+                s_pend[j] = s_pend[j - 1];
+                s_pendLayer[j] = s_pendLayer[j - 1];
+            }
+            s_pend[j] = b[i];
+            s_pendLayer[j] = (int16_t)l;
+            s_pendN++;
+        }
+    }
+}
+
+/* Draws the pending blocks whose anchor is at or above `y` (all of them: INT32_MAX). */
+static void sorted_flush(int32_t y)
+{
+    ta_image8 img[MAX_SETS];
+    int32_t i, w = 0, h = 0, stride = 0;
+    uint8_t *frame;
+    if (s_pendNext >= s_pendN || s_pend[s_pendNext].anchor_y > y)
+        return;
+    for (i = 0; i < MAX_SETS; i++) {
+        img[i].pixels = s_pm.image[i];
+        img[i].width = s_pm.imageW[i];
+        img[i].height = s_pm.imageH[i];
+        img[i].stride = s_pm.imageW[i];
+        img[i].transparent = s_pm.map->transparent;
+    }
+    if (!s_haveO) {                     /* (no sprite yet: the camera's) */
+        int16_t cx = 0, cy = 0;
+        ModApi_Camera(&cx, &cy);
+        s_ox = cx;
+        s_oy = cy;
+    }
+    ModApi_ScreenSize(&w, &h);
+    frame = ModApi_Frame(&stride);
+    if (!frame)
+        return;
+    {
+        const ta_target8 target = { frame, w, h, stride, s_ox, s_oy };
+        while (s_pendNext < s_pendN && s_pend[s_pendNext].anchor_y <= y) {
+            ta_draw_blit8(s_pm.player, s_pendLayer[s_pendNext], &s_pend[s_pendNext], img, &target);
+            s_pendNext++;
+            s_statSorted++;
+        }
+    }
+}
+
+static void sprites_end(void)
+{
+    if (PitchMap_Active() && s_up.showing && s_pm.player)
+        sorted_flush(0x7FFFFFFF);
+}
+
 static int32_t sprite_draw(const struct Sprite *sprite, const struct SpriteGraphics *gfx, int16_t *x, int16_t *y)
 {
+    if (sprite && gfx && PitchMap_Active() && s_up.showing && s_pm.player && s_pendNext < s_pendN) {
+        extern int _menu_draw_x_offset;
+        s_ox = sprite->x.s.i - gfx->centerX - (*x + _menu_draw_x_offset);
+        s_oy = sprite->y.s.i - gfx->centerY - sprite->z.s.i - *y;
+        s_haveO = 1;
+        /* the blocks standing further up the pitch first; all of them before the HUD's sprites */
+        sorted_flush(sprite->z.s.i >= 8000 ? 0x7FFFFFFF : sprite->y.s.i);
+    }
     extern int _menu_draw_x_offset;
     if (!sprite || !gfx)
         return 0;
@@ -922,6 +1163,14 @@ static int32_t sprite_draw(const struct Sprite *sprite, const struct SpriteGraph
 
 static int32_t replay_sprite_draw(uint16_t image, int16_t left, int16_t top, int16_t sx, int16_t sy)
 {
+    if (PitchMap_Active() && s_up.showing && s_pm.player && s_pendNext < s_pendN) {
+        extern uint8_t *_spriteGraphicsPtr;
+        const struct SpriteGraphics *g = ((struct SpriteGraphics **)_spriteGraphicsPtr)[image];
+        s_ox = left - sx;
+        s_oy = top - sy;
+        s_haveO = 1;
+        sorted_flush(top + (g ? g->centerY : 0));   /* (its feet: the y the live match sorted it by) */
+    }
     return block_instead(image, left, top, sx, sy);
 }
 
@@ -971,6 +1220,7 @@ const ModDef ModDef_pitchmaps = {
     .pitchCondition = PitchMap_Condition,
     .frameDrawn     = above_draw,
     .spritesBegin   = sprites_begin,
+    .spritesEnd     = sprites_end,
     .replayFrameBegin = replay_frame_begin,
     .spriteDraw     = sprite_draw,
     .benchPoint     = bench_point,

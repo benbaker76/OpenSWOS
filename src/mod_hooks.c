@@ -151,6 +151,11 @@ void ModHooks_SpritesBegin(void)
     EACH(spritesBegin) (*m_)->spritesBegin();
 }
 
+void ModHooks_SpritesEnd(void)
+{
+    EACH(spritesEnd) (*m_)->spritesEnd();
+}
+
 int32_t ModHooks_SpriteDraw(const Sprite *sprite, const SpriteGraphics *gfx, int16_t *x, int16_t *y)
 {
     int32_t out = 0;

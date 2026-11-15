@@ -88,6 +88,9 @@ typedef struct ModDef {
      * spriteDraw before each is drawn at screen x, y -- move it (*x, *y) or return 1 to leave it
      * out of the picture. Drawing only: the sprite itself is match state and is never changed. */
     void (*spritesBegin)(void);
+    /* After a frame's sprites, live or a replay's (the last drawn, before the statistics): what a
+     * mod draws among the sprites and has left -- below every one of them. Drawing only. */
+    void (*spritesEnd)(void);
     int32_t (*spriteDraw)(const struct Sprite *sprite, const struct SpriteGraphics *gfx,
                           int16_t *x, int16_t *y);
     void (*frameKept)(void);            /* the match is paused: the frame shown again, as drawn */

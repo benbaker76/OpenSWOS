@@ -2302,6 +2302,7 @@ void ReplayV2_DrawFrame(void)
         }
     }
 
+    { extern void ModHooks_SpritesEnd(void); ModHooks_SpritesEnd(); }   /* (a mod's: what is left among the sprites) */
     draw_prediction(s_play.cursor, origin, camY);
 
     while (fresh && s_play.audioCursor < s_play.audioCount &&
