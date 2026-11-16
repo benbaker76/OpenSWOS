@@ -294,8 +294,14 @@ mkdir -p "$STAGE" &&
     { echo "!! ditto (setup) failed"; exit 1; }
 if [ "$NOTARY" = 1 ]; then
     echo "== notarizing dist/$SETUP_PART (swosdata)"
-    xcrun notarytool submit "dist/$SETUP_PART" --keychain-profile openswos-notary --keychain "$KC" --wait 2>&1 |
-        grep -q "status: Accepted" || { echo "!! notarization of the setup was not accepted"; exit 1; }
+    # (the output taken whole first: `| grep -q` under pipefail failed an Accepted submission --
+    # grep left at its first match and notarytool died of the broken pipe)
+    OUT="$(xcrun notarytool submit "dist/$SETUP_PART" --keychain-profile openswos-notary --keychain "$KC" --wait 2>&1)"
+    echo "$OUT" | grep "status:" | tail -1 | sed 's/^/   /'
+    case "$OUT" in
+        *"status: Accepted"*) ;;
+        *) echo "!! notarization of the setup was not accepted"; exit 1 ;;
+    esac
 fi
 rm -rf "$WORK"
 
