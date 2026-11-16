@@ -111,6 +111,31 @@ static const u8 AL[] = {
     55, 3, 7,0, 21,1, 21,2,
     0 };
 
+/* SWOS United: a league table's European places (src/league_zones.c; the Mod's zones.py rank_colours):
+ * the colour of places 1..n of association rank `rank` (1..) by its access list -- 0Dh a Champions
+ * League round (< 8), 0Eh a Europa League one (< 14), 08h the Conference League; the cup winner's
+ * place left out, 0 none. 0 when the rank has no list. */
+int UefaAccess_PlaceColours(int rank, u8 *col, int n) {
+    int i = 0, k;
+    for (k = 0; k < n; k++)
+        col[k] = 0;
+    while (AL[i]) {
+        const int r = AL[i], m = AL[i + 1];
+        if (r == rank) {
+            for (k = 0; k < m; k++) {
+                const int round = AL[i + 2 + 2 * k], code = AL[i + 3 + 2 * k];
+                const int place = code == 0 ? 1 : code;
+                if (code == 1 || place > n)
+                    continue;
+                col[place - 1] = (u8)(round < 8 ? 0x0D : round < 14 ? 0x0E : 0x08);
+            }
+            return 1;
+        }
+        i += 2 + 2 * m;
+    }
+    return 0;
+}
+
 struct uq_in UQ_IN;
 struct uq_out UQ_OUT;
 struct uq_state *UQ_S;                  /* set by the caller (the save's area) */

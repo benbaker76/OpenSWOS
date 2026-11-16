@@ -31,6 +31,9 @@ bin/data_json/translations/*
 !bin/data_json/translations/it.json
 !bin/data_json/translations/es.json
 !bin/data_json/translations/nl.json
+# The worlds' league-table zones (scripts/world_zones.py from the SWOS 96/97 Mod's ZONxx.DAT; rules,
+# no squads): src/league_zones.c reads them -- tracked so they ship.
+!bin/data_json/zones
 
 # bin/data_json/worlds/ (docs/WORLD_2026_27.md): the World 2026-27's data from the SWOS 96/97
 # Mod (teams, packs, competitions, references). Its squads are its authors': it is NEVER

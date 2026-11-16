@@ -110,5 +110,7 @@ extern u8 UQ_CUPONLY_FILE[4];
 void uq_season(void);
 void uq_resolve(void);
 void uq_coef(void);
+/* SWOS United: places 1..n's European colours for association rank `rank` (src/league_zones.c). */
+int UefaAccess_PlaceColours(int rank, u8 *col, int n);
 
 #endif

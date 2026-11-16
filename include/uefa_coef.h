@@ -36,6 +36,10 @@ typedef struct WorldUefaSeeds {
     int32_t nClubs;
     uint8_t cupOnly;                    /* the association with a cup winner and no league (Liechtenstein) */
 } WorldUefaSeeds;
+
+/* An association's rank now, by its league's team file (1..; 0 none): a league table's European places
+ * (src/league_zones.c). */
+int32_t UefaCoef_AssociationRank(uint8_t country);
 const WorldUefaSeeds *World_UefaSeeds(void);
 
 #define UEFA_COEF_CLUBS 1024

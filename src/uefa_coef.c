@@ -214,29 +214,47 @@ static uint8_t s_rankC[64];             /* UC_C: the world's UEFA associations, 
 static int32_t s_rankN;
 
 /* uc_rank: by their 5 ring seasons (pack order on a tie). */
-static void rank(void)
+static void rank_into(uint8_t *rankC, int32_t *rankN)
 {
     const WorldUefaSeeds *s = World_UefaSeeds();
     uint32_t t[64];
-    s_rankN = 0;
-    for (int32_t i = 0; i < s->nCountries && s_rankN < 64; i++)
-        s_rankC[s_rankN++] = s->countries[i].country;
-    for (int32_t i = 0; i < s_rankN; i++) {
+    int32_t n = 0;
+    for (int32_t i = 0; s && i < s->nCountries && n < 64; i++)
+        rankC[n++] = s->countries[i].country;
+    for (int32_t i = 0; i < n; i++) {
         t[i] = 0;
         for (int32_t k = 0; k < 5; k++)
-            t[i] += g_uefaCoef.hist[k][s_rankC[i]];
+            t[i] += g_uefaCoef.hist[k][rankC[i]];
     }
-    for (int32_t i = 1; i < s_rankN; i++) {
-        uint8_t cc = s_rankC[i];
+    for (int32_t i = 1; i < n; i++) {
+        uint8_t cc = rankC[i];
         uint32_t v = t[i];
         int32_t j = i;
         for (; j > 0 && v > t[j - 1]; j--) {
             t[j] = t[j - 1];
-            s_rankC[j] = s_rankC[j - 1];
+            rankC[j] = rankC[j - 1];
         }
-        s_rankC[j] = cc;
+        rankC[j] = cc;
         t[j] = v;
     }
+    *rankN = n;
+}
+
+static void rank(void) { rank_into(s_rankC, &s_rankN); }
+
+/* An association's rank now (1..; 0 none), as the Mod's league tables read uc_rank (zones.py zn_rank):
+ * worked out apart, the season end's own ranking untouched. */
+int32_t UefaCoef_AssociationRank(uint8_t country)
+{
+    uint8_t c[64];
+    int32_t n = 0;
+    if (!UefaCoef_On())
+        return 0;
+    rank_into(c, &n);
+    for (int32_t i = 0; i < n; i++)
+        if (c[i] == country)
+            return i + 1;
+    return 0;
 }
 
 /* uc_final: the finals' winners, the qualifying ties' points, the ranking (before this season

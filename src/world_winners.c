@@ -496,8 +496,21 @@ static void fill(void)
         d[n] = 0;
         e->stringFlags = (uint16_t)((e->stringFlags & ~STR_COLOR_MASK) | (at < s_nlines ? s_colour[at] : 0));
     }
-    _menuEntries[WN_PREV].isInvisible = s_page == 0;
-    _menuEntries[WN_PREV + 1].isInvisible = (s_page + 1) * WN_LINES >= s_nlines;
+    const int32_t prev = s_page > 0, next = (s_page + 1) * WN_LINES < s_nlines;
+    _menuEntries[WN_PREV].isInvisible = !prev;
+    _menuEntries[WN_PREV + 1].isInvisible = !next;
+    /* EXIT's way to the page buttons only to one shown; the cursor off a button just hidden (NEXT on the
+     * last page: its selection frame stayed, round an empty box -- Playa, 2026-11-16) */
+    _menuEntries[WN_PREV + 2].leftEntry = (int8_t)(prev ? WN_PREV : -1);
+    _menuEntries[WN_PREV + 2].rightEntry = (int8_t)(next ? WN_PREV + 1 : -1);
+    {
+        extern uint8_t _currentMenu[];
+        const Menu *menu = (const Menu *)(void *)_currentMenu;
+        const int32_t cur = menu && menu->selectedEntry ? menu->selectedEntry->ordinal : -1;
+        if ((cur == WN_PREV && !prev) || (cur == WN_PREV + 1 && !next))
+            SetCurrentEntry((uint16_t)(cur == WN_PREV ? (next ? WN_PREV + 1 : WN_PREV + 2)
+                                                      : (prev ? WN_PREV : WN_PREV + 2)));
+    }
 }
 
 int32_t WorldWinners_Pages(void) { return (s_nlines + WN_LINES - 1) / WN_LINES; }

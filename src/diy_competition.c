@@ -15,6 +15,7 @@
 #include "cup_record.h"
 #include "world_finance.h"      /* UefaPrize_CupWon */
 #include "comp_identity.h"
+#include "league_zones.h"      /* a world career's table zones */
 #include "translations.h"
 #include "auto_skip_debug.h"
 #include "endian_helpers.h"
@@ -7672,6 +7673,46 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
     MenuEntry *a5 = &_menuEntries[31];
     uint16_t d5 = 1; /* team number, 1-based */
 
+    /* A world career's league table in its zones' colours, from mid-season (league_zones.c; the Mod's
+     * zones.py): the most matches a club of this group has played decides. */
+    int32_t zones = 0;
+    if (!lpTable) {
+        uint16_t most = 0;
+        for (uint16_t k = 0; k < numTeamsPerGroup; k++) {
+            const uint16_t off = _diyCompetitionStart.matchData.league.teamEntryOffsets[(teamIdx >> 1) + k];
+            const DIYTeamStats *row = diy_standings_row(&_diyCompetitionStart, off / 18);
+            if (row && row->gamesPlayed > most)
+                most = row->gamesPlayed;
+        }
+        zones = LeagueZones_Begin(most, numTeamsPerGroup);
+        if (zones && entry->ordinal == 16) {
+            /* the legend: a box a colour the table uses, on the line under the title (zones.py zn_leg) */
+            uint16_t col[6];
+            const char *lab[6];
+            const int32_t n = LeagueZones_Legend(col, lab, 6);
+            /* (ending a line above this group's own cell, drawn after it with a clear background: it
+             *  cut the boxes' last lines off -- Playa, 2026-11-16) */
+            const MenuEntry *title = &_menuEntries[0];
+            const int16_t top = (int16_t)(title->y + title->dwHeight + 1);
+            int16_t h = 8, y = (int16_t)(entry->y - h - 1);
+            if (y < top) {
+                y = top;
+                h = (int16_t)(entry->y - 1 - top);
+            }
+            for (int32_t b = 0; b < n && h >= 5; b++) {
+                MenuEntry box = _menuEntries[24];
+                box.isInvisible = 0;
+                box.x = (int16_t)(title->x + b * 31);
+                box.y = y;
+                box.dwWidth = 30;
+                box.dwHeight = (uint16_t)h;
+                box.bgColor = (uint16_t)((box.bgColor & 0xFFF0) | col[b]);
+                box.fg = (uintptr_t)lab[b];
+                DrawMultipleItems(1, &box);
+            }
+        }
+    }
+
     do {
         /* Standings row for the team at rank (teamIdx>>1). teamEntryOffsets
          * holds 18 * team_index per the sorted-by-standings layout, so
@@ -7791,6 +7832,14 @@ void DIYLeagueTournament16BeforeDraw(MenuEntry *entry)
             d3 = zone ? zone : 7;
             if (teamPtr->team.teamControls == 1)
                 a5->bgColor = zone ? zone : 10;
+        } else if (zones) {             /* (a career's table: a zone's row and computer club's name; the
+                                         *  human club's name keeps its own colour, as the Mod's) */
+            const uint16_t zone = LeagueZones_RowColour(d5);
+            if (zone) {
+                d3 = zone;
+                if (teamPtr->team.teamControls == 1)
+                    a5->bgColor = zone;
+            }
         }
         /* Highlight player's team */
         if (_highlightedLeagueTeamId == BE_READ_U16(teamPtr))
