@@ -21,7 +21,17 @@
 set -euo pipefail
 
 P12=${1:-}
-[ -n "$P12" ] && [ -f "$P12" ] || { sed -n '2,22p' "$0"; exit 2; }
+if [ -z "$P12" ]; then
+    sed -n '2,21p' "$0"
+    exit 2
+fi
+if [ ! -f "$P12" ]; then
+    echo "No file at $P12 -- the certificate exported from Keychain Access (File -> Export Items...;"
+    echo "it is named Certificates.p12 unless you named it). Found here:"
+    ls -1 "$HOME"/Desktop/*.p12 "$HOME"/Documents/*.p12 "$HOME"/Downloads/*.p12 2>/dev/null | sed 's/^/  /' ||
+        echo "  (no .p12 on the Desktop, in Documents or in Downloads)"
+    exit 2
+fi
 shift
 APPLE_ID=""
 [ "${1:-}" = "--apple-id" ] && APPLE_ID=${2:-}
