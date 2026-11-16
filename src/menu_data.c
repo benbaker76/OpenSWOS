@@ -4894,87 +4894,87 @@ Menu_Squad _squadMenu = {
     MENU_CMD_END,
     {
         {
-            { 23, 24, -122, 8 },
+            { 26, 24, -125, 8 },
             { MENU_CMD_NAV, -1, 8, -1, 29 },
             MENU_CMD_END
         },
         {
-            { 23, 33, -122, 8 },
+            { 26, 33, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 28, 30 },
             MENU_CMD_END
         },
         {
-            { 23, 42, -122, 8 },
+            { 26, 42, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 29, 31 },
             MENU_CMD_END
         },
         {
-            { 23, 51, -122, 8 },
+            { 26, 51, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 30, 32 },
             MENU_CMD_END
         },
         {
-            { 23, 60, -122, 8 },
+            { 26, 60, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 31, 33 },
             MENU_CMD_END
         },
         {
-            { 23, 69, -122, 8 },
+            { 26, 69, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 32, 34 },
             MENU_CMD_END
         },
         {
-            { 23, 78, -122, 8 },
+            { 26, 78, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 33, 35 },
             MENU_CMD_END
         },
         {
-            { 23, 87, -122, 8 },
+            { 26, 87, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 34, 36 },
             MENU_CMD_END
         },
         {
-            { 23, 96, -122, 8 },
+            { 26, 96, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 35, 37 },
             MENU_CMD_END
         },
         {
-            { 23, 105, -122, 8 },
+            { 26, 105, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 36, 38 },
             MENU_CMD_END
         },
         {
-            { 23, 114, -122, 8 },
+            { 26, 114, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 37, 39 },
             MENU_CMD_END
         },
         {
-            { 23, 125, -122, 8 },
+            { 26, 125, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 38, 40 },
             MENU_CMD_END
         },
         {
-            { 23, -122, -122, 8 },
+            { 26, -122, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 39, 41 },
             MENU_CMD_END
         },
         {
-            { 23, -113, -122, 8 },
+            { 26, -113, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 40, 42 },
             MENU_CMD_END
         },
         {
-            { 23, -104, -122, 8 },
+            { 26, -104, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 41, 43 },
             MENU_CMD_END
         },
         {
-            { 23, -95, -122, 8 },
+            { 26, -95, -125, 8 },
             { MENU_CMD_NAV, -1, 8, 42, 44 },
             MENU_CMD_END
         }
     },
-    { 23, -84, -122, 8 },
+    { 26, -84, -125, 8 },
     { MENU_CMD_NAV, 45, 8, 43, 8 },
     { MENU_CMD_UP_SKIP, 44, 2 },
     { MENU_CMD_INVISIBLE },
@@ -4992,12 +4992,12 @@ Menu_Squad _squadMenu = {
     { MENU_CMD_SPRITE_FG, 0 },
     MENU_CMD_END,
     {
-        { 13, 0, 10, 8 },
+        { 13, 0, 12, 8 },
         { MENU_CMD_NUMBER, 0x0, 0 },
         MENU_CMD_END
     },
     {
-        { 23, 0, -122, 8 },
+        { 26, 0, -125, 8 },
         { MENU_CMD_COLORS, 0xA },
         { MENU_CMD_TEXT_PTR, 0x8000, 0 },
         MENU_CMD_END

@@ -212,5 +212,7 @@ void BuyPlayerCpuReplacements(void)
 {
     g_cpuRepl.fromSquad ^= 1;
     label();
-    DrawMenuItem(&_menuEntries[9]);
+    /* (CallDrawMenuItem: both screen buffers alike -- DrawMenuItem alone drew into one, and the old
+     *  text and the new took turns every frame: the switch flickered, Playa 2026-11-16) */
+    CallDrawMenuItem(&_menuEntries[9]);
 }

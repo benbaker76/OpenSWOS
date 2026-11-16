@@ -3165,6 +3165,13 @@ void clubBusinessInitOriginal(void)
 static char s_ffpOn[] = "FFP: ON", s_ffpOff[] = "FFP: OFF";
 static char s_upOn[] = "UEFA PRIZES: ON", s_upOff[] = "UEFA PRIZES: OFF";
 
+/* A switch's text and colour: ON green, OFF red (Playa, 2026-11-16; CONTINUE keeps its brown). */
+static void clubBusinessSwitch(MenuEntry *e, int32_t on, char *onText, char *offText)
+{
+    e->fg = (uintptr_t)(on ? onText : offText);
+    e->bgColor = (uint16_t)((e->bgColor & 0xFFF0) | (on ? 14 : 10));  /* (kGreen, kRed) */
+}
+
 static void clubBusinessWorldRows(void)
 {
     if (!_contractNegotiationActive && _stayingInOldClub && g_ffp.fine && Ffp_Shown()) {
@@ -3196,7 +3203,7 @@ static void clubBusinessWorldRows(void)
         sw->x = _menuEntries[21].x;
         sw->dwWidth = _menuEntries[21].dwWidth;
         sw->y = (uint16_t)(ratio->y - 1);
-        sw->fg = (uintptr_t)(g_ffp.on ? s_ffpOn : s_ffpOff);
+        clubBusinessSwitch(sw, g_ffp.on, s_ffpOn, s_ffpOff);
         _menuEntries[1].upEntry = 23;
     }
     if (UefaPrize_Shown()) {
@@ -3204,26 +3211,28 @@ static void clubBusinessWorldRows(void)
         sw->isInvisible = 0;
         sw->y = _menuEntries[1].y;
         sw->dwHeight = _menuEntries[1].dwHeight;
-        sw->fg = (uintptr_t)(g_uefaPrize.off ? s_upOff : s_upOn);
+        clubBusinessSwitch(sw, !g_uefaPrize.off, s_upOn, s_upOff);
         _menuEntries[1].leftEntry = 24;
     }
 }
 
-/* Fire on the switches: the rule / the prizes on or off for this career (saved with it). */
+/* Fire on the switches: the rule / the prizes on or off for this career (saved with it). Redrawn
+ * through CallDrawMenuItem, which leaves both screen buffers alike: DrawMenuItem alone drew into one,
+ * and the old text and the new took turns every frame -- the switch flickered (Playa, 2026-11-16). */
 __attribute__((used, externally_visible))
 void ClubBusinessFfpSwitch(void)
 {
     g_ffp.on ^= 1;
-    _menuEntries[23].fg = (uintptr_t)(g_ffp.on ? s_ffpOn : s_ffpOff);
-    DrawMenuItem(&_menuEntries[23]);
+    clubBusinessSwitch(&_menuEntries[23], g_ffp.on, s_ffpOn, s_ffpOff);
+    CallDrawMenuItem(&_menuEntries[23]);
 }
 
 __attribute__((used, externally_visible))
 void ClubBusinessUefaPrizesSwitch(void)
 {
     g_uefaPrize.off ^= 1;
-    _menuEntries[24].fg = (uintptr_t)(g_uefaPrize.off ? s_upOff : s_upOn);
-    DrawMenuItem(&_menuEntries[24]);
+    clubBusinessSwitch(&_menuEntries[24], !g_uefaPrize.off, s_upOn, s_upOff);
+    CallDrawMenuItem(&_menuEntries[24]);
 }
 
 /* ================================================================
