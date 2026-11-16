@@ -11,6 +11,9 @@
  * and flagged dos_redraw, so its onDraw runs every frame.
  */
 #include "swos_io.h"     /* swos_user_dir: choices_from */
+#ifdef SWOS_SDL_BUILD
+#include <sys/stat.h>     /* stat: choices_from's folders ("choices_ext": "/") */
+#endif
 #include "mods.h"
 #include "mods_menu.h"
 
@@ -249,8 +252,19 @@ enum { kMaxChoices = 256, kChoiceLen = 64, kMaxSettings = 32 };
 typedef struct {
     char key[32], label[40];
     char choices[kMaxChoices][kChoiceLen];
+    char labels[kMaxChoices][40];       /* what is shown for a choice ("": the choice itself) -- a
+                                         * folder's package.json "name" for a pitch map's uuid */
     int32_t choiceCount;
 } PageSetting;
+
+/* What the page shows for a setting's value: its label, else the value. */
+static const char *choice_label(const PageSetting *ps, const char *value)
+{
+    for (int32_t c = 0; c < ps->choiceCount; c++)
+        if (SDL_strcasecmp(ps->choices[c], value) == 0)
+            return ps->labels[c][0] ? ps->labels[c] : ps->choices[c];
+    return value;
+}
 
 static ModInfo     s_page;
 static PageSetting s_pageSettings[kMaxSettings];
@@ -262,7 +276,7 @@ static char        s_pageName[48], s_pageAbout[64], s_pageAuthor[64], s_pageLabe
  * mod, of every enabled mod (a gallery DLC's images/: docs/MODS.md §25b) and of the player's game
  * folder (swos_user_dir(); "user_folder" when its name is another), each name once, up to
  * kMaxChoices. */
-typedef struct { PageSetting *ps; const char *ext; } ChoicesCtx;
+typedef struct { PageSetting *ps; const char *ext; const char *dir; const char *labelFile; } ChoicesCtx;
 static int32_t choices_add(const char *name, void *ctx)
 {
     PageSetting *ps = ((ChoicesCtx *)ctx)->ps;
@@ -270,6 +284,43 @@ static int32_t choices_add(const char *name, void *ctx)
     if (ps->choiceCount >= kMaxChoices)
         return 1;
     const char *ext = ((ChoicesCtx *)ctx)->ext;
+    if (strcmp(ext, "/") == 0) {        /* "choices_ext": "/" -- the folder's FOLDERS (the pitch maps) */
+#ifndef SWOS_SDL_BUILD
+        return 0;                       /* (the Amiga: no pitch maps) */
+#else
+        char path[1200];
+        struct stat st;
+        if (name[0] == '.')
+            return 0;                   /* (".", "..", and a manager's install in progress: .<uuid>.part) */
+        snprintf(path, sizeof path, "%s/%s", ((ChoicesCtx *)ctx)->dir, name);
+        if (strlen(name) >= sizeof ps->choices[0] || stat(path, &st) != 0 || !S_ISDIR(st.st_mode))
+            return 0;
+        for (int32_t c = 0; c < ps->choiceCount; c++)
+            if (SDL_strcasecmp(ps->choices[c], name) == 0)
+                return 0;
+        {   /* its name, from the folder's manifest ("label_file": a Tile Agent package's -- the
+             * pitch maps, docs/PITCH_MAPS.md); none: the folder's own name */
+            char json[4096];
+            FILE *f = NULL;
+            const char *lf = ((ChoicesCtx *)ctx)->labelFile;
+            ps->labels[ps->choiceCount][0] = '\0';
+            if (lf && lf[0]) {
+                snprintf(path, sizeof path, "%s/%s/%s", ((ChoicesCtx *)ctx)->dir, name, lf);
+                f = fopen(path, "rb");
+            }
+            if (f != NULL) {
+                const int n = (int)fread(json, 1, sizeof json - 1, f);
+                fclose(f);
+                json[n > 0 ? n : 0] = '\0';
+                if (mjson_get_string(json, n > 0 ? n : 0, "$.name", ps->labels[ps->choiceCount],
+                                     (int)sizeof ps->labels[0]) <= 0)
+                    ps->labels[ps->choiceCount][0] = '\0';
+            }
+        }
+        snprintf(ps->choices[ps->choiceCount++], sizeof ps->choices[0], "%s", name);
+        return 0;
+#endif
+    }
     if (!dot || strlen(name) >= sizeof ps->choices[0])
         return 0;
     if (ext[0] ? SDL_strcasecmp(dot, ext) != 0 :
@@ -286,10 +337,10 @@ static int32_t choices_add(const char *name, void *ctx)
 static int choice_cmp(const void *a, const void *b) { return SDL_strcasecmp((const char *)a, (const char *)b); }
 
 static void choices_from_files(const ModInfo *m, const char *folder, const char *userFolder, const char *ext,
-                               PageSetting *ps)
+                               const char *labelFile, PageSetting *ps)
 {
     char dir[1100];
-    ChoicesCtx ctx = { ps, ext };
+    ChoicesCtx ctx = { ps, ext, dir, labelFile };
     snprintf(ps->choices[0], sizeof ps->choices[0], "off");
     ps->choiceCount = 1;
     snprintf(dir, sizeof dir, "%s/%s", ModApi_ModDir(m->slug), folder);
@@ -301,7 +352,20 @@ static void choices_from_files(const ModInfo *m, const char *folder, const char 
         }
     snprintf(dir, sizeof dir, "%s/%s", swos_user_dir(), userFolder[0] ? userFolder : folder);
     ModApi_ListFiles(dir, choices_add, &ctx);
-    if (ps->choiceCount > 2)                            /* (by name, "off" first: a gallery's years in order) */
+    if (ps->choiceCount > 2 && strcmp(ext, "/") == 0) { /* (folders: by what is shown, "off" first) */
+        for (int32_t i = 2; i < ps->choiceCount; i++)
+            for (int32_t j = i; j > 1; j--) {
+                const char *a = ps->labels[j - 1][0] ? ps->labels[j - 1] : ps->choices[j - 1];
+                const char *b = ps->labels[j][0] ? ps->labels[j] : ps->choices[j];
+                char tc[kChoiceLen], tl[40];
+                if (SDL_strcasecmp(a, b) <= 0)
+                    break;
+                memcpy(tc, ps->choices[j], sizeof tc); memcpy(ps->choices[j], ps->choices[j - 1], sizeof tc);
+                memcpy(ps->choices[j - 1], tc, sizeof tc);
+                memcpy(tl, ps->labels[j], sizeof tl); memcpy(ps->labels[j], ps->labels[j - 1], sizeof tl);
+                memcpy(ps->labels[j - 1], tl, sizeof tl);
+            }
+    } else if (ps->choiceCount > 2)                     /* (by name, "off" first: a gallery's years in order) */
         SDL_qsort(ps->choices[1], (size_t)(ps->choiceCount - 1), sizeof ps->choices[0], choice_cmp);
 }
 
@@ -379,6 +443,7 @@ static void read_page_settings(const ModInfo *m)
             snprintf(t, sizeof t, "%s", ps->key);
         upper(ps->label, sizeof ps->label, t);
         ps->choiceCount = 0;
+        memset(ps->labels, 0, sizeof ps->labels);
         for (int32_t c = 0; c < kMaxChoices; c++) {
             snprintf(q, sizeof q, "$.settings[%d].choices[%d]", (int)i, (int)c);
             if (mjson_get_string(json, len, q, ps->choices[c], (int)sizeof ps->choices[c]) < 0)
@@ -390,9 +455,12 @@ static void read_page_settings(const ModInfo *m)
             char user[64] = "", ext[16] = "";   /* (the player's folder's name, when not the same) */
             snprintf(q, sizeof q, "$.settings[%d].user_folder", (int)i);
             mjson_get_string(json, len, q, user, (int)sizeof user);
-            snprintf(q, sizeof q, "$.settings[%d].choices_ext", (int)i);   /* (".slangp"; none: images) */
+            snprintf(q, sizeof q, "$.settings[%d].choices_ext", (int)i);   /* (".slangp"; "/": folders; none: images) */
             mjson_get_string(json, len, q, ext, (int)sizeof ext);
-            choices_from_files(m, t, user, ext, ps);    /* "off" and the files of a folder */
+            char labelFile[64] = "";            /* (folders: the manifest whose "name" is shown) */
+            snprintf(q, sizeof q, "$.settings[%d].label_file", (int)i);
+            mjson_get_string(json, len, q, labelFile, (int)sizeof labelFile);
+            choices_from_files(m, t, user, ext, labelFile, ps);    /* "off" and the files of a folder */
             /* "choices_first": [..] -- names of the mod's own offered after "off", before the
              * files (the backgrounds mod's "auto" and "random"; launcher options, agent A) */
             for (int32_t k = 0; k < 8 && ps->choiceCount < kMaxChoices; k++) {
@@ -402,7 +470,10 @@ static void read_page_settings(const ModInfo *m)
                     break;
                 memmove(ps->choices[2 + k], ps->choices[1 + k],
                         (size_t)(ps->choiceCount - 1 - k) * sizeof ps->choices[0]);
+                memmove(ps->labels[2 + k], ps->labels[1 + k],
+                        (size_t)(ps->choiceCount - 1 - k) * sizeof ps->labels[0]);
                 snprintf(ps->choices[1 + k], sizeof ps->choices[0], "%s", extra);
+                ps->labels[1 + k][0] = '\0';
                 ps->choiceCount++;
             }
         }
@@ -415,10 +486,13 @@ static void read_page_settings(const ModInfo *m)
         if (mjson_get_string(json, len, q, t, (int)sizeof t) >= 0)     /* (the default goes first) */
             for (int32_t c = 1; c < ps->choiceCount; c++)
                 if (SDL_strcasecmp(ps->choices[c], t) == 0) {
-                    char first[kChoiceLen];
+                    char first[kChoiceLen], firstLabel[40];
                     memcpy(first, ps->choices[0], sizeof first);
                     memcpy(ps->choices[0], ps->choices[c], sizeof first);
                     memcpy(ps->choices[c], first, sizeof first);
+                    memcpy(firstLabel, ps->labels[0], sizeof firstLabel);
+                    memcpy(ps->labels[0], ps->labels[c], sizeof firstLabel);
+                    memcpy(ps->labels[c], firstLabel, sizeof firstLabel);
                 }
         s_pageCount++;
     }
@@ -438,7 +512,7 @@ static void page_refresh(void)
         if (s_pageTop + i >= s_pageCount)
             continue;
         snprintf(s_pageLabels[i], sizeof s_pageLabels[i], "%s", ps->label);
-        upper(s_pageValues[i], sizeof s_pageValues[i], ModApi_Setting(s_page.slug, ps->key, ps->choices[0]));
+        upper(s_pageValues[i], sizeof s_pageValues[i], choice_label(ps, ModApi_Setting(s_page.slug, ps->key, ps->choices[0])));
         label->fg = (uintptr_t)s_pageLabels[i];
         value->fg = (uintptr_t)s_pageValues[i];
     }
@@ -513,7 +587,8 @@ static void pick_refresh(void)
         if (c >= ps->choiceCount)
             continue;
         char text[kChoiceLen + 4];
-        snprintf(text, sizeof text, "%s%s", SDL_strcasecmp(ps->choices[c], now) == 0 ? "> " : "", ps->choices[c]);
+        snprintf(text, sizeof text, "%s%s", SDL_strcasecmp(ps->choices[c], now) == 0 ? "> " : "",
+                 ps->labels[c][0] ? ps->labels[c] : ps->choices[c]);
         upper(s_pickRows[i], sizeof s_pickRows[i], text);
         row->fg = (uintptr_t)s_pickRows[i];
     }
@@ -763,7 +838,10 @@ int32_t ModsMenu_PageTest(const char *slug)
             for (int32_t k = 0; k < s_pageCount; k++) {
                 printf("[mod-page-test] %s %s:", slug, s_pageSettings[k].key);
                 for (int32_t c = 0; c < s_pageSettings[k].choiceCount; c++)
-                    printf(" %s", s_pageSettings[k].choices[c]);
+                    if (s_pageSettings[k].labels[c][0])     /* (a labelled choice: value "label") */
+                        printf(" %s \"%s\"", s_pageSettings[k].choices[c], s_pageSettings[k].labels[c]);
+                    else
+                        printf(" %s", s_pageSettings[k].choices[c]);
                 printf("\n");
             }
             return s_pageCount ? 0 : 1;

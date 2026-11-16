@@ -97,11 +97,21 @@ draw its own) and `benchPoint` (new). A layer's name says what it stands for (`g
 `adverts`, Tile Agent's docs/SWOS_UNITED.md §3.4–3.8); a map without one leaves that to the
 engine.
 
-**Where a map is found:** `grafs_dos/pitch<N>.tmj`, then `grafs_dos/pitch.tmj`, through
-`swos_data_path`: each enabled mod's folder first (a pitch a player made and shipped as a mod),
-then the assets folder, then beside the game. Its images are read from the folder it was found
-in. (Before 2026-11-14 it was read from the game's own `grafs_dos/` only, so a map in the assets
-folder or a mod was never seen, and a mod's map took its images from the game's folder.)
+**Where a map is found** (2026-11-16): the pitchmaps mod's **Pitch map** setting (`[mod.pitchmaps]
+map`) names one by its **uuid**. It is the folder `<player folder>/moddata/pitchmaps/<uuid>/`, where
+the DLC Manager's **Pitch Maps** install them (else `pitchmaps/<uuid>/` in the mod's own folder or
+an enabled mod's): a **Tile Agent package** (Tile Agent's own,
+generic "Export As Zip" -- nothing in it is OpenSWOS's; we read its format): `package.json`
+(`"format": "tileagent-package"`, `uuid`, `name`, `author`, `version`, `about`, `"map"`: the .tmj,
+`"preview"`: a thumbnail the DLC Manager shows) beside the map and its images. The game opens the
+map `"map"` names (one map of all six pitches and every condition), and shows `"name"` in the
+setting. Without a package.json, the folder's `pitch<N>.tmj`, else `pitch.tmj`. One map is chosen at a time: the setting, not a slot. A
+pitch map's uuid is its identity: Tile Agent gives a new map one and keeps it through every edit, a
+newer version replaces the folder in place, and a map made into another pitch gets a new uuid.
+
+With the setting off, a developer's map is found as before: `grafs_dos/pitch<N>.tmj`, then
+`grafs_dos/pitch.tmj`, through `swos_data_path` (each enabled mod, the assets folder, beside the
+game), its images from the folder it was found in.
 
 **No map ships.** The game's pitches as a map are cut from the game's own art, so they are a
 developer's (Tile Agent's `examples/swos-pitch.tmj` and its BMPs, copied into a `grafs_dos/`);

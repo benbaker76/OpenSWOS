@@ -258,6 +258,26 @@ const char *ModApi_ModDir(const char *slug)
     return NULL;
 }
 
+/* A mod's downloaded data, built-in mods' too: <player folder>/moddata/<slug> (the owner,
+ * 2026-11-16: "Any data downloaded from DLC should go into the user's SWOS data folder"). Not
+ * mods/<slug>: a folder there IS a downloaded mod of that name, and would hide a canonical one. */
+const char *ModApi_DataDir(const char *slug)
+{
+    static char path[1100];
+#ifdef SWOS_SDL_BUILD
+    const char *user = swos_user_dir();
+#else
+    const char *user = "";              /* (the Amiga: the drawer -- PROGDIR:'s moddata/) */
+#endif
+    if (!slug || !slug[0])
+        return NULL;
+    if (user && user[0])
+        snprintf(path, sizeof path, "%s/moddata/%s", user, slug);
+    else
+        snprintf(path, sizeof path, "moddata/%s", slug);
+    return path;
+}
+
 /* ---- settings: SWOS.ini [mod.<slug>] (Settings_Save keeps sections it does not know) ---- */
 
 #ifdef SWOS_SDL_BUILD

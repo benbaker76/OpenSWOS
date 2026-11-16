@@ -33,6 +33,8 @@
 #include <string.h>
 
 #include "mod_api.h"
+#include "mjson.h"              /* a package's package.json */
+#include "mods.h"               /* Mods_Count, Mods_Dir: maps a mod carries */
 #include "swos_io.h"            /* swos_data_path: the mods, the assets folder, the game */
 #include "display.h"            /* MAX_FAN_TILE_INDEX */
 #include "jag_graphics.h"       /* JagGfx_RemapDonated */
@@ -62,6 +64,7 @@ static struct {
     ta_map  *map;
     ta_player *player;                  /* which layers this pitch shows (its layout event) */
     char     dir[256];
+    char     chosen[64];                /* the "Pitch map" setting it was loaded for */
     int32_t  pitch;                     /* the pitch number the map is for */
     uint8_t *image[MAX_SETS];
     int32_t  imageW[MAX_SETS], imageH[MAX_SETS];
@@ -182,17 +185,20 @@ static char *read_text(const char *path, size_t *len)
 
 static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
 {
-    char path[1100], base[512], error[160], layout[32];
+    char path[4096], base[512], error[160], layout[32], mapName[128] = "";
     char *text = NULL;
     size_t len = 0;
     int32_t i, shared = 0, event;
     ta_map *map;
 
+    const char *chosen = ModApi_Setting(SLUG, "map", "off");
     s_pm.baked = 0;
     if (!dir)
         return 0;
-    if (s_pm.map && s_pm.pitch == pitchNumber && strcmp(s_pm.dir, dir) == 0)
-        return 1;                       /* the same pitch as last match */
+    if (!chosen || !chosen[0])
+        chosen = "off";
+    if (s_pm.map && s_pm.pitch == pitchNumber && strcmp(s_pm.dir, dir) == 0 && strcmp(s_pm.chosen, chosen) == 0)
+        return 1;                       /* the same pitch and map as last match */
     release_map();
 
     /* A map of this pitch alone, or ONE map of every pitch whose `layout-<N>` event
@@ -201,7 +207,52 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
     /* Where the game's own files are looked for (swos_data_path): each enabled mod's folder first
      * -- this one's, or a pitch a player made and shipped as a mod (DLC) -- then the assets
      * folder, then beside the game. The map's images are read from the folder it was found in. */
-    {
+    /* The map chosen in the mod's settings ("Pitch map": its uuid, a folder of the player's
+     * moddata/pitchmaps/ -- where the DLC Manager's Pitch Maps install them -- or of pitchmaps/ in
+     * this mod or another enabled one):
+     * its pitch<N>.tmj, else its pitch.tmj. "off": grafs_dos/ as the game's own files are looked
+     * for -- each enabled mod, the assets folder, the game (a developer's map). */
+    if (strcmp(chosen, "off") != 0) {
+        char where[3][900];
+        int32_t n = 0, w, k;
+        snprintf(where[n++], sizeof where[0], "%s/pitchmaps/%s", ModApi_ModDir(SLUG), chosen);
+        snprintf(where[n++], sizeof where[0], "%s/%s", ModApi_DataDir(SLUG), chosen);   /* (moddata/pitchmaps/<uuid>) */
+        for (w = 0; w < n && !text; w++) {
+            /* a Tile Agent package (its "Export As Zip"): the map its package.json names */
+            char mf[128] = "";
+            size_t ml = 0;
+            char *pkg;
+            snprintf(path, sizeof path, "%s/package.json", where[w]);
+            if ((pkg = read_text(path, &ml)) != NULL) {
+                if (mjson_get_string(pkg, (int)ml, "$.map", mf, (int)sizeof mf) > 0 && !strchr(mf, '/') &&
+                    !strchr(mf, '\\') && !strstr(mf, "..")) {
+                    snprintf(path, sizeof path, "%s/%s", where[w], mf);
+                    text = read_text(path, &len);
+                    shared = text != NULL;
+                }
+                free(pkg);
+                if (text)
+                    break;
+            }
+            snprintf(path, sizeof path, "%s/pitch%d.tmj", where[w], (int)pitchNumber);
+            text = read_text(path, &len);
+            if (!text) {
+                snprintf(path, sizeof path, "%s/pitch.tmj", where[w]);
+                text = read_text(path, &len);
+                shared = text != NULL;
+            }
+        }
+        for (k = 0; k < Mods_Count() && !text; k++) {   /* (a mod that carries maps of its own) */
+            snprintf(path, sizeof path, "%s/pitchmaps/%s/pitch.tmj", Mods_Dir(k), chosen);
+            text = read_text(path, &len);
+            shared = text != NULL;
+        }
+        if (!text) {
+            fprintf(stderr, "[pitch-map] the pitch map \"%s\" is in none of %s, the mod's pitchmaps/ or an "
+                            "enabled mod's: the game's own pitch\n", chosen, ModApi_DataDir(SLUG));
+            return 0;
+        }
+    } else {
         char rel[160];
         snprintf(rel, sizeof rel, "%s/pitch%d.tmj", dir, (int)pitchNumber);
         swos_data_path(rel, path, (uint32_t)sizeof path);
@@ -220,6 +271,7 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
         char *bslash = strrchr(path, '\\');
         if (bslash && (!slash || bslash > slash))
             slash = bslash;
+        snprintf(mapName, sizeof mapName, "%.127s", slash ? slash + 1 : path);
         snprintf(base, sizeof base, "%.*s", slash ? (int)(slash - path) : 1, slash ? path : ".");
     }
     error[0] = '\0';
@@ -287,6 +339,7 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
         return 0;
     }
     snprintf(s_pm.dir, sizeof s_pm.dir, "%s", dir);
+    snprintf(s_pm.chosen, sizeof s_pm.chosen, "%s", chosen);
     s_pm.pitch = pitchNumber;
 
     /* The layers over the players, and every tileset in true colour for them (their blocks can
@@ -331,7 +384,7 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
     }
     fprintf(stderr, "[pitch-map] pitch %d from %s/%s: %d layers (%d over the players), %d tilesets, "
                     "%d events%s%s\n",
-            (int)pitchNumber, base, shared ? "pitch.tmj" : "its own map", map->layer_count, (int)s_up.count,
+            (int)pitchNumber, base, mapName, map->layer_count, (int)s_up.count,
             map->tileset_count, map->event_count, event >= 0 ? ", layout event " : "",
             event >= 0 ? layout : "");
     return 1;

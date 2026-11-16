@@ -258,10 +258,18 @@ Setup later), falling back to SWOS 2020's CSVs where a manager still has them:
   or `sound_dos/title.xmi` (played on the emulated AdLib, `title_music = midi`; docs/DOS_SOUND.md
   "The CD track"); either needs `[audio] music = pc`.
   `cutscenes_hd`: the PC cutscenes' upscaled pictures (`video_dos/hd/<clip>.mpg`; docs/DOS_VIDEO.md).
-  `pitchmap`: a pitch in the new format -- ONE mod per map, `grafs_dos/pitch.tmj` (all six pitches
-  and every condition) and its images (docs/PITCH_MAPS.md); turning another on turns the last off.
-  One on brings the canonical `pitchmaps` mod on with it (`src/mods.c`, however the pack was
-  installed); it draws with the PC graphics only. The DLC Manager lists them as **Pitch Maps**.
+- **A mod's downloaded data: `<player folder>/moddata/<slug>/`** (`ModApi_DataDir`; the owner,
+  2026-11-16: "Any data downloaded from DLC should go into the user's SWOS data folder", built-in
+  mods included). Not `mods/<slug>/`: a folder there IS a downloaded mod of that name and would
+  hide a canonical one. The first user: **pitch maps** (the DLC Manager's **Pitch Maps**) are not
+  mods but data of the canonical `pitchmaps` mod -- a pack (Tile Agent's own generic "Export As Zip": its
+  `package.json`, the map and its images, a preview) unpacks into
+  `moddata/pitchmaps/<uuid>/`, the uuid being the map's identity (Tile Agent keeps it through every
+  edit; a newer version with the same uuid replaces the folder), and the mod's **Pitch map** setting
+  chooses one, listed by `package.json`'s name (`"choices_ext": "/"` -- a setting whose choices are
+  folders, labelled by the `"label_file"` in each; folders starting with `.` are skipped, a manager's
+  install in progress). The DLC Manager turns `pitchmaps` on and sets `[mod.pitchmaps] map = <uuid>`
+  when a map is turned on. It draws with the PC graphics only.
 - **`"online": false`**: not for online play (an offline-only team database). MULTIPLAYER says
   which mods are on that are not for it and does not start until they are off
   (`Mods_OfflineOnly`, menus.c MultiplayerMenuSelected), rather than a match being refused later.

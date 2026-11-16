@@ -971,6 +971,11 @@ uint8_t  ModApi_NearestColour(uint8_t r, uint8_t g, uint8_t b);                 
 /* ---- the mod's own files ---- */
 /* The folder of the mod of that slug (its mod.json beside), or NULL when it is not on. */
 const char *ModApi_ModDir(const char *slug);
+/* Where a mod's DOWNLOADED data lives, whether the mod is built in or downloaded itself: the
+ * player's folder's moddata/<slug> (a DLC manager installs there; the pitchmaps mod's maps are
+ * moddata/pitchmaps/<uuid>/). One static buffer: copy it. Never inside the game's own folder,
+ * which a player's install may not be able to write. */
+const char *ModApi_DataDir(const char *slug);
 
 /* ---- its settings: SWOS.ini [mod.<slug>] ----
  * Declared in mod.json -- "settings": [{ "key", "label", "choices": ["a", "b"], "default": "a" }]
