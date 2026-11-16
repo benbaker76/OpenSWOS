@@ -11,7 +11,8 @@
  * the jitter the spread of the ping over the last 5-10 s, and why it warns: Jitter (that spread
  * over 3.5 frames), Unfair (3 frames apart for a second) or Rollbacks (22 of the last 100 three
  * frames or more), each held a second. F7 (a hotkey: [mod.netstats] hotkey) cycles WHEN POOR (it
- * pops up while a warning is held; SWOS 2020's default), ALWAYS and NEVER, kept in SWOS.ini.
+ * pops up while a warning is held; SWOS 2020's default), ALWAYS and NEVER, kept in SWOS.ini. SWOS
+ * United's default NEVER: hidden until F7 (Playa, 2026-11-16).
  *
  * Draw-only: it reads the connection (ModApi_NetStats) and draws, never touching the match, and
  * only on frames shown (not GGPO's re-simulations). "changes": "cosmetic".
@@ -47,11 +48,11 @@ static int32_t s_test, s_testDrawn;     /* SWOS_NETSTATS_TEST (below) */
 
 static int32_t show_mode(void)
 {
-    const char *v = ModApi_Setting("netstats", "show", kShow[SHOW_POOR]);
+    const char *v = ModApi_Setting("netstats", "show", kShow[SHOW_NEVER]);
     for (int32_t i = 0; i < 3; i++)
         if (strcmp(v, kShow[i]) == 0)
             return i;
-    return SHOW_POOR;
+    return SHOW_NEVER;
 }
 
 static void netstats_key(void)          /* F7 */

@@ -63,7 +63,7 @@
 #include "custom_team.h"   /* CustomTeam_Allowed: what a team from the other player may be */
 #include "team_proto.h"    /* the server's word on both teams */
 #include "test_rules.h"     /* the host's CARDS/INJURIES switch */
-#include "chat_style.h"     /* SWOS_CHAT_DYNAMIC_FONT */
+#include "chat_style.h"     /* SWOS_LOBBY_CHAT_DYNAMIC_FONT */
 #include "match_chat.h"     /* MatchChat_Clean: what a chat line may hold */
 #include "mod_api.h"        /* ModFriendlyRules: a gameplay mod's rules for a friendly */
 
@@ -179,7 +179,7 @@ static void set_notice(const char *text)
 
 /* ---- the chat ---- */
 
-#if SWOS_CHAT_DYNAMIC_FONT
+#if SWOS_LOBBY_CHAT_DYNAMIC_FONT
 /* A line as the chat font draws it (MatchChat_Clean: no control characters, '?' for what the
  * font lacks, trimmed, at most LOBBY_CHAT_TEXT bytes, cut on a character) -- what we say, and
  * what the other player sends, which is theirs to make up. `len` bounds the input. */

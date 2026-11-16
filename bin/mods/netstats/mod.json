@@ -19,7 +19,7 @@
     "always",
     "never"
    ],
-   "default": "when poor"
+   "default": "never"
   }
  ]
 }

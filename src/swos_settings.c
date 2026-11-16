@@ -371,7 +371,7 @@ static int handler(void *user, const char *section,
             if (v >= 0 && v <= 8) opts->chat_scale = v;
         } else if (eqi(name, "auto_close")) {
             int v = atoi(value);
-            if (v >= 1 && v <= 5) opts->chat_auto_close = v;
+            if (v >= 0 && v <= 5) opts->chat_auto_close = v;
         }
     } else if (eqi(section, "graphics")) {
         int b;
@@ -833,8 +833,8 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
             "; online match Page Up / Page Down change it, and it is kept here.",
             scale };
         SETTING(n) = (IniEntry){ "chat", "auto_close",
-            "; auto_close: 1 .. 5, the seconds the chat box stays after the newest line, then it\n"
-            "; fades (SWOS 2020's AUTO CLOSE CHATBOX).",
+            "; auto_close: 0 .. 5, the seconds the chat box stays after the newest line, then it\n"
+            "; fades (SWOS 2020's AUTO CLOSE CHATBOX); 0: never, it stays until F3 hides it.",
             close };
     }
     /* SWOS 2020's MULTIPLAYER SETTINGS (SWOS 2020 port, agent A; src/match_chat.c) */

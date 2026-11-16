@@ -28,4 +28,12 @@
 #endif
 #endif
 
+/* The LOBBY's chat apart (SWOS United, Playa 2026-11-16: the lobby in the old Sensible Soccer
+ * font, the in-match box as it is): SWOS_LOBBY_CHAT_DYNAMIC_FONT 0 draws the lobby's chat rows and
+ * field in the game's own font (online_menus.c, netplay_lobby.c), whatever the switch above says;
+ * `make SWOS_LOBBY_CHAT_DYNAMIC_FONT=1` the chat font there too, as OpenSWOS. */
+#ifndef SWOS_LOBBY_CHAT_DYNAMIC_FONT
+#define SWOS_LOBBY_CHAT_DYNAMIC_FONT 0
+#endif
+
 #endif
