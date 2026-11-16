@@ -22,7 +22,7 @@ set -euo pipefail
 
 P12=${1:-}
 if [ -z "$P12" ]; then
-    sed -n '2,21p' "$0"
+    sed -n '2,20p' "$0"
     exit 2
 fi
 if [ ! -f "$P12" ]; then
