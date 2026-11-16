@@ -19,6 +19,7 @@
  * own "server not connected" state, from where SETTINGS and RANKINGS open.
  */
 #include "test_rules.h"
+#include "world.h"            /* World_OnlineEnter / _Leave: online is 96/97 */
 #include "online_menus.h"
 #include "conti_view.h"
 #include "dos_mode.h"           /* the gameplay style: OPEN asks it, the lobby shows it */
@@ -179,7 +180,9 @@ void OnlineMenus_Show(const char *name)
         return;
     }
     TestRules_Online(1);        /* test_rules.h: the testers' rule stops at this door */
+    World_OnlineEnter();        /* (online is 96/97, whatever world is played offline: world_online.c) */
     ShowMenu(menu);
+    World_OnlineLeave();
 }
 
 /* ======================================================================
@@ -3104,10 +3107,12 @@ int32_t OnlineMenus_ShowStartMenu(void)
      * Driving the lobby under gdb does not work -- a process stopped at a
      * breakpoint sends no ENET keepalives and the server times it out -- so this
      * is how the real menu gets looked at. */
-    if (s_autoLogin[0]) {
+    const int32_t online = s_autoLogin[0] != 0;
+    if (online) {
         const char *au = getenv("SWOS_MM_AUTO");
         s_mmAuto = (au && !strcmp(au, "host")) ? MM_AUTO_HOST :
                    (au && !strcmp(au, "join")) ? MM_AUTO_JOIN : MM_AUTO_OFF;
+        World_OnlineEnter();        /* (96/97 before the log-in: the server's tag is taken there) */
         MmClient_Connect(mm_host(), mm_port(), s_autoLogin, NULL);
         s_autoLogin[0] = '\0';
     }
@@ -3132,6 +3137,8 @@ int32_t OnlineMenus_ShowStartMenu(void)
     }
     else
         OnlineMenus_Show(name);
+    if (online)
+        World_OnlineLeave();
     return 1;
 }
 

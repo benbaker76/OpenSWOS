@@ -134,6 +134,7 @@ void FrontEndPreLoopSetup(void)
 #ifndef SWOS_SDL_BUILD
     World_ReadFromData();
 #endif
+    World_SnapshotBase();               /* (96/97's tables, for online play: world_online.c) */
     World_InstallBaked();
 #ifndef SWOS_SDL_BUILD
     WorldCups_Install();        /* its cups into the country tables (the SDL: after the JSON's) */
@@ -189,6 +190,7 @@ void FrontEndPreLoopSetup(void)
         exit(0);
     }
 #endif
+    World_SnapshotWorld();              /* (the world's, as every install of the start left them) */
 #else
     /* Amiga: no runtime JSON parse, so install the BAKED Copa Libertadores
        (competition_data_copa_baked.c) here — the analog of the SDL dynamic

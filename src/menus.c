@@ -2833,6 +2833,8 @@ void MultiplayerMenuSelected(void)
     }
 #endif
     OnlineMenus_Init();
+    /* (online is SWOS 96/97 whatever world this game plays offline, the world back after it:
+     *  OnlineMenus_Show, src/world_online.c) */
     OnlineMenus_Show("swos2020/logInMenu");
     /* Coming back re-unpacks the main menu from its packed bytes, where the CONTINUE and
      * SAVE rows (entries 11/12) are visible and LOAD OLD COMPETITION sits below them --

@@ -42,6 +42,14 @@ const char *World_TagOf(WorldId w);          /* NULL for an unknown id */
 int32_t     World_FromTag(const char *tag);  /* the id, or -1 */
 int32_t     World_Set(const char *tag);      /* 0, or -1 (unknown: unchanged) */
 
+/* Online play is 96/97 whatever world the game plays offline (src/world_online.c): 96/97's tables
+ * kept before the world's install and the world's after the start's installs (FrontEndPreLoopSetup),
+ * swapped for the online session (MultiplayerMenuSelected) and back. SDL builds with worlds. */
+void        World_SnapshotBase(void);
+void        World_SnapshotWorld(void);
+void        World_OnlineEnter(void);
+void        World_OnlineLeave(void);
+
 /* The fingerprint of the world's data this build was made with (src/world_data.c; "" none). A
  * world's data is the player's: OpenSWOS Setup installs its package, whose WORLD.ini says which
  * data it is. */

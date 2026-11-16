@@ -12,6 +12,7 @@
 #include "mods.h"
 #include "mod_api.h"     /* ModDef: a mod that keeps a career's state (Mods_NeedsRestart) */
 #include "project_identity.h"   /* PROJECT_STATIC_MODS */
+#include "world.h"              /* a world's mod only while it is played (online: 96/97) */
 
 #include <string.h>
 
@@ -104,8 +105,13 @@ uint32_t Mods_OnlineSignature(char *names, uint32_t cap)
 {
     /* in uuid order, so the order the mods are listed in does not matter */
     int32_t order[MODS_MAX], n = 0;
+    char playedWorld[16];
+    snprintf(playedWorld, sizeof playedWorld, "world%s", World_Tag());
     for (int32_t i = 0; i < s_count; i++)
-        if (s_online[i]) {
+        /* (a world's own mod -- world2627, world8485 -- only while that world is played: online is
+         *  96/97, menus.c MultiplayerMenuSelected, and one player's World 2026-27 package is no
+         *  reason to refuse another without it) */
+        if (s_online[i] && !(strncmp(s_ids[i], "world", 5) == 0 && strcmp(s_ids[i], playedWorld) != 0)) {
             int32_t k = n++;
             while (k > 0 && strcmp(s_uuids[order[k - 1]], s_uuids[i]) > 0) {
                 order[k] = order[k - 1];

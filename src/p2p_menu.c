@@ -16,6 +16,7 @@
  * entirely -- a login, a lobby and a matchmaking server (src/online_menus.c).
  */
 #include "test_rules.h"
+#include "world.h"            /* World_OnlineEnter / _Leave: online is 96/97 */
 #include "p2p_menu.h"
 
 #ifdef SWOS_SDL_BUILD
@@ -349,7 +350,9 @@ void P2PMenu_Show(void)
         return;
     }
     TestRules_Online(1);        /* test_rules.h: the testers' rule stops at this door */
+    World_OnlineEnter();        /* (online is 96/97, whatever world is played offline: world_online.c) */
     ShowMenu(menu);
+    World_OnlineLeave();
 }
 
 #endif /* SWOS_SDL_BUILD */
