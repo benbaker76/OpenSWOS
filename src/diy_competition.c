@@ -9161,18 +9161,46 @@ extern const char *_divisionStringTable[];
 extern const char _aCup_0[];
 extern const char _aLeague_1[];
 
-/* Helper: check if record pointer is in the european cups / national team list.
- * If found, clear the field at offset 0x3C in the competition buffer. */
+/* A continental or international contest: its suspensions on their own track (bits 2-4 of
+ * cardsInjuries, substitutesCount 0), never the domestic one's (bits 0-1: the leagues, cups,
+ * play-offs and national Super Cups) -- a red card in one never sits out a match of the other.
+ *   - the original's list: the European cups, the national teams' contests and qualifiers,
+ *     the invitation tournament, the tour, the friendlies. Until 2026-11-15 it was walked as
+ *     uint32_t over a pointer array: on the 64-bit builds no record ever matched (a half pointer),
+ *     so a European cup's red card kept the player out of the next league match and the other
+ *     way round (Playa) -- the Amiga, 32-bit, always had it right;
+ *   - a world's continental contests, records of their own the list never had: the Copa
+ *     Libertadores, the UEFA qualifying ties, the other confederations' ties and main rounds
+ *     (the Recopa and the Intercontinental among them: conti_season.c), the UEFA Super Cup
+ *     (a national Super Cup is domestic: world_supercup.c). */
+static int32_t continental_record(const uint8_t *record)
+{
+    for (void **p = _europeanCupsandNationalTeamCompetitionsAndQualifications;
+         *p != (void *)(uintptr_t)0xFFFFFFFFu; p++)
+        if ((const uint8_t *)*p == record)
+            return 1;
+    switch (comp_id(record)) {
+    case COMPID_copaLibertadores:
+    case COMPID_uefaTieChampionsLeague:
+    case COMPID_uefaTieEuropaLeague:
+    case COMPID_uefaTieConferenceLeague:
+    case COMPID_contiTie:
+    case COMPID_contiMain:
+        return 1;
+    case COMPID_worldSuperCup:
+        return SuperCup_UefaTie();
+    default:
+        return 0;
+    }
+}
+
 static void checkEuropeanCupsAndClear3C(uint8_t *record, uint8_t *comp)
 {
-    uint32_t *p = (uint32_t *)_europeanCupsandNationalTeamCompetitionsAndQualifications;
-    while (*p != 0xFFFFFFFF) {
-        if (*p == (uintptr_t)record) {
-            ((DIYCompetition *)comp)->substitutesCount = 0;  /* 0x3C */
-            return;
-        }
-        p++;
-    }
+    if (record && continental_record(record))
+        ((DIYCompetition *)comp)->substitutesCount = 0;  /* 0x3C */
+    SWOS_DBG("[cards] %s (id %u): the %s suspensions\n", (const char *)((DIYCompetition *)comp)->competitionName,
+             record ? (unsigned)comp_id(record) : 0u,
+             ((DIYCompetition *)comp)->substitutesCount ? "domestic" : "continental");
 }
 
 /* Helper: if not a national team competition, prepend country name + space to dst.

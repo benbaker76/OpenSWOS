@@ -111,10 +111,13 @@ void SuperCup_Step(uint16_t week);
 /* A tie decided (diy_competition.c): the career club's Super Cup tie's? */
 void SuperCup_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won);
 
+/* The tie built is the UEFA Super Cup's (a continental contest: its own suspensions, diy_competition.c). */
+int32_t SuperCup_UefaTie(void);
+
 /* Slot 4: 2 the career club's Super Cup tie still to play, 1 decided (it gives way), 0 not ours. */
 int32_t SuperCup_InSlot4(void);
 
-/* A load: the tie under way back into slot 4. */
+/* A load: the tie under way back into slot 4 -- or one decided this season, if the slot is free. */
 void SuperCup_RestoreSlot(void);
 
 /* The round's name (_cupRoundStringTable index), -1: not ours. */

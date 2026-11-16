@@ -441,14 +441,44 @@ void SuperCup_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won)
     s->winner = winner;
 }
 
+int32_t SuperCup_UefaTie(void)
+{
+    return g_worldSuperCup.built == 2;
+}
+
 int32_t SuperCup_InSlot4(void)
 {
     return _diyCompetitionPtr == (uint8_t *)&s_rec ? (g_worldSuperCup.built ? 2 : 1) : 0;
 }
 
+/* The Super Cup of a tie decided this season (built 0), whose calendar entries are still there: the
+ * UEFA one's when its winner is one of the tie's two clubs, else the national one's. */
+static const WorldSuperCup *decided_cup(void)
+{
+    const WorldSuperCupState *s = &g_worldSuperCup;
+    int32_t n = 0;
+    const WorldSuperCup *t = table(&n);
+    if (!t || !s->teamA || !s->teamB)
+        return 0;
+    const int32_t ue = entry_of(WORLD_SUPERCUP_UEFA);
+    if (ue >= 0 && ue < n && s->uSeason == this_season() && s->uState == 3 &&
+        (s->uWinner == s->teamA || s->uWinner == s->teamB))
+        return &t[ue];
+    if (s->season == this_season() && s->entry < n)
+        return &t[s->entry];
+    return 0;
+}
+
 void SuperCup_RestoreSlot(void)
 {
     const WorldSuperCup *sc = g_worldSuperCup.built ? built_cup() : 0;
+    /* A tie decided this season stays in slot 4 until another contest takes it (in play the slot
+     * keeps it: SuperCup_InSlot4 1, it gives way) -- its played game in the season's list is drawn
+     * from it. A load left the slot empty and the list's header read NULL: a career saved after
+     * winning the DFL-Supercup crashed on LOAD (Playa's BAYERN 2.CAR, 2026-11-15). Only when no
+     * play-off or Coppa D tie took the slot first (career_init.c, before this). */
+    if (!sc && !_diyCompetitionPtr)
+        sc = decided_cup();
     if (!sc)
         return;
     make_record(sc);
