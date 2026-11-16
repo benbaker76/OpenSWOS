@@ -257,6 +257,11 @@ Setup later), falling back to SWOS 2020's CSVs where a manager still has them:
   A `title_music` mod brings `sound_dos/title.mp3` (the CD-style song, `[audio] title_music = mp3`)
   or `sound_dos/title.xmi` (played on the emulated AdLib, `title_music = midi`; docs/DOS_SOUND.md
   "The CD track"); either needs `[audio] music = pc`.
+  `cutscenes_hd`: the PC cutscenes' upscaled pictures (`video_dos/hd/<clip>.mpg`; docs/DOS_VIDEO.md).
+  `pitchmap`: a pitch in the new format -- ONE mod per map, `grafs_dos/pitch.tmj` (all six pitches
+  and every condition) and its images (docs/PITCH_MAPS.md); turning another on turns the last off.
+  One on brings the canonical `pitchmaps` mod on with it (`src/mods.c`, however the pack was
+  installed); it draws with the PC graphics only. The DLC Manager lists them as **Pitch Maps**.
 - **`"online": false`**: not for online play (an offline-only team database). MULTIPLAYER says
   which mods are on that are not for it and does not start until they are off
   (`Mods_OfflineOnly`, menus.c MultiplayerMenuSelected), rather than a match being refused later.
