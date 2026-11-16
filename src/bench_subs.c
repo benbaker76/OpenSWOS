@@ -2494,6 +2494,10 @@ draw_name:
         uint16_t nameX = _subsMenuX - Render_CameraX() + 9;
         if (_useIndividualPlayerSkinColor != 0)
             nameX += 9;
+        /* a two-digit shirt number (centred where one digit was) ran into the name: "23S. BOEY"
+         * (Playa's fix in SWOS United, 2026-11-14) -- the name a gap further on */
+        if ((uint8_t)pi->shirtNumber >= 10 && (uint8_t)pi->shirtNumber < 100)
+            nameX += 4;
         DrawMenuText(nameX, y, 2, (uint8_t *)pi->shortName, charsTable);
     }
 
@@ -2840,7 +2844,7 @@ static void drawOpponentList(void)
             num[k++] = (uint8_t)('0' + n % 10);
             num[k] = 0;
             DrawMenuTextCentered((uint16_t)(x0 + 4), (uint16_t)(y + 1), 2, num, chars);
-            DrawMenuText((uint16_t)(x0 + 9), (uint16_t)(y + 1), 2, (uint8_t *)pi->shortName, chars);
+            DrawMenuText((uint16_t)(x0 + (n >= 10 ? 13 : 9)), (uint16_t)(y + 1), 2, (uint8_t *)pi->shortName, chars);
             DrawMenuTextCentered((uint16_t)(x0 + 116), (uint16_t)(y + 1), 2,
                                  (uint8_t *)_playerPositionsStringTable[(uint16_t)(int16_t)(int8_t)pi->position], chars);
             y += 10;

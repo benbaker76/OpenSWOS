@@ -560,6 +560,17 @@ void Mods_Init(const char *enabled, const char *disabled)
             snprintf(dir, sizeof dir, "%s/%s", MODS_CANONICAL_DIR, s_canon[c].id);
             load_one(s_canon[c].id, dir, 1);
         }
+    /* A pitch map pack (DLC, slot "pitchmap": docs/MODS.md, docs/PITCH_MAPS.md) is drawn by the
+     * canonical pitchmaps mod: one on brings it on, however the pack was installed (a manager, the
+     * setup, by hand) -- it is cosmetic, so a rig takes it too. */
+    if (!known("pitchmaps"))
+        for (int32_t i = 0; i < s_count; i++)
+            if (strcmp(s_slots[i], "pitchmap") == 0) {
+                fprintf(stderr, "[mods] %s is a pitch map: pitchmaps on with it\n", s_ids[i]);
+                snprintf(dir, sizeof dir, "%s/%s", MODS_CANONICAL_DIR, "pitchmaps");
+                load_one("pitchmaps", dir, 1);
+                break;
+            }
     {
         char x[MODS_ID_MAX];
         int st;
