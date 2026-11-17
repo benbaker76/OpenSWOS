@@ -14,20 +14,19 @@ extern void AbortSelected(void);
 extern void AcceptJobOffer(void);
 extern void AcceptOffer(void);
 extern void AskForMore(void);
+extern void BTeamSquadButton(void);
 extern void BuyOtherDomesticPlayer(void);
 extern void BuyOtherForeignPlayer(void);
 extern void BuyOtherPlayersAfterDrawCommon(void);
 extern void BuyOtherPlayersCommon(void);
 extern void BuyOtherPlayersFinish(void);
 extern void BuyOtherPlayersInit(void);
+extern void BuyOtherPlayersPage(void);
+extern void BuyPlayerCpuReplacements(void);
 extern void BuyPlayerExit(void);
 extern void BuyPlayerInit(void);
 extern void BuyPlayerMenu(void);
 extern void BuyPlayerModRow(void);
-extern void BuyPlayerCpuReplacements(void);
-extern void BuyOtherPlayersPage(void);
-extern void ViewSquadPage(void);
-extern void BTeamSquadButton(void);
 extern void BuyPlayerViewSquad(void);
 extern void CareerGameListCommon(void);
 extern void CareerMenu(void);
@@ -35,6 +34,7 @@ extern void CareerMenuFinish(void);
 extern void CareerMenuInit(void);
 extern void CareerOverFinish(void);
 extern void CareerOverInit(void);
+extern void CareerYearsToggle(void);
 extern void ChairmanMemosContinue(void);
 extern void ChairmanMemosInit(void);
 extern void ChairmanMemosOnReturn(void);
@@ -62,10 +62,10 @@ extern void ChooseTeamsInit(void);
 extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
 extern void ChooseTeamsPlayMatchSelected(void);
-extern void ClubBusinessInit(void);
 extern void ClubBusinessFfpSwitch(void);
-extern void ClubBusinessUefaPrizesSwitch(void);
+extern void ClubBusinessInit(void);
 extern void ClubBusinessMenu(void);
+extern void ClubBusinessUefaPrizesSwitch(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
 extern void CompetitionInfo(void);
@@ -244,6 +244,7 @@ extern void LoadHighlightsMenu(void);
 extern void LoadLiverpool(void);
 extern void LoadOldCompetitionMenu(void);
 extern void LoadTactics(void);
+extern void MainMenuWorld(void);
 extern void ManagementArrowDownSelect(void);
 extern void ManagementArrowUpSelect(void);
 extern void ManagementRecordInit(void);
@@ -251,7 +252,6 @@ extern void ManagementRecordMenu(void);
 extern void MaxSubstitutes(void);
 extern void MinSubstitutes(void);
 extern void ModesMenuSelected(void);
-extern void MainMenuWorld(void);
 extern void MultiplayerMenuSelected(void);
 extern void NationalTeamAddPlayer(void);
 extern void NationalTeamAddPlayerAbroadOnSelect(void);
@@ -406,6 +406,7 @@ extern void ViewSquadCommon(void);
 extern void ViewSquadExitContinue(void);
 extern void ViewSquadInit(void);
 extern void ViewSquadOnSelect21(void);
+extern void ViewSquadPage(void);
 extern void ViewWorldMenu(void);
 extern void locret_139AE2(void);
 
@@ -440,6 +441,7 @@ extern char _aBuyOtherDomest[];
 extern char _aBuyOtherForeig[];
 extern char _aBuyPlayer[];
 extern char _aCareerTotal[];
+extern char _aCareerYears[];
 extern char _aCareer_1[];
 extern char _aChooseTeam[];
 extern char _aChooseTeams[];
@@ -616,6 +618,7 @@ extern char _asc_131FF2[];
 extern char _asc_135D96[];
 extern char* _autoReplaysStrTable[];
 extern char* _autoSaveHlStrTable[];
+extern char _careerYearsText[];
 extern char* _diyAwayGoalsStrTab[];
 extern DIYCompetitionEx _diyCompetitionStart;
 extern char* _diyCupAwayGoalsStringTable[];
@@ -739,6 +742,7 @@ const MenuSymbol _menuSymbols[] = {
     { "CareerMenuInit", (void*)CareerMenuInit, SYM_FUNC },
     { "CareerOverFinish", (void*)CareerOverFinish, SYM_FUNC },
     { "CareerOverInit", (void*)CareerOverInit, SYM_FUNC },
+    { "CareerYearsToggle", (void*)CareerYearsToggle, SYM_FUNC },
     { "ChairmanMemosContinue", (void*)ChairmanMemosContinue, SYM_FUNC },
     { "ChairmanMemosInit", (void*)ChairmanMemosInit, SYM_FUNC },
     { "ChairmanMemosOnReturn", (void*)ChairmanMemosOnReturn, SYM_FUNC },
@@ -1142,6 +1146,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_aBuyOtherForeig", (void*)_aBuyOtherForeig, SYM_STRING },
     { "_aBuyPlayer", (void*)_aBuyPlayer, SYM_STRING },
     { "_aCareerTotal", (void*)_aCareerTotal, SYM_STRING },
+    { "_aCareerYears", (void*)_aCareerYears, SYM_STRING },
     { "_aCareer_1", (void*)_aCareer_1, SYM_STRING },
     { "_aChooseTeam", (void*)_aChooseTeam, SYM_STRING },
     { "_aChooseTeams", (void*)_aChooseTeams, SYM_STRING },
@@ -1318,6 +1323,7 @@ const MenuSymbol _menuSymbols[] = {
     { "_asc_135D96", (void*)_asc_135D96, SYM_STRING },
     { "_autoReplaysStrTable", (void*)_autoReplaysStrTable, SYM_TABLE },
     { "_autoSaveHlStrTable", (void*)_autoSaveHlStrTable, SYM_TABLE },
+    { "_careerYearsText", (void*)_careerYearsText, SYM_BUFFER },
     { "_diyAwayGoalsStrTab", (void*)_diyAwayGoalsStrTab, SYM_TABLE },
     { "_diyCompetitionStart.base.competitionName", (void*)_diyCompetitionStart.base.competitionName, SYM_BUFFER },
     { "_diyCupAwayGoalsStringTable", (void*)_diyCupAwayGoalsStringTable, SYM_TABLE },

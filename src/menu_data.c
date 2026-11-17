@@ -94,6 +94,7 @@ extern void ClubBusinessUefaPrizesSwitch(void);
 extern void ClubBusinessMenu(void);
 extern void ClubTeams(void);
 extern void CoachOrPlayerCoach(void);
+extern void CareerYearsToggle(void);
 extern void CompetitionInfo(void);
 extern void CompetitionStatsInit(void);
 extern void CompetitionStatsWinners(void);
@@ -580,6 +581,7 @@ extern char _aSkills[];
 extern char _aSquad[];
 extern char _aStar[];
 extern char _aStartCareerAs[];
+extern char _aCareerYears[];
 extern char _aStatistics[];
 extern char _aStats[];
 extern char _aSubstitutes[];
@@ -705,6 +707,7 @@ extern char* _skillFilterStringTable[];
 /* ---- External data (char type for pointer compatibility) ---- */
 extern char _managerNameBuffer[];
 extern char _managerSexBuffer[];
+extern char _careerYearsText[];
 extern char _managerSurnameBuffer[];
 extern char _offsetCoachOrPlayer[];
 extern char _saveFileTitle[];
@@ -5287,7 +5290,7 @@ Menu_Career _careerMenu = {
     },
     {
         { -102, 105, 120, 11 },
-        { MENU_CMD_NAV, -1, -1, 7, 10 },
+        { MENU_CMD_NAV, -1, -1, 7, 13 },
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_STRING_TABLE, 0x0, _offsetCoachOrPlayer },
         { MENU_CMD_ONSELECT_FIRE, CoachOrPlayerCoach },
@@ -5295,7 +5298,7 @@ Menu_Career _careerMenu = {
     },
     {
         { 102, -91, 100, 15 },
-        { MENU_CMD_NAV, -1, -1, 9, 11 },
+        { MENU_CMD_NAV, -1, -1, 13, 11 },
         { MENU_CMD_COLORS, 0xE },
         { MENU_CMD_TEXT_PTR, 0x0, _aChooseTeam },
         { MENU_CMD_ONSELECT_FIRE, ChooseTeamAndStartCareer },
@@ -5307,6 +5310,20 @@ Menu_Career _careerMenu = {
         { MENU_CMD_COLORS, 0xC },
         { MENU_CMD_TEXT_PTR, 0x0, _aExit },
         { MENU_CMD_ONSELECT_FIRE, SetExitMenuFlag },
+        MENU_CMD_END
+    },
+    {
+        { 30, 125, 120, 11 },
+        { MENU_CMD_COLORS, 0x9 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aCareerYears },
+        MENU_CMD_END
+    },
+    {
+        { -102, 125, 40, 11 },
+        { MENU_CMD_NAV, -1, -1, 9, 10 },
+        { MENU_CMD_COLORS, 0xB },
+        { MENU_CMD_TEXT_PTR, 0x0, _careerYearsText },
+        { MENU_CMD_ONSELECT_FIRE, CareerYearsToggle },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

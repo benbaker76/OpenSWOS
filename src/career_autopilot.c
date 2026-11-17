@@ -213,7 +213,9 @@ static int32_t hub_path(const Menu *menu)
         _careerTeam.team.teamControls = 2;              /*  runs: its match shows the stadium screen) */
     if (stage == 0) {
         const char *from = getenv("SWOS_GOLDEN_SHOT_FROM"), *pass = getenv("SWOS_GOLDEN_HUB_PASS");
-        if (menu->onInit != ContestMenuInit || s_hubs < (from ? atoi(from) : 0) ||
+        /* (SWOS_GOLDEN_HUB_END=1: from the season-end hub instead -- its VIEW COMPETITIONS) */
+        const int32_t atEnd = getenv("SWOS_GOLDEN_HUB_END") != NULL;
+        if (menu->onInit != (atEnd ? CareerOverInit : ContestMenuInit) || s_hubs < (from ? atoi(from) : 0) ||
             ++passes < (pass ? atoi(pass) : 1))
             return 0;
         stage = 1;

@@ -1273,6 +1273,11 @@ typedef struct Menu_Career
   MenuEntry_Byte_Nav_Colors_StringTable_OnSelect entry9;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry10;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect entry11;
+  /* CAREER YEARS: 20 / 30 / 40 seasons (CareerYearsToggle, include/career_params.h num_seasons).
+   * SDL only -- hidden on the Amiga, whose careers stay 20 seasons; appended last so no entry's
+   * number moves (entries 12, 13). */
+  MenuEntry_Byte_Colors_TextPtr careerYearsLabel;
+  MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect careerYears;
   MenuMark markEndMenu;
 } Menu_Career;
 #pragma pack(pop)

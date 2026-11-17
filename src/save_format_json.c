@@ -22,6 +22,7 @@
 #include "mjson.h"
 #include "game_types.h"
 #include "endian_helpers.h"
+#include "career_params.h"     /* "career_years" (CAREER YEARS), the season rows a save writes */
 #include "world.h"             /* "world" in career and competition saves */
 #include "world_finance.h"     /* "uefa_prizes" in a world's career saves */
 #include "cpu_repl.h"          /* "cpu_replacements" in a world's career saves */
@@ -605,8 +606,10 @@ static int16_t json_out_fail_oom(JsonOutBuf *o)
  * SI_* defines but local so we don't drag statistics.c into the
  * include graph. */
 #define SAVE_SI_ENTRY_SIZE       106u
-#define SAVE_SI_ENTRY_COUNT       35u   /* = CAREER_MAX_SEASONS; reader is index-bounded so old
-                                         * 20-entry saves still load (extra rows stay zeroed) */
+#define SAVE_SI_ENTRY_COUNT       35u   /* the rows a save writes at least (a 40-year career: 40,
+                                         * save_si_rows) -- 35 kept so a 20 / 30-year career's save is
+                                         * what it was; the reader reads up to CAREER_MAX_SEASONS, so
+                                         * old 20-entry saves still load (extra rows stay zeroed) */
 #define SAVE_SI_CLUBNO             0u
 #define SAVE_SI_CLUBNAME           2u
 #define SAVE_SI_TROPHYFLAGS       20u
@@ -682,12 +685,18 @@ static void load_string_field(const char *buf, int buflen, const char *path,
  * (row size 122). The on-disk JSON keys are semantic and identical on
  * both targets — a save written on one target loads cleanly on the
  * other. */
+static uint32_t save_si_rows(void)
+{
+    const uint32_t n = _careerParams.num_seasons;
+    return n > SAVE_SI_ENTRY_COUNT ? (n < CAREER_MAX_SEASONS ? n : CAREER_MAX_SEASONS) : SAVE_SI_ENTRY_COUNT;
+}
+
 static void emit_season_informations(mjson_print_fn_t fn, void *fnd)
 {
     const SeasonInformations *arr =
         (const SeasonInformations *)_seasonInformationsArray;
     mjson_printf(fn, fnd, "%Q:[", "season_informations");
-    for (uint32_t i = 0; i < SAVE_SI_ENTRY_COUNT; i++) {
+    for (uint32_t i = 0; i < save_si_rows(); i++) {
         const SeasonInformations *e = &arr[i];
 
         if (i > 0) fn(",", 1, fnd);
@@ -776,7 +785,7 @@ static void load_season_informations(const char *buf, int buflen)
     long num = 0.0;
     int pos = 0, voff, vlen, vt;
     uint32_t i = 0;
-    while (i < SAVE_SI_ENTRY_COUNT &&
+    while (i < CAREER_MAX_SEASONS &&
            (pos = fast_array_next(arr, arr_len, pos,
                                   &voff, &vlen, &vt)) != 0) {
         if (vt != MJSON_TOK_OBJECT) { i++; continue; }
@@ -3753,6 +3762,7 @@ void DataJson_LoadCareerParams(void)
     #undef LDS
     if (_careerParams.num_seasons < 1) _careerParams.num_seasons = 1;
     if (_careerParams.num_seasons > CAREER_MAX_SEASONS) _careerParams.num_seasons = CAREER_MAX_SEASONS;
+    _careerYearsDefault = _careerParams.num_seasons;    /* (a new career's CAREER YEARS) */
     /* A capacity is the original's at least (the screens and the market's rules are laid out for
      * it) and the compiled maximum at most (include/career_capacity.h). */
     #define CLAMP_CAP(f, orig, max) do { \
@@ -7065,6 +7075,11 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      "%Q:%d,\n  ",
                      "primary_country_code", (int)pcc);
     }
+    /* CAREER YEARS (the career screen: 20 / 30 / 40) -- the career's own length. Written only when
+     * not the original's 20, which a save without it is: every save made before stays what it was,
+     * and so does a 20-year career's (the golden career test's). */
+    if (_careerParams.num_seasons != 20)
+        mjson_printf(json_out_emit, &out, "%Q:%d,\n  ", "career_years", (int)_careerParams.num_seasons);
     /* *Copy struct text[2] pointers are template-static — see
      * restore_comp_copy_text_ptrs_from_template — so they're NOT
      * encoded in the save. They get restored from each careerContests
@@ -7989,6 +8004,23 @@ static void apply_semantic_load(const char *src, int src_size)
            (CAREER_MAX_TRANSFER_LIST - CAREER_ORIG_TRANSFER_LIST) * sizeof(uint16_t));
     load_scalar_table(src, src_size, "career_scalars", s_career_scalars);
     PROF_END(scalars, "career-load");
+
+    /* CAREER YEARS: the career's own length (20 when the save does not say: all saves before it,
+     * and every 20-year career). Never shorter than the season it is in: a save from when the
+     * length was career_params.json's alone, played past its 20th season, would otherwise never
+     * reach its last (the checks are ==) -- and the transfer quota divides by what is left. */
+    {
+        long v = 20;
+        if (mjson_get_long(src, src_size, "$.career_years", &v) <= 0)
+            v = 20;
+        if (v < 1)
+            v = 1;
+        if (v <= (long)_currentSeasonShowing)
+            v = (long)_currentSeasonShowing + 1;
+        if (v > CAREER_MAX_SEASONS)
+            v = CAREER_MAX_SEASONS;
+        _careerParams.num_seasons = (uint16_t)v;
+    }
 
     /* Re-lay teamSelectionKeyCache strides host-native AFTER the cache blob
      * + its count loaded (both via load_scalar_table). Fixes the +2 uint16

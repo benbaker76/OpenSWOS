@@ -30,7 +30,7 @@
  *
  * Audited: all access is bounded row-addressing — seasonInformationsArray + off
  * (job_offers / statistics) and ((SeasonInformations *)…)[currentSeasonNumber]
- * (currentSeasonNumber < CAREER_MAX_SEASONS = 35, bounded by currentSeasonShowing) —
+ * (currentSeasonNumber < CAREER_MAX_SEASONS = 40, bounded by currentSeasonShowing) —
  * nothing walks past the array into
  * lastFinancialWeekIndex. Pure C (was an __asm__ .skip block; converted for the
  * WASM target, which rejects asm-defined data symbols — docs/WASM.md §4b).
@@ -43,11 +43,12 @@
 #include "swos_types.h"
 #include "swos_platform.h"
 #include "game_types.h"   /* SeasonInformations — for the size lock below */
+#include "career_params.h"   /* CAREER_MAX_SEASONS */
 
-/* CAREER_MAX_SEASONS (35) seasons of history; num_seasons (career_params) selects 20 or 35
- * at runtime. The array is sized to the max. */
-_Static_assert(sizeof(SeasonInformations) * 35 ==
-               (UINTPTR_MAX != 0xFFFFFFFFu ? 4270u : 3710u),
-               "seasonInformationsArray must equal 35 * sizeof(SeasonInformations) (CAREER_MAX_SEASONS)");
+/* CAREER_MAX_SEASONS (40) seasons of history; num_seasons (career_params: CAREER YEARS, 20 / 30
+ * / 40) is the career's. The array is sized to the max. */
+_Static_assert(sizeof(SeasonInformations) * CAREER_MAX_SEASONS ==
+               (UINTPTR_MAX != 0xFFFFFFFFu ? 122u * 40u : 106u * 40u),
+               "seasonInformationsArray must equal 40 * sizeof(SeasonInformations) (CAREER_MAX_SEASONS)");
 
-SeasonInformations _seasonInformationsArray[35];
+SeasonInformations _seasonInformationsArray[CAREER_MAX_SEASONS];

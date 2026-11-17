@@ -27,6 +27,7 @@
     "CareerMenuInit",
     "CareerOverFinish",
     "CareerOverInit",
+    "CareerYearsToggle",
     "ChairmanMemosContinue",
     "ChairmanMemosInit",
     "ChairmanMemosOnReturn",
@@ -433,6 +434,7 @@
     "_aBuyOtherForeig",
     "_aBuyPlayer",
     "_aCareerTotal",
+    "_aCareerYears",
     "_aCareer_1",
     "_aChooseTeam",
     "_aChooseTeams",
@@ -695,6 +697,7 @@
     "_editTeamsSocks"
   ],
   "buffers": [
+    "_careerYearsText",
     "_diyCompetitionStart.base.competitionName",
     "_diyFileBufferCopy.header.competitionName",
     "_managerNameBuffer",

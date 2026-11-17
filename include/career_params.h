@@ -7,8 +7,9 @@
 #include "career_capacity.h"   /* CAREER_ORIG_* / CAREER_MAX_*: the list capacities below */
 
 /* Hard ceiling on career length = the compile-time size of seasonInformationsArray.
- * num_seasons (below) must be <= this. */
-#define CAREER_MAX_SEASONS 35
+ * num_seasons (below) must be <= this. 40: CAREER YEARS' longest (20 / 30 / 40 on the career
+ * screen, Playa 2026-11-16; it was 35, the data knob's). */
+#define CAREER_MAX_SEASONS 40
 
 /* Tunable career-mode balance knobs.
  *
@@ -101,8 +102,10 @@ typedef struct {
     uint16_t job_offer_abroad_chance;    /* 0    [128] in 256, a club offer looked for abroad first */
 
     /* ---- Career length ---- */
-    uint16_t num_seasons;                /* 20 (default) or up to CAREER_MAX_SEASONS (35) — the
-                                          * career retires after this many seasons */
+    uint16_t num_seasons;                /* the career being played's: 20 (the original's), 30 or 40
+                                          * -- CAREER YEARS on the career screen, saved with the
+                                          * career (save_format_json.c career_years); at most
+                                          * CAREER_MAX_SEASONS. The career retires after this many. */
 
     /* ---- List capacities (include/career_capacity.h): default = the original's, at most
      * CAREER_MAX_* (the original's on the Amiga). Bounds read these, never the array size. ---- */
@@ -118,6 +121,10 @@ typedef struct {
 } CareerParams;
 
 extern CareerParams _careerParams;
+
+/* A new career's length before CAREER YEARS is touched: career_params.json's num_seasons (20 when
+ * it says nothing) -- kept apart from _careerParams.num_seasons, which a loaded career sets. */
+extern uint16_t _careerYearsDefault;
 
 /* 1 when any list capacity is above the original's: the code that only a bigger list can reach
  * (GetRemainingOfferSwapSlots' underflow, the extra screen rows) checks this, so stock play is

@@ -253,6 +253,41 @@ void CoachOrPlayerCoach(MenuEntry *entry)
 }
 
 /* ================================================================
+ * CAREER YEARS (SWOS United, Playa 2026-11-16): the new career's length, 20 (the original's)
+ * / 30 / 40 seasons -- _careerParams.num_seasons, which the retirement, the season counter
+ * and the transfer quota read, and the career save keeps (career_years). Entries 12 (the grey
+ * label) and 13 (the blue toggle) of the career menu, under START CAREER AS; SDL only (the
+ * Amiga's careers stay 20: CareerMenuFinish hides them there). A new career starts on
+ * _careerYearsDefault (CareerMenuInit), never on the length of a career loaded before.
+ * ================================================================ */
+char _aCareerYears[] = "CAREER YEARS";
+char _careerYearsText[4];
+
+void CareerYears_SetField(void)
+{
+    const uint16_t n = _careerParams.num_seasons;
+    _careerYearsText[0] = (char)('0' + (n / 10) % 10);
+    _careerYearsText[1] = (char)('0' + n % 10);
+    _careerYearsText[2] = '\0';
+}
+
+/* fire: 20 -> 30 -> 40 -> 20 (from career_params.json's own length: the next of them above it) */
+__attribute__((used, externally_visible))
+void CareerYearsToggle(MenuEntry *entry)
+{
+    static const uint16_t kYears[3] = { 20, 30, 40 };
+    uint16_t next = kYears[0];
+    for (int32_t i = 0; i < 3; i++)
+        if (kYears[i] > _careerParams.num_seasons) {
+            next = kYears[i];
+            break;
+        }
+    _careerParams.num_seasons = next;
+    CareerYears_SetField();
+    CallDrawMenuItem(entry);
+}
+
+/* ================================================================
  * Chunk 148: ChooseTeamAndStartCareer, LoadLiverpool
  * ================================================================ */
 
@@ -1269,7 +1304,7 @@ void InitializeNewSeason(void)
         uint16_t regionIdx = (uint8_t)(_selTeamNumber >> 8);  /* move.b — high byte = country */
         int16_t regionOffset = (int16_t)(int8_t)regionIdx - 80;
         uint8_t *flagsArray = (uint8_t *)regionTable[regionOffset];
-        _someTeamFlags = flagsArray[_currentSeasonShowing % 20];  /* flags = fixed 20-entry period-4 euro-cup rotation; wraps for 35-season careers */
+        _someTeamFlags = flagsArray[_currentSeasonShowing % 20];  /* flags = fixed 20-entry period-4 euro-cup rotation; wraps for 30- and 40-season careers */
 
 #ifdef SWOS_INJECT_WC
         /* DEBUG (SWOS_INJECT_WC, opt-in via `make SWOS_INJECT_WC=1`): force a
@@ -1298,13 +1333,13 @@ void InitializeNewSeason(void)
          * 4-year cycle across the fixed 20-season national scheduling period.
          * The original asm indexed seasonCycleNationalFlags[(season>>2)*2] with
          * NO wrap because careers were capped at 20 seasons (cycle 0..4, in
-         * bounds). num_seasons now runs to 35, so cycle = season>>2 can reach 8
+         * bounds). num_seasons now runs to 40, so cycle = season>>2 can reach 9
          * and must wrap into the 5 entries — otherwise it reads
-         * seasonCycleNationalFlags[5..8] out of bounds and feeds garbage
+         * seasonCycleNationalFlags[5..9] out of bounds and feeds garbage
          * World-Cup / Euro-Championship qualifier ids into the group fill.
-         * cycle is <= 8 (CAREER_MAX_SEASONS caps season at 34), so a single
+         * cycle is <= 9 (CAREER_MAX_SEASONS caps season at 39), so a single
          * conditional subtract does the wrap — no `% 5` divide (slow on 68k). */
-        uint16_t cycle = _currentSeasonShowing >> 2;   /* 4-year cycle number, 0..8 */
+        uint16_t cycle = _currentSeasonShowing >> 2;   /* 4-year cycle number, 0..9 */
         if (cycle >= 5)
             cycle -= 5;                                 /* wrap into the 5-cycle period */
         _worldCupQualifyingTeam = _seasonCycleNationalFlagsA[cycle];
@@ -2119,7 +2154,14 @@ void Career_ViewOrEditCompetitionSlot(uint8_t *comp, uint16_t sel)
 found_slot:
     Career_LoadCompetitionSlotStateFromBuffer(slotCtx);
     {
-        uint8_t compType = slotCtx[1];
+        /* The slot's type is its first WORD (DIYCompetition.competitionType, native-endian here:
+         * Career_LoadCompetitionSlotStateFromBuffer reads it so). The asm's `cmpi.b #1,1(a0)` is that
+         * word's low byte on the big-endian Amiga; a byte read of slotCtx[1] is its HIGH byte on a
+         * little-endian host -- always 0, so every slot opened here (VIEW WORLD's European cup the
+         * career club plays: a league-type copy) was shown as a tournament, and its standings read
+         * through a tournament's offsets crashed the sort (Playa, 2026-11-16, VIEW WORLD -> EUROPE ->
+         * UEFA CHAMPIONS LEAGUE). */
+        const int16_t compType = ((const DIYCompetition *)slotCtx)->competitionType;
         if (compType == 1) {
             ShowDIYCupMenuWithParams(1, 1, 0);
         } else if (compType == 2) {

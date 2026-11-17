@@ -5571,6 +5571,18 @@ void CareerMenuFinish(void)
 
     CheckSex();
     SetPlayerCoachFieldColor();
+    {   /* CAREER YEARS (12/13, career_init.c CareerYearsToggle): SDL only -- hidden on the Amiga,
+         * its careers 20 seasons, START CAREER AS straight to CHOOSE TEAM again */
+        extern void CareerYears_SetField(void);
+        CareerYears_SetField();
+#ifndef SWOS_SDL_BUILD
+        _menuEntries[12].isInvisible = 1;
+        _menuEntries[13].isInvisible = 1;
+        _menuEntries[9].downEntry = 10;
+        _menuEntries[10].upEntry = 9;
+        _careerParams.num_seasons = 20;
+#endif
+    }
 
     /* Find nationalityOrdinal for the current plNationality (one the world's list has not:
      * OTHER, the last) */
@@ -5599,6 +5611,8 @@ __attribute__((used, externally_visible))
 void CareerMenuInit(void)
 {
     SetDefaultNameAndSurname();
+    /* (a new career's length: career_params.json's, not a career loaded before it) */
+    _careerParams.num_seasons = _careerYearsDefault;
     CareerMenuFinish();
 }
 

@@ -66,6 +66,16 @@ rather than a hardcoded record.
 Career mode currently runs a **fixed 20 seasons** then forces retirement. Make the
 length a **setting** (default 20; allow e.g. 35).
 
+> **CAREER YEARS (SWOS United, 2026-11-17):** the length is now the player's, per career: a grey
+> CAREER YEARS row under START CAREER AS on the career screen, its blue toggle 20 / 30 / 40
+> (`CareerYearsToggle`, career_init.c; entries 12 / 13 of `careerMenu`, appended; SDL only -- hidden
+> on the Amiga, whose careers stay 20). A new career starts on `career_params.json`'s `num_seasons`
+> (`_careerYearsDefault`), never on a loaded career's. The career save keeps it (`career_years`,
+> written only when not 20, so every 20-year save is what it was; a save without it is 20, and one
+> already past its length is lengthened on load). `CAREER_MAX_SEASONS` is 40; a save writes 35 season
+> rows, a 40-year career's 40. Proved: a 40-year career played to its end (season 40, retired) by the
+> career autopilot.
+>
 > **Status: done** (c011c12). `num_seasons` in `bin/data_json/career_params.json`
 > (`_careerParams.num_seasons`, default 20, clamped to `CAREER_MAX_SEASONS` = 35 in
 > `include/career_params.h`) — a data knob, not the `[career] length` INI setting or

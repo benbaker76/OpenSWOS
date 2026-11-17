@@ -54,6 +54,7 @@ static CompetitionCup s_tie;
 static uint16_t s_tieWinner;            /* (the career club's tie decided today: its winner) */
 static uint8_t s_mainTie;               /* (its tie in its cup's game contest decided today: 1 won, 2 lost) */
 static uint8_t s_final;                 /* (the tie in slot 3 is its cup's final: a trophy) */
+static uint8_t s_tieRank, s_tieFifa;    /* (that tie's cup: its rank, FIFA's -- the trophy shown) */
 static uint8_t s_gplace;                /* (a group stage just ended: the career club's place) */
 static uint8_t s_list[64], s_listOk;    /* (and its next stage's list, as the real draw) */
 
@@ -171,6 +172,8 @@ static uint8_t *make_tie(u8 now)
     for (uint32_t i = 0; i < sizeof s_tie; i++)
         z[i] = 0;
     s_final = CT_SEG.round < 8 && cups[CT_SEG.cup].round[CT_SEG.round] == 8;   /* (FINAL) */
+    s_tieRank = cups[CT_SEG.cup].rank;
+    s_tieFifa = cups[CT_SEG.cup].conf == WORLD_CONF_FIFA;
     CompetitionCup *t = &s_tie;
     const uint16_t a = ourId(CT_SEG.club[0]), b = ourId(CT_SEG.club[1]);
     t->header.comp.compId = CONTI_TIE_ID;
@@ -561,6 +564,30 @@ int32_t Conti_TrophyTier(void)
     return _euroCupSlotIndex == CONTI_MAIN_INDEX ? s_rank : -1;
 }
 
+/* The season's trophy for a cup of another confederation won in slot 3 (statistics.c): the trophy
+ * bit to show, -1 none of these. Its cup's rank -- a final won as a tie too, whose bonus is tier 1
+ * (Conti_TrophyTier) but whose trophy is its cup's: 0 the Champions Cup's (bit 2), 1 the Cup
+ * Winners' Cup's (4), 2 the UEFA Cup's (3), as the European cups' indices; FIFA's (the
+ * Intercontinental Cup): the World Cup's (0), the club world title -- a club career's only use of
+ * it (Playa, 2026-11-17). */
+int32_t Conti_TrophyBit(void)
+{
+    int32_t rank, fifa = 0;
+    if (_euroCupSlotIndex == CONTI_TIE_INDEX) {
+        if (!s_final)
+            return -1;
+        rank = s_tieRank;
+        fifa = s_tieFifa;
+    } else if (_euroCupSlotIndex == CONTI_MAIN_INDEX) {
+        int32_t n = 0;
+        const WorldContiCup *cups = World_ContiCups(&n);
+        rank = s_rank;
+        fifa = cups && g_contiMainCup < n && cups[g_contiMainCup].conf == WORLD_CONF_FIFA;
+    } else
+        return -1;
+    return fifa ? 0 : rank == 0 ? 2 : rank == 1 ? 4 : 3;
+}
+
 /* The 96/97 Copa Libertadores gives way to a world's own cups. */
 int32_t Conti_ReplacesCopa(void) { return World_ContiSpec() != 0; }
 
@@ -582,6 +609,7 @@ int32_t Conti_RoundStringIndex(uint8_t compId) { (void)compId; return -1; }
 int32_t Conti_ReplacesCopa(void) { return 0; }
 int32_t Conti_TieIsFinal(void) { return 0; }
 int32_t Conti_TrophyTier(void) { return -1; }
+int32_t Conti_TrophyBit(void) { return -1; }
 uint8_t Conti_WeekNow(void) { return 0; }
 
 #endif /* SWOS_WORLDS */

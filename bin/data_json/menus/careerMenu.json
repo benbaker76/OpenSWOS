@@ -270,7 +270,7 @@
           "left": -1,
           "right": -1,
           "up": 7,
-          "down": 10
+          "down": 13
         },
         {
           "op": "colors",
@@ -301,7 +301,7 @@
           "op": "nav",
           "left": -1,
           "right": -1,
-          "up": 9,
+          "up": 13,
           "down": 11
         },
         {
@@ -349,6 +349,59 @@
         {
           "op": "onselect_fire",
           "func": "SetExitMenuFlag"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 30,
+        "y": 125,
+        "w": 120,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 9
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_aCareerYears"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": -102,
+        "y": 125,
+        "w": 40,
+        "h": 11
+      },
+      "commands": [
+        {
+          "op": "nav",
+          "left": -1,
+          "right": -1,
+          "up": 9,
+          "down": 10
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 11
+        },
+        {
+          "op": "text",
+          "flags": "0x0",
+          "str": "_careerYearsText"
+        },
+        {
+          "op": "onselect_fire",
+          "func": "CareerYearsToggle"
         }
       ]
     }

@@ -67,7 +67,7 @@ CareerParams _careerParams = {
     .job_offer_national_chance = 0,
     .job_offer_abroad_chance = 0,
 
-    /* career length */
+    /* career length (a new career's: CAREER YEARS, _careerYearsDefault) */
     .num_seasons = 20,
 
     /* list capacities: the original's (include/career_capacity.h) */
@@ -79,3 +79,5 @@ CareerParams _careerParams = {
     /* trialists: the caller's availability flag, as the original */
     .trialist_count_mode = 0,
 };
+
+uint16_t _careerYearsDefault = 20;     /* (career_params.json's num_seasons, at start-up) */

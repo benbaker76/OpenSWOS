@@ -1723,6 +1723,40 @@ void Career_FillCurrentSeasonInfo(void)
     if (_minorTrophyBonusActive != 0)   d0 |= (1 << 7);
     if (_leagueTitleBonusActive != 0)   d0 |= (1 << 8);
     if (_wonInvitationTournament != 0)  d0 |= (1 << 9);
+    {   /* A world's Super Cups are played in slot 4 (world_supercup.c), none of the slots the flags
+         * above read: won, they had no trophy (Playa, 2026-11-17). The national one: the trophy of the
+         * original's slot-2 cup (bit 8); the UEFA one, new with the worlds: the continental cup's
+         * (bit 1), which a club career shows for nothing else. */
+        extern const char *SuperCup_RecordLine(int32_t uefa);
+        if (SuperCup_RecordLine(0)) d0 |= (1 << 8);
+        if (SuperCup_RecordLine(1)) d0 |= (1 << 1);
+    }
+    {   /* A title of the league won after it -- a title play-off (an MLS Cup), an Apertura or
+         * Clausura, a group contest (the Poule Scudetto): a league championship, the league's trophy
+         * (the club's division's, as bit 5 / 6 above) -- they had none (world_playoff.c). */
+        extern int32_t WorldPlayoff_TitleWon(void);
+        if (!(d0 & ((1 << 5) | (1 << 6))) && WorldPlayoff_TitleWon())
+            d0 |= _currentDivisionIndex == 0 ? (1 << 5) : (1 << 6);
+    }
+    {   /* A world's European cups (league_phase.c): the second is the Europa League, the UEFA Cup's
+         * successor -- the UEFA Cup's trophy (bit 3); the third, the Conference League, new: the Cup
+         * Winners' Cup's, that cup gone (bit 4). The original's indices gave them the other way
+         * round (Playa, 2026-11-17); trophy only, the bonuses as they were. Their qualifying ties
+         * (4-6) too. */
+        extern uint16_t _euroCupSlotIndex;
+        extern int32_t LeaguePhase_IsCup(uint8_t compId);
+        const uint16_t ei = _euroCupSlotIndex >= 4 && _euroCupSlotIndex <= 6 ? _euroCupSlotIndex - 4 : _euroCupSlotIndex;
+        if ((ei == 1 || ei == 2) && _euroCupSlotIndex <= 6 && LeaguePhase_IsCup(0) &&
+            ((d0 >> 3) & 1) != ((d0 >> 4) & 1))
+            d0 ^= (uint16_t)((1 << 3) | (1 << 4));
+    }
+    {   /* Another confederation's cup won in slot 3: its own cup's trophy -- a final won as a tie
+         * showed the Cup Winners' Cup's whatever the cup (its bonus stays as it is: conti_season.c) */
+        extern int32_t Conti_TrophyBit(void);
+        const int32_t cb = (d0 & ((1 << 2) | (1 << 3) | (1 << 4))) ? Conti_TrophyBit() : -1;
+        if (cb >= 0)
+            d0 = (uint16_t)((d0 & ~((1 << 2) | (1 << 3) | (1 << 4))) | (1 << cb));
+    }
 
     a5->trophyFlags = d0;
 
@@ -1822,8 +1856,14 @@ void Career_FillCurrentSeasonInfo(void)
         }
     }
 
+    /* The slots' lines: their places, where the slot holds its contest. A line a world's title
+     * took (WorldPlayoff_RecordLines: a Super Cup won, a play-off stage -- into the first FREE
+     * line) has no slot behind it and keeps the result it was given: looking the club up in that
+     * empty slot panicked (0x6006) at MANAGEMENT RECORD after a Super Cup was won (Playa,
+     * 2026-11-17: BAYERN's 40-year SEASON38.CAR, INTER.CAR). The original's lines were only ever
+     * its slots'. */
     /* Secondary competition */
-    if (a5->strPtr1 != 0) {
+    if (a5->strPtr1 != 0 && _secondaryCompetitionPtr != 0) {
         d1 = (int16_t)FindTeamInDIY(_selTeamNumber,
                                       (DIYCompetition *)&_competitionContextBuf);
         uint8_t *compDef = _secondaryCompetitionPtr;
@@ -1833,7 +1873,7 @@ void Career_FillCurrentSeasonInfo(void)
     }
 
     /* Tertiary competition */
-    if (a5->strPtr2 != 0) {
+    if (a5->strPtr2 != 0 && _tertiaryCompetitionPtr != 0) {
         d1 = (int16_t)FindTeamInDIY(_selTeamNumber,
                                       (DIYCompetition *)&_tertiaryCompetitionContextBuf);
         uint8_t *compDef = _tertiaryCompetitionPtr;
@@ -1843,7 +1883,7 @@ void Career_FillCurrentSeasonInfo(void)
     }
 
     /* Quaternary competition */
-    if (a5->strPtr3 != 0) {
+    if (a5->strPtr3 != 0 && _quaternaryCompetitionPtr != 0) {
         d1 = (int16_t)FindTeamInDIY(_selTeamNumber,
                                       (DIYCompetition *)&_euroCupsCompetitionContextBuf);
         uint8_t *compDef = _quaternaryCompetitionPtr;
