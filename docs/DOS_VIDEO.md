@@ -76,7 +76,7 @@ when Pillow is a user install). The game plays an upscaled set through MPEG-1 fi
 **As video files** (2026-11-14): `scripts/flic_encode.py <frames> <PC game | sound_dos> <out>
 [--info <extracted frames>] [--clip ...] [--crf N] [--codec h264|h265|av1] [--fps N]` makes one MP4
 a clip from those frames -- or an upscaled copy of them, any size -- with its sound (AAC), timed as
-the game shows it: the first frame faded in over 450 ms, then the sound and a frame every 4/70 s
+the game shows it: the first frame faded in as the PC game fades (~0.9 s), then the sound and a frame every 4/70 s
 (6/70 s), the last frame held until the sound ends, a 225 ms fade out. A 320x200 clip keeps its
 pixels and carries a 5:6 sample aspect (shown 4:3). Needs ffmpeg.
 
@@ -128,7 +128,12 @@ swos.asm `PlayAnimationCommon` / `PlayAnimation`, the `FadeAndPlay*Animation` ar
    `ModApi_CutsceneBlocked` (src/mod_api.c).
 2. The menu fades out (`FadeOutToBlack`); the music and sounds are held where they are.
 3. The first frame is drawn and faded in (`FlipTitle`, `FadeIn`), then the clip's sound starts
-   (`animationSoundFunction` after the first frame's fade).
+   (`animationSoundFunction` after the first frame's fade). **The fade is the PC game's**
+   (`FadeOut`): every colour component one VGA step (of 63) nearer its goal each 70 Hz retrace,
+   so as many retraces as the palette's brightest component has steps -- ~0.9 s for a clip with
+   white in it, darker colours arriving first. Faded out the same way, on the last frame shown.
+   (Until 2026-11-17 a fixed 450 ms in and 225 ms out: the owner found the clips faded too
+   quickly to be seen whole.) An upscaled clip is scaled over the same time.
 4. A frame every `animationDelay + 1` ticks of the VGA's 70 Hz retrace (`menuCycleTimer >
    animationDelay`): 3 for the dressing room and the chairmen (4/70 s, 17.5 frames a second), 5
    for the president (6/70 s). Ours keeps that clock in real time and shows the frame due at

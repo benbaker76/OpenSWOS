@@ -193,6 +193,42 @@ static int32_t show(HdClip *hd, const uint8_t *pixels, const Flic *f, const uint
     return ModApi_CutsceneFrame(pixels, f->width, f->height, pal, level);
 }
 
+/* The PC game's fade (FadeOut, FadeIn = FadeOut towards the clip's palette; FadeOutToBlack):
+ * every colour component one VGA step (of 63) nearer its goal each 70 Hz retrace, so a fade takes
+ * as many retraces as the palette's brightest component has steps -- ~0.9 s for a clip with white
+ * in it, the darker colours arriving first. The original clip is faded that way, colour by colour;
+ * an upscaled one (no palette of its own) is scaled over the same time. Returns 1 when a press cut
+ * a fade-in short. */
+static int32_t fade(HdClip *hd, const uint8_t *pixels, const Flic *f, const uint8_t *pal, int32_t in)
+{
+    uint8_t now[768];
+    int32_t steps = 0;
+    for (int32_t i = 0; i < 768; i++)
+        if (pal[i] >> 2 > steps)
+            steps = pal[i] >> 2;
+    if (steps < 1)
+        steps = 1;
+    const uint32_t t0 = ModApi_Ticks();
+    for (;;) {
+        int32_t k = (int32_t)((ModApi_Ticks() - t0) * 70u / 1000u);   /* retraces so far */
+        if (k > steps)
+            k = steps;
+        for (int32_t i = 0; i < 768; i++) {
+            const int32_t c = pal[i] >> 2;
+            const int32_t v = in ? (c < k ? c : k) : (c - k > 0 ? c - k : 0);
+            now[i] = (uint8_t)(v << 2 | v >> 4);
+        }
+        const int32_t level = in ? k * 256 / steps : 256 - k * 256 / steps;
+        if (show(hd, pixels, f, hd->plm ? pal : now, hd->plm ? level : 256) && in)
+            return 1;
+        if (k >= steps) {
+            fprintf(stderr, "[dosvideos] faded %s: %d retraces, %u ms\n", in ? "in" : "out", (int)steps,
+                    (unsigned)(ModApi_Ticks() - t0));
+            return 0;
+        }
+    }
+}
+
 /* Plays video_dos/<clip>.flc with sound_dos/<sound> (NULL or missing: silent), a frame every
  * `delay` + 1 ticks of 70 Hz. `why` for the log. */
 static void play(const char *clip, const char *sound, int32_t delay, const char *why)
@@ -249,20 +285,12 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
     if (hd.plm)
         fprintf(stderr, "[dosvideos] %s: upscaled, %dx%d (video_dos/hd/%s.mpg)\n", clip, (int)hd.w, (int)hd.h, clip);
 
-    enum { kFadeMs = 450 };
     const uint32_t frameMs = (uint32_t)(delay + 1) * 1000u / 70u;
     int32_t skipped = 0, rc = 1, shown = 1;
     ModApi_CutsceneBegin();
-    {   /* the first frame, faded in (FlipTitle, FadeIn), then its sound */
-        const uint32_t t0 = ModApi_Ticks();
-        for (;;) {
-            const uint32_t t = ModApi_Ticks() - t0;
-            const int32_t level = t >= kFadeMs ? 256 : (int32_t)(t * 256 / kFadeMs);
-            if (show(&hd, pixels, &f, pal, level)) { skipped = 1; break; }
-            if (level >= 256)
-                break;
-        }
-    }
+    /* the first frame, faded in (FlipTitle, FadeIn), then its sound */
+    if (fade(&hd, pixels, &f, pal, 1))
+        skipped = 1;
     if (!skipped && pcm)
         ModApi_CutsceneSound(pcm, slen, 22050);
     {
@@ -288,16 +316,7 @@ static void play(const char *clip, const char *sound, int32_t delay, const char 
             if (show(&hd, pixels, &f, pal, 256))
                 break;
     }
-    {   /* fade out (FadeOutToBlack) */
-        const uint32_t t0 = ModApi_Ticks();
-        for (;;) {
-            const uint32_t t = ModApi_Ticks() - t0;
-            const int32_t level = t >= kFadeMs / 2 ? 0 : 256 - (int32_t)(t * 512 / kFadeMs);
-            show(&hd, pixels, &f, pal, level);
-            if (level <= 0)
-                break;
-        }
-    }
+    (void)fade(&hd, pixels, &f, pal, 0);   /* the last frame shown faded out (FadeOutToBlack) */
     ModApi_CutsceneSound(NULL, 0, 0);
     ModApi_CutsceneEnd();
     hd_close(&hd);
