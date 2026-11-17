@@ -414,7 +414,8 @@ static void choose_step(const Menu *menu)
         if ((i = entry_with((MenuEntryFn)CareerMenu)) >= 0) {
             SetCurrentEntry((uint16_t)i);
             _shortFire = 1;
-        }
+        } else
+            CareerMenu();       /* (a main menu without CAREER -- SWOS 2020's: the screen as it opens it) */
         return;
     }
     if ((i = entry_labelled(s_path[s_pathK])) >= 0) {

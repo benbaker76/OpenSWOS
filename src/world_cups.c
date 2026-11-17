@@ -150,14 +150,123 @@ static int32_t build(const WorldCup *c, TeamId *out)
     return n;
 }
 
-/* The cup's clubs this season, in its record's order (round 1's, then the byes). */
+/* The country's divisions as the cups see them: its groups, else its cup clubs' (0: a division its
+ * level). */
+static const LeagueGroups *cup_groups(uint8_t country)
+{
+    const LeagueGroups *lg = LeagueGroups_ForCountry(country);
+    return lg ? lg : World_CupClubs(country);
+}
+
+/* A cup's levels (its quotas' divisions'): the lowest and the highest; hi -1 none. */
+static void cup_levels(const WorldCup *c, int32_t *lo, int32_t *hi)
+{
+    const LeagueGroups *lg = cup_groups(c->country);
+    *lo = 99;
+    *hi = -1;
+    for (int32_t g = 0; g < c->groups; g++) {     /* (level_of: no groups, the division) */
+        const int32_t lv = level_of(lg, c->quota[g][0]);
+        if (lv < *lo) *lo = lv;
+        if (lv > *hi) *hi = lv;
+    }
+}
+
+/* A cup a club of `level` plays when the list leaves it out (Playa, 2026-11-17, every country
+ * checked with SWOS_TEST_CUP_ENTRY): a level between the cup's own (the EFL Cup's Championship:
+ * its real last 16 had none), or the one just below a cup that is the whole country's, from the top
+ * (the FA Cup's League Two, the Scottish League Cup's League Two, Copa Argentina's second level)
+ * -- not a league cup of the top flight alone (the Taca da Liga) --, unless that level has a lower
+ * league's own cup (Serie C its Coppa Italia Serie C: not the
+ * Coppa Italia), and never a lower league's own cup above it (the Coppa Serie C is not Inter's). */
+static int32_t cup_open_to(const WorldCup *c, int32_t level)
+{
+    int32_t lo, hi;
+    cup_levels(c, &lo, &hi);
+    if (level < 0 || hi < 0)
+        return 0;
+    if (level >= lo && level <= hi)
+        return 1;
+    if (lo != 0 || level != hi + 1)
+        return 0;
+    if (c->slot == 2 && hi == 0)
+        return 0;                       /* (a league cup of the top flight alone: the Taca da Liga, 2026-27's) */
+    int32_t count = 0;
+    const WorldCup *cups = World_Cups(&count);
+    for (int32_t i = 0; i < count; i++) {
+        int32_t l2, h2;
+        if (cups[i].country != c->country || &cups[i] == c)
+            continue;
+        cup_levels(&cups[i], &l2, &h2);
+        if (l2 > 0 && level >= l2 && level <= h2)
+            return 0;                   /* (its own cup) */
+    }
+    return 1;
+}
+
+/* A club's level this season (its league's moves), -1 not known. */
+static int32_t club_level(uint8_t country, TeamId t)
+{
+    const LeagueGroups *lg = cup_groups(country);
+    if (!lg)
+        return -1;
+    const int32_t slot = World_Slot(t.countryNumber, t.teamOrdinal);
+    for (int32_t i = 0; i < lg->clubs; i++)
+        if (lg->club[i].slot == slot) {
+            const uint16_t glob = (uint16_t)(_teamsCountryNumbers[country] + slot);
+            return level_of(lg, lg->club[i].base + (int8_t)_diyLeagueSeasonStateTable[glob]);
+        }
+    return -1;
+}
+
+/* The cup's clubs this season, in its record's order (round 1's, then the byes). The career
+ * club plays its country's cups whatever its division, as the original's (career_teams.c
+ * fillCupTeamSelectionFromFile: the career club first, then the rest) -- a cup open to its
+ * division (below) -- one the list leaves out takes the place of round 1's club from the lowest
+ * division (the last of them) -- a League Two
+ * club in the FA Cup and the EFL Cup (Playa, 2026-11-17: Gillingham; the Mod's lists start at the
+ * cups' 64 / 16 clubs, its quotas the divisions above). */
 static const TeamId *entrants(const WorldCup *c)
 {
+    extern uint16_t _gameType;
     static TeamId list[WORLD_CUP_CLUBS];
     const int32_t i = cup_index(c);
+    const TeamId *got;
     if (build(c, list))
-        return list;
-    return i < WORLD_CUPS_MAX ? s_real[i] : comp_team_seed_list((Competition *)c->record);
+        got = list;
+    else
+        got = i < WORLD_CUPS_MAX ? s_real[i] : comp_team_seed_list((Competition *)c->record);
+    if (_gameType != 4 || World_FileCountry(_careerTeam.team.countryNumber) != c->country || c->n < 2 ||
+        c->n > WORLD_CUP_CLUBS)
+        return got;
+    for (int32_t k = 0; k < c->n; k++)
+        if (got[k].countryNumber == _careerTeam.team.countryNumber && got[k].teamOrdinal == _careerTeam.team.teamOrdinal)
+            return got;
+    {   /* ... only a cup open to its division (cup_open_to) */
+        TeamId me;
+        me.countryNumber = _careerTeam.team.countryNumber;
+        me.teamOrdinal = _careerTeam.team.teamOrdinal;
+        extern uint16_t _currentDivisionIndex;      /* (the career club's league's division) */
+        int32_t mine = club_level(c->country, me);
+        if (mine < 0)
+            mine = level_of(cup_groups(c->country), (int32_t)_currentDivisionIndex);
+        if (!cup_open_to(c, mine))
+            return got;
+    }
+    if (got != list)
+        for (int32_t k = 0; k < c->n; k++)
+            list[k] = got[k];
+    const int32_t r1 = c->ties > 0 && c->ties * 2 <= c->n ? c->ties * 2 : c->n;
+    int32_t at = r1 - 1, low = -2;
+    for (int32_t k = 0; k < r1; k++) {
+        const int32_t lv = club_level(c->country, list[k]);
+        if (lv >= low) {
+            low = lv;
+            at = k;
+        }
+    }
+    list[at].countryNumber = _careerTeam.team.countryNumber;
+    list[at].teamOrdinal = _careerTeam.team.teamOrdinal;
+    return list;
 }
 
 int32_t WorldCups_Plays(const uint8_t *record)
@@ -263,6 +372,42 @@ uint16_t WorldCups_Entrants(const uint8_t *record, uint16_t count)
     SWOS_DBG("\n");
     return c->n;
 }
+
+#ifdef SWOS_SDL_BUILD
+#include <stdio.h>
+/* SWOS_TEST_CUP_ENTRY=1 (frontend.c, after the world's install): every world cup and, per division
+ * of its country's league, whether a career club there plays it (in: the cup's own levels; added:
+ * below them, the cup the whole country's; out) -- cup_open_to, as entrants decides it. */
+void WorldCups_EntryReport(void)
+{
+    extern void *_countriesTable[];
+    int32_t count = 0;
+    const WorldCup *cups = World_Cups(&count);
+    printf("[cup-entry] %d cups\n", (int)count);
+    for (int32_t i = 0; i < count; i++) {
+        const WorldCup *c = &cups[i];
+        const CompetitionCup *rec = (const CompetitionCup *)c->record;
+        const uint8_t *ce = (const uint8_t *)_countriesTable[c->country];
+        Competition **tab = (Competition **)_competitionsTable[c->country];
+        const CompetitionLeague *lg = tab && (intptr_t)tab[0] != -1 && (intptr_t)tab[0] != -2 && tab[0] &&
+                                      tab[0]->type == 0 ? (const CompetitionLeague *)tab[0] : 0;
+        char **names = lg ? comp_name_table((Competition *)lg) : 0;
+        printf("[cup-entry] %-14s %-34s levels", ce ? (const char *)ce + 1 : "?", rec->name[0] ? rec->name[0] : "?");
+        for (int32_t g = 0; g < c->groups; g++)
+            printf(" %d", (int)level_of(cup_groups(c->country), c->quota[g][0]));
+        printf("\n");
+        for (int32_t d = 0; lg && d < lg->header.divisionsCount && d < LEAGUE_MAX_DIVISIONS; d++) {
+            const int32_t lv = level_of(cup_groups(c->country), d);
+            int32_t in = 0;
+            for (int32_t g = 0; g < c->groups; g++)
+                in |= level_of(cup_groups(c->country), c->quota[g][0]) == lv;
+            printf("[cup-entry]     div %d (level %d) %-28s %s\n", (int)d, (int)lv,
+                   names && names[2 * d] ? names[2 * d] : "?", in ? "in" : cup_open_to(c, lv) ? "ADDED" : "out");
+        }
+    }
+    fflush(stdout);
+}
+#endif
 
 void WorldCups_Padded(const uint8_t *record)
 {
