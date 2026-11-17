@@ -79,11 +79,11 @@ says which is which.
 
 | Key    | Action |
 |--------|--------|
-| TAB    | Type a line to the other player: ENTER sends it, ESC (or TAB again) drops it. The keyboard doesn't play while you type. |
+| TAB    | Chat on / off. On: the box opens, ready to type -- ENTER sends a line and you can type the next. TAB again (or ESC) hides the box. You keep playing while the chat is on: the arrows steer, Ctrl shoots (ENTER sends instead of shooting), your pad plays as ever. |
 | F3     | Hide / show the chat box |
 | 1 .. 0 | Send a quick message: "Good luck, have fun!", "Nice goal!" and so on. Set your own in `SWOS.ini`'s `[chat]` section. |
 
-The box sits at the bottom left and fades a few seconds after the last line.
+The box sits at the bottom left and stays until TAB hides it (with AUTO CLOSE CHATBOX set to 1-5 s it fades that long after the last line instead).
 
 ### Gamepad not detected?
 

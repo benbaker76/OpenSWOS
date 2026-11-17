@@ -839,8 +839,8 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     }
     /* SWOS 2020's MULTIPLAYER SETTINGS (SWOS 2020 port, agent A; src/match_chat.c) */
     SETTING(n) = (IniEntry){ "chat", "controller_off",
-        "; controller_off: true | false. DISABLE CONTROLLER IN CHAT: while you type a line your\n"
-        "; pad steers nobody.",
+        "; controller_off: true | false. DISABLE CONTROLLER IN CHAT: while your chat is on (TAB)\n"
+        "; nothing of yours steers -- keyboard, pad or touch. Off: the arrows, Ctrl and your pad play on.",
         opts->chat_controller_off ? "true" : "false" };
 
 

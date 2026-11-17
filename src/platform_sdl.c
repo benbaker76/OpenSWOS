@@ -2158,7 +2158,8 @@ static void pump_events_any_thread(void)
             ev.type == SDL_CONTROLLERBUTTONDOWN || ev.type == SDL_JOYBUTTONDOWN || ev.type == SDL_FINGERDOWN)
             s_press_count++;            /* (Platform_PressCount: what skips a cutscene) */
         /* An online match's chat: TAB, F3, the quick keys, and everything typed into an open
-         * line -- the game never sees those (src/match_chat.c). */
+         * line -- the game never sees those (src/match_chat.c); with the match's line open its
+         * arrows, Ctrl and the player's own keys still play, and every release gets through. */
         if ((ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP || ev.type == SDL_TEXTINPUT ||
              ev.type == SDL_TEXTEDITING) && MatchChat_Event(&ev))
             continue;

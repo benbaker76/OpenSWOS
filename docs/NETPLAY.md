@@ -1054,17 +1054,21 @@ ignores it. So it needs no `NETPLAY_COMPAT` raise.
 
 | Key | What it does |
 |---|---|
-| TAB | opens a line (ENTER sends it; ESC or TAB drops it) |
-| F3 | hides or shows the box |
+| TAB | chat on / off: on opens the box with a line ready to type; ENTER sends it and the line stays open for the next one; TAB again (or ESC, or ENTER on an empty line) closes the line and hides the box at once, until TAB or a new line from the other player (SWOS United, 2026-11-16) |
+| F3 | hides or shows the box (hidden, even the other player's lines do not show it) |
 | 1 .. 0 | sends a quick message (`[chat] quick1 .. quick0` in SWOS.ini) |
 
-While a line is open the keyboard does not play: what it held is released, and every key and
-typed character goes to the line. Pads still play.
+While the chat is on the game still plays, as SWOS 2020's does (its `controls.cpp` registers every
+key while the box types; the box ignores the arrows): the arrows, Ctrl (fire) and the player's own
+keys (`[input] key_*`) steer and shoot and type nothing (`InputSDL_MatchControlKey`; a bound letter's
+character is dropped), every release reaches the controls, and pads and touch play on. ENTER, fire
+too, sends the line instead; every other key types. DISABLE CONTROLLER IN CHAT (`[chat]
+controller_off`) makes it 2020's `getLocalInput` 0: nothing of the player's steers while the chat is on.
 
 **On a phone:**
 - The on-screen controls get a CHAT button, a speech bubble left of PAUSE, during a live match.
 - Tapping it opens a line, and `SDL_StartTextInput` brings up the phone's own keyboard, so no
-  keyboard of our own is drawn. Its Enter sends; Back or another tap drops the line.
+  keyboard of our own is drawn. Its Enter sends (the line stays open); Back or another tap closes it and hides the box.
 - While the line is open the box moves to the top of the screen, above the keyboard.
 - There are no quick messages on a phone (it has no number keys).
 

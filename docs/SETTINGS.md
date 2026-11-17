@@ -124,7 +124,7 @@ the F2 service menu, which writes changes straight back to `SWOS.ini`.
 ```ini
 [chat]
 quick1=Good luck, have fun!   ; the keys 1 .. 9, 0 send these in an online match
-quick2=Nice goal!             ; (TAB types your own line, F3 hides the chat).
+quick2=Nice goal!             ; (TAB: chat on/off, F3 hides the chat).
 ...                           ; Empty: that key sends nothing.
 quick0=GG
 ```

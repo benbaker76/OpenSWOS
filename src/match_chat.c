@@ -24,6 +24,7 @@
 #include <string.h>
 
 extern void InputSDL_ClearKeyState(void);       /* input_sdl.c */
+extern int  InputSDL_MatchControlKey(const SDL_Keysym *ks);
 extern int32_t GameLoop_Active(void);           /* game_loop.c: a match is on screen */
 
 /* SWOS_CHAT_DEMO=1: the chat in ANY match, offline too, with a few lines from a pretend other
@@ -42,10 +43,12 @@ static int32_t demo_on(void)
     return s_demo;
 }
 
+static int32_t s_selftestLive;          /* (--chat-selftest: a match on, to drive the match's line) */
+
 /* The chat is up: a live match, or the demo's match. */
 static int32_t chat_live(void)
 {
-    return NetplayMatch_IsLive() || (demo_on() && GameLoop_Active());
+    return s_selftestLive || NetplayMatch_IsLive() || (demo_on() && GameLoop_Active());
 }
 
 enum {
@@ -82,6 +85,7 @@ static struct {
     int32_t  active;                    /* a live match is on */
     int32_t  typing;                    /* the match's line is open (L, owned by the match) */
     int32_t  hidden;                    /* F3 */
+    int32_t  closed;                    /* TAB put it away: gone until TAB again or a new line */
     int32_t  hinted;                    /* the keys were shown (once a session) */
     char     me[CHAT_NAME_MAX + 1], them[CHAT_NAME_MAX + 1];
     Line     lines[KEEP_LINES];
@@ -196,6 +200,7 @@ static void add_line(int32_t who, const char *text)
     l->who = who;
     snprintf(l->text, sizeof l->text, "%s", text);
     C.shownAt = SDL_GetTicks();
+    C.closed = 0;                       /* (a new line shows a box TAB put away; F3's stays hidden) */
     if (who != WHO_NOTICE)
         fprintf(stderr, "[chat] %s: %s\n", who == WHO_ME ? "me" : "them", text);
 }
@@ -224,7 +229,7 @@ void MatchChat_Begin(const char *myName, const char *theirName)
     C.active = 1;
     if (!C.hinted) {
 #ifndef SWOS_MOBILE_BUILD
-        add_line(WHO_NOTICE, "TAB: chat    F3: hide the chat    1-0: quick messages");
+        add_line(WHO_NOTICE, "TAB: chat on/off    F3: hide the chat    1-0: quick messages");
 #endif
         C.hinted = 1;
     }
@@ -246,14 +251,17 @@ static void line_close(void)
     }
 }
 
-static void line_open(void (*onSend)(const char *utf8))
+/* `clearKeys`: the lobby's line -- what the keyboard held, released: it types now. The match's
+ * keeps them: its keys that play still play (MatchChat_Event). */
+static void line_open(void (*onSend)(const char *utf8), int32_t clearKeys)
 {
     line_close();
     L.open = 1;
     L.text[0] = '\0';
     L.len = 0;
     L.onSend = onSend;
-    InputSDL_ClearKeyState();           /* what the keyboard held, released: it types now */
+    if (clearKeys)
+        InputSDL_ClearKeyState();
     SDL_StartTextInput();
 }
 
@@ -261,6 +269,17 @@ static void close_input(void)          /* the match's line */
 {
     if (C.typing)
         line_close();
+}
+
+/* TAB's off (and ESC's, and an ENTER on an empty line): the line closed and the box with it, at
+ * once -- until TAB opens both again or a new line arrives (SWOS United, Playa 2026-11-16: TAB a
+ * toggle, on with the cursor ready to type, off hidden). */
+static void chat_off(void)
+{
+    if (!C.typing)
+        return;
+    line_close();
+    C.closed = 1;
 }
 
 void MatchChat_End(void)
@@ -371,14 +390,18 @@ void MatchChat_Received(const char *message)
 
 static void open_input(void)            /* the match's line */
 {
-    line_open(send_line);
+    line_open(send_line, 0);
     C.typing = 1;
+    /* (a player typing wants the box: F3's hidden -- kept from match to match -- went with the
+     *  ENTER that sent the line, and the box with it, at once: Playa, 2026-11-16) */
+    C.hidden = 0;
+    C.closed = 0;
 }
 
 void ChatLine_Open(void (*onSend)(const char *utf8))
 {
     C.typing = 0;
-    line_open(onSend);
+    line_open(onSend, 1);
 }
 
 void ChatLine_Close(void) { line_close(); }
@@ -390,7 +413,7 @@ void MatchChat_ToggleInput(void)
     if (!MatchChat_Active())
         return;
     if (C.typing)
-        close_input();
+        chat_off();
     else
         open_input();
 }
@@ -444,6 +467,17 @@ static void scale_key(int32_t up)       /* (wraps round, as SWOS 2020's keys do)
     }
 }
 
+/* A key that plays, held while the match's chat is on, types nothing: the character it makes
+ * (a letter the player bound, a keypad digit) comes as the next SDL_TEXTINPUT, at once. */
+static int32_t  s_eatText;
+static uint32_t s_eatAt;
+
+static int32_t types_text(SDL_Keycode k)
+{
+    return (k >= 32 && k < 127) || (k > 127 && !(k & SDLK_SCANCODE_MASK)) ||
+           (k >= SDLK_KP_DIVIDE && k <= SDLK_KP_PERIOD && k != SDLK_KP_ENTER);
+}
+
 int32_t MatchChat_Event(const SDL_Event *e)
 {
 #if !SWOS_CHAT_DYNAMIC_FONT
@@ -455,12 +489,17 @@ int32_t MatchChat_Event(const SDL_Event *e)
     if (L.open) {
         switch (e->type) {
         case SDL_TEXTINPUT:
+            if (s_eatText && e->text.timestamp - s_eatAt < 100u) {
+                s_eatText = 0;                      /* (a key that plays made it) */
+                return 1;
+            }
+            s_eatText = 0;
             input_append(e->text.text);
             return 1;
         case SDL_TEXTEDITING:
             return 1;
         case SDL_KEYUP:
-            return 1;
+            return C.typing ? 0 : 1;                /* (the match's: a release always reaches the controls) */
         case SDL_KEYDOWN: {
             const SDL_Keycode k = e->key.keysym.sym;
             if ((k == SDLK_RETURN || k == SDLK_KP_ENTER) && (e->key.keysym.mod & KMOD_ALT))
@@ -470,15 +509,35 @@ int32_t MatchChat_Event(const SDL_Event *e)
                     void (*send)(const char *) = L.onSend;
                     char text[MATCHCHAT_TEXT_MAX + 1];
                     snprintf(text, sizeof text, "%s", L.text);
-                    line_close();
-                    if (text[0] && send)
-                        send(text);
+                    if (C.typing && text[0]) {
+                        /* the match's line stays open for the next one: TAB is what closes it */
+                        L.text[0] = '\0';
+                        L.len = 0;
+                        send_line(text);
+                    } else if (C.typing) {
+                        chat_off();                 /* (ENTER on an empty line: off, as TAB) */
+                    } else {
+                        line_close();               /* the lobby's: sent, closed */
+                        if (text[0] && send)
+                            send(text);
+                    }
                 }
             } else if (k == SDLK_ESCAPE || k == SDLK_AC_BACK || (k == SDLK_TAB && e->key.repeat == 0)) {
-                line_close();
+                if (C.typing)
+                    chat_off();
+                else
+                    line_close();
             } else if (k == SDLK_BACKSPACE) {
                 input_backspace();
+            } else if (C.typing && InputSDL_MatchControlKey(&e->key.keysym)) {
+                /* SWOS 2020's: the chat on, the arrows and fire still play (controls.cpp
+                 * processEvent registers every key; its box ignores the arrows) -- Playa,
+                 * 2026-11-16. ENTER, fire too, sends the line instead (above). */
+                s_eatText = types_text(k);
+                s_eatAt = e->key.timestamp;
+                return 0;
             }
+            s_eatText = 0;
             return 1;
         }
         default:
@@ -585,7 +644,7 @@ void MatchChat_Draw(void)
     const uint32_t now = SDL_GetTicks();
     float alpha = 1.0f;
     if (!C.typing) {
-        if (C.hidden || C.count == 0)
+        if (C.hidden || C.closed || C.count == 0)
             return;
         const uint32_t age = now - C.shownAt;
         const uint32_t showMs = (uint32_t)s_closeS * 1000u;
@@ -799,6 +858,58 @@ int32_t MatchChat_SelfTest(void)
             fprintf(stderr, "[chat-selftest] FAIL: ESC sent the line, or left it open\n");
             fails++;
         }
+    }
+    {   /* the match's TAB: on with the line open; ENTER sends and keeps it open; TAB off hides the
+         * box; a line from the other player shows it again; ENTER on an empty line is off too */
+        memset(&C, 0, sizeof C);
+        C.active = 1;
+        s_selftestLive = 1;
+        SDL_Event e;
+#define CHAT_KEY(key_) do { memset(&e, 0, sizeof e); e.type = SDL_KEYDOWN; e.key.keysym.sym = (key_); MatchChat_Event(&e); } while (0)
+#define CHAT_TEXT(t)  do { memset(&e, 0, sizeof e); e.type = SDL_TEXTINPUT; \
+                           snprintf(e.text.text, sizeof e.text.text, "%s", (t)); MatchChat_Event(&e); } while (0)
+        CHAT_KEY(SDLK_TAB);
+        const int32_t on = C.typing && L.open && !C.closed;
+        /* the chat on, the arrows and Ctrl still play, a letter types, a release reaches the controls */
+        int32_t plays = 1;
+        {
+            static const SDL_Keycode playKeys[] = { SDLK_LEFT, SDLK_UP, SDLK_RCTRL, SDLK_LCTRL };
+            for (size_t i = 0; i < sizeof playKeys / sizeof playKeys[0]; i++) {
+                memset(&e, 0, sizeof e);
+                e.type = SDL_KEYDOWN;
+                e.key.keysym.sym = playKeys[i];
+                plays &= MatchChat_Event(&e) == 0;
+            }
+            memset(&e, 0, sizeof e);
+            e.type = SDL_KEYDOWN;
+            e.key.keysym.sym = SDLK_a;              /* (scancode UNKNOWN: never one of the player's own) */
+            plays &= MatchChat_Event(&e) == 1;
+            e.type = SDL_KEYUP;
+            plays &= MatchChat_Event(&e) == 0;
+            plays &= L.len == 0 && C.typing;
+        }
+        CHAT_TEXT("hi");
+        CHAT_KEY(SDLK_RETURN);
+        const int32_t sentOpen = C.count == 1 && !strcmp(C.lines[0].text, "hi") && C.typing && L.open && !L.len;
+        CHAT_KEY(SDLK_TAB);
+        const int32_t off = !C.typing && !L.open && C.closed;
+        char msg[32];
+        snprintf(msg, sizeof msg, "%c%04X back", WIRE_MARK, 0u);
+        MatchChat_Received(msg);
+        const int32_t shown = !C.closed && C.count == 2;
+        CHAT_KEY(SDLK_TAB);
+        CHAT_KEY(SDLK_RETURN);
+        const int32_t emptyOff = !C.typing && !L.open && C.closed && C.count == 2;
+#undef CHAT_KEY
+#undef CHAT_TEXT
+        if (!on || !plays || !sentOpen || !off || !shown || !emptyOff) {
+            fprintf(stderr, "[chat-selftest] FAIL: TAB toggle: on %d, keys play %d, sent+open %d, off %d, shown %d, empty ENTER off %d\n",
+                    (int)on, (int)plays, (int)sentOpen, (int)off, (int)shown, (int)emptyOff);
+            fails++;
+        }
+        s_selftestLive = 0;
+        line_close();
+        memset(&C, 0, sizeof C);
     }
     fails += ChatFont_SelfTest();
     fprintf(stderr, "[chat-selftest] match chat %s\n", fails ? "FAIL" : "PASS");

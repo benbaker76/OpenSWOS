@@ -2094,18 +2094,39 @@ void InputSDL_SetChatPadOff(int on) { s_chatPadOff = on != 0; }
 int  InputSDL_ChatPadOff(void)      { return s_chatPadOff; }
 extern int32_t MatchChat_Typing(void);          /* match_chat.c */
 
+/* A key that still plays while the match's chat is on (src/match_chat.c): the arrows, Ctrl (fire)
+ * and the player's own keys ([input] key_*). SWOS 2020's chat box takes the text while every key
+ * still reaches the controls (controls.cpp processEvent; its box ignores the arrows): here the
+ * keys that play, play, and type nothing; ENTER, which is fire too, sends the line. */
+int InputSDL_MatchControlKey(const SDL_Keysym *ks)
+{
+    switch (ks->sym) {
+    case SDLK_UP: case SDLK_DOWN: case SDLK_LEFT: case SDLK_RIGHT:
+    case SDLK_LCTRL: case SDLK_RCTRL:
+        return 1;
+    default:
+        return bound_action(ks->scancode) >= 0;
+    }
+}
+
 uint8_t InputSDL_LocalMatchControls(void)
 {
     int up = s_kbd_up, down = s_kbd_down, left = s_kbd_left, right = s_kbd_right;
     int fire = s_kbd_fire, skip = 0;
     uint8_t bits = 0;
+    /* DISABLE CONTROLLER IN CHAT (SWOS 2020's MULTIPLAYER SETTINGS, mpgame.cpp getLocalInput):
+     * while this player's chat is on, nothing of theirs steers -- keys, pad, touch. What it sends
+     * is an input like any other, so this is the player's own choice and the other game plays
+     * what arrives. */
+    const int chatOff = s_chatPadOff && MatchChat_Typing();
 
     touch_controls(&up, &down, &left, &right, &fire);
-    /* DISABLE CONTROLLER IN CHAT (SWOS 2020's MULTIPLAYER SETTINGS): while this player types a
-     * line, the pad steers nobody -- what it sends is an input like any other, so this is the
-     * player's own choice and the other game plays what arrives. */
-    if (!(s_chatPadOff && MatchChat_Typing()))
+    if (chatOff) {
+        up = down = left = right = fire = 0;
+        s_fire_event = s_fire_event_pad = 0;    /* (and no press latched to after it) */
+    } else {
         read_pad_state(0, &up, &down, &left, &right, &fire, &skip);
+    }
     fire = sample_fire(fire, 1, &s_fire_evidence);
 
     if (up)    bits |= 0x01;    /* MATCH_UP    */
@@ -2116,7 +2137,7 @@ uint8_t InputSDL_LocalMatchControls(void)
     /* DOS's second button, on the wire as MATCH_BENCH -- the same bit 6 DOS reads it
      * from. The frame step turns it into callBench for the team this player controls, so
      * a netplay peer needs nothing else. Amiga mode never sets it. */
-    if (_gDosGameplay && pad_secondary(0))
+    if (_gDosGameplay && !chatOff && pad_secondary(0))
         bits |= 0x40;          /* MATCH_BENCH */
     return bits;
 }

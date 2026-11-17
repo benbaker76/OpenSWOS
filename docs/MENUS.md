@@ -930,7 +930,7 @@ All in the loader and `UnpackMenu`. None occurs in the 47 compiled menus, and
 - **MULTIPLAYER SETTINGS** (`mmSettingsMenu`, `src/online_menus.c`): COMMENTARY (`[audio]
   commentary`), AUTO CLOSE CHATBOX (`[chat] auto_close`, 1-5 s, SWOS 2020's), ESC PRESSING TO QUIT
   (`[netplay] esc_presses`, 1-3 within two seconds, each short press said in the chat box), DISABLE
-  CONTROLLER IN CHAT (`[chat] controller_off`: the pad steers nobody while the player types) and
+  CONTROLLER IN CHAT (`[chat] controller_off`: nothing of the player's -- keys, pad, touch -- steers while the chat is on) and
   CHAT WINDOW SCALE (`[chat] scale` 0-8, 1X-5X in halves, as SWOS 2020 and Page Up / Page Down) are shown and work. ACCEPT SOUND stays hidden (a fork's),
   CHAT WINDOW SCALE moved into its place; VIDEO VSYNC is commented out in SWOS 2020's own menu (it
   is on VIDEO OPTIONS); PITCH SET and DLC SETTING are its DLC's (here RECORD MATCHES and SEND MATCH
