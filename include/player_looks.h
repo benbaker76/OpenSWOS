@@ -27,8 +27,8 @@ enum { LOOK_NONE = 0, LOOK_RECEDING = 1, LOOK_SHAVED = 2, LOOK_WHITE = 3, LOOK_C
 #define LOOKS_BIT_WHITE   4
 #define LOOKS_BITS        (LOOKS_BIT_BALD | LOOKS_BIT_SHAVED | LOOKS_BIT_WHITE)
 
-/* A player record's look (LOOK_*): its byte 25, else the Mod's own looks of the 1996-97 game
- * (Ravanelli's white hair), which the original team files cannot hold. */
+/* A player record's look (LOOK_*): its byte 25 (a world's data, a custom team); the original
+ * 1996-97 files hold none. */
 int32_t PlayerLooks_Of(const struct PlayerFile *pf);
 /* The look written into the record (LOOK_NONE clears it); 0 when the name is 22 letters long. */
 int32_t PlayerLooks_Set(struct PlayerFile *pf, int32_t look);

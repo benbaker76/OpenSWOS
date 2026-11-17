@@ -4,8 +4,8 @@
  * head (Marco's hand-drawn heads), white hair.
  *
  * The look is the player record's byte 25 (the Mod's), which our team files, saves and custom teams
- * carry; the Mod's own looks of the 1996-97 game, which the original team files cannot hold, are a
- * rule here (Ravanelli's white hair). Drawing only, as the Mod's: a match keeps every player's look
+ * carry (the World data's; the original 1996-97 files have none, so 96/97 is drawn as the original
+ * game -- the Mod's white-haired Ravanelli is not ours). Drawing only, as the Mod's: a match keeps every player's look
  * in its own table (not match state: src/sim_state.c never sees it), and a player sprite is DRAWN
  * with its look's frame -- its image index, the sprite, every hash stay as they were. So a live
  * match plays the same with or without looks, on any build (NETPLAY_COMPAT unchanged).
@@ -68,29 +68,14 @@ const char *PlayerLooks_Name(int32_t look)
     return look == LOOK_RECEDING ? "receding" : look == LOOK_SHAVED ? "shaved" : look == LOOK_WHITE ? "white" : "";
 }
 
-/* The Mod's own looks of the 1996-97 game (its packs/white-hair.csv, written into its TEAM.008 and
- * TEAM.080: Middlesbrough's and Italy's Ravanelli, face 1, Italian). Ours are the original files,
- * so the look is a rule: by name, nationality and face -- never written into a record, so a save of
- * a 1996-97 career is the one it always was. */
-static const struct { const char *name; int8_t nationality, face; uint8_t look; } kMod9697[] = {
-    { "FABRIZIO RAVANELLI", 18, 1, LOOK_WHITE },
-};
-
 int32_t PlayerLooks_Of(const PlayerFile *pf)
 {
     if (!pf)
         return LOOK_NONE;
-    if (PlayerLooks_Room(pf)) {
-        const int32_t look = PlayerLooks_FromBits((uint8_t)pf->playerName[22]);
-        if (look != LOOK_NONE)
-            return look;
-    }
-    for (uint32_t i = 0; i < sizeof kMod9697 / sizeof kMod9697[0]; i++)
-        if (pf->nationality == kMod9697[i].nationality &&
-            ((pf->positionAndFace & PF_FACE_MASK) >> 3) == (uint8_t)kMod9697[i].face &&
-            strcmp((const char *)pf->playerName, kMod9697[i].name) == 0)
-            return kMod9697[i].look;
-    return LOOK_NONE;
+    /* Only what the record holds: the original 1996-97 files hold none, so the game's own 96/97
+     * is drawn as it always was (the Mod's white-haired Ravanelli was a rule here 2026-11-13..17;
+     * the owner took it out: "plain 96/97 is blond again", Playa's report) */
+    return PlayerLooks_Room(pf) ? PlayerLooks_FromBits((uint8_t)pf->playerName[22]) : LOOK_NONE;
 }
 
 int32_t PlayerLooks_Set(PlayerFile *pf, int32_t look)
