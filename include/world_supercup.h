@@ -125,6 +125,8 @@ int32_t SuperCup_RoundStringIndex(uint8_t compId);
 
 /* The season record's lines: the national Super Cup / the UEFA Super Cup won this season, 0: none. */
 const char *SuperCup_RecordLine(int32_t uefa);
+/* A season record line's name a Super Cup wrote: 1 a national one, 2 the UEFA one, 0 neither. */
+int32_t SuperCup_RecordKind(const char *line);
 
 /* The SEASON WINNERS page of the career's league: this season's national Super Cup line --
  * its name, and its winner (0: to be played); 0 when there is none. */

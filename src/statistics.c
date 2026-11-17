@@ -2010,6 +2010,27 @@ static void SetTrophySprites_Internal(SeasonInformations *si)
 
     /* Read trophy flags */
     flags = si->trophyFlags;
+    {   /* A season finished before a world's titles had trophies (Super Cups, titles won after the
+         * league: 2026-11-17) shows them from its lines won, as Career_FillCurrentSeasonInfo gives
+         * them now -- the save is left as it is (Playa: SEASON38.CAR's 2064/65, four won, three
+         * shown). */
+        extern int32_t SuperCup_RecordKind(const char *line);
+        extern int32_t WorldPlayoff_IsTitleLine(uint8_t country, const char *line);
+        const uint8_t *line[4] = { si->leagueStrPtr, si->strPtr1, si->strPtr2, si->strPtr3 };
+        const int8_t code[4] = { si->comp1Result, si->comp2Result, si->comp3Result, si->comp4Result };
+        const uint8_t country = World_FileCountry((uint8_t)(si->clubNo >> 8));
+        for (int32_t i = 1; i < 4; i++) {
+            if (!line[i] || code[i] != 1)
+                continue;
+            const int32_t sc = SuperCup_RecordKind((const char *)line[i]);
+            if (sc == 1)
+                flags |= 1 << 8;
+            else if (sc == 2)
+                flags |= 1 << 1;
+            else if (!(flags & ((1 << 5) | (1 << 6))) && WorldPlayoff_IsTitleLine(country, (const char *)line[i]))
+                flags |= 1 << 5;        /* (the league's; its division not in the record: the top's) */
+        }
+    }
     if (flags == 0)
         return;
 

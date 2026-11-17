@@ -1236,6 +1236,28 @@ int32_t WorldPlayoff_TitleWon(void)
     return ks && (ks[0] == 5 || ks[0] == 8) && k_club_res() == 1;
 }
 
+/* A season record line's name a title won after the league wrote (WorldPlayoff_RecordLines: a
+ * play-off's record line, its name, the stage titles' combined line) for a club of `country` --
+ * MANAGEMENT RECORD's trophies for seasons saved before titles had one (statistics.c). */
+int32_t WorldPlayoff_IsTitleLine(uint8_t country, const char *line)
+{
+    const LeaguePlayoffs *lp = k_playoffs(country);
+    if (!lp || !line || !line[0])
+        return 0;
+    for (int32_t i = 0; i < lp->nnames; i++) {
+        const uint8_t *ps = LeaguePlayoffs_SpecAt((uint8_t)lp->country, i);
+        if (ps && (ps[0] == 6 || ps[0] == 7))   /* (SR_KIND_CONTINENTAL, _PROMEDIO) */
+            continue;                   /* (a place in Europe, a promedio: no title) */
+        if ((lp->records && lp->records[i] && same_text(lp->records[i], line)) ||
+            (lp->names && lp->names[i][0] && same_text(lp->names[i][0], line)))
+            return 1;
+    }
+    for (int32_t m = 0; lp->combined && m < 32; m++)
+        if (lp->combined[m] && same_text(lp->combined[m], line))
+            return 1;
+    return 0;
+}
+
 void WorldPlayoff_ResetStageTitles(void)
 {
     uint8_t *p = (uint8_t *)g_worldStageTitle;

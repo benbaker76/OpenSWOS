@@ -156,6 +156,8 @@ void WorldPlayoff_RecordLines(void);
 /* 1: the career club won a title play-off, a stage title or a group contest this season (its trophy:
  * the league's, statistics.c Career_FillCurrentSeasonInfo). */
 int32_t WorldPlayoff_TitleWon(void);
+/* 1: `line` is a title's season record line a club of `country` (a team-file country) wins. */
+int32_t WorldPlayoff_IsTitleLine(uint8_t country, const char *line);
 
 /* 4.1.2: the stage titles (Apertura, Clausura, Trofeo) the career club won this season, decided
  * or its knockout under way (the Mod's gp_stwins_c): the season-end opinion's, a league in zones. */

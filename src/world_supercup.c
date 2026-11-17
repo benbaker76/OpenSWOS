@@ -507,6 +507,26 @@ const char *SuperCup_RecordLine(int32_t uefa)
     return s->season == this_season() && s->won && s->entry < n ? t[s->entry].record : 0;
 }
 
+/* A season record line's name a world's Super Cup wrote (SuperCup_RecordLine): 1 a national one, 2
+ * the UEFA one, 0 neither -- MANAGEMENT RECORD's trophies for seasons saved before they had one
+ * (statistics.c). */
+int32_t SuperCup_RecordKind(const char *line)
+{
+    int32_t n = 0;
+    const WorldSuperCup *t = table(&n);
+    if (!t || !line || !line[0])
+        return 0;
+    const int32_t ue = entry_of(WORLD_SUPERCUP_UEFA);
+    for (int32_t e = 0; e < n; e++)
+        if (t[e].record) {
+            const char *a = t[e].record, *b = line;
+            while (*a && *a == *b) { a++; b++; }
+            if (*a == *b)
+                return e == ue ? 2 : 1;
+        }
+    return 0;
+}
+
 const char *SuperCup_WinnersLine(uint16_t *winner)
 {
     const WorldSuperCupState *s = &g_worldSuperCup;
