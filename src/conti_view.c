@@ -37,6 +37,7 @@
 #include "game_types.h"
 #include "comp_identity.h"
 #include "diy_competition.h"
+#include "text_render.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -45,6 +46,8 @@
 extern uint16_t _selTeamNumber, _isNationalSelector;
 extern void *_cupRoundStringTable[];
 extern void SetExitMenuFlag(void);
+extern void *_charTables[];
+extern void DrawMultipleItems(uint16_t maxItems, MenuEntry *firstEntry);
 
 /* ---- the edition, replayed ---- */
 
@@ -241,6 +244,8 @@ enum { CF_header, CF_note, CF_conf0, CF_exit = CF_conf0 + 6 };
 enum { RS_header, RS_note, RS_round0, RS_summary = RS_round0 + 16, RS_exit };
 enum { RV_header, RV_subTitle, RV_prev, RV_exit, RV_next, RV_scrollUp, RV_scrollDown, RV_rows };
 enum { kRows = 13, kCells = 11, kRoundsMax = 16 };
+/* (after the rows: the classic tables' two cell templates and the entry that draws them) */
+enum { RV_tHead = RV_rows + kRows * kCells, RV_tText, RV_classic };
 
 static MenuEntry *entry_at(int32_t ordinal) { return CalcMenuEntryAddress((uint16_t)ordinal); }
 
@@ -257,7 +262,13 @@ static void nav(int32_t ordinal, int32_t left, int32_t right, int32_t up, int32_
 static int32_t s_conf;                  /* the confederation shown */
 static uint8_t s_round[kRoundsMax];     /* its rounds' buttons: cup << 4 | round */
 static int32_t s_nround;
-static char s_roundText[kRoundsMax][32], s_header[48], s_note[64];
+static char s_roundText[kRoundsMax][48], s_header[48], s_note[64];
+
+/* A label's width in the menus' small font (the rounds' buttons, text flags 0). */
+static int32_t small_width(const char *s)
+{
+    return s && *s ? GetTextWidth((uint8_t *)s, (uint8_t *)_charTables[0]) : 0;
+}
 
 /* ---- CONTINENTAL CUPS: the confederations ---- */
 
@@ -335,6 +346,66 @@ static void list_rounds(void)
             s_sel = i - s;
 }
 
+/* The rounds' buttons (Playa, 2026-11-16: centred, each label inside its button): up to 8 one
+ * column, centred under the header and as wide as the longest label
+ * needs; 9 to 16 two columns as wide as the screen gives. A label still too wide for its column
+ * has its round's name shortened (round_short). */
+enum { RB_PAD = 14, RB_MIN = 150, RB_MAX = 296, RB_COL = 154 };
+
+static const char *round_short(const char *r)
+{
+    static const struct { const char *full, *brief; } k[] = {
+        { "PRELIMINARY ROUND", "PRELIM. ROUND" }, { "FIRST ROUND", "1ST ROUND" }, { "SECOND ROUND", "2ND ROUND" },
+        { "THIRD ROUND", "3RD ROUND" }, { "QUARTER-FINALS", "QUARTER-F." }, { "QUARTER-FINAL", "QUARTER-F." },
+        { "SEMI-FINALS", "SEMI-F." }, { "SEMI-FINAL", "SEMI-F." }, { "GROUP STAGE", "GROUPS" },
+        { "LEAGUE STAGE", "LEAGUE" }, { "ROUND OF 16", "LAST 16" },
+    };
+    for (size_t i = 0; i < sizeof k / sizeof k[0]; i++)
+        if (!strcmp(r, k[i].full))
+            return k[i].brief;
+    return r;
+}
+
+static void layout_rounds(int32_t n, const char *const *cup, const char *const *round)
+{
+    const int32_t two = n > 8;
+    int32_t widest = 0;
+    for (int32_t k = 0; k < n; k++) {
+        char *t = s_roundText[k];
+        snprintf(t, sizeof s_roundText[k], "%s%s%s", cup[k], cup[k][0] ? " " : "", round[k]);
+        if (two && small_width(t) + RB_PAD > RB_COL)
+            snprintf(t, sizeof s_roundText[k], "%s%s%s", cup[k], cup[k][0] ? " " : "", round_short(round[k]));
+        if (two && small_width(t) + RB_PAD > RB_COL) {      /* (still too wide: without " ROUND") */
+            char *w = strstr(t, " ROUND");
+            if (w && !w[6])
+                *w = '\0';
+        }
+        entry_at(RS_round0 + k)->fg = (uintptr_t)t;
+        if (small_width(t) > widest)
+            widest = small_width(t);
+    }
+    int32_t w = widest + RB_PAD;
+    w = w < RB_MIN ? RB_MIN : w > RB_MAX ? RB_MAX : w;
+    /* (centred on the header as it is drawn: the menu's entries carry the screen's offset) */
+    const MenuEntry *head = entry_at(RS_header);
+    const int32_t mid = head->x + head->dwWidth / 2;
+    if (getenv("SWOS_CONTI_VIEW_DEBUG")) {
+        printf("[conti-view] layout: header x %d w %d, summary x %d, exit x %d, widest %d\n", (int)head->x,
+               (int)head->dwWidth, (int)entry_at(RS_summary)->x, (int)entry_at(RS_exit)->x, (int)widest);
+        fflush(stdout);
+    }
+    for (int32_t k = 0; k < kRoundsMax; k++) {
+        MenuEntry *e = entry_at(RS_round0 + k);
+        if (two) {
+            e->x = (int16_t)(k < 8 ? mid - 2 - RB_COL : mid + 2);
+            e->dwWidth = RB_COL;
+        } else {
+            e->x = (int16_t)(mid - w / 2);
+            e->dwWidth = (uint16_t)w;
+        }
+    }
+}
+
 static void euro_stages(void);
 static const char *euro_stage_name(int32_t k);
 static void euroRoundsInit(void)
@@ -344,13 +415,17 @@ static void euroRoundsInit(void)
     entry_at(RS_header)->fg = (uintptr_t)s_header;
     entry_at(RS_note)->fg = (uintptr_t)(s_nestage ? "" : "NOTHING PLAYED YET");
     s_nround = s_nestage;
+    const char *cup[kRoundsMax], *round[kRoundsMax];
     for (int32_t k = 0; k < kRoundsMax; k++) {
         MenuEntry *e = entry_at(RS_round0 + k);
         e->isInvisible = k >= s_nestage;
         e->bgColor = 0x0E;                  /* (the Mod's green boxes) */
-        if (k < s_nestage)
-            e->fg = (uintptr_t)euro_stage_name(k);
+        if (k < s_nestage) {
+            cup[k] = "";
+            round[k] = euro_stage_name(k);
+        }
     }
+    layout_rounds(s_nestage, cup, round);
     const int32_t n0 = s_nround < 8 ? s_nround : 8;
     for (int32_t k = 0; k < s_nround; k++)
         nav(RS_round0 + k, -1, -1, k ? RS_round0 + k - 1 : -1, k + 1 < s_nround ? RS_round0 + k + 1 : RS_summary);
@@ -372,16 +447,18 @@ static void contiRoundsMenu_OnInit(void)
     snprintf(s_header, sizeof s_header, "%s", k_confName[s_conf]);
     entry_at(RS_header)->fg = (uintptr_t)s_header;
     entry_at(RS_note)->fg = (uintptr_t)(s_nround ? "" : s_live ? "NO ROUND DRAWN YET" : "NO CUP IN PROGRESS");
+    const char *cup[kRoundsMax], *round[kRoundsMax];
     for (int32_t k = 0; k < kRoundsMax; k++) {
         MenuEntry *e = entry_at(RS_round0 + k);
         e->isInvisible = k >= s_nround;
         e->bgColor = 0x0D;
         if (k < s_nround) {
             const int32_t c = s_round[k] >> 4, r = s_round[k] & 15;
-            snprintf(s_roundText[k], sizeof s_roundText[k], "%s %s", t[c].shortName, round_name(c, r));
-            e->fg = (uintptr_t)s_roundText[k];
+            cup[k] = t[c].shortName;
+            round[k] = round_name(c, r);
         }
     }
+    layout_rounds(s_nround, cup, round);
     /* two columns of 8: the first column's rows down to SUMMARY, the second's to EXIT */
     const int32_t n0 = s_nround < 8 ? s_nround : 8, n1 = s_nround - n0;
     for (int32_t k = 0; k < s_nround; k++) {
@@ -454,8 +531,29 @@ typedef struct {
 enum { kLinesMax = 400 };
 static Line s_lines[kLinesMax];
 static int32_t s_nlines, s_top;
+
+/* A group stage's tables the classic way (Playa, 2026-11-16): SWOS's own tournament groups
+ * (diyLeagueTournamentMenu, DIYLeagueTournament16BeforeDraw) -- an orange head row (the group, PL W D
+ * L F A PTS), a row a club: its place, its name (a computer club red, grey once through, the
+ * career club blue), its figures on grey -- each group's results right under its table, then the
+ * next group (a page as many as fit; results that do not, on the next page). */
+enum { GT_MAX = 16, GT_ROWS = 16, GT_CHUNKS = 64 };
+typedef struct { char place[4], club[20], k[7][5]; uint8_t colour; } GtRow;
+typedef struct {
+    char name[48];
+    uint8_t nrows;
+    int16_t line0, nline;               /* its results: s_lines[line0 ..] */
+    GtRow row[GT_ROWS];
+} GroupTab;
+static GroupTab s_gt[GT_MAX];
+static int32_t s_ngt;
+static struct { uint8_t g, first, n, page; int16_t y; } s_chunk[GT_CHUNKS];
+static int32_t s_nchunk, s_tpages, s_tpage;     /* a group stage's pages (0: not one), the one shown */
+static uint8_t s_lpage[kLinesMax];              /* its result lines: the page each is on, and where */
+static int16_t s_ly[kLinesMax];
+enum { CG_TOP = 19, CG_BOTTOM = 180, CG_HEAD = 8, CG_ROW = 6, CG_STEP = 7, CG_GAP = 5, CG_LINE = 8 };
 static int32_t s_vc, s_vr;              /* the round shown (-1: the summary) */
-static char s_viewHeader[48], s_viewSub[64];
+static char s_viewHeader[72], s_viewSub[64];
 
 static Line *add(int32_t kind)
 {
@@ -647,33 +745,38 @@ static void group_lines(int32_t c, int32_t r, int32_t played)
                         else if (x < y) { w[a]++; lo[h]++; pts[a] += 3; }
                         else { d[h]++; d[a]++; pts[h]++; pts[a]++; }
                     }
-        keep_together(2 + (gs < 9 ? gs : 9));
         char t[48];
         if (ng > 1)
-            snprintf(t, sizeof t, "GROUP %c%s", (char)('A' + g), played ? "" : ": TO BE PLAYED");
+            snprintf(t, sizeof t, "GROUP %c", (char)('A' + g));
         else
-            snprintf(t, sizeof t, "%s%s", round_name(c, r), played ? "" : ": TO BE PLAYED");
-        Line *h = add(L_TABHEAD);
-        snprintf(h->a, sizeof h->a, "%s", t);
-        const int32_t figures = played && gb && (!own || nmine);
-        if (figures) {
-            static const char *const k_h[7] = { "P", "W", "D", "L", "F", "A", "PTS" };
-            for (int32_t j = 0; j < 7; j++)
-                snprintf(h->k[j], sizeof h->k[j], "%s", k_h[j]);
-        }
+            snprintf(t, sizeof t, "%s", round_name(c, r));
+        /* the table, the classic way (GroupTab); before a ball is kicked its clubs on nought, as the
+         * game's own tournaments show them; the career club's group without the game's matches: the
+         * places alone */
+        const int32_t figures = !played || (gb && (!own || nmine));
         const int32_t up = rs[19] ? rs[19] : 2;             /* (the places going on: a league stage's top n, else 2) */
+        const uint16_t me = our_mgr();
+        GroupTab *tab = s_ngt < GT_MAX ? &s_gt[s_ngt++] : &s_gt[GT_MAX - 1];
+        memset(tab, 0, sizeof *tab);
+        snprintf(tab->name, sizeof tab->name, "%s", t);
         for (int32_t q = 1; q <= gs; q++)
             for (int32_t k = 0; k < gs; k++) {
-                if (!clubs[k] || place[k] != q)
+                if (!clubs[k] || place[k] != q || tab->nrows >= GT_ROWS)
                     continue;
-                Line *l = add(L_TABLE);
-                snprintf(l->a, sizeof l->a, played ? "%d %s" : "%.0d%s", (int)q, club(clubs[k]));
-                l->win = played && q <= up;
+                Line row;                                   /* (put_num's cells) */
+                memset(&row, 0, sizeof row);
                 if (figures) {
-                    put_num(l, 0, pl[k]); put_num(l, 1, w[k]); put_num(l, 2, d[k]); put_num(l, 3, lo[k]);
-                    put_num(l, 4, gf[k]); put_num(l, 5, gag[k]); put_num(l, 6, pts[k]);
+                    put_num(&row, 0, pl[k]); put_num(&row, 1, w[k]); put_num(&row, 2, d[k]); put_num(&row, 3, lo[k]);
+                    put_num(&row, 4, gf[k]); put_num(&row, 5, gag[k]); put_num(&row, 6, pts[k]);
                 }
+                GtRow *o = &tab->row[tab->nrows++];
+                snprintf(o->place, sizeof o->place, "%d", (int)q);
+                snprintf(o->club, sizeof o->club, "%s", club(clubs[k]));
+                memcpy(o->k, row.k, sizeof o->k);
+                o->colour = me != 0xFFFF && our_team(clubs[k]) == me ? 11 : played && q <= up ? 7 : 10;
             }
+        /* its results, right under its table */
+        tab->line0 = (int16_t)s_nlines;
         if (nmine)                                          /* (the results: the game's) */
             for (int32_t q = 0; q < nmine; q++) {
                 Line *l = add(L_TIE);
@@ -698,8 +801,101 @@ static void group_lines(int32_t c, int32_t r, int32_t played)
                     }
         } else if (played && own && !nmine)
             text_line(L_TEXT, "  (YOUR CLUB'S GROUP: ITS PLACES AS YOU PLAYED IT)");
-        add(L_TEXT);
+        tab->nline = (int16_t)(s_nlines - tab->line0);
     }
+}
+
+/* A group stage onto pages: a group (its table, its results under it) on the page it fits whole,
+ * else from a new page; results that do not fit go on over the next (a table longer than a page
+ * goes over several, its head on each). A page's lines are the round view's rows (kRows of them). */
+static void layout_classic(void)
+{
+    const int32_t most = (CG_BOTTOM - CG_TOP - CG_HEAD - 1) / CG_STEP;
+    int32_t page = 0, y = CG_TOP, slots = 0;
+    s_nchunk = 0;
+    for (int32_t g = 0; g < s_ngt; g++) {
+        const int32_t rows = s_gt[g].nrows, nl = s_gt[g].nline;
+        const int32_t whole = CG_HEAD + 1 + rows * CG_STEP + (nl ? 1 + nl * CG_LINE : 0);
+        if (y > CG_TOP && (y + whole > CG_BOTTOM || slots + nl > kRows)) {
+            page++;
+            y = CG_TOP;
+            slots = 0;
+        }
+        int32_t first = 0;
+        do {
+            const int32_t room = (CG_BOTTOM - y - CG_HEAD - 1) / CG_STEP, left = rows - first;
+            if (y > CG_TOP && (room < 1 || (room < left && left <= most))) {
+                page++;
+                y = CG_TOP;
+                slots = 0;
+                continue;
+            }
+            const int32_t n = left < room ? left : room;
+            if (s_nchunk < GT_CHUNKS) {
+                s_chunk[s_nchunk].g = (uint8_t)g;
+                s_chunk[s_nchunk].first = (uint8_t)first;
+                s_chunk[s_nchunk].n = (uint8_t)n;
+                s_chunk[s_nchunk].page = (uint8_t)page;
+                s_chunk[s_nchunk].y = (int16_t)y;
+                s_nchunk++;
+            }
+            y += CG_HEAD + 1 + n * CG_STEP;
+            first += n;
+        } while (first < rows);
+        y += 1;
+        for (int32_t i = 0; i < nl; i++) {
+            if (y + CG_LINE > CG_BOTTOM || slots >= kRows) {
+                page++;
+                y = CG_TOP;
+                slots = 0;
+            }
+            s_lpage[s_gt[g].line0 + i] = (uint8_t)page;
+            s_ly[s_gt[g].line0 + i] = (int16_t)y;
+            y += CG_LINE;
+            slots++;
+        }
+        y += CG_GAP;
+    }
+    s_tpages = s_nchunk ? page + 1 : 0;
+}
+
+/* (the classic tables' entry: drawn over the round's view while one of their pages is shown) */
+static void contiRoundMenu_classic(MenuEntry *self)
+{
+    (void)self;
+    if (s_tpage >= s_tpages)
+        return;
+    static const int16_t kX[7] = { 126, 151, 176, 201, 226, 251, 276 };
+    static const char *const kHead[7] = { "PL", "W", "D", "L", "F", "A", "PTS" };
+    /* (the templates sit at the menu's (0, 0): the screen's offset is theirs) */
+    const MenuEntry *th = entry_at(RV_tHead), *tt = entry_at(RV_tText);
+    MenuEntry cell[9];
+#define CELL(i, tmpl, cx, cy, cw, ch, text, colour, flags) do { \
+        cell[i] = *(tmpl); cell[i].isInvisible = 0; \
+        cell[i].x = (int16_t)((tmpl)->x + (cx)); cell[i].y = (int16_t)((tmpl)->y + (cy)); \
+        cell[i].dwWidth = (uint16_t)(cw); cell[i].dwHeight = (uint16_t)(ch); cell[i].fg = (uintptr_t)(text); \
+        cell[i].stringFlags = (uint16_t)(flags); \
+        if ((colour) >= 0) cell[i].bgColor = (uint16_t)((cell[i].bgColor & 0xFFF0) | (colour)); \
+    } while (0)
+    for (int32_t q = 0; q < s_nchunk; q++) {
+        if (s_chunk[q].page != s_tpage)
+            continue;
+        const GroupTab *g = &s_gt[s_chunk[q].g];
+        int16_t y = s_chunk[q].y;
+        CELL(0, th, 25, y, 100, CG_HEAD, g->name, 5, 0);
+        for (int32_t j = 0; j < 7; j++)
+            CELL(1 + j, th, kX[j], y, 24, CG_HEAD, kHead[j], 5, 0);
+        DrawMultipleItems(8, cell);
+        y += CG_HEAD + 1;
+        for (int32_t i = s_chunk[q].first; i < s_chunk[q].first + s_chunk[q].n; i++, y += CG_STEP) {
+            CELL(0, tt, 6, y, 18, CG_ROW, g->row[i].place, -1, 0);
+            CELL(1, th, 25, y, 100, CG_ROW, g->row[i].club, g->row[i].colour, 0x8000);
+            for (int32_t j = 0; j < 7; j++)
+                CELL(2 + j, th, kX[j], y, 24, CG_ROW, g->row[i].k[j], 7, 0);
+            DrawMultipleItems(9, cell);
+        }
+    }
+#undef CELL
 }
 
 static void build_round(int32_t c, int32_t r)
@@ -711,9 +907,14 @@ static void build_round(int32_t c, int32_t r)
     const int32_t st = rstate(c, r), played = st == 2;
     snprintf(s_viewHeader, sizeof s_viewHeader, "%s", t[c].name);
     snprintf(s_viewSub, sizeof s_viewSub, "%s%s", round_name(c, r), played ? "" : " - TO BE PLAYED");
-    if (R(c, r)[0] == K_GROUPS)
+    if (R(c, r)[0] == K_GROUPS) {
+        /* (the classic tables have the subtitle's line: the round goes in the header, as the game's
+         *  own "EUROPEAN CHAMPIONS CUP FIRST ROUND") */
+        snprintf(s_viewHeader, sizeof s_viewHeader, "%s %s%s", t[c].name, round_name(c, r), played ? "" : " - TO BE PLAYED");
+        snprintf(s_viewSub, sizeof s_viewSub, "%s", "");
         group_lines(c, r, played);
-    else
+        layout_classic();
+    } else
         ko_lines(c, r, played);
     while (s_nlines && s_lines[s_nlines - 1].kind == L_TEXT && !s_lines[s_nlines - 1].a[0])
         s_nlines--;
@@ -813,12 +1014,42 @@ static void summary_lines(void)
         text_line(L_TEXT, "NO CUP IN PROGRESS");
 }
 
+static int32_t view_pages(void) { return s_tpages ? s_tpages : (s_nlines + kRows - 1) / kRows; }
+
+/* A row's cells to (y, h) -- the JSON's own: 32 + 11 a row, 10 tall (y relative to the menu). */
+static void place_row(int32_t base, int32_t y, int32_t h)
+{
+    const int16_t oy = entry_at(RV_tHead)->y;   /* (the menu's (0, 0)) */
+    for (int32_t c = 0; c < kCells; c++) {
+        MenuEntry *e = entry_at(base + c);
+        e->y = (int16_t)(oy + y);
+        e->dwHeight = (uint16_t)h;
+    }
+}
+
 static void refresh_view(void)
 {
-    entry_at(RV_header)->fg = (uintptr_t)s_viewHeader;
-    entry_at(RV_subTitle)->fg = (uintptr_t)s_viewSub;
+    const int32_t classic = s_tpages > 0;
+    MenuEntry *head = entry_at(RV_header), *sub = entry_at(RV_subTitle);
+    head->fg = (uintptr_t)s_viewHeader;
+    /* (the game's big letters while the header's text fits them, else its small ones) */
+    head->stringFlags = (uint16_t)((head->stringFlags & ~0x10) |
+        (GetTextWidth((uint8_t *)s_viewHeader, (uint8_t *)_charTables[1]) + 8 <= head->dwWidth ? 0x10 : 0));
+    sub->fg = (uintptr_t)s_viewSub;
+    sub->isInvisible = classic;
+    entry_at(RV_classic)->isInvisible = !classic;
+    int32_t next = 0;                   /* (a group stage: the next of its lines to look at) */
     for (int32_t i = 0; i < kRows; i++) {
-        const int32_t base = RV_rows + kCells * i, li = s_top + i;
+        const int32_t base = RV_rows + kCells * i;
+        int32_t li = s_top + i;
+        if (classic) {                  /* (the page's lines, in order, each where the layout put it) */
+            while (next < s_nlines && s_lpage[next] != s_tpage)
+                next++;
+            li = next < s_nlines ? next++ : s_nlines;
+            if (li < s_nlines)
+                place_row(base, s_ly[li], CG_LINE);
+        } else
+            place_row(base, 32 + 11 * i, 10);
         const Line *l = li < s_nlines ? &s_lines[li] : 0;
         MenuEntry *line = entry_at(base), *left = entry_at(base + 1), *mid = entry_at(base + 2),
                   *right = entry_at(base + 3);
@@ -851,7 +1082,7 @@ static void refresh_view(void)
             }
         }
     }
-    const int32_t pages = s_nlines > kRows;
+    const int32_t pages = view_pages() > 1;
     entry_at(RV_scrollUp)->isInvisible = entry_at(RV_scrollDown)->isInvisible = !pages;
 }
 
@@ -1019,6 +1250,7 @@ static void euro_summary_lines(void)
 static void contiRoundMenu_OnInit(void)
 {
     int32_t c, r;
+    s_ngt = s_nchunk = s_tpages = s_tpage = 0;
     if (s_euro) {
         euro_stages();
         if (s_ek >= 0 && s_ek < s_nestage)
@@ -1037,18 +1269,32 @@ static void contiRoundMenu_OnInit(void)
         prev->isInvisible = s_vc < 0 || !step_round(-1, &c, &r);
         next->isInvisible = s_vc < 0 || !step_round(1, &c, &r);
     }
-    const int32_t pages = s_nlines > kRows;
+    const int32_t pages = view_pages() > 1;
     nav(RV_prev, -1, RV_exit, pages ? RV_scrollDown : -1, -1);
     nav(RV_exit, prev->isInvisible ? -1 : RV_prev, next->isInvisible ? -1 : RV_next, pages ? RV_scrollDown : -1, -1);
     nav(RV_next, RV_exit, -1, pages ? RV_scrollDown : -1, -1);
     nav(RV_scrollUp, -1, -1, -1, RV_scrollDown);
     nav(RV_scrollDown, -1, -1, RV_scrollUp, RV_exit);
+    {   /* (PREV / NEXT ROUND to the cup's first / last round hides that button: the cursor goes to EXIT,
+         *  not an empty frame) */
+        extern uint8_t _currentMenu[];
+        const Menu *menu = (const Menu *)(void *)_currentMenu;
+        const MenuEntry *cur = menu ? menu->selectedEntry : 0;
+        if (cur && cur->isInvisible && (cur->ordinal == RV_prev || cur->ordinal == RV_next))
+            SetCurrentEntry(RV_exit);
+    }
     refresh_view();
 }
 static void contiRoundMenu_OnDraw(void) { refresh_view(); }
 
+/* a page on or back (a group stage: its own pages) */
 static void page(int32_t dir)
 {
+    if (s_tpages) {
+        if (s_tpage + dir >= 0 && s_tpage + dir < s_tpages)
+            s_tpage += dir;
+        return;
+    }
     const int32_t to = s_top + dir * kRows;
     if (to >= 0 && to < s_nlines)
         s_top = to;
@@ -1092,7 +1338,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(contiRoundsMenu_round15), HANDLER(contiRoundsMenu_summary), HANDLER(contiRoundsMenu_exit),
     HANDLER(contiRoundMenu_OnInit), HANDLER(contiRoundMenu_OnDraw),
     HANDLER(contiRoundMenu_prev), HANDLER(contiRoundMenu_exit), HANDLER(contiRoundMenu_next),
-    HANDLER(contiRoundMenu_scrollUp), HANDLER(contiRoundMenu_scrollDown),
+    HANDLER(contiRoundMenu_scrollUp), HANDLER(contiRoundMenu_scrollDown), HANDLER(contiRoundMenu_classic),
 };
 #undef HANDLER
 

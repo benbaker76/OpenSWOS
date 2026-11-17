@@ -1,6 +1,6 @@
 {
   "name": "contiRoundMenu",
-  "comment": "OpenSWOS's view of one round of a continental cup (the Mod 4.1 shows it in the game's own cup screens; ours is one screen): a knockout round's ties with each leg's score, the club through highlighted; a group stage's tables and results; its SUMMARY page. 13 lines a page, the scroll arrows for the rest; PREV / NEXT ROUND the cup's other rounds. JSON-only; handlers in src/conti_view.c.",
+  "comment": "OpenSWOS's view of one round of a continental cup (the Mod 4.1 shows it in the game's own cup screens; ours is one screen): a knockout round's ties with each leg's score, the club through highlighted; a group stage's tables and results; its SUMMARY page. 13 lines a page, the scroll arrows for the rest; PREV / NEXT ROUND the cup's other rounds. JSON-only; handlers in src/conti_view.c. A group stage's tables are drawn the game's classic way (tHead / tText: the cells' templates; classic: the entry whose before_draw draws them), each group's results right under its table, then the next group.",
   "menu_flags": {
     "dos_redraw": true
   },
@@ -2494,6 +2494,68 @@
         {
           "op": "text_no_ptr",
           "flags": "0x4000"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "tHead",
+      "coords": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 5
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "tText",
+      "coords": {
+        "x": 0,
+        "y": 0,
+        "w": 18,
+        "h": 6
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "text_no_ptr",
+          "flags": "0x0"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "classic",
+      "coords": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "before_draw",
+          "func": "contiRoundMenu_classic"
         }
       ]
     }
