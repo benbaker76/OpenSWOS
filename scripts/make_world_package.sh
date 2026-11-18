@@ -13,12 +13,13 @@
 #                      player's mods/world<tag>/ (an older setup ignores this file)
 #     WORLD.ini        tag, name, the fingerprint of the files below
 #     teams/           the PC game's team files (JSON)
-#     competitions/    leagues.json
+#     competitions/    leagues.json (and World 2026-27's national_teams.json: worldgen/nations.py)
 #     data/            the Amiga's team files (TEAM.nnn)
 #
 # The fingerprint is baked into the game too (src/world_data.c World_DataFingerprint): a
 # package belongs with the builds made from the same import run. Make a new one, and upload
-# it with its .txt (scripts/upload_dlc.sh), whenever world_import.py's output changes (the fingerprint in WORLD.ini says so). The
+# it with its .txt (scripts/upload_dlc.sh), whenever world_import.py's output changes (or
+# worldgen's after it: scripts/worldgen/seal.py) (the fingerprint in WORLD.ini says so). The
 # matchmaking server's team list is refreshed here too (assign_team_uuids.py --worlds).
 set -euo pipefail
 

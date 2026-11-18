@@ -3975,9 +3975,15 @@ void DataJson_LoadNationalTeams(void)
     int len;
     /* a world's own first (data_json/worlds/<tag>/national_teams.json: World 2026-27's 211), else a
      * mod's */
+    /* OpenSWOS's World package carries it in competitions/ -- the folder every OpenSWOS Setup
+     * installs, and the fingerprint covers (scripts/make_world_package.sh); SWOS United's world
+     * folder beside teams/. */
     char wpath[256];
     const char *path = "data_json/national_teams.json";
-    char *j = dj_world_path(path, wpath, sizeof wpath) ? dj_slurp(wpath, &len) : NULL;
+    char *j = dj_world_path("data_json/competitions/national_teams.json", wpath, sizeof wpath)
+                  ? dj_slurp(wpath, &len) : NULL;
+    if (!j && dj_world_path(path, wpath, sizeof wpath))
+        j = dj_slurp(wpath, &len);
     if (j)
         path = wpath;
     else

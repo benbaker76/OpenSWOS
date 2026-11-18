@@ -435,6 +435,12 @@ OCEANIA.json` (files 80..85) and `national_teams.json` (the records, include/nat
 line per nation in `bin/data_json/worldgen/2627/nations_report.txt`. Copy the seven files to an
 assets folder's world too (`Documents\SWOSUnited\data_json\worlds\2627\`): the game reads it first.
 
+**OpenSWOS** keeps `national_teams.json` in the world's `competitions/` (the game reads it there first,
+then beside `teams/`): every OpenSWOS Setup copies that folder from a World package, and the
+fingerprint covers it -- so OpenSWOS's fingerprint of the same data is not SWOS United's. After
+`nations.py` and `rebalance.py`, move it there, then `seal.py` (§17) and
+`scripts/make_world_package.sh`.
+
 **The nations** (`NATIONS` in the script, the owner's list: Wikipedia's *List of men's national
 association football teams*): code, confederation, Wikipedia's name, the game's name, nationality.
 96/97's 143 keep their file and ordinal (competitions and saves name them so), kits and tactics; the

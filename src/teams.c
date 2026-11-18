@@ -1330,7 +1330,8 @@ extern uint16_t _removedPlayerStatAccum;
  * 2026-27's national teams carry their players' own numbers, scripts/worldgen/nations.py). In a
  * career a new player of the managed club (a purchase, the game's reserve or trial player) keeps his
  * number when no one in the squad has it, else takes the lowest free of 2..99 (1 too for a keeper).
- * Online play is 96/97's (world_online.c): no squad numbers there. */
+ * Online, both games play the same world's data (the mods check, Mods_OnlineSignature), so the
+ * same numbers. */
 int32_t SquadNumbers_On(void)
 {
     return World_SquadNumbers();
