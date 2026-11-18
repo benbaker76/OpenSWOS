@@ -129,8 +129,8 @@ extern uint16_t _selTeamNumber;
 extern uint16_t _currentTeamNumber;
 extern uint16_t _currentSeasonShowing;
 extern uint8_t _seasonPlaying;
-extern uint8_t _competitionFilename[14];
-extern uint8_t _hilFilename[14];
+extern uint8_t _competitionFilename[];
+extern uint8_t _hilFilename[];
 extern uint16_t _careerFileBuffer;
 
 /* InitUserTactics globals */

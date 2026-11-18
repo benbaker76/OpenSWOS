@@ -211,6 +211,9 @@ int32_t ModHooks_ReplaySpriteDraw(uint16_t image, int16_t left, int16_t top, int
 
 void ModHooks_MenuDrawn(void)
 {
+#ifdef SWOS_SDL_BUILD
+    { extern void SelectFiles_TestFrame(void); SelectFiles_TestFrame(); }   /* (SWOS_FILES_TEST: file_io.c) */
+#endif
     EACH(menuDrawn) (*m_)->menuDrawn();
 }
 

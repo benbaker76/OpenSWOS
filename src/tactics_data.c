@@ -9,6 +9,7 @@
  * TacticsPosition and enums are in data/game_types.h (to be merged later).
  */
 #include "tactics_data.h"
+#include "save_filename.h"
 #include "swos_sections.h"  /* SWOS_CHIP_BSS */
 
 #if TACTICS_DATA_C
@@ -610,7 +611,7 @@ int8_t _quadrantCoordinatesToBallQuadrant[240] = { 0, 0, 0, 5, 5, 10, 10, 15, 15
  * Misc tactics-related variables
  * ====================================================================== */
 
-uint8_t _importTacticsFilename[14] SWOS_CHIP_BSS __attribute__((used, externally_visible));
+uint8_t _importTacticsFilename[SAVE_FILENAME_BUF(14)] SWOS_CHIP_BSS __attribute__((used, externally_visible));
 uint8_t _playerPositionsArray[32] SWOS_CHIP_BSS __attribute__((used, externally_visible));
 uint8_t _oldPlayerPositionsArray[32] SWOS_CHIP_BSS __attribute__((used, externally_visible));
 

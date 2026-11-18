@@ -14,6 +14,7 @@
  * simplified: RobNorthenLoader handles all file operations via PROGDIR:.
  */
 #include "asset_loader.h"
+#include "save_filename.h"   /* the save folder's listing: SAVE_LIST_* */
 #include "string_utils.h"
 #include "display.h"
 #include "swos_types.h"  /* uintptr_t */
@@ -175,7 +176,7 @@ static int32_t assetSys_ResolveAssetList(uint8_t *listBuf)
         {
             int16_t len = (int16_t)(signed char)p[3];
             p[4 + len] = 0;
-            p += 32;  /* 0x20 = entry size */
+            p += SAVE_LIST_ENTRY;  /* (0x20 the original's) */
         }
     }
 
@@ -226,9 +227,9 @@ static int32_t assetSys_ResolveAssetList(uint8_t *listBuf)
             {
                 if (a2 != a3)
                     StringCopy(a2 + 4, a3 + 4);
-                a3 += 32;
+                a3 += SAVE_LIST_ENTRY;
             }
-            a2 += 32;
+            a2 += SAVE_LIST_ENTRY;
         }
     }
 

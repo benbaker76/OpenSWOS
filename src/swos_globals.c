@@ -14,6 +14,7 @@
  */
 
 #include <string.h>  /* memcpy for image_script_emit_ptr */
+#include "save_filename.h"   /* the save folder's listing: SAVE_LIST_* */
 
 #include "swos_platform.h"
 #include "swos_sections.h"   /* SWOS_CHIP_BSS — chip-RAM placement for DMA */
@@ -1302,11 +1303,11 @@ __asm__(
     ".skip 4\n"
     ".globl " _ASM_PFX "_foundFilenamesBuffer\n"
     _ASM_PFX "_foundFilenamesBuffer:\n"
-    ".skip 1918\n"
+    ".skip " SAVE_LIST_SKIP "\n"
     ".text\n"
 );
 #else
-uint8_t _numberOfFilesBuf[1922] __attribute__((used, aligned(4)));
+uint8_t _numberOfFilesBuf[SAVE_LIST_BYTES] __attribute__((used, aligned(4)));   /* (1922 the original's) */
 __asm__(
     ".globl " _ASM_PFX "_numberOfFiles\n"
     ".equ   " _ASM_PFX "_numberOfFiles, "        _ASM_PFX "_numberOfFilesBuf\n"

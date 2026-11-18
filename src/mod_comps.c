@@ -11,6 +11,7 @@
  * starts it, as LOAD OLD COMPETITION's is started (StartContest).
  */
 #include "mod_api.h"
+#include "save_filename.h"
 
 #ifdef SWOS_SDL_BUILD
 #include "diy_import_dos.h"
@@ -30,7 +31,7 @@
 
 extern uint16_t _numSelectedTeams;
 extern uint16_t _gameType;
-extern uint8_t  _competitionFilename[14];
+extern uint8_t  _competitionFilename[];
 extern CompetitionSlotBuffer _primaryCompetitionBuf;
 
 enum { kGameTypeDiy = 1 };
@@ -194,7 +195,7 @@ int32_t ModApi_LoadCompetition(const char *path)
     for (int32_t i = 0; i < _numSelectedTeams; i++)
         _selectedTeams[i].team.teamControls = TEAM_COMPUTER;
 
-    /* SAVE then offers the file's own name, 8.3 WITH its extension, as after LOAD OLD
+    /* SAVE then offers the file's own name (up to SAVE_FILENAME_CHARS) WITH its extension, as after LOAD OLD
      * COMPETITION (file_io.c reads the name back from after the '.'). */
     {
         const char *base = strrchr(path, '/');
@@ -203,8 +204,8 @@ int32_t ModApi_LoadCompetition(const char *path)
         n = strlen(base);
         if (n > 4 && base[n - 4] == '.')
             n -= 4;
-        if (n > 8)
-            n = 8;
+        if (n > SAVE_FILENAME_CHARS)
+            n = SAVE_FILENAME_CHARS;
         memcpy(_competitionFilename, base, n);
         memcpy(_competitionFilename + n, ".DIY", 5);
     }

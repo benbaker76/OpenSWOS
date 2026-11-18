@@ -37,6 +37,23 @@ the same code compiles for the Amiga target. (This byte order now applies only t
 
 ---
 
+## File names (2026-11-17)
+
+A save's name is up to **38 characters on SDL** (SWOS 2020's `kMaxSaveFilenameChars`), 8 on the
+Amiga, as the original (`include/save_filename.h`). The name is typed without its extension
+(`InputText` never takes `.` or `/`); the buffers that carry it (`_selectedFilename`,
+`_inputSaveFilename`, `_competitionFilename`, `_hilFilename`, `_importTacticsFilename`) are
+`SAVE_FILENAME_BUF` on SDL and the original's sizes on the Amiga, its BSS as it was. A tactic's
+own name stays 8 (its record's `name[9]`): a longer file gives it its first 8.
+
+The save folder's listing (`rob_list_directory`, `AssetSys_ResolveAssetList`) is 64-byte entries
+on SDL, 256 of them (32 and 59 the original's) -- it used to write past its 59 when the folder
+held more files. On the SAVE / LOAD screens, while any listed name is longer than 8, the list is
+two columns of 108-pixel names instead of three of 56, as SWOS 2020's; a name too wide is shown
+shortened with "..."; past 30 files the three columns again, shortened. The SAVE screen's name
+box is wide enough for 38. `SWOS_FILES_TEST=load|save` opens the screen from the main menu (with
+`SWOS_PRESENT_CAPTURE`, a picture of it).
+
 ## Format migration / read-support policy
 
 Two classes of save format, handled differently as we move to the structured

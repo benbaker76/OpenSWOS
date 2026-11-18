@@ -4,6 +4,8 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #include "swos_types.h"
+#include "save_filename.h"
+#include "text_render.h"     /* GetTextWidth: a long name shortened */   /* the save folder's listing: SAVE_LIST_* */
 #include "game_types.h"   /* CompetitionSlotBuffer (Phase B raw-save size) */
 #include "file_io.h"
 #ifdef SWOS_SDL_BUILD
@@ -121,7 +123,7 @@ extern void BlitterCopyOverlayToScreen(void);
 #define ASSET_OP_DO_CRITICAL        10
 #define ASSET_OP_OPEN_ANY_SOURCE    16
 #define FPS_50HZ                    49
-#define FILENAME_ENTRY_SIZE         32
+#define FILENAME_ENTRY_SIZE         SAVE_LIST_ENTRY
 #define TACTICS_SIZE                370
 #include "rnc_magic.h"
 
@@ -1027,9 +1029,9 @@ int16_t SelectFileToSaveDialog(uint32_t filterExt, uint8_t *defaultFilename,
         extTableCursor = _extensionsBuffer;
 
         for (i = count; ; i--) {
-            /* Find the '.' in the filename */
+            /* Find the '.' in the filename (none -- a folder -- is no save: its name's end) */
             scan = fileEntry;
-            while (*scan != 0x2E) /* '.' */
+            while (*scan != 0 && *scan != 0x2E) /* '.' */
                 scan++;
 
             /* Build 4-byte extension from '.' + 3 chars */
@@ -1119,9 +1121,9 @@ int16_t GetFilenameAndExtension(uint32_t preferredExt, uint8_t *defaultFilename,
         extTableCursor = _extensionsBuffer;
 
         for (i = count; ; i--) {
-            /* Find the '.' in the filename */
+            /* Find the '.' in the filename (none -- a folder -- is no save: its name's end) */
             scan = fileEntry;
-            while (*scan != 0x2E) /* '.' */
+            while (*scan != 0 && *scan != 0x2E) /* '.' */
                 scan++;
 
             /* Build 4-byte extension from '.' + 3 chars */
@@ -1311,7 +1313,7 @@ void SelFilesDrawItemDescription(MenuEntry *entry) {
         descStr = (const uint8_t *)"HIGH";
 
     descEntry->fg = (uintptr_t)descStr;
-    descEntry->x = entry->x + 0x39;
+    descEntry->x = entry->x + entry->dwWidth + 1;   /* (0x39: the original's 56-wide names) */
     descEntry->y = entry->y;
     descEntry->isInvisible = 0;
     DrawMenuItem(descEntry);
@@ -1332,7 +1334,7 @@ void SelectFilesInputSaveFilenameOnSelect(MenuEntry *entry)
 
     uint8_t *filename = (uint8_t *)entry->fg;
     _allowExtraCharsFlag = 1;
-    uint16_t result = InputText(9, (uint8_t *)entry);
+    uint16_t result = InputText(SAVE_FILENAME_CHARS + 1, (uint8_t *)entry);   /* (8 the original's) */
     _allowExtraCharsFlag = 0;
 
     if (result != 0)
@@ -1369,6 +1371,92 @@ __attribute__((used, externally_visible))
 #include "swos_io.h"
 #include <sys/stat.h>
 extern PlatformInitOptions *g_arcadeOpts;
+/* Names longer than the original's 8 (save_filename.h; the owner, 2026-11-17): as SWOS 2020
+ * (selectFilesMenu.cpp splitIntoColumns / repositionEntries), while any of the files listed has
+ * one the list is TWO columns of 108-pixel names (its kLongNameWidth) instead of three of 56, the
+ * columns spread over the three's room, a name too long for its button shortened with "..."; past
+ * the two columns' 30 the three again, shortened. The buttons' places are the menu's own, kept at
+ * its show (SelectFilesInit) and put back when no name is long. */
+enum { kLongNameW = 108, kTypeW = 39 };
+static uint16_t s_colX[3], s_shortW;
+static int32_t  s_haveCols, s_longNames;
+
+static void keep_columns(void)
+{
+    for (int32_t c = 0; c < 3; c++)
+        s_colX[c] = _menuEntries[1 + 15 * c].x;
+    s_shortW = _menuEntries[1].dwWidth;
+    s_haveCols = 1;
+}
+
+static int32_t any_long_name(void)
+{
+    for (uint16_t i = 0; i < _numMatchedFiles; i++) {
+        const uint8_t *n = (const uint8_t *)_foundFilesPtrTable[i];
+        int32_t len = 0;
+        while (n[len] && n[len] != '.')
+            len++;
+        if (len > SAVE_FILENAME_SHORT)
+            return 1;
+    }
+    return 0;
+}
+
+/* each button's x and width: the three columns as the menu has them, or the long names' two */
+static void place_columns(void)
+{
+    if (!s_haveCols)
+        return;
+    const int32_t shortFull = s_shortW + 1 + kTypeW, longFull = kLongNameW + 1 + kTypeW;
+    const int32_t span = s_colX[2] + shortFull - s_colX[0];
+    for (int32_t c = 0; c < 3; c++) {
+        int32_t x = s_colX[c], w = s_shortW;
+        if (s_longNames) {
+            w = kLongNameW;
+            if (_selFilesColumn1NumItems == 0 && _selFilesColumn3NumItems == 0)   /* (one column: the middle) */
+                x = s_colX[0] + (span - longFull) / 2;
+            else
+                x = c == 0 ? s_colX[0] : s_colX[0] + span - longFull;
+        }
+        for (int32_t r = 0; r < 15; r++) {
+            _menuEntries[1 + 15 * c + r].x = (uint16_t)x;
+            _menuEntries[1 + 15 * c + r].dwWidth = (uint16_t)w;
+        }
+    }
+}
+
+/* a name wider than its button: as much of it as fits, then "..." */
+static void elide(uint8_t *s, int32_t width)
+{
+    extern void *_charTables[];
+    uint8_t *table = (uint8_t *)_charTables[0];
+    uint8_t whole[72];
+    if (!table || GetTextWidth(s, table) <= width - 2)
+        return;
+    snprintf((char *)whole, sizeof whole, "%s", (const char *)s);
+    for (int32_t n = (int32_t)strlen((const char *)whole) - 1; n > 0; n--) {
+        snprintf((char *)s, 70, "%.*s...", (int)n, (const char *)whole);
+        if (GetTextWidth(s, table) <= width - 2)
+            return;
+    }
+}
+
+/* SWOS_FILES_TEST=load|save: the LOAD / SAVE file screen opened from the main menu's 5th frame
+ * (a test's: with SWOS_PRESENT_CAPTURE, the long names' columns). */
+void SelectFiles_TestFrame(void)
+{
+    static int32_t frames, done;
+    const char *t = getenv("SWOS_FILES_TEST");
+    extern int32_t Menu_IsMainMenu(void);
+    if (!t || done || !Menu_IsMainMenu() || ++frames < 5)
+        return;
+    done = 1;
+    if (!strcmp(t, "save"))
+        SelectFileToSaveDialog(0x2E434152u, (uint8_t *)"A VERY LONG CAREER NAME.CAR", (uint8_t *)"SAVE CAREER");
+    else
+        GetFilenameAndExtension(0, (uint8_t *)"", (uint8_t *)"LOAD OLD COMPETITION");
+}
+
 static int32_t files_by_date(void)
 {
     return g_arcadeOpts && !strcmp(g_arcadeOpts->file_sort, "date");
@@ -1423,6 +1511,27 @@ void SelectFilesOnReturn(void)
         }
     }
 
+#ifdef SWOS_SDL_BUILD
+    s_longNames = _numMatchedFiles <= 30 && any_long_name();
+    if (s_longNames && _numMatchedFiles > 8) {     /* (two columns: the first and the last's room) */
+        _selFilesColumn1NumItems = (uint16_t)((_numMatchedFiles + 1) / 2);
+        _selFilesColumn2NumItems = (uint16_t)(_numMatchedFiles / 2);
+        _selFilesColumn3NumItems = 0;
+    }
+    place_columns();
+    if (_savingFile != 0 && s_haveCols) {   /* the name's box: room for SAVE_FILENAME_CHARS, the
+                                             * label right of its left, the two centred */
+        extern void *_charTables[];
+        const int32_t boxW = 176;
+        const int32_t labelW = _charTables[0] && _menuEntries[47].fg
+            ? GetTextWidth((uint8_t *)_menuEntries[47].fg, (uint8_t *)_charTables[0]) : 40;
+        const int32_t mid = _menuEntries[0].x + _menuEntries[0].dwWidth / 2;
+        const int32_t left = mid - (labelW + 3 + boxW) / 2;
+        _menuEntries[47].x = (uint16_t)(left + labelW);
+        _menuEntries[48].x = (uint16_t)(left + labelW + 3);
+        _menuEntries[48].dwWidth = (uint16_t)boxW;
+    }
+#endif
     RepositionSelectFileEntries();
     /* Assign filenames to menu entries */
     void **filePtr = _foundFilesPtrTable;
@@ -1474,6 +1583,9 @@ void SelectFilesOnReturn(void)
                 }
             }
             *dst = 0;
+#ifdef SWOS_SDL_BUILD
+            elide((uint8_t *)entry->fg, entry->dwWidth);
+#endif
             break;
         }
 
@@ -1495,6 +1607,9 @@ void SelectFilesOnReturn(void)
 __attribute__((used, externally_visible))
 void SelectFilesInit(void)
 {
+#ifdef SWOS_SDL_BUILD
+    keep_columns();                     /* (the menu's own places: the long names' layout moves them) */
+#endif
     /* Set initial menu entry based on mode */
     if (_savingFile != 0) {
         if (_inputSaveFilename[0] != 0)

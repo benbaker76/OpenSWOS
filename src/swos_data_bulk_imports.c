@@ -14,6 +14,7 @@
  */
 
 #include "swos_types.h"
+#include "save_filename.h"   /* the filename buffers: 38 characters on SDL */
 #include "swos_sections.h"
 #include "world.h"
 #include "national_teams.h"   /* NATIONAL_TEAMS_MAX, NATIONALITIES_MAX: a mod's table (SDL) */
@@ -45,7 +46,7 @@ uint8_t _careerIntlPlayerSelectedTeamName[18] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 /* competitionFileBuffer: backing storage moved to swos_globals.c
  * (see diyFileBufferCopyBuf comment) — sized big enough for the
  * 2900-byte word-copy in SaveDIYTournament. */
-uint8_t _competitionFilename[14];
+uint8_t _competitionFilename[SAVE_FILENAME_BUF(14)];
 uint8_t _cornerFlagPictureIndices[32] = { 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3 };
 uint8_t _countriesStack[10] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 /* (the European cups' places this season end, one country a place, 0xFF-ended: a world's league
@@ -147,7 +148,7 @@ int8_t _goalScoredChances[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
  * VIEW HIGHLIGHTS was disabled even on a successful load. Aliased into
  * one 192254-byte backing buffer at the right offsets. */
 /* uint8_t hilFileBuffer[2044]; */
-uint8_t _hilFilename[14];
+uint8_t _hilFilename[SAVE_FILENAME_BUF(14)];
 /* hilGameName / hilGameRound: aliased into hilBackingBuf — see comment above. */
 /* uint8_t hilGameName[100]; */
 /* uint8_t hilGameRound[100]; */
@@ -156,7 +157,7 @@ uint8_t _hilFilename[14];
 uint8_t _inMenuKeyboardBuffer[100];
 uint8_t _indexCountries[64] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 uint8_t _inputAllowedControlKeys[12] = { 0xD, 0x12, 0x13, 0x1B, 0x7F, 0x7E, 0x20, 0x2D, 0x2F, 0x2E, 0xFF, 0x0 };
-uint8_t _inputSaveFilename[13] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+uint8_t _inputSaveFilename[SAVE_FILENAME_BUF(13)] = { 0 };
 int8_t _kAbortLossScorerWeightTable[12] = { 35, 25, 20, 15, 11, 7, 5, 4, 3, 2, 124, 4 };
 int8_t _kInjuryLevelAlreadyInjured[7] = { 14, 15, 12, 9, 7, 5, 2 };
 int8_t _kInjuryLevels[7] = { 42, 7, 5, 4, 3, 2, 1 };
@@ -236,7 +237,7 @@ int8_t _secondYellowTable[46] = { 0, 9, 0, 9, 0, 9, 0, 9, 0, 9, 0, 9, 0, 0, 0, 0
 /* MOVED to careerFileBufferBuf overlay (see swos_globals_career_overlay.c): secondaryCompetitionName */
 // int8_t secondaryCompetitionName[36];
 /* selTeamPlayerIndices: alias into selTeamsBackingBuf + 60 (see swos_globals.c) */
-uint8_t _selectedFilename[13] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+uint8_t _selectedFilename[SAVE_FILENAME_BUF(13)] = { 0 };
 /* shirtTypesTable / shirtsIndexTable: SWOS2.s declares these as `dc.b`
  * byte-pairs but reads them with `move.w` instructions — the m68k BE
  * convention decodes `00 16` as 16-bit 0x0016. The auto-extractor

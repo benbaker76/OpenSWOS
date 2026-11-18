@@ -12,6 +12,7 @@
  * unchanged.
  * ============================================================ */
 #include "mods.h"         /* the enabled mods: a read looks in them first (both targets) */
+#include "save_filename.h"   /* the save folder's listing: SAVE_LIST_* */
 
 #ifdef SWOS_SDL_BUILD
 
@@ -240,7 +241,7 @@ static uint32_t fs_listdir(const char *dirpath, uint8_t *out, uint32_t out_sz)
 }
 
 /* ---- RobNorthenLoader command handlers ---------------------------- */
-static uint8_t s_listdir_buf[2048];
+static uint8_t s_listdir_buf[SAVE_LIST_MAX * 64];
 
 static uint32_t rob_load(uint8_t *name, uint8_t *dest)
 {
@@ -349,16 +350,18 @@ static uint32_t rob_list_directory(uint8_t *name, uint8_t *callerBuf)
 
     uint8_t *src = s_listdir_buf;
     uint8_t *dst = callerBuf;
+    if (count > SAVE_LIST_MAX)          /* (the listing's room: a full save folder wrote past it) */
+        count = SAVE_LIST_MAX;
     for (uint32_t i = 0; i < count; ++i) {
         size_t len = strlen((char *)src);
-        memset(dst, 0, 0x20);
+        memset(dst, 0, SAVE_LIST_ENTRY);
         dst[0] = 0;
-        if (len > 0x1B) len = 0x1B;
+        if (len > SAVE_LIST_ENTRY - 5) len = SAVE_LIST_ENTRY - 5;   /* (0x1B the original's) */
         dst[1] = (uint8_t)len;
         memcpy(dst + 2, src, len);
         dst[2 + len] = 0;
         src += strlen((char *)src) + 1;
-        dst += 0x20;
+        dst += SAVE_LIST_ENTRY;
     }
 
     *(uint16_t *)&size = (uint16_t)count;

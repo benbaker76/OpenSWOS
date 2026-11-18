@@ -95,7 +95,7 @@ extern int8_t _quadrantCoordinatesToBallQuadrant[240];
  * ====================================================================== */
 
 /* Tactics filename buffer for import */
-extern uint8_t _importTacticsFilename[14];
+extern uint8_t _importTacticsFilename[];
 
 /* Player position arrays (working buffers) */
 extern uint8_t _playerPositionsArray[32];

@@ -804,8 +804,12 @@ void SaveAndExitEditTactics(void)
                 goto cleanup;
 
             /* Copy selected filename (without extension) as new tactics name */
-            StringCopyUntilChar(_selectedFilename,
-                                 (uint8_t *)_editTacticsCurrentTactics.name, 0x2E);
+            {   /* (its first 8: a tactic's name is 8 long, its file's may be longer on SDL) */
+                uint8_t base[sizeof _editTacticsCurrentTactics.name + 40];
+                StringCopyUntilChar(_selectedFilename, base, 0x2E);
+                base[sizeof _editTacticsCurrentTactics.name - 1] = 0;
+                StringCopy(base, (uint8_t *)_editTacticsCurrentTactics.name);
+            }
 
             /* Write the tactics file */
             if (WriteTacticsFile(_selectedFilename,
