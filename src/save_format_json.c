@@ -419,6 +419,43 @@ static int save_world_ok(const uint8_t *src, uint32_t size)
     return 0;
 }
 
+/* A world's national files' sizes (countries 80..85: their ranges of global team numbers,
+ * fit_world_national_files). A world's career save writes them as "national_files"; one without
+ * them was saved with 96/97's (49 34 10 15 31 4). A career whose sizes are not the game's is refused:
+ * every country after 80..85 numbers its clubs from other bases, and the save's league offsets,
+ * play-off and title states name clubs by those numbers (World 2026-27's 211 national teams, the
+ * owner's choice 2026-11-17: no conversion). */
+static void national_file_sizes(int32_t out[6])
+{
+    extern uint16_t _teamsCountryNumbers[256];
+    for (int32_t c = 80; c <= 85; c++)
+        out[c - 80] = _teamsCountryNumbers[c + 1] - _teamsCountryNumbers[c];
+}
+
+static int save_national_ok(const uint8_t *src, uint32_t size)
+{
+    if (World_Current() == WORLD_9697)
+        return 1;
+    int32_t saved[6] = { 49, 34, 10, 15, 31, 4 }, now[6];
+    const char *arr;
+    int arr_len;
+    if (mjson_find((const char *)src, (int)size, "$.national_files", &arr, &arr_len) == MJSON_TOK_ARRAY) {
+        for (int32_t i = 0; i < 6; i++) {
+            char key[5] = { '$', '[', (char)('0' + i), ']', 0 };
+            long v;                 /* (mjson's integer API: the Amiga has no doubles) */
+            saved[i] = mjson_get_long(arr, arr_len, key, &v) > 0 ? (int32_t)v : -1;
+        }
+    }
+    national_file_sizes(now);
+    for (int32_t i = 0; i < 6; i++)
+        if (saved[i] != now[i]) {
+            SWOS_DBG("[save] made with %d national teams in file %d, this game has %d: refused "
+                     "(the clubs' team numbers differ)\n", (int)saved[i], (int)(80 + i), (int)now[i]);
+            return 0;
+        }
+    return 1;
+}
+
 /* A national coach's cup pick list entry <-> its careerContests index (the copies), or the
  * table's -1 / -2 ends, -3 none, -4 unknown. */
 extern void *_careerCupPickList[];
@@ -3793,6 +3830,58 @@ void DataJson_LoadCareerParams(void)
 }
 
 #include "mods.h"
+static int dj_world_path(const char *path, char *out, size_t out_size);
+
+/* The national teams' files (countries 80..85): the continents' names of their JSON. */
+static const char *const kNationalFiles[6] = { "EUROPE", "AFRICA", "SOUTH_AMERICA", "NORTH_AMERICA", "ASIA", "OCEANIA" };
+
+/* The teams a world's national file holds (its teams/<file>.json), or -1 when the world has none
+ * of its own (96/97's then, by the overlay). */
+static int world_national_count(int32_t country)
+{
+    char path[128], wpath[256];
+    int len = 0, n = 0;
+    snprintf(path, sizeof path, "data_json/teams/%s.json", kNationalFiles[country - 80]);
+    if (!dj_world_path(path, wpath, sizeof wpath))
+        return -1;
+    char *j = dj_slurp(wpath, &len);
+    if (!j)
+        return -1;
+    const char *teams;
+    int teams_len, tp = 0, to, tl, tt;
+    if (mjson_find(j, len, "$.teams", &teams, &teams_len) == MJSON_TOK_ARRAY)
+        while ((tp = fast_array_next(teams, teams_len, tp, &to, &tl, &tt)) != 0)
+            n++;
+    free(j);
+    return n;
+}
+
+/* A world's national files may hold more teams than 96/97's (World 2026-27: the 211 FIFA members,
+ * scripts/worldgen/nations.py, where 96/97 has 143): each such file's range of global team numbers
+ * grows to them and every later country's base moves by the difference, as DataJson_FitModTeamFiles
+ * does for a mod's file. A career saved with other sizes is refused (save_national_ok). SDL: the
+ * Amiga's numbering is baked (world_data.c) and its drawer keeps 96/97's national files. */
+static void fit_world_national_files(void)
+{
+    extern uint16_t _teamsCountryNumbers[256];
+    extern volatile uint16_t _panicReasonCode;
+    extern void PanicHaltLoop(void);
+    for (int32_t c = 80; c <= 85; c++) {
+        const int n = world_national_count(c);
+        const int range = _teamsCountryNumbers[c + 1] - _teamsCountryNumbers[c];
+        if (n <= range)
+            continue;
+        for (int i = c + 1; i < 256; i++)
+            _teamsCountryNumbers[i] = (uint16_t)(_teamsCountryNumbers[i] + (n - range));
+        fprintf(stderr, "[data-json] world %s: %d national teams in file %d (96/97: %d), later countries' "
+                        "team numbers moved by %d\n", World_Tag(), n, (int)c, range, n - range);
+        if (_teamsCountryNumbers[255] > GLOBAL_TEAM_NUMBERS) {
+            _panicReasonCode = 0x8F02;
+            PanicHaltLoop();
+        }
+    }
+}
+
 /* A mod's team file for a 96/97 country (data_json/teams/, through the overlay): a country's
  * global team numbers (base + ordinal, _teamsCountryNumbers) are a range sized to 96/97's clubs,
  * and a file with more would run on into the next countries' numbers -- Career+'s Yugoslavia,
@@ -3806,7 +3895,11 @@ void DataJson_FitModTeamFiles(void)
     extern uint16_t _teamsCountryNumbers[256];
     extern volatile uint16_t _panicReasonCode;
     extern void PanicHaltLoop(void);
-    if (World_Current() != WORLD_9697 || Mods_Count() == 0)
+    if (World_Current() != WORLD_9697) {
+        fit_world_national_files();
+        return;
+    }
+    if (Mods_Count() == 0)
         return;
     int clen = 0;
     char *cj = dj_slurp("data_json/competitions/countries.json", &clen);
@@ -3878,8 +3971,17 @@ void DataJson_LoadNationalTeams(void)
     extern uint16_t _numNationalTeams;
     extern uint8_t  _nationalityOrdinalsArray[];
     extern uint16_t _nat_teams_rand_limit1;
+    extern uint16_t _natTeamsRandLimit2;
     int len;
-    char *j = dj_slurp("data_json/national_teams.json", &len);
+    /* a world's own first (data_json/worlds/<tag>/national_teams.json: World 2026-27's 211), else a
+     * mod's */
+    char wpath[256];
+    const char *path = "data_json/national_teams.json";
+    char *j = dj_world_path(path, wpath, sizeof wpath) ? dj_slurp(wpath, &len) : NULL;
+    if (j)
+        path = wpath;
+    else
+        j = dj_slurp(path, &len);
     if (!j)
         return;
     static uint8_t rec[NATIONAL_TEAMS_MAX * 6], nats[NATIONALITIES_MAX];
@@ -3925,13 +4027,14 @@ void DataJson_LoadNationalTeams(void)
         }
     }
     if (why) {
-        fprintf(stderr, "[data-json] data_json/national_teams.json refused (%s): the original's national teams\n", why);
+        fprintf(stderr, "[data-json] %s refused (%s): the original's national teams\n", path, why);
         free(j);
         return;
     }
     memset(_nationalTeams, 0, NATIONAL_TEAMS_MAX * 6);
     memcpy(_nationalTeams, rec, nRec * 6);
     _numNationalTeams = (uint16_t)nRec;
+    _natTeamsRandLimit2 = (uint16_t)nRec;      /* (a random national team -- friendlies, tours -- from all of them) */
     if (nNat) {     /* (none given: the compiled ones) */
         memcpy(_nationalityOrdinalsArray, nats, nNat);
         _nationalityOrdinalsArray[nNat] = 0xFF;     /* OTHER */
@@ -3939,7 +4042,7 @@ void DataJson_LoadNationalTeams(void)
     if (mjson_get_number(j, len, "$.job_offer_pick", &v) && v >= 1 && v <= 256)
         _nat_teams_rand_limit1 = (uint16_t)v;   /* (the first records a random national job is drawn from) */
     free(j);
-    fprintf(stderr, "[data-json] national teams from data_json/national_teams.json: %u records, %u nationalities\n",
+    fprintf(stderr, "[data-json] national teams from %s: %u records, %u nationalities\n", path,
             (unsigned)nRec, (unsigned)(nNat ? nNat + 1 : 0));
 }
 
@@ -7052,6 +7155,12 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         "file_kind",      KIND_CAREER,
         "world",          World_Tag(),
         "num_selected_teams", (int)_numSelectedTeams);
+    if (World_Current() != WORLD_9697) {        /* (save_national_ok) */
+        int32_t nf[6];
+        national_file_sizes(nf);
+        mjson_printf(json_out_emit, &out, "%Q: [%d,%d,%d,%d,%d,%d],\n  ", "national_files",
+                     (int)nf[0], (int)nf[1], (int)nf[2], (int)nf[3], (int)nf[4], (int)nf[5]);
+    }
 
     emit_season_informations(json_out_emit, &out);
     SAVE_LAP("season_info");
@@ -9058,7 +9167,7 @@ int16_t SaveJson_LoadCareer(uint8_t *filename, const uint8_t *src_unused,
         swos_io_free(src);
         return 1;
     }
-    if (!save_world_ok(src, src_size)) {
+    if (!save_world_ok(src, src_size) || !save_national_ok(src, src_size)) {
         swos_io_free(src);
         return 1;
     }

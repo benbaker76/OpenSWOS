@@ -96,7 +96,7 @@ extern char _aCoppaItalia[];
 extern char _aCoppa[];
 extern char _aSerieA[];
 extern char _aSerieB[];
-extern uint8_t _shortCountryNames[214 * 3];
+extern uint8_t _shortCountryNames[NATIONALITY_CODES * 3];
 extern void *_competitionsTable[256];
 extern void *_countriesTable[262];
 #endif

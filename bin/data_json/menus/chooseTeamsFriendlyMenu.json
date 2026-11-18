@@ -1325,6 +1325,74 @@
           "flags": "0x0"
         }
       ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "nav",
+          "left": 39,
+          "right": -1,
+          "up": -1,
+          "down": 60
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 0
+        },
+        {
+          "op": "sprite_fg",
+          "index": 183
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChooseTeamsFriendlyScrollUp"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "coords": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 14
+      },
+      "commands": [
+        {
+          "op": "invisible"
+        },
+        {
+          "op": "nav",
+          "left": 54,
+          "right": -1,
+          "up": 59,
+          "down": 56
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 0
+        },
+        {
+          "op": "sprite_fg",
+          "index": 184
+        },
+        {
+          "op": "onselect_fire",
+          "func": "ChooseTeamsFriendlyScrollDown"
+        }
+      ]
     }
   ]
 }

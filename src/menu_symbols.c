@@ -58,6 +58,8 @@ extern void ChooseTeamsFriendlyCommon2(void);
 extern void ChooseTeamsFriendlyInit(void);
 extern void ChooseTeamsFriendlyInitFinish(void);
 extern void ChooseTeamsFriendlyOnSelect76(void);
+extern void ChooseTeamsFriendlyScrollDown(void);
+extern void ChooseTeamsFriendlyScrollUp(void);
 extern void ChooseTeamsInit(void);
 extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
@@ -766,6 +768,8 @@ const MenuSymbol _menuSymbols[] = {
     { "ChooseTeamsFriendlyInit", (void*)ChooseTeamsFriendlyInit, SYM_FUNC },
     { "ChooseTeamsFriendlyInitFinish", (void*)ChooseTeamsFriendlyInitFinish, SYM_FUNC },
     { "ChooseTeamsFriendlyOnSelect76", (void*)ChooseTeamsFriendlyOnSelect76, SYM_FUNC },
+    { "ChooseTeamsFriendlyScrollDown", (void*)ChooseTeamsFriendlyScrollDown, SYM_FUNC },
+    { "ChooseTeamsFriendlyScrollUp", (void*)ChooseTeamsFriendlyScrollUp, SYM_FUNC },
     { "ChooseTeamsInit", (void*)ChooseTeamsInit, SYM_FUNC },
     { "ChooseTeamsMenu", (void*)ChooseTeamsMenu, SYM_FUNC },
     { "ChooseTeamsPlayGame", (void*)ChooseTeamsPlayGame, SYM_FUNC },

@@ -1993,12 +1993,12 @@ def world_data_c(tag, leagues, resized, groups, playoffs, pools, cups, cupd, new
             installs.append("        _shortCountryNames[%d * 3] = '%s'; _shortCountryNames[%d * 3 + 1] = '%s'; "
                             "_shortCountryNames[%d * 3 + 2] = '%s';   /* nationality %d */"
                             % (nation, short[0], nation, short[1], nation, short[2], nation))
-        externs.update(("extern void *_countriesTable[262];", "extern uint8_t _shortCountryNames[214 * 3];"))
+        externs.update(("extern void *_countriesTable[262];", "extern uint8_t _shortCountryNames[NATIONALITY_CODES * 3];"))
     for nation, short in sorted(NAT_TODAY.items()):
         installs.append("        _shortCountryNames[%d * 3] = '%s'; _shortCountryNames[%d * 3 + 1] = '%s'; "
                         "_shortCountryNames[%d * 3 + 2] = '%s';   /* nationality %d, today's code */"
                         % (nation, short[0], nation, short[1], nation, short[2], nation))
-        externs.add("extern uint8_t _shortCountryNames[214 * 3];")
+        externs.add("extern uint8_t _shortCountryNames[NATIONALITY_CODES * 3];")
     installs.append("        FixtureRounds_Install();")
     installs.append("        World_SyncSecondFiles();")
     regions, season = world_lists(news)

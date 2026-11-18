@@ -228,7 +228,7 @@ int32_t ModApi_SquadGoalsView(void)
 int32_t ModApi_NationalityCode(uint8_t nationality, char *out)
 {
     extern uint8_t _shortCountryNames[];
-    enum { kCodes = 214 };              /* (swos_data_bulk_imports.c: _shortCountryNames[214 * 3]) */
+    enum { kCodes = NATIONALITY_CODES };   /* (swos_data_bulk_imports.c: _shortCountryNames) */
     if (!out || nationality >= kCodes)
         return -1;
     for (int32_t i = 0; i < 3; i++)

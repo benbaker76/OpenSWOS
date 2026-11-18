@@ -1324,14 +1324,16 @@ extern uint16_t _removedPlayerStatAccum;
 /* ---- Real squad numbers (a world's 'squad_numbers': the SWOS 96/97 Mod's benchnum.py) ----
  * The game binds numbers to line-up places and writes them into the player records: the
  * bench's 11..15 get 12..16 (SetBenchPlayersNumbers), a starter swapped with a bench player
- * swaps numbers with him. In a career of such a world none of that happens -- a real 23 on the
- * bench stays 23 -- for the computer's sides too; a new player of the managed club (a purchase,
- * the game's reserve or trial player) keeps his number when no one in the squad has it, else
- * takes the lowest free of 2..99 (1 too for a keeper). */
+ * swaps numbers with him. In such a world none of that happens -- a real 23 on the bench stays
+ * 23 -- for every side and every game: a career (the Mod's), and since 2026-11-17 a friendly, a DIY
+ * or preset competition too (the owner: a national team's bench showed 12..16 in a friendly; World
+ * 2026-27's national teams carry their players' own numbers, scripts/worldgen/nations.py). In a
+ * career a new player of the managed club (a purchase, the game's reserve or trial player) keeps his
+ * number when no one in the squad has it, else takes the lowest free of 2..99 (1 too for a keeper).
+ * Online play is 96/97's (world_online.c): no squad numbers there. */
 int32_t SquadNumbers_On(void)
 {
-    extern uint16_t _gameType;
-    return _gameType == 4 && World_SquadNumbers();
+    return World_SquadNumbers();
 }
 
 /* A team whose numbers are its players' own: a squad-number world's career, or a team whose
@@ -2310,6 +2312,15 @@ extern uint16_t _numSelectedTeams;
 extern void Bureaucracy(void);
 extern void SetExitMenuFlag(void);
 
+/* A list of more than the 48 cells (3 columns of 16) -- World 2026-27's Europe: 55 national teams,
+ * Africa 53 -- scrolls: the cells show the teams from s_friendlyTop on, in the list's order down the
+ * columns, and the red arrows right of the list (entries 59 and 60 of chooseTeamsFriendlyMenu, which
+ * OpenSWOS added) move it a team at a time. 96/97's Europe is 49: the original never showed its last.
+ * s_friendlyList names the list (team file, league) so another one starts at its top. */
+static uint16_t s_friendlyTop;
+static uint32_t s_friendlyList = 0xFFFFFFFFu;
+enum { kFriendlyCells = 48, kFriendlyArrowUp = 59, kFriendlyArrowDown = 60 };
+
 __attribute__((used, externally_visible))
 void ChooseTeamsFriendlyCommon2(MenuEntry *entry)
 {
@@ -2324,6 +2335,7 @@ void ChooseTeamsFriendlyCommon2(MenuEntry *entry)
         d0 -= 16;
         d0 += _chooseTeamsFriendly_leftListNumEntries;
     }
+    d0 += s_friendlyTop;                    /* (a list past 48 scrolled: ChooseTeamsFriendlyScroll) */
 
     int8_t idx = (int8_t)_teamsIndex[d0];
     int16_t idx16 = (int16_t)idx;
@@ -2687,6 +2699,17 @@ void ChooseTeamsFriendlyInitFinish(void)
         teamRecord++;
     }
     _chooseTeamsFriendly_numTeamsInLeagueList = count;
+    {   /* (the scroll: a new list from its top, never past its last 48) */
+        const uint32_t list = ((uint32_t)_lastLoadedExtNumber << 8) | league;
+        if (list != s_friendlyList) {
+            s_friendlyList = list;
+            s_friendlyTop = 0;
+        }
+        if (count <= kFriendlyCells)
+            s_friendlyTop = 0;
+        else if (s_friendlyTop > count - kFriendlyCells)
+            s_friendlyTop = (uint16_t)(count - kFriendlyCells);
+    }
 
     /* Bubble sort teamsIndex by team name */
     if (count >= 2) {
@@ -2775,8 +2798,23 @@ void ChooseTeamsFriendlyInitFinish(void)
 
     /* Build menu entries from teamsIndex/teamsPtrTable */
     MenuEntry *e = &_menuEntries[7]; /* entry 7 = 0x188/0x38 */
-    uint16_t d6 = 0;
-    uint16_t d5 = 0;
+    uint16_t d6 = s_friendlyTop;             /* (0 unless the list scrolls) */
+    uint16_t d5 = s_friendlyTop;
+    {   /* the scroll arrows, right of the right column: shown when the list has more than its cells */
+        MenuEntry *up = &_menuEntries[kFriendlyArrowUp], *down = &_menuEntries[kFriendlyArrowDown];
+        const MenuEntry *top = &_menuEntries[7 + 32], *bottom = &_menuEntries[7 + 47];
+        if (up->ordinal == kFriendlyArrowUp && down->ordinal == kFriendlyArrowDown) {
+            const int32_t more = _chooseTeamsFriendly_numTeamsInLeagueList > kFriendlyCells;
+            up->isInvisible = down->isInvisible = (uint16_t)!more;
+            up->x = down->x = (uint16_t)(top->x + top->dwWidth + 3);
+            up->y = top->y;
+            down->y = (uint16_t)(bottom->y + bottom->dwHeight - down->dwHeight);
+            /* the keyboard's way to them: RIGHT from the right column (the original's -1: nothing) */
+            for (int32_t k = 0; k < 16; k++)
+                _menuEntries[7 + 32 + k].rightEntry = (int8_t)(!more ? -1 : k < 8 ? kFriendlyArrowUp
+                                                                                 : kFriendlyArrowDown);
+        }
+    }
 
 outer:
     e->isInvisible = 1;
@@ -2838,6 +2876,35 @@ outer:
         }
         /* d6 >= count: continue marking invisible */
     }
+}
+
+/* The scroll arrows of a list past 48 (entries 59 and 60, chooseTeamsFriendlyMenu's JSON): a team
+ * up or down, the cells built again from the new top. */
+static void friendly_scroll(int32_t by)
+{
+    const int32_t count = _chooseTeamsFriendly_numTeamsInLeagueList;
+    int32_t top = (int32_t)s_friendlyTop + by;
+    if (top > count - kFriendlyCells)
+        top = count - kFriendlyCells;
+    if (top < 0)
+        top = 0;
+    if (top == (int32_t)s_friendlyTop)
+        return;
+    s_friendlyTop = (uint16_t)top;
+    ChooseTeamsFriendlyInitFinish();
+    DrawMenu();
+}
+
+__attribute__((used, externally_visible))
+void ChooseTeamsFriendlyScrollUp(void)
+{
+    friendly_scroll(-1);
+}
+
+__attribute__((used, externally_visible))
+void ChooseTeamsFriendlyScrollDown(void)
+{
+    friendly_scroll(1);
 }
 
 /* ---- Chunk 224: SetTeamsCoordinates, SelectTeamsReinit, SelectTeamsInit ---- */

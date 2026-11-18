@@ -64,7 +64,7 @@ extern char _aEuroCwCup[];
 extern char _aEuropeanChampi_1[];
 extern char _aEuropeanCupWin[];
 extern char _aEuropeanCup[];
-extern uint8_t _shortCountryNames[214 * 3];
+extern uint8_t _shortCountryNames[NATIONALITY_CODES * 3];
 extern void *_competitionsTable[256];
 extern void *_countriesTable[262];
 #endif

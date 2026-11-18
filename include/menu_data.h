@@ -639,6 +639,23 @@ typedef struct Menu_ChooseTeamsFriendly
   MenuCmd_Colors entry58_colors;
   MenuCmd_TextNoPtr entry58_text;
   MenuCommand entry58_end;
+  /* OpenSWOS: the red scroll arrows of a list past the 48 cells (World 2026-27's Europe, 55; 96/97's
+   * own Europe, 49, whose last the original never showed) -- src/teams.c friendly_scroll, which
+   * places and shows them. Appended last so no entry's number moves (entries 59, 60). */
+  MenuCoords8 entry59_rc;
+  MenuCmd_Invisible entry59_invisible;
+  MenuCmd_Nav entry59_nav;
+  MenuCmd_Colors entry59_colors;
+  MenuCmd_SpriteFg entry59_sprite;
+  MenuCmd_OnSelect entry59_onSelect;
+  MenuCommand entry59_end;
+  MenuCoords8 entry60_rc;
+  MenuCmd_Invisible entry60_invisible;
+  MenuCmd_Nav entry60_nav;
+  MenuCmd_Colors entry60_colors;
+  MenuCmd_SpriteFg entry60_sprite;
+  MenuCmd_OnSelect entry60_onSelect;
+  MenuCommand entry60_end;
   MenuMark markEndMenu;
 } Menu_ChooseTeamsFriendly;
 #pragma pack(pop)

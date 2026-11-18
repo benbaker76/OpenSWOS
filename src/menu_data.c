@@ -84,6 +84,8 @@ extern void ChooseTeamsFriendlyCommon2(void);
 extern void ChooseTeamsFriendlyInit(void);
 extern void ChooseTeamsFriendlyInitFinish(void);
 extern void ChooseTeamsFriendlyOnSelect76(void);
+extern void ChooseTeamsFriendlyScrollDown(void);
+extern void ChooseTeamsFriendlyScrollUp(void);
 extern void ChooseTeamsInit(void);
 extern void ChooseTeamsMenu(void);
 extern void ChooseTeamsPlayGame(void);
@@ -1086,6 +1088,20 @@ Menu_ChooseTeamsFriendly _chooseTeamsFriendlyMenu = {
     { -72, -68, 120, 9 },
     { MENU_CMD_COLORS, 0x0 },
     { MENU_CMD_TEXT_NO_PTR, 0x0 },
+    MENU_CMD_END,
+    { 0, 0, 8, 14 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, 39, -1, -1, 60 },
+    { MENU_CMD_COLORS, 0x0 },
+    { MENU_CMD_SPRITE_FG, 183 },
+    { MENU_CMD_ONSELECT_FIRE, ChooseTeamsFriendlyScrollUp },
+    MENU_CMD_END,
+    { 0, 0, 8, 14 },
+    { MENU_CMD_INVISIBLE },
+    { MENU_CMD_NAV, 54, -1, 59, 56 },
+    { MENU_CMD_COLORS, 0x0 },
+    { MENU_CMD_SPRITE_FG, 184 },
+    { MENU_CMD_ONSELECT_FIRE, ChooseTeamsFriendlyScrollDown },
     MENU_CMD_END,
     MENU_MARK_END_MENU
 };

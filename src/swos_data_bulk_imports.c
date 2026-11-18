@@ -255,8 +255,9 @@ uint16_t _shirtsIndexTable[8] = {
 };
 /* The nationalities' three-letter names, 3 bytes each, no terminator: the game's 153 (0..152,
  * the last CUS) and the SWOS 96/97 Mod's (World 2026-27, careerworld.py NEW_NATS / WORLD_NATS):
- * 153 GDR, 154 URS, 155 FRG, then 156..213 the world's nations the game had no code for. */
-uint8_t _shortCountryNames[214 * 3] =
+ * 153 GDR, 154 URS, 155 FRG, then 156..213 the world's nations the game had no code for; 214..222
+ * the FIFA members neither had (World 2026-27's national teams: scripts/worldgen/nations.py). */
+uint8_t _shortCountryNames[NATIONALITY_CODES * 3] =
     "ALBAUTBELBULCROCYPTCHDENENGESTFARFINFRAGERGREHUN"
     "ISLISRITALATLITLUXMLTHOLNIRNORPOLPORROMRUSSMRSCO"
     "SLOSWETURUKRWALYUGBLSSVKESPARMBOSAZBGEOSUIIRLMAC"
@@ -270,7 +271,7 @@ uint8_t _shortCountryNames[214 * 3] =
     "KAZKGZBLZHAICUWARUDOMCUBPURGRNGLPMTQGUFATGSKNLCA"
     "MSRCAYCPVGNBEQGMTNNERRWACOMCTASSDERISOMNAMLBYDJI"
     "STPREUMYTLBNPLEBHRHKGTHAIDNCAMAFGNEPMAOMGLMDVTLS"
-    "GUMNCLTAHVANSAMTGA";
+    "GUMNCLTAHVANSAMTGABHUSEYAIAVGBDMATCAVIRASACOK";
 uint8_t _simExtraGoalThresholdsA[3] = { 192, 48, 16 };
 uint8_t _simExtraGoalThresholdsB[3] = { 192, 64, 0 };
 uint8_t _simGoalScorerPairTable[64] = { 0x54, 0x54, 0x54, 0x54, 0x54, 0x54, 0x54, 0x53, 0x53, 0x53, 0x53, 0x53, 0x53, 0x53, 0x53, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x41, 0x41, 0x41, 0x41, 0x31, 0x31, 0x31, 0x31, 0x21, 0x21, 0x30, 0x30, 0x20, 0x10, 0x65, 0x65, 0x65, 0x65, 0x76, 0x76, 0x76, 0x87, 0x87, 0x98, 0xA9, 0xBA };

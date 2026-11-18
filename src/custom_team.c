@@ -36,6 +36,7 @@
 #include <strings.h>
 
 #include "custom_team.h"
+#include "swos_types.h"           /* NATIONALITY_CODES */
 #include "team_packs.h"
 #include "world_packs.h"
 #include "player_looks.h"
@@ -79,7 +80,7 @@ enum {
     kTeamRecord = 684,
     kFaces = 4,                     /* EditTeamsChangePlayerFace: white, ginger, black, black with blond hair */
     kFormatVersion = 3,             /* 3: links to the database by id; no player data */
-    kNationalities = 214,           /* the three-letter names a nationality indexes (_shortCountryNames) */
+    kNationalities = NATIONALITY_CODES,  /* the three-letter names a nationality indexes (_shortCountryNames) */
     kMaxShirtNumber = 99,
     kCountries = 256,
     kJsonMax = 8192,

@@ -108,6 +108,11 @@ typedef unsigned long long uint64_t;
 /* Global team numbers (a country's base + ordinal, _teamsCountryNumbers): the tables indexed
  * by them -- the league offsets (_diyLeagueSeasonStateTable, its scratch). The original's
  * 2000 held 96/97's 1730; a world's whole set needs more (World 2026-27: 2,226 clubs). */
+/* The nationalities' three-letter names (_shortCountryNames, src/swos_data_bulk_imports.c): the
+ * game's 153, the SWOS 96/97 Mod's 61 (World 2026-27's nations), then 214..222 the FIFA members
+ * neither had (World 2026-27's 211 national teams, scripts/worldgen/nations.py). */
+#define NATIONALITY_CODES 223
+
 #if SWOS_WORLDS
 #define GLOBAL_TEAM_NUMBERS 2560
 #else

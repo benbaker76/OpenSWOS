@@ -51,6 +51,8 @@
     "ChooseTeamsFriendlyInit",
     "ChooseTeamsFriendlyInitFinish",
     "ChooseTeamsFriendlyOnSelect76",
+    "ChooseTeamsFriendlyScrollDown",
+    "ChooseTeamsFriendlyScrollUp",
     "ChooseTeamsInit",
     "ChooseTeamsMenu",
     "ChooseTeamsPlayGame",

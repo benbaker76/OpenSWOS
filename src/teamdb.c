@@ -48,7 +48,7 @@ extern CompetitionCup _cupWinnersCup, _uefaCup;
 extern int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, int maxTeams);
 extern int16_t LoadFileEx(uint8_t *name, uint8_t *dest, uint32_t *size);
 
-enum { kNationalities = 214, kMaxTeams = 256 };
+enum { kNationalities = NATIONALITY_CODES, kMaxTeams = 256 };
 
 static struct {
     int32_t  on;

@@ -5,10 +5,11 @@ generates a world's squads (World 2026-27 first) from the original sources in th
 Mod's own pack format: a sample of leagues today (England's Premier League, Championship and
 League Two, Serie A, the Scottish Premiership, Malta: 112 clubs, 3,027 players). Transfermarkt
 comes from the open dataset or from **pages saved from the owner's own browser** (`--tm`), the
-way the Mod's author works. Phase 2 (the whole world) is §14.
+way the Mod's author works. Phase 2 (the whole world) is §14. **World 2026-27's national teams
+(2026-11-17): all 211 FIFA members, `nations.py`, §15.**
 
 Part I is the user guide (§1-§8); Part II the study behind it: what the Mod does, the rules and
-how exactly they reproduce it (§9-§14).
+how exactly they reproduce it (§9-§14); §15 the national teams.
 
 The goal (the owner, 2026-11-13): OpenSWOS makes World 2026-27's data **itself, from the original
 sources**, instead of taking it from Davide Lorigliola's SWOS 96/97 Mod (docs/WORLD_2026_27.md).
@@ -423,3 +424,134 @@ data: it stays in the ignored `bin/data_json/worldgen/`.
 or lead real transfers by days; a source changes format (the dataset project is paused; EA's feed
 is undocumented); a different fetch day gives a different world — so each world package must
 record its snapshot date and cache manifest; everything the CAPTCHA forbids stays forbidden.
+
+## 15. The national teams: all 211 FIFA members (`nations.py`, 2026-11-17)
+
+    python3 -I scripts/worldgen/nations.py [--offline] [--out DIR] [--world DIR] [--report FILE]
+
+writes World 2026-27's national teams into the world's folder (default `bin/data_json/worlds/2627/`,
+gitignored): `teams/EUROPE.json AFRICA.json SOUTH_AMERICA.json NORTH_AMERICA.json ASIA.json
+OCEANIA.json` (files 80..85) and `national_teams.json` (the records, include/national_teams.h), plus a
+line per nation in `bin/data_json/worldgen/2627/nations_report.txt`. Copy the seven files to an
+assets folder's world too (`Documents\SWOSUnited\data_json\worlds\2627\`): the game reads it first.
+
+**The nations** (`NATIONS` in the script, the owner's list: Wikipedia's *List of men's national
+association football teams*): code, confederation, Wikipedia's name, the game's name, nationality.
+96/97's 143 keep their file and ordinal (competitions and saves name them so), kits and tactics; the
+68 new ones follow in their confederation's file -- Europe 55, Africa 53, South America 10, North
+America 35, Asia 47, Oceania 11 (Australia stays in Oceania's file, Mauritius and Papua New Guinea in
+Asia's, as 96/97 has them). Renamed: SERBIA (Yugoslavia's slot), NORTH MACEDONIA, ESWATINI, CZECHIA.
+Nine nations had no nationality code: BHU SEY AIA VGB DMA TCA VIR ASA COK are 214..222
+(`NATIONALITY_CODES`, include/swos_types.h).
+
+**The squads**: each article's current squad (`{{nat fs g player}}` after the Current / Latest squad
+or Players heading: the last call-up, England's of 12/15 November 2026). Each player is looked for
+in the world's own clubs (its `teams/*.json`, the 16 and the extras): the same name at his club, or
+of his nationality, or a shorter / longer form of it at his club -- found, he is that record (skills,
+value, position, face, looks). 2,798 of 5,170 were (the big nations' whole 16). The others:
+- **level**: his club's median (keepers' or outfield) minus 1 when the world has the club, else his
+  nation's line -- FIFA ranking points (Wikipedia's Module:SportsRankings data, the ranking of
+  7 October 2026) against the median level of the 132 nations with 8 matched players, fitted
+  `level = 18.1 + 0.0237 x (points - 1374)`, minus 1; plus up to 3 for caps (one per 30);
+- **position**: his own article's infobox (right-back, left winger ...: the squad lists only
+  GK/DF/MF/FW); a plain full-back or winger goes to the side his squad has fewer of;
+- **skills** by his position's priorities (`SKILL_ORDER`, highest first; P V H T C S F = passing, shooting
+  power, heading, tackling, control, speed, finishing; the first two his key skills): AG_SWSEdt's
+  `GenerateAttrbyPosVal` orders (uagswos.pas) with the owner's changes -- full-back T S P V H C F and
+  winger C S P T H F V (the game's own, `FormTopSkillsString`'s letters: their first two swapped for a
+  player whose name hashes odd, as the game's two variants), centre-back (and sweeper) T H P S C V F,
+  forward F H S V C P T, and three midfielders by the place's depth in the tactic (a bench player by
+  his article): defending T P C S H, central P T S C H, attacking V P C F S -- 4-4-2 one DM one AM,
+  5-3-2 one AM, 3-5-2 two DM one AM, 4-5-1 DM AM AM, 5-4-1 CM AM, 4-3-3 CM, 4-2-4 and 5-2-3 two CM,
+  3-4-3 DM CM (`MID_KINDS`) -- weighted 4.0 3.7 1.4 1.3 1.2
+  1.1 1.0 and split to his level (`order_skills`); face from the dark list.
+- **a club player in another position** than at his club (his place's role: a winger in 4-3-3's outer
+  forward place, a centre-back in 3-5-2's outer back place) keeps his skill total and price, his skills
+  spread again by the new position's priorities (the owner, 2026-11-17). The check against 96/97 (every
+  outfield player's two key skills against his position's top three): 96/97 82.5% both in, 4.2% neither;
+  the World clubs 88.0% / 0.4%; the national teams 91.0% / 0.3% (79.5% / 2.6% before the re-skilling).
+The 16 are picked as a club's (`model.pick_sixteen`: G RB LB D D RW LW M M A A, then G D M A and the
+best left) and lined up as SWOS's teams are, in 4-4-2 (tactic 0 for every nation): `player_numbers`
+= `LINEUP_442`, the World clubs' (the Mod's mkseason) -- GK, RB, D, D, LB, RW, M (defending),
+M (attacking), LW, A, A -- of the two central midfielders the defending one first (his article's
+"defensive / attacking midfielder", else tackling + heading against finishing + shooting), the
+bench goalkeeper, defenders, midfielders, attackers (`order_lineup`). Shirt numbers the call-up's. The coach is the
+infobox's (empty when vacant). Kits: 96/97's for its slots, the infobox's for the new nations.
+
+**Real line-ups** (`tmlineup.py`, 2026-11-17): each nation plays its last match's formation with its
+starters where they played -- a Transfermarkt national team page saved from the owner's browser
+(`--lineups DIR`, subfolders read: "Webpage, Complete" or SingleFile, the page as drawn, its line-up
+box filled in by the site's script; never fetched -- §4), else the newest line-up of Wikipedia's
+tournament match articles (`WIKI_TOURNAMENTS`: the 2026 World Cup and its play-offs, AFCON 2025, the
+2025 Arab and Gold Cups, Euro 2024, Copa 2024, the 2023 Asian Cup; positions GK RB CB ... CF). The
+pages' Transfermarkt ids are Wikidata's (`TM_IDS`). 196 of 211 have one; the others play 4-4-2 as
+above. The formation becomes the game's tactic by `FORMATION_TACTIC` -- the owner's choices: 3-4-2-1
+-> 3-4-3, 4-3-2-1 -> 4-5-1, 4-2-3-1 -> 4-2-4 when its wide men are wingers (RW/LW) else 4-5-1, 4-4-1-1
+-> 4-4-2, a playmaker behind two strikers a midfielder (3-4-1-2 -> 3-5-2, 4-3-1-2 -> 4-4-2), three
+centre-backs + two wing-backs + four midfielders + a striker -> 5-4-1; a formation outside the table is
+printed with the nearest tactic taken. Each starter is the call-up's player (by name, the Wikipedia
+link's name, Transfermarkt's slug), else the world's, else estimated; the eleven go to the tactic's
+places (`tactic_spots`: each place's mean spot over the ball's 35 zones in `bin/data_json/tactics`) by
+the least total squared distance from where they played (`place_lineup`; of two central midfielders
+level with each other the defending one deeper). **The squad's captain always starts** (the owner's
+rule), in the place of the weakest of his line. The bench: the call-up's best goalkeeper, defender,
+midfielder, forward and the best left, ordered goalkeeper, defenders, midfielders, forwards. The record
+is in place order (`player_numbers` 0..15), the team's tactic the line-up's. **Shirt numbers stay with
+the player** (as the World clubs'; never his place's, `shirt_numbers_of`): the saved page's squad list
+(Transfermarkt's current national squad, `squad_numbers`), else the number he wore in the saved page's
+line-up, else the Wikipedia call-up's, else an older Wikipedia tournament line-up's; a number held by a
+better source goes to that player, and only a player with none left takes a free one.
+
+**Hand overrides** (`bin/data_json/worldgen/2627/nations_overrides.json`, gitignored -- World 2026-27's
+data; `--overrides`): by FIFA code a `tactic` in place of the line-up's, `places` {starter: role} (a
+starter moved to a place of that role in the tactic, the one there taking his) and `faces` {player:
+white | blond | black | black-blond}, players by surname. Germany's (the owner, 2026-11-17): 4-5-1,
+Gruda RW, Scherhant LW, Pavlovic and Wirtz M, Kimmich and Fullkrug blond.
+
+**The records**: one per nation -- file, ordinal, nationality, home league's team file (255 without
+one), skill (0.85 x the 11's mean level - 2, 96/97's scale). The 91 nations with a league in the
+world come first: a national job is offered from them (`job_offer_pick`).
+
+**In the game** (SDL; `src/save_format_json.c`): a world's own `national_teams.json` is read before a
+mod's; a world national file bigger than 96/97's grows its range of global team numbers and moves
+every later country's (`fit_world_national_files`, logged `[data-json] world 2627: 55 national teams
+in file 80 ...`). Career saves of a world record the sizes (`"national_files"`); a career saved with
+other ones -- every World 2026-27 career from before this -- is refused, its clubs' numbers being
+another layout's (the owner's choice: no conversion). The friendly list scrolls past its 48 cells
+with red arrows (`src/teams.c`, entries 59 / 60 of chooseTeamsFriendlyMenu): Europe's 55 -- and
+96/97's own Europe of 49, whose last the original never showed. The flags mod names the new nations'
+flags (`bin/mods/flags/flags.json` names). **The Amiga** keeps 96/97's 143 in World 2026-27: its team
+numbering is baked (`src/world_data.c`, regenerated only by `world_import.py` with the Mod's data) --
+to give it the 211, teach `world_import.py` to bake the national files' sizes and write TEAM.080-085.
+
+**Not yet**: whether the career's national competitions (qualifiers, the World Cup's field) take the
+new nations is unchecked -- their lists may name 96/97's places only; a saved Transfermarkt national-team page (`tmpages.py`) does not override
+the Wikipedia squad; the matchmaking server's team list gets the new teams with the next world
+package (`make_world_package.sh` refreshes `TeamRegistry.inc`).
+
+## 16. The balance: World 2026-27 rebalanced to 96/97's (`rebalance.py`, 2026-11-18)
+
+    python3 -I scripts/worldgen/rebalance.py [--apply]                      # the clubs (a report without --apply)
+    python3 -I scripts/worldgen/rebalance.py --apply --only-caps <national files>   # after nations.py
+
+Measured on skills 0-7 (a key skill's 8-15 as its 0-7), a team as its 16: 96/97's best 16 is Italy 555,
+the fastest Italy / Barcelona 82; the Mod's World 2026-27 had PSG 586 and speed 95, 14 centre-backs and
+10 full-backs of 40+ (96/97: 5 and 3) but 21 forwards (96/97: 65). Prices follow the skill total in both
+worlds alike (42 = 6M), so an "overpriced" defender was an over-skilled one. The owner's rules:
+1. **each position's top as 96/97's**, the number of 40+ players scaled by the worlds' players (x1.34):
+   a player's total moved toward 96/97's at his rank in his position (centre-back, full-back,
+   midfielder, winger, forward; nothing below the 85th percentile, all of it from the 95th), the order
+   kept -- 40+: centre-backs 14 -> 8, full-backs 10 -> 5, midfielders 33 -> 43, wingers 19 -> 23, forwards
+   21 -> 43 (a lift at most +3, the import's order kept); 2,377 players;
+2. **96/97's caps**: a 16 at most 555 in all and passing 86, shooting 91, heading 81, tackling 91,
+   control 83, speed 82, finishing 75; a career squad with its extras (up to 30) at most the same as an
+   average a player (555 / 16 = 34.7 ...). A team over one loses the points in proportion to what each
+   player holds, so its best stay its best.
+**Pins by hand** (`bin/data_json/worldgen/2627/rebalance_overrides.json`, gitignored): a player's total
+(and price index) set after rule 1 and never cut by the caps (his team-mates are) -- the owner's: Osimhen
+38 (3M); Mbappe, Haaland, Kane, Lamine Yamal 48 (15M).
+A player's skills move in proportion (none over 7), his key skills kept, his price with his total. The
+import's files stay in `teams_before_rebalance/` (each rerun starts from them; rerun after an import).
+After: PSG 555, Arsenal 554, Spain 544; speed at most 82; 17 teams over 500 (96/97: 9 of 1,583).
+Not yet: the Amiga's TEAM.nnn of the world (`data/`) and the server's team list keep the import's
+skills until the package is made again.
