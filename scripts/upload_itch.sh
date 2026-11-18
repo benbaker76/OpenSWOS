@@ -36,7 +36,7 @@ BUTLER="${BUTLER:-$(command -v butler || echo "$HOME/.local/bin/butler")}"
 CHANNELS=(
     "SWOS-Setup.exe:windows-installer"
     "SWOS-portable.zip:windows-linux-portable"
-    "SWOS-macOS-app.zip:mac-app"
+    "OpenSWOS-macOS.dmg:mac-app"     # signed + notarized (was SWOS-macOS-app.zip until 2026-11-18)
     "SWOS-Amiga.zip:amiga"
     "OpenSWOS-Setup.zip:setup-windows-mac-linux"
     "OpenSWOS-Android.apk:android"
@@ -101,7 +101,7 @@ for c in "${CHANNELS[@]}"; do
     f="dist/${c%%:*}"
     [ -f "$f" ] || fail "missing $f"
     [ "$f" -nt dist/.build-status ] && [ "${c%%:*}" != OpenSWOS-Setup.zip ] && \
-        [ "${c%%:*}" != SWOS-macOS-app.zip ] && [ "${c%%:*}" != SWOS-macOS.zip ] && \
+        [ "${c%%:*}" != OpenSWOS-macOS.dmg ] && [ "${c%%:*}" != SWOS-macOS.zip ] && \
         [ "${c%%:*}" != OpenSWOS-Android.apk ] && [ "${c%%:*}" != OpenSWOS-iOS.ipa ] && \
         fail "$f is newer than the drop -- rebuild it"
 done

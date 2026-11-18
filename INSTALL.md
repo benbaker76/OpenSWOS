@@ -59,7 +59,7 @@ First, the game and the setup for the computer you run the setup on:
 | Your computer | Download |
 |---|---|
 | **Windows** (10 or later) | `SWOS-Setup.exe`, the installer |
-| **Mac** (Apple silicon or Intel) | `SWOS-macOS-app.zip` |
+| **Mac** (Apple silicon or Intel) | `OpenSWOS-macOS.dmg` |
 | **Linux** (PC or Raspberry Pi) | `SWOS-portable.zip`, and `OpenSWOS-Setup.zip` for the setup |
 
 Then, if you play somewhere else as well:
@@ -92,14 +92,14 @@ Later, you can open the setup again from the Start menu: **OpenSWOS → OpenSWOS
 
 ### macOS
 
-1. Double-click **`SWOS-macOS-app.zip`**. You get an **OpenSWOS** folder holding
-   **SWOS.app** and **OpenSWOS Setup.app**.
-2. Drag the **OpenSWOS** folder to **Applications** (or anywhere you like).
-3. Open **OpenSWOS Setup.app**. **The first time, right-click it (or Control-click) and
-   choose Open**, then **Open** again. OpenSWOS isn't signed by Apple, so a plain
-   double-click is refused the first time. Then go to [step 4](#4-run-openswos-setup).
-
-Do the same right-click → **Open** the first time you start **SWOS.app**.
+1. Double-click **`OpenSWOS-macOS.dmg`**. A window opens with **SWOS.app** and your
+   **Applications** folder.
+2. Drag **SWOS.app** onto **Applications**.
+3. Open **SWOS.app** from Applications. It is signed and checked by Apple, so it opens like
+   any other app (the first time, macOS asks whether to open something you downloaded: click
+   **Open**). OpenSWOS Setup is inside it: when there is no game data yet, the game says so --
+   click **Make Game Data**, which makes it from your copy of the game and starts the game, or
+   opens the setup so you can choose. Go to [step 4](#4-run-openswos-setup) for the setup.
 
 ### Linux
 
