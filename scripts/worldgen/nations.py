@@ -956,6 +956,16 @@ def shirt_numbers_of(sixteen, tmpage):
     return out
 
 
+def strongest_bench(rest):
+    """Places 12..16: the strongest of the squad not starting (the owner) -- the best spare goalkeeper
+    and the four best outfield players (rest: best first) -- goalkeeper, defenders, midfielders,
+    forwards."""
+    keepers = [r for r in rest if r['pos'] == 'G']
+    bench = keepers[:1] + [r for r in rest if r['pos'] != 'G'][:5 - min(1, len(keepers))]
+    bench += [r for r in rest if r not in bench][:5 - len(bench)]
+    return sorted(bench, key=lambda r: BENCH_GROUP.get(r['pos'], 2))
+
+
 def lineup_sixteen(lu, rows, n, nation_level, world, unmapped, ov=None):
     """The 16 of a nation with a real line-up: its XI as they played (tactic_of, place_lineup), each the
     squad's player when he is in the call-up, else the world's or an estimated one; the bench the
@@ -1042,22 +1052,7 @@ def lineup_sixteen(lu, rows, n, nation_level, world, unmapped, ov=None):
     names = {tokens(r['s']['name']) for r in sixteen}
     rest = sorted((r for r in rows if id(r) not in used and tokens(r['s']['name']) not in names),
                   key=lambda r: (-r['value'], r['order']))
-    bench = []
-    for g in ('G', 'D', 'M', 'A'):
-        pick = next((r for r in rest if group(r['pos']) == g and r not in bench), None)
-        if pick:
-            bench.append(pick)
-    for r in rest:
-        if len(bench) >= 5:
-            break
-        if r not in bench and r['pos'] != 'G':
-            bench.append(r)
-    for r in rest:
-        if len(bench) >= 5:
-            break
-        if r not in bench:
-            bench.append(r)
-    bench.sort(key=lambda r: BENCH_GROUP.get(r['pos'], 2))
+    bench = strongest_bench(rest)
     sixteen += [dict(r, position=r['pos']) for r in bench]
     return sixteen, dict(tactic=tactic, formation=fname, where=lu['where'])
 
@@ -1213,6 +1208,10 @@ def main():
         else:
             sixteen, _ = model.pick_sixteen(rows) if rows else ([], [])
             captain_in(sixteen, rows)
+            if len(sixteen) >= 16:              # (the bench the strongest left: strongest_bench)
+                taken = {id(r['s']) for r in sixteen[:11]}
+                rest = sorted((r for r in rows if id(r['s']) not in taken), key=lambda r: (-r['value'], r['order']))
+                sixteen[11:16] = [dict(r, position=r['pos']) for r in strongest_bench(rest)]
         players = []
         numbers = shirt_numbers_of(sixteen, tm_pages.get(n['fifa']))
         for p, number in zip(sixteen, numbers):

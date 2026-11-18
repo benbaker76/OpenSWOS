@@ -515,10 +515,50 @@ void SetPlayerSurnamesOnSidePitch(void) {
     int16_t *pos = (int16_t *)_sidePitchSurnamePositionsTable[fIdx];
 
     uint16_t tNum = PACK_BE_U16(team->team.countryNumber, team->team.teamOrdinal);
+    /* The names' depths are the original's for the Amiga's pitch (sprite 225, 125 lines: 4-2-4's
+     * last forward at 110). The PC set's pitch picture is 115 lines in the same sprite, and that name
+     * sat on its bottom line (the owner, 2026-11-18): the depths are squeezed in proportion so the
+     * lowest name ends where the original's does (116 / 125 of the pitch); the Amiga's pitch draws
+     * them as the original. */
+    int32_t maxY = 0, room = 0;
+    {
+        extern uint8_t *_spriteGraphicsPtr;
+        const SpriteGraphics *pitch = ((SpriteGraphics **)_spriteGraphicsPtr)[225];
+        for (int16_t k = 0; k <= 10; k++)
+            if (pos[k * 3 + 1] > maxY)
+                maxY = pos[k * 3 + 1];
+        int32_t lines = pitch ? pitch->nlines : 0;
+#ifdef SWOS_SDL_BUILD
+        /* (the picture's own height: the PC set's pitch is 115 lines in a 125-line sprite, its last
+         *  10 empty -- the Amiga's fills it; the last line with any pixel is the pitch's bottom) */
+        if (pitch && pitch->sprData && pitch->wquads > 0) {
+            const int32_t w = pitch->wquads * 16;
+            while (lines > 0) {
+                const uint8_t *row = (const uint8_t *)pitch->sprData + (lines - 1) * w;
+                int32_t any = 0;
+                for (int32_t x = 0; x < w && !any; x++)
+                    any = row[x] != 0;
+                if (any)
+                    break;
+                lines--;
+            }
+        }
+#endif
+        if (lines > 0)                      /* (the original's look: its deepest name, 110 and 6
+                                             *  tall, ends 116 lines down its 125-line pitch) */
+            room = lines * 116 / 125 - 6;
+        if (room <= 0 || maxY <= room)
+            maxY = 0;                       /* (fits: the original's depths) */
+    }
     int16_t i;
     for (i = 0; i <= 10; i++, entry++) {
         entry->x = *pos++ + 196;
-        entry->y = *pos++ + 40;
+        {
+            int32_t y = *pos++;
+            if (maxY)
+                y = y * room / maxY;
+            entry->y = (int16_t)(y + 40);
+        }
         entry->stringFlags = *pos++;
         uint8_t *pl = GetPlayerAtIndex(tNum, (uint16_t)i);
         PlayerFile *plPf = (PlayerFile *)(pl + 76);

@@ -9076,82 +9076,82 @@ Menu_PlayMatch _playMatchMenu = {
     MENU_CMD_END,
     {
         {
-            { 23, 24, 82, 8 },
+            { 25, 24, 80, 8 },
             { MENU_CMD_NAV, -1, 38, -1, 14 },
             MENU_CMD_END
         },
         {
-            { 23, 33, 82, 8 },
+            { 25, 33, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 13, 15 },
             MENU_CMD_END
         },
         {
-            { 23, 42, 82, 8 },
+            { 25, 42, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 14, 16 },
             MENU_CMD_END
         },
         {
-            { 23, 51, 82, 8 },
+            { 25, 51, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 15, 17 },
             MENU_CMD_END
         },
         {
-            { 23, 60, 82, 8 },
+            { 25, 60, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 16, 18 },
             MENU_CMD_END
         },
         {
-            { 23, 69, 82, 8 },
+            { 25, 69, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 17, 19 },
             MENU_CMD_END
         },
         {
-            { 23, 78, 82, 8 },
+            { 25, 78, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 18, 20 },
             MENU_CMD_END
         },
         {
-            { 23, 87, 82, 8 },
+            { 25, 87, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 19, 21 },
             MENU_CMD_END
         },
         {
-            { 23, 96, 82, 8 },
+            { 25, 96, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 20, 22 },
             MENU_CMD_END
         },
         {
-            { 23, 105, 82, 8 },
+            { 25, 105, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 21, 23 },
             MENU_CMD_END
         },
         {
-            { 23, 114, 82, 8 },
+            { 25, 114, 80, 8 },
             { MENU_CMD_NAV, -1, 38, 22, 24 },
             MENU_CMD_END
         }
     },
-    { 23, 125, 82, 8 },
+    { 25, 125, 80, 8 },
     { MENU_CMD_NAV, -1, 38, 23, 25 },
     { MENU_CMD_UP_SKIP, 29, 2 },
     MENU_CMD_END,
-    { 23, -122, 82, 8 },
+    { 25, -122, 80, 8 },
     { MENU_CMD_NAV, -1, 38, 24, 26 },
     { MENU_CMD_UP_SKIP, 29, 2 },
     MENU_CMD_END,
-    { 23, -113, 82, 8 },
+    { 25, -113, 80, 8 },
     { MENU_CMD_NAV, -1, 38, 25, 27 },
     { MENU_CMD_UP_SKIP, 29, 2 },
     MENU_CMD_END,
-    { 23, -104, 82, 8 },
+    { 25, -104, 80, 8 },
     { MENU_CMD_NAV, -1, 38, 26, 28 },
     { MENU_CMD_UP_SKIP, 29, 2 },
     MENU_CMD_END,
-    { 23, -95, 82, 8 },
+    { 25, -95, 80, 8 },
     { MENU_CMD_NAV, -1, 41, 27, 29 },
     { MENU_CMD_UP_SKIP, 29, 2 },
     MENU_CMD_END,
-    { 23, -84, 82, 8 },
+    { 25, -84, 80, 8 },
     { MENU_CMD_NAV, 30, 44, 28, 5 },
     { MENU_CMD_UP_SKIP, 29, 2 },
     { MENU_CMD_INVISIBLE },
@@ -9174,7 +9174,7 @@ Menu_PlayMatch _playMatchMenu = {
         MENU_CMD_END
     },
     {
-        { 23, 0, 82, 8 },
+        { 25, 0, 80, 8 },
         { MENU_CMD_COLORS, 0xA },
         { MENU_CMD_TEXT_PTR, 0x8000, 0 },
         MENU_CMD_END

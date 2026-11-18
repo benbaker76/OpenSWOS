@@ -550,6 +550,14 @@ worlds alike (42 = 6M), so an "overpriced" defender was an over-skilled one. The
 **Pins by hand** (`bin/data_json/worldgen/2627/rebalance_overrides.json`, gitignored): a player's total
 (and price index) set after rule 1 and never cut by the caps (his team-mates are) -- the owner's: Osimhen
 38 (3M); Mbappe, Haaland, Kane, Lamine Yamal 48 (15M).
+**Benches**: places 12-16 of every team (the guest clubs too) are the squad's strongest not starting --
+the best spare goalkeeper and the four best outfield players, the extras included -- ordered goalkeeper,
+defenders, midfielders, forwards (the national teams' the same, `nations.py strongest_bench`).
+**Clubs by hand** (the overrides' `clubs`): `tactic`, `xi` (the eleven in the tactic's place order) and
+`positions` (re-skilled, total and price kept) -- Bayern's: 4-2-4, Musiala a forward behind Kane, Kimmich
+starting, Gnabry on the bench. **Skills by hand** (`skills`: P V H T C S F and the key skills, applied
+last, never capped) -- Musiala as 96/97's Stoichkov: P7 V6 H4 T5 C7 S6 F7, shown FCP. Kimmich pinned 37
+(2.75M, Redondo's price).
 A player's skills move in proportion (none over 7), his key skills kept, his price with his total. The
 import's files stay in `teams_before_rebalance/` (each rerun starts from them; rerun after an import).
 After: PSG 555, Arsenal 554, Spain 544; speed at most 82; 17 teams over 500 (96/97: 9 of 1,583).

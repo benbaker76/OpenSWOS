@@ -1415,8 +1415,14 @@ void ModMatch_TestFriendlyTick(void)
         }
         return;
     }
+    static const void *first;                  /* (the menu the game opened on: the main menu, the
+                                                 *  original's or a mod's -- menus2020's has its own
+                                                 *  onInit, so the original's check missed it) */
+    if (!first)
+        first = _currentMenu;
     if (done || !getenv("SWOS_TEST_FRIENDLY") ||
-        ((const Menu *)_currentMenu)->onInit != (MenuVoidFn)SWOSMainMenuInit || ++frames < 25)
+        (((const Menu *)_currentMenu)->onInit != (MenuVoidFn)SWOSMainMenuInit &&
+         (const void *)_currentMenu != first) || ++frames < 25)
         return;
     done = 1;
     test_friendly(getenv("SWOS_TEST_FRIENDLY"));

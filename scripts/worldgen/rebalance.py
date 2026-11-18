@@ -10,6 +10,9 @@ the owner's rules (2026-11-18):
    the two worlds' players: each player's skill total moved toward 96/97's at the same rank (a share,
    0 at the 85th percentile rising to all of it from the 95th), the order kept, a lift at most +3
    (so nobody passes a player who was better: Openda and Ronaldo stay near theirs);
+3. every bench (places 12-16) the squad's strongest not starting -- its best spare goalkeeper and its
+   four best outfield players, the extras too -- then goalkeeper, defenders, midfielders, forwards; a
+   club's line-up by hand (the overrides' 'clubs').
 2. no 16 over 96/97's best: the total 555 (Italy), and each skill's -- speed 82 (Italy, Barcelona),
    passing 86, shooting 91, heading 81, tackling 91, control 83, finishing 75 -- and no career squad
    (its extras too) over the same as an average a player; a team over one losing the points in
@@ -30,6 +33,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(REPO, 'scripts'))
+sys.path.insert(0, HERE)
 
 F = ('passing', 'velocity', 'heading', 'tackling', 'control', 'speed', 'finishing')
 P = 'G RB LB D RW LW M A'.split()
@@ -39,7 +43,26 @@ SKIP96 = {'CUSTOM', 'POOLPLYR', 'EUROCUP', 'EUROCWC', 'UEFACUP'}
 RAMP = (0.85, 0.95)
 RAISE_MAX = 3      # (rule 1 lifts a player at most this much: the import's order of a position kept)
 OVERRIDES = os.path.join(REPO, 'bin', 'data_json', 'worldgen', '2627', 'rebalance_overrides.json')
-PINS = json.load(open(OVERRIDES, encoding='utf-8')).get('pins', {}) if os.path.exists(OVERRIDES) else {}
+_OV = json.load(open(OVERRIDES, encoding='utf-8')) if os.path.exists(OVERRIDES) else {}
+PINS = dict(_OV.get('pins', {}))
+SKILLS = {k: v for k, v in _OV.get('skills', {}).items() if not k.startswith('_')}
+CLUBS = _OV.get('clubs', {})
+for _n, _s in SKILLS.items():               # (a set skill set is a pin too: never cut)
+    PINS.setdefault(_n, sum(_s[c] for c in 'PVHTCSF'))
+
+
+def set_skills(p, spec):
+    """A player's skills by hand (the overrides' 'skills': P V H T C S F 0..7 and 'keys' his key skills);
+    his price his total."""
+    for i, f in enumerate(F):
+        p[f] = spec['PVHTCSF'[i]] | (8 if 'PVHTCSF'[i] in spec.get('keys', '') else 0)
+    p['price'] = total(p)
+
+
+def checksum(players):
+    """The team's checksum of its 16 (positions, skills, values: world_import.py's)."""
+    import world_import
+    return world_import.checksum(players[:16])
 
 
 def total(p):
@@ -148,6 +171,93 @@ def cap_group(squad, lim):
     return cut
 
 
+BENCH_GROUP = {0: 0, 1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 3}     # G; RB LB D; RW LW M; A
+
+
+def sort_bench(t):
+    """The bench -- the line-up's places 12..16 -- goalkeeper, defenders, midfielders, forwards (the
+    owner; the Mod's 16th, 'the best left', came after the forward), each group in its order: the
+    line-up's numbers only, no record moves (the checksum stays)."""
+    pn = t['team']['player_numbers']
+    ps = t['players']
+    if len(pn) < 16 or len(ps) < 16:
+        return 0
+    bench = sorted(pn[11:16], key=lambda i: BENCH_GROUP.get(ps[i]['position'], 2) if i < len(ps) else 9)
+    if bench == pn[11:16]:
+        return 0
+    t['team']['player_numbers'] = pn[:11] + bench + pn[16:]
+    return 1
+
+
+POS_CODE = {k: i for i, k in enumerate(P)}
+TACTICS = {'4-4-2': 0, '5-4-1': 1, '4-5-1': 2, '5-3-2': 3, '3-5-2': 4, '4-3-3': 5, '4-2-4': 6, '3-4-3': 7,
+           '5-2-3': 9}
+
+
+def is_name(p, who):
+    """A record is the player an override names (his name's last words: 'KIMMICH', 'TER STEGEN')."""
+    want = who.upper().split()
+    have = p['player_name'].upper().split()
+    return bool(want) and have[-len(want):] == want
+
+
+def reskill(p, pos):
+    """His position changed by hand: his skills spread again by the new one's priorities (nations.py's
+    order_skills), his total and price kept."""
+    import nations
+    v, keys = nations.order_skills(total(p), pos, None, None, p['player_name'])
+    for i, f in enumerate(F):
+        p[f] = v[i] | (8 if i in keys else 0)
+    p['position'] = POS_CODE[pos]
+
+
+def club_override(t, ov):
+    """A club's line-up by hand (the overrides' 'clubs'): 'xi' the eleven in the tactic's place order (the
+    goalkeeper first), 'tactic', 'positions' {player: position} (re-skilled). The record becomes the XI in
+    place order then the bench (strongest_bench); the line-up 0..15."""
+    squad = t['players'] + t.get('extra_players', [])
+    for who, pos in (ov.get('positions') or {}).items():
+        for p in squad:
+            if is_name(p, who) and P[p['position']] != pos:
+                reskill(p, pos)
+    if ov.get('tactic'):
+        t['team']['tactics'] = TACTICS[ov['tactic']]
+    if ov.get('xi'):
+        xi = []
+        for who in ov['xi']:
+            p = next((q for q in squad if is_name(q, who) and q not in xi), None)
+            if p is None:
+                raise SystemExit('club override %s: no %s' % (t['team']['team_name'], who))
+            xi.append(p)
+        rest = [q for q in squad if q not in xi]
+        t['players'] = xi + rest[:5]
+        t['extra_players'] = rest[5:]
+        t['team']['player_numbers'] = list(range(16))
+
+
+def strongest_bench(t):
+    """Places 12..16 the squad's strongest not in the XI (the owner): its best spare goalkeeper and the
+    four best outfield players, of the 16's five and the extras -- the one who drops to the extras the
+    weaker. The record keeps the XI where it is; the bench's records refilled."""
+    pn = t['team']['player_numbers']
+    ps = t['players']
+    if len(pn) < 16 or len(ps) < 16:
+        return 0
+    pool = [ps[i] for i in pn[11:16]] + t.get('extra_players', [])
+    keepers = sorted((p for p in pool if p['position'] == 0), key=lambda p: -p['price'])
+    field = sorted((p for p in pool if p['position'] != 0), key=lambda p: -p['price'])
+    bench = (keepers[:1] + field[:4]) if keepers else field[:5]
+    if len(bench) < 5:
+        bench += [p for p in pool if p not in bench][:5 - len(bench)]
+    old = [ps[i] for i in pn[11:16]]
+    if sorted(map(id, bench)) == sorted(map(id, old)):
+        return 0
+    for i, p in zip(pn[11:16], bench):
+        ps[i] = p
+    t['extra_players'] = [p for p in pool if all(p is not b for b in bench)]
+    return 1
+
+
 def cap_team(t, caps, log):
     """96/97's caps on a team (the owner): its 16 -- who play the matches -- at most 96/97's best 16
     (555, speed 82 ...), and its whole career squad (the extras too, up to 30) at most the same as an
@@ -210,7 +320,7 @@ def main():
                                                                          sum(1 for t in w if t >= 40), moved))
     pins = PINS
     # apply to every club file (pools and the extras too: by the same map), then the caps
-    log, changed = collections.Counter(), 0
+    log, changed, benches, strong = collections.Counter(), 0, 0, 0
     out = {}
     for f in files:
         d = json.load(open(f, encoding='utf-8'))
@@ -228,8 +338,29 @@ def main():
                 if p['player_name'] in pins:     # (the owner's hand: his total and price; outfield only)
                     set_total(p, pins[p['player_name']])
                     p['price'] = pins[p['player_name']]
+                if p['player_name'] in SKILLS:
+                    set_skills(p, SKILLS[p['player_name']])
+            ov = CLUBS.get(t['team']['team_name'])
+            if ov:
+                club_override(t, ov)
+            for p in t['players'] + t.get('extra_players', []):
+                if p['position'] and p['player_name'] in SKILLS:     # (by hand: the last word)
+                    set_skills(p, SKILLS[p['player_name']])
+            strong += strongest_bench(t)
             cap_team(t, caps, log)
+            benches += sort_bench(t)
+            t['checksum'] = checksum(t['players'])
         out[f] = d
+    # the guest clubs (GUESTS_*: the continental cups' only) -- not ranked, but their benches and caps
+    for f in sorted(glob.glob(os.path.join(src, 'GUESTS_*.json'))):
+        d = json.load(open(f, encoding='utf-8'))
+        for t in d.get('teams', []):
+            strong += strongest_bench(t)
+            cap_team(t, caps, log)
+            benches += sort_bench(t)
+            t['checksum'] = checksum(t['players'])
+        out[f] = d
+    print('benches made the strongest: %d; sorted (GK, D, M, A): %d' % (strong, benches))
     print('players re-totalled: %d; squads capped: %d (%d points), the most: %s'
           % (changed, len(log), sum(log.values()), dict(log.most_common(8))))
     if a.apply:
