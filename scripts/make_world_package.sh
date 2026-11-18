@@ -135,20 +135,24 @@ OpenSWOS-World-$TAG.zip -- the World $(sed -n 's/^name *= *World *//p' "$SRC/WOR
 
 What it is: the World 2026-27 of the SWOS 96/97 Mod (github.com/aminta/swos-9697-mod), release $REL,
 converted for OpenSWOS (github.com/benbaker76/OpenSWOS) by its scripts/world_from_mod.py and
-scripts/world_import.py. OpenSWOS Setup downloads and installs it as a mod; the game checks its
-fingerprint (WORLD.ini) against the one baked into the build.
-Contents: $NCOUNTRY team files (JSON, and the Amiga's TEAM.nnn), leagues.json, WORLD.ini, mod.json.
+scripts/world_import.py; its 211 national teams and the 96/97 balance by Playaveli (SWOS United:
+scripts/worldgen/nations.py, rebalance.py, seal.py). OpenSWOS Setup downloads and installs it as a mod;
+the game checks its fingerprint (WORLD.ini) against the one baked into the build.
+Contents: $NCOUNTRY team files (JSON, and the Amiga's TEAM.nnn), leagues.json, national_teams.json,
+WORLD.ini, mod.json.
 Fingerprint: $FP.
 
 Data sources and credits
 - Transfermarkt (transfermarkt.com): squads, market values (turned into SWOS prices), coaches, league
   members 2026-27.
 - EA SPORTS FC ratings feed: player attributes (skill profiles).
-- Wikipedia contributors (CC BY-SA 4.0): club kits; Wikidata (CC0): club <-> article links.
+- Wikipedia contributors (CC BY-SA 4.0): club kits; Wikidata (CC0): club <-> article links; the national
+  teams' call-ups, line-ups, coaches and kits; FIFA's ranking (via Wikipedia) for their players' levels.
 - Derived data only: no market values or ratings are included as such. The original SWOS 96/97 game data
   is not included.
 
-World 2026-27 by Davide Lorigliola and the SWOS 96/97 Mod's contributors; conversion by Ben Baker (OpenSWOS).
+World 2026-27 by Davide Lorigliola and the SWOS 96/97 Mod's contributors; national teams and balance by
+Playaveli (SWOS United); conversion by Ben Baker (OpenSWOS).
 EOF
 fi
 echo "${OUT%.zip}.txt: its credits (Mod $REL)"
