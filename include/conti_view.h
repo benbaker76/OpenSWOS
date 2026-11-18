@@ -13,7 +13,7 @@
 #define CONTI_ROUND_MENU_NAME  "openswos/contiRoundMenu"
 #define CONTI_CONFS_MENU_ENTRIES  9
 #define CONTI_ROUNDS_MENU_ENTRIES 20
-#define CONTI_ROUND_MENU_ENTRIES  150
+#define CONTI_ROUND_MENU_ENTRIES  153   /* (150 + the classic tables' tHead, tText, classic: Playa, 2026-11-16) */
 
 void ContiView_Init(void);              /* (the JSON menus' handlers) */
 int32_t ContiView_Available(void);      /* the world plays other confederations' cups (SDL) */
