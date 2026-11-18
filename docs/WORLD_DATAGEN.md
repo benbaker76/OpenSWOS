@@ -567,5 +567,21 @@ last, never capped) -- Musiala as 96/97's Stoichkov: P7 V6 H4 T5 C7 S6 F7, shown
 A player's skills move in proportion (none over 7), his key skills kept, his price with his total. The
 import's files stay in `teams_before_rebalance/` (each rerun starts from them; rerun after an import).
 After: PSG 555, Arsenal 554, Spain 544; speed at most 82; 17 teams over 500 (96/97: 9 of 1,583).
-Not yet: the Amiga's TEAM.nnn of the world (`data/`) and the server's team list keep the import's
-skills until the package is made again.
+The Amiga's TEAM.nnn, the fingerprint and the server's team list follow with the seal (§17).
+
+## 17. The master data: the rebalanced world sealed (`seal.py`, 2026-11-18)
+
+The world's `teams/` as `nations.py` and `rebalance.py` leave them is its **master data**: what the
+package carries, the Amiga plays and the server checks. `python3 -I scripts/worldgen/seal.py` makes the
+rest agree with it: each team's stale checksum made again (the server's team list checks a team by its
+16's positions, skills and prices: five national teams edited after nations.py had old ones), each
+club's Amiga TEAM.nnn written again from its JSON (world_import.py's writer: from the import's files it
+gives the import's binaries byte for byte; the national files have none, the Amiga keeps 96/97's 143),
+and the fingerprint of `teams/ competitions/ data/` into WORLD.ini and `src/world_data.c`. Then rebuild
+the game, copy WORLD.ini, `teams/` and `data/` to the assets folder's copy, run
+`scripts/make_world_package.sh` (MOD_RELEASE= when the tree has no `mod/SOURCE.txt`) and refresh the
+server's list. **The list holds every world's teams**: `assign_team_uuids.py --registry --worlds` writes
+only the worlds in the tree, so from a tree without Europe 1984-85 it drops that world's 1,092 teams --
+merge them back from the committed list (keep every entry whose id is not 96/97's or the world's). A
+later `world_import.py` run writes `teams/` from the Mod again: nations.py, rebalance.py --apply and the
+seal after it. Sealed 2026-11-18: data `0f8ccca32bda304a`, 211 national teams, 101 Amiga files.
