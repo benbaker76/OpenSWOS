@@ -684,9 +684,11 @@ char *ModApi_JsonEscape(const char *in, char *out, uint32_t cap)
 #ifdef SWOS_SDL_BUILD
 #include "gpu_present.h"
 #include "gpu_slang.h"
+static int32_t s_modShader;             /* a mod chose the preset (Mods_Reload puts the run's back) */
 int32_t ModApi_SetShaderPreset(const char *path)
 {
 #ifdef SWOS_SHADERCC
+    s_modShader = 1;
     GpuPresent_SetShaderPreset(path);
     return 1;
 #else
@@ -871,3 +873,18 @@ const char *ModApi_Language(void)
     return g_arcadeOpts && g_arcadeOpts->language[0] ? g_arcadeOpts->language : "en";
 }
 #endif
+
+/* Mods_Reload: what the mods' inits registered, cleared -- each mod on registers again. */
+void ModApi_ResetForReload(void)
+{
+    s_numServices = 0;
+#ifdef SWOS_SDL_BUILD
+    s_hotkeyCount = 0;
+#ifdef SWOS_SHADERCC
+    if (s_modShader) {                  /* (the run's own: SWOS_SHADER, else none) */
+        GpuPresent_SetShaderPreset(getenv("SWOS_SHADER"));
+        s_modShader = 0;
+    }
+#endif
+#endif
+}

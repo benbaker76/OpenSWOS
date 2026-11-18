@@ -38,6 +38,7 @@
 #include "assets_check.h"
 #include "swos_io.h"            /* swos_save_dir_init() — macOS-writable save dir */
 #include "mods.h"               /* Mods_Init: the enabled mods, before any data */
+#include "mod_api.h"            /* ModApi_EntryCount: the mods reload test */
 #include "tweaks.h"             /* Tweaks_Set: [tweaks] */
 #include "save_format_json.h"   /* DataJson_SelfTest */
 #include "dos_mode.h"   /* gDosGraphics/gDosGameplay — defined in dos_graphics.c */
@@ -492,8 +493,133 @@ static int  s_modsArgSet;
 
 static int32_t s_rigRun;      /* --replay-test, --srp-resim, --career-golden (Mods_SetRig) */
 
+/* The mods on (include/mods.h): --mods, else SWOS_MODS_ENABLED, else SWOS.ini's [mods] enabled
+ * -- at start, and again when the MODS screen changes them (Mods_Reload). */
+static void mods_start(const PlatformInitOptions *o)
+{
+    const char *env = getenv("SWOS_MODS_ENABLED");
+    const char *list = s_modsArgSet ? s_modsArg : env ? env : o->mods;
+    static char withArcade[sizeof o->mods + 16];
+    Mods_SetRig(s_rigRun);      /* (a rig proves the original: the gameplay mods stay off) */
+    /* The arcade cabinet plays by the arcade mod's rules (src/mod_arcade.c): it is on for the
+     * run whatever the lists say -- never written to SWOS.ini. */
+    if (o->arcade && !s_rigRun) {
+        snprintf(withArcade, sizeof withArcade, "arcade%s%s", list && list[0] ? ", " : "", list ? list : "");
+        list = withArcade;
+    }
+    Mods_Init(list, o->mods_disabled);
+}
+
+/* The MODS screen's changes, now (2026-11-17: "changing mods no longer requires a restart"). The
+ * list read again and every mod on set up afresh (ModHooks_Reload): the hooks already ask
+ * Mods_IsOn, a mod's own menus load when shown, its caches are its init's. Only from the menus
+ * (the MODS screen is OPTIONS'). A mod whose change is installed once at start
+ * (Mods_NeedsRestart) is the next start's: Main_Relaunch. */
+void Mods_Reload(void)
+{
+    extern PlatformInitOptions *g_arcadeOpts;
+    extern void ModHooks_Reload(void);
+    if (!g_arcadeOpts)
+        return;
+    mods_start(g_arcadeOpts);
+    ModHooks_Reload();
+    fprintf(stderr, "[mods] reloaded: %d on\n", (int)Mods_Count());
+}
+
+/* SWOS_MOD_RELOAD_TEST=1: practice and speedrun (MODES rows, menu handlers, a service) and
+ * dosmenus (a hotkey) turned off and on again 40 times through Mods_Reload, as the MODS screen
+ * does: off, each is off and its row gone; on, back, never twice; nothing runs out. */
+static int mods_reload_test(PlatformInitOptions *o)
+{
+    extern void Mods_Reload(void);
+    char keep[sizeof o->mods_disabled];
+    const int32_t rows = ModApi_EntryCount(MODPOINT_MODES);
+    int32_t bad = 0;
+    snprintf(keep, sizeof keep, "%s", o->mods_disabled);
+    if (!Mods_IsOn("practice") || !Mods_IsOn("speedrun") || ModApi_FindEntry(MODPOINT_MODES, "practice") < 0) {
+        printf("MOD RELOAD TEST: practice and speedrun must be on to start (they are canonical defaults)\n");
+        return 2;
+    }
+    for (int32_t round = 0; round < 40; round++) {
+        {   /* (keep's mods and these three; a list too long for the setting is cut, as SWOS.ini's) */
+            char off[sizeof keep + 32];
+            snprintf(off, sizeof off, "%s%spractice, speedrun, dosmenus", keep, keep[0] ? ", " : "");
+            memcpy(o->mods_disabled, off, sizeof o->mods_disabled - 1);
+            o->mods_disabled[sizeof o->mods_disabled - 1] = 0;
+        }
+        Mods_Reload();
+        if (Mods_IsOn("practice") || Mods_IsOn("speedrun") || Mods_IsOn("dosmenus") ||
+            ModApi_FindEntry(MODPOINT_MODES, "practice") >= 0 || ModApi_FindEntry(MODPOINT_MODES, "speedrun") >= 0 ||
+            ModApi_EntryCount(MODPOINT_MODES) != rows - 2) {
+            printf("MOD RELOAD TEST: round %d, off: still there (%d rows of %d)\n", (int)round,
+                   (int)ModApi_EntryCount(MODPOINT_MODES), (int)rows);
+            bad++;
+        }
+        snprintf(o->mods_disabled, sizeof o->mods_disabled, "%s", keep);
+        Mods_Reload();
+        if (!Mods_IsOn("practice") || !Mods_IsOn("dosmenus") || ModApi_FindEntry(MODPOINT_MODES, "practice") < 0 ||
+            ModApi_EntryCount(MODPOINT_MODES) != rows) {
+            printf("MOD RELOAD TEST: round %d, on: %d rows of %d\n", (int)round,
+                   (int)ModApi_EntryCount(MODPOINT_MODES), (int)rows);
+            bad++;
+        }
+    }
+    printf("MOD RELOAD TEST %s (%d MODES rows, 40 rounds, %d wrong)\n", bad ? "FAIL" : "PASS", (int)rows, (int)bad);
+    return bad ? 1 : 0;
+}
+
+/* The game started again by itself (a mod that needs a restart, turned on or off): the same
+ * program with the same arguments, the intro skipped, then this one closes. Desktops only; 0 where
+ * a program cannot start itself (the browser, phones, the Switch): the change is the next start's. */
+#if (defined(__unix__) || defined(__APPLE__) || defined(__CYGWIN__)) && !defined(__EMSCRIPTEN__) && \
+    !defined(SWOS_WASM_BUILD) && !defined(SWOS_ANDROID_BUILD) && !defined(SWOS_IOS_BUILD) && !defined(SWOS_SWITCH_BUILD)
+#include <spawn.h>
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
+extern char **environ;
+static char  s_selfPath[1024];
+static char **s_selfArgv;
+
+static void note_self(char **argv)
+{
+    s_selfArgv = argv;
+#if defined(__APPLE__)
+    uint32_t n = sizeof s_selfPath;
+    if (_NSGetExecutablePath(s_selfPath, &n) != 0)
+        s_selfPath[0] = 0;
+#else
+    const ssize_t n = readlink("/proc/self/exe", s_selfPath, sizeof s_selfPath - 1);
+    s_selfPath[n > 0 ? n : 0] = 0;
+#endif
+}
+
+int32_t Main_CanRelaunch(void) { return s_selfPath[0] != 0; }
+
+int32_t Main_Relaunch(void)
+{
+    pid_t pid;
+    if (!s_selfPath[0])
+        return 0;
+    setenv("SWOS_SKIP_INTRO", "1", 1);
+    s_selfArgv[0] = s_selfPath;
+    if (posix_spawn(&pid, s_selfPath, NULL, NULL, s_selfArgv, environ) != 0) {
+        fprintf(stderr, "[mods] could not start %s again\n", s_selfPath);
+        return 0;
+    }
+    fprintf(stderr, "[mods] started again (pid %d): this one closes\n", (int)pid);
+    Platform_RequestQuit();
+    return 1;
+}
+#else
+static void note_self(char **argv) { (void)argv; }
+int32_t Main_CanRelaunch(void) { return 0; }
+int32_t Main_Relaunch(void) { return 0; }
+#endif
+
 int main(int argc, char **argv)
 {
+    note_self(argv);                    /* (Main_Relaunch: the mods screen's restart) */
     /* Line-buffer stdout. Every self-test and harness in here reports progress
      * as it goes, and stdout to a FILE or a PIPE is block buffered -- so a run
      * that is killed, hangs, or is watched from another terminal shows nothing,
@@ -1554,22 +1680,20 @@ int main(int argc, char **argv)
 
     /* The mods (include/mods.h): --mods, else SWOS_MODS_ENABLED, else SWOS.ini's [mods] enabled.
      * Before anything reads the game's data -- translations included, which a mod may carry. */
-    {
-        const char *env = getenv("SWOS_MODS_ENABLED");
-        const char *list = s_modsArgSet ? s_modsArg : env ? env : opts.mods;
-        static char withArcade[sizeof opts.mods + 16];
-        Mods_SetRig(s_rigRun);      /* (a rig proves the original: the gameplay mods stay off) */
-        /* The arcade cabinet plays by the arcade mod's rules (src/mod_arcade.c): it is on for the
-         * run whatever the lists say -- never written to SWOS.ini. */
-        if (opts.arcade && !s_rigRun) {
-            snprintf(withArcade, sizeof withArcade, "arcade%s%s", list && list[0] ? ", " : "", list ? list : "");
-            list = withArcade;
-        }
-        Mods_Init(list, opts.mods_disabled);
-    }
+    mods_start(&opts);
     /* The built-in mods that are on, set up (include/mod_api.h ModDef.init): their entries and
      * their menus' handlers -- before the menus are built from JSON, which name them. */
     { extern void ModHooks_Init(void); ModHooks_Init(); }
+    if (getenv("SWOS_MOD_RELOAD_TEST")) {   /* (mods on and off without a restart: Mods_Reload) */
+        extern int32_t Main_Relaunch(void);
+        if (strcmp(getenv("SWOS_MOD_RELOAD_TEST"), "relaunch") == 0) {  /* (the game started again: */
+            setenv("SWOS_MOD_RELOAD_TEST", "1", 1);                       /*  it runs the test itself) */
+            printf("MOD RELOAD TEST: starting the game again\n");
+            fflush(stdout);
+            return Main_Relaunch() ? 0 : 1;
+        }
+        return mods_reload_test(&opts);
+    }
     if (getenv("SWOS_MOD_PAGE_TEST")) {     /* (launcher options, agent A: src/mods_menu.c) */
         extern int32_t ModsMenu_PageTest(const char *slug);
         return ModsMenu_PageTest(getenv("SWOS_MOD_PAGE_TEST"));

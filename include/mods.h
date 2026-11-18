@@ -78,6 +78,10 @@ typedef struct {
     uint8_t offline;            /* "online": false -- not for online play (Mods_OfflineOnly) */
 } ModInfo;
 int32_t     Mods_Scan(ModInfo *out, int32_t max);
+/* Whether turning it on or off needs the game started again (what it changes is installed once
+ * at start: competitions, teams, translations, the game's menus, graphics, sounds, a career's
+ * state); `why` says what. Everything else is done live (Mods_Reload). */
+int32_t     Mods_NeedsRestart(const ModInfo *m, char *why, uint32_t cap);
 #endif
 
 /* What both players of an online match must have alike (docs/MODS.md §8.6): the mods that are

@@ -124,6 +124,22 @@ void ModHooks_Init(void)
     EACH(init) (*m_)->init();
 }
 
+/* Mods_Reload (2026-11-17, mods without a restart): the mods on now set up afresh -- what their
+ * inits registered cleared first (rows, services, hotkeys, PLAY MATCH's, a shader), then every
+ * one's init again, so a mod turned off leaves nothing behind and one turned on is as at start.
+ * The match words handed out again: only in the menus, never in a match or online. */
+void ModHooks_Reload(void)
+{
+    extern void ModEntries_ResetForReload(void);
+    extern void ModApi_ResetForReload(void);
+    extern void ModExtras_ResetForReload(void);
+    ModEntries_ResetForReload();
+    ModApi_ResetForReload();
+    ModExtras_ResetForReload();
+    hand_out_words();
+    EACH(init) (*m_)->init();
+}
+
 void ModHooks_FrameDrawn(void)
 {
     ModApi_NotePresent();

@@ -10,6 +10,7 @@
  * a '*' after it is not cosmetic.
  */
 #include "mods.h"
+#include "mod_api.h"     /* ModDef: a mod that keeps a career's state (Mods_NeedsRestart) */
 #include "project_identity.h"   /* PROJECT_STATIC_MODS */
 
 #include <string.h>
@@ -452,6 +453,91 @@ static void load_one(const char *id, const char *dir, int canonical)
             s_static[s_count] ? "static" : canonical ? "canonical" : "dlc", info.uuid,
             info.slot[0] ? ", slot " : "", info.slot, info.offline ? ", offline only" : "", dir);
     s_count++;
+}
+
+/* Whether turning the mod on or off needs the game started again (2026-11-17: everything else is
+ * done live, Mods_Reload). Live: what is read when it is used -- the hooks (they ask Mods_IsOn),
+ * a mod's own menus (data_json/menus/<slug>/, loaded when first shown), its pictures, shaders,
+ * clips, maps and challenges. A restart: what the game installs once at start -- competitions,
+ * teams, tactics, translations, the game's own menus, graphics, sounds and music, a Jaguar sprite
+ * set, a world -- and a career's state (a "career" or "data" mod, or one that saves into a
+ * career: careerSave / careerLoad). */
+static int32_t live_entry(const char *slug, const char *dir, const char *name)
+{
+    static const char *const kLive[] = {
+        "mod.json", "images", "flags", "flags.json", "shaders", "classic", "pixmaps.txt", "video_dos",
+        "pitchmaps", "looks.csv", "shavedart.json", "preview.png", "README.md", "README.txt", NULL,
+    };
+    for (int32_t i = 0; kLive[i]; i++)
+        if (strcmp(name, kLive[i]) == 0)
+            return 1;
+    if (!strncmp(name, "LICENSE", 7) || !strncmp(name, "license", 7))
+        return 1;
+    if (strcmp(name, "data_json") == 0) {   /* only its own menus and challenges */
+        char sub[1200];
+        struct dirent *e;
+        int32_t ok = 1;
+        snprintf(sub, sizeof sub, "%s/data_json", dir);
+        DIR *d = opendir(sub);
+        if (!d)
+            return 1;
+        while (ok && (e = readdir(d)) != NULL) {
+            if (e->d_name[0] == '.')
+                continue;
+            if (strcmp(e->d_name, "challenges") == 0)
+                continue;
+            if (strcmp(e->d_name, "menus") == 0) {
+                char menus[1300];
+                struct dirent *m;
+                snprintf(menus, sizeof menus, "%s/menus", sub);
+                DIR *md = opendir(menus);
+                while (md && (m = readdir(md)) != NULL)
+                    if (m->d_name[0] != '.' && strcmp(m->d_name, slug) != 0)
+                        ok = 0;
+                if (md)
+                    closedir(md);
+                continue;
+            }
+            ok = 0;
+        }
+        closedir(d);
+        return ok;
+    }
+    return 0;
+}
+
+int32_t Mods_NeedsRestart(const ModInfo *m, char *why, uint32_t cap)
+{
+    extern const ModDef *const g_builtinMods[];
+    char dir[1100];
+    struct dirent *e;
+    if (why && cap)
+        why[0] = 0;
+    if (!strcmp(m->changes, "career") || !strcmp(m->changes, "data")) {
+        if (why) snprintf(why, cap, "it changes the %s", !strcmp(m->changes, "career") ? "career" : "game's data");
+        return 1;
+    }
+    if (m->sprites[0]) {
+        if (why) snprintf(why, cap, "its sprites");
+        return 1;
+    }
+    for (const ModDef *const *d = g_builtinMods; *d; d++)
+        if (strcmp((*d)->slug, m->slug) == 0 && ((*d)->careerSave || (*d)->careerLoad)) {
+            if (why) snprintf(why, cap, "it keeps a career's state");
+            return 1;
+        }
+    snprintf(dir, sizeof dir, "%s/%s", m->canonical ? MODS_CANONICAL_DIR : s_root, m->slug);
+    DIR *d = opendir(dir);
+    if (!d)
+        return 0;
+    int32_t restart = 0;
+    while (!restart && (e = readdir(d)) != NULL)
+        if (e->d_name[0] != '.' && !live_entry(m->slug, dir, e->d_name)) {
+            restart = 1;
+            if (why) snprintf(why, cap, "its %s", e->d_name);
+        }
+    closedir(d);
+    return restart;
 }
 
 int32_t Mods_Scan(ModInfo *out, int32_t max)

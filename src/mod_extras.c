@@ -151,6 +151,8 @@ enum { PLAY_MATCH_FNS = 8 };
 static struct { char slug[32]; void (*fn)(void); } s_playMatch[PLAY_MATCH_FNS];
 static int32_t s_playMatchCount;
 
+void ModExtras_ResetForReload(void) { s_playMatchCount = 0; }   /* (Mods_Reload) */
+
 int32_t ModApi_OnPlayMatch(const char *slug, void (*fn)(void))
 {
     if (!slug || !fn || s_playMatchCount >= PLAY_MATCH_FNS)
@@ -206,6 +208,7 @@ int32_t ModApi_TeamControl(int32_t team) { (void)team; return MODSIDE_CPU; }
 int32_t ModApi_SetMatchPitch(int32_t number) { (void)number; return 1; }
 int32_t ModApi_PitchNumber(void) { return 0; }
 int32_t ModApi_OnPlayMatch(const char *slug, void (*fn)(void)) { (void)slug; (void)fn; return 1; }
+void ModExtras_ResetForReload(void) { }
 int32_t ModApi_NetStats(ModNetStats *out) { (void)out; return 0; }
 void ModExtras_RestoreControl(void) { }
 void ModExtras_KickOff(void) { }

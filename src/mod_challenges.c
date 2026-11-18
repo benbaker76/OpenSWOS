@@ -2426,6 +2426,7 @@ static void ch_init(void)
         { "sort_creator", sort_creator }, { "sort_creator2", sort_creator2 }, { "sort_level", sort_level },
         { "sort_exit", ed_exit },
     };
+    s_loaded = 0;                       /* (set up again by Mods_Reload: a pack of challenges on or off) */
     ModApi_RegisterHandlers("challenges", kHandlers, (int32_t)(sizeof kHandlers / sizeof kHandlers[0]));
     ModApi_RegisterService("challenges", "challenges", service);
     ModApi_AddEntry(MODPOINT_MODES, "challenges", "challenges", ch_open);

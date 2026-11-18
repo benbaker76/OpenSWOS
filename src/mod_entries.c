@@ -34,6 +34,12 @@ typedef struct {
 static Entry   s_entries[MODPOINT_COUNT][kRows];
 static int32_t s_entryCount[MODPOINT_COUNT];
 
+/* Mods_Reload: the mods set up again from nothing (their inits add their rows back) */
+void ModEntries_ResetForReload(void)
+{
+    memset(s_entryCount, 0, sizeof s_entryCount);
+}
+
 int32_t ModApi_AddEntry(ModPoint point, const char *slug, const char *label, void (*select)(void))
 {
     if ((int32_t)point < 0 || point >= MODPOINT_COUNT || !label || !select || s_entryCount[point] >= kRows)
@@ -126,8 +132,15 @@ void ModEntries_RowChosen(ModPoint point)
 
 int32_t ModApi_RegisterHandlers(const char *slug, const ModHandler *handlers, int32_t count)
 {
+    static char done[32][MODS_ID_MAX];  /* (a mod set up again by Mods_Reload: its table is kept) */
+    static int32_t doneCount;
     if (!slug || !handlers || count <= 0)
         return -1;
+    for (int32_t i = 0; i < doneCount; i++)
+        if (strcmp(done[i], slug) == 0)
+            return 0;
+    if (doneCount < 32)
+        snprintf(done[doneCount++], sizeof done[0], "%s", slug);
     MenuSymbol *syms = (MenuSymbol *)calloc((size_t)count, sizeof *syms);   /* (kept: the loader keeps the table) */
     if (!syms)
         return -1;

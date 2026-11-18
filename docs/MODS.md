@@ -537,7 +537,8 @@ the first mod's winning the shared one.
 1. **A MODS screen** (OPTIONS -> MODS) -- **built** (`src/mods_menu.c`,
    `openswos/modsMenu.json`): every mod on disk (`Mods_Scan`), canonical then DLC, up to 8 rows
    of name, version and kind with ON / OFF / CANNOT (a mod that cannot be on: fire says why);
-   fire turns one on or off, written to SWOS.ini at once, played from the next start. OPTIONS'
+   fire turns one on or off, written to SWOS.ini at once, **and in play at once** (since
+   2026-11-17, below: "Mods without a restart"; until then from the next start). OPTIONS'
    value says how many are on; hidden on the Amiga (its list is data/MODS). Checked: the screen
    with a canonical, a DLC and a broken mod; toggling both kinds wrote `enabled=hall`,
    `disabled=classics` and the next start played by it; `--menu-selftest` covers it. Still to
@@ -1090,7 +1091,35 @@ those boxes that still has the box's colour in the PC game's colour for that pla
 336 x 256 menu mapped onto the map. Text and pictures on a button have other colours: untouched.
 The palette's fades do not reach it (a fade-in shows the buttons at full colour). **F5** switches
 between this and the Amiga's flat menus while the game runs (Playa's ask, 2026-11-08; §34), not
-remembered -- the mod being on is what the next start shows.
+remembered -- the mod being on is what the menus show.
+
+### Mods without a restart (2026-11-17)
+
+The owner: "changing mods no longer requires a restart". A mod turned on or off on the MODS screen,
+or a setting changed on its page, is played **at once** (`Mods_Reload`, src/main.c): the list is
+read again (`Mods_Init`, as at start: `--mods` / `SWOS_MODS_ENABLED` / SWOS.ini, the arcade
+cabinet's) and every mod on is set up afresh (`ModHooks_Reload`): what the inits registered is
+cleared first -- MODES / COMPETITIONS rows (`ModEntries_ResetForReload`), services and hotkeys and a
+mod's shader preset (`ModApi_ResetForReload`: the run's `SWOS_SHADER` again), PLAY MATCH's
+(`ModExtras_ResetForReload`) -- then every init runs again, so a mod turned off leaves nothing and
+one turned on is as at start; menu handler tables are registered once per mod (kept: only that
+mod's menus name them); the match words are handed out again. Everything else was already live:
+each hook asks `Mods_IsOn` as it is called, a mod's own menus load when first shown, data reads go
+through the list as it is. Only from the menus (the MODS screen is under OPTIONS): never in a match
+or online.
+
+**What still needs the game started again** (`Mods_NeedsRestart`): what is installed once at
+start -- a `"career"` or `"data"` mod, a Jaguar sprite set, a mod that saves into a career
+(`careerSave` / `careerLoad`), and any mod carrying files other than its pictures, shaders, clips,
+flags, pitch maps, challenges and its OWN menus (`data_json/menus/<slug>/`): competitions, teams,
+tactics, translations, the game's menus, graphics, sounds, music, a world. For those the screen
+says "... WHEN YOU LEAVE: THE GAME STARTS AGAIN", and EXIT starts the same program with the same
+arguments, the intro skipped, and closes this one (`Main_Relaunch`: desktops; the browser, phones
+and the Switch say "FROM THE NEXT START"). Of the canonical mods only `euro36` is one.
+
+`SWOS_MOD_RELOAD_TEST=1` turns practice, speedrun and dosmenus off and on 40 times through
+`Mods_Reload`: each off with its MODES row gone, on with it back once, nothing refused or run out
+(`MOD RELOAD TEST PASS`).
 
 ## 26. The rigs play without gameplay mods
 
