@@ -259,7 +259,10 @@ if(SD_WITH_APP)
       if(WIN32)
         set_property(TARGET slint_cpp-static APPEND PROPERTY
                      INTERFACE_LINK_LIBRARIES
-                     opengl32 imm32 ws2_32 ntdll shlwapi userenv dbghelp)
+                     opengl32 imm32 ws2_32 ntdll shlwapi userenv dbghelp
+                     # (WaitOnAddress / WakeByAddress*: Rust's std from 1.9x links them
+                     #  through synchronization.lib; an older Rust's did not need it)
+                     synchronization)
       elseif(APPLE)
         # rustc --print native-static-libs, Slint 1.17.1 (winit, FemtoVG,
         # accessibility), libc / libSystem left to the toolchain.
