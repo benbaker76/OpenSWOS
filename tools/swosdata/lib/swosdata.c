@@ -608,10 +608,17 @@ static int32_t step_one_world(SdJob *job, const char *path, char *err)
                  w.fingerprint[0] ? w.fingerprint : "?");
         job->log(job->user, line);
     }
-    int32_t rc = job->modsDir[0]
-                     ? SwosData_InstallWorldMod(dir, w.tag, w.name, w.fingerprint, job->modsDir, job->outDir, NULL, 0,
-                                                job->log, job->user, err)
-                     : SwosData_InstallWorld(dir, w.tag, job->outDir, NULL, job->log, job->user, err);
+    if (!job->modsDir[0])
+        return SwosData_InstallWorld(dir, w.tag, job->outDir, NULL, job->log, job->user, err);
+    char slug[32] = "";
+    int32_t rc = SwosData_InstallWorldMod(dir, w.tag, w.name, w.fingerprint, job->modsDir, job->outDir,
+                                          slug, sizeof slug, job->log, job->user, err);
+    if (rc == 0 && slug[0])          /* (its mod, for the caller to turn on: SdJob.worldMods) */
+        for (uint32_t i = 0; i < sizeof job->worldMods / sizeof job->worldMods[0]; i++)
+            if (!job->worldMods[i][0] || strcmp(job->worldMods[i], slug) == 0) {
+                snprintf(job->worldMods[i], sizeof job->worldMods[i], "%s", slug);
+                break;
+            }
     return rc;
 }
 

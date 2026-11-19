@@ -27,6 +27,10 @@ typedef struct {
     void      (*log)(void *user, const char *line);
     void      (*progress)(void *user, int32_t done, int32_t total);
     void       *user;
+    /* Out (SwosData_Run): the mod of each world it installed (world2627, world8485 ...), set the
+     * moment it is in, whatever comes after -- its earlier copy in the assets folder is gone then,
+     * so the caller turns these on even when the run fails later. */
+    char        worldMods[1 + SD_WORLDS_MORE][16];
 } SdJob;
 
 typedef enum {

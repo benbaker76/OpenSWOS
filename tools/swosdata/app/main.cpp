@@ -1147,17 +1147,17 @@ struct App {
       const int32_t rc = SwosData_Run(job.get(), err);
       SdSources_Close(&job->src);
       const std::string msg(err);
-      slint::invoke_from_event_loop([this, rc, msg] { FinishInstall(rc, msg); });
+      slint::invoke_from_event_loop([this, rc, msg, job] { FinishInstall(rc, msg, *job); });
     });
   }
 
-  void FinishInstall(int32_t rc, const std::string& err) {
+  void FinishInstall(int32_t rc, const std::string& err, const SdJob& job) {
     Flush();
     SetBusy(false);
+    WorldModsOn(job);   // (failed or not: SdJob.worldMods)
     SwosData_Installed(outDir.c_str(), installed);
     RefreshPlan();
     if (rc == 0) {
-      WorldModOn();
       w().set_progress(1.0f);
       w().set_done(true);
       game = FindGame(exeDir);
@@ -1373,11 +1373,12 @@ struct App {
                                         withWorld, modsStage.c_str(), PipeLog, &pipe, err);
       }
       const std::string msg(err);
-      slint::invoke_from_event_loop([this, rc, msg, kindDrawer, dest, worldTick] {
+      slint::invoke_from_event_loop([this, rc, msg, kindDrawer, dest, worldTick, job] {
         Flush();
         if (!kindDrawer) sd::RemoveTree(Join(UserDir(), ".whdload-mods"));   // (the package has them)
         amigaRun = false;
         SetBusy(false);
+        WorldModsOn(*job);   // (failed or not: SdJob.worldMods; the drawer's world is still its tick's)
         SwosData_Installed(outDir.c_str(), installed);
         w().set_amiga_done(rc == 0);
         w().set_amiga_error(rc != 0);
@@ -1458,10 +1459,19 @@ struct App {
         continue;
       }
       if (sec != section || !IniKeyIs(line, key)) continue;
+      // Read as the game reads it (src/ini.c): a ';' after a space starts a comment, the rest is
+      // the value, trimmed. Never cut at its first space: [mods] enabled is "euro36, world2627",
+      // and a list read back as "euro36," lost a mod at each write (two worlds installed in one
+      // run: only the last stayed on).
       std::string v = line.substr(line.find('=') + 1);
+      for (size_t i = 1; i < v.size(); i++)
+        if (v[i] == ';' && (v[i - 1] == ' ' || v[i - 1] == '\t')) {
+          v.resize(i);
+          break;
+        }
       v.erase(0, v.find_first_not_of(" \t"));
-      const size_t cut = v.find_first_of(" \t;");
-      return cut == std::string::npos ? v : v.substr(0, cut);
+      while (!v.empty() && (v.back() == ' ' || v.back() == '\t')) v.pop_back();
+      return v;
     }
     return {};
   }
@@ -1885,14 +1895,20 @@ struct App {
     return m.slug.rfind("world", 0) == 0 && sd::IsDir(Join(m.dir, "data_json/worlds"));
   }
   // An install that put a world in (SwosData_InstallWorldMod) leaves its mod on: the player
-  // asked for it.
-  void WorldModOn() {
+  // asked for it. Each world the run installed (SdJob.worldMods), and only those (a world the
+  // player turned off and did not install again stays off) -- also when the run failed after
+  // it: installing one removed an earlier setup's copy from the assets folder, so a world left
+  // off is a world the game no longer finds ("World 2026-27 is not installed", 2026-11-18).
+  void WorldModsOn(const SdJob& job) {
     ModsScan();
-    for (const ModFile& m : modList)
-      if (!m.canonical && IsWorldMod(m) && m.problem.empty() && !ModOn(m)) {
-        SetModOn(m, true);
-        FileLog("mods: " + m.slug + " on (the world just installed)");
-      }
+    for (const auto& slug : job.worldMods) {
+      if (!slug[0]) continue;
+      for (const ModFile& m : modList)
+        if (m.slug == slug && !m.canonical && IsWorldMod(m) && m.problem.empty() && !ModOn(m)) {
+          SetModOn(m, true);
+          FileLog("mods: " + m.slug + " on (the world just installed)");
+        }
+    }
   }
   bool HaveWorldMod() {
     ModsScan();
@@ -2773,7 +2789,7 @@ struct App {
     std::fflush(stdout);
   }
 
-  // ASSETS.ini's [sources]: each key's whole value (paths have spaces; IniValue stops at one).
+  // ASSETS.ini's [sources]: every key of the section with its whole value (paths have spaces).
   std::vector<std::pair<std::string, std::string>> RecordedSources() const {
     std::vector<std::pair<std::string, std::string>> out;
     const std::string text = ReadFile(Join(outDir, ASSETS_INI_NAME));
@@ -2890,6 +2906,7 @@ struct App {
     char err[256] = {0};
     const int32_t rc = SwosData_Run(&job, err);
     SdSources_Close(&job.src);
+    WorldModsOn(job);   // (failed or not: SdJob.worldMods)
     SwosData_Installed(outDir.c_str(), installed);
     if (rc != 0) {
       FileLog(std::string("headless: install failed: ") + err + ": the window opens");
@@ -2897,7 +2914,6 @@ struct App {
       headlessError = err;
       return 0;
     }
-    WorldModOn();
     FileLog("headless: install done: " + Shown(outDir));
     std::printf("Done: the game's data is in %s\n", Shown(outDir).c_str());
     HeadlessPlay();
