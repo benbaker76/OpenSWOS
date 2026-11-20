@@ -16,6 +16,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include "mods.h"
+#ifdef SWOS_WASM_BUILD
+#include <emscripten.h>   /* EM_ASM: swos_save_commit keeps SWOS.ini in localStorage */
+#endif
 
 /* ============================================================
  * Minimal libc fallbacks for Amiga.
@@ -643,6 +646,21 @@ void swos_save_commit(void)
     if (!SDL_NintendoSwitch_CommitSaveData("save"))
         fprintf(stderr, "[save] commit to save: FAILED (%s) -- what was just "
                         "written will not survive this launch\n", SDL_GetError());
+#endif
+#ifdef SWOS_WASM_BUILD
+    /* The web's SWOS.ini is /SWOS.ini in MEMFS, copied FROM localStorage before main()
+     * (wasm/pre.js) -- and until 2026-11-20 never copied back, so every setting changed in
+     * the game (OPTIONS, the MODS screen's switches and settings, the SERVER row...) was
+     * gone at the next page load (tester report). Settings_Save and ModApi_SetSetting both
+     * end here, so copy it back each time: a few KB, written only when a setting changes.
+     * The /save files are the IndexedDB mount's, synced by rob_save (resload.c). */
+    EM_ASM({
+        try {
+            var p = UTF8ToString($0);
+            if (FS.analyzePath(p).exists)
+                localStorage.setItem('SWOS.ini', FS.readFile(p, { encoding: 'utf8' }));
+        } catch (e) { console.warn('SWOS: SWOS.ini not kept:', e); }
+    }, swos_ini_path());
 #endif
 }
 

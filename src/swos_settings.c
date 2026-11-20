@@ -1197,7 +1197,11 @@ void Settings_Save(const PlatformInitOptions *opts, const char *path)
     static char lines[400][256];
     int n_lines = 0;
     FILE *f = fopen(path, "r");
-    if (!f) { settings_write_full(opts, path); return; }   /* absent -> create it */
+    if (!f) {                                               /* absent -> create it */
+        settings_write_full(opts, path);
+        swos_save_commit();     /* as below: the web's localStorage copy, the Switch's commit */
+        return;
+    }
     while (n_lines < 400 && fgets(lines[n_lines], (int)sizeof lines[0], f))
         n_lines++;
     fclose(f);
