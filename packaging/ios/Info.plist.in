@@ -61,6 +61,26 @@
     <true/>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
+    <!-- The scene life cycle: an app built with the iOS 27 SDK that has none is stopped at launch
+         (GitHub issue 27). One scene, OpenSWOSSceneDelegate (app_delegate.m), which SDL's window
+         joins. -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneConfigurationName</key>
+                    <string>Default Configuration</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>OpenSWOSSceneDelegate</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
     <!-- Online play finds the other player on the local network too; the Wi-Fi copy fetches the
          game's data from OpenSWOS Setup on a computer. -->
     <key>NSLocalNetworkUsageDescription</key>
