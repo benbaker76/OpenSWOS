@@ -2695,6 +2695,87 @@ def bteams(picks):
     counts["B teams (call-ups)"] += len(teams)
 
 
+# 96/97's pool of foreign players (POOLPLYR.DAT) by its shape: per club, how many of its players
+# (4 clubs give 11, ... 152 clubs give 1) -- 349 clubs, 900 players, the count the game reads.
+POOL_SHAPE = {11: 4, 10: 4, 9: 3, 8: 8, 7: 2, 6: 13, 5: 17, 4: 30, 3: 44, 2: 72, 1: 152}
+POOL_COUNT = 900
+# ... and where its clubs are among all clubs by value: the pool's clubs at each tenth of them, in
+# percent of the ranking (0 the most valuable). Its clubs reach far down (the 1,510th of 1,631), and
+# from every price rank in a club, so its players cost from 3 to 49 -- 153 of them 15 or less.
+POOL_CLUB_DECILES = [0, 4, 8, 14, 18, 22, 28, 34, 44, 57, 92]
+
+
+def pool_club_rank(j, n_pool, n_clubs):
+    """The j-th pool club's place in a ranking of n_clubs: 96/97's curve (POOL_CLUB_DECILES),
+    interpolated. Never the same place twice: a later club is at least one further down."""
+    x = 10.0 * j / n_pool
+    i = min(int(x), 9)
+    pct = POOL_CLUB_DECILES[i] + (POOL_CLUB_DECILES[i + 1] - POOL_CLUB_DECILES[i]) * (x - i)
+    return int(pct * n_clubs / 100)
+
+
+def write_pool():
+    """The world's own POOLPLYR.DAT -- the foreign transfer market's players (GitHub issue 25).
+    The market lists a pool record and the bid opens the club and player its team id names, so a
+    world playing 96/97's pool opened a stranger (0 of its 900 in either world). Made from the
+    world's club files (data/TEAM.nnn; never 80-85, the national teams) in 96/97's shape: the clubs
+    ranked by their 16's total value, 349 of them taken along 96/97's curve (POOL_CLUB_DECILES), the
+    most valuable given 96/97's largest counts; a club's players spread over its price ranks (n of
+    them every 16/n ranks, from a place that turns with each club).
+
+    The spread is what the market needs, not only a likeness: AddRandomForeignMarketPlayer looks,
+    three times in four, for a player priced between the career club's cheapest and its dearest + 3,
+    and a pool with none there loops for ever (a pool of each club's dearest started at price 22: a
+    cheap club's new season never began -- the golden careers, 2026-11-20). The check below holds
+    the pool to 96/97's: its players at 15 or less at least half 96/97's 153.
+
+    RNC-packed as 96/97's, into data/ (the Amiga drawer's: it replaces 96/97's file there) and
+    teams/ (the PC's: the setup copies teams/ and competitions/; the game lists only
+    teams/*.json). Both are in the fingerprint."""
+    import swos_team_file as T
+    clubs = []
+    for path in sorted(glob.glob(os.path.join(WORLD, "data", "TEAM.[0-9][0-9][0-9]"))):
+        number = int(path[-3:])
+        if 80 <= number <= 85:
+            continue
+        for t in T.parse_blob(T.rnc_unpack(open(path, "rb").read())):
+            players = t["players"][:16]
+            if len(players) < 16:
+                continue
+            clubs.append((-sum(p["price"] for p in players), number, t["team"]["team_ordinal"],
+                          t["team"]["team_name"], players))
+    clubs.sort(key=lambda c: c[:3])
+    counts = [n for n in sorted(POOL_SHAPE, reverse=True) for _ in range(POOL_SHAPE[n])]
+    if len(clubs) < len(counts):
+        sys.exit("write_pool: %d clubs, the pool's shape needs %d" % (len(clubs), len(counts)))
+    pool, last = [], -1
+    for j, n in enumerate(counts):
+        at = max(pool_club_rank(j, len(counts), len(clubs)), last + 1)
+        at = min(at, len(clubs) - (len(counts) - j))      # (room left for the clubs after it)
+        last = at
+        _, number, ordinal, name, players = clubs[at]
+        ranks = sorted(range(16), key=lambda k: (-players[k]["price"], k))
+        stride = 16 // n
+        turn = (j * 5) % stride if stride > 1 else 0
+        for i in range(n):
+            k = ranks[min(i * 16 // n + turn, 15)]
+            pool.append({"team_id": (number << 8) | ordinal, "player_ordinal": k,
+                         "team_name": name, "player": players[k]})
+    assert len(pool) == POOL_COUNT, len(pool)
+    assert len({(p["team_id"], p["player_ordinal"]) for p in pool}) == POOL_COUNT, "a player twice"
+    cheap = sum(1 for p in pool if p["player"]["price"] <= 15)
+    if cheap < 153 // 2:
+        sys.exit("write_pool: only %d players priced 15 or less (96/97's pool has 153): a cheap "
+                 "club's foreign market would never fill" % cheap)
+    packed = T.rnc_pack(T.encode_poolplyr_blob(pool))
+    for sub in ("data", "teams"):
+        with open(os.path.join(WORLD, sub, "POOLPLYR.DAT"), "wb") as f:
+            f.write(packed)
+    prices = sorted(p["player"]["price"] for p in pool)
+    print("wrote the pool: %d players of %d clubs, prices %d-%d, %d at 15 or less "
+          "(data/ and teams/POOLPLYR.DAT)" % (len(pool), len(counts), prices[0], prices[-1], cheap))
+
+
 def world_fingerprint():
     """The world's data as its package carries it -- teams/, competitions/, data/: the SHA-1 of
     every file's path and bytes, in path order, its first 16 hex digits. Baked into world_data.c
@@ -2878,6 +2959,7 @@ def main_classic(cfg):
             if re.fullmatch(pattern, f) and path not in WRITTEN:
                 os.remove(path)
                 print("removed", os.path.relpath(path, REPO), "(an earlier run's)")
+    write_pool()
     fingerprint = world_fingerprint()
     with open(os.path.join(WORLD, "WORLD.ini"), "w", newline="\n") as f:
         f.write("; A world's data for OpenSWOS -- written by scripts/world_import.py; the package\n"
@@ -3001,6 +3083,7 @@ def main():
             if re.fullmatch(pattern, f) and path not in WRITTEN:
                 os.remove(path)
                 print("removed", os.path.relpath(path, REPO), "(an earlier run's)")
+    write_pool()
     fingerprint = world_fingerprint()
     with open(os.path.join(WORLD, "WORLD.ini"), "w", newline="\n") as f:
         f.write("; A world's data for OpenSWOS -- written by scripts/world_import.py; the package\n"

@@ -2342,9 +2342,16 @@ void ChangeWorld(MenuEntry *entry)
         if (AssetsCheck_FindSetup(setup, (uint32_t)sizeof setup)) { iSetup = n; buttons[n++] = "LAUNCH SETUP"; }
         buttons[n++] = "OK";
         if (MenuDialog_Show("Worlds",
+#ifdef SWOS_WASM_BUILD
+                /* (the page's data is built in: nothing installs a world here -- GitHub issue 20) */
+                "The browser version plays SWOS 96/97 only.|World 2026-27 and Europe 1984-85 are "
+                "installed by " PROJECT_SETUP_NAME " for the downloaded game: Windows, Mac, Linux, "
+                "Android and iPhone.", buttons, n, 0) == iSetup &&
+#else
                 "No other world is installed.|Open " PROJECT_SETUP_NAME ": its Worlds row has the links to "
                 "download World 2026-27 and Europe 1984-85, then click Install. On a phone: do that "
                 "on your computer, then copy the assets folder over again.", buttons, n, 0) == iSetup &&
+#endif
             iSetup >= 0)
             AssetsCheck_LaunchSetup();
         return;

@@ -22,6 +22,10 @@
 #include "mod_hooks.h"       /* playerMoved / playerCreated (docs/MODS.md §27): SDL builds */
 #include "mod_api.h"         /* (ModPlayerKind: SDL builds) */
 #include "tweaks.h"          /* [tweaks] unlimited_transfers */
+#ifdef SWOS_SDL_BUILD
+#include <stdio.h>
+#include "swos_io.h"         /* swos_data_exists: a world's pool (LoadPoolplyrDat) */
+#endif
 
 /* Offset from GetPlayer() return value to actual PlayerFile data */
 #define PF_OFF              76  /* sizeof(TeamFile) */
@@ -626,8 +630,24 @@ void LoadPoolplyrDat(void)
 {
     if (_poolplyrLoaded == 0) {
         uint32_t fileSize;
+        uint8_t *name = (uint8_t *)_aDataPoolplyrDa;
         _poolplyrLoaded = 1;
-        LoadFileEx(_aDataPoolplyrDa, (uint8_t *)_poolplyrDatBuffer, &fileSize);
+#ifdef SWOS_SDL_BUILD
+        /* A world's own pool (GitHub issue 25): the list shows a pool record and the bid opens
+         * the club and player its team id names, so in a world 96/97's pool opened a stranger.
+         * Its package carries one (scripts/world_import.py write_pool) -- the PC's in teams/, the
+         * Amiga's in its drawer's data/, where it is this same file name. A world installed
+         * without one (none: the fingerprint keeps an older package out) keeps 96/97's. */
+        char rel[96];
+        if (World_Current() != WORLD_9697) {
+            snprintf(rel, sizeof rel, "data_json/worlds/%s/teams/POOLPLYR.DAT", World_Tag());
+            if (swos_data_exists(rel))
+                name = (uint8_t *)rel;
+            else
+                fprintf(stderr, "[world] %s has no foreign players' pool: 96/97's\n", World_Tag());
+        }
+#endif
+        LoadFileEx(name, (uint8_t *)_poolplyrDatBuffer, &fileSize);
     }
     FillForeignMarketPlayersData();
 }

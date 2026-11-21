@@ -8777,7 +8777,7 @@ const char *WorldData2627_DataFingerprint(void)
     switch (World_Current()) {
 #if SWOS_WORLDS
     case WORLD_2627:
-        return "0f4f4612c60624b8";
+        return "80e20cdd3e92ec9c";
 #endif
     default:
         return "";

@@ -9,6 +9,8 @@ master data: what the package carries, the Amiga plays and the game checks (docs
 1. data/TEAM.nnn: each club team file's Amiga binary written again from its JSON (world_import.py's own
    writer), so the Amiga plays the same skills. A team file with no binary in data/ gets none (the
    national files: the Amiga keeps 96/97's 143 nations, docs/WORLD_DATAGEN.md §15).
+1b. data/ and teams/POOLPLYR.DAT: the foreign market's pool, from those files (world_import.py
+   write_pool).
 2. the fingerprint of teams/ competitions/ data/ (world_import.py world_fingerprint) into WORLD.ini and
    into the baked tables (src/world_data.c World_DataFingerprint), so a build and the package agree.
 Then rebuild the game and run scripts/make_world_package.sh (which refreshes the server's team list).
@@ -78,6 +80,9 @@ def main():
             open(path, 'wb').write(packed)
     print('data/: %d Amiga team files written again, %d already the same, %d team files with none (kept so)'
           % (rewritten, same, skipped))
+
+    if not a.dry_run:
+        wi.write_pool()     # the foreign market's players, from those team files (GitHub issue 25)
 
     ini = os.path.join(wi.WORLD, 'WORLD.ini')
     text = open(ini, encoding='utf-8').read()

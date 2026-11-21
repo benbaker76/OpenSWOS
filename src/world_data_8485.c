@@ -3401,7 +3401,7 @@ const char *WorldData8485_DataFingerprint(void)
     switch (World_Current()) {
 #if SWOS_WORLDS
     case WORLD_8485:
-        return "9435fb35a4505c62";
+        return "5f85ebe6385891f0";
 #endif
     default:
         return "";
