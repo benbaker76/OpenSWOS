@@ -1344,3 +1344,102 @@ msgstr "de pc-game (zijn twee diskettes)"
 
 msgid "the PC game's floppies, which cannot be used: {0}"
 msgstr "de diskettes van de pc-game, die niet bruikbaar zijn: {0}"
+
+msgid "Worlds"
+msgstr "Werelden"
+
+msgid "World 2026-27 and Europe 1984-85, from the SWOS 96/97 Mod"
+msgstr "World 2026-27 en Europe 1984-85, uit de SWOS 96/97 Mod"
+
+msgid "Get the worlds"
+msgstr "Haal de werelden"
+
+msgid "Download OpenSWOS-World-2627.zip (World 2026-27), OpenSWOS-World-8485.zip (Europe 1984-85) or both, below."
+msgstr "Download hieronder OpenSWOS-World-2627.zip (World 2026-27), OpenSWOS-World-8485.zip (Europe 1984-85) of allebei."
+
+msgid "Drag them here, or leave them in your Downloads folder. You choose the world in the game: its WORLD button, or OPTIONS -> WORLD."
+msgstr "Sleep ze hierheen, of laat ze in je map Downloads staan. De wereld kies je in het spel: met de knop WERELD, of bij OPTIES -> WERELD."
+
+msgid "Play {0} (its clubs and players) instead of 96/97"
+msgstr "{0} spelen (de clubs en spelers ervan) in plaats van 96/97"
+
+msgid "Another world"
+msgstr "Een andere wereld"
+
+msgid "Looking for your copy of Sensible World of Soccer on your drives..."
+msgstr "Je kopie van Sensible World of Soccer zoeken op je schijven..."
+
+msgid "Scan my drives"
+msgstr "Zoek op mijn schijven"
+
+msgid "The SWOS 96/97 Mod's worlds: World 2026-27 (today's clubs, players and competitions) and Europe 1984-85 (32 countries of that season). Each package is a download of its own; the game's WORLD button chooses the one played."
+msgstr "De werelden van de SWOS 96/97 Mod: World 2026-27 (de clubs, spelers en competities van nu) en Europe 1984-85 (32 landen van dat seizoen). Elk pakket is een aparte download; de knop WERELD in het spel kiest welke je speelt."
+
+msgid "Not a world's package: OpenSWOS-World-2627.zip or OpenSWOS-World-8485.zip, or the folder it was unpacked to."
+msgstr "Geen pakket van een wereld: OpenSWOS-World-2627.zip of OpenSWOS-World-8485.zip, of de map waarin het is uitgepakt."
+
+msgid "No drives to look in."
+msgstr "Geen schijven om in te zoeken."
+
+msgid "Searching your drives ..."
+msgstr "Je schijven doorzoeken ..."
+
+msgid "{0}: {1}."
+msgstr "{0}: {1}."
+
+msgid "The PC game's CD"
+msgstr "De cd van het PC-spel"
+
+msgid "Amiga disk 1"
+msgstr "Amiga-diskette 1"
+
+msgid "Amiga disk 2"
+msgstr "Amiga-diskette 2"
+
+msgid "The Jaguar cartridge"
+msgstr "De Jaguar-cartridge"
+
+msgid "A world's package"
+msgstr "Het pakket van een wereld"
+
+msgid "Nothing new on your drives."
+msgstr "Niets nieuws op je schijven."
+
+msgid "Found on your drives -- {0}"
+msgstr "Gevonden op je schijven -- {0}"
+
+msgid "The game needs the PC game or the Amiga version: Search a folder where yours is."
+msgstr "Het spel heeft het PC-spel of de Amiga-versie nodig: gebruik Zoek in een map waar die van jou staat."
+
+msgid "data"
+msgstr "gegevens"
+
+msgid "modes"
+msgstr "modi"
+
+msgid "data {0}"
+msgstr "gegevens {0}"
+
+msgid "To install: {0}."
+msgstr "Te installeren: {0}."
+
+msgid "Installed: {0}."
+msgstr "Geïnstalleerd: {0}."
+
+msgid "a world's package"
+msgstr "het pakket van een wereld"
+
+msgid "Your copy of Sensible World of Soccer was not found, on your drives either: point to it here, then click Install."
+msgstr "Je kopie van Sensible World of Soccer is niet gevonden, ook niet op je schijven: wijs hem hier aan en klik dan op Installeren."
+
+msgid "The search of your drives was stopped before it found your copy of Sensible World of Soccer: point to it here, then click Install."
+msgstr "Het zoeken op je schijven is gestopt voordat het je kopie van Sensible World of Soccer vond: wijs hem hier aan en klik dan op Installeren."
+
+msgid "Making the game's data failed ({0}). Check your copy of the game here, then click Install."
+msgstr "Het maken van de gegevens van het spel is mislukt ({0}). Controleer hier je kopie van het spel en klik dan op Installeren."
+
+msgid "Amiga 60 fps"
+msgstr "Amiga 60 fps"
+
+msgid "Moon Soccer"
+msgstr "Moon Soccer"

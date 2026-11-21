@@ -1344,3 +1344,102 @@ msgstr "das PC-Spiel (seine zwei Disketten)"
 
 msgid "the PC game's floppies, which cannot be used: {0}"
 msgstr "die Disketten des PC-Spiels, die nicht verwendbar sind: {0}"
+
+msgid "Worlds"
+msgstr "Welten"
+
+msgid "World 2026-27 and Europe 1984-85, from the SWOS 96/97 Mod"
+msgstr "World 2026-27 und Europe 1984-85, aus dem SWOS 96/97 Mod"
+
+msgid "Get the worlds"
+msgstr "Die Welten besorgen"
+
+msgid "Download OpenSWOS-World-2627.zip (World 2026-27), OpenSWOS-World-8485.zip (Europe 1984-85) or both, below."
+msgstr "Lade unten OpenSWOS-World-2627.zip (World 2026-27), OpenSWOS-World-8485.zip (Europe 1984-85) oder beide herunter."
+
+msgid "Drag them here, or leave them in your Downloads folder. You choose the world in the game: its WORLD button, or OPTIONS -> WORLD."
+msgstr "Zieh sie hierher oder lass sie in deinem Download-Ordner. Die Welt wählst du im Spiel: mit seinem WELT-Knopf oder unter OPTIONEN -> WELT."
+
+msgid "Play {0} (its clubs and players) instead of 96/97"
+msgstr "{0} spielen (seine Vereine und Spieler) statt 96/97"
+
+msgid "Another world"
+msgstr "Eine andere Welt"
+
+msgid "Looking for your copy of Sensible World of Soccer on your drives..."
+msgstr "Suche auf deinen Laufwerken nach deiner Kopie von Sensible World of Soccer..."
+
+msgid "Scan my drives"
+msgstr "Meine Laufwerke durchsuchen"
+
+msgid "The SWOS 96/97 Mod's worlds: World 2026-27 (today's clubs, players and competitions) and Europe 1984-85 (32 countries of that season). Each package is a download of its own; the game's WORLD button chooses the one played."
+msgstr "Die Welten des SWOS 96/97 Mod: World 2026-27 (die heutigen Vereine, Spieler und Wettbewerbe) und Europe 1984-85 (32 Länder jener Saison). Jedes Paket ist ein eigener Download; der WELT-Knopf im Spiel wählt, welches gespielt wird."
+
+msgid "Not a world's package: OpenSWOS-World-2627.zip or OpenSWOS-World-8485.zip, or the folder it was unpacked to."
+msgstr "Kein Paket einer Welt: OpenSWOS-World-2627.zip oder OpenSWOS-World-8485.zip, oder der Ordner, in den es entpackt wurde."
+
+msgid "No drives to look in."
+msgstr "Keine Laufwerke zum Durchsuchen."
+
+msgid "Searching your drives ..."
+msgstr "Durchsuche deine Laufwerke ..."
+
+msgid "{0}: {1}."
+msgstr "{0}: {1}."
+
+msgid "The PC game's CD"
+msgstr "Die CD des PC-Spiels"
+
+msgid "Amiga disk 1"
+msgstr "Amiga-Diskette 1"
+
+msgid "Amiga disk 2"
+msgstr "Amiga-Diskette 2"
+
+msgid "The Jaguar cartridge"
+msgstr "Das Jaguar-Modul"
+
+msgid "A world's package"
+msgstr "Das Paket einer Welt"
+
+msgid "Nothing new on your drives."
+msgstr "Nichts Neues auf deinen Laufwerken."
+
+msgid "Found on your drives -- {0}"
+msgstr "Auf deinen Laufwerken gefunden -- {0}"
+
+msgid "The game needs the PC game or the Amiga version: Search a folder where yours is."
+msgstr "Das Spiel braucht das PC-Spiel oder die Amiga-Version: Durchsuche einen Ordner, in dem deine ist."
+
+msgid "data"
+msgstr "Daten"
+
+msgid "modes"
+msgstr "Modi"
+
+msgid "data {0}"
+msgstr "Daten {0}"
+
+msgid "To install: {0}."
+msgstr "Zu installieren: {0}."
+
+msgid "Installed: {0}."
+msgstr "Installiert: {0}."
+
+msgid "a world's package"
+msgstr "das Paket einer Welt"
+
+msgid "Your copy of Sensible World of Soccer was not found, on your drives either: point to it here, then click Install."
+msgstr "Deine Kopie von Sensible World of Soccer wurde nicht gefunden, auch nicht auf deinen Laufwerken: Zeig hier, wo sie ist, und klick dann auf Installieren."
+
+msgid "The search of your drives was stopped before it found your copy of Sensible World of Soccer: point to it here, then click Install."
+msgstr "Die Suche auf deinen Laufwerken wurde angehalten, bevor sie deine Kopie von Sensible World of Soccer fand: Zeig hier, wo sie ist, und klick dann auf Installieren."
+
+msgid "Making the game's data failed ({0}). Check your copy of the game here, then click Install."
+msgstr "Die Daten des Spiels konnten nicht erstellt werden ({0}). Prüf hier deine Kopie des Spiels und klick dann auf Installieren."
+
+msgid "Amiga 60 fps"
+msgstr "Amiga 60 fps"
+
+msgid "Moon Soccer"
+msgstr "Moon Soccer"
