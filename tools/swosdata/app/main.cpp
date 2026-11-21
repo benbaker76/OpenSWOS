@@ -516,10 +516,16 @@ struct App {
         row.placeholder = Str(T("the floppies (.adf), a hard disk image (.hdf), a WHDLoad .lha, or a .zip of them"));
         row.need_pc = Str(T("optional"));
         row.need_amiga = Str(T("needed"));
+        // (The downloads are the 2024-25 release: their teams are played only without the PC game,
+        // which the Amiga version always needs -- so on the Amiga they never are. A player expected
+        // 24/25 teams on their A1200, 2026-11-21.)
         row.about_pc = Str(T("Adds the Amiga's music, sound effects and loading screens -- or plays without the PC "
-                       "game. Download one of the files on the right; ASWOS's swos.hdf works too."));
-        row.about_amiga = Str(T("The game's own files. Download one of the files on the right (either will do), or "
-                          "use both floppies, ASWOS's swos.hdf or a WHDLoad install."));
+                       "game, with this copy's teams. The files on the right are the 2024-25 release: with "
+                       "the PC game here, the teams are 96/97's. ASWOS's swos.hdf works too."));
+        row.about_amiga = Str(T("The Amiga game's music, sound effects and loading screens. The teams are 96/97's, "
+                          "from the PC game, which the Amiga version needs too -- whatever season this copy is "
+                          "(the files on the right are the 2024-25 release). Download one of them, or use both "
+                          "floppies, ASWOS's swos.hdf or a WHDLoad install."));
         row.links = Links({{"swos2425.hdf", "https://www.mediafire.com/file/4fu4wbhjiaco2ts/swos2425.hdf/file"},
                            {"WHDLoad .lha",
                             "https://www.mediafire.com/file/8l9nr2rjg0zteb5/SensibleWorldOfSoccer2425_v2.3.lha/file"},
@@ -542,7 +548,9 @@ struct App {
           row.detail_warn = true;
         } else if (!amigaSeason.empty()) {
           row.detail = Str((src.adf1[0] ? Tf("The {0} season (both disks).", amigaSeason) : Tf("The {0} season.", amigaSeason)) + " " +
-                           Tf("{0} plays 96/97's teams: they come from the PC game when it is here.", PROJECT_NAME));
+                           (SdSources_HaveDos(&src)
+                                ? T("Its music, sounds and screens are used; the teams are 96/97's, from the PC game (on the Amiga too).")
+                                : T("Its teams are played too, as long as there is no PC game here (the Amiga version needs one).")));
         } else if (src.adf1[0] && src.adf2[0]) {
           row.detail = Str(T("Both disks."));
         }

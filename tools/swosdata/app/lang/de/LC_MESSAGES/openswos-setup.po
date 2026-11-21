@@ -610,12 +610,12 @@ msgid "optional"
 msgstr "optional"
 
 #: app/main.cpp:397
-msgid "Adds the Amiga's music, sound effects and loading screens -- or plays without the PC game. Download one of the files on the right; ASWOS's swos.hdf works too."
-msgstr "Bringt die Musik, Soundeffekte und Ladebildschirme des Amiga mit -- oder spielt ohne das PC-Spiel. Lade eine der Dateien rechts herunter; die swos.hdf von ASWOS geht auch."
+msgid "Adds the Amiga's music, sound effects and loading screens -- or plays without the PC game, with this copy's teams. The files on the right are the 2024-25 release: with the PC game here, the teams are 96/97's. ASWOS's swos.hdf works too."
+msgstr "Bringt die Musik, Soundeffekte und Ladebildschirme des Amiga mit -- oder spielt ohne das PC-Spiel, mit den Teams dieser Kopie. Die Dateien rechts sind die Ausgabe 2024-25: Ist das PC-Spiel vorhanden, sind die Teams die von 96/97. Die swos.hdf von ASWOS geht auch."
 
 #: app/main.cpp:399
-msgid "The game's own files. Download one of the files on the right (either will do), or use both floppies, ASWOS's swos.hdf or a WHDLoad install."
-msgstr "Die eigenen Dateien des Spiels. Lade eine der Dateien rechts herunter (beide gehen), oder nimm beide Disketten, die swos.hdf von ASWOS oder eine WHDLoad-Installation."
+msgid "The Amiga game's music, sound effects and loading screens. The teams are 96/97's, from the PC game, which the Amiga version needs too -- whatever season this copy is (the files on the right are the 2024-25 release). Download one of them, or use both floppies, ASWOS's swos.hdf or a WHDLoad install."
+msgstr "Die Musik, Soundeffekte und Ladebildschirme des Amiga-Spiels. Die Teams sind die von 96/97, aus dem PC-Spiel, das die Amiga-Version ebenfalls braucht -- egal, welche Saison diese Kopie ist (die Dateien rechts sind die Ausgabe 2024-25). Lade eine davon herunter, oder nimm beide Disketten, die swos.hdf von ASWOS oder eine WHDLoad-Installation."
 
 #: app/main.cpp:404
 msgid "about it"
@@ -650,8 +650,11 @@ msgid "The {0} season."
 msgstr "Die Saison {0}."
 
 #: app/main.cpp:423
-msgid "{0} plays 96/97's teams: they come from the PC game when it is here."
-msgstr "{0} spielt mit den Teams von 96/97: Sie kommen aus dem PC-Spiel, wenn es vorhanden ist."
+msgid "Its music, sounds and screens are used; the teams are 96/97's, from the PC game (on the Amiga too)."
+msgstr "Ihre Musik, Sounds und Bildschirme werden benutzt; die Teams sind die von 96/97, aus dem PC-Spiel (auch auf dem Amiga)."
+
+msgid "Its teams are played too, as long as there is no PC game here (the Amiga version needs one)."
+msgstr "Ihre Teams werden auch gespielt, solange kein PC-Spiel vorhanden ist (die Amiga-Version braucht eins)."
 
 #: app/main.cpp:425
 msgid "Both disks."

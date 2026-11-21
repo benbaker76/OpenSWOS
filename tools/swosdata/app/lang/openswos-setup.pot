@@ -35,1083 +35,1167 @@ msgstr ""
 msgid "needs {0}"
 msgstr ""
 
-#: app/ui/app.slint:149 app/ui/app.slint:308
+#: app/ui/app.slint:149 app/ui/app.slint:312 app/ui/app.slint:1377
 msgid "{0} Setup"
 msgstr ""
 
-#: app/ui/app.slint:314
+#: app/ui/app.slint:318
 msgid "Step {0} of {1}"
 msgstr ""
 
-#: app/ui/app.slint:332
+#: app/ui/app.slint:336
 msgid "About"
 msgstr ""
 
-#: app/ui/app.slint:357
+#: app/ui/app.slint:361
 msgid "Where do you want to play?"
 msgstr ""
 
-#: app/ui/app.slint:363
+#: app/ui/app.slint:367
 msgid "Tick everything you want. {0} plays with a copy of Sensible World of Soccer you own: the next screens show you how to get it, one step at a time."
 msgstr ""
 
-#: app/ui/app.slint:372
+#: app/ui/app.slint:376
 msgid "This computer"
 msgstr ""
 
-#: app/ui/app.slint:373
+#: app/ui/app.slint:377
 msgid "Windows, Mac or Linux"
 msgstr ""
 
-#: app/ui/app.slint:379
+#: app/ui/app.slint:383
 msgid "Phone or tablet"
 msgstr ""
 
-#: app/ui/app.slint:380
+#: app/ui/app.slint:384
 msgid "Android, iPhone or iPad"
 msgstr ""
 
-#: app/ui/app.slint:386
+#: app/ui/app.slint:390
 msgid "Handheld"
 msgstr ""
 
-#: app/ui/app.slint:387
+#: app/ui/app.slint:391
 msgid "PortMaster: R36S, Anbernic, TrimUI"
 msgstr ""
 
-#: app/ui/app.slint:395 include/game_options.h:58 include/game_options.h:59 include/game_options.h:61
+#: app/ui/app.slint:399 include/game_options.h:58 include/game_options.h:60 include/game_options.h:62
 msgid "Amiga"
 msgstr ""
 
-#: app/ui/app.slint:396
+#: app/ui/app.slint:400
 msgid "A SWOS drawer for an A1200 or an emulator"
 msgstr ""
 
-#: app/ui/app.slint:404
+#: app/ui/app.slint:408
 msgid "Amiga WHDLoad"
 msgstr ""
 
-#: app/ui/app.slint:405
+#: app/ui/app.slint:409
 msgid "A package for an Amiga with WHDLoad"
 msgstr ""
 
-#: app/ui/app.slint:411
+#: app/ui/app.slint:415
 msgid "Extras (optional)"
 msgstr ""
 
-#: app/ui/app.slint:418 app/main.cpp:472 app/main.cpp:2247 lib/swosdata.c:91
-msgid "World 2026-27"
+#: app/ui/app.slint:422 app/main.cpp:571
+msgid "Worlds"
 msgstr ""
 
-#: app/ui/app.slint:419
-msgid "Today's clubs, players and competitions, from the SWOS 96/97 Mod"
+#: app/ui/app.slint:423
+msgid "World 2026-27 and Europe 1984-85, from the SWOS 96/97 Mod"
 msgstr ""
 
-#: app/ui/app.slint:425 lib/swosdata.c:87
+#: app/ui/app.slint:429 lib/swosdata.c:88
 msgid "SWOS 2020 pitches"
 msgstr ""
 
-#: app/ui/app.slint:426
+#: app/ui/app.slint:430
 msgid "The pitches of SWOS 2020, if you have it installed"
 msgstr ""
 
-#: app/ui/app.slint:432
+#: app/ui/app.slint:436
 msgid "Atari Jaguar players"
 msgstr ""
 
-#: app/ui/app.slint:433
+#: app/ui/app.slint:437
 msgid "The Jaguar version's redrawn players, from its cartridge"
 msgstr ""
 
-#: app/ui/app.slint:439 app/ui/app.slint:881
+#: app/ui/app.slint:443 app/ui/app.slint:886
 msgid "Mods"
 msgstr ""
 
-#: app/ui/app.slint:440
+#: app/ui/app.slint:444
 msgid "What players have made for {0}: install a mod, turn mods on or off"
 msgstr ""
 
-#: app/ui/app.slint:450
+#: app/ui/app.slint:454
 msgid "Which copy of the game do you have?"
 msgstr ""
 
-#: app/ui/app.slint:456
+#: app/ui/app.slint:460
 msgid "Either one is enough. With both, {0} plays the Amiga's music and sounds on the PC game's data. Not sure? Pick the PC game: it is the one you can buy today."
 msgstr ""
 
-#: app/ui/app.slint:465
+#: app/ui/app.slint:469 app/main.cpp:1021
 msgid "The PC game"
 msgstr ""
 
-#: app/ui/app.slint:466
+#: app/ui/app.slint:470
 msgid "Sensible World of Soccer 96/97: GOG's, the CD or the floppy version"
 msgstr ""
 
-#: app/ui/app.slint:475
+#: app/ui/app.slint:479 app/main.cpp:1023 app/main.cpp:1024
 msgid "The Amiga version"
 msgstr ""
 
-#: app/ui/app.slint:476
+#: app/ui/app.slint:480
 msgid "Its floppies, a hard disk image or a WHDLoad .lha"
 msgstr ""
 
-#: app/ui/app.slint:483
+#: app/ui/app.slint:487
 msgid "Both"
 msgstr ""
 
-#: app/ui/app.slint:484
+#: app/ui/app.slint:488
 msgid "The PC game and the Amiga version"
 msgstr ""
 
-#: app/ui/app.slint:512
+#: app/ui/app.slint:516
 msgid "Get the PC game"
 msgstr ""
 
-#: app/ui/app.slint:513
+#: app/ui/app.slint:517
 msgid "Get the Amiga version"
 msgstr ""
 
-#: app/ui/app.slint:514
-msgid "Get World 2026-27"
+#: app/ui/app.slint:518
+msgid "Get the worlds"
 msgstr ""
 
-#: app/ui/app.slint:515
+#: app/ui/app.slint:519
 msgid "Add SWOS 2020's pitches"
 msgstr ""
 
-#: app/ui/app.slint:516
+#: app/ui/app.slint:520
 msgid "Add the PC game's commentary"
 msgstr ""
 
-#: app/ui/app.slint:517
+#: app/ui/app.slint:521
 msgid "Add the Jaguar's players"
 msgstr ""
 
-#: app/ui/app.slint:523
+#: app/ui/app.slint:527
 msgid "Optional: Skip if you would rather not."
 msgstr ""
 
-#: app/ui/app.slint:524
+#: app/ui/app.slint:528
 msgid "The Amiga version takes its pitches and pictures from the PC game."
 msgstr ""
 
-#: app/ui/app.slint:525
+#: app/ui/app.slint:529
 msgid "The game's own files, for the Amiga."
 msgstr ""
 
-#: app/ui/app.slint:533
+#: app/ui/app.slint:537
 msgid "Buy Sensible World of Soccer 96/97 on GOG and install it -- or download the CD version below (archive.org's copy, or the CD image from files.swos.eu). Your own CD or floppy version works too."
 msgstr ""
 
-#: app/ui/app.slint:534
+#: app/ui/app.slint:538
 msgid "That is all: an installed game, a download or the CD in its drive is found by itself. Have it somewhere else? Drag its folder or file here."
 msgstr ""
 
-#: app/ui/app.slint:538
+#: app/ui/app.slint:542
 msgid "Download one of the files below (either will do), or use your own floppies (.adf), hard disk image (.hdf) or WHDLoad .lha."
 msgstr ""
 
-#: app/ui/app.slint:539
+#: app/ui/app.slint:543
 msgid "Drag it here, or just leave it in your Downloads folder: it is found by itself."
 msgstr ""
 
-#: app/ui/app.slint:543
-msgid "Download OpenSWOS-World-2627.zip below."
-msgstr ""
-
-#: app/ui/app.slint:544
-msgid "Drag it here, or leave it in your Downloads folder. You choose the world in the game, in OPTIONS -> WORLD."
+#: app/ui/app.slint:547
+msgid "Download OpenSWOS-World-2627.zip (World 2026-27), OpenSWOS-World-8485.zip (Europe 1984-85) or both, below."
 msgstr ""
 
 #: app/ui/app.slint:548
+msgid "Drag them here, or leave them in your Downloads folder. You choose the world in the game: its WORLD button, or OPTIONS -> WORLD."
+msgstr ""
+
+#: app/ui/app.slint:552
 msgid "Install SWOS 2020 and run its launcher once (it picks the pitches)."
 msgstr ""
 
-#: app/ui/app.slint:549
+#: app/ui/app.slint:553
 msgid "Drag its folder here, or choose it with Browse."
 msgstr ""
 
-#: app/ui/app.slint:553
+#: app/ui/app.slint:557
 msgid "Your copy of the PC game has no commentary: the CD version leaves it on the CD when it installs, and the floppy version has none."
 msgstr ""
 
-#: app/ui/app.slint:554
+#: app/ui/app.slint:558
 msgid "Put the CD in its drive: it is found by itself. No CD? Download its image below, or drag a copy of the CD, or its image (.iso, .img, .bin or .cue), here."
 msgstr ""
 
-#: app/ui/app.slint:558
+#: app/ui/app.slint:562
 msgid "Find the Sensible Soccer International Edition cartridge image (.jag, .j64, .rom or .bin)."
 msgstr ""
 
-#: app/ui/app.slint:559
+#: app/ui/app.slint:563
 msgid "Drag it here, or choose it with Browse."
 msgstr ""
 
-#: app/ui/app.slint:589
+#: app/ui/app.slint:594 app/ui/app.slint:1401
 msgid "Stop"
 msgstr ""
 
-#: app/ui/app.slint:594
+#: app/ui/app.slint:599
 msgid "Start over"
 msgstr ""
 
-#: app/ui/app.slint:615
+#: app/ui/app.slint:620
 msgid "Game options"
 msgstr ""
 
-#: app/ui/app.slint:617
+#: app/ui/app.slint:622
 msgid "Set up how the game looks and plays before you start it. Not sure? Leave them: you can change any of them in the game's OPTIONS later."
 msgstr ""
 
-#: app/ui/app.slint:639
+#: app/ui/app.slint:644
 msgid "The game's data is installed"
 msgstr ""
 
-#: app/ui/app.slint:639
+#: app/ui/app.slint:644
 msgid "Install the game's data"
 msgstr ""
 
-#: app/ui/app.slint:645
+#: app/ui/app.slint:650
 msgid "One click: {0} Setup makes the game's data from your copy, into the folder the game reads."
 msgstr ""
 
-#: app/ui/app.slint:675 app/ui/app.slint:1117
+#: app/ui/app.slint:680 app/ui/app.slint:1122
 msgid "Change…"
 msgstr ""
 
-#: app/ui/app.slint:689
+#: app/ui/app.slint:694
 msgid "Installing…"
 msgstr ""
 
-#: app/ui/app.slint:689
+#: app/ui/app.slint:694
 msgid "Update"
 msgstr ""
 
-#: app/ui/app.slint:689
+#: app/ui/app.slint:694
 msgid "Install again"
 msgstr ""
 
-#: app/ui/app.slint:689 app/ui/app.slint:943
+#: app/ui/app.slint:694 app/ui/app.slint:948
 msgid "Install"
 msgstr ""
 
-#: app/ui/app.slint:724
+#: app/ui/app.slint:729
 msgid "Details"
 msgstr ""
 
-#: app/ui/app.slint:733
+#: app/ui/app.slint:738
 msgid "what will be made, and the log"
 msgstr ""
 
-#: app/ui/app.slint:761
+#: app/ui/app.slint:766
 msgid "Copy it to your phone or tablet"
 msgstr ""
 
-#: app/ui/app.slint:769
+#: app/ui/app.slint:774
 msgid "The phone can't run this setup, so it takes the game's data from this computer. Easiest over Wi-Fi: the phone and this computer on the same network."
 msgstr ""
 
-#: app/ui/app.slint:804
+#: app/ui/app.slint:809
 msgid "Over Wi-Fi"
 msgstr ""
 
-#: app/ui/app.slint:806
+#: app/ui/app.slint:811
 msgid "Install {0} on the phone (Android, or an iPhone with AltStore or Sideloadly) and start it once."
 msgstr ""
 
-#: app/ui/app.slint:807
+#: app/ui/app.slint:812
 msgid "Scan this code with the phone's camera and open its link: {0} starts and copies everything, with the game options you chose. (If a page opens instead, tap Open in {1} on it.)"
 msgstr ""
 
-#: app/ui/app.slint:808
+#: app/ui/app.slint:813
 msgid "On Android, without the code: start {0} and tap Copy from my computer -- it finds this one."
 msgstr ""
 
-#: app/ui/app.slint:829
+#: app/ui/app.slint:834
 msgid "Windows may ask whether {0} Setup may use the network: allow it on private networks. This computer: {1}"
 msgstr ""
 
-#: app/ui/app.slint:848
+#: app/ui/app.slint:853
 msgid "Or by cable"
 msgstr ""
 
-#: app/ui/app.slint:851
+#: app/ui/app.slint:856
 msgid "Copy the \"assets\" folder in {0} to the phone. Android: by USB (File transfer) into Android / data / {1} / files. iPhone or iPad: into the Files app, On My iPhone > {2} (Finder on a Mac, iCloud Drive, AirDrop or a USB stick)."
 msgstr ""
 
-#: app/ui/app.slint:861
+#: app/ui/app.slint:866
 msgid "Show the assets folder"
 msgstr ""
 
-#: app/ui/app.slint:889
+#: app/ui/app.slint:894
 msgid "A mod is something players made for {0}: new pitches, kits, competitions, ways to play. Drop a mod's .zip on this window, or leave it in your Downloads folder. A mod you turn off stays installed; the game plays the change from its next start."
 msgstr ""
 
-#: app/ui/app.slint:903
+#: app/ui/app.slint:908
 msgid "No mods installed yet."
 msgstr ""
 
-#: app/ui/app.slint:921
+#: app/ui/app.slint:926
 msgid "Cannot"
 msgstr ""
 
-#: app/ui/app.slint:921
+#: app/ui/app.slint:926
 msgid "On"
 msgstr ""
 
-#: app/ui/app.slint:921
+#: app/ui/app.slint:926
 msgid "Off"
 msgstr ""
 
-#: app/ui/app.slint:927
+#: app/ui/app.slint:932
 msgid "Remove"
 msgstr ""
 
-#: app/ui/app.slint:935
+#: app/ui/app.slint:940
 msgid "In your Downloads: {0}"
 msgstr ""
 
-#: app/ui/app.slint:954
+#: app/ui/app.slint:959
 msgid "Install a mod..."
 msgstr ""
 
-#: app/ui/app.slint:981
+#: app/ui/app.slint:986
 msgid "Copy it to your handheld"
 msgstr ""
 
-#: app/ui/app.slint:989
+#: app/ui/app.slint:994
 msgid "Put the handheld's SD card in this computer (the card with its games: on an R36S, EASYROMS). {0} goes into its PortMaster ports folder, with the game's data and the options you chose."
 msgstr ""
 
-#: app/ui/app.slint:1006
+#: app/ui/app.slint:1011
 msgid "No card found"
 msgstr ""
 
-#: app/ui/app.slint:1014
+#: app/ui/app.slint:1019
 msgid "Look again"
 msgstr ""
 
-#: app/ui/app.slint:1019
+#: app/ui/app.slint:1024
 msgid "Change..."
 msgstr ""
 
-#: app/ui/app.slint:1028
+#: app/ui/app.slint:1033
 msgid "Copy again"
 msgstr ""
 
-#: app/ui/app.slint:1028
+#: app/ui/app.slint:1033
 msgid "Copy to the card"
 msgstr ""
 
-#: app/ui/app.slint:1070
+#: app/ui/app.slint:1075
 msgid "No PortMaster yet? Install it on the handheld first (most firmwares have it: ArkOS, ROCKNIX, Knulli, AmberELEC, muOS)."
 msgstr ""
 
-#: app/ui/app.slint:1089
+#: app/ui/app.slint:1094
 msgid "Make the SWOS drawer"
 msgstr ""
 
-#: app/ui/app.slint:1089
+#: app/ui/app.slint:1094
 msgid "Make the WHDLoad package"
 msgstr ""
 
-#: app/ui/app.slint:1098
+#: app/ui/app.slint:1103
 msgid "A drawer to copy to your Amiga's hard drive, or to use as a folder in WinUAE or FS-UAE. Double-click SWOS to play."
 msgstr ""
 
-#: app/ui/app.slint:1099
+#: app/ui/app.slint:1104
 msgid "OpenSWOSAGA-WHDL.lha, to unpack on an Amiga with WHDLoad installed. No Kickstart image needed."
 msgstr ""
 
-#: app/ui/app.slint:1114
+#: app/ui/app.slint:1119
 msgid "Into"
 msgstr ""
 
-#: app/ui/app.slint:1114
+#: app/ui/app.slint:1119
 msgid "Save as"
 msgstr ""
 
-#: app/ui/app.slint:1125
+#: app/ui/app.slint:1130
 msgid "This setup has no copy of the Amiga program: choose SWOS-Amiga.zip, from the same place as this setup."
 msgstr ""
 
-#: app/ui/app.slint:1132
+#: app/ui/app.slint:1137
 msgid "Choose…"
 msgstr ""
 
-#: app/ui/app.slint:1138
-msgid "Play World 2026-27 (its clubs and players) instead of 96/97"
+#: app/ui/app.slint:1145
+msgid "Play {0} (its clubs and players) instead of 96/97"
 msgstr ""
 
-#: app/ui/app.slint:1146
+#: app/ui/app.slint:1152
+msgid "Another world"
+msgstr ""
+
+#: app/ui/app.slint:1160
 msgid "Making…"
 msgstr ""
 
-#: app/ui/app.slint:1146
+#: app/ui/app.slint:1160
 msgid "Make the drawer"
 msgstr ""
 
-#: app/ui/app.slint:1146
+#: app/ui/app.slint:1160
 msgid "Make the package"
 msgstr ""
 
-#: app/ui/app.slint:1158
+#: app/ui/app.slint:1172
 msgid "Show it"
 msgstr ""
 
-#: app/ui/app.slint:1187
+#: app/ui/app.slint:1201
 msgid "All done!"
 msgstr ""
 
-#: app/ui/app.slint:1194
+#: app/ui/app.slint:1208
 msgid "Play on this computer with the button below, or start {0} from where you unzipped it."
 msgstr ""
 
-#: app/ui/app.slint:1195
+#: app/ui/app.slint:1209
 msgid "On your phone, start {0} once the assets folder is copied over."
 msgstr ""
 
-#: app/ui/app.slint:1196
+#: app/ui/app.slint:1210
 msgid "On the handheld, start Sensible World of Soccer from Ports."
 msgstr ""
 
-#: app/ui/app.slint:1197
+#: app/ui/app.slint:1211
 msgid "On the Amiga, copy what was made and double-click SWOS."
 msgstr ""
 
-#: app/ui/app.slint:1198
+#: app/ui/app.slint:1212
 msgid "You can run this setup again whenever you like."
 msgstr ""
 
-#: app/ui/app.slint:1208
+#: app/ui/app.slint:1222
 msgid "Play {0}"
 msgstr ""
 
-#: app/ui/app.slint:1214
+#: app/ui/app.slint:1228
 msgid "Show the Amiga files"
 msgstr ""
 
-#: app/ui/app.slint:1228
+#: app/ui/app.slint:1242
 msgid "Home"
 msgstr ""
 
-#: app/ui/app.slint:1234
+#: app/ui/app.slint:1248
 msgid "Back"
 msgstr ""
 
-#: app/ui/app.slint:1245
+#: app/ui/app.slint:1259
 msgid "Skip"
 msgstr ""
 
-#: app/ui/app.slint:1245
+#: app/ui/app.slint:1259
 msgid "Next"
 msgstr ""
 
-#: app/ui/app.slint:1252
+#: app/ui/app.slint:1266
 msgid "Close"
 msgstr ""
 
-#: app/ui/app.slint:1297
+#: app/ui/app.slint:1311
 msgid "{0} Setup {1}"
 msgstr ""
 
-#: app/ui/app.slint:1303
+#: app/ui/app.slint:1317
 msgid "by Ben Baker"
 msgstr ""
 
-#: app/ui/app.slint:1346
+#: app/ui/app.slint:1360
 msgid "OK"
 msgstr ""
 
-#: app/ui/wizard.slint:277
-msgid "Drop it here"
+#: app/ui/app.slint:1387
+msgid "Looking for your copy of Sensible World of Soccer on your drives..."
 msgstr ""
 
 #: app/ui/wizard.slint:278
-msgid "Found it"
+msgid "Drop it here"
 msgstr ""
 
 #: app/ui/wizard.slint:279
+msgid "Found it"
+msgstr ""
+
+#: app/ui/wizard.slint:280
 msgid "This one will not do"
 msgstr ""
 
-#: app/ui/wizard.slint:280
+#: app/ui/wizard.slint:281
 msgid "Drag the download or its folder here"
 msgstr ""
 
-#: app/ui/wizard.slint:280
+#: app/ui/wizard.slint:281
 msgid "Choose the download or its folder"
 msgstr ""
 
-#: app/ui/wizard.slint:307
+#: app/ui/wizard.slint:308
 msgid "Choose another…"
 msgstr ""
 
-#: app/ui/wizard.slint:307
+#: app/ui/wizard.slint:308
 msgid "Browse…"
 msgstr ""
 
-#: app/ui/wizard.slint:313
+#: app/ui/wizard.slint:314
 msgid "Search a folder…"
 msgstr ""
 
-#: app/main.cpp:400
-msgid "PC game"
-msgstr ""
-
-#: app/main.cpp:401
-msgid "the game's folder (the one with SPRITE.DAT in it), or its CD's image"
-msgstr ""
-
-#: app/main.cpp:402 app/main.cpp:403 app/main.cpp:429
-msgid "needed"
-msgstr ""
-
-#: app/main.cpp:404
-msgid "Sensible World of Soccer 96/97 for PC: GOG's, the CD version (the CD, a copy of it or its image) or the floppy version (installed; it has no commentary). GOG's is found by itself once installed, the CD in its drive, a download in your Downloads folder."
-msgstr ""
-
-#: app/main.cpp:407
-msgid "The AGA version takes its pitches, backdrops and pictures from the PC game. Buy it on GOG and install it: its folder is found by itself."
-msgstr ""
-
-#: app/main.cpp:410 app/main.cpp:493
-msgid "CD version (archive.org)"
-msgstr ""
-
-#: app/main.cpp:411 app/main.cpp:494
-msgid "CD image (files.swos.eu)"
-msgstr ""
-
-#: app/main.cpp:415
-msgid "Disk 1 of the floppies: add disk 2 too."
-msgstr ""
-
-#: app/main.cpp:416
-msgid "Disk 2 of the floppies: add disk 1 too."
-msgstr ""
-
-#: app/main.cpp:417
-msgid "These floppies cannot be used: {0}. The CD version is complete: see the links."
-msgstr ""
-
-#: app/main.cpp:421
-msgid "GOG's installer is in your Downloads: run it, and the game it installs is found here by itself."
-msgstr ""
-
-#: app/main.cpp:426
-msgid "Amiga version"
-msgstr ""
-
-#: app/main.cpp:427
-msgid "the floppies (.adf), a hard disk image (.hdf), a WHDLoad .lha, or a .zip of them"
-msgstr ""
-
-#: app/main.cpp:428 app/main.cpp:465 app/main.cpp:474 app/main.cpp:475
-msgid "optional"
-msgstr ""
-
-#: app/main.cpp:430
-msgid "Adds the Amiga's music, sound effects and loading screens -- or plays without the PC game. Download one of the files on the right; ASWOS's swos.hdf works too."
-msgstr ""
-
-#: app/main.cpp:432
-msgid "The game's own files. Download one of the files on the right (either will do), or use both floppies, ASWOS's swos.hdf or a WHDLoad install."
-msgstr ""
-
-#: app/main.cpp:437
-msgid "about it"
-msgstr ""
-
-#: app/main.cpp:441
-msgid "Disk 1 only: add disk 2 too."
-msgstr ""
-
-#: app/main.cpp:444
-msgid "Disk 2 only: add disk 1 too."
-msgstr ""
-
-#: app/main.cpp:447
-msgid "This copy cannot be used: {0}. Try another download."
-msgstr ""
-
-#: app/main.cpp:450
-msgid "The 96/97 release."
-msgstr ""
-
-#: app/main.cpp:452
-msgid "A season this setup does not know: it may install, or it may not."
-msgstr ""
-
-#: app/main.cpp:455
-msgid "The {0} season (both disks)."
-msgstr ""
-
-#: app/main.cpp:455
-msgid "The {0} season."
-msgstr ""
-
-#: app/main.cpp:456
-msgid "{0} plays 96/97's teams: they come from the PC game when it is here."
-msgstr ""
-
-#: app/main.cpp:458
-msgid "Both disks."
-msgstr ""
-
-#: app/main.cpp:463
-msgid "Atari Jaguar cartridge"
-msgstr ""
-
-#: app/main.cpp:464
-msgid "Sensible Soccer International Edition (.jag, .j64, .rom or .bin)"
-msgstr ""
-
-#: app/main.cpp:466
-msgid "The Jaguar's redrawn players, an option in the game's graphics settings."
-msgstr ""
-
-#: app/main.cpp:476
-msgid "The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its package is a download of its own. The game plays it when SWOS.ini says world = 2627."
-msgstr ""
-
-#: app/main.cpp:478
-msgid "The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its package is a download of its own; tick it below to play it on the Amiga."
-msgstr ""
-
-#: app/main.cpp:480
-msgid "credits"
-msgstr ""
-
-#: app/main.cpp:484
-msgid "Data {0}."
-msgstr ""
-
-#: app/main.cpp:488
-msgid "PC game CD"
+#: app/ui/wizard.slint:320
+msgid "Scan my drives"
 msgstr ""
 
 #: app/main.cpp:489
+msgid "PC game"
+msgstr ""
+
+#: app/main.cpp:490
+msgid "the game's folder (the one with SPRITE.DAT in it), or its CD's image"
+msgstr ""
+
+#: app/main.cpp:491 app/main.cpp:492 app/main.cpp:518
+msgid "needed"
+msgstr ""
+
+#: app/main.cpp:493
+msgid "Sensible World of Soccer 96/97 for PC: GOG's, the CD version (the CD, a copy of it or its image) or the floppy version (installed; it has no commentary). GOG's is found by itself once installed, the CD in its drive, a download in your Downloads folder."
+msgstr ""
+
+#: app/main.cpp:496
+msgid "The AGA version takes its pitches, backdrops and pictures from the PC game. Buy it on GOG and install it: its folder is found by itself."
+msgstr ""
+
+#: app/main.cpp:499 app/main.cpp:602
+msgid "CD version (archive.org)"
+msgstr ""
+
+#: app/main.cpp:500 app/main.cpp:603
+msgid "CD image (files.swos.eu)"
+msgstr ""
+
+#: app/main.cpp:504
+msgid "Disk 1 of the floppies: add disk 2 too."
+msgstr ""
+
+#: app/main.cpp:505
+msgid "Disk 2 of the floppies: add disk 1 too."
+msgstr ""
+
+#: app/main.cpp:506
+msgid "These floppies cannot be used: {0}. The CD version is complete: see the links."
+msgstr ""
+
+#: app/main.cpp:510
+msgid "GOG's installer is in your Downloads: run it, and the game it installs is found here by itself."
+msgstr ""
+
+#: app/main.cpp:515
+msgid "Amiga version"
+msgstr ""
+
+#: app/main.cpp:516
+msgid "the floppies (.adf), a hard disk image (.hdf), a WHDLoad .lha, or a .zip of them"
+msgstr ""
+
+#: app/main.cpp:517 app/main.cpp:562 app/main.cpp:573 app/main.cpp:574
+msgid "optional"
+msgstr ""
+
+#: app/main.cpp:522
+msgid "Adds the Amiga's music, sound effects and loading screens -- or plays without the PC game, with this copy's teams. The files on the right are the 2024-25 release: with the PC game here, the teams are 96/97's. ASWOS's swos.hdf works too."
+msgstr ""
+
+#: app/main.cpp:525
+msgid "The Amiga game's music, sound effects and loading screens. The teams are 96/97's, from the PC game, which the Amiga version needs too -- whatever season this copy is (the files on the right are the 2024-25 release). Download one of them, or use both floppies, ASWOS's swos.hdf or a WHDLoad install."
+msgstr ""
+
+#: app/main.cpp:532
+msgid "about it"
+msgstr ""
+
+#: app/main.cpp:536
+msgid "Disk 1 only: add disk 2 too."
+msgstr ""
+
+#: app/main.cpp:539
+msgid "Disk 2 only: add disk 1 too."
+msgstr ""
+
+#: app/main.cpp:542
+msgid "This copy cannot be used: {0}. Try another download."
+msgstr ""
+
+#: app/main.cpp:545
+msgid "The 96/97 release."
+msgstr ""
+
+#: app/main.cpp:547
+msgid "A season this setup does not know: it may install, or it may not."
+msgstr ""
+
+#: app/main.cpp:550
+msgid "The {0} season (both disks)."
+msgstr ""
+
+#: app/main.cpp:550
+msgid "The {0} season."
+msgstr ""
+
+#: app/main.cpp:552
+msgid "Its music, sounds and screens are used; the teams are 96/97's, from the PC game (on the Amiga too)."
+msgstr ""
+
+#: app/main.cpp:553
+msgid "Its teams are played too, as long as there is no PC game here (the Amiga version needs one)."
+msgstr ""
+
+#: app/main.cpp:555
+msgid "Both disks."
+msgstr ""
+
+#: app/main.cpp:560
+msgid "Atari Jaguar cartridge"
+msgstr ""
+
+#: app/main.cpp:561
+msgid "Sensible Soccer International Edition (.jag, .j64, .rom or .bin)"
+msgstr ""
+
+#: app/main.cpp:563
+msgid "The Jaguar's redrawn players, an option in the game's graphics settings."
+msgstr ""
+
+#: app/main.cpp:575
+msgid "The SWOS 96/97 Mod's worlds: World 2026-27 (today's clubs, players and competitions) and Europe 1984-85 (32 countries of that season). Each package is a download of its own; the game's WORLD button chooses the one played."
+msgstr ""
+
+#: app/main.cpp:578
+msgid "The SWOS 96/97 Mod's World 2026-27: today's clubs, players and competitions. Its package is a download of its own; tick it below to play it on the Amiga."
+msgstr ""
+
+#: app/main.cpp:584 app/main.cpp:588
+msgid "credits"
+msgstr ""
+
+#: app/main.cpp:597
+msgid "PC game CD"
+msgstr ""
+
+#: app/main.cpp:598
 msgid "the CD's drive, a copy of the CD, or its image (.iso, .bin or .cue)"
 msgstr ""
 
-#: app/main.cpp:491
+#: app/main.cpp:600
 msgid "The PC game's commentary and crowd sounds. The CD version leaves them on the CD when it installs (GOG's game has them already); the floppy version has none."
 msgstr ""
 
-#: app/main.cpp:497
+#: app/main.cpp:606
 msgid "The commentary is on it."
 msgstr ""
 
-#: app/main.cpp:497
+#: app/main.cpp:606
 msgid "No commentary on it."
 msgstr ""
 
-#: app/main.cpp:500 app/main.cpp:2246 include/game_options.h:60
+#: app/main.cpp:609 app/main.cpp:1027 app/main.cpp:2610 include/game_options.h:61
 msgid "SWOS 2020"
 msgstr ""
 
-#: app/main.cpp:501
+#: app/main.cpp:610
 msgid "the SWOS 2020 install folder"
 msgstr ""
 
-#: app/main.cpp:504 app/main.cpp:505
+#: app/main.cpp:613 app/main.cpp:614
 msgid "SWOS 2020's pitches, the set its launcher picked."
 msgstr ""
 
-#: app/main.cpp:557 app/main.cpp:569
+#: app/main.cpp:666 app/main.cpp:678
 msgid "That is disk 2: add disk 1 too."
 msgstr ""
 
-#: app/main.cpp:558 app/main.cpp:569
+#: app/main.cpp:667 app/main.cpp:678
 msgid "That is disk 1: add disk 2 too."
 msgstr ""
 
-#: app/main.cpp:592
+#: app/main.cpp:701
 msgid "Not the PC game's CD: it is the one with the SFX folder, and the commentary in SFX/PIERCE."
 msgstr ""
 
-#: app/main.cpp:601
+#: app/main.cpp:710
 msgid "That is disk 1 of the PC game's floppies: add disk 2 too."
 msgstr ""
 
-#: app/main.cpp:602
+#: app/main.cpp:711
 msgid "That is disk 2 of the PC game's floppies: add disk 1 too."
 msgstr ""
 
-#: app/main.cpp:606
+#: app/main.cpp:715
 msgid "That is SWOS 2020, not the PC game: it goes in the SWOS 2020 row."
 msgstr ""
 
-#: app/main.cpp:607
+#: app/main.cpp:716
 msgid "Not the PC game's folder: it is the one with SPRITE.DAT and DATA in it."
 msgstr ""
 
-#: app/main.cpp:611
+#: app/main.cpp:720
 msgid "Not the Amiga version of Sensible World of Soccer: its floppies (.adf), a hard disk image (.hdf) or a WHDLoad .lha with the game on it."
 msgstr ""
 
-#: app/main.cpp:617
+#: app/main.cpp:726
 msgid "Not the Sensible Soccer Jaguar cartridge (a 2 MB .jag, .j64, .rom or .bin)."
 msgstr ""
 
-#: app/main.cpp:622
-msgid "Not a world's package: OpenSWOS-World-2627.zip, or the folder it was unpacked to."
+#: app/main.cpp:741
+msgid "Not a world's package: OpenSWOS-World-2627.zip or OpenSWOS-World-8485.zip, or the folder it was unpacked to."
 msgstr ""
 
-#: app/main.cpp:627
+#: app/main.cpp:746
 msgid "Not a SWOS 2020 install: it is the folder with gameLauncher.exe and the swos folder in it."
 msgstr ""
 
-#: app/main.cpp:708
+#: app/main.cpp:827
 msgid "Some of the game's data in {0} was made by an older {1}."
 msgstr ""
 
-#: app/main.cpp:709
+#: app/main.cpp:828
 msgid "Click Update to make it again from your copy."
 msgstr ""
 
-#: app/main.cpp:710
+#: app/main.cpp:829
 msgid "Choose the folder your copy is in, then click Update."
 msgstr ""
 
-#: app/main.cpp:713
+#: app/main.cpp:832
 msgid "The game's data is already installed in {0}. Install again from your copy to add to it."
 msgstr ""
 
-#: app/main.cpp:714
+#: app/main.cpp:833
 msgid "The game's data is already installed in {0}. Play, or install again from your copy to add to it."
 msgstr ""
 
-#: app/main.cpp:716
+#: app/main.cpp:835
 msgid "Some of the game's data is in {0}, but not enough to play: install from your copy."
 msgstr ""
 
-#: app/main.cpp:718
+#: app/main.cpp:837
 msgid "Ready."
 msgstr ""
 
-#: app/main.cpp:726
+#: app/main.cpp:845
 msgid "This is the folder the game reads its data from."
 msgstr ""
 
-#: app/main.cpp:727
+#: app/main.cpp:846
 msgid "The game reads {0} — to use this folder instead, start the game with SWOS_ASSETS set to it."
 msgstr ""
 
-#: app/main.cpp:775
+#: app/main.cpp:895
 msgid "Choose the Amiga program first: SWOS-Amiga.zip, from the same place as this setup."
 msgstr ""
 
-#: app/main.cpp:778
+#: app/main.cpp:898
 msgid "It needs the Amiga version and the PC game first."
 msgstr ""
 
-#: app/main.cpp:779
+#: app/main.cpp:899
 msgid "It needs the Amiga version too."
 msgstr ""
 
-#: app/main.cpp:780
+#: app/main.cpp:900
 msgid "It needs the PC game too."
 msgstr ""
 
-#: app/main.cpp:782
+#: app/main.cpp:902
 msgid "Ready to make the drawer."
 msgstr ""
 
-#: app/main.cpp:782
+#: app/main.cpp:902
 msgid "Ready to make the package."
 msgstr ""
 
-#: app/main.cpp:836
+#: app/main.cpp:956 app/main.cpp:2958
 msgid "Searching... {0} folders: {1}"
 msgstr ""
 
-#: app/main.cpp:848
+#: app/main.cpp:968
 msgid "Searching {0} ..."
 msgstr ""
 
-#: app/main.cpp:870 app/main.cpp:2158 app/main.cpp:2280
-msgid "Found {0} in {1}."
+#: app/main.cpp:987
+msgid "No drives to look in."
 msgstr ""
 
-#: app/main.cpp:872
-msgid "Nothing new in {0} or the folders inside it."
+#: app/main.cpp:991 app/main.cpp:3001
+msgid "Searching your drives ..."
 msgstr ""
 
-#: app/main.cpp:875
+#: app/main.cpp:1019
+msgid "{0}: {1}."
+msgstr ""
+
+#: app/main.cpp:1022
+msgid "The PC game's CD"
+msgstr ""
+
+#: app/main.cpp:1025
+msgid "Amiga disk 1"
+msgstr ""
+
+#: app/main.cpp:1026
+msgid "Amiga disk 2"
+msgstr ""
+
+#: app/main.cpp:1028
+msgid "The Jaguar cartridge"
+msgstr ""
+
+#: app/main.cpp:1029
+msgid "A world's package"
+msgstr ""
+
+#: app/main.cpp:1030
+msgid "Nothing new on your drives."
+msgstr ""
+
+#: app/main.cpp:1030
+msgid "Found on your drives -- {0}"
+msgstr ""
+
+#: app/main.cpp:1031 app/main.cpp:1054
 msgid "(Stopped before the end.)"
 msgstr ""
 
-#: app/main.cpp:908
+#: app/main.cpp:1033
+msgid "The game needs the PC game or the Amiga version: Search a folder where yours is."
+msgstr ""
+
+#: app/main.cpp:1049 app/main.cpp:2521 app/main.cpp:2648
+msgid "Found {0} in {1}."
+msgstr ""
+
+#: app/main.cpp:1051
+msgid "Nothing new in {0} or the folders inside it."
+msgstr ""
+
+#: app/main.cpp:1135
 msgid "Installing to {0} ..."
 msgstr ""
 
-#: app/main.cpp:946
+#: app/main.cpp:1173
 msgid "Done. The game's data is in {0}."
 msgstr ""
 
-#: app/main.cpp:951 app/main.cpp:1172
+#: app/main.cpp:1178 app/main.cpp:1400
 msgid "Failed: {0}"
 msgstr ""
 
-#: app/main.cpp:976
+#: app/main.cpp:1203
 msgid "Could not start {0}."
 msgstr ""
 
-#: app/main.cpp:1109
+#: app/main.cpp:1336
 msgid "Installing the game's data to {0} ..."
 msgstr ""
 
-#: app/main.cpp:1169
+#: app/main.cpp:1397
 msgid "Done: the SWOS drawer is in {0}. Copy it, with SWOS.info, to your Amiga and double-click SWOS."
 msgstr ""
 
-#: app/main.cpp:1170
+#: app/main.cpp:1398
 msgid "Done: {0}. Unpack it on your Amiga (lha x OpenSWOSAGA-WHDL.lha), open the OpenSWOSAGA-NE drawer and double-click OpenSWOS."
 msgstr ""
 
-#: app/main.cpp:1347
+#: app/main.cpp:1584
 msgid "this computer"
 msgstr ""
 
-#: app/main.cpp:1347
+#: app/main.cpp:1584
 msgid "phone"
 msgstr ""
 
-#: app/main.cpp:1347
+#: app/main.cpp:1584
 msgid "handheld"
 msgstr ""
 
-#: app/main.cpp:1381
+#: app/main.cpp:1618
 msgid "Could not write {0}."
 msgstr ""
 
-#: app/main.cpp:1509
+#: app/main.cpp:1747
 msgid "No handheld card found. Put its SD card in this computer, or choose its ports folder."
 msgstr ""
 
-#: app/main.cpp:1512
+#: app/main.cpp:1750
 msgid "{0} for PortMaster is not on this card, and this setup has no copy of it: download swos.zip ({0} for PortMaster) and drop it on this window."
 msgstr ""
 
-#: app/main.cpp:1516
+#: app/main.cpp:1754
 msgid "Ready to copy the game's data to the card."
 msgstr ""
 
-#: app/main.cpp:1517
+#: app/main.cpp:1755
 msgid "Ready: the game on the card is updated from {0}, and its data copied."
 msgstr ""
 
-#: app/main.cpp:1518
+#: app/main.cpp:1756
 msgid "Ready: {0} is installed on the card from {1}, with the game's data."
 msgstr ""
 
-#: app/main.cpp:1531
+#: app/main.cpp:1769
 msgid "No ports folder in {0}: choose the card itself, or its ports folder."
 msgstr ""
 
-#: app/main.cpp:1549
+#: app/main.cpp:1787
 msgid "Copying to the card..."
 msgstr ""
 
-#: app/main.cpp:1564 app/main.cpp:1858
+#: app/main.cpp:1802 app/main.cpp:2202
 msgid "could not unpack {0}"
 msgstr ""
 
-#: app/main.cpp:1565
+#: app/main.cpp:1803
 msgid "could not copy the port: {0}"
 msgstr ""
 
-#: app/main.cpp:1571
+#: app/main.cpp:1809
 msgid "could not write {0} on the card"
 msgstr ""
 
-#: app/main.cpp:1576
+#: app/main.cpp:1814
 msgid "{0} for PortMaster is not on the card"
 msgstr ""
 
-#: app/main.cpp:1594
+#: app/main.cpp:1832
 msgid "could not put the game's data in place on the card"
 msgstr ""
 
-#: app/main.cpp:1614
+#: app/main.cpp:1852
 msgid "could not copy the mods: {0}"
 msgstr ""
 
-#: app/main.cpp:1620
+#: app/main.cpp:1858
 msgid "could not write the game's settings on the card"
 msgstr ""
 
-#: app/main.cpp:1628
+#: app/main.cpp:1866
 msgid "Copied. Eject the card safely, put it back in the handheld, and start Sensible World of Soccer from Ports (refresh the games list if it is not there)."
 msgstr ""
 
-#: app/main.cpp:1633
+#: app/main.cpp:1871
 msgid "The copy did not work: {0}."
 msgstr ""
 
-#: app/main.cpp:1657
+#: app/main.cpp:1898
 msgid "cosmetic"
 msgstr ""
 
-#: app/main.cpp:1657
+#: app/main.cpp:1898
 msgid "gameplay"
 msgstr ""
 
-#: app/main.cpp:1657
+#: app/main.cpp:1898
 msgid "career"
 msgstr ""
 
-#: app/main.cpp:1657
+#: app/main.cpp:1898
 msgid "data"
 msgstr ""
 
-#: app/main.cpp:1658
+#: app/main.cpp:1899
 msgid "modes"
 msgstr ""
 
-#: app/main.cpp:1735
+#: app/main.cpp:1974
+msgid "data {0}"
+msgstr ""
+
+#: app/main.cpp:1994
+msgid "To install: {0}."
+msgstr ""
+
+#: app/main.cpp:1995
+msgid "Installed: {0}."
+msgstr ""
+
+#: app/main.cpp:2053
 msgid "no mod.json in its folder"
 msgstr ""
 
-#: app/main.cpp:1746
+#: app/main.cpp:2070
 msgid "its mod.json has no uuid"
 msgstr ""
 
-#: app/main.cpp:1747
+#: app/main.cpp:2071
 msgid "not made for this game (no \"sdl\" or \"amiga\" in its targets)"
 msgstr ""
 
-#: app/main.cpp:1810 app/main.cpp:1869
+#: app/main.cpp:2150 app/main.cpp:2213
 msgid "its uuid is the game's own mod's"
 msgstr ""
 
-#: app/main.cpp:1830
+#: app/main.cpp:2174
 msgid "{0}, {1}{2}"
 msgstr ""
 
-#: app/main.cpp:1830
+#: app/main.cpp:2174
 msgid "part of the game"
 msgstr ""
 
-#: app/main.cpp:1830
+#: app/main.cpp:2174
 msgid "downloaded"
 msgstr ""
 
-#: app/main.cpp:1831
+#: app/main.cpp:2175
 msgid ", also on the Amiga"
 msgstr ""
 
-#: app/main.cpp:1831
+#: app/main.cpp:2175
 msgid ", Amiga only"
 msgstr ""
 
-#: app/main.cpp:1855
+#: app/main.cpp:2199
 msgid "{0} is not a mod (no mod.json in it)"
 msgstr ""
 
-#: app/main.cpp:1878
+#: app/main.cpp:2222
 msgid "could not install it: {0}"
 msgstr ""
 
-#: app/main.cpp:1889
+#: app/main.cpp:2233
 msgid "Installed {0}: it is on from the next time the game starts."
 msgstr ""
 
-#: app/main.cpp:1890
+#: app/main.cpp:2234
 msgid "Not installed: {0}."
 msgstr ""
 
-#: app/main.cpp:1905
+#: app/main.cpp:2256
 msgid "{0} is on from the next time the game starts."
 msgstr ""
 
-#: app/main.cpp:1906
+#: app/main.cpp:2257
 msgid "{0} is off from the next time the game starts."
 msgstr ""
 
-#: app/main.cpp:1916
+#: app/main.cpp:2268
 msgid "Removed {0}."
 msgstr ""
 
-#: app/main.cpp:2117
+#: app/main.cpp:2480
 msgid "Copied to the phone ({0} files). {1} on it is ready to play."
 msgstr ""
 
-#: app/main.cpp:2121
+#: app/main.cpp:2484
 msgid "Copying to the phone: {0}% ({1} of {2} files)"
 msgstr ""
 
-#: app/main.cpp:2124
+#: app/main.cpp:2487
 msgid "The phone found this computer ({0}). Tap Open in {1} on it."
 msgstr ""
 
-#: app/main.cpp:2126
+#: app/main.cpp:2489
 msgid "Waiting for the phone..."
 msgstr ""
 
-#: app/main.cpp:2147
+#: app/main.cpp:2510
 msgid "Found {0} for PortMaster in {1}."
 msgstr ""
 
-#: app/main.cpp:2153 app/main.cpp:2316
+#: app/main.cpp:2516 app/main.cpp:2703
 msgid "Found the Amiga program in {0}."
 msgstr ""
 
-#: app/main.cpp:2165
+#: app/main.cpp:2528
 msgid "{0} is not one of the game's files."
 msgstr ""
 
-#: app/main.cpp:2225 app/main.cpp:2300 lib/swosdata.c:68 lib/swosdata.c:72
+#: app/main.cpp:2589 app/main.cpp:2690 lib/swosdata.c:68 lib/swosdata.c:72
 msgid "the PC game"
 msgstr ""
 
-#: app/main.cpp:2232
+#: app/main.cpp:2596
 msgid "the PC game (its two floppies)"
 msgstr ""
 
-#: app/main.cpp:2235
+#: app/main.cpp:2599
 msgid "the PC game's floppies, which cannot be used: {0}"
 msgstr ""
 
-#: app/main.cpp:2236
+#: app/main.cpp:2600
 msgid "disk 1 of the PC game's floppies (add disk 2)"
 msgstr ""
 
-#: app/main.cpp:2237
+#: app/main.cpp:2601
 msgid "disk 2 of the PC game's floppies (add disk 1)"
 msgstr ""
 
-#: app/main.cpp:2243 app/main.cpp:2300
+#: app/main.cpp:2607 app/main.cpp:2690
 msgid "the PC game's CD"
 msgstr ""
 
-#: app/main.cpp:2245
+#: app/main.cpp:2609
 msgid "the Jaguar cartridge"
 msgstr ""
 
-#: app/main.cpp:2267
+#: app/main.cpp:2611
+msgid "a world's package"
+msgstr ""
+
+#: app/main.cpp:2632
 msgid "a copy of the Amiga version that cannot be used ({0})"
 msgstr ""
 
-#: app/main.cpp:2270
+#: app/main.cpp:2635
 msgid "the Amiga version"
 msgstr ""
 
-#: app/main.cpp:2343
+#: app/main.cpp:2739
 msgid "What you download is not looked for (no Downloads folder): search the folder you saved it in."
 msgstr ""
 
-#: app/main.cpp:2344
+#: app/main.cpp:2740
 msgid "Watching {0}: what you download from the links above is found by itself."
 msgstr ""
 
-#: app/main.cpp:2570
+#: app/main.cpp:2784
+msgid "Your copy of Sensible World of Soccer was not found, on your drives either: point to it here, then click Install."
+msgstr ""
+
+#: app/main.cpp:2787
+msgid "The search of your drives was stopped before it found your copy of Sensible World of Soccer: point to it here, then click Install."
+msgstr ""
+
+#: app/main.cpp:2789
+msgid "Making the game's data failed ({0}). Check your copy of the game here, then click Install."
+msgstr ""
+
+#: app/main.cpp:3283
 msgid "The game's own files (setup/glyphs.txt) were not found beside this program. Start it with --res DIR, or install the game first."
 msgstr ""
 
-#: app/main.cpp:2575
+#: app/main.cpp:3288
 msgid "This build has no folder picker (built without dbus); start it with --scan DIR."
 msgstr ""
 
@@ -1143,99 +1227,103 @@ msgstr ""
 msgid "the Amiga disks or the PC game"
 msgstr ""
 
-#: lib/swosdata.c:83
+#: lib/swosdata.c:84
 msgid "Atari Jaguar sprites"
 msgstr ""
 
-#: lib/swosdata.c:84
+#: lib/swosdata.c:85
 msgid "the Jaguar cartridge and the PC game"
 msgstr ""
 
-#: lib/swosdata.c:88
+#: lib/swosdata.c:89
 msgid "a SWOS 2020 install"
 msgstr ""
 
 #: lib/swosdata.c:92
+msgid "World 2026-27"
+msgstr ""
+
+#: lib/swosdata.c:93
 msgid "the World 2026-27 package"
 msgstr ""
 
-#: include/game_options.h:75
+#: include/game_options.h:76
 msgid "World"
 msgstr ""
 
-#: include/game_options.h:75
+#: include/game_options.h:76
 msgid "The football the game plays: 96/97, or today's"
 msgstr ""
 
-#: include/game_options.h:77
+#: include/game_options.h:78
 msgid "Gameplay"
 msgstr ""
 
-#: include/game_options.h:77
+#: include/game_options.h:78
 msgid "How a match plays: the Amiga's 50 fps, the PC's 70, or SWOS 2020's Xbox mode"
 msgstr ""
 
-#: include/game_options.h:79
+#: include/game_options.h:80
 msgid "Graphics"
 msgstr ""
 
-#: include/game_options.h:79
+#: include/game_options.h:80
 msgid "What the pitch, the scoreboard and the menus look like"
 msgstr ""
 
-#: include/game_options.h:81
+#: include/game_options.h:82
 msgid "Players"
 msgstr ""
 
-#: include/game_options.h:81
+#: include/game_options.h:82
 msgid "The players' look"
 msgstr ""
 
-#: include/game_options.h:83
+#: include/game_options.h:84
 msgid "Sound"
 msgstr ""
 
-#: include/game_options.h:83
+#: include/game_options.h:84
 msgid "The sounds of a match: the Amiga's, or the PC game's crowd and chants"
 msgstr ""
 
-#: include/game_options.h:85
+#: include/game_options.h:86
 msgid "Music"
 msgstr ""
 
-#: include/game_options.h:85
+#: include/game_options.h:86
 msgid "The Amiga's music, or the PC game's"
 msgstr ""
 
-#: include/game_options.h:87
+#: include/game_options.h:88
 msgid "Screen"
 msgstr ""
 
-#: include/game_options.h:87
+#: include/game_options.h:88
 msgid "Full screen, or in a window"
 msgstr ""
 
-#: include/game_options.h:89
+#: include/game_options.h:90
 msgid "Shape"
 msgstr ""
 
-#: include/game_options.h:89
+#: include/game_options.h:90
 msgid "Widescreen shows more of the pitch; 4:3 draws it as the original did"
 msgstr ""
 
-#: include/game_options.h:91
+#: include/game_options.h:92
 msgid "On-screen controls"
 msgstr ""
 
-#: include/game_options.h:91
+#: include/game_options.h:92
 msgid "The stick and buttons drawn on a phone's screen: Never, for a handheld with its own"
 msgstr ""
 
-#: include/game_options.h:93
+#: include/game_options.h:94
 msgid "Language"
 msgstr ""
 
-#: include/game_options.h:93
+#: include/game_options.h:94
 msgid "The game's menus"
 msgstr ""
 
@@ -1247,7 +1335,7 @@ msgstr ""
 msgid "2026-27"
 msgstr ""
 
-#: include/game_options.h:58 include/game_options.h:59
+#: include/game_options.h:58 include/game_options.h:60
 msgid "PC (DOS)"
 msgstr ""
 
@@ -1255,62 +1343,70 @@ msgstr ""
 msgid "Xbox"
 msgstr ""
 
-#: include/game_options.h:61
+#: include/game_options.h:59
+msgid "Amiga 60 fps"
+msgstr ""
+
+#: include/game_options.h:59
+msgid "Moon Soccer"
+msgstr ""
+
+#: include/game_options.h:62
 msgid "Atari Jaguar"
 msgstr ""
 
-#: include/game_options.h:62 include/game_options.h:63
+#: include/game_options.h:63 include/game_options.h:64
 msgid "PC"
 msgstr ""
 
-#: include/game_options.h:64
+#: include/game_options.h:65
 msgid "In a window"
 msgstr ""
 
-#: include/game_options.h:64
+#: include/game_options.h:65
 msgid "Full screen"
 msgstr ""
 
-#: include/game_options.h:65
+#: include/game_options.h:66
 msgid "Widescreen"
 msgstr ""
 
-#: include/game_options.h:65
+#: include/game_options.h:66
 msgid "4:3, as the original"
 msgstr ""
 
-#: include/game_options.h:66
+#: include/game_options.h:67
 msgid "Auto"
 msgstr ""
 
-#: include/game_options.h:66
+#: include/game_options.h:67
 msgid "Always"
 msgstr ""
 
-#: include/game_options.h:66
+#: include/game_options.h:67
 msgid "Never"
 msgstr ""
 
-#: include/game_options.h:67
+#: include/game_options.h:68
 msgid "English"
 msgstr ""
 
-#: include/game_options.h:67
+#: include/game_options.h:68
 msgid "Deutsch"
 msgstr ""
 
-#: include/game_options.h:67
+#: include/game_options.h:68
 msgid "Français"
 msgstr ""
 
-#: include/game_options.h:68
+#: include/game_options.h:69
 msgid "Español"
 msgstr ""
 
-#: include/game_options.h:68
+#: include/game_options.h:69
 msgid "Italiano"
 msgstr ""
 
-#: include/game_options.h:68
+#: include/game_options.h:69
 msgid "Nederlands"
 msgstr ""
