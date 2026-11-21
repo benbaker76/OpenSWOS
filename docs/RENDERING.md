@@ -18,6 +18,15 @@ recordings depends on how that picture reaches the screen. This page is about th
 - the context (OpenGL 4.1 core, or GLES 3 / WebGL 2) cannot be made;
 - the driver lacks a function sokol needs.
 
+The fallback gets a window of its own: the one made for the presenter (its OpenGL flag, and the
+attributes `GpuPresent_ConfigureWindow` set) is closed and a plain one opened with SDL's default
+attributes (`platform_sdl.c`). Until 2026-11-21 SDL's renderer took the presenter's window as it
+was: on a GLES-only handheld (PortMaster: Mali under KMSDRM, Rocknix and Knulli) its GLES2 context
+was refused like the presenter's, its software renderer had no surface, and the game stopped at
+start-up ("Couldn't find matching render driver"). Reproduced on a desktop with
+`SDL_VIDEO_X11_FORCE_EGL=1 MESA_GL_VERSION_OVERRIDE=3.3 SDL_RENDER_DRIVER=opengles2`: before,
+`opengles2` failed and the game fell to software; now it runs on `opengles2`.
+
 Old SWOS.ini files say `renderer=accel`, which is how existing players get the GPU presenter
 without changing anything.
 
@@ -27,6 +36,7 @@ without changing anything.
 |---|---|
 | Windows (Cygwin) | Direct3D 11 (`src/sokol_impl_d3d11.c`; `-ld3d11 -ldxgi -ldxguid`, Windows 10's own DLLs, HLSL compiled by its `d3dcompiler_47.dll`); `make WIN_GL=1` keeps OpenGL 4.1 core |
 | Linux | OpenGL 4.1 core; entry points loaded through `SDL_GL_GetProcAddress` (`src/sokol_gl_loader.h`), so no GL library is linked |
+| Linux on ARM (arm64, armhf: PortMaster, Raspberry Pi) | GLES 3, loaded the same way (since 2026-11-21: the handhelds and the Pi have GLES, not OpenGL 4.1, so the presenter never started there). `make GPU_GLES=1` gives any Linux build GLES (`GPU_GLES=0` takes it away): checked on a desktop under EGL (`SDL_VIDEO_X11_FORCE_EGL=1`), the presented frames read back |
 | macOS | Metal (`src/sokol_impl_metal.m`, Objective-C with ARC; `-framework Metal QuartzCore Foundation`); `make MACOS_GL=1` keeps OpenGL 4.1 core |
 | web | WebGL 2 (`-sMAX_WEBGL_VERSION=2`) |
 | Android | GLES 3 (`GLESv3` in `packaging/mobile/CMakeLists.txt`) |

@@ -648,6 +648,22 @@ static void apply_picture_scaling(void)
                                        (float)oh / (float)_screen_height);
 }
 
+/* The window's icon (the Linux one: the others carry theirs in the executable or the bundle). */
+static void set_window_icon(SDL_Window *w)
+{
+#ifdef SWOS_SET_WINDOW_ICON
+    SDL_Surface *icon = SDL_CreateRGBSurfaceWithFormatFrom(
+        (void *)k_swosWindowIcon, SWOS_WINDOW_ICON_SIZE, SWOS_WINDOW_ICON_SIZE, 32,
+        SWOS_WINDOW_ICON_SIZE * 4, SDL_PIXELFORMAT_RGBA32);
+    if (icon) {
+        SDL_SetWindowIcon(w, icon);
+        SDL_FreeSurface(icon);
+    }
+#else
+    (void)w;
+#endif
+}
+
 int Platform_Init(const PlatformInitOptions *opts)
 {
     int win_scale = opts ? opts->win_scale : 1;
@@ -826,17 +842,7 @@ int Platform_Init(const PlatformInitOptions *opts)
         fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
         return -1;
     }
-#ifdef SWOS_SET_WINDOW_ICON
-    {
-        SDL_Surface *icon = SDL_CreateRGBSurfaceWithFormatFrom(
-            (void *)k_swosWindowIcon, SWOS_WINDOW_ICON_SIZE, SWOS_WINDOW_ICON_SIZE, 32,
-            SWOS_WINDOW_ICON_SIZE * 4, SDL_PIXELFORMAT_RGBA32);
-        if (icon) {
-            SDL_SetWindowIcon(s_window, icon);
-            SDL_FreeSurface(icon);
-        }
-    }
-#endif
+    set_window_icon(s_window);
 
 #ifndef SWOS_WASM_BUILD
     s_display_index = SDL_GetWindowDisplayIndex(s_window);  /* (the one it opened on: check_display) */
@@ -932,6 +938,26 @@ int Platform_Init(const PlatformInitOptions *opts)
     } else {
     if (gpu_wanted)
         fprintf(stderr, "[gpu] no GPU presenter on this machine: SDL's renderer instead\n");
+    if (gpu_wanted && GpuPresent_WindowFlags() && (SDL_GetWindowFlags(s_window) & GpuPresent_WindowFlags())) {
+        /* The window was made for the presenter: its OpenGL (Metal) flag, and the context
+         * attributes GpuPresent_ConfigureWindow set -- OpenGL 4.1 core, forward compatible. SDL's
+         * renderer takes those as they are: on a GLES-only handheld (Mali under KMSDRM) its GLES2
+         * context was refused as the presenter's was, its software one had no surface, and the
+         * game stopped at start-up ("Couldn't find matching render driver", PortMaster, 2026-11-21).
+         * A plain window and SDL's default attributes, as before the presenter. */
+        int x = 0, y = 0, w = 0, h = 0;
+        SDL_GetWindowPosition(s_window, &x, &y);
+        SDL_GetWindowSize(s_window, &w, &h);
+        SDL_DestroyWindow(s_window);
+        SDL_GL_ResetAttributes();
+        wflags &= ~GpuPresent_WindowFlags();
+        s_window = SDL_CreateWindow(s_title, x, y, w, h, wflags);
+        if (!s_window) {
+            fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
+            return -1;
+        }
+        set_window_icon(s_window);
+    }
     if (renderer_mode == PLATFORM_RENDERER_SDL)
         renderer_mode = PLATFORM_RENDERER_ACCEL;   /* (SDL's hardware renderer, by choice) */
     Uint32 rflags;

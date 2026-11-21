@@ -657,6 +657,11 @@ else
 LDLIBS  += -ld3d11 -ldxgi -ldxguid
 endif
 endif
+# Linux: the presenter's GL is OpenGL ES 3.0 on ARM, OpenGL 4.1 core elsewhere (src/sokol_config.h);
+# GPU_GLES=1 / 0 picks one for any Linux build (a test of the handhelds' path on a desktop).
+ifneq ($(GPU_GLES),)
+CFLAGS  += -DSWOS_GPU_GLES=$(GPU_GLES)
+endif
 # The GPU presenter (src/gpu_present.c, sokol_gfx; docs/RENDERING.md). Desktop Linux and Windows
 # load OpenGL through SDL (src/sokol_gl_loader.h), so link nothing; macOS links its OpenGL
 # framework, the web asks for WebGL 2 (GLES 3).

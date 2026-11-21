@@ -4,6 +4,9 @@
  *
  *   Windows (Cygwin)          Direct3D 11 (src/sokol_impl_d3d11.c); `make WIN_GL=1` keeps OpenGL 4.1 core
  *   Linux                     OpenGL 4.1 core, entry points loaded through SDL (sokol_gl_loader.h)
+ *   Linux on ARM              OpenGL ES 3.0, loaded the same way: the handhelds (PortMaster: Mali
+ *                             under KMSDRM) and the Raspberry Pi have GLES, not GL 4.1 (2026-11-21).
+ *                             `make GPU_GLES=1` gives it to any Linux build, `GPU_GLES=0` takes it away
  *   macOS                     Metal (src/sokol_impl_metal.m); `make MACOS_GL=1` keeps OpenGL 4.1 core
  *   iOS                       Metal (the same file; packaging/mobile/CMakeLists.txt)
  *   web, Android              OpenGL ES 3.0 / WebGL2, the toolchain's headers
@@ -14,6 +17,14 @@
  */
 #ifndef SWOS_SOKOL_CONFIG_H
 #define SWOS_SOKOL_CONFIG_H
+
+#ifndef SWOS_GPU_GLES                   /* (Linux: GLES on ARM, desktop GL elsewhere) */
+#if defined(__aarch64__) || defined(__arm__)
+#define SWOS_GPU_GLES 1
+#else
+#define SWOS_GPU_GLES 0
+#endif
+#endif
 
 #if defined(SWOS_SWITCH_BUILD)
 #define SWOS_GPU 0
@@ -32,6 +43,11 @@
 #elif defined(__CYGWIN__) && !defined(SWOS_WIN_GL)
 #define SWOS_GPU 1
 #define SOKOL_D3D11
+#elif defined(__linux__) && SWOS_GPU_GLES
+#define SWOS_GPU 1
+#define SOKOL_GLES3
+#define SOKOL_EXTERNAL_GL_LOADER
+#define SWOS_GPU_GL_LOADER 1
 #else
 #define SWOS_GPU 1
 #define SOKOL_GLCORE
