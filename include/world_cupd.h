@@ -95,8 +95,11 @@ void CupD_TieDecided(uint16_t team1, uint16_t team2, int32_t team2Won);
 /* Slot 4 holds the career club's tie (built: 2; decided, not yet let go: 1). */
 int32_t CupD_InSlot4(void);
 
-/* After a career is loaded: slot 4 back on the tie, if one is under way. */
+/* After a career is loaded: slot 4 back on the tie, if one is under way -- or decided this season
+ * and still the slot's (its game in the season's list). */
 void CupD_RestoreSlot(void);
+/* The week of the career club's tie decided this season, its record still in slot 4 in play (0: none). */
+int32_t CupD_DecidedWeek(void);
 
 /* A round's name in the cup round tables for the tie under way, or the slot-2 cup's round
  * (its index), -1 if not ours. */

@@ -31,6 +31,7 @@ int16_t SearchTeamInTmdFile(uint16_t teamNo);
 void Career_RemoveTeamFromTmdTeamPool(uint16_t teamNo);
 void Career_AppendTeamToTmdTeamPool(TeamFileEx *team);
 void Career_RetireSlotCalendarEntries(uint8_t slot);   /* (before a slot takes another contest mid-season) */
+int32_t Career_SlotInCalendar(uint8_t slot);           /* (a load: the slot's contest still drawn in the season's list) */
 
 /* --- Career competition team selection (Chunk 90) --- */
 void Career_SortTeamFilePtrsByAvgPlayerPrice(uint16_t extNumber);

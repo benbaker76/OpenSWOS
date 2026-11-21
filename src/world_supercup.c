@@ -476,9 +476,13 @@ void SuperCup_RestoreSlot(void)
      * keeps it: SuperCup_InSlot4 1, it gives way) -- its played game in the season's list is drawn
      * from it. A load left the slot empty and the list's header read NULL: a career saved after
      * winning the DFL-Supercup crashed on LOAD (Playa's BAYERN 2.CAR, 2026-11-15). Only when no
-     * play-off or Coppa D tie took the slot first (career_init.c, before this). */
-    if (!sc && !_diyCompetitionPtr)
-        sc = decided_cup();
+     * play-off or Coppa D tie took the slot first (career_init.c, before this) -- a Coppa D tie
+     * decided this season gives way to a Super Cup decided after it: the later took the slot. */
+    if (!sc && (!_diyCompetitionPtr || CupD_InSlot4() == 1)) {
+        const WorldSuperCup *d = decided_cup();
+        if (d && (!_diyCompetitionPtr || (int32_t)g_worldSuperCup.week > CupD_DecidedWeek()))
+            sc = d;
+    }
     if (!sc)
         return;
     make_record(sc);

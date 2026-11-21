@@ -625,12 +625,30 @@ int32_t CupD_InSlot4(void)
     return _diyCompetitionPtr == (uint8_t *)&s_rec ? (g_worldCupD.built ? 2 : 1) : 0;
 }
 
+int32_t CupD_DecidedWeek(void)
+{
+    const WorldCupDState *s = &g_worldCupD;
+    if (!World_CupD() || s->built || s->slot2 || !s->teamA || !s->teamB ||
+        s->season != (uint8_t)(g_worldCups.seasons + 1))
+        return 0;
+    return s->legs == 2 ? s->d2 : s->d1;
+}
+
 void CupD_RestoreSlot(void)
 {
     const WorldCupD *c = World_CupD();
     if (c && g_worldCupD.slot2 && make_cup64(c, g_worldCupD.slot2 - 1))
         _tertiaryCompetitionPtr = (uint8_t *)&s_cup64.rec;     /* (the slot-2 cup under way) */
-    if (!c || !g_worldCupD.built)
+    if (!c)
+        return;
+    /* A tie decided this season stays in slot 4 until another contest takes it (in play the slot
+     * keeps it: CupD_InSlot4 1, it gives way) -- its played game in the season's list is drawn
+     * from it. A load left the slot empty and the list's header read NULL: a career saved after
+     * the career club's Coppa Italia Serie D tie crashed on LOAD (GitHub issue 30, 2026-11-21), as
+     * the Super Cup's did (SuperCup_RestoreSlot). Only when no play-off took the slot first
+     * (career_init.c, before this) and the season's list has a slot-4 game. */
+    if (!g_worldCupD.built &&
+        (_diyCompetitionPtr || !CupD_DecidedWeek() || !Career_SlotInCalendar(4)))
         return;
     make_record(c);
     _diyCompetitionPtr = (uint8_t *)&s_rec;

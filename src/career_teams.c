@@ -1941,6 +1941,20 @@ void Career_RetireSlotCalendarEntries(uint8_t slot)
     }
 }
 
+/* Does the season's calendar have an entry of this slot (a played one too: the season's list
+ * draws them all, its header from the slot's contest)? */
+int32_t Career_SlotInCalendar(uint8_t slot)
+{
+    uint8_t *e = _teamSelectionKeyCache;
+    for (uint16_t i = 0; i < _teamSelectionKeyCacheCount; i++) {
+        TeamSelectionKeyCacheEntry *x = (TeamSelectionKeyCacheEntry *)e;
+        if (x->compSlot == slot)
+            return 1;
+        e += x->entryStride;
+    }
+    return 0;
+}
+
 /* ================================================================
  * Chunk 93 — Career Match Flow & Competition Slot Processing
  *
