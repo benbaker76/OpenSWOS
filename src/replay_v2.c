@@ -71,7 +71,7 @@
  * for this display, and drawn by the viewer's own overlay instead. */
 #define HUD_Z_MIN           8000
 
-enum { CHAPTER_GOAL = 1, CHAPTER_HALF = 2 };
+enum { CHAPTER_GOAL = 1, CHAPTER_HALF = 2, CHAPTER_SWAP = 3, CHAPTER_EVENT = 0x10 };
 
 typedef SrpAudioEvent AudioEvent;
 typedef SrpChapter    Chapter;
@@ -574,6 +574,27 @@ static void add_chapter(uint8_t kind, uint8_t team, uint16_t value)
     c->kind = kind;
     c->team = team;
     c->value = value;
+}
+
+/* A match event (include/replay_v2.h): at the frame open, or -- one between two frames, as a
+ * half's start -- at the next. A re-simulated frame drops its chapters (ReplayRec_SetFrame) and
+ * its events come again, so the file keeps the match's as finally played. */
+void ReplayRec_Event(int32_t kind, int32_t team, int32_t player, int32_t arg)
+{
+    if (!s_rec.on || kind < 0 || kind > 0xFF - CHAPTER_EVENT)
+        return;
+    add_chapter((uint8_t)(CHAPTER_EVENT + kind), (uint8_t)(team >= 1 && team <= 2 ? team : 0),
+                (uint16_t)((uint8_t)player << 8 | (uint8_t)arg));
+}
+
+/* Two of a team's places swapped (bench_subs.c): their players changed places, so a viewer's
+ * line-up swaps them too -- no match event says so. */
+void ReplayRec_Swap(int32_t team, int32_t a, int32_t b)
+{
+    if (!s_rec.on)
+        return;
+    add_chapter(CHAPTER_SWAP, (uint8_t)(team >= 1 && team <= 2 ? team : 0),
+                (uint16_t)((uint8_t)a << 8 | (uint8_t)b));
 }
 
 void ReplayRec_FrameEnd(void)

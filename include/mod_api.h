@@ -876,6 +876,9 @@ typedef enum {
     MODEVENT_EXTRA_TIME_HALF,   /* extra time's first half over */
     MODEVENT_SUBSTITUTION,      /* team's: player the slot of the man coming on, arg the bench slot
                                  * of the man going off (ModApi_MatchPlayerName, after the swap) */
+    MODEVENT_PENALTY,           /* a penalty given to team (in the match, not the shoot-out) */
+    MODEVENT_PENALTY_KICK,      /* team's player took a penalty (the match's or a shoot-out's): in
+                                 * if a PENALTY_GOAL / SHOOTOUT_KICK scored follows */
 } ModEventKind;
 /* A goal's arg (MODEVENT_GOAL / OWN_GOAL / PENALTY_GOAL): MODGOAL_HEADER when its scorer headed
  * it in (he headed the ball within the last 75 frames). */

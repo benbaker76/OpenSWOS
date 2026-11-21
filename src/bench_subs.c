@@ -413,6 +413,10 @@ static void aiReplaceInjuredPlayer(TeamGeneralInfo *team, TeamGame *tg,
     _benchTeam = oldBenchTeam;
     _benchTeamGame = oldBenchGame;
     DOS_SOUND(DOS_EV_SUBSTITUTION, 0);
+    /* the mods (and the recording): as a player's substitution tells them -- the leaving slot
+     * now holds the man coming on, the bench's the man going off */
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(17 /* MODEVENT_SUBSTITUTION */, team->teamNumber, (int32_t)leaving, (int32_t)entering); }
 #ifdef SWOS_SDL_BUILD
     fprintf(stderr, "[tweaks] ai_injury_subs: the %s team's slot %d off injured, bench %d on\n",
             isTopTeam ? "top" : "bottom", leaving, entering);
@@ -1384,6 +1388,12 @@ markPlayersMenuHandler(void)
                 }
 
                 swapPlayerNameData(d6s, d7s);
+#ifdef SWOS_SDL_BUILD
+                {   /* the recording: these two places swapped players (no match event says so) */
+                    extern void ReplayRec_Swap(int32_t team, int32_t a, int32_t b);
+                    ReplayRec_Swap(((TeamGeneralInfo *)_benchTeam)->teamNumber, d6s, d7s);
+                }
+#endif
 
                 off6 = _ingameTeamPlayerOffsets[d6s];
                 off7 = _ingameTeamPlayerOffsets[d7s];
@@ -3603,6 +3613,12 @@ void MarkPlayersMenuHandler(void)
     }
 
     SwapPlayerNameData(player2, player1);
+#ifdef SWOS_SDL_BUILD
+    {   /* the recording: these two places swapped players (no match event says so) */
+        extern void ReplayRec_Swap(int32_t team, int32_t a, int32_t b);
+        ReplayRec_Swap(((TeamGeneralInfo *)_benchTeam)->teamNumber, player2, player1);
+    }
+#endif
 
     /* Swap PlayerInfo data (61 bytes) */
     uint16_t off1 = _ingameTeamPlayerOffsets[player2];

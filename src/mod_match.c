@@ -1308,6 +1308,12 @@ void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg)
     static int logEvents = -1;
     if (s_quietGoals && kind <= 2)      /* (a preloaded scorer, H7: not a goal of this match) */
         return;
+#ifdef SWOS_SDL_BUILD
+    {   /* the recording keeps it too (CHAP): the line-ups as they are at any frame */
+        extern void ReplayRec_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+        ReplayRec_Event(kind, team, player, arg);
+    }
+#endif
     if (logEvents < 0)
         logEvents = getenv("SWOS_MOD_EVENT_LOG") || getenv("SWOS_MOD_MATCH_TEST");
     e.kind = (uint8_t)kind;

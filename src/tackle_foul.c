@@ -820,6 +820,7 @@ TestFoulForPenaltyAndFreeKick(Sprite *victim, TeamGeneralInfo *team)
             _foulXCoordinate = 336;
             _foulYCoordinate = 187;
             PlayPenalty();
+            ModMatch_Event(18 /* MODEVENT_PENALTY */, team->opponentsTeam->teamNumber, -1, 0);   /* (team fouled) */
             goto apply_break;
         }
 
@@ -840,6 +841,7 @@ TestFoulForPenaltyAndFreeKick(Sprite *victim, TeamGeneralInfo *team)
             _foulXCoordinate = 336;
             _foulYCoordinate = 711;
             PlayPenalty();
+            ModMatch_Event(18 /* MODEVENT_PENALTY */, team->opponentsTeam->teamNumber, -1, 0);   /* (team fouled) */
             goto apply_break;
         }
 

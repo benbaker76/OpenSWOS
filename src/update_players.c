@@ -55,6 +55,8 @@ extern TeamGeneralInfo *_lastTeamPlayed;
 extern Sprite      *_lastKeeperPlayed;
 extern TeamGeneralInfo *_lastTeamPlayedBeforeBreak;
 extern Sprite      *_lastPlayerBeforeGoalkeeper;
+extern void    ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);   /* src/mod_match.c */
+extern int32_t ModMatch_PlayerIndex(const Sprite *s);
 extern TeamGeneralInfo *_lastTeamScored;
 
 extern int16_t      _gameStatePl;
@@ -1594,6 +1596,8 @@ not_in_penalty:
             }
             if (_gameState == ST_PENALTY)
                 _penalty = 1;
+            if (_gameState == ST_PENALTY || _gameState == ST_PENALTIES)   /* the mods': who took it */
+                ModMatch_Event(19 /* MODEVENT_PENALTY_KICK */, team->teamNumber, ModMatch_PlayerIndex(player), 0);
 
             _gameStatePl = ST_GAME_IN_PROGRESS;
             _gameState = ST_GAME_IN_PROGRESS;
@@ -1646,6 +1650,8 @@ not_in_penalty:
             }
             if (_gameState == ST_PENALTY)
                 _penalty = 1;
+            if (_gameState == ST_PENALTY || _gameState == ST_PENALTIES)   /* the mods': who took it */
+                ModMatch_Event(19 /* MODEVENT_PENALTY_KICK */, team->teamNumber, ModMatch_PlayerIndex(player), 0);
 
             _gameStatePl = ST_GAME_IN_PROGRESS;
             _gameState = ST_GAME_IN_PROGRESS;
