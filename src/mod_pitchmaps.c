@@ -1,5 +1,5 @@
 /* mod_pitchmaps.c -- the pitchmaps mod (bin/mods/pitchmaps; canonical, off by default): a DOS-tier
- * pitch's PICTURE from a Tile Agent map, <mod>/grafs_dos/pitch<N>.tmj or <graphics dir>/pitch<N>.tmj
+ * pitch's PICTURE from a Tile Map Editor map, <mod>/grafs_dos/pitch<N>.tmj or <graphics dir>/pitch<N>.tmj
  * (docs/PITCH_MAPS.md). SDL only. It reaches the pitch through the engine's pitch hooks
  * (include/mod_api.h): pitchLoaded, pitchColoured, pitchDropped, pitchTiles, pitchCondition.
  *
@@ -38,7 +38,7 @@
 #include "swos_io.h"            /* swos_data_path: the mods, the assets folder, the game */
 #include "display.h"            /* MAX_FAN_TILE_INDEX */
 #include "jag_graphics.h"       /* JagGfx_RemapDonated */
-#include "../third_party/tileagent/tileagent.h"
+#include "../third_party/tilemapeditor/tilemapeditor.h"
 #include "gfx.h"                /* the layers over the players, on either presenter */
 #include "game_types.h"         /* Sprite, SpriteGraphics: the spriteDraw hook's */
 
@@ -218,7 +218,7 @@ static int32_t PitchMap_Load(const char *dir, int32_t pitchNumber)
         snprintf(where[n++], sizeof where[0], "%s/pitchmaps/%s", ModApi_ModDir(SLUG), chosen);
         snprintf(where[n++], sizeof where[0], "%s/%s", ModApi_DataDir(SLUG), chosen);   /* (moddata/pitchmaps/<uuid>) */
         for (w = 0; w < n && !text; w++) {
-            /* a Tile Agent package (its "Export As Zip"): the map its package.json names */
+            /* a Tile Map Editor package (its "Export As Zip"): the map its package.json names */
             char mf[128] = "";
             size_t ml = 0;
             char *pkg;
@@ -713,7 +713,7 @@ static int32_t tick(void)
     }
     ta_player_advance(s_pm.player, s_up.clock);     /* (at the same frame: nothing moves) */
     {   /* The crowd's mood: the engine's state machine (DrawAnimatedPatterns: what the match is
-         * doing -- read, never changed), each change an event of the map's (Tile Agent's
+         * doing -- read, never changed), each change an event of the map's (Tile Map Editor's
          * docs/SWOS_UNITED.md 3.3). A goal: the stand of the team that scored -- "goal-top" when
          * the fans in the top stand are the scorers' -- aged by the goal clock, so arriving in the
          * middle of a celebration lands on its phase; a replay has no clock, so its phase's start. */
@@ -747,7 +747,7 @@ static int32_t tick(void)
     {   /* The adverts: the engine decides when and which (ManageAdvertisements: its dice, the
          * foul's x, the bail-outs) and the map shows them -- "advert-N" when it starts one, with
          * the head start that puts the map's 8-frame steps on the engine's beat, "adverts-off"
-         * when it stops (Tile Agent docs/SWOS_UNITED.md 3.4). Live only: a replay has its own. */
+         * when it stops (Tile Map Editor docs/SWOS_UNITED.md 3.4). Live only: a replay has its own. */
         extern uint16_t _advertIndex;
         if (!ModApi_InReplay() && _advertIndex != s_advertSeen) {
             char name[16];
@@ -992,7 +992,7 @@ static void above_draw(void)
  * crossed the line) and the corner flag (1070-1073, moved to the corner in view) are match state
  * and stay in its sorted list -- and the map says what they look like: where the engine draws
  * one, the mod draws the block of the map's "goals" or "flags" layer nearest to it instead, in
- * the same place in the drawing order, and the engine's is left out. Tile Agent's SWOS map has a
+ * the same place in the drawing order, and the engine's is left out. Tile Map Editor's SWOS map has a
  * block at each sprite's position (docs/SWOS_UNITED.md 3.5, 3.6). Its time is the map's own
  * (above_draw's clock): a waving flag's cel is not the engine's frame for frame. */
 enum { IMG_FLAG_FIRST = 1070, IMG_FLAG_LAST = 1073, IMG_GOAL_TOP = 1091, IMG_GOAL_BOTTOM = 1092,
@@ -1229,7 +1229,7 @@ static int32_t replay_sprite_draw(uint16_t image, int16_t left, int16_t top, int
     return block_instead(image, left, top, sx, sy);
 }
 
-/* ---- the benches (Tile Agent's named points: docs/SWOS_UNITED.md 3.8) ----
+/* ---- the benches (Tile Map Editor's named points: docs/SWOS_UNITED.md 3.8) ----
  * A map's "bench-top" / "bench-bottom" point, on the topmost shown object layer (each layout can
  * have its own: the training ground's both at 27,456), is the engine's base point of that bench;
  * swos:seat-step, swos:column-seats, swos:column-step, swos:column-dy and swos:arrow-dx its

@@ -17,7 +17,7 @@ host them. This file records the decisions, the survey they came from, and the p
    it independently (petarku, benefactorr).
 4. **Code mods** start as source mods compiled in, **with Lua script support at the same time**.
 5. **World 2026-27 becomes a mod**, once the overlay and registries exist.
-6. **The pitch format is base** (§6): Tile Agent's maps, made with Tile Agent, with a binary
+6. **The pitch format is base** (§6): Tile Map Editor's maps, made with Tile Map Editor, with a binary
    form the Amiga reads.
 7. **Tweaks:** behaviour that differs from the original but is not a mod -- small fixes of the
    original's annoyances -- in `[tweaks]` of SWOS.ini, off by default (§4).
@@ -61,7 +61,7 @@ What it shows:
 
 **Base:** the original game, faithful to the Amiga and DOS releases (the replay rig and the
 golden careers prove it); platforms and infrastructure (ports, netplay, saves, replays, the
-setup); reading formats (PC `.DIY`, SWOS 2020's files, Tile Agent maps); the capabilities mods
+setup); reading formats (PC `.DIY`, SWOS 2020's files, Tile Map Editor maps); the capabilities mods
 need (§8); bug fixes and speedups; tweaks (§4).
 
 **Mods:** new modes (indoor, practice, challenges), rule and balance changes, new career
@@ -127,24 +127,24 @@ the original never had -- is compiled in only under a switch, so one flag builds
 
 ---
 
-## 6. Pitches: Tile Agent's format, in the base
+## 6. Pitches: Tile Map Editor's format, in the base
 
-The pitch becomes a Tile Agent map: layers, some above the players, and animations with easing
-(`docs/PITCH_FORMAT_V2.md`; the format is Tile Agent's own, `D:\Projects\GitHub\TileAgent`
+The pitch becomes a Tile Map Editor map: layers, some above the players, and animations with easing
+(`docs/PITCH_FORMAT_V2.md`; the format is Tile Map Editor's own, `D:\Projects\GitHub\TileAgent`
 `docs/FORMAT.md`). Stage 1 is in the game: a DOS-graphics pitch drawn from a `.tmj`
 (`docs/PITCH_MAPS.md`). Since 2026-11-07 the reader is itself a mod, **pitchmaps** (canonical,
 off by default; the owner: everything as a mod): the engine has only the pitch hooks (`ModDef`
 `pitchLoaded` / `pitchColoured` / `pitchDropped` / `pitchTiles` / `pitchCondition`, §16), and
 the pitches made with it are mods too (their `grafs_dos/pitch<N>.tmj`).
 
-- **SDL** reads the `.tmj` and its images directly (the runtime in `third_party/tileagent`).
+- **SDL** reads the `.tmj` and its images directly (the runtime in `third_party/tilemapeditor`).
 - **The Amiga reads a binary**, never JSON (parsing JSON on a 68k takes seconds per file):
   `.PCH`, the layout in PITCH_FORMAT_V2.md §6 -- tile indices not offsets, big-endian, a magic,
   a version and a **capability word**. It takes the base layers and the crowd's animation and
   refuses a pitch that needs more (over-sprite layers, alpha, many animations) cleanly. Chip RAM
   has ~4 KB headroom beyond the 82 KB pitch buffer, so a pitch must fit what the game has.
-- **Who writes the binary:** one C writer, in the Tile Agent runtime, used by **both** Tile
-  Agent's export and OpenSWOS Setup. An author exports `.PCH` from Tile Agent; a mod that ships
+- **Who writes the binary:** one C writer, in the Tile Map Editor runtime, used by **both** Tile Map
+  Editor's export and OpenSWOS Setup. An author exports `.PCH` from Tile Map Editor; a mod that ships
   only the `.tmj` gets its `.PCH` made by the setup when it builds an Amiga drawer. One writer,
   so the two never disagree.
 - Next stages (PITCH_MAPS.md, "what the map could take over next"): the crowd's behaviour, the
@@ -262,9 +262,9 @@ Setup later), falling back to SWOS 2020's CSVs where a manager still has them:
   2026-11-16: "Any data downloaded from DLC should go into the user's SWOS data folder", built-in
   mods included). Not `mods/<slug>/`: a folder there IS a downloaded mod of that name and would
   hide a canonical one. The first user: **pitch maps** (the DLC Manager's **Pitch Maps**) are not
-  mods but data of the canonical `pitchmaps` mod -- a pack (Tile Agent's own generic "Export As Zip": its
+  mods but data of the canonical `pitchmaps` mod -- a pack (Tile Map Editor's own generic "Export As Zip": its
   `package.json`, the map and its images, a preview) unpacks into
-  `moddata/pitchmaps/<uuid>/`, the uuid being the map's identity (Tile Agent keeps it through every
+  `moddata/pitchmaps/<uuid>/`, the uuid being the map's identity (Tile Map Editor keeps it through every
   edit; a newer version with the same uuid replaces the folder), and the mod's **Pitch map** setting
   chooses one, listed by `package.json`'s name (`"choices_ext": "/"` -- a setting whose choices are
   folders, labelled by the `"label_file"` in each; folders starting with `.` are skipped, a manager's
@@ -328,7 +328,7 @@ SWOS 2020's dead Taiwan / San Marino / Spain cases, and its five substitutes for
 4. §5 `SWOS_ORIGINAL`; §7 the OCS/ECS target.
 5. §8.3-8.6 ruleset, match setup, career events, the online contract; §9 source mods and Lua,
    with Indoor and Career+ as the first ports (with their authors).
-6. §6 the `.PCH` writer in Tile Agent's runtime and the Amiga's reader; later pitch stages.
+6. §6 the `.PCH` writer in Tile Map Editor's runtime and the Amiga's reader; later pitch stages.
 7. World 2026-27 as a mod.
 8. The online-provider hook, with SWOS United as its first user (§13).
 

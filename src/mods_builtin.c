@@ -19,7 +19,7 @@ extern const ModDef ModDef_challenges;  /* src/mod_challenges.c */
 extern const ModDef ModDef_classics;    /* src/mod_classics.c */
 extern const ModDef ModDef_euro36;      /* src/mod_euro36.c */
 extern const ModDef ModDef_flags;       /* src/mod_flags.c (SDL: it draws through the renderer) */
-extern const ModDef ModDef_pitchmaps;   /* src/mod_pitchmaps.c (SDL: Tile Agent pitch maps) */
+extern const ModDef ModDef_pitchmaps;   /* src/mod_pitchmaps.c (SDL: Tile Map Editor pitch maps) */
 extern const ModDef ModDef_backgrounds; /* src/mod_backgrounds.c (SDL: the menus' true-colour backdrop) */
 extern const ModDef ModDef_dosmenus;    /* src/mod_dosmenus.c (SDL: the PC game's menu shading) */
 extern const ModDef ModDef_retrotv;     /* src/mod_retrotv.c (SDL: the picture through a slang preset) */

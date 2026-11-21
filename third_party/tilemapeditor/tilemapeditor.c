@@ -1,4 +1,4 @@
-/* tileagent.c - see tileagent.h.
+/* tilemapeditor.c - see tilemapeditor.h.
  *
  * The rules implemented here are the ones in docs/FORMAT.md, and the editor's
  * src/core/player.cpp and anim.cpp implement them too. The two are compared
@@ -8,7 +8,7 @@
  * product needs the room. There is no 64-bit division (a 68020 cannot do one
  * without a library call) and no floating point.
  */
-#include "tileagent.h"
+#include "tilemapeditor.h"
 
 #include <string.h>
 
@@ -1561,11 +1561,20 @@ ta_map *ta_map_load(const char *json, size_t length, const ta_options *options, 
         goto fail;
     }
 
-    extension = j_get(root, "tileagent");
+    extension = j_get(root, "tilemapeditor");
     map->version = j_int(j_get(extension, "version"), 0);
     map->fps = clamp_int(j_int(j_get(extension, "fps"), 0), 0, 1000);
     if (map->fps == 0)
         map->fps = 60;
+    map->uuid = j_text(&arena, j_get(extension, "uuid"), "");
+    {
+        const jnode *info = j_get(extension, "info");
+        map->name = j_text(&arena, j_get(info, "name"), "");
+        map->author = j_text(&arena, j_get(info, "author"), "");
+        map->release = j_text(&arena, j_get(info, "version"), "");
+        map->about = j_text(&arena, j_get(info, "about"), "");
+        map->preview = j_text(&arena, j_get(info, "preview"), "");
+    }
 
     /* Room for every event anything could name. */
     capacity = 1;

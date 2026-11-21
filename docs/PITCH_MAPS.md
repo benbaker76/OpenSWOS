@@ -1,8 +1,8 @@
-# PITCH_MAPS.md — the pitch's picture from a Tile Agent map
+# PITCH_MAPS.md — the pitch's picture from a Tile Map Editor map
 
 The **pitchmaps** mod (OPTIONS -> MODS -> PITCH MAPS; canonical, off by default;
 `src/mod_pitchmaps.c`, `bin/mods/pitchmaps`) draws a DOS-graphics pitch from a
-[Tile Agent](../third_party/tileagent/OPENSWOS.md) map instead of the game's
+[Tile Map Editor](../third_party/tilemapeditor/OPENSWOS.md) map instead of the game's
 `PITCHn.DAT`/`.BLK`: `<mod>/grafs_dos/pitch<N>.tmj` (or `pitch.tmj`) in the mod's own folder,
 else the graphics folder's (`bin/grafs_dos/pitch.tmj`). Until 2026-11-07 it was the setting
 `[graphics] pitch_maps` / `--pitch-maps=on`; now the engine has only hooks (`ModDef`
@@ -21,7 +21,7 @@ the goals are still the engine's code; what the map could take over next is at t
 | the map | `bin/grafs_dos/pitch.tmj`: ONE map of all six pitches, whose `layout-<N>` event shows pitch N's layers. A `pitch<N>.tmj` beside it, if there is one, is used for that pitch instead |
 | its images | `swos-grass.bmp`, `swos-field.bmp`, `swos-fence.bmp`, `swos-crowd.bmp`, `swos-touch-ups.bmp` (and the adverts, flag, goals and clouds sheets, unused in stage 1): 8-bit BMPs in the game's palette |
 | no map, or one that will not load | the game's own files, with a line in the log saying why |
-| the code | `src/mod_pitchmaps.c` (the mod; the engine's hooks in `src/pitch.c`); the runtime in `third_party/tileagent`, compiled by `src/tileagent_impl.c` |
+| the code | `src/mod_pitchmaps.c` (the mod; the engine's hooks in `src/pitch.c`); the runtime in `third_party/tilemapeditor`, compiled by `src/tilemapeditor_impl.c` |
 
 At kick-off each of the 2310 cells is **baked** into a 16 × 16 tile: every tile layer the
 layout shows that is drawn under the sprites (`depth` below), bottom first, skipping the
@@ -75,6 +75,11 @@ differ; it has no fans in the map, and the engine animates none in a training ga
 tiles 1..22 are ordinary ground that the engine WOULD toggle if a real match were played
 there; the map would not.)
 
+Since the example map left row 0 empty (Tile Map Editor d1c1403; row 0 is never on screen, see
+"Row 0" below), the check compares the 2268 cells of rows 1-54 and says `0 of 2268`. Again
+2026-11-20 with the Tile Map Editor runtime and map (c5244e4): 0 of 2268 cells, 0 fans' standing
+tiles and 0 channels, all six pitches.
+
 ## Stage 2: over the players, among the sprites, the benches (2026-11-14)
 
 Everything here is **drawing only**. The engine still decides when and where: its sprites,
@@ -94,19 +99,19 @@ unwrapped), so animations that run "always" are in step with the engine's.
 The engine's hooks for these (include/mod_api.h): `frameDrawn`, `spritesBegin`, `spriteDraw`,
 `replayFrameBegin`, `replaySpriteDraw` (new: a replay's sprite, which a mod may leave out and
 draw its own) and `benchPoint` (new). A layer's name says what it stands for (`goals`, `flags`,
-`adverts`, Tile Agent's docs/SWOS_UNITED.md §3.4–3.8); a map without one leaves that to the
+`adverts`, Tile Map Editor's docs/SWOS_UNITED.md §3.4–3.8); a map without one leaves that to the
 engine.
 
 **Where a map is found** (2026-11-16): the pitchmaps mod's **Pitch map** setting (`[mod.pitchmaps]
 map`) names one by its **uuid**. It is the folder `<player folder>/moddata/pitchmaps/<uuid>/`, where
 the DLC Manager's **Pitch Maps** install them (else `pitchmaps/<uuid>/` in the mod's own folder or
-an enabled mod's): a **Tile Agent package** (Tile Agent's own,
+an enabled mod's): a **Tile Map Editor package** (Tile Map Editor's own,
 generic "Export As Zip" -- nothing in it is OpenSWOS's; we read its format): `package.json`
-(`"format": "tileagent-package"`, `uuid`, `name`, `author`, `version`, `about`, `"map"`: the .tmj,
+(`"format": "tilemapeditor-package"`, `uuid`, `name`, `author`, `version`, `about`, `"map"`: the .tmj,
 `"preview"`: a thumbnail the DLC Manager shows) beside the map and its images. The game opens the
 map `"map"` names (one map of all six pitches and every condition), and shows `"name"` in the
 setting. Without a package.json, the folder's `pitch<N>.tmj`, else `pitch.tmj`. One map is chosen at a time: the setting, not a slot. A
-pitch map's uuid is its identity: Tile Agent gives a new map one and keeps it through every edit, a
+pitch map's uuid is its identity: Tile Map Editor gives a new map one and keeps it through every edit, a
 newer version replaces the folder in place, and a map made into another pitch gets a new uuid.
 
 With the setting off, a developer's map is found as before: `grafs_dos/pitch<N>.tmj`, then
@@ -114,7 +119,7 @@ With the setting off, a developer's map is found as before: `grafs_dos/pitch<N>.
 game), its images from the folder it was found in.
 
 **No map ships.** The game's pitches as a map are cut from the game's own art, so they are a
-developer's (Tile Agent's `examples/swos-pitch.tmj` and its BMPs, copied into a `grafs_dos/`);
+developer's (Tile Map Editor's `examples/swos-pitch.tmj` and its BMPs, copied into a `grafs_dos/`);
 pitches made in the format come from players, as mods.
 
 **Checked** with that example in a scratch assets folder (`SWOS_PITCH_MAP_CHECK=1`, PC graphics):
@@ -148,7 +153,7 @@ the mod off. Pitch maps stays a cosmetic mod, and two players online may even us
 pitches. The original game's crowd, pick for pick, is what plays whenever no map draws the crowd.
 
 What the map's crowd follows is the match's **mood**, read and never changed: the engine's crowd
-state (`_animPatternsState`), each change an event of the map's (Tile Agent's
+state (`_animPatternsState`), each change an event of the map's (Tile Map Editor's
 docs/SWOS_UNITED.md §3.3):
 
 | the engine's state | the map's event |
@@ -180,7 +185,7 @@ map's state too.
 
 ## Stage 4: everything the format draws (2026-11-15)
 
-The renderer now draws every feature of Tile Agent's format a pitch can use. All of it is
+The renderer now draws every feature of Tile Map Editor's format a pitch can use. All of it is
 picture only (the match, its replays and two netplay peers are what they are without the mod):
 
 | | how |
@@ -189,7 +194,7 @@ picture only (the match, its replays and two netplay peers are what they are wit
 | **the palette** | The presenter rebuilds the PC palette every frame and asks `pitchCondition` (`DosGfx_BuildPalette`, which now takes up to 256 entries). While a match or a replay shows the map, the mod adds the map's colour cycles as turned this frame and the entries of a palette variant an event put in force (`ta_player_palette`, `ta_player_palette_choice`). Every place an entry a cycle turns is used changes, as on any paletted screen. |
 | **any sorted layer** | Layers whose `depth` is `sorted`, besides `goals`, `flags` and `adverts`, an author's own (a ball boy, a camera tower...): their blocks of the frame, by anchor y, are drawn among the engine's sprites. Each is drawn just before the first sprite standing lower on the pitch, all before the HUD's screen-pinned sprites, and the rest at the new `spritesEnd` hook (called after `DrawQueuedSprites` and after both replay sprite loops). |
 
-**Not in the format, so not here:** image layers. Tile Agent reads them but does not draw them
+**Not in the format, so not here:** image layers. Tile Map Editor reads them but does not draw them
 (its docs/FORMAT.md: "does not understand (image layers ...)").
 
 **A pitch map is the game's grid:** 42 x 55 cells of 16 x 16, indexed in the game's palette.

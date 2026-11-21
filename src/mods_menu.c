@@ -325,7 +325,7 @@ static int32_t choices_add(const char *name, void *ctx)
         for (int32_t c = 0; c < ps->choiceCount; c++)
             if (SDL_strcasecmp(ps->choices[c], name) == 0)
                 return 0;
-        {   /* its name, from the folder's manifest ("label_file": a Tile Agent package's -- the
+        {   /* its name, from the folder's manifest ("label_file": a Tile Map Editor package's -- the
              * pitch maps, docs/PITCH_MAPS.md); none: the folder's own name */
             char json[4096];
             FILE *f = NULL;

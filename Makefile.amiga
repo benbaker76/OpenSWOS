@@ -96,7 +96,7 @@ SDL_ONLY_SRCS := \
     stb_image_impl.c      \
     stb_vorbis_impl.c     \
     teamdb.c              \
-    tileagent_impl.c      \
+    tilemapeditor_impl.c  \
     mm_client.c           \
     netem_core.c          \
     netplay.c             \

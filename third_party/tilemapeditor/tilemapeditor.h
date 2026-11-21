@@ -1,4 +1,4 @@
-/* tileagent.h - a Tile Agent map in a game: load it, run it, draw it.
+/* tilemapeditor.h - a Tile Map Editor map in a game: load it, run it, draw it.
  *
  * Plain C99. No floating point, no 64-bit division, no wall clock, and nothing
  * from the C library but memcpy, memset, memcmp, strcmp and strlen (and malloc/free,
@@ -19,8 +19,8 @@
  *
  * Everything a ta_map points at belongs to the map and is read-only.
  */
-#ifndef TILEAGENT_H
-#define TILEAGENT_H
+#ifndef TILEMAPEDITOR_H
+#define TILEMAPEDITOR_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -214,7 +214,7 @@ typedef struct ta_map {
     int width, height;            /* tiles */
     int tile_width, tile_height;  /* pixels */
     int fps;
-    int version;                  /* of the "tileagent" object; 0 = a plain Tiled map */
+    int version;                  /* of the "tilemapeditor" object; 0 = a plain Tiled map */
     int layer_count;
     const ta_layer *layers;       /* bottom first */
     int tileset_count;
@@ -234,6 +234,17 @@ typedef struct ta_map {
     const ta_variant *variants;
     int cycle_count;
     const ta_cycle *cycles;
+    /* Which map this is: a uuid the editor gives a map once and keeps through
+     * every edit, so a newer version of a map has the same one. "" if none. */
+    const char *uuid;
+    /* What the map is called and who made it; "" where not given. `release` is
+     * the map's own version ("1.0"); `preview` a picture's path, relative to
+     * the map. */
+    const char *name;
+    const char *author;
+    const char *release;
+    const char *about;
+    const char *preview;
     void *internal;
 } ta_map;
 
@@ -410,7 +421,7 @@ void ta_draw_blit32(const ta_player *player, int layer, const ta_blit *blit, con
 /* ------------------------------------------------------------------- easing */
 
 /* The 31 curves, 16.16 in and out. Identical to SWOS United's src/easing.c;
- * define TA_EASE(kind, t) before compiling tileagent.c to use another. */
+ * define TA_EASE(kind, t) before compiling tilemapeditor.c to use another. */
 int32_t ta_ease(int kind, int32_t t);
 int ta_ease_from_name(const char *name); /* -1 = unknown */
 

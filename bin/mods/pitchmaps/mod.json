@@ -3,8 +3,8 @@
  "id": "pitchmaps",
  "name": "Pitch maps",
  "version": "1.1",
- "author": "OpenSWOS (Tile Agent's format: third_party/tileagent)",
- "about": "With the PC graphics, the pitch drawn from a Tile Agent pitch map: choose one under Pitch map (the DLC Manager's Pitch Maps, kept in your game folder's moddata/pitchmaps). Only the picture: the match is the same.",
+ "author": "OpenSWOS (Tile Map Editor's format: third_party/tilemapeditor)",
+ "about": "With the PC graphics, the pitch drawn from a Tile Map Editor pitch map: choose one under Pitch map (the DLC Manager's Pitch Maps, kept in your game folder's moddata/pitchmaps). Only the picture: the match is the same.",
  "targets": [
   "sdl"
  ],

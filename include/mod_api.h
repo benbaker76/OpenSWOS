@@ -94,7 +94,7 @@ typedef struct ModDef {
     int32_t (*spriteDraw)(const struct Sprite *sprite, const struct SpriteGraphics *gfx,
                           int16_t *x, int16_t *y);
     void (*frameKept)(void);            /* the match is paused: the frame shown again, as drawn */
-    /* A DOS-tier pitch's PICTURE (SDL; the pitchmaps mod's Tile Agent maps). Drawing only: the
+    /* A DOS-tier pitch's PICTURE (SDL; the pitchmaps mod's Tile Map Editor maps). Drawing only: the
      * match plays on the game's own PITCHn.DAT/.BLK whatever these say. pitchLoaded after the
      * game read its own files (`dir` the graphics folder); pitchColoured when every fan tile has
      * its kit (bake then); pitchDropped when the next pitch is not loaded yet. pitchTiles, each
