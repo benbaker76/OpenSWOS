@@ -525,9 +525,18 @@ int32_t ModApi_ModMatch(const char *slug)
     return s_mm.active && slug && strcmp(s_mm.slug, slug) == 0;
 }
 
+/* What of the HUD is not drawn: a mod's match's hideHud, or -- in an online shoot-out, which shows
+ * PRACTICE's board -- the game's own result banner, as PRACTICE hides it (its ShowResult: out at
+ * once). Back with the shoot-out over, for the result. The picture only. */
+static int32_t online_shootout(void);
+static uint8_t hud_hidden_bits(void)
+{
+    return s_mm.active ? s_mm.setup.hideHud : online_shootout() ? (uint8_t)MODHUD_RESULT : 0;
+}
+
 int32_t ModApi_HudHidden(int32_t bits)
 {
-    return s_mm.active && (s_mm.setup.hideHud & bits) != 0;
+    return (hud_hidden_bits() & bits) != 0;
 }
 
 void ModApi_SetHideHud(int32_t bits)
@@ -984,8 +993,8 @@ int32_t ModApi_ShootoutTaker(int32_t side, int32_t shooter, char *name, int32_t 
                              int32_t *face)
 {
     extern PlayerInfo *GetPlayerPointerFromShirtNumber(Sprite *sprite, TeamGeneralInfo *team);
-    if (!s_mm.active || side < 0 || side > 1 || shooter < 1 || shooter > 10)
-        return 0;
+    if (!(s_mm.active || online_shootout()) || side < 0 || side > 1 || shooter < 1 || shooter > 10)
+        return 0;   /* (online too: the board's takers panel, mod_practice.c) */
     TeamGeneralInfo *t = team_by_number(side + 1);
     if (!t->spritesTable || !t->spritesTable[shooter])
         return 0;
@@ -1158,9 +1167,10 @@ int32_t ModMatch_NoTackles(void) { return s_mm.active && s_mm.setup.noTackles; }
  * match reads (its sprites stay as the match set them). */
 int32_t ModMatch_SpriteHidden(const Sprite *spr)
 {
-    if (!s_mm.active || !(s_mm.setup.hideHud | s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1]))
+    const uint8_t hide = hud_hidden_bits();
+    if (!hide && !(s_mm.active && (s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1])))
         return 0;
-    if (s_mm.setup.hideHud & (MODHUD_RESULT | MODHUD_SCORES)) {
+    if (hide & (MODHUD_RESULT | MODHUD_SCORES)) {
         extern Sprite _dashSprite, _gridBottomRowLeftSprite, _gridBottomRowRightSprite,
             _gridMiddleRowLeftSprite, _gridMiddleRowRightSprite, _gridUpperRowLeftSprite,
             _gridUpperRowRightSprite, _resultAfterTheGameSprite, _resultOnHalftimeSprite,
@@ -1178,7 +1188,7 @@ int32_t ModMatch_SpriteHidden(const Sprite *spr)
         };
         for (size_t i = 0; i < sizeof kResult / sizeof kResult[0]; i++)
             if (spr == kResult[i])      /* (MODHUD_SCORES alone keeps the HALF / FULL TIME title) */
-                return (s_mm.setup.hideHud & MODHUD_RESULT) ||
+                return (hide & MODHUD_RESULT) ||
                        (spr != &_resultAfterTheGameSprite && spr != &_resultOnHalftimeSprite);
         /* ... the wide screen's third column of the banner's grid, and the scorer lines under it */
         extern Sprite _team1ScorerSprite[], _team2ScorerSprite[];
@@ -1192,12 +1202,12 @@ int32_t ModMatch_SpriteHidden(const Sprite *spr)
             if (spr == &_team1ScorerSprite[i] || spr == &_team2ScorerSprite[i])
                 return 1;
     }
-    if (s_mm.setup.hideHud & MODHUD_PLAYER_NAME) {
+    if (hide & MODHUD_PLAYER_NAME) {
         extern Sprite _currentPlayerNameSprite;
         if (spr == &_currentPlayerNameSprite)
             return 1;
     }
-    if ((s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1]) && (spr->teamNumber == 1 || spr->teamNumber == 2)) {
+    if (s_mm.active && (s_mm.setup.ghosts[0] | s_mm.setup.ghosts[1]) && (spr->teamNumber == 1 || spr->teamNumber == 2)) {
         extern Sprite **_team1SpritesTable, **_team2SpritesTable;
         Sprite **tab = spr->teamNumber == 1 ? _team1SpritesTable : _team2SpritesTable;
         const uint16_t bits = s_mm.setup.ghosts[spr->teamNumber - 1];

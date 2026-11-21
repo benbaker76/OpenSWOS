@@ -106,7 +106,13 @@ static void board_drawn(void)
     case TOP_RIGHT:    ox = right - 80;  oy = 5;        break;
     default:           ox = left + 10;   oy = 5 + 1;    break;
     }
-    HudBox_Draw(&s_box, ox - 2, oy, kBoxW, kBoxH, HUDBOX_SHADE, 0, 0, 0, board_contents, NULL);
+    /* A penalty shoot-out keeps the camera on the top goal, the box over the crowd, where SWOS
+     * 2020's shading (each channel less 61) leaves the clock and the score unreadable (Playa's
+     * online shoot-out, 2026-11-21): a solid dark box for it. */
+    ModShootout so;
+    const int32_t shootout = ModApi_Shootout(&so) && !so.over;
+    HudBox_Draw(&s_box, ox - 2, oy, kBoxW, kBoxH, shootout ? HUDBOX_SOLID : HUDBOX_SHADE, 16, 16, 24,
+                board_contents, NULL);
     s_testDrawn++;
 }
 

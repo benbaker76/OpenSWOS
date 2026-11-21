@@ -691,8 +691,10 @@ void MatchChat_Draw(void)
     }
     const float lh = (float)ChatFont_LineHeight();
     const float pad = SDL_floorf(px * 0.5f), margin = SDL_floorf(px * 0.6f);
-    float boxW = SDL_floorf(ow * 0.42f * (2 + s_scale) / 2);
-    if (boxW < px * 14.0f) boxW = px * 14.0f;
+    /* (two thirds of SWOS 2020's 0.42 of the width: most lines are short, a long one wraps -- Playa,
+     *  2026-11-21) */
+    float boxW = SDL_floorf(ow * 0.28f * (2 + s_scale) / 2);
+    if (boxW < px * 10.0f) boxW = px * 10.0f;
     if (boxW > ow - 2 * margin) boxW = ow - 2 * margin;
     const float textW = boxW - 2 * pad;
 
