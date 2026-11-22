@@ -3186,7 +3186,7 @@ int32_t OnlineMenus_SelfTest(void)
     }
     {   /* SWOS 2020's OPTIONS screens and CONTROLLER SETUP (src/settings_menus.c) */
         static const struct { const char *name; int entries; } k_settings[] = {
-            { "openswos/settingsMenu", 10 }, { "openswos/settingsPage", 27 }, { "openswos/joypadConfigMenu", 42 },
+            { "openswos/settingsMenu", 10 }, { "openswos/settingsPage", 27 }, { "openswos/joypadConfigMenu", 44 },
         };
         extern void SettingsMenus_Init(void);
         SettingsMenus_Init();

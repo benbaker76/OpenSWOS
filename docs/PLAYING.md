@@ -87,12 +87,21 @@ The box sits at the bottom left and stays until TAB hides it (with AUTO CLOSE CH
 
 ### Gamepad not detected?
 
-SDL only drives gamepads it has a mapping for. If your pad isn't in SDL's
-built-in DB (Xbox, PS4/5, Switch Pro, most Logitechs are covered), download
-[`gamecontrollerdb.txt`](https://github.com/gabomdq/SDL_GameControllerDB)
-and drop it next to the binary — it'll be picked up at startup.
-`SWOS.log` lists every detected joystick and whether SDL has a mapping for
-it.
+SDL maps the gamepads it knows (Xbox, PS4/5, Switch Pro, most Logitechs);
+any other is read as a plain joystick, by axis and button number. For a
+mapping of your own, put a
+[`gamecontrollerdb.txt`](https://github.com/mdqinc/SDL_GameControllerDB)
+in your game folder (`Documents\SWOS`, beside `SWOS.ini` and `SWOS.log`) or
+next to the game — it'll be picked up at startup. `SWOS.log` lists every
+detected joystick, whether SDL has a mapping for it, and which mapping files
+were loaded.
+
+### Directions reversed?
+
+If up reads as down or left as right (or the stick's axes are crossed), go to
+OPTIONS → CONTROLS (the SETTINGS screen) → CONTROLS → CONTROLLER
+SETUP, and change STICK: FLIP L/R,
+FLIP U/D, FLIP ALL, or SWAP with the same flips. It's kept per pad.
 
 ## Arcade mode
 

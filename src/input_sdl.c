@@ -30,6 +30,7 @@
 #include <string.h>
 #include "match_step.h"   /* MatchStep_LocalBenchButton: the DOS second button */
 #include "dos_mode.h"     /* _gDosGameplay */
+#include "swos_io.h"      /* swos_user_dir: gamecontrollerdb.txt in the game folder */
 #ifdef SWOS_WASM_BUILD
 #include <emscripten.h>     /* EMSCRIPTEN_KEEPALIVE: the page's on-screen controls */
 #else
@@ -540,9 +541,12 @@ int InputSDL_PlayerUsesPad(int player)
  *                     none (player 2: no control), or <guid>[#n]
  *   auto_detect_pads  AUTO-DETECT JOYPADS: a pad plugged in later is given to a free AUTO
  *                     player (on, as before); off, it waits until SELECT JOYPAD picks it
- *   pad_config        <guid>:<fire>:<bench>:<x+>:<x->:<y+>:<y->;...  -- a button number, -1
- *                     the default (A or B / any button; X / none), a cut-off in percent of the
- *                     stick's travel, 0 = stick_deadzone
+ *   pad_config        <guid>:<fire>:<bench>:<x+>:<x->:<y+>:<y->[:<stick>];...  -- a button
+ *                     number, -1 the default (A or B / any button; X / none), a cut-off in percent
+ *                     of the stick's travel, 0 = stick_deadzone; and OpenSWOS's own STICK, written
+ *                     only when set (an older build reads the rest and skips it): PAD_STICK_* bits,
+ *                     for a pad whose directions come out reversed or crossed (GitHub issue 28:
+ *                     an "e4you Retro Fun" on a USB adapter read up as down, left as right)
  *   shoulder_buttons  DISABLE SHOULDER BUTTONS (on): the shoulders and stick clicks cannot be
  *                     FIRE or BENCH; off, they can
  *   call_bench        CALL BENCH: both (the 2nd fire button or three taps), taps, button
@@ -554,7 +558,13 @@ typedef struct {
     char    guid[33];
     int8_t  fire, bench;        /* a button, -1 the default */
     uint8_t cut[4];             /* x+, x-, y+, y-: percent, 0 = [input] stick_deadzone */
+    uint8_t stick;              /* PAD_STICK_*: how the pad's directions are turned, 0 as they come */
 } PadConfig;
+/* STICK: X and Y swapped first, then either flipped -- so SWAP + FLIP L/R flips what is
+ * left/right AFTER the swap. Applied to the stick (before the cut-offs, which are therefore
+ * the game's directions: X+ is right) and to the d-pad / hat alike, so a pad that sends its
+ * d-pad as axes or as buttons is turned the same. */
+enum { PAD_STICK_FLIP_X = 1, PAD_STICK_FLIP_Y = 2, PAD_STICK_SWAP = 4, PAD_STICK_ALL = 7 };
 #define PAD_CONFIGS 8
 static PadConfig s_padCfg[PAD_CONFIGS];
 static int       s_padCfgCount;
@@ -748,7 +758,7 @@ static PadConfig *dev_cfg_make(int d)
 
 static int cfg_is_default(const PadConfig *c)
 {
-    return c->fire < 0 && c->bench < 0 && !c->cut[0] && !c->cut[1] && !c->cut[2] && !c->cut[3];
+    return c->fire < 0 && c->bench < 0 && !c->cut[0] && !c->cut[1] && !c->cut[2] && !c->cut[3] && !c->stick;
 }
 
 /* [input] pad_config. Returns how many were read. */
@@ -770,6 +780,13 @@ int InputSDL_ParsePadConfig(const char *s)
             c.cut[1] = (uint8_t)(xn >= 5 && xn <= 95 ? xn : 0);
             c.cut[2] = (uint8_t)(yp >= 5 && yp <= 95 ? yp : 0);
             c.cut[3] = (uint8_t)(yn >= 5 && yn <= 95 ? yn : 0);
+            {   /* (the optional 8th field: STICK) */
+                int st = 0, more = 0;
+                if (s[used] == ':' && sscanf(s + used, ":%d%n", &st, &more) == 1 && more > 0) {
+                    c.stick = (uint8_t)(st >= 0 && st <= PAD_STICK_ALL ? st : 0);
+                    used += more;
+                }
+            }
             if (!cfg_is_default(&c))
                 s_padCfg[s_padCfgCount++] = c;
             s += used;
@@ -791,6 +808,8 @@ void InputSDL_FormatPadConfig(char *out, int cap)
             continue;
         at += snprintf(out + at, (size_t)(cap - at), "%s%s:%d:%d:%d:%d:%d:%d", at ? ";" : "", c->guid,
                        c->fire, c->bench, c->cut[0], c->cut[1], c->cut[2], c->cut[3]);
+        if (c->stick && at < cap)
+            at += snprintf(out + at, (size_t)(cap - at), ":%d", c->stick);
     }
     if (at >= cap)
         out[cap - 1] = '\0';
@@ -801,9 +820,41 @@ void InputSDL_FormatPadConfig(char *out, int cap)
  * four at 0 (or at the dead zone itself) is the reading before cut-offs existed. */
 static void stick_directions(int32_t ax, int32_t ay, int *_up, int *_down, int *left, int *right);
 static int32_t s_stickDeadzone;
+
+/* STICK on a stick's values (32-bit: -(-32768) does not fit a Sint16). */
+static void stick_turn(const PadConfig *c, int32_t *ax, int32_t *ay)
+{
+    if (!c || !c->stick)
+        return;
+    if (c->stick & PAD_STICK_SWAP) {
+        const int32_t t = *ax;
+        *ax = *ay;
+        *ay = t;
+    }
+    if (c->stick & PAD_STICK_FLIP_X) *ax = -*ax;
+    if (c->stick & PAD_STICK_FLIP_Y) *ay = -*ay;
+}
+
+/* ... and on directions already read (a d-pad, a hat): OR'd into the outputs. */
+static void dirs_turn_or(const PadConfig *c, int up, int down, int l, int r,
+                         int *_up, int *_down, int *left, int *right)
+{
+    if (c && (c->stick & PAD_STICK_SWAP)) {
+        const int u0 = up, d0 = down;
+        up = l; down = r; l = u0; r = d0;
+    }
+    if (c && (c->stick & PAD_STICK_FLIP_X)) { const int t = l; l = r; r = t; }
+    if (c && (c->stick & PAD_STICK_FLIP_Y)) { const int t = up; up = down; down = t; }
+    if (up)   *_up = 1;
+    if (down) *_down = 1;
+    if (l)    *left = 1;
+    if (r)    *right = 1;
+}
+
 static void stick_directions_cut(const PadConfig *c, int32_t ax, int32_t ay,
                                  int *_up, int *_down, int *left, int *right)
 {
+    stick_turn(c, &ax, &ay);
     if (c) {
         const int k = ax >= 0 ? 0 : 1, l = ay >= 0 ? 2 : 3;
         if (c->cut[k])
@@ -893,7 +944,9 @@ void InputSDL_DeviceLabel(int d, char *out, int cap)
         snprintf(out, (size_t)cap, "%s", nm);
 }
 
-/* NAME / GUID / ID / BUTTONS / AXES / POWER / RAW X / RAW Y, and what the stick reads now. */
+static void read_device_state(int d, int *_up, int *_down, int *left, int *right, int *_fire, int *skip);
+
+/* NAME / GUID / ID / BUTTONS / AXES / POWER / RAW X / RAW Y, and the directions it reads now. */
 void InputSDL_DeviceInfo(int d, char guid[33], int *id, int *buttons, int *axes, const char **power,
                          int *rawX, int *rawY, int dirs[4])
 {
@@ -919,7 +972,10 @@ void InputSDL_DeviceInfo(int d, char guid[33], int *id, int *buttons, int *axes,
     case SDL_JOYSTICK_POWER_MAX:    *power = "MAX"; break;
     default: break;
     }
-    stick_directions_cut(dev_cfg(d), *rawX, *rawY, &up, &down, &left, &right);
+    {   /* (what the game reads from it: the stick, the d-pad or hat, STICK applied) */
+        int fire = 0;
+        read_device_state(d, &up, &down, &left, &right, &fire, NULL);
+    }
     dirs[0] = up; dirs[1] = down; dirs[2] = left; dirs[3] = right;
 }
 
@@ -983,6 +1039,29 @@ void InputSDL_SetPadCut(int d, int k, int pct)
     PadConfig *c = k >= 0 && k < 4 ? dev_cfg_make(d) : NULL;
     if (c)
         c->cut[k] = (uint8_t)(pct >= 5 && pct <= 95 ? pct : 0);
+}
+
+/* STICK: PAD_STICK_* bits. */
+int InputSDL_PadStick(int d)
+{
+    const PadConfig *c = dev_cfg(d);
+    return c ? c->stick : 0;
+}
+
+void InputSDL_SetPadStick(int d, int bits)
+{
+    PadConfig *c = dev_cfg_make(d);
+    if (c)
+        c->stick = (uint8_t)(bits >= 0 && bits <= PAD_STICK_ALL ? bits : 0);
+}
+
+/* The stick's position as the game reads it (STICK applied), for CONTROLLER SETUP's box. */
+void InputSDL_PadStickTurn(int d, int *x, int *y)
+{
+    int32_t ax = *x, ay = *y;
+    stick_turn(dev_cfg(d), &ax, &ay);
+    *x = ax < -32768 ? -32768 : ax > 32767 ? 32767 : (int)ax;
+    *y = ay < -32768 ? -32768 : ay > 32767 ? 32767 : (int)ay;
 }
 
 int InputSDL_StickDeadzonePercent(void)
@@ -1329,22 +1408,32 @@ int InputSDL_Init(void)
     _joy1Dat = 0;
     _ciaa_pra = 0xFF;                  /* both fire bits set (idle) */
 
-    /* Load extra controller mappings if the user dropped a
-     * gamecontrollerdb.txt next to the binary. Without a matching
-     * mapping, SDL_IsGameController() returns false for the device and
-     * we silently skip it — that's the most common reason a pad
-     * "isn't working". The file is the community-maintained mapping
-     * DB (https://github.com/gabomdq/SDL_GameControllerDB). Built-in
-     * SDL mappings cover popular pads (Xbox, PS4/5, Switch Pro, most
-     * Logitechs); the file is for everything else. */
+    /* Extra controller mappings: a gamecontrollerdb.txt beside the game (as ever), then one in
+     * the player's game folder (Documents\SWOS, where SWOS.ini and SWOS.log are -- GitHub issue
+     * 28: the folder a player knows), whose lines win for a pad both name. The file is SDL's
+     * mapping format, a line per pad model (https://github.com/mdqinc/SDL_GameControllerDB):
+     * without one, a pad SDL does not know is read as a plain joystick by axis and button
+     * number. Built-in SDL mappings cover popular pads (Xbox, PS4/5, Switch Pro, most
+     * Logitechs). A file that is not there says nothing. */
     {
-        int loaded = SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
-        if (loaded > 0)
-            fprintf(stderr, "[input] loaded %d controller mappings from gamecontrollerdb.txt\n",
-                    loaded);
-        else if (loaded < 0)
-            /* missing file is fine; SDL only sets the error on parse failure */
-            fprintf(stderr, "[input] gamecontrollerdb.txt not loaded: %s\n", SDL_GetError());
+        char userDb[1024];
+        const char *dir = swos_user_dir();
+        const char *files[2] = { "gamecontrollerdb.txt", NULL };
+        if (dir && dir[0]) {
+            snprintf(userDb, sizeof userDb, "%s/gamecontrollerdb.txt", dir);
+            files[1] = userDb;
+        }
+        for (int k = 0; k < 2; k++) {
+            SDL_RWops *rw = files[k] ? SDL_RWFromFile(files[k], "rb") : NULL;
+            int loaded;
+            if (!rw)
+                continue;
+            loaded = SDL_GameControllerAddMappingsFromRW(rw, 1);
+            if (loaded >= 0)
+                fprintf(stderr, "[input] loaded %d controller mappings from %s\n", loaded, files[k]);
+            else
+                fprintf(stderr, "[input] %s not loaded: %s\n", files[k], SDL_GetError());
+        }
     }
 
     virtual_pads_attach();
@@ -1857,10 +1946,8 @@ static void read_device_state(int d,
         }
         bits = nm ? web_pad_bits(nm, nth) : -2;
         if (bits >= 0) {
-            if (bits & 1)  *_up = 1;
-            if (bits & 2)  *_down = 1;
-            if (bits & 4)  *left = 1;
-            if (bits & 8)  *right = 1;
+            dirs_turn_or(dev_cfg(d), (bits & 1) != 0, (bits & 2) != 0, (bits & 4) != 0, (bits & 8) != 0,
+                         _up, _down, left, right);
             if (bits & 16) *_fire = 1;
             return;
         }
@@ -1874,10 +1961,11 @@ static void read_device_state(int d,
         Sint16 ax = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
         Sint16 ay = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
         stick_directions_cut(cfg, ax, ay, _up, _down, left, right);
-        if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP))    *_up    = 1;
-        if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN))  *_down  = 1;
-        if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT))  *left  = 1;
-        if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) *right = 1;
+        dirs_turn_or(cfg, SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP),
+                     SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN),
+                     SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT),
+                     SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT),
+                     _up, _down, left, right);
         if (cfgFire >= 0 ? dev_button(d, cfgFire)
                          : SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A) ||
                            SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B))
@@ -1905,10 +1993,8 @@ static void read_device_state(int d,
         }
         if (nhats >= 1) {
             Uint8 h = SDL_JoystickGetHat(raw, 0);
-            if (h & SDL_HAT_UP)    *_up    = 1;
-            if (h & SDL_HAT_DOWN)  *_down  = 1;
-            if (h & SDL_HAT_LEFT)  *left  = 1;
-            if (h & SDL_HAT_RIGHT) *right = 1;
+            dirs_turn_or(cfg, (h & SDL_HAT_UP) != 0, (h & SDL_HAT_DOWN) != 0, (h & SDL_HAT_LEFT) != 0,
+                         (h & SDL_HAT_RIGHT) != 0, _up, _down, left, right);
         }
         /* FIRE: CONTROLLER SETUP's button, else any but the BENCH one. */
         for (int b = 0; b < nbtns; ++b) {
@@ -2300,6 +2386,28 @@ int InputSDL_SelfTest(void)
         up = down = left = right = 0;
         stick_directions_cut(&c, -(s_stickDeadzone + 400), 0, &up, &down, &left, &right);
         EXPECT(left, "... and x- still has the dead zone: LEFT");
+        /* STICK (issue 28): the optional 8th field, read and written back; an older line has none */
+        EXPECT(InputSDL_ParsePadConfig("03009814830400000590000000000000:-1:-1:0:0:0:0:3;"
+                                       "03000000c82d00000090000011010000:1:3:40:0:0:30:9") == 2,
+               "pad_config: STICK alone is a config; an out-of-range STICK is dropped, the rest kept");
+        InputSDL_FormatPadConfig(out, sizeof out);
+        EXPECT(strcmp(out, "03009814830400000590000000000000:-1:-1:0:0:0:0:3;"
+                           "03000000c82d00000090000011010000:1:3:40:0:0:30") == 0, "pad_config with STICK written back");
+        memset(&c, 0, sizeof c);
+        c.stick = PAD_STICK_FLIP_X | PAD_STICK_FLIP_Y;
+        up = down = left = right = 0;
+        stick_directions_cut(&c, s_stickDeadzone + 400, -(s_stickDeadzone + 400), &up, &down, &left, &right);
+        EXPECT(left && down && !right && !up, "FLIP ALL: the stick right+up reads left+down");
+        up = down = left = right = 0;
+        dirs_turn_or(&c, 1, 0, 0, 1, &up, &down, &left, &right);
+        EXPECT(down && left && !up && !right, "FLIP ALL: the d-pad up+right reads down+left");
+        c.stick = PAD_STICK_SWAP | PAD_STICK_FLIP_X;
+        up = down = left = right = 0;
+        stick_directions_cut(&c, 0, -(s_stickDeadzone + 400), &up, &down, &left, &right);
+        EXPECT(right && !left && !up && !down, "SWAP+L/R: the stick's up is X- after the swap, flipped: RIGHT");
+        up = down = left = right = 0;
+        dirs_turn_or(&c, 1, 0, 0, 0, &up, &down, &left, &right);
+        EXPECT(right && !left && !up && !down, "SWAP+L/R: the d-pad's up the same: RIGHT");
         InputSDL_ParsePadConfig("");
     }
     /* ESC PRESSING TO QUIT: 1 leaves at once, 3 on the third press within two seconds. */

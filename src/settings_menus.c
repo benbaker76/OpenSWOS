@@ -80,6 +80,9 @@ extern void        InputSDL_PadButtonName(int d, int bench, int b, char *out, in
 extern int         InputSDL_SetPadButton(int d, int bench, int b);
 extern int         InputSDL_PadCut(int d, int k);
 extern void        InputSDL_SetPadCut(int d, int k, int pct);
+extern int         InputSDL_PadStick(int d);
+extern void        InputSDL_SetPadStick(int d, int bits);
+extern void        InputSDL_PadStickTurn(int d, int *x, int *y);
 extern int         InputSDL_StickDeadzonePercent(void);
 extern void        InputSDL_SetStickDeadzone(int percent);
 extern void        InputSDL_PadPressBegin(void);
@@ -1148,6 +1151,7 @@ enum {                                      /* joypadConfigMenu.json's entries *
     Jpc_incXNeg, Jpc_xNegPercentage, Jpc_decXNeg,
     Jpc_incXPos, Jpc_xPosPercentage, Jpc_decXPos,
     Jpc_exit,
+    Jpc_stickAxesLabel, Jpc_stickAxes,      /* OpenSWOS's: STICK (GitHub issue 28) */
     Jpc_kNumEntries
 };
 /* joypadConfig.mnu's exports: the cut-off box. */
@@ -1159,6 +1163,11 @@ static char s_jpcName[64], s_jpcGuid[40], s_jpcHeader[48];
 static char s_jpcNum[5][16];            /* id, buttons, axes, raw x, raw y */
 static const char *s_jpcPower = "";
 static char s_jpcButtons[2][24], s_jpcCut[4][12], s_jpcPct[4][8];
+static const char *s_jpcStick = "";
+/* STICK's values, by InputSDL_PadStick's bits (1 flip X, 2 flip Y, 4 swap -- the swap first). */
+static const char *const k_stickNames[8] = {
+    "NORMAL", "FLIP L/R", "FLIP U/D", "FLIP ALL", "SWAP", "SWAP+L/R", "SWAP+U/D", "SWAP+ALL",
+};
 static int  s_jpcDirs[4];               /* up, down, left, right: what the stick reads */
 
 static int cut_pct(int k)
@@ -1190,6 +1199,7 @@ static void jpc_values(void)
         InputSDL_PadButtonName(s_setupDev, k, InputSDL_PadButton(s_setupDev, k), nm, sizeof nm);
         upper(s_jpcButtons[k], sizeof s_jpcButtons[k], nm);
     }
+    s_jpcStick = k_stickNames[InputSDL_PadStick(s_setupDev) & 7];
     for (k = 0; k < 4; k++) {
         const int pct = cut_pct(k);
         /* SWOS 2020 shows each cut-off as the axis value it is, and its percent in the box. */
@@ -1214,6 +1224,7 @@ static void jpc_texts(void)
     entry_at(Jpc_rawY)->fg = (uintptr_t)s_jpcNum[4];
     entry_at(Jpc_fireButton)->fg = (uintptr_t)s_jpcButtons[0];
     entry_at(Jpc_benchButton)->fg = (uintptr_t)s_jpcButtons[1];
+    entry_at(Jpc_stickAxes)->fg = (uintptr_t)s_jpcStick;
     for (k = 0; k < 4; k++) {
         entry_at(cutEntry[k])->fg = (uintptr_t)s_jpcCut[k];
         entry_at(pctEntry[k])->fg = (uintptr_t)s_jpcPct[k];
@@ -1239,6 +1250,7 @@ static void jpc_box(void)
     int rawX = 0, rawY = 0;
     sscanf(s_jpcNum[3], "%d", &rawX);
     sscanf(s_jpcNum[4], "%d", &rawY);
+    InputSDL_PadStickTurn(s_setupDev, &rawX, &rawY);     /* (where the game has it: STICK applied) */
     /* the quarters: lit green where the stick reads a direction, red where it sits in the cut-off */
     fill(kBoxX1, kBoxY1, cx, cy, (up || left) ? 14 : 13);
     fill(cx, kBoxY1, kBoxX2, cy, (up || right) ? 14 : 13);
@@ -1330,6 +1342,13 @@ static void jpc_cut(int k, int by)
     save();
 }
 
+/* STICK: fire steps through the eight (NORMAL, the flips, then the same swapped). */
+static void joypadConfig_selectStickAxes(void)
+{
+    InputSDL_SetPadStick(s_setupDev, (InputSDL_PadStick(s_setupDev) + 1) & 7);
+    save();
+}
+
 static void joypadConfig_enterDeadZoneXPos(void) { jpc_cut(CUT_XP, 5); }
 static void joypadConfig_enterDeadZoneXNeg(void) { jpc_cut(CUT_XN, 5); }
 static void joypadConfig_enterDeadZoneYPos(void) { jpc_cut(CUT_YP, 5); }
@@ -1411,6 +1430,7 @@ static const MenuSymbol k_handlers[] = {
     HANDLER(joypadConfig_joypadConfigMenuOnDraw),
     HANDLER(joypadConfig_selectFireButton),
     HANDLER(joypadConfig_selectBenchButton),
+    HANDLER(joypadConfig_selectStickAxes),
     HANDLER(joypadConfig_enterDeadZoneXPos),
     HANDLER(joypadConfig_enterDeadZoneXNeg),
     HANDLER(joypadConfig_enterDeadZoneYPos),

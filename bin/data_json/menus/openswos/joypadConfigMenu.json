@@ -1,6 +1,6 @@
 {
   "name": "joypadConfigMenu",
-  "comment": "SWOS 2020's CONTROLLER SETUP (src/menus/joypadConfig.mnu, imported by scripts/import_swos2020_menus.py; handlers renamed joypadConfig_*, the numbers made text): a pad's NAME, GUID, ID, BUTTONS, AXES, POWER, RAW X/Y, its FIRE and BENCH buttons and its four stick cut-offs, with the cut-off box. Handlers in src/settings_menus.c; the settings in src/input_sdl.c ([input] pad_config). Opened from SETTINGS -> CONTROLS.",
+  "comment": "SWOS 2020's CONTROLLER SETUP (src/menus/joypadConfig.mnu, imported by scripts/import_swos2020_menus.py; handlers renamed joypadConfig_*, the numbers made text): a pad's NAME, GUID, ID, BUTTONS, AXES, POWER, RAW X/Y, its STICK (OpenSWOS's row: a stick read flipped or swapped), its FIRE and BENCH buttons and its four stick cut-offs, with the cut-off box. Handlers in src/settings_menus.c; the settings in src/input_sdl.c ([input] pad_config). Opened from SETTINGS -> CONTROLS.",
   "source": {
     "project": "swos-2020",
     "file": "src/menus/joypadConfig.mnu",
@@ -462,7 +462,7 @@
           "op": "nav",
           "left": -1,
           "right": 37,
-          "up": 35,
+          "up": 43,
           "down": 24
         },
         {
@@ -802,7 +802,7 @@
         },
         {
           "op": "nav",
-          "left": 23,
+          "left": 43,
           "right": 38,
           "up": 29,
           "down": 37
@@ -984,6 +984,58 @@
         {
           "op": "onselect_fire",
           "func": "SetExitMenuFlag"
+        }
+      ]
+    },
+    {
+      "kind": "reset_template"
+    },
+    {
+      "kind": "entry",
+      "name": "stickAxesLabel",
+      "coords": {
+        "x": 20,
+        "y": 105,
+        "w": 50,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text",
+          "flags": "0x8000",
+          "literal": "STICK:"
+        }
+      ]
+    },
+    {
+      "kind": "entry",
+      "name": "stickAxes",
+      "coords": {
+        "x": 82,
+        "y": 105,
+        "w": 48,
+        "h": 10
+      },
+      "commands": [
+        {
+          "op": "text_no_ptr",
+          "flags": "0x2"
+        },
+        {
+          "op": "colors",
+          "frame_color": 0,
+          "background_color": 13
+        },
+        {
+          "op": "nav",
+          "left": -1,
+          "right": 35,
+          "up": -1,
+          "down": 23
+        },
+        {
+          "op": "onselect_fire",
+          "func": "joypadConfig_selectStickAxes"
         }
       ]
     }
