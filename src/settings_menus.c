@@ -86,6 +86,7 @@ extern void        InputSDL_PadStickTurn(int d, int *x, int *y);
 extern int         InputSDL_StickDeadzonePercent(void);
 extern void        InputSDL_SetStickDeadzone(int percent);
 extern void        InputSDL_PadPressBegin(void);
+extern int         InputSDL_AnyPadButtonHeld(void);
 extern int         InputSDL_PadPressPoll(int only, int *dev, int *button);
 extern void        InputSDL_GivePlayerDevice(int p, int d);
 extern int         InputSDL_AutoDetect(void);
@@ -269,12 +270,19 @@ static void note_now(const char *text)
 }
 
 /* After a prompt answered from a pad: the button let go, and its press no menu's. */
+/* After a press a row took for itself (a button set, a pad chosen): wait until it is let go --
+ * every button of every pad, not only what reads as fire now (a button just made BENCH no longer
+ * does, but it was fire when it went down) -- then forget it, so its release is not a fire on the
+ * same row that asks for a button again. At most ~3 s. */
 static void release_wait(void)
 {
     int32_t frames;
-    for (frames = 0; frames < 100 && _fire; frames++)
+    for (frames = 0; frames < 150 && (_fire || InputSDL_AnyPadButtonHeld()); frames++)
         MenuCheckControls();
+    MenuCheckControls();                    /* (one read with everything up) */
+    _fire = 0;
     _shortFire = 0;
+    _controlMask = 0;
     InputSDL_ClearKeyState();
 }
 

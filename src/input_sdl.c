@@ -1083,6 +1083,16 @@ static uint64_t dev_buttons_now(int d)
     return m;
 }
 
+/* Any button held on any open pad (the menus wait for its release after taking a press). */
+int InputSDL_AnyPadButtonHeld(void)
+{
+    SDL_JoystickUpdate();
+    for (int d = 0; d < INPUTSDL_MAX_DEVICES; d++)
+        if (dev_open(d) && dev_buttons_now(d))
+            return 1;
+    return 0;
+}
+
 void InputSDL_PadPressBegin(void)
 {
     SDL_JoystickUpdate();
