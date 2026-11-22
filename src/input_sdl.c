@@ -542,11 +542,12 @@ int InputSDL_PlayerUsesPad(int player)
  *   auto_detect_pads  AUTO-DETECT JOYPADS: a pad plugged in later is given to a free AUTO
  *                     player (on, as before); off, it waits until SELECT JOYPAD picks it
  *   pad_config        <guid>:<fire>:<bench>:<x+>:<x->:<y+>:<y->[:<stick>];...  -- a button
- *                     number, -1 the default (A or B / any button; X / none), a cut-off in percent
- *                     of the stick's travel, 0 = stick_deadzone; and OpenSWOS's own STICK, written
- *                     only when set (an older build reads the rest and skips it): PAD_STICK_* bits,
- *                     for a pad whose directions come out reversed or crossed (GitHub issue 28:
- *                     an "e4you Retro Fun" on a USB adapter read up as down, left as right)
+ *                     number, -1 the default (a mapped pad: A or B / X; a plain joystick: button
+ *                     0 / button 1, as SWOS 2020), a cut-off in percent of the stick's travel,
+ *                     0 = stick_deadzone; and OpenSWOS's own STICK, written only when set (an
+ *                     older build reads the rest and skips it): PAD_STICK_* bits, for a pad whose
+ *                     directions come out reversed or crossed (GitHub issue 28: an "e4you Retro
+ *                     Fun" on a USB adapter read up as down, left as right)
  *   shoulder_buttons  DISABLE SHOULDER BUTTONS (on): the shoulders and stick clicks cannot be
  *                     FIRE or BENCH; off, they can
  *   call_bench        CALL BENCH: both (the 2nd fire button or three taps), taps, button
@@ -904,10 +905,19 @@ static int dev_button(int d, int b)
     return s_dev_raw[d] && b < SDL_JoystickNumButtons(s_dev_raw[d]) && SDL_JoystickGetButton(s_dev_raw[d], b);
 }
 
-/* The configured button, -1 the default, and -1 too for a shoulder while they are off. */
+/* The configured button, -1 the default, and -1 too for a shoulder while they are off.
+ * A plain joystick (no SDL mapping) set to nothing has SWOS 2020's: FIRE its first button (0),
+ * BENCH its second (1) when it has one -- so CALL BENCH's button works without CONTROLLER SETUP.
+ * (A mapped pad's defaults are its names: A or B fire, X the bench.) */
 static int cfg_button(int d, const PadConfig *c, int bench)
 {
-    const int b = c ? (bench ? c->bench : c->fire) : -1;
+    int b = c ? (bench ? c->bench : c->fire) : -1;
+    if (b < 0 && d >= 0 && d < INPUTSDL_MAX_DEVICES && !s_dev_gc[d] && s_dev_raw[d]) {
+        const int other = c ? (bench ? c->fire : c->bench) : -1;   /* (a button set as the other is not this one) */
+        b = bench ? (dev_button_count(d) >= 2 ? 1 : -1) : 0;
+        if (b == other)
+            b = -1;
+    }
     return b >= 0 && !(s_shouldersOff && dev_is_shoulder(d, b)) ? b : -1;
 }
 

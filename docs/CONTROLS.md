@@ -109,8 +109,9 @@ with red labels, player 2's with purple ones, the rows for both grey:
 | STICK DEAD ZONE | `stick_deadzone` | the radius every cut-off defaults to |
 
 `pad_config` is `guid:fire:bench:x+:x-:y+:y-[:stick];...` -- a button (a mapped pad's SDL button
-number, a plain joystick's index), `-1` the default (fire: A or B / any button but BENCH;
-bench: X / none); a cut-off in percent of the stick's travel, `0` = `stick_deadzone`. A
+number, a plain joystick's index), `-1` the default (a mapped pad: fire A or B, bench X; a
+plain joystick, as SWOS 2020: fire button 0, bench button 1 when it has two); a cut-off in percent
+of the stick's travel, `0` = `stick_deadzone`. A
 cut-off scales its half of the axis so that it lands on the dead zone's radius, then the
 eight-way reading (ReportBot 0032) is unchanged -- all four at 0 read exactly as before. A button made
 FIRE or BENCH sends nothing else (Y is no replay key then). START, BACK, GUIDE and R3 (whose
