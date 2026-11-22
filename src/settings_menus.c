@@ -87,6 +87,7 @@ extern int         InputSDL_StickDeadzonePercent(void);
 extern void        InputSDL_SetStickDeadzone(int percent);
 extern void        InputSDL_PadPressBegin(void);
 extern int         InputSDL_AnyPadButtonHeld(void);
+extern void        InputSDL_PostFrame(void);
 extern int         InputSDL_PadPressPoll(int only, int *dev, int *button);
 extern void        InputSDL_GivePlayerDevice(int p, int d);
 extern int         InputSDL_AutoDetect(void);
@@ -276,14 +277,31 @@ static void note_now(const char *text)
  * same row that asks for a button again. At most ~3 s. */
 static void release_wait(void)
 {
-    int32_t frames;
-    for (frames = 0; frames < 150 && (_fire || InputSDL_AnyPadButtonHeld()); frames++)
-        MenuCheckControls();
-    MenuCheckControls();                    /* (one read with everything up) */
+    /* Real time, with SDL's input brought up to date: a menu read alone runs no frame (the
+     * pads' state and the registers stay what they were), so the loop used to end at once with
+     * the button still down -- and the row asked again. The events stay queued for the menus. */
+    const Uint32 until = SDL_GetTicks() + 3000;
+    for (;;) {
+        const Uint8 *keys;
+        SDL_PumpEvents();
+        keys = SDL_GetKeyboardState(NULL);
+        if (!InputSDL_AnyPadButtonHeld() && !keys[SDL_SCANCODE_RETURN] && !keys[SDL_SCANCODE_LCTRL] &&
+            !keys[SDL_SCANCODE_RCTRL] && !keys[SDL_SCANCODE_SPACE])
+            break;
+        if (SDL_TICKS_PASSED(SDL_GetTicks(), until))
+            break;
+        SDL_Delay(10);
+    }
+    /* Everything up now: the registers the menus read made to say so too (the input step, as a
+     * frame runs it), then read twice -- so the game's own press/release tracking sees no press,
+     * and no release of the old one either, that would count as a tap. */
+    InputSDL_ClearKeyState();
+    InputSDL_PostFrame();
+    MenuCheckControls();
+    MenuCheckControls();
     _fire = 0;
     _shortFire = 0;
     _controlMask = 0;
-    InputSDL_ClearKeyState();
 }
 
 /* ===================================================================== CONTROLS */
