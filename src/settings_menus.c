@@ -26,6 +26,7 @@
  */
 #ifdef SWOS_SDL_BUILD
 
+#include "kit_variants.h"
 #include "menu_load_json.h"
 #include "menu_symbols.h"
 #include "menu_system.h"
@@ -1011,6 +1012,18 @@ static void filter_change(int32_t dir)
 /* SWOS 2020's GK/REF CLASH KITS ([graphics] clash_kits, clash_kits.c): the keepers and the referee
  * in a colour that stands out against a dark kit. Taken at the next match's sprites. */
 static void clashkits_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->clash_kits ? "ON" : "OFF"); }
+/* Which kits are too alike ([graphics] kit_colours, kit_variants.h): EXTENDED judges by how alike the
+ * colours look (CIEDE2000), ORIGINAL by the original's tables. */
+static void kitcols_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->kit_colours ? "EXTENDED" : "ORIGINAL"); }
+static void kitcols_change(int32_t dir)
+{
+    (void)dir;
+    O()->kit_colours = !O()->kit_colours;
+    KitVariants_SetRule(O()->kit_colours ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL);
+    note("WHICH KITS CLASH, FROM THE NEXT MATCH");
+    save();
+}
+
 static void clashkits_change(int32_t dir)
 {
     extern int32_t g_clashKits;
@@ -1068,6 +1081,7 @@ static void board_change(int32_t d)           { mod_setting_change("scoreboard",
 static const Row k_displayRows[] = {
     { "MENU OPACITY",       opacity_show,  opacity_change },
     { "PIXEL FILTER",       filter_show,   filter_change },
+    { "KIT COLOURS",        kitcols_show,  kitcols_change },
     { "GK/REF CLASH KITS",  clashkits_show, clashkits_change },
     { "PITCH PALETTE",      pitchpal_show, pitchpal_change },
     { "KITS ON THE RESULT", reskits_show,  reskits_change },

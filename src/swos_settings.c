@@ -414,6 +414,10 @@ static int handler(void *user, const char *section,
         }
         else if (eqi(name, "clash_kits") && parse_bool(value, &b))   /* (SWOS 2020 port, agent D) */
             opts->clash_kits = b;
+        else if (eqi(name, "kit_colours")) {                           /* (kit_variants.h) */
+            if      (eqi(value, "extended")) opts->kit_colours = 1;
+            else if (eqi(value, "original")) opts->kit_colours = 0;
+        }
         else if (eqi(name, "kit_art")) {
             if      (eqi(value, "amiga"))  opts->kit_art = 0;
             else if (eqi(value, "jaguar")) opts->kit_art = 1;
@@ -906,6 +910,12 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; and the referee to yellow (light blue if a team wears yellow). Only how they look.\n"
         "; On by default, as in SWOS 2020 (DISPLAY OPTIONS: GK/REF CLASH KITS).",
         opts->clash_kits ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "graphics", "kit_colours",
+        "; kit_colours: extended | original -- which kits are too alike, so that one team changes.\n"
+        "; extended: judged by how alike the colours look (CIEDE2000), for every kit colour; original:\n"
+        "; the original's own tables. A net game plays the host's choice. Default extended\n"
+        "; (DISPLAY OPTIONS: KIT COLOURS).",
+        opts->kit_colours ? "extended" : "original" };
     SETTING(n) = (IniEntry){ "graphics", "kit_art",
         "; kit_art: amiga | jaguar. The shirts, shorts and socks drawn on the UNIFORM\n"
         "; screen: the Amiga's flat drawings, or the Atari Jaguar's shaded ones (shaded by\n"

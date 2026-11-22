@@ -4,6 +4,7 @@
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
 #ifdef SWOS_SDL_BUILD
+#include "kit_variants.h"
 #include <stdlib.h>          /* (getenv: the purple test switch) */
 #endif
 #include "team_colors.h"
@@ -215,6 +216,8 @@ ConvertTeamColor(uint16_t color)
 int16_t __attribute__((used, externally_visible))
 AreBasicColorsConflicting(uint16_t color1, uint16_t color2)
 {
+    if (KitVariants_MatchRule() == KIT_RULE_EXTENDED)   /* CIEDE2000, every colour (kit_variants.h) */
+        return (int16_t)KitVariants_Similar((uint8_t)color1, (uint8_t)color2);
     uint16_t mask = _conflictingBasicTeamColorsTable[color1 & 0xFF];
     return (mask >> (color2 & 0xFF)) & 1;
 }
@@ -230,6 +233,8 @@ AreBasicColorsConflicting(uint16_t color1, uint16_t color2)
 int16_t __attribute__((used, externally_visible))
 AreShortsAndStripeColorsConflicting(uint16_t color1, uint16_t color2)
 {
+    if (KitVariants_MatchRule() == KIT_RULE_EXTENDED)   /* the same one rule for shorts and stripes */
+        return (int16_t)KitVariants_Similar((uint8_t)color1, (uint8_t)color2);
     uint16_t mask = _conflictingShortsTeamColorsTable[color1 & 0xFF];
     return (mask >> (color2 & 0xFF)) & 1;
 }

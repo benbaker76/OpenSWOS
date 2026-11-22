@@ -121,7 +121,10 @@ def load():
             sys.exit("kit_variants.json: %s: rgb must be 0x0RGB" % v["name_en"])
         seen.add(key)
         colours.append({"base": v["base"], "var": v["var"], "rgb": int(v["rgb"], 16),
-                        "name_en": v["name_en"], "name_de": v["name_de"]})
+                        "name_en": v["name_en"], "name_de": v["name_de"], "legacy": v.get("legacy")})
+    legacy = [c for c in colours if c.get("legacy") == 10]
+    if len(legacy) != 1:
+        sys.exit("kit_variants.json: exactly one variant must be legacy 10 (purple)")
     if len(colours) > 64:
         sys.exit("kit_variants.json: more than 64 colours do not fit a kKitSimilar row")
     pats = d.get("pattern_variants", [])
@@ -158,6 +161,10 @@ def make_inc(d, colours, pats):
            "#define KIT_COLOUR_COUNT    %d     /* the base colours, then the variants */" % n,
            "#define KIT_SIMILAR_BELOW   %d     /* CIEDE2000 */" % below,
            "#define KIT_PATTERN_COUNT   %d" % len(pats),
+           "",
+           "/* The colour value 10 of the World 2026-27 data (the SWOS 96/97 Mod's purple): this variant. */",
+           "#define KIT_LEGACY_PURPLE_BASE  %d" % [c for c in colours if c.get("legacy") == 10][0]["base"],
+           "#define KIT_LEGACY_PURPLE_VAR   %d" % [c for c in colours if c.get("legacy") == 10][0]["var"],
            "",
            "/* A variant: its base colour (0-9), its number within that base (1-15), its colour (Amiga",
            " * 12-bit 0x0RGB) and its name for the menus. Index = colour index - KIT_BASE_COLOURS. */",

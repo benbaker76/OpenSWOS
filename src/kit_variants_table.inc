@@ -7,6 +7,10 @@
 #define KIT_SIMILAR_BELOW   36     /* CIEDE2000 */
 #define KIT_PATTERN_COUNT   6
 
+/* The colour value 10 of the World 2026-27 data (the SWOS 96/97 Mod's purple): this variant. */
+#define KIT_LEGACY_PURPLE_BASE  6
+#define KIT_LEGACY_PURPLE_VAR   5
+
 /* A variant: its base colour (0-9), its number within that base (1-15), its colour (Amiga
  * 12-bit 0x0RGB) and its name for the menus. Index = colour index - KIT_BASE_COLOURS. */
 static const struct { uint8_t base, var; uint16_t rgb; const char *name; } kKitVariants[KIT_VARIANT_COUNT] = {

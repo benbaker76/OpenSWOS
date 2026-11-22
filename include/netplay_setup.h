@@ -48,6 +48,9 @@ const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex);
  * match the last setup applied is played by (bench_subs.c). */
 void     NetplaySetup_SetCallBench(int32_t player1, int32_t player2);
 int32_t  NetplaySetup_BenchTapsOff(int32_t player);
+/* The kit clash rule of the last setup applied (KIT_RULE_*, include/kit_variants.h): the original's
+ * for a setup from before it was sent. */
+int32_t  NetplaySetup_KitRule(void);
 /* Round-trip check: encode, scribble over every global it covers, apply, and
  * require equality. Part of --netplay-selftest. 0 on success. */
 int32_t  NetplaySetup_SelfTest(void);
