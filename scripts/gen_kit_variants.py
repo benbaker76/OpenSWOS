@@ -235,7 +235,7 @@ def make_inc(d, colours, pats):
             % ", ".join(str(i) for i in d["_officials"]["keeper"]),
             "static const uint8_t kKitRefereeChoices[KIT_REFEREE_CHOICES] = { %s };"
             % ", ".join(str(i) for i in d["_officials"]["referee"]),
-            "/* The keepers' tiers: where each ends in kKitKeeperChoices (greens, greys). */",
+            "/* The keepers' tiers, in order: where each ends in kKitKeeperChoices. */",
             "#define KIT_KEEPER_TIERS     %d" % len(d["_officials"]["keeper_ends"]),
             "static const uint8_t kKitKeeperTierEnd[KIT_KEEPER_TIERS] = { %s };"
             % ", ".join(str(i) for i in d["_officials"]["keeper_ends"])]

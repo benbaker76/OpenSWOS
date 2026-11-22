@@ -172,13 +172,13 @@ static const uint8_t kKitDistance[KIT_COLOUR_COUNT][KIT_COLOUR_COUNT] = {
 
 /* The keepers' own colour (a colour index), and the colours a keeper / the referee may change to (colour indices), clash_kits.c. */
 #define KIT_KEEPER_DEFAULT   43
-#define KIT_KEEPER_CHOICES   4
+#define KIT_KEEPER_CHOICES   5
 #define KIT_REFEREE_CHOICES  4
-static const uint8_t kKitKeeperChoices[KIT_KEEPER_CHOICES] = { 43, 42, 39, 10 };
+static const uint8_t kKitKeeperChoices[KIT_KEEPER_CHOICES] = { 43, 13, 42, 39, 10 };
 static const uint8_t kKitRefereeChoices[KIT_REFEREE_CHOICES] = { 44, 37, 34, 17 };
-/* The keepers' tiers: where each ends in kKitKeeperChoices (greens, greys). */
-#define KIT_KEEPER_TIERS     2
-static const uint8_t kKitKeeperTierEnd[KIT_KEEPER_TIERS] = { 3, 4 };
+/* The keepers' tiers, in order: where each ends in kKitKeeperChoices. */
+#define KIT_KEEPER_TIERS     5
+static const uint8_t kKitKeeperTierEnd[KIT_KEEPER_TIERS] = { 1, 2, 3, 4, 5 };
 
 /* The 10 base colours alone, as the original's _conflictingBasicTeamColorsTable (bit j =
  * base colour j): the table for the real Amiga and for the base colours everywhere. */
