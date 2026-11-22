@@ -64,7 +64,7 @@
   {"base": 9, "var": 6, "name_en": "olive", "name_de": "Oliv", "rgb": "0x0670"}
  ],
  "officials": {
-  "_comment": "Clash kits (src/clash_kits.c), [base, var] (var 0 = the base colour): the keepers' own colour, and the colours a keeper / the referee may change to when a team is too alike -- of these, the one that differs most from both teams' shirts is taken. The keepers' come in tiers, in order (dark green, anthracite, emerald, lime, silver): the first with a colour apart from both teams, failing all any colour. The referee's own is black.",
+  "_comment": "Clash kits (src/clash_kits.c), [base, var] (var 0 = the base colour): the keepers' own colour, and the colours a keeper / the referee may change to when a team is too alike, in order: the first apart from both teams' shirts (the referee's from the keepers' too) is taken, failing all any colour. The keepers' (dark green, anthracite, emerald, lime, silver) come as tiers of one. The referee's own is black.",
   "keeper_default": [8, 6, "dark green"],
   "keeper": [
    [[8, 6, "dark green"]],

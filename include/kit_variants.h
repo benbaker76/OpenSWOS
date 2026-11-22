@@ -89,8 +89,8 @@ void     KitVariants_TeamFileRestore(uint8_t *buf, const uint8_t *saved);
 
 /* Clash kits (clash_kits.c), EXTENDED: the keepers' colour against these shirt colours (colour
  * bytes) -- their own, dark green (kit_variants.json "officials"), or when a shirt is too alike the
- * choice that differs most from the shirts; the referee's, or -1 to keep his black, likewise and
- * apart from the keepers' `keeper` too. */
+ * first of their choices in order that is apart from the shirts, failing all any colour; the
+ * referee's, or -1 to keep his black, likewise and apart from the keepers' `keeper` too. */
 int32_t KitVariants_KeeperColour(const uint8_t *shirts, int32_t count);
 int32_t KitVariants_RefereeColour(const uint8_t *shirts, int32_t count, int32_t keeper);
 

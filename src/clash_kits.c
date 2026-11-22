@@ -3,8 +3,9 @@
  *
  * The keepers' and the referee's shirt is the drop shadow's colour (palette 8, "shadow green").
  * With KIT COLOURS extended (kit_variants.h, KitVariants_KeeperColour): the keepers always in a kit
- * colour -- dark green, or the green, else grey, else any colour that differs most from both teams when one
- * is too alike -- and the referee black or the referee colour that differs most; by CIEDE2000, any
+ * colour -- dark green, or when a team is too alike the first apart of anthracite, emerald, lime, silver,
+ * else any -- and the referee black, or the first apart of neon yellow, cyan, lilac, light orange,
+ * else any (kit_variants.json "officials"); by CIEDE2000, any
  * kit colour, a variant in its own palette entry (kit_palette.c). The rest of this comment is the
  * original rule, which ORIGINAL keeps.
  * Against a dark kit -- black, blue or burgundy shirt (and stripes, for a striped one) on either

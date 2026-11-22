@@ -349,6 +349,11 @@ int32_t KitVariants_RefereeColour(const uint8_t *shirts, int32_t count, int32_t 
         clash = 1;
     if (!clash)
         return -1;
+    /* In order (kit_variants.json: neon yellow, cyan, lilac, light orange): the first apart from
+     * both teams' shirts and the keepers; failing all, any colour. */
+    for (int32_t i = 0; i < KIT_REFEREE_CHOICES; i++)
+        if (least_apart(kKitRefereeChoices[i], shirt, n, kept) >= KIT_SIMILAR_BELOW)
+            return colour_byte(kKitRefereeChoices[i]);
     return colour_byte(most_apart(kKitRefereeChoices, KIT_REFEREE_CHOICES, shirt, n, kept));
 }
 
