@@ -315,7 +315,7 @@ int32_t KitVariants_KeeperColour(const uint8_t *shirts, int32_t count)
         clash |= shirt[i] >= 0 && ((kKitSimilar[KIT_KEEPER_DEFAULT] >> shirt[i]) & 1u);
     if (!clash)
         return colour_byte(KIT_KEEPER_DEFAULT);     /* his own: dark green (kit_variants.json) */
-    /* By tiers -- greens, then greys, then orange tones: of the first tier that has a colour apart
+    /* By tiers -- greens, then greys: of the first tier that has a colour apart
      * from both teams, the one that differs most; failing all, any colour. */
     for (int32_t t = 0, from = 0; t < KIT_KEEPER_TIERS; from = kKitKeeperTierEnd[t++]) {
         int32_t best = -1, bestApart = -1;
