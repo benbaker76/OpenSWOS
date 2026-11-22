@@ -192,6 +192,12 @@ void KitVariants_TeamFileRestore(uint8_t *buf, const uint8_t *saved)
         memcpy(buf + 2 + i * RECORD_BYTES + KIT_OFFSET, saved + i * KIT_BYTES, KIT_BYTES);
 }
 
+uint16_t KitVariants_Rgb12(uint8_t colour)
+{
+    const int32_t index = KitVariants_ColourIndex(colour);
+    return index >= KIT_BASE_COLOURS ? kKitVariants[index - KIT_BASE_COLOURS].rgb : 0;
+}
+
 int32_t KitVariants_Similar(uint8_t colour1, uint8_t colour2)
 {
     const int32_t a = KitVariants_ColourIndex(colour1), b = KitVariants_ColourIndex(colour2);

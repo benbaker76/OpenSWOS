@@ -3,6 +3,10 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "kit_variants.h"
+#ifdef SWOS_SDL_BUILD
+#include "kit_palette.h"
+#endif
 #include "player_face3.h"
 #include "shirt_numbers.h"
 #include "player_looks.h"
@@ -445,18 +449,34 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
         _team2MostFrequentFace = findMostFrequentFaceAndApplyLUT(team2, _team2PlayersColorTable);
     }
 
+    /* The kit colour variants (kit_palette.c): each part of a side's kit in its variant's own
+     * palette entry, where it has one -- drawing only; the in-game team keeps the base colour. */
+    uint16_t variant[2][4] = { { 0 } };
+#ifdef SWOS_SDL_BUILD
+    KitPalette_NewMatch();
+    for (int32_t k = 0; k < 2; k++) {
+        const uint8_t *w = TeamColors_Worn(k ? team2 : team1);   /* type, stripes, basic, shorts, socks */
+        if (!w || !KitPalette_Active())
+            continue;
+        variant[k][0] = KitPalette_Entry(w[1]);                                   /* prShirtCol */
+        variant[k][1] = KitPalette_Entry(KitPattern_Base(w[0]) != 0 ? w[2] : w[1]);   /* prStripesCol */
+        variant[k][2] = KitPalette_Entry(w[3]);
+        variant[k][3] = KitPalette_Entry(w[4]);
+    }
+#endif
+
     /* --- Team 1 shirt/stripes/shorts/socks colors --- */
     {
-        uint16_t d1 = (uint16_t)team1->prShirtCol;
-        uint16_t d2 = (uint16_t)team1->prStripesCol;
+        uint16_t d1 = variant[0][0] ? variant[0][0] : (uint16_t)team1->prShirtCol;
+        uint16_t d2 = variant[0][1] ? variant[0][1] : (uint16_t)team1->prStripesCol;
         /* If shirt type == 2 (striped), swap shirt and stripes colors */
         if ((uint16_t)team1->prShirtType == 2) {
             uint16_t tmp = d1; d1 = d2; d2 = tmp;
         }
         _team1PlayersColorTable[11] = d1;
         _team1PlayersColorTable[10] = d2;
-        _team1PlayersColorTable[14] = (uint16_t)team1->prShortsCol;
-        _team1PlayersColorTable[15] = (uint16_t)team1->prSocksCol;
+        _team1PlayersColorTable[14] = variant[0][2] ? variant[0][2] : (uint16_t)team1->prShortsCol;
+        _team1PlayersColorTable[15] = variant[0][3] ? variant[0][3] : (uint16_t)team1->prSocksCol;
     }
 
 #ifdef SWOS_SDL_BUILD
@@ -520,15 +540,15 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
 
     /* --- Team 2 shirt/stripes/shorts/socks colors --- */
     {
-        uint16_t d1 = (uint16_t)team2->prShirtCol;
-        uint16_t d2 = (uint16_t)team2->prStripesCol;
+        uint16_t d1 = variant[1][0] ? variant[1][0] : (uint16_t)team2->prShirtCol;
+        uint16_t d2 = variant[1][1] ? variant[1][1] : (uint16_t)team2->prStripesCol;
         if ((uint16_t)team2->prShirtType == 2) {
             uint16_t tmp = d1; d1 = d2; d2 = tmp;
         }
         _team2PlayersColorTable[11] = d1;
         _team2PlayersColorTable[10] = d2;
-        _team2PlayersColorTable[14] = (uint16_t)team2->prShortsCol;
-        _team2PlayersColorTable[15] = (uint16_t)team2->prSocksCol;
+        _team2PlayersColorTable[14] = variant[1][2] ? variant[1][2] : (uint16_t)team2->prShortsCol;
+        _team2PlayersColorTable[15] = variant[1][3] ? variant[1][3] : (uint16_t)team2->prSocksCol;
     }
 
     /* Team 2 skin 0: convert sprites 530-630 */

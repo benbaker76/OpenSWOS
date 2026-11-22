@@ -32,6 +32,8 @@ int32_t KitVariants_MatchRule(void);
 
 /* A kit colour byte -> its colour index (0-9 the base colours, then the variants), or -1. */
 int32_t KitVariants_ColourIndex(uint8_t colour);
+/* A kit colour byte's colour (Amiga 12-bit 0x0RGB): a variant's own; 0 for a base colour. */
+uint16_t KitVariants_Rgb12(uint8_t colour);
 /* EXTENDED: 1 when the two kit colour bytes are too alike. */
 int32_t KitVariants_Similar(uint8_t colour1, uint8_t colour2);
 

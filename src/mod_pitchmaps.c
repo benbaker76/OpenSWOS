@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "kit_palette.h"
 #include "mod_api.h"
 #include "mjson.h"              /* a package's package.json */
 #include "mods.h"               /* Mods_Count, Mods_Dir: maps a mod carries */
@@ -500,6 +501,8 @@ static void PitchMap_Bake(void)
      * tier's donated palette entries, then the kits. */
     JagGfx_RemapDonated(s_pm.sit, (uint32_t)CELLS * TILE_BYTES);
     JagGfx_RemapDonated(s_pm.stand, (uint32_t)CELLS * TILE_BYTES);
+    KitPalette_RemapPitch(s_pm.sit, (uint32_t)CELLS * TILE_BYTES);     /* (kit_palette.c) */
+    KitPalette_RemapPitch(s_pm.stand, (uint32_t)CELLS * TILE_BYTES);
     for (cell = 0; cell < CELLS; cell++) {
         const uint8_t *mine = _s_pitchFullPtrs[cell], *pair;
         int32_t index = engine_index(mine);
@@ -837,6 +840,7 @@ static void ground_compose(void)
             for (y = 0; y < TILE_PX; y++)
                 memcpy(tile + y * TILE_PX, s_canvas + (size_t)((r - r0) * TILE_PX + y) * W + (c - c0) * TILE_PX, TILE_PX);
             JagGfx_RemapDonated(tile, TILE_BYTES);
+            KitPalette_RemapPitch(tile, TILE_BYTES);
             st = s_crowdLayer >= 0 ? ta_player_swap_state(s_pm.player, s_crowdLayer, c, r) : -1;
             if (st == 1 && (s_kitHas[cell] & 2))
                 recolour(tile, s_kit[cell][2], s_kit[cell][3]);

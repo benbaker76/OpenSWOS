@@ -5,6 +5,9 @@
  */
 #ifdef SWOS_SDL_BUILD
 #include "kit_variants.h"
+#ifdef SWOS_SDL_BUILD
+#include "kit_palette.h"
+#endif
 #include <stdlib.h>          /* (getenv: the purple test switch) */
 #endif
 #include "team_colors.h"
@@ -188,6 +191,10 @@ void TeamColors_MatchArt(void)
  * entry in a match. */
 int32_t TeamColors_PurpleInMatch(void)
 {
+#ifdef SWOS_SDL_BUILD
+    if (KitPalette_Active())       /* purple is a variant with an entry of its own (kit_palette.c) */
+        return 0;
+#endif
     const uint8_t worn = (uint8_t)(s_kitMarks[0] | s_kitMarks[1]);
     return (worn & 1) && !(worn & 2);
 }

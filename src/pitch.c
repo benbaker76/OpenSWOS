@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "kit_palette.h"
 #include "pitch.h"
 #include "game_types.h"
 #include "display.h"
@@ -247,6 +248,7 @@ static void dos_load_pitch(uint16_t mapIndex)
      * Identical colours, so nothing changes on screen (docs/PALETTE_V2.md). */
     {
         int32_t moved = JagGfx_RemapDonated(_pitchChunkyBuffer, (uint32_t)blkSize);
+        KitPalette_RemapPitch(_pitchChunkyBuffer, (uint32_t)blkSize);   /* (the kit variants' entries: kit_palette.c) */
         if (moved && getenv("SWOS_JAG_DUMP"))
             fprintf(stderr, "[jag] pitch: %d pixels moved off donated entries "
                             "(same colour, so nothing looks different)\n", moved);
@@ -649,6 +651,7 @@ void FixupAndColorPitchFile(void)
      * tier keeps for itself. Identical colours, so nothing changes on screen
      * (docs/PALETTE_V2.md). */
     JagGfx_RemapDonated(_pitchChunkyBuffer, (uint32_t)(PITCH_POINTER_COUNT * 256));
+    KitPalette_RemapPitch(_pitchChunkyBuffer, (uint32_t)(PITCH_POINTER_COUNT * 256));
 #endif
 
     }

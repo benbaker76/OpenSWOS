@@ -1070,7 +1070,10 @@ int main(int argc, char **argv)
         } else if (strcmp(a, "--menu-selftest") == 0) {
             return OnlineMenus_SelfTest();
         } else if (strcmp(a, "--kit-variants-selftest") == 0) {
-            return KitVariants_SelfTest() ? 1 : 0;      /* the kit colours' table (kit_variants.c) */
+            {   /* the kit colours' table (kit_variants.c) and their palette entries (kit_palette.c) */
+                extern int32_t KitPalette_SelfTest(void);
+                return (KitVariants_SelfTest() | KitPalette_SelfTest()) ? 1 : 0;
+            }
         } else if (strcmp(a, "--settings-menus-selftest") == 0) {
             /* SWOS 2020's OPTIONS screens and CONTROLLER SETUP (src/settings_menus.c, agent A) */
             extern int SettingsMenus_SelfTest(void);
