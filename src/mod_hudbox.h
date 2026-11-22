@@ -34,6 +34,8 @@ typedef struct {
     const uint16_t *pal16;          /* set after HudBox_Draw: colours 0..15 from this Amiga palette
                                      * (0x0RGB) -- a menu picture drawn over the match -- not the
                                      * match's; NULL the match's (HudBox_Draw sets NULL) */
+    int32_t   black;                /* set after HudBox_Draw: a palette index drawn black (SWOS 2020's
+                                     * VGA 3, whatever the match's palette has there); -1 none */
     uint8_t   bg[3];                /* HUDBOX_SOLID's colour */
     uint16_t *px;                   /* w * h: a palette index, 0xFFFF the background */
     int32_t   cap;

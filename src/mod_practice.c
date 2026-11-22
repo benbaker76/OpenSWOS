@@ -897,8 +897,19 @@ static int32_t training_key(const char *key)
     return 0;
 }
 
-/* The match's end the player's team (team 0) attacks: 1 the top goal. */
-static int32_t tr_attacks_top(void) { return s_trUp; }
+/* The match's end the player's team (team 0) attacks: 1 the top goal. From where its goalkeeper
+ * is -- in the half of the goal he keeps -- not from the UP / DOWN setting: what that setting gives
+ * the match (setup.playingUp) is the game's teamPlayingUp, and the free kicks went to the goal the
+ * team defends (Playa, 2026-11-15). The setting's side only when no keeper is found. */
+static int32_t tr_attacks_top(void)
+{
+    ModPlayer pl[22];
+    const int32_t n = ModApi_Players(pl, 22);
+    for (int32_t i = 0; i < n; i++)
+        if (pl[i].team == 0 && pl[i].index == 0)
+            return pl[i].y > 449;
+    return s_trUp;
+}
 
 static int32_t s_trTest, s_trTestOk, s_trTestDone;    /* SWOS_PRACTICE_TRAINING_TEST (below) */
 static int32_t drill_apply(int8_t d);
@@ -914,8 +925,9 @@ static void training_frame(void)
         const uint32_t f = ModApi_MatchFrames();
         if (next <= DR_GOAL_KICK_OPPO_RIGHT && f >= due) {
             if (drill_apply((int8_t)next) == 0) {
-                fprintf(stdout, "TRAINING TEST: drill %d taken at frame %u%s\n", (int)next, (unsigned)f,
-                        tries ? " (after the ball came alive)" : "");
+                fprintf(stdout, "TRAINING TEST: drill %d taken at frame %u%s (team 0 attacks the %s goal)\n",
+                        (int)next, (unsigned)f, tries ? " (after the ball came alive)" : "",
+                        tr_attacks_top() ? "top" : "bottom");
                 s_trTestOk++;
                 next++;
                 tries = 0;
@@ -979,7 +991,8 @@ static int32_t s_radarDrawn;            /* (the training test counts them) */
 static HudBox  s_radarBox;              /* drawn at the present (mod_hudbox.h): over the scroll, and the
                                          * grass under it shaded as SWOS 2020's darkened box -- it was
                                          * index + 128 in the frame, near black here (Playa) */
-enum { kRadarF = 10, kRadarX = 10, kRadarY = 20, kRadarW = 672 / kRadarF + 1, kRadarH = 898 / kRadarF + 1 };
+enum { kRadarF = 10, kRadarX = 10, kRadarY = 20, kRadarW = 672 / kRadarF + 1, kRadarH = 898 / kRadarF + 1,
+       kRadarBall = 3 };
 
 /* The radar's lines and dots at its own (0, 0) (the box's scratch frame). */
 static void radar_contents(void *ctx)
@@ -1015,7 +1028,7 @@ static void radar_contents(void *ctx)
         if (pl[i].onPitch)
             put(pl[i].x / F, pl[i].y / F, (uint8_t)(pl[i].team ? c2 : c1));
     if (ModApi_Ball(&ball) && ball.x <= 672)
-        put(ball.x / F, ball.y / F, 3);
+        put(ball.x / F, ball.y / F, kRadarBall);
 }
 
 /* RADAR IN TEAM TRAINING's box, drawn each match frame of the training (its darkened box
@@ -1028,6 +1041,8 @@ static void radar_drawn(void)
         return;
     }
     HudBox_Draw(&s_radarBox, kRadarX, kRadarY, kRadarW, kRadarH, HUDBOX_SHADE, 0, 0, 0, radar_contents, NULL);
+    s_radarBox.black = kRadarBall;      /* (the ball as SWOS 2020's: its VGA 3, black -- the Amiga
+                                         *  palette's 3 is light, the dot was hard to tell: Playa) */
     s_radarDrawn++;
 }
 

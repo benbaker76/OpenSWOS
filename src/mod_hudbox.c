@@ -71,6 +71,7 @@ void HudBox_Draw(HudBox *b, int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
     b->mode = mode;
     b->scale = 1;
     b->pal16 = NULL;
+    b->black = -1;
     b->bg[0] = r;
     b->bg[1] = g;
     b->bg[2] = bl;
@@ -108,7 +109,9 @@ void HudBox_Present(HudBox *b)
             const uint16_t c = b->px[j * w + i];
             const int32_t fx = b->x + i, fy = b->y + j;
             p[3] = 255;
-            if (c != 0xFFFF && b->pal16 && c < 16) {
+            if (c != 0xFFFF && (int32_t)c == b->black) {
+                p[0] = p[1] = p[2] = 0;
+            } else if (c != 0xFFFF && b->pal16 && c < 16) {
                 p[0] = (uint8_t)((b->pal16[c] >> 8 & 15) * 17);
                 p[1] = (uint8_t)((b->pal16[c] >> 4 & 15) * 17);
                 p[2] = (uint8_t)((b->pal16[c] & 15) * 17);
