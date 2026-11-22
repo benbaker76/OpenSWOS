@@ -106,20 +106,17 @@ static int32_t menus_extended(void)
 #endif
 }
 
+static uint8_t colour_byte(int32_t index);
+
+/* As a rainbow (kKitMenuOrder, the script's): red to pink, then white to black -- colour bytes. */
 static const uint8_t *menu_order(void)
 {
     static uint8_t order[KIT_COLOUR_COUNT];
     static int32_t built;
     if (!built) {
-        int32_t n = 0;
         built = 1;
-        for (int32_t b = 0; b < KIT_BASE_COLOURS; b++) {
-            order[n++] = (uint8_t)b;
-            for (int32_t v = 1; v <= 15; v++)
-                for (int32_t i = 0; i < KIT_VARIANT_COUNT; i++)
-                    if (kKitVariants[i].base == b && kKitVariants[i].var == v)
-                        order[n++] = KitColour_Make((uint8_t)b, (uint8_t)v);
-        }
+        for (int32_t i = 0; i < KIT_COLOUR_COUNT; i++)
+            order[i] = colour_byte(kKitMenuOrder[i]);
     }
     return order;
 }
@@ -408,12 +405,12 @@ int32_t KitVariants_SelfTest(void)
         const int32_t was = s_rule;
         s_rule = KIT_RULE_EXTENDED;
         if (menus_extended()) {
-            if (KitColour_StepCount() != KIT_COLOUR_COUNT || KitColour_FromStepIndex(0) != 0) {
+            if (KitColour_StepCount() != KIT_COLOUR_COUNT) {
                 fails++; fprintf(stderr, "[kit-variants] FAIL: the menus' order\n");
             }
-            for (int32_t i = 0; i < KitColour_StepCount(); i++) {
+            for (int32_t i = 0; i < KitColour_StepCount(); i++) {    /* every colour once, there and back */
                 const uint8_t c = KitColour_FromStepIndex(i);
-                if (KitColour_StepIndex(c) != i || (i && KitColour_Base(c) < KitColour_Base(KitColour_FromStepIndex(i - 1)))) {
+                if (KitColour_StepIndex(c) != i) {
                     fails++; fprintf(stderr, "[kit-variants] FAIL: step %d\n", (int)i);
                 }
             }

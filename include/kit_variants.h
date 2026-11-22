@@ -55,7 +55,7 @@ uint8_t KitColour_FromLegacy(int32_t legacy);
 /* A colour byte as it is kept: 10 as purple's variant, an unknown base as 0. */
 uint8_t KitColour_Normal(uint8_t colour);
 /* The colours the menus step through, in their order: with the EXTENDED rule on SDL all of them,
- * each base colour followed by its variants; otherwise the game's 11 (0-9 and purple). */
+ * as a rainbow (red to pink, then white to black: the script's kKitMenuOrder); otherwise the game's 11 (0-9 and purple). */
 int32_t KitColour_StepCount(void);
 int32_t KitColour_StepIndex(uint8_t colour);
 uint8_t KitColour_FromStepIndex(int32_t index);

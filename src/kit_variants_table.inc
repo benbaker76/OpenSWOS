@@ -111,6 +111,10 @@ static const uint64_t kKitSimilar[KIT_COLOUR_COUNT] = {
     0x0003CE8020012901ULL,   /* olive */
 };
 
+/* The menus' order of every colour, as a rainbow (colour indices; menu_order). */
+static const uint8_t kKitMenuOrder[KIT_COLOUR_COUNT] = { 35, 20, 4, 21, 22, 6, 18, 17, 19, 3, 15, 16, 28, 45, 9, 12, 48, 46, 47, 49, 29, 44, 38, 39, 8, 40, 42, 43, 37, 41, 25, 36, 26, 24, 7, 23, 5, 27, 34, 33, 31, 32, 30, 1, 10, 0, 11, 14, 13, 2 };
+/* (pink, salmon, red, carmine, dark red, burgundy, apricot, light orange, coral, orange, neon orange, copper, chocolate, lemon, yellow, cream, gold, beige, mustard, olive, brown, neon yellow, neon green, lime, green, mint, emerald, dark green, cyan, turquoise, teal, sky blue, azure, steel blue, light blue, royal blue, blue, navy, lilac, neon pink, purple, violet, fuchsia, white, silver, grey, dark grey, graphite, anthracite, black) */
+
 /* Colour index x colour index: their CIEDE2000 difference, rounded (255 at most) -- what the
  * clash kits pick the colour that differs most by (clash_kits.c). */
 static const uint8_t kKitDistance[KIT_COLOUR_COUNT][KIT_COLOUR_COUNT] = {

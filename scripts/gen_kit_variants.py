@@ -155,6 +155,22 @@ def load():
     return d, colours, pats
 
 
+def menu_order(colours):
+    """The order the menus step through every colour: as a rainbow -- the chromatic ones by hue
+    (red, orange, yellow, green, cyan, blue, violet, pink; light before dark in a hue), then the
+    achromatic ones from white to black."""
+    import colorsys
+    def key(i):
+        r, g, b = (v / 255 for v in rgb12_to_8(colours[i]["rgb"]))
+        h, l, _s = colorsys.rgb_to_hls(r, g, b)
+        L, A, B = lab(rgb12_to_8(colours[i]["rgb"]))
+        if math.hypot(A, B) < 12:                    # achromatic: after every colour, light first
+            return (1, -L, 0)
+        hue = (h * 360 + 20) % 360                   # (burgundy and pink with red, not split)
+        return (0, int(hue // 30), -L)               # hue in steps of 30 degrees, then light first
+    return sorted(range(len(colours)), key=key)
+
+
 def similar_rows(colours, below):
     rows = []
     for c in colours:
@@ -199,8 +215,12 @@ def make_inc(d, colours, pats):
     for c, r in zip(colours, rows):
         out.append("    0x%016XULL,   /* %s */" % (r, c["name_en"]))
     base_rows = [r & 0x3FF for r in rows[:10]]
+    order = menu_order(colours)
     out += ["};", "",
-            "/* Colour index x colour index: their CIEDE2000 difference, rounded (255 at most) -- what the",
+            "/* The menus' order of every colour, as a rainbow (colour indices; menu_order). */",
+            "static const uint8_t kKitMenuOrder[KIT_COLOUR_COUNT] = { %s };" % ", ".join(str(i) for i in order),
+            "/* (%s) */" % ", ".join(colours[i]["name_en"] for i in order)]
+    out += ["", "/* Colour index x colour index: their CIEDE2000 difference, rounded (255 at most) -- what the",
             " * clash kits pick the colour that differs most by (clash_kits.c). */",
             "static const uint8_t kKitDistance[KIT_COLOUR_COUNT][KIT_COLOUR_COUNT] = {"]
     for c in colours:
