@@ -344,7 +344,7 @@ void Bench_SecondButton(int32_t player, int32_t pressed)
     if (player < 1 || player > 2)
         return;
     for (i = 0; i < 2; i++) {
-        if (s_pending[i] && _gameStatePl == 0) {
+        if (s_pending[i] && _gameStatePl != ST_GAME_IN_PROGRESS) {   /* (stopped: the bench may open) */
             if (i == 0) _bench1Called = 1; else _bench2Called = 1;
             s_pending[i] = 0;
         }
@@ -356,7 +356,7 @@ void Bench_SecondButton(int32_t player, int32_t pressed)
             const int32_t n = team[i]->playerCoachNumber ? team[i]->playerCoachNumber : team[i]->playerNumber;
             if (n != player)
                 continue;
-            if (_gameStatePl != 0)
+            if (_gameStatePl == ST_GAME_IN_PROGRESS)  /* (the ball in play: at the next stop) */
                 s_pending[i] = 1;
             else if (i == 0)
                 _bench1Called = 1;

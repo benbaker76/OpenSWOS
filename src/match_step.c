@@ -96,7 +96,7 @@ void MatchStep_LocalBenchButton(int32_t player, int32_t pressed)
         return;
 
     for (i = 0; i < 2; i++) {
-        if (s_pending[i] && _gameStatePl == 0) {
+        if (s_pending[i] && _gameStatePl != ST_GAME_IN_PROGRESS) {   /* (stopped: the bench may open) */
             callBench(i);
             s_pending[i] = 0;
         }
@@ -105,7 +105,7 @@ void MatchStep_LocalBenchButton(int32_t player, int32_t pressed)
         for (i = 0; i < 2; i++) {
             if (MatchStep_TeamOwner(team[i]) != player)
                 continue;
-            if (_gameStatePl != 0)
+            if (_gameStatePl == ST_GAME_IN_PROGRESS)  /* (the ball in play: at the next stop) */
                 s_pending[i] = 1;
             else
                 callBench(i);
