@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "team_colors.h"
 #include "squad_extras.h"
 #include "long_bench.h"
 #include "player_looks.h"
@@ -957,13 +958,14 @@ void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
         _stadiumMenuLittlePlayerSpriteCopy.srcSprite =SPR_LITTLE_PLAYER_GOALIE;
         _stadiumMenuLittlePlayerSpriteCopy.colTable[11] = 11;
         _stadiumMenuLittlePlayerSpriteCopy.colTable[10] = 10;
-        _stadiumMenuLittlePlayerSpriteCopy.colTable[14] = (uint16_t)team->prShortsCol;
-        _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = (uint16_t)team->prSocksCol;
+        _stadiumMenuLittlePlayerSpriteCopy.colTable[14] = TeamColors_PartEntry(team, 2, (uint16_t)team->prShortsCol, 1);
+        _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = TeamColors_PartEntry(team, 3, (uint16_t)team->prSocksCol, 1);
     } else {
         /* Outfield player */
         _stadiumMenuLittlePlayerSpriteCopy.srcSprite =_littlePlayersSpriteTable[team->prShirtType];
-        uint16_t col1 = (uint16_t)team->prShirtCol;
-        uint16_t col2 = (uint16_t)team->prStripesCol;
+        /* (a kit variant in its menu entry: team_colors.c TeamColors_PartEntry) */
+        uint16_t col1 = TeamColors_PartEntry(team, 0, (uint16_t)team->prShirtCol, 1);
+        uint16_t col2 = TeamColors_PartEntry(team, 1, (uint16_t)team->prStripesCol, 1);
         if (team->prShirtType == SHIRT_VERTICAL_STRIPES) {
             uint16_t tmp = col1;
             col1 = col2;
@@ -971,8 +973,8 @@ void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
         }
         _stadiumMenuLittlePlayerSpriteCopy.colTable[11] = col1;
         _stadiumMenuLittlePlayerSpriteCopy.colTable[10] = col2;
-        _stadiumMenuLittlePlayerSpriteCopy.colTable[14] = (uint16_t)team->prShortsCol;
-        _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = (uint16_t)team->prSocksCol;
+        _stadiumMenuLittlePlayerSpriteCopy.colTable[14] = TeamColors_PartEntry(team, 2, (uint16_t)team->prShortsCol, 1);
+        _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = TeamColors_PartEntry(team, 3, (uint16_t)team->prSocksCol, 1);
     }
 
     /* Set skin color from player's face2 field (a long bench's page: its place's -- long_bench.c) */

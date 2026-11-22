@@ -8,7 +8,8 @@
 #ifdef SWOS_SDL_BUILD
 #include "kit_palette.h"
 #endif
-#include <stdlib.h>          /* (getenv: the purple test switch) */
+#include <stdlib.h>
+#include <string.h>          /* (getenv: the purple test switch) */
 #endif
 #include "team_colors.h"
 #include "game_types.h"
@@ -229,7 +230,55 @@ int32_t TeamColors_PurpleInMatch(void)
 static uint8_t s_kitWorn[2][5];
 const uint8_t *TeamColors_Worn(const TeamGame *team)
 {
-    return team == &_topTeamInGame ? s_kitWorn[0] : team == &_bottomTeamInGame ? s_kitWorn[1] : 0;
+    const uint8_t *w = team == &_topTeamInGame ? s_kitWorn[0] : team == &_bottomTeamInGame ? s_kitWorn[1] : 0;
+    /* Only what this team's kit was made from: a replay, the highlights or a recording put the
+     * in-game team in place without converting a kit, and the bytes left are another match's. */
+    if (!w || team->prShirtType != KitPattern_Base(w[0]) ||
+        team->prShirtCol != ConvertTeamColor(w[1]) ||
+        team->prStripesCol != ConvertTeamColor(KitPattern_Base(w[0]) != SHIRT_ORDINARY ? w[2] : w[1]) ||
+        team->prShortsCol != ConvertTeamColor(w[3]) || team->prSocksCol != ConvertTeamColor(w[4]))
+        return 0;
+    return w;
+}
+
+/* A part of a side's kit as worn (0 shirt, 1 its second colour, 2 shorts, 3 socks): its colour byte,
+ * or -1 when the in-game team was not made from a kit (TeamColors_Worn). */
+static int32_t worn_part(const TeamGame *team, int32_t part)
+{
+    const uint8_t *w = TeamColors_Worn(team);
+    if (!w || part < 0 || part > 3)
+        return -1;
+    return part == 0 ? w[1] : part == 1 ? (KitPattern_Base(w[0]) != SHIRT_ORDINARY ? w[2] : w[1]) : w[part + 1];
+}
+
+/* The palette entry a part of a side's kit is drawn in -- `base`, the in-game team's own, unless
+ * the part is a variant the match draws: in the match palette (KitPalette_Entry) for what is drawn
+ * over the pitch (the scoreboard's kits, the result's), in the menu palette (TeamColors_MenuEntry)
+ * for the line-up before the match. */
+uint16_t TeamColors_PartEntry(const TeamGame *team, int32_t part, uint16_t base, int32_t menu)
+{
+#ifdef SWOS_SDL_BUILD
+    const int32_t colour = worn_part(team, part);
+    if (colour < 0 || KitVariants_ColourIndex((uint8_t)colour) < 10 || !KitPalette_Active())
+        return base;
+    if (menu)
+        return TeamColors_MenuEntry((uint8_t)colour);
+    {
+        const uint16_t own = KitPalette_Entry((uint8_t)colour);
+        return own ? own : base;
+    }
+#else
+    (void)team; (void)part; (void)menu;
+    return base;
+#endif
+}
+
+/* A recording's kits as they were worn (replay_v2.c, its "KVAR"): the in-game team is in place. */
+void TeamColors_SetWorn(const TeamGame *team, const uint8_t kit[5])
+{
+    uint8_t *w = team == &_topTeamInGame ? s_kitWorn[0] : team == &_bottomTeamInGame ? s_kitWorn[1] : 0;
+    if (w)
+        memcpy(w, kit, 5);
 }
 
 uint16_t __attribute__((used, externally_visible))

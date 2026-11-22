@@ -31,6 +31,7 @@
  * with the sub-pixel scroll on) is left clear, so it stays bright. Drawing only: no sprite, no match
  * state changes. SDL builds.
  */
+#include "team_colors.h"
 #include "mod_api.h"
 
 #ifdef SWOS_SDL_BUILD
@@ -132,8 +133,10 @@ static void kit(int32_t x, int32_t y, const TeamGame *t, int32_t scale)
     for (int32_t j = 0; j <= 7 * scale; j++)
         for (int32_t i = 0; i <= 7 * scale; i++) {
             const char c = art[j / scale][i / scale];
-            const int32_t col = c == '1' ? t->prShirtCol : c == '2' ? t->prStripesCol :
-                                c == '3' ? t->prShortsCol : c == '+' ? 19 : -1;
+            const int32_t col = c == '1' ? TeamColors_PartEntry(t, 0, (uint16_t)t->prShirtCol, 0)
+                              : c == '2' ? TeamColors_PartEntry(t, 1, (uint16_t)t->prStripesCol, 0)
+                              : c == '3' ? TeamColors_PartEntry(t, 2, (uint16_t)t->prShortsCol, 0)
+                              : c == '+' ? 19 : -1;     /* (a kit variant in its own entry) */
             if (col >= 0)
                 put(x + i, y + j, argb_of(col));
         }
