@@ -28,6 +28,12 @@ MODS["speedrun"] = [
     "starsMap",                                 # the difficulty picker: each level's stars
     "trophiesMap",                              # ... and its trophy
     "arrows_default_scaled_Map",                # ... FREE TEAM CHOICE's arrow
+    # SWOS United's SWOS 2020 screens (src/united_speedrun.c) draw from this mod's too:
+    "ball_8x8_5x1_Map",                         # SPEEDRUN: beside 1 / 3 / 10 GOALS
+    "check_12x13_2x1_Map",                      # ... MATCH
+    "header_and_tackle_16x22_2x1_Map",          # ... HEADER, TACKLE
+    "cards_24x15_5x1_Map",                      # ... YELLOW CARD, RED CARD
+    "arrows_12x12_13x1_Map",                    # LEADERBOARD: the yellow arrows (left 6, right 2)
 ]
 MODS["challenges"] = [
     "starsMap",                                 # the editor: DIFFICULTY

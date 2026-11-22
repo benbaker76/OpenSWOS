@@ -69,6 +69,8 @@ void HudBox_Draw(HudBox *b, int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
     b->w = w;
     b->h = h;
     b->mode = mode;
+    b->scale = 1;
+    b->pal16 = NULL;
     b->bg[0] = r;
     b->bg[1] = g;
     b->bg[2] = bl;
@@ -106,8 +108,14 @@ void HudBox_Present(HudBox *b)
             const uint16_t c = b->px[j * w + i];
             const int32_t fx = b->x + i, fy = b->y + j;
             p[3] = 255;
-            if (c != 0xFFFF) {
+            if (c != 0xFFFF && b->pal16 && c < 16) {
+                p[0] = (uint8_t)((b->pal16[c] >> 8 & 15) * 17);
+                p[1] = (uint8_t)((b->pal16[c] >> 4 & 15) * 17);
+                p[2] = (uint8_t)((b->pal16[c] & 15) * 17);
+            } else if (c != 0xFFFF) {
                 Platform_PaletteRgb(c, &p[0], &p[1], &p[2]);
+            } else if (b->mode == HUDBOX_CLEAR) {
+                p[0] = p[1] = p[2] = p[3] = 0;
             } else if (b->mode == HUDBOX_SOLID) {
                 p[0] = b->bg[0];
                 p[1] = b->bg[1];
@@ -124,7 +132,8 @@ void HudBox_Present(HudBox *b)
     Gfx_UpdateTexture(b->tex, b->rgba, w * 4);
     const GfxSpace space = Gfx_Space();
     const GfxBlend blend = Gfx_Blend();
-    const SDL_FRect dst = { (float)b->x, (float)b->y, (float)w, (float)h };
+    const int32_t k = b->scale > 1 ? b->scale : 1;
+    const SDL_FRect dst = { (float)b->x, (float)b->y, (float)(w * k), (float)(h * k) };
     Gfx_SetSpace(GFX_SPACE_PICTURE);
     Gfx_SetBlend(GFX_BLEND_ALPHA);
     Gfx_DrawTexture(b->tex, NULL, &dst);

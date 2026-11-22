@@ -238,10 +238,10 @@ static void frame_time(char *out, size_t cap, uint32_t frames)   /* (getFrameTim
  * scroll and flickered as the camera moved, in black where SWOS 2020's are its VGA palette's 180
  * (putPixelDirect(..., 180): 8, 8, 8 of 63, a dark grey) -- Playa, 2026-11-12. The result's band
  * is shaded as SWOS 2020's result band. */
-static HudBox s_boxTime, s_boxTarget, s_boxLevel, s_boxResult;
+static HudBox s_boxTime, s_boxTarget, s_boxLevel, s_boxResult, s_boxTrophy;
 enum { kGrey = 32 };                    /* (VGA 8 of 63) */
 
-typedef struct { const char *text[3]; int32_t x[3], y[3], small[3], centre[3], n; } BoxText;
+typedef struct { const char *text[3]; int32_t x[3], y[3], small[3], centre[3], n, level; } BoxText;
 
 static void box_contents(void *ctx)
 {
@@ -249,8 +249,17 @@ static void box_contents(void *ctx)
     for (int32_t i = 0; i < t->n; i++) {
         if (!t->text[i])
             continue;
-        int32_t x = t->x[i] - (t->centre[i] ? ModApi_TextWidth(t->text[i], t->small[i]) / 2 : 0);
+        const int32_t tw = ModApi_TextWidth(t->text[i], t->small[i]);
+        int32_t x = t->x[i] - (t->centre[i] ? tw / 2 : 0);
         ModApi_DrawText(x < 0 ? 0 : x, t->y[i], 2 /* kWhiteText2 */, t->text[i], t->small[i]);
+        if (i == 0 && t->level >= 0 && t->level < 5) {
+            /* the difficulty's stars before its name (SWOS 2020's completion board); its trophy is
+             * over the penalty spot (sr_trophy) */
+            static const int8_t kTrophy[5] = { 1, 3, 5, 4, 8 };
+            const int32_t k = t->level, starsW = 8 + 6 * k;
+            (void)kTrophy;
+            ModApi_DrawMap("speedrun", "starsMap", x - 4 - starsW, t->y[i] - 2, 0, 10 * (1 + 2 * k), starsW, 10, 0);
+        }
     }
 }
 
@@ -259,6 +268,7 @@ static void box_one(HudBox *b, int32_t x, int32_t y, int32_t w, int32_t h, const
 {
     BoxText t;
     memset(&t, 0, sizeof t);
+    t.level = -1;
     t.n = 1;
     t.text[0] = text;
     t.x[0] = tx;
@@ -274,6 +284,39 @@ static void sr_off(void)
     HudBox_Off(&s_boxTarget);
     HudBox_Off(&s_boxLevel);
     HudBox_Off(&s_boxResult);
+    HudBox_Off(&s_boxTrophy);
+}
+
+/* A completed run: the difficulty's trophy by the top penalty spot (336, 187, where the camera rests
+ * by the stand), centred on it a little above, as SWOS 2020's completion screen has it, in
+ * the menus' colours, three times its 16 x 14 (Playa) -- with the completion banner. */
+static void trophy_contents(void *ctx)
+{
+    static const int8_t kTrophy[5] = { 1, 3, 5, 4, 8 };
+    const int32_t k = *(const int32_t *)ctx;
+    ModApi_DrawMap("speedrun", "trophiesMap", 0, 0, 0, 14 * kTrophy[k], 16, 14, 0);
+}
+
+static void sr_trophy(void)
+{
+    int16_t cx, cy;
+    int32_t level = s_level;
+    if (!s_done || level < 0 || level > 4) {
+        HudBox_Off(&s_boxTrophy);
+        return;
+    }
+    /* (the menus' palette, SWOS2.s menuPalette: the trophies are menu pictures) */
+    static const uint16_t kMenuPalette[16] = { 0x001, 0xAAB, 0xFFF, 0x102, 0x621, 0xA40, 0xF71, 0x667,
+                                               0x204, 0x445, 0xF00, 0x00F, 0x702, 0x88F, 0x380, 0xFF0 };
+    ModApi_Camera(&cx, &cy);
+    enum { kScale = 3 };                /* (three times its 16 x 14: Playa) */
+    /* each trophy's own middle (twice it: they sit at their cell's left, 8 to 13 wide) on the spot's
+     * x, so it is centred on the spot and over the completion board (Playa) */
+    static const int8_t kMid2X[5] = { 7, 8, 12, 12, 12 }, kMid2Y[5] = { 14, 14, 11, 12, 11 };
+    HudBox_Draw(&s_boxTrophy, 336 - cx - kMid2X[level] * kScale / 2, 182 - cy - kMid2Y[level] * kScale / 2, 16, 14,
+                HUDBOX_CLEAR, 0, 0, 0, trophy_contents, &level);
+    s_boxTrophy.pal16 = kMenuPalette;
+    s_boxTrophy.scale = kScale;
 }
 
 static void sr_drawn(void)
@@ -295,10 +338,15 @@ static void sr_drawn(void)
         box_one(&s_boxLevel, right - 90, 19, 81, 8, kLevelName[s_level], 40, 1, 1);
     else
         HudBox_Off(&s_boxLevel);
-    if (!s_over && !s_done) {
+    extern uint16_t _statsTimer;        /* (the statistics board: the banner gives way to it) */
+    extern uint16_t _gameState;         /* (SWOS 2020's kResultAfterTheGame: the players gone, the
+                                         *  camera up at the stand -- not before -- Playa) */
+    if ((!s_over && !s_done) || _statsTimer || _gameState != ST_RESULT_AFTER_THE_GAME) {
         HudBox_Off(&s_boxResult);
+        HudBox_Off(&s_boxTrophy);
         return;
     }
+    sr_trophy();
     /* the result: SWOS 2020's showSpeedrunShowResult, from the final whistle (its
      * kResultAfterTheGame) with the game's result still up -- its band 50 high from 220 (DOS 40
      * from 158 of 200), the whole width, or 70 % of it centred on a wide screen */
@@ -320,6 +368,7 @@ static void sr_drawn(void)
     r.y[1] = (tall ? sh - 31 : sh - 25) - top;
     r.y[2] = (tall ? sh - 17 : sh - 11) - top;
     r.text[0] = s_level >= 0 ? kLevelName[s_level] : NULL;
+    r.level = s_level;
     r.small[1] = 0;
     if (s_done) {
         r.text[1] = "*** SPEEDRUN COMPLETED ***";
@@ -340,6 +389,7 @@ static void sr_present(void)
     HudBox_Present(&s_boxTarget);
     HudBox_Present(&s_boxLevel);
     HudBox_Present(&s_boxResult);
+    HudBox_Present(&s_boxTrophy);
 }
 
 static void sr_kept(void)
@@ -348,6 +398,7 @@ static void sr_kept(void)
     HudBox_Kept(&s_boxTarget);
     HudBox_Kept(&s_boxLevel);
     HudBox_Kept(&s_boxResult);
+    HudBox_Kept(&s_boxTrophy);
 }
 
 #endif
@@ -363,8 +414,8 @@ static void sr_frame(void)
     const int32_t winner = s_whistle == 1 ? s_you : -1;
     s_whistle = 0;
     /* the game's result banner (names, score, scorers, its grid) would sit under the completion
-     * banner: from the whistle only that (Playa, 2026-11-12) */
-    ModApi_SetHideHud(MODHUD_PLAYER_NAME | MODHUD_SCORES);
+     * banner, its FULL TIME over it: from the whistle only that, as SWOS 2020's (Playa) */
+    ModApi_SetHideHud(MODHUD_PLAYER_NAME | MODHUD_RESULT);
     {
         extern void PlayEndGameWhistleSample(void);
         PlayEndGameWhistleSample();
@@ -379,7 +430,7 @@ static void sr_event(const ModMatchEvent *e)
     /* (the 90 minutes up: a run has no extra time -- FINAL_WHISTLE comes only as the match closes) */
     if ((e->kind == MODEVENT_FULL_TIME || e->kind == MODEVENT_FINAL_WHISTLE) && !s_over) {
         s_over = 1;                     /* (the result on the pitch from now: sr_drawn) */
-        ModApi_SetHideHud(MODHUD_PLAYER_NAME | MODHUD_SCORES);  /* (only it: sr_frame) */
+        ModApi_SetHideHud(MODHUD_PLAYER_NAME | MODHUD_RESULT);  /* (only it: sr_frame) */
         s_overAt = e->frame;
         if (!s_done && kTarget[s_target].kind == T_MATCH) {     /* (MATCH: won when it ends) */
             int16_t g[2];

@@ -24,12 +24,16 @@
 #ifdef SWOS_SDL_BUILD
 #include <stdint.h>
 
-enum { HUDBOX_SOLID, HUDBOX_SHADE };
+enum { HUDBOX_SOLID, HUDBOX_SHADE, HUDBOX_CLEAR };   /* (CLEAR: only what the contents drew) */
 
 struct GfxTexture;
 
 typedef struct {
     int32_t   x, y, w, h, mode;
+    int32_t   scale;                /* drawn this many times its size (HudBox_Draw sets 1) */
+    const uint16_t *pal16;          /* set after HudBox_Draw: colours 0..15 from this Amiga palette
+                                     * (0x0RGB) -- a menu picture drawn over the match -- not the
+                                     * match's; NULL the match's (HudBox_Draw sets NULL) */
     uint8_t   bg[3];                /* HUDBOX_SOLID's colour */
     uint16_t *px;                   /* w * h: a palette index, 0xFFFF the background */
     int32_t   cap;
