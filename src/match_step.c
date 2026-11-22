@@ -83,32 +83,22 @@ static void callBench(int32_t team)
  * extra: the press travels as MATCH_BENCH, which is bit 6, the same bit DOS reads the
  * second button from.
  *
- * Edge-triggered, and it defers while the ball is in play exactly as the frame step does
- * -- opening the bench mid-move is what that guard is for. */
+ * Edge-triggered, and only with the ball out of play: a press while it is in play calls
+ * nothing, then or later -- as the taps, which count only at a stoppage. */
 void MatchStep_LocalBenchButton(int32_t player, int32_t pressed)
 {
     static int32_t s_wasDown[MATCH_PLAYERS];
-    static int32_t s_pending[2];
     const TeamGeneralInfo *team[2] = { &_topTeamData, &_bottomTeamData };
     int32_t i;
 
     if (player < 1 || player > MATCH_PLAYERS)
         return;
 
-    for (i = 0; i < 2; i++) {
-        if (s_pending[i] && _gameStatePl != ST_GAME_IN_PROGRESS) {   /* (stopped: the bench may open) */
-            callBench(i);
-            s_pending[i] = 0;
-        }
-    }
-    if (pressed && !s_wasDown[player - 1]) {
+    if (pressed && !s_wasDown[player - 1] && _gameStatePl != ST_GAME_IN_PROGRESS) {
         for (i = 0; i < 2; i++) {
             if (MatchStep_TeamOwner(team[i]) != player)
                 continue;
-            if (_gameStatePl == ST_GAME_IN_PROGRESS)  /* (the ball in play: at the next stop) */
-                s_pending[i] = 1;
-            else
-                callBench(i);
+            callBench(i);
             break;
         }
     }

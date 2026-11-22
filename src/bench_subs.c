@@ -330,35 +330,27 @@ static int32_t bench_taps_off(const TeamGeneralInfo *team)
 }
 
 #ifndef SWOS_SDL_BUILD
-/* The Amiga's second fire button (input.c Input_SecondButtons), player 1 or 2: a press calls the
- * bench of the team he plays -- deferred while the ball is in play, as BenchCheckControls clears
- * a call then -- unless his CALL BENCH is TAPS ONLY (menus.c _callBench1Option/_callBench2Option).
- * SDL's is match_step.c MatchStep_LocalBenchButton. */
+/* The Amiga's second fire button (input.c Input_SecondButtons), player 1 or 2: a press with the
+ * ball out of play calls the bench of the team he plays -- one while it is in play calls nothing,
+ * then or later, as the taps -- unless his CALL BENCH is TAPS ONLY (menus.c _callBench1Option/
+ * _callBench2Option). SDL's is match_step.c MatchStep_LocalBenchButton. */
 void Bench_SecondButton(int32_t player, int32_t pressed)
 {
     extern uint16_t _callBench1Option, _callBench2Option;
-    static uint8_t s_was[2], s_pending[2];
+    static uint8_t s_was[2];
     TeamGeneralInfo *team[2] = { &_topTeamData, &_bottomTeamData };
     int32_t i;
 
     if (player < 1 || player > 2)
         return;
-    for (i = 0; i < 2; i++) {
-        if (s_pending[i] && _gameStatePl != ST_GAME_IN_PROGRESS) {   /* (stopped: the bench may open) */
-            if (i == 0) _bench1Called = 1; else _bench2Called = 1;
-            s_pending[i] = 0;
-        }
-    }
     if ((player == 1 ? _callBench1Option : _callBench2Option) == 1)
         pressed = 0;                            /* TAPS ONLY: the button is no bench */
-    if (pressed && !s_was[player - 1]) {
+    if (pressed && !s_was[player - 1] && _gameStatePl != ST_GAME_IN_PROGRESS) {
         for (i = 0; i < 2; i++) {
             const int32_t n = team[i]->playerCoachNumber ? team[i]->playerCoachNumber : team[i]->playerNumber;
             if (n != player)
                 continue;
-            if (_gameStatePl == ST_GAME_IN_PROGRESS)  /* (the ball in play: at the next stop) */
-                s_pending[i] = 1;
-            else if (i == 0)
+            if (i == 0)
                 _bench1Called = 1;
             else
                 _bench2Called = 1;
