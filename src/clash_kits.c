@@ -2,6 +2,11 @@
  * clash_kits.c -- SWOS 2020's GK/REF CLASH KITS ([graphics] clash_kits, docs/SETTINGS.md).
  *
  * The keepers' and the referee's shirt is the drop shadow's colour (palette 8, "shadow green").
+ * With KIT COLOURS extended (kit_variants.h, KitVariants_KeeperColour): the keepers always in a kit
+ * colour -- dark green, or the green / grey / orange tone that differs most from both teams when one
+ * is too alike -- and the referee black or the referee colour that differs most; by CIEDE2000, any
+ * kit colour, a variant in its own palette entry (kit_palette.c). The rest of this comment is the
+ * original rule, which ORIGINAL keeps.
  * Against a dark kit -- black, blue or burgundy shirt (and stripes, for a striped one) on either
  * side -- the keepers' changes to green (grey when either team wears green) and the referee's to
  * yellow (light blue when either wears yellow); with no clash the keepers' stays and the
@@ -34,6 +39,10 @@ int32_t g_clashKits = 1;     /* [graphics] clash_kits (main.c), on by default; o
 #ifdef SWOS_SDL_BUILD
 #include <stdio.h>
 #include "jag_graphics.h"    /* JagGfx_Enabled */
+#include "kit_variants.h"
+#include "kit_palette.h"
+#include "team_colors.h"     /* TeamColors_Worn */
+extern uint16_t ConvertTeamColor(uint16_t color);
 #include "clash_kit_masks.inc"
 
 extern uint8_t *_spriteGraphicsPtr;
@@ -54,6 +63,14 @@ static int32_t dark_kit(const TeamGame *t)
     if (t->prShirtType == 0)
         return is_dark(t->prShirtCol);
     return is_dark(t->prShirtCol) && is_dark(t->prStripesCol);
+}
+
+/* A kit colour byte's palette entry in this match: a variant's own (kit_palette.c), else the base
+ * colour's. */
+static uint8_t entry_of(uint8_t colour)
+{
+    const uint16_t own = KitPalette_Entry(colour);
+    return (uint8_t)(own ? own : ConvertTeamColor(colour));
 }
 
 static int32_t has_colour(const TeamGame *t, int16_t c)
@@ -139,9 +156,26 @@ void ClashKits_Apply(const TeamGame *team1, const TeamGame *team2)
                             "his own, the clash kit on a shirt of colour 8 if he has one\n", (int)differ);
         }
     }
-    const int32_t clash = dark_kit(team1) || dark_kit(team2);
-    const uint8_t gk  = !clash ? kJersey : has_colour(team1, kGreen)  || has_colour(team2, kGreen)  ? kGray : kGreen;
-    const uint8_t ref = !clash ? kBlack  : has_colour(team1, kYellow) || has_colour(team2, kYellow) ? kLightBlue : kYellow;
+    int32_t clash = dark_kit(team1) || dark_kit(team2);
+    uint8_t gk  = !clash ? kJersey : has_colour(team1, kGreen)  || has_colour(team2, kGreen)  ? kGray : kGreen;
+    uint8_t ref = !clash ? kBlack  : has_colour(team1, kYellow) || has_colour(team2, kYellow) ? kLightBlue : kYellow;
+    {   /* EXTENDED (kit_variants.h): by how alike the colours look -- the keepers' and the referee's
+         * each on its own, any kit colour, the one that differs most (KitVariants_KeeperColour). */
+        const uint8_t *w1 = TeamColors_Worn(team1), *w2 = TeamColors_Worn(team2);
+        if (w1 && w2 && KitPalette_Active()) {
+            uint8_t shirts[4];
+            int32_t n = 0, keeper, referee;
+            shirts[n++] = w1[1];
+            if (KitPattern_Base(w1[0]) != 0) shirts[n++] = w1[2];
+            shirts[n++] = w2[1];
+            if (KitPattern_Base(w2[0]) != 0) shirts[n++] = w2[2];
+            keeper  = KitVariants_KeeperColour(shirts, n);
+            referee = KitVariants_RefereeColour(shirts, n, keeper);
+            gk  = entry_of((uint8_t)keeper);    /* (always a colour: dark green by default) */
+            ref = referee < 0 ? kBlack  : entry_of((uint8_t)referee);
+            clash = 1;
+        }
+    }
     if (gk != kJersey) {
         recolour(kGkTeam1, kGkFrames, kGkProtected, kJersey, gk);
         recolour(kGkTeam1Reserve, kGkFrames, kGkProtected, kJersey, gk);

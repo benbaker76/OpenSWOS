@@ -263,6 +263,83 @@ uint16_t KitVariants_Rgb12(uint8_t colour)
     return index >= KIT_BASE_COLOURS ? kKitVariants[index - KIT_BASE_COLOURS].rgb : 0;
 }
 
+/* ---- clash kits (include/kit_variants.h) ---- */
+
+/* The least difference of colour index `c` to the shirts (and to `other`, a colour index, or -1). */
+static int32_t least_apart(int32_t c, const int32_t *shirt, int32_t count, int32_t other)
+{
+    int32_t least = 255;
+    for (int32_t i = 0; i < count; i++)
+        if (shirt[i] >= 0 && kKitDistance[c][shirt[i]] < least)
+            least = kKitDistance[c][shirt[i]];
+    if (other >= 0 && kKitDistance[c][other] < least)
+        least = kKitDistance[c][other];
+    return least;
+}
+
+/* Of `choices` the colour that differs most; if even that one is too alike, of every colour. */
+static int32_t most_apart(const uint8_t *choices, int32_t n, const int32_t *shirt, int32_t count, int32_t other)
+{
+    int32_t best = -1, bestApart = -1;
+    for (int32_t i = 0; i < n; i++) {
+        const int32_t apart = least_apart(choices[i], shirt, count, other);
+        if (apart > bestApart) { bestApart = apart; best = choices[i]; }
+    }
+    if (bestApart < KIT_SIMILAR_BELOW)
+        for (int32_t c = 0; c < KIT_COLOUR_COUNT; c++) {
+            const int32_t apart = least_apart(c, shirt, count, other);
+            if (apart > bestApart) { bestApart = apart; best = c; }
+        }
+    return best;
+}
+
+static uint8_t colour_byte(int32_t index)
+{
+    return index < KIT_BASE_COLOURS ? (uint8_t)index
+                                    : KitColour_Make(kKitVariants[index - KIT_BASE_COLOURS].base,
+                                                     kKitVariants[index - KIT_BASE_COLOURS].var);
+}
+
+static int32_t shirt_indices(const uint8_t *shirts, int32_t count, int32_t *out)
+{
+    int32_t n = 0;
+    for (int32_t i = 0; i < count && n < 8; i++)
+        out[n++] = KitVariants_ColourIndex(shirts[i]);
+    return n;
+}
+
+int32_t KitVariants_KeeperColour(const uint8_t *shirts, int32_t count)
+{
+    int32_t shirt[8], n = shirt_indices(shirts, count, shirt), clash = 0;
+    for (int32_t i = 0; i < n; i++)
+        clash |= shirt[i] >= 0 && ((kKitSimilar[KIT_KEEPER_DEFAULT] >> shirt[i]) & 1u);
+    if (!clash)
+        return colour_byte(KIT_KEEPER_DEFAULT);     /* his own: dark green (kit_variants.json) */
+    /* By tiers -- greens, then greys, then orange tones: of the first tier that has a colour apart
+     * from both teams, the one that differs most; failing all, any colour. */
+    for (int32_t t = 0, from = 0; t < KIT_KEEPER_TIERS; from = kKitKeeperTierEnd[t++]) {
+        int32_t best = -1, bestApart = -1;
+        for (int32_t i = from; i < kKitKeeperTierEnd[t]; i++) {
+            const int32_t apart = least_apart(kKitKeeperChoices[i], shirt, n, -1);
+            if (apart > bestApart) { bestApart = apart; best = kKitKeeperChoices[i]; }
+        }
+        if (bestApart >= KIT_SIMILAR_BELOW)
+            return colour_byte(best);
+    }
+    return colour_byte(most_apart(kKitKeeperChoices, KIT_KEEPER_CHOICES, shirt, n, -1));
+}
+
+int32_t KitVariants_RefereeColour(const uint8_t *shirts, int32_t count, int32_t keeper)
+{
+    int32_t shirt[8], n = shirt_indices(shirts, count, shirt), clash = 0;
+    const int32_t black = 2, kept = keeper >= 0 ? KitVariants_ColourIndex((uint8_t)keeper) : KIT_KEEPER_DEFAULT;
+    for (int32_t i = 0; i < n; i++)
+        clash |= shirt[i] >= 0 && ((kKitSimilar[black] >> shirt[i]) & 1u);
+    if (!clash)
+        return -1;
+    return colour_byte(most_apart(kKitRefereeChoices, KIT_REFEREE_CHOICES, shirt, n, kept));
+}
+
 int32_t KitVariants_Similar(uint8_t colour1, uint8_t colour2)
 {
     const int32_t a = KitVariants_ColourIndex(colour1), b = KitVariants_ColourIndex(colour2);
@@ -336,6 +413,24 @@ int32_t KitVariants_SelfTest(void)
             fails++; fprintf(stderr, "[kit-variants] FAIL: the original's 11 steps\n");
         }
         s_rule = was;
+    }
+    /* clash kits: the keepers in dark green unless a shirt is too alike, then another green away
+     * from it; the referee black unless a shirt is dark, then a colour away from shirts and keepers */
+    {
+        const uint8_t red[2] = { 4, 9 }, darkGreen[1] = { colour_byte(KIT_KEEPER_DEFAULT) }, black[2] = { 2, 1 };
+        const int32_t own = KitVariants_KeeperColour(red, 2);
+        const int32_t other = KitVariants_KeeperColour(darkGreen, 1);
+        const int32_t ref = KitVariants_RefereeColour(black, 2, own);
+        if (own != colour_byte(KIT_KEEPER_DEFAULT) || KitVariants_RefereeColour(red, 2, own) != -1) {
+            fails++; fprintf(stderr, "[kit-variants] FAIL: keepers' and referee's own colours\n");
+        }
+        if (other == own || KitVariants_Similar((uint8_t)other, darkGreen[0])) {
+            fails++; fprintf(stderr, "[kit-variants] FAIL: the keepers against dark green (%d)\n", (int)other);
+        }
+        if (ref < 0 || KitVariants_Similar((uint8_t)ref, 2) || KitVariants_Similar((uint8_t)ref, 1) ||
+            KitVariants_Similar((uint8_t)ref, (uint8_t)own)) {
+            fails++; fprintf(stderr, "[kit-variants] FAIL: the referee against black and white (%d)\n", (int)ref);
+        }
     }
     printf("[kit-variants] self-test %s\n", fails ? "FAILED" : "passed");
     return fails != 0;

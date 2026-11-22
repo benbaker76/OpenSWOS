@@ -131,6 +131,27 @@ def load():
     for p in pats:
         if not 1 <= p["ext"] <= 15 or not 0 <= p["fallback"] <= 3:
             sys.exit("kit_variants.json: bad pattern %r" % (p,))
+    offi = {}
+    for who in ("keeper", "referee"):
+        idx, ends = [], []
+        tiers = d.get("officials", {}).get(who, [])
+        if tiers and isinstance(tiers[0][0], int):
+            tiers = [tiers]                             # one tier
+        for tier in tiers:
+          for base, var, _name in tier:
+            found = [i for i, c in enumerate(colours) if c["base"] == base and c["var"] == var]
+            if not found:
+                sys.exit("kit_variants.json: officials.%s: no colour %d/%d" % (who, base, var))
+            idx.append(found[0])
+          ends.append(len(idx))
+        offi[who] = idx
+        offi[who + "_ends"] = ends
+    kd = d.get("officials", {}).get("keeper_default")
+    found = [i for i, c in enumerate(colours) if kd and c["base"] == kd[0] and c["var"] == kd[1]]
+    if not found:
+        sys.exit("kit_variants.json: officials.keeper_default is no colour")
+    offi["keeper_default"] = found[0]
+    d["_officials"] = offi
     return d, colours, pats
 
 
@@ -179,7 +200,26 @@ def make_inc(d, colours, pats):
         out.append("    0x%016XULL,   /* %s */" % (r, c["name_en"]))
     base_rows = [r & 0x3FF for r in rows[:10]]
     out += ["};", "",
-            "/* The 10 base colours alone, as the original's _conflictingBasicTeamColorsTable (bit j =",
+            "/* Colour index x colour index: their CIEDE2000 difference, rounded (255 at most) -- what the",
+            " * clash kits pick the colour that differs most by (clash_kits.c). */",
+            "static const uint8_t kKitDistance[KIT_COLOUR_COUNT][KIT_COLOUR_COUNT] = {"]
+    for c in colours:
+        out.append("    { " + ", ".join(str(min(255, round(ciede2000(rgb12_to_8(c["rgb"]), rgb12_to_8(o["rgb"])))))
+                                        for o in colours) + " },")
+    out += ["};", "",
+            "/* The keepers' own colour (a colour index), and the colours a keeper / the referee may change to (colour indices), clash_kits.c. */",
+            "#define KIT_KEEPER_DEFAULT   %d" % d["_officials"]["keeper_default"],
+            "#define KIT_KEEPER_CHOICES   %d" % len(d["_officials"]["keeper"]),
+            "#define KIT_REFEREE_CHOICES  %d" % len(d["_officials"]["referee"]),
+            "static const uint8_t kKitKeeperChoices[KIT_KEEPER_CHOICES] = { %s };"
+            % ", ".join(str(i) for i in d["_officials"]["keeper"]),
+            "static const uint8_t kKitRefereeChoices[KIT_REFEREE_CHOICES] = { %s };"
+            % ", ".join(str(i) for i in d["_officials"]["referee"]),
+            "/* The keepers' tiers: where each ends in kKitKeeperChoices (greens, greys, orange tones). */",
+            "#define KIT_KEEPER_TIERS     %d" % len(d["_officials"]["keeper_ends"]),
+            "static const uint8_t kKitKeeperTierEnd[KIT_KEEPER_TIERS] = { %s };"
+            % ", ".join(str(i) for i in d["_officials"]["keeper_ends"])]
+    out += ["", "/* The 10 base colours alone, as the original's _conflictingBasicTeamColorsTable (bit j =",
             " * base colour j): the table for the real Amiga and for the base colours everywhere. */",
             "static const uint16_t kKitSimilarBase[KIT_BASE_COLOURS] = {"]
     for c, r in zip(colours[:10], base_rows):
