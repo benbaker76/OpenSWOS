@@ -158,7 +158,12 @@ typedef struct {
     const char *label;
     void (*show)(char *out, int32_t cap);
     void (*change)(int32_t dir);            /* +1: fire or right, -1: left */
+    uint16_t    labelColor;                 /* its label's background, kLabel* (0: the page's grey) */
 } Row;
+
+/* A label's background (settingsPage.json's labels are grey, 7): CONTROLS tells player 1's rows
+ * from player 2's by colour as well as by name. */
+enum { kLabelGrey = 7, kLabelPlayer1 = 10, kLabelPlayer2 = 11 };
 
 typedef struct {
     const char *title;
@@ -202,6 +207,7 @@ static void page_refresh(void)
             continue;
         s_page->rows[i].show(s_values[i], kValueLen);
         label->fg = (uintptr_t)s_page->rows[i].label;
+        label->bgColor = s_page->rows[i].labelColor ? s_page->rows[i].labelColor : kLabelGrey;
         value->fg = (uintptr_t)s_values[i];
     }
     entry_at(Page_note)->fg = (uintptr_t)s_note;
@@ -474,14 +480,14 @@ static void pointer_change(int32_t dir)
 }
 
 static const Row k_controlRows[] = {
-    { "PLAYER 1",                 p1_show,         p1_change },
-    { "  SELECT JOYPAD",          select_show,     p1_select },
-    { "  CONTROLLER SETUP",       p1_setup_show,   p1_setup },
-    { "  CALL BENCH",             bench1_show,     bench1_change },
-    { "PLAYER 2",                 p2_show,         p2_change },
-    { "  SELECT JOYPAD",          select_show,     p2_select },
-    { "  CONTROLLER SETUP",       p2_setup_show,   p2_setup },
-    { "  CALL BENCH",             bench2_show,     bench2_change },
+    { "PLAYER 1",                 p1_show,         p1_change,     kLabelPlayer1 },
+    { "P1 SELECT JOYPAD",         select_show,     p1_select,     kLabelPlayer1 },
+    { "P1 CONTROLLER SETUP",      p1_setup_show,   p1_setup,      kLabelPlayer1 },
+    { "P1 CALL BENCH",            bench1_show,     bench1_change, kLabelPlayer1 },
+    { "PLAYER 2",                 p2_show,         p2_change,     kLabelPlayer2 },
+    { "P2 SELECT JOYPAD",         select_show,     p2_select,     kLabelPlayer2 },
+    { "P2 CONTROLLER SETUP",      p2_setup_show,   p2_setup,      kLabelPlayer2 },
+    { "P2 CALL BENCH",            bench2_show,     bench2_change, kLabelPlayer2 },
     { "KEYBOARD KEYS",            keys_show,       keys_change },
     { "AUTO-DETECT JOYPADS",      autodetect_show, autodetect_change },
     { "DISABLE SHOULDER BUTTONS", shoulders_show,  shoulders_change },

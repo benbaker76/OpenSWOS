@@ -94,7 +94,8 @@ OPTIONS' CONTROLS row is **SETTINGS** on SDL: SWOS 2020's OPTIONS buttons -- CON
 AUDIO, GAMEPLAY (`openswos/settingsMenu`, each a page of `openswos/settingsPage`, handlers in
 `src/settings_menus.c`; docs/MENUS.md §10f). The keys screen above is CONTROLS -> KEYBOARD KEYS.
 The CONTROLS page is SWOS 2020's controlOptions.mnu (its `controls/controlOptionsMenu.cpp`)
-as rows:
+as rows -- player 1's (PLAYER 1, P1 SELECT JOYPAD, P1 CONTROLLER SETUP, P1 CALL BENCH)
+with red labels, player 2's with purple ones, the rows for both grey:
 
 | row | SWOS.ini `[input]` | what it does |
 |---|---|---|
