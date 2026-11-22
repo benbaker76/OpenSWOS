@@ -515,6 +515,8 @@ int32_t  NetplaySetup_SelfTest(void) { return 0; }
 void     NetplaySetup_ArmTieRules(int32_t armed) { (void)armed; }
 void     NetplaySetup_TakeTieRules(void) {}
 const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex) { (void)mapIndex; return NULL; }
+void     NetplaySetup_SetCallBench(int32_t p1, int32_t p2) { (void)p1; (void)p2; }
+int32_t  NetplaySetup_BenchTapsOff(int32_t player) { (void)player; return 0; }
 
 #endif /* SWOS_NETPLAY */
 #endif /* SWOS_SDL_BUILD */
