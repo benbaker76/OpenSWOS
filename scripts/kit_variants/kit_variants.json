@@ -68,7 +68,7 @@
   "keeper_default": [8, 6, "dark green"],
   "keeper": [
    [[8, 6, "dark green"], [8, 5, "emerald"], [8, 2, "lime"]],
-   [[0, 1, "silver"], [0, 2, "dark grey"]]
+   [[0, 1, "silver"]]
   ],
   "referee": [[9, 1, "neon yellow"], [7, 2, "cyan"], [6, 7, "lilac"], [3, 3, "light orange"]]
  },

@@ -343,6 +343,10 @@ int32_t KitVariants_RefereeColour(const uint8_t *shirts, int32_t count, int32_t 
     const int32_t black = 2, kept = keeper >= 0 ? KitVariants_ColourIndex((uint8_t)keeper) : KIT_KEEPER_DEFAULT;
     for (int32_t i = 0; i < n; i++)
         clash |= shirt[i] >= 0 && ((kKitSimilar[black] >> shirt[i]) & 1u);
+    /* A keeper who had to change to a colour too like black (navy, burgundy, black itself ...): the
+     * referee changes too. Not for the keepers' own dark green, beside his black as ever. */
+    if (kept >= 0 && kept != KIT_KEEPER_DEFAULT && ((kKitSimilar[black] >> kept) & 1u))
+        clash = 1;
     if (!clash)
         return -1;
     return colour_byte(most_apart(kKitRefereeChoices, KIT_REFEREE_CHOICES, shirt, n, kept));
@@ -438,6 +442,12 @@ int32_t KitVariants_SelfTest(void)
         if (ref < 0 || KitVariants_Similar((uint8_t)ref, 2) || KitVariants_Similar((uint8_t)ref, 1) ||
             KitVariants_Similar((uint8_t)ref, (uint8_t)own)) {
             fails++; fprintf(stderr, "[kit-variants] FAIL: the referee against black and white (%d)\n", (int)ref);
+        }
+        {   /* a keeper in black (his last resort): the referee must not stay black beside him */
+            const uint8_t two[2] = { 0, 1 };
+            if (KitVariants_RefereeColour(two, 2, 2) < 0) {
+                fails++; fprintf(stderr, "[kit-variants] FAIL: the referee stays black beside a black keeper\n");
+            }
         }
     }
     /* patterns: the original's have no file of ours; one of ours without a sprite set yet none either */
