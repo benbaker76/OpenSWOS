@@ -982,7 +982,7 @@ _Static_assert(sizeof k_gameplayRows / sizeof k_gameplayRows[0] <= kRows, "a set
 /* ===================================================================== DISPLAY OPTIONS
  * (launcher options, agent B; docs/RENDERING.md "DISPLAY OPTIONS") The SWOS United Launcher's look
  * options -- SWOS 2020's command-line flags -- in the game: the menus' opacity, the pixel filter,
- * purple for brown, the improved pitch palette ([video] in SWOS.ini, Platform_SetDisplayOptions:
+ * the improved pitch palette ([video] in SWOS.ini, Platform_SetDisplayOptions:
  * at once), and the result display's and the scoreboard's settings, which are their mods'
  * ([mod.display2020], [mod.scoreboard]: OPTIONS -> MODS turns the mods on). All drawing only. */
 
@@ -1005,15 +1005,6 @@ static void filter_change(int32_t dir)
 {
     O()->pixel_filter = (int)step(O()->pixel_filter, dir, PIXEL_FILTER_COUNT);
     note(O()->renderer == PLATFORM_RENDERER_ACCEL ? "NOT WITH A SHADER PRESET (RETRO TV)" : "THE GPU RENDERER ONLY");
-    display_apply();
-}
-
-static void purple_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->purple_for_brown ? "PURPLE" : "BROWN"); }
-static void purple_change(int32_t dir)
-{
-    (void)dir;
-    O()->purple_for_brown = !O()->purple_for_brown;
-    note("FROM THE NEXT MATCH");
     display_apply();
 }
 
@@ -1077,7 +1068,6 @@ static void board_change(int32_t d)           { mod_setting_change("scoreboard",
 static const Row k_displayRows[] = {
     { "MENU OPACITY",       opacity_show,  opacity_change },
     { "PIXEL FILTER",       filter_show,   filter_change },
-    { "BROWN KITS",         purple_show,   purple_change },
     { "GK/REF CLASH KITS",  clashkits_show, clashkits_change },
     { "PITCH PALETTE",      pitchpal_show, pitchpal_change },
     { "KITS ON THE RESULT", reskits_show,  reskits_change },
@@ -1533,18 +1523,10 @@ void SettingsMenus_Show(void)
 }
 
 /* DISPLAY OPTIONS, checked without a window (launcher options, agent B): the pixel filters'
- * answers, purple for brown's menu colour and the improved pitch palette's green, each set and back. */
+ * answers and the improved pitch palette's green, each set and back. */
 static int DisplayOptions_SelfTest(void)
 {
-    extern uint16_t _kTeamColorsTable[];
     int fails = PixelFilter_SelfTest();
-    {
-        const uint16_t maroon = _kTeamColorsTable[6];
-        TeamColors_SetPurpleForMaroon(1);
-        if (_kTeamColorsTable[6] != _kTeamColorsTable[10]) { fails++; fprintf(stderr, "[settings-selftest] FAIL: purple for brown: maroon's menu colour is not purple's\n"); }
-        TeamColors_SetPurpleForMaroon(0);
-        if (_kTeamColorsTable[6] != maroon) { fails++; fprintf(stderr, "[settings-selftest] FAIL: purple for brown not put back\n"); }
-    }
     {
         uint8_t was[768], now[768];
         for (int type = 0; type < 7; type++) {

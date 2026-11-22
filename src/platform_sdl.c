@@ -26,7 +26,6 @@
 #include "dos_graphics.h"    /* DosGfx_BuildPalette */
 #include "build_info.h"      /* the commit, in the window title */
 #include "pixel_filter.h"    /* [video] pixel_filter (launcher options, agent B) */
-#include "team_colors.h"     /* [video] purple_for_brown */
 #include "match_setup.h"     /* [video] improved_pitch_palette */
 #include "gpu_slang.h"       /* (a shader preset is a filter of its own) */
 
@@ -1863,7 +1862,6 @@ void Platform_SetDisplayOptions(const PlatformInitOptions *o)
     a = a < 0 ? 0 : a > 100 ? 100 : a;
     s_menu_alpha = (a * 255 + 50) / 100;
     s_pixel_filter = o->pixel_filter > 0 && o->pixel_filter < PIXEL_FILTER_COUNT ? o->pixel_filter : 0;
-    TeamColors_SetPurpleForMaroon(o->purple_for_brown);
     _gImprovedPitchPalette = o->improved_pitch_palette ? 1 : 0;
 }
 

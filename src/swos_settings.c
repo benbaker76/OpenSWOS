@@ -180,8 +180,6 @@ static int handler_launcher_b(PlatformInitOptions *opts, const char *section, co
     if (eqi(name, "menu_opacity")) {
         int n = atoi(value);
         if (n >= 0 && n <= 100) opts->menu_opacity = n;
-    } else if (eqi(name, "purple_for_brown") && parse_bool(value, &b)) {
-        opts->purple_for_brown = b;
     } else if (eqi(name, "improved_pitch_palette") && parse_bool(value, &b)) {
         opts->improved_pitch_palette = b;
     } else if (eqi(name, "pixel_filter")) {
@@ -983,10 +981,6 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
             "; menus): 100 solid, less lets the backdrop or the background picture show through them.\n"
             "; Their text and frames stay solid. Menus only, never a match.", opacity };
     }
-    SETTING(n) = (IniEntry){ "video", "purple_for_brown",
-        "; purple_for_brown: true | false -- every maroon (brown) kit drawn purple, in the menus and\n"
-        "; in a match (the SWOS 2020 launcher's \"Purple instead of Brown\"). Drawing only.",
-        opts->purple_for_brown ? "true" : "false" };
     SETTING(n) = (IniEntry){ "video", "improved_pitch_palette",
         "; improved_pitch_palette: true | false -- SWOS 2020's: the wet and soft pitches' stripes show\n"
         "; (their second grass colour a little lighter). Drawing only.",

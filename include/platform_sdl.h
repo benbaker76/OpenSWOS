@@ -230,7 +230,6 @@ typedef struct {
     /* ---- launcher options (agent B): DISPLAY OPTIONS (src/settings_menus.c, src/display_options.c) ---- */
     int                    menu_opacity;         /* [video] menu_opacity: 0-100, the menus' coloured parts over
                                                   * the backdrop (SWOS 2020's --alpha-blending-menu); 100 opaque */
-    int                    purple_for_brown;     /* [video] purple_for_brown: maroon kits drawn purple */
     int                    improved_pitch_palette; /* [video] improved_pitch_palette: SWOS 2020's wet/soft stripes */
     int                    pixel_filter;         /* [video] pixel_filter: PIXEL_FILTER_* (include/pixel_filter.h) */
 } PlatformInitOptions;
@@ -249,7 +248,7 @@ void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h);
 /* 1 while a true-colour backdrop is set: the menus' backdrop panel is MENU_BACKDROP_KEY. */
 int  Platform_MenuBackdropOn(void);
 /* ---- launcher options (agent B) ---- */
-/* DISPLAY OPTIONS: the menus' opacity, the pixel filter, purple for brown and the improved pitch
+/* DISPLAY OPTIONS: the menus' opacity, the pixel filter and the improved pitch
  * palette, from the options (at Platform_Init, and when a row changes one). Drawing only. */
 void Platform_SetDisplayOptions(const PlatformInitOptions *o);
 /* One colour of the palette the screen is drawn in, by index. */
