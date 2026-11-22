@@ -890,7 +890,8 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "graphics", "clash_kits",     /* (SWOS 2020 port, agent D) */
         "; clash_kits: true | false -- SWOS 2020's GK/REF CLASH KITS: when either team wears a dark\n"
         "; kit (black, blue, burgundy), both keepers change to green (grey if a team wears green)\n"
-        "; and the referee to yellow (light blue if a team wears yellow). Only how they look.",
+        "; and the referee to yellow (light blue if a team wears yellow). Only how they look.\n"
+        "; On by default, as in SWOS 2020 (DISPLAY OPTIONS: GK/REF CLASH KITS).",
         opts->clash_kits ? "true" : "false" };
     SETTING(n) = (IniEntry){ "graphics", "kit_art",
         "; kit_art: amiga | jaguar. The shirts, shorts and socks drawn on the UNIFORM\n"

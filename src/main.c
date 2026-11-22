@@ -707,6 +707,7 @@ int main(int argc, char **argv)
     opts.vsync      = 0;          /* default off — opt-in only */
     opts.subpixel_scroll = 1;     /* default on — smooth sub-pixel scrolling */
     opts.scaling_smooth  = 1;     /* default on — even pixels at a non-integer scale */
+    opts.clash_kits      = 1;     /* default on, as SWOS 2020's GK/REF CLASH KITS */
     opts.crt_mask = 0;            /* CRT effects all default OFF — opt-in */
     opts.crt_mask_strength = 45;
     opts.crt_vignette = 0;

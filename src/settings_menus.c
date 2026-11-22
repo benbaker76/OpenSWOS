@@ -982,6 +982,19 @@ static void pitchpal_change(int32_t dir)
 }
 
 /* A mod's setting, cycled through its choices (`choices` NULL: off / on). */
+/* SWOS 2020's GK/REF CLASH KITS ([graphics] clash_kits, clash_kits.c): the keepers and the referee
+ * in a colour that stands out against a dark kit. Taken at the next match's sprites. */
+static void clashkits_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->clash_kits ? "ON" : "OFF"); }
+static void clashkits_change(int32_t dir)
+{
+    extern int32_t g_clashKits;
+    (void)dir;
+    O()->clash_kits = !O()->clash_kits;
+    g_clashKits = O()->clash_kits;
+    note("KEEPERS AND REFEREE, FROM THE NEXT MATCH");
+    save();
+}
+
 static void mod_setting_show(const char *slug, const char *key, const char *fallback, char *o, int32_t c)
 {
     if (!Mods_IsOn(slug)) {
@@ -1030,6 +1043,7 @@ static const Page k_displayPage = { "DISPLAY OPTIONS", k_displayRows, (int32_t)(
 /* ===================================================================== RULES
  * The tweaks that change the original's rules (include/tweaks.h): the contest fix and SWOS 2020's
  * league rules, ON by default; the stronger keepers and the CPU's tactics (launcher options).
+    { "GK/REF CLASH KITS",  clashkits_show, clashkits_change },
  * Every one is OFF LINE ONLY: an online match, and the test rigs, play the original. */
 
 #if SWOS_TWEAK_FIXES
