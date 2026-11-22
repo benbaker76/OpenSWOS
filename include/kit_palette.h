@@ -13,6 +13,8 @@ int32_t  KitPalette_RemapPitch(uint8_t *pixels, uint32_t count);
 void     KitPalette_NewMatch(void);
 /* The entry a kit colour byte is drawn in this match; 0 = the base colour's own. */
 uint16_t KitPalette_Entry(uint8_t colour);
+/* The pitch condition's colours are in: a variant too like the grass is drawn a little lighter or darker. */
+void     KitPalette_PitchApplied(void);
 int32_t  KitPalette_SelfTest(void);
 
 #endif

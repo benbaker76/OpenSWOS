@@ -3,6 +3,9 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#ifdef SWOS_SDL_BUILD
+#include "kit_palette.h"
+#endif
 #include "long_bench.h"
 #include "match_setup.h"
 #include "dos_sound.h"
@@ -869,6 +872,9 @@ void ApplyPitchPaletteAndFactors(void)
         /* The Jaguar sprites' shadow is the PITCH in shade, so it is re-made from
          * the grass this match is played on (jag_graphics.c). No-op otherwise. */
         JagGfx_PitchApplied();
+#ifdef SWOS_SDL_BUILD
+        KitPalette_PitchApplied();      /* (a kit variant too like this grass: a little lighter or darker) */
+#endif
 
         /* Pitch physics factors (pitchIdx >> 1 for word-indexed tables) */
         uint16_t physIdx = pitchIdx;
