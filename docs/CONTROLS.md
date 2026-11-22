@@ -104,7 +104,7 @@ as rows:
 | KEYBOARD KEYS | `key_*` | the keys screen (§1) |
 | AUTO-DETECT JOYPADS | `auto_detect_pads` | on (default): a pad plugged in later goes to a free AUTO player; off: it waits until SELECT JOYPAD |
 | DISABLE SHOULDER BUTTONS | `shoulder_buttons` | on (default, `off` in the file): the shoulders, paddles and stick clicks can be no FIRE or BENCH |
-| CALL BENCH | `call_bench` | `both` (default): the PC style's second fire button or three taps; `taps`: the button calls nothing; `button`: the taps are not counted (offline only) |
+| CALL BENCH (under each player) | `call_bench_p1`, `call_bench_p2` | how that player calls his bench in every match he plays -- offline and online, in any gameplay style: `both` (default): the second fire button or three taps (the PC's way); `taps`: three taps alone, the button calls nothing (the Amiga's); `button`: the button alone, his taps are not counted. An older `call_bench` (one for both) counts for a player without his own key |
 | STICK DEAD ZONE | `stick_deadzone` | the radius every cut-off defaults to |
 
 `pad_config` is `guid:fire:bench:x+:x-:y+:y-[:stick];...` -- a button (a mapped pad's SDL button
@@ -129,12 +129,22 @@ game and then from the game folder (`Documents\SWOS`, beside SWOS.ini; issue 28)
 A line can invert an axis too (`leftx:a0~`), but STICK is the way a player finds.
 
 **Netplay.** None of it reaches the match: it decides which device is which player and how a
-device reads, and what is read goes into the same `MATCH_*` input bits. CALL BENCH `taps`
-withholds `MATCH_BENCH` at the source (an input, so the other game plays what it gets);
-`button` changes the simulation (`_gBenchTapsOff`, `bench_subs.c`), so `input_sdl.c` sets it
-only for a match of this machine's alone -- never online, in the rigs or on the Amiga -- and
-only in the DOS style, the one with a second button. `scripts/check_netplay_compat.sh` passes
-unchanged. SWOS 2020's IMPROVED KEYBOARD CONTROL is not here: it fixes its DOS keyboard
+device reads, and what is read goes into the same `MATCH_*` input bits. The second button is
+`MATCH_BENCH` in every gameplay style (the frame step opens the bench of the player's team, the
+same on both games); CALL BENCH `taps` withholds it at the source (an input, so the other game
+plays what it gets). `button` changes the simulation -- that player's taps are not counted
+(`bench_subs.c` `bench_taps_off`, per team, by the player behind it) -- so both games must agree:
+each player's CALL BENCH travels in his lobby STATE (`LOBBY_VERSION` 8), the host puts both in
+the match setup (`SETUP_VERSION` 5) and both games play by the setup's, online and in a
+re-simulation (a setup before version 5: every tap counts). Offline it is this machine's
+(`input_sdl.c`); the rigs count every tap. `NETPLAY_COMPAT` 19.
+
+**The Amiga.** The original read no second button (only JOY0DAT/JOY1DAT and the CIAA fire bits).
+OpenSWOS reads pin 9 of each port as other Amiga games do (`input.c` `Input_SecondButtons`:
+POTGOR bit 14 port 1 / player 1, bit 10 port 0 / player 2; POTGO `$CC00`): a two-button stick, a
+Sega pad, a CD32 pad's blue button -- a mouse's right button in port 0 too. OPTIONS has P1 and
+P2 CALL BENCH (entries 29..32, the Amiga only), kept until the game is switched off like the
+other options, not in a career. SWOS 2020's IMPROVED KEYBOARD CONTROL is not here: it fixes its DOS keyboard
 polling; ours reads SDL's keys (and already lets the newer arrow win, §1).
 
 `--input-selftest` checks `pad_config` read and written back, the cut-offs and ESC PRESSING

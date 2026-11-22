@@ -21,6 +21,8 @@ extern uint8_t  _ciaa_pra;
 #define HW_JOY0DAT  (*(volatile uint16_t *)0x00DFF00A)
 #define HW_JOY1DAT  (*(volatile uint16_t *)0x00DFF00C)
 #define HW_CIAA_PRA (*(volatile uint8_t  *)0x00BFE001)
+#define HW_POTGO    (*(volatile uint16_t *)0x00DFF034)
+#define HW_POTGOR   (*(volatile uint16_t *)0x00DFF016)
 #endif
 
 /* ---- External globals (all live in SWOS2.s) ---- */
@@ -374,3 +376,26 @@ void Player2StatusProc(void)
         _pl2Direction = dir;
     }
 }
+
+#ifndef SWOS_SDL_BUILD
+/* ================================================================
+ * Input_SecondButtons  (the Amiga's CALL BENCH: not in the original)
+ *
+ * The second fire button on pin 9 of each joystick port -- a two-button stick, a Sega pad, a
+ * CD32 pad's blue button -- as other Amiga games read it (Turrican II: POTGOR bit 14). The
+ * original SWOS read only the direction and the one fire button; its bench was three taps.
+ * The pot lines are made outputs driven high (POTGO: OUTRY/DATRY for port 1, OUTLY/DATLY for
+ * port 0, nothing else touched) and a pressed button pulls its line low:
+ *   POTGOR bit 14 (DATRY)  port 1, the joystick port: player 1
+ *   POTGOR bit 10 (DATLY)  port 0, the mouse port:    player 2 (a mouse's right button there)
+ * Returns bit 0 player 1's held, bit 1 player 2's. bench_subs.c Bench_SecondButton turns a press
+ * into his team's bench call.
+ * ================================================================ */
+uint16_t Input_SecondButtons(void)
+{
+    uint16_t r;
+    HW_POTGO = 0xCC00;
+    r = HW_POTGOR;
+    return (uint16_t)(((r & 0x4000) ? 0 : 1) | ((r & 0x0400) ? 0 : 2));
+}
+#endif

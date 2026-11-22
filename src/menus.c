@@ -2209,6 +2209,11 @@ void OptionsMenuBeforeDraw(void)
 #ifdef SWOS_SDL_BUILD
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
+    /* P1 / P2 CALL BENCH (29..32): the Amiga's; here CONTROLS has them, each player's. */
+    _menuEntries[29].isInvisible = 1;
+    _menuEntries[30].isInvisible = 1;
+    _menuEntries[31].isInvisible = 1;
+    _menuEntries[32].isInvisible = 1;
     /* CONTROLS (15/16) opens SWOS 2020's OPTIONS screens (ShowControlsMenu): its name says so. */
     _menuEntries[15].fg = (uintptr_t)"SETTINGS";
     _menuEntries[16].fg = (uintptr_t)"CONTROLS, VIDEO...";
@@ -2252,17 +2257,42 @@ void OptionsMenuBeforeDraw(void)
     _menuEntries[2].upEntry = -1;            /* (FRIENDLY/DIY GAME LENGTH is the top row there) */
     _menuEntries[15].isInvisible = 1;
     _menuEntries[16].isInvisible = 1;
+    /* ... then P1 and P2 CALL BENCH (29..32, in WORLD's and MODS' places) above EXIT. */
 #ifdef AGA
     _menuEntries[14].downEntry = 18;
-    _menuEntries[19].upEntry = 18;
+    _menuEntries[18].downEntry = 30;
+    _menuEntries[30].upEntry = 18;
 #else
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
-    _menuEntries[14].downEntry = 19;
-    _menuEntries[19].upEntry = 14;
+    _menuEntries[14].downEntry = 30;
+    _menuEntries[30].upEntry = 14;
 #endif
+    _menuEntries[30].downEntry = 32;
+    _menuEntries[32].upEntry = 30;
+    _menuEntries[32].downEntry = 19;
+    _menuEntries[19].upEntry = 32;
 #endif
 }
+
+/* OPTIONS -> P1 / P2 CALL BENCH (entries 29..32, the Amiga's: SDL has them on CONTROLS,
+ * settings_menus.c): how each player calls his bench -- 0 the second fire button or three taps,
+ * 1 the taps alone, 2 the button alone. Kept until the game is switched off, like the other
+ * options (not in a career's file: it is the player's, not the career's). The button: input.c
+ * Input_SecondButtonBench; BUTTON ONLY's taps: bench_subs.c bench_taps_off. */
+uint16_t _callBench1Option, _callBench2Option;
+static void change_call_bench(int32_t player, MenuEntry *entry)
+{
+    extern int32_t _gBenchTapsOff[2];
+    uint16_t *o = player == 1 ? &_callBench1Option : &_callBench2Option;
+    *o = (uint16_t)(*o >= 2 ? 0 : *o + 1);
+    _gBenchTapsOff[player - 1] = *o == 2;
+    CallDrawMenuItem(entry);
+}
+__attribute__((used, externally_visible))
+void ChangeCallBench1(MenuEntry *entry) { change_call_bench(1, entry); }
+__attribute__((used, externally_visible))
+void ChangeCallBench2(MenuEntry *entry) { change_call_bench(2, entry); }
 
 /* OPTIONS -> PITCHES: DOS / 2020 (pitch.c, _pitchStyleOption). The next match loads
  * the set; nothing else depends on it. */

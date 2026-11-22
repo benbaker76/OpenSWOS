@@ -571,7 +571,7 @@ static int       s_padCfgCount;
 static char      s_pref[INPUTSDL_NUM_PADS][48];    /* "" auto, "keyboard", "none", guid[#n] */
 static int       s_autoDetect = 1;
 static int       s_shouldersOff = 1;
-static int       s_callBench;                       /* INPUTSDL_BENCH_* */
+static int       s_callBench[2];                    /* CALL BENCH, players 1 and 2: INPUTSDL_BENCH_* */
 static int       s_assigningAtStart;                /* InputSDL_Init: the pads already there */
 enum { INPUTSDL_BENCH_BOTH = 0, INPUTSDL_BENCH_TAPS = 1, INPUTSDL_BENCH_BUTTON = 2 };
 
@@ -725,8 +725,9 @@ int  InputSDL_AutoDetect(void)          { return s_autoDetect; }
 void InputSDL_SetAutoDetect(int on)     { s_autoDetect = on != 0; }
 int  InputSDL_ShouldersOff(void)        { return s_shouldersOff; }
 void InputSDL_SetShouldersOff(int on)   { s_shouldersOff = on != 0; }
-int  InputSDL_CallBench(void)           { return s_callBench; }
-void InputSDL_SetCallBench(int mode)    { s_callBench = mode >= 0 && mode <= 2 ? mode : 0; }
+/* CALL BENCH, each player's own (player 1, 2): how he calls his bench in every match he plays. */
+int  InputSDL_CallBench(int player)     { return s_callBench[player == 2]; }
+void InputSDL_SetCallBench(int player, int mode) { s_callBench[player == 2] = mode >= 0 && mode <= 2 ? mode : 0; }
 
 /* The device's config, NULL when it has none (all defaults). */
 static PadConfig *dev_cfg(int d)
@@ -1144,7 +1145,8 @@ void InputSDL_Configure(const PlatformInitOptions *o)
         snprintf(s_pref[1], sizeof s_pref[1], "none");          /* (and player 2 never has it) */
     s_autoDetect = o->auto_detect_pads != 0;
     s_shouldersOff = o->shoulder_buttons_off != 0;
-    InputSDL_SetCallBench(o->call_bench);
+    InputSDL_SetCallBench(1, o->call_bench);
+    InputSDL_SetCallBench(2, o->call_bench_p2);
     InputSDL_ParsePadConfig(o->pad_config);
 }
 
@@ -1155,7 +1157,8 @@ void InputSDL_StoreConfig(PlatformInitOptions *o)
         snprintf(o->pad_pref[p], sizeof o->pad_pref[p], "%s", s_pref[p][0] ? s_pref[p] : "auto");
     o->auto_detect_pads = s_autoDetect;
     o->shoulder_buttons_off = s_shouldersOff;
-    o->call_bench = s_callBench;
+    o->call_bench = s_callBench[0];
+    o->call_bench_p2 = s_callBench[1];
     InputSDL_FormatPadConfig(o->pad_config, (int)sizeof o->pad_config);
 }
 
@@ -2145,13 +2148,13 @@ void InputSDL_ReleaseAll(void)
  * X, not B: A and B are both already fire (B is also the skip button), and a button that
  * shoots and opens the bench at once is not a second button. A keyboard player keeps the
  * 'W' scancode, which is the port's bench key in both modes. */
-static int pad_secondary(int slot)
+static int pad_secondary(int slot, int player)
 {
     int d;
     if (slot < 0 || slot >= INPUTSDL_NUM_PADS)
         return 0;
     d = s_player_dev[slot];
-    if (s_callBench == INPUTSDL_BENCH_TAPS)     /* CALL BENCH: TRIPLE TAP ONLY -- the button is no bench */
+    if (s_callBench[player == 2] == INPUTSDL_BENCH_TAPS)   /* CALL BENCH: TRIPLE TAP ONLY -- the button is no bench */
         return 0;
     if (d >= 0 && dev_open(d)) {
         const int b = cfg_button(d, dev_cfg(d), 1);     /* CONTROLLER SETUP's BENCH */
@@ -2220,10 +2223,12 @@ uint8_t InputSDL_LocalMatchControls(void)
     if (left)  bits |= 0x04;    /* MATCH_LEFT  */
     if (right) bits |= 0x08;    /* MATCH_RIGHT */
     if (fire)  bits |= 0x20;    /* MATCH_FIRE  */
-    /* DOS's second button, on the wire as MATCH_BENCH -- the same bit 6 DOS reads it
-     * from. The frame step turns it into callBench for the team this player controls, so
-     * a netplay peer needs nothing else. Amiga mode never sets it. */
-    if (_gDosGameplay && !chatOff && pad_secondary(0))
+    /* The second button, on the wire as MATCH_BENCH -- the same bit 6 DOS reads it from.
+     * The frame step turns it into callBench for the team this player controls, so a
+     * netplay peer needs nothing else -- in every gameplay style (CALL BENCH: the Amiga
+     * style's too, though the original Amiga game read no second button). This game's
+     * player is player 1: his CALL BENCH. */
+    if (!chatOff && pad_secondary(0, 1))
         bits |= 0x40;          /* MATCH_BENCH */
     return bits;
 }
@@ -2453,16 +2458,19 @@ int InputSDL_SelfTest(void)
 
 void InputSDL_PostFrame(void)
 {
-    /* CALL BENCH: 2ND FIRE BUTTON ONLY -- BenchCheckControls (bench_subs.c) counts no taps. Only
-     * where there is a second button (the DOS style: the Amiga has none, so its bench stays the
-     * taps), and only in a match of this machine's alone: off for a rig's and a netplay match,
-     * both of which return below before it is set (two games must agree on what a tap does,
-     * and a recording is played by the rules it was made with). */
-    { extern int32_t _gBenchTapsOff; _gBenchTapsOff = 0; }
     /* The replay rig writes joy0Dat/joy1Dat/ciaa_pra itself, once per game
      * loop iteration. Recomputing them from the real keyboard/pads here
-     * would overwrite the recorded stick with whatever is physically held. */
-    { extern int ReplayTest_Running(void); if (ReplayTest_Running()) return; }
+     * would overwrite the recorded stick with whatever is physically held.
+     * Its matches count every tap (CALL BENCH's BUTTON ONLY is a player's, below; a
+     * netplay match takes both players' from the match setup, netplay_setup.c). */
+    {
+        extern int ReplayTest_Running(void);
+        extern int32_t _gBenchTapsOff[2];
+        if (ReplayTest_Running()) {
+            _gBenchTapsOff[0] = _gBenchTapsOff[1] = 0;
+            return;
+        }
+    }
 
     /* A held Start/R3 sends its key here, on the same terms as a press always has:
      * k_padKeys pushes from HandleEvent, which a netplay match does not stop. */
@@ -2554,12 +2562,14 @@ void InputSDL_PostFrame(void)
     if (p2_fire) _ciaa_pra &= (uint8_t)~(1u << 6);
     else         _ciaa_pra |= (uint8_t)(1u << 6);
 
-    /* DOS's second button in LOCAL play. The registers above carry what the Amiga has;
-     * this is the one input DOS has and the Amiga does not, so it goes in beside them
-     * rather than through them, and only in DOS mode. */
-    { extern int32_t _gBenchTapsOff; _gBenchTapsOff = _gDosGameplay && s_callBench == INPUTSDL_BENCH_BUTTON; }
-    if (_gDosGameplay) {
-        MatchStep_LocalBenchButton(1, split ? 0 : pad_secondary(0));
-        MatchStep_LocalBenchButton(2, pad_secondary(split ? 0 : 1));
+    /* The second button in LOCAL play. The registers above carry what the Amiga game reads;
+     * this is the one input DOS has beside them, so it goes in beside them rather than
+     * through them -- in every gameplay style (CALL BENCH, each player's own). */
+    {   /* CALL BENCH: BUTTON ONLY -- that player's taps call no bench (bench_subs.c) */
+        extern int32_t _gBenchTapsOff[2];
+        _gBenchTapsOff[0] = s_callBench[0] == INPUTSDL_BENCH_BUTTON;
+        _gBenchTapsOff[1] = s_callBench[1] == INPUTSDL_BENCH_BUTTON;
     }
+    MatchStep_LocalBenchButton(1, split ? 0 : pad_secondary(0, 1));
+    MatchStep_LocalBenchButton(2, pad_secondary(split ? 0 : 1, 2));
 }

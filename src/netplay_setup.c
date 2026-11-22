@@ -106,8 +106,8 @@ extern uint16_t _team1GoalsFirstLeg, _team2GoalsFirstLeg;
 #define NUM_TACTICS   6
 
 #define SETUP_MAGIC   0x53555020u    /* "SUP " */
-#define SETUP_VERSION 4     /* 2: the match-init seeds (_randomSeed and friends); 3: the tie rules;
-                             * 4: the host's crowd (include/pitch.h) */
+#define SETUP_VERSION 5     /* 2: the match-init seeds (_randomSeed and friends); 3: the tie rules;
+                             * 4: the host's crowd (include/pitch.h); 5: both players' CALL BENCH */
 
 /* magic, version, then the scalars, then (version 3) the tie rules, then the teams,
  * then the tactics. A version-2 setup -- a recording made before the cup rules --
@@ -122,16 +122,37 @@ extern uint16_t _team1GoalsFirstLeg, _team2GoalsFirstLeg;
  * loads them: what both games play the crowd animation on (include/pitch.h). */
 #define CROWD_BYTES   (2u + PITCH_CROWD_FILES * PITCH_CROWD_CELLS * 2u)
 
+/* (version 5) after the tie rules, one word: player 1's CALL BENCH << 8 | player 2's
+ * (0 button or taps, 1 taps only, 2 button only -- input_sdl.c INPUTSDL_BENCH_*). */
+#define BENCH_BYTES   2u
+
 uint32_t NetplaySetup_MaxBytes(void)
 {
-    return HEADER_BYTES + SCALAR_BYTES + TEAM_BYTES + TACTIC_TOTAL + CROWD_BYTES + 8;
+    return HEADER_BYTES + SCALAR_BYTES + BENCH_BYTES + TEAM_BYTES + TACTIC_TOTAL + CROWD_BYTES + 8;
+}
+
+/* CALL BENCH: each player's, for the setup this game sends (the lobby's, before Encode), and
+ * the last one applied's -- what both games play the match by. A setup before version 5 has
+ * none: every tap counts, as it always did. */
+static uint8_t s_benchSend[2], s_benchPlay[2];
+
+void NetplaySetup_SetCallBench(int32_t player1, int32_t player2)
+{
+    s_benchSend[0] = (uint8_t)(player1 >= 0 && player1 <= 2 ? player1 : 0);
+    s_benchSend[1] = (uint8_t)(player2 >= 0 && player2 <= 2 ? player2 : 0);
+}
+
+/* 1 when player 1's / 2's taps call no bench in the match being played (bench_subs.c). */
+int32_t NetplaySetup_BenchTapsOff(int32_t player)
+{
+    return player >= 1 && player <= 2 && s_benchPlay[player - 1] == 2;
 }
 
 /* The bytes a setup of `version` holds. */
 static uint32_t setup_bytes(uint16_t version)
 {
     return HEADER_BYTES + SCALAR_COUNT * 2u + (version >= 3 ? TIE_WORDS * 2u : 0u) +
-           TEAM_BYTES + TACTIC_TOTAL + (version >= 4 ? CROWD_BYTES : 0u);
+           (version >= 5 ? BENCH_BYTES : 0u) + TEAM_BYTES + TACTIC_TOTAL + (version >= 4 ? CROWD_BYTES : 0u);
 }
 
 /* The crowd of the last setup applied, and whether the next pitch loaded takes it. */
@@ -224,6 +245,7 @@ int32_t NetplaySetup_Encode(uint8_t *out, uint32_t cap)
     BE_WRITE_U16(p, _playing2ndGame);     p += 2;
     BE_WRITE_U16(p, _team1GoalsFirstLeg); p += 2;
     BE_WRITE_U16(p, _team2GoalsFirstLeg); p += 2;
+    BE_WRITE_U16(p, (uint16_t)(s_benchSend[0] << 8 | s_benchSend[1])); p += 2;   /* (version 5) */
 
     /* The two teams (NetplaySetup_WriteTeam says why bytes are right here). */
     NetplaySetup_WriteTeam(p, &_selectedTeams[0]);
@@ -353,6 +375,16 @@ int32_t NetplaySetup_Apply(const uint8_t *in, uint32_t len)
             s_tie[i] = GET();
     }
     put_tie_rules();
+    s_benchPlay[0] = s_benchPlay[1] = 0;
+    if (version >= 5) {
+        const uint16_t w = GET();
+        s_benchPlay[0] = (uint8_t)(w >> 8) <= 2 ? (uint8_t)(w >> 8) : 0;
+        s_benchPlay[1] = (uint8_t)(w & 0xFF) <= 2 ? (uint8_t)(w & 0xFF) : 0;
+        if (s_benchPlay[0] == 2 || s_benchPlay[1] == 2)
+            fprintf(stderr, "[match] call bench: player 1 %s, player 2 %s\n",
+                    s_benchPlay[0] == 2 ? "button only" : "taps count",
+                    s_benchPlay[1] == 2 ? "button only" : "taps count");
+    }
 #undef GET
 
     NetplaySetup_ReadTeam(&_selectedTeams[0], p);

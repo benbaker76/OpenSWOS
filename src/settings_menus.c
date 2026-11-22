@@ -92,8 +92,8 @@ extern int         InputSDL_AutoDetect(void);
 extern void        InputSDL_SetAutoDetect(int on);
 extern int         InputSDL_ShouldersOff(void);
 extern void        InputSDL_SetShouldersOff(int on);
-extern int         InputSDL_CallBench(void);
-extern void        InputSDL_SetCallBench(int mode);
+extern int         InputSDL_CallBench(int player);
+extern void        InputSDL_SetCallBench(int player, int mode);
 extern void        InputSDL_StoreConfig(PlatformInitOptions *o);
 extern int         InputSDL_TakeQuickSave(void);
 
@@ -421,18 +421,27 @@ static void shoulders_change(int32_t dir)
     save();
 }
 
-static void bench_show(char *o, int32_t c)
+/* CALL BENCH, each player's own: how he calls his bench in every match he plays, offline and
+ * online, in any gameplay style -- the second fire button and three taps (the PC's way), the taps
+ * alone (the Amiga's) or the button alone. Online the lobby takes it to the match setup. */
+static void bench_show_for(int player, char *o, int32_t c)
 {
     static const char *const k[3] = { "BUTTON OR TAPS", "TAPS ONLY", "BUTTON ONLY" };
-    snprintf(o, (size_t)c, "%s", k[InputSDL_CallBench()]);
+    snprintf(o, (size_t)c, "%s", k[InputSDL_CallBench(player)]);
 }
-static void bench_change(int32_t dir)
+static void bench_change_for(int player, int32_t dir)
 {
-    InputSDL_SetCallBench(step(InputSDL_CallBench(), dir, 3));
-    note(_gDosGameplay ? "THE PC STYLE'S SECOND FIRE BUTTON AND THREE TAPS"
-                       : "THE AMIGA STYLE HAS NO 2ND BUTTON: TAPS ALWAYS");
+    static const char *const k[3] = { "THE 2ND FIRE BUTTON OR THREE TAPS", "THREE TAPS, AS ON THE AMIGA",
+                                      "THE 2ND FIRE BUTTON ALONE" };
+    const int mode = (int)step(InputSDL_CallBench(player), dir, 3);
+    InputSDL_SetCallBench(player, mode);
+    note(k[mode]);
     save();
 }
+static void bench1_show(char *o, int32_t c) { bench_show_for(1, o, c); }
+static void bench1_change(int32_t dir)      { bench_change_for(1, dir); }
+static void bench2_show(char *o, int32_t c) { bench_show_for(2, o, c); }
+static void bench2_change(int32_t dir)      { bench_change_for(2, dir); }
 
 static void deadzone_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%d%%", InputSDL_StickDeadzonePercent()); }
 static void deadzone_change(int32_t dir)
@@ -468,13 +477,14 @@ static const Row k_controlRows[] = {
     { "PLAYER 1",                 p1_show,         p1_change },
     { "  SELECT JOYPAD",          select_show,     p1_select },
     { "  CONTROLLER SETUP",       p1_setup_show,   p1_setup },
+    { "  CALL BENCH",             bench1_show,     bench1_change },
     { "PLAYER 2",                 p2_show,         p2_change },
     { "  SELECT JOYPAD",          select_show,     p2_select },
     { "  CONTROLLER SETUP",       p2_setup_show,   p2_setup },
+    { "  CALL BENCH",             bench2_show,     bench2_change },
     { "KEYBOARD KEYS",            keys_show,       keys_change },
     { "AUTO-DETECT JOYPADS",      autodetect_show, autodetect_change },
     { "DISABLE SHOULDER BUTTONS", shoulders_show,  shoulders_change },
-    { "CALL BENCH",               bench_show,      bench_change },
     { "STICK DEAD ZONE",          deadzone_show,   deadzone_change },
     { "MOUSE POINTER",            pointer_show,    pointer_change },     /* (launcher options, agent A) */
 };
@@ -972,16 +982,6 @@ static void purple_change(int32_t dir)
     display_apply();
 }
 
-static void pitchpal_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->improved_pitch_palette ? "IMPROVED" : "ORIGINAL"); }
-static void pitchpal_change(int32_t dir)
-{
-    (void)dir;
-    O()->improved_pitch_palette = !O()->improved_pitch_palette;
-    note("WET AND SOFT PITCHES, FROM THE NEXT MATCH");
-    display_apply();
-}
-
-/* A mod's setting, cycled through its choices (`choices` NULL: off / on). */
 /* SWOS 2020's GK/REF CLASH KITS ([graphics] clash_kits, clash_kits.c): the keepers and the referee
  * in a colour that stands out against a dark kit. Taken at the next match's sprites. */
 static void clashkits_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->clash_kits ? "ON" : "OFF"); }
@@ -995,6 +995,16 @@ static void clashkits_change(int32_t dir)
     save();
 }
 
+static void pitchpal_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->improved_pitch_palette ? "IMPROVED" : "ORIGINAL"); }
+static void pitchpal_change(int32_t dir)
+{
+    (void)dir;
+    O()->improved_pitch_palette = !O()->improved_pitch_palette;
+    note("WET AND SOFT PITCHES, FROM THE NEXT MATCH");
+    display_apply();
+}
+
+/* A mod's setting, cycled through its choices (`choices` NULL: off / on). */
 static void mod_setting_show(const char *slug, const char *key, const char *fallback, char *o, int32_t c)
 {
     if (!Mods_IsOn(slug)) {
@@ -1033,6 +1043,7 @@ static const Row k_displayRows[] = {
     { "MENU OPACITY",       opacity_show,  opacity_change },
     { "PIXEL FILTER",       filter_show,   filter_change },
     { "BROWN KITS",         purple_show,   purple_change },
+    { "GK/REF CLASH KITS",  clashkits_show, clashkits_change },
     { "PITCH PALETTE",      pitchpal_show, pitchpal_change },
     { "KITS ON THE RESULT", reskits_show,  reskits_change },
     { "RESULT BAND",        resband_show,  resband_change },
@@ -1043,7 +1054,6 @@ static const Page k_displayPage = { "DISPLAY OPTIONS", k_displayRows, (int32_t)(
 /* ===================================================================== RULES
  * The tweaks that change the original's rules (include/tweaks.h): the contest fix and SWOS 2020's
  * league rules, ON by default; the stronger keepers and the CPU's tactics (launcher options).
-    { "GK/REF CLASH KITS",  clashkits_show, clashkits_change },
  * Every one is OFF LINE ONLY: an online match, and the test rigs, play the original. */
 
 #if SWOS_TWEAK_FIXES

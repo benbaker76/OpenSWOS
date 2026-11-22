@@ -213,7 +213,8 @@ typedef struct {
     int                    auto_detect_pads;     /* [input] auto_detect_pads (1) */
     char                   pad_config[512];      /* [input] pad_config: per pad GUID, fire/bench/cut-offs */
     int                    shoulder_buttons_off; /* [input] shoulder_buttons: 1 = off, as SWOS 2020's default */
-    int                    call_bench;           /* [input] call_bench: 0 both, 1 taps, 2 button */
+    int                    call_bench;           /* [input] call_bench_p1: player 1's CALL BENCH -- 0 both, 1 taps, 2 button */
+    int                    call_bench_p2;        /* [input] call_bench_p2: player 2's */
     int                    menu_cursor;          /* [video] menu_cursor: 0 flashing, 1 steady */
     int                    chat_controller_off;  /* [chat] controller_off: the pad steers nobody while typing */
     int                    esc_presses;          /* [netplay] esc_presses: ESCs that leave a live match, 1-3 */

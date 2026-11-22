@@ -74,6 +74,10 @@ static const char *const kQuickNames[10] = {
     "quick1", "quick2", "quick3", "quick4", "quick5", "quick6", "quick7", "quick8", "quick9", "quick0",
 };
 
+/* [input] call_bench_p1 / call_bench_p2 read: the old call_bench (one for both) only fills what
+ * they do not say, wherever its line stands in the file (a save keeps a key it no longer writes). */
+static int s_benchSeen[2];
+
 /* ---- SWOS 2020's CONTROLS MENU, menu look and MULTIPLAYER SETTINGS (SWOS 2020 port, agent A) ----
  * Read before the sections below; 1 when it was one of these keys. */
 static int handler_swos2020_controls(PlatformInitOptions *opts, const char *section,
@@ -89,8 +93,17 @@ static int handler_swos2020_controls(PlatformInitOptions *opts, const char *sect
             snprintf(opts->pad_config, sizeof opts->pad_config, "%s", value);
         else if (eqi(name, "shoulder_buttons"))
             opts->shoulder_buttons_off = !(eqi(value, "on") || eqi(value, "true") || eqi(value, "1"));
-        else if (eqi(name, "call_bench"))
+        else if (eqi(name, "call_bench")) {     /* (before each player had his own: both, unless */
+            const int m = eqi(value, "taps") ? 1 : eqi(value, "button") ? 2 : 0;   /* theirs are there) */
+            if (!s_benchSeen[0]) opts->call_bench = m;
+            if (!s_benchSeen[1]) opts->call_bench_p2 = m;
+        } else if (eqi(name, "call_bench_p1")) {
             opts->call_bench = eqi(value, "taps") ? 1 : eqi(value, "button") ? 2 : 0;
+            s_benchSeen[0] = 1;
+        } else if (eqi(name, "call_bench_p2")) {
+            opts->call_bench_p2 = eqi(value, "taps") ? 1 : eqi(value, "button") ? 2 : 0;
+            s_benchSeen[1] = 1;
+        }
         else
             return 0;
         return 1;
@@ -712,11 +725,13 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; shoulder_buttons: off | on. Off (DISABLE SHOULDER BUTTONS): the shoulder buttons and\n"
         "; stick clicks cannot be a pad's FIRE or BENCH.",
         opts->shoulder_buttons_off ? "off" : "on" };
-    SETTING(n) = (IniEntry){ "input", "call_bench",
-        "; call_bench: both | taps | button. The PC style's ways to call the bench: the second fire\n"
-        "; button or three taps (both), the taps alone, or the button alone (offline matches; the\n"
-        "; Amiga style has no second button and keeps the taps).",
+    SETTING(n) = (IniEntry){ "input", "call_bench_p1",
+        "; call_bench_p1, call_bench_p2: both | taps | button. How each player calls his bench, in\n"
+        "; every match he plays, offline and online, Amiga or PC style: the second fire button or\n"
+        "; three taps (both, the PC's way), the taps alone (the Amiga's), or the button alone.",
         opts->call_bench == 1 ? "taps" : opts->call_bench == 2 ? "button" : "both" };
+    SETTING(n) = (IniEntry){ "input", "call_bench_p2", NULL,
+        opts->call_bench_p2 == 1 ? "taps" : opts->call_bench_p2 == 2 ? "button" : "both" };
     SETTING(n) = (IniEntry){ "input", "p2_keyboard",
         "; p2_keyboard: true | false. P1 AND P2 ON KEYBOARD (OPTIONS -> CONTROLS): player 2\n"
         "; plays on this keyboard too, with p2_key_up, p2_key_down, p2_key_left, p2_key_right,\n"
