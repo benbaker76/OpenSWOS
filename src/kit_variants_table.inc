@@ -169,9 +169,9 @@ static const uint8_t kKitDistance[KIT_COLOUR_COUNT][KIT_COLOUR_COUNT] = {
 /* The keepers' own colour (a colour index), and the colours a keeper / the referee may change to (colour indices), clash_kits.c. */
 #define KIT_KEEPER_DEFAULT   43
 #define KIT_KEEPER_CHOICES   10
-#define KIT_REFEREE_CHOICES  9
+#define KIT_REFEREE_CHOICES  4
 static const uint8_t kKitKeeperChoices[KIT_KEEPER_CHOICES] = { 8, 42, 38, 39, 40, 43, 41, 0, 10, 11 };
-static const uint8_t kKitRefereeChoices[KIT_REFEREE_CHOICES] = { 44, 17, 19, 37, 36, 34, 40, 9, 7 };
+static const uint8_t kKitRefereeChoices[KIT_REFEREE_CHOICES] = { 44, 37, 34, 17 };
 /* The keepers' tiers: where each ends in kKitKeeperChoices (greens, greys). */
 #define KIT_KEEPER_TIERS     2
 static const uint8_t kKitKeeperTierEnd[KIT_KEEPER_TIERS] = { 7, 10 };

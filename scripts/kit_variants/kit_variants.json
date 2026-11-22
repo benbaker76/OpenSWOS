@@ -69,7 +69,7 @@
    [[8, 0, "green"], [8, 5, "emerald"], [8, 1, "neon green"], [8, 2, "lime"], [8, 3, "mint"], [8, 6, "dark green"], [8, 4, "turquoise"]],
    [[0, 0, "grey"], [0, 1, "silver"], [0, 2, "dark grey"]]
   ],
-  "referee": [[9, 1, "neon yellow"], [3, 3, "light orange"], [4, 1, "coral"], [7, 2, "cyan"], [7, 1, "sky blue"], [6, 7, "lilac"], [8, 3, "mint"], [9, 0, "yellow"], [7, 0, "light blue"]]
+  "referee": [[9, 1, "neon yellow"], [7, 2, "cyan"], [6, 7, "lilac"], [3, 3, "light orange"]]
  },
  "patterns": [
   {"pattern": 0, "name_en": "plain", "name_de": "einfarbig"},
