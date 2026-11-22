@@ -35,6 +35,7 @@
 #include <dirent.h>
 #include <strings.h>
 
+#include "kit_variants.h"
 #include "custom_team.h"
 #include "swos_types.h"           /* NATIONALITY_CODES */
 #include "team_packs.h"
@@ -514,11 +515,24 @@ static void put_string(Text *t, const int8_t *text, int32_t size)
     put(t, "\"");
 }
 
+/* A kit as the original knows it -- its pattern 0-3, its colours 0-9 -- and, beside it, what a
+ * game with the kit variants adds: a pattern of ours, a colour's variant (kit_variants.h). A game
+ * without them reads the base and leaves the rest. */
 static void put_kit(Text *t, const char *which, const KitLook *kit)
 {
+    static const char *const k_names[4] = { "stripes", "basic", "shorts", "socks" };
+    const uint8_t colours[4] = { kit->stripes, kit->basic, kit->shorts, kit->socks };
+    int32_t i;
+
     put(t, "    \"%s_shirt_type\": %d, \"%s_stripes_color\": %d, \"%s_basic_color\": %d, "
            "\"%s_shorts_color\": %d, \"%s_socks_color\": %d,\n",
-        which, kit->type, which, kit->stripes, which, kit->basic, which, kit->shorts, which, kit->socks);
+        which, KitPattern_Base(kit->type), which, KitColour_Base(kit->stripes), which, KitColour_Base(kit->basic),
+        which, KitColour_Base(kit->shorts), which, KitColour_Base(kit->socks));
+    if (KitPattern_Ext(kit->type))
+        put(t, "    \"%s_shirt_pattern\": %d,\n", which, KitPattern_Ext(kit->type));
+    for (i = 0; i < 4; i++)
+        if (KitColour_Var(colours[i]))
+            put(t, "    \"%s_%s_variant\": %d,\n", which, k_names[i], KitColour_Var(colours[i]));
 }
 
 static int32_t write_json(const CustomTeam *custom, char *json, size_t size)
@@ -605,9 +619,22 @@ static void json_kit(const char *json, int32_t length, const char *which, KitLoo
     char path[64];
     int32_t i;
 
+    static const char *const k_variants[5] = { "shirt_pattern", "stripes_variant", "basic_variant",
+                                               "shorts_variant", "socks_variant" };
     for (i = 0; i < 5; i++) {
+        /* (the base as the original knows it; 10 is the World 2026-27 data's purple) */
+        const uint8_t had = i == 0 ? KitPattern_Base(*value[i]) : (uint8_t)KitColour_Legacy(*value[i]);
+        const uint8_t ext = i == 0 ? KitPattern_Ext(*value[i]) : KitColour_Var(*value[i]);
+        int32_t base, more;
         snprintf(path, sizeof path, "$.team.%s_%s", which, k_fields[i]);
-        *value[i] = (uint8_t)json_int(json, length, path, 0, i == 0 ? 3 : KIT_COLOURS - 1, *value[i]);
+        base = json_int(json, length, path, 0, i == 0 ? 3 : KIT_COLOURS - 1, had);
+        snprintf(path, sizeof path, "$.team.%s_%s", which, k_variants[i]);
+        more = json_int(json, length, path, 0, 15, base == had ? ext : 0);
+        if (i == 0)
+            *value[i] = (uint8_t)(base | more << 4);
+        else
+            *value[i] = more ? KitColour_Make(KitColour_Base(KitColour_FromLegacy(base)), (uint8_t)more)
+                             : KitColour_FromLegacy(base);
     }
 }
 

@@ -41,6 +41,7 @@
  * Chunk 89: LoadTactics
  */
 
+#include "kit_variants.h"
 #include "player_face3.h"
 #include "shirt_numbers.h"
 #include "player_looks.h"
@@ -1383,7 +1384,7 @@ void InitLittlePlayerSprites(void)
 
     uint16_t basicColor = ConvertPlayerDressColor(
         (uint16_t)teamEx->team.prBasicColor);
-    if (teamEx->team.prShirtType == SHIRT_ORDINARY_VAL) {
+    if (KitPattern_Base(teamEx->team.prShirtType) == SHIRT_ORDINARY_VAL) {
         basicColor = stripesColor;
     }
     _littlePlayersConvertTable[10] = basicColor;     /* offset 0x14 */
@@ -1397,7 +1398,7 @@ void InitLittlePlayerSprites(void)
     _littlePlayersConvertTable[15] = socksColor;     /* offset 0x1E */
 
     /* Copy and colorize outfield player sprites (3 skin tones) */
-    uint16_t shirtType = (uint16_t)(int8_t)teamEx->team.prShirtType;
+    uint16_t shirtType = KitPattern_Base(teamEx->team.prShirtType);   /* (130.. per pattern: kit_variants.h) */
     uint16_t srcBase = shirtType * 3 + 130;
 
     CopyWholeSprite(srcBase, 124);
@@ -2406,9 +2407,9 @@ static void PrimaryKitColorConversionC(void)
 {
     TeamFile *tf = &_selectedTeams->team;
     uint16_t *colTable = _editTeamsPrimaryShirts.colTable;
-    uint16_t stripesCol = _kTeamColorsTable[tf->prStripesColor];
-    uint16_t basicCol = _kTeamColorsTable[tf->prBasicColor];
-    uint16_t *types = &_shirtTypesTable[tf->prShirtType * 8];
+    uint16_t stripesCol = _kTeamColorsTable[KitColour_Legacy(tf->prStripesColor)];
+    uint16_t basicCol = _kTeamColorsTable[KitColour_Legacy(tf->prBasicColor)];
+    uint16_t *types = &_shirtTypesTable[KitPattern_Base(tf->prShirtType) * 8];
     uint16_t *indices = _shirtsIndexTable;
 
     for (int16_t i = 7; i >= 0; i--) {
@@ -2420,11 +2421,11 @@ static void PrimaryKitColorConversionC(void)
     }
 
     /* Shorts */
-    uint16_t shortsCol = _kTeamColorsTable[tf->prShortsColor];
+    uint16_t shortsCol = _kTeamColorsTable[KitColour_Legacy(tf->prShortsColor)];
     _editTeamsShorts.colTable[11] = shortsCol;   /* slot 11 */
 
     /* Socks */
-    uint16_t socksCol = _kTeamColorsTable[tf->prSocksColor];
+    uint16_t socksCol = _kTeamColorsTable[KitColour_Legacy(tf->prSocksColor)];
     _editTeamsSocks.colTable[11] = socksCol;   /* slot 11 */
 }
 
@@ -2433,9 +2434,9 @@ static void SecondaryKitColorConversionC(void)
 {
     TeamFile *tf = &_selectedTeams->team;
     uint16_t *colTable = _editTeamsSecondaryShirt.colTable;
-    uint16_t stripesCol = _kTeamColorsTable[tf->secStripesColor];
-    uint16_t basicCol = _kTeamColorsTable[tf->secBasicColor];
-    uint16_t *types = &_shirtTypesTable[tf->secShirtType * 8];
+    uint16_t stripesCol = _kTeamColorsTable[KitColour_Legacy(tf->secStripesColor)];
+    uint16_t basicCol = _kTeamColorsTable[KitColour_Legacy(tf->secBasicColor)];
+    uint16_t *types = &_shirtTypesTable[KitPattern_Base(tf->secShirtType) * 8];
     uint16_t *indices = _shirtsIndexTable;
 
     for (int16_t i = 7; i >= 0; i--) {
@@ -2447,11 +2448,11 @@ static void SecondaryKitColorConversionC(void)
     }
 
     /* Shorts */
-    uint16_t shortsCol = _kTeamColorsTable[tf->secShortsColor];
+    uint16_t shortsCol = _kTeamColorsTable[KitColour_Legacy(tf->secShortsColor)];
     _editTeamsSecondaryShorts.colTable[11] = shortsCol;   /* slot 11 */
 
     /* Socks */
-    uint16_t socksCol = _kTeamColorsTable[tf->secSocksColor];
+    uint16_t socksCol = _kTeamColorsTable[KitColour_Legacy(tf->secSocksColor)];
     _editTeamsSecondarySocks.colTable[11] = socksCol;   /* slot 11 */
 }
 
@@ -2460,7 +2461,7 @@ static void MarkFirstKitShirtC(void)
 {
     TeamFile *tf = &_selectedTeams->team;
     MenuEntry *e = &_menuEntries[0x348 / 56]; /* menuEntries + $348 / 56 = entry 15 */
-    uint8_t shirtType = tf->prShirtType;
+    uint8_t shirtType = KitPattern_Base(tf->prShirtType);
 
     for (int16_t i = 3; i >= 0; i--) {
         e->bgColor = 9;  /* PINK_TO_BROWN_9 */
@@ -2475,7 +2476,7 @@ static void MarkSecondKitShirtC(void)
 {
     TeamFile *tf = &_selectedTeams->team;
     MenuEntry *e = &_menuEntries[0x428 / 56]; /* entry 19 */
-    uint8_t shirtType = tf->secShirtType;
+    uint8_t shirtType = KitPattern_Base(tf->secShirtType);
 
     for (int16_t i = 3; i >= 0; i--) {
         e->bgColor = 9;  /* PINK_TO_BROWN_9 */
@@ -2557,32 +2558,32 @@ void EditTeamsChangeShirtsPrimary(void)
     uint8_t d0;
 
     if (_controlMask == 0x41) {          /* left+fire */
-        d0 = tf->prStripesColor;
+        d0 = (uint8_t)KitColour_Legacy(tf->prStripesColor);
         d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-        tf->prStripesColor = d0;
+        tf->prStripesColor = KitColour_FromLegacy(d0);
     } else if (_controlMask == 0x81) {   /* right+fire */
-        d0 = tf->prStripesColor;
+        d0 = (uint8_t)KitColour_Legacy(tf->prStripesColor);
         d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-        tf->prStripesColor = d0;
+        tf->prStripesColor = KitColour_FromLegacy(d0);
     } else if (_controlMask == 0x101) {  /* up+fire */
-        if (tf->prShirtType == 0) {  /* SHIRT_ORDINARY */
-            d0 = tf->prStripesColor;
+        if (KitPattern_Base(tf->prShirtType) == 0) {  /* SHIRT_ORDINARY */
+            d0 = (uint8_t)KitColour_Legacy(tf->prStripesColor);
             d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-            tf->prStripesColor = d0;
+            tf->prStripesColor = KitColour_FromLegacy(d0);
         } else {
-            d0 = tf->prBasicColor;
+            d0 = (uint8_t)KitColour_Legacy(tf->prBasicColor);
             d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-            tf->prBasicColor = d0;
+            tf->prBasicColor = KitColour_FromLegacy(d0);
         }
     } else if (_controlMask == 0x201) {  /* down+fire */
-        if (tf->prShirtType == 0) {  /* SHIRT_ORDINARY */
-            d0 = tf->prStripesColor;
+        if (KitPattern_Base(tf->prShirtType) == 0) {  /* SHIRT_ORDINARY */
+            d0 = (uint8_t)KitColour_Legacy(tf->prStripesColor);
             d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-            tf->prStripesColor = d0;
+            tf->prStripesColor = KitColour_FromLegacy(d0);
         } else {
-            d0 = tf->prBasicColor;
+            d0 = (uint8_t)KitColour_Legacy(tf->prBasicColor);
             d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-            tf->prBasicColor = d0;
+            tf->prBasicColor = KitColour_FromLegacy(d0);
         }
     } else {
         return;
@@ -2601,32 +2602,32 @@ void EditTeamsChangeShirtsSecondary(void)
     uint8_t d0;
 
     if (_controlMask == 0x41) {          /* left+fire */
-        d0 = tf->secStripesColor;
+        d0 = (uint8_t)KitColour_Legacy(tf->secStripesColor);
         d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-        tf->secStripesColor = d0;
+        tf->secStripesColor = KitColour_FromLegacy(d0);
     } else if (_controlMask == 0x81) {   /* right+fire */
-        d0 = tf->secStripesColor;
+        d0 = (uint8_t)KitColour_Legacy(tf->secStripesColor);
         d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-        tf->secStripesColor = d0;
+        tf->secStripesColor = KitColour_FromLegacy(d0);
     } else if (_controlMask == 0x101) {  /* up+fire */
-        if (tf->secShirtType == 0) {
-            d0 = tf->secStripesColor;
+        if (KitPattern_Base(tf->secShirtType) == 0) {
+            d0 = (uint8_t)KitColour_Legacy(tf->secStripesColor);
             d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-            tf->secStripesColor = d0;
+            tf->secStripesColor = KitColour_FromLegacy(d0);
         } else {
-            d0 = tf->secBasicColor;
+            d0 = (uint8_t)KitColour_Legacy(tf->secBasicColor);
             d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-            tf->secBasicColor = d0;
+            tf->secBasicColor = KitColour_FromLegacy(d0);
         }
     } else if (_controlMask == 0x201) {  /* down+fire */
-        if (tf->secShirtType == 0) {
-            d0 = tf->secStripesColor;
+        if (KitPattern_Base(tf->secShirtType) == 0) {
+            d0 = (uint8_t)KitColour_Legacy(tf->secStripesColor);
             d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-            tf->secStripesColor = d0;
+            tf->secStripesColor = KitColour_FromLegacy(d0);
         } else {
-            d0 = tf->secBasicColor;
+            d0 = (uint8_t)KitColour_Legacy(tf->secBasicColor);
             d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-            tf->secBasicColor = d0;
+            tf->secBasicColor = KitColour_FromLegacy(d0);
         }
     } else {
         return;
@@ -2642,7 +2643,7 @@ __attribute__((used, externally_visible))
 void EditTeamsChangeShortsPrimary(void)
 {
     TeamFile *tf = &_selectedTeams->team;
-    uint8_t d0 = tf->prShortsColor;
+    uint8_t d0 = (uint8_t)KitColour_Legacy(tf->prShortsColor);
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
         d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
@@ -2652,7 +2653,7 @@ void EditTeamsChangeShortsPrimary(void)
         return;
     }
 
-    tf->prShortsColor = d0;
+    tf->prShortsColor = KitColour_FromLegacy(d0);
     PrimaryKitColorConversionC();
     /* nullsub_16 */
     CallDrawMultipleItems(1, &_menuEntries[0x150 / 56]);
@@ -2663,7 +2664,7 @@ __attribute__((used, externally_visible))
 void EditTeamsChangeShortsSecondary(void)
 {
     TeamFile *tf = &_selectedTeams->team;
-    uint8_t d0 = tf->secShortsColor;
+    uint8_t d0 = (uint8_t)KitColour_Legacy(tf->secShortsColor);
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
         d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
@@ -2673,7 +2674,7 @@ void EditTeamsChangeShortsSecondary(void)
         return;
     }
 
-    tf->secShortsColor = d0;
+    tf->secShortsColor = KitColour_FromLegacy(d0);
     SecondaryKitColorConversionC();
     /* nullsub_16 */
     CallDrawMultipleItems(1, &_menuEntries[0x230 / 56]);
@@ -2684,7 +2685,7 @@ __attribute__((used, externally_visible))
 void EditTeamsChangeSocksPrimary(void)
 {
     TeamFile *tf = &_selectedTeams->team;
-    uint8_t d0 = tf->prSocksColor;
+    uint8_t d0 = (uint8_t)KitColour_Legacy(tf->prSocksColor);
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
         d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
@@ -2694,7 +2695,7 @@ void EditTeamsChangeSocksPrimary(void)
         return;
     }
 
-    tf->prSocksColor = d0;
+    tf->prSocksColor = KitColour_FromLegacy(d0);
     PrimaryKitColorConversionC();
     CallDrawMultipleItems(1, &_menuEntries[0x188 / 56]);
 }
@@ -2704,7 +2705,7 @@ __attribute__((used, externally_visible))
 void EditTeamsChangeSocksSecondary(void)
 {
     TeamFile *tf = &_selectedTeams->team;
-    uint8_t d0 = tf->secSocksColor;
+    uint8_t d0 = (uint8_t)KitColour_Legacy(tf->secSocksColor);
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
         d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
@@ -2714,7 +2715,7 @@ void EditTeamsChangeSocksSecondary(void)
         return;
     }
 
-    tf->secSocksColor = d0;
+    tf->secSocksColor = KitColour_FromLegacy(d0);
     SecondaryKitColorConversionC();
     CallDrawMultipleItems(1, &_menuEntries[0x268 / 56]);
 }
@@ -2975,8 +2976,10 @@ retry:
      * back to BE before WriteFile and restore host-native after, so
      * any subsequent in-game uses of teamFileBuffer keep working. */
     {
-        uint16_t teamCount = *(uint16_t *)_teamFileBuffer;
-        uint32_t fileSize = (uint32_t)teamCount * 684 + 2;
+        /* The records as the original reads them, the kit variants after them
+         * (kit_variants.h): the teams' own kit bytes back once it is written. */
+        static uint8_t keptKits[TEAM_FILE_MAX_TEAMS * 10];
+        uint32_t fileSize = KitVariants_TeamFileWrite(_teamFileBuffer, keptKits);
 #ifdef SWOS_SDL_BUILD
         /* Convert host-native → BE in-place before write. Pre-fix bug
          * (commit e986990) used byteswap_loaded_team_file in both
@@ -2993,6 +2996,7 @@ retry:
          * (just-written bytes), so re-swap with the load-time helper. */
         byteswap_loaded_team_file();
 #endif
+        KitVariants_TeamFileRestore(_teamFileBuffer, keptKits);
         if (result != 0) {
             ShowFsErrorByCode((uint16_t)result);
             goto retry;

@@ -47,6 +47,11 @@ that team's checksum, and what the owner changed. No position, no skill, no valu
   `shirt_number`). Shirt types are 0-3 (plain, sleeves, stripes, hoops), colours 0-9 (grey,
   white, black, orange, red, blue, brown, light blue, green, yellow), faces 0-2,
   nationalities 0-154, shirt numbers 1-99.
+- A kit colour may have a variant beside it, `<kit>_<part>_variant` (1-15, e.g.
+  `"primary_stripes_variant": 2`), and a shirt a pattern of ours, `<kit>_shirt_pattern`
+  (1-15): the kit variants (`scripts/kit_variants/kit_variants.json`, `include/kit_variants.h`).
+  A game without them reads the base colour and pattern and leaves the rest. A colour of 10
+  (the World 2026-27 data's purple) is read as burgundy's purple variant.
 - A player's place in `players` is his place in the team's record; his `uuid` says which of
   the database team's players stands there.
 

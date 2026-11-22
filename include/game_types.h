@@ -662,7 +662,11 @@ typedef char _teamfileex_size_check[(sizeof(TeamFileEx) == 684) ? 1 : -1];
  * records. The original's held 93 (0xFA0E bytes); a world's file holds up to 256, all an
  * ordinal byte can number (the World 2026-27's Italy: docs/WORLD_2026_27.md, phase 2). */
 #define TEAM_FILE_MAX_TEAMS    256
-#define TEAM_FILE_BUFFER_SIZE  (2 + TEAM_FILE_MAX_TEAMS * 684)
+/* After the records a team file United writes may carry the kit variants (kit_variants.h,
+ * KitVariants_TeamFile*): "KVAR", a count word, the 10 kit bytes of each team. The original
+ * reads only the records. */
+#define TEAM_FILE_KIT_APPENDIX (4 + 2 + TEAM_FILE_MAX_TEAMS * 10)
+#define TEAM_FILE_BUFFER_SIZE  (2 + TEAM_FILE_MAX_TEAMS * 684 + TEAM_FILE_KIT_APPENDIX)
 
 /* The selected-teams roster (career "SELECT TEAMS" list), max 32. Typed alias
  * for the relocated carrier in selected_teams.c — same address as the legacy

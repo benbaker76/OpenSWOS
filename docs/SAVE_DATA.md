@@ -32,7 +32,7 @@ the same code compiles for the Amiga target. (This byte order now applies only t
 | `.DIY` | `competitionFileBuffer` (overlay at +93308) | `SaveDIYFile` | `LoadDIYFile` | DIY competition save (same layout as preset) |
 | `.TAC` | `editTacticsCurrentTactics` | `WriteTacticsFile` | `ReadTacticsFile` | Single 370-byte tactics record |
 | `.HIL` | `hilFileBuffer` | `DoSaveHighlights` | `LoadHilFile` | Match highlights ring — header + N goal frames |
-| `.EDT` | `teamFileBuffer` | `WriteFile(aCustomsEdt)` (edit_tactics.c) | `LoadFileEx(aCustomsEdt)` (teams.c) | Edited teams (`CUSTOMS.EDT`) — count word + N TeamFile records, **BE** (byte-swapped to host on load) |
+| `.EDT` | `teamFileBuffer` | `WriteFile(aCustomsEdt)` (edit_tactics.c) | `LoadFileEx(aCustomsEdt)` (teams.c) | Edited teams (`CUSTOMS.EDT`) — count word + N TeamFile records, **BE** (byte-swapped to host on load). The records hold base kit colours and patterns only, as the original reads them; kit variants follow as an appendix the original never reads: `"KVAR"`, a BE count word, each team's 10 kit bytes (`KitVariants_TeamFileWrite`, kit_variants.c) — left out when no kit has a variant, or when it would push a file the original can load (≤ 64000 bytes) past that |
 | `.CFG` (options) | — | — | — | **No such file is written or read by this port** (see ".CFG — options" below); the six option words ride inside the career/preset/DIY JSON |
 
 ---

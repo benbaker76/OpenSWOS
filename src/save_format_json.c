@@ -17,6 +17,7 @@
  * See SAVE_FORMAT_JSON.md for the migration history.
  */
 
+#include "kit_variants.h"
 #include "player_looks.h"
 #include "save_format_json.h"
 #include "mjson.h"
@@ -3295,6 +3296,18 @@ static const StructFieldDesc s_team_file_fields[] = {
     { "secondary_basic_color",   offsetof(TeamFile, secBasicColor),   0, FLD_U8 },
     { "secondary_shorts_color",  offsetof(TeamFile, secShortsColor),  0, FLD_U8 },
     { "secondary_socks_color",   offsetof(TeamFile, secSocksColor),   0, FLD_U8 },
+    /* The kit variants (kit_variants.h), beside the base the original knows: the upper nibble
+     * of the same bytes. Written after their colour, which sets the whole byte. */
+    { "primary_shirt_pattern",     offsetof(TeamFile, prShirtType),     0, FLD_NIBBLE_HI },
+    { "primary_stripes_variant",   offsetof(TeamFile, prStripesColor),  0, FLD_NIBBLE_HI },
+    { "primary_basic_variant",     offsetof(TeamFile, prBasicColor),    0, FLD_NIBBLE_HI },
+    { "primary_shorts_variant",    offsetof(TeamFile, prShortsColor),   0, FLD_NIBBLE_HI },
+    { "primary_socks_variant",     offsetof(TeamFile, prSocksColor),    0, FLD_NIBBLE_HI },
+    { "secondary_shirt_pattern",   offsetof(TeamFile, secShirtType),    0, FLD_NIBBLE_HI },
+    { "secondary_stripes_variant", offsetof(TeamFile, secStripesColor), 0, FLD_NIBBLE_HI },
+    { "secondary_basic_variant",   offsetof(TeamFile, secBasicColor),   0, FLD_NIBBLE_HI },
+    { "secondary_shorts_variant",  offsetof(TeamFile, secShortsColor),  0, FLD_NIBBLE_HI },
+    { "secondary_socks_variant",   offsetof(TeamFile, secSocksColor),   0, FLD_NIBBLE_HI },
     /* Back-compat (load-only): pre-split files used a flat kit_colors[10] array. */
     { "kit_colors",         offsetof(TeamFile, prShirtType),      10, FLD_BYTES },
     { "coach_name",         offsetof(TeamFile, coachName),        23, FLD_STR },
@@ -3419,16 +3432,26 @@ static void emit_team_file_ex_body(mjson_print_fn_t fn, void *fnd,
     jb_key_ulong(&j, "and_with_0xfe",      team[offsetof(TeamFile, andWith0xFE)]);    jb_c(&j, ',');
     jb_key_ulong(&j, "tactics",            team[offsetof(TeamFile, tactics)]);        jb_c(&j, ',');
     jb_key_ulong(&j, "league",             team[offsetof(TeamFile, league)]);         jb_c(&j, ',');
-    jb_key_ulong(&j, "primary_shirt_type",      team[offsetof(TeamFile, prShirtType)]);     jb_c(&j, ',');
-    jb_key_ulong(&j, "primary_stripes_color",   team[offsetof(TeamFile, prStripesColor)]);  jb_c(&j, ',');
-    jb_key_ulong(&j, "primary_basic_color",     team[offsetof(TeamFile, prBasicColor)]);    jb_c(&j, ',');
-    jb_key_ulong(&j, "primary_shorts_color",    team[offsetof(TeamFile, prShortsColor)]);   jb_c(&j, ',');
-    jb_key_ulong(&j, "primary_socks_color",     team[offsetof(TeamFile, prSocksColor)]);    jb_c(&j, ',');
-    jb_key_ulong(&j, "secondary_shirt_type",    team[offsetof(TeamFile, secShirtType)]);    jb_c(&j, ',');
-    jb_key_ulong(&j, "secondary_stripes_color", team[offsetof(TeamFile, secStripesColor)]); jb_c(&j, ',');
-    jb_key_ulong(&j, "secondary_basic_color",   team[offsetof(TeamFile, secBasicColor)]);   jb_c(&j, ',');
-    jb_key_ulong(&j, "secondary_shorts_color",  team[offsetof(TeamFile, secShortsColor)]);  jb_c(&j, ',');
-    jb_key_ulong(&j, "secondary_socks_color",   team[offsetof(TeamFile, secSocksColor)]);   jb_c(&j, ',');
+    {   /* the kits: the base the original knows, then what the kit variants add (kit_variants.h) */
+        static const struct { const char *base, *ext; size_t off; int32_t type; } k_kit[10] = {
+            { "primary_shirt_type",      "primary_shirt_pattern",     offsetof(TeamFile, prShirtType),     1 },
+            { "primary_stripes_color",   "primary_stripes_variant",   offsetof(TeamFile, prStripesColor),  0 },
+            { "primary_basic_color",     "primary_basic_variant",     offsetof(TeamFile, prBasicColor),    0 },
+            { "primary_shorts_color",    "primary_shorts_variant",    offsetof(TeamFile, prShortsColor),   0 },
+            { "primary_socks_color",     "primary_socks_variant",     offsetof(TeamFile, prSocksColor),    0 },
+            { "secondary_shirt_type",    "secondary_shirt_pattern",   offsetof(TeamFile, secShirtType),    1 },
+            { "secondary_stripes_color", "secondary_stripes_variant", offsetof(TeamFile, secStripesColor), 0 },
+            { "secondary_basic_color",   "secondary_basic_variant",   offsetof(TeamFile, secBasicColor),   0 },
+            { "secondary_shorts_color",  "secondary_shorts_variant",  offsetof(TeamFile, secShortsColor),  0 },
+            { "secondary_socks_color",   "secondary_socks_variant",   offsetof(TeamFile, secSocksColor),   0 },
+        };
+        for (int k = 0; k < 10; k++) {
+            const uint8_t b = team[k_kit[k].off];
+            const uint8_t ext = k_kit[k].type ? KitPattern_Ext(b) : KitColour_Var(b);
+            jb_key_ulong(&j, k_kit[k].base, k_kit[k].type ? KitPattern_Base(b) : KitColour_Base(b)); jb_c(&j, ',');
+            if (ext) { jb_key_ulong(&j, k_kit[k].ext, ext); jb_c(&j, ','); }
+        }
+    }
     jb_key_str  (&j, "coach_name", team, offsetof(TeamFile, coachName), 23);                jb_c(&j, ',');
     jb_key_ulong(&j, "player_values_dirty",     team[offsetof(TeamFile, playerValuesDirty)]); jb_c(&j, ',');
     jb_key_bytes(&j, "player_numbers", team, offsetof(TeamFile, playerNumbers), 16);
@@ -3562,6 +3585,7 @@ static int decode_team_file_ex_at(const char *s, int n, int i, uint8_t *base)
                 if (i >= n) { ok = 0; break; }
                 if (kl == 4 && memcmp(s + ks, "team", 4) == 0 && s[i] == '{') {
                     if ((i = decode_struct_at(s, n, i, team, s_team_file_fields)) < 0) { ok = 0; break; }
+                    KitVariants_NormaliseTeam((struct TeamFile *)team);   /* (10: purple's variant) */
                 } else if (kl == 7 && memcmp(s + ks, "players", 7) == 0 && s[i] == '[') {
                     int k = 0;
                     i++;
@@ -3644,6 +3668,7 @@ static void load_team_file_ex_slice(const char *buf, int buflen,
         if (kl == 4 && vt == MJSON_TOK_OBJECT &&
             memcmp(k, "team", 4) == 0) {
             load_struct_object(vs, vl, team, s_team_file_fields);
+            KitVariants_NormaliseTeam((struct TeamFile *)team);   /* (10: purple's variant) */
         } else if (kl == 7 && vt == MJSON_TOK_ARRAY &&
                    memcmp(k, "players", 7) == 0) {
             int pos2 = 0, voff2, vlen2, vt2;
@@ -4295,6 +4320,8 @@ int DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, 
 #if SWOS_WORLDS
     WorldPacks_Fix(countryNum, (struct TeamFileEx *)(teamFileBuf + 2), n);   /* (another world's: the pack's) */
 #endif
+    for (int t = 0; t < n; t++)   /* (a pack's kits too: purple as its variant, kit_variants.h) */
+        KitVariants_NormaliseTeam((struct TeamFile *)(teamFileBuf + 2 + (size_t)t * sizeof(TeamFileEx)));
     *(unsigned short *)teamFileBuf = (unsigned short)n;   /* host-native count header */
     {
         /* Announce ONCE so a test run can confirm the JSON path is live (not a

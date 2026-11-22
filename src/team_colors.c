@@ -88,7 +88,8 @@ static uint16_t s_maroonGame;           /* game palette entry 12 as loaded */
 
 static uint8_t kit_mark(uint8_t colour)
 {
-    return colour == KIT_PURPLE ? 1 : colour == KIT_MAROON ? 2 : 0;
+    const int32_t legacy = KitColour_Legacy(colour);   /* (a variant of burgundy counts as burgundy) */
+    return legacy == KIT_PURPLE ? 1 : legacy == KIT_MAROON ? 2 : 0;
 }
 
 void TeamColors_Init(void)
@@ -202,7 +203,7 @@ const uint8_t *TeamColors_Worn(const TeamGame *team)
 uint16_t __attribute__((used, externally_visible))
 ConvertTeamColor(uint16_t color)
 {
-    return (uint16_t)_shirtColorTable[color & 0xFF];
+    return (uint16_t)_shirtColorTable[KitColour_Legacy((uint8_t)color)];   /* (kit_variants.h) */
 }
 
 
@@ -218,8 +219,8 @@ AreBasicColorsConflicting(uint16_t color1, uint16_t color2)
 {
     if (KitVariants_MatchRule() == KIT_RULE_EXTENDED)   /* CIEDE2000, every colour (kit_variants.h) */
         return (int16_t)KitVariants_Similar((uint8_t)color1, (uint8_t)color2);
-    uint16_t mask = _conflictingBasicTeamColorsTable[color1 & 0xFF];
-    return (mask >> (color2 & 0xFF)) & 1;
+    uint16_t mask = _conflictingBasicTeamColorsTable[KitColour_Legacy((uint8_t)color1)];   /* (0-10) */
+    return (mask >> KitColour_Legacy((uint8_t)color2)) & 1;
 }
 
 
@@ -235,8 +236,8 @@ AreShortsAndStripeColorsConflicting(uint16_t color1, uint16_t color2)
 {
     if (KitVariants_MatchRule() == KIT_RULE_EXTENDED)   /* the same one rule for shorts and stripes */
         return (int16_t)KitVariants_Similar((uint8_t)color1, (uint8_t)color2);
-    uint16_t mask = _conflictingShortsTeamColorsTable[color1 & 0xFF];
-    return (mask >> (color2 & 0xFF)) & 1;
+    uint16_t mask = _conflictingShortsTeamColorsTable[KitColour_Legacy((uint8_t)color1)];   /* (0-10) */
+    return (mask >> KitColour_Legacy((uint8_t)color2)) & 1;
 }
 
 
@@ -268,8 +269,8 @@ GetTeamKitsSimilarityFactor(
     int16_t sim;
 
 restart:
-    st1 = (uint8_t)d0_shirtType1;
-    st2 = (uint8_t)d4_shirtType2;
+    st1 = KitPattern_Base((uint8_t)d0_shirtType1);     /* (a pattern of ours counts as its original's) */
+    st2 = KitPattern_Base((uint8_t)d4_shirtType2);
     d1 = d1_stripes1;
     d2 = d2_basic1;
     d3 = d3_shorts1;
@@ -407,8 +408,8 @@ done:
             /* Try replacing team1 stripes if striped */
             if (!replaced1) {
                 if (st1 == SHIRT_VERTICAL_STRIPES || st1 == SHIRT_HORIZONTAL_STRIPES) {
-                    if ((d1_stripes1 == tbl[0] && d2_basic1 == tbl[1]) ||
-                        (d1_stripes1 == tbl[1] && d2_basic1 == tbl[0])) {
+                    const int32_t s1 = KitColour_Legacy(d1_stripes1), b1 = KitColour_Legacy(d2_basic1);
+                    if ((s1 == tbl[0] && b1 == tbl[1]) || (s1 == tbl[1] && b1 == tbl[0])) {
                         replaced1 = 1;
                         d0_shirtType1 = SHIRT_ORDINARY;
                         d1_stripes1 = tbl[2];
@@ -420,8 +421,8 @@ done:
             /* Try replacing team2 stripes if striped */
             if (!replaced2) {
                 if (st2 == SHIRT_VERTICAL_STRIPES || st2 == SHIRT_HORIZONTAL_STRIPES) {
-                    if ((d5_stripes2 == tbl[0] && d6_basic2 == tbl[1]) ||
-                        (d5_stripes2 == tbl[1] && d6_basic2 == tbl[0])) {
+                    const int32_t s2 = KitColour_Legacy(d5_stripes2), b2 = KitColour_Legacy(d6_basic2);
+                    if ((s2 == tbl[0] && b2 == tbl[1]) || (s2 == tbl[1] && b2 == tbl[0])) {
                         replaced2 = 1;
                         d4_shirtType2 = SHIRT_ORDINARY;
                         d5_stripes2 = tbl[2];
@@ -515,7 +516,7 @@ ConvertTeamKitColors(
     uint16_t shirtType, uint8_t stripesColor, uint8_t basicColor,
     uint8_t shortsColor, uint8_t socksColor, TeamGame *team)
 {
-    int16_t st = (int16_t)(int8_t)(uint8_t)shirtType;  /* ext.w d0 (sign-extend byte to word) */
+    int16_t st = KitPattern_Base((uint8_t)shirtType);  /* (the original's pattern: kit_variants.h) */
     team->prShirtType = st;
 
     if (team == &_topTeamInGame || team == &_bottomTeamInGame) {   /* (purple: the Mod's pk_mark) */
@@ -550,7 +551,7 @@ SetTeamSecondaryColors(
     uint16_t shirtType, uint8_t stripesColor, uint8_t basicColor,
     uint8_t shortsColor, uint8_t socksColor, TeamGame *team)
 {
-    int16_t st = (int16_t)(int8_t)(uint8_t)shirtType;  /* ext.w d0 */
+    int16_t st = KitPattern_Base((uint8_t)shirtType);  /* (the original's pattern: kit_variants.h) */
     team->secShirtType = st;
 
     uint16_t col = ConvertTeamColor(stripesColor);
@@ -864,7 +865,7 @@ void SetInGameTeamsFirstKits(TeamFile *team1File, TeamFile *team2File)
 uint16_t __attribute__((used, externally_visible))
 ConvertPlayerDressColor(uint16_t color)
 {
-    /* ext.w d0: sign-extend low byte to word */
-    int16_t idx = (int16_t)(int8_t)(uint8_t)color;
-    return (uint16_t)(_shirtColorTable[idx] & 0xFF);
+    /* (ext.w d0, the original's: a byte above 127 indexed before the table -- a kit byte's
+     * variant would; kit_variants.h) */
+    return (uint16_t)(_shirtColorTable[KitColour_Legacy((uint8_t)color)] & 0xFF);
 }

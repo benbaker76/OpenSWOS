@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "kit_variants.h"
 #include "kit_art.h"
 #include "display.h"
 #include "jag_graphics.h"
@@ -144,10 +145,12 @@ void KitArt_FromTeam(const TeamFile *team, int32_t second, KitLook *out)
         out->basic = team->prBasicColor;    out->shorts = team->prShortsColor;
         out->socks = team->prSocksColor;
     }
-    /* A team file is data: keep what is drawn inside the tables it indexes. */
-    out->type &= 3;
-    out->stripes %= kTeamColours;   out->basic %= kTeamColours;
-    out->shorts %= kTeamColours;    out->socks %= kTeamColours;
+    /* A team file is data: kept as the kit bytes are kept (a variant and a pattern of ours
+     * stay, kit_variants.h); what is drawn takes their index of the tables (KitColour_Legacy,
+     * KitPattern_Base). */
+    out->type = (uint8_t)(KitPattern_Base(out->type) | KitPattern_Ext(out->type) << 4);
+    out->stripes = KitColour_Normal(out->stripes);  out->basic = KitColour_Normal(out->basic);
+    out->shorts = KitColour_Normal(out->shorts);    out->socks = KitColour_Normal(out->socks);
 }
 
 void KitArt_ToTeam(const KitLook *look, int32_t second, TeamFile *team)
@@ -202,7 +205,8 @@ static void identity(uint16_t *table)
 /* The Jaguar's: a kit pixel is (slot, shade); the slot's colour comes from the look. */
 static void draw_jag(int32_t graphic, const KitLook *look, int32_t x, int32_t y)
 {
-    const uint8_t slot[JAG_KIT_SLOTS] = { look->stripes, look->basic, look->shorts, look->socks };
+    const uint8_t slot[JAG_KIT_SLOTS] = { (uint8_t)KitColour_Legacy(look->stripes), (uint8_t)KitColour_Legacy(look->basic),
+                                          (uint8_t)KitColour_Legacy(look->shorts), (uint8_t)KitColour_Legacy(look->socks) };
     int32_t row, col;
 
     for (row = 0; row < s_jag[graphic].h; row++)
@@ -221,7 +225,7 @@ static void draw_jag(int32_t graphic, const KitLook *look, int32_t x, int32_t y)
         }
 }
 
-static int32_t player_sprite(const KitLook *look) { return _littlePlayersSpriteTable[look->type & 3]; }
+static int32_t player_sprite(const KitLook *look) { return _littlePlayersSpriteTable[KitPattern_Base(look->type)]; }
 
 void KitArt_Size(int32_t part, int32_t *w, int32_t *h)
 {
@@ -260,27 +264,27 @@ void KitArt_Draw(int32_t part, const KitLook *look, int32_t x, int32_t y, int32_
 {
     uint16_t table[16];
     int32_t jag = KitArt_Jaguar(), pw, ph, i;
-    uint16_t stripes = _kTeamColorsTable[look->stripes % kTeamColours];
-    uint16_t basic   = _kTeamColorsTable[look->basic % kTeamColours];
+    uint16_t stripes = _kTeamColorsTable[KitColour_Legacy(look->stripes)];
+    uint16_t basic   = _kTeamColorsTable[KitColour_Legacy(look->basic)];
 
     KitArt_Size(part, &pw, &ph);
     if (jag && part == KIT_ART_SHIRT)
-        ph = s_jag[kJagShirt0 + (look->type & 3)].h;
+        ph = s_jag[kJagShirt0 + KitPattern_Base(look->type)].h;
     x += (w - pw) / 2;
     y += (h - ph) / 2;
     identity(table);
 
     switch (part) {
     case KIT_ART_SHIRT:
-        if (jag) { draw_jag(kJagShirt0 + (look->type & 3), look, x, y); break; }
+        if (jag) { draw_jag(kJagShirt0 + KitPattern_Base(look->type), look, x, y); break; }
         for (i = 0; i < 8; i++)
             table[_shirtsIndexTable[i] / 2] =
-                _shirtTypesTable[(look->type & 3) * 8 + i] == 2 ? basic : stripes;
+                _shirtTypesTable[KitPattern_Base(look->type) * 8 + i] == 2 ? basic : stripes;
         draw_sprite(kSprShirt, table, x, y);
         break;
     case KIT_ART_SHORTS:
         if (jag) { draw_jag(kJagShorts, look, x, y); break; }
-        table[11] = _kTeamColorsTable[look->shorts % kTeamColours];
+        table[11] = _kTeamColorsTable[KitColour_Legacy(look->shorts)];
         draw_sprite(kSprShorts, table, x, y);
         break;
     case KIT_ART_SOCKS:
@@ -289,22 +293,22 @@ void KitArt_Draw(int32_t part, const KitLook *look, int32_t x, int32_t y, int32_
             draw_jag(kJagSockR, look, x + s_jag[kJagSockL].w + kSockGap, y);
             break;
         }
-        table[11] = _kTeamColorsTable[look->socks % kTeamColours];
+        table[11] = _kTeamColorsTable[KitColour_Legacy(look->socks)];
         draw_sprite(kSprSocks, table, x, y);
         break;
     case KIT_ART_ICON:
-        if (jag) draw_jag(kJagIcon0 + (look->type & 3), look, x, y);
-        else     draw_sprite(kSprIcon0 + (look->type & 3), table, x, y);
+        if (jag) draw_jag(kJagIcon0 + KitPattern_Base(look->type), look, x, y);
+        else     draw_sprite(kSprIcon0 + KitPattern_Base(look->type), table, x, y);
         break;
     case KIT_ART_PLAYER: {
         /* As the stadium screen dresses its little players (StadiumPlayerSpritesBeforeDraw):
          * the type-0 shirt is all one colour, and vertical stripes swap the two. */
-        uint16_t col1 = stripes, col2 = look->type == SHIRT_ORDINARY ? stripes : basic;
-        if (look->type == SHIRT_VERTICAL_STRIPES) { uint16_t t = col1; col1 = col2; col2 = t; }
+        uint16_t col1 = stripes, col2 = KitPattern_Base(look->type) == SHIRT_ORDINARY ? stripes : basic;
+        if (KitPattern_Base(look->type) == SHIRT_VERTICAL_STRIPES) { uint16_t t = col1; col1 = col2; col2 = t; }
         table[11] = col1;
         table[10] = col2;
-        table[14] = _kTeamColorsTable[look->shorts % kTeamColours];
-        table[15] = _kTeamColorsTable[look->socks % kTeamColours];
+        table[14] = _kTeamColorsTable[KitColour_Legacy(look->shorts)];
+        table[15] = _kTeamColorsTable[KitColour_Legacy(look->socks)];
         FillSkinColorConversionTable(0, table);
         draw_sprite(player_sprite(look), table, x, y);
         break;
