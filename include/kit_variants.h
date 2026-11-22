@@ -54,6 +54,14 @@ int32_t KitColour_Legacy(uint8_t colour);
 uint8_t KitColour_FromLegacy(int32_t legacy);
 /* A colour byte as it is kept: 10 as purple's variant, an unknown base as 0. */
 uint8_t KitColour_Normal(uint8_t colour);
+/* The colours the menus step through, in their order: with the EXTENDED rule on SDL all of them,
+ * each base colour followed by its variants; otherwise the game's 11 (0-9 and purple). */
+int32_t KitColour_StepCount(void);
+int32_t KitColour_StepIndex(uint8_t colour);
+uint8_t KitColour_FromStepIndex(int32_t index);
+/* The variants, in the table's order (their menu palette entries follow it): count, colour byte. */
+int32_t KitVariants_Count(void);
+uint8_t KitVariants_Byte(int32_t i);
 uint8_t KitPattern_Base(uint8_t shirtType);
 uint8_t KitPattern_Ext(uint8_t shirtType);
 

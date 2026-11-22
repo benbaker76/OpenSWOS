@@ -49,5 +49,7 @@ void TeamColors_MatchArt(void);
 void TeamColors_MatchArtEnd(void);   /* at the match's end: the art put back */
 #endif
 const uint8_t *TeamColors_Worn(const TeamGame *team);
+/* A kit colour byte's entry in the menu palette (a variant's own with the EXTENDED rule). */
+uint16_t TeamColors_MenuEntry(uint8_t colour);
 
 #endif

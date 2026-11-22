@@ -440,7 +440,8 @@ static int32_t selected_side(void)
 
 static void step(uint8_t *colour, int32_t by)
 {
-    *colour = KitColour_FromLegacy((KitColour_Legacy(*colour) + KIT_COLOURS + by) % KIT_COLOURS);   /* (kit_variants.h) */
+    const int32_t n = KitColour_StepCount();     /* (all the colours with the EXTENDED rule: kit_variants.h) */
+    *colour = KitColour_FromStepIndex((KitColour_StepIndex(*colour) + n + by) % n);
 }
 
 enum { kStripes, kBasic, kShorts, kSocks };

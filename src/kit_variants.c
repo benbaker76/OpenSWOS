@@ -95,6 +95,71 @@ uint8_t KitColour_Normal(uint8_t colour)
     return KitColour_Make(KitColour_Base(colour), KitColour_Var(colour));
 }
 
+/* ---- the menus' order of colours ---- */
+
+static int32_t menus_extended(void)
+{
+#ifdef SWOS_SDL_BUILD
+    return s_rule == KIT_RULE_EXTENDED;
+#else
+    return 0;                       /* the real Amiga: the game's 11 */
+#endif
+}
+
+static const uint8_t *menu_order(void)
+{
+    static uint8_t order[KIT_COLOUR_COUNT];
+    static int32_t built;
+    if (!built) {
+        int32_t n = 0;
+        built = 1;
+        for (int32_t b = 0; b < KIT_BASE_COLOURS; b++) {
+            order[n++] = (uint8_t)b;
+            for (int32_t v = 1; v <= 15; v++)
+                for (int32_t i = 0; i < KIT_VARIANT_COUNT; i++)
+                    if (kKitVariants[i].base == b && kKitVariants[i].var == v)
+                        order[n++] = KitColour_Make((uint8_t)b, (uint8_t)v);
+        }
+    }
+    return order;
+}
+
+int32_t KitColour_StepCount(void)
+{
+    return menus_extended() ? KIT_COLOUR_COUNT : 11;
+}
+
+int32_t KitColour_StepIndex(uint8_t colour)
+{
+    if (!menus_extended())
+        return KitColour_Legacy(colour);
+    colour = KitColour_Normal(colour);
+    for (int32_t i = 0; i < KIT_COLOUR_COUNT; i++)
+        if (menu_order()[i] == colour)
+            return i;
+    for (int32_t i = 0; i < KIT_COLOUR_COUNT; i++)       /* (an unknown variant: at its base) */
+        if (menu_order()[i] == KitColour_Base(colour))
+            return i;
+    return 0;
+}
+
+uint8_t KitColour_FromStepIndex(int32_t index)
+{
+    if (!menus_extended())
+        return KitColour_FromLegacy(index);
+    return index >= 0 && index < KIT_COLOUR_COUNT ? menu_order()[index] : 0;
+}
+
+int32_t KitVariants_Count(void)
+{
+    return KIT_VARIANT_COUNT;
+}
+
+uint8_t KitVariants_Byte(int32_t i)
+{
+    return i >= 0 && i < KIT_VARIANT_COUNT ? KitColour_Make(kKitVariants[i].base, kKitVariants[i].var) : 0;
+}
+
 uint8_t KitPattern_Base(uint8_t shirtType)
 {
     return (shirtType & 0x0F) <= 3 ? shirtType & 0x0F : 0;
@@ -249,6 +314,28 @@ int32_t KitVariants_SelfTest(void)
             KitPattern_Ext(0x52) != 5 || KitPattern_Base(7) != 0) {
             fails++; fprintf(stderr, "[kit-variants] FAIL: a variant's or a pattern's byte\n");
         }
+    }
+    /* the menus' order: every colour once, each base before its variants, there and back */
+    {
+        const int32_t was = s_rule;
+        s_rule = KIT_RULE_EXTENDED;
+        if (menus_extended()) {
+            if (KitColour_StepCount() != KIT_COLOUR_COUNT || KitColour_FromStepIndex(0) != 0) {
+                fails++; fprintf(stderr, "[kit-variants] FAIL: the menus' order\n");
+            }
+            for (int32_t i = 0; i < KitColour_StepCount(); i++) {
+                const uint8_t c = KitColour_FromStepIndex(i);
+                if (KitColour_StepIndex(c) != i || (i && KitColour_Base(c) < KitColour_Base(KitColour_FromStepIndex(i - 1)))) {
+                    fails++; fprintf(stderr, "[kit-variants] FAIL: step %d\n", (int)i);
+                }
+            }
+        }
+        s_rule = KIT_RULE_ORIGINAL;
+        if (KitColour_StepCount() != 11 || KitColour_FromStepIndex(10) != KitColour_Normal(10) ||
+            KitColour_StepIndex(KitColour_Make(5, 1)) != 5) {
+            fails++; fprintf(stderr, "[kit-variants] FAIL: the original's 11 steps\n");
+        }
+        s_rule = was;
     }
     printf("[kit-variants] self-test %s\n", fails ? "FAILED" : "passed");
     return fails != 0;

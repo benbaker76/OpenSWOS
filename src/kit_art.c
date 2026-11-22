@@ -264,8 +264,8 @@ void KitArt_Draw(int32_t part, const KitLook *look, int32_t x, int32_t y, int32_
 {
     uint16_t table[16];
     int32_t jag = KitArt_Jaguar(), pw, ph, i;
-    uint16_t stripes = _kTeamColorsTable[KitColour_Legacy(look->stripes)];
-    uint16_t basic   = _kTeamColorsTable[KitColour_Legacy(look->basic)];
+    uint16_t stripes = TeamColors_MenuEntry(look->stripes);
+    uint16_t basic   = TeamColors_MenuEntry(look->basic);
 
     KitArt_Size(part, &pw, &ph);
     if (jag && part == KIT_ART_SHIRT)
@@ -284,7 +284,7 @@ void KitArt_Draw(int32_t part, const KitLook *look, int32_t x, int32_t y, int32_
         break;
     case KIT_ART_SHORTS:
         if (jag) { draw_jag(kJagShorts, look, x, y); break; }
-        table[11] = _kTeamColorsTable[KitColour_Legacy(look->shorts)];
+        table[11] = TeamColors_MenuEntry(look->shorts);
         draw_sprite(kSprShorts, table, x, y);
         break;
     case KIT_ART_SOCKS:
@@ -293,7 +293,7 @@ void KitArt_Draw(int32_t part, const KitLook *look, int32_t x, int32_t y, int32_
             draw_jag(kJagSockR, look, x + s_jag[kJagSockL].w + kSockGap, y);
             break;
         }
-        table[11] = _kTeamColorsTable[KitColour_Legacy(look->socks)];
+        table[11] = TeamColors_MenuEntry(look->socks);
         draw_sprite(kSprSocks, table, x, y);
         break;
     case KIT_ART_ICON:
@@ -307,8 +307,8 @@ void KitArt_Draw(int32_t part, const KitLook *look, int32_t x, int32_t y, int32_
         if (KitPattern_Base(look->type) == SHIRT_VERTICAL_STRIPES) { uint16_t t = col1; col1 = col2; col2 = t; }
         table[11] = col1;
         table[10] = col2;
-        table[14] = _kTeamColorsTable[KitColour_Legacy(look->shorts)];
-        table[15] = _kTeamColorsTable[KitColour_Legacy(look->socks)];
+        table[14] = TeamColors_MenuEntry(look->shorts);
+        table[15] = TeamColors_MenuEntry(look->socks);
         FillSkinColorConversionTable(0, table);
         draw_sprite(player_sprite(look), table, x, y);
         break;

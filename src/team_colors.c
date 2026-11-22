@@ -84,6 +84,7 @@ extern TeamGame _bottomTeamInGame;
  * menus purple is a palette entry of its own where the palette has 256 (the nearest to it of
  * the menu palette's), maroon's on the OCS. */
 #define KIT_PURPLE 10
+#define KIT_MENU_FIRST 128              /* the kit variants' menu entries (TeamColors_Init) */
 #define KIT_MAROON 6
 #define PURPLE_RGB12 0x0628             /* the Mod's 6-bit VGA (24, 8, 34) */
 static uint8_t s_kitMarks[2];           /* top / bottom team: bit 0 purple, bit 1 maroon */
@@ -109,6 +110,30 @@ void TeamColors_Init(void)
     }
     _kTeamColorsTable[KIT_PURPLE] = (uint16_t)best;
 #endif
+#if defined(AGA) && defined(SWOS_SDL_BUILD)
+    /* The kit variants' own menu entries (TeamColors_MenuEntry): 128 on, where no menu art draws
+     * (measured: the menu backdrops 0-62, the buttons, text and pictures 0-15, SOCCER_S to 126;
+     * the credits lend 128-255 and give them back, the Jaguar kit art 192-251). */
+    {
+        extern uint16_t _menuPalette[];
+        for (int32_t i = 0; i < KitVariants_Count() && i < 64; i++)      /* (64: up to 191) */
+            _menuPalette[KIT_MENU_FIRST + i] = KitVariants_Rgb12(KitVariants_Byte(i));
+    }
+#endif
+}
+
+/* A kit colour byte's entry in the menu palette: a variant's own with the EXTENDED rule (the menus'
+ * choice: kit_variants.h), else the game's 11 colours' (_kTeamColorsTable). */
+uint16_t TeamColors_MenuEntry(uint8_t colour)
+{
+#if defined(AGA) && defined(SWOS_SDL_BUILD)
+    if (KitVariants_Rule() == KIT_RULE_EXTENDED) {
+        const int32_t index = KitVariants_ColourIndex(colour);
+        if (index >= 10)
+            return (uint16_t)(KIT_MENU_FIRST + index - 10);
+    }
+#endif
+    return _kTeamColorsTable[KitColour_Legacy(colour)];
 }
 
 /* Before a match's sprites are coloured (ConvertColorsAndTextSprites, its first team): entry 12

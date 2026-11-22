@@ -2407,8 +2407,8 @@ static void PrimaryKitColorConversionC(void)
 {
     TeamFile *tf = &_selectedTeams->team;
     uint16_t *colTable = _editTeamsPrimaryShirts.colTable;
-    uint16_t stripesCol = _kTeamColorsTable[KitColour_Legacy(tf->prStripesColor)];
-    uint16_t basicCol = _kTeamColorsTable[KitColour_Legacy(tf->prBasicColor)];
+    uint16_t stripesCol = TeamColors_MenuEntry(tf->prStripesColor);
+    uint16_t basicCol = TeamColors_MenuEntry(tf->prBasicColor);
     uint16_t *types = &_shirtTypesTable[KitPattern_Base(tf->prShirtType) * 8];
     uint16_t *indices = _shirtsIndexTable;
 
@@ -2421,11 +2421,11 @@ static void PrimaryKitColorConversionC(void)
     }
 
     /* Shorts */
-    uint16_t shortsCol = _kTeamColorsTable[KitColour_Legacy(tf->prShortsColor)];
+    uint16_t shortsCol = TeamColors_MenuEntry(tf->prShortsColor);
     _editTeamsShorts.colTable[11] = shortsCol;   /* slot 11 */
 
     /* Socks */
-    uint16_t socksCol = _kTeamColorsTable[KitColour_Legacy(tf->prSocksColor)];
+    uint16_t socksCol = TeamColors_MenuEntry(tf->prSocksColor);
     _editTeamsSocks.colTable[11] = socksCol;   /* slot 11 */
 }
 
@@ -2434,8 +2434,8 @@ static void SecondaryKitColorConversionC(void)
 {
     TeamFile *tf = &_selectedTeams->team;
     uint16_t *colTable = _editTeamsSecondaryShirt.colTable;
-    uint16_t stripesCol = _kTeamColorsTable[KitColour_Legacy(tf->secStripesColor)];
-    uint16_t basicCol = _kTeamColorsTable[KitColour_Legacy(tf->secBasicColor)];
+    uint16_t stripesCol = TeamColors_MenuEntry(tf->secStripesColor);
+    uint16_t basicCol = TeamColors_MenuEntry(tf->secBasicColor);
     uint16_t *types = &_shirtTypesTable[KitPattern_Base(tf->secShirtType) * 8];
     uint16_t *indices = _shirtsIndexTable;
 
@@ -2448,11 +2448,11 @@ static void SecondaryKitColorConversionC(void)
     }
 
     /* Shorts */
-    uint16_t shortsCol = _kTeamColorsTable[KitColour_Legacy(tf->secShortsColor)];
+    uint16_t shortsCol = TeamColors_MenuEntry(tf->secShortsColor);
     _editTeamsSecondaryShorts.colTable[11] = shortsCol;   /* slot 11 */
 
     /* Socks */
-    uint16_t socksCol = _kTeamColorsTable[KitColour_Legacy(tf->secSocksColor)];
+    uint16_t socksCol = TeamColors_MenuEntry(tf->secSocksColor);
     _editTeamsSecondarySocks.colTable[11] = socksCol;   /* slot 11 */
 }
 
@@ -2558,32 +2558,32 @@ void EditTeamsChangeShirtsPrimary(void)
     uint8_t d0;
 
     if (_controlMask == 0x41) {          /* left+fire */
-        d0 = (uint8_t)KitColour_Legacy(tf->prStripesColor);
-        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-        tf->prStripesColor = KitColour_FromLegacy(d0);
+        d0 = (uint8_t)KitColour_StepIndex(tf->prStripesColor);
+        d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
+        tf->prStripesColor = KitColour_FromStepIndex(d0);
     } else if (_controlMask == 0x81) {   /* right+fire */
-        d0 = (uint8_t)KitColour_Legacy(tf->prStripesColor);
-        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-        tf->prStripesColor = KitColour_FromLegacy(d0);
+        d0 = (uint8_t)KitColour_StepIndex(tf->prStripesColor);
+        d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
+        tf->prStripesColor = KitColour_FromStepIndex(d0);
     } else if (_controlMask == 0x101) {  /* up+fire */
         if (KitPattern_Base(tf->prShirtType) == 0) {  /* SHIRT_ORDINARY */
-            d0 = (uint8_t)KitColour_Legacy(tf->prStripesColor);
-            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-            tf->prStripesColor = KitColour_FromLegacy(d0);
+            d0 = (uint8_t)KitColour_StepIndex(tf->prStripesColor);
+            d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
+            tf->prStripesColor = KitColour_FromStepIndex(d0);
         } else {
-            d0 = (uint8_t)KitColour_Legacy(tf->prBasicColor);
-            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-            tf->prBasicColor = KitColour_FromLegacy(d0);
+            d0 = (uint8_t)KitColour_StepIndex(tf->prBasicColor);
+            d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
+            tf->prBasicColor = KitColour_FromStepIndex(d0);
         }
     } else if (_controlMask == 0x201) {  /* down+fire */
         if (KitPattern_Base(tf->prShirtType) == 0) {  /* SHIRT_ORDINARY */
-            d0 = (uint8_t)KitColour_Legacy(tf->prStripesColor);
-            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-            tf->prStripesColor = KitColour_FromLegacy(d0);
+            d0 = (uint8_t)KitColour_StepIndex(tf->prStripesColor);
+            d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
+            tf->prStripesColor = KitColour_FromStepIndex(d0);
         } else {
-            d0 = (uint8_t)KitColour_Legacy(tf->prBasicColor);
-            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-            tf->prBasicColor = KitColour_FromLegacy(d0);
+            d0 = (uint8_t)KitColour_StepIndex(tf->prBasicColor);
+            d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
+            tf->prBasicColor = KitColour_FromStepIndex(d0);
         }
     } else {
         return;
@@ -2602,32 +2602,32 @@ void EditTeamsChangeShirtsSecondary(void)
     uint8_t d0;
 
     if (_controlMask == 0x41) {          /* left+fire */
-        d0 = (uint8_t)KitColour_Legacy(tf->secStripesColor);
-        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-        tf->secStripesColor = KitColour_FromLegacy(d0);
+        d0 = (uint8_t)KitColour_StepIndex(tf->secStripesColor);
+        d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
+        tf->secStripesColor = KitColour_FromStepIndex(d0);
     } else if (_controlMask == 0x81) {   /* right+fire */
-        d0 = (uint8_t)KitColour_Legacy(tf->secStripesColor);
-        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-        tf->secStripesColor = KitColour_FromLegacy(d0);
+        d0 = (uint8_t)KitColour_StepIndex(tf->secStripesColor);
+        d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
+        tf->secStripesColor = KitColour_FromStepIndex(d0);
     } else if (_controlMask == 0x101) {  /* up+fire */
         if (KitPattern_Base(tf->secShirtType) == 0) {
-            d0 = (uint8_t)KitColour_Legacy(tf->secStripesColor);
-            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-            tf->secStripesColor = KitColour_FromLegacy(d0);
+            d0 = (uint8_t)KitColour_StepIndex(tf->secStripesColor);
+            d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
+            tf->secStripesColor = KitColour_FromStepIndex(d0);
         } else {
-            d0 = (uint8_t)KitColour_Legacy(tf->secBasicColor);
-            d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
-            tf->secBasicColor = KitColour_FromLegacy(d0);
+            d0 = (uint8_t)KitColour_StepIndex(tf->secBasicColor);
+            d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
+            tf->secBasicColor = KitColour_FromStepIndex(d0);
         }
     } else if (_controlMask == 0x201) {  /* down+fire */
         if (KitPattern_Base(tf->secShirtType) == 0) {
-            d0 = (uint8_t)KitColour_Legacy(tf->secStripesColor);
-            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-            tf->secStripesColor = KitColour_FromLegacy(d0);
+            d0 = (uint8_t)KitColour_StepIndex(tf->secStripesColor);
+            d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
+            tf->secStripesColor = KitColour_FromStepIndex(d0);
         } else {
-            d0 = (uint8_t)KitColour_Legacy(tf->secBasicColor);
-            d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
-            tf->secBasicColor = KitColour_FromLegacy(d0);
+            d0 = (uint8_t)KitColour_StepIndex(tf->secBasicColor);
+            d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
+            tf->secBasicColor = KitColour_FromStepIndex(d0);
         }
     } else {
         return;
@@ -2643,17 +2643,17 @@ __attribute__((used, externally_visible))
 void EditTeamsChangeShortsPrimary(void)
 {
     TeamFile *tf = &_selectedTeams->team;
-    uint8_t d0 = (uint8_t)KitColour_Legacy(tf->prShortsColor);
+    uint8_t d0 = (uint8_t)KitColour_StepIndex(tf->prShortsColor);
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
+        d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
     } else {
         return;
     }
 
-    tf->prShortsColor = KitColour_FromLegacy(d0);
+    tf->prShortsColor = KitColour_FromStepIndex(d0);
     PrimaryKitColorConversionC();
     /* nullsub_16 */
     CallDrawMultipleItems(1, &_menuEntries[0x150 / 56]);
@@ -2664,17 +2664,17 @@ __attribute__((used, externally_visible))
 void EditTeamsChangeShortsSecondary(void)
 {
     TeamFile *tf = &_selectedTeams->team;
-    uint8_t d0 = (uint8_t)KitColour_Legacy(tf->secShortsColor);
+    uint8_t d0 = (uint8_t)KitColour_StepIndex(tf->secShortsColor);
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
+        d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
     } else {
         return;
     }
 
-    tf->secShortsColor = KitColour_FromLegacy(d0);
+    tf->secShortsColor = KitColour_FromStepIndex(d0);
     SecondaryKitColorConversionC();
     /* nullsub_16 */
     CallDrawMultipleItems(1, &_menuEntries[0x230 / 56]);
@@ -2685,17 +2685,17 @@ __attribute__((used, externally_visible))
 void EditTeamsChangeSocksPrimary(void)
 {
     TeamFile *tf = &_selectedTeams->team;
-    uint8_t d0 = (uint8_t)KitColour_Legacy(tf->prSocksColor);
+    uint8_t d0 = (uint8_t)KitColour_StepIndex(tf->prSocksColor);
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
+        d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
     } else {
         return;
     }
 
-    tf->prSocksColor = KitColour_FromLegacy(d0);
+    tf->prSocksColor = KitColour_FromStepIndex(d0);
     PrimaryKitColorConversionC();
     CallDrawMultipleItems(1, &_menuEntries[0x188 / 56]);
 }
@@ -2705,17 +2705,17 @@ __attribute__((used, externally_visible))
 void EditTeamsChangeSocksSecondary(void)
 {
     TeamFile *tf = &_selectedTeams->team;
-    uint8_t d0 = (uint8_t)KitColour_Legacy(tf->secSocksColor);
+    uint8_t d0 = (uint8_t)KitColour_StepIndex(tf->secSocksColor);
 
     if (_controlMask == 0x41 || _controlMask == 0x101) {
-        d0 = (d0 == 0) ? KIT_COLOURS - 1 : d0 - 1;
+        d0 = (d0 == 0) ? KitColour_StepCount() - 1 : d0 - 1;
     } else if (_controlMask == 0x81 || _controlMask == 0x201) {
-        d0 = (d0 + 1 == KIT_COLOURS) ? 0 : d0 + 1;
+        d0 = (d0 + 1 == KitColour_StepCount()) ? 0 : d0 + 1;
     } else {
         return;
     }
 
-    tf->secSocksColor = KitColour_FromLegacy(d0);
+    tf->secSocksColor = KitColour_FromStepIndex(d0);
     SecondaryKitColorConversionC();
     CallDrawMultipleItems(1, &_menuEntries[0x268 / 56]);
 }
