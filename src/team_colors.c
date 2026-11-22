@@ -818,6 +818,9 @@ SetInGameTeamColors(uint16_t secondaryKitFlags, TeamFile *team1File, TeamFile *t
 void __attribute__((used, externally_visible))
 SetInGameTeamsPrimaryColors(TeamFile *team1File, TeamFile *team2File)
 {
+#ifdef SWOS_SDL_BUILD
+    KitPalette_NewMatch();          /* (a new match's kits: its variants take entries afresh) */
+#endif
     /* a2=team1File(top), a3=team2File(bottom) -- matching asm register assignment */
     MeasureTeamKitsSimilarity(team1File, team2File);
 
@@ -931,6 +934,7 @@ SetInGameTeamsPrimaryColors(TeamFile *team1File, TeamFile *team2File)
  */
 void SetInGameTeamsFirstKits(TeamFile *team1File, TeamFile *team2File)
 {
+    KitPalette_NewMatch();          /* (a new match's kits: its variants take entries afresh) */
     MeasureTeamKitsSimilarity(team1File, team2File);
     SetInGameTeamColors(0, team1File, team2File);
 }

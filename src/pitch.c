@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "team_colors.h"
 #include "kit_palette.h"
 #include "pitch.h"
 #include "game_types.h"
@@ -741,8 +742,8 @@ void FixupAndColorPitchFile(void)
      *   striped shirt -> slot 10 is the other stripe colour, still two-tone
      * The crowd now only ever wears colours that are on the shirts. */
     teamData = &_topTeamInGame;
-    kitPrimary = (uint16_t)teamData->prShirtCol;
-    kitSecondary = (uint16_t)teamData->prStripesCol;
+    kitPrimary = TeamColors_PartEntry(teamData, 0, (uint16_t)teamData->prShirtCol, 0);     /* (a kit variant's own entry) */
+    kitSecondary = TeamColors_PartEntry(teamData, 1, (uint16_t)teamData->prStripesCol, 0);
 
     pitchFansConvertTable[11] = kitPrimary;     /* offset 0x16 */
     pitchFansConvertTable[10] = kitSecondary;   /* offset 0x14 */
@@ -754,8 +755,8 @@ void FixupAndColorPitchFile(void)
 
     /* Step 5: Recolor bottom team fans (21 sprites). Same deviation as Step 4. */
     teamData = &_bottomTeamInGame;
-    kitPrimary = (uint16_t)teamData->prShirtCol;
-    kitSecondary = (uint16_t)teamData->prStripesCol;
+    kitPrimary = TeamColors_PartEntry(teamData, 0, (uint16_t)teamData->prShirtCol, 0);     /* (a kit variant's own entry) */
+    kitSecondary = TeamColors_PartEntry(teamData, 1, (uint16_t)teamData->prStripesCol, 0);
 
     pitchFansConvertTable[11] = kitPrimary;
     pitchFansConvertTable[10] = kitSecondary;
@@ -814,10 +815,10 @@ void FixupAndColorPitchFile(void)
         int8_t   rowGroup[PITCH_GRID_ROWS]; /* -1 = not a crowd row, else 1=A 0=B */
         int32_t  r, c, k;
 
-        topTbl[0] = (uint16_t)_topTeamInGame.prStripesCol;
-        topTbl[1] = (uint16_t)_topTeamInGame.prShirtCol;
-        botTbl[0] = (uint16_t)_bottomTeamInGame.prStripesCol;
-        botTbl[1] = (uint16_t)_bottomTeamInGame.prShirtCol;
+        topTbl[0] = TeamColors_PartEntry(&_topTeamInGame, 1, (uint16_t)_topTeamInGame.prStripesCol, 0);
+        topTbl[1] = TeamColors_PartEntry(&_topTeamInGame, 0, (uint16_t)_topTeamInGame.prShirtCol, 0);
+        botTbl[0] = TeamColors_PartEntry(&_bottomTeamInGame, 1, (uint16_t)_bottomTeamInGame.prStripesCol, 0);
+        botTbl[1] = TeamColors_PartEntry(&_bottomTeamInGame, 0, (uint16_t)_bottomTeamInGame.prShirtCol, 0);
 
         /* Which group (if any) does each row's crowd wear? A row with no
          * recoloured cell at all is not a stand and is left untouched. */

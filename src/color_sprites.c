@@ -501,7 +501,6 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
      * palette entry, where it has one -- drawing only; the in-game team keeps the base colour. */
     uint16_t variant[2][4] = { { 0 } };
 #ifdef SWOS_SDL_BUILD
-    KitPalette_NewMatch();
     for (int32_t k = 0; k < 2; k++) {
         const uint8_t *w = TeamColors_Worn(k ? team2 : team1);   /* type, stripes, basic, shorts, socks */
         if (!w || !KitPalette_Active())

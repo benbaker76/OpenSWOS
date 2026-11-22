@@ -12,8 +12,8 @@
  * else changes on its own is never given: the pitch condition's nine, the replay R's sixteen, the
  * top block, the entries a pitch map's colours name.
  *
- * Each match the variants its kits wear (at most 8, KitPalette_Entry) take entries from that
- * pool, their colour written into both palettes. Drawing only: nothing here is match state, so
+ * Each match (KitPalette_NewMatch, when its kits are decided) the variants its kits wear -- the
+ * players, the crowd, the HUD's kits (KitPalette_Entry) -- take entries from that pool, their colour written into both palettes. Drawing only: nothing here is match state, so
  * the two games of a net game need not agree on it.
  *
  * SDL only; not with the Jaguar sprites, which keep the donated entries for themselves.
@@ -115,6 +115,8 @@ int32_t KitPalette_RemapPitch(uint8_t *pixels, uint32_t count)
     mapCount = map_entries(mapEntries);        /* (this pitch's map turns its own entries: leave them) */
     for (int32_t i = 0; i < mapCount; i++)
         twin[mapEntries[i]] = 0;
+    for (int32_t i = 0; i < s_takenCount; i++)   /* (a kit variant already painted -- the crowd: keep it) */
+        twin[s_taken[i]] = 0;
     for (uint32_t i = 0; i < count; i++) {
         const uint8_t t = twin[pixels[i]];
         if (t) { pixels[i] = t; moved++; }
@@ -144,8 +146,8 @@ uint16_t KitPalette_Entry(uint8_t colour)
     for (int32_t i = 0; i < s_takenCount; i++)
         if (s_takenColour[i] == colour)
             return s_taken[i];
-    if (s_takenCount >= MAX_TAKEN)
-        return 0;
+    if (s_takenCount >= MAX_TAKEN)        /* (a replay's kits on top of a match's: start afresh) */
+        s_takenCount = 0;
     build();
     mapCount = map_entries(mapEntries);
     rgb12 = KitVariants_Rgb12(colour);
