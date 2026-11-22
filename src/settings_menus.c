@@ -486,9 +486,9 @@ static const Row k_controlRows[] = {
     { "AUTO-DETECT JOYPADS",      autodetect_show, autodetect_change },
     { "DISABLE SHOULDER BUTTONS", shoulders_show,  shoulders_change },
     { "STICK DEAD ZONE",          deadzone_show,   deadzone_change },
-    { "MOUSE POINTER",            pointer_show,    pointer_change },     /* (launcher options, agent A) */
 };
 static const Page k_controlsPage = { "CONTROLS", k_controlRows, (int32_t)(sizeof k_controlRows / sizeof k_controlRows[0]) };
+_Static_assert(sizeof k_controlRows / sizeof k_controlRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== VIDEO */
 
@@ -655,6 +655,7 @@ static const Row k_videoRows[] = {
     { "SHOW FPS",           fps_show,      fps_change },
 };
 static const Page k_videoPage = { "VIDEO OPTIONS", k_videoRows, (int32_t)(sizeof k_videoRows / sizeof k_videoRows[0]) };
+_Static_assert(sizeof k_videoRows / sizeof k_videoRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== AUDIO */
 
@@ -784,6 +785,7 @@ static const Row k_audioRows[] = {
     { "OUTPUT",                 mono_show,       mono_change },
 };
 static const Page k_audioPage = { "AUDIO OPTIONS", k_audioRows, (int32_t)(sizeof k_audioRows / sizeof k_audioRows[0]) };
+_Static_assert(sizeof k_audioRows / sizeof k_audioRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== GAMEPLAY */
 
@@ -943,6 +945,7 @@ static const Row k_gameplayRows[] = {
     { "PRE-MATCH PAUSE",         loadpause_show, loadpause_change },
 };
 static const Page k_gameplayPage = { "GAMEPLAY OPTIONS", k_gameplayRows, (int32_t)(sizeof k_gameplayRows / sizeof k_gameplayRows[0]) };
+_Static_assert(sizeof k_gameplayRows / sizeof k_gameplayRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== DISPLAY OPTIONS
  * (launcher options, agent B; docs/RENDERING.md "DISPLAY OPTIONS") The SWOS United Launcher's look
@@ -1048,8 +1051,10 @@ static const Row k_displayRows[] = {
     { "KITS ON THE RESULT", reskits_show,  reskits_change },
     { "RESULT BAND",        resband_show,  resband_change },
     { "SCOREBOARD",         board_show,    board_change },
+    { "MOUSE POINTER",      pointer_show,  pointer_change },     /* (from CONTROLS: it has CALL BENCH twice) */
 };
 static const Page k_displayPage = { "DISPLAY OPTIONS", k_displayRows, (int32_t)(sizeof k_displayRows / sizeof k_displayRows[0]) };
+_Static_assert(sizeof k_displayRows / sizeof k_displayRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== RULES
  * The tweaks that change the original's rules (include/tweaks.h): the contest fix and SWOS 2020's
@@ -1136,6 +1141,7 @@ static const Row k_rulesRows[] = {
     { "CAREER EXACT LOADS",      exact_show,    exact_change },
 };
 static const Page k_rulesPage = { "RULES OPTIONS", k_rulesRows, (int32_t)(sizeof k_rulesRows / sizeof k_rulesRows[0]) };
+_Static_assert(sizeof k_rulesRows / sizeof k_rulesRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== SETTINGS (the hub) */
 
