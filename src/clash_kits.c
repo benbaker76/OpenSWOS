@@ -14,11 +14,11 @@
  *
  * The original referee is black all over -- shirt, shorts, hair and shoes alike -- so his shirt
  * cannot be told apart. SWOS 2020 needed its DLC "referee-clashkit" for him: the same referee
- * with the shirt in colour 8. With CLASH KITS on, a referee with no colour 8 outside the masks
- * (the original) is drawn as that DLC referee (kRefClashKit), the colour indices as the sprites
- * hold them -- the Amiga's and the PC's frames are the same drawings, their palettes differ only
- * in the RGB, so it is one for both. A referee that has a shirt of colour 8 already (a DLC's)
- * keeps his own.
+ * with the shirt in colour 8. With CLASH KITS on, the ORIGINAL referee -- exactly that drawing
+ * with the shirt black -- is drawn as that DLC referee (kRefClashKit), the colour indices as the
+ * sprites hold them: the Amiga's and the PC's frames are the same drawings, their palettes
+ * differ only in the RGB, so it is one for both. A referee from a DLC is never replaced: one with
+ * a shirt of colour 8 gets the clash kit on it, one without keeps his colours.
  *
  * DRAWING ONLY: it changes sprite pixels after ConvertColorsAndTextSprites has made the match's
  * sprites; nothing the match plays by reads a pixel, so it has no netplay effect and each player
@@ -78,31 +78,39 @@ static void recolour(int32_t first, int32_t frames, const uint16_t (*prot)[kCell
     }
 }
 
-/* The referee's frames hold no colour 8 outside the masks: the original's, black all over. */
-static int32_t referee_has_no_shirt(void)
-{
-    SpriteGraphics **table = (SpriteGraphics **)_spriteGraphicsPtr;
-    for (int32_t f = 0; f < kRefFrames; f++) {
-        SpriteGraphics *spr = table[kRefFirst + f];
-        if (!spr || !spr->sprData)
-            continue;
-        const int32_t pitch = (int32_t)spr->wquads * 16;
-        const uint8_t *px = (const uint8_t *)spr->sprData;
-        for (int32_t y = 0; y < (int32_t)spr->nlines && y < kCellH; y++)
-            for (int32_t x = 0; x < pitch && x < kCellW; x++)
-                if (px[y * pitch + x] == kJersey && !(kRefProtected[f][y] & (1u << x)))
-                    return 0;
-    }
-    return 1;
-}
-
-/* The original referee drawn as SWOS 2020's DLC referee-clashkit: the same figure, the shirt in
- * colour 8. Returns the pixels that differ from what was there other than the shirt (0 when the
- * DLC is the original as it should be: logged, a check on the drawings being the same). */
-static int32_t put_on_clash_kit_referee(void)
+/* How many of the referee's pixels differ from the original's -- kRefClashKit with its shirt
+ * black, as the game's own sprites draw him: 0 is the original, anything else a DLC's. The shirt
+ * may also be in a colour this file gave it (colour 8, the clash kit's yellow or light blue): the
+ * referee of a match before, should his sprites outlive it, is still the original. */
+static int32_t referee_differs_from_original(void)
 {
     SpriteGraphics **table = (SpriteGraphics **)_spriteGraphicsPtr;
     int32_t differ = 0;
+    for (int32_t f = 0; f < kRefFrames; f++) {
+        SpriteGraphics *spr = table[kRefFirst + f];
+        if (!spr || !spr->sprData)
+            return -1;
+        const int32_t pitch = (int32_t)spr->wquads * 16;
+        const uint8_t *px = (const uint8_t *)spr->sprData;
+        for (int32_t y = 0; y < (int32_t)spr->nlines && y < kCellH; y++)
+            for (int32_t x = 0; x < pitch && x < kCellW; x++) {
+                const uint8_t want = kRefClashKit[f][y][x], have = px[y * pitch + x];
+                if (want == kJersey && !(kRefProtected[f][y] & (1u << x))) {   /* (the shirt) */
+                    if (have != kBlack && have != kJersey && have != kYellow && have != kLightBlue)
+                        differ++;
+                } else if (have != want) {
+                    differ++;
+                }
+            }
+    }
+    return differ;
+}
+
+/* The original referee drawn as SWOS 2020's DLC referee-clashkit: the same figure, the shirt in
+ * colour 8. */
+static void put_on_clash_kit_referee(void)
+{
+    SpriteGraphics **table = (SpriteGraphics **)_spriteGraphicsPtr;
     for (int32_t f = 0; f < kRefFrames; f++) {
         SpriteGraphics *spr = table[kRefFirst + f];
         if (!spr || !spr->sprData)
@@ -110,29 +118,26 @@ static int32_t put_on_clash_kit_referee(void)
         const int32_t pitch = (int32_t)spr->wquads * 16;
         uint8_t *px = (uint8_t *)spr->sprData;
         for (int32_t y = 0; y < (int32_t)spr->nlines && y < kCellH; y++)
-            for (int32_t x = 0; x < pitch && x < kCellW; x++) {
-                const uint8_t want = kRefClashKit[f][y][x];
-                uint8_t *p = &px[y * pitch + x];
-                if (*p != want && !(want == kJersey && *p == kBlack))
-                    differ++;
-                *p = want;
-            }
+            for (int32_t x = 0; x < pitch && x < kCellW; x++)
+                px[y * pitch + x] = kRefClashKit[f][y][x];
     }
-    return differ;
 }
 
 void ClashKits_Apply(const TeamGame *team1, const TeamGame *team2)
 {
     if (!g_clashKits || JagGfx_Enabled())
         return;
-    /* The referee first: the original has no shirt of his own to recolour. */
-    if (referee_has_no_shirt()) {
-        const int32_t differ = put_on_clash_kit_referee();
-        fprintf(stderr, "[kits] clash kits: the original referee drawn with the clash kit's shirt%s\n",
-                differ ? "" : " (the same drawing)");
-        if (differ)
-            fprintf(stderr, "[kits] clash kits: %d of the referee's pixels differ from the original "
-                            "beside the shirt\n", (int)differ);
+    /* The referee first: the original has no shirt of his own to recolour, so he is drawn as
+     * the clash-kit DLC's. A DLC's referee is never replaced. */
+    {
+        const int32_t differ = referee_differs_from_original();
+        if (differ == 0) {
+            put_on_clash_kit_referee();
+            fprintf(stderr, "[kits] clash kits: the original referee, drawn with the clash kit's shirt\n");
+        } else {
+            fprintf(stderr, "[kits] clash kits: the referee is not the original (%d pixels differ): "
+                            "his own, the clash kit on a shirt of colour 8 if he has one\n", (int)differ);
+        }
     }
     const int32_t clash = dark_kit(team1) || dark_kit(team2);
     const uint8_t gk  = !clash ? kJersey : has_colour(team1, kGreen)  || has_colour(team2, kGreen)  ? kGray : kGreen;
