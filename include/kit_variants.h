@@ -64,6 +64,10 @@ int32_t KitVariants_Count(void);
 uint8_t KitVariants_Byte(int32_t i);
 uint8_t KitPattern_Base(uint8_t shirtType);
 uint8_t KitPattern_Ext(uint8_t shirtType);
+/* A pattern of ours' sprite set (kit_variants.json "pattern_variants" files): the PC graphics' file
+ * (`amiga` 0: grafs_dos / grafs_2020) or the Amiga graphics' (1: grafs / grafs_aga) for this shirt
+ * type byte; NULL for the original's patterns and for one that has none -- its fallback is drawn. */
+const char *KitPattern_File(uint8_t shirtType, int32_t amiga);
 
 struct TeamFile;
 /* Every kit byte of a team as it is kept (KitColour_Normal, a shirt type's base 0-3): after

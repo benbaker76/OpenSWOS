@@ -170,6 +170,17 @@ uint8_t KitPattern_Ext(uint8_t shirtType)
     return shirtType >> 4;
 }
 
+const char *KitPattern_File(uint8_t shirtType, int32_t amiga)
+{
+    const uint8_t ext = KitPattern_Ext(shirtType);
+    if (!ext)
+        return 0;
+    for (int32_t i = 0; i < KIT_PATTERN_COUNT; i++)
+        if (kKitPatterns[i].ext == ext)
+            return kKitPatternFiles[i][amiga ? 1 : 0];
+    return 0;
+}
+
 static void each_kit_byte(TeamFile *t, int32_t baseOnly)
 {
     uint8_t *colours[8] = { &t->prStripesColor, &t->prBasicColor, &t->prShortsColor, &t->prSocksColor,
@@ -431,6 +442,11 @@ int32_t KitVariants_SelfTest(void)
             KitVariants_Similar((uint8_t)ref, (uint8_t)own)) {
             fails++; fprintf(stderr, "[kit-variants] FAIL: the referee against black and white (%d)\n", (int)ref);
         }
+    }
+    /* patterns: the original's have no file of ours; one of ours without a sprite set yet none either */
+    if (KitPattern_File(2, 0) || KitPattern_File(2, 1) || (KIT_PATTERN_COUNT && !kKitPatternFiles[0][0] &&
+        KitPattern_File((uint8_t)(kKitPatterns[0].fallback | kKitPatterns[0].ext << 4), 0))) {
+        fails++; fprintf(stderr, "[kit-variants] FAIL: a pattern's file\n");
     }
     printf("[kit-variants] self-test %s\n", fails ? "FAILED" : "passed");
     return fails != 0;

@@ -233,6 +233,16 @@ def make_inc(d, colours, pats):
         out.append("    { %d, %d, %s }," % (p["ext"], p["fallback"], c_string(p["name_en"])))
     if not pats:
         out.append("    { 0, 0, 0 },")
+    out += ["};", "",
+            "/* Their sprite sets (pattern_variants.files): the PC graphics' (grafs_dos, grafs_2020) and the",
+            " * Amiga graphics' (grafs, grafs_aga) file names, 0 for none yet: the fallback pattern then. */",
+            "static const char *const kKitPatternFiles[%s][2] = {" % ("KIT_PATTERN_COUNT" if pats else "1")]
+    for p in pats:
+        f = p.get("files", {})
+        q = lambda k: '"%s"' % f[k] if f.get(k) else "0"
+        out.append("    { %s, %s },   /* %s */" % (q("pc"), q("amiga"), p["name_en"]))
+    if not pats:
+        out.append("    { 0, 0 },")
     out += ["};", ""]
     return "\n".join(out)
 

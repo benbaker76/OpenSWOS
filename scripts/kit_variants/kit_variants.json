@@ -5,6 +5,7 @@
   "A variant's number (var, 1-15) is fixed for good once released: never renumber, only append.",
   "rgb is Amiga 12-bit (0x0RGB): every colour looks the same in the Amiga and the PC graphics.",
   "legacy: the colour value the World 2026-27 data (the SWOS 96/97 Mod) uses for this variant -- 10 is purple.",
+  "pattern_variants.files: the sprite sets of a pattern of ours -- {\"pc\": \"team4.dat\" (grafs_dos / grafs_2020), \"amiga\": \"cjcteam4.raw\" (grafs / grafs_aga)}; laid out as the sheet of its fallback pattern (the same placeholder colours). A file that is not there: the fallback pattern.",
   "Base colours' RGB is the game palette's own (AGA _gamePalette entries 1,2,3,6,10,11,12,13,14,15 in src/swos_amiga_data_imports.c); the script reads it from there."
  ],
  "similar_below": 36,

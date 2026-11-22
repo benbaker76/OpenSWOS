@@ -201,3 +201,14 @@ static const struct { uint8_t ext, fallback; const char *name; } kKitPatterns[KI
     { 5, 1, "HALVES" },
     { 6, 3, "CHECKS" },
 };
+
+/* Their sprite sets (pattern_variants.files): the PC graphics' (grafs_dos, grafs_2020) and the
+ * Amiga graphics' (grafs, grafs_aga) file names, 0 for none yet: the fallback pattern then. */
+static const char *const kKitPatternFiles[KIT_PATTERN_COUNT][2] = {
+    { 0, 0 },   /* chest band */
+    { 0, 0 },   /* centre stripe */
+    { 0, 0 },   /* shoulders */
+    { 0, 0 },   /* sash */
+    { 0, 0 },   /* halves */
+    { 0, 0 },   /* checks */
+};
