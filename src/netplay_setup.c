@@ -156,6 +156,12 @@ int32_t NetplaySetup_BenchTapsOff(int32_t player)
 /* The kit clash rule: this game's own goes out with its setup (the host's decides); the last
  * setup applied's is what both games choose the kits by. */
 static uint8_t s_kitRulePlay;
+static int8_t  s_kitRuleSend = -1;      /* the lobby's (both players'), -1: this game's own */
+
+void NetplaySetup_SetKitRule(int32_t rule)
+{
+    s_kitRuleSend = (int8_t)(rule == KIT_RULE_EXTENDED ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL);
+}
 
 int32_t NetplaySetup_KitRule(void)
 {
@@ -260,7 +266,7 @@ int32_t NetplaySetup_Encode(uint8_t *out, uint32_t cap)
     BE_WRITE_U16(p, _team1GoalsFirstLeg); p += 2;
     BE_WRITE_U16(p, _team2GoalsFirstLeg); p += 2;
     BE_WRITE_U16(p, (uint16_t)(s_benchSend[0] << 8 | s_benchSend[1])); p += 2;   /* (version 5) */
-    BE_WRITE_U16(p, (uint16_t)KitVariants_Rule());                     p += 2;   /* (version 6) */
+    BE_WRITE_U16(p, (uint16_t)(s_kitRuleSend >= 0 ? s_kitRuleSend : KitVariants_Rule())); p += 2;   /* (version 6) */
 
     /* The two teams (NetplaySetup_WriteTeam says why bytes are right here). */
     NetplaySetup_WriteTeam(p, &_selectedTeams[0]);
@@ -403,6 +409,7 @@ int32_t NetplaySetup_Apply(const uint8_t *in, uint32_t len)
     s_kitRulePlay = KIT_RULE_ORIGINAL;
     if (version >= 6)
         s_kitRulePlay = GET() == KIT_RULE_EXTENDED ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL;
+    fprintf(stderr, "[match] kit colours: %s\n", s_kitRulePlay == KIT_RULE_EXTENDED ? "extended" : "original");
 #undef GET
 
     NetplaySetup_ReadTeam(&_selectedTeams[0], p);
@@ -536,6 +543,7 @@ const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex) { (void)mapIndex; retu
 void     NetplaySetup_SetCallBench(int32_t p1, int32_t p2) { (void)p1; (void)p2; }
 int32_t  NetplaySetup_BenchTapsOff(int32_t player) { (void)player; return 0; }
 int32_t  NetplaySetup_KitRule(void) { return 0; }
+void     NetplaySetup_SetKitRule(int32_t rule) { (void)rule; }
 
 #endif /* SWOS_NETPLAY */
 #endif /* SWOS_SDL_BUILD */

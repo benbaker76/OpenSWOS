@@ -915,7 +915,7 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
     SETTING(n) = (IniEntry){ "graphics", "kit_colours",
         "; kit_colours: extended | original -- which kits are too alike, so that one team changes.\n"
         "; extended: judged by how alike the colours look (CIEDE2000), for every kit colour; original:\n"
-        "; the original's own tables. A net game plays the host's choice. Default extended\n"
+        "; the original's own tables. A net game plays extended only if both players do. Default extended\n"
         "; (DISPLAY OPTIONS: KIT COLOURS).",
         opts->kit_colours ? "extended" : "original" };
     SETTING(n) = (IniEntry){ "graphics", "kit_art",

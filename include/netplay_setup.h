@@ -51,6 +51,8 @@ int32_t  NetplaySetup_BenchTapsOff(int32_t player);
 /* The kit clash rule of the last setup applied (KIT_RULE_*, include/kit_variants.h): the original's
  * for a setup from before it was sent. */
 int32_t  NetplaySetup_KitRule(void);
+/* The rule the setup this game sends carries: the lobby's, EXTENDED only if both players are. */
+void     NetplaySetup_SetKitRule(int32_t rule);
 /* Round-trip check: encode, scribble over every global it covers, apply, and
  * require equality. Part of --netplay-selftest. 0 on success. */
 int32_t  NetplaySetup_SelfTest(void);
