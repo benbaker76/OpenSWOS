@@ -1298,7 +1298,12 @@ static int32_t  s_chatScroll;           /* lines back from the newest */
 static uint32_t s_chatSeen;             /* NetplayLobby_ChatSerial when last drawn */
 #if !SWOS_LOBBY_CHAT_DYNAMIC_FONT
 static char     s_chatRow[CHAT_ROWS][LOBBY_CHAT_TEXT + 1];     /* (the game's font: chat_style.h) */
-static char     s_chatInput[LOBBY_CHAT_TEXT + 1];
+/* The line typed in the game's font, with the game's editor (InputText): SWOS 2020's field, 28
+ * characters. Not LOBBY_CHAT_TEXT -- with the chat font on elsewhere that is 100, and InputText
+ * takes at most 98: firing on the chat bar halted the game (panic 0x1197, Redhair's lobby,
+ * 2026-11-21). */
+enum { LOBBY_TYPED_CHARS = 28 };
+static char     s_chatInput[LOBBY_TYPED_CHARS + 1];
 #endif
 
 

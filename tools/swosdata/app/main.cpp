@@ -3212,7 +3212,13 @@ int main(int argc, char** argv) {
   }
 
   // (no window needed for these: --headless finds with them)
+  // Each start-up step is logged before it runs: a setup that stops before its window shows says
+  // where (a tester's setup hung right after "install to:", 2026-11-21).
+  app.FileLog(std::string("start: ") + (headless ? "headless" : "window") + "; the Amiga program");
   app.FindProgram(programArg);
+  app.FileLog("start: the Amiga program: " +
+              (app.amigaProgram.empty() ? std::string("(none)") : Shown(app.amigaProgram)) +
+              (app.programFrom.empty() ? std::string() : " from " + Shown(app.programFrom)));
   for (const auto& s : scans) SdSources_Scan(&app.src, s.c_str());
 
   if (headless) {
@@ -3224,7 +3230,9 @@ int main(int argc, char** argv) {
   // Windows/macOS use the Window's own icon.
   slint::set_xdg_app_id(PROJECT_SETUP_PROGRAM);
 
+  app.FileLog("start: creating the window");
   auto ui = MainWindow::create();
+  app.FileLog("start: window created");
   app.ui = &ui;
   app.pipe.flush = [&app] { app.Flush(); };
   ui->set_log(app.log);
@@ -3259,7 +3267,9 @@ int main(int argc, char** argv) {
 #endif
   // What the last install was made from (ASSETS.ini), where --scan found nothing.
   SwosData_LoadSources(app.outDir.c_str(), &app.src);
+  app.FileLog("start: language");
   app.StartLanguage();
+  app.FileLog("start: what is there");
   app.Refresh();
   if (!modInstall.empty()) {   // (no window needed: the mods folder and SWOS.ini only)
     app.ModsRefresh();
@@ -3375,6 +3385,9 @@ int main(int argc, char** argv) {
       else app.Install();
     });
 
+  app.FileLog("start: showing the window");
+  // (once the event loop draws, its first frame says so: a window that never appears stops here)
+  slint::Timer::single_shot(std::chrono::milliseconds(0), [&app] { app.FileLog("start: the window is up"); });
   ui->run();
 
   // Closed mid-install: let the worker finish writing rather than cut a file

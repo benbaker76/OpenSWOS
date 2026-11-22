@@ -57,6 +57,7 @@
 #include "endian_helpers.h"
 #include "stoppage.h"         /* a world's stoppage time: match state */
 #include "mod_hooks.h"        /* g_modMatchWords: a gameplay mod's own match state (SIM_OPTIONAL) */
+#include "mod_api.h"          /* g_modKeeperDive: an online shoot-out's keeper (mod_match.c) */
 
 #include <stdlib.h>
 #include <string.h>
@@ -598,6 +599,9 @@ const SimStateRegion g_simStateRegions[] = {
     REGION(_currentTimeSprite, S, k_hudSprite), REGION(_cornerFlagSprite2, S, k_sprite),
     REGION(_copyTimeSprite, S, k_word16),
     REGION(_overlayFlagBackup, S, k_word16), REGION(_currentPlayerIndicatorPosition, S, k_word16),
+
+    /* the keeper's dive a player chose in an online shoot-out (mod_match.c: PRACTICE's rules) */
+    REGION(g_modKeeperDive, S, k_word16),
 
     /* a gameplay mod's own (the arcade rules: docs/MODS.md §36) -- only while one is on */
     REGION(g_modMatchWords, S | SIM_OPTIONAL, k_word32),

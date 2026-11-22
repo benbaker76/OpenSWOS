@@ -27,6 +27,9 @@
 #include "team_db.h"
 #include <SDL.h>
 #endif
+#ifdef SWOS_NETPLAY
+#include "netplay_match.h"   /* NetplayMatch_IsLive: an online match's shoot-out */
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -791,14 +794,27 @@ int16_t ModMatch_ManualKeeper(const TeamGeneralInfo *team)
  * after a frame was drawn: the stick of the frame before. g_JumpManually, g_JumpOrNot,
  * g_JumpHeight, g_JumpDir2 / g_JumpDir6 there. */
 enum { KEEPER_HEIGHT_NORMAL = 6, KEEPER_HEIGHT_LOW = 10000, KEEPER_HEIGHT_HIGH = 0 };
-static struct {
-    int8_t   team;              /* the team number (1, 2) the choice is for, 0 none */
-    uint8_t  manual;            /* the dive is the player's (else the game's) */
-    uint8_t  dive;              /* ... to dive at all */
-    uint16_t height;            /* the ball's height from which the dive is a high one */
-    int16_t  dir2, dir6;        /* the side the game's "right" (2) and "left" (6) dives go */
-    int16_t  stick;             /* the stick as last read, -1 none */
-} s_kd = { 0, 0, 0, KEEPER_HEIGHT_NORMAL, 2, 6, -1 };
+/* Match state (sim_state.c: an online shoot-out plays by it, so a rollback keeps it): seven
+ * 16-bit words, the order ModKeeperDive (mod_api.h) gives them. */
+ModKeeperDive g_modKeeperDive = { 0, 0, 0, KEEPER_HEIGHT_NORMAL, 2, 6, -1 };
+#define s_kd g_modKeeperDive
+
+/* An online match's penalty shoot-out plays as SWOS 2020's PRACTICE -> PENALTY SHOOTOUT does (Playa,
+ * 2026-11-21: "the exact one as in the PRACTICE menu, when a shootout happens in an online game, CUP
+ * match"): each player's keeper his to dive (keeperDive), the mark on him, the short stops, and the
+ * practice mod's board (mod_practice.c). Every frame of it, re-simulations and --srp-resim included
+ * (NetplayMatch_IsLive): both machines play it alike -- NETPLAY_COMPAT 18. */
+static int32_t online_shootout(void)
+{
+#ifdef SWOS_NETPLAY
+    return !s_mm.active && _playingPenalties && NetplayMatch_IsLive();
+#else
+    return 0;
+#endif
+}
+int32_t ModApi_OnlineShootout(void) { return online_shootout(); }
+
+static int32_t keeper_dive_on(void) { return (s_mm.active && s_mm.setup.keeperDive) || online_shootout(); }
 
 static void keeper_dive_reset(void)
 {
@@ -820,9 +836,12 @@ static TeamGeneralInfo *shootout_defending(void)
 static void keeper_dive_frame(void)
 {
     extern TeamGeneralInfo _topTeamData, _bottomTeamData;
-    TeamGeneralInfo *def = s_mm.active && s_mm.setup.keeperDive ? shootout_defending() : NULL;
+    TeamGeneralInfo *def = keeper_dive_on() ? shootout_defending() : NULL;
+    /* (online, SWOS 2020 leaves the player mark as it is -- its MP branch draws a blinking marker
+     *  over the keeper instead, mod_practice.c draw_keeper -- so only an offline one moves it) */
+    const int32_t mark = !online_shootout();
     if (!def || def->playerNumber == 0) {   /* (the CPU's keeper, or none: the game's, unmarked) */
-        if (s_kd.team) {
+        if (s_kd.team && mark) {
             _topTeamData.inGameTeamPtr->markedPlayer = -1;
             _bottomTeamData.inGameTeamPtr->markedPlayer = -1;
         }
@@ -832,8 +851,10 @@ static void keeper_dive_frame(void)
     if (s_kd.team != (int8_t)def->teamNumber)
         keeper_dive_reset();
     s_kd.team = (int8_t)def->teamNumber;
-    def->inGameTeamPtr->markedPlayer = 0;   /* (he carries the player mark: SWOS 2020's) */
-    _bottomTeamData.inGameTeamPtr->markedPlayer = -1;
+    if (mark) {
+        def->inGameTeamPtr->markedPlayer = 0;   /* (he carries the player mark: SWOS 2020's) */
+        _bottomTeamData.inGameTeamPtr->markedPlayer = -1;
+    }
     const int16_t stick = (int16_t)def->direction;
     s_kd.stick = stick < 0 || stick > 7 ? -1 : stick;
     switch (s_kd.stick) {
@@ -875,7 +896,7 @@ int16_t ModMatch_KeeperHighDive(const TeamGeneralInfo *team, int16_t ballNotHigh
 {
     if (!keeper_dive_mine(team) || s_kd.height == KEEPER_HEIGHT_NORMAL)
         return -1;
-    return (uint16_t)ballNotHighZ >= s_kd.height;
+    return (uint16_t)ballNotHighZ >= (uint16_t)s_kd.height;
 }
 
 /* GoalkeeperJumping: the dive's speed -- half for the short low dive (down-left / down-right). */
@@ -885,7 +906,7 @@ int16_t ModMatch_KeeperDiveSpeed(const TeamGeneralInfo *team, int16_t speed)
 }
 
 /* The player mark 4 pixels lower (SWOS 2020's MarkPlayerSP in its shoot-out). */
-int16_t ModMatch_MarkOffset(void) { return s_mm.active && s_mm.setup.keeperDive && _playingPenalties ? 4 : 0; }
+int16_t ModMatch_MarkOffset(void) { return keeper_dive_on() && _playingPenalties ? 4 : 0; }
 
 /* ModApi_PressFire: a player's fire held for some frames of a mod's match. */
 static int16_t s_fireFrames[2];
@@ -912,7 +933,8 @@ int32_t ModApi_Shootout(ModShootout *out)
     if (!out)
         return 0;
     memset(out, 0, sizeof *out);
-    if (!s_mm.active || _penaltiesState == 0)
+    const int32_t online = online_shootout();
+    if (!(s_mm.active || online) || _penaltiesState == 0)
         return 0;
     out->attempts[0] = (int16_t)_team1PenaltyAttempts;
     out->attempts[1] = (int16_t)_team2PenaltyAttempts;
@@ -924,13 +946,15 @@ int32_t ModApi_Shootout(ModShootout *out)
     out->over = (uint8_t)!_playingPenalties;
     out->gameState = _gameState;
     out->inProgress = (uint8_t)(_gameState == ST_PENALTIES || _gameStatePl == ST_GAME_IN_PROGRESS);
-    out->side[0] = s_mm.setup.side[0];
-    out->side[1] = s_mm.setup.side[1];
+    out->side[0] = online ? MODSIDE_PLAYER1 : s_mm.setup.side[0];   /* (online: a player each, the host team 1) */
+    out->side[1] = online ? MODSIDE_PLAYER2 : s_mm.setup.side[1];
     out->keeperTurn = (int8_t)(s_kd.team ? s_kd.team - 1 : -1);
     out->keeperStick = s_kd.team ? s_kd.stick : -1;
     {
         TeamGeneralInfo *def = shootout_defending();
         const Sprite *gk = def && def->spritesTable ? def->spritesTable[0] : NULL;
+        out->keeperX = gk ? gk->x.s.i : 0;
+        out->keeperY = gk ? gk->y.s.i : 0;
         out->ballOnSpot = (uint8_t)(_ballSprite.x.s.i == 336 && _ballSprite.y.s.i == 187 && gk &&
                                     gk->x.s.i == 336 && gk->y.s.i == 131);
     }
@@ -1126,7 +1150,7 @@ static void preload_scorers(void)
 
 /* G9's rules, asked where the engine decides them. */
 int32_t ModMatch_QuickRestarts(void) { return s_mm.active && s_mm.setup.quickRestarts; }
-int32_t ModMatch_ShortStops(void) { return s_mm.active && s_mm.setup.shortStops; }
+int32_t ModMatch_ShortStops(void) { return (s_mm.active && s_mm.setup.shortStops) || online_shootout(); }
 int32_t ModMatch_StraightReds(void) { return s_mm.active && s_mm.setup.straightReds; }
 int32_t ModMatch_NoTackles(void) { return s_mm.active && s_mm.setup.noTackles; }
 

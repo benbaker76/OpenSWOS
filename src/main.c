@@ -770,7 +770,7 @@ int main(int argc, char **argv)
         snprintf(opts.chat_quick[qi], sizeof opts.chat_quick[qi], "%s", MatchChat_DefaultQuick(qi));
     opts.prediction = 1;          /* default: a live match's replay keeps what each player saw */
     opts.chat_scale = 0;          /* [chat] scale: 1x (SWOS 2020's) */
-    opts.chat_auto_close = 0;     /* [chat] auto_close: NEVER, the box stays (SWOS 2020's was AFTER 5 SECONDS) */
+    opts.chat_auto_close = 3;     /* [chat] auto_close: idle 3 s, then it fades (Playa, 2026-11-21; NEVER until then, SWOS 2020's AFTER 5 SECONDS) */
     opts.no_injuries_cards = 0;   /* [testing] no_injuries_cards: the real rules unless asked (test_rules.h) */
     opts.career_exact_continuation = 0;   /* [career] exact_continuation: off, as the original */
 #ifdef SWOS_TEST_RULES

@@ -233,7 +233,9 @@ static void shootout_test_menu(void)
     shootout_play(&setup);
 }
 
-static int32_t our_shootout(void) { return s_shootout && ModApi_ModMatch("practice"); }
+/* Ours: PRACTICE's shoot-out, or an online match's, which plays as it does (mod_match.c
+ * online_shootout) and shows its board, kits and arrow the same (Playa, 2026-11-21). */
+static int32_t our_shootout(void) { return (s_shootout && ModApi_ModMatch("practice")) || ModApi_OnlineShootout(); }
 
 /* The board's state as SWOS 2020 keeps it, a frame at a time. */
 static int32_t shootout_turn(const ModShootout *so)
@@ -501,6 +503,16 @@ static void draw_keeper(const ModShootout *so)
         case 7: pixmap(kArrowLeftUp, 9, 9, gx - 14, yl + 1, "2F6548", cols, -1); break;
         default: break;
         }
+    if (ModApi_OnlineShootout()) {
+        /* Online, SWOS 2020's MP branch: no controllers named (showControllerInfo returns), and a
+         * blinking marker over the defending keeper while the camera is at the top goal
+         * (setGKMarker, gk_marker_5x5_1x1_map, palette 2) in place of the player mark. */
+        static const char *const kGkMarker[5] = { "..2..", ".222.", "22222", ".222.", "..2.." };
+        static const uint8_t white[] = { 2 };
+        if (cy <= 16 && so->keeperY > 0 && so->keeperY < 134 && (Platform_NowMs() / 286) % 2 == 0)
+            pixmap(kGkMarker, 5, 5, so->keeperX - cx - 2, so->keeperY - cy - 18, "2", white, -1);
+        return;
+    }
     if (so->ballOnSpot) {
         const int32_t def = 1 - so->kicking;
         for (int32_t k = 0; k < 2; k++) {
@@ -635,6 +647,12 @@ static void shootout_drawn(void)
     ModApi_ScreenSize(&s_w, &s_h);
     if (!s_fb)
         return;
+    if (ModApi_OnlineShootout() && so.attempts[0] == 0 && so.attempts[1] == 0) {
+        memset(s_kicks, 0, sizeof s_kicks);     /* (an online one starts its board here: no setup) */
+        s_lastGoals[0] = s_lastGoals[1] = 0;
+        s_turnStarted = 0;
+        s_turnFirst = 0;
+    }
     layout(&l);
     s_testFrames++;
     const int32_t m = (s_w - l.base) / 2;

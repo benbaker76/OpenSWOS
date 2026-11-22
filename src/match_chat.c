@@ -65,7 +65,7 @@ static const uint32_t kRepeatMs[REPEATS] = { 0, 250, 750 };
  * Down, F11/F12 being OpenSWOS's screenshots) and AUTO CLOSE CHATBOX (g_ChatboxTimeout): [chat]
  * scale 0..8, the box 1x to 5x in halves; [chat] auto_close 1..5, the seconds it stays after the
  * newest line before it fades. Set at start-up from SWOS.ini and by the keys, which keep it there. */
-static int32_t s_scale = 0, s_closeS = 5;
+static int32_t s_scale = 0, s_closeS = 3;
 
 void MatchChat_SetScale(int32_t scale) { s_scale = scale < 0 ? 0 : scale > MATCHCHAT_SCALE_MAX ? MATCHCHAT_SCALE_MAX : scale; }
 int32_t MatchChat_Scale(void) { return s_scale; }
@@ -93,6 +93,7 @@ static struct {
     Line     lines[KEEP_LINES];
     int32_t  count;
     uint32_t shownAt;                   /* SDL_GetTicks of the newest line */
+    uint32_t activeAt;                  /* ... of the last thing typed into the open line, or its opening */
     uint16_t nextSeq;                   /* what we send */
     uint32_t seen[8];                   /* their numbers seen, a bit each, over the last 256 */
     uint16_t seenHigh;                  /* the newest of them */
@@ -394,6 +395,7 @@ static void open_input(void)            /* the match's line */
 {
     line_open(send_line, 0);
     C.typing = 1;
+    C.activeAt = SDL_GetTicks();
     /* (a player typing wants the box: F3's hidden -- kept from match to match -- went with the
      *  ENTER that sent the line, and the box with it, at once: Playa, 2026-11-16) */
     C.hidden = 0;
@@ -488,6 +490,9 @@ int32_t MatchChat_Event(const SDL_Event *e)
 #endif
     if (C.typing && (!C.active || !chat_live()))
         close_input();                  /* (the match ended under the line) */
+    if (C.typing && L.open && (e->type == SDL_TEXTINPUT ||
+                               (e->type == SDL_KEYDOWN && e->key.keysym.sym == SDLK_BACKSPACE)))
+        C.activeAt = SDL_GetTicks();    /* (typing: not idle -- the keys that play do not count) */
     if (L.open) {
         switch (e->type) {
         case SDL_TEXTINPUT:
@@ -645,6 +650,18 @@ void MatchChat_Draw(void)
     }
     const uint32_t now = SDL_GetTicks();
     float alpha = 1.0f;
+    /* Idle -- nothing new and nothing typed for AUTO CLOSE's seconds (3 by default) -- an EMPTY open
+     * line closes and the box fades out at once (Playa, 2026-11-21: "when the match chatbox is idle,
+     * hide it after 3 seconds"; it stayed while TAB / ENTER kept the line open). A line half typed
+     * stays; TAB opens it again, a line from the other player shows the box again. */
+    if (C.typing && L.len == 0 && s_closeS > 0) {
+        const uint32_t last = (int32_t)(C.activeAt - C.shownAt) > 0 ? C.activeAt : C.shownAt;
+        const uint32_t idleMs = (uint32_t)s_closeS * 1000u;
+        if (now - last >= idleMs) {
+            line_close();
+            C.shownAt = now - idleMs;   /* (the fade from now: line_close set it to now) */
+        }
+    }
     if (!C.typing) {
         if (C.hidden || C.closed || C.count == 0)
             return;
