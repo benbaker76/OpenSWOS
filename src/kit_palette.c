@@ -129,8 +129,9 @@ int32_t KitPalette_RemapPitch(uint8_t *pixels, uint32_t count)
 
 /* ---- against the grass: a variant too like this match's pitch is drawn a little lighter or darker ----
  * The three grass entries as the pitch condition set them (ApplyPitchPaletteAndFactors). A variant
- * closer to any than GRASS_APART (CIEDE2000) takes 10 % more or less light -- away from the grass's
- * own lightness -- 20 % if that is still too close. Drawing only, and only the variants' own
+ * closer to any than GRASS_APART (CIEDE2000) is drawn a little lighter or darker than its
+ * own lightness -- just enough: the smallest step lighter or darker (on the Amiga's 16 levels)
+ * that takes it apart, whichever changes it less. Drawing only, and only the variants' own
  * entries: smaragd on a wet pitch, olive on a soft or hard one. */
 #define GRASS_APART 10.0
 
@@ -204,17 +205,27 @@ static uint16_t scaled(uint16_t rgb12, double f)
 
 static uint16_t against_grass(uint16_t rgb12)
 {
-    double grassL, lab[3];
-    if (grass_apart(rgb12, &grassL) >= GRASS_APART)
+    uint16_t best = rgb12;
+    double bestCost = 1e9;
+
+    if (grass_apart(rgb12, NULL) >= GRASS_APART)
         return rgb12;
-    lab_of(rgb12, lab);
-    const double dir = lab[0] >= grassL ? 1 : -1;      /* away from the grass's lightness */
-    uint16_t c = scaled(rgb12, 1 + 0.1 * dir);
-    if (grass_apart(c, NULL) < GRASS_APART)
-        c = scaled(rgb12, 1 + 0.2 * dir);
+    /* Just enough: lighter and darker in steps of 2 % (on the Amiga's 16 levels), the first of
+     * each that is apart from the grass; of the two, the one nearer the colour itself. */
+    for (int32_t dir = -1; dir <= 1; dir += 2)
+        for (int32_t k = 1; k <= 25; k++) {
+            const uint16_t c = scaled(rgb12, 1 + 0.02 * k * dir);
+            if (c == rgb12 || grass_apart(c, NULL) < GRASS_APART)
+                continue;
+            if (ciede2000(rgb12, c) < bestCost) {
+                bestCost = ciede2000(rgb12, c);
+                best = c;
+            }
+            break;
+        }
     if (getenv("SWOS_KIT_PALETTE_DUMP"))
-        fprintf(stderr, "[kit-palette] %03X too like the grass: drawn %03X\n", rgb12, c);
-    return c;
+        fprintf(stderr, "[kit-palette] %03X too like the grass: drawn %03X\n", rgb12, best);
+    return best;
 }
 
 static void put_colour(int32_t e, uint16_t rgb12)
