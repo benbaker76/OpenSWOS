@@ -1446,3 +1446,6 @@ msgstr "Moon Soccer"
 
 msgid "It needs an AGA Amiga (A1200 or A4000, 68020 or better) with at least 8 MB of fast RAM: with less, the game does not start. In WinUAE or FS-UAE, add 8 MB of fast RAM -- the standard A1200 has none."
 msgstr "Il faut un Amiga AGA (A1200 ou A4000, 68020 ou mieux) avec au moins 8 Mo de Fast RAM : avec moins, le jeu ne démarre pas. Dans WinUAE ou FS-UAE, ajoutez 8 Mo de Fast RAM -- l'A1200 standard n'en a pas."
+
+msgid "On the Amiga the world brings its clubs and players, but the national teams are still 96/97's (some under today's names). Today's 211 national teams play on the PC, Mac and phones."
+msgstr "Sur Amiga, le monde apporte ses clubs et ses joueurs, mais les équipes nationales restent celles de 96/97 (certaines sous leur nom actuel). Les 211 équipes nationales d'aujourd'hui jouent sur PC, Mac et téléphone."

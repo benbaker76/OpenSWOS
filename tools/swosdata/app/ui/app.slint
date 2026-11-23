@@ -1161,6 +1161,14 @@ export component MainWindow inherits Window {
                                 clicked => { root.amiga-world-next(); }
                             }
                         }
+                        // (the Amiga keeps 96/97's 143 nations; the SDL build plays Playaveli's 211 from
+                        //  national_teams.json -- docs/WORLD_DATAGEN.md §15. Players asked.)
+                        if root.amiga-world-available: Text {
+                            text: @tr("On the Amiga the world brings its clubs and players, but the national teams are still 96/97's (some under today's names). Today's 211 national teams play on the PC, Mac and phones.");
+                            wrap: word-wrap;
+                            font-size: 14px;
+                            color: Theme.text-dim;
+                        }
                         HorizontalLayout {
                             spacing: 14px;
                             BigButton {
