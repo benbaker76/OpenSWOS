@@ -3,11 +3,11 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
-#include <string.h>          /* (memcpy; and getenv's purple test switch, SDL) */
-#include "kit_variants.h"     /* (both targets: the clash rule and the colour bytes) */
+#include "kit_variants.h"   /* (both targets: KitColour_Legacy, KitPattern_Base) */
+#include <string.h>
 #ifdef SWOS_SDL_BUILD
 #include "kit_palette.h"
-#include <stdlib.h>
+#include <stdlib.h>          /* (getenv: the purple test switch) */
 #endif
 #include "team_colors.h"
 #include "game_types.h"
@@ -109,15 +109,21 @@ void TeamColors_Init(void)
     }
     _kTeamColorsTable[KIT_PURPLE] = (uint16_t)best;
 #endif
+    /* (the kit variants' menu entries: TeamColors_MenuVariants, once the intro's pictures are gone) */
+}
+
+/* The kit variants' own menu entries (TeamColors_MenuEntry): 128 on, where no menu art draws
+ * (measured: the menu backdrops 0-62, the buttons, text and pictures 0-15, SOCCER_S to 126;
+ * the credits lend 128-255 and give them back, the Jaguar kit art 192-251). Not before the main
+ * menu (frontend.c, after POWERED BY): SWOS United's two intro pictures (grafs_aga/SWOSUNTD.RAW,
+ * POWERED.RAW: scripts/make_loader_logos.sh) are drawn in the whole menu palette, and with these
+ * written at start-up the logo's reds came out wrong (Playa, 2026-11-22). */
+void TeamColors_MenuVariants(void)
+{
 #if defined(AGA) && defined(SWOS_SDL_BUILD)
-    /* The kit variants' own menu entries (TeamColors_MenuEntry): 128 on, where no menu art draws
-     * (measured: the menu backdrops 0-62, the buttons, text and pictures 0-15, SOCCER_S to 126;
-     * the credits lend 128-255 and give them back, the Jaguar kit art 192-251). */
-    {
-        extern uint16_t _menuPalette[];
-        for (int32_t i = 0; i < KitVariants_Count() && i < 64; i++)      /* (64: up to 191) */
-            _menuPalette[KIT_MENU_FIRST + i] = KitVariants_Rgb12(KitVariants_Byte(i));
-    }
+    extern uint16_t _menuPalette[];
+    for (int32_t i = 0; i < KitVariants_Count() && i < 64; i++)          /* (64: up to 191) */
+        _menuPalette[KIT_MENU_FIRST + i] = KitVariants_Rgb12(KitVariants_Byte(i));
 #endif
 }
 

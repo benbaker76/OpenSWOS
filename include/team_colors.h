@@ -40,6 +40,8 @@ uint16_t __attribute__((used, externally_visible)) ConvertPlayerDressColor(uint1
  * basic, shorts, socks; 0 for another TeamGame). */
 #define KIT_COLOURS 11
 void TeamColors_Init(void);
+/* The kit variants' entries in the menu palette (128 on): once the intro's pictures are gone. */
+void TeamColors_MenuVariants(void);
 void TeamColors_MatchPalette(TeamGame *team1);
 int32_t TeamColors_PurpleInMatch(void);   /* a side wears purple and neither maroon */
 #ifdef SWOS_SDL_BUILD

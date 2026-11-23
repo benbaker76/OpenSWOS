@@ -205,6 +205,10 @@ void FrontEndPreLoopSetup(void)
        Copa isn't installed. Shared code path (career_copa.c) — same on both ports. */
     extern void Career_InstallCopaLibertadoresPresetEntry(void);
     Career_InstallCopaLibertadoresPresetEntry();
+    {   /* (the kit variants' menu palette entries, after the intro's pictures: a fork's are drawn in them) */
+        extern void TeamColors_MenuVariants(void);
+        TeamColors_MenuVariants();
+    }
     InitMenuMusic();
     PrepareMenuBackground();
     InitMainMenuStuff();
