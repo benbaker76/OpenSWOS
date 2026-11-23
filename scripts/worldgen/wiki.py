@@ -200,6 +200,9 @@ def pattern_image(part, name, offline=False):
     prefix = {'body': 'Kit_body', 'leftarm': 'Kit_left_arm', 'rightarm': 'Kit_right_arm', 'shorts': 'Kit_shorts',
               'socks': 'Kit_socks'}[part]
     name = name.strip().replace(' ', '_')
+    # (a name with letters outside ASCII -- Kit_body_karşıyaka2627h -- percent-encoded; ASCII ones as
+    #  they were, so the cache's keys stay)
+    name = urllib.parse.quote(name, safe="/()_-.,'!~*:;@&=+$")
     data = fetch.get(FILEPATH + prefix + name + '.png', offline=offline)
     if not data or data[:4] != b'\x89PNG':
         return None

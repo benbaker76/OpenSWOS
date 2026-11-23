@@ -280,11 +280,18 @@ def encode_team(t: dict) -> bytearray:
     if "kit_colors" in h:   # back-compat: pre-split flat 10-byte array
         kit = (list(h["kit_colors"]) + [0] * 10)[:10]
     else:
-        kit = [h.get(k, 0) for k in (
-            "primary_shirt_type", "primary_stripes_color", "primary_basic_color",
-            "primary_shorts_color", "primary_socks_color",
-            "secondary_shirt_type", "secondary_stripes_color", "secondary_basic_color",
-            "secondary_shorts_color", "secondary_socks_color")]
+        # each byte the base (the low nibble), and the kit variant's colour or pattern in the high
+        # one when the JSON names it ("<side>_<part>_variant", "<side>_shirt_pattern":
+        # include/kit_variants.h, the game's reader in save_format_json.c)
+        kit = []
+        for side in ("primary", "secondary"):
+            for part, ext in (("shirt_type", "shirt_pattern"), ("stripes_color", "stripes_variant"),
+                              ("basic_color", "basic_variant"), ("shorts_color", "shorts_variant"),
+                              ("socks_color", "socks_variant")):
+                v = int(h.get("%s_%s" % (side, part), 0))
+                if h.get("%s_%s" % (side, ext)):
+                    v = (v & 0x0F) | (int(h["%s_%s" % (side, ext)]) << 4)
+                kit.append(v)
     b[26:36] = bytes(int(x) & 0xFF for x in kit)
     _put_str(b, COACH_NAME_OFF, COACH_NAME_LEN, h["coach_name"])
     b[59] = h["player_values_dirty"] & 0xFF

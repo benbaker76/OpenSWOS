@@ -89,7 +89,7 @@ def get(url, json_api=False, offline=False, retries=3):
         if wait > 0:
             time.sleep(wait)
         headers = dict(HEADERS_JSON if json_api else HEADERS_HTML)
-        if host in TOOL_UA_HOSTS:
+        if host in TOOL_UA_HOSTS or host.endswith('.wikipedia.org'):    # (every language's Wikipedia)
             headers['User-Agent'] = TOOL_UA
         req = urllib.request.Request(url, headers=headers)
         status = 0
