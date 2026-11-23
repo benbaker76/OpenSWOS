@@ -319,11 +319,12 @@ static int32_t shirt_indices(const uint8_t *shirts, int32_t count, int32_t *out)
 int32_t KitVariants_KeeperColour(const uint8_t *shirts, int32_t count)
 {
     int32_t shirt[8], n = shirt_indices(shirts, count, shirt), clash = 0;
+    /* His own needs more apart than the kits' rule (kKitKeeperOwnNear: keeper_default_apart). */
     for (int32_t i = 0; i < n; i++)
-        clash |= shirt[i] >= 0 && ((kKitSimilar[KIT_KEEPER_DEFAULT] >> shirt[i]) & 1u);
+        clash |= shirt[i] >= 0 && ((kKitKeeperOwnNear >> shirt[i]) & 1u);
     if (!clash)
         return colour_byte(KIT_KEEPER_DEFAULT);     /* his own: dark green (kit_variants.json) */
-    /* By tiers, in order (kit_variants.json: dark green, anthracite, emerald, lime, silver): of the first tier that has a colour apart
+    /* By tiers, in order (kit_variants.json: anthracite, emerald, lime, silver): of the first tier that has a colour apart
      * from both teams, the one that differs most; failing all, any colour. */
     for (int32_t t = 0, from = 0; t < KIT_KEEPER_TIERS; from = kKitKeeperTierEnd[t++]) {
         int32_t best = -1, bestApart = -1;
@@ -447,6 +448,14 @@ int32_t KitVariants_SelfTest(void)
         if (ref < 0 || KitVariants_Similar((uint8_t)ref, 2) || KitVariants_Similar((uint8_t)ref, 1) ||
             KitVariants_Similar((uint8_t)ref, (uint8_t)own)) {
             fails++; fprintf(stderr, "[kit-variants] FAIL: the referee against black and white (%d)\n", (int)ref);
+        }
+        {   /* azure (as alike to dark green as a small figure shows, though CIEDE2000 45): not dark green */
+            uint8_t azure[1] = { 0 };
+            for (int32_t i = 0; i < KIT_VARIANT_COUNT; i++)
+                if (!strcmp(kKitVariants[i].name, "AZURE")) azure[0] = colour_byte(KIT_BASE_COLOURS + i);
+            if (!azure[0] || KitVariants_KeeperColour(azure, 1) == colour_byte(KIT_KEEPER_DEFAULT)) {
+                fails++; fprintf(stderr, "[kit-variants] FAIL: the keepers in dark green beside azure\n");
+            }
         }
         {   /* a keeper in black (his last resort): the referee must not stay black beside him */
             const uint8_t two[2] = { 0, 1 };

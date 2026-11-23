@@ -151,6 +151,7 @@ def load():
     if not found:
         sys.exit("kit_variants.json: officials.keeper_default is no colour")
     offi["keeper_default"] = found[0]
+    offi["keeper_default_apart"] = float(d.get("officials", {}).get("keeper_default_apart", d["similar_below"]))
     d["_officials"] = offi
     return d, colours, pats
 
@@ -229,6 +230,12 @@ def make_inc(d, colours, pats):
     out += ["};", "",
             "/* The keepers' own colour (a colour index), and the colours a keeper / the referee may change to (colour indices), clash_kits.c. */",
             "#define KIT_KEEPER_DEFAULT   %d" % d["_officials"]["keeper_default"],
+            "/* The colours the keepers' own colour is too like for him to keep it: CIEDE2000 below",
+            " * keeper_default_apart (%g), stricter than the kits' rule. */" % d["_officials"]["keeper_default_apart"],
+            "static const uint64_t kKitKeeperOwnNear = 0x%016XULL;" % sum(
+                1 << j for j, o in enumerate(colours)
+                if ciede2000(rgb12_to_8(colours[d["_officials"]["keeper_default"]]["rgb"]), rgb12_to_8(o["rgb"]))
+                < d["_officials"]["keeper_default_apart"]),
             "#define KIT_KEEPER_CHOICES   %d" % len(d["_officials"]["keeper"]),
             "#define KIT_REFEREE_CHOICES  %d" % len(d["_officials"]["referee"]),
             "static const uint8_t kKitKeeperChoices[KIT_KEEPER_CHOICES] = { %s };"
