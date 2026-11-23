@@ -1106,6 +1106,13 @@ export component MainWindow inherits Window {
                     font-size: 14px;
                     color: Theme.text-dim;
                 }
+                // (the program alone takes 6.1 MB of fast RAM: SWOS2's hunks, scripts/amiga/whdload_sizes.py)
+                Text {
+                    text: @tr("It needs an AGA Amiga (A1200 or A4000, 68020 or better) with at least 8 MB of fast RAM: with less, the game does not start. In WinUAE or FS-UAE, add 8 MB of fast RAM -- the standard A1200 has none.");
+                    wrap: word-wrap;
+                    font-size: 14px;
+                    color: Theme.warn;
+                }
                 Rectangle {
                     border-radius: 12px;
                     background: Theme.panel;

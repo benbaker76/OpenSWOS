@@ -1443,3 +1443,6 @@ msgstr "Amiga 60 fps"
 
 msgid "Moon Soccer"
 msgstr "Moon Soccer"
+
+msgid "It needs an AGA Amiga (A1200 or A4000, 68020 or better) with at least 8 MB of fast RAM: with less, the game does not start. In WinUAE or FS-UAE, add 8 MB of fast RAM -- the standard A1200 has none."
+msgstr "Il faut un Amiga AGA (A1200 ou A4000, 68020 ou mieux) avec au moins 8 Mo de Fast RAM : avec moins, le jeu ne démarre pas. Dans WinUAE ou FS-UAE, ajoutez 8 Mo de Fast RAM -- l'A1200 standard n'en a pas."
