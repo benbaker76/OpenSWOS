@@ -154,8 +154,12 @@ int32_t NetplaySetup_BenchTapsOff(int32_t player)
 }
 
 /* The kit clash rule: this game's own goes out with its setup (the host's decides); the last
- * setup applied's is what both games choose the kits by. */
-static uint8_t s_kitRulePlay;
+ * setup applied's is what both games choose the kits by. Before any setup is applied (the rigs'
+ * netplay step: netplay_test.sh, which plays a recording with no setup) it is this game's own, as
+ * a plain run of the same match plays -- it was the original's, so the two dressed a match's teams
+ * differently and parted at frame 0 in 10 of the corpus's 30 matches. A live match always applies
+ * its setup first. */
+static int8_t  s_kitRulePlay = -1;      /* -1: no setup applied (this game's own) */
 static int8_t  s_kitRuleSend = -1;      /* the lobby's (both players'), -1: this game's own */
 
 void NetplaySetup_SetKitRule(int32_t rule)
@@ -165,7 +169,7 @@ void NetplaySetup_SetKitRule(int32_t rule)
 
 int32_t NetplaySetup_KitRule(void)
 {
-    return s_kitRulePlay;
+    return s_kitRulePlay >= 0 ? s_kitRulePlay : KitVariants_Rule();
 }
 
 /* The bytes a setup of `version` holds. */
