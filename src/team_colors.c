@@ -3,13 +3,11 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
-#ifdef SWOS_SDL_BUILD
-#include "kit_variants.h"
+#include <string.h>          /* (memcpy; and getenv's purple test switch, SDL) */
+#include "kit_variants.h"     /* (both targets: the clash rule and the colour bytes) */
 #ifdef SWOS_SDL_BUILD
 #include "kit_palette.h"
-#endif
 #include <stdlib.h>
-#include <string.h>          /* (getenv: the purple test switch) */
 #endif
 #include "team_colors.h"
 #include "game_types.h"
