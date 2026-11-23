@@ -9,11 +9,11 @@
  * src/save_format_json.c; docs/DATA_PIPELINE.md): then the counts are its lengths. Without one,
  * the compiled tables, byte for byte. */
 
+#define NATIONAL_TEAMS_MAX   256u   /* records: the original's table held 144; a world's 211 (the Amiga's baked
+                                     * in world_data.c by scripts/worldgen/seal.py) */
 #ifdef SWOS_SDL_BUILD
-#define NATIONAL_TEAMS_MAX   256u   /* records */
 #define NATIONALITIES_MAX    128u   /* the career's nationalities, OTHER included */
 #else
-#define NATIONAL_TEAMS_MAX   144u   /* the original's table */
 #define NATIONALITIES_MAX    64u
 #endif
 

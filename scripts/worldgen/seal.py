@@ -7,8 +7,11 @@ master data: what the package carries, the Amiga plays and the game checks (docs
 0. each team's checksum (what the server's team list checks it by: assign_team_uuids.py checksum, its
    16's positions, skills and prices) made again where an edit after the import left it stale.
 1. data/TEAM.nnn: each club team file's Amiga binary written again from its JSON (world_import.py's own
-   writer), so the Amiga plays the same skills. A team file with no binary in data/ gets none (the
-   national files: the Amiga keeps 96/97's 143 nations, docs/WORLD_DATAGEN.md §15).
+   writer), so the Amiga plays the same skills. A club file with no binary in data/ gets none; the
+   national files (80..85) always get theirs.
+1c. the national files' sizes and national_teams.json's records into world_data.c (a block between
+   "seal.py: the national files" markers, called first in the world's InstallBaked): the Amiga
+   numbers the teams as SDL does and plays the world's nations (docs/WORLD_DATAGEN.md §15).
 1b. data/ and teams/POOLPLYR.DAT: the foreign market's pool, from those files (world_import.py
    write_pool).
 2. the fingerprint of teams/ competitions/ data/ (world_import.py world_fingerprint) into WORLD.ini and
@@ -68,11 +71,11 @@ def main():
         teams = json.load(open(f, encoding='utf-8'))
         name, packed = wi.team_file_binary(teams)
         name = name.upper()
-        if name not in have:
+        if name not in have and name not in NATIONAL_FILES:
             skipped += 1
             continue
         path = os.path.join(data, name)
-        if open(path, 'rb').read() == packed:
+        if os.path.exists(path) and open(path, 'rb').read() == packed:
             same += 1
             continue
         rewritten += 1
@@ -95,11 +98,109 @@ def main():
     if c.count('"%s"' % old) != 1:
         sys.exit('seal: %s does not hold the fingerprint %s once -- rerun world_import.py first'
                  % (os.path.relpath(a.data_c, REPO), old))
+    c2 = national_block(c, wi.WORLD)
     if new != old:
         open(ini, 'w', newline='\n', encoding='utf-8').write(
             re.sub(r'^(fingerprint *= *)\S+', r'\g<1>' + new, text, flags=re.M))
-        open(a.data_c, 'w', newline='\n', encoding='utf-8').write(c.replace('"%s"' % old, '"%s"' % new))
+        c2 = c2.replace('"%s"' % old, '"%s"' % new)
+    if c2 != c:
+        open(a.data_c, 'w', newline='\n', encoding='utf-8').write(c2)
     print('fingerprint %s -> %s (WORLD.ini, %s)' % (old, new, os.path.relpath(a.data_c, REPO)))
+
+
+# The national files, 80..85 (step 1c): the Amiga reads no JSON, so the world's national teams reach it
+# as binaries in data/ (written above) and as a block baked into world_data.c -- each file's size (its
+# range of global team numbers grows to it, as fit_world_national_files does on SDL, so both targets
+# number every team alike) and the national_teams.json records (_nationalTeams: jobs, a random
+# national side), which SDL reads from the JSON itself.
+NATIONAL_FILES = ['TEAM.%03d' % n for n in range(80, 86)]
+NAT_BEGIN = '/* seal.py: the national files -- BEGIN (scripts/worldgen/seal.py writes this block) */'
+NAT_END = '/* seal.py: the national files -- END */'
+
+
+def national_block(c, world):
+    sizes = {}
+    for f in glob.glob(os.path.join(world, 'teams', '*.json')):
+        d = json.load(open(f, encoding='utf-8'))
+        if d.get('type') == 'team':
+            name = wi.team_file_binary(d)[0].upper()
+            if name in NATIONAL_FILES:
+                sizes[int(name[-3:])] = len(d['teams'])
+    rec_path = os.path.join(world, 'competitions', 'national_teams.json')
+    if not os.path.exists(rec_path):
+        rec_path = os.path.join(world, 'national_teams.json')
+    if len(sizes) != 6 or not os.path.exists(rec_path):
+        print('national files: %d of 6 and %s -- no block (the Amiga keeps 96/97\'s)'
+              % (len(sizes), 'records' if os.path.exists(rec_path) else 'no records'))
+        return c
+    recs = json.load(open(rec_path, encoding='utf-8'))
+    rows = recs['records']
+    if len(rows) > 256:
+        sys.exit('seal: %d national team records, NATIONAL_TEAMS_MAX is 256' % len(rows))
+    m = re.search(r'^void (\w+)_InstallBaked\(void\)\n\{\n    switch \(World_Current\(\)\) \{\n#if SWOS_WORLDS\n'
+                  r'    case (WORLD_\w+):\n', c, re.M)
+    if not m:
+        sys.exit('seal: no %s InstallBaked of the expected shape' % 'world_data.c')
+    P = m.group(1)
+    data = []
+    for r in rows:
+        sk = int(r['skill'])
+        data += [int(r['country']), int(r['ordinal']), int(r['nationality']), int(r['team_file']),
+                 sk >> 8, sk & 255]
+    lines = []
+    for i in range(0, len(data), 18):
+        lines.append('    ' + ', '.join('%d' % b for b in data[i:i + 18]) + ',')
+    block = '\n'.join([
+        NAT_BEGIN,
+        '/* The world\'s national files (80..85): their sizes and national_teams.json\'s %d records, each' % len(rows),
+        ' * country, ordinal, nationality, home team file, skill (big-endian) -- _nationalTeams\' layout. */',
+        '#if SWOS_WORLDS',
+        'static const uint8_t k%sNationalSizes[6] = { %s };' % (P, ', '.join(str(sizes[n]) for n in range(80, 86))),
+        '#ifndef SWOS_SDL_BUILD',
+        'static const uint8_t k%sNationalTeams[%d * 6] = {' % (P, len(rows)),
+        '\n'.join(lines),
+        '};',
+        '#endif',
+        '',
+        '/* Each national file\'s range of team numbers grown to it (never shrunk; SDL\'s',
+        ' * fit_world_national_files then finds them so); the Amiga\'s records (SDL reads the JSON). */',
+        'static void install_nationals(void)',
+        '{',
+        '    for (uint16_t c = 80; c <= 85; c++)',
+        '        if (k%sNationalSizes[c - 80] > _teamsCountryNumbers[c + 1] - _teamsCountryNumbers[c])' % P,
+        '            resize_country(c, k%sNationalSizes[c - 80]);' % P,
+        '#ifndef SWOS_SDL_BUILD',
+        '    {',
+        '        extern uint8_t  _nationalTeams[];',
+        '        extern uint16_t _numNationalTeams, _natTeamsRandLimit2, _nat_teams_rand_limit1;',
+        '        memset(_nationalTeams, 0, NATIONAL_TEAMS_MAX * 6);',
+        '        memcpy(_nationalTeams, k%sNationalTeams, sizeof k%sNationalTeams);' % (P, P),
+        '        _numNationalTeams = %d;' % len(rows),
+        '        _natTeamsRandLimit2 = %d;     /* (a random national team -- friendlies, tours -- from all) */' % len(rows),
+        '        _nat_teams_rand_limit1 = %d;  /* (the first records a national job is drawn from) */'
+        % int(recs.get('job_offer_pick', len(rows))),
+        '    }',
+        '#endif',
+        '}',
+        '#endif',
+        NAT_END,
+        ''])
+    if NAT_BEGIN in c:
+        i = c.index(NAT_BEGIN)
+        j = c.index(NAT_END) + len(NAT_END) + 1
+        c = c[:i] + block + c[j:]
+    else:
+        at = c.index(m.group(0))
+        c = c[:at] + block + '\n' + c[at:]
+    head = m.group(0)
+    if head + '        install_nationals();\n' not in c:
+        c = c.replace(head, head + '        install_nationals();\n', 1)
+    for inc in ('#include "national_teams.h"\n', '#include <string.h>\n'):
+        if inc not in c:
+            c = c.replace('#include "game_types.h"\n', '#include "game_types.h"\n' + inc, 1)
+    print('national files: %s teams, %d records baked (%s)'
+          % ('/'.join(str(sizes[n]) for n in range(80, 86)), len(rows), P))
+    return c
 
 
 if __name__ == '__main__':

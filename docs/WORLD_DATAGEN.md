@@ -526,9 +526,14 @@ other ones -- every World 2026-27 career from before this -- is refused, its clu
 another layout's (the owner's choice: no conversion). The friendly list scrolls past its 48 cells
 with red arrows (`src/teams.c`, entries 59 / 60 of chooseTeamsFriendlyMenu): Europe's 55 -- and
 96/97's own Europe of 49, whose last the original never showed. The flags mod names the new nations'
-flags (`bin/mods/flags/flags.json` names). **The Amiga** keeps 96/97's 143 in World 2026-27: its team
-numbering is baked (`src/world_data.c`, regenerated only by `world_import.py` with the Mod's data) --
-to give it the 211, teach `world_import.py` to bake the national files' sizes and write TEAM.080-085.
+flags (`bin/mods/flags/flags.json` names). **The Amiga** plays the 211 too (2026-11-23): `seal.py`
+(§17) writes their binaries, data/TEAM.080-085, and bakes into `src/world_data.c` a block (between its
+"seal.py: the national files" markers) with the six files' sizes -- each range of global team numbers
+grows to them first thing in the world's InstallBaked, so the Amiga numbers every team as SDL's
+`fit_world_national_files` does (which then finds nothing to move) -- and national_teams.json's records
+for `_nationalTeams` (NATIONAL_TEAMS_MAX is 256 on both targets now). A World 2026-27 career saved on the
+Amiga before is refused, as SDL's were (`save_national_ok`). A `world_import.py` run drops the block:
+seal again after it, as for everything else.
 
 **Not yet**: whether the career's national competitions (qualifiers, the World Cup's field) take the
 new nations is unchecked -- their lists may name 96/97's places only; a saved Transfermarkt national-team page (`tmpages.py`) does not override
@@ -576,7 +581,7 @@ package carries, the Amiga plays and the server checks. `python3 -I scripts/worl
 rest agree with it: each team's stale checksum made again (the server's team list checks a team by its
 16's positions, skills and prices: five national teams edited after nations.py had old ones), each
 club's Amiga TEAM.nnn written again from its JSON (world_import.py's writer: from the import's files it
-gives the import's binaries byte for byte; the national files have none, the Amiga keeps 96/97's 143),
+gives the import's binaries byte for byte; the national files' too, and their block in world_data.c),
 and the fingerprint of `teams/ competitions/ data/` into WORLD.ini and `src/world_data.c`. Then rebuild
 the game, copy WORLD.ini, `teams/` and `data/` to the assets folder's copy, run
 `scripts/make_world_package.sh` (MOD_RELEASE= when the tree has no `mod/SOURCE.txt`) and refresh the

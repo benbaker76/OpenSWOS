@@ -35,7 +35,7 @@ msgstr ""
 msgid "needs {0}"
 msgstr ""
 
-#: app/ui/app.slint:149 app/ui/app.slint:312 app/ui/app.slint:1392
+#: app/ui/app.slint:149 app/ui/app.slint:312 app/ui/app.slint:1384
 msgid "{0} Setup"
 msgstr ""
 
@@ -247,7 +247,7 @@ msgstr ""
 msgid "Drag it here, or choose it with Browse."
 msgstr ""
 
-#: app/ui/app.slint:594 app/ui/app.slint:1416
+#: app/ui/app.slint:594 app/ui/app.slint:1408
 msgid "Stop"
 msgstr ""
 
@@ -452,90 +452,86 @@ msgid "Another world"
 msgstr ""
 
 #: app/ui/app.slint:1167
-msgid "On the Amiga the world brings its clubs and players, but the national teams are still 96/97's (some under today's names). Today's 211 national teams play on the PC, Mac and phones."
-msgstr ""
-
-#: app/ui/app.slint:1175
 msgid "Making…"
 msgstr ""
 
-#: app/ui/app.slint:1175
+#: app/ui/app.slint:1167
 msgid "Make the drawer"
 msgstr ""
 
-#: app/ui/app.slint:1175
+#: app/ui/app.slint:1167
 msgid "Make the package"
 msgstr ""
 
-#: app/ui/app.slint:1187
+#: app/ui/app.slint:1179
 msgid "Show it"
 msgstr ""
 
-#: app/ui/app.slint:1216
+#: app/ui/app.slint:1208
 msgid "All done!"
 msgstr ""
 
-#: app/ui/app.slint:1223
+#: app/ui/app.slint:1215
 msgid "Play on this computer with the button below, or start {0} from where you unzipped it."
 msgstr ""
 
-#: app/ui/app.slint:1224
+#: app/ui/app.slint:1216
 msgid "On your phone, start {0} once the assets folder is copied over."
 msgstr ""
 
-#: app/ui/app.slint:1225
+#: app/ui/app.slint:1217
 msgid "On the handheld, start Sensible World of Soccer from Ports."
 msgstr ""
 
-#: app/ui/app.slint:1226
+#: app/ui/app.slint:1218
 msgid "On the Amiga, copy what was made and double-click SWOS."
 msgstr ""
 
-#: app/ui/app.slint:1227
+#: app/ui/app.slint:1219
 msgid "You can run this setup again whenever you like."
 msgstr ""
 
-#: app/ui/app.slint:1237
+#: app/ui/app.slint:1229
 msgid "Play {0}"
 msgstr ""
 
-#: app/ui/app.slint:1243
+#: app/ui/app.slint:1235
 msgid "Show the Amiga files"
 msgstr ""
 
-#: app/ui/app.slint:1257
+#: app/ui/app.slint:1249
 msgid "Home"
 msgstr ""
 
-#: app/ui/app.slint:1263
+#: app/ui/app.slint:1255
 msgid "Back"
 msgstr ""
 
-#: app/ui/app.slint:1274
+#: app/ui/app.slint:1266
 msgid "Skip"
 msgstr ""
 
-#: app/ui/app.slint:1274
+#: app/ui/app.slint:1266
 msgid "Next"
 msgstr ""
 
-#: app/ui/app.slint:1281
+#: app/ui/app.slint:1273
 msgid "Close"
 msgstr ""
 
-#: app/ui/app.slint:1326
+#: app/ui/app.slint:1318
 msgid "{0} Setup {1}"
 msgstr ""
 
-#: app/ui/app.slint:1332
+#: app/ui/app.slint:1324
 msgid "by Ben Baker"
 msgstr ""
 
-#: app/ui/app.slint:1375
+#: app/ui/app.slint:1367
 msgid "OK"
 msgstr ""
 
-#: app/ui/app.slint:1402
+#: app/ui/app.slint:1394
 msgid "Looking for your copy of Sensible World of Soccer on your drives..."
 msgstr ""
 

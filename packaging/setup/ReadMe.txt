@@ -75,9 +75,8 @@
 
  To play World 2026-27 on the Amiga, tick "Play World 2026-27" before
  making the drawer or the package: the Amiga plays the one world it was
- made with. A world brings its clubs and players; on the Amiga the
- national teams are still 96/97's (some under today's names), while the
- PC, Mac and phones play today's 211.
+ made with. World 2026-27 brings today's clubs, players and all 211
+ national teams, on the Amiga too.
 
 
  FROM THE COMMAND LINE

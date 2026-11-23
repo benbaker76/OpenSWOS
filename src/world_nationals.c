@@ -68,7 +68,7 @@ void WorldNationals_Install(void)
      * nationality and home league in the world; one without loses them (no job) */
     {
         static uint8_t out[NATIONAL_TEAMS_MAX * 6];
-        uint8_t group[3][NATIONAL_TEAMS_MAX * 6];
+        static uint8_t group[3][NATIONAL_TEAMS_MAX * 6];   /* (static: 4.6 KB, off the Amiga's stack) */
         int32_t len[3] = { 0, 0, 0 };
         const int32_t total = _natTeamsRandLimit2;
         for (int32_t k = 0; k < total && k < (int32_t)NATIONAL_TEAMS_MAX; k++) {
