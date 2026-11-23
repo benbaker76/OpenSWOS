@@ -802,6 +802,54 @@ static int32_t dos_missing(const char *dir, char *first, uint32_t cap)
     return n;
 }
 
+/* The files the setup cannot do without that neither the PC game folder nor its CD has (a folder
+ * passes as the PC game on SPRITE.DAT and DATA/TEAM.000 alone: an older release, or the CD
+ * version's small install, whose other files stay on the CD, has those and not the rest -- the
+ * PC step then stopped at its first file, BALLNOTE.256, a tester report 2026-11-23). How many,
+ * the first in `first`. Remembered for the last folder and CD asked about: the window asks each
+ * time it draws the PC game's row. */
+int32_t SdSources_DosMissing(const SdSources *s, char *first, uint32_t cap)
+{
+    static char lastDir[1024], lastCd[1024], lastFirst[300];
+    static int32_t lastN = -1;
+    first[0] = '\0';
+    if (!s->dosDir[0])
+        return 0;
+    if (lastN >= 0 && !strcmp(lastDir, s->dosDir) && !strcmp(lastCd, s->dosCd)) {
+        snprintf(first, cap, "%s", lastFirst);
+        return lastN;
+    }
+    CdImage *cd = NULL;
+    char err[256];
+    if (s->dosCd[0] && !is_dir(s->dosCd))
+        cd = CdImage_Open(s->dosCd, err);
+    int32_t n = 0;
+    for (int32_t i = 0; g_sdDosCopy[i].dest; i++) {
+        if (SdManifest_DosOptional(g_sdDosCopy[i].dest))
+            continue;
+        const char *rel = g_sdDosCopy[i].src;
+        char p[1100];
+        if (find_dos_at(s->dosDir, NULL, rel, p, sizeof p) == 0)
+            continue;
+        if (s->dosCd[0] && (cd ? find_dos_at(NULL, cd, rel, p, sizeof p) == 0
+                               : is_dir(s->dosCd) && find_dos_at(s->dosCd, NULL, rel, p, sizeof p) == 0))
+            continue;
+        int32_t again = 0;                  /* (a file converted twice is one file) */
+        for (int32_t j = 0; j < i && !again; j++)
+            again = strcmp(g_sdDosCopy[j].src, rel) == 0;
+        if (again)
+            continue;
+        if (!n++)
+            snprintf(first, cap, "%s", rel);
+    }
+    CdImage_Close(cd);
+    snprintf(lastDir, sizeof lastDir, "%s", s->dosDir);
+    snprintf(lastCd, sizeof lastCd, "%s", s->dosCd);
+    snprintf(lastFirst, sizeof lastFirst, "%s", first);
+    lastN = n;
+    return n;
+}
+
 int32_t SdSources_DosFloppies(SdSources *s)
 {
     if (s->dosDir[0])

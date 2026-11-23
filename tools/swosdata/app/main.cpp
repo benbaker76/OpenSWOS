@@ -430,6 +430,16 @@ struct App {
   // the folder changes, not every refresh.
   std::string commentaryKey;
   bool commentaryInDir = true;
+  // How many of the files the setup needs the PC game's folder and CD have not (the first in
+  // pcMissingFirst): SdSources_DosMissing, which remembers its last answer.
+  std::string pcMissingFirst;
+  int PcMissing() {
+    char first[300];
+    const int n = SdSources_DosMissing(&src, first, sizeof first);
+    pcMissingFirst = first;
+    return n;
+  }
+
   bool PcLacksCommentary() {
     if (commentaryKey != src.dosDir) {
       commentaryKey = src.dosDir;
@@ -508,6 +518,16 @@ struct App {
           row.detail_warn = true;
         } else if (!src.dosDir[0] && gogInstaller) {
           row.detail = Str(T("GOG's installer is in your Downloads: run it, and the game it installs is found here by itself."));
+          row.detail_warn = true;
+        } else if (PcMissing() > 0) {
+          // (A folder with SPRITE.DAT and the team files, short of the rest: an older release, or the
+          // CD version's small install, which leaves them on the CD. Said here, not by the PC step
+          // stopping at its first file -- a tester report, 2026-11-23.)
+          row.detail = Str(Tf("This copy of the PC game is not complete: {0} and maybe more of the game's files "
+                              "are not in it. Choose a complete copy here: GOG's, or the CD version -- its CD, a "
+                              "copy of it or its image. (A small install of the CD version leaves most of its "
+                              "files on the CD.)",
+                              pcMissingFirst));
           row.detail_warn = true;
         }
         break;
@@ -620,7 +640,8 @@ struct App {
     const bool bad = r == ROW_AMIGA && !path.empty() &&
                      (!amigaProblem.empty() || !SdSources_HaveAmiga(&src));
     const bool floppiesOnly = r == ROW_PC && !src.dosDir[0] && !path.empty();   // (not a game until both make one)
-    row.state = !unusable[r].empty() ? 2 : path.empty() ? 0 : bad || floppiesOnly ? 2 : 1;
+    const bool pcShort = r == ROW_PC && PcMissing() > 0;   // (the CD counted: SdSources_DosMissing)
+    row.state = !unusable[r].empty() ? 2 : path.empty() ? 0 : bad || floppiesOnly || pcShort ? 2 : 1;
     return row;
   }
 

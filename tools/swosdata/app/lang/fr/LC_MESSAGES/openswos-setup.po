@@ -1447,3 +1447,5 @@ msgstr "Moon Soccer"
 msgid "It needs an AGA Amiga (A1200 or A4000, 68020 or better) with at least 8 MB of fast RAM: with less, the game does not start. In WinUAE or FS-UAE, add 8 MB of fast RAM -- the standard A1200 has none."
 msgstr "Il faut un Amiga AGA (A1200 ou A4000, 68020 ou mieux) avec au moins 8 Mo de Fast RAM : avec moins, le jeu ne démarre pas. Dans WinUAE ou FS-UAE, ajoutez 8 Mo de Fast RAM -- l'A1200 standard n'en a pas."
 
+msgid "This copy of the PC game is not complete: {0} and maybe more of the game's files are not in it. Choose a complete copy here: GOG's, or the CD version -- its CD, a copy of it or its image. (A small install of the CD version leaves most of its files on the CD.)"
+msgstr "Cette copie du jeu PC n'est pas complète : {0} et peut-être d'autres fichiers du jeu n'y sont pas. Choisis ici une copie complète : celle de GOG, ou la version CD -- son CD, une copie ou son image. (Une petite installation de la version CD laisse la plupart de ses fichiers sur le CD.)"

@@ -657,6 +657,17 @@ int32_t SwosData_Run(SdJob *job, char *err)
     if (info[SD_STEP_WORLD].ready)
         total += 1;
 
+    /* A PC game short of files stops here, before anything is written, saying so -- not at the
+     * first file the PC step cannot find. */
+    if (info[SD_STEP_DOS_FILES].ready && !pc_from_2020(job)) {
+        char first[300];
+        const int32_t missing = SdSources_DosMissing(&job->src, first, sizeof first);
+        if (missing) {
+            snprintf(err, 256, "the PC game is not complete: %d of its files are not in its folder%s (%.40s ...)",
+                     (int)missing, job->src.dosCd[0] ? " or on its CD" : "", first);
+            return -1;
+        }
+    }
     if (SdSources_Open(&job->src, err) != 0)
         return -1;
     int32_t rc = 0;

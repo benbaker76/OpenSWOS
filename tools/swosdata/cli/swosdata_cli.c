@@ -351,6 +351,12 @@ int main(int argc, char **argv)
                job.src.dosFloppy2[0] ? job.src.dosFloppy2 : "(disk 2 not found)");
     if ((job.src.dosFloppy1[0] || job.src.dosFloppy2[0]) && !job.src.dosDir[0] && SdSources_DosProblem()[0])
         printf("PC note:      %s\n", SdSources_DosProblem());
+    {
+        char first[300];
+        const int32_t missing = SdSources_DosMissing(&job.src, first, sizeof first);
+        if (missing)
+            printf("PC note:      not complete: %d of the game's files are missing (%s ...)\n", (int)missing, first);
+    }
     printf("PC CD:        %s\n", job.src.dosCd[0] ? job.src.dosCd : "(not found)");
     printf("Jaguar:       %s\n", job.src.jagRom[0] ? job.src.jagRom : "(not found)");
     printf("SWOS 2020:    %s\n", job.src.s2020Dir[0] ? job.src.s2020Dir : "(not found)");

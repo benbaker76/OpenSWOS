@@ -94,6 +94,9 @@ int32_t SdSources_DosFloppies(SdSources *s);
 /* Why the last SdSources_DosFloppies made no game folder ("these floppies are the 96/97 upgrade
  * ..."), "" when it did. */
 const char *SdSources_DosProblem(void);
+/* How many of the files the setup needs from the PC game are in neither its folder (dosDir) nor
+ * its CD (dosCd), the first of them in `first`: 0 when the game is whole, or there is none. */
+int32_t SdSources_DosMissing(const SdSources *s, char *first, uint32_t cap);
 /* The PC game's CD in one of the computer's drives (Windows: its CD drives, a mounted image too;
  * a Mac: /Volumes; Linux: /media, /run/media, /mnt/cdrom) -- each drive's top folder looked at,
  * nothing searched, so it can be called every few seconds. Taken as dosCd (and as the PC game
