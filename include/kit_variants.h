@@ -91,7 +91,9 @@ void     KitVariants_TeamFileRestore(uint8_t *buf, const uint8_t *saved);
  * bytes) -- their own, dark green (kit_variants.json "officials"), or when a shirt is too alike the
  * first of their choices in order that is apart from the shirts, failing all any colour; the
  * referee's, or -1 to keep his black, likewise and apart from the keepers' `keeper` too. */
-int32_t KitVariants_KeeperColour(const uint8_t *shirts, int32_t count);
+/* pitchType (0-6, the match's pitch condition; -1 none): a keepers' colour too near its grass is
+ * skipped (kit_variants.json keeper_grass_apart). */
+int32_t KitVariants_KeeperColour(const uint8_t *shirts, int32_t count, int32_t pitchType);
 int32_t KitVariants_RefereeColour(const uint8_t *shirts, int32_t count, int32_t keeper);
 
 int32_t KitVariants_SelfTest(void);

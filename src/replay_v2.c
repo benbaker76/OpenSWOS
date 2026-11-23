@@ -20,6 +20,7 @@
 #include "team_colors.h"
 #include "kit_palette.h"
 #include "kit_variants.h"
+extern uint16_t _pitchNumberAndType;   /* low byte: the pitch condition 0-6 */
 #include "long_bench.h"
 #include "player_looks.h"
 #include "replay_v2.h"
@@ -678,7 +679,7 @@ static uint32_t kits_write(uint8_t *out)
             shirts[n++] = w[k][2];
     }
     if (g_clashKits) {                       /* (as clash_kits.c dresses them) */
-        keeper  = KitVariants_KeeperColour(shirts, n);
+        keeper  = KitVariants_KeeperColour(shirts, n, (int32_t)(_pitchNumberAndType & 0xFF));   /* (its grass) */
         referee = KitVariants_RefereeColour(shirts, n, keeper);
     }
     out[11] = keeper < 0 ? 0xFF : (uint8_t)keeper;

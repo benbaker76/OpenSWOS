@@ -316,26 +316,47 @@ static int32_t shirt_indices(const uint8_t *shirts, int32_t count, int32_t *out)
     return n;
 }
 
-int32_t KitVariants_KeeperColour(const uint8_t *shirts, int32_t count)
+int32_t KitVariants_KeeperColour(const uint8_t *shirts, int32_t count, int32_t pitchType)
 {
     int32_t shirt[8], n = shirt_indices(shirts, count, shirt), clash = 0;
+    /* Too near this pitch's grass (kKitGrassNear): skipped, the next is taken. */
+    const uint64_t grass = pitchType >= 0 && pitchType < KIT_PITCH_TYPES ? kKitGrassNear[pitchType] : 0;
+#define ON_GRASS(c) ((grass >> (c)) & 1u)
     /* His own needs more apart than the kits' rule (kKitKeeperOwnNear: keeper_default_apart). */
     for (int32_t i = 0; i < n; i++)
         clash |= shirt[i] >= 0 && ((kKitKeeperOwnNear >> shirt[i]) & 1u);
-    if (!clash)
+    if (!clash && !ON_GRASS(KIT_KEEPER_DEFAULT))
         return colour_byte(KIT_KEEPER_DEFAULT);     /* his own: dark green (kit_variants.json) */
     /* By tiers, in order (kit_variants.json: anthracite, emerald, lime, silver): of the first tier that has a colour apart
-     * from both teams, the one that differs most; failing all, any colour. */
+     * from both teams, the one that differs most; failing all, any colour -- none too near the grass. */
     for (int32_t t = 0, from = 0; t < KIT_KEEPER_TIERS; from = kKitKeeperTierEnd[t++]) {
         int32_t best = -1, bestApart = -1;
         for (int32_t i = from; i < kKitKeeperTierEnd[t]; i++) {
+            if (ON_GRASS(kKitKeeperChoices[i]))
+                continue;
             const int32_t apart = least_apart(kKitKeeperChoices[i], shirt, n, -1);
             if (apart > bestApart) { bestApart = apart; best = kKitKeeperChoices[i]; }
         }
         if (bestApart >= KIT_SIMILAR_BELOW)
             return colour_byte(best);
     }
-    return colour_byte(most_apart(kKitKeeperChoices, KIT_KEEPER_CHOICES, shirt, n, -1));
+    {   /* (most_apart, without the colours too near the grass) */
+        int32_t best = KIT_KEEPER_DEFAULT, bestApart = -1;
+        for (int32_t i = 0; i < KIT_KEEPER_CHOICES; i++) {
+            if (ON_GRASS(kKitKeeperChoices[i]))
+                continue;
+            const int32_t apart = least_apart(kKitKeeperChoices[i], shirt, n, -1);
+            if (apart > bestApart) { bestApart = apart; best = kKitKeeperChoices[i]; }
+        }
+        for (int32_t c = 0; c < KIT_COLOUR_COUNT && bestApart < KIT_SIMILAR_BELOW; c++) {
+            if (ON_GRASS(c))
+                continue;
+            const int32_t apart = least_apart(c, shirt, n, -1);
+            if (apart > bestApart) { bestApart = apart; best = c; }
+        }
+        return colour_byte(best);
+    }
+#undef ON_GRASS
 }
 
 int32_t KitVariants_RefereeColour(const uint8_t *shirts, int32_t count, int32_t keeper)
@@ -436,8 +457,8 @@ int32_t KitVariants_SelfTest(void)
      * from it; the referee black unless a shirt is dark, then a colour away from shirts and keepers */
     {
         const uint8_t red[2] = { 4, 9 }, darkGreen[1] = { colour_byte(KIT_KEEPER_DEFAULT) }, black[2] = { 2, 1 };
-        const int32_t own = KitVariants_KeeperColour(red, 2);
-        const int32_t other = KitVariants_KeeperColour(darkGreen, 1);
+        const int32_t own = KitVariants_KeeperColour(red, 2, -1);
+        const int32_t other = KitVariants_KeeperColour(darkGreen, 1, -1);
         const int32_t ref = KitVariants_RefereeColour(black, 2, own);
         if (own != colour_byte(KIT_KEEPER_DEFAULT) || KitVariants_RefereeColour(red, 2, own) != -1) {
             fails++; fprintf(stderr, "[kit-variants] FAIL: keepers' and referee's own colours\n");
@@ -453,8 +474,16 @@ int32_t KitVariants_SelfTest(void)
             uint8_t azure[1] = { 0 };
             for (int32_t i = 0; i < KIT_VARIANT_COUNT; i++)
                 if (!strcmp(kKitVariants[i].name, "AZURE")) azure[0] = colour_byte(KIT_BASE_COLOURS + i);
-            if (!azure[0] || KitVariants_KeeperColour(azure, 1) == colour_byte(KIT_KEEPER_DEFAULT)) {
+            if (!azure[0] || KitVariants_KeeperColour(azure, 1, -1) == colour_byte(KIT_KEEPER_DEFAULT)) {
                 fails++; fprintf(stderr, "[kit-variants] FAIL: the keepers in dark green beside azure\n");
+            }
+        }
+        {   /* black against red: emerald -- not on a wet pitch (2), where it vanishes into the grass */
+            const uint8_t br[2] = { 2, 4 };
+            const int32_t dry = KitVariants_KeeperColour(br, 2, 4), wet = KitVariants_KeeperColour(br, 2, 2);
+            if (KitVariants_ColourIndex((uint8_t)dry) != kKitKeeperChoices[1] || wet == dry ||
+                ((kKitGrassNear[2] >> KitVariants_ColourIndex((uint8_t)wet)) & 1u)) {
+                fails++; fprintf(stderr, "[kit-variants] FAIL: the keepers against the grass (%d, %d)\n", (int)dry, (int)wet);
             }
         }
         {   /* a keeper in black (his last resort): the referee must not stay black beside him */

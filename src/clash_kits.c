@@ -41,6 +41,7 @@ int32_t g_clashKits = 1;     /* [graphics] clash_kits (main.c), on by default; o
 #include <stdio.h>
 #include "jag_graphics.h"    /* JagGfx_Enabled */
 #include "kit_variants.h"
+extern uint16_t _pitchNumberAndType;   /* low byte: the pitch condition 0-6 */
 #include "kit_palette.h"
 #include "team_colors.h"     /* TeamColors_Worn */
 extern uint16_t ConvertTeamColor(uint16_t color);
@@ -170,7 +171,7 @@ void ClashKits_Apply(const TeamGame *team1, const TeamGame *team2)
             if (KitPattern_Base(w1[0]) != 0) shirts[n++] = w1[2];
             shirts[n++] = w2[1];
             if (KitPattern_Base(w2[0]) != 0) shirts[n++] = w2[2];
-            keeper  = KitVariants_KeeperColour(shirts, n);
+            keeper  = KitVariants_KeeperColour(shirts, n, (int32_t)(_pitchNumberAndType & 0xFF));   /* (its grass) */
             referee = KitVariants_RefereeColour(shirts, n, keeper);
             gk  = entry_of((uint8_t)keeper);    /* (always a colour: dark green by default) */
             ref = referee < 0 ? kBlack  : entry_of((uint8_t)referee);

@@ -179,6 +179,19 @@ static const uint64_t kKitKeeperOwnNear = 0x0002CF8037006905ULL;
 #define KIT_REFEREE_CHOICES  4
 static const uint8_t kKitKeeperChoices[KIT_KEEPER_CHOICES] = { 13, 42, 39, 10 };
 static const uint8_t kKitRefereeChoices[KIT_REFEREE_CHOICES] = { 44, 37, 34, 17 };
+/* Per pitch condition (pitchType 0-6: frozen, muddy, wet, soft, normal, dry, hard): the colours
+ * too near its grass for the keepers -- CIEDE2000 below keeper_grass_apart (10) to any of its three
+ * grass colours in the Amiga or the PC palette (palette_data.c, dos_graphics.c). */
+#define KIT_PITCH_TYPES      7
+static const uint64_t kKitGrassNear[KIT_PITCH_TYPES] = {
+    0x0000000000000000ULL,   /* frozen */
+    0x0000000020000000ULL,   /* muddy */
+    0x0002040000000000ULL,   /* wet */
+    0x0002000000000000ULL,   /* soft */
+    0x0002000000000000ULL,   /* normal */
+    0x0002000000000000ULL,   /* dry */
+    0x0002000000000000ULL,   /* hard */
+};
 /* The keepers' tiers, in order: where each ends in kKitKeeperChoices. */
 #define KIT_KEEPER_TIERS     4
 static const uint8_t kKitKeeperTierEnd[KIT_KEEPER_TIERS] = { 1, 2, 3, 4 };

@@ -151,6 +151,7 @@ def load():
     if not found:
         sys.exit("kit_variants.json: officials.keeper_default is no colour")
     offi["keeper_default"] = found[0]
+    offi["keeper_grass_apart"] = float(d.get("officials", {}).get("keeper_grass_apart", 0))
     offi["keeper_default_apart"] = float(d.get("officials", {}).get("keeper_default_apart", d["similar_below"]))
     d["_officials"] = offi
     return d, colours, pats
@@ -242,6 +243,14 @@ def make_inc(d, colours, pats):
             % ", ".join(str(i) for i in d["_officials"]["keeper"]),
             "static const uint8_t kKitRefereeChoices[KIT_REFEREE_CHOICES] = { %s };"
             % ", ".join(str(i) for i in d["_officials"]["referee"]),
+            "/* Per pitch condition (pitchType 0-6: frozen, muddy, wet, soft, normal, dry, hard): the colours",
+            " * too near its grass for the keepers -- CIEDE2000 below keeper_grass_apart (%g) to any of its three"
+            % d["_officials"]["keeper_grass_apart"],
+            " * grass colours in the Amiga or the PC palette (palette_data.c, dos_graphics.c). */",
+            "#define KIT_PITCH_TYPES      7",
+            "static const uint64_t kKitGrassNear[KIT_PITCH_TYPES] = {",
+            *["    0x%016XULL,   /* %s */" % (m, t) for t, m in zip(PITCH_TYPES, grass_near(colours, d["_officials"]["keeper_grass_apart"]))],
+            "};",
             "/* The keepers' tiers, in order: where each ends in kKitKeeperChoices. */",
             "#define KIT_KEEPER_TIERS     %d" % len(d["_officials"]["keeper_ends"]),
             "static const uint8_t kKitKeeperTierEnd[KIT_KEEPER_TIERS] = { %s };"
@@ -316,6 +325,27 @@ def against_grass(rgb12, grass):
                 best, cost = c, dc
             break
     return best
+
+
+def pitch_grass_both():
+    """Each pitch condition's three grass colours (8-bit RGB), in the Amiga palette (palette_data.c)
+    and the PC one (dos_graphics.c kPitchPalettes, 6-bit x 4 as the PC graphics draw them)."""
+    amiga = [[rgb12_to_8(w) for w in tones] for tones in pitch_grass()]
+    src = open(os.path.join(REPO, "src", "dos_graphics.c")).read()
+    m = re.search(r"kPitchPalettes\[7\]\[27\] = \{(.*?)\};", src, re.S)
+    if not m:
+        sys.exit("dos_graphics.c: no kPitchPalettes")
+    rows = [[int(x) for x in r.split(",")] for r in re.findall(r"\{([^}]*)\}", m.group(1))]
+    pc = [[tuple(v * 4 for v in row[k * 3:k * 3 + 3]) for k in range(3)] for row in rows]
+    return [a + p for a, p in zip(amiga, pc)]
+
+
+def grass_near(colours, apart):
+    out = []
+    for tones in pitch_grass_both():
+        out.append(sum(1 << j for j, c in enumerate(colours)
+                       if min(ciede2000(rgb12_to_8(c["rgb"]), t) for t in tones) < apart))
+    return out
 
 
 def make_js(d, colours, pats):
