@@ -885,6 +885,35 @@ static inline void os_IntuiRemakeDisplay(void *intuiBase)
     );
 }
 
+/* OpenScreenTagList: a0=newScreen, a1=tagList -> d0=screen */
+static inline void *os_IntuiOpenScreenTagList(void *intuiBase, void *newScreen, const uint32_t *tags)
+{
+    register void *_a6 __asm("a6") = intuiBase;
+    register void *_a0 __asm("a0") = newScreen;
+    register const uint32_t *_a1 __asm("a1") = tags;
+    register void *_d0 __asm("d0");
+    __asm volatile (
+        "jsr -612(%%a6)"
+        : "=r"(_d0), "+r"(_a0), "+r"(_a1)
+        : "r"(_a6)
+        : "d1", "cc", "memory"
+    );
+    return _d0;
+}
+
+/* CloseScreen: a0=screen */
+static inline void os_IntuiCloseScreen(void *intuiBase, void *screen)
+{
+    register void *_a6 __asm("a6") = intuiBase;
+    register void *_a0 __asm("a0") = screen;
+    __asm volatile (
+        "jsr -66(%%a6)"
+        : "+r"(_a0)
+        : "r"(_a6)
+        : "d0", "d1", "a1", "cc", "memory"
+    );
+}
+
 /* WaitTOF */
 static inline void os_GfxWaitTOF(void *gfxBase)
 {
@@ -1323,10 +1352,67 @@ static void force_pal_beam(void)
     S_BeamForced = 1;
 }
 
+/* A Workbench on a graphics card (RTG: Picasso96 / CyberGraphX -- a ZZ9000, a PiStorm,
+ * WinUAE's UAEgfx) keeps the monitor on the card when the game takes the chipset: the screen
+ * showed the Workbench, frozen, and only the game's sounds told it was running (Amiga forum
+ * report, 2026-11-22; reproduced in FS-UAE with UAEgfx -- the log never left RTG while the game
+ * set BEAMCON0). LoadView(NULL) alone does not move it: the RTG system switches its monitor to
+ * the chipset when a NATIVE screen comes to the front. So before the game takes the display it
+ * opens one -- PAL lores, one plane, 32 lines (1.3 KB of chip RAM: what is left of it is the
+ * game's) -- and closes it once the OS has its display back (ExitToDos), when the RTG system
+ * switches back to the Workbench. On a native Workbench it changes nothing that shows. Not
+ * under WHDLoad: no OS there, and WHDLoad switches the display itself. */
+#define TAG_DONE_       0u
+#define SA_Width_       0x80000023u
+#define SA_Height_      0x80000024u
+#define SA_Depth_       0x80000025u
+#define SA_Type_        0x8000002Du
+#define SA_DisplayID_   0x80000032u
+#define SA_ShowTitle_   0x80000036u
+#define SA_Quiet_       0x80000038u
+#define SA_Draggable_   0x8000003Eu
+#define PAL_LORES_ID_   0x00021000u     /* PAL_MONITOR_ID | LORES_KEY */
+#define CUSTOMSCREEN_   0x000Fu
+static void *S_NativeScreen, *S_NativeIntui;
+
+static void open_native_screen(void)
+{
+    static const uint32_t tags[] = {
+        SA_DisplayID_, PAL_LORES_ID_, SA_Width_, 320, SA_Height_, 32, SA_Depth_, 1,
+        SA_Type_, CUSTOMSCREEN_, SA_Quiet_, 1, SA_ShowTitle_, 0, SA_Draggable_, 0, TAG_DONE_
+    };
+    void *intui;
+    if (whd() || S_NativeScreen)
+        return;
+    intui = os_OldOpenLibrary("intuition.library", 39);
+    if (!intui)
+        return;
+    S_NativeScreen = os_IntuiOpenScreenTagList(intui, (void *)0, tags);
+    if (!S_NativeScreen) {
+        os_CloseLibrary(intui);
+        return;
+    }
+    S_NativeIntui = intui;
+    if (S_GfxBase) {                        /* (the switch takes a frame or two) */
+        os_GfxWaitTOF((void *)S_GfxBase);
+        os_GfxWaitTOF((void *)S_GfxBase);
+    }
+}
+
+static void close_native_screen(void)
+{
+    if (!S_NativeScreen)
+        return;
+    os_IntuiCloseScreen(S_NativeIntui, S_NativeScreen);
+    os_CloseLibrary(S_NativeIntui);
+    S_NativeScreen = S_NativeIntui = 0;
+}
+
 __attribute__((used, externally_visible))
 void DetachOSDisplay(void)
 {
     void *gfxBase = (void *)S_GfxBase;
+    open_native_screen();             /* (RTG: the monitor to the chipset) */
     if (S_FromWB == 0 || !gfxBase) {
         force_pal_beam();
         return;
@@ -1455,6 +1541,7 @@ void ExitToDos(void)
         }
         S_BeamForced = 0;
     }
+    close_native_screen();            /* (RTG: back to the Workbench) */
 
     if (S_FromWB == 0) return;
 
