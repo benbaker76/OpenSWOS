@@ -48,12 +48,14 @@ int32_t TeamColors_PurpleInMatch(void);   /* a side wears purple and neither mar
 void TeamColors_MatchArt(void);
 void TeamColors_MatchArtEnd(void);   /* at the match's end: the art put back */
 #endif
+/* The kit bytes a side wears (type, stripes, basic, shorts, socks), or NULL when the in-game
+ * team was not made from them (a replay's, another match's). */
 const uint8_t *TeamColors_Worn(const TeamGame *team);
-
-/* ---- launcher options (agent B) ---- */
-/* Purple instead of brown ([video] purple_for_brown): every maroon kit drawn purple, in the menus
- * and in a match (TeamColors_PurpleInMatch then: a side wears maroon or purple). Drawing only. */
-void    TeamColors_SetPurpleForMaroon(int32_t on);
-int32_t TeamColors_PurpleForMaroon(void);
+void TeamColors_SetWorn(const TeamGame *team, const uint8_t kit[5]);
+/* The entry a part of a side's kit (0 shirt, 1 second colour, 2 shorts, 3 socks) is drawn in: `base`,
+ * or a variant's own -- in the match palette, or with `menu` in the menu palette. */
+uint16_t TeamColors_PartEntry(const TeamGame *team, int32_t part, uint16_t base, int32_t menu);
+/* A kit colour byte's entry in the menu palette (a variant's own with the EXTENDED rule). */
+uint16_t TeamColors_MenuEntry(uint8_t colour);
 
 #endif

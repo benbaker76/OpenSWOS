@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "team_colors.h"
 #include "squad_extras.h"
 #include "long_bench.h"
 #include "player_looks.h"
@@ -957,13 +958,14 @@ void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
         _stadiumMenuLittlePlayerSpriteCopy.srcSprite =SPR_LITTLE_PLAYER_GOALIE;
         _stadiumMenuLittlePlayerSpriteCopy.colTable[11] = 11;
         _stadiumMenuLittlePlayerSpriteCopy.colTable[10] = 10;
-        _stadiumMenuLittlePlayerSpriteCopy.colTable[14] = (uint16_t)team->prShortsCol;
-        _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = (uint16_t)team->prSocksCol;
+        _stadiumMenuLittlePlayerSpriteCopy.colTable[14] = TeamColors_PartEntry(team, 2, (uint16_t)team->prShortsCol, 1);
+        _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = TeamColors_PartEntry(team, 3, (uint16_t)team->prSocksCol, 1);
     } else {
         /* Outfield player */
         _stadiumMenuLittlePlayerSpriteCopy.srcSprite =_littlePlayersSpriteTable[team->prShirtType];
-        uint16_t col1 = (uint16_t)team->prShirtCol;
-        uint16_t col2 = (uint16_t)team->prStripesCol;
+        /* (a kit variant in its menu entry: team_colors.c TeamColors_PartEntry) */
+        uint16_t col1 = TeamColors_PartEntry(team, 0, (uint16_t)team->prShirtCol, 1);
+        uint16_t col2 = TeamColors_PartEntry(team, 1, (uint16_t)team->prStripesCol, 1);
         if (team->prShirtType == SHIRT_VERTICAL_STRIPES) {
             uint16_t tmp = col1;
             col1 = col2;
@@ -971,8 +973,8 @@ void StadiumPlayerSpritesBeforeDraw(TeamGame *team, uint16_t playerIndex)
         }
         _stadiumMenuLittlePlayerSpriteCopy.colTable[11] = col1;
         _stadiumMenuLittlePlayerSpriteCopy.colTable[10] = col2;
-        _stadiumMenuLittlePlayerSpriteCopy.colTable[14] = (uint16_t)team->prShortsCol;
-        _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = (uint16_t)team->prSocksCol;
+        _stadiumMenuLittlePlayerSpriteCopy.colTable[14] = TeamColors_PartEntry(team, 2, (uint16_t)team->prShortsCol, 1);
+        _stadiumMenuLittlePlayerSpriteCopy.colTable[15] = TeamColors_PartEntry(team, 3, (uint16_t)team->prSocksCol, 1);
     }
 
     /* Set skin color from player's face2 field (a long bench's page: its place's -- long_bench.c) */
@@ -2209,6 +2211,11 @@ void OptionsMenuBeforeDraw(void)
 #ifdef SWOS_SDL_BUILD
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
+    /* P1 / P2 CALL BENCH (29..32): the Amiga's; here CONTROLS has them, each player's. */
+    _menuEntries[29].isInvisible = 1;
+    _menuEntries[30].isInvisible = 1;
+    _menuEntries[31].isInvisible = 1;
+    _menuEntries[32].isInvisible = 1;
     /* CONTROLS (15/16) opens SWOS 2020's OPTIONS screens (ShowControlsMenu): its name says so. */
     _menuEntries[15].fg = (uintptr_t)"SETTINGS";
     _menuEntries[16].fg = (uintptr_t)"CONTROLS, VIDEO...";
@@ -2252,17 +2259,42 @@ void OptionsMenuBeforeDraw(void)
     _menuEntries[2].upEntry = -1;            /* (FRIENDLY/DIY GAME LENGTH is the top row there) */
     _menuEntries[15].isInvisible = 1;
     _menuEntries[16].isInvisible = 1;
+    /* ... then P1 and P2 CALL BENCH (29..32, in WORLD's and MODS' places) above EXIT. */
 #ifdef AGA
     _menuEntries[14].downEntry = 18;
-    _menuEntries[19].upEntry = 18;
+    _menuEntries[18].downEntry = 30;
+    _menuEntries[30].upEntry = 18;
 #else
     _menuEntries[17].isInvisible = 1;
     _menuEntries[18].isInvisible = 1;
-    _menuEntries[14].downEntry = 19;
-    _menuEntries[19].upEntry = 14;
+    _menuEntries[14].downEntry = 30;
+    _menuEntries[30].upEntry = 14;
 #endif
+    _menuEntries[30].downEntry = 32;
+    _menuEntries[32].upEntry = 30;
+    _menuEntries[32].downEntry = 19;
+    _menuEntries[19].upEntry = 32;
 #endif
 }
+
+/* OPTIONS -> P1 / P2 CALL BENCH (entries 29..32, the Amiga's: SDL has them on CONTROLS,
+ * settings_menus.c): how each player calls his bench -- 0 the second fire button or three taps,
+ * 1 the taps alone, 2 the button alone. Kept until the game is switched off, like the other
+ * options (not in a career's file: it is the player's, not the career's). The button: input.c
+ * Input_SecondButtonBench; BUTTON ONLY's taps: bench_subs.c bench_taps_off. */
+uint16_t _callBench1Option, _callBench2Option;
+static void change_call_bench(int32_t player, MenuEntry *entry)
+{
+    extern int32_t _gBenchTapsOff[2];
+    uint16_t *o = player == 1 ? &_callBench1Option : &_callBench2Option;
+    *o = (uint16_t)(*o >= 2 ? 0 : *o + 1);
+    _gBenchTapsOff[player - 1] = *o == 2;
+    CallDrawMenuItem(entry);
+}
+__attribute__((used, externally_visible))
+void ChangeCallBench1(MenuEntry *entry) { change_call_bench(1, entry); }
+__attribute__((used, externally_visible))
+void ChangeCallBench2(MenuEntry *entry) { change_call_bench(2, entry); }
 
 /* OPTIONS -> PITCHES: DOS / 2020 (pitch.c, _pitchStyleOption). The next match loads
  * the set; nothing else depends on it. */

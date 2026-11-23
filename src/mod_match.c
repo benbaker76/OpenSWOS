@@ -16,6 +16,7 @@
  * Each is a no-op when no mod's match is being played, except the events and the result,
  * which every mod that is on is told of every match.
  */
+#include "team_colors.h"
 #include "mod_api.h"
 
 #include "game_types.h"
@@ -1017,9 +1018,10 @@ int32_t ModApi_MatchKit(int32_t side, int32_t *type, int32_t *shirt, int32_t *st
         return 0;
     const TeamGame *g = side == 0 ? &_topTeamInGame : &_bottomTeamInGame;
     if (type) *type = g->prShirtType;
-    if (shirt) *shirt = g->prShirtCol;
-    if (stripes) *stripes = g->prStripesCol;
-    if (shorts) *shorts = g->prShortsCol;
+    /* (a kit variant in its own entry: team_colors.c TeamColors_PartEntry) */
+    if (shirt) *shirt = TeamColors_PartEntry(g, 0, (uint16_t)g->prShirtCol, 0);
+    if (stripes) *stripes = TeamColors_PartEntry(g, 1, (uint16_t)g->prStripesCol, 0);
+    if (shorts) *shorts = TeamColors_PartEntry(g, 2, (uint16_t)g->prShortsCol, 0);
     return 1;
 }
 
@@ -1308,6 +1310,12 @@ void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg)
     static int logEvents = -1;
     if (s_quietGoals && kind <= 2)      /* (a preloaded scorer, H7: not a goal of this match) */
         return;
+#ifdef SWOS_SDL_BUILD
+    {   /* the recording keeps it too (CHAP): the line-ups as they are at any frame */
+        extern void ReplayRec_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+        ReplayRec_Event(kind, team, player, arg);
+    }
+#endif
     if (logEvents < 0)
         logEvents = getenv("SWOS_MOD_EVENT_LOG") || getenv("SWOS_MOD_MATCH_TEST");
     e.kind = (uint8_t)kind;

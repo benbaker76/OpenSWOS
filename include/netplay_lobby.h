@@ -53,6 +53,8 @@ typedef struct {
     int32_t    verified;            /* LobbyVerified: what the matchmaking server said of this team */
     int32_t    tactic;              /* TACTIC_*: 0..LOBBY_TACTIC_MAX */
     int32_t    extraDelay;          /* frames this player adds to the input delay (FRAME DELAY +) */
+    int32_t    callBench;           /* his CALL BENCH (0 button or taps, 1 taps, 2 button): into the setup */
+    int32_t    kitRule;             /* his KIT COLOURS (KIT_RULE_*, kit_variants.h): EXTENDED only if both */
     TeamFileEx team;
     TeamTactics userTactic;         /* the tactic itself when it is a USER one */
     char       name[LOBBY_NAME_MAX + 1];

@@ -13,6 +13,8 @@ typedef short int16_t;
 
 void Player1StatusProc(void);
 void Player2StatusProc(void);
+/* The Amiga only: the second fire buttons held (pin 9; bit 0 player 1, bit 1 player 2). */
+uint16_t Input_SecondButtons(void);
 
 /* SDL-only — set when SPACE (keyboard) or the second button on a
  * controller / raw joystick is pressed. Auto-advance pause loops can

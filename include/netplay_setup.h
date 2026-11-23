@@ -43,6 +43,16 @@ void     NetplaySetup_TakeTieRules(void);
  * setup was armed for (NetplaySetup_ArmTieRules); NULL when there is none. */
 const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex);
 
+/* CALL BENCH (0 button or taps, 1 taps only, 2 button only): Set each player's, the host before
+ * Encode (player 1 the host); BenchTapsOff -- 1 when that player's taps call no bench in the
+ * match the last setup applied is played by (bench_subs.c). */
+void     NetplaySetup_SetCallBench(int32_t player1, int32_t player2);
+int32_t  NetplaySetup_BenchTapsOff(int32_t player);
+/* The kit clash rule of the last setup applied (KIT_RULE_*, include/kit_variants.h): the original's
+ * for a setup from before it was sent. */
+int32_t  NetplaySetup_KitRule(void);
+/* The rule the setup this game sends carries: the lobby's, EXTENDED only if both players are. */
+void     NetplaySetup_SetKitRule(int32_t rule);
 /* Round-trip check: encode, scribble over every global it covers, apply, and
  * require equality. Part of --netplay-selftest. 0 on success. */
 int32_t  NetplaySetup_SelfTest(void);

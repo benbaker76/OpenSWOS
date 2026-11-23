@@ -886,6 +886,23 @@ struct __attribute__((packed)) {
       (void *)_aMoonStyle }
 };
 
+/* OPTIONS -> P1 / P2 CALL BENCH (the Amiga's rows): BUTTON OR TAPS / TAPS ONLY / BUTTON ONLY,
+ * indexed by _callBench1Option / _callBench2Option (menus.c ChangeCallBench1/2). */
+extern char _aBenchBoth[], _aBenchTaps[], _aBenchButton[];
+extern uint16_t _callBench1Option, _callBench2Option;
+struct __attribute__((packed)) {
+    void    *indexPtr; uint16_t base; void    *entries[3];
+} _callBench1StrTable = {
+    (&_callBench1Option), 0,
+    { (void *)_aBenchBoth, (void *)_aBenchTaps, (void *)_aBenchButton }
+};
+struct __attribute__((packed)) {
+    void    *indexPtr; uint16_t base; void    *entries[3];
+} _callBench2StrTable = {
+    (&_callBench2Option), 0,
+    { (void *)_aBenchBoth, (void *)_aBenchTaps, (void *)_aBenchButton }
+};
+
 /* OPTIONS -> PITCHES: DOS / 2020, indexed by _pitchStyleOption (pitch.c). */
 extern char _a2020Style[];
 extern uint16_t _pitchStyleOption;

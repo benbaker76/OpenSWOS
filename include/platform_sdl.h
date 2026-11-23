@@ -117,6 +117,7 @@ typedef struct {
     int                    hair_shading;     /* 1 = shade hair the game leaves flat (black), 0 = as the game has it */
     int                    shade_step;       /* sixteenths between kit shades: 16, 16-N, 16-2N, 16-3N; hair too */
     int                    clash_kits;       /* [graphics] clash_kits: SWOS 2020's GK/REF CLASH KITS (clash_kits.c), 0 = off */
+    int                    kit_colours;      /* [graphics] kit_colours: KIT_RULE_EXTENDED (default) or KIT_RULE_ORIGINAL (kit_variants.h) */
     int                    kit_art;          /* the UNIFORM screen's kit drawings: 0 = the Amiga's, 1 = the Jaguar's (kit_art.h) */
     int                    sound_style;      /* a match's sounds: 0 = the Amiga's, 1 = the PC game's samples (dos_sound.h) */
     char                   commentary_dir[260]; /* the folder of commentary categories; "" = sound_dos/commentary */
@@ -213,7 +214,8 @@ typedef struct {
     int                    auto_detect_pads;     /* [input] auto_detect_pads (1) */
     char                   pad_config[512];      /* [input] pad_config: per pad GUID, fire/bench/cut-offs */
     int                    shoulder_buttons_off; /* [input] shoulder_buttons: 1 = off, as SWOS 2020's default */
-    int                    call_bench;           /* [input] call_bench: 0 both, 1 taps, 2 button */
+    int                    call_bench;           /* [input] call_bench_p1: player 1's CALL BENCH -- 0 both, 1 taps, 2 button */
+    int                    call_bench_p2;        /* [input] call_bench_p2: player 2's */
     int                    menu_cursor;          /* [video] menu_cursor: 0 flashing, 1 steady */
     int                    chat_controller_off;  /* [chat] controller_off: the pad steers nobody while typing */
     int                    esc_presses;          /* [netplay] esc_presses: ESCs that leave a live match, 1-3 */
@@ -229,7 +231,6 @@ typedef struct {
     /* ---- launcher options (agent B): DISPLAY OPTIONS (src/settings_menus.c, src/display_options.c) ---- */
     int                    menu_opacity;         /* [video] menu_opacity: 0-100, the menus' coloured parts over
                                                   * the backdrop (SWOS 2020's --alpha-blending-menu); 100 opaque */
-    int                    purple_for_brown;     /* [video] purple_for_brown: maroon kits drawn purple */
     int                    improved_pitch_palette; /* [video] improved_pitch_palette: SWOS 2020's wet/soft stripes */
     int                    pixel_filter;         /* [video] pixel_filter: PIXEL_FILTER_* (include/pixel_filter.h) */
 } PlatformInitOptions;
@@ -248,7 +249,7 @@ void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h);
 /* 1 while a true-colour backdrop is set: the menus' backdrop panel is MENU_BACKDROP_KEY. */
 int  Platform_MenuBackdropOn(void);
 /* ---- launcher options (agent B) ---- */
-/* DISPLAY OPTIONS: the menus' opacity, the pixel filter, purple for brown and the improved pitch
+/* DISPLAY OPTIONS: the menus' opacity, the pixel filter and the improved pitch
  * palette, from the options (at Platform_Init, and when a row changes one). Drawing only. */
 void Platform_SetDisplayOptions(const PlatformInitOptions *o);
 /* One colour of the palette the screen is drawn in, by index. */

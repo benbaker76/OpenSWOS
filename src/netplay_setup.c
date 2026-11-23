@@ -44,6 +44,7 @@
  * cannot arise today -- but the one field costs nothing to get right, and a
  * blanket "it is all bytes" would be wrong the first time a field grows.
  */
+#include "kit_variants.h"
 #include "netplay_setup.h"
 #include "pitch.h"            /* the crowd (version 4) */
 
@@ -106,8 +107,9 @@ extern uint16_t _team1GoalsFirstLeg, _team2GoalsFirstLeg;
 #define NUM_TACTICS   6
 
 #define SETUP_MAGIC   0x53555020u    /* "SUP " */
-#define SETUP_VERSION 4     /* 2: the match-init seeds (_randomSeed and friends); 3: the tie rules;
-                             * 4: the host's crowd (include/pitch.h) */
+#define SETUP_VERSION 6     /* 2: the match-init seeds (_randomSeed and friends); 3: the tie rules;
+                             * 4: the host's crowd (include/pitch.h); 5: both players' CALL BENCH;
+                             * 6: the kit clash rule (include/kit_variants.h) */
 
 /* magic, version, then the scalars, then (version 3) the tie rules, then the teams,
  * then the tactics. A version-2 setup -- a recording made before the cup rules --
@@ -122,16 +124,59 @@ extern uint16_t _team1GoalsFirstLeg, _team2GoalsFirstLeg;
  * loads them: what both games play the crowd animation on (include/pitch.h). */
 #define CROWD_BYTES   (2u + PITCH_CROWD_FILES * PITCH_CROWD_CELLS * 2u)
 
+/* (version 5) after the tie rules, one word: player 1's CALL BENCH << 8 | player 2's
+ * (0 button or taps, 1 taps only, 2 button only -- input_sdl.c INPUTSDL_BENCH_*). */
+#define BENCH_BYTES   2u
+/* (version 6) after the bench word, one word: the kit clash rule the kits are chosen by
+ * (KIT_RULE_ORIGINAL / KIT_RULE_EXTENDED, include/kit_variants.h). Before: the original's. */
+#define KITRULE_BYTES 2u
+
 uint32_t NetplaySetup_MaxBytes(void)
 {
-    return HEADER_BYTES + SCALAR_BYTES + TEAM_BYTES + TACTIC_TOTAL + CROWD_BYTES + 8;
+    return HEADER_BYTES + SCALAR_BYTES + BENCH_BYTES + KITRULE_BYTES + TEAM_BYTES + TACTIC_TOTAL + CROWD_BYTES + 8;
+}
+
+/* CALL BENCH: each player's, for the setup this game sends (the lobby's, before Encode), and
+ * the last one applied's -- what both games play the match by. A setup before version 5 has
+ * none: every tap counts, as it always did. */
+static uint8_t s_benchSend[2], s_benchPlay[2];
+
+void NetplaySetup_SetCallBench(int32_t player1, int32_t player2)
+{
+    s_benchSend[0] = (uint8_t)(player1 >= 0 && player1 <= 2 ? player1 : 0);
+    s_benchSend[1] = (uint8_t)(player2 >= 0 && player2 <= 2 ? player2 : 0);
+}
+
+/* 1 when player 1's / 2's taps call no bench in the match being played (bench_subs.c). */
+int32_t NetplaySetup_BenchTapsOff(int32_t player)
+{
+    return player >= 1 && player <= 2 && s_benchPlay[player - 1] == 2;
+}
+
+/* The kit clash rule: this game's own goes out with its setup (the host's decides); the last
+ * setup applied's is what both games choose the kits by. Before any setup is applied (the rigs'
+ * netplay step: netplay_test.sh, which plays a recording with no setup) it is this game's own, as
+ * a plain run of the same match plays -- it was the original's, so the two dressed a match's teams
+ * differently and parted at frame 0 in 10 of the corpus's 30 matches. A live match always applies
+ * its setup first. */
+static int8_t  s_kitRulePlay = -1;      /* -1: no setup applied (this game's own) */
+static int8_t  s_kitRuleSend = -1;      /* the lobby's (both players'), -1: this game's own */
+
+void NetplaySetup_SetKitRule(int32_t rule)
+{
+    s_kitRuleSend = (int8_t)(rule == KIT_RULE_EXTENDED ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL);
+}
+
+int32_t NetplaySetup_KitRule(void)
+{
+    return s_kitRulePlay >= 0 ? s_kitRulePlay : KitVariants_Rule();
 }
 
 /* The bytes a setup of `version` holds. */
 static uint32_t setup_bytes(uint16_t version)
 {
     return HEADER_BYTES + SCALAR_COUNT * 2u + (version >= 3 ? TIE_WORDS * 2u : 0u) +
-           TEAM_BYTES + TACTIC_TOTAL + (version >= 4 ? CROWD_BYTES : 0u);
+           (version >= 5 ? BENCH_BYTES : 0u) + (version >= 6 ? KITRULE_BYTES : 0u) + TEAM_BYTES + TACTIC_TOTAL + (version >= 4 ? CROWD_BYTES : 0u);
 }
 
 /* The crowd of the last setup applied, and whether the next pitch loaded takes it. */
@@ -224,6 +269,8 @@ int32_t NetplaySetup_Encode(uint8_t *out, uint32_t cap)
     BE_WRITE_U16(p, _playing2ndGame);     p += 2;
     BE_WRITE_U16(p, _team1GoalsFirstLeg); p += 2;
     BE_WRITE_U16(p, _team2GoalsFirstLeg); p += 2;
+    BE_WRITE_U16(p, (uint16_t)(s_benchSend[0] << 8 | s_benchSend[1])); p += 2;   /* (version 5) */
+    BE_WRITE_U16(p, (uint16_t)(s_kitRuleSend >= 0 ? s_kitRuleSend : KitVariants_Rule())); p += 2;   /* (version 6) */
 
     /* The two teams (NetplaySetup_WriteTeam says why bytes are right here). */
     NetplaySetup_WriteTeam(p, &_selectedTeams[0]);
@@ -353,6 +400,20 @@ int32_t NetplaySetup_Apply(const uint8_t *in, uint32_t len)
             s_tie[i] = GET();
     }
     put_tie_rules();
+    s_benchPlay[0] = s_benchPlay[1] = 0;
+    if (version >= 5) {
+        const uint16_t w = GET();
+        s_benchPlay[0] = (uint8_t)(w >> 8) <= 2 ? (uint8_t)(w >> 8) : 0;
+        s_benchPlay[1] = (uint8_t)(w & 0xFF) <= 2 ? (uint8_t)(w & 0xFF) : 0;
+        if (s_benchPlay[0] == 2 || s_benchPlay[1] == 2)
+            fprintf(stderr, "[match] call bench: player 1 %s, player 2 %s\n",
+                    s_benchPlay[0] == 2 ? "button only" : "taps count",
+                    s_benchPlay[1] == 2 ? "button only" : "taps count");
+    }
+    s_kitRulePlay = KIT_RULE_ORIGINAL;
+    if (version >= 6)
+        s_kitRulePlay = GET() == KIT_RULE_EXTENDED ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL;
+    fprintf(stderr, "[match] kit colours: %s\n", s_kitRulePlay == KIT_RULE_EXTENDED ? "extended" : "original");
 #undef GET
 
     NetplaySetup_ReadTeam(&_selectedTeams[0], p);
@@ -483,6 +544,10 @@ int32_t  NetplaySetup_SelfTest(void) { return 0; }
 void     NetplaySetup_ArmTieRules(int32_t armed) { (void)armed; }
 void     NetplaySetup_TakeTieRules(void) {}
 const uint16_t *NetplaySetup_TakeCrowd(uint16_t mapIndex) { (void)mapIndex; return NULL; }
+void     NetplaySetup_SetCallBench(int32_t p1, int32_t p2) { (void)p1; (void)p2; }
+int32_t  NetplaySetup_BenchTapsOff(int32_t player) { (void)player; return 0; }
+int32_t  NetplaySetup_KitRule(void) { return 0; }
+void     NetplaySetup_SetKitRule(int32_t rule) { (void)rule; }
 
 #endif /* SWOS_NETPLAY */
 #endif /* SWOS_SDL_BUILD */

@@ -70,6 +70,8 @@ extern void ChangeGameplayStyle(void);
 extern void ChangeWorld(void);
 extern void ChangeLanguage(void);
 extern void LaunchSetupSelected(void);
+extern void ChangeCallBench1(void);
+extern void ChangeCallBench2(void);
 extern void ShowControlsMenu(void);
 extern void ShowModsMenu(void);
 extern void ChangePitchStyle(void);
@@ -529,6 +531,8 @@ extern char _aWorldOption[];
 extern char _aLanguageOption[];
 extern char _aSetupOption[];
 extern char _aLaunchSetup[];
+extern char _aCallBench1[];
+extern char _aCallBench2[];
 extern char _aModsOption[];
 extern char _aModes[];
 extern char _aTeamPacks[];
@@ -701,6 +705,8 @@ extern char* _gameplayStyleStrTable[];
 extern char* _worldStrTable[];
 extern char* _languageStrTable[];
 extern char* _pitchStyleStrTable[];
+extern char* _callBench1StrTable[];
+extern char* _callBench2StrTable[];
 extern char* _pitchTypeOrSeasonTable[];
 extern char* _pitchTypeStrTable[];
 extern char* _positionFilterStringTable[];
@@ -3045,6 +3051,34 @@ Menu_Options _optionsMenu = {
         { MENU_CMD_COLORS, 0xD },
         { MENU_CMD_TEXT_PTR, 0x0, _aLaunchSetup },
         { MENU_CMD_ONSELECT_FIRE, LaunchSetupSelected },
+        MENU_CMD_END
+    },
+    {
+        { 10, 128, -116, 11 },
+        { MENU_CMD_COLORS, 0x9 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aCallBench1 },
+        MENU_CMD_END
+    },
+    {
+        { -102, 128, -116, 11 },
+        { MENU_CMD_NAV, -1, -1, 14, 32 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_STRING_TABLE, 0x0, _callBench1StrTable },
+        { MENU_CMD_ONSELECT_FIRE, ChangeCallBench1 },
+        MENU_CMD_END
+    },
+    {
+        { 10, 140, -116, 11 },
+        { MENU_CMD_COLORS, 0x9 },
+        { MENU_CMD_TEXT_PTR, 0x0, _aCallBench2 },
+        MENU_CMD_END
+    },
+    {
+        { -102, 140, -116, 11 },
+        { MENU_CMD_NAV, -1, -1, 30, 19 },
+        { MENU_CMD_COLORS, 0xD },
+        { MENU_CMD_STRING_TABLE, 0x0, _callBench2StrTable },
+        { MENU_CMD_ONSELECT_FIRE, ChangeCallBench2 },
         MENU_CMD_END
     },
     MENU_MARK_END_MENU

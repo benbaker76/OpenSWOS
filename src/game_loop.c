@@ -830,6 +830,15 @@ GameFrameResult GameLoop_Frame(void)
 #endif
     RASTER(RASTER_HUD);
     DrawBenchAndSubsMenu();
+#ifndef SWOS_SDL_BUILD
+    {   /* the Amiga's second fire buttons (CALL BENCH; SDL's come from input_sdl.c) */
+        extern uint16_t Input_SecondButtons(void);
+        extern void Bench_SecondButton(int32_t player, int32_t pressed);
+        const uint16_t b = Input_SecondButtons();
+        Bench_SecondButton(1, b & 1);
+        Bench_SecondButton(2, (b >> 1) & 1);
+    }
+#endif
     BenchCheckControls();
     UpdateAndDrawStatistics();
 #ifdef SWOS_SDL_BUILD

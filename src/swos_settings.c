@@ -74,6 +74,10 @@ static const char *const kQuickNames[10] = {
     "quick1", "quick2", "quick3", "quick4", "quick5", "quick6", "quick7", "quick8", "quick9", "quick0",
 };
 
+/* [input] call_bench_p1 / call_bench_p2 read: the old call_bench (one for both) only fills what
+ * they do not say, wherever its line stands in the file (a save keeps a key it no longer writes). */
+static int s_benchSeen[2];
+
 /* ---- SWOS 2020's CONTROLS MENU, menu look and MULTIPLAYER SETTINGS (SWOS 2020 port, agent A) ----
  * Read before the sections below; 1 when it was one of these keys. */
 static int handler_swos2020_controls(PlatformInitOptions *opts, const char *section,
@@ -89,8 +93,17 @@ static int handler_swos2020_controls(PlatformInitOptions *opts, const char *sect
             snprintf(opts->pad_config, sizeof opts->pad_config, "%s", value);
         else if (eqi(name, "shoulder_buttons"))
             opts->shoulder_buttons_off = !(eqi(value, "on") || eqi(value, "true") || eqi(value, "1"));
-        else if (eqi(name, "call_bench"))
+        else if (eqi(name, "call_bench")) {     /* (before each player had his own: both, unless */
+            const int m = eqi(value, "taps") ? 1 : eqi(value, "button") ? 2 : 0;   /* theirs are there) */
+            if (!s_benchSeen[0]) opts->call_bench = m;
+            if (!s_benchSeen[1]) opts->call_bench_p2 = m;
+        } else if (eqi(name, "call_bench_p1")) {
             opts->call_bench = eqi(value, "taps") ? 1 : eqi(value, "button") ? 2 : 0;
+            s_benchSeen[0] = 1;
+        } else if (eqi(name, "call_bench_p2")) {
+            opts->call_bench_p2 = eqi(value, "taps") ? 1 : eqi(value, "button") ? 2 : 0;
+            s_benchSeen[1] = 1;
+        }
         else
             return 0;
         return 1;
@@ -167,8 +180,6 @@ static int handler_launcher_b(PlatformInitOptions *opts, const char *section, co
     if (eqi(name, "menu_opacity")) {
         int n = atoi(value);
         if (n >= 0 && n <= 100) opts->menu_opacity = n;
-    } else if (eqi(name, "purple_for_brown") && parse_bool(value, &b)) {
-        opts->purple_for_brown = b;
     } else if (eqi(name, "improved_pitch_palette") && parse_bool(value, &b)) {
         opts->improved_pitch_palette = b;
     } else if (eqi(name, "pixel_filter")) {
@@ -403,6 +414,10 @@ static int handler(void *user, const char *section,
         }
         else if (eqi(name, "clash_kits") && parse_bool(value, &b))   /* (SWOS 2020 port, agent D) */
             opts->clash_kits = b;
+        else if (eqi(name, "kit_colours")) {                           /* (kit_variants.h) */
+            if      (eqi(value, "extended")) opts->kit_colours = 1;
+            else if (eqi(value, "original")) opts->kit_colours = 0;
+        }
         else if (eqi(name, "kit_art")) {
             if      (eqi(value, "amiga"))  opts->kit_art = 0;
             else if (eqi(value, "jaguar")) opts->kit_art = 1;
@@ -712,11 +727,13 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
         "; shoulder_buttons: off | on. Off (DISABLE SHOULDER BUTTONS): the shoulder buttons and\n"
         "; stick clicks cannot be a pad's FIRE or BENCH.",
         opts->shoulder_buttons_off ? "off" : "on" };
-    SETTING(n) = (IniEntry){ "input", "call_bench",
-        "; call_bench: both | taps | button. The PC style's ways to call the bench: the second fire\n"
-        "; button or three taps (both), the taps alone, or the button alone (offline matches; the\n"
-        "; Amiga style has no second button and keeps the taps).",
+    SETTING(n) = (IniEntry){ "input", "call_bench_p1",
+        "; call_bench_p1, call_bench_p2: both | taps | button. How each player calls his bench, in\n"
+        "; every match he plays, offline and online, Amiga or PC style: the second fire button or\n"
+        "; three taps (both, the PC's way), the taps alone (the Amiga's), or the button alone.",
         opts->call_bench == 1 ? "taps" : opts->call_bench == 2 ? "button" : "both" };
+    SETTING(n) = (IniEntry){ "input", "call_bench_p2", NULL,
+        opts->call_bench_p2 == 1 ? "taps" : opts->call_bench_p2 == 2 ? "button" : "both" };
     SETTING(n) = (IniEntry){ "input", "p2_keyboard",
         "; p2_keyboard: true | false. P1 AND P2 ON KEYBOARD (OPTIONS -> CONTROLS): player 2\n"
         "; plays on this keyboard too, with p2_key_up, p2_key_down, p2_key_left, p2_key_right,\n"
@@ -888,10 +905,19 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
             stepBuf };
     }
     SETTING(n) = (IniEntry){ "graphics", "clash_kits",     /* (SWOS 2020 port, agent D) */
-        "; clash_kits: true | false -- SWOS 2020's GK/REF CLASH KITS: when either team wears a dark\n"
-        "; kit (black, blue, burgundy), both keepers change to green (grey if a team wears green)\n"
-        "; and the referee to yellow (light blue if a team wears yellow). Only how they look.",
+        "; clash_kits: true | false -- SWOS 2020's GK/REF CLASH KITS: keepers and referee in a colour that\n"
+        "; stands out against both teams. With kit_colours extended: keepers dark green, the referee\n"
+        "; black, each changing to the colour that differs most when a team is too alike; with\n"
+        "; original: against a dark kit, keepers green (or grey), referee yellow (or light blue).\n"
+        "; Only how they look.\n"
+        "; On by default, as in SWOS 2020 (DISPLAY OPTIONS: GK/REF CLASH KITS).",
         opts->clash_kits ? "true" : "false" };
+    SETTING(n) = (IniEntry){ "graphics", "kit_colours",
+        "; kit_colours: extended | original -- which kits are too alike, so that one team changes.\n"
+        "; extended: judged by how alike the colours look (CIEDE2000), for every kit colour; original:\n"
+        "; the original's own tables. A net game plays extended only if both players do. Default extended\n"
+        "; (DISPLAY OPTIONS: KIT COLOURS).",
+        opts->kit_colours ? "extended" : "original" };
     SETTING(n) = (IniEntry){ "graphics", "kit_art",
         "; kit_art: amiga | jaguar. The shirts, shorts and socks drawn on the UNIFORM\n"
         "; screen: the Amiga's flat drawings, or the Atari Jaguar's shaded ones (shaded by\n"
@@ -967,10 +993,6 @@ static int settings_build(const PlatformInitOptions *opts, IniEntry *items, char
             "; menus): 100 solid, less lets the backdrop or the background picture show through them.\n"
             "; Their text and frames stay solid. Menus only, never a match.", opacity };
     }
-    SETTING(n) = (IniEntry){ "video", "purple_for_brown",
-        "; purple_for_brown: true | false -- every maroon (brown) kit drawn purple, in the menus and\n"
-        "; in a match (the SWOS 2020 launcher's \"Purple instead of Brown\"). Drawing only.",
-        opts->purple_for_brown ? "true" : "false" };
     SETTING(n) = (IniEntry){ "video", "improved_pitch_palette",
         "; improved_pitch_palette: true | false -- SWOS 2020's: the wet and soft pitches' stripes show\n"
         "; (their second grass colour a little lighter). Drawing only.",

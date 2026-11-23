@@ -42,6 +42,7 @@
  * their six slots from before the match and put it back afterwards
  * (NetplayLobby_RestoreTactics): playing online never changes a player's library.
  */
+#include "kit_variants.h"
 #include "squad_extras.h"
 #include "mod_hooks.h"    /* lobbyKeepsReady */
 #include "netplay_lobby.h"
@@ -93,17 +94,19 @@ enum {
 #define STATE_MAGIC   0x53554C42u       /* "SULB" */
 #define START_MAGIC   0x53555354u       /* "SUST" */
 #define ANSWER_MAGIC  0x5355414Eu       /* "SUAN" */
-#define LOBBY_VERSION 7     /* 2: START carries the match's packet key; 3: and the kick-off state;
+#define LOBBY_VERSION 9     /* 2: START carries the match's packet key; 3: and the kick-off state;
                                4: the cup rules; 5: the host's switches; 6: FRAME DELAY's extra
                                frames (STATE) and the match's delay (START); 7: the match's
-                               mode and the service's match / leg ids (the rules) */
+                               mode and the service's match / leg ids (the rules); 8: each player's
+                               CALL BENCH (STATE), which the host puts in the setup; 9: each player's
+                               KIT COLOURS (STATE): the setup's rule is EXTENDED only if both are */
 
 /* STATE: magic, version, player, ready, activity, hasTeam, tactic, rulesGen, the ten
- * rules, the name, the team, the USER tactic, the extra delay frames. */
+ * rules, the name, the team, the USER tactic, the extra delay frames, the CALL BENCH. */
 enum { RULE_WORDS = 15 };            /* (the last five: the mode, the match id and the leg id) */
 enum { CHAT_WINDOW = 8, CHAT_MAGIC = 0x43484154 /* "CHAT" */ };
 enum { STATE_BYTES = 4 + 2 + 4 + 2 + 2 + RULE_WORDS * 2 + LOBBY_NAME_MAX + NETPLAY_TEAM_BYTES +
-                     TACTIC_BYTES + 1 };
+                     TACTIC_BYTES + 1 + 1 + 1 };
 /* START: magic, version, the joiner STATE generation it was built on, rulesGen, the
  * packet key, the match's input delay; then the setup's length and the setup; then the host's state to kick off
  * from (a state_wire packet, the rest of the message -- see NetplayLobby_ApplyMatch). */
@@ -451,6 +454,8 @@ static int32_t encode_state(uint8_t *out)
     NetplaySetup_WriteTeam(q, &p->team);          q += NETPLAY_TEAM_BYTES;
     memcpy(q, &p->userTactic, TACTIC_BYTES);      q += TACTIC_BYTES;
     *q++ = (uint8_t)p->extraDelay;
+    *q++ = (uint8_t)p->callBench;
+    *q++ = (uint8_t)p->kitRule;                   /* (version 9) */
     return (int32_t)(q - out);
 }
 
@@ -531,6 +536,10 @@ static void read_peer_state(void)
     NetplaySetup_ReadTeam(&got.team, q);          q += NETPLAY_TEAM_BYTES;
     memcpy(&got.userTactic, q, TACTIC_BYTES);     q += TACTIC_BYTES;
     got.extraDelay = *q <= LOBBY_EXTRA_DELAY_MAX ? *q : LOBBY_EXTRA_DELAY_MAX;
+    q++;
+    got.callBench  = *q <= 2 ? *q : 0;
+    q++;
+    got.kitRule    = *q == KIT_RULE_EXTENDED ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL;
     if (got.tactic < 0 || got.tactic > LOBBY_TACTIC_MAX)
         got.tactic = 0;
     /* A team is a team of the database, with at most its names, faces, kits and line-up
@@ -1075,6 +1084,18 @@ void NetplayLobby_Poll(void)
 
     if (s_lobby.state == LOBBY_OPEN)
         team_check();
+    if (s_lobby.state == LOBBY_OPEN) {     /* this game's player's CALL BENCH, as it is now */
+        extern int InputSDL_CallBench(int player);
+        const int32_t bench = InputSDL_CallBench(1);
+        if (bench != mine()->callBench) {
+            mine()->callBench = bench;
+            s_lobby.dirty = 1;
+        }
+        if (KitVariants_Rule() != mine()->kitRule) {      /* this game's KIT COLOURS, as it is now */
+            mine()->kitRule = KitVariants_Rule();
+            s_lobby.dirty = 1;
+        }
+    }
     if (s_lobby.state == LOBBY_OPEN && s_lobby.dirty)
         send_state();
     if (s_lobby.chatDirty && (s_lobby.state == LOBBY_OPEN || s_lobby.state == LOBBY_STARTING))
@@ -1530,6 +1551,13 @@ int32_t NetplayLobby_Start(void)
 
     assemble_match();
     arm_mod_rules();                    /* (before the setup and the state are taken: both carry them) */
+    /* Each player's CALL BENCH, the host's player 1: the setup carries both, so both games
+     * count the taps the same way (bench_subs.c bench_taps_off). */
+    NetplaySetup_SetCallBench(s_lobby.players[0].callBench, s_lobby.players[1].callBench);
+    /* KIT COLOURS: the variants and the CIEDE2000 rule only when both players have them on; else
+     * both games choose the kits by the original's tables, in their base colours. */
+    NetplaySetup_SetKitRule(s_lobby.players[0].kitRule == KIT_RULE_EXTENDED &&
+                            s_lobby.players[1].kitRule == KIT_RULE_EXTENDED ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL);
     make_packet_key(s_lobby.packetKey);
     BE_WRITE_U32(buf, START_MAGIC);
     BE_WRITE_U16(buf + 4, LOBBY_VERSION);

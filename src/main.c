@@ -17,6 +17,7 @@
 
 
 #include <SDL.h>
+#include "kit_variants.h"
 #include "project_identity.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -707,6 +708,8 @@ int main(int argc, char **argv)
     opts.vsync      = 0;          /* default off — opt-in only */
     opts.subpixel_scroll = 1;     /* default on — smooth sub-pixel scrolling */
     opts.scaling_smooth  = 1;     /* default on — even pixels at a non-integer scale */
+    opts.clash_kits      = 1;     /* default on, as SWOS 2020's GK/REF CLASH KITS */
+    opts.kit_colours     = 1;     /* default extended (kit_variants.h) */
     opts.crt_mask = 0;            /* CRT effects all default OFF — opt-in */
     opts.crt_mask_strength = 45;
     opts.crt_vignette = 0;
@@ -1066,6 +1069,11 @@ int main(int argc, char **argv)
             return Settings_GameOptionsSelfTest();
         } else if (strcmp(a, "--menu-selftest") == 0) {
             return OnlineMenus_SelfTest();
+        } else if (strcmp(a, "--kit-variants-selftest") == 0) {
+            {   /* the kit colours' table (kit_variants.c) and their palette entries (kit_palette.c) */
+                extern int32_t KitPalette_SelfTest(void);
+                return (KitVariants_SelfTest() | KitPalette_SelfTest()) ? 1 : 0;
+            }
         } else if (strcmp(a, "--settings-menus-selftest") == 0) {
             /* SWOS 2020's OPTIONS screens and CONTROLLER SETUP (src/settings_menus.c, agent A) */
             extern int SettingsMenus_SelfTest(void);
@@ -1550,6 +1558,7 @@ int main(int argc, char **argv)
     JagGfx_SetShading(opts.outfit_shading, opts.shadow_shading, opts.hair_shading, opts.shade_step);
     KitArt_SetJaguar(opts.kit_art);
     { extern int32_t g_clashKits; g_clashKits = opts.clash_kits; }   /* [graphics] clash_kits */
+    KitVariants_SetRule(opts.kit_colours ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL);   /* [graphics] kit_colours */
     { extern void InputSDL_SetStickDeadzone(int percent); InputSDL_SetStickDeadzone(opts.stick_deadzone); }
     {
         extern void InputSDL_SetPressLatch(int on);

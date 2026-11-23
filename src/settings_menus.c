@@ -26,6 +26,7 @@
  */
 #ifdef SWOS_SDL_BUILD
 
+#include "kit_variants.h"
 #include "menu_load_json.h"
 #include "menu_symbols.h"
 #include "menu_system.h"
@@ -86,14 +87,16 @@ extern void        InputSDL_PadStickTurn(int d, int *x, int *y);
 extern int         InputSDL_StickDeadzonePercent(void);
 extern void        InputSDL_SetStickDeadzone(int percent);
 extern void        InputSDL_PadPressBegin(void);
+extern int         InputSDL_AnyPadButtonHeld(void);
+extern void        InputSDL_PostFrame(void);
 extern int         InputSDL_PadPressPoll(int only, int *dev, int *button);
 extern void        InputSDL_GivePlayerDevice(int p, int d);
 extern int         InputSDL_AutoDetect(void);
 extern void        InputSDL_SetAutoDetect(int on);
 extern int         InputSDL_ShouldersOff(void);
 extern void        InputSDL_SetShouldersOff(int on);
-extern int         InputSDL_CallBench(void);
-extern void        InputSDL_SetCallBench(int mode);
+extern int         InputSDL_CallBench(int player);
+extern void        InputSDL_SetCallBench(int player, int mode);
 extern void        InputSDL_StoreConfig(PlatformInitOptions *o);
 extern int         InputSDL_TakeQuickSave(void);
 
@@ -158,7 +161,12 @@ typedef struct {
     const char *label;
     void (*show)(char *out, int32_t cap);
     void (*change)(int32_t dir);            /* +1: fire or right, -1: left */
+    uint16_t    labelColor;                 /* its label's background, kLabel* (0: the page's grey) */
 } Row;
+
+/* A label's background (settingsPage.json's labels are grey, 7): CONTROLS tells player 1's rows
+ * from player 2's by colour as well as by name. */
+enum { kLabelGrey = 7, kLabelPlayer1 = 10, kLabelPlayer2 = 11 };
 
 typedef struct {
     const char *title;
@@ -202,6 +210,7 @@ static void page_refresh(void)
             continue;
         s_page->rows[i].show(s_values[i], kValueLen);
         label->fg = (uintptr_t)s_page->rows[i].label;
+        label->bgColor = s_page->rows[i].labelColor ? s_page->rows[i].labelColor : kLabelGrey;
         value->fg = (uintptr_t)s_values[i];
     }
     entry_at(Page_note)->fg = (uintptr_t)s_note;
@@ -263,13 +272,37 @@ static void note_now(const char *text)
 }
 
 /* After a prompt answered from a pad: the button let go, and its press no menu's. */
+/* After a press a row took for itself (a button set, a pad chosen): wait until it is let go --
+ * every button of every pad, not only what reads as fire now (a button just made BENCH no longer
+ * does, but it was fire when it went down) -- then forget it, so its release is not a fire on the
+ * same row that asks for a button again. At most ~3 s. */
 static void release_wait(void)
 {
-    int32_t frames;
-    for (frames = 0; frames < 100 && _fire; frames++)
-        MenuCheckControls();
-    _shortFire = 0;
+    /* Real time, with SDL's input brought up to date: a menu read alone runs no frame (the
+     * pads' state and the registers stay what they were), so the loop used to end at once with
+     * the button still down -- and the row asked again. The events stay queued for the menus. */
+    const Uint32 until = SDL_GetTicks() + 3000;
+    for (;;) {
+        const Uint8 *keys;
+        SDL_PumpEvents();
+        keys = SDL_GetKeyboardState(NULL);
+        if (!InputSDL_AnyPadButtonHeld() && !keys[SDL_SCANCODE_RETURN] && !keys[SDL_SCANCODE_LCTRL] &&
+            !keys[SDL_SCANCODE_RCTRL] && !keys[SDL_SCANCODE_SPACE])
+            break;
+        if (SDL_TICKS_PASSED(SDL_GetTicks(), until))
+            break;
+        SDL_Delay(10);
+    }
+    /* Everything up now: the registers the menus read made to say so too (the input step, as a
+     * frame runs it), then read twice -- so the game's own press/release tracking sees no press,
+     * and no release of the old one either, that would count as a tap. */
     InputSDL_ClearKeyState();
+    InputSDL_PostFrame();
+    MenuCheckControls();
+    MenuCheckControls();
+    _fire = 0;
+    _shortFire = 0;
+    _controlMask = 0;
 }
 
 /* ===================================================================== CONTROLS */
@@ -421,18 +454,27 @@ static void shoulders_change(int32_t dir)
     save();
 }
 
-static void bench_show(char *o, int32_t c)
+/* CALL BENCH, each player's own: how he calls his bench in every match he plays, offline and
+ * online, in any gameplay style -- the second fire button and three taps (the PC's way), the taps
+ * alone (the Amiga's) or the button alone. Online the lobby takes it to the match setup. */
+static void bench_show_for(int player, char *o, int32_t c)
 {
     static const char *const k[3] = { "BUTTON OR TAPS", "TAPS ONLY", "BUTTON ONLY" };
-    snprintf(o, (size_t)c, "%s", k[InputSDL_CallBench()]);
+    snprintf(o, (size_t)c, "%s", k[InputSDL_CallBench(player)]);
 }
-static void bench_change(int32_t dir)
+static void bench_change_for(int player, int32_t dir)
 {
-    InputSDL_SetCallBench(step(InputSDL_CallBench(), dir, 3));
-    note(_gDosGameplay ? "THE PC STYLE'S SECOND FIRE BUTTON AND THREE TAPS"
-                       : "THE AMIGA STYLE HAS NO 2ND BUTTON: TAPS ALWAYS");
+    static const char *const k[3] = { "THE 2ND FIRE BUTTON OR THREE TAPS", "THREE TAPS, AS ON THE AMIGA",
+                                      "THE 2ND FIRE BUTTON ALONE" };
+    const int mode = (int)step(InputSDL_CallBench(player), dir, 3);
+    InputSDL_SetCallBench(player, mode);
+    note(k[mode]);
     save();
 }
+static void bench1_show(char *o, int32_t c) { bench_show_for(1, o, c); }
+static void bench1_change(int32_t dir)      { bench_change_for(1, dir); }
+static void bench2_show(char *o, int32_t c) { bench_show_for(2, o, c); }
+static void bench2_change(int32_t dir)      { bench_change_for(2, dir); }
 
 static void deadzone_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%d%%", InputSDL_StickDeadzonePercent()); }
 static void deadzone_change(int32_t dir)
@@ -465,20 +507,21 @@ static void pointer_change(int32_t dir)
 }
 
 static const Row k_controlRows[] = {
-    { "PLAYER 1",                 p1_show,         p1_change },
-    { "  SELECT JOYPAD",          select_show,     p1_select },
-    { "  CONTROLLER SETUP",       p1_setup_show,   p1_setup },
-    { "PLAYER 2",                 p2_show,         p2_change },
-    { "  SELECT JOYPAD",          select_show,     p2_select },
-    { "  CONTROLLER SETUP",       p2_setup_show,   p2_setup },
+    { "PLAYER 1",                 p1_show,         p1_change,     kLabelPlayer1 },
+    { "P1 SELECT JOYPAD",         select_show,     p1_select,     kLabelPlayer1 },
+    { "P1 CONTROLLER SETUP",      p1_setup_show,   p1_setup,      kLabelPlayer1 },
+    { "P1 CALL BENCH",            bench1_show,     bench1_change, kLabelPlayer1 },
+    { "PLAYER 2",                 p2_show,         p2_change,     kLabelPlayer2 },
+    { "P2 SELECT JOYPAD",         select_show,     p2_select,     kLabelPlayer2 },
+    { "P2 CONTROLLER SETUP",      p2_setup_show,   p2_setup,      kLabelPlayer2 },
+    { "P2 CALL BENCH",            bench2_show,     bench2_change, kLabelPlayer2 },
     { "KEYBOARD KEYS",            keys_show,       keys_change },
     { "AUTO-DETECT JOYPADS",      autodetect_show, autodetect_change },
     { "DISABLE SHOULDER BUTTONS", shoulders_show,  shoulders_change },
-    { "CALL BENCH",               bench_show,      bench_change },
     { "STICK DEAD ZONE",          deadzone_show,   deadzone_change },
-    { "MOUSE POINTER",            pointer_show,    pointer_change },     /* (launcher options, agent A) */
 };
 static const Page k_controlsPage = { "CONTROLS", k_controlRows, (int32_t)(sizeof k_controlRows / sizeof k_controlRows[0]) };
+_Static_assert(sizeof k_controlRows / sizeof k_controlRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== VIDEO */
 
@@ -645,6 +688,7 @@ static const Row k_videoRows[] = {
     { "SHOW FPS",           fps_show,      fps_change },
 };
 static const Page k_videoPage = { "VIDEO OPTIONS", k_videoRows, (int32_t)(sizeof k_videoRows / sizeof k_videoRows[0]) };
+_Static_assert(sizeof k_videoRows / sizeof k_videoRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== AUDIO */
 
@@ -774,6 +818,7 @@ static const Row k_audioRows[] = {
     { "OUTPUT",                 mono_show,       mono_change },
 };
 static const Page k_audioPage = { "AUDIO OPTIONS", k_audioRows, (int32_t)(sizeof k_audioRows / sizeof k_audioRows[0]) };
+_Static_assert(sizeof k_audioRows / sizeof k_audioRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== GAMEPLAY */
 
@@ -933,11 +978,12 @@ static const Row k_gameplayRows[] = {
     { "PRE-MATCH PAUSE",         loadpause_show, loadpause_change },
 };
 static const Page k_gameplayPage = { "GAMEPLAY OPTIONS", k_gameplayRows, (int32_t)(sizeof k_gameplayRows / sizeof k_gameplayRows[0]) };
+_Static_assert(sizeof k_gameplayRows / sizeof k_gameplayRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== DISPLAY OPTIONS
  * (launcher options, agent B; docs/RENDERING.md "DISPLAY OPTIONS") The SWOS United Launcher's look
  * options -- SWOS 2020's command-line flags -- in the game: the menus' opacity, the pixel filter,
- * purple for brown, the improved pitch palette ([video] in SWOS.ini, Platform_SetDisplayOptions:
+ * the improved pitch palette ([video] in SWOS.ini, Platform_SetDisplayOptions:
  * at once), and the result display's and the scoreboard's settings, which are their mods'
  * ([mod.display2020], [mod.scoreboard]: OPTIONS -> MODS turns the mods on). All drawing only. */
 
@@ -963,13 +1009,29 @@ static void filter_change(int32_t dir)
     display_apply();
 }
 
-static void purple_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->purple_for_brown ? "PURPLE" : "BROWN"); }
-static void purple_change(int32_t dir)
+/* SWOS 2020's GK/REF CLASH KITS ([graphics] clash_kits, clash_kits.c): the keepers and the referee
+ * in a colour that stands out against a dark kit. Taken at the next match's sprites. */
+static void clashkits_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->clash_kits ? "ON" : "OFF"); }
+/* Which kits are too alike ([graphics] kit_colours, kit_variants.h): EXTENDED judges by how alike the
+ * colours look (CIEDE2000), ORIGINAL by the original's tables. */
+static void kitcols_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->kit_colours ? "EXTENDED" : "ORIGINAL"); }
+static void kitcols_change(int32_t dir)
 {
     (void)dir;
-    O()->purple_for_brown = !O()->purple_for_brown;
-    note("FROM THE NEXT MATCH");
-    display_apply();
+    O()->kit_colours = !O()->kit_colours;
+    KitVariants_SetRule(O()->kit_colours ? KIT_RULE_EXTENDED : KIT_RULE_ORIGINAL);
+    note("WHICH KITS CLASH, FROM THE NEXT MATCH");
+    save();
+}
+
+static void clashkits_change(int32_t dir)
+{
+    extern int32_t g_clashKits;
+    (void)dir;
+    O()->clash_kits = !O()->clash_kits;
+    g_clashKits = O()->clash_kits;
+    note("KEEPERS AND REFEREE, FROM THE NEXT MATCH");
+    save();
 }
 
 static void pitchpal_show(char *o, int32_t c) { snprintf(o, (size_t)c, "%s", O()->improved_pitch_palette ? "IMPROVED" : "ORIGINAL"); }
@@ -1019,13 +1081,16 @@ static void board_change(int32_t d)           { mod_setting_change("scoreboard",
 static const Row k_displayRows[] = {
     { "MENU OPACITY",       opacity_show,  opacity_change },
     { "PIXEL FILTER",       filter_show,   filter_change },
-    { "BROWN KITS",         purple_show,   purple_change },
+    { "KIT COLOURS",        kitcols_show,  kitcols_change },
+    { "GK/REF CLASH KITS",  clashkits_show, clashkits_change },
     { "PITCH PALETTE",      pitchpal_show, pitchpal_change },
     { "KITS ON THE RESULT", reskits_show,  reskits_change },
     { "RESULT BAND",        resband_show,  resband_change },
     { "SCOREBOARD",         board_show,    board_change },
+    { "MOUSE POINTER",      pointer_show,  pointer_change },     /* (from CONTROLS: it has CALL BENCH twice) */
 };
 static const Page k_displayPage = { "DISPLAY OPTIONS", k_displayRows, (int32_t)(sizeof k_displayRows / sizeof k_displayRows[0]) };
+_Static_assert(sizeof k_displayRows / sizeof k_displayRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== RULES
  * The tweaks that change the original's rules (include/tweaks.h): the contest fix and SWOS 2020's
@@ -1112,6 +1177,7 @@ static const Row k_rulesRows[] = {
     { "CAREER EXACT LOADS",      exact_show,    exact_change },
 };
 static const Page k_rulesPage = { "RULES OPTIONS", k_rulesRows, (int32_t)(sizeof k_rulesRows / sizeof k_rulesRows[0]) };
+_Static_assert(sizeof k_rulesRows / sizeof k_rulesRows[0] <= kRows, "a settings page holds kRows rows at most");
 
 /* ===================================================================== SETTINGS (the hub) */
 
@@ -1471,18 +1537,10 @@ void SettingsMenus_Show(void)
 }
 
 /* DISPLAY OPTIONS, checked without a window (launcher options, agent B): the pixel filters'
- * answers, purple for brown's menu colour and the improved pitch palette's green, each set and back. */
+ * answers and the improved pitch palette's green, each set and back. */
 static int DisplayOptions_SelfTest(void)
 {
-    extern uint16_t _kTeamColorsTable[];
     int fails = PixelFilter_SelfTest();
-    {
-        const uint16_t maroon = _kTeamColorsTable[6];
-        TeamColors_SetPurpleForMaroon(1);
-        if (_kTeamColorsTable[6] != _kTeamColorsTable[10]) { fails++; fprintf(stderr, "[settings-selftest] FAIL: purple for brown: maroon's menu colour is not purple's\n"); }
-        TeamColors_SetPurpleForMaroon(0);
-        if (_kTeamColorsTable[6] != maroon) { fails++; fprintf(stderr, "[settings-selftest] FAIL: purple for brown not put back\n"); }
-    }
     {
         uint8_t was[768], now[768];
         for (int type = 0; type < 7; type++) {

@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "kit_variants.h"
 #include "uniform.h"
 #include "kit_art.h"
 #include "display.h"
@@ -151,7 +152,7 @@ void UniformMenu_SetOnline(int32_t otherKnown, int32_t localIsTop)
 static int32_t same_look(const KitLook *a, const KitLook *b)
 {
     return a->type == b->type && a->stripes == b->stripes && a->shorts == b->shorts &&
-           a->socks == b->socks && (a->type == SHIRT_ORDINARY || a->basic == b->basic);
+           a->socks == b->socks && (KitPattern_Base(a->type) == SHIRT_ORDINARY || a->basic == b->basic);
 }
 
 static uint8_t colour_of(int16_t paletteEntry)
@@ -159,7 +160,7 @@ static uint8_t colour_of(int16_t paletteEntry)
     uint8_t c;
     for (c = 0; c < KIT_COLOURS; c++)
         if (_kTeamColorsTable[c] == (uint16_t)paletteEntry)
-            return c;
+            return KitColour_FromLegacy(c);
     return 0;
 }
 
@@ -386,7 +387,7 @@ static void selectUniformMenuOnDraw(void)
         name->bgColor = name_colour(s_menu.team[side]);
         for (i = 0; i < 4; i++)         /* the shirt type in use, picked out */
             entry_of(side, SelectUniformMenu_LeftShirtType0 + i)->bgColor =
-                s_menu.shown[side].type == i ? kPickedColour : kBoxColour;
+                KitPattern_Base(s_menu.shown[side].type) == i ? kPickedColour : kBoxColour;
     }
 
     on = at >= SelectUniformMenu_RightShirtType0 ? at - kSideEntries : at;
@@ -420,10 +421,11 @@ static void selectUniformMenu_OkOnSelect(void)
             fprintf(stderr, "[uniform] %.16s: %s, type %d colours %d/%d/%d/%d\n",
                     (const char *)s_menu.team[side]->team.teamName,
                     choice_of(&s_menu.team[side]->team) ? "chosen" : "the game's pick",
-                    s_menu.shown[side].type, _kTeamColorsTable[s_menu.shown[side].stripes],
-                    _kTeamColorsTable[s_menu.shown[side].type == SHIRT_ORDINARY ? s_menu.shown[side].stripes
-                                                                                : s_menu.shown[side].basic],
-                    _kTeamColorsTable[s_menu.shown[side].shorts], _kTeamColorsTable[s_menu.shown[side].socks]);
+                    s_menu.shown[side].type, _kTeamColorsTable[KitColour_Legacy(s_menu.shown[side].stripes)],
+                    _kTeamColorsTable[KitColour_Legacy(KitPattern_Base(s_menu.shown[side].type) == SHIRT_ORDINARY
+                                                       ? s_menu.shown[side].stripes : s_menu.shown[side].basic)],
+                    _kTeamColorsTable[KitColour_Legacy(s_menu.shown[side].shorts)],
+                    _kTeamColorsTable[KitColour_Legacy(s_menu.shown[side].socks)]);
     SetExitMenuFlag();
 }
 
@@ -438,7 +440,8 @@ static int32_t selected_side(void)
 
 static void step(uint8_t *colour, int32_t by)
 {
-    *colour = (uint8_t)((*colour + KIT_COLOURS + by) % KIT_COLOURS);
+    const int32_t n = KitColour_StepCount();     /* (all the colours with the EXTENDED rule: kit_variants.h) */
+    *colour = KitColour_FromStepIndex((KitColour_StepIndex(*colour) + n + by) % n);
 }
 
 enum { kStripes, kBasic, kShorts, kSocks };
@@ -488,7 +491,7 @@ static void socksInc(void)   { change(kSocks, 1); }
 static void on_shirt(void)
 {
     int32_t side = selected_side();
-    int32_t second = side >= 0 && s_menu.shown[side].type != SHIRT_ORDINARY ? kBasic : kStripes;
+    int32_t second = side >= 0 && KitPattern_Base(s_menu.shown[side].type) != SHIRT_ORDINARY ? kBasic : kStripes;
 
     if      (_controlMask == kFireLeft)  change(kStripes, -1);
     else if (_controlMask == kFireRight) change(kStripes, 1);

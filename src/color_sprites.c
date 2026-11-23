@@ -3,6 +3,10 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "kit_variants.h"
+#ifdef SWOS_SDL_BUILD
+#include "kit_palette.h"
+#endif
 #include "player_face3.h"
 #include "shirt_numbers.h"
 #include "player_looks.h"
@@ -12,6 +16,8 @@
 #include "dos_mode.h"
 #ifdef SWOS_SDL_BUILD
 #include "dos_graphics.h"   /* DosGfx_DecodePlanarSprite, DOS_TO_AMIGA_OFFSET */
+#include "display.h"         /* GRAFS */
+#include "swos_io.h"        /* swos_data_path: is a pattern's sprite set there */
 #include <stdio.h>          /* snprintf */
 #include <stdlib.h>         /* malloc / calloc */
 #include <string.h>         /* memcpy */
@@ -204,9 +210,31 @@ static void dos_build_sprite_dat(const char *name, int dosStart, int count)
  * Verified by decoding the first sprites of each file: 96% of their bytes are
  * identical (same geometry, same sprite count) and they differ only in the kit
  * pixels. */
+/* Is a graphics file there? (a pattern of ours' sprite set may not be yet: kit_variants.h) */
+static int file_there(const char *rel)
+{
+    char path[1024];
+    FILE *f = fopen(swos_data_path(rel, path, (uint32_t)sizeof path), "rb");
+    if (f) fclose(f);
+    return f != NULL;
+}
+
+/* `shirtType` is the kit's type byte: a pattern of ours in its upper nibble takes its own sprite
+ * set if this graphics has it, else its fallback's -- the lower nibble (kit_variants.h). */
 static const char *dos_kit_file(int shirtType)
 {
-    switch (shirtType) {
+    {
+        const char *own = KitPattern_File((uint8_t)shirtType, 0);
+        static char rel[2][160];
+        static int which;
+        if (own) {
+            which ^= 1;
+            snprintf(rel[which], sizeof rel[which], "%s/%s", _gDosGraphicsDir, own);
+            if (file_there(rel[which]))
+                return own;
+        }
+    }
+    switch (KitPattern_Base((uint8_t)shirtType)) {
     case SHIRT_COLORED_SLEEVES:    return "team2.dat";
     case SHIRT_HORIZONTAL_STRIPES: return "team3.dat";
     default:                       return "team1.dat";
@@ -359,11 +387,35 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
     uint16_t d0;
     uint16_t totalWidth;
 
-    /* Set team filenames from shirt type index */
+    /* Set team filenames from shirt type index -- the kit's own type byte where it was made from one:
+     * a pattern of ours takes its sprite set if the graphics has it (kit_variants.h) */
+    const uint8_t kitType1 = TeamColors_Worn(team1) ? TeamColors_Worn(team1)[0] : (uint8_t)team1->prShirtType;
+    const uint8_t kitType2 = TeamColors_Worn(team2) ? TeamColors_Worn(team2)[0] : (uint8_t)team2->prShirtType;
     d0 = (uint16_t)team1->prShirtType;
     _team1Filename = (uintptr_t)_teamFilenamesTable[d0];
     d0 = (uint16_t)team2->prShirtType;
     _team2Filename = (uintptr_t)_teamFilenamesTable[d0];
+#ifdef SWOS_SDL_BUILD
+    {
+        static char own[2][160];
+        const char *f1 = KitPattern_File(kitType1, 1), *f2 = KitPattern_File(kitType2, 1);
+        char aga[192];
+        if (f1) {
+            snprintf(own[0], sizeof own[0], "grafs/%s", f1);
+            snprintf(aga, sizeof aga, GRAFS "%s", f1);
+            if (file_there(aga) || file_there(own[0]))
+                _team1Filename = (uintptr_t)own[0];
+        }
+        if (f2) {
+            snprintf(own[1], sizeof own[1], "grafs/%s", f2);
+            snprintf(aga, sizeof aga, GRAFS "%s", f2);
+            if (file_there(aga) || file_there(own[1]))
+                _team2Filename = (uintptr_t)own[1];
+        }
+    }
+#else
+    (void)kitType1; (void)kitType2;
+#endif
 
     /* Process image command stream (colors menu graphics) */
     /* Force read from memory — LTO must not use a stale cached value */
@@ -379,7 +431,7 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
      * the Jaguar sprites are what was asked for -- DOS keeps the pitch and the rest
      * of its look (docs/JAGUAR.md, "With the DOS graphics"). */
     if (_gDosGraphics && !JagGfx_Enabled())
-        dos_prepare_sprites((int)team1->prShirtType, (int)team2->prShirtType);
+        dos_prepare_sprites((int)kitType1, (int)kitType2);   /* (a pattern of ours: its own set, if there) */
 #endif
 
     /* Copy advertisement sprite data pointers */
@@ -445,18 +497,33 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
         _team2MostFrequentFace = findMostFrequentFaceAndApplyLUT(team2, _team2PlayersColorTable);
     }
 
+    /* The kit colour variants (kit_palette.c): each part of a side's kit in its variant's own
+     * palette entry, where it has one -- drawing only; the in-game team keeps the base colour. */
+    uint16_t variant[2][4] = { { 0 } };
+#ifdef SWOS_SDL_BUILD
+    for (int32_t k = 0; k < 2; k++) {
+        const uint8_t *w = TeamColors_Worn(k ? team2 : team1);   /* type, stripes, basic, shorts, socks */
+        if (!w || !KitPalette_Active())
+            continue;
+        variant[k][0] = KitPalette_Entry(w[1]);                                   /* prShirtCol */
+        variant[k][1] = KitPalette_Entry(KitPattern_Base(w[0]) != 0 ? w[2] : w[1]);   /* prStripesCol */
+        variant[k][2] = KitPalette_Entry(w[3]);
+        variant[k][3] = KitPalette_Entry(w[4]);
+    }
+#endif
+
     /* --- Team 1 shirt/stripes/shorts/socks colors --- */
     {
-        uint16_t d1 = (uint16_t)team1->prShirtCol;
-        uint16_t d2 = (uint16_t)team1->prStripesCol;
+        uint16_t d1 = variant[0][0] ? variant[0][0] : (uint16_t)team1->prShirtCol;
+        uint16_t d2 = variant[0][1] ? variant[0][1] : (uint16_t)team1->prStripesCol;
         /* If shirt type == 2 (striped), swap shirt and stripes colors */
         if ((uint16_t)team1->prShirtType == 2) {
             uint16_t tmp = d1; d1 = d2; d2 = tmp;
         }
         _team1PlayersColorTable[11] = d1;
         _team1PlayersColorTable[10] = d2;
-        _team1PlayersColorTable[14] = (uint16_t)team1->prShortsCol;
-        _team1PlayersColorTable[15] = (uint16_t)team1->prSocksCol;
+        _team1PlayersColorTable[14] = variant[0][2] ? variant[0][2] : (uint16_t)team1->prShortsCol;
+        _team1PlayersColorTable[15] = variant[0][3] ? variant[0][3] : (uint16_t)team1->prSocksCol;
     }
 
 #ifdef SWOS_SDL_BUILD
@@ -520,15 +587,15 @@ void ConvertColorsAndTextSprites(TeamGame *team1, TeamGame *team2)
 
     /* --- Team 2 shirt/stripes/shorts/socks colors --- */
     {
-        uint16_t d1 = (uint16_t)team2->prShirtCol;
-        uint16_t d2 = (uint16_t)team2->prStripesCol;
+        uint16_t d1 = variant[1][0] ? variant[1][0] : (uint16_t)team2->prShirtCol;
+        uint16_t d2 = variant[1][1] ? variant[1][1] : (uint16_t)team2->prStripesCol;
         if ((uint16_t)team2->prShirtType == 2) {
             uint16_t tmp = d1; d1 = d2; d2 = tmp;
         }
         _team2PlayersColorTable[11] = d1;
         _team2PlayersColorTable[10] = d2;
-        _team2PlayersColorTable[14] = (uint16_t)team2->prShortsCol;
-        _team2PlayersColorTable[15] = (uint16_t)team2->prSocksCol;
+        _team2PlayersColorTable[14] = variant[1][2] ? variant[1][2] : (uint16_t)team2->prShortsCol;
+        _team2PlayersColorTable[15] = variant[1][3] ? variant[1][3] : (uint16_t)team2->prSocksCol;
     }
 
     /* Team 2 skin 0: convert sprites 530-630 */

@@ -494,6 +494,13 @@ char _aLanguageOption[] = "LANGUAGE";
 /* OPTIONS -> SETUP (menus.c LaunchSetupSelected): its label and its button. */
 char _aSetupOption[] = "SETUP";
 char _aLaunchSetup[] = "LAUNCH";
+/* OPTIONS -> CALL BENCH, player 1's and 2's (the Amiga's rows; SDL has them on CONTROLS): how each
+ * calls his bench -- menus.c ChangeCallBench1/2, the values _callBench1StrTable/_callBench2StrTable. */
+char _aCallBench1[] = "P1 CALL BENCH";
+char _aCallBench2[] = "P2 CALL BENCH";
+char _aBenchBoth[] = "BUTTON OR TAPS";
+char _aBenchTaps[] = "TAPS ONLY";
+char _aBenchButton[] = "BUTTON ONLY";
 char _aLangEnglish[] = "ENGLISH";
 char _aLangGerman[] = "DEUTSCH";
 char _aLangFrench[] = "FRAN\307AIS";      /* FRANCAIS, its C with the cedilla (0xC7) */

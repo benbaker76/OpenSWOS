@@ -403,7 +403,9 @@
     "ViewSquadPage",
     "ViewWorldMenu",
     "locret_139AE2",
-    "LaunchSetupSelected"
+    "LaunchSetupSelected",
+    "ChangeCallBench1",
+    "ChangeCallBench2"
   ],
   "strings": [
     "_a343",
@@ -609,7 +611,9 @@
     "_asc_131FF2",
     "_asc_135D96",
     "_aSetupOption",
-    "_aLaunchSetup"
+    "_aLaunchSetup",
+    "_aCallBench1",
+    "_aCallBench2"
   ],
   "tables": [
     "_allPlTeamsEqualStrTable",
@@ -688,7 +692,9 @@
     "_pitchTypeStrTable",
     "_positionFilterStringTable",
     "_skillFilterStringTable",
-    "_worldStrTable"
+    "_worldStrTable",
+    "_callBench1StrTable",
+    "_callBench2StrTable"
   ],
   "sprite_copies": [
     "_editTeamsPrimaryShirts",

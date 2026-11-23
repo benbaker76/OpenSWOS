@@ -660,6 +660,10 @@ void GameTimers_ModRestart(int32_t kind, int32_t teamNumber, int32_t wing, int16
         int16_t vx = x, vy = y;
         if (kind == 3) {                                /* MODRESTART_PENALTY */
             _gameState = ST_PENALTY;
+            {   /* the mods' match event (src/mod_match.c): a penalty given to the taker's team */
+                extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+                ModMatch_Event(18 /* MODEVENT_PENALTY */, taker->teamNumber, -1, 0);
+            }
             _playerTurnFlags = top ? 0x83 : 0x38;
             vx = 336;
             vy = top ? 187 : 711;

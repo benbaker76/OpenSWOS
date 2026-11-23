@@ -51,7 +51,10 @@ extern int      _gDosGameplay;
 /* DOS's benchPickTeamCounter — see the team alternation in BenchCheckControls.
  * The Amiga has no such variable; it tests frameCount instead. */
 uint16_t _benchPickTeamCounter;
-int32_t  _gBenchTapsOff;        /* CALL BENCH: 2ND FIRE BUTTON ONLY (see check_double_tap) */
+/* CALL BENCH: BUTTON ONLY, players 1 and 2 -- this machine's (input_sdl.c; the Amiga's OPTIONS).
+ * Online and when a recording is played again both come from the match setup instead
+ * (bench_taps_off): two games must agree on what a tap does. */
+int32_t  _gBenchTapsOff[2];
 extern uintptr_t _benchTeam;          /* Competition*-shaped pointer; retyped uintptr_t for 64-bit. See project_uint32_pointer_storage_trap.md. */
 extern uintptr_t _benchTeamGame;      /* TeamGame*-shaped pointer; retyped uintptr_t for 64-bit. */
 extern uint16_t _subsTeamsSwapped;
@@ -307,6 +310,57 @@ static int32_t bench_top(uint16_t engineY, int32_t trainingTop)
 {
     return _trainingGame ? trainingTop != 0 : engineY < 437;
 }
+/* Whether the taps of the player behind `team` call no bench (CALL BENCH: BUTTON ONLY): the one
+ * whose stick is read for its taps (BenchCheckControls), his setting -- this machine's in a match
+ * of its own, both players' from the match setup online and in a re-simulation. */
+static int32_t bench_taps_off(const TeamGeneralInfo *team)
+{
+    const int32_t n = team->playerNumber ? team->playerNumber : team->playerCoachNumber;
+    if (n < 1 || n > 2)
+        return 0;
+#ifdef SWOS_SDL_BUILD
+    {
+        extern int32_t NetplayMatch_Enabled(void);
+        extern int32_t NetplaySetup_BenchTapsOff(int32_t player);
+        if (NetplayMatch_Enabled())
+            return NetplaySetup_BenchTapsOff(n);
+    }
+#endif
+    return _gBenchTapsOff[n - 1];
+}
+
+#ifndef SWOS_SDL_BUILD
+/* The Amiga's second fire button (input.c Input_SecondButtons), player 1 or 2: a press with the
+ * ball out of play calls the bench of the team he plays -- one while it is in play calls nothing,
+ * then or later, as the taps -- unless his CALL BENCH is TAPS ONLY (menus.c _callBench1Option/
+ * _callBench2Option). SDL's is match_step.c MatchStep_LocalBenchButton. */
+void Bench_SecondButton(int32_t player, int32_t pressed)
+{
+    extern uint16_t _callBench1Option, _callBench2Option;
+    static uint8_t s_was[2];
+    TeamGeneralInfo *team[2] = { &_topTeamData, &_bottomTeamData };
+    int32_t i;
+
+    if (player < 1 || player > 2)
+        return;
+    if ((player == 1 ? _callBench1Option : _callBench2Option) == 1)
+        pressed = 0;                            /* TAPS ONLY: the button is no bench */
+    if (pressed && !s_was[player - 1] && _gameStatePl != ST_GAME_IN_PROGRESS) {
+        for (i = 0; i < 2; i++) {
+            const int32_t n = team[i]->playerCoachNumber ? team[i]->playerCoachNumber : team[i]->playerNumber;
+            if (n != player)
+                continue;
+            if (i == 0)
+                _bench1Called = 1;
+            else
+                _bench2Called = 1;
+            break;
+        }
+    }
+    s_was[player - 1] = pressed ? 1 : 0;
+}
+#endif
+
 static void drawSubstitutesMenu(void);
 static void drawSubstitutesMenuEntry(uint16_t y, uint16_t baseColor, int16_t selectedIndex,
                                      uint8_t *charsTable, TeamGame *teamGame, uint16_t *playerOffsets);
@@ -413,6 +467,10 @@ static void aiReplaceInjuredPlayer(TeamGeneralInfo *team, TeamGame *tg,
     _benchTeam = oldBenchTeam;
     _benchTeamGame = oldBenchGame;
     DOS_SOUND(DOS_EV_SUBSTITUTION, 0);
+    /* the mods (and the recording): as a player's substitution tells them -- the leaving slot
+     * now holds the man coming on, the bench's the man going off */
+    { extern void ModMatch_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+      ModMatch_Event(17 /* MODEVENT_SUBSTITUTION */, team->teamNumber, (int32_t)leaving, (int32_t)entering); }
 #ifdef SWOS_SDL_BUILD
     fprintf(stderr, "[tweaks] ai_injury_subs: the %s team's slot %d off injured, bench %d on\n",
             isTopTeam ? "top" : "bottom", leaving, entering);
@@ -598,10 +656,9 @@ reset_bench_tap_state:
     return;
 
 check_double_tap:
-    /* SWOS 2020's CALL BENCH = 2ND FIRE BUTTON ONLY (ApplyCallBenchModeGate): the taps are not
-     * counted, as if no direction were held. Set by input_sdl.c for a DOS-style match of this
-     * machine's alone; always 0 on the Amiga, online and in the rigs. */
-    if (_gBenchTapsOff)
+    /* CALL BENCH = BUTTON ONLY (SWOS 2020's ApplyCallBenchModeGate), the player's own: his taps
+     * are not counted, as if no direction were held. */
+    if (bench_taps_off(a6))
         _subsDirection = 0xFFFF;
     /* double-tap detection for top team (a6 == &topTeamData) or bottom team */
     if (a6 == &_topTeamData) {
@@ -1384,6 +1441,12 @@ markPlayersMenuHandler(void)
                 }
 
                 swapPlayerNameData(d6s, d7s);
+#ifdef SWOS_SDL_BUILD
+                {   /* the recording: these two places swapped players (no match event says so) */
+                    extern void ReplayRec_Swap(int32_t team, int32_t a, int32_t b);
+                    ReplayRec_Swap(((TeamGeneralInfo *)_benchTeam)->teamNumber, d6s, d7s);
+                }
+#endif
 
                 off6 = _ingameTeamPlayerOffsets[d6s];
                 off7 = _ingameTeamPlayerOffsets[d7s];
@@ -3603,6 +3666,12 @@ void MarkPlayersMenuHandler(void)
     }
 
     SwapPlayerNameData(player2, player1);
+#ifdef SWOS_SDL_BUILD
+    {   /* the recording: these two places swapped players (no match event says so) */
+        extern void ReplayRec_Swap(int32_t team, int32_t a, int32_t b);
+        ReplayRec_Swap(((TeamGeneralInfo *)_benchTeam)->teamNumber, player2, player1);
+    }
+#endif
 
     /* Swap PlayerInfo data (61 bytes) */
     uint16_t off1 = _ingameTeamPlayerOffsets[player2];

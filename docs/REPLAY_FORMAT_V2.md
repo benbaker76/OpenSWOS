@@ -206,8 +206,24 @@ loader walks `FRMS` once and keeps every frame's offset (docs/PLAYBACK.md, "How 
 
 ### `CHAP` — chapters
 
-`{count}` then `{frame, kind (1 goal, 2 half), team, value}`: every goal and the
-start of each half, for jump-to-goal.
+`{count}` then `{frame, kind, team, value}` (u32, u8, u8, u16), sorted by frame:
+
+| kind | what | team | value |
+|---|---|---|---|
+| 1 | a goal | 1 / 2 | the team's score after it |
+| 2 | a half starts (extra time's halves are 1 and 2 again) | 0 | the half |
+| 3 | two places swapped players in the bench menu (no match event says so) | 1 / 2 | place a << 8 \| place b |
+| 0x10 + n | match event n (`ModEventKind`, `include/mod_api.h`), as `ModMatch_Event` is told it | 1 / 2, 0 none | the player's line-up place (0 the keeper; 0xFF none) << 8 \| the event's arg |
+
+Kinds 1 and 2 are for jump-to-goal. The events (since 2026-11-21) let a viewer keep both
+line-ups as they are at any frame, live too: META's at kick-off, then every substitution
+(`SUBSTITUTION`: the place that now holds the man coming on, arg the bench place that now holds
+the man going off -- their PlayerInfos swapped, his position -1), swap, card, injury and scorer
+up to that frame; and the match's phases (full time, extra time, the shoot-out and each of its
+kicks, `PENALTY` given and `PENALTY_KICK` taken by whom -- in when a `PENALTY_GOAL` or a scored
+`SHOOTOUT_KICK` follows). A place is the TeamGame's player index, 16..25 a long bench's (`LBNC`).
+A re-simulated frame drops its chapters and records them again, so they are the match as
+finally played. A reader skips kinds it does not know; the game itself does not read `CHAP`.
 
 ### The match itself: `SIMV` `SETP` `STAT` `INPT` `HASH`
 

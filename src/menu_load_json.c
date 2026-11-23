@@ -896,7 +896,7 @@ int MenuJson_InstallAll(void)
  * and cached for the life of the process, so the pointer handed to ShowMenu stays
  * valid for RestorePreviousMenu to unpack again later.
  * ====================================================================== */
-#define MAX_DYNAMIC_MENUS 64
+#define MAX_DYNAMIC_MENUS 128   /* (every menu a session opens stays: 68 imported, more to come) */
 static struct { char name[64]; uint8_t *packed; } s_dynamicMenus[MAX_DYNAMIC_MENUS];
 static int s_numDynamicMenus;
 

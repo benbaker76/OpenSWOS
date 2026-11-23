@@ -17,6 +17,9 @@
  */
 #ifdef SWOS_SDL_BUILD
 
+#include "team_colors.h"
+#include "kit_palette.h"
+#include "kit_variants.h"
 #include "long_bench.h"
 #include "player_looks.h"
 #include "replay_v2.h"
@@ -65,13 +68,19 @@
  * (long_bench.c LongBench_ReplayWrite: the place count, both teams' 10 PlayerInfo) -- their names
  * for the viewer. A file without it: the game's 16 places. */
 #define META_BENCH          FOURCC('L', 'B', 'N', 'C')
+/* Then, optionally, "KVAR": the kits as worn, with their variants (kit_variants.h) -- a version
+ * byte (1), each team's five kit bytes (shirt type, stripes, basic, shorts, socks), the keepers'
+ * and the referee's colour bytes (0xFF: their own). Written when the match draws the variants
+ * (kit_palette.c); a viewer without it shows the base colours META has. */
+#define META_KITS           FOURCC('K', 'V', 'A', 'R')
+#define KITS_BYTES          (1 + 2 * 5 + 2)
 #define MAX_FRAME_SPRITES   78      /* _sortedSprites */
 
 /* Sprites at z >= this are the screen-pinned HUD (sprites.c HUD_LAYER_Z_MIN): placed
  * for this display, and drawn by the viewer's own overlay instead. */
 #define HUD_Z_MIN           8000
 
-enum { CHAPTER_GOAL = 1, CHAPTER_HALF = 2 };
+enum { CHAPTER_GOAL = 1, CHAPTER_HALF = 2, CHAPTER_SWAP = 3, CHAPTER_EVENT = 0x10 };
 
 typedef SrpAudioEvent AudioEvent;
 typedef SrpChapter    Chapter;
@@ -576,6 +585,27 @@ static void add_chapter(uint8_t kind, uint8_t team, uint16_t value)
     c->value = value;
 }
 
+/* A match event (include/replay_v2.h): at the frame open, or -- one between two frames, as a
+ * half's start -- at the next. A re-simulated frame drops its chapters (ReplayRec_SetFrame) and
+ * its events come again, so the file keeps the match's as finally played. */
+void ReplayRec_Event(int32_t kind, int32_t team, int32_t player, int32_t arg)
+{
+    if (!s_rec.on || kind < 0 || kind > 0xFF - CHAPTER_EVENT)
+        return;
+    add_chapter((uint8_t)(CHAPTER_EVENT + kind), (uint8_t)(team >= 1 && team <= 2 ? team : 0),
+                (uint16_t)((uint8_t)player << 8 | (uint8_t)arg));
+}
+
+/* Two of a team's places swapped (bench_subs.c): their players changed places, so a viewer's
+ * line-up swaps them too -- no match event says so. */
+void ReplayRec_Swap(int32_t team, int32_t a, int32_t b)
+{
+    if (!s_rec.on)
+        return;
+    add_chapter(CHAPTER_SWAP, (uint8_t)(team >= 1 && team <= 2 ? team : 0),
+                (uint16_t)((uint8_t)a << 8 | (uint8_t)b));
+}
+
 void ReplayRec_FrameEnd(void)
 {
     const uint8_t *h;
@@ -629,12 +659,53 @@ static void put_team(uint8_t *out, const TeamGame *team)
     memcpy(out + 2 * TEAM_HDR_INT16S, src + 2 * TEAM_HDR_INT16S, TEAM_BYTES - 2 * TEAM_HDR_INT16S);
 }
 
+/* The kits as worn ("KVAR", above): 0 when the match draws no variants. */
+static uint32_t kits_write(uint8_t *out)
+{
+    const uint8_t *w[2] = { TeamColors_Worn(&_topTeamInGame), TeamColors_Worn(&_bottomTeamInGame) };
+    uint8_t shirts[4];
+    int32_t n = 0, keeper = -1, referee = -1;
+    extern int32_t g_clashKits;
+
+    if (!w[0] || !w[1] || !KitPalette_Active())
+        return 0;
+    out[0] = 1;
+    memcpy(out + 1, w[0], 5);
+    memcpy(out + 6, w[1], 5);
+    for (int32_t k = 0; k < 2; k++) {
+        shirts[n++] = w[k][1];
+        if (KitPattern_Base(w[k][0]) != 0)
+            shirts[n++] = w[k][2];
+    }
+    if (g_clashKits) {                       /* (as clash_kits.c dresses them) */
+        keeper  = KitVariants_KeeperColour(shirts, n);
+        referee = KitVariants_RefereeColour(shirts, n, keeper);
+    }
+    out[11] = keeper < 0 ? 0xFF : (uint8_t)keeper;
+    out[12] = referee < 0 ? 0xFF : (uint8_t)referee;
+    return KITS_BYTES;
+}
+
+/* A recording's "KVAR", read back: the kits as worn, for the sprites' colours. */
+static void kits_read(const uint8_t *meta, uint32_t metaLen)
+{
+    uint32_t off = META_BYTES;
+    if (metaLen >= META_BYTES + 4 + LB_REPLAY_BYTES && BE_READ_U32(meta + META_BYTES) == META_BENCH)
+        off = META_BYTES + 4 + LB_REPLAY_BYTES;
+    if (metaLen >= off + 4 + KITS_BYTES && BE_READ_U32(meta + off) == META_KITS && meta[off + 4] == 1) {
+        TeamColors_SetWorn(&_topTeamInGame, meta + off + 5);
+        TeamColors_SetWorn(&_bottomTeamInGame, meta + off + 10);
+    }
+}
+
 static uint8_t *build_meta(void)
 {
     /* (a long bench's places 17.. go after the fixed META, tagged: their names in the replay) */
     uint8_t bench[LB_REPLAY_BYTES];
     const uint32_t benchLen = LongBench_ReplayWrite(bench);
-    uint8_t *m = (uint8_t *)calloc(1, META_BYTES + (benchLen ? 4 + benchLen : 0));
+    uint8_t kits[KITS_BYTES];
+    const uint32_t kitsLen = kits_write(kits);
+    uint8_t *m = (uint8_t *)calloc(1, META_BYTES + (benchLen ? 4 + benchLen : 0) + (kitsLen ? 4 + kitsLen : 0));
     uint8_t *q = m;
     if (!m)
         return NULL;
@@ -643,6 +714,11 @@ static uint8_t *build_meta(void)
         BE_WRITE_U32(m + META_BYTES, META_BENCH);
         memcpy(m + META_BYTES + 4, bench, benchLen);
         s_rec.metaLen = META_BYTES + 4 + benchLen;
+    }
+    if (kitsLen) {
+        BE_WRITE_U32(m + s_rec.metaLen, META_KITS);
+        memcpy(m + s_rec.metaLen + 4, kits, kitsLen);
+        s_rec.metaLen += 4 + kitsLen;
     }
     BE_WRITE_U16(q, 1);                                           q += 2;  /* meta version */
     BE_WRITE_U16(q, (uint16_t)_screen_width);                     q += 2;
@@ -1608,6 +1684,7 @@ int32_t ReplayV2_Load(const uint8_t *name)
     DosReplay_ClearRpl();
     snprintf(s_play.file, sizeof s_play.file, "%s", (const char *)name);   /* (ReplayV2_SaveCopy) */
     apply_meta(meta);
+    kits_read(meta, metaLen);       /* (the kits as worn, if it says: their variants) */
     /* (a long bench: its places 17.., for their names; none: the game's 16) */
     if (metaLen >= META_BYTES + 4 + LB_REPLAY_BYTES && BE_READ_U32(meta + META_BYTES) == META_BENCH)
         LongBench_ReplayRead(meta + META_BYTES + 4, metaLen - META_BYTES - 4);

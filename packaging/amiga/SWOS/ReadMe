@@ -23,6 +23,10 @@
 
  - An AGA Amiga with a 68020 or better: an A1200 or A4000, or an
    emulator set up as one (FS-UAE, WinUAE).
+ - At least 8 MB of FAST RAM. With less, the game does not start at all
+   ("not enough memory available"), whichever world you play. In WinUAE
+   or FS-UAE, add 8 MB of fast RAM to the A1200: its standard setup has
+   none.
  - A hard drive, and Workbench to start it from.
 
 
@@ -47,6 +51,17 @@
  anywhere: move it as a whole, never the files one by one.
 
  Saved careers, seasons, tactics and highlights go in the "save" drawer.
+
+
+ WORLD 2026-27 AND EUROPE 1984-85
+ --------------------------------
+
+ Tick "Play World 2026-27" (or the other world) under "Amiga version" in
+ the setup before you make the drawer: the Amiga plays the one world the
+ drawer was made with. The world brings its clubs and players, but on
+ the Amiga the national teams are still 96/97's (some under today's
+ names): today's 211 national teams play only on the PC, Mac and phones
+ for now. That is not a fault in your drawer.
 
 
  BOOTING AN EMULATOR STRAIGHT INTO THE GAME

@@ -41,6 +41,8 @@ extern void ChairmanMemosOnReturn(void);
 extern void ChangeAllPlTeamsEqual(void);
 extern void ChangeAutoReplays(void);
 extern void ChangeAutoSaveHighlights(void);
+extern void ChangeCallBench1(void);
+extern void ChangeCallBench2(void);
 extern void ChangeGameLength(void);
 extern void ChangeGameplayStyle(void);
 extern void ChangeLanguage(void);
@@ -442,6 +444,8 @@ extern char _aBestRegards[];
 extern char _aBuyOtherDomest[];
 extern char _aBuyOtherForeig[];
 extern char _aBuyPlayer[];
+extern char _aCallBench1[];
+extern char _aCallBench2[];
 extern char _aCareerTotal[];
 extern char _aCareerYears[];
 extern char _aCareer_1[];
@@ -620,6 +624,8 @@ extern char _asc_131FF2[];
 extern char _asc_135D96[];
 extern char* _autoReplaysStrTable[];
 extern char* _autoSaveHlStrTable[];
+extern char* _callBench1StrTable[];
+extern char* _callBench2StrTable[];
 extern char _careerYearsText[];
 extern char* _diyAwayGoalsStrTab[];
 extern DIYCompetitionEx _diyCompetitionStart;
@@ -751,6 +757,8 @@ const MenuSymbol _menuSymbols[] = {
     { "ChangeAllPlTeamsEqual", (void*)ChangeAllPlTeamsEqual, SYM_FUNC },
     { "ChangeAutoReplays", (void*)ChangeAutoReplays, SYM_FUNC },
     { "ChangeAutoSaveHighlights", (void*)ChangeAutoSaveHighlights, SYM_FUNC },
+    { "ChangeCallBench1", (void*)ChangeCallBench1, SYM_FUNC },
+    { "ChangeCallBench2", (void*)ChangeCallBench2, SYM_FUNC },
     { "ChangeGameLength", (void*)ChangeGameLength, SYM_FUNC },
     { "ChangeGameplayStyle", (void*)ChangeGameplayStyle, SYM_FUNC },
     { "ChangeLanguage", (void*)ChangeLanguage, SYM_FUNC },
@@ -1149,6 +1157,8 @@ const MenuSymbol _menuSymbols[] = {
     { "_aBuyOtherDomest", (void*)_aBuyOtherDomest, SYM_STRING },
     { "_aBuyOtherForeig", (void*)_aBuyOtherForeig, SYM_STRING },
     { "_aBuyPlayer", (void*)_aBuyPlayer, SYM_STRING },
+    { "_aCallBench1", (void*)_aCallBench1, SYM_STRING },
+    { "_aCallBench2", (void*)_aCallBench2, SYM_STRING },
     { "_aCareerTotal", (void*)_aCareerTotal, SYM_STRING },
     { "_aCareerYears", (void*)_aCareerYears, SYM_STRING },
     { "_aCareer_1", (void*)_aCareer_1, SYM_STRING },
@@ -1327,6 +1337,8 @@ const MenuSymbol _menuSymbols[] = {
     { "_asc_135D96", (void*)_asc_135D96, SYM_STRING },
     { "_autoReplaysStrTable", (void*)_autoReplaysStrTable, SYM_TABLE },
     { "_autoSaveHlStrTable", (void*)_autoSaveHlStrTable, SYM_TABLE },
+    { "_callBench1StrTable", (void*)_callBench1StrTable, SYM_TABLE },
+    { "_callBench2StrTable", (void*)_callBench2StrTable, SYM_TABLE },
     { "_careerYearsText", (void*)_careerYearsText, SYM_BUFFER },
     { "_diyAwayGoalsStrTab", (void*)_diyAwayGoalsStrTab, SYM_TABLE },
     { "_diyCompetitionStart.base.competitionName", (void*)_diyCompetitionStart.base.competitionName, SYM_BUFFER },

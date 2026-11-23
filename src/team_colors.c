@@ -3,8 +3,11 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include <string.h>          /* (memcpy; and getenv's purple test switch, SDL) */
+#include "kit_variants.h"     /* (both targets: the clash rule and the colour bytes) */
 #ifdef SWOS_SDL_BUILD
-#include <stdlib.h>          /* (getenv: the purple test switch) */
+#include "kit_palette.h"
+#include <stdlib.h>
 #endif
 #include "team_colors.h"
 #include "game_types.h"
@@ -80,6 +83,7 @@ extern TeamGame _bottomTeamInGame;
  * menus purple is a palette entry of its own where the palette has 256 (the nearest to it of
  * the menu palette's), maroon's on the OCS. */
 #define KIT_PURPLE 10
+#define KIT_MENU_FIRST 128              /* the kit variants' menu entries (TeamColors_Init) */
 #define KIT_MAROON 6
 #define PURPLE_RGB12 0x0628             /* the Mod's 6-bit VGA (24, 8, 34) */
 static uint8_t s_kitMarks[2];           /* top / bottom team: bit 0 purple, bit 1 maroon */
@@ -87,7 +91,8 @@ static uint16_t s_maroonGame;           /* game palette entry 12 as loaded */
 
 static uint8_t kit_mark(uint8_t colour)
 {
-    return colour == KIT_PURPLE ? 1 : colour == KIT_MAROON ? 2 : 0;
+    const int32_t legacy = KitColour_Legacy(colour);   /* (a variant of burgundy counts as burgundy) */
+    return legacy == KIT_PURPLE ? 1 : legacy == KIT_MAROON ? 2 : 0;
 }
 
 void TeamColors_Init(void)
@@ -104,6 +109,30 @@ void TeamColors_Init(void)
     }
     _kTeamColorsTable[KIT_PURPLE] = (uint16_t)best;
 #endif
+#if defined(AGA) && defined(SWOS_SDL_BUILD)
+    /* The kit variants' own menu entries (TeamColors_MenuEntry): 128 on, where no menu art draws
+     * (measured: the menu backdrops 0-62, the buttons, text and pictures 0-15, SOCCER_S to 126;
+     * the credits lend 128-255 and give them back, the Jaguar kit art 192-251). */
+    {
+        extern uint16_t _menuPalette[];
+        for (int32_t i = 0; i < KitVariants_Count() && i < 64; i++)      /* (64: up to 191) */
+            _menuPalette[KIT_MENU_FIRST + i] = KitVariants_Rgb12(KitVariants_Byte(i));
+    }
+#endif
+}
+
+/* A kit colour byte's entry in the menu palette: a variant's own with the EXTENDED rule (the menus'
+ * choice: kit_variants.h), else the game's 11 colours' (_kTeamColorsTable). */
+uint16_t TeamColors_MenuEntry(uint8_t colour)
+{
+#if defined(AGA) && defined(SWOS_SDL_BUILD)
+    if (KitVariants_Rule() == KIT_RULE_EXTENDED) {
+        const int32_t index = KitVariants_ColourIndex(colour);
+        if (index >= 10)
+            return (uint16_t)(KIT_MENU_FIRST + index - 10);
+    }
+#endif
+    return _kTeamColorsTable[KitColour_Legacy(colour)];
 }
 
 /* Before a match's sprites are coloured (ConvertColorsAndTextSprites, its first team): entry 12
@@ -182,30 +211,15 @@ void TeamColors_MatchArt(void)
 }
 #endif
 
-/* ---- Purple instead of brown (the SWOS United Launcher's colour palette "Purple instead of
- * Brown", launcher options agent B): every maroon kit is drawn purple -- in a match entry 12 is
- * purple whenever a side wears maroon or purple (the match's own maroon art then drawn with entry 4,
- * as above), in the menus maroon's kit colour is purple's entry. Drawing only: the kit colours a
- * team has, the clash rule and the match are as they were. [video] purple_for_brown, set by
- * DisplayOptions_Apply (SDL); the Amiga never sets it. */
-static int32_t s_purpleForMaroon;
-
-void TeamColors_SetPurpleForMaroon(int32_t on)
-{
-    s_purpleForMaroon = on != 0;
-    _kTeamColorsTable[KIT_MAROON] = s_purpleForMaroon ? _kTeamColorsTable[KIT_PURPLE] : 12;
-}
-
-int32_t TeamColors_PurpleForMaroon(void)
-{
-    return s_purpleForMaroon;
-}
-
+/* Purple takes entry 12 only when a side wears purple and nobody maroon: the two share the
+ * entry in a match. */
 int32_t TeamColors_PurpleInMatch(void)
 {
+#ifdef SWOS_SDL_BUILD
+    if (KitPalette_Active())       /* purple is a variant with an entry of its own (kit_palette.c) */
+        return 0;
+#endif
     const uint8_t worn = (uint8_t)(s_kitMarks[0] | s_kitMarks[1]);
-    if (s_purpleForMaroon)
-        return (worn & 3) != 0;
     return (worn & 1) && !(worn & 2);
 }
 
@@ -214,13 +228,61 @@ int32_t TeamColors_PurpleInMatch(void)
 static uint8_t s_kitWorn[2][5];
 const uint8_t *TeamColors_Worn(const TeamGame *team)
 {
-    return team == &_topTeamInGame ? s_kitWorn[0] : team == &_bottomTeamInGame ? s_kitWorn[1] : 0;
+    const uint8_t *w = team == &_topTeamInGame ? s_kitWorn[0] : team == &_bottomTeamInGame ? s_kitWorn[1] : 0;
+    /* Only what this team's kit was made from: a replay, the highlights or a recording put the
+     * in-game team in place without converting a kit, and the bytes left are another match's. */
+    if (!w || team->prShirtType != KitPattern_Base(w[0]) ||
+        team->prShirtCol != ConvertTeamColor(w[1]) ||
+        team->prStripesCol != ConvertTeamColor(KitPattern_Base(w[0]) != SHIRT_ORDINARY ? w[2] : w[1]) ||
+        team->prShortsCol != ConvertTeamColor(w[3]) || team->prSocksCol != ConvertTeamColor(w[4]))
+        return 0;
+    return w;
+}
+
+/* A part of a side's kit as worn (0 shirt, 1 its second colour, 2 shorts, 3 socks): its colour byte,
+ * or -1 when the in-game team was not made from a kit (TeamColors_Worn). */
+static int32_t worn_part(const TeamGame *team, int32_t part)
+{
+    const uint8_t *w = TeamColors_Worn(team);
+    if (!w || part < 0 || part > 3)
+        return -1;
+    return part == 0 ? w[1] : part == 1 ? (KitPattern_Base(w[0]) != SHIRT_ORDINARY ? w[2] : w[1]) : w[part + 1];
+}
+
+/* The palette entry a part of a side's kit is drawn in -- `base`, the in-game team's own, unless
+ * the part is a variant the match draws: in the match palette (KitPalette_Entry) for what is drawn
+ * over the pitch (the scoreboard's kits, the result's), in the menu palette (TeamColors_MenuEntry)
+ * for the line-up before the match. */
+uint16_t TeamColors_PartEntry(const TeamGame *team, int32_t part, uint16_t base, int32_t menu)
+{
+#ifdef SWOS_SDL_BUILD
+    const int32_t colour = worn_part(team, part);
+    if (colour < 0 || KitVariants_ColourIndex((uint8_t)colour) < 10 || !KitPalette_Active())
+        return base;
+    if (menu)
+        return TeamColors_MenuEntry((uint8_t)colour);
+    {
+        const uint16_t own = KitPalette_Entry((uint8_t)colour);
+        return own ? own : base;
+    }
+#else
+    (void)team; (void)part; (void)menu;
+    return base;
+#endif
+}
+
+/* A recording's kits as they were worn (replay_v2.c, its "KVAR"): the in-game team is in place. */
+void TeamColors_SetWorn(const TeamGame *team, const uint8_t kit[5])
+{
+    uint8_t *w = team == &_topTeamInGame ? s_kitWorn[0] : team == &_bottomTeamInGame ? s_kitWorn[1] : 0;
+    if (w)
+        memcpy(w, kit, 5);
 }
 
 uint16_t __attribute__((used, externally_visible))
 ConvertTeamColor(uint16_t color)
 {
-    return (uint16_t)_shirtColorTable[color & 0xFF];
+    return (uint16_t)_shirtColorTable[KitColour_Legacy((uint8_t)color)];   /* (kit_variants.h) */
 }
 
 
@@ -234,8 +296,10 @@ ConvertTeamColor(uint16_t color)
 int16_t __attribute__((used, externally_visible))
 AreBasicColorsConflicting(uint16_t color1, uint16_t color2)
 {
-    uint16_t mask = _conflictingBasicTeamColorsTable[color1 & 0xFF];
-    return (mask >> (color2 & 0xFF)) & 1;
+    if (KitVariants_MatchRule() == KIT_RULE_EXTENDED)   /* CIEDE2000, every colour (kit_variants.h) */
+        return (int16_t)KitVariants_Similar((uint8_t)color1, (uint8_t)color2);
+    uint16_t mask = _conflictingBasicTeamColorsTable[KitColour_Legacy((uint8_t)color1)];   /* (0-10) */
+    return (mask >> KitColour_Legacy((uint8_t)color2)) & 1;
 }
 
 
@@ -249,8 +313,10 @@ AreBasicColorsConflicting(uint16_t color1, uint16_t color2)
 int16_t __attribute__((used, externally_visible))
 AreShortsAndStripeColorsConflicting(uint16_t color1, uint16_t color2)
 {
-    uint16_t mask = _conflictingShortsTeamColorsTable[color1 & 0xFF];
-    return (mask >> (color2 & 0xFF)) & 1;
+    if (KitVariants_MatchRule() == KIT_RULE_EXTENDED)   /* the same one rule for shorts and stripes */
+        return (int16_t)KitVariants_Similar((uint8_t)color1, (uint8_t)color2);
+    uint16_t mask = _conflictingShortsTeamColorsTable[KitColour_Legacy((uint8_t)color1)];   /* (0-10) */
+    return (mask >> KitColour_Legacy((uint8_t)color2)) & 1;
 }
 
 
@@ -282,8 +348,8 @@ GetTeamKitsSimilarityFactor(
     int16_t sim;
 
 restart:
-    st1 = (uint8_t)d0_shirtType1;
-    st2 = (uint8_t)d4_shirtType2;
+    st1 = KitPattern_Base((uint8_t)d0_shirtType1);     /* (a pattern of ours counts as its original's) */
+    st2 = KitPattern_Base((uint8_t)d4_shirtType2);
     d1 = d1_stripes1;
     d2 = d2_basic1;
     d3 = d3_shorts1;
@@ -421,8 +487,8 @@ done:
             /* Try replacing team1 stripes if striped */
             if (!replaced1) {
                 if (st1 == SHIRT_VERTICAL_STRIPES || st1 == SHIRT_HORIZONTAL_STRIPES) {
-                    if ((d1_stripes1 == tbl[0] && d2_basic1 == tbl[1]) ||
-                        (d1_stripes1 == tbl[1] && d2_basic1 == tbl[0])) {
+                    const int32_t s1 = KitColour_Legacy(d1_stripes1), b1 = KitColour_Legacy(d2_basic1);
+                    if ((s1 == tbl[0] && b1 == tbl[1]) || (s1 == tbl[1] && b1 == tbl[0])) {
                         replaced1 = 1;
                         d0_shirtType1 = SHIRT_ORDINARY;
                         d1_stripes1 = tbl[2];
@@ -434,8 +500,8 @@ done:
             /* Try replacing team2 stripes if striped */
             if (!replaced2) {
                 if (st2 == SHIRT_VERTICAL_STRIPES || st2 == SHIRT_HORIZONTAL_STRIPES) {
-                    if ((d5_stripes2 == tbl[0] && d6_basic2 == tbl[1]) ||
-                        (d5_stripes2 == tbl[1] && d6_basic2 == tbl[0])) {
+                    const int32_t s2 = KitColour_Legacy(d5_stripes2), b2 = KitColour_Legacy(d6_basic2);
+                    if ((s2 == tbl[0] && b2 == tbl[1]) || (s2 == tbl[1] && b2 == tbl[0])) {
                         replaced2 = 1;
                         d4_shirtType2 = SHIRT_ORDINARY;
                         d5_stripes2 = tbl[2];
@@ -529,7 +595,7 @@ ConvertTeamKitColors(
     uint16_t shirtType, uint8_t stripesColor, uint8_t basicColor,
     uint8_t shortsColor, uint8_t socksColor, TeamGame *team)
 {
-    int16_t st = (int16_t)(int8_t)(uint8_t)shirtType;  /* ext.w d0 (sign-extend byte to word) */
+    int16_t st = KitPattern_Base((uint8_t)shirtType);  /* (the original's pattern: kit_variants.h) */
     team->prShirtType = st;
 
     if (team == &_topTeamInGame || team == &_bottomTeamInGame) {   /* (purple: the Mod's pk_mark) */
@@ -564,7 +630,7 @@ SetTeamSecondaryColors(
     uint16_t shirtType, uint8_t stripesColor, uint8_t basicColor,
     uint8_t shortsColor, uint8_t socksColor, TeamGame *team)
 {
-    int16_t st = (int16_t)(int8_t)(uint8_t)shirtType;  /* ext.w d0 */
+    int16_t st = KitPattern_Base((uint8_t)shirtType);  /* (the original's pattern: kit_variants.h) */
     team->secShirtType = st;
 
     uint16_t col = ConvertTeamColor(stripesColor);
@@ -750,6 +816,9 @@ SetInGameTeamColors(uint16_t secondaryKitFlags, TeamFile *team1File, TeamFile *t
 void __attribute__((used, externally_visible))
 SetInGameTeamsPrimaryColors(TeamFile *team1File, TeamFile *team2File)
 {
+#ifdef SWOS_SDL_BUILD
+    KitPalette_NewMatch();          /* (a new match's kits: its variants take entries afresh) */
+#endif
     /* a2=team1File(top), a3=team2File(bottom) -- matching asm register assignment */
     MeasureTeamKitsSimilarity(team1File, team2File);
 
@@ -863,6 +932,7 @@ SetInGameTeamsPrimaryColors(TeamFile *team1File, TeamFile *team2File)
  */
 void SetInGameTeamsFirstKits(TeamFile *team1File, TeamFile *team2File)
 {
+    KitPalette_NewMatch();          /* (a new match's kits: its variants take entries afresh) */
     MeasureTeamKitsSimilarity(team1File, team2File);
     SetInGameTeamColors(0, team1File, team2File);
 }
@@ -878,7 +948,7 @@ void SetInGameTeamsFirstKits(TeamFile *team1File, TeamFile *team2File)
 uint16_t __attribute__((used, externally_visible))
 ConvertPlayerDressColor(uint16_t color)
 {
-    /* ext.w d0: sign-extend low byte to word */
-    int16_t idx = (int16_t)(int8_t)(uint8_t)color;
-    return (uint16_t)(_shirtColorTable[idx] & 0xFF);
+    /* (ext.w d0, the original's: a byte above 127 indexed before the table -- a kit byte's
+     * variant would; kit_variants.h) */
+    return (uint16_t)(_shirtColorTable[KitColour_Legacy((uint8_t)color)] & 0xFF);
 }

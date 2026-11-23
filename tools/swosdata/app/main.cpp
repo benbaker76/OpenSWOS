@@ -2581,9 +2581,14 @@ struct App {
   // One more source found by the watcher: the PC game, the Jaguar and SWOS 2020 only
   // where none is set, the Amiga version when it is better than the one there.
   std::string Offer(const std::string& path) {
-    const SdSources before = src;
     SdSources found{};
     if (SdSources_AddFile(&found, path.c_str()) != 0) return {};
+    return OfferFound(path, found);
+  }
+
+  // What SdSources_AddFile found in `path` (looked into already, maybe on another thread) into src.
+  std::string OfferFound(const std::string& path, SdSources found) {
+    const SdSources before = src;
     auto take = [](char* to, const char* from) { std::snprintf(to, 1024, "%s", from); };
     std::string what;
     if (found.dosDir[0] && !src.dosDir[0]) { take(src.dosDir, found.dosDir); unusable[ROW_PC].clear(); what = N_("the PC game"); }
@@ -2642,7 +2647,115 @@ struct App {
   // GOG's install folder, the other installed SWOS programs, the PC game's CD in a drive, the
   // Downloads folder. What it finds goes into src (Offer); returns what to tell the player about
   // the last thing found, "" for nothing. No window needed: --headless runs it before there is one.
-  std::string Detect(bool first) {
+  // The Downloads folder's files that have none of the game in them, by size and time, kept from
+  // one start to the next (downloads_looked.txt beside setup.ini): a Downloads folder with many of
+  // the game's archives took minutes to look through at every start. Only files with nothing at
+  // all are kept -- one with the game in it is looked into again, so what it holds is found even
+  // when it was not installed. Another setup version looks at all of them again.
+  std::map<std::string, std::pair<uint64_t, int64_t>> nothingIn;
+  bool nothingInRead = false, nothingInChanged = false;
+  std::string NothingInFile() const { return Join(UserDir(), "downloads_looked.txt"); }
+  std::string NothingInHeader() const { return std::string("# " PROJECT_SETUP_NAME " ") + SD_VERSION; }
+
+  bool HasNothing(const std::string& path, const std::pair<uint64_t, int64_t>& stamp) {
+    if (!nothingInRead) {
+      nothingInRead = true;
+      const std::string text = ReadFile(NothingInFile());
+      size_t pos = text.find('\n');
+      if (pos != std::string::npos && text.substr(0, pos) == NothingInHeader())
+        while (++pos < text.size()) {
+          size_t end = text.find('\n', pos);
+          if (end == std::string::npos) end = text.size();
+          const std::string line = text.substr(pos, end - pos);
+          unsigned long long size = 0;
+          long long mtime = 0;
+          int used = 0;
+          if (std::sscanf(line.c_str(), "%llu %lld %n", &size, &mtime, &used) == 2 && used > 0)
+            nothingIn[line.substr(used)] = {uint64_t(size), int64_t(mtime)};
+          pos = end;
+        }
+    }
+    auto it = nothingIn.find(path);
+    return it != nothingIn.end() && it->second == stamp;
+  }
+
+  void Looked(const std::string& path, const std::pair<uint64_t, int64_t>& stamp, int32_t rc,
+              const SdSources& found) {
+    if (sd::IsDir(path)) return;   // (a folder's time does not change with what is deep inside it)
+    if (rc != 0 || CountFound(found) == 0) {
+      nothingIn[path] = stamp;
+      nothingInChanged = true;
+    } else if (nothingIn.erase(path)) {
+      nothingInChanged = true;
+    }
+  }
+
+  void SaveNothingIn() {
+    if (!nothingInChanged) return;
+    nothingInChanged = false;
+    std::string text = NothingInHeader() + "\n";
+    for (const auto& n : nothingIn)
+      text += std::to_string(n.second.first) + " " + std::to_string(n.second.second) + " " + n.first + "\n";
+    sd::MakeDirs(UserDir());
+    if (FILE* f = sd::OpenFile(NothingInFile(), "wb")) {
+      std::fwrite(text.data(), 1, text.size(), f);
+      std::fclose(f);
+    }
+  }
+
+  // With the window open, the Downloads folder's files are looked into on a thread of their own
+  // (LookInBackground): the window shows at once and stays usable, and what is found comes in
+  // when it is ready -- taken (ApplyLooked) once nothing else is running.
+  struct LookedFile {
+    std::string path;
+    std::pair<uint64_t, int64_t> stamp;
+    int32_t rc;
+    SdSources found;
+  };
+  std::thread lookWorker;
+  bool looking = false;
+  std::atomic<bool> stopLooking{false};
+  std::vector<LookedFile> lookedDone;
+
+  void LookInBackground(const std::vector<std::pair<std::string, std::pair<uint64_t, int64_t>>>& todo) {
+    looking = true;
+    w().set_watching(Str(Tf("Searching {0} ...", Shown(downloads))));
+    lookWorker = std::thread([this, todo] {
+      auto out = std::make_shared<std::vector<LookedFile>>();
+      for (const auto& t : todo) {
+        if (stopLooking.load()) break;
+        LookedFile l{t.first, t.second, 0, SdSources{}};
+        l.rc = SdSources_AddFile(&l.found, t.first.c_str());
+        out->push_back(std::move(l));
+      }
+      slint::invoke_from_event_loop([this, out] {
+        if (lookWorker.joinable()) lookWorker.join();
+        looking = false;
+        w().set_watching(Str(WatchingText()));
+        for (auto& l : *out) lookedDone.push_back(std::move(l));
+        ApplyLooked();
+      });
+    });
+  }
+
+  void ApplyLooked() {
+    if (busy || lookedDone.empty()) return;
+    std::string found;
+    for (const LookedFile& l : lookedDone) {
+      Looked(l.path, l.stamp, l.rc, l.found);
+      if (l.rc != 0) continue;
+      const std::string what = OfferFound(l.path, l.found);
+      if (!what.empty()) found = Tf("Found {0} in {1}.", T(what), Shown(l.path));
+    }
+    lookedDone.clear();
+    SaveNothingIn();
+    if (!found.empty()) {
+      Notice(found, false);
+      Refresh();
+    }
+  }
+
+  std::string Detect(bool first, bool background = false) {
     std::string found;
     auto note = [&found](const std::string& what, const std::string& where) {
       if (!what.empty()) found = Tf("Found {0} in {1}.", T(what), Shown(where));
@@ -2690,7 +2803,8 @@ struct App {
         note(game ? N_("the PC game") : N_("the PC game's CD"), t.dosCd);
       }
     }
-    if (!downloads.empty()) {
+    if (!downloads.empty() && !looking) {
+      std::vector<std::pair<std::string, std::pair<uint64_t, int64_t>>> todo;
       for (const sd::DirEntry& e : sd::ListDir(downloads)) {
         if (GogInstaller(e.path)) {
           gogInstaller = true;   // (Watch shows it)
@@ -2716,16 +2830,27 @@ struct App {
         }
         growing.erase(e.path);
         seen[e.path] = stamp;
-        note(Offer(e.path), e.path);
+        if (HasNothing(e.path, stamp)) continue;   // (looked into at an earlier start: none of the game)
+        if (background) {
+          todo.push_back({e.path, stamp});
+          continue;
+        }
+        SdSources f{};
+        const int32_t rc = SdSources_AddFile(&f, e.path.c_str());
+        Looked(e.path, stamp, rc, f);
+        if (rc == 0) note(OfferFound(e.path, f), e.path);
       }
+      SaveNothingIn();
+      if (!todo.empty()) LookInBackground(todo);
     }
     return found;
   }
 
   void Watch(bool first) {
     if (busy) return;
+    ApplyLooked();   // (found while something else ran)
     const bool hadGogInstaller = gogInstaller;
-    const std::string found = Detect(first);
+    const std::string found = Detect(first, true);
     if (!found.empty()) {
       Notice(found, false);
       Refresh();
@@ -3393,6 +3518,8 @@ int main(int argc, char** argv) {
   // Closed mid-install: let the worker finish writing rather than cut a file
   // in half. Its posts to the stopped event loop are dropped.
   if (app.worker.joinable()) app.worker.join();
+  app.stopLooking = true;   // (the Downloads folder's look: stops after the file it is in)
+  if (app.lookWorker.joinable()) app.lookWorker.join();
   sd::PhoneServerStop();
   return app.exitCode;
 }

@@ -40,6 +40,14 @@ void    ReplayRec_MatchEnd(void);       /* the match is over (or quit): write th
  * recorded for it and every frame after, so the file holds the match as finally played. */
 void    ReplayRec_SetFrame(uint32_t frame);
 
+/* What happens to the players, as CHAP entries beside the goals and halves, so a viewer can
+ * keep both line-ups as they are at any frame, live and in the file (docs/REPLAY_FORMAT_V2.md):
+ *   Event  a match event (mod_match.c ModMatch_Event): kind 0x10 + its ModEventKind,
+ *          team 1 / 2 (0 none), value its player's line-up place << 8 | its arg (0xFF none)
+ *   Swap   two of a team's places swapped in the bench menu: kind 3, value a << 8 | b */
+void    ReplayRec_Event(int32_t kind, int32_t team, int32_t player, int32_t arg);
+void    ReplayRec_Swap(int32_t team, int32_t a, int32_t b);
+
 int32_t ReplayRec_Recording(void);
 /* Record nothing from now on, for a run that plays a match only to check it (--srp-resim):
  * LATEST.SRP is the last match PLAYED, and a re-simulation is not one. */

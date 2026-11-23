@@ -67,8 +67,17 @@
 
  Both are made from the Amiga program in amiga/ here (or SWOS-Amiga.zip,
  with "Choose..."), and go to your Downloads folder unless you change it.
- You need an AGA Amiga (A1200, A4000) with a 68020 and 8 MB of fast
- memory.
+
+ You need an AGA Amiga (A1200, A4000) with a 68020 or better and at
+ least 8 MB of FAST RAM. With less, the game does not start at all
+ ("not enough memory available"), whichever world you play. In WinUAE or
+ FS-UAE, add 8 MB of fast RAM to the A1200: its standard setup has none.
+
+ To play World 2026-27 on the Amiga, tick "Play World 2026-27" before
+ making the drawer or the package: the Amiga plays the one world it was
+ made with. A world brings its clubs and players; on the Amiga the
+ national teams are still 96/97's (some under today's names), while the
+ PC, Mac and phones play today's 211.
 
 
  FROM THE COMMAND LINE

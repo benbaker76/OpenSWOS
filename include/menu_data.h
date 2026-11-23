@@ -1172,6 +1172,12 @@ typedef struct Menu_Options
    * (27, 28). */
   MenuEntry_Byte_Colors_TextPtr labelSetup;
   MenuEntry_Byte_Nav_Colors_TextPtr_OnSelect setup;
+  /* P1 / P2 CALL BENCH: how each player calls his bench (menus.c ChangeCallBench1/2). The Amiga
+   * only -- SDL has them on CONTROLS; appended last so no entry's number moves (29..32). */
+  MenuEntry_Byte_Colors_TextPtr labelCallBench1;
+  MenuEntry_Byte_Nav_Colors_StringTable_OnSelect callBench1;
+  MenuEntry_Byte_Colors_TextPtr labelCallBench2;
+  MenuEntry_Byte_Nav_Colors_StringTable_OnSelect callBench2;
   MenuMark markEndMenu;
 } Menu_Options;
 #pragma pack(pop)

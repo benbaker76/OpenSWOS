@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "kit_variants.h"
 #include "long_bench.h"
 #include "shirt_edit.h"
 #include "squad_extras.h"
@@ -394,6 +395,7 @@ int16_t LoadTeamFile(uint16_t extNumber)
 #ifdef SWOS_SDL_BUILD
         byteswap_loaded_team_file();
 #endif
+        KitVariants_TeamFileRead(_teamFileBuffer, fileSize);   /* (the kit variants' appendix) */
         setLoadedTeamsGlobalNumbers();
     } else {
         _lastLoadedExtNumber = ext8;
@@ -444,6 +446,7 @@ int16_t LoadTeamFile(uint16_t extNumber)
 #ifdef SWOS_SDL_BUILD
             byteswap_loaded_team_file();
 #endif
+            KitVariants_TeamFileRead(_teamFileBuffer, fileSize);   /* (purple: its variant) */
         }
 
         /* Shared post-load processing (binary OR json source). */
