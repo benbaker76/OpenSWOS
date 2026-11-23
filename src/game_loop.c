@@ -1053,6 +1053,11 @@ end_of_match_flow:
             EnsureSfxLoadedAndStart();
             SetPitchTypeAndNumber();
             InitGameRestoreTeams();
+            {   /* The same match again on a new pitch: the keepers and the referee dressed for it
+                 * (a keepers' colour too near the new grass, clash_kits.c). */
+                extern void ClashKits_Apply(const TeamGame *t1, const TeamGame *t2);
+                ClashKits_Apply(&_topTeamInGame, &_bottomTeamInGame);
+            }
             GameLoop();
             return;
         }
