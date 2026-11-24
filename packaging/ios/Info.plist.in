@@ -84,7 +84,7 @@
     <!-- Online play finds the other player on the local network too; the Wi-Fi copy fetches the
          game's data from OpenSWOS Setup on a computer. -->
     <key>NSLocalNetworkUsageDescription</key>
-    <string>OpenSWOS copies the game's data from OpenSWOS Setup on your computer, and connects to the other player for an online match.</string>
+    <string>${MACOSX_BUNDLE_BUNDLE_NAME} copies the game's data from ${MACOSX_BUNDLE_BUNDLE_NAME} Setup on your computer, and connects to the other player for an online match.</string>
     <!-- OpenSWOS Setup's Wi-Fi copy opens the app with <scheme>://get?... (include/phone_copy.h). -->
     <key>CFBundleURLTypes</key>
     <array>

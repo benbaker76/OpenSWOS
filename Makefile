@@ -1133,4 +1133,4 @@ macos-app: macos-universal
 	  echo "    size:  $$(du -sh $$APP | cut -f1)"; \
 	  echo ""; \
 	  echo "    Run:        open $$APP"; \
-	  echo "    Release: scripts/build_macos.sh (OpenSWOS Setup inside, signed, notarized, the DMG)"
+	  echo "    Release: scripts/build_macos.sh (the setup inside, signed, notarized, the DMG)"

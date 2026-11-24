@@ -140,6 +140,12 @@ REPO="$1"; FLAGS="$2"; JOBS="$3"; ZIP="$4"; DO_PULL="$5"; ZIPBIN="$6"
 
 eval cd "$REPO" || { echo "!! no checkout at $REPO"; exit 1; }
 [ -n "$JOBS" ] || JOBS="$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+# The project's name (include/project_identity.h, docs/FORKING.md): the setup's app is
+# "<name> Setup.app" -- the one the game looks for in Contents/Helpers (src/assets_check.c) --
+# and the DMG, its volume and its folder are named after it.
+PNAME="$(sed -n 's/^#define PROJECT_NAME  *"\([^"]*\)".*/\1/p' include/project_identity.h | head -1)"
+[ -n "$PNAME" ] || { echo "!! cannot read PROJECT_NAME from include/project_identity.h"; exit 1; }
+SETUP="$PNAME Setup"
 
 if [ "$DO_PULL" = 1 ]; then
     echo "== git pull --ff-only"
@@ -170,7 +176,7 @@ echo "== lipo: $(lipo -info bin/SWOS.app/Contents/MacOS/SWOS 2>&1)"
 # and x86_64 (tools/swosdata/build_slint_macos.sh, once per Mac); the command line,
 # swosdata, is plain C, built per slice and joined with lipo.
 export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.cargo/bin:$PATH"
-echo "== data setup: swosdata (universal) + OpenSWOS Setup.app"
+echo "== data setup: swosdata (universal) + $SETUP.app"
 for a in arm64 x86_64; do
     make -C tools/swosdata OUT="build-$a" ARCHFLAGS="-arch $a -mmacosx-version-min=11.0" \
         "build-$a/swosdata" >/dev/null || { echo "!! swosdata ($a) failed"; exit 1; }
@@ -179,13 +185,13 @@ mkdir -p tools/swosdata/build &&
     lipo -create -output tools/swosdata/build/swosdata-universal \
          tools/swosdata/build-arm64/swosdata tools/swosdata/build-x86_64/swosdata ||
     { echo "!! lipo swosdata failed"; exit 1; }
-( cd tools/swosdata && ./build.sh static >/dev/null ) || { echo "!! OpenSWOS Setup.app failed"; exit 1; }
-SETUP_APP="tools/swosdata/build-app-static/bin/OpenSWOS Setup.app"
+( cd tools/swosdata && ./build.sh static >/dev/null ) || { echo "!! $SETUP.app failed"; exit 1; }
+SETUP_APP="tools/swosdata/build-app-static/bin/$SETUP.app"
 [ -d "$SETUP_APP" ] || { echo "!! $SETUP_APP was not produced"; exit 1; }
-echo "== setup lipo: $(lipo -archs "$SETUP_APP/Contents/MacOS/OpenSWOS Setup" 2>&1)"
-case "$(lipo -archs "$SETUP_APP/Contents/MacOS/OpenSWOS Setup" 2>/dev/null)" in
+echo "== setup lipo: $(lipo -archs "$SETUP_APP/Contents/MacOS/$SETUP" 2>&1)"
+case "$(lipo -archs "$SETUP_APP/Contents/MacOS/$SETUP" 2>/dev/null)" in
     *arm64*x86_64*|*x86_64*arm64*) ;;
-    *) echo "!! OpenSWOS Setup is not universal"; exit 1 ;;
+    *) echo "!! $SETUP is not universal"; exit 1 ;;
 esac
 
 mkdir -p dist
@@ -194,12 +200,12 @@ mkdir -p dist
 # a player drags the one app to Applications, and its first start makes the game data unattended
 # (the no-data box's Make Game Data: the setup with --headless; src/assets_check.c).
 WORK="$(mktemp -d)"
-DMGROOT="$WORK/OpenSWOS"
+DMGROOT="$WORK/$PNAME"
 APP="$DMGROOT/SWOS.app"
 mkdir -p "$DMGROOT" &&
     ditto bin/SWOS.app "$APP" &&
     mkdir -p "$APP/Contents/Helpers" &&
-    ditto "$SETUP_APP" "$APP/Contents/Helpers/OpenSWOS Setup.app" &&
+    ditto "$SETUP_APP" "$APP/Contents/Helpers/$SETUP.app" &&
     { [ ! -f dist/portmaster-swos.zip ] ||
       { mkdir -p "$APP/Contents/Resources/portmaster" &&
         cp dist/portmaster-swos.zip "$APP/Contents/Resources/portmaster/swos.zip"; }; } &&
@@ -228,16 +234,16 @@ sign() { "${SIGN[@]}" "$@" >/dev/null 2>"$WORK/sign.err" || { echo "!! codesign 
 # Deepest first: loose libraries, then frameworks, then the setup's app, then the game's.
 while IFS= read -r -d '' f; do sign "$f"; done < <(find "$APP" -name '*.dylib' -type f -print0)
 while IFS= read -r -d '' f; do sign "$f"; done < <(find "$APP" -name '*.framework' -type d -prune -print0)
-sign "$APP/Contents/Helpers/OpenSWOS Setup.app"
+sign "$APP/Contents/Helpers/$SETUP.app"
 sign "$APP"
 codesign --verify --deep --strict "$APP" || { echo "!! the signed app does not verify"; exit 1; }
 echo "== SIGNED_AS=$ID"
 
 # The DMG: the app and a link to /Applications, to drag it onto.
-DMG="OpenSWOS-macOS.dmg"
+DMG="${PNAME// /-}-macOS.dmg"
 ln -s /Applications "$DMGROOT/Applications"
 rm -f "dist/$DMG"
-hdiutil create -quiet -volname OpenSWOS -srcfolder "$DMGROOT" -ov -format UDZO "dist/$DMG" ||
+hdiutil create -quiet -volname "$PNAME" -srcfolder "$DMGROOT" -ov -format UDZO "dist/$DMG" ||
     { echo "!! hdiutil failed"; exit 1; }
 [ "$ID" = "-" ] || sign "dist/$DMG"
 rm "$DMGROOT/Applications"
@@ -253,7 +259,7 @@ if [ "$NOTARY" = 1 ]; then
     fi
     # The ticket covers every signature the DMG holds: the DMG, the app and the setup inside it.
     xcrun stapler staple "dist/$DMG" >/dev/null && xcrun stapler staple "$APP" >/dev/null &&
-        xcrun stapler staple "$APP/Contents/Helpers/OpenSWOS Setup.app" >/dev/null ||
+        xcrun stapler staple "$APP/Contents/Helpers/$SETUP.app" >/dev/null ||
         { echo "!! stapling failed"; exit 1; }
     spctl -a -t open --context context:primary-signature -v "dist/$DMG" 2>&1 | sed 's/^/   /'
     spctl -a -t exec -v "$APP" 2>&1 | sed 's/^/   /'
@@ -287,7 +293,7 @@ rm -f "dist/$SETUP_PART"
 # Apple online the first time it runs).
 STAGE="$WORK/macOS"
 mkdir -p "$STAGE" &&
-    ditto "$APP/Contents/Helpers/OpenSWOS Setup.app" "$STAGE/OpenSWOS Setup.app" &&
+    ditto "$APP/Contents/Helpers/$SETUP.app" "$STAGE/$SETUP.app" &&
     cp tools/swosdata/build/swosdata-universal "$STAGE/swosdata" &&
     sign "$STAGE/swosdata" &&
     ditto -c -k --keepParent "$STAGE" "dist/$SETUP_PART" ||
@@ -305,6 +311,7 @@ if [ "$NOTARY" = 1 ]; then
 fi
 rm -rf "$WORK"
 
+echo "== DMG_NAME=$DMG"
 echo "== BUILT_COMMIT=$(git rev-parse --short HEAD)"
 echo "== ZIP_BYTES=$(stat -f%z "dist/$ZIP")"
 echo "== ZIPBIN_BYTES=$(stat -f%z "dist/$ZIPBIN")"
@@ -315,7 +322,8 @@ grep -q "== REMOTE_OK" "$LOG" || { echo ""; echo "-- FAIL: remote build did not 
 
 banner "fetch -> dist/$MAC_ZIP, dist/$MAC_ZIP_BIN"
 mkdir -p dist
-scp -q "$MAC_HOST:$MAC_PATH/dist/OpenSWOS-macOS.dmg" dist/OpenSWOS-macOS.dmg || { echo "-- FAIL: scp (.dmg)"; exit 1; }
+DMG_NAME="$(sed -n 's/.*DMG_NAME=//p' "$LOG" | head -1)"
+scp -q "$MAC_HOST:$MAC_PATH/dist/$DMG_NAME" "dist/$DMG_NAME" || { echo "-- FAIL: scp (.dmg)"; exit 1; }
 scp -q "$MAC_HOST:$MAC_PATH/dist/$MAC_ZIP"     "dist/$MAC_ZIP"     || { echo "-- FAIL: scp (.app)"; exit 1; }
 scp -q "$MAC_HOST:$MAC_PATH/dist/$MAC_ZIP_BIN" "dist/$MAC_ZIP_BIN" || { echo "-- FAIL: scp (binary)"; exit 1; }
 scp -q "$MAC_HOST:$MAC_PATH/dist/OpenSWOS-Setup-macOS.zip" dist/OpenSWOS-Setup-macOS.zip ||
@@ -336,4 +344,4 @@ printf '  symlinks preserved : %s (0 would mean SDL2.framework is broken)\n' \
 printf '  signed as          : %s\n' "$(sed -n 's/.*SIGNED_AS=//p' "$LOG" | head -1)"
 printf '  notarized          : %s\n' "$(sed -n 's/.*NOTARIZED=//p' "$LOG" | head -1)"
 echo ""
-ls -l dist/OpenSWOS-macOS.dmg "dist/$MAC_ZIP" "dist/$MAC_ZIP_BIN" dist/OpenSWOS-Setup-macOS.zip
+ls -l "dist/$DMG_NAME" "dist/$MAC_ZIP" "dist/$MAC_ZIP_BIN" dist/OpenSWOS-Setup-macOS.zip

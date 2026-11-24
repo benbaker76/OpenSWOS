@@ -17,8 +17,6 @@ project(OpenSWOSSetup
         DESCRIPTION "OpenSWOS Setup - the game's data from your own copy of SWOS"
         LANGUAGES C CXX)
 
-set(SD_DISPLAY_NAME "OpenSWOS Setup")
-
 if(APPLE)
   enable_language(OBJC)
 endif()
@@ -37,6 +35,25 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(OPENSWOS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." CACHE PATH "The OpenSWOS checkout")
+
+# The setup's name and the Mac bundle id come from the project's identity (include/project_identity.h,
+# docs/FORKING.md) -- PROJECT_SETUP_NAME is PROJECT_NAME " Setup" -- so the app is the one the game
+# looks for (src/assets_check.c: Contents/Helpers/<PROJECT_SETUP_NAME>.app), in a fork too.
+file(STRINGS "${OPENSWOS_ROOT}/include/project_identity.h" _sd_name REGEX "^#define PROJECT_NAME +\"")
+file(STRINGS "${OPENSWOS_ROOT}/include/project_identity.h" _sd_appid REGEX "^#define PROJECT_APP_ID +\"")
+string(REGEX REPLACE "^#define PROJECT_NAME +\"([^\"]*)\".*" "\\1" SD_PROJECT_NAME "${_sd_name}")
+string(REGEX REPLACE "^#define PROJECT_APP_ID +\"([^\"]*)\".*" "\\1" SD_APP_ID "${_sd_appid}")
+if(SD_PROJECT_NAME STREQUAL "" OR SD_APP_ID STREQUAL "")
+  message(FATAL_ERROR "cannot read PROJECT_NAME / PROJECT_APP_ID from include/project_identity.h")
+endif()
+set(SD_DISPLAY_NAME "${SD_PROJECT_NAME} Setup")
+# The setup's Mac bundle id: PROJECT_SETUP_APP_ID when the header gives it as a string (OpenSWOS keeps
+# the id it first shipped with: macOS ties a player's folder permissions to it), else PROJECT_APP_ID.setup.
+file(STRINGS "${OPENSWOS_ROOT}/include/project_identity.h" _sd_setupid REGEX "^#define PROJECT_SETUP_APP_ID +\"")
+string(REGEX REPLACE "^#define PROJECT_SETUP_APP_ID +\"([^\"]*)\".*" "\\1" SD_SETUP_APP_ID "${_sd_setupid}")
+if(SD_SETUP_APP_ID STREQUAL "")
+  set(SD_SETUP_APP_ID "${SD_APP_ID}.setup")
+endif()
 
 # MSVC: link the C/C++ runtime statically (/MT), so the Windows .exe runs on a
 # machine without the VC++ redistributable. Only meaningful with a static Slint;
@@ -222,7 +239,7 @@ if(SD_WITH_APP)
         MACOSX_BUNDLE_BUNDLE_NAME "${SD_DISPLAY_NAME}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.baker76.openswos.setup"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "${SD_SETUP_APP_ID}"
         MACOSX_BUNDLE_ICON_FILE "SWOS")
       if(TARGET slint_cpp-shared)
         set_target_properties(openswos-setup PROPERTIES

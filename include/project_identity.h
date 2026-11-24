@@ -44,6 +44,11 @@
  * fork's own apps install beside OpenSWOS's. Read from here by the mobile build. */
 #define PROJECT_APP_ID          "net.openswos.game"
 
+/* The data setup's Mac bundle id (tools/swosdata/CMakeLists.txt): kept as it was first shipped, so
+ * macOS keeps the folder permissions a player gave it. A fork gives its own (United: PROJECT_APP_ID
+ * ".setup"); without a quoted string here the setup's id is PROJECT_APP_ID ".setup". */
+#define PROJECT_SETUP_APP_ID    "com.baker76.openswos.setup"
+
 /* The phone apps' link scheme: OpenSWOS Setup's Wi-Fi copy opens the app with
  * <scheme>://get?h=<address>&k=<key> (include/phone_copy.h). A fork's own, so a link opens its app.
  * Lower case, letters only. */

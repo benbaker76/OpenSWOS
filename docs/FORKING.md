@@ -43,6 +43,8 @@ edit its values, so the file never conflicts:
 | `PROJECT_NAME`, `PROJECT_NAME_UPPER` | OpenSWOS | window title, build line, messages, the setup's window |
 | `PROJECT_URL` | github.com/benbaker76/OpenSWOS | the setup's About window |
 | `PROJECT_SETUP_NAME`, `PROJECT_SETUP_PROGRAM` | OpenSWOS Setup, openswos-setup | what messages tell the player to run; its temp folder |
+| `PROJECT_APP_ID` | net.openswos.game | the Android application id and iOS bundle id |
+| `PROJECT_SETUP_APP_ID` | com.baker76.openswos.setup | the setup's Mac bundle id (macOS keeps a player's folder permissions under it); left out or not a string: `PROJECT_APP_ID`.setup. The Mac setup app and the DMG are named from `PROJECT_NAME` (`tools/swosdata/CMakeLists.txt`, `scripts/build_macos.sh`) |
 | `PROJECT_NETPLAY_TAG` | OPENSWOS | the matchmaking VERSION: tag (`<tag>/<NETPLAY_COMPAT>`, the web build's `<tag>-WEB/`); the server compares it too |
 | `PROJECT_GGPO_GAME` | openswos | GGPO-X's session name |
 | `PROJECT_TEAM_FORMAT` | openswos-team | a custom team file's `format` |
