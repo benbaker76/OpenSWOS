@@ -2323,11 +2323,60 @@ extern void SetExitMenuFlag(void);
  * s_friendlyList names the list (team file, league) so another one starts at its top. */
 static uint16_t s_friendlyTop;
 static uint32_t s_friendlyList = 0xFFFFFFFFu;
-enum { kFriendlyCells = 48, kFriendlyArrowUp = 59, kFriendlyArrowDown = 60 };
+enum { kFriendlyCells = 48, kFriendlyArrowUp = 59, kFriendlyArrowDown = 60,
+       kFriendlyFirstCell = 7, kFriendlyLastCell = 7 + 47,
+       kCtrlUp = 0x100, kCtrlDown = 0x200 };   /* MenuProc's direction bits (_controlMask): direction 0
+                                                * (up) is bit 8, 4 (down) bit 9 -- menu_mouse.c's wheel */
+
+/* The cursor scrolls it too: UP on the first cell (top of the left column) moves the list up a
+ * team, DOWN on the last cell (bottom of the right column) down a team, the cursor staying on its
+ * cell. Those two cells take UP/DOWN in their controlMask while the list is longer than its cells;
+ * the last cell's DOWN link (to the buttons below) is cut while there is more to scroll to, so the
+ * cursor leaves the list only from the list's end. s_lastCellDown keeps the menu's own link. */
+extern uint16_t _controlMask;               /* (menu_system.c MenuProc: what called onSelect) */
+extern volatile uint16_t _fire;
+extern uint16_t _chooseTeamsFriendly_numTeamsInLeagueList;
+static int8_t s_lastCellDown = -2;          /* -2: not read yet */
+static uint16_t s_cellMask = 0;
+static void friendly_scroll(int32_t by);
+
+static int32_t friendly_more_below(void)
+{
+    return (int32_t)s_friendlyTop + kFriendlyCells < (int32_t)_chooseTeamsFriendly_numTeamsInLeagueList;
+}
+
+/* the two cells' masks and the last cell's DOWN link, for the list as it is now */
+static void friendly_cursor_scroll_links(int32_t more)
+{
+    MenuEntry *first = &_menuEntries[kFriendlyFirstCell], *last = &_menuEntries[kFriendlyLastCell];
+    if (first->ordinal != kFriendlyFirstCell || last->ordinal != kFriendlyLastCell)
+        return;
+    if (s_lastCellDown == -2) {
+        s_lastCellDown = last->downEntry;
+        s_cellMask = last->controlMask;
+    }
+    first->controlMask = (uint16_t)(more ? (s_cellMask | kCtrlUp) : s_cellMask);
+    last->controlMask = (uint16_t)(more ? (s_cellMask | kCtrlDown) : s_cellMask);
+    last->downEntry = more && friendly_more_below() ? (int8_t)-1 : s_lastCellDown;
+}
 
 __attribute__((used, externally_visible))
 void ChooseTeamsFriendlyCommon2(MenuEntry *entry)
 {
+    if ((_controlMask & (kCtrlUp | kCtrlDown)) && !(_controlMask & 0x21)) {   /* a direction, no fire */
+        if (_fire)
+            return;
+        if ((_controlMask & kCtrlUp) && entry->ordinal == kFriendlyFirstCell) {
+            friendly_scroll(-1);                /* (at the top: nothing; its UP link is none) */
+        } else if ((_controlMask & kCtrlDown) && entry->ordinal == kFriendlyLastCell) {
+            const int32_t moved = friendly_more_below();
+            friendly_scroll(1);
+            /* the cursor stays this frame even when that showed the last team: MenuProc follows
+             * the DOWN link right after this returns */
+            entry->downEntry = moved ? (int8_t)-1 : s_lastCellDown;   /* at the end: out of the list */
+        }
+        return;
+    }
     uint16_t d0 = entry->ordinal;
     d0 -= 7;
     /* Convert menu ordinal to linear team index across 3 columns of 16 */
@@ -2817,6 +2866,7 @@ void ChooseTeamsFriendlyInitFinish(void)
             for (int32_t k = 0; k < 16; k++)
                 _menuEntries[7 + 32 + k].rightEntry = (int8_t)(!more ? -1 : k < 8 ? kFriendlyArrowUp
                                                                                  : kFriendlyArrowDown);
+            friendly_cursor_scroll_links(more);     /* the cursor's way: the first and last cells */
         }
     }
 
