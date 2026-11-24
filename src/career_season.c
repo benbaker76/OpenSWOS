@@ -1109,6 +1109,32 @@ static void fillWorldCupQualifyingGroupTeams(uint8_t regionCode, uint8_t *group,
     }
 }
 
+/* A load's pick list (Career_RestoreCupPickListWithoutDraw): the qualifying groups are not drawn
+ * again -- they are being played, and a second draw put teams already in one group into another
+ * beside the career's own (whose teams are the competition being played, not the copy): a
+ * national coach's World Cup took a team twice and left another out (Holland, 2001/02). The
+ * career's group is found where the first draw put it instead. */
+static int32_t s_cupPickNoDraw;
+
+/* The group of `tbl` (n of them) whose team list holds the career team: its pick list's first
+ * entry, as the draw sets it. Layout as fillWorldCupQualifyingGroupTeams writes it. */
+static int32_t pickCareerGroup(uint8_t *const *tbl, int32_t n)
+{
+    for (int32_t g = 0; g < n; g++) {
+        uint8_t *group = tbl[g];
+        if (!group)
+            continue;
+        int16_t count = group[1] == 0 ? (int8_t)group[0xD] : group[1] == 2 ? (int8_t)group[0xF] : 0;
+        const uint8_t *slot = group + 7 + (group[7] & 0xFF) + 2u * (sizeof(char *) - sizeof(uint32_t));
+        for (int16_t i = 0; i < count && i < 64; i++, slot += 2)
+            if (BE_READ_U16(slot) == _selTeamNumber) {
+                _careerCupPickList[0] = (void *)group;
+                return 1;
+            }
+    }
+    return 0;
+}
+
 /* ---- setupWorldCupQualifyingGroups (SWOS2.s line 32649) ----
  * Sets up all world cup qualifying groups: 8 European groups (column-major fill),
  * then 5 continental groups. Only runs during continental cup year (bit 6). */
@@ -1116,6 +1142,16 @@ static void setupWorldCupQualifyingGroups(uint16_t **teamListPtr)
 {
     if (!(_someTeamFlags & 0x40))
         return;
+
+    if (s_cupPickNoDraw) {
+        uint8_t *const continental[5] = {
+            _northAmericaWorldCupQualificationCopy, _southAmericaWorldCupQualificationCopy,
+            _africaWorldCupQualificationCopy, _asiaWorldCupQualificationCopy,
+            _oceaniaWorldCupQualificationCopy };
+        if (!pickCareerGroup((uint8_t *const *)_worldCupQualifyingGroupsTable, 8))
+            pickCareerGroup(continental, 5);
+        return;
+    }
 
     /* Calculate group 8 team count based on European host/qualifying */
     int16_t d5 = 6;
@@ -1283,6 +1319,10 @@ static void setCupPickList_Europe(uint16_t **teamListPtr)
     /* EC group filling (only during EC qualifying year, bit 0) */
     if (!(_someTeamFlags & 0x01))
         return;
+    if (s_cupPickNoDraw) {                  /* (a load: the groups as drawn -- see s_cupPickNoDraw) */
+        pickCareerGroup((uint8_t *const *)_ecQualifyingGroupsTable, 8);
+        return;
+    }
     if (WorldNationals_FillEuroGroups())    /* (a classic world: its cycle's groups, w_ecqdraw) */
         return;
 
@@ -1470,9 +1510,21 @@ void Career_SetCupPickList_ForSelectedRegion(uint16_t *teamList)
         return;
     }
 
+    if (s_cupPickNoDraw)        /* (a load: the cups' teams are the save's -- see s_cupPickNoDraw) */
+        return;
     setupFriendlyCupTeams();
     setupInvitationTournamentTeams();
     setupTourCupTeams();
+}
+
+/* A loaded national coach's pick list when the save has none (an older save, or a build that
+ * did not write it): the season's lists chosen as InitializeNewSeason chose them, but nothing
+ * drawn again -- the qualifying groups and the coach's cups are the save's, mid-season. */
+void Career_RestoreCupPickListWithoutDraw(void)
+{
+    s_cupPickNoDraw = 1;
+    Career_SetCupPickList_ForSelectedRegion(0);
+    s_cupPickNoDraw = 0;
 }
 
 /* ====================================================================

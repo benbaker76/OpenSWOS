@@ -1779,10 +1779,13 @@ static void Rebuild_CompetitionSlotPointers(void)
     void **compTablePtr;
 
     if (_isNationalSelector != 0) {
-        /* the save's pick list (save_format_json.c cup_pick_list); an older save's drawn again */
+        /* the save's pick list (save_format_json.c cup_pick_list); a save without one: the list
+         * chosen again, but NOTHING drawn -- the qualifying groups are being played, and drawing
+         * them again put a team in two groups (career_season.c s_cupPickNoDraw) */
         extern int32_t SaveJson_RestoreCupPickList(void);
+        extern void Career_RestoreCupPickListWithoutDraw(void);
         if (!SaveJson_RestoreCupPickList())
-            Career_SetCupPickList_ForSelectedRegion(0);
+            Career_RestoreCupPickListWithoutDraw();
         compTablePtr = (void **)&_careerCupPickList;
     } else {
         uint16_t tableIdx = (_selTeamNumber == 0xFFFF)
