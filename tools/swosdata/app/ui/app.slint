@@ -148,9 +148,12 @@ export component MainWindow inherits Window {
     in property <string> project-url: "github.com/benbaker76/OpenSWOS";
     title: @tr("{0} Setup", root.project-name);
     icon: @image-url("../../../../packaging/linux/hicolor/256x256/apps/openswos.png");
-    preferred-width: 860px;
-    preferred-height: 860px;
-    min-height: 520px;      // (the wizard's screen scrolls between its top and foot)
+    // Widescreen: 860 x 860 was taller than a 1080p screen at 125% and more, and the foot (NEXT)
+    // fell off its bottom. On Windows the window is also fitted to the screen's work area
+    // (FitWindowToScreen, platform.cpp); the wizard's screen scrolls between its top and foot.
+    preferred-width: 1180px;
+    preferred-height: 720px;
+    min-height: 520px;
     // The setup's language (app/tr.hpp): main.cpp switches the bundled translation and its own texts.
     in-out property <string> language: "en";
     callback language-chosen(string);

@@ -137,6 +137,45 @@ begin
     Result := Result + ' --no-play';
 end;
 
+// The wizard to the front when it opens. Started from Explorer it could open BEHIND Explorer's
+// window: the install-mode dialog and the elevated restart that follows it (admin, UAC) are a
+// second process, which Windows does not let take the foreground by itself. Once the wizard is
+// up (a one-shot timer: the window exists and is shown by then) it is made topmost for a moment
+// -- that raises it over every normal window even where SetForegroundWindow is refused -- then
+// normal again, so it does not stay above everything, and given the focus.
+const
+  HWND_TOPMOST = -1;
+  HWND_NOTOPMOST = -2;
+  SWP_NOSIZE = $0001;
+  SWP_NOMOVE = $0002;
+
+function SetWindowPos(Wnd: HWND; InsertAfter: NativeInt; X, Y, CX, CY: Integer; Flags: Cardinal): BOOL;
+  external 'SetWindowPos@user32.dll stdcall';
+function SetForegroundWindow(Wnd: HWND): BOOL;
+  external 'SetForegroundWindow@user32.dll stdcall';
+function SetTimer(Wnd: HWND; IdEvent: NativeUInt; Elapse: Cardinal; TimerFunc: NativeUInt): NativeUInt;
+  external 'SetTimer@user32.dll stdcall';
+function KillTimer(Wnd: HWND; IdEvent: NativeUInt): BOOL;
+  external 'KillTimer@user32.dll stdcall';
+
+var
+  BringUpTimer: NativeUInt;
+
+procedure BringWizardUp(Wnd: HWND; Msg: Cardinal; IdEvent: NativeUInt; Time: Cardinal);
+begin
+  KillTimer(0, BringUpTimer);
+  BringUpTimer := 0;
+  SetWindowPos(WizardForm.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE or SWP_NOSIZE);
+  SetWindowPos(WizardForm.Handle, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE or SWP_NOSIZE);
+  BringToFrontAndRestore;
+  SetForegroundWindow(WizardForm.Handle);
+end;
+
+procedure InitializeWizard;
+begin
+  BringUpTimer := SetTimer(0, 0, 250, CreateCallback(@BringWizardUp));
+end;
+
 [UninstallDelete]
 ; The data trees are installed wholesale by one wildcard, so remove them
 ; wholesale -- Inno only tracks files it laid down individually, and a directory

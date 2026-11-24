@@ -214,6 +214,28 @@ bool ApplyNativeWindowIcon() {
 #endif
 }
 
+bool FitWindowToScreen() {
+#ifdef _WIN32
+  const HWND window = MainWindow();
+  if (!window) return false;
+  MONITORINFO mi{};
+  mi.cbSize = sizeof mi;
+  RECT r{};
+  if (!GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &mi) ||
+      !GetWindowRect(window, &r))
+    return true;
+  const RECT& work = mi.rcWork;
+  const int aw = work.right - work.left, ah = work.bottom - work.top;
+  const int ww = r.right - r.left, wh = r.bottom - r.top;
+  const int w = ww < aw ? ww : aw, h = wh < ah ? wh : ah;
+  SetWindowPos(window, nullptr, work.left + (aw - w) / 2, work.top + (ah - h) / 2, w, h,
+               SWP_NOZORDER | SWP_NOACTIVATE);
+  return true;
+#else
+  return true;
+#endif
+}
+
 // ------------------------------------------------------------ dropped files ---
 static std::function<void(std::vector<std::string>)> s_onDrop;
 static std::function<void(bool)> s_onHover;

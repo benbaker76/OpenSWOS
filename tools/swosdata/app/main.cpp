@@ -3505,14 +3505,18 @@ int main(int argc, char** argv) {
         slint::invoke_from_event_loop([&app, hover] { app.w().set_drop_hover(hover); });
       }));
 
-  // Windows only: the title-bar icon from the resource, once the window exists.
+  // Windows only: the title-bar icon from the resource, once the window exists, and the window
+  // fitted to the screen.
   // (And the window takes dropped files, Windows too: the same window, once it is there.)
   slint::Timer icon_timer;
   int icon_tries = 0;
   bool icon_done = false, drop_done = !ui->get_can_drop();
   icon_timer.start(slint::TimerMode::Repeated, std::chrono::milliseconds(100),
                    [&app, &icon_timer, &icon_tries, &icon_done, &drop_done] {
-                     icon_done = icon_done || sd::ApplyNativeWindowIcon();
+                     if (!icon_done && sd::ApplyNativeWindowIcon()) {
+                       icon_done = true;
+                       sd::FitWindowToScreen();   // (once: the player may move or size it after)
+                     }
                      if (!drop_done && sd::AttachFileDrop()) {
                        drop_done = true;
                        app.FileLog("dropped files: taken on the window");

@@ -32,6 +32,11 @@ bool Launch(const std::string& exe, const std::string& cwd);
 // while the window does not exist yet; true elsewhere.
 bool ApplyNativeWindowIcon();
 
+// Windows: the window made no larger than its monitor's work area (the screen less the taskbar)
+// and centred on it, so its foot -- NEXT -- is never below the screen at a high display scale.
+// False while the window does not exist yet; true elsewhere.
+bool FitWindowToScreen();
+
 // Files dropped on the setup's window: onDrop gets their paths, onHover whether a drag is over
 // the window. Windows only (an OLE drop target on the window; Slint's winit backend passes no
 // dropped file on): elsewhere false, and nothing happens. AttachFileDrop registers it on the
