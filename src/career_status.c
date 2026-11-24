@@ -4209,6 +4209,24 @@ skipStats: ;
             (TeamSelectionKeyCacheEntry *)(_teamSelectionKeyCache + _teamSelectionKeyCacheOffset);
         base_entry->remainingElements -= 1;
 
+        /* The result is packed in the order the match was PLAYED (team1's goals high), but
+         * every reader of the slot -- the career screen's row (menus.c CareerGameListCommon)
+         * and its result line -- takes it in the FIXTURE's order (the team at +0x0C high).
+         * A cup tie plays in its fixture's order; a group match need not (the group's
+         * home/away swap, diy_competition.c getCurrentFixtureTeamPtrs), and the row then
+         * showed the career club's goals as its opponent's ("HOLLAND 1-3 SPAIN" for SPAIN
+         * 1-3 HOLLAND, a World Cup group in a national career). So it is stored in the
+         * fixture's order: each packed pair turned round, and the winner bit with it. */
+        uint16_t fixTop = BE_READ_U16((const uint8_t *)&slot->teamId1);
+        uint16_t fixBot = BE_READ_U16((const uint8_t *)&slot->teamId2);
+        if (fixTop == t2num && fixBot == t1num && t1num != t2num) {
+            packedGoals = (uint16_t)((packedGoals << 8) | (packedGoals >> 8));
+            aggregate   = (uint16_t)((aggregate << 8) | (aggregate >> 8));
+            penalty     = (uint16_t)((penalty << 8) | (penalty >> 8));
+            if (flags & (1 << 1))           /* has a winner: bit 0 = the second team won */
+                flags ^= 1;
+        }
+
         slot->matchFlags    = (uint8_t)flags;
         slot->packedGoals   = packedGoals;
         slot->aggregate     = aggregate;
