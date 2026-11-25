@@ -4354,7 +4354,7 @@
 {"d061b560-ccb8-5fb2-9547-291d67f1000e", "0f86d6f1dfdadc51", "BASSANO"},
 {"d066cb32-fde9-516b-88db-2008c196444a", "dc6d3440277a0129", "SAO TOME"},
 {"d06ed356-b904-5fca-a43b-34518a81da85", "72f36dc02b8bbe53", "POGON SZCZECIN"},
-{"d0782361-d430-511b-8fed-2bb02723f3b0", "bcc1fd40c28f86ba", "UKRAINE"},
+{"d0782361-d430-511b-8fed-2bb02723f3b0", "8ab863ef80bb9d95", "UKRAINE"},
 {"d0792db0-8f3d-5c7e-8818-a2156b4d7fdc", "92d974a3d74b93ce", "ZURRIEQ"},
 {"d08b9fab-5ccd-5ffa-879c-b6f1f9b6b26a", "44ec6840784abd5d", "TALLINNA SADAM"},
 {"d0bc959a-6a51-5dcf-a812-905d37c7554f", "108098adc8aede86", "HARTLEPOOL UTD"},
