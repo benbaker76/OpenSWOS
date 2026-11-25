@@ -1190,6 +1190,9 @@ static void practice_training(void)
             setup.ghosts[1] = 0x7FE;        /* (the CPU's outfielders: its keeper is always seen) */
         setup.playingUp = (int8_t)(s_trUp ? 0 : 1);   /* (DOWN: teamPlayingUp 1, team 1 attacks down) */
         setup.kickOff = 0;
+        setup.kickOffAlways = 1;            /* (every kick-off the player's: after a goal it was the
+                                             *  CPU's, whose keeper -- its only man seen -- walked up
+                                             *  to the centre spot to take it; Playa, 2026-11-24) */
         s_drill = DR_NONE;
         s_training = 1;
         if (ModApi_PlayMatch("practice", &setup, &r) == 0)

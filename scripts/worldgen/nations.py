@@ -23,6 +23,7 @@ The Amiga's TEAM.080-085 are not written (its global team numbers are baked: §1
 """
 import argparse
 import collections
+import difflib
 import json
 import math
 import os
@@ -985,6 +986,12 @@ def lineup_sixteen(lu, rows, n, nation_level, world, unmapped, ov=None):
             common = len(have & (full | short))
             if common > score and last in have and (have <= full | short or (full | short) <= have or common >= 2):
                 best, score = r, common
+        if best is None and last:               # (one man spelt two ways: Transfermarkt's Yegor / Georgiy /
+            sur = [r for r in rows               #  Matvienko, Wikipedia's Yehor / Heorhiy / Matviyenko -- the
+                   if fold(r['s']['name']).split() and  # surname, nearly the same, held by him alone)
+                   difflib.SequenceMatcher(None, fold(r['s']['name']).split()[-1], last).ratio() >= 0.85]
+            if len(sur) == 1:
+                best = sur[0]
         return best
 
     xi_rows = []
@@ -1262,9 +1269,11 @@ def main():
                 p['shirt_number'] = 0
             used.add(p['shirt_number'])
         free = [k for k in range(1, 100) if k not in used]
-        for p in players:
-            if not p['shirt_number']:
-                p['shirt_number'] = free.pop(0)
+        for p in players:                       # (the lowest free -- 1 a goalkeeper's only: an outfield
+            if not p['shirt_number']:           #  player in 1 was a free number handed out, never his)
+                k = next(k for k in free if k != 1 or p['position'] == 0)
+                free.remove(k)
+                p['shirt_number'] = k
         built[n['fifa']] = (n, players, lineup_info)
         m = sum(1 for p in sixteen if p['src'] == 'world')
         report.append('%s %-17s squad %2d  of the 16: %2d from the world, %2d estimated  points %s  coach %s  %s  %s'

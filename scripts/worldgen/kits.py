@@ -345,7 +345,8 @@ def shades(pal, counts):
     out = []
     for g in groups:
         total = sum(n for _, n in g)
-        rep = min((c for c, n in g if n * 8 >= total * 3), key=lambda c: lum(pal.rgb[c]))
+        big = [c for c, n in g if n * 8 >= total * 3]
+        rep = min(big, key=lambda c: lum(pal.rgb[c])) if big else g[0][0]  # (none that big: the commonest)
         out.append((rep, total))
     return sorted(out, key=lambda x: -x[1])
 

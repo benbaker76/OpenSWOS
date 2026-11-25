@@ -1786,11 +1786,15 @@ static uint32_t       s_bdSmallSerial;
 
 void Platform_SetMenuBackdrop(const uint8_t *rgba, int w, int h)
 {
+    if (s_render_mtx)
+        SDL_LockMutex(s_render_mtx);    /* (the timer thread's fallback render reads it too) */
     if (rgba != s_bd || w != s_bdW || h != s_bdH)
         s_bdSerial++;
     s_bd = rgba && w > 0 && h > 0 ? rgba : NULL;
     s_bdW = w;
     s_bdH = h;
+    if (s_render_mtx)
+        SDL_UnlockMutex(s_render_mtx);
 }
 
 int Platform_MenuBackdropOn(void)

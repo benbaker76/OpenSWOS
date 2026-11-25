@@ -3025,6 +3025,13 @@ extern void PrintFormatted(const uint8_t *fmt, uint8_t *out,
  * once the buttons are where they will be drawn. */
 static void main_menu_fit_lower_left(void)
 {
+    /* (only a main menu that HAS an entry 17 -- the original's: SWOS 2020's (menus2020) has 0..16,
+     *  and _menuEntries[17] is then what the menu shown before left there. After SWOS GALORE its
+     *  17th sat on the CLASSIC CAREER row, and CLASSIC CAREER was cut short from the left; Playa,
+     *  2026-11-24) */
+    extern uint8_t _currentMenu[];
+    if (((const Menu *)_currentMenu)->numEntries <= 17)
+        return;
     const MenuEntry *w = &_menuEntries[17];
     if (w->isInvisible)
         return;
@@ -3042,6 +3049,11 @@ static void main_menu_fit_lower_left(void)
 static void main_menu_fit_lower_right(void)
 {
     main_menu_fit_lower_left();
+    {   /* (15 and 16 must be this menu's too) */
+        extern uint8_t _currentMenu[];
+        if (((const Menu *)_currentMenu)->numEntries <= 16)
+            return;
+    }
     int32_t left = 0x7FFF, overlap = 0;
     for (int32_t s = 15; s <= 16; s++) {
         const MenuEntry *small = &_menuEntries[s];
