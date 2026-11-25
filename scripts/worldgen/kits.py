@@ -326,6 +326,12 @@ def part_colours(pal, k, part, base):
     return collections.Counter({pal.nearest(hexrgb(base)): 1}), None
 
 
+def neutral(rgb):
+    """Black, grey or white: no colour of its own (HSV saturation under 0.2, or nearly black)."""
+    hi, lo = max(rgb), min(rgb)
+    return hi < 40 or (hi - lo) < 0.2 * hi
+
+
 def lum(rgb):
     return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
 
@@ -346,6 +352,8 @@ def shades(pal, counts):
     for g in groups:
         total = sum(n for _, n in g)
         big = [c for c, n in g if n * 8 >= total * 3]
+        if not neutral(pal.rgb[g[0][0]]):       # (a coloured kit's shade is coloured: Scotland's navy,
+            big = [c for c in big if not neutral(pal.rgb[c])] or big   # 40% of it black, stays navy)
         rep = min(big, key=lambda c: lum(pal.rgb[c])) if big else g[0][0]  # (none that big: the commonest)
         out.append((rep, total))
     return sorted(out, key=lambda x: -x[1])
@@ -427,6 +435,77 @@ def do_fetch():
             print('  %d / %d images' % (i + 1, len(todo)), flush=True)
 
 
+KIT_NAMES = ('shirt_type', 'stripes_color', 'basic_color', 'shorts_color', 'socks_color')
+
+
+def write_kits(pal, h, home, away, counts):
+    """A team header's two kits (palette-index kits: team_kits): the base colour, and its variant
+    apart (as the game writes); a kit the article lacks stays as it was. True when one changed."""
+    names, dirty = KIT_NAMES, False
+    for side, kit in (('primary_', home), ('secondary_', away)):
+        if not kit:
+            counts['no %skit' % side] += 1
+            continue
+        vals = [kit[0]] + [pal.byte(c) for c in kit[1:]]
+        if kit[0] == 0:
+            vals[1] = vals[2]
+        old = [h[side + names[0]]] + [(h[side + n] & 15) | (h.get(side + n.replace('_color', '_variant'), 0) << 4)
+                                      for n in names[1:]]
+        if old != vals:
+            h[side + names[0]] = vals[0]
+            for n, v in zip(names[1:], vals[1:]):
+                h[side + n] = v & 15
+                var = n.replace('_color', '_variant')
+                if v >> 4:
+                    h[side + var] = v >> 4
+                else:
+                    h.pop(side + var, None)
+            dirty = True
+            counts['%skits changed' % side] += 1
+    return dirty
+
+
+def do_nations(dry):
+    """--nations: the 211 national teams' kits again, by the clubs' reading (the 50 colours, their
+    shades, the away kit most unlike home) from the articles worldgen/nations.py reads them from
+    (English: "<country> national football team", its ARTICLE exceptions) -- the cache only. Their
+    squads are not touched."""
+    import nations as nat
+    pal = Palette()
+    stem = {80: 'EUROPE', 81: 'AFRICA', 82: 'SOUTH_AMERICA', 83: 'NORTH_AMERICA', 84: 'ASIA', 85: 'OCEANIA'}
+    titles = {n[2]: nat.ARTICLE.get(n[2], n[2] + ' national football team') for n in nat.NATIONS}
+    texts = wiki.wikitext(list(titles.values()), offline=True)
+    names_all = {name: (fifa, titles[wname]) for fifa, conf, wname, name, _nat, _slot in nat.NATIONS}
+    want = {st: names_all for st in stem.values()}   # (by name in all six: Australia is in Oceania's
+                                                     #  file, Mauritius and Papua New Guinea in Asia's)
+    lines, counts, changed = [], collections.Counter(), 0
+    for st, names in sorted(want.items()):
+        f = os.path.join(WORLD, 'teams', st + '.json')
+        d = json.load(open(f, encoding='utf-8'))
+        dirty = False
+        for t in d['teams']:
+            h = t['team']
+            if h['team_name'] not in names:
+                continue
+            fifa, title = names[h['team_name']]
+            text = texts.get(title, '')
+            if not text:
+                counts['no article'] += 1
+                lines.append('%-18s %s  NO ARTICLE (%s)' % (h['team_name'], fifa, title))
+                continue
+            home, away, how = team_kits(pal, text)
+            dirty = write_kits(pal, h, home, away, counts) or dirty
+            counts['nations'] += 1
+            lines.append('%-18s %s  home %s | away %s %s' % (h['team_name'], fifa,
+                         describe(pal, home) if home else '-', describe(pal, away) if away else '-', how))
+        if dirty:
+            changed += 1
+            if not dry:
+                json.dump(d, open(f, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    open(os.path.join(WORK, 'kits_nations.txt'), 'w', encoding='utf-8').write('\n'.join(lines) + '\n')
+    print('%s: %d files changed; %s' % ('dry run' if dry else 'applied', changed, dict(sorted(counts.items()))))
+
+
 def do_apply(dry):
     pal = Palette()
     m = json.load(open(MAP, encoding='utf-8'))
@@ -443,26 +522,7 @@ def do_apply(dry):
             home, away, how = team_kits(pal, a[1])
             counts['lang ' + a[0]] += 1
             h = t['team']
-            for side, kit in (('primary_', home), ('secondary_', away)):
-                if not kit:
-                    counts['no %skit' % side] += 1
-                    continue
-                vals = [kit[0]] + [pal.byte(c) for c in kit[1:]]
-                if kit[0] == 0:
-                    vals[1] = vals[2]
-                old = [h[side + names[0]]] + [(h[side + n] & 15) | (h.get(side + n.replace('_color', '_variant'), 0) << 4)
-                                              for n in names[1:]]
-                if old != vals:
-                    h[side + names[0]] = vals[0]
-                    for n, v in zip(names[1:], vals[1:]):      # the base, and its variant apart (as the game writes)
-                        h[side + n] = v & 15
-                        var = n.replace('_color', '_variant')
-                        if v >> 4:
-                            h[side + var] = v >> 4
-                        else:
-                            h.pop(side + var, None)
-                    dirty = True
-                    counts['%skits changed' % side] += 1
+            dirty = write_kits(pal, h, home, away, counts) or dirty
             lines.append('%-16s %-14s %s:%s | home %s | away %s %s' % (
                 h['team_name'], os.path.basename(f)[:-5], a[0], m[t['uuid']]['titles'].get(a[0]),
                 describe(pal, home) if home else '-', describe(pal, away) if away else '-', how))
@@ -479,6 +539,7 @@ if __name__ == '__main__':
     ap.add_argument('--map', action='store_true')
     ap.add_argument('--fetch', action='store_true')
     ap.add_argument('--apply', action='store_true')
+    ap.add_argument('--nations', action='store_true', help="the national teams' kits again (the cache only)")
     ap.add_argument('--dry-run', action='store_true')
     a = ap.parse_args()
     if a.map:
@@ -487,3 +548,5 @@ if __name__ == '__main__':
         do_fetch()
     if a.apply:
         do_apply(a.dry_run)
+    if a.nations:
+        do_nations(a.dry_run)
