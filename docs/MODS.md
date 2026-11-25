@@ -1323,7 +1323,9 @@ Both targets: on the Amiga, `Career_PeekTeam` asks resload whether `data/team.NN
 team's flag beside its name on the result banner: kick-off, a goal, half and full time, as the
 owner's sketch had it.
 
-- **Which flag:** `flags.json`'s `teams[]` first, by the team's database id (the 143 national teams
+- **Which flag:** the world's own first -- `worlds[<tag>]`'s `teams[]` and, for a club, `countries[]`
+  (World 2026-27's country 41 is Serbia's league, not Yugoslavia's; 1984-85's Yugoslavia, its clubs
+  and its national team, SFR Yugoslavia's flag with the red star); then `teams[]`, by the team's database id (the 143 national teams
   of 96/97: one renamed, or a custom team made from one, keeps its flag); then `names[]` when SWOS
   spells the country unlike the flag's file
   (HOLLAND -> Netherlands, REPUBLIC IRELAND -> Ireland, WEST GERMANY -> Germany, CZECHOSLOVAKIA -> the
@@ -1332,7 +1334,8 @@ owner's sketch had it.
   `World_FileCountry`: a world's second team file is its country's; World 2026-27's new countries --
   Andorra, Kosovo, Qatar... -- are there by their numbers). Every 96/97 national team and
   club country has one, and so does every team of the historic tournaments: SOVIET UNION, EAST
-  GERMANY, ZAIRE and C.I.S. are OpenSWOS's own drawings at the set's size (`scripts/draw_extra_flags.py`),
+  GERMANY, ZAIRE, C.I.S. and both Yugoslavias (96/97's the plain FR Yugoslavia tricolour -- GoSquared's had
+  a chequered shield that read as Croatia's, a player's report of 2026-11-25) are OpenSWOS's own drawings at the set's size (`scripts/draw_extra_flags.py`),
   DUTCH E. INDIES plays under the Dutch flag and GUADELOUPE under the French. A BMP of a name in a
   mod's `flags/` adds or replaces one. A competition's own teams (a .DIY's, file 72) go by name only.
 - **The art:** GoSquared's 24-pixel flag set (MIT, `LICENSE_Flags.txt` in the mod), each flag the

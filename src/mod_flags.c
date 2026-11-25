@@ -20,6 +20,7 @@
 #ifdef SWOS_SDL_BUILD
 
 #include "mjson.h"
+#include "world.h"
 
 #include <SDL.h>
 #include "gfx.h"
@@ -97,6 +98,22 @@ static void flag_name(const ModMatchTeam *t, char *out, int cap)
     out[0] = 0;
     if (!s_json)
         return;
+    {   /* worlds[the world's tag]: its own teams and countries first (World 2026-27's country 41 is
+         * Serbia's league, 1984-85's Yugoslavia SFR Yugoslavia's) */
+        const char *tag = World_Tag();
+        char q[96];
+        if (t->uuid[0]) {
+            snprintf(q, sizeof q, "$.worlds.%s.teams.%s", tag, t->uuid);
+            if (mjson_get_string(s_json, (int)s_jsonLen, q, out, cap) > 0)
+                return;
+        }
+        if (t->country < 80 || t->country > 85) {   /* (a club: the national files are 80..85) */
+            snprintf(q, sizeof q, "$.worlds.%s.countries.%u", tag, (unsigned)t->country);
+            if (mjson_get_string(s_json, (int)s_jsonLen, q, out, cap) > 0)
+                return;
+            out[0] = 0;
+        }
+    }
     if (t->uuid[0]) {   /* teams[its database id]: a national team, however it is named now */
         char q[64];
         snprintf(q, sizeof q, "$.teams.%s", t->uuid);

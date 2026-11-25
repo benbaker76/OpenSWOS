@@ -1,7 +1,7 @@
 {
  "format": "openswos-flags",
  "version": 1,
- "comment": "Flag files are flags/<name>.bmp: GoSquared's 24 px set (MIT: LICENSE_Flags.txt), and four of OpenSWOS's own drawn at its size (scripts/draw_extra_flags.py). A team's flag: teams[its database id] (the 96/97 national teams: a renamed one keeps its flag), else names[its name], else the file whose name is its name's letters; a club with none of those, countries[the country it plays for] (96/97's numbers and World 2026-27's new ones).",
+ "comment": "Flag files are flags/<name>.bmp: GoSquared's 24 px set (MIT: LICENSE_Flags.txt), and four of OpenSWOS's own drawn at its size (scripts/draw_extra_flags.py). A team's flag: teams[its database id] (the 96/97 national teams: a renamed one keeps its flag), else names[its name], else the file whose name is its name's letters; a club with none of those, countries[the country it plays for] (96/97's numbers and World 2026-27's new ones). A world's own (worlds[its tag]: teams, countries) come first: World 2026-27's country 41 is Serbia's league, 1984-85's Yugoslavia is SFR Yugoslavia's.",
  "names": {
   "ANTIGUA-BARBUDA": "Antigua-and-Barbuda",
   "BOSNIA": "Bosnia-and-Herzegovina",
@@ -281,5 +281,20 @@
   "fec870ad-aecb-5a16-be06-15dd14c28c5e": "Sierra-Leone",
   "ff09d11e-769a-57db-bc65-6d1eb1a9cc11": "Trinidad-and-Tobago",
   "ffcdd024-64c5-5134-a1dc-57df93f0f419": "Scotland"
+ },
+ "worlds": {
+  "2627": {
+   "countries": {
+    "41": "Serbia"
+   }
+  },
+  "8485": {
+   "teams": {
+    "1309b649-9bf0-503a-840f-dd54780e7a2e": "Yugoslavia-SFR"
+   },
+   "countries": {
+    "41": "Yugoslavia-SFR"
+   }
+  }
  }
 }
