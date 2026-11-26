@@ -27,7 +27,8 @@
 # MODS screen's "WORLD 2026-27 4.1.2-U1"; without it there the fingerprint) and a "Version:" line in
 # its .txt, written together so they always agree. The fingerprint stays what the game checks;
 # setup and game read no other key of WORLD.ini (sd_sources.c world_ini, main.c), so an older one
-# just leaves it. Without it the package has no version (said, not refused).
+# just leaves it. Without it: the Mod release and the day, e.g. 4.1.2-20261126 (Playa, 2026-11-26:
+# never a package without one).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -39,10 +40,14 @@ for f in WORLD.ini competitions/leagues.json; do
     [ -f "$SRC/$f" ] || { echo "make_world_package: no $SRC/$f -- run scripts/world_import.py first" >&2; exit 1; }
 done
 FP=$(sed -n 's/^fingerprint *= *//p' "$SRC/WORLD.ini")
-VER="${WORLD_VERSION:-}"
+# The Mod release it was converted from (world_from_mod.py's SOURCE.txt, or MOD_RELEASE=x.y.z): its
+# credits say it, and the version starts with it.
+REL=${MOD_RELEASE:-$(sed -n 's/.*installed SWOS 96\/97 Mod \([0-9.]*\).*/\1/p' "$SRC/mod/SOURCE.txt" 2>/dev/null | head -1 || true)}
+[ -n "$REL" ] || { echo "make_world_package: which Mod release is this? (MOD_RELEASE=x.y.z)" >&2; exit 1; }
+VER="${WORLD_VERSION:-$REL-$(date +%Y%m%d)}"
+[ -n "${WORLD_VERSION:-}" ] || echo "make_world_package: version $VER (the Mod release and today; WORLD_VERSION=... for another)"
 case "$VER" in *[!A-Za-z0-9._+-]*) echo "make_world_package: WORLD_VERSION=$VER -- letters, digits and . _ + - only" >&2; exit 1 ;; esac
 [ "${#VER}" -le 23 ] || { echo "make_world_package: WORLD_VERSION=$VER -- 23 characters at most (src/mods.c)" >&2; exit 1; }
-[ -n "$VER" ] || echo "make_world_package: no WORLD_VERSION -- the package goes without a version (e.g. WORLD_VERSION=4.1.2-u1)" >&2
 NAME=$(sed -n 's/^name *= *//p' "$SRC/WORLD.ini")
 # (each world's baked tables: World 2026-27's src/world_data.c, another's src/world_data_<tag>.c)
 DATA_C="$ROOT/src/world_data.c"
@@ -121,8 +126,6 @@ VERLINE=""
 # Its credits, hosted beside it (OpenSWOS Setup's "credits" link, kWorldCredits): the data's
 # sources, the Mod release it was converted from (world_from_mod.py's SOURCE.txt, or
 # MOD_RELEASE=x.y.z) and the fingerprint -- written with the zip, so the two always agree.
-REL=${MOD_RELEASE:-$(sed -n 's/.*installed SWOS 96\/97 Mod \([0-9.]*\).*/\1/p' "$SRC/mod/SOURCE.txt" 2>/dev/null | head -1)}
-[ -n "$REL" ] || { echo "make_world_package: which Mod release is this? (MOD_RELEASE=x.y.z)" >&2; exit 1; }
 NCOUNTRY=$(ls "$SRC/teams"/*.json | grep -vc NATIONALITIES || true)
 if [ "$TAG" = 8485 ]; then
 cat > "${OUT%.zip}.txt" <<EOF
