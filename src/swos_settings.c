@@ -1201,6 +1201,15 @@ void Settings_Save(const PlatformInitOptions *opts, const char *path)
     IniEntry items[SETTINGS_MAX];
     char vbuf[10][24];
     int n = settings_build(opts, items, vbuf, 1);
+    /* Each value copied out before the baseline's table is built below: some entries' values are
+     * settings_build's static buffers (the volumes, menu_opacity, the chat's), and
+     * the second build wrote the baseline's into them -- the change then read as none and was
+     * never saved (AUDIO OPTIONS' volumes, Playa 2026-11-26). */
+    static char curVal[SETTINGS_MAX][300];
+    for (int k = 0; k < n; k++) {
+        snprintf(curVal[k], sizeof curVal[k], "%s", items[k].value ? items[k].value : "");
+        items[k].value = curVal[k];
+    }
 
     /* The settings the player has NOT changed since the file was read: the file's value stands
      * (s_baseline). Built from the same table, so entry k is the same key in both. */
@@ -1418,6 +1427,66 @@ int Settings_GameOptionsSelfTest(void)
     remove(out);
     printf("game-options self-test: %d of %d values come back%s\n", (int)(checked - bad), (int)checked,
            bad ? " -- FAILED" : "");
+    return bad ? 1 : 0;
+}
+
+/* SWOS_SETTINGS_CHANGE_TEST=1: what the game does when a setting is changed in its menus -- the
+ * file read, a value changed, saved to the same file -- for the keys whose value settings_build
+ * formats into a buffer of its own (Settings_Save builds a second table, the baseline's, which
+ * once wrote over them: the change read as none, never saved). Twice: the first save and a later
+ * one. PASS / FAIL on stdout. */
+int Settings_ChangeSelfTest(void)
+{
+    char path[512], line[512];
+    const char *tmp = getenv("TMPDIR");
+    int32_t bad = 0, checked = 0;
+    snprintf(path, sizeof path, "%s/swos-change-test.ini", tmp && *tmp ? tmp : "/tmp");
+    FILE *f = fopen(path, "w");
+    if (!f) { printf("[settings-change-test] FAIL: cannot write %s\n", path); return 1; }
+    fputs("[audio]\nmusic_volume=100\nchants_volume=100\ncommentary_volume=100\neffects_volume=100\n"
+          "[video]\nmenu_opacity=100\n[chat]\nscale=2\nauto_close=3\n", f);
+    fclose(f);
+    static PlatformInitOptions opts;
+    memset(&opts, 0, sizeof opts);
+    Settings_Load(&opts, path);
+    for (int32_t round = 0; round < 2; round++) {
+        const int32_t v = round ? 30 : 0;           /* (0 first: 0% must be kept too) */
+        static const struct { const char *section, *key; } k[] = {
+            { "audio", "music_volume" }, { "audio", "chants_volume" }, { "audio", "commentary_volume" },
+            { "audio", "effects_volume" }, { "video", "menu_opacity" },
+            { "chat", "scale" }, { "chat", "auto_close" },   /* (United's: the replay box too) */
+        };
+        opts.vol_music = v; opts.vol_chants = v + 1; opts.vol_commentary = v + 2; opts.vol_effects = v + 3;
+        opts.menu_opacity = v + 4;
+        opts.chat_scale = round ? 4 : 1; opts.chat_auto_close = round ? 5 : 0;
+        const int32_t want[] = { v, v + 1, v + 2, v + 3, v + 4, round ? 4 : 1, round ? 5 : 0 };
+        Settings_Save(&opts, path);
+        for (size_t i = 0; i < sizeof k / sizeof k[0]; i++) {
+            char got[64] = "";
+            int32_t inSection = 0;
+            if (!(f = fopen(path, "r"))) { printf("[settings-change-test] FAIL: cannot read %s\n", path); return 1; }
+            while (fgets(line, sizeof line, f)) {
+                const size_t n = strlen(k[i].key);
+                if (line[0] == '[')
+                    inSection = !strncmp(line + 1, k[i].section, strlen(k[i].section)) &&
+                                line[1 + strlen(k[i].section)] == ']';
+                else if (inSection && !strncmp(line, k[i].key, n) && line[n] == '=') {
+                    sscanf(line + n + 1, "%63[^ \t\r\n;]", got);
+                    break;
+                }
+            }
+            fclose(f);
+            checked++;
+            if (atoi(got) != want[i] || !got[0]) {
+                printf("[settings-change-test] save %d: [%s] %s=%d came back as '%s'\n", (int)round + 1,
+                       k[i].section, k[i].key, (int)want[i], got);
+                bad++;
+            }
+        }
+    }
+    remove(path);
+    printf("[settings-change-test] %s (%d of %d values saved)\n", bad ? "FAIL" : "PASS",
+           (int)(checked - bad), (int)checked);
     return bad ? 1 : 0;
 }
 

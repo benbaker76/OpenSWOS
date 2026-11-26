@@ -1751,6 +1751,10 @@ int main(int argc, char **argv)
             extern int Settings_LauncherSelfTest(void);
             return Settings_LauncherSelfTest();
         }
+        if (getenv("SWOS_SETTINGS_CHANGE_TEST")) {
+            extern int Settings_ChangeSelfTest(void);
+            return Settings_ChangeSelfTest();
+        }
         if (getenv("SWOS_CPU_TACTICS_TEST")) {
             extern int32_t TacticsExpert_SelfTest(void);
             return TacticsExpert_SelfTest();
