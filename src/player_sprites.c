@@ -240,6 +240,28 @@ void DetermineGoalieFaces(TeamGame *team, uint8_t *gkFaceToIndex, uint8_t *gkFac
     gkFaceIndices[0] = 0xFF;
     gkFaceIndices[1] = 0xFF;
 
+    {   /* A team whose keeper was substituted: its first slot is HIS face, as it was at the kick-off
+         * that numbered the keepers' sprites (the keeper on now came off the bench: the second).
+         * A match is coloured at its kick-off and never meets this; a replay's or highlights' team
+         * is the match's at its end -- the keeper taken off at -1, the one who came on at the top
+         * -- and drew the first keeper in the second's face (the original's bug; swos.eu's player
+         * corrects it the same way). The keeper taken off: the substituted player with the
+         * highest goalkeeping (an outfield player's is 0). */
+        int16_t off = -1;
+        for (i = 0; i < 16; i++)
+            if (team->players[i].position < 0 && team->players[i].goalieSkill > 0 &&
+                (off < 0 || team->players[i].goalieSkill > team->players[off].goalieSkill))
+                off = i;
+        if (off >= 0) {
+            const int16_t face = (int16_t)(int8_t)team->players[off].face;
+            if (face >= 0 && face <= 2) {
+                gkFaceToIndex[face] = 0;
+                gkFaceIndices[0] = (uint8_t)face;
+                slotIdx = 1;
+            }
+        }
+    }
+
     for (i = 0; i < 16; i++) {
         int8_t position = team->players[i].position;
         uint8_t face;
