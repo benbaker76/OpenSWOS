@@ -93,8 +93,10 @@ int RJP1_Load(RJP1_Player *p,
      * via RJP1_SetChannelAttenuation. */
     for (int i = 0; i < RJP1_NUM_CHANNELS; ++i) {
         p->channel_attenuation[i] = 64;
-        if (p->channel_gain[i] <= 0 || p->channel_gain[i] > 256)
+        if (!p->channel_gain_set)
             p->channel_gain[i] = 256;       /* (the host's own, kept across loads; unset: unity) */
+        else if (p->channel_gain[i] < 0 || p->channel_gain[i] > 256)
+            p->channel_gain[i] = p->channel_gain[i] < 0 ? 0 : 256;
     }
     p->loaded = 1;
     return 1;
@@ -584,7 +586,9 @@ void RJP1_MixSamples(RJP1_Player *p, int sample_rate, int8_t *buf, int len)
          * accumulating. */
         const int chAtten = p->channel_attenuation[i];
         if (chAtten == 0) continue;
-        const int chGain = p->channel_gain[i] > 0 && p->channel_gain[i] <= 256 ? p->channel_gain[i] : 256;
+        const int chGain = !p->channel_gain_set ? 256
+                           : p->channel_gain[i] < 0 ? 0 : p->channel_gain[i] > 256 ? 256 : p->channel_gain[i];
+        if (chGain == 0) continue;          /* (0%: silent, as a channel attenuated to 0) */
         const uint32_t pos_inc = (uint32_t)((((uint64_t)RJP1_PAULA_FREQ / (uint32_t)hw->per) << RJP1_FRAC_BITS) / (uint32_t)sample_rate);
         for (int q = 0; q < len; q += 2) {
             int b = buf[q + amiga_channel_map[i]];

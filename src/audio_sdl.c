@@ -488,6 +488,7 @@ static void apply_player_gains_locked(void)
         s_player.channel_gain[c] = s_player_song ? s_vol_music : c == 2 ? s_vol_chants : s_vol_fx;
         s_sfx_player.channel_gain[c] = c == 2 ? s_vol_chants : s_vol_fx;
     }
+    s_player.channel_gain_set = s_sfx_player.channel_gain_set = 1;     /* (0 now silence) */
 }
 
 /* The player's volumes, each 0..100 (SWOS.ini [audio] *_volume). */

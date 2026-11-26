@@ -118,6 +118,9 @@ typedef struct RJP1_Player {
     /* Per-channel volume the player chose (0..256, 256 = unity): the music's, or a sound
      * kind's -- the crowd chants' channel, the effects' (audio_sdl.c, [audio] *_volume). */
     int          channel_gain[RJP1_NUM_CHANNELS];
+    /* The host has set channel_gain: 0 is then silence. Unset (0, a player as zeroed): unity --
+     * 0 meant unset alone, so a volume of 0% played at full (Playa, 2026-11-26). */
+    int          channel_gain_set;
 } RJP1_Player;
 
 /* Returns 1 on success, 0 on failure. */
