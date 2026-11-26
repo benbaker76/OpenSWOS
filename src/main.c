@@ -259,7 +259,7 @@ static void print_usage(const char *argv0)
         "  --record-replay=<file>    Record the match to this .SRP (src/replay_v2.c).\n"
         "                            Every match is recorded to LATEST.SRP anyway; this\n"
         "                            names the file, and also records under --replay-test.\n"
-        "  --view-replay=<file>      Play a .SRP or a .HIL headless in place of the\n"
+        "  --view-replay=<file>      Play a .SRP, a .HIL or a .RPL headless in place of the\n"
         "                            front end and exit (0 when every frame of a .SRP\n"
         "                            played). A .HIL is a NAME in the save folder, as\n"
         "                            the highlights menu loads it. --replay-width sets\n"

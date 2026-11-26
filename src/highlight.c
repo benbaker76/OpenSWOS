@@ -1046,9 +1046,10 @@ after_decode:
             Platform_HudLayerReset();
             _frontbufferBasePtr = (uintptr_t)hudLayer;
             extern int _menu_draw_x_offset;
-            Platform_HudLayerMark((int)bx + _menu_draw_x_offset, (int)by, 64, 32);
+            Platform_HudLayerMark((int)bx + _menu_draw_x_offset, (int)by - 14, 64, 46);   /* (the clock over it too) */
         }
 #endif
+        const uint16_t scoreX = bx, scoreY = by;   /* (where the clock goes over it) */
         uint16_t lTens = leftGoals / 10,  lUnits = leftGoals % 10;
         uint16_t rTens = rightGoals / 10, rUnits = rightGoals % 10;
 
@@ -1067,6 +1068,20 @@ after_decode:
         if (rTens) { DarkenRectangle(SPR_BIG_0_ALT + rTens, bx, by); bx += 12; }
         DarkenRectangle(SPR_BIG_0_ALT + rUnits, bx, by);
 #ifdef SWOS_SDL_BUILD
+        {   /* A .SRP's frame holds the minute on the match's clock: the clock over the score,
+             * the game's own picture of it (game_state.c GameState_BuildClock). */
+            extern int32_t  ReplayV2_Loaded(void), ReplayV2_FrameMinute(void);
+            extern uint16_t GameState_BuildClock(uint8_t, uint8_t, uint8_t);
+            extern uint16_t _copyTimeSprite;
+            extern uint16_t _playHighlightFlag;
+            const int32_t minute = _playHighlightFlag != 0 && ReplayV2_Loaded() ? ReplayV2_FrameMinute() : -1;
+            if (minute >= 0 && minute < 200) {
+                const uint16_t clock = GameState_BuildClock((uint8_t)(minute / 100), (uint8_t)(minute / 10 % 10),
+                                                            (uint8_t)(minute % 10));
+                _copyTimeSprite = 1;            /* (the match's own clock, built again after) */
+                DarkenRectangle(clock, scoreX, (uint16_t)(scoreY - 12));   /* (over it, left-aligned, 2 px apart) */
+            }
+        }
         if (hudLayer)
             _frontbufferBasePtr = savedFbBase;
 #endif

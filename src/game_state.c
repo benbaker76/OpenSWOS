@@ -784,6 +784,34 @@ position_sprites:
  * - Builds and positions the time display sprite
  * ================================================================ */
 __attribute__((used, externally_visible))
+/* The clock's picture for a minute's digits: the game's template for 1, 2 or 3 digits with the
+ * digits copied in -- UpdateTime's, and a replay's (highlight.c, the minute each .SRP frame holds).
+ * Its sprite index. The templates are shared: a replay that drew one sets _copyTimeSprite, so a
+ * match it was shown in builds its own again. */
+uint16_t GameState_BuildClock(uint8_t dHundreds, uint8_t dTens, uint8_t dOnes)
+{
+    uint16_t xOff = 0, sprIdx;
+    if (dHundreds != 0) {
+        sprIdx = SPR_INVITATION_TOURNAMENT;     /* 3-digit time (100+) */
+        xOff = 5;                               /* width for the hundreds digit (always 1) */
+    } else if (dTens != 0) {
+        sprIdx = SPR_PREMIERE_DIVISION_WINNER;  /* 2-digit time */
+    } else {
+        sprIdx = SPR_LITTLE_PLAYER_GENERIC;     /* 1-digit time */
+    }
+    if (dHundreds != 0 || dTens != 0) {
+        CopySprite((uint16_t)(SPR_CUP_WINNER + dTens), sprIdx, xOff, 0);
+        xOff += 6;
+    }
+    CopySprite((uint16_t)(SPR_CUP_WINNER + dOnes), sprIdx, xOff, 0);
+    /* Blit the assembled time sprite */
+    if (sprIdx == SPR_INVITATION_TOURNAMENT)
+        BlitSpritePlanar_Long_StridedDest(sprIdx);
+    else
+        BlitSpritePlanar_Word_StridedDest(sprIdx);
+    return sprIdx;
+}
+
 void UpdateTime(void)
 {
     uint16_t d0u;
@@ -1081,53 +1109,13 @@ no_update_to_time:
 not_end_of_second_extra:
     {
         /* Build time sprite from gameTime digits */
-        uint16_t xOff = 0;
-        uint16_t yOff = 0;
-        uint16_t sprIdx;
-        uint16_t digitSprite;
 #if defined(RASTER_BARS) && !defined(SWOS_SDL_BUILD)
         uint8_t dHundreds = 0, dTens = (uint8_t)(_rasterFps / 10), dOnes = (uint8_t)(_rasterFps % 10);
 #else
         uint8_t dHundreds = GAMETIME_HUNDREDS, dTens = GAMETIME_TENS, dOnes = Stoppage_ClockOnes(GAMETIME_ONES);
 #endif
-
-        if (dHundreds != 0)
-        {
-            /* 3-digit time (100+) */
-            sprIdx = SPR_INVITATION_TOURNAMENT;
-            xOff = 5;       /* width for the hundreds digit (always 1) */
-        }
-        else if (dTens != 0)
-        {
-            /* 2-digit time */
-            sprIdx = SPR_PREMIERE_DIVISION_WINNER;
-        }
-        else
-        {
-            /* 1-digit time */
-            sprIdx = SPR_LITTLE_PLAYER_GENERIC;
-            goto copy_last_digit;
-        }
-
-        /* Copy tens digit */
-        digitSprite = SPR_CUP_WINNER + dTens;
-        CopySprite(digitSprite, sprIdx, xOff, yOff);
-        xOff += 6;
-
-    copy_last_digit:
-        /* Copy ones digit */
-        digitSprite = SPR_CUP_WINNER + dOnes;
-        CopySprite(digitSprite, sprIdx, xOff, yOff);
-
         /* Set sprite image index (in a world's added time, the clock with its "+N") */
-        _currentTimeSprite.imageIndex = Stoppage_ClockSprite(sprIdx);
-
-        /* Blit the assembled time sprite */
-        if (sprIdx == SPR_INVITATION_TOURNAMENT)
-            BlitSpritePlanar_Long_StridedDest(sprIdx);
-        else
-            BlitSpritePlanar_Word_StridedDest(sprIdx);
-
+        _currentTimeSprite.imageIndex = Stoppage_ClockSprite(GameState_BuildClock(dHundreds, dTens, dOnes));
         _copyTimeSprite = 0;
     }
 

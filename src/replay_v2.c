@@ -1749,6 +1749,7 @@ static void fire_sound(const AudioEvent *e)
  * on screen. Every frame of FRMS has its own offset, so a seek is only the cursor --
  * plus the sound cursor, and the camera put straight where the match had it, as on
  * the first frame (_replayState 1). */
+static uint16_t s_frameMinute;          /* the minute of the frame last drawn */
 static struct {
     int32_t on, paused, seekTo, step;
     int32_t silenced;               /* the pause's silence is done */
@@ -1759,6 +1760,8 @@ void ReplayV2_PlayerMode(int32_t on) { s_player.on = on != 0; }
 EMSCRIPTEN_KEEPALIVE int32_t ReplayV2_PlayerFrames(void)   { return s_play.loaded ? (int32_t)s_play.frameCount : 0; }
 EMSCRIPTEN_KEEPALIVE int32_t ReplayV2_PlayerTickRate(void) { return s_play.loaded ? (int32_t)s_play.tickRate : 0; }
 EMSCRIPTEN_KEEPALIVE int32_t ReplayV2_PlayerPaused(void)   { return s_player.paused; }
+/* The minute on the clock of the frame last drawn (highlight.c draws it beside the score). */
+int32_t ReplayV2_FrameMinute(void) { return s_play.loaded ? (int32_t)s_frameMinute : -1; }
 /* The frame on screen: the one last drawn. */
 EMSCRIPTEN_KEEPALIVE int32_t ReplayV2_PlayerFrame(void)
 {
@@ -2332,6 +2335,7 @@ void ReplayV2_DrawFrame(void)
     _hilLeftTeamGoals  = BE_READ_U16(h + 10);
     _hilRightTeamGoals = BE_READ_U16(h + 12);
     _animPatternsState = BE_READ_U16(h + 14);
+    s_frameMinute = BE_READ_U16(h + 16);
     DrawAnimatedPatterns();
     ModHooks_ReplayFrameBegin(modFirst, fresh);     /* (under the sprites: the weather mod's mud) */
     s_modLastCursor = s_play.cursor;
@@ -2432,10 +2436,15 @@ void ReplayV2_ViewTestRun(void)
     {
         uint32_t n = (uint32_t)strlen(s_viewPath);
         const char *ext = n >= 4 ? s_viewPath + n - 4 : "";
-        if (ext[0] == '.' && (ext[1] | 0x20) == 'h' && (ext[2] | 0x20) == 'i' && (ext[3] | 0x20) == 'l') {
+        const int rpl = ext[0] == '.' && (ext[1] | 0x20) == 'r' && (ext[2] | 0x20) == 'p' && (ext[3] | 0x20) == 'l';
+        if (rpl || (ext[0] == '.' && (ext[1] | 0x20) == 'h' && (ext[2] | 0x20) == 'i' && (ext[3] | 0x20) == 'l')) {
             extern int16_t LoadHilFile(uint8_t *filename);
             extern void    CopyTeamsAndHeader(void);
-            if (LoadHilFile((uint8_t *)s_viewPath) != 0)
+            extern void    DosReplay_ClearRpl(void);
+            extern int     DosReplay_LoadRpl(uint8_t *filename);
+            /* (a .RPL: a SWOS 2020 / DOS whole-match replay, as LOAD HIGHLIGHTS takes it) */
+            DosReplay_ClearRpl();
+            if (rpl ? DosReplay_LoadRpl((uint8_t *)s_viewPath) != 0 : LoadHilFile((uint8_t *)s_viewPath) != 0)
                 exit(1);
             {   /* SWOS_TEST_HIL_RESAVE=NAME: saved as SAVE HIGHLIGHTS saves (DoSaveHighlights),
                  * loaded back, every byte of the highlights compared, then played from it */
@@ -2470,7 +2479,7 @@ void ReplayV2_ViewTestRun(void)
             _poolplyrLoaded = 0;
             CopyTeamsAndHeader();
             ViewHighlights();
-            fprintf(stderr, "[replay] played the highlights in %s\n", s_viewPath);
+            fprintf(stderr, "[replay] played the %s in %s\n", rpl ? "match" : "highlights", s_viewPath);
             fflush(stderr);
             exit(0);
         }
