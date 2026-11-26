@@ -23,8 +23,9 @@
 # matchmaking server's team list is refreshed here too (assign_team_uuids.py --worlds).
 #
 # WORLD_VERSION=<version> (e.g. 4.1.2-u1: the Mod release it comes from, and the revision of it): the
-# package's version, for people -- a "version" line in the zip's WORLD.ini and a "Version:" line in
-# its .txt, written together so the two always agree. The fingerprint stays what the game checks;
+# package's version, for people -- a "version" line in the zip's WORLD.ini, mod.json's version (the
+# MODS screen's "WORLD 2026-27 4.1.2-U1"; without it there the fingerprint) and a "Version:" line in
+# its .txt, written together so they always agree. The fingerprint stays what the game checks;
 # setup and game read no other key of WORLD.ini (sd_sources.c world_ini, main.c), so an older one
 # just leaves it. Without it the package has no version (said, not refused).
 set -euo pipefail
@@ -40,6 +41,7 @@ done
 FP=$(sed -n 's/^fingerprint *= *//p' "$SRC/WORLD.ini")
 VER="${WORLD_VERSION:-}"
 case "$VER" in *[!A-Za-z0-9._+-]*) echo "make_world_package: WORLD_VERSION=$VER -- letters, digits and . _ + - only" >&2; exit 1 ;; esac
+[ "${#VER}" -le 23 ] || { echo "make_world_package: WORLD_VERSION=$VER -- 23 characters at most (src/mods.c)" >&2; exit 1; }
 [ -n "$VER" ] || echo "make_world_package: no WORLD_VERSION -- the package goes without a version (e.g. WORLD_VERSION=4.1.2-u1)" >&2
 NAME=$(sed -n 's/^name *= *//p' "$SRC/WORLD.ini")
 # (each world's baked tables: World 2026-27's src/world_data.c, another's src/world_data_<tag>.c)
@@ -52,7 +54,8 @@ mkdir -p "$ROOT/dist"
 python3 -I - "$SRC" "$OUT.tmp" "OpenSWOS-World-$TAG" "$TAG" "$FP" "$NAME" "$VER" <<'PY'
 import json, os, sys, zipfile
 src, out, top, tag, fp, name, ver = sys.argv[1:]
-# The mod's uuid is the world's for ever (a DLC's own: docs/MODS.md §14); the version, its data.
+# The mod's uuid is the world's for ever (a DLC's own: docs/MODS.md §14); the version, WORLD_VERSION
+# (else its data's fingerprint).
 UUIDS = {"2627": "15ea9117-6aa0-4968-a293-6cf33092ff33",
          "8485": "48496e1d-27d7-49d8-acff-c428814a1bc6"}
 AUTHORS = {"8485": "DaniSwos (the 1984-85 database) and the SWOS 96/97 Mod (Davide Lorigliola and its contributors)"}
@@ -60,7 +63,7 @@ if tag not in UUIDS:
     sys.exit("make_world_package: world %s has no mod uuid yet -- give it one (uuid4) in UUIDS" % tag)
 name = name or ("World %s-%s" % ("20" + tag[:2], tag[2:]) if len(tag) == 4 else "World " + tag)
 manifest = {
-    "uuid": UUIDS[tag], "id": "world" + tag, "name": name, "version": fp,
+    "uuid": UUIDS[tag], "id": "world" + tag, "name": name, "version": ver or fp,
     "author": AUTHORS.get(tag, "the SWOS 96/97 Mod (Davide Lorigliola and its contributors)"),
     "about": "The football world of %s: its countries, leagues, cups and squads." % name.replace("World ", ""),
     "targets": ["sdl", "amiga"], "changes": "data", "default": False,
