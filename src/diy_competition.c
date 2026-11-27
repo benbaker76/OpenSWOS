@@ -10247,7 +10247,10 @@ tournament_entry:
             tournament_post:
                 {
                     uint16_t threshold = stageSlot->numTeams;
-                    if ((uint16_t)d1 < threshold) {
+                    /* (a world's league phase: its seeded clubs sit past the play-off's 16
+                     * until the round of 16 is drawn -- not out: the MANAGEMENT RECORD said
+                     * KNOCKED OUT IN ROUND 1, tester report 2026-11-26, PARIS-SG) */
+                    if ((uint16_t)d1 < threshold || LeaguePhase_SeedAwaitingR16(raw, (uint16_t)d1)) {
                         return threshold / 2 - 1;
                     }
 

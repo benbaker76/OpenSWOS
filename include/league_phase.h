@@ -108,6 +108,10 @@ void LeaguePhase_GroupsEnd(uint8_t *diy, int32_t after);
 /* DIY_ShuffleTeamsAndBuildCompTeamList: a knockout stage after ours keeps its order (1: no
  * shuffle), the round of 16 its play-off winners against the seeds (lp_draw); else 0. */
 int32_t LeaguePhase_KnockoutDraw(uint8_t *diy, uint16_t numTeams);
+/* A seeded club (league phase 1st-8th) waiting out the play-off round: place in the tournament's
+ * list (FindTeamInDIY) of a league-phase cup in its play-off stage -- still in the competition
+ * until the round of 16's draw moves it into the bracket. */
+int32_t LeaguePhase_SeedAwaitingR16(const uint8_t *diy, uint16_t place);
 
 /* The table screen (diy_competition.c DIYLeagueTournament16BeforeDraw; the Mod's lp_hdr / lp_num /
  * lp_col): the two group pages are one table of 36 -- the page's header, a row's place and colour

@@ -577,13 +577,22 @@ uint8_t *UefaQual_SeasonTie(uint16_t *index)
     return 0;
 }
 
-/* A loaded career: the tie under way rebuilt from the state (the record is not saved). */
+/* A loaded career: the tie under way rebuilt from the state (the record is not saved) -- or, the
+ * club's ties over and out of Europe, the last one played, which slot 3 still shows. */
 uint8_t *UefaQual_RestoreTie(uint16_t index)
 {
-    if (index < 4 || index > 6 || g_uqState.mark != 0x5155 || !g_uqState.m)
+    struct uq_state *S = &g_uqState;
+    if (index < 4 || index > 6 || !S->m)
         return 0;
-    UQ_S = &g_uqState;
-    uq_resolve();
+    UQ_S = S;
+    if (S->mark != 0x5155) {            /* (its ties over: out of Europe, the last one stays in slot 3) */
+        if (!S->nbr || !S->k)
+            return 0;
+        S->k--;
+        uq_resolve();
+        S->k++;
+    } else
+        uq_resolve();
     if (UQ_R.done)
         return 0;
     for (int32_t c = 0; c < 3; c++)
@@ -629,9 +638,9 @@ void UefaQual_Daily(void)
     S->k++;
     UQ_S = S;
     uq_resolve();
-    for (int32_t c = 0; c < 3; c++)
-        clear_tie(c);
     if (!UQ_R.done) {                   /* the next tie */
+        for (int32_t c = 0; c < 3; c++)
+            clear_tie(c);
         make_tie(UQ_R.r, UQ_R.opp);
         slot3((uint8_t *)&s_tie[COMP(UQ_R.r)], (uint16_t)(4 + COMP(UQ_R.r)));
         return;
@@ -646,8 +655,14 @@ void UefaQual_Daily(void)
             cup[c]->teamSeedList[i].countryNumber = (uint8_t)(t >> 8);
             cup[c]->teamSeedList[i].teamOrdinal = (uint8_t)t;
         }
-    if (UQ_R.dest < 3)                  /* (the league phase reached; out of Europe: the tie stays) */
+    /* Out of Europe, the tie just decided stays in slot 3, and its record with it: its name is
+     * what the fixture list shows beside the ties played (clearing it showed them as ERROR,
+     * tester report 2026-11-26: Vaduz, out in the UECL's second qualifying round). */
+    if (UQ_R.dest < 3) {                /* (the league phase reached) */
+        for (int32_t c = 0; c < 3; c++)
+            clear_tie(c);
         slot3((uint8_t *)cup[UQ_R.dest], UQ_R.dest);
+    }
 }
 
 /* A tie's round name (world_cups.c): FIRST .. FOURTH ROUND for Q1, Q2, Q3 and the play-off, by

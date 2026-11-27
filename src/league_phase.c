@@ -777,6 +777,13 @@ int32_t LeaguePhase_KnockoutDraw(uint8_t *diy, uint16_t numTeams)
 }
 
 
+int32_t LeaguePhase_SeedAwaitingR16(const uint8_t *diy, uint16_t place)
+{
+    const DIYTournamentState *t = (const DIYTournamentState *)diy;
+    return ours_id((uint8_t)t->header.field_2E) && t->slots[0].groups == 2 && t->slots[0].teamsPerGroup == 18 &&
+           t->header.roundComplete == 1 && place >= 16 && place < 24;
+}
+
 int32_t LeaguePhase_Showing(void)
 {
     return ours();
