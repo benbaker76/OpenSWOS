@@ -230,17 +230,30 @@ static int s_menu_verify_raw = 0;
 #endif /* MENU_JSON_BUILD */
 
 /* Symbol tables registered at run time by modules whose menus exist only as JSON
- * (MenuJson_RegisterSymbols), searched after the generated registry. */
-#define MAX_EXTRA_SYMBOL_TABLES 32     /* (each built-in mod may register one: ModApi_RegisterHandlers) */
-static struct { const MenuSymbol *syms; int count; } s_extraSymbols[MAX_EXTRA_SYMBOL_TABLES];
-static int s_numExtraSymbolTables;
+ * (MenuJson_RegisterSymbols), searched after the generated registry. As many as are registered:
+ * a fixed 32 filled up once SWOS United's screens and mods had all registered theirs (CHALLENGES
+ * opened, then SETTINGS), and every menu loaded after that got its handlers as no-ops -- buttons
+ * that took the mouse and fire but did nothing. A table given again is kept once. */
+typedef struct { const MenuSymbol *syms; int count; } ExtraSymbols;
+static ExtraSymbols *s_extraSymbols;
+static int s_numExtraSymbolTables, s_capExtraSymbolTables;
 
 void MenuJson_RegisterSymbols(const MenuSymbol *syms, int count)
 {
-    if (s_numExtraSymbolTables == MAX_EXTRA_SYMBOL_TABLES) {
-        fprintf(stderr, "[menu-json] RegisterSymbols: all %d table slots used, %d symbols NOT registered\n",
-                MAX_EXTRA_SYMBOL_TABLES, count);
-        return;
+    for (int t = 0; t < s_numExtraSymbolTables; t++)
+        if (s_extraSymbols[t].syms == syms) {
+            s_extraSymbols[t].count = count;
+            return;
+        }
+    if (s_numExtraSymbolTables == s_capExtraSymbolTables) {
+        const int cap = s_capExtraSymbolTables ? s_capExtraSymbolTables * 2 : 32;
+        ExtraSymbols *grown = (ExtraSymbols *)realloc(s_extraSymbols, (size_t)cap * sizeof *grown);
+        if (!grown) {
+            fprintf(stderr, "[menu-json] RegisterSymbols: out of memory, %d symbols NOT registered\n", count);
+            return;
+        }
+        s_extraSymbols = grown;
+        s_capExtraSymbolTables = cap;
     }
     s_extraSymbols[s_numExtraSymbolTables].syms = syms;
     s_extraSymbols[s_numExtraSymbolTables].count = count;
