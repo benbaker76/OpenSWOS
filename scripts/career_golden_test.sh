@@ -51,6 +51,15 @@ while [ $# -gt 0 ]; do
 done
 
 [ -x "$BIN" ] || { echo "build $BIN first (make X86_64=1)" >&2; exit 2; }
+# The game reads data_json from the assets folder BEFORE bin/'s, so an assets folder holding one
+# (another tree's bin/, say) plays that tree's menus and data, not this one's: the record of
+# 6c9e0936 was made so, and ITA-JUVENTUS and SCO-CELTIC parted on every clean machine (GitHub
+# issue 33). Point SWOS_ASSETS at the game's data only.
+if [ -n "${SWOS_ASSETS:-}" ] && [ -d "$SWOS_ASSETS/data_json" ]; then
+    echo "SWOS_ASSETS ($SWOS_ASSETS) has a data_json/: the game would read it instead of" \
+         "bin/data_json -- use a folder with the game's data only" >&2
+    exit 2
+fi
 # NAME -> what --career-golden gets: new:<path> from the list, or a save in tests/career;
 # and its world, for a line that names one (@<tag>).
 declare -A WHAT WORLD ENVS
