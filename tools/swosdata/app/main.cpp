@@ -2150,8 +2150,8 @@ struct App {
     FileLog("mods: " + m.slug + (on ? " on" : " off") + " ([mods] enabled = " + JoinList(en) + "; disabled = " + JoinList(dis) + ")");
   }
 
-  // Every mod on disk: the canonical ones, then the DLC; and the mod zips in Downloads. (Disk
-  // only: ModsRefresh shows it.)
+  // Every mod on disk: the canonical ones, then the DLC. (Disk only: ModsRefresh shows it; the mod
+  // zips in Downloads are ModsFindZips', for the mods screen alone.)
   void ModsScan() {
     modList.clear();
     for (int pass = 0; pass < 2; pass++) {
@@ -2169,21 +2169,35 @@ struct App {
       if (!m.canonical && m.problem.empty())
         for (const ModFile& c : modList)
           if (c.canonical && c.uuid == m.uuid) m.problem = N_("its uuid is the game's own mod's");
+  }
+
+  // The mod zips in Downloads not installed yet, for the mods screen. Each zip is opened once a run
+  // (by its size and time): ModsScan did it for every zip there each time it ran -- several times
+  // at the start, for the WORLD row --, and a Downloads folder with thousands of zips held the
+  // window up for minutes before it was shown (Redhair, 2026-11-28: 3335 zips).
+  std::map<std::string, std::pair<std::pair<uint64_t, int64_t>, bool>> modZipLooked;
+  void ModsFindZips() {
     modZipsFound.clear();
     const std::string dl = !watchDir.empty() ? watchDir : sd::DownloadsDir();
-    if (!dl.empty())
-      for (const sd::DirEntry& e : sd::ListDir(dl))
-        if (!e.dir && EndsWith(Lower(e.path), ".zip") && ModZip(e.path).size()) {
-          const std::string stem = Lower(e.path.substr(e.path.find_last_of("/\\") + 1));
-          bool have = false;
-          for (const ModFile& m : modList)
-            if (stem == Lower(m.slug) + ".zip") have = true;
-          if (!have) modZipsFound.push_back(e.path);
-        }
+    if (dl.empty()) return;
+    for (const sd::DirEntry& e : sd::ListDir(dl)) {
+      if (e.dir || !EndsWith(Lower(e.path), ".zip")) continue;
+      const std::pair<uint64_t, int64_t> stamp{e.size, e.mtime};
+      auto at = modZipLooked.find(e.path);
+      if (at == modZipLooked.end() || at->second.first != stamp)
+        at = modZipLooked.insert_or_assign(e.path, std::make_pair(stamp, !ModZip(e.path).empty())).first;
+      if (!at->second.second) continue;
+      const std::string stem = Lower(e.path.substr(e.path.find_last_of("/\\") + 1));
+      bool have = false;
+      for (const ModFile& m : modList)
+        if (stem == Lower(m.slug) + ".zip") have = true;
+      if (!have) modZipsFound.push_back(e.path);
+    }
   }
 
   void ModsRefresh() {
     ModsScan();
+    ModsFindZips();
     auto rows = std::make_shared<slint::VectorModel<ModRow>>();
     modRows.clear();
     for (int k = 0; k < int(modList.size()); k++) {
