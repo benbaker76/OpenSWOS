@@ -89,6 +89,7 @@ typedef struct {
     uint8_t  final;             /* it is a final */
     uint8_t  week;
     uint16_t teamA, teamB;      /* home (listed first), away */
+    uint8_t  last;              /* the tie built last this season: 1 national, 2 UEFA (0: an older save) */
 } WorldSuperCupState;
 
 extern WorldSuperCupState g_worldSuperCup;
@@ -121,6 +122,7 @@ int32_t SuperCup_InSlot4(void);
 void SuperCup_RestoreSlot(void);
 
 /* The round's name (_cupRoundStringTable index), -1: not ours. */
+char *const *SuperCup_RowNames(uint16_t top, uint16_t bottom);   /* a slot-4 row's Super Cup names (0: the record's) */
 int32_t SuperCup_RoundStringIndex(uint8_t compId);
 
 /* The season record's lines: the national Super Cup / the UEFA Super Cup won this season, 0: none. */

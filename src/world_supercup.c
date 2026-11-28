@@ -241,6 +241,7 @@ static void build(const WorldSuperCup *sc, int32_t kind, uint16_t home, uint16_t
     WorldSuperCupState *s = &g_worldSuperCup;
     const int32_t w = final ? sc->finalWeek : sc->week;
     s->built = (uint8_t)kind;
+    s->last = (uint8_t)kind;
     s->final = (uint8_t)final;
     s->week = (uint8_t)(w >= floor ? w : floor);
     s->teamA = home;
@@ -461,10 +462,18 @@ static const WorldSuperCup *decided_cup(void)
     if (!t || !s->teamA || !s->teamB)
         return 0;
     const int32_t ue = entry_of(WORLD_SUPERCUP_UEFA);
-    if (ue >= 0 && ue < n && s->uSeason == this_season() && s->uState == 3 &&
-        (s->uWinner == s->teamA || s->uWinner == s->teamB))
+    const int32_t uefaDone = ue >= 0 && ue < n && s->uSeason == this_season() && s->uState == 3;
+    const int32_t natHere = s->season == this_season() && s->entry < n;
+    /* The tie built last is the one in teamA/teamB. Which it was is kept (last); a club that won both
+     * is in both ties, so its winner cannot tell them apart -- PSG's reload showed the Trophee des
+     * Champions under the UEFA Super Cup's name (Playa, 2026-11-27). An older save: the winner's guess. */
+    if (s->last == 2 && uefaDone)
         return &t[ue];
-    if (s->season == this_season() && s->entry < n)
+    if (s->last == 1 && natHere)
+        return &t[s->entry];
+    if (uefaDone && (s->uWinner == s->teamA || s->uWinner == s->teamB))
+        return &t[ue];
+    if (natHere)
         return &t[s->entry];
     return 0;
 }
@@ -488,6 +497,32 @@ void SuperCup_RestoreSlot(void)
     make_record(sc);
     _diyCompetitionPtr = (uint8_t *)&s_rec;
     _diyCompetitionTablePtr = (uint32_t *)0;
+}
+
+/* A row of the season's list drawn from slot 4 while it holds our record: the names of the Super
+ * Cup that row was. Both Super Cups are played in slot 4, one after the other, through this one
+ * record -- so once the national one took the slot, the UEFA Super Cup's played game was listed under
+ * the national one's name (Playa, 2026-11-27: PSG's UEFA Super Cup final as "T. CHAMPIONS"). A row
+ * whose two clubs are not the record's is the other Super Cup of this season: the UEFA one when its
+ * winner is one of them, else the national one. 0: the record's own names (or not ours). */
+char *const *SuperCup_RowNames(uint16_t top, uint16_t bottom)
+{
+    const WorldSuperCupState *s = &g_worldSuperCup;
+    if (_diyCompetitionPtr != (uint8_t *)&s_rec)
+        return 0;
+    if ((top == s->teamA && bottom == s->teamB) || (top == s->teamB && bottom == s->teamA))
+        return 0;
+    int32_t n = 0;
+    const WorldSuperCup *t = table(&n);
+    if (!t)
+        return 0;
+    const int32_t ue = entry_of(WORLD_SUPERCUP_UEFA);
+    if (ue >= 0 && ue < n && s->uSeason == this_season() && s->uState == 3 &&
+        (s->uWinner == top || s->uWinner == bottom))
+        return t[ue].name;
+    if (s->season == this_season() && s->entry < n && s->entry != ue)
+        return t[s->entry].name;
+    return 0;
 }
 
 int32_t SuperCup_RoundStringIndex(uint8_t compId)

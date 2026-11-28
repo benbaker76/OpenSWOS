@@ -8088,6 +8088,11 @@ pastTeamLoad:
             /* --- Cup-style header (single line comp name + round info) --- */
             /* Slot 1 is the abbreviation (full name + abbreviation pair). */
             char **nameTbl = comp_name_table((Competition *)compInfo);
+            if (slotType == 4 && a6[5] != 0) {     /* (slot 4's other Super Cup of the season: world_supercup.c) */
+                char *const *sc = SuperCup_RowNames(BE_READ_U16(a4 + 0x0C), BE_READ_U16(a4 + 0x0E));
+                if (sc)
+                    nameTbl = (char **)sc;
+            }
             if (nameTbl)
                 namePtr = (uint8_t *)nameTbl[1];
 
@@ -8162,6 +8167,11 @@ pastTeamLoad:
             /* --- Default (slotVal >= 2) header: same as cup but different path --- */
             /* Slot 1 is the abbreviation (full name + abbreviation pair). */
             char **nameTbl = comp_name_table((Competition *)compInfo);
+            if (slotType == 4 && a6[5] != 0) {     /* (slot 4's other Super Cup of the season: world_supercup.c) */
+                char *const *sc = SuperCup_RowNames(BE_READ_U16(a4 + 0x0C), BE_READ_U16(a4 + 0x0E));
+                if (sc)
+                    nameTbl = (char **)sc;
+            }
             if (nameTbl)
                 namePtr = (uint8_t *)nameTbl[1];
 

@@ -8,6 +8,7 @@
  * Chunk 61: 3 functions ported from SWOS2.s.
  */
 
+#include "season_extra.h"
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "game_types.h"
 #include "league_playoffs.h"
@@ -319,6 +320,7 @@ void ChooseTeamAndStartCareer(void)
     SuperCup_Reset();
     CupRecord_Reset();
     UefaCoef_Reset();
+    SeasonExtra_Reset();        /* (a season's competition rows past the record's four) */
     UefaPrize_NewCareer();
     Ffp_NewCareer();
     CpuRepl_NewCareer();
@@ -725,6 +727,7 @@ void InitCareer(uint16_t teamNo)
     SuperCup_Reset();
     CupRecord_Reset();
     UefaCoef_Reset();
+    SeasonExtra_Reset();        /* (a season's competition rows past the record's four) */
     UefaPrize_NewCareer();
     Ffp_NewCareer();
     CpuRepl_NewCareer();

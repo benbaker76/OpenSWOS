@@ -6,6 +6,7 @@
  * slot 4 -- a Playoffs record, its clubs from the final table (DIY_Rebuild...'s steps) --
  * but when the league ends, since which one the club plays (if any) is known only then.
  */
+#include "season_extra.h"      /* a season's competition rows past the record's four */
 #include "world_playoff.h"
 #include "world_cups.h"
 #include "world_cupd.h"
@@ -1178,10 +1179,14 @@ void WorldPlayoff_RecordLines(void)
     RL_ADD(SuperCup_RecordLine(0), 1);          /* (a national Super Cup won: gplay.c sc_rline) */
     RL_ADD(SuperCup_RecordLine(1), 1);          /* (the UEFA Super Cup won: usc_rline) */
 #undef RL_ADD
+    const int32_t cur = SeasonExtra_Index((const SeasonInformations *)GetCurrentSeasonPointer());
+    SeasonExtra_Clear(cur);                     /* (this season's extra rows: written again below) */
     if (!rl_n)
         return;
-    {   /* each into its line if there already, else the first free of lines 4 / 3 / 2; a title won
-         * with none free: in place of the weakest line not won (an elimination), not ours */
+    {   /* each into its line if there already, else the first free of lines 4 / 3 / 2, else a row
+         * of its own below them (season_extra.c: MANAGEMENT RECORD shows every competition -- the
+         * owner, 2026-11-27); only with those full, a title won takes the weakest line not won
+         * (an elimination), not ours */
         SeasonInformations *rec = (SeasonInformations *)GetCurrentSeasonPointer();
         uint8_t **line[4] = { &rec->leagueStrPtr, &rec->strPtr1, &rec->strPtr2, &rec->strPtr3 };
         int8_t *code[4] = { &rec->comp1Result, &rec->comp2Result, &rec->comp3Result, &rec->comp4Result };
@@ -1192,11 +1197,19 @@ void WorldPlayoff_RecordLines(void)
                 if (!(ours & 1 << o) && *line[o] && same_text((const char *)*line[o], rln[i])) at = o;
             for (int32_t o = 3; o >= 1 && at < 0; o--)
                 if (!*line[o]) at = o;
+            if (at < 0 && SeasonExtra_Add(cur, rln[i], rlc[i])) {
+                SWOS_DBG("[world-playoff] season record extra row: %s (%d)\n", rln[i], (int)rlc[i]);
+                continue;
+            }
             if (at < 0 && rlc[i] == 1) {
                 int32_t best = 99;
                 for (int32_t o = 3; o >= 1; o--) {
                     const int32_t c = *code[o];
-                    if (ours & 1 << o || c == 1 || rl_rank(c) >= best) continue;
+                    /* (never a competition still being played or not begun: the UEFA Super Cup
+                     * and the Trophee des Champions both won took the Champions League's line
+                     * while PSG played its league phase -- Playa, 2026-11-27, PSG BUG 2.CAR. The
+                     * title takes a line once one of them ends in an elimination.) */
+                    if (ours & 1 << o || c == 1 || c == -104 || c == -106 || rl_rank(c) >= best) continue;
                     best = rl_rank(c);
                     at = o;
                 }

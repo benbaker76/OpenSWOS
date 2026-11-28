@@ -34,6 +34,7 @@
 #include "world_playoff.h"     /* "world_playoff" in career saves */
 #include "world_winners.h"     /* "season_winners" */
 #include "uefa_coef.h"         /* "uefa_coef", "uefa_qualifying" in career saves */
+#include "season_extra.h"      /* "season_extra_lines" in career saves */
 #include "league_playoffs.h"   /* "league_stages" in career saves */
 #include "world_conti.h"       /* "conti_holders", "conti_edition" in career saves */
 #include "states.h"            /* "state_pools" in career saves */
@@ -7541,9 +7542,9 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                          "other", (int)s->other, "winner", (int)s->winner);
             mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d", "uefa_season", (int)s->uSeason,
                          "uefa_state", (int)s->uState, "uefa_won", (int)s->uWon, "uefa_winner", (int)s->uWinner);
-            mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "built", (int)s->built,
+            mjson_printf(json_out_emit, &out, ",%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d,%Q:%d}", "built", (int)s->built,
                          "final", (int)s->final, "week", (int)s->week, "team_a", (int)s->teamA,
-                         "team_b", (int)s->teamB);
+                         "team_b", (int)s->teamB, "last_built", (int)s->last);
         }
     }
 
@@ -7666,6 +7667,23 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
                      (int)g_leagueWinners.season);
         wp_emit_u16(&out, "titles", e, ne);
         json_out_emit("}", 1, &out);
+    }
+
+    /* A season's competition rows past the record's four (season_extra.c): [season, name, code]. */
+    {
+        int any = 0;
+        for (int se = 0; se < CAREER_MAX_SEASONS; se++)
+            for (int x = 0; x < SEASON_EXTRA_LINES; x++) {
+                const SeasonExtraLine *e = SeasonExtra_Get(se, x);
+                if (!e)
+                    continue;
+                if (!any)
+                    mjson_printf(json_out_emit, &out, ",\n  %Q:[", "season_extra_lines");
+                mjson_printf(json_out_emit, &out, "%s[%d,%Q,%d]", any ? "," : "", se, e->name, (int)e->code);
+                any = 1;
+            }
+        if (any)
+            json_out_emit("]", 1, &out);
     }
 
     /* A world's UEFA coefficients (uefa_coef.c): per association its clubs and points this
@@ -8543,6 +8561,7 @@ static void apply_semantic_load(const char *src, int src_size)
             if (mjson_get_long(sc, sclen, "$.week", &v) > 0) s->week = (uint8_t)v;
             if (mjson_get_long(sc, sclen, "$.team_a", &v) > 0) s->teamA = (uint16_t)v;
             if (mjson_get_long(sc, sclen, "$.team_b", &v) > 0) s->teamB = (uint16_t)v;
+            if (mjson_get_long(sc, sclen, "$.last_built", &v) > 0) s->last = (uint8_t)v;
         }
     }
 
@@ -8878,6 +8897,27 @@ static void apply_semantic_load(const char *src, int src_size)
                      (s_cupPick[i] = cup_pick_ptr((int32_t)v), 1);
             }
             s_cupPickLoaded = ok;
+        }
+    }
+
+    /* A season's competition rows past the record's four (season_extra.c); a save without them: none. */
+    SeasonExtra_Reset();
+    {
+        const char *xl = NULL;
+        int xllen = 0;
+        if (mjson_find(src, src_size, "$.season_extra_lines", &xl, &xllen) == MJSON_TOK_ARRAY) {
+            int off = 0, ko, kl, vo, vl, vt;
+            while ((off = mjson_next(xl, xllen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
+                double se = -1, cd = 0;
+                char nm[SEASON_EXTRA_NAME];
+                if (vt != MJSON_TOK_ARRAY)
+                    continue;
+                if (mjson_get_number(xl + vo, vl, "$[0]", &se) == 0 ||
+                    mjson_get_string(xl + vo, vl, "$[1]", nm, (int)sizeof nm) <= 0)
+                    continue;
+                mjson_get_number(xl + vo, vl, "$[2]", &cd);
+                SeasonExtra_Add((int32_t)se, nm, (int8_t)cd);
+            }
         }
     }
 

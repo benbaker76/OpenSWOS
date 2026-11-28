@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "season_extra.h"      /* a season's competition rows past the record's four */
 #include <string.h>
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "career_params.h"   /* num_seasons: the career's last season */
@@ -2019,15 +2020,18 @@ static void SetTrophySprites_Internal(SeasonInformations *si)
         const uint8_t *line[4] = { si->leagueStrPtr, si->strPtr1, si->strPtr2, si->strPtr3 };
         const int8_t code[4] = { si->comp1Result, si->comp2Result, si->comp3Result, si->comp4Result };
         const uint8_t country = World_FileCountry((uint8_t)(si->clubNo >> 8));
-        for (int32_t i = 1; i < 4; i++) {
-            if (!line[i] || code[i] != 1)
+        for (int32_t i = 1; i < 4 + SEASON_EXTRA_LINES; i++) {
+            const SeasonExtraLine *ex = i >= 4 ? SeasonExtra_Get(SeasonExtra_Index(si), i - 4) : 0;
+            const uint8_t *ln = i < 4 ? line[i] : (ex ? (const uint8_t *)ex->name : 0);
+            const int8_t cd = i < 4 ? code[i] : (ex ? ex->code : 0);
+            if (!ln || cd != 1)
                 continue;
-            const int32_t sc = SuperCup_RecordKind((const char *)line[i]);
+            const int32_t sc = SuperCup_RecordKind((const char *)ln);
             if (sc == 1)
                 flags |= 1 << 8;
             else if (sc == 2)
                 flags |= 1 << 1;
-            else if (!(flags & ((1 << 5) | (1 << 6))) && WorldPlayoff_IsTitleLine(country, (const char *)line[i]))
+            else if (!(flags & ((1 << 5) | (1 << 6))) && WorldPlayoff_IsTitleLine(country, (const char *)ln))
                 flags |= 1 << 5;        /* (the league's; its division not in the record: the top's) */
         }
     }
@@ -2247,7 +2251,16 @@ void FillManagementRecordInfo(void)
     /* Initialize trophy sprites */
     SetTrophySprites_Internal(si);
 
-    d5 = 55; /* starting Y */
+    /* A season with more competitions than the record's four lines: its extra rows
+     * (season_extra.c), the room for them taken from the gaps -- per extra row 10 pixels, from
+     * [top, after the title, after the country, after the lines, the two lower gaps] (the owner,
+     * 2026-11-27: every competition shown). */
+    const int32_t extraRows = SeasonExtra_Count(SeasonExtra_Index(si));
+    static const uint8_t kSqueeze[SEASON_EXTRA_LINES + 1][6] = {
+        { 0, 0, 0, 0, 0, 0 }, { 0, 2, 5, 3, 0, 0 }, { 3, 3, 6, 4, 2, 2 } };
+    const uint8_t *sq = kSqueeze[extraRows > SEASON_EXTRA_LINES ? SEASON_EXTRA_LINES : extraRows];
+
+    d5 = 55 - sq[0]; /* starting Y */
 
     /* --- Season title line (entry 6) --- */
     entry = &_menuEntries[6]; /* $150/56 = 6 */
@@ -2272,7 +2285,7 @@ void FillManagementRecordInfo(void)
                         (const uint8_t *)0, (const uint8_t *)0, (const uint8_t *)0);
     }
     entry->y = d5;
-    d5 += 15;
+    d5 += 15 - sq[1];
 
     /* --- Club name line (entry 4) --- */
     entry = &_menuEntries[4]; /* $E0/56 = 4 */
@@ -2311,7 +2324,7 @@ void FillManagementRecordInfo(void)
                         countryStr, (const uint8_t *)0, (const uint8_t *)0);
     }
     entry->y = d5;
-    d5 += 17;
+    d5 += 17 - sq[2];
 
     /* --- Competition results (4 lines) --- */
     RenderCompLine_Internal(si->leagueStrPtr,
@@ -2322,8 +2335,13 @@ void FillManagementRecordInfo(void)
                             si->comp3Result, 0, si, &d5);
     RenderCompLine_Internal(si->strPtr3,
                             si->comp4Result, 0, si, &d5);
+    for (int32_t x = 0; x < SEASON_EXTRA_LINES; x++) {     /* (its extra rows: season_extra.c) */
+        const SeasonExtraLine *e = SeasonExtra_Get(SeasonExtra_Index(si), x);
+        if (e)
+            RenderCompLine_Internal((const uint8_t *)e->name, e->code, 0, si, &d5);
+    }
 
-    d5 += 8;
+    d5 += 8 - sq[3];
 
     /* --- Overall stats header (entry 10) --- */
     entry = &_menuEntries[10]; /* $230/56 = 10 */
@@ -2371,7 +2389,7 @@ void FillManagementRecordInfo(void)
     /* Draw overall stats block (entries 10-11) */
     DrawMultipleItems(2, &_menuEntries[10]);
 
-    d5 += 13;
+    d5 += 13 - sq[4];
 
     /* --- Manager status (entry 9) --- */
     _menuEntries[9].isInvisible = 1;
@@ -2410,7 +2428,7 @@ void FillManagementRecordInfo(void)
         DrawMultipleItems(1, &_menuEntries[9]);
     }
 
-    d5 += 13;
+    d5 += 13 - sq[5];
 
     /* --- Top scorer header (entry 12) --- */
     entry = &_menuEntries[12]; /* $2A0/56 = 12 */
