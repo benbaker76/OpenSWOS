@@ -8920,12 +8920,12 @@ static void apply_semantic_load(const char *src, int src_size)
         if (mjson_find(src, src_size, "$.retired_rows", &rr, &rrlen) == MJSON_TOK_ARRAY) {
             int off = 0, ko, kl, vo, vl, vt;
             while ((off = mjson_next(rr, rrlen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
-                double f[3] = { -1, -1, -1 };
+                long f[3] = { -1, -1, -1 };   /* (mjson_get_long: the Amiga's, no floats) */
                 char ln[RETIRED_ROW_NAME], sn[RETIRED_ROW_NAME];
                 static const char *const k[3] = { "$[0]", "$[1]", "$[2]" };
                 int ok = vt == MJSON_TOK_ARRAY;
                 for (int j = 0; ok && j < 3; j++)
-                    ok = mjson_get_number(rr + vo, vl, k[j], &f[j]) != 0 && f[j] >= 0;
+                    ok = mjson_get_long(rr + vo, vl, k[j], &f[j]) > 0 && f[j] >= 0;
                 if (!ok || mjson_get_string(rr + vo, vl, "$[3]", ln, (int)sizeof ln) <= 0)
                     continue;
                 if (mjson_get_string(rr + vo, vl, "$[4]", sn, (int)sizeof sn) <= 0)
@@ -8943,14 +8943,14 @@ static void apply_semantic_load(const char *src, int src_size)
         if (mjson_find(src, src_size, "$.season_extra_lines", &xl, &xllen) == MJSON_TOK_ARRAY) {
             int off = 0, ko, kl, vo, vl, vt;
             while ((off = mjson_next(xl, xllen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
-                double se = -1, cd = 0;
+                long se = -1, cd = 0;   /* (mjson_get_long: the Amiga's, no floats) */
                 char nm[SEASON_EXTRA_NAME];
                 if (vt != MJSON_TOK_ARRAY)
                     continue;
-                if (mjson_get_number(xl + vo, vl, "$[0]", &se) == 0 ||
+                if (mjson_get_long(xl + vo, vl, "$[0]", &se) <= 0 ||
                     mjson_get_string(xl + vo, vl, "$[1]", nm, (int)sizeof nm) <= 0)
                     continue;
-                mjson_get_number(xl + vo, vl, "$[2]", &cd);
+                mjson_get_long(xl + vo, vl, "$[2]", &cd);
                 SeasonExtra_Add((int32_t)se, nm, (int8_t)cd);
             }
         }
