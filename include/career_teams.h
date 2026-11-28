@@ -105,3 +105,15 @@ void Career_InitInternationalSquadAndLookupTablesForNewSeason(TeamFileEx *teamPt
 
 /* --- TeamSelectionKeyCache builders (Chunk 196) --- */
 void TeamSelectionKeyCache_BuildFromCompetitionBlock(uint8_t *blk);
+/* A retired calendar row's contest names (career_teams.c, Career_RetireSlotCalendarEntries): the
+ * season's list names a row by its own contest, not the one its slot holds now. Saved. */
+#define RETIRED_ROWS_MAX 96
+#define RETIRED_ROW_NAME 32
+void RetiredRows_Reset(void);
+void RetiredRows_Add(uint8_t slot, uint8_t season, uint8_t key, const char *longName, const char *shortName);
+const char *RetiredRows_Name(uint8_t slot, uint8_t key, int32_t shortName);      /* key: the row's sortKey */
+int32_t RetiredRows_Count(void);
+int32_t RetiredRows_At(int32_t i, uint8_t *slot, uint8_t *season, uint8_t *key,
+                       const char **longName, const char **shortName);
+
+

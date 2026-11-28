@@ -7669,6 +7669,18 @@ int16_t SaveJson_WriteCareer(uint8_t *filename)
         json_out_emit("}", 1, &out);
     }
 
+    /* Retired calendar rows' contest names (career_teams.c): [slot, season, row key, long, short]. */
+    if (RetiredRows_Count() > 0) {
+        mjson_printf(json_out_emit, &out, ",\n  %Q:[", "retired_rows");
+        for (int i = 0; i < RetiredRows_Count(); i++) {
+            uint8_t sl, se, ky; const char *ln, *sn;
+            if (RetiredRows_At(i, &sl, &se, &ky, &ln, &sn))
+                mjson_printf(json_out_emit, &out, "%s[%d,%d,%d,%Q,%Q]", i ? "," : "",
+                             (int)sl, (int)se, (int)ky, ln, sn);
+        }
+        json_out_emit("]", 1, &out);
+    }
+
     /* A season's competition rows past the record's four (season_extra.c): [season, name, code]. */
     {
         int any = 0;
@@ -8897,6 +8909,29 @@ static void apply_semantic_load(const char *src, int src_size)
                      (s_cupPick[i] = cup_pick_ptr((int32_t)v), 1);
             }
             s_cupPickLoaded = ok;
+        }
+    }
+
+    /* Retired calendar rows' contest names (career_teams.c); a save without them: none. */
+    RetiredRows_Reset();
+    {
+        const char *rr = NULL;
+        int rrlen = 0;
+        if (mjson_find(src, src_size, "$.retired_rows", &rr, &rrlen) == MJSON_TOK_ARRAY) {
+            int off = 0, ko, kl, vo, vl, vt;
+            while ((off = mjson_next(rr, rrlen, off, &ko, &kl, &vo, &vl, &vt)) != 0) {
+                double f[3] = { -1, -1, -1 };
+                char ln[RETIRED_ROW_NAME], sn[RETIRED_ROW_NAME];
+                static const char *const k[3] = { "$[0]", "$[1]", "$[2]" };
+                int ok = vt == MJSON_TOK_ARRAY;
+                for (int j = 0; ok && j < 3; j++)
+                    ok = mjson_get_number(rr + vo, vl, k[j], &f[j]) != 0 && f[j] >= 0;
+                if (!ok || mjson_get_string(rr + vo, vl, "$[3]", ln, (int)sizeof ln) <= 0)
+                    continue;
+                if (mjson_get_string(rr + vo, vl, "$[4]", sn, (int)sizeof sn) <= 0)
+                    sn[0] = 0;
+                RetiredRows_Add((uint8_t)f[0], (uint8_t)f[1], (uint8_t)f[2], ln, sn[0] ? sn : ln);
+            }
         }
     }
 

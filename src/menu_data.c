@@ -5830,6 +5830,16 @@ Menu_ManagementRecord _managementRecordMenu = {
             { -104, -122, 20, 12 },
             { MENU_CMD_SPRITE_FG, 0 },
             MENU_CMD_END
+        },
+        {   /* (two more trophies: one a competition won, 2026-11-27) */
+            { -104, -122, 20, 12 },
+            { MENU_CMD_SPRITE_FG, 0 },
+            MENU_CMD_END
+        },
+        {
+            { -104, -122, 20, 12 },
+            { MENU_CMD_SPRITE_FG, 0 },
+            MENU_CMD_END
         }
     },
     MENU_MARK_END_MENU

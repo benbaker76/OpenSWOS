@@ -1960,6 +1960,8 @@ extern uint16_t _trophySprites[];
  * Sets sprite ID for one trophy slot, makes it visible, advances
  * slot pointer, and shifts all 4 trophy X positions left by 10.
  * ================================================================ */
+#define TROPHY_SLOTS 6               /* menu entries 17..22 (managementRecordMenu) */
+
 static MenuEntry *SetTrophySprite_Internal(uint16_t trophyIndex, MenuEntry *slot)
 {
     MenuEntry *base = &_menuEntries[17]; /* entry at $3B8/56 = 17 */
@@ -1973,11 +1975,9 @@ static MenuEntry *SetTrophySprite_Internal(uint16_t trophyIndex, MenuEntry *slot
     /* Advance to next slot */
     slot++;
 
-    /* Shift all 4 trophy slot X positions left by 10 */
-    base[0].x -= 10;
-    base[1].x -= 10;
-    base[2].x -= 10;
-    base[3].x -= 10;
+    /* Shift all the trophy slots' X positions left by 10 (the row stays centred) */
+    for (int32_t i = 0; i < TROPHY_SLOTS; i++)
+        base[i].x -= 10;
 
     return slot;
 }
@@ -1996,18 +1996,15 @@ static void SetTrophySprites_Internal(SeasonInformations *si)
     uint16_t bit;
     MenuEntry *slot;
 
-    /* Set all 4 trophy slots invisible */
-    base[0].isInvisible = 1;
-    base[1].isInvisible = 1;
-    base[2].isInvisible = 1;
-    base[3].isInvisible = 1;
-
-    /* Set X positions starting at 176, spaced 20 apart */
+    /* Set all the trophy slots invisible, X from 176, spaced 20 apart (the original's 4; 6 since
+     * 2026-11-27: one a competition won, a season's record having up to 6 lines -- season_extra.c) */
     d0 = 176;
-    base[0].x = d0; d0 += 20;
-    base[1].x = d0; d0 += 20;
-    base[2].x = d0; d0 += 20;
-    base[3].x = d0;
+    for (int32_t i = 0; i < TROPHY_SLOTS; i++) {
+        base[i].isInvisible = 1;
+        base[i].x = d0;
+        d0 += 20;
+    }
+    int32_t wonLines = 0, titleLines = 0;   /* (the season's lines won; of them a title won after the league) */
 
     /* Read trophy flags */
     flags = si->trophyFlags;
@@ -2020,13 +2017,18 @@ static void SetTrophySprites_Internal(SeasonInformations *si)
         const uint8_t *line[4] = { si->leagueStrPtr, si->strPtr1, si->strPtr2, si->strPtr3 };
         const int8_t code[4] = { si->comp1Result, si->comp2Result, si->comp3Result, si->comp4Result };
         const uint8_t country = World_FileCountry((uint8_t)(si->clubNo >> 8));
-        for (int32_t i = 1; i < 4 + SEASON_EXTRA_LINES; i++) {
+        for (int32_t i = 0; i < 4 + SEASON_EXTRA_LINES; i++) {
             const SeasonExtraLine *ex = i >= 4 ? SeasonExtra_Get(SeasonExtra_Index(si), i - 4) : 0;
             const uint8_t *ln = i < 4 ? line[i] : (ex ? (const uint8_t *)ex->name : 0);
             const int8_t cd = i < 4 ? code[i] : (ex ? ex->code : 0);
             if (!ln || cd != 1)
                 continue;
+            wonLines++;
+            if (i == 0)
+                continue;               /* (the league's own: its trophy is the flags') */
             const int32_t sc = SuperCup_RecordKind((const char *)ln);
+            if (!sc && WorldPlayoff_IsTitleLine(country, (const char *)ln))
+                titleLines++;
             if (sc == 1)
                 flags |= 1 << 8;
             else if (sc == 2)
@@ -2035,18 +2037,27 @@ static void SetTrophySprites_Internal(SeasonInformations *si)
                 flags |= 1 << 5;        /* (the league's; its division not in the record: the top's) */
         }
     }
-    if (flags == 0)
+    if (flags == 0 && wonLines == 0)
         return;
 
     /* Loop through bits 0-9, set sprite for each trophy */
     slot = &_menuEntries[17];
+    int32_t shown = 0;
     for (bit = 0; bit < 10; bit++)
     {
-        if (flags & (1 << bit))
+        if ((flags & (1 << bit)) && shown < TROPHY_SLOTS)
         {
             slot = SetTrophySprite_Internal(bit, slot);
+            shown++;
         }
     }
+    /* One trophy a competition won (the owner, 2026-11-27): the flags show a trophy KIND once, so a
+     * title won after the league -- Argentina's Clausura and Trofeo de Campeones, an MLS Cup, a stage
+     * title -- shared the league's and a season of four WINNERS showed three. A line won past the
+     * kinds shown gets one more: the league's trophy for a title won after the league, else the
+     * cup's. */
+    for (int32_t more = wonLines - shown; more > 0 && shown < TROPHY_SLOTS; more--, shown++)
+        slot = SetTrophySprite_Internal(titleLines-- > 0 ? 5 : 4, slot);
 }
 
 
@@ -2501,11 +2512,9 @@ void FillManagementRecordInfo(void)
     /* asm: tst.w SEASONINFORMATIONS_TROPHYFLAGS(a6) — must read the struct
      * field, not `si + SI_TROPHYFLAGS` (that scales by sizeof(SeasonInformations)
      * and reads ~2.4 KB out of bounds, leaving the trophy row Y stale). */
-    if (si->trophyFlags != 0)
-    {
-        _menuEntries[17].y = d5;
-        _menuEntries[18].y = d5;
-        _menuEntries[19].y = d5;
-        _menuEntries[20].y = d5;
-    }
+    /* (all six slots, always: the two added 2026-11-27 kept the menu's own Y and the fifth trophy
+     * stood over SEASON'S TOP SCORER -- Playa's T6LINES; a season whose wins are only lines past the
+     * flags -- a title won after the league -- shows trophies too) */
+    for (int32_t i = 0; i < TROPHY_SLOTS; i++)
+        _menuEntries[17 + i].y = d5;
 }

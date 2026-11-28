@@ -1930,13 +1930,95 @@ void Career_AdvanceToNextTeamSelectionKeyCacheEntry(void)
  * would take the new one's matches and leave its own entries empty -- a play-out simulated
  * instead of played. The later entries stay: a contest still running keeps its own. (The SWOS
  * 96/97 Mod's uefaq .build does the same.) */
+/* A retired row's contest names (the slot's contest when the row was retired). The season's list
+ * names every row of a slot by the contest the slot holds NOW, so once another contest took the
+ * slot mid-season -- a world's second Super Cup, a Coppa D tie, a play-off, a UEFA or another
+ * continent's qualifying tie, a group contest -- the played rows of the one before were listed
+ * under the new one's name (Playa, 2026-11-27: PSG's UEFA Super Cup as "T. CHAMPIONS"; checked for
+ * every slot-sharing contest). Kept per row -- its slot, the season and the row's own date key
+ * (sortKey: many a contest's rows hold no clubs, the list finds them elsewhere) -- and saved
+ * ("retired_rows"); the list asks for it (menus.c). */
+typedef struct RetiredRow {
+    uint8_t slot, season, key;
+    char    name[2][RETIRED_ROW_NAME];
+} RetiredRow;
+static RetiredRow s_retired[RETIRED_ROWS_MAX];
+static uint16_t s_retiredN;
+
+void RetiredRows_Reset(void) { s_retiredN = 0; }
+
+static void copy_name(char *d, const char *src)
+{
+    int32_t k = 0;
+    for (; src && src[k] && k < RETIRED_ROW_NAME - 1; k++)
+        d[k] = src[k];
+    d[k] = 0;
+}
+
+void RetiredRows_Add(uint8_t slot, uint8_t season, uint8_t key, const char *longName, const char *shortName)
+{
+    for (uint16_t i = 0; i < s_retiredN; i++) {
+        RetiredRow *r = &s_retired[i];
+        if (r->slot == slot && r->season == season && r->key == key)
+            return;                     /* (the first contest it was retired from) */
+    }
+    if (s_retiredN >= RETIRED_ROWS_MAX) {   /* (full: forget the oldest first) */
+        for (uint16_t i = 1; i < s_retiredN; i++)
+            s_retired[i - 1] = s_retired[i];
+        s_retiredN--;
+    }
+    RetiredRow *r = &s_retired[s_retiredN++];
+#ifdef SWOS_SDL_BUILD
+    fprintf(stderr, "[retired-row] slot %u season %u row %02X kept as \"%s\" / \"%s\"\n", (unsigned)slot,
+            (unsigned)season, (unsigned)key, longName ? longName : "", shortName ? shortName : "");
+#endif
+    r->slot = slot;
+    r->season = season;
+    r->key = key;
+    copy_name(r->name[0], longName);
+    copy_name(r->name[1], shortName ? shortName : longName);
+}
+
+const char *RetiredRows_Name(uint8_t slot, uint8_t key, int32_t shortName)
+{
+    extern uint16_t _currentSeasonShowing;
+    for (uint16_t i = 0; i < s_retiredN; i++) {
+        const RetiredRow *r = &s_retired[i];
+        if (r->slot == slot && r->key == key && r->season == (uint8_t)_currentSeasonShowing)
+            return r->name[shortName ? 1 : 0][0] ? r->name[shortName ? 1 : 0] : 0;
+    }
+    return 0;
+}
+
+int32_t RetiredRows_Count(void) { return s_retiredN; }
+
+int32_t RetiredRows_At(int32_t i, uint8_t *slot, uint8_t *season, uint8_t *key,
+                       const char **longName, const char **shortName)
+{
+    if (i < 0 || i >= s_retiredN)
+        return 0;
+    const RetiredRow *r = &s_retired[i];
+    *slot = r->slot; *season = r->season; *key = r->key;
+    *longName = r->name[0]; *shortName = r->name[1];
+    return 1;
+}
+
 void Career_RetireSlotCalendarEntries(uint8_t slot)
 {
+    extern uint8_t *_currentCompetitionPtr, *_secondaryCompetitionPtr, *_tertiaryCompetitionPtr,
+                   *_quaternaryCompetitionPtr, *_diyCompetitionPtr;
+    extern uint16_t _currentSeasonShowing;
+    uint8_t *const held[5] = { _currentCompetitionPtr, _secondaryCompetitionPtr, _tertiaryCompetitionPtr,
+                               _quaternaryCompetitionPtr, _diyCompetitionPtr };
+    char **names = slot < 5 && held[slot] ? comp_name_table((Competition *)held[slot]) : 0;
     uint8_t *e = _teamSelectionKeyCache;
     for (uint16_t i = 0; i < _teamSelectionKeyCacheCount && i <= _teamSelectionKeyCacheIndex; i++) {
         TeamSelectionKeyCacheEntry *x = (TeamSelectionKeyCacheEntry *)e;
-        if (x->compSlot == slot)
+        if (x->compSlot == slot) {
+            if (x->roundIdx != 0xFF && names && names[0])      /* (its contest's names, kept) */
+                RetiredRows_Add(slot, (uint8_t)_currentSeasonShowing, x->sortKey, names[0], names[1]);
             x->roundIdx = 0xFF;
+        }
         e += x->entryStride;
     }
 }

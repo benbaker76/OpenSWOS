@@ -1829,7 +1829,7 @@ typedef struct Menu_TransferMarket
 } Menu_TransferMarket;
 #pragma pack(pop)
 
-/* 218 - Menu 18: managementRecordMenu (0x150 = 336 bytes) */
+/* 218 - Menu 18: managementRecordMenu (0x150 = 336 bytes in the original; two more trophy entries since 2026-11-27) */
 #pragma pack(push, 1)
 typedef struct Menu_ManagementRecord
 {
@@ -1869,7 +1869,7 @@ typedef struct Menu_ManagementRecord
   MenuMark markByteCoords3;
   MenuEntry_Byte_TextPtrOnly entry15;
   MenuEntry_Byte_TextNoPtrOnly entry16;
-  MenuEntry_Byte_SpriteFgOnly entries17_20[4];
+  MenuEntry_Byte_SpriteFgOnly entries17_22[6];   /* the trophies: one a competition won (was 4, 2026-11-27) */
   MenuMark markEndMenu;
 } Menu_ManagementRecord;
 #pragma pack(pop)

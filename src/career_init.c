@@ -9,6 +9,7 @@
  */
 
 #include "season_extra.h"
+#include "career_teams.h"   /* RetiredRows_Reset */
 #include "swos_fixed_team_name.h"   /* SWOS_TeamNameCopy: a 17-byte name may have no NUL */
 #include "game_types.h"
 #include "league_playoffs.h"
@@ -321,6 +322,7 @@ void ChooseTeamAndStartCareer(void)
     CupRecord_Reset();
     UefaCoef_Reset();
     SeasonExtra_Reset();        /* (a season's competition rows past the record's four) */
+    RetiredRows_Reset();        /* (retired calendar rows' names: career_teams.c) */
     UefaPrize_NewCareer();
     Ffp_NewCareer();
     CpuRepl_NewCareer();
@@ -728,6 +730,7 @@ void InitCareer(uint16_t teamNo)
     CupRecord_Reset();
     UefaCoef_Reset();
     SeasonExtra_Reset();        /* (a season's competition rows past the record's four) */
+    RetiredRows_Reset();        /* (retired calendar rows' names: career_teams.c) */
     UefaPrize_NewCareer();
     Ffp_NewCareer();
     CpuRepl_NewCareer();

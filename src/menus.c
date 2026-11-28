@@ -3,6 +3,7 @@
  * SWOS Amiga C/68000 Reversed by Ben Baker (https://github.com/benbaker76)
  * SWOS DOS Reversed by Zlatko Karakaš (https://github.com/zlatkok)
  */
+#include "career_teams.h"   /* RetiredRows_Name */
 #include "team_colors.h"
 #include "squad_extras.h"
 #include "long_bench.h"
@@ -8076,6 +8077,11 @@ pastTeamLoad:
                 namePtr = (uint8_t *)nameTbl[_currentDivisionIndex * 2 + 1];
             }
 
+            if (a6[7] == 0xFF) {                 /* (a retired row: its own contest's name, career_teams.c) */
+                const char *rn = RetiredRows_Name((uint8_t)slotType, a6[1], 1);
+                if (rn)
+                    namePtr = (uint8_t *)rn;
+            }
             a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
             a5->isInvisible = 0;
             a5++; /* next entry */
@@ -8096,6 +8102,11 @@ pastTeamLoad:
             if (nameTbl)
                 namePtr = (uint8_t *)nameTbl[1];
 
+            if (a6[7] == 0xFF) {                 /* (a retired row: its own contest's name, career_teams.c) */
+                const char *rn = RetiredRows_Name((uint8_t)slotType, a6[1], 1);
+                if (rn)
+                    namePtr = (uint8_t *)rn;
+            }
             a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
 
             /* Height check depends on whether a4 == a6 */
@@ -8175,6 +8186,11 @@ pastTeamLoad:
             if (nameTbl)
                 namePtr = (uint8_t *)nameTbl[1];
 
+            if (a6[7] == 0xFF) {                 /* (a retired row: its own contest's name, career_teams.c) */
+                const char *rn = RetiredRows_Name((uint8_t)slotType, a6[1], 1);
+                if (rn)
+                    namePtr = (uint8_t *)rn;
+            }
             a5->fg = (uintptr_t)CalLabel_Fit(namePtr, s_calLabel[d0], (int32_t)sizeof s_calLabel[d0]);
 
             /* Height check */
