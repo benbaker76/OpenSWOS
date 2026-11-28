@@ -1546,6 +1546,22 @@ int Settings_LauncherSelfTest(void)
                 bad++;
             }
         }
+    {   /* (and no line of the whole file longer than the reader takes, INI_MAX_LINE: a comment
+         * that was -- [video] scaling's, 266 -- was a parse error at every start) */
+        FILE *f = fopen(out, "r");
+        int32_t no = 0;
+        while (f && fgets(line, sizeof line, f)) {
+            const size_t len = strlen(line);
+            no++;
+            if (len >= INI_MAX_LINE - 1 || (len == sizeof line - 1 && line[len - 1] != '\n')) {
+                printf("[launcher-settings-test] line %d is longer than %d: %.40s...\n", (int)no,
+                       INI_MAX_LINE - 2, line);
+                bad++;
+            }
+        }
+        if (f)
+            fclose(f);
+    }
     remove(in);
     if (strcmp(getenv("SWOS_LAUNCHER_SETTINGS_TEST") ? getenv("SWOS_LAUNCHER_SETTINGS_TEST") : "", "keep") != 0)
         remove(out);                    /* (=keep: the last file written, to read) */
