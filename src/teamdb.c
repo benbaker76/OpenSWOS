@@ -377,7 +377,10 @@ static CompetitionLeague *rule_league(int32_t file, void ***entryOut)
 
 static CompCupHeader *rule_cup(void **entry, int32_t k, int32_t file)
 {
-    if (!entry[k] || (intptr_t)entry[k] == -1)
+    for (int32_t i = 0; i <= k; i++)    /* (a country's table ends at -1: a country without a cup */
+        if ((intptr_t)entry[i] == -1)   /*  has three entries, and the fourth read was past it) */
+            return NULL;
+    if (!entry[k])
         return NULL;
     CompCupHeader *cup = (CompCupHeader *)entry[k];
     return (cup->comp.type == 1 && (uint8_t)cup->comp.teamNumber == (uint8_t)file) ? cup : NULL;

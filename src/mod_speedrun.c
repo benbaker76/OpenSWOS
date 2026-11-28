@@ -21,13 +21,16 @@
  * Times are FRAMES from kick-off (the match's own, so a run is the same however fast the machine
  * draws), shown in seconds at the gameplay style's rate -- SWOS 2020 kept wall-clock seconds. The
  * records are JSON of named fields (the owner: JSON is our format for data), in the save folder's
- * mods/speedrun/records.json:
- *   { "format": "openswos-speedrun", "version": 1,
- *     "records": [ { "target": "1 goal", "played": 3, "best_frames": 812, "last_frames": 940,
- *                    "best_teams": "ENGLAND v SCOTLAND" }, ... ] }
+ * mods/speedrun/records.json. Each gameplay style has its own: their frame rates differ, so a
+ * time of one means nothing in another.
+ *   { "format": "openswos-speedrun", "version": 2,
+ *     "records": [ { "style": "AMIGA", "target": "1 goal", "played": 3, "best_frames": 812,
+ *                    "last_frames": 940, "best_teams": "ENGLAND v SCOTLAND" }, ... ] }
  * The Amiga parses no JSON (docs/DATA_BSON.md): it keeps them as a fixed binary record, the
- * save folder's mods/speedrun/RECORDS.BIN -- "OSWSPRN" + a version byte (1), a u16 count, then
- * per target its key[16], played, best and last frames (u32) and best_teams[48], big-endian.
+ * save folder's mods/speedrun/RECORDS.BIN -- "OSWSPRN" + a version byte (2), a u16 count, then
+ * per record its key[16], the style (u8, three of padding), played, best and last frames (u32)
+ * and best_teams[48], big-endian.
+ * Version 1 (both) had one record a target and no style: read as the AMIGA style's.
  * Online (docs/MODS.md §33): when a mod offers the "online-records" service (SWOS United's,
  * SWOS 2020's leaderboards), each run is sent to it and the result screen shows its answer --
  *   speedrun.finished  {"target","key","done","frames","ms","style","yours","theirs","teams"}
@@ -52,7 +55,7 @@
 extern void SetExitMenuFlag(void);
 
 enum { T_GOALS, T_HEADER, T_TACKLE, T_YELLOW, T_RED, T_MATCH };
-enum { kTargets = 8 };
+enum { kTargets = 8, kStyles = 5 };    /* (kStyles: dos_mode.h's GAMEPLAY_STYLES) */
 
 static const struct {
     const char *name, *key;
@@ -69,8 +72,16 @@ typedef struct {
     char     bestTeams[48];
 } Record;
 
-static Record s_rec[kTargets];
+static Record s_rec[kStyles][kTargets];
 static int    s_recRead;
+
+/* the record of a target in the gameplay style being played */
+static Record *record_of(int32_t target)
+{
+    extern int _gGameplayStyle;
+    const int32_t style = _gGameplayStyle >= 0 && _gGameplayStyle < kStyles ? _gGameplayStyle : 0;
+    return &s_rec[style][target];
+}
 
 /* ---- the records ---- */
 
@@ -82,23 +93,32 @@ static void records_read(void)
     s_recRead = 1;
     if (!json)
         return;
-    for (int32_t i = 0; i < 64; i++) {
-        char q[64], key[24];
+    for (int32_t i = 0; i < kStyles * kTargets + 24; i++) {
+        extern const char *Gameplay_StyleName(int style);
+        char q[64], key[24], name[16];
         snprintf(q, sizeof q, "$.records[%d].target", (int)i);
         if (mjson_get_string(json, (int)size, q, key, (int)sizeof key) < 0)
             break;
+        int32_t style = 0;              /* (none: version 1's, the AMIGA style's) */
+        snprintf(q, sizeof q, "$.records[%d].style", (int)i);
+        if (mjson_get_string(json, (int)size, q, name, (int)sizeof name) >= 0) {
+            for (style = 0; style < kStyles && strcmp(name, Gameplay_StyleName((int)style)) != 0; style++) { }
+            if (style == kStyles)
+                continue;
+        }
+        Record *const rec = s_rec[style];
         for (int32_t t = 0; t < kTargets; t++) {
             if (strcmp(key, kTarget[t].key) != 0)
                 continue;
             long v;     /* (whole numbers: mjson_get_long, which the Amiga has -- no doubles there) */
             snprintf(q, sizeof q, "$.records[%d].played", (int)i);
-            if (mjson_get_long(json, (int)size, q, &v)) s_rec[t].played = (uint32_t)v;
+            if (mjson_get_long(json, (int)size, q, &v)) rec[t].played = (uint32_t)v;
             snprintf(q, sizeof q, "$.records[%d].best_frames", (int)i);
-            if (mjson_get_long(json, (int)size, q, &v)) s_rec[t].best = (uint32_t)v;
+            if (mjson_get_long(json, (int)size, q, &v)) rec[t].best = (uint32_t)v;
             snprintf(q, sizeof q, "$.records[%d].last_frames", (int)i);
-            if (mjson_get_long(json, (int)size, q, &v)) s_rec[t].last = (uint32_t)v;
+            if (mjson_get_long(json, (int)size, q, &v)) rec[t].last = (uint32_t)v;
             snprintf(q, sizeof q, "$.records[%d].best_teams", (int)i);
-            mjson_get_string(json, (int)size, q, s_rec[t].bestTeams, (int)sizeof s_rec[t].bestTeams);
+            mjson_get_string(json, (int)size, q, rec[t].bestTeams, (int)sizeof rec[t].bestTeams);
         }
     }
     free(json);
@@ -117,23 +137,29 @@ static void json_string(char *out, size_t cap, const char *s)   /* (quotes and b
 
 static void records_save(void)
 {
-    char buf[4096];
-    int n = snprintf(buf, sizeof buf, "{\n \"format\": \"openswos-speedrun\",\n \"version\": 1,\n \"records\": [\n");
-    for (int32_t t = 0; t < kTargets && n < (int)sizeof buf; t++) {
+    extern const char *Gameplay_StyleName(int style);
+    static char buf[16384];             /* (kStyles x kTargets records, under 300 bytes each) */
+    int n = snprintf(buf, sizeof buf, "{\n \"format\": \"openswos-speedrun\",\n \"version\": 2,\n \"records\": [\n");
+    int32_t written = 0;
+    for (int32_t i = 0; i < kStyles * kTargets && n < (int)sizeof buf; i++) {
+        const int32_t style = i / kTargets, t = i % kTargets;
+        const Record *rec = &s_rec[style][t];
+        if (!rec->played)
+            continue;
         char teams[100];
-        json_string(teams, sizeof teams, s_rec[t].bestTeams);
+        json_string(teams, sizeof teams, rec->bestTeams);
         n += snprintf(buf + n, sizeof buf - (size_t)n,
-                      "  { \"target\": \"%s\", \"played\": %u, \"best_frames\": %u, \"last_frames\": %u, "
-                      "\"best_teams\": \"%s\" }%s\n",
-                      kTarget[t].key, (unsigned)s_rec[t].played, (unsigned)s_rec[t].best, (unsigned)s_rec[t].last,
-                      teams, t + 1 < kTargets ? "," : "");
+                      "%s  { \"style\": \"%s\", \"target\": \"%s\", \"played\": %u, \"best_frames\": %u, "
+                      "\"last_frames\": %u, \"best_teams\": \"%s\" }",
+                      written++ ? ",\n" : "", Gameplay_StyleName((int)style), kTarget[t].key, (unsigned)rec->played,
+                      (unsigned)rec->best, (unsigned)rec->last, teams);
     }
-    n += snprintf(buf + n, sizeof buf - (size_t)n, " ]\n}\n");
+    n += snprintf(buf + n, sizeof buf - (size_t)n, "\n ]\n}\n");
     if (ModApi_SaveFile("speedrun", "records.json", buf, (uint32_t)n) != 0)
         fprintf(stderr, "[speedrun] could not save the records\n");
 }
 #else
-enum { kRecSize = 16 + 12 + 48 };
+enum { kRecSize1 = 16 + 12 + 48, kRecSize = 16 + 4 + 12 + 48 };
 
 static uint32_t be32(const uint8_t *p)
 {
@@ -152,21 +178,24 @@ static void records_read(void)
     s_recRead = 1;
     if (!p)
         return;
-    if (size >= 10 && memcmp(p, "OSWSPRN", 7) == 0 && p[7] == 1) {
+    if (size >= 10 && memcmp(p, "OSWSPRN", 7) == 0 && (p[7] == 1 || p[7] == 2)) {
         const uint32_t count = ((uint32_t)p[8] << 8) | p[9];
-        for (uint32_t i = 0; i < count && 10 + (i + 1) * kRecSize <= size; i++) {
-            const uint8_t *r = p + 10 + i * kRecSize;
+        const uint32_t each = p[7] == 1 ? kRecSize1 : kRecSize, skip = p[7] == 1 ? 0 : 4;
+        for (uint32_t i = 0; i < count && 10 + (i + 1) * each <= size; i++) {
+            const uint8_t *r = p + 10 + i * each;
+            const int32_t style = skip ? r[16] : 0;
             char key[16];
             memcpy(key, r, 16);
             key[15] = 0;
-            for (int32_t t = 0; t < kTargets; t++) {
+            for (int32_t t = 0; t < kTargets && style < kStyles; t++) {
                 if (strcmp(key, kTarget[t].key) != 0)
                     continue;
-                s_rec[t].played = be32(r + 16);
-                s_rec[t].best = be32(r + 20);
-                s_rec[t].last = be32(r + 24);
-                memcpy(s_rec[t].bestTeams, r + 28, 48);
-                s_rec[t].bestTeams[47] = 0;
+                Record *rec = &s_rec[style][t];
+                rec->played = be32(r + 16 + skip);
+                rec->best = be32(r + 20 + skip);
+                rec->last = be32(r + 24 + skip);
+                memcpy(rec->bestTeams, r + 28 + skip, 48);
+                rec->bestTeams[47] = 0;
             }
         }
     }
@@ -175,20 +204,26 @@ static void records_read(void)
 
 static void records_save(void)
 {
-    static uint8_t buf[10 + kTargets * kRecSize];
+    static uint8_t buf[10 + kStyles * kTargets * kRecSize];
+    uint32_t count = 0;
     memset(buf, 0, sizeof buf);
     memcpy(buf, "OSWSPRN", 7);
-    buf[7] = 1;
-    buf[9] = kTargets;
-    for (int32_t t = 0; t < kTargets; t++) {
-        uint8_t *r = buf + 10 + t * kRecSize;
+    buf[7] = 2;
+    for (int32_t i = 0; i < kStyles * kTargets; i++) {
+        const int32_t style = i / kTargets, t = i % kTargets;
+        const Record *rec = &s_rec[style][t];
+        if (!rec->played)
+            continue;
+        uint8_t *r = buf + 10 + count++ * kRecSize;
         memcpy(r, kTarget[t].key, strlen(kTarget[t].key));
-        put32(r + 16, s_rec[t].played);
-        put32(r + 20, s_rec[t].best);
-        put32(r + 24, s_rec[t].last);
-        memcpy(r + 28, s_rec[t].bestTeams, 47);
+        r[16] = (uint8_t)style;
+        put32(r + 20, rec->played);
+        put32(r + 24, rec->best);
+        put32(r + 28, rec->last);
+        memcpy(r + 32, rec->bestTeams, 47);
     }
-    if (ModApi_SaveFile("speedrun", "RECORDS.BIN", buf, (uint32_t)sizeof buf) != 0)
+    buf[9] = (uint8_t)count;
+    if (ModApi_SaveFile("speedrun", "RECORDS.BIN", buf, 10 + count * kRecSize) != 0)
         fprintf(stderr, "[speedrun] could not save the records\n");
 }
 #endif
@@ -445,17 +480,15 @@ static void sr_event(const ModMatchEvent *e)
         return;
     const uint8_t kind = kTarget[s_target].kind;
     int32_t met = 0;
-    if (e->team == s_you) {
-        if (e->kind == MODEVENT_GOAL || e->kind == MODEVENT_PENALTY_GOAL) {
-            s_goals++;
+    if (e->team == s_you) {         /* (a goal's team: the one it counts for) */
+        if (e->kind == MODEVENT_GOAL || e->kind == MODEVENT_PENALTY_GOAL || e->kind == MODEVENT_OWN_GOAL) {
+            s_goals++;              /* (their own goal is yours too, as SWOS 2020 counted the score) */
             met = (kind == T_GOALS && s_goals >= kTarget[s_target].goals) ||
-                  (kind == T_HEADER && (e->arg & MODGOAL_HEADER)) ||
+                  (kind == T_HEADER && (e->arg & MODGOAL_HEADER) && e->kind != MODEVENT_OWN_GOAL) ||
                   (kind == T_TACKLE && s_tackled && e->kind == MODEVENT_GOAL);
         }
         met = met || (kind == T_YELLOW && e->kind == MODEVENT_YELLOW_CARD) ||
               (kind == T_RED && (e->kind == MODEVENT_RED_CARD || e->kind == MODEVENT_SECOND_YELLOW));
-    } else if (e->kind == MODEVENT_OWN_GOAL && e->team == s_you) {
-        s_goals++;
     }
     /* TACKLE: your tackle stays the last thing that happened until something else does -- a
      * tackle of theirs, a foul, a card, an injury, a goal, a break (SWOS 2020 looked at the last
@@ -648,9 +681,10 @@ static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
             return played;
         again = 1;
         s_you = s_test || preset ? 0 : ModApi_ChosenIsPlayer(0) ? 0 : ModApi_ChosenIsPlayer(1) ? 1 : -1;
-        if (s_you < 0) {
-            fprintf(stderr, "[speedrun] no team is yours: pick one to play\n");
-            return played;
+        if (s_you < 0) {            /* (both the CPU's: said, and the teams again) */
+            ModApi_ShowError("SPEEDRUN: ONE OF THE TEAMS MUST BE YOURS");
+            again = 0;
+            continue;
         }
 #ifdef SWOS_SDL_BUILD
         if (!s_test && !preset && !retried && kTarget[target].kind != T_YELLOW && kTarget[target].kind != T_RED &&
@@ -705,7 +739,7 @@ static int32_t run_at(int32_t target, int32_t again, int32_t difficulty)
         played = 1;
         if (!s_recRead)
             records_read();
-        Record *rec = &s_rec[target];
+        Record *rec = record_of(target);
         rec->played++;
         rec->last = s_done ? s_doneAt : 0;
         if (s_done && (!rec->best || s_doneAt < rec->best)) {
@@ -749,7 +783,7 @@ static void menu_refresh(void)
         records_read();
     ModApi_MenuText(M_subTitle, "PICK A TARGET: YOUR BEST TIMES");
     for (int32_t i = 0; i < kRows; i++) {
-        time_text(s_best[i], sizeof s_best[i], s_rec[i].best);
+        time_text(s_best[i], sizeof s_best[i], record_of(i)->best);
         ModApi_MenuText(M_label0 + 2 * i, kTarget[i].name);
         ModApi_MenuText(M_label0 + 2 * i + 1, s_best[i]);
         ModApi_MenuVisible(M_label0 + 2 * i, 1);
@@ -858,7 +892,7 @@ static char s_time[16], s_bestNow[16], s_title[40];
 
 static void result_refresh(void)
 {
-    const Record *rec = &s_rec[s_target];
+    const Record *rec = record_of(s_target);
     time_text(s_time, sizeof s_time, s_done ? s_doneAt : 0);
     time_text(s_bestNow, sizeof s_bestNow, rec->best);
     snprintf(s_title, sizeof s_title, "%s: %s", kTarget[s_target].name,
@@ -947,9 +981,10 @@ static int32_t sr_service(const char *method, const char *args, char *out, uint3
         size_t n = 0;
         for (int32_t t = 0; t < kTargets && n < cap; t++) {
             char best[16];
-            time_text(best, sizeof best, s_rec[t].best);
+            const Record *rec = record_of(t);
+            time_text(best, sizeof best, rec->best);
             n += (size_t)snprintf(out + n, cap - n, "%d\t%s\t%u\t%u\t%s\n", (int)t, kTarget[t].name,
-                                  (unsigned)s_rec[t].played, (unsigned)s_rec[t].best, best);
+                                  (unsigned)rec->played, (unsigned)rec->best, best);
         }
         return 0;
     }

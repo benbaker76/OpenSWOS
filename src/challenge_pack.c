@@ -173,23 +173,37 @@ static int32_t number(const char *json, int len, const char *path, int32_t fallb
     return mjson_get_long(json, len, path, &v) ? (int32_t)v : fallback;
 }
 
+/* A string too long for its field cut short, ended (mjson leaves it unended, and says -1). */
+static int get_string(const char *json, int len, const char *path, char *to, int cap)
+{
+    const int r = mjson_get_string(json, len, path, to, cap);
+    if (r < 0 && cap > 0)
+        to[cap - 1] = 0;
+    return r;
+}
+
 int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, int32_t max)
 {
     char fmt[40] = "";
     mjson_get_string(json, len, "$.format", fmt, (int)sizeof fmt);
     if (strcmp(fmt, "openswos-challenges") != 0)
         return -1;
+    /* each challenge read on its own: a path through the whole file for every field took time by the
+     * square of their number -- seconds, with the hundreds a player may have fetched */
+    const char *list = NULL;
+    int listLen = 0, koff, klen, voff, vlen, vtype, off = 0;
+    if (mjson_find(json, len, "$.challenges", &list, &listLen) != MJSON_TOK_ARRAY)
+        return 0;
     int32_t n = 0;
-    for (int32_t i = 0; n < max; i++) {
+    while (n < max && (off = mjson_next(list, listLen, off, &koff, &klen, &voff, &vlen, &vtype)) != 0) {
+        const char *one = list + voff;
         char q[80], w[16] = "";
         ChallengeDef *c = &defs[n];
         memset(c, 0, sizeof *c);
-        snprintf(q, sizeof q, "$.challenges[%d].id", (int)i);
-        if (mjson_get_string(json, len, q, c->id, (int)sizeof c->id) < 0)
+        if (mjson_get_string(one, vlen, "$.id", c->id, (int)sizeof c->id) < 0)
             break;
-#define STR(field, key) snprintf(q, sizeof q, "$.challenges[%d]." key, (int)i), \
-                        mjson_get_string(json, len, q, c->field, (int)sizeof c->field)
-#define NUM(key, fb) (snprintf(q, sizeof q, "$.challenges[%d]." key, (int)i), number(json, len, q, fb))
+#define STR(field, key) get_string(one, vlen, "$." key, c->field, (int)sizeof c->field)
+#define NUM(key, fb) number(one, vlen, "$." key, fb)
         STR(name, "name");
         STR(about, "about");
         upper(c->name);
@@ -203,20 +217,20 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
         c->winScore[0] = (int8_t)NUM("win_score[0]", 0);
         c->winScore[1] = (int8_t)NUM("win_score[1]", 0);
         for (int32_t t = 0; t < 2; t++) {
-            snprintf(q, sizeof q, "$.challenges[%d].teams[%d].uuid", (int)i, (int)t);
-            mjson_get_string(json, len, q, c->teamUuid[t], (int)sizeof c->teamUuid[t]);
+            snprintf(q, sizeof q, "$.teams[%d].uuid", (int)t);
+            get_string(one, vlen, q, c->teamUuid[t], (int)sizeof c->teamUuid[t]);
             {
                 char hexNumber[8] = "";
-                snprintf(q, sizeof q, "$.challenges[%d].teams[%d].team", (int)i, (int)t);
-                if (mjson_get_string(json, len, q, hexNumber, (int)sizeof hexNumber) > 0)
+                snprintf(q, sizeof q, "$.teams[%d].team", (int)t);
+                if (get_string(one, vlen, q, hexNumber, (int)sizeof hexNumber) > 0)
                     c->teamNumber[t] = (uint16_t)strtol(hexNumber, NULL, 16);
             }
-            snprintf(q, sizeof q, "$.challenges[%d].teams[%d].name", (int)i, (int)t);
-            mjson_get_string(json, len, q, c->teamName[t], (int)sizeof c->teamName[t]);
+            snprintf(q, sizeof q, "$.teams[%d].name", (int)t);
+            get_string(one, vlen, q, c->teamName[t], (int)sizeof c->teamName[t]);
             upper(c->teamName[t]);
             for (int32_t k = 0; k < 11; k++) {
-                snprintf(q, sizeof q, "$.challenges[%d].sent_off[%d][%d]", (int)i, (int)t, (int)k);
-                const int32_t shirt = number(json, len, q, 0);
+                snprintf(q, sizeof q, "$.sent_off[%d][%d]", (int)t, (int)k);
+                const int32_t shirt = number(one, vlen, q, 0);
                 if (shirt <= 0)
                     break;
                 if (shirt < 32)
@@ -224,18 +238,18 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
             }
         }
         int b = 0;
-        snprintf(q, sizeof q, "$.challenges[%d].extra_time", (int)i);
-        c->extraTime = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        snprintf(q, sizeof q, "$.extra_time");
+        c->extraTime = (uint8_t)(mjson_get_bool(one, vlen, q, &b) && b);
         b = 0;
-        snprintf(q, sizeof q, "$.challenges[%d].penalties", (int)i);
-        c->penalties = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        snprintf(q, sizeof q, "$.penalties");
+        c->penalties = (uint8_t)(mjson_get_bool(one, vlen, q, &b) && b);
         /* where it starts (H6, H7): the pitch, the break, who has scored */
         c->pitchType = (int8_t)NUM("pitch_type", -1);
         c->pitchNumber = (uint8_t)NUM("pitch_number", 0);
         {
             char kind[16] = "";
-            snprintf(q, sizeof q, "$.challenges[%d].restart.kind", (int)i);
-            mjson_get_string(json, len, q, kind, (int)sizeof kind);
+            snprintf(q, sizeof q, "$.restart.kind");
+            get_string(one, vlen, q, kind, (int)sizeof kind);
             c->restartKind = !strcmp(kind, "corner") ? CHALLENGE_RESTART_CORNER
                            : !strcmp(kind, "free_kick") ? CHALLENGE_RESTART_FREE_KICK
                            : !strcmp(kind, "penalty") ? CHALLENGE_RESTART_PENALTY
@@ -250,12 +264,12 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
             const int32_t spot = NUM("restart.spot", 0);
             c->restartSpot = (int8_t)(spot < 0 ? -1 : spot > 7 ? 0 : spot);
             b = 0;
-            snprintf(q, sizeof q, "$.challenges[%d].restart.deep", (int)i);
-            c->restartDeep = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+            snprintf(q, sizeof q, "$.restart.deep");
+            c->restartDeep = (uint8_t)(mjson_get_bool(one, vlen, q, &b) && b);
         }
         /* version 2: SWOS 2020's scenarios */
         if (STR(category, "category") <= 0)
-            mjson_get_string(json, len, "$.category", c->category, (int)sizeof c->category);
+            get_string(json, len, "$.category", c->category, (int)sizeof c->category);
         upper(c->category);
         STR(title, "title");
         STR(recordName, "record_name");
@@ -264,8 +278,8 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
         upper(c->title);
         upper(c->winMessage);
         for (int32_t k = 0; k < 5; k++) {
-            snprintf(q, sizeof q, "$.challenges[%d].description[%d]", (int)i, (int)k);
-            mjson_get_string(json, len, q, c->lines[k], (int)sizeof c->lines[k]);
+            snprintf(q, sizeof q, "$.description[%d]", (int)k);
+            get_string(one, vlen, q, c->lines[k], (int)sizeof c->lines[k]);
             upper(c->lines[k]);
         }
         {
@@ -283,20 +297,20 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
         }
         {
             char et[16] = "";
-            snprintf(q, sizeof q, "$.challenges[%d].extra_time_rule", (int)i);
-            mjson_get_string(json, len, q, et, (int)sizeof et);
+            snprintf(q, sizeof q, "$.extra_time_rule");
+            get_string(one, vlen, q, et, (int)sizeof et);
             c->extraTimeRule = !strcmp(et, "golden_goal") ? CHALLENGE_ET_GOLDEN_GOAL
                              : !strcmp(et, "silver_goal") ? CHALLENGE_ET_SILVER_GOAL : CHALLENGE_ET_NORMAL;
         }
         b = 0;
-        snprintf(q, sizeof q, "$.challenges[%d].shootout", (int)i);
-        c->shootoutOnly = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        snprintf(q, sizeof q, "$.shootout");
+        c->shootoutOnly = (uint8_t)(mjson_get_bool(one, vlen, q, &b) && b);
         b = 0;
-        snprintf(q, sizeof q, "$.challenges[%d].locked", (int)i);
-        c->unavailable = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+        snprintf(q, sizeof q, "$.locked");
+        c->unavailable = (uint8_t)(mjson_get_bool(one, vlen, q, &b) && b);
         for (int32_t k = 0; k < CHALLENGE_UNLOCK_MAX; k++) {     /* "unlock_after": [categories] */
-            snprintf(q, sizeof q, "$.challenges[%d].unlock_after[%d]", (int)i, (int)k);
-            if (mjson_get_string(json, len, q, c->unlockAfter[k], (int)sizeof c->unlockAfter[k]) > 0)
+            snprintf(q, sizeof q, "$.unlock_after[%d]", (int)k);
+            if (get_string(one, vlen, q, c->unlockAfter[k], (int)sizeof c->unlockAfter[k]) > 0)
                 upper(c->unlockAfter[k]);
         }
         {
@@ -308,35 +322,35 @@ int32_t ChallengePack_FromJson(const char *json, int len, ChallengeDef *defs, in
             }
         }
         for (int32_t t = 0; t < 2; t++) {
-            snprintf(q, sizeof q, "$.challenges[%d].teams[%d].file", (int)i, (int)t);
-            mjson_get_string(json, len, q, c->teamFile[t], (int)sizeof c->teamFile[t]);
+            snprintf(q, sizeof q, "$.teams[%d].file", (int)t);
+            get_string(one, vlen, q, c->teamFile[t], (int)sizeof c->teamFile[t]);
             for (int32_t k = 0; k < 8; k++) {
-                snprintf(q, sizeof q, "$.challenges[%d].injured[%d][%d][0]", (int)i, (int)t, (int)k);
-                const int32_t shirt = number(json, len, q, 0);
+                snprintf(q, sizeof q, "$.injured[%d][%d][0]", (int)t, (int)k);
+                const int32_t shirt = number(one, vlen, q, 0);
                 if (shirt <= 0)
                     break;
-                snprintf(q, sizeof q, "$.challenges[%d].injured[%d][%d][1]", (int)i, (int)t, (int)k);
-                const int32_t level = number(json, len, q, 1);
+                snprintf(q, sizeof q, "$.injured[%d][%d][1]", (int)t, (int)k);
+                const int32_t level = number(one, vlen, q, 1);
                 c->injured[t][k].shirt = (uint8_t)shirt;
                 c->injured[t][k].level = (uint8_t)(level < 1 ? 1 : level > 7 ? 7 : level);
             }
         }
         for (int32_t k = 0; k < 8; k++) {
-            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].team", (int)i, (int)k);
-            const int32_t team = number(json, len, q, -1);
+            snprintf(q, sizeof q, "$.scorers[%d].team", (int)k);
+            const int32_t team = number(one, vlen, q, -1);
             c->scorers[k].team = (int8_t)(team == 0 || team == 1 ? team : -1);
             if (c->scorers[k].team < 0)
                 continue;
-            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].shirt", (int)i, (int)k);
-            c->scorers[k].shirt = (uint8_t)number(json, len, q, 0);
-            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].minute", (int)i, (int)k);
-            c->scorers[k].minute = (uint8_t)number(json, len, q, 0);
+            snprintf(q, sizeof q, "$.scorers[%d].shirt", (int)k);
+            c->scorers[k].shirt = (uint8_t)number(one, vlen, q, 0);
+            snprintf(q, sizeof q, "$.scorers[%d].minute", (int)k);
+            c->scorers[k].minute = (uint8_t)number(one, vlen, q, 0);
             b = 0;
-            snprintf(q, sizeof q, "$.challenges[%d].scorers[%d].penalty", (int)i, (int)k);
-            c->scorers[k].penalty = (uint8_t)(mjson_get_bool(json, len, q, &b) && b);
+            snprintf(q, sizeof q, "$.scorers[%d].penalty", (int)k);
+            c->scorers[k].penalty = (uint8_t)(mjson_get_bool(one, vlen, q, &b) && b);
         }
-        snprintf(q, sizeof q, "$.challenges[%d].win", (int)i);
-        mjson_get_string(json, len, q, w, (int)sizeof w);
+        snprintf(q, sizeof q, "$.win");
+        get_string(one, vlen, q, w, (int)sizeof w);
         c->win = !strcmp(w, "draw") ? CHALLENGE_DRAW : !strcmp(w, "exact") ? CHALLENGE_EXACT : CHALLENGE_WIN;
 #undef STR
 #undef NUM

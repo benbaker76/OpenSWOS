@@ -808,8 +808,10 @@ seconds), shown in seconds at the style's rate (`ModApi_FrameRate`: Amiga 50, DO
 target met ends the match (`ModApi_EndMatch`); the final whistle without it fails (MATCH: win it).
 Then YOUR TIME, YOUR BEST, PLAYED and TRY AGAIN (`ModApi_ChosenAgain`: the same two teams) or EXIT.
 The records are JSON of named fields (the owner: JSON is our format for data),
-`save/mods/speedrun/records.json` (`"format": "openswos-speedrun"`, per target `played`,
-`best_frames`, `last_frames`, `best_teams`). No leaderboard (a server's). The engine's new events
+`save/mods/speedrun/records.json` (`"format": "openswos-speedrun"`, version 2: per gameplay
+`style` and `target` -- the styles' frame rates differ, so each has its own -- `played`,
+`best_frames`, `last_frames`, `best_teams`; version 1 had no style and is read as AMIGA's). No
+leaderboard (a server's). The engine's new events
 for it (the map's G11, classified, not from the commentary): a goal's `arg` `MODGOAL_HEADER` (its
 scorer headed the ball within 75 frames: `headers.c` tells `ModMatch_Header`) and
 `MODEVENT_TACKLE` (a good tackle, `tackle_foul.c`). TACKLE is SWOS 2020's (2026-11-07, from its

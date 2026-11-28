@@ -352,6 +352,8 @@ uint16_t GetTextWidth(uint8_t *text, uint8_t *charsTable)
      * the frontend menus return sane values, which suggests sprite
      * slots that hold glyphs get reloaded between phases. */
     while ((ch = *text++) != 0) {
+        if (ch < ' ')               /* (a control character -- SWOS 2020's recordings have names */
+            continue;               /*  with them: no glyph, and its slot was past the table) */
         if (ch == ' ' || ch == '_') {     /* ('_' a space: a typed name's, input_text.c) */
             width += spaceWidth;
         } else {
@@ -388,6 +390,8 @@ uint16_t DrawMenuText(uint16_t x, uint16_t y, uint16_t color,
     uint8_t ch;
 
     while ((ch = *text++) != 0) {
+        if (ch < ' ')               /* (as GetTextWidth) */
+            continue;
         if (ch == ' ' || ch == '_') {     /* ('_' a space: a typed name's, input_text.c) */
             nextX = curX + (int16_t)spaceWidth;
             if (curX < 0) {

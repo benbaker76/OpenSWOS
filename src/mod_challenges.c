@@ -74,6 +74,9 @@
 #include "game_types.h"
 #include "mjson.h"
 #include "mods.h"
+#ifdef SWOS_SDL_BUILD
+#include "team_db.h"        /* (a database team's record: database_team) */
+#endif
 #include "swos_io.h"        /* (the Amiga's file read) */
 
 #include <stdarg.h>
@@ -84,7 +87,8 @@
 extern void SetExitMenuFlag(void);
 
 #ifdef SWOS_SDL_BUILD
-enum { kMax = 192 };                    /* (SWOS 2020's pack alone is 92) */
+enum { kMax = 1024 };                   /* (the packs, the player's own, and every challenge fetched
+                                         * from the site: SWOS 2020's players share hundreds) */
 #else
 enum { kMax = 112 };                    /* (each ~1.1 KB, and a stock A1200 has 2 MB) */
 #endif
@@ -215,7 +219,7 @@ static void read_file(const char *path)
 /* Progress of challenges not loaded now (a pack mod switched off): kept as it was read and
  * written back, so playing one challenge never loses another pack's. */
 typedef struct { char id[40]; uint8_t completed; uint32_t attempts; } Kept;
-enum { kKept = 256 };
+enum { kKept = 1024 };
 static Kept   *s_kept;
 static int32_t s_numKept;
 static void keep(const char *id, uint8_t completed, uint32_t attempts)
@@ -609,12 +613,30 @@ static int32_t won(const Challenge *c, const ModMatchResult *r)
     if (r->quit)
         return 0;
     const int32_t y = c->yours, t = 1 - y;
-    const int32_t mine = r->goals[y] * 100 + r->penaltyGoals[y], theirs = r->goals[t] * 100 + r->penaltyGoals[t];
+    /* a shoot-out played: its score alone, whatever the condition (SWOS 2020's scenarioWin) */
+    const int32_t shootout = r->penaltyGoals[0] || r->penaltyGoals[1];
+    const int16_t *g = shootout ? r->penaltyGoals : r->goals;
+    const int32_t mine = g[y], theirs = g[t];
     switch (c->win) {
     case W_DRAW: return mine >= theirs;
-    case W_EXACT: return r->goals[y] == c->winScore[0] && r->goals[t] == c->winScore[1];
+    case W_EXACT: return mine == c->winScore[0] && theirs == c->winScore[1];
     default: return mine > theirs;
     }
+}
+
+/* A challenge's database team: its number into *id. 0 when the database has none -- the number 0
+ * alone says nothing, as the first file's first team has it. */
+static int32_t database_team(const Challenge *c, int32_t t, uint16_t *id)
+{
+    *id = ModApi_TeamByUuidNumber(c->teamUuid[t], c->teamNumber[t]);
+    if (*id)
+        return 1;
+#ifdef SWOS_SDL_BUILD
+    const TeamDbEntry *first = TeamDb_Team(0, 0);
+    return first && c->teamUuid[t][0] && !strcmp(first->ids.uuid, c->teamUuid[t]);
+#else
+    return 0;
+#endif
 }
 
 static void play(int32_t i)
@@ -625,7 +647,8 @@ static void play(int32_t i)
     s_cur = i;
     for (int32_t t = 0; t < 2; t++) {
         fromFile[t] = c->teamFile[t][0] != 0;
-        if (fromFile[t] ? !file_team(c, t, &given[t]) : !ModApi_TeamByUuidNumber(c->teamUuid[t], c->teamNumber[t])) {
+        uint16_t id;
+        if (fromFile[t] ? !file_team(c, t, &given[t]) : !database_team(c, t, &id)) {
             fprintf(stderr, "[challenges] %s: a team is not in the database (or a pack that is on)\n", c->id);
             return;
         }
@@ -2130,15 +2153,22 @@ static int32_t service(const char *method, const char *args, char *out, uint32_t
             n = ChallengePack_FromJson(doc, (int)strlen(doc), def, 1);
             if (n == 0) {   /* (no id yet: the reader skips it) -- a new one */
                 char with[64];
-                snprintf(with, sizeof with, "custom-%u", (unsigned)ModApi_Ticks());
+                uint32_t at = ModApi_Ticks();
+                do
+                    snprintf(with, sizeof with, "custom-%u", (unsigned)at++);
+                while (find_id(with) >= 0);     /* (never one there is: it would be replaced) */
                 snprintf(doc, docCap, "{\"format\":\"openswos-challenges\",\"version\":2,\"challenges\":[{\"id\":\"%s\",%.*s]}",
                          with, objLen - 1, obj + 1);
                 n = ChallengePack_FromJson(doc, (int)strlen(doc), def, 1);
             }
         }
         free(doc);
-        if (n == 1 && !def->id[0])              /* ("id": "": a new one too) */
-            snprintf(def->id, sizeof def->id, "custom-%u", (unsigned)ModApi_Ticks());
+        if (n == 1 && !def->id[0]) {            /* ("id": "": a new one too) */
+            uint32_t at = ModApi_Ticks();
+            do
+                snprintf(def->id, sizeof def->id, "custom-%u", (unsigned)at++);
+            while (find_id(def->id) >= 0);
+        }
         if (n != 1 || s_count >= kMax) {
             free(def);
             return -1;

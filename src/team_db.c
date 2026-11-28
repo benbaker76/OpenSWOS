@@ -33,8 +33,8 @@
 #include "world.h"
 #include "endian_helpers.h"
 #include "swos_io.h"
+#include "rnc.h"
 
-extern int16_t LoadFileEx(uint8_t *filename, uint8_t *dest, uint32_t *outFileSize);
 extern int     DataJson_LoadTeamFileForCountry(int countryNum, unsigned char *teamFileBuf, int maxTeams);
 extern int     DataJson_LoadTeamIdsForCountry(int countryNum, struct TeamDbIds *out, int maxTeams);
 
@@ -107,15 +107,37 @@ static int32_t read_country(int32_t country, uint8_t *records, uint32_t size, Te
     }
     snprintf(name, sizeof name, "data/team.%03d", (int)country);
     {
-        /* LoadFileEx asks for the disk again, for ever, when a file is not there --
-         * and a country number from the other player's team may be any byte. */
-        char anchored[1024];
-        FILE *f = fopen(swos_data_path(name, anchored, (uint32_t)sizeof anchored), "rb");
-        if (!f)
+        /* Read here, not through LoadFileEx: that stages a file through the screen and then puts
+         * the screen's picture back, and a team is asked of the database in the middle of a
+         * match's drawing (the shoot-out's board, with TEAM.072's teams) -- where "the screen" is
+         * a mod's small buffer, and the restore ran far past it. (A country number from the other
+         * player's team may be any byte: no file, no teams.) */
+        uint8_t *file = NULL;
+        uint32_t n = 0;
+        if (swos_io_load_data_alloc(name, &file, &n) != 0)
             return 0;
-        fclose(f);
+        if (n >= 18 && file[0] == 'R' && file[1] == 'N' && file[2] == 'C' && (file[3] == 1 || file[3] == 2)) {
+            got = BE_READ_U32(file + 4);            /* (its unpacked size) */
+            /* (the unpacker looks a few bytes past the packed data's end: given room) */
+            uint8_t *packed = got <= size ? (uint8_t *)calloc((size_t)n + 16, 1) : NULL;
+            if (packed) {
+                memcpy(packed, file, n);
+                if (file[3] == 1)
+                    RncDecompressV1(packed, records);
+                else
+                    RncDecompressV2(packed, records);
+                free(packed);
+            } else {
+                got = 0;
+            }
+        } else {
+            got = n;
+            if (got <= size)
+                memcpy(records, file, got);
+        }
+        swos_io_free(file);
     }
-    if (LoadFileEx((uint8_t *)name, records, &got) != 0 || got < 2 || got > size)
+    if (got < 2 || got > size)
         return 0;
     count = BE_READ_U16(records);
     return (uint32_t)count * kTeamRecord + 2 <= got ? count : 0;

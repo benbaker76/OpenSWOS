@@ -1062,6 +1062,8 @@ uint16_t Text2Sprite(uint16_t xOff, uint16_t yOff, uint16_t dstSpriteIndex,
 
     /* Process each character */
     while ((ch = *text++) != 0) {
+        if (ch < ' ')               /* (a control character in a name: no glyph; text_render.c) */
+            continue;
         if (ch == ' ' || ch == '_') {     /* ('_' a space: a typed name's) */
             xOff += spaceWidth;
         } else {

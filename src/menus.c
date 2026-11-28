@@ -2826,9 +2826,6 @@ void ModesMenuSelected(void)
 
 void SWOSMainMenuInit(void)
 {
-#ifdef SWOS_SDL_BUILD
-    { extern void ModMatch_SelfTest(void); ModMatch_SelfTest(); }   /* (SWOS_MOD_MATCH_TEST) */
-#endif
     CommonMenuExit();
 }
 

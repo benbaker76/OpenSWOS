@@ -133,9 +133,17 @@ static int replay_fps_from_gamestyle(uint8_t gs)
     }
 }
 
+/* The goals' nets stand still: their sprites (our numbers) at world 300, 106 and 300, 751. */
+#define GOAL_TOP_SPR        1091
+#define GOAL_BOTTOM_SPR     1092
+#define GOAL_WORLD_X        300
+#define GOAL_TOP_WORLD_Y    106
+#define GOAL_BOTTOM_WORLD_Y 751
+
 static uint32_t convert_frames(const uint8_t *src, uint32_t srcLen, uint8_t *dst)
 {
     uint32_t si = 0, di = 0;
+    uint32_t cameraAt = 0xFFFFFFFFu;    /* the frame's camera marker, as written */
     int afterMarker = 0;  /* next two dwords after a marker are goals + anim */
     int isWide = 0;       /* recorded sprite span exceeds the 336 DOS/Amiga view */
     while (si + 4 <= srcLen) {
@@ -146,6 +154,7 @@ static uint32_t convert_frames(const uint8_t *src, uint32_t srcLen, uint8_t *dst
         if (d == 0xFFFFFFFFu) {
             out = 0xFFFFFFFFu;            /* scene terminator */
             afterMarker = 0;
+            cameraAt = 0xFFFFFFFFu;
         } else if (afterMarker == 1) {     /* goals: DOS t2<<16|t1 -> ours t1<<16|t2 */
             out = ((d & 0xFFFFu) << 16) | (d >> 16);
             afterMarker = 2;
@@ -156,12 +165,26 @@ static uint32_t convert_frames(const uint8_t *src, uint32_t srcLen, uint8_t *dst
             uint32_t v = d & 0x7FFFFFFFu;
             out = (((v & 0xFFFFu) << 16) | (v >> 16)) | 0x80000000u;
             afterMarker = 1;
+            cameraAt = di;
         } else {                           /* sprite: [idx:11][x:10][y:10], idx -= 114 */
             uint32_t idx = d >> 20;
             int32_t  x   = (int32_t)(d << 12) >> 22;
             int32_t  y   = (int32_t)(d << 22) >> 22;
             if (x < -40 || x > 360) isWide = 1;   /* sprite beyond the 336-wide DOS view */
             if (idx >= DOS_TO_AMIGA_SPR) idx -= DOS_TO_AMIGA_SPR;
+            /* SWOS 2020's recordings have a frame, where the camera jumps (a speedrun's end),
+             * whose marker is still the old camera while its sprites are drawn for the new one:
+             * played as it is, the whole picture leaps for that frame. A net is where it is: its
+             * sprite says which camera the frame was drawn for. */
+            if ((idx == GOAL_TOP_SPR || idx == GOAL_BOTTOM_SPR) && cameraAt != 0xFFFFFFFFu) {
+                const uint32_t cam = BE_READ_U32(dst + cameraAt);
+                const int32_t camX = (int16_t)((cam >> 16) & 0x7FFFu);
+                const int32_t newX = GOAL_WORLD_X - x;
+                const int32_t newY = ((idx == GOAL_TOP_SPR ? GOAL_TOP_WORLD_Y : GOAL_BOTTOM_WORLD_Y) - y) & 0x3FF;
+                if (camX != newX && newX >= 0 && newX <= 0x2A0 && newY <= 880)
+                    BE_WRITE_U32(dst + cameraAt, 0x80000000u | ((uint32_t)newX << 16) | (uint32_t)newY);
+                cameraAt = 0xFFFFFFFFu;     /* (the frame's first net decides) */
+            }
             out = ((idx & 0x7FF) << 20) |
                   (((uint32_t)x & 0x3FF) << 10) | ((uint32_t)y & 0x3FF);
             out &= ~0x80000000u;

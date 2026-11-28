@@ -22,6 +22,7 @@
 #include "game_types.h"
 #include "mod_hooks.h"
 #include "play_match_menu.h"
+#include "swos_io.h"       /* (ModApi_RandomTeamData: whether CUSTOMS.EDT is there) */
 #include "team_uuid.h"      /* (the Amiga: a team's number checked against its id) */
 #include "world.h"
 #ifdef SWOS_SDL_BUILD
@@ -505,6 +506,15 @@ int32_t ModApi_RandomTeamData(int32_t file, struct TeamFileEx *out)
     if (file != 100 && !DataJson_CountryHasTeamFile((int)file))
         return 0;
 #endif
+    if (file == 100) {          /* (no edited team saved yet: no CUSTOMS.EDT, and LoadTeamFile
+                                 *  would put up its error box -- on every try of a caller's) */
+        extern uint8_t _aCustomsEdt[];
+        uint8_t *data;
+        uint32_t size;
+        if (swos_io_load_alloc(_aCustomsEdt, &data, &size) != 0)
+            return 0;
+        swos_io_free(data);
+    }
     if (LoadTeamFile((uint16_t)file) != 0)
         return 0;
     if (!state)
@@ -658,10 +668,16 @@ void ModMatch_KickOff(void)
     s_endTold = 0;
     if (s_mm.active) {
         s_mm.shootoutDone = 0;
+        _team1PenaltyGoals = _team2PenaltyGoals = 0;   /* (the last shoot-out's, else, in this result) */
         const int16_t g1 = s_mm.setup.score[0] > 0 ? s_mm.setup.score[0] : 0;
         const int16_t g2 = s_mm.setup.score[1] > 0 ? s_mm.setup.score[1] : 0;
-        _team1TotalGoals = _statsTeam1Goals = (uint16_t)g1;
-        _team2TotalGoals = _statsTeam2Goals = (uint16_t)g2;
+        /* the stats' goals are this match's; the total, a second leg's, is the tie's aggregate (what
+         * UpdateTime decides extra time and penalties by, as SWOS 2020's scenarios count it) */
+        const int32_t second = s_mm.setup.secondLeg;
+        _statsTeam1Goals = (uint16_t)g1;
+        _statsTeam2Goals = (uint16_t)g2;
+        _team1TotalGoals = (uint16_t)(g1 + (second && s_mm.setup.firstLeg[0] > 0 ? s_mm.setup.firstLeg[0] : 0));
+        _team2TotalGoals = (uint16_t)(g2 + (second && s_mm.setup.firstLeg[1] > 0 ? s_mm.setup.firstLeg[1] : 0));
         _team1GoalsDigit1 = (uint16_t)(g1 / 10);
         _team1GoalsDigit2 = (uint16_t)(g1 % 10);
         _team2GoalsDigit1 = (uint16_t)(g2 / 10);
@@ -701,8 +717,11 @@ void ModMatch_Sides(void)
     extern uint16_t _teamPlayingUp, _teamStarting;
     if (!s_mm.active)
         return;
+    /* playingUp: the team attacking the top goal. The game's teamPlayingUp is the other way
+     * about from its index: 2 is team 0 attacking up, 1 team 0 attacking down (SWOS 2020's
+     * "UP" / "DOWN") -- set as playingUp + 1, every mod's match attacked the wrong way */
     if (s_mm.setup.playingUp == 0 || s_mm.setup.playingUp == 1)
-        _teamPlayingUp = (uint16_t)(s_mm.setup.playingUp + 1);
+        _teamPlayingUp = (uint16_t)(s_mm.setup.playingUp == 0 ? 2 : 1);
     if (s_mm.setup.kickOff == 0 || s_mm.setup.kickOff == 1)
         _teamStarting = (uint16_t)(s_mm.setup.kickOff + 1);
 }
@@ -1109,6 +1128,9 @@ static void preload_scorers(void)
     const uintptr_t current = _currentScorer;
     TeamGeneralInfo *const lastTeam = _lastTeamScored;
     const int16_t penalty = _penalty;
+    /* (GoalScored counts the goal too: the score is setup.score's already) */
+    const uint16_t counts[8] = { _team1TotalGoals, _team2TotalGoals, _statsTeam1Goals, _statsTeam2Goals,
+                                 _team1GoalsDigit1, _team1GoalsDigit2, _team2GoalsDigit1, _team2GoalsDigit2 };
     uint8_t keepTime[4];
     memcpy(keepTime, &_gameTime, 4);
 
@@ -1150,6 +1172,14 @@ static void preload_scorers(void)
             }
     }
     memcpy(&_gameTime, keepTime, 4);
+    _team1TotalGoals = counts[0];
+    _team2TotalGoals = counts[1];
+    _statsTeam1Goals = counts[2];
+    _statsTeam2Goals = counts[3];
+    _team1GoalsDigit1 = counts[4];
+    _team1GoalsDigit2 = counts[5];
+    _team2GoalsDigit1 = counts[6];
+    _team2GoalsDigit2 = counts[7];
     _goalScored = goalScored;
     _runSlower = runSlower;
     _lastTeamScoredNumber = lastNum;
@@ -1446,6 +1476,8 @@ static void test_friendly(const char *ids)
     exit(0);
 }
 
+void ModMatch_SelfTest(void);
+
 /* (the menus' frame, menu_system.c: on the main menu, once it has faded in -- a match started at its
  *  init plays on a black palette) */
 void ModMatch_TestFriendlyTick(void)
@@ -1477,11 +1509,17 @@ void ModMatch_TestFriendlyTick(void)
     static const void *first;                  /* (the menu the game opened on: the main menu, the
                                                  *  original's or a mod's -- menus2020's has its own
                                                  *  onInit, so the original's check missed it) */
+    static int32_t mainFrames;
     if (!first)
         first = _currentMenu;
-    if (done || !getenv("SWOS_TEST_FRIENDLY") ||
-        (((const Menu *)_currentMenu)->onInit != (MenuVoidFn)SWOSMainMenuInit &&
-         (const void *)_currentMenu != first) || ++frames < 25)
+    const int32_t onMain = ((const Menu *)_currentMenu)->onInit == (MenuVoidFn)SWOSMainMenuInit ||
+                           (const void *)_currentMenu == first;
+    /* SWOS_MOD_MATCH_TEST: here too, not at the main menu's init -- the front end is still being
+     * set up then, and a match started there crashed */
+    if (onMain && getenv("SWOS_MOD_MATCH_TEST") && strcmp(getenv("SWOS_MOD_MATCH_TEST"), "entry") != 0 &&
+        ++mainFrames == 25)
+        ModMatch_SelfTest();
+    if (done || !getenv("SWOS_TEST_FRIENDLY") || !onMain || ++frames < 25)
         return;
     done = 1;
     test_friendly(getenv("SWOS_TEST_FRIENDLY"));

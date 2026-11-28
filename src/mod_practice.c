@@ -152,22 +152,29 @@ static void practice_shootout(void)
 {
     ModMatchSetup setup;
     static TeamFileEx teams[2];
-    s_stPick = -2;
-    ModApi_ShowMenu("practice/shootoutTeamsMenu");
-    if (s_stPick == -2)
-        return;
-    ModApi_DefaultSetup(&setup);
-    if (s_stPick == -1) {
-        if (!ModApi_ChooseTeamsTitled("SHOOTOUT", "START SHOOTOUT"))
+    for (;;) {
+        s_stPick = -2;
+        ModApi_ShowMenu("practice/shootoutTeamsMenu");
+        if (s_stPick == -2)
             return;
-        setup.chosen = 1;
-    } else {
-        if (!random_pair(s_stPick == -3 ? GRP_ALL : s_stPick, teams))
-            return;
+        ModApi_DefaultSetup(&setup);
+        if (s_stPick == -1) {
+            if (!ModApi_ChooseTeamsTitled("SHOOTOUT", "START SHOOTOUT"))
+                return;
+            setup.chosen = 1;
+            break;
+        }
+        if (!random_pair(s_stPick == -3 ? GRP_ALL : s_stPick, teams)) {
+            /* (CUSTOM with fewer than two edited teams: said, and the groups again) */
+            ModApi_ShowError(s_stPick == GRP_CUSTOM ? "TWO EDITED CUSTOM TEAMS ARE NEEDED"
+                                                    : "NO TWO TEAMS OF THAT GROUP");
+            continue;
+        }
         setup.teamData[0] = &teams[0];
         setup.teamData[1] = &teams[1];
         setup.side[0] = MODSIDE_PLAYER1;    /* (cGame.control1 2, control2 1) */
         setup.side[1] = MODSIDE_CPU;
+        break;
     }
     shootout_play(&setup);
 }
@@ -217,8 +224,9 @@ static void shootout_play(ModMatchSetup *setup0)
 static void shootout_test_menu(void)
 {
     static TeamFileEx teams[2];
+    static int32_t drawn;               /* (not at the first draw: as the training's test below) */
     ModMatchSetup setup;
-    if (s_test != 1 || !ModApi_IsMainMenu() || s_shootout)
+    if (s_test != 1 || !ModApi_IsMainMenu() || s_shootout || ++drawn < 10)
         return;
     if (!random_pair(GRP_ALL, teams)) {
         fprintf(stderr, "[practice] shoot-out test: no two random teams\n");
@@ -898,9 +906,8 @@ static int32_t training_key(const char *key)
 }
 
 /* The match's end the player's team (team 0) attacks: 1 the top goal. From where its goalkeeper
- * is -- in the half of the goal he keeps -- not from the UP / DOWN setting: what that setting gives
- * the match (setup.playingUp) is the game's teamPlayingUp, and the free kicks went to the goal the
- * team defends (Playa, 2026-11-15). The setting's side only when no keeper is found. */
+ * is -- in the half of the goal he keeps -- whatever the match was set up with (Playa, 2026-11-15).
+ * The UP / DOWN setting's side only when no keeper is found. */
 static int32_t tr_attacks_top(void)
 {
     ModPlayer pl[22];
@@ -1078,7 +1085,9 @@ static void practice_kept(void)
 static void practice_training(void);
 static void training_test_menu(void)
 {
-    if (s_trTest != 1 || !ModApi_IsMainMenu())
+    static int32_t drawn;               /* (not at the first draw: the front end is still being set
+                                         *  up then, and a match started there crashed) */
+    if (s_trTest != 1 || !ModApi_IsMainMenu() || ++drawn < 10)
         return;
     s_trTest = 2;
     s_trLine[1][0] = s_trLine[1][1] = s_trLine[1][2] = 1;
@@ -1188,7 +1197,7 @@ static void practice_training(void)
                                           (s_trLine[t][2] ? 0 : MODLINE_ATTACK));
         if (s_trGhost)
             setup.ghosts[1] = 0x7FE;        /* (the CPU's outfielders: its keeper is always seen) */
-        setup.playingUp = (int8_t)(s_trUp ? 0 : 1);   /* (DOWN: teamPlayingUp 1, team 1 attacks down) */
+        setup.playingUp = (int8_t)(s_trUp ? 0 : 1);   /* (UP: team 0 attacks the top goal) */
         setup.kickOff = 0;
         setup.kickOffAlways = 1;            /* (every kick-off the player's: after a goal it was the
                                              *  CPU's, whose keeper -- its only man seen -- walked up
